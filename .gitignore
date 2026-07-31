@@ -1,0 +1,29 @@
+# Node (frontend + backend)
+node_modules/
+dist/
+.angular/
+npm-debug.log*
+
+# Environment secrets — never commit these
+.env
+.env.local
+*.env
+
+# Python (sync-py)
+backend/sync-py/venv/
+backend/sync-py/__pycache__/
+backend/sync-py/*.pyc
+
+# Throwaway exploration scripts used while confirming API shapes —
+# not part of the shipped project
+backend/sync-py/explore*.py
+backend/sync-py/fetch_standings.py
+backend/sync-py/fetch_players.py
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/

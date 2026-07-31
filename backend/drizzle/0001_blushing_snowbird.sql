@@ -1,0 +1,1 @@
+ALTER TABLE "team_season_stats" ADD COLUMN "position" integer;

@@ -1,0 +1,33 @@
+{
+  "name": "euroleague-app-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development"
+  },
+  "dependencies": {
+    "@angular/animations": "20.3.27",
+    "@angular/common": "20.3.27",
+    "@angular/compiler": "20.3.27",
+    "@angular/core": "20.3.27",
+    "@angular/forms": "20.3.27",
+    "@angular/platform-browser": "20.3.27",
+    "@angular/router": "20.3.27",
+    "chart.js": "^4.4.3",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.6.0",
+    "zone.js": "~0.15.0"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "20.3.32",
+    "@angular/cli": "20.3.32",
+    "@angular/compiler-cli": "20.3.27",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.4",
+    "typescript": "~5.8.0"
+  }
+}
