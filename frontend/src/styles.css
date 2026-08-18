@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -10,9 +10,5 @@
 }
 
 body {
-  @apply bg-ink text-slate-100 font-sans m-0;
-}
-
-.font-display {
-  @apply uppercase tracking-wide;
+  @apply bg-page text-ink font-sans m-0;
 }

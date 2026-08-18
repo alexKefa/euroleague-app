@@ -7,6 +7,10 @@ import { standingsRouter } from "./routes/standings.js";
 import { authRouter } from "./routes/auth.js";
 import { usersRouter } from "./routes/users.js";
 import { playersRouter } from "./routes/players.js";
+import { newsRouter } from "./routes/news.js";
+import { gamesRouter } from "./routes/games.js";
+import { predictionsRouter } from "./routes/predictions.js";
+import { collectiblesRouter } from "./routes/collectibles.js";
 
 const app = express();
 const port = process.env.PORT ? Number(process.env.PORT) : 4000;
@@ -24,9 +28,12 @@ app.use("/api/standings", standingsRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/players", playersRouter);
+app.use("/api/news", newsRouter);
+app.use("/api/games", gamesRouter);
+app.use("/api/predictions", predictionsRouter);
+app.use("/api/collectibles", collectiblesRouter);
 
 // Route modules get mounted here as they're built:
-// app.use("/api/games", gamesRouter);
 // app.use("/api/notifications", notificationsRouter);
 
 app.listen(port, () => {

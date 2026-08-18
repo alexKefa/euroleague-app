@@ -1,0 +1,64 @@
+<div class="relative w-full" [style.max-width.px]="maxWidth" style="aspect-ratio: 2.5 / 3.5">
+  <div
+    class="w-full h-full rounded-2xl transition-[filter] duration-300"
+    [style.padding.px]="7"
+    [style.background]="style.frameBackground"
+    [style.box-shadow]="style.frameShadow"
+    [style.filter]="unlocked ? 'none' : 'grayscale(0.75) brightness(0.55)'"
+  >
+    <div
+      class="relative w-full h-full rounded-xl overflow-hidden flex flex-col"
+      [style.background]="style.faceBackground"
+    >
+      @if (style.showHolo) {
+        <div class="holo-sweep absolute pointer-events-none"></div>
+      }
+
+      <div
+        class="absolute top-2 right-2 flex items-center gap-1 rounded-full z-10"
+        style="padding: 3px 8px 3px 6px"
+        [style.background]="style.badgeBackground"
+      >
+        <span class="text-[8px] font-extrabold tracking-wider" [style.color]="style.badgeTextColor">{{
+          style.badgeLabel
+        }}</span>
+      </div>
+
+      <div
+        class="relative flex items-center justify-center overflow-hidden"
+        style="flex: 0 0 55%"
+        [style.background]="style.photoTint"
+      >
+        @if (imageUrl) {
+          <img [src]="imageUrl" [alt]="name" class="absolute inset-0 w-full h-full object-cover" />
+        } @else {
+          <svg width="52%" height="70%" viewBox="0 0 120 150" fill="none">
+            <circle cx="60" cy="50" r="30" stroke="rgba(255,255,255,0.5)" stroke-width="3" />
+            <path
+              d="M12 148c0-34 21-52 48-52s48 18 48 52"
+              stroke="rgba(255,255,255,0.5)"
+              stroke-width="3"
+              stroke-linecap="round"
+            />
+          </svg>
+        }
+      </div>
+
+      <div class="flex-1 flex flex-col justify-center gap-1 px-3 py-2 min-h-0">
+        <div class="text-[13px] font-extrabold leading-tight truncate" [style.color]="style.nameColor">
+          {{ name }}
+        </div>
+        <div class="text-[9px] font-bold tracking-wide" [style.color]="style.metaColor">{{ teamCode }}</div>
+      </div>
+    </div>
+  </div>
+
+  @if (!unlocked) {
+    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+        <rect x="5" y="10" width="14" height="10" rx="2" stroke="#F5F7F6" stroke-width="1.8" />
+        <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="#F5F7F6" stroke-width="1.8" />
+      </svg>
+    </div>
+  }
+</div>

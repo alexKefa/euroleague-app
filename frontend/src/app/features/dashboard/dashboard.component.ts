@@ -1,7 +1,7 @@
 import {
   Component,
   OnInit,
-  AfterViewInit,
+  AfterViewChecked,
   OnDestroy,
   ElementRef,
   ViewChild,
@@ -16,7 +16,7 @@ import { Chart, registerables, ChartData } from "chart.js";
 import { ApiService } from "../../core/api.service";
 import { ThemeService } from "../../core/theme.service";
 import { AuthService } from "../../core/auth.service";
-import { StandingsRow, LeaderEntry } from "../../core/models";
+import { StandingsRow, LeaderEntry, NewsArticle, Game } from "../../core/models";
 
 Chart.register(...registerables);
 
@@ -27,6 +27,17 @@ const RADAR_AXES: { key: keyof StandingsRow["stats"]; label: string }[] = [
   { key: "astPct", label: "Playmaking" },
 ];
 
+const LEADER_CATEGORIES = [
+  { value: "points", label: "PTS" },
+  { value: "rebounds", label: "REB" },
+  { value: "assists", label: "AST" },
+  { value: "steals", label: "STL" },
+  { value: "blocks", label: "BLK" },
+  { value: "valuation", label: "PIR" },
+] as const;
+
+type LeaderCategory = (typeof LEADER_CATEGORIES)[number]["value"];
+
 @Component({
   selector: "app-dashboard",
   standalone: true,
@@ -34,7 +45,7 @@ const RADAR_AXES: { key: keyof StandingsRow["stats"]; label: string }[] = [
   templateUrl: "./dashboard.component.html",
   styleUrl: "./dashboard.component.css",
 })
-export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
+export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
   private api = inject(ApiService);
   private theme = inject(ThemeService);
   private auth = inject(AuthService);
@@ -47,6 +58,10 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly error = signal<string | null>(null);
   readonly selectedTeamId = signal<string | null>(null);
   readonly leaders = signal<LeaderEntry[]>([]);
+  readonly leaderCategory = signal<LeaderCategory>("points");
+  readonly leaderCategories = LEADER_CATEGORIES;
+  readonly news = signal<NewsArticle[]>([]);
+  readonly nextGame = signal<Game | null>(null);
 
   readonly selectedRow = computed(
     () => this.standings().find((r) => r.team.id === this.selectedTeamId()) ?? null
@@ -99,10 +114,12 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.api.getLeaders("points", 5).subscribe({
-      next: (rows) => this.leaders.set(rows),
-      error: () => {}, // non-critical widget — fail quietly, standings error already covers the main failure mode
+    this.api.getNews(3).subscribe({
+      next: (articles) => this.news.set(articles),
+      error: () => {}, // non-critical widget
     });
+
+    this.selectLeaderCategory("points");
 
     this.api.getStandings().subscribe({
       next: (rows) => {
@@ -123,16 +140,17 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  ngAfterViewInit(): void {
-    if (!this.radarCanvasRef) return;
-    this.chart = new Chart(this.radarCanvasRef.nativeElement, {
-      type: "radar",
-      data: this.radarChartData(),
-      options: {
-        responsive: true,
-        scales: { r: { beginAtZero: true, ticks: { display: false } } },
-      },
-    });
+  ngAfterViewChecked(): void {
+    if (!this.chart && this.radarCanvasRef) {
+      this.chart = new Chart(this.radarCanvasRef.nativeElement, {
+        type: "radar",
+        data: this.radarChartData(),
+        options: {
+          responsive: true,
+          scales: { r: { beginAtZero: true, ticks: { display: false } } },
+        },
+      });
+    }
   }
 
   ngOnDestroy(): void {
@@ -144,9 +162,34 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     const row = this.standings().find((r) => r.team.id === teamId);
     this.theme.applyTeam(row?.team ?? null);
 
+    this.nextGame.set(null);
+    this.api.getTeamGames(teamId).subscribe({
+      next: (games) => {
+        const next = games.find((g) => g.status === "scheduled") ?? null;
+        this.nextGame.set(next);
+      },
+      error: () => {}, // non-critical widget
+    });
+
     if (persist && this.auth.isAuthenticated()) {
       this.auth.updateFavoriteTeam(teamId).subscribe();
     }
+  }
+
+  selectLeaderCategory(category: LeaderCategory): void {
+    this.leaderCategory.set(category);
+    this.api.getLeaders(category, 5).subscribe({
+      next: (rows) => this.leaders.set(rows),
+      error: () => {}, // non-critical widget — fail quietly, standings error already covers the main failure mode
+    });
+  }
+
+  isHomeGame(game: Game): boolean {
+    return game.homeTeam.id === this.selectedTeamId();
+  }
+
+  opponentCode(game: Game): string {
+    return this.isHomeGame(game) ? game.awayTeam.code : game.homeTeam.code;
   }
 
   private withAlpha(hex: string, alpha: number): string {

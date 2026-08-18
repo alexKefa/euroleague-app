@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, desc, asc } from "drizzle-orm";
+import { eq, asc, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { teams, teamSeasonStats } from "../db/schema.js";
 
@@ -7,19 +7,27 @@ export const standingsRouter = Router();
 
 standingsRouter.get("/", async (_req, res) => {
   try {
-    // Pick whichever season has been synced most recently. Works for a
-    // single active season; if you're ever tracking multiple seasons at
-    // once, swap this for an explicit ?season= query param.
-    const latest = await db
-      .select({ season: teamSeasonStats.season })
+    // Pick whichever season has actually been played the most — NOT
+    // whichever season string sorts alphabetically latest. A season
+    // that's been synced for team-identity purposes before it starts
+    // (e.g. round 1, to pick up a newly promoted club) would otherwise
+    // incorrectly "win" with an all-zero standings table over a completed
+    // season with real games. If you're ever tracking multiple seasons
+    // at once deliberately, swap this for an explicit ?season= param.
+    const mostActive = await db
+      .select({
+        season: teamSeasonStats.season,
+        totalGames: sql<number>`sum(${teamSeasonStats.wins} + ${teamSeasonStats.losses})`,
+      })
       .from(teamSeasonStats)
-      .orderBy(desc(teamSeasonStats.season))
+      .groupBy(teamSeasonStats.season)
+      .orderBy(sql`sum(${teamSeasonStats.wins} + ${teamSeasonStats.losses}) desc`)
       .limit(1);
 
-    if (latest.length === 0) {
+    if (mostActive.length === 0) {
       return res.json([]);
     }
-    const season = latest[0].season;
+    const season = mostActive[0].season;
 
     const rows = await db
       .select({ team: teams, stats: teamSeasonStats })

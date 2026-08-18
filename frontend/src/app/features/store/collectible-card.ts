@@ -1,0 +1,104 @@
+import { Component, Input } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { CollectibleTier } from "../../core/models";
+
+interface TierStyle {
+  frameBackground: string;
+  frameShadow: string;
+  faceBackground: string;
+  badgeBackground: string;
+  badgeTextColor: string;
+  badgeLabel: string;
+  nameColor: string;
+  metaColor: string;
+  photoTint: string;
+  showHolo: boolean;
+}
+
+const DEFAULT_TEAM_COLOR = "#3E7CB1";
+
+/**
+ * Renders a reward-store card. There's no photo pipeline yet (see
+ * CLAUDE.md), so the "art" is entirely generated here from tier + team
+ * color — a real photo can slot into the photo area later without
+ * changing this component's contract.
+ */
+@Component({
+  selector: "app-collectible-card",
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: "./collectible-card.html",
+  styleUrl: "./collectible-card.css",
+})
+export class CollectibleCardComponent {
+  @Input({ required: true }) name!: string;
+  @Input({ required: true }) tier!: CollectibleTier;
+  @Input() teamCode = "";
+  @Input() teamColor: string | null = null;
+  @Input() imageUrl: string | null = null;
+  @Input() unlocked = false;
+  @Input() maxWidth = 220;
+
+  private shade(hex: string, factor: number): string {
+    const h = hex.replace("#", "");
+    const r = parseInt(h.substring(0, 2), 16) || 0;
+    const g = parseInt(h.substring(2, 4), 16) || 0;
+    const b = parseInt(h.substring(4, 6), 16) || 0;
+    const clamp = (n: number) => Math.max(0, Math.min(255, Math.round(n)));
+    return `rgb(${clamp(r * factor)}, ${clamp(g * factor)}, ${clamp(b * factor)})`;
+  }
+
+  get style(): TierStyle {
+    const accent = this.teamColor ?? DEFAULT_TEAM_COLOR;
+    const accentDark = this.shade(accent, 0.35);
+    const accentDeep = this.shade(accent, 0.16);
+    const accentSoft = this.shade(accent, 0.55);
+
+    if (this.tier === "rare") {
+      return {
+        frameBackground:
+          "linear-gradient(135deg, #cfd6dc 0%, #f5f7f9 25%, #aab2ba 50%, #f5f7f9 75%, #cfd6dc 100%)",
+        frameShadow:
+          "0 0 0 1px rgba(255,255,255,0.4) inset, 0 8px 20px rgba(20,26,32,0.3), 0 0 24px rgba(120,170,190,0.2)",
+        faceBackground: `linear-gradient(160deg, ${accentDark} 0%, ${accentDeep} 55%, #0b0f0d 100%)`,
+        badgeBackground: "linear-gradient(135deg, #b9c1c8 0%, #eef1f3 50%, #9aa3ab 100%)",
+        badgeTextColor: "#1c2226",
+        badgeLabel: "RARE",
+        nameColor: "#F5F7F6",
+        metaColor: "rgba(245,247,246,0.72)",
+        photoTint: `linear-gradient(160deg, ${accentSoft} 0%, ${accentDeep} 100%)`,
+        showHolo: false,
+      };
+    }
+
+    if (this.tier === "legendary") {
+      return {
+        frameBackground:
+          "linear-gradient(135deg, #7a5b12 0%, #f4d675 22%, #fff6d8 40%, #caa53a 58%, #fff2c9 76%, #6e4e10 100%)",
+        frameShadow:
+          "0 0 0 1px rgba(255,235,180,0.5) inset, 0 10px 26px rgba(0,0,0,0.45), 0 0 36px rgba(230,180,60,0.4)",
+        faceBackground: `radial-gradient(120% 90% at 50% 0%, ${accentDark} 0%, #05070a 60%)`,
+        badgeBackground: "linear-gradient(135deg, #9c7415 0%, #f7dd85 30%, #fffbe8 50%, #e0ac36 70%, #855f10 100%)",
+        badgeTextColor: "#241804",
+        badgeLabel: "LEGENDARY",
+        nameColor: "#FFF7E0",
+        metaColor: "rgba(255,247,224,0.75)",
+        photoTint: `radial-gradient(120% 100% at 50% 10%, ${accentSoft} 0%, #05070a 70%)`,
+        showHolo: true,
+      };
+    }
+
+    return {
+      frameBackground: accent,
+      frameShadow: "0 4px 12px rgba(0,0,0,0.15)",
+      faceBackground: "#FBFDFC",
+      badgeBackground: "#E7E9EC",
+      badgeTextColor: "#5B6169",
+      badgeLabel: "COMMON",
+      nameColor: "#14161A",
+      metaColor: "#5B6169",
+      photoTint: "linear-gradient(160deg, #EEF3F0 0%, #E2E9E4 100%)",
+      showHolo: false,
+    };
+  }
+}

@@ -7,10 +7,11 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
-    "db:generate": "drizzle-kit generate",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio",
-    "sync:standings": "tsx src/sync/runSync.ts"
+    "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
+    "db:push": "drizzle-kit push --config=drizzle.config.ts",
+    "db:studio": "drizzle-kit studio --config=drizzle.config.ts",
+    "sync:standings": "tsx src/sync/runSync.ts",
+    "sync:news": "tsx src/sync/runNewsSync.ts"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
@@ -23,7 +24,8 @@
     "firebase-admin": "^12.3.1",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
-    "postgres": "^3.4.4"
+    "postgres": "^3.4.4",
+    "rss-parser": "^3.13.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

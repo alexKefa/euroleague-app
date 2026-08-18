@@ -27,6 +27,7 @@ function publicUser(user: typeof users.$inferSelect) {
     email: user.email,
     favoriteTeamId: user.favoriteTeamId,
     avatarUrl: user.avatarUrl,
+    isAdmin: user.isAdmin,
   };
 }
 

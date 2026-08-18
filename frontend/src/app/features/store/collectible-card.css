@@ -1,0 +1,20 @@
+.holo-sweep {
+  inset: -45%;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.35) 48%,
+    rgba(255, 210, 120, 0.28) 52%,
+    transparent 70%
+  );
+  animation: holo-sweep 5s ease-in-out infinite alternate;
+}
+
+@keyframes holo-sweep {
+  0% {
+    transform: translateX(-35%) translateY(-12%) rotate(10deg);
+  }
+  100% {
+    transform: translateX(35%) translateY(12%) rotate(10deg);
+  }
+}

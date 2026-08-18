@@ -1,57 +1,99 @@
-<div class="max-w-3xl mx-auto p-4 sm:p-6">
+<div class="max-w-3xl lg:max-w-5xl mx-auto p-4 sm:p-6">
   @if (loading()) {
-    <p class="text-muted text-sm font-mono">Loading standings…</p>
+    <div class="animate-pulse">
+      <div class="rounded-3xl h-[168px] bg-line mb-6"></div>
+      <div class="h-3 w-32 bg-line rounded mb-3"></div>
+      <div class="flex flex-wrap gap-2 mb-6">
+        @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+          <div class="h-9 w-16 bg-line rounded-full"></div>
+        }
+      </div>
+      <div class="grid gap-5 sm:grid-cols-2">
+        <div class="h-64 bg-line rounded-2xl"></div>
+        <div class="h-64 bg-line rounded-2xl"></div>
+      </div>
+    </div>
   }
 
   @if (error()) {
-    <p class="text-red-400 text-sm">{{ error() }}</p>
+    <p class="text-red-600 text-sm font-semibold">{{ error() }}</p>
   }
 
   @if (!loading() && !error()) {
-    <!-- Hero: team-skinned header -->
+    <!-- Hero: team-skinned gradient header -->
     <div
-      class="rounded-2xl border-2 p-6 mb-6 bg-panel"
-      [style.borderColor]="'var(--accent-primary)'"
-      [style.background]="'linear-gradient(135deg, var(--accent-primary)22 0%, #131B2E 70%)'"
+      class="rounded-3xl p-6 mb-6 text-white"
+      [style.background]="
+        'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)'
+      "
     >
       @if (selectedRow(); as row) {
-        <p class="text-xs text-muted font-mono uppercase tracking-wide mb-1">Your team</p>
-        <a [routerLink]="['/teams', row.team.id]" class="flex items-baseline gap-3 w-fit group">
+        <p class="text-xs font-bold uppercase tracking-wide opacity-75 mb-2">Your team</p>
+        <a [routerLink]="['/teams', row.team.id]" class="flex items-center gap-3 w-fit group">
           <span
-            class="w-11 h-11 rounded-lg flex items-center justify-center font-display font-bold text-sm text-ink"
-            [style.background]="'var(--accent-primary)'"
+            class="w-11 h-11 rounded-full flex items-center justify-center font-extrabold text-sm bg-white/20"
           >
             {{ row.team.code }}
           </span>
-          <h1 class="text-2xl font-display font-bold group-hover:underline">{{ row.team.name }}</h1>
+          <h1 class="text-xl font-extrabold group-hover:underline">{{ row.team.name }}</h1>
         </a>
-        <div class="flex flex-wrap gap-x-6 gap-y-3 mt-4 text-sm">
+        <div class="flex flex-wrap gap-x-7 gap-y-3 mt-5">
           <div>
-            <p class="text-muted text-xs font-mono">Record</p>
-            <p class="font-mono">{{ row.stats.wins }}-{{ row.stats.losses }}</p>
+            <p class="text-[11px] font-semibold opacity-75">Record</p>
+            <p class="font-extrabold text-lg mt-0.5">{{ row.stats.wins }}-{{ row.stats.losses }}</p>
           </div>
           <div>
-            <p class="text-muted text-xs font-mono">Position</p>
-            <p class="font-mono">#{{ row.position }}</p>
+            <p class="text-[11px] font-semibold opacity-75">Position</p>
+            <p class="font-extrabold text-lg mt-0.5">#{{ row.position }}</p>
           </div>
           @if (row.stats.ppg !== null) {
             <div>
-              <p class="text-muted text-xs font-mono">PPG</p>
-              <p class="font-mono">{{ row.stats.ppg | number: "1.1-1" }}</p>
+              <p class="text-[11px] font-semibold opacity-75">PPG</p>
+              <p class="font-extrabold text-lg mt-0.5">{{ row.stats.ppg | number: "1.1-1" }}</p>
             </div>
           }
         </div>
+        @if (nextGame(); as game) {
+          <div class="flex items-center gap-2 mt-5 pt-4 border-t border-white/20 text-sm">
+            <span class="opacity-75 font-semibold">Next:</span>
+            <span class="font-bold">{{ isHomeGame(game) ? "vs" : "@" }} {{ opponentCode(game) }}</span>
+            <span class="opacity-75">&middot; {{ game.tipoffAt | date: "MMM d, HH:mm" }}</span>
+          </div>
+        }
       }
     </div>
 
+    <!-- News teaser -->
+    @if (news().length > 0) {
+      <div class="bg-card rounded-2xl shadow-card p-4 mb-6">
+        <div class="flex justify-between items-center mb-3">
+          <p class="text-[11px] text-muted font-bold uppercase tracking-wide">Latest news</p>
+          <a routerLink="/news" class="text-[11px] text-highlight font-bold">See all</a>
+        </div>
+        <div class="space-y-3">
+          @for (article of news(); track article.id) {
+            <a
+              [href]="article.url"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="block hover:opacity-70 transition-opacity"
+            >
+              <span class="text-[10px] font-bold uppercase text-highlight">{{ article.sourceName }}</span>
+              <p class="font-bold text-sm leading-snug">{{ article.title }}</p>
+            </a>
+          }
+        </div>
+      </div>
+    }
+
     <!-- Team selector -->
-    <p class="text-xs text-muted font-mono uppercase tracking-wide mb-2">Select favorite team</p>
+    <p class="text-xs text-muted font-bold uppercase tracking-wide mb-3">Select favorite team</p>
     <div class="flex flex-wrap gap-2 mb-6">
       @for (row of standings(); track row.team.id) {
         <button
           type="button"
-          class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono border border-hairline bg-panel hover:border-slate-500 transition-colors"
-          [style.borderColor]="row.team.id === selectedTeamId() ? row.team.primaryColor : null"
+          class="flex items-center gap-2 px-3 py-2 rounded-full bg-card shadow-card border-2 border-transparent text-xs font-bold hover:shadow-pop transition-all"
+          [style.borderColor]="row.team.id === selectedTeamId() ? row.team.primaryColor : 'transparent'"
           (click)="selectTeam(row.team.id)"
         >
           <span class="w-2 h-2 rounded-full" [style.background]="row.team.primaryColor"></span>
@@ -60,24 +102,24 @@
       }
     </div>
 
-    <div class="grid gap-6 sm:grid-cols-2">
+    <div class="grid gap-5 sm:grid-cols-2">
       <!-- Radar chart -->
-      <div class="bg-panel rounded-xl border border-hairline p-4">
-        <p class="text-xs text-muted font-mono uppercase tracking-wide mb-2">
+      <div class="bg-card rounded-2xl shadow-card p-4">
+        <p class="text-[11px] text-muted font-bold uppercase tracking-wide mb-3">
           Team profile vs league average
         </p>
         <canvas #radarCanvas></canvas>
       </div>
 
       <!-- Standings -->
-      <div class="bg-panel rounded-xl border border-hairline p-4">
-        <p class="text-xs text-muted font-mono uppercase tracking-wide mb-2">Standings</p>
-        <div class="font-mono text-xs space-y-1">
+      <div class="bg-card rounded-2xl shadow-card p-4">
+        <p class="text-[11px] text-muted font-bold uppercase tracking-wide mb-3">Standings</p>
+        <div class="text-sm font-semibold space-y-1">
           @for (row of standings(); track row.team.id) {
             <a
               [routerLink]="['/teams', row.team.id]"
-              class="flex justify-between px-2 py-1.5 rounded hover:bg-ink transition-colors"
-              [class.bg-ink]="row.team.id === selectedTeamId()"
+              class="flex justify-between px-2 py-2 rounded-lg hover:bg-page transition-colors"
+              [class.bg-page]="row.team.id === selectedTeamId()"
             >
               <span>{{ row.position }}&nbsp;&nbsp;{{ row.team.code }}</span>
               <span class="text-muted">{{ row.stats.wins }}-{{ row.stats.losses }}</span>
@@ -89,21 +131,35 @@
 
     <!-- League leaders -->
     @if (leaders().length > 0) {
-      <div class="bg-panel rounded-xl border border-hairline p-4 mt-6">
-        <p class="text-xs text-muted font-mono uppercase tracking-wide mb-2">
-          League leaders &middot; points per game
-        </p>
-        <div class="font-mono text-xs space-y-1">
+      <div class="bg-card rounded-2xl shadow-card p-4 mt-5">
+        <div class="flex justify-between items-center mb-3">
+          <p class="text-[11px] text-muted font-bold uppercase tracking-wide">League leaders</p>
+          <div class="flex gap-1">
+            @for (cat of leaderCategories; track cat.value) {
+              <button
+                type="button"
+                (click)="selectLeaderCategory(cat.value)"
+                class="px-2 py-1 rounded-lg text-[10px] font-extrabold transition-colors"
+                [class.bg-highlight]="leaderCategory() === cat.value"
+                [class.text-white]="leaderCategory() === cat.value"
+                [class.text-muted]="leaderCategory() !== cat.value"
+              >
+                {{ cat.label }}
+              </button>
+            }
+          </div>
+        </div>
+        <div class="text-sm font-semibold space-y-1">
           @for (entry of leaders(); track entry.player.id; let i = $index) {
             <a
               [routerLink]="['/teams', entry.team.id]"
-              class="flex justify-between px-2 py-1.5 rounded hover:bg-ink transition-colors"
+              class="flex justify-between px-2 py-2 rounded-lg hover:bg-page transition-colors"
             >
               <span>
                 {{ i + 1 }}&nbsp;&nbsp;{{ entry.player.name }}
-                <span class="text-muted">({{ entry.team.code }})</span>
+                <span class="text-muted font-normal">({{ entry.team.code }})</span>
               </span>
-              <span class="text-amber">{{ entry.value | number: "1.1-1" }}</span>
+              <span class="text-highlight font-extrabold">{{ entry.value | number: "1.1-1" }}</span>
             </a>
           }
         </div>

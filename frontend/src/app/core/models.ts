@@ -3,6 +3,18 @@ export interface PublicUser {
   email: string;
   favoriteTeamId: string | null;
   avatarUrl: string | null;
+  isAdmin: boolean;
+}
+
+export interface NewsArticle {
+  id: string;
+  title: string;
+  url: string;
+  sourceName: string;
+  sourceUrl: string;
+  summary: string | null;
+  imageUrl: string | null;
+  publishedAt: string;
 }
 
 export interface Player {
@@ -66,6 +78,71 @@ export interface TeamSeasonStats {
   defRating: number | null;
   rebPct: number | null;
   astPct: number | null;
+}
+
+export interface GameTeamSummary {
+  id: string;
+  code: string;
+  name: string;
+  primaryColor: string | null;
+}
+
+export interface Game {
+  id: string;
+  gameCode: number;
+  round: number | null;
+  status: string; // "scheduled" | "final"
+  tipoffAt: string;
+  homeScore: number | null;
+  awayScore: number | null;
+  homeTeam: GameTeamSummary;
+  awayTeam: GameTeamSummary;
+}
+
+export interface Prediction {
+  id: string;
+  gameId: string;
+  tipoffAt: string;
+  status: string; // "scheduled" | "final"
+  predictedTeam: { id: string; code: string; name: string };
+  isCorrect: boolean | null; // null = game not resolved yet
+}
+
+export interface Badge {
+  id: string;
+  label: string;
+  description: string;
+}
+
+export interface LeaderboardEntry {
+  userId: string;
+  displayName: string;
+  correct: number;
+  total: number;
+  accuracy: number;
+  points: number;
+  badges: Badge[];
+}
+
+export interface PredictionSummary {
+  points: number;
+  badges: Badge[];
+}
+
+export type CollectibleTier = "common" | "rare" | "legendary";
+
+export interface Collectible {
+  id: string;
+  name: string;
+  tier: CollectibleTier;
+  pointsCost: number;
+  imageUrl: string | null;
+  team: { id: string; code: string; name: string; primaryColor: string | null };
+}
+
+export interface MyCollectible {
+  collectibleId: string;
+  unlockedAt: string;
 }
 
 export interface StandingsRow {
