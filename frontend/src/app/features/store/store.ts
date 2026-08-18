@@ -25,6 +25,11 @@ export class StoreComponent implements OnInit {
   readonly redeemingId = signal<string | null>(null);
   readonly redeemError = signal<string | null>(null);
   readonly previewItem = signal<Collectible | null>(null);
+  readonly dragRotation = signal(0);
+  readonly isDragging = signal(false);
+  private dragPointerId: number | null = null;
+  private dragStartX = 0;
+  private dragStartRotation = 0;
 
   readonly teams = signal<Team[]>([]);
   readonly addSubmitting = signal(false);
@@ -77,6 +82,29 @@ export class StoreComponent implements OnInit {
 
   closePreview(): void {
     this.previewItem.set(null);
+    this.dragRotation.set(0);
+  }
+
+  onCardPointerDown(event: PointerEvent): void {
+    this.isDragging.set(true);
+    this.dragPointerId = event.pointerId;
+    this.dragStartX = event.clientX;
+    this.dragStartRotation = this.dragRotation();
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+  }
+
+  onCardPointerMove(event: PointerEvent): void {
+    if (!this.isDragging() || event.pointerId !== this.dragPointerId) return;
+    const deltaX = event.clientX - this.dragStartX;
+    const rotation = this.dragStartRotation + deltaX / 6;
+    this.dragRotation.set(Math.max(-28, Math.min(28, rotation)));
+  }
+
+  onCardPointerUp(event: PointerEvent): void {
+    if (event.pointerId !== this.dragPointerId) return;
+    this.isDragging.set(false);
+    this.dragPointerId = null;
+    this.dragRotation.set(0);
   }
 
   @HostListener("document:keydown.escape")

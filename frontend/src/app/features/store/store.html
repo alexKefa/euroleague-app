@@ -168,16 +168,28 @@
       style="width: min(85vw, 380px)"
       (click)="$event.stopPropagation()"
     >
-      <app-collectible-card
-        class="w-full"
-        [name]="item.name"
-        [tier]="item.tier"
-        [teamCode]="item.team.code"
-        [teamColor]="item.team.primaryColor"
-        [imageUrl]="item.imageUrl"
-        [unlocked]="isUnlocked(item)"
-        [maxWidth]="380"
-      ></app-collectible-card>
+      <div
+        class="w-full select-none"
+        style="touch-action: none"
+        [style.cursor]="isDragging() ? 'grabbing' : 'grab'"
+        [style.transform]="'perspective(900px) rotateY(' + dragRotation() + 'deg)'"
+        [style.transition]="isDragging() ? 'none' : 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)'"
+        (pointerdown)="onCardPointerDown($event)"
+        (pointermove)="onCardPointerMove($event)"
+        (pointerup)="onCardPointerUp($event)"
+        (pointercancel)="onCardPointerUp($event)"
+      >
+        <app-collectible-card
+          class="w-full pointer-events-none"
+          [name]="item.name"
+          [tier]="item.tier"
+          [teamCode]="item.team.code"
+          [teamColor]="item.team.primaryColor"
+          [imageUrl]="item.imageUrl"
+          [unlocked]="isUnlocked(item)"
+          [maxWidth]="380"
+        ></app-collectible-card>
+      </div>
 
       <div class="text-center">
         <p class="text-white font-extrabold text-lg">{{ item.name }}</p>
