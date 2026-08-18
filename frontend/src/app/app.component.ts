@@ -11,7 +11,39 @@ import { AuthService } from "./core/auth.service";
     <nav
       class="flex justify-between items-center gap-3 px-4 sm:px-6 py-4 bg-card border-b border-line"
     >
-      <a routerLink="/" class="font-extrabold text-[15px] shrink-0"> EuroLeague App </a>
+      <div class="flex items-center gap-6 min-w-0">
+        <a routerLink="/" class="font-extrabold text-[15px] shrink-0"> EuroLeague App </a>
+
+        <!-- Desktop primary nav — the bottom tab nav below is mobile-only -->
+        <div class="hidden sm:flex items-center gap-5">
+          <a
+            routerLink="/"
+            routerLinkActive="text-highlight"
+            [routerLinkActiveOptions]="{ exact: true }"
+            class="text-muted font-semibold text-xs hover:text-ink transition-colors"
+            >Home</a
+          >
+          <a
+            routerLink="/news"
+            routerLinkActive="text-highlight"
+            class="text-muted font-semibold text-xs hover:text-ink transition-colors"
+            >News</a
+          >
+          <a
+            routerLink="/predictions"
+            routerLinkActive="text-highlight"
+            class="text-muted font-semibold text-xs hover:text-ink transition-colors"
+            >Picks</a
+          >
+          <a
+            routerLink="/store"
+            routerLinkActive="text-highlight"
+            class="text-muted font-semibold text-xs hover:text-ink transition-colors"
+            >Store</a
+          >
+        </div>
+      </div>
+
       @if (auth.isAuthenticated()) {
         <div class="flex items-center gap-3 min-w-0">
           <span class="text-muted font-semibold text-xs truncate max-w-[40vw]">{{
