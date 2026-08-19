@@ -1,12 +1,14 @@
 <div class="max-w-3xl lg:max-w-5xl mx-auto p-4 sm:p-6">
-  <a routerLink="/store" class="text-xs text-muted font-semibold hover:text-ink transition-colors"
-    >&larr; Back to store</a
+  <a
+    routerLink="/store"
+    class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
+    >&larr; Store</a
   >
 
-  <h1 class="text-xl font-extrabold mt-4 mb-5">Trades</h1>
+  <h1 class="font-display text-2xl uppercase tracking-wide mt-4 mb-5">Trades</h1>
 
   @if (loading()) {
-    <div class="animate-pulse h-40 bg-line rounded-2xl mb-5"></div>
+    <div class="animate-pulse h-40 bg-line rounded-lg mb-5"></div>
   }
 
   @if (!loading()) {
@@ -16,8 +18,8 @@
         <a routerLink="/wheel" class="text-highlight font-semibold">wheel</a> or a perfect prediction round.
       </p>
     } @else {
-      <div class="bg-card rounded-2xl shadow-card p-4 mb-6">
-        <p class="text-[11px] text-muted font-bold uppercase tracking-wide mb-3">Propose a trade</p>
+      <div class="bg-card rounded-lg shadow-card p-4 mb-6">
+        <p class="font-mono text-[11px] text-muted font-bold uppercase tracking-wide mb-3">Propose a trade</p>
 
         <div class="flex flex-wrap items-center gap-2 mb-4">
           <input
@@ -25,23 +27,23 @@
             type="email"
             placeholder="Recipient's email"
             (keydown.enter)="loadTheirCards(emailInput.value)"
-            class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
+            class="flex-1 min-w-[10rem] px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
           />
           <button
             type="button"
             (click)="loadTheirCards(emailInput.value)"
             [disabled]="loadingTheirCards()"
-            class="px-4 py-2 rounded-full bg-line text-ink text-sm font-bold hover:bg-highlight hover:text-white transition-colors disabled:opacity-50"
+            class="px-4 py-2 rounded-full bg-line text-ink font-mono text-xs font-bold uppercase tracking-wide hover:bg-highlight hover:text-white transition-colors disabled:opacity-50"
           >
             {{ loadingTheirCards() ? "Looking…" : "Find their cards" }}
           </button>
         </div>
 
         @if (theirCardsError()) {
-          <p class="text-red-600 text-xs font-semibold mb-4">{{ theirCardsError() }}</p>
+          <p class="text-red-500 text-xs font-semibold mb-4">{{ theirCardsError() }}</p>
         }
 
-        <p class="text-[11px] text-muted font-bold uppercase tracking-wide mb-2">Your card to offer</p>
+        <p class="font-mono text-[11px] text-muted font-bold uppercase tracking-wide mb-2">Your card to offer</p>
         <div class="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
           @for (card of myCards(); track card.id) {
             <button
@@ -64,7 +66,7 @@
         </div>
 
         @if (theirCards().length > 0) {
-          <p class="text-[11px] text-muted font-bold uppercase tracking-wide mb-2">Their card you want</p>
+          <p class="font-mono text-[11px] text-muted font-bold uppercase tracking-wide mb-2">Their card you want</p>
           <div class="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
             @for (card of theirCards(); track card.id) {
               <button
@@ -88,7 +90,7 @@
         }
 
         @if (sameCardSelected()) {
-          <p class="text-red-600 text-xs font-semibold mb-2">
+          <p class="text-red-500 text-xs font-semibold mb-2">
             That's the same card on both sides — pick a different one to offer or request.
           </p>
         }
@@ -97,24 +99,24 @@
           type="button"
           (click)="propose()"
           [disabled]="!canPropose() || proposing()"
-          class="px-4 py-2 rounded-full bg-highlight text-white text-sm font-bold hover:bg-highlight-dim transition-colors disabled:opacity-50"
+          class="px-4 py-2 rounded-full bg-highlight text-white font-mono text-xs font-bold uppercase tracking-wide hover:bg-highlight-dim transition-colors disabled:opacity-50"
         >
           {{ proposing() ? "Sending…" : "Send offer" }}
         </button>
 
         @if (proposeError()) {
-          <p class="text-red-600 text-xs font-semibold mt-2">{{ proposeError() }}</p>
+          <p class="text-red-500 text-xs font-semibold mt-2">{{ proposeError() }}</p>
         }
         @if (proposeSuccess()) {
-          <p class="text-emerald-600 text-xs font-semibold mt-2">Offer sent.</p>
+          <p class="text-emerald-500 text-xs font-semibold mt-2">Offer sent.</p>
         }
       </div>
     }
 
-    <div class="bg-card rounded-2xl shadow-card p-4">
-      <p class="text-[11px] text-muted font-bold uppercase tracking-wide mb-3">My trade offers</p>
+    <div class="bg-card rounded-lg shadow-card p-4">
+      <p class="font-mono text-[11px] text-muted font-bold uppercase tracking-wide mb-3">My trade offers</p>
       @if (actionError()) {
-        <p class="text-red-600 text-xs font-semibold mb-3">{{ actionError() }}</p>
+        <p class="text-red-500 text-xs font-semibold mb-3">{{ actionError() }}</p>
       }
       <div class="space-y-2">
         @for (offer of offers(); track offer.id) {
@@ -137,7 +139,7 @@
                   type="button"
                   (click)="accept(offer)"
                   [disabled]="actingOnId() === offer.id"
-                  class="text-[11px] font-bold px-3 py-1.5 rounded-full bg-highlight text-white hover:bg-highlight-dim transition-colors disabled:opacity-40"
+                  class="font-mono text-[10px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full bg-highlight text-white hover:bg-highlight-dim transition-colors disabled:opacity-40"
                 >
                   Accept
                 </button>
@@ -145,7 +147,7 @@
                   type="button"
                   (click)="decline(offer)"
                   [disabled]="actingOnId() === offer.id"
-                  class="text-[11px] font-bold px-3 py-1.5 rounded-full bg-line text-ink hover:bg-red-500 hover:text-white transition-colors disabled:opacity-40"
+                  class="font-mono text-[10px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full bg-line text-ink hover:bg-red-500 hover:text-white transition-colors disabled:opacity-40"
                 >
                   Decline
                 </button>
@@ -155,12 +157,12 @@
                 type="button"
                 (click)="cancel(offer)"
                 [disabled]="actingOnId() === offer.id"
-                class="text-[11px] font-bold px-3 py-1.5 rounded-full bg-line text-ink hover:bg-red-500 hover:text-white transition-colors disabled:opacity-40 shrink-0"
+                class="font-mono text-[10px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full bg-line text-ink hover:bg-red-500 hover:text-white transition-colors disabled:opacity-40 shrink-0"
               >
                 Cancel
               </button>
             } @else {
-              <span class="text-[11px] font-bold text-muted uppercase shrink-0">{{ offer.status }}</span>
+              <span class="font-mono text-[10px] font-bold text-muted uppercase tracking-wide shrink-0">{{ offer.status }}</span>
             }
           </div>
         } @empty {
