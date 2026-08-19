@@ -30,6 +30,25 @@ export class StoreComponent implements OnInit {
     () => this.collectibles().find((c) => c.id === this.previewItemId()) ?? null
   );
 
+  readonly searchQuery = signal("");
+  readonly teamFilter = signal<string | null>(null);
+
+  readonly filterTeams = computed(() => {
+    const byId = new Map<string, Collectible["team"]>();
+    for (const c of this.collectibles()) byId.set(c.team.id, c.team);
+    return [...byId.values()].sort((a, b) => a.code.localeCompare(b.code));
+  });
+
+  readonly filteredCollectibles = computed(() => {
+    const query = this.searchQuery().trim().toLowerCase();
+    const team = this.teamFilter();
+    return this.collectibles().filter((c) => {
+      if (team && c.team.id !== team) return false;
+      if (query && !c.name.toLowerCase().includes(query)) return false;
+      return true;
+    });
+  });
+
   readonly teams = signal<Team[]>([]);
   readonly addSubmitting = signal(false);
   readonly addError = signal<string | null>(null);
