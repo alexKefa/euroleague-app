@@ -9,7 +9,7 @@ import { SplashComponent } from "./shared/splash";
 // Matches the ball-fall/wordmark-in animation duration in splash.css —
 // the fade-out starts once the animation has actually finished playing,
 // not on some unrelated timer.
-const SPLASH_DURATION_MS = 1500;
+const SPLASH_DURATION_MS = 1600;
 const SPLASH_FADE_MS = 400;
 
 interface NavLink {
