@@ -19,6 +19,7 @@ import sys
 import psycopg2
 from dotenv import load_dotenv
 from euroleague_api.standings import Standings
+from euroleague_api.team_stats import TeamStats
 
 load_dotenv()
 
@@ -61,9 +62,51 @@ def season_label(season: int) -> str:
     return f"{season}-{end_year}"
 
 
+def pct_to_float(value) -> "float | None":
+    """euroleague-api's 'advanced' endpoints return percentages as strings
+    like '54.1%', not numbers — strip the sign and parse."""
+    if value is None:
+        return None
+    try:
+        return float(str(value).rstrip("%"))
+    except ValueError:
+        return None
+
+
+def get_radar_stats(season: int) -> dict:
+    """Team-profile radar axes, since euroleague-api has no direct
+    offRating/defRating: offense/rebounding/playmaking come from the team's
+    own 'advanced' stats (effective FG%, rebound%, assist ratio); defense
+    is a proxy — 100 minus opponents' effective FG% against this team, so a
+    BIGGER radar wedge always means "better", same direction as the other
+    three axes, rather than plotting raw opponent shooting efficiency
+    (where a good defense would confusingly show as a small wedge).
+    """
+    ts = TeamStats(competition="E")
+    own = ts.get_team_stats_single_season(endpoint="advanced", season=season)
+    opp = ts.get_team_stats_single_season(endpoint="opponentsAdvanced", season=season)
+
+    opp_efg_by_code = {
+        row["team.code"]: pct_to_float(row["effectiveFieldGoalPercentage"]) for _, row in opp.iterrows()
+    }
+
+    stats = {}
+    for _, row in own.iterrows():
+        code = row["team.code"]
+        opp_efg = opp_efg_by_code.get(code)
+        stats[code] = {
+            "offRating": pct_to_float(row["effectiveFieldGoalPercentage"]),
+            "defRating": (100 - opp_efg) if opp_efg is not None else None,
+            "rebPct": pct_to_float(row["reboundsPercentage"]),
+            "astPct": pct_to_float(row["assistsRatio"]),
+        }
+    return stats
+
+
 def sync_standings(season: int, round_number: int) -> tuple[int, int]:
     standings = Standings(competition="E")
     df = standings.get_standings(season=season, round_number=round_number)
+    radar_stats = get_radar_stats(season)
 
     conn = psycopg2.connect(DATABASE_URL)
     cur = conn.cursor()
@@ -102,19 +145,31 @@ def sync_standings(season: int, round_number: int) -> tuple[int, int]:
             position = int(row["position"])
             ppg = points_for / games_played if games_played else None
             papg = points_against / games_played if games_played else None
+            radar = radar_stats.get(code, {})
 
             cur.execute(
                 """
-                INSERT INTO team_season_stats (team_id, season, position, wins, losses, ppg, papg)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO team_season_stats (
+                    team_id, season, position, wins, losses, ppg, papg,
+                    off_rating, def_rating, reb_pct, ast_pct
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (team_id, season) DO UPDATE
                 SET position = EXCLUDED.position,
                     wins = EXCLUDED.wins,
                     losses = EXCLUDED.losses,
                     ppg = EXCLUDED.ppg,
-                    papg = EXCLUDED.papg
+                    papg = EXCLUDED.papg,
+                    off_rating = EXCLUDED.off_rating,
+                    def_rating = EXCLUDED.def_rating,
+                    reb_pct = EXCLUDED.reb_pct,
+                    ast_pct = EXCLUDED.ast_pct
                 """,
-                (team_id, season_, position, wins, losses, ppg, papg),
+                (
+                    team_id, season_, position, wins, losses, ppg, papg,
+                    radar.get("offRating"), radar.get("defRating"),
+                    radar.get("rebPct"), radar.get("astPct"),
+                ),
             )
             stats_upserted += 1
 
