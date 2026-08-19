@@ -43,6 +43,18 @@ export interface PlayerSeasonStats {
   threePointPct: number | null;
   freeThrowPct: number | null;
   valuation: number | null;
+  effectiveFieldGoalPct: number | null;
+  trueShootingPct: number | null;
+  offensiveReboundPct: number | null;
+  defensiveReboundPct: number | null;
+  totalReboundPct: number | null;
+  assistToTurnoverRatio: number | null;
+  assistRatio: number | null;
+  turnoverRatio: number | null;
+  twoPointAttemptRate: number | null;
+  threePointAttemptRate: number | null;
+  freeThrowRate: number | null;
+  possessionsPerGame: number | null;
 }
 
 export interface RosterEntry {

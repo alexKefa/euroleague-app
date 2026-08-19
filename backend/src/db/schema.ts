@@ -140,6 +140,19 @@ export const playerSeasonStats = pgTable(
     threePointPct: real("three_point_pct"),
     freeThrowPct: real("free_throw_pct"),
     valuation: real("valuation"), // PIR — EuroLeague's efficiency rating
+    // Advanced stats, from euroleague-api's `advanced` player-stats endpoint.
+    effectiveFieldGoalPct: real("effective_field_goal_pct"),
+    trueShootingPct: real("true_shooting_pct"),
+    offensiveReboundPct: real("offensive_rebound_pct"),
+    defensiveReboundPct: real("defensive_rebound_pct"),
+    totalReboundPct: real("total_rebound_pct"),
+    assistToTurnoverRatio: real("assist_to_turnover_ratio"),
+    assistRatio: real("assist_ratio"),
+    turnoverRatio: real("turnover_ratio"),
+    twoPointAttemptRate: real("two_point_attempt_rate"),
+    threePointAttemptRate: real("three_point_attempt_rate"),
+    freeThrowRate: real("free_throw_rate"),
+    possessionsPerGame: real("possessions_per_game"),
   },
   (table) => ({
     playerSeasonUnique: uniqueIndex("player_season_unique").on(table.playerId, table.season),

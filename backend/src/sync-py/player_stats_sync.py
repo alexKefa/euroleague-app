@@ -63,9 +63,18 @@ def field_goal_pct(row) -> Optional[float]:
     return (made / attempted * 100) if attempted else None
 
 
+def pct_to_float(value) -> Optional[float]:
+    """Advanced-endpoint percentage fields come back as strings like
+    "51.9%" (or NaN for players with no qualifying possessions)."""
+    s = safe_str(value)
+    return float(s.rstrip("%")) if s else None
+
+
 def sync_player_stats(season: int) -> Tuple[int, int, int]:
     ps = PlayerStats(competition="E")
     df = ps.get_player_stats_single_season(endpoint="traditional", season=season)
+    adv_df = ps.get_player_stats_single_season(endpoint="advanced", season=season)
+    adv_by_code = {row["player.code"]: row for _, row in adv_df.iterrows()}
 
     conn = psycopg2.connect(DATABASE_URL)
     cur = conn.cursor()
@@ -106,15 +115,25 @@ def sync_player_stats(season: int) -> Tuple[int, int, int]:
             player_id = cur.fetchone()[0]
             players_upserted += 1
 
+            adv = adv_by_code.get(player_code)
+
             cur.execute(
                 """
                 INSERT INTO player_season_stats (
                     player_id, team_id, season, games_played, minutes_per_game,
                     points_per_game, rebounds_per_game, assists_per_game,
                     steals_per_game, blocks_per_game, turnovers_per_game,
-                    field_goal_pct, three_point_pct, free_throw_pct, valuation
+                    field_goal_pct, three_point_pct, free_throw_pct, valuation,
+                    effective_field_goal_pct, true_shooting_pct,
+                    offensive_rebound_pct, defensive_rebound_pct, total_rebound_pct,
+                    assist_to_turnover_ratio, assist_ratio, turnover_ratio,
+                    two_point_attempt_rate, three_point_attempt_rate,
+                    free_throw_rate, possessions_per_game
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                )
                 ON CONFLICT (player_id, season) DO UPDATE SET
                     team_id = EXCLUDED.team_id,
                     games_played = EXCLUDED.games_played,
@@ -128,7 +147,19 @@ def sync_player_stats(season: int) -> Tuple[int, int, int]:
                     field_goal_pct = EXCLUDED.field_goal_pct,
                     three_point_pct = EXCLUDED.three_point_pct,
                     free_throw_pct = EXCLUDED.free_throw_pct,
-                    valuation = EXCLUDED.valuation
+                    valuation = EXCLUDED.valuation,
+                    effective_field_goal_pct = EXCLUDED.effective_field_goal_pct,
+                    true_shooting_pct = EXCLUDED.true_shooting_pct,
+                    offensive_rebound_pct = EXCLUDED.offensive_rebound_pct,
+                    defensive_rebound_pct = EXCLUDED.defensive_rebound_pct,
+                    total_rebound_pct = EXCLUDED.total_rebound_pct,
+                    assist_to_turnover_ratio = EXCLUDED.assist_to_turnover_ratio,
+                    assist_ratio = EXCLUDED.assist_ratio,
+                    turnover_ratio = EXCLUDED.turnover_ratio,
+                    two_point_attempt_rate = EXCLUDED.two_point_attempt_rate,
+                    three_point_attempt_rate = EXCLUDED.three_point_attempt_rate,
+                    free_throw_rate = EXCLUDED.free_throw_rate,
+                    possessions_per_game = EXCLUDED.possessions_per_game
                 """,
                 (
                     player_id,
@@ -146,6 +177,18 @@ def sync_player_stats(season: int) -> Tuple[int, int, int]:
                     safe_float(row["threePointersPercentage"]),
                     safe_float(row["freeThrowsPercentage"]),
                     safe_float(row["pir"]),
+                    pct_to_float(adv["effectiveFieldGoalPercentage"]) if adv is not None else None,
+                    pct_to_float(adv["trueShootingPercentage"]) if adv is not None else None,
+                    pct_to_float(adv["offensiveReboundsPercentage"]) if adv is not None else None,
+                    pct_to_float(adv["defensiveReboundsPercentage"]) if adv is not None else None,
+                    pct_to_float(adv["reboundsPercentage"]) if adv is not None else None,
+                    safe_float(adv["assistsToTurnoversRatio"]) if adv is not None else None,
+                    pct_to_float(adv["assistsRatio"]) if adv is not None else None,
+                    pct_to_float(adv["turnoversRatio"]) if adv is not None else None,
+                    pct_to_float(adv["twoPointAttemptsRatio"]) if adv is not None else None,
+                    pct_to_float(adv["threePointAttemptsRatio"]) if adv is not None else None,
+                    pct_to_float(adv["freeThrowsRate"]) if adv is not None else None,
+                    safe_float(adv["possesions"]) if adv is not None else None,
                 ),
             )
             stats_upserted += 1
