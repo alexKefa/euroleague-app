@@ -24,33 +24,35 @@ load_dotenv()
 
 DATABASE_URL = os.environ["DATABASE_URL"]
 
-# NOT verified official club brand colors — I don't have a reliable source
-# for all 20 clubs' real hex values and would rather not guess (got two
-# team codes wrong earlier in this project from memory alone). This is a
-# curated, visually distinct palette assigned by sync order, purely so
-# each team looks different. Swap in real colors here once verified.
-FALLBACK_PALETTE = [
-    ("#C0272D", "#6E1015"),
-    ("#1B4F91", "#0A2540"),
-    ("#1E7A46", "#0B3D24"),
-    ("#B8621B", "#5C310D"),
-    ("#6A3FA0", "#34205A"),
-    ("#1A7A8C", "#0C3C45"),
-    ("#A02060", "#501030"),
-    ("#4A4A4A", "#1E1E1E"),
-    ("#C9A227", "#6B5510"),
-    ("#2D6E4E", "#163A28"),
-    ("#8C3B2E", "#451D17"),
-    ("#2E5C8C", "#162D45"),
-    ("#7A1E3D", "#3D0F1F"),
-    ("#3E7C3F", "#1F3E20"),
-    ("#9C4A9C", "#4E254E"),
-    ("#1F5A5A", "#0F2D2D"),
-    ("#B04A2E", "#582517"),
-    ("#4A5C8C", "#252E45"),
-    ("#7C6A2E", "#3E3517"),
-    ("#5C2E5C", "#2E172E"),
-]
+# Real club colors, kept in sync with backend/src/sync/teamColors.ts (that
+# file has the fuller reasoning). This used to be a palette assigned by
+# sync order rather than by team — that's how Panathinaikos ended up
+# purple. TEAM_COLORS is the fix; the DEFAULT tuple only applies to a code
+# neither list has ever seen.
+TEAM_COLORS = {
+    "MUN": ("#DC052D", "#0066B2"),  # FC Bayern Munich
+    "ULK": ("#0C2340", "#FFD200"),  # Fenerbahce Beko Istanbul
+    "HTA": ("#E2001A", "#111111"),  # Hapoel IBI Tel Aviv
+    "BAS": ("#78BE20", "#111111"),  # Baskonia Vitoria-Gasteiz
+    "ASV": ("#E31E24", "#002654"),  # LDLC ASVEL Villeurbanne
+    "TEL": ("#FFDD00", "#003399"),  # Maccabi Rapyd Tel Aviv
+    "OLY": ("#E31837", "#0A0A0A"),  # Olympiacos Piraeus
+    "PAN": ("#007A33", "#012D18"),  # Panathinaikos AKTOR Athens
+    "PRS": ("#8A1538", "#1A1A1A"),  # Paris Basketball
+    "PAR": ("#000000", "#3A3A3A"),  # Partizan Mozzart Bet Belgrade
+    "MAD": ("#1E3B70", "#FEBE10"),  # Real Madrid
+    "PAM": ("#F7941E", "#12275A"),  # Valencia Basket
+    "VIR": ("#111111", "#8C7A3D"),  # Virtus Bologna
+    "ZAL": ("#0B8A3E", "#111111"),  # Zalgiris Kaunas
+    "MCO": ("#C8102E", "#111111"),  # AS Monaco
+    "IST": ("#E2231A", "#1A1A1A"),  # Anadolu Efes Istanbul
+    "MIL": ("#0D0D0D", "#C8102E"),  # EA7 Emporio Armani Milan
+    "BES": ("#000000", "#8C1D1D"),  # Besiktas Istanbul
+    "RED": ("#E4022D", "#1A1A1A"),  # Crvena Zvezda Meridianbet Belgrade
+    "DUB": ("#0A0A0A", "#C9A227"),  # Dubai Basketball
+    "BAR": ("#004D98", "#A50044"),  # FC Barcelona
+}
+DEFAULT_COLORS = ("#3E7CB1", "#0B1220")
 
 
 def season_label(season: int) -> str:
@@ -70,11 +72,11 @@ def sync_standings(season: int, round_number: int) -> tuple[int, int]:
     stats_upserted = 0
 
     try:
-        for i, (_, row) in enumerate(df.iterrows()):
+        for _, row in df.iterrows():
             code = row["club.code"]
             name = row["club.name"]
             logo_url = row["club.images.crest"]
-            primary_color, secondary_color = FALLBACK_PALETTE[i % len(FALLBACK_PALETTE)]
+            primary_color, secondary_color = TEAM_COLORS.get(code, DEFAULT_COLORS)
 
             cur.execute(
                 """
