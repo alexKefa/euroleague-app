@@ -4,7 +4,7 @@ import { RouterLink } from "@angular/router";
 import { ReactiveFormsModule, FormBuilder, Validators } from "@angular/forms";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
-import { Prediction, LeaderboardEntry, PredictionSummary } from "../../core/models";
+import { Prediction, LeaderboardEntry, PredictionSummary, Game } from "../../core/models";
 
 // Emoji glyphs for known badge ids — purely a display concern, the backend
 // only sends id/label/description. Unrecognized ids fall back to a medal.
@@ -30,7 +30,10 @@ export class PredictionsComponent implements OnInit {
   readonly myPredictions = signal<Prediction[]>([]);
   readonly leaderboard = signal<LeaderboardEntry[]>([]);
   readonly mySummary = signal<PredictionSummary | null>(null);
+  readonly upcomingGames = signal<Game[]>([]);
   readonly loading = signal(true);
+  // gameId -> predicted team id, for games the user has already picked
+  readonly myPicks = signal<Map<string, string>>(new Map());
 
   readonly adjustSubmitting = signal(false);
   readonly adjustError = signal<string | null>(null);
@@ -48,10 +51,16 @@ export class PredictionsComponent implements OnInit {
       error: () => {},
     });
 
+    this.api.getUpcomingGames().subscribe({
+      next: (rows) => this.upcomingGames.set(rows),
+      error: () => {}, // non-critical
+    });
+
     if (this.auth.isAuthenticated()) {
       this.api.getMyPredictions().subscribe({
         next: (rows) => {
           this.myPredictions.set(rows);
+          this.myPicks.set(new Map(rows.map((p) => [p.gameId, p.predictedTeam.id])));
           this.loading.set(false);
         },
         error: () => this.loading.set(false),
@@ -68,6 +77,27 @@ export class PredictionsComponent implements OnInit {
 
   badgeIcon(badgeId: string): string {
     return BADGE_ICONS[badgeId] ?? "🏅";
+  }
+
+  myPickFor(game: Game): string | null {
+    return this.myPicks().get(game.id) ?? null;
+  }
+
+  predict(game: Game, teamId: string): void {
+    if (!this.auth.isAuthenticated()) return;
+    // Optimistic update — the backend still validates and is the source of truth.
+    const map = new Map(this.myPicks());
+    map.set(game.id, teamId);
+    this.myPicks.set(map);
+
+    this.api.submitPrediction(game.id, teamId).subscribe({
+      error: () => {
+        // Roll back on failure (e.g. game started in the meantime).
+        const rollback = new Map(this.myPicks());
+        rollback.delete(game.id);
+        this.myPicks.set(rollback);
+      },
+    });
   }
 
   submitAdjustment(): void {

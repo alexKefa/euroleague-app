@@ -22,6 +22,50 @@
   }
 
   @if (!loading()) {
+    @if (upcomingGames().length > 0) {
+      <div class="bg-card rounded-lg shadow-card p-4 mb-5">
+        <p class="font-mono text-[11px] text-muted font-bold uppercase tracking-wide mb-3">Upcoming games</p>
+        <div class="space-y-3">
+          @for (game of upcomingGames(); track game.id) {
+            <div class="px-2 py-2 rounded-md bg-page">
+              <p class="font-mono text-muted text-[10px] mb-2">{{ game.tipoffAt | date: "MMM d, HH:mm" }}</p>
+              @if (auth.isAuthenticated()) {
+                <div class="flex gap-2">
+                  <button
+                    type="button"
+                    (click)="predict(game, game.homeTeam.id)"
+                    class="flex-1 py-1.5 rounded-md font-mono text-[11px] font-bold uppercase tracking-wide border-2 transition-colors"
+                    [class.border-highlight]="myPickFor(game) === game.homeTeam.id"
+                    [class.bg-highlight]="myPickFor(game) === game.homeTeam.id"
+                    [class.text-white]="myPickFor(game) === game.homeTeam.id"
+                    [class.border-line]="myPickFor(game) !== game.homeTeam.id"
+                    [class.text-muted]="myPickFor(game) !== game.homeTeam.id"
+                  >
+                    {{ game.homeTeam.code }}
+                  </button>
+                  <span class="font-mono text-muted text-[10px] self-center">vs</span>
+                  <button
+                    type="button"
+                    (click)="predict(game, game.awayTeam.id)"
+                    class="flex-1 py-1.5 rounded-md font-mono text-[11px] font-bold uppercase tracking-wide border-2 transition-colors"
+                    [class.border-highlight]="myPickFor(game) === game.awayTeam.id"
+                    [class.bg-highlight]="myPickFor(game) === game.awayTeam.id"
+                    [class.text-white]="myPickFor(game) === game.awayTeam.id"
+                    [class.border-line]="myPickFor(game) !== game.awayTeam.id"
+                    [class.text-muted]="myPickFor(game) !== game.awayTeam.id"
+                  >
+                    {{ game.awayTeam.code }}
+                  </button>
+                </div>
+              } @else {
+                <p class="font-display text-xs uppercase">{{ game.homeTeam.code }} vs {{ game.awayTeam.code }}</p>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
+
     <div class="grid gap-5 sm:grid-cols-2">
       <!-- My picks -->
       <div class="bg-card rounded-lg shadow-card p-4">
