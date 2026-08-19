@@ -1,8 +1,10 @@
-import { Component, inject, signal } from "@angular/core";
+import { Component, OnInit, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ReactiveFormsModule, FormBuilder, Validators } from "@angular/forms";
 import { Router, RouterLink } from "@angular/router";
 import { AuthService } from "../../core/auth.service";
+import { ApiService } from "../../core/api.service";
+import { Team } from "../../core/models";
 
 @Component({
   selector: "app-register",
@@ -10,18 +12,30 @@ import { AuthService } from "../../core/auth.service";
   imports: [CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: "./register.component.html",
 })
-export class RegisterComponent {
+export class RegisterComponent implements OnInit {
   private fb = inject(FormBuilder);
   private auth = inject(AuthService);
+  private api = inject(ApiService);
   private router = inject(Router);
 
   readonly submitting = signal(false);
   readonly error = signal<string | null>(null);
 
+  readonly teams = signal<Team[]>([]);
+  readonly favoriteTeamId = signal<string | null>(null);
+
   readonly form = this.fb.nonNullable.group({
     email: ["", [Validators.required, Validators.email]],
     password: ["", [Validators.required, Validators.minLength(8)]],
   });
+
+  ngOnInit(): void {
+    this.api.getTeams().subscribe({ next: (rows) => this.teams.set(rows), error: () => {} });
+  }
+
+  pickTeam(teamId: string): void {
+    this.favoriteTeamId.set(this.favoriteTeamId() === teamId ? null : teamId);
+  }
 
   submit(): void {
     if (this.form.invalid) return;
@@ -29,7 +43,7 @@ export class RegisterComponent {
     this.error.set(null);
 
     const { email, password } = this.form.getRawValue();
-    this.auth.register(email, password).subscribe({
+    this.auth.register(email, password, this.favoriteTeamId()).subscribe({
       next: () => this.router.navigateByUrl("/"),
       error: (err) => {
         this.error.set(

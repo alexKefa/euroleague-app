@@ -2,12 +2,6 @@
   @if (loading()) {
     <div class="animate-pulse">
       <div class="rounded-lg h-[168px] bg-line mb-5"></div>
-      <div class="h-3 w-32 bg-line rounded mb-3"></div>
-      <div class="flex flex-wrap gap-2 mb-5">
-        @for (i of [1, 2, 3, 4, 5, 6]; track i) {
-          <div class="h-9 w-16 bg-line rounded-full"></div>
-        }
-      </div>
       <div class="h-64 bg-line rounded-lg"></div>
     </div>
   }
@@ -86,22 +80,6 @@
         </div>
       </div>
     }
-
-    <!-- Team selector -->
-    <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-[0.1em] mb-3">Select team</p>
-    <div class="flex flex-wrap gap-2 mb-5">
-      @for (row of standings(); track row.team.id) {
-        <button
-          type="button"
-          class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-card shadow-card border-[1.5px] border-transparent hover:shadow-pop transition-all"
-          [style.borderColor]="row.team.id === selectedTeamId() ? row.team.primaryColor : 'transparent'"
-          (click)="selectTeam(row.team.id)"
-        >
-          <span class="w-1.5 h-1.5 rounded-full" [style.background]="row.team.primaryColor"></span>
-          <span class="font-display text-xs">{{ row.team.code }}</span>
-        </button>
-      }
-    </div>
 
     <!-- Standings -->
     <div class="bg-card rounded-lg shadow-card p-4">

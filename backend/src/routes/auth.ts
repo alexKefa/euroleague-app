@@ -32,9 +32,13 @@ function publicUser(user: typeof users.$inferSelect) {
 }
 
 authRouter.post("/register", async (req, res) => {
-  const { email, password } = req.body ?? {};
+  const { email, password, favoriteTeamId } = req.body ?? {};
   if (typeof email !== "string" || typeof password !== "string" || password.length < 8) {
     res.status(400).json({ error: "email and password (min 8 chars) are required" });
+    return;
+  }
+  if (favoriteTeamId !== undefined && typeof favoriteTeamId !== "string" && favoriteTeamId !== null) {
+    res.status(400).json({ error: "favoriteTeamId must be a string or null" });
     return;
   }
 
@@ -45,7 +49,10 @@ authRouter.post("/register", async (req, res) => {
   }
 
   const passwordHash = await hashPassword(password);
-  const [user] = await db.insert(users).values({ email, passwordHash }).returning();
+  const [user] = await db
+    .insert(users)
+    .values({ email, passwordHash, favoriteTeamId: favoriteTeamId ?? null })
+    .returning();
 
   const accessToken = signAccessToken(user.id);
   setRefreshCookie(res, signRefreshToken(user.id));

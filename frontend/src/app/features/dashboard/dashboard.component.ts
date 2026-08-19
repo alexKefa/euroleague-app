@@ -57,7 +57,7 @@ export class DashboardComponent implements OnInit {
         if (rows.length > 0) {
           const savedTeamId = this.auth.currentUser()?.favoriteTeamId;
           const hasSavedTeam = savedTeamId && rows.some((r) => r.team.id === savedTeamId);
-          this.selectTeam(hasSavedTeam ? savedTeamId! : rows[0].team.id, false);
+          this.loadTeam(hasSavedTeam ? savedTeamId! : rows[0].team.id);
         }
       },
       error: () => {
@@ -69,7 +69,7 @@ export class DashboardComponent implements OnInit {
     });
   }
 
-  selectTeam(teamId: string, persist = true): void {
+  private loadTeam(teamId: string): void {
     this.selectedTeamId.set(teamId);
     const row = this.standings().find((r) => r.team.id === teamId);
     this.theme.applyTeam(row?.team ?? null);
@@ -82,10 +82,6 @@ export class DashboardComponent implements OnInit {
       },
       error: () => {}, // non-critical widget
     });
-
-    if (persist && this.auth.isAuthenticated()) {
-      this.auth.updateFavoriteTeam(teamId).subscribe();
-    }
   }
 
   selectLeaderCategory(category: LeaderCategory): void {

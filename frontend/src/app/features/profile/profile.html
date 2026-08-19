@@ -1,0 +1,49 @@
+<div class="max-w-3xl mx-auto p-4 sm:p-6">
+  <a
+    routerLink="/"
+    class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
+    >&larr; Dashboard</a
+  >
+
+  <h1 class="font-display text-2xl uppercase tracking-wide mt-4 mb-5">Profile</h1>
+
+  @if (auth.currentUser(); as user) {
+    <div class="bg-card rounded-lg shadow-card p-4 mb-5">
+      <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide mb-1">Email</p>
+      <p class="font-semibold text-sm">{{ user.email }}</p>
+    </div>
+
+    <div class="bg-card rounded-lg shadow-card p-4">
+      <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide mb-3">Favorite team</p>
+      <div class="flex flex-wrap gap-2">
+        @for (team of teams(); track team.id) {
+          <button
+            type="button"
+            (click)="setFavoriteTeam(team.id)"
+            [disabled]="!!savingTeamId()"
+            class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-page border-[1.5px] border-transparent hover:shadow-pop transition-all disabled:opacity-50"
+            [style.borderColor]="user.favoriteTeamId === team.id ? team.primaryColor : 'transparent'"
+          >
+            <span class="w-1.5 h-1.5 rounded-full" [style.background]="team.primaryColor"></span>
+            <span class="font-display text-xs">{{ team.code }}</span>
+            @if (savingTeamId() === team.id) {
+              <span class="font-mono text-[9px] text-muted">…</span>
+            }
+          </button>
+        }
+      </div>
+      @if (saveError()) {
+        <p class="text-red-500 text-xs font-semibold mt-3">{{ saveError() }}</p>
+      }
+      <p class="text-xs text-muted mt-3">Tap your team again to clear it.</p>
+    </div>
+
+    <button
+      type="button"
+      (click)="logout()"
+      class="w-full mt-5 py-3 rounded-full bg-card shadow-card font-mono text-xs font-bold uppercase tracking-wide text-highlight hover:bg-highlight hover:text-white transition-colors"
+    >
+      Log out
+    </button>
+  }
+</div>
