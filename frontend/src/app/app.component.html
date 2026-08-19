@@ -9,9 +9,9 @@
       @for (link of navLinks; track link.path) {
         <a
           [routerLink]="link.path"
-          routerLinkActive="text-highlight"
-          [routerLinkActiveOptions]="{ exact: !!link.exact }"
-          class="font-mono text-muted font-bold text-[11px] uppercase tracking-wide hover:text-ink transition-colors"
+          [class.text-highlight]="isActive(link)"
+          [class.text-muted]="!isActive(link)"
+          class="font-mono font-bold text-[11px] uppercase tracking-wide hover:text-ink transition-colors"
           >{{ link.label }}</a
         >
       }
@@ -55,9 +55,9 @@
   @for (link of navLinks; track link.path) {
     <a
       [routerLink]="link.path"
-      routerLinkActive="text-highlight"
-      [routerLinkActiveOptions]="{ exact: !!link.exact }"
-      class="flex flex-col items-center gap-0.5 text-muted font-mono text-[9px] font-bold uppercase tracking-wide px-3 py-1"
+      [class.text-highlight]="isActive(link)"
+      [class.text-muted]="!isActive(link)"
+      class="flex flex-col items-center gap-0.5 font-mono text-[9px] font-bold uppercase tracking-wide px-3 py-1"
     >
       <app-nav-icon [name]="link.icon" />
       {{ link.label }}
@@ -74,8 +74,9 @@
   } @else {
     <a
       routerLink="/login"
-      routerLinkActive="text-highlight"
-      class="flex flex-col items-center gap-0.5 text-muted font-mono text-[9px] font-bold uppercase tracking-wide px-3 py-1"
+      [class.text-highlight]="currentUrl() === '/login'"
+      [class.text-muted]="currentUrl() !== '/login'"
+      class="flex flex-col items-center gap-0.5 font-mono text-[9px] font-bold uppercase tracking-wide px-3 py-1"
     >
       <app-nav-icon name="user" />
       Log in
