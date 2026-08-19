@@ -12,6 +12,7 @@ interface TierStyle {
   nameColor: string;
   metaColor: string;
   photoTint: string;
+  bannerBackground: string;
   showHolo: boolean;
 }
 
@@ -67,6 +68,7 @@ export class CollectibleCardComponent {
         nameColor: "#F5F7F6",
         metaColor: "rgba(245,247,246,0.72)",
         photoTint: `linear-gradient(160deg, ${accentSoft} 0%, ${accentDeep} 100%)`,
+        bannerBackground: "rgba(11,15,13,0.55)",
         showHolo: false,
       };
     }
@@ -84,6 +86,7 @@ export class CollectibleCardComponent {
         nameColor: "#FFF7E0",
         metaColor: "rgba(255,247,224,0.75)",
         photoTint: `radial-gradient(120% 100% at 50% 10%, ${accentSoft} 0%, #05070a 70%)`,
+        bannerBackground: "rgba(5,7,10,0.55)",
         showHolo: true,
       };
     }
@@ -98,6 +101,7 @@ export class CollectibleCardComponent {
       nameColor: "#14161A",
       metaColor: "#5B6169",
       photoTint: "linear-gradient(160deg, #EEF3F0 0%, #E2E9E4 100%)",
+      bannerBackground: "rgba(255,255,255,0.68)",
       showHolo: false,
     };
   }

@@ -7,12 +7,35 @@
     [style.filter]="unlocked ? 'none' : 'grayscale(0.75) brightness(0.55)'"
   >
     <div
-      class="relative w-full h-full rounded-xl overflow-hidden flex flex-col"
+      class="relative w-full h-full rounded-xl overflow-hidden"
       [style.background]="style.faceBackground"
     >
       @if (style.showHolo) {
         <div class="holo-sweep absolute pointer-events-none"></div>
       }
+
+      <!-- Full-bleed photo -->
+      <div class="absolute inset-0" [style.background]="style.photoTint">
+        @if (imageUrl) {
+          <img
+            [src]="imageUrl"
+            [alt]="name"
+            class="absolute inset-0 w-full h-full object-cover object-top"
+          />
+        } @else {
+          <div class="absolute inset-0 flex items-center justify-center">
+            <svg width="52%" height="70%" viewBox="0 0 120 150" fill="none">
+              <circle cx="60" cy="50" r="30" stroke="rgba(255,255,255,0.5)" stroke-width="3" />
+              <path
+                d="M12 148c0-34 21-52 48-52s48 18 48 52"
+                stroke="rgba(255,255,255,0.5)"
+                stroke-width="3"
+                stroke-linecap="round"
+              />
+            </svg>
+          </div>
+        }
+      </div>
 
       <div
         class="absolute top-2 right-2 flex items-center gap-1 rounded-full z-10"
@@ -24,27 +47,11 @@
         }}</span>
       </div>
 
+      <!-- Frosted-glass info banner, floating over the bottom of the photo -->
       <div
-        class="relative flex items-center justify-center overflow-hidden"
-        style="flex: 0 0 55%"
-        [style.background]="style.photoTint"
+        class="absolute inset-x-0 bottom-0 px-3 py-2.5 backdrop-blur-md"
+        [style.background]="style.bannerBackground"
       >
-        @if (imageUrl) {
-          <img [src]="imageUrl" [alt]="name" class="absolute inset-0 w-full h-full object-cover" />
-        } @else {
-          <svg width="52%" height="70%" viewBox="0 0 120 150" fill="none">
-            <circle cx="60" cy="50" r="30" stroke="rgba(255,255,255,0.5)" stroke-width="3" />
-            <path
-              d="M12 148c0-34 21-52 48-52s48 18 48 52"
-              stroke="rgba(255,255,255,0.5)"
-              stroke-width="3"
-              stroke-linecap="round"
-            />
-          </svg>
-        }
-      </div>
-
-      <div class="flex-1 flex flex-col justify-center gap-1 px-3 py-2 min-h-0">
         <div class="text-[13px] font-extrabold leading-tight truncate" [style.color]="style.nameColor">
           {{ name }}
         </div>
