@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
+import { AuthService } from "../../core/auth.service";
 import { Collectible, SpinResult } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
 
@@ -19,6 +20,7 @@ const SPIN_ANIMATION_MS = 1800;
 })
 export class WheelComponent implements OnInit {
   private api = inject(ApiService);
+  protected auth = inject(AuthService);
 
   readonly loading = signal(true);
   readonly canSpin = signal(false);
@@ -30,6 +32,11 @@ export class WheelComponent implements OnInit {
   readonly wheelRotation = signal(0);
 
   ngOnInit(): void {
+    if (!this.auth.isAuthenticated()) {
+      this.loading.set(false);
+      return;
+    }
+
     this.api.getSpinStatus().subscribe({
       next: (status) => {
         this.canSpin.set(status.canSpin);

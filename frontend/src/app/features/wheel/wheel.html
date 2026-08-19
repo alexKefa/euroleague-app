@@ -12,7 +12,16 @@
     <div class="animate-pulse h-48 bg-line rounded-lg"></div>
   }
 
-  @if (!loading()) {
+  @if (!loading() && !auth.isAuthenticated()) {
+    <div class="bg-card rounded-lg shadow-card p-6">
+      <p class="text-sm text-muted">
+        <a routerLink="/login" class="text-highlight font-semibold">Log in</a> to spin for a shot at a
+        legendary card.
+      </p>
+    </div>
+  }
+
+  @if (!loading() && auth.isAuthenticated()) {
     @if (spinning() || lastResult() === undefined) {
       <div class="relative w-48 h-48 mx-auto mb-6">
         <div
