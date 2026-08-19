@@ -25,11 +25,15 @@
         "
       >
         <div class="flex items-center gap-3">
-          <span
-            class="w-10 h-10 rounded-lg flex items-center justify-center font-display text-sm bg-white/15"
-          >
-            {{ t.code }}
-          </span>
+          @if (t.logoUrl) {
+            <img [src]="t.logoUrl" [alt]="t.name" class="w-10 h-10 object-contain shrink-0" />
+          } @else {
+            <span
+              class="w-10 h-10 rounded-lg flex items-center justify-center font-display text-sm bg-white/15 shrink-0"
+            >
+              {{ t.code }}
+            </span>
+          }
           <h1 class="font-display text-2xl uppercase tracking-wide">{{ t.name }}</h1>
         </div>
       </div>
