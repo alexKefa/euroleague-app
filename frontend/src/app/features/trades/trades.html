@@ -87,6 +87,12 @@
           </div>
         }
 
+        @if (sameCardSelected()) {
+          <p class="text-red-600 text-xs font-semibold mb-2">
+            That's the same card on both sides — pick a different one to offer or request.
+          </p>
+        }
+
         <button
           type="button"
           (click)="propose()"
@@ -107,6 +113,9 @@
 
     <div class="bg-card rounded-2xl shadow-card p-4">
       <p class="text-[11px] text-muted font-bold uppercase tracking-wide mb-3">My trade offers</p>
+      @if (actionError()) {
+        <p class="text-red-600 text-xs font-semibold mb-3">{{ actionError() }}</p>
+      }
       <div class="space-y-2">
         @for (offer of offers(); track offer.id) {
           <div class="flex items-center justify-between gap-3 px-2 py-2 rounded-lg bg-page">

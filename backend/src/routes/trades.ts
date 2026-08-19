@@ -71,6 +71,11 @@ tradesRouter.post("/", requireAuth, async (req, res) => {
       return;
     }
 
+    if (offeredCollectibleId === requestedCollectibleId) {
+      res.status(400).json({ error: "You can't trade a card for itself" });
+      return;
+    }
+
     const target = await findUserByEmail(toEmail);
     if (!target) {
       res.status(404).json({ error: "No user with that email" });

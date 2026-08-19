@@ -32,9 +32,18 @@ export class TradesComponent implements OnInit {
   readonly proposeSuccess = signal(false);
 
   readonly actingOnId = signal<string | null>(null);
+  readonly actionError = signal<string | null>(null);
 
   readonly canPropose = computed(
-    () => !!this.selectedMineId() && !!this.selectedTheirsId() && !!this.recipientEmail()
+    () =>
+      !!this.selectedMineId() &&
+      !!this.selectedTheirsId() &&
+      !!this.recipientEmail() &&
+      this.selectedMineId() !== this.selectedTheirsId()
+  );
+
+  readonly sameCardSelected = computed(
+    () => !!this.selectedMineId() && this.selectedMineId() === this.selectedTheirsId()
   );
 
   ngOnInit(): void {
@@ -129,13 +138,17 @@ export class TradesComponent implements OnInit {
 
   private act(id: string, call: Observable<unknown>): void {
     this.actingOnId.set(id);
+    this.actionError.set(null);
     call.subscribe({
       next: () => {
         this.actingOnId.set(null);
         this.loadOffers();
         this.loadMyCards();
       },
-      error: () => this.actingOnId.set(null),
+      error: (err) => {
+        this.actingOnId.set(null);
+        this.actionError.set(err?.error?.error ?? "That didn't work — try again.");
+      },
     });
   }
 }
