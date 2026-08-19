@@ -244,21 +244,28 @@ export const wheelSpins = pgTable("wheel_spins", {
 });
 
 // Legendary-card payout for going 100% correct across every game in a
-// round. One row per (user, round) — the unique index doubles as the
-// idempotency guard so a round can only pay out once per user (see
-// checkAndGrantRoundRewards in services/cards.ts). collectibleId is null
-// when the round qualified but the user already owned every legendary.
+// round. One row per (user, season, round) — the unique index doubles as
+// the idempotency guard so a round can only pay out once per user (see
+// checkAndGrantRoundRewards in services/cards.ts). Round numbers reset
+// every season (games.season), so round alone isn't a stable key — e.g.
+// "round 1" exists in both 2025-26 and 2026-27. collectibleId is null when
+// the round qualified but the user already owned every legendary.
 export const roundRewards = pgTable(
   "round_rewards",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     userId: uuid("user_id").notNull().references(() => users.id),
+    season: varchar("season", { length: 9 }).notNull(),
     round: integer("round").notNull(),
     collectibleId: uuid("collectible_id").references(() => collectibles.id),
     grantedAt: timestamp("granted_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => ({
-    userRoundRewardUnique: uniqueIndex("user_round_reward_unique").on(table.userId, table.round),
+    userRoundRewardUnique: uniqueIndex("user_round_reward_unique").on(
+      table.userId,
+      table.season,
+      table.round
+    ),
   })
 );
 

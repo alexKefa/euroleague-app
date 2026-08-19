@@ -8,6 +8,12 @@ import { pickRandomUnownedLegendary } from "../services/cards.js";
 export const spinRouter = Router();
 
 const COOLDOWN_MS = 24 * 60 * 60 * 1000;
+// Odds are deliberately low for a free daily spin — the guaranteed win on
+// every spin (as long as you had an unowned legendary) made the wheel
+// pointless as a rare-prize mechanic. Round-perfect payouts stay guaranteed
+// (services/cards.ts) since that's a reward for a real achievement, not a
+// gacha pull.
+const WIN_CHANCE = 0.1;
 
 async function getSpinStatus(userId: string) {
   const [last] = await db
@@ -41,7 +47,7 @@ spinRouter.post("/", requireAuth, async (req, res) => {
       return;
     }
 
-    const prize = await pickRandomUnownedLegendary(req.userId!);
+    const prize = Math.random() < WIN_CHANCE ? await pickRandomUnownedLegendary(req.userId!) : null;
 
     await db.transaction(async (tx) => {
       await tx.insert(wheelSpins).values({ userId: req.userId!, collectibleId: prize?.id ?? null });
