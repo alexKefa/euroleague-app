@@ -18,7 +18,7 @@ module.exports = {
       },
       fontFamily: {
         sans: ["Manrope", "system-ui", "sans-serif"],
-        display: ["Bebas Neue", "Arial Narrow", "sans-serif"],
+        display: ["Anton", "Arial Narrow", "sans-serif"],
         mono: ["JetBrains Mono", "ui-monospace", "monospace"],
       },
       boxShadow: {
