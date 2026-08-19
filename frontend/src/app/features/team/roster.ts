@@ -53,6 +53,7 @@ export class TeamRosterComponent implements OnInit, AfterViewChecked, OnDestroy 
   readonly myPicks = signal<Map<string, string>>(new Map());
 
   readonly standings = signal<StandingsRow[]>([]);
+  readonly statsView = signal<"traditional" | "advanced">("traditional");
 
   readonly teamStandingsRow = computed(
     () => this.standings().find((r) => r.team.id === this.team()?.id) ?? null
@@ -213,6 +214,14 @@ export class TeamRosterComponent implements OnInit, AfterViewChecked, OnDestroy 
     if (value >= 20) return "bg-emerald-500/15 text-emerald-400";
     if (value >= 12) return "bg-amber-500/15 text-amber-400";
     return "bg-slate-500/10 text-slate-400";
+  }
+
+  fmtPct(value: number | null): string {
+    return value !== null ? `${value.toFixed(1)}%` : "—";
+  }
+
+  fmtNum(value: number | null): string {
+    return value !== null ? value.toFixed(1) : "—";
   }
 
   isHomeGame(game: Game): boolean {
