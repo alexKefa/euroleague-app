@@ -3,9 +3,17 @@
   [class.opacity-0]="hiding"
 >
   <div class="splash-scene relative" style="width: 220px; height: 190px">
-    <!-- Net + rim — fades out once the ball has passed through -->
+    <!-- Shot clock — hits 0:00 right as the ball reaches the rim -->
+    <div
+      class="shot-clock absolute top-0 right-0 font-mono text-sm font-bold text-highlight px-1.5 py-0.5 rounded border border-line bg-card"
+      [class.buzzer]="countdown() === 0"
+    >
+      0:0{{ countdown() }}
+    </div>
+
+    <!-- Net back layer: rim + vertical strands — behind the ball throughout -->
     <svg
-      class="net-graphic absolute top-0 left-1/2 -translate-x-1/2"
+      class="net-graphic net-back absolute top-0 left-1/2 -translate-x-1/2"
       viewBox="0 0 240 150"
       width="200"
       height="125"
@@ -21,9 +29,6 @@
         <line x1="153" y1="42" x2="139" y2="140" />
         <line x1="166" y1="42" x2="146" y2="140" />
         <line x1="178" y1="42" x2="153" y2="140" />
-        <path d="M 68 68 Q 120 78 172 68" fill="none" />
-        <path d="M 78 98 Q 120 106 162 98" fill="none" />
-        <path d="M 88 124 Q 120 130 152 124" fill="none" />
       </g>
       <ellipse cx="120" cy="40" rx="60" ry="9" fill="none" stroke="#FF6B35" stroke-width="5" />
     </svg>
@@ -37,6 +42,23 @@
         <line x1="24" y1="3" x2="24" y2="45" stroke="#1A1006" stroke-width="1.8" />
       </svg>
     </div>
+
+    <!-- Net front layer: the woven cross-strands the ball's path actually
+         crosses — in front of the ball, so it visually threads between the
+         two layers instead of sliding over the whole net. Same viewBox/
+         position/animations as the back layer so they read as one net. -->
+    <svg
+      class="net-graphic net-front absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none"
+      viewBox="0 0 240 150"
+      width="200"
+      height="125"
+    >
+      <g class="net-strands" stroke="#F0F0EC" stroke-width="1.5" opacity="0.85">
+        <path d="M 68 68 Q 120 78 172 68" fill="none" />
+        <path d="M 78 98 Q 120 106 162 98" fill="none" />
+        <path d="M 88 124 Q 120 130 152 124" fill="none" />
+      </g>
+    </svg>
 
     <!-- Final lockup: ball icon + wordmark, pops in as the falling ball fades out -->
     <div class="lockup absolute left-1/2 flex items-center gap-2.5" style="top: 148px">
