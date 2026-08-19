@@ -1,8 +1,9 @@
-# EuroLeague App
+# Clutch
 
-A personalized EuroLeague stats & analytics app. Pick a favorite team and the
-UI "reskins" to that team's colors; browse standings, rosters, and league
-leaders built on real EuroLeague data.
+A personalized EuroLeague stats & fan app. Pick a favorite team and the UI
+"reskins" to that team's colors; browse standings, rosters, league leaders,
+news, and a win/loss prediction game with points, badges, and tradeable
+collectible cards, all built on real EuroLeague data.
 
 ## Stack
 
