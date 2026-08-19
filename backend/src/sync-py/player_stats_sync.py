@@ -44,6 +44,17 @@ def safe_float(value) -> Optional[float]:
     return None if math.isnan(f) else f
 
 
+def safe_str(value) -> Optional[str]:
+    """Same NaN trap as safe_float, but for string columns (e.g. a player
+    with no photo on file comes back as float('nan'), not None or "")."""
+    if value is None:
+        return None
+    if isinstance(value, float) and math.isnan(value):
+        return None
+    value = str(value).strip()
+    return value or None
+
+
 def field_goal_pct(row) -> Optional[float]:
     made = (safe_float(row["twoPointersMade"]) or 0) + (safe_float(row["threePointersMade"]) or 0)
     attempted = (safe_float(row["twoPointersAttempted"]) or 0) + (
@@ -80,16 +91,17 @@ def sync_player_stats(season: int) -> Tuple[int, int, int]:
 
             player_code = row["player.code"]
             player_name = row["player.name"]
+            photo_url = safe_str(row["player.imageUrl"])
 
             cur.execute(
                 """
-                INSERT INTO players (code, team_id, name)
-                VALUES (%s, %s, %s)
+                INSERT INTO players (code, team_id, name, photo_url)
+                VALUES (%s, %s, %s, %s)
                 ON CONFLICT (code) DO UPDATE
-                SET team_id = EXCLUDED.team_id, name = EXCLUDED.name
+                SET team_id = EXCLUDED.team_id, name = EXCLUDED.name, photo_url = EXCLUDED.photo_url
                 RETURNING id
                 """,
-                (player_code, team_id, player_name),
+                (player_code, team_id, player_name, photo_url),
             )
             player_id = cur.fetchone()[0]
             players_upserted += 1
