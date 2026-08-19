@@ -1,8 +1,8 @@
-<nav
+﻿<nav
   class="flex justify-between items-center gap-3 px-4 sm:px-6 py-4 bg-card border-b border-line"
 >
   <div class="flex items-center gap-6 min-w-0">
-    <a routerLink="/" class="font-extrabold text-[15px] shrink-0"> EuroLeague App </a>
+    <a routerLink="/" class="font-display text-base uppercase tracking-wide shrink-0"> Euroleague </a>
 
     <!-- Desktop primary nav — the bottom tab nav below is mobile-only -->
     <div class="hidden sm:flex items-center gap-5">
@@ -11,7 +11,7 @@
           [routerLink]="link.path"
           routerLinkActive="text-highlight"
           [routerLinkActiveOptions]="{ exact: !!link.exact }"
-          class="text-muted font-semibold text-xs hover:text-ink transition-colors"
+          class="font-mono text-muted font-bold text-[11px] uppercase tracking-wide hover:text-ink transition-colors"
           >{{ link.label }}</a
         >
       }
@@ -20,24 +20,24 @@
 
   @if (auth.isAuthenticated()) {
     <div class="flex items-center gap-3 min-w-0">
-      <span class="text-muted font-semibold text-xs truncate max-w-[40vw]">{{
+      <span class="font-mono text-muted font-bold text-[11px] truncate max-w-[40vw]">{{
         auth.currentUser()?.email
       }}</span>
       <button
         (click)="logout()"
-        class="text-highlight font-bold text-xs hover:text-highlight-dim transition-colors shrink-0"
+        class="font-mono text-highlight font-bold text-[11px] uppercase hover:text-highlight-dim transition-colors shrink-0"
       >
         Log out
       </button>
     </div>
   } @else {
     <div class="flex items-center gap-3 sm:gap-4 shrink-0">
-      <a routerLink="/login" class="text-muted font-semibold text-xs hover:text-ink transition-colors"
+      <a routerLink="/login" class="font-mono text-muted font-bold text-[11px] uppercase hover:text-ink transition-colors"
         >Log in</a
       >
       <a
         routerLink="/register"
-        class="px-4 py-2 rounded-full bg-highlight text-white font-bold text-xs hover:bg-highlight-dim transition-colors"
+        class="px-4 py-2 rounded-full bg-highlight text-white font-mono font-bold text-[11px] uppercase hover:bg-highlight-dim transition-colors"
         >Register</a
       >
     </div>
@@ -57,7 +57,7 @@
       [routerLink]="link.path"
       routerLinkActive="text-highlight"
       [routerLinkActiveOptions]="{ exact: !!link.exact }"
-      class="flex flex-col items-center gap-0.5 text-muted text-[10px] font-bold px-3 py-1"
+      class="flex flex-col items-center gap-0.5 text-muted font-mono text-[9px] font-bold uppercase tracking-wide px-3 py-1"
     >
       <app-nav-icon [name]="link.icon" />
       {{ link.label }}
@@ -66,7 +66,7 @@
   @if (auth.isAuthenticated()) {
     <button
       (click)="logout()"
-      class="flex flex-col items-center gap-0.5 text-muted text-[10px] font-bold px-3 py-1"
+      class="flex flex-col items-center gap-0.5 text-muted font-mono text-[9px] font-bold uppercase tracking-wide px-3 py-1"
     >
       <app-nav-icon name="user" />
       Log out
@@ -75,7 +75,7 @@
     <a
       routerLink="/login"
       routerLinkActive="text-highlight"
-      class="flex flex-col items-center gap-0.5 text-muted text-[10px] font-bold px-3 py-1"
+      class="flex flex-col items-center gap-0.5 text-muted font-mono text-[9px] font-bold uppercase tracking-wide px-3 py-1"
     >
       <app-nav-icon name="user" />
       Log in
