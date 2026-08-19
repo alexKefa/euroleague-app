@@ -1,12 +1,17 @@
 <div class="max-w-3xl lg:max-w-5xl mx-auto p-4 sm:p-6">
-  <a routerLink="/" class="text-xs text-muted font-semibold hover:text-ink transition-colors"
-    >&larr; Back to dashboard</a
+  <a
+    routerLink="/"
+    class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
+    >&larr; Dashboard</a
   >
 
   <div class="flex items-center justify-between mt-4 mb-5">
-    <h1 class="text-xl font-extrabold">Reward Store</h1>
+    <h1 class="font-display text-2xl uppercase tracking-wide">Store</h1>
     @if (auth.isAuthenticated()) {
-      <span class="text-sm font-extrabold text-highlight">{{ points() }} pts</span>
+      <span
+        class="font-mono text-xs font-bold text-highlight bg-card border border-line rounded-full px-3 py-1"
+        >{{ points() }} PTS</span
+      >
     }
   </div>
 
@@ -21,18 +26,18 @@
     <div class="flex gap-2 mb-5">
       <a
         routerLink="/wheel"
-        class="flex-1 text-center px-3 py-2 rounded-full bg-card shadow-card text-xs font-bold hover:shadow-pop transition-all"
-        >🎡 Free spin</a
+        class="flex-1 text-center px-3 py-2 rounded-full bg-card shadow-card font-mono text-[11px] font-bold uppercase tracking-wide hover:shadow-pop transition-all"
+        >🎡 Spin</a
       >
       <a
         routerLink="/inventory"
-        class="flex-1 text-center px-3 py-2 rounded-full bg-card shadow-card text-xs font-bold hover:shadow-pop transition-all"
+        class="flex-1 text-center px-3 py-2 rounded-full bg-card shadow-card font-mono text-[11px] font-bold uppercase tracking-wide hover:shadow-pop transition-all"
         >My cards</a
       >
       <a
         routerLink="/trades"
-        class="flex-1 text-center px-3 py-2 rounded-full bg-card shadow-card text-xs font-bold hover:shadow-pop transition-all"
-        >My trades</a
+        class="flex-1 text-center px-3 py-2 rounded-full bg-card shadow-card font-mono text-[11px] font-bold uppercase tracking-wide hover:shadow-pop transition-all"
+        >Trades</a
       >
     </div>
   }
@@ -40,7 +45,7 @@
   @if (loading()) {
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
       @for (i of [1, 2, 3]; track i) {
-        <div class="animate-pulse bg-line rounded-2xl" style="aspect-ratio: 2.5 / 3.5"></div>
+        <div class="animate-pulse bg-line rounded-lg" style="aspect-ratio: 2.5 / 3.5"></div>
       }
     </div>
   }
@@ -66,17 +71,17 @@
           </button>
 
           @if (isUnlocked(item)) {
-            <span class="text-[11px] font-bold text-emerald-600 uppercase">Unlocked</span>
+            <span class="font-mono text-[10px] font-bold text-emerald-500 uppercase tracking-wide">Unlocked</span>
           } @else if (auth.isAuthenticated()) {
             <button
               (click)="redeem(item)"
               [disabled]="!canAfford(item) || redeemingId() === item.id"
-              class="text-[11px] font-bold px-3 py-1.5 rounded-full bg-highlight text-white hover:bg-highlight-dim transition-colors disabled:opacity-40"
+              class="font-mono text-[10px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full bg-highlight text-white hover:bg-highlight-dim transition-colors disabled:opacity-40"
             >
               {{ redeemingId() === item.id ? "Redeeming…" : canAfford(item) ? "Redeem · " + item.pointsCost + " pts" : item.pointsCost + " pts" }}
             </button>
           } @else {
-            <span class="text-[11px] font-bold text-muted">{{ item.pointsCost }} pts</span>
+            <span class="font-mono text-[10px] font-bold text-muted uppercase tracking-wide">{{ item.pointsCost }} pts</span>
           }
         </div>
       } @empty {
@@ -85,13 +90,13 @@
     </div>
 
     @if (redeemError()) {
-      <p class="text-red-600 text-xs font-semibold mt-4">{{ redeemError() }}</p>
+      <p class="text-red-500 text-xs font-semibold mt-4">{{ redeemError() }}</p>
     }
   }
 
   @if (auth.currentUser()?.isAdmin) {
-    <div class="bg-card rounded-2xl shadow-card p-4 mt-6">
-      <p class="text-[11px] text-muted font-bold uppercase tracking-wide mb-3">
+    <div class="bg-card rounded-lg shadow-card p-4 mt-6">
+      <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide mb-3">
         Add to catalog (admin)
       </p>
 
@@ -100,11 +105,11 @@
           type="text"
           formControlName="name"
           placeholder="Player / item name"
-          class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
+          class="flex-1 min-w-[10rem] px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
         />
         <select
           formControlName="teamId"
-          class="px-3 py-2 rounded-xl bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
+          class="px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
         >
           <option value="" disabled>Team</option>
           @for (team of teams(); track team.id) {
@@ -113,7 +118,7 @@
         </select>
         <select
           formControlName="tier"
-          class="px-3 py-2 rounded-xl bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
+          class="px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
         >
           <option value="common">Common</option>
           <option value="rare">Rare</option>
@@ -123,25 +128,25 @@
           type="number"
           formControlName="pointsCost"
           placeholder="Points"
-          class="w-24 px-3 py-2 rounded-xl bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
+          class="w-24 px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
         />
         <input
           type="text"
           formControlName="imageUrl"
           placeholder="Image URL (optional)"
-          class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
+          class="flex-1 min-w-[10rem] px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
         />
         <button
           type="submit"
           [disabled]="addForm.invalid || addSubmitting()"
-          class="px-4 py-2 rounded-full bg-highlight text-white text-sm font-bold hover:bg-highlight-dim transition-colors disabled:opacity-50"
+          class="px-4 py-2 rounded-full bg-highlight text-white font-mono text-xs font-bold uppercase tracking-wide hover:bg-highlight-dim transition-colors disabled:opacity-50"
         >
           {{ addSubmitting() ? "Adding…" : "Add" }}
         </button>
       </form>
 
       @if (addError()) {
-        <p class="text-red-600 text-xs font-semibold mt-2">{{ addError() }}</p>
+        <p class="text-red-500 text-xs font-semibold mt-2">{{ addError() }}</p>
       }
     </div>
   }
@@ -190,8 +195,8 @@
       </div>
 
       <div class="text-center">
-        <p class="text-white font-extrabold text-lg">{{ item.name }}</p>
-        <p class="text-white/60 text-xs font-bold uppercase tracking-wide">{{ item.team.code }}</p>
+        <p class="font-display text-xl uppercase tracking-wide text-white">{{ item.name }}</p>
+        <p class="font-mono text-white/60 text-[11px] font-bold uppercase tracking-wide mt-1">{{ item.team.code }}</p>
       </div>
 
       @if (auth.currentUser()?.isAdmin) {
@@ -206,7 +211,7 @@
           <button
             (click)="setImage(item, imageInput.value)"
             [disabled]="imageSavingId() === item.id"
-            class="text-xs font-bold px-3 py-1.5 rounded-lg bg-white/15 text-white hover:bg-highlight transition-colors disabled:opacity-40"
+            class="font-mono text-[11px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-lg bg-white/15 text-white hover:bg-highlight transition-colors disabled:opacity-40"
           >
             {{ imageSavingId() === item.id ? "…" : "Set image" }}
           </button>
