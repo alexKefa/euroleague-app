@@ -1,0 +1,61 @@
+.ball {
+  animation: ball-fall 1.5s cubic-bezier(0.55, 0, 1, 0.45) forwards;
+}
+
+.net-strands {
+  transform-origin: 120px 90px;
+  animation: net-ripple 1.5s ease-out forwards;
+}
+
+.wordmark {
+  opacity: 0;
+  margin-top: 1.25rem;
+  animation: wordmark-in 1.5s ease-out forwards;
+}
+
+@keyframes ball-fall {
+  0% {
+    transform: translateY(-120px);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  58% {
+    transform: translateY(48px);
+  }
+  100% {
+    transform: translateY(230px);
+    opacity: 0;
+  }
+}
+
+@keyframes net-ripple {
+  0%,
+  50% {
+    transform: scaleX(1);
+  }
+  57% {
+    transform: scaleX(1.18);
+  }
+  66% {
+    transform: scaleX(0.9);
+  }
+  76%,
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes wordmark-in {
+  0%,
+  52% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  72%,
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

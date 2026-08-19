@@ -1,9 +1,16 @@
-import { Component, OnInit, inject } from "@angular/core";
+import { Component, OnInit, inject, signal } from "@angular/core";
 import { toSignal } from "@angular/core/rxjs-interop";
 import { NavigationEnd, Router, RouterOutlet, RouterLink } from "@angular/router";
 import { filter, map } from "rxjs";
 import { AuthService } from "./core/auth.service";
 import { NavIconComponent, NavIconName } from "./shared/nav-icon";
+import { SplashComponent } from "./shared/splash";
+
+// Matches the ball-fall/wordmark-in animation duration in splash.css —
+// the fade-out starts once the animation has actually finished playing,
+// not on some unrelated timer.
+const SPLASH_DURATION_MS = 1500;
+const SPLASH_FADE_MS = 400;
 
 interface NavLink {
   path: string;
@@ -26,13 +33,16 @@ const NAV_LINKS: NavLink[] = [
 @Component({
   selector: "app-root",
   standalone: true,
-  imports: [RouterOutlet, RouterLink, NavIconComponent],
+  imports: [RouterOutlet, RouterLink, NavIconComponent, SplashComponent],
   templateUrl: "./app.component.html",
 })
 export class AppComponent implements OnInit {
   protected auth = inject(AuthService);
   private router = inject(Router);
   protected readonly navLinks = NAV_LINKS;
+
+  protected readonly showSplash = signal(true);
+  protected readonly splashHiding = signal(false);
 
   protected readonly currentUrl = toSignal(
     this.router.events.pipe(
@@ -44,6 +54,9 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     this.auth.restoreSession().subscribe();
+
+    setTimeout(() => this.splashHiding.set(true), SPLASH_DURATION_MS);
+    setTimeout(() => this.showSplash.set(false), SPLASH_DURATION_MS + SPLASH_FADE_MS);
   }
 
   logout(): void {
