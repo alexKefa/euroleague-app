@@ -3,6 +3,7 @@ import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { Observable } from "rxjs";
 import { ApiService } from "../../core/api.service";
+import { AuthService } from "../../core/auth.service";
 import { TradeableCard, TradeOffer } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
 
@@ -14,6 +15,7 @@ import { CollectibleCardComponent } from "../store/collectible-card";
 })
 export class TradesComponent implements OnInit {
   private api = inject(ApiService);
+  protected auth = inject(AuthService);
 
   readonly loading = signal(true);
   readonly myCards = signal<TradeableCard[]>([]);
@@ -47,6 +49,11 @@ export class TradesComponent implements OnInit {
   );
 
   ngOnInit(): void {
+    if (!this.auth.isAuthenticated()) {
+      this.loading.set(false);
+      return;
+    }
+
     this.loadMyCards();
     this.loadOffers();
   }

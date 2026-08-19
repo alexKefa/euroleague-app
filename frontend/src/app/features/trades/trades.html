@@ -11,7 +11,16 @@
     <div class="animate-pulse h-40 bg-line rounded-lg mb-5"></div>
   }
 
-  @if (!loading()) {
+  @if (!loading() && !auth.isAuthenticated()) {
+    <div class="bg-card rounded-lg shadow-card p-6">
+      <p class="text-sm text-muted">
+        <a routerLink="/login" class="text-highlight font-semibold">Log in</a> to trade legendary cards
+        with other collectors.
+      </p>
+    </div>
+  }
+
+  @if (!loading() && auth.isAuthenticated()) {
     @if (myCards().length === 0) {
       <p class="text-sm text-muted mb-6">
         You don't have any legendary cards to trade yet. Win one from the
