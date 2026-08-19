@@ -25,6 +25,14 @@ export const routes: Routes = [
       import("./features/team/roster").then((m) => m.TeamRosterComponent),
   },
   {
+    path: "wheel",
+    loadComponent: () => import("./features/wheel/wheel").then((m) => m.WheelComponent),
+  },
+  {
+    path: "trades",
+    loadComponent: () => import("./features/trades/trades").then((m) => m.TradesComponent),
+  },
+  {
     path: "login",
     loadComponent: () => import("./features/auth/login.component").then((m) => m.LoginComponent),
   },

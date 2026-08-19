@@ -231,6 +231,53 @@ export const userCollectibles = pgTable(
   })
 );
 
+// One row per spin attempt — a ledger, same style as point_adjustments,
+// rather than a stored "next spin at" balance. Eligibility is computed on
+// read by comparing now() to the latest spunAt (see services/cards.ts).
+// collectibleId is null when the spin found nothing left to win (the user
+// already owns every legendary collectible).
+export const wheelSpins = pgTable("wheel_spins", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  collectibleId: uuid("collectible_id").references(() => collectibles.id),
+  spunAt: timestamp("spun_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Legendary-card payout for going 100% correct across every game in a
+// round. One row per (user, round) — the unique index doubles as the
+// idempotency guard so a round can only pay out once per user (see
+// checkAndGrantRoundRewards in services/cards.ts). collectibleId is null
+// when the round qualified but the user already owned every legendary.
+export const roundRewards = pgTable(
+  "round_rewards",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    round: integer("round").notNull(),
+    collectibleId: uuid("collectible_id").references(() => collectibles.id),
+    grantedAt: timestamp("granted_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    userRoundRewardUnique: uniqueIndex("user_round_reward_unique").on(table.userId, table.round),
+  })
+);
+
+// Direct trade offers between two users, scoped to legendary collectibles
+// only (the only tier that's ever "yours" without being purchasable — see
+// collectibles.ts's redeem guard). Accepting one re-points the two
+// matching userCollectibles rows' userId rather than moving any new kind
+// of row, since ownership is still just that boolean-unlock table.
+export const tradeOffers = pgTable("trade_offers", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  fromUserId: uuid("from_user_id").notNull().references(() => users.id),
+  toUserId: uuid("to_user_id").notNull().references(() => users.id),
+  offeredCollectibleId: uuid("offered_collectible_id").notNull().references(() => collectibles.id),
+  requestedCollectibleId: uuid("requested_collectible_id").notNull().references(() => collectibles.id),
+  status: varchar("status", { length: 20 }).default("pending").notNull(), // pending | accepted | declined | cancelled
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  respondedAt: timestamp("responded_at", { withTimezone: true }),
+});
+
 // Relations — mainly so query.teams.findMany({ with: { ... } }) style
 // lookups work without hand-written joins later.
 
@@ -313,5 +360,38 @@ export const userCollectiblesRelations = relations(userCollectibles, ({ one }) =
   collectible: one(collectibles, {
     fields: [userCollectibles.collectibleId],
     references: [collectibles.id],
+  }),
+}));
+
+export const wheelSpinsRelations = relations(wheelSpins, ({ one }) => ({
+  user: one(users, { fields: [wheelSpins.userId], references: [users.id] }),
+  collectible: one(collectibles, { fields: [wheelSpins.collectibleId], references: [collectibles.id] }),
+}));
+
+export const roundRewardsRelations = relations(roundRewards, ({ one }) => ({
+  user: one(users, { fields: [roundRewards.userId], references: [users.id] }),
+  collectible: one(collectibles, { fields: [roundRewards.collectibleId], references: [collectibles.id] }),
+}));
+
+export const tradeOffersRelations = relations(tradeOffers, ({ one }) => ({
+  fromUser: one(users, {
+    fields: [tradeOffers.fromUserId],
+    references: [users.id],
+    relationName: "tradeOffersFrom",
+  }),
+  toUser: one(users, {
+    fields: [tradeOffers.toUserId],
+    references: [users.id],
+    relationName: "tradeOffersTo",
+  }),
+  offeredCollectible: one(collectibles, {
+    fields: [tradeOffers.offeredCollectibleId],
+    references: [collectibles.id],
+    relationName: "tradeOffersOffered",
+  }),
+  requestedCollectible: one(collectibles, {
+    fields: [tradeOffers.requestedCollectibleId],
+    references: [collectibles.id],
+    relationName: "tradeOffersRequested",
   }),
 }));

@@ -31,7 +31,15 @@
         }
 
         @if (auth.isAuthenticated()) {
-          @if (mySummary()) {
+          @if (mySummary(); as summary) {
+            @if (summary.newRoundRewards.length > 0) {
+              <div class="rounded-xl bg-highlight/10 text-highlight text-xs font-bold px-3 py-2 mb-3">
+                🎉 Perfect round! You won
+                {{ summary.newRoundRewards.length === 1 ? summary.newRoundRewards[0].name : summary.newRoundRewards.length + " legendary cards" }}
+                — check your
+                <a routerLink="/store" class="underline">collection</a>.
+              </div>
+            }
             <div class="flex items-center justify-between mb-3 pb-3 border-b border-line">
               <span class="text-lg font-extrabold text-highlight">{{ mySummary()!.points }} pts</span>
               <div class="flex gap-1 text-base">

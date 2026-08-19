@@ -14,6 +14,10 @@ import {
   PredictionSummary,
   Collectible,
   MyCollectible,
+  SpinStatus,
+  SpinResult,
+  TradeableCard,
+  TradeOffer,
 } from "./models";
 
 /**
@@ -99,5 +103,43 @@ export class ApiService {
 
   updateCollectibleImage(id: string, imageUrl: string): Observable<unknown> {
     return this.http.patch(`${API_BASE_URL}/collectibles/${id}`, { imageUrl });
+  }
+
+  getSpinStatus(): Observable<SpinStatus> {
+    return this.http.get<SpinStatus>(`${API_BASE_URL}/spin`);
+  }
+
+  spin(): Observable<SpinResult> {
+    return this.http.post<SpinResult>(`${API_BASE_URL}/spin`, {});
+  }
+
+  getTradeableCards(email?: string): Observable<TradeableCard[]> {
+    return this.http.get<TradeableCard[]>(`${API_BASE_URL}/trades/tradeable-cards`, {
+      params: email ? { email } : {},
+    });
+  }
+
+  proposeTrade(
+    toEmail: string,
+    offeredCollectibleId: string,
+    requestedCollectibleId: string
+  ): Observable<unknown> {
+    return this.http.post(`${API_BASE_URL}/trades`, { toEmail, offeredCollectibleId, requestedCollectibleId });
+  }
+
+  getMyTrades(): Observable<TradeOffer[]> {
+    return this.http.get<TradeOffer[]>(`${API_BASE_URL}/trades/me`);
+  }
+
+  acceptTrade(id: string): Observable<unknown> {
+    return this.http.post(`${API_BASE_URL}/trades/${id}/accept`, {});
+  }
+
+  declineTrade(id: string): Observable<unknown> {
+    return this.http.post(`${API_BASE_URL}/trades/${id}/decline`, {});
+  }
+
+  cancelTrade(id: string): Observable<unknown> {
+    return this.http.post(`${API_BASE_URL}/trades/${id}/cancel`, {});
   }
 }

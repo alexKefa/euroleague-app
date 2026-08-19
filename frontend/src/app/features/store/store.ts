@@ -1,4 +1,4 @@
-import { Component, HostListener, OnInit, inject, signal } from "@angular/core";
+import { Component, HostListener, OnInit, inject, signal, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ReactiveFormsModule, FormBuilder, Validators } from "@angular/forms";
@@ -24,7 +24,10 @@ export class StoreComponent implements OnInit {
   readonly loading = signal(true);
   readonly redeemingId = signal<string | null>(null);
   readonly redeemError = signal<string | null>(null);
-  readonly previewItem = signal<Collectible | null>(null);
+  private readonly previewItemId = signal<string | null>(null);
+  readonly previewItem = computed(
+    () => this.collectibles().find((c) => c.id === this.previewItemId()) ?? null
+  );
   readonly dragRotation = signal(0);
   readonly isDragging = signal(false);
   private dragPointerId: number | null = null;
@@ -77,11 +80,11 @@ export class StoreComponent implements OnInit {
   }
 
   openPreview(collectible: Collectible): void {
-    this.previewItem.set(collectible);
+    this.previewItemId.set(collectible.id);
   }
 
   closePreview(): void {
-    this.previewItem.set(null);
+    this.previewItemId.set(null);
     this.dragRotation.set(0);
   }
 

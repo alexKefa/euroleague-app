@@ -56,6 +56,13 @@ collectiblesRouter.post("/:id/redeem", requireAuth, async (req, res) => {
       return;
     }
 
+    if (collectible.tier === "legendary") {
+      res.status(400).json({
+        error: "Legendary cards can't be bought — win them from the wheel or a perfect round.",
+      });
+      return;
+    }
+
     const [existing] = await db
       .select({ id: userCollectibles.id })
       .from(userCollectibles)

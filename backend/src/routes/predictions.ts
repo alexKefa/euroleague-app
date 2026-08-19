@@ -4,6 +4,7 @@ import { db } from "../db/client.js";
 import { predictions, games, teams, users, pointAdjustments } from "../db/schema.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
 import { computeWinnerTeamId, getUserPoints, POINTS_PER_CORRECT } from "../services/points.js";
+import { checkAndGrantRoundRewards } from "../services/cards.js";
 
 export const predictionsRouter = Router();
 
@@ -253,8 +254,13 @@ predictionsRouter.get("/me/summary", requireAuth, async (req, res) => {
     resolved.sort((a, b) => new Date(a.tipoffAt).getTime() - new Date(b.tipoffAt).getTime());
 
     const badges = earnedBadges({ picks: resolved, hasAnyPick: rows.length > 0, totalPoints: points });
+    const newRoundRewards = await checkAndGrantRoundRewards(req.userId!);
 
-    res.json({ points, badges });
+    res.json({
+      points,
+      badges,
+      newRoundRewards: newRoundRewards.map((c) => ({ id: c.id, name: c.name, imageUrl: c.imageUrl })),
+    });
   } catch (err) {
     console.error("GET /api/predictions/me/summary failed:", err);
     res.status(500).json({ error: "Failed to load prediction summary" });

@@ -124,9 +124,16 @@ export interface LeaderboardEntry {
   badges: Badge[];
 }
 
+export interface TradeCardRef {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+}
+
 export interface PredictionSummary {
   points: number;
   badges: Badge[];
+  newRoundRewards: TradeCardRef[];
 }
 
 export type CollectibleTier = "common" | "rare" | "legendary";
@@ -143,6 +150,36 @@ export interface Collectible {
 export interface MyCollectible {
   collectibleId: string;
   unlockedAt: string;
+}
+
+export interface SpinStatus {
+  canSpin: boolean;
+  nextEligibleAt: string | null;
+}
+
+export interface SpinResult {
+  won: Collectible | null;
+  nextEligibleAt: string;
+}
+
+export interface TradeableCard {
+  id: string;
+  name: string;
+  tier: CollectibleTier;
+  imageUrl: string | null;
+  team: { id: string; code: string; name: string; primaryColor: string | null };
+}
+
+export type TradeOfferStatus = "pending" | "accepted" | "declined" | "cancelled";
+
+export interface TradeOffer {
+  id: string;
+  status: TradeOfferStatus;
+  createdAt: string;
+  direction: "incoming" | "outgoing";
+  counterpartyEmail: string;
+  offered: TradeCardRef;
+  requested: TradeCardRef;
 }
 
 export interface StandingsRow {

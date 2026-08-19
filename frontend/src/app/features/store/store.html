@@ -17,6 +17,21 @@
     </p>
   }
 
+  @if (auth.isAuthenticated()) {
+    <div class="flex gap-2 mb-5">
+      <a
+        routerLink="/wheel"
+        class="flex-1 text-center px-3 py-2 rounded-full bg-card shadow-card text-xs font-bold hover:shadow-pop transition-all"
+        >🎡 Free spin</a
+      >
+      <a
+        routerLink="/trades"
+        class="flex-1 text-center px-3 py-2 rounded-full bg-card shadow-card text-xs font-bold hover:shadow-pop transition-all"
+        >My trades</a
+      >
+    </div>
+  }
+
   @if (loading()) {
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
       @for (i of [1, 2, 3]; track i) {
@@ -57,28 +72,6 @@
             </button>
           } @else {
             <span class="text-[11px] font-bold text-muted">{{ item.pointsCost }} pts</span>
-          }
-
-          @if (auth.currentUser()?.isAdmin) {
-            <div class="flex gap-1 w-full">
-              <input
-                #imageInput
-                type="text"
-                [value]="item.imageUrl ?? ''"
-                placeholder="/assets/collectibles/photo.jpg"
-                class="flex-1 min-w-0 px-2 py-1 rounded-lg bg-card border border-line text-[10px] font-semibold focus:border-highlight outline-none"
-              />
-              <button
-                (click)="setImage(item, imageInput.value)"
-                [disabled]="imageSavingId() === item.id"
-                class="text-[10px] font-bold px-2 py-1 rounded-lg bg-line text-ink hover:bg-highlight hover:text-white transition-colors disabled:opacity-40"
-              >
-                {{ imageSavingId() === item.id ? "…" : "Set" }}
-              </button>
-            </div>
-            @if (imageErrors()[item.id]) {
-              <p class="text-red-600 text-[10px] font-semibold">{{ imageErrors()[item.id] }}</p>
-            }
           }
         </div>
       } @empty {
@@ -195,6 +188,28 @@
         <p class="text-white font-extrabold text-lg">{{ item.name }}</p>
         <p class="text-white/60 text-xs font-bold uppercase tracking-wide">{{ item.team.code }}</p>
       </div>
+
+      @if (auth.currentUser()?.isAdmin) {
+        <div class="w-full flex gap-1">
+          <input
+            #imageInput
+            type="text"
+            [value]="item.imageUrl ?? ''"
+            placeholder="/assets/collectibles/photo.jpg"
+            class="flex-1 min-w-0 px-2 py-1.5 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 text-xs font-semibold focus:border-highlight outline-none"
+          />
+          <button
+            (click)="setImage(item, imageInput.value)"
+            [disabled]="imageSavingId() === item.id"
+            class="text-xs font-bold px-3 py-1.5 rounded-lg bg-white/15 text-white hover:bg-highlight transition-colors disabled:opacity-40"
+          >
+            {{ imageSavingId() === item.id ? "…" : "Set image" }}
+          </button>
+        </div>
+        @if (imageErrors()[item.id]) {
+          <p class="text-red-400 text-xs font-semibold">{{ imageErrors()[item.id] }}</p>
+        }
+      }
     </div>
   </div>
 }

@@ -1,0 +1,163 @@
+<div class="max-w-3xl lg:max-w-5xl mx-auto p-4 sm:p-6">
+  <a routerLink="/store" class="text-xs text-muted font-semibold hover:text-ink transition-colors"
+    >&larr; Back to store</a
+  >
+
+  <h1 class="text-xl font-extrabold mt-4 mb-5">Trades</h1>
+
+  @if (loading()) {
+    <div class="animate-pulse h-40 bg-line rounded-2xl mb-5"></div>
+  }
+
+  @if (!loading()) {
+    @if (myCards().length === 0) {
+      <p class="text-sm text-muted mb-6">
+        You don't have any legendary cards to trade yet. Win one from the
+        <a routerLink="/wheel" class="text-highlight font-semibold">wheel</a> or a perfect prediction round.
+      </p>
+    } @else {
+      <div class="bg-card rounded-2xl shadow-card p-4 mb-6">
+        <p class="text-[11px] text-muted font-bold uppercase tracking-wide mb-3">Propose a trade</p>
+
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+          <input
+            #emailInput
+            type="email"
+            placeholder="Recipient's email"
+            (keydown.enter)="loadTheirCards(emailInput.value)"
+            class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
+          />
+          <button
+            type="button"
+            (click)="loadTheirCards(emailInput.value)"
+            [disabled]="loadingTheirCards()"
+            class="px-4 py-2 rounded-full bg-line text-ink text-sm font-bold hover:bg-highlight hover:text-white transition-colors disabled:opacity-50"
+          >
+            {{ loadingTheirCards() ? "Looking…" : "Find their cards" }}
+          </button>
+        </div>
+
+        @if (theirCardsError()) {
+          <p class="text-red-600 text-xs font-semibold mb-4">{{ theirCardsError() }}</p>
+        }
+
+        <p class="text-[11px] text-muted font-bold uppercase tracking-wide mb-2">Your card to offer</p>
+        <div class="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
+          @for (card of myCards(); track card.id) {
+            <button
+              type="button"
+              (click)="selectMine(card.id)"
+              class="rounded-2xl focus:outline-none"
+              [class.ring-2]="selectedMineId() === card.id"
+              [class.ring-highlight]="selectedMineId() === card.id"
+            >
+              <app-collectible-card
+                [name]="card.name"
+                [tier]="card.tier"
+                [teamCode]="card.team.code"
+                [teamColor]="card.team.primaryColor"
+                [imageUrl]="card.imageUrl"
+                [unlocked]="true"
+              ></app-collectible-card>
+            </button>
+          }
+        </div>
+
+        @if (theirCards().length > 0) {
+          <p class="text-[11px] text-muted font-bold uppercase tracking-wide mb-2">Their card you want</p>
+          <div class="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
+            @for (card of theirCards(); track card.id) {
+              <button
+                type="button"
+                (click)="selectTheirs(card.id)"
+                class="rounded-2xl focus:outline-none"
+                [class.ring-2]="selectedTheirsId() === card.id"
+                [class.ring-highlight]="selectedTheirsId() === card.id"
+              >
+                <app-collectible-card
+                  [name]="card.name"
+                  [tier]="card.tier"
+                  [teamCode]="card.team.code"
+                  [teamColor]="card.team.primaryColor"
+                  [imageUrl]="card.imageUrl"
+                  [unlocked]="true"
+                ></app-collectible-card>
+              </button>
+            }
+          </div>
+        }
+
+        <button
+          type="button"
+          (click)="propose()"
+          [disabled]="!canPropose() || proposing()"
+          class="px-4 py-2 rounded-full bg-highlight text-white text-sm font-bold hover:bg-highlight-dim transition-colors disabled:opacity-50"
+        >
+          {{ proposing() ? "Sending…" : "Send offer" }}
+        </button>
+
+        @if (proposeError()) {
+          <p class="text-red-600 text-xs font-semibold mt-2">{{ proposeError() }}</p>
+        }
+        @if (proposeSuccess()) {
+          <p class="text-emerald-600 text-xs font-semibold mt-2">Offer sent.</p>
+        }
+      </div>
+    }
+
+    <div class="bg-card rounded-2xl shadow-card p-4">
+      <p class="text-[11px] text-muted font-bold uppercase tracking-wide mb-3">My trade offers</p>
+      <div class="space-y-2">
+        @for (offer of offers(); track offer.id) {
+          <div class="flex items-center justify-between gap-3 px-2 py-2 rounded-lg bg-page">
+            <div class="text-sm">
+              <p class="font-semibold">
+                {{ offer.direction === "outgoing" ? "To" : "From" }} {{ offer.counterpartyEmail }}
+              </p>
+              <p class="text-muted text-xs">
+                {{ offer.direction === "outgoing" ? "You offered" : "They offered" }}
+                <span class="font-semibold">{{ offer.offered.name }}</span>
+                for
+                <span class="font-semibold">{{ offer.requested.name }}</span>
+              </p>
+            </div>
+
+            @if (offer.status === "pending" && offer.direction === "incoming") {
+              <div class="flex gap-1 shrink-0">
+                <button
+                  type="button"
+                  (click)="accept(offer)"
+                  [disabled]="actingOnId() === offer.id"
+                  class="text-[11px] font-bold px-3 py-1.5 rounded-full bg-highlight text-white hover:bg-highlight-dim transition-colors disabled:opacity-40"
+                >
+                  Accept
+                </button>
+                <button
+                  type="button"
+                  (click)="decline(offer)"
+                  [disabled]="actingOnId() === offer.id"
+                  class="text-[11px] font-bold px-3 py-1.5 rounded-full bg-line text-ink hover:bg-red-500 hover:text-white transition-colors disabled:opacity-40"
+                >
+                  Decline
+                </button>
+              </div>
+            } @else if (offer.status === "pending" && offer.direction === "outgoing") {
+              <button
+                type="button"
+                (click)="cancel(offer)"
+                [disabled]="actingOnId() === offer.id"
+                class="text-[11px] font-bold px-3 py-1.5 rounded-full bg-line text-ink hover:bg-red-500 hover:text-white transition-colors disabled:opacity-40 shrink-0"
+              >
+                Cancel
+              </button>
+            } @else {
+              <span class="text-[11px] font-bold text-muted uppercase shrink-0">{{ offer.status }}</span>
+            }
+          </div>
+        } @empty {
+          <p class="text-sm text-muted">No trade offers yet.</p>
+        }
+      </div>
+    </div>
+  }
+</div>
