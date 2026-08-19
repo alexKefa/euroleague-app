@@ -88,14 +88,22 @@
         @for (row of standings(); track row.team.id) {
           <a
             [routerLink]="['/teams', row.team.id]"
-            class="flex justify-between items-center px-2 py-1.5 rounded-md hover:bg-page transition-colors"
+            class="flex justify-between items-center gap-2 px-2 py-1.5 rounded-md hover:bg-page transition-colors"
             [class.bg-page]="row.team.id === selectedTeamId()"
           >
-            <span class="font-bold"
-              ><span class="font-mono text-muted">{{ row.position }}</span
-              >&nbsp;&nbsp;<span class="font-display text-xs">{{ row.team.code }}</span></span
-            >
-            <span class="font-mono text-muted text-xs">{{ row.stats.wins }}-{{ row.stats.losses }}</span>
+            <span class="flex items-center gap-2 min-w-0">
+              <span class="font-mono text-muted w-4 shrink-0 text-right">{{ row.position }}</span>
+              @if (row.team.logoUrl) {
+                <img [src]="row.team.logoUrl" [alt]="row.team.name" class="w-5 h-5 object-contain shrink-0" />
+              } @else {
+                <span
+                  class="w-5 h-5 rounded-full shrink-0"
+                  [style.background]="row.team.primaryColor"
+                ></span>
+              }
+              <span class="font-semibold truncate">{{ row.team.name }}</span>
+            </span>
+            <span class="font-mono text-muted text-xs shrink-0">{{ row.stats.wins }}-{{ row.stats.losses }}</span>
           </a>
         }
       </div>
