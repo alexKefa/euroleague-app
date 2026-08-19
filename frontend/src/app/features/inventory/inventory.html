@@ -1,9 +1,11 @@
 <div class="max-w-3xl lg:max-w-5xl mx-auto p-4 sm:p-6">
-  <a routerLink="/store" class="text-xs text-muted font-semibold hover:text-ink transition-colors"
-    >&larr; Back to store</a
+  <a
+    routerLink="/store"
+    class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
+    >&larr; Store</a
   >
 
-  <h1 class="text-xl font-extrabold mt-4 mb-5">My Cards</h1>
+  <h1 class="font-display text-2xl uppercase tracking-wide mt-4 mb-5">My Cards</h1>
 
   @if (!auth.isAuthenticated()) {
     <p class="text-sm text-muted">
@@ -12,7 +14,7 @@
   } @else if (loading()) {
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
       @for (i of [1, 2, 3]; track i) {
-        <div class="animate-pulse bg-line rounded-2xl" style="aspect-ratio: 2.5 / 3.5"></div>
+        <div class="animate-pulse bg-line rounded-lg" style="aspect-ratio: 2.5 / 3.5"></div>
       }
     </div>
   } @else if (myCollectibles().length === 0) {
