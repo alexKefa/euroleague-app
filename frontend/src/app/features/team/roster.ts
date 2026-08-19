@@ -1,22 +1,47 @@
-import { Component, OnInit, inject, signal } from "@angular/core";
+import {
+  Component,
+  OnInit,
+  AfterViewChecked,
+  OnDestroy,
+  ElementRef,
+  ViewChild,
+  inject,
+  signal,
+  computed,
+  effect,
+} from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ActivatedRoute, RouterLink } from "@angular/router";
+import { Chart, registerables, ChartData } from "chart.js";
 import { ApiService } from "../../core/api.service";
 import { ThemeService } from "../../core/theme.service";
 import { AuthService } from "../../core/auth.service";
-import { Team, RosterEntry, Game } from "../../core/models";
+import { Team, RosterEntry, Game, StandingsRow } from "../../core/models";
+
+Chart.register(...registerables);
+
+const RADAR_AXES: { key: keyof StandingsRow["stats"]; label: string }[] = [
+  { key: "offRating", label: "Offense" },
+  { key: "defRating", label: "Defense" },
+  { key: "rebPct", label: "Rebounding" },
+  { key: "astPct", label: "Playmaking" },
+];
 
 @Component({
   selector: "app-team-roster",
   standalone: true,
   imports: [CommonModule, RouterLink],
   templateUrl: "./roster.html",
+  styleUrl: "./roster.css",
 })
-export class TeamRosterComponent implements OnInit {
+export class TeamRosterComponent implements OnInit, AfterViewChecked, OnDestroy {
   private route = inject(ActivatedRoute);
   private api = inject(ApiService);
   private theme = inject(ThemeService);
   protected auth = inject(AuthService);
+
+  @ViewChild("radarCanvas") private radarCanvasRef?: ElementRef<HTMLCanvasElement>;
+  private chart?: Chart;
 
   readonly team = signal<Team | null>(null);
   readonly roster = signal<RosterEntry[]>([]);
@@ -27,7 +52,64 @@ export class TeamRosterComponent implements OnInit {
   // gameId -> predicted team id, for games the user has already picked
   readonly myPicks = signal<Map<string, string>>(new Map());
 
+  readonly standings = signal<StandingsRow[]>([]);
+
+  readonly teamStandingsRow = computed(
+    () => this.standings().find((r) => r.team.id === this.team()?.id) ?? null
+  );
+
+  readonly leagueAverage = computed(() => {
+    const rows = this.standings();
+    const avg: Record<string, number> = {};
+    for (const axis of RADAR_AXES) {
+      const values = rows
+        .map((r) => r.stats[axis.key])
+        .filter((v): v is number => typeof v === "number");
+      avg[axis.key] = values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+    }
+    return avg;
+  });
+
+  readonly radarChartData = computed<ChartData<"radar">>(() => {
+    const row = this.teamStandingsRow();
+    const avg = this.leagueAverage();
+    return {
+      labels: RADAR_AXES.map((a) => a.label),
+      datasets: [
+        {
+          label: "League average",
+          data: RADAR_AXES.map((a) => avg[a.key] ?? 0),
+          borderDash: [4, 4],
+          borderColor: "#6B7480",
+          backgroundColor: "rgba(107, 116, 128, 0.12)",
+        },
+        {
+          label: row?.team.code ?? "Team",
+          data: RADAR_AXES.map((a) => (row ? (row.stats[a.key] as number) ?? 0 : 0)),
+          borderColor: row?.team.primaryColor ?? "#3E7CB1",
+          backgroundColor: this.withAlpha(row?.team.primaryColor ?? "#3E7CB1", 0.3),
+        },
+      ],
+    };
+  });
+
+  constructor() {
+    // Re-render the chart whenever the computed data changes (standings/team load).
+    effect(() => {
+      const data = this.radarChartData();
+      if (this.chart) {
+        this.chart.data = data;
+        this.chart.update();
+      }
+    });
+  }
+
   ngOnInit(): void {
+    this.api.getStandings().subscribe({
+      next: (rows) => this.standings.set(rows),
+      error: () => {}, // non-critical widget
+    });
+
     const teamId = this.route.snapshot.paramMap.get("id");
     if (!teamId) {
       this.error.set("No team specified.");
@@ -81,6 +163,32 @@ export class TeamRosterComponent implements OnInit {
         error: () => {}, // non-critical
       });
     }
+  }
+
+  ngAfterViewChecked(): void {
+    if (!this.chart && this.radarCanvasRef) {
+      this.chart = new Chart(this.radarCanvasRef.nativeElement, {
+        type: "radar",
+        data: this.radarChartData(),
+        options: {
+          responsive: true,
+          scales: { r: { beginAtZero: true, ticks: { display: false } } },
+        },
+      });
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.chart?.destroy();
+  }
+
+  private withAlpha(hex: string, alpha: number): string {
+    const clean = hex.replace("#", "");
+    const bigint = parseInt(clean, 16);
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 
   /**

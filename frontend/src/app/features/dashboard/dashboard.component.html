@@ -8,10 +8,7 @@
           <div class="h-9 w-16 bg-line rounded-full"></div>
         }
       </div>
-      <div class="grid gap-5 sm:grid-cols-2">
-        <div class="h-64 bg-line rounded-2xl"></div>
-        <div class="h-64 bg-line rounded-2xl"></div>
-      </div>
+      <div class="h-64 bg-line rounded-2xl"></div>
     </div>
   }
 
@@ -102,30 +99,20 @@
       }
     </div>
 
-    <div class="grid gap-5 sm:grid-cols-2">
-      <!-- Radar chart -->
-      <div class="bg-card rounded-2xl shadow-card p-4">
-        <p class="text-[11px] text-muted font-bold uppercase tracking-wide mb-3">
-          Team profile vs league average
-        </p>
-        <canvas #radarCanvas></canvas>
-      </div>
-
-      <!-- Standings -->
-      <div class="bg-card rounded-2xl shadow-card p-4">
-        <p class="text-[11px] text-muted font-bold uppercase tracking-wide mb-3">Standings</p>
-        <div class="text-sm font-semibold space-y-1">
-          @for (row of standings(); track row.team.id) {
-            <a
-              [routerLink]="['/teams', row.team.id]"
-              class="flex justify-between px-2 py-2 rounded-lg hover:bg-page transition-colors"
-              [class.bg-page]="row.team.id === selectedTeamId()"
-            >
-              <span>{{ row.position }}&nbsp;&nbsp;{{ row.team.code }}</span>
-              <span class="text-muted">{{ row.stats.wins }}-{{ row.stats.losses }}</span>
-            </a>
-          }
-        </div>
+    <!-- Standings -->
+    <div class="bg-card rounded-2xl shadow-card p-4">
+      <p class="text-[11px] text-muted font-bold uppercase tracking-wide mb-3">Standings</p>
+      <div class="text-sm font-semibold space-y-1">
+        @for (row of standings(); track row.team.id) {
+          <a
+            [routerLink]="['/teams', row.team.id]"
+            class="flex justify-between px-2 py-2 rounded-lg hover:bg-page transition-colors"
+            [class.bg-page]="row.team.id === selectedTeamId()"
+          >
+            <span>{{ row.position }}&nbsp;&nbsp;{{ row.team.code }}</span>
+            <span class="text-muted">{{ row.stats.wins }}-{{ row.stats.losses }}</span>
+          </a>
+        }
       </div>
     </div>
 

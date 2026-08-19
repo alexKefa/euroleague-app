@@ -1,0 +1,84 @@
+<nav
+  class="flex justify-between items-center gap-3 px-4 sm:px-6 py-4 bg-card border-b border-line"
+>
+  <div class="flex items-center gap-6 min-w-0">
+    <a routerLink="/" class="font-extrabold text-[15px] shrink-0"> EuroLeague App </a>
+
+    <!-- Desktop primary nav — the bottom tab nav below is mobile-only -->
+    <div class="hidden sm:flex items-center gap-5">
+      @for (link of navLinks; track link.path) {
+        <a
+          [routerLink]="link.path"
+          routerLinkActive="text-highlight"
+          [routerLinkActiveOptions]="{ exact: !!link.exact }"
+          class="text-muted font-semibold text-xs hover:text-ink transition-colors"
+          >{{ link.label }}</a
+        >
+      }
+    </div>
+  </div>
+
+  @if (auth.isAuthenticated()) {
+    <div class="flex items-center gap-3 min-w-0">
+      <span class="text-muted font-semibold text-xs truncate max-w-[40vw]">{{
+        auth.currentUser()?.email
+      }}</span>
+      <button
+        (click)="logout()"
+        class="text-highlight font-bold text-xs hover:text-highlight-dim transition-colors shrink-0"
+      >
+        Log out
+      </button>
+    </div>
+  } @else {
+    <div class="flex items-center gap-3 sm:gap-4 shrink-0">
+      <a routerLink="/login" class="text-muted font-semibold text-xs hover:text-ink transition-colors"
+        >Log in</a
+      >
+      <a
+        routerLink="/register"
+        class="px-4 py-2 rounded-full bg-highlight text-white font-bold text-xs hover:bg-highlight-dim transition-colors"
+        >Register</a
+      >
+    </div>
+  }
+</nav>
+
+<div class="pb-16 sm:pb-0">
+  <router-outlet></router-outlet>
+</div>
+
+<!-- Bottom tab nav — mobile only, primary nav within thumb reach -->
+<nav
+  class="sm:hidden fixed bottom-0 inset-x-0 bg-card border-t border-line flex justify-around items-center py-2 z-10"
+>
+  @for (link of navLinks; track link.path) {
+    <a
+      [routerLink]="link.path"
+      routerLinkActive="text-highlight"
+      [routerLinkActiveOptions]="{ exact: !!link.exact }"
+      class="flex flex-col items-center gap-0.5 text-muted text-[10px] font-bold px-3 py-1"
+    >
+      <app-nav-icon [name]="link.icon" />
+      {{ link.label }}
+    </a>
+  }
+  @if (auth.isAuthenticated()) {
+    <button
+      (click)="logout()"
+      class="flex flex-col items-center gap-0.5 text-muted text-[10px] font-bold px-3 py-1"
+    >
+      <app-nav-icon name="user" />
+      Log out
+    </button>
+  } @else {
+    <a
+      routerLink="/login"
+      routerLinkActive="text-highlight"
+      class="flex flex-col items-center gap-0.5 text-muted text-[10px] font-bold px-3 py-1"
+    >
+      <app-nav-icon name="user" />
+      Log in
+    </a>
+  }
+</nav>
