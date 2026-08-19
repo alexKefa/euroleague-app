@@ -10,18 +10,10 @@
       class="relative w-full h-full rounded-xl overflow-hidden"
       [style.background]="style.faceBackground"
     >
-      @if (style.showHolo) {
-        <div class="holo-sweep absolute pointer-events-none"></div>
-      }
-
       <!-- Full-bleed photo -->
       <div class="absolute inset-0" [style.background]="style.photoTint">
         @if (imageUrl) {
-          <img
-            [src]="imageUrl"
-            [alt]="name"
-            class="absolute inset-0 w-full h-full object-cover object-top"
-          />
+          <img [src]="imageUrl" [alt]="name" class="absolute inset-0 w-full h-full object-cover object-top" />
         } @else {
           <div class="absolute inset-0 flex items-center justify-center">
             <svg width="52%" height="70%" viewBox="0 0 120 150" fill="none">
@@ -37,6 +29,14 @@
         }
       </div>
 
+      @if (style.holoVariant) {
+        <div
+          class="holo-sweep absolute pointer-events-none"
+          [class.holo-sweep--gold]="style.holoVariant === 'gold'"
+          [class.holo-sweep--silver]="style.holoVariant === 'silver'"
+        ></div>
+      }
+
       <div
         class="absolute top-2 right-2 flex items-center gap-1 rounded-full z-10"
         style="padding: 3px 8px 3px 6px"
@@ -49,7 +49,7 @@
 
       <!-- Frosted-glass info banner, floating over the bottom of the photo -->
       <div
-        class="absolute inset-x-0 bottom-0 px-3 py-2.5 backdrop-blur-md"
+        class="absolute inset-x-0 bottom-0 px-3 py-2.5 backdrop-blur-md z-10"
         [style.background]="style.bannerBackground"
       >
         <div class="text-[13px] font-extrabold leading-tight truncate" [style.color]="style.nameColor">

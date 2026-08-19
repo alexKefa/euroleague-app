@@ -153,73 +153,27 @@
 </div>
 
 @if (previewItem(); as item) {
-  <div
-    class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm"
-    (click)="closePreview()"
-  >
-    <button
-      type="button"
-      (click)="closePreview()"
-      class="absolute top-4 right-4 text-white/80 hover:text-white text-3xl leading-none font-bold"
-      aria-label="Close preview"
-    >
-      &times;
-    </button>
-
-    <div
-      class="flex flex-col items-center gap-4"
-      style="width: min(85vw, 380px)"
-      (click)="$event.stopPropagation()"
-    >
-      <div
-        class="w-full select-none"
-        style="touch-action: none"
-        [style.cursor]="isDragging() ? 'grabbing' : 'grab'"
-        [style.transform]="'perspective(900px) rotateY(' + dragRotation() + 'deg)'"
-        [style.transition]="isDragging() ? 'none' : 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)'"
-        (pointerdown)="onCardPointerDown($event)"
-        (pointermove)="onCardPointerMove($event)"
-        (pointerup)="onCardPointerUp($event)"
-        (pointercancel)="onCardPointerUp($event)"
-      >
-        <app-collectible-card
-          class="w-full pointer-events-none"
-          [name]="item.name"
-          [tier]="item.tier"
-          [teamCode]="item.team.code"
-          [teamColor]="item.team.primaryColor"
-          [imageUrl]="item.imageUrl"
-          [unlocked]="isUnlocked(item)"
-          [maxWidth]="380"
-        ></app-collectible-card>
+  <app-card-preview [item]="item" [unlocked]="isUnlocked(item)" (closed)="closePreview()">
+    @if (auth.currentUser()?.isAdmin) {
+      <div class="w-full flex gap-1">
+        <input
+          #imageInput
+          type="text"
+          [value]="item.imageUrl ?? ''"
+          placeholder="/assets/collectibles/photo.jpg"
+          class="flex-1 min-w-0 px-2 py-1.5 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 text-xs font-semibold focus:border-highlight outline-none"
+        />
+        <button
+          (click)="setImage(item, imageInput.value)"
+          [disabled]="imageSavingId() === item.id"
+          class="font-mono text-[11px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-lg bg-white/15 text-white hover:bg-highlight transition-colors disabled:opacity-40"
+        >
+          {{ imageSavingId() === item.id ? "…" : "Set image" }}
+        </button>
       </div>
-
-      <div class="text-center">
-        <p class="font-display text-xl uppercase tracking-wide text-white">{{ item.name }}</p>
-        <p class="font-mono text-white/60 text-[11px] font-bold uppercase tracking-wide mt-1">{{ item.team.code }}</p>
-      </div>
-
-      @if (auth.currentUser()?.isAdmin) {
-        <div class="w-full flex gap-1">
-          <input
-            #imageInput
-            type="text"
-            [value]="item.imageUrl ?? ''"
-            placeholder="/assets/collectibles/photo.jpg"
-            class="flex-1 min-w-0 px-2 py-1.5 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 text-xs font-semibold focus:border-highlight outline-none"
-          />
-          <button
-            (click)="setImage(item, imageInput.value)"
-            [disabled]="imageSavingId() === item.id"
-            class="font-mono text-[11px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-lg bg-white/15 text-white hover:bg-highlight transition-colors disabled:opacity-40"
-          >
-            {{ imageSavingId() === item.id ? "…" : "Set image" }}
-          </button>
-        </div>
-        @if (imageErrors()[item.id]) {
-          <p class="text-red-400 text-xs font-semibold">{{ imageErrors()[item.id] }}</p>
-        }
+      @if (imageErrors()[item.id]) {
+        <p class="text-red-400 text-xs font-semibold">{{ imageErrors()[item.id] }}</p>
       }
-    </div>
-  </div>
+    }
+  </app-card-preview>
 }

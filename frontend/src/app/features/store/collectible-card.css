@@ -1,5 +1,9 @@
 .holo-sweep {
   inset: -45%;
+  animation: holo-sweep 5s ease-in-out infinite alternate;
+}
+
+.holo-sweep--gold {
   background: linear-gradient(
     115deg,
     transparent 30%,
@@ -7,7 +11,16 @@
     rgba(255, 210, 120, 0.28) 52%,
     transparent 70%
   );
-  animation: holo-sweep 5s ease-in-out infinite alternate;
+}
+
+.holo-sweep--silver {
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.4) 48%,
+    rgba(190, 215, 230, 0.3) 52%,
+    transparent 70%
+  );
 }
 
 @keyframes holo-sweep {

@@ -26,15 +26,26 @@
   } @else {
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
       @for (item of myCollectibles(); track item.id) {
-        <app-collectible-card
-          [name]="item.name"
-          [tier]="item.tier"
-          [teamCode]="item.team.code"
-          [teamColor]="item.team.primaryColor"
-          [imageUrl]="item.imageUrl"
-          [unlocked]="true"
-        ></app-collectible-card>
+        <button
+          type="button"
+          (click)="openPreview(item)"
+          class="w-full rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-highlight"
+          [attr.aria-label]="'Preview ' + item.name"
+        >
+          <app-collectible-card
+            [name]="item.name"
+            [tier]="item.tier"
+            [teamCode]="item.team.code"
+            [teamColor]="item.team.primaryColor"
+            [imageUrl]="item.imageUrl"
+            [unlocked]="true"
+          ></app-collectible-card>
+        </button>
       }
     </div>
   }
 </div>
+
+@if (previewItem(); as item) {
+  <app-card-preview [item]="item" [unlocked]="true" (closed)="closePreview()"></app-card-preview>
+}

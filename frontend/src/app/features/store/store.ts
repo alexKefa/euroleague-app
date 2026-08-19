@@ -1,4 +1,4 @@
-import { Component, HostListener, OnInit, inject, signal, computed } from "@angular/core";
+import { Component, OnInit, inject, signal, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ReactiveFormsModule, FormBuilder, Validators } from "@angular/forms";
@@ -6,11 +6,12 @@ import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { Collectible, Team } from "../../core/models";
 import { CollectibleCardComponent } from "./collectible-card";
+import { CardPreviewComponent } from "./card-preview";
 
 @Component({
   selector: "app-store",
   standalone: true,
-  imports: [CommonModule, RouterLink, ReactiveFormsModule, CollectibleCardComponent],
+  imports: [CommonModule, RouterLink, ReactiveFormsModule, CollectibleCardComponent, CardPreviewComponent],
   templateUrl: "./store.html",
 })
 export class StoreComponent implements OnInit {
@@ -28,11 +29,6 @@ export class StoreComponent implements OnInit {
   readonly previewItem = computed(
     () => this.collectibles().find((c) => c.id === this.previewItemId()) ?? null
   );
-  readonly dragRotation = signal(0);
-  readonly isDragging = signal(false);
-  private dragPointerId: number | null = null;
-  private dragStartX = 0;
-  private dragStartRotation = 0;
 
   readonly teams = signal<Team[]>([]);
   readonly addSubmitting = signal(false);
@@ -85,34 +81,6 @@ export class StoreComponent implements OnInit {
 
   closePreview(): void {
     this.previewItemId.set(null);
-    this.dragRotation.set(0);
-  }
-
-  onCardPointerDown(event: PointerEvent): void {
-    this.isDragging.set(true);
-    this.dragPointerId = event.pointerId;
-    this.dragStartX = event.clientX;
-    this.dragStartRotation = this.dragRotation();
-    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
-  }
-
-  onCardPointerMove(event: PointerEvent): void {
-    if (!this.isDragging() || event.pointerId !== this.dragPointerId) return;
-    const deltaX = event.clientX - this.dragStartX;
-    const rotation = this.dragStartRotation + deltaX / 6;
-    this.dragRotation.set(Math.max(-28, Math.min(28, rotation)));
-  }
-
-  onCardPointerUp(event: PointerEvent): void {
-    if (event.pointerId !== this.dragPointerId) return;
-    this.isDragging.set(false);
-    this.dragPointerId = null;
-    this.dragRotation.set(0);
-  }
-
-  @HostListener("document:keydown.escape")
-  onEscape(): void {
-    this.closePreview();
   }
 
   isUnlocked(collectible: Collectible): boolean {

@@ -2,6 +2,8 @@ import { Component, Input } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { CollectibleTier } from "../../core/models";
 
+type HoloVariant = "gold" | "silver" | null;
+
 interface TierStyle {
   frameBackground: string;
   frameShadow: string;
@@ -13,16 +15,16 @@ interface TierStyle {
   metaColor: string;
   photoTint: string;
   bannerBackground: string;
-  showHolo: boolean;
+  holoVariant: HoloVariant;
 }
 
 const DEFAULT_TEAM_COLOR = "#3E7CB1";
 
 /**
- * Renders a reward-store card. There's no photo pipeline yet (see
- * CLAUDE.md), so the "art" is entirely generated here from tier + team
- * color — a real photo can slot into the photo area later without
- * changing this component's contract.
+ * Renders a reward-store card. Tier art (frame foil, animated holo-sweep,
+ * banner) is generated from tier + team color rather than sourced per
+ * card — the player photo itself is the same across tiers, untouched;
+ * differentiation is entirely in the surrounding effects.
  */
 @Component({
   selector: "app-collectible-card",
@@ -69,7 +71,7 @@ export class CollectibleCardComponent {
         metaColor: "rgba(245,247,246,0.72)",
         photoTint: `linear-gradient(160deg, ${accentSoft} 0%, ${accentDeep} 100%)`,
         bannerBackground: "rgba(11,15,13,0.55)",
-        showHolo: false,
+        holoVariant: "silver",
       };
     }
 
@@ -87,7 +89,7 @@ export class CollectibleCardComponent {
         metaColor: "rgba(255,247,224,0.75)",
         photoTint: `radial-gradient(120% 100% at 50% 10%, ${accentSoft} 0%, #05070a 70%)`,
         bannerBackground: "rgba(5,7,10,0.55)",
-        showHolo: true,
+        holoVariant: "gold",
       };
     }
 
@@ -102,7 +104,7 @@ export class CollectibleCardComponent {
       metaColor: "#5B6169",
       photoTint: "linear-gradient(160deg, #EEF3F0 0%, #E2E9E4 100%)",
       bannerBackground: "rgba(255,255,255,0.68)",
-      showHolo: false,
+      holoVariant: null,
     };
   }
 }
