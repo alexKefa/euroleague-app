@@ -172,7 +172,18 @@ export class TeamRosterComponent implements OnInit, AfterViewChecked, OnDestroy 
         data: this.radarChartData(),
         options: {
           responsive: true,
-          scales: { r: { beginAtZero: true, ticks: { display: false } } },
+          scales: {
+            r: {
+              beginAtZero: true,
+              ticks: { display: false },
+              grid: { color: "rgba(255, 255, 255, 0.08)" },
+              angleLines: { color: "rgba(255, 255, 255, 0.08)" },
+              pointLabels: { color: "#8A8A86", font: { family: "JetBrains Mono", size: 10 } },
+            },
+          },
+          plugins: {
+            legend: { labels: { color: "#8A8A86", font: { family: "JetBrains Mono", size: 10 } } },
+          },
         },
       });
     }
@@ -198,10 +209,10 @@ export class TeamRosterComponent implements OnInit, AfterViewChecked, OnDestroy 
    * just a reasonable visual split.
    */
   pirBadgeClass(value: number | null): string {
-    if (value === null) return "bg-slate-100 text-slate-400";
-    if (value >= 20) return "bg-emerald-100 text-emerald-800";
-    if (value >= 12) return "bg-amber-100 text-amber-800";
-    return "bg-slate-100 text-slate-600";
+    if (value === null) return "bg-slate-500/10 text-muted";
+    if (value >= 20) return "bg-emerald-500/15 text-emerald-400";
+    if (value >= 12) return "bg-amber-500/15 text-amber-400";
+    return "bg-slate-500/10 text-slate-400";
   }
 
   isHomeGame(game: Game): boolean {
