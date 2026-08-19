@@ -1,20 +1,37 @@
 <div class="max-w-sm mx-auto p-4 sm:p-6 text-center">
-  <a routerLink="/store" class="text-xs text-muted font-semibold hover:text-ink transition-colors block text-left"
-    >&larr; Back to store</a
+  <a
+    routerLink="/store"
+    class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors block text-left"
+    >&larr; Store</a
   >
 
-  <h1 class="text-xl font-extrabold mt-4 mb-1">Free Spin</h1>
+  <h1 class="font-display text-2xl uppercase tracking-wide mt-4 mb-1">Free Spin</h1>
   <p class="text-sm text-muted mb-6">One free spin a day for a shot at a legendary card.</p>
 
   @if (loading()) {
-    <div class="animate-pulse h-48 bg-line rounded-2xl"></div>
+    <div class="animate-pulse h-48 bg-line rounded-lg"></div>
   }
 
   @if (!loading()) {
-    @if (lastResult() !== undefined) {
-      <div class="mb-6">
+    @if (spinning() || lastResult() === undefined) {
+      <div class="relative w-48 h-48 mx-auto mb-6">
+        <div
+          class="absolute -top-1 left-1/2 -translate-x-1/2 z-10 w-0 h-0 border-l-[9px] border-l-transparent border-r-[9px] border-r-transparent border-t-[15px] border-t-highlight"
+        ></div>
+        <div
+          class="wheel-disc w-full h-full rounded-full border-4 border-line shadow-pop flex items-center justify-center"
+          [style.transform]="'rotate(' + wheelRotation() + 'deg)'"
+          style="background: conic-gradient(#FF6B35 0deg 45deg, #151516 45deg 90deg, #FF6B35 90deg 135deg, #151516 135deg 180deg, #FF6B35 180deg 225deg, #151516 225deg 270deg, #FF6B35 270deg 315deg, #151516 315deg 360deg)"
+        >
+          <div class="w-16 h-16 rounded-full bg-page border-4 border-card flex items-center justify-center">
+            <span class="text-2xl">🎡</span>
+          </div>
+        </div>
+      </div>
+    } @else {
+      <div class="mb-6 reveal-pop">
         @if (lastResult(); as won) {
-          <p class="font-extrabold text-highlight mb-3">You won a legendary card!</p>
+          <p class="font-display text-lg uppercase tracking-wide text-highlight mb-3">You won a legendary card!</p>
           <app-collectible-card
             class="block mx-auto"
             [name]="won.name"
@@ -26,16 +43,11 @@
             [maxWidth]="220"
           ></app-collectible-card>
         } @else {
-          <div class="bg-card rounded-2xl shadow-card p-6">
+          <div class="bg-card rounded-lg shadow-card p-6">
             <p class="font-bold text-sm">No luck this time.</p>
-            <p class="text-xs text-muted mt-1">Come back tomorrow for another shot.</p>
+            <p class="font-mono text-[11px] text-muted mt-1 uppercase tracking-wide">Come back tomorrow for another shot.</p>
           </div>
         }
-      </div>
-    } @else {
-      <div class="bg-card rounded-2xl shadow-card p-6 mb-6">
-        <p class="text-4xl mb-2">🎡</p>
-        <p class="text-sm text-muted">Spin to find out what you get.</p>
       </div>
     }
 
@@ -44,18 +56,18 @@
         type="button"
         (click)="spin()"
         [disabled]="spinning()"
-        class="w-full py-3 rounded-full bg-highlight text-white text-sm font-bold hover:bg-highlight-dim transition-colors disabled:opacity-50"
+        class="w-full py-3 rounded-full bg-highlight text-white font-mono text-xs font-bold uppercase tracking-wide hover:bg-highlight-dim transition-colors disabled:opacity-50"
       >
         {{ spinning() ? "Spinning…" : "Spin the wheel" }}
       </button>
     } @else {
-      <p class="text-xs text-muted font-semibold">
+      <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">
         Next spin available {{ nextEligibleAt() | date: "MMM d, HH:mm" }}
       </p>
     }
 
     @if (spinError()) {
-      <p class="text-red-600 text-xs font-semibold mt-3">{{ spinError() }}</p>
+      <p class="text-red-500 text-xs font-semibold mt-3">{{ spinError() }}</p>
     }
   }
 </div>
