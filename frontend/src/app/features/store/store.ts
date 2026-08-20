@@ -7,7 +7,7 @@ import { AuthService } from "../../core/auth.service";
 import { Collectible, CollectibleTier, Team } from "../../core/models";
 import { CollectibleCardComponent } from "./collectible-card";
 import { CardPreviewComponent } from "./card-preview";
-import { PackIconComponent } from "../../shared/pack-icon";
+import { NavIconComponent } from "../../shared/nav-icon";
 
 @Component({
   selector: "app-store",
@@ -18,7 +18,7 @@ import { PackIconComponent } from "../../shared/pack-icon";
     ReactiveFormsModule,
     CollectibleCardComponent,
     CardPreviewComponent,
-    PackIconComponent,
+    NavIconComponent,
   ],
   templateUrl: "./store.html",
 })
@@ -57,12 +57,15 @@ export class StoreComponent implements OnInit {
     const query = this.searchQuery().trim().toLowerCase();
     const team = this.teamFilter();
     const tier = this.tierFilter();
-    return this.collectibles().filter((c) => {
-      if (team && c.team.id !== team) return false;
-      if (tier && c.tier !== tier) return false;
-      if (query && !c.name.toLowerCase().includes(query)) return false;
-      return true;
-    });
+    const ownedIds = this.myCollectibleIds();
+    return this.collectibles()
+      .filter((c) => {
+        if (team && c.team.id !== team) return false;
+        if (tier && c.tier !== tier) return false;
+        if (query && !c.name.toLowerCase().includes(query)) return false;
+        return true;
+      })
+      .sort((a, b) => Number(ownedIds.has(b.id)) - Number(ownedIds.has(a.id)));
   });
 
   readonly teams = signal<Team[]>([]);

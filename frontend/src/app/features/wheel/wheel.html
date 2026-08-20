@@ -5,8 +5,8 @@
     >&larr; Store</a
   >
 
-  <h1 class="font-display text-2xl uppercase tracking-wide mt-4 mb-1">Free Spin</h1>
-  <p class="text-sm text-muted mb-6">One free spin a day for a shot at a legendary card.</p>
+  <h1 class="font-display text-2xl uppercase tracking-wide mt-4 mb-1">Daily Jump Ball</h1>
+  <p class="text-sm text-muted mb-6">One free jump ball a day for a shot at a legendary card.</p>
 
   @if (loading()) {
     <div class="animate-pulse h-48 bg-line rounded-lg"></div>
@@ -15,8 +15,8 @@
   @if (!loading() && !auth.isAuthenticated()) {
     <div class="bg-card rounded-lg shadow-card p-6">
       <p class="text-sm text-muted">
-        <a routerLink="/login" class="text-highlight font-semibold">Log in</a> to spin for a shot at a
-        legendary card.
+        <a routerLink="/login" class="text-highlight font-semibold">Log in</a> to take your jump ball for a
+        shot at a legendary card.
       </p>
     </div>
   }
@@ -33,7 +33,7 @@
           style="background: conic-gradient(#FF6B35 0deg 45deg, #151516 45deg 90deg, #FF6B35 90deg 135deg, #151516 135deg 180deg, #FF6B35 180deg 225deg, #151516 225deg 270deg, #FF6B35 270deg 315deg, #151516 315deg 360deg)"
         >
           <div class="w-16 h-16 rounded-full bg-page border-4 border-card flex items-center justify-center">
-            <span class="text-2xl">🎡</span>
+            <span class="text-2xl">🏀</span>
           </div>
         </div>
       </div>
@@ -92,11 +92,11 @@
         [disabled]="spinning()"
         class="w-full py-3 rounded-full bg-highlight text-white font-mono text-xs font-bold uppercase tracking-wide hover:bg-highlight-dim transition-colors disabled:opacity-50"
       >
-        {{ spinning() ? "Spinning…" : "Spin the wheel" }}
+        {{ spinning() ? "Jump ball…" : "Take the jump ball" }}
       </button>
     } @else {
       <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide">
-        Next spin available {{ nextEligibleAt() | date: "MMM d, HH:mm" }}
+        Next jump ball available {{ nextEligibleAt() | date: "MMM d, HH:mm" }}
       </p>
     }
 
@@ -107,7 +107,7 @@
         [disabled]="spinning()"
         class="w-full mt-2 py-2 rounded-full border-2 border-highlight text-highlight font-mono text-[11px] font-bold uppercase tracking-wide hover:bg-highlight hover:text-white transition-colors disabled:opacity-50"
       >
-        Cheat spin (admin)
+        Cheat jump ball (admin)
       </button>
     }
 
