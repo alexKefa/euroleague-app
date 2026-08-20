@@ -65,7 +65,7 @@ export class DashboardComponent implements OnInit {
 
     this.selectLeaderCategory("points");
 
-    this.api.getRoundMvp().subscribe({
+    this.api.getRoundMvp(5).subscribe({
       next: (result) => this.roundMvp.set(result),
       error: () => {}, // non-critical widget
     });

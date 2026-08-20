@@ -88,22 +88,27 @@
           </div>
         }
 
-        <!-- Round MVP -->
-        @if (roundMvp()?.leaders?.[0]; as mvp) {
+        <!-- Top performances -->
+        @if (roundMvp()?.leaders?.length) {
           <div class="bg-card rounded-lg shadow-card p-4 mb-5 lg:mb-0">
             <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-[0.1em] mb-3">
-              Round {{ roundMvp()?.round }} MVP
+              Round {{ roundMvp()?.round }} — Top Performances
             </p>
-            <a
-              [routerLink]="['/players', mvp.player.id]"
-              class="flex justify-between items-center px-2 py-1.5 rounded-md hover:bg-page transition-colors"
-            >
-              <span class="font-bold">
-                {{ mvp.player.name }}
-                <span class="text-muted font-normal">({{ mvp.team.code }})</span>
-              </span>
-              <span class="font-mono text-highlight font-bold">{{ mvp.valuation }} PIR</span>
-            </a>
+            <div class="text-sm space-y-1">
+              @for (entry of roundMvp()?.leaders; track entry.player.id; let i = $index) {
+                <a
+                  [routerLink]="['/players', entry.player.id]"
+                  class="flex justify-between items-center px-2 py-1.5 rounded-md hover:bg-page transition-colors"
+                >
+                  <span class="font-bold">
+                    <span class="font-mono text-muted">{{ i + 1 }}</span
+                    >&nbsp;&nbsp;{{ entry.player.name }}
+                    <span class="text-muted font-normal">({{ entry.team.code }})</span>
+                  </span>
+                  <span class="font-mono text-highlight font-bold">{{ entry.valuation }} PIR</span>
+                </a>
+              }
+            </div>
           </div>
         }
 
