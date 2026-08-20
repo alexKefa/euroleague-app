@@ -232,7 +232,7 @@ export interface Collectible {
   tier: CollectibleTier;
   pointsCost: number;
   imageUrl: string | null;
-  team: { id: string; code: string; name: string; primaryColor: string | null };
+  team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
 }
 
 export interface MyCollectible {

@@ -7,11 +7,12 @@ import { I18nService } from "../../core/i18n.service";
 import { Collectible, CollectibleTier } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { CardPreviewComponent } from "../store/card-preview";
+import { NavIconComponent } from "../../shared/nav-icon";
 
 @Component({
   selector: "app-inventory",
   standalone: true,
-  imports: [CommonModule, RouterLink, CollectibleCardComponent, CardPreviewComponent],
+  imports: [CommonModule, RouterLink, CollectibleCardComponent, CardPreviewComponent, NavIconComponent],
   templateUrl: "./inventory.html",
 })
 export class InventoryComponent implements OnInit {
@@ -20,8 +21,12 @@ export class InventoryComponent implements OnInit {
   protected i18n = inject(I18nService);
 
   readonly loading = signal(true);
+  readonly points = signal(0);
+  readonly pointsLoading = signal(true);
   private readonly allCollectibles = signal<Collectible[]>([]);
-  private readonly ownedIds = signal<Set<string>>(new Set());
+  // collectibleId -> unlockedAt (ISO string) — a Map instead of a Set so the
+  // default sort (most recently acquired first) has a timestamp to sort by.
+  private readonly ownedAt = signal<Map<string, string>>(new Map());
   private readonly previewItemId = signal<string | null>(null);
 
   readonly tierFilter = signal<CollectibleTier | null>(null);
@@ -35,17 +40,26 @@ export class InventoryComponent implements OnInit {
   readonly searchQuery = signal("");
   readonly teamFilter = signal<string | null>(null);
 
-  readonly myCollectibles = computed(() =>
-    this.allCollectibles().filter((c) => this.ownedIds().has(c.id))
-  );
+  // Most recently acquired first — landing here after a pack/wheel pull
+  // should show you what you just got, not bury it in catalog order.
+  readonly myCollectibles = computed(() => {
+    const ownedAt = this.ownedAt();
+    return this.allCollectibles()
+      .filter((c) => ownedAt.has(c.id))
+      .sort((a, b) => new Date(ownedAt.get(b.id)!).getTime() - new Date(ownedAt.get(a.id)!).getTime());
+  });
 
   // Only teams you actually own a card from — no point offering a filter
   // option that would always come back empty.
   readonly filterTeams = computed(() => {
     const byId = new Map<string, Collectible["team"]>();
     for (const c of this.myCollectibles()) byId.set(c.team.id, c.team);
-    return [...byId.values()].sort((a, b) => a.code.localeCompare(b.code));
+    return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
   });
+
+  readonly selectedTeamLogo = computed(
+    () => this.filterTeams().find((t) => t.id === this.teamFilter())?.logoUrl ?? null
+  );
 
   readonly filteredCollectibles = computed(() => {
     const query = this.searchQuery().trim().toLowerCase();
@@ -65,6 +79,7 @@ export class InventoryComponent implements OnInit {
   ngOnInit(): void {
     if (!this.auth.isAuthenticated()) {
       this.loading.set(false);
+      this.pointsLoading.set(false);
       return;
     }
 
@@ -77,8 +92,16 @@ export class InventoryComponent implements OnInit {
     });
 
     this.api.getMyCollectibles().subscribe({
-      next: (rows) => this.ownedIds.set(new Set(rows.map((r) => r.collectibleId))),
+      next: (rows) => this.ownedAt.set(new Map(rows.map((r) => [r.collectibleId, r.unlockedAt]))),
       error: () => {},
+    });
+
+    this.api.getMyPredictionSummary().subscribe({
+      next: (summary) => {
+        this.points.set(summary.points);
+        this.pointsLoading.set(false);
+      },
+      error: () => this.pointsLoading.set(false),
     });
   }
 

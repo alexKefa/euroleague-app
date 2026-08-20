@@ -33,10 +33,10 @@ const NAV_LINKS: NavLink[] = [
   { path: "/schedule", label: "nav.schedule", icon: "schedule" },
   { path: "/predictions", label: "nav.picks", icon: "picks" },
   {
-    path: "/store",
-    label: "nav.store",
-    icon: "store",
-    activePrefixes: ["/wheel", "/trades", "/inventory", "/packs"],
+    path: "/inventory",
+    label: "nav.cards",
+    icon: "cards",
+    activePrefixes: ["/store", "/wheel", "/trades", "/packs"],
   },
 ];
 

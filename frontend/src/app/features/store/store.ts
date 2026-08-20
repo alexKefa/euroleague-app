@@ -7,12 +7,11 @@ import { I18nService } from "../../core/i18n.service";
 import { Collectible, CollectibleTier } from "../../core/models";
 import { CollectibleCardComponent } from "./collectible-card";
 import { CardPreviewComponent } from "./card-preview";
-import { NavIconComponent } from "../../shared/nav-icon";
 
 @Component({
   selector: "app-store",
   standalone: true,
-  imports: [CommonModule, RouterLink, CollectibleCardComponent, CardPreviewComponent, NavIconComponent],
+  imports: [CommonModule, RouterLink, CollectibleCardComponent, CardPreviewComponent],
   templateUrl: "./store.html",
 })
 export class StoreComponent implements OnInit {
@@ -43,8 +42,12 @@ export class StoreComponent implements OnInit {
   readonly filterTeams = computed(() => {
     const byId = new Map<string, Collectible["team"]>();
     for (const c of this.collectibles()) byId.set(c.team.id, c.team);
-    return [...byId.values()].sort((a, b) => a.code.localeCompare(b.code));
+    return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
   });
+
+  readonly selectedTeamLogo = computed(
+    () => this.filterTeams().find((t) => t.id === this.teamFilter())?.logoUrl ?? null
+  );
 
   readonly filteredCollectibles = computed(() => {
     const query = this.searchQuery().trim().toLowerCase();

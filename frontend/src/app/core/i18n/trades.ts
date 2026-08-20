@@ -1,7 +1,7 @@
 import { Lang } from "./lang";
 
 export const tradesTranslations: Record<string, Record<Lang, string>> = {
-  "trades.backToStore": { en: "Store", el: "Κατάστημα" },
+  "trades.backToCards": { en: "My Cards", el: "Οι Κάρτες μου" },
   "trades.title": { en: "Trades", el: "Ανταλλαγές" },
   "trades.logInLinkText": { en: "Log in", el: "Σύνδεση" },
   "trades.loginToTradeSuffix": {

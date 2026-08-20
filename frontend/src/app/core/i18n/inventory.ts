@@ -1,7 +1,6 @@
 import { Lang } from "./lang";
 
 export const inventoryTranslations: Record<string, Record<Lang, string>> = {
-  "inventory.backToStore": { en: "Store", el: "Κατάστημα" },
   "inventory.title": { en: "My Cards", el: "Οι Κάρτες μου" },
   "inventory.logInLinkText": { en: "Log in", el: "Σύνδεση" },
   "inventory.loginToSeeSuffix": { en: "to see your collection.", el: "για να δεις τη συλλογή σου." },

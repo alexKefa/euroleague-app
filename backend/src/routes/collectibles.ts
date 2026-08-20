@@ -21,7 +21,7 @@ collectiblesRouter.get("/", async (_req, res) => {
       tier: collectible.tier,
       pointsCost: collectible.pointsCost,
       imageUrl: collectible.imageUrl,
-      team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor },
+      team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor, logoUrl: team.logoUrl },
     }));
 
     res.json(payload);

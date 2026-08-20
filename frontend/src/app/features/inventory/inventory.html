@@ -1,11 +1,48 @@
 <div class="max-w-3xl lg:max-w-5xl mx-auto p-4 sm:p-6">
   <a
-    routerLink="/store"
+    routerLink="/"
     class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
-    >&larr; {{ i18n.t('inventory.backToStore') }}</a
+    >&larr; {{ i18n.t('profile.backToDashboard') }}</a
   >
 
-  <h1 class="font-display text-2xl uppercase tracking-wide mt-4 mb-5">{{ i18n.t('inventory.title') }}</h1>
+  <div class="flex items-center justify-between mt-4 mb-5">
+    <h1 class="font-display text-2xl uppercase tracking-wide">{{ i18n.t('inventory.title') }}</h1>
+    @if (auth.isAuthenticated()) {
+      @if (pointsLoading()) {
+        <span class="animate-pulse inline-block w-16 h-6 rounded-full bg-line"></span>
+      } @else {
+        <span
+          class="font-mono text-xs font-bold text-highlight bg-card border border-line rounded-full px-3 py-1"
+          >{{ points() }} {{ i18n.t('store.pointsBadge') }}</span
+        >
+      }
+    }
+  </div>
+
+  @if (auth.isAuthenticated()) {
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
+      <a
+        routerLink="/store"
+        class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-full bg-card shadow-card font-mono text-[13px] font-bold uppercase tracking-wide hover:shadow-pop transition-all"
+        ><app-nav-icon name="store" />{{ i18n.t('store.title') }}</a
+      >
+      <a
+        routerLink="/wheel"
+        class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-full bg-card shadow-card font-mono text-[13px] font-bold uppercase tracking-wide hover:shadow-pop transition-all"
+        ><app-nav-icon name="wheel" />{{ i18n.t('store.jumpBall') }}</a
+      >
+      <a
+        routerLink="/packs"
+        class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-full bg-card shadow-card font-mono text-[13px] font-bold uppercase tracking-wide hover:shadow-pop transition-all"
+        ><app-nav-icon name="packs" />{{ i18n.t('store.packs') }}</a
+      >
+      <a
+        routerLink="/trades"
+        class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-full bg-card shadow-card font-mono text-[13px] font-bold uppercase tracking-wide hover:shadow-pop transition-all"
+        ><app-nav-icon name="trade" />{{ i18n.t('store.trades') }}</a
+      >
+    </div>
+  }
 
   @if (!auth.isAuthenticated()) {
     <p class="text-sm text-muted">
@@ -35,14 +72,19 @@
       />
       @if (filterTeams().length > 1) {
         <div class="relative">
+          @if (selectedTeamLogo(); as logo) {
+            <img [src]="logo" alt="" class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 object-contain" />
+          }
           <select
             [value]="teamFilter() ?? ''"
             (change)="teamFilter.set($any($event.target).value || null)"
-            class="appearance-none pl-3 pr-8 py-2 rounded-full bg-card border border-line font-mono text-xs font-bold uppercase tracking-wide focus:border-highlight outline-none cursor-pointer"
+            class="appearance-none max-w-[9rem] truncate pr-8 py-2 rounded-full bg-card border border-line font-mono text-xs font-bold uppercase tracking-wide focus:border-highlight outline-none cursor-pointer"
+            [class.pl-8]="selectedTeamLogo()"
+            [class.pl-3]="!selectedTeamLogo()"
           >
             <option value="">{{ i18n.t('store.allTeams') }}</option>
             @for (team of filterTeams(); track team.id) {
-              <option [value]="team.id">{{ team.code }}</option>
+              <option [value]="team.id">{{ team.name }}</option>
             }
           </select>
           <svg
