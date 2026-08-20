@@ -16,6 +16,12 @@
         class="font-mono text-muted font-bold text-[13px] truncate max-w-[40vw] hover:text-ink transition-colors"
         >{{ auth.currentUser()?.email }}</a
       >
+      @if (auth.currentUser()?.isAdmin) {
+        <span
+          class="font-mono text-[11px] font-bold uppercase tracking-wide text-highlight bg-highlight/10 border border-highlight/30 rounded-full px-2 py-0.5 shrink-0"
+          >Admin</span
+        >
+      }
       <button
         (click)="logout()"
         class="font-mono text-highlight font-bold text-[13px] uppercase hover:text-highlight-dim transition-colors shrink-0"

@@ -1,0 +1,327 @@
+@keyframes reveal-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.85) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.reveal-pop {
+  animation: reveal-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes burst-glow {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+}
+
+.burst-glow {
+  animation: burst-glow 0.9s ease-out both;
+}
+
+/* Legendary hype — ring pulse + starburst rays, same pattern as the wheel's
+   win reveal (wheel.css), reused here since it's the rarest possible pull. */
+@keyframes burst-ring {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.3);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2);
+  }
+}
+
+@keyframes burst-ray {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--ray-angle)) translateY(-24px) scaleY(0.3);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--ray-angle)) translateY(-85px) scaleY(1);
+  }
+}
+
+.burst-ring {
+  animation: burst-ring 0.9s cubic-bezier(0.2, 0.8, 0.4, 1) both;
+}
+
+.burst-ring-delay {
+  animation-delay: 0.18s;
+}
+
+.burst-ray-gold {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 50px;
+  margin: -25px 0 0 -2px;
+  border-radius: 2px;
+  transform-origin: 50% 100%;
+  animation: burst-ray 1s ease-out both;
+}
+
+/* A sharp double-jolt on the card itself, timed to land right as the burst
+   fires — reads as "this one hit harder" rather than a plain fade-in. */
+@keyframes legendary-shake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  15% {
+    transform: translate(-3px, 1px);
+  }
+  30% {
+    transform: translate(3px, -1px);
+  }
+  45% {
+    transform: translate(-2px, 1px);
+  }
+  60% {
+    transform: translate(2px, 0);
+  }
+  75% {
+    transform: translate(-1px, 0);
+  }
+}
+
+.legendary-shake {
+  animation: legendary-shake 0.5s ease-out both;
+}
+
+@keyframes legendary-label-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.legendary-label {
+  background: linear-gradient(135deg, #f4d675 0%, #fff6d8 40%, #caa53a 70%, #fff2c9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 20px rgba(255, 200, 90, 0.5);
+  animation: legendary-label-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: 0.15s;
+}
+
+.card-stack {
+  perspective: 1000px;
+}
+
+.card-back {
+  background: linear-gradient(160deg, #232324 0%, #151516 100%);
+  color: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.35s ease,
+    box-shadow 0.35s ease;
+  overflow: hidden;
+}
+
+/* Rarity tease — the tier is already known client-side (the whole pack's
+   contents come back from the open call at once), so a still-face-down card
+   further back in the stack can hint at what it is without fully spoiling
+   it, the way a FIFA pack lets a special card's glow show through before
+   the flip. Common stays plain on purpose, so the glow actually means
+   something when it shows up. */
+.card-back-rare {
+  color: rgba(186, 214, 235, 0.85);
+  border-color: rgba(160, 200, 230, 0.45);
+  animation: card-back-glow-rare 2.4s ease-in-out infinite;
+}
+
+.card-back-legendary {
+  color: rgba(255, 224, 160, 0.9);
+  border-color: rgba(255, 205, 110, 0.55);
+  animation: card-back-glow-legendary 1.7s ease-in-out infinite;
+}
+
+@keyframes card-back-glow-rare {
+  0%,
+  100% {
+    box-shadow: 0 0 10px rgba(150, 190, 220, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 22px rgba(150, 190, 220, 0.55);
+  }
+}
+
+@keyframes card-back-glow-legendary {
+  0%,
+  100% {
+    box-shadow: 0 0 14px rgba(255, 195, 80, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(255, 195, 80, 0.8);
+  }
+}
+
+/* The next card slides up from behind the stack with a slight 3D tilt,
+   rather than just fading/popping in place — pairs with .card-back so the
+   reveal reads as "pulling the top card off the stack". */
+@keyframes card-reveal {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.86) rotateY(20deg);
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotateY(0deg);
+  }
+}
+
+.card-reveal-anim {
+  animation: card-reveal 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-style: preserve-3d;
+}
+
+/* Outgoing card in the reveal sequence — plays before the index advances,
+   so there's a visible "leave" before the next card's "arrive". */
+@keyframes card-exit {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotateY(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-26px) scale(0.88) rotateY(-18deg);
+  }
+}
+
+.card-exit-anim {
+  animation: card-exit 0.32s cubic-bezier(0.4, 0, 1, 1) both;
+  transform-style: preserve-3d;
+}
+
+/* Pack-selection art — a physical foil-pack silhouette per tier: tapered
+   top corners (clip-path), a diagonal dot texture, and a big embossed "C"
+   wordmark echoing the navbar/splash logo. Colors reuse the exact same
+   rare/legendary gradients as the card frames (collectible-card.ts) so the
+   pack you tap visually matches what's inside it. */
+.pack-visual {
+  aspect-ratio: 2 / 3.1;
+  clip-path: polygon(14% 0%, 86% 0%, 100% 11%, 100% 100%, 0% 100%, 0% 11%);
+  transition: transform 0.15s ease;
+  cursor: pointer;
+}
+
+.pack-visual:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.02);
+}
+
+.pack-visual:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.pack-dots {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.35) 1px, transparent 1.5px);
+  background-size: 9px 9px;
+  transform: rotate(-18deg) scale(1.4);
+  opacity: 0.5;
+}
+
+.pack-wordmark {
+  font-family: "Anton", "Arial Narrow", sans-serif;
+  font-size: 4.2rem;
+  font-weight: 700;
+  line-height: 1;
+  transform: rotate(-14deg);
+  color: currentColor;
+  opacity: 0.16;
+  letter-spacing: 0;
+}
+
+.pack-visual-starter {
+  background: linear-gradient(150deg, #8a5a34 0%, #d99a5b 30%, #6b3f22 65%, #c78a4d 100%);
+  color: #fff7ec;
+}
+
+.pack-visual-pro {
+  background: linear-gradient(135deg, #cfd6dc 0%, #f5f7f9 25%, #aab2ba 50%, #f5f7f9 75%, #cfd6dc 100%);
+  color: #1c2226;
+}
+
+.pack-visual-elite {
+  background: linear-gradient(135deg, #7a5b12 0%, #f4d675 22%, #fff6d8 40%, #caa53a 58%, #fff2c9 76%, #6e4e10 100%);
+  color: #241804;
+}
+
+/* A quick bright flash behind the card the instant a legendary reveals —
+   fires once, gone almost immediately, meant to register subliminally
+   alongside the burst/rings/rays rather than linger. */
+@keyframes legendary-flash {
+  0% {
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.legendary-flash {
+  background: radial-gradient(circle, rgba(255, 244, 214, 0.9) 0%, rgba(255, 244, 214, 0) 65%);
+  animation: legendary-flash 0.4s ease-out both;
+}
+
+/* Small twinkling stars scattered around a legendary reveal. */
+@keyframes sparkle-twinkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.4) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1) rotate(25deg);
+  }
+}
+
+.sparkle {
+  color: #ffe6a0;
+  font-size: 14px;
+  text-shadow: 0 0 6px rgba(255, 220, 140, 0.8);
+  animation: sparkle-twinkle 1.4s ease-in-out infinite;
+}
+
+.rare-label {
+  background: linear-gradient(135deg, #cfd6dc 0%, #f5f7f9 25%, #aab2ba 50%, #f5f7f9 75%, #cfd6dc 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 14px rgba(190, 210, 230, 0.4);
+  animation: legendary-label-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}

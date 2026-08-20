@@ -287,6 +287,33 @@ export const roundRewards = pgTable(
 // collectibles.ts's redeem guard). Accepting one re-points the two
 // matching userCollectibles rows' userId rather than moving any new kind
 // of row, since ownership is still just that boolean-unlock table.
+// Point-sink alternative to buying a specific card: spend points on a pack,
+// get several random cards (duplicates allowed, unlike direct redeem/wheel).
+// One row per pack purchase; the actual cards granted live in
+// packOpeningResults, mirroring the ledger style of wheelSpins/roundRewards
+// rather than trying to derive "what did this pack give me" after the fact.
+export const packOpenings = pgTable("pack_openings", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  packType: varchar("pack_type", { length: 20 }).notNull(), // "starter" | "pro" | "elite"
+  pointsCost: integer("points_cost").notNull(),
+  openedAt: timestamp("opened_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// One row per card rolled in a pack. wasDuplicate is decided at roll time
+// (did the user already own this collectible?) — duplicates aren't inserted
+// into userCollectibles again (nothing to gain from a second copy), but the
+// roll is still recorded so the user can cash it in via POST
+// /packs/results/:id/sell. soldForPoints stays null until they do, and that
+// null-check is what stops the same duplicate being sold twice.
+export const packOpeningResults = pgTable("pack_opening_results", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  packOpeningId: uuid("pack_opening_id").notNull().references(() => packOpenings.id),
+  collectibleId: uuid("collectible_id").notNull().references(() => collectibles.id),
+  wasDuplicate: boolean("was_duplicate").notNull(),
+  soldForPoints: integer("sold_for_points"),
+});
+
 export const tradeOffers = pgTable("trade_offers", {
   id: uuid("id").defaultRandom().primaryKey(),
   fromUserId: uuid("from_user_id").notNull().references(() => users.id),
@@ -391,6 +418,19 @@ export const wheelSpinsRelations = relations(wheelSpins, ({ one }) => ({
 export const roundRewardsRelations = relations(roundRewards, ({ one }) => ({
   user: one(users, { fields: [roundRewards.userId], references: [users.id] }),
   collectible: one(collectibles, { fields: [roundRewards.collectibleId], references: [collectibles.id] }),
+}));
+
+export const packOpeningsRelations = relations(packOpenings, ({ one, many }) => ({
+  user: one(users, { fields: [packOpenings.userId], references: [users.id] }),
+  results: many(packOpeningResults),
+}));
+
+export const packOpeningResultsRelations = relations(packOpeningResults, ({ one }) => ({
+  packOpening: one(packOpenings, {
+    fields: [packOpeningResults.packOpeningId],
+    references: [packOpenings.id],
+  }),
+  collectible: one(collectibles, { fields: [packOpeningResults.collectibleId], references: [collectibles.id] }),
 }));
 
 export const tradeOffersRelations = relations(tradeOffers, ({ one }) => ({

@@ -8,6 +8,7 @@ import {
   RosterEntry,
   PlayerDetail,
   LeaderEntry,
+  RoundMvp,
   NewsArticle,
   Game,
   Prediction,
@@ -19,6 +20,9 @@ import {
   SpinResult,
   TradeableCard,
   TradeOffer,
+  PackDefinition,
+  PackOpenOutcome,
+  PackType,
 } from "./models";
 
 /**
@@ -48,6 +52,10 @@ export class ApiService {
     return this.http.get<LeaderEntry[]>(`${API_BASE_URL}/players/leaders`, {
       params: { category, limit },
     });
+  }
+
+  getRoundMvp(): Observable<RoundMvp> {
+    return this.http.get<RoundMvp>(`${API_BASE_URL}/players/round-mvp`);
   }
 
   getNews(limit = 20): Observable<NewsArticle[]> {
@@ -92,10 +100,6 @@ export class ApiService {
     return this.http.get<MyCollectible[]>(`${API_BASE_URL}/collectibles/me`);
   }
 
-  redeemCollectible(id: string): Observable<unknown> {
-    return this.http.post(`${API_BASE_URL}/collectibles/${id}/redeem`, {});
-  }
-
   addCollectible(
     name: string,
     teamId: string,
@@ -120,6 +124,18 @@ export class ApiService {
 
   cheatSpin(): Observable<SpinResult> {
     return this.http.post<SpinResult>(`${API_BASE_URL}/spin/cheat`, {});
+  }
+
+  getPacks(): Observable<PackDefinition[]> {
+    return this.http.get<PackDefinition[]>(`${API_BASE_URL}/packs`);
+  }
+
+  openPack(type: PackType): Observable<PackOpenOutcome> {
+    return this.http.post<PackOpenOutcome>(`${API_BASE_URL}/packs/${type}/open`, {});
+  }
+
+  sellPackDuplicate(resultId: string): Observable<{ points: number }> {
+    return this.http.post<{ points: number }>(`${API_BASE_URL}/packs/results/${resultId}/sell`, {});
   }
 
   getTradeableCards(email?: string): Observable<TradeableCard[]> {

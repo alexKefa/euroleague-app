@@ -13,6 +13,7 @@ import { predictionsRouter } from "./routes/predictions.js";
 import { collectiblesRouter } from "./routes/collectibles.js";
 import { spinRouter } from "./routes/spin.js";
 import { tradesRouter } from "./routes/trades.js";
+import { packsRouter } from "./routes/packs.js";
 
 const app = express();
 const port = process.env.PORT ? Number(process.env.PORT) : 4000;
@@ -36,6 +37,7 @@ app.use("/api/predictions", predictionsRouter);
 app.use("/api/collectibles", collectiblesRouter);
 app.use("/api/spin", spinRouter);
 app.use("/api/trades", tradesRouter);
+app.use("/api/packs", packsRouter);
 
 // Route modules get mounted here as they're built:
 // app.use("/api/notifications", notificationsRouter);

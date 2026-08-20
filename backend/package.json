@@ -11,7 +11,9 @@
     "db:push": "drizzle-kit push --config=drizzle.config.ts",
     "db:studio": "drizzle-kit studio --config=drizzle.config.ts",
     "sync:standings": "tsx src/sync/runSync.ts",
-    "sync:news": "tsx src/sync/runNewsSync.ts"
+    "sync:news": "tsx src/sync/runNewsSync.ts",
+    "economy:report": "tsx src/scripts/economy-report.ts",
+    "collectibles:expand": "tsx src/scripts/expand-collectibles.ts"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

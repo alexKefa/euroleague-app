@@ -27,7 +27,12 @@ const NAV_LINKS: NavLink[] = [
   { path: "/", label: "Home", icon: "home", exact: true },
   { path: "/news", label: "News", icon: "news" },
   { path: "/predictions", label: "Picks", icon: "picks" },
-  { path: "/store", label: "Store", icon: "store", activePrefixes: ["/wheel", "/trades", "/inventory"] },
+  {
+    path: "/store",
+    label: "Store",
+    icon: "store",
+    activePrefixes: ["/wheel", "/trades", "/inventory", "/packs"],
+  },
 ];
 
 @Component({

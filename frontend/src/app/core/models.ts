@@ -75,6 +75,20 @@ export interface LeaderEntry {
   team: { id: string; code: string; name: string; primaryColor: string | null };
 }
 
+export interface RoundMvpEntry {
+  player: { id: string; code: string; name: string };
+  team: { id: string; code: string; name: string; primaryColor: string | null };
+  valuation: number | null;
+  points: number | null;
+  gameId: string;
+}
+
+export interface RoundMvp {
+  season: string | null;
+  round: number | null;
+  leaders: RoundMvpEntry[];
+}
+
 export interface Team {
   id: string;
   code: string;
@@ -178,6 +192,28 @@ export interface SpinStatus {
 export interface SpinResult {
   won: Collectible | null;
   nextEligibleAt: string;
+}
+
+export type PackType = "starter" | "pro" | "elite";
+
+export interface PackDefinition {
+  type: PackType;
+  label: string;
+  pointsCost: number;
+  slots: number;
+}
+
+export interface PackOpenResultCard {
+  resultId: string;
+  collectible: Collectible;
+  wasDuplicate: boolean;
+  sellValue: number | null;
+}
+
+export interface PackOpenOutcome {
+  openingId: string;
+  packType: PackType;
+  results: PackOpenResultCard[];
 }
 
 export interface TradeableCard {
