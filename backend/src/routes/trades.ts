@@ -37,7 +37,7 @@ tradesRouter.get("/my-cards", requireAuth, async (req, res) => {
     );
   } catch (err) {
     console.error("GET /api/trades/my-cards failed:", err);
-    res.status(500).json({ error: "Failed to load your cards" });
+    res.status(500).json({ error: "Failed to load your cards", code: "FAILED_TO_LOAD_CARDS" });
   }
 });
 
@@ -47,7 +47,7 @@ tradesRouter.post("/my-cards/:collectibleId/tradeable", requireAuth, async (req,
     const { collectibleId } = req.params;
     const { tradeable } = req.body ?? {};
     if (typeof tradeable !== "boolean") {
-      res.status(400).json({ error: "tradeable must be a boolean" });
+      res.status(400).json({ error: "tradeable must be a boolean", code: "INVALID_TRADEABLE_VALUE" });
       return;
     }
 
@@ -58,14 +58,14 @@ tradesRouter.post("/my-cards/:collectibleId/tradeable", requireAuth, async (req,
       .returning();
 
     if (!row) {
-      res.status(404).json({ error: "You don't own that card" });
+      res.status(404).json({ error: "You don't own that card", code: "CARD_NOT_OWNED" });
       return;
     }
 
     res.json({ tradeable: row.tradeable });
   } catch (err) {
     console.error("POST /api/trades/my-cards/:collectibleId/tradeable failed:", err);
-    res.status(500).json({ error: "Failed to update card" });
+    res.status(500).json({ error: "Failed to update card", code: "FAILED_TO_UPDATE_CARD" });
   }
 });
 
@@ -99,7 +99,7 @@ tradesRouter.get("/marketplace", requireAuth, async (req, res) => {
     );
   } catch (err) {
     console.error("GET /api/trades/marketplace failed:", err);
-    res.status(500).json({ error: "Failed to load the marketplace" });
+    res.status(500).json({ error: "Failed to load the marketplace", code: "FAILED_TO_LOAD_MARKETPLACE" });
   }
 });
 
@@ -112,15 +112,18 @@ tradesRouter.post("/", requireAuth, async (req, res) => {
       !offeredCollectibleIds.every((id) => typeof id === "string") ||
       typeof requestedCollectibleId !== "string"
     ) {
-      res.status(400).json({ error: "offeredCollectibleIds (a non-empty array) and requestedCollectibleId are required" });
+      res.status(400).json({
+        error: "offeredCollectibleIds (a non-empty array) and requestedCollectibleId are required",
+        code: "INVALID_REQUEST_BODY",
+      });
       return;
     }
     if (new Set(offeredCollectibleIds).size !== offeredCollectibleIds.length) {
-      res.status(400).json({ error: "You can't offer the same card twice" });
+      res.status(400).json({ error: "You can't offer the same card twice", code: "DUPLICATE_OFFERED_CARD" });
       return;
     }
     if (offeredCollectibleIds.includes(requestedCollectibleId)) {
-      res.status(400).json({ error: "You can't trade a card for itself" });
+      res.status(400).json({ error: "You can't trade a card for itself", code: "SAME_CARD" });
       return;
     }
 
@@ -141,11 +144,11 @@ tradesRouter.post("/", requireAuth, async (req, res) => {
       .limit(1);
 
     if (!listing) {
-      res.status(404).json({ error: "That card isn't listed in the marketplace anymore" });
+      res.status(404).json({ error: "That card isn't listed in the marketplace anymore", code: "LISTING_NOT_FOUND" });
       return;
     }
     if (listing.ownerId === req.userId) {
-      res.status(400).json({ error: "You can't trade with yourself" });
+      res.status(400).json({ error: "You can't trade with yourself", code: "SELF_TRADE" });
       return;
     }
 
@@ -161,7 +164,7 @@ tradesRouter.post("/", requireAuth, async (req, res) => {
         )
       );
     if (ownedRows.length !== offeredCollectibleIds.length) {
-      res.status(400).json({ error: "You don't own all of the cards you're offering" });
+      res.status(400).json({ error: "You don't own all of the cards you're offering", code: "CARDS_NOT_OWNED" });
       return;
     }
 
@@ -185,7 +188,7 @@ tradesRouter.post("/", requireAuth, async (req, res) => {
     res.status(201).json({ ...offer, offeredCollectibleIds });
   } catch (err) {
     console.error("POST /api/trades failed:", err);
-    res.status(500).json({ error: "Failed to create trade offer" });
+    res.status(500).json({ error: "Failed to create trade offer", code: "FAILED_TO_CREATE_OFFER" });
   }
 });
 
@@ -239,7 +242,7 @@ tradesRouter.get("/me", requireAuth, async (req, res) => {
     );
   } catch (err) {
     console.error("GET /api/trades/me failed:", err);
-    res.status(500).json({ error: "Failed to load trades" });
+    res.status(500).json({ error: "Failed to load trades", code: "FAILED_TO_LOAD_TRADES" });
   }
 });
 
@@ -257,13 +260,13 @@ tradesRouter.post("/:id/accept", requireAuth, async (req, res) => {
     const outcome = await db.transaction(async (tx) => {
       const [offer] = await tx.select().from(tradeOffers).where(eq(tradeOffers.id, id)).for("update");
       if (!offer) {
-        return { status: 404, error: "Trade offer not found" } as const;
+        return { status: 404, error: "Trade offer not found", code: "OFFER_NOT_FOUND" } as const;
       }
       if (offer.toUserId !== req.userId) {
-        return { status: 403, error: "Not your offer to accept" } as const;
+        return { status: 403, error: "Not your offer to accept", code: "NOT_YOUR_OFFER" } as const;
       }
       if (offer.status !== "pending") {
-        return { status: 400, error: "This offer is no longer pending" } as const;
+        return { status: 400, error: "This offer is no longer pending", code: "OFFER_NOT_PENDING" } as const;
       }
 
       const items = await tx
@@ -292,10 +295,14 @@ tradesRouter.post("/:id/accept", requireAuth, async (req, res) => {
         .for("update");
 
       if (fromRows.length !== offeredIds.length || fromRows.some((r) => r.tier !== "legendary")) {
-        return { status: 400, error: "One or more of the offered cards are no longer available" } as const;
+        return {
+          status: 400,
+          error: "One or more of the offered cards are no longer available",
+          code: "OFFERED_CARDS_UNAVAILABLE",
+        } as const;
       }
       if (!toRow || toRow.tier !== "legendary") {
-        return { status: 400, error: "You no longer own the requested card" } as const;
+        return { status: 400, error: "You no longer own the requested card", code: "REQUESTED_CARD_UNAVAILABLE" } as const;
       }
 
       const [toAlreadyHasOffered] = await tx
@@ -311,7 +318,11 @@ tradesRouter.post("/:id/accept", requireAuth, async (req, res) => {
         )
         .limit(1);
       if (toAlreadyHasOffered || fromAlreadyHasRequested) {
-        return { status: 409, error: "Trade can't complete — one of you already owns the other's card" } as const;
+        return {
+          status: 409,
+          error: "Trade can't complete — one of you already owns the other's card",
+          code: "OWNERSHIP_CONFLICT",
+        } as const;
       }
 
       // Re-pointed cards drop out of the marketplace on both sides — the
@@ -350,13 +361,13 @@ tradesRouter.post("/:id/accept", requireAuth, async (req, res) => {
     });
 
     if (outcome.status !== 200) {
-      res.status(outcome.status).json({ error: outcome.error });
+      res.status(outcome.status).json({ error: outcome.error, code: outcome.code });
       return;
     }
     res.json({ status: "accepted" });
   } catch (err) {
     console.error("POST /api/trades/:id/accept failed:", err);
-    res.status(500).json({ error: "Failed to accept trade" });
+    res.status(500).json({ error: "Failed to accept trade", code: "FAILED_TO_ACCEPT" });
   }
 });
 
@@ -365,11 +376,11 @@ tradesRouter.post("/:id/decline", requireAuth, async (req, res) => {
     const { id } = req.params;
     const [offer] = await db.select().from(tradeOffers).where(eq(tradeOffers.id, id)).limit(1);
     if (!offer) {
-      res.status(404).json({ error: "Trade offer not found" });
+      res.status(404).json({ error: "Trade offer not found", code: "OFFER_NOT_FOUND" });
       return;
     }
     if (offer.toUserId !== req.userId) {
-      res.status(403).json({ error: "Not your offer to decline" });
+      res.status(403).json({ error: "Not your offer to decline", code: "NOT_YOUR_OFFER" });
       return;
     }
 
@@ -383,14 +394,14 @@ tradesRouter.post("/:id/decline", requireAuth, async (req, res) => {
       .returning();
 
     if (!declined) {
-      res.status(400).json({ error: "This offer is no longer pending" });
+      res.status(400).json({ error: "This offer is no longer pending", code: "OFFER_NOT_PENDING" });
       return;
     }
 
     res.json({ status: "declined" });
   } catch (err) {
     console.error("POST /api/trades/:id/decline failed:", err);
-    res.status(500).json({ error: "Failed to decline trade" });
+    res.status(500).json({ error: "Failed to decline trade", code: "FAILED_TO_DECLINE" });
   }
 });
 
@@ -399,11 +410,11 @@ tradesRouter.post("/:id/cancel", requireAuth, async (req, res) => {
     const { id } = req.params;
     const [offer] = await db.select().from(tradeOffers).where(eq(tradeOffers.id, id)).limit(1);
     if (!offer) {
-      res.status(404).json({ error: "Trade offer not found" });
+      res.status(404).json({ error: "Trade offer not found", code: "OFFER_NOT_FOUND" });
       return;
     }
     if (offer.fromUserId !== req.userId) {
-      res.status(403).json({ error: "Not your offer to cancel" });
+      res.status(403).json({ error: "Not your offer to cancel", code: "NOT_YOUR_OFFER" });
       return;
     }
 
@@ -416,13 +427,13 @@ tradesRouter.post("/:id/cancel", requireAuth, async (req, res) => {
       .returning();
 
     if (!cancelled) {
-      res.status(400).json({ error: "This offer is no longer pending" });
+      res.status(400).json({ error: "This offer is no longer pending", code: "OFFER_NOT_PENDING" });
       return;
     }
 
     res.json({ status: "cancelled" });
   } catch (err) {
     console.error("POST /api/trades/:id/cancel failed:", err);
-    res.status(500).json({ error: "Failed to cancel trade" });
+    res.status(500).json({ error: "Failed to cancel trade", code: "FAILED_TO_CANCEL" });
   }
 });

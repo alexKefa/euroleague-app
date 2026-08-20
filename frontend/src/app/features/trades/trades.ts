@@ -120,9 +120,23 @@ export class TradesComponent implements OnInit {
       },
       error: (err) => {
         this.proposing.set(false);
-        this.proposeError.set(err?.error?.error ?? this.i18n.t("trades.proposeFallbackError"));
+        this.proposeError.set(this.tradeErrorMessage(err, "trades.proposeFallbackError"));
       },
     });
+  }
+
+  // The backend returns a stable `code` alongside its English `error` text
+  // (routes/trades.ts) so the frontend can translate it without the server
+  // needing to know about languages at all. Falls back to the raw English
+  // message for any code we don't have a translation for yet, then to a
+  // generic translated message if the server gave nothing usable at all
+  // (e.g. a network failure with no response body).
+  private tradeErrorMessage(err: unknown, fallbackKey: string): string {
+    const body = (err as { error?: { code?: string; error?: string } } | undefined)?.error;
+    const key = body?.code ? `trades.err.${body.code}` : undefined;
+    const translated = key ? this.i18n.t(key) : undefined;
+    if (translated && translated !== key) return translated;
+    return body?.error ?? this.i18n.t(fallbackKey);
   }
 
   offeredNames(offer: TradeOffer): string {
@@ -157,7 +171,7 @@ export class TradesComponent implements OnInit {
       },
       error: (err) => {
         this.actingOnId.set(null);
-        this.actionError.set(err?.error?.error ?? this.i18n.t("trades.actionFallbackError"));
+        this.actionError.set(this.tradeErrorMessage(err, "trades.actionFallbackError"));
       },
     });
   }
