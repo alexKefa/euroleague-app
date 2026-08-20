@@ -18,3 +18,64 @@
 .reveal-pop {
   animation: reveal-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
+
+/* Win burst — a glow flash + expanding ring + starburst rays behind the
+   revealed card, gated to the legendary win case (the wheel's only prize). */
+@keyframes burst-glow {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+}
+
+@keyframes burst-ring {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.3);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+}
+
+@keyframes burst-ray {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--ray-angle)) translateY(-20px) scaleY(0.3);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--ray-angle)) translateY(-70px) scaleY(1);
+  }
+}
+
+.burst-glow {
+  animation: burst-glow 0.9s ease-out both;
+}
+
+.burst-ring {
+  animation: burst-ring 0.7s cubic-bezier(0.2, 0.8, 0.4, 1) both;
+}
+
+.burst-ray {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: 40px;
+  margin: -20px 0 0 -1.5px;
+  border-radius: 2px;
+  transform-origin: 50% 100%;
+  animation: burst-ray 0.8s ease-out both;
+}

@@ -7,6 +7,9 @@
 :root {
   --accent-primary: #3e7cb1;
   --accent-secondary: #0b1220;
+  /* Bumps every rem-based Tailwind size (text, spacing, radii) up together
+     so type and layout grow in proportion instead of just text overflowing. */
+  font-size: 112.5%;
 }
 
 body {

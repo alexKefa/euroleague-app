@@ -1,7 +1,7 @@
 <div class="max-w-3xl mx-auto p-4 sm:p-6">
   <a
     routerLink="/"
-    class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
+    class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
     >&larr; Dashboard</a
   >
 
@@ -9,12 +9,12 @@
 
   @if (auth.currentUser(); as user) {
     <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-      <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide mb-1">Email</p>
+      <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide mb-1">Email</p>
       <p class="font-semibold text-sm">{{ user.email }}</p>
     </div>
 
     <div class="bg-card rounded-lg shadow-card p-4">
-      <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide mb-3">Favorite team</p>
+      <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide mb-3">Favorite team</p>
       <div class="flex flex-wrap gap-2">
         @for (team of teams(); track team.id) {
           <button
@@ -27,7 +27,7 @@
             <span class="w-1.5 h-1.5 rounded-full" [style.background]="team.primaryColor"></span>
             <span class="font-display text-xs">{{ team.code }}</span>
             @if (savingTeamId() === team.id) {
-              <span class="font-mono text-[9px] text-muted">…</span>
+              <span class="font-mono text-[11px] text-muted">…</span>
             }
           </button>
         }

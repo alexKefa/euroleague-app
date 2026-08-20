@@ -6,6 +6,7 @@ import {
   Team,
   StandingsRow,
   RosterEntry,
+  PlayerDetail,
   LeaderEntry,
   NewsArticle,
   Game,
@@ -37,6 +38,10 @@ export class ApiService {
 
   getRoster(teamId: string): Observable<RosterEntry[]> {
     return this.http.get<RosterEntry[]>(`${API_BASE_URL}/teams/${teamId}/roster`);
+  }
+
+  getPlayer(playerId: string): Observable<PlayerDetail> {
+    return this.http.get<PlayerDetail>(`${API_BASE_URL}/players/${playerId}`);
   }
 
   getLeaders(category: string, limit = 10): Observable<LeaderEntry[]> {
@@ -111,6 +116,10 @@ export class ApiService {
 
   spin(): Observable<SpinResult> {
     return this.http.post<SpinResult>(`${API_BASE_URL}/spin`, {});
+  }
+
+  cheatSpin(): Observable<SpinResult> {
+    return this.http.post<SpinResult>(`${API_BASE_URL}/spin/cheat`, {});
   }
 
   getTradeableCards(email?: string): Observable<TradeableCard[]> {

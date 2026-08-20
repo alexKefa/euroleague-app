@@ -1,7 +1,7 @@
 <div class="max-w-3xl lg:max-w-5xl mx-auto p-4 sm:p-6">
   <a
     routerLink="/"
-    class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
+    class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
     >&larr; Dashboard</a
   >
 
@@ -26,17 +26,17 @@
     <div class="flex gap-2 mb-5">
       <a
         routerLink="/wheel"
-        class="flex-1 text-center px-3 py-2 rounded-full bg-card shadow-card font-mono text-[11px] font-bold uppercase tracking-wide hover:shadow-pop transition-all"
+        class="flex-1 text-center px-3 py-2 rounded-full bg-card shadow-card font-mono text-[13px] font-bold uppercase tracking-wide hover:shadow-pop transition-all"
         >🎡 Spin</a
       >
       <a
         routerLink="/inventory"
-        class="flex-1 text-center px-3 py-2 rounded-full bg-card shadow-card font-mono text-[11px] font-bold uppercase tracking-wide hover:shadow-pop transition-all"
+        class="flex-1 text-center px-3 py-2 rounded-full bg-card shadow-card font-mono text-[13px] font-bold uppercase tracking-wide hover:shadow-pop transition-all"
         >My cards</a
       >
       <a
         routerLink="/trades"
-        class="flex-1 text-center px-3 py-2 rounded-full bg-card shadow-card font-mono text-[11px] font-bold uppercase tracking-wide hover:shadow-pop transition-all"
+        class="flex-1 text-center px-3 py-2 rounded-full bg-card shadow-card font-mono text-[13px] font-bold uppercase tracking-wide hover:shadow-pop transition-all"
         >Trades</a
       >
     </div>
@@ -93,17 +93,17 @@
           </button>
 
           @if (isUnlocked(item)) {
-            <span class="font-mono text-[10px] font-bold text-emerald-500 uppercase tracking-wide">Unlocked</span>
+            <span class="font-mono text-[12px] font-bold text-emerald-500 uppercase tracking-wide">Unlocked</span>
           } @else if (auth.isAuthenticated()) {
             <button
               (click)="redeem(item)"
               [disabled]="!canAfford(item) || redeemingId() === item.id"
-              class="font-mono text-[10px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full bg-highlight text-white hover:bg-highlight-dim transition-colors disabled:opacity-40"
+              class="font-mono text-[12px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full bg-highlight text-white hover:bg-highlight-dim transition-colors disabled:opacity-40"
             >
               {{ redeemingId() === item.id ? "Redeeming…" : canAfford(item) ? "Redeem · " + item.pointsCost + " pts" : item.pointsCost + " pts" }}
             </button>
           } @else {
-            <span class="font-mono text-[10px] font-bold text-muted uppercase tracking-wide">{{ item.pointsCost }} pts</span>
+            <span class="font-mono text-[12px] font-bold text-muted uppercase tracking-wide">{{ item.pointsCost }} pts</span>
           }
         </div>
       } @empty {
@@ -120,7 +120,7 @@
 
   @if (auth.currentUser()?.isAdmin) {
     <div class="bg-card rounded-lg shadow-card p-4 mt-6">
-      <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide mb-3">
+      <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide mb-3">
         Add to catalog (admin)
       </p>
 
@@ -190,7 +190,7 @@
         <button
           (click)="setImage(item, imageInput.value)"
           [disabled]="imageSavingId() === item.id"
-          class="font-mono text-[11px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-lg bg-white/15 text-white hover:bg-highlight transition-colors disabled:opacity-40"
+          class="font-mono text-[13px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-lg bg-white/15 text-white hover:bg-highlight transition-colors disabled:opacity-40"
         >
           {{ imageSavingId() === item.id ? "…" : "Set image" }}
         </button>

@@ -36,11 +36,25 @@ export class DashboardComponent implements OnInit {
   readonly leaderCategory = signal<LeaderCategory>("points");
   readonly leaderCategories = LEADER_CATEGORIES;
   readonly news = signal<NewsArticle[]>([]);
-  readonly nextGame = signal<Game | null>(null);
+  readonly teamGames = signal<Game[]>([]);
 
   readonly selectedRow = computed(
     () => this.standings().find((r) => r.team.id === this.selectedTeamId()) ?? null
   );
+
+  // teamGames is already ascending by tipoffAt (see GET /teams/:id/games).
+  readonly recentGames = computed(() =>
+    this.teamGames()
+      .filter((g) => g.status === "final")
+      .slice(-4)
+      .reverse()
+  );
+  readonly upcomingGames = computed(() =>
+    this.teamGames()
+      .filter((g) => g.status === "scheduled")
+      .slice(0, 4)
+  );
+  readonly nextGame = computed(() => this.upcomingGames()[0] ?? null);
 
   ngOnInit(): void {
     this.api.getNews(3).subscribe({
@@ -54,7 +68,9 @@ export class DashboardComponent implements OnInit {
       next: (rows) => {
         this.standings.set(rows);
         this.loading.set(false);
-        if (rows.length > 0) {
+        // Guests have no favorite team — don't default to the top-ranked one,
+        // that would misleadingly present it as "your team".
+        if (rows.length > 0 && this.auth.isAuthenticated()) {
           const savedTeamId = this.auth.currentUser()?.favoriteTeamId;
           const hasSavedTeam = savedTeamId && rows.some((r) => r.team.id === savedTeamId);
           this.loadTeam(hasSavedTeam ? savedTeamId! : rows[0].team.id);
@@ -74,12 +90,9 @@ export class DashboardComponent implements OnInit {
     const row = this.standings().find((r) => r.team.id === teamId);
     this.theme.applyTeam(row?.team ?? null);
 
-    this.nextGame.set(null);
+    this.teamGames.set([]);
     this.api.getTeamGames(teamId).subscribe({
-      next: (games) => {
-        const next = games.find((g) => g.status === "scheduled") ?? null;
-        this.nextGame.set(next);
-      },
+      next: (games) => this.teamGames.set(games),
       error: () => {}, // non-critical widget
     });
   }
@@ -98,5 +111,13 @@ export class DashboardComponent implements OnInit {
 
   opponentCode(game: Game): string {
     return this.isHomeGame(game) ? game.awayTeam.code : game.homeTeam.code;
+  }
+
+  teamResult(game: Game): "W" | "L" | null {
+    if (game.homeScore === null || game.awayScore === null) return null;
+    const won = this.isHomeGame(game)
+      ? game.homeScore > game.awayScore
+      : game.awayScore > game.homeScore;
+    return won ? "W" : "L";
   }
 }

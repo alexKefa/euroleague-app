@@ -1,7 +1,7 @@
 <div class="max-w-sm mx-auto p-4 sm:p-6 text-center">
   <a
     routerLink="/store"
-    class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors block text-left"
+    class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors block text-left"
     >&larr; Store</a
   >
 
@@ -41,21 +41,46 @@
       <div class="mb-6 reveal-pop">
         @if (lastResult(); as won) {
           <p class="font-display text-lg uppercase tracking-wide text-highlight mb-3">You won a legendary card!</p>
+          <div class="relative mx-auto" style="width: 220px">
+            <!-- Win burst — glow flash, expanding ring, starburst rays -->
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div
+                class="burst-glow absolute w-64 h-64 rounded-full"
+                style="background: radial-gradient(circle, rgba(255,214,120,0.55) 0%, rgba(255,214,120,0) 70%)"
+              ></div>
+              <div class="burst-ring absolute w-48 h-48 rounded-full border-2 border-amber-300/70"></div>
+              @for (angle of burstRays; track angle) {
+                <div
+                  class="burst-ray"
+                  style="background: linear-gradient(rgba(255,224,150,0.95), rgba(255,224,150,0))"
+                  [style.--ray-angle.deg]="angle"
+                ></div>
+              }
+            </div>
+            <app-collectible-card
+              class="relative block mx-auto"
+              [name]="won.name"
+              [tier]="won.tier"
+              [teamCode]="won.team.code"
+              [teamColor]="won.team.primaryColor"
+              [imageUrl]="won.imageUrl"
+              [unlocked]="true"
+              [maxWidth]="220"
+            ></app-collectible-card>
+          </div>
+        } @else {
+          <p class="font-display text-lg uppercase tracking-wide text-muted mb-3">So close!</p>
           <app-collectible-card
             class="block mx-auto"
-            [name]="won.name"
-            [tier]="won.tier"
-            [teamCode]="won.team.code"
-            [teamColor]="won.team.primaryColor"
-            [imageUrl]="won.imageUrl"
-            [unlocked]="true"
+            name="???"
+            tier="legendary"
+            teamCode=""
+            [teamColor]="null"
+            [imageUrl]="null"
+            [unlocked]="false"
             [maxWidth]="220"
           ></app-collectible-card>
-        } @else {
-          <div class="bg-card rounded-lg shadow-card p-6">
-            <p class="font-bold text-sm">No luck this time.</p>
-            <p class="font-mono text-[11px] text-muted mt-1 uppercase tracking-wide">Come back tomorrow for another shot.</p>
-          </div>
+          <p class="font-mono text-[13px] text-muted mt-3 uppercase tracking-wide">Come back tomorrow for another shot.</p>
         }
       </div>
     }
@@ -70,9 +95,20 @@
         {{ spinning() ? "Spinning…" : "Spin the wheel" }}
       </button>
     } @else {
-      <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">
+      <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide">
         Next spin available {{ nextEligibleAt() | date: "MMM d, HH:mm" }}
       </p>
+    }
+
+    @if (auth.currentUser()?.isAdmin) {
+      <button
+        type="button"
+        (click)="cheatSpin()"
+        [disabled]="spinning()"
+        class="w-full mt-2 py-2 rounded-full border-2 border-highlight text-highlight font-mono text-[11px] font-bold uppercase tracking-wide hover:bg-highlight hover:text-white transition-colors disabled:opacity-50"
+      >
+        Cheat spin (admin)
+      </button>
     }
 
     @if (spinError()) {

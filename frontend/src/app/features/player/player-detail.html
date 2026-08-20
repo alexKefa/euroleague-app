@@ -1,0 +1,160 @@
+<div class="max-w-3xl mx-auto p-4 sm:p-6">
+  @if (detail(); as d) {
+    <a
+      [routerLink]="['/teams', d.team.id]"
+      class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
+      >&larr; {{ d.team.name }}</a
+    >
+  } @else {
+    <a
+      routerLink="/"
+      class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
+      >&larr; Dashboard</a
+    >
+  }
+
+  @if (loading()) {
+    <div class="animate-pulse mt-4">
+      <div class="rounded-lg h-[140px] bg-line mb-5"></div>
+      <div class="h-48 bg-line rounded-lg"></div>
+    </div>
+  }
+
+  @if (error()) {
+    <p class="text-red-500 text-sm font-semibold mt-4">{{ error() }}</p>
+  }
+
+  @if (!loading() && !error() && detail(); as d) {
+    <!-- Hero: team-skinned gradient header -->
+    <div
+      class="relative rounded-lg p-5 mt-4 mb-5 text-white overflow-hidden"
+      [style.background]="
+        'linear-gradient(155deg, var(--accent-primary) 0%, var(--accent-secondary) 70%, #000 130%)'
+      "
+    >
+      <div class="flex items-center gap-4">
+        @if (d.player.photoUrl) {
+          <img
+            [src]="d.player.photoUrl"
+            [alt]="d.player.name"
+            class="w-20 h-20 rounded-full object-cover shrink-0 bg-white/10"
+          />
+        } @else {
+          <span
+            class="w-20 h-20 rounded-full flex items-center justify-center font-display text-xl bg-white/15 shrink-0"
+          >
+            {{ d.team.code }}
+          </span>
+        }
+        <div class="min-w-0">
+          <h1 class="font-display text-2xl uppercase tracking-wide leading-tight">{{ d.player.name }}</h1>
+          <p class="font-mono text-[12px] font-bold uppercase tracking-wide opacity-70 mt-1">
+            {{ d.player.position ?? "—" }}
+            @if (d.player.jerseyNumber !== null) {
+              &middot; #{{ d.player.jerseyNumber }}
+            }
+            &middot; {{ d.team.name }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    @if (d.stats; as stats) {
+      <!-- Season averages -->
+      <div class="bg-card rounded-lg shadow-card p-4 mb-5">
+        <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-[0.1em] mb-3">
+          Season averages &middot; {{ stats.season }}
+        </p>
+        <div class="grid grid-cols-3 sm:grid-cols-4 gap-x-4 gap-y-4">
+          <div>
+            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">GP</p>
+            <p class="font-display text-xl mt-0.5">{{ stats.gamesPlayed ?? "—" }}</p>
+          </div>
+          <div>
+            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">MIN</p>
+            <p class="font-display text-xl mt-0.5">{{ fmtNum(stats.minutesPerGame) }}</p>
+          </div>
+          <div>
+            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">PTS</p>
+            <p class="font-display text-xl mt-0.5 text-highlight">{{ fmtNum(stats.pointsPerGame) }}</p>
+          </div>
+          <div>
+            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">REB</p>
+            <p class="font-display text-xl mt-0.5">{{ fmtNum(stats.reboundsPerGame) }}</p>
+          </div>
+          <div>
+            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">AST</p>
+            <p class="font-display text-xl mt-0.5">{{ fmtNum(stats.assistsPerGame) }}</p>
+          </div>
+          <div>
+            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">STL</p>
+            <p class="font-display text-xl mt-0.5">{{ fmtNum(stats.stealsPerGame) }}</p>
+          </div>
+          <div>
+            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">BLK</p>
+            <p class="font-display text-xl mt-0.5">{{ fmtNum(stats.blocksPerGame) }}</p>
+          </div>
+          <div>
+            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">TOV</p>
+            <p class="font-display text-xl mt-0.5">{{ fmtNum(stats.turnoversPerGame) }}</p>
+          </div>
+          <div>
+            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">FG%</p>
+            <p class="font-display text-xl mt-0.5">{{ fmtPct(stats.fieldGoalPct) }}</p>
+          </div>
+          <div>
+            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">3P%</p>
+            <p class="font-display text-xl mt-0.5">{{ fmtPct(stats.threePointPct) }}</p>
+          </div>
+          <div>
+            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">FT%</p>
+            <p class="font-display text-xl mt-0.5">{{ fmtPct(stats.freeThrowPct) }}</p>
+          </div>
+          <div>
+            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">PIR</p>
+            <p class="font-display text-xl mt-0.5 text-highlight">{{ fmtNum(stats.valuation) }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Advanced stats -->
+      <div class="bg-card rounded-lg shadow-card p-4">
+        <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-[0.1em] mb-3">Advanced</p>
+        <div class="grid grid-cols-3 sm:grid-cols-4 gap-x-4 gap-y-4">
+          <div>
+            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">TS%</p>
+            <p class="font-display text-xl mt-0.5">{{ fmtPct(stats.trueShootingPct) }}</p>
+          </div>
+          <div>
+            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">eFG%</p>
+            <p class="font-display text-xl mt-0.5">{{ fmtPct(stats.effectiveFieldGoalPct) }}</p>
+          </div>
+          <div>
+            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">REB%</p>
+            <p class="font-display text-xl mt-0.5">{{ fmtPct(stats.totalReboundPct) }}</p>
+          </div>
+          <div>
+            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">AST%</p>
+            <p class="font-display text-xl mt-0.5">{{ fmtPct(stats.assistRatio) }}</p>
+          </div>
+          <div>
+            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">TOV%</p>
+            <p class="font-display text-xl mt-0.5">{{ fmtPct(stats.turnoverRatio) }}</p>
+          </div>
+          <div>
+            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">AST/TO</p>
+            <p class="font-display text-xl mt-0.5">{{ fmtNum(stats.assistToTurnoverRatio) }}</p>
+          </div>
+          <div>
+            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">POSS</p>
+            <p class="font-display text-xl mt-0.5">{{ fmtNum(stats.possessionsPerGame) }}</p>
+          </div>
+        </div>
+      </div>
+    } @else {
+      <div class="bg-card rounded-lg shadow-card p-4 text-center text-muted text-sm">
+        No season stats yet for this player.
+      </div>
+    }
+  }
+</div>

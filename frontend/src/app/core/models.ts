@@ -62,6 +62,12 @@ export interface RosterEntry {
   stats: PlayerSeasonStats;
 }
 
+export interface PlayerDetail {
+  player: Player;
+  team: Team;
+  stats: PlayerSeasonStats | null;
+}
+
 export interface LeaderEntry {
   category: string;
   value: number | null;

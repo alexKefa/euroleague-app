@@ -1,4 +1,4 @@
-<div class="max-w-3xl lg:max-w-5xl mx-auto p-4 sm:p-6">
+<div class="max-w-3xl lg:max-w-6xl mx-auto p-4 sm:p-6">
   @if (loading()) {
     <div class="animate-pulse">
       <div class="rounded-lg h-[168px] bg-line mb-5"></div>
@@ -11,140 +11,181 @@
   }
 
   @if (!loading() && !error()) {
-    <!-- Hero: team-skinned gradient header -->
-    <div
-      class="relative rounded-lg p-5 mb-5 text-white overflow-hidden"
-      [style.background]="
-        'linear-gradient(155deg, var(--accent-primary) 0%, var(--accent-secondary) 70%, #000 130%)'
-      "
-    >
-      @if (selectedRow(); as row) {
-        <p class="font-mono text-[10px] font-bold uppercase tracking-[0.12em] opacity-65 mb-2">Your team</p>
+    <!-- Hero: team-skinned gradient header — logged-in users with a selected team only -->
+    @if (selectedRow(); as row) {
+      <div
+        class="relative rounded-lg p-5 mb-5 text-white overflow-hidden"
+        [style.background]="
+          'linear-gradient(155deg, var(--accent-primary) 0%, var(--accent-secondary) 70%, #000 130%)'
+        "
+      >
+        <p class="font-mono text-[12px] font-bold uppercase tracking-[0.12em] opacity-65 mb-2">Your team</p>
         <a [routerLink]="['/teams', row.team.id]" class="flex items-center gap-3 w-fit group">
-          <span
-            class="w-10 h-10 rounded-lg flex items-center justify-center font-display text-sm bg-white/15"
-          >
-            {{ row.team.code }}
-          </span>
+          @if (row.team.logoUrl) {
+            <img [src]="row.team.logoUrl" [alt]="row.team.name" class="w-10 h-10 object-contain" />
+          } @else {
+            <span
+              class="w-10 h-10 rounded-lg flex items-center justify-center font-display text-sm bg-white/15"
+            >
+              {{ row.team.code }}
+            </span>
+          }
           <h1 class="font-display text-2xl uppercase tracking-wide group-hover:underline">
             {{ row.team.name }}
           </h1>
         </a>
         <div class="flex flex-wrap gap-x-6 gap-y-3 mt-4">
           <div>
-            <p class="font-mono text-[9px] font-bold uppercase tracking-[0.08em] opacity-65">Record</p>
+            <p class="font-mono text-[11px] font-bold uppercase tracking-[0.08em] opacity-65">Record</p>
             <p class="font-display text-2xl mt-0.5">{{ row.stats.wins }}-{{ row.stats.losses }}</p>
           </div>
           <div>
-            <p class="font-mono text-[9px] font-bold uppercase tracking-[0.08em] opacity-65">Rank</p>
+            <p class="font-mono text-[11px] font-bold uppercase tracking-[0.08em] opacity-65">Rank</p>
             <p class="font-display text-2xl mt-0.5">#{{ row.position }}</p>
           </div>
           @if (row.stats.ppg !== null) {
             <div>
-              <p class="font-mono text-[9px] font-bold uppercase tracking-[0.08em] opacity-65">PPG</p>
+              <p class="font-mono text-[11px] font-bold uppercase tracking-[0.08em] opacity-65">PPG</p>
               <p class="font-display text-2xl mt-0.5">{{ row.stats.ppg | number: "1.1-1" }}</p>
             </div>
           }
         </div>
         @if (nextGame(); as game) {
           <div class="flex items-center gap-2 mt-4 pt-3 border-t border-white/20 text-sm">
-            <span class="font-mono text-[10px] font-bold uppercase opacity-65">Next</span>
+            <span class="font-mono text-[12px] font-bold uppercase opacity-65">Next</span>
             <span class="font-display text-sm">{{ isHomeGame(game) ? "vs" : "@" }} {{ opponentCode(game) }}</span>
-            <span class="font-mono text-[10px] opacity-65">&middot; {{ game.tipoffAt | date: "MMM d, HH:mm" }}</span>
+            <span class="font-mono text-[12px] opacity-65">&middot; {{ game.tipoffAt | date: "MMM d, HH:mm" }}</span>
           </div>
         }
-      }
-    </div>
-
-    <!-- News teaser -->
-    @if (news().length > 0) {
-      <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-        <div class="flex justify-between items-center mb-3">
-          <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-[0.1em]">Latest</p>
-          <a routerLink="/news" class="font-mono text-[10px] text-highlight font-bold">ALL &rarr;</a>
-        </div>
-        <div class="space-y-3">
-          @for (article of news(); track article.id) {
-            <a
-              [href]="article.url"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="block hover:opacity-70 transition-opacity"
-            >
-              <span class="font-mono text-[9px] font-bold uppercase tracking-[0.06em] text-highlight">{{
-                article.sourceName
-              }}</span>
-              <p class="font-bold text-sm leading-snug mt-0.5">{{ article.title }}</p>
-            </a>
-          }
-        </div>
       </div>
     }
 
-    <!-- Standings -->
-    <div class="bg-card rounded-lg shadow-card p-4">
-      <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-[0.1em] mb-3">Standings</p>
-      <div class="text-sm space-y-1">
-        @for (row of standings(); track row.team.id) {
-          <a
-            [routerLink]="['/teams', row.team.id]"
-            class="flex justify-between items-center gap-2 px-2 py-1.5 rounded-md hover:bg-page transition-colors"
-            [class.bg-page]="row.team.id === selectedTeamId()"
-          >
-            <span class="flex items-center gap-2 min-w-0">
-              <span class="font-mono text-muted w-4 shrink-0 text-right">{{ row.position }}</span>
-              @if (row.team.logoUrl) {
-                <img [src]="row.team.logoUrl" [alt]="row.team.name" class="w-5 h-5 object-contain shrink-0" />
-              } @else {
-                <span
-                  class="w-5 h-5 rounded-full shrink-0"
-                  [style.background]="row.team.primaryColor"
-                ></span>
+    <div class="lg:flex lg:gap-5 lg:items-start">
+      <!-- News / Leaders / Games column -->
+      <div class="lg:order-2 lg:flex-1 lg:flex lg:flex-col lg:gap-5 lg:min-w-0">
+        <!-- News teaser -->
+        @if (news().length > 0) {
+          <div class="bg-card rounded-lg shadow-card p-4 mb-5 lg:mb-0">
+            <div class="flex justify-between items-center mb-3">
+              <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-[0.1em]">Latest</p>
+              <a routerLink="/news" class="font-mono text-[12px] text-highlight font-bold">ALL &rarr;</a>
+            </div>
+            <div class="space-y-3">
+              @for (article of news(); track article.id) {
+                <a
+                  [href]="article.url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="block hover:opacity-70 transition-opacity"
+                >
+                  <span class="font-mono text-[11px] font-bold uppercase tracking-[0.06em] text-highlight">{{
+                    article.sourceName
+                  }}</span>
+                  <p class="font-bold text-sm leading-snug mt-0.5">{{ article.title }}</p>
+                </a>
               }
-              <span class="font-semibold truncate">{{ row.team.name }}</span>
-            </span>
-            <span class="font-mono text-muted text-xs shrink-0">{{ row.stats.wins }}-{{ row.stats.losses }}</span>
-          </a>
+            </div>
+          </div>
+        }
+
+        <!-- League leaders -->
+        @if (leaders().length > 0) {
+          <div class="bg-card rounded-lg shadow-card p-4 mb-5 lg:mb-0">
+            <div class="flex justify-between items-center mb-3">
+              <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-[0.1em]">Leaders</p>
+              <div class="flex gap-1">
+                @for (cat of leaderCategories; track cat.value) {
+                  <button
+                    type="button"
+                    (click)="selectLeaderCategory(cat.value)"
+                    class="font-mono px-2 py-1 rounded-md text-[12px] font-bold transition-colors"
+                    [class.bg-highlight]="leaderCategory() === cat.value"
+                    [class.text-white]="leaderCategory() === cat.value"
+                    [class.text-muted]="leaderCategory() !== cat.value"
+                  >
+                    {{ cat.label }}
+                  </button>
+                }
+              </div>
+            </div>
+            <div class="text-sm space-y-1">
+              @for (entry of leaders(); track entry.player.id; let i = $index) {
+                <a
+                  [routerLink]="['/players', entry.player.id]"
+                  class="flex justify-between items-center px-2 py-1.5 rounded-md hover:bg-page transition-colors"
+                >
+                  <span class="font-bold">
+                    <span class="font-mono text-muted">{{ i + 1 }}</span
+                    >&nbsp;&nbsp;{{ entry.player.name }}
+                    <span class="text-muted font-normal">({{ entry.team.code }})</span>
+                  </span>
+                  <span class="font-mono text-highlight font-bold">{{ entry.value | number: "1.1-1" }}</span>
+                </a>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Games strip -->
+        @if (recentGames().length > 0 || upcomingGames().length > 0) {
+          <div class="bg-card rounded-lg shadow-card p-4">
+            <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-[0.1em] mb-3">Games</p>
+            <div class="text-sm space-y-1">
+              @for (game of recentGames(); track game.id) {
+                <div class="flex justify-between items-center px-2 py-1.5 rounded-md">
+                  <span class="flex items-center gap-2">
+                    <span
+                      class="font-mono font-bold w-4"
+                      [class.text-highlight]="teamResult(game) === 'W'"
+                      [class.text-muted]="teamResult(game) === 'L'"
+                      >{{ teamResult(game) }}</span
+                    >
+                    <span class="font-semibold">{{ isHomeGame(game) ? "vs" : "@" }} {{ opponentCode(game) }}</span>
+                  </span>
+                  <span class="font-mono text-muted text-xs shrink-0">{{ game.homeScore }}-{{ game.awayScore }}</span>
+                </div>
+              }
+              @for (game of upcomingGames(); track game.id) {
+                <div class="flex justify-between items-center px-2 py-1.5 rounded-md">
+                  <span class="flex items-center gap-2">
+                    <span class="font-mono text-muted w-4">&middot;</span>
+                    <span class="font-semibold">{{ isHomeGame(game) ? "vs" : "@" }} {{ opponentCode(game) }}</span>
+                  </span>
+                  <span class="font-mono text-muted text-xs shrink-0">{{ game.tipoffAt | date: "MMM d" }}</span>
+                </div>
+              }
+            </div>
+          </div>
         }
       </div>
-    </div>
 
-    <!-- League leaders -->
-    @if (leaders().length > 0) {
-      <div class="bg-card rounded-lg shadow-card p-4 mt-4">
-        <div class="flex justify-between items-center mb-3">
-          <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-[0.1em]">Leaders</p>
-          <div class="flex gap-1">
-            @for (cat of leaderCategories; track cat.value) {
-              <button
-                type="button"
-                (click)="selectLeaderCategory(cat.value)"
-                class="font-mono px-2 py-1 rounded-md text-[10px] font-bold transition-colors"
-                [class.bg-highlight]="leaderCategory() === cat.value"
-                [class.text-white]="leaderCategory() === cat.value"
-                [class.text-muted]="leaderCategory() !== cat.value"
-              >
-                {{ cat.label }}
-              </button>
-            }
-          </div>
-        </div>
+      <!-- Standings -->
+      <div class="bg-card rounded-lg shadow-card p-4 lg:order-1 lg:flex-1 lg:min-w-0">
+        <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-[0.1em] mb-3">Standings</p>
         <div class="text-sm space-y-1">
-          @for (entry of leaders(); track entry.player.id; let i = $index) {
+          @for (row of standings(); track row.team.id) {
             <a
-              [routerLink]="['/teams', entry.team.id]"
-              class="flex justify-between items-center px-2 py-1.5 rounded-md hover:bg-page transition-colors"
+              [routerLink]="['/teams', row.team.id]"
+              class="flex justify-between items-center gap-2 px-2 py-1.5 rounded-md hover:bg-page transition-colors"
+              [class.bg-page]="row.team.id === selectedTeamId()"
             >
-              <span class="font-bold">
-                <span class="font-mono text-muted">{{ i + 1 }}</span
-                >&nbsp;&nbsp;{{ entry.player.name }}
-                <span class="text-muted font-normal">({{ entry.team.code }})</span>
+              <span class="flex items-center gap-2 min-w-0">
+                <span class="font-mono text-muted w-4 shrink-0 text-right">{{ row.position }}</span>
+                @if (row.team.logoUrl) {
+                  <img [src]="row.team.logoUrl" [alt]="row.team.name" class="w-5 h-5 object-contain shrink-0" />
+                } @else {
+                  <span
+                    class="w-5 h-5 rounded-full shrink-0"
+                    [style.background]="row.team.primaryColor"
+                  ></span>
+                }
+                <span class="font-semibold truncate">{{ row.team.name }}</span>
               </span>
-              <span class="font-mono text-highlight font-bold">{{ entry.value | number: "1.1-1" }}</span>
+              <span class="font-mono text-muted text-xs shrink-0">{{ row.stats.wins }}-{{ row.stats.losses }}</span>
             </a>
           }
         </div>
       </div>
-    }
+    </div>
   }
 </div>

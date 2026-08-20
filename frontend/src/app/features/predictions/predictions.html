@@ -1,7 +1,7 @@
 <div class="max-w-3xl lg:max-w-5xl mx-auto p-4 sm:p-6">
   <a
     routerLink="/"
-    class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
+    class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
     >&larr; Dashboard</a
   >
 
@@ -9,7 +9,7 @@
     <h1 class="font-display text-2xl uppercase tracking-wide">Picks</h1>
     <a
       routerLink="/store"
-      class="font-mono text-[10px] text-highlight font-bold uppercase tracking-wide hover:text-highlight-dim transition-colors"
+      class="font-mono text-[12px] text-highlight font-bold uppercase tracking-wide hover:text-highlight-dim transition-colors"
       >Spend points &rarr;</a
     >
   </div>
@@ -24,17 +24,17 @@
   @if (!loading()) {
     @if (upcomingGames().length > 0) {
       <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-        <p class="font-mono text-[11px] text-muted font-bold uppercase tracking-wide mb-3">Upcoming games</p>
+        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">Upcoming games</p>
         <div class="space-y-3">
           @for (game of upcomingGames(); track game.id) {
             <div class="px-2 py-2 rounded-md bg-page">
-              <p class="font-mono text-muted text-[10px] mb-2">{{ game.tipoffAt | date: "MMM d, HH:mm" }}</p>
+              <p class="font-mono text-muted text-[12px] mb-2">{{ game.tipoffAt | date: "MMM d, HH:mm" }}</p>
               @if (auth.isAuthenticated()) {
                 <div class="flex gap-2">
                   <button
                     type="button"
                     (click)="predict(game, game.homeTeam.id)"
-                    class="flex-1 py-1.5 rounded-md font-mono text-[11px] font-bold uppercase tracking-wide border-2 transition-colors"
+                    class="flex-1 py-1.5 rounded-md font-mono text-[13px] font-bold uppercase tracking-wide border-2 transition-colors"
                     [class.border-highlight]="myPickFor(game) === game.homeTeam.id"
                     [class.bg-highlight]="myPickFor(game) === game.homeTeam.id"
                     [class.text-white]="myPickFor(game) === game.homeTeam.id"
@@ -43,11 +43,11 @@
                   >
                     {{ game.homeTeam.code }}
                   </button>
-                  <span class="font-mono text-muted text-[10px] self-center">vs</span>
+                  <span class="font-mono text-muted text-[12px] self-center">vs</span>
                   <button
                     type="button"
                     (click)="predict(game, game.awayTeam.id)"
-                    class="flex-1 py-1.5 rounded-md font-mono text-[11px] font-bold uppercase tracking-wide border-2 transition-colors"
+                    class="flex-1 py-1.5 rounded-md font-mono text-[13px] font-bold uppercase tracking-wide border-2 transition-colors"
                     [class.border-highlight]="myPickFor(game) === game.awayTeam.id"
                     [class.bg-highlight]="myPickFor(game) === game.awayTeam.id"
                     [class.text-white]="myPickFor(game) === game.awayTeam.id"
@@ -69,7 +69,7 @@
     <div class="grid gap-5 sm:grid-cols-2">
       <!-- My picks -->
       <div class="bg-card rounded-lg shadow-card p-4">
-        <p class="font-mono text-[11px] text-muted font-bold uppercase tracking-wide mb-3">My picks</p>
+        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">My picks</p>
 
         @if (!auth.isAuthenticated()) {
           <p class="text-sm text-muted">
@@ -91,7 +91,7 @@
             <div class="flex items-center justify-between mb-3 pb-3 border-b border-line">
               <span class="flex items-baseline gap-1.5">
                 <span class="font-display text-2xl text-highlight">{{ mySummary()!.points }}</span>
-                <span class="font-mono text-[10px] text-muted font-bold uppercase">pts</span>
+                <span class="font-mono text-[12px] text-muted font-bold uppercase">pts</span>
               </span>
               <div class="flex gap-1 text-base">
                 @for (badge of mySummary()!.badges; track badge.id) {
@@ -100,7 +100,7 @@
                   }}</span>
                 }
                 @if (mySummary()!.badges.length === 0) {
-                  <span class="font-mono text-[10px] text-muted uppercase">No badges yet</span>
+                  <span class="font-mono text-[12px] text-muted uppercase">No badges yet</span>
                 }
               </div>
             </div>
@@ -111,16 +111,16 @@
               <div class="flex justify-between items-center px-2 py-2 rounded-md">
                 <div>
                   <p class="font-display text-xs uppercase">{{ p.predictedTeam.code }}</p>
-                  <p class="font-mono text-muted text-[10px] mt-0.5">{{ p.tipoffAt | date: "MMM d, HH:mm" }}</p>
+                  <p class="font-mono text-muted text-[12px] mt-0.5">{{ p.tipoffAt | date: "MMM d, HH:mm" }}</p>
                 </div>
                 @if (p.isCorrect === null) {
-                  <span class="font-mono text-[10px] font-bold text-muted uppercase tracking-wide">Pending</span>
+                  <span class="font-mono text-[12px] font-bold text-muted uppercase tracking-wide">Pending</span>
                 }
                 @if (p.isCorrect === true) {
-                  <span class="font-mono text-[10px] font-bold text-emerald-500 uppercase tracking-wide">Correct</span>
+                  <span class="font-mono text-[12px] font-bold text-emerald-500 uppercase tracking-wide">Correct</span>
                 }
                 @if (p.isCorrect === false) {
-                  <span class="font-mono text-[10px] font-bold text-red-500 uppercase tracking-wide">Wrong</span>
+                  <span class="font-mono text-[12px] font-bold text-red-500 uppercase tracking-wide">Wrong</span>
                 }
               </div>
             } @empty {
@@ -134,7 +134,7 @@
 
       <!-- Leaderboard -->
       <div class="bg-card rounded-lg shadow-card p-4">
-        <p class="font-mono text-[11px] text-muted font-bold uppercase tracking-wide mb-3">Leaderboard</p>
+        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">Leaderboard</p>
         <div class="text-sm space-y-1">
           @for (entry of leaderboard(); track entry.userId; let i = $index) {
             <div class="flex justify-between items-center px-2 py-2 rounded-md">
@@ -148,7 +148,7 @@
               </span>
               <span class="text-right">
                 <span class="font-mono text-highlight font-bold">{{ entry.points }} pts</span>
-                <span class="font-mono text-muted text-[10px] block">{{ entry.correct }}/{{ entry.total }}</span>
+                <span class="font-mono text-muted text-[12px] block">{{ entry.correct }}/{{ entry.total }}</span>
               </span>
             </div>
           } @empty {
@@ -160,7 +160,7 @@
 
     @if (auth.currentUser()?.isAdmin) {
       <div class="bg-card rounded-lg shadow-card p-4 mt-5">
-        <p class="font-mono text-[11px] text-muted font-bold uppercase tracking-wide mb-3">
+        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">
           Grant points (admin)
         </p>
 

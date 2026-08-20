@@ -73,3 +73,37 @@ playersRouter.get("/leaders", async (req, res) => {
     res.status(500).json({ error: "Failed to load player leaders" });
   }
 });
+
+playersRouter.get("/:id", async (req, res) => {
+  try {
+    const playerId = req.params.id;
+
+    const rows = await db
+      .select({ player: players, team: teams })
+      .from(players)
+      .innerJoin(teams, eq(players.teamId, teams.id))
+      .where(eq(players.id, playerId))
+      .limit(1);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Player not found" });
+    }
+
+    // Same "latest season" pick as GET /players/leaders, for consistency.
+    const latestStats = await db
+      .select()
+      .from(playerSeasonStats)
+      .where(eq(playerSeasonStats.playerId, playerId))
+      .orderBy(desc(playerSeasonStats.season))
+      .limit(1);
+
+    res.json({
+      player: rows[0].player,
+      team: rows[0].team,
+      stats: latestStats[0] ?? null,
+    });
+  } catch (err) {
+    console.error("GET /api/players/:id failed:", err);
+    res.status(500).json({ error: "Failed to load player" });
+  }
+});

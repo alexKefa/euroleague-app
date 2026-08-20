@@ -1,7 +1,7 @@
 <div class="max-w-3xl lg:max-w-5xl mx-auto p-4 sm:p-6">
   <a
     routerLink="/store"
-    class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
+    class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
     >&larr; Store</a
   >
 
@@ -28,7 +28,7 @@
       </p>
     } @else {
       <div class="bg-card rounded-lg shadow-card p-4 mb-6">
-        <p class="font-mono text-[11px] text-muted font-bold uppercase tracking-wide mb-3">Propose a trade</p>
+        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">Propose a trade</p>
 
         <div class="flex flex-wrap items-center gap-2 mb-4">
           <input
@@ -52,7 +52,7 @@
           <p class="text-red-500 text-xs font-semibold mb-4">{{ theirCardsError() }}</p>
         }
 
-        <p class="font-mono text-[11px] text-muted font-bold uppercase tracking-wide mb-2">Your card to offer</p>
+        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-2">Your card to offer</p>
         <div class="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
           @for (card of myCards(); track card.id) {
             <button
@@ -75,7 +75,7 @@
         </div>
 
         @if (theirCards().length > 0) {
-          <p class="font-mono text-[11px] text-muted font-bold uppercase tracking-wide mb-2">Their card you want</p>
+          <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-2">Their card you want</p>
           <div class="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
             @for (card of theirCards(); track card.id) {
               <button
@@ -123,7 +123,7 @@
     }
 
     <div class="bg-card rounded-lg shadow-card p-4">
-      <p class="font-mono text-[11px] text-muted font-bold uppercase tracking-wide mb-3">My trade offers</p>
+      <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">My trade offers</p>
       @if (actionError()) {
         <p class="text-red-500 text-xs font-semibold mb-3">{{ actionError() }}</p>
       }
@@ -148,7 +148,7 @@
                   type="button"
                   (click)="accept(offer)"
                   [disabled]="actingOnId() === offer.id"
-                  class="font-mono text-[10px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full bg-highlight text-white hover:bg-highlight-dim transition-colors disabled:opacity-40"
+                  class="font-mono text-[12px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full bg-highlight text-white hover:bg-highlight-dim transition-colors disabled:opacity-40"
                 >
                   Accept
                 </button>
@@ -156,7 +156,7 @@
                   type="button"
                   (click)="decline(offer)"
                   [disabled]="actingOnId() === offer.id"
-                  class="font-mono text-[10px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full bg-line text-ink hover:bg-red-500 hover:text-white transition-colors disabled:opacity-40"
+                  class="font-mono text-[12px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full bg-line text-ink hover:bg-red-500 hover:text-white transition-colors disabled:opacity-40"
                 >
                   Decline
                 </button>
@@ -166,12 +166,12 @@
                 type="button"
                 (click)="cancel(offer)"
                 [disabled]="actingOnId() === offer.id"
-                class="font-mono text-[10px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full bg-line text-ink hover:bg-red-500 hover:text-white transition-colors disabled:opacity-40 shrink-0"
+                class="font-mono text-[12px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full bg-line text-ink hover:bg-red-500 hover:text-white transition-colors disabled:opacity-40 shrink-0"
               >
                 Cancel
               </button>
             } @else {
-              <span class="font-mono text-[10px] font-bold text-muted uppercase tracking-wide shrink-0">{{ offer.status }}</span>
+              <span class="font-mono text-[12px] font-bold text-muted uppercase tracking-wide shrink-0">{{ offer.status }}</span>
             }
           </div>
         } @empty {

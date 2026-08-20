@@ -2,7 +2,7 @@ import { Router } from "express";
 import { eq, desc } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { wheelSpins, userCollectibles } from "../db/schema.js";
-import { requireAuth } from "../auth/middleware.js";
+import { requireAuth, requireAdmin } from "../auth/middleware.js";
 import { pickRandomUnownedLegendary } from "../services/cards.js";
 
 export const spinRouter = Router();
@@ -60,5 +60,21 @@ spinRouter.post("/", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("POST /api/spin failed:", err);
     res.status(500).json({ error: "Failed to spin" });
+  }
+});
+
+// Admin-only debug tool for testing the win visual — always grants a
+// legendary (if one is left to grant) and deliberately doesn't touch
+// wheelSpins, so it never counts against or resets the real 24h cooldown.
+spinRouter.post("/cheat", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const prize = await pickRandomUnownedLegendary(req.userId!);
+    if (prize) {
+      await db.insert(userCollectibles).values({ userId: req.userId!, collectibleId: prize.id });
+    }
+    res.status(201).json({ won: prize, nextEligibleAt: null });
+  } catch (err) {
+    console.error("POST /api/spin/cheat failed:", err);
+    res.status(500).json({ error: "Failed to cheat-spin" });
   }
 });
