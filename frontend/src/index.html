@@ -6,6 +6,17 @@
   <base href="/" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <script>
+    // Stamp the saved color scheme before Angular even loads, so a
+    // returning visitor who chose light doesn't see a flash of the dark
+    // default while the app bootstraps. Mirrors ThemeService's own
+    // load/apply logic (frontend/src/app/core/theme.service.ts) — keep
+    // the two in sync if that key or fallback ever changes.
+    try {
+      var scheme = localStorage.getItem("clutch-color-scheme") === "light" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", scheme);
+    } catch (e) {}
+  </script>
 </head>
 <body>
   <app-root></app-root>

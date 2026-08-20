@@ -4,11 +4,17 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        page: "#0A0A0B",
-        card: "#151516",
-        line: "#232324",
-        muted: "#8A8A86",
-        ink: "#F0F0EC",
+        // Backed by CSS variables (set in styles.css, dark values by
+        // default, overridden under [data-theme="light"]) so every existing
+        // bg-page/bg-card/border-line/text-muted/text-ink usage across the
+        // app repaints for the theme toggle with zero template changes.
+        // highlight stays a fixed brand color on purpose — it shouldn't
+        // shift between themes.
+        page: "var(--color-page, #0A0A0B)",
+        card: "var(--color-card, #151516)",
+        line: "var(--color-line, #232324)",
+        muted: "var(--color-muted, #8A8A86)",
+        ink: "var(--color-ink, #F0F0EC)",
         highlight: {
           DEFAULT: "#FF6B35",
           dim: "#C94A24",

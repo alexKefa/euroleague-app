@@ -9,38 +9,49 @@
     ><span class="text-highlight">C</span>lutch</a
   >
 
-  @if (auth.isAuthenticated()) {
-    <div class="flex items-center gap-3 min-w-0">
-      <a
-        routerLink="/profile"
-        class="font-mono text-muted font-bold text-[13px] truncate max-w-[40vw] hover:text-ink transition-colors"
-        >{{ auth.currentUser()?.email }}</a
-      >
-      @if (auth.currentUser()?.isAdmin) {
-        <span
-          class="font-mono text-[11px] font-bold uppercase tracking-wide text-highlight bg-highlight/10 border border-highlight/30 rounded-full px-2 py-0.5 shrink-0"
-          >Admin</span
+  <div class="flex items-center gap-3 min-w-0">
+    <button
+      type="button"
+      (click)="theme.toggleColorScheme()"
+      class="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-page transition-colors"
+      [attr.aria-label]="theme.colorScheme() === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'"
+    >
+      <app-nav-icon [name]="theme.colorScheme() === 'dark' ? 'sun' : 'moon'" />
+    </button>
+
+    @if (auth.isAuthenticated()) {
+      <div class="flex items-center gap-3 min-w-0">
+        <a
+          routerLink="/profile"
+          class="font-mono text-muted font-bold text-[13px] truncate max-w-[40vw] hover:text-ink transition-colors"
+          >{{ auth.currentUser()?.email }}</a
         >
-      }
-      <button
-        (click)="logout()"
-        class="font-mono text-highlight font-bold text-[13px] uppercase hover:text-highlight-dim transition-colors shrink-0"
-      >
-        Log out
-      </button>
-    </div>
-  } @else {
-    <div class="flex items-center gap-3 sm:gap-4 shrink-0">
-      <a routerLink="/login" class="font-mono text-muted font-bold text-[13px] uppercase hover:text-ink transition-colors"
-        >Log in</a
-      >
-      <a
-        routerLink="/register"
-        class="px-4 py-2 rounded-full bg-highlight text-white font-mono font-bold text-[13px] uppercase hover:bg-highlight-dim transition-colors"
-        >Register</a
-      >
-    </div>
-  }
+        @if (auth.currentUser()?.isAdmin) {
+          <span
+            class="font-mono text-[11px] font-bold uppercase tracking-wide text-highlight bg-highlight/10 border border-highlight/30 rounded-full px-2 py-0.5 shrink-0"
+            >Admin</span
+          >
+        }
+        <button
+          (click)="logout()"
+          class="font-mono text-highlight font-bold text-[13px] uppercase hover:text-highlight-dim transition-colors shrink-0"
+        >
+          Log out
+        </button>
+      </div>
+    } @else {
+      <div class="flex items-center gap-3 sm:gap-4 shrink-0">
+        <a routerLink="/login" class="font-mono text-muted font-bold text-[13px] uppercase hover:text-ink transition-colors"
+          >Log in</a
+        >
+        <a
+          routerLink="/register"
+          class="px-4 py-2 rounded-full bg-highlight text-white font-mono font-bold text-[13px] uppercase hover:bg-highlight-dim transition-colors"
+          >Register</a
+        >
+      </div>
+    }
+  </div>
 </nav>
 
 <div class="flex">
@@ -69,17 +80,22 @@
 
 <!-- Bottom tab nav — mobile only, primary nav within thumb reach -->
 <nav
-  class="sm:hidden fixed bottom-0 inset-x-0 bg-card border-t border-line flex justify-around items-center pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-10"
+  class="sm:hidden fixed bottom-0 inset-x-0 bg-card border-t border-line flex justify-around items-center pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-40"
 >
   @for (link of navLinks; track link.path) {
     <a
       [routerLink]="link.path"
       [class.text-highlight]="isActive(link)"
       [class.text-muted]="!isActive(link)"
-      class="flex flex-col items-center gap-0.5 font-mono text-[11px] font-bold uppercase tracking-wide px-3 py-1"
+      class="flex flex-1 min-w-0 flex-col items-center gap-0.5 font-mono text-[9px] font-bold uppercase px-0.5 py-1"
     >
-      <app-nav-icon [name]="link.icon" />
-      <span>{{ link.label }}</span>
+      <span
+        class="flex items-center justify-center w-8 h-6 rounded-full transition-all duration-200"
+        [class]="isActive(link) ? 'bg-highlight/15 scale-100' : 'scale-90'"
+      >
+        <app-nav-icon [name]="link.icon" />
+      </span>
+      <span class="truncate max-w-full">{{ link.label }}</span>
     </a>
   }
   @if (auth.isAuthenticated()) {
@@ -87,20 +103,30 @@
       routerLink="/profile"
       [class.text-highlight]="currentUrl() === '/profile'"
       [class.text-muted]="currentUrl() !== '/profile'"
-      class="flex flex-col items-center gap-0.5 font-mono text-[11px] font-bold uppercase tracking-wide px-3 py-1"
+      class="flex flex-1 min-w-0 flex-col items-center gap-0.5 font-mono text-[9px] font-bold uppercase px-0.5 py-1"
     >
-      <app-nav-icon name="user" />
-      <span>Profile</span>
+      <span
+        class="flex items-center justify-center w-8 h-6 rounded-full transition-all duration-200"
+        [class]="currentUrl() === '/profile' ? 'bg-highlight/15 scale-100' : 'scale-90'"
+      >
+        <app-nav-icon name="user" />
+      </span>
+      <span class="truncate max-w-full">Profile</span>
     </a>
   } @else {
     <a
       routerLink="/login"
       [class.text-highlight]="currentUrl() === '/login'"
       [class.text-muted]="currentUrl() !== '/login'"
-      class="flex flex-col items-center gap-0.5 font-mono text-[11px] font-bold uppercase tracking-wide px-3 py-1"
+      class="flex flex-1 min-w-0 flex-col items-center gap-0.5 font-mono text-[9px] font-bold uppercase px-0.5 py-1"
     >
-      <app-nav-icon name="user" />
-      <span>Log in</span>
+      <span
+        class="flex items-center justify-center w-8 h-6 rounded-full transition-all duration-200"
+        [class]="currentUrl() === '/login' ? 'bg-highlight/15 scale-100' : 'scale-90'"
+      >
+        <app-nav-icon name="user" />
+      </span>
+      <span class="truncate max-w-full">Log in</span>
     </a>
   }
 </nav>

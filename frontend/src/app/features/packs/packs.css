@@ -232,6 +232,12 @@
 .pack-visual {
   aspect-ratio: 2 / 3.1;
   clip-path: polygon(14% 0%, 86% 0%, 100% 11%, 100% 100%, 0% 100%, 0% 11%);
+  /* clip-path only clips what's painted — it doesn't stop the rotated
+     .pack-wordmark's expanded (post-rotation) bounding box from
+     contributing to the page's scrollable area, which was pushing the
+     page into horizontal overflow on mobile. overflow:hidden actually
+     contains it. */
+  overflow: hidden;
   transition: transform 0.15s ease;
   cursor: pointer;
 }

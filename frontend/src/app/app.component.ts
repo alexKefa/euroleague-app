@@ -3,6 +3,7 @@ import { toSignal } from "@angular/core/rxjs-interop";
 import { NavigationEnd, Router, RouterOutlet, RouterLink } from "@angular/router";
 import { filter, map } from "rxjs";
 import { AuthService } from "./core/auth.service";
+import { ThemeService } from "./core/theme.service";
 import { NavIconComponent, NavIconName } from "./shared/nav-icon";
 import { SplashComponent } from "./shared/splash";
 
@@ -44,6 +45,11 @@ const NAV_LINKS: NavLink[] = [
 })
 export class AppComponent implements OnInit {
   protected auth = inject(AuthService);
+  // Injected here (not just where it's used) so its constructor — which
+  // stamps the persisted color scheme onto <html> — runs as early as
+  // possible in the app's lifecycle, minimizing any flash of the wrong
+  // theme for a returning visitor who chose light.
+  protected theme = inject(ThemeService);
   private router = inject(Router);
   protected readonly navLinks = NAV_LINKS;
 
