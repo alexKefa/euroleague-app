@@ -278,6 +278,16 @@ export interface TradeableCard {
   tier: CollectibleTier;
   imageUrl: string | null;
   team: { id: string; code: string; name: string; primaryColor: string | null };
+  tradeable: boolean;
+}
+
+export interface MarketplaceCard {
+  id: string;
+  name: string;
+  tier: CollectibleTier;
+  imageUrl: string | null;
+  team: { id: string; code: string; name: string; primaryColor: string | null };
+  ownerName: string;
 }
 
 export type TradeOfferStatus = "pending" | "accepted" | "declined" | "cancelled";
@@ -287,8 +297,8 @@ export interface TradeOffer {
   status: TradeOfferStatus;
   createdAt: string;
   direction: "incoming" | "outgoing";
-  counterpartyEmail: string;
-  offered: TradeCardRef;
+  counterpartyName: string;
+  offered: TradeCardRef[];
   requested: TradeCardRef;
 }
 

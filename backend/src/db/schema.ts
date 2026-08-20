@@ -238,6 +238,12 @@ export const userCollectibles = pgTable(
     userId: uuid("user_id").notNull().references(() => users.id),
     collectibleId: uuid("collectible_id").notNull().references(() => collectibles.id),
     unlockedAt: timestamp("unlocked_at", { withTimezone: true }).defaultNow().notNull(),
+    // Opt-in: a legendary only shows up in the trade marketplace once its
+    // owner explicitly flags it, rather than every collector's whole
+    // legendary collection being publicly browsable by default. Reset to
+    // false when a trade transfers the card (routes/trades.ts) — the new
+    // owner hasn't opted their copy in.
+    tradeable: boolean("tradeable").default(false).notNull(),
   },
   (table) => ({
     userCollectibleUnique: uniqueIndex("user_collectible_unique").on(table.userId, table.collectibleId),
@@ -318,12 +324,25 @@ export const tradeOffers = pgTable("trade_offers", {
   id: uuid("id").defaultRandom().primaryKey(),
   fromUserId: uuid("from_user_id").notNull().references(() => users.id),
   toUserId: uuid("to_user_id").notNull().references(() => users.id),
-  offeredCollectibleId: uuid("offered_collectible_id").notNull().references(() => collectibles.id),
   requestedCollectibleId: uuid("requested_collectible_id").notNull().references(() => collectibles.id),
   status: varchar("status", { length: 20 }).default("pending").notNull(), // pending | accepted | declined | cancelled
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   respondedAt: timestamp("responded_at", { withTimezone: true }),
 });
+
+// The many side of a many-for-one trade — one row per card the sender is
+// putting up in exchange for the offer's single requestedCollectibleId.
+export const tradeOfferItems = pgTable(
+  "trade_offer_items",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tradeOfferId: uuid("trade_offer_id").notNull().references(() => tradeOffers.id),
+    collectibleId: uuid("collectible_id").notNull().references(() => collectibles.id),
+  },
+  (table) => ({
+    tradeOfferItemUnique: uniqueIndex("trade_offer_item_unique").on(table.tradeOfferId, table.collectibleId),
+  })
+);
 
 // Relations — mainly so query.teams.findMany({ with: { ... } }) style
 // lookups work without hand-written joins later.
@@ -433,7 +452,7 @@ export const packOpeningResultsRelations = relations(packOpeningResults, ({ one 
   collectible: one(collectibles, { fields: [packOpeningResults.collectibleId], references: [collectibles.id] }),
 }));
 
-export const tradeOffersRelations = relations(tradeOffers, ({ one }) => ({
+export const tradeOffersRelations = relations(tradeOffers, ({ one, many }) => ({
   fromUser: one(users, {
     fields: [tradeOffers.fromUserId],
     references: [users.id],
@@ -444,14 +463,21 @@ export const tradeOffersRelations = relations(tradeOffers, ({ one }) => ({
     references: [users.id],
     relationName: "tradeOffersTo",
   }),
-  offeredCollectible: one(collectibles, {
-    fields: [tradeOffers.offeredCollectibleId],
-    references: [collectibles.id],
-    relationName: "tradeOffersOffered",
-  }),
+  items: many(tradeOfferItems),
   requestedCollectible: one(collectibles, {
     fields: [tradeOffers.requestedCollectibleId],
     references: [collectibles.id],
     relationName: "tradeOffersRequested",
+  }),
+}));
+
+export const tradeOfferItemsRelations = relations(tradeOfferItems, ({ one }) => ({
+  tradeOffer: one(tradeOffers, {
+    fields: [tradeOfferItems.tradeOfferId],
+    references: [tradeOffers.id],
+  }),
+  collectible: one(collectibles, {
+    fields: [tradeOfferItems.collectibleId],
+    references: [collectibles.id],
   }),
 }));

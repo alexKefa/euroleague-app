@@ -28,41 +28,17 @@
       </p>
     } @else {
       <div class="bg-card rounded-lg shadow-card p-4 mb-6">
-        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">Propose a trade</p>
+        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-1">My cards</p>
+        <p class="text-xs text-muted mb-3">
+          List a card in the marketplace so other collectors can see it and offer a trade. Only cards you
+          list are visible to anyone else.
+        </p>
 
-        <div class="flex flex-wrap items-center gap-2 mb-4">
-          <input
-            #emailInput
-            type="email"
-            placeholder="Recipient's email"
-            (keydown.enter)="loadTheirCards(emailInput.value)"
-            class="flex-1 min-w-[10rem] px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
-          />
-          <button
-            type="button"
-            (click)="loadTheirCards(emailInput.value)"
-            [disabled]="loadingTheirCards()"
-            class="px-4 py-2 rounded-full bg-line text-ink font-mono text-xs font-bold uppercase tracking-wide hover:bg-highlight hover:text-white transition-colors disabled:opacity-50"
-          >
-            {{ loadingTheirCards() ? "Looking…" : "Find their cards" }}
-          </button>
-        </div>
-
-        @if (theirCardsError()) {
-          <p class="text-red-500 text-xs font-semibold mb-4">{{ theirCardsError() }}</p>
-        }
-
-        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-2">Your card to offer</p>
-        <div class="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
           @for (card of myCards(); track card.id) {
-            <button
-              type="button"
-              (click)="selectMine(card.id)"
-              class="rounded-2xl focus:outline-none"
-              [class.ring-2]="selectedMineId() === card.id"
-              [class.ring-highlight]="selectedMineId() === card.id"
-            >
+            <div class="flex flex-col gap-2">
               <app-collectible-card
+                class="block w-full"
                 [name]="card.name"
                 [tier]="card.tier"
                 [teamCode]="card.team.code"
@@ -70,39 +46,74 @@
                 [imageUrl]="card.imageUrl"
                 [unlocked]="true"
               ></app-collectible-card>
+              <button
+                type="button"
+                (click)="toggleTradeable(card)"
+                [disabled]="togglingId() === card.id"
+                class="self-center font-mono text-[11px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full transition-colors disabled:opacity-40"
+                [class.bg-highlight]="card.tradeable"
+                [class.text-white]="card.tradeable"
+                [class.bg-line]="!card.tradeable"
+                [class.text-ink]="!card.tradeable"
+              >
+                {{ card.tradeable ? "Listed" : "List for trade" }}
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <div class="bg-card rounded-lg shadow-card p-4 mb-6">
+      <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">Marketplace</p>
+
+      @if (marketplace().length === 0) {
+        <p class="text-sm text-muted">No cards listed for trade right now.</p>
+      } @else {
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+          @for (card of marketplace(); track card.id) {
+            <button
+              type="button"
+              (click)="selectListing(card.id)"
+              class="w-full flex flex-col items-center gap-1 focus:outline-none"
+            >
+              <app-collectible-card
+                class="block w-full"
+                [name]="card.name"
+                [tier]="card.tier"
+                [teamCode]="card.team.code"
+                [teamColor]="card.team.primaryColor"
+                [imageUrl]="card.imageUrl"
+                [unlocked]="true"
+                [selected]="selectedListingId() === card.id"
+              ></app-collectible-card>
+              <span class="text-xs text-muted font-semibold">{{ card.ownerName }}</span>
             </button>
           }
         </div>
+      }
 
-        @if (theirCards().length > 0) {
-          <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-2">Their card you want</p>
-          <div class="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
-            @for (card of theirCards(); track card.id) {
-              <button
-                type="button"
-                (click)="selectTheirs(card.id)"
-                class="rounded-2xl focus:outline-none"
-                [class.ring-2]="selectedTheirsId() === card.id"
-                [class.ring-highlight]="selectedTheirsId() === card.id"
-              >
-                <app-collectible-card
-                  [name]="card.name"
-                  [tier]="card.tier"
-                  [teamCode]="card.team.code"
-                  [teamColor]="card.team.primaryColor"
-                  [imageUrl]="card.imageUrl"
-                  [unlocked]="true"
-                ></app-collectible-card>
-              </button>
-            }
-          </div>
-        }
-
-        @if (sameCardSelected()) {
-          <p class="text-red-500 text-xs font-semibold mb-2">
-            That's the same card on both sides — pick a different one to offer or request.
-          </p>
-        }
+      @if (selectedListing() && myCards().length > 0) {
+        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-1">
+          Offer one or more of your cards for {{ selectedListing()!.name }}
+        </p>
+        <p class="text-xs text-muted mb-2">Tap to select as many cards as you like — the other side sees them all as one offer.</p>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+          @for (card of myCards(); track card.id) {
+            <button type="button" (click)="toggleMine(card.id)" class="w-full focus:outline-none">
+              <app-collectible-card
+                class="block w-full"
+                [name]="card.name"
+                [tier]="card.tier"
+                [teamCode]="card.team.code"
+                [teamColor]="card.team.primaryColor"
+                [imageUrl]="card.imageUrl"
+                [unlocked]="true"
+                [selected]="selectedMineIds().has(card.id)"
+              ></app-collectible-card>
+            </button>
+          }
+        </div>
 
         <button
           type="button"
@@ -119,8 +130,8 @@
         @if (proposeSuccess()) {
           <p class="text-emerald-500 text-xs font-semibold mt-2">Offer sent.</p>
         }
-      </div>
-    }
+      }
+    </div>
 
     <div class="bg-card rounded-lg shadow-card p-4">
       <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">My trade offers</p>
@@ -132,11 +143,11 @@
           <div class="flex items-center justify-between gap-3 px-2 py-2 rounded-lg bg-page">
             <div class="text-sm">
               <p class="font-semibold">
-                {{ offer.direction === "outgoing" ? "To" : "From" }} {{ offer.counterpartyEmail }}
+                {{ offer.direction === "outgoing" ? "To" : "From" }} {{ offer.counterpartyName }}
               </p>
               <p class="text-muted text-xs">
                 {{ offer.direction === "outgoing" ? "You offered" : "They offered" }}
-                <span class="font-semibold">{{ offer.offered.name }}</span>
+                <span class="font-semibold">{{ offeredNames(offer) }}</span>
                 for
                 <span class="font-semibold">{{ offer.requested.name }}</span>
               </p>

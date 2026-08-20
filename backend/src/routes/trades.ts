@@ -1,106 +1,188 @@
 import { Router } from "express";
-import { eq, and, or, desc } from "drizzle-orm";
+import { eq, and, or, ne, desc, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "../db/client.js";
-import { tradeOffers, userCollectibles, collectibles, teams, users } from "../db/schema.js";
+import { tradeOffers, tradeOfferItems, userCollectibles, collectibles, teams, users } from "../db/schema.js";
 import { requireAuth } from "../auth/middleware.js";
 
 export const tradesRouter = Router();
 
-async function ownsLegendary(userId: string, collectibleId: string): Promise<boolean> {
-  const [row] = await db
-    .select({ tier: collectibles.tier })
-    .from(userCollectibles)
-    .innerJoin(collectibles, eq(userCollectibles.collectibleId, collectibles.id))
-    .where(and(eq(userCollectibles.userId, userId), eq(userCollectibles.collectibleId, collectibleId)))
-    .limit(1);
-  return row?.tier === "legendary";
+// Placeholder display name — no dedicated username field exists yet, so the
+// leaderboard already shows just the email's local part rather than a full
+// address; trades reuses that same convention for the marketplace.
+function displayName(email: string): string {
+  return email.split("@")[0];
 }
 
-async function findUserByEmail(email: string) {
-  const [row] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
-  return row ?? null;
-}
-
-// A user's own tradeable (legendary, owned) cards, or another user's via ?email=
-tradesRouter.get("/tradeable-cards", requireAuth, async (req, res) => {
+// Your own legendary collection, each flagged with whether it's currently
+// listed in the marketplace for others to request.
+tradesRouter.get("/my-cards", requireAuth, async (req, res) => {
   try {
-    const email = typeof req.query.email === "string" ? req.query.email : null;
-    let userId = req.userId!;
-
-    if (email) {
-      const target = await findUserByEmail(email);
-      if (!target) {
-        res.status(404).json({ error: "No user with that email" });
-        return;
-      }
-      userId = target.id;
-    }
-
     const rows = await db
-      .select({ collectible: collectibles, team: teams })
+      .select({ collectible: collectibles, team: teams, tradeable: userCollectibles.tradeable })
       .from(userCollectibles)
       .innerJoin(collectibles, eq(userCollectibles.collectibleId, collectibles.id))
       .innerJoin(teams, eq(collectibles.teamId, teams.id))
-      .where(and(eq(userCollectibles.userId, userId), eq(collectibles.tier, "legendary")));
+      .where(and(eq(userCollectibles.userId, req.userId!), eq(collectibles.tier, "legendary")));
 
     res.json(
-      rows.map(({ collectible, team }) => ({
+      rows.map(({ collectible, team, tradeable }) => ({
         id: collectible.id,
         name: collectible.name,
         tier: collectible.tier,
         imageUrl: collectible.imageUrl,
         team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor },
+        tradeable,
       }))
     );
   } catch (err) {
-    console.error("GET /api/trades/tradeable-cards failed:", err);
-    res.status(500).json({ error: "Failed to load tradeable cards" });
+    console.error("GET /api/trades/my-cards failed:", err);
+    res.status(500).json({ error: "Failed to load your cards" });
+  }
+});
+
+// Flip whether one of your cards is listed in the marketplace.
+tradesRouter.post("/my-cards/:collectibleId/tradeable", requireAuth, async (req, res) => {
+  try {
+    const { collectibleId } = req.params;
+    const { tradeable } = req.body ?? {};
+    if (typeof tradeable !== "boolean") {
+      res.status(400).json({ error: "tradeable must be a boolean" });
+      return;
+    }
+
+    const [row] = await db
+      .update(userCollectibles)
+      .set({ tradeable })
+      .where(and(eq(userCollectibles.userId, req.userId!), eq(userCollectibles.collectibleId, collectibleId)))
+      .returning();
+
+    if (!row) {
+      res.status(404).json({ error: "You don't own that card" });
+      return;
+    }
+
+    res.json({ tradeable: row.tradeable });
+  } catch (err) {
+    console.error("POST /api/trades/my-cards/:collectibleId/tradeable failed:", err);
+    res.status(500).json({ error: "Failed to update card" });
+  }
+});
+
+// Every legendary someone *else* has opted into the marketplace — the
+// browse view that replaces having to already know who to trade with.
+tradesRouter.get("/marketplace", requireAuth, async (req, res) => {
+  try {
+    const rows = await db
+      .select({ collectible: collectibles, team: teams, ownerEmail: users.email })
+      .from(userCollectibles)
+      .innerJoin(collectibles, eq(userCollectibles.collectibleId, collectibles.id))
+      .innerJoin(teams, eq(collectibles.teamId, teams.id))
+      .innerJoin(users, eq(userCollectibles.userId, users.id))
+      .where(
+        and(
+          eq(userCollectibles.tradeable, true),
+          eq(collectibles.tier, "legendary"),
+          ne(userCollectibles.userId, req.userId!)
+        )
+      );
+
+    res.json(
+      rows.map(({ collectible, team, ownerEmail }) => ({
+        id: collectible.id,
+        name: collectible.name,
+        tier: collectible.tier,
+        imageUrl: collectible.imageUrl,
+        team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor },
+        ownerName: displayName(ownerEmail),
+      }))
+    );
+  } catch (err) {
+    console.error("GET /api/trades/marketplace failed:", err);
+    res.status(500).json({ error: "Failed to load the marketplace" });
   }
 });
 
 tradesRouter.post("/", requireAuth, async (req, res) => {
   try {
-    const { toEmail, offeredCollectibleId, requestedCollectibleId } = req.body ?? {};
+    const { offeredCollectibleIds, requestedCollectibleId } = req.body ?? {};
     if (
-      typeof toEmail !== "string" ||
-      typeof offeredCollectibleId !== "string" ||
+      !Array.isArray(offeredCollectibleIds) ||
+      offeredCollectibleIds.length === 0 ||
+      !offeredCollectibleIds.every((id) => typeof id === "string") ||
       typeof requestedCollectibleId !== "string"
     ) {
-      res.status(400).json({ error: "toEmail, offeredCollectibleId and requestedCollectibleId are required" });
+      res.status(400).json({ error: "offeredCollectibleIds (a non-empty array) and requestedCollectibleId are required" });
       return;
     }
-
-    if (offeredCollectibleId === requestedCollectibleId) {
+    if (new Set(offeredCollectibleIds).size !== offeredCollectibleIds.length) {
+      res.status(400).json({ error: "You can't offer the same card twice" });
+      return;
+    }
+    if (offeredCollectibleIds.includes(requestedCollectibleId)) {
       res.status(400).json({ error: "You can't trade a card for itself" });
       return;
     }
 
-    const target = await findUserByEmail(toEmail);
-    if (!target) {
-      res.status(404).json({ error: "No user with that email" });
+    // Who currently owns the requested card *and* has it listed — the
+    // marketplace is the only path to a trade now, so there's no separate
+    // "look up this user" step; the recipient is derived from the listing.
+    const [listing] = await db
+      .select({ ownerId: userCollectibles.userId })
+      .from(userCollectibles)
+      .innerJoin(collectibles, eq(userCollectibles.collectibleId, collectibles.id))
+      .where(
+        and(
+          eq(userCollectibles.collectibleId, requestedCollectibleId),
+          eq(userCollectibles.tradeable, true),
+          eq(collectibles.tier, "legendary")
+        )
+      )
+      .limit(1);
+
+    if (!listing) {
+      res.status(404).json({ error: "That card isn't listed in the marketplace anymore" });
       return;
     }
-    if (target.id === req.userId) {
+    if (listing.ownerId === req.userId) {
       res.status(400).json({ error: "You can't trade with yourself" });
       return;
     }
 
-    if (!(await ownsLegendary(req.userId!, offeredCollectibleId))) {
-      res.status(400).json({ error: "You don't own a tradeable copy of the card you're offering" });
-      return;
-    }
-    if (!(await ownsLegendary(target.id, requestedCollectibleId))) {
-      res.status(400).json({ error: "That user doesn't own a tradeable copy of the card you're requesting" });
+    const ownedRows = await db
+      .select({ collectibleId: userCollectibles.collectibleId })
+      .from(userCollectibles)
+      .innerJoin(collectibles, eq(userCollectibles.collectibleId, collectibles.id))
+      .where(
+        and(
+          eq(userCollectibles.userId, req.userId!),
+          inArray(userCollectibles.collectibleId, offeredCollectibleIds),
+          eq(collectibles.tier, "legendary")
+        )
+      );
+    if (ownedRows.length !== offeredCollectibleIds.length) {
+      res.status(400).json({ error: "You don't own all of the cards you're offering" });
       return;
     }
 
-    const [offer] = await db
-      .insert(tradeOffers)
-      .values({ fromUserId: req.userId!, toUserId: target.id, offeredCollectibleId, requestedCollectibleId })
-      .returning();
+    const offer = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .insert(tradeOffers)
+        .values({
+          fromUserId: req.userId!,
+          toUserId: listing.ownerId,
+          requestedCollectibleId,
+        })
+        .returning();
 
-    res.status(201).json(offer);
+      await tx
+        .insert(tradeOfferItems)
+        .values(offeredCollectibleIds.map((collectibleId: string) => ({ tradeOfferId: row.id, collectibleId })));
+
+      return row;
+    });
+
+    res.status(201).json({ ...offer, offeredCollectibleIds });
   } catch (err) {
     console.error("POST /api/trades failed:", err);
     res.status(500).json({ error: "Failed to create trade offer" });
@@ -109,7 +191,6 @@ tradesRouter.post("/", requireAuth, async (req, res) => {
 
 const fromUser = alias(users, "from_user");
 const toUser = alias(users, "to_user");
-const offeredCollectible = alias(collectibles, "offered_collectible");
 const requestedCollectible = alias(collectibles, "requested_collectible");
 
 tradesRouter.get("/me", requireAuth, async (req, res) => {
@@ -119,25 +200,40 @@ tradesRouter.get("/me", requireAuth, async (req, res) => {
         offer: tradeOffers,
         fromEmail: fromUser.email,
         toEmail: toUser.email,
-        offered: offeredCollectible,
         requested: requestedCollectible,
       })
       .from(tradeOffers)
       .innerJoin(fromUser, eq(tradeOffers.fromUserId, fromUser.id))
       .innerJoin(toUser, eq(tradeOffers.toUserId, toUser.id))
-      .innerJoin(offeredCollectible, eq(tradeOffers.offeredCollectibleId, offeredCollectible.id))
       .innerJoin(requestedCollectible, eq(tradeOffers.requestedCollectibleId, requestedCollectible.id))
       .where(or(eq(tradeOffers.fromUserId, req.userId!), eq(tradeOffers.toUserId, req.userId!)))
       .orderBy(desc(tradeOffers.createdAt));
 
+    const offerIds = rows.map((r) => r.offer.id);
+    const itemRows =
+      offerIds.length > 0
+        ? await db
+            .select({ tradeOfferId: tradeOfferItems.tradeOfferId, collectible: collectibles })
+            .from(tradeOfferItems)
+            .innerJoin(collectibles, eq(tradeOfferItems.collectibleId, collectibles.id))
+            .where(inArray(tradeOfferItems.tradeOfferId, offerIds))
+        : [];
+
+    const offeredByOfferId = new Map<string, { id: string; name: string; imageUrl: string | null }[]>();
+    for (const { tradeOfferId, collectible } of itemRows) {
+      const list = offeredByOfferId.get(tradeOfferId) ?? [];
+      list.push({ id: collectible.id, name: collectible.name, imageUrl: collectible.imageUrl });
+      offeredByOfferId.set(tradeOfferId, list);
+    }
+
     res.json(
-      rows.map(({ offer, fromEmail, toEmail, offered, requested }) => ({
+      rows.map(({ offer, fromEmail, toEmail, requested }) => ({
         id: offer.id,
         status: offer.status,
         createdAt: offer.createdAt,
         direction: offer.fromUserId === req.userId ? "outgoing" : "incoming",
-        counterpartyEmail: offer.fromUserId === req.userId ? toEmail : fromEmail,
-        offered: { id: offered.id, name: offered.name, imageUrl: offered.imageUrl },
+        counterpartyName: displayName(offer.fromUserId === req.userId ? toEmail : fromEmail),
+        offered: offeredByOfferId.get(offer.id) ?? [],
         requested: { id: requested.id, name: requested.name, imageUrl: requested.imageUrl },
       }))
     );
@@ -147,56 +243,86 @@ tradesRouter.get("/me", requireAuth, async (req, res) => {
   }
 });
 
+// Two people can end up racing over the same card — e.g. both of a user's
+// pending incoming offers target the same listing, and they accept both at
+// once, or a client double-submits. Everything that reads-then-writes
+// ownership happens inside one transaction with row locks (`for("update")`)
+// on the offer and on both userCollectibles rows, so a second accept that
+// reaches the same card blocks until the first one commits, then re-checks
+// ownership against the post-commit state instead of stale data.
 tradesRouter.post("/:id/accept", requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const [offer] = await db.select().from(tradeOffers).where(eq(tradeOffers.id, id)).limit(1);
-    if (!offer) {
-      res.status(404).json({ error: "Trade offer not found" });
-      return;
-    }
-    if (offer.toUserId !== req.userId) {
-      res.status(403).json({ error: "Not your offer to accept" });
-      return;
-    }
-    if (offer.status !== "pending") {
-      res.status(400).json({ error: "This offer is no longer pending" });
-      return;
-    }
 
-    // Re-validate both sides still hold their card, and neither already
-    // holds the other's (which would violate the userCollectibles unique
-    // index once we re-point ownership below) — things can change between
-    // when an offer was made and when it's accepted.
-    const [fromStillOwns, toStillOwns, toAlreadyHasOffered, fromAlreadyHasRequested] = await Promise.all([
-      ownsLegendary(offer.fromUserId, offer.offeredCollectibleId),
-      ownsLegendary(offer.toUserId, offer.requestedCollectibleId),
-      ownsLegendary(offer.toUserId, offer.offeredCollectibleId),
-      ownsLegendary(offer.fromUserId, offer.requestedCollectibleId),
-    ]);
-    if (!fromStillOwns) {
-      res.status(400).json({ error: "The offered card is no longer available" });
-      return;
-    }
-    if (!toStillOwns) {
-      res.status(400).json({ error: "You no longer own the requested card" });
-      return;
-    }
-    if (toAlreadyHasOffered || fromAlreadyHasRequested) {
-      res.status(409).json({ error: "Trade can't complete — one of you already owns the other's card" });
-      return;
-    }
+    const outcome = await db.transaction(async (tx) => {
+      const [offer] = await tx.select().from(tradeOffers).where(eq(tradeOffers.id, id)).for("update");
+      if (!offer) {
+        return { status: 404, error: "Trade offer not found" } as const;
+      }
+      if (offer.toUserId !== req.userId) {
+        return { status: 403, error: "Not your offer to accept" } as const;
+      }
+      if (offer.status !== "pending") {
+        return { status: 400, error: "This offer is no longer pending" } as const;
+      }
 
-    await db.transaction(async (tx) => {
-      await tx
-        .update(userCollectibles)
-        .set({ userId: offer.toUserId })
+      const items = await tx
+        .select({ collectibleId: tradeOfferItems.collectibleId })
+        .from(tradeOfferItems)
+        .where(eq(tradeOfferItems.tradeOfferId, id));
+      const offeredIds = items.map((i) => i.collectibleId);
+
+      // Lock every ownership row this trade touches before re-validating —
+      // this is what actually serializes concurrent accepts that reach the
+      // same card, whether it's the single requested card or one of
+      // potentially several offered cards.
+      const fromRows = await tx
+        .select({ collectibleId: userCollectibles.collectibleId, tier: collectibles.tier })
+        .from(userCollectibles)
+        .innerJoin(collectibles, eq(userCollectibles.collectibleId, collectibles.id))
+        .where(and(eq(userCollectibles.userId, offer.fromUserId), inArray(userCollectibles.collectibleId, offeredIds)))
+        .for("update");
+      const [toRow] = await tx
+        .select({ tier: collectibles.tier })
+        .from(userCollectibles)
+        .innerJoin(collectibles, eq(userCollectibles.collectibleId, collectibles.id))
         .where(
-          and(eq(userCollectibles.userId, offer.fromUserId), eq(userCollectibles.collectibleId, offer.offeredCollectibleId))
-        );
+          and(eq(userCollectibles.userId, offer.toUserId), eq(userCollectibles.collectibleId, offer.requestedCollectibleId))
+        )
+        .for("update");
+
+      if (fromRows.length !== offeredIds.length || fromRows.some((r) => r.tier !== "legendary")) {
+        return { status: 400, error: "One or more of the offered cards are no longer available" } as const;
+      }
+      if (!toRow || toRow.tier !== "legendary") {
+        return { status: 400, error: "You no longer own the requested card" } as const;
+      }
+
+      const [toAlreadyHasOffered] = await tx
+        .select({ id: userCollectibles.id })
+        .from(userCollectibles)
+        .where(and(eq(userCollectibles.userId, offer.toUserId), inArray(userCollectibles.collectibleId, offeredIds)))
+        .limit(1);
+      const [fromAlreadyHasRequested] = await tx
+        .select({ id: userCollectibles.id })
+        .from(userCollectibles)
+        .where(
+          and(eq(userCollectibles.userId, offer.fromUserId), eq(userCollectibles.collectibleId, offer.requestedCollectibleId))
+        )
+        .limit(1);
+      if (toAlreadyHasOffered || fromAlreadyHasRequested) {
+        return { status: 409, error: "Trade can't complete — one of you already owns the other's card" } as const;
+      }
+
+      // Re-pointed cards drop out of the marketplace on both sides — the
+      // new owner of either card hasn't opted their copy in.
       await tx
         .update(userCollectibles)
-        .set({ userId: offer.fromUserId })
+        .set({ userId: offer.toUserId, tradeable: false })
+        .where(and(eq(userCollectibles.userId, offer.fromUserId), inArray(userCollectibles.collectibleId, offeredIds)));
+      await tx
+        .update(userCollectibles)
+        .set({ userId: offer.fromUserId, tradeable: false })
         .where(
           and(eq(userCollectibles.userId, offer.toUserId), eq(userCollectibles.collectibleId, offer.requestedCollectibleId))
         );
@@ -204,8 +330,29 @@ tradesRouter.post("/:id/accept", requireAuth, async (req, res) => {
         .update(tradeOffers)
         .set({ status: "accepted", respondedAt: new Date() })
         .where(eq(tradeOffers.id, id));
+
+      // The card just moved, so any other pending offer still asking this
+      // user for it can never be accepted — close it out now instead of
+      // leaving it stuck as a zombie "pending" offer for its sender.
+      await tx
+        .update(tradeOffers)
+        .set({ status: "declined", respondedAt: new Date() })
+        .where(
+          and(
+            eq(tradeOffers.status, "pending"),
+            eq(tradeOffers.toUserId, offer.toUserId),
+            eq(tradeOffers.requestedCollectibleId, offer.requestedCollectibleId),
+            ne(tradeOffers.id, id)
+          )
+        );
+
+      return { status: 200 } as const;
     });
 
+    if (outcome.status !== 200) {
+      res.status(outcome.status).json({ error: outcome.error });
+      return;
+    }
     res.json({ status: "accepted" });
   } catch (err) {
     console.error("POST /api/trades/:id/accept failed:", err);
@@ -225,15 +372,20 @@ tradesRouter.post("/:id/decline", requireAuth, async (req, res) => {
       res.status(403).json({ error: "Not your offer to decline" });
       return;
     }
-    if (offer.status !== "pending") {
+
+    // Condition the write itself on still being pending, rather than
+    // trusting the read above — closes the race against a concurrent
+    // accept that flips status after this handler's initial SELECT.
+    const [declined] = await db
+      .update(tradeOffers)
+      .set({ status: "declined", respondedAt: new Date() })
+      .where(and(eq(tradeOffers.id, id), eq(tradeOffers.status, "pending")))
+      .returning();
+
+    if (!declined) {
       res.status(400).json({ error: "This offer is no longer pending" });
       return;
     }
-
-    await db
-      .update(tradeOffers)
-      .set({ status: "declined", respondedAt: new Date() })
-      .where(eq(tradeOffers.id, id));
 
     res.json({ status: "declined" });
   } catch (err) {
@@ -254,15 +406,19 @@ tradesRouter.post("/:id/cancel", requireAuth, async (req, res) => {
       res.status(403).json({ error: "Not your offer to cancel" });
       return;
     }
-    if (offer.status !== "pending") {
+
+    // Same race guard as decline: condition the write on still being
+    // pending instead of trusting the earlier read.
+    const [cancelled] = await db
+      .update(tradeOffers)
+      .set({ status: "cancelled", respondedAt: new Date() })
+      .where(and(eq(tradeOffers.id, id), eq(tradeOffers.status, "pending")))
+      .returning();
+
+    if (!cancelled) {
       res.status(400).json({ error: "This offer is no longer pending" });
       return;
     }
-
-    await db
-      .update(tradeOffers)
-      .set({ status: "cancelled", respondedAt: new Date() })
-      .where(eq(tradeOffers.id, id));
 
     res.json({ status: "cancelled" });
   } catch (err) {

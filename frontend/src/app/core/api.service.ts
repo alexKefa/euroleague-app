@@ -19,6 +19,7 @@ import {
   SpinStatus,
   SpinResult,
   TradeableCard,
+  MarketplaceCard,
   TradeOffer,
   PackDefinition,
   PackOpenOutcome,
@@ -155,18 +156,22 @@ export class ApiService {
     return this.http.post<{ points: number }>(`${API_BASE_URL}/packs/results/${resultId}/sell`, {});
   }
 
-  getTradeableCards(email?: string): Observable<TradeableCard[]> {
-    return this.http.get<TradeableCard[]>(`${API_BASE_URL}/trades/tradeable-cards`, {
-      params: email ? { email } : {},
+  getMyTradeableCards(): Observable<TradeableCard[]> {
+    return this.http.get<TradeableCard[]>(`${API_BASE_URL}/trades/my-cards`);
+  }
+
+  setCardTradeable(collectibleId: string, tradeable: boolean): Observable<{ tradeable: boolean }> {
+    return this.http.post<{ tradeable: boolean }>(`${API_BASE_URL}/trades/my-cards/${collectibleId}/tradeable`, {
+      tradeable,
     });
   }
 
-  proposeTrade(
-    toEmail: string,
-    offeredCollectibleId: string,
-    requestedCollectibleId: string
-  ): Observable<unknown> {
-    return this.http.post(`${API_BASE_URL}/trades`, { toEmail, offeredCollectibleId, requestedCollectibleId });
+  getMarketplace(): Observable<MarketplaceCard[]> {
+    return this.http.get<MarketplaceCard[]>(`${API_BASE_URL}/trades/marketplace`);
+  }
+
+  proposeTrade(offeredCollectibleIds: string[], requestedCollectibleId: string): Observable<unknown> {
+    return this.http.post(`${API_BASE_URL}/trades`, { offeredCollectibleIds, requestedCollectibleId });
   }
 
   getMyTrades(): Observable<TradeOffer[]> {
