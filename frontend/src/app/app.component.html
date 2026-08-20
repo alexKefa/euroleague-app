@@ -3,7 +3,7 @@
 }
 
 <nav
-  class="flex justify-between items-center gap-3 px-4 sm:px-6 py-4 bg-card border-b border-line"
+  class="sticky top-0 z-30 flex justify-between items-center gap-3 px-4 sm:px-6 py-4 bg-card border-b border-line"
 >
   <a routerLink="/" class="font-display text-base uppercase tracking-wide shrink-0"
     ><span class="text-highlight">C</span>lutch</a
@@ -57,7 +57,7 @@
 <div class="flex">
   <!-- Desktop primary nav — icon+label sidebar, sm and up; the bottom tab nav below is mobile-only -->
   <nav
-    class="hidden sm:flex flex-col shrink-0 w-20 border-r border-line bg-card py-4 gap-1 sticky top-0 h-screen"
+    class="hidden sm:flex flex-col shrink-0 w-20 border-r border-line bg-card py-4 gap-1 sticky top-16 h-[calc(100vh-4rem)]"
   >
     @for (link of navLinks; track link.path) {
       <a
