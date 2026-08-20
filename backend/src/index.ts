@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
 import { teamsRouter } from "./routes/teams.js";
 import { standingsRouter } from "./routes/standings.js";
 import { authRouter } from "./routes/auth.js";
@@ -18,6 +19,7 @@ import { packsRouter } from "./routes/packs.js";
 const app = express();
 const port = process.env.PORT ? Number(process.env.PORT) : 4000;
 
+app.use(helmet());
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());

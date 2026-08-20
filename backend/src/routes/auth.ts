@@ -1,4 +1,5 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import { eq } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { users } from "../db/schema.js";
@@ -6,6 +7,27 @@ import { hashPassword, verifyPassword } from "../auth/hash.js";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../auth/tokens.js";
 
 export const authRouter = Router();
+
+// Credential guessing / registration spam target — keep this tight. Keyed
+// by IP, so a shared network (office wifi, NAT) can still hit the ceiling;
+// generous enough for normal typos, not for scripted attempts.
+const credentialsLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many attempts — try again later." },
+});
+
+// Silent refresh calls happen automatically per session/tab, so this needs
+// to be far more generous than the login/register limiter.
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests — try again later." },
+});
 
 const REFRESH_COOKIE_NAME = "refreshToken";
 // Keep this in sync with JWT_REFRESH_EXPIRES_IN in .env (default 30d).
@@ -31,7 +53,7 @@ function publicUser(user: typeof users.$inferSelect) {
   };
 }
 
-authRouter.post("/register", async (req, res) => {
+authRouter.post("/register", credentialsLimiter, async (req, res) => {
   const { email, password, favoriteTeamId } = req.body ?? {};
   if (typeof email !== "string" || typeof password !== "string" || password.length < 8) {
     res.status(400).json({ error: "email and password (min 8 chars) are required" });
@@ -60,7 +82,7 @@ authRouter.post("/register", async (req, res) => {
   res.status(201).json({ user: publicUser(user), accessToken });
 });
 
-authRouter.post("/login", async (req, res) => {
+authRouter.post("/login", credentialsLimiter, async (req, res) => {
   const { email, password } = req.body ?? {};
   if (typeof email !== "string" || typeof password !== "string") {
     res.status(400).json({ error: "email and password are required" });
@@ -85,7 +107,7 @@ authRouter.post("/login", async (req, res) => {
   res.json({ user: publicUser(user), accessToken });
 });
 
-authRouter.post("/refresh", async (req, res) => {
+authRouter.post("/refresh", refreshLimiter, async (req, res) => {
   const token = req.cookies?.[REFRESH_COOKIE_NAME];
   if (!token) {
     res.status(401).json({ error: "Missing refresh token" });
