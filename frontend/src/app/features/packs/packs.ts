@@ -9,12 +9,13 @@ import { CollectibleCardComponent } from "../store/collectible-card";
 import { PackIconComponent } from "../../shared/pack-icon";
 
 // Rising quality per tier, echoed in icon color, badge, and the pack shell's
-// foil gradient — same visual language as the common/rare/legendary foil
-// treatment on the cards themselves (collectible-card.ts), just scaled up.
+// foil gradient — matches the exact bronze/silver/gold tones of
+// .pack-visual-starter/-pro/-elite (packs.css) rather than an unrelated
+// palette, so the description row's icon actually reads as "this tier".
 const PACK_ICON_CLASSES: Record<PackType, string> = {
-  starter: "bg-slate-500/10 text-slate-400",
-  pro: "bg-sky-500/10 text-sky-400",
-  elite: "bg-amber-500/10 text-amber-400",
+  starter: "bg-[#8a5a34]/15 text-[#d99a5b]",
+  pro: "bg-[#aab2ba]/20 text-[#c9d3da]",
+  elite: "bg-[#caa53a]/20 text-[#f4d675]",
 };
 
 // Pack-selection art: a physical-foil-pack silhouette per tier, reusing the
@@ -71,7 +72,9 @@ export class PacksComponent implements OnInit {
   // breakpoint check rather than a Tailwind class.
   private static readonly DESKTOP_BREAKPOINT = 1024;
   readonly isDesktop = signal(this.checkDesktop());
-  readonly cardSize = computed(() => (this.isDesktop() ? 320 : 220));
+  // Mobile size trimmed ~5% (220 -> 209) for a bit more breathing room
+  // around the reveal card on small screens.
+  readonly cardSize = computed(() => (this.isDesktop() ? 320 : 209));
   readonly summaryCardSize = computed(() => (this.isDesktop() ? 170 : 120));
   // Same aspect ratio as the card (2.5:3.5) plus headroom for the stack's
   // diagonal peek — scales with cardSize so the peek stays proportional.
