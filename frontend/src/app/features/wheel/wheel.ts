@@ -36,6 +36,13 @@ export class WheelComponent implements OnInit {
   // Angles for the win-burst starburst rays, evenly spaced around the card.
   readonly burstRays = Array.from({ length: 12 }, (_, i) => i * 30);
 
+  // Boundary angles between the wheel's 8 wedges — rendered as straight
+  // overlay lines (see .wheel-divider in wheel.css) rather than baked into
+  // the conic-gradient as thin pie-slice dividers, which browsers render
+  // with visible antialiasing artifacts (looked like broken/jagged lines,
+  // especially once the disc is rotated).
+  readonly wedgeBoundaries = Array.from({ length: 8 }, (_, i) => i * 45);
+
   // Scattered twinkle positions for the legendary reveal — fixed, not
   // random, so the effect is identical on every pull. Same set as the pack
   // reveal (features/packs/packs.ts).
@@ -63,6 +70,22 @@ export class WheelComponent implements OnInit {
     "rare",
     "common",
   ];
+
+  // A glyph per tier, on top of the wedge's color, so rarity doesn't
+  // depend on distinguishing similar grey/silver/gold shades alone.
+  private static readonly TIER_GLYPH: Record<CollectibleTier, string> = {
+    common: "●",
+    rare: "★",
+    legendary: "✦",
+  };
+
+  // One mark per wedge, centered at its mid-angle — rendered as an overlay
+  // in wheel.html the same way wedgeBoundaries' divider lines are.
+  readonly wedgeMarks = WheelComponent.WEDGE_TIERS.map((tier, i) => ({
+    angle: i * 45 + 22.5,
+    tier,
+    glyph: WheelComponent.TIER_GLYPH[tier],
+  }));
 
   ngOnInit(): void {
     if (!this.auth.isAuthenticated()) {

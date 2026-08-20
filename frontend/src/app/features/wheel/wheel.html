@@ -29,23 +29,42 @@
           class="absolute -top-1 left-1/2 -translate-x-1/2 z-10 w-0 h-0 border-l-[9px] border-l-transparent border-r-[9px] border-r-transparent border-t-[15px] border-t-highlight"
         ></div>
         <div
-          class="wheel-disc w-full h-full rounded-full border-4 border-line shadow-pop flex items-center justify-center"
+          class="wheel-disc w-full h-full rounded-full border-4 border-line shadow-pop flex items-center justify-center relative"
           [style.transform]="'rotate(' + wheelRotation() + 'deg)'"
           style="background: conic-gradient(
-            #5b6169 0deg 43deg, #151516 43deg 45deg,
-            #5b6169 45deg 88deg, #151516 88deg 90deg,
-            #c9d3da 90deg 133deg, #151516 133deg 135deg,
-            #5b6169 135deg 178deg, #151516 178deg 180deg,
-            #e8b23c 180deg 223deg, #151516 223deg 225deg,
-            #5b6169 225deg 268deg, #151516 268deg 270deg,
-            #c9d3da 270deg 313deg, #151516 313deg 315deg,
-            #5b6169 315deg 358deg, #151516 358deg 360deg
+            #5b6169 0deg 45deg,
+            #5b6169 45deg 90deg,
+            #c9d3da 90deg 135deg,
+            #5b6169 135deg 180deg,
+            #e8b23c 180deg 225deg,
+            #5b6169 225deg 270deg,
+            #c9d3da 270deg 315deg,
+            #5b6169 315deg 360deg
           )"
         >
+          @for (angle of wedgeBoundaries; track angle) {
+            <div class="wheel-divider" [style.transform]="'translateX(-50%) rotate(' + angle + 'deg)'"></div>
+          }
+          @for (mark of wedgeMarks; track $index) {
+            <span
+              class="wheel-tier-mark"
+              [class.wheel-tier-mark--common]="mark.tier === 'common'"
+              [class.wheel-tier-mark--rare]="mark.tier === 'rare'"
+              [class.wheel-tier-mark--legendary]="mark.tier === 'legendary'"
+              [style.transform]="'translate(-50%, -50%) rotate(' + mark.angle + 'deg) translateY(-4rem)'"
+              >{{ mark.glyph }}</span
+            >
+          }
           <div class="w-16 h-16 rounded-full bg-page border-4 border-card flex items-center justify-center">
             <span class="text-2xl">🏀</span>
           </div>
         </div>
+      </div>
+
+      <div class="flex items-center justify-center gap-3 text-[11px] font-mono text-muted mb-4">
+        <span class="flex items-center gap-1"><span class="wheel-tier-mark--common">●</span>{{ i18n.t('store.tierCommon') }}</span>
+        <span class="flex items-center gap-1"><span class="wheel-tier-mark--rare">★</span>{{ i18n.t('store.tierRare') }}</span>
+        <span class="flex items-center gap-1"><span class="wheel-tier-mark--legendary">✦</span>{{ i18n.t('store.tierLegendary') }}</span>
       </div>
     } @else {
       <div class="mb-6 reveal-pop">
