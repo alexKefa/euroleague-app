@@ -100,11 +100,11 @@
           </p>
           <div class="space-y-2">
             @for (game of group.games; track game.id) {
-              <div class="flex items-center justify-between gap-3 px-4 py-3 bg-card rounded-lg shadow-card">
-                <a
-                  [routerLink]="['/teams', game.homeTeam.id]"
-                  class="flex items-center gap-2 flex-1 min-w-0 justify-end text-right hover:opacity-80 transition-opacity"
-                >
+              <a
+                [routerLink]="['/games', game.id]"
+                class="flex items-center justify-between gap-3 px-4 py-3 bg-card rounded-lg shadow-card hover:shadow-pop transition-all"
+              >
+                <div class="flex items-center gap-2 flex-1 min-w-0 justify-end text-right">
                   <span
                     class="font-semibold text-sm truncate"
                     [class.text-highlight]="gameResult(game) === 'home'"
@@ -118,7 +118,7 @@
                       [style.background]="game.homeTeam.primaryColor"
                     ></span>
                   }
-                </a>
+                </div>
 
                 <div class="shrink-0 w-16 text-center">
                   @if (game.status === "final") {
@@ -134,10 +134,7 @@
                   }
                 </div>
 
-                <a
-                  [routerLink]="['/teams', game.awayTeam.id]"
-                  class="flex items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition-opacity"
-                >
+                <div class="flex items-center gap-2 flex-1 min-w-0">
                   @if (game.awayTeam.logoUrl) {
                     <img [src]="game.awayTeam.logoUrl" [alt]="game.awayTeam.name" class="w-7 h-7 object-contain shrink-0" />
                   } @else {
@@ -151,8 +148,8 @@
                     [class.text-highlight]="gameResult(game) === 'away'"
                     >{{ game.awayTeam.name }}</span
                   >
-                </a>
-              </div>
+                </div>
+              </a>
             }
           </div>
         </div>

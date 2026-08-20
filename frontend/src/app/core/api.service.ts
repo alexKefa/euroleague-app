@@ -25,6 +25,7 @@ import {
   PackType,
   RoundsInfo,
   Schedule,
+  GameDetail,
 } from "./models";
 
 /**
@@ -56,8 +57,8 @@ export class ApiService {
     });
   }
 
-  getRoundMvp(): Observable<RoundMvp> {
-    return this.http.get<RoundMvp>(`${API_BASE_URL}/players/round-mvp`);
+  getRoundMvp(limit = 1): Observable<RoundMvp> {
+    return this.http.get<RoundMvp>(`${API_BASE_URL}/players/round-mvp`, { params: { limit } });
   }
 
   getNews(limit = 20): Observable<NewsArticle[]> {
@@ -76,6 +77,10 @@ export class ApiService {
     return this.http.get<Schedule>(`${API_BASE_URL}/games/schedule`, {
       params: round ? { season, round } : { season },
     });
+  }
+
+  getGame(id: string): Observable<GameDetail> {
+    return this.http.get<GameDetail>(`${API_BASE_URL}/games/${id}`);
   }
 
   getUpcomingGames(limit = 10): Observable<Game[]> {

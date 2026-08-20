@@ -15,6 +15,10 @@ export const routes: Routes = [
     loadComponent: () => import("./features/schedule/schedule").then((m) => m.ScheduleComponent),
   },
   {
+    path: "games/:id",
+    loadComponent: () => import("./features/game/game-detail").then((m) => m.GameDetailComponent),
+  },
+  {
     path: "predictions",
     loadComponent: () =>
       import("./features/predictions/predictions").then((m) => m.PredictionsComponent),

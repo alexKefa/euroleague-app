@@ -1,0 +1,318 @@
+<div class="max-w-3xl mx-auto p-4 sm:p-6">
+  <a
+    routerLink="/schedule"
+    class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
+    >&larr; Schedule</a
+  >
+
+  @if (loading()) {
+    <div class="animate-pulse space-y-3 mt-4">
+      <div class="h-24 bg-line rounded-lg"></div>
+      <div class="h-32 bg-line rounded-lg"></div>
+    </div>
+  }
+
+  @if (error()) {
+    <p class="text-red-500 text-sm font-semibold mt-4">{{ error() }}</p>
+  }
+
+  @if (!loading() && detail(); as d) {
+    <!-- Matchup header -->
+    <div class="bg-card rounded-lg shadow-card p-5 mt-4 mb-5">
+      <p class="font-mono text-[11px] text-muted font-bold uppercase tracking-[0.1em] text-center mb-3">
+        Round {{ d.game.round }} &middot; {{ isFinal() ? "Final" : (d.game.tipoffAt | date: "EEE, MMM d, HH:mm") }}
+      </p>
+      <div class="flex items-center justify-between gap-3">
+        <a [routerLink]="['/teams', d.game.homeTeam.id]" class="flex flex-col items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition-opacity">
+          @if (d.game.homeTeam.logoUrl) {
+            <img [src]="d.game.homeTeam.logoUrl" [alt]="d.game.homeTeam.name" class="w-14 h-14 object-contain" />
+          } @else {
+            <span class="w-14 h-14 rounded-full" [style.background]="d.game.homeTeam.primaryColor"></span>
+          }
+          <span class="font-bold text-sm text-center truncate w-full" [class.text-highlight]="gameResult() === 'home'">{{
+            d.game.homeTeam.name
+          }}</span>
+        </a>
+
+        <div class="shrink-0 text-center px-2">
+          @if (isFinal()) {
+            <p class="font-display text-3xl tracking-wide">
+              <span [class.text-highlight]="gameResult() === 'home'">{{ d.game.homeScore }}</span>
+              <span class="text-muted mx-1">-</span>
+              <span [class.text-highlight]="gameResult() === 'away'">{{ d.game.awayScore }}</span>
+            </p>
+          } @else {
+            <p class="font-mono text-xs text-muted font-bold uppercase">vs</p>
+          }
+        </div>
+
+        <a [routerLink]="['/teams', d.game.awayTeam.id]" class="flex flex-col items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition-opacity">
+          @if (d.game.awayTeam.logoUrl) {
+            <img [src]="d.game.awayTeam.logoUrl" [alt]="d.game.awayTeam.name" class="w-14 h-14 object-contain" />
+          } @else {
+            <span class="w-14 h-14 rounded-full" [style.background]="d.game.awayTeam.primaryColor"></span>
+          }
+          <span class="font-bold text-sm text-center truncate w-full" [class.text-highlight]="gameResult() === 'away'">{{
+            d.game.awayTeam.name
+          }}</span>
+        </a>
+      </div>
+    </div>
+
+    @if (usingPriorSeason()) {
+      <p class="text-xs text-muted text-center -mt-3 mb-5">
+        {{ d.game.season }} hasn't started yet — stats below are from {{ d.statsSeason }}.
+      </p>
+    }
+
+    <!-- Top performers (final games only) -->
+    @if (isFinal() && d.topPerformers.length > 0) {
+      <div class="bg-card rounded-lg shadow-card p-4 mb-5">
+        <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-[0.1em] mb-3">Top Performers</p>
+        <div class="text-sm space-y-1">
+          @for (p of d.topPerformers; track p.player.id; let i = $index) {
+            <button
+              type="button"
+              (click)="openPlayer(p.player.id)"
+              class="w-full flex justify-between items-center px-2 py-1.5 rounded-md hover:bg-page transition-colors text-left"
+            >
+              <span class="font-bold">
+                <span class="font-mono text-muted">{{ i + 1 }}</span
+                >&nbsp;&nbsp;{{ p.player.name }}
+              </span>
+              <span class="font-mono text-xs text-muted"
+                >{{ p.points }}p / {{ p.rebounds }}r / {{ p.assists }}a &middot;
+                <span class="text-highlight font-bold">{{ p.valuation }} PIR</span></span
+              >
+            </button>
+          }
+        </div>
+
+        @if (d.doubleDoubles.length > 0) {
+          <div class="mt-3 pt-3 border-t border-line flex flex-wrap gap-1.5">
+            @for (p of d.doubleDoubles; track p.player.id) {
+              <span class="font-mono text-[11px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-highlight/10 text-highlight"
+                >🔥 {{ p.player.name }} — double-double</span
+              >
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Players to watch -->
+    <div class="bg-card rounded-lg shadow-card p-4 mb-5">
+      <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-[0.1em] mb-3">
+        {{ isFinal() ? "Players Who Stood Out This Season" : "Players to Watch" }}
+      </p>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="space-y-1 min-w-0">
+          <p class="font-mono text-[11px] text-muted font-bold uppercase mb-1 truncate">{{ d.game.homeTeam.code }}</p>
+          @for (p of d.playersToWatch.home; track p.player.id) {
+            <button
+              type="button"
+              (click)="openPlayer(p.player.id)"
+              class="w-full block px-2 py-1.5 rounded-md hover:bg-page transition-colors text-left"
+            >
+              <span class="font-semibold text-sm block truncate">{{ p.player.name }}</span>
+              <span class="font-mono text-[11px] text-muted"
+                >{{ p.pointsPerGame | number: "1.1-1" }}p / {{ p.reboundsPerGame | number: "1.1-1" }}r /
+                {{ p.assistsPerGame | number: "1.1-1" }}a</span
+              >
+            </button>
+          } @empty {
+            <p class="text-xs text-muted px-2">No stats yet.</p>
+          }
+        </div>
+        <div class="space-y-1 min-w-0">
+          <p class="font-mono text-[11px] text-muted font-bold uppercase mb-1 truncate">{{ d.game.awayTeam.code }}</p>
+          @for (p of d.playersToWatch.away; track p.player.id) {
+            <button
+              type="button"
+              (click)="openPlayer(p.player.id)"
+              class="w-full block px-2 py-1.5 rounded-md hover:bg-page transition-colors text-left"
+            >
+              <span class="font-semibold text-sm block truncate">{{ p.player.name }}</span>
+              <span class="font-mono text-[11px] text-muted"
+                >{{ p.pointsPerGame | number: "1.1-1" }}p / {{ p.reboundsPerGame | number: "1.1-1" }}r /
+                {{ p.assistsPerGame | number: "1.1-1" }}a</span
+              >
+            </button>
+          } @empty {
+            <p class="text-xs text-muted px-2">No stats yet.</p>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Team comparison -->
+    @if (d.teamComparison.home || d.teamComparison.away) {
+      <div class="bg-card rounded-lg shadow-card p-4 mb-5">
+        <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-[0.1em] mb-3">Team Comparison</p>
+        <div class="text-sm space-y-1.5">
+          <div class="flex justify-between items-center px-2">
+            <span class="font-mono text-xs font-bold w-16 text-right">{{
+              d.teamComparison.home ? d.teamComparison.home!.wins + "-" + d.teamComparison.home!.losses : "—"
+            }}</span>
+            <span class="text-muted text-xs uppercase font-mono">Record</span>
+            <span class="font-mono text-xs font-bold w-16">{{
+              d.teamComparison.away ? d.teamComparison.away!.wins + "-" + d.teamComparison.away!.losses : "—"
+            }}</span>
+          </div>
+          <div class="flex justify-between items-center px-2">
+            <span class="font-mono text-xs font-bold w-16 text-right">{{
+              d.teamComparison.home?.position ? "#" + d.teamComparison.home!.position : "—"
+            }}</span>
+            <span class="text-muted text-xs uppercase font-mono">Standing</span>
+            <span class="font-mono text-xs font-bold w-16">{{
+              d.teamComparison.away?.position ? "#" + d.teamComparison.away!.position : "—"
+            }}</span>
+          </div>
+          <div class="flex justify-between items-center px-2">
+            <span class="font-mono text-xs font-bold w-16 text-right">{{ d.teamComparison.home?.ppg | number: "1.1-1" }}</span>
+            <span class="text-muted text-xs uppercase font-mono">PPG</span>
+            <span class="font-mono text-xs font-bold w-16">{{ d.teamComparison.away?.ppg | number: "1.1-1" }}</span>
+          </div>
+          <div class="flex justify-between items-center px-2">
+            <span class="font-mono text-xs font-bold w-16 text-right">{{ d.teamComparison.home?.papg | number: "1.1-1" }}</span>
+            <span class="text-muted text-xs uppercase font-mono">Opp PPG</span>
+            <span class="font-mono text-xs font-bold w-16">{{ d.teamComparison.away?.papg | number: "1.1-1" }}</span>
+          </div>
+          <div class="flex justify-between items-center px-2">
+            <span class="font-mono text-xs font-bold w-16 text-right">{{ d.teamComparison.home?.offRating | number: "1.1-1" }}</span>
+            <span class="text-muted text-xs uppercase font-mono">Off Rating</span>
+            <span class="font-mono text-xs font-bold w-16">{{ d.teamComparison.away?.offRating | number: "1.1-1" }}</span>
+          </div>
+          <div class="flex justify-between items-center px-2">
+            <span class="font-mono text-xs font-bold w-16 text-right">{{ d.teamComparison.home?.defRating | number: "1.1-1" }}</span>
+            <span class="text-muted text-xs uppercase font-mono">Def Rating</span>
+            <span class="font-mono text-xs font-bold w-16">{{ d.teamComparison.away?.defRating | number: "1.1-1" }}</span>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Full box score (final games only) -->
+    @if (isFinal() && d.boxscore) {
+      <div class="bg-card rounded-lg shadow-card p-4 mb-5">
+        <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-[0.1em] mb-3">Box Score</p>
+
+        @for (side of [{ label: d.game.homeTeam.name, lines: d.boxscore.home }, { label: d.game.awayTeam.name, lines: d.boxscore.away }]; track side.label) {
+          <p class="font-mono text-[11px] text-highlight font-bold uppercase tracking-wide mt-3 mb-1.5">{{ side.label }}</p>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs">
+              <thead>
+                <tr class="text-muted font-mono uppercase">
+                  <th class="text-left font-bold py-1">Player</th>
+                  <th class="text-right font-bold py-1 px-1.5">MIN</th>
+                  <th class="text-right font-bold py-1 px-1.5">PTS</th>
+                  <th class="text-right font-bold py-1 px-1.5">REB</th>
+                  <th class="text-right font-bold py-1 px-1.5">AST</th>
+                  <th class="text-right font-bold py-1 px-1.5">PIR</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (line of side.lines; track line.player.id) {
+                  <tr class="border-t border-line">
+                    <td class="py-1.5 font-semibold truncate max-w-[9rem]">
+                      <button type="button" (click)="openPlayer(line.player.id)" class="hover:text-highlight transition-colors text-left">
+                        {{ line.player.name }}
+                      </button>
+                    </td>
+                    <td class="text-right font-mono py-1.5 px-1.5">{{ line.minutes | number: "1.0-0" }}</td>
+                    <td class="text-right font-mono py-1.5 px-1.5">{{ line.points }}</td>
+                    <td class="text-right font-mono py-1.5 px-1.5">{{ line.rebounds }}</td>
+                    <td class="text-right font-mono py-1.5 px-1.5">{{ line.assists }}</td>
+                    <td class="text-right font-mono font-bold py-1.5 px-1.5 text-highlight">{{ line.valuation }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    }
+  }
+</div>
+
+@if (selectedPlayerId(); as playerId) {
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm"
+    (click)="closePlayer()"
+  >
+    <button
+      type="button"
+      (click)="closePlayer()"
+      class="absolute top-4 right-4 text-white/80 hover:text-white text-3xl leading-none font-bold"
+      aria-label="Close"
+    >
+      &times;
+    </button>
+
+    <div class="w-full max-w-sm bg-card rounded-2xl shadow-pop p-5" (click)="$event.stopPropagation()">
+      @if (playerPreviewLoading()) {
+        <div class="animate-pulse space-y-3">
+          <div class="w-24 h-24 rounded-full bg-line mx-auto"></div>
+          <div class="h-4 bg-line rounded w-2/3 mx-auto"></div>
+          <div class="h-3 bg-line rounded w-1/3 mx-auto"></div>
+        </div>
+      } @else if (playerPreview(); as pd) {
+        <div class="flex flex-col items-center text-center gap-2">
+          @if (pd.player.photoUrl) {
+            <img [src]="pd.player.photoUrl" [alt]="pd.player.name" class="w-24 h-24 rounded-full object-cover" />
+          } @else {
+            <div class="w-24 h-24 rounded-full bg-line"></div>
+          }
+          <p class="font-display text-lg uppercase tracking-wide leading-tight">{{ pd.player.name }}</p>
+          <p class="font-mono text-xs text-muted uppercase tracking-wide">
+            {{ pd.team.code }}
+            @if (pd.player.position) {
+              &middot; {{ pd.player.position }}
+            }
+          </p>
+        </div>
+
+        @if (pd.stats; as s) {
+          <div class="grid grid-cols-3 gap-2 mt-5 text-center">
+            <div>
+              <p class="font-display text-xl text-highlight">{{ fmtNum(s.pointsPerGame) }}</p>
+              <p class="font-mono text-[10px] text-muted uppercase tracking-wide">PPG</p>
+            </div>
+            <div>
+              <p class="font-display text-xl">{{ fmtNum(s.reboundsPerGame) }}</p>
+              <p class="font-mono text-[10px] text-muted uppercase tracking-wide">RPG</p>
+            </div>
+            <div>
+              <p class="font-display text-xl">{{ fmtNum(s.assistsPerGame) }}</p>
+              <p class="font-mono text-[10px] text-muted uppercase tracking-wide">APG</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-3 gap-2 mt-3 text-center">
+            <div>
+              <p class="font-mono font-bold text-highlight">{{ fmtNum(s.valuation) }}</p>
+              <p class="font-mono text-[10px] text-muted uppercase tracking-wide">PIR</p>
+            </div>
+            <div>
+              <p class="font-mono font-bold">{{ fmtPct(s.fieldGoalPct) }}</p>
+              <p class="font-mono text-[10px] text-muted uppercase tracking-wide">FG%</p>
+            </div>
+            <div>
+              <p class="font-mono font-bold">{{ fmtPct(s.freeThrowPct) }}</p>
+              <p class="font-mono text-[10px] text-muted uppercase tracking-wide">FT%</p>
+            </div>
+          </div>
+        } @else {
+          <p class="text-xs text-muted text-center mt-4">No season stats yet.</p>
+        }
+
+        <a
+          [routerLink]="['/players', pd.player.id]"
+          class="block text-center mt-5 font-mono text-[11px] text-muted hover:text-highlight uppercase tracking-wide transition-colors"
+          >Full player page &rarr;</a
+        >
+      } @else {
+        <p class="text-sm text-muted text-center">Couldn't load this player.</p>
+      }
+    </div>
+  </div>
+}

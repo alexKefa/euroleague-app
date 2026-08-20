@@ -137,6 +137,50 @@ export interface RoundsInfo {
   rounds: number[];
 }
 
+export interface GameTeamStats {
+  teamId: string;
+  season: string;
+  position: number | null;
+  wins: number;
+  losses: number;
+  ppg: number | null;
+  papg: number | null;
+  offRating: number | null;
+  defRating: number | null;
+  rebPct: number | null;
+  astPct: number | null;
+}
+
+export interface PlayerToWatch {
+  player: { id: string; code: string; name: string };
+  pointsPerGame: number | null;
+  reboundsPerGame: number | null;
+  assistsPerGame: number | null;
+  valuation: number | null;
+}
+
+export interface GameBoxscoreLine {
+  player: { id: string; code: string; name: string };
+  minutes: number | null;
+  points: number | null;
+  rebounds: number | null;
+  assists: number | null;
+  steals: number | null;
+  blocks: number | null;
+  turnovers: number | null;
+  valuation: number | null;
+}
+
+export interface GameDetail {
+  game: Game & { season: string };
+  statsSeason: string;
+  teamComparison: { home: GameTeamStats | null; away: GameTeamStats | null };
+  playersToWatch: { home: PlayerToWatch[]; away: PlayerToWatch[] };
+  boxscore: { home: GameBoxscoreLine[]; away: GameBoxscoreLine[] } | null;
+  topPerformers: GameBoxscoreLine[];
+  doubleDoubles: GameBoxscoreLine[];
+}
+
 export interface Schedule {
   season: string;
   round: number;
