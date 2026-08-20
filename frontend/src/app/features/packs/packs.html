@@ -257,15 +257,23 @@
         <p class="font-display text-lg uppercase tracking-wide mb-3">Pack opened!</p>
         <div class="grid grid-cols-3 gap-2 mb-5">
           @for (card of outcome()?.results; track card.resultId) {
-            <app-collectible-card
-              [name]="card.collectible.name"
-              [tier]="card.collectible.tier"
-              [teamCode]="card.collectible.team.code"
-              [teamColor]="card.collectible.team.primaryColor"
-              [imageUrl]="card.collectible.imageUrl"
-              [unlocked]="true"
-              [maxWidth]="summaryCardSize()"
-            ></app-collectible-card>
+            <div class="relative" [class.opacity-50]="isSold(card)">
+              <app-collectible-card
+                [name]="card.collectible.name"
+                [tier]="card.collectible.tier"
+                [teamCode]="card.collectible.team.code"
+                [teamColor]="card.collectible.team.primaryColor"
+                [imageUrl]="card.collectible.imageUrl"
+                [unlocked]="true"
+                [maxWidth]="summaryCardSize()"
+              ></app-collectible-card>
+              @if (isSold(card)) {
+                <span
+                  class="absolute inset-x-0 bottom-0 py-1 rounded-b-2xl bg-black/70 text-center font-mono text-[10px] font-bold uppercase tracking-wide text-emerald-400"
+                  >Sold</span
+                >
+              }
+            </div>
           }
         </div>
         <div class="flex gap-2">
