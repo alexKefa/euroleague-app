@@ -41,6 +41,7 @@ export class CollectibleCardComponent {
   @Input() imageUrl: string | null = null;
   @Input() unlocked = false;
   @Input() maxWidth = 220;
+  @Input() selected = false;
 
   private shade(hex: string, factor: number): string {
     const h = hex.replace("#", "");

@@ -1,4 +1,10 @@
-<div class="relative w-full" [style.max-width.px]="maxWidth" style="aspect-ratio: 2.5 / 3.5">
+<div
+  class="relative w-full mx-auto rounded-2xl"
+  [class.ring-4]="selected"
+  [class.ring-highlight]="selected"
+  [style.max-width.px]="maxWidth"
+  style="aspect-ratio: 2.5 / 3.5"
+>
   <div
     class="w-full h-full rounded-2xl transition-[filter] duration-300"
     [style.padding.px]="7"
