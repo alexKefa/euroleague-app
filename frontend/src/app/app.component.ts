@@ -26,6 +26,7 @@ interface NavLink {
 const NAV_LINKS: NavLink[] = [
   { path: "/", label: "Home", icon: "home", exact: true },
   { path: "/news", label: "News", icon: "news" },
+  { path: "/schedule", label: "Schedule", icon: "schedule" },
   { path: "/predictions", label: "Picks", icon: "picks" },
   {
     path: "/store",

@@ -11,6 +11,10 @@ export const routes: Routes = [
     loadComponent: () => import("./features/news/news").then((m) => m.NewsComponent),
   },
   {
+    path: "schedule",
+    loadComponent: () => import("./features/schedule/schedule").then((m) => m.ScheduleComponent),
+  },
+  {
     path: "predictions",
     loadComponent: () =>
       import("./features/predictions/predictions").then((m) => m.PredictionsComponent),

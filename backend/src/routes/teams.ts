@@ -76,12 +76,14 @@ teamsRouter.get("/:id/games", async (req, res) => {
           code: homeTeam.code,
           name: homeTeam.name,
           primaryColor: homeTeam.primaryColor,
+          logoUrl: homeTeam.logoUrl,
         },
         awayTeam: {
           id: awayTeam.id,
           code: awayTeam.code,
           name: awayTeam.name,
           primaryColor: awayTeam.primaryColor,
+          logoUrl: awayTeam.logoUrl,
         },
       })
       .from(games)

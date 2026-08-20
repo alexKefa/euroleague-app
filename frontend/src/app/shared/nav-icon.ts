@@ -1,6 +1,16 @@
 import { Component, Input } from "@angular/core";
 
-export type NavIconName = "home" | "news" | "picks" | "store" | "user" | "wheel" | "packs" | "cards" | "trade";
+export type NavIconName =
+  | "home"
+  | "news"
+  | "picks"
+  | "store"
+  | "user"
+  | "wheel"
+  | "packs"
+  | "cards"
+  | "trade"
+  | "schedule";
 
 @Component({
   selector: "app-nav-icon",
@@ -69,6 +79,12 @@ export type NavIconName = "home" | "news" | "picks" | "store" | "user" | "wheel"
           <rect x="5" y="4" width="14" height="16" rx="2" stroke="currentColor" stroke-width="2" />
           <circle cx="12" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5" />
           <path d="M8 17c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+        }
+        @case ("schedule") {
+          <rect x="4" y="5" width="16" height="15" rx="1.5" stroke="currentColor" stroke-width="2" />
+          <line x1="4" y1="9" x2="20" y2="9" stroke="currentColor" stroke-width="2" />
+          <line x1="8" y1="3" x2="8" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          <line x1="16" y1="3" x2="16" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
         }
         @case ("trade") {
           <path

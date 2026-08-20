@@ -23,6 +23,8 @@ import {
   PackDefinition,
   PackOpenOutcome,
   PackType,
+  RoundsInfo,
+  Schedule,
 } from "./models";
 
 /**
@@ -64,6 +66,16 @@ export class ApiService {
 
   getTeamGames(teamId: string): Observable<Game[]> {
     return this.http.get<Game[]>(`${API_BASE_URL}/teams/${teamId}/games`);
+  }
+
+  getRounds(season: string): Observable<RoundsInfo> {
+    return this.http.get<RoundsInfo>(`${API_BASE_URL}/games/rounds`, { params: { season } });
+  }
+
+  getSchedule(season: string, round?: number): Observable<Schedule> {
+    return this.http.get<Schedule>(`${API_BASE_URL}/games/schedule`, {
+      params: round ? { season, round } : { season },
+    });
   }
 
   getUpcomingGames(limit = 10): Observable<Game[]> {

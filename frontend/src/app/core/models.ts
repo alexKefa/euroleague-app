@@ -117,6 +117,7 @@ export interface GameTeamSummary {
   code: string;
   name: string;
   primaryColor: string | null;
+  logoUrl: string | null;
 }
 
 export interface Game {
@@ -129,6 +130,17 @@ export interface Game {
   awayScore: number | null;
   homeTeam: GameTeamSummary;
   awayTeam: GameTeamSummary;
+}
+
+export interface RoundsInfo {
+  season: string;
+  rounds: number[];
+}
+
+export interface Schedule {
+  season: string;
+  round: number;
+  games: Game[];
 }
 
 export interface Prediction {
