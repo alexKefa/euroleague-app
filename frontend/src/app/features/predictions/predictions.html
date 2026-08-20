@@ -41,7 +41,10 @@
                     [class.border-line]="myPickFor(game) !== game.homeTeam.id"
                     [class.text-muted]="myPickFor(game) !== game.homeTeam.id"
                   >
-                    {{ game.homeTeam.code }}
+                    <app-team-badge
+                      [code]="game.homeTeam.code"
+                      [logoUrl]="game.homeTeam.logoUrl"
+                    ></app-team-badge>
                   </button>
                   <span class="font-mono text-muted text-[12px] self-center">{{ i18n.t('predictions.vs') }}</span>
                   <button
@@ -54,11 +57,18 @@
                     [class.border-line]="myPickFor(game) !== game.awayTeam.id"
                     [class.text-muted]="myPickFor(game) !== game.awayTeam.id"
                   >
-                    {{ game.awayTeam.code }}
+                    <app-team-badge
+                      [code]="game.awayTeam.code"
+                      [logoUrl]="game.awayTeam.logoUrl"
+                    ></app-team-badge>
                   </button>
                 </div>
               } @else {
-                <p class="font-display text-xs uppercase">{{ game.homeTeam.code }} vs {{ game.awayTeam.code }}</p>
+                <p class="font-display text-xs uppercase flex items-center gap-2">
+                  <app-team-badge [code]="game.homeTeam.code" [logoUrl]="game.homeTeam.logoUrl"></app-team-badge>
+                  vs
+                  <app-team-badge [code]="game.awayTeam.code" [logoUrl]="game.awayTeam.logoUrl"></app-team-badge>
+                </p>
               }
             </div>
           }
@@ -114,7 +124,9 @@
             @for (p of myPredictions(); track p.id) {
               <div class="flex justify-between items-center px-2 py-2 rounded-md">
                 <div>
-                  <p class="font-display text-xs uppercase">{{ p.predictedTeam.code }}</p>
+                  <p class="font-display text-xs uppercase">
+                    <app-team-badge [code]="p.predictedTeam.code" [logoUrl]="teamLogo(p.predictedTeam.id)"></app-team-badge>
+                  </p>
                   <p class="font-mono text-muted text-[12px] mt-0.5">{{ p.tipoffAt | date: "MMM d, HH:mm" }}</p>
                 </div>
                 @if (p.isCorrect === null) {
