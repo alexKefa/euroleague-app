@@ -4,7 +4,7 @@ import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { ThemeService } from "../../core/theme.service";
 import { AuthService } from "../../core/auth.service";
-import { StandingsRow, LeaderEntry, NewsArticle, Game } from "../../core/models";
+import { StandingsRow, LeaderEntry, RoundMvp, NewsArticle, Game } from "../../core/models";
 
 const LEADER_CATEGORIES = [
   { value: "points", label: "PTS" },
@@ -37,6 +37,7 @@ export class DashboardComponent implements OnInit {
   readonly leaderCategories = LEADER_CATEGORIES;
   readonly news = signal<NewsArticle[]>([]);
   readonly teamGames = signal<Game[]>([]);
+  readonly roundMvp = signal<RoundMvp | null>(null);
 
   readonly selectedRow = computed(
     () => this.standings().find((r) => r.team.id === this.selectedTeamId()) ?? null
@@ -63,6 +64,11 @@ export class DashboardComponent implements OnInit {
     });
 
     this.selectLeaderCategory("points");
+
+    this.api.getRoundMvp().subscribe({
+      next: (result) => this.roundMvp.set(result),
+      error: () => {}, // non-critical widget
+    });
 
     this.api.getStandings().subscribe({
       next: (rows) => {

@@ -32,7 +32,9 @@ from euroleague_api.boxscore_data import BoxScoreData
 load_dotenv()
 
 DATABASE_URL = os.environ["DATABASE_URL"]
-REQUEST_PACING_SECONDS = 0.4
+# Bumped from 0.4s after the documented "250ms+" pacing still tripped a 429
+# in practice around request #36 of a cold run — 1s is more conservative.
+REQUEST_PACING_SECONDS = 1.0
 
 
 def safe_int(value) -> Optional[int]:
@@ -93,11 +95,14 @@ def sync_boxscores(season: int, start_index: int = 0, limit: Optional[int] = Non
                         f"python boxscore_sync.py {season} {position}"
                     )
                     break
-                time.sleep(3)
+                time.sleep(10)
                 continue
 
             for _, row in df.iterrows():
-                raw_player_code = row["Player_ID"]
+                # Player_ID comes back fixed-width and padded with trailing
+                # whitespace (e.g. "P007200   ") — strip before matching
+                # against players.code, or every lookup silently misses.
+                raw_player_code = row["Player_ID"].strip()
                 player_code = (
                     raw_player_code[1:] if raw_player_code.startswith("P") else raw_player_code
                 )

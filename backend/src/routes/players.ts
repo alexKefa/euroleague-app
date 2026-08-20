@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, isNotNull } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { players, playerSeasonStats, teams } from "../db/schema.js";
+import { players, playerSeasonStats, playerGameStats, games, teams } from "../db/schema.js";
 
 export const playersRouter = Router();
 
@@ -71,6 +71,71 @@ playersRouter.get("/leaders", async (req, res) => {
   } catch (err) {
     console.error("GET /api/players/leaders failed:", err);
     res.status(500).json({ error: "Failed to load player leaders" });
+  }
+});
+
+// Top PIR (valuation) performance(s) for a round — defaults to the most
+// recently *completed* round (every game in it final) when season/round
+// aren't given, same "complete round" definition services/cards.ts uses
+// for perfect-round card grants.
+playersRouter.get("/round-mvp", async (req, res) => {
+  try {
+    let season = typeof req.query.season === "string" ? req.query.season : null;
+    let round = req.query.round ? Number(req.query.round) : null;
+
+    if (!season || !round) {
+      const allGames = await db
+        .select({ season: games.season, round: games.round, status: games.status })
+        .from(games)
+        .where(isNotNull(games.round));
+
+      const bySeasonRound = new Map<string, { season: string; round: number; total: number; final: number }>();
+      for (const g of allGames) {
+        const key = `${g.season} ${g.round}`;
+        const entry = bySeasonRound.get(key) ?? { season: g.season, round: g.round!, total: 0, final: 0 };
+        entry.total += 1;
+        if (g.status === "final") entry.final += 1;
+        bySeasonRound.set(key, entry);
+      }
+
+      const completed = [...bySeasonRound.values()]
+        .filter((e) => e.final === e.total)
+        .sort((a, b) => (a.season === b.season ? b.round - a.round : b.season.localeCompare(a.season)));
+
+      if (completed.length === 0) {
+        res.json({ season: null, round: null, leaders: [] });
+        return;
+      }
+      season = completed[0].season;
+      round = completed[0].round;
+    }
+
+    const limit = Math.min(Number(req.query.limit) || 1, 20);
+
+    const rows = await db
+      .select({ stat: playerGameStats, player: players, team: teams })
+      .from(playerGameStats)
+      .innerJoin(games, eq(playerGameStats.gameId, games.id))
+      .innerJoin(players, eq(playerGameStats.playerId, players.id))
+      .innerJoin(teams, eq(players.teamId, teams.id))
+      .where(and(eq(games.season, season), eq(games.round, round), isNotNull(playerGameStats.valuation)))
+      .orderBy(desc(playerGameStats.valuation))
+      .limit(limit);
+
+    res.json({
+      season,
+      round,
+      leaders: rows.map((r) => ({
+        player: { id: r.player.id, code: r.player.code, name: r.player.name },
+        team: { id: r.team.id, code: r.team.code, name: r.team.name, primaryColor: r.team.primaryColor },
+        valuation: r.stat.valuation,
+        points: r.stat.points,
+        gameId: r.stat.gameId,
+      })),
+    });
+  } catch (err) {
+    console.error("GET /api/players/round-mvp failed:", err);
+    res.status(500).json({ error: "Failed to load round MVP" });
   }
 });
 

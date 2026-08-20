@@ -88,6 +88,25 @@
           </div>
         }
 
+        <!-- Round MVP -->
+        @if (roundMvp()?.leaders?.[0]; as mvp) {
+          <div class="bg-card rounded-lg shadow-card p-4 mb-5 lg:mb-0">
+            <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-[0.1em] mb-3">
+              Round {{ roundMvp()?.round }} MVP
+            </p>
+            <a
+              [routerLink]="['/players', mvp.player.id]"
+              class="flex justify-between items-center px-2 py-1.5 rounded-md hover:bg-page transition-colors"
+            >
+              <span class="font-bold">
+                {{ mvp.player.name }}
+                <span class="text-muted font-normal">({{ mvp.team.code }})</span>
+              </span>
+              <span class="font-mono text-highlight font-bold">{{ mvp.valuation }} PIR</span>
+            </a>
+          </div>
+        }
+
         <!-- League leaders -->
         @if (leaders().length > 0) {
           <div class="bg-card rounded-lg shadow-card p-4 mb-5 lg:mb-0">
