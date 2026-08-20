@@ -14,4 +14,26 @@
 
 body {
   @apply bg-page text-ink font-sans m-0;
+  /* Ambient team-color wash — two radial glows anchored to the viewport
+     (not the page, so they don't scroll away) using the same
+     --accent-primary ThemeService.applyTeam() already sets. Several
+     EuroLeague primary colors are themselves dark navy/near-black, so
+     blending them straight into the near-black page at low alpha was
+     imperceptible — each glow first lightens the accent by mixing in some
+     white, *then* blends that into the page, so there's a visible floor of
+     brightness regardless of how dark the team color is, while the hue
+     still reads as that team's color. color-mix degrades gracefully to no
+     gradient on unsupported browsers. */
+  background-image:
+    radial-gradient(
+      1100px circle at 15% 10%,
+      color-mix(in srgb, color-mix(in srgb, var(--accent-primary) 65%, white 35%) 45%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      900px circle at 100% 90%,
+      color-mix(in srgb, color-mix(in srgb, var(--accent-primary) 65%, white 35%) 32%, transparent),
+      transparent 55%
+    );
+  background-attachment: fixed;
 }
