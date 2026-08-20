@@ -3,7 +3,7 @@ import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
-import { Collectible, SpinResult } from "../../core/models";
+import { Collectible, CollectibleTier, SpinResult } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
 
 // Matches the CSS transition-duration on the wheel graphic — the reveal is
@@ -33,6 +33,34 @@ export class WheelComponent implements OnInit {
 
   // Angles for the win-burst starburst rays, evenly spaced around the card.
   readonly burstRays = Array.from({ length: 12 }, (_, i) => i * 30);
+
+  // Scattered twinkle positions for the legendary reveal — fixed, not
+  // random, so the effect is identical on every pull. Same set as the pack
+  // reveal (features/packs/packs.ts).
+  readonly sparklePositions = [
+    { top: "8%", left: "14%", delay: "0s" },
+    { top: "18%", left: "82%", delay: "0.12s" },
+    { top: "48%", left: "-4%", delay: "0.24s" },
+    { top: "58%", left: "96%", delay: "0.06s" },
+    { top: "82%", left: "20%", delay: "0.3s" },
+    { top: "88%", left: "76%", delay: "0.18s" },
+    { top: "4%", left: "50%", delay: "0.36s" },
+  ];
+
+  // The disc's 8 wedges, one tier per 45° slice — roughly mirrors the real
+  // server-side odds (65/25/10 common/rare/legendary) without needing exact
+  // fractional wedges: 5 common, 2 rare, 1 legendary. See the conic-gradient
+  // in wheel.html, which colors each slice to match.
+  private static readonly WEDGE_TIERS: CollectibleTier[] = [
+    "common",
+    "common",
+    "rare",
+    "common",
+    "legendary",
+    "common",
+    "rare",
+    "common",
+  ];
 
   ngOnInit(): void {
     if (!this.auth.isAuthenticated()) {
@@ -77,7 +105,7 @@ export class WheelComponent implements OnInit {
   }
 
   private animateToResult(result: SpinResult, apply: () => void): void {
-    this.spinToWedge(result.won !== null);
+    this.spinToWedge(result.won?.tier ?? "common");
     setTimeout(() => {
       this.spinning.set(false);
       apply();
@@ -85,13 +113,15 @@ export class WheelComponent implements OnInit {
   }
 
   /**
-   * Rotates the wheel so it stops with the pointer inside a wedge of the
-   * right color for `won` — orange (0-45, 90-135, 180-225, 270-315deg in
-   * the disc's own coordinates) for a win, black otherwise. See the
-   * conic-gradient in wheel.html for the wedge layout this mirrors.
+   * Rotates the wheel so it stops with the pointer inside a wedge matching
+   * the tier that was actually decided server-side. See the conic-gradient
+   * in wheel.html for the wedge layout this mirrors.
    */
-  private spinToWedge(won: boolean): void {
-    const wedgeStarts = won ? [0, 90, 180, 270] : [45, 135, 225, 315];
+  private spinToWedge(tier: CollectibleTier): void {
+    const wedgeStarts = WheelComponent.WEDGE_TIERS.reduce<number[]>((starts, t, i) => {
+      if (t === tier) starts.push(i * 45);
+      return starts;
+    }, []);
     const start = wedgeStarts[Math.floor(Math.random() * wedgeStarts.length)];
     const inset = 8; // stay clear of wedge boundaries so the color reads unambiguously
     const targetAngle = start + inset + Math.random() * (45 - 2 * inset);

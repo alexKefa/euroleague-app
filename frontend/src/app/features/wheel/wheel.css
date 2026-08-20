@@ -20,7 +20,10 @@
 }
 
 /* Win burst — a glow flash + expanding ring + starburst rays behind the
-   revealed card, gated to the legendary win case (the wheel's only prize). */
+   revealed card. Tier-conditional (see wheel.html): legendary gets the full
+   treatment plus a screen flash, sparkles and a shake; rare gets a lighter
+   silver version; common just the plain glow. Same pattern as the pack
+   reveal (features/packs/packs.css). */
 @keyframes burst-glow {
   0% {
     opacity: 0;
@@ -42,21 +45,21 @@
   }
   100% {
     opacity: 0;
-    transform: scale(1.8);
+    transform: scale(2);
   }
 }
 
 @keyframes burst-ray {
   0% {
     opacity: 0;
-    transform: rotate(var(--ray-angle)) translateY(-20px) scaleY(0.3);
+    transform: rotate(var(--ray-angle)) translateY(-24px) scaleY(0.3);
   }
   30% {
     opacity: 1;
   }
   100% {
     opacity: 0;
-    transform: rotate(var(--ray-angle)) translateY(-70px) scaleY(1);
+    transform: rotate(var(--ray-angle)) translateY(-85px) scaleY(1);
   }
 }
 
@@ -65,17 +68,117 @@
 }
 
 .burst-ring {
-  animation: burst-ring 0.7s cubic-bezier(0.2, 0.8, 0.4, 1) both;
+  animation: burst-ring 0.9s cubic-bezier(0.2, 0.8, 0.4, 1) both;
+}
+
+.burst-ring-delay {
+  animation-delay: 0.18s;
 }
 
 .burst-ray {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 3px;
-  height: 40px;
-  margin: -20px 0 0 -1.5px;
+  width: 4px;
+  height: 50px;
+  margin: -25px 0 0 -2px;
   border-radius: 2px;
   transform-origin: 50% 100%;
-  animation: burst-ray 0.8s ease-out both;
+  animation: burst-ray 1s ease-out both;
+}
+
+@keyframes legendary-flash {
+  0% {
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.legendary-flash {
+  background: radial-gradient(circle, rgba(255, 244, 214, 0.9) 0%, rgba(255, 244, 214, 0) 65%);
+  animation: legendary-flash 0.4s ease-out both;
+}
+
+@keyframes sparkle-twinkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.4) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1) rotate(25deg);
+  }
+}
+
+.sparkle {
+  color: #ffe6a0;
+  font-size: 14px;
+  text-shadow: 0 0 6px rgba(255, 220, 140, 0.8);
+  animation: sparkle-twinkle 1.4s ease-in-out infinite;
+}
+
+@keyframes legendary-shake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  15% {
+    transform: translate(-3px, 1px);
+  }
+  30% {
+    transform: translate(3px, -1px);
+  }
+  45% {
+    transform: translate(-2px, 1px);
+  }
+  60% {
+    transform: translate(2px, 0);
+  }
+  75% {
+    transform: translate(-1px, 0);
+  }
+}
+
+.legendary-shake {
+  animation: legendary-shake 0.5s ease-out both;
+}
+
+@keyframes legendary-label-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.legendary-label {
+  background: linear-gradient(135deg, #f4d675 0%, #fff6d8 40%, #caa53a 70%, #fff2c9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 20px rgba(255, 200, 90, 0.5);
+  animation: legendary-label-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: 0.15s;
+}
+
+.rare-label {
+  background: linear-gradient(135deg, #cfd6dc 0%, #f5f7f9 25%, #aab2ba 50%, #f5f7f9 75%, #cfd6dc 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 14px rgba(190, 210, 230, 0.4);
+  animation: legendary-label-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }

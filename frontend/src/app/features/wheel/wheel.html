@@ -6,7 +6,9 @@
   >
 
   <h1 class="font-display text-2xl uppercase tracking-wide mt-4 mb-1">Daily Jump Ball</h1>
-  <p class="text-sm text-muted mb-6">One free jump ball a day for a shot at a legendary card.</p>
+  <p class="text-sm text-muted mb-6">
+    One free jump ball a day — you always walk away with a card, with a shot at a legendary.
+  </p>
 
   @if (loading()) {
     <div class="animate-pulse h-48 bg-line rounded-lg"></div>
@@ -15,8 +17,8 @@
   @if (!loading() && !auth.isAuthenticated()) {
     <div class="bg-card rounded-lg shadow-card p-6">
       <p class="text-sm text-muted">
-        <a routerLink="/login" class="text-highlight font-semibold">Log in</a> to take your jump ball for a
-        shot at a legendary card.
+        <a routerLink="/login" class="text-highlight font-semibold">Log in</a> to take your jump ball —
+        always a card, with a shot at a legendary.
       </p>
     </div>
   }
@@ -30,7 +32,16 @@
         <div
           class="wheel-disc w-full h-full rounded-full border-4 border-line shadow-pop flex items-center justify-center"
           [style.transform]="'rotate(' + wheelRotation() + 'deg)'"
-          style="background: conic-gradient(#FF6B35 0deg 45deg, #151516 45deg 90deg, #FF6B35 90deg 135deg, #151516 135deg 180deg, #FF6B35 180deg 225deg, #151516 225deg 270deg, #FF6B35 270deg 315deg, #151516 315deg 360deg)"
+          style="background: conic-gradient(
+            #5b6169 0deg 43deg, #151516 43deg 45deg,
+            #5b6169 45deg 88deg, #151516 88deg 90deg,
+            #c9d3da 90deg 133deg, #151516 133deg 135deg,
+            #5b6169 135deg 178deg, #151516 178deg 180deg,
+            #e8b23c 180deg 223deg, #151516 223deg 225deg,
+            #5b6169 225deg 268deg, #151516 268deg 270deg,
+            #c9d3da 270deg 313deg, #151516 313deg 315deg,
+            #5b6169 315deg 358deg, #151516 358deg 360deg
+          )"
         >
           <div class="w-16 h-16 rounded-full bg-page border-4 border-card flex items-center justify-center">
             <span class="text-2xl">🏀</span>
@@ -40,33 +51,72 @@
     } @else {
       <div class="mb-6 reveal-pop">
         @if (lastResult(); as won) {
-          <p class="font-display text-lg uppercase tracking-wide text-highlight mb-3">You won a legendary card!</p>
+          @if (won.tier === "legendary") {
+            <p class="legendary-label font-display text-2xl uppercase tracking-wide mb-3">Legendary!</p>
+          } @else if (won.tier === "rare") {
+            <p class="rare-label font-display text-lg uppercase tracking-wide mb-3">Rare!</p>
+          } @else {
+            <p class="font-display text-lg uppercase tracking-wide text-highlight mb-3">You got a card!</p>
+          }
           <div class="relative mx-auto" style="width: 220px">
-            <!-- Win burst — glow flash, expanding ring, starburst rays -->
-            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div
-                class="burst-glow absolute w-64 h-64 rounded-full"
-                style="background: radial-gradient(circle, rgba(255,214,120,0.55) 0%, rgba(255,214,120,0) 70%)"
-              ></div>
-              <div class="burst-ring absolute w-48 h-48 rounded-full border-2 border-amber-300/70"></div>
-              @for (angle of burstRays; track angle) {
+            @if (won.tier === "legendary") {
+              <!-- Legendary hype — bigger gold burst, a screen flash, a
+                   double expanding ring, a full starburst, and scattered
+                   twinkles — same pattern as the pack-opening legendary
+                   reveal (features/packs). -->
+              <div class="legendary-flash absolute inset-0 rounded-2xl pointer-events-none"></div>
+              <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div
-                  class="burst-ray"
-                  style="background: linear-gradient(rgba(255,224,150,0.95), rgba(255,224,150,0))"
-                  [style.--ray-angle.deg]="angle"
+                  class="burst-glow absolute w-96 h-96 rounded-full"
+                  style="background: radial-gradient(circle, rgba(255,205,90,0.8) 0%, rgba(255,205,90,0) 70%)"
                 ></div>
-              }
+                <div class="burst-ring absolute w-56 h-56 rounded-full border-[3px] border-amber-300/80"></div>
+                <div class="burst-ring burst-ring-delay absolute w-56 h-56 rounded-full border-2 border-amber-200/60"></div>
+                @for (angle of burstRays; track angle) {
+                  <div
+                    class="burst-ray"
+                    style="background: linear-gradient(rgba(255,230,160,1), rgba(255,230,160,0))"
+                    [style.--ray-angle.deg]="angle"
+                  ></div>
+                }
+                @for (sparkle of sparklePositions; track $index) {
+                  <span
+                    class="sparkle absolute"
+                    [style.top]="sparkle.top"
+                    [style.left]="sparkle.left"
+                    [style.animation-delay]="sparkle.delay"
+                    >✦</span
+                  >
+                }
+              </div>
+            } @else if (won.tier === "rare") {
+              <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div
+                  class="burst-glow absolute w-72 h-72 rounded-full"
+                  style="background: radial-gradient(circle, rgba(190,210,230,0.55) 0%, rgba(190,210,230,0) 70%)"
+                ></div>
+                <div class="burst-ring absolute w-48 h-48 rounded-full border-2 border-slate-200/70"></div>
+              </div>
+            } @else {
+              <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div
+                  class="burst-glow absolute w-64 h-64 rounded-full"
+                  style="background: radial-gradient(circle, rgba(255,214,120,0.5) 0%, rgba(255,214,120,0) 70%)"
+                ></div>
+              </div>
+            }
+            <div class="relative" [class.legendary-shake]="won.tier === 'legendary'">
+              <app-collectible-card
+                class="block mx-auto"
+                [name]="won.name"
+                [tier]="won.tier"
+                [teamCode]="won.team.code"
+                [teamColor]="won.team.primaryColor"
+                [imageUrl]="won.imageUrl"
+                [unlocked]="true"
+                [maxWidth]="220"
+              ></app-collectible-card>
             </div>
-            <app-collectible-card
-              class="relative block mx-auto"
-              [name]="won.name"
-              [tier]="won.tier"
-              [teamCode]="won.team.code"
-              [teamColor]="won.team.primaryColor"
-              [imageUrl]="won.imageUrl"
-              [unlocked]="true"
-              [maxWidth]="220"
-            ></app-collectible-card>
           </div>
         } @else {
           <p class="font-display text-lg uppercase tracking-wide text-muted mb-3">So close!</p>

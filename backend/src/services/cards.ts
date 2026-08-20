@@ -15,9 +15,12 @@ export interface CollectibleWithTeam {
   team: { id: string; code: string; name: string; primaryColor: string | null };
 }
 
-/** A random legendary collectible the user doesn't already own, or null if they own them all. */
-export async function pickRandomUnownedLegendary(userId: string): Promise<CollectibleWithTeam | null> {
-  const [owned, legendaries] = await Promise.all([
+/** A random collectible of the given tier the user doesn't already own, or null if they own them all. */
+export async function pickRandomUnownedByTier(
+  userId: string,
+  tier: "common" | "rare" | "legendary"
+): Promise<CollectibleWithTeam | null> {
+  const [owned, ofTier] = await Promise.all([
     db
       .select({ collectibleId: userCollectibles.collectibleId })
       .from(userCollectibles)
@@ -26,11 +29,11 @@ export async function pickRandomUnownedLegendary(userId: string): Promise<Collec
       .select({ collectible: collectibles, team: teams })
       .from(collectibles)
       .innerJoin(teams, eq(collectibles.teamId, teams.id))
-      .where(eq(collectibles.tier, "legendary")),
+      .where(eq(collectibles.tier, tier)),
   ]);
 
   const ownedIds = new Set(owned.map((o) => o.collectibleId));
-  const candidates = legendaries.filter(({ collectible }) => !ownedIds.has(collectible.id));
+  const candidates = ofTier.filter(({ collectible }) => !ownedIds.has(collectible.id));
   if (candidates.length === 0) return null;
 
   const { collectible, team } = candidates[Math.floor(Math.random() * candidates.length)];
@@ -42,6 +45,11 @@ export async function pickRandomUnownedLegendary(userId: string): Promise<Collec
     imageUrl: collectible.imageUrl,
     team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor },
   };
+}
+
+/** A random legendary collectible the user doesn't already own, or null if they own them all. */
+export async function pickRandomUnownedLegendary(userId: string): Promise<CollectibleWithTeam | null> {
+  return pickRandomUnownedByTier(userId, "legendary");
 }
 
 /**

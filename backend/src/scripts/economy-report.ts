@@ -17,7 +17,7 @@ import { eq, and, isNotNull, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { games, collectibles, predictions } from "../db/schema.js";
 import { POINTS_PER_CORRECT } from "../services/points.js";
-import { WIN_CHANCE, COOLDOWN_MS } from "../routes/spin.js";
+import { LEGENDARY_CHANCE, COOLDOWN_MS } from "../routes/spin.js";
 
 const ACCURACY_SCENARIOS = [0.5, 0.6, 0.7]; // coin-flip, decent, sharp
 const PARTICIPATION = 1.0; // fraction of each round's games a user actually predicts
@@ -90,10 +90,11 @@ async function main() {
   }
 
   console.log("\n--- Legendary path (wheel + perfect round) ---");
-  const expectedDaysPerLegendary = (COOLDOWN_MS / 86_400_000) / WIN_CHANCE;
+  const expectedDaysPerLegendary = (COOLDOWN_MS / 86_400_000) / LEGENDARY_CHANCE;
   console.log(
-    `Free spin: ${(WIN_CHANCE * 100).toFixed(0)}% win chance, ${COOLDOWN_MS / 3_600_000}h cooldown. ` +
-      `A win always grants a NEW legendary (never a dupe), so expected time per legendary ≈ ${expectedDaysPerLegendary.toFixed(1)} days.`
+    `Free spin: every spin gives something now (common/rare/legendary), but the legendary rate is ` +
+      `still just ${(LEGENDARY_CHANCE * 100).toFixed(0)}%, ${COOLDOWN_MS / 3_600_000}h cooldown. ` +
+      `A legendary always grants a NEW one (never a dupe), so expected time per legendary ≈ ${expectedDaysPerLegendary.toFixed(1)} days.`
   );
   console.log(
     `With ${legendaryCount} legendaries in the catalog, expected time to collect all of them via spin alone ≈ ` +
