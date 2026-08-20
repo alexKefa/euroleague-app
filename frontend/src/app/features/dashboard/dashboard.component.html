@@ -60,6 +60,20 @@
       </div>
     }
 
+    @if (auth.isAuthenticated()) {
+      <div class="bg-card rounded-lg shadow-card p-4 mb-5 flex items-start gap-3">
+        <span class="text-xl shrink-0" aria-hidden="true">🏀</span>
+        <p class="text-sm text-muted">
+          {{ i18n.t('dashboard.pointsHintPrefix') }}
+          <a routerLink="/predictions" class="text-highlight font-semibold">{{ i18n.t('nav.picks') }}</a>
+          {{ i18n.t('dashboard.pointsHintMiddle') }}
+          <a routerLink="/packs" class="text-highlight font-semibold">{{ i18n.t('store.packs') }}</a>
+          {{ i18n.t('dashboard.pointsHintSuffix') }}
+          <a routerLink="/wheel" class="text-highlight font-semibold">{{ i18n.t('store.jumpBall') }}</a>
+        </p>
+      </div>
+    }
+
     <div class="lg:flex lg:gap-5 lg:items-start">
       <!-- News / Leaders / Games column -->
       <div class="lg:order-2 lg:flex-1 lg:flex lg:flex-col lg:gap-5 lg:min-w-0">

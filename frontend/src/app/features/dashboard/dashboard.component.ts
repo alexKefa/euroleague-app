@@ -27,7 +27,7 @@ type LeaderCategory = (typeof LEADER_CATEGORIES)[number]["value"];
 export class DashboardComponent implements OnInit {
   private api = inject(ApiService);
   private theme = inject(ThemeService);
-  private auth = inject(AuthService);
+  protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
 
   readonly standings = signal<StandingsRow[]>([]);
