@@ -270,17 +270,19 @@ predictionsRouter.get("/me/summary", requireAuth, async (req, res) => {
 predictionsRouter.post("/points/adjust", requireAuth, requireAdmin, async (req, res) => {
   const { email, points, reason } = req.body ?? {};
   if (typeof email !== "string" || typeof points !== "number" || !Number.isInteger(points) || points === 0) {
-    res.status(400).json({ error: "email and a non-zero integer points are required" });
+    res
+      .status(400)
+      .json({ error: "email and a non-zero integer points are required", code: "INVALID_REQUEST_BODY" });
     return;
   }
   if (typeof reason !== "string" || reason.trim().length === 0) {
-    res.status(400).json({ error: "reason is required" });
+    res.status(400).json({ error: "reason is required", code: "REASON_REQUIRED" });
     return;
   }
 
   const [target] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
   if (!target) {
-    res.status(404).json({ error: "No user with that email" });
+    res.status(404).json({ error: "No user with that email", code: "USER_NOT_FOUND" });
     return;
   }
 

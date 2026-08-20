@@ -118,6 +118,10 @@ export class ApiService {
     return this.http.get<MyCollectible[]>(`${API_BASE_URL}/collectibles/me`);
   }
 
+  grantCard(email: string, collectibleId: string): Observable<unknown> {
+    return this.http.post(`${API_BASE_URL}/collectibles/grant`, { email, collectibleId });
+  }
+
   addCollectible(
     name: string,
     teamId: string,

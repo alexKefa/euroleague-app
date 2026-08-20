@@ -25,7 +25,6 @@ export const storeTranslations: Record<string, Record<Lang, string>> = {
   "store.getFromPack": { en: "Get from a pack →", el: "Απόκτησέ την από πακέτο →" },
   "store.emptyStore": { en: "Nothing in the store yet.", el: "Δεν υπάρχει ακόμα τίποτα στο κατάστημα." },
   "store.emptySearch": { en: "No cards match your search.", el: "Καμία κάρτα δεν ταιριάζει με την αναζήτησή σου." },
-  "store.adminAddTitle": { en: "Add to catalog (admin)", el: "Προσθήκη στον κατάλογο (διαχειριστής)" },
   "store.namePlaceholder": { en: "Player / item name", el: "Όνομα παίκτη / αντικειμένου" },
   "store.teamPlaceholder": { en: "Team", el: "Ομάδα" },
   "store.pointsPlaceholder": { en: "Points", el: "Πόντοι" },

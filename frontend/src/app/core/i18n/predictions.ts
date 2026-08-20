@@ -27,13 +27,4 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
     en: "No resolved predictions yet.",
     el: "Δεν υπάρχουν ολοκληρωμένα προγνωστικά ακόμα.",
   },
-  "predictions.grantPointsAdmin": { en: "Grant points (admin)", el: "Παραχώρηση πόντων (διαχειριστής)" },
-  "predictions.userEmailPlaceholder": { en: "User email", el: "Email χρήστη" },
-  "predictions.pointsPlaceholder": { en: "Points", el: "Πόντοι" },
-  "predictions.reasonPlaceholder": { en: "Reason", el: "Αιτιολογία" },
-  "predictions.granting": { en: "Granting…", el: "Παραχώρηση…" },
-  "predictions.grant": { en: "Grant", el: "Παραχώρηση" },
-  "predictions.grantedPrefix": { en: "Granted", el: "Δόθηκαν" },
-  "predictions.grantedTo": { en: "pts to", el: "πόντοι στον/στην" },
-  "predictions.grantFailed": { en: "Failed to grant points.", el: "Αποτυχία παραχώρησης πόντων." },
 };

@@ -66,6 +66,191 @@
       <p class="text-xs text-muted mt-3">{{ i18n.t('profile.clearHint') }}</p>
     </div>
 
+    @if (user.isAdmin) {
+      <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide mt-6 mb-2">
+        {{ i18n.t('profile.adminSectionTitle') }}
+      </p>
+
+      <div class="bg-card rounded-lg shadow-card p-4 mb-3">
+        <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide mb-3">
+          {{ i18n.t('profile.grantPointsTitle') }}
+        </p>
+
+        <form [formGroup]="pointsForm" (ngSubmit)="submitPointsGrant()" class="flex flex-wrap gap-2">
+          <input
+            type="email"
+            formControlName="email"
+            [placeholder]="i18n.t('profile.userEmailPlaceholder')"
+            class="flex-1 min-w-[10rem] px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
+          />
+          <input
+            type="number"
+            formControlName="points"
+            [placeholder]="i18n.t('profile.pointsPlaceholder')"
+            class="w-24 px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
+          />
+          <input
+            type="text"
+            formControlName="reason"
+            [placeholder]="i18n.t('profile.reasonPlaceholder')"
+            class="flex-1 min-w-[10rem] px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
+          />
+          <button
+            type="submit"
+            [disabled]="pointsForm.invalid || pointsSubmitting()"
+            class="px-4 py-2 rounded-full bg-highlight text-white font-mono text-xs font-bold uppercase tracking-wide hover:bg-highlight-dim transition-colors disabled:opacity-50"
+          >
+            {{ pointsSubmitting() ? i18n.t('profile.granting') : i18n.t('profile.grant') }}
+          </button>
+        </form>
+
+        @if (pointsError()) {
+          <p class="text-red-500 text-xs font-semibold mt-2">{{ pointsError() }}</p>
+        }
+        @if (pointsSuccess()) {
+          <p class="text-emerald-500 text-xs font-semibold mt-2">{{ pointsSuccess() }}</p>
+        }
+      </div>
+
+      <div class="bg-card rounded-lg shadow-card p-4">
+        <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide mb-3">
+          {{ i18n.t('profile.grantCardTitle') }}
+        </p>
+
+        <form [formGroup]="cardForm" (ngSubmit)="submitCardGrant()" class="flex flex-wrap gap-2">
+          <input
+            type="email"
+            formControlName="email"
+            [placeholder]="i18n.t('profile.userEmailPlaceholder')"
+            class="flex-1 min-w-[10rem] px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
+          />
+          <div class="relative flex-1 min-w-[10rem]">
+            <select
+              formControlName="collectibleId"
+              class="w-full appearance-none pl-3 pr-8 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none cursor-pointer"
+            >
+              <option value="" disabled>{{ i18n.t('profile.collectiblePlaceholder') }}</option>
+              @for (item of collectibles(); track item.id) {
+                <option [value]="item.id">{{ item.name }} — {{ item.team.code }} ({{ item.tier }})</option>
+              }
+            </select>
+            <svg
+              class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-muted"
+              viewBox="0 0 12 12"
+              fill="none"
+            >
+              <path
+                d="M2.5 4.5L6 8L9.5 4.5"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          <button
+            type="submit"
+            [disabled]="cardForm.invalid || cardSubmitting()"
+            class="px-4 py-2 rounded-full bg-highlight text-white font-mono text-xs font-bold uppercase tracking-wide hover:bg-highlight-dim transition-colors disabled:opacity-50"
+          >
+            {{ cardSubmitting() ? i18n.t('profile.grantingCard') : i18n.t('profile.grantCardButton') }}
+          </button>
+        </form>
+
+        @if (cardError()) {
+          <p class="text-red-500 text-xs font-semibold mt-2">{{ cardError() }}</p>
+        }
+        @if (cardSuccess()) {
+          <p class="text-emerald-500 text-xs font-semibold mt-2">{{ cardSuccess() }}</p>
+        }
+      </div>
+
+      <div class="bg-card rounded-lg shadow-card p-4 mt-3">
+        <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide mb-3">
+          {{ i18n.t('profile.addCollectibleTitle') }}
+        </p>
+
+        <form [formGroup]="addForm" (ngSubmit)="submitAddCollectible()" class="flex flex-wrap gap-2">
+          <input
+            type="text"
+            formControlName="name"
+            [placeholder]="i18n.t('store.namePlaceholder')"
+            class="flex-1 min-w-[10rem] px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
+          />
+          <div class="relative">
+            <select
+              formControlName="teamId"
+              class="appearance-none pl-3 pr-8 py-2 rounded-full bg-card border border-line text-sm font-semibold focus:border-highlight outline-none cursor-pointer"
+            >
+              <option value="" disabled>{{ i18n.t('store.teamPlaceholder') }}</option>
+              @for (team of teams(); track team.id) {
+                <option [value]="team.id">{{ team.code }}</option>
+              }
+            </select>
+            <svg
+              class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-muted"
+              viewBox="0 0 12 12"
+              fill="none"
+            >
+              <path
+                d="M2.5 4.5L6 8L9.5 4.5"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          <div class="relative">
+            <select
+              formControlName="tier"
+              class="appearance-none pl-3 pr-8 py-2 rounded-full bg-card border border-line text-sm font-semibold focus:border-highlight outline-none cursor-pointer"
+            >
+              <option value="common">{{ i18n.t('store.tierCommon') }}</option>
+              <option value="rare">{{ i18n.t('store.tierRare') }}</option>
+              <option value="legendary">{{ i18n.t('store.tierLegendary') }}</option>
+            </select>
+            <svg
+              class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-muted"
+              viewBox="0 0 12 12"
+              fill="none"
+            >
+              <path
+                d="M2.5 4.5L6 8L9.5 4.5"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          <input
+            type="number"
+            formControlName="pointsCost"
+            [placeholder]="i18n.t('store.pointsPlaceholder')"
+            class="w-24 px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
+          />
+          <input
+            type="text"
+            formControlName="imageUrl"
+            [placeholder]="i18n.t('store.imageUrlPlaceholder')"
+            class="flex-1 min-w-[10rem] px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
+          />
+          <button
+            type="submit"
+            [disabled]="addForm.invalid || addSubmitting()"
+            class="px-4 py-2 rounded-full bg-highlight text-white font-mono text-xs font-bold uppercase tracking-wide hover:bg-highlight-dim transition-colors disabled:opacity-50"
+          >
+            {{ addSubmitting() ? i18n.t('store.adding') : i18n.t('store.add') }}
+          </button>
+        </form>
+
+        @if (addError()) {
+          <p class="text-red-500 text-xs font-semibold mt-2">{{ addError() }}</p>
+        }
+      </div>
+    }
+
     <button
       type="button"
       (click)="logout()"

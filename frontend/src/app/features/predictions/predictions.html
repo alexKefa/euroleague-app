@@ -173,48 +173,5 @@
         </div>
       </div>
     </div>
-
-    @if (auth.currentUser()?.isAdmin) {
-      <div class="bg-card rounded-lg shadow-card p-4 mt-5">
-        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">
-          {{ i18n.t('predictions.grantPointsAdmin') }}
-        </p>
-
-        <form [formGroup]="adjustForm" (ngSubmit)="submitAdjustment()" class="flex flex-wrap gap-2">
-          <input
-            type="email"
-            formControlName="email"
-            [placeholder]="i18n.t('predictions.userEmailPlaceholder')"
-            class="flex-1 min-w-[10rem] px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
-          />
-          <input
-            type="number"
-            formControlName="points"
-            [placeholder]="i18n.t('predictions.pointsPlaceholder')"
-            class="w-24 px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
-          />
-          <input
-            type="text"
-            formControlName="reason"
-            [placeholder]="i18n.t('predictions.reasonPlaceholder')"
-            class="flex-1 min-w-[10rem] px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
-          />
-          <button
-            type="submit"
-            [disabled]="adjustForm.invalid || adjustSubmitting()"
-            class="px-4 py-2 rounded-full bg-highlight text-white font-mono text-xs font-bold uppercase tracking-wide hover:bg-highlight-dim transition-colors disabled:opacity-50"
-          >
-            {{ adjustSubmitting() ? i18n.t('predictions.granting') : i18n.t('predictions.grant') }}
-          </button>
-        </form>
-
-        @if (adjustError()) {
-          <p class="text-red-500 text-xs font-semibold mt-2">{{ adjustError() }}</p>
-        }
-        @if (adjustSuccess()) {
-          <p class="text-emerald-500 text-xs font-semibold mt-2">{{ adjustSuccess() }}</p>
-        }
-      </div>
-    }
   }
 </div>

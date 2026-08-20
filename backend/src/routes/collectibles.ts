@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { collectibles, userCollectibles, teams } from "../db/schema.js";
+import { collectibles, userCollectibles, teams, users } from "../db/schema.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
 
 export const collectiblesRouter = Router();
@@ -48,29 +48,29 @@ collectiblesRouter.get("/me", requireAuth, async (req, res) => {
 collectiblesRouter.post("/", requireAuth, requireAdmin, async (req, res) => {
   const { name, teamId, tier, pointsCost, imageUrl } = req.body ?? {};
   if (typeof name !== "string" || name.trim().length === 0) {
-    res.status(400).json({ error: "name is required" });
+    res.status(400).json({ error: "name is required", code: "INVALID_REQUEST_BODY" });
     return;
   }
   if (typeof teamId !== "string") {
-    res.status(400).json({ error: "teamId is required" });
+    res.status(400).json({ error: "teamId is required", code: "INVALID_REQUEST_BODY" });
     return;
   }
   if (typeof tier !== "string" || !TIERS.includes(tier as (typeof TIERS)[number])) {
-    res.status(400).json({ error: `tier must be one of: ${TIERS.join(", ")}` });
+    res.status(400).json({ error: `tier must be one of: ${TIERS.join(", ")}`, code: "INVALID_REQUEST_BODY" });
     return;
   }
   if (typeof pointsCost !== "number" || !Number.isInteger(pointsCost) || pointsCost <= 0) {
-    res.status(400).json({ error: "pointsCost must be a positive integer" });
+    res.status(400).json({ error: "pointsCost must be a positive integer", code: "INVALID_REQUEST_BODY" });
     return;
   }
   if (imageUrl !== undefined && typeof imageUrl !== "string") {
-    res.status(400).json({ error: "imageUrl must be a string" });
+    res.status(400).json({ error: "imageUrl must be a string", code: "INVALID_REQUEST_BODY" });
     return;
   }
 
   const [team] = await db.select({ id: teams.id }).from(teams).where(eq(teams.id, teamId)).limit(1);
   if (!team) {
-    res.status(404).json({ error: "Team not found" });
+    res.status(404).json({ error: "Team not found", code: "TEAM_NOT_FOUND" });
     return;
   }
 
@@ -80,6 +80,44 @@ collectiblesRouter.post("/", requireAuth, requireAdmin, async (req, res) => {
     .returning();
 
   res.status(201).json(collectible);
+});
+
+// Directly grant an existing collectible to a user — an admin tool for
+// handing out a specific card (e.g. as a one-off reward or to fix a
+// support issue), independent of the normal unlock paths (wheel/packs/
+// round rewards).
+collectiblesRouter.post("/grant", requireAuth, requireAdmin, async (req, res) => {
+  const { email, collectibleId } = req.body ?? {};
+  if (typeof email !== "string" || typeof collectibleId !== "string") {
+    res.status(400).json({ error: "email and collectibleId are required", code: "INVALID_REQUEST_BODY" });
+    return;
+  }
+
+  const [target] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+  if (!target) {
+    res.status(404).json({ error: "No user with that email", code: "USER_NOT_FOUND" });
+    return;
+  }
+
+  const [collectible] = await db.select().from(collectibles).where(eq(collectibles.id, collectibleId)).limit(1);
+  if (!collectible) {
+    res.status(404).json({ error: "Collectible not found", code: "COLLECTIBLE_NOT_FOUND" });
+    return;
+  }
+
+  const [existing] = await db
+    .select({ id: userCollectibles.id })
+    .from(userCollectibles)
+    .where(and(eq(userCollectibles.userId, target.id), eq(userCollectibles.collectibleId, collectibleId)))
+    .limit(1);
+  if (existing) {
+    res.status(409).json({ error: "That user already owns this card", code: "ALREADY_OWNED" });
+    return;
+  }
+
+  await db.insert(userCollectibles).values({ userId: target.id, collectibleId });
+
+  res.status(201).json({ email, collectible: { id: collectible.id, name: collectible.name } });
 });
 
 collectiblesRouter.patch("/:id", requireAuth, requireAdmin, async (req, res) => {

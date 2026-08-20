@@ -1,11 +1,10 @@
 import { Component, OnInit, inject, signal, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
-import { ReactiveFormsModule, FormBuilder, Validators } from "@angular/forms";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
-import { Collectible, CollectibleTier, Team } from "../../core/models";
+import { Collectible, CollectibleTier } from "../../core/models";
 import { CollectibleCardComponent } from "./collectible-card";
 import { CardPreviewComponent } from "./card-preview";
 import { NavIconComponent } from "../../shared/nav-icon";
@@ -13,19 +12,11 @@ import { NavIconComponent } from "../../shared/nav-icon";
 @Component({
   selector: "app-store",
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterLink,
-    ReactiveFormsModule,
-    CollectibleCardComponent,
-    CardPreviewComponent,
-    NavIconComponent,
-  ],
+  imports: [CommonModule, RouterLink, CollectibleCardComponent, CardPreviewComponent, NavIconComponent],
   templateUrl: "./store.html",
 })
 export class StoreComponent implements OnInit {
   private api = inject(ApiService);
-  private fb = inject(FormBuilder);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
 
@@ -70,18 +61,6 @@ export class StoreComponent implements OnInit {
       .sort((a, b) => Number(ownedIds.has(b.id)) - Number(ownedIds.has(a.id)));
   });
 
-  readonly teams = signal<Team[]>([]);
-  readonly addSubmitting = signal(false);
-  readonly addError = signal<string | null>(null);
-
-  readonly addForm = this.fb.nonNullable.group({
-    name: ["", [Validators.required]],
-    teamId: ["", [Validators.required]],
-    tier: ["common", [Validators.required]],
-    pointsCost: [50, [Validators.required, Validators.min(1)]],
-    imageUrl: [""],
-  });
-
   readonly imageSavingId = signal<string | null>(null);
   readonly imageErrors = signal<Record<string, string>>({});
 
@@ -103,10 +82,6 @@ export class StoreComponent implements OnInit {
       });
     } else {
       this.pointsLoading.set(false);
-    }
-
-    if (this.auth.currentUser()?.isAdmin) {
-      this.api.getTeams().subscribe({ next: (rows) => this.teams.set(rows) });
     }
   }
 
@@ -130,25 +105,6 @@ export class StoreComponent implements OnInit {
 
   isUnlocked(collectible: Collectible): boolean {
     return this.myCollectibleIds().has(collectible.id);
-  }
-
-  submitAdd(): void {
-    if (this.addForm.invalid) return;
-    this.addSubmitting.set(true);
-    this.addError.set(null);
-
-    const { name, teamId, tier, pointsCost, imageUrl } = this.addForm.getRawValue();
-    this.api.addCollectible(name, teamId, tier, Number(pointsCost), imageUrl || undefined).subscribe({
-      next: () => {
-        this.addSubmitting.set(false);
-        this.addForm.patchValue({ name: "", imageUrl: "" });
-        this.loadCollectibles();
-      },
-      error: (err) => {
-        this.addSubmitting.set(false);
-        this.addError.set(err?.error?.error ?? "Failed to add collectible.");
-      },
-    });
   }
 
   setImage(collectible: Collectible, imageUrl: string): void {

@@ -1,7 +1,6 @@
 import { Component, OnInit, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
-import { ReactiveFormsModule, FormBuilder, Validators } from "@angular/forms";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
@@ -21,12 +20,11 @@ const BADGE_ICONS: Record<string, string> = {
 @Component({
   selector: "app-predictions",
   standalone: true,
-  imports: [CommonModule, RouterLink, ReactiveFormsModule, TeamBadgeComponent],
+  imports: [CommonModule, RouterLink, TeamBadgeComponent],
   templateUrl: "./predictions.html",
 })
 export class PredictionsComponent implements OnInit {
   private api = inject(ApiService);
-  private fb = inject(FormBuilder);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
 
@@ -41,16 +39,6 @@ export class PredictionsComponent implements OnInit {
   // a lightweight ref), so it's looked up here for the "My picks" list;
   // upcoming games already have logoUrl on their own team objects.
   readonly teamLogos = signal<Map<string, string | null>>(new Map());
-
-  readonly adjustSubmitting = signal(false);
-  readonly adjustError = signal<string | null>(null);
-  readonly adjustSuccess = signal<string | null>(null);
-
-  readonly adjustForm = this.fb.nonNullable.group({
-    email: ["", [Validators.required, Validators.email]],
-    points: [10, [Validators.required]],
-    reason: ["", [Validators.required]],
-  });
 
   ngOnInit(): void {
     this.api.getTeams().subscribe({
@@ -112,29 +100,6 @@ export class PredictionsComponent implements OnInit {
         const rollback = new Map(this.myPicks());
         rollback.delete(game.id);
         this.myPicks.set(rollback);
-      },
-    });
-  }
-
-  submitAdjustment(): void {
-    if (this.adjustForm.invalid || this.adjustForm.value.points === 0) return;
-    this.adjustSubmitting.set(true);
-    this.adjustError.set(null);
-    this.adjustSuccess.set(null);
-
-    const { email, points, reason } = this.adjustForm.getRawValue();
-    this.api.adjustPoints(email, Number(points), reason).subscribe({
-      next: () => {
-        this.adjustSubmitting.set(false);
-        this.adjustSuccess.set(
-          `${this.i18n.t("predictions.grantedPrefix")} ${points} ${this.i18n.t("predictions.grantedTo")} ${email}.`
-        );
-        this.adjustForm.patchValue({ email: "", reason: "" });
-        this.api.getLeaderboard().subscribe({ next: (rows) => this.leaderboard.set(rows) });
-      },
-      error: (err) => {
-        this.adjustSubmitting.set(false);
-        this.adjustError.set(err?.error?.error ?? this.i18n.t("predictions.grantFailed"));
       },
     });
   }
