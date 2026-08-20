@@ -3,7 +3,7 @@ import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
-import { Collectible } from "../../core/models";
+import { Collectible, CollectibleTier } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { CardPreviewComponent } from "../store/card-preview";
 
@@ -22,9 +22,21 @@ export class InventoryComponent implements OnInit {
   private readonly ownedIds = signal<Set<string>>(new Set());
   private readonly previewItemId = signal<string | null>(null);
 
+  readonly tierFilter = signal<CollectibleTier | null>(null);
+  readonly tierOptions: { value: CollectibleTier | null; label: string }[] = [
+    { value: null, label: "All" },
+    { value: "common", label: "Common" },
+    { value: "rare", label: "Rare" },
+    { value: "legendary", label: "Legendary" },
+  ];
+
   readonly myCollectibles = computed(() =>
     this.allCollectibles().filter((c) => this.ownedIds().has(c.id))
   );
+  readonly filteredCollectibles = computed(() => {
+    const tier = this.tierFilter();
+    return this.myCollectibles().filter((c) => !tier || c.tier === tier);
+  });
   readonly previewItem = computed(
     () => this.myCollectibles().find((c) => c.id === this.previewItemId()) ?? null
   );

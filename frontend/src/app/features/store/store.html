@@ -8,35 +8,44 @@
   <div class="flex items-center justify-between mt-4 mb-5">
     <h1 class="font-display text-2xl uppercase tracking-wide">Store</h1>
     @if (auth.isAuthenticated()) {
-      <span
-        class="font-mono text-xs font-bold text-highlight bg-card border border-line rounded-full px-3 py-1"
-        >{{ points() }} PTS</span
-      >
+      @if (pointsLoading()) {
+        <span class="animate-pulse inline-block w-16 h-6 rounded-full bg-line"></span>
+      } @else {
+        <span
+          class="font-mono text-xs font-bold text-highlight bg-card border border-line rounded-full px-3 py-1"
+          >{{ points() }} PTS</span
+        >
+      }
     }
   </div>
 
   @if (!auth.isAuthenticated()) {
     <p class="text-sm text-muted mb-5">
-      <a routerLink="/login" class="text-highlight font-semibold">Log in</a> to redeem points for
-      collectibles.
+      <a routerLink="/login" class="text-highlight font-semibold">Log in</a> to collect cards from packs
+      and the wheel.
     </p>
   }
 
   @if (auth.isAuthenticated()) {
-    <div class="flex gap-2 mb-5">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
       <a
         routerLink="/wheel"
-        class="flex-1 text-center px-3 py-2 rounded-full bg-card shadow-card font-mono text-[13px] font-bold uppercase tracking-wide hover:shadow-pop transition-all"
+        class="text-center px-3 py-2 rounded-full bg-card shadow-card font-mono text-[13px] font-bold uppercase tracking-wide hover:shadow-pop transition-all"
         >🎡 Spin</a
       >
       <a
+        routerLink="/packs"
+        class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-full bg-card shadow-card font-mono text-[13px] font-bold uppercase tracking-wide hover:shadow-pop transition-all"
+        ><app-pack-icon />Packs</a
+      >
+      <a
         routerLink="/inventory"
-        class="flex-1 text-center px-3 py-2 rounded-full bg-card shadow-card font-mono text-[13px] font-bold uppercase tracking-wide hover:shadow-pop transition-all"
+        class="text-center px-3 py-2 rounded-full bg-card shadow-card font-mono text-[13px] font-bold uppercase tracking-wide hover:shadow-pop transition-all"
         >My cards</a
       >
       <a
         routerLink="/trades"
-        class="flex-1 text-center px-3 py-2 rounded-full bg-card shadow-card font-mono text-[13px] font-bold uppercase tracking-wide hover:shadow-pop transition-all"
+        class="text-center px-3 py-2 rounded-full bg-card shadow-card font-mono text-[13px] font-bold uppercase tracking-wide hover:shadow-pop transition-all"
         >Trades</a
       >
     </div>
@@ -60,16 +69,46 @@
         class="flex-1 min-w-[10rem] px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
       />
       @if (filterTeams().length > 1) {
-        <select
-          [value]="teamFilter() ?? ''"
-          (change)="teamFilter.set($any($event.target).value || null)"
-          class="px-3 py-2 rounded-lg bg-card border border-line font-mono text-xs font-bold uppercase focus:border-highlight outline-none"
+        <div class="relative">
+          <select
+            [value]="teamFilter() ?? ''"
+            (change)="teamFilter.set($any($event.target).value || null)"
+            class="appearance-none pl-3 pr-8 py-2 rounded-full bg-card border border-line font-mono text-xs font-bold uppercase tracking-wide focus:border-highlight outline-none cursor-pointer"
+          >
+            <option value="">All teams</option>
+            @for (team of filterTeams(); track team.id) {
+              <option [value]="team.id">{{ team.code }}</option>
+            }
+          </select>
+          <svg
+            class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-muted"
+            viewBox="0 0 12 12"
+            fill="none"
+          >
+            <path
+              d="M2.5 4.5L6 8L9.5 4.5"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </div>
+      }
+    </div>
+
+    <div class="inline-flex bg-card border border-line rounded-full p-1 gap-1 mb-4">
+      @for (opt of tierOptions; track opt.label) {
+        <button
+          type="button"
+          (click)="tierFilter.set(opt.value)"
+          class="px-3 py-1.5 rounded-full font-mono text-[12px] font-bold uppercase tracking-wide transition-colors"
+          [class.bg-highlight]="tierFilter() === opt.value"
+          [class.text-white]="tierFilter() === opt.value"
+          [class.text-muted]="tierFilter() !== opt.value"
         >
-          <option value="">All teams</option>
-          @for (team of filterTeams(); track team.id) {
-            <option [value]="team.id">{{ team.code }}</option>
-          }
-        </select>
+          {{ opt.label }}
+        </button>
       }
     </div>
 
@@ -94,16 +133,18 @@
 
           @if (isUnlocked(item)) {
             <span class="font-mono text-[12px] font-bold text-emerald-500 uppercase tracking-wide">Unlocked</span>
-          } @else if (auth.isAuthenticated()) {
-            <button
-              (click)="redeem(item)"
-              [disabled]="!canAfford(item) || redeemingId() === item.id"
-              class="font-mono text-[12px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full bg-highlight text-white hover:bg-highlight-dim transition-colors disabled:opacity-40"
+          } @else if (item.tier === "legendary") {
+            <a
+              routerLink="/wheel"
+              class="font-mono text-[12px] font-bold text-muted uppercase tracking-wide hover:text-highlight transition-colors"
+              >Win it on the wheel &rarr;</a
             >
-              {{ redeemingId() === item.id ? "Redeeming…" : canAfford(item) ? "Redeem · " + item.pointsCost + " pts" : item.pointsCost + " pts" }}
-            </button>
           } @else {
-            <span class="font-mono text-[12px] font-bold text-muted uppercase tracking-wide">{{ item.pointsCost }} pts</span>
+            <a
+              routerLink="/packs"
+              class="font-mono text-[12px] font-bold text-muted uppercase tracking-wide hover:text-highlight transition-colors"
+              >Get from a pack &rarr;</a
+            >
           }
         </div>
       } @empty {
@@ -113,9 +154,6 @@
       }
     </div>
 
-    @if (redeemError()) {
-      <p class="text-red-500 text-xs font-semibold mt-4">{{ redeemError() }}</p>
-    }
   }
 
   @if (auth.currentUser()?.isAdmin) {
@@ -131,23 +169,53 @@
           placeholder="Player / item name"
           class="flex-1 min-w-[10rem] px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
         />
-        <select
-          formControlName="teamId"
-          class="px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
-        >
-          <option value="" disabled>Team</option>
-          @for (team of teams(); track team.id) {
-            <option [value]="team.id">{{ team.code }}</option>
-          }
-        </select>
-        <select
-          formControlName="tier"
-          class="px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
-        >
-          <option value="common">Common</option>
-          <option value="rare">Rare</option>
-          <option value="legendary">Legendary</option>
-        </select>
+        <div class="relative">
+          <select
+            formControlName="teamId"
+            class="appearance-none pl-3 pr-8 py-2 rounded-full bg-card border border-line text-sm font-semibold focus:border-highlight outline-none cursor-pointer"
+          >
+            <option value="" disabled>Team</option>
+            @for (team of teams(); track team.id) {
+              <option [value]="team.id">{{ team.code }}</option>
+            }
+          </select>
+          <svg
+            class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-muted"
+            viewBox="0 0 12 12"
+            fill="none"
+          >
+            <path
+              d="M2.5 4.5L6 8L9.5 4.5"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </div>
+        <div class="relative">
+          <select
+            formControlName="tier"
+            class="appearance-none pl-3 pr-8 py-2 rounded-full bg-card border border-line text-sm font-semibold focus:border-highlight outline-none cursor-pointer"
+          >
+            <option value="common">Common</option>
+            <option value="rare">Rare</option>
+            <option value="legendary">Legendary</option>
+          </select>
+          <svg
+            class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-muted"
+            viewBox="0 0 12 12"
+            fill="none"
+          >
+            <path
+              d="M2.5 4.5L6 8L9.5 4.5"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </div>
         <input
           type="number"
           formControlName="pointsCost"

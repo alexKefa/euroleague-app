@@ -1,9 +1,8 @@
 import { Router } from "express";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { collectibles, userCollectibles, teams, pointAdjustments } from "../db/schema.js";
+import { collectibles, userCollectibles, teams } from "../db/schema.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
-import { getUserPoints } from "../services/points.js";
 
 export const collectiblesRouter = Router();
 
@@ -43,60 +42,6 @@ collectiblesRouter.get("/me", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("GET /api/collectibles/me failed:", err);
     res.status(500).json({ error: "Failed to load your collection" });
-  }
-});
-
-collectiblesRouter.post("/:id/redeem", requireAuth, async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const [collectible] = await db.select().from(collectibles).where(eq(collectibles.id, id)).limit(1);
-    if (!collectible) {
-      res.status(404).json({ error: "Collectible not found" });
-      return;
-    }
-
-    if (collectible.tier === "legendary") {
-      res.status(400).json({
-        error: "Legendary cards can't be bought — win them from the wheel or a perfect round.",
-      });
-      return;
-    }
-
-    const [existing] = await db
-      .select({ id: userCollectibles.id })
-      .from(userCollectibles)
-      .where(and(eq(userCollectibles.userId, req.userId!), eq(userCollectibles.collectibleId, id)))
-      .limit(1);
-    if (existing) {
-      res.status(409).json({ error: "You already unlocked this one" });
-      return;
-    }
-
-    const points = await getUserPoints(req.userId!);
-    if (points < collectible.pointsCost) {
-      res.status(400).json({ error: "Not enough points" });
-      return;
-    }
-
-    const [unlock] = await db.transaction(async (tx) => {
-      const inserted = await tx
-        .insert(userCollectibles)
-        .values({ userId: req.userId!, collectibleId: id })
-        .returning();
-      await tx.insert(pointAdjustments).values({
-        userId: req.userId!,
-        points: -collectible.pointsCost,
-        reason: `Redeemed: ${collectible.name}`,
-        createdByUserId: req.userId!,
-      });
-      return inserted;
-    });
-
-    res.status(201).json(unlock);
-  } catch (err) {
-    console.error("POST /api/collectibles/:id/redeem failed:", err);
-    res.status(500).json({ error: "Failed to redeem collectible" });
   }
 });
 

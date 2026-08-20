@@ -24,8 +24,23 @@
       or spin the <a routerLink="/wheel" class="text-highlight font-semibold">wheel</a>.
     </p>
   } @else {
+    <div class="inline-flex bg-card border border-line rounded-full p-1 gap-1 mb-4">
+      @for (opt of tierOptions; track opt.label) {
+        <button
+          type="button"
+          (click)="tierFilter.set(opt.value)"
+          class="px-3 py-1.5 rounded-full font-mono text-[12px] font-bold uppercase tracking-wide transition-colors"
+          [class.bg-highlight]="tierFilter() === opt.value"
+          [class.text-white]="tierFilter() === opt.value"
+          [class.text-muted]="tierFilter() !== opt.value"
+        >
+          {{ opt.label }}
+        </button>
+      }
+    </div>
+
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-      @for (item of myCollectibles(); track item.id) {
+      @for (item of filteredCollectibles(); track item.id) {
         <button
           type="button"
           (click)="openPreview(item)"
@@ -41,6 +56,8 @@
             [unlocked]="true"
           ></app-collectible-card>
         </button>
+      } @empty {
+        <p class="text-sm text-muted col-span-full">No cards match that rarity.</p>
       }
     </div>
   }

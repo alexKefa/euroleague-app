@@ -4,14 +4,22 @@ import { RouterLink } from "@angular/router";
 import { ReactiveFormsModule, FormBuilder, Validators } from "@angular/forms";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
-import { Collectible, Team } from "../../core/models";
+import { Collectible, CollectibleTier, Team } from "../../core/models";
 import { CollectibleCardComponent } from "./collectible-card";
 import { CardPreviewComponent } from "./card-preview";
+import { PackIconComponent } from "../../shared/pack-icon";
 
 @Component({
   selector: "app-store",
   standalone: true,
-  imports: [CommonModule, RouterLink, ReactiveFormsModule, CollectibleCardComponent, CardPreviewComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    ReactiveFormsModule,
+    CollectibleCardComponent,
+    CardPreviewComponent,
+    PackIconComponent,
+  ],
   templateUrl: "./store.html",
 })
 export class StoreComponent implements OnInit {
@@ -22,9 +30,8 @@ export class StoreComponent implements OnInit {
   readonly collectibles = signal<Collectible[]>([]);
   readonly myCollectibleIds = signal<Set<string>>(new Set());
   readonly points = signal(0);
+  readonly pointsLoading = signal(true);
   readonly loading = signal(true);
-  readonly redeemingId = signal<string | null>(null);
-  readonly redeemError = signal<string | null>(null);
   private readonly previewItemId = signal<string | null>(null);
   readonly previewItem = computed(
     () => this.collectibles().find((c) => c.id === this.previewItemId()) ?? null
@@ -32,6 +39,13 @@ export class StoreComponent implements OnInit {
 
   readonly searchQuery = signal("");
   readonly teamFilter = signal<string | null>(null);
+  readonly tierFilter = signal<CollectibleTier | null>(null);
+  readonly tierOptions: { value: CollectibleTier | null; label: string }[] = [
+    { value: null, label: "All" },
+    { value: "common", label: "Common" },
+    { value: "rare", label: "Rare" },
+    { value: "legendary", label: "Legendary" },
+  ];
 
   readonly filterTeams = computed(() => {
     const byId = new Map<string, Collectible["team"]>();
@@ -42,8 +56,10 @@ export class StoreComponent implements OnInit {
   readonly filteredCollectibles = computed(() => {
     const query = this.searchQuery().trim().toLowerCase();
     const team = this.teamFilter();
+    const tier = this.tierFilter();
     return this.collectibles().filter((c) => {
       if (team && c.team.id !== team) return false;
+      if (tier && c.tier !== tier) return false;
       if (query && !c.name.toLowerCase().includes(query)) return false;
       return true;
     });
@@ -74,9 +90,14 @@ export class StoreComponent implements OnInit {
       });
 
       this.api.getMyPredictionSummary().subscribe({
-        next: (summary) => this.points.set(summary.points),
-        error: () => {},
+        next: (summary) => {
+          this.points.set(summary.points);
+          this.pointsLoading.set(false);
+        },
+        error: () => this.pointsLoading.set(false),
       });
+    } else {
+      this.pointsLoading.set(false);
     }
 
     if (this.auth.currentUser()?.isAdmin) {
@@ -104,30 +125,6 @@ export class StoreComponent implements OnInit {
 
   isUnlocked(collectible: Collectible): boolean {
     return this.myCollectibleIds().has(collectible.id);
-  }
-
-  canAfford(collectible: Collectible): boolean {
-    return this.points() >= collectible.pointsCost;
-  }
-
-  redeem(collectible: Collectible): void {
-    if (!this.auth.isAuthenticated() || this.redeemingId()) return;
-    this.redeemingId.set(collectible.id);
-    this.redeemError.set(null);
-
-    this.api.redeemCollectible(collectible.id).subscribe({
-      next: () => {
-        const ids = new Set(this.myCollectibleIds());
-        ids.add(collectible.id);
-        this.myCollectibleIds.set(ids);
-        this.points.set(this.points() - collectible.pointsCost);
-        this.redeemingId.set(null);
-      },
-      error: (err) => {
-        this.redeemError.set(err?.error?.error ?? "Failed to redeem.");
-        this.redeemingId.set(null);
-      },
-    });
   }
 
   submitAdd(): void {
