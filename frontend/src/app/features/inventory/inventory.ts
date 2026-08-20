@@ -32,12 +32,31 @@ export class InventoryComponent implements OnInit {
     { value: "legendary", labelKey: "inventory.tierLegendary" },
   ];
 
+  readonly searchQuery = signal("");
+  readonly teamFilter = signal<string | null>(null);
+
   readonly myCollectibles = computed(() =>
     this.allCollectibles().filter((c) => this.ownedIds().has(c.id))
   );
+
+  // Only teams you actually own a card from — no point offering a filter
+  // option that would always come back empty.
+  readonly filterTeams = computed(() => {
+    const byId = new Map<string, Collectible["team"]>();
+    for (const c of this.myCollectibles()) byId.set(c.team.id, c.team);
+    return [...byId.values()].sort((a, b) => a.code.localeCompare(b.code));
+  });
+
   readonly filteredCollectibles = computed(() => {
+    const query = this.searchQuery().trim().toLowerCase();
+    const team = this.teamFilter();
     const tier = this.tierFilter();
-    return this.myCollectibles().filter((c) => !tier || c.tier === tier);
+    return this.myCollectibles().filter((c) => {
+      if (team && c.team.id !== team) return false;
+      if (tier && c.tier !== tier) return false;
+      if (query && !c.name.toLowerCase().includes(query)) return false;
+      return true;
+    });
   });
   readonly previewItem = computed(
     () => this.myCollectibles().find((c) => c.id === this.previewItemId()) ?? null
