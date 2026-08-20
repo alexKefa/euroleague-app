@@ -1,4 +1,5 @@
-// Swap this for Angular's environment.ts / environment.prod.ts setup once
-// we wire up the Railway deployment. Kept as a single constant for now
-// so the frontend has one obvious place to point at the backend.
-export const API_BASE_URL = "http://localhost:4000/api";
+// Relative, not absolute — the dev server's proxy.conf.json forwards /api
+// to the Express backend, so the browser only ever talks to one origin.
+// That's what makes the ngrok tunnel (and the eventual Railway deploy)
+// work without touching CORS or the refresh cookie's SameSite setting.
+export const API_BASE_URL = "/api";
