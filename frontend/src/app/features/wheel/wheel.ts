@@ -3,6 +3,7 @@ import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
+import { I18nService } from "../../core/i18n.service";
 import { Collectible, CollectibleTier, SpinResult } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
 
@@ -21,6 +22,7 @@ const SPIN_ANIMATION_MS = 1800;
 export class WheelComponent implements OnInit {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
+  protected i18n = inject(I18nService);
 
   readonly loading = signal(true);
   readonly canSpin = signal(false);

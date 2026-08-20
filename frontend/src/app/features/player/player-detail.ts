@@ -3,6 +3,7 @@ import { CommonModule } from "@angular/common";
 import { ActivatedRoute, RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { ThemeService } from "../../core/theme.service";
+import { I18nService } from "../../core/i18n.service";
 import { PlayerDetail } from "../../core/models";
 
 @Component({
@@ -15,6 +16,7 @@ export class PlayerDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private api = inject(ApiService);
   private theme = inject(ThemeService);
+  protected i18n = inject(I18nService);
 
   readonly detail = signal<PlayerDetail | null>(null);
   readonly loading = signal(true);
@@ -23,7 +25,7 @@ export class PlayerDetailComponent implements OnInit {
   ngOnInit(): void {
     const playerId = this.route.snapshot.paramMap.get("id");
     if (!playerId) {
-      this.error.set("No player specified.");
+      this.error.set(this.i18n.t("player.noPlayerSpecified"));
       this.loading.set(false);
       return;
     }
@@ -35,7 +37,7 @@ export class PlayerDetailComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.error.set("Couldn't load this player.");
+        this.error.set(this.i18n.t("player.couldntLoad"));
         this.loading.set(false);
       },
     });

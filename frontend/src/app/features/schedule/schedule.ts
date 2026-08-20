@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
+import { I18nService } from "../../core/i18n.service";
 import { Game, Team } from "../../core/models";
 
 // The user asked specifically for the 2026-27 schedule — no season picker,
@@ -16,6 +17,7 @@ const SEASON = "2026-27";
 })
 export class ScheduleComponent implements OnInit {
   private api = inject(ApiService);
+  protected i18n = inject(I18nService);
 
   readonly loading = signal(true);
   readonly rounds = signal<number[]>([]);

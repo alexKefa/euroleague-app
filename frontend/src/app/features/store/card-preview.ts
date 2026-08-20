@@ -1,7 +1,8 @@
-import { Component, EventEmitter, HostListener, Input, Output, signal } from "@angular/core";
+import { Component, EventEmitter, HostListener, Input, Output, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { Collectible } from "../../core/models";
 import { CollectibleCardComponent } from "./collectible-card";
+import { I18nService } from "../../core/i18n.service";
 
 /**
  * Full-screen card preview with the drag-to-tilt gesture — shared between
@@ -16,6 +17,8 @@ import { CollectibleCardComponent } from "./collectible-card";
   templateUrl: "./card-preview.html",
 })
 export class CardPreviewComponent {
+  protected i18n = inject(I18nService);
+
   @Input({ required: true }) item!: Collectible;
   @Input() unlocked = false;
   @Output() closed = new EventEmitter<void>();

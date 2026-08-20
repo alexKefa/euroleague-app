@@ -16,15 +16,16 @@ import { Chart, registerables, ChartData } from "chart.js";
 import { ApiService } from "../../core/api.service";
 import { ThemeService } from "../../core/theme.service";
 import { AuthService } from "../../core/auth.service";
+import { I18nService } from "../../core/i18n.service";
 import { Team, RosterEntry, Game, StandingsRow } from "../../core/models";
 
 Chart.register(...registerables);
 
-const RADAR_AXES: { key: keyof StandingsRow["stats"]; label: string }[] = [
-  { key: "offRating", label: "Offense" },
-  { key: "defRating", label: "Defense" },
-  { key: "rebPct", label: "Rebounding" },
-  { key: "astPct", label: "Playmaking" },
+const RADAR_AXES: { key: keyof StandingsRow["stats"]; labelKey: string }[] = [
+  { key: "offRating", labelKey: "roster.axisOffense" },
+  { key: "defRating", labelKey: "roster.axisDefense" },
+  { key: "rebPct", labelKey: "roster.axisRebounding" },
+  { key: "astPct", labelKey: "roster.axisPlaymaking" },
 ];
 
 @Component({
@@ -39,6 +40,7 @@ export class TeamRosterComponent implements OnInit, AfterViewChecked, OnDestroy 
   private api = inject(ApiService);
   private theme = inject(ThemeService);
   protected auth = inject(AuthService);
+  protected i18n = inject(I18nService);
 
   @ViewChild("radarCanvas") private radarCanvasRef?: ElementRef<HTMLCanvasElement>;
   private chart?: Chart;
@@ -75,17 +77,17 @@ export class TeamRosterComponent implements OnInit, AfterViewChecked, OnDestroy 
     const row = this.teamStandingsRow();
     const avg = this.leagueAverage();
     return {
-      labels: RADAR_AXES.map((a) => a.label),
+      labels: RADAR_AXES.map((a) => this.i18n.t(a.labelKey)),
       datasets: [
         {
-          label: "League average",
+          label: this.i18n.t("roster.leagueAverage"),
           data: RADAR_AXES.map((a) => avg[a.key] ?? 0),
           borderDash: [4, 4],
           borderColor: "#6B7480",
           backgroundColor: "rgba(107, 116, 128, 0.12)",
         },
         {
-          label: row?.team.code ?? "Team",
+          label: row?.team.code ?? this.i18n.t("roster.teamFallback"),
           data: RADAR_AXES.map((a) => (row ? (row.stats[a.key] as number) ?? 0 : 0)),
           borderColor: row?.team.primaryColor ?? "#3E7CB1",
           backgroundColor: this.withAlpha(row?.team.primaryColor ?? "#3E7CB1", 0.3),
@@ -113,7 +115,7 @@ export class TeamRosterComponent implements OnInit, AfterViewChecked, OnDestroy 
 
     const teamId = this.route.snapshot.paramMap.get("id");
     if (!teamId) {
-      this.error.set("No team specified.");
+      this.error.set(this.i18n.t("roster.noTeamSpecified"));
       this.loading.set(false);
       return;
     }
@@ -149,7 +151,7 @@ export class TeamRosterComponent implements OnInit, AfterViewChecked, OnDestroy 
         this.loading.set(false);
       },
       error: () => {
-        this.error.set("Couldn't load the roster.");
+        this.error.set(this.i18n.t("roster.loadError"));
         this.loading.set(false);
       },
     });

@@ -6,11 +6,11 @@
   >
 
   <div class="flex items-center justify-between mt-4 mb-5">
-    <h1 class="font-display text-2xl uppercase tracking-wide">Picks</h1>
+    <h1 class="font-display text-2xl uppercase tracking-wide">{{ i18n.t('nav.picks') }}</h1>
     <a
       routerLink="/store"
       class="font-mono text-[12px] text-highlight font-bold uppercase tracking-wide hover:text-highlight-dim transition-colors"
-      >Spend points &rarr;</a
+      >{{ i18n.t('predictions.spendPoints') }} &rarr;</a
     >
   </div>
 
@@ -24,7 +24,7 @@
   @if (!loading()) {
     @if (upcomingGames().length > 0) {
       <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">Upcoming games</p>
+        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">{{ i18n.t('predictions.upcomingGames') }}</p>
         <div class="space-y-3">
           @for (game of upcomingGames(); track game.id) {
             <div class="px-2 py-2 rounded-md bg-page">
@@ -43,7 +43,7 @@
                   >
                     {{ game.homeTeam.code }}
                   </button>
-                  <span class="font-mono text-muted text-[12px] self-center">vs</span>
+                  <span class="font-mono text-muted text-[12px] self-center">{{ i18n.t('predictions.vs') }}</span>
                   <button
                     type="button"
                     (click)="predict(game, game.awayTeam.id)"
@@ -69,12 +69,12 @@
     <div class="grid gap-5 sm:grid-cols-2">
       <!-- My picks -->
       <div class="bg-card rounded-lg shadow-card p-4">
-        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">My picks</p>
+        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">{{ i18n.t('predictions.myPicks') }}</p>
 
         @if (!auth.isAuthenticated()) {
           <p class="text-sm text-muted">
-            <a routerLink="/login" class="text-highlight font-semibold">Log in</a> to make
-            predictions and track your accuracy.
+            <a routerLink="/login" class="text-highlight font-semibold">{{ i18n.t('nav.login') }}</a>
+            {{ i18n.t('predictions.loginPromptSuffix') }}
           </p>
         }
 
@@ -82,16 +82,20 @@
           @if (mySummary(); as summary) {
             @if (summary.newRoundRewards.length > 0) {
               <div class="rounded-xl bg-highlight/10 text-highlight text-xs font-bold px-3 py-2 mb-3">
-                🎉 Perfect round! You won
-                {{ summary.newRoundRewards.length === 1 ? summary.newRoundRewards[0].name : summary.newRoundRewards.length + " legendary cards" }}
-                — check your
-                <a routerLink="/store" class="underline">collection</a>.
+                🎉 {{ i18n.t('predictions.perfectRoundPrefix') }}
+                {{
+                  summary.newRoundRewards.length === 1
+                    ? summary.newRoundRewards[0].name
+                    : summary.newRoundRewards.length + " " + i18n.t('predictions.legendaryCards')
+                }}
+                {{ i18n.t('predictions.perfectRoundSuffix') }}
+                <a routerLink="/store" class="underline">{{ i18n.t('predictions.collection') }}</a>.
               </div>
             }
             <div class="flex items-center justify-between mb-3 pb-3 border-b border-line">
               <span class="flex items-baseline gap-1.5">
                 <span class="font-display text-2xl text-highlight">{{ mySummary()!.points }}</span>
-                <span class="font-mono text-[12px] text-muted font-bold uppercase">pts</span>
+                <span class="font-mono text-[12px] text-muted font-bold uppercase">{{ i18n.t('predictions.pts') }}</span>
               </span>
               <div class="flex gap-1 text-base">
                 @for (badge of mySummary()!.badges; track badge.id) {
@@ -100,7 +104,7 @@
                   }}</span>
                 }
                 @if (mySummary()!.badges.length === 0) {
-                  <span class="font-mono text-[12px] text-muted uppercase">No badges yet</span>
+                  <span class="font-mono text-[12px] text-muted uppercase">{{ i18n.t('predictions.noBadgesYet') }}</span>
                 }
               </div>
             </div>
@@ -114,18 +118,18 @@
                   <p class="font-mono text-muted text-[12px] mt-0.5">{{ p.tipoffAt | date: "MMM d, HH:mm" }}</p>
                 </div>
                 @if (p.isCorrect === null) {
-                  <span class="font-mono text-[12px] font-bold text-muted uppercase tracking-wide">Pending</span>
+                  <span class="font-mono text-[12px] font-bold text-muted uppercase tracking-wide">{{ i18n.t('predictions.pending') }}</span>
                 }
                 @if (p.isCorrect === true) {
-                  <span class="font-mono text-[12px] font-bold text-emerald-500 uppercase tracking-wide">Correct</span>
+                  <span class="font-mono text-[12px] font-bold text-emerald-500 uppercase tracking-wide">{{ i18n.t('predictions.correct') }}</span>
                 }
                 @if (p.isCorrect === false) {
-                  <span class="font-mono text-[12px] font-bold text-red-500 uppercase tracking-wide">Wrong</span>
+                  <span class="font-mono text-[12px] font-bold text-red-500 uppercase tracking-wide">{{ i18n.t('predictions.wrong') }}</span>
                 }
               </div>
             } @empty {
               <p class="text-sm text-muted">
-                No predictions yet — pick a winner from any team's upcoming games list.
+                {{ i18n.t('predictions.noPredictionsYet') }}
               </p>
             }
           </div>
@@ -134,7 +138,7 @@
 
       <!-- Leaderboard -->
       <div class="bg-card rounded-lg shadow-card p-4">
-        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">Leaderboard</p>
+        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">{{ i18n.t('predictions.leaderboard') }}</p>
         <div class="text-sm space-y-1">
           @for (entry of leaderboard(); track entry.userId; let i = $index) {
             <div class="flex justify-between items-center px-2 py-2 rounded-md">
@@ -152,7 +156,7 @@
               </span>
             </div>
           } @empty {
-            <p class="text-sm text-muted">No resolved predictions yet.</p>
+            <p class="text-sm text-muted">{{ i18n.t('predictions.noResolvedYet') }}</p>
           }
         </div>
       </div>
@@ -161,26 +165,26 @@
     @if (auth.currentUser()?.isAdmin) {
       <div class="bg-card rounded-lg shadow-card p-4 mt-5">
         <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">
-          Grant points (admin)
+          {{ i18n.t('predictions.grantPointsAdmin') }}
         </p>
 
         <form [formGroup]="adjustForm" (ngSubmit)="submitAdjustment()" class="flex flex-wrap gap-2">
           <input
             type="email"
             formControlName="email"
-            placeholder="User email"
+            [placeholder]="i18n.t('predictions.userEmailPlaceholder')"
             class="flex-1 min-w-[10rem] px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
           />
           <input
             type="number"
             formControlName="points"
-            placeholder="Points"
+            [placeholder]="i18n.t('predictions.pointsPlaceholder')"
             class="w-24 px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
           />
           <input
             type="text"
             formControlName="reason"
-            placeholder="Reason"
+            [placeholder]="i18n.t('predictions.reasonPlaceholder')"
             class="flex-1 min-w-[10rem] px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
           />
           <button
@@ -188,7 +192,7 @@
             [disabled]="adjustForm.invalid || adjustSubmitting()"
             class="px-4 py-2 rounded-full bg-highlight text-white font-mono text-xs font-bold uppercase tracking-wide hover:bg-highlight-dim transition-colors disabled:opacity-50"
           >
-            {{ adjustSubmitting() ? "Granting…" : "Grant" }}
+            {{ adjustSubmitting() ? i18n.t('predictions.granting') : i18n.t('predictions.grant') }}
           </button>
         </form>
 

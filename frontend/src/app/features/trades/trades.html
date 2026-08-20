@@ -2,10 +2,10 @@
   <a
     routerLink="/store"
     class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
-    >&larr; Store</a
+    >&larr; {{ i18n.t('trades.backToStore') }}</a
   >
 
-  <h1 class="font-display text-2xl uppercase tracking-wide mt-4 mb-5">Trades</h1>
+  <h1 class="font-display text-2xl uppercase tracking-wide mt-4 mb-5">{{ i18n.t('trades.title') }}</h1>
 
   @if (loading()) {
     <div class="animate-pulse h-40 bg-line rounded-lg mb-5"></div>
@@ -14,8 +14,8 @@
   @if (!loading() && !auth.isAuthenticated()) {
     <div class="bg-card rounded-lg shadow-card p-6">
       <p class="text-sm text-muted">
-        <a routerLink="/login" class="text-highlight font-semibold">Log in</a> to trade legendary cards
-        with other collectors.
+        <a routerLink="/login" class="text-highlight font-semibold">{{ i18n.t('trades.logInLinkText') }}</a>
+        {{ i18n.t('trades.loginToTradeSuffix') }}
       </p>
     </div>
   }
@@ -23,15 +23,15 @@
   @if (!loading() && auth.isAuthenticated()) {
     @if (myCards().length === 0) {
       <p class="text-sm text-muted mb-6">
-        You don't have any legendary cards to trade yet. Win one from the
-        <a routerLink="/wheel" class="text-highlight font-semibold">wheel</a> or a perfect prediction round.
+        {{ i18n.t('trades.noCardsPrefix') }}
+        <a routerLink="/wheel" class="text-highlight font-semibold">{{ i18n.t('trades.wheelLinkText') }}</a>
+        {{ i18n.t('trades.noCardsSuffix') }}
       </p>
     } @else {
       <div class="bg-card rounded-lg shadow-card p-4 mb-6">
-        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-1">My cards</p>
+        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-1">{{ i18n.t('trades.myCardsTitle') }}</p>
         <p class="text-xs text-muted mb-3">
-          List a card in the marketplace so other collectors can see it and offer a trade. Only cards you
-          list are visible to anyone else.
+          {{ i18n.t('trades.myCardsHint') }}
         </p>
 
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -56,7 +56,7 @@
                 [class.bg-line]="!card.tradeable"
                 [class.text-ink]="!card.tradeable"
               >
-                {{ card.tradeable ? "Listed" : "List for trade" }}
+                {{ card.tradeable ? i18n.t('trades.listed') : i18n.t('trades.listForTrade') }}
               </button>
             </div>
           }
@@ -65,10 +65,10 @@
     }
 
     <div class="bg-card rounded-lg shadow-card p-4 mb-6">
-      <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">Marketplace</p>
+      <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">{{ i18n.t('trades.marketplaceTitle') }}</p>
 
       @if (marketplace().length === 0) {
-        <p class="text-sm text-muted">No cards listed for trade right now.</p>
+        <p class="text-sm text-muted">{{ i18n.t('trades.noListings') }}</p>
       } @else {
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
           @for (card of marketplace(); track card.id) {
@@ -95,9 +95,9 @@
 
       @if (selectedListing() && myCards().length > 0) {
         <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-1">
-          Offer one or more of your cards for {{ selectedListing()!.name }}
+          {{ i18n.t('trades.offerForPrefix') }} {{ selectedListing()!.name }}
         </p>
-        <p class="text-xs text-muted mb-2">Tap to select as many cards as you like — the other side sees them all as one offer.</p>
+        <p class="text-xs text-muted mb-2">{{ i18n.t('trades.multiSelectHint') }}</p>
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
           @for (card of myCards(); track card.id) {
             <button type="button" (click)="toggleMine(card.id)" class="w-full focus:outline-none">
@@ -121,20 +121,20 @@
           [disabled]="!canPropose() || proposing()"
           class="px-4 py-2 rounded-full bg-highlight text-white font-mono text-xs font-bold uppercase tracking-wide hover:bg-highlight-dim transition-colors disabled:opacity-50"
         >
-          {{ proposing() ? "Sending…" : "Send offer" }}
+          {{ proposing() ? i18n.t('trades.sending') : i18n.t('trades.sendOffer') }}
         </button>
 
         @if (proposeError()) {
           <p class="text-red-500 text-xs font-semibold mt-2">{{ proposeError() }}</p>
         }
         @if (proposeSuccess()) {
-          <p class="text-emerald-500 text-xs font-semibold mt-2">Offer sent.</p>
+          <p class="text-emerald-500 text-xs font-semibold mt-2">{{ i18n.t('trades.offerSent') }}</p>
         }
       }
     </div>
 
     <div class="bg-card rounded-lg shadow-card p-4">
-      <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">My trade offers</p>
+      <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">{{ i18n.t('trades.myOffersTitle') }}</p>
       @if (actionError()) {
         <p class="text-red-500 text-xs font-semibold mb-3">{{ actionError() }}</p>
       }
@@ -143,12 +143,12 @@
           <div class="flex items-center justify-between gap-3 px-2 py-2 rounded-lg bg-page">
             <div class="text-sm">
               <p class="font-semibold">
-                {{ offer.direction === "outgoing" ? "To" : "From" }} {{ offer.counterpartyName }}
+                {{ offer.direction === "outgoing" ? i18n.t('trades.to') : i18n.t('trades.from') }} {{ offer.counterpartyName }}
               </p>
               <p class="text-muted text-xs">
-                {{ offer.direction === "outgoing" ? "You offered" : "They offered" }}
+                {{ offer.direction === "outgoing" ? i18n.t('trades.youOffered') : i18n.t('trades.theyOffered') }}
                 <span class="font-semibold">{{ offeredNames(offer) }}</span>
-                for
+                {{ i18n.t('trades.forWord') }}
                 <span class="font-semibold">{{ offer.requested.name }}</span>
               </p>
             </div>
@@ -161,7 +161,7 @@
                   [disabled]="actingOnId() === offer.id"
                   class="font-mono text-[12px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full bg-highlight text-white hover:bg-highlight-dim transition-colors disabled:opacity-40"
                 >
-                  Accept
+                  {{ i18n.t('trades.accept') }}
                 </button>
                 <button
                   type="button"
@@ -169,7 +169,7 @@
                   [disabled]="actingOnId() === offer.id"
                   class="font-mono text-[12px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full bg-line text-ink hover:bg-red-500 hover:text-white transition-colors disabled:opacity-40"
                 >
-                  Decline
+                  {{ i18n.t('trades.decline') }}
                 </button>
               </div>
             } @else if (offer.status === "pending" && offer.direction === "outgoing") {
@@ -179,14 +179,14 @@
                 [disabled]="actingOnId() === offer.id"
                 class="font-mono text-[12px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full bg-line text-ink hover:bg-red-500 hover:text-white transition-colors disabled:opacity-40 shrink-0"
               >
-                Cancel
+                {{ i18n.t('trades.cancel') }}
               </button>
             } @else {
-              <span class="font-mono text-[12px] font-bold text-muted uppercase tracking-wide shrink-0">{{ offer.status }}</span>
+              <span class="font-mono text-[12px] font-bold text-muted uppercase tracking-wide shrink-0">{{ statusLabel(offer.status) }}</span>
             }
           </div>
         } @empty {
-          <p class="text-sm text-muted">No trade offers yet.</p>
+          <p class="text-sm text-muted">{{ i18n.t('trades.noOffers') }}</p>
         }
       </div>
     </div>

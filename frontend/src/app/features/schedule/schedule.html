@@ -2,12 +2,12 @@
   <a
     routerLink="/"
     class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
-    >&larr; Dashboard</a
+    >&larr; {{ i18n.t('profile.backToDashboard') }}</a
   >
 
   <div class="flex items-center justify-between mt-4 mb-5">
-    <h1 class="font-display text-2xl uppercase tracking-wide">Schedule</h1>
-    <span class="font-mono text-[11px] text-muted font-bold uppercase tracking-wide">2026-27 season</span>
+    <h1 class="font-display text-2xl uppercase tracking-wide">{{ i18n.t('schedule.title') }}</h1>
+    <span class="font-mono text-[11px] text-muted font-bold uppercase tracking-wide">{{ i18n.t('schedule.seasonLabel') }}</span>
   </div>
 
   <div class="flex items-center justify-between gap-2 mb-4">
@@ -16,7 +16,7 @@
       (click)="prevRound()"
       [disabled]="!hasPrevRound()"
       class="w-9 h-9 shrink-0 rounded-full bg-card border border-line flex items-center justify-center text-muted hover:text-ink disabled:opacity-30 transition-colors"
-      aria-label="Previous round"
+      [attr.aria-label]="i18n.t('schedule.prevRound')"
     >
       &larr;
     </button>
@@ -28,7 +28,7 @@
         class="w-full appearance-none text-center pl-3 pr-8 py-2 rounded-full bg-card border border-line font-mono text-xs font-bold uppercase tracking-wide focus:border-highlight outline-none cursor-pointer"
       >
         @for (r of rounds(); track r) {
-          <option [value]="r">Round {{ r }}</option>
+          <option [value]="r">{{ i18n.t('schedule.round') }} {{ r }}</option>
         }
       </select>
       <svg
@@ -51,7 +51,7 @@
       (click)="nextRound()"
       [disabled]="!hasNextRound()"
       class="w-9 h-9 shrink-0 rounded-full bg-card border border-line flex items-center justify-center text-muted hover:text-ink disabled:opacity-30 transition-colors"
-      aria-label="Next round"
+      [attr.aria-label]="i18n.t('schedule.nextRound')"
     >
       &rarr;
     </button>
@@ -62,7 +62,7 @@
         (change)="teamFilter.set($any($event.target).value || null)"
         class="w-full appearance-none pl-3 pr-8 py-2 rounded-full bg-card border border-line font-mono text-xs font-bold uppercase tracking-wide focus:border-highlight outline-none cursor-pointer"
       >
-        <option value="">All teams</option>
+        <option value="">{{ i18n.t('schedule.allTeams') }}</option>
         @for (team of teams(); track team.id) {
           <option [value]="team.id">{{ team.code }}</option>
         }
@@ -155,7 +155,7 @@
         </div>
       } @empty {
         <p class="text-sm text-muted text-center py-8">
-          {{ teamFilter() ? "That team doesn't play this round." : "No games scheduled for this round." }}
+          {{ teamFilter() ? i18n.t('schedule.noGamesForTeam') : i18n.t('schedule.noGamesRound') }}
         </p>
       }
     </div>

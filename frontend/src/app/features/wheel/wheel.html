@@ -2,12 +2,12 @@
   <a
     routerLink="/store"
     class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors block text-left"
-    >&larr; Store</a
+    >&larr; {{ i18n.t('store.title') }}</a
   >
 
-  <h1 class="font-display text-2xl uppercase tracking-wide mt-4 mb-1">Daily Jump Ball</h1>
+  <h1 class="font-display text-2xl uppercase tracking-wide mt-4 mb-1">{{ i18n.t('wheel.title') }}</h1>
   <p class="text-sm text-muted mb-6">
-    One free jump ball a day — you always walk away with a card, with a shot at a legendary.
+    {{ i18n.t('wheel.subtitle') }}
   </p>
 
   @if (loading()) {
@@ -17,8 +17,7 @@
   @if (!loading() && !auth.isAuthenticated()) {
     <div class="bg-card rounded-lg shadow-card p-6">
       <p class="text-sm text-muted">
-        <a routerLink="/login" class="text-highlight font-semibold">Log in</a> to take your jump ball —
-        always a card, with a shot at a legendary.
+        <a routerLink="/login" class="text-highlight font-semibold">{{ i18n.t('nav.login') }}</a> {{ i18n.t('wheel.loginToSpin') }}
       </p>
     </div>
   }
@@ -52,11 +51,11 @@
       <div class="mb-6 reveal-pop">
         @if (lastResult(); as won) {
           @if (won.tier === "legendary") {
-            <p class="legendary-label font-display text-2xl uppercase tracking-wide mb-3">Legendary!</p>
+            <p class="legendary-label font-display text-2xl uppercase tracking-wide mb-3">{{ i18n.t('wheel.legendary') }}</p>
           } @else if (won.tier === "rare") {
-            <p class="rare-label font-display text-lg uppercase tracking-wide mb-3">Rare!</p>
+            <p class="rare-label font-display text-lg uppercase tracking-wide mb-3">{{ i18n.t('wheel.rare') }}</p>
           } @else {
-            <p class="font-display text-lg uppercase tracking-wide text-highlight mb-3">You got a card!</p>
+            <p class="font-display text-lg uppercase tracking-wide text-highlight mb-3">{{ i18n.t('wheel.gotCard') }}</p>
           }
           <div class="relative mx-auto" style="width: 220px">
             @if (won.tier === "legendary") {
@@ -119,7 +118,7 @@
             </div>
           </div>
         } @else {
-          <p class="font-display text-lg uppercase tracking-wide text-muted mb-3">So close!</p>
+          <p class="font-display text-lg uppercase tracking-wide text-muted mb-3">{{ i18n.t('wheel.soClose') }}</p>
           <app-collectible-card
             class="block mx-auto"
             name="???"
@@ -130,7 +129,7 @@
             [unlocked]="false"
             [maxWidth]="220"
           ></app-collectible-card>
-          <p class="font-mono text-[13px] text-muted mt-3 uppercase tracking-wide">Come back tomorrow for another shot.</p>
+          <p class="font-mono text-[13px] text-muted mt-3 uppercase tracking-wide">{{ i18n.t('wheel.comeBackTomorrow') }}</p>
         }
       </div>
     }
@@ -142,11 +141,11 @@
         [disabled]="spinning()"
         class="w-full py-3 rounded-full bg-highlight text-white font-mono text-xs font-bold uppercase tracking-wide hover:bg-highlight-dim transition-colors disabled:opacity-50"
       >
-        {{ spinning() ? "Jump ball…" : "Take the jump ball" }}
+        {{ spinning() ? i18n.t('wheel.spinning') : i18n.t('wheel.takeJumpBall') }}
       </button>
     } @else {
       <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide">
-        Next jump ball available {{ nextEligibleAt() | date: "MMM d, HH:mm" }}
+        {{ i18n.t('wheel.nextAvailable') }} {{ nextEligibleAt() | date: "MMM d, HH:mm" }}
       </p>
     }
 
@@ -157,7 +156,7 @@
         [disabled]="spinning()"
         class="w-full mt-2 py-2 rounded-full border-2 border-highlight text-highlight font-mono text-[11px] font-bold uppercase tracking-wide hover:bg-highlight hover:text-white transition-colors disabled:opacity-50"
       >
-        Cheat jump ball (admin)
+        {{ i18n.t('wheel.cheatAdmin') }}
       </button>
     }
 

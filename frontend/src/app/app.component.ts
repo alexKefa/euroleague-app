@@ -4,6 +4,7 @@ import { NavigationEnd, Router, RouterOutlet, RouterLink } from "@angular/router
 import { filter, map } from "rxjs";
 import { AuthService } from "./core/auth.service";
 import { ThemeService } from "./core/theme.service";
+import { I18nService } from "./core/i18n.service";
 import { NavIconComponent, NavIconName } from "./shared/nav-icon";
 import { SplashComponent } from "./shared/splash";
 
@@ -24,14 +25,16 @@ interface NavLink {
   activePrefixes?: string[];
 }
 
+// label is an i18n translation key, not display text — resolved via
+// i18n.t() in the template so nav labels follow the language toggle.
 const NAV_LINKS: NavLink[] = [
-  { path: "/", label: "Home", icon: "home", exact: true },
-  { path: "/news", label: "News", icon: "news" },
-  { path: "/schedule", label: "Schedule", icon: "schedule" },
-  { path: "/predictions", label: "Picks", icon: "picks" },
+  { path: "/", label: "nav.home", icon: "home", exact: true },
+  { path: "/news", label: "nav.news", icon: "news" },
+  { path: "/schedule", label: "nav.schedule", icon: "schedule" },
+  { path: "/predictions", label: "nav.picks", icon: "picks" },
   {
     path: "/store",
-    label: "Store",
+    label: "nav.store",
     icon: "store",
     activePrefixes: ["/wheel", "/trades", "/inventory", "/packs"],
   },
@@ -50,6 +53,7 @@ export class AppComponent implements OnInit {
   // possible in the app's lifecycle, minimizing any flash of the wrong
   // theme for a returning visitor who chose light.
   protected theme = inject(ThemeService);
+  protected i18n = inject(I18nService);
   private router = inject(Router);
   protected readonly navLinks = NAV_LINKS;
 

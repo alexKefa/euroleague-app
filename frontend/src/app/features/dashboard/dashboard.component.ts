@@ -4,6 +4,7 @@ import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { ThemeService } from "../../core/theme.service";
 import { AuthService } from "../../core/auth.service";
+import { I18nService } from "../../core/i18n.service";
 import { StandingsRow, LeaderEntry, RoundMvp, NewsArticle, Game } from "../../core/models";
 
 const LEADER_CATEGORIES = [
@@ -27,6 +28,7 @@ export class DashboardComponent implements OnInit {
   private api = inject(ApiService);
   private theme = inject(ThemeService);
   private auth = inject(AuthService);
+  protected i18n = inject(I18nService);
 
   readonly standings = signal<StandingsRow[]>([]);
   readonly loading = signal(true);

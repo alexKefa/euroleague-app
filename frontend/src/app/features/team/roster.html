@@ -2,7 +2,7 @@
   <a
     routerLink="/"
     class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
-    >&larr; Dashboard</a
+    >&larr; {{ i18n.t('roster.backToDashboard') }}</a
   >
 
   @if (loading()) {
@@ -42,7 +42,7 @@
     @if (standings().length > 0) {
       <div class="bg-card rounded-lg shadow-card p-4 mb-5">
         <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">
-          Team profile vs league average
+          {{ i18n.t('roster.teamProfileVsLeague') }}
         </p>
         <canvas #radarCanvas></canvas>
       </div>
@@ -50,7 +50,7 @@
 
     @if (upcomingGames().length > 0) {
       <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">Upcoming games</p>
+        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">{{ i18n.t('roster.upcomingGames') }}</p>
         <div class="text-sm space-y-2">
           @for (game of upcomingGames(); track game.id) {
             <div class="flex justify-between items-center px-2 py-2 rounded-md">
@@ -94,7 +94,7 @@
 
     <div class="bg-card rounded-lg shadow-card overflow-hidden">
       <div class="flex justify-between items-center px-4 pt-4">
-        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide">Roster</p>
+        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide">{{ i18n.t('roster.title') }}</p>
         <div class="flex gap-1">
           <button
             type="button"
@@ -104,7 +104,7 @@
             [class.text-white]="statsView() === 'traditional'"
             [class.text-muted]="statsView() !== 'traditional'"
           >
-            Traditional
+            {{ i18n.t('roster.traditional') }}
           </button>
           <button
             type="button"
@@ -114,7 +114,7 @@
             [class.text-white]="statsView() === 'advanced'"
             [class.text-muted]="statsView() !== 'advanced'"
           >
-            Advanced
+            {{ i18n.t('roster.advanced') }}
           </button>
         </div>
       </div>
@@ -123,13 +123,13 @@
           @if (statsView() === "traditional") {
             <thead>
               <tr class="text-muted font-mono text-[12px] font-bold uppercase tracking-wide border-b border-line">
-                <th class="text-left px-4 py-3">Player</th>
-                <th class="text-right px-3 py-3">GP</th>
-                <th class="text-right px-3 py-3">MIN</th>
-                <th class="text-right px-3 py-3">PPG</th>
-                <th class="text-right px-3 py-3">RPG</th>
-                <th class="text-right px-3 py-3">APG</th>
-                <th class="text-right px-4 py-3">PIR</th>
+                <th class="text-left px-4 py-3">{{ i18n.t('roster.colPlayer') }}</th>
+                <th class="text-right px-3 py-3">{{ i18n.t('roster.colGP') }}</th>
+                <th class="text-right px-3 py-3">{{ i18n.t('roster.colMIN') }}</th>
+                <th class="text-right px-3 py-3">{{ i18n.t('roster.colPPG') }}</th>
+                <th class="text-right px-3 py-3">{{ i18n.t('roster.colRPG') }}</th>
+                <th class="text-right px-3 py-3">{{ i18n.t('roster.colAPG') }}</th>
+                <th class="text-right px-4 py-3">{{ i18n.t('roster.colPIR') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -162,20 +162,20 @@
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="7" class="px-4 py-6 text-center text-muted">No roster data yet.</td>
+                  <td colspan="7" class="px-4 py-6 text-center text-muted">{{ i18n.t('roster.noRosterData') }}</td>
                 </tr>
               }
             </tbody>
           } @else {
             <thead>
               <tr class="text-muted font-mono text-[12px] font-bold uppercase tracking-wide border-b border-line">
-                <th class="text-left px-4 py-3">Player</th>
-                <th class="text-right px-3 py-3">TS%</th>
-                <th class="text-right px-3 py-3">eFG%</th>
-                <th class="text-right px-3 py-3">REB%</th>
-                <th class="text-right px-3 py-3">AST%</th>
-                <th class="text-right px-3 py-3">TOV%</th>
-                <th class="text-right px-4 py-3">POSS</th>
+                <th class="text-left px-4 py-3">{{ i18n.t('roster.colPlayer') }}</th>
+                <th class="text-right px-3 py-3">{{ i18n.t('roster.colTS') }}</th>
+                <th class="text-right px-3 py-3">{{ i18n.t('roster.colEFG') }}</th>
+                <th class="text-right px-3 py-3">{{ i18n.t('roster.colREB') }}</th>
+                <th class="text-right px-3 py-3">{{ i18n.t('roster.colAST') }}</th>
+                <th class="text-right px-3 py-3">{{ i18n.t('roster.colTOV') }}</th>
+                <th class="text-right px-4 py-3">{{ i18n.t('roster.colPOSS') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -201,7 +201,7 @@
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="7" class="px-4 py-6 text-center text-muted">No roster data yet.</td>
+                  <td colspan="7" class="px-4 py-6 text-center text-muted">{{ i18n.t('roster.noRosterData') }}</td>
                 </tr>
               }
             </tbody>
@@ -212,7 +212,7 @@
 
     @if (recentGames().length > 0) {
       <div class="bg-card rounded-lg shadow-card p-4 mt-5">
-        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">Recent results</p>
+        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">{{ i18n.t('roster.recentResults') }}</p>
         <div class="text-sm space-y-1">
           @for (game of recentGames(); track game.id) {
             <div class="flex justify-between items-center px-2 py-2 rounded-md">

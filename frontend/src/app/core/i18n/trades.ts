@@ -1,0 +1,53 @@
+import { Lang } from "./lang";
+
+export const tradesTranslations: Record<string, Record<Lang, string>> = {
+  "trades.backToStore": { en: "Store", el: "Κατάστημα" },
+  "trades.title": { en: "Trades", el: "Ανταλλαγές" },
+  "trades.logInLinkText": { en: "Log in", el: "Σύνδεση" },
+  "trades.loginToTradeSuffix": {
+    en: "to trade legendary cards with other collectors.",
+    el: "για να ανταλλάξεις θρυλικές κάρτες με άλλους συλλέκτες.",
+  },
+  "trades.noCardsPrefix": {
+    en: "You don't have any legendary cards to trade yet. Win one from the",
+    el: "Δεν έχεις ακόμα θρυλικές κάρτες για ανταλλαγή. Κέρδισε μία από τον",
+  },
+  "trades.wheelLinkText": { en: "wheel", el: "τροχό" },
+  "trades.noCardsSuffix": { en: "or a perfect prediction round.", el: "ή με τέλειο γύρο προγνωστικών." },
+  "trades.myCardsTitle": { en: "My cards", el: "Οι κάρτες μου" },
+  "trades.myCardsHint": {
+    en: "List a card in the marketplace so other collectors can see it and offer a trade. Only cards you list are visible to anyone else.",
+    el: "Καταχώρισε μια κάρτα στην αγορά ώστε άλλοι συλλέκτες να τη δουν και να προτείνουν ανταλλαγή. Μόνο οι κάρτες που καταχωρείς είναι ορατές σε άλλους.",
+  },
+  "trades.listed": { en: "Listed", el: "Καταχωρημένη" },
+  "trades.listForTrade": { en: "List for trade", el: "Καταχώριση για ανταλλαγή" },
+  "trades.marketplaceTitle": { en: "Marketplace", el: "Αγορά" },
+  "trades.noListings": { en: "No cards listed for trade right now.", el: "Δεν υπάρχουν κάρτες για ανταλλαγή αυτή τη στιγμή." },
+  "trades.offerForPrefix": {
+    en: "Offer one or more of your cards for",
+    el: "Πρόσφερε μία ή περισσότερες κάρτες σου για",
+  },
+  "trades.multiSelectHint": {
+    en: "Tap to select as many cards as you like — the other side sees them all as one offer.",
+    el: "Πάτησε για να επιλέξεις όσες κάρτες θέλεις — η άλλη πλευρά τις βλέπει όλες ως μία προσφορά.",
+  },
+  "trades.sending": { en: "Sending…", el: "Αποστολή…" },
+  "trades.sendOffer": { en: "Send offer", el: "Αποστολή προσφοράς" },
+  "trades.offerSent": { en: "Offer sent.", el: "Η προσφορά στάλθηκε." },
+  "trades.myOffersTitle": { en: "My trade offers", el: "Οι προσφορές μου" },
+  "trades.to": { en: "To", el: "Προς" },
+  "trades.from": { en: "From", el: "Από" },
+  "trades.youOffered": { en: "You offered", el: "Πρόσφερες" },
+  "trades.theyOffered": { en: "They offered", el: "Πρόσφεραν" },
+  "trades.forWord": { en: "for", el: "για" },
+  "trades.accept": { en: "Accept", el: "Αποδοχή" },
+  "trades.decline": { en: "Decline", el: "Απόρριψη" },
+  "trades.cancel": { en: "Cancel", el: "Ακύρωση" },
+  "trades.noOffers": { en: "No trade offers yet.", el: "Δεν υπάρχουν προσφορές ανταλλαγής ακόμα." },
+  "trades.statusPending": { en: "pending", el: "εκκρεμεί" },
+  "trades.statusAccepted": { en: "accepted", el: "έγινε αποδεκτή" },
+  "trades.statusDeclined": { en: "declined", el: "απορρίφθηκε" },
+  "trades.statusCancelled": { en: "cancelled", el: "ακυρώθηκε" },
+  "trades.proposeFallbackError": { en: "Failed to send trade offer.", el: "Η αποστολή της προσφοράς απέτυχε." },
+  "trades.actionFallbackError": { en: "That didn't work — try again.", el: "Κάτι πήγε στραβά — δοκίμασε ξανά." },
+};

@@ -2,6 +2,7 @@ import { Component, OnInit, HostListener, inject, signal, computed } from "@angu
 import { CommonModule } from "@angular/common";
 import { ActivatedRoute, RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
+import { I18nService } from "../../core/i18n.service";
 import { GameDetail, PlayerDetail } from "../../core/models";
 
 @Component({
@@ -13,6 +14,7 @@ import { GameDetail, PlayerDetail } from "../../core/models";
 export class GameDetailComponent implements OnInit {
   private api = inject(ApiService);
   private route = inject(ActivatedRoute);
+  protected i18n = inject(I18nService);
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
@@ -39,7 +41,7 @@ export class GameDetailComponent implements OnInit {
     const gameId = this.route.snapshot.paramMap.get("id");
     if (!gameId) {
       this.loading.set(false);
-      this.error.set("Game not found.");
+      this.error.set(this.i18n.t("game.gameNotFound"));
       return;
     }
 
@@ -49,7 +51,7 @@ export class GameDetailComponent implements OnInit {
         this.loading.set(false);
       },
       error: (err) => {
-        this.error.set(err?.error?.error ?? "Failed to load this game.");
+        this.error.set(err?.error?.error ?? this.i18n.t("game.failedToLoad"));
         this.loading.set(false);
       },
     });

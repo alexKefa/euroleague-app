@@ -3,24 +3,10 @@ import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
+import { I18nService } from "../../core/i18n.service";
 import { PackDefinition, PackOpenOutcome, PackOpenResultCard, PackType } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { PackIconComponent } from "../../shared/pack-icon";
-
-// Cosmetic-only flavor text — the actual odds live server-side in
-// backend/src/services/packs.ts (PACKS), this just describes them for
-// display without duplicating the numbers as a source of truth.
-const PACK_TAGLINES: Record<PackType, string> = {
-  starter: "Where every run starts",
-  pro: "Win or go home",
-  elite: "The biggest stage in EuroLeague",
-};
-
-const PACK_BLURBS: Record<PackType, string> = {
-  starter: "Mostly commons, but a real shot at pulling a rare in the last slot.",
-  pro: "Guaranteed 1 rare + 1 common, plus a bonus card that could be either.",
-  elite: "Guaranteed 1 rare + 1 common, plus a small chance the rare slot upgrades to legendary.",
-};
 
 // Rising quality per tier, echoed in icon color, badge, and the pack shell's
 // foil gradient — same visual language as the common/rare/legendary foil
@@ -56,6 +42,7 @@ type PackView = "selecting" | "revealing" | "summary";
 export class PacksComponent implements OnInit {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
+  protected i18n = inject(I18nService);
 
   readonly loading = signal(true);
   readonly packs = signal<PackDefinition[]>([]);
@@ -109,8 +96,6 @@ export class PacksComponent implements OnInit {
   readonly soldResultIds = signal<Set<string>>(new Set());
   readonly sellingId = signal<string | null>(null);
 
-  readonly taglines = PACK_TAGLINES;
-  readonly blurbs = PACK_BLURBS;
   readonly iconClasses = PACK_ICON_CLASSES;
   readonly visualClasses = PACK_VISUAL_CLASSES;
 
@@ -150,6 +135,14 @@ export class PacksComponent implements OnInit {
     } else {
       this.pointsLoading.set(false);
     }
+  }
+
+  tagline(type: PackType): string {
+    return this.i18n.t(`packs.tagline.${type}`);
+  }
+
+  blurb(type: PackType): string {
+    return this.i18n.t(`packs.blurb.${type}`);
   }
 
   canAfford(pack: PackDefinition): boolean {

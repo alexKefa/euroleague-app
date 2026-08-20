@@ -4,6 +4,7 @@ import { RouterLink } from "@angular/router";
 import { ReactiveFormsModule, FormBuilder, Validators } from "@angular/forms";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
+import { I18nService } from "../../core/i18n.service";
 import { Collectible, CollectibleTier, Team } from "../../core/models";
 import { CollectibleCardComponent } from "./collectible-card";
 import { CardPreviewComponent } from "./card-preview";
@@ -26,6 +27,7 @@ export class StoreComponent implements OnInit {
   private api = inject(ApiService);
   private fb = inject(FormBuilder);
   protected auth = inject(AuthService);
+  protected i18n = inject(I18nService);
 
   readonly collectibles = signal<Collectible[]>([]);
   readonly myCollectibleIds = signal<Set<string>>(new Set());
@@ -40,11 +42,11 @@ export class StoreComponent implements OnInit {
   readonly searchQuery = signal("");
   readonly teamFilter = signal<string | null>(null);
   readonly tierFilter = signal<CollectibleTier | null>(null);
-  readonly tierOptions: { value: CollectibleTier | null; label: string }[] = [
-    { value: null, label: "All" },
-    { value: "common", label: "Common" },
-    { value: "rare", label: "Rare" },
-    { value: "legendary", label: "Legendary" },
+  readonly tierOptions: { value: CollectibleTier | null; key: string }[] = [
+    { value: null, key: "store.tierAll" },
+    { value: "common", key: "store.tierCommon" },
+    { value: "rare", key: "store.tierRare" },
+    { value: "legendary", key: "store.tierLegendary" },
   ];
 
   readonly filterTeams = computed(() => {

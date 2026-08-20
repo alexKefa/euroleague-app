@@ -2,22 +2,22 @@
   <a
     routerLink="/store"
     class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors block text-left"
-    >&larr; Store</a
+    >&larr; {{ i18n.t('store.title') }}</a
   >
 
   <div class="flex items-center justify-between mt-4 mb-1">
-    <h1 class="font-display text-2xl uppercase tracking-wide">Packs</h1>
+    <h1 class="font-display text-2xl uppercase tracking-wide">{{ i18n.t('packs.title') }}</h1>
     @if (auth.isAuthenticated()) {
       @if (pointsLoading()) {
         <span class="animate-pulse inline-block w-16 h-6 rounded-full bg-line"></span>
       } @else {
         <span class="font-mono text-xs font-bold text-highlight bg-card border border-line rounded-full px-3 py-1"
-          >{{ points() }} PTS</span
+          >{{ points() }} {{ i18n.t('packs.pointsBadge') }}</span
         >
       }
     }
   </div>
-  <p class="text-sm text-muted mb-6">Spend points on a pack for a run of random cards — duplicates can be sold on the spot.</p>
+  <p class="text-sm text-muted mb-6">{{ i18n.t('packs.subtitle') }}</p>
 
   @if (loading()) {
     <div class="space-y-3">
@@ -30,7 +30,7 @@
   @if (!loading() && !auth.isAuthenticated()) {
     <div class="bg-card rounded-lg shadow-card p-6">
       <p class="text-sm text-muted">
-        <a routerLink="/login" class="text-highlight font-semibold">Log in</a> to open packs with your points.
+        <a routerLink="/login" class="text-highlight font-semibold">{{ i18n.t('nav.login') }}</a> {{ i18n.t('packs.loginToOpen') }}
       </p>
     </div>
   }
@@ -59,7 +59,7 @@
               } @else if (pointsLoading()) {
                 <span class="inline-block w-6 h-2.5 rounded-full bg-white/25 animate-pulse"></span>
               } @else {
-                {{ pack.pointsCost }} pts
+                {{ pack.pointsCost }} {{ i18n.t('packs.ptsLower') }}
               }
             </span>
           </button>
@@ -74,9 +74,9 @@
             </span>
             <div class="min-w-0">
               <p class="font-mono text-[11px] font-bold uppercase tracking-wide">
-                {{ pack.label }} <span class="text-muted font-normal normal-case">— {{ taglines[pack.type] }}</span>
+                {{ pack.label }} <span class="text-muted font-normal normal-case">— {{ tagline(pack.type) }}</span>
               </p>
-              <p class="text-xs text-muted mt-0.5 leading-snug">{{ blurbs[pack.type] }}</p>
+              <p class="text-xs text-muted mt-0.5 leading-snug">{{ blurb(pack.type) }}</p>
             </div>
           </div>
         }
@@ -90,7 +90,7 @@
     @if (view() === "revealing") {
       <div class="mt-2">
         <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide mb-3">
-          Card {{ revealIndex() + 1 }} of {{ outcome()?.results?.length }}
+          {{ i18n.t('packs.card') }} {{ revealIndex() + 1 }} {{ i18n.t('packs.of') }} {{ outcome()?.results?.length }}
         </p>
 
         <div
@@ -219,9 +219,9 @@
 
         @if (currentCard(); as card) {
           @if (card.wasDuplicate) {
-            <p class="font-mono text-[12px] font-bold uppercase tracking-wide text-muted mt-3">Duplicate</p>
+            <p class="font-mono text-[12px] font-bold uppercase tracking-wide text-muted mt-3">{{ i18n.t('packs.duplicate') }}</p>
             @if (isSold(card)) {
-              <p class="font-mono text-[12px] font-bold uppercase tracking-wide text-emerald-500 mt-1">Sold</p>
+              <p class="font-mono text-[12px] font-bold uppercase tracking-wide text-emerald-500 mt-1">{{ i18n.t('packs.sold') }}</p>
             } @else {
               <button
                 type="button"
@@ -229,15 +229,15 @@
                 [disabled]="sellingId() === card.resultId"
                 class="mt-2 font-mono text-[12px] font-bold uppercase tracking-wide px-4 py-1.5 rounded-full border-2 border-highlight text-highlight hover:bg-highlight hover:text-white transition-colors disabled:opacity-40"
               >
-                {{ sellingId() === card.resultId ? "Selling…" : "Sell for " + card.sellValue + " pts" }}
+                {{ sellingId() === card.resultId ? i18n.t('packs.selling') : i18n.t('packs.sellFor') + " " + card.sellValue + " " + i18n.t('packs.ptsLower') }}
               </button>
             }
           } @else if (card.collectible.tier === "legendary") {
-            <p class="legendary-label font-display text-2xl uppercase tracking-wide mt-3">Legendary!</p>
+            <p class="legendary-label font-display text-2xl uppercase tracking-wide mt-3">{{ i18n.t('packs.legendaryBang') }}</p>
           } @else if (card.collectible.tier === "rare") {
-            <p class="rare-label font-display text-lg uppercase tracking-wide mt-3">Rare!</p>
+            <p class="rare-label font-display text-lg uppercase tracking-wide mt-3">{{ i18n.t('packs.rareBang') }}</p>
           } @else {
-            <p class="font-mono text-[12px] font-bold uppercase tracking-wide text-highlight mt-3">New!</p>
+            <p class="font-mono text-[12px] font-bold uppercase tracking-wide text-highlight mt-3">{{ i18n.t('packs.newBang') }}</p>
           }
 
           <button
@@ -246,7 +246,7 @@
             [disabled]="isTransitioning()"
             class="w-full mt-5 py-3 rounded-full bg-highlight text-white font-mono text-xs font-bold uppercase tracking-wide hover:bg-highlight-dim transition-colors disabled:opacity-50"
           >
-            {{ isLastCard() ? "Done" : "Next card" }}
+            {{ isLastCard() ? i18n.t('packs.done') : i18n.t('packs.nextCard') }}
           </button>
         }
       </div>
@@ -254,7 +254,7 @@
 
     @if (view() === "summary") {
       <div class="reveal-pop">
-        <p class="font-display text-lg uppercase tracking-wide mb-3">Pack opened!</p>
+        <p class="font-display text-lg uppercase tracking-wide mb-3">{{ i18n.t('packs.packOpened') }}</p>
         <div class="grid grid-cols-3 gap-2 mb-5">
           @for (card of outcome()?.results; track card.resultId) {
             <div class="relative" [class.opacity-50]="isSold(card)">
@@ -270,7 +270,7 @@
               @if (isSold(card)) {
                 <span
                   class="absolute inset-x-0 bottom-0 py-1 rounded-b-2xl bg-black/70 text-center font-mono text-[10px] font-bold uppercase tracking-wide text-emerald-400"
-                  >Sold</span
+                  >{{ i18n.t('packs.sold') }}</span
                 >
               }
             </div>
@@ -282,12 +282,12 @@
             (click)="openAnother()"
             class="flex-1 py-3 rounded-full bg-highlight text-white font-mono text-xs font-bold uppercase tracking-wide hover:bg-highlight-dim transition-colors"
           >
-            Open another
+            {{ i18n.t('packs.openAnother') }}
           </button>
           <a
             routerLink="/inventory"
             class="flex-1 py-3 rounded-full bg-card shadow-card font-mono text-xs font-bold uppercase tracking-wide hover:shadow-pop transition-all"
-            >My cards</a
+            >{{ i18n.t('packs.myCards') }}</a
           >
         </div>
       </div>

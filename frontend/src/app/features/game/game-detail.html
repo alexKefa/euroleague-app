@@ -2,7 +2,7 @@
   <a
     routerLink="/schedule"
     class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
-    >&larr; Schedule</a
+    >&larr; {{ i18n.t('nav.schedule') }}</a
   >
 
   @if (loading()) {
@@ -20,7 +20,7 @@
     <!-- Matchup header -->
     <div class="bg-card rounded-lg shadow-card p-5 mt-4 mb-5">
       <p class="font-mono text-[11px] text-muted font-bold uppercase tracking-[0.1em] text-center mb-3">
-        Round {{ d.game.round }} &middot; {{ isFinal() ? "Final" : (d.game.tipoffAt | date: "EEE, MMM d, HH:mm") }}
+        {{ i18n.t('game.round') }} {{ d.game.round }} &middot; {{ isFinal() ? i18n.t('game.final') : (d.game.tipoffAt | date: "EEE, MMM d, HH:mm") }}
       </p>
       <div class="flex items-center justify-between gap-3">
         <a [routerLink]="['/teams', d.game.homeTeam.id]" class="flex flex-col items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition-opacity">
@@ -42,7 +42,7 @@
               <span [class.text-highlight]="gameResult() === 'away'">{{ d.game.awayScore }}</span>
             </p>
           } @else {
-            <p class="font-mono text-xs text-muted font-bold uppercase">vs</p>
+            <p class="font-mono text-xs text-muted font-bold uppercase">{{ i18n.t('game.vs') }}</p>
           }
         </div>
 
@@ -61,14 +61,14 @@
 
     @if (usingPriorSeason()) {
       <p class="text-xs text-muted text-center -mt-3 mb-5">
-        {{ d.game.season }} hasn't started yet — stats below are from {{ d.statsSeason }}.
+        {{ d.game.season }} {{ i18n.t('game.seasonNotStarted') }} {{ d.statsSeason }}.
       </p>
     }
 
     <!-- Top performers (final games only) -->
     @if (isFinal() && d.topPerformers.length > 0) {
       <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-        <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-[0.1em] mb-3">Top Performers</p>
+        <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-[0.1em] mb-3">{{ i18n.t('game.topPerformers') }}</p>
         <div class="text-sm space-y-1">
           @for (p of d.topPerformers; track p.player.id; let i = $index) {
             <button
@@ -92,7 +92,7 @@
           <div class="mt-3 pt-3 border-t border-line flex flex-wrap gap-1.5">
             @for (p of d.doubleDoubles; track p.player.id) {
               <span class="font-mono text-[11px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-highlight/10 text-highlight"
-                >🔥 {{ p.player.name }} — double-double</span
+                >🔥 {{ p.player.name }} — {{ i18n.t('game.doubleDouble') }}</span
               >
             }
           </div>
@@ -103,7 +103,7 @@
     <!-- Players to watch -->
     <div class="bg-card rounded-lg shadow-card p-4 mb-5">
       <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-[0.1em] mb-3">
-        {{ isFinal() ? "Players Who Stood Out This Season" : "Players to Watch" }}
+        {{ isFinal() ? i18n.t('game.playersWhoStoodOut') : i18n.t('game.playersToWatch') }}
       </p>
       <div class="grid grid-cols-2 gap-4">
         <div class="space-y-1 min-w-0">
@@ -121,7 +121,7 @@
               >
             </button>
           } @empty {
-            <p class="text-xs text-muted px-2">No stats yet.</p>
+            <p class="text-xs text-muted px-2">{{ i18n.t('game.noStatsYet') }}</p>
           }
         </div>
         <div class="space-y-1 min-w-0">
@@ -139,7 +139,7 @@
               >
             </button>
           } @empty {
-            <p class="text-xs text-muted px-2">No stats yet.</p>
+            <p class="text-xs text-muted px-2">{{ i18n.t('game.noStatsYet') }}</p>
           }
         </div>
       </div>
@@ -148,13 +148,13 @@
     <!-- Team comparison -->
     @if (d.teamComparison.home || d.teamComparison.away) {
       <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-        <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-[0.1em] mb-3">Team Comparison</p>
+        <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-[0.1em] mb-3">{{ i18n.t('game.teamComparison') }}</p>
         <div class="text-sm space-y-1.5">
           <div class="flex justify-between items-center px-2">
             <span class="font-mono text-xs font-bold w-16 text-right">{{
               d.teamComparison.home ? d.teamComparison.home!.wins + "-" + d.teamComparison.home!.losses : "—"
             }}</span>
-            <span class="text-muted text-xs uppercase font-mono">Record</span>
+            <span class="text-muted text-xs uppercase font-mono">{{ i18n.t('game.record') }}</span>
             <span class="font-mono text-xs font-bold w-16">{{
               d.teamComparison.away ? d.teamComparison.away!.wins + "-" + d.teamComparison.away!.losses : "—"
             }}</span>
@@ -163,29 +163,29 @@
             <span class="font-mono text-xs font-bold w-16 text-right">{{
               d.teamComparison.home?.position ? "#" + d.teamComparison.home!.position : "—"
             }}</span>
-            <span class="text-muted text-xs uppercase font-mono">Standing</span>
+            <span class="text-muted text-xs uppercase font-mono">{{ i18n.t('game.standing') }}</span>
             <span class="font-mono text-xs font-bold w-16">{{
               d.teamComparison.away?.position ? "#" + d.teamComparison.away!.position : "—"
             }}</span>
           </div>
           <div class="flex justify-between items-center px-2">
             <span class="font-mono text-xs font-bold w-16 text-right">{{ d.teamComparison.home?.ppg | number: "1.1-1" }}</span>
-            <span class="text-muted text-xs uppercase font-mono">PPG</span>
+            <span class="text-muted text-xs uppercase font-mono">{{ i18n.t('game.ppg') }}</span>
             <span class="font-mono text-xs font-bold w-16">{{ d.teamComparison.away?.ppg | number: "1.1-1" }}</span>
           </div>
           <div class="flex justify-between items-center px-2">
             <span class="font-mono text-xs font-bold w-16 text-right">{{ d.teamComparison.home?.papg | number: "1.1-1" }}</span>
-            <span class="text-muted text-xs uppercase font-mono">Opp PPG</span>
+            <span class="text-muted text-xs uppercase font-mono">{{ i18n.t('game.oppPpg') }}</span>
             <span class="font-mono text-xs font-bold w-16">{{ d.teamComparison.away?.papg | number: "1.1-1" }}</span>
           </div>
           <div class="flex justify-between items-center px-2">
             <span class="font-mono text-xs font-bold w-16 text-right">{{ d.teamComparison.home?.offRating | number: "1.1-1" }}</span>
-            <span class="text-muted text-xs uppercase font-mono">Off Rating</span>
+            <span class="text-muted text-xs uppercase font-mono">{{ i18n.t('game.offRating') }}</span>
             <span class="font-mono text-xs font-bold w-16">{{ d.teamComparison.away?.offRating | number: "1.1-1" }}</span>
           </div>
           <div class="flex justify-between items-center px-2">
             <span class="font-mono text-xs font-bold w-16 text-right">{{ d.teamComparison.home?.defRating | number: "1.1-1" }}</span>
-            <span class="text-muted text-xs uppercase font-mono">Def Rating</span>
+            <span class="text-muted text-xs uppercase font-mono">{{ i18n.t('game.defRating') }}</span>
             <span class="font-mono text-xs font-bold w-16">{{ d.teamComparison.away?.defRating | number: "1.1-1" }}</span>
           </div>
         </div>
@@ -195,7 +195,7 @@
     <!-- Full box score (final games only) -->
     @if (isFinal() && d.boxscore) {
       <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-        <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-[0.1em] mb-3">Box Score</p>
+        <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-[0.1em] mb-3">{{ i18n.t('game.boxScore') }}</p>
 
         @for (side of [{ label: d.game.homeTeam.name, lines: d.boxscore.home }, { label: d.game.awayTeam.name, lines: d.boxscore.away }]; track side.label) {
           <p class="font-mono text-[11px] text-highlight font-bold uppercase tracking-wide mt-3 mb-1.5">{{ side.label }}</p>
@@ -203,7 +203,7 @@
             <table class="w-full text-xs">
               <thead>
                 <tr class="text-muted font-mono uppercase">
-                  <th class="text-left font-bold py-1">Player</th>
+                  <th class="text-left font-bold py-1">{{ i18n.t('game.playerColumn') }}</th>
                   <th class="text-right font-bold py-1 px-1.5">MIN</th>
                   <th class="text-right font-bold py-1 px-1.5">PTS</th>
                   <th class="text-right font-bold py-1 px-1.5">REB</th>
@@ -244,7 +244,7 @@
       type="button"
       (click)="closePlayer()"
       class="absolute top-4 right-4 text-white/80 hover:text-white text-3xl leading-none font-bold"
-      aria-label="Close"
+      [attr.aria-label]="i18n.t('game.close')"
     >
       &times;
     </button>
@@ -302,16 +302,16 @@
             </div>
           </div>
         } @else {
-          <p class="text-xs text-muted text-center mt-4">No season stats yet.</p>
+          <p class="text-xs text-muted text-center mt-4">{{ i18n.t('game.noSeasonStatsYet') }}</p>
         }
 
         <a
           [routerLink]="['/players', pd.player.id]"
           class="block text-center mt-5 font-mono text-[11px] text-muted hover:text-highlight uppercase tracking-wide transition-colors"
-          >Full player page &rarr;</a
+          >{{ i18n.t('game.fullPlayerPage') }} &rarr;</a
         >
       } @else {
-        <p class="text-sm text-muted text-center">Couldn't load this player.</p>
+        <p class="text-sm text-muted text-center">{{ i18n.t('game.couldntLoadPlayer') }}</p>
       }
     </div>
   </div>

@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
+import { I18nService } from "../../core/i18n.service";
 import { NewsArticle } from "../../core/models";
 
 @Component({
@@ -12,6 +13,7 @@ import { NewsArticle } from "../../core/models";
 })
 export class NewsComponent implements OnInit {
   private api = inject(ApiService);
+  protected i18n = inject(I18nService);
 
   readonly articles = signal<NewsArticle[]>([]);
   readonly loading = signal(true);
@@ -24,7 +26,7 @@ export class NewsComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.error.set("Couldn't load news right now.");
+        this.error.set(this.i18n.t("news.loadError"));
         this.loading.set(false);
       },
     });

@@ -2,19 +2,47 @@
   <a
     routerLink="/"
     class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
-    >&larr; Dashboard</a
+    >&larr; {{ i18n.t('profile.backToDashboard') }}</a
   >
 
-  <h1 class="font-display text-2xl uppercase tracking-wide mt-4 mb-5">Profile</h1>
+  <h1 class="font-display text-2xl uppercase tracking-wide mt-4 mb-5">{{ i18n.t('profile.title') }}</h1>
 
   @if (auth.currentUser(); as user) {
     <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-      <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide mb-1">Email</p>
+      <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide mb-1">{{ i18n.t('profile.email') }}</p>
       <p class="font-semibold text-sm">{{ user.email }}</p>
     </div>
 
+    <div class="bg-card rounded-lg shadow-card p-4 mb-5">
+      <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide mb-3">{{ i18n.t('profile.language') }}</p>
+      <div class="flex gap-2">
+        <button
+          type="button"
+          (click)="i18n.setLang('en')"
+          class="px-4 py-1.5 rounded-full font-mono text-xs font-bold uppercase tracking-wide transition-colors"
+          [class.bg-highlight]="i18n.lang() === 'en'"
+          [class.text-white]="i18n.lang() === 'en'"
+          [class.bg-page]="i18n.lang() !== 'en'"
+          [class.text-muted]="i18n.lang() !== 'en'"
+        >
+          {{ i18n.t('profile.languageEnglish') }}
+        </button>
+        <button
+          type="button"
+          (click)="i18n.setLang('el')"
+          class="px-4 py-1.5 rounded-full font-mono text-xs font-bold uppercase tracking-wide transition-colors"
+          [class.bg-highlight]="i18n.lang() === 'el'"
+          [class.text-white]="i18n.lang() === 'el'"
+          [class.bg-page]="i18n.lang() !== 'el'"
+          [class.text-muted]="i18n.lang() !== 'el'"
+        >
+          {{ i18n.t('profile.languageGreek') }}
+        </button>
+      </div>
+    </div>
+
     <div class="bg-card rounded-lg shadow-card p-4">
-      <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide mb-3">Favorite team</p>
+      <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide mb-3">{{ i18n.t('profile.favoriteTeam') }}</p>
       <div class="flex flex-wrap gap-2">
         @for (team of teams(); track team.id) {
           <button
@@ -35,7 +63,7 @@
       @if (saveError()) {
         <p class="text-red-500 text-xs font-semibold mt-3">{{ saveError() }}</p>
       }
-      <p class="text-xs text-muted mt-3">Tap your team again to clear it.</p>
+      <p class="text-xs text-muted mt-3">{{ i18n.t('profile.clearHint') }}</p>
     </div>
 
     <button
@@ -43,7 +71,7 @@
       (click)="logout()"
       class="w-full mt-5 py-3 rounded-full bg-card shadow-card font-mono text-xs font-bold uppercase tracking-wide text-highlight hover:bg-highlight hover:text-white transition-colors"
     >
-      Log out
+      {{ i18n.t('profile.logout') }}
     </button>
   }
 </div>

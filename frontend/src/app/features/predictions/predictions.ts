@@ -4,6 +4,7 @@ import { RouterLink } from "@angular/router";
 import { ReactiveFormsModule, FormBuilder, Validators } from "@angular/forms";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
+import { I18nService } from "../../core/i18n.service";
 import { Prediction, LeaderboardEntry, PredictionSummary, Game } from "../../core/models";
 
 // Emoji glyphs for known badge ids — purely a display concern, the backend
@@ -26,6 +27,7 @@ export class PredictionsComponent implements OnInit {
   private api = inject(ApiService);
   private fb = inject(FormBuilder);
   protected auth = inject(AuthService);
+  protected i18n = inject(I18nService);
 
   readonly myPredictions = signal<Prediction[]>([]);
   readonly leaderboard = signal<LeaderboardEntry[]>([]);
@@ -110,13 +112,15 @@ export class PredictionsComponent implements OnInit {
     this.api.adjustPoints(email, Number(points), reason).subscribe({
       next: () => {
         this.adjustSubmitting.set(false);
-        this.adjustSuccess.set(`Granted ${points} pts to ${email}.`);
+        this.adjustSuccess.set(
+          `${this.i18n.t("predictions.grantedPrefix")} ${points} ${this.i18n.t("predictions.grantedTo")} ${email}.`
+        );
         this.adjustForm.patchValue({ email: "", reason: "" });
         this.api.getLeaderboard().subscribe({ next: (rows) => this.leaderboard.set(rows) });
       },
       error: (err) => {
         this.adjustSubmitting.set(false);
-        this.adjustError.set(err?.error?.error ?? "Failed to grant points.");
+        this.adjustError.set(err?.error?.error ?? this.i18n.t("predictions.grantFailed"));
       },
     });
   }

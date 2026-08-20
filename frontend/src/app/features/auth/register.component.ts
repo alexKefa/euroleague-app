@@ -4,6 +4,7 @@ import { ReactiveFormsModule, FormBuilder, Validators } from "@angular/forms";
 import { Router, RouterLink } from "@angular/router";
 import { AuthService } from "../../core/auth.service";
 import { ApiService } from "../../core/api.service";
+import { I18nService } from "../../core/i18n.service";
 import { Team } from "../../core/models";
 
 @Component({
@@ -17,6 +18,7 @@ export class RegisterComponent implements OnInit {
   private auth = inject(AuthService);
   private api = inject(ApiService);
   private router = inject(Router);
+  protected i18n = inject(I18nService);
 
   readonly submitting = signal(false);
   readonly error = signal<string | null>(null);
@@ -47,7 +49,7 @@ export class RegisterComponent implements OnInit {
       next: () => this.router.navigateByUrl("/"),
       error: (err) => {
         this.error.set(
-          err?.status === 409 ? "An account with that email already exists." : "Something went wrong."
+          err?.status === 409 ? this.i18n.t("auth.emailExists") : this.i18n.t("auth.genericError")
         );
         this.submitting.set(false);
       },

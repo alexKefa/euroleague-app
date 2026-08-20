@@ -2,10 +2,10 @@
   <a
     routerLink="/"
     class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
-    >&larr; Dashboard</a
+    >&larr; {{ i18n.t('profile.backToDashboard') }}</a
   >
 
-  <h1 class="font-display text-2xl uppercase tracking-wide mt-4 mb-5">News</h1>
+  <h1 class="font-display text-2xl uppercase tracking-wide mt-4 mb-5">{{ i18n.t('news.title') }}</h1>
 
   @if (loading()) {
     <div class="animate-pulse space-y-3">
@@ -51,7 +51,7 @@
           </div>
         </a>
       } @empty {
-        <p class="text-muted text-sm">No articles yet — the sync may not have run.</p>
+        <p class="text-muted text-sm">{{ i18n.t('news.empty') }}</p>
       }
     </div>
   }

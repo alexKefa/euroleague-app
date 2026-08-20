@@ -2,18 +2,18 @@
   <a
     routerLink="/"
     class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
-    >&larr; Dashboard</a
+    >&larr; {{ i18n.t('profile.backToDashboard') }}</a
   >
 
   <div class="flex items-center justify-between mt-4 mb-5">
-    <h1 class="font-display text-2xl uppercase tracking-wide">Store</h1>
+    <h1 class="font-display text-2xl uppercase tracking-wide">{{ i18n.t('store.title') }}</h1>
     @if (auth.isAuthenticated()) {
       @if (pointsLoading()) {
         <span class="animate-pulse inline-block w-16 h-6 rounded-full bg-line"></span>
       } @else {
         <span
           class="font-mono text-xs font-bold text-highlight bg-card border border-line rounded-full px-3 py-1"
-          >{{ points() }} PTS</span
+          >{{ points() }} {{ i18n.t('store.pointsBadge') }}</span
         >
       }
     }
@@ -21,8 +21,7 @@
 
   @if (!auth.isAuthenticated()) {
     <p class="text-sm text-muted mb-5">
-      <a routerLink="/login" class="text-highlight font-semibold">Log in</a> to collect cards from packs
-      and the wheel.
+      <a routerLink="/login" class="text-highlight font-semibold">{{ i18n.t('nav.login') }}</a> {{ i18n.t('store.loginToCollect') }}
     </p>
   }
 
@@ -31,22 +30,22 @@
       <a
         routerLink="/wheel"
         class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-full bg-card shadow-card font-mono text-[13px] font-bold uppercase tracking-wide hover:shadow-pop transition-all"
-        ><app-nav-icon name="wheel" />Jump Ball</a
+        ><app-nav-icon name="wheel" />{{ i18n.t('store.jumpBall') }}</a
       >
       <a
         routerLink="/packs"
         class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-full bg-card shadow-card font-mono text-[13px] font-bold uppercase tracking-wide hover:shadow-pop transition-all"
-        ><app-nav-icon name="packs" />Packs</a
+        ><app-nav-icon name="packs" />{{ i18n.t('store.packs') }}</a
       >
       <a
         routerLink="/inventory"
         class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-full bg-card shadow-card font-mono text-[13px] font-bold uppercase tracking-wide hover:shadow-pop transition-all"
-        ><app-nav-icon name="cards" />My Cards</a
+        ><app-nav-icon name="cards" />{{ i18n.t('store.myCards') }}</a
       >
       <a
         routerLink="/trades"
         class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-full bg-card shadow-card font-mono text-[13px] font-bold uppercase tracking-wide hover:shadow-pop transition-all"
-        ><app-nav-icon name="trade" />Trades</a
+        ><app-nav-icon name="trade" />{{ i18n.t('store.trades') }}</a
       >
     </div>
   }
@@ -65,7 +64,7 @@
         type="search"
         [value]="searchQuery()"
         (input)="searchQuery.set($any($event.target).value)"
-        placeholder="Search players…"
+        [placeholder]="i18n.t('store.searchPlaceholder')"
         class="flex-1 min-w-[10rem] px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
       />
       @if (filterTeams().length > 1) {
@@ -75,7 +74,7 @@
             (change)="teamFilter.set($any($event.target).value || null)"
             class="appearance-none pl-3 pr-8 py-2 rounded-full bg-card border border-line font-mono text-xs font-bold uppercase tracking-wide focus:border-highlight outline-none cursor-pointer"
           >
-            <option value="">All teams</option>
+            <option value="">{{ i18n.t('store.allTeams') }}</option>
             @for (team of filterTeams(); track team.id) {
               <option [value]="team.id">{{ team.code }}</option>
             }
@@ -98,7 +97,7 @@
     </div>
 
     <div class="inline-flex bg-card border border-line rounded-full p-1 gap-1 mb-4">
-      @for (opt of tierOptions; track opt.label) {
+      @for (opt of tierOptions; track opt.value) {
         <button
           type="button"
           (click)="tierFilter.set(opt.value)"
@@ -107,7 +106,7 @@
           [class.text-white]="tierFilter() === opt.value"
           [class.text-muted]="tierFilter() !== opt.value"
         >
-          {{ opt.label }}
+          {{ i18n.t(opt.key) }}
         </button>
       }
     </div>
@@ -119,7 +118,7 @@
             type="button"
             (click)="openPreview(item)"
             class="w-full rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-highlight"
-            [attr.aria-label]="'Preview ' + item.name"
+            [attr.aria-label]="i18n.t('store.previewPrefix') + ' ' + item.name"
           >
             <app-collectible-card
               [name]="item.name"
@@ -132,24 +131,24 @@
           </button>
 
           @if (isUnlocked(item)) {
-            <span class="font-mono text-[12px] font-bold text-emerald-500 uppercase tracking-wide">Unlocked</span>
+            <span class="font-mono text-[12px] font-bold text-emerald-500 uppercase tracking-wide">{{ i18n.t('store.unlocked') }}</span>
           } @else if (item.tier === "legendary") {
             <a
               routerLink="/wheel"
               class="font-mono text-[12px] font-bold text-muted uppercase tracking-wide hover:text-highlight transition-colors"
-              >Win it on the wheel &rarr;</a
+              >{{ i18n.t('store.winOnWheel') }}</a
             >
           } @else {
             <a
               routerLink="/packs"
               class="font-mono text-[12px] font-bold text-muted uppercase tracking-wide hover:text-highlight transition-colors"
-              >Get from a pack &rarr;</a
+              >{{ i18n.t('store.getFromPack') }}</a
             >
           }
         </div>
       } @empty {
         <p class="text-sm text-muted col-span-full">
-          {{ collectibles().length === 0 ? "Nothing in the store yet." : "No cards match your search." }}
+          {{ collectibles().length === 0 ? i18n.t('store.emptyStore') : i18n.t('store.emptySearch') }}
         </p>
       }
     </div>
@@ -159,14 +158,14 @@
   @if (auth.currentUser()?.isAdmin) {
     <div class="bg-card rounded-lg shadow-card p-4 mt-6">
       <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide mb-3">
-        Add to catalog (admin)
+        {{ i18n.t('store.adminAddTitle') }}
       </p>
 
       <form [formGroup]="addForm" (ngSubmit)="submitAdd()" class="flex flex-wrap gap-2">
         <input
           type="text"
           formControlName="name"
-          placeholder="Player / item name"
+          [placeholder]="i18n.t('store.namePlaceholder')"
           class="flex-1 min-w-[10rem] px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
         />
         <div class="relative">
@@ -174,7 +173,7 @@
             formControlName="teamId"
             class="appearance-none pl-3 pr-8 py-2 rounded-full bg-card border border-line text-sm font-semibold focus:border-highlight outline-none cursor-pointer"
           >
-            <option value="" disabled>Team</option>
+            <option value="" disabled>{{ i18n.t('store.teamPlaceholder') }}</option>
             @for (team of teams(); track team.id) {
               <option [value]="team.id">{{ team.code }}</option>
             }
@@ -198,9 +197,9 @@
             formControlName="tier"
             class="appearance-none pl-3 pr-8 py-2 rounded-full bg-card border border-line text-sm font-semibold focus:border-highlight outline-none cursor-pointer"
           >
-            <option value="common">Common</option>
-            <option value="rare">Rare</option>
-            <option value="legendary">Legendary</option>
+            <option value="common">{{ i18n.t('store.tierCommon') }}</option>
+            <option value="rare">{{ i18n.t('store.tierRare') }}</option>
+            <option value="legendary">{{ i18n.t('store.tierLegendary') }}</option>
           </select>
           <svg
             class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-muted"
@@ -219,13 +218,13 @@
         <input
           type="number"
           formControlName="pointsCost"
-          placeholder="Points"
+          [placeholder]="i18n.t('store.pointsPlaceholder')"
           class="w-24 px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
         />
         <input
           type="text"
           formControlName="imageUrl"
-          placeholder="Image URL (optional)"
+          [placeholder]="i18n.t('store.imageUrlPlaceholder')"
           class="flex-1 min-w-[10rem] px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
         />
         <button
@@ -233,7 +232,7 @@
           [disabled]="addForm.invalid || addSubmitting()"
           class="px-4 py-2 rounded-full bg-highlight text-white font-mono text-xs font-bold uppercase tracking-wide hover:bg-highlight-dim transition-colors disabled:opacity-50"
         >
-          {{ addSubmitting() ? "Adding…" : "Add" }}
+          {{ addSubmitting() ? i18n.t('store.adding') : i18n.t('store.add') }}
         </button>
       </form>
 
@@ -260,7 +259,7 @@
           [disabled]="imageSavingId() === item.id"
           class="font-mono text-[13px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-lg bg-white/15 text-white hover:bg-highlight transition-colors disabled:opacity-40"
         >
-          {{ imageSavingId() === item.id ? "…" : "Set image" }}
+          {{ imageSavingId() === item.id ? "…" : i18n.t('store.setImage') }}
         </button>
       </div>
       @if (imageErrors()[item.id]) {

@@ -2,14 +2,15 @@
   <a
     routerLink="/store"
     class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
-    >&larr; Store</a
+    >&larr; {{ i18n.t('inventory.backToStore') }}</a
   >
 
-  <h1 class="font-display text-2xl uppercase tracking-wide mt-4 mb-5">My Cards</h1>
+  <h1 class="font-display text-2xl uppercase tracking-wide mt-4 mb-5">{{ i18n.t('inventory.title') }}</h1>
 
   @if (!auth.isAuthenticated()) {
     <p class="text-sm text-muted">
-      <a routerLink="/login" class="text-highlight font-semibold">Log in</a> to see your collection.
+      <a routerLink="/login" class="text-highlight font-semibold">{{ i18n.t('inventory.logInLinkText') }}</a>
+      {{ i18n.t('inventory.loginToSeeSuffix') }}
     </p>
   } @else if (loading()) {
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -19,13 +20,13 @@
     </div>
   } @else if (myCollectibles().length === 0) {
     <p class="text-sm text-muted">
-      You haven't unlocked any cards yet — check the
-      <a routerLink="/store" class="text-highlight font-semibold">store</a>
-      or spin the <a routerLink="/wheel" class="text-highlight font-semibold">wheel</a>.
+      {{ i18n.t('inventory.noCardsPrefix') }}
+      <a routerLink="/store" class="text-highlight font-semibold">{{ i18n.t('inventory.storeLinkText') }}</a>
+      {{ i18n.t('inventory.noCardsMiddle') }} <a routerLink="/wheel" class="text-highlight font-semibold">{{ i18n.t('inventory.wheelLinkText') }}</a>.
     </p>
   } @else {
     <div class="inline-flex bg-card border border-line rounded-full p-1 gap-1 mb-4">
-      @for (opt of tierOptions; track opt.label) {
+      @for (opt of tierOptions; track opt.labelKey) {
         <button
           type="button"
           (click)="tierFilter.set(opt.value)"
@@ -34,7 +35,7 @@
           [class.text-white]="tierFilter() === opt.value"
           [class.text-muted]="tierFilter() !== opt.value"
         >
-          {{ opt.label }}
+          {{ i18n.t(opt.labelKey) }}
         </button>
       }
     </div>
@@ -45,7 +46,7 @@
           type="button"
           (click)="openPreview(item)"
           class="w-full rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-highlight"
-          [attr.aria-label]="'Preview ' + item.name"
+          [attr.aria-label]="i18n.t('inventory.previewAriaPrefix') + ' ' + item.name"
         >
           <app-collectible-card
             [name]="item.name"
@@ -57,7 +58,7 @@
           ></app-collectible-card>
         </button>
       } @empty {
-        <p class="text-sm text-muted col-span-full">No cards match that rarity.</p>
+        <p class="text-sm text-muted col-span-full">{{ i18n.t('inventory.noMatch') }}</p>
       }
     </div>
   }

@@ -3,6 +3,7 @@ import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
+import { I18nService } from "../../core/i18n.service";
 import { Collectible, CollectibleTier } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { CardPreviewComponent } from "../store/card-preview";
@@ -16,6 +17,7 @@ import { CardPreviewComponent } from "../store/card-preview";
 export class InventoryComponent implements OnInit {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
+  protected i18n = inject(I18nService);
 
   readonly loading = signal(true);
   private readonly allCollectibles = signal<Collectible[]>([]);
@@ -23,11 +25,11 @@ export class InventoryComponent implements OnInit {
   private readonly previewItemId = signal<string | null>(null);
 
   readonly tierFilter = signal<CollectibleTier | null>(null);
-  readonly tierOptions: { value: CollectibleTier | null; label: string }[] = [
-    { value: null, label: "All" },
-    { value: "common", label: "Common" },
-    { value: "rare", label: "Rare" },
-    { value: "legendary", label: "Legendary" },
+  readonly tierOptions: { value: CollectibleTier | null; labelKey: string }[] = [
+    { value: null, labelKey: "inventory.tierAll" },
+    { value: "common", labelKey: "inventory.tierCommon" },
+    { value: "rare", labelKey: "inventory.tierRare" },
+    { value: "legendary", labelKey: "inventory.tierLegendary" },
   ];
 
   readonly myCollectibles = computed(() =>

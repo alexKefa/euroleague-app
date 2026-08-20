@@ -4,7 +4,8 @@ import { RouterLink } from "@angular/router";
 import { Observable } from "rxjs";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
-import { TradeableCard, MarketplaceCard, TradeOffer } from "../../core/models";
+import { I18nService } from "../../core/i18n.service";
+import { TradeableCard, MarketplaceCard, TradeOffer, TradeOfferStatus } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
 
 @Component({
@@ -16,6 +17,7 @@ import { CollectibleCardComponent } from "../store/collectible-card";
 export class TradesComponent implements OnInit {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
+  protected i18n = inject(I18nService);
 
   readonly loading = signal(true);
   readonly myCards = signal<TradeableCard[]>([]);
@@ -118,13 +120,17 @@ export class TradesComponent implements OnInit {
       },
       error: (err) => {
         this.proposing.set(false);
-        this.proposeError.set(err?.error?.error ?? "Failed to send trade offer.");
+        this.proposeError.set(err?.error?.error ?? this.i18n.t("trades.proposeFallbackError"));
       },
     });
   }
 
   offeredNames(offer: TradeOffer): string {
     return offer.offered.map((c) => c.name).join(", ");
+  }
+
+  statusLabel(status: TradeOfferStatus): string {
+    return this.i18n.t(`trades.status${status.charAt(0).toUpperCase()}${status.slice(1)}`);
   }
 
   accept(offer: TradeOffer): void {
@@ -151,7 +157,7 @@ export class TradesComponent implements OnInit {
       },
       error: (err) => {
         this.actingOnId.set(null);
-        this.actionError.set(err?.error?.error ?? "That didn't work — try again.");
+        this.actionError.set(err?.error?.error ?? this.i18n.t("trades.actionFallbackError"));
       },
     });
   }

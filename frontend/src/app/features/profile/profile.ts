@@ -3,6 +3,7 @@ import { CommonModule } from "@angular/common";
 import { Router, RouterLink } from "@angular/router";
 import { AuthService } from "../../core/auth.service";
 import { ApiService } from "../../core/api.service";
+import { I18nService } from "../../core/i18n.service";
 import { Team } from "../../core/models";
 
 @Component({
@@ -13,6 +14,7 @@ import { Team } from "../../core/models";
 })
 export class ProfileComponent implements OnInit {
   protected auth = inject(AuthService);
+  protected i18n = inject(I18nService);
   private api = inject(ApiService);
   private router = inject(Router);
 

@@ -29,25 +29,25 @@
         @if (auth.currentUser()?.isAdmin) {
           <span
             class="font-mono text-[11px] font-bold uppercase tracking-wide text-highlight bg-highlight/10 border border-highlight/30 rounded-full px-2 py-0.5 shrink-0"
-            >Admin</span
+            >{{ i18n.t('nav.admin') }}</span
           >
         }
         <button
           (click)="logout()"
           class="font-mono text-highlight font-bold text-[13px] uppercase hover:text-highlight-dim transition-colors shrink-0"
         >
-          Log out
+          {{ i18n.t('nav.logout') }}
         </button>
       </div>
     } @else {
       <div class="flex items-center gap-3 sm:gap-4 shrink-0">
         <a routerLink="/login" class="font-mono text-muted font-bold text-[13px] uppercase hover:text-ink transition-colors"
-          >Log in</a
+          >{{ i18n.t('nav.login') }}</a
         >
         <a
           routerLink="/register"
           class="px-4 py-2 rounded-full bg-highlight text-white font-mono font-bold text-[13px] uppercase hover:bg-highlight-dim transition-colors"
-          >Register</a
+          >{{ i18n.t('nav.register') }}</a
         >
       </div>
     }
@@ -68,7 +68,7 @@
         class="flex flex-col items-center gap-1 py-3 mx-2 rounded-md font-mono text-[11px] font-bold uppercase tracking-wide hover:text-ink transition-colors"
       >
         <app-nav-icon [name]="link.icon" />
-        <span>{{ link.label }}</span>
+        <span>{{ i18n.t(link.label) }}</span>
       </a>
     }
   </nav>
@@ -95,7 +95,7 @@
       >
         <app-nav-icon [name]="link.icon" />
       </span>
-      <span class="truncate max-w-full">{{ link.label }}</span>
+      <span class="truncate max-w-full">{{ i18n.t(link.label) }}</span>
     </a>
   }
   @if (auth.isAuthenticated()) {
@@ -111,7 +111,7 @@
       >
         <app-nav-icon name="user" />
       </span>
-      <span class="truncate max-w-full">Profile</span>
+      <span class="truncate max-w-full">{{ i18n.t('nav.profile') }}</span>
     </a>
   } @else {
     <a
@@ -126,7 +126,7 @@
       >
         <app-nav-icon name="user" />
       </span>
-      <span class="truncate max-w-full">Log in</span>
+      <span class="truncate max-w-full">{{ i18n.t('nav.login') }}</span>
     </a>
   }
 </nav>
