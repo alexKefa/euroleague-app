@@ -10,11 +10,22 @@
   >
 
   <div class="flex items-center gap-3 min-w-0">
+    @if (!auth.isAuthenticated()) {
+      <button
+        type="button"
+        (click)="i18n.setLang(i18n.lang() === 'en' ? 'el' : 'en')"
+        class="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-page transition-colors font-mono text-[11px] font-bold uppercase"
+        [attr.aria-label]="i18n.lang() === 'en' ? i18n.t('nav.switchToGreek') : i18n.t('nav.switchToEnglish')"
+      >
+        {{ i18n.lang() === "en" ? "ΕΛ" : "EN" }}
+      </button>
+    }
+
     <button
       type="button"
       (click)="theme.toggleColorScheme()"
       class="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-page transition-colors"
-      [attr.aria-label]="theme.colorScheme() === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'"
+      [attr.aria-label]="theme.colorScheme() === 'dark' ? i18n.t('nav.switchToLightTheme') : i18n.t('nav.switchToDarkTheme')"
     >
       <app-nav-icon [name]="theme.colorScheme() === 'dark' ? 'sun' : 'moon'" />
     </button>

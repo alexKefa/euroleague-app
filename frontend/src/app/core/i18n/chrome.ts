@@ -12,6 +12,10 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
   "nav.register": { en: "Register", el: "Εγγραφή" },
   "nav.logout": { en: "Log out", el: "Αποσύνδεση" },
   "nav.admin": { en: "Admin", el: "Διαχειριστής" },
+  "nav.switchToLightTheme": { en: "Switch to light theme", el: "Εναλλαγή σε φωτεινό θέμα" },
+  "nav.switchToDarkTheme": { en: "Switch to dark theme", el: "Εναλλαγή σε σκοτεινό θέμα" },
+  "nav.switchToGreek": { en: "Switch to Greek", el: "Αλλαγή σε Ελληνικά" },
+  "nav.switchToEnglish": { en: "Switch to English", el: "Αλλαγή σε Αγγλικά" },
 
   "profile.backToDashboard": { en: "Dashboard", el: "Πίνακας" },
   "profile.title": { en: "Profile", el: "Προφίλ" },
