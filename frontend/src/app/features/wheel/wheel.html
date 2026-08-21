@@ -23,7 +23,7 @@
   }
 
   @if (!loading() && auth.isAuthenticated()) {
-    @if (spinning() || lastResult() === undefined) {
+    @if (spinning() || lastWonPack() === undefined) {
       <div class="relative w-48 h-48 mx-auto mb-6">
         <div
           class="absolute -top-1 left-1/2 -translate-x-1/2 z-10 w-0 h-0 border-l-[9px] border-l-transparent border-r-[9px] border-r-transparent border-t-[15px] border-t-highlight"
@@ -68,18 +68,16 @@
       </div>
     } @else {
       <div class="mb-6 reveal-pop">
-        @if (lastResult(); as won) {
-          @if (won.wasDuplicate) {
-            <p class="font-mono text-[12px] font-bold uppercase tracking-wide text-muted mb-3">{{ i18n.t('packs.duplicate') }}</p>
-          } @else if (won.collectible.tier === "legendary") {
-            <p class="legendary-label font-display text-2xl uppercase tracking-wide mb-3">{{ i18n.t('wheel.legendary') }}</p>
-          } @else if (won.collectible.tier === "rare") {
-            <p class="rare-label font-display text-lg uppercase tracking-wide mb-3">{{ i18n.t('wheel.rare') }}</p>
+        @if (lastWonPack(); as won) {
+          @if (won.tier === "legendary") {
+            <p class="legendary-label font-display text-2xl uppercase tracking-wide mb-3">{{ i18n.t('wheel.legendaryPackWon') }}</p>
+          } @else if (won.tier === "rare") {
+            <p class="rare-label font-display text-lg uppercase tracking-wide mb-3">{{ i18n.t('wheel.rarePackWon') }}</p>
           } @else {
-            <p class="font-display text-lg uppercase tracking-wide text-highlight mb-3">{{ i18n.t('wheel.gotCard') }}</p>
+            <p class="font-display text-lg uppercase tracking-wide text-highlight mb-3">{{ i18n.t('wheel.gotPack') }}</p>
           }
-          <div class="relative mx-auto" style="width: 220px">
-            @if (won.collectible.tier === "legendary") {
+          <div class="relative mx-auto flex items-center justify-center" style="width: 220px; height: 220px">
+            @if (won.tier === "legendary") {
               <!-- Legendary hype — bigger gold burst, a screen flash, a
                    double expanding ring, a full starburst, and scattered
                    twinkles — same pattern as the pack-opening legendary
@@ -109,7 +107,7 @@
                   >
                 }
               </div>
-            } @else if (won.collectible.tier === "rare") {
+            } @else if (won.tier === "rare") {
               <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div
                   class="burst-glow absolute w-72 h-72 rounded-full"
@@ -125,58 +123,31 @@
                 ></div>
               </div>
             }
-            <div class="relative" [class.legendary-shake]="won.collectible.tier === 'legendary'" [class.opacity-50]="duplicateSold()">
-              <app-collectible-card
-                class="block mx-auto"
-                [name]="won.collectible.name"
-                [tier]="won.collectible.tier"
-                [teamCode]="won.collectible.team.code"
-                [teamColor]="won.collectible.team.primaryColor"
-                [imageUrl]="won.collectible.imageUrl"
-                [unlocked]="true"
-                [maxWidth]="220"
-              ></app-collectible-card>
+            <div
+              class="pack-visual relative flex flex-col items-center justify-center pt-4 pb-2 shadow-pop"
+              [class]="visualClasses[won.packType]"
+              [class.legendary-shake]="won.tier === 'legendary'"
+              style="width: 140px"
+            >
+              <span class="pack-dots absolute inset-0 pointer-events-none"></span>
+              <span class="pack-wordmark absolute inset-0 flex items-center justify-center pointer-events-none">C</span>
+              <span class="relative font-mono text-[9px] font-bold tracking-[0.15em] opacity-80">Clutch</span>
+              <span class="relative font-display text-[13px] tracking-wide mt-auto leading-tight px-2 text-center">
+                {{ won.label }}
+              </span>
             </div>
           </div>
 
-          @if (won.wasDuplicate) {
-            @if (duplicateSold()) {
-              <p class="font-mono text-[12px] font-bold uppercase tracking-wide text-emerald-500 mt-3">{{ i18n.t('packs.sold') }}</p>
-            } @else {
-              <button
-                type="button"
-                (click)="sellDuplicate(won)"
-                [disabled]="sellingDuplicate()"
-                class="mt-3 font-mono text-[12px] font-bold px-4 py-1.5 rounded-full border-2 border-highlight text-highlight hover:bg-highlight hover:text-white transition-colors disabled:opacity-40"
-              >
-                {{ sellingDuplicate() ? i18n.t('packs.selling') : i18n.t('packs.sellFor') + " " + won.sellValue + " " + i18n.t('packs.ptsLower') }}
-              </button>
-            }
-          }
-        } @else {
-          <p class="font-display text-lg uppercase tracking-wide text-muted mb-3">{{ i18n.t('wheel.soClose') }}</p>
-          <app-collectible-card
-            class="block mx-auto"
-            name="???"
-            tier="legendary"
-            teamCode=""
-            [teamColor]="null"
-            [imageUrl]="null"
-            [unlocked]="false"
-            [maxWidth]="220"
-          ></app-collectible-card>
-          <p class="font-mono text-[13px] text-muted mt-3">{{ i18n.t('wheel.comeBackTomorrow') }}</p>
+          <p class="font-mono text-[13px] text-muted mt-3">{{ i18n.t('wheel.openInPacks') }}</p>
+          <a routerLink="/packs" appButton="outline" appButtonSize="sm" class="inline-block mt-3">
+            {{ i18n.t('wheel.goToPacks') }}
+          </a>
         }
       </div>
     }
 
     @if (canSpin()) {
-      <button
-        type="button"
-        (click)="spin()"
-        [disabled]="spinning()"
-        class="w-full py-3 rounded-full bg-highlight text-white font-mono text-xs font-bold hover:bg-highlight-dim transition-colors disabled:opacity-50"
-      >
+      <button type="button" (click)="spin()" [disabled]="spinning()" appButton class="w-full">
         {{ spinning() ? i18n.t('wheel.spinning') : i18n.t('wheel.takeJumpBall') }}
       </button>
     } @else {
@@ -190,7 +161,9 @@
         type="button"
         (click)="cheatSpin()"
         [disabled]="spinning()"
-        class="w-full mt-2 py-2 rounded-full border-2 border-highlight text-highlight font-mono text-[11px] font-bold hover:bg-highlight hover:text-white transition-colors disabled:opacity-50"
+        appButton="outline"
+        appButtonSize="sm"
+        class="w-full mt-2"
       >
         {{ i18n.t('wheel.cheatAdmin') }}
       </button>

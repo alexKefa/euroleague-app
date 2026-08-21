@@ -247,11 +247,11 @@ export interface SpinStatus {
 }
 
 export interface SpinResult {
-  // Same shape as a pack-opening result card — the wheel reward is now
-  // routed through the same pack-opening machinery as a real purchase, so
-  // a spin can land on a card already owned (wasDuplicate), sellable via
-  // the same POST /packs/results/:id/sell endpoint packs.html uses.
-  won: PackOpenResultCard | null;
+  // The wheel no longer rolls a card on the spot — it grants an unopened
+  // pack straight into the inventory (GET /api/packs/owned), opened later
+  // via POST /api/packs/owned/:id/open, same PackOpenOutcome shape a
+  // purchase gets. Every spin wins something, so this is never null.
+  wonPack: { id: string; packType: PackType; label: string; tier: CollectibleTier };
   nextEligibleAt: string;
 }
 
@@ -262,6 +262,16 @@ export interface PackDefinition {
   label: string;
   pointsCost: number;
   slots: number;
+}
+
+// An unopened pack sitting in the user's inventory — currently only ever
+// granted by the wheel; purchased packs still open immediately and never
+// appear here.
+export interface OwnedPack {
+  id: string;
+  packType: PackType;
+  label: string;
+  acquiredAt: string;
 }
 
 export interface PackOpenResultCard {

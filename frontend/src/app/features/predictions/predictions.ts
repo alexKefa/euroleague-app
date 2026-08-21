@@ -104,7 +104,19 @@ export class PredictionsComponent implements OnInit {
     return this.teamLogos().get(teamId) ?? null;
   }
 
-  predict(game: Game, teamId: string): void {
+  // Tapping the already-picked team clears the pick instead of re-submitting
+  // it — same "tap it again to clear" pattern as the favorite-team picker
+  // on Profile, so a mistaken pick doesn't require picking the other team
+  // just to undo it.
+  togglePick(game: Game, teamId: string): void {
+    if (this.myPickFor(game) === teamId) {
+      this.clearPick(game);
+    } else {
+      this.predict(game, teamId);
+    }
+  }
+
+  private predict(game: Game, teamId: string): void {
     if (!this.auth.isAuthenticated()) return;
     // Optimistic update — the backend still validates and is the source of truth.
     const map = new Map(this.myPicks());
@@ -116,6 +128,26 @@ export class PredictionsComponent implements OnInit {
         // Roll back on failure (e.g. game started in the meantime).
         const rollback = new Map(this.myPicks());
         rollback.delete(game.id);
+        this.myPicks.set(rollback);
+      },
+    });
+  }
+
+  private clearPick(game: Game): void {
+    if (!this.auth.isAuthenticated()) return;
+    const previousTeamId = this.myPickFor(game);
+    if (!previousTeamId) return;
+
+    // Optimistic update, same pattern as predict() — roll back to the prior
+    // pick if the backend rejects it (e.g. the game started in the meantime).
+    const map = new Map(this.myPicks());
+    map.delete(game.id);
+    this.myPicks.set(map);
+
+    this.api.removePrediction(game.id).subscribe({
+      error: () => {
+        const rollback = new Map(this.myPicks());
+        rollback.set(game.id, previousTeamId);
         this.myPicks.set(rollback);
       },
     });

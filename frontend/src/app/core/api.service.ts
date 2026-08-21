@@ -24,6 +24,7 @@ import {
   PackDefinition,
   PackOpenOutcome,
   PackType,
+  OwnedPack,
   RoundsInfo,
   Schedule,
   GameDetail,
@@ -96,6 +97,10 @@ export class ApiService {
     return this.http.post(`${API_BASE_URL}/predictions`, { gameId, teamId });
   }
 
+  removePrediction(gameId: string): Observable<unknown> {
+    return this.http.delete(`${API_BASE_URL}/predictions/${gameId}`);
+  }
+
   getMyPredictions(): Observable<Prediction[]> {
     return this.http.get<Prediction[]>(`${API_BASE_URL}/predictions/me`);
   }
@@ -166,6 +171,14 @@ export class ApiService {
 
   sellPackDuplicate(resultId: string): Observable<{ points: number }> {
     return this.http.post<{ points: number }>(`${API_BASE_URL}/packs/results/${resultId}/sell`, {});
+  }
+
+  getOwnedPacks(): Observable<OwnedPack[]> {
+    return this.http.get<OwnedPack[]>(`${API_BASE_URL}/packs/owned`);
+  }
+
+  openOwnedPack(id: string): Observable<PackOpenOutcome> {
+    return this.http.post<PackOpenOutcome>(`${API_BASE_URL}/packs/owned/${id}/open`, {});
   }
 
   getMyTradeableCards(): Observable<TradeableCard[]> {

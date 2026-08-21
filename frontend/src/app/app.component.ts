@@ -7,6 +7,7 @@ import { ThemeService } from "./core/theme.service";
 import { I18nService } from "./core/i18n.service";
 import { NavIconComponent, NavIconName } from "./shared/nav-icon";
 import { SplashComponent } from "./shared/splash";
+import { ButtonDirective } from "./shared/button.directive";
 
 // Matches the ball-fall/wordmark-in animation duration in splash.css —
 // the fade-out starts once the animation has actually finished playing,
@@ -65,7 +66,7 @@ const NAV_LINKS: NavLink[] = [
 @Component({
   selector: "app-root",
   standalone: true,
-  imports: [RouterOutlet, RouterLink, NavIconComponent, SplashComponent],
+  imports: [RouterOutlet, RouterLink, NavIconComponent, SplashComponent, ButtonDirective],
   templateUrl: "./app.component.html",
 })
 export class AppComponent implements OnInit {

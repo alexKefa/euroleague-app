@@ -233,3 +233,48 @@
   text-shadow: 0 0 14px rgba(190, 210, 230, 0.4);
   animation: legendary-label-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
+
+/* Pack-selection art, duplicated from features/packs/packs.css (component
+   styles don't cross feature boundaries) — the win reveal shows the same
+   foil-pack shape you'd tap to buy on the Packs page, not a plain icon, so
+   what you win visually matches what you'll later see there to open. No
+   hover/active states here (unlike packs.css's copy) since this instance
+   is a static reveal, not a tappable button. */
+.pack-visual {
+  aspect-ratio: 2 / 3.1;
+  clip-path: polygon(14% 0%, 86% 0%, 100% 11%, 100% 100%, 0% 100%, 0% 11%);
+  overflow: hidden;
+}
+
+.pack-dots {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.35) 1px, transparent 1.5px);
+  background-size: 9px 9px;
+  transform: rotate(-18deg) scale(1.4);
+  opacity: 0.5;
+}
+
+.pack-wordmark {
+  font-family: "Anton", "Arial Narrow", sans-serif;
+  font-size: 4.2rem;
+  font-weight: 700;
+  line-height: 1;
+  transform: rotate(-14deg);
+  color: currentColor;
+  opacity: 0.16;
+  letter-spacing: 0;
+}
+
+.pack-visual-starter {
+  background: linear-gradient(150deg, #8a5a34 0%, #d99a5b 30%, #6b3f22 65%, #c78a4d 100%);
+  color: #fff7ec;
+}
+
+.pack-visual-pro {
+  background: linear-gradient(135deg, #cfd6dc 0%, #f5f7f9 25%, #aab2ba 50%, #f5f7f9 75%, #cfd6dc 100%);
+  color: #1c2226;
+}
+
+.pack-visual-elite {
+  background: linear-gradient(135deg, #7a5b12 0%, #f4d675 22%, #fff6d8 40%, #caa53a 58%, #fff2c9 76%, #6e4e10 100%);
+  color: #241804;
+}

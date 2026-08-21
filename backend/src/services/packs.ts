@@ -1,4 +1,6 @@
-import { collectibles, teams } from "../db/schema.js";
+import { eq } from "drizzle-orm";
+import { db } from "../db/client.js";
+import { collectibles, teams, userCollectibles } from "../db/schema.js";
 
 export type Tier = "common" | "rare" | "legendary";
 export type PackType = "starter" | "pro" | "elite" | "wheelStarter" | "wheelPro" | "wheelLegendary";
@@ -57,25 +59,29 @@ export const PACKS: Record<PackType, PackDefinition> = {
     slots: [{ odds: { common: 1 } }, { odds: { rare: 1 } }, { odds: { rare: 0.97, legendary: 0.03 } }],
   },
 
-  // Wheel-exclusive, single-slot, free (pointsCost 0), never purchasable —
-  // see the `purchasable` doc comment above. Weighted choice between these
-  // three on each spin reuses SPIN_ODDS (65/25/10) from routes/spin.ts
-  // verbatim, just reinterpreted as "which pack" instead of "which tier",
-  // so the existing legendary pacing already reasoned about in
-  // scripts/economy-report.ts doesn't silently shift.
+  // Wheel-exclusive, free (pointsCost 0), never purchasable — see the
+  // `purchasable` doc comment above. Weighted choice between these three on
+  // each spin reuses SPIN_ODDS (65/25/10) from routes/spin.ts verbatim,
+  // just reinterpreted as "which pack" instead of "which tier", so the
+  // existing legendary pacing already reasoned about in
+  // scripts/economy-report.ts doesn't silently shift. wheelStarter/wheelPro
+  // mirror the real starter/pro packs' 3-slot odds exactly, so a Jump Ball
+  // win feels like the pack it's named after, not a lesser 1-card version
+  // of it — only wheelLegendary stays single-slot, since it's a guaranteed
+  // legendary rather than a normal pack roll.
   wheelStarter: {
     type: "wheelStarter",
     label: "Jump Ball — Common Pull",
     pointsCost: 0,
     purchasable: false,
-    slots: [{ odds: { common: 1 } }],
+    slots: [{ odds: { common: 1 } }, { odds: { common: 1 } }, { odds: { common: 0.4, rare: 0.6 } }],
   },
   wheelPro: {
     type: "wheelPro",
     label: "Jump Ball — Rare Pull",
     pointsCost: 0,
     purchasable: false,
-    slots: [{ odds: { common: 0.5, rare: 0.5 } }],
+    slots: [{ odds: { common: 1 } }, { odds: { rare: 1 } }, { odds: { common: 0.5, rare: 0.5 } }],
   },
   wheelLegendary: {
     type: "wheelLegendary",
@@ -104,5 +110,42 @@ export function rollPack(packType: PackType, catalogByTier: Record<Tier, Collect
     const tier = rollTier(slot);
     const pool = catalogByTier[tier];
     return pool[Math.floor(Math.random() * pool.length)];
+  });
+}
+
+export interface RolledSlot extends CollectibleRow {
+  wasDuplicate: boolean;
+}
+
+// Shared by both ways a pack actually gets opened — a straight purchase
+// (routes/packs.ts POST /:type/open) and opening a pack won earlier from
+// the wheel (routes/packs.ts POST /owned/:id/open). Fetches the catalog +
+// what the user already owns, rolls the pack, and marks each slot
+// wasDuplicate against the *pre-roll* ownership set plus anything rolled
+// earlier in this same pack (so a pack can't call two copies of a card it
+// just rolled both "new").
+export async function rollPackForUser(userId: string, packType: PackType): Promise<RolledSlot[]> {
+  const [catalogRows, ownedRows] = await Promise.all([
+    db.select({ collectible: collectibles, team: teams }).from(collectibles).innerJoin(teams, eq(collectibles.teamId, teams.id)),
+    db.select({ collectibleId: userCollectibles.collectibleId }).from(userCollectibles).where(eq(userCollectibles.userId, userId)),
+  ]);
+
+  const byTier: Record<Tier, CollectibleRow[]> = { common: [], rare: [], legendary: [] };
+  for (const row of catalogRows) {
+    byTier[row.collectible.tier as Tier].push(row);
+  }
+  for (const tier of Object.keys(byTier) as Tier[]) {
+    if (byTier[tier].length === 0) {
+      throw new Error(`No ${tier} cards in the catalog to roll`);
+    }
+  }
+
+  const rolled = rollPack(packType, byTier);
+  const ownedIds = new Set(ownedRows.map((o) => o.collectibleId));
+  const newlyOwnedIds = new Set<string>();
+  return rolled.map(({ collectible, team }) => {
+    const wasDuplicate = ownedIds.has(collectible.id) || newlyOwnedIds.has(collectible.id);
+    if (!wasDuplicate) newlyOwnedIds.add(collectible.id);
+    return { collectible, team, wasDuplicate };
   });
 }

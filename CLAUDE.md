@@ -102,23 +102,36 @@ If you need to apply a schema change without an interactive terminal
   tested wrapper around EuroLeague's feed for that data.
 - **Collectibles economy** (`collectibles`, `userCollectibles`,
   `wheelSpins`, `roundRewards`, `packOpenings`/`packOpeningResults`,
-  `tradeOffers`/`tradeOfferItems` in `schema.ts`; routes in `collectibles.ts`,
-  `spin.ts`, `packs.ts`, `trades.ts`). Ownership is always just a row in
-  `userCollectibles` — there's no separate "balance" table for cards, same
-  spirit as points. Three ways to earn a card: the daily Jump Ball wheel,
-  points-priced packs, or a perfect prediction round (`services/cards.ts`).
-  Points-priced packs (`packs.ts`, `services/packs.ts`) come in three
-  purchasable tiers (starter/pro/elite, tiered odds, writes batched into two
-  multi-row inserts rather than one per rolled card — that was a real
-  latency problem against the remote DB) plus three wheel-exclusive,
-  single-slot, free ones (`wheelStarter`/`wheelPro`/`wheelLegendary`,
+  `ownedPacks`, `tradeOffers`/`tradeOfferItems` in `schema.ts`; routes in
+  `collectibles.ts`, `spin.ts`, `packs.ts`, `trades.ts`). Ownership is
+  always just a row in `userCollectibles` — there's no separate "balance"
+  table for cards, same spirit as points. Three ways to earn a card: the
+  daily Jump Ball wheel, points-priced packs, or a perfect prediction round
+  (`services/cards.ts`). Points-priced packs (`packs.ts`, `services/packs.ts`)
+  come in three purchasable tiers (starter/pro/elite, tiered odds, writes
+  batched into two multi-row inserts rather than one per rolled card — that
+  was a real latency problem against the remote DB) plus three
+  wheel-exclusive, free ones (`wheelStarter`/`wheelPro`/`wheelLegendary`,
   `purchasable: false` — `GET /packs` and `POST /packs/:type/open` both
-  exclude them, so the only way to open one is through a spin). The wheel
-  (`spin.ts`, one free roll/24h, admin-only `POST /spin/cheat` bypasses the
-  cooldown for testing) picks which of those three to open with the same
-  65/25/10 odds it always used, then opens it through the same
-  `rollPack()`/`packOpenings` path a purchase uses — so a spin can land on
-  an already-owned card now (previously impossible), sellable via the same
+  exclude them, so the only way to acquire one is through a spin).
+  wheelStarter/wheelPro mirror the real starter/pro packs' 3-slot odds
+  exactly (a Jump Ball win should feel like the pack it's named after, not
+  a lesser 1-card version of it); only wheelLegendary is single-slot, since
+  it's a guaranteed legendary rather than a normal pack roll. Purchased
+  packs still open immediately; a wheel
+  win does not — `POST /api/spin` (one free roll/24h, admin-only
+  `POST /spin/cheat` bypasses the cooldown for testing) picks a pack tier
+  with the same 65/25/10 odds it always used and inserts an **unopened**
+  row into `ownedPacks` (`userId`, `packType`, `openedAt` null) rather than
+  rolling a card on the spot. The Packs page's "My Packs" section
+  (`GET /packs/owned`, grouped by type client-side) lists those and opens
+  one on demand via `POST /packs/owned/:id/open` — same claim-first
+  idempotency pattern as `roundRewards`/`referralRewardGranted` (conditional
+  `UPDATE ... WHERE opened_at IS NULL`) so a double-click can't open the
+  same pack twice. Both that route and the purchase route share
+  `rollPackForUser()` (`services/packs.ts`) for the actual roll — so a wheel
+  win, once opened, can land on a card already owned (previously impossible
+  when the wheel granted cards directly), sellable via the same
   `POST /packs/results/:id/sell` a purchased pack's duplicate uses.
   Registration grants a 100-point welcome bonus (`auth.ts`, exactly a
   starter pack's cost) — badge eligibility (`predictions.ts`'s "Century")
@@ -213,6 +226,28 @@ If you need to apply a schema change without an interactive terminal
   most templates using the class don't separately add `font-bold`.
 - Forms use Angular Reactive Forms (`ReactiveFormsModule` + `FormBuilder`),
   not template-driven/`ngModel` — follow that pattern for new forms.
+- **Buttons**: `shared/button.directive.ts`'s `ButtonDirective` (`[appButton]`,
+  standalone) is the shared button styling — "Court Line", picked over two
+  other directions via a side-by-side design-canvas comparison. An attribute
+  directive rather than a wrapping component, so the host stays a real
+  `<button>`/`<a>` and `routerLink`/`type="submit"`/`[disabled]`/`(click)`
+  all keep working unchanged; only the class list swaps in. Usage:
+  `appButton` alone (bare attribute — binds `""`, which the directive
+  treats as `"primary"`) or `appButton="outline"` / `appButton="secondary"`
+  for the other two variants, plus optional `appButtonSize="sm"` (default
+  `"md"`). Any other classes on the same element (`class="w-full"` etc.)
+  merge fine with the directive's host-bound classes — Angular unions
+  static class attributes with directive host bindings, doesn't clobber.
+  Deliberately NOT migrated: selection/toggle controls (team pickers, the
+  language switch, tier-filter pills, the wheel-disc tier legend, trades'
+  "list for trade" toggle) since they're a different semantic (persistent
+  selection state, not a one-shot action) with their own conditional-class
+  pattern; destructive actions (trades' decline/cancel, which turn red on
+  hover) since that hover-to-red safety signal isn't one of the three
+  reviewed variants; plain text links (`text-highlight font-semibold`, no
+  background); and one-off contexts like icon-only nav buttons and the
+  card-preview modal's overlay controls (sit on a translucent image
+  backdrop, not the page/card background the directive's colors assume).
 - Known bootstrap race: `AppComponent.restoreSession()` and the dashboard's
   standings fetch fire independently on app load. If standings resolve
   first, the dashboard doesn't yet know `favoriteTeamId` yet for that

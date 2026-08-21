@@ -4,11 +4,12 @@ import { ReactiveFormsModule, FormBuilder, Validators } from "@angular/forms";
 import { Router, RouterLink } from "@angular/router";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
+import { ButtonDirective } from "../../shared/button.directive";
 
 @Component({
   selector: "app-login",
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, ButtonDirective],
   templateUrl: "./login.component.html",
 })
 export class LoginComponent {

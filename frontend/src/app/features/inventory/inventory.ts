@@ -10,6 +10,7 @@ import { CardPreviewComponent } from "../store/card-preview";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { PageHintComponent } from "../../shared/page-hint";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
+import { ButtonDirective } from "../../shared/button.directive";
 
 @Component({
   selector: "app-inventory",
@@ -22,6 +23,7 @@ import { RetryImgDirective } from "../../shared/retry-img.directive";
     NavIconComponent,
     PageHintComponent,
     RetryImgDirective,
+    ButtonDirective,
   ],
   templateUrl: "./inventory.html",
 })

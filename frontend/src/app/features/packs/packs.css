@@ -283,6 +283,20 @@
   color: #241804;
 }
 
+/* Same foil-pack silhouette as .pack-visual (tapered corners, foil
+   gradient, dot texture), shrunk to badge size for the pack description
+   list and the My Packs inventory rows — this is the same pack art you tap
+   to buy, just small, rather than a separate unrelated glyph. No wordmark
+   at this size: the "C" reads as a big embossed watermark on the full-size
+   button, but at ~26px wide it'd just be an illegible smudge. */
+.pack-visual-mini {
+  width: 26px;
+  aspect-ratio: 2 / 3.1;
+  clip-path: polygon(14% 0%, 86% 0%, 100% 11%, 100% 100%, 0% 100%, 0% 11%);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
 /* A quick bright flash behind the card the instant a legendary reveals —
    fires once, gone almost immediately, meant to register subliminally
    alongside the burst/rings/rays rather than linger. */

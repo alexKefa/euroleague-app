@@ -48,11 +48,7 @@
       <p class="text-red-500 text-xs font-semibold">{{ error() }}</p>
     }
 
-    <button
-      type="submit"
-      [disabled]="form.invalid || submitting()"
-      class="w-full py-3 rounded-full bg-highlight text-white font-mono text-xs font-bold tracking-wide hover:bg-highlight-dim transition-colors disabled:opacity-50"
-    >
+    <button type="submit" [disabled]="form.invalid || submitting()" appButton class="w-full">
       {{ submitting() ? i18n.t('auth.creatingAccount') : i18n.t('auth.createAccountButton') }}
     </button>
   </form>

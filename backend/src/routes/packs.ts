@@ -1,10 +1,10 @@
 import { Router } from "express";
-import { eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { collectibles, teams, userCollectibles, pointAdjustments, packOpenings, packOpeningResults } from "../db/schema.js";
+import { collectibles, userCollectibles, pointAdjustments, packOpenings, packOpeningResults, ownedPacks } from "../db/schema.js";
 import { requireAuth } from "../auth/middleware.js";
 import { getUserPoints } from "../services/points.js";
-import { PACKS, PackType, Tier, CollectibleRow, rollPack } from "../services/packs.js";
+import { PACKS, PackType, RolledSlot, rollPackForUser } from "../services/packs.js";
 
 export const packsRouter = Router();
 
@@ -40,36 +40,19 @@ packsRouter.post("/:type/open", requireAuth, async (req, res) => {
       return;
     }
 
-    const [catalogRows, ownedRows] = await Promise.all([
-      db.select({ collectible: collectibles, team: teams }).from(collectibles).innerJoin(teams, eq(collectibles.teamId, teams.id)),
-      db.select({ collectibleId: userCollectibles.collectibleId }).from(userCollectibles).where(eq(userCollectibles.userId, req.userId!)),
-    ]);
-
-    const byTier: Record<Tier, CollectibleRow[]> = { common: [], rare: [], legendary: [] };
-    for (const row of catalogRows) {
-      byTier[row.collectible.tier as Tier].push(row);
+    // Figuring out duplicates/newly-owned up front (inside rollPackForUser)
+    // lets the writes below stay two batched multi-row inserts instead of
+    // one round trip per rolled card — each round trip to the (remote)
+    // database costs real latency, and that added up to several seconds for
+    // a 3-slot pack when done one insert at a time.
+    let slots: RolledSlot[];
+    try {
+      slots = await rollPackForUser(req.userId!, packType);
+    } catch (err) {
+      res.status(500).json({ error: (err as Error).message });
+      return;
     }
-    for (const tier of Object.keys(byTier) as Tier[]) {
-      if (byTier[tier].length === 0) {
-        res.status(500).json({ error: `No ${tier} cards in the catalog to roll` });
-        return;
-      }
-    }
-
-    const ownedIds = new Set(ownedRows.map((o) => o.collectibleId));
-    const rolled = rollPack(packType, byTier);
-
-    // Figure out duplicates and newly-owned cards up front so the actual
-    // writes below can be two batched multi-row inserts instead of one
-    // sequential round trip per rolled card — each round trip to the
-    // (remote) database costs real latency, and that added up to several
-    // seconds for a 3-slot pack when done one insert at a time.
-    const newlyOwnedIds = new Set<string>();
-    const slots = rolled.map(({ collectible, team }) => {
-      const wasDuplicate = ownedIds.has(collectible.id) || newlyOwnedIds.has(collectible.id);
-      if (!wasDuplicate) newlyOwnedIds.add(collectible.id);
-      return { collectible, team, wasDuplicate };
-    });
+    const newlyOwnedIds = new Set(slots.filter((s) => !s.wasDuplicate).map((s) => s.collectible.id));
 
     const outcome = await db.transaction(async (tx) => {
       const [opening] = await tx
@@ -123,6 +106,113 @@ packsRouter.post("/:type/open", requireAuth, async (req, res) => {
     res.status(201).json(outcome);
   } catch (err) {
     console.error("POST /api/packs/:type/open failed:", err);
+    res.status(500).json({ error: "Failed to open pack" });
+  }
+});
+
+// Wheel wins land here unopened (routes/spin.ts) — purchased packs never
+// do, they still open immediately via POST /:type/open above.
+packsRouter.get("/owned", requireAuth, async (req, res) => {
+  try {
+    const rows = await db
+      .select()
+      .from(ownedPacks)
+      .where(and(eq(ownedPacks.userId, req.userId!), isNull(ownedPacks.openedAt)))
+      .orderBy(desc(ownedPacks.acquiredAt));
+
+    res.json(
+      rows.map((r) => ({
+        id: r.id,
+        packType: r.packType,
+        label: PACKS[r.packType as PackType]?.label ?? r.packType,
+        acquiredAt: r.acquiredAt,
+      }))
+    );
+  } catch (err) {
+    console.error("GET /api/packs/owned failed:", err);
+    res.status(500).json({ error: "Failed to load your packs" });
+  }
+});
+
+packsRouter.post("/owned/:id/open", requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [row] = await db.select().from(ownedPacks).where(eq(ownedPacks.id, id)).limit(1);
+    if (!row || row.userId !== req.userId!) {
+      res.status(404).json({ error: "Pack not found" });
+      return;
+    }
+    if (row.openedAt) {
+      res.status(409).json({ error: "Already opened" });
+      return;
+    }
+
+    const packType = row.packType as PackType;
+    let slots: RolledSlot[];
+    try {
+      slots = await rollPackForUser(req.userId!, packType);
+    } catch (err) {
+      res.status(500).json({ error: (err as Error).message });
+      return;
+    }
+    const newlyOwnedIds = new Set(slots.filter((s) => !s.wasDuplicate).map((s) => s.collectible.id));
+
+    const outcome = await db.transaction(async (tx) => {
+      // Claim-first, same pattern as roundRewards/referralRewardGranted —
+      // whichever request's UPDATE actually flips a null->timestamp row
+      // wins; a second concurrent open attempt sees 0 rows and bails below
+      // instead of rolling (and granting) a second set of cards.
+      const claimed = await tx
+        .update(ownedPacks)
+        .set({ openedAt: new Date() })
+        .where(and(eq(ownedPacks.id, id), isNull(ownedPacks.openedAt)))
+        .returning({ id: ownedPacks.id });
+      if (claimed.length === 0) return null;
+
+      const [opening] = await tx.insert(packOpenings).values({ userId: req.userId!, packType, pointsCost: 0 }).returning();
+
+      if (newlyOwnedIds.size > 0) {
+        await tx
+          .insert(userCollectibles)
+          .values([...newlyOwnedIds].map((collectibleId) => ({ userId: req.userId!, collectibleId })));
+      }
+
+      const insertedResults = await tx
+        .insert(packOpeningResults)
+        .values(
+          slots.map(({ collectible, wasDuplicate }) => ({
+            packOpeningId: opening.id,
+            collectibleId: collectible.id,
+            wasDuplicate,
+          }))
+        )
+        .returning();
+
+      const results = slots.map(({ collectible, team, wasDuplicate }, i) => ({
+        resultId: insertedResults[i].id,
+        collectible: {
+          id: collectible.id,
+          name: collectible.name,
+          tier: collectible.tier,
+          pointsCost: collectible.pointsCost,
+          imageUrl: collectible.imageUrl,
+          team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor },
+        },
+        wasDuplicate,
+        sellValue: wasDuplicate ? Math.round(collectible.pointsCost * SELL_BACK_RATE) : null,
+      }));
+
+      return { openingId: opening.id, packType, results };
+    });
+
+    if (!outcome) {
+      res.status(409).json({ error: "Already opened" });
+      return;
+    }
+
+    res.status(201).json(outcome);
+  } catch (err) {
+    console.error("POST /api/packs/owned/:id/open failed:", err);
     res.status(500).json({ error: "Failed to open pack" });
   }
 });

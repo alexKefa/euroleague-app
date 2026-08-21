@@ -115,12 +115,7 @@
           }
         </div>
 
-        <button
-          type="button"
-          (click)="propose()"
-          [disabled]="!canPropose() || proposing()"
-          class="px-4 py-2 rounded-full bg-highlight text-white font-mono text-xs font-bold hover:bg-highlight-dim transition-colors disabled:opacity-50"
-        >
+        <button type="button" (click)="propose()" [disabled]="!canPropose() || proposing()" appButton>
           {{ proposing() ? i18n.t('trades.sending') : i18n.t('trades.sendOffer') }}
         </button>
 
@@ -159,7 +154,8 @@
                   type="button"
                   (click)="accept(offer)"
                   [disabled]="actingOnId() === offer.id"
-                  class="font-mono text-[12px] font-bold px-3 py-1.5 rounded-full bg-highlight text-white hover:bg-highlight-dim transition-colors disabled:opacity-40"
+                  appButton
+                  appButtonSize="sm"
                 >
                   {{ i18n.t('trades.accept') }}
                 </button>

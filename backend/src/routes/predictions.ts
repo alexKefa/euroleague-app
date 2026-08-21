@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, desc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { predictions, games, teams, users, pointAdjustments } from "../db/schema.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
@@ -136,6 +136,33 @@ predictionsRouter.post("/", requireAuth, async (req, res) => {
     .returning();
 
   res.status(201).json(prediction);
+});
+
+// Lets a user clear a pick entirely (not just swap to the other team) —
+// same "before tipoff" window as POST /, since a resolved/in-progress
+// game's pick is locked in for scoring either way. Deleting a pick that
+// doesn't exist is a no-op success, not a 404 — the frontend doesn't need
+// to know whether one existed before asking to clear it.
+predictionsRouter.delete("/:gameId", requireAuth, async (req, res) => {
+  try {
+    const { gameId } = req.params;
+
+    const [game] = await db.select().from(games).where(eq(games.id, gameId)).limit(1);
+    if (!game) {
+      res.status(404).json({ error: "Game not found" });
+      return;
+    }
+    if (game.status !== "scheduled" || new Date(game.tipoffAt) <= new Date()) {
+      res.status(400).json({ error: "Predictions can only be changed before a game starts" });
+      return;
+    }
+
+    await db.delete(predictions).where(and(eq(predictions.userId, req.userId!), eq(predictions.gameId, gameId)));
+    res.status(204).send();
+  } catch (err) {
+    console.error("DELETE /api/predictions/:gameId failed:", err);
+    res.status(500).json({ error: "Failed to remove prediction" });
+  }
 });
 
 predictionsRouter.get("/me", requireAuth, async (req, res) => {

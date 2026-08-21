@@ -4,39 +4,11 @@ import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
-import { PackDefinition, PackOpenOutcome, PackOpenResultCard, PackType } from "../../core/models";
+import { PackDefinition, OwnedPack, PackOpenOutcome, PackOpenResultCard, PackType } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { PackIconComponent } from "../../shared/pack-icon";
-
-// Rising quality per tier, echoed in icon color, badge, and the pack shell's
-// foil gradient — matches the exact bronze/silver/gold tones of
-// .pack-visual-starter/-pro/-elite (packs.css) rather than an unrelated
-// palette, so the description row's icon actually reads as "this tier".
-// The wheelStarter/wheelPro/wheelLegendary entries below are never actually
-// rendered here — GET /api/packs excludes them from the store listing this
-// page shows (see the `purchasable` flag in backend/src/services/packs.ts)
-// — filled in anyway (matching each one's "flavor" tier) so this stays a
-// total map rather than needing a runtime fallback if that ever changes.
-const PACK_ICON_CLASSES: Record<PackType, string> = {
-  starter: "bg-[#8a5a34]/15 text-[#d99a5b]",
-  pro: "bg-[#aab2ba]/20 text-[#c9d3da]",
-  elite: "bg-[#caa53a]/20 text-[#f4d675]",
-  wheelStarter: "bg-[#8a5a34]/15 text-[#d99a5b]",
-  wheelPro: "bg-[#aab2ba]/20 text-[#c9d3da]",
-  wheelLegendary: "bg-[#caa53a]/20 text-[#f4d675]",
-};
-
-// Pack-selection art: a physical-foil-pack silhouette per tier, reusing the
-// exact same rare/legendary gradients as the card frames themselves
-// (collectible-card.ts) so the pack you tap actually matches what's inside.
-const PACK_VISUAL_CLASSES: Record<PackType, string> = {
-  starter: "pack-visual-starter",
-  pro: "pack-visual-pro",
-  elite: "pack-visual-elite",
-  wheelStarter: "pack-visual-starter",
-  wheelPro: "pack-visual-pro",
-  wheelLegendary: "pack-visual-elite",
-};
+import { PACK_VISUAL_CLASSES } from "../../shared/pack-visual";
+import { ButtonDirective } from "../../shared/button.directive";
 
 // Exit-animation duration for the outgoing card in the reveal sequence —
 // keep in sync with the .card-exit-anim animation-duration in packs.css.
@@ -47,7 +19,7 @@ type PackView = "selecting" | "revealing" | "summary";
 @Component({
   selector: "app-packs",
   standalone: true,
-  imports: [CommonModule, RouterLink, CollectibleCardComponent, PackIconComponent],
+  imports: [CommonModule, RouterLink, CollectibleCardComponent, PackIconComponent, ButtonDirective],
   templateUrl: "./packs.html",
   styleUrl: "./packs.css",
 })
@@ -60,6 +32,25 @@ export class PacksComponent implements OnInit {
   readonly packs = signal<PackDefinition[]>([]);
   readonly points = signal(0);
   readonly pointsLoading = signal(true);
+
+  // Unopened packs won from the wheel — purchased packs still open
+  // immediately and never end up here (see spin.ts/packs.ts's split).
+  readonly ownedPacks = signal<OwnedPack[]>([]);
+  readonly ownedPacksLoading = signal(true);
+  readonly openingOwnedId = signal<string | null>(null);
+  readonly ownedOpenError = signal<string | null>(null);
+
+  // Grouped by type so "3x Legendary Pack" reads as a count with one Open
+  // button, rather than three separate identical rows.
+  readonly ownedPacksGrouped = computed(() => {
+    const groups = new Map<PackType, { packType: PackType; label: string; items: OwnedPack[] }>();
+    for (const p of this.ownedPacks()) {
+      const g = groups.get(p.packType);
+      if (g) g.items.push(p);
+      else groups.set(p.packType, { packType: p.packType, label: p.label, items: [p] });
+    }
+    return [...groups.values()];
+  });
 
   // Angles for the legendary-reveal starburst rays, evenly spaced — same
   // pattern as the wheel's win burst (wheel.ts/wheel.css).
@@ -110,7 +101,6 @@ export class PacksComponent implements OnInit {
   readonly soldResultIds = signal<Set<string>>(new Set());
   readonly sellingId = signal<string | null>(null);
 
-  readonly iconClasses = PACK_ICON_CLASSES;
   readonly visualClasses = PACK_VISUAL_CLASSES;
 
   readonly transitionOutCard = signal<PackOpenResultCard | null>(null);
@@ -146,9 +136,44 @@ export class PacksComponent implements OnInit {
         },
         error: () => this.pointsLoading.set(false),
       });
+      this.refreshOwnedPacks();
     } else {
       this.pointsLoading.set(false);
+      this.ownedPacksLoading.set(false);
     }
+  }
+
+  private refreshOwnedPacks(): void {
+    this.api.getOwnedPacks().subscribe({
+      next: (rows) => {
+        this.ownedPacks.set(rows);
+        this.ownedPacksLoading.set(false);
+      },
+      error: () => this.ownedPacksLoading.set(false),
+    });
+  }
+
+  openOwned(pack: OwnedPack): void {
+    if (this.openingOwnedId()) return;
+    this.openingOwnedId.set(pack.id);
+    this.ownedOpenError.set(null);
+
+    this.api.openOwnedPack(pack.id).subscribe({
+      next: (outcome) => {
+        this.ownedPacks.update((rows) => rows.filter((r) => r.id !== pack.id));
+        this.outcome.set(outcome);
+        this.revealIndex.set(0);
+        this.soldResultIds.set(new Set());
+        this.transitionOutCard.set(null);
+        this.isTransitioning.set(false);
+        this.openingOwnedId.set(null);
+        this.view.set("revealing");
+      },
+      error: (err) => {
+        this.openingOwnedId.set(null);
+        this.ownedOpenError.set(err?.error?.error ?? "Failed to open pack.");
+      },
+    });
   }
 
   tagline(type: PackType): string {

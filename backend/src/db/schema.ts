@@ -340,6 +340,22 @@ export const packOpeningResults = pgTable("pack_opening_results", {
   soldForPoints: integer("sold_for_points"),
 });
 
+// A pack the user has won but not yet opened — currently only ever granted
+// by the wheel (routes/spin.ts), which now hands over an unopened pack
+// instead of rolling a card on the spot. Purchased packs (routes/packs.ts's
+// POST /:type/open) still open immediately and never create a row here.
+// openedAt starts null; POST /packs/owned/:id/open claims it (conditional
+// UPDATE ... WHERE opened_at IS NULL, same claim-first pattern as
+// roundRewards/referralRewardGranted) then rolls the actual card the same
+// way a purchase does.
+export const ownedPacks = pgTable("owned_packs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  packType: varchar("pack_type", { length: 20 }).notNull(),
+  acquiredAt: timestamp("acquired_at", { withTimezone: true }).defaultNow().notNull(),
+  openedAt: timestamp("opened_at", { withTimezone: true }),
+});
+
 export const tradeOffers = pgTable("trade_offers", {
   id: uuid("id").defaultRandom().primaryKey(),
   fromUserId: uuid("from_user_id").notNull().references(() => users.id),

@@ -83,7 +83,9 @@
         type="button"
         (click)="simulateLiveGame()"
         [disabled]="simulating()"
-        class="flex-1 py-2 rounded-full border-2 border-highlight text-highlight font-mono text-[11px] font-bold hover:bg-highlight hover:text-white transition-colors disabled:opacity-50"
+        appButton="outline"
+        appButtonSize="sm"
+        class="flex-1"
       >
         {{ i18n.t('schedule.simulateLiveAdmin') }}
       </button>
@@ -91,7 +93,9 @@
         type="button"
         (click)="completeSimulation()"
         [disabled]="completingSimulation()"
-        class="flex-1 py-2 rounded-full border-2 border-line text-muted font-mono text-[11px] font-bold hover:border-highlight hover:text-highlight transition-colors disabled:opacity-50"
+        appButton="secondary"
+        appButtonSize="sm"
+        class="flex-1"
       >
         {{ i18n.t('schedule.finishLiveAdmin') }}
       </button>

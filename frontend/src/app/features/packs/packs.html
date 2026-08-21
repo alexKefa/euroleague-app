@@ -37,6 +37,41 @@
 
   @if (!loading() && auth.isAuthenticated()) {
     @if (view() === "selecting") {
+      @if (!ownedPacksLoading() && ownedPacksGrouped().length > 0) {
+        <div class="bg-card rounded-lg shadow-card p-4 mb-5 text-left">
+          <p class="font-mono text-[12px] text-muted font-bold mb-0.5">{{ i18n.t('packs.myPacksTitle') }}</p>
+          <p class="text-xs text-muted mb-3">{{ i18n.t('packs.myPacksSubtitle') }}</p>
+          <div class="space-y-2">
+            @for (group of ownedPacksGrouped(); track group.packType) {
+              <div class="flex items-center gap-2.5 bg-page rounded-lg px-3 py-2">
+                <span class="pack-visual-mini relative" [class]="visualClasses[group.packType]">
+                  <span class="pack-dots absolute inset-0 pointer-events-none"></span>
+                </span>
+                <div class="min-w-0 flex-1">
+                  <p class="font-mono text-[12px] font-bold truncate">{{ group.label }}</p>
+                  @if (group.items.length > 1) {
+                    <p class="text-[11px] text-muted">{{ group.items.length }}×</p>
+                  }
+                </div>
+                <button
+                  type="button"
+                  (click)="openOwned(group.items[0])"
+                  [disabled]="openingOwnedId() !== null"
+                  appButton
+                  appButtonSize="sm"
+                  class="shrink-0"
+                >
+                  {{ openingOwnedId() === group.items[0].id ? i18n.t('packs.opening') : i18n.t('packs.openNow') }}
+                </button>
+              </div>
+            }
+          </div>
+          @if (ownedOpenError()) {
+            <p class="text-red-500 text-xs font-semibold mt-2">{{ ownedOpenError() }}</p>
+          }
+        </div>
+      }
+
       <div class="grid grid-cols-3 gap-3">
         @for (pack of packs(); track pack.type) {
           <button
@@ -69,8 +104,8 @@
       <div class="space-y-3 text-left mt-5">
         @for (pack of packs(); track pack.type) {
           <div class="flex items-start gap-2.5">
-            <span class="shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-0.5" [class]="iconClasses[pack.type]">
-              <app-pack-icon [size]="16" />
+            <span class="pack-visual-mini relative mt-0.5" [class]="visualClasses[pack.type]">
+              <span class="pack-dots absolute inset-0 pointer-events-none"></span>
             </span>
             <div class="min-w-0">
               <p class="font-mono text-[11px] font-bold">
@@ -235,7 +270,9 @@
                 type="button"
                 (click)="sellDuplicate(card)"
                 [disabled]="sellingId() === card.resultId"
-                class="mt-2 font-mono text-[12px] font-bold px-4 py-1.5 rounded-full border-2 border-highlight text-highlight hover:bg-highlight hover:text-white transition-colors disabled:opacity-40"
+                appButton="outline"
+                appButtonSize="sm"
+                class="mt-2"
               >
                 {{ sellingId() === card.resultId ? i18n.t('packs.selling') : i18n.t('packs.sellFor') + " " + card.sellValue + " " + i18n.t('packs.ptsLower') }}
               </button>
@@ -280,18 +317,10 @@
           }
         </div>
         <div class="flex gap-2">
-          <button
-            type="button"
-            (click)="openAnother()"
-            class="flex-1 py-3 rounded-full bg-highlight text-white font-mono text-xs font-bold hover:bg-highlight-dim transition-colors"
-          >
+          <button type="button" (click)="openAnother()" appButton class="flex-1">
             {{ i18n.t('packs.openAnother') }}
           </button>
-          <a
-            routerLink="/inventory"
-            class="flex-1 py-3 rounded-full bg-card shadow-card font-mono text-xs font-bold hover:shadow-pop transition-all"
-            >{{ i18n.t('packs.myCards') }}</a
-          >
+          <a routerLink="/inventory" appButton="secondary" class="flex-1">{{ i18n.t('packs.myCards') }}</a>
         </div>
       </div>
     }

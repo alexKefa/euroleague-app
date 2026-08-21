@@ -20,7 +20,10 @@
   @if (!loading()) {
     @if (upcomingGames().length > 0) {
       <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-        <p class="font-mono text-[13px] text-muted font-bold mb-3">{{ i18n.t('predictions.upcomingGames') }}</p>
+        <p class="font-mono text-[13px] text-muted font-bold mb-1">{{ i18n.t('predictions.upcomingGames') }}</p>
+        @if (auth.isAuthenticated()) {
+          <p class="text-xs text-muted mb-3">{{ i18n.t('predictions.tapToClearHint') }}</p>
+        }
         <div class="space-y-3">
           @for (game of upcomingGames(); track game.id) {
             <div class="px-2 py-2 rounded-md bg-page">
@@ -29,7 +32,7 @@
                 <div class="flex gap-2">
                   <button
                     type="button"
-                    (click)="predict(game, game.homeTeam.id)"
+                    (click)="togglePick(game, game.homeTeam.id)"
                     class="flex-1 py-1.5 rounded-md font-mono text-[13px] font-bold border-2 transition-colors"
                     [class.border-highlight]="myPickFor(game) === game.homeTeam.id"
                     [class.bg-highlight]="myPickFor(game) === game.homeTeam.id"
@@ -45,7 +48,7 @@
                   <span class="font-mono text-muted text-[12px] self-center">{{ i18n.t('predictions.vs') }}</span>
                   <button
                     type="button"
-                    (click)="predict(game, game.awayTeam.id)"
+                    (click)="togglePick(game, game.awayTeam.id)"
                     class="flex-1 py-1.5 rounded-md font-mono text-[13px] font-bold border-2 transition-colors"
                     [class.border-highlight]="myPickFor(game) === game.awayTeam.id"
                     [class.bg-highlight]="myPickFor(game) === game.awayTeam.id"

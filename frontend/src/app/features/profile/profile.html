@@ -18,11 +18,7 @@
             [value]="link"
             class="flex-1 min-w-0 px-3 py-2 rounded-lg bg-page border border-line text-xs font-mono text-muted"
           />
-          <button
-            type="button"
-            (click)="copyReferralLink()"
-            class="shrink-0 px-4 py-2 rounded-full bg-highlight text-white font-mono text-xs font-bold hover:bg-highlight-dim transition-colors"
-          >
+          <button type="button" (click)="copyReferralLink()" appButton class="shrink-0">
             {{ referralCopied() ? i18n.t('profile.referralCopied') : i18n.t('profile.referralCopy') }}
           </button>
         </div>
@@ -115,11 +111,7 @@
             [placeholder]="i18n.t('profile.reasonPlaceholder')"
             class="flex-1 min-w-[10rem] px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
           />
-          <button
-            type="submit"
-            [disabled]="pointsForm.invalid || pointsSubmitting()"
-            class="px-4 py-2 rounded-full bg-highlight text-white font-mono text-xs font-bold hover:bg-highlight-dim transition-colors disabled:opacity-50"
-          >
+          <button type="submit" [disabled]="pointsForm.invalid || pointsSubmitting()" appButton>
             {{ pointsSubmitting() ? i18n.t('profile.granting') : i18n.t('profile.grant') }}
           </button>
         </form>
@@ -168,11 +160,7 @@
               />
             </svg>
           </div>
-          <button
-            type="submit"
-            [disabled]="cardForm.invalid || cardSubmitting()"
-            class="px-4 py-2 rounded-full bg-highlight text-white font-mono text-xs font-bold hover:bg-highlight-dim transition-colors disabled:opacity-50"
-          >
+          <button type="submit" [disabled]="cardForm.invalid || cardSubmitting()" appButton>
             {{ cardSubmitting() ? i18n.t('profile.grantingCard') : i18n.t('profile.grantCardButton') }}
           </button>
         </form>
@@ -256,11 +244,7 @@
             [placeholder]="i18n.t('store.imageUrlPlaceholder')"
             class="flex-1 min-w-[10rem] px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
           />
-          <button
-            type="submit"
-            [disabled]="addForm.invalid || addSubmitting()"
-            class="px-4 py-2 rounded-full bg-highlight text-white font-mono text-xs font-bold hover:bg-highlight-dim transition-colors disabled:opacity-50"
-          >
+          <button type="submit" [disabled]="addForm.invalid || addSubmitting()" appButton>
             {{ addSubmitting() ? i18n.t('store.adding') : i18n.t('store.add') }}
           </button>
         </form>
@@ -271,11 +255,7 @@
       </div>
     }
 
-    <button
-      type="button"
-      (click)="logout()"
-      class="w-full mt-5 py-3 rounded-full bg-card shadow-card font-mono text-xs font-bold text-highlight hover:bg-highlight hover:text-white transition-colors"
-    >
+    <button type="button" (click)="logout()" appButton="outline" class="w-full mt-5">
       {{ i18n.t('profile.logout') }}
     </button>
   }

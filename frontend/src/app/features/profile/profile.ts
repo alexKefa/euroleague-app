@@ -7,11 +7,12 @@ import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
 import { Team, Collectible } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
+import { ButtonDirective } from "../../shared/button.directive";
 
 @Component({
   selector: "app-profile",
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RetryImgDirective],
+  imports: [CommonModule, ReactiveFormsModule, RetryImgDirective, ButtonDirective],
   templateUrl: "./profile.html",
 })
 export class ProfileComponent implements OnInit {

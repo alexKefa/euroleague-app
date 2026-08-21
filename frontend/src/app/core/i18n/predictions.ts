@@ -4,6 +4,10 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
   "predictions.spendPoints": { en: "Spend points", el: "Ξόδεψε πόντους" },
   "predictions.upcomingGames": { en: "Upcoming games", el: "Επερχόμενοι αγώνες" },
   "predictions.vs": { en: "vs", el: "vs" },
+  "predictions.tapToClearHint": {
+    en: "Tap your pick again to remove it.",
+    el: "Πάτησε ξανά την επιλογή σου για να την αφαιρέσεις.",
+  },
   "predictions.myPicks": { en: "My picks", el: "Οι προγνώσεις μου" },
   "predictions.loginPromptSuffix": {
     en: "to make predictions and track your accuracy.",
