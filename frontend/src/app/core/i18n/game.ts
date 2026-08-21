@@ -12,6 +12,7 @@ export const gameTranslations: Record<string, Record<Lang, string>> = {
   "game.noStatsYet": { en: "No stats yet.", el: "Δεν υπάρχουν στατιστικά ακόμα." },
   "game.noSeasonStatsYet": { en: "No season stats yet.", el: "Δεν υπάρχουν ακόμα στατιστικά σεζόν." },
   "game.teamComparison": { en: "Team Comparison", el: "Σύγκριση Ομάδων" },
+  "game.teamStats": { en: "Team Stats", el: "Στατιστικά Ομάδων" },
   "game.record": { en: "Record", el: "Ρεκόρ" },
   "game.standing": { en: "Standing", el: "Θέση" },
   "game.ppg": { en: "PPG", el: "Πόντοι/Αγώνα" },

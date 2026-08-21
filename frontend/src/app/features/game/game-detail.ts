@@ -4,7 +4,34 @@ import { ActivatedRoute, RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
 import { EventsService } from "../../core/events.service";
-import { GameDetail, PlayerDetail } from "../../core/models";
+import { GameDetail, GameBoxscoreLine, PlayerDetail } from "../../core/models";
+
+interface TeamTotals {
+  points: number;
+  rebounds: number;
+  assists: number;
+  steals: number;
+  blocks: number;
+  turnovers: number;
+}
+
+function sumStat(lines: GameBoxscoreLine[], key: keyof GameBoxscoreLine): number {
+  return lines.reduce((total, line) => {
+    const value = line[key];
+    return total + (typeof value === "number" ? value : 0);
+  }, 0);
+}
+
+function totalsFor(lines: GameBoxscoreLine[]): TeamTotals {
+  return {
+    points: sumStat(lines, "points"),
+    rebounds: sumStat(lines, "rebounds"),
+    assists: sumStat(lines, "assists"),
+    steals: sumStat(lines, "steals"),
+    blocks: sumStat(lines, "blocks"),
+    turnovers: sumStat(lines, "turnovers"),
+  };
+}
 
 @Component({
   selector: "app-game-detail",
@@ -37,6 +64,14 @@ export class GameDetailComponent implements OnInit {
 
   readonly isFinal = computed(() => this.detail()?.game.status === "final");
   readonly isLive = computed(() => this.detail()?.game.status === "live");
+  // Team-level stat line under the box score — summed client-side from the
+  // same per-player box score rows rather than a separate backend query,
+  // since the box score already has everything needed.
+  readonly teamTotals = computed(() => {
+    const box = this.detail()?.boxscore;
+    if (!box) return null;
+    return { home: totalsFor(box.home), away: totalsFor(box.away) };
+  });
   // Whether "players to watch" / team comparison are drawn from a season
   // other than the game's own — happens for games in a season that hasn't
   // been played yet (see the fallback reasoning in backend/src/routes/games.ts).

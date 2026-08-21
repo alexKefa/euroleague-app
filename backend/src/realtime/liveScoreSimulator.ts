@@ -1,4 +1,4 @@
-import { asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { games, players, playerGameStats } from "../db/schema.js";
 import { broadcast } from "./hub.js";
@@ -201,8 +201,21 @@ async function tick(): Promise<void> {
     const isLastTick = sim.ticksLeft <= 0;
     const status = isLastTick ? "final" : "live";
 
-    await db.update(games).set({ homeScore, awayScore, status }).where(eq(games.id, sim.gameId));
-    if (running !== sim) return;
+    // Conditioned on the row still being "live", not just keyed on id — a
+    // concurrent stopSimulation() can finalize the game while this tick's
+    // earlier awaits (the select/upserts above) are still in flight. The
+    // `running !== sim` checks above catch that in the common case, but
+    // can't stop a write that's already been dispatched to the DB by the
+    // time stop's own write lands; without this, a stale tick can silently
+    // revert a just-finalized game back to "live". Guarding here instead —
+    // in the WHERE clause, evaluated against the committed row at write
+    // time — makes the stale write a no-op regardless of ordering.
+    const [updated] = await db
+      .update(games)
+      .set({ homeScore, awayScore, status })
+      .where(and(eq(games.id, sim.gameId), eq(games.status, "live")))
+      .returning({ id: games.id });
+    if (!updated || running !== sim) return;
     broadcast("game-update", { gameId: sim.gameId, homeScore, awayScore, status, onFireIds });
 
     if (isLastTick) {

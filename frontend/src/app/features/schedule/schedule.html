@@ -78,14 +78,24 @@
   </div>
 
   @if (auth.currentUser()?.isAdmin) {
-    <button
-      type="button"
-      (click)="simulateLiveGame()"
-      [disabled]="simulating()"
-      class="w-full mb-4 py-2 rounded-full border-2 border-highlight text-highlight font-mono text-[11px] font-bold hover:bg-highlight hover:text-white transition-colors disabled:opacity-50"
-    >
-      {{ i18n.t('schedule.simulateLiveAdmin') }}
-    </button>
+    <div class="flex gap-2 mb-4">
+      <button
+        type="button"
+        (click)="simulateLiveGame()"
+        [disabled]="simulating()"
+        class="flex-1 py-2 rounded-full border-2 border-highlight text-highlight font-mono text-[11px] font-bold hover:bg-highlight hover:text-white transition-colors disabled:opacity-50"
+      >
+        {{ i18n.t('schedule.simulateLiveAdmin') }}
+      </button>
+      <button
+        type="button"
+        (click)="stopSimulation()"
+        [disabled]="stoppingSimulation()"
+        class="flex-1 py-2 rounded-full border-2 border-line text-muted font-mono text-[11px] font-bold hover:border-highlight hover:text-highlight transition-colors disabled:opacity-50"
+      >
+        {{ i18n.t('schedule.finishLiveAdmin') }}
+      </button>
+    </div>
   }
 
   @if (loading()) {

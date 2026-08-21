@@ -122,6 +122,51 @@
       </div>
     }
 
+    <!-- Team stats (final or live games) — summed from the box score above,
+         not a separate fetch. -->
+    @if ((isFinal() || isLive()) && teamTotals(); as totals) {
+      <div class="bg-card rounded-lg shadow-card p-4 mb-5">
+        <p class="font-mono text-[12px] text-muted font-bold mb-3 flex items-center gap-1.5">
+          {{ i18n.t('game.teamStats') }}
+          @if (isLive()) {
+            <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+          }
+        </p>
+        <div class="text-sm space-y-1.5">
+          <div class="flex justify-between items-center px-2">
+            <span class="font-mono text-xs font-bold w-16 text-right">{{ totals.home.points }}</span>
+            <span class="text-muted text-xs font-mono">PTS</span>
+            <span class="font-mono text-xs font-bold w-16">{{ totals.away.points }}</span>
+          </div>
+          <div class="flex justify-between items-center px-2">
+            <span class="font-mono text-xs font-bold w-16 text-right">{{ totals.home.rebounds }}</span>
+            <span class="text-muted text-xs font-mono">REB</span>
+            <span class="font-mono text-xs font-bold w-16">{{ totals.away.rebounds }}</span>
+          </div>
+          <div class="flex justify-between items-center px-2">
+            <span class="font-mono text-xs font-bold w-16 text-right">{{ totals.home.assists }}</span>
+            <span class="text-muted text-xs font-mono">AST</span>
+            <span class="font-mono text-xs font-bold w-16">{{ totals.away.assists }}</span>
+          </div>
+          <div class="flex justify-between items-center px-2">
+            <span class="font-mono text-xs font-bold w-16 text-right">{{ totals.home.steals }}</span>
+            <span class="text-muted text-xs font-mono">STL</span>
+            <span class="font-mono text-xs font-bold w-16">{{ totals.away.steals }}</span>
+          </div>
+          <div class="flex justify-between items-center px-2">
+            <span class="font-mono text-xs font-bold w-16 text-right">{{ totals.home.blocks }}</span>
+            <span class="text-muted text-xs font-mono">BLK</span>
+            <span class="font-mono text-xs font-bold w-16">{{ totals.away.blocks }}</span>
+          </div>
+          <div class="flex justify-between items-center px-2">
+            <span class="font-mono text-xs font-bold w-16 text-right">{{ totals.home.turnovers }}</span>
+            <span class="text-muted text-xs font-mono">TO</span>
+            <span class="font-mono text-xs font-bold w-16">{{ totals.away.turnovers }}</span>
+          </div>
+        </div>
+      </div>
+    }
+
     <!-- Top performers (final or live games) -->
     @if ((isFinal() || isLive()) && d.topPerformers.length > 0) {
       <div class="bg-card rounded-lg shadow-card p-4 mb-5">
