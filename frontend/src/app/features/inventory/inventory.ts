@@ -7,9 +7,8 @@ import { I18nService } from "../../core/i18n.service";
 import { Collectible, CollectibleTier } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { CardPreviewComponent } from "../store/card-preview";
-import { NavIconComponent } from "../../shared/nav-icon";
+import { NavIconComponent, NavIconName } from "../../shared/nav-icon";
 import { PageHintComponent } from "../../shared/page-hint";
-import { ButtonDirective } from "../../shared/button.directive";
 import { ChipDirective } from "../../shared/chip.directive";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 
@@ -23,7 +22,6 @@ import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
     CardPreviewComponent,
     NavIconComponent,
     PageHintComponent,
-    ButtonDirective,
     ChipDirective,
     DropdownComponent,
   ],
@@ -33,6 +31,16 @@ export class InventoryComponent implements OnInit {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
+
+  // Colors are grounded in hues already meaningful elsewhere: highlight is
+  // the brand default, gold matches the wheel's own legendary wedge,
+  // emerald matches the app's existing "unlocked"/"correct" green.
+  protected readonly hubTiles: { path: string; icon: NavIconName; iconClass: string; labelKey: string }[] = [
+    { path: "/store", icon: "store", iconClass: "text-highlight", labelKey: "store.title" },
+    { path: "/wheel", icon: "wheel", iconClass: "text-[#E8B23C]", labelKey: "store.jumpBall" },
+    { path: "/packs", icon: "packs", iconClass: "text-sky-400", labelKey: "store.packs" },
+    { path: "/trades", icon: "trade", iconClass: "text-emerald-500", labelKey: "store.trades" },
+  ];
 
   readonly loading = signal(true);
   readonly points = signal(0);

@@ -22,26 +22,25 @@
       {{ i18n.t('inventory.hintSuffix') }}
     </app-page-hint>
 
-    <!-- One consistent chrome (the same secondary variant every other
-         button in the app uses) instead of four different tinted
-         backgrounds — that read as a clashing rainbow rather than a
-         considered palette. Color lives only on the icon, grounded in
-         hues already meaningful elsewhere: highlight is the brand default,
-         gold matches the wheel's own legendary wedge, emerald matches the
-         app's existing "unlocked"/"correct" green. -->
+    <!-- One consistent chrome instead of four different tinted backgrounds
+         (read as a clashing rainbow) — but appButton="secondary" is
+         transparent, tuned for an inline button among other content, and
+         had too little contrast to stand on its own as a tile sitting
+         directly on the page. A solid bg-card fill + real elevation
+         (shadow-card, lifting to shadow-pop on hover) gives it presence;
+         color lives only on the icon, grounded in hues already meaningful
+         elsewhere: highlight is the brand default, gold matches the
+         wheel's own legendary wedge, emerald matches the app's existing
+         "unlocked"/"correct" green. -->
     <div data-tour="cards-hub" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
-      <a routerLink="/store" appButton="secondary"
-        ><app-nav-icon name="store" class="text-highlight" />{{ i18n.t('store.title') }}</a
-      >
-      <a routerLink="/wheel" appButton="secondary"
-        ><app-nav-icon name="wheel" class="text-[#E8B23C]" />{{ i18n.t('store.jumpBall') }}</a
-      >
-      <a routerLink="/packs" appButton="secondary"
-        ><app-nav-icon name="packs" class="text-sky-400" />{{ i18n.t('store.packs') }}</a
-      >
-      <a routerLink="/trades" appButton="secondary"
-        ><app-nav-icon name="trade" class="text-emerald-500" />{{ i18n.t('store.trades') }}</a
-      >
+      @for (tile of hubTiles; track tile.path) {
+        <a
+          [routerLink]="tile.path"
+          class="inline-flex items-center justify-center gap-1.5 rounded-[5px] font-display font-bold uppercase tracking-[0.03em] text-sm px-5 py-2.5 bg-card border-2 border-line text-ink shadow-card transition-all hover:border-[#3a3a3b] hover:shadow-pop"
+        >
+          <app-nav-icon [name]="tile.icon" [class]="tile.iconClass" />{{ i18n.t(tile.labelKey) }}
+        </a>
+      }
     </div>
   }
 
