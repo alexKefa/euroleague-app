@@ -7,13 +7,20 @@ import { I18nService } from "../../core/i18n.service";
 import { Collectible, CollectibleTier } from "../../core/models";
 import { CollectibleCardComponent } from "./collectible-card";
 import { CardPreviewComponent } from "./card-preview";
-import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ChipDirective } from "../../shared/chip.directive";
+import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 
 @Component({
   selector: "app-store",
   standalone: true,
-  imports: [CommonModule, RouterLink, CollectibleCardComponent, CardPreviewComponent, RetryImgDirective, ChipDirective],
+  imports: [
+    CommonModule,
+    RouterLink,
+    CollectibleCardComponent,
+    CardPreviewComponent,
+    ChipDirective,
+    DropdownComponent,
+  ],
   templateUrl: "./store.html",
 })
 export class StoreComponent implements OnInit {
@@ -47,9 +54,10 @@ export class StoreComponent implements OnInit {
     return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
   });
 
-  readonly selectedTeamLogo = computed(
-    () => this.filterTeams().find((t) => t.id === this.teamFilter())?.logoUrl ?? null
-  );
+  readonly teamDropdownOptions = computed<DropdownOption[]>(() => [
+    { value: "", label: this.i18n.t("store.allTeams") },
+    ...this.filterTeams().map((t) => ({ value: t.id, label: t.name, logoUrl: t.logoUrl })),
+  ]);
 
   readonly filteredCollectibles = computed(() => {
     const query = this.searchQuery().trim().toLowerCase();

@@ -9,11 +9,12 @@ import { Team, Collectible } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ButtonDirective } from "../../shared/button.directive";
 import { ChipDirective } from "../../shared/chip.directive";
+import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 
 @Component({
   selector: "app-profile",
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RetryImgDirective, ButtonDirective, ChipDirective],
+  imports: [CommonModule, ReactiveFormsModule, RetryImgDirective, ButtonDirective, ChipDirective, DropdownComponent],
   templateUrl: "./profile.html",
 })
 export class ProfileComponent implements OnInit {
@@ -36,6 +37,17 @@ export class ProfileComponent implements OnInit {
   // Admin-only tools — collectibles list is only fetched for the grant-a-
   // card form's dropdown, so there's no point loading it for non-admins.
   readonly collectibles = signal<Collectible[]>([]);
+  readonly collectibleDropdownOptions = computed<DropdownOption[]>(() =>
+    this.collectibles().map((c) => ({ value: c.id, label: `${c.name} — ${c.team.code} (${c.tier})` }))
+  );
+  readonly teamDropdownOptions = computed<DropdownOption[]>(() =>
+    this.teams().map((t) => ({ value: t.id, label: t.code, logoUrl: t.logoUrl }))
+  );
+  readonly tierDropdownOptions = computed<DropdownOption[]>(() => [
+    { value: "common", label: this.i18n.t("store.tierCommon") },
+    { value: "rare", label: this.i18n.t("store.tierRare") },
+    { value: "legendary", label: this.i18n.t("store.tierLegendary") },
+  ]);
 
   readonly pointsSubmitting = signal(false);
   readonly pointsError = signal<string | null>(null);

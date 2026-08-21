@@ -8,6 +8,7 @@ import { EventsService } from "../../core/events.service";
 import { Game, Team } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ButtonDirective } from "../../shared/button.directive";
+import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 
 // The user asked specifically for the 2026-27 schedule — no season picker,
 // just round + team filters within that season.
@@ -16,7 +17,7 @@ const SEASON = "2026-27";
 @Component({
   selector: "app-schedule",
   standalone: true,
-  imports: [CommonModule, RouterLink, RetryImgDirective, ButtonDirective],
+  imports: [CommonModule, RouterLink, RetryImgDirective, ButtonDirective, DropdownComponent],
   templateUrl: "./schedule.html",
 })
 export class ScheduleComponent implements OnInit {
@@ -49,6 +50,18 @@ export class ScheduleComponent implements OnInit {
       );
     });
   }
+
+  readonly currentRoundStr = computed(() => {
+    const r = this.currentRound();
+    return r !== null ? String(r) : "";
+  });
+  readonly roundOptions = computed<DropdownOption[]>(() =>
+    this.rounds().map((r) => ({ value: String(r), label: `${this.i18n.t("schedule.round")} ${r}` }))
+  );
+  readonly teamDropdownOptions = computed<DropdownOption[]>(() => [
+    { value: "", label: this.i18n.t("schedule.allTeams") },
+    ...this.teams().map((t) => ({ value: t.id, label: t.name, logoUrl: t.logoUrl })),
+  ]);
 
   readonly hasPrevRound = computed(() => {
     const r = this.currentRound();

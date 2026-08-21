@@ -15,29 +15,8 @@
       &larr;
     </button>
 
-    <div class="relative flex-1 max-w-[10rem]">
-      <select
-        [value]="currentRound() ?? ''"
-        (change)="selectRound(+$any($event.target).value)"
-        class="w-full appearance-none text-center pl-3 pr-8 py-2 rounded-full bg-card border border-line font-mono text-xs font-bold focus:border-highlight outline-none cursor-pointer"
-      >
-        @for (r of rounds(); track r) {
-          <option [value]="r">{{ i18n.t('schedule.round') }} {{ r }}</option>
-        }
-      </select>
-      <svg
-        class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-muted"
-        viewBox="0 0 12 12"
-        fill="none"
-      >
-        <path
-          d="M2.5 4.5L6 8L9.5 4.5"
-          stroke="currentColor"
-          stroke-width="1.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-      </svg>
+    <div class="flex-1 max-w-[10rem]">
+      <app-dropdown [options]="roundOptions()" [value]="currentRoundStr()" (valueChange)="selectRound(+($event ?? 0))" />
     </div>
 
     <button
@@ -50,30 +29,12 @@
       &rarr;
     </button>
 
-    <div class="relative flex-1">
-      <select
+    <div class="flex-1">
+      <app-dropdown
+        [options]="teamDropdownOptions()"
         [value]="teamFilter() ?? ''"
-        (change)="teamFilter.set($any($event.target).value || null)"
-        class="w-full appearance-none pl-3 pr-8 py-2 rounded-full bg-card border border-line font-mono text-xs font-bold focus:border-highlight outline-none cursor-pointer"
-      >
-        <option value="">{{ i18n.t('schedule.allTeams') }}</option>
-        @for (team of teams(); track team.id) {
-          <option [value]="team.id">{{ team.name }}</option>
-        }
-      </select>
-      <svg
-        class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-muted"
-        viewBox="0 0 12 12"
-        fill="none"
-      >
-        <path
-          d="M2.5 4.5L6 8L9.5 4.5"
-          stroke="currentColor"
-          stroke-width="1.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-      </svg>
+        (valueChange)="teamFilter.set($event || null)"
+      />
     </div>
   </div>
 

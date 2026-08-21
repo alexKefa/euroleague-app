@@ -48,36 +48,12 @@
         class="flex-1 min-w-[10rem] px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
       />
       @if (filterTeams().length > 1) {
-        <div class="relative">
-          @if (selectedTeamLogo(); as logo) {
-            <img [src]="logo" alt="" loading="lazy" decoding="async" appRetryImg class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 object-contain" />
-          }
-          <select
-            [value]="teamFilter() ?? ''"
-            (change)="teamFilter.set($any($event.target).value || null)"
-            class="appearance-none max-w-[9rem] truncate pr-8 py-2 rounded-full bg-card border border-line font-mono text-xs font-bold focus:border-highlight outline-none cursor-pointer"
-            [class.pl-8]="selectedTeamLogo()"
-            [class.pl-3]="!selectedTeamLogo()"
-          >
-            <option value="">{{ i18n.t('store.allTeams') }}</option>
-            @for (team of filterTeams(); track team.id) {
-              <option [value]="team.id">{{ team.name }}</option>
-            }
-          </select>
-          <svg
-            class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-muted"
-            viewBox="0 0 12 12"
-            fill="none"
-          >
-            <path
-              d="M2.5 4.5L6 8L9.5 4.5"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
-        </div>
+        <app-dropdown
+          class="max-w-[14rem] min-w-[10rem]"
+          [options]="teamDropdownOptions()"
+          [value]="teamFilter() ?? ''"
+          (valueChange)="teamFilter.set($event || null)"
+        />
       }
     </div>
 

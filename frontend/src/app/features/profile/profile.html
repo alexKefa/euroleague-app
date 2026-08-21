@@ -120,30 +120,13 @@
             [placeholder]="i18n.t('profile.userEmailPlaceholder')"
             class="flex-1 min-w-[10rem] px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
           />
-          <div class="relative flex-1 min-w-[10rem]">
-            <select
-              formControlName="collectibleId"
-              class="w-full appearance-none pl-3 pr-8 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none cursor-pointer"
-            >
-              <option value="" disabled>{{ i18n.t('profile.collectiblePlaceholder') }}</option>
-              @for (item of collectibles(); track item.id) {
-                <option [value]="item.id">{{ item.name }} — {{ item.team.code }} ({{ item.tier }})</option>
-              }
-            </select>
-            <svg
-              class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-muted"
-              viewBox="0 0 12 12"
-              fill="none"
-            >
-              <path
-                d="M2.5 4.5L6 8L9.5 4.5"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-          </div>
+          <app-dropdown
+            class="flex-1 min-w-[10rem]"
+            [options]="collectibleDropdownOptions()"
+            [value]="cardForm.value.collectibleId ?? ''"
+            [placeholder]="i18n.t('profile.collectiblePlaceholder')"
+            (valueChange)="cardForm.patchValue({ collectibleId: $event ?? '' })"
+          />
           <button type="submit" [disabled]="cardForm.invalid || cardSubmitting()" appButton>
             {{ cardSubmitting() ? i18n.t('profile.grantingCard') : i18n.t('profile.grantCardButton') }}
           </button>
@@ -169,53 +152,19 @@
             [placeholder]="i18n.t('store.namePlaceholder')"
             class="flex-1 min-w-[10rem] px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
           />
-          <div class="relative">
-            <select
-              formControlName="teamId"
-              class="appearance-none pl-3 pr-8 py-2 rounded-full bg-card border border-line text-sm font-semibold focus:border-highlight outline-none cursor-pointer"
-            >
-              <option value="" disabled>{{ i18n.t('store.teamPlaceholder') }}</option>
-              @for (team of teams(); track team.id) {
-                <option [value]="team.id">{{ team.code }}</option>
-              }
-            </select>
-            <svg
-              class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-muted"
-              viewBox="0 0 12 12"
-              fill="none"
-            >
-              <path
-                d="M2.5 4.5L6 8L9.5 4.5"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-          </div>
-          <div class="relative">
-            <select
-              formControlName="tier"
-              class="appearance-none pl-3 pr-8 py-2 rounded-full bg-card border border-line text-sm font-semibold focus:border-highlight outline-none cursor-pointer"
-            >
-              <option value="common">{{ i18n.t('store.tierCommon') }}</option>
-              <option value="rare">{{ i18n.t('store.tierRare') }}</option>
-              <option value="legendary">{{ i18n.t('store.tierLegendary') }}</option>
-            </select>
-            <svg
-              class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-muted"
-              viewBox="0 0 12 12"
-              fill="none"
-            >
-              <path
-                d="M2.5 4.5L6 8L9.5 4.5"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-          </div>
+          <app-dropdown
+            class="w-28"
+            [options]="teamDropdownOptions()"
+            [value]="addForm.value.teamId ?? ''"
+            [placeholder]="i18n.t('store.teamPlaceholder')"
+            (valueChange)="addForm.patchValue({ teamId: $event ?? '' })"
+          />
+          <app-dropdown
+            class="w-32"
+            [options]="tierDropdownOptions()"
+            [value]="addForm.value.tier ?? 'common'"
+            (valueChange)="addForm.patchValue({ tier: $event ?? 'common' })"
+          />
           <input
             type="number"
             formControlName="pointsCost"
