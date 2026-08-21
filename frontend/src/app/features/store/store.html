@@ -12,7 +12,7 @@
         <span class="animate-pulse inline-block w-16 h-6 rounded-full bg-line"></span>
       } @else {
         <span
-          class="font-mono text-xs font-bold text-highlight bg-card border border-line rounded-full px-3 py-1"
+          class="font-mono text-xs font-bold text-highlight bg-card border-2 border-line rounded-[5px] px-3 py-1"
           >{{ points() }} {{ i18n.t('store.pointsBadge') }}</span
         >
       }
@@ -45,7 +45,7 @@
         [value]="searchQuery()"
         (input)="searchQuery.set($any($event.target).value)"
         [placeholder]="i18n.t('store.searchPlaceholder')"
-        class="flex-1 min-w-[10rem] px-3 py-2 rounded-lg bg-card border border-line text-sm font-semibold focus:border-highlight outline-none"
+        class="flex-1 min-w-[10rem] px-3 py-2 rounded-[5px] bg-card border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
       />
       @if (filterTeams().length > 1) {
         <app-dropdown
@@ -57,7 +57,7 @@
       }
     </div>
 
-    <div data-tour="store-cards" class="inline-flex bg-card border border-line rounded-lg p-1 gap-1 mb-4">
+    <div data-tour="store-cards" class="inline-flex bg-card border-2 border-line rounded-lg p-1 gap-1 mb-4">
       @for (opt of tierOptions; track opt.value) {
         <button type="button" (click)="tierFilter.set(opt.value)" [appChip]="tierFilter() === opt.value">
           {{ i18n.t(opt.key) }}
@@ -119,7 +119,7 @@
           type="text"
           [value]="item.imageUrl ?? ''"
           placeholder="/assets/collectibles/photo.jpg"
-          class="flex-1 min-w-0 px-2 py-1.5 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/20 text-xs font-semibold focus:border-highlight outline-none"
+          class="flex-1 min-w-0 px-2 py-1.5 rounded-[5px] bg-white/10 text-white placeholder-white/40 border-2 border-white/20 text-xs font-semibold focus:border-highlight outline-none"
         />
         <button
           (click)="setImage(item, imageInput.value)"
