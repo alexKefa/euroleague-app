@@ -1,18 +1,6 @@
-import {
-  Component,
-  OnInit,
-  AfterViewChecked,
-  OnDestroy,
-  ElementRef,
-  ViewChild,
-  inject,
-  signal,
-  computed,
-  effect,
-} from "@angular/core";
+import { Component, OnInit, inject, signal, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ActivatedRoute, RouterLink } from "@angular/router";
-import { Chart, registerables, ChartData } from "chart.js";
 import { ApiService } from "../../core/api.service";
 import { ThemeService } from "../../core/theme.service";
 import { AuthService } from "../../core/auth.service";
@@ -21,9 +9,15 @@ import { Team, RosterEntry, Game, GameTeamSummary, StandingsRow } from "../../co
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ChipDirective } from "../../shared/chip.directive";
 
-Chart.register(...registerables);
-
-const RADAR_AXES: { key: keyof StandingsRow["stats"]; labelKey: string }[] = [
+// Every axis is itself a percentage (effective FG%, rebound%, assist
+// ratio — see backend/src/sync-py/standings_sync.py's get_radar_stats),
+// so they all share one 0-100 bar scale without needing a per-axis
+// rescale. Replaced the radar chart (see PREDICTIONS.md/session history)
+// because hidden axis ticks plus four jargon-y stat names made it
+// unreadable — a fan couldn't tell "is this team good at X" from the
+// shape alone. A labeled bar with a league-average marker states that
+// directly.
+const COMPARISON_AXES: { key: keyof StandingsRow["stats"]; labelKey: string }[] = [
   { key: "offRating", labelKey: "roster.axisOffense" },
   { key: "defRating", labelKey: "roster.axisDefense" },
   { key: "rebPct", labelKey: "roster.axisRebounding" },
@@ -35,17 +29,15 @@ const RADAR_AXES: { key: keyof StandingsRow["stats"]; labelKey: string }[] = [
   standalone: true,
   imports: [CommonModule, RouterLink, RetryImgDirective, ChipDirective],
   templateUrl: "./roster.html",
-  styleUrl: "./roster.css",
 })
-export class TeamRosterComponent implements OnInit, AfterViewChecked, OnDestroy {
+export class TeamRosterComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private api = inject(ApiService);
   private theme = inject(ThemeService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
 
-  @ViewChild("radarCanvas") private radarCanvasRef?: ElementRef<HTMLCanvasElement>;
-  private chart?: Chart;
+  protected readonly comparisonAxes = COMPARISON_AXES;
 
   readonly team = signal<Team | null>(null);
   readonly roster = signal<RosterEntry[]>([]);
@@ -64,7 +56,7 @@ export class TeamRosterComponent implements OnInit, AfterViewChecked, OnDestroy 
   readonly leagueAverage = computed(() => {
     const rows = this.standings();
     const avg: Record<string, number> = {};
-    for (const axis of RADAR_AXES) {
+    for (const axis of COMPARISON_AXES) {
       const values = rows
         .map((r) => r.stats[axis.key])
         .filter((v): v is number => typeof v === "number");
@@ -72,40 +64,6 @@ export class TeamRosterComponent implements OnInit, AfterViewChecked, OnDestroy 
     }
     return avg;
   });
-
-  readonly radarChartData = computed<ChartData<"radar">>(() => {
-    const row = this.teamStandingsRow();
-    const avg = this.leagueAverage();
-    return {
-      labels: RADAR_AXES.map((a) => this.i18n.t(a.labelKey)),
-      datasets: [
-        {
-          label: this.i18n.t("roster.leagueAverage"),
-          data: RADAR_AXES.map((a) => avg[a.key] ?? 0),
-          borderDash: [4, 4],
-          borderColor: "#6B7480",
-          backgroundColor: "rgba(107, 116, 128, 0.12)",
-        },
-        {
-          label: row?.team.code ?? this.i18n.t("roster.teamFallback"),
-          data: RADAR_AXES.map((a) => (row ? (row.stats[a.key] as number) ?? 0 : 0)),
-          borderColor: row?.team.primaryColor ?? "#3E7CB1",
-          backgroundColor: this.withAlpha(row?.team.primaryColor ?? "#3E7CB1", 0.3),
-        },
-      ],
-    };
-  });
-
-  constructor() {
-    // Re-render the chart whenever the computed data changes (standings/team load).
-    effect(() => {
-      const data = this.radarChartData();
-      if (this.chart) {
-        this.chart.data = data;
-        this.chart.update();
-      }
-    });
-  }
 
   ngOnInit(): void {
     this.api.getStandings().subscribe({
@@ -155,44 +113,18 @@ export class TeamRosterComponent implements OnInit, AfterViewChecked, OnDestroy 
         this.loading.set(false);
       },
     });
-
   }
 
-  ngAfterViewChecked(): void {
-    if (!this.chart && this.radarCanvasRef) {
-      this.chart = new Chart(this.radarCanvasRef.nativeElement, {
-        type: "radar",
-        data: this.radarChartData(),
-        options: {
-          responsive: true,
-          scales: {
-            r: {
-              beginAtZero: true,
-              ticks: { display: false },
-              grid: { color: "rgba(255, 255, 255, 0.08)" },
-              angleLines: { color: "rgba(255, 255, 255, 0.08)" },
-              pointLabels: { color: "#8A8A86", font: { family: "JetBrains Mono", size: 10 } },
-            },
-          },
-          plugins: {
-            legend: { labels: { color: "#8A8A86", font: { family: "JetBrains Mono", size: 10 } } },
-          },
-        },
-      });
-    }
+  teamValue(key: keyof StandingsRow["stats"]): number {
+    return (this.teamStandingsRow()?.stats[key] as number | null) ?? 0;
   }
 
-  ngOnDestroy(): void {
-    this.chart?.destroy();
+  leagueAvgValue(key: keyof StandingsRow["stats"]): number {
+    return this.leagueAverage()[key] ?? 0;
   }
 
-  private withAlpha(hex: string, alpha: number): string {
-    const clean = hex.replace("#", "");
-    const bigint = parseInt(clean, 16);
-    const r = (bigint >> 16) & 255;
-    const g = (bigint >> 8) & 255;
-    const b = bigint & 255;
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  delta(key: keyof StandingsRow["stats"]): number {
+    return this.teamValue(key) - this.leagueAvgValue(key);
   }
 
   /**
@@ -238,5 +170,4 @@ export class TeamRosterComponent implements OnInit, AfterViewChecked, OnDestroy 
   opponentScore(game: Game): number | null {
     return this.isHomeGame(game) ? game.awayScore : game.homeScore;
   }
-
 }

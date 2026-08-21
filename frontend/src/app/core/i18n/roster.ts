@@ -6,6 +6,11 @@ export const rosterTranslations: Record<string, Record<Lang, string>> = {
     en: "Team profile vs league average",
     el: "Προφίλ ομάδας έναντι μέσου όρου πρωταθλήματος",
   },
+  "roster.teamProfileHint": {
+    en: "Shooting, rebounding and passing efficiency compared to the EuroLeague average — higher is always better.",
+    el: "Αποτελεσματικότητα σε σουτ, ριμπάουντ και πάσες σε σύγκριση με τον μέσο όρο της EuroLeague — το μεγαλύτερο είναι πάντα καλύτερο.",
+  },
+  "roster.vsLeagueAvg": { en: "vs league avg", el: "έναντι μ.ό." },
   "roster.upcomingGames": { en: "Upcoming games", el: "Επερχόμενοι αγώνες" },
   "roster.predictOnPredictionsPage": {
     en: "Predict this round's games on the Predictions page",
@@ -31,8 +36,6 @@ export const rosterTranslations: Record<string, Record<Lang, string>> = {
   "roster.recentResults": { en: "Recent results", el: "Πρόσφατα αποτελέσματα" },
   "roster.noTeamSpecified": { en: "No team specified.", el: "Δεν έχει οριστεί ομάδα." },
   "roster.loadError": { en: "Couldn't load the roster.", el: "Δεν ήταν δυνατή η φόρτωση του ρόστερ." },
-  "roster.leagueAverage": { en: "League average", el: "Μέσος όρος πρωταθλήματος" },
-  "roster.teamFallback": { en: "Team", el: "Ομάδα" },
   "roster.axisOffense": { en: "Offense", el: "Επίθεση" },
   "roster.axisDefense": { en: "Defense", el: "Άμυνα" },
   "roster.axisRebounding": { en: "Rebounding", el: "Ριμπάουντ" },

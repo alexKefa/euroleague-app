@@ -39,12 +39,37 @@
       </div>
     }
 
-    @if (standings().length > 0) {
+    @if (teamStandingsRow()) {
       <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-        <p class="font-mono text-[13px] text-muted font-bold mb-3">
-          {{ i18n.t('roster.teamProfileVsLeague') }}
-        </p>
-        <canvas #radarCanvas></canvas>
+        <p class="font-mono text-[13px] text-muted font-bold mb-1">{{ i18n.t('roster.teamProfileVsLeague') }}</p>
+        <p class="text-xs text-muted mb-4">{{ i18n.t('roster.teamProfileHint') }}</p>
+        <div class="space-y-4">
+          @for (axis of comparisonAxes; track axis.key) {
+            <div>
+              <div class="flex items-baseline justify-between mb-1.5 gap-2">
+                <span class="font-mono text-[11px] font-bold text-muted uppercase tracking-wide">{{ i18n.t(axis.labelKey) }}</span>
+                <span class="font-mono text-xs shrink-0">
+                  <span
+                    class="font-bold"
+                    [class.text-emerald-500]="delta(axis.key) >= 0"
+                    [class.text-red-500]="delta(axis.key) < 0"
+                    >{{ fmtPct(teamValue(axis.key)) }}</span
+                  >
+                  <span class="text-muted">{{ i18n.t('roster.vsLeagueAvg') }} {{ fmtPct(leagueAvgValue(axis.key)) }}</span>
+                </span>
+              </div>
+              <div class="relative h-2 rounded-[3px] bg-line overflow-hidden">
+                <div
+                  class="absolute inset-y-0 left-0 rounded-[3px] transition-all"
+                  [class.bg-emerald-500]="delta(axis.key) >= 0"
+                  [class.bg-red-500]="delta(axis.key) < 0"
+                  [style.width.%]="teamValue(axis.key)"
+                ></div>
+                <div class="absolute inset-y-0 w-[2px] bg-ink/50" [style.left.%]="leagueAvgValue(axis.key)"></div>
+              </div>
+            </div>
+          }
+        </div>
       </div>
     }
 
