@@ -278,6 +278,13 @@ export const roundRewards = pgTable(
     round: integer("round").notNull(),
     collectibleId: uuid("collectible_id").references(() => collectibles.id),
     grantedAt: timestamp("granted_at", { withTimezone: true }).defaultNow().notNull(),
+    // Null until the user has actually been shown the "Perfect round!"
+    // banner. Several other pages (inventory/store/packs) also hit the
+    // summary endpoint that triggers the grant, purely to read points —
+    // without this, whichever page loads first "eats" the one-shot
+    // notification silently, and the user who actually earned it never
+    // sees it. See checkAndGrantRoundRewards / POST /predictions/round-rewards/ack.
+    seenAt: timestamp("seen_at", { withTimezone: true }),
   },
   (table) => ({
     userRoundRewardUnique: uniqueIndex("user_round_reward_unique").on(

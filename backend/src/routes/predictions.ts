@@ -4,7 +4,7 @@ import { db } from "../db/client.js";
 import { predictions, games, teams, users, pointAdjustments } from "../db/schema.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
 import { computeWinnerTeamId, getUserPoints, POINTS_PER_CORRECT } from "../services/points.js";
-import { checkAndGrantRoundRewards } from "../services/cards.js";
+import { checkAndGrantRoundRewards, markRoundRewardsSeen } from "../services/cards.js";
 
 export const predictionsRouter = Router();
 
@@ -264,6 +264,20 @@ predictionsRouter.get("/me/summary", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("GET /api/predictions/me/summary failed:", err);
     res.status(500).json({ error: "Failed to load prediction summary" });
+  }
+});
+
+// Called by the Predictions page once it's actually rendered the "Perfect
+// round!" banner for whatever checkAndGrantRoundRewards returned — not by
+// inventory/store/packs, which only read `points` off this same summary
+// and have no UI for it. See the doc comment on checkAndGrantRoundRewards.
+predictionsRouter.post("/round-rewards/ack", requireAuth, async (req, res) => {
+  try {
+    await markRoundRewardsSeen(req.userId!);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("POST /api/predictions/round-rewards/ack failed:", err);
+    res.status(500).json({ error: "Failed to acknowledge round rewards" });
   }
 });
 

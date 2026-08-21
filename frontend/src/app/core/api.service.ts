@@ -108,6 +108,12 @@ export class ApiService {
     return this.http.get<PredictionSummary>(`${API_BASE_URL}/predictions/me/summary`);
   }
 
+  // Only the Predictions page should call this, once it's actually shown
+  // the "Perfect round!" banner for whatever newRoundRewards it got back.
+  ackRoundRewards(): Observable<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`${API_BASE_URL}/predictions/round-rewards/ack`, {});
+  }
+
   adjustPoints(email: string, points: number, reason: string): Observable<unknown> {
     return this.http.post(`${API_BASE_URL}/predictions/points/adjust`, { email, points, reason });
   }

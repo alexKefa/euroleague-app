@@ -76,7 +76,14 @@ export class PredictionsComponent implements OnInit {
       });
 
       this.api.getMyPredictionSummary().subscribe({
-        next: (summary) => this.mySummary.set(summary),
+        next: (summary) => {
+          this.mySummary.set(summary);
+          // The banner below reads straight off mySummary(), so by the time
+          // this fires it's already been rendered — safe to mark seen now.
+          if (summary.newRoundRewards.length > 0) {
+            this.api.ackRoundRewards().subscribe({ error: () => {} });
+          }
+        },
         error: () => {}, // non-critical
       });
     } else {
