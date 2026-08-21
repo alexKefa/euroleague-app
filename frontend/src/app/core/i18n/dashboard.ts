@@ -22,4 +22,13 @@ export const dashboardTranslations: Record<string, Record<Lang, string>> = {
     en: "for a shot at rare and legendary cards — or try the free daily",
     el: "για μια ευκαιρία σε σπάνιες και θρυλικές κάρτες — ή δοκίμασε το δωρεάν καθημερινό",
   },
+
+  "dashboard.welcomeBonusPrefix": {
+    en: "New accounts start with a 100-point welcome bonus — head to",
+    el: "Οι νέοι λογαριασμοί ξεκινούν με δώρο 100 πόντων — πήγαινε στις",
+  },
+  "dashboard.welcomeBonusSuffix": {
+    en: "to open your first pack.",
+    el: "για να ανοίξεις το πρώτο σου πακέτο.",
+  },
 };

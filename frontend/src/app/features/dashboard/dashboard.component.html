@@ -61,6 +61,11 @@
     }
 
     @if (auth.isAuthenticated()) {
+      <app-page-hint hintId="dashboard-welcome-bonus" icon="cards">
+        {{ i18n.t('dashboard.welcomeBonusPrefix') }}
+        <a routerLink="/inventory" class="text-highlight font-semibold">{{ i18n.t('nav.cards') }}</a>
+        {{ i18n.t('dashboard.welcomeBonusSuffix') }}
+      </app-page-hint>
       <app-page-hint hintId="dashboard-points" icon="ball">
         {{ i18n.t('dashboard.pointsHintPrefix') }}
         <a routerLink="/predictions" class="text-highlight font-semibold">{{ i18n.t('nav.picks') }}</a>

@@ -2,7 +2,7 @@ import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { eq } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { users } from "../db/schema.js";
+import { users, pointAdjustments } from "../db/schema.js";
 import { hashPassword, verifyPassword } from "../auth/hash.js";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../auth/tokens.js";
 
@@ -28,6 +28,14 @@ const refreshLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: "Too many requests — try again later." },
 });
+
+// Exactly a Regular Season Pack's cost (services/packs.ts's "starter" pack)
+// — a new account can immediately afford one open, rather than starting
+// completely empty with nothing to do until their first correct prediction
+// resolves. Points, not a pre-opened pack: reuses the pack-opening flow
+// exactly as designed (pick a pack, watch the reveal) instead of a second,
+// bespoke "welcome pack" code path.
+const WELCOME_BONUS_POINTS = 100;
 
 const REFRESH_COOKIE_NAME = "refreshToken";
 // Keep this in sync with JWT_REFRESH_EXPIRES_IN in .env (default 30d).
@@ -75,6 +83,13 @@ authRouter.post("/register", credentialsLimiter, async (req, res) => {
     .insert(users)
     .values({ email, passwordHash, favoriteTeamId: favoriteTeamId ?? null })
     .returning();
+
+  await db.insert(pointAdjustments).values({
+    userId: user.id,
+    points: WELCOME_BONUS_POINTS,
+    reason: "Welcome bonus",
+    createdByUserId: user.id,
+  });
 
   const accessToken = signAccessToken(user.id);
   setRefreshCookie(res, signRefreshToken(user.id));

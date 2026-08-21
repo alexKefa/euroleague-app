@@ -23,7 +23,12 @@ interface BadgeInfo {
 interface BadgeContext {
   picks: ResolvedPick[];
   hasAnyPick: boolean;
-  totalPoints: number; // picks-derived points plus any manual adjustments
+  // Deliberately *excludes* pointAdjustments (admin grants, the
+  // registration welcome bonus, sold-duplicate refunds) — Century is meant
+  // to reflect prediction accuracy, not spendable balance. Those still
+  // count toward the balance shown/spent everywhere else (getUserPoints),
+  // just not toward "did you earn this".
+  predictionPoints: number;
 }
 
 interface BadgeDef extends BadgeInfo {
@@ -73,8 +78,8 @@ const BADGES: BadgeDef[] = [
   {
     id: "century",
     label: "Century",
-    description: "Earned 100+ points.",
-    check: (ctx) => ctx.totalPoints >= 100,
+    description: "Earned 100+ points from predictions.",
+    check: (ctx) => ctx.predictionPoints >= 100,
   },
   {
     id: "sharpshooter",
@@ -217,7 +222,7 @@ predictionsRouter.get("/leaderboard", async (_req, res) => {
           total,
           accuracy: total > 0 ? correct / total : 0,
           points,
-          badges: earnedBadges({ picks, hasAnyPick: total > 0, totalPoints: points }),
+          badges: earnedBadges({ picks, hasAnyPick: total > 0, predictionPoints: correct * POINTS_PER_CORRECT }),
         };
       })
       .sort((a, b) => b.points - a.points || b.accuracy - a.accuracy)
@@ -253,7 +258,12 @@ predictionsRouter.get("/me/summary", requireAuth, async (req, res) => {
     }
     resolved.sort((a, b) => new Date(a.tipoffAt).getTime() - new Date(b.tipoffAt).getTime());
 
-    const badges = earnedBadges({ picks: resolved, hasAnyPick: rows.length > 0, totalPoints: points });
+    const correctCount = resolved.filter((p) => p.correct).length;
+    const badges = earnedBadges({
+      picks: resolved,
+      hasAnyPick: rows.length > 0,
+      predictionPoints: correctCount * POINTS_PER_CORRECT,
+    });
     const newRoundRewards = await checkAndGrantRoundRewards(req.userId!);
 
     res.json({
