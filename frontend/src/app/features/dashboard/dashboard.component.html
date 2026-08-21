@@ -123,10 +123,16 @@
                   [routerLink]="['/players', entry.player.id]"
                   class="flex justify-between items-center px-2 py-1.5 rounded-md hover:bg-page transition-colors"
                 >
-                  <span class="font-bold">
-                    <span class="font-mono text-muted">{{ i + 1 }}</span
-                    >&nbsp;&nbsp;{{ entry.player.name }}
-                    <span class="text-muted font-normal">({{ entry.team.code }})</span>
+                  <span class="font-bold flex items-center gap-1.5 min-w-0">
+                    <span class="font-mono text-muted shrink-0">{{ i + 1 }}</span>
+                    <span class="truncate">{{ entry.player.name }}</span>
+                    <span
+                      class="font-mono text-[10px] font-bold uppercase tracking-wide rounded-[5px] border-2 px-1.5 py-0.5 shrink-0"
+                      [style.color]="entry.team.primaryColor ?? '#3E7CB1'"
+                      [style.border-color]="(entry.team.primaryColor ?? '#3E7CB1') + '4D'"
+                      [style.background-color]="(entry.team.primaryColor ?? '#3E7CB1') + '1A'"
+                      >{{ entry.team.code }}</span
+                    >
                   </span>
                   <span class="font-mono text-highlight font-bold">{{ entry.valuation }} PIR</span>
                 </a>
@@ -153,10 +159,16 @@
                   [routerLink]="['/players', entry.player.id]"
                   class="flex justify-between items-center px-2 py-1.5 rounded-md hover:bg-page transition-colors"
                 >
-                  <span class="font-bold">
-                    <span class="font-mono text-muted">{{ i + 1 }}</span
-                    >&nbsp;&nbsp;{{ entry.player.name }}
-                    <span class="text-muted font-normal">({{ entry.team.code }})</span>
+                  <span class="font-bold flex items-center gap-1.5 min-w-0">
+                    <span class="font-mono text-muted shrink-0">{{ i + 1 }}</span>
+                    <span class="truncate">{{ entry.player.name }}</span>
+                    <span
+                      class="font-mono text-[10px] font-bold uppercase tracking-wide rounded-[5px] border-2 px-1.5 py-0.5 shrink-0"
+                      [style.color]="entry.team.primaryColor ?? '#3E7CB1'"
+                      [style.border-color]="(entry.team.primaryColor ?? '#3E7CB1') + '4D'"
+                      [style.background-color]="(entry.team.primaryColor ?? '#3E7CB1') + '1A'"
+                      >{{ entry.team.code }}</span
+                    >
                   </span>
                   <span class="font-mono text-highlight font-bold">{{ entry.value | number: "1.1-1" }}</span>
                 </a>
