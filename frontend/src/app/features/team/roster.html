@@ -54,8 +54,7 @@
                     [class.text-emerald-500]="delta(axis.key) >= 0"
                     [class.text-red-500]="delta(axis.key) < 0"
                     >{{ fmtPct(teamValue(axis.key)) }}</span
-                  >
-                  <span class="text-muted">{{ i18n.t('roster.vsLeagueAvg') }} {{ fmtPct(leagueAvgValue(axis.key)) }}</span>
+                  >&nbsp;<span class="text-muted">{{ i18n.t('roster.vsLeagueAvg') }} {{ fmtPct(leagueAvgValue(axis.key)) }}</span>
                 </span>
               </div>
               <div class="relative h-2 rounded-[3px] bg-line overflow-hidden">
