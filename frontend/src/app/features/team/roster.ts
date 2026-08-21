@@ -12,15 +12,16 @@ import { ChipDirective } from "../../shared/chip.directive";
 // Plain box-score terms instead of advanced-stat proxies (eFG%-based
 // "offRating"/"defRating", assist ratio for "playmaking") — those didn't
 // read as basketball to a casual fan even once the radar chart was
-// replaced with bars. Offense/defense are now literally points scored
-// and allowed per game; rebounding is the one axis still a percentage
-// (no raw rebounds-per-game field is synced yet — see standings_sync.py).
-// `invert` marks defense: fewer points allowed is better, the opposite
-// direction from every other axis, so delta's sign has to flip for it.
+// replaced with bars. All three axes are now raw per-game counts: points
+// scored, points allowed, and rebounds (rpg is approximated backend-side
+// from player_season_stats — see routes/standings.ts — since no raw team
+// total is synced). `invert` marks defense: fewer points allowed is
+// better, the opposite direction from the other two axes, so delta's
+// sign has to flip for it.
 const COMPARISON_AXES: { key: keyof StandingsRow["stats"]; labelKey: string; percent: boolean; invert?: boolean }[] = [
   { key: "ppg", labelKey: "roster.axisOffense", percent: false },
   { key: "papg", labelKey: "roster.axisDefense", percent: false, invert: true },
-  { key: "rebPct", labelKey: "roster.axisRebounding", percent: true },
+  { key: "rpg", labelKey: "roster.axisRebounding", percent: false },
 ];
 type ComparisonAxis = (typeof COMPARISON_AXES)[number];
 

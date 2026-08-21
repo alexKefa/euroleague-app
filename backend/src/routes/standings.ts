@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { eq, asc, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { teams, teamSeasonStats } from "../db/schema.js";
+import { teams, teamSeasonStats, playerSeasonStats } from "../db/schema.js";
 
 export const standingsRouter = Router();
 
@@ -36,6 +36,23 @@ standingsRouter.get("/", async (_req, res) => {
       .where(eq(teamSeasonStats.season, season))
       .orderBy(asc(teamSeasonStats.position));
 
+    // No raw "team rebounds per game" field is synced (team_season_stats
+    // only has the percentage-based rebPct) — approximate it from the
+    // already-populated player_season_stats instead of touching the
+    // Python sync: each roster player's own reboundsPerGame, summed. Not
+    // exact (a bench player's games-played can undercount slightly
+    // relative to the team's own game count) but close enough for a
+    // fan-facing comparison, same spirit as the PIR badge thresholds below.
+    const reboundRows = await db
+      .select({
+        teamId: playerSeasonStats.teamId,
+        rpg: sql<number>`sum(${playerSeasonStats.reboundsPerGame})`,
+      })
+      .from(playerSeasonStats)
+      .where(eq(playerSeasonStats.season, season))
+      .groupBy(playerSeasonStats.teamId);
+    const rpgByTeam = new Map(reboundRows.map((r) => [r.teamId, r.rpg]));
+
     const payload = rows.map(({ team, stats }) => ({
       team,
       position: stats.position ?? 0,
@@ -50,6 +67,7 @@ standingsRouter.get("/", async (_req, res) => {
         defRating: stats.defRating,
         rebPct: stats.rebPct,
         astPct: stats.astPct,
+        rpg: rpgByTeam.get(stats.teamId) ?? null,
       },
     }));
 

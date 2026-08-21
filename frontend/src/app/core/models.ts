@@ -111,6 +111,9 @@ export interface TeamSeasonStats {
   defRating: number | null;
   rebPct: number | null;
   astPct: number | null;
+  // Approximated backend-side from player_season_stats (sum of each
+  // roster player's own reboundsPerGame) — no raw team total is synced.
+  rpg: number | null;
 }
 
 export interface GameTeamSummary {
