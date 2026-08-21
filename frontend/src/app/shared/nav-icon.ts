@@ -96,6 +96,10 @@ export type NavIconName =
             [attr.fill]="active ? 'currentColor' : 'none'"
             [attr.fill-opacity]="active ? 0.18 : null"
           />
+          <!-- Basketball-seam accent on the head — same seam language as
+               the "ball"/"wheel" icons, so the profile icon reads as a
+               player, not a generic account glyph. -->
+          <path d="M12 4.3v7.4M8.3 8h7.4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" />
           <path d="M4 20c0-4 4-6 8-6s8 2 8 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
         }
         @case ("wheel") {
@@ -185,7 +189,11 @@ export type NavIconName =
           />
         }
         @case ("sun") {
+          <!-- Theme toggle, basketball-flavored — a sunlit ball, not a
+               plain sun. Seam accent matches the "ball"/"wheel"/"user"
+               icons' language, just scaled down for the 8px circle. -->
           <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2.2" />
+          <path d="M12 8.3v7.4M8.3 12h7.4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" />
           <path
             d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"
             stroke="currentColor"
@@ -194,6 +202,9 @@ export type NavIconName =
           />
         }
         @case ("moon") {
+          <!-- Left as a plain crescent — a seam accent here (tried:
+               a curve through the sliver) didn't read as basketball at
+               this size, just as a stray line. -->
           <path
             d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"
             stroke="currentColor"
