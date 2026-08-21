@@ -24,7 +24,8 @@ export type NavIconName =
   | "zap"
   | "ball"
   | "tip"
-  | "play";
+  | "play"
+  | "logout";
 
 @Component({
   selector: "app-nav-icon",
@@ -320,6 +321,22 @@ export type NavIconName =
         @case ("play") {
           <!-- "Take a tour" button. -->
           <path d="M8 5.5v13l11-6.5-11-6.5z" fill="currentColor" />
+        }
+        @case ("logout") {
+          <path
+            d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M10.5 12h10M16.5 8l4 4-4 4"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
         }
       }
     </svg>
