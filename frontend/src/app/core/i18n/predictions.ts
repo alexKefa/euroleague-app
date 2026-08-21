@@ -36,4 +36,36 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
     en: "Pick a winner before tip-off. Each correct call earns 10 points, and a perfect round unlocks badges plus a bonus card.",
     el: "Διάλεξε νικητή πριν το τζάμπολ. Κάθε σωστή πρόγνωση φέρνει 10 πόντους, και ένας τέλειος γύρος ξεκλειδώνει μετάλλια και μια δωρεάν κάρτα.",
   },
+
+  // Badge legend — a tap-to-open key explaining every badge glyph (locked
+  // ones included), since hover-only titles never reach mobile touch.
+  // Label/description text mirrors backend/src/routes/predictions.ts's
+  // BADGES array; keep the two in sync if a badge rule ever changes.
+  "predictions.whatDoTheseMean": { en: "What do these mean?", el: "Τι σημαίνουν αυτά;" },
+  "predictions.hideBadgeLegend": { en: "Hide", el: "Απόκρυψη" },
+  "predictions.badge.first-call.label": { en: "First Call", el: "Πρώτη Πρόγνωση" },
+  "predictions.badge.first-call.description": {
+    en: "Made your first prediction.",
+    el: "Έκανες την πρώτη σου πρόγνωση.",
+  },
+  "predictions.badge.on-a-roll.label": { en: "On a Roll", el: "Σερί Νικών" },
+  "predictions.badge.on-a-roll.description": {
+    en: "5 correct predictions in a row.",
+    el: "5 σωστές προγνώσεις στη σειρά.",
+  },
+  "predictions.badge.perfect-round.label": { en: "Perfect Round", el: "Τέλειος Γύρος" },
+  "predictions.badge.perfect-round.description": {
+    en: "Got every prediction right in a single round.",
+    el: "Πέτυχες όλες τις προγνώσεις σου σε έναν γύρο.",
+  },
+  "predictions.badge.century.label": { en: "Century", el: "Εκατοντάδα" },
+  "predictions.badge.century.description": {
+    en: "Earned 100+ points from predictions.",
+    el: "Κέρδισες 100+ πόντους από προγνωστικά.",
+  },
+  "predictions.badge.sharpshooter.label": { en: "Sharpshooter", el: "Σκοπευτής" },
+  "predictions.badge.sharpshooter.description": {
+    en: "75%+ accuracy across at least 10 resolved predictions.",
+    el: "75%+ ακρίβεια σε τουλάχιστον 10 ολοκληρωμένες προγνώσεις.",
+  },
 };

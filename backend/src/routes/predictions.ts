@@ -292,8 +292,13 @@ predictionsRouter.get("/me/summary", requireAuth, async (req, res) => {
       hasAnyPick: rows.length > 0,
       predictionPoints: correctCount * POINTS_PER_CORRECT,
     });
-    const newRoundRewards = await checkAndGrantRoundRewards(req.userId!);
-    await checkAndGrantReferralReward(req.userId!);
+    // Independent of each other — round rewards don't affect the referral
+    // check or vice versa — so run them concurrently instead of adding
+    // their round trips to the DB back to back.
+    const [newRoundRewards] = await Promise.all([
+      checkAndGrantRoundRewards(req.userId!),
+      checkAndGrantReferralReward(req.userId!),
+    ]);
 
     res.json({
       points,

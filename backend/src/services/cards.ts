@@ -74,7 +74,15 @@ export async function pickRandomUnownedLegendary(userId: string): Promise<Collec
  * they've actually been displayed.
  */
 export async function checkAndGrantRoundRewards(userId: string): Promise<CollectibleWithTeam[]> {
-  const allGames = await db.select().from(games).where(isNotNull(games.round));
+  // `already` doesn't actually depend on `allGames`/`completeRounds` — only
+  // on userId — so fetch both up front instead of gating it behind the
+  // completeRounds check below, which just added a needless sequential
+  // round trip in the (near-universal, once any season exists) case where
+  // completeRounds is non-empty anyway.
+  const [allGames, already] = await Promise.all([
+    db.select().from(games).where(isNotNull(games.round)),
+    db.select({ season: roundRewards.season, round: roundRewards.round }).from(roundRewards).where(eq(roundRewards.userId, userId)),
+  ]);
 
   const bySeasonRound = new Map<string, (typeof allGames)[number][]>();
   for (const g of allGames) {
@@ -87,10 +95,6 @@ export async function checkAndGrantRoundRewards(userId: string): Promise<Collect
   const completeRounds = [...bySeasonRound.entries()].filter(([, gs]) => gs.every((g) => g.status === "final"));
 
   if (completeRounds.length > 0) {
-    const already = await db
-      .select({ season: roundRewards.season, round: roundRewards.round })
-      .from(roundRewards)
-      .where(eq(roundRewards.userId, userId));
     const alreadyRounds = new Set(already.map((r) => `${r.season} ${r.round}`));
 
     const pendingRounds = completeRounds.filter(([key]) => !alreadyRounds.has(key));

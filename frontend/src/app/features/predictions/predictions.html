@@ -10,63 +10,69 @@
 
   <app-page-hint hintId="predictions" icon="picks">{{ i18n.t('predictions.hint') }}</app-page-hint>
 
-  @if (loading()) {
-    <div class="animate-pulse space-y-3">
-      <div class="h-40 bg-line rounded-lg"></div>
-      <div class="h-40 bg-line rounded-lg"></div>
-    </div>
-  }
-
-  @if (!loading()) {
-    @if (upcomingGames().length > 0) {
-      <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-        <p class="font-mono text-[13px] text-muted font-bold mb-1">{{ i18n.t('predictions.upcomingGames') }}</p>
-        @if (auth.isAuthenticated()) {
-          <p class="text-xs text-muted mb-3">{{ i18n.t('predictions.tapToClearHint') }}</p>
+  <!-- Upcoming games — its own loading gate, independent of the predictions/
+       leaderboard fetches below: the schedule request can resolve slower or
+       faster than those, and used to leave this card popping in late with
+       no skeleton once `loading` had already flipped for the other section. -->
+  @if (upcomingGamesLoading()) {
+    <div class="animate-pulse bg-card rounded-lg shadow-card p-3 sm:p-4 mb-5">
+      <div class="flex items-baseline justify-between mb-2">
+        <div class="h-3 w-28 bg-line rounded"></div>
+        <div class="h-2.5 w-32 bg-line rounded"></div>
+      </div>
+      <div class="space-y-1.5">
+        @for (i of [1, 2, 3, 4]; track i) {
+          <div class="h-8 bg-line rounded-md"></div>
         }
-        <div class="space-y-3">
+      </div>
+    </div>
+  } @else if (upcomingGames().length > 0) {
+      <div class="bg-card rounded-lg shadow-card p-3 sm:p-4 mb-5">
+        <div class="flex items-baseline justify-between mb-2">
+          <p class="font-mono text-[13px] text-muted font-bold">{{ i18n.t('predictions.upcomingGames') }}</p>
+          @if (auth.isAuthenticated()) {
+            <p class="text-[11px] text-muted">{{ i18n.t('predictions.tapToClearHint') }}</p>
+          }
+        </div>
+        <div class="space-y-1.5">
           @for (game of upcomingGames(); track game.id) {
-            <div class="px-2 py-2 rounded-md bg-page">
-              <p class="font-mono text-muted text-[12px] mb-2">{{ game.tipoffAt | date: "MMM d, HH:mm" }}</p>
+            <div class="flex items-center gap-2 px-2 py-1 rounded-md bg-page">
+              <p class="font-mono text-muted text-[10px] leading-tight shrink-0 w-9 text-center">
+                {{ game.tipoffAt | date: "MMM d" }}<br />{{ game.tipoffAt | date: "HH:mm" }}
+              </p>
               @if (auth.isAuthenticated()) {
-                <div class="flex gap-2">
+                <div class="flex-1 flex gap-1.5">
                   <button
                     type="button"
                     (click)="togglePick(game, game.homeTeam.id)"
-                    class="flex-1 py-1.5 rounded-md font-mono text-[13px] font-bold border-2 transition-colors"
+                    class="flex-1 py-1 rounded-md font-mono text-[12px] font-bold border-2 transition-colors"
                     [class.border-highlight]="myPickFor(game) === game.homeTeam.id"
                     [class.bg-highlight]="myPickFor(game) === game.homeTeam.id"
                     [class.text-white]="myPickFor(game) === game.homeTeam.id"
                     [class.border-line]="myPickFor(game) !== game.homeTeam.id"
                     [class.text-muted]="myPickFor(game) !== game.homeTeam.id"
                   >
-                    <app-team-badge
-                      [code]="game.homeTeam.code"
-                      [logoUrl]="game.homeTeam.logoUrl"
-                    ></app-team-badge>
+                    <app-team-badge [code]="game.homeTeam.code" [logoUrl]="game.homeTeam.logoUrl" [size]="16"></app-team-badge>
                   </button>
-                  <span class="font-mono text-muted text-[12px] self-center">{{ i18n.t('predictions.vs') }}</span>
+                  <span class="font-mono text-muted text-[10px] self-center">{{ i18n.t('predictions.vs') }}</span>
                   <button
                     type="button"
                     (click)="togglePick(game, game.awayTeam.id)"
-                    class="flex-1 py-1.5 rounded-md font-mono text-[13px] font-bold border-2 transition-colors"
+                    class="flex-1 py-1 rounded-md font-mono text-[12px] font-bold border-2 transition-colors"
                     [class.border-highlight]="myPickFor(game) === game.awayTeam.id"
                     [class.bg-highlight]="myPickFor(game) === game.awayTeam.id"
                     [class.text-white]="myPickFor(game) === game.awayTeam.id"
                     [class.border-line]="myPickFor(game) !== game.awayTeam.id"
                     [class.text-muted]="myPickFor(game) !== game.awayTeam.id"
                   >
-                    <app-team-badge
-                      [code]="game.awayTeam.code"
-                      [logoUrl]="game.awayTeam.logoUrl"
-                    ></app-team-badge>
+                    <app-team-badge [code]="game.awayTeam.code" [logoUrl]="game.awayTeam.logoUrl" [size]="16"></app-team-badge>
                   </button>
                 </div>
               } @else {
-                <p class="font-display text-xs flex items-center gap-2">
-                  <app-team-badge [code]="game.homeTeam.code" [logoUrl]="game.homeTeam.logoUrl"></app-team-badge>
+                <p class="font-display text-xs flex-1 flex items-center gap-2">
+                  <app-team-badge [code]="game.homeTeam.code" [logoUrl]="game.homeTeam.logoUrl" [size]="16"></app-team-badge>
                   vs
-                  <app-team-badge [code]="game.awayTeam.code" [logoUrl]="game.awayTeam.logoUrl"></app-team-badge>
+                  <app-team-badge [code]="game.awayTeam.code" [logoUrl]="game.awayTeam.logoUrl" [size]="16"></app-team-badge>
                 </p>
               }
             </div>
@@ -75,6 +81,30 @@
       </div>
     }
 
+    @if (loading()) {
+      <div class="animate-pulse grid gap-5 sm:grid-cols-2">
+        <div class="bg-card rounded-lg shadow-card p-4">
+          <div class="h-3 w-16 bg-line rounded mb-3"></div>
+          <div class="flex items-center justify-between mb-3 pb-3 border-b border-line">
+            <div class="h-7 w-14 bg-line rounded"></div>
+            <div class="h-5 w-20 bg-line rounded"></div>
+          </div>
+          <div class="space-y-2">
+            @for (i of [1, 2, 3]; track i) {
+              <div class="h-9 bg-line rounded-md"></div>
+            }
+          </div>
+        </div>
+        <div class="bg-card rounded-lg shadow-card p-4">
+          <div class="h-3 w-24 bg-line rounded mb-3"></div>
+          <div class="space-y-2">
+            @for (i of [1, 2, 3, 4]; track i) {
+              <div class="h-9 bg-line rounded-md"></div>
+            }
+          </div>
+        </div>
+      </div>
+    } @else {
     <div class="grid gap-5 sm:grid-cols-2">
       <!-- My picks -->
       <div class="bg-card rounded-lg shadow-card p-4">
@@ -102,21 +132,49 @@
                 <a routerLink="/store" class="underline">{{ i18n.t('predictions.collection') }}</a>.
               </div>
             }
-            <div class="flex items-center justify-between mb-3 pb-3 border-b border-line">
-              <span class="flex items-baseline gap-1.5">
-                <span class="font-display text-2xl text-highlight">{{ mySummary()!.points }}</span>
-                <span class="font-mono text-[12px] text-muted font-bold">{{ i18n.t('predictions.pts') }}</span>
-              </span>
-              <div class="flex gap-1.5 items-center">
-                @for (badge of mySummary()!.badges; track badge.id) {
-                  <span [title]="badge.label + ' — ' + badge.description" class="text-highlight">
-                    <app-nav-icon [name]="badgeIcon(badge.id)" [size]="22" />
-                  </span>
-                }
-                @if (mySummary()!.badges.length === 0) {
-                  <span class="font-mono text-[12px] text-muted">{{ i18n.t('predictions.noBadgesYet') }}</span>
-                }
+            <div class="mb-3 pb-3 border-b border-line">
+              <div class="flex items-center justify-between">
+                <span class="flex items-baseline gap-1.5">
+                  <span class="font-display text-2xl text-highlight">{{ mySummary()!.points }}</span>
+                  <span class="font-mono text-[12px] text-muted font-bold">{{ i18n.t('predictions.pts') }}</span>
+                </span>
+                <div class="flex gap-1.5 items-center">
+                  @for (badge of mySummary()!.badges; track badge.id) {
+                    <span [title]="badge.label + ' — ' + badge.description" class="text-highlight">
+                      <app-nav-icon [name]="badgeIcon(badge.id)" [size]="22" />
+                    </span>
+                  }
+                  @if (mySummary()!.badges.length === 0) {
+                    <span class="font-mono text-[12px] text-muted">{{ i18n.t('predictions.noBadgesYet') }}</span>
+                  }
+                  <button
+                    type="button"
+                    (click)="showBadgeLegend.set(!showBadgeLegend())"
+                    [attr.aria-label]="i18n.t('predictions.whatDoTheseMean')"
+                    class="shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-colors"
+                    [class.text-highlight]="showBadgeLegend()"
+                    [class.text-muted]="!showBadgeLegend()"
+                  >
+                    <app-nav-icon name="tip" [size]="16" />
+                  </button>
+                </div>
               </div>
+
+              @if (showBadgeLegend()) {
+                <div class="mt-3 pt-3 border-t border-line space-y-2.5 reveal-pop">
+                  @for (b of badgeCatalog; track b.id) {
+                    <div class="flex items-start gap-2.5">
+                      <span class="shrink-0 mt-0.5" [class.text-highlight]="isEarned(b.id)" [class.text-muted]="!isEarned(b.id)" [class.opacity-40]="!isEarned(b.id)">
+                        <app-nav-icon [name]="b.icon" [size]="18" />
+                      </span>
+                      <div class="min-w-0">
+                        <p class="font-mono text-[12px] font-bold" [class.text-muted]="!isEarned(b.id)">{{ badgeLabel(b.id) }}</p>
+                        <p class="text-xs text-muted">{{ badgeDescription(b.id) }}</p>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
             </div>
           }
 

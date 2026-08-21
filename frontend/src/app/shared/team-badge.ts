@@ -11,7 +11,16 @@ import { RetryImgDirective } from "./retry-img.directive";
   template: `
     <span class="inline-flex items-center gap-1.5">
       @if (logoUrl) {
-        <img [src]="logoUrl" [alt]="code" loading="lazy" decoding="async" appRetryImg class="h-5 w-5 object-contain shrink-0" />
+        <img
+          [src]="logoUrl"
+          [alt]="code"
+          loading="lazy"
+          decoding="async"
+          appRetryImg
+          class="object-contain shrink-0"
+          [style.height.px]="size"
+          [style.width.px]="size"
+        />
       }
       <span>{{ code }}</span>
     </span>
@@ -20,4 +29,5 @@ import { RetryImgDirective } from "./retry-img.directive";
 export class TeamBadgeComponent {
   @Input({ required: true }) code!: string;
   @Input() logoUrl: string | null = null;
+  @Input() size = 20;
 }

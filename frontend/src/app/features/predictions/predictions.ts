@@ -23,11 +23,25 @@ const BADGE_ICONS: Record<string, NavIconName> = {
   sharpshooter: "picks",
 };
 
+// The full badge catalog (including ones the user hasn't earned yet) for
+// the "what do these mean?" legend — hover-only tooltips never reach mobile
+// touch, so this is a tap-to-open reference instead, doubling as a preview
+// of achievements still to chase. Order matches BADGES in
+// backend/src/routes/predictions.ts; ids must match exactly.
+const BADGE_CATALOG: { id: string; icon: NavIconName }[] = [
+  { id: "first-call", icon: "sprout" },
+  { id: "on-a-roll", icon: "flame" },
+  { id: "perfect-round", icon: "checkmark-shield" },
+  { id: "century", icon: "trophy" },
+  { id: "sharpshooter", icon: "picks" },
+];
+
 @Component({
   selector: "app-predictions",
   standalone: true,
   imports: [CommonModule, RouterLink, TeamBadgeComponent, PageHintComponent, NavIconComponent],
   templateUrl: "./predictions.html",
+  styleUrl: "./predictions.css",
 })
 export class PredictionsComponent implements OnInit {
   private api = inject(ApiService);
@@ -39,12 +53,20 @@ export class PredictionsComponent implements OnInit {
   readonly mySummary = signal<PredictionSummary | null>(null);
   readonly upcomingGames = signal<Game[]>([]);
   readonly loading = signal(true);
+  // Separate from `loading` on purpose — the schedule fetch that populates
+  // upcomingGames runs independently of the predictions fetch that gates
+  // `loading`, and used to finish later, leaving the Upcoming games card
+  // popping in with no skeleton over the gap once `loading` had already
+  // flipped false.
+  readonly upcomingGamesLoading = signal(true);
   // gameId -> predicted team id, for games the user has already picked
   readonly myPicks = signal<Map<string, string>>(new Map());
   // teamId -> logoUrl — Prediction.predictedTeam doesn't carry a logo (it's
   // a lightweight ref), so it's looked up here for the "My picks" list;
   // upcoming games already have logoUrl on their own team objects.
   readonly teamLogos = signal<Map<string, string | null>>(new Map());
+  readonly showBadgeLegend = signal(false);
+  readonly badgeCatalog = BADGE_CATALOG;
 
   ngOnInit(): void {
     this.api.getTeams().subscribe({
@@ -62,8 +84,11 @@ export class PredictionsComponent implements OnInit {
     // games" — otherwise picks could leak in from a round that hasn't
     // opened yet, or the list could run out mid-round.
     this.api.getSchedule(SEASON).subscribe({
-      next: (schedule) => this.upcomingGames.set(schedule.games.filter((g) => g.status === "scheduled")),
-      error: () => {}, // non-critical
+      next: (schedule) => {
+        this.upcomingGames.set(schedule.games.filter((g) => g.status === "scheduled"));
+        this.upcomingGamesLoading.set(false);
+      },
+      error: () => this.upcomingGamesLoading.set(false), // non-critical
     });
 
     if (this.auth.isAuthenticated()) {
@@ -94,6 +119,18 @@ export class PredictionsComponent implements OnInit {
 
   badgeIcon(badgeId: string): NavIconName {
     return BADGE_ICONS[badgeId] ?? "medal";
+  }
+
+  isEarned(badgeId: string): boolean {
+    return this.mySummary()?.badges.some((b) => b.id === badgeId) ?? false;
+  }
+
+  badgeLabel(id: string): string {
+    return this.i18n.t(`predictions.badge.${id}.label`);
+  }
+
+  badgeDescription(id: string): string {
+    return this.i18n.t(`predictions.badge.${id}.description`);
   }
 
   myPickFor(game: Game): string | null {
