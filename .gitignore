@@ -4,6 +4,9 @@ dist/
 .angular/
 npm-debug.log*
 
+# Frontend build copied into the backend at deploy time (see ./Dockerfile)
+backend/public/
+
 # Environment secrets — never commit these
 .env
 .env.local

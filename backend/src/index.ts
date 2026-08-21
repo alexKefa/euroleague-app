@@ -1,4 +1,7 @@
 import "dotenv/config";
+import path from "node:path";
+import fs from "node:fs";
+import { fileURLToPath } from "node:url";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -18,8 +21,33 @@ import { packsRouter } from "./routes/packs.js";
 
 const app = express();
 const port = process.env.PORT ? Number(process.env.PORT) : 4000;
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Populated by the Railway build (see ./Dockerfile) by copying the
+// Angular build's browser/ output here — absent in local dev, where the
+// frontend is served separately by `ng serve` instead.
+const staticDir = path.join(__dirname, "../public");
 
-app.use(helmet());
+app.use(
+  helmet({
+    // Same-origin by default; the frontend needs Google Fonts (styles.css),
+    // remote EuroLeague CDN images (team logos, player photos), and inline
+    // script/style — Angular's build injects a first-party inline <script>
+    // in index.html (stamps the color scheme before Angular loads, to
+    // avoid a flash of the wrong theme) plus an inline onload= handler for
+    // async-loading critical CSS. Both are build-time-generated, not user
+    // input, so 'unsafe-inline' here isn't opening up arbitrary injection.
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        "img-src": ["'self'", "data:", "https:"],
+        "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        "font-src": ["'self'", "https://fonts.gstatic.com"],
+        "script-src": ["'self'", "'unsafe-inline'"],
+        "script-src-attr": ["'unsafe-inline'"],
+      },
+    },
+  })
+);
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
@@ -43,6 +71,18 @@ app.use("/api/packs", packsRouter);
 
 // Route modules get mounted here as they're built:
 // app.use("/api/notifications", notificationsRouter);
+
+// Serves the built Angular app (see ./Dockerfile) — absent in local dev,
+// where the frontend runs separately via `ng serve` on its own port.
+const indexHtml = path.join(staticDir, "index.html");
+if (fs.existsSync(indexHtml)) {
+  app.use(express.static(staticDir));
+  // SPA fallback: any non-API route hands off to Angular's client-side
+  // router. /api/* paths that don't match a router above still 404 normally.
+  app.get(/^\/(?!api\/).*/, (_req, res) => {
+    res.sendFile(indexHtml);
+  });
+}
 
 app.listen(port, () => {
   console.log(`euroleague-app-backend listening on http://localhost:${port}`);

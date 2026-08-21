@@ -53,6 +53,18 @@ packsRouter.post("/:type/open", requireAuth, async (req, res) => {
     const ownedIds = new Set(ownedRows.map((o) => o.collectibleId));
     const rolled = rollPack(packType, byTier);
 
+    // Figure out duplicates and newly-owned cards up front so the actual
+    // writes below can be two batched multi-row inserts instead of one
+    // sequential round trip per rolled card — each round trip to the
+    // (remote) database costs real latency, and that added up to several
+    // seconds for a 3-slot pack when done one insert at a time.
+    const newlyOwnedIds = new Set<string>();
+    const slots = rolled.map(({ collectible, team }) => {
+      const wasDuplicate = ownedIds.has(collectible.id) || newlyOwnedIds.has(collectible.id);
+      if (!wasDuplicate) newlyOwnedIds.add(collectible.id);
+      return { collectible, team, wasDuplicate };
+    });
+
     const outcome = await db.transaction(async (tx) => {
       const [opening] = await tx
         .insert(packOpenings)
@@ -66,33 +78,38 @@ packsRouter.post("/:type/open", requireAuth, async (req, res) => {
         createdByUserId: req.userId!,
       });
 
-      const results = [];
-      for (const { collectible, team } of rolled) {
-        const wasDuplicate = ownedIds.has(collectible.id);
-        if (!wasDuplicate) {
-          await tx.insert(userCollectibles).values({ userId: req.userId!, collectibleId: collectible.id });
-          ownedIds.add(collectible.id); // rolling the same card twice in one pack shouldn't grant it twice
-        }
-
-        const [result] = await tx
-          .insert(packOpeningResults)
-          .values({ packOpeningId: opening.id, collectibleId: collectible.id, wasDuplicate })
-          .returning();
-
-        results.push({
-          resultId: result.id,
-          collectible: {
-            id: collectible.id,
-            name: collectible.name,
-            tier: collectible.tier,
-            pointsCost: collectible.pointsCost,
-            imageUrl: collectible.imageUrl,
-            team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor },
-          },
-          wasDuplicate,
-          sellValue: wasDuplicate ? Math.round(collectible.pointsCost * SELL_BACK_RATE) : null,
-        });
+      if (newlyOwnedIds.size > 0) {
+        await tx
+          .insert(userCollectibles)
+          .values([...newlyOwnedIds].map((collectibleId) => ({ userId: req.userId!, collectibleId })));
       }
+
+      // Multi-row INSERT ... RETURNING preserves VALUES order, so
+      // insertedResults[i] lines up with slots[i].
+      const insertedResults = await tx
+        .insert(packOpeningResults)
+        .values(
+          slots.map(({ collectible, wasDuplicate }) => ({
+            packOpeningId: opening.id,
+            collectibleId: collectible.id,
+            wasDuplicate,
+          }))
+        )
+        .returning();
+
+      const results = slots.map(({ collectible, team, wasDuplicate }, i) => ({
+        resultId: insertedResults[i].id,
+        collectible: {
+          id: collectible.id,
+          name: collectible.name,
+          tier: collectible.tier,
+          pointsCost: collectible.pointsCost,
+          imageUrl: collectible.imageUrl,
+          team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor },
+        },
+        wasDuplicate,
+        sellValue: wasDuplicate ? Math.round(collectible.pointsCost * SELL_BACK_RATE) : null,
+      }));
 
       return { openingId: opening.id, packType, results };
     });
