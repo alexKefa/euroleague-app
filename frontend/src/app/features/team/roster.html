@@ -51,44 +51,30 @@
     @if (upcomingGames().length > 0) {
       <div class="bg-card rounded-lg shadow-card p-4 mb-5">
         <p class="font-mono text-[13px] text-muted font-bold mb-3">{{ i18n.t('roster.upcomingGames') }}</p>
-        <div class="text-sm space-y-2">
+        <div class="text-sm space-y-1">
           @for (game of upcomingGames(); track game.id) {
-            <div class="flex justify-between items-center px-2 py-2 rounded-md">
-              <span class="font-display text-xs"
-                >{{ isHomeGame(game) ? "vs" : "@" }} {{ opponentCode(game) }}</span
-              >
+            <a
+              [routerLink]="['/games', game.id]"
+              class="flex justify-between items-center px-2 py-2 rounded-md hover:bg-page transition-colors"
+            >
+              <span class="flex items-center gap-2">
+                <span class="font-display text-xs">{{ isHomeGame(game) ? "vs" : "@" }}</span>
+                @if (opponentTeam(game).logoUrl) {
+                  <img [src]="opponentTeam(game).logoUrl" [alt]="opponentTeam(game).name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0" />
+                } @else {
+                  <span class="w-5 h-5 rounded-full shrink-0" [style.background]="opponentTeam(game).primaryColor"></span>
+                }
+                <span class="font-display text-xs">{{ opponentTeam(game).code }}</span>
+              </span>
               <span class="font-mono text-muted text-[12px]">{{ game.tipoffAt | date: "MMM d, HH:mm" }}</span>
-            </div>
-            @if (auth.isAuthenticated()) {
-              <div class="flex gap-2 px-2 pb-1">
-                <button
-                  type="button"
-                  (click)="predict(game, game.homeTeam.id)"
-                  class="flex-1 py-1.5 rounded-md font-mono text-[13px] font-bold border-2 transition-colors"
-                  [class.border-highlight]="myPickFor(game) === game.homeTeam.id"
-                  [class.bg-highlight]="myPickFor(game) === game.homeTeam.id"
-                  [class.text-white]="myPickFor(game) === game.homeTeam.id"
-                  [class.border-line]="myPickFor(game) !== game.homeTeam.id"
-                  [class.text-muted]="myPickFor(game) !== game.homeTeam.id"
-                >
-                  {{ game.homeTeam.code }}
-                </button>
-                <button
-                  type="button"
-                  (click)="predict(game, game.awayTeam.id)"
-                  class="flex-1 py-1.5 rounded-md font-mono text-[13px] font-bold border-2 transition-colors"
-                  [class.border-highlight]="myPickFor(game) === game.awayTeam.id"
-                  [class.bg-highlight]="myPickFor(game) === game.awayTeam.id"
-                  [class.text-white]="myPickFor(game) === game.awayTeam.id"
-                  [class.border-line]="myPickFor(game) !== game.awayTeam.id"
-                  [class.text-muted]="myPickFor(game) !== game.awayTeam.id"
-                >
-                  {{ game.awayTeam.code }}
-                </button>
-              </div>
-            }
+            </a>
           }
         </div>
+        @if (auth.isAuthenticated()) {
+          <a routerLink="/predictions" class="block mt-3 font-mono text-[12px] font-bold text-highlight hover:text-highlight-dim transition-colors">
+            {{ i18n.t('roster.predictOnPredictionsPage') }} &rarr;
+          </a>
+        }
       </div>
     }
 
@@ -201,10 +187,19 @@
         <p class="font-mono text-[13px] text-muted font-bold mb-3">{{ i18n.t('roster.recentResults') }}</p>
         <div class="text-sm space-y-1">
           @for (game of recentGames(); track game.id) {
-            <div class="flex justify-between items-center px-2 py-2 rounded-md">
-              <span class="font-display text-xs"
-                >{{ isHomeGame(game) ? "vs" : "@" }} {{ opponentCode(game) }}</span
-              >
+            <a
+              [routerLink]="['/games', game.id]"
+              class="flex justify-between items-center px-2 py-2 rounded-md hover:bg-page transition-colors"
+            >
+              <span class="flex items-center gap-2">
+                <span class="font-display text-xs">{{ isHomeGame(game) ? "vs" : "@" }}</span>
+                @if (opponentTeam(game).logoUrl) {
+                  <img [src]="opponentTeam(game).logoUrl" [alt]="opponentTeam(game).name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0" />
+                } @else {
+                  <span class="w-5 h-5 rounded-full shrink-0" [style.background]="opponentTeam(game).primaryColor"></span>
+                }
+                <span class="font-display text-xs">{{ opponentTeam(game).code }}</span>
+              </span>
               <span
                 class="font-mono font-bold"
                 [class.text-emerald-500]="isWin(game)"
@@ -212,7 +207,7 @@
               >
                 {{ teamScore(game) }}-{{ opponentScore(game) }}
               </span>
-            </div>
+            </a>
           }
         </div>
       </div>

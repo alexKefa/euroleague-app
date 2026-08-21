@@ -7,6 +7,10 @@ export const rosterTranslations: Record<string, Record<Lang, string>> = {
     el: "Προφίλ ομάδας έναντι μέσου όρου πρωταθλήματος",
   },
   "roster.upcomingGames": { en: "Upcoming games", el: "Επερχόμενοι αγώνες" },
+  "roster.predictOnPredictionsPage": {
+    en: "Predict this round's games on the Predictions page",
+    el: "Πρόβλεψε τους αγώνες της αγωνιστικής στη σελίδα Προβλέψεις",
+  },
   "roster.title": { en: "Roster", el: "Ρόστερ" },
   "roster.traditional": { en: "Traditional", el: "Παραδοσιακά" },
   "roster.advanced": { en: "Advanced", el: "Προχωρημένα" },

@@ -17,7 +17,7 @@ import { ApiService } from "../../core/api.service";
 import { ThemeService } from "../../core/theme.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
-import { Team, RosterEntry, Game, StandingsRow } from "../../core/models";
+import { Team, RosterEntry, Game, GameTeamSummary, StandingsRow } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ChipDirective } from "../../shared/chip.directive";
 
@@ -53,8 +53,6 @@ export class TeamRosterComponent implements OnInit, AfterViewChecked, OnDestroy 
   readonly recentGames = signal<Game[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
-  // gameId -> predicted team id, for games the user has already picked
-  readonly myPicks = signal<Map<string, string>>(new Map());
 
   readonly standings = signal<StandingsRow[]>([]);
   readonly statsView = signal<"traditional" | "advanced">("traditional");
@@ -158,16 +156,6 @@ export class TeamRosterComponent implements OnInit, AfterViewChecked, OnDestroy 
       },
     });
 
-    if (this.auth.isAuthenticated()) {
-      this.api.getMyPredictions().subscribe({
-        next: (predictions) => {
-          const map = new Map<string, string>();
-          for (const p of predictions) map.set(p.gameId, p.predictedTeam.id);
-          this.myPicks.set(map);
-        },
-        error: () => {}, // non-critical
-      });
-    }
   }
 
   ngAfterViewChecked(): void {
@@ -232,8 +220,8 @@ export class TeamRosterComponent implements OnInit, AfterViewChecked, OnDestroy 
     return game.homeTeam.id === this.team()?.id;
   }
 
-  opponentCode(game: Game): string {
-    return this.isHomeGame(game) ? game.awayTeam.code : game.homeTeam.code;
+  opponentTeam(game: Game): GameTeamSummary {
+    return this.isHomeGame(game) ? game.awayTeam : game.homeTeam;
   }
 
   isWin(game: Game): boolean {
@@ -251,24 +239,4 @@ export class TeamRosterComponent implements OnInit, AfterViewChecked, OnDestroy 
     return this.isHomeGame(game) ? game.awayScore : game.homeScore;
   }
 
-  myPickFor(game: Game): string | null {
-    return this.myPicks().get(game.id) ?? null;
-  }
-
-  predict(game: Game, teamId: string): void {
-    if (!this.auth.isAuthenticated()) return;
-    // Optimistic update — the backend still validates and is the source of truth.
-    const map = new Map(this.myPicks());
-    map.set(game.id, teamId);
-    this.myPicks.set(map);
-
-    this.api.submitPrediction(game.id, teamId).subscribe({
-      error: () => {
-        // Roll back on failure (e.g. game started in the meantime).
-        const rollback = new Map(this.myPicks());
-        rollback.delete(game.id);
-        this.myPicks.set(rollback);
-      },
-    });
-  }
 }
