@@ -1,7 +1,7 @@
 # Predictions Feature
 
 Reference doc for the win/loss prediction game: making picks, the points/badges
-system, the leaderboard, and the admin points-grant tool. Written 2026-08-18.
+system, and the leaderboard. Written 2026-08-18, updated 2026-08-21.
 
 ## Data model
 
@@ -71,24 +71,31 @@ into the frontend's `AuthService.currentUser` signal automatically.
 
 ## Frontend
 
-- **Making picks**: `frontend/src/app/features/team/roster.ts` / `roster.html`
-  — buttons on each upcoming game, optimistic update with rollback on error.
+- **Making picks**: from either `frontend/src/app/features/team/roster.ts` /
+  `roster.html` *or* directly on the Predictions page itself
+  (`predictions.html` renders the same upcoming-games pick buttons) —
+  buttons on each upcoming game, optimistic update with rollback on error.
 - **Predictions page** (`/predictions`): `frontend/src/app/features/predictions/`
+  - Upcoming games with pick buttons (team badges, not just codes).
   - "My picks" card: your resolved/pending picks, plus points + badge icons
     from `GET /me/summary`.
   - "Leaderboard" card: top 20, points + badges per row.
-  - **"Grant points (admin)" panel**: only rendered when
-    `auth.currentUser()?.isAdmin`. A small reactive form (email, points,
-    reason) that calls `ApiService.adjustPoints()` and refreshes the
-    leaderboard on success.
+- **Admin tools have moved to the Profile page**
+  (`frontend/src/app/features/profile/`), not Predictions — grant points
+  *and* grant a specific collectible card, both gated on
+  `auth.currentUser()?.isAdmin`, both calling into `ApiService`
+  (`adjustPoints()` / `grantCard()`) and refreshing on success.
+
+## What points are spent on
+
+Points feed a small collectibles economy under the "Cards" hub
+(`/inventory`) — see `CLAUDE.md`'s "Collectibles economy" note for the full
+picture. In short: a daily Jump Ball wheel, points-priced card packs, and a
+trade marketplace between users, all built on `userCollectibles` ownership
+rows. This was "not built yet" as of the doc's original writing
+(2026-08-18) — it's built now.
 
 ## Not built yet
 
-Captured from the original feature ask — see memory note
-`project_predictions_gamification` for the fuller context:
-
-- A points **store** — spending points on cosmetic collectibles (player
-  figures, historic team emblems, etc.). Needs a catalog/inventory model and
-  a decision on how points convert to prices.
 - Any audit-trail UI for `point_adjustments` (the data — `createdByUserId`,
   `reason`, `createdAt` — is already recorded, just not surfaced anywhere).

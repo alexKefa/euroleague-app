@@ -6,8 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A personalized EuroLeague stats & fan app. A user picks a favorite team and
 the UI "reskins" to that team's colors; the app surfaces standings, rosters,
-league leaders, news, upcoming/recent games, and a win/loss prediction game
-with a points/badges leaderboard.
+player pages, league leaders, news, a schedule with per-game box scores, and
+a win/loss prediction game with a points/badges leaderboard. Points earned
+from predictions feed a small collectibles economy — a daily "Jump Ball"
+wheel, points-priced card packs, and a player-to-player trade marketplace —
+under a "Cards" hub. The whole app is bilingual (EN/EL) via a custom i18n
+service, not a library like ngx-translate.
+
+**Live**: https://clutchapp.up.railway.app (Railway, see Deployment below).
 
 ## Stack
 
@@ -34,14 +40,20 @@ npm run db:generate      # generate a migration file from schema.ts (see below)
 npm run db:studio        # Drizzle Studio GUI against the live DB
 npm run sync:standings   # tsx src/sync/runSync.ts
 npm run sync:news        # tsx src/sync/runNewsSync.ts
+npm run economy:report   # tsx src/scripts/economy-report.ts — points/collectibles sanity check
+npm run collectibles:expand  # tsx src/scripts/expand-collectibles.ts — regenerate the card catalog
 ```
 
 Frontend (`frontend/`):
 ```bash
-npm start                # ng serve — http://localhost:4200
+npm start                # ng serve --proxy-config proxy.conf.json — http://localhost:4200
 npm run build            # ng build
 npm run watch            # ng build --watch --configuration development
 ```
+`proxy.conf.json` forwards `/api` to `http://localhost:4000` — the frontend
+always calls a relative `/api/...` (`core/api-config.ts`), never an absolute
+backend URL, so the browser only ever talks to one origin whether that's the
+local dev proxy, an ngrok tunnel, or the Railway deploy (see Deployment).
 
 Python sync (`backend/src/sync-py/`, separate venv):
 ```bash
@@ -88,28 +100,66 @@ If you need to apply a schema change without an interactive terminal
   `backend/src/sync-py/` (Python + `euroleague-api`) for games/boxscores/
   player stats — the Python path exists because `euroleague-api` is the only
   tested wrapper around EuroLeague's feed for that data.
+- **Collectibles economy** (`collectibles`, `userCollectibles`,
+  `wheelSpins`, `roundRewards`, `packOpenings`/`packOpeningResults`,
+  `tradeOffers`/`tradeOfferItems` in `schema.ts`; routes in `collectibles.ts`,
+  `spin.ts`, `packs.ts`, `trades.ts`). Ownership is always just a row in
+  `userCollectibles` — there's no separate "balance" table for cards, same
+  spirit as points. Three ways to earn a card: the daily Jump Ball wheel
+  (`spin.ts`, one free roll/24h, common/rare/legendary odds, admin-only
+  `POST /spin/cheat` bypasses the cooldown for testing), points-priced packs
+  (`packs.ts`, tiered odds per pack type, writes are batched into two
+  multi-row inserts rather than one per rolled card — that was a real
+  latency problem against the remote DB), or a perfect prediction round
+  (`services/cards.ts`). Trades (`trades.ts`) are an opt-in marketplace,
+  many-for-one offers, scoped to cards both sides actually own.
+- `helmet()` + `express-rate-limit` are on by default (`index.ts`); the
+  rate limiter warns about `X-Forwarded-For` when running behind a proxy
+  (ngrok, Railway) without `app.set('trust proxy', ...)` configured — noisy
+  in logs, hasn't been fixed.
+- In production the backend also serves the built Angular app as static
+  files with an SPA fallback (see Deployment below) — absent in local dev,
+  where `ng serve` handles the frontend on its own port instead.
 
 ## Frontend architecture
 
 - Routes are lazy-loaded standalone components (`frontend/src/app/app.routes.ts`).
+  Desktop (`sm:` and up) gets an icon+label left sidebar; mobile gets a
+  bottom tab bar — both driven by the same `NAV_LINKS` array in
+  `app.component.ts`. The nav tab is labeled "Cards" and points at
+  `/inventory` (My Cards), which acts as the hub — Store, Jump Ball
+  (wheel), Packs, and Trades are reached as buttons from there, not as
+  their own top-level nav items.
 - `frontend/src/app/core/`: `ApiService` (all HTTP calls), `AuthService`
   (holds `accessToken`/`currentUser` as signals, access token is
   memory-only — never localStorage — restored on boot via the httpOnly
   refresh cookie through `restoreSession()`), `auth.interceptor.ts`
-  (attaches the bearer token to same-origin API requests only), `ThemeService`.
+  (attaches the bearer token to same-origin API requests only), `ThemeService`,
+  `I18nService` (`core/i18n/`, one dictionary file per feature merged into
+  `translations.ts`; `i18n.t('namespace.key')` in templates — this is a
+  hand-rolled service, not ngx-translate or Angular's built-in i18n).
 - Team "reskinning": `ThemeService.applyTeam()` sets `--accent-primary`/
-  `--accent-secondary` CSS variables on `documentElement`; Tailwind's
-  `team-primary`/`team-secondary` colors (in `frontend/tailwind.config.js`)
-  reference those variables. Type tokens (`ink`, `panel`, `hairline`,
-  `muted`, `amber`) also live there; fonts (Oswald/JetBrains Mono/Inter) are
-  set up in `frontend/src/styles.css`.
+  `--accent-secondary` CSS variables on `documentElement`, cached to
+  `localStorage` so the right colors apply immediately on next boot
+  (before the dashboard's own fetch resolves — see the bootstrap-race note
+  below). An ambient radial-gradient glow on `body` (`styles.css`) also
+  derives from those same variables. Tailwind's `page`/`card`/`line`/
+  `muted`/`ink`/`highlight` colors (`frontend/tailwind.config.js`) are
+  themselves backed by CSS variables (not fixed hex), which is what makes
+  the dark/light toggle (`ThemeService.toggleColorScheme()`, stamps
+  `data-theme` on `<html>`) repaint the whole app with zero template
+  changes. Fonts: Anton (display/headings), JetBrains Mono (mono/labels),
+  Manrope (sans/body) — set up in `frontend/src/styles.css`.
 - Forms use Angular Reactive Forms (`ReactiveFormsModule` + `FormBuilder`),
   not template-driven/`ngModel` — follow that pattern for new forms.
 - Known bootstrap race: `AppComponent.restoreSession()` and the dashboard's
   standings fetch fire independently on app load. If standings resolve
-  first, the dashboard doesn't yet know `favoriteTeamId` and briefly
-  defaults to the top-ranked team for that render. Self-corrects on the next
-  interaction; not yet fixed with a resolver/bootstrap reordering.
+  first, the dashboard doesn't yet know `favoriteTeamId` yet for that
+  render. It no longer falls back to the top-ranked team for guests (that
+  was actively misleading — it looked like "your team"), but a logged-in
+  user can still briefly see no team-hero before it resolves. Self-corrects
+  on the next interaction; not yet fixed with a resolver/bootstrap
+  reordering.
 
 ## Environment variables (backend `.env`)
 
@@ -119,13 +169,41 @@ Optional (defaults shown): `PORT` (4000), `JWT_ACCESS_EXPIRES_IN` (15m),
 `EUROLEAGUE_COMPETITION_CODE`, `NODE_ENV` (gates the refresh cookie's
 `secure` flag).
 
+## Deployment
+
+Live on Railway as a single service (project + service both named
+"euroleague-app"): https://clutchapp.up.railway.app. `DATABASE_URL` points
+at the same Neon instance as local dev — there's no separate prod database.
+
+- **Config-as-code**: `.railway/railway.ts` (Railway's TypeScript
+  infra-as-code — `railway config plan` to preview changes, `railway config
+  apply` to apply). Not `railway.json`/`nixpacks.toml` — Railway's default
+  "Railpack" builder doesn't reliably read those in this monorepo (no root
+  `package.json`) and silently hangs instead of erroring. The working setup
+  pins an explicit Dockerfile builder.
+- **`Dockerfile`** (repo root): multi-stage — builds the frontend, builds
+  the backend, copies the frontend's `browser/` output into
+  `backend/public/`, runs `node backend/dist/index.js`. Same-origin
+  end-to-end (see the backend-architecture note on static-file serving) —
+  deliberately not split into a separate frontend host (e.g. Firebase
+  Hosting), to avoid cross-site refresh-cookie/CORS complications for what's
+  a small personal-scale app.
+- **Domain**: the Railway-generated `*.up.railway.app` name is a shared
+  global namespace across all Railway users — renaming the *service* is
+  destructive in `railway.ts` (shows as delete+recreate in `config plan`,
+  drops env vars/history), but renaming just the *domain* is safe
+  (`railway domain update <old> --domain <new>`, non-destructive).
+- **Redeploy**: currently manual (`railway up --service euroleague-app`)
+  from a local checkout — not yet wired to auto-deploy on `git push`.
+- The same Railway account has an unrelated older project ("valiant-passion" /
+  service "dsg-backend") — don't confuse it with this one.
+
 ## Other known gaps
 
 - A traded player's season-long stat averages (across both teams) are
   attributed entirely to their *current* team's roster page, not split per-team.
-- The league leaders panel is hardcoded to the `points` category even though
-  the backend already supports `rebounds`/`assists`/`steals`/`blocks`/`valuation`.
-- Not deployed yet (Railway was the original target, not set up).
-- Predictions points store (spending points on cosmetic collectibles) is
-  planned but not built — see the `project-predictions-gamification` memory
-  and `PREDICTIONS.md` for the fuller writeup of what exists today.
+- Player detail pages don't show a per-game log — `player_game_stats` exists
+  in the schema but is empty in the DB (the boxscore sync script hasn't been
+  run against it), so there's no data to show yet.
+- Redeploys to Railway are manual, not triggered by `git push` (see
+  Deployment above).
