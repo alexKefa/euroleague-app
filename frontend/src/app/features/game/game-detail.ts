@@ -5,6 +5,7 @@ import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
 import { EventsService } from "../../core/events.service";
 import { GameDetail, GameBoxscoreLine, PlayerDetail } from "../../core/models";
+import { NavIconComponent } from "../../shared/nav-icon";
 
 interface TeamTotals {
   points: number;
@@ -36,7 +37,7 @@ function totalsFor(lines: GameBoxscoreLine[]): TeamTotals {
 @Component({
   selector: "app-game-detail",
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, NavIconComponent],
   templateUrl: "./game-detail.html",
 })
 export class GameDetailComponent implements OnInit {

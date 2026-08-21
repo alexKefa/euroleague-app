@@ -6,6 +6,7 @@ import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { Collectible, CollectibleTier, SpinResult } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
+import { NavIconComponent } from "../../shared/nav-icon";
 
 // Matches the CSS transition-duration on the wheel graphic — the reveal is
 // deliberately held back until the spin animation actually finishes, even
@@ -15,7 +16,7 @@ const SPIN_ANIMATION_MS = 1800;
 @Component({
   selector: "app-wheel",
   standalone: true,
-  imports: [CommonModule, RouterLink, CollectibleCardComponent],
+  imports: [CommonModule, RouterLink, CollectibleCardComponent, NavIconComponent],
   templateUrl: "./wheel.html",
   styleUrl: "./wheel.css",
 })

@@ -14,7 +14,7 @@
   </div>
 
   @if (auth.isAuthenticated()) {
-    <app-page-hint hintId="cards-hub" icon="🃏">
+    <app-page-hint hintId="cards-hub" icon="cards">
       {{ i18n.t('inventory.hintPrefix') }}
       <a routerLink="/packs" class="text-highlight font-semibold">{{ i18n.t('store.packs') }}</a>
       {{ i18n.t('inventory.hintMiddle') }}

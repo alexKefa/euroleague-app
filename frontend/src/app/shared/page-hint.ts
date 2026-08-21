@@ -1,5 +1,6 @@
 import { Component, Input, OnInit, inject, signal } from "@angular/core";
 import { I18nService } from "../core/i18n.service";
+import { NavIconComponent, NavIconName } from "./nav-icon";
 
 // Small, dismissible orientation hints dropped at the top of a page —
 // distinct from the app's `bg-card` content sections on purpose (a tinted
@@ -11,12 +12,13 @@ import { I18nService } from "../core/i18n.service";
 @Component({
   selector: "app-page-hint",
   standalone: true,
+  imports: [NavIconComponent],
   template: `
     @if (!dismissed()) {
       <div
         class="relative flex items-start gap-2.5 pl-3.5 pr-9 py-3 mb-5 rounded-r-lg bg-highlight/[0.06] border-l-2 border-highlight"
       >
-        <span class="text-base leading-tight shrink-0" aria-hidden="true">{{ icon }}</span>
+        <app-nav-icon [name]="icon" [size]="18" class="text-highlight shrink-0 mt-0.5" />
         <p class="text-sm text-muted leading-relaxed">
           <ng-content></ng-content>
         </p>
@@ -36,7 +38,7 @@ export class PageHintComponent implements OnInit {
   protected i18n = inject(I18nService);
 
   @Input({ required: true }) hintId!: string;
-  @Input() icon = "💡";
+  @Input() icon: NavIconName = "tip";
 
   readonly dismissed = signal(false);
 

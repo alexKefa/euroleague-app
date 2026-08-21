@@ -12,7 +12,18 @@ export type NavIconName =
   | "trade"
   | "schedule"
   | "sun"
-  | "moon";
+  | "moon"
+  // Achievement/celebration set — replaces emoji (badges, page hints,
+  // on-fire/double-double tags, the perfect-round banner). Same stroke
+  // language as the nav icons above, not a separate visual system.
+  | "trophy"
+  | "flame"
+  | "checkmark-shield"
+  | "medal"
+  | "sprout"
+  | "zap"
+  | "ball"
+  | "tip";
 
 @Component({
   selector: "app-nav-icon",
@@ -188,6 +199,111 @@ export type NavIconName =
             stroke-width="2.2"
             stroke-linejoin="round"
           />
+        }
+        @case ("trophy") {
+          <!-- century badge + the perfect-round celebration banner. -->
+          <path
+            d="M8 4h8v4a4 4 0 0 1-8 0V4z"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linejoin="round"
+            fill="currentColor"
+            fill-opacity="0.14"
+          />
+          <path
+            d="M8 5H5a3 3 0 0 0 3 4M16 5h3a3 3 0 0 1-3 4"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+          />
+          <path d="M12 12v3M9 19h6M10 19v-2.5M14 19v-2.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        }
+        @case ("flame") {
+          <!-- on-a-roll badge + the double-double tag. -->
+          <path
+            d="M12 3c1 2.5-1 3.5-1 5.5 0 1.2 1 2 2 2s2-1 2-2.2c1.5 1 2.5 3 2.5 5C17.5 17 15 20 12 20s-5.5-3-5.5-6.7c0-3 1.8-5 3-7 .5 1 1 2 1.5 2.7-.3-2-.3-4.5 1-6z"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linejoin="round"
+            fill="currentColor"
+            fill-opacity="0.14"
+          />
+        }
+        @case ("checkmark-shield") {
+          <!-- perfect-round badge — a completed, verified round. -->
+          <path
+            d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linejoin="round"
+            fill="currentColor"
+            fill-opacity="0.14"
+          />
+          <path
+            d="M8.5 12l2.5 2.5 4.5-5"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        }
+        @case ("medal") {
+          <!-- fallback for any badge id without a specific icon. -->
+          <circle cx="12" cy="14" r="6" stroke="currentColor" stroke-width="2" fill="currentColor" fill-opacity="0.14" />
+          <path d="M9.5 3.5l2.5 5 2.5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M10.5 12.5l1.5-1.5 1.5 1.5-1.5 3.5-1.5-3.5z" fill="currentColor" />
+        }
+        @case ("sprout") {
+          <!-- first-call badge — a first pick made. -->
+          <path
+            d="M12 20v-7"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+          <path
+            d="M12 13c0-3.5-3-4.5-6-4.5C6.3 12 8.5 14 12 13z"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linejoin="round"
+            fill="currentColor"
+            fill-opacity="0.14"
+          />
+          <path
+            d="M12 10.5c0-4 3.3-5.5 6.5-5.5C18.3 9 15.7 11.3 12 10.5z"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linejoin="round"
+            fill="currentColor"
+            fill-opacity="0.14"
+          />
+        }
+        @case ("zap") {
+          <!-- on-fire indicator next to a player currently on a scoring streak. -->
+          <path
+            d="M13 2.5L5.5 13h4.7l-1.2 8.5 8.5-11.5h-5.2L13 2.5z"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linejoin="round"
+            fill="currentColor"
+            fill-opacity="0.2"
+          />
+        }
+        @case ("ball") {
+          <!-- basketball — the dashboard points-hint icon, and the wheel's hub. -->
+          <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2" fill="currentColor" fill-opacity="0.1" />
+          <path
+            d="M12 3.5v17M3.5 12h17M6 6c2 2 2 10-0.5 12M18 6c-2 2-2 10 0.5 12"
+            stroke="currentColor"
+            stroke-width="1.4"
+            stroke-linecap="round"
+          />
+        }
+        @case ("tip") {
+          <!-- default page-hint icon when a page doesn't pass a specific one. -->
+          <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2" fill="currentColor" fill-opacity="0.1" />
+          <path d="M12 8v5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          <circle cx="12" cy="16.3" r="1.1" fill="currentColor" />
         }
       }
     </svg>

@@ -8,7 +8,7 @@
     >
   </div>
 
-  <app-page-hint hintId="predictions" icon="🎯">{{ i18n.t('predictions.hint') }}</app-page-hint>
+  <app-page-hint hintId="predictions" icon="picks">{{ i18n.t('predictions.hint') }}</app-page-hint>
 
   @if (loading()) {
     <div class="animate-pulse space-y-3">
@@ -87,8 +87,9 @@
         @if (auth.isAuthenticated()) {
           @if (mySummary(); as summary) {
             @if (summary.newRoundRewards.length > 0) {
-              <div class="rounded-xl bg-highlight/10 text-highlight text-xs font-bold px-3 py-2 mb-3">
-                🎉 {{ i18n.t('predictions.perfectRoundPrefix') }}
+              <div class="flex items-center gap-2 rounded-xl bg-highlight/10 text-highlight text-xs font-bold px-3 py-2 mb-3">
+                <app-nav-icon name="trophy" [size]="18" class="shrink-0" />
+                {{ i18n.t('predictions.perfectRoundPrefix') }}
                 {{
                   summary.newRoundRewards.length === 1
                     ? summary.newRoundRewards[0].name
@@ -103,11 +104,11 @@
                 <span class="font-display text-2xl text-highlight">{{ mySummary()!.points }}</span>
                 <span class="font-mono text-[12px] text-muted font-bold">{{ i18n.t('predictions.pts') }}</span>
               </span>
-              <div class="flex gap-1 text-base">
+              <div class="flex gap-1.5 items-center">
                 @for (badge of mySummary()!.badges; track badge.id) {
-                  <span [title]="badge.label + ' — ' + badge.description">{{
-                    badgeIcon(badge.id)
-                  }}</span>
+                  <span [title]="badge.label + ' — ' + badge.description" class="text-highlight">
+                    <app-nav-icon [name]="badgeIcon(badge.id)" [size]="22" />
+                  </span>
                 }
                 @if (mySummary()!.badges.length === 0) {
                   <span class="font-mono text-[12px] text-muted">{{ i18n.t('predictions.noBadgesYet') }}</span>
@@ -153,9 +154,9 @@
               <span class="font-semibold flex items-center gap-1">
                 <span class="font-mono text-muted">{{ i + 1 }}</span>&nbsp;&nbsp;{{ entry.displayName }}
                 @for (badge of entry.badges; track badge.id) {
-                  <span class="text-xs" [title]="badge.label + ' — ' + badge.description">{{
-                    badgeIcon(badge.id)
-                  }}</span>
+                  <span class="text-highlight" [title]="badge.label + ' — ' + badge.description">
+                    <app-nav-icon [name]="badgeIcon(badge.id)" [size]="14" />
+                  </span>
                 }
               </span>
               <span class="text-right">

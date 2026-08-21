@@ -7,25 +7,26 @@ import { I18nService } from "../../core/i18n.service";
 import { Prediction, LeaderboardEntry, PredictionSummary, Game } from "../../core/models";
 import { TeamBadgeComponent } from "../../shared/team-badge";
 import { PageHintComponent } from "../../shared/page-hint";
+import { NavIconComponent, NavIconName } from "../../shared/nav-icon";
 
 // Matches schedule.ts — no season picker here either, and predictions
 // should only ever be open for the round a user could actually be watching.
 const SEASON = "2026-27";
 
-// Emoji glyphs for known badge ids — purely a display concern, the backend
+// Icon glyphs for known badge ids — purely a display concern, the backend
 // only sends id/label/description. Unrecognized ids fall back to a medal.
-const BADGE_ICONS: Record<string, string> = {
-  "first-call": "🌱",
-  "on-a-roll": "🔥",
-  "perfect-round": "💯",
-  century: "🏆",
-  sharpshooter: "🎯",
+const BADGE_ICONS: Record<string, NavIconName> = {
+  "first-call": "sprout",
+  "on-a-roll": "flame",
+  "perfect-round": "checkmark-shield",
+  century: "trophy",
+  sharpshooter: "picks",
 };
 
 @Component({
   selector: "app-predictions",
   standalone: true,
-  imports: [CommonModule, RouterLink, TeamBadgeComponent, PageHintComponent],
+  imports: [CommonModule, RouterLink, TeamBadgeComponent, PageHintComponent, NavIconComponent],
   templateUrl: "./predictions.html",
 })
 export class PredictionsComponent implements OnInit {
@@ -91,8 +92,8 @@ export class PredictionsComponent implements OnInit {
     }
   }
 
-  badgeIcon(badgeId: string): string {
-    return BADGE_ICONS[badgeId] ?? "🏅";
+  badgeIcon(badgeId: string): NavIconName {
+    return BADGE_ICONS[badgeId] ?? "medal";
   }
 
   myPickFor(game: Game): string | null {
