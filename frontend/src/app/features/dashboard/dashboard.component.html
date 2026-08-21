@@ -140,17 +140,12 @@
           <div class="bg-card rounded-lg shadow-card p-4 mb-5 lg:mb-0">
             <div class="flex justify-between items-center mb-3">
               <p class="font-mono text-[12px] text-muted font-bold">{{ i18n.t('dashboard.leaders') }}</p>
-              <div class="flex gap-1">
-                @for (cat of leaderCategories; track cat.value) {
-                  <button
-                    type="button"
-                    (click)="selectLeaderCategory(cat.value)"
-                    [appChip]="leaderCategory() === cat.value"
-                  >
-                    {{ cat.label }}
-                  </button>
-                }
-              </div>
+              <app-dropdown
+                class="w-24"
+                [options]="leaderDropdownOptions"
+                [value]="leaderCategory()"
+                (valueChange)="onLeaderCategoryChange($event)"
+              />
             </div>
             <div class="text-sm space-y-1">
               @for (entry of leaders(); track entry.player.id; let i = $index) {

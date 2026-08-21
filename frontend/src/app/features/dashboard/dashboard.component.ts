@@ -11,7 +11,7 @@ import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { TourService } from "../../core/tour/tour.service";
 import { ButtonDirective } from "../../shared/button.directive";
-import { ChipDirective } from "../../shared/chip.directive";
+import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 
 const LEADER_CATEGORIES = [
   { value: "points", label: "PTS" },
@@ -27,7 +27,15 @@ type LeaderCategory = (typeof LEADER_CATEGORIES)[number]["value"];
 @Component({
   selector: "app-dashboard",
   standalone: true,
-  imports: [CommonModule, RouterLink, PageHintComponent, RetryImgDirective, NavIconComponent, ButtonDirective, ChipDirective],
+  imports: [
+    CommonModule,
+    RouterLink,
+    PageHintComponent,
+    RetryImgDirective,
+    NavIconComponent,
+    ButtonDirective,
+    DropdownComponent,
+  ],
   templateUrl: "./dashboard.component.html",
 })
 export class DashboardComponent implements OnInit {
@@ -44,6 +52,10 @@ export class DashboardComponent implements OnInit {
   readonly leaders = signal<LeaderEntry[]>([]);
   readonly leaderCategory = signal<LeaderCategory>("points");
   readonly leaderCategories = LEADER_CATEGORIES;
+  readonly leaderDropdownOptions: DropdownOption[] = LEADER_CATEGORIES.map((c) => ({
+    value: c.value,
+    label: c.label,
+  }));
   readonly news = signal<NewsArticle[]>([]);
   readonly teamGames = signal<Game[]>([]);
   readonly roundMvp = signal<RoundMvp | null>(null);
@@ -118,6 +130,12 @@ export class DashboardComponent implements OnInit {
       next: (rows) => this.leaders.set(rows),
       error: () => {}, // non-critical widget — fail quietly, standings error already covers the main failure mode
     });
+  }
+
+  // The dropdown emits a plain string; its options are always sourced from
+  // LEADER_CATEGORIES, so the cast is safe.
+  onLeaderCategoryChange(value: string | null): void {
+    if (value) this.selectLeaderCategory(value as LeaderCategory);
   }
 
   isHomeGame(game: Game): boolean {
