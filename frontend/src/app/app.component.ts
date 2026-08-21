@@ -14,6 +14,28 @@ import { SplashComponent } from "./shared/splash";
 const SPLASH_DURATION_MS = 1600;
 const SPLASH_FADE_MS = 400;
 
+// The PWA service worker (added, then pulled 2026-08-21 — see project
+// memory) was implicated in cross-origin resources — Google Fonts, the
+// EuroLeague image CDN, both otherwise-unrelated — intermittently 504ing in
+// production. Removing the registration call in new app code doesn't
+// retroactively affect a visitor whose browser already installed the old
+// service worker from a previous visit; it stays active until explicitly
+// unregistered. This cleans that up for anyone still carrying it, and is
+// cheap to leave in permanently as a safety net.
+function unregisterStaleServiceWorker(): void {
+  if (!("serviceWorker" in navigator)) return;
+  navigator.serviceWorker
+    .getRegistrations()
+    .then((regs) => regs.forEach((reg) => reg.unregister()))
+    .catch(() => {});
+  if ("caches" in window) {
+    caches
+      .keys()
+      .then((keys) => keys.filter((k) => k.startsWith("ngsw:")).forEach((k) => caches.delete(k)))
+      .catch(() => {});
+  }
+}
+
 interface NavLink {
   path: string;
   label: string;
@@ -70,6 +92,7 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     this.auth.restoreSession().subscribe();
+    unregisterStaleServiceWorker();
 
     setTimeout(() => this.splashHiding.set(true), SPLASH_DURATION_MS);
     setTimeout(() => this.showSplash.set(false), SPLASH_DURATION_MS + SPLASH_FADE_MS);
