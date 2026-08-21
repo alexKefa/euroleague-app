@@ -11,14 +11,14 @@
       <div data-tour="profile-referral" class="bg-card rounded-lg shadow-card p-4 mb-5">
         <p class="font-mono text-[12px] text-muted font-bold mb-1">{{ i18n.t('profile.referralTitle') }}</p>
         <p class="text-xs text-muted mb-3">{{ i18n.t('profile.referralHint') }}</p>
-        <div class="flex gap-2">
+        <div class="flex flex-col sm:flex-row gap-2">
           <input
             type="text"
             readonly
             [value]="link"
             class="flex-1 min-w-0 px-3 py-2 rounded-[5px] bg-page border-2 border-line text-xs font-mono text-muted"
           />
-          <button type="button" (click)="copyReferralLink()" appButton class="shrink-0">
+          <button type="button" (click)="copyReferralLink()" appButton appButtonSize="sm" class="w-full sm:w-auto shrink-0">
             {{ referralCopied() ? i18n.t('profile.referralCopied') : i18n.t('profile.referralCopy') }}
           </button>
         </div>
