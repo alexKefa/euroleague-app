@@ -49,7 +49,7 @@
       />
       @if (filterTeams().length > 1) {
         <app-dropdown
-          class="max-w-[14rem] min-w-[10rem]"
+          class="flex-1 min-w-[10rem]"
           [options]="teamDropdownOptions()"
           [value]="teamFilter() ?? ''"
           (valueChange)="teamFilter.set($event || null)"
