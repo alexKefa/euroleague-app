@@ -7,8 +7,8 @@ export const rosterTranslations: Record<string, Record<Lang, string>> = {
     el: "Προφίλ ομάδας έναντι μέσου όρου πρωταθλήματος",
   },
   "roster.teamProfileHint": {
-    en: "Shooting, rebounding and passing efficiency compared to the EuroLeague average — higher is always better.",
-    el: "Αποτελεσματικότητα σε σουτ, ριμπάουντ και πάσες σε σύγκριση με τον μέσο όρο της EuroLeague — το μεγαλύτερο είναι πάντα καλύτερο.",
+    en: "Points scored, points allowed and rebounding compared to the EuroLeague average.",
+    el: "Πόντοι που πέτυχε, πόντοι που δέχτηκε και ριμπάουντ σε σύγκριση με τον μέσο όρο της EuroLeague.",
   },
   "roster.vsLeagueAvg": { en: "vs league avg", el: "έναντι μ.ό." },
   "roster.upcomingGames": { en: "Upcoming games", el: "Επερχόμενοι αγώνες" },
@@ -25,6 +25,7 @@ export const rosterTranslations: Record<string, Record<Lang, string>> = {
   "roster.colPPG": { en: "PPG", el: "ΠΟΝ" },
   "roster.colRPG": { en: "RPG", el: "ΡΙΜΠ" },
   "roster.colAPG": { en: "APG", el: "ΑΣΙ" },
+  "roster.colSPG": { en: "SPG", el: "ΚΛΕ" },
   "roster.colPIR": { en: "PIR", el: "PIR" },
   "roster.colTS": { en: "TS%", el: "TS%" },
   "roster.colEFG": { en: "eFG%", el: "eFG%" },
@@ -39,5 +40,4 @@ export const rosterTranslations: Record<string, Record<Lang, string>> = {
   "roster.axisOffense": { en: "Offense", el: "Επίθεση" },
   "roster.axisDefense": { en: "Defense", el: "Άμυνα" },
   "roster.axisRebounding": { en: "Rebounding", el: "Ριμπάουντ" },
-  "roster.axisPlaymaking": { en: "Playmaking", el: "Πλέι-μέικινγκ" },
 };

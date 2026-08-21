@@ -9,20 +9,20 @@ import { Team, RosterEntry, Game, GameTeamSummary, StandingsRow } from "../../co
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ChipDirective } from "../../shared/chip.directive";
 
-// Every axis is itself a percentage (effective FG%, rebound%, assist
-// ratio — see backend/src/sync-py/standings_sync.py's get_radar_stats),
-// so they all share one 0-100 bar scale without needing a per-axis
-// rescale. Replaced the radar chart (see PREDICTIONS.md/session history)
-// because hidden axis ticks plus four jargon-y stat names made it
-// unreadable — a fan couldn't tell "is this team good at X" from the
-// shape alone. A labeled bar with a league-average marker states that
-// directly.
-const COMPARISON_AXES: { key: keyof StandingsRow["stats"]; labelKey: string }[] = [
-  { key: "offRating", labelKey: "roster.axisOffense" },
-  { key: "defRating", labelKey: "roster.axisDefense" },
-  { key: "rebPct", labelKey: "roster.axisRebounding" },
-  { key: "astPct", labelKey: "roster.axisPlaymaking" },
+// Plain box-score terms instead of advanced-stat proxies (eFG%-based
+// "offRating"/"defRating", assist ratio for "playmaking") — those didn't
+// read as basketball to a casual fan even once the radar chart was
+// replaced with bars. Offense/defense are now literally points scored
+// and allowed per game; rebounding is the one axis still a percentage
+// (no raw rebounds-per-game field is synced yet — see standings_sync.py).
+// `invert` marks defense: fewer points allowed is better, the opposite
+// direction from every other axis, so delta's sign has to flip for it.
+const COMPARISON_AXES: { key: keyof StandingsRow["stats"]; labelKey: string; percent: boolean; invert?: boolean }[] = [
+  { key: "ppg", labelKey: "roster.axisOffense", percent: false },
+  { key: "papg", labelKey: "roster.axisDefense", percent: false, invert: true },
+  { key: "rebPct", labelKey: "roster.axisRebounding", percent: true },
 ];
+type ComparisonAxis = (typeof COMPARISON_AXES)[number];
 
 @Component({
   selector: "app-team-roster",
@@ -115,16 +115,38 @@ export class TeamRosterComponent implements OnInit {
     });
   }
 
-  teamValue(key: keyof StandingsRow["stats"]): number {
-    return (this.teamStandingsRow()?.stats[key] as number | null) ?? 0;
+  teamValue(axis: ComparisonAxis): number {
+    return (this.teamStandingsRow()?.stats[axis.key] as number | null) ?? 0;
   }
 
-  leagueAvgValue(key: keyof StandingsRow["stats"]): number {
-    return this.leagueAverage()[key] ?? 0;
+  leagueAvgValue(axis: ComparisonAxis): number {
+    return this.leagueAverage()[axis.key] ?? 0;
   }
 
-  delta(key: keyof StandingsRow["stats"]): number {
-    return this.teamValue(key) - this.leagueAvgValue(key);
+  formatValue(axis: ComparisonAxis, value: number): string {
+    return axis.percent ? this.fmtPct(value) : this.fmtNum(value);
+  }
+
+  // true when the team is doing BETTER than league average on this axis —
+  // the same "team minus average" sign for most axes, flipped for defense
+  // (papg), where allowing fewer points than average is the good outcome.
+  isAboveAverage(axis: ComparisonAxis): boolean {
+    const raw = this.teamValue(axis) - this.leagueAvgValue(axis);
+    return axis.invert ? raw <= 0 : raw >= 0;
+  }
+
+  // Bar fill as a % of a per-row scale (team/league-avg's own max + 15%
+  // headroom) rather than a flat 0-100 — needed now that axes mix raw
+  // points (60-100 range) with a genuine percentage (0-100 range), so one
+  // shared scale would no longer make sense for all of them.
+  barWidth(axis: ComparisonAxis): number {
+    const max = Math.max(this.teamValue(axis), this.leagueAvgValue(axis)) * 1.15 || 1;
+    return Math.min(100, (this.teamValue(axis) / max) * 100);
+  }
+
+  markerPosition(axis: ComparisonAxis): number {
+    const max = Math.max(this.teamValue(axis), this.leagueAvgValue(axis)) * 1.15 || 1;
+    return Math.min(100, (this.leagueAvgValue(axis) / max) * 100);
   }
 
   /**

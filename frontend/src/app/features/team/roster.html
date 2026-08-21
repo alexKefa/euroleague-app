@@ -51,20 +51,20 @@
                 <span class="font-mono text-xs shrink-0">
                   <span
                     class="font-bold"
-                    [class.text-emerald-500]="delta(axis.key) >= 0"
-                    [class.text-red-500]="delta(axis.key) < 0"
-                    >{{ fmtPct(teamValue(axis.key)) }}</span
-                  >&nbsp;<span class="text-muted">{{ i18n.t('roster.vsLeagueAvg') }} {{ fmtPct(leagueAvgValue(axis.key)) }}</span>
+                    [class.text-emerald-500]="isAboveAverage(axis)"
+                    [class.text-red-500]="!isAboveAverage(axis)"
+                    >{{ formatValue(axis, teamValue(axis)) }}</span
+                  >&nbsp;<span class="text-muted">{{ i18n.t('roster.vsLeagueAvg') }} {{ formatValue(axis, leagueAvgValue(axis)) }}</span>
                 </span>
               </div>
               <div class="relative h-2 rounded-[3px] bg-line overflow-hidden">
                 <div
                   class="absolute inset-y-0 left-0 rounded-[3px] transition-all"
-                  [class.bg-emerald-500]="delta(axis.key) >= 0"
-                  [class.bg-red-500]="delta(axis.key) < 0"
-                  [style.width.%]="teamValue(axis.key)"
+                  [class.bg-emerald-500]="isAboveAverage(axis)"
+                  [class.bg-red-500]="!isAboveAverage(axis)"
+                  [style.width.%]="barWidth(axis)"
                 ></div>
-                <div class="absolute inset-y-0 w-[2px] bg-ink/50" [style.left.%]="leagueAvgValue(axis.key)"></div>
+                <div class="absolute inset-y-0 w-[2px] bg-ink/50" [style.left.%]="markerPosition(axis)"></div>
               </div>
             </div>
           }
@@ -119,19 +119,20 @@
           @if (statsView() === "traditional") {
             <thead>
               <tr class="text-muted font-mono text-[12px] font-bold border-b border-line">
-                <th class="text-left px-4 py-3">{{ i18n.t('roster.colPlayer') }}</th>
+                <th class="sticky left-0 z-10 bg-card text-left px-4 py-3">{{ i18n.t('roster.colPlayer') }}</th>
                 <th class="text-right px-3 py-3">{{ i18n.t('roster.colGP') }}</th>
                 <th class="text-right px-3 py-3">{{ i18n.t('roster.colMIN') }}</th>
                 <th class="text-right px-3 py-3">{{ i18n.t('roster.colPPG') }}</th>
                 <th class="text-right px-3 py-3">{{ i18n.t('roster.colRPG') }}</th>
                 <th class="text-right px-3 py-3">{{ i18n.t('roster.colAPG') }}</th>
+                <th class="text-right px-3 py-3">{{ i18n.t('roster.colSPG') }}</th>
                 <th class="text-right px-4 py-3">{{ i18n.t('roster.colPIR') }}</th>
               </tr>
             </thead>
             <tbody>
               @for (row of roster(); track row.player.id) {
                 <tr class="border-b border-line last:border-0 font-semibold">
-                  <td class="px-4 py-3">
+                  <td class="sticky left-0 z-10 bg-card px-4 py-3">
                     <a [routerLink]="['/players', row.player.id]" class="hover:text-highlight transition-colors">{{
                       row.player.name
                     }}</a>
@@ -147,6 +148,7 @@
                   </td>
                   <td class="text-right px-3 py-3 font-mono">{{ fmtNum(row.stats.reboundsPerGame) }}</td>
                   <td class="text-right px-3 py-3 font-mono">{{ fmtNum(row.stats.assistsPerGame) }}</td>
+                  <td class="text-right px-3 py-3 font-mono">{{ fmtNum(row.stats.stealsPerGame) }}</td>
                   <td class="text-right px-4 py-3">
                     <span
                       class="inline-block px-2 py-0.5 rounded-md font-mono text-xs font-bold min-w-[38px]"
@@ -158,14 +160,14 @@
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="7" class="px-4 py-6 text-center text-muted">{{ i18n.t('roster.noRosterData') }}</td>
+                  <td colspan="8" class="px-4 py-6 text-center text-muted">{{ i18n.t('roster.noRosterData') }}</td>
                 </tr>
               }
             </tbody>
           } @else {
             <thead>
               <tr class="text-muted font-mono text-[12px] font-bold border-b border-line">
-                <th class="text-left px-4 py-3">{{ i18n.t('roster.colPlayer') }}</th>
+                <th class="sticky left-0 z-10 bg-card text-left px-4 py-3">{{ i18n.t('roster.colPlayer') }}</th>
                 <th class="text-right px-3 py-3">{{ i18n.t('roster.colTS') }}</th>
                 <th class="text-right px-3 py-3">{{ i18n.t('roster.colEFG') }}</th>
                 <th class="text-right px-3 py-3">{{ i18n.t('roster.colREB') }}</th>
@@ -177,7 +179,7 @@
             <tbody>
               @for (row of roster(); track row.player.id) {
                 <tr class="border-b border-line last:border-0 font-semibold">
-                  <td class="px-4 py-3">
+                  <td class="sticky left-0 z-10 bg-card px-4 py-3">
                     <a [routerLink]="['/players', row.player.id]" class="hover:text-highlight transition-colors">{{
                       row.player.name
                     }}</a>
