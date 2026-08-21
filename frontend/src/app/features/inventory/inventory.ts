@@ -9,6 +9,7 @@ import { CollectibleCardComponent } from "../store/collectible-card";
 import { CardPreviewComponent } from "../store/card-preview";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { PageHintComponent } from "../../shared/page-hint";
+import { ButtonDirective } from "../../shared/button.directive";
 import { ChipDirective } from "../../shared/chip.directive";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 
@@ -22,6 +23,7 @@ import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
     CardPreviewComponent,
     NavIconComponent,
     PageHintComponent,
+    ButtonDirective,
     ChipDirective,
     DropdownComponent,
   ],
