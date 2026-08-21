@@ -16,6 +16,10 @@ import { ButtonDirective } from "./button.directive";
 const SPOTLIGHT_PAD = 8;
 const CARD_GAP = 16;
 const VIEWPORT_MARGIN = 16;
+// Fraction of viewport height left below the card when it isn't anchored to
+// a specific target (or when neither side of one has room) — dead-center
+// placement read as too easy to miss.
+const BOTTOM_ANCHOR_RATIO = 0.15;
 
 interface Box {
   top: number;
@@ -242,19 +246,24 @@ export class TourOverlayComponent implements AfterViewInit, OnDestroy {
     const bottomMargin = this.bottomMargin();
     const h = Math.min(this.measuredCardHeight(), this.maxCardHeight());
     const maxTop = vh - h - bottomMargin;
-    const centered = Math.max(VIEWPORT_MARGIN, Math.min((vh - h) / 2, maxTop));
+    // Dead-center (50%) read as "not visible enough" against the app's own
+    // content sitting behind the dim — anchoring lower, leaving roughly
+    // BOTTOM_ANCHOR_RATIO of the screen below the card, keeps it prominent
+    // (closer to thumb reach on mobile) while maxTop still guarantees real
+    // bottom clearance from the nav bar/safe area.
+    const bottomAnchored = Math.max(VIEWPORT_MARGIN, Math.min(vh - h - vh * BOTTOM_ANCHOR_RATIO, maxTop));
 
-    if (!box) return centered;
+    if (!box) return bottomAnchored;
 
     const spaceBelow = vh - box.top - box.height - bottomMargin;
     const spaceAbove = box.top - VIEWPORT_MARGIN;
 
     // Neither side has comfortable room for the card (a target near the
     // middle of a long page, or one that's tall relative to the screen) —
-    // center it on screen instead of jamming it against whichever edge is
-    // "less bad", which is what made some steps read as pinned to the
+    // anchor it low on screen instead of jamming it against whichever edge
+    // is "less bad", which is what made some steps read as pinned to the
     // bottom edge with no breathing room.
-    if (spaceBelow < h + CARD_GAP && spaceAbove < h + CARD_GAP) return centered;
+    if (spaceBelow < h + CARD_GAP && spaceAbove < h + CARD_GAP) return bottomAnchored;
 
     const target = spaceBelow >= spaceAbove ? box.top + box.height + CARD_GAP : box.top - h - CARD_GAP;
     return Math.max(VIEWPORT_MARGIN, Math.min(target, maxTop));
