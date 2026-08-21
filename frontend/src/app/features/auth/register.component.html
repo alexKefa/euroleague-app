@@ -1,5 +1,5 @@
 <div class="max-w-sm mx-auto p-6">
-  <h1 class="font-display text-2xl uppercase tracking-wide mb-5">{{ i18n.t('auth.createAccountTitle') }}</h1>
+  <h1 class="font-display text-2xl tracking-wide mb-5">{{ i18n.t('auth.createAccountTitle') }}</h1>
 
   <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3">
     <input
@@ -17,7 +17,7 @@
 
     @if (teams().length > 0) {
       <div>
-        <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide mb-2">
+        <p class="font-mono text-[12px] text-muted font-bold mb-2">
           {{ i18n.t('auth.favoriteTeamOptional') }}
         </p>
         <div class="flex flex-wrap gap-2">
@@ -25,10 +25,14 @@
             <button
               type="button"
               (click)="pickTeam(team.id)"
-              class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-card border-[1.5px] border-transparent hover:shadow-pop transition-all"
+              class="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-full bg-card border-[1.5px] border-transparent hover:shadow-pop transition-all"
               [style.borderColor]="favoriteTeamId() === team.id ? team.primaryColor : 'transparent'"
             >
-              <span class="w-1.5 h-1.5 rounded-full" [style.background]="team.primaryColor"></span>
+              @if (team.logoUrl) {
+                <img [src]="team.logoUrl" [alt]="team.name" class="w-5 h-5 object-contain shrink-0" />
+              } @else {
+                <span class="w-5 h-5 rounded-full shrink-0" [style.background]="team.primaryColor"></span>
+              }
               <span class="font-display text-xs">{{ team.code }}</span>
             </button>
           }
@@ -43,7 +47,7 @@
     <button
       type="submit"
       [disabled]="form.invalid || submitting()"
-      class="w-full py-3 rounded-full bg-highlight text-white font-mono text-xs font-bold uppercase tracking-wide hover:bg-highlight-dim transition-colors disabled:opacity-50"
+      class="w-full py-3 rounded-full bg-highlight text-white font-mono text-xs font-bold tracking-wide hover:bg-highlight-dim transition-colors disabled:opacity-50"
     >
       {{ submitting() ? i18n.t('auth.creatingAccount') : i18n.t('auth.createAccountButton') }}
     </button>

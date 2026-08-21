@@ -2,13 +2,13 @@
   @if (detail(); as d) {
     <a
       [routerLink]="['/teams', d.team.id]"
-      class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
+      class="font-mono text-[12px] text-muted font-bold hover:text-ink transition-colors"
       >&larr; {{ d.team.name }}</a
     >
   } @else {
     <a
       routerLink="/"
-      class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
+      class="font-mono text-[12px] text-muted font-bold hover:text-ink transition-colors"
       >&larr; {{ i18n.t('profile.backToDashboard') }}</a
     >
   }
@@ -47,8 +47,8 @@
           </span>
         }
         <div class="min-w-0">
-          <h1 class="font-display text-2xl uppercase tracking-wide leading-tight">{{ d.player.name }}</h1>
-          <p class="font-mono text-[12px] font-bold uppercase tracking-wide opacity-70 mt-1">
+          <h1 class="font-display text-2xl tracking-wide leading-tight">{{ d.player.name }}</h1>
+          <p class="font-mono text-[12px] font-bold opacity-70 mt-1">
             {{ d.player.position ?? "—" }}
             @if (d.player.jerseyNumber !== null) {
               &middot; #{{ d.player.jerseyNumber }}
@@ -62,56 +62,56 @@
     @if (d.stats; as stats) {
       <!-- Season averages -->
       <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-        <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-[0.1em] mb-3">
+        <p class="font-mono text-[12px] text-muted font-bold mb-3">
           {{ i18n.t('player.seasonAverages') }} &middot; {{ stats.season }}
         </p>
         <div class="grid grid-cols-3 sm:grid-cols-4 gap-x-4 gap-y-4">
           <div>
-            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">GP</p>
+            <p class="font-mono text-[10px] text-muted font-bold tracking-wide">GP</p>
             <p class="font-display text-xl mt-0.5">{{ stats.gamesPlayed ?? "—" }}</p>
           </div>
           <div>
-            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">MIN</p>
+            <p class="font-mono text-[10px] text-muted font-bold tracking-wide">MIN</p>
             <p class="font-display text-xl mt-0.5">{{ fmtNum(stats.minutesPerGame) }}</p>
           </div>
           <div>
-            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">PTS</p>
+            <p class="font-mono text-[10px] text-muted font-bold tracking-wide">PTS</p>
             <p class="font-display text-xl mt-0.5 text-highlight">{{ fmtNum(stats.pointsPerGame) }}</p>
           </div>
           <div>
-            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">REB</p>
+            <p class="font-mono text-[10px] text-muted font-bold tracking-wide">REB</p>
             <p class="font-display text-xl mt-0.5">{{ fmtNum(stats.reboundsPerGame) }}</p>
           </div>
           <div>
-            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">AST</p>
+            <p class="font-mono text-[10px] text-muted font-bold tracking-wide">AST</p>
             <p class="font-display text-xl mt-0.5">{{ fmtNum(stats.assistsPerGame) }}</p>
           </div>
           <div>
-            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">STL</p>
+            <p class="font-mono text-[10px] text-muted font-bold tracking-wide">STL</p>
             <p class="font-display text-xl mt-0.5">{{ fmtNum(stats.stealsPerGame) }}</p>
           </div>
           <div>
-            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">BLK</p>
+            <p class="font-mono text-[10px] text-muted font-bold tracking-wide">BLK</p>
             <p class="font-display text-xl mt-0.5">{{ fmtNum(stats.blocksPerGame) }}</p>
           </div>
           <div>
-            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">TOV</p>
+            <p class="font-mono text-[10px] text-muted font-bold tracking-wide">TOV</p>
             <p class="font-display text-xl mt-0.5">{{ fmtNum(stats.turnoversPerGame) }}</p>
           </div>
           <div>
-            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">FG%</p>
+            <p class="font-mono text-[10px] text-muted font-bold tracking-wide">FG%</p>
             <p class="font-display text-xl mt-0.5">{{ fmtPct(stats.fieldGoalPct) }}</p>
           </div>
           <div>
-            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">3P%</p>
+            <p class="font-mono text-[10px] text-muted font-bold tracking-wide">3P%</p>
             <p class="font-display text-xl mt-0.5">{{ fmtPct(stats.threePointPct) }}</p>
           </div>
           <div>
-            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">FT%</p>
+            <p class="font-mono text-[10px] text-muted font-bold tracking-wide">FT%</p>
             <p class="font-display text-xl mt-0.5">{{ fmtPct(stats.freeThrowPct) }}</p>
           </div>
           <div>
-            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">PIR</p>
+            <p class="font-mono text-[10px] text-muted font-bold tracking-wide">PIR</p>
             <p class="font-display text-xl mt-0.5 text-highlight">{{ fmtNum(stats.valuation) }}</p>
           </div>
         </div>
@@ -119,34 +119,34 @@
 
       <!-- Advanced stats -->
       <div class="bg-card rounded-lg shadow-card p-4">
-        <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-[0.1em] mb-3">{{ i18n.t('player.advanced') }}</p>
+        <p class="font-mono text-[12px] text-muted font-bold mb-3">{{ i18n.t('player.advanced') }}</p>
         <div class="grid grid-cols-3 sm:grid-cols-4 gap-x-4 gap-y-4">
           <div>
-            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">TS%</p>
+            <p class="font-mono text-[10px] text-muted font-bold tracking-wide">TS%</p>
             <p class="font-display text-xl mt-0.5">{{ fmtPct(stats.trueShootingPct) }}</p>
           </div>
           <div>
-            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">eFG%</p>
+            <p class="font-mono text-[10px] text-muted font-bold tracking-wide">eFG%</p>
             <p class="font-display text-xl mt-0.5">{{ fmtPct(stats.effectiveFieldGoalPct) }}</p>
           </div>
           <div>
-            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">REB%</p>
+            <p class="font-mono text-[10px] text-muted font-bold tracking-wide">REB%</p>
             <p class="font-display text-xl mt-0.5">{{ fmtPct(stats.totalReboundPct) }}</p>
           </div>
           <div>
-            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">AST%</p>
+            <p class="font-mono text-[10px] text-muted font-bold tracking-wide">AST%</p>
             <p class="font-display text-xl mt-0.5">{{ fmtPct(stats.assistRatio) }}</p>
           </div>
           <div>
-            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">TOV%</p>
+            <p class="font-mono text-[10px] text-muted font-bold tracking-wide">TOV%</p>
             <p class="font-display text-xl mt-0.5">{{ fmtPct(stats.turnoverRatio) }}</p>
           </div>
           <div>
-            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">AST/TO</p>
+            <p class="font-mono text-[10px] text-muted font-bold tracking-wide">AST/TO</p>
             <p class="font-display text-xl mt-0.5">{{ fmtNum(stats.assistToTurnoverRatio) }}</p>
           </div>
           <div>
-            <p class="font-mono text-[10px] text-muted font-bold uppercase tracking-wide">POSS</p>
+            <p class="font-mono text-[10px] text-muted font-bold tracking-wide">POSS</p>
             <p class="font-display text-xl mt-0.5">{{ fmtNum(stats.possessionsPerGame) }}</p>
           </div>
         </div>

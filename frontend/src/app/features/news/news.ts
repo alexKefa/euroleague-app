@@ -1,6 +1,5 @@
 import { Component, OnInit, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
 import { NewsArticle } from "../../core/models";
@@ -8,7 +7,7 @@ import { NewsArticle } from "../../core/models";
 @Component({
   selector: "app-news",
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule],
   templateUrl: "./news.html",
 })
 export class NewsComponent implements OnInit {

@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { Router, RouterLink } from "@angular/router";
+import { Router } from "@angular/router";
 import { ReactiveFormsModule, FormBuilder, Validators } from "@angular/forms";
 import { AuthService } from "../../core/auth.service";
 import { ApiService } from "../../core/api.service";
@@ -10,7 +10,7 @@ import { Team, Collectible } from "../../core/models";
 @Component({
   selector: "app-profile",
   standalone: true,
-  imports: [CommonModule, RouterLink, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: "./profile.html",
 })
 export class ProfileComponent implements OnInit {

@@ -19,7 +19,7 @@
           'linear-gradient(155deg, var(--accent-primary) 0%, var(--accent-secondary) 70%, #000 130%)'
         "
       >
-        <p class="font-mono text-[12px] font-bold uppercase tracking-[0.12em] opacity-65 mb-2">{{ i18n.t('dashboard.yourTeam') }}</p>
+        <p class="font-mono text-[12px] font-bold opacity-65 mb-2">{{ i18n.t('dashboard.yourTeam') }}</p>
         <a [routerLink]="['/teams', row.team.id]" class="flex items-center gap-3 w-fit group">
           @if (row.team.logoUrl) {
             <img [src]="row.team.logoUrl" [alt]="row.team.name" class="w-10 h-10 object-contain" />
@@ -30,29 +30,29 @@
               {{ row.team.code }}
             </span>
           }
-          <h1 class="font-display text-2xl uppercase tracking-wide group-hover:underline">
+          <h1 class="font-display text-2xl tracking-wide group-hover:underline">
             {{ row.team.name }}
           </h1>
         </a>
         <div class="flex flex-wrap gap-x-6 gap-y-3 mt-4">
           <div>
-            <p class="font-mono text-[11px] font-bold uppercase tracking-[0.08em] opacity-65">{{ i18n.t('dashboard.record') }}</p>
+            <p class="font-mono text-[11px] font-bold opacity-65">{{ i18n.t('dashboard.record') }}</p>
             <p class="font-display text-2xl mt-0.5">{{ row.stats.wins }}-{{ row.stats.losses }}</p>
           </div>
           <div>
-            <p class="font-mono text-[11px] font-bold uppercase tracking-[0.08em] opacity-65">{{ i18n.t('dashboard.rank') }}</p>
+            <p class="font-mono text-[11px] font-bold opacity-65">{{ i18n.t('dashboard.rank') }}</p>
             <p class="font-display text-2xl mt-0.5">#{{ row.position }}</p>
           </div>
           @if (row.stats.ppg !== null) {
             <div>
-              <p class="font-mono text-[11px] font-bold uppercase tracking-[0.08em] opacity-65">PPG</p>
+              <p class="font-mono text-[11px] font-bold opacity-65">PPG</p>
               <p class="font-display text-2xl mt-0.5">{{ row.stats.ppg | number: "1.1-1" }}</p>
             </div>
           }
         </div>
         @if (nextGame(); as game) {
           <div class="flex items-center gap-2 mt-4 pt-3 border-t border-white/20 text-sm">
-            <span class="font-mono text-[12px] font-bold uppercase opacity-65">{{ i18n.t('dashboard.next') }}</span>
+            <span class="font-mono text-[12px] font-bold opacity-65">{{ i18n.t('dashboard.next') }}</span>
             <span class="font-display text-sm">{{ isHomeGame(game) ? "vs" : "@" }} {{ opponentCode(game) }}</span>
             <span class="font-mono text-[12px] opacity-65">&middot; {{ game.tipoffAt | date: "MMM d, HH:mm" }}</span>
           </div>
@@ -81,7 +81,7 @@
         @if (news().length > 0) {
           <div class="bg-card rounded-lg shadow-card p-4 mb-5 lg:mb-0">
             <div class="flex justify-between items-center mb-3">
-              <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-[0.1em]">{{ i18n.t('dashboard.latest') }}</p>
+              <p class="font-mono text-[12px] text-muted font-bold">{{ i18n.t('dashboard.latest') }}</p>
               <a routerLink="/news" class="font-mono text-[12px] text-highlight font-bold">{{ i18n.t('dashboard.viewAll') }} &rarr;</a>
             </div>
             <div class="space-y-3">
@@ -92,7 +92,7 @@
                   rel="noopener noreferrer"
                   class="block hover:opacity-70 transition-opacity"
                 >
-                  <span class="font-mono text-[11px] font-bold uppercase tracking-[0.06em] text-highlight">{{
+                  <span class="font-mono text-[11px] font-bold text-highlight">{{
                     article.sourceName
                   }}</span>
                   <p class="font-bold text-sm leading-snug mt-0.5">{{ article.title }}</p>
@@ -105,7 +105,7 @@
         <!-- Top performances -->
         @if (roundMvp()?.leaders?.length) {
           <div class="bg-card rounded-lg shadow-card p-4 mb-5 lg:mb-0">
-            <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-[0.1em] mb-3">
+            <p class="font-mono text-[12px] text-muted font-bold mb-3">
               {{ i18n.t('dashboard.round') }} {{ roundMvp()?.round }} — {{ i18n.t('dashboard.topPerformances') }}
             </p>
             <div class="text-sm space-y-1">
@@ -130,7 +130,7 @@
         @if (leaders().length > 0) {
           <div class="bg-card rounded-lg shadow-card p-4 mb-5 lg:mb-0">
             <div class="flex justify-between items-center mb-3">
-              <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-[0.1em]">{{ i18n.t('dashboard.leaders') }}</p>
+              <p class="font-mono text-[12px] text-muted font-bold">{{ i18n.t('dashboard.leaders') }}</p>
               <div class="flex gap-1">
                 @for (cat of leaderCategories; track cat.value) {
                   <button
@@ -167,7 +167,7 @@
         <!-- Games strip -->
         @if (recentGames().length > 0 || upcomingGames().length > 0) {
           <div class="bg-card rounded-lg shadow-card p-4">
-            <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-[0.1em] mb-3">{{ i18n.t('dashboard.yourTeamSchedule') }}</p>
+            <p class="font-mono text-[12px] text-muted font-bold mb-3">{{ i18n.t('dashboard.yourTeamSchedule') }}</p>
             <div class="text-sm space-y-1">
               @for (game of recentGames(); track game.id) {
                 <div class="flex justify-between items-center px-2 py-1.5 rounded-md">
@@ -199,7 +199,7 @@
 
       <!-- Standings -->
       <div class="bg-card rounded-lg shadow-card p-4 lg:order-1 lg:flex-1 lg:min-w-0">
-        <p class="font-mono text-[12px] text-muted font-bold uppercase tracking-[0.1em] mb-3">{{ i18n.t('dashboard.standings') }}</p>
+        <p class="font-mono text-[12px] text-muted font-bold mb-3">{{ i18n.t('dashboard.standings') }}</p>
         <div class="text-sm space-y-1">
           @for (row of standings(); track row.team.id) {
             <a

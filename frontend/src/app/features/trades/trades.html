@@ -1,11 +1,11 @@
 <div class="max-w-3xl lg:max-w-5xl mx-auto p-4 sm:p-6">
   <a
     routerLink="/inventory"
-    class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
+    class="font-mono text-[12px] text-muted font-bold hover:text-ink transition-colors"
     >&larr; {{ i18n.t('trades.backToCards') }}</a
   >
 
-  <h1 class="font-display text-2xl uppercase tracking-wide mt-4 mb-5">{{ i18n.t('trades.title') }}</h1>
+  <h1 class="font-display text-2xl tracking-wide mt-4 mb-5">{{ i18n.t('trades.title') }}</h1>
 
   @if (loading()) {
     <div class="animate-pulse h-40 bg-line rounded-lg mb-5"></div>
@@ -29,7 +29,7 @@
       </p>
     } @else {
       <div class="bg-card rounded-lg shadow-card p-4 mb-6">
-        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-1">{{ i18n.t('trades.myCardsTitle') }}</p>
+        <p class="font-mono text-[13px] text-muted font-bold mb-1">{{ i18n.t('trades.myCardsTitle') }}</p>
         <p class="text-xs text-muted mb-3">
           {{ i18n.t('trades.myCardsHint') }}
         </p>
@@ -50,7 +50,7 @@
                 type="button"
                 (click)="toggleTradeable(card)"
                 [disabled]="togglingId() === card.id"
-                class="self-center font-mono text-[11px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full transition-colors disabled:opacity-40"
+                class="self-center font-mono text-[11px] font-bold px-3 py-1.5 rounded-full transition-colors disabled:opacity-40"
                 [class.bg-highlight]="card.tradeable"
                 [class.text-white]="card.tradeable"
                 [class.bg-line]="!card.tradeable"
@@ -65,7 +65,7 @@
     }
 
     <div class="bg-card rounded-lg shadow-card p-4 mb-6">
-      <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">{{ i18n.t('trades.marketplaceTitle') }}</p>
+      <p class="font-mono text-[13px] text-muted font-bold mb-3">{{ i18n.t('trades.marketplaceTitle') }}</p>
 
       @if (marketplace().length === 0) {
         <p class="text-sm text-muted">{{ i18n.t('trades.noListings') }}</p>
@@ -94,7 +94,7 @@
       }
 
       @if (selectedListing() && myCards().length > 0) {
-        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-1">
+        <p class="font-mono text-[13px] text-muted font-bold mb-1">
           {{ i18n.t('trades.offerForPrefix') }} {{ selectedListing()!.name }}
         </p>
         <p class="text-xs text-muted mb-2">{{ i18n.t('trades.multiSelectHint') }}</p>
@@ -119,7 +119,7 @@
           type="button"
           (click)="propose()"
           [disabled]="!canPropose() || proposing()"
-          class="px-4 py-2 rounded-full bg-highlight text-white font-mono text-xs font-bold uppercase tracking-wide hover:bg-highlight-dim transition-colors disabled:opacity-50"
+          class="px-4 py-2 rounded-full bg-highlight text-white font-mono text-xs font-bold hover:bg-highlight-dim transition-colors disabled:opacity-50"
         >
           {{ proposing() ? i18n.t('trades.sending') : i18n.t('trades.sendOffer') }}
         </button>
@@ -134,7 +134,7 @@
     </div>
 
     <div class="bg-card rounded-lg shadow-card p-4">
-      <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">{{ i18n.t('trades.myOffersTitle') }}</p>
+      <p class="font-mono text-[13px] text-muted font-bold mb-3">{{ i18n.t('trades.myOffersTitle') }}</p>
       @if (actionError()) {
         <p class="text-red-500 text-xs font-semibold mb-3">{{ actionError() }}</p>
       }
@@ -159,7 +159,7 @@
                   type="button"
                   (click)="accept(offer)"
                   [disabled]="actingOnId() === offer.id"
-                  class="font-mono text-[12px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full bg-highlight text-white hover:bg-highlight-dim transition-colors disabled:opacity-40"
+                  class="font-mono text-[12px] font-bold px-3 py-1.5 rounded-full bg-highlight text-white hover:bg-highlight-dim transition-colors disabled:opacity-40"
                 >
                   {{ i18n.t('trades.accept') }}
                 </button>
@@ -167,7 +167,7 @@
                   type="button"
                   (click)="decline(offer)"
                   [disabled]="actingOnId() === offer.id"
-                  class="font-mono text-[12px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full bg-line text-ink hover:bg-red-500 hover:text-white transition-colors disabled:opacity-40"
+                  class="font-mono text-[12px] font-bold px-3 py-1.5 rounded-full bg-line text-ink hover:bg-red-500 hover:text-white transition-colors disabled:opacity-40"
                 >
                   {{ i18n.t('trades.decline') }}
                 </button>
@@ -177,7 +177,7 @@
                 type="button"
                 (click)="cancel(offer)"
                 [disabled]="actingOnId() === offer.id"
-                class="font-mono text-[12px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full bg-line text-ink hover:bg-red-500 hover:text-white transition-colors disabled:opacity-40 shrink-0"
+                class="font-mono text-[12px] font-bold px-3 py-1.5 rounded-full bg-line text-ink hover:bg-red-500 hover:text-white transition-colors disabled:opacity-40 shrink-0"
               >
                 {{ i18n.t('trades.cancel') }}
               </button>

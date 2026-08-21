@@ -18,9 +18,14 @@ export type NavIconName =
   selector: "app-nav-icon",
   standalone: true,
   template: `
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+    <svg [attr.width]="size" [attr.height]="size" viewBox="0 0 24 24" fill="none">
       @switch (name) {
         @case ("home") {
+          <path
+            d="M12 3.2L2.5 11H5v9h5.2v-6.2h3.6V20H19v-9h2.5L12 3.2z"
+            [attr.fill]="active ? 'currentColor' : 'none'"
+            [attr.fill-opacity]="active ? 0.18 : null"
+          />
           <path
             d="M4 11L12 4l8 7M6 10v9h5v-5h2v5h5v-9"
             stroke="currentColor"
@@ -30,20 +35,39 @@ export type NavIconName =
           />
         }
         @case ("news") {
-          <rect x="5" y="4" width="14" height="16" rx="1" stroke="currentColor" stroke-width="2.2" />
-          <line x1="8" y1="8" x2="16" y2="8" stroke="currentColor" stroke-width="2.2" />
-          <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="2.2" />
-          <line x1="8" y1="16" x2="13" y2="16" stroke="currentColor" stroke-width="2.2" />
-        }
-        @case ("picks") {
-          <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2.2" />
-          <path
-            d="M8.5 12.5l2.5 2.5 4.5-5"
+          <!-- Photo + headline, not generic equal-width lines — reads as
+               "article" specifically, not "list" or "menu". -->
+          <rect
+            x="5"
+            y="4"
+            width="14"
+            height="16"
+            rx="1"
             stroke="currentColor"
             stroke-width="2.2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
+            [attr.fill]="active ? 'currentColor' : 'none'"
+            [attr.fill-opacity]="active ? 0.18 : null"
           />
+          <rect x="7.2" y="6.8" width="4" height="4" rx="0.6" fill="currentColor" />
+          <line x1="13" y1="7.5" x2="16.8" y2="7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          <line x1="13" y1="10" x2="16.8" y2="10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          <line x1="7.2" y1="14" x2="16.8" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          <line x1="7.2" y1="16.5" x2="13.5" y2="16.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+        }
+        @case ("picks") {
+          <!-- Bullseye — "aiming for a correct call", not a plain checkmark
+               (which reads as "done/verified", the wrong signal here). -->
+          <circle
+            cx="12"
+            cy="12"
+            r="8"
+            stroke="currentColor"
+            stroke-width="2"
+            [attr.fill]="active ? 'currentColor' : 'none'"
+            [attr.fill-opacity]="active ? 0.18 : null"
+          />
+          <circle cx="12" cy="12" r="4.6" stroke="currentColor" stroke-width="1.8" />
+          <circle cx="12" cy="12" r="1.5" fill="currentColor" />
         }
         @case ("store") {
           <rect x="4" y="8" width="16" height="12" rx="1.5" stroke="currentColor" stroke-width="2.2" />
@@ -51,7 +75,15 @@ export type NavIconName =
           <path d="M9 12v-1a3 3 0 0 1 6 0v1" stroke="currentColor" stroke-width="2.2" />
         }
         @case ("user") {
-          <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2.2" />
+          <circle
+            cx="12"
+            cy="8"
+            r="4"
+            stroke="currentColor"
+            stroke-width="2.2"
+            [attr.fill]="active ? 'currentColor' : 'none'"
+            [attr.fill-opacity]="active ? 0.18 : null"
+          />
           <path d="M4 20c0-4 4-6 8-6s8 2 8 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
         }
         @case ("wheel") {
@@ -78,12 +110,48 @@ export type NavIconName =
           <rect x="9.5" y="6" width="10" height="13" rx="1.5" stroke="currentColor" stroke-width="1.9" />
         }
         @case ("cards") {
-          <rect x="5" y="4" width="14" height="16" rx="2" stroke="currentColor" stroke-width="2.2" />
-          <circle cx="12" cy="10" r="2.5" stroke="currentColor" stroke-width="1.8" />
-          <path d="M8 17c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          <!-- A fanned hand of two cards — a collection, not a single
+               portrait card (too close to the "user" icon's silhouette)
+               and fanned outward rather than stacked-behind, so it doesn't
+               read as a sealed "packs" icon either. -->
+          <rect
+            x="3.2"
+            y="6.5"
+            width="9.5"
+            height="13"
+            rx="1.4"
+            transform="rotate(-13 8 13)"
+            stroke="currentColor"
+            stroke-width="2"
+            [attr.fill]="active ? 'currentColor' : 'none'"
+            [attr.fill-opacity]="active ? 0.18 : null"
+          />
+          <rect
+            x="11.3"
+            y="4.5"
+            width="9.5"
+            height="13"
+            rx="1.4"
+            transform="rotate(13 16 11)"
+            stroke="currentColor"
+            stroke-width="2"
+            [attr.fill]="active ? 'currentColor' : 'none'"
+            [attr.fill-opacity]="active ? 0.18 : null"
+          />
+          <circle cx="16" cy="9.2" r="1.3" fill="currentColor" transform="rotate(13 16 11)" />
         }
         @case ("schedule") {
-          <rect x="4" y="5" width="16" height="15" rx="1.5" stroke="currentColor" stroke-width="2.2" />
+          <rect
+            x="4"
+            y="5"
+            width="16"
+            height="15"
+            rx="1.5"
+            stroke="currentColor"
+            stroke-width="2.2"
+            [attr.fill]="active ? 'currentColor' : 'none'"
+            [attr.fill-opacity]="active ? 0.18 : null"
+          />
           <line x1="4" y1="9" x2="20" y2="9" stroke="currentColor" stroke-width="2.2" />
           <line x1="8" y1="3" x2="8" y2="6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
           <line x1="16" y1="3" x2="16" y2="6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
@@ -127,4 +195,10 @@ export type NavIconName =
 })
 export class NavIconComponent {
   @Input({ required: true }) name!: NavIconName;
+  // Swaps in a soft duotone fill behind the icon's stroke for the six
+  // primary-nav icons (home/news/picks/cards/user/schedule) — the "lit up"
+  // look that stands in for the active-tab color change now that nav
+  // buttons are icon-only and don't have a label to carry that signal.
+  @Input() active = false;
+  @Input() size = 20;
 }

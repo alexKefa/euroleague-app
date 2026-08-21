@@ -23,8 +23,8 @@ module.exports = {
         "team-secondary": "var(--accent-secondary, #0B1220)",
       },
       fontFamily: {
-        sans: ["Manrope", "system-ui", "sans-serif"],
-        display: ["Anton", "Arial Narrow", "sans-serif"],
+        sans: ["Barlow", "system-ui", "sans-serif"],
+        display: ["Rajdhani", "Arial", "sans-serif"],
         mono: ["JetBrains Mono", "ui-monospace", "monospace"],
       },
       boxShadow: {

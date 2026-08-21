@@ -5,7 +5,7 @@
 <nav
   class="sticky top-0 z-30 flex justify-between items-center gap-3 px-4 sm:px-6 py-4 bg-card border-b border-line"
 >
-  <a routerLink="/" class="font-display text-base uppercase tracking-wide shrink-0"
+  <a routerLink="/" class="font-display text-base tracking-wide shrink-0"
     ><span class="text-highlight">C</span>lutch</a
   >
 
@@ -45,19 +45,19 @@
         }
         <button
           (click)="logout()"
-          class="font-mono text-highlight font-bold text-[13px] uppercase hover:text-highlight-dim transition-colors shrink-0"
+          class="font-mono text-highlight font-bold text-[13px] hover:text-highlight-dim transition-colors shrink-0"
         >
           {{ i18n.t('nav.logout') }}
         </button>
       </div>
     } @else {
       <div class="flex items-center gap-3 sm:gap-4 shrink-0">
-        <a routerLink="/login" class="font-mono text-muted font-bold text-[13px] uppercase hover:text-ink transition-colors"
+        <a routerLink="/login" class="font-mono text-muted font-bold text-[13px] hover:text-ink transition-colors"
           >{{ i18n.t('nav.login') }}</a
         >
         <a
           routerLink="/register"
-          class="px-4 py-2 rounded-full bg-highlight text-white font-mono font-bold text-[13px] uppercase hover:bg-highlight-dim transition-colors"
+          class="px-4 py-2 rounded-full bg-highlight text-white font-mono font-bold text-[13px] hover:bg-highlight-dim transition-colors"
           >{{ i18n.t('nav.register') }}</a
         >
       </div>
@@ -66,20 +66,23 @@
 </nav>
 
 <div class="flex">
-  <!-- Desktop primary nav — icon+label sidebar, sm and up; the bottom tab nav below is mobile-only -->
+  <!-- Desktop primary nav — icon-only rail, sm and up; labels surface on hover/focus instead of sitting on screen permanently. The bottom tab nav below is mobile-only. -->
   <nav
-    class="hidden sm:flex flex-col shrink-0 w-20 border-r border-line bg-card py-4 gap-1 sticky top-16 h-[calc(100vh-4rem)]"
+    class="hidden sm:flex flex-col items-center shrink-0 w-16 border-r border-line bg-card py-4 gap-2 sticky top-16 h-[calc(100vh-4rem)]"
   >
     @for (link of navLinks; track link.path) {
       <a
         [routerLink]="link.path"
-        [class.text-highlight]="isActive(link)"
-        [class.bg-page]="isActive(link)"
-        [class.text-muted]="!isActive(link)"
-        class="flex flex-col items-center gap-1 py-3 mx-2 rounded-md font-mono text-[11px] font-bold uppercase tracking-wide hover:text-ink transition-colors"
+        [attr.aria-label]="i18n.t(link.label)"
+        [class]="isActive(link) ? 'bg-highlight/15 text-highlight' : 'text-muted hover:text-ink'"
+        class="group relative flex items-center justify-center w-11 h-11 rounded-full transition-colors"
       >
-        <app-nav-icon [name]="link.icon" />
-        <span class="font-sans">{{ i18n.t(link.label) }}</span>
+        <app-nav-icon [name]="link.icon" [active]="isActive(link)" [size]="22" />
+        <span
+          class="pointer-events-none absolute left-full ml-2 px-2 py-1 rounded-md bg-ink text-page font-mono text-[11px] font-bold whitespace-nowrap opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 group-focus-visible:opacity-100 group-focus-visible:translate-x-0 transition-all duration-150 z-10"
+        >
+          {{ i18n.t(link.label) }}
+        </span>
       </a>
     }
   </nav>
@@ -96,48 +99,48 @@
   @for (link of navLinks; track link.path) {
     <a
       [routerLink]="link.path"
+      [attr.aria-label]="i18n.t(link.label)"
       [class.text-highlight]="isActive(link)"
       [class.text-muted]="!isActive(link)"
-      class="flex flex-col items-center gap-0.5 font-mono text-[9px] font-bold uppercase px-1 py-1"
+      class="flex items-center justify-center px-1 py-1"
     >
       <span
-        class="flex items-center justify-center w-8 h-6 rounded-full transition-all duration-200"
+        class="flex items-center justify-center w-11 h-9 rounded-full transition-all duration-200"
         [class]="isActive(link) ? 'bg-highlight/15 scale-100' : 'scale-90'"
       >
-        <app-nav-icon [name]="link.icon" />
+        <app-nav-icon [name]="link.icon" [active]="isActive(link)" [size]="22" />
       </span>
-      <span class="truncate max-w-full font-sans">{{ i18n.t(link.label) }}</span>
     </a>
   }
   @if (auth.isAuthenticated()) {
     <a
       routerLink="/profile"
+      [attr.aria-label]="i18n.t('nav.profile')"
       [class.text-highlight]="currentUrl() === '/profile'"
       [class.text-muted]="currentUrl() !== '/profile'"
-      class="flex flex-col items-center gap-0.5 font-mono text-[9px] font-bold uppercase px-1 py-1"
+      class="flex items-center justify-center px-1 py-1"
     >
       <span
-        class="flex items-center justify-center w-8 h-6 rounded-full transition-all duration-200"
+        class="flex items-center justify-center w-11 h-9 rounded-full transition-all duration-200"
         [class]="currentUrl() === '/profile' ? 'bg-highlight/15 scale-100' : 'scale-90'"
       >
-        <app-nav-icon name="user" />
+        <app-nav-icon name="user" [active]="currentUrl() === '/profile'" [size]="22" />
       </span>
-      <span class="truncate max-w-full font-sans">{{ i18n.t('nav.profile') }}</span>
     </a>
   } @else {
     <a
       routerLink="/login"
+      [attr.aria-label]="i18n.t('nav.login')"
       [class.text-highlight]="currentUrl() === '/login'"
       [class.text-muted]="currentUrl() !== '/login'"
-      class="flex flex-col items-center gap-0.5 font-mono text-[9px] font-bold uppercase px-1 py-1"
+      class="flex items-center justify-center px-1 py-1"
     >
       <span
-        class="flex items-center justify-center w-8 h-6 rounded-full transition-all duration-200"
+        class="flex items-center justify-center w-11 h-9 rounded-full transition-all duration-200"
         [class]="currentUrl() === '/login' ? 'bg-highlight/15 scale-100' : 'scale-90'"
       >
-        <app-nav-icon name="user" />
+        <app-nav-icon name="user" [active]="currentUrl() === '/login'" [size]="22" />
       </span>
-      <span class="truncate max-w-full font-sans">{{ i18n.t('nav.login') }}</span>
     </a>
   }
 </nav>

@@ -1,15 +1,9 @@
 <div class="max-w-3xl lg:max-w-5xl mx-auto p-4 sm:p-6">
-  <a
-    routerLink="/"
-    class="font-mono text-[12px] text-muted font-bold uppercase tracking-wide hover:text-ink transition-colors"
-    >&larr; Dashboard</a
-  >
-
-  <div class="flex items-center justify-between mt-4 mb-5">
-    <h1 class="font-display text-2xl uppercase tracking-wide">{{ i18n.t('nav.picks') }}</h1>
+  <div class="flex items-center justify-between mb-5">
+    <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('nav.picks') }}</h1>
     <a
       routerLink="/store"
-      class="font-mono text-[12px] text-highlight font-bold uppercase tracking-wide hover:text-highlight-dim transition-colors"
+      class="font-mono text-[12px] text-highlight font-bold hover:text-highlight-dim transition-colors"
       >{{ i18n.t('predictions.spendPoints') }} &rarr;</a
     >
   </div>
@@ -24,7 +18,7 @@
   @if (!loading()) {
     @if (upcomingGames().length > 0) {
       <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">{{ i18n.t('predictions.upcomingGames') }}</p>
+        <p class="font-mono text-[13px] text-muted font-bold mb-3">{{ i18n.t('predictions.upcomingGames') }}</p>
         <div class="space-y-3">
           @for (game of upcomingGames(); track game.id) {
             <div class="px-2 py-2 rounded-md bg-page">
@@ -34,7 +28,7 @@
                   <button
                     type="button"
                     (click)="predict(game, game.homeTeam.id)"
-                    class="flex-1 py-1.5 rounded-md font-mono text-[13px] font-bold uppercase tracking-wide border-2 transition-colors"
+                    class="flex-1 py-1.5 rounded-md font-mono text-[13px] font-bold border-2 transition-colors"
                     [class.border-highlight]="myPickFor(game) === game.homeTeam.id"
                     [class.bg-highlight]="myPickFor(game) === game.homeTeam.id"
                     [class.text-white]="myPickFor(game) === game.homeTeam.id"
@@ -50,7 +44,7 @@
                   <button
                     type="button"
                     (click)="predict(game, game.awayTeam.id)"
-                    class="flex-1 py-1.5 rounded-md font-mono text-[13px] font-bold uppercase tracking-wide border-2 transition-colors"
+                    class="flex-1 py-1.5 rounded-md font-mono text-[13px] font-bold border-2 transition-colors"
                     [class.border-highlight]="myPickFor(game) === game.awayTeam.id"
                     [class.bg-highlight]="myPickFor(game) === game.awayTeam.id"
                     [class.text-white]="myPickFor(game) === game.awayTeam.id"
@@ -64,7 +58,7 @@
                   </button>
                 </div>
               } @else {
-                <p class="font-display text-xs uppercase flex items-center gap-2">
+                <p class="font-display text-xs flex items-center gap-2">
                   <app-team-badge [code]="game.homeTeam.code" [logoUrl]="game.homeTeam.logoUrl"></app-team-badge>
                   vs
                   <app-team-badge [code]="game.awayTeam.code" [logoUrl]="game.awayTeam.logoUrl"></app-team-badge>
@@ -79,7 +73,7 @@
     <div class="grid gap-5 sm:grid-cols-2">
       <!-- My picks -->
       <div class="bg-card rounded-lg shadow-card p-4">
-        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">{{ i18n.t('predictions.myPicks') }}</p>
+        <p class="font-mono text-[13px] text-muted font-bold mb-3">{{ i18n.t('predictions.myPicks') }}</p>
 
         @if (!auth.isAuthenticated()) {
           <p class="text-sm text-muted">
@@ -105,7 +99,7 @@
             <div class="flex items-center justify-between mb-3 pb-3 border-b border-line">
               <span class="flex items-baseline gap-1.5">
                 <span class="font-display text-2xl text-highlight">{{ mySummary()!.points }}</span>
-                <span class="font-mono text-[12px] text-muted font-bold uppercase">{{ i18n.t('predictions.pts') }}</span>
+                <span class="font-mono text-[12px] text-muted font-bold">{{ i18n.t('predictions.pts') }}</span>
               </span>
               <div class="flex gap-1 text-base">
                 @for (badge of mySummary()!.badges; track badge.id) {
@@ -114,7 +108,7 @@
                   }}</span>
                 }
                 @if (mySummary()!.badges.length === 0) {
-                  <span class="font-mono text-[12px] text-muted uppercase">{{ i18n.t('predictions.noBadgesYet') }}</span>
+                  <span class="font-mono text-[12px] text-muted">{{ i18n.t('predictions.noBadgesYet') }}</span>
                 }
               </div>
             </div>
@@ -124,7 +118,7 @@
             @for (p of myPredictions(); track p.id) {
               <div class="flex justify-between items-center px-2 py-2 rounded-md">
                 <div>
-                  <p class="font-display text-xs uppercase">
+                  <p class="font-display text-xs">
                     <app-team-badge [code]="p.predictedTeam.code" [logoUrl]="teamLogo(p.predictedTeam.id)"></app-team-badge>
                   </p>
                   <p class="font-mono text-muted text-[12px] mt-0.5">{{ p.tipoffAt | date: "MMM d, HH:mm" }}</p>
@@ -150,7 +144,7 @@
 
       <!-- Leaderboard -->
       <div class="bg-card rounded-lg shadow-card p-4">
-        <p class="font-mono text-[13px] text-muted font-bold uppercase tracking-wide mb-3">{{ i18n.t('predictions.leaderboard') }}</p>
+        <p class="font-mono text-[13px] text-muted font-bold mb-3">{{ i18n.t('predictions.leaderboard') }}</p>
         <div class="text-sm space-y-1">
           @for (entry of leaderboard(); track entry.userId; let i = $index) {
             <div class="flex justify-between items-center px-2 py-2 rounded-md">

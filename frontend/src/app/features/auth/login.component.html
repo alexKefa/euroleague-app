@@ -1,5 +1,5 @@
 <div class="max-w-sm mx-auto p-6">
-  <h1 class="font-display text-2xl uppercase tracking-wide mb-5">{{ i18n.t('nav.login') }}</h1>
+  <h1 class="font-display text-2xl tracking-wide mb-5">{{ i18n.t('nav.login') }}</h1>
 
   <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3">
     <input
@@ -22,7 +22,7 @@
     <button
       type="submit"
       [disabled]="form.invalid || submitting()"
-      class="w-full py-3 rounded-full bg-highlight text-white font-mono text-xs font-bold uppercase tracking-wide hover:bg-highlight-dim transition-colors disabled:opacity-50"
+      class="w-full py-3 rounded-full bg-highlight text-white font-mono text-xs font-bold tracking-wide hover:bg-highlight-dim transition-colors disabled:opacity-50"
     >
       {{ submitting() ? i18n.t('auth.loggingIn') : i18n.t('nav.login') }}
     </button>
