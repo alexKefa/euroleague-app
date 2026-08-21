@@ -21,6 +21,17 @@ import { packsRouter } from "./routes/packs.js";
 import { eventsRouter } from "./routes/events.js";
 
 const app = express();
+// Railway sits in front of the app as a single reverse-proxy hop, adding
+// its own X-Forwarded-For. Without this, express-rate-limit's default
+// validation sees an X-Forwarded-For header arrive while Express doesn't
+// trust any proxy, decides the header could be spoofed by the client, and
+// throws ERR_ERL_UNEXPECTED_X_FORWARDED_FOR — this was previously flagged
+// as just a noisy console warning, but escalated to a hard failure on a
+// recent deploy. `1` (trust exactly one hop) is correct here, not `true`
+// (trust the whole chain) — that would let a client set its own
+// X-Forwarded-For and spoof past IP-based rate limiting entirely. Inert in
+// local dev, where nothing in front of the app sets X-Forwarded-For.
+app.set("trust proxy", 1);
 const port = process.env.PORT ? Number(process.env.PORT) : 4000;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Populated by the Railway build (see ./Dockerfile) by copying the

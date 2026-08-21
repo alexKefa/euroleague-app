@@ -113,10 +113,15 @@ If you need to apply a schema change without an interactive terminal
   latency problem against the remote DB), or a perfect prediction round
   (`services/cards.ts`). Trades (`trades.ts`) are an opt-in marketplace,
   many-for-one offers, scoped to cards both sides actually own.
-- `helmet()` + `express-rate-limit` are on by default (`index.ts`); the
-  rate limiter warns about `X-Forwarded-For` when running behind a proxy
-  (ngrok, Railway) without `app.set('trust proxy', ...)` configured — noisy
-  in logs, hasn't been fixed.
+- `helmet()` + `express-rate-limit` are on by default (`index.ts`).
+  `app.set('trust proxy', 1)` is set right after the app is created — without
+  it, express-rate-limit sees Railway's proxy-added `X-Forwarded-For` header
+  arrive while Express trusts no proxy, and throws
+  `ERR_ERL_UNEXPECTED_X_FORWARDED_FOR` (this used to just be a noisy console
+  warning; a later express-rate-limit version escalated it to a hard
+  failure that broke a deploy). `1` trusts exactly one hop, not `true` —
+  trusting the whole chain would let a client spoof its own
+  `X-Forwarded-For` and bypass IP-based rate limiting.
 - **Live scores** run over Server-Sent Events, not WebSockets.
   `backend/src/realtime/hub.ts` is a generic in-memory SSE client registry
   (`broadcast()` to everyone, `sendToUser()` for a future per-user channel —
