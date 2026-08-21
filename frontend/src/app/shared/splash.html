@@ -60,12 +60,18 @@
       </g>
     </svg>
 
-    <!-- Final lockup: two-tone wordmark + seam-curve underline, pops in as
-         the falling ball fades out — the app's actual logo mark. -->
+    <!-- Final lockup: the app's real logo mark (Split Score — same three
+         bars as the top nav) + wordmark + seam-curve underline, pops in
+         as the falling ball fades out. -->
     <div class="lockup absolute left-1/2 flex flex-col items-center gap-1.5" style="top: 140px">
-      <p class="font-display text-3xl tracking-wide whitespace-nowrap">
-        <span class="text-highlight">C</span><span style="color: var(--color-ink)">lutch</span>
-      </p>
+      <div class="flex items-center gap-2 font-display text-3xl tracking-wide whitespace-nowrap">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+          <rect x="4" y="13" width="5" height="8" rx="1.3" fill="#FF6B35" opacity="0.5" />
+          <rect x="10.5" y="6.5" width="5" height="14.5" rx="1.3" fill="#FF6B35" />
+          <rect x="17" y="10" width="5" height="11" rx="1.3" fill="#FF6B35" opacity="0.75" />
+        </svg>
+        <span style="color: var(--color-ink)">Clutch</span>
+      </div>
       <svg width="90" height="10" viewBox="0 0 140 14">
         <path d="M4 4 Q70 18 136 4" fill="none" stroke="#FF6B35" stroke-width="2.5" stroke-linecap="round" />
       </svg>
