@@ -17,6 +17,9 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
   "nav.switchToGreek": { en: "Switch to Greek", el: "Αλλαγή σε Ελληνικά" },
   "nav.switchToEnglish": { en: "Switch to English", el: "Αλλαγή σε Αγγλικά" },
 
+  // shared/page-hint.ts — dismiss button, reused across every page hint.
+  "hint.dismiss": { en: "Dismiss", el: "Απόρριψη" },
+
   "profile.backToDashboard": { en: "Dashboard", el: "Πίνακας" },
   "profile.title": { en: "Profile", el: "Προφίλ" },
   "profile.email": { en: "Email", el: "Email" },

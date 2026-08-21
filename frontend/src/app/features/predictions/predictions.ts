@@ -6,6 +6,7 @@ import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { Prediction, LeaderboardEntry, PredictionSummary, Game } from "../../core/models";
 import { TeamBadgeComponent } from "../../shared/team-badge";
+import { PageHintComponent } from "../../shared/page-hint";
 
 // Emoji glyphs for known badge ids — purely a display concern, the backend
 // only sends id/label/description. Unrecognized ids fall back to a medal.
@@ -20,7 +21,7 @@ const BADGE_ICONS: Record<string, string> = {
 @Component({
   selector: "app-predictions",
   standalone: true,
-  imports: [CommonModule, RouterLink, TeamBadgeComponent],
+  imports: [CommonModule, RouterLink, TeamBadgeComponent, PageHintComponent],
   templateUrl: "./predictions.html",
 })
 export class PredictionsComponent implements OnInit {

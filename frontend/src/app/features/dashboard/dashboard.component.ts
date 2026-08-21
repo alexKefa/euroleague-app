@@ -6,6 +6,7 @@ import { ThemeService } from "../../core/theme.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { StandingsRow, LeaderEntry, RoundMvp, NewsArticle, Game } from "../../core/models";
+import { PageHintComponent } from "../../shared/page-hint";
 
 const LEADER_CATEGORIES = [
   { value: "points", label: "PTS" },
@@ -21,7 +22,7 @@ type LeaderCategory = (typeof LEADER_CATEGORIES)[number]["value"];
 @Component({
   selector: "app-dashboard",
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, PageHintComponent],
   templateUrl: "./dashboard.component.html",
 })
 export class DashboardComponent implements OnInit {

@@ -17,4 +17,14 @@ export const inventoryTranslations: Record<string, Record<Lang, string>> = {
   "inventory.tierLegendary": { en: "Legendary", el: "Θρυλική" },
   "inventory.previewAriaPrefix": { en: "Preview", el: "Προεπισκόπηση" },
   "inventory.noMatch": { en: "No cards match that rarity.", el: "Καμία κάρτα δεν αντιστοιχεί σε αυτή τη σπανιότητα." },
+
+  "inventory.hintPrefix": { en: "Your card collection — open", el: "Η συλλογή σου με κάρτες — άνοιξε" },
+  "inventory.hintMiddle": {
+    en: "with points, spin the free daily",
+    el: "με πόντους, γύρισε τον δωρεάν καθημερινό",
+  },
+  "inventory.hintSuffix": {
+    en: "or trade duplicates with other collectors.",
+    el: "ή αντάλλαξε διπλότυπες κάρτες με άλλους συλλέκτες.",
+  },
 };

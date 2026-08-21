@@ -8,11 +8,12 @@ import { Collectible, CollectibleTier } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { CardPreviewComponent } from "../store/card-preview";
 import { NavIconComponent } from "../../shared/nav-icon";
+import { PageHintComponent } from "../../shared/page-hint";
 
 @Component({
   selector: "app-inventory",
   standalone: true,
-  imports: [CommonModule, RouterLink, CollectibleCardComponent, CardPreviewComponent, NavIconComponent],
+  imports: [CommonModule, RouterLink, CollectibleCardComponent, CardPreviewComponent, NavIconComponent, PageHintComponent],
   templateUrl: "./inventory.html",
 })
 export class InventoryComponent implements OnInit {

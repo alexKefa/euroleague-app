@@ -27,4 +27,9 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
     en: "No resolved predictions yet.",
     el: "Δεν υπάρχουν ολοκληρωμένα προγνωστικά ακόμα.",
   },
+
+  "predictions.hint": {
+    en: "Pick a winner before tip-off. Each correct call earns 10 points, and a perfect round unlocks badges plus a bonus card.",
+    el: "Διάλεξε νικητή πριν το τζάμπολ. Κάθε σωστή πρόγνωση φέρνει 10 πόντους, και ένας τέλειος γύρος ξεκλειδώνει μετάλλια και μια δωρεάν κάρτα.",
+  },
 };
