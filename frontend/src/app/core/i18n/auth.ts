@@ -13,6 +13,7 @@ export const authTranslations: Record<string, Record<Lang, string>> = {
   "auth.noAccount": { en: "No account?", el: "Δεν έχεις λογαριασμό;" },
 
   "auth.createAccountTitle": { en: "Create an account", el: "Δημιουργία λογαριασμού" },
+  "auth.referredBy": { en: "Referred by code", el: "Πρόσκληση με κωδικό" },
   "auth.favoriteTeamOptional": { en: "Favorite team (optional)", el: "Αγαπημένη ομάδα (προαιρετικό)" },
   "auth.creatingAccount": { en: "Creating account…", el: "Δημιουργία λογαριασμού…" },
   "auth.createAccountButton": { en: "Create account", el: "Δημιουργία λογαριασμού" },

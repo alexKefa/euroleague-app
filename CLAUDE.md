@@ -126,6 +126,19 @@ If you need to apply a schema change without an interactive terminal
   prediction-earned points, so a badge can't be bought or gifted. Trades
   (`trades.ts`) are an opt-in marketplace, many-for-one offers, scoped to
   cards both sides actually own.
+- **Referrals** (`services/referrals.ts`, `users.referralCode`/
+  `referredByUserId`/`referralRewardGranted` in `schema.ts`). Every user
+  gets a unique code at registration (`createUniqueReferralCode`), shared as
+  a link (`/register?ref=CODE`, shown on Profile). Registering with a valid
+  code sets `referredByUserId`; an unrecognized code is silently ignored
+  rather than rejecting the signup. The referrer's 400-point bonus
+  (`checkAndGrantReferralReward`) only fires once the *referred* user has at
+  least one resolved correct prediction — checked opportunistically
+  alongside round rewards on every `/predictions/me/summary` call, same
+  read-triggered pattern as everything else in this economy — and
+  `referralRewardGranted` (claimed via a conditional UPDATE, same
+  claim-first idempotency pattern as `roundRewards`) stops it from ever
+  firing twice for the same referred user.
 - `helmet()` + `express-rate-limit` are on by default (`index.ts`).
   `app.set('trust proxy', 1)` is set right after the app is created — without
   it, express-rate-limit sees Railway's proxy-added `X-Forwarded-For` header

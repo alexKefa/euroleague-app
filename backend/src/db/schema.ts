@@ -9,6 +9,7 @@ import {
   timestamp,
   primaryKey,
   uniqueIndex,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -31,6 +32,18 @@ export const users = pgTable("users", {
   // No signup flow grants this — flip it by hand (e.g. via `db:studio`) for the first admin.
   isAdmin: boolean("is_admin").default(false).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+
+  // Referrals — every user gets a code (generated at registration,
+  // routes/auth.ts) whether or not they used someone else's; shared as
+  // ?ref=<code> on the register page. referredByUserId is set once, at
+  // registration, from a valid code in the request. referralRewardGranted
+  // flips true the first time the *referred* user's own first correct
+  // prediction resolves (checked opportunistically alongside round rewards
+  // — see services/cards.ts) — the guard against granting the referrer's
+  // bonus more than once for the same referred friend.
+  referralCode: varchar("referral_code", { length: 10 }),
+  referredByUserId: uuid("referred_by_user_id").references((): AnyPgColumn => users.id),
+  referralRewardGranted: boolean("referral_reward_granted").default(false).notNull(),
 });
 
 export const players = pgTable("players", {

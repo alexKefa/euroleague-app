@@ -4,6 +4,7 @@ export interface PublicUser {
   favoriteTeamId: string | null;
   avatarUrl: string | null;
   isAdmin: boolean;
+  referralCode: string | null;
 }
 
 export interface NewsArticle {

@@ -13,6 +13,7 @@ function publicUser(user: typeof users.$inferSelect) {
     favoriteTeamId: user.favoriteTeamId,
     avatarUrl: user.avatarUrl,
     isAdmin: user.isAdmin,
+    referralCode: user.referralCode,
   };
 }
 

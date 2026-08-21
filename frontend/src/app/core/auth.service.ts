@@ -20,11 +20,16 @@ export class AuthService {
   readonly currentUser = signal<PublicUser | null>(null);
   readonly isAuthenticated = computed(() => this.accessToken() !== null);
 
-  register(email: string, password: string, favoriteTeamId?: string | null): Observable<PublicUser> {
+  register(
+    email: string,
+    password: string,
+    favoriteTeamId?: string | null,
+    referralCode?: string | null
+  ): Observable<PublicUser> {
     return this.http
       .post<AuthResponse>(
         `${API_BASE_URL}/auth/register`,
-        { email, password, favoriteTeamId },
+        { email, password, favoriteTeamId, referralCode },
         { withCredentials: true }
       )
       .pipe(tap((res) => this.setSession(res)), map((res) => res.user));

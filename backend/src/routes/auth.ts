@@ -5,6 +5,7 @@ import { db } from "../db/client.js";
 import { users, pointAdjustments } from "../db/schema.js";
 import { hashPassword, verifyPassword } from "../auth/hash.js";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../auth/tokens.js";
+import { createUniqueReferralCode } from "../services/referrals.js";
 
 export const authRouter = Router();
 
@@ -58,11 +59,12 @@ function publicUser(user: typeof users.$inferSelect) {
     favoriteTeamId: user.favoriteTeamId,
     avatarUrl: user.avatarUrl,
     isAdmin: user.isAdmin,
+    referralCode: user.referralCode,
   };
 }
 
 authRouter.post("/register", credentialsLimiter, async (req, res) => {
-  const { email, password, favoriteTeamId } = req.body ?? {};
+  const { email, password, favoriteTeamId, referralCode } = req.body ?? {};
   if (typeof email !== "string" || typeof password !== "string" || password.length < 8) {
     res.status(400).json({ error: "email and password (min 8 chars) are required" });
     return;
@@ -78,10 +80,30 @@ authRouter.post("/register", credentialsLimiter, async (req, res) => {
     return;
   }
 
+  // An unrecognized/malformed code is silently ignored rather than
+  // rejecting the whole signup over it — worst case, nobody gets a
+  // referral bonus, which isn't worth blocking someone's registration for.
+  let referredByUserId: string | null = null;
+  if (typeof referralCode === "string" && referralCode.length > 0) {
+    const [referrer] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.referralCode, referralCode.toUpperCase()))
+      .limit(1);
+    referredByUserId = referrer?.id ?? null;
+  }
+
   const passwordHash = await hashPassword(password);
+  const newReferralCode = await createUniqueReferralCode();
   const [user] = await db
     .insert(users)
-    .values({ email, passwordHash, favoriteTeamId: favoriteTeamId ?? null })
+    .values({
+      email,
+      passwordHash,
+      favoriteTeamId: favoriteTeamId ?? null,
+      referralCode: newReferralCode,
+      referredByUserId,
+    })
     .returning();
 
   await db.insert(pointAdjustments).values({

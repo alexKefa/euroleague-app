@@ -37,6 +37,14 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
     el: "Δεν ήταν δυνατή η ενημέρωση της αγαπημένης σου ομάδας — δοκίμασε ξανά.",
   },
 
+  "profile.referralTitle": { en: "Refer a friend", el: "Πρόσκλησε έναν φίλο" },
+  "profile.referralHint": {
+    en: "When they sign up and make their first correct prediction, you get a 400-point bonus.",
+    el: "Όταν εγγραφούν και κάνουν τη πρώτη σωστή πρόγνωσή τους, κερδίζεις 400 πόντους.",
+  },
+  "profile.referralCopy": { en: "Copy link", el: "Αντιγραφή συνδέσμου" },
+  "profile.referralCopied": { en: "Copied!", el: "Αντιγράφηκε!" },
+
   // Admin-only tools, consolidated here rather than scattered across the
   // pages they act on (except the wheel's cheat-spin, which stays there).
   "profile.adminSectionTitle": { en: "Admin tools", el: "Εργαλεία διαχειριστή" },

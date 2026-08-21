@@ -7,6 +7,28 @@
       <p class="font-semibold text-sm">{{ user.email }}</p>
     </div>
 
+    @if (referralLink(); as link) {
+      <div class="bg-card rounded-lg shadow-card p-4 mb-5">
+        <p class="font-mono text-[12px] text-muted font-bold mb-1">{{ i18n.t('profile.referralTitle') }}</p>
+        <p class="text-xs text-muted mb-3">{{ i18n.t('profile.referralHint') }}</p>
+        <div class="flex gap-2">
+          <input
+            type="text"
+            readonly
+            [value]="link"
+            class="flex-1 min-w-0 px-3 py-2 rounded-lg bg-page border border-line text-xs font-mono text-muted"
+          />
+          <button
+            type="button"
+            (click)="copyReferralLink()"
+            class="shrink-0 px-4 py-2 rounded-full bg-highlight text-white font-mono text-xs font-bold hover:bg-highlight-dim transition-colors"
+          >
+            {{ referralCopied() ? i18n.t('profile.referralCopied') : i18n.t('profile.referralCopy') }}
+          </button>
+        </div>
+      </div>
+    }
+
     <div class="bg-card rounded-lg shadow-card p-4 mb-5">
       <p class="font-mono text-[12px] text-muted font-bold mb-3">{{ i18n.t('profile.language') }}</p>
       <div class="flex gap-2">

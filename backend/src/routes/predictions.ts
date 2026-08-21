@@ -5,6 +5,7 @@ import { predictions, games, teams, users, pointAdjustments } from "../db/schema
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
 import { computeWinnerTeamId, getUserPoints, POINTS_PER_CORRECT } from "../services/points.js";
 import { checkAndGrantRoundRewards, markRoundRewardsSeen } from "../services/cards.js";
+import { checkAndGrantReferralReward } from "../services/referrals.js";
 
 export const predictionsRouter = Router();
 
@@ -265,6 +266,7 @@ predictionsRouter.get("/me/summary", requireAuth, async (req, res) => {
       predictionPoints: correctCount * POINTS_PER_CORRECT,
     });
     const newRoundRewards = await checkAndGrantRoundRewards(req.userId!);
+    await checkAndGrantReferralReward(req.userId!);
 
     res.json({
       points,

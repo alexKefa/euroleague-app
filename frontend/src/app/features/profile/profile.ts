@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from "@angular/core";
+import { Component, OnInit, inject, signal, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { Router } from "@angular/router";
 import { ReactiveFormsModule, FormBuilder, Validators } from "@angular/forms";
@@ -24,6 +24,12 @@ export class ProfileComponent implements OnInit {
   readonly teams = signal<Team[]>([]);
   readonly savingTeamId = signal<string | null>(null);
   readonly saveError = signal<string | null>(null);
+
+  readonly referralLink = computed(() => {
+    const code = this.auth.currentUser()?.referralCode;
+    return code ? `${location.origin}/register?ref=${code}` : null;
+  });
+  readonly referralCopied = signal(false);
 
   // Admin-only tools — collectibles list is only fetched for the grant-a-
   // card form's dropdown, so there's no point loading it for non-admins.
@@ -87,6 +93,15 @@ export class ProfileComponent implements OnInit {
 
   logout(): void {
     this.auth.logout().subscribe({ next: () => this.router.navigateByUrl("/") });
+  }
+
+  copyReferralLink(): void {
+    const link = this.referralLink();
+    if (!link) return;
+    navigator.clipboard.writeText(link).then(() => {
+      this.referralCopied.set(true);
+      setTimeout(() => this.referralCopied.set(false), 2000);
+    });
   }
 
   // Backend responses carry a stable `code` alongside their English
