@@ -169,10 +169,6 @@ export class ApiService {
     return this.http.post<PackOpenOutcome>(`${API_BASE_URL}/packs/${type}/open`, {});
   }
 
-  sellPackDuplicate(resultId: string): Observable<{ points: number }> {
-    return this.http.post<{ points: number }>(`${API_BASE_URL}/packs/results/${resultId}/sell`, {});
-  }
-
   getOwnedPacks(): Observable<OwnedPack[]> {
     return this.http.get<OwnedPack[]>(`${API_BASE_URL}/packs/owned`);
   }

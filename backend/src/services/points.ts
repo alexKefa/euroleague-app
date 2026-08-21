@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { predictions, games, pointAdjustments } from "../db/schema.js";
 
@@ -16,25 +16,32 @@ export function computeWinnerTeamId(game: typeof games.$inferSelect): string | n
  * manual adjustments (grants from an admin, or negative rows recorded when
  * redeeming a store item). Recomputed on every call — see predictions.ts
  * for why points aren't stored as a balance.
+ *
+ * One round trip instead of two independent queries — each round trip to
+ * this (remote) DB costs real, mostly-fixed latency regardless of whether
+ * queries are awaited sequentially or fired via Promise.all (measured
+ * directly: 4 queries via Promise.all took as long as 4 sequential ones —
+ * this driver/pool doesn't give genuine concurrency across separate
+ * `db.select()` calls), so the only real lever is fewer statements, not
+ * reordering them. The correct-pick condition here mirrors
+ * computeWinnerTeamId() exactly (final, both scores present, no tie) — keep
+ * the two in sync if that logic ever changes.
  */
 export async function getUserPoints(userId: string): Promise<number> {
-  const [rows, [{ bonus }]] = await Promise.all([
-    db
-      .select({ prediction: predictions, game: games })
-      .from(predictions)
-      .innerJoin(games, eq(predictions.gameId, games.id))
-      .where(eq(predictions.userId, userId)),
-    db
-      .select({ bonus: sql<number>`coalesce(sum(${pointAdjustments.points}), 0)::int` })
-      .from(pointAdjustments)
-      .where(eq(pointAdjustments.userId, userId)),
-  ]);
+  const [row] = await db.execute<{ correct: number; bonus: number }>(sql`
+    select
+      coalesce((
+        select count(*) from ${predictions} p
+        join ${games} g on p.game_id = g.id
+        where p.user_id = ${userId}
+          and g.status = 'final'
+          and g.home_score is not null
+          and g.away_score is not null
+          and g.home_score <> g.away_score
+          and p.predicted_winner_team_id = case when g.home_score > g.away_score then g.home_team_id else g.away_team_id end
+      ), 0)::int as correct,
+      coalesce((select sum(points) from ${pointAdjustments} where user_id = ${userId}), 0)::int as bonus
+  `);
 
-  let correct = 0;
-  for (const { prediction, game } of rows) {
-    const winnerTeamId = computeWinnerTeamId(game);
-    if (winnerTeamId !== null && winnerTeamId === prediction.predictedWinnerTeamId) correct++;
-  }
-
-  return correct * POINTS_PER_CORRECT + bonus;
+  return row.correct * POINTS_PER_CORRECT + row.bonus;
 }

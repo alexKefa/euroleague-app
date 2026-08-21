@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { collectibles, userCollectibles, pointAdjustments, packOpenings, packOpeningResults, ownedPacks } from "../db/schema.js";
+import { userCollectibles, pointAdjustments, packOpenings, packOpeningResults, ownedPacks } from "../db/schema.js";
 import { requireAuth } from "../auth/middleware.js";
 import { getUserPoints } from "../services/points.js";
 import { PACKS, PackType, RolledSlot, rollPackForUser } from "../services/packs.js";
@@ -20,6 +20,17 @@ packsRouter.get("/", (_req, res) => {
       .map((p) => ({ type: p.type, label: p.label, pointsCost: p.pointsCost, slots: p.slots.length }))
   );
 });
+
+// A rolled slot's sell value if it's a duplicate, else null — computed once
+// up front so it can be written straight into packOpeningResults.soldForPoints
+// at insert time. Duplicates are auto-sold the instant they're rolled
+// (no separate confirm step) — leaving that to a later manual action meant
+// a card the player never got back to selling just forfeited its value
+// with no way to reclaim it, since nothing outside the reveal screen ever
+// surfaced an unsold duplicate again.
+function sellValueFor(slot: RolledSlot): number | null {
+  return slot.wasDuplicate ? Math.round(slot.collectible.pointsCost * SELL_BACK_RATE) : null;
+}
 
 packsRouter.post("/:type/open", requireAuth, async (req, res) => {
   try {
@@ -40,11 +51,6 @@ packsRouter.post("/:type/open", requireAuth, async (req, res) => {
       return;
     }
 
-    // Figuring out duplicates/newly-owned up front (inside rollPackForUser)
-    // lets the writes below stay two batched multi-row inserts instead of
-    // one round trip per rolled card — each round trip to the (remote)
-    // database costs real latency, and that added up to several seconds for
-    // a 3-slot pack when done one insert at a time.
     let slots: RolledSlot[];
     try {
       slots = await rollPackForUser(req.userId!, packType);
@@ -53,6 +59,7 @@ packsRouter.post("/:type/open", requireAuth, async (req, res) => {
       return;
     }
     const newlyOwnedIds = new Set(slots.filter((s) => !s.wasDuplicate).map((s) => s.collectible.id));
+    const sellValues = slots.map(sellValueFor);
 
     const outcome = await db.transaction(async (tx) => {
       const [opening] = await tx
@@ -60,12 +67,21 @@ packsRouter.post("/:type/open", requireAuth, async (req, res) => {
         .values({ userId: req.userId!, packType, pointsCost: def.pointsCost })
         .returning();
 
-      await tx.insert(pointAdjustments).values({
-        userId: req.userId!,
-        points: -def.pointsCost,
-        reason: `Opened ${def.label}`,
-        createdByUserId: req.userId!,
-      });
+      // One batched insert for the purchase cost plus every auto-sold
+      // duplicate, instead of a round trip per row.
+      const pointAdjustmentRows = [
+        { userId: req.userId!, points: -def.pointsCost, reason: `Opened ${def.label}`, createdByUserId: req.userId! },
+        ...slots
+          .map((s, i) => ({ slot: s, sellValue: sellValues[i] }))
+          .filter((r) => r.sellValue !== null)
+          .map(({ slot, sellValue }) => ({
+            userId: req.userId!,
+            points: sellValue!,
+            reason: `Sold duplicate: ${slot.collectible.name}`,
+            createdByUserId: req.userId!,
+          })),
+      ];
+      await tx.insert(pointAdjustments).values(pointAdjustmentRows);
 
       if (newlyOwnedIds.size > 0) {
         await tx
@@ -78,10 +94,11 @@ packsRouter.post("/:type/open", requireAuth, async (req, res) => {
       const insertedResults = await tx
         .insert(packOpeningResults)
         .values(
-          slots.map(({ collectible, wasDuplicate }) => ({
+          slots.map(({ collectible, wasDuplicate }, i) => ({
             packOpeningId: opening.id,
             collectibleId: collectible.id,
             wasDuplicate,
+            soldForPoints: sellValues[i],
           }))
         )
         .returning();
@@ -97,7 +114,7 @@ packsRouter.post("/:type/open", requireAuth, async (req, res) => {
           team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor },
         },
         wasDuplicate,
-        sellValue: wasDuplicate ? Math.round(collectible.pointsCost * SELL_BACK_RATE) : null,
+        sellValue: sellValues[i],
       }));
 
       return { openingId: opening.id, packType, results };
@@ -156,6 +173,7 @@ packsRouter.post("/owned/:id/open", requireAuth, async (req, res) => {
       return;
     }
     const newlyOwnedIds = new Set(slots.filter((s) => !s.wasDuplicate).map((s) => s.collectible.id));
+    const sellValues = slots.map(sellValueFor);
 
     const outcome = await db.transaction(async (tx) => {
       // Claim-first, same pattern as roundRewards/referralRewardGranted —
@@ -171,6 +189,20 @@ packsRouter.post("/owned/:id/open", requireAuth, async (req, res) => {
 
       const [opening] = await tx.insert(packOpenings).values({ userId: req.userId!, packType, pointsCost: 0 }).returning();
 
+      const dupeSaleRows = slots
+        .map((s, i) => ({ slot: s, sellValue: sellValues[i] }))
+        .filter((r) => r.sellValue !== null)
+        .map(({ slot, sellValue }) => ({
+          userId: req.userId!,
+          points: sellValue!,
+          reason: `Sold duplicate: ${slot.collectible.name}`,
+          createdByUserId: req.userId!,
+        }));
+
+      if (dupeSaleRows.length > 0) {
+        await tx.insert(pointAdjustments).values(dupeSaleRows);
+      }
+
       if (newlyOwnedIds.size > 0) {
         await tx
           .insert(userCollectibles)
@@ -180,10 +212,11 @@ packsRouter.post("/owned/:id/open", requireAuth, async (req, res) => {
       const insertedResults = await tx
         .insert(packOpeningResults)
         .values(
-          slots.map(({ collectible, wasDuplicate }) => ({
+          slots.map(({ collectible, wasDuplicate }, i) => ({
             packOpeningId: opening.id,
             collectibleId: collectible.id,
             wasDuplicate,
+            soldForPoints: sellValues[i],
           }))
         )
         .returning();
@@ -199,7 +232,7 @@ packsRouter.post("/owned/:id/open", requireAuth, async (req, res) => {
           team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor },
         },
         wasDuplicate,
-        sellValue: wasDuplicate ? Math.round(collectible.pointsCost * SELL_BACK_RATE) : null,
+        sellValue: sellValues[i],
       }));
 
       return { openingId: opening.id, packType, results };
@@ -217,46 +250,3 @@ packsRouter.post("/owned/:id/open", requireAuth, async (req, res) => {
   }
 });
 
-packsRouter.post("/results/:id/sell", requireAuth, async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const [row] = await db
-      .select({ result: packOpeningResults, opening: packOpenings, collectible: collectibles })
-      .from(packOpeningResults)
-      .innerJoin(packOpenings, eq(packOpeningResults.packOpeningId, packOpenings.id))
-      .innerJoin(collectibles, eq(packOpeningResults.collectibleId, collectibles.id))
-      .where(eq(packOpeningResults.id, id))
-      .limit(1);
-
-    if (!row || row.opening.userId !== req.userId!) {
-      res.status(404).json({ error: "Pack result not found" });
-      return;
-    }
-    if (!row.result.wasDuplicate) {
-      res.status(400).json({ error: "That card wasn't a duplicate" });
-      return;
-    }
-    if (row.result.soldForPoints !== null) {
-      res.status(409).json({ error: "Already sold" });
-      return;
-    }
-
-    const sellValue = Math.round(row.collectible.pointsCost * SELL_BACK_RATE);
-
-    await db.transaction(async (tx) => {
-      await tx.update(packOpeningResults).set({ soldForPoints: sellValue }).where(eq(packOpeningResults.id, id));
-      await tx.insert(pointAdjustments).values({
-        userId: req.userId!,
-        points: sellValue,
-        reason: `Sold duplicate: ${row.collectible.name}`,
-        createdByUserId: req.userId!,
-      });
-    });
-
-    res.json({ points: sellValue });
-  } catch (err) {
-    console.error("POST /api/packs/results/:id/sell failed:", err);
-    res.status(500).json({ error: "Failed to sell duplicate" });
-  }
-});

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { collectibles, teams, userCollectibles } from "../db/schema.js";
 
@@ -124,15 +124,24 @@ export interface RolledSlot extends CollectibleRow {
 // wasDuplicate against the *pre-roll* ownership set plus anything rolled
 // earlier in this same pack (so a pack can't call two copies of a card it
 // just rolled both "new").
+//
+// One round trip (a left join scoped to this user) instead of two separate
+// queries — each round trip to this (remote) DB costs real, mostly-fixed
+// latency no matter how the queries are issued (measured directly:
+// Promise.all doesn't give genuine concurrency across separate `db.select()`
+// calls here), so fewer statements is the only real lever.
 export async function rollPackForUser(userId: string, packType: PackType): Promise<RolledSlot[]> {
-  const [catalogRows, ownedRows] = await Promise.all([
-    db.select({ collectible: collectibles, team: teams }).from(collectibles).innerJoin(teams, eq(collectibles.teamId, teams.id)),
-    db.select({ collectibleId: userCollectibles.collectibleId }).from(userCollectibles).where(eq(userCollectibles.userId, userId)),
-  ]);
+  const rows = await db
+    .select({ collectible: collectibles, team: teams, ownedCollectibleId: userCollectibles.collectibleId })
+    .from(collectibles)
+    .innerJoin(teams, eq(collectibles.teamId, teams.id))
+    .leftJoin(userCollectibles, and(eq(userCollectibles.collectibleId, collectibles.id), eq(userCollectibles.userId, userId)));
 
   const byTier: Record<Tier, CollectibleRow[]> = { common: [], rare: [], legendary: [] };
-  for (const row of catalogRows) {
-    byTier[row.collectible.tier as Tier].push(row);
+  const preOwnedIds = new Set<string>();
+  for (const { collectible, team, ownedCollectibleId } of rows) {
+    byTier[collectible.tier as Tier].push({ collectible, team });
+    if (ownedCollectibleId) preOwnedIds.add(collectible.id);
   }
   for (const tier of Object.keys(byTier) as Tier[]) {
     if (byTier[tier].length === 0) {
@@ -141,10 +150,9 @@ export async function rollPackForUser(userId: string, packType: PackType): Promi
   }
 
   const rolled = rollPack(packType, byTier);
-  const ownedIds = new Set(ownedRows.map((o) => o.collectibleId));
   const newlyOwnedIds = new Set<string>();
   return rolled.map(({ collectible, team }) => {
-    const wasDuplicate = ownedIds.has(collectible.id) || newlyOwnedIds.has(collectible.id);
+    const wasDuplicate = preOwnedIds.has(collectible.id) || newlyOwnedIds.has(collectible.id);
     if (!wasDuplicate) newlyOwnedIds.add(collectible.id);
     return { collectible, team, wasDuplicate };
   });

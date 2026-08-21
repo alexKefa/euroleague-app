@@ -263,20 +263,9 @@
         @if (currentCard(); as card) {
           @if (card.wasDuplicate) {
             <p class="font-mono text-[12px] font-bold uppercase tracking-wide text-muted mt-5">{{ i18n.t('packs.duplicate') }}</p>
-            @if (isSold(card)) {
-              <p class="font-mono text-[12px] font-bold uppercase tracking-wide text-emerald-500 mt-1">{{ i18n.t('packs.sold') }}</p>
-            } @else {
-              <button
-                type="button"
-                (click)="sellDuplicate(card)"
-                [disabled]="sellingId() === card.resultId"
-                appButton="outline"
-                appButtonSize="sm"
-                class="mt-2"
-              >
-                {{ sellingId() === card.resultId ? i18n.t('packs.selling') : i18n.t('packs.sellFor') + " " + card.sellValue + " " + i18n.t('packs.ptsLower') }}
-              </button>
-            }
+            <p class="font-mono text-[12px] font-bold uppercase tracking-wide text-emerald-500 mt-1">
+              {{ i18n.t('packs.soldForPrefix') }} {{ card.sellValue }} {{ i18n.t('packs.ptsLower') }}
+            </p>
           } @else if (card.collectible.tier === "legendary") {
             <p class="legendary-label font-display text-2xl uppercase tracking-wide mt-5">{{ i18n.t('packs.legendaryBang') }}</p>
           } @else if (card.collectible.tier === "rare") {
@@ -297,7 +286,7 @@
         <p class="font-display text-lg tracking-wide mb-3">{{ i18n.t('packs.packOpened') }}</p>
         <div class="grid grid-cols-3 gap-2 mb-5">
           @for (card of outcome()?.results; track card.resultId) {
-            <div class="relative" [class.opacity-50]="isSold(card)">
+            <div class="relative" [class.opacity-50]="card.wasDuplicate">
               <app-collectible-card
                 [name]="card.collectible.name"
                 [tier]="card.collectible.tier"
@@ -307,7 +296,7 @@
                 [unlocked]="true"
                 [maxWidth]="summaryCardSize()"
               ></app-collectible-card>
-              @if (isSold(card)) {
+              @if (card.wasDuplicate) {
                 <span
                   class="absolute inset-x-0 bottom-0 py-1 rounded-b-2xl bg-black/70 text-center font-mono text-[10px] font-bold uppercase tracking-wide text-emerald-400"
                   >{{ i18n.t('packs.sold') }}</span

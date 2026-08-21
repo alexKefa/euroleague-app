@@ -66,8 +66,10 @@ export const storeTranslations: Record<string, Record<Lang, string>> = {
   "packs.tapToFinish": { en: "Tap to see your pack", el: "Πάτησε για να δεις το πακέτο σου" },
   "packs.duplicate": { en: "Duplicate", el: "Διπλή" },
   "packs.sold": { en: "Sold", el: "Πουλήθηκε" },
-  "packs.selling": { en: "Selling…", el: "Πώληση…" },
-  "packs.sellFor": { en: "Sell for", el: "Πούλησέ την για" },
+  // Duplicates are auto-sold the instant they're rolled — no button, no
+  // chance to forget and lose the points — so this is a statement, not a
+  // call to action.
+  "packs.soldForPrefix": { en: "Sold for", el: "Πουλήθηκε για" },
   "packs.ptsLower": { en: "pts", el: "πόν." },
   "packs.legendaryBang": { en: "Legendary!", el: "Θρυλική!" },
   "packs.rareBang": { en: "Rare!", el: "Σπάνια!" },

@@ -98,8 +98,6 @@ export class PacksComponent implements OnInit {
   readonly view = signal<PackView>("selecting");
   readonly outcome = signal<PackOpenOutcome | null>(null);
   readonly revealIndex = signal(0);
-  readonly soldResultIds = signal<Set<string>>(new Set());
-  readonly sellingId = signal<string | null>(null);
 
   readonly visualClasses = PACK_VISUAL_CLASSES;
 
@@ -143,6 +141,13 @@ export class PacksComponent implements OnInit {
     }
   }
 
+  // Duplicates are auto-sold server-side the instant they're rolled — this
+  // just totals up what came back so the points badge reflects it
+  // immediately, without a separate sell round trip per card.
+  private duplicateGain(outcome: PackOpenOutcome): number {
+    return outcome.results.reduce((sum, r) => sum + (r.wasDuplicate ? (r.sellValue ?? 0) : 0), 0);
+  }
+
   private refreshOwnedPacks(): void {
     this.api.getOwnedPacks().subscribe({
       next: (rows) => {
@@ -163,9 +168,9 @@ export class PacksComponent implements OnInit {
         this.ownedPacks.update((rows) => rows.filter((r) => r.id !== pack.id));
         this.outcome.set(outcome);
         this.revealIndex.set(0);
-        this.soldResultIds.set(new Set());
         this.transitionOutCard.set(null);
         this.isTransitioning.set(false);
+        this.points.update((p) => p + this.duplicateGain(outcome));
         this.openingOwnedId.set(null);
         this.view.set("revealing");
       },
@@ -197,10 +202,9 @@ export class PacksComponent implements OnInit {
       next: (outcome) => {
         this.outcome.set(outcome);
         this.revealIndex.set(0);
-        this.soldResultIds.set(new Set());
         this.transitionOutCard.set(null);
         this.isTransitioning.set(false);
-        this.points.set(this.points() - pack.pointsCost);
+        this.points.set(this.points() - pack.pointsCost + this.duplicateGain(outcome));
         this.opening.set(null);
         this.view.set("revealing");
       },
@@ -229,24 +233,6 @@ export class PacksComponent implements OnInit {
       this.transitionOutCard.set(null);
       this.isTransitioning.set(false);
     }, CARD_EXIT_MS);
-  }
-
-  sellDuplicate(card: PackOpenResultCard): void {
-    if (this.sellingId()) return;
-    this.sellingId.set(card.resultId);
-
-    this.api.sellPackDuplicate(card.resultId).subscribe({
-      next: ({ points }) => {
-        this.points.update((p) => p + points);
-        this.soldResultIds.update((ids) => new Set(ids).add(card.resultId));
-        this.sellingId.set(null);
-      },
-      error: () => this.sellingId.set(null),
-    });
-  }
-
-  isSold(card: PackOpenResultCard): boolean {
-    return this.soldResultIds().has(card.resultId);
   }
 
   openAnother(): void {

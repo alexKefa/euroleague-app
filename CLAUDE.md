@@ -131,8 +131,16 @@ If you need to apply a schema change without an interactive terminal
   same pack twice. Both that route and the purchase route share
   `rollPackForUser()` (`services/packs.ts`) for the actual roll — so a wheel
   win, once opened, can land on a card already owned (previously impossible
-  when the wheel granted cards directly), sellable via the same
-  `POST /packs/results/:id/sell` a purchased pack's duplicate uses.
+  when the wheel granted cards directly). Duplicates are **auto-sold at
+  roll time** (`sellValue = pointsCost * 0.5`, written straight into
+  `packOpeningResults.soldForPoints` and credited via `pointAdjustments` in
+  the same transaction as the roll) rather than left for the player to
+  manually cash in — there used to be a `POST /packs/results/:id/sell`
+  endpoint for that, but a duplicate nobody got around to selling just
+  forfeited its value with no way to reclaim it later (nothing outside the
+  reveal screen ever surfaced an unsold one again). That endpoint is gone;
+  `PackOpenResultCard.sellValue` is now purely informational ("sold for X
+  pts"), never a pending action.
   Registration grants a 100-point welcome bonus (`auth.ts`, exactly a
   starter pack's cost) — badge eligibility (`predictions.ts`'s "Century")
   deliberately excludes `pointAdjustments` like this one, only counting
@@ -152,6 +160,23 @@ If you need to apply a schema change without an interactive terminal
   `referralRewardGranted` (claimed via a conditional UPDATE, same
   claim-first idempotency pattern as `roundRewards`) stops it from ever
   firing twice for the same referred user.
+- **DB round trips, not query count via `Promise.all`, are the real latency
+  lever against Neon.** Measured directly (2026-08-21, local dev against
+  the same remote Neon instance production uses): 4 near-identical queries
+  fired via `Promise.all` took as long as 4 sequential `await`s — this
+  driver/pool doesn't give genuine cross-query concurrency here, so
+  wrapping independent queries in `Promise.all` (including across separate
+  statements inside one `db.transaction()`) buys nothing and sometimes
+  measured slightly worse. Each round trip costs a roughly fixed ~280ms+
+  locally regardless. The only real lever found is fewer statements:
+  `getUserPoints` (`services/points.ts`) and `rollPackForUser`
+  (`services/packs.ts`) were each rewritten from 2 queries to 1 (a combined
+  scalar-subquery `SELECT` and a `LEFT JOIN` respectively) for a real,
+  verified reduction in `POST /packs/:type/open`'s round trips. This
+  latency is likely dominated by network distance from a local dev machine
+  to Neon — Railway's production deploy may see much lower per-round-trip
+  cost if it's datacenter-close to Neon's region — so don't assume local
+  timings translate directly to production before optimizing further.
 - `helmet()` + `express-rate-limit` are on by default (`index.ts`).
   `app.set('trust proxy', 1)` is set right after the app is created — without
   it, express-rate-limit sees Railway's proxy-added `X-Forwarded-For` header
