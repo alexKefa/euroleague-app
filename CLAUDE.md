@@ -117,6 +117,24 @@ If you need to apply a schema change without an interactive terminal
   rate limiter warns about `X-Forwarded-For` when running behind a proxy
   (ngrok, Railway) without `app.set('trust proxy', ...)` configured — noisy
   in logs, hasn't been fixed.
+- **Live scores** run over Server-Sent Events, not WebSockets.
+  `backend/src/realtime/hub.ts` is a generic in-memory SSE client registry
+  (`broadcast()` to everyone, `sendToUser()` for a future per-user channel —
+  not wired to anything yet, see the trade-updates gap below);
+  `backend/src/routes/events.ts` exposes the public `GET /api/events`
+  stream plus admin-gated `POST /events/simulate` / `.../simulate/stop`.
+  EuroLeague's real feed has nothing to poll until the season starts, so
+  `backend/src/realtime/liveScoreSimulator.ts` is a stand-in: it ticks a
+  real `games` row through scheduled → live → final on a compressed ~96s
+  timeline, fabricating a full per-player box score into `player_game_stats`
+  alongside the score (upserted every tick, same table the real boxscore
+  sync would fill) and flagging players on a scoring streak as "on fire"
+  (`onFireIds` on the broadcast event). `routes/games.ts`'s box score
+  computation runs for `status === "live"` as well as `"final"`, so the
+  existing box score / top performers / double-double UI lights up during a
+  live game with no separate code path. Swap-in later: point the
+  simulator's tick source at the real feed (or a poller) once the season
+  starts — the hub/route/frontend plumbing doesn't need to change.
 - In production the backend also serves the built Angular app as static
   files with an SPA fallback (see Deployment below) — absent in local dev,
   where `ng serve` handles the frontend on its own port instead.
@@ -124,12 +142,21 @@ If you need to apply a schema change without an interactive terminal
 ## Frontend architecture
 
 - Routes are lazy-loaded standalone components (`frontend/src/app/app.routes.ts`).
-  Desktop (`sm:` and up) gets an icon+label left sidebar; mobile gets a
-  bottom tab bar — both driven by the same `NAV_LINKS` array in
-  `app.component.ts`. The nav tab is labeled "Cards" and points at
+  Desktop (`sm:` and up) gets an icon-only left rail; mobile gets an
+  icon-only bottom tab bar — both driven by the same `NAV_LINKS` array in
+  `app.component.ts` and `shared/nav-icon.ts`. No text labels sit on
+  screen; the desktop rail surfaces them as a hover/focus tooltip instead.
+  The six primary-nav icons (home/news/schedule/picks/cards/user) render a
+  soft duotone fill when active (`[active]` input on `app-nav-icon`) — that
+  weight change is what signals the active tab now that there's no label
+  color to lean on. The nav tab is labeled "Cards" and points at
   `/inventory` (My Cards), which acts as the hub — Store, Jump Ball
   (wheel), Packs, and Trades are reached as buttons from there, not as
-  their own top-level nav items.
+  their own top-level nav items. Top-level nav pages (Home, News, Schedule,
+  Picks, Cards, Profile) don't have an in-page "back to dashboard" link —
+  the nav itself covers that; drill-down pages reached by clicking into
+  something (a game, a player, a team roster, wheel/packs/trades/store from
+  the Cards hub) still have a contextual back-link to their specific parent.
 - `frontend/src/app/core/`: `ApiService` (all HTTP calls), `AuthService`
   (holds `accessToken`/`currentUser` as signals, access token is
   memory-only — never localStorage — restored on boot via the httpOnly
@@ -148,8 +175,11 @@ If you need to apply a schema change without an interactive terminal
   themselves backed by CSS variables (not fixed hex), which is what makes
   the dark/light toggle (`ThemeService.toggleColorScheme()`, stamps
   `data-theme` on `<html>`) repaint the whole app with zero template
-  changes. Fonts: Anton (display/headings), JetBrains Mono (mono/labels),
-  Manrope (sans/body) — set up in `frontend/src/styles.css`.
+  changes. Fonts: Rajdhani (display/headings), JetBrains Mono (mono/labels),
+  Barlow (sans/body) — set up in `frontend/src/styles.css`. `.font-display`
+  also carries a `font-weight: 700` baseline there (see the comment above
+  it) since Rajdhani's normal weight reads light for headings/scores and
+  most templates using the class don't separately add `font-bold`.
 - Forms use Angular Reactive Forms (`ReactiveFormsModule` + `FormBuilder`),
   not template-driven/`ngModel` — follow that pattern for new forms.
 - Known bootstrap race: `AppComponent.restoreSession()` and the dashboard's
@@ -202,8 +232,11 @@ at the same Neon instance as local dev — there's no separate prod database.
 
 - A traded player's season-long stat averages (across both teams) are
   attributed entirely to their *current* team's roster page, not split per-team.
-- Player detail pages don't show a per-game log — `player_game_stats` exists
-  in the schema but is empty in the DB (the boxscore sync script hasn't been
-  run against it), so there's no data to show yet.
+- Player detail pages don't show a per-game log — `player_game_stats` is
+  still empty for real games (the boxscore sync script hasn't been run
+  against it), so there's no data to show there yet. It does get populated
+  now for whatever game the live-score simulator is running against (see
+  the Live scores note above), but that's synthetic/temporary test data,
+  not a fix for this gap.
 - Redeploys to Railway are manual, not triggered by `git push` (see
   Deployment above).
