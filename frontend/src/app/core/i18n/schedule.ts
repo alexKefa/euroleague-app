@@ -21,7 +21,7 @@ export const scheduleTranslations: Record<string, Record<Lang, string>> = {
     el: "Διαχειριστής: προσομοίωση ζωντανού αγώνα",
   },
   "schedule.finishLiveAdmin": {
-    en: "Admin: finish simulation",
-    el: "Διαχειριστής: τερματισμός προσομοίωσης",
+    en: "Admin: fast-forward simulation",
+    el: "Διαχειριστής: γρήγορη προσομοίωση",
   },
 };

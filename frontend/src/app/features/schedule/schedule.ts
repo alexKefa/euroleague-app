@@ -30,7 +30,7 @@ export class ScheduleComponent implements OnInit {
   readonly teams = signal<Team[]>([]);
   readonly teamFilter = signal<string | null>(null);
   readonly simulating = signal(false);
-  readonly stoppingSimulation = signal(false);
+  readonly completingSimulation = signal(false);
 
   constructor() {
     // Live score push: patch the matching game in place instead of
@@ -147,14 +147,16 @@ export class ScheduleComponent implements OnInit {
     });
   }
 
-  // Force-finishes whatever simulation is running, rather than waiting out
-  // the full ~96s tick sequence — a no-op (server just replies {running:
-  // false}) if nothing's running, so there's no need to track state here.
-  stopSimulation(): void {
-    this.stoppingSimulation.set(true);
-    this.api.stopLiveSimulation().subscribe({
-      next: () => this.stoppingSimulation.set(false),
-      error: () => this.stoppingSimulation.set(false),
+  // Fast-forwards whatever simulation is running through its remaining
+  // ticks (still a full game — scoring, box score, "on fire" streaks —
+  // just with no real-time delay), instead of waiting out the full ~96s
+  // sequence. Not a truncation at the current score. A no-op (server just
+  // replies {running: false}) if nothing's running.
+  completeSimulation(): void {
+    this.completingSimulation.set(true);
+    this.api.completeLiveSimulation().subscribe({
+      next: () => this.completingSimulation.set(false),
+      error: () => this.completingSimulation.set(false),
     });
   }
 }

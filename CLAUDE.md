@@ -240,3 +240,11 @@ at the same Neon instance as local dev — there's no separate prod database.
   not a fix for this gap.
 - Redeploys to Railway are manual, not triggered by `git push` (see
   Deployment above).
+- Some teams have zero rows in `players` — e.g. Besiktas Istanbul, found
+  2026-08-21 while testing the live-score simulator. Not a sync bug in
+  anything built this session; whatever ran the roster sync just hasn't
+  covered every team yet. The simulator accounts for this (a team with no
+  roster can't score, rather than the scoreboard advancing with no player
+  ever credited for it), but real features reading `players` for a team
+  with none synced (roster page, "players to watch", etc.) will just show
+  empty/sparse — worth knowing if a team's page looks unexpectedly bare.

@@ -49,6 +49,20 @@ interface RunningSim {
 
 let running: RunningSim | null = null;
 
+// Every call to tick() is chained onto this instead of invoked directly, so
+// the normal timer-driven ticks and completeSimulation()'s fast-forward
+// loop can never run concurrently. Without this, clicking "complete" while
+// a timer tick is mid-flight on its own DB round trips would start a
+// second, overlapping tick() execution mutating the same `sim.lines` /
+// `sim.recentScorers` / `sim.ticksLeft` — a real corruption risk, not just
+// a hypothetical one, given how long those round trips can take.
+let tickChain: Promise<void> = Promise.resolve();
+
+function scheduleTick(): Promise<void> {
+  tickChain = tickChain.then(() => tick());
+  return tickChain;
+}
+
 export function isSimulationRunning(): boolean {
   return running !== null;
 }
@@ -109,13 +123,14 @@ async function upsertLine(gameId: string, line: PlayerLine): Promise<void> {
 }
 
 // Captures `running` into a stable local (`sim`) for the whole tick, and
-// rechecks `running === sim` after every await. An admin can call
-// stopSimulation() (which nulls/replaces `running`) while a tick is
+// rechecks `running === sim` after every await. An admin can null out
+// `running` (e.g. the game row disappearing mid-tick) while this is
 // mid-flight on its DB round trips; without this, the tick would finish
-// against module state that's moved on — at best clobbering the just-
-// finalized game with a stale "live" write, at worst (with a bare `running!`
-// non-null assertion instead of a stable local) throwing on a background
-// timer, which can take down the whole process, not just this feature.
+// against module state that's moved on — at best writing a stale update
+// (closed off further by the WHERE-clause guard below), at worst (with a
+// bare `running!` non-null assertion instead of a stable local) throwing on
+// a background timer, which can take down the whole process, not just this
+// feature. Only ever invoked via scheduleTick() — never call this directly.
 async function tick(): Promise<void> {
   const sim = running;
   if (!sim) return;
@@ -135,8 +150,15 @@ async function tick(): Promise<void> {
     }
 
     const touched = new Set<string>();
+    // A team can't score if it has no roster synced (a real, if rare, DB
+    // gap — see the "known gaps" note in CLAUDE.md) — otherwise the team
+    // score climbs with no player ever credited for it, so the box score
+    // and the scoreboard silently disagree. Skip the whole possession
+    // rather than crediting a phantom basket.
+    let scored = false;
 
     if (scoringRoster.length > 0) {
+      scored = true;
       const scorer = randomPick(scoringRoster);
       const scorerLine = getLine(sim.lines, scorer.id);
       scorerLine.points += bump;
@@ -195,21 +217,18 @@ async function tick(): Promise<void> {
     const window = sim.recentScorers.slice(-3);
     const onFireIds = [...new Set(window)].filter((id) => window.filter((x) => x === id).length >= 2);
 
-    const homeScore = (current.homeScore ?? 0) + (homeScores ? bump : 0);
-    const awayScore = (current.awayScore ?? 0) + (homeScores ? 0 : bump);
+    const homeScore = (current.homeScore ?? 0) + (scored && homeScores ? bump : 0);
+    const awayScore = (current.awayScore ?? 0) + (scored && !homeScores ? bump : 0);
     sim.ticksLeft -= 1;
     const isLastTick = sim.ticksLeft <= 0;
     const status = isLastTick ? "final" : "live";
 
-    // Conditioned on the row still being "live", not just keyed on id — a
-    // concurrent stopSimulation() can finalize the game while this tick's
-    // earlier awaits (the select/upserts above) are still in flight. The
-    // `running !== sim` checks above catch that in the common case, but
-    // can't stop a write that's already been dispatched to the DB by the
-    // time stop's own write lands; without this, a stale tick can silently
-    // revert a just-finalized game back to "live". Guarding here instead —
-    // in the WHERE clause, evaluated against the committed row at write
-    // time — makes the stale write a no-op regardless of ordering.
+    // Conditioned on the row still being "live", not just keyed on id —
+    // defense in depth alongside the tickChain serialization above (which
+    // is what actually prevents overlapping ticks now) in case the row's
+    // status ever changes out from under a tick some other way. Guarding in
+    // the WHERE clause, evaluated against the committed row at write time,
+    // makes a stale write a no-op instead of a silent revert to "live".
     const [updated] = await db
       .update(games)
       .set({ homeScore, awayScore, status })
@@ -261,26 +280,23 @@ export async function startSimulation(gameId?: string): Promise<{ gameId: string
     lines: new Map(),
     recentScorers: [],
     ticksLeft: MAX_TICKS,
-    interval: setInterval(tick, TICK_MS),
+    interval: setInterval(() => void scheduleTick(), TICK_MS),
   };
   return { gameId: game.id };
 }
 
-/** Admin-triggered early stop — finalizes the game rather than leaving it stuck "live". */
-export async function stopSimulation(): Promise<void> {
+/**
+ * Admin-triggered fast-forward: plays out every remaining tick back-to-back
+ * with no delay between them, instead of the real ~4s/tick cadence — the
+ * game still gets its full sequence of scoring events and box-score stats,
+ * reaching "final" the normal way (via tick()'s own isLastTick path), just
+ * compressed into however long the DB round trips take. Not an early
+ * truncation at whatever the score happens to be right now.
+ */
+export async function completeSimulation(): Promise<void> {
   if (!running) return;
-  const { gameId, interval } = running;
-  clearInterval(interval);
-  running = null;
-
-  const [current] = await db.select().from(games).where(eq(games.id, gameId)).limit(1);
-  if (!current) return;
-  await db.update(games).set({ status: "final" }).where(eq(games.id, gameId));
-  broadcast("game-update", {
-    gameId,
-    homeScore: current.homeScore ?? 0,
-    awayScore: current.awayScore ?? 0,
-    status: "final",
-    onFireIds: [],
-  });
+  clearInterval(running.interval);
+  while (running) {
+    await scheduleTick();
+  }
 }

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { registerClient } from "../realtime/hub.js";
-import { startSimulation, stopSimulation, isSimulationRunning } from "../realtime/liveScoreSimulator.js";
+import { startSimulation, completeSimulation, isSimulationRunning } from "../realtime/liveScoreSimulator.js";
 import { verifyAccessToken } from "../auth/tokens.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
 
@@ -57,12 +57,14 @@ eventsRouter.post("/simulate", requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-eventsRouter.post("/simulate/stop", requireAuth, requireAdmin, async (_req, res) => {
+// Fast-forwards the rest of the running simulation to completion — not an
+// early truncation. See completeSimulation() in liveScoreSimulator.ts.
+eventsRouter.post("/simulate/complete", requireAuth, requireAdmin, async (_req, res) => {
   try {
-    await stopSimulation();
+    await completeSimulation();
     res.json({ running: isSimulationRunning() });
   } catch (err) {
-    console.error("POST /api/events/simulate/stop failed:", err);
-    res.status(500).json({ error: "Failed to stop live-game simulation" });
+    console.error("POST /api/events/simulate/complete failed:", err);
+    res.status(500).json({ error: "Failed to complete live-game simulation" });
   }
 });

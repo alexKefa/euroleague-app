@@ -88,8 +88,8 @@ export class ApiService {
     return this.http.post<{ gameId: string }>(`${API_BASE_URL}/events/simulate`, gameId ? { gameId } : {});
   }
 
-  stopLiveSimulation(): Observable<{ running: boolean }> {
-    return this.http.post<{ running: boolean }>(`${API_BASE_URL}/events/simulate/stop`, {});
+  completeLiveSimulation(): Observable<{ running: boolean }> {
+    return this.http.post<{ running: boolean }>(`${API_BASE_URL}/events/simulate/complete`, {});
   }
 
   getUpcomingGames(limit = 10): Observable<Game[]> {
