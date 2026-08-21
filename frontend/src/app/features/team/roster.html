@@ -96,24 +96,10 @@
       <div class="flex justify-between items-center px-4 pt-4">
         <p class="font-mono text-[13px] text-muted font-bold">{{ i18n.t('roster.title') }}</p>
         <div class="flex gap-1">
-          <button
-            type="button"
-            (click)="statsView.set('traditional')"
-            class="font-mono px-2 py-1 rounded-md text-[12px] font-bold transition-colors"
-            [class.bg-highlight]="statsView() === 'traditional'"
-            [class.text-white]="statsView() === 'traditional'"
-            [class.text-muted]="statsView() !== 'traditional'"
-          >
+          <button type="button" (click)="statsView.set('traditional')" [appChip]="statsView() === 'traditional'">
             {{ i18n.t('roster.traditional') }}
           </button>
-          <button
-            type="button"
-            (click)="statsView.set('advanced')"
-            class="font-mono px-2 py-1 rounded-md text-[12px] font-bold transition-colors"
-            [class.bg-highlight]="statsView() === 'advanced'"
-            [class.text-white]="statsView() === 'advanced'"
-            [class.text-muted]="statsView() !== 'advanced'"
-          >
+          <button type="button" (click)="statsView.set('advanced')" [appChip]="statsView() === 'advanced'">
             {{ i18n.t('roster.advanced') }}
           </button>
         </div>

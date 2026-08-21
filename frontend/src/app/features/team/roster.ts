@@ -19,6 +19,7 @@ import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { Team, RosterEntry, Game, StandingsRow } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
+import { ChipDirective } from "../../shared/chip.directive";
 
 Chart.register(...registerables);
 
@@ -32,7 +33,7 @@ const RADAR_AXES: { key: keyof StandingsRow["stats"]; labelKey: string }[] = [
 @Component({
   selector: "app-team-roster",
   standalone: true,
-  imports: [CommonModule, RouterLink, RetryImgDirective],
+  imports: [CommonModule, RouterLink, RetryImgDirective, ChipDirective],
   templateUrl: "./roster.html",
   styleUrl: "./roster.css",
 })

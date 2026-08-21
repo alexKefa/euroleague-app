@@ -10,6 +10,8 @@ import { PageHintComponent } from "../../shared/page-hint";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { TourService } from "../../core/tour/tour.service";
+import { ButtonDirective } from "../../shared/button.directive";
+import { ChipDirective } from "../../shared/chip.directive";
 
 const LEADER_CATEGORIES = [
   { value: "points", label: "PTS" },
@@ -25,7 +27,7 @@ type LeaderCategory = (typeof LEADER_CATEGORIES)[number]["value"];
 @Component({
   selector: "app-dashboard",
   standalone: true,
-  imports: [CommonModule, RouterLink, PageHintComponent, RetryImgDirective, NavIconComponent],
+  imports: [CommonModule, RouterLink, PageHintComponent, RetryImgDirective, NavIconComponent, ButtonDirective, ChipDirective],
   templateUrl: "./dashboard.component.html",
 })
 export class DashboardComponent implements OnInit {

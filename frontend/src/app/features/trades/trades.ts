@@ -8,11 +8,12 @@ import { I18nService } from "../../core/i18n.service";
 import { TradeableCard, MarketplaceCard, TradeOffer, TradeOfferStatus } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { ButtonDirective } from "../../shared/button.directive";
+import { ChipDirective } from "../../shared/chip.directive";
 
 @Component({
   selector: "app-trades",
   standalone: true,
-  imports: [CommonModule, RouterLink, CollectibleCardComponent, ButtonDirective],
+  imports: [CommonModule, RouterLink, CollectibleCardComponent, ButtonDirective, ChipDirective],
   templateUrl: "./trades.html",
 })
 export class TradesComponent implements OnInit {

@@ -81,16 +81,9 @@
       }
     </div>
 
-    <div data-tour="store-cards" class="inline-flex bg-card border border-line rounded-full p-1 gap-1 mb-4">
+    <div data-tour="store-cards" class="inline-flex bg-card border border-line rounded-lg p-1 gap-1 mb-4">
       @for (opt of tierOptions; track opt.value) {
-        <button
-          type="button"
-          (click)="tierFilter.set(opt.value)"
-          class="px-3 py-1.5 rounded-full font-mono text-[12px] font-bold transition-colors"
-          [class.bg-highlight]="tierFilter() === opt.value"
-          [class.text-white]="tierFilter() === opt.value"
-          [class.text-muted]="tierFilter() !== opt.value"
-        >
+        <button type="button" (click)="tierFilter.set(opt.value)" [appChip]="tierFilter() === opt.value">
           {{ i18n.t(opt.key) }}
         </button>
       }
@@ -155,7 +148,7 @@
         <button
           (click)="setImage(item, imageInput.value)"
           [disabled]="imageSavingId() === item.id"
-          class="font-mono text-[13px] font-bold px-3 py-1.5 rounded-lg bg-white/15 text-white hover:bg-highlight transition-colors disabled:opacity-40"
+          class="font-display font-bold uppercase tracking-[0.03em] text-xs px-3 py-1.5 rounded-[5px] bg-white/15 text-white hover:bg-highlight transition-colors disabled:opacity-40"
         >
           {{ imageSavingId() === item.id ? "…" : i18n.t('store.setImage') }}
         </button>

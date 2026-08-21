@@ -1,31 +1,33 @@
 import { Directive, HostBinding, Input } from "@angular/core";
 
-export type ButtonVariant = "primary" | "outline" | "secondary";
+export type ButtonVariant = "primary" | "outline" | "secondary" | "danger";
 export type ButtonSize = "sm" | "md";
 
-// "Court Line" — the app's shared button styling, picked over two other
-// directions via a side-by-side comparison (see the "Clutch Button
-// Directions" design canvas). Keeps the rounded-full pill shape already
-// used everywhere else in the app (nav icons, filter chips, team pickers)
-// but gives it real depth: a raised gradient, a lit top edge, a
-// color-matched glow — reads as tactile/pressable instead of a flat tag.
-// An attribute directive rather than a wrapping component so the host stays
-// a real <button>/<a> — routerLink, type="submit", [disabled], (click) all
-// keep working unchanged; only the class list is swapped in.
-const BASE = "inline-flex items-center justify-center gap-1.5 rounded-full font-mono font-bold transition-all disabled:opacity-40 disabled:pointer-events-none";
+// "Scoreboard" — the app's shared button styling, replacing the earlier
+// "Court Line" gradient pill (picked over three other directions via a
+// side-by-side comparison — see the "Button Directions" design canvas).
+// Flat rectangles instead of pills, a hard bottom edge on primary instead of
+// a soft glow, uppercase Rajdhani (the app's display font) instead of mono —
+// reads like a stat panel rather than a rounded chip. An attribute directive
+// rather than a wrapping component so the host stays a real <button>/<a> —
+// routerLink, type="submit", [disabled], (click) all keep working
+// unchanged; only the class list is swapped in.
+const BASE = "inline-flex items-center justify-center gap-1.5 rounded-[5px] font-display font-bold uppercase tracking-[0.03em] transition-all disabled:opacity-35 disabled:pointer-events-none";
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:
-    "text-white uppercase tracking-[0.04em] bg-[linear-gradient(180deg,#FF8558_0%,#FF6B35_45%,#E2551F_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_4px_14px_rgba(255,107,53,0.35)] hover:brightness-110 active:scale-[0.97] disabled:shadow-none",
+    "text-white bg-highlight border-b-[3px] border-b-highlight-dim hover:bg-[#FF7D4E] disabled:border-b-transparent",
   outline:
-    "text-highlight uppercase tracking-[0.04em] bg-highlight/10 border-[1.5px] border-highlight hover:bg-highlight/20 active:scale-[0.97]",
+    "text-highlight bg-highlight/10 border-2 border-highlight hover:bg-highlight/20",
   secondary:
-    "text-ink bg-card shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_3px_10px_rgba(0,0,0,0.5)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_4px_14px_rgba(0,0,0,0.6)] active:scale-[0.97]",
+    "text-ink bg-transparent border-2 border-line hover:border-[#3a3a3b]",
+  danger:
+    "text-ink bg-transparent border-2 border-line hover:border-red-500 hover:bg-red-500/10 hover:text-red-500",
 };
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
-  md: "text-xs px-5 py-2.5",
-  sm: "text-[11px] px-4 py-1.5",
+  md: "text-sm px-5 py-2.5",
+  sm: "text-xs px-4 py-1.5",
 };
 
 @Directive({

@@ -50,11 +50,8 @@
                 type="button"
                 (click)="toggleTradeable(card)"
                 [disabled]="togglingId() === card.id"
-                class="self-center font-mono text-[11px] font-bold px-3 py-1.5 rounded-full transition-colors disabled:opacity-40"
-                [class.bg-highlight]="card.tradeable"
-                [class.text-white]="card.tradeable"
-                [class.bg-line]="!card.tradeable"
-                [class.text-ink]="!card.tradeable"
+                [appChip]="card.tradeable"
+                class="self-center"
               >
                 {{ card.tradeable ? i18n.t('trades.listed') : i18n.t('trades.listForTrade') }}
               </button>
@@ -163,7 +160,8 @@
                   type="button"
                   (click)="decline(offer)"
                   [disabled]="actingOnId() === offer.id"
-                  class="font-mono text-[12px] font-bold px-3 py-1.5 rounded-full bg-line text-ink hover:bg-red-500 hover:text-white transition-colors disabled:opacity-40"
+                  appButton="danger"
+                  appButtonSize="sm"
                 >
                   {{ i18n.t('trades.decline') }}
                 </button>
@@ -173,7 +171,9 @@
                 type="button"
                 (click)="cancel(offer)"
                 [disabled]="actingOnId() === offer.id"
-                class="font-mono text-[12px] font-bold px-3 py-1.5 rounded-full bg-line text-ink hover:bg-red-500 hover:text-white transition-colors disabled:opacity-40 shrink-0"
+                appButton="danger"
+                appButtonSize="sm"
+                class="shrink-0"
               >
                 {{ i18n.t('trades.cancel') }}
               </button>

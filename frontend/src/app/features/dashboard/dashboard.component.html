@@ -12,11 +12,7 @@
 
   @if (!loading() && !error()) {
     <div class="flex justify-end mb-3">
-      <button
-        type="button"
-        (click)="tour.start()"
-        class="inline-flex items-center gap-1.5 font-mono text-[11px] font-bold text-highlight bg-highlight/10 border border-highlight/30 rounded-full px-3 py-1.5 hover:bg-highlight/20 transition-colors"
-      >
+      <button type="button" (click)="tour.start()" appButton="outline" appButtonSize="sm">
         <app-nav-icon name="play" [size]="12" />
         {{ i18n.t('tour.takeTour') }}
       </button>
@@ -149,10 +145,7 @@
                   <button
                     type="button"
                     (click)="selectLeaderCategory(cat.value)"
-                    class="font-mono px-2 py-1 rounded-md text-[12px] font-bold transition-colors"
-                    [class.bg-highlight]="leaderCategory() === cat.value"
-                    [class.text-white]="leaderCategory() === cat.value"
-                    [class.text-muted]="leaderCategory() !== cat.value"
+                    [appChip]="leaderCategory() === cat.value"
                   >
                     {{ cat.label }}
                   </button>

@@ -8,11 +8,12 @@ import { I18nService } from "../../core/i18n.service";
 import { Team, Collectible } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ButtonDirective } from "../../shared/button.directive";
+import { ChipDirective } from "../../shared/chip.directive";
 
 @Component({
   selector: "app-profile",
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RetryImgDirective, ButtonDirective],
+  imports: [CommonModule, ReactiveFormsModule, RetryImgDirective, ButtonDirective, ChipDirective],
   templateUrl: "./profile.html",
 })
 export class ProfileComponent implements OnInit {

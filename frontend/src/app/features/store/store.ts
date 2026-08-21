@@ -8,11 +8,12 @@ import { Collectible, CollectibleTier } from "../../core/models";
 import { CollectibleCardComponent } from "./collectible-card";
 import { CardPreviewComponent } from "./card-preview";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
+import { ChipDirective } from "../../shared/chip.directive";
 
 @Component({
   selector: "app-store",
   standalone: true,
-  imports: [CommonModule, RouterLink, CollectibleCardComponent, CardPreviewComponent, RetryImgDirective],
+  imports: [CommonModule, RouterLink, CollectibleCardComponent, CardPreviewComponent, RetryImgDirective, ChipDirective],
   templateUrl: "./store.html",
 })
 export class StoreComponent implements OnInit {
