@@ -126,13 +126,11 @@
                   <span class="font-bold flex items-center gap-1.5 min-w-0">
                     <span class="font-mono text-muted shrink-0">{{ i + 1 }}</span>
                     <span class="truncate">{{ entry.player.name }}</span>
-                    <span
-                      class="font-mono text-[10px] font-bold uppercase tracking-wide rounded-[5px] border-2 px-1.5 py-0.5 shrink-0"
-                      [style.color]="entry.team.primaryColor ?? '#3E7CB1'"
-                      [style.border-color]="(entry.team.primaryColor ?? '#3E7CB1') + '4D'"
-                      [style.background-color]="(entry.team.primaryColor ?? '#3E7CB1') + '1A'"
-                      >{{ entry.team.code }}</span
-                    >
+                    @if (entry.team.logoUrl) {
+                      <img [src]="entry.team.logoUrl" [alt]="entry.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0" />
+                    } @else {
+                      <span class="w-4 h-4 rounded-full shrink-0" [style.background]="entry.team.primaryColor"></span>
+                    }
                   </span>
                   <span class="font-mono text-highlight font-bold">{{ entry.valuation }} PIR</span>
                 </a>
@@ -162,13 +160,11 @@
                   <span class="font-bold flex items-center gap-1.5 min-w-0">
                     <span class="font-mono text-muted shrink-0">{{ i + 1 }}</span>
                     <span class="truncate">{{ entry.player.name }}</span>
-                    <span
-                      class="font-mono text-[10px] font-bold uppercase tracking-wide rounded-[5px] border-2 px-1.5 py-0.5 shrink-0"
-                      [style.color]="entry.team.primaryColor ?? '#3E7CB1'"
-                      [style.border-color]="(entry.team.primaryColor ?? '#3E7CB1') + '4D'"
-                      [style.background-color]="(entry.team.primaryColor ?? '#3E7CB1') + '1A'"
-                      >{{ entry.team.code }}</span
-                    >
+                    @if (entry.team.logoUrl) {
+                      <img [src]="entry.team.logoUrl" [alt]="entry.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0" />
+                    } @else {
+                      <span class="w-4 h-4 rounded-full shrink-0" [style.background]="entry.team.primaryColor"></span>
+                    }
                   </span>
                   <span class="font-mono text-highlight font-bold">{{ entry.value | number: "1.1-1" }}</span>
                 </a>

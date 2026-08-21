@@ -65,6 +65,7 @@ playersRouter.get("/leaders", async (req, res) => {
           code: r.team.code,
           name: r.team.name,
           primaryColor: r.team.primaryColor,
+          logoUrl: r.team.logoUrl,
         },
       }))
     );
@@ -127,7 +128,13 @@ playersRouter.get("/round-mvp", async (req, res) => {
       round,
       leaders: rows.map((r) => ({
         player: { id: r.player.id, code: r.player.code, name: r.player.name },
-        team: { id: r.team.id, code: r.team.code, name: r.team.name, primaryColor: r.team.primaryColor },
+        team: {
+          id: r.team.id,
+          code: r.team.code,
+          name: r.team.name,
+          primaryColor: r.team.primaryColor,
+          logoUrl: r.team.logoUrl,
+        },
         valuation: r.stat.valuation,
         points: r.stat.points,
         gameId: r.stat.gameId,

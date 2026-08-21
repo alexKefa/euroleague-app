@@ -73,12 +73,12 @@ export interface LeaderEntry {
   category: string;
   value: number | null;
   player: { id: string; code: string; name: string };
-  team: { id: string; code: string; name: string; primaryColor: string | null };
+  team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
 }
 
 export interface RoundMvpEntry {
   player: { id: string; code: string; name: string };
-  team: { id: string; code: string; name: string; primaryColor: string | null };
+  team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
   valuation: number | null;
   points: number | null;
   gameId: string;
@@ -295,7 +295,7 @@ export interface TradeableCard {
   name: string;
   tier: CollectibleTier;
   imageUrl: string | null;
-  team: { id: string; code: string; name: string; primaryColor: string | null };
+  team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
   tradeable: boolean;
 }
 
@@ -304,7 +304,7 @@ export interface MarketplaceCard {
   name: string;
   tier: CollectibleTier;
   imageUrl: string | null;
-  team: { id: string; code: string; name: string; primaryColor: string | null };
+  team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
   ownerName: string;
 }
 
