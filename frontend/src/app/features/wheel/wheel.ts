@@ -4,7 +4,7 @@ import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
-import { Collectible, CollectibleTier, SpinResult } from "../../core/models";
+import { CollectibleTier, PackOpenResultCard, SpinResult } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { NavIconComponent } from "../../shared/nav-icon";
 
@@ -31,8 +31,14 @@ export class WheelComponent implements OnInit {
 
   readonly spinning = signal(false);
   readonly spinError = signal<string | null>(null);
-  readonly lastResult = signal<Collectible | null | undefined>(undefined); // undefined = no spin yet this visit
+  readonly lastResult = signal<PackOpenResultCard | null | undefined>(undefined); // undefined = no spin yet this visit
   readonly wheelRotation = signal(0);
+
+  // A wheel spin can now land on an already-owned card (routed through the
+  // same pack-opening machinery as a real purchase — see routes/spin.ts) —
+  // sellable the same way a duplicate from a purchased pack is.
+  readonly sellingDuplicate = signal(false);
+  readonly duplicateSold = signal(false);
 
   // Angles for the win-burst starburst rays, evenly spaced around the card.
   readonly burstRays = Array.from({ length: 12 }, (_, i) => i * 30);
@@ -108,6 +114,7 @@ export class WheelComponent implements OnInit {
     if (!this.canSpin() || this.spinning()) return;
     this.spinning.set(true);
     this.spinError.set(null);
+    this.duplicateSold.set(false);
 
     // The outcome is already decided server-side before the wheel ever
     // moves — spin to a stop angle inside a wedge matching that real
@@ -123,6 +130,7 @@ export class WheelComponent implements OnInit {
     if (this.spinning()) return;
     this.spinning.set(true);
     this.spinError.set(null);
+    this.duplicateSold.set(false);
 
     this.api.cheatSpin().subscribe({
       next: (result) => this.animateToResult(result, () => this.lastResult.set(result.won)),
@@ -131,7 +139,7 @@ export class WheelComponent implements OnInit {
   }
 
   private animateToResult(result: SpinResult, apply: () => void): void {
-    this.spinToWedge(result.won?.tier ?? "common");
+    this.spinToWedge(result.won?.collectible.tier ?? "common");
     setTimeout(() => {
       this.spinning.set(false);
       apply();
@@ -169,6 +177,19 @@ export class WheelComponent implements OnInit {
     this.canSpin.set(false);
     this.nextEligibleAt.set(result.nextEligibleAt);
     this.lastResult.set(result.won);
+  }
+
+  sellDuplicate(card: PackOpenResultCard): void {
+    if (this.sellingDuplicate()) return;
+    this.sellingDuplicate.set(true);
+
+    this.api.sellPackDuplicate(card.resultId).subscribe({
+      next: () => {
+        this.duplicateSold.set(true);
+        this.sellingDuplicate.set(false);
+      },
+      error: () => this.sellingDuplicate.set(false),
+    });
   }
 
   private applyError(err: unknown): void {

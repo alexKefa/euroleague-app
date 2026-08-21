@@ -246,11 +246,15 @@ export interface SpinStatus {
 }
 
 export interface SpinResult {
-  won: Collectible | null;
+  // Same shape as a pack-opening result card — the wheel reward is now
+  // routed through the same pack-opening machinery as a real purchase, so
+  // a spin can land on a card already owned (wasDuplicate), sellable via
+  // the same POST /packs/results/:id/sell endpoint packs.html uses.
+  won: PackOpenResultCard | null;
   nextEligibleAt: string;
 }
 
-export type PackType = "starter" | "pro" | "elite";
+export type PackType = "starter" | "pro" | "elite" | "wheelStarter" | "wheelPro" | "wheelLegendary";
 
 export interface PackDefinition {
   type: PackType;

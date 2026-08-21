@@ -12,10 +12,18 @@ import { PackIconComponent } from "../../shared/pack-icon";
 // foil gradient — matches the exact bronze/silver/gold tones of
 // .pack-visual-starter/-pro/-elite (packs.css) rather than an unrelated
 // palette, so the description row's icon actually reads as "this tier".
+// The wheelStarter/wheelPro/wheelLegendary entries below are never actually
+// rendered here — GET /api/packs excludes them from the store listing this
+// page shows (see the `purchasable` flag in backend/src/services/packs.ts)
+// — filled in anyway (matching each one's "flavor" tier) so this stays a
+// total map rather than needing a runtime fallback if that ever changes.
 const PACK_ICON_CLASSES: Record<PackType, string> = {
   starter: "bg-[#8a5a34]/15 text-[#d99a5b]",
   pro: "bg-[#aab2ba]/20 text-[#c9d3da]",
   elite: "bg-[#caa53a]/20 text-[#f4d675]",
+  wheelStarter: "bg-[#8a5a34]/15 text-[#d99a5b]",
+  wheelPro: "bg-[#aab2ba]/20 text-[#c9d3da]",
+  wheelLegendary: "bg-[#caa53a]/20 text-[#f4d675]",
 };
 
 // Pack-selection art: a physical-foil-pack silhouette per tier, reusing the
@@ -25,6 +33,9 @@ const PACK_VISUAL_CLASSES: Record<PackType, string> = {
   starter: "pack-visual-starter",
   pro: "pack-visual-pro",
   elite: "pack-visual-elite",
+  wheelStarter: "pack-visual-starter",
+  wheelPro: "pack-visual-pro",
+  wheelLegendary: "pack-visual-elite",
 };
 
 // Exit-animation duration for the outgoing card in the reveal sequence —

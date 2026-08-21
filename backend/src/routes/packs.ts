@@ -15,7 +15,9 @@ const SELL_BACK_RATE = 0.5;
 
 packsRouter.get("/", (_req, res) => {
   res.json(
-    Object.values(PACKS).map((p) => ({ type: p.type, label: p.label, pointsCost: p.pointsCost, slots: p.slots.length }))
+    Object.values(PACKS)
+      .filter((p) => p.purchasable !== false)
+      .map((p) => ({ type: p.type, label: p.label, pointsCost: p.pointsCost, slots: p.slots.length }))
   );
 });
 
@@ -23,7 +25,11 @@ packsRouter.post("/:type/open", requireAuth, async (req, res) => {
   try {
     const packType = req.params.type as PackType;
     const def = PACKS[packType];
-    if (!def) {
+    // Wheel-exclusive pack types (wheelStarter/wheelPro/wheelLegendary) are
+    // pointsCost: 0 — without this check they'd otherwise be openable for
+    // free through this endpoint directly, bypassing the wheel's 24h
+    // cooldown entirely (wheelLegendary is a *guaranteed* legendary).
+    if (!def || def.purchasable === false) {
       res.status(400).json({ error: "Unknown pack type" });
       return;
     }

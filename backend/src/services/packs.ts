@@ -1,7 +1,7 @@
 import { collectibles, teams } from "../db/schema.js";
 
 export type Tier = "common" | "rare" | "legendary";
-export type PackType = "starter" | "pro" | "elite";
+export type PackType = "starter" | "pro" | "elite" | "wheelStarter" | "wheelPro" | "wheelLegendary";
 
 export interface CollectibleRow {
   collectible: typeof collectibles.$inferSelect;
@@ -18,6 +18,13 @@ interface PackDefinition {
   label: string;
   pointsCost: number;
   slots: PackSlot[];
+  // false for the wheelStarter/wheelPro/wheelLegendary trio below — those
+  // exist purely so the daily Jump Ball spin (routes/spin.ts) can route its
+  // reward through the same rollPack()/packOpenings machinery as a real
+  // purchase (batched inserts, duplicate detection, sell-back), without
+  // ever being buyable from the Packs store. GET /api/packs filters on
+  // this. Omitted (undefined) means purchasable, same as `true`.
+  purchasable?: boolean;
 }
 
 // Legendary odds deliberately stay tiny (Elite's third slot) — the free
@@ -48,6 +55,34 @@ export const PACKS: Record<PackType, PackDefinition> = {
     label: "Final Four Pack",
     pointsCost: 1200,
     slots: [{ odds: { common: 1 } }, { odds: { rare: 1 } }, { odds: { rare: 0.97, legendary: 0.03 } }],
+  },
+
+  // Wheel-exclusive, single-slot, free (pointsCost 0), never purchasable —
+  // see the `purchasable` doc comment above. Weighted choice between these
+  // three on each spin reuses SPIN_ODDS (65/25/10) from routes/spin.ts
+  // verbatim, just reinterpreted as "which pack" instead of "which tier",
+  // so the existing legendary pacing already reasoned about in
+  // scripts/economy-report.ts doesn't silently shift.
+  wheelStarter: {
+    type: "wheelStarter",
+    label: "Jump Ball — Common Pull",
+    pointsCost: 0,
+    purchasable: false,
+    slots: [{ odds: { common: 1 } }],
+  },
+  wheelPro: {
+    type: "wheelPro",
+    label: "Jump Ball — Rare Pull",
+    pointsCost: 0,
+    purchasable: false,
+    slots: [{ odds: { common: 0.5, rare: 0.5 } }],
+  },
+  wheelLegendary: {
+    type: "wheelLegendary",
+    label: "Jump Ball — Legendary Pull",
+    pointsCost: 0,
+    purchasable: false,
+    slots: [{ odds: { legendary: 1 } }],
   },
 };
 

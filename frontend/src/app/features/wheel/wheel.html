@@ -69,15 +69,17 @@
     } @else {
       <div class="mb-6 reveal-pop">
         @if (lastResult(); as won) {
-          @if (won.tier === "legendary") {
+          @if (won.wasDuplicate) {
+            <p class="font-mono text-[12px] font-bold uppercase tracking-wide text-muted mb-3">{{ i18n.t('packs.duplicate') }}</p>
+          } @else if (won.collectible.tier === "legendary") {
             <p class="legendary-label font-display text-2xl uppercase tracking-wide mb-3">{{ i18n.t('wheel.legendary') }}</p>
-          } @else if (won.tier === "rare") {
+          } @else if (won.collectible.tier === "rare") {
             <p class="rare-label font-display text-lg uppercase tracking-wide mb-3">{{ i18n.t('wheel.rare') }}</p>
           } @else {
             <p class="font-display text-lg uppercase tracking-wide text-highlight mb-3">{{ i18n.t('wheel.gotCard') }}</p>
           }
           <div class="relative mx-auto" style="width: 220px">
-            @if (won.tier === "legendary") {
+            @if (won.collectible.tier === "legendary") {
               <!-- Legendary hype — bigger gold burst, a screen flash, a
                    double expanding ring, a full starburst, and scattered
                    twinkles — same pattern as the pack-opening legendary
@@ -107,7 +109,7 @@
                   >
                 }
               </div>
-            } @else if (won.tier === "rare") {
+            } @else if (won.collectible.tier === "rare") {
               <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div
                   class="burst-glow absolute w-72 h-72 rounded-full"
@@ -123,19 +125,34 @@
                 ></div>
               </div>
             }
-            <div class="relative" [class.legendary-shake]="won.tier === 'legendary'">
+            <div class="relative" [class.legendary-shake]="won.collectible.tier === 'legendary'" [class.opacity-50]="duplicateSold()">
               <app-collectible-card
                 class="block mx-auto"
-                [name]="won.name"
-                [tier]="won.tier"
-                [teamCode]="won.team.code"
-                [teamColor]="won.team.primaryColor"
-                [imageUrl]="won.imageUrl"
+                [name]="won.collectible.name"
+                [tier]="won.collectible.tier"
+                [teamCode]="won.collectible.team.code"
+                [teamColor]="won.collectible.team.primaryColor"
+                [imageUrl]="won.collectible.imageUrl"
                 [unlocked]="true"
                 [maxWidth]="220"
               ></app-collectible-card>
             </div>
           </div>
+
+          @if (won.wasDuplicate) {
+            @if (duplicateSold()) {
+              <p class="font-mono text-[12px] font-bold uppercase tracking-wide text-emerald-500 mt-3">{{ i18n.t('packs.sold') }}</p>
+            } @else {
+              <button
+                type="button"
+                (click)="sellDuplicate(won)"
+                [disabled]="sellingDuplicate()"
+                class="mt-3 font-mono text-[12px] font-bold px-4 py-1.5 rounded-full border-2 border-highlight text-highlight hover:bg-highlight hover:text-white transition-colors disabled:opacity-40"
+              >
+                {{ sellingDuplicate() ? i18n.t('packs.selling') : i18n.t('packs.sellFor') + " " + won.sellValue + " " + i18n.t('packs.ptsLower') }}
+              </button>
+            }
+          }
         } @else {
           <p class="font-display text-lg uppercase tracking-wide text-muted mb-3">{{ i18n.t('wheel.soClose') }}</p>
           <app-collectible-card
