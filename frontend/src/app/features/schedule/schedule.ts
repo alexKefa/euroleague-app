@@ -1,8 +1,10 @@
-import { Component, OnInit, inject, signal, computed } from "@angular/core";
+import { Component, OnInit, inject, signal, computed, effect } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
+import { AuthService } from "../../core/auth.service";
+import { EventsService } from "../../core/events.service";
 import { Game, Team } from "../../core/models";
 
 // The user asked specifically for the 2026-27 schedule — no season picker,
@@ -18,6 +20,8 @@ const SEASON = "2026-27";
 export class ScheduleComponent implements OnInit {
   private api = inject(ApiService);
   protected i18n = inject(I18nService);
+  protected auth = inject(AuthService);
+  private events = inject(EventsService);
 
   readonly loading = signal(true);
   readonly rounds = signal<number[]>([]);
@@ -25,6 +29,23 @@ export class ScheduleComponent implements OnInit {
   readonly games = signal<Game[]>([]);
   readonly teams = signal<Team[]>([]);
   readonly teamFilter = signal<string | null>(null);
+  readonly simulating = signal(false);
+
+  constructor() {
+    // Live score push: patch the matching game in place instead of
+    // refetching the whole round whenever a game-update event arrives.
+    effect(() => {
+      const update = this.events.lastGameUpdate();
+      if (!update) return;
+      this.games.update((list) =>
+        list.map((g) =>
+          g.id === update.gameId
+            ? { ...g, homeScore: update.homeScore, awayScore: update.awayScore, status: update.status }
+            : g
+        )
+      );
+    });
+  }
 
   readonly hasPrevRound = computed(() => {
     const r = this.currentRound();
@@ -111,5 +132,17 @@ export class ScheduleComponent implements OnInit {
   gameResult(game: Game): "home" | "away" | null {
     if (game.status !== "final") return null;
     return game.homeScore! > game.awayScore! ? "home" : "away";
+  }
+
+  // Admin-only testing tool: EuroLeague's real live feed has nothing to
+  // poll until the season starts, so this ticks a real scheduled game
+  // through live -> final on a compressed timeline to exercise the SSE
+  // push path end-to-end. See backend/src/realtime/liveScoreSimulator.ts.
+  simulateLiveGame(): void {
+    this.simulating.set(true);
+    this.api.simulateLiveGame().subscribe({
+      next: () => this.simulating.set(false),
+      error: () => this.simulating.set(false),
+    });
   }
 }

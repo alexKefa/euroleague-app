@@ -1,8 +1,9 @@
-import { Component, OnInit, HostListener, inject, signal, computed } from "@angular/core";
+import { Component, OnInit, HostListener, inject, signal, computed, effect } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ActivatedRoute, RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
+import { EventsService } from "../../core/events.service";
 import { GameDetail, PlayerDetail } from "../../core/models";
 
 @Component({
@@ -15,6 +16,7 @@ export class GameDetailComponent implements OnInit {
   private api = inject(ApiService);
   private route = inject(ActivatedRoute);
   protected i18n = inject(I18nService);
+  private events = inject(EventsService);
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
@@ -28,7 +30,13 @@ export class GameDetailComponent implements OnInit {
   readonly playerPreview = signal<PlayerDetail | null>(null);
   readonly playerPreviewLoading = signal(false);
 
+  // Player ids currently on a scoring streak, per the live-score simulator's
+  // heuristic (see realtime/liveScoreSimulator.ts) — used to badge them in
+  // the top performers / box score lists below while the game is live.
+  readonly onFireIds = signal<string[]>([]);
+
   readonly isFinal = computed(() => this.detail()?.game.status === "final");
+  readonly isLive = computed(() => this.detail()?.game.status === "live");
   // Whether "players to watch" / team comparison are drawn from a season
   // other than the game's own — happens for games in a season that hasn't
   // been played yet (see the fallback reasoning in backend/src/routes/games.ts).
@@ -36,6 +44,37 @@ export class GameDetailComponent implements OnInit {
     const d = this.detail();
     return !!d && d.statsSeason !== d.game.season;
   });
+
+  constructor() {
+    // Only track `lastGameUpdate()` here — reading `detail()` via its
+    // tracked getter and then writing back to it in the same effect would
+    // make the effect depend on its own output, so every write schedules
+    // another run (new object reference each time) with no way to settle.
+    // `.update()`'s read of the current value isn't tracked, so it's safe.
+    effect(() => {
+      const update = this.events.lastGameUpdate();
+      if (!update) return;
+
+      let isThisGame = false;
+      this.detail.update((current) => {
+        if (!current || update.gameId !== current.game.id) return current;
+        isThisGame = true;
+        return {
+          ...current,
+          game: { ...current.game, homeScore: update.homeScore, awayScore: update.awayScore, status: update.status },
+        };
+      });
+      if (!isThisGame) return;
+
+      this.onFireIds.set(update.onFireIds ?? []);
+      // The score/status patch above is instant; box score / top performers
+      // / double-doubles are DB-backed (the simulator writes them alongside
+      // the score on every tick — see games.ts), so re-fetch to pick those
+      // up too. This subscribe callback runs outside the effect's tracked
+      // scope, so setting `detail` here again doesn't re-trigger this effect.
+      this.api.getGame(update.gameId).subscribe({ next: (d) => this.detail.set(d) });
+    });
+  }
 
   ngOnInit(): void {
     const gameId = this.route.snapshot.paramMap.get("id");

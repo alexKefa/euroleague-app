@@ -18,6 +18,7 @@ import { collectiblesRouter } from "./routes/collectibles.js";
 import { spinRouter } from "./routes/spin.js";
 import { tradesRouter } from "./routes/trades.js";
 import { packsRouter } from "./routes/packs.js";
+import { eventsRouter } from "./routes/events.js";
 
 const app = express();
 const port = process.env.PORT ? Number(process.env.PORT) : 4000;
@@ -68,9 +69,7 @@ app.use("/api/collectibles", collectiblesRouter);
 app.use("/api/spin", spinRouter);
 app.use("/api/trades", tradesRouter);
 app.use("/api/packs", packsRouter);
-
-// Route modules get mounted here as they're built:
-// app.use("/api/notifications", notificationsRouter);
+app.use("/api/events", eventsRouter);
 
 // Serves the built Angular app (see ./Dockerfile) — absent in local dev,
 // where the frontend runs separately via `ng serve` on its own port.

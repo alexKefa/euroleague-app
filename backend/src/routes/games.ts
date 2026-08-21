@@ -261,7 +261,11 @@ gamesRouter.get("/:id", async (req, res) => {
     let topPerformers: GameBoxscoreLine[] = [];
     let doubleDoubles: GameBoxscoreLine[] = [];
 
-    if (game.status === "final") {
+    // Live games get the same box score computation as final ones — the
+    // live-score simulator (see realtime/liveScoreSimulator.ts) writes into
+    // player_game_stats on every tick, same table the real boxscore sync
+    // fills for completed games, so this naturally lights up mid-game too.
+    if (game.status === "final" || game.status === "live") {
       const lines = await db
         .select({ stat: playerGameStats, player: players })
         .from(playerGameStats)

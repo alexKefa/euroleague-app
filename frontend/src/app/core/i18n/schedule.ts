@@ -15,4 +15,9 @@ export const scheduleTranslations: Record<string, Record<Lang, string>> = {
     en: "No games scheduled for this round.",
     el: "Δεν έχουν προγραμματιστεί αγώνες για αυτόν τον γύρο.",
   },
+  "schedule.live": { en: "Live", el: "Ζωντανά" },
+  "schedule.simulateLiveAdmin": {
+    en: "Admin: simulate a live game",
+    el: "Διαχειριστής: προσομοίωση ζωντανού αγώνα",
+  },
 };

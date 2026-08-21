@@ -6,6 +6,7 @@ export const gameTranslations: Record<string, Record<Lang, string>> = {
   "game.vs": { en: "vs", el: "vs" },
   "game.topPerformers": { en: "Top Performers", el: "Κορυφαίες Εμφανίσεις" },
   "game.doubleDouble": { en: "double-double", el: "double-double" },
+  "game.onFire": { en: "On fire", el: "Στα κάγκελα" },
   "game.playersToWatch": { en: "Players to Watch", el: "Παίκτες να Προσέξεις" },
   "game.playersWhoStoodOut": { en: "Players Who Stood Out This Season", el: "Παίκτες που Ξεχώρισαν Φέτος" },
   "game.noStatsYet": { en: "No stats yet.", el: "Δεν υπάρχουν στατιστικά ακόμα." },
