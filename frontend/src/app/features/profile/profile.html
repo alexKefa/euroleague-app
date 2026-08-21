@@ -47,7 +47,7 @@
             [style.borderColor]="user.favoriteTeamId === team.id ? team.primaryColor : 'transparent'"
           >
             @if (team.logoUrl) {
-              <img [src]="team.logoUrl" [alt]="team.name" class="w-5 h-5 object-contain shrink-0" />
+              <img [src]="team.logoUrl" [alt]="team.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0" />
             } @else {
               <span class="w-5 h-5 rounded-full shrink-0" [style.background]="team.primaryColor"></span>
             }

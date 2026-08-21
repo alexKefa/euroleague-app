@@ -6,6 +6,7 @@ import { I18nService } from "../../core/i18n.service";
 import { EventsService } from "../../core/events.service";
 import { GameDetail, GameBoxscoreLine, PlayerDetail } from "../../core/models";
 import { NavIconComponent } from "../../shared/nav-icon";
+import { RetryImgDirective } from "../../shared/retry-img.directive";
 
 interface TeamTotals {
   points: number;
@@ -37,7 +38,7 @@ function totalsFor(lines: GameBoxscoreLine[]): TeamTotals {
 @Component({
   selector: "app-game-detail",
   standalone: true,
-  imports: [CommonModule, RouterLink, NavIconComponent],
+  imports: [CommonModule, RouterLink, NavIconComponent, RetryImgDirective],
   templateUrl: "./game-detail.html",
 })
 export class GameDetailComponent implements OnInit {

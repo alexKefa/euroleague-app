@@ -9,11 +9,20 @@ import { CollectibleCardComponent } from "../store/collectible-card";
 import { CardPreviewComponent } from "../store/card-preview";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { PageHintComponent } from "../../shared/page-hint";
+import { RetryImgDirective } from "../../shared/retry-img.directive";
 
 @Component({
   selector: "app-inventory",
   standalone: true,
-  imports: [CommonModule, RouterLink, CollectibleCardComponent, CardPreviewComponent, NavIconComponent, PageHintComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    CollectibleCardComponent,
+    CardPreviewComponent,
+    NavIconComponent,
+    PageHintComponent,
+    RetryImgDirective,
+  ],
   templateUrl: "./inventory.html",
 })
 export class InventoryComponent implements OnInit {

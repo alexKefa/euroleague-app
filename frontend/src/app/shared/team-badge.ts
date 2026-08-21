@@ -1,4 +1,5 @@
 import { Component, Input } from "@angular/core";
+import { RetryImgDirective } from "./retry-img.directive";
 
 // Small logo + three-letter code, used anywhere a bare team code (PAN, OLY,
 // ...) would otherwise stand alone — falls back to code-only if the team
@@ -6,10 +7,11 @@ import { Component, Input } from "@angular/core";
 @Component({
   selector: "app-team-badge",
   standalone: true,
+  imports: [RetryImgDirective],
   template: `
     <span class="inline-flex items-center gap-1.5">
       @if (logoUrl) {
-        <img [src]="logoUrl" [alt]="code" class="h-5 w-5 object-contain shrink-0" />
+        <img [src]="logoUrl" [alt]="code" loading="lazy" decoding="async" appRetryImg class="h-5 w-5 object-contain shrink-0" />
       }
       <span>{{ code }}</span>
     </span>

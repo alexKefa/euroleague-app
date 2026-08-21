@@ -5,11 +5,12 @@ import { ApiService } from "../../core/api.service";
 import { ThemeService } from "../../core/theme.service";
 import { I18nService } from "../../core/i18n.service";
 import { PlayerDetail } from "../../core/models";
+import { RetryImgDirective } from "../../shared/retry-img.directive";
 
 @Component({
   selector: "app-player-detail",
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, RetryImgDirective],
   templateUrl: "./player-detail.html",
 })
 export class PlayerDetailComponent implements OnInit {

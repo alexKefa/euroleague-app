@@ -26,6 +26,9 @@
             <img
               [src]="article.imageUrl"
               [alt]="article.title"
+              loading="lazy"
+              decoding="async"
+              appRetryImg
               class="w-20 h-20 rounded-md object-cover shrink-0"
             />
           }

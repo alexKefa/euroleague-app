@@ -37,6 +37,9 @@
           <img
             [src]="d.player.photoUrl"
             [alt]="d.player.name"
+            loading="lazy"
+            decoding="async"
+            appRetryImg
             class="w-20 h-20 rounded-full object-cover shrink-0 bg-white/10"
           />
         } @else {

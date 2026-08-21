@@ -7,11 +7,12 @@ import { I18nService } from "../../core/i18n.service";
 import { Collectible, CollectibleTier } from "../../core/models";
 import { CollectibleCardComponent } from "./collectible-card";
 import { CardPreviewComponent } from "./card-preview";
+import { RetryImgDirective } from "../../shared/retry-img.directive";
 
 @Component({
   selector: "app-store",
   standalone: true,
-  imports: [CommonModule, RouterLink, CollectibleCardComponent, CardPreviewComponent],
+  imports: [CommonModule, RouterLink, CollectibleCardComponent, CardPreviewComponent, RetryImgDirective],
   templateUrl: "./store.html",
 })
 export class StoreComponent implements OnInit {

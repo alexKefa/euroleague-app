@@ -22,7 +22,7 @@
         <p class="font-mono text-[12px] font-bold opacity-65 mb-2">{{ i18n.t('dashboard.yourTeam') }}</p>
         <a [routerLink]="['/teams', row.team.id]" class="flex items-center gap-3 w-fit group">
           @if (row.team.logoUrl) {
-            <img [src]="row.team.logoUrl" [alt]="row.team.name" class="w-10 h-10 object-contain" />
+            <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-10 h-10 object-contain" />
           } @else {
             <span
               class="w-10 h-10 rounded-lg flex items-center justify-center font-display text-sm bg-white/15"
@@ -207,7 +207,7 @@
               <span class="flex items-center gap-2 min-w-0">
                 <span class="font-mono text-muted w-4 shrink-0 text-right">{{ row.position }}</span>
                 @if (row.team.logoUrl) {
-                  <img [src]="row.team.logoUrl" [alt]="row.team.name" class="w-5 h-5 object-contain shrink-0" />
+                  <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0" />
                 } @else {
                   <span
                     class="w-5 h-5 rounded-full shrink-0"

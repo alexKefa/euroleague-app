@@ -3,11 +3,12 @@ import { CommonModule } from "@angular/common";
 import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
 import { NewsArticle } from "../../core/models";
+import { RetryImgDirective } from "../../shared/retry-img.directive";
 
 @Component({
   selector: "app-news",
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RetryImgDirective],
   templateUrl: "./news.html",
 })
 export class NewsComponent implements OnInit {

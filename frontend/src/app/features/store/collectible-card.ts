@@ -1,6 +1,7 @@
 import { Component, Input } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { CollectibleTier } from "../../core/models";
+import { RetryImgDirective } from "../../shared/retry-img.directive";
 
 type HoloVariant = "gold" | "silver" | null;
 
@@ -29,7 +30,7 @@ const DEFAULT_TEAM_COLOR = "#3E7CB1";
 @Component({
   selector: "app-collectible-card",
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RetryImgDirective],
   templateUrl: "./collectible-card.html",
   styleUrl: "./collectible-card.css",
 })

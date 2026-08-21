@@ -80,7 +80,7 @@
       @if (filterTeams().length > 1) {
         <div class="relative">
           @if (selectedTeamLogo(); as logo) {
-            <img [src]="logo" alt="" class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 object-contain" />
+            <img [src]="logo" alt="" loading="lazy" decoding="async" appRetryImg class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 object-contain" />
           }
           <select
             [value]="teamFilter() ?? ''"

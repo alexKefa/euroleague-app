@@ -6,6 +6,7 @@ import { I18nService } from "../../core/i18n.service";
 import { AuthService } from "../../core/auth.service";
 import { EventsService } from "../../core/events.service";
 import { Game, Team } from "../../core/models";
+import { RetryImgDirective } from "../../shared/retry-img.directive";
 
 // The user asked specifically for the 2026-27 schedule — no season picker,
 // just round + team filters within that season.
@@ -14,7 +15,7 @@ const SEASON = "2026-27";
 @Component({
   selector: "app-schedule",
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, RetryImgDirective],
   templateUrl: "./schedule.html",
 })
 export class ScheduleComponent implements OnInit {

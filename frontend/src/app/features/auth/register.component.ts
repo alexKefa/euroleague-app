@@ -6,11 +6,12 @@ import { AuthService } from "../../core/auth.service";
 import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
 import { Team } from "../../core/models";
+import { RetryImgDirective } from "../../shared/retry-img.directive";
 
 @Component({
   selector: "app-register",
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, RetryImgDirective],
   templateUrl: "./register.component.html",
 })
 export class RegisterComponent implements OnInit {
