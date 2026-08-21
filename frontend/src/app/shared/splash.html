@@ -2,79 +2,12 @@
   class="splash-root fixed inset-0 z-[100] flex flex-col items-center justify-center bg-page transition-opacity duration-[400ms]"
   [class.opacity-0]="hiding"
 >
-  <div class="splash-scene relative" style="width: 220px; height: 190px">
-    <!-- Shot clock — hits 0:00 right as the ball reaches the rim -->
-    <div
-      class="shot-clock absolute top-0 right-0 font-mono text-sm font-bold text-highlight px-1.5 py-0.5 rounded border border-line bg-card"
-      [class.buzzer]="countdown() === 0"
-    >
-      0:0{{ countdown() }}
-    </div>
-
-    <!-- Net back layer: rim + vertical strands — behind the ball throughout -->
-    <svg
-      class="net-graphic net-back absolute top-0 left-1/2 -translate-x-1/2"
-      viewBox="0 0 240 150"
-      width="200"
-      height="125"
-    >
-      <g class="net-strands" stroke="var(--color-ink)" stroke-width="1.5" opacity="0.8">
-        <line x1="62" y1="42" x2="95" y2="140" />
-        <line x1="75" y1="42" x2="102" y2="140" />
-        <line x1="88" y1="42" x2="109" y2="140" />
-        <line x1="101" y1="42" x2="115" y2="140" />
-        <line x1="114" y1="42" x2="121" y2="140" />
-        <line x1="127" y1="42" x2="127" y2="140" />
-        <line x1="140" y1="42" x2="133" y2="140" />
-        <line x1="153" y1="42" x2="139" y2="140" />
-        <line x1="166" y1="42" x2="146" y2="140" />
-        <line x1="178" y1="42" x2="153" y2="140" />
-      </g>
-      <ellipse cx="120" cy="40" rx="60" ry="9" fill="none" stroke="#FF6B35" stroke-width="5" />
+  <div class="flex flex-col items-center gap-4">
+    <svg width="88" height="88" viewBox="0 0 24 24" fill="none">
+      <rect class="bar bar-1" x="4" y="13" width="5" height="8" rx="1.3" fill="#FF6B35" opacity="0.5" />
+      <rect class="bar bar-2" x="10.5" y="6.5" width="5" height="14.5" rx="1.3" fill="#FF6B35" />
+      <rect class="bar bar-3" x="17" y="10" width="5" height="11" rx="1.3" fill="#FF6B35" opacity="0.75" />
     </svg>
-
-    <!-- Falling ball -->
-    <div class="ball-fall absolute top-0 left-1/2" style="margin-left: -24px">
-      <svg width="48" height="48" viewBox="0 0 48 48">
-        <circle cx="24" cy="24" r="21" fill="#E8792A" stroke="#1A1006" stroke-width="2" />
-        <path d="M4 24 Q24 5 44 24" fill="none" stroke="#1A1006" stroke-width="1.8" />
-        <path d="M4 24 Q24 43 44 24" fill="none" stroke="#1A1006" stroke-width="1.8" />
-        <line x1="24" y1="3" x2="24" y2="45" stroke="#1A1006" stroke-width="1.8" />
-      </svg>
-    </div>
-
-    <!-- Net front layer: the woven cross-strands the ball's path actually
-         crosses — in front of the ball, so it visually threads between the
-         two layers instead of sliding over the whole net. Same viewBox/
-         position/animations as the back layer so they read as one net. -->
-    <svg
-      class="net-graphic net-front absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none"
-      viewBox="0 0 240 150"
-      width="200"
-      height="125"
-    >
-      <g class="net-strands" stroke="var(--color-ink)" stroke-width="1.5" opacity="0.85">
-        <path d="M 68 68 Q 120 78 172 68" fill="none" />
-        <path d="M 78 98 Q 120 106 162 98" fill="none" />
-        <path d="M 88 124 Q 120 130 152 124" fill="none" />
-      </g>
-    </svg>
-
-    <!-- Final lockup: the app's real logo mark (Split Score — same three
-         bars as the top nav) + wordmark + seam-curve underline, pops in
-         as the falling ball fades out. -->
-    <div class="lockup absolute left-1/2 flex flex-col items-center gap-1.5" style="top: 140px">
-      <div class="flex items-center gap-2 font-display text-3xl tracking-wide whitespace-nowrap">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-          <rect x="4" y="13" width="5" height="8" rx="1.3" fill="#FF6B35" opacity="0.5" />
-          <rect x="10.5" y="6.5" width="5" height="14.5" rx="1.3" fill="#FF6B35" />
-          <rect x="17" y="10" width="5" height="11" rx="1.3" fill="#FF6B35" opacity="0.75" />
-        </svg>
-        <span style="color: var(--color-ink)">Clutch</span>
-      </div>
-      <svg width="90" height="10" viewBox="0 0 140 14">
-        <path d="M4 4 Q70 18 136 4" fill="none" stroke="#FF6B35" stroke-width="2.5" stroke-linecap="round" />
-      </svg>
-    </div>
+    <p class="wordmark font-display text-3xl tracking-wide" style="color: var(--color-ink)">Clutch</p>
   </div>
 </div>

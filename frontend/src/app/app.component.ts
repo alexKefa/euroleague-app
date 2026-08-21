@@ -10,10 +10,10 @@ import { SplashComponent } from "./shared/splash";
 import { ButtonDirective } from "./shared/button.directive";
 import { TourOverlayComponent } from "./shared/tour-overlay";
 
-// Matches the ball-fall/wordmark-in animation duration in splash.css —
-// the fade-out starts once the animation has actually finished playing,
-// not on some unrelated timer.
-const SPLASH_DURATION_MS = 1600;
+// Covers splash.css's bar-rise/wordmark-in animation (finishes ~950ms)
+// plus a short hold — the fade-out starts once the mark has actually
+// settled, not on some unrelated timer.
+const SPLASH_DURATION_MS = 1200;
 const SPLASH_FADE_MS = 400;
 
 // The PWA service worker (added, then pulled 2026-08-21 — see project
