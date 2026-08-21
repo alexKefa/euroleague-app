@@ -16,7 +16,7 @@ export const dashboardTranslations: Record<string, Record<Lang, string>> = {
   "dashboard.yourTeamSchedule": { en: "Your Team's Schedule", el: "Πρόγραμμα Ομάδας" },
   "dashboard.standings": { en: "Standings", el: "Βαθμολογία" },
 
-  "dashboard.pointsHintPrefix": { en: "Earn points by making correct predictions on", el: "Κέρδισε πόντους με σωστά προγνωστικά στα" },
+  "dashboard.pointsHintPrefix": { en: "Earn points by making correct predictions on", el: "Κέρδισε πόντους με σωστές προβλέψεις στα" },
   "dashboard.pointsHintMiddle": { en: ", then spend them on", el: ", και μετά εξαργύρωσέ τους σε" },
   "dashboard.pointsHintSuffix": {
     en: "for a shot at rare and legendary cards — or try the free daily",

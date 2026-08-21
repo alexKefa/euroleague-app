@@ -8,10 +8,10 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
     en: "Tap your pick again to remove it.",
     el: "Πάτησε ξανά την επιλογή σου για να την αφαιρέσεις.",
   },
-  "predictions.myPicks": { en: "My picks", el: "Οι προγνώσεις μου" },
+  "predictions.myPicks": { en: "My picks", el: "Οι προβλέψεις μου" },
   "predictions.loginPromptSuffix": {
     en: "to make predictions and track your accuracy.",
-    el: "για να κάνεις προγνωστικά και να παρακολουθείς την ακρίβειά σου.",
+    el: "για να κάνεις προβλέψεις και να παρακολουθείς την ακρίβειά σου.",
   },
   "predictions.perfectRoundPrefix": { en: "Perfect round! You won", el: "Τέλειος γύρος! Κέρδισες" },
   "predictions.perfectRoundSuffix": { en: "— check your", el: "— δες τη" },
@@ -24,17 +24,17 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
   "predictions.wrong": { en: "Wrong", el: "Λάθος" },
   "predictions.noPredictionsYet": {
     en: "No predictions yet — pick a winner from any team's upcoming games list.",
-    el: "Δεν υπάρχουν προγνωστικά ακόμα — διάλεξε νικητή από τη λίστα επερχόμενων αγώνων μιας ομάδας.",
+    el: "Δεν υπάρχουν προβλέψεις ακόμα — διάλεξε νικητή από τη λίστα επερχόμενων αγώνων μιας ομάδας.",
   },
   "predictions.leaderboard": { en: "Leaderboard", el: "Κατάταξη" },
   "predictions.noResolvedYet": {
     en: "No resolved predictions yet.",
-    el: "Δεν υπάρχουν ολοκληρωμένα προγνωστικά ακόμα.",
+    el: "Δεν υπάρχουν ολοκληρωμένες προβλέψεις ακόμα.",
   },
 
   "predictions.hint": {
     en: "Pick a winner before tip-off. Each correct call earns 10 points, and a perfect round unlocks badges plus a bonus card.",
-    el: "Διάλεξε νικητή πριν το τζάμπολ. Κάθε σωστή πρόγνωση φέρνει 10 πόντους, και ένας τέλειος γύρος ξεκλειδώνει μετάλλια και μια δωρεάν κάρτα.",
+    el: "Διάλεξε νικητή πριν το τζάμπολ. Κάθε σωστή πρόβλεψη φέρνει 10 πόντους, και ένας τέλειος γύρος ξεκλειδώνει μετάλλια και μια δωρεάν κάρτα.",
   },
 
   // Badge legend — a tap-to-open key explaining every badge glyph (locked
@@ -43,29 +43,29 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
   // BADGES array; keep the two in sync if a badge rule ever changes.
   "predictions.whatDoTheseMean": { en: "What do these mean?", el: "Τι σημαίνουν αυτά;" },
   "predictions.hideBadgeLegend": { en: "Hide", el: "Απόκρυψη" },
-  "predictions.badge.first-call.label": { en: "First Call", el: "Πρώτη Πρόγνωση" },
+  "predictions.badge.first-call.label": { en: "First Call", el: "Πρώτη Πρόβλεψη" },
   "predictions.badge.first-call.description": {
     en: "Made your first prediction.",
-    el: "Έκανες την πρώτη σου πρόγνωση.",
+    el: "Έκανες την πρώτη σου πρόβλεψη.",
   },
   "predictions.badge.on-a-roll.label": { en: "On a Roll", el: "Σερί Νικών" },
   "predictions.badge.on-a-roll.description": {
     en: "5 correct predictions in a row.",
-    el: "5 σωστές προγνώσεις στη σειρά.",
+    el: "5 σωστές προβλέψεις στη σειρά.",
   },
   "predictions.badge.perfect-round.label": { en: "Perfect Round", el: "Τέλειος Γύρος" },
   "predictions.badge.perfect-round.description": {
     en: "Got every prediction right in a single round.",
-    el: "Πέτυχες όλες τις προγνώσεις σου σε έναν γύρο.",
+    el: "Πέτυχες όλες τις προβλέψεις σου σε έναν γύρο.",
   },
   "predictions.badge.century.label": { en: "Century", el: "Εκατοντάδα" },
   "predictions.badge.century.description": {
     en: "Earned 100+ points from predictions.",
-    el: "Κέρδισες 100+ πόντους από προγνωστικά.",
+    el: "Κέρδισες 100+ πόντους από προβλέψεις.",
   },
   "predictions.badge.sharpshooter.label": { en: "Sharpshooter", el: "Σκοπευτής" },
   "predictions.badge.sharpshooter.description": {
     en: "75%+ accuracy across at least 10 resolved predictions.",
-    el: "75%+ ακρίβεια σε τουλάχιστον 10 ολοκληρωμένες προγνώσεις.",
+    el: "75%+ ακρίβεια σε τουλάχιστον 10 ολοκληρωμένες προβλέψεις.",
   },
 };

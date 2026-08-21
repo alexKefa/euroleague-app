@@ -5,7 +5,7 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
   "nav.home": { en: "Home", el: "Αρχική" },
   "nav.news": { en: "News", el: "Νέα" },
   "nav.schedule": { en: "Schedule", el: "Πρόγραμμα" },
-  "nav.picks": { en: "Picks", el: "Προγνωστικά" },
+  "nav.picks": { en: "Picks", el: "Προβλέψεις" },
   "nav.cards": { en: "Cards", el: "Κάρτες" },
   "nav.profile": { en: "Profile", el: "Προφίλ" },
   "nav.login": { en: "Log in", el: "Σύνδεση" },

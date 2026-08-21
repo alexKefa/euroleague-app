@@ -147,34 +147,17 @@
                   @if (mySummary()!.badges.length === 0) {
                     <span class="font-mono text-[12px] text-muted">{{ i18n.t('predictions.noBadgesYet') }}</span>
                   }
-                  <button
-                    type="button"
-                    (click)="showBadgeLegend.set(!showBadgeLegend())"
-                    [attr.aria-label]="i18n.t('predictions.whatDoTheseMean')"
-                    class="shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-colors"
-                    [class.text-highlight]="showBadgeLegend()"
-                    [class.text-muted]="!showBadgeLegend()"
-                  >
-                    <app-nav-icon name="tip" [size]="16" />
-                  </button>
                 </div>
               </div>
 
-              @if (showBadgeLegend()) {
-                <div class="mt-3 pt-3 border-t border-line space-y-2.5 reveal-pop">
-                  @for (b of badgeCatalog; track b.id) {
-                    <div class="flex items-start gap-2.5">
-                      <span class="shrink-0 mt-0.5" [class.text-highlight]="isEarned(b.id)" [class.text-muted]="!isEarned(b.id)" [class.opacity-40]="!isEarned(b.id)">
-                        <app-nav-icon [name]="b.icon" [size]="18" />
-                      </span>
-                      <div class="min-w-0">
-                        <p class="font-mono text-[12px] font-bold" [class.text-muted]="!isEarned(b.id)">{{ badgeLabel(b.id) }}</p>
-                        <p class="text-xs text-muted">{{ badgeDescription(b.id) }}</p>
-                      </div>
-                    </div>
-                  }
-                </div>
-              }
+              <button
+                type="button"
+                (click)="showBadgeLegend.set(true)"
+                class="w-full mt-2.5 flex items-center justify-center gap-1.5 py-1.5 rounded-md bg-page text-muted hover:text-highlight transition-colors"
+              >
+                <app-nav-icon name="tip" [size]="14" />
+                <span class="font-mono text-[11px] font-bold">{{ i18n.t('predictions.whatDoTheseMean') }}</span>
+              </button>
             </div>
           }
 
@@ -233,3 +216,41 @@
     </div>
   }
 </div>
+
+@if (showBadgeLegend()) {
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm"
+    (click)="showBadgeLegend.set(false)"
+  >
+    <button
+      type="button"
+      (click)="showBadgeLegend.set(false)"
+      class="absolute top-4 right-4 text-white/80 hover:text-white text-3xl leading-none font-bold"
+      [attr.aria-label]="i18n.t('predictions.hideBadgeLegend')"
+    >
+      &times;
+    </button>
+
+    <div class="w-full max-w-sm bg-card rounded-2xl shadow-pop p-5" (click)="$event.stopPropagation()">
+      <p class="font-display text-lg tracking-wide mb-4">{{ i18n.t('predictions.whatDoTheseMean') }}</p>
+      <div class="space-y-3">
+        @for (b of badgeCatalog; track b.id) {
+          <div class="flex items-start gap-2.5">
+            <span
+              class="shrink-0 mt-0.5"
+              [class.text-highlight]="isEarned(b.id)"
+              [class.text-muted]="!isEarned(b.id)"
+              [class.opacity-40]="!isEarned(b.id)"
+            >
+              <app-nav-icon [name]="b.icon" [size]="20" />
+            </span>
+            <div class="min-w-0">
+              <p class="font-mono text-[12px] font-bold" [class.text-muted]="!isEarned(b.id)">{{ badgeLabel(b.id) }}</p>
+              <p class="text-xs text-muted">{{ badgeDescription(b.id) }}</p>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}

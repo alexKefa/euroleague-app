@@ -41,7 +41,6 @@ const BADGE_CATALOG: { id: string; icon: NavIconName }[] = [
   standalone: true,
   imports: [CommonModule, RouterLink, TeamBadgeComponent, PageHintComponent, NavIconComponent],
   templateUrl: "./predictions.html",
-  styleUrl: "./predictions.css",
 })
 export class PredictionsComponent implements OnInit {
   private api = inject(ApiService);
