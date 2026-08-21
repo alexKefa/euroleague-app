@@ -90,6 +90,7 @@
 
 <!-- Bottom tab nav — mobile only, primary nav within thumb reach -->
 <nav
+  data-app-bottom-nav
   class="sm:hidden fixed bottom-0 inset-x-0 bg-card border-t border-line flex justify-around items-center pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-40"
 >
   @for (link of navLinks; track link.path) {
@@ -140,3 +141,5 @@
     </a>
   }
 </nav>
+
+<app-tour-overlay></app-tour-overlay>

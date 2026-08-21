@@ -8,6 +8,8 @@ import { I18nService } from "../../core/i18n.service";
 import { StandingsRow, LeaderEntry, RoundMvp, NewsArticle, Game } from "../../core/models";
 import { PageHintComponent } from "../../shared/page-hint";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
+import { NavIconComponent } from "../../shared/nav-icon";
+import { TourService } from "../../core/tour/tour.service";
 
 const LEADER_CATEGORIES = [
   { value: "points", label: "PTS" },
@@ -23,7 +25,7 @@ type LeaderCategory = (typeof LEADER_CATEGORIES)[number]["value"];
 @Component({
   selector: "app-dashboard",
   standalone: true,
-  imports: [CommonModule, RouterLink, PageHintComponent, RetryImgDirective],
+  imports: [CommonModule, RouterLink, PageHintComponent, RetryImgDirective, NavIconComponent],
   templateUrl: "./dashboard.component.html",
 })
 export class DashboardComponent implements OnInit {
@@ -31,6 +33,7 @@ export class DashboardComponent implements OnInit {
   private theme = inject(ThemeService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
+  protected tour = inject(TourService);
 
   readonly standings = signal<StandingsRow[]>([]);
   readonly loading = signal(true);

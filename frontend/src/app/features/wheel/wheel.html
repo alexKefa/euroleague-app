@@ -24,7 +24,7 @@
 
   @if (!loading() && auth.isAuthenticated()) {
     @if (spinning() || lastWonPack() === undefined) {
-      <div class="relative w-48 h-48 mx-auto mb-6">
+      <div data-tour="wheel-spin" class="relative w-48 h-48 mx-auto mb-6">
         <div
           class="absolute -top-1 left-1/2 -translate-x-1/2 z-10 w-0 h-0 border-l-[9px] border-l-transparent border-r-[9px] border-r-transparent border-t-[15px] border-t-highlight"
         ></div>

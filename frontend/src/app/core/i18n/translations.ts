@@ -11,6 +11,7 @@ import { storeTranslations } from "./store";
 import { tradesTranslations } from "./trades";
 import { inventoryTranslations } from "./inventory";
 import { rosterTranslations } from "./roster";
+import { tourTranslations } from "./tour";
 
 export type { Lang };
 
@@ -31,4 +32,5 @@ export const translations: Record<string, Record<Lang, string>> = {
   ...tradesTranslations,
   ...inventoryTranslations,
   ...rosterTranslations,
+  ...tourTranslations,
 };

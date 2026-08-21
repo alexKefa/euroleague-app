@@ -1,0 +1,24 @@
+# Reinstalled fresh inside the Docker build (see Dockerfile) — including
+# these in the upload context just bloats it for no reason. Without this
+# file, `railway up`'s indexing step was hashing 30k+ node_modules files
+# (~430MB across root/frontend/backend) plus .git on every deploy.
+node_modules
+frontend/node_modules
+backend/node_modules
+
+# Build output — regenerated in the container.
+frontend/dist
+frontend/.angular
+backend/dist
+backend/public
+
+.git
+.claude
+.agents
+
+.env
+.env.local
+*.env
+
+.DS_Store
+npm-debug.log*

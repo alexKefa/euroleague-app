@@ -1,0 +1,64 @@
+export interface TourStep {
+  // Omitted = stay on whatever route the tour was started from (used by the
+  // welcome/closing steps, which aren't tied to any one page).
+  route?: string;
+  // data-tour attribute selector for the element to spotlight. Omitted =
+  // a centered step with no spotlight (welcome/closing, or intentionally
+  // page-level). If the selector isn't found on screen within a few hundred
+  // ms (guest/loading/empty states), TourService falls back to a centered
+  // step automatically rather than getting stuck.
+  selector?: string;
+  titleKey: string;
+  bodyKey: string;
+}
+
+export const TOUR_STEPS: TourStep[] = [
+  { titleKey: "tour.step.welcome.title", bodyKey: "tour.step.welcome.body" },
+  {
+    route: "/predictions",
+    selector: "[data-tour='predictions-picks']",
+    titleKey: "tour.step.predictions.title",
+    bodyKey: "tour.step.predictions.body",
+  },
+  {
+    route: "/inventory",
+    selector: "[data-tour='cards-hub']",
+    titleKey: "tour.step.cards.title",
+    bodyKey: "tour.step.cards.body",
+  },
+  {
+    // The catalog page, not My Cards — always has the full set of
+    // collectibles on display (locked and unlocked) regardless of what a
+    // fresh demo account actually owns, unlike Inventory's grid which is
+    // empty until the first card is earned.
+    route: "/store",
+    selector: "[data-tour='store-cards']",
+    titleKey: "tour.step.storeCards.title",
+    bodyKey: "tour.step.storeCards.body",
+  },
+  {
+    route: "/wheel",
+    selector: "[data-tour='wheel-spin']",
+    titleKey: "tour.step.wheel.title",
+    bodyKey: "tour.step.wheel.body",
+  },
+  {
+    route: "/packs",
+    selector: "[data-tour='packs-grid']",
+    titleKey: "tour.step.packs.title",
+    bodyKey: "tour.step.packs.body",
+  },
+  {
+    route: "/trades",
+    selector: "[data-tour='trades-marketplace']",
+    titleKey: "tour.step.trades.title",
+    bodyKey: "tour.step.trades.body",
+  },
+  {
+    route: "/profile",
+    selector: "[data-tour='profile-referral']",
+    titleKey: "tour.step.profile.title",
+    bodyKey: "tour.step.profile.body",
+  },
+  { titleKey: "tour.step.done.title", bodyKey: "tour.step.done.body" },
+];
