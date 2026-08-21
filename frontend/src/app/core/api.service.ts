@@ -92,12 +92,6 @@ export class ApiService {
     return this.http.post<{ running: boolean }>(`${API_BASE_URL}/events/simulate/complete`, {});
   }
 
-  getUpcomingGames(limit = 10): Observable<Game[]> {
-    return this.http.get<Game[]>(`${API_BASE_URL}/games`, {
-      params: { status: "scheduled", limit },
-    });
-  }
-
   submitPrediction(gameId: string, teamId: string): Observable<unknown> {
     return this.http.post(`${API_BASE_URL}/predictions`, { gameId, teamId });
   }

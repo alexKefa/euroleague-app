@@ -8,6 +8,10 @@ import { Prediction, LeaderboardEntry, PredictionSummary, Game } from "../../cor
 import { TeamBadgeComponent } from "../../shared/team-badge";
 import { PageHintComponent } from "../../shared/page-hint";
 
+// Matches schedule.ts — no season picker here either, and predictions
+// should only ever be open for the round a user could actually be watching.
+const SEASON = "2026-27";
+
 // Emoji glyphs for known badge ids — purely a display concern, the backend
 // only sends id/label/description. Unrecognized ids fall back to a medal.
 const BADGE_ICONS: Record<string, string> = {
@@ -52,8 +56,12 @@ export class PredictionsComponent implements OnInit {
       error: () => {},
     });
 
-    this.api.getUpcomingGames().subscribe({
-      next: (rows) => this.upcomingGames.set(rows),
+    // The current round (backend picks the first round that isn't entirely
+    // final yet, same as /schedule) rather than a flat "next 10 scheduled
+    // games" — otherwise picks could leak in from a round that hasn't
+    // opened yet, or the list could run out mid-round.
+    this.api.getSchedule(SEASON).subscribe({
+      next: (schedule) => this.upcomingGames.set(schedule.games.filter((g) => g.status === "scheduled")),
       error: () => {}, // non-critical
     });
 
