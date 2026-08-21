@@ -5,9 +5,27 @@
   <title>Clutch</title>
   <base href="/"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <meta name="description" content="EuroLeague stats, predictions, and cards for your favorite team."/>
   <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
+  <link rel="icon" type="image/png" sizes="96x96" href="icons/icon-96x96.png"/>
   <meta name="theme-color" content="#0b1220"/>
   <link rel="apple-touch-icon" href="icons/icon-192x192.png"/>
+
+  <!-- Link-preview metadata — without these, sharing the URL fell back to
+       whatever a platform's crawler could scrape on its own (nothing
+       useful), which is what showed the framework's default icon instead
+       of the app's. -->
+  <meta property="og:type" content="website"/>
+  <meta property="og:title" content="Clutch"/>
+  <meta property="og:description" content="EuroLeague stats, predictions, and cards for your favorite team."/>
+  <meta property="og:url" content="https://clutchapp.up.railway.app"/>
+  <meta property="og:image" content="https://clutchapp.up.railway.app/og-image.png"/>
+  <meta property="og:image:width" content="1200"/>
+  <meta property="og:image:height" content="630"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:title" content="Clutch"/>
+  <meta name="twitter:description" content="EuroLeague stats, predictions, and cards for your favorite team."/>
+  <meta name="twitter:image" content="https://clutchapp.up.railway.app/og-image.png"/>
   <script>
     // Stamp the saved color scheme before Angular even loads, so a
     // returning visitor who chose light doesn't see a flash of the dark
