@@ -105,14 +105,27 @@ If you need to apply a schema change without an interactive terminal
   `tradeOffers`/`tradeOfferItems` in `schema.ts`; routes in `collectibles.ts`,
   `spin.ts`, `packs.ts`, `trades.ts`). Ownership is always just a row in
   `userCollectibles` — there's no separate "balance" table for cards, same
-  spirit as points. Three ways to earn a card: the daily Jump Ball wheel
-  (`spin.ts`, one free roll/24h, common/rare/legendary odds, admin-only
-  `POST /spin/cheat` bypasses the cooldown for testing), points-priced packs
-  (`packs.ts`, tiered odds per pack type, writes are batched into two
+  spirit as points. Three ways to earn a card: the daily Jump Ball wheel,
+  points-priced packs, or a perfect prediction round (`services/cards.ts`).
+  Points-priced packs (`packs.ts`, `services/packs.ts`) come in three
+  purchasable tiers (starter/pro/elite, tiered odds, writes batched into two
   multi-row inserts rather than one per rolled card — that was a real
-  latency problem against the remote DB), or a perfect prediction round
-  (`services/cards.ts`). Trades (`trades.ts`) are an opt-in marketplace,
-  many-for-one offers, scoped to cards both sides actually own.
+  latency problem against the remote DB) plus three wheel-exclusive,
+  single-slot, free ones (`wheelStarter`/`wheelPro`/`wheelLegendary`,
+  `purchasable: false` — `GET /packs` and `POST /packs/:type/open` both
+  exclude them, so the only way to open one is through a spin). The wheel
+  (`spin.ts`, one free roll/24h, admin-only `POST /spin/cheat` bypasses the
+  cooldown for testing) picks which of those three to open with the same
+  65/25/10 odds it always used, then opens it through the same
+  `rollPack()`/`packOpenings` path a purchase uses — so a spin can land on
+  an already-owned card now (previously impossible), sellable via the same
+  `POST /packs/results/:id/sell` a purchased pack's duplicate uses.
+  Registration grants a 100-point welcome bonus (`auth.ts`, exactly a
+  starter pack's cost) — badge eligibility (`predictions.ts`'s "Century")
+  deliberately excludes `pointAdjustments` like this one, only counting
+  prediction-earned points, so a badge can't be bought or gifted. Trades
+  (`trades.ts`) are an opt-in marketplace, many-for-one offers, scoped to
+  cards both sides actually own.
 - `helmet()` + `express-rate-limit` are on by default (`index.ts`).
   `app.set('trust proxy', 1)` is set right after the app is created — without
   it, express-rate-limit sees Railway's proxy-added `X-Forwarded-For` header
