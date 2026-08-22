@@ -44,7 +44,19 @@ export const PACKS: Record<PackType, PackDefinition> = {
     type: "starter",
     label: "Regular Season Pack",
     pointsCost: 100,
-    slots: [{ odds: { common: 1 } }, { odds: { common: 1 } }, { odds: { common: 0.4, rare: 0.6 } }],
+    // Third slot deliberately common-heavy (was 40/60 common/rare — found
+    // via simulation to be a real infinite-money exploit: two GUARANTEED
+    // common slots already sell back 25pts each once a player owns
+    // everything, so a 60%-weighted chance at a rare's 125pt sellback
+    // pushed this pack's expected sellback to 135pts against its 100pt
+    // cost — positive EV forever, once both tiers are fully owned. 100pts
+    // is pinned to the registration welcome bonus (auth.ts) and the 50%
+    // sell rate is a global per-card constant used everywhere else, so
+    // neither could move without side effects elsewhere — the odds here
+    // were the only safe lever. 85/15 keeps a real (if rarer) taste of
+    // rare for new players while landing worst-case EV at 90pts, a
+    // comfortable margin under cost.
+    slots: [{ odds: { common: 1 } }, { odds: { common: 1 } }, { odds: { common: 0.85, rare: 0.15 } }],
   },
   pro: {
     type: "pro",
@@ -74,7 +86,10 @@ export const PACKS: Record<PackType, PackDefinition> = {
     label: "Jump Ball — Common Pull",
     pointsCost: 0,
     purchasable: false,
-    slots: [{ odds: { common: 1 } }, { odds: { common: 1 } }, { odds: { common: 0.4, rare: 0.6 } }],
+    // Kept in sync with starter's 3rd-slot odds (see the comment there) —
+    // free either way, so the exploit doesn't apply here, but drifting out
+    // of sync would break the "mirrors the real pack exactly" invariant.
+    slots: [{ odds: { common: 1 } }, { odds: { common: 1 } }, { odds: { common: 0.85, rare: 0.15 } }],
   },
   wheelPro: {
     type: "wheelPro",
