@@ -25,7 +25,7 @@
     <div class="p-5 overflow-y-auto">
       <div class="flex items-center gap-2 mb-2">
         <span class="text-[12px] font-bold uppercase tracking-wider text-highlight">{{ article.sourceName }}</span>
-        <span class="font-mono text-[12px] text-muted">&middot; {{ article.publishedAt | date: "MMM d, y" }}</span>
+        <span class="font-mono text-[12px] text-muted">&middot; {{ article.publishedAt | date: dateFormat() : undefined : dateLocale() }}</span>
       </div>
 
       <h2 class="font-display text-xl tracking-wide leading-snug mb-3">{{ article.title }}</h2>
@@ -34,7 +34,7 @@
         <p class="text-sm text-muted leading-relaxed mb-5">{{ article.summary }}</p>
       }
 
-      <a [href]="article.url" target="_blank" rel="noopener noreferrer" appButton="outline">
+      <a [href]="article.url" target="_blank" rel="noopener noreferrer" class="text-accent2 font-semibold text-sm">
         {{ i18n.t('news.readFullArticle') }} &rarr;
       </a>
     </div>

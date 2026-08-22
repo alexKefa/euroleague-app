@@ -5,6 +5,7 @@ import { I18nService } from "../../core/i18n.service";
 import { NewsArticle } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ArticlePreviewComponent } from "../../shared/article-preview";
+import { newsDateFormat, newsDateLocale } from "../../shared/news-date-format";
 
 @Component({
   selector: "app-news",
@@ -67,6 +68,14 @@ export class NewsComponent implements OnInit {
       next: (status) => this.lastSyncedAt.set(status.lastSyncedAt),
       error: () => {},
     });
+  }
+
+  dateFormat(): string {
+    return newsDateFormat(this.i18n.lang(), false);
+  }
+
+  dateLocale(): string {
+    return newsDateLocale(this.i18n.lang());
   }
 
   openPreview(article: NewsArticle): void {

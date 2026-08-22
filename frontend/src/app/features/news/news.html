@@ -43,7 +43,7 @@
                 article.sourceName
               }}</span>
               <span class="font-mono text-[12px] text-muted"
-                >&middot; {{ article.publishedAt | date: "MMM d" }}</span
+                >&middot; {{ article.publishedAt | date: dateFormat() : undefined : dateLocale() }}</span
               >
             </div>
             <p class="font-bold text-sm leading-snug">{{ article.title }}</p>
