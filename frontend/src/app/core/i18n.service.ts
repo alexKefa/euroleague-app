@@ -23,11 +23,14 @@ export class I18nService {
     return entry[this.lang()] ?? entry.en;
   }
 
+  // Greek by default — most people opening this (e.g. via the shared QR
+  // link) are expected to be Greek-speaking; explicit "en" in storage is
+  // the only thing that overrides it, same as before with "el".
   private loadLang(): Lang {
     try {
-      return localStorage.getItem(LANG_KEY) === "el" ? "el" : "en";
+      return localStorage.getItem(LANG_KEY) === "en" ? "en" : "el";
     } catch {
-      return "en";
+      return "el";
     }
   }
 }
