@@ -136,7 +136,12 @@
              squash. -->
         <div class="flex-1 [perspective:1400px] min-w-0">
         @for (leafTeam of [team]; track leafTeam.id) {
-          <div class="leaflet-flip relative flex flex-col sm:flex-row bg-card border border-line rounded-2xl shadow-card overflow-hidden">
+          <div
+            class="leaflet-flip relative flex flex-col sm:flex-row bg-card border border-line rounded-2xl shadow-card overflow-hidden [touch-action:pan-y]"
+            (pointerdown)="onLeafletPointerDown($event)"
+            (pointerup)="onLeafletPointerUp($event)"
+            (pointercancel)="onLeafletPointerCancel($event)"
+          >
             <!-- folded top-right corner — a cheap, immediately-legible "this is a page" cue. -->
             <div
               class="hidden sm:block absolute top-0 right-0 w-6 h-6 pointer-events-none z-10"

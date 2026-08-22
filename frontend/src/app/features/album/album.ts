@@ -176,4 +176,40 @@ export class AlbumComponent implements OnInit {
     if (tier === "legendary") return "inventory.tierLegendary";
     return "inventory.tierCommon";
   }
+
+  // Swipe-to-flip — pointer events so this covers touch and mouse drag
+  // alike. Only reacts on release, past a distance threshold and only when
+  // the drag is more horizontal than vertical, so it never fights the
+  // page's own vertical scroll or swallows a plain tap on a card underneath
+  // (a tap's deltaX is ~0, well under the threshold). [touch-action:pan-y]
+  // on the leaflet (album.html) is what keeps native vertical scrolling
+  // working during the gesture — without it the browser treats the touch
+  // as ambiguous and can block scrolling entirely while it waits to see if
+  // this handler calls preventDefault.
+  private static readonly SWIPE_THRESHOLD_PX = 60;
+  private dragPointerId: number | null = null;
+  private dragStartX = 0;
+  private dragStartY = 0;
+
+  onLeafletPointerDown(event: PointerEvent): void {
+    this.dragPointerId = event.pointerId;
+    this.dragStartX = event.clientX;
+    this.dragStartY = event.clientY;
+  }
+
+  onLeafletPointerUp(event: PointerEvent): void {
+    if (this.dragPointerId !== event.pointerId) return;
+    this.dragPointerId = null;
+
+    const deltaX = event.clientX - this.dragStartX;
+    const deltaY = event.clientY - this.dragStartY;
+    if (Math.abs(deltaX) < AlbumComponent.SWIPE_THRESHOLD_PX || Math.abs(deltaX) < Math.abs(deltaY)) return;
+
+    const targetId = deltaX < 0 ? this.adjacentTeamIds().next : this.adjacentTeamIds().prev;
+    if (targetId) this.router.navigate(["/album", targetId]);
+  }
+
+  onLeafletPointerCancel(event: PointerEvent): void {
+    if (this.dragPointerId === event.pointerId) this.dragPointerId = null;
+  }
 }
