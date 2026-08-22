@@ -1,7 +1,7 @@
 <div class="max-w-3xl mx-auto p-4 sm:p-6">
   <a
     routerLink="/schedule"
-    class="font-mono text-[12px] text-muted font-bold hover:text-ink transition-colors"
+    class="text-[12px] text-muted font-bold uppercase tracking-wider hover:text-ink transition-colors"
     >&larr; {{ i18n.t('nav.schedule') }}</a
   >
 
@@ -18,8 +18,8 @@
 
   @if (!loading() && detail(); as d) {
     <!-- Matchup header -->
-    <div class="bg-card rounded-lg shadow-card p-5 mt-4 mb-5">
-      <p class="font-mono text-[11px] text-muted font-bold text-center mb-3">
+    <div class="bg-card rounded-2xl border border-line shadow-card p-5 mt-4 mb-5">
+      <p class="text-[11px] text-muted font-bold uppercase tracking-wider text-center mb-3">
         {{ i18n.t('game.round') }} {{ d.game.round }} &middot;
         @if (isLive()) {
           <span class="inline-flex items-center gap-1 text-red-500 uppercase tracking-wide">
@@ -75,8 +75,8 @@
 
     <!-- Full box score (final or live games) -->
     @if ((isFinal() || isLive()) && d.boxscore) {
-      <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-        <p class="font-mono text-[12px] text-muted font-bold mb-3 flex items-center gap-1.5">
+      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
+        <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-3 flex items-center gap-1.5">
           {{ i18n.t('game.boxScore') }}
           @if (isLive()) {
             <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
@@ -84,11 +84,11 @@
         </p>
 
         @for (side of [{ label: d.game.homeTeam.name, lines: d.boxscore.home }, { label: d.game.awayTeam.name, lines: d.boxscore.away }]; track side.label) {
-          <p class="font-mono text-[11px] text-highlight font-bold mt-3 mb-1.5">{{ side.label }}</p>
+          <p class="text-[11px] text-highlight font-bold uppercase tracking-wider mt-3 mb-1.5">{{ side.label }}</p>
           <div class="overflow-x-auto">
             <table class="w-full text-xs">
               <thead>
-                <tr class="text-muted font-mono">
+                <tr class="text-muted uppercase tracking-wide">
                   <th class="text-left font-bold py-1">{{ i18n.t('game.playerColumn') }}</th>
                   <th class="text-right font-bold py-1 px-1.5">MIN</th>
                   <th class="text-right font-bold py-1 px-1.5">PTS</th>
@@ -125,8 +125,8 @@
     <!-- Team stats (final or live games) — summed from the box score above,
          not a separate fetch. -->
     @if ((isFinal() || isLive()) && teamTotals(); as totals) {
-      <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-        <p class="font-mono text-[12px] text-muted font-bold mb-3 flex items-center gap-1.5">
+      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
+        <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-3 flex items-center gap-1.5">
           {{ i18n.t('game.teamStats') }}
           @if (isLive()) {
             <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
@@ -135,32 +135,32 @@
         <div class="text-sm space-y-1.5">
           <div class="flex justify-between items-center px-2">
             <span class="font-mono text-xs font-bold w-16 text-right">{{ totals.home.points }}</span>
-            <span class="text-muted text-xs font-mono">PTS</span>
+            <span class="text-muted text-[11px] uppercase tracking-wide">PTS</span>
             <span class="font-mono text-xs font-bold w-16">{{ totals.away.points }}</span>
           </div>
           <div class="flex justify-between items-center px-2">
             <span class="font-mono text-xs font-bold w-16 text-right">{{ totals.home.rebounds }}</span>
-            <span class="text-muted text-xs font-mono">REB</span>
+            <span class="text-muted text-[11px] uppercase tracking-wide">REB</span>
             <span class="font-mono text-xs font-bold w-16">{{ totals.away.rebounds }}</span>
           </div>
           <div class="flex justify-between items-center px-2">
             <span class="font-mono text-xs font-bold w-16 text-right">{{ totals.home.assists }}</span>
-            <span class="text-muted text-xs font-mono">AST</span>
+            <span class="text-muted text-[11px] uppercase tracking-wide">AST</span>
             <span class="font-mono text-xs font-bold w-16">{{ totals.away.assists }}</span>
           </div>
           <div class="flex justify-between items-center px-2">
             <span class="font-mono text-xs font-bold w-16 text-right">{{ totals.home.steals }}</span>
-            <span class="text-muted text-xs font-mono">STL</span>
+            <span class="text-muted text-[11px] uppercase tracking-wide">STL</span>
             <span class="font-mono text-xs font-bold w-16">{{ totals.away.steals }}</span>
           </div>
           <div class="flex justify-between items-center px-2">
             <span class="font-mono text-xs font-bold w-16 text-right">{{ totals.home.blocks }}</span>
-            <span class="text-muted text-xs font-mono">BLK</span>
+            <span class="text-muted text-[11px] uppercase tracking-wide">BLK</span>
             <span class="font-mono text-xs font-bold w-16">{{ totals.away.blocks }}</span>
           </div>
           <div class="flex justify-between items-center px-2">
             <span class="font-mono text-xs font-bold w-16 text-right">{{ totals.home.turnovers }}</span>
-            <span class="text-muted text-xs font-mono">TO</span>
+            <span class="text-muted text-[11px] uppercase tracking-wide">TO</span>
             <span class="font-mono text-xs font-bold w-16">{{ totals.away.turnovers }}</span>
           </div>
         </div>
@@ -169,8 +169,8 @@
 
     <!-- Top performers (final or live games) -->
     @if ((isFinal() || isLive()) && d.topPerformers.length > 0) {
-      <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-        <p class="font-mono text-[12px] text-muted font-bold mb-3 flex items-center gap-1.5">
+      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
+        <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-3 flex items-center gap-1.5">
           {{ i18n.t('game.topPerformers') }}
           @if (isLive()) {
             <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
@@ -181,7 +181,7 @@
             <button
               type="button"
               (click)="openPlayer(p.player.id)"
-              class="w-full flex justify-between items-center px-2 py-1.5 rounded-md hover:bg-page transition-colors text-left"
+              class="w-full flex justify-between items-center px-2 py-1.5 rounded-xl hover:bg-page transition-colors text-left"
             >
               <span class="font-bold">
                 <span class="font-mono text-muted">{{ i + 1 }}</span
@@ -202,7 +202,7 @@
           <div class="mt-3 pt-3 border-t border-line flex flex-wrap gap-1.5">
             @for (p of d.doubleDoubles; track p.player.id) {
               <span
-                class="flex items-center gap-1 font-mono text-[11px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-highlight/10 text-highlight"
+                class="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-highlight/10 text-highlight"
               >
                 <app-nav-icon name="flame" [size]="13" />
                 {{ p.player.name }} — {{ i18n.t('game.doubleDouble') }}</span
@@ -215,17 +215,17 @@
 
     <!-- Players to watch -->
     <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-      <p class="font-mono text-[12px] text-muted font-bold mb-3">
+      <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-3">
         {{ isFinal() ? i18n.t('game.playersWhoStoodOut') : i18n.t('game.playersToWatch') }}
       </p>
       <div class="grid grid-cols-2 gap-4">
         <div class="space-y-1 min-w-0">
-          <p class="font-mono text-[11px] text-muted font-bold mb-1 truncate">{{ d.game.homeTeam.code }}</p>
+          <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-1 truncate">{{ d.game.homeTeam.code }}</p>
           @for (p of d.playersToWatch.home; track p.player.id) {
             <button
               type="button"
               (click)="openPlayer(p.player.id)"
-              class="w-full block px-2 py-1.5 rounded-md hover:bg-page transition-colors text-left"
+              class="w-full block px-2 py-1.5 rounded-xl hover:bg-page transition-colors text-left"
             >
               <span class="font-semibold text-sm block truncate">{{ p.player.name }}</span>
               <span class="font-mono text-[11px] text-muted"
@@ -238,12 +238,12 @@
           }
         </div>
         <div class="space-y-1 min-w-0">
-          <p class="font-mono text-[11px] text-muted font-bold mb-1 truncate">{{ d.game.awayTeam.code }}</p>
+          <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-1 truncate">{{ d.game.awayTeam.code }}</p>
           @for (p of d.playersToWatch.away; track p.player.id) {
             <button
               type="button"
               (click)="openPlayer(p.player.id)"
-              class="w-full block px-2 py-1.5 rounded-md hover:bg-page transition-colors text-left"
+              class="w-full block px-2 py-1.5 rounded-xl hover:bg-page transition-colors text-left"
             >
               <span class="font-semibold text-sm block truncate">{{ p.player.name }}</span>
               <span class="font-mono text-[11px] text-muted"
@@ -260,14 +260,14 @@
 
     <!-- Team comparison -->
     @if (d.teamComparison.home || d.teamComparison.away) {
-      <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-        <p class="font-mono text-[12px] text-muted font-bold mb-3">{{ i18n.t('game.teamComparison') }}</p>
+      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
+        <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-3">{{ i18n.t('game.teamComparison') }}</p>
         <div class="text-sm space-y-1.5">
           <div class="flex justify-between items-center px-2">
             <span class="font-mono text-xs font-bold w-16 text-right">{{
               d.teamComparison.home ? d.teamComparison.home!.wins + "-" + d.teamComparison.home!.losses : "—"
             }}</span>
-            <span class="text-muted text-xs font-mono">{{ i18n.t('game.record') }}</span>
+            <span class="text-muted text-[11px] uppercase tracking-wide">{{ i18n.t('game.record') }}</span>
             <span class="font-mono text-xs font-bold w-16">{{
               d.teamComparison.away ? d.teamComparison.away!.wins + "-" + d.teamComparison.away!.losses : "—"
             }}</span>
@@ -276,29 +276,29 @@
             <span class="font-mono text-xs font-bold w-16 text-right">{{
               d.teamComparison.home?.position ? "#" + d.teamComparison.home!.position : "—"
             }}</span>
-            <span class="text-muted text-xs font-mono">{{ i18n.t('game.standing') }}</span>
+            <span class="text-muted text-[11px] uppercase tracking-wide">{{ i18n.t('game.standing') }}</span>
             <span class="font-mono text-xs font-bold w-16">{{
               d.teamComparison.away?.position ? "#" + d.teamComparison.away!.position : "—"
             }}</span>
           </div>
           <div class="flex justify-between items-center px-2">
             <span class="font-mono text-xs font-bold w-16 text-right">{{ d.teamComparison.home?.ppg | number: "1.1-1" }}</span>
-            <span class="text-muted text-xs font-mono">{{ i18n.t('game.ppg') }}</span>
+            <span class="text-muted text-[11px] uppercase tracking-wide">{{ i18n.t('game.ppg') }}</span>
             <span class="font-mono text-xs font-bold w-16">{{ d.teamComparison.away?.ppg | number: "1.1-1" }}</span>
           </div>
           <div class="flex justify-between items-center px-2">
             <span class="font-mono text-xs font-bold w-16 text-right">{{ d.teamComparison.home?.papg | number: "1.1-1" }}</span>
-            <span class="text-muted text-xs font-mono">{{ i18n.t('game.oppPpg') }}</span>
+            <span class="text-muted text-[11px] uppercase tracking-wide">{{ i18n.t('game.oppPpg') }}</span>
             <span class="font-mono text-xs font-bold w-16">{{ d.teamComparison.away?.papg | number: "1.1-1" }}</span>
           </div>
           <div class="flex justify-between items-center px-2">
             <span class="font-mono text-xs font-bold w-16 text-right">{{ d.teamComparison.home?.offRating | number: "1.1-1" }}</span>
-            <span class="text-muted text-xs font-mono">{{ i18n.t('game.offRating') }}</span>
+            <span class="text-muted text-[11px] uppercase tracking-wide">{{ i18n.t('game.offRating') }}</span>
             <span class="font-mono text-xs font-bold w-16">{{ d.teamComparison.away?.offRating | number: "1.1-1" }}</span>
           </div>
           <div class="flex justify-between items-center px-2">
             <span class="font-mono text-xs font-bold w-16 text-right">{{ d.teamComparison.home?.defRating | number: "1.1-1" }}</span>
-            <span class="text-muted text-xs font-mono">{{ i18n.t('game.defRating') }}</span>
+            <span class="text-muted text-[11px] uppercase tracking-wide">{{ i18n.t('game.defRating') }}</span>
             <span class="font-mono text-xs font-bold w-16">{{ d.teamComparison.away?.defRating | number: "1.1-1" }}</span>
           </div>
         </div>
@@ -321,7 +321,7 @@
       &times;
     </button>
 
-    <div class="w-full max-w-sm bg-card rounded-2xl shadow-pop p-5" (click)="$event.stopPropagation()">
+    <div class="w-full max-w-sm bg-card rounded-2xl border border-line shadow-pop p-5" (click)="$event.stopPropagation()">
       @if (playerPreviewLoading()) {
         <div class="animate-pulse space-y-3">
           <div class="w-24 h-24 rounded-full bg-line mx-auto"></div>
@@ -348,29 +348,29 @@
           <div class="grid grid-cols-3 gap-2 mt-5 text-center">
             <div>
               <p class="font-display text-xl text-highlight">{{ fmtNum(s.pointsPerGame) }}</p>
-              <p class="font-mono text-[10px] text-muted tracking-wide">PPG</p>
+              <p class="text-[10px] text-muted uppercase tracking-wide">PPG</p>
             </div>
             <div>
               <p class="font-display text-xl">{{ fmtNum(s.reboundsPerGame) }}</p>
-              <p class="font-mono text-[10px] text-muted tracking-wide">RPG</p>
+              <p class="text-[10px] text-muted uppercase tracking-wide">RPG</p>
             </div>
             <div>
               <p class="font-display text-xl">{{ fmtNum(s.assistsPerGame) }}</p>
-              <p class="font-mono text-[10px] text-muted tracking-wide">APG</p>
+              <p class="text-[10px] text-muted uppercase tracking-wide">APG</p>
             </div>
           </div>
           <div class="grid grid-cols-3 gap-2 mt-3 text-center">
             <div>
               <p class="font-mono font-bold text-highlight">{{ fmtNum(s.valuation) }}</p>
-              <p class="font-mono text-[10px] text-muted tracking-wide">PIR</p>
+              <p class="text-[10px] text-muted uppercase tracking-wide">PIR</p>
             </div>
             <div>
               <p class="font-mono font-bold">{{ fmtPct(s.fieldGoalPct) }}</p>
-              <p class="font-mono text-[10px] text-muted tracking-wide">FG%</p>
+              <p class="text-[10px] text-muted uppercase tracking-wide">FG%</p>
             </div>
             <div>
               <p class="font-mono font-bold">{{ fmtPct(s.freeThrowPct) }}</p>
-              <p class="font-mono text-[10px] text-muted tracking-wide">FT%</p>
+              <p class="text-[10px] text-muted uppercase tracking-wide">FT%</p>
             </div>
           </div>
         } @else {
@@ -379,7 +379,7 @@
 
         <a
           [routerLink]="['/players', pd.player.id]"
-          class="block text-center mt-5 font-mono text-[11px] text-muted hover:text-highlight transition-colors"
+          class="block text-center mt-5 text-[11px] text-muted uppercase tracking-wider hover:text-accent2 transition-colors"
           >{{ i18n.t('game.fullPlayerPage') }} &rarr;</a
         >
       } @else {

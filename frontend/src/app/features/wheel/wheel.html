@@ -1,7 +1,7 @@
 <div class="max-w-sm mx-auto p-4 sm:p-6 text-center">
   <a
     routerLink="/inventory"
-    class="font-mono text-[12px] text-muted font-bold hover:text-ink transition-colors block text-left"
+    class="text-[12px] text-muted font-bold uppercase tracking-wider hover:text-ink transition-colors block text-left"
     >&larr; {{ i18n.t('store.myCards') }}</a
   >
 
@@ -15,7 +15,7 @@
   }
 
   @if (!loading() && !auth.isAuthenticated()) {
-    <div class="bg-card rounded-lg shadow-card p-6">
+    <div class="bg-card rounded-2xl border border-line shadow-card p-6">
       <p class="text-sm text-muted">
         <a routerLink="/login" class="text-highlight font-semibold">{{ i18n.t('nav.login') }}</a> {{ i18n.t('wheel.loginToSpin') }}
       </p>
@@ -61,7 +61,7 @@
         </div>
       </div>
 
-      <div class="flex items-center justify-center gap-3 text-[11px] font-mono text-muted mb-4">
+      <div class="flex items-center justify-center gap-3 text-[11px] text-muted uppercase tracking-wide mb-4">
         <span class="flex items-center gap-1"><span class="wheel-tier-mark--common">●</span>{{ i18n.t('store.tierCommon') }}</span>
         <span class="flex items-center gap-1"><span class="wheel-tier-mark--rare">★</span>{{ i18n.t('store.tierRare') }}</span>
         <span class="flex items-center gap-1"><span class="wheel-tier-mark--legendary">✦</span>{{ i18n.t('store.tierLegendary') }}</span>
@@ -138,7 +138,7 @@
             </div>
           </div>
 
-          <p class="font-mono text-[13px] text-muted mt-3">{{ i18n.t('wheel.openInPacks') }}</p>
+          <p class="text-[13px] text-muted mt-3">{{ i18n.t('wheel.openInPacks') }}</p>
           <a routerLink="/packs" appButton="outline" appButtonSize="sm" class="inline-block mt-3">
             {{ i18n.t('wheel.goToPacks') }}
           </a>
@@ -151,7 +151,7 @@
         {{ spinning() ? i18n.t('wheel.spinning') : i18n.t('wheel.takeJumpBall') }}
       </button>
     } @else {
-      <p class="font-mono text-[12px] text-muted font-bold">
+      <p class="text-[12px] text-muted font-bold">
         {{ i18n.t('wheel.nextAvailable') }} {{ nextEligibleAt() | date: "MMM d, HH:mm" }}
       </p>
     }

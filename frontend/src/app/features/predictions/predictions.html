@@ -3,7 +3,7 @@
     <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('nav.picks') }}</h1>
     <a
       routerLink="/store"
-      class="font-mono text-[12px] text-highlight font-bold hover:text-highlight-dim transition-colors"
+      class="text-[12px] text-accent2 font-bold uppercase tracking-wider hover:text-accent2-dim transition-colors"
       >{{ i18n.t('predictions.spendPoints') }} &rarr;</a
     >
   </div>
@@ -15,7 +15,7 @@
        faster than those, and used to leave this card popping in late with
        no skeleton once `loading` had already flipped for the other section. -->
   @if (upcomingGamesLoading()) {
-    <div class="animate-pulse bg-card rounded-lg shadow-card p-3 sm:p-4 mb-5">
+    <div class="animate-pulse bg-card rounded-2xl border border-line shadow-card p-3 sm:p-4 mb-5">
       <div class="flex items-baseline justify-between mb-2">
         <div class="h-3 w-28 bg-line rounded"></div>
         <div class="h-2.5 w-32 bg-line rounded"></div>
@@ -27,16 +27,16 @@
       </div>
     </div>
   } @else if (upcomingGames().length > 0) {
-      <div data-tour="predictions-picks" class="bg-card rounded-lg shadow-card p-3 sm:p-4 mb-5">
+      <div data-tour="predictions-picks" class="bg-card rounded-2xl border border-line shadow-card p-3 sm:p-4 mb-5">
         <div class="flex items-baseline justify-between mb-2">
-          <p class="font-mono text-[13px] text-muted font-bold">{{ i18n.t('predictions.upcomingGames') }}</p>
+          <p class="text-[13px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('predictions.upcomingGames') }}</p>
           @if (auth.isAuthenticated()) {
             <p class="text-[11px] text-muted">{{ i18n.t('predictions.tapToClearHint') }}</p>
           }
         </div>
         <div class="space-y-1.5">
           @for (game of upcomingGames(); track game.id) {
-            <div class="flex items-center gap-2 px-2 py-1 rounded-md bg-page">
+            <div class="flex items-center gap-2 px-2 py-1 rounded-xl bg-page">
               <p class="font-mono text-muted text-[10px] leading-tight shrink-0 w-9 text-center">
                 {{ game.tipoffAt | date: "MMM d" }}<br />{{ game.tipoffAt | date: "HH:mm" }}
               </p>
@@ -83,7 +83,7 @@
 
     @if (loading()) {
       <div class="animate-pulse grid gap-5 sm:grid-cols-2">
-        <div class="bg-card rounded-lg shadow-card p-4">
+        <div class="bg-card rounded-2xl border border-line shadow-card p-4">
           <div class="h-3 w-16 bg-line rounded mb-3"></div>
           <div class="flex items-center justify-between mb-3 pb-3 border-b border-line">
             <div class="h-7 w-14 bg-line rounded"></div>
@@ -95,7 +95,7 @@
             }
           </div>
         </div>
-        <div class="bg-card rounded-lg shadow-card p-4">
+        <div class="bg-card rounded-2xl border border-line shadow-card p-4">
           <div class="h-3 w-24 bg-line rounded mb-3"></div>
           <div class="space-y-2">
             @for (i of [1, 2, 3, 4]; track i) {
@@ -108,7 +108,7 @@
     <div class="grid gap-5 sm:grid-cols-2">
       <!-- My picks -->
       <div class="bg-card rounded-lg shadow-card p-4">
-        <p class="font-mono text-[13px] text-muted font-bold mb-3">{{ i18n.t('predictions.myPicks') }}</p>
+        <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-3">{{ i18n.t('predictions.myPicks') }}</p>
 
         @if (!auth.isAuthenticated()) {
           <p class="text-sm text-muted">
@@ -136,7 +136,7 @@
               <div class="flex items-center justify-between">
                 <span class="flex items-baseline gap-1.5">
                   <span class="font-display text-2xl text-highlight">{{ mySummary()!.points }}</span>
-                  <span class="font-mono text-[12px] text-muted font-bold">{{ i18n.t('predictions.pts') }}</span>
+                  <span class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('predictions.pts') }}</span>
                 </span>
                 <div class="flex gap-1.5 items-center">
                   @for (badge of mySummary()!.badges; track badge.id) {
@@ -145,7 +145,7 @@
                     </span>
                   }
                   @if (mySummary()!.badges.length === 0) {
-                    <span class="font-mono text-[12px] text-muted">{{ i18n.t('predictions.noBadgesYet') }}</span>
+                    <span class="text-[12px] text-muted">{{ i18n.t('predictions.noBadgesYet') }}</span>
                   }
                 </div>
               </div>
@@ -153,17 +153,17 @@
               <button
                 type="button"
                 (click)="showBadgeLegend.set(true)"
-                class="w-full mt-2.5 flex items-center justify-center gap-1.5 py-1.5 rounded-md bg-page text-muted hover:text-highlight transition-colors"
+                class="w-full mt-2.5 flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-page text-muted hover:text-highlight transition-colors"
               >
                 <app-nav-icon name="tip" [size]="14" />
-                <span class="font-mono text-[11px] font-bold">{{ i18n.t('predictions.whatDoTheseMean') }}</span>
+                <span class="text-[11px] font-bold uppercase tracking-wider">{{ i18n.t('predictions.whatDoTheseMean') }}</span>
               </button>
             </div>
           }
 
           <div class="text-sm space-y-1">
             @for (p of myPredictions(); track p.id) {
-              <div class="flex justify-between items-center px-2 py-2 rounded-md">
+              <div class="flex justify-between items-center px-2 py-2 rounded-xl">
                 <div>
                   <p class="font-display text-xs">
                     <app-team-badge [code]="p.predictedTeam.code" [logoUrl]="teamLogo(p.predictedTeam.id)"></app-team-badge>
@@ -171,13 +171,13 @@
                   <p class="font-mono text-muted text-[12px] mt-0.5">{{ p.tipoffAt | date: "MMM d, HH:mm" }}</p>
                 </div>
                 @if (p.isCorrect === null) {
-                  <span class="font-mono text-[12px] font-bold text-muted uppercase tracking-wide">{{ i18n.t('predictions.pending') }}</span>
+                  <span class="text-[12px] font-bold text-muted uppercase tracking-wide">{{ i18n.t('predictions.pending') }}</span>
                 }
                 @if (p.isCorrect === true) {
-                  <span class="font-mono text-[12px] font-bold text-emerald-500 uppercase tracking-wide">{{ i18n.t('predictions.correct') }}</span>
+                  <span class="text-[12px] font-bold text-emerald-500 uppercase tracking-wide">{{ i18n.t('predictions.correct') }}</span>
                 }
                 @if (p.isCorrect === false) {
-                  <span class="font-mono text-[12px] font-bold text-red-500 uppercase tracking-wide">{{ i18n.t('predictions.wrong') }}</span>
+                  <span class="text-[12px] font-bold text-red-500 uppercase tracking-wide">{{ i18n.t('predictions.wrong') }}</span>
                 }
               </div>
             } @empty {
@@ -191,12 +191,17 @@
 
       <!-- Leaderboard -->
       <div class="bg-card rounded-lg shadow-card p-4">
-        <p class="font-mono text-[13px] text-muted font-bold mb-3">{{ i18n.t('predictions.leaderboard') }}</p>
+        <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-3">{{ i18n.t('predictions.leaderboard') }}</p>
         <div class="text-sm space-y-1">
           @for (entry of leaderboard(); track entry.userId; let i = $index) {
-            <div class="flex justify-between items-center px-2 py-2 rounded-md">
+            <div class="flex justify-between items-center px-2 py-2 rounded-xl" [ngClass]="{ 'bg-highlight/10': i === 0 }">
               <span class="font-semibold flex items-center gap-1">
-                <span class="font-mono text-muted">{{ i + 1 }}</span>&nbsp;&nbsp;{{ entry.displayName }}
+                @if (i === 0) {
+                  <span class="font-mono text-[11px] font-bold w-5 h-5 rounded-full bg-highlight text-page flex items-center justify-center shrink-0">1</span>
+                } @else {
+                  <span class="font-mono text-muted w-5 shrink-0">{{ i + 1 }}</span>
+                }
+                &nbsp;{{ entry.displayName }}
                 @for (badge of entry.badges; track badge.id) {
                   <span class="text-highlight" [title]="badge.label + ' — ' + badge.description">
                     <app-nav-icon [name]="badgeIcon(badge.id)" [size]="14" />
@@ -231,7 +236,7 @@
       &times;
     </button>
 
-    <div class="w-full max-w-sm bg-card rounded-2xl shadow-pop p-5" (click)="$event.stopPropagation()">
+    <div class="w-full max-w-sm bg-card rounded-2xl border border-line shadow-pop p-5" (click)="$event.stopPropagation()">
       <p class="font-display text-lg tracking-wide mb-4">{{ i18n.t('predictions.whatDoTheseMean') }}</p>
       <div class="space-y-3">
         @for (b of badgeCatalog; track b.id) {
@@ -245,7 +250,7 @@
               <app-nav-icon [name]="b.icon" [size]="20" />
             </span>
             <div class="min-w-0">
-              <p class="font-mono text-[12px] font-bold" [class.text-muted]="!isEarned(b.id)">{{ badgeLabel(b.id) }}</p>
+              <p class="text-[12px] font-bold uppercase tracking-wider" [class.text-muted]="!isEarned(b.id)">{{ badgeLabel(b.id) }}</p>
               <p class="text-xs text-muted">{{ badgeDescription(b.id) }}</p>
             </div>
           </div>

@@ -34,7 +34,7 @@ export interface DropdownOption {
       type="button"
       (click)="toggle()"
       [disabled]="disabled"
-      class="w-full flex items-center justify-between gap-2 pl-3 pr-2.5 py-2 rounded-[5px] bg-card border-2 border-line text-sm font-semibold text-ink hover:border-[#3a3a3b] focus:border-highlight outline-none transition-colors disabled:opacity-40 disabled:cursor-default"
+      class="w-full flex items-center justify-between gap-2 pl-3 pr-2.5 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold text-ink hover:border-[#3a3a3b] focus:border-highlight outline-none transition-colors disabled:opacity-40 disabled:cursor-default"
       [attr.aria-expanded]="open()"
       aria-haspopup="listbox"
     >
@@ -63,7 +63,7 @@ export interface DropdownOption {
     @if (open()) {
       <ul
         role="listbox"
-        class="absolute z-20 left-0 right-0 mt-1 max-h-64 overflow-y-auto rounded-[5px] bg-card border-2 border-line shadow-pop py-1"
+        class="absolute z-20 left-0 right-0 mt-1 max-h-64 overflow-y-auto rounded-xl bg-card border-2 border-line shadow-pop py-1"
       >
         @for (opt of options; track opt.value; let i = $index) {
           <li

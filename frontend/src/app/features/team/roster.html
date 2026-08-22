@@ -1,7 +1,7 @@
 <div class="max-w-3xl lg:max-w-5xl mx-auto p-4 sm:p-6">
   <a
     routerLink="/"
-    class="font-mono text-[12px] text-muted font-bold hover:text-ink transition-colors"
+    class="text-[12px] text-muted font-bold uppercase tracking-wider hover:text-ink transition-colors"
     >&larr; {{ i18n.t('roster.backToDashboard') }}</a
   >
 
@@ -40,14 +40,14 @@
     }
 
     @if (teamStandingsRow()) {
-      <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-        <p class="font-mono text-[13px] text-muted font-bold mb-1">{{ i18n.t('roster.teamProfileVsLeague') }}</p>
+      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
+        <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-1">{{ i18n.t('roster.teamProfileVsLeague') }}</p>
         <p class="text-xs text-muted mb-4">{{ i18n.t('roster.teamProfileHint') }}</p>
         <div class="space-y-4">
           @for (axis of comparisonAxes; track axis.key) {
             <div>
               <div class="flex items-baseline justify-between mb-1.5 gap-2">
-                <span class="font-mono text-[11px] font-bold text-muted uppercase tracking-wide">{{ i18n.t(axis.labelKey) }}</span>
+                <span class="text-[11px] font-bold text-muted uppercase tracking-wide">{{ i18n.t(axis.labelKey) }}</span>
                 <span class="font-mono text-xs shrink-0">
                   <span
                     class="font-bold"
@@ -73,13 +73,13 @@
     }
 
     @if (upcomingGames().length > 0) {
-      <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-        <p class="font-mono text-[13px] text-muted font-bold mb-3">{{ i18n.t('roster.upcomingGames') }}</p>
+      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
+        <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-3">{{ i18n.t('roster.upcomingGames') }}</p>
         <div class="text-sm space-y-1">
           @for (game of upcomingGames(); track game.id) {
             <a
               [routerLink]="['/games', game.id]"
-              class="flex justify-between items-center px-2 py-2 rounded-md hover:bg-page transition-colors"
+              class="flex justify-between items-center px-2 py-2 rounded-xl hover:bg-page transition-colors"
             >
               <span class="flex items-center gap-2">
                 <span class="font-display text-xs">{{ isHomeGame(game) ? "vs" : "@" }}</span>
@@ -95,16 +95,16 @@
           }
         </div>
         @if (auth.isAuthenticated()) {
-          <a routerLink="/predictions" class="block mt-3 font-mono text-[12px] font-bold text-highlight hover:text-highlight-dim transition-colors">
+          <a routerLink="/predictions" class="block mt-3 text-[12px] font-bold uppercase tracking-wider text-accent2 hover:text-accent2-dim transition-colors">
             {{ i18n.t('roster.predictOnPredictionsPage') }} &rarr;
           </a>
         }
       </div>
     }
 
-    <div class="bg-card rounded-lg shadow-card overflow-hidden">
+    <div class="bg-card rounded-2xl border border-line shadow-card overflow-hidden">
       <div class="flex justify-between items-center px-4 pt-4">
-        <p class="font-mono text-[13px] text-muted font-bold">{{ i18n.t('roster.title') }}</p>
+        <p class="text-[13px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('roster.title') }}</p>
         <div class="flex gap-1">
           <button type="button" (click)="statsView.set('traditional')" [appChip]="statsView() === 'traditional'">
             {{ i18n.t('roster.traditional') }}
@@ -118,7 +118,7 @@
         <table class="w-full text-sm min-w-[480px] mt-3">
           @if (statsView() === "traditional") {
             <thead>
-              <tr class="text-muted font-mono text-[12px] font-bold border-b border-line">
+              <tr class="text-muted text-[12px] font-bold uppercase tracking-wider border-b border-line">
                 <th class="sticky left-0 z-10 bg-card text-left px-4 py-3">{{ i18n.t('roster.colPlayer') }}</th>
                 <th class="text-right px-3 py-3">{{ i18n.t('roster.colGP') }}</th>
                 <th class="text-right px-3 py-3">{{ i18n.t('roster.colMIN') }}</th>
@@ -166,7 +166,7 @@
             </tbody>
           } @else {
             <thead>
-              <tr class="text-muted font-mono text-[12px] font-bold border-b border-line">
+              <tr class="text-muted text-[12px] font-bold uppercase tracking-wider border-b border-line">
                 <th class="sticky left-0 z-10 bg-card text-left px-4 py-3">{{ i18n.t('roster.colPlayer') }}</th>
                 <th class="text-right px-3 py-3">{{ i18n.t('roster.colTS') }}</th>
                 <th class="text-right px-3 py-3">{{ i18n.t('roster.colEFG') }}</th>
@@ -209,13 +209,13 @@
     </div>
 
     @if (recentGames().length > 0) {
-      <div class="bg-card rounded-lg shadow-card p-4 mt-5">
-        <p class="font-mono text-[13px] text-muted font-bold mb-3">{{ i18n.t('roster.recentResults') }}</p>
+      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mt-5">
+        <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-3">{{ i18n.t('roster.recentResults') }}</p>
         <div class="text-sm space-y-1">
           @for (game of recentGames(); track game.id) {
             <a
               [routerLink]="['/games', game.id]"
-              class="flex justify-between items-center px-2 py-2 rounded-md hover:bg-page transition-colors"
+              class="flex justify-between items-center px-2 py-2 rounded-xl hover:bg-page transition-colors"
             >
               <span class="flex items-center gap-2">
                 <span class="font-display text-xs">{{ isHomeGame(game) ? "vs" : "@" }}</span>

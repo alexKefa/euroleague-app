@@ -1,7 +1,7 @@
 <div class="max-w-3xl lg:max-w-5xl mx-auto p-4 sm:p-6">
   <a
     routerLink="/inventory"
-    class="font-mono text-[12px] text-muted font-bold hover:text-ink transition-colors"
+    class="text-[12px] text-muted font-bold uppercase tracking-wider hover:text-ink transition-colors"
     >&larr; {{ i18n.t('trades.backToCards') }}</a
   >
 
@@ -12,7 +12,7 @@
   }
 
   @if (!loading() && !auth.isAuthenticated()) {
-    <div class="bg-card rounded-lg shadow-card p-6">
+    <div class="bg-card rounded-2xl border border-line shadow-card p-6">
       <p class="text-sm text-muted">
         <a routerLink="/login" class="text-highlight font-semibold">{{ i18n.t('trades.logInLinkText') }}</a>
         {{ i18n.t('trades.loginToTradeSuffix') }}
@@ -28,8 +28,8 @@
         {{ i18n.t('trades.noCardsSuffix') }}
       </p>
     } @else {
-      <div class="bg-card rounded-lg shadow-card p-4 mb-6">
-        <p class="font-mono text-[13px] text-muted font-bold mb-1">{{ i18n.t('trades.myCardsTitle') }}</p>
+      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-6">
+        <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-1">{{ i18n.t('trades.myCardsTitle') }}</p>
         <p class="text-xs text-muted mb-3">
           {{ i18n.t('trades.myCardsHint') }}
         </p>
@@ -61,8 +61,8 @@
       </div>
     }
 
-    <div data-tour="trades-marketplace" class="bg-card rounded-lg shadow-card p-4 mb-6">
-      <p class="font-mono text-[13px] text-muted font-bold mb-3">{{ i18n.t('trades.marketplaceTitle') }}</p>
+    <div data-tour="trades-marketplace" class="bg-card rounded-2xl border border-line shadow-card p-4 mb-6">
+      <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-3">{{ i18n.t('trades.marketplaceTitle') }}</p>
 
       @if (marketplace().length === 0) {
         <p class="text-sm text-muted">{{ i18n.t('trades.noListings') }}</p>
@@ -91,7 +91,7 @@
       }
 
       @if (selectedListing() && myCards().length > 0) {
-        <p class="font-mono text-[13px] text-muted font-bold mb-1">
+        <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-1">
           {{ i18n.t('trades.offerForPrefix') }} {{ selectedListing()!.name }}
         </p>
         <p class="text-xs text-muted mb-2">{{ i18n.t('trades.multiSelectHint') }}</p>
@@ -125,14 +125,14 @@
       }
     </div>
 
-    <div class="bg-card rounded-lg shadow-card p-4">
-      <p class="font-mono text-[13px] text-muted font-bold mb-3">{{ i18n.t('trades.myOffersTitle') }}</p>
+    <div class="bg-card rounded-2xl border border-line shadow-card p-4">
+      <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-3">{{ i18n.t('trades.myOffersTitle') }}</p>
       @if (actionError()) {
         <p class="text-red-500 text-xs font-semibold mb-3">{{ actionError() }}</p>
       }
       <div class="space-y-2">
         @for (offer of offers(); track offer.id) {
-          <div class="flex items-center justify-between gap-3 px-2 py-2 rounded-lg bg-page">
+          <div class="flex items-center justify-between gap-3 px-2 py-2 rounded-xl bg-page">
             <div class="text-sm">
               <p class="font-semibold">
                 {{ offer.direction === "outgoing" ? i18n.t('trades.to') : i18n.t('trades.from') }} {{ offer.counterpartyName }}
@@ -178,7 +178,7 @@
                 {{ i18n.t('trades.cancel') }}
               </button>
             } @else {
-              <span class="font-mono text-[12px] font-bold text-muted uppercase tracking-wide shrink-0">{{ statusLabel(offer.status) }}</span>
+              <span class="text-[12px] font-bold text-muted uppercase tracking-wide shrink-0">{{ statusLabel(offer.status) }}</span>
             }
           </div>
         } @empty {

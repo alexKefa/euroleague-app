@@ -4,7 +4,7 @@
   @if (loading()) {
     <div class="animate-pulse space-y-3">
       @for (i of [1, 2, 3, 4, 5, 6]; track i) {
-        <div class="h-20 bg-line rounded-lg"></div>
+        <div class="h-20 bg-line rounded-2xl"></div>
       }
     </div>
   }
@@ -20,7 +20,7 @@
           [href]="article.url"
           target="_blank"
           rel="noopener noreferrer"
-          class="flex gap-3 bg-card rounded-lg shadow-card p-4 hover:shadow-pop transition-all"
+          class="flex gap-3 bg-card rounded-2xl border border-line shadow-card p-4 hover:shadow-pop transition-all"
         >
           @if (article.imageUrl) {
             <img
@@ -29,12 +29,12 @@
               loading="lazy"
               decoding="async"
               appRetryImg
-              class="w-20 h-20 rounded-md object-cover shrink-0"
+              class="w-20 h-20 rounded-xl object-cover shrink-0"
             />
           }
           <div class="min-w-0">
             <div class="flex items-center gap-2 mb-2">
-              <span class="font-mono text-[12px] font-bold text-highlight">{{
+              <span class="text-[12px] font-bold uppercase tracking-wider text-highlight">{{
                 article.sourceName
               }}</span>
               <span class="font-mono text-[12px] text-muted"

@@ -88,10 +88,10 @@
       <div class="lg:order-2 lg:flex-1 lg:flex lg:flex-col lg:gap-5 lg:min-w-0">
         <!-- News teaser -->
         @if (news().length > 0) {
-          <div class="bg-card rounded-lg shadow-card p-4 mb-5 lg:mb-0">
+          <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5 lg:mb-0">
             <div class="flex justify-between items-center mb-3">
-              <p class="font-mono text-[12px] text-muted font-bold">{{ i18n.t('dashboard.latest') }}</p>
-              <a routerLink="/news" class="font-mono text-[12px] text-highlight font-bold">{{ i18n.t('dashboard.viewAll') }} &rarr;</a>
+              <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('dashboard.latest') }}</p>
+              <a routerLink="/news" class="text-[12px] text-accent2 font-bold uppercase tracking-wider">{{ i18n.t('dashboard.viewAll') }} &rarr;</a>
             </div>
             <div class="space-y-3">
               @for (article of news(); track article.id) {
@@ -101,7 +101,7 @@
                   rel="noopener noreferrer"
                   class="block hover:opacity-70 transition-opacity"
                 >
-                  <span class="font-mono text-[11px] font-bold text-highlight">{{
+                  <span class="text-[11px] font-bold uppercase tracking-wider text-highlight">{{
                     article.sourceName
                   }}</span>
                   <p class="font-bold text-sm leading-snug mt-0.5">{{ article.title }}</p>
@@ -113,8 +113,8 @@
 
         <!-- Top performances -->
         @if (roundMvp()?.leaders?.length) {
-          <div class="bg-card rounded-lg shadow-card p-4 mb-5 lg:mb-0">
-            <p class="font-mono text-[12px] text-muted font-bold mb-3">
+          <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5 lg:mb-0">
+            <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-3">
               {{ i18n.t('dashboard.round') }} {{ roundMvp()?.round }} — {{ i18n.t('dashboard.topPerformances') }}
             </p>
             <div class="text-sm space-y-1">
@@ -141,9 +141,9 @@
 
         <!-- League leaders -->
         @if (leaders().length > 0) {
-          <div class="bg-card rounded-lg shadow-card p-4 mb-5 lg:mb-0">
+          <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5 lg:mb-0">
             <div class="flex justify-between items-center mb-3">
-              <p class="font-mono text-[12px] text-muted font-bold">{{ i18n.t('dashboard.leaders') }}</p>
+              <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('dashboard.leaders') }}</p>
               <app-dropdown
                 class="w-24"
                 [options]="leaderDropdownOptions"
@@ -155,10 +155,15 @@
               @for (entry of leaders(); track entry.player.id; let i = $index) {
                 <a
                   [routerLink]="['/players', entry.player.id]"
-                  class="flex justify-between items-center px-2 py-1.5 rounded-md hover:bg-page transition-colors"
+                  class="flex justify-between items-center px-2 py-1.5 rounded-xl hover:bg-page transition-colors"
+                  [ngClass]="{ 'bg-highlight/10': i === 0 }"
                 >
                   <span class="font-bold flex items-center gap-1.5 min-w-0">
-                    <span class="font-mono text-muted shrink-0">{{ i + 1 }}</span>
+                    @if (i === 0) {
+                      <span class="font-mono text-[11px] font-bold w-5 h-5 shrink-0 rounded-full bg-highlight text-page flex items-center justify-center">1</span>
+                    } @else {
+                      <span class="font-mono text-muted w-5 shrink-0 text-center">{{ i + 1 }}</span>
+                    }
                     <span class="truncate">{{ entry.player.name }}</span>
                     @if (entry.team.logoUrl) {
                       <img [src]="entry.team.logoUrl" [alt]="entry.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0" />
@@ -175,8 +180,8 @@
 
         <!-- Games strip -->
         @if (recentGames().length > 0 || upcomingGames().length > 0) {
-          <div class="bg-card rounded-lg shadow-card p-4">
-            <p class="font-mono text-[12px] text-muted font-bold mb-3">{{ i18n.t('dashboard.yourTeamSchedule') }}</p>
+          <div class="bg-card rounded-2xl border border-line shadow-card p-4">
+            <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-3">{{ i18n.t('dashboard.yourTeamSchedule') }}</p>
             <div class="text-sm space-y-1">
               @for (game of recentGames(); track game.id) {
                 <div class="flex justify-between items-center px-2 py-1.5 rounded-md">
@@ -207,17 +212,22 @@
       </div>
 
       <!-- Standings -->
-      <div class="bg-card rounded-lg shadow-card p-4 lg:order-1 lg:flex-1 lg:min-w-0">
-        <p class="font-mono text-[12px] text-muted font-bold mb-3">{{ i18n.t('dashboard.standings') }}</p>
+      <div class="bg-card rounded-2xl border border-line shadow-card p-4 lg:order-1 lg:flex-1 lg:min-w-0">
+        <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-3">{{ i18n.t('dashboard.standings') }}</p>
         <div class="text-sm space-y-1">
           @for (row of standings(); track row.team.id) {
             <a
               [routerLink]="['/teams', row.team.id]"
-              class="flex justify-between items-center gap-2 px-2 py-1.5 rounded-md hover:bg-page transition-colors"
+              class="flex justify-between items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-page transition-colors"
               [class.bg-page]="row.team.id === selectedTeamId()"
+              [ngClass]="{ 'bg-accent2/10': row.position === 1 }"
             >
               <span class="flex items-center gap-2 min-w-0">
-                <span class="font-mono text-muted w-4 shrink-0 text-right">{{ row.position }}</span>
+                @if (row.position === 1) {
+                  <span class="font-mono text-[11px] font-bold w-5 h-5 shrink-0 rounded-full bg-accent2 text-page flex items-center justify-center">1</span>
+                } @else {
+                  <span class="font-mono text-muted w-5 shrink-0 text-right">{{ row.position }}</span>
+                }
                 @if (row.team.logoUrl) {
                   <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0" />
                 } @else {

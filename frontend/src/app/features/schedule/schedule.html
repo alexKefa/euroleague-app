@@ -1,7 +1,7 @@
 <div class="max-w-3xl mx-auto p-4 sm:p-6">
   <div class="flex items-center justify-between mb-5">
     <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('schedule.title') }}</h1>
-    <span class="font-mono text-[11px] text-muted font-bold">{{ i18n.t('schedule.seasonLabel') }}</span>
+    <span class="text-[11px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('schedule.seasonLabel') }}</span>
   </div>
 
   <div class="flex items-center justify-between gap-2 mb-4">
@@ -75,14 +75,14 @@
     <div class="space-y-5">
       @for (group of gamesByDate(); track group.date) {
         <div>
-          <p class="font-mono text-[11px] text-muted font-bold mb-2">
+          <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-2">
             {{ group.date | date: "EEEE, MMM d" }}
           </p>
           <div class="space-y-2">
             @for (game of group.games; track game.id) {
               <a
                 [routerLink]="['/games', game.id]"
-                class="flex items-center justify-between gap-3 px-4 py-3 bg-card rounded-lg shadow-card hover:shadow-pop transition-all"
+                class="flex items-center justify-between gap-3 px-4 py-3 bg-card rounded-2xl border border-line shadow-card hover:shadow-pop transition-all"
               >
                 <div class="flex items-center gap-2 flex-1 min-w-0 justify-end text-right">
                   <span
@@ -104,7 +104,7 @@
                   @if (game.status === "live") {
                     <span class="flex items-center justify-center gap-1 mb-0.5">
                       <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-                      <span class="font-mono text-[9px] font-bold uppercase tracking-wide text-red-500">{{
+                      <span class="text-[9px] font-bold uppercase tracking-wide text-red-500">{{
                         i18n.t('schedule.live')
                       }}</span>
                     </span>

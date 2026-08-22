@@ -19,7 +19,7 @@
       <button
         type="button"
         (click)="i18n.setLang(i18n.lang() === 'en' ? 'el' : 'en')"
-        class="shrink-0 w-8 h-8 rounded-[5px] border-2 border-line flex items-center justify-center text-muted hover:text-ink hover:bg-page transition-colors font-mono text-[11px] font-bold uppercase"
+        class="shrink-0 w-8 h-8 rounded-xl border-2 border-line flex items-center justify-center text-muted hover:text-ink hover:bg-page transition-colors font-mono text-[11px] font-bold uppercase"
         [attr.aria-label]="i18n.lang() === 'en' ? i18n.t('nav.switchToGreek') : i18n.t('nav.switchToEnglish')"
       >
         {{ i18n.lang() === "en" ? "ΕΛ" : "EN" }}
@@ -29,7 +29,7 @@
     <button
       type="button"
       (click)="theme.toggleColorScheme()"
-      class="shrink-0 w-8 h-8 rounded-[5px] border-2 border-line flex items-center justify-center text-muted hover:text-ink hover:bg-page transition-colors"
+      class="shrink-0 w-8 h-8 rounded-xl border-2 border-line flex items-center justify-center text-muted hover:text-ink hover:bg-page transition-colors"
       [attr.aria-label]="theme.colorScheme() === 'dark' ? i18n.t('nav.switchToLightTheme') : i18n.t('nav.switchToDarkTheme')"
     >
       <app-nav-icon [name]="theme.colorScheme() === 'dark' ? 'sun' : 'moon'" />
@@ -47,14 +47,14 @@
         >
         @if (auth.currentUser()?.isAdmin) {
           <span
-            class="font-mono text-[11px] font-bold uppercase tracking-wide text-highlight bg-highlight/10 border-2 border-highlight/30 rounded-[5px] px-2 py-0.5 shrink-0"
+            class="font-mono text-[11px] font-bold uppercase tracking-wide text-highlight bg-highlight/10 border-2 border-highlight/30 rounded-xl px-2 py-0.5 shrink-0"
             >{{ i18n.t('nav.admin') }}</span
           >
         }
         <button
           type="button"
           (click)="logout()"
-          class="shrink-0 w-8 h-8 rounded-[5px] border-2 border-line flex items-center justify-center text-muted hover:text-highlight hover:bg-page transition-colors"
+          class="shrink-0 w-8 h-8 rounded-xl border-2 border-line flex items-center justify-center text-muted hover:text-highlight hover:bg-page transition-colors"
           [attr.aria-label]="i18n.t('nav.logout')"
         >
           <app-nav-icon name="logout" [size]="18" />
@@ -62,7 +62,7 @@
       </div>
       <a
         routerLink="/profile"
-        class="sm:hidden shrink-0 w-8 h-8 rounded-[5px] border-2 border-line flex items-center justify-center text-muted hover:text-ink hover:bg-page transition-colors"
+        class="sm:hidden shrink-0 w-8 h-8 rounded-xl border-2 border-line flex items-center justify-center text-muted hover:text-ink hover:bg-page transition-colors"
         [attr.aria-label]="i18n.t('nav.profile')"
       >
         <app-nav-icon name="user" [size]="18" />
@@ -73,7 +73,7 @@
       <div class="hidden sm:flex items-center gap-3 sm:gap-4 shrink-0">
         <a
           routerLink="/login"
-          class="shrink-0 w-8 h-8 rounded-[5px] border-2 border-line flex items-center justify-center text-muted hover:text-ink hover:bg-page transition-colors"
+          class="shrink-0 w-8 h-8 rounded-xl border-2 border-line flex items-center justify-center text-muted hover:text-ink hover:bg-page transition-colors"
           [attr.aria-label]="i18n.t('nav.login')"
         >
           <app-nav-icon name="user" [size]="18" />

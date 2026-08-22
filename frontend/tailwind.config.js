@@ -19,6 +19,13 @@ module.exports = {
           DEFAULT: "#FF6B35",
           dim: "#C94A24",
         },
+        // Second accent, distinct from highlight — used for rank/position
+        // emphasis (e.g. a #1 standings chip) so that signal reads as
+        // separate from the points/stats emphasis highlight already owns.
+        accent2: {
+          DEFAULT: "#7C6CF0",
+          dim: "#5B48D9",
+        },
         "team-primary": "var(--accent-primary, #3E7CB1)",
         "team-secondary": "var(--accent-secondary, #0B1220)",
       },
@@ -28,7 +35,9 @@ module.exports = {
         mono: ["JetBrains Mono", "ui-monospace", "monospace"],
       },
       boxShadow: {
-        card: "0 1px 3px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.03)",
+        // Real elevation instead of a near-flat 1px line — was previously
+        // indistinguishable from a plain bordered box on the near-black page.
+        card: "0 8px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04)",
         pop: "0 4px 16px rgba(0,0,0,0.5)",
       },
     },

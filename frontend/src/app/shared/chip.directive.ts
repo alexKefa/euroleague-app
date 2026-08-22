@@ -10,7 +10,7 @@ import { Directive, HostBinding, Input } from "@angular/core";
 // an action button — apply `[appChip]="isActive"` to any two-or-more-state
 // toggle button.
 const BASE =
-  "font-display font-bold uppercase tracking-[0.03em] text-xs px-3 py-1.5 rounded-[5px] transition-colors disabled:opacity-40 disabled:pointer-events-none";
+  "font-display font-bold uppercase tracking-[0.03em] text-xs px-3 py-1.5 rounded-xl transition-colors disabled:opacity-40 disabled:pointer-events-none";
 
 @Directive({
   selector: "[appChip]",
