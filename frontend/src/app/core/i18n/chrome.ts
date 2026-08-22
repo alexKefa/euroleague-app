@@ -20,6 +20,11 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
   // shared/page-hint.ts — dismiss button, reused across every page hint.
   "hint.dismiss": { en: "Dismiss", el: "Απόρριψη" },
 
+  // shared/stat-legend.ts — the "what does this mean?" glossary popover,
+  // reused by roster and game-detail's stat tables.
+  "statLegend.title": { en: "What these mean", el: "Τι σημαίνουν" },
+  "statLegend.close": { en: "Close", el: "Κλείσιμο" },
+
   "profile.backToDashboard": { en: "Dashboard", el: "Πίνακας" },
   "profile.title": { en: "Profile", el: "Προφίλ" },
   "profile.email": { en: "Email", el: "Email" },

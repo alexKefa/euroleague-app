@@ -9,6 +9,7 @@ import { CollectibleCardComponent } from "../store/collectible-card";
 import { PackIconComponent } from "../../shared/pack-icon";
 import { PACK_VISUAL_CLASSES } from "../../shared/pack-visual";
 import { ButtonDirective } from "../../shared/button.directive";
+import { PageHintComponent } from "../../shared/page-hint";
 
 // Exit-animation duration for the outgoing card in the reveal sequence —
 // keep in sync with the .card-exit-anim animation-duration in packs.css.
@@ -19,7 +20,7 @@ type PackView = "selecting" | "revealing" | "summary";
 @Component({
   selector: "app-packs",
   standalone: true,
-  imports: [CommonModule, RouterLink, CollectibleCardComponent, PackIconComponent, ButtonDirective],
+  imports: [CommonModule, RouterLink, CollectibleCardComponent, PackIconComponent, ButtonDirective, PageHintComponent],
   templateUrl: "./packs.html",
   styleUrl: "./packs.css",
 })

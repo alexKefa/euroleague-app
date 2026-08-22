@@ -95,6 +95,12 @@ export class InventoryComponent implements OnInit {
       return true;
     });
   });
+  clearFilters(): void {
+    this.searchQuery.set("");
+    this.teamFilter.set(null);
+    this.tierFilter.set(null);
+  }
+
   readonly previewItem = computed(
     () => this.myCollectibles().find((c) => c.id === this.previewItemId()) ?? null
   );

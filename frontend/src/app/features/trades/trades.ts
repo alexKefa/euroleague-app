@@ -9,11 +9,12 @@ import { TradeableCard, MarketplaceCard, TradeOffer, TradeOfferStatus } from "..
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { ButtonDirective } from "../../shared/button.directive";
 import { ChipDirective } from "../../shared/chip.directive";
+import { PageHintComponent } from "../../shared/page-hint";
 
 @Component({
   selector: "app-trades",
   standalone: true,
-  imports: [CommonModule, RouterLink, CollectibleCardComponent, ButtonDirective, ChipDirective],
+  imports: [CommonModule, RouterLink, CollectibleCardComponent, ButtonDirective, ChipDirective, PageHintComponent],
   templateUrl: "./trades.html",
 })
 export class TradesComponent implements OnInit {

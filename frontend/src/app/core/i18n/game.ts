@@ -21,6 +21,16 @@ export const gameTranslations: Record<string, Record<Lang, string>> = {
   "game.defRating": { en: "Def Rating", el: "Αμυντική Αξιολ." },
   "game.boxScore": { en: "Box Score", el: "Στατιστικά Αγώνα" },
   "game.playerColumn": { en: "Player", el: "Παίκτης" },
+
+  // Glossary entries for shared/stat-legend.ts, box-score columns.
+  "game.legendMIN": { en: "Minutes played", el: "Λεπτά συμμετοχής" },
+  "game.legendPTS": { en: "Points", el: "Πόντοι" },
+  "game.legendREB": { en: "Rebounds", el: "Ριμπάουντ" },
+  "game.legendAST": { en: "Assists", el: "Ασίστ" },
+  "game.legendPIR": {
+    en: "Performance Index Rating — EuroLeague's overall efficiency stat",
+    el: "Performance Index Rating — ο συνολικός δείκτης απόδοσης της EuroLeague",
+  },
   "game.seasonNotStarted": {
     en: "hasn't started yet — stats below are from",
     el: "δεν έχει ξεκινήσει ακόμα — τα στατιστικά παρακάτω είναι από",

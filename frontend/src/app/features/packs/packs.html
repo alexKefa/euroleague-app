@@ -19,6 +19,8 @@
   </div>
   <p class="text-sm text-muted mb-6">{{ i18n.t('packs.subtitle') }}</p>
 
+  <app-page-hint hintId="packs" icon="packs" class="block text-left">{{ i18n.t('packs.hint') }}</app-page-hint>
+
   @if (loading()) {
     <div class="space-y-3">
       @for (i of [1, 2, 3]; track i) {

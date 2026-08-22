@@ -16,7 +16,8 @@ export const inventoryTranslations: Record<string, Record<Lang, string>> = {
   "inventory.tierRare": { en: "Rare", el: "Σπάνια" },
   "inventory.tierLegendary": { en: "Legendary", el: "Θρυλική" },
   "inventory.previewAriaPrefix": { en: "Preview", el: "Προεπισκόπηση" },
-  "inventory.noMatch": { en: "No cards match that rarity.", el: "Καμία κάρτα δεν αντιστοιχεί σε αυτή τη σπανιότητα." },
+  "inventory.noMatch": { en: "No cards match your filters.", el: "Καμία κάρτα δεν ταιριάζει με τα φίλτρα σου." },
+  "inventory.clearFilters": { en: "Clear filters", el: "Καθαρισμός φίλτρων" },
 
   "inventory.hintPrefix": { en: "Your card collection — open", el: "Η συλλογή σου με κάρτες — άνοιξε" },
   "inventory.hintMiddle": {

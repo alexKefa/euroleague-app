@@ -36,7 +36,7 @@
       @for (tile of hubTiles; track tile.path) {
         <a
           [routerLink]="tile.path"
-          class="inline-flex items-center justify-center gap-1.5 rounded-2xl font-display font-bold uppercase tracking-[0.03em] text-sm px-5 py-2.5 bg-card border border-line text-ink shadow-card transition-all hover:border-[#3a3a3b] hover:shadow-pop"
+          class="inline-flex items-center justify-center gap-1.5 rounded-2xl font-display font-bold text-sm px-5 py-2.5 bg-card border border-line text-ink shadow-card transition-all hover:border-[#3a3a3b] hover:shadow-pop"
         >
           <app-nav-icon [name]="tile.icon" [class]="tile.iconClass" />{{ i18n.t(tile.labelKey) }}
         </a>
@@ -111,7 +111,10 @@
           ></app-collectible-card>
         </button>
       } @empty {
-        <p class="text-sm text-muted col-span-full">{{ i18n.t('inventory.noMatch') }}</p>
+        <p class="text-sm text-muted col-span-full">
+          {{ i18n.t('inventory.noMatch') }}
+          <button type="button" (click)="clearFilters()" class="text-highlight font-semibold">{{ i18n.t('inventory.clearFilters') }}</button>
+        </p>
       }
     </div>
   }

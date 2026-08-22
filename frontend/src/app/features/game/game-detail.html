@@ -81,6 +81,7 @@
           @if (isLive()) {
             <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
           }
+          <app-stat-legend [entries]="boxScoreLegend()" />
         </p>
 
         @for (side of [{ label: d.game.homeTeam.name, lines: d.boxscore.home }, { label: d.game.awayTeam.name, lines: d.boxscore.away }]; track side.label) {

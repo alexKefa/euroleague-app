@@ -85,7 +85,7 @@
           </button>
 
           @if (isUnlocked(item)) {
-            <span class="text-[12px] font-bold text-emerald-500 uppercase tracking-wide">{{ i18n.t('store.unlocked') }}</span>
+            <span class="text-[12px] font-bold text-emerald-500">{{ i18n.t('store.unlocked') }}</span>
           } @else if (item.tier === "legendary") {
             <a
               routerLink="/wheel"
@@ -103,6 +103,9 @@
       } @empty {
         <p class="text-sm text-muted col-span-full">
           {{ collectibles().length === 0 ? i18n.t('store.emptyStore') : i18n.t('store.emptySearch') }}
+          @if (collectibles().length > 0) {
+            <button type="button" (click)="clearFilters()" class="text-highlight font-semibold">{{ i18n.t('store.clearFilters') }}</button>
+          }
         </p>
       }
     </div>
@@ -124,7 +127,7 @@
         <button
           (click)="setImage(item, imageInput.value)"
           [disabled]="imageSavingId() === item.id"
-          class="font-display font-bold uppercase tracking-[0.03em] text-xs px-3 py-1.5 rounded-xl bg-white/15 text-white hover:bg-highlight transition-colors disabled:opacity-40"
+          class="font-display font-bold text-xs px-3 py-1.5 rounded-xl bg-white/15 text-white hover:bg-highlight transition-colors disabled:opacity-40"
         >
           {{ imageSavingId() === item.id ? "…" : i18n.t('store.setImage') }}
         </button>

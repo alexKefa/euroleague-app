@@ -25,6 +25,7 @@ export const storeTranslations: Record<string, Record<Lang, string>> = {
   "store.getFromPack": { en: "Get from a pack →", el: "Απόκτησέ την από πακέτο →" },
   "store.emptyStore": { en: "Nothing in the store yet.", el: "Δεν υπάρχει ακόμα τίποτα στο κατάστημα." },
   "store.emptySearch": { en: "No cards match your search.", el: "Καμία κάρτα δεν ταιριάζει με την αναζήτησή σου." },
+  "store.clearFilters": { en: "Clear filters", el: "Καθαρισμός φίλτρων" },
   "store.namePlaceholder": { en: "Player / item name", el: "Όνομα παίκτη / αντικειμένου" },
   "store.teamPlaceholder": { en: "Team", el: "Ομάδα" },
   "store.pointsPlaceholder": { en: "Points", el: "Πόντοι" },
@@ -52,6 +53,10 @@ export const storeTranslations: Record<string, Record<Lang, string>> = {
   "wheel.rarePackWon": { en: "Rare pack!", el: "Σπάνιο πακέτο!" },
   "wheel.openInPacks": { en: "Open it anytime from the Packs page.", el: "Άνοιξέ το όποτε θες από τη σελίδα Πακέτα." },
   "wheel.goToPacks": { en: "Go to Packs", el: "Πήγαινε στα Πακέτα" },
+  "wheel.hint": {
+    en: "Your tier is locked in the moment you spin, but the pack stays unopened — head to Packs afterward, under \"My Packs\", to reveal what's inside.",
+    el: "Το επίπεδο κλειδώνει τη στιγμή του τζάμπολ, αλλά το πακέτο μένει κλειστό — πήγαινε μετά στα Πακέτα, στην ενότητα \"Τα Πακέτα μου\", για να δεις τι κρύβει.",
+  },
 
   "packs.title": { en: "Packs", el: "Πακέτα" },
   "packs.pointsBadge": { en: "PTS", el: "ΠΟΝ" },
@@ -60,6 +65,10 @@ export const storeTranslations: Record<string, Record<Lang, string>> = {
     el: "Ξόδεψε πόντους σε ένα πακέτο για μια σειρά τυχαίων καρτών — τα διπλά μπορούν να πουληθούν επιτόπου.",
   },
   "packs.loginToOpen": { en: "to open packs with your points.", el: "για να ανοίξεις πακέτα με τους πόντους σου." },
+  "packs.hint": {
+    en: "Buying a pack reveals its cards right away. Pull one you already own and it's auto-sold on the spot for half its point cost — nothing goes to waste.",
+    el: "Η αγορά πακέτου αποκαλύπτει τις κάρτες αμέσως. Αν βγει κάρτα που ήδη έχεις, πουλιέται αυτόματα για τους μισούς πόντους της — τίποτα δεν πάει χαμένο.",
+  },
   "packs.card": { en: "Card", el: "Κάρτα" },
   "packs.of": { en: "of", el: "από" },
   "packs.tapToContinue": { en: "Tap for the next card", el: "Πάτησε για την επόμενη κάρτα" },

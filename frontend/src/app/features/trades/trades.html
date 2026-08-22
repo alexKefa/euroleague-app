@@ -7,6 +7,8 @@
 
   <h1 class="font-display text-2xl tracking-wide mt-4 mb-5">{{ i18n.t('trades.title') }}</h1>
 
+  <app-page-hint hintId="trades" icon="trade">{{ i18n.t('trades.hint') }}</app-page-hint>
+
   @if (loading()) {
     <div class="animate-pulse h-40 bg-line rounded-lg mb-5"></div>
   }
@@ -178,7 +180,7 @@
                 {{ i18n.t('trades.cancel') }}
               </button>
             } @else {
-              <span class="text-[12px] font-bold text-muted uppercase tracking-wide shrink-0">{{ statusLabel(offer.status) }}</span>
+              <span class="text-[12px] font-bold text-muted shrink-0">{{ statusLabel(offer.status) }}</span>
             }
           </div>
         } @empty {

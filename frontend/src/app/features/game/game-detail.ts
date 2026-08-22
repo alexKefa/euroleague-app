@@ -7,6 +7,7 @@ import { EventsService } from "../../core/events.service";
 import { GameDetail, GameBoxscoreLine, PlayerDetail } from "../../core/models";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
+import { StatLegendComponent, StatLegendEntry } from "../../shared/stat-legend";
 
 interface TeamTotals {
   points: number;
@@ -38,7 +39,7 @@ function totalsFor(lines: GameBoxscoreLine[]): TeamTotals {
 @Component({
   selector: "app-game-detail",
   standalone: true,
-  imports: [CommonModule, RouterLink, NavIconComponent, RetryImgDirective],
+  imports: [CommonModule, RouterLink, NavIconComponent, RetryImgDirective, StatLegendComponent],
   templateUrl: "./game-detail.html",
 })
 export class GameDetailComponent implements OnInit {
@@ -63,6 +64,18 @@ export class GameDetailComponent implements OnInit {
   // heuristic (see realtime/liveScoreSimulator.ts) — used to badge them in
   // the top performers / box score lists below while the game is live.
   readonly onFireIds = signal<string[]>([]);
+
+  private readonly boxScoreLegendKeys: { code: string; key: string }[] = [
+    { code: "MIN", key: "game.legendMIN" },
+    { code: "PTS", key: "game.legendPTS" },
+    { code: "REB", key: "game.legendREB" },
+    { code: "AST", key: "game.legendAST" },
+    { code: "PIR", key: "game.legendPIR" },
+  ];
+
+  readonly boxScoreLegend = computed<StatLegendEntry[]>(() =>
+    this.boxScoreLegendKeys.map((k) => ({ code: k.code, label: this.i18n.t(k.key) }))
+  );
 
   readonly isFinal = computed(() => this.detail()?.game.status === "final");
   readonly isLive = computed(() => this.detail()?.game.status === "live");

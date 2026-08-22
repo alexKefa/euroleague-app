@@ -10,6 +10,8 @@
     {{ i18n.t('wheel.subtitle') }}
   </p>
 
+  <app-page-hint hintId="wheel" icon="wheel" class="block text-left">{{ i18n.t('wheel.hint') }}</app-page-hint>
+
   @if (loading()) {
     <div class="animate-pulse h-48 bg-line rounded-lg"></div>
   }

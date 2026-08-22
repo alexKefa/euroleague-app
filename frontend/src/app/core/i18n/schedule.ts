@@ -11,6 +11,11 @@ export const scheduleTranslations: Record<string, Record<Lang, string>> = {
     en: "That team doesn't play this round.",
     el: "Αυτή η ομάδα δεν αγωνίζεται σε αυτόν τον γύρο.",
   },
+  "schedule.clearTeamFilter": { en: "Clear team filter", el: "Καθαρισμός φίλτρου ομάδας" },
+  "schedule.hint": {
+    en: "Step through rounds with the arrows, or filter to one team. Tap any game for the full box score — live games update automatically.",
+    el: "Μετακινήσου στους γύρους με τα βέλη ή φιλτράρισε ανά ομάδα. Πάτησε σε έναν αγώνα για τα πλήρη στατιστικά — οι ζωντανοί αγώνες ενημερώνονται αυτόματα.",
+  },
   "schedule.noGamesRound": {
     en: "No games scheduled for this round.",
     el: "Δεν έχουν προγραμματιστεί αγώνες για αυτόν τον γύρο.",

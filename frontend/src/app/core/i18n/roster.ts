@@ -40,4 +40,35 @@ export const rosterTranslations: Record<string, Record<Lang, string>> = {
   "roster.axisOffense": { en: "Offense", el: "Επίθεση" },
   "roster.axisDefense": { en: "Defense", el: "Άμυνα" },
   "roster.axisRebounding": { en: "Rebounding", el: "Ριμπάουντ" },
+
+  // Glossary entries for shared/stat-legend.ts — one full sentence per
+  // column abbreviation, shown in the "what these mean" popover.
+  "roster.legendGP": { en: "Games played", el: "Αγώνες που έπαιξε" },
+  "roster.legendMIN": { en: "Minutes per game", el: "Λεπτά ανά αγώνα" },
+  "roster.legendPPG": { en: "Points per game", el: "Πόντοι ανά αγώνα" },
+  "roster.legendRPG": { en: "Rebounds per game", el: "Ριμπάουντ ανά αγώνα" },
+  "roster.legendAPG": { en: "Assists per game", el: "Ασίστ ανά αγώνα" },
+  "roster.legendSPG": { en: "Steals per game", el: "Κλεψίματα ανά αγώνα" },
+  "roster.legendPIR": {
+    en: "Performance Index Rating — EuroLeague's overall efficiency stat",
+    el: "Performance Index Rating — ο συνολικός δείκτης απόδοσης της EuroLeague",
+  },
+  "roster.legendTS": {
+    en: "True shooting % — scoring efficiency counting free throws and threes",
+    el: "True shooting % — επιθετική απόδοση με βολές και τρίποντα",
+  },
+  "roster.legendEFG": {
+    en: "Effective field goal % — weights three-pointers appropriately",
+    el: "Effective field goal % — δίνει σωστή βαρύτητα στα τρίποντα",
+  },
+  "roster.legendREB": {
+    en: "Share of available rebounds grabbed while on court",
+    el: "Ποσοστό διαθέσιμων ριμπάουντ που μάζεψε όσο ήταν στο παρκέ",
+  },
+  "roster.legendAST": {
+    en: "Share of teammates' baskets assisted while on court",
+    el: "Ποσοστό καλαθιών συμπαικτών που ασίσταρε όσο ήταν στο παρκέ",
+  },
+  "roster.legendTOV": { en: "Turnovers per 100 plays", el: "Λάθη ανά 100 φάσεις" },
+  "roster.legendPOSS": { en: "Possessions per game", el: "Κατοχές ανά αγώνα" },
 };

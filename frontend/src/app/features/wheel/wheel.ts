@@ -8,6 +8,7 @@ import { CollectibleTier, SpinResult } from "../../core/models";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { PACK_VISUAL_CLASSES } from "../../shared/pack-visual";
 import { ButtonDirective } from "../../shared/button.directive";
+import { PageHintComponent } from "../../shared/page-hint";
 
 // Matches the CSS transition-duration on the wheel graphic — the reveal is
 // deliberately held back until the spin animation actually finishes, even
@@ -17,7 +18,7 @@ const SPIN_ANIMATION_MS = 1800;
 @Component({
   selector: "app-wheel",
   standalone: true,
-  imports: [CommonModule, RouterLink, NavIconComponent, ButtonDirective],
+  imports: [CommonModule, RouterLink, NavIconComponent, ButtonDirective, PageHintComponent],
   templateUrl: "./wheel.html",
   styleUrl: "./wheel.css",
 })

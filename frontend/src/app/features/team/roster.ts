@@ -8,6 +8,7 @@ import { I18nService } from "../../core/i18n.service";
 import { Team, RosterEntry, Game, GameTeamSummary, StandingsRow } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ChipDirective } from "../../shared/chip.directive";
+import { StatLegendComponent, StatLegendEntry } from "../../shared/stat-legend";
 
 // Plain box-score terms instead of advanced-stat proxies (eFG%-based
 // "offRating"/"defRating", assist ratio for "playmaking") — those didn't
@@ -28,7 +29,7 @@ type ComparisonAxis = (typeof COMPARISON_AXES)[number];
 @Component({
   selector: "app-team-roster",
   standalone: true,
-  imports: [CommonModule, RouterLink, RetryImgDirective, ChipDirective],
+  imports: [CommonModule, RouterLink, RetryImgDirective, ChipDirective, StatLegendComponent],
   templateUrl: "./roster.html",
 })
 export class TeamRosterComponent implements OnInit {
@@ -49,6 +50,34 @@ export class TeamRosterComponent implements OnInit {
 
   readonly standings = signal<StandingsRow[]>([]);
   readonly statsView = signal<"traditional" | "advanced">("traditional");
+
+  // {code, key} pairs, not translated strings — the label text is resolved
+  // inside the computed() below so it stays reactive to i18n.lang (a plain
+  // field initializer would freeze the label in whatever language was
+  // active when the component was constructed).
+  private readonly traditionalLegendKeys: { code: string; key: string }[] = [
+    { code: "GP", key: "roster.legendGP" },
+    { code: "MIN", key: "roster.legendMIN" },
+    { code: "PPG", key: "roster.legendPPG" },
+    { code: "RPG", key: "roster.legendRPG" },
+    { code: "APG", key: "roster.legendAPG" },
+    { code: "SPG", key: "roster.legendSPG" },
+    { code: "PIR", key: "roster.legendPIR" },
+  ];
+
+  private readonly advancedLegendKeys: { code: string; key: string }[] = [
+    { code: "TS%", key: "roster.legendTS" },
+    { code: "eFG%", key: "roster.legendEFG" },
+    { code: "REB%", key: "roster.legendREB" },
+    { code: "AST%", key: "roster.legendAST" },
+    { code: "TOV%", key: "roster.legendTOV" },
+    { code: "POSS", key: "roster.legendPOSS" },
+  ];
+
+  readonly statLegendEntries = computed<StatLegendEntry[]>(() => {
+    const keys = this.statsView() === "traditional" ? this.traditionalLegendKeys : this.advancedLegendKeys;
+    return keys.map((k) => ({ code: k.code, label: this.i18n.t(k.key) }));
+  });
 
   readonly teamStandingsRow = computed(
     () => this.standings().find((r) => r.team.id === this.team()?.id) ?? null

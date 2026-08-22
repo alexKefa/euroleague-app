@@ -104,7 +104,10 @@
 
     <div class="bg-card rounded-2xl border border-line shadow-card overflow-hidden">
       <div class="flex justify-between items-center px-4 pt-4">
-        <p class="text-[13px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('roster.title') }}</p>
+        <span class="flex items-center gap-1.5">
+          <p class="text-[13px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('roster.title') }}</p>
+          <app-stat-legend [entries]="statLegendEntries()" />
+        </span>
         <div class="flex gap-1">
           <button type="button" (click)="statsView.set('traditional')" [appChip]="statsView() === 'traditional'">
             {{ i18n.t('roster.traditional') }}

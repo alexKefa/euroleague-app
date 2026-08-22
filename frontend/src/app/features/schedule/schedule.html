@@ -4,6 +4,8 @@
     <span class="text-[11px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('schedule.seasonLabel') }}</span>
   </div>
 
+  <app-page-hint hintId="schedule" icon="schedule">{{ i18n.t('schedule.hint') }}</app-page-hint>
+
   <div class="flex items-center justify-between gap-2 mb-4">
     <button
       type="button"
@@ -144,6 +146,9 @@
       } @empty {
         <p class="text-sm text-muted text-center py-8">
           {{ teamFilter() ? i18n.t('schedule.noGamesForTeam') : i18n.t('schedule.noGamesRound') }}
+          @if (teamFilter()) {
+            <button type="button" (click)="teamFilter.set(null)" class="text-highlight font-semibold">{{ i18n.t('schedule.clearTeamFilter') }}</button>
+          }
         </p>
       }
     </div>

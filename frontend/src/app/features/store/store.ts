@@ -74,6 +74,12 @@ export class StoreComponent implements OnInit {
       .sort((a, b) => Number(ownedIds.has(b.id)) - Number(ownedIds.has(a.id)));
   });
 
+  clearFilters(): void {
+    this.searchQuery.set("");
+    this.teamFilter.set(null);
+    this.tierFilter.set(null);
+  }
+
   readonly imageSavingId = signal<string | null>(null);
   readonly imageErrors = signal<Record<string, string>>({});
 

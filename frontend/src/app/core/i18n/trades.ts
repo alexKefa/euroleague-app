@@ -3,6 +3,10 @@ import { Lang } from "./lang";
 export const tradesTranslations: Record<string, Record<Lang, string>> = {
   "trades.backToCards": { en: "My Cards", el: "Οι Κάρτες μου" },
   "trades.title": { en: "Trades", el: "Ανταλλαγές" },
+  "trades.hint": {
+    en: "Mark a card \"tradeable\" below to list it, then browse the marketplace for a card you want and propose a swap — the other collector has to accept before it's final.",
+    el: "Σήμανε μια κάρτα ως \"για ανταλλαγή\" για να την καταχωρίσεις, μετά ψάξε στην αγορά για μια κάρτα που θέλεις και πρότεινε ανταλλαγή — ο άλλος συλλέκτης πρέπει να την αποδεχτεί για να οριστικοποιηθεί.",
+  },
   "trades.logInLinkText": { en: "Log in", el: "Σύνδεση" },
   "trades.loginToTradeSuffix": {
     en: "to trade legendary cards with other collectors.",

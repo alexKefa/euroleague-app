@@ -5,12 +5,12 @@ import { Directive, HostBinding, Input } from "@angular/core";
 // each hand-rolled independently (tier filters, leader-category, roster's
 // traditional/advanced toggle, the language switch, trades' "list for
 // trade" toggle) as a rounded-full mono pill, so none of them picked up
-// ButtonDirective's move to Scoreboard's flat-rectangle uppercase-Rajdhani
-// language. This is that same language for a selectable chip rather than
-// an action button — apply `[appChip]="isActive"` to any two-or-more-state
-// toggle button.
+// ButtonDirective's move to Scoreboard's flat-rectangle Rajdhani language
+// (sentence case, not uppercase — all-caps read as cheap). This is that
+// same language for a selectable chip rather than an action button — apply
+// `[appChip]="isActive"` to any two-or-more-state toggle button.
 const BASE =
-  "font-display font-bold uppercase tracking-[0.03em] text-xs px-3 py-1.5 rounded-xl transition-colors disabled:opacity-40 disabled:pointer-events-none";
+  "font-display font-bold text-xs px-3 py-1.5 rounded-xl transition-colors disabled:opacity-40 disabled:pointer-events-none";
 
 @Directive({
   selector: "[appChip]",

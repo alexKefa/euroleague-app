@@ -7,12 +7,14 @@ export type ButtonSize = "sm" | "md";
 // "Court Line" gradient pill (picked over three other directions via a
 // side-by-side comparison — see the "Button Directions" design canvas).
 // Flat rectangles instead of pills, a hard bottom edge on primary instead of
-// a soft glow, uppercase Rajdhani (the app's display font) instead of mono —
-// reads like a stat panel rather than a rounded chip. An attribute directive
+// a soft glow, Rajdhani (the app's display font) instead of mono — reads
+// like a stat panel rather than a rounded chip. Sentence case, not
+// uppercase — all-caps across every button in the app read as cheap. An
+// attribute directive
 // rather than a wrapping component so the host stays a real <button>/<a> —
 // routerLink, type="submit", [disabled], (click) all keep working
 // unchanged; only the class list is swapped in.
-const BASE = "inline-flex items-center justify-center gap-1.5 rounded-2xl font-display font-bold uppercase tracking-[0.03em] transition-all disabled:opacity-35 disabled:pointer-events-none";
+const BASE = "inline-flex items-center justify-center gap-1.5 rounded-2xl font-display font-bold transition-all disabled:opacity-35 disabled:pointer-events-none";
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:

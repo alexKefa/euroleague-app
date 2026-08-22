@@ -171,13 +171,13 @@
                   <p class="font-mono text-muted text-[12px] mt-0.5">{{ p.tipoffAt | date: "MMM d, HH:mm" }}</p>
                 </div>
                 @if (p.isCorrect === null) {
-                  <span class="text-[12px] font-bold text-muted uppercase tracking-wide">{{ i18n.t('predictions.pending') }}</span>
+                  <span class="text-[12px] font-bold text-muted">{{ i18n.t('predictions.pending') }}</span>
                 }
                 @if (p.isCorrect === true) {
-                  <span class="text-[12px] font-bold text-emerald-500 uppercase tracking-wide">{{ i18n.t('predictions.correct') }}</span>
+                  <span class="text-[12px] font-bold text-emerald-500">{{ i18n.t('predictions.correct') }}</span>
                 }
                 @if (p.isCorrect === false) {
-                  <span class="text-[12px] font-bold text-red-500 uppercase tracking-wide">{{ i18n.t('predictions.wrong') }}</span>
+                  <span class="text-[12px] font-bold text-red-500">{{ i18n.t('predictions.wrong') }}</span>
                 }
               </div>
             } @empty {
