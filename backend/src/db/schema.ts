@@ -268,6 +268,23 @@ export const userCollectibles = pgTable(
   })
 );
 
+// Pack pity timer: consecutive-duplicate streak per tier (common/rare —
+// legendary deliberately excluded, it should always stay pure luck). Reset
+// to 0 whenever a pack roll of that tier lands a genuinely new card;
+// incremented on a duplicate. Once a streak reaches services/packs.ts's
+// PITY_THRESHOLD, the next roll of that tier is forced to a card the user
+// doesn't yet own instead of a fully random pick from the tier. One row
+// per user, upserted in the same transaction as the rest of a pack-opening
+// outcome (routes/packs.ts) so it can never drift out of sync with what
+// was actually rolled.
+export const pityCounters = pgTable("pity_counters", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id),
+  commonStreak: integer("common_streak").default(0).notNull(),
+  rareStreak: integer("rare_streak").default(0).notNull(),
+});
+
 // One row per spin attempt — a ledger, same style as point_adjustments,
 // rather than a stored "next spin at" balance. Eligibility is computed on
 // read by comparing now() to the latest spunAt (see services/cards.ts).

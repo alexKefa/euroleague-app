@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { userCollectibles, pointAdjustments, packOpenings, packOpeningResults, ownedPacks } from "../db/schema.js";
+import { userCollectibles, pointAdjustments, packOpenings, packOpeningResults, ownedPacks, pityCounters } from "../db/schema.js";
 import { requireAuth } from "../auth/middleware.js";
 import { getUserPoints } from "../services/points.js";
-import { PACKS, PackType, RolledSlot, rollPackForUser } from "../services/packs.js";
+import { PACKS, PackType, RolledSlot, PityState, rollPackForUser } from "../services/packs.js";
 
 export const packsRouter = Router();
 
@@ -52,8 +52,9 @@ packsRouter.post("/:type/open", requireAuth, async (req, res) => {
     }
 
     let slots: RolledSlot[];
+    let pity: PityState;
     try {
-      slots = await rollPackForUser(req.userId!, packType);
+      ({ slots, pity } = await rollPackForUser(req.userId!, packType));
     } catch (err) {
       res.status(500).json({ error: (err as Error).message });
       return;
@@ -82,6 +83,14 @@ packsRouter.post("/:type/open", requireAuth, async (req, res) => {
           })),
       ];
       await tx.insert(pointAdjustments).values(pointAdjustmentRows);
+
+      await tx
+        .insert(pityCounters)
+        .values({ userId: req.userId!, commonStreak: pity.common, rareStreak: pity.rare })
+        .onConflictDoUpdate({
+          target: pityCounters.userId,
+          set: { commonStreak: pity.common, rareStreak: pity.rare },
+        });
 
       if (newlyOwnedIds.size > 0) {
         await tx
@@ -166,8 +175,9 @@ packsRouter.post("/owned/:id/open", requireAuth, async (req, res) => {
 
     const packType = row.packType as PackType;
     let slots: RolledSlot[];
+    let pity: PityState;
     try {
-      slots = await rollPackForUser(req.userId!, packType);
+      ({ slots, pity } = await rollPackForUser(req.userId!, packType));
     } catch (err) {
       res.status(500).json({ error: (err as Error).message });
       return;
@@ -179,7 +189,9 @@ packsRouter.post("/owned/:id/open", requireAuth, async (req, res) => {
       // Claim-first, same pattern as roundRewards/referralRewardGranted —
       // whichever request's UPDATE actually flips a null->timestamp row
       // wins; a second concurrent open attempt sees 0 rows and bails below
-      // instead of rolling (and granting) a second set of cards.
+      // instead of rolling (and granting) a second set of cards. The pity
+      // streak from this roll is discarded along with everything else in
+      // that case — it was never actually "used".
       const claimed = await tx
         .update(ownedPacks)
         .set({ openedAt: new Date() })
@@ -188,6 +200,14 @@ packsRouter.post("/owned/:id/open", requireAuth, async (req, res) => {
       if (claimed.length === 0) return null;
 
       const [opening] = await tx.insert(packOpenings).values({ userId: req.userId!, packType, pointsCost: 0 }).returning();
+
+      await tx
+        .insert(pityCounters)
+        .values({ userId: req.userId!, commonStreak: pity.common, rareStreak: pity.rare })
+        .onConflictDoUpdate({
+          target: pityCounters.userId,
+          set: { commonStreak: pity.common, rareStreak: pity.rare },
+        });
 
       const dupeSaleRows = slots
         .map((s, i) => ({ slot: s, sellValue: sellValues[i] }))
