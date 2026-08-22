@@ -3,6 +3,7 @@ import { eq, and, inArray, isNotNull, asc, desc, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "../db/client.js";
 import { teams, games, players, playerGameStats, playerSeasonStats, teamSeasonStats } from "../db/schema.js";
+import { requireAuth, requireAdmin } from "../auth/middleware.js";
 
 export const gamesRouter = Router();
 
@@ -175,6 +176,7 @@ gamesRouter.get("/:id", async (req, res) => {
         tipoffAt: games.tipoffAt,
         homeScore: games.homeScore,
         awayScore: games.awayScore,
+        highlightVideoId: games.highlightVideoId,
         homeTeam: {
           id: homeTeam.id,
           code: homeTeam.code,
@@ -310,5 +312,39 @@ gamesRouter.get("/:id", async (req, res) => {
   } catch (err) {
     console.error("GET /api/games/:id failed:", err);
     res.status(500).json({ error: "Failed to load game" });
+  }
+});
+
+// Admin-set for now, same pattern as collectibles' PATCH /:id imageUrl —
+// there's no sync source that maps a game to its official highlight video
+// yet, so this is a manual stopgap.
+gamesRouter.patch("/:id/highlight", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { highlightVideoId } = req.body ?? {};
+    if (highlightVideoId !== undefined && typeof highlightVideoId !== "string") {
+      res.status(400).json({ error: "highlightVideoId must be a string" });
+      return;
+    }
+    const trimmed = highlightVideoId?.trim() || null;
+    // Column is varchar(32) — a real YouTube video ID is 11 chars, this just
+    // guards against a bad paste (a full URL, say) crashing the request with
+    // a raw Postgres "value too long" error instead of a clean 400.
+    if (trimmed && trimmed.length > 32) {
+      res.status(400).json({ error: "highlightVideoId is too long — paste just the video ID, not a full URL" });
+      return;
+    }
+
+    const [game] = await db.update(games).set({ highlightVideoId: trimmed }).where(eq(games.id, id)).returning();
+
+    if (!game) {
+      res.status(404).json({ error: "Game not found" });
+      return;
+    }
+
+    res.json(game);
+  } catch (err) {
+    console.error("PATCH /api/games/:id/highlight failed:", err);
+    res.status(500).json({ error: "Failed to save highlight" });
   }
 });

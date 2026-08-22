@@ -149,6 +149,17 @@ export class ApiService {
     return this.http.patch(`${API_BASE_URL}/collectibles/${id}`, { imageUrl });
   }
 
+  updateGameHighlight(id: string, highlightVideoId: string): Observable<unknown> {
+    return this.http.patch(`${API_BASE_URL}/games/${id}/highlight`, { highlightVideoId });
+  }
+
+  purchaseCollectible(id: string): Observable<{ collectible: Collectible; pointsSpent: number }> {
+    return this.http.post<{ collectible: Collectible; pointsSpent: number }>(
+      `${API_BASE_URL}/collectibles/${id}/purchase`,
+      {}
+    );
+  }
+
   getSpinStatus(): Observable<SpinStatus> {
     return this.http.get<SpinStatus>(`${API_BASE_URL}/spin`);
   }

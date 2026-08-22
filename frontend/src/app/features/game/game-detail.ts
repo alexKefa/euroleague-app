@@ -1,9 +1,11 @@
 import { Component, OnInit, HostListener, inject, signal, computed, effect } from "@angular/core";
 import { CommonModule } from "@angular/common";
+import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
 import { ActivatedRoute, RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
 import { EventsService } from "../../core/events.service";
+import { AuthService } from "../../core/auth.service";
 import { GameDetail, GameBoxscoreLine, PlayerDetail } from "../../core/models";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
@@ -47,6 +49,36 @@ export class GameDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   protected i18n = inject(I18nService);
   private events = inject(EventsService);
+  protected auth = inject(AuthService);
+  private sanitizer = inject(DomSanitizer);
+
+  // Experimental: admin-set YouTube highlight embed. Mirrors store.ts's
+  // imageSavingId/imageErrors pattern, simplified to a single game instead
+  // of a per-id map since this page only ever shows one.
+  readonly highlightSaving = signal(false);
+  readonly highlightError = signal<string | null>(null);
+
+  highlightEmbedUrl(videoId: string): SafeResourceUrl {
+    return this.sanitizer.bypassSecurityTrustResourceUrl(`https://www.youtube-nocookie.com/embed/${videoId}`);
+  }
+
+  setHighlight(videoId: string): void {
+    const current = this.detail();
+    if (!current || this.highlightSaving()) return;
+    this.highlightSaving.set(true);
+    this.highlightError.set(null);
+
+    this.api.updateGameHighlight(current.game.id, videoId.trim()).subscribe({
+      next: () => {
+        this.highlightSaving.set(false);
+        this.detail.set({ ...current, game: { ...current.game, highlightVideoId: videoId.trim() || null } });
+      },
+      error: (err) => {
+        this.highlightSaving.set(false);
+        this.highlightError.set(err?.error?.error ?? "Failed to save — is the backend running?");
+      },
+    });
+  }
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);

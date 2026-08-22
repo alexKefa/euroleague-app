@@ -69,6 +69,11 @@ export const games = pgTable(
     status: varchar("status", { length: 20 }).default("scheduled").notNull(), // scheduled | live | final
     homeScore: integer("home_score"),
     awayScore: integer("away_score"),
+    // YouTube video ID (not a full URL) for this game's official highlight
+    // reel, e.g. "MDWcq_KCkzY" — admin-set for now (PATCH /api/games/:id/
+    // highlight, mirrors collectibles' admin imageUrl pattern) since there's
+    // no sync source that maps a game to its highlight video yet.
+    highlightVideoId: varchar("highlight_video_id", { length: 32 }),
   },
   (table) => ({
     // EuroLeague reuses game codes starting from 1 every season — game_code

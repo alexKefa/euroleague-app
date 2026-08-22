@@ -134,6 +134,7 @@ export interface Game {
   awayScore: number | null;
   homeTeam: GameTeamSummary;
   awayTeam: GameTeamSummary;
+  highlightVideoId?: string | null;
 }
 
 export interface RoundsInfo {
@@ -235,6 +236,10 @@ export interface Collectible {
   name: string;
   tier: CollectibleTier;
   pointsCost: number;
+  // Direct-purchase price — null for legendary (never directly purchasable,
+  // wheel/packs/perfect-round only). Deliberately above pointsCost's book
+  // value for common/rare, see backend/src/routes/collectibles.ts.
+  buyPrice: number | null;
   imageUrl: string | null;
   team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
 }

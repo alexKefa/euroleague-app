@@ -20,6 +20,8 @@ export const gameTranslations: Record<string, Record<Lang, string>> = {
   "game.offRating": { en: "Off Rating", el: "Επιθετική Αξιολ." },
   "game.defRating": { en: "Def Rating", el: "Αμυντική Αξιολ." },
   "game.boxScore": { en: "Box Score", el: "Στατιστικά Αγώνα" },
+  "game.highlights": { en: "Highlights", el: "Στιγμιότυπα" },
+  "game.setHighlight": { en: "Set", el: "Ορισμός" },
   "game.playerColumn": { en: "Player", el: "Παίκτης" },
 
   // Glossary entries for shared/stat-legend.ts, box-score columns.
