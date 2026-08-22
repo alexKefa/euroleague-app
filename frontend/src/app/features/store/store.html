@@ -93,11 +93,32 @@
               >{{ i18n.t('store.winOnWheel') }}</a
             >
           } @else {
-            <a
-              routerLink="/packs"
-              class="text-[12px] font-bold text-muted uppercase tracking-wide hover:text-accent2 transition-colors"
-              >{{ i18n.t('store.getFromPack') }}</a
-            >
+            <div class="flex flex-col items-center gap-1 w-full">
+              @if (auth.isAuthenticated() && item.buyPrice !== null) {
+                <button
+                  type="button"
+                  (click)="buy(item)"
+                  [disabled]="!canAfford(item) || purchasingId() === item.id"
+                  appButton="outline"
+                  appButtonSize="sm"
+                  class="w-full"
+                >
+                  @if (purchasingId() === item.id) {
+                    <app-ball-spinner [size]="14" />
+                  } @else {
+                    {{ i18n.t('store.buyFor') + " " + item.buyPrice + " " + i18n.t('store.pointsBadge') }}
+                  }
+                </button>
+              }
+              <a
+                routerLink="/packs"
+                class="text-[12px] font-bold text-muted uppercase tracking-wide hover:text-accent2 transition-colors"
+                >{{ i18n.t('store.getFromPack') }}</a
+              >
+              @if (purchaseErrors()[item.id]) {
+                <p class="text-red-500 text-[11px] font-semibold text-center">{{ purchaseErrors()[item.id] }}</p>
+              }
+            </div>
           }
         </div>
       } @empty {

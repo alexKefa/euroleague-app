@@ -1,12 +1,27 @@
 import { Router } from "express";
 import { and, eq } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { collectibles, userCollectibles, teams, users } from "../db/schema.js";
+import { collectibles, userCollectibles, pointAdjustments, teams, users } from "../db/schema.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
+import { getUserPoints } from "../services/points.js";
 
 export const collectiblesRouter = Router();
 
 const TIERS = ["common", "rare", "legendary"] as const;
+
+// Direct-purchase price for a specific card, deliberately priced ABOVE the
+// pack-implied cost of that tier (Starter's ~42pts/common, Pro's
+// ~267pts/rare — see services/packs.ts's PACKS odds) rather than at
+// collectibles.pointsCost's flat 50/250 book value (that value stays as-is,
+// used only for duplicate auto-sell — see packs.ts's SELL_BACK_RATE).
+// A pack pull is still the cheaper way to get *a* card of that tier; this
+// is the "I want this exact one" premium for whatever's left after RNG
+// hasn't cooperated. Legendary has no entry — never directly purchasable,
+// wheel/packs/perfect-round only, at any price.
+const DIRECT_BUY_PRICE: Partial<Record<(typeof TIERS)[number], number>> = {
+  common: 75,
+  rare: 450,
+};
 
 collectiblesRouter.get("/", async (_req, res) => {
   try {
@@ -20,6 +35,7 @@ collectiblesRouter.get("/", async (_req, res) => {
       name: collectible.name,
       tier: collectible.tier,
       pointsCost: collectible.pointsCost,
+      buyPrice: DIRECT_BUY_PRICE[collectible.tier as (typeof TIERS)[number]] ?? null,
       imageUrl: collectible.imageUrl,
       team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor, logoUrl: team.logoUrl },
     }));
@@ -42,6 +58,75 @@ collectiblesRouter.get("/me", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("GET /api/collectibles/me failed:", err);
     res.status(500).json({ error: "Failed to load your collection" });
+  }
+});
+
+collectiblesRouter.post("/:id/purchase", requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Collectible/team lookup and the ownership check used to be two
+    // sequential round trips against Neon; a left join scoped to this user
+    // (same pattern as rollPackForUser in services/packs.ts) does both in
+    // one. Each round trip here costs a roughly fixed ~280ms+ in local dev
+    // (measured for this same DB elsewhere in the codebase) — fewer
+    // statements is the only real lever, Promise.all doesn't help since
+    // this driver/pool gives no genuine cross-query concurrency.
+    const [row] = await db
+      .select({ collectible: collectibles, team: teams, ownedId: userCollectibles.id })
+      .from(collectibles)
+      .innerJoin(teams, eq(collectibles.teamId, teams.id))
+      .leftJoin(
+        userCollectibles,
+        and(eq(userCollectibles.collectibleId, collectibles.id), eq(userCollectibles.userId, req.userId!))
+      )
+      .where(eq(collectibles.id, id))
+      .limit(1);
+    if (!row) {
+      res.status(404).json({ error: "Collectible not found", code: "COLLECTIBLE_NOT_FOUND" });
+      return;
+    }
+    if (row.ownedId) {
+      res.status(409).json({ error: "You already own this card", code: "ALREADY_OWNED" });
+      return;
+    }
+
+    const price = DIRECT_BUY_PRICE[row.collectible.tier as (typeof TIERS)[number]];
+    if (price === undefined) {
+      res.status(400).json({ error: "This card can't be bought directly", code: "NOT_PURCHASABLE" });
+      return;
+    }
+
+    const points = await getUserPoints(req.userId!);
+    if (points < price) {
+      res.status(400).json({ error: "Not enough points", code: "NOT_ENOUGH_POINTS" });
+      return;
+    }
+
+    await db.transaction(async (tx) => {
+      await tx.insert(pointAdjustments).values({
+        userId: req.userId!,
+        points: -price,
+        reason: `Bought: ${row.collectible.name}`,
+        createdByUserId: req.userId!,
+      });
+      await tx.insert(userCollectibles).values({ userId: req.userId!, collectibleId: id });
+    });
+
+    res.status(201).json({
+      collectible: {
+        id: row.collectible.id,
+        name: row.collectible.name,
+        tier: row.collectible.tier,
+        pointsCost: row.collectible.pointsCost,
+        imageUrl: row.collectible.imageUrl,
+        team: { id: row.team.id, code: row.team.code, name: row.team.name, primaryColor: row.team.primaryColor, logoUrl: row.team.logoUrl },
+      },
+      pointsSpent: price,
+    });
+  } catch (err) {
+    console.error("POST /api/collectibles/:id/purchase failed:", err);
+    res.status(500).json({ error: "Failed to buy that card" });
   }
 });
 

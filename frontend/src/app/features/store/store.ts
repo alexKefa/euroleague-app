@@ -8,6 +8,8 @@ import { Collectible, CollectibleTier } from "../../core/models";
 import { CollectibleCardComponent } from "./collectible-card";
 import { CardPreviewComponent } from "./card-preview";
 import { ChipDirective } from "../../shared/chip.directive";
+import { ButtonDirective } from "../../shared/button.directive";
+import { BallSpinnerComponent } from "../../shared/ball-spinner";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 
 @Component({
@@ -19,6 +21,8 @@ import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
     CollectibleCardComponent,
     CardPreviewComponent,
     ChipDirective,
+    ButtonDirective,
+    BallSpinnerComponent,
     DropdownComponent,
   ],
   templateUrl: "./store.html",
@@ -82,6 +86,9 @@ export class StoreComponent implements OnInit {
 
   readonly imageSavingId = signal<string | null>(null);
   readonly imageErrors = signal<Record<string, string>>({});
+
+  readonly purchasingId = signal<string | null>(null);
+  readonly purchaseErrors = signal<Record<string, string>>({});
 
   ngOnInit(): void {
     this.loadCollectibles();
@@ -150,6 +157,34 @@ export class StoreComponent implements OnInit {
     this.imageErrors.update((errors) => {
       const { [id]: _removed, ...rest } = errors;
       return rest;
+    });
+  }
+
+  canAfford(collectible: Collectible): boolean {
+    return collectible.buyPrice !== null && this.points() >= collectible.buyPrice;
+  }
+
+  buy(collectible: Collectible): void {
+    if (this.purchasingId() || collectible.buyPrice === null) return;
+    this.purchasingId.set(collectible.id);
+    this.purchaseErrors.update((errors) => {
+      const { [collectible.id]: _removed, ...rest } = errors;
+      return rest;
+    });
+
+    this.api.purchaseCollectible(collectible.id).subscribe({
+      next: ({ pointsSpent }) => {
+        this.purchasingId.set(null);
+        this.myCollectibleIds.update((ids) => new Set(ids).add(collectible.id));
+        this.points.update((p) => p - pointsSpent);
+      },
+      error: (err) => {
+        this.purchasingId.set(null);
+        this.purchaseErrors.update((errors) => ({
+          ...errors,
+          [collectible.id]: err?.error?.error ?? "Failed to buy — is the backend running?",
+        }));
+      },
     });
   }
 }

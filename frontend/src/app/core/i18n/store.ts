@@ -23,6 +23,7 @@ export const storeTranslations: Record<string, Record<Lang, string>> = {
   "store.unlocked": { en: "Unlocked", el: "Ξεκλειδωμένη" },
   "store.winOnWheel": { en: "Win it on the wheel →", el: "Κέρδισέ την στον τροχό →" },
   "store.getFromPack": { en: "Get from a pack →", el: "Απόκτησέ την από πακέτο →" },
+  "store.buyFor": { en: "Buy for", el: "Αγορά για" },
   "store.emptyStore": { en: "Nothing in the store yet.", el: "Δεν υπάρχει ακόμα τίποτα στο κατάστημα." },
   "store.emptySearch": { en: "No cards match your search.", el: "Καμία κάρτα δεν ταιριάζει με την αναζήτησή σου." },
   "store.clearFilters": { en: "Clear filters", el: "Καθαρισμός φίλτρων" },
