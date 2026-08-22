@@ -40,6 +40,7 @@ export class InventoryComponent implements OnInit {
     { path: "/wheel", icon: "wheel", iconClass: "text-[#E8B23C]", labelKey: "store.jumpBall" },
     { path: "/packs", icon: "packs", iconClass: "text-sky-400", labelKey: "store.packs" },
     { path: "/trades", icon: "trade", iconClass: "text-emerald-500", labelKey: "store.trades" },
+    { path: "/album", icon: "album", iconClass: "text-accent2", labelKey: "album.hubTile" },
   ];
 
   readonly loading = signal(true);

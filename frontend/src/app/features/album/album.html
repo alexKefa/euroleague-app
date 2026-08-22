@@ -1,0 +1,256 @@
+<div class="max-w-3xl lg:max-w-5xl mx-auto p-4 sm:p-6">
+  <a
+    routerLink="/inventory"
+    class="text-[12px] text-muted font-bold uppercase tracking-wider hover:text-ink transition-colors"
+    >&larr; {{ i18n.t('store.myCards') }}</a
+  >
+
+  <div class="flex items-center justify-between mt-4 mb-2">
+    <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('album.title') }}</h1>
+    @if (!loading()) {
+      <span class="font-mono text-xs font-bold text-highlight bg-card border-2 border-line rounded-xl px-3 py-1"
+        >{{ overallOwnedCount() }} / {{ overallTotalCount() }} {{ i18n.t('album.collected') }}</span
+      >
+    }
+  </div>
+
+  @if (!auth.isAuthenticated()) {
+    <p class="text-sm text-muted mb-4">
+      <a routerLink="/login" class="text-highlight font-semibold">{{ i18n.t('nav.login') }}</a>
+      {{ i18n.t('album.guestHint') }}
+    </p>
+  }
+
+  <app-page-hint hintId="card-album" icon="cards">{{ i18n.t('album.hint') }}</app-page-hint>
+
+  @if (error()) {
+    <p class="text-sm text-red-500 mb-4">{{ error() }}</p>
+  }
+
+  @if (loading()) {
+    <div class="animate-pulse flex gap-2 mb-4 overflow-hidden">
+      @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+        <div class="w-16 h-20 rounded-2xl bg-line shrink-0"></div>
+      }
+    </div>
+    <div class="animate-pulse bg-line rounded-2xl h-[420px]"></div>
+  } @else {
+    <!-- team strip — every team shown, even at 0%, so gaps in the whole
+         catalog are visible, not just teams the player has already started. -->
+    <div class="flex gap-2 overflow-x-auto pb-2 mb-4">
+      @for (team of sortedTeams(); track team.id) {
+        <a
+          [routerLink]="['/album', team.id]"
+          class="flex flex-col items-center gap-1 shrink-0 w-[72px] px-2 py-2.5 rounded-2xl border-2 transition-colors"
+          [class.border-line]="team.id !== selectedTeamId()"
+          [class.bg-card]="team.id !== selectedTeamId()"
+          [class.opacity-70]="team.id !== selectedTeamId()"
+          [style.border-color]="team.id === selectedTeamId() ? (team.primaryColor ?? '#FF6B35') : null"
+          [style.background]="team.id === selectedTeamId() ? 'var(--color-card)' : null"
+        >
+          @if (team.logoUrl) {
+            <img [src]="team.logoUrl" [alt]="team.name" appRetryImg class="w-9 h-9 object-contain" />
+          } @else {
+            <div
+              class="w-9 h-9 rounded-full flex items-center justify-center font-display text-[11px] text-white"
+              [style.background]="team.primaryColor ?? '#3E7CB1'"
+            >
+              {{ team.code }}
+            </div>
+          }
+          <span class="text-[9px] font-semibold text-center leading-tight truncate w-full">{{ team.name }}</span>
+          @if (teamCompletionCounts().get(team.id); as counts) {
+            <span
+              class="text-[9px] font-mono"
+              [class.text-highlight]="team.id === selectedTeamId()"
+              [class.text-muted]="team.id !== selectedTeamId()"
+              >{{ counts.owned }}/{{ counts.total }}</span
+            >
+          }
+        </a>
+      }
+    </div>
+
+    @if (selectedTeam(); as team) {
+      <!-- pager: flip to the previous/next team's leaflet page — its own
+           row above the leaflet (not flanking it) so it stays put near the
+           top instead of drifting into the middle of a tall stacked leaflet
+           on mobile, where the left/right "pages" stack vertically. -->
+      <div class="flex items-center justify-between mb-3">
+        <a
+          [routerLink]="['/album', adjacentTeamIds().prev]"
+          class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-card border-2 border-line hover:border-[#3a3a3b] flex items-center justify-center shrink-0 transition-colors"
+          [attr.aria-label]="i18n.t('album.prevTeam')"
+        >
+          <svg class="w-2.5 h-2.5 rotate-90 text-muted" viewBox="0 0 12 12" fill="none">
+            <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </a>
+        <span class="font-display text-sm tracking-wide text-muted truncate px-2">{{ team.name }}</span>
+        <a
+          [routerLink]="['/album', adjacentTeamIds().next]"
+          class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-card border-2 border-line hover:border-[#3a3a3b] flex items-center justify-center shrink-0 transition-colors"
+          [attr.aria-label]="i18n.t('album.nextTeam')"
+        >
+          <svg class="w-2.5 h-2.5 -rotate-90 text-muted" viewBox="0 0 12 12" fill="none">
+            <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </a>
+      </div>
+
+      <!-- previous/next peek tabs — a dimmed sliver of the adjacent team's
+           page, like a tab sticking out from a physical album, teasing
+           there's more to flip to. Desktop-only (hidden on the mobile
+           stacked layout, same as the leaflet's own fold/corner details) —
+           a horizontal peek doesn't read the same once the pages stack
+           vertically, and the pager row above already covers mobile. -->
+      <div class="flex items-stretch gap-3">
+        <a
+          [routerLink]="['/album', adjacentTeamIds().prev]"
+          class="hidden sm:flex w-20 shrink-0 rounded-2xl border border-line bg-card shadow-card overflow-hidden flex-col items-center justify-center gap-2 p-3 opacity-50 hover:opacity-90 transition-opacity"
+          [attr.aria-label]="i18n.t('album.prevTeam') + ': ' + (teamById(adjacentTeamIds().prev)?.name ?? '')"
+        >
+          @if (teamById(adjacentTeamIds().prev); as prevTeam) {
+            @if (prevTeam.logoUrl) {
+              <img [src]="prevTeam.logoUrl" [alt]="prevTeam.name" appRetryImg class="w-9 h-9 object-contain" />
+            } @else {
+              <div
+                class="w-9 h-9 rounded-full flex items-center justify-center font-display text-[10px] text-white"
+                [style.background]="prevTeam.primaryColor ?? '#3E7CB1'"
+              >
+                {{ prevTeam.code }}
+              </div>
+            }
+            <span class="text-[9px] font-semibold text-muted text-center leading-tight truncate w-full">{{ prevTeam.name }}</span>
+          }
+        </a>
+
+        <!-- the leaflet — a left info page + a right sticker page, matching
+             an open book, same chrome (bg-card/border-line/shadow-card) as
+             every other content surface in the app. Wrapped in a keyed @for
+             over a one-item array so Angular tears down and rebuilds this
+             node whenever the team id changes (an @if's condition doesn't
+             change here, so it would otherwise just patch bindings in place
+             and never replay leaflet-flip) — [perspective] on the wrapper is
+             what gives the flip's rotateY actual depth instead of a flat
+             squash. -->
+        <div class="flex-1 [perspective:1400px] min-w-0">
+        @for (leafTeam of [team]; track leafTeam.id) {
+          <div class="leaflet-flip relative flex flex-col sm:flex-row bg-card border border-line rounded-2xl shadow-card overflow-hidden">
+            <!-- folded top-right corner — a cheap, immediately-legible "this is a page" cue. -->
+            <div
+              class="hidden sm:block absolute top-0 right-0 w-6 h-6 pointer-events-none z-10"
+              style="background: linear-gradient(135deg, transparent 50%, var(--color-line) 50%); border-bottom-left-radius: 5px"
+            ></div>
+
+          <div class="sm:w-64 shrink-0 border-b sm:border-b-0 border-line p-6 flex flex-col items-center text-center gap-4">
+            @if (team.logoUrl) {
+              <img [src]="team.logoUrl" [alt]="team.name" appRetryImg class="w-16 h-16 object-contain" />
+            } @else {
+              <div
+                class="w-16 h-16 rounded-full flex items-center justify-center font-display text-lg text-white"
+                [style.background]="team.primaryColor ?? '#3E7CB1'"
+              >
+                {{ team.code }}
+              </div>
+            }
+            <h2 class="font-display text-lg tracking-wide -mt-1">{{ team.name }}</h2>
+
+            <div class="relative w-28 h-28">
+              <svg viewBox="0 0 128 128" class="w-full h-full -rotate-90">
+                <circle cx="64" cy="64" r="54" fill="none" stroke="var(--color-line)" stroke-width="10" />
+                <circle
+                  cx="64"
+                  cy="64"
+                  r="54"
+                  fill="none"
+                  stroke="#FF6B35"
+                  stroke-width="10"
+                  stroke-linecap="round"
+                  stroke-dasharray="339.3"
+                  [attr.stroke-dashoffset]="339.3 - 339.3 * (teamSlots().length ? teamOwnedCount() / teamSlots().length : 0)"
+                />
+              </svg>
+              <div class="absolute inset-0 flex flex-col items-center justify-center">
+                <span class="font-mono font-bold text-base">{{ teamOwnedCount() }}/{{ teamSlots().length }}</span>
+                <span class="text-[9px] uppercase tracking-wide text-muted">{{ i18n.t('album.collected') }}</span>
+              </div>
+            </div>
+
+            @if (teamSlots().length > 0 && teamOwnedCount() === teamSlots().length) {
+              <span class="text-[12px] font-bold text-emerald-500 -mt-2">{{ i18n.t('album.complete') }}</span>
+            }
+
+            <div class="w-full flex flex-col gap-2">
+              @for (row of teamTierBreakdown(); track row.tier) {
+                <div class="flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-lg bg-page border border-line">
+                  <span class="w-2.5 h-2.5 rounded-full shrink-0" [class]="tierDotClass(row.tier)"></span>
+                  <span class="flex-1 text-left">{{ i18n.t(tierLabelKey(row.tier)) }}</span>
+                  <span class="font-mono text-muted">{{ row.owned }} / {{ row.total }}</span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- the fold — a soft shadow crease where the two pages meet,
+               only visible once the leaflet is a real side-by-side spread. -->
+          <div
+            class="hidden sm:block w-4 shrink-0"
+            style="background: linear-gradient(90deg, transparent, rgba(0,0,0,0.5) 50%, transparent)"
+          ></div>
+
+          <div class="flex-1 p-4 sm:p-6">
+            <div class="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3">
+              @for (item of teamSlots(); track item.id) {
+                <button
+                  type="button"
+                  (click)="openPreview(item)"
+                  class="w-full rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-highlight"
+                  [attr.aria-label]="i18n.t('album.previewAriaPrefix') + ' ' + item.name"
+                >
+                  <app-collectible-card
+                    [name]="item.name"
+                    [tier]="item.tier"
+                    [teamCode]="item.team.code"
+                    [teamColor]="item.team.primaryColor"
+                    [imageUrl]="item.imageUrl"
+                    [unlocked]="isOwned(item)"
+                    [maxWidth]="130"
+                  ></app-collectible-card>
+                </button>
+              } @empty {
+                <p class="text-sm text-muted col-span-full">{{ i18n.t('album.noCards') }}</p>
+              }
+            </div>
+          </div>
+        </div>
+        }
+        </div>
+
+        <a
+          [routerLink]="['/album', adjacentTeamIds().next]"
+          class="hidden sm:flex w-20 shrink-0 rounded-2xl border border-line bg-card shadow-card overflow-hidden flex-col items-center justify-center gap-2 p-3 opacity-50 hover:opacity-90 transition-opacity"
+          [attr.aria-label]="i18n.t('album.nextTeam') + ': ' + (teamById(adjacentTeamIds().next)?.name ?? '')"
+        >
+          @if (teamById(adjacentTeamIds().next); as nextTeam) {
+            @if (nextTeam.logoUrl) {
+              <img [src]="nextTeam.logoUrl" [alt]="nextTeam.name" appRetryImg class="w-9 h-9 object-contain" />
+            } @else {
+              <div
+                class="w-9 h-9 rounded-full flex items-center justify-center font-display text-[10px] text-white"
+                [style.background]="nextTeam.primaryColor ?? '#3E7CB1'"
+              >
+                {{ nextTeam.code }}
+              </div>
+            }
+            <span class="text-[9px] font-semibold text-muted text-center leading-tight truncate w-full">{{ nextTeam.name }}</span>
+          }
+        </a>
+      </div>
+    }
+  }
+</div>
+
+@if (previewItem(); as item) {
+  <app-card-preview [item]="item" [unlocked]="isOwned(item)" (closed)="closePreview()"></app-card-preview>
+}

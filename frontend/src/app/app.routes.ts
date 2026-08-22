@@ -50,6 +50,14 @@ export const routes: Routes = [
     loadComponent: () => import("./features/inventory/inventory").then((m) => m.InventoryComponent),
   },
   {
+    path: "album",
+    loadComponent: () => import("./features/album/album").then((m) => m.AlbumComponent),
+  },
+  {
+    path: "album/:teamId",
+    loadComponent: () => import("./features/album/album").then((m) => m.AlbumComponent),
+  },
+  {
     path: "trades",
     loadComponent: () => import("./features/trades/trades").then((m) => m.TradesComponent),
   },

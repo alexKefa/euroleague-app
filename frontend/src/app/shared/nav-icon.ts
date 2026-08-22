@@ -25,7 +25,8 @@ export type NavIconName =
   | "ball"
   | "tip"
   | "play"
-  | "logout";
+  | "logout"
+  | "album";
 
 @Component({
   selector: "app-nav-icon",
@@ -321,6 +322,18 @@ export type NavIconName =
         @case ("play") {
           <!-- "Take a tour" button. -->
           <path d="M8 5.5v13l11-6.5-11-6.5z" fill="currentColor" />
+        }
+        @case ("album") {
+          <!-- open book — the Cards hub's leaflet/album tile. -->
+          <path
+            d="M12 6.3c-1.9-1.3-4.3-1.7-6.5-1.2v12c2.2-.5 4.6-.1 6.5 1.2c1.9-1.3 4.3-1.7 6.5-1.2v-12c-2.2-.5-4.6-.1-6.5 1.2z"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linejoin="round"
+            [attr.fill]="active ? 'currentColor' : 'none'"
+            [attr.fill-opacity]="active ? 0.14 : null"
+          />
+          <line x1="12" y1="6.3" x2="12" y2="18.3" stroke="currentColor" stroke-width="1.6" />
         }
         @case ("logout") {
           <path

@@ -12,6 +12,7 @@ import { tradesTranslations } from "./trades";
 import { inventoryTranslations } from "./inventory";
 import { rosterTranslations } from "./roster";
 import { tourTranslations } from "./tour";
+import { albumTranslations } from "./album";
 
 export type { Lang };
 
@@ -33,4 +34,5 @@ export const translations: Record<string, Record<Lang, string>> = {
   ...inventoryTranslations,
   ...rosterTranslations,
   ...tourTranslations,
+  ...albumTranslations,
 };

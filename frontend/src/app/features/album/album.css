@@ -1,0 +1,36 @@
+/* Plays once whenever the leaflet is torn down and rebuilt for a new team
+   (see album.html's `@for (leafTeam of [team]; track leafTeam.id)` —
+   forces Angular to recreate the node on team change instead of just
+   patching bindings in place, which is what actually lets this restart
+   every time instead of running once on first render). A single smooth
+   swing from edge-on to facing the viewer — no bounce/overshoot, that read
+   as a springy pop rather than an actual page turning. Dims through the
+   middle of the swing (a real page reflects the least light exactly when
+   it's edge-on) and brightens back up as it settles flat, which is what
+   sells it as a page rather than just a rotating rectangle. Origin on the
+   left, same side as the fold divider, so it reads as hinged there. */
+@keyframes leaflet-flip {
+  0% {
+    transform: rotateY(-92deg);
+    opacity: 0.4;
+    filter: brightness(0.55);
+  }
+  40% {
+    opacity: 1;
+  }
+  50% {
+    transform: rotateY(-46deg);
+    filter: brightness(0.7);
+  }
+  100% {
+    transform: rotateY(0deg);
+    opacity: 1;
+    filter: brightness(1);
+  }
+}
+
+.leaflet-flip {
+  animation: leaflet-flip 480ms cubic-bezier(0.45, 0, 0.2, 1);
+  transform-origin: left center;
+  backface-visibility: hidden;
+}
