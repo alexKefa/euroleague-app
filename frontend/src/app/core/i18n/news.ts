@@ -7,4 +7,12 @@ export const newsTranslations: Record<string, Record<Lang, string>> = {
     en: "No articles yet — the sync may not have run.",
     el: "Δεν υπάρχουν άρθρα ακόμα — ο συγχρονισμός μπορεί να μην έχει τρέξει.",
   },
+  "news.previewAriaPrefix": { en: "Open article:", el: "Άνοιγμα άρθρου:" },
+  "news.closePreview": { en: "Close article", el: "Κλείσιμο άρθρου" },
+  "news.readFullArticle": { en: "Read full article", el: "Διάβασε ολόκληρο το άρθρο" },
+  "news.lastUpdated": { en: "Updated", el: "Ενημερώθηκε" },
+  "news.justNow": { en: "just now", el: "μόλις τώρα" },
+  "news.minAgo": { en: "min ago", el: "λεπτά πριν" },
+  "news.hAgo": { en: "h ago", el: "ώρες πριν" },
+  "news.dAgo": { en: "d ago", el: "μέρες πριν" },
 };

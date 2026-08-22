@@ -1,0 +1,42 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm" (click)="close()">
+  <button
+    type="button"
+    (click)="close()"
+    class="absolute top-4 right-4 text-white/80 hover:text-white text-3xl leading-none font-bold"
+    [attr.aria-label]="i18n.t('news.closePreview')"
+  >
+    &times;
+  </button>
+
+  <div
+    class="w-full flex flex-col bg-card rounded-2xl border border-line shadow-pop overflow-hidden"
+    style="max-width: min(92vw, 480px); max-height: 88vh"
+    (click)="$event.stopPropagation()"
+  >
+    @if (article.imageUrl) {
+      <img
+        [src]="article.imageUrl"
+        [alt]="article.title"
+        appRetryImg
+        class="w-full h-48 object-cover shrink-0"
+      />
+    }
+
+    <div class="p-5 overflow-y-auto">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-[12px] font-bold uppercase tracking-wider text-highlight">{{ article.sourceName }}</span>
+        <span class="font-mono text-[12px] text-muted">&middot; {{ article.publishedAt | date: "MMM d, y" }}</span>
+      </div>
+
+      <h2 class="font-display text-xl tracking-wide leading-snug mb-3">{{ article.title }}</h2>
+
+      @if (article.summary) {
+        <p class="text-sm text-muted leading-relaxed mb-5">{{ article.summary }}</p>
+      }
+
+      <a [href]="article.url" target="_blank" rel="noopener noreferrer" appButton="outline">
+        {{ i18n.t('news.readFullArticle') }} &rarr;
+      </a>
+    </div>
+  </div>
+</div>

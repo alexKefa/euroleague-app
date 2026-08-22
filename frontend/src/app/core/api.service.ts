@@ -10,6 +10,7 @@ import {
   LeaderEntry,
   RoundMvp,
   NewsArticle,
+  NewsSyncStatus,
   Game,
   Prediction,
   LeaderboardEntry,
@@ -63,8 +64,14 @@ export class ApiService {
     return this.http.get<RoundMvp>(`${API_BASE_URL}/players/round-mvp`, { params: { limit } });
   }
 
-  getNews(limit = 20): Observable<NewsArticle[]> {
-    return this.http.get<NewsArticle[]>(`${API_BASE_URL}/news`, { params: { limit } });
+  getNews(limit = 20, lang?: string): Observable<NewsArticle[]> {
+    const params: Record<string, number | string> = { limit };
+    if (lang) params["lang"] = lang;
+    return this.http.get<NewsArticle[]>(`${API_BASE_URL}/news`, { params });
+  }
+
+  getNewsSyncStatus(): Observable<NewsSyncStatus> {
+    return this.http.get<NewsSyncStatus>(`${API_BASE_URL}/news/status`);
   }
 
   getTeamGames(teamId: string): Observable<Game[]> {

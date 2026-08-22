@@ -205,8 +205,23 @@ export const newsArticles = pgTable("news_articles", {
   sourceUrl: text("source_url").notNull(), // e.g. "https://www.eurohoops.net"
   summary: text("summary"), // short excerpt from the feed, never the full article
   imageUrl: text("image_url"),
+  // "en" | "el" — which of a feed's language-specific RSS URLs this came
+  // from (e.g. eurohoops.net/en/feed vs /el/feed), not detected from the
+  // text. A source with no language split of its own (SDNA) is tagged with
+  // whichever language it actually publishes in, same as any other feed.
+  lang: varchar("lang", { length: 5 }).notNull(),
   publishedAt: timestamp("published_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(), // when we ingested it
+});
+
+// One row per sync job (id is a fixed key, e.g. "news"), upserted every run
+// so the frontend can show "updated N minutes ago" — separate from
+// newsArticles.publishedAt, which reflects the article's own publish time,
+// not whether we've actually checked the feed recently (a quiet news day
+// with no new articles would otherwise look identical to a broken sync).
+export const syncState = pgTable("sync_state", {
+  id: varchar("id", { length: 40 }).primaryKey(),
+  lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }).notNull(),
 });
 
 export const predictions = pgTable(

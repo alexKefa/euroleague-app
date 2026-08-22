@@ -95,17 +95,17 @@
             </div>
             <div class="space-y-3">
               @for (article of news(); track article.id) {
-                <a
-                  [href]="article.url"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="block hover:opacity-70 transition-opacity"
+                <button
+                  type="button"
+                  (click)="openPreview(article)"
+                  [attr.aria-label]="i18n.t('news.previewAriaPrefix') + ' ' + article.title"
+                  class="block w-full text-left hover:opacity-70 transition-opacity"
                 >
                   <span class="text-[11px] font-bold uppercase tracking-wider text-highlight">{{
                     article.sourceName
                   }}</span>
                   <p class="font-bold text-sm leading-snug mt-0.5">{{ article.title }}</p>
-                </a>
+                </button>
               }
             </div>
           </div>
@@ -246,3 +246,7 @@
     </div>
   }
 </div>
+
+@if (previewArticle(); as article) {
+  <app-article-preview [article]="article" (closed)="closePreview()"></app-article-preview>
+}

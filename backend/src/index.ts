@@ -19,6 +19,7 @@ import { spinRouter } from "./routes/spin.js";
 import { tradesRouter } from "./routes/trades.js";
 import { packsRouter } from "./routes/packs.js";
 import { eventsRouter } from "./routes/events.js";
+import { syncNews } from "./sync/newsSync.js";
 
 const app = express();
 // Railway sits in front of the app as a single reverse-proxy hop, adding
@@ -97,3 +98,21 @@ if (fs.existsSync(indexHtml)) {
 app.listen(port, () => {
   console.log(`euroleague-app-backend listening on http://localhost:${port}`);
 });
+
+// Production-only: this process stays up indefinitely (unlike local dev,
+// which restarts on every file save under tsx watch — running this there
+// too would re-hit both RSS feeds on every save while actively editing).
+// Both feeds are plain public RSS, no auth/rate-limit concerns at this
+// cadence — 10 minutes is a normal polling interval for a feed reader.
+if (process.env.NODE_ENV === "production") {
+  const NEWS_SYNC_INTERVAL_MS = 10 * 60 * 1000;
+  const runNewsSync = () => {
+    syncNews()
+      .then(({ articlesUpserted, feedsFailed }) => {
+        console.log(`[news sync] upserted ${articlesUpserted} articles${feedsFailed.length ? `, failed: ${feedsFailed.join(", ")}` : ""}`);
+      })
+      .catch((err) => console.error("[news sync] failed:", err));
+  };
+  runNewsSync();
+  setInterval(runNewsSync, NEWS_SYNC_INTERVAL_MS);
+}

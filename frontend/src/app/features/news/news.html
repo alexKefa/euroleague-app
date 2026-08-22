@@ -1,5 +1,10 @@
 <div class="max-w-3xl lg:max-w-5xl mx-auto p-4 sm:p-6">
-  <h1 class="font-display text-2xl tracking-wide mb-5">{{ i18n.t('news.title') }}</h1>
+  <div class="flex items-center justify-between mb-5">
+    <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('news.title') }}</h1>
+    @if (lastSyncedLabel(); as label) {
+      <span class="font-mono text-[11px] text-muted">{{ label }}</span>
+    }
+  </div>
 
   @if (loading()) {
     <div class="animate-pulse space-y-3">
@@ -16,11 +21,11 @@
   @if (!loading() && !error()) {
     <div class="space-y-3">
       @for (article of articles(); track article.id) {
-        <a
-          [href]="article.url"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="flex gap-3 bg-card rounded-2xl border border-line shadow-card p-4 hover:shadow-pop transition-all"
+        <button
+          type="button"
+          (click)="openPreview(article)"
+          [attr.aria-label]="i18n.t('news.previewAriaPrefix') + ' ' + article.title"
+          class="w-full flex gap-3 text-left bg-card rounded-2xl border border-line shadow-card p-4 hover:shadow-pop transition-all"
         >
           @if (article.imageUrl) {
             <img
@@ -46,10 +51,14 @@
               <p class="text-xs text-muted mt-1.5 line-clamp-2">{{ article.summary }}</p>
             }
           </div>
-        </a>
+        </button>
       } @empty {
         <p class="text-muted text-sm">{{ i18n.t('news.empty') }}</p>
       }
     </div>
   }
 </div>
+
+@if (previewArticle(); as article) {
+  <app-article-preview [article]="article" (closed)="closePreview()"></app-article-preview>
+}

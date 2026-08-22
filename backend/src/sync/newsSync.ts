@@ -1,7 +1,7 @@
 import Parser from "rss-parser";
 import { sql } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { newsArticles } from "../db/schema.js";
+import { newsArticles, syncState } from "../db/schema.js";
 
 /**
  * Feeds we've verified actually exist and return real RSS
@@ -14,22 +14,40 @@ import { newsArticles } from "../db/schema.js";
  * politics, etc.). Their article URLs embed the section slug though
  * (sdna.gr/mpasket/... for basketball), so filter on that instead of
  * ingesting everything.
+ *
+ * Eurohoops is bilingual, but plain /feed is every language mixed
+ * together (Greek, English, even Turkish in the same feed) — its RSS
+ * <language> tag claims en-US regardless of what's actually in it, so that
+ * header can't be trusted either. /en/feed and /el/feed are real,
+ * separately-verified per-language feeds (checked the channel <title>
+ * itself literally says "EN (English)" / "GR (Greek)"), so each is synced
+ * as its own feed entry with its own `lang`, not filtered after the fact.
+ * SDNA has no English edition, so its lang is just fixed at "el".
  */
 const FEEDS: {
   url: string;
   sourceName: string;
   sourceUrl: string;
+  lang: "en" | "el";
   filter?: (link: string) => boolean;
 }[] = [
   {
-    url: "https://www.eurohoops.net/feed",
+    url: "https://www.eurohoops.net/en/feed",
     sourceName: "Eurohoops",
     sourceUrl: "https://www.eurohoops.net",
+    lang: "en",
+  },
+  {
+    url: "https://www.eurohoops.net/el/feed",
+    sourceName: "Eurohoops",
+    sourceUrl: "https://www.eurohoops.net",
+    lang: "el",
   },
   {
     url: "https://www.sdna.gr/latest.xml",
     sourceName: "SDNA",
     sourceUrl: "https://www.sdna.gr",
+    lang: "el",
     filter: (link) => link.includes("/mpasket/"),
   },
 ];
@@ -67,11 +85,12 @@ export async function syncNews(): Promise<{ articlesUpserted: number; feedsFaile
           sourceUrl: feed.sourceUrl,
           summary,
           imageUrl,
+          lang: feed.lang,
           publishedAt,
         })
         .onConflictDoUpdate({
           target: newsArticles.url,
-          set: { title: item.title, summary, imageUrl },
+          set: { title: item.title, summary, imageUrl, lang: feed.lang },
         });
 
       articlesUpserted++;
@@ -84,6 +103,15 @@ export async function syncNews(): Promise<{ articlesUpserted: number; feedsFaile
     DELETE FROM news_articles
     WHERE published_at < NOW() - INTERVAL '30 days'
   `);
+
+  // Recorded unconditionally (even if every feed above failed) — this is
+  // "when did we last check", not "when did we last get new articles". A
+  // quiet news day with zero new items would otherwise be indistinguishable
+  // from a broken sync from the frontend's "updated N minutes ago" banner.
+  await db
+    .insert(syncState)
+    .values({ id: "news", lastSyncedAt: new Date() })
+    .onConflictDoUpdate({ target: syncState.id, set: { lastSyncedAt: new Date() } });
 
   return { articlesUpserted, feedsFailed };
 }

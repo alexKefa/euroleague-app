@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from "@angular/core";
+import { Component, OnInit, inject, signal, computed, effect } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
@@ -12,6 +12,7 @@ import { NavIconComponent } from "../../shared/nav-icon";
 import { TourService } from "../../core/tour/tour.service";
 import { ButtonDirective } from "../../shared/button.directive";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
+import { ArticlePreviewComponent } from "../../shared/article-preview";
 
 const LEADER_CATEGORIES = [
   { value: "points", label: "PTS" },
@@ -35,6 +36,7 @@ type LeaderCategory = (typeof LEADER_CATEGORIES)[number]["value"];
     NavIconComponent,
     ButtonDirective,
     DropdownComponent,
+    ArticlePreviewComponent,
   ],
   templateUrl: "./dashboard.component.html",
 })
@@ -60,6 +62,17 @@ export class DashboardComponent implements OnInit {
   readonly teamGames = signal<Game[]>([]);
   readonly roundMvp = signal<RoundMvp | null>(null);
 
+  private readonly previewArticleId = signal<string | null>(null);
+  readonly previewArticle = computed(() => this.news().find((a) => a.id === this.previewArticleId()) ?? null);
+
+  openPreview(article: NewsArticle): void {
+    this.previewArticleId.set(article.id);
+  }
+
+  closePreview(): void {
+    this.previewArticleId.set(null);
+  }
+
   readonly selectedRow = computed(
     () => this.standings().find((r) => r.team.id === this.selectedTeamId()) ?? null
   );
@@ -78,12 +91,21 @@ export class DashboardComponent implements OnInit {
   );
   readonly nextGame = computed(() => this.upcomingGames()[0] ?? null);
 
-  ngOnInit(): void {
-    this.api.getNews(3).subscribe({
-      next: (articles) => this.news.set(articles),
-      error: () => {}, // non-critical widget
+  constructor() {
+    // Re-fetches whenever the language toggle changes — Eurohoops is
+    // synced as fully separate en/el feeds (backend/src/sync/newsSync.ts),
+    // not one feed translated, so switching language means genuinely
+    // different articles.
+    effect(() => {
+      const lang = this.i18n.lang();
+      this.api.getNews(3, lang).subscribe({
+        next: (articles) => this.news.set(articles),
+        error: () => {}, // non-critical widget
+      });
     });
+  }
 
+  ngOnInit(): void {
     this.selectLeaderCategory("points");
 
     this.api.getRoundMvp(5).subscribe({

@@ -7,6 +7,10 @@ export interface PublicUser {
   referralCode: string | null;
 }
 
+export interface NewsSyncStatus {
+  lastSyncedAt: string | null;
+}
+
 export interface NewsArticle {
   id: string;
   title: string;
@@ -15,6 +19,7 @@ export interface NewsArticle {
   sourceUrl: string;
   summary: string | null;
   imageUrl: string | null;
+  lang: string;
   publishedAt: string;
 }
 
