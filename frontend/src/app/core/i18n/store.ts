@@ -35,6 +35,13 @@ export const storeTranslations: Record<string, Record<Lang, string>> = {
   "store.add": { en: "Add", el: "Προσθήκη" },
   "store.setImage": { en: "Set image", el: "Ορισμός εικόνας" },
   "store.closePreview": { en: "Close preview", el: "Κλείσιμο προεπισκόπησης" },
+  "store.tapToFlip": { en: "Tap the card to flip it", el: "Πάτησε την κάρτα για να τη γυρίσεις" },
+  "store.statsNotLinked": {
+    en: "This card isn't linked to a player record yet — no stats to show.",
+    el: "Αυτή η κάρτα δεν έχει συνδεθεί ακόμα με στοιχεία παίκτη — δεν υπάρχουν στατιστικά.",
+  },
+  "store.noStatsYet": { en: "No stats recorded yet this season.", el: "Δεν έχουν καταγραφεί στατιστικά αυτή τη σεζόν." },
+  "store.gamesPlayed": { en: "Games played", el: "Αγώνες" },
 
   "wheel.title": { en: "Daily Jump Ball", el: "Καθημερινό Τζάμπολ" },
   "wheel.subtitle": {

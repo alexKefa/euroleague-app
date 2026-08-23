@@ -1,9 +1,22 @@
 import { Router } from "express";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { collectibles, userCollectibles, pointAdjustments, teams, users } from "../db/schema.js";
+import { collectibles, userCollectibles, pointAdjustments, teams, users, players, playerSeasonStats } from "../db/schema.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
 import { getUserPoints } from "../services/points.js";
+
+// Collectibles were never given a real playerId (just a free-text name) —
+// the feed's player names come as "LASTNAME, Firstname" (players.name),
+// entirely different shape from a collectible's "Firstname Lastname", so a
+// plain string comparison always misses. Reorder + lowercase + collapse
+// whitespace on both sides before comparing; still a best-effort match
+// (a suffix like "Jr." present on one side and not the other won't match),
+// callers treat "no match" as a normal, expected outcome, not an error.
+function normalizePlayerName(name: string): string {
+  const commaIdx = name.indexOf(",");
+  const reordered = commaIdx === -1 ? name : `${name.slice(commaIdx + 1)} ${name.slice(0, commaIdx)}`;
+  return reordered.toLowerCase().replace(/\s+/g, " ").trim();
+}
 
 export const collectiblesRouter = Router();
 
@@ -64,6 +77,64 @@ collectiblesRouter.get("/", async (_req, res) => {
   } catch (err) {
     console.error("GET /api/collectibles failed:", err);
     res.status(500).json({ error: "Failed to load collectibles" });
+  }
+});
+
+// Real season stats for the card back (card-preview's tap-to-flip) — best-
+// effort name match against the real players table (see
+// normalizePlayerName's doc comment above for why a plain match doesn't
+// work). `matched: false` is a normal, expected response, not an error —
+// the frontend shows a plain "stats not available" state for it, same
+// spirit as the app's other known data gaps (player game logs, some
+// teams' rosters not synced yet).
+collectiblesRouter.get("/:id/stats", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [collectible] = await db.select().from(collectibles).where(eq(collectibles.id, id)).limit(1);
+    if (!collectible) {
+      res.status(404).json({ error: "Collectible not found" });
+      return;
+    }
+
+    const teamPlayers = await db.select().from(players).where(eq(players.teamId, collectible.teamId));
+    const target = normalizePlayerName(collectible.name);
+    const player = teamPlayers.find((p) => normalizePlayerName(p.name) === target);
+    if (!player) {
+      res.json({ matched: false });
+      return;
+    }
+
+    // Same "pick the season with the most actual games played" rule as
+    // GET /api/teams/:id/roster, so this agrees with what the roster page
+    // itself shows for the same player.
+    const [mostActive] = await db
+      .select({ season: playerSeasonStats.season, totalGames: sql<number>`sum(${playerSeasonStats.gamesPlayed})` })
+      .from(playerSeasonStats)
+      .where(eq(playerSeasonStats.playerId, player.id))
+      .groupBy(playerSeasonStats.season)
+      .orderBy(sql`sum(${playerSeasonStats.gamesPlayed}) desc`)
+      .limit(1);
+
+    if (!mostActive) {
+      res.json({ matched: true, player: { id: player.id, name: player.name, position: player.position, jerseyNumber: player.jerseyNumber }, stats: null });
+      return;
+    }
+
+    const [stats] = await db
+      .select()
+      .from(playerSeasonStats)
+      .where(and(eq(playerSeasonStats.playerId, player.id), eq(playerSeasonStats.season, mostActive.season)))
+      .limit(1);
+
+    res.json({
+      matched: true,
+      player: { id: player.id, name: player.name, position: player.position, jerseyNumber: player.jerseyNumber },
+      stats: stats ?? null,
+    });
+  } catch (err) {
+    console.error("GET /api/collectibles/:id/stats failed:", err);
+    res.status(500).json({ error: "Failed to load stats" });
   }
 });
 

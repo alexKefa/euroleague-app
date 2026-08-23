@@ -12,35 +12,126 @@
   </button>
 
   <div class="flex flex-col items-center gap-4" style="width: min(85vw, 380px)" (click)="$event.stopPropagation()">
-    <div
-      class="w-full select-none"
-      style="touch-action: none"
-      [style.cursor]="isDragging() ? 'grabbing' : 'grab'"
-      [style.transform]="'perspective(900px) rotateY(' + dragRotation() + 'deg)'"
-      [style.transition]="isDragging() ? 'none' : 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)'"
-      (pointerdown)="onCardPointerDown($event)"
-      (pointermove)="onCardPointerMove($event)"
-      (pointerup)="onCardPointerUp($event)"
-      (pointercancel)="onCardPointerUp($event)"
-    >
-      <app-collectible-card
-        class="w-full pointer-events-none"
-        [name]="item.name"
-        [tier]="item.tier"
-        [teamCode]="item.team.code"
-        [teamColor]="item.team.primaryColor"
-        [imageUrl]="item.imageUrl"
-        [unlocked]="unlocked"
-        [maxWidth]="380"
-        [serialNumber]="item.serialNumber"
-        [serialTotal]="item.serialTotal"
-      ></app-collectible-card>
+    <div class="w-full [perspective:1400px]" style="aspect-ratio: 2.5 / 3.5">
+      <div
+        class="relative w-full h-full transition-transform duration-500 ease-in-out"
+        style="transform-style: preserve-3d"
+        [style.transform]="'rotateY(' + (flipped() ? 180 : 0) + 'deg)'"
+      >
+        <!-- FRONT — drag to tilt, tap (no real movement) to flip -->
+        <div
+          class="absolute inset-0 [backface-visibility:hidden] select-none"
+          style="touch-action: none"
+          [style.pointer-events]="flipped() ? 'none' : 'auto'"
+          [style.cursor]="isDragging() ? 'grabbing' : 'grab'"
+          [style.transform]="'rotateY(' + dragRotation() + 'deg)'"
+          [style.transition]="isDragging() ? 'none' : 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)'"
+          (pointerdown)="onCardPointerDown($event)"
+          (pointermove)="onCardPointerMove($event)"
+          (pointerup)="onCardPointerUp($event)"
+          (pointercancel)="onCardPointerUp($event)"
+        >
+          <app-collectible-card
+            class="w-full pointer-events-none"
+            [name]="item.name"
+            [tier]="item.tier"
+            [teamCode]="item.team.code"
+            [teamColor]="item.team.primaryColor"
+            [imageUrl]="item.imageUrl"
+            [unlocked]="unlocked"
+            [maxWidth]="380"
+            [serialNumber]="item.serialNumber"
+            [serialTotal]="item.serialTotal"
+          ></app-collectible-card>
+        </div>
+
+        <!-- BACK — real season stats, tap to flip back -->
+        <div
+          class="absolute inset-0 [backface-visibility:hidden] rounded-2xl bg-card border border-line shadow-pop p-5 flex flex-col overflow-y-auto cursor-pointer"
+          style="transform: rotateY(180deg)"
+          [style.pointer-events]="flipped() ? 'auto' : 'none'"
+          (click)="toggleFlip()"
+        >
+          <div class="mb-1">
+            <p class="font-display text-lg tracking-wide leading-tight">{{ item.name }}</p>
+            <p class="font-mono text-[12px] font-bold text-muted">{{ item.team.code }}</p>
+          </div>
+
+          @if (statsLoading()) {
+            <div class="flex-1 flex items-center justify-center">
+              <div class="animate-pulse text-xs text-muted font-mono">...</div>
+            </div>
+          } @else if (!stats() || !stats()!.matched) {
+            <div class="flex-1 flex items-center justify-center text-center px-2">
+              <p class="text-xs text-muted leading-relaxed">{{ i18n.t('store.statsNotLinked') }}</p>
+            </div>
+          } @else if (!stats()!.stats) {
+            <div class="flex-1 flex items-center justify-center text-center px-2">
+              <p class="text-xs text-muted leading-relaxed">{{ i18n.t('store.noStatsYet') }}</p>
+            </div>
+          } @else {
+            <div class="flex-1 flex flex-col justify-center gap-4">
+              <div class="grid grid-cols-4 gap-2 text-center">
+                <div>
+                  <div class="font-mono text-xl font-bold">{{ stats()!.stats!.pointsPerGame | number: "1.1-1" }}</div>
+                  <div class="text-[9px] uppercase tracking-wide text-muted mt-0.5">PPG</div>
+                </div>
+                <div>
+                  <div class="font-mono text-xl font-bold">{{ stats()!.stats!.reboundsPerGame | number: "1.1-1" }}</div>
+                  <div class="text-[9px] uppercase tracking-wide text-muted mt-0.5">RPG</div>
+                </div>
+                <div>
+                  <div class="font-mono text-xl font-bold">{{ stats()!.stats!.assistsPerGame | number: "1.1-1" }}</div>
+                  <div class="text-[9px] uppercase tracking-wide text-muted mt-0.5">APG</div>
+                </div>
+                <div>
+                  <div class="font-mono text-xl font-bold text-highlight">{{ stats()!.stats!.valuation | number: "1.1-1" }}</div>
+                  <div class="text-[9px] uppercase tracking-wide text-muted mt-0.5">PIR</div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-3 gap-2 text-center border-t border-line pt-3">
+                <div>
+                  <div class="font-mono text-sm font-semibold">{{ stats()!.stats!.stealsPerGame | number: "1.1-1" }}</div>
+                  <div class="text-[8.5px] uppercase tracking-wide text-muted mt-0.5">STL</div>
+                </div>
+                <div>
+                  <div class="font-mono text-sm font-semibold">{{ stats()!.stats!.blocksPerGame | number: "1.1-1" }}</div>
+                  <div class="text-[8.5px] uppercase tracking-wide text-muted mt-0.5">BLK</div>
+                </div>
+                <div>
+                  <div class="font-mono text-sm font-semibold">{{ stats()!.stats!.turnoversPerGame | number: "1.1-1" }}</div>
+                  <div class="text-[8.5px] uppercase tracking-wide text-muted mt-0.5">TOV</div>
+                </div>
+                <div>
+                  <div class="font-mono text-sm font-semibold">{{ formatPct(stats()!.stats!.fieldGoalPct) }}</div>
+                  <div class="text-[8.5px] uppercase tracking-wide text-muted mt-0.5">FG%</div>
+                </div>
+                <div>
+                  <div class="font-mono text-sm font-semibold">{{ formatPct(stats()!.stats!.threePointPct) }}</div>
+                  <div class="text-[8.5px] uppercase tracking-wide text-muted mt-0.5">3P%</div>
+                </div>
+                <div>
+                  <div class="font-mono text-sm font-semibold">{{ formatPct(stats()!.stats!.freeThrowPct) }}</div>
+                  <div class="text-[8.5px] uppercase tracking-wide text-muted mt-0.5">FT%</div>
+                </div>
+              </div>
+            </div>
+
+            <p class="text-center text-[10px] text-muted font-mono mt-2">
+              {{ stats()!.stats!.gamesPlayed }} {{ i18n.t('store.gamesPlayed') }} &middot; {{ stats()!.stats!.season }}
+            </p>
+          }
+        </div>
+      </div>
     </div>
 
     <div class="text-center">
       <p class="font-display text-xl tracking-wide text-white">{{ item.name }}</p>
       <p class="font-mono text-white/60 text-[13px] font-bold mt-1">{{ item.team.code }}</p>
     </div>
+
+    <p class="text-white/40 text-[11px]">{{ i18n.t('store.tapToFlip') }}</p>
 
     <ng-content></ng-content>
   </div>

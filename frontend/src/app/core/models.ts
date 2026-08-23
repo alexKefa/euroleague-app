@@ -255,6 +255,16 @@ export interface Collectible {
   team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
 }
 
+// Response for the card-preview flip — a best-effort match against the
+// real players table (see backend/src/routes/collectibles.ts's
+// normalizePlayerName), so `matched: false` is a normal outcome to render,
+// not an error.
+export interface CollectibleStatsResponse {
+  matched: boolean;
+  player?: { id: string; name: string; position: string | null; jerseyNumber: number | null };
+  stats?: PlayerSeasonStats | null;
+}
+
 export interface MyCollectible {
   collectibleId: string;
   unlockedAt: string;

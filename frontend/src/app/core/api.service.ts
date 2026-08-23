@@ -16,6 +16,7 @@ import {
   LeaderboardEntry,
   PredictionSummary,
   Collectible,
+  CollectibleStatsResponse,
   MyCollectible,
   SpinStatus,
   SpinResult,
@@ -132,6 +133,10 @@ export class ApiService {
 
   getCollectibles(): Observable<Collectible[]> {
     return this.http.get<Collectible[]>(`${API_BASE_URL}/collectibles`);
+  }
+
+  getCollectibleStats(id: string): Observable<CollectibleStatsResponse> {
+    return this.http.get<CollectibleStatsResponse>(`${API_BASE_URL}/collectibles/${id}/stats`);
   }
 
   getMyCollectibles(): Observable<MyCollectible[]> {
