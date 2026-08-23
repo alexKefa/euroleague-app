@@ -17,8 +17,7 @@
   @if (!auth.isAuthenticated()) {
     <div class="mb-4">
       <p class="text-sm text-muted mb-2">
-        <a routerLink="/login" class="text-highlight font-semibold">{{ i18n.t('nav.login') }}</a>
-        {{ i18n.t('album.guestHint') }}
+        {{ i18n.t('nav.login') }} {{ i18n.t('album.guestHint') }}
       </p>
       <a routerLink="/login" appButton="outline" appButtonSize="sm">{{ i18n.t('nav.login') }}</a>
     </div>
