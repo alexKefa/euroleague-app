@@ -86,6 +86,21 @@ export class PredictionsComponent implements OnInit {
             : g
         )
       );
+
+      // A game finishing is what actually changes anything *else* on this
+      // page — a pending pick resolves to correct/wrong, badges/points can
+      // change, the leaderboard re-ranks. Re-fetching those three here
+      // (rather than replicating the backend's badge/point logic
+      // client-side) is what makes the rest of the page live too, in this
+      // tab or anyone else's — none of it refreshed on its own before,
+      // in-tab or across browsers, without a manual reload.
+      if (update.status === "final") {
+        this.refreshLeaderboard();
+        if (this.auth.isAuthenticated()) {
+          this.refreshMyPredictions();
+          this.refreshMySummary();
+        }
+      }
     });
   }
 
@@ -95,10 +110,7 @@ export class PredictionsComponent implements OnInit {
       error: () => {},
     });
 
-    this.api.getLeaderboard().subscribe({
-      next: (rows) => this.leaderboard.set(rows),
-      error: () => {},
-    });
+    this.refreshLeaderboard();
 
     // The current round (backend picks the first round that isn't entirely
     // final yet, same as /schedule) rather than a flat "next 10 scheduled
@@ -113,29 +125,43 @@ export class PredictionsComponent implements OnInit {
     });
 
     if (this.auth.isAuthenticated()) {
-      this.api.getMyPredictions().subscribe({
-        next: (rows) => {
-          this.myPredictions.set(rows);
-          this.myPicks.set(new Map(rows.map((p) => [p.gameId, p.predictedTeam.id])));
-          this.loading.set(false);
-        },
-        error: () => this.loading.set(false),
-      });
-
-      this.api.getMyPredictionSummary().subscribe({
-        next: (summary) => {
-          this.mySummary.set(summary);
-          // The banner below reads straight off mySummary(), so by the time
-          // this fires it's already been rendered — safe to mark seen now.
-          if (summary.newRoundRewards.length > 0) {
-            this.api.ackRoundRewards().subscribe({ error: () => {} });
-          }
-        },
-        error: () => {}, // non-critical
-      });
+      this.refreshMyPredictions(() => this.loading.set(false));
+      this.refreshMySummary();
     } else {
       this.loading.set(false);
     }
+  }
+
+  private refreshLeaderboard(): void {
+    this.api.getLeaderboard().subscribe({
+      next: (rows) => this.leaderboard.set(rows),
+      error: () => {},
+    });
+  }
+
+  private refreshMyPredictions(onDone?: () => void): void {
+    this.api.getMyPredictions().subscribe({
+      next: (rows) => {
+        this.myPredictions.set(rows);
+        this.myPicks.set(new Map(rows.map((p) => [p.gameId, p.predictedTeam.id])));
+        onDone?.();
+      },
+      error: () => onDone?.(),
+    });
+  }
+
+  private refreshMySummary(): void {
+    this.api.getMyPredictionSummary().subscribe({
+      next: (summary) => {
+        this.mySummary.set(summary);
+        // The banner below reads straight off mySummary(), so by the time
+        // this fires it's already been rendered — safe to mark seen now.
+        if (summary.newRoundRewards.length > 0) {
+          this.api.ackRoundRewards().subscribe({ error: () => {} });
+        }
+      },
+      error: () => {}, // non-critical
+    });
   }
 
   badgeIcon(badgeId: string): NavIconName {
