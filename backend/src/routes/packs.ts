@@ -71,7 +71,15 @@ packsRouter.post("/:type/open", requireAuth, async (req, res) => {
       // One batched insert for the purchase cost plus every auto-sold
       // duplicate, instead of a round trip per row.
       const pointAdjustmentRows = [
-        { userId: req.userId!, points: -def.pointsCost, reason: `Opened ${def.label}`, createdByUserId: req.userId! },
+        {
+          userId: req.userId!,
+          points: -def.pointsCost,
+          reason: `Opened ${def.label}`,
+          createdByUserId: req.userId!,
+          // Spending points on a pack shouldn't lower a predictor's
+          // leaderboard rank — see the column's comment in schema.ts.
+          countsTowardRanking: false,
+        },
         ...slots
           .map((s, i) => ({ slot: s, sellValue: sellValues[i] }))
           .filter((r) => r.sellValue !== null)

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, inArray, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { predictions, games, teams, users, pointAdjustments } from "../db/schema.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
@@ -194,67 +194,103 @@ predictionsRouter.get("/me", requireAuth, async (req, res) => {
   }
 });
 
+// Ranked by lifetime *earned* points (correct picks + only the bonus
+// adjustments flagged countsTowardRanking), never spendable balance — see
+// the column's comment in schema.ts. This is deliberately still computed
+// live on every call, same "no backfill job, a scoring-rule change applies
+// instantly" guarantee as everywhere else in this file — but it used to
+// pull every prediction and every point_adjustment ever made, for every
+// user, over the wire and reduce them in JS, which only gets more
+// expensive as the app accumulates history. Phase 1 below does that
+// counting inside a single grouped SQL query instead (one row per user,
+// however much history exists behind it); phase 2 then fetches full pick
+// sequences — needed only for streak-based badges like "on-a-roll" — for
+// just the ~20 users who actually end up on the board, not everyone.
 predictionsRouter.get("/leaderboard", async (_req, res) => {
   try {
-    const [predictionRows, adjustmentRows] = await Promise.all([
-      db
-        .select({ prediction: predictions, game: games, user: users })
-        .from(predictions)
-        .innerJoin(games, eq(predictions.gameId, games.id))
-        .innerJoin(users, eq(predictions.userId, users.id))
-        .where(eq(games.status, "final")),
-      db
-        .select({ userId: pointAdjustments.userId, points: pointAdjustments.points, email: users.email })
-        .from(pointAdjustments)
-        .innerJoin(users, eq(pointAdjustments.userId, users.id)),
-    ]);
+    const totals = await db.execute<{
+      user_id: string;
+      email: string;
+      correct: number;
+      total: number;
+      bonus: number;
+    }>(sql`
+      with correct_totals as (
+        select p.user_id,
+          count(*) filter (
+            where p.predicted_winner_team_id = case when g.home_score > g.away_score then g.home_team_id else g.away_team_id end
+          )::int as correct,
+          count(*)::int as total
+        from ${predictions} p
+        join ${games} g on p.game_id = g.id
+        where g.status = 'final' and g.home_score is not null and g.away_score is not null and g.home_score <> g.away_score
+        group by p.user_id
+      ),
+      bonus_totals as (
+        select user_id, coalesce(sum(points), 0)::int as bonus
+        from ${pointAdjustments}
+        where counts_toward_ranking = true
+        group by user_id
+      )
+      select coalesce(ct.user_id, bt.user_id) as user_id, u.email,
+        coalesce(ct.correct, 0)::int as correct,
+        coalesce(ct.total, 0)::int as total,
+        coalesce(bt.bonus, 0)::int as bonus
+      from correct_totals ct
+      full outer join bonus_totals bt on ct.user_id = bt.user_id
+      join ${users} u on u.id = coalesce(ct.user_id, bt.user_id)
+    `);
 
-    const byUser = new Map<string, { email: string; picks: ResolvedPick[] }>();
-    for (const { prediction, game, user } of predictionRows) {
+    const ranked = totals
+      .map((row) => ({
+        userId: row.user_id,
+        // Placeholder display name — no dedicated username field exists yet.
+        // Showing full email addresses on a public leaderboard isn't great
+        // practice, so this uses just the local part as a stand-in.
+        displayName: row.email.split("@")[0],
+        correct: row.correct,
+        total: row.total,
+        accuracy: row.total > 0 ? row.correct / row.total : 0,
+        points: row.correct * POINTS_PER_CORRECT + row.bonus,
+      }))
+      .sort((a, b) => b.points - a.points || b.accuracy - a.accuracy)
+      .slice(0, 20);
+
+    const topIds = ranked.map((r) => r.userId);
+    const pickRows = topIds.length
+      ? await db
+          .select({ prediction: predictions, game: games })
+          .from(predictions)
+          .innerJoin(games, eq(predictions.gameId, games.id))
+          .where(and(eq(games.status, "final"), inArray(predictions.userId, topIds)))
+      : [];
+
+    const picksByUser = new Map<string, ResolvedPick[]>();
+    for (const { prediction, game } of pickRows) {
       const winnerTeamId = computeWinnerTeamId(game);
       if (winnerTeamId === null) continue;
-      const entry = byUser.get(prediction.userId) ?? { email: user.email, picks: [] };
-      entry.picks.push({
+      const picks = picksByUser.get(prediction.userId) ?? [];
+      picks.push({
         round: game.round,
         tipoffAt: game.tipoffAt,
         correct: winnerTeamId === prediction.predictedWinnerTeamId,
       });
-      byUser.set(prediction.userId, entry);
+      picksByUser.set(prediction.userId, picks);
     }
 
-    const bonusByUser = new Map<string, { email: string; bonus: number }>();
-    for (const { userId, points, email } of adjustmentRows) {
-      const entry = bonusByUser.get(userId) ?? { email, bonus: 0 };
-      entry.bonus += points;
-      bonusByUser.set(userId, entry);
-    }
-
-    const allUserIds = new Set([...byUser.keys(), ...bonusByUser.keys()]);
-
-    const leaderboard = Array.from(allUserIds)
-      .map((userId) => {
-        const picks = byUser.get(userId)?.picks ?? [];
-        picks.sort((a, b) => new Date(a.tipoffAt).getTime() - new Date(b.tipoffAt).getTime());
-        const email = byUser.get(userId)?.email ?? bonusByUser.get(userId)!.email;
-        const bonus = bonusByUser.get(userId)?.bonus ?? 0;
-        const correct = picks.filter((p) => p.correct).length;
-        const total = picks.length;
-        const points = correct * POINTS_PER_CORRECT + bonus;
-        return {
-          userId,
-          // Placeholder display name — no dedicated username field exists yet.
-          // Showing full email addresses on a public leaderboard isn't great
-          // practice, so this uses just the local part as a stand-in.
-          displayName: email.split("@")[0],
-          correct,
-          total,
-          accuracy: total > 0 ? correct / total : 0,
-          points,
-          badges: earnedBadges({ picks, hasAnyPick: total > 0, predictionPoints: correct * POINTS_PER_CORRECT }),
-        };
-      })
-      .sort((a, b) => b.points - a.points || b.accuracy - a.accuracy)
-      .slice(0, 20);
+    const leaderboard = ranked.map((entry) => {
+      const picks = (picksByUser.get(entry.userId) ?? []).sort(
+        (a, b) => new Date(a.tipoffAt).getTime() - new Date(b.tipoffAt).getTime()
+      );
+      return {
+        ...entry,
+        badges: earnedBadges({
+          picks,
+          hasAnyPick: entry.total > 0,
+          predictionPoints: entry.correct * POINTS_PER_CORRECT,
+        }),
+      };
+    });
 
     res.json(leaderboard);
   } catch (err) {

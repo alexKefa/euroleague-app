@@ -200,6 +200,9 @@ collectiblesRouter.post("/:id/purchase", requireAuth, async (req, res) => {
         points: -price,
         reason: `Bought: ${row.collectible.name}`,
         createdByUserId: req.userId!,
+        // See the column's comment in schema.ts — spending shouldn't lower
+        // a predictor's leaderboard rank.
+        countsTowardRanking: false,
       });
       await tx.insert(userCollectibles).values({ userId: req.userId!, collectibleId: id });
     });

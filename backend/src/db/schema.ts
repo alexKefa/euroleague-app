@@ -250,6 +250,16 @@ export const pointAdjustments = pgTable("point_adjustments", {
   reason: text("reason").notNull(),
   createdByUserId: uuid("created_by_user_id").notNull().references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  // False only on the pack-purchase-cost row (routes/packs.ts) — spending
+  // points shouldn't lower a predictor's leaderboard rank, since points are
+  // a real currency (packs) as well as a prediction score. Everything else
+  // (welcome/referral bonus, duplicate-card sell-back credit, an admin's
+  // manual grant *or* penalty) still counts, so an admin can still actually
+  // dock someone's rank if that's ever needed. getUserPoints() (the
+  // spendable balance shown on Store/Packs/Wheel) ignores this column
+  // entirely and keeps summing every row — spending still has to reduce
+  // what you can afford, just not your rank.
+  countsTowardRanking: boolean("counts_toward_ranking").default(true).notNull(),
 });
 
 // Points reward-store catalog. imageUrl is optional — cards fall back to
