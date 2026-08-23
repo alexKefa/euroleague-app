@@ -1,9 +1,10 @@
-import { Component, OnInit, inject, signal } from "@angular/core";
+import { Component, OnInit, effect, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
+import { EventsService } from "../../core/events.service";
 import { Prediction, LeaderboardEntry, PredictionSummary, Game } from "../../core/models";
 import { TeamBadgeComponent } from "../../shared/team-badge";
 import { PageHintComponent } from "../../shared/page-hint";
@@ -47,6 +48,7 @@ export class PredictionsComponent implements OnInit {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
+  private events = inject(EventsService);
 
   readonly myPredictions = signal<Prediction[]>([]);
   readonly leaderboard = signal<LeaderboardEntry[]>([]);
@@ -67,6 +69,25 @@ export class PredictionsComponent implements OnInit {
   readonly teamLogos = signal<Map<string, string | null>>(new Map());
   readonly showBadgeLegend = signal(false);
   readonly badgeCatalog = BADGE_CATALOG;
+
+  constructor() {
+    // Live score push, same pattern as schedule.ts: patch the matching
+    // game's status/scores in place instead of refetching. This is what
+    // actually locks a pick — the moment a game flips off "scheduled" here,
+    // isLocked() below disables its buttons, even if the visitor has had
+    // this page open since before tipoff and never refreshed.
+    effect(() => {
+      const update = this.events.lastGameUpdate();
+      if (!update) return;
+      this.upcomingGames.update((list) =>
+        list.map((g) =>
+          g.id === update.gameId
+            ? { ...g, homeScore: update.homeScore, awayScore: update.awayScore, status: update.status }
+            : g
+        )
+      );
+    });
+  }
 
   ngOnInit(): void {
     this.api.getTeams().subscribe({
@@ -137,6 +158,14 @@ export class PredictionsComponent implements OnInit {
     return this.myPicks().get(game.id) ?? null;
   }
 
+  // Once a game leaves "scheduled" (live or final), picks are closed —
+  // matches the backend's own validation, but locking the button here too
+  // means a visitor sees why immediately instead of tapping a team and
+  // having it silently roll back.
+  isLocked(game: Game): boolean {
+    return game.status !== "scheduled";
+  }
+
   teamLogo(teamId: string): string | null {
     return this.teamLogos().get(teamId) ?? null;
   }
@@ -146,6 +175,7 @@ export class PredictionsComponent implements OnInit {
   // on Profile, so a mistaken pick doesn't require picking the other team
   // just to undo it.
   togglePick(game: Game, teamId: string): void {
+    if (this.isLocked(game)) return;
     if (this.myPickFor(game) === teamId) {
       this.clearPick(game);
     } else {

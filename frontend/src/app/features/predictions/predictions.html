@@ -38,14 +38,23 @@
           @for (game of upcomingGames(); track game.id) {
             <div class="flex items-center gap-2 px-2 py-1 rounded-xl bg-page">
               <p class="font-mono text-muted text-[10px] leading-tight shrink-0 w-9 text-center">
-                {{ game.tipoffAt | date: "MMM d" }}<br />{{ game.tipoffAt | date: "HH:mm" }}
+                @if (game.status === "live") {
+                  <span class="flex items-center justify-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                    <span class="text-[9px] font-bold uppercase tracking-wide text-red-500">{{ i18n.t('schedule.live') }}</span>
+                  </span>
+                  <span class="font-bold text-ink">{{ game.homeScore }}-{{ game.awayScore }}</span>
+                } @else {
+                  {{ game.tipoffAt | date: "MMM d" }}<br />{{ game.tipoffAt | date: "HH:mm" }}
+                }
               </p>
               @if (auth.isAuthenticated()) {
                 <div class="flex-1 flex gap-1.5">
                   <button
                     type="button"
                     (click)="togglePick(game, game.homeTeam.id)"
-                    class="flex-1 py-1 rounded-md font-mono text-[12px] font-bold border-2 transition-colors"
+                    [disabled]="isLocked(game)"
+                    class="flex-1 py-1 rounded-md font-mono text-[12px] font-bold border-2 transition-colors disabled:opacity-40 disabled:pointer-events-none"
                     [class.border-highlight]="myPickFor(game) === game.homeTeam.id"
                     [class.bg-highlight]="myPickFor(game) === game.homeTeam.id"
                     [class.text-white]="myPickFor(game) === game.homeTeam.id"
@@ -58,7 +67,8 @@
                   <button
                     type="button"
                     (click)="togglePick(game, game.awayTeam.id)"
-                    class="flex-1 py-1 rounded-md font-mono text-[12px] font-bold border-2 transition-colors"
+                    [disabled]="isLocked(game)"
+                    class="flex-1 py-1 rounded-md font-mono text-[12px] font-bold border-2 transition-colors disabled:opacity-40 disabled:pointer-events-none"
                     [class.border-highlight]="myPickFor(game) === game.awayTeam.id"
                     [class.bg-highlight]="myPickFor(game) === game.awayTeam.id"
                     [class.text-white]="myPickFor(game) === game.awayTeam.id"
