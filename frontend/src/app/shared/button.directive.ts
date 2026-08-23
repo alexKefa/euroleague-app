@@ -7,7 +7,7 @@ export type ButtonSize = "sm" | "md";
 // "Court Line" gradient pill (picked over three other directions via a
 // side-by-side comparison — see the "Button Directions" design canvas).
 // Flat rectangles instead of pills, a hard bottom edge on primary instead of
-// a soft glow, Rajdhani (the app's display font) instead of mono — reads
+// a soft glow, the app's display font instead of mono — reads
 // like a stat panel rather than a rounded chip. Sentence case, not
 // uppercase — all-caps across every button in the app read as cheap. An
 // attribute directive

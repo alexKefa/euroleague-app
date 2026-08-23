@@ -1,14 +1,18 @@
-@import url("https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=Fira+Code:wght@500;700&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Fonts tried for the display role have a real weight range (unlike the
-   single heavy-weight fonts used originally — Anton, Big Shoulders, etc.),
-   and most `font-display` usages across the templates don't separately add
-   `font-bold`. Give the class a bold baseline so headers/scores keep the
-   same punch without touching every template that reaches for it. */
+/* Rajdhani/Barlow/JetBrains Mono replaced with Syne/IBM Plex Sans/Fira
+   Code — the old trio doesn't have Greek glyphs at all (verified against
+   Google Fonts' own metadata, not assumed), so every Greek heading/body
+   line was silently falling back to a system font ever since the app
+   started defaulting to Greek. This trio is Greek-verified end to end.
+   Syne reads bold even at 700 (no single ultra-heavy weight the way Anton/
+   Big Shoulders did), and most `font-display` usages across the templates
+   don't separately add `font-bold` — keep the class's bold baseline so
+   headers/scores keep the same punch without touching every template. */
 .font-display {
   font-weight: 700;
 }

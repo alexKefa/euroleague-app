@@ -30,9 +30,11 @@ module.exports = {
         "team-secondary": "var(--accent-secondary, #0B1220)",
       },
       fontFamily: {
-        sans: ["Barlow", "system-ui", "sans-serif"],
-        display: ["Rajdhani", "Arial", "sans-serif"],
-        mono: ["JetBrains Mono", "ui-monospace", "monospace"],
+        // Greek-verified trio (see styles.css) — Rajdhani/Barlow/JetBrains
+        // Mono had no Greek glyphs at all.
+        sans: ["IBM Plex Sans", "system-ui", "sans-serif"],
+        display: ["Syne", "Arial", "sans-serif"],
+        mono: ["Fira Code", "ui-monospace", "monospace"],
       },
       boxShadow: {
         // Real elevation instead of a near-flat 1px line — was previously
