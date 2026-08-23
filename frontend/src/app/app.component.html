@@ -98,7 +98,7 @@
         class="group relative flex items-center justify-center w-11 h-11 rounded-full transition-colors"
       >
         <app-nav-icon [name]="link.icon" [active]="isActive(link)" [size]="22" />
-        @if (link.path === '/predictions' && events.hasLiveGame()) {
+        @if (link.path === '/predictions' && auth.isAuthenticated() && events.hasLiveGame()) {
           <span
             class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 animate-pulse"
             [attr.aria-label]="i18n.t('nav.liveGame')"
@@ -137,7 +137,7 @@
         [class]="isActive(link) ? 'bg-highlight/15 scale-100' : 'scale-90'"
       >
         <app-nav-icon [name]="link.icon" [active]="isActive(link)" [size]="22" />
-        @if (link.path === '/predictions' && events.hasLiveGame()) {
+        @if (link.path === '/predictions' && auth.isAuthenticated() && events.hasLiveGame()) {
           <span
             class="absolute top-0.5 right-2 w-2 h-2 rounded-full bg-red-500 animate-pulse"
             [attr.aria-label]="i18n.t('nav.liveGame')"
