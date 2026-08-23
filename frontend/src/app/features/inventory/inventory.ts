@@ -12,6 +12,7 @@ import { PageHintComponent } from "../../shared/page-hint";
 import { ChipDirective } from "../../shared/chip.directive";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { SkeletonComponent } from "../../shared/skeleton";
+import { ButtonDirective } from "../../shared/button.directive";
 
 @Component({
   selector: "app-inventory",
@@ -26,6 +27,7 @@ import { SkeletonComponent } from "../../shared/skeleton";
     ChipDirective,
     DropdownComponent,
     SkeletonComponent,
+    ButtonDirective,
   ],
   templateUrl: "./inventory.html",
 })

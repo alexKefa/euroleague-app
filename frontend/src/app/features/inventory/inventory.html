@@ -45,10 +45,13 @@
   }
 
   @if (!auth.isAuthenticated()) {
-    <p class="text-sm text-muted">
-      <a routerLink="/login" class="text-highlight font-semibold">{{ i18n.t('inventory.logInLinkText') }}</a>
-      {{ i18n.t('inventory.loginToSeeSuffix') }}
-    </p>
+    <div class="bg-card rounded-2xl border border-line shadow-card p-6 text-center">
+      <p class="text-sm text-muted mb-4">
+        <a routerLink="/login" class="text-highlight font-semibold">{{ i18n.t('inventory.logInLinkText') }}</a>
+        {{ i18n.t('inventory.loginToSeeSuffix') }}
+      </p>
+      <a routerLink="/login" appButton appButtonSize="sm">{{ i18n.t('inventory.logInLinkText') }}</a>
+    </div>
   } @else if (loading()) {
     <div class="flex flex-wrap gap-2 mb-4">
       <div class="animate-pulse flex-1 min-w-[10rem] h-10 rounded-xl bg-line"></div>
