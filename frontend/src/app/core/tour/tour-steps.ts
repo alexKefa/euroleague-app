@@ -13,8 +13,18 @@ export interface TourStep {
   // entirely for a guest rather than showing them the fallback centered
   // card with no spotlight, since the copy describes UI they can't see.
   requiresAuth?: boolean;
+  // Inverse of requiresAuth — shown only to a guest, skipped once logged
+  // in. Used for the "there's more once you log in" nudge, which would be
+  // redundant (and read oddly, referring to a locked-in-future-tense
+  // feature the viewer already has) for someone already signed in.
+  guestOnly?: boolean;
   titleKey: string;
   bodyKey: string;
+  // Optional extra call-to-action button rendered alongside Next/Skip —
+  // clicking it ends the tour and navigates to ctaRoute. Non-blocking:
+  // Next still moves on without taking it.
+  ctaLabelKey?: string;
+  ctaRoute?: string;
 }
 
 export const TOUR_STEPS: TourStep[] = [
@@ -69,6 +79,13 @@ export const TOUR_STEPS: TourStep[] = [
     requiresAuth: true,
     titleKey: "tour.step.profile.title",
     bodyKey: "tour.step.profile.body",
+  },
+  {
+    guestOnly: true,
+    titleKey: "tour.step.guestCta.title",
+    bodyKey: "tour.step.guestCta.body",
+    ctaLabelKey: "tour.cta.register",
+    ctaRoute: "/register",
   },
   { titleKey: "tour.step.done.title", bodyKey: "tour.step.done.body" },
 ];

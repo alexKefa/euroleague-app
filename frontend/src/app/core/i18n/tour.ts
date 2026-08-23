@@ -11,6 +11,7 @@ export const tourTranslations: Record<string, Record<Lang, string>> = {
   "tour.back": { en: "Back", el: "Πίσω" },
   "tour.skip": { en: "Skip tour", el: "Παράλειψη" },
   "tour.finish": { en: "Finish", el: "Τέλος" },
+  "tour.cta.register": { en: "Create free account", el: "Δημιούργησε δωρεάν λογαριασμό" },
 
   "tour.step.welcome.title": { en: "Welcome to Clutch", el: "Καλώς ήρθες στο Clutch" },
   "tour.step.welcome.body": {
@@ -58,6 +59,12 @@ export const tourTranslations: Record<string, Record<Lang, string>> = {
   "tour.step.profile.body": {
     en: "Share your referral link from Profile — once someone you invite lands a correct prediction, you get a 400-point bonus.",
     el: "Μοιράσου τον σύνδεσμο παραπομπής σου από το Προφίλ — μόλις κάποιος που κάλεσες πετύχει μια σωστή πρόβλεψη, κερδίζεις μπόνους 400 πόντων.",
+  },
+
+  "tour.step.guestCta.title": { en: "There's more once you're in", el: "Υπάρχουν πολλά περισσότερα μόλις συνδεθείς" },
+  "tour.step.guestCta.body": {
+    en: "Log in to earn points from predictions, spin the daily Jump Ball, open packs, trade cards, and invite friends for bonus points. It's free — takes a minute.",
+    el: "Συνδέσου για να κερδίζεις πόντους από τις προβλέψεις, να γυρίζεις τον καθημερινό τροχό Jump Ball, να ανοίγεις πακέτα, να ανταλλάσσεις κάρτες και να καλείς φίλους για μπόνους πόντους. Είναι δωρεάν — παίρνει ένα λεπτό.",
   },
 
   "tour.step.done.title": { en: "That's Clutch", el: "Αυτό είναι το Clutch" },

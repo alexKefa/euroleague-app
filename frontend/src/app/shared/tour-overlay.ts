@@ -9,6 +9,7 @@ import {
   inject,
   signal,
 } from "@angular/core";
+import { Router } from "@angular/router";
 import { I18nService } from "../core/i18n.service";
 import { TourService } from "../core/tour/tour.service";
 import { ButtonDirective } from "./button.directive";
@@ -103,6 +104,18 @@ function currentViewportSize(): { width: number; height: number } {
           <p class="font-display text-base tracking-wide mb-1.5">{{ i18n.t(tour.currentStep()?.titleKey ?? '') }}</p>
           <p class="text-sm text-muted leading-relaxed mb-4">{{ i18n.t(tour.currentStep()?.bodyKey ?? '') }}</p>
 
+          @if (tour.currentStep()?.ctaRoute; as ctaRoute) {
+            <button
+              type="button"
+              (click)="onCta(ctaRoute)"
+              appButton
+              appButtonSize="sm"
+              class="w-full mb-3"
+            >
+              {{ i18n.t(tour.currentStep()!.ctaLabelKey ?? '') }}
+            </button>
+          }
+
           <div class="flex items-center justify-between gap-2">
             <button
               type="button"
@@ -117,7 +130,12 @@ function currentViewportSize(): { width: number; height: number } {
                   {{ i18n.t('tour.back') }}
                 </button>
               }
-              <button type="button" (click)="tour.next()" appButton appButtonSize="sm">
+              <button
+                type="button"
+                (click)="tour.next()"
+                [appButton]="tour.currentStep()?.ctaRoute ? 'secondary' : ''"
+                appButtonSize="sm"
+              >
                 {{ tour.stepIndex() === tour.steps.length - 1 ? i18n.t('tour.finish') : i18n.t('tour.next') }}
               </button>
             </div>
@@ -130,6 +148,12 @@ function currentViewportSize(): { width: number; height: number } {
 export class TourOverlayComponent implements AfterViewInit, OnDestroy {
   protected tour = inject(TourService);
   protected i18n = inject(I18nService);
+  private router = inject(Router);
+
+  protected onCta(route: string): void {
+    this.tour.end();
+    this.router.navigateByUrl(route);
+  }
 
   private ro?: ResizeObserver;
   private readonly measuredCardHeight = signal(180);

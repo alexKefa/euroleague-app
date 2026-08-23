@@ -12,7 +12,9 @@ import { TOUR_STEPS, TourStep } from "./tour-steps";
 // for a guest (see isVisible/firstVisibleIndex below) rather than falling
 // back to that centered card, since their target only ever renders for a
 // logged-in user — a guest gets a shorter but fully-working preview tour
-// instead of several unanchored cards in a row. Steps can name a route; the
+// instead of several unanchored cards in a row. `guestOnly` is the inverse,
+// for the closing "there's more once you log in" nudge a logged-in user
+// doesn't need to see. Steps can name a route; the
 // service navigates there via Router before searching for the target, so
 // the tour can walk someone across Dashboard → Predictions → Cards hub →
 // Wheel → Packs → Trades → Profile in one guided flow.
@@ -75,7 +77,8 @@ export class TourService {
   }
 
   private isVisible(step: TourStep): boolean {
-    return !step.requiresAuth || this.auth.isAuthenticated();
+    const authed = this.auth.isAuthenticated();
+    return (!step.requiresAuth || authed) && (!step.guestOnly || !authed);
   }
 
   // Walks the step list from `start` in `direction`, returning the index of
