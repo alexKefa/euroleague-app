@@ -1,19 +1,25 @@
 import { Injectable, computed, inject, signal } from "@angular/core";
 import { Router } from "@angular/router";
+import { AuthService } from "../auth.service";
 import { TOUR_STEPS, TourStep } from "./tour-steps";
 
 // Drives the multi-page "Take a tour" walkthrough (shared/tour-overlay.ts is
 // the visual half). A step either targets a `data-tour="..."` element
 // somewhere in the app (spotlighted) or has no selector, which renders as a
 // centered card with no spotlight — used for the welcome/closing steps and
-// as the automatic fallback when a step's target never appears (guest
-// viewing an auth-gated step, an empty state, a slow fetch). Steps can name
-// a route; the service navigates there via Router before searching for the
-// target, so the tour can walk someone across Dashboard → Predictions →
-// Cards hub → Wheel → Packs → Trades → Profile in one guided flow.
+// as the automatic fallback when a step's target never appears (an empty
+// state or a slow fetch). Steps marked `requiresAuth` are skipped entirely
+// for a guest (see isVisible/firstVisibleIndex below) rather than falling
+// back to that centered card, since their target only ever renders for a
+// logged-in user — a guest gets a shorter but fully-working preview tour
+// instead of several unanchored cards in a row. Steps can name a route; the
+// service navigates there via Router before searching for the target, so
+// the tour can walk someone across Dashboard → Predictions → Cards hub →
+// Wheel → Packs → Trades → Profile in one guided flow.
 @Injectable({ providedIn: "root" })
 export class TourService {
   private router = inject(Router);
+  private auth = inject(AuthService);
 
   readonly steps: TourStep[] = TOUR_STEPS;
 
@@ -27,6 +33,16 @@ export class TourService {
 
   readonly currentStep = computed<TourStep | null>(() => this.steps[this.stepIndex()] ?? null);
 
+  // The step list a guest actually walks through (auth-gated steps
+  // filtered out) — used for the overlay's "Step X/Y" label so a guest
+  // sees an honest count of their shorter tour instead of the full 9 with
+  // numbers jumping (2 → 4 → ...) as gated steps get skipped.
+  readonly visibleSteps = computed(() => this.steps.filter((s) => this.isVisible(s)));
+  readonly visibleStepNumber = computed(() => {
+    const step = this.currentStep();
+    return step ? this.visibleSteps().indexOf(step) + 1 : 0;
+  });
+
   // Bumped on every step change and checked by the async settle/search chain
   // below so a stale navigation (user mashed Next, or ended the tour) can't
   // land its result after a newer step has already taken over.
@@ -34,7 +50,7 @@ export class TourService {
   private readonly onViewportChange = () => this.remeasure();
 
   start(): void {
-    this.stepIndex.set(0);
+    this.stepIndex.set(this.firstVisibleIndex(0, 1) ?? 0);
     this.active.set(true);
     window.addEventListener("resize", this.onViewportChange);
     window.addEventListener("scroll", this.onViewportChange, true);
@@ -42,18 +58,36 @@ export class TourService {
   }
 
   next(): void {
-    if (this.stepIndex() >= this.steps.length - 1) {
+    const nextIndex = this.firstVisibleIndex(this.stepIndex() + 1, 1);
+    if (nextIndex === null) {
       this.end();
       return;
     }
-    this.stepIndex.update((i) => i + 1);
+    this.stepIndex.set(nextIndex);
     this.goToCurrentStep();
   }
 
   back(): void {
-    if (this.stepIndex() === 0) return;
-    this.stepIndex.update((i) => i - 1);
+    const prevIndex = this.firstVisibleIndex(this.stepIndex() - 1, -1);
+    if (prevIndex === null) return;
+    this.stepIndex.set(prevIndex);
     this.goToCurrentStep();
+  }
+
+  private isVisible(step: TourStep): boolean {
+    return !step.requiresAuth || this.auth.isAuthenticated();
+  }
+
+  // Walks the step list from `start` in `direction`, returning the index of
+  // the first step a guest can actually see (or every step, once logged
+  // in). Used by both next() and back() so a guest transparently skips over
+  // auth-gated steps in either direction instead of hitting their fallback
+  // centered card.
+  private firstVisibleIndex(start: number, direction: 1 | -1): number | null {
+    for (let i = start; i >= 0 && i < this.steps.length; i += direction) {
+      if (this.isVisible(this.steps[i])) return i;
+    }
+    return null;
   }
 
   end(): void {

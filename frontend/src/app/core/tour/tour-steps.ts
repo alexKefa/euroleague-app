@@ -5,9 +5,14 @@ export interface TourStep {
   // data-tour attribute selector for the element to spotlight. Omitted =
   // a centered step with no spotlight (welcome/closing, or intentionally
   // page-level). If the selector isn't found on screen within a few hundred
-  // ms (guest/loading/empty states), TourService falls back to a centered
-  // step automatically rather than getting stuck.
+  // ms (loading/empty states), TourService falls back to a centered step
+  // automatically rather than getting stuck.
   selector?: string;
+  // True when the target only renders for a logged-in user (behind
+  // `@if (auth.isAuthenticated())` on its page) — TourService skips these
+  // entirely for a guest rather than showing them the fallback centered
+  // card with no spotlight, since the copy describes UI they can't see.
+  requiresAuth?: boolean;
   titleKey: string;
   bodyKey: string;
 }
@@ -23,6 +28,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     route: "/inventory",
     selector: "[data-tour='cards-hub']",
+    requiresAuth: true,
     titleKey: "tour.step.cards.title",
     bodyKey: "tour.step.cards.body",
   },
@@ -39,24 +45,28 @@ export const TOUR_STEPS: TourStep[] = [
   {
     route: "/wheel",
     selector: "[data-tour='wheel-spin']",
+    requiresAuth: true,
     titleKey: "tour.step.wheel.title",
     bodyKey: "tour.step.wheel.body",
   },
   {
     route: "/packs",
     selector: "[data-tour='packs-grid']",
+    requiresAuth: true,
     titleKey: "tour.step.packs.title",
     bodyKey: "tour.step.packs.body",
   },
   {
     route: "/trades",
     selector: "[data-tour='trades-marketplace']",
+    requiresAuth: true,
     titleKey: "tour.step.trades.title",
     bodyKey: "tour.step.trades.body",
   },
   {
     route: "/profile",
     selector: "[data-tour='profile-referral']",
+    requiresAuth: true,
     titleKey: "tour.step.profile.title",
     bodyKey: "tour.step.profile.body",
   },

@@ -98,7 +98,7 @@ function currentViewportSize(): { width: number; height: number } {
           [style.max-height.px]="maxCardHeight()"
         >
           <p class="font-mono text-[11px] text-muted font-bold mb-1">
-            {{ i18n.t('tour.stepLabel') }} {{ tour.stepIndex() + 1 }}/{{ tour.steps.length }}
+            {{ i18n.t('tour.stepLabel') }} {{ tour.visibleStepNumber() }}/{{ tour.visibleSteps().length }}
           </p>
           <p class="font-display text-base tracking-wide mb-1.5">{{ i18n.t(tour.currentStep()?.titleKey ?? '') }}</p>
           <p class="text-sm text-muted leading-relaxed mb-4">{{ i18n.t(tour.currentStep()?.bodyKey ?? '') }}</p>
