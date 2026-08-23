@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from "@angular/core";
+import { Component, ElementRef, OnInit, ViewChild, inject, signal } from "@angular/core";
 import { toSignal } from "@angular/core/rxjs-interop";
 import { NavigationEnd, Router, RouterOutlet, RouterLink } from "@angular/router";
 import { filter, map } from "rxjs";
@@ -84,6 +84,27 @@ export class AppComponent implements OnInit {
   protected readonly showSplash = signal(true);
   protected readonly splashHiding = signal(false);
 
+  // The mobile bottom tab bar is plain `fixed bottom-0` CSS with no JS
+  // repositioning it — normally correct, but after the on-screen keyboard
+  // opens (tapping a search box, a login/register field) and closes again,
+  // some mobile browsers cache the shrunk viewport height and don't fully
+  // recompute a fixed element's position until something forces a reflow,
+  // leaving the nav stranded partway up the screen instead of pinned to
+  // the true bottom edge until the page is reloaded. visualViewport's
+  // resize event fires on keyboard show/hide and orientation change;
+  // toggling display off and back on the next frame forces the browser to
+  // recompute the nav's position fresh against the current real viewport.
+  @ViewChild("bottomNav") private bottomNavRef?: ElementRef<HTMLElement>;
+
+  private readonly resnapBottomNav = () => {
+    const el = this.bottomNavRef?.nativeElement;
+    if (!el) return;
+    el.style.display = "none";
+    requestAnimationFrame(() => {
+      el.style.display = "";
+    });
+  };
+
   protected readonly currentUrl = toSignal(
     this.router.events.pipe(
       filter((e): e is NavigationEnd => e instanceof NavigationEnd),
@@ -98,6 +119,9 @@ export class AppComponent implements OnInit {
 
     setTimeout(() => this.splashHiding.set(true), SPLASH_DURATION_MS);
     setTimeout(() => this.showSplash.set(false), SPLASH_DURATION_MS + SPLASH_FADE_MS);
+
+    window.visualViewport?.addEventListener("resize", this.resnapBottomNav);
+    window.addEventListener("orientationchange", this.resnapBottomNav);
   }
 
   logout(): void {
