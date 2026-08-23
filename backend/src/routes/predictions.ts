@@ -102,40 +102,51 @@ function earnedBadges(ctx: BadgeContext): BadgeInfo[] {
 }
 
 predictionsRouter.post("/", requireAuth, async (req, res) => {
-  const { gameId, teamId } = req.body ?? {};
-  if (typeof gameId !== "string" || typeof teamId !== "string") {
-    res.status(400).json({ error: "gameId and teamId are required" });
-    return;
-  }
+  try {
+    const { gameId, teamId } = req.body ?? {};
+    if (typeof gameId !== "string" || typeof teamId !== "string") {
+      res.status(400).json({ error: "gameId and teamId are required" });
+      return;
+    }
 
-  const [game] = await db.select().from(games).where(eq(games.id, gameId)).limit(1);
-  if (!game) {
-    res.status(404).json({ error: "Game not found" });
-    return;
-  }
-  if (game.status !== "scheduled") {
-    res.status(400).json({ error: "Predictions are only allowed before a game starts" });
-    return;
-  }
-  if (teamId !== game.homeTeamId && teamId !== game.awayTeamId) {
-    res.status(400).json({ error: "teamId must be one of the two teams playing this game" });
-    return;
-  }
-  if (new Date(game.tipoffAt) <= new Date()) {
-    res.status(400).json({ error: "This game has already started" });
-    return;
-  }
+    const [game] = await db.select().from(games).where(eq(games.id, gameId)).limit(1);
+    if (!game) {
+      res.status(404).json({ error: "Game not found" });
+      return;
+    }
+    if (game.status !== "scheduled") {
+      res.status(400).json({ error: "Predictions are only allowed before a game starts" });
+      return;
+    }
+    if (teamId !== game.homeTeamId && teamId !== game.awayTeamId) {
+      res.status(400).json({ error: "teamId must be one of the two teams playing this game" });
+      return;
+    }
+    if (new Date(game.tipoffAt) <= new Date()) {
+      res.status(400).json({ error: "This game has already started" });
+      return;
+    }
 
-  const [prediction] = await db
-    .insert(predictions)
-    .values({ userId: req.userId!, gameId, predictedWinnerTeamId: teamId })
-    .onConflictDoUpdate({
-      target: [predictions.userId, predictions.gameId],
-      set: { predictedWinnerTeamId: teamId },
-    })
-    .returning();
+    const [prediction] = await db
+      .insert(predictions)
+      .values({ userId: req.userId!, gameId, predictedWinnerTeamId: teamId })
+      .onConflictDoUpdate({
+        target: [predictions.userId, predictions.gameId],
+        set: { predictedWinnerTeamId: teamId },
+      })
+      .returning();
 
-  res.status(201).json(prediction);
+    res.status(201).json(prediction);
+  } catch (err) {
+    // A stale JWT for an already-deleted user (only realistically reachable
+    // via manual DB cleanup in dev, not a real account-deletion feature)
+    // fails this insert's user_id foreign key — without this catch that
+    // threw past Express into an unhandled rejection and crashed the whole
+    // process for every connected client, not just this request. Every
+    // other route in this file already catches; this one didn't.
+    console.error("POST /api/predictions failed:", err);
+    res.status(500).json({ error: "Failed to save prediction" });
+  }
 });
 
 // Lets a user clear a pick entirely (not just swap to the other team) —
