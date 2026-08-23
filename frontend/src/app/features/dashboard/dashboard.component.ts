@@ -13,6 +13,7 @@ import { TourService } from "../../core/tour/tour.service";
 import { ButtonDirective } from "../../shared/button.directive";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { ArticlePreviewComponent } from "../../shared/article-preview";
+import { SkeletonComponent } from "../../shared/skeleton";
 
 const LEADER_CATEGORIES = [
   { value: "points", label: "PTS" },
@@ -37,6 +38,7 @@ type LeaderCategory = (typeof LEADER_CATEGORIES)[number]["value"];
     ButtonDirective,
     DropdownComponent,
     ArticlePreviewComponent,
+    SkeletonComponent,
   ],
   templateUrl: "./dashboard.component.html",
 })

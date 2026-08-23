@@ -4,6 +4,7 @@ import { Collectible, CollectibleStatsResponse } from "../../core/models";
 import { CollectibleCardComponent } from "./collectible-card";
 import { I18nService } from "../../core/i18n.service";
 import { ApiService } from "../../core/api.service";
+import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 
 /**
  * Full-screen card preview — shared between Store and Inventory (and
@@ -20,7 +21,7 @@ import { ApiService } from "../../core/api.service";
 @Component({
   selector: "app-card-preview",
   standalone: true,
-  imports: [CommonModule, CollectibleCardComponent],
+  imports: [CommonModule, CollectibleCardComponent, LogoSpinnerComponent],
   templateUrl: "./card-preview.html",
 })
 export class CardPreviewComponent implements OnChanges {

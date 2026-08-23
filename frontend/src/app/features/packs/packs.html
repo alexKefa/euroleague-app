@@ -24,7 +24,7 @@
   @if (loading()) {
     <div class="space-y-3">
       @for (i of [1, 2, 3]; track i) {
-        <div class="animate-pulse h-24 bg-line rounded-lg"></div>
+        <app-skeleton class="h-24 rounded-lg" [iconSize]="20" />
       }
     </div>
   }
@@ -63,7 +63,14 @@
                   appButtonSize="sm"
                   class="shrink-0"
                 >
-                  {{ openingOwnedId() === group.items[0].id ? i18n.t('packs.opening') : i18n.t('packs.openNow') }}
+                  @if (openingOwnedId() === group.items[0].id) {
+                    <span class="inline-flex items-center gap-1.5">
+                      <app-logo-spinner [size]="12" />
+                      {{ i18n.t('packs.opening') }}
+                    </span>
+                  } @else {
+                    {{ i18n.t('packs.openNow') }}
+                  }
                 </button>
               </div>
             }
@@ -92,7 +99,7 @@
             </span>
             <span class="relative mt-1.5 px-2.5 py-1 rounded-full bg-black/25 font-mono text-[10px] font-bold">
               @if (opening() === pack.type) {
-                …
+                <app-logo-spinner [size]="14" />
               } @else if (pointsLoading()) {
                 <span class="inline-block w-6 h-2.5 rounded-full bg-white/25 animate-pulse"></span>
               } @else {

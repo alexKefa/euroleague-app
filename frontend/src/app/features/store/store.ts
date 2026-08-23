@@ -11,6 +11,7 @@ import { ChipDirective } from "../../shared/chip.directive";
 import { ButtonDirective } from "../../shared/button.directive";
 import { BallSpinnerComponent } from "../../shared/ball-spinner";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
+import { SkeletonComponent } from "../../shared/skeleton";
 
 @Component({
   selector: "app-store",
@@ -24,6 +25,7 @@ import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
     ButtonDirective,
     BallSpinnerComponent,
     DropdownComponent,
+    SkeletonComponent,
   ],
   templateUrl: "./store.html",
 })

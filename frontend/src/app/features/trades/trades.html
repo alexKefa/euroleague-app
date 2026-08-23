@@ -10,7 +10,7 @@
   <app-page-hint hintId="trades" icon="trade">{{ i18n.t('trades.hint') }}</app-page-hint>
 
   @if (loading()) {
-    <div class="animate-pulse h-40 bg-line rounded-lg mb-5"></div>
+    <app-skeleton class="h-40 rounded-lg mb-5" [iconSize]="24" />
   }
 
   @if (!loading() && !auth.isAuthenticated()) {

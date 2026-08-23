@@ -1,7 +1,8 @@
-import { Component, Input } from "@angular/core";
+import { Component, Input, OnChanges, SimpleChanges, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { CollectibleTier } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
+import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 
 type HoloVariant = "gold" | "silver" | null;
 
@@ -30,11 +31,11 @@ const DEFAULT_TEAM_COLOR = "#3E7CB1";
 @Component({
   selector: "app-collectible-card",
   standalone: true,
-  imports: [CommonModule, RetryImgDirective],
+  imports: [CommonModule, RetryImgDirective, LogoSpinnerComponent],
   templateUrl: "./collectible-card.html",
   styleUrl: "./collectible-card.css",
 })
-export class CollectibleCardComponent {
+export class CollectibleCardComponent implements OnChanges {
   @Input({ required: true }) name!: string;
   @Input({ required: true }) tier!: CollectibleTier;
   @Input() teamCode = "";
@@ -43,6 +44,17 @@ export class CollectibleCardComponent {
   @Input() unlocked = false;
   @Input() maxWidth = 220;
   @Input() selected = false;
+
+  // The player photo can take a beat to arrive (pack reveals fire a burst
+  // of these at once) — track load state so the template can show the logo
+  // spinner over the tint background instead of a blank card until it pops in.
+  readonly imageLoaded = signal(false);
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes["imageUrl"] && !changes["imageUrl"].firstChange) {
+      this.imageLoaded.set(false);
+    }
+  }
   // "042/208" print numbering — only rare/legendary get the corner badge
   // (mirrors the tier badge on the opposite corner); common cards stay as
   // they were. Optional since not every card-shaped API response carries

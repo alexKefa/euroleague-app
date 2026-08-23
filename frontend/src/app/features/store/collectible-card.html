@@ -19,7 +19,21 @@
       <!-- Full-bleed photo -->
       <div class="absolute inset-0" [style.background]="style.photoTint">
         @if (imageUrl) {
-          <img [src]="imageUrl" [alt]="name" loading="lazy" decoding="async" appRetryImg class="absolute inset-0 w-full h-full object-cover object-top" />
+          <img
+            [src]="imageUrl"
+            [alt]="name"
+            loading="lazy"
+            decoding="async"
+            appRetryImg
+            (load)="imageLoaded.set(true)"
+            class="absolute inset-0 w-full h-full object-cover object-top transition-opacity duration-200"
+            [class.opacity-0]="!imageLoaded()"
+          />
+          @if (!imageLoaded()) {
+            <div class="absolute inset-0 flex items-center justify-center">
+              <app-logo-spinner [size]="22" class="opacity-50" />
+            </div>
+          }
         } @else {
           <div class="absolute inset-0 flex items-center justify-center">
             <svg width="52%" height="70%" viewBox="0 0 120 150" fill="none">

@@ -6,9 +6,9 @@
   >
 
   @if (loading()) {
-    <div class="animate-pulse mt-4">
-      <div class="rounded-lg h-[92px] bg-line mb-6"></div>
-      <div class="h-48 bg-line rounded-lg"></div>
+    <div class="mt-4">
+      <app-skeleton class="rounded-lg h-[92px] mb-6" [iconSize]="20" />
+      <app-skeleton class="h-48 rounded-lg" [iconSize]="24" />
     </div>
   }
 

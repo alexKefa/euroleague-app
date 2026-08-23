@@ -28,12 +28,12 @@
   }
 
   @if (loading()) {
-    <div class="animate-pulse flex gap-2 mb-4 overflow-hidden">
+    <div class="flex gap-2 mb-4 overflow-hidden">
       @for (i of [1, 2, 3, 4, 5, 6]; track i) {
-        <div class="w-16 h-20 rounded-2xl bg-line shrink-0"></div>
+        <app-skeleton class="w-16 h-20 rounded-2xl shrink-0" [iconSize]="14" />
       }
     </div>
-    <div class="animate-pulse bg-line rounded-2xl h-[420px]"></div>
+    <app-skeleton class="rounded-2xl h-[420px]" [iconSize]="28" />
   } @else {
     <!-- team strip — every team shown, even at 0%, so gaps in the whole
          catalog are visible, not just teams the player has already started. -->

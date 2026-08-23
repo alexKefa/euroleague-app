@@ -8,6 +8,7 @@ import { Prediction, LeaderboardEntry, PredictionSummary, Game } from "../../cor
 import { TeamBadgeComponent } from "../../shared/team-badge";
 import { PageHintComponent } from "../../shared/page-hint";
 import { NavIconComponent, NavIconName } from "../../shared/nav-icon";
+import { SkeletonComponent } from "../../shared/skeleton";
 
 // Matches schedule.ts — no season picker here either, and predictions
 // should only ever be open for the round a user could actually be watching.
@@ -39,7 +40,7 @@ const BADGE_CATALOG: { id: string; icon: NavIconName }[] = [
 @Component({
   selector: "app-predictions",
   standalone: true,
-  imports: [CommonModule, RouterLink, TeamBadgeComponent, PageHintComponent, NavIconComponent],
+  imports: [CommonModule, RouterLink, TeamBadgeComponent, PageHintComponent, NavIconComponent, SkeletonComponent],
   templateUrl: "./predictions.html",
 })
 export class PredictionsComponent implements OnInit {

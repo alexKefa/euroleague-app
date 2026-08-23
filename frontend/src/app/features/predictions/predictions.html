@@ -22,7 +22,7 @@
       </div>
       <div class="space-y-1.5">
         @for (i of [1, 2, 3, 4]; track i) {
-          <div class="h-8 bg-line rounded-md"></div>
+          <app-skeleton class="h-8 rounded-md" [iconSize]="14" />
         }
       </div>
     </div>
@@ -91,7 +91,7 @@
           </div>
           <div class="space-y-2">
             @for (i of [1, 2, 3]; track i) {
-              <div class="h-9 bg-line rounded-md"></div>
+              <app-skeleton class="h-9 rounded-md" [iconSize]="14" />
             }
           </div>
         </div>
@@ -99,7 +99,7 @@
           <div class="h-3 w-24 bg-line rounded mb-3"></div>
           <div class="space-y-2">
             @for (i of [1, 2, 3, 4]; track i) {
-              <div class="h-9 bg-line rounded-md"></div>
+              <app-skeleton class="h-9 rounded-md" [iconSize]="14" />
             }
           </div>
         </div>

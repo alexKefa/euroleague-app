@@ -9,6 +9,7 @@ import { Team, RosterEntry, Game, GameTeamSummary, StandingsRow } from "../../co
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ChipDirective } from "../../shared/chip.directive";
 import { StatLegendComponent, StatLegendEntry } from "../../shared/stat-legend";
+import { SkeletonComponent } from "../../shared/skeleton";
 
 // Plain box-score terms instead of advanced-stat proxies (eFG%-based
 // "offRating"/"defRating", assist ratio for "playmaking") — those didn't
@@ -29,7 +30,7 @@ type ComparisonAxis = (typeof COMPARISON_AXES)[number];
 @Component({
   selector: "app-team-roster",
   standalone: true,
-  imports: [CommonModule, RouterLink, RetryImgDirective, ChipDirective, StatLegendComponent],
+  imports: [CommonModule, RouterLink, RetryImgDirective, ChipDirective, StatLegendComponent, SkeletonComponent],
   templateUrl: "./roster.html",
 })
 export class TeamRosterComponent implements OnInit {

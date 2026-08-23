@@ -9,6 +9,7 @@ import { CollectibleCardComponent } from "../store/collectible-card";
 import { CardPreviewComponent } from "../store/card-preview";
 import { PageHintComponent } from "../../shared/page-hint";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
+import { SkeletonComponent } from "../../shared/skeleton";
 
 interface TierBreakdown {
   tier: CollectibleTier;
@@ -24,7 +25,15 @@ const TIER_ORDER: CollectibleTier[] = ["common", "rare", "legendary"];
 @Component({
   selector: "app-album",
   standalone: true,
-  imports: [CommonModule, RouterLink, CollectibleCardComponent, CardPreviewComponent, PageHintComponent, RetryImgDirective],
+  imports: [
+    CommonModule,
+    RouterLink,
+    CollectibleCardComponent,
+    CardPreviewComponent,
+    PageHintComponent,
+    RetryImgDirective,
+    SkeletonComponent,
+  ],
   templateUrl: "./album.html",
   styleUrl: "./album.css",
 })

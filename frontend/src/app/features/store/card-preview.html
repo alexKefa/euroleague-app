@@ -59,7 +59,7 @@
 
           @if (statsLoading()) {
             <div class="flex-1 flex items-center justify-center">
-              <div class="animate-pulse text-xs text-muted font-mono">...</div>
+              <app-logo-spinner [size]="26" />
             </div>
           } @else if (!stats() || !stats()!.matched) {
             <div class="flex-1 flex items-center justify-center text-center px-2">

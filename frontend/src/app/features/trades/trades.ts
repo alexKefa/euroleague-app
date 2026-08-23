@@ -10,11 +10,20 @@ import { CollectibleCardComponent } from "../store/collectible-card";
 import { ButtonDirective } from "../../shared/button.directive";
 import { ChipDirective } from "../../shared/chip.directive";
 import { PageHintComponent } from "../../shared/page-hint";
+import { SkeletonComponent } from "../../shared/skeleton";
 
 @Component({
   selector: "app-trades",
   standalone: true,
-  imports: [CommonModule, RouterLink, CollectibleCardComponent, ButtonDirective, ChipDirective, PageHintComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    CollectibleCardComponent,
+    ButtonDirective,
+    ChipDirective,
+    PageHintComponent,
+    SkeletonComponent,
+  ],
   templateUrl: "./trades.html",
 })
 export class TradesComponent implements OnInit {

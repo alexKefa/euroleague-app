@@ -13,7 +13,7 @@
   <app-page-hint hintId="wheel" icon="wheel" class="block text-left">{{ i18n.t('wheel.hint') }}</app-page-hint>
 
   @if (loading()) {
-    <div class="animate-pulse h-48 bg-line rounded-lg"></div>
+    <app-skeleton class="h-48 rounded-lg" [iconSize]="24" />
   }
 
   @if (!loading() && !auth.isAuthenticated()) {

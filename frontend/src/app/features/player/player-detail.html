@@ -14,9 +14,9 @@
   }
 
   @if (loading()) {
-    <div class="animate-pulse mt-4">
-      <div class="rounded-lg h-[140px] bg-line mb-5"></div>
-      <div class="h-48 bg-line rounded-lg"></div>
+    <div class="mt-4">
+      <app-skeleton class="rounded-lg h-[140px] mb-5" [iconSize]="26" />
+      <app-skeleton class="h-48 rounded-lg" [iconSize]="24" />
     </div>
   }
 

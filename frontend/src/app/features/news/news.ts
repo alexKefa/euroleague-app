@@ -6,11 +6,12 @@ import { NewsArticle } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ArticlePreviewComponent } from "../../shared/article-preview";
 import { newsDateFormat, newsDateLocale } from "../../shared/news-date-format";
+import { SkeletonComponent } from "../../shared/skeleton";
 
 @Component({
   selector: "app-news",
   standalone: true,
-  imports: [CommonModule, RetryImgDirective, ArticlePreviewComponent],
+  imports: [CommonModule, RetryImgDirective, ArticlePreviewComponent, SkeletonComponent],
   templateUrl: "./news.html",
 })
 export class NewsComponent implements OnInit {

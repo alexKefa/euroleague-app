@@ -68,7 +68,7 @@
   @if (loading()) {
     <div class="space-y-2">
       @for (i of [1, 2, 3, 4, 5]; track i) {
-        <div class="animate-pulse h-16 bg-line rounded-lg"></div>
+        <app-skeleton class="h-16 rounded-lg" [iconSize]="18" />
       }
     </div>
   }

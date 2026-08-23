@@ -1,8 +1,8 @@
 <div class="max-w-3xl lg:max-w-6xl mx-auto p-4 sm:p-6">
   @if (loading()) {
-    <div class="animate-pulse">
-      <div class="rounded-lg h-[168px] bg-line mb-5"></div>
-      <div class="h-64 bg-line rounded-lg"></div>
+    <div>
+      <app-skeleton class="rounded-lg h-[168px] mb-5" [iconSize]="28" />
+      <app-skeleton class="h-64 rounded-lg" [iconSize]="24" />
     </div>
   }
 
