@@ -30,6 +30,24 @@ collectiblesRouter.get("/", async (_req, res) => {
       .from(collectibles)
       .innerJoin(teams, eq(collectibles.teamId, teams.id));
 
+    // "042/208" print numbering — a fixed rank within the card's own tier,
+    // not stored (nothing about a card's identity actually depends on it,
+    // it's purely a display detail), so it's cheap to derive fresh every
+    // request: sort each tier by (name, team code) for a deterministic
+    // order, then index within that sorted group. Same order for every
+    // caller/session, since it doesn't depend on request-specific state.
+    const byTier = new Map<string, typeof rows>();
+    for (const row of rows) {
+      const group = byTier.get(row.collectible.tier) ?? [];
+      group.push(row);
+      byTier.set(row.collectible.tier, group);
+    }
+    const serial = new Map<string, { number: number; total: number }>();
+    for (const group of byTier.values()) {
+      group.sort((a, b) => a.collectible.name.localeCompare(b.collectible.name) || a.team.code.localeCompare(b.team.code));
+      group.forEach((row, i) => serial.set(row.collectible.id, { number: i + 1, total: group.length }));
+    }
+
     const payload = rows.map(({ collectible, team }) => ({
       id: collectible.id,
       name: collectible.name,
@@ -37,6 +55,8 @@ collectiblesRouter.get("/", async (_req, res) => {
       pointsCost: collectible.pointsCost,
       buyPrice: DIRECT_BUY_PRICE[collectible.tier as (typeof TIERS)[number]] ?? null,
       imageUrl: collectible.imageUrl,
+      serialNumber: serial.get(collectible.id)!.number,
+      serialTotal: serial.get(collectible.id)!.total,
       team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor, logoUrl: team.logoUrl },
     }));
 

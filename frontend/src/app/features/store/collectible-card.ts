@@ -43,6 +43,16 @@ export class CollectibleCardComponent {
   @Input() unlocked = false;
   @Input() maxWidth = 220;
   @Input() selected = false;
+  // "042/208" print numbering — only rare/legendary get the corner badge
+  // (mirrors the tier badge on the opposite corner); common cards stay as
+  // they were. Optional since not every card-shaped API response carries
+  // it (see models.ts's Collectible.serialNumber doc comment).
+  @Input() serialNumber?: number;
+  @Input() serialTotal?: number;
+
+  get showSerial(): boolean {
+    return (this.tier === "rare" || this.tier === "legendary") && this.serialNumber != null && this.serialTotal != null;
+  }
 
   private shade(hex: string, factor: number): string {
     const h = hex.replace("#", "");

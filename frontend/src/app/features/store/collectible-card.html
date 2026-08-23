@@ -53,6 +53,19 @@
         }}</span>
       </div>
 
+      <!-- print numbering — mirrors the tier badge on the opposite corner -->
+      @if (showSerial) {
+        <div
+          class="absolute top-2 left-2 rounded-full z-10 backdrop-blur-sm"
+          style="padding: 3px 7px"
+          [style.background]="style.bannerBackground"
+        >
+          <span class="font-mono text-[9px] font-medium" [style.color]="style.metaColor"
+            >{{ serialNumber }}/{{ serialTotal }}</span
+          >
+        </div>
+      }
+
       <!-- Frosted-glass info banner, floating over the bottom of the photo -->
       <div
         class="absolute inset-x-0 bottom-0 px-3 py-2.5 backdrop-blur-md z-10"

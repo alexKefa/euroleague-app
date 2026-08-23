@@ -246,6 +246,12 @@ export interface Collectible {
   // value for common/rare, see backend/src/routes/collectibles.ts.
   buyPrice: number | null;
   imageUrl: string | null;
+  // Print numbering within this card's own tier (e.g. 42/208) — computed
+  // fresh per request (backend/src/routes/collectibles.ts), not stored.
+  // Optional because leaner card shapes elsewhere (trades, pack-reveal)
+  // don't carry it.
+  serialNumber?: number;
+  serialTotal?: number;
   team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
 }
 
