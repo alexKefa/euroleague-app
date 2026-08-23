@@ -5,7 +5,7 @@ import { ApiService } from "../../core/api.service";
 import { ThemeService } from "../../core/theme.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
-import { StandingsRow, LeaderEntry, RoundMvp, NewsArticle, Game } from "../../core/models";
+import { StandingsRow, LeaderEntry, RoundMvp, NewsArticle, Game, LeaderboardEntry } from "../../core/models";
 import { PageHintComponent } from "../../shared/page-hint";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { NavIconComponent } from "../../shared/nav-icon";
@@ -63,6 +63,11 @@ export class DashboardComponent implements OnInit {
   readonly news = signal<NewsArticle[]>([]);
   readonly teamGames = signal<Game[]>([]);
   readonly roundMvp = signal<RoundMvp | null>(null);
+  // Top 5 of the predictions leaderboard — a compact teaser here (full
+  // board with badges lives on /predictions). Public endpoint, so this
+  // renders for guests too: social proof for the points economy the
+  // guest-only hint below is pitching.
+  readonly leaderboard = signal<LeaderboardEntry[]>([]);
 
   private readonly previewArticleId = signal<string | null>(null);
   readonly previewArticle = computed(() => this.news().find((a) => a.id === this.previewArticleId()) ?? null);
@@ -112,6 +117,11 @@ export class DashboardComponent implements OnInit {
 
     this.api.getRoundMvp(5).subscribe({
       next: (result) => this.roundMvp.set(result),
+      error: () => {}, // non-critical widget
+    });
+
+    this.api.getLeaderboard().subscribe({
+      next: (rows) => this.leaderboard.set(rows.slice(0, 5)),
       error: () => {}, // non-critical widget
     });
 

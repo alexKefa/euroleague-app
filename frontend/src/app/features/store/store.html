@@ -20,9 +20,12 @@
   </div>
 
   @if (!auth.isAuthenticated()) {
-    <p class="text-sm text-muted mb-5">
-      <a routerLink="/login" class="text-highlight font-semibold">{{ i18n.t('nav.login') }}</a> {{ i18n.t('store.loginToCollect') }}
-    </p>
+    <div class="mb-5">
+      <p class="text-sm text-muted mb-2">
+        <a routerLink="/login" class="text-highlight font-semibold">{{ i18n.t('nav.login') }}</a> {{ i18n.t('store.loginToCollect') }}
+      </p>
+      <a routerLink="/login" appButton="outline" appButtonSize="sm">{{ i18n.t('nav.login') }}</a>
+    </div>
   }
 
   @if (loading()) {

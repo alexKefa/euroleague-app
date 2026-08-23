@@ -31,4 +31,13 @@ export const dashboardTranslations: Record<string, Record<Lang, string>> = {
     en: "to open your first pack.",
     el: "για να ανοίξεις το πρώτο σου πακέτο.",
   },
+
+  "dashboard.guestHintPrefix": {
+    en: "Predict games, earn points, and collect cards —",
+    el: "Πρόβλεψε αγώνες, κέρδισε πόντους και συνέλεξε κάρτες —",
+  },
+  "dashboard.guestHintCta": { en: "create a free account", el: "δημιούργησε δωρεάν λογαριασμό" },
+  "dashboard.guestHintSuffix": { en: "to get started — takes a minute.", el: "για να ξεκινήσεις — παίρνει ένα λεπτό." },
+
+  "dashboard.topPredictors": { en: "Top Predictors", el: "Κορυφαίοι Προγνώστες" },
 };

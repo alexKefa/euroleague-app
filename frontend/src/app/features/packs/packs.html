@@ -30,10 +30,11 @@
   }
 
   @if (!loading() && !auth.isAuthenticated()) {
-    <div class="bg-card rounded-2xl border border-line shadow-card p-6">
-      <p class="text-sm text-muted">
+    <div class="bg-card rounded-2xl border border-line shadow-card p-6 text-center">
+      <p class="text-sm text-muted mb-4">
         <a routerLink="/login" class="text-highlight font-semibold">{{ i18n.t('nav.login') }}</a> {{ i18n.t('packs.loginToOpen') }}
       </p>
+      <a routerLink="/login" appButton appButtonSize="sm">{{ i18n.t('nav.login') }}</a>
     </div>
   }
 
