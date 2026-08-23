@@ -215,6 +215,9 @@ export class PredictionsComponent implements OnInit {
     const map = new Map(this.myPicks());
     map.set(game.id, teamId);
     this.myPicks.set(map);
+    // Keeps the live-game nav badge accurate mid-session — see the comment
+    // on EventsService.markPredicted().
+    this.events.markPredicted(game.id);
 
     this.api.submitPrediction(game.id, teamId).subscribe({
       error: () => {
@@ -222,6 +225,7 @@ export class PredictionsComponent implements OnInit {
         const rollback = new Map(this.myPicks());
         rollback.delete(game.id);
         this.myPicks.set(rollback);
+        this.events.unmarkPredicted(game.id);
       },
     });
   }
@@ -236,12 +240,14 @@ export class PredictionsComponent implements OnInit {
     const map = new Map(this.myPicks());
     map.delete(game.id);
     this.myPicks.set(map);
+    this.events.unmarkPredicted(game.id);
 
     this.api.removePrediction(game.id).subscribe({
       error: () => {
         const rollback = new Map(this.myPicks());
         rollback.set(game.id, previousTeamId);
         this.myPicks.set(rollback);
+        this.events.markPredicted(game.id);
       },
     });
   }
