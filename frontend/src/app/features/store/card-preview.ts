@@ -5,6 +5,7 @@ import { CollectibleCardComponent } from "./collectible-card";
 import { I18nService } from "../../core/i18n.service";
 import { ApiService } from "../../core/api.service";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
+import { GestureHintComponent } from "../../shared/gesture-hint";
 
 /**
  * Full-screen card preview — shared between Store and Inventory (and
@@ -21,7 +22,7 @@ import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 @Component({
   selector: "app-card-preview",
   standalone: true,
-  imports: [CommonModule, CollectibleCardComponent, LogoSpinnerComponent],
+  imports: [CommonModule, CollectibleCardComponent, LogoSpinnerComponent, GestureHintComponent],
   templateUrl: "./card-preview.html",
 })
 export class CardPreviewComponent implements OnChanges {
@@ -46,6 +47,30 @@ export class CardPreviewComponent implements OnChanges {
   readonly flipped = signal(false);
   readonly stats = signal<CollectibleStatsResponse | null>(null);
   readonly statsLoading = signal(false);
+
+  // Shown once per browser until the visitor actually touches a card —
+  // same "learn it once" localStorage pattern as PageHintComponent, just
+  // dismissed by the gesture itself rather than an explicit close button.
+  private static readonly GESTURE_HINT_KEY = "clutch-card-gesture-seen";
+  readonly showGestureHint = signal(false);
+
+  constructor() {
+    try {
+      this.showGestureHint.set(localStorage.getItem(CardPreviewComponent.GESTURE_HINT_KEY) !== "1");
+    } catch {
+      // Private browsing / storage disabled — hint just shows every time, not worth failing over.
+    }
+  }
+
+  private dismissGestureHint(): void {
+    if (!this.showGestureHint()) return;
+    this.showGestureHint.set(false);
+    try {
+      localStorage.setItem(CardPreviewComponent.GESTURE_HINT_KEY, "1");
+    } catch {
+      // No persistence available — it'll show again next time, not worth failing over.
+    }
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     // Guards against a stale flipped-to-the-wrong-card state in the (rare,
@@ -82,6 +107,7 @@ export class CardPreviewComponent implements OnChanges {
   }
 
   onCardPointerDown(event: PointerEvent): void {
+    this.dismissGestureHint();
     this.isDragging.set(true);
     this.dragPointerId = event.pointerId;
     this.dragStartX = event.clientX;

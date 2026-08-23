@@ -43,6 +43,11 @@
             [serialNumber]="item.serialNumber"
             [serialTotal]="item.serialTotal"
           ></app-collectible-card>
+          @if (showGestureHint() && !flipped()) {
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <app-gesture-hint />
+            </div>
+          }
         </div>
 
         <!-- BACK — real season stats, tap to flip back -->
