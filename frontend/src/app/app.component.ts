@@ -5,6 +5,7 @@ import { filter, map } from "rxjs";
 import { AuthService } from "./core/auth.service";
 import { ThemeService } from "./core/theme.service";
 import { I18nService } from "./core/i18n.service";
+import { EventsService } from "./core/events.service";
 import { NavIconComponent, NavIconName } from "./shared/nav-icon";
 import { SplashComponent } from "./shared/splash";
 import { ButtonDirective } from "./shared/button.directive";
@@ -78,6 +79,7 @@ export class AppComponent implements OnInit {
   // theme for a returning visitor who chose light.
   protected theme = inject(ThemeService);
   protected i18n = inject(I18nService);
+  protected events = inject(EventsService);
   private router = inject(Router);
   protected readonly navLinks = NAV_LINKS;
 
