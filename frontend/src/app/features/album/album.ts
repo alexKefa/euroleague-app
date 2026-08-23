@@ -71,6 +71,22 @@ export class AlbumComponent implements OnInit {
     return this.teamSlots().filter((c) => owned.has(c.id)).length;
   });
 
+  // Clicking a tier row in the breakdown filters the sticker grid down to
+  // just that tier — click the same tier again to clear it (no separate
+  // "All" affordance here the way Store/Inventory's tier chips have one,
+  // so re-clicking the active row is the toggle-off gesture instead).
+  readonly tierFilter = signal<CollectibleTier | null>(null);
+
+  readonly filteredTeamSlots = computed(() => {
+    const filter = this.tierFilter();
+    const slots = this.teamSlots();
+    return filter ? slots.filter((c) => c.tier === filter) : slots;
+  });
+
+  toggleTierFilter(tier: CollectibleTier): void {
+    this.tierFilter.update((current) => (current === tier ? null : tier));
+  }
+
   readonly teamTierBreakdown = computed<TierBreakdown[]>(() => {
     const owned = this.ownedIds();
     const slots = this.teamSlots();
@@ -127,7 +143,13 @@ export class AlbumComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.route.paramMap.subscribe((params) => this.routeTeamId.set(params.get("teamId")));
+    this.route.paramMap.subscribe((params) => {
+      this.routeTeamId.set(params.get("teamId"));
+      // A tier filter from the previous team's page carrying over silently
+      // onto a new team (which might have far fewer cards in that tier)
+      // would read as a bug, not a feature — reset on every flip.
+      this.tierFilter.set(null);
+    });
 
     this.api.getTeams().subscribe({
       next: (rows) => this.teams.set(rows),

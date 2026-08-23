@@ -188,11 +188,22 @@
 
             <div class="w-full flex flex-col gap-2">
               @for (row of teamTierBreakdown(); track row.tier) {
-                <div class="flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-lg bg-page border border-line">
+                <button
+                  type="button"
+                  (click)="toggleTierFilter(row.tier)"
+                  class="flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-lg border transition-colors"
+                  [class.bg-page]="tierFilter() !== row.tier"
+                  [class.border-line]="tierFilter() !== row.tier"
+                  [class.bg-highlight/10]="tierFilter() === row.tier"
+                  [class.border-highlight]="tierFilter() === row.tier"
+                  [attr.aria-pressed]="tierFilter() === row.tier"
+                >
                   <span class="w-2.5 h-2.5 rounded-full shrink-0" [class]="tierDotClass(row.tier)"></span>
-                  <span class="flex-1 text-left">{{ i18n.t(tierLabelKey(row.tier)) }}</span>
-                  <span class="font-mono text-muted">{{ row.owned }} / {{ row.total }}</span>
-                </div>
+                  <span class="flex-1 text-left" [class.text-highlight]="tierFilter() === row.tier">{{ i18n.t(tierLabelKey(row.tier)) }}</span>
+                  <span class="font-mono" [class.text-muted]="tierFilter() !== row.tier" [class.text-highlight]="tierFilter() === row.tier"
+                    >{{ row.owned }} / {{ row.total }}</span
+                  >
+                </button>
               }
             </div>
           </div>
@@ -206,7 +217,7 @@
 
           <div class="flex-1 p-4 sm:p-6">
             <div class="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3">
-              @for (item of teamSlots(); track item.id) {
+              @for (item of filteredTeamSlots(); track item.id) {
                 <button
                   type="button"
                   (click)="openPreview(item)"
@@ -221,6 +232,8 @@
                     [imageUrl]="item.imageUrl"
                     [unlocked]="isOwned(item)"
                     [maxWidth]="130"
+                    [serialNumber]="item.serialNumber"
+                    [serialTotal]="item.serialTotal"
                   ></app-collectible-card>
                 </button>
               } @empty {
