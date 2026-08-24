@@ -146,6 +146,39 @@ playersRouter.get("/round-mvp", async (req, res) => {
   }
 });
 
+// Full per-player advanced-stats table for the latest season — everything
+// playerSeasonStats has (shooting efficiency, rebound/assist/turnover
+// rates, possessions/game), not just the six categories /leaders exposes.
+// Small dataset (one row per player, ~200 rows), so it's returned whole and
+// sorted/filtered/searched client-side rather than via query params — an
+// analyst comparing columns wants the full table, not a fixed top-N.
+playersRouter.get("/advanced-stats", async (req, res) => {
+  try {
+    const latest = await db
+      .select({ season: playerSeasonStats.season })
+      .from(playerSeasonStats)
+      .orderBy(desc(playerSeasonStats.season))
+      .limit(1);
+
+    if (latest.length === 0) {
+      return res.json({ season: null, rows: [] });
+    }
+    const season = latest[0].season;
+
+    const rows = await db
+      .select({ player: players, team: teams, stats: playerSeasonStats })
+      .from(playerSeasonStats)
+      .innerJoin(players, eq(playerSeasonStats.playerId, players.id))
+      .innerJoin(teams, eq(playerSeasonStats.teamId, teams.id))
+      .where(eq(playerSeasonStats.season, season));
+
+    res.json({ season, rows });
+  } catch (err) {
+    console.error("GET /api/players/advanced-stats failed:", err);
+    res.status(500).json({ error: "Failed to load advanced stats" });
+  }
+});
+
 // Season shot chart — every field-goal attempt (coordX/coordY, made or not)
 // for one player, for their most-shots season by default. Coordinates are
 // EuroLeague's own system (cm, origin at the basket, Y increasing away from

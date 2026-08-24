@@ -13,6 +13,9 @@ import { inventoryTranslations } from "./inventory";
 import { rosterTranslations } from "./roster";
 import { tourTranslations } from "./tour";
 import { albumTranslations } from "./album";
+import { statsTranslations } from "./stats";
+import { teamsTranslations } from "./teams";
+import { standingsTranslations } from "./standings";
 
 export type { Lang };
 
@@ -35,4 +38,7 @@ export const translations: Record<string, Record<Lang, string>> = {
   ...rosterTranslations,
   ...tourTranslations,
   ...albumTranslations,
+  ...statsTranslations,
+  ...teamsTranslations,
+  ...standingsTranslations,
 };

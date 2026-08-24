@@ -10,6 +10,7 @@ import {
   PlayerShotChart,
   LeaderEntry,
   RoundMvp,
+  PlayerAdvancedStats,
   NewsArticle,
   NewsSyncStatus,
   Game,
@@ -72,6 +73,10 @@ export class ApiService {
 
   getRoundMvp(limit = 1): Observable<RoundMvp> {
     return this.http.get<RoundMvp>(`${API_BASE_URL}/players/round-mvp`, { params: { limit } });
+  }
+
+  getAdvancedStats(): Observable<PlayerAdvancedStats> {
+    return this.http.get<PlayerAdvancedStats>(`${API_BASE_URL}/players/advanced-stats`);
   }
 
   getNews(limit = 20, lang?: string): Observable<NewsArticle[]> {

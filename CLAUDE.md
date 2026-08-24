@@ -212,20 +212,86 @@ If you need to apply a schema change without an interactive terminal
 
 - Routes are lazy-loaded standalone components (`frontend/src/app/app.routes.ts`).
   Desktop (`sm:` and up) gets an icon-only left rail; mobile gets an
-  icon-only bottom tab bar — both driven by the same `NAV_LINKS` array in
-  `app.component.ts` and `shared/nav-icon.ts`. No text labels sit on
-  screen; the desktop rail surfaces them as a hover/focus tooltip instead.
-  The six primary-nav icons (home/news/schedule/picks/cards/user) render a
-  soft duotone fill when active (`[active]` input on `app-nav-icon`) — that
-  weight change is what signals the active tab now that there's no label
-  color to lean on. The nav tab is labeled "Cards" and points at
-  `/inventory` (My Cards), which acts as the hub — Store, Jump Ball
-  (wheel), Packs, and Trades are reached as buttons from there, not as
-  their own top-level nav items. Top-level nav pages (Home, News, Schedule,
-  Picks, Cards, Profile) don't have an in-page "back to dashboard" link —
-  the nav itself covers that; drill-down pages reached by clicking into
-  something (a game, a player, a team roster, wheel/packs/trades/store from
-  the Cards hub) still have a contextual back-link to their specific parent.
+  icon-only bottom tab bar — `app.component.ts` and `shared/nav-icon.ts`.
+  No text labels sit on screen; the desktop rail surfaces them as a
+  hover/focus tooltip instead. Nav icons render a soft duotone fill when
+  active (`[active]` input on `app-nav-icon`) — that weight change is what
+  signals the active tab now that there's no label color to lean on.
+  Desktop and mobile intentionally show a **different set** of primary
+  icons, not the same `NAV_LINKS` array rendered twice (2026-08-24
+  redesign — mobile bottom-tab space was cramped at 6 icons, desktop's
+  vertical rail isn't):
+  - **Desktop rail** (`NAV_LINKS`): Home, News, Schedule, Picks, Cards,
+    Teams, Standings — all seven, directly.
+  - **Mobile bottom bar** (`MOBILE_NAV_LINKS`): just Home, News, Picks,
+    Cards — the four checked every session. A trailing **"More"** tab
+    (always last, `dots-vertical` icon) toggles a popover (`moreOpen`
+    signal, closes on outside-click/Escape/link-click) listing
+    `MORE_LINKS` — Schedule, Teams, and Standings, destinations checked
+    occasionally rather than constantly (`MOBILE_OVERFLOW_PATHS` is the
+    single set both `MOBILE_NAV_LINKS` and `MORE_LINKS` derive from — add
+    a path there, not to two places by hand). Add anything similarly
+    "occasional" to that same set, not as a 5th+ mobile tab.
+  - **Profile/Login live in the top bar only**, on both breakpoints — not
+    as a nav tab. Desktop shows email+admin-badge+logout (`sm:` and up) or
+    login+register; mobile gets a compact profile icon (logged in) or
+    login-icon+register-button (logged out) in the same top bar.
+  The nav tab labeled "Cards" points at `/inventory` (My Cards), which
+  acts as its own hub — Store, Jump Ball (wheel), Packs, and Trades are
+  reached as buttons from there, not as their own top-level nav items.
+  Top-level nav pages (Home, News, Schedule, Picks, Cards) don't have an
+  in-page "back to dashboard" link — the nav itself covers that;
+  drill-down pages reached by clicking into something (a game, a player, a
+  team roster, wheel/packs/trades/store from the Cards hub) still have a
+  contextual back-link to their specific parent.
+- **Analytics quartet** — `/stats`, `/compare`, `/teams`, `/standings`
+  (all `features/`; all four are top-level nav on desktop, all four sit
+  behind mobile's "More" tab — see the nav bullet above). None are gated
+  behind login.
+  - `/standings` (`StandingsComponent`) is the full-width, sortable
+    version of the dashboard's cramped standings widget — same
+    `GET /api/standings` (`StandingsRow[]`, 21 rows, already fetched by
+    the dashboard, nothing new backend-side), just every column that
+    widget has no room for: PPG/PAPG, offensive/defensive rating,
+    rebound/assist %. Defaults to the backend's own rank order; clicking
+    any other column sorts by it (descending first, except Losses which
+    reads naturally ascending like Rank). Reached via a "full standings"
+    link on the dashboard's Standings card and a button on the Teams hub.
+  - `/stats` (`AdvancedStatsComponent`) is a sortable, filterable
+    league-wide table over `GET /api/players/advanced-stats`
+    (`backend/src/routes/players.ts`) — every column `playerSeasonStats`
+    has, including the advanced ones (TS%, eFG%, rebound/assist/turnover
+    rates, possessions/game). Only ~200 rows for the whole league, so the
+    backend returns the full table once and all search/team/min-games
+    filtering and column-click sorting happens client-side rather than
+    round-tripping per filter change. Reached via a "full stats table"
+    link on the dashboard's Leaders card, the roster page, the game-detail
+    top-performers card, and the player-detail advanced-stats card.
+  - `/compare` (`PlayerCompareComponent`) is an animated player
+    head-to-head — two search-to-pick players (from the same
+    `/advanced-stats` payload, no extra round trip), a "VS" hero with
+    team-color gradients, and a curated 10-category divergent bar
+    comparison (points/rebounds/assists/steals/blocks/turnovers/FG%/PIR/
+    TS%/AST-TO) that animates via CSS width transitions whenever either
+    player changes — same technique as the roster page's team-vs-league
+    bars, no animation library. Supports `?a=<playerId>` (and `?b=`)
+    query-param prefill, used by the player-detail page's "Compare" link
+    so landing there only needs picking an opponent. Turnovers is the one
+    category where *lower* wins — `higherIsBetter: false` on that
+    `CompareCategory`, everything else defaults true.
+  - `/teams` (`TeamsHubComponent`) is a directory of every team — a
+    lightweight `GET /api/teams` (21 rows, no player data), searchable,
+    each card linking to that team's existing `/teams/:id` roster page.
+    Deliberately does **not** bulk-load every team's roster: a team's
+    players only ever load on demand when you click into its card, via
+    the roster page's own existing `GET /teams/:id/roster` call — nothing
+    new needed backend-side for that. Also carries the top-of-page
+    Compare/Advanced-Stats buttons (reusing `/compare` and `/stats`
+    directly) so the three analytics destinations read as one hub. Team
+    head-to-head is a deliberately *unbuilt* future addition to this same
+    hub — thin to build today since standings/games only cover the
+    2025-26 season (teams meet at most twice), revisit once multiple
+    seasons exist.
 - `frontend/src/app/core/`: `ApiService` (all HTTP calls), `AuthService`
   (holds `accessToken`/`currentUser` as signals, access token is
   memory-only — never localStorage — restored on boot via the httpOnly
@@ -323,12 +389,12 @@ at the same Neon instance as local dev — there's no separate prod database.
 
 - A traded player's season-long stat averages (across both teams) are
   attributed entirely to their *current* team's roster page, not split per-team.
-- Player detail pages don't show a per-game log — `player_game_stats` is
-  still empty for real games (the boxscore sync script hasn't been run
-  against it), so there's no data to show there yet. It does get populated
-  now for whatever game the live-score simulator is running against (see
-  the Live scores note above), but that's synthetic/temporary test data,
-  not a fix for this gap.
+- Player detail pages don't show a per-game log, even though
+  `player_game_stats` is no longer empty — the boxscore sync has since been
+  run and covers 399 of 419 `final` games (checked 2026-08-24). The gap is
+  just that no route/UI reads it per-game yet; `playerSeasonStats` (season
+  averages, including the advanced columns below) is what's actually wired
+  up today.
 - Redeploys to Railway are manual, not triggered by `git push` (see
   Deployment above).
 - Some teams have zero rows in `players` — e.g. Besiktas Istanbul, found

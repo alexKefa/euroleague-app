@@ -153,6 +153,14 @@
             <p class="font-display text-xl mt-0.5">{{ fmtNum(stats.possessionsPerGame) }}</p>
           </div>
         </div>
+        <div class="mt-3 flex items-center justify-between gap-2">
+          <a [routerLink]="['/compare']" [queryParams]="{ a: d.player.id }" class="text-[12px] text-accent2 font-bold uppercase tracking-wider hover:opacity-80 transition-opacity"
+            >{{ i18n.t('stats.compare.navTitle') }}</a
+          >
+          <a routerLink="/stats" class="text-[12px] text-accent2 font-bold uppercase tracking-wider hover:opacity-80 transition-opacity"
+            >{{ i18n.t('stats.viewFull') }} &rarr;</a
+          >
+        </div>
       </div>
     } @else {
       <div class="bg-card rounded-lg shadow-card p-4 text-center text-muted text-sm">

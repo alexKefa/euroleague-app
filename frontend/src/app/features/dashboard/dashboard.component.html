@@ -181,6 +181,9 @@
                 </a>
               }
             </div>
+            <a routerLink="/stats" class="mt-2 block text-right text-[12px] text-accent2 font-bold uppercase tracking-wider"
+              >{{ i18n.t('stats.viewFull') }} &rarr;</a
+            >
           </div>
         }
 
@@ -244,7 +247,10 @@
 
       <!-- Standings -->
       <div class="bg-card rounded-2xl border border-line shadow-card p-4 lg:order-1 lg:flex-1 lg:min-w-0">
-        <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-3">{{ i18n.t('dashboard.standings') }}</p>
+        <div class="flex justify-between items-center mb-3">
+          <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('dashboard.standings') }}</p>
+          <a routerLink="/standings" class="text-[12px] text-accent2 font-bold uppercase tracking-wider">{{ i18n.t('standings.viewFull') }} &rarr;</a>
+        </div>
         <div class="text-sm space-y-1">
           @for (row of standings(); track row.team.id) {
             <a

@@ -1,0 +1,145 @@
+<div class="max-w-3xl mx-auto p-4 sm:p-6">
+  <a routerLink="/stats" class="text-[12px] text-muted font-bold uppercase tracking-wider hover:text-ink transition-colors"
+    >&larr; {{ i18n.t('stats.title') }}</a
+  >
+
+  <div class="mt-4 mb-5">
+    <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('stats.compare.title') }}</h1>
+    <p class="text-sm text-muted mt-1">{{ i18n.t('stats.compare.subtitle') }}</p>
+  </div>
+
+  @if (loading()) {
+    <div class="grid grid-cols-2 gap-3 mb-5">
+      <app-skeleton class="rounded-2xl h-12" [iconSize]="18" />
+      <app-skeleton class="rounded-2xl h-12" [iconSize]="18" />
+    </div>
+  } @else {
+    <!-- Pickers -->
+    <div class="grid grid-cols-2 gap-3 mb-6">
+      @for (side of ['a', 'b']; track side) {
+        <div class="relative">
+          @if (side === 'a' ? rowA() : rowB(); as row) {
+            <div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-card border-2 border-line">
+              @if (row.player.photoUrl) {
+                <img [src]="row.player.photoUrl" [alt]="row.player.name" loading="lazy" decoding="async" appRetryImg class="w-8 h-8 rounded-full object-cover shrink-0 bg-page" />
+              } @else {
+                <span class="w-8 h-8 rounded-full flex items-center justify-center font-display text-[11px] bg-page shrink-0">{{ row.team.code }}</span>
+              }
+              <span class="min-w-0 flex-1">
+                <span class="block text-sm font-bold truncate">{{ row.player.name }}</span>
+                <span class="block text-[11px] text-muted truncate">{{ row.team.name }}</span>
+              </span>
+              <button type="button" (click)="clear($any(side))" class="text-[11px] font-bold text-accent2 uppercase tracking-wide shrink-0 hover:opacity-80 transition-opacity">
+                {{ i18n.t('stats.compare.change') }}
+              </button>
+            </div>
+          } @else {
+            <input
+              type="search"
+              [value]="side === 'a' ? queryA() : queryB()"
+              (input)="side === 'a' ? queryA.set($any($event.target).value) : queryB.set($any($event.target).value)"
+              [placeholder]="i18n.t('stats.compare.searchPlaceholder')"
+              class="w-full px-3 py-2.5 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
+            />
+            @if ((side === 'a' ? suggestionsA() : suggestionsB()).length > 0) {
+              <ul class="absolute z-20 left-0 right-0 mt-1 max-h-56 overflow-y-auto rounded-xl bg-card border-2 border-line shadow-pop py-1">
+                @for (row of (side === 'a' ? suggestionsA() : suggestionsB()); track row.player.id) {
+                  <li
+                    (click)="pick($any(side), row)"
+                    class="flex items-center gap-2 px-3 py-2 text-sm font-semibold cursor-pointer hover:bg-page transition-colors truncate"
+                  >
+                    @if (row.team.logoUrl) {
+                      <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0" />
+                    }
+                    <span class="truncate">{{ row.player.name }}</span>
+                  </li>
+                }
+              </ul>
+            }
+          }
+        </div>
+      }
+    </div>
+
+    @if (rowA(); as a) {
+      @if (rowB(); as b) {
+        <!-- VS hero -->
+        <div class="relative grid grid-cols-2 gap-3 mb-6 compare-rise">
+          <div
+            class="rounded-2xl p-4 text-white overflow-hidden"
+            [style.background]="'linear-gradient(155deg, ' + a.team.primaryColor + ' 0%, #000 130%)'"
+          >
+            @if (a.player.photoUrl) {
+              <img [src]="a.player.photoUrl" [alt]="a.player.name" loading="lazy" decoding="async" appRetryImg class="w-14 h-14 rounded-full object-cover bg-white/10 mb-2" />
+            }
+            <p class="font-display text-lg leading-tight truncate">{{ a.player.name }}</p>
+            <p class="font-mono text-[11px] opacity-70 truncate">{{ a.team.name }}</p>
+          </div>
+          <div
+            class="rounded-2xl p-4 text-white overflow-hidden text-right"
+            [style.background]="'linear-gradient(205deg, ' + b.team.primaryColor + ' 0%, #000 130%)'"
+          >
+            @if (b.player.photoUrl) {
+              <img [src]="b.player.photoUrl" [alt]="b.player.name" loading="lazy" decoding="async" appRetryImg class="w-14 h-14 rounded-full object-cover bg-white/10 mb-2 ml-auto" />
+            }
+            <p class="font-display text-lg leading-tight truncate">{{ b.player.name }}</p>
+            <p class="font-mono text-[11px] opacity-70 truncate">{{ b.team.name }}</p>
+          </div>
+          <span
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-page border-2 border-line flex items-center justify-center font-display text-xs shadow-pop"
+          >
+            {{ i18n.t('stats.compare.vs') }}
+          </span>
+        </div>
+
+        <!-- Category score -->
+        <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5 compare-rise">
+          <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2 text-center">{{ i18n.t('stats.compare.categoryScore') }}</p>
+          <div class="flex items-center justify-between mb-2">
+            <span class="font-display text-2xl" [class.text-highlight]="tally().winsA > tally().winsB">{{ tally().winsA }}</span>
+            <span class="font-display text-2xl" [class.text-highlight]="tally().winsB > tally().winsA">{{ tally().winsB }}</span>
+          </div>
+          <div class="relative h-2 rounded-[3px] bg-line overflow-hidden flex">
+            <div
+              class="h-full bg-highlight transition-all duration-500 ease-out"
+              [style.width.%]="tally().winsA + tally().winsB > 0 ? (tally().winsA / (tally().winsA + tally().winsB)) * 100 : 50"
+            ></div>
+          </div>
+        </div>
+
+        <!-- Per-category breakdown -->
+        <div class="bg-card rounded-2xl border border-line shadow-card p-4 space-y-4">
+          @for (cat of categories; track cat.key; let i = $index) {
+            <div class="compare-rise" [style.animation-delay.ms]="i * 40">
+              <p class="text-[11px] text-muted font-bold uppercase tracking-wide text-center mb-1">{{ i18n.t(cat.labelKey) }}</p>
+              <div class="flex items-center justify-between mb-1">
+                <span class="font-mono text-sm font-bold" [class.text-highlight]="isWinner(cat, 'a')" [class.text-muted]="!isWinner(cat, 'a')">
+                  {{ formatValue(cat, 'a') }}
+                </span>
+                <span class="font-mono text-sm font-bold" [class.text-highlight]="isWinner(cat, 'b')" [class.text-muted]="!isWinner(cat, 'b')">
+                  {{ formatValue(cat, 'b') }}
+                </span>
+              </div>
+              <div class="relative h-1.5 rounded-[3px] bg-line overflow-hidden flex">
+                <div
+                  class="h-full transition-all duration-500 ease-out"
+                  [class.bg-highlight]="isWinner(cat, 'a')"
+                  [class.bg-line]="!isWinner(cat, 'a')"
+                  [style.width.%]="barPct(cat, 'a')"
+                ></div>
+                <div
+                  class="h-full ml-auto transition-all duration-500 ease-out"
+                  [class.bg-highlight]="isWinner(cat, 'b')"
+                  [class.bg-line]="!isWinner(cat, 'b')"
+                  [style.width.%]="barPct(cat, 'b')"
+                ></div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    } @else {
+      <p class="text-sm text-muted text-center py-10">{{ i18n.t('stats.compare.pickPrompt') }}</p>
+    }
+  }
+</div>

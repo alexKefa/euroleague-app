@@ -39,70 +39,7 @@
       </div>
     }
 
-    @if (teamStandingsRow()) {
-      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
-        <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-1">{{ i18n.t('roster.teamProfileVsLeague') }}</p>
-        <p class="text-xs text-muted mb-4">{{ i18n.t('roster.teamProfileHint') }}</p>
-        <div class="space-y-4">
-          @for (axis of comparisonAxes; track axis.key) {
-            <div>
-              <div class="flex items-baseline justify-between mb-1.5 gap-2">
-                <span class="text-[11px] font-bold text-muted uppercase tracking-wide">{{ i18n.t(axis.labelKey) }}</span>
-                <span class="font-mono text-xs shrink-0">
-                  <span
-                    class="font-bold"
-                    [class.text-emerald-500]="isAboveAverage(axis)"
-                    [class.text-red-500]="!isAboveAverage(axis)"
-                    >{{ formatValue(axis, teamValue(axis)) }}</span
-                  >&nbsp;<span class="text-muted">{{ i18n.t('roster.vsLeagueAvg') }} {{ formatValue(axis, leagueAvgValue(axis)) }}</span>
-                </span>
-              </div>
-              <div class="relative h-2 rounded-[3px] bg-line overflow-hidden">
-                <div
-                  class="absolute inset-y-0 left-0 rounded-[3px] transition-all"
-                  [class.bg-emerald-500]="isAboveAverage(axis)"
-                  [class.bg-red-500]="!isAboveAverage(axis)"
-                  [style.width.%]="barWidth(axis)"
-                ></div>
-                <div class="absolute inset-y-0 w-[2px] bg-ink/50" [style.left.%]="markerPosition(axis)"></div>
-              </div>
-            </div>
-          }
-        </div>
-      </div>
-    }
-
-    @if (upcomingGames().length > 0) {
-      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
-        <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-3">{{ i18n.t('roster.upcomingGames') }}</p>
-        <div class="text-sm space-y-1">
-          @for (game of upcomingGames(); track game.id) {
-            <a
-              [routerLink]="['/games', game.id]"
-              class="flex justify-between items-center px-2 py-2 rounded-xl hover:bg-page transition-colors"
-            >
-              <span class="flex items-center gap-2">
-                <span class="font-display text-xs">{{ isHomeGame(game) ? "vs" : "@" }}</span>
-                @if (opponentTeam(game).logoUrl) {
-                  <img [src]="opponentTeam(game).logoUrl" [alt]="opponentTeam(game).name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0" />
-                } @else {
-                  <span class="w-5 h-5 rounded-full shrink-0" [style.background]="opponentTeam(game).primaryColor"></span>
-                }
-                <span class="font-display text-xs">{{ opponentTeam(game).code }}</span>
-              </span>
-              <span class="font-mono text-muted text-[12px]">{{ game.tipoffAt | date: "MMM d, HH:mm" }}</span>
-            </a>
-          }
-        </div>
-        @if (auth.isAuthenticated()) {
-          <a routerLink="/predictions" class="block mt-3 text-[12px] font-bold uppercase tracking-wider text-accent2 hover:text-accent2-dim transition-colors">
-            {{ i18n.t('roster.predictOnPredictionsPage') }} &rarr;
-          </a>
-        }
-      </div>
-    }
-
-    <div class="bg-card rounded-2xl border border-line shadow-card overflow-hidden">
+    <div class="bg-card rounded-2xl border border-line shadow-card overflow-hidden mb-5">
       <div class="flex justify-between items-center px-4 pt-4">
         <span class="flex items-center gap-1.5">
           <p class="text-[13px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('roster.title') }}</p>
@@ -209,10 +146,13 @@
           }
         </table>
       </div>
+      <a routerLink="/stats" class="block text-right text-[12px] text-accent2 font-bold uppercase tracking-wider px-4 pb-3 pt-1 hover:opacity-80 transition-opacity"
+        >{{ i18n.t('stats.viewFull') }} &rarr;</a
+      >
     </div>
 
     @if (recentGames().length > 0) {
-      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mt-5">
+      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
         <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-3">{{ i18n.t('roster.recentResults') }}</p>
         <div class="text-sm space-y-1">
           @for (game of recentGames(); track game.id) {
@@ -237,6 +177,69 @@
                 {{ teamScore(game) }}-{{ opponentScore(game) }}
               </span>
             </a>
+          }
+        </div>
+      </div>
+    }
+
+    @if (upcomingGames().length > 0) {
+      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
+        <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-3">{{ i18n.t('roster.upcomingGames') }}</p>
+        <div class="text-sm space-y-1">
+          @for (game of upcomingGames(); track game.id) {
+            <a
+              [routerLink]="['/games', game.id]"
+              class="flex justify-between items-center px-2 py-2 rounded-xl hover:bg-page transition-colors"
+            >
+              <span class="flex items-center gap-2">
+                <span class="font-display text-xs">{{ isHomeGame(game) ? "vs" : "@" }}</span>
+                @if (opponentTeam(game).logoUrl) {
+                  <img [src]="opponentTeam(game).logoUrl" [alt]="opponentTeam(game).name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0" />
+                } @else {
+                  <span class="w-5 h-5 rounded-full shrink-0" [style.background]="opponentTeam(game).primaryColor"></span>
+                }
+                <span class="font-display text-xs">{{ opponentTeam(game).code }}</span>
+              </span>
+              <span class="font-mono text-muted text-[12px]">{{ game.tipoffAt | date: "MMM d, HH:mm" }}</span>
+            </a>
+          }
+        </div>
+        @if (auth.isAuthenticated()) {
+          <a routerLink="/predictions" class="block mt-3 text-[12px] font-bold uppercase tracking-wider text-accent2 hover:text-accent2-dim transition-colors">
+            {{ i18n.t('roster.predictOnPredictionsPage') }} &rarr;
+          </a>
+        }
+      </div>
+    }
+
+    @if (teamStandingsRow()) {
+      <div class="bg-card rounded-2xl border border-line shadow-card p-4">
+        <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-1">{{ i18n.t('roster.teamProfileVsLeague') }}</p>
+        <p class="text-xs text-muted mb-4">{{ i18n.t('roster.teamProfileHint') }}</p>
+        <div class="space-y-4">
+          @for (axis of comparisonAxes; track axis.key) {
+            <div>
+              <div class="flex items-baseline justify-between mb-1.5 gap-2">
+                <span class="text-[11px] font-bold text-muted uppercase tracking-wide">{{ i18n.t(axis.labelKey) }}</span>
+                <span class="font-mono text-xs shrink-0">
+                  <span
+                    class="font-bold"
+                    [class.text-emerald-500]="isAboveAverage(axis)"
+                    [class.text-red-500]="!isAboveAverage(axis)"
+                    >{{ formatValue(axis, teamValue(axis)) }}</span
+                  >&nbsp;<span class="text-muted">{{ i18n.t('roster.vsLeagueAvg') }} {{ formatValue(axis, leagueAvgValue(axis)) }}</span>
+                </span>
+              </div>
+              <div class="relative h-2 rounded-[3px] bg-line overflow-hidden">
+                <div
+                  class="absolute inset-y-0 left-0 rounded-[3px] transition-all"
+                  [class.bg-emerald-500]="isAboveAverage(axis)"
+                  [class.bg-red-500]="!isAboveAverage(axis)"
+                  [style.width.%]="barWidth(axis)"
+                ></div>
+                <div class="absolute inset-y-0 w-[2px] bg-ink/50" [style.left.%]="markerPosition(axis)"></div>
+              </div>
+            </div>
           }
         </div>
       </div>

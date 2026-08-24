@@ -1,0 +1,57 @@
+<div class="max-w-5xl mx-auto p-4 sm:p-6">
+  <a routerLink="/" class="text-[12px] text-muted font-bold uppercase tracking-wider hover:text-ink transition-colors"
+    >&larr; {{ i18n.t('nav.home') }}</a
+  >
+
+  <div class="mt-4 mb-5">
+    <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('teams.title') }}</h1>
+    <p class="text-sm text-muted mt-1">{{ i18n.t('teams.subtitle') }}</p>
+  </div>
+
+  <div class="flex flex-wrap gap-2 mb-5">
+    <a routerLink="/standings" appButton="outline" appButtonSize="sm">{{ i18n.t('standings.title') }}</a>
+    <a routerLink="/compare" appButton="outline" appButtonSize="sm">{{ i18n.t('stats.compare.navTitle') }}</a>
+    <a routerLink="/stats" appButton="outline" appButtonSize="sm">{{ i18n.t('stats.title') }}</a>
+  </div>
+
+  @if (loading()) {
+    <div class="animate-pulse h-10 rounded-xl bg-line mb-4"></div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+        <app-skeleton class="rounded-2xl h-16" [iconSize]="18" />
+      }
+    </div>
+  } @else {
+    <input
+      type="search"
+      [value]="searchQuery()"
+      (input)="searchQuery.set($any($event.target).value)"
+      [placeholder]="i18n.t('teams.searchPlaceholder')"
+      class="w-full px-3 py-2.5 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-highlight outline-none mb-4"
+    />
+
+    @if (teams().length === 0) {
+      <p class="text-sm text-muted text-center py-10">{{ i18n.t('teams.empty') }}</p>
+    } @else {
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        @for (team of teams(); track team.id) {
+          <a
+            [routerLink]="['/teams', team.id]"
+            class="flex items-center gap-3 p-3 rounded-2xl bg-card border-2 border-line hover:border-highlight/50 shadow-card transition-colors"
+          >
+            <span class="w-1.5 h-10 rounded-full shrink-0" [style.background]="team.primaryColor"></span>
+            @if (team.logoUrl) {
+              <img [src]="team.logoUrl" [alt]="team.name" loading="lazy" decoding="async" appRetryImg class="w-9 h-9 object-contain shrink-0" />
+            } @else {
+              <span class="w-9 h-9 rounded-full flex items-center justify-center font-display text-xs bg-page shrink-0">{{ team.code }}</span>
+            }
+            <span class="min-w-0">
+              <span class="block text-sm font-bold truncate">{{ team.name }}</span>
+              <span class="block text-[11px] text-muted font-mono">{{ team.code }}</span>
+            </span>
+          </a>
+        }
+      </div>
+    }
+  }
+</div>

@@ -68,6 +68,19 @@ export interface RosterEntry {
   stats: PlayerSeasonStats;
 }
 
+// GET /api/players/advanced-stats — full playerSeasonStats row per player,
+// for the whole league, for a sortable/filterable stats-lab table.
+export interface PlayerAdvancedStatsRow {
+  player: Player;
+  team: Team;
+  stats: PlayerSeasonStats;
+}
+
+export interface PlayerAdvancedStats {
+  season: string | null;
+  rows: PlayerAdvancedStatsRow[];
+}
+
 export interface PlayerDetail {
   player: Player;
   team: Team;

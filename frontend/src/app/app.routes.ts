@@ -28,6 +28,26 @@ export const routes: Routes = [
     loadComponent: () => import("./features/store/store").then((m) => m.StoreComponent),
   },
   {
+    path: "stats",
+    loadComponent: () =>
+      import("./features/stats/advanced-stats").then((m) => m.AdvancedStatsComponent),
+  },
+  {
+    path: "compare",
+    loadComponent: () =>
+      import("./features/compare/player-compare").then((m) => m.PlayerCompareComponent),
+  },
+  {
+    path: "standings",
+    loadComponent: () =>
+      import("./features/standings/standings").then((m) => m.StandingsComponent),
+  },
+  {
+    path: "teams",
+    loadComponent: () =>
+      import("./features/teams/teams-hub").then((m) => m.TeamsHubComponent),
+  },
+  {
     path: "teams/:id",
     loadComponent: () =>
       import("./features/team/roster").then((m) => m.TeamRosterComponent),
