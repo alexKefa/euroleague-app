@@ -1,7 +1,7 @@
 {
   "name": "Clutch",
   "short_name": "Clutch",
-  "description": "EuroLeague stats, predictions, and cards for your favorite team.",
+  "description": "Είσαι λάτρης της Euroleague αλλά σου αρέσουν και οι συλλογές;. Έλα και κάνε το δικό σου χλάτσο, στο Clutch.",
   "display": "standalone",
   "scope": "./",
   "start_url": "./",
