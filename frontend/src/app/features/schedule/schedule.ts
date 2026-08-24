@@ -54,7 +54,14 @@ export class ScheduleComponent implements OnInit {
       this.games.update((list) =>
         list.map((g) =>
           g.id === update.gameId
-            ? { ...g, homeScore: update.homeScore, awayScore: update.awayScore, status: update.status }
+            ? {
+                ...g,
+                homeScore: update.homeScore,
+                awayScore: update.awayScore,
+                status: update.status,
+                quarter: update.quarter ?? g.quarter,
+                gameClockSeconds: update.gameClockSeconds ?? g.gameClockSeconds,
+              }
             : g
         )
       );
@@ -158,6 +165,13 @@ export class ScheduleComponent implements OnInit {
   gameResult(game: Game): "home" | "away" | null {
     if (game.status !== "final") return null;
     return game.homeScore! > game.awayScore! ? "home" : "away";
+  }
+
+  formatClock(seconds: number | null | undefined): string {
+    if (seconds == null) return "";
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
   }
 
   // Admin-only testing tool: EuroLeague's real live feed has nothing to

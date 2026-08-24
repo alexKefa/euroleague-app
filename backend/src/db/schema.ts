@@ -69,6 +69,13 @@ export const games = pgTable(
     status: varchar("status", { length: 20 }).default("scheduled").notNull(), // scheduled | live | final
     homeScore: integer("home_score"),
     awayScore: integer("away_score"),
+    // Only ever populated while status is "live" — null for scheduled/final
+    // (a real feed will source these; today only liveScoreSimulator.ts
+    // writes them, derived from its own compressed tick timeline — see the
+    // comment there). quarter: 1-4 regulation (overtime not modeled by the
+    // simulator yet). gameClockSeconds: seconds left in that quarter.
+    quarter: integer("quarter"),
+    gameClockSeconds: integer("game_clock_seconds"),
     // YouTube video ID (not a full URL) for this game's official highlight
     // reel, e.g. "MDWcq_KCkzY" — admin-set for now (PATCH /api/games/:id/
     // highlight, mirrors collectibles' admin imageUrl pattern) since there's

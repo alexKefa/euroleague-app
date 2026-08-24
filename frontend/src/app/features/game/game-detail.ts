@@ -11,6 +11,7 @@ import { NavIconComponent } from "../../shared/nav-icon";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { StatLegendComponent, StatLegendEntry } from "../../shared/stat-legend";
 import { SkeletonComponent } from "../../shared/skeleton";
+import { LiveCourtComponent } from "../../shared/live-court";
 
 interface TeamTotals {
   points: number;
@@ -42,7 +43,7 @@ function totalsFor(lines: GameBoxscoreLine[]): TeamTotals {
 @Component({
   selector: "app-game-detail",
   standalone: true,
-  imports: [CommonModule, RouterLink, NavIconComponent, RetryImgDirective, StatLegendComponent, SkeletonComponent],
+  imports: [CommonModule, RouterLink, NavIconComponent, RetryImgDirective, StatLegendComponent, SkeletonComponent, LiveCourtComponent],
   templateUrl: "./game-detail.html",
 })
 export class GameDetailComponent implements OnInit {
@@ -98,6 +99,22 @@ export class GameDetailComponent implements OnInit {
   // the top performers / box score lists below while the game is live.
   readonly onFireIds = signal<string[]>([]);
 
+  // Which side gets the live court's ambient glow — cross-references
+  // onFireIds against the box score's per-player rows (only source that
+  // ties a player id back to home/away) rather than a new signal from the
+  // SSE payload.
+  readonly hotSide = computed<"home" | "away" | "both" | null>(() => {
+    const ids = this.onFireIds();
+    const box = this.detail()?.boxscore;
+    if (!box || ids.length === 0) return null;
+    const homeHot = box.home.some((p) => ids.includes(p.player.id));
+    const awayHot = box.away.some((p) => ids.includes(p.player.id));
+    if (homeHot && awayHot) return "both";
+    if (homeHot) return "home";
+    if (awayHot) return "away";
+    return null;
+  });
+
   private readonly boxScoreLegendKeys: { code: string; key: string }[] = [
     { code: "MIN", key: "game.legendMIN" },
     { code: "PTS", key: "game.legendPTS" },
@@ -144,7 +161,14 @@ export class GameDetailComponent implements OnInit {
         isThisGame = true;
         return {
           ...current,
-          game: { ...current.game, homeScore: update.homeScore, awayScore: update.awayScore, status: update.status },
+          game: {
+            ...current.game,
+            homeScore: update.homeScore,
+            awayScore: update.awayScore,
+            status: update.status,
+            quarter: update.quarter ?? current.game.quarter,
+            gameClockSeconds: update.gameClockSeconds ?? current.game.gameClockSeconds,
+          },
         };
       });
       if (!isThisGame) return;
@@ -215,5 +239,12 @@ export class GameDetailComponent implements OnInit {
 
   fmtNum(value: number | null | undefined): string {
     return value !== null && value !== undefined ? value.toFixed(1) : "—";
+  }
+
+  formatClock(seconds: number | null | undefined): string {
+    if (seconds == null) return "";
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
   }
 }

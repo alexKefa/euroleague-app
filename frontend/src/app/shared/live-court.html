@@ -1,0 +1,108 @@
+<svg
+  [attr.viewBox]="'0 0 ' + viewBoxWidth + ' ' + viewBoxHeight"
+  class="w-full h-auto"
+  style="max-width: 480px; margin: 0 auto; display: block"
+>
+  <!-- Team-color wash, split at half-court — the "glass floor" tint -->
+  <rect x="0" y="0" [attr.width]="centerX" [attr.height]="viewBoxHeight" [attr.fill]="homeColor ?? '#888'" opacity="0.14" />
+  <rect [attr.x]="centerX" y="0" [attr.width]="centerX" [attr.height]="viewBoxHeight" [attr.fill]="awayColor ?? '#888'" opacity="0.14" />
+
+  <!-- Ambient glow for whichever side has a player "on fire" -->
+  @if (isHot('home')) {
+    <rect x="0" y="0" [attr.width]="centerX" [attr.height]="viewBoxHeight" [attr.fill]="homeColor ?? '#888'" class="court-hot" />
+  }
+  @if (isHot('away')) {
+    <rect [attr.x]="centerX" y="0" [attr.width]="centerX" [attr.height]="viewBoxHeight" [attr.fill]="awayColor ?? '#888'" class="court-hot" />
+  }
+
+  <!-- Team logo watermarks — which team is which, at a glance -->
+  @if (homeLogoUrl) {
+    <image [attr.href]="homeLogoUrl" [attr.x]="homeLogoX" [attr.y]="logoY" [attr.width]="logoSize" [attr.height]="logoSize" preserveAspectRatio="xMidYMid meet" opacity="0.16" />
+  }
+  @if (awayLogoUrl) {
+    <image [attr.href]="awayLogoUrl" [attr.x]="awayLogoX" [attr.y]="logoY" [attr.width]="logoSize" [attr.height]="logoSize" preserveAspectRatio="xMidYMid meet" opacity="0.16" />
+  }
+
+  <!-- Court outline -->
+  <rect x="3" y="3" [attr.width]="viewBoxWidth - 6" [attr.height]="viewBoxHeight - 6" fill="none" class="stroke-ink" stroke-opacity="0.35" stroke-width="2" />
+
+  <!-- Half-court line + center circle -->
+  <line [attr.x1]="centerX" y1="3" [attr.x2]="centerX" [attr.y2]="viewBoxHeight - 3" class="stroke-ink" stroke-opacity="0.35" stroke-width="2" />
+  <circle [attr.cx]="centerX" [attr.cy]="basketY" [attr.r]="centerCircleRadius" fill="none" class="stroke-ink" stroke-opacity="0.35" stroke-width="2" />
+
+  <!-- Keys -->
+  <rect [attr.x]="homeKeyX" [attr.y]="keyTopY" [attr.width]="keyWidth" [attr.height]="keyHeight" fill="none" class="stroke-ink" stroke-opacity="0.35" stroke-width="2" />
+  <rect [attr.x]="awayKeyX" [attr.y]="keyTopY" [attr.width]="keyWidth" [attr.height]="keyHeight" fill="none" class="stroke-ink" stroke-opacity="0.35" stroke-width="2" />
+
+  <!-- Free-throw circles -->
+  <circle [attr.cx]="homeFreeThrowX" [attr.cy]="basketY" [attr.r]="freeThrowRadius" fill="none" class="stroke-ink" stroke-opacity="0.35" stroke-width="2" />
+  <circle [attr.cx]="awayFreeThrowX" [attr.cy]="basketY" [attr.r]="freeThrowRadius" fill="none" class="stroke-ink" stroke-opacity="0.35" stroke-width="2" />
+
+  <!-- Restricted areas -->
+  <path [attr.d]="homeRestrictedAreaPath" fill="none" class="stroke-ink" stroke-opacity="0.3" stroke-width="1.5" />
+  <path [attr.d]="awayRestrictedAreaPath" fill="none" class="stroke-ink" stroke-opacity="0.3" stroke-width="1.5" />
+
+  <!-- Three-point arcs -->
+  <path [attr.d]="homeThreePointPath" fill="none" class="stroke-ink" stroke-opacity="0.35" stroke-width="2" />
+  <path [attr.d]="awayThreePointPath" fill="none" class="stroke-ink" stroke-opacity="0.35" stroke-width="2" />
+
+  <!-- Backboards + rims -->
+  <line [attr.x1]="homeBackboardX" [attr.x2]="homeBackboardX" [attr.y1]="backboardY1" [attr.y2]="backboardY2" class="stroke-ink" stroke-width="2.5" />
+  <line [attr.x1]="awayBackboardX" [attr.x2]="awayBackboardX" [attr.y1]="backboardY1" [attr.y2]="backboardY2" class="stroke-ink" stroke-width="2.5" />
+  <circle [attr.cx]="homeBasketX" [attr.cy]="basketY" [attr.r]="rimRadius" fill="none" [attr.stroke]="homeColor ?? '#888'" stroke-width="2.5" />
+  <circle [attr.cx]="awayBasketX" [attr.cy]="basketY" [attr.r]="rimRadius" fill="none" [attr.stroke]="awayColor ?? '#888'" stroke-width="2.5" />
+
+  <!-- Scoring effects: glow burst + "+2"/"+3" -->
+  @if (pulseSide() === 'home') {
+    <circle
+      [attr.cx]="homeBasketX"
+      [attr.cy]="basketY"
+      r="46"
+      [attr.fill]="homeColor ?? '#888'"
+      class="court-burst"
+      [class.is-three]="pulseValue() === 3"
+    />
+    @if (pulseValue(); as v) {
+      <text
+        [attr.x]="homeBasketX"
+        [attr.y]="basketY"
+        text-anchor="middle"
+        dominant-baseline="central"
+        class="font-display court-number stroke-ink"
+        [class.is-three]="v === 3"
+        [attr.font-size]="v === 3 ? 46 : 38"
+        [attr.fill]="homeColor ?? '#888'"
+        [attr.stroke-width]="v === 3 ? 3 : 2.5"
+        paint-order="stroke"
+      >
+        +{{ v }}
+      </text>
+    }
+  }
+  @if (pulseSide() === 'away') {
+    <circle
+      [attr.cx]="awayBasketX"
+      [attr.cy]="basketY"
+      r="46"
+      [attr.fill]="awayColor ?? '#888'"
+      class="court-burst"
+      [class.is-three]="pulseValue() === 3"
+    />
+    @if (pulseValue(); as v) {
+      <text
+        [attr.x]="awayBasketX"
+        [attr.y]="basketY"
+        text-anchor="middle"
+        dominant-baseline="central"
+        class="font-display court-number stroke-ink"
+        [class.is-three]="v === 3"
+        [attr.font-size]="v === 3 ? 46 : 38"
+        [attr.fill]="awayColor ?? '#888'"
+        [attr.stroke-width]="v === 3 ? 3 : 2.5"
+        paint-order="stroke"
+      >
+        +{{ v }}
+      </text>
+    }
+  }
+</svg>

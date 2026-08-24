@@ -105,10 +105,16 @@
                 <div class="shrink-0 w-16 text-center">
                   @if (game.status === "live") {
                     <span class="flex items-center justify-center gap-1 mb-0.5">
-                      <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-                      <span class="text-[9px] font-bold uppercase tracking-wide text-red-500">{{
-                        i18n.t('schedule.live')
-                      }}</span>
+                      <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
+                      @if (game.quarter) {
+                        <span class="text-[9px] font-bold font-mono text-red-500 whitespace-nowrap"
+                          >Q{{ game.quarter }} {{ formatClock(game.gameClockSeconds) }}</span
+                        >
+                      } @else {
+                        <span class="text-[9px] font-bold uppercase tracking-wide text-red-500">{{
+                          i18n.t('schedule.live')
+                        }}</span>
+                      }
                     </span>
                   }
                   @if (game.status === "final" || game.status === "live") {

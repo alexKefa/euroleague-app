@@ -169,6 +169,10 @@ export interface Game {
   tipoffAt: string;
   homeScore: number | null;
   awayScore: number | null;
+  // Only populated while status is "live" — see the backend schema comment
+  // (games.quarter/game_clock_seconds) for where these come from.
+  quarter: number | null;
+  gameClockSeconds: number | null;
   homeTeam: GameTeamSummary;
   awayTeam: GameTeamSummary;
   highlightVideoId?: string | null;

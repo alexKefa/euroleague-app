@@ -9,6 +9,8 @@ export interface GameUpdate {
   awayScore: number;
   status: string;
   onFireIds?: string[];
+  quarter?: number;
+  gameClockSeconds?: number;
 }
 
 /**

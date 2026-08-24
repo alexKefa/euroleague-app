@@ -15,6 +15,27 @@ import { broadcast } from "./hub.js";
 const TICK_MS = 4000;
 const MAX_TICKS = 24; // ~96s per simulated game
 
+// Quarter/clock are derived from tick progress, not tracked independently —
+// MAX_TICKS worth of ticks are spread evenly across a regulation game
+// (4 x 10min quarters, EuroLeague/FIBA), so each tick represents a fixed
+// slice of simulated game-clock time. This mirrors the shape the real feed
+// will eventually fill (live.euroleague.net's PlaybyPlay endpoint reports a
+// PERIOD 1-4 and a MARKERTIME per play — confirmed by reading the
+// euroleague-api package source; there's nothing to poll from it yet since
+// the season hasn't started) — only the source changes when that's wired
+// in later, not games.quarter/game_clock_seconds's meaning.
+const QUARTER_SECONDS = 600; // 10 minutes
+const REGULATION_SECONDS = QUARTER_SECONDS * 4;
+const SECONDS_PER_TICK = REGULATION_SECONDS / MAX_TICKS;
+
+function quarterAndClock(ticksElapsed: number): { quarter: number; gameClockSeconds: number } {
+  const elapsed = Math.min(ticksElapsed * SECONDS_PER_TICK, REGULATION_SECONDS);
+  if (elapsed >= REGULATION_SECONDS) return { quarter: 4, gameClockSeconds: 0 };
+  const quarter = Math.floor(elapsed / QUARTER_SECONDS) + 1;
+  const secondsIntoQuarter = elapsed % QUARTER_SECONDS;
+  return { quarter, gameClockSeconds: QUARTER_SECONDS - secondsIntoQuarter };
+}
+
 interface RosterPlayer {
   id: string;
   teamId: string;
@@ -222,6 +243,7 @@ async function tick(): Promise<void> {
     sim.ticksLeft -= 1;
     const isLastTick = sim.ticksLeft <= 0;
     const status = isLastTick ? "final" : "live";
+    const { quarter, gameClockSeconds } = quarterAndClock(MAX_TICKS - sim.ticksLeft);
 
     // Conditioned on the row still being "live", not just keyed on id —
     // defense in depth alongside the tickChain serialization above (which
@@ -231,11 +253,11 @@ async function tick(): Promise<void> {
     // makes a stale write a no-op instead of a silent revert to "live".
     const [updated] = await db
       .update(games)
-      .set({ homeScore, awayScore, status })
+      .set({ homeScore, awayScore, status, quarter, gameClockSeconds })
       .where(and(eq(games.id, sim.gameId), eq(games.status, "live")))
       .returning({ id: games.id });
     if (!updated || running !== sim) return;
-    broadcast("game-update", { gameId: sim.gameId, homeScore, awayScore, status, onFireIds });
+    broadcast("game-update", { gameId: sim.gameId, homeScore, awayScore, status, onFireIds, quarter, gameClockSeconds });
 
     if (isLastTick) {
       clearInterval(sim.interval);
@@ -270,8 +292,19 @@ export async function startSimulation(gameId?: string): Promise<{ gameId: string
   // Clean slate — a repeat test run on the same game shouldn't pile stats
   // on top of a previous run's.
   await db.delete(playerGameStats).where(eq(playerGameStats.gameId, game.id));
-  await db.update(games).set({ homeScore: 0, awayScore: 0, status: "live" }).where(eq(games.id, game.id));
-  broadcast("game-update", { gameId: game.id, homeScore: 0, awayScore: 0, status: "live", onFireIds: [] });
+  await db
+    .update(games)
+    .set({ homeScore: 0, awayScore: 0, status: "live", quarter: 1, gameClockSeconds: QUARTER_SECONDS })
+    .where(eq(games.id, game.id));
+  broadcast("game-update", {
+    gameId: game.id,
+    homeScore: 0,
+    awayScore: 0,
+    status: "live",
+    onFireIds: [],
+    quarter: 1,
+    gameClockSeconds: QUARTER_SECONDS,
+  });
 
   running = {
     gameId: game.id,

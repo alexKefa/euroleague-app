@@ -26,6 +26,8 @@ gamesRouter.get("/", async (req, res) => {
         tipoffAt: games.tipoffAt,
         homeScore: games.homeScore,
         awayScore: games.awayScore,
+        quarter: games.quarter,
+        gameClockSeconds: games.gameClockSeconds,
         homeTeam: {
           id: homeTeam.id,
           code: homeTeam.code,
@@ -114,6 +116,8 @@ gamesRouter.get("/schedule", async (req, res) => {
         tipoffAt: games.tipoffAt,
         homeScore: games.homeScore,
         awayScore: games.awayScore,
+        quarter: games.quarter,
+        gameClockSeconds: games.gameClockSeconds,
         homeTeam: {
           id: homeTeam.id,
           code: homeTeam.code,
@@ -176,6 +180,8 @@ gamesRouter.get("/:id", async (req, res) => {
         tipoffAt: games.tipoffAt,
         homeScore: games.homeScore,
         awayScore: games.awayScore,
+        quarter: games.quarter,
+        gameClockSeconds: games.gameClockSeconds,
         highlightVideoId: games.highlightVideoId,
         homeTeam: {
           id: homeTeam.id,
