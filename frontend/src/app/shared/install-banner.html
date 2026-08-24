@@ -1,0 +1,90 @@
+@if (visible() && platform(); as platform) {
+  <div
+    class="fixed z-30 inset-x-3 bottom-[calc(4rem+env(safe-area-inset-bottom)+0.75rem)] sm:inset-x-auto sm:right-4 sm:bottom-4 sm:w-96 bg-card border-2 border-line rounded-2xl shadow-pop p-4"
+  >
+    @if (!expanded()) {
+      <div class="flex items-start gap-3">
+        <div class="shrink-0 w-10 h-10 rounded-xl bg-highlight/10 flex items-center justify-center text-highlight">
+          <app-nav-icon name="install" [size]="20" />
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-bold leading-snug">{{ i18n.t('install.title') }}</p>
+          <p class="text-[12px] text-muted leading-snug mt-0.5">{{ i18n.t('install.subtitle') }}</p>
+        </div>
+        <button
+          type="button"
+          (click)="dismiss()"
+          class="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-page transition-colors"
+          [attr.aria-label]="i18n.t('install.dismiss')"
+        >
+          &times;
+        </button>
+      </div>
+
+      <div class="mt-3 flex justify-end">
+        @if (hasNativePrompt()) {
+          <button type="button" (click)="install()" appButton appButtonSize="sm">{{ i18n.t('install.installNow') }}</button>
+        } @else {
+          <button type="button" (click)="showSteps()" appButton="outline" appButtonSize="sm">{{ i18n.t('install.showMe') }}</button>
+        }
+      </div>
+    } @else {
+      <div class="flex items-start justify-between gap-2 mb-3">
+        <p class="text-sm font-bold leading-snug pr-2">{{ i18n.t('install.title') }}</p>
+        <button
+          type="button"
+          (click)="dismiss()"
+          class="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-page transition-colors"
+          [attr.aria-label]="i18n.t('install.dismiss')"
+        >
+          &times;
+        </button>
+      </div>
+
+      <ol class="space-y-2.5">
+        @if (platform === "ios") {
+          <li class="flex items-center gap-2.5 text-sm">
+            <span
+              class="shrink-0 w-6 h-6 rounded-full bg-highlight/10 text-highlight flex items-center justify-center font-mono text-[11px] font-bold"
+              >1</span
+            >
+            <span class="flex items-center gap-1.5"
+              >{{ i18n.t('install.iosStep1') }} <app-nav-icon name="share" [size]="16" class="text-highlight" /></span
+            >
+          </li>
+          <li class="flex items-center gap-2.5 text-sm">
+            <span
+              class="shrink-0 w-6 h-6 rounded-full bg-highlight/10 text-highlight flex items-center justify-center font-mono text-[11px] font-bold"
+              >2</span
+            >
+            <span>{{ i18n.t('install.iosStep2') }}</span>
+          </li>
+          <li class="flex items-center gap-2.5 text-sm">
+            <span
+              class="shrink-0 w-6 h-6 rounded-full bg-highlight/10 text-highlight flex items-center justify-center font-mono text-[11px] font-bold"
+              >3</span
+            >
+            <span>{{ i18n.t('install.iosStep3') }}</span>
+          </li>
+        } @else {
+          <li class="flex items-center gap-2.5 text-sm">
+            <span
+              class="shrink-0 w-6 h-6 rounded-full bg-highlight/10 text-highlight flex items-center justify-center font-mono text-[11px] font-bold"
+              >1</span
+            >
+            <span class="flex items-center gap-1.5"
+              >{{ i18n.t('install.androidStep1') }} <app-nav-icon name="dots-vertical" [size]="16" class="text-highlight" /></span
+            >
+          </li>
+          <li class="flex items-center gap-2.5 text-sm">
+            <span
+              class="shrink-0 w-6 h-6 rounded-full bg-highlight/10 text-highlight flex items-center justify-center font-mono text-[11px] font-bold"
+              >2</span
+            >
+            <span>{{ i18n.t('install.androidStep2') }}</span>
+          </li>
+        }
+      </ol>
+    }
+  </div>
+}

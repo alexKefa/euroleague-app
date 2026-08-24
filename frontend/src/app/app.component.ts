@@ -10,6 +10,7 @@ import { NavIconComponent, NavIconName } from "./shared/nav-icon";
 import { SplashComponent } from "./shared/splash";
 import { ButtonDirective } from "./shared/button.directive";
 import { TourOverlayComponent } from "./shared/tour-overlay";
+import { InstallBannerComponent } from "./shared/install-banner";
 
 // Covers splash.css's bar-rise/wordmark-in animation (finishes ~950ms)
 // plus a short hold — the fade-out starts once the mark has actually
@@ -68,7 +69,15 @@ const NAV_LINKS: NavLink[] = [
 @Component({
   selector: "app-root",
   standalone: true,
-  imports: [RouterOutlet, RouterLink, NavIconComponent, SplashComponent, ButtonDirective, TourOverlayComponent],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    NavIconComponent,
+    SplashComponent,
+    ButtonDirective,
+    TourOverlayComponent,
+    InstallBannerComponent,
+  ],
   templateUrl: "./app.component.html",
 })
 export class AppComponent implements OnInit {

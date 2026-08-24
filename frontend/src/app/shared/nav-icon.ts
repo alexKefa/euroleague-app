@@ -26,7 +26,12 @@ export type NavIconName =
   | "tip"
   | "play"
   | "logout"
-  | "album";
+  | "album"
+  // install-banner.ts — the "add to home screen" nudge and its per-platform
+  // instructions (iOS's Share icon, Android's overflow menu).
+  | "install"
+  | "share"
+  | "dots-vertical";
 
 @Component({
   selector: "app-nav-icon",
@@ -350,6 +355,42 @@ export type NavIconName =
             stroke-linecap="round"
             stroke-linejoin="round"
           />
+        }
+        @case ("install") {
+          <!-- A phone with an arrow dropping onto it — "add to device", not
+               a generic download-tray glyph. -->
+          <rect x="6" y="2.5" width="12" height="19" rx="2.2" stroke="currentColor" stroke-width="2" />
+          <path
+            d="M12 8v7M8.5 12l3.5 3.5L15.5 12"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        }
+        @case ("share") {
+          <!-- iOS Safari's own share-sheet glyph, so the instruction step
+               visually matches the icon the user is about to look for. -->
+          <path
+            d="M12 15V3M8 7l4-4 4 4"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M6 11v7a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-7"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        }
+        @case ("dots-vertical") {
+          <!-- Chrome's overflow-menu glyph, same reasoning as "share". -->
+          <circle cx="12" cy="5.5" r="1.8" fill="currentColor" />
+          <circle cx="12" cy="12" r="1.8" fill="currentColor" />
+          <circle cx="12" cy="18.5" r="1.8" fill="currentColor" />
         }
       }
     </svg>

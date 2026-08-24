@@ -21,6 +21,21 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
   // shared/page-hint.ts — dismiss button, reused across every page hint.
   "hint.dismiss": { en: "Dismiss", el: "Απόρριψη" },
 
+  // shared/install-banner.ts — the "add to home screen" nudge.
+  "install.title": { en: "Add Clutch to your home screen", el: "Πρόσθεσε το Clutch στην αρχική οθόνη" },
+  "install.subtitle": {
+    en: "Quicker access, opens full-screen like a real app.",
+    el: "Πιο γρήγορη πρόσβαση, ανοίγει πλήρης οθόνη σαν κανονική εφαρμογή.",
+  },
+  "install.dismiss": { en: "Dismiss", el: "Απόρριψη" },
+  "install.showMe": { en: "Show me how", el: "Δείξε μου πώς" },
+  "install.installNow": { en: "Install", el: "Εγκατάσταση" },
+  "install.iosStep1": { en: "Tap the Share icon", el: "Πάτησε το εικονίδιο Κοινοποίησης" },
+  "install.iosStep2": { en: "Scroll down and tap \"Add to Home Screen\"", el: "Κύλισε κάτω και πάτησε \"Προσθήκη στην Αρχική οθόνη\"" },
+  "install.iosStep3": { en: "Tap \"Add\" in the top corner", el: "Πάτησε \"Προσθήκη\" πάνω δεξιά" },
+  "install.androidStep1": { en: "Tap the menu icon", el: "Πάτησε το εικονίδιο μενού" },
+  "install.androidStep2": { en: "Tap \"Install app\" or \"Add to Home screen\"", el: "Πάτησε \"Εγκατάσταση εφαρμογής\" ή \"Προσθήκη στην Αρχική οθόνη\"" },
+
   // shared/stat-legend.ts — the "what does this mean?" glossary popover,
   // reused by roster and game-detail's stat tables.
   "statLegend.title": { en: "What these mean", el: "Τι σημαίνουν" },
