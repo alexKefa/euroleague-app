@@ -80,6 +80,160 @@ collectiblesRouter.get("/", async (_req, res) => {
   }
 });
 
+// Paginated, filtered, bundled card list for the Store page — every tier a
+// given player has (common/rare/legendary share the exact same `name` +
+// `teamId`, since they're generated together per player, see
+// expand-collectibles.ts) comes back grouped into one bundle rather than as
+// separate flat rows, so the grid can show one stacked tile per player and
+// the preview modal can switch between tiers. GET / above still returns the
+// full flat catalog unpaginated (inventory/profile/album need every card at
+// once to compute ownership/album-completion, and touching that shape would
+// ripple into all three) — this is a separate endpoint rather than an
+// optional-params variant of GET / to keep those callers' response shape
+// stable.
+//
+// The grouping/pagination unit is the PLAYER (name+team), not the card row,
+// so this is hand-written SQL rather than drizzle's query builder — CTE
+// pagination over a GROUP BY, joined back to the full per-tier rows, isn't
+// something the typed builder expresses cleanly. Serial numbers ("042/208")
+// still rank a card within its full tier catalog independent of these
+// filters, same as before.
+collectiblesRouter.get("/browse", async (req, res) => {
+  try {
+    const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? "20"), 10) || 20, 1), 40);
+    const offset = Math.max(parseInt(String(req.query.offset ?? "0"), 10) || 0, 0);
+    const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
+    const team = typeof req.query.team === "string" && req.query.team ? req.query.team : undefined;
+    const tierParam = typeof req.query.tier === "string" ? req.query.tier : undefined;
+    // The tier chips filter which BUNDLES are shown (any bundle that has a
+    // card of that tier), not which cards within a bundle — a "Legendary"
+    // filter still shows a player's common/rare alongside their legendary,
+    // since the bundle is the unit the user is browsing.
+    const tier = tierParam && TIERS.includes(tierParam as (typeof TIERS)[number]) ? tierParam : undefined;
+
+    const groupConditions = [];
+    if (search) groupConditions.push(sql`name ilike ${"%" + search + "%"}`);
+    if (team) groupConditions.push(sql`team_id = ${team}`);
+    const whereClause = groupConditions.length ? sql`WHERE ${sql.join(groupConditions, sql` AND `)}` : sql``;
+    const havingClause = tier ? sql`HAVING ${tier} = ANY(array_agg(DISTINCT tier))` : sql``;
+
+    const query = sql`
+      WITH ranked AS (
+        SELECT
+          c.id AS id, c.name AS name, c.tier AS tier, c.points_cost AS points_cost, c.image_url AS image_url,
+          t.id AS team_id, t.code AS team_code, t.name AS team_name, t.primary_color AS team_primary_color, t.logo_url AS team_logo_url,
+          (row_number() OVER (PARTITION BY c.tier ORDER BY c.name, t.code))::int AS serial_number,
+          (count(*) OVER (PARTITION BY c.tier))::int AS serial_total
+        FROM collectibles c
+        JOIN teams t ON c.team_id = t.id
+      ),
+      filtered_groups AS (
+        SELECT name, team_id, team_code
+        FROM ranked
+        ${whereClause}
+        GROUP BY name, team_id, team_code
+        ${havingClause}
+        ORDER BY name, team_code
+        LIMIT ${limit + 1} OFFSET ${offset}
+      )
+      SELECT r.*
+      FROM ranked r
+      JOIN filtered_groups g ON r.name = g.name AND r.team_id = g.team_id
+      ORDER BY g.name, g.team_code,
+        CASE r.tier WHEN 'common' THEN 0 WHEN 'rare' THEN 1 ELSE 2 END
+    `;
+
+    const rows = (await db.execute(query)) as unknown as Array<{
+      id: string;
+      name: string;
+      tier: string;
+      points_cost: number;
+      image_url: string | null;
+      team_id: string;
+      team_code: string;
+      team_name: string;
+      team_primary_color: string | null;
+      team_logo_url: string | null;
+      serial_number: number;
+      serial_total: number;
+    }>;
+
+    // Rows are already ordered player-then-tier, so a single pass groups
+    // them back into bundles without re-sorting.
+    const bundles: {
+      name: string;
+      team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
+      cards: ReturnType<typeof mapCardRow>[];
+    }[] = [];
+    for (const row of rows) {
+      const last = bundles[bundles.length - 1];
+      if (last && last.name === row.name && last.team.id === row.team_id) {
+        last.cards.push(mapCardRow(row));
+      } else {
+        bundles.push({
+          name: row.name,
+          team: { id: row.team_id, code: row.team_code, name: row.team_name, primaryColor: row.team_primary_color, logoUrl: row.team_logo_url },
+          cards: [mapCardRow(row)],
+        });
+      }
+    }
+
+    const hasMore = bundles.length > limit;
+    const page = hasMore ? bundles.slice(0, limit) : bundles;
+
+    res.json({ items: page, hasMore });
+  } catch (err) {
+    console.error("GET /api/collectibles/browse failed:", err);
+    res.status(500).json({ error: "Failed to load collectibles" });
+  }
+});
+
+function mapCardRow(row: {
+  id: string;
+  name: string;
+  tier: string;
+  points_cost: number;
+  image_url: string | null;
+  serial_number: number;
+  serial_total: number;
+}) {
+  return {
+    id: row.id,
+    name: row.name,
+    tier: row.tier,
+    pointsCost: row.points_cost,
+    buyPrice: DIRECT_BUY_PRICE[row.tier as (typeof TIERS)[number]] ?? null,
+    imageUrl: row.image_url,
+    serialNumber: row.serial_number,
+    serialTotal: row.serial_total,
+  };
+}
+
+// Distinct teams that actually have at least one collectible, for the
+// Store page's team filter dropdown — kept independent of whatever page(s)
+// /browse has loaded so far, since deriving it from loaded cards would only
+// show teams the user happened to scroll to.
+collectiblesRouter.get("/teams", async (_req, res) => {
+  try {
+    const rows = await db
+      .selectDistinct({
+        id: teams.id,
+        code: teams.code,
+        name: teams.name,
+        primaryColor: teams.primaryColor,
+        logoUrl: teams.logoUrl,
+      })
+      .from(collectibles)
+      .innerJoin(teams, eq(collectibles.teamId, teams.id))
+      .orderBy(teams.name);
+
+    res.json(rows);
+  } catch (err) {
+    console.error("GET /api/collectibles/teams failed:", err);
+    res.status(500).json({ error: "Failed to load teams" });
+  }
+});
+
 // Real season stats for the card back (card-preview's tap-to-flip) — best-
 // effort name match against the real players table (see
 // normalizePlayerName's doc comment above for why a plain match doesn't

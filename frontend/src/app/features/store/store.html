@@ -46,7 +46,7 @@
       <input
         type="search"
         [value]="searchQuery()"
-        (input)="searchQuery.set($any($event.target).value)"
+        (input)="onSearchInput($any($event.target).value)"
         [placeholder]="i18n.t('store.searchPlaceholder')"
         class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
       />
@@ -55,92 +55,125 @@
           class="flex-1 min-w-[10rem]"
           [options]="teamDropdownOptions()"
           [value]="teamFilter() ?? ''"
-          (valueChange)="teamFilter.set($event || null)"
+          (valueChange)="setTeamFilter($event || null)"
         />
       }
     </div>
 
     <div data-tour="store-cards" class="inline-flex bg-card border-2 border-line rounded-2xl p-1 gap-1 mb-4">
       @for (opt of tierOptions; track opt.value) {
-        <button type="button" (click)="tierFilter.set(opt.value)" [appChip]="tierFilter() === opt.value">
+        <button type="button" (click)="setTierFilter(opt.value)" [appChip]="tierFilter() === opt.value">
           {{ i18n.t(opt.key) }}
         </button>
       }
     </div>
 
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-      @for (item of filteredCollectibles(); track item.id) {
+      @for (bundle of bundles(); track bundleKey(bundle)) {
         <div class="flex flex-col items-center gap-2">
           <button
             type="button"
-            (click)="openPreview(item)"
+            (click)="openPreview(bundle)"
             class="w-full rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-highlight"
-            [attr.aria-label]="i18n.t('store.previewPrefix') + ' ' + item.name"
+            [attr.aria-label]="i18n.t('store.previewPrefix') + ' ' + bundle.name"
           >
-            <app-collectible-card
-              [name]="item.name"
-              [tier]="item.tier"
-              [teamCode]="item.team.code"
-              [teamColor]="item.team.primaryColor"
-              [imageUrl]="item.imageUrl"
-              [unlocked]="isUnlocked(item)"
-              [serialNumber]="item.serialNumber"
-              [serialTotal]="item.serialTotal"
-            ></app-collectible-card>
+            <app-card-stack
+              [name]="bundle.name"
+              [tier]="frontCard(bundle).tier"
+              [teamCode]="bundle.team.code"
+              [teamColor]="bundle.team.primaryColor"
+              [imageUrl]="frontCard(bundle).imageUrl"
+              [unlocked]="unlockedCount(bundle) > 0"
+              [stackCount]="bundle.cards.length"
+            ></app-card-stack>
           </button>
 
-          @if (isUnlocked(item)) {
+          @if (unlockedCount(bundle) === bundle.cards.length) {
             <span class="text-[12px] font-bold text-emerald-500">{{ i18n.t('store.unlocked') }}</span>
-          } @else if (item.tier === "legendary") {
-            <a
-              routerLink="/wheel"
-              class="text-[12px] font-bold text-muted uppercase tracking-wide hover:text-accent2 transition-colors"
-              >{{ i18n.t('store.winOnWheel') }}</a
+          } @else if (unlockedCount(bundle) > 0) {
+            <span class="text-[12px] font-bold text-muted"
+              >{{ unlockedCount(bundle) }}/{{ bundle.cards.length }} {{ i18n.t('store.unlocked') }}</span
             >
           } @else {
-            <div class="flex flex-col items-center gap-1 w-full">
-              @if (auth.isAuthenticated() && item.buyPrice !== null) {
-                <button
-                  type="button"
-                  (click)="buy(item)"
-                  [disabled]="!canAfford(item) || purchasingId() === item.id"
-                  appButton="outline"
-                  appButtonSize="sm"
-                  class="w-full"
-                >
-                  @if (purchasingId() === item.id) {
-                    <app-ball-spinner [size]="14" />
-                  } @else {
-                    {{ i18n.t('store.buyFor') + " " + item.buyPrice + " " + i18n.t('store.pointsBadge') }}
-                  }
-                </button>
-              }
-              <a
-                routerLink="/packs"
-                class="text-[12px] font-bold text-muted uppercase tracking-wide hover:text-accent2 transition-colors"
-                >{{ i18n.t('store.getFromPack') }}</a
-              >
-              @if (purchaseErrors()[item.id]) {
-                <p class="text-red-500 text-[11px] font-semibold text-center">{{ purchaseErrors()[item.id] }}</p>
-              }
-            </div>
+            <span class="text-[12px] font-bold text-muted uppercase tracking-wide">{{ i18n.t('store.tapToView') }}</span>
           }
         </div>
       } @empty {
         <p class="text-sm text-muted col-span-full">
-          {{ collectibles().length === 0 ? i18n.t('store.emptyStore') : i18n.t('store.emptySearch') }}
-          @if (collectibles().length > 0) {
+          {{ !hasActiveFilters() ? i18n.t('store.emptyStore') : i18n.t('store.emptySearch') }}
+          @if (hasActiveFilters()) {
             <button type="button" (click)="clearFilters()" class="text-highlight font-semibold">{{ i18n.t('store.clearFilters') }}</button>
           }
         </p>
       }
     </div>
 
+    @if (loadingMore()) {
+      <div class="flex justify-center py-6">
+        <app-logo-spinner [size]="20" />
+      </div>
+    }
+
+    @if (hasMore()) {
+      <div #scrollSentinel class="h-1"></div>
+    }
   }
 </div>
 
 @if (previewItem(); as item) {
   <app-card-preview [item]="item" [unlocked]="isUnlocked(item)" (closed)="closePreview()">
+    @if (previewCards().length > 1) {
+      <div class="flex gap-1.5">
+        @for (card of previewCards(); track card.id; let i = $index) {
+          <button
+            type="button"
+            (click)="selectPreviewTier(i)"
+            class="px-3 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-wide transition-colors"
+            [class]="previewTierIndex() === i ? 'bg-white text-black' : 'bg-white/15 text-white/70 hover:bg-white/25'"
+          >
+            {{ tierLabel(card.tier) }}
+          </button>
+        }
+      </div>
+    }
+
+    @if (isUnlocked(item)) {
+      <span class="text-[12px] font-bold text-emerald-400">{{ i18n.t('store.unlocked') }}</span>
+    } @else if (item.tier === "legendary") {
+      <a
+        routerLink="/wheel"
+        class="text-[12px] font-bold text-white/70 uppercase tracking-wide hover:text-white transition-colors"
+        >{{ i18n.t('store.winOnWheel') }}</a
+      >
+    } @else {
+      <div class="flex flex-col items-center gap-1 w-full">
+        @if (auth.isAuthenticated() && item.buyPrice !== null) {
+          <button
+            type="button"
+            (click)="buy(item)"
+            [disabled]="!canAfford(item) || purchasingId() === item.id"
+            appButton="outline"
+            appButtonSize="sm"
+            class="w-full"
+          >
+            @if (purchasingId() === item.id) {
+              <app-logo-spinner [size]="14" />
+            } @else {
+              {{ i18n.t('store.buyFor') + " " + item.buyPrice + " " + i18n.t('store.pointsBadge') }}
+            }
+          </button>
+        }
+        <a
+          routerLink="/packs"
+          class="text-[12px] font-bold text-white/70 uppercase tracking-wide hover:text-white transition-colors"
+          >{{ i18n.t('store.getFromPack') }}</a
+        >
+        @if (purchaseErrors()[item.id]) {
+          <p class="text-red-400 text-[11px] font-semibold text-center">{{ purchaseErrors()[item.id] }}</p>
+        }
+      </div>
+    }
+
     @if (auth.currentUser()?.isAdmin) {
       <div class="w-full flex gap-1">
         <input

@@ -1,0 +1,32 @@
+<div class="relative w-full mx-auto" [style.max-width.px]="maxWidth" style="aspect-ratio: 2.5 / 3.5">
+  @if (stackCount >= 3) {
+    <div
+      class="absolute inset-0 rounded-2xl bg-line"
+      style="transform: translate(6px, 9px) rotate(3deg)"
+    ></div>
+  }
+  @if (stackCount >= 2) {
+    <div
+      class="absolute inset-0 rounded-2xl bg-line opacity-80"
+      style="transform: translate(3px, 5px) rotate(1.5deg)"
+    ></div>
+  }
+
+  <app-collectible-card
+    class="absolute inset-0"
+    [name]="name"
+    [tier]="tier"
+    [teamCode]="teamCode"
+    [teamColor]="teamColor"
+    [imageUrl]="imageUrl"
+    [unlocked]="unlocked"
+    [maxWidth]="maxWidth"
+  ></app-collectible-card>
+
+  @if (stackCount > 1) {
+    <span
+      class="absolute -top-2 -right-2 z-10 w-6 h-6 rounded-full bg-card border-2 border-line flex items-center justify-center font-mono text-[11px] font-extrabold"
+      >{{ stackCount }}</span
+    >
+  }
+</div>

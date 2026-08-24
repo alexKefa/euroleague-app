@@ -16,6 +16,8 @@ import {
   LeaderboardEntry,
   PredictionSummary,
   Collectible,
+  CollectiblesPage,
+  CollectibleTeamFilter,
   CollectibleStatsResponse,
   MyCollectible,
   SpinStatus,
@@ -135,6 +137,26 @@ export class ApiService {
     return this.http.get<Collectible[]>(`${API_BASE_URL}/collectibles`);
   }
 
+  // Paginated, filtered card list for the Store page — see CollectiblesPage's
+  // doc comment for why this is a separate endpoint from getCollectibles().
+  browseCollectibles(opts: {
+    limit: number;
+    offset: number;
+    search?: string;
+    team?: string | null;
+    tier?: string | null;
+  }): Observable<CollectiblesPage> {
+    const params: Record<string, string | number> = { limit: opts.limit, offset: opts.offset };
+    if (opts.search) params["search"] = opts.search;
+    if (opts.team) params["team"] = opts.team;
+    if (opts.tier) params["tier"] = opts.tier;
+    return this.http.get<CollectiblesPage>(`${API_BASE_URL}/collectibles/browse`, { params });
+  }
+
+  getCollectibleTeams(): Observable<CollectibleTeamFilter[]> {
+    return this.http.get<CollectibleTeamFilter[]>(`${API_BASE_URL}/collectibles/teams`);
+  }
+
   getCollectibleStats(id: string): Observable<CollectibleStatsResponse> {
     return this.http.get<CollectibleStatsResponse>(`${API_BASE_URL}/collectibles/${id}/stats`);
   }
@@ -157,8 +179,8 @@ export class ApiService {
     return this.http.post(`${API_BASE_URL}/collectibles`, { name, teamId, tier, pointsCost, imageUrl });
   }
 
-  updateCollectibleImage(id: string, imageUrl: string): Observable<unknown> {
-    return this.http.patch(`${API_BASE_URL}/collectibles/${id}`, { imageUrl });
+  updateCollectibleImage(id: string, imageUrl: string): Observable<{ id: string; imageUrl: string | null }> {
+    return this.http.patch<{ id: string; imageUrl: string | null }>(`${API_BASE_URL}/collectibles/${id}`, { imageUrl });
   }
 
   updateGameHighlight(id: string, highlightVideoId: string): Observable<unknown> {

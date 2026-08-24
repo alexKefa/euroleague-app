@@ -255,6 +255,42 @@ export interface Collectible {
   team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
 }
 
+// A single tier's card within a bundle — same shape as Collectible minus
+// `team`, since every card in a bundle shares its parent CollectibleBundle's
+// team (bundling only ever groups tiers of the *same* player on the *same*
+// team — see backend/src/routes/collectibles.ts's GET /browse comment).
+export interface CollectibleBundleCard {
+  id: string;
+  name: string;
+  tier: CollectibleTier;
+  pointsCost: number;
+  buyPrice: number | null;
+  imageUrl: string | null;
+  serialNumber?: number;
+  serialTotal?: number;
+}
+
+// One player's common/rare/legendary cards grouped together — `cards` holds
+// whichever of the 3 tiers actually exist for this player (1-3, ordered
+// common → rare → legendary), never all three unless that player has a
+// legendary print.
+export interface CollectibleBundle {
+  name: string;
+  team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
+  cards: CollectibleBundleCard[];
+}
+
+// Response shape of GET /api/collectibles/browse (the Store page's paginated,
+// filtered, bundled card list) — distinct from GET /api/collectibles, which
+// still returns the full flat catalog unpaginated for callers that need it
+// all at once (inventory, profile, album).
+export interface CollectiblesPage {
+  items: CollectibleBundle[];
+  hasMore: boolean;
+}
+
+export type CollectibleTeamFilter = { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
+
 // Response for the card-preview flip — a best-effort match against the
 // real players table (see backend/src/routes/collectibles.ts's
 // normalizePlayerName), so `matched: false` is a normal outcome to render,

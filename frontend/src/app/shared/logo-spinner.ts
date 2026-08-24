@@ -3,8 +3,8 @@ import { Component, Input } from "@angular/core";
 // The app's own 3-bar wordmark (same rects as app.component.html's nav
 // logo), pulsing like an audio-equalizer instead of sitting static — a
 // bar-chart mark is a natural fit for a "working" animation, and it reads
-// as "this app" for an inline loading state the way ball-spinner.ts does
-// for busy buttons elsewhere.
+// as "this app" for any inline loading state, from a full skeleton
+// placeholder down to a small busy-button spinner.
 @Component({
   selector: "app-logo-spinner",
   standalone: true,

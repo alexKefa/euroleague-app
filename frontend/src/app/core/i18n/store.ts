@@ -21,6 +21,7 @@ export const storeTranslations: Record<string, Record<Lang, string>> = {
   "store.tierLegendary": { en: "Legendary", el: "Θρυλική" },
   "store.previewPrefix": { en: "Preview", el: "Προεπισκόπηση" },
   "store.unlocked": { en: "Unlocked", el: "Ξεκλειδωμένη" },
+  "store.tapToView": { en: "Tap to view", el: "Πάτησε για προβολή" },
   "store.winOnWheel": { en: "Win it on the wheel →", el: "Κέρδισέ την στον τροχό →" },
   "store.getFromPack": { en: "Get from a pack →", el: "Απόκτησέ την από πακέτο →" },
   "store.buyFor": { en: "Buy for", el: "Αγορά για" },

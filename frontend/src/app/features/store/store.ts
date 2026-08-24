@@ -1,17 +1,20 @@
-import { Component, OnInit, inject, signal, computed } from "@angular/core";
+import { Component, OnInit, OnDestroy, inject, signal, computed, effect, viewChild, ElementRef } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
-import { Collectible, CollectibleTier } from "../../core/models";
-import { CollectibleCardComponent } from "./collectible-card";
+import { Collectible, CollectibleBundle, CollectibleBundleCard, CollectibleTier, CollectibleTeamFilter } from "../../core/models";
+import { CardStackComponent } from "./card-stack";
 import { CardPreviewComponent } from "./card-preview";
 import { ChipDirective } from "../../shared/chip.directive";
 import { ButtonDirective } from "../../shared/button.directive";
-import { BallSpinnerComponent } from "../../shared/ball-spinner";
+import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { SkeletonComponent } from "../../shared/skeleton";
+
+const PAGE_SIZE = 20;
+const SEARCH_DEBOUNCE_MS = 300;
 
 @Component({
   selector: "app-store",
@@ -19,71 +22,163 @@ import { SkeletonComponent } from "../../shared/skeleton";
   imports: [
     CommonModule,
     RouterLink,
-    CollectibleCardComponent,
+    CardStackComponent,
     CardPreviewComponent,
     ChipDirective,
     ButtonDirective,
-    BallSpinnerComponent,
+    LogoSpinnerComponent,
     DropdownComponent,
     SkeletonComponent,
   ],
   templateUrl: "./store.html",
 })
-export class StoreComponent implements OnInit {
+export class StoreComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
 
-  readonly collectibles = signal<Collectible[]>([]);
+  // Bundles fetched so far for the current filter set — grows as loadMore()
+  // appends pages; reset to empty whenever a filter changes (see resetAndLoad).
+  readonly bundles = signal<CollectibleBundle[]>([]);
   readonly myCollectibleIds = signal<Set<string>>(new Set());
   readonly points = signal(0);
   readonly pointsLoading = signal(true);
   readonly loading = signal(true);
-  private readonly previewItemId = signal<string | null>(null);
-  readonly previewItem = computed(
-    () => this.collectibles().find((c) => c.id === this.previewItemId()) ?? null
-  );
+  readonly loadingMore = signal(false);
+  readonly hasMore = signal(false);
+  private offset = 0;
+  // Bumped on every filter change so a slow in-flight response from a since-
+  // superseded search/filter can't land after a newer one already has.
+  private requestToken = 0;
+  private searchDebounceHandle?: ReturnType<typeof setTimeout>;
+
+  private readonly sentinel = viewChild<ElementRef<HTMLDivElement>>("scrollSentinel");
+  private observer?: IntersectionObserver;
+
+  private readonly previewBundle = signal<CollectibleBundle | null>(null);
+  readonly previewTierIndex = signal(0);
+  // The modal (CardPreviewComponent) only knows how to show one Collectible
+  // at a time — this merges whichever tier is selected with the bundle's
+  // shared team into that shape, so the modal itself needed zero changes.
+  readonly previewItem = computed<Collectible | null>(() => {
+    const bundle = this.previewBundle();
+    if (!bundle) return null;
+    const card = bundle.cards[this.previewTierIndex()] ?? bundle.cards[0];
+    return { ...card, team: bundle.team };
+  });
+  readonly previewCards = computed<CollectibleBundleCard[]>(() => this.previewBundle()?.cards ?? []);
 
   readonly searchQuery = signal("");
   readonly teamFilter = signal<string | null>(null);
   readonly tierFilter = signal<CollectibleTier | null>(null);
+  readonly hasActiveFilters = computed(
+    () => this.searchQuery().trim().length > 0 || this.teamFilter() !== null || this.tierFilter() !== null
+  );
   readonly tierOptions: { value: CollectibleTier | null; key: string }[] = [
     { value: null, key: "store.tierAll" },
     { value: "common", key: "store.tierCommon" },
     { value: "rare", key: "store.tierRare" },
     { value: "legendary", key: "store.tierLegendary" },
   ];
+  private readonly tierLabelKeys: Record<CollectibleTier, string> = {
+    common: "store.tierCommon",
+    rare: "store.tierRare",
+    legendary: "store.tierLegendary",
+  };
+  tierLabel(tier: CollectibleTier): string {
+    return this.i18n.t(this.tierLabelKeys[tier]);
+  }
 
-  readonly filterTeams = computed(() => {
-    const byId = new Map<string, Collectible["team"]>();
-    for (const c of this.collectibles()) byId.set(c.team.id, c.team);
-    return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
-  });
+  // Independent of whatever page(s) have loaded so far — derived from a
+  // dedicated endpoint rather than the loaded `bundles`, otherwise the
+  // dropdown would only ever list teams the user happened to scroll to.
+  readonly filterTeams = signal<CollectibleTeamFilter[]>([]);
 
   readonly teamDropdownOptions = computed<DropdownOption[]>(() => [
     { value: "", label: this.i18n.t("store.allTeams") },
     ...this.filterTeams().map((t) => ({ value: t.id, label: t.name, logoUrl: t.logoUrl })),
   ]);
 
-  readonly filteredCollectibles = computed(() => {
-    const query = this.searchQuery().trim().toLowerCase();
-    const team = this.teamFilter();
-    const tier = this.tierFilter();
-    const ownedIds = this.myCollectibleIds();
-    return this.collectibles()
-      .filter((c) => {
-        if (team && c.team.id !== team) return false;
-        if (tier && c.tier !== tier) return false;
-        if (query && !c.name.toLowerCase().includes(query)) return false;
-        return true;
-      })
-      .sort((a, b) => Number(ownedIds.has(b.id)) - Number(ownedIds.has(a.id)));
-  });
+  constructor() {
+    effect(() => {
+      const el = this.sentinel()?.nativeElement;
+      if (!el) return;
+      this.observer?.disconnect();
+      this.observer = new IntersectionObserver(
+        (entries) => {
+          if (entries[0]?.isIntersecting) this.loadMore();
+        },
+        { rootMargin: "600px" }
+      );
+      this.observer.observe(el);
+    });
+  }
+
+  onSearchInput(value: string): void {
+    this.searchQuery.set(value);
+    if (this.searchDebounceHandle) clearTimeout(this.searchDebounceHandle);
+    this.searchDebounceHandle = setTimeout(() => this.resetAndLoad(), SEARCH_DEBOUNCE_MS);
+  }
+
+  setTeamFilter(team: string | null): void {
+    this.teamFilter.set(team);
+    this.resetAndLoad();
+  }
+
+  setTierFilter(tier: CollectibleTier | null): void {
+    this.tierFilter.set(tier);
+    this.resetAndLoad();
+  }
 
   clearFilters(): void {
+    if (this.searchDebounceHandle) clearTimeout(this.searchDebounceHandle);
     this.searchQuery.set("");
     this.teamFilter.set(null);
     this.tierFilter.set(null);
+    this.resetAndLoad();
+  }
+
+  private resetAndLoad(): void {
+    this.offset = 0;
+    this.hasMore.set(false);
+    this.bundles.set([]);
+    this.loading.set(true);
+    this.fetchPage();
+  }
+
+  loadMore(): void {
+    if (this.loading() || this.loadingMore() || !this.hasMore()) return;
+    this.fetchPage();
+  }
+
+  private fetchPage(): void {
+    const token = ++this.requestToken;
+    const isFirstPage = this.offset === 0;
+    if (!isFirstPage) this.loadingMore.set(true);
+
+    this.api
+      .browseCollectibles({
+        limit: PAGE_SIZE,
+        offset: this.offset,
+        search: this.searchQuery().trim() || undefined,
+        team: this.teamFilter(),
+        tier: this.tierFilter(),
+      })
+      .subscribe({
+        next: (page) => {
+          if (token !== this.requestToken) return;
+          this.bundles.update((existing) => (isFirstPage ? page.items : [...existing, ...page.items]));
+          this.offset += page.items.length;
+          this.hasMore.set(page.hasMore);
+          this.loading.set(false);
+          this.loadingMore.set(false);
+        },
+        error: () => {
+          if (token !== this.requestToken) return;
+          this.loading.set(false);
+          this.loadingMore.set(false);
+        },
+      });
   }
 
   readonly imageSavingId = signal<string | null>(null);
@@ -93,7 +188,12 @@ export class StoreComponent implements OnInit {
   readonly purchaseErrors = signal<Record<string, string>>({});
 
   ngOnInit(): void {
-    this.loadCollectibles();
+    this.fetchPage();
+
+    this.api.getCollectibleTeams().subscribe({
+      next: (teams) => this.filterTeams.set(teams),
+      error: () => {},
+    });
 
     if (this.auth.isAuthenticated()) {
       this.api.getMyCollectibles().subscribe({
@@ -113,26 +213,53 @@ export class StoreComponent implements OnInit {
     }
   }
 
-  private loadCollectibles(): void {
-    this.api.getCollectibles().subscribe({
-      next: (rows) => {
-        this.collectibles.set(rows);
-        this.loading.set(false);
-      },
-      error: () => this.loading.set(false),
-    });
+  ngOnDestroy(): void {
+    this.observer?.disconnect();
+    if (this.searchDebounceHandle) clearTimeout(this.searchDebounceHandle);
   }
 
-  openPreview(collectible: Collectible): void {
-    this.previewItemId.set(collectible.id);
+  // The stack tile's front face: whichever tier the user owns highest (most
+  // satisfying thing to show off), falling back to the lowest/cheapest tier
+  // — showing a locked legendary front when the user actually owns the
+  // common would read as "you don't have this" for a bundle they're 1/3
+  // into.
+  frontCard(bundle: CollectibleBundle): CollectibleBundleCard {
+    for (let i = bundle.cards.length - 1; i >= 0; i--) {
+      if (this.myCollectibleIds().has(bundle.cards[i].id)) return bundle.cards[i];
+    }
+    return bundle.cards[0];
+  }
+
+  unlockedCount(bundle: CollectibleBundle): number {
+    return bundle.cards.filter((c) => this.myCollectibleIds().has(c.id)).length;
+  }
+
+  bundleKey(bundle: CollectibleBundle): string {
+    return `${bundle.team.id}|${bundle.name}`;
+  }
+
+  openPreview(bundle: CollectibleBundle): void {
+    this.previewBundle.set(bundle);
+    this.previewTierIndex.set(this.defaultTierIndexFor(bundle));
+  }
+
+  selectPreviewTier(index: number): void {
+    this.previewTierIndex.set(index);
   }
 
   closePreview(): void {
-    this.previewItemId.set(null);
+    this.previewBundle.set(null);
   }
 
-  isUnlocked(collectible: Collectible): boolean {
-    return this.myCollectibleIds().has(collectible.id);
+  private defaultTierIndexFor(bundle: CollectibleBundle): number {
+    for (let i = bundle.cards.length - 1; i >= 0; i--) {
+      if (this.myCollectibleIds().has(bundle.cards[i].id)) return i;
+    }
+    return 0;
+  }
+
+  isUnlocked(card: { id: string }): boolean {
+    return this.myCollectibleIds().has(card.id);
   }
 
   setImage(collectible: Collectible, imageUrl: string): void {
@@ -141,9 +268,14 @@ export class StoreComponent implements OnInit {
     this.clearImageError(collectible.id);
 
     this.api.updateCollectibleImage(collectible.id, imageUrl.trim()).subscribe({
-      next: () => {
+      next: (updated) => {
         this.imageSavingId.set(null);
-        this.loadCollectibles();
+        const applyUpdate = (bundle: CollectibleBundle): CollectibleBundle =>
+          bundle.team.id === collectible.team.id && bundle.name === collectible.name
+            ? { ...bundle, cards: bundle.cards.map((c) => (c.id === collectible.id ? { ...c, imageUrl: updated.imageUrl } : c)) }
+            : bundle;
+        this.bundles.update((list) => list.map(applyUpdate));
+        this.previewBundle.update((bundle) => (bundle ? applyUpdate(bundle) : bundle));
       },
       error: (err) => {
         this.imageSavingId.set(null);
