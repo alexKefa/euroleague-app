@@ -128,18 +128,18 @@ collectiblesRouter.get("/browse", async (req, res) => {
         JOIN teams t ON c.team_id = t.id
       ),
       filtered_groups AS (
-        SELECT name, team_id, team_code
+        SELECT name, team_id, team_name
         FROM ranked
         ${whereClause}
-        GROUP BY name, team_id, team_code
+        GROUP BY name, team_id, team_name
         ${havingClause}
-        ORDER BY name, team_code
+        ORDER BY team_name, name
         LIMIT ${limit + 1} OFFSET ${offset}
       )
       SELECT r.*
       FROM ranked r
       JOIN filtered_groups g ON r.name = g.name AND r.team_id = g.team_id
-      ORDER BY g.name, g.team_code,
+      ORDER BY g.team_name, g.name,
         CASE r.tier WHEN 'common' THEN 0 WHEN 'rare' THEN 1 ELSE 2 END
     `;
 
