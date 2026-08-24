@@ -37,8 +37,8 @@
 
     @if (auth.isAuthenticated()) {
       <!-- Desktop only — on mobile this same identity/logout is one tap
-           away on Profile (bottom tab), so cramming email + admin badge +
-           logout into this bar too was the clutter. -->
+           away via the Profile icon just below (line ~63), so cramming
+           email + admin badge + logout into this bar too was the clutter. -->
       <div class="hidden sm:flex items-center gap-3 min-w-0">
         <a
           routerLink="/profile"
@@ -68,8 +68,6 @@
         <app-nav-icon name="user" [size]="18" />
       </a>
     } @else {
-      <!-- Desktop only — mobile drops the "Log in" text link (the bottom
-           tab bar already has a Login tab) and keeps just the one CTA. -->
       <div class="hidden sm:flex items-center gap-3 sm:gap-4 shrink-0">
         <a
           routerLink="/login"
@@ -80,7 +78,18 @@
         </a>
         <a routerLink="/register" appButton appButtonSize="sm">{{ i18n.t('nav.register') }}</a>
       </div>
-      <a routerLink="/register" appButton appButtonSize="sm" class="sm:hidden">{{ i18n.t('nav.register') }}</a>
+      <!-- Mobile: same login+register pair, no separate bottom-tab login
+           entry anymore (see the bottom nav's "More" tab). -->
+      <div class="sm:hidden flex items-center gap-2 shrink-0">
+        <a
+          routerLink="/login"
+          class="shrink-0 w-8 h-8 rounded-xl border-2 border-line flex items-center justify-center text-muted hover:text-ink hover:bg-page transition-colors"
+          [attr.aria-label]="i18n.t('nav.login')"
+        >
+          <app-nav-icon name="user" [size]="18" />
+        </a>
+        <a routerLink="/register" appButton appButtonSize="sm">{{ i18n.t('nav.register') }}</a>
+      </div>
     }
   </div>
 </nav>
@@ -124,7 +133,7 @@
   data-app-bottom-nav
   class="sm:hidden fixed bottom-0 inset-x-0 bg-card border-t border-line flex justify-around items-center pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-40"
 >
-  @for (link of navLinks; track link.path) {
+  @for (link of mobileNavLinks; track link.path) {
     <a
       [routerLink]="link.path"
       [attr.aria-label]="i18n.t(link.label)"
@@ -146,37 +155,49 @@
       </span>
     </a>
   }
-  @if (auth.isAuthenticated()) {
-    <a
-      routerLink="/profile"
-      [attr.aria-label]="i18n.t('nav.profile')"
-      [class.text-highlight]="currentUrl() === '/profile'"
-      [class.text-muted]="currentUrl() !== '/profile'"
-      class="flex items-center justify-center px-1 py-1"
+
+  <!-- "More" — always last. Profile/login now live in the top bar instead
+       of a tab here (see the nav at the top of this file); this overflow
+       is just for secondary destinations like Schedule (MORE_LINKS). -->
+  <div class="relative flex items-center justify-center px-1 py-1">
+    <button
+      type="button"
+      (click)="$event.stopPropagation(); toggleMore()"
+      [attr.aria-label]="i18n.t('nav.more')"
+      [attr.aria-expanded]="moreOpen()"
+      [class.text-highlight]="isMoreActive() || moreOpen()"
+      [class.text-muted]="!isMoreActive() && !moreOpen()"
+      class="flex items-center justify-center"
     >
       <span
         class="flex items-center justify-center w-11 h-9 rounded-full transition-all duration-200"
-        [class]="currentUrl() === '/profile' ? 'bg-highlight/15 scale-100' : 'scale-90'"
+        [class]="isMoreActive() || moreOpen() ? 'bg-highlight/15 scale-100' : 'scale-90'"
       >
-        <app-nav-icon name="user" [active]="currentUrl() === '/profile'" [size]="22" />
+        <app-nav-icon name="dots-vertical" [active]="isMoreActive() || moreOpen()" [size]="22" />
       </span>
-    </a>
-  } @else {
-    <a
-      routerLink="/login"
-      [attr.aria-label]="i18n.t('nav.login')"
-      [class.text-highlight]="currentUrl() === '/login'"
-      [class.text-muted]="currentUrl() !== '/login'"
-      class="flex items-center justify-center px-1 py-1"
-    >
-      <span
-        class="flex items-center justify-center w-11 h-9 rounded-full transition-all duration-200"
-        [class]="currentUrl() === '/login' ? 'bg-highlight/15 scale-100' : 'scale-90'"
+    </button>
+
+    @if (moreOpen()) {
+      <div
+        (click)="$event.stopPropagation()"
+        class="absolute bottom-full right-0 mb-2 min-w-[9rem] rounded-2xl bg-card border-2 border-line shadow-pop py-1.5 overflow-hidden"
       >
-        <app-nav-icon name="user" [active]="currentUrl() === '/login'" [size]="22" />
-      </span>
-    </a>
-  }
+        @for (link of moreLinks; track link.path) {
+          <a
+            [routerLink]="link.path"
+            (click)="closeMore()"
+            [attr.aria-label]="i18n.t(link.label)"
+            class="flex items-center gap-2.5 px-3.5 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors"
+            [class.text-highlight]="isActive(link)"
+            [class.text-ink]="!isActive(link)"
+          >
+            <app-nav-icon [name]="link.icon" [active]="isActive(link)" [size]="18" />
+            {{ i18n.t(link.label) }}
+          </a>
+        }
+      </div>
+    }
+  </div>
 </nav>
 
 <app-tour-overlay></app-tour-overlay>

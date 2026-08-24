@@ -11,6 +11,8 @@ export type NavIconName =
   | "cards"
   | "trade"
   | "schedule"
+  | "teams"
+  | "standings"
   | "sun"
   | "moon"
   // Achievement/celebration set — replaces emoji (badges, page hints,
@@ -178,6 +180,59 @@ export type NavIconName =
           <line x1="4" y1="9" x2="20" y2="9" stroke="currentColor" stroke-width="2.2" />
           <line x1="8" y1="3" x2="8" y2="6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
           <line x1="16" y1="3" x2="16" y2="6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+        }
+        @case ("standings") {
+          <!-- Ranked bars, echoing the wordmark's own logo bars — a
+               leaderboard glyph, distinct from "trophy" (one achievement). -->
+          <rect
+            x="4"
+            y="13"
+            width="4.5"
+            height="7"
+            rx="1"
+            stroke="currentColor"
+            stroke-width="2"
+            [attr.fill]="active ? 'currentColor' : 'none'"
+            [attr.fill-opacity]="active ? 0.18 : null"
+          />
+          <rect
+            x="9.75"
+            y="7"
+            width="4.5"
+            height="13"
+            rx="1"
+            stroke="currentColor"
+            stroke-width="2"
+            [attr.fill]="active ? 'currentColor' : 'none'"
+            [attr.fill-opacity]="active ? 0.18 : null"
+          />
+          <rect
+            x="15.5"
+            y="10"
+            width="4.5"
+            height="10"
+            rx="1"
+            stroke="currentColor"
+            stroke-width="2"
+            [attr.fill]="active ? 'currentColor' : 'none'"
+            [attr.fill-opacity]="active ? 0.18 : null"
+          />
+        }
+        @case ("teams") {
+          <!-- Two overlapping player silhouettes — "browse teams/rosters",
+               distinct from the single "user" (profile) icon. -->
+          <circle
+            cx="9"
+            cy="8.5"
+            r="3.2"
+            stroke="currentColor"
+            stroke-width="2.1"
+            [attr.fill]="active ? 'currentColor' : 'none'"
+            [attr.fill-opacity]="active ? 0.18 : null"
+          />
+          <path d="M3.5 20c0-3.8 2.7-6.3 5.5-6.3s5.5 2.5 5.5 6.3" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" />
+          <circle cx="16.3" cy="9.3" r="2.6" stroke="currentColor" stroke-width="1.8" />
+          <path d="M14.8 14.2c2.6.3 5.7 2.4 5.7 5.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
         }
         @case ("trade") {
           <path

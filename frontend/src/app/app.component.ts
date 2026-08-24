@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnInit, ViewChild, inject, signal } from "@angular/core";
+import { Component, ElementRef, HostListener, OnInit, ViewChild, inject, signal } from "@angular/core";
 import { toSignal } from "@angular/core/rxjs-interop";
 import { NavigationEnd, Router, RouterOutlet, RouterLink } from "@angular/router";
 import { filter, map } from "rxjs";
@@ -53,6 +53,10 @@ interface NavLink {
 
 // label is an i18n translation key, not display text — resolved via
 // i18n.t() in the template so nav labels follow the language toggle.
+// Desktop's rail has the vertical room for all seven, so it uses this list
+// directly. Only the mobile bottom bar (cramped, thumb-reach real estate)
+// trims to MOBILE_NAV_LINKS + a "More" overflow for Schedule/Teams/
+// Standings — see MOBILE_NAV_LINKS/MORE_LINKS below and app.component.html.
 const NAV_LINKS: NavLink[] = [
   { path: "/", label: "nav.home", icon: "home", exact: true },
   { path: "/news", label: "nav.news", icon: "news" },
@@ -64,7 +68,19 @@ const NAV_LINKS: NavLink[] = [
     icon: "cards",
     activePrefixes: ["/store", "/wheel", "/trades", "/packs", "/album"],
   },
+  { path: "/teams", label: "nav.teams", icon: "teams" },
+  { path: "/standings", label: "nav.standings", icon: "standings" },
 ];
+
+// Mobile-only: the four most-used destinations as direct tabs; Schedule,
+// Teams, Standings, and profile/login all live one tap further away (More
+// overflow / the top bar) instead of crowding a fifth+ bottom tab.
+const MOBILE_OVERFLOW_PATHS = new Set(["/schedule", "/teams", "/standings"]);
+const MOBILE_NAV_LINKS: NavLink[] = NAV_LINKS.filter((l) => !MOBILE_OVERFLOW_PATHS.has(l.path));
+
+// Mobile-only overflow behind the "More" tab (always last) — a spot for
+// destinations checked occasionally rather than every session.
+const MORE_LINKS: NavLink[] = NAV_LINKS.filter((l) => MOBILE_OVERFLOW_PATHS.has(l.path));
 
 @Component({
   selector: "app-root",
@@ -91,6 +107,9 @@ export class AppComponent implements OnInit {
   protected events = inject(EventsService);
   private router = inject(Router);
   protected readonly navLinks = NAV_LINKS;
+  protected readonly mobileNavLinks = MOBILE_NAV_LINKS;
+  protected readonly moreLinks = MORE_LINKS;
+  protected readonly moreOpen = signal(false);
 
   protected readonly showSplash = signal(true);
   protected readonly splashHiding = signal(false);
@@ -145,5 +164,30 @@ export class AppComponent implements OnInit {
     return [link.path, ...(link.activePrefixes ?? [])].some(
       (p) => url === p || url.startsWith(p + "/")
     );
+  }
+
+  isMoreActive(): boolean {
+    return this.moreLinks.some((l) => this.isActive(l));
+  }
+
+  toggleMore(): void {
+    this.moreOpen.update((v) => !v);
+  }
+
+  closeMore(): void {
+    this.moreOpen.set(false);
+  }
+
+  // Closes the popover on any click outside it — the trigger buttons stop
+  // propagation in the template (see app.component.html) so toggleMore()'s
+  // own click doesn't immediately re-close what it just opened.
+  @HostListener("document:click")
+  onDocumentClick(): void {
+    if (this.moreOpen()) this.closeMore();
+  }
+
+  @HostListener("document:keydown.escape")
+  onEscape(): void {
+    this.closeMore();
   }
 }
