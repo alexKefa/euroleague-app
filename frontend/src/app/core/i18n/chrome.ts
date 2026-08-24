@@ -43,10 +43,10 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
     el: "Δεν ήταν δυνατή η ενημέρωση της αγαπημένης σου ομάδας — δοκίμασε ξανά.",
   },
 
-  "profile.referralTitle": { en: "Refer a friend", el: "Πρόσκλησε έναν φίλο" },
+  "profile.referralTitle": { en: "Refer a friend", el: "Προσκάλεσε έναν φίλο" },
   "profile.referralHint": {
     en: "When they sign up and make their first correct prediction, you get a 400-point bonus.",
-    el: "Όταν εγγραφούν και κάνουν τη πρώτη σωστή πρόγνωσή τους, κερδίζεις 400 πόντους.",
+    el: "Όταν εγγραφούν και κάνουν τη πρώτη σωστή πρόβλεψή τους, κερδίζεις 400 πόντους.",
   },
   "profile.referralCopy": { en: "Copy link", el: "Αντιγραφή συνδέσμου" },
   "profile.referralCopied": { en: "Copied!", el: "Αντιγράφηκε!" },

@@ -52,7 +52,7 @@ export const storeTranslations: Record<string, Record<Lang, string>> = {
     en: "to take your jump ball — always a pack, with a shot at a legendary one.",
     el: "για να κάνεις το τζάμπολ σου — πάντα ένα πακέτο, με πιθανότητα για θρυλικό.",
   },
-  "wheel.takeJumpBall": { en: "Take the jump ball", el: "Κάνε το τζάμπολ" },
+  "wheel.takeJumpBall": { en: "Take the jump ball", el: "Πήδα για το τζάμπολ" },
   "wheel.spinning": { en: "Jump ball…", el: "Τζάμπολ…" },
   "wheel.nextAvailable": { en: "Next jump ball available", el: "Επόμενο τζάμπολ διαθέσιμο" },
   "wheel.cheatAdmin": { en: "Cheat jump ball (admin)", el: "Τζάμπολ απάτης (διαχειριστής)" },

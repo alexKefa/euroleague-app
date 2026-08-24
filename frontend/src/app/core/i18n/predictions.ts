@@ -34,7 +34,7 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
 
   "predictions.hint": {
     en: "Pick a winner before tip-off. Each correct call earns 10 points, and a perfect round unlocks badges plus a bonus card.",
-    el: "Διάλεξε νικητή πριν το τζάμπολ. Κάθε σωστή πρόβλεψη φέρνει 10 πόντους, και ένας τέλειος γύρος ξεκλειδώνει μετάλλια και μια δωρεάν κάρτα.",
+    el: "Διάλεξε νικητή πριν το τζάμπολ. Με κάθε σωστή πρόβλεψη κερδίζεις 10 πόντους και ένας τέλειος γύρος ξεκλειδώνει μετάλλια και μια δωρεάν μυστική κάρτα.",
   },
 
   // Badge legend — a tap-to-open key explaining every badge glyph (locked

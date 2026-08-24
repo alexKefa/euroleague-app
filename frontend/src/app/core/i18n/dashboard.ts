@@ -16,8 +16,8 @@ export const dashboardTranslations: Record<string, Record<Lang, string>> = {
   "dashboard.yourTeamSchedule": { en: "Your Team's Schedule", el: "Πρόγραμμα Ομάδας" },
   "dashboard.standings": { en: "Standings", el: "Βαθμολογία" },
 
-  "dashboard.pointsHintPrefix": { en: "Earn points by making correct predictions on", el: "Κέρδισε πόντους με σωστές προβλέψεις στα" },
-  "dashboard.pointsHintMiddle": { en: ", then spend them on", el: ", και μετά εξαργύρωσέ τους σε" },
+  "dashboard.pointsHintPrefix": { en: "Earn points by making correct predictions on", el: "Κέρδισε πόντους με σωστές προβλέψεις στις" },
+  "dashboard.pointsHintMiddle": { en: ", then spend them on", el: ", και μετά εξαργύρωσέ τις σε" },
   "dashboard.pointsHintSuffix": {
     en: "for a shot at rare and legendary cards — or try the free daily",
     el: "για μια ευκαιρία σε σπάνιες και θρυλικές κάρτες — ή δοκίμασε το δωρεάν καθημερινό",
@@ -39,5 +39,5 @@ export const dashboardTranslations: Record<string, Record<Lang, string>> = {
   "dashboard.guestHintCta": { en: "create a free account", el: "δημιούργησε δωρεάν λογαριασμό" },
   "dashboard.guestHintSuffix": { en: "to get started — takes a minute.", el: "για να ξεκινήσεις — παίρνει ένα λεπτό." },
 
-  "dashboard.topPredictors": { en: "Top Predictors", el: "Κορυφαίοι Προγνώστες" },
+  "dashboard.topPredictors": { en: "Top Predictors", el: "Κορυφαίοι στις Προβλέψεις" },
 };
