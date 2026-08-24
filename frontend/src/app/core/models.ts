@@ -74,6 +74,25 @@ export interface PlayerDetail {
   stats: PlayerSeasonStats | null;
 }
 
+// GET /api/players/:id/shots — coordX/coordY are EuroLeague's own shot-chart
+// system (cm, origin at the basket, y increasing away from the hoop),
+// straight from the feed. See backend/src/sync-py/shot_sync.py.
+export interface PlayerShot {
+  x: number;
+  y: number;
+  made: boolean;
+  actionId: string;
+  zone: string | null;
+}
+
+export interface PlayerShotChart {
+  season: string | null;
+  attempts: number;
+  made: number;
+  fieldGoalPct: number | null;
+  shots: PlayerShot[];
+}
+
 export interface LeaderEntry {
   category: string;
   value: number | null;

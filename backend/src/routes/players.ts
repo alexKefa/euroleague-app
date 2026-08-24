@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { eq, desc, and, isNotNull } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { players, playerSeasonStats, playerGameStats, games, teams } from "../db/schema.js";
+import { players, playerSeasonStats, playerGameStats, games, teams, shotEvents } from "../db/schema.js";
 
 export const playersRouter = Router();
 
@@ -143,6 +143,57 @@ playersRouter.get("/round-mvp", async (req, res) => {
   } catch (err) {
     console.error("GET /api/players/round-mvp failed:", err);
     res.status(500).json({ error: "Failed to load round MVP" });
+  }
+});
+
+// Season shot chart — every field-goal attempt (coordX/coordY, made or not)
+// for one player, for their most-shots season by default. Coordinates are
+// EuroLeague's own system (cm, origin at the basket, Y increasing away from
+// the hoop) straight from the feed — see shot_sync.py's doc comment — so
+// the frontend just needs to scale/flip them onto whatever court SVG it
+// draws, no transform happens here.
+playersRouter.get("/:id/shots", async (req, res) => {
+  try {
+    const playerId = req.params.id;
+    let season = typeof req.query.season === "string" ? req.query.season : null;
+
+    if (!season) {
+      const latest = await db
+        .select({ season: shotEvents.season })
+        .from(shotEvents)
+        .where(eq(shotEvents.playerId, playerId))
+        .orderBy(desc(shotEvents.season))
+        .limit(1);
+      if (latest.length === 0) {
+        res.json({ season: null, attempts: 0, made: 0, fieldGoalPct: null, shots: [] });
+        return;
+      }
+      season = latest[0].season;
+    }
+
+    const rows = await db
+      .select()
+      .from(shotEvents)
+      .where(and(eq(shotEvents.playerId, playerId), eq(shotEvents.season, season)));
+
+    const made = rows.filter((r) => r.made).length;
+
+    res.json({
+      season,
+      attempts: rows.length,
+      made,
+      fieldGoalPct: rows.length > 0 ? Math.round((made / rows.length) * 1000) / 10 : null,
+      shots: rows.map((r) => ({
+        x: r.coordX,
+        y: r.coordY,
+        made: r.made,
+        actionId: r.actionId,
+        zone: r.zone,
+      })),
+    });
+  } catch (err) {
+    console.error("GET /api/players/:id/shots failed:", err);
+    res.status(500).json({ error: "Failed to load shot chart" });
   }
 });
 

@@ -4,14 +4,15 @@ import { ActivatedRoute, RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { ThemeService } from "../../core/theme.service";
 import { I18nService } from "../../core/i18n.service";
-import { PlayerDetail } from "../../core/models";
+import { PlayerDetail, PlayerShotChart } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
+import { ShotChartComponent } from "./shot-chart";
 
 @Component({
   selector: "app-player-detail",
   standalone: true,
-  imports: [CommonModule, RouterLink, RetryImgDirective, SkeletonComponent],
+  imports: [CommonModule, RouterLink, RetryImgDirective, SkeletonComponent, ShotChartComponent],
   templateUrl: "./player-detail.html",
 })
 export class PlayerDetailComponent implements OnInit {
@@ -23,6 +24,7 @@ export class PlayerDetailComponent implements OnInit {
   readonly detail = signal<PlayerDetail | null>(null);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
+  readonly shotChart = signal<PlayerShotChart | null>(null);
 
   ngOnInit(): void {
     const playerId = this.route.snapshot.paramMap.get("id");
@@ -42,6 +44,11 @@ export class PlayerDetailComponent implements OnInit {
         this.error.set(this.i18n.t("player.couldntLoad"));
         this.loading.set(false);
       },
+    });
+
+    this.api.getPlayerShots(playerId).subscribe({
+      next: (chart) => this.shotChart.set(chart),
+      error: () => {},
     });
   }
 

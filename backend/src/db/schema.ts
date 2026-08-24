@@ -139,6 +139,36 @@ export const playerGameStats = pgTable(
   })
 );
 
+// One row per field-goal attempt, from EuroLeague's live shot-by-shot feed
+// (`https://live.euroleague.net/api/Points`, wrapped by euroleague-api's
+// ShotData class — see backend/src/sync-py/shot_sync.py). Free throws come
+// back from that feed too but with coordX/coordY == -1 (no court position),
+// so they're filtered out at sync time — this table is spatial shot data
+// only, not a full play-by-play log.
+export const shotEvents = pgTable(
+  "shot_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    gameId: uuid("game_id").notNull().references(() => games.id),
+    playerId: uuid("player_id").references(() => players.id), // nullable — see shot_sync.py's player-code matching note
+    teamId: uuid("team_id").notNull().references(() => teams.id),
+    season: varchar("season", { length: 9 }).notNull(), // "2025-26" — denormalized for a season-scoped query without a games join
+    numAnot: integer("num_anot").notNull(), // the feed's own event sequence number within the game — this row's natural key alongside gameId
+    actionId: varchar("action_id", { length: 10 }).notNull(), // "2FGM" | "2FGA" | "3FGM" | "3FGA"
+    made: boolean("made").notNull(),
+    points: integer("points").notNull(),
+    coordX: integer("coord_x").notNull(),
+    coordY: integer("coord_y").notNull(),
+    zone: varchar("zone", { length: 4 }),
+    minute: integer("minute"),
+    fastbreak: boolean("fastbreak").notNull().default(false),
+    secondChance: boolean("second_chance").notNull().default(false),
+  },
+  (table) => ({
+    gameEventUnique: uniqueIndex("shot_events_game_event_unique").on(table.gameId, table.numAnot),
+  })
+);
+
 export const playerSeasonStats = pgTable(
   "player_season_stats",
   {
@@ -474,6 +504,12 @@ export const teamSeasonStatsRelations = relations(teamSeasonStats, ({ one }) => 
 export const playerGameStatsRelations = relations(playerGameStats, ({ one }) => ({
   player: one(players, { fields: [playerGameStats.playerId], references: [players.id] }),
   game: one(games, { fields: [playerGameStats.gameId], references: [games.id] }),
+}));
+
+export const shotEventsRelations = relations(shotEvents, ({ one }) => ({
+  player: one(players, { fields: [shotEvents.playerId], references: [players.id] }),
+  game: one(games, { fields: [shotEvents.gameId], references: [games.id] }),
+  team: one(teams, { fields: [shotEvents.teamId], references: [teams.id] }),
 }));
 
 export const playerSeasonStatsRelations = relations(playerSeasonStats, ({ one }) => ({

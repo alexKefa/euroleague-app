@@ -1,0 +1,111 @@
+<div class="bg-card rounded-lg shadow-card p-4">
+  <div class="flex items-center justify-between mb-3">
+    <p class="font-mono text-[12px] text-muted font-bold">{{ i18n.t('shotChart.title') }}</p>
+    @if (pct() !== null) {
+      <p class="font-mono text-[12px] font-bold">
+        <span class="text-highlight">{{ made() }}/{{ attempts() }}</span>
+        <span class="text-muted">({{ pct() }}%)</span>
+      </p>
+    }
+  </div>
+
+  <svg
+    [attr.viewBox]="'0 0 ' + viewBoxWidth + ' ' + viewBoxHeight"
+    class="w-full h-auto"
+    style="max-width: 420px; margin: 0 auto; display: block"
+  >
+    @if (photoUrl) {
+      <defs>
+        <clipPath [attr.id]="photoClipId">
+          <circle [attr.cx]="photoCx" [attr.cy]="photoCy" [attr.r]="photoRadius" />
+        </clipPath>
+      </defs>
+      <!-- Personalized watermark — behind the court lines and shots, low
+           opacity so it reads as a subtle backdrop, not a competing image. -->
+      <image
+        [attr.href]="photoUrl"
+        [attr.x]="photoCx - photoRadius"
+        [attr.y]="photoCy - photoRadius"
+        [attr.width]="photoRadius * 2"
+        [attr.height]="photoRadius * 2"
+        preserveAspectRatio="xMidYMid slice"
+        [attr.clip-path]="'url(#' + photoClipId + ')'"
+        opacity="0.16"
+      />
+    }
+
+    <!-- Court outline -->
+    <path [attr.d]="courtOutlinePath" fill="none" class="stroke-line" stroke-width="1.5" />
+
+    <!-- Key / paint -->
+    <rect
+      [attr.x]="keyLeftX"
+      [attr.y]="freeThrowLineY"
+      [attr.width]="keyWidth"
+      [attr.height]="keyHeight"
+      fill="none"
+      class="stroke-line"
+      stroke-width="1.5"
+    />
+
+    <!-- Free-throw circle -->
+    <circle [attr.cx]="basketX" [attr.cy]="freeThrowLineY" [attr.r]="freeThrowCircleRadius" fill="none" class="stroke-line" stroke-width="1.5" />
+
+    <!-- Restricted area -->
+    <path [attr.d]="restrictedAreaPath" fill="none" class="stroke-line" stroke-width="1.2" />
+
+    <!-- 3PT line -->
+    <path [attr.d]="threePointArcPath" fill="none" class="stroke-line" stroke-width="1.5" />
+
+    <!-- Backboard + rim -->
+    <line [attr.x1]="backboardX1" [attr.x2]="backboardX2" [attr.y1]="backboardY" [attr.y2]="backboardY" class="stroke-ink" stroke-width="2" />
+    <circle [attr.cx]="basketX" [attr.cy]="basketY" [attr.r]="rimRadius" fill="none" class="stroke-highlight" stroke-width="1.6" />
+
+    <!-- Shots -->
+    @for (shot of filteredShots(); track $index) {
+      <circle
+        [attr.cx]="toSvgX(shot.x)"
+        [attr.cy]="toSvgY(shot.y)"
+        r="2.6"
+        [attr.fill]="shot.made ? '#22c55e' : '#ef4444'"
+        [attr.fill-opacity]="shot.made ? 0.8 : 0.55"
+        [attr.stroke]="shot.made ? '#16a34a' : 'none'"
+        stroke-width="0.4"
+      />
+    } @empty {
+      <text [attr.x]="viewBoxWidth / 2" [attr.y]="viewBoxHeight / 2" text-anchor="middle" class="fill-muted" font-size="8">
+        {{ i18n.t('shotChart.noData') }}
+      </text>
+    }
+  </svg>
+
+  <!-- Legend doubles as a made/missed/all filter -->
+  <div class="flex items-center justify-center gap-2 mt-2">
+    <button
+      type="button"
+      (click)="setFilter('all')"
+      class="px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors"
+      [class]="filter() === 'all' ? 'bg-highlight/15 text-highlight' : 'text-muted hover:text-ink'"
+    >
+      {{ i18n.t('shotChart.filterAll') }}
+    </button>
+    <button
+      type="button"
+      (click)="setFilter('made')"
+      class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors"
+      [class]="filter() === 'made' ? 'bg-highlight/15 text-ink' : 'text-muted hover:text-ink'"
+    >
+      <span class="w-2.5 h-2.5 rounded-full inline-block" style="background: #22c55e"></span>
+      {{ i18n.t('shotChart.made') }}
+    </button>
+    <button
+      type="button"
+      (click)="setFilter('missed')"
+      class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors"
+      [class]="filter() === 'missed' ? 'bg-highlight/15 text-ink' : 'text-muted hover:text-ink'"
+    >
+      <span class="w-2.5 h-2.5 rounded-full inline-block" style="background: #ef4444"></span>
+      {{ i18n.t('shotChart.missed') }}
+    </button>
+  </div>
+</div>

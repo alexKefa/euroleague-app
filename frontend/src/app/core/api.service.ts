@@ -7,6 +7,7 @@ import {
   StandingsRow,
   RosterEntry,
   PlayerDetail,
+  PlayerShotChart,
   LeaderEntry,
   RoundMvp,
   NewsArticle,
@@ -55,6 +56,12 @@ export class ApiService {
 
   getPlayer(playerId: string): Observable<PlayerDetail> {
     return this.http.get<PlayerDetail>(`${API_BASE_URL}/players/${playerId}`);
+  }
+
+  getPlayerShots(playerId: string, season?: string): Observable<PlayerShotChart> {
+    return this.http.get<PlayerShotChart>(`${API_BASE_URL}/players/${playerId}/shots`, {
+      params: season ? { season } : {},
+    });
   }
 
   getLeaders(category: string, limit = 10): Observable<LeaderEntry[]> {

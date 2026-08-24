@@ -159,5 +159,13 @@
         {{ i18n.t('player.noStatsYet') }}
       </div>
     }
+
+    @if (shotChart(); as chart) {
+      @if (chart.attempts > 0) {
+        <div class="mt-5">
+          <app-shot-chart [shots]="chart.shots" [photoUrl]="d.player.photoUrl"></app-shot-chart>
+        </div>
+      }
+    }
   }
 </div>
