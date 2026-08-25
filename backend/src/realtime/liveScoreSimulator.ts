@@ -55,6 +55,8 @@ interface PlayerLine {
   fieldGoalsAttempted2: number;
   fieldGoalsMade3: number;
   fieldGoalsAttempted3: number;
+  freeThrowsMade: number;
+  freeThrowsAttempted: number;
 }
 
 interface RunningSim {
@@ -109,6 +111,8 @@ function getLine(lines: Map<string, PlayerLine>, playerId: string): PlayerLine {
       fieldGoalsAttempted2: 0,
       fieldGoalsMade3: 0,
       fieldGoalsAttempted3: 0,
+      freeThrowsMade: 0,
+      freeThrowsAttempted: 0,
     };
     lines.set(playerId, line);
   }
@@ -135,6 +139,8 @@ async function upsertLine(gameId: string, line: PlayerLine): Promise<void> {
     fieldGoalsAttempted2: line.fieldGoalsAttempted2,
     fieldGoalsMade3: line.fieldGoalsMade3,
     fieldGoalsAttempted3: line.fieldGoalsAttempted3,
+    freeThrowsMade: line.freeThrowsMade,
+    freeThrowsAttempted: line.freeThrowsAttempted,
     valuation: valuationOf(line),
   };
   await db
@@ -157,7 +163,9 @@ async function tick(): Promise<void> {
   if (!sim) return;
 
   try {
-    const bump = 2 + Math.floor(Math.random() * 2); // +2 or +3, like a basket
+    // ~20% of scoring plays are a single free throw; the rest is a made
+    // field goal, +2 or +3.
+    const bump = Math.random() < 0.2 ? 1 : 2 + Math.floor(Math.random() * 2);
     const homeScores = Math.random() < 0.5;
     const scoringRoster = homeScores ? sim.homeRoster : sim.awayRoster;
     const defendingRoster = homeScores ? sim.awayRoster : sim.homeRoster;
@@ -186,18 +194,21 @@ async function tick(): Promise<void> {
       if (bump === 3) {
         scorerLine.fieldGoalsMade3 += 1;
         scorerLine.fieldGoalsAttempted3 += 1;
-      } else {
+      } else if (bump === 2) {
         scorerLine.fieldGoalsMade2 += 1;
         scorerLine.fieldGoalsAttempted2 += 1;
+      } else {
+        scorerLine.freeThrowsMade += 1;
+        scorerLine.freeThrowsAttempted += 1;
       }
       touched.add(scorer.id);
 
       sim.recentScorers.push(scorer.id);
       if (sim.recentScorers.length > 4) sim.recentScorers.shift();
 
-      // Assist from a teammate on most made baskets.
+      // Assist from a teammate on most made baskets — never on a free throw.
       const teammates = scoringRoster.filter((p) => p.id !== scorer.id);
-      if (teammates.length > 0 && Math.random() < 0.55) {
+      if (bump !== 1 && teammates.length > 0 && Math.random() < 0.55) {
         const assister = randomPick(teammates);
         getLine(sim.lines, assister.id).assists += 1;
         touched.add(assister.id);

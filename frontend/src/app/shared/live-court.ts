@@ -8,14 +8,17 @@ type Side = "home" | "away";
 // tile texture, it's that the *court itself* reacts to what's happening.
 // This is the same idea at web-app scale: each team's half is washed in
 // their own color and watermarked with their logo, a basket flashes a big
-// "+2"/"+3" when that team scores (ngOnChanges diffing homeScore/awayScore
-// — no new data source, game-detail.ts already streams these live over
-// SSE; the live-score simulator only ever bumps a score by exactly 2 or 3
-// in one tick — see realtime/liveScoreSimulator.ts's `bump` — so the score
-// delta alone tells us the shot value, no backend change needed), and
-// whichever side currently has an "on fire" player gets a slow ambient
-// pulse. Hand-drawn SVG, same approach as shot-chart.ts — no charting/
-// animation library.
+// "+1"/"+2"/"+3" when that team scores (ngOnChanges diffing homeScore/
+// awayScore — no new data source, game-detail.ts already streams these
+// live over SSE; the live-score simulator only ever bumps a score by
+// exactly 1, 2, or 3 in one tick — see realtime/liveScoreSimulator.ts's
+// `bump` — so the score delta alone tells us the shot value, no extra
+// backend field needed), tiered by how big a deal the shot is: a free
+// throw gets a small, quick, plain flash; a 2 gets the standard burst; a 3
+// gets a bigger, longer burst plus an outer shockwave ring and a bit of
+// spin on the number. Whichever side currently has an "on fire" player
+// also gets a slow ambient pulse. Hand-drawn SVG, same approach as
+// shot-chart.ts — no charting/animation library.
 //
 // Court geometry mirrors shot-chart.ts's own constants (which are already
 // close FIBA approximations — 490cm key, 675cm 3PT radius, 132cm corner-3
@@ -49,8 +52,28 @@ type Side = "home" | "away";
         transform-origin: center;
         transform-box: fill-box;
       }
+      .court-burst.is-one {
+        animation-duration: 900ms;
+      }
       .court-burst.is-three {
         animation-duration: 1900ms;
+      }
+
+      @keyframes courtShockwave {
+        0% {
+          opacity: 0.7;
+          transform: scale(0.5);
+        }
+        100% {
+          opacity: 0;
+          transform: scale(3.1);
+        }
+      }
+      .court-shockwave {
+        animation: courtShockwave 1100ms ease-out;
+        transform-origin: center;
+        transform-box: fill-box;
+        fill: none;
       }
 
       @keyframes courtNumber {
@@ -79,7 +102,36 @@ type Side = "home" | "away";
         transform-origin: center;
         transform-box: fill-box;
       }
+      .court-number.is-one {
+        animation-duration: 900ms;
+      }
+
+      @keyframes courtNumberFancy {
+        0% {
+          opacity: 0;
+          transform: scale(0.2) rotate(-14deg) translateY(6px);
+        }
+        18% {
+          opacity: 1;
+          transform: scale(1.35) rotate(8deg) translateY(0);
+        }
+        32% {
+          transform: scale(1.05) rotate(-3deg) translateY(0);
+        }
+        45% {
+          transform: scale(1) rotate(0deg) translateY(0);
+        }
+        78% {
+          opacity: 1;
+          transform: scale(1) rotate(0deg) translateY(0);
+        }
+        100% {
+          opacity: 0;
+          transform: scale(1.1) rotate(5deg) translateY(-18px);
+        }
+      }
       .court-number.is-three {
+        animation-name: courtNumberFancy;
         animation-duration: 1900ms;
       }
 
@@ -112,12 +164,15 @@ export class LiveCourtComponent implements OnChanges {
   @Input() active = true;
 
   readonly pulseSide = signal<Side | null>(null);
-  // The shot value driving the "+2"/"+3" number — null for a score jump
-  // that isn't a clean 2 or 3 (shouldn't happen from the simulator, but a
-  // real future feed might report free throws or batched updates
-  // differently), in which case only the plain glow burst plays.
-  readonly pulseValue = signal<2 | 3 | null>(null);
+  // The shot value driving the "+1"/"+2"/"+3" number and which tier of
+  // effect plays — null for a score jump that isn't a clean 1/2/3
+  // (shouldn't happen from the simulator, but a real future feed might
+  // batch updates differently), in which case only the plain glow burst
+  // plays with no number.
+  readonly pulseValue = signal<1 | 2 | 3 | null>(null);
   private pulseTimeout?: ReturnType<typeof setTimeout>;
+
+  private static readonly PULSE_DURATION_MS: Record<1 | 2 | 3, number> = { 1: 900, 2: 1500, 3: 1900 };
 
   ngOnChanges(changes: SimpleChanges): void {
     if (!this.active) return;
@@ -133,11 +188,12 @@ export class LiveCourtComponent implements OnChanges {
     if (prev == null || cur == null || cur <= prev) return;
 
     const delta = cur - prev;
+    const value = delta === 1 || delta === 2 || delta === 3 ? delta : null;
     this.pulseSide.set(side);
-    this.pulseValue.set(delta === 2 || delta === 3 ? delta : null);
+    this.pulseValue.set(value);
 
     clearTimeout(this.pulseTimeout);
-    const duration = delta === 3 ? 1900 : 1500;
+    const duration = value ? LiveCourtComponent.PULSE_DURATION_MS[value] : 1500;
     this.pulseTimeout = setTimeout(() => {
       this.pulseSide.set(null);
       this.pulseValue.set(null);
@@ -146,6 +202,20 @@ export class LiveCourtComponent implements OnChanges {
 
   isHot(side: Side): boolean {
     return this.hotSide === side || this.hotSide === "both";
+  }
+
+  // Free throw: small and quick. 2PT: the standard size. 3PT: bigger, with
+  // its own shockwave ring (see live-court.html) on top.
+  burstRadius(value: 1 | 2 | 3 | null): number {
+    if (value === 1) return 30;
+    if (value === 3) return 58;
+    return 46;
+  }
+
+  numberFontSize(value: 1 | 2 | 3 | null): number {
+    if (value === 1) return 26;
+    if (value === 3) return 46;
+    return 38;
   }
 
   // --- Court geometry (5cm/unit, mirroring shot-chart.ts's own FIBA-ish

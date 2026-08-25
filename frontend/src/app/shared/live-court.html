@@ -52,14 +52,19 @@
   <circle [attr.cx]="homeBasketX" [attr.cy]="basketY" [attr.r]="rimRadius" fill="none" [attr.stroke]="homeColor ?? '#888'" stroke-width="2.5" />
   <circle [attr.cx]="awayBasketX" [attr.cy]="basketY" [attr.r]="rimRadius" fill="none" [attr.stroke]="awayColor ?? '#888'" stroke-width="2.5" />
 
-  <!-- Scoring effects: glow burst + "+2"/"+3" -->
+  <!-- Scoring effects: glow burst + "+1"/"+2"/"+3" — small & quick for a
+       free throw, standard for a 2, bigger with a shockwave ring for a 3 -->
   @if (pulseSide() === 'home') {
+    @if (pulseValue() === 3) {
+      <circle [attr.cx]="homeBasketX" [attr.cy]="basketY" r="40" [attr.stroke]="homeColor ?? '#888'" stroke-width="3" class="court-shockwave" />
+    }
     <circle
       [attr.cx]="homeBasketX"
       [attr.cy]="basketY"
-      r="46"
+      [attr.r]="burstRadius(pulseValue())"
       [attr.fill]="homeColor ?? '#888'"
       class="court-burst"
+      [class.is-one]="pulseValue() === 1"
       [class.is-three]="pulseValue() === 3"
     />
     @if (pulseValue(); as v) {
@@ -69,8 +74,9 @@
         text-anchor="middle"
         dominant-baseline="central"
         class="font-display court-number stroke-ink"
+        [class.is-one]="v === 1"
         [class.is-three]="v === 3"
-        [attr.font-size]="v === 3 ? 46 : 38"
+        [attr.font-size]="numberFontSize(v)"
         [attr.fill]="homeColor ?? '#888'"
         [attr.stroke-width]="v === 3 ? 3 : 2.5"
         paint-order="stroke"
@@ -80,12 +86,16 @@
     }
   }
   @if (pulseSide() === 'away') {
+    @if (pulseValue() === 3) {
+      <circle [attr.cx]="awayBasketX" [attr.cy]="basketY" r="40" [attr.stroke]="awayColor ?? '#888'" stroke-width="3" class="court-shockwave" />
+    }
     <circle
       [attr.cx]="awayBasketX"
       [attr.cy]="basketY"
-      r="46"
+      [attr.r]="burstRadius(pulseValue())"
       [attr.fill]="awayColor ?? '#888'"
       class="court-burst"
+      [class.is-one]="pulseValue() === 1"
       [class.is-three]="pulseValue() === 3"
     />
     @if (pulseValue(); as v) {
@@ -95,8 +105,9 @@
         text-anchor="middle"
         dominant-baseline="central"
         class="font-display court-number stroke-ink"
+        [class.is-one]="v === 1"
         [class.is-three]="v === 3"
-        [attr.font-size]="v === 3 ? 46 : 38"
+        [attr.font-size]="numberFontSize(v)"
         [attr.fill]="awayColor ?? '#888'"
         [attr.stroke-width]="v === 3 ? 3 : 2.5"
         paint-order="stroke"
