@@ -2,6 +2,9 @@ import { Lang } from "./lang";
 
 // App shell: top bar, side/bottom nav, profile page.
 export const chromeTranslations: Record<string, Record<Lang, string>> = {
+  // shared/splash.ts — the brief brand moment shown on app load.
+  "splash.tagline": { en: "Clutch it", el: "Clutch-ωσέ το" },
+
   "nav.home": { en: "Home", el: "Αρχική" },
   "nav.news": { en: "News", el: "Νέα" },
   "nav.schedule": { en: "Schedule", el: "Πρόγραμμα" },

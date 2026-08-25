@@ -88,7 +88,7 @@
 <div class="flex">
   <!-- Desktop primary nav — icon-only rail, sm and up; labels surface on hover/focus instead of sitting on screen permanently. The bottom tab nav below is mobile-only. -->
   <nav
-    class="hidden sm:flex flex-col items-center shrink-0 w-16 border-r border-line bg-card py-4 gap-2 sticky top-16 h-[calc(100vh-4rem)]"
+    class="hidden sm:flex flex-col items-center shrink-0 w-16 border-r border-line bg-card py-4 gap-2 sticky top-16 h-[calc(100vh-4rem)] z-40"
   >
     @for (link of navLinks; track link.path) {
       <!-- Fixed w-11/h-11 anchor box keeps this item's footprint constant in

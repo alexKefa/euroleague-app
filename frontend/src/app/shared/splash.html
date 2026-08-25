@@ -1,13 +1,35 @@
 <div
-  class="splash-root fixed inset-0 z-[100] flex flex-col items-center justify-center bg-page transition-opacity duration-[400ms]"
+  class="splash-root fixed inset-0 z-[100] flex flex-col items-center justify-center bg-page transition-opacity duration-[400ms] overflow-hidden"
   [class.opacity-0]="hiding"
 >
-  <div class="flex flex-col items-center gap-4">
+  <!-- Big, faint background watermark — an original basketball motif (same
+       glyph as nav-icon.ts's "ball" case), not the EuroLeague brand mark. -->
+  <svg
+    class="watermark absolute inset-0 m-auto"
+    width="80vmin"
+    height="80vmin"
+    viewBox="0 0 24 24"
+    fill="none"
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="12" r="8.5" stroke="#FF6B35" stroke-width="0.15" fill="#FF6B35" fill-opacity="0.5" />
+    <path
+      d="M12 3.5v17M3.5 12h17M6 6c2 2 2 10-0.5 12M18 6c-2 2-2 10 0.5 12"
+      stroke="#FF6B35"
+      stroke-width="0.12"
+      stroke-linecap="round"
+    />
+  </svg>
+
+  <div class="relative flex flex-col items-center gap-4">
     <svg width="88" height="88" viewBox="0 0 24 24" fill="none">
       <rect class="bar bar-1" x="4" y="13" width="5" height="8" rx="1.3" fill="#FF6B35" opacity="0.5" />
       <rect class="bar bar-2" x="10.5" y="6.5" width="5" height="14.5" rx="1.3" fill="#FF6B35" />
       <rect class="bar bar-3" x="17" y="10" width="5" height="11" rx="1.3" fill="#FF6B35" opacity="0.75" />
     </svg>
-    <p class="wordmark font-display text-3xl tracking-wide" style="color: var(--color-ink)">Clutch</p>
+    <div class="flex flex-col items-center gap-1">
+      <p class="wordmark font-display text-3xl tracking-wide" style="color: var(--color-ink)">Clutch</p>
+      <p class="tagline font-mono text-xs font-bold uppercase tracking-wider text-muted">{{ i18n.t('splash.tagline') }}</p>
+    </div>
   </div>
 </div>
