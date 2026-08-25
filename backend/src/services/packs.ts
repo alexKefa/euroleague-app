@@ -29,11 +29,27 @@ interface PackDefinition {
   purchasable?: boolean;
 }
 
-// Legendary odds deliberately stay tiny (Elite's third slot) — the free
-// daily wheel already deals legendaries at a ~10-day expected pace (see
-// routes/spin.ts's WIN_CHANCE), always a *new* one, never a dupe. Packs are
-// a bonus chase on top of that, not a faster replacement for it — see
-// scripts/economy-report.ts for the full reasoning.
+// --- "Album completable in a season" pass (2026-08-25) ---
+// The album (frontend/src/app/features/album/) is the full 208-common /
+// 208-rare / 22-legendary catalog. Simulating the real pity mechanics
+// (services/packs.ts's PITY_THRESHOLD) against that catalog size found
+// collecting every rare takes ~381 dedicated rare-tier pulls on average
+// (random-draw-with-pity needs ~1.8x the raw card count, not 1x) — the old
+// odds below only produced ~125 rare pulls across a ~210-day season even
+// from the free wheel alone, common+rare never finished. Two changes fixed
+// it: every purchasable pack gained a 4th and 5th slot (still worth well
+// under its points cost worst-case — see each pack's own comment — so the
+// original common-heavy-exploit concern below still holds), and
+// wheelStarter/wheelPro (routes/spin.ts's free daily pack) stopped
+// mirroring their purchasable counterparts 1:1 and went to *guaranteed*
+// rare slots instead, since a free pack has no worst-case-EV ceiling to
+// protect. Re-simulated result: a 70%-accuracy predictor who also spends
+// their points on Regular Season packs finishes the full album (commons +
+// rares + all 22 legendaries) in ~93% of simulated seasons, averaging day
+// ~178 of a ~210-day season — and the completion rate barely drops even at
+// 50% prediction accuracy, since the free wheel (not predicted points) now
+// carries most of the load. Predicting well still buys packs faster, it's
+// just no longer the only way to finish the album.
 export const PACKS: Record<PackType, PackDefinition> = {
   // Labels lean on real EuroLeague competition stages — regular season into
   // playoffs into the Final Four — so rising rarity reads as rising stakes
@@ -43,60 +59,94 @@ export const PACKS: Record<PackType, PackDefinition> = {
   starter: {
     type: "starter",
     label: "Regular Season Pack",
-    pointsCost: 100,
-    // Third slot deliberately common-heavy (was 40/60 common/rare — found
-    // via simulation to be a real infinite-money exploit: two GUARANTEED
-    // common slots already sell back 25pts each once a player owns
-    // everything, so a 60%-weighted chance at a rare's 125pt sellback
-    // pushed this pack's expected sellback to 135pts against its 100pt
-    // cost — positive EV forever, once both tiers are fully owned. 100pts
-    // is pinned to the registration welcome bonus (auth.ts) and the 50%
-    // sell rate is a global per-card constant used everywhere else, so
-    // neither could move without side effects elsewhere — the odds here
-    // were the only safe lever. 85/15 keeps a real (if rarer) taste of
-    // rare for new players while landing worst-case EV at 90pts, a
-    // comfortable margin under cost.
-    slots: [{ odds: { common: 1 } }, { odds: { common: 1 } }, { odds: { common: 0.85, rare: 0.15 } }],
+    // 100 -> 150 (2026-08-25) alongside 3 -> 5 slots — a straight 3->5 slot
+    // buff at the old 100pt price is unsafe at ANY odds: even 5 guaranteed
+    // commons alone sell back 5*25=125pts, already over the old cost. 150
+    // keeps a real (if thin) margin: worst-case EV below is 141pts against
+    // this 150pt cost.
+    pointsCost: 150,
+    // Original 3rd-slot exploit reasoning still applies (see the sell-back-
+    // rate comment in the git history) — 92/8 on the two new slots keeps
+    // worst-case EV (3*25 + 2*(25*.92 + 125*.08) = 75 + 2*33 = 141) under
+    // the 150pt cost, a similar margin to the original 90-under-100.
+    slots: [
+      { odds: { common: 1 } },
+      { odds: { common: 1 } },
+      { odds: { common: 1 } },
+      { odds: { common: 0.92, rare: 0.08 } },
+      { odds: { common: 0.92, rare: 0.08 } },
+    ],
   },
   pro: {
     type: "pro",
     label: "Playoffs Pack",
     pointsCost: 400,
-    slots: [{ odds: { common: 1 } }, { odds: { rare: 1 } }, { odds: { common: 0.5, rare: 0.5 } }],
+    // 2 -> 5 slots, price unchanged — pro had a lot of EV headroom already
+    // (worst-case was 225 against a 400 cost even at 3 slots), enough to
+    // add 2 more rare-leaning slots and land at 385/400, still safely under
+    // cost. 3rd slot moved from 50/50 to a guaranteed rare (it already
+    // wasn't the exploit-sensitive slot pro's original 50/50 3rd slot was
+    // never flagged the way starter's was, since pro's guaranteed-rare 2nd
+    // slot already ate most of its margin).
+    slots: [
+      { odds: { common: 1 } },
+      { odds: { rare: 1 } },
+      { odds: { rare: 1 } },
+      { odds: { common: 0.7, rare: 0.3 } },
+      { odds: { common: 0.7, rare: 0.3 } },
+    ],
   },
   elite: {
     type: "elite",
     label: "Final Four Pack",
     pointsCost: 1200,
-    slots: [{ odds: { common: 1 } }, { odds: { rare: 1 } }, { odds: { rare: 0.97, legendary: 0.03 } }],
+    // 2 -> 4 guaranteed-rare slots (plus the legendary-chance slot), price
+    // unchanged — elite had enormous EV headroom (267.5 worst-case against
+    // 1200 even at 3 slots, since legendary duplicates no longer sell for
+    // anything — see sellValueFor in routes/packs.ts), so the extra rare
+    // slots cost nothing in exploit risk (worst-case is still only 517.5).
+    // 3% -> 6% legendary (2026-08-25, earlier pass): a full season of
+    // 70%-accuracy predicting only bought ~2 Elite packs, a ~5.9%
+    // cumulative shot at a legendary — doubling this doesn't replace the
+    // wheel as the primary legendary path, it just stops a season of elite
+    // prediction accuracy from feeling like it barely moved the needle.
+    slots: [
+      { odds: { common: 1 } },
+      { odds: { rare: 1 } },
+      { odds: { rare: 1 } },
+      { odds: { rare: 1 } },
+      { odds: { rare: 0.94, legendary: 0.06 } },
+    ],
   },
 
   // Wheel-exclusive, free (pointsCost 0), never purchasable — see the
   // `purchasable` doc comment above. Weighted choice between these three on
-  // each spin reuses SPIN_ODDS (65/25/10) from routes/spin.ts verbatim,
-  // just reinterpreted as "which pack" instead of "which tier", so the
-  // existing legendary pacing already reasoned about in
-  // scripts/economy-report.ts doesn't silently shift. wheelStarter/wheelPro
-  // mirror the real starter/pro packs' 3-slot odds exactly, so a Jump Ball
-  // win feels like the pack it's named after, not a lesser 1-card version
-  // of it — only wheelLegendary stays single-slot, since it's a guaranteed
-  // legendary rather than a normal pack roll.
+  // each spin reuses SPIN_ODDS (63/23/14) from routes/spin.ts verbatim,
+  // just reinterpreted as "which pack" instead of "which tier".
+  //
+  // wheelStarter/wheelPro *used to* mirror the real starter/pro packs'
+  // slot odds exactly ("a Jump Ball win should feel like the pack it's
+  // named after"). That stopped being true in the 2026-08-25 album pass:
+  // a free pack has no worst-case-EV ceiling to protect the way a
+  // purchased one does, and the wheel is the dominant card-supply source
+  // by volume (a season of daily spins vastly outnumbers what predicted
+  // points can buy), so it's the one place safe to give guaranteed rares
+  // instead of just better odds at one. Only wheelLegendary stays
+  // single-slot, since it's a guaranteed legendary rather than a normal
+  // pack roll.
   wheelStarter: {
     type: "wheelStarter",
     label: "Jump Ball — Common Pull",
     pointsCost: 0,
     purchasable: false,
-    // Kept in sync with starter's 3rd-slot odds (see the comment there) —
-    // free either way, so the exploit doesn't apply here, but drifting out
-    // of sync would break the "mirrors the real pack exactly" invariant.
-    slots: [{ odds: { common: 1 } }, { odds: { common: 1 } }, { odds: { common: 0.85, rare: 0.15 } }],
+    slots: [{ odds: { common: 1 } }, { odds: { common: 1 } }, { odds: { common: 1 } }, { odds: { rare: 1 } }, { odds: { rare: 1 } }],
   },
   wheelPro: {
     type: "wheelPro",
     label: "Jump Ball — Rare Pull",
     pointsCost: 0,
     purchasable: false,
-    slots: [{ odds: { common: 1 } }, { odds: { rare: 1 } }, { odds: { common: 0.5, rare: 0.5 } }],
+    slots: [{ odds: { common: 1 } }, { odds: { rare: 1 } }, { odds: { rare: 1 } }, { odds: { rare: 1 } }, { odds: { rare: 1 } }],
   },
   wheelLegendary: {
     type: "wheelLegendary",
@@ -133,15 +183,15 @@ export interface PityState {
 // Modeled against the real catalog (208 common / 208 rare) and pack odds —
 // see the design-canvas economy simulation this was picked from — 4/2
 // meaningfully shortens the "10 packs, zero new cards" tail without making
-// pack contents feel predetermined. Legendary has no entry: it should
-// always stay pure luck, pity would undercut the whole point of it.
+// pack contents feel predetermined. Legendary has no entry: it's handled
+// unconditionally below instead of via a streak (see forceNewLegendary).
 export const PITY_THRESHOLD: PityState = { common: 4, rare: 2 };
 
 function rollCard(pool: CollectibleRow[]): CollectibleRow {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-/** Rare/common only — legendary never gets a pity-forced pick. */
+/** Rare/common only — legendary is handled unconditionally, not via streak. */
 function isPityTier(tier: Tier): tier is "common" | "rare" {
   return tier === "common" || tier === "rare";
 }
@@ -192,11 +242,22 @@ export async function rollPackForUser(
     const tier = rollTier(slot);
     const pool = byTier[tier];
 
+    // Legendary always lands on a card the user doesn't own yet, no streak
+    // needed — restores the "a legendary always grants a NEW one" behavior
+    // documented for the free wheel (economy-report.ts), which a legendary
+    // roll here could silently violate once every pack type (including
+    // wheelLegendary) started sharing this same roll path. Falls back to a
+    // normal roll only once the whole legendary tier is actually owned —
+    // sellValueFor (routes/packs.ts) makes that fallback dupe worth nothing,
+    // so there's no exploit in landing on one.
+    const forceNewLegendary = tier === "legendary";
+    const forcePity = isPityTier(tier) && streak[tier] >= PITY_THRESHOLD[tier];
+
     let picked: CollectibleRow;
-    if (isPityTier(tier) && streak[tier] >= PITY_THRESHOLD[tier]) {
+    if (forceNewLegendary || forcePity) {
       const missing = pool.filter((c) => !preOwnedIds.has(c.collectible.id) && !newlyOwnedIds.has(c.collectible.id));
-      // If the tier is somehow fully owned already, pity has nothing left
-      // to force — fall back to a normal roll (it'll just read as a dupe).
+      // If the tier is somehow fully owned already, there's nothing left to
+      // force — fall back to a normal roll (it'll just read as a dupe).
       picked = missing.length > 0 ? rollCard(missing) : rollCard(pool);
     } else {
       picked = rollCard(pool);

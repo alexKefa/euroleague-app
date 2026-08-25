@@ -107,15 +107,15 @@ export const storeTranslations: Record<string, Record<Lang, string>> = {
   "packs.tagline.pro": { en: "Win or go home", el: "Νίκη ή τίποτα" },
   "packs.tagline.elite": { en: "The biggest stage in EuroLeague", el: "Η μεγαλύτερη σκηνή της EuroLeague" },
   "packs.blurb.starter": {
-    en: "Mostly commons, but a real shot at pulling a rare in the last slot.",
-    el: "Κυρίως κοινές κάρτες, αλλά με πραγματική πιθανότητα για σπάνια στην τελευταία θέση.",
+    en: "5 cards — mostly commons, with a real shot at a rare in either of the last two slots.",
+    el: "5 κάρτες — κυρίως κοινές, αλλά με πραγματική πιθανότητα για σπάνια σε μία από τις δύο τελευταίες θέσεις.",
   },
   "packs.blurb.pro": {
-    en: "Guaranteed 1 rare + 1 common, plus a bonus card that could be either.",
-    el: "Εγγυημένα 1 σπάνια + 1 κοινή, συν μια μπόνους κάρτα που μπορεί να είναι και τα δύο.",
+    en: "5 cards — guaranteed 2 rares + 1 common, plus two bonus slots that could go either way.",
+    el: "5 κάρτες — εγγυημένα 2 σπάνιες + 1 κοινή, συν δύο μπόνους θέσεις που μπορεί να πάνε είτε έτσι είτε αλλιώς.",
   },
   "packs.blurb.elite": {
-    en: "Guaranteed 1 rare + 1 common, plus a small chance the rare slot upgrades to legendary.",
-    el: "Εγγυημένα 1 σπάνια + 1 κοινή, συν μικρή πιθανότητα η σπάνια θέση να αναβαθμιστεί σε θρυλική.",
+    en: "5 cards — guaranteed 3 rares + 1 common, plus a shot at the last slot upgrading to legendary.",
+    el: "5 κάρτες — εγγυημένα 3 σπάνιες + 1 κοινή, συν πιθανότητα η τελευταία θέση να αναβαθμιστεί σε θρυλική.",
   },
 };

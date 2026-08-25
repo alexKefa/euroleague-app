@@ -28,7 +28,19 @@ packsRouter.get("/", (_req, res) => {
 // a card the player never got back to selling just forfeited its value
 // with no way to reclaim it, since nothing outside the reveal screen ever
 // surfaced an unsold duplicate again.
+//
+// Legendary duplicates are excluded on purpose (2026-08-25): legendary
+// pointsCost runs up to 10,000 in the catalog (it's a "collector value"
+// display number, never an actual purchase price — legendaries aren't
+// purchasable), and 50% of that is a 5,000pt refund for a single duplicate
+// pull. Once rollPackForUser can land a legendary duplicate at all (it can —
+// see the "wheel win can land on an owned card" note in packs.ts), that
+// turns Elite packs and the wheel's legendary slot into a real infinite-money
+// exploit for anyone who's collected most of the legendary tier, directly
+// contradicting "legendaries can't be bought with points at any price, only
+// won." A duplicate legendary is just a keepsake now — no refund.
 function sellValueFor(slot: RolledSlot): number | null {
+  if (slot.collectible.tier === "legendary") return null;
   return slot.wasDuplicate ? Math.round(slot.collectible.pointsCost * SELL_BACK_RATE) : null;
 }
 

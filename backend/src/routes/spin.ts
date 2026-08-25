@@ -13,9 +13,19 @@ export const COOLDOWN_MS = 24 * 60 * 60 * 1000;
 // pick which wheel-exclusive pack (services/packs.ts) the spin grants —
 // unopened, into owned_packs — rather than a tier to roll on the spot; the
 // user opens it later from the Packs page's inventory, whenever they want.
-// The legendary rate stays exactly what it was, so the ~10-day-expected
-// pace already reasoned about in scripts/economy-report.ts is unchanged.
-export const SPIN_ODDS = { common: 0.65, rare: 0.25, legendary: 0.1 } as const;
+//
+// 65/25/10 -> 63/23/14 (2026-08-25, "album completable in a season" pass):
+// simulating the real pity mechanics against the 208-common/208-rare/
+// 22-legendary catalog showed legendary was the last bottleneck once
+// wheelStarter/wheelPro were made rare-heavy (see the slots comment in
+// services/packs.ts) — commons and rares were reliably finishing by ~day
+// 165-190 of a ~210-day season, but legendary's old 10%/day rate only
+// expects ~21 pulls across a season against 22 needed, so plenty of runs
+// fell 1-2 short right at the finish line. Bumping to 14% (~29 expected
+// pulls/season) fixed that without making legendary feel routine — see
+// scripts/economy-report.ts's LEGENDARY_CHANCE-derived pacing math, which
+// updates automatically from this constant.
+export const SPIN_ODDS = { common: 0.63, rare: 0.23, legendary: 0.14 } as const;
 export const LEGENDARY_CHANCE = SPIN_ODDS.legendary;
 
 const WHEEL_PACK_BY_TIER: Record<keyof typeof SPIN_ODDS, PackType> = {

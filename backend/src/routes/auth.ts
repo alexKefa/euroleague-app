@@ -30,13 +30,14 @@ const refreshLimiter = rateLimit({
   message: { error: "Too many requests — try again later." },
 });
 
-// Exactly a Regular Season Pack's cost (services/packs.ts's "starter" pack)
-// — a new account can immediately afford one open, rather than starting
-// completely empty with nothing to do until their first correct prediction
-// resolves. Points, not a pre-opened pack: reuses the pack-opening flow
-// exactly as designed (pick a pack, watch the reveal) instead of a second,
-// bespoke "welcome pack" code path.
-const WELCOME_BONUS_POINTS = 100;
+// Exactly a Regular Season Pack's cost (services/packs.ts's "starter" pack
+// — 150pts as of the 2026-08-25 album-economy pass, up from 100) — a new
+// account can immediately afford one open, rather than starting completely
+// empty with nothing to do until their first correct prediction resolves.
+// Points, not a pre-opened pack: reuses the pack-opening flow exactly as
+// designed (pick a pack, watch the reveal) instead of a second, bespoke
+// "welcome pack" code path.
+const WELCOME_BONUS_POINTS = 150;
 
 const REFRESH_COOKIE_NAME = "refreshToken";
 // Keep this in sync with JWT_REFRESH_EXPIRES_IN in .env (default 30d).

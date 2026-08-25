@@ -158,16 +158,22 @@
                behind it — wide enough that each card's tier-colored edge
                (see .card-back-rare/.card-back-legendary in packs.css) reads
                clearly rather than just a sliver. Offsets scale with cardSize
-               so the peek stays proportional on the bigger desktop card. -->
+               so the peek stays proportional on the bigger desktop card.
+               Per-card step tightened 20px -> 8px (2026-08-26, packs went
+               3 -> 5 cards): at the old step, 4 peeking cards (right after
+               the first reveal of a 5-card pack) fanned out far enough to
+               overflow the surrounding layout on mobile. A tighter step
+               keeps the "stack of cards" read regardless of how many are
+               left, instead of spreading wider the more cards a pack has. -->
           @for (upcoming of remainingCards(); track upcoming.resultId; let i = $index) {
             <div
               class="card-back absolute inset-0 rounded-2xl flex items-center justify-center"
               [class]="'card-back-' + upcoming.collectible.tier"
               [style.transform]="
                 'translate(' +
-                (26 + i * 20) * stackOffsetScale() +
+                (22 + i * 8) * stackOffsetScale() +
                 'px, ' +
-                (26 + i * 20) * stackOffsetScale() +
+                (22 + i * 8) * stackOffsetScale() +
                 'px) scale(' +
                 (1 - (i + 1) * 0.05) +
                 ')'
@@ -296,8 +302,13 @@
         <p class="font-display text-lg tracking-wide mb-3">{{ i18n.t('packs.packOpened') }}</p>
         <div class="grid grid-cols-3 gap-2 mb-5">
           @for (card of outcome()?.results; track card.resultId) {
-            <div class="relative" [class.opacity-50]="card.wasDuplicate">
+            <div class="relative">
+              <!-- Only the card face dims for a duplicate — the SOLD banner
+                   below is a sibling, not a child, so it stays fully opaque
+                   and legible instead of fading into a gray smudge along
+                   with the dimmed card underneath it. -->
               <app-collectible-card
+                [class.opacity-50]="card.wasDuplicate"
                 [name]="card.collectible.name"
                 [tier]="card.collectible.tier"
                 [teamCode]="card.collectible.team.code"
@@ -308,8 +319,8 @@
               ></app-collectible-card>
               @if (card.wasDuplicate) {
                 <span
-                  class="absolute inset-x-0 bottom-0 py-1 rounded-b-2xl bg-black/70 text-center font-mono text-[10px] font-bold uppercase tracking-wide text-emerald-400"
-                  >{{ i18n.t('packs.sold') }}</span
+                  class="absolute inset-x-0 bottom-0 py-1.5 rounded-b-2xl bg-emerald-600 text-center font-display font-bold text-[11px] uppercase tracking-wider text-white shadow-md"
+                  >{{ i18n.t('packs.sold') }}{{ card.sellValue !== null ? " +" + card.sellValue + " " + i18n.t('store.pointsBadge') : "" }}</span
                 >
               }
             </div>
