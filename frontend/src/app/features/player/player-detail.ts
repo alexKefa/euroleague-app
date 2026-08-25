@@ -4,7 +4,7 @@ import { ActivatedRoute, RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { ThemeService } from "../../core/theme.service";
 import { I18nService } from "../../core/i18n.service";
-import { PlayerDetail, PlayerShotChart } from "../../core/models";
+import { PlayerDetail, PlayerShotChart, PlayerGameLogEntry } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { ShotChartComponent } from "./shot-chart";
@@ -25,6 +25,7 @@ export class PlayerDetailComponent implements OnInit {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly shotChart = signal<PlayerShotChart | null>(null);
+  readonly gameLog = signal<PlayerGameLogEntry[]>([]);
 
   ngOnInit(): void {
     const playerId = this.route.snapshot.paramMap.get("id");
@@ -50,6 +51,25 @@ export class PlayerDetailComponent implements OnInit {
       next: (chart) => this.shotChart.set(chart),
       error: () => {},
     });
+
+    this.api.getPlayerGames(playerId).subscribe({
+      next: (log) => this.gameLog.set(log.rows),
+      error: () => {}, // non-critical section — page still works with no log
+    });
+  }
+
+  isHomeGame(entry: PlayerGameLogEntry): boolean {
+    return entry.game.homeTeam.id === this.detail()?.team.id;
+  }
+
+  opponentTeam(entry: PlayerGameLogEntry) {
+    return this.isHomeGame(entry) ? entry.game.awayTeam : entry.game.homeTeam;
+  }
+
+  isWin(entry: PlayerGameLogEntry): boolean {
+    const { homeScore, awayScore } = entry.game;
+    if (homeScore === null || awayScore === null) return false;
+    return this.isHomeGame(entry) ? homeScore > awayScore : awayScore > homeScore;
   }
 
   fmtPct(value: number | null | undefined): string {

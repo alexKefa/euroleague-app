@@ -34,7 +34,7 @@ export const tourTranslations: Record<string, Record<Lang, string>> = {
   "tour.step.storeCards.title": { en: "Browse the collection", el: "Περιήγηση στη συλλογή" },
   "tour.step.storeCards.body": {
     en: "Every collectible card in Clutch lives here — filter by team or tier, and see at a glance which ones you've already unlocked.",
-    el: "Όλες οι συλλεκτικές κάρτες του Clutch βρίσκονται εδώ — φιλτράρισε ανά ομάδα ή σπανιότητα, και δες με μια ματιά ποιες έχεις ήδη ξεκλειδώσει.",
+    el: "Όλες οι συλλεκτικές κάρτες του Clutch βρίσκονται εδώ — φίλτραρε ανά ομάδα ή σπανιότητα, και δες με μια ματιά ποιες έχεις ήδη ξεκλειδώσει.",
   },
 
   "tour.step.wheel.title": { en: "Jump Ball — free daily spin", el: "Jump Ball — δωρεάν καθημερινή περιστροφή" },

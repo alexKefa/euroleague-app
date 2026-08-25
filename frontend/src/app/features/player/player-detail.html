@@ -168,6 +168,65 @@
       </div>
     }
 
+    @if (gameLog().length > 0) {
+      <div class="bg-card rounded-lg shadow-card p-4 mt-5">
+        <p class="font-mono text-[12px] text-muted font-bold mb-3">{{ i18n.t('player.gameLog') }}</p>
+        <div class="overflow-auto max-h-96 rounded-xl border border-line">
+          <table class="w-full text-sm border-collapse">
+            <thead>
+              <tr class="bg-card">
+                <th class="sticky top-0 left-0 z-20 bg-card px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap">
+                  {{ i18n.t('player.colDate') }}
+                </th>
+                <th class="sticky top-0 z-10 bg-card px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap">{{ i18n.t('player.colOpp') }}</th>
+                <th class="sticky top-0 z-10 bg-card px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap">{{ i18n.t('player.colResult') }}</th>
+                <th class="sticky top-0 z-10 bg-card px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap">{{ i18n.t('player.colMin') }}</th>
+                <th class="sticky top-0 z-10 bg-card px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap">{{ i18n.t('player.colPts') }}</th>
+                <th class="sticky top-0 z-10 bg-card px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap">{{ i18n.t('player.colReb') }}</th>
+                <th class="sticky top-0 z-10 bg-card px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap">{{ i18n.t('player.colAst') }}</th>
+                <th class="sticky top-0 z-10 bg-card px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap">{{ i18n.t('player.colStl') }}</th>
+                <th class="sticky top-0 z-10 bg-card px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap">{{ i18n.t('player.colBlk') }}</th>
+                <th class="sticky top-0 z-10 bg-card px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap">{{ i18n.t('player.colTov') }}</th>
+                <th class="sticky top-0 z-10 bg-card px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap">{{ i18n.t('player.colPir') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (entry of gameLog(); track entry.game.id) {
+                <tr
+                  [routerLink]="['/games', entry.game.id]"
+                  class="border-t border-line hover:bg-page transition-colors cursor-pointer"
+                >
+                  <td class="sticky left-0 z-10 bg-card px-3 py-2 font-mono text-muted whitespace-nowrap">{{ entry.game.tipoffAt | date: "MMM d" }}</td>
+                  <td class="px-3 py-2 whitespace-nowrap">
+                    <span class="flex items-center gap-1.5">
+                      <span class="font-display text-xs">{{ isHomeGame(entry) ? "vs" : "@" }}</span>
+                      @if (opponentTeam(entry).logoUrl) {
+                        <img [src]="opponentTeam(entry).logoUrl" [alt]="opponentTeam(entry).name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0" />
+                      } @else {
+                        <span class="w-4 h-4 rounded-full shrink-0" [style.background]="opponentTeam(entry).primaryColor"></span>
+                      }
+                      <span class="font-display text-xs">{{ opponentTeam(entry).code }}</span>
+                    </span>
+                  </td>
+                  <td class="px-3 py-2 text-right font-mono font-bold whitespace-nowrap" [class.text-emerald-500]="isWin(entry)" [class.text-red-500]="!isWin(entry)">
+                    {{ isWin(entry) ? "W" : "L" }} {{ entry.game.homeScore }}-{{ entry.game.awayScore }}
+                  </td>
+                  <td class="px-3 py-2 text-right font-mono text-muted">{{ fmtNum(entry.stats.minutes) }}</td>
+                  <td class="px-3 py-2 text-right font-mono text-highlight font-bold">{{ entry.stats.points ?? "—" }}</td>
+                  <td class="px-3 py-2 text-right font-mono">{{ entry.stats.rebounds ?? "—" }}</td>
+                  <td class="px-3 py-2 text-right font-mono">{{ entry.stats.assists ?? "—" }}</td>
+                  <td class="px-3 py-2 text-right font-mono">{{ entry.stats.steals ?? "—" }}</td>
+                  <td class="px-3 py-2 text-right font-mono">{{ entry.stats.blocksFavour ?? "—" }}</td>
+                  <td class="px-3 py-2 text-right font-mono">{{ entry.stats.turnovers ?? "—" }}</td>
+                  <td class="px-3 py-2 text-right font-mono font-bold text-highlight">{{ entry.stats.valuation ?? "—" }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+
     @if (shotChart(); as chart) {
       @if (chart.attempts > 0) {
         <div class="mt-5">

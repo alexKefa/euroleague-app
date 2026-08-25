@@ -1,9 +1,13 @@
 import { Router } from "express";
 import { eq, desc, and, isNotNull } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { db } from "../db/client.js";
 import { players, playerSeasonStats, playerGameStats, games, teams, shotEvents } from "../db/schema.js";
 
 export const playersRouter = Router();
+
+const homeTeam = alias(teams, "home_team_p");
+const awayTeam = alias(teams, "away_team_p");
 
 const CATEGORY_COLUMNS = {
   points: playerSeasonStats.pointsPerGame,
@@ -227,6 +231,92 @@ playersRouter.get("/:id/shots", async (req, res) => {
   } catch (err) {
     console.error("GET /api/players/:id/shots failed:", err);
     res.status(500).json({ error: "Failed to load shot chart" });
+  }
+});
+
+// Per-game boxscore log for one player — every "final" game they have a row
+// in player_game_stats for, most recent first. Defaults to their most
+// recent season with any final-game data, same "default to latest" pattern
+// as GET /:id/shots. Live games are deliberately excluded: the live-score
+// simulator upserts player_game_stats every tick (see realtime/
+// liveScoreSimulator.ts), so a live row is a transient in-progress line, not
+// a finished result a "log" should list.
+playersRouter.get("/:id/games", async (req, res) => {
+  try {
+    const playerId = req.params.id;
+    let season = typeof req.query.season === "string" ? req.query.season : null;
+
+    if (!season) {
+      const latest = await db
+        .select({ season: games.season })
+        .from(playerGameStats)
+        .innerJoin(games, eq(playerGameStats.gameId, games.id))
+        .where(and(eq(playerGameStats.playerId, playerId), eq(games.status, "final")))
+        .orderBy(desc(games.season))
+        .limit(1);
+      if (latest.length === 0) {
+        res.json({ season: null, rows: [] });
+        return;
+      }
+      season = latest[0].season;
+    }
+
+    const rows = await db
+      .select({
+        gameId: games.id,
+        round: games.round,
+        tipoffAt: games.tipoffAt,
+        homeScore: games.homeScore,
+        awayScore: games.awayScore,
+        homeTeamId: homeTeam.id,
+        homeTeamCode: homeTeam.code,
+        homeTeamName: homeTeam.name,
+        homeTeamPrimaryColor: homeTeam.primaryColor,
+        homeTeamLogoUrl: homeTeam.logoUrl,
+        awayTeamId: awayTeam.id,
+        awayTeamCode: awayTeam.code,
+        awayTeamName: awayTeam.name,
+        awayTeamPrimaryColor: awayTeam.primaryColor,
+        awayTeamLogoUrl: awayTeam.logoUrl,
+        stats: playerGameStats,
+      })
+      .from(playerGameStats)
+      .innerJoin(games, eq(playerGameStats.gameId, games.id))
+      .innerJoin(homeTeam, eq(games.homeTeamId, homeTeam.id))
+      .innerJoin(awayTeam, eq(games.awayTeamId, awayTeam.id))
+      .where(and(eq(playerGameStats.playerId, playerId), eq(games.season, season), eq(games.status, "final")))
+      .orderBy(desc(games.tipoffAt));
+
+    res.json({
+      season,
+      rows: rows.map((r) => ({
+        game: {
+          id: r.gameId,
+          round: r.round,
+          tipoffAt: r.tipoffAt,
+          homeScore: r.homeScore,
+          awayScore: r.awayScore,
+          homeTeam: {
+            id: r.homeTeamId,
+            code: r.homeTeamCode,
+            name: r.homeTeamName,
+            primaryColor: r.homeTeamPrimaryColor,
+            logoUrl: r.homeTeamLogoUrl,
+          },
+          awayTeam: {
+            id: r.awayTeamId,
+            code: r.awayTeamCode,
+            name: r.awayTeamName,
+            primaryColor: r.awayTeamPrimaryColor,
+            logoUrl: r.awayTeamLogoUrl,
+          },
+        },
+        stats: r.stats,
+      })),
+    });
+  } catch (err) {
+    console.error("GET /api/players/:id/games failed:", err);
+    res.status(500).json({ error: "Failed to load player game log" });
   }
 });
 

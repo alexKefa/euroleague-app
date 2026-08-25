@@ -106,6 +106,41 @@ export interface PlayerShotChart {
   shots: PlayerShot[];
 }
 
+// GET /api/players/:id/games — one row per "final" game the player has a
+// player_game_stats line for, most recent first.
+export interface PlayerGameLogEntry {
+  game: {
+    id: string;
+    round: number | null;
+    tipoffAt: string;
+    homeScore: number | null;
+    awayScore: number | null;
+    homeTeam: GameTeamSummary;
+    awayTeam: GameTeamSummary;
+  };
+  stats: {
+    minutes: number | null;
+    points: number | null;
+    rebounds: number | null;
+    assists: number | null;
+    steals: number | null;
+    blocksFavour: number | null;
+    turnovers: number | null;
+    valuation: number | null;
+    fieldGoalsMade2: number | null;
+    fieldGoalsAttempted2: number | null;
+    fieldGoalsMade3: number | null;
+    fieldGoalsAttempted3: number | null;
+    freeThrowsMade: number | null;
+    freeThrowsAttempted: number | null;
+  };
+}
+
+export interface PlayerGameLog {
+  season: string | null;
+  rows: PlayerGameLogEntry[];
+}
+
 export interface LeaderEntry {
   category: string;
   value: number | null;

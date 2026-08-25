@@ -11,7 +11,7 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
   "predictions.myPicks": { en: "My picks", el: "Οι προβλέψεις μου" },
   "predictions.loginPromptSuffix": {
     en: "to make predictions and track your accuracy.",
-    el: "για να κάνεις προβλέψεις και να παρακολουθείς την ακρίβειά σου.",
+    el: "για να κάνεις προβλέψεις και να παρακολουθείς την πρόοδό σου.",
   },
   "predictions.perfectRoundPrefix": { en: "Perfect round! You won", el: "Τέλειος γύρος! Κέρδισες" },
   "predictions.perfectRoundSuffix": { en: "— check your", el: "— δες τη" },
@@ -34,7 +34,7 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
 
   "predictions.hint": {
     en: "Pick a winner before tip-off. Each correct call earns 10 points, and a perfect round unlocks badges plus a bonus card.",
-    el: "Διάλεξε νικητή πριν το τζάμπολ. Με κάθε σωστή πρόβλεψη κερδίζεις 10 πόντους και ένας τέλειος γύρος ξεκλειδώνει μετάλλια και μια δωρεάν μυστική κάρτα.",
+    el: "Διάλεξε νικητή πριν το τζάμπολ. Με κάθε σωστή πρόβλεψη κερδίζεις 10 πόντους και ένας τέλειος γύρος ξεκλειδώνει μετάλλια και μια δωρεάν θρυλική κάρτα.",
   },
 
   // Badge legend — a tap-to-open key explaining every badge glyph (locked

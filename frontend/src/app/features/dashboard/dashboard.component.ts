@@ -180,6 +180,10 @@ export class DashboardComponent implements OnInit {
     return this.isHomeGame(game) ? game.awayTeam.code : game.homeTeam.code;
   }
 
+  opponentTeam(game: Game) {
+    return this.isHomeGame(game) ? game.awayTeam : game.homeTeam;
+  }
+
   teamResult(game: Game): "W" | "L" | null {
     if (game.homeScore === null || game.awayScore === null) return null;
     const won = this.isHomeGame(game)

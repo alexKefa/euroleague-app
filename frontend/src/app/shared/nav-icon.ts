@@ -33,7 +33,10 @@ export type NavIconName =
   // instructions (iOS's Share icon, Android's overflow menu).
   | "install"
   | "share"
-  | "dots-vertical";
+  | "dots-vertical"
+  // Teams hub's top toolbar — the "full stats table" destination, distinct
+  // from "standings" (ranked bars) since this one is a literal data grid.
+  | "table";
 
 @Component({
   selector: "app-nav-icon",
@@ -446,6 +449,12 @@ export type NavIconName =
           <circle cx="12" cy="5.5" r="1.8" fill="currentColor" />
           <circle cx="12" cy="12" r="1.8" fill="currentColor" />
           <circle cx="12" cy="18.5" r="1.8" fill="currentColor" />
+        }
+        @case ("table") {
+          <rect x="4" y="5" width="16" height="14" rx="1.5" stroke="currentColor" stroke-width="2.1" />
+          <line x1="4" y1="10" x2="20" y2="10" stroke="currentColor" stroke-width="1.8" />
+          <line x1="9.3" y1="10" x2="9.3" y2="19" stroke="currentColor" stroke-width="1.8" />
+          <line x1="14.7" y1="10" x2="14.7" y2="19" stroke="currentColor" stroke-width="1.8" />
         }
       }
     </svg>

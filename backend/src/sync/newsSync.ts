@@ -50,9 +50,26 @@ const FEEDS: {
     lang: "el",
     filter: (link) => link.includes("/mpasket/"),
   },
+  {
+    // Already section-scoped to EuroLeague (channel <language> is genuinely
+    // el, unlike Eurohoops' mislabeled one), so no filter needed here.
+    url: "https://www.gazzetta.gr/basketball/euroleague/rss",
+    sourceName: "Gazzetta",
+    sourceUrl: "https://www.gazzetta.gr",
+    lang: "el",
+  },
 ];
 
-const parser = new Parser();
+// SDNA's feed carries its image as <media:content url="..." medium="image"/>
+// rather than the standard <enclosure> every other feed uses — rss-parser
+// only picks up known RSS/Atom fields by default, so media:content needs an
+// explicit customFields mapping or SDNA articles sync with no image at all.
+type CustomItem = { mediaContent?: { $?: { url?: string } } };
+const parser: Parser<Record<string, unknown>, CustomItem> = new Parser({
+  customFields: {
+    item: [["media:content", "mediaContent"]],
+  },
+});
 
 export async function syncNews(): Promise<{ articlesUpserted: number; feedsFailed: string[] }> {
   let articlesUpserted = 0;
@@ -74,7 +91,7 @@ export async function syncNews(): Promise<{ articlesUpserted: number; feedsFaile
 
       const publishedAt = item.isoDate ? new Date(item.isoDate) : new Date();
       const summary = (item.contentSnippet ?? item.content ?? "").slice(0, 400) || null;
-      const imageUrl = item.enclosure?.url ?? null;
+      const imageUrl = item.enclosure?.url ?? item.mediaContent?.$?.url ?? null;
 
       await db
         .insert(newsArticles)

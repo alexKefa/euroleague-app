@@ -55,41 +55,41 @@
         </div>
       </div>
       <div class="overflow-x-auto">
-        <table class="w-full text-sm min-w-[480px] mt-3">
+        <table class="w-full text-sm min-w-[480px] border-collapse mt-3">
           @if (statsView() === "traditional") {
             <thead>
-              <tr class="text-muted text-[12px] font-bold uppercase tracking-wider border-b border-line">
-                <th class="sticky left-0 z-10 bg-card text-left px-4 py-3">{{ i18n.t('roster.colPlayer') }}</th>
-                <th class="text-right px-3 py-3">{{ i18n.t('roster.colGP') }}</th>
-                <th class="text-right px-3 py-3">{{ i18n.t('roster.colMIN') }}</th>
-                <th class="text-right px-3 py-3">{{ i18n.t('roster.colPPG') }}</th>
-                <th class="text-right px-3 py-3">{{ i18n.t('roster.colRPG') }}</th>
-                <th class="text-right px-3 py-3">{{ i18n.t('roster.colAPG') }}</th>
-                <th class="text-right px-3 py-3">{{ i18n.t('roster.colSPG') }}</th>
-                <th class="text-right px-4 py-3">{{ i18n.t('roster.colPIR') }}</th>
+              <tr class="text-muted text-[11px] font-bold uppercase tracking-wider border-b border-line">
+                <th class="sticky left-0 z-10 bg-card text-left px-3 py-2.5">{{ i18n.t('roster.colPlayer') }}</th>
+                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colGP') }}</th>
+                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colMIN') }}</th>
+                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colPPG') }}</th>
+                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colRPG') }}</th>
+                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colAPG') }}</th>
+                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colSPG') }}</th>
+                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colPIR') }}</th>
               </tr>
             </thead>
             <tbody>
               @for (row of roster(); track row.player.id) {
-                <tr class="border-b border-line last:border-0 font-semibold">
-                  <td class="sticky left-0 z-10 bg-card px-4 py-3">
+                <tr class="border-b border-line last:border-0 font-semibold hover:bg-page transition-colors">
+                  <td class="sticky left-0 z-10 bg-card px-3 py-2">
                     <a [routerLink]="['/players', row.player.id]" class="hover:text-highlight transition-colors">{{
                       row.player.name
                     }}</a>
                   </td>
-                  <td class="text-right px-3 py-3 font-mono text-muted font-normal">
+                  <td class="text-right px-3 py-2 font-mono text-muted font-normal">
                     {{ row.stats.gamesPlayed ?? "—" }}
                   </td>
-                  <td class="text-right px-3 py-3 font-mono text-muted font-normal">
+                  <td class="text-right px-3 py-2 font-mono text-muted font-normal">
                     {{ fmtNum(row.stats.minutesPerGame) }}
                   </td>
-                  <td class="text-right px-3 py-3 font-mono text-highlight font-bold">
+                  <td class="text-right px-3 py-2 font-mono text-highlight font-bold">
                     {{ fmtNum(row.stats.pointsPerGame) }}
                   </td>
-                  <td class="text-right px-3 py-3 font-mono">{{ fmtNum(row.stats.reboundsPerGame) }}</td>
-                  <td class="text-right px-3 py-3 font-mono">{{ fmtNum(row.stats.assistsPerGame) }}</td>
-                  <td class="text-right px-3 py-3 font-mono">{{ fmtNum(row.stats.stealsPerGame) }}</td>
-                  <td class="text-right px-4 py-3">
+                  <td class="text-right px-3 py-2 font-mono">{{ fmtNum(row.stats.reboundsPerGame) }}</td>
+                  <td class="text-right px-3 py-2 font-mono">{{ fmtNum(row.stats.assistsPerGame) }}</td>
+                  <td class="text-right px-3 py-2 font-mono">{{ fmtNum(row.stats.stealsPerGame) }}</td>
+                  <td class="text-right px-3 py-2">
                     <span
                       class="inline-block px-2 py-0.5 rounded-md font-mono text-xs font-bold min-w-[38px]"
                       [ngClass]="pirBadgeClass(row.stats.valuation)"
@@ -100,46 +100,46 @@
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="8" class="px-4 py-6 text-center text-muted">{{ i18n.t('roster.noRosterData') }}</td>
+                  <td colspan="8" class="px-3 py-6 text-center text-muted">{{ i18n.t('roster.noRosterData') }}</td>
                 </tr>
               }
             </tbody>
           } @else {
             <thead>
-              <tr class="text-muted text-[12px] font-bold uppercase tracking-wider border-b border-line">
-                <th class="sticky left-0 z-10 bg-card text-left px-4 py-3">{{ i18n.t('roster.colPlayer') }}</th>
-                <th class="text-right px-3 py-3">{{ i18n.t('roster.colTS') }}</th>
-                <th class="text-right px-3 py-3">{{ i18n.t('roster.colEFG') }}</th>
-                <th class="text-right px-3 py-3">{{ i18n.t('roster.colREB') }}</th>
-                <th class="text-right px-3 py-3">{{ i18n.t('roster.colAST') }}</th>
-                <th class="text-right px-3 py-3">{{ i18n.t('roster.colTOV') }}</th>
-                <th class="text-right px-4 py-3">{{ i18n.t('roster.colPOSS') }}</th>
+              <tr class="text-muted text-[11px] font-bold uppercase tracking-wider border-b border-line">
+                <th class="sticky left-0 z-10 bg-card text-left px-3 py-2.5">{{ i18n.t('roster.colPlayer') }}</th>
+                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colTS') }}</th>
+                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colEFG') }}</th>
+                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colREB') }}</th>
+                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colAST') }}</th>
+                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colTOV') }}</th>
+                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colPOSS') }}</th>
               </tr>
             </thead>
             <tbody>
               @for (row of roster(); track row.player.id) {
-                <tr class="border-b border-line last:border-0 font-semibold">
-                  <td class="sticky left-0 z-10 bg-card px-4 py-3">
+                <tr class="border-b border-line last:border-0 font-semibold hover:bg-page transition-colors">
+                  <td class="sticky left-0 z-10 bg-card px-3 py-2">
                     <a [routerLink]="['/players', row.player.id]" class="hover:text-highlight transition-colors">{{
                       row.player.name
                     }}</a>
                   </td>
-                  <td class="text-right px-3 py-3 font-mono text-highlight font-bold">
+                  <td class="text-right px-3 py-2 font-mono text-highlight font-bold">
                     {{ fmtPct(row.stats.trueShootingPct) }}
                   </td>
-                  <td class="text-right px-3 py-3 font-mono">{{ fmtPct(row.stats.effectiveFieldGoalPct) }}</td>
-                  <td class="text-right px-3 py-3 font-mono">{{ fmtPct(row.stats.totalReboundPct) }}</td>
-                  <td class="text-right px-3 py-3 font-mono">{{ fmtPct(row.stats.assistRatio) }}</td>
-                  <td class="text-right px-3 py-3 font-mono text-muted font-normal">
+                  <td class="text-right px-3 py-2 font-mono">{{ fmtPct(row.stats.effectiveFieldGoalPct) }}</td>
+                  <td class="text-right px-3 py-2 font-mono">{{ fmtPct(row.stats.totalReboundPct) }}</td>
+                  <td class="text-right px-3 py-2 font-mono">{{ fmtPct(row.stats.assistRatio) }}</td>
+                  <td class="text-right px-3 py-2 font-mono text-muted font-normal">
                     {{ fmtPct(row.stats.turnoverRatio) }}
                   </td>
-                  <td class="text-right px-4 py-3 font-mono text-muted font-normal">
+                  <td class="text-right px-3 py-2 font-mono text-muted font-normal">
                     {{ fmtNum(row.stats.possessionsPerGame) }}
                   </td>
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="7" class="px-4 py-6 text-center text-muted">{{ i18n.t('roster.noRosterData') }}</td>
+                  <td colspan="7" class="px-3 py-6 text-center text-muted">{{ i18n.t('roster.noRosterData') }}</td>
                 </tr>
               }
             </tbody>

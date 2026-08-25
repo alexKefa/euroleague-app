@@ -7,11 +7,13 @@ import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ArticlePreviewComponent } from "../../shared/article-preview";
 import { newsDateFormat, newsDateLocale } from "../../shared/news-date-format";
 import { SkeletonComponent } from "../../shared/skeleton";
+import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
+import { NavIconComponent } from "../../shared/nav-icon";
 
 @Component({
   selector: "app-news",
   standalone: true,
-  imports: [CommonModule, RetryImgDirective, ArticlePreviewComponent, SkeletonComponent],
+  imports: [CommonModule, RetryImgDirective, ArticlePreviewComponent, SkeletonComponent, DropdownComponent, NavIconComponent],
   templateUrl: "./news.html",
 })
 export class NewsComponent implements OnInit {
@@ -22,6 +24,20 @@ export class NewsComponent implements OnInit {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   private readonly lastSyncedAt = signal<string | null>(null);
+
+  // Derived from whatever sources actually came back rather than hardcoded,
+  // so a new feed added to backend/src/sync/newsSync.ts shows up here with
+  // no frontend change needed.
+  readonly sourceFilter = signal<string>("");
+  readonly sourceOptions = computed<DropdownOption[]>(() => {
+    const names = Array.from(new Set(this.articles().map((a) => a.sourceName))).sort();
+    return [{ value: "", label: this.i18n.t("news.allSources") }, ...names.map((name) => ({ value: name, label: name }))];
+  });
+  readonly filteredArticles = computed(() => {
+    const source = this.sourceFilter();
+    const rows = this.articles();
+    return source ? rows.filter((a) => a.sourceName === source) : rows;
+  });
 
   private readonly previewArticleId = signal<string | null>(null);
   readonly previewArticle = computed(() => this.articles().find((a) => a.id === this.previewArticleId()) ?? null);
@@ -51,6 +67,10 @@ export class NewsComponent implements OnInit {
     effect(() => {
       const lang = this.i18n.lang();
       this.loading.set(true);
+      // A previously-picked source (e.g. Gazzetta, Greek-only) may not
+      // exist in the other language's articles — reset rather than leave
+      // the list silently filtered to nothing.
+      this.sourceFilter.set("");
       this.api.getNews(30, lang).subscribe({
         next: (articles) => {
           this.articles.set(articles);
@@ -77,6 +97,10 @@ export class NewsComponent implements OnInit {
 
   dateLocale(): string {
     return newsDateLocale(this.i18n.lang());
+  }
+
+  onSourceFilterChange(value: string | null): void {
+    this.sourceFilter.set(value ?? "");
   }
 
   openPreview(article: NewsArticle): void {

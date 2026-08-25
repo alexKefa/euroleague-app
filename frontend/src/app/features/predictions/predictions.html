@@ -171,7 +171,7 @@
             </div>
           }
 
-          <div class="text-sm space-y-1">
+          <div class="text-sm space-y-1 max-h-80 overflow-y-auto pr-1">
             @for (p of myPredictions(); track p.id) {
               <div class="flex justify-between items-center px-2 py-2 rounded-xl">
                 <div>
@@ -202,7 +202,7 @@
       <!-- Leaderboard -->
       <div class="bg-card rounded-lg shadow-card p-4">
         <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-3">{{ i18n.t('predictions.leaderboard') }}</p>
-        <div class="text-sm space-y-1">
+        <div class="text-sm space-y-1 max-h-80 overflow-y-auto pr-1">
           @for (entry of leaderboard(); track entry.userId; let i = $index) {
             <div class="flex justify-between items-center px-2 py-2 rounded-xl" [ngClass]="{ 'bg-highlight/10': i === 0 }">
               <span class="font-semibold flex items-center gap-1">

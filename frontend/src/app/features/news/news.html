@@ -1,10 +1,16 @@
 <div class="max-w-3xl lg:max-w-5xl mx-auto p-4 sm:p-6">
-  <div class="flex items-center justify-between mb-5">
+  <div class="flex items-center justify-between mb-5 gap-2">
     <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('news.title') }}</h1>
     @if (lastSyncedLabel(); as label) {
-      <span class="font-mono text-[11px] text-muted">{{ label }}</span>
+      <span class="font-mono text-[11px] text-muted shrink-0">{{ label }}</span>
     }
   </div>
+
+  @if (!loading() && !error() && sourceOptions().length > 2) {
+    <div class="w-40 mb-4">
+      <app-dropdown [options]="sourceOptions()" [value]="sourceFilter()" (valueChange)="onSourceFilterChange($event)" />
+    </div>
+  }
 
   @if (loading()) {
     <div class="space-y-3">
@@ -20,7 +26,7 @@
 
   @if (!loading() && !error()) {
     <div class="space-y-3">
-      @for (article of articles(); track article.id) {
+      @for (article of filteredArticles(); track article.id) {
         <button
           type="button"
           (click)="openPreview(article)"
@@ -36,6 +42,10 @@
               appRetryImg
               class="w-20 h-20 rounded-xl object-cover shrink-0"
             />
+          } @else {
+            <span class="w-20 h-20 rounded-xl bg-page flex items-center justify-center shrink-0 text-muted">
+              <app-nav-icon name="news" [size]="28" />
+            </span>
           }
           <div class="min-w-0">
             <div class="flex items-center gap-2 mb-2">
