@@ -88,6 +88,12 @@
             </div>
           }
         </div>
+        @if (auth.isAuthenticated() && potentialPoints() > 0) {
+          <div class="mt-2 pt-2 border-t border-line flex items-center justify-between">
+            <span class="text-[11px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('predictions.potentialPoints') }}</span>
+            <span class="font-mono text-highlight font-bold text-sm">+{{ potentialPoints() }} {{ i18n.t('predictions.pts') }}</span>
+          </div>
+        }
       </div>
     }
 

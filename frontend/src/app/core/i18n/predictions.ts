@@ -9,6 +9,7 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
     el: "Πάτησε ξανά την επιλογή σου για να την αφαιρέσεις.",
   },
   "predictions.myPicks": { en: "My picks", el: "Οι προβλέψεις μου" },
+  "predictions.potentialPoints": { en: "If they all hit", el: "Αν βγουν όλες σωστές" },
   "predictions.loginPromptSuffix": {
     en: "to make predictions and track your accuracy.",
     el: "για να κάνεις προβλέψεις και να παρακολουθείς την πρόοδό σου.",

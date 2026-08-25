@@ -1,4 +1,4 @@
-import { Component, OnInit, effect, inject, signal } from "@angular/core";
+import { Component, OnInit, computed, effect, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
@@ -14,6 +14,12 @@ import { SkeletonComponent } from "../../shared/skeleton";
 // Matches schedule.ts — no season picker here either, and predictions
 // should only ever be open for the round a user could actually be watching.
 const SEASON = "2026-27";
+
+// Mirrors backend/src/services/points.ts's POINTS_PER_CORRECT — kept as a
+// separate constant here (not fetched) since it's only used to preview a
+// number the backend will compute for real once each game resolves; keep
+// the two in sync if that scoring rule ever changes.
+const POINTS_PER_CORRECT = 10;
 
 // Icon glyphs for known badge ids — purely a display concern, the backend
 // only sends id/label/description. Unrecognized ids fall back to a medal.
@@ -69,6 +75,18 @@ export class PredictionsComponent implements OnInit {
   readonly teamLogos = signal<Map<string, string | null>>(new Map());
   readonly showBadgeLegend = signal(false);
   readonly badgeCatalog = BADGE_CATALOG;
+
+  // How many points this round's picks are worth if every one of them hits —
+  // every game listed in upcomingGames is still "scheduled" by construction
+  // (see ngOnInit's filter below), so any of them with a pick in myPicks is
+  // necessarily still pending. Recomputes live off the same signals the pick
+  // buttons already read, so it updates the instant a pick is toggled —
+  // no extra round trip, no waiting for the backend to confirm.
+  readonly potentialPoints = computed(() => {
+    const picks = this.myPicks();
+    const pendingPickCount = this.upcomingGames().filter((g) => picks.has(g.id)).length;
+    return pendingPickCount * POINTS_PER_CORRECT;
+  });
 
   constructor() {
     // Live score push, same pattern as schedule.ts: patch the matching
