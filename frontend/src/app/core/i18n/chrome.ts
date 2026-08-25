@@ -16,8 +16,6 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
   "nav.register": { en: "Register", el: "Εγγραφή" },
   "nav.logout": { en: "Log out", el: "Αποσύνδεση" },
   "nav.admin": { en: "Admin", el: "Διαχειριστής" },
-  "nav.switchToLightTheme": { en: "Switch to light theme", el: "Εναλλαγή σε φωτεινό θέμα" },
-  "nav.switchToDarkTheme": { en: "Switch to dark theme", el: "Εναλλαγή σε σκοτεινό θέμα" },
   "nav.switchToGreek": { en: "Switch to Greek", el: "Αλλαγή σε Ελληνικά" },
   "nav.switchToEnglish": { en: "Switch to English", el: "Αλλαγή σε Αγγλικά" },
 
@@ -55,6 +53,9 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
   "profile.language": { en: "Language", el: "Γλώσσα" },
   "profile.languageEnglish": { en: "English", el: "Αγγλικά" },
   "profile.languageGreek": { en: "Greek", el: "Ελληνικά" },
+  "profile.theme": { en: "Theme", el: "Θέμα" },
+  "profile.themeLight": { en: "Light", el: "Φωτεινό" },
+  "profile.themeDark": { en: "Dark", el: "Σκοτεινό" },
   "profile.logout": { en: "Log out", el: "Αποσύνδεση" },
   "profile.saveTeamFailed": {
     en: "Couldn't update your favorite team — try again.",

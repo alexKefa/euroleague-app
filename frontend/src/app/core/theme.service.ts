@@ -60,10 +60,6 @@ export class ThemeService {
     }
   }
 
-  toggleColorScheme(): void {
-    this.setColorScheme(this.colorScheme() === "dark" ? "light" : "dark");
-  }
-
   setColorScheme(scheme: ColorScheme): void {
     this.colorScheme.set(scheme);
     this.applyColorScheme(scheme);

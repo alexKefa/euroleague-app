@@ -37,6 +37,18 @@
       </div>
     </div>
 
+    <div class="bg-card rounded-lg shadow-card p-4 mb-5">
+      <p class="font-mono text-[12px] text-muted font-bold mb-3">{{ i18n.t('profile.theme') }}</p>
+      <div class="inline-flex bg-page border-2 border-line rounded-2xl p-1 gap-1">
+        <button type="button" (click)="theme.setColorScheme('light')" [appChip]="theme.colorScheme() === 'light'">
+          {{ i18n.t('profile.themeLight') }}
+        </button>
+        <button type="button" (click)="theme.setColorScheme('dark')" [appChip]="theme.colorScheme() === 'dark'">
+          {{ i18n.t('profile.themeDark') }}
+        </button>
+      </div>
+    </div>
+
     <div class="bg-card rounded-lg shadow-card p-4">
       <p class="font-mono text-[12px] text-muted font-bold mb-3">{{ i18n.t('profile.favoriteTeam') }}</p>
       <div class="flex flex-wrap gap-2">

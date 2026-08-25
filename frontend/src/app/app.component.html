@@ -26,15 +26,6 @@
       </button>
     }
 
-    <button
-      type="button"
-      (click)="theme.toggleColorScheme()"
-      class="shrink-0 w-8 h-8 rounded-xl border-2 border-line flex items-center justify-center text-muted hover:text-ink hover:bg-page transition-colors"
-      [attr.aria-label]="theme.colorScheme() === 'dark' ? i18n.t('nav.switchToLightTheme') : i18n.t('nav.switchToDarkTheme')"
-    >
-      <app-nav-icon [name]="theme.colorScheme() === 'dark' ? 'sun' : 'moon'" />
-    </button>
-
     @if (auth.isAuthenticated()) {
       <!-- Desktop only — on mobile this same identity/logout is one tap
            away via the Profile icon just below (line ~63), so cramming

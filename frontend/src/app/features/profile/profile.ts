@@ -5,6 +5,7 @@ import { ReactiveFormsModule, FormBuilder, Validators } from "@angular/forms";
 import { AuthService } from "../../core/auth.service";
 import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
+import { ThemeService } from "../../core/theme.service";
 import { Team, Collectible } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ButtonDirective } from "../../shared/button.directive";
@@ -20,6 +21,7 @@ import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 export class ProfileComponent implements OnInit {
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
+  protected theme = inject(ThemeService);
   private api = inject(ApiService);
   private router = inject(Router);
   private fb = inject(FormBuilder);
