@@ -100,25 +100,35 @@
     class="hidden sm:flex flex-col items-center shrink-0 w-16 border-r border-line bg-card py-4 gap-2 sticky top-16 h-[calc(100vh-4rem)]"
   >
     @for (link of navLinks; track link.path) {
-      <a
-        [routerLink]="link.path"
-        [attr.aria-label]="i18n.t(link.label)"
-        [class]="isActive(link) ? 'bg-highlight/15 text-highlight' : 'text-muted hover:text-ink'"
-        class="group relative flex items-center justify-center w-11 h-11 rounded-full transition-colors"
-      >
-        <app-nav-icon [name]="link.icon" [active]="isActive(link)" [size]="22" />
-        @if (link.path === '/predictions' && auth.isAuthenticated() && events.hasLiveGame()) {
-          <span
-            class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 animate-pulse"
-            [attr.aria-label]="i18n.t('nav.liveGame')"
-          ></span>
-        }
-        <span
-          class="pointer-events-none absolute left-full ml-2 px-2 py-1 rounded-md bg-ink text-page font-mono text-[11px] font-bold whitespace-nowrap opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 group-focus-visible:opacity-100 group-focus-visible:translate-x-0 transition-all duration-150 z-10"
+      <!-- Fixed w-11/h-11 anchor box keeps this item's footprint constant in
+           the flex column (so items-center doesn't re-center it as it
+           grows) — the actual expanding pill inside is absolutely
+           positioned to its top-left corner, so growth always extends
+           rightward from the icon's resting spot instead of symmetrically
+           from the center. -->
+      <div class="relative w-11 h-11 shrink-0">
+        <a
+          [routerLink]="link.path"
+          [attr.aria-label]="i18n.t(link.label)"
+          [class]="isActive(link) ? 'bg-highlight/15 text-highlight' : 'text-muted hover:text-ink hover:bg-page'"
+          class="group absolute left-0 top-0 flex items-center h-11 w-11 hover:w-44 focus-visible:w-44 rounded-full overflow-hidden transition-all duration-200 z-20"
         >
-          {{ i18n.t(link.label) }}
-        </span>
-      </a>
+          <span class="relative flex items-center justify-center w-11 h-11 shrink-0">
+            <app-nav-icon [name]="link.icon" [active]="isActive(link)" [size]="22" />
+            @if (link.path === '/predictions' && auth.isAuthenticated() && events.hasLiveGame()) {
+              <span
+                class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 animate-pulse"
+                [attr.aria-label]="i18n.t('nav.liveGame')"
+              ></span>
+            }
+          </span>
+          <span
+            class="whitespace-nowrap text-sm font-semibold pr-4 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-150 delay-100"
+          >
+            {{ i18n.t(link.label) }}
+          </span>
+        </a>
+      </div>
     }
   </nav>
 

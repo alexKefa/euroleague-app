@@ -305,6 +305,35 @@ export interface PredictionSummary {
   newRoundRewards: TradeCardRef[];
 }
 
+// GET /api/predictions/analytics — community-wide pick accuracy, not
+// per-user (that's LeaderboardEntry above).
+export interface TeamPickAccuracy {
+  team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
+  timesPicked: number;
+  timesCorrect: number;
+  accuracy: number | null;
+}
+
+export interface PredictionUpset {
+  gameId: string;
+  round: number | null;
+  tipoffAt: string;
+  homeScore: number;
+  awayScore: number;
+  homeTeam: { id: string; code: string; name: string; logoUrl: string | null };
+  awayTeam: { id: string; code: string; name: string; logoUrl: string | null };
+  totalPicks: number;
+  majorityPickedTeamId: string;
+  majorityPct: number;
+  majorityWasWrong: boolean;
+}
+
+export interface PredictionAnalytics {
+  overall: { total: number; correct: number; accuracy: number | null };
+  byTeam: TeamPickAccuracy[];
+  upsets: PredictionUpset[];
+}
+
 export type CollectibleTier = "common" | "rare" | "legendary";
 
 export interface Collectible {

@@ -310,6 +310,129 @@ predictionsRouter.get("/leaderboard", async (_req, res) => {
   }
 });
 
+// Community-wide accuracy analytics — how good are the crowd's picks,
+// broken down by which team was picked, plus the games the crowd got most
+// confidently wrong. Not a per-user stat (that's /leaderboard), so no auth
+// needed. Three separate round trips rather than combined into one: this
+// page is visited far less often than the hot paths the "fewer round
+// trips" rule (see CLAUDE.md) actually targets, and each query here is a
+// genuinely different shape (single row / grouped-by-team / grouped-by-game)
+// that isn't worth contorting into one statement.
+predictionsRouter.get("/analytics", async (_req, res) => {
+  try {
+    const [overallRow] = await db.execute<{ total: number; correct: number }>(sql`
+      select
+        count(*)::int as total,
+        count(*) filter (
+          where p.predicted_winner_team_id = case when g.home_score > g.away_score then g.home_team_id else g.away_team_id end
+        )::int as correct
+      from ${predictions} p
+      join ${games} g on p.game_id = g.id
+      where g.status = 'final' and g.home_score is not null and g.away_score is not null and g.home_score <> g.away_score
+    `);
+
+    const teamRows = await db.execute<{
+      team_id: string;
+      code: string;
+      name: string;
+      primary_color: string | null;
+      logo_url: string | null;
+      times_picked: number;
+      times_correct: number;
+    }>(sql`
+      select t.id as team_id, t.code, t.name, t.primary_color, t.logo_url,
+        count(*)::int as times_picked,
+        count(*) filter (
+          where p.predicted_winner_team_id = case when g.home_score > g.away_score then g.home_team_id else g.away_team_id end
+        )::int as times_correct
+      from ${predictions} p
+      join ${games} g on p.game_id = g.id
+      join ${teams} t on t.id = p.predicted_winner_team_id
+      where g.status = 'final' and g.home_score is not null and g.away_score is not null and g.home_score <> g.away_score
+      group by t.id, t.code, t.name, t.primary_color, t.logo_url
+      order by times_picked desc
+    `);
+
+    // Per-game pick split (home vs away), for finding "upsets" below —
+    // games with at least 3 picks where the majority sided with the team
+    // that ended up losing.
+    const gameRows = await db.execute<{
+      game_id: string;
+      round: number | null;
+      tipoff_at: Date;
+      home_score: number;
+      away_score: number;
+      home_team_id: string;
+      home_code: string;
+      home_name: string;
+      home_logo_url: string | null;
+      away_team_id: string;
+      away_code: string;
+      away_name: string;
+      away_logo_url: string | null;
+      home_picks: number;
+      away_picks: number;
+    }>(sql`
+      select g.id as game_id, g.round, g.tipoff_at, g.home_score, g.away_score,
+        ht.id as home_team_id, ht.code as home_code, ht.name as home_name, ht.logo_url as home_logo_url,
+        at.id as away_team_id, at.code as away_code, at.name as away_name, at.logo_url as away_logo_url,
+        count(*) filter (where p.predicted_winner_team_id = g.home_team_id)::int as home_picks,
+        count(*) filter (where p.predicted_winner_team_id = g.away_team_id)::int as away_picks
+      from ${games} g
+      join ${predictions} p on p.game_id = g.id
+      join ${teams} ht on ht.id = g.home_team_id
+      join ${teams} at on at.id = g.away_team_id
+      where g.status = 'final' and g.home_score is not null and g.away_score is not null and g.home_score <> g.away_score
+      group by g.id, g.round, g.tipoff_at, g.home_score, g.away_score,
+        ht.id, ht.code, ht.name, ht.logo_url, at.id, at.code, at.name, at.logo_url
+      having count(*) >= 3
+    `);
+
+    const upsets = gameRows
+      .map((r) => {
+        const totalPicks = r.home_picks + r.away_picks;
+        const homeWon = r.home_score > r.away_score;
+        const majorityPickedHome = r.home_picks >= r.away_picks;
+        const majorityWasWrong = majorityPickedHome !== homeWon;
+        const majorityPicks = Math.max(r.home_picks, r.away_picks);
+        return {
+          gameId: r.game_id,
+          round: r.round,
+          tipoffAt: r.tipoff_at,
+          homeScore: r.home_score,
+          awayScore: r.away_score,
+          homeTeam: { id: r.home_team_id, code: r.home_code, name: r.home_name, logoUrl: r.home_logo_url },
+          awayTeam: { id: r.away_team_id, code: r.away_code, name: r.away_name, logoUrl: r.away_logo_url },
+          totalPicks,
+          majorityPickedTeamId: majorityPickedHome ? r.home_team_id : r.away_team_id,
+          majorityPct: majorityPicks / totalPicks,
+          majorityWasWrong,
+        };
+      })
+      .filter((g) => g.majorityWasWrong)
+      .sort((a, b) => b.majorityPct - a.majorityPct || b.totalPicks - a.totalPicks)
+      .slice(0, 10);
+
+    res.json({
+      overall: {
+        total: overallRow.total,
+        correct: overallRow.correct,
+        accuracy: overallRow.total > 0 ? overallRow.correct / overallRow.total : null,
+      },
+      byTeam: teamRows.map((r) => ({
+        team: { id: r.team_id, code: r.code, name: r.name, primaryColor: r.primary_color, logoUrl: r.logo_url },
+        timesPicked: r.times_picked,
+        timesCorrect: r.times_correct,
+        accuracy: r.times_picked > 0 ? r.times_correct / r.times_picked : null,
+      })),
+      upsets,
+    });
+  } catch (err) {
+    console.error("GET /api/predictions/analytics failed:", err);
+    res.status(500).json({ error: "Failed to load prediction analytics" });
+  }
+});
+
 predictionsRouter.get("/me/summary", requireAuth, async (req, res) => {
   try {
     const [rows, points] = await Promise.all([

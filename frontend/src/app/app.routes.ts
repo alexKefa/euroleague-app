@@ -24,6 +24,13 @@ export const routes: Routes = [
       import("./features/predictions/predictions").then((m) => m.PredictionsComponent),
   },
   {
+    path: "predictions-analytics",
+    loadComponent: () =>
+      import("./features/predictions-analytics/predictions-analytics").then(
+        (m) => m.PredictionsAnalyticsComponent
+      ),
+  },
+  {
     path: "store",
     loadComponent: () => import("./features/store/store").then((m) => m.StoreComponent),
   },

@@ -68,4 +68,37 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
     en: "75%+ accuracy across at least 10 resolved predictions.",
     el: "75%+ ακρίβεια σε τουλάχιστον 10 ολοκληρωμένες προβλέψεις.",
   },
+
+  // features/predictions-analytics/ — community-wide pick accuracy, linked
+  // from the main Predictions page.
+  "predictions.analytics.navTitle": { en: "See how the clutchers predict", el: "Δες πως προβλέπουν οι clutchers" },
+  "predictions.analytics.title": { en: "Pick Accuracy", el: "Ακρίβεια Προβλέψεων" },
+  "predictions.analytics.subtitle": {
+    en: "How good is the crowd at picking winners?",
+    el: "Πόσο καλά διαλέγει νικητές το κοινό;",
+  },
+  "predictions.analytics.overallAccuracy": { en: "Community accuracy", el: "Ακρίβεια κοινού" },
+  "predictions.analytics.resolvedPicksLabel": { en: "resolved picks", el: "ολοκληρωμένες προβλέψεις" },
+  "predictions.analytics.byTeamTitle": { en: "When the crowd picks…", el: "Όταν το κοινό διαλέγει…" },
+  "predictions.analytics.byTeamHint": {
+    en: "How often a team wins after being picked to win.",
+    el: "Πόσο συχνά μια ομάδα κερδίζει αφού επιλεγεί ως νικήτρια.",
+  },
+  "predictions.analytics.colTeam": { en: "Team", el: "Ομάδα" },
+  "predictions.analytics.colPicked": { en: "Picked", el: "Επιλογές" },
+  "predictions.analytics.colAccuracy": { en: "Accuracy", el: "Ακρίβεια" },
+  "predictions.analytics.noTeamData": {
+    en: "Not enough resolved games yet.",
+    el: "Δεν υπάρχουν αρκετοί ολοκληρωμένοι αγώνες ακόμα.",
+  },
+  "predictions.analytics.upsetsTitle": { en: "Biggest Upsets", el: "Μεγαλύτερες Ανατροπές" },
+  "predictions.analytics.upsetsHint": {
+    en: "Games where most of the crowd picked wrong.",
+    el: "Αγώνες όπου οι περισσότεροι διάλεξαν λάθος νικητή.",
+  },
+  "predictions.analytics.noUpsetsYet": {
+    en: "No upsets yet — the crowd's been right so far.",
+    el: "Καμία ανατροπή ακόμα — το κοινό έχει πέσει μέσα μέχρι στιγμής.",
+  },
+  "predictions.analytics.pickedThem": { en: "picked them", el: "τους διάλεξαν" },
 };
