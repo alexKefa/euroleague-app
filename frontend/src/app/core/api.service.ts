@@ -12,6 +12,7 @@ import {
   LeaderEntry,
   RoundMvp,
   PlayerAdvancedStats,
+  AnalyticsView,
   NewsArticle,
   NewsSyncStatus,
   Game,
@@ -85,6 +86,31 @@ export class ApiService {
 
   getAdvancedStats(): Observable<PlayerAdvancedStats> {
     return this.http.get<PlayerAdvancedStats>(`${API_BASE_URL}/players/advanced-stats`);
+  }
+
+  getAnalyticsViews(): Observable<AnalyticsView[]> {
+    return this.http.get<AnalyticsView[]>(`${API_BASE_URL}/analytics-views`);
+  }
+
+  createAnalyticsView(body: {
+    name: string;
+    playerIds: string[];
+    columns: string[];
+    sortKey: string | null;
+    sortDesc: boolean;
+  }): Observable<AnalyticsView> {
+    return this.http.post<AnalyticsView>(`${API_BASE_URL}/analytics-views`, body);
+  }
+
+  updateAnalyticsView(
+    id: string,
+    body: { name: string; playerIds: string[]; columns: string[]; sortKey: string | null; sortDesc: boolean }
+  ): Observable<AnalyticsView> {
+    return this.http.patch<AnalyticsView>(`${API_BASE_URL}/analytics-views/${id}`, body);
+  }
+
+  deleteAnalyticsView(id: string): Observable<void> {
+    return this.http.delete<void>(`${API_BASE_URL}/analytics-views/${id}`);
   }
 
   getNews(limit = 20, lang?: string): Observable<NewsArticle[]> {

@@ -183,6 +183,14 @@ export class StoreComponent implements OnInit, OnDestroy {
 
   readonly imageSavingId = signal<string | null>(null);
   readonly imageErrors = signal<Record<string, string>>({});
+  // Pinned to the preview modal's always-visible top bar (not the
+  // scrollable content column) since the admin image-set form used to sit
+  // at the very bottom of that column, below the buy button — on a
+  // shorter viewport the column already overflows before reaching it, so
+  // it was effectively unreachable. Collapsed by default so it doesn't
+  // compete for space with the card for the vast majority of viewers who
+  // aren't admins.
+  readonly showAdminEdit = signal(false);
 
   readonly purchasingId = signal<string | null>(null);
   readonly purchaseErrors = signal<Record<string, string>>({});
@@ -241,6 +249,7 @@ export class StoreComponent implements OnInit, OnDestroy {
   openPreview(bundle: CollectibleBundle): void {
     this.previewBundle.set(bundle);
     this.previewTierIndex.set(this.defaultTierIndexFor(bundle));
+    this.showAdminEdit.set(false);
   }
 
   selectPreviewTier(index: number): void {
@@ -249,6 +258,7 @@ export class StoreComponent implements OnInit, OnDestroy {
 
   closePreview(): void {
     this.previewBundle.set(null);
+    this.showAdminEdit.set(false);
   }
 
   private defaultTierIndexFor(bundle: CollectibleBundle): number {

@@ -50,6 +50,11 @@ export const routes: Routes = [
       import("./features/standings/standings").then((m) => m.StandingsComponent),
   },
   {
+    path: "analytics-builder",
+    loadComponent: () =>
+      import("./features/analytics-builder/analytics-builder").then((m) => m.AnalyticsBuilderComponent),
+  },
+  {
     path: "teams",
     loadComponent: () =>
       import("./features/teams/teams-hub").then((m) => m.TeamsHubComponent),

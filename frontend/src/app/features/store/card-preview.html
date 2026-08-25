@@ -11,7 +11,14 @@
     &times;
   </button>
 
-  <div class="flex flex-col items-center gap-4" style="width: min(85vw, 380px)" (click)="$event.stopPropagation()">
+  <!-- Pinned here, not in the scrollable column below, so admin-only
+       controls stay reachable even when the card + tier toggle + buy
+       button already fill (or overflow) a shorter viewport. -->
+  <div class="absolute top-4 left-4 z-10" (click)="$event.stopPropagation()">
+    <ng-content select="[preview-admin]"></ng-content>
+  </div>
+
+  <div class="flex flex-col items-center gap-4" style="width: min(85vw, 342px)" (click)="$event.stopPropagation()">
     <div class="w-full [perspective:1400px]" style="aspect-ratio: 2.5 / 3.5">
       <div
         class="relative w-full h-full transition-transform duration-500 ease-in-out"
@@ -39,7 +46,7 @@
             [teamColor]="item.team.primaryColor"
             [imageUrl]="item.imageUrl"
             [unlocked]="unlocked"
-            [maxWidth]="380"
+            [maxWidth]="342"
             [serialNumber]="item.serialNumber"
             [serialTotal]="item.serialTotal"
           ></app-collectible-card>

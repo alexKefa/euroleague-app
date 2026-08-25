@@ -175,25 +175,36 @@
     }
 
     @if (auth.currentUser()?.isAdmin) {
-      <div class="w-full flex gap-1">
-        <input
-          #imageInput
-          type="text"
-          [value]="item.imageUrl ?? ''"
-          placeholder="/assets/collectibles/photo.jpg"
-          class="flex-1 min-w-0 px-2 py-1.5 rounded-xl bg-white/10 text-white placeholder-white/40 border-2 border-white/20 text-xs font-semibold focus:border-highlight outline-none"
-        />
+      <div preview-admin>
         <button
-          (click)="setImage(item, imageInput.value)"
-          [disabled]="imageSavingId() === item.id"
-          class="font-display font-bold text-xs px-3 py-1.5 rounded-xl bg-white/15 text-white hover:bg-highlight transition-colors disabled:opacity-40"
+          type="button"
+          (click)="showAdminEdit.set(!showAdminEdit())"
+          class="text-[11px] font-bold uppercase tracking-wide text-white/70 hover:text-white bg-black/40 backdrop-blur-sm rounded-lg px-2 py-1 transition-colors"
         >
-          {{ imageSavingId() === item.id ? "…" : i18n.t('store.setImage') }}
+          {{ i18n.t('store.adminEdit') }}
         </button>
+        @if (showAdminEdit()) {
+          <div class="mt-2 flex flex-col gap-1.5 bg-black/70 backdrop-blur-sm rounded-xl p-2" style="width: 12rem">
+            <input
+              #imageInput
+              type="text"
+              [value]="item.imageUrl ?? ''"
+              placeholder="/assets/collectibles/photo.jpg"
+              class="w-full px-2 py-1.5 rounded-lg bg-white/10 text-white placeholder-white/40 border-2 border-white/20 text-xs font-semibold focus:border-highlight outline-none"
+            />
+            <button
+              (click)="setImage(item, imageInput.value)"
+              [disabled]="imageSavingId() === item.id"
+              class="font-display font-bold text-xs px-3 py-1.5 rounded-xl bg-white/15 text-white hover:bg-highlight transition-colors disabled:opacity-40"
+            >
+              {{ imageSavingId() === item.id ? "…" : i18n.t('store.setImage') }}
+            </button>
+            @if (imageErrors()[item.id]) {
+              <p class="text-red-400 text-[11px] font-semibold">{{ imageErrors()[item.id] }}</p>
+            }
+          </div>
+        }
       </div>
-      @if (imageErrors()[item.id]) {
-        <p class="text-red-400 text-xs font-semibold">{{ imageErrors()[item.id] }}</p>
-      }
     }
   </app-card-preview>
 }

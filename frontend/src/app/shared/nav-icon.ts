@@ -34,7 +34,8 @@ export type NavIconName =
   | "dots-vertical"
   // Teams hub's top toolbar — the "full stats table" destination, distinct
   // from "standings" (ranked bars) since this one is a literal data grid.
-  | "table";
+  | "table"
+  | "sliders";
 
 @Component({
   selector: "app-nav-icon",
@@ -429,6 +430,16 @@ export type NavIconName =
           <line x1="4" y1="10" x2="20" y2="10" stroke="currentColor" stroke-width="1.8" />
           <line x1="9.3" y1="10" x2="9.3" y2="19" stroke="currentColor" stroke-width="1.8" />
           <line x1="14.7" y1="10" x2="14.7" y2="19" stroke="currentColor" stroke-width="1.8" />
+        }
+        @case ("sliders") {
+          <!-- Adjustment sliders — "customize/build your own", the
+               analytics builder's icon. -->
+          <line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          <line x1="12" y1="19" x2="12" y2="5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          <line x1="19" y1="19" x2="19" y2="5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          <circle cx="5" cy="9" r="2.2" fill="currentColor" stroke="none" />
+          <circle cx="12" cy="15" r="2.2" fill="currentColor" stroke="none" />
+          <circle cx="19" cy="7" r="2.2" fill="currentColor" stroke="none" />
         }
       }
     </svg>

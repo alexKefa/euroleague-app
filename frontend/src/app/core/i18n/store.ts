@@ -35,6 +35,7 @@ export const storeTranslations: Record<string, Record<Lang, string>> = {
   "store.adding": { en: "Adding…", el: "Προσθήκη…" },
   "store.add": { en: "Add", el: "Προσθήκη" },
   "store.setImage": { en: "Set image", el: "Ορισμός εικόνας" },
+  "store.adminEdit": { en: "Admin", el: "Διαχειριστής" },
   "store.closePreview": { en: "Close preview", el: "Κλείσιμο προεπισκόπησης" },
   "store.tapToFlip": { en: "Tap the card to flip it", el: "Πάτησε την κάρτα για να τη γυρίσεις" },
   "store.statsNotLinked": {

@@ -9,6 +9,7 @@ import {
   timestamp,
   primaryKey,
   uniqueIndex,
+  jsonb,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
@@ -463,6 +464,24 @@ export const tradeOfferItems = pgTable(
     tradeOfferItemUnique: uniqueIndex("trade_offer_item_unique").on(table.tradeOfferId, table.collectibleId),
   })
 );
+
+// A user's saved custom stat table — which players and which
+// playerSeasonStats columns to show, plus how to sort it. Free (not
+// points-gated — considered and deliberately dropped), capped at 5 per
+// user (enforced in routes/analyticsViews.ts, not here). Deliberately just
+// a saved *projection* over data already served by GET
+// /api/players/advanced-stats — no new stats endpoint, this table only
+// stores which rows/columns of that existing payload to show.
+export const analyticsViews = pgTable("analytics_views", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  playerIds: jsonb("player_ids").notNull().$type<string[]>(),
+  columns: jsonb("columns").notNull().$type<string[]>(),
+  sortKey: varchar("sort_key", { length: 40 }),
+  sortDesc: boolean("sort_desc").default(true).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
 
 // Relations — mainly so query.teams.findMany({ with: { ... } }) style
 // lookups work without hand-written joins later.

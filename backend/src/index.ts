@@ -19,6 +19,7 @@ import { spinRouter } from "./routes/spin.js";
 import { tradesRouter } from "./routes/trades.js";
 import { packsRouter } from "./routes/packs.js";
 import { eventsRouter } from "./routes/events.js";
+import { analyticsViewsRouter } from "./routes/analyticsViews.js";
 import { syncNews } from "./sync/newsSync.js";
 
 const app = express();
@@ -82,6 +83,7 @@ app.use("/api/spin", spinRouter);
 app.use("/api/trades", tradesRouter);
 app.use("/api/packs", packsRouter);
 app.use("/api/events", eventsRouter);
+app.use("/api/analytics-views", analyticsViewsRouter);
 
 // Serves the built Angular app (see ./Dockerfile) — absent in local dev,
 // where the frontend runs separately via `ng serve` on its own port.
