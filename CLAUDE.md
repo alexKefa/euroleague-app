@@ -96,6 +96,47 @@ If you need to apply a schema change without an interactive terminal
   `point_adjustments` is an admin-only manual grant/deduction ledger
   (`POST /predictions/points/adjust`, gated by `requireAdmin`); there is no
   bootstrap flow for the first admin — flip `users.is_admin` by hand in the DB.
+- **Predictions are submitted in one batch, not one request per tap**
+  (2026-08-26). Tapping a team on the Predictions page's "Upcoming games"
+  card only updates local component state (`pendingPicks` in
+  `predictions.ts`, layered over the last-saved `myPicks` via
+  `effectivePicks`) — no network call fires until the user taps "Complete
+  predictions", which sends the whole diff to `POST /predictions/batch` in
+  one request. `POST /predictions` and `DELETE /predictions/:gameId` (the
+  original single-pick endpoints) still exist and still work, just unused
+  by this page now — a round of ~10 picks used to mean up to 10 sequential
+  round trips against the remote DB. `POST /batch` accepts
+  `{ gameId, teamId }[]` (`teamId: null` clears that pick), validates each
+  pick independently (a stale game doesn't fail the rest of the batch,
+  returned per-gameId in an `errors` map), and writes via one multi-row
+  `onConflictDoUpdate` insert (`excluded.predicted_winner_team_id` for the
+  per-row update value) plus one `DELETE ... WHERE game_id IN (...)` for
+  clears — never one write per pick. A malformed (non-UUID) id is rejected
+  for the whole batch before any DB query runs, since Postgres's `IN`
+  clause throws for the *entire* query on one bad UUID, not just that row.
+- **`/me/summary`'s reward-check functions are tuned for round-trip count,
+  not query complexity** (2026-08-26) — measured directly against the live
+  dev backend: this endpoint took ~1.5-1.7s steady-state (nothing new to
+  grant) vs ~0.4-0.5s for `/predictions/me` and ~0.7s for
+  `/predictions/leaderboard`, because `checkAndGrantRoundRewards` and
+  `checkAndGrantLegendaryMilestones` (`services/cards.ts`) fired several
+  sequential round trips each even when nothing new happened (this driver
+  doesn't give real `Promise.all` concurrency against Neon — see the
+  round-trip-cost note in the collectibles-economy section above).
+  `checkAndGrantRoundRewards` originally fetched *every game ever played
+  across every season* plus every past claim into Node just to diff them
+  there — worse, a naive "complete round with no claim yet" single-query
+  rewrite (tried first) still matched every round a user never even
+  played, since nothing ever grants for those, so they'd resurface as
+  "pending" and get reprocessed on *every single call, forever*, once
+  enough seasons/rounds pile up historically. The fix folds the
+  `>= GREAT_ROUND_THRESHOLD` correctness check itself into the query's own
+  `HAVING` clause, so Postgres only ever returns rounds that actually
+  qualify (typically zero) — down to 1 round trip from 2-3, verified at
+  ~1.0-1.15s after both this and the equivalent `checkAndGrantLegendaryMilestones`
+  fix (combining its two scalar queries into one, same lever as
+  `getUserPoints`). `predictions.me`'s own list query is now also
+  `.limit(40)` — unbounded before, only ever grows across a season.
 - Two independent data-ingestion paths, not one because of an accident:
   `backend/src/sync/` (TypeScript, `tsx`) for standings and news, vs
   `backend/src/sync-py/` (Python + `euroleague-api`) for games/boxscores/

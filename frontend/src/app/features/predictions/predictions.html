@@ -94,6 +94,25 @@
             <span class="font-mono text-highlight font-bold text-sm">+{{ potentialPoints() }} {{ i18n.t('predictions.pts') }}</span>
           </div>
         }
+        @if (auth.isAuthenticated() && hasPendingChanges()) {
+          <button
+            type="button"
+            (click)="submitPredictions()"
+            [disabled]="submitting()"
+            appButton
+            appButtonSize="sm"
+            class="w-full mt-2"
+          >
+            @if (submitting()) {
+              <app-logo-spinner [size]="14" />
+            } @else {
+              {{ i18n.t('predictions.completePredictions') }}
+            }
+          </button>
+          @if (submitError()) {
+            <p class="text-red-500 text-[11px] font-semibold text-center mt-1.5">{{ submitError() }}</p>
+          }
+        }
       </div>
     }
 
@@ -134,6 +153,20 @@
         }
 
         @if (auth.isAuthenticated()) {
+          @if (summaryLoading()) {
+            <!-- /me/summary is a meaningfully heavier request than the
+                 picks list below (see summaryLoading's doc comment in
+                 predictions.ts) — a dedicated skeleton here instead of
+                 letting this block pop in late above an already-rendered
+                 picks list. -->
+            <div class="animate-pulse mb-3 pb-3 border-b border-line">
+              <div class="flex items-center justify-between mb-2.5">
+                <div class="h-7 w-16 bg-line rounded"></div>
+                <div class="h-5 w-24 bg-line rounded"></div>
+              </div>
+              <div class="h-8 w-full bg-line rounded-xl"></div>
+            </div>
+          }
           @if (mySummary()) {
             @if (perfectRoundRewards().length > 0) {
               <div class="flex items-center gap-2 rounded-xl bg-highlight/10 text-highlight text-xs font-bold px-3 py-2 mb-3">

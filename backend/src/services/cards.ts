@@ -1,7 +1,6 @@
-import { eq, and, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import { eq, and, isNull, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { games, predictions, roundRewards, legendaryMilestones, ownedPacks } from "../db/schema.js";
-import { computeWinnerTeamId } from "./points.js";
 
 // A round with this many correct picks (out of GAMES_PER_ROUND, but short of
 // literally perfect) grants a bonus rare — see the branch in
@@ -43,9 +42,11 @@ function tierForRewardPackType(packType: "wheelLegendary" | "wheelPro"): "legend
 
 /**
  * Finds (season, round) pairs where every game in the round is final and the
- * user predicted every one of them — then grants a card for each such round
- * not already rewarded: a legendary for a literally perfect round, a rare
- * for a "great" one (>= GREAT_ROUND_THRESHOLD correct but short of perfect).
+ * user has at least GREAT_ROUND_THRESHOLD correct picks in it (an unpicked
+ * game just doesn't count as correct, same as before — it doesn't require
+ * having predicted literally every game) — then grants a card for each such
+ * round not already rewarded: a legendary for a literally perfect round, a
+ * rare for a "great" one (short of perfect).
  * Round numbers reset every season (e.g. "round 1" exists in both 2025-26
  * and 2026-27), so completeness and idempotency are both scoped by season,
  * not round alone. The round_rewards unique index (userId, season, round) is
@@ -64,84 +65,69 @@ function tierForRewardPackType(packType: "wheelLegendary" | "wheelPro"): "legend
  * they've actually been displayed.
  */
 export async function checkAndGrantRoundRewards(userId: string): Promise<OwnedPackReward[]> {
-  // `already` doesn't actually depend on `allGames`/`completeRounds` — only
-  // on userId — so fetch both up front instead of gating it behind the
-  // completeRounds check below, which just added a needless sequential
-  // round trip in the (near-universal, once any season exists) case where
-  // completeRounds is non-empty anyway.
-  const [allGames, already] = await Promise.all([
-    db.select().from(games).where(isNotNull(games.round)),
-    db.select({ season: roundRewards.season, round: roundRewards.round }).from(roundRewards).where(eq(roundRewards.userId, userId)),
-  ]);
+  // Single query, computing correctness directly in SQL rather than
+  // pulling rows into Node to diff: a naive "complete round with no
+  // round_rewards row yet" check (tried first) still matches every
+  // historical round the user never even played — nothing ever grants for
+  // those (0 correct), so they'd resurface as "pending" and get
+  // reprocessed on *every single call, forever*, for every user, once
+  // enough seasons/rounds pile up historically. Folding the >=
+  // GREAT_ROUND_THRESHOLD check into the query's own HAVING clause means
+  // Postgres only ever returns rounds that actually qualify — typically
+  // zero — instead of every round-nobody-touched. Cuts this from 2+
+  // sequential round trips (old: fetch every game ever + every past claim,
+  // then in the qualifying case a 3rd query for this user's picks) down to
+  // 1 in the common case, since correct_count/total_games are computed
+  // here too — no separate games/picks fetch needed at all to decide
+  // packType. Against a remote DB, round-trip count matters far more than
+  // query complexity (see CLAUDE.md's note on this), and this runs on
+  // nearly every Predictions/Store/Packs/Inventory page load.
+  const qualifyingRounds = await db.execute<{ season: string; round: number; correct_count: number; total_games: number }>(sql`
+    select g.season, g.round,
+      count(*) filter (
+        where g.status = 'final' and g.home_score is not null and g.away_score is not null and g.home_score <> g.away_score
+          and pr.predicted_winner_team_id = case when g.home_score > g.away_score then g.home_team_id else g.away_team_id end
+      )::int as correct_count,
+      count(*)::int as total_games
+    from games g
+    left join predictions pr on pr.game_id = g.id and pr.user_id = ${userId}
+    where g.round is not null
+    group by g.season, g.round
+    having bool_and(g.status = 'final')
+      and count(*) filter (
+        where g.status = 'final' and g.home_score is not null and g.away_score is not null and g.home_score <> g.away_score
+          and pr.predicted_winner_team_id = case when g.home_score > g.away_score then g.home_team_id else g.away_team_id end
+      ) >= ${GREAT_ROUND_THRESHOLD}
+      and not exists (
+        select 1 from round_rewards rr
+        where rr.user_id = ${userId} and rr.season = g.season and rr.round = g.round
+      )
+  `);
 
-  const bySeasonRound = new Map<string, (typeof allGames)[number][]>();
-  for (const g of allGames) {
-    const key = `${g.season} ${g.round}`;
-    const arr = bySeasonRound.get(key) ?? [];
-    arr.push(g);
-    bySeasonRound.set(key, arr);
-  }
+  for (const { season, round, correct_count, total_games } of qualifyingRounds) {
+    // Perfect (every game right) still grants a legendary pack, unchanged
+    // in spirit. "Great" (short of perfect but at/above
+    // GREAT_ROUND_THRESHOLD, already guaranteed by the query above) grants
+    // a rare pack instead — a much more frequent, still purely
+    // accuracy-gated reward (see LEGENDARY_MILESTONE_INTERVAL's comment
+    // for why "predictions matter more" needed a lever besides points).
+    // Both grant an *unopened pack* (wheelLegendary/wheelPro), not a
+    // specific card directly — same concept as a wheel win (2026-08-26
+    // pass), so every non-purchase reward channel behaves the same way: it
+    // lands in "My Packs" for the user to open themselves, rather than
+    // some channels instantly granting a card and others making you open
+    // a pack.
+    const packType: "wheelLegendary" | "wheelPro" = correct_count === total_games ? "wheelLegendary" : "wheelPro";
 
-  const completeRounds = [...bySeasonRound.entries()].filter(([, gs]) => gs.every((g) => g.status === "final"));
+    const [claim] = await db
+      .insert(roundRewards)
+      .values({ userId, season, round, collectibleId: null })
+      .onConflictDoNothing({ target: [roundRewards.userId, roundRewards.season, roundRewards.round] })
+      .returning();
+    if (!claim) continue; // a concurrent request already claimed this round
 
-  if (completeRounds.length > 0) {
-    const alreadyRounds = new Set(already.map((r) => `${r.season} ${r.round}`));
-
-    const pendingRounds = completeRounds.filter(([key]) => !alreadyRounds.has(key));
-
-    if (pendingRounds.length > 0) {
-      // One query for this user's picks across every pending round's games,
-      // instead of one query per round — the old per-round loop re-queried
-      // predictions on every iteration, so a request could fire dozens of
-      // sequential round-trips (one per completed round in the league so
-      // far) purely to find nothing to grant.
-      const allPendingGameIds = pendingRounds.flatMap(([, gs]) => gs.map((g) => g.id));
-      const userPicks = await db
-        .select()
-        .from(predictions)
-        .where(and(eq(predictions.userId, userId), inArray(predictions.gameId, allPendingGameIds)));
-      const pickByGame = new Map(userPicks.map((p) => [p.gameId, p]));
-
-      for (const [, roundGames] of pendingRounds) {
-        const season = roundGames[0].season;
-        const round = roundGames[0].round!;
-
-        const correctCount = roundGames.reduce((count, g) => {
-          const pick = pickByGame.get(g.id);
-          if (!pick) return count;
-          const winnerTeamId = computeWinnerTeamId(g);
-          return winnerTeamId !== null && winnerTeamId === pick.predictedWinnerTeamId ? count + 1 : count;
-        }, 0);
-
-        // Perfect (every game right) still grants a legendary pack,
-        // unchanged in spirit. "Great" (short of perfect but at/above
-        // GREAT_ROUND_THRESHOLD) grants a rare pack instead — a much more
-        // frequent, still purely accuracy-gated reward (see
-        // LEGENDARY_MILESTONE_INTERVAL's comment for why "predictions
-        // matter more" needed a lever besides points). Anything below that
-        // threshold earns nothing and isn't claimed here, same as before
-        // this pass. Both grant an *unopened pack* (wheelLegendary/
-        // wheelPro), not a specific card directly — same concept as a
-        // wheel win (2026-08-26 pass), so every non-purchase reward channel
-        // behaves the same way: it lands in "My Packs" for the user to open
-        // themselves, rather than some channels instantly granting a card
-        // and others making you open a pack.
-        let packType: "wheelLegendary" | "wheelPro" | null = null;
-        if (correctCount === roundGames.length) packType = "wheelLegendary";
-        else if (correctCount >= GREAT_ROUND_THRESHOLD) packType = "wheelPro";
-        if (packType === null) continue;
-
-        const [claim] = await db
-          .insert(roundRewards)
-          .values({ userId, season, round, collectibleId: null })
-          .onConflictDoNothing({ target: [roundRewards.userId, roundRewards.season, roundRewards.round] })
-          .returning();
-        if (!claim) continue; // a concurrent request already claimed this round
-
-        const [pack] = await db.insert(ownedPacks).values({ userId, packType }).returning();
-        await db.update(roundRewards).set({ ownedPackId: pack.id }).where(eq(roundRewards.id, claim.id));
-      }
-    }
+    const [pack] = await db.insert(ownedPacks).values({ userId, packType }).returning();
+    await db.update(roundRewards).set({ ownedPackId: pack.id }).where(eq(roundRewards.id, claim.id));
   }
 
   const unseen = await db
@@ -182,26 +168,29 @@ export async function markRoundRewardsSeen(userId: string): Promise<void> {
  * comment.
  */
 export async function checkAndGrantLegendaryMilestones(userId: string): Promise<OwnedPackReward[]> {
-  const [correctRow] = await db.execute<{ correct: number }>(sql`
-    select count(*)::int as correct
-    from ${predictions} p
-    join ${games} g on p.game_id = g.id
-    where p.user_id = ${userId}
-      and g.status = 'final'
-      and g.home_score is not null
-      and g.away_score is not null
-      and g.home_score <> g.away_score
-      and p.predicted_winner_team_id = case when g.home_score > g.away_score then g.home_team_id else g.away_team_id end
+  // One round trip for both numbers (scalar subqueries), not two sequential
+  // queries — same lever as getUserPoints (services/points.ts) and
+  // checkAndGrantRoundRewards above: against a remote DB, round-trip count
+  // is what's expensive, not query complexity.
+  const [{ correct, claimed_count }] = await db.execute<{ correct: number; claimed_count: number }>(sql`
+    select
+      (
+        select count(*)::int
+        from ${predictions} p
+        join ${games} g on p.game_id = g.id
+        where p.user_id = ${userId}
+          and g.status = 'final'
+          and g.home_score is not null
+          and g.away_score is not null
+          and g.home_score <> g.away_score
+          and p.predicted_winner_team_id = case when g.home_score > g.away_score then g.home_team_id else g.away_team_id end
+      ) as correct,
+      (select count(*)::int from ${legendaryMilestones} where user_id = ${userId}) as claimed_count
   `);
-  const eligibleMilestones = Math.floor((correctRow?.correct ?? 0) / LEGENDARY_MILESTONE_INTERVAL);
+  const eligibleMilestones = Math.floor(correct / LEGENDARY_MILESTONE_INTERVAL);
 
-  if (eligibleMilestones > 0) {
-    const [{ claimedCount }] = await db
-      .select({ claimedCount: sql<number>`count(*)::int` })
-      .from(legendaryMilestones)
-      .where(eq(legendaryMilestones.userId, userId));
-
-    for (let milestoneNumber = claimedCount + 1; milestoneNumber <= eligibleMilestones; milestoneNumber++) {
+  if (eligibleMilestones > claimed_count) {
+    for (let milestoneNumber = claimed_count + 1; milestoneNumber <= eligibleMilestones; milestoneNumber++) {
       const [claim] = await db
         .insert(legendaryMilestones)
         .values({ userId, milestoneNumber, collectibleId: null })

@@ -181,15 +181,110 @@ predictionsRouter.delete("/:gameId", requireAuth, async (req, res) => {
   }
 });
 
+// Lets the Predictions page save a whole round's worth of picks (and clears)
+// in one request instead of one POST/DELETE per tap — the UI now only
+// submits on an explicit "Complete predictions" click, so a round of ~10
+// games used to mean up to 10 sequential round trips against the remote DB
+// just from working through one round. teamId: null clears that game's pick
+// (same semantics as DELETE /:gameId); anything else upserts it (same
+// semantics as POST /). Per-pick validation failures are collected and
+// returned rather than failing the whole batch — one stale game (started
+// since the user opened the page) shouldn't lose everything else they
+// picked.
+predictionsRouter.post("/batch", requireAuth, async (req, res) => {
+  try {
+    const { picks } = req.body ?? {};
+    if (!Array.isArray(picks) || picks.length === 0) {
+      res.status(400).json({ error: "picks must be a non-empty array" });
+      return;
+    }
+    if (picks.length > 20) {
+      res.status(400).json({ error: "Too many picks in one batch" });
+      return;
+    }
+    // Malformed UUIDs must be rejected here, not left to the games lookup
+    // below — inArray(games.id, ...) with even one non-UUID string throws a
+    // Postgres syntax error for the *entire* query, not just that row,
+    // which would otherwise crash this whole batch with a 500 instead of
+    // reporting it as a per-pick error like every other rejected pick.
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    for (const p of picks) {
+      if (
+        typeof p?.gameId !== "string" ||
+        !uuidPattern.test(p.gameId) ||
+        (p.teamId !== null && (typeof p.teamId !== "string" || !uuidPattern.test(p.teamId)))
+      ) {
+        res.status(400).json({ error: "Each pick needs a valid gameId and a teamId (or null to clear)" });
+        return;
+      }
+    }
+
+    const gameIds: string[] = picks.map((p: { gameId: string }) => p.gameId);
+    const gameRows = await db.select().from(games).where(inArray(games.id, gameIds));
+    const gameById = new Map(gameRows.map((g) => [g.id, g]));
+
+    const toUpsert: { userId: string; gameId: string; predictedWinnerTeamId: string }[] = [];
+    const toDeleteGameIds: string[] = [];
+    const errors: Record<string, string> = {};
+
+    for (const { gameId, teamId } of picks as { gameId: string; teamId: string | null }[]) {
+      const game = gameById.get(gameId);
+      if (!game) {
+        errors[gameId] = "Game not found";
+        continue;
+      }
+      if (game.status !== "scheduled" || new Date(game.tipoffAt) <= new Date()) {
+        errors[gameId] = "Predictions can only be changed before a game starts";
+        continue;
+      }
+      if (teamId === null) {
+        toDeleteGameIds.push(gameId);
+      } else if (teamId !== game.homeTeamId && teamId !== game.awayTeamId) {
+        errors[gameId] = "teamId must be one of the two teams playing this game";
+      } else {
+        toUpsert.push({ userId: req.userId!, gameId, predictedWinnerTeamId: teamId });
+      }
+    }
+
+    // Batched multi-row writes, not one round trip per pick — same lever
+    // already used for pack rolls (services/packs.ts) against this DB.
+    if (toUpsert.length > 0) {
+      await db
+        .insert(predictions)
+        .values(toUpsert)
+        .onConflictDoUpdate({
+          target: [predictions.userId, predictions.gameId],
+          set: { predictedWinnerTeamId: sql`excluded.predicted_winner_team_id` },
+        });
+    }
+    if (toDeleteGameIds.length > 0) {
+      await db
+        .delete(predictions)
+        .where(and(eq(predictions.userId, req.userId!), inArray(predictions.gameId, toDeleteGameIds)));
+    }
+
+    res.json({ ok: true, errors: Object.keys(errors).length > 0 ? errors : undefined });
+  } catch (err) {
+    console.error("POST /api/predictions/batch failed:", err);
+    res.status(500).json({ error: "Failed to save predictions" });
+  }
+});
+
 predictionsRouter.get("/me", requireAuth, async (req, res) => {
   try {
+    // Capped rather than the user's entire history — this list is a
+    // scrollable recent-picks panel, not an export, and an uncapped fetch
+    // only ever grows (unbounded across a season, worse across several)
+    // for no upside once it's already well past what the panel can
+    // usefully show.
     const rows = await db
       .select({ prediction: predictions, game: games, predictedTeam: teams })
       .from(predictions)
       .innerJoin(games, eq(predictions.gameId, games.id))
       .innerJoin(teams, eq(predictions.predictedWinnerTeamId, teams.id))
       .where(eq(predictions.userId, req.userId!))
-      .orderBy(desc(games.tipoffAt));
+      .orderBy(desc(games.tipoffAt))
+      .limit(40);
 
     const payload = rows.map(({ prediction, game, predictedTeam }) => {
       const winnerTeamId = computeWinnerTeamId(game);

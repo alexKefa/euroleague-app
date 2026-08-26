@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, effect, inject, signal } from "@angular/core";
+import { Component, OnInit, HostListener, computed, effect, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
@@ -10,6 +10,8 @@ import { TeamBadgeComponent } from "../../shared/team-badge";
 import { PageHintComponent } from "../../shared/page-hint";
 import { NavIconComponent, NavIconName } from "../../shared/nav-icon";
 import { SkeletonComponent } from "../../shared/skeleton";
+import { ButtonDirective } from "../../shared/button.directive";
+import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 
 // Matches schedule.ts — no season picker here either, and predictions
 // should only ever be open for the round a user could actually be watching.
@@ -56,7 +58,16 @@ function mergeById(existing: RewardPack[], incoming: RewardPack[]): RewardPack[]
 @Component({
   selector: "app-predictions",
   standalone: true,
-  imports: [CommonModule, RouterLink, TeamBadgeComponent, PageHintComponent, NavIconComponent, SkeletonComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    TeamBadgeComponent,
+    PageHintComponent,
+    NavIconComponent,
+    SkeletonComponent,
+    ButtonDirective,
+    LogoSpinnerComponent,
+  ],
   templateUrl: "./predictions.html",
 })
 export class PredictionsComponent implements OnInit {
@@ -76,8 +87,42 @@ export class PredictionsComponent implements OnInit {
   // popping in with no skeleton over the gap once `loading` had already
   // flipped false.
   readonly upcomingGamesLoading = signal(true);
-  // gameId -> predicted team id, for games the user has already picked
+  // Also separate from `loading` — /me/summary (points/badges/reward
+  // banners) is a meaningfully heavier request than /me (the picks list
+  // `loading` gates): it triggers several reward-check functions that,
+  // against this remote DB, add up to several sequential round trips even
+  // when nothing new happened (~1-1.5s vs. ~0.4-0.5s for the picks list
+  // alone). Without its own gate, the points/badges block simply popped in
+  // late above an already-rendered picks list once `loading` had already
+  // flipped — same "no skeleton over the gap" issue upcomingGamesLoading
+  // exists to avoid, just for this block instead.
+  readonly summaryLoading = signal(true);
+  // gameId -> predicted team id *as last confirmed by the server* — see
+  // pendingPicks below for the user's not-yet-submitted local changes on
+  // top of this.
   readonly myPicks = signal<Map<string, string>>(new Map());
+  // gameId -> teamId (or null for "explicitly cleared"), for taps not yet
+  // sent to the backend. Tapping a team button no longer fires a request
+  // per tap — the old immediate POST/DELETE-per-tap meant picking a full
+  // round of ~10 games was up to 10 sequential round trips against the
+  // remote DB. Instead taps only update this local diff; effectivePicks
+  // below layers it over myPicks for display, and submitPredictions() sends
+  // the whole diff in one request when the user taps "Complete
+  // predictions". Only ever holds genuine differences from myPicks (see
+  // togglePick) so hasPendingChanges() is just "is this non-empty".
+  readonly pendingPicks = signal<Map<string, string | null>>(new Map());
+  readonly submitting = signal(false);
+  readonly submitError = signal<string | null>(null);
+
+  readonly effectivePicks = computed(() => {
+    const merged = new Map(this.myPicks());
+    for (const [gameId, teamId] of this.pendingPicks()) {
+      if (teamId === null) merged.delete(gameId);
+      else merged.set(gameId, teamId);
+    }
+    return merged;
+  });
+  readonly hasPendingChanges = computed(() => this.pendingPicks().size > 0);
   // teamId -> logoUrl — Prediction.predictedTeam doesn't carry a logo (it's
   // a lightweight ref), so it's looked up here for the "My picks" list;
   // upcoming games already have logoUrl on their own team objects.
@@ -103,14 +148,14 @@ export class PredictionsComponent implements OnInit {
 
   // How many points this round's picks are worth if every one of them hits —
   // every game listed in upcomingGames is still "scheduled" by construction
-  // (see ngOnInit's filter below), so any of them with a pick in myPicks is
-  // necessarily still pending. Recomputes live off the same signals the pick
-  // buttons already read, so it updates the instant a pick is toggled —
-  // no extra round trip, no waiting for the backend to confirm.
+  // (see ngOnInit's filter below), so any of them with a pick is necessarily
+  // still unresolved. Reads effectivePicks (not myPicks) so this updates
+  // the instant a pick is tapped, before it's even been submitted — no
+  // extra round trip, no waiting for the backend to confirm.
   readonly potentialPoints = computed(() => {
-    const picks = this.myPicks();
-    const pendingPickCount = this.upcomingGames().filter((g) => picks.has(g.id)).length;
-    return pendingPickCount * POINTS_PER_CORRECT;
+    const picks = this.effectivePicks();
+    const unresolvedPickCount = this.upcomingGames().filter((g) => picks.has(g.id)).length;
+    return unresolvedPickCount * POINTS_PER_CORRECT;
   });
 
   constructor() {
@@ -172,6 +217,7 @@ export class PredictionsComponent implements OnInit {
       this.refreshMySummary();
     } else {
       this.loading.set(false);
+      this.summaryLoading.set(false);
     }
   }
 
@@ -208,8 +254,9 @@ export class PredictionsComponent implements OnInit {
           this.shownMilestoneRewards.update((existing) => mergeById(existing, summary.newMilestoneRewards));
           this.api.ackMilestoneRewards().subscribe({ error: () => {} });
         }
+        this.summaryLoading.set(false);
       },
-      error: () => {}, // non-critical
+      error: () => this.summaryLoading.set(false), // non-critical
     });
   }
 
@@ -241,8 +288,10 @@ export class PredictionsComponent implements OnInit {
     return this.i18n.t(`predictions.badge.${id}.description`);
   }
 
+  // Reads effectivePicks (saved + not-yet-submitted local changes layered
+  // on top), not myPicks directly — see pendingPicks' doc comment.
   myPickFor(game: Game): string | null {
-    return this.myPicks().get(game.id) ?? null;
+    return this.effectivePicks().get(game.id) ?? null;
   }
 
   // Once a game leaves "scheduled" (live or final), picks are closed —
@@ -260,56 +309,83 @@ export class PredictionsComponent implements OnInit {
   // Tapping the already-picked team clears the pick instead of re-submitting
   // it — same "tap it again to clear" pattern as the favorite-team picker
   // on Profile, so a mistaken pick doesn't require picking the other team
-  // just to undo it.
+  // just to undo it. Purely local — no request fires here at all (see
+  // pendingPicks' doc comment); only computes the new desired value and
+  // records it as a diff against myPicks (or drops the diff entirely if it
+  // now matches myPicks again, e.g. tapping a team, then tapping it back
+  // off before ever submitting).
   togglePick(game: Game, teamId: string): void {
-    if (this.isLocked(game)) return;
-    if (this.myPickFor(game) === teamId) {
-      this.clearPick(game);
+    if (this.isLocked(game) || !this.auth.isAuthenticated()) return;
+    const current = this.myPickFor(game);
+    const newValue = current === teamId ? null : teamId;
+    const savedValue = this.myPicks().get(game.id) ?? null;
+
+    const pending = new Map(this.pendingPicks());
+    if (newValue === savedValue) {
+      pending.delete(game.id);
     } else {
-      this.predict(game, teamId);
+      pending.set(game.id, newValue);
     }
-  }
+    this.pendingPicks.set(pending);
 
-  private predict(game: Game, teamId: string): void {
-    if (!this.auth.isAuthenticated()) return;
-    // Optimistic update — the backend still validates and is the source of truth.
-    const map = new Map(this.myPicks());
-    map.set(game.id, teamId);
-    this.myPicks.set(map);
     // Keeps the live-game nav badge accurate mid-session — see the comment
-    // on EventsService.markPredicted().
-    this.events.markPredicted(game.id);
+    // on EventsService.markPredicted(). Optimistic (fires on the tap, not
+    // once actually submitted), same trade-off as the rest of this local-
+    // first flow: worst case an unsubmitted tap leaves the badge marked
+    // until the next full picks refresh.
+    if (newValue) this.events.markPredicted(game.id);
+    else this.events.unmarkPredicted(game.id);
+  }
 
-    this.api.submitPrediction(game.id, teamId).subscribe({
-      error: () => {
-        // Roll back on failure (e.g. game started in the meantime).
-        const rollback = new Map(this.myPicks());
-        rollback.delete(game.id);
-        this.myPicks.set(rollback);
-        this.events.unmarkPredicted(game.id);
+  // Sends every pending tap/clear in one request instead of one per tap —
+  // see pendingPicks' doc comment for why. Only called from the "Complete
+  // predictions" button, never automatically.
+  submitPredictions(): void {
+    if (!this.hasPendingChanges() || this.submitting()) return;
+    const picks = [...this.pendingPicks().entries()].map(([gameId, teamId]) => ({ gameId, teamId }));
+
+    this.submitting.set(true);
+    this.submitError.set(null);
+    this.api.submitPredictionsBatch(picks).subscribe({
+      next: (res) => {
+        this.submitting.set(false);
+        const saved = new Map(this.myPicks());
+        // Anything the backend rejected (e.g. a game that started while the
+        // page was open) stays in remainingPending rather than being
+        // treated as saved — the disabled button on that game will reflect
+        // isLocked() on next refresh either way, but this keeps the
+        // "unsaved changes" state honest in the meantime.
+        const remainingPending = new Map<string, string | null>();
+        for (const [gameId, teamId] of this.pendingPicks()) {
+          if (res.errors?.[gameId]) {
+            remainingPending.set(gameId, teamId);
+            continue;
+          }
+          if (teamId === null) saved.delete(gameId);
+          else saved.set(gameId, teamId);
+        }
+        this.myPicks.set(saved);
+        this.pendingPicks.set(remainingPending);
+        if (res.errors && Object.keys(res.errors).length > 0) {
+          this.submitError.set(Object.values(res.errors)[0]);
+        }
+      },
+      error: (err) => {
+        this.submitting.set(false);
+        this.submitError.set(err?.error?.error ?? "Failed to save your predictions — try again.");
       },
     });
   }
 
-  private clearPick(game: Game): void {
-    if (!this.auth.isAuthenticated()) return;
-    const previousTeamId = this.myPickFor(game);
-    if (!previousTeamId) return;
-
-    // Optimistic update, same pattern as predict() — roll back to the prior
-    // pick if the backend rejects it (e.g. the game started in the meantime).
-    const map = new Map(this.myPicks());
-    map.delete(game.id);
-    this.myPicks.set(map);
-    this.events.unmarkPredicted(game.id);
-
-    this.api.removePrediction(game.id).subscribe({
-      error: () => {
-        const rollback = new Map(this.myPicks());
-        rollback.set(game.id, previousTeamId);
-        this.myPicks.set(rollback);
-        this.events.markPredicted(game.id);
-      },
-    });
+  // A browser refresh/close/back would otherwise silently discard taps that
+  // were never submitted — this only covers leaving the tab/page itself
+  // (native browser navigation), not clicking to another route within the
+  // app, which Angular's router handles without ever firing this event.
+  @HostListener("window:beforeunload", ["$event"])
+  warnOnUnsavedPicks(event: BeforeUnloadEvent): void {
+    if (this.hasPendingChanges()) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
   }
 }

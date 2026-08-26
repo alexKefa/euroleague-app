@@ -5,9 +5,10 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
   "predictions.upcomingGames": { en: "Upcoming games", el: "Επερχόμενοι αγώνες" },
   "predictions.vs": { en: "vs", el: "vs" },
   "predictions.tapToClearHint": {
-    en: "Tap your pick again to remove it.",
-    el: "Πάτησε ξανά την επιλογή σου για να την αφαιρέσεις.",
+    en: "Tap to pick, tap again to clear, then complete predictions to save.",
+    el: "Πάτησε για να διαλέξεις, ξανά για να αφαιρέσεις, μετά ολοκλήρωσε τις προβλέψεις σου.",
   },
+  "predictions.completePredictions": { en: "Complete predictions", el: "Ολοκλήρωση προβλέψεων" },
   "predictions.myPicks": { en: "My picks", el: "Οι προβλέψεις μου" },
   "predictions.potentialPoints": { en: "If they all hit", el: "Αν βγουν όλες σωστές" },
   "predictions.loginPromptSuffix": {

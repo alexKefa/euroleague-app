@@ -149,12 +149,13 @@ export class ApiService {
     return this.http.post<{ running: boolean }>(`${API_BASE_URL}/events/simulate/complete`, {});
   }
 
-  submitPrediction(gameId: string, teamId: string): Observable<unknown> {
-    return this.http.post(`${API_BASE_URL}/predictions`, { gameId, teamId });
-  }
-
-  removePrediction(gameId: string): Observable<unknown> {
-    return this.http.delete(`${API_BASE_URL}/predictions/${gameId}`);
+  // One request for a whole round's worth of picks/clears, submitted only
+  // once the user taps "Complete predictions" — not one POST/DELETE per
+  // tap. teamId: null clears that game's pick. errors (if any) is keyed by
+  // gameId, for picks the backend rejected (e.g. a game that started while
+  // the page was open) without failing the rest of the batch.
+  submitPredictionsBatch(picks: { gameId: string; teamId: string | null }[]): Observable<{ ok: boolean; errors?: Record<string, string> }> {
+    return this.http.post<{ ok: boolean; errors?: Record<string, string> }>(`${API_BASE_URL}/predictions/batch`, { picks });
   }
 
   getMyPredictions(): Observable<Prediction[]> {
