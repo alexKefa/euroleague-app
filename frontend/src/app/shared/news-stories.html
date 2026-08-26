@@ -4,7 +4,7 @@
       <button
         type="button"
         (click)="openAt(i)"
-        class="flex flex-col items-center gap-1 shrink-0 w-16 focus:outline-none"
+        class="flex flex-col items-center gap-1 shrink-0 w-28 focus:outline-none"
         [attr.aria-label]="i18n.t('news.previewAriaPrefix') + ' ' + article.title"
       >
         <span class="story-ring" [class.story-ring--seen]="isViewed(article)">
@@ -18,7 +18,14 @@
             }
           </span>
         </span>
-        <span class="text-[10px] font-bold text-muted truncate w-full text-center">{{ article.sourceName }}</span>
+        <!-- The tease (2026-08-26): a headline, even clipped, tells you
+             whether to tap far better than which outlet ran it alone did.
+             Source stays its own line below, not folded into the clamped
+             title text — a long headline filling all 4 lines would push a
+             same-line "(Source)" past the clamp and just drop it silently;
+             a separate single-line caption can't lose it that way. -->
+        <span class="text-[11px] font-bold leading-tight line-clamp-4 text-center">{{ article.title }}</span>
+        <span class="text-[9px] font-semibold text-muted truncate w-full text-center">{{ article.sourceName }}</span>
       </button>
     }
   </div>
