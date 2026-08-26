@@ -10,6 +10,16 @@
   -webkit-touch-callout: none;
 }
 
+/* Swipe-down-to-dismiss (news-stories.ts's onStoryPointer* handlers) —
+   applied only while NOT actively dragging, so the finger tracks 1:1
+   during the gesture itself and only the release (snap back, or the fade
+   out on close) animates. */
+.story-drag-transition {
+  transition:
+    transform 0.25s ease,
+    opacity 0.25s ease;
+}
+
 /* No visible scrollbar on the stories rail — it's meant to read as a swipeable row, not a scroll area with chrome. */
 .stories-rail {
   scrollbar-width: none;

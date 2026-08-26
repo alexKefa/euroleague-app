@@ -21,6 +21,9 @@ import { RetryImgDirective } from "./retry-img.directive";
 
 const STORY_DURATION_MS = 5000;
 const TICK_MS = 50;
+// How far down (px) a swipe needs to travel before it counts as
+// "dismiss", not just an accidental drag mid-tap.
+const SWIPE_CLOSE_THRESHOLD_PX = 100;
 
 // Instagram-style "stories" over the news feed we already sync — a circular
 // avatar rail (one ring per article, the article's own image as the
@@ -116,6 +119,10 @@ export class NewsStoriesComponent implements OnChanges, AfterViewInit, OnDestroy
   close(): void {
     this.stopTimer();
     this.activeIndex.set(null);
+    this.dragOffsetY.set(0);
+    this.isDragging.set(false);
+    this.dragStartX = null;
+    this.dragStartY = null;
   }
 
   next(): void {
@@ -136,12 +143,62 @@ export class NewsStoriesComponent implements OnChanges, AfterViewInit, OnDestroy
     this.openAt(Math.max(0, idx - 1));
   }
 
-  pauseTimer(): void {
+  private pauseTimer(): void {
     this.stopTimer();
   }
 
-  resumeTimer(): void {
+  private resumeTimer(): void {
     if (this.activeIndex() !== null && !this.timerHandle) this.startTimer(this.progress());
+  }
+
+  // Swipe-down-to-dismiss, like Instagram — the X button still works too,
+  // this is additive. dragStartX/Y are plain fields, not signals: they're
+  // only ever read synchronously within the same gesture, never rendered.
+  private dragStartX: number | null = null;
+  private dragStartY: number | null = null;
+  readonly dragOffsetY = signal(0);
+  readonly isDragging = signal(false);
+  // Fades out as the story's dragged down, so releasing mid-drag reads as
+  // "this is about to dismiss" rather than the image just silently moving.
+  readonly dragOpacity = computed(() => Math.max(0.4, 1 - this.dragOffsetY() / 400));
+
+  onStoryPointerDown(event: PointerEvent): void {
+    this.dragStartX = event.clientX;
+    this.dragStartY = event.clientY;
+    this.isDragging.set(true);
+    this.pauseTimer();
+  }
+
+  onStoryPointerMove(event: PointerEvent): void {
+    if (this.dragStartY === null) return;
+    const deltaY = event.clientY - this.dragStartY;
+    // Only follow downward drags — an upward drag has nothing to reveal
+    // here (no "more info" sheet), so it shouldn't visually tug the story.
+    this.dragOffsetY.set(Math.max(0, deltaY));
+  }
+
+  // Shared by pointerup and pointerleave/pointercancel (a finger dragged
+  // off the story area without a clean release still needs to resolve the
+  // gesture one way or the other) — both carry the same clientX/clientY
+  // fields PointerEvent always has.
+  onStoryPointerEnd(event: PointerEvent): void {
+    const startX = this.dragStartX;
+    const startY = this.dragStartY;
+    this.dragStartX = null;
+    this.dragStartY = null;
+    this.isDragging.set(false);
+
+    const deltaY = startY === null ? 0 : event.clientY - startY;
+    const deltaX = startX === null ? 0 : event.clientX - startX;
+
+    if (deltaY > SWIPE_CLOSE_THRESHOLD_PX && Math.abs(deltaY) > Math.abs(deltaX)) {
+      this.dragOffsetY.set(0);
+      this.close();
+      return;
+    }
+
+    this.dragOffsetY.set(0);
+    this.resumeTimer();
   }
 
   private markViewed(index: number): void {
