@@ -527,6 +527,16 @@ export const analyticsViews = pgTable("analytics_views", {
   name: text("name").notNull(),
   playerIds: jsonb("player_ids").notNull().$type<string[]>(),
   columns: jsonb("columns").notNull().$type<string[]>(),
+  // User-defined "spreadsheet cell" columns — {id, label, expression}, e.g.
+  // {label: "Scoring Load", expression: "pointsPerGame + assistsPerGame * 1.5"}.
+  // Evaluated entirely client-side (features/analytics-builder/formula.ts)
+  // against the same advanced-stats fields `columns` picks from — this
+  // table only stores the definition, never a computed value, same spirit
+  // as `columns` storing keys rather than snapshotted numbers.
+  customColumns: jsonb("custom_columns")
+    .notNull()
+    .default([])
+    .$type<{ id: string; label: string; expression: string }[]>(),
   sortKey: varchar("sort_key", { length: 40 }),
   sortDesc: boolean("sort_desc").default(true).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

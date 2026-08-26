@@ -87,12 +87,19 @@ export interface PlayerAdvancedStats {
 // sort it. Free (not points-gated), capped at 5 per user server-side. Pure
 // projection over the same /api/players/advanced-stats payload — no
 // separate stats fetch.
+export interface AnalyticsViewCustomColumn {
+  id: string;
+  label: string;
+  expression: string;
+}
+
 export interface AnalyticsView {
   id: string;
   userId: string;
   name: string;
   playerIds: string[];
   columns: string[];
+  customColumns: AnalyticsViewCustomColumn[];
   sortKey: string | null;
   sortDesc: boolean;
   createdAt: string;

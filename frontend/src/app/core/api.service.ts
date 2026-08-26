@@ -13,6 +13,7 @@ import {
   RoundMvp,
   PlayerAdvancedStats,
   AnalyticsView,
+  AnalyticsViewCustomColumn,
   NewsArticle,
   NewsSyncStatus,
   Game,
@@ -96,6 +97,7 @@ export class ApiService {
     name: string;
     playerIds: string[];
     columns: string[];
+    customColumns: AnalyticsViewCustomColumn[];
     sortKey: string | null;
     sortDesc: boolean;
   }): Observable<AnalyticsView> {
@@ -104,7 +106,14 @@ export class ApiService {
 
   updateAnalyticsView(
     id: string,
-    body: { name: string; playerIds: string[]; columns: string[]; sortKey: string | null; sortDesc: boolean }
+    body: {
+      name: string;
+      playerIds: string[];
+      columns: string[];
+      customColumns: AnalyticsViewCustomColumn[];
+      sortKey: string | null;
+      sortDesc: boolean;
+    }
   ): Observable<AnalyticsView> {
     return this.http.patch<AnalyticsView>(`${API_BASE_URL}/analytics-views/${id}`, body);
   }

@@ -26,6 +26,15 @@ export const analyticsBuilderTranslations: Record<string, Record<Lang, string>> 
   "builder.templateHint": { en: "Ranked by PIR — swap players below anytime.", el: "Κατάταξη με βάση το PIR — άλλαξε παίκτες παρακάτω όποτε θες." },
   "builder.searchPlaceholder": { en: "Search to add a player…", el: "Αναζήτηση για προσθήκη παίκτη…" },
   "builder.columnsLabel": { en: "Columns", el: "Στήλες" },
+  "builder.customColumnsLabel": { en: "Custom columns", el: "Προσαρμοσμένες στήλες" },
+  "builder.customColumnLabelPlaceholder": { en: "Name", el: "Όνομα" },
+  "builder.customColumnExpressionPlaceholder": { en: "e.g. pointsPerGame / possessionsPerGame", el: "π.χ. pointsPerGame / possessionsPerGame" },
+  "builder.addCustomColumn": { en: "+ Add custom column", el: "+ Προσθήκη προσαρμοσμένης στήλης" },
+  "builder.removeCustomColumn": { en: "Remove custom column", el: "Αφαίρεση προσαρμοσμένης στήλης" },
+  "builder.customColumnFieldsHint": { en: "Fields you can use: ", el: "Πεδία που μπορείς να χρησιμοποιήσεις: " },
+  "builder.customColumnErrorLabel": { en: "Give this column a name.", el: "Δώσε ένα όνομα σε αυτή τη στήλη." },
+  "builder.customColumnErrorLabelLength": { en: "Name is too long (max 40 characters).", el: "Το όνομα είναι πολύ μεγάλο (μέγιστο 40 χαρακτήρες)." },
+  "builder.customColumnErrorExpression": { en: "Give this column a formula.", el: "Δώσε έναν τύπο σε αυτή τη στήλη." },
   "builder.save": { en: "Save view", el: "Αποθήκευση προβολής" },
   "builder.cancel": { en: "Cancel", el: "Ακύρωση" },
   "builder.delete": { en: "Delete", el: "Διαγραφή" },
@@ -38,5 +47,40 @@ export const analyticsBuilderTranslations: Record<string, Record<Lang, string>> 
   "builder.formErrorIncomplete": {
     en: "Give it a name, at least one player, and at least one column.",
     el: "Δώσε ένα όνομα, τουλάχιστον έναν παίκτη και τουλάχιστον μία στήλη.",
+  },
+
+  // The "what does this mean" legend next to a saved view's name — one
+  // entry per built-in column (COLUMN_LEGEND_KEYS in analytics-builder.ts).
+  // Custom columns don't need an entry here; their formula text is shown
+  // as-is instead.
+  "builder.legendGamesPlayed": { en: "Games played this season", el: "Αγώνες που έπαιξε φέτος" },
+  "builder.legendMinutesPerGame": { en: "Minutes played per game", el: "Λεπτά συμμετοχής ανά αγώνα" },
+  "builder.legendPointsPerGame": { en: "Points scored per game", el: "Πόντοι ανά αγώνα" },
+  "builder.legendValuation": {
+    en: "Performance Index Rating — EuroLeague's overall efficiency stat",
+    el: "Performance Index Rating — ο συνολικός δείκτης απόδοσης της EuroLeague",
+  },
+  "builder.legendTrueShootingPct": {
+    en: "True shooting % — scoring efficiency counting free throws and threes",
+    el: "True shooting % — επιθετική απόδοση με βολές και τρίποντα",
+  },
+  "builder.legendEffectiveFieldGoalPct": {
+    en: "Effective field goal % — weights three-pointers appropriately",
+    el: "Effective field goal % — δίνει σωστή βαρύτητα στα τρίποντα",
+  },
+  "builder.legendOffensiveReboundPct": {
+    en: "Share of available offensive rebounds grabbed while on court",
+    el: "Ποσοστό διαθέσιμων επιθετικών ριμπάουντ που μάζεψε όσο ήταν στο παρκέ",
+  },
+  "builder.legendDefensiveReboundPct": {
+    en: "Share of available defensive rebounds grabbed while on court",
+    el: "Ποσοστό διαθέσιμων αμυντικών ριμπάουντ που μάζεψε όσο ήταν στο παρκέ",
+  },
+  "builder.legendAssistToTurnoverRatio": { en: "Assists per turnover — playmaking efficiency", el: "Ασίστ ανά λάθος — απόδοση στη δημιουργία παιχνιδιού" },
+  "builder.legendTurnoverRatio": { en: "Turnovers per 100 plays", el: "Λάθη ανά 100 φάσεις" },
+  "builder.legendPossessionsPerGame": { en: "Possessions per game", el: "Κατοχές ανά αγώνα" },
+  "builder.legendUsagePercentage": {
+    en: "Share of the team's plays used while on court",
+    el: "Ποσοστό των φάσεων της ομάδας που χρησιμοποίησε όσο ήταν στο παρκέ",
   },
 };

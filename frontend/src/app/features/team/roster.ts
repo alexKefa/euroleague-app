@@ -73,6 +73,7 @@ export class TeamRosterComponent implements OnInit {
     { code: "AST%", key: "roster.legendAST" },
     { code: "TOV%", key: "roster.legendTOV" },
     { code: "POSS", key: "roster.legendPOSS" },
+    { code: "USG%", key: "roster.legendUSG" },
   ];
 
   readonly statLegendEntries = computed<StatLegendEntry[]>(() => {

@@ -7,6 +7,35 @@ import { requireAuth } from "../auth/middleware.js";
 export const analyticsViewsRouter = Router();
 
 const MAX_VIEWS_PER_USER = 5;
+const MAX_CUSTOM_COLUMNS = 3;
+
+interface CustomColumn {
+  id: string;
+  label: string;
+  expression: string;
+}
+
+// Shape/length caps only — never evaluated or formula-checked server-side.
+// The expression is opaque text as far as this route is concerned; it's
+// parsed and run entirely client-side (features/analytics-builder/formula.ts)
+// against data that route already scopes to the requesting user, so a
+// malformed or malicious-looking expression here can't do anything worse
+// than fail to render in its owner's own browser.
+function parseCustomColumns(value: unknown): CustomColumn[] | null {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.length > MAX_CUSTOM_COLUMNS) return null;
+  const out: CustomColumn[] = [];
+  for (const entry of value) {
+    if (!entry || typeof entry !== "object") return null;
+    const e = entry as Record<string, unknown>;
+    const id = typeof e.id === "string" ? e.id : "";
+    const label = typeof e.label === "string" ? e.label.trim() : "";
+    const expression = typeof e.expression === "string" ? e.expression.trim() : "";
+    if (!id || !label || label.length > 40 || !expression || expression.length > 200) return null;
+    out.push({ id, label, expression });
+  }
+  return out;
+}
 
 // Every user's own saved custom stat tables — not points-gated, just
 // requires login. The view itself is a pure projection (which players,
@@ -27,16 +56,19 @@ analyticsViewsRouter.get("/", requireAuth, async (req, res) => {
   }
 });
 
-function validateBody(body: unknown): { name: string; playerIds: string[]; columns: string[]; sortKey: string | null; sortDesc: boolean } | null {
+function validateBody(
+  body: unknown
+): { name: string; playerIds: string[]; columns: string[]; customColumns: CustomColumn[]; sortKey: string | null; sortDesc: boolean } | null {
   if (!body || typeof body !== "object") return null;
   const b = body as Record<string, unknown>;
   const name = typeof b.name === "string" ? b.name.trim() : "";
   const playerIds = Array.isArray(b.playerIds) ? b.playerIds.filter((v): v is string => typeof v === "string") : [];
   const columns = Array.isArray(b.columns) ? b.columns.filter((v): v is string => typeof v === "string") : [];
+  const customColumns = parseCustomColumns(b.customColumns);
   const sortKey = typeof b.sortKey === "string" ? b.sortKey : null;
   const sortDesc = typeof b.sortDesc === "boolean" ? b.sortDesc : true;
-  if (!name || name.length > 60 || playerIds.length === 0 || columns.length === 0) return null;
-  return { name, playerIds, columns, sortKey, sortDesc };
+  if (!name || name.length > 60 || playerIds.length === 0 || columns.length === 0 || customColumns === null) return null;
+  return { name, playerIds, columns, customColumns, sortKey, sortDesc };
 }
 
 analyticsViewsRouter.post("/", requireAuth, async (req, res) => {

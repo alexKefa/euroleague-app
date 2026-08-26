@@ -44,8 +44,8 @@ export interface StatLegendEntry {
           <div class="space-y-2.5 text-sm">
             @for (entry of entries; track entry.code) {
               <div class="flex items-baseline gap-3">
-                <span class="font-mono text-highlight font-bold w-14 shrink-0">{{ entry.code }}</span>
-                <span class="text-muted">{{ entry.label }}</span>
+                <span class="font-mono text-highlight font-bold shrink-0 max-w-[40%] break-words">{{ entry.code }}</span>
+                <span class="text-muted min-w-0 break-words">{{ entry.label }}</span>
               </div>
             }
           </div>

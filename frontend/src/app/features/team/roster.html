@@ -114,6 +114,7 @@
                 <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colAST') }}</th>
                 <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colTOV') }}</th>
                 <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colPOSS') }}</th>
+                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colUSG') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -136,10 +137,13 @@
                   <td class="text-right px-3 py-2 font-mono text-muted font-normal">
                     {{ fmtNum(row.stats.possessionsPerGame) }}
                   </td>
+                  <td class="text-right px-3 py-2 font-mono text-muted font-normal">
+                    {{ fmtPct(row.stats.usagePercentage) }}
+                  </td>
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="7" class="px-3 py-6 text-center text-muted">{{ i18n.t('roster.noRosterData') }}</td>
+                  <td colspan="8" class="px-3 py-6 text-center text-muted">{{ i18n.t('roster.noRosterData') }}</td>
                 </tr>
               }
             </tbody>

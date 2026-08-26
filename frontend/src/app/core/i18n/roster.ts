@@ -33,6 +33,7 @@ export const rosterTranslations: Record<string, Record<Lang, string>> = {
   "roster.colAST": { en: "AST%", el: "AST%" },
   "roster.colTOV": { en: "TOV%", el: "TOV%" },
   "roster.colPOSS": { en: "POSS", el: "ΚΑΤ" },
+  "roster.colUSG": { en: "USG%", el: "USG%" },
   "roster.noRosterData": { en: "No roster data yet.", el: "Δεν υπάρχουν ακόμα στοιχεία ρόστερ." },
   "roster.recentResults": { en: "Recent results", el: "Πρόσφατα αποτελέσματα" },
   "roster.noTeamSpecified": { en: "No team specified.", el: "Δεν έχει οριστεί ομάδα." },
@@ -71,4 +72,8 @@ export const rosterTranslations: Record<string, Record<Lang, string>> = {
   },
   "roster.legendTOV": { en: "Turnovers per 100 plays", el: "Λάθη ανά 100 φάσεις" },
   "roster.legendPOSS": { en: "Possessions per game", el: "Κατοχές ανά αγώνα" },
+  "roster.legendUSG": {
+    en: "Share of the team's plays used while on court",
+    el: "Ποσοστό των φάσεων της ομάδας που χρησιμοποίησε όσο ήταν στο παρκέ",
+  },
 };
