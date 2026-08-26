@@ -10,6 +10,17 @@
   -webkit-touch-callout: none;
 }
 
+/* Without this, mobile browsers treat a press-and-drag on the story image
+   as their own gesture — a vertical drag became a scroll/bounce attempt
+   (so onStoryPointerMove's swipe-to-close never got useful deltas) and a
+   press-and-hold on the image triggered the browser's own zoom/magnifier.
+   `touch-action: none` hands the browser's default gesture handling off
+   entirely, so Pointer Events (onStoryPointerDown/Move/End in
+   news-stories.ts) are the only thing driving this area. */
+.story-touch-surface {
+  touch-action: none;
+}
+
 /* Swipe-down-to-dismiss (news-stories.ts's onStoryPointer* handlers) —
    applied only while NOT actively dragging, so the finger tracks 1:1
    during the gesture itself and only the release (snap back, or the fade

@@ -86,7 +86,7 @@
     </div>
 
     <div
-      class="relative flex-1 min-h-0"
+      class="relative flex-1 min-h-0 story-touch-surface"
       (pointerdown)="onStoryPointerDown($event)"
       (pointermove)="onStoryPointerMove($event)"
       (pointerup)="onStoryPointerEnd($event)"
@@ -94,7 +94,7 @@
       (pointercancel)="onStoryPointerEnd($event)"
     >
       @if (article.imageUrl) {
-        <img [src]="article.imageUrl" [alt]="article.title" appRetryImg class="absolute inset-0 w-full h-full object-contain" />
+        <img [src]="article.imageUrl" [alt]="article.title" appRetryImg class="absolute inset-0 w-full h-full object-contain story-touch-surface" />
       } @else {
         <div class="absolute inset-0 flex items-center justify-center text-muted">
           <app-nav-icon name="news" [size]="48" />
