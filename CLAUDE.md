@@ -183,6 +183,35 @@ If you need to apply a schema change without an interactive terminal
   whether a player finishes the album** — the wheel outweighs predicted-
   points purchases in sheer volume, so skipping it matters far more than a
   wrong pick does.
+  **"Predictions matter more" pass (2026-08-26)**: raising
+  `POINTS_PER_CORRECT` was tried first and tested up to 2.5x in
+  `season-simulation.ts` — it barely moved either completion% or the
+  accuracy-driven spread, because a season of purchased packs is
+  structurally ~30-40x smaller in volume than the wheel's, and no
+  reasonable points multiplier closes that without inflating points into
+  something disproportionate to the rest of the economy (leaderboard,
+  "Century" badge). Two small additive rewards were added instead, neither
+  touching pack/wheel odds or costs: (1) a **"great round"** (>=8/10
+  correct, short of literally perfect) now also grants a guaranteed-new
+  **rare**, alongside perfect round's existing guaranteed-new legendary —
+  same `roundRewards` table/claim, see the branch in
+  `checkAndGrantRoundRewards` (`services/cards.ts`); (2) a new
+  **legendary milestone**: every `LEGENDARY_MILESTONE_INTERVAL` (60)
+  cumulative correct predictions (career-wide, not per-round) grants
+  another guaranteed-new legendary, via a new `legendary_milestones` table
+  (mirrors `roundRewards`' claim-first/seenAt shape exactly, just keyed on
+  an ever-increasing milestone number instead of `(season, round)`) and
+  `checkAndGrantLegendaryMilestones`. Both are binomial/linear-in-accuracy
+  by construction rather than flat, so they scale with skill much harder
+  than a points multiplier could — e.g. a "great round" fires ~2x/season at
+  50% accuracy vs ~22x/season at 80%. Re-simulated at a realistic 85% daily
+  wheel engagement (the scenario that used to cap completion at ~77-79%
+  regardless of accuracy): full-album completion is now ~92-98% across the
+  50-75% accuracy range (up from ~77-79%), and completion *speed* now
+  differs meaningfully by accuracy too (median day ~160 at 50% vs ~145 at
+  75%) — see `predictions.ts`'s `newRoundRewards`/`newMilestoneRewards` and
+  the tier-aware "Perfect round!"/"Great round!"/"Prediction milestone!"
+  banners on the Predictions page for the user-facing side.
 - **Referrals** (`services/referrals.ts`, `users.referralCode`/
   `referredByUserId`/`referralRewardGranted` in `schema.ts`). Every user
   gets a unique code at registration (`createUniqueReferralCode`), shared as

@@ -4,7 +4,12 @@ import { db } from "../db/client.js";
 import { predictions, games, teams, users, pointAdjustments } from "../db/schema.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
 import { computeWinnerTeamId, getUserPoints, POINTS_PER_CORRECT } from "../services/points.js";
-import { checkAndGrantRoundRewards, markRoundRewardsSeen } from "../services/cards.js";
+import {
+  checkAndGrantRoundRewards,
+  markRoundRewardsSeen,
+  checkAndGrantLegendaryMilestones,
+  markLegendaryMilestonesSeen,
+} from "../services/cards.js";
 import { checkAndGrantReferralReward } from "../services/referrals.js";
 
 export const predictionsRouter = Router();
@@ -462,18 +467,20 @@ predictionsRouter.get("/me/summary", requireAuth, async (req, res) => {
       hasAnyPick: rows.length > 0,
       predictionPoints: correctCount * POINTS_PER_CORRECT,
     });
-    // Independent of each other — round rewards don't affect the referral
-    // check or vice versa — so run them concurrently instead of adding
-    // their round trips to the DB back to back.
-    const [newRoundRewards] = await Promise.all([
+    // Independent of each other — none of these three affect one another —
+    // so run them concurrently instead of adding their round trips to the
+    // DB back to back.
+    const [newRoundRewards, newMilestoneRewards] = await Promise.all([
       checkAndGrantRoundRewards(req.userId!),
+      checkAndGrantLegendaryMilestones(req.userId!),
       checkAndGrantReferralReward(req.userId!),
     ]);
 
     res.json({
       points,
       badges,
-      newRoundRewards: newRoundRewards.map((c) => ({ id: c.id, name: c.name, imageUrl: c.imageUrl })),
+      newRoundRewards: newRoundRewards.map((c) => ({ id: c.id, name: c.name, imageUrl: c.imageUrl, tier: c.tier })),
+      newMilestoneRewards: newMilestoneRewards.map((c) => ({ id: c.id, name: c.name, imageUrl: c.imageUrl, tier: c.tier })),
     });
   } catch (err) {
     console.error("GET /api/predictions/me/summary failed:", err);
@@ -492,6 +499,18 @@ predictionsRouter.post("/round-rewards/ack", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("POST /api/predictions/round-rewards/ack failed:", err);
     res.status(500).json({ error: "Failed to acknowledge round rewards" });
+  }
+});
+
+// Same pattern as round-rewards/ack, for the separate (career-wide, not
+// round-scoped) legendary-milestone banner — see checkAndGrantLegendaryMilestones.
+predictionsRouter.post("/milestone-rewards/ack", requireAuth, async (req, res) => {
+  try {
+    await markLegendaryMilestonesSeen(req.userId!);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("POST /api/predictions/milestone-rewards/ack failed:", err);
+    res.status(500).json({ error: "Failed to acknowledge milestone rewards" });
   }
 });
 

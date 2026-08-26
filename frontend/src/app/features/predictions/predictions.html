@@ -135,14 +135,40 @@
 
         @if (auth.isAuthenticated()) {
           @if (mySummary(); as summary) {
-            @if (summary.newRoundRewards.length > 0) {
+            @if (perfectRoundRewards().length > 0) {
               <div class="flex items-center gap-2 rounded-xl bg-highlight/10 text-highlight text-xs font-bold px-3 py-2 mb-3">
                 <app-nav-icon name="trophy" [size]="18" class="shrink-0" />
                 {{ i18n.t('predictions.perfectRoundPrefix') }}
                 {{
-                  summary.newRoundRewards.length === 1
-                    ? summary.newRoundRewards[0].name
-                    : summary.newRoundRewards.length + " " + i18n.t('predictions.legendaryCards')
+                  perfectRoundRewards().length === 1
+                    ? perfectRoundRewards()[0].name
+                    : perfectRoundRewards().length + " " + i18n.t('predictions.legendaryCards')
+                }}
+                {{ i18n.t('predictions.perfectRoundSuffix') }}
+                <a routerLink="/store" class="underline">{{ i18n.t('predictions.collection') }}</a>.
+              </div>
+            }
+            @if (greatRoundRewards().length > 0) {
+              <div class="flex items-center gap-2 rounded-xl bg-highlight/10 text-highlight text-xs font-bold px-3 py-2 mb-3">
+                <app-nav-icon name="flame" [size]="18" class="shrink-0" />
+                {{ i18n.t('predictions.greatRoundPrefix') }}
+                {{
+                  greatRoundRewards().length === 1
+                    ? greatRoundRewards()[0].name
+                    : greatRoundRewards().length + " " + i18n.t('predictions.rareCards')
+                }}
+                {{ i18n.t('predictions.perfectRoundSuffix') }}
+                <a routerLink="/store" class="underline">{{ i18n.t('predictions.collection') }}</a>.
+              </div>
+            }
+            @if (summary.newMilestoneRewards.length > 0) {
+              <div class="flex items-center gap-2 rounded-xl bg-highlight/10 text-highlight text-xs font-bold px-3 py-2 mb-3">
+                <app-nav-icon name="picks" [size]="18" class="shrink-0" />
+                {{ i18n.t('predictions.milestonePrefix') }}
+                {{
+                  summary.newMilestoneRewards.length === 1
+                    ? summary.newMilestoneRewards[0].name
+                    : summary.newMilestoneRewards.length + " " + i18n.t('predictions.legendaryCards')
                 }}
                 {{ i18n.t('predictions.perfectRoundSuffix') }}
                 <a routerLink="/store" class="underline">{{ i18n.t('predictions.collection') }}</a>.

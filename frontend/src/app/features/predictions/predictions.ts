@@ -5,7 +5,7 @@ import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { EventsService } from "../../core/events.service";
-import { Prediction, LeaderboardEntry, PredictionSummary, Game } from "../../core/models";
+import { Prediction, LeaderboardEntry, PredictionSummary, Game, RoundRewardCard } from "../../core/models";
 import { TeamBadgeComponent } from "../../shared/team-badge";
 import { PageHintComponent } from "../../shared/page-hint";
 import { NavIconComponent, NavIconName } from "../../shared/nav-icon";
@@ -172,14 +172,29 @@ export class PredictionsComponent implements OnInit {
     this.api.getMyPredictionSummary().subscribe({
       next: (summary) => {
         this.mySummary.set(summary);
-        // The banner below reads straight off mySummary(), so by the time
-        // this fires it's already been rendered — safe to mark seen now.
+        // The banners below read straight off mySummary(), so by the time
+        // this fires they're already rendered — safe to mark seen now.
         if (summary.newRoundRewards.length > 0) {
           this.api.ackRoundRewards().subscribe({ error: () => {} });
+        }
+        if (summary.newMilestoneRewards.length > 0) {
+          this.api.ackMilestoneRewards().subscribe({ error: () => {} });
         }
       },
       error: () => {}, // non-critical
     });
+  }
+
+  // newRoundRewards can now mix a perfect round's legendary with a "great"
+  // round's rare (see backend/src/services/cards.ts) — split by tier so the
+  // template can show each with its own wording instead of assuming every
+  // round reward is a legendary.
+  perfectRoundRewards(): RoundRewardCard[] {
+    return this.mySummary()?.newRoundRewards.filter((c) => c.tier === "legendary") ?? [];
+  }
+
+  greatRoundRewards(): RoundRewardCard[] {
+    return this.mySummary()?.newRoundRewards.filter((c) => c.tier === "rare") ?? [];
   }
 
   badgeIcon(badgeId: string): NavIconName {

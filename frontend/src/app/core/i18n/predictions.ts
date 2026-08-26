@@ -15,9 +15,12 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
     el: "για να κάνεις προβλέψεις και να παρακολουθείς την πρόοδό σου.",
   },
   "predictions.perfectRoundPrefix": { en: "Perfect round! You won", el: "Τέλειος γύρος! Κέρδισες" },
+  "predictions.greatRoundPrefix": { en: "Great round! You won", el: "Σπουδαίος γύρος! Κέρδισες" },
+  "predictions.milestonePrefix": { en: "Prediction milestone! You won", el: "Ορόσημο προβλέψεων! Κέρδισες" },
   "predictions.perfectRoundSuffix": { en: "— check your", el: "— δες τη" },
   "predictions.collection": { en: "collection", el: "συλλογή σου" },
   "predictions.legendaryCards": { en: "legendary cards", el: "θρυλικές κάρτες" },
+  "predictions.rareCards": { en: "rare cards", el: "σπάνιες κάρτες" },
   "predictions.pts": { en: "pts", el: "πόντοι" },
   "predictions.noBadgesYet": { en: "No badges yet", el: "Δεν υπάρχουν μετάλλια ακόμα" },
   "predictions.pending": { en: "Pending", el: "Εκκρεμεί" },
@@ -34,8 +37,8 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
   },
 
   "predictions.hint": {
-    en: "Pick a winner before tip-off. Each correct call earns 10 points, and a perfect round unlocks badges plus a bonus card.",
-    el: "Διάλεξε νικητή πριν το τζάμπολ. Με κάθε σωστή πρόβλεψη κερδίζεις 10 πόντους και ένας τέλειος γύρος ξεκλειδώνει μετάλλια και μια δωρεάν θρυλική κάρτα.",
+    en: "Pick a winner before tip-off. Each correct call earns 10 points, a great round (8+/10) wins a bonus rare, a perfect round wins a legendary, and every 60 correct picks overall wins another legendary.",
+    el: "Διάλεξε νικητή πριν το τζάμπολ. Με κάθε σωστή πρόβλεψη κερδίζεις 10 πόντους, ένας σπουδαίος γύρος (8+/10) σου δίνει μια σπάνια κάρτα, ένας τέλειος γύρος μια θρυλική κάρτα, και κάθε 60 συνολικές σωστές προβλέψεις ξεκλειδώνουν άλλη μία θρυλική κάρτα.",
   },
 
   // Badge legend — a tap-to-open key explaining every badge glyph (locked

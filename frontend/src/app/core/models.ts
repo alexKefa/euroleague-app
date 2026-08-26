@@ -315,10 +315,20 @@ export interface TradeCardRef {
   imageUrl: string | null;
 }
 
+// Like TradeCardRef, plus the tier — needed here (not there) because a
+// round reward can now be either a legendary (perfect round) or a rare
+// (a "great" 8-9/10 round), and the UI needs to tell them apart.
+export interface RoundRewardCard extends TradeCardRef {
+  tier: CollectibleTier;
+}
+
 export interface PredictionSummary {
   points: number;
   badges: Badge[];
-  newRoundRewards: TradeCardRef[];
+  newRoundRewards: RoundRewardCard[];
+  // Career-wide (not round-scoped) legendary reward every N cumulative
+  // correct predictions — see LEGENDARY_MILESTONE_INTERVAL on the backend.
+  newMilestoneRewards: RoundRewardCard[];
 }
 
 // GET /api/predictions/analytics — community-wide pick accuracy, not

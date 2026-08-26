@@ -393,6 +393,36 @@ export const roundRewards = pgTable(
   })
 );
 
+// Career-wide (not per-round, not per-season) legendary reward: every
+// LEGENDARY_MILESTONE_INTERVAL cumulative correct predictions a user has
+// ever made grants one. milestoneNumber (1st, 2nd, ...) rather than a raw
+// correct-pick count is the claim key — same "insert as a mutex, ignore the
+// conflict" idempotency pattern as roundRewards/referralRewardGranted, just
+// keyed on an ever-increasing counter instead of (season, round). Exists
+// because at realistic (<100%) daily wheel engagement, legendary was found
+// to be the tightest bottleneck on finishing the album — see
+// scripts/season-simulation.ts and the "album completable" note in
+// services/cards.ts — and unlike the wheel, this only accrues from picks
+// actually gotten right.
+export const legendaryMilestones = pgTable(
+  "legendary_milestones",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    milestoneNumber: integer("milestone_number").notNull(),
+    collectibleId: uuid("collectible_id").references(() => collectibles.id),
+    grantedAt: timestamp("granted_at", { withTimezone: true }).defaultNow().notNull(),
+    // Same "not shown yet" purpose as roundRewards.seenAt.
+    seenAt: timestamp("seen_at", { withTimezone: true }),
+  },
+  (table) => ({
+    userMilestoneUnique: uniqueIndex("user_legendary_milestone_unique").on(
+      table.userId,
+      table.milestoneNumber
+    ),
+  })
+);
+
 // Direct trade offers between two users, scoped to legendary collectibles
 // only (the only tier that's ever "yours" without being purchasable — see
 // collectibles.ts's redeem guard). Accepting one re-points the two
@@ -582,6 +612,11 @@ export const wheelSpinsRelations = relations(wheelSpins, ({ one }) => ({
 export const roundRewardsRelations = relations(roundRewards, ({ one }) => ({
   user: one(users, { fields: [roundRewards.userId], references: [users.id] }),
   collectible: one(collectibles, { fields: [roundRewards.collectibleId], references: [collectibles.id] }),
+}));
+
+export const legendaryMilestonesRelations = relations(legendaryMilestones, ({ one }) => ({
+  user: one(users, { fields: [legendaryMilestones.userId], references: [users.id] }),
+  collectible: one(collectibles, { fields: [legendaryMilestones.collectibleId], references: [collectibles.id] }),
 }));
 
 export const packOpeningsRelations = relations(packOpenings, ({ one, many }) => ({

@@ -179,6 +179,12 @@ export class ApiService {
     return this.http.post<{ ok: boolean }>(`${API_BASE_URL}/predictions/round-rewards/ack`, {});
   }
 
+  // Same pattern as ackRoundRewards, for the separate (career-wide)
+  // legendary-milestone banner — see newMilestoneRewards on PredictionSummary.
+  ackMilestoneRewards(): Observable<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`${API_BASE_URL}/predictions/milestone-rewards/ack`, {});
+  }
+
   adjustPoints(email: string, points: number, reason: string): Observable<unknown> {
     return this.http.post(`${API_BASE_URL}/predictions/points/adjust`, { email, points, reason });
   }

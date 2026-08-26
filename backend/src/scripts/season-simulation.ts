@@ -1,12 +1,14 @@
 /**
  * Monte Carlo season simulator for the collectibles album — no DB, no side
  * effects, pure in-memory model of the real reward mechanics (points from
- * correct picks, points-priced packs, the daily wheel, perfect-round
- * legendaries, pity, and duplicate auto-sell). Mirrors the actual constants
- * in services/packs.ts / routes/spin.ts / routes/auth.ts as of the
- * 2026-08-25 "album completable in a season" pass — re-run this after any
- * future odds/cost change there to check it still hits a season-completable
- * target, instead of reasoning about pity/duplicate math by hand.
+ * correct picks, points-priced packs, the daily wheel, perfect/great-round
+ * and legendary-milestone grants, pity, and duplicate auto-sell). Mirrors
+ * the actual constants in services/packs.ts / routes/spin.ts / routes/auth.ts
+ * / services/cards.ts as of the 2026-08-26 "predictions matter more" pass
+ * (which followed the 2026-08-25 "album completable in a season" pass) —
+ * re-run this after any future odds/cost/reward change to check it still
+ * hits a season-completable target, instead of reasoning about pity/
+ * duplicate/binomial math by hand.
  *
  * Answers: can a realistic player (a given prediction accuracy, not a
  * perfect one) actually finish the album (own every collectible: 208
@@ -30,13 +32,24 @@ const CATALOG_SIZE: Record<Tier, number> = { common: 208, rare: 208, legendary: 
 const TIER_COST: Record<"common" | "rare", number> = { common: 50, rare: 250 };
 const SELL_RATE = 0.5;
 
-const POINTS_PER_CORRECT = 10;
+const POINTS_PER_CORRECT = Number(process.env.SIM_PPC ?? 10);
 const REGISTRATION_BONUS = 150; // routes/auth.ts WELCOME_BONUS_POINTS
 const PITY_THRESHOLD: Record<"common" | "rare", number> = { common: 4, rare: 2 }; // services/packs.ts
 
 const ROUNDS = 38;
 const GAMES_PER_ROUND = 10; // matches the live 2026-27 season (confirmed against the DB)
 const SEASON_DAYS = 210; // ~Oct-Apr EuroLeague season, matches the pacing assumption in services/packs.ts's comments
+
+// Proposed (not yet shipped): a "great round" bonus, gated on prediction
+// accuracy rather than luck-of-the-wheel — see the comment where it's
+// granted below.
+// Both shipped (services/cards.ts) as of the 2026-08-26 "predictions matter
+// more" pass — on by default here too so this script models reality. Set
+// SIM_GREAT_ROUND=0 / SIM_LEGENDARY_MILESTONE=0 to model the economy
+// without them (e.g. to compare against before this pass).
+const GREAT_ROUND_BONUS = process.env.SIM_GREAT_ROUND !== "0";
+const GREAT_ROUND_THRESHOLD = 8; // out of GAMES_PER_ROUND, excludes literally-perfect (that already gets the legendary)
+const LEGENDARY_MILESTONE = Number(process.env.SIM_LEGENDARY_MILESTONE ?? 60); // 0 = off
 
 // routes/spin.ts SPIN_ODDS, verbatim.
 const SPIN_ODDS: Record<Tier, number> = { common: 0.63, rare: 0.23, legendary: 0.14 };
@@ -170,15 +183,15 @@ function openPack(state: UserState, pack: PackDef): number {
   return pointsFromDupes;
 }
 
-/** Perfect-round reward (services/cards.ts's checkAndGrantRoundRewards): always a new legendary, or a no-op once all 22 are owned. */
-function grantPerfectRoundLegendary(state: UserState): void {
-  const total = CATALOG_SIZE.legendary;
-  if (state.owned.legendary.size >= total) return;
+/** Mirrors pickRandomUnownedByTier (services/cards.ts): always a new card of that tier, or a no-op once the whole tier is owned. Used for perfect/great-round and milestone grants. */
+function grantGuaranteedNewOfTier(state: UserState, tier: Tier): void {
+  const total = CATALOG_SIZE[tier];
+  if (state.owned[tier].size >= total) return;
   const missing: number[] = [];
   for (let i = 0; i < total; i++) {
-    if (!state.owned.legendary.has(i)) missing.push(i);
+    if (!state.owned[tier].has(i)) missing.push(i);
   }
-  state.owned.legendary.add(missing[Math.floor(Math.random() * missing.length)]);
+  state.owned[tier].add(missing[Math.floor(Math.random() * missing.length)]);
 }
 
 type SpendPolicy = "highest-affordable" | "cheapest-first";
@@ -202,6 +215,8 @@ interface SimResult {
   legendaryCountAtEnd: number;
   endPoints: number;
   perfectRounds: number;
+  greatRounds: number;
+  milestoneLegendaries: number;
 }
 
 // Spreads the season's 38 rounds evenly across SEASON_DAYS, e.g. round 1 on
@@ -216,6 +231,9 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
     points: REGISTRATION_BONUS,
   };
   let perfectRounds = 0;
+  let greatRounds = 0;
+  let milestoneLegendaries = 0;
+  let cumulativeCorrect = 0;
   let purchasableCompleteDay: number | null = null;
   let fullCompleteDay: number | null = null;
   let nextRound = 0;
@@ -230,11 +248,33 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
         if (Math.random() < accuracy) {
           correctThisRound++;
           state.points += POINTS_PER_CORRECT;
+          cumulativeCorrect++;
+          // services/cards.ts's checkAndGrantLegendaryMilestones: a
+          // guaranteed-new legendary every LEGENDARY_MILESTONE cumulative
+          // correct picks, career-wide (not per-round) — targets the tier
+          // that's actually the bottleneck at realistic (<100%) wheel
+          // engagement, and unlike the wheel, only accrues from picks
+          // actually gotten right.
+          if (LEGENDARY_MILESTONE > 0 && cumulativeCorrect % LEGENDARY_MILESTONE === 0) {
+            milestoneLegendaries++;
+            grantGuaranteedNewOfTier(state, "legendary");
+          }
         }
       }
       if (correctThisRound === GAMES_PER_ROUND) {
         perfectRounds++;
-        grantPerfectRoundLegendary(state);
+        grantGuaranteedNewOfTier(state, "legendary");
+      } else if (GREAT_ROUND_BONUS && correctThisRound >= GREAT_ROUND_THRESHOLD) {
+        // services/cards.ts's checkAndGrantRoundRewards: a "great round"
+        // (8-9/10, not literally perfect) grants a single guaranteed-new
+        // rare — additive, doesn't touch pack/wheel internals at all.
+        // Binomial-tail-sensitive by construction: a big accuracy swing
+        // (50% -> 80%) swings this from ~2/season to ~22/season (see the
+        // standalone probability check run before adding this), far more
+        // than any linear points-per-correct scaling could, without
+        // re-deriving the packs' exploit-safety margins.
+        greatRounds++;
+        grantGuaranteedNewOfTier(state, "rare");
       }
       nextRound++;
       spendLoop(state, policy);
@@ -244,7 +284,7 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
       const roll = Math.random();
       const tier: Tier = roll < SPIN_ODDS.legendary ? "legendary" : roll < SPIN_ODDS.legendary + SPIN_ODDS.rare ? "rare" : "common";
       if (tier === "legendary") {
-        grantPerfectRoundLegendary(state); // same "always new" grant, different trigger
+        grantGuaranteedNewOfTier(state, "legendary"); // same "always new" grant, different trigger
       } else {
         state.points += openPack(state, WHEEL_PACKS[tier]);
       }
@@ -263,6 +303,8 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
     legendaryCountAtEnd: state.owned.legendary.size,
     endPoints: state.points,
     perfectRounds,
+    greatRounds,
+    milestoneLegendaries,
   };
 }
 
@@ -285,6 +327,8 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
   const avgLegendaryAtEnd = results.reduce((s, r) => s + r.legendaryCountAtEnd, 0) / n;
   const avgEndPoints = results.reduce((s, r) => s + r.endPoints, 0) / n;
   const avgPerfectRounds = results.reduce((s, r) => s + r.perfectRounds, 0) / n;
+  const avgGreatRounds = results.reduce((s, r) => s + r.greatRounds, 0) / n;
+  const avgMilestoneLegendaries = results.reduce((s, r) => s + r.milestoneLegendaries, 0) / n;
 
   console.log(
     `accuracy ${(accuracy * 100).toFixed(0).padStart(3)}%  spin engagement ${(spinEngagement * 100).toFixed(0).padStart(3)}%  (${policy})` +
@@ -294,6 +338,8 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
       ` (median day ${String(percentile(purchasableDays, 0.5)).padStart(3)})` +
       ` | avg legendaries: ${avgLegendaryAtEnd.toFixed(1).padStart(4)}/22` +
       ` | avg perfect rounds: ${avgPerfectRounds.toFixed(2)}` +
+      (GREAT_ROUND_BONUS ? ` | avg great rounds: ${avgGreatRounds.toFixed(2)}` : "") +
+      (LEGENDARY_MILESTONE > 0 ? ` | avg milestone legendaries: ${avgMilestoneLegendaries.toFixed(2)}` : "") +
       ` | avg idle pts: ${avgEndPoints.toFixed(0)}`
   );
 }
@@ -301,7 +347,7 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
 const N = Number(process.env.SIM_N ?? 3000);
 const ACCURACIES = process.env.SIM_QUICK ? [0.75] : [0.5, 0.6, 0.65, 0.7, 0.75, 0.8];
 
-console.log(`=== Season simulation: ${N} simulated users, ${ROUNDS} rounds x ${GAMES_PER_ROUND} games over ${SEASON_DAYS} days ===\n`);
+console.log(`=== Season simulation: ${N} simulated users, ${ROUNDS} rounds x ${GAMES_PER_ROUND} games over ${SEASON_DAYS} days, ${POINTS_PER_CORRECT}pts/correct ===\n`);
 
 console.log("--- Daily wheel spin, 100% engagement (spins every single day), highest-affordable pack spending ---");
 for (const acc of ACCURACIES) runScenario(acc, 1.0, "highest-affordable", N);
