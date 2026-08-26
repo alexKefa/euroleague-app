@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed, effect } from "@angular/core";
+import { Component, OnInit, OnDestroy, inject, signal, computed, effect } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
@@ -42,7 +42,7 @@ type LeaderCategory = (typeof LEADER_CATEGORIES)[number]["value"];
   ],
   templateUrl: "./dashboard.component.html",
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   private theme = inject(ThemeService);
   protected auth = inject(AuthService);
@@ -106,7 +106,49 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.selectLeaderCategory("points");
+    this.loadDashboardData();
 
+    // Standalone home-screen PWAs (iOS especially) have no browser chrome
+    // at all — no pull-to-refresh, no reload button — and the page gets
+    // suspended while backgrounded, so reopening after a while can show
+    // several-minutes-stale standings/scores with no way to fix it short
+    // of force-quitting. This is the fix: refetch automatically once the
+    // app's been hidden for a while, not on every trivial glance-away
+    // (STALE_AFTER_MS), and only the actual data, not a full page reload —
+    // no gesture involved, so nothing here can conflict with the news
+    // stories' own swipe-to-close.
+    document.addEventListener("visibilitychange", this.onVisibilityChange);
+  }
+
+  ngOnDestroy(): void {
+    document.removeEventListener("visibilitychange", this.onVisibilityChange);
+  }
+
+  private hiddenAt: number | null = null;
+  private static readonly STALE_AFTER_MS = 60_000;
+
+  // Bound as a class field (not a method) so the exact same function
+  // reference can be passed to both addEventListener and removeEventListener.
+  private onVisibilityChange = (): void => {
+    if (document.visibilityState === "hidden") {
+      this.hiddenAt = Date.now();
+      return;
+    }
+    if (document.visibilityState !== "visible" || this.hiddenAt === null) return;
+
+    const hiddenForMs = Date.now() - this.hiddenAt;
+    this.hiddenAt = null;
+    if (hiddenForMs < DashboardComponent.STALE_AFTER_MS) return;
+
+    this.loadDashboardData();
+    this.selectLeaderCategory(this.leaderCategory());
+    this.api.getNews(10, this.i18n.lang()).subscribe({
+      next: (articles) => this.news.set(articles),
+      error: () => {}, // non-critical widget
+    });
+  };
+
+  private loadDashboardData(): void {
     this.api.getRoundMvp(5).subscribe({
       next: (result) => this.roundMvp.set(result),
       error: () => {}, // non-critical widget
@@ -130,9 +172,16 @@ export class DashboardComponent implements OnInit {
         }
       },
       error: () => {
-        this.error.set(
-          "Couldn't load standings. Make sure the backend's /api/standings route is running (step 5)."
-        );
+        // Only surface the error screen on a genuine first-load failure —
+        // this same call also re-runs on the visibility-change refresh
+        // (see onVisibilityChange), and a transient blip there shouldn't
+        // wipe out an already-loaded dashboard and replace it with an
+        // error; just keep showing the last known-good data instead.
+        if (this.standings().length === 0) {
+          this.error.set(
+            "Couldn't load standings. Make sure the backend's /api/standings route is running (step 5)."
+          );
+        }
         this.loading.set(false);
       },
     });

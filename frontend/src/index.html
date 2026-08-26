@@ -11,6 +11,20 @@
   <meta name="theme-color" content="#0b1220"/>
   <link rel="apple-touch-icon" href="icons/icon-192x192.png"/>
 
+  <!-- iOS ignores the manifest's "display": "standalone" for its own
+       home-screen behavior and needs this explicitly — without it, "Add to
+       Home Screen" can fall back to opening in a regular Safari tab with
+       the address bar instead of the chrome-free standalone window.
+       Deliberately NOT setting apple-mobile-web-app-status-bar-style here:
+       "black-translucent" would let content draw *under* the status bar,
+       which needs safe-area-inset-top padding somewhere to avoid the top
+       bar being hidden behind the clock/battery icons — this app only
+       handles safe-area-inset-bottom today (app.component.html), so
+       leaving the status bar at its default (reserved, non-overlapping)
+       behavior is the safe choice. -->
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-title" content="Clutch"/>
+
   <!-- Link-preview metadata — without these, sharing the URL fell back to
        whatever a platform's crawler could scrape on its own (nothing
        useful), which is what showed the framework's default icon instead
