@@ -13,6 +13,7 @@
     "sync:standings": "tsx src/sync/runSync.ts",
     "sync:news": "tsx src/sync/runNewsSync.ts",
     "economy:report": "tsx src/scripts/economy-report.ts",
+    "economy:simulate": "tsx src/scripts/season-simulation.ts",
     "collectibles:expand": "tsx src/scripts/expand-collectibles.ts"
   },
   "dependencies": {

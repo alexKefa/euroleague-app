@@ -41,6 +41,7 @@ npm run db:studio        # Drizzle Studio GUI against the live DB
 npm run sync:standings   # tsx src/sync/runSync.ts
 npm run sync:news        # tsx src/sync/runNewsSync.ts
 npm run economy:report   # tsx src/scripts/economy-report.ts — points/collectibles sanity check
+npm run economy:simulate # tsx src/scripts/season-simulation.ts — Monte Carlo: can a season finish the album?
 npm run collectibles:expand  # tsx src/scripts/expand-collectibles.ts — regenerate the card catalog
 ```
 
@@ -114,25 +115,34 @@ If you need to apply a schema change without an interactive terminal
   wheel-exclusive, free ones (`wheelStarter`/`wheelPro`/`wheelLegendary`,
   `purchasable: false` — `GET /packs` and `POST /packs/:type/open` both
   exclude them, so the only way to acquire one is through a spin).
-  wheelStarter/wheelPro mirror the real starter/pro packs' 3-slot odds
-  exactly (a Jump Ball win should feel like the pack it's named after, not
-  a lesser 1-card version of it); only wheelLegendary is single-slot, since
-  it's a guaranteed legendary rather than a normal pack roll. Purchased
-  packs still open immediately; a wheel
-  win does not — `POST /api/spin` (one free roll/24h, admin-only
-  `POST /spin/cheat` bypasses the cooldown for testing) picks a pack tier
-  with the same 65/25/10 odds it always used and inserts an **unopened**
-  row into `ownedPacks` (`userId`, `packType`, `openedAt` null) rather than
-  rolling a card on the spot. The Packs page's "My Packs" section
-  (`GET /packs/owned`, grouped by type client-side) lists those and opens
-  one on demand via `POST /packs/owned/:id/open` — same claim-first
-  idempotency pattern as `roundRewards`/`referralRewardGranted` (conditional
+  **Every pack (purchasable or wheel) has 5 slots, not 3** (2026-08-25 "album
+  completable in a season" pass — see below); wheelStarter/wheelPro used to
+  mirror the real starter/pro packs' odds exactly, but that stopped being
+  true in this pass: a free pack has no worst-case-EV ceiling to protect the
+  way a purchased one does, and the wheel is the dominant card-supply source
+  by volume, so wheelStarter/wheelPro now give **guaranteed rares** on their
+  extra slots instead of just better odds at one — only wheelLegendary is
+  still single-slot, since it's a guaranteed legendary rather than a normal
+  pack roll. Purchased packs still open immediately; a wheel win does
+  not — `POST /api/spin` (one free roll/24h, admin-only `POST /spin/cheat`
+  bypasses the cooldown for testing) picks a pack tier with `SPIN_ODDS`
+  (63/23/14 common/rare/legendary — bumped from 65/25/10 in the same pass,
+  see the reasoning in `spin.ts`) and inserts an **unopened** row into
+  `ownedPacks` (`userId`, `packType`, `openedAt` null) rather than rolling a
+  card on the spot. The Packs page's "My Packs" section (`GET /packs/owned`,
+  grouped by type client-side) lists those and opens one on demand via
+  `POST /packs/owned/:id/open` — same claim-first idempotency pattern as
+  `roundRewards`/`referralRewardGranted` (conditional
   `UPDATE ... WHERE opened_at IS NULL`) so a double-click can't open the
   same pack twice. Both that route and the purchase route share
   `rollPackForUser()` (`services/packs.ts`) for the actual roll — so a wheel
-  win, once opened, can land on a card already owned (previously impossible
-  when the wheel granted cards directly). Duplicates are **auto-sold at
-  roll time** (`sellValue = pointsCost * 0.5`, written straight into
+  win, once opened, can land on a common/rare already owned. **Legendary is
+  different: every legendary roll (any pack, any source) is forced onto a
+  card the user doesn't already own** (`forceNewLegendary` in
+  `rollPackForUser`) until all 22 are collected, matching what the wheel
+  always claimed but a prior refactor had silently stopped guaranteeing.
+  Common/rare duplicates are **auto-sold at roll time** (`sellValueFor` in
+  `packs.ts`, `sellValue = pointsCost * 0.5`, written straight into
   `packOpeningResults.soldForPoints` and credited via `pointAdjustments` in
   the same transaction as the roll) rather than left for the player to
   manually cash in — there used to be a `POST /packs/results/:id/sell`
@@ -140,13 +150,39 @@ If you need to apply a schema change without an interactive terminal
   forfeited its value with no way to reclaim it later (nothing outside the
   reveal screen ever surfaced an unsold one again). That endpoint is gone;
   `PackOpenResultCard.sellValue` is now purely informational ("sold for X
-  pts"), never a pending action.
-  Registration grants a 100-point welcome bonus (`auth.ts`, exactly a
-  starter pack's cost) — badge eligibility (`predictions.ts`'s "Century")
-  deliberately excludes `pointAdjustments` like this one, only counting
-  prediction-earned points, so a badge can't be bought or gifted. Trades
-  (`trades.ts`) are an opt-in marketplace, many-for-one offers, scoped to
-  cards both sides actually own.
+  pts"), never a pending action. **Legendary duplicates are excluded from
+  this and never sell** (`sellValueFor` returns `null` for that tier) — the
+  catalog's legendary `pointsCost` runs up to 10,000 as a display-only
+  "collector value" (legendaries were never purchasable), and 50% of that
+  was a real infinite-money exploit once a legendary duplicate became
+  reachable at all; a duplicate legendary is just a keepsake now.
+  Registration grants a 150-point welcome bonus (`auth.ts`'s
+  `WELCOME_BONUS_POINTS`, bumped from 100 alongside starter's own 100->150
+  repricing so it still equals exactly one Regular Season Pack) — badge
+  eligibility (`predictions.ts`'s "Century") deliberately excludes
+  `pointAdjustments` like this one, only counting prediction-earned points,
+  so a badge can't be bought or gifted. Trades (`trades.ts`) are an opt-in
+  marketplace, many-for-one offers, scoped to cards both sides actually own.
+  **"Album completable in a season" pass (2026-08-25)**: the album
+  (`frontend/src/app/features/album/`) is the full 208-common/208-rare/
+  22-legendary catalog. Simulating the real pity mechanics found the old
+  3-slot packs + 65/25/10 wheel odds never finished it — rares were the
+  bottleneck by a wide margin. Fixed by going 3->5 slots on every pack (see
+  the per-pack cost/odds comments in `services/packs.ts`), making
+  wheelStarter/wheelPro rare-heavy as above, and nudging wheel odds to
+  63/23/14 once legendary became the last bottleneck. `backend/src/scripts/
+  season-simulation.ts` (`npm run economy:simulate`) is a standalone,
+  no-DB Monte Carlo simulator kept in sync with these constants specifically
+  to re-check this — re-run it after any future odds/cost change instead of
+  reasoning about pity/duplicate math by hand. Current numbers: at 100%
+  daily wheel engagement, ~95-99% of simulated seasons fully complete the
+  album regardless of prediction accuracy (50-80%), median around day
+  140-155 of a ~210-day season; realistically-imperfect 85% engagement
+  (missing roughly 1 day in 7) drops that to ~77-79%. **Daily wheel
+  engagement, not prediction accuracy, is by far the dominant lever on
+  whether a player finishes the album** — the wheel outweighs predicted-
+  points purchases in sheer volume, so skipping it matters far more than a
+  wrong pick does.
 - **Referrals** (`services/referrals.ts`, `users.referralCode`/
   `referredByUserId`/`referralRewardGranted` in `schema.ts`). Every user
   gets a unique code at registration (`createUniqueReferralCode`), shared as
