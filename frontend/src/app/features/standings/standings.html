@@ -14,14 +14,21 @@
   @if (loading()) {
     <div class="animate-pulse h-96 rounded-2xl bg-line"></div>
   } @else {
-    <div class="overflow-x-auto rounded-2xl border border-line shadow-card">
+    <!-- overflow-x-auto alone silently forces overflow-y: auto too (a CSS
+         overflow-interaction quirk), turning this div into its own vertical
+         scroll container — but with no height cap it never actually
+         scrolls, so a sticky thead binds to that inert scrollport instead
+         of the page and never appears to stick. Capping the height with
+         overflow-y-auto makes it a real scrolling box the header can stick
+         inside, instead of a page-scroll-driven fake one. -->
+    <div class="overflow-auto rounded-2xl border border-line shadow-card max-h-[70vh]">
       <table class="w-full text-sm border-collapse">
         <thead>
           <tr class="bg-card">
             <th
               scope="col"
               (click)="setSort('position')"
-              class="sticky left-0 z-10 bg-card w-1/4 min-w-[7rem] px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
+              class="sticky left-0 top-0 z-20 bg-card border-b border-line w-1/4 min-w-[7rem] px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
               [class.text-highlight]="sortKey() === 'position'"
             >
               {{ i18n.t('standings.colTeam') }}
@@ -33,7 +40,7 @@
               <th
                 scope="col"
                 (click)="setSort(col.key)"
-                class="px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
+                class="sticky top-0 z-20 bg-card border-b border-line px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
                 [class.text-highlight]="sortKey() === col.key"
               >
                 {{ i18n.t(col.labelKey) }}
