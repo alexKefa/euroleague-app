@@ -18,6 +18,11 @@ export const inventoryTranslations: Record<string, Record<Lang, string>> = {
   "inventory.previewAriaPrefix": { en: "Preview", el: "Προεπισκόπηση" },
   "inventory.noMatch": { en: "No cards match your filters.", el: "Καμία κάρτα δεν ταιριάζει με τα φίλτρα σου." },
   "inventory.clearFilters": { en: "Clear filters", el: "Καθαρισμός φίλτρων" },
+  // Inventory has no buy action of its own (that's the Store's job) — a
+  // missing common/rare tier links there instead of store.ts's own
+  // "Get from a pack" wording, which would undersell that it's directly
+  // purchasable one tap away.
+  "inventory.viewInStore": { en: "View in Store →", el: "Δες στο κατάστημα →" },
 
   "inventory.hintPrefix": { en: "Your card collection — open", el: "Η συλλογή σου με κάρτες — άνοιξε" },
   "inventory.hintMiddle": {
