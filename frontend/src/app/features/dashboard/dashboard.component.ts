@@ -12,7 +12,7 @@ import { NavIconComponent } from "../../shared/nav-icon";
 import { TourService } from "../../core/tour/tour.service";
 import { ButtonDirective } from "../../shared/button.directive";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
-import { ArticlePreviewComponent } from "../../shared/article-preview";
+import { NewsStoriesComponent } from "../../shared/news-stories";
 import { SkeletonComponent } from "../../shared/skeleton";
 
 const LEADER_CATEGORIES = [
@@ -37,7 +37,7 @@ type LeaderCategory = (typeof LEADER_CATEGORIES)[number]["value"];
     NavIconComponent,
     ButtonDirective,
     DropdownComponent,
-    ArticlePreviewComponent,
+    NewsStoriesComponent,
     SkeletonComponent,
   ],
   templateUrl: "./dashboard.component.html",
@@ -69,17 +69,6 @@ export class DashboardComponent implements OnInit {
   // guest-only hint below is pitching.
   readonly leaderboard = signal<LeaderboardEntry[]>([]);
 
-  private readonly previewArticleId = signal<string | null>(null);
-  readonly previewArticle = computed(() => this.news().find((a) => a.id === this.previewArticleId()) ?? null);
-
-  openPreview(article: NewsArticle): void {
-    this.previewArticleId.set(article.id);
-  }
-
-  closePreview(): void {
-    this.previewArticleId.set(null);
-  }
-
   readonly selectedRow = computed(
     () => this.standings().find((r) => r.team.id === this.selectedTeamId()) ?? null
   );
@@ -105,7 +94,10 @@ export class DashboardComponent implements OnInit {
     // different articles.
     effect(() => {
       const lang = this.i18n.lang();
-      this.api.getNews(3, lang).subscribe({
+      // 10, not 3 — this now backs a stories rail (app-news-stories), which
+      // wants a real row of circles to swipe/tap through, not just enough
+      // for a 3-item list.
+      this.api.getNews(10, lang).subscribe({
         next: (articles) => this.news.set(articles),
         error: () => {}, // non-critical widget
       });

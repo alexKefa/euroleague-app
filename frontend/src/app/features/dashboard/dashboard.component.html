@@ -92,44 +92,16 @@
     <div class="lg:flex lg:gap-5 lg:items-start">
       <!-- News / Leaders / Games column -->
       <div class="lg:order-2 lg:flex-1 lg:flex lg:flex-col lg:gap-5 lg:min-w-0">
-        <!-- News teaser -->
+        <!-- News stories — same interaction pattern as EuroLeague's own
+             site, powered by the news feed we already sync instead of
+             their paid third-party stories vendor's licensed video feed. -->
         @if (news().length > 0) {
           <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5 lg:mb-0">
             <div class="flex justify-between items-center mb-3">
               <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('dashboard.latest') }}</p>
               <a routerLink="/news" class="text-[12px] text-accent2 font-bold uppercase tracking-wider">{{ i18n.t('dashboard.viewAll') }} &rarr;</a>
             </div>
-            <div class="space-y-3">
-              @for (article of news(); track article.id) {
-                <button
-                  type="button"
-                  (click)="openPreview(article)"
-                  [attr.aria-label]="i18n.t('news.previewAriaPrefix') + ' ' + article.title"
-                  class="w-full flex gap-3 text-left hover:opacity-70 transition-opacity"
-                >
-                  @if (article.imageUrl) {
-                    <img
-                      [src]="article.imageUrl"
-                      [alt]="article.title"
-                      loading="lazy"
-                      decoding="async"
-                      appRetryImg
-                      class="w-12 h-12 rounded-lg object-cover shrink-0"
-                    />
-                  } @else {
-                    <span class="w-12 h-12 rounded-lg bg-page flex items-center justify-center shrink-0 text-muted">
-                      <app-nav-icon name="news" [size]="20" />
-                    </span>
-                  }
-                  <span class="min-w-0">
-                    <span class="block text-[11px] font-bold uppercase tracking-wider text-highlight">{{
-                      article.sourceName
-                    }}</span>
-                    <p class="font-bold text-sm leading-snug mt-0.5">{{ article.title }}</p>
-                  </span>
-                </button>
-              }
-            </div>
+            <app-news-stories [articles]="news()" />
           </div>
         }
 
@@ -309,7 +281,3 @@
     </div>
   }
 </div>
-
-@if (previewArticle(); as article) {
-  <app-article-preview [article]="article" (closed)="closePreview()"></app-article-preview>
-}

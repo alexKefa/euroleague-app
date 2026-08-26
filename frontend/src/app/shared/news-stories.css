@@ -1,0 +1,31 @@
+/* No visible scrollbar on the stories rail — it's meant to read as a swipeable row, not a scroll area with chrome. */
+.stories-rail {
+  scrollbar-width: none;
+}
+.stories-rail::-webkit-scrollbar {
+  display: none;
+}
+
+/* Gradient ring (unviewed) using the current team's own accent colors
+   instead of Instagram's fixed pink/orange — ties the "stories" look into
+   this app's per-team reskinning instead of a hardcoded brand gradient. */
+.story-ring {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, var(--accent-primary, #3e7cb1), var(--accent-secondary, #0b1220));
+}
+
+.story-ring--seen {
+  background: var(--color-line, #232324);
+}
+
+.story-ring-inner {
+  display: block;
+  width: 56px;
+  height: 56px;
+  padding: 2px;
+  border-radius: 9999px;
+  background: var(--color-page, #0a0a0b);
+  overflow: hidden;
+}

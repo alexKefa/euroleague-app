@@ -1,0 +1,80 @@
+<div class="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 stories-rail">
+  @for (article of articles; track article.id; let i = $index) {
+    <button
+      type="button"
+      (click)="openAt(i)"
+      class="flex flex-col items-center gap-1 shrink-0 w-16 focus:outline-none"
+      [attr.aria-label]="i18n.t('news.previewAriaPrefix') + ' ' + article.title"
+    >
+      <span class="story-ring" [class.story-ring--seen]="isViewed(article)">
+        <span class="story-ring-inner">
+          @if (article.imageUrl) {
+            <img [src]="article.imageUrl" [alt]="article.title" loading="lazy" decoding="async" appRetryImg class="w-full h-full object-cover rounded-full" />
+          } @else {
+            <span class="w-full h-full rounded-full bg-page flex items-center justify-center text-muted">
+              <app-nav-icon name="news" [size]="18" />
+            </span>
+          }
+        </span>
+      </span>
+      <span class="text-[10px] font-bold text-muted truncate w-full text-center">{{ article.sourceName }}</span>
+    </button>
+  }
+</div>
+
+@if (currentArticle(); as article) {
+  <div class="fixed inset-0 z-50 bg-black flex flex-col">
+    <div class="flex gap-1 px-2 pt-3 shrink-0">
+      @for (a of articles; track a.id; let i = $index) {
+        <div class="flex-1 h-[3px] rounded-full bg-white/25 overflow-hidden">
+          <div class="h-full bg-white rounded-full" [style.width.%]="progressFor(i)"></div>
+        </div>
+      }
+    </div>
+
+    <div class="flex items-center justify-between px-3 pt-2 pb-1 shrink-0">
+      <span class="flex items-center gap-1.5 text-white text-[11px] font-bold uppercase tracking-wider">
+        <app-nav-icon name="news" [size]="14" />
+        {{ article.sourceName }}
+      </span>
+      <button
+        type="button"
+        (click)="close()"
+        class="text-white/80 hover:text-white text-3xl leading-none font-bold px-2"
+        [attr.aria-label]="i18n.t('news.closePreview')"
+      >
+        &times;
+      </button>
+    </div>
+
+    <div class="relative flex-1 min-h-0" (pointerdown)="pauseTimer()" (pointerup)="resumeTimer()" (pointerleave)="resumeTimer()">
+      @if (article.imageUrl) {
+        <img [src]="article.imageUrl" [alt]="article.title" appRetryImg class="absolute inset-0 w-full h-full object-contain" />
+      } @else {
+        <div class="absolute inset-0 flex items-center justify-center text-muted">
+          <app-nav-icon name="news" [size]="48" />
+        </div>
+      }
+
+      <button type="button" class="absolute inset-y-0 left-0 w-1/2" (click)="prev()" [attr.aria-label]="i18n.t('news.previousStory')"></button>
+      <button type="button" class="absolute inset-y-0 right-0 w-1/2" (click)="next()" [attr.aria-label]="i18n.t('news.nextStory')"></button>
+
+      <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent pointer-events-none"></div>
+
+      <div class="absolute bottom-0 inset-x-0 p-5 pointer-events-none">
+        <h2 class="font-display text-white text-xl leading-snug mb-2">{{ article.title }}</h2>
+        @if (article.summary) {
+          <p class="text-white/80 text-sm leading-relaxed mb-3 line-clamp-3">{{ article.summary }}</p>
+        }
+        <a
+          [href]="article.url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="pointer-events-auto inline-block text-white font-bold text-sm underline underline-offset-2"
+        >
+          {{ i18n.t('news.readFullArticle') }} &rarr;
+        </a>
+      </div>
+    </div>
+  </div>
+}

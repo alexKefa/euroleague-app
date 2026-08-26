@@ -16,4 +16,6 @@ export const newsTranslations: Record<string, Record<Lang, string>> = {
   "news.hAgo": { en: "h ago", el: "ώρες πριν" },
   "news.dAgo": { en: "d ago", el: "μέρες πριν" },
   "news.allSources": { en: "All sources", el: "Όλες οι πηγές" },
+  "news.previousStory": { en: "Previous story", el: "Προηγούμενη ιστορία" },
+  "news.nextStory": { en: "Next story", el: "Επόμενη ιστορία" },
 };
