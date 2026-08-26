@@ -209,6 +209,14 @@ export const playerSeasonStats = pgTable(
     threePointAttemptRate: real("three_point_attempt_rate"),
     freeThrowRate: real("free_throw_rate"),
     possessionsPerGame: real("possessions_per_game"),
+    // Usage% — NOT part of euroleague-api's `advanced` endpoint (checked
+    // directly: it has no usage field at all), so unlike everything else in
+    // this block it isn't synced verbatim. Computed instead from
+    // `player_game_stats`' raw per-game box score columns via the standard
+    // formula, by sync-py/player_stats_sync.py's own SQL after the
+    // traditional/advanced upsert loop — see the comment there for the
+    // per-game team-total join and its accuracy caveat for traded players.
+    usagePercentage: real("usage_percentage"),
   },
   (table) => ({
     playerSeasonUnique: uniqueIndex("player_season_unique").on(table.playerId, table.season),

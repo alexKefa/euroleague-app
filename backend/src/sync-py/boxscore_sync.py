@@ -57,6 +57,28 @@ def safe_float(value) -> Optional[float]:
     return None if math.isnan(f) else f
 
 
+def parse_minutes(value) -> Optional[float]:
+    """The boxscore feed's Minutes column comes back as "MM:SS" (e.g.
+    "33:21") or the literal string "DNP" for a player who didn't play — never
+    a plain number, so safe_float(value) on it silently returned None for
+    every row via its except-ValueError branch. That went unnoticed because
+    nothing read player_game_stats.minutes until this usage% calculation
+    needed it. "DNP" is None (didn't play, not "played 0:00"); a bare numeric
+    string (seen in some older seasons) is treated as whole minutes."""
+    if value is None:
+        return None
+    s = str(value).strip()
+    if not s or s.upper() == "DNP":
+        return None
+    if ":" in s:
+        minutes_part, _, seconds_part = s.partition(":")
+        try:
+            return float(minutes_part) + float(seconds_part) / 60
+        except ValueError:
+            return None
+    return safe_float(s)
+
+
 def sync_boxscores(season: int, start_index: int = 0, limit: Optional[int] = None) -> tuple:
     bs = BoxScoreData(competition="E")
 
@@ -137,7 +159,7 @@ def sync_boxscores(season: int, start_index: int = 0, limit: Optional[int] = Non
                         player_id,
                         game_id,
                         bool(row["IsStarter"]) if row["IsStarter"] is not None else None,
-                        safe_float(row["Minutes"]),
+                        parse_minutes(row["Minutes"]),
                         safe_int(row["Points"]),
                         safe_int(row["FieldGoalsMade2"]),
                         safe_int(row["FieldGoalsAttempted2"]),

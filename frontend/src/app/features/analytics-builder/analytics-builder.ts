@@ -35,6 +35,7 @@ const COLUMNS: ColumnDef[] = [
   { key: "assistToTurnoverRatio", labelKey: "stats.colAstTo", get: (r) => r.stats.assistToTurnoverRatio, format: (r) => r.stats.assistToTurnoverRatio?.toFixed(1) ?? "—" },
   { key: "turnoverRatio", labelKey: "stats.colTov", get: (r) => r.stats.turnoverRatio, format: (r) => (r.stats.turnoverRatio != null ? `${r.stats.turnoverRatio.toFixed(1)}%` : "—") },
   { key: "possessionsPerGame", labelKey: "stats.colPace", get: (r) => r.stats.possessionsPerGame, format: (r) => r.stats.possessionsPerGame?.toFixed(1) ?? "—" },
+  { key: "usagePercentage", labelKey: "stats.colUsg", get: (r) => r.stats.usagePercentage, format: (r) => (r.stats.usagePercentage != null ? `${r.stats.usagePercentage.toFixed(1)}%` : "—") },
 ];
 
 const DEFAULT_COLUMN_KEYS = ["pointsPerGame", "valuation", "trueShootingPct", "possessionsPerGame"];

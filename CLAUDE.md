@@ -376,12 +376,48 @@ If you need to apply a schema change without an interactive terminal
     league-wide table over `GET /api/players/advanced-stats`
     (`backend/src/routes/players.ts`) — every column `playerSeasonStats`
     has, including the advanced ones (TS%, eFG%, rebound/assist/turnover
-    rates, possessions/game). Only ~200 rows for the whole league, so the
-    backend returns the full table once and all search/team/min-games
-    filtering and column-click sorting happens client-side rather than
-    round-tripping per filter change. Reached via a "full stats table"
-    link on the dashboard's Leaders card, the roster page, the game-detail
-    top-performers card, and the player-detail advanced-stats card.
+    rates, possessions/game, usage% — see below). Only ~200 rows for the
+    whole league, so the backend returns the full table once and all
+    search/team/min-games filtering and column-click sorting happens
+    client-side rather than round-tripping per filter change. Reached via a
+    "full stats table" link on the dashboard's Leaders card, the roster
+    page, the game-detail top-performers card, and the player-detail
+    advanced-stats card. `/analytics-builder` (`AnalyticsBuilderComponent`,
+    behind login, up to 5 saved custom "views" comparing hand-picked
+    players/columns) keeps its own copy of this same column list
+    (`analytics-builder.ts`'s `COLUMNS` — see the comment there) rather than
+    importing `/stats`'s, so any column added to one should be added to the
+    other by hand.
+  - **Usage% (2026-08-26)**: `playerSeasonStats.usagePercentage` is the one
+    column in that table NOT synced verbatim from euroleague-api — its
+    `advanced` player-stats endpoint has no usage field at all (confirmed by
+    directly printing that endpoint's actual response columns). Computed
+    instead by `sync_usage_percentage()` in
+    `backend/src/sync-py/player_stats_sync.py`, run after the normal
+    traditional/advanced upsert loop: the standard formula
+    (`100 × (FGA + 0.44×FTA + TOV) × (teamMinutes/5) ÷ (minutes ×
+    (teamFGA + 0.44×teamFTA + teamTOV))`) per game, averaged across the
+    season, built from `player_game_stats`' raw per-game columns via one SQL
+    query. `player_game_stats` has no per-game team column — only
+    `players.team_id`, the player's *current* team — so team totals are
+    built by grouping on that current team_id, restricted to rows where it
+    actually matches one side of that specific game
+    (`p.team_id IN (g.home_team_id, g.away_team_id)`); a traded player's old
+    games with their old team fail that filter and are silently excluded
+    from both their own average and their old teammates' team totals — same
+    "current team only" simplification as the traded-player gap below, not
+    a new one. Surfaced with no backend route changes needed, since
+    `/advanced-stats` already selects the whole `playerSeasonStats` row.
+  - **`boxscore_sync.py`'s `minutes` column was silently null for every row
+    until 2026-08-26**: the feed's `Minutes` field comes back as `"MM:SS"`
+    (or the literal string `"DNP"`), never a plain number — `safe_float()`
+    on a string like `"33:21"` raises `ValueError`, which its own
+    except-clause swallows into `None`. Went unnoticed because nothing read
+    `player_game_stats.minutes` until the usage% calculation above needed
+    it — box scores, top performers, and double-doubles never touch that
+    column. Fixed with a dedicated `parse_minutes()` (splits on `:`,
+    `"DNP"` → `None`) and a full re-sync of all 426 `final` games'
+    box scores to backfill it.
   - `/compare` (`PlayerCompareComponent`) is an animated player
     head-to-head — two search-to-pick players (from the same
     `/advanced-stats` payload, no extra round trip), a "VS" hero with
@@ -504,12 +540,9 @@ at the same Neon instance as local dev — there's no separate prod database.
 
 - A traded player's season-long stat averages (across both teams) are
   attributed entirely to their *current* team's roster page, not split per-team.
-- Player detail pages don't show a per-game log, even though
-  `player_game_stats` is no longer empty — the boxscore sync has since been
-  run and covers 399 of 419 `final` games (checked 2026-08-24). The gap is
-  just that no route/UI reads it per-game yet; `playerSeasonStats` (season
-  averages, including the advanced columns below) is what's actually wired
-  up today.
+- `boxscore_sync.py` was re-run in full on 2026-08-26 (426 `final` games,
+  7948 rows) as part of fixing the `minutes`-parsing bug documented above —
+  treat any earlier "checked on <date>, covers N of M games" note as stale.
 - Redeploys to Railway are manual, not triggered by `git push` (see
   Deployment above).
 - Some teams have zero rows in `players` — e.g. Besiktas Istanbul, found

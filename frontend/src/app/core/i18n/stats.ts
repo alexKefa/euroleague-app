@@ -26,6 +26,7 @@ export const statsTranslations: Record<string, Record<Lang, string>> = {
   "stats.colAstTo": { en: "AST/TO", el: "ASS/ΛΑΘ" },
   "stats.colTov": { en: "TOV%", el: "TOV%" },
   "stats.colPace": { en: "POSS", el: "ΚΑΤ" },
+  "stats.colUsg": { en: "USG%", el: "USG%" },
 
   "stats.legendOreb": {
     en: "Share of available offensive rebounds grabbed while on court",
@@ -36,6 +37,10 @@ export const statsTranslations: Record<string, Record<Lang, string>> = {
     el: "Ποσοστό διαθέσιμων αμυντικών ριμπάουντ που μάζεψε όσο ήταν στο παρκέ",
   },
   "stats.legendAstTo": { en: "Assists per turnover — ball security on offense", el: "Ασίστ ανά λάθος — ασφάλεια στην επίθεση" },
+  "stats.legendUsg": {
+    en: "Share of the team's plays used by this player while on court",
+    el: "Ποσοστό των φάσεων της ομάδας που χρησιμοποίησε ο παίκτης όσο ήταν στο παρκέ",
+  },
 
   // Player head-to-head (frontend/src/app/features/compare/).
   "stats.compare.navTitle": { en: "Compare players", el: "Σύγκριση παικτών" },

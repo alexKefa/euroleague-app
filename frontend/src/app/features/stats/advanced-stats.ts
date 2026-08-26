@@ -94,6 +94,13 @@ const COLUMNS: ColumnDef[] = [
     format: (r) => r.stats.possessionsPerGame?.toFixed(1) ?? "—",
     numeric: true,
   },
+  {
+    key: "usagePercentage",
+    labelKey: "stats.colUsg",
+    get: (r) => r.stats.usagePercentage,
+    format: (r) => (r.stats.usagePercentage != null ? `${r.stats.usagePercentage.toFixed(1)}%` : "—"),
+    numeric: true,
+  },
 ];
 
 const DEFAULT_MIN_GAMES = 5;
@@ -115,6 +122,7 @@ const LEGEND_KEYS: { code: string; key: string }[] = [
   { code: "AST/TO", key: "stats.legendAstTo" },
   { code: "TOV%", key: "roster.legendTOV" },
   { code: "POSS", key: "roster.legendPOSS" },
+  { code: "USG%", key: "stats.legendUsg" },
 ];
 
 @Component({

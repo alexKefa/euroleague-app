@@ -70,6 +70,72 @@ def pct_to_float(value) -> Optional[float]:
     return float(s.rstrip("%")) if s else None
 
 
+def sync_usage_percentage(cur, season_: str) -> None:
+    """Usage% isn't part of euroleague-api's `advanced` endpoint (checked
+    directly against its actual response columns — there's no usage field at
+    all), so unlike every other column in this script it's computed here
+    from raw per-game box scores instead of synced verbatim.
+
+    Standard formula: 100 * (playerFGA + 0.44*playerFTA + playerTOV) *
+    (teamMinutes/5) / (playerMinutes * (teamFGA + 0.44*teamFTA + teamTOV)).
+
+    `player_game_stats` has no per-game team column (only `players.team_id`,
+    the player's *current* team) — so team totals are built by grouping
+    game rows on the current team_id, restricted to rows where that current
+    team_id actually matches one side of that specific game
+    (`p.team_id IN (g.home_team_id, g.away_team_id)`). For a player who's
+    since been traded, an old game with their old team fails that filter and
+    is silently excluded from both their own average and their old
+    teammates' team totals — same "current team only" simplification as the
+    roster page's known limitation (see CLAUDE.md), rather than a new one.
+    """
+    cur.execute(
+        """
+        WITH game_team_totals AS (
+            SELECT
+                pgs.game_id,
+                p.team_id,
+                SUM(pgs.minutes) AS team_minutes,
+                SUM(COALESCE(pgs.field_goals_attempted_2, 0) + COALESCE(pgs.field_goals_attempted_3, 0)) AS team_fga,
+                SUM(COALESCE(pgs.free_throws_attempted, 0)) AS team_fta,
+                SUM(COALESCE(pgs.turnovers, 0)) AS team_tov
+            FROM player_game_stats pgs
+            JOIN games g ON g.id = pgs.game_id
+            JOIN players p ON p.id = pgs.player_id
+            WHERE g.season = %(season)s
+              AND pgs.minutes IS NOT NULL AND pgs.minutes > 0
+              AND p.team_id IN (g.home_team_id, g.away_team_id)
+            GROUP BY pgs.game_id, p.team_id
+        ),
+        player_game_usage AS (
+            SELECT
+                pgs.player_id,
+                100.0 * (
+                    COALESCE(pgs.field_goals_attempted_2, 0) + COALESCE(pgs.field_goals_attempted_3, 0)
+                    + 0.44 * COALESCE(pgs.free_throws_attempted, 0) + COALESCE(pgs.turnovers, 0)
+                ) * (gtt.team_minutes / 5.0)
+                / NULLIF(pgs.minutes * (gtt.team_fga + 0.44 * gtt.team_fta + gtt.team_tov), 0) AS usage_pct
+            FROM player_game_stats pgs
+            JOIN games g ON g.id = pgs.game_id
+            JOIN players p ON p.id = pgs.player_id
+            JOIN game_team_totals gtt ON gtt.game_id = pgs.game_id AND gtt.team_id = p.team_id
+            WHERE g.season = %(season)s
+              AND pgs.minutes IS NOT NULL AND pgs.minutes > 0
+        )
+        UPDATE player_season_stats pss
+        SET usage_percentage = agg.usage_percentage
+        FROM (
+            SELECT player_id, AVG(usage_pct) AS usage_percentage
+            FROM player_game_usage
+            WHERE usage_pct IS NOT NULL
+            GROUP BY player_id
+        ) agg
+        WHERE pss.player_id = agg.player_id AND pss.season = %(season)s
+        """,
+        {"season": season_},
+    )
+
+
 def sync_player_stats(season: int) -> Tuple[int, int, int]:
     ps = PlayerStats(competition="E")
     df = ps.get_player_stats_single_season(endpoint="traditional", season=season)
@@ -193,6 +259,7 @@ def sync_player_stats(season: int) -> Tuple[int, int, int]:
             )
             stats_upserted += 1
 
+        sync_usage_percentage(cur, season_)
         conn.commit()
     except Exception:
         conn.rollback()

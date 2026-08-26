@@ -61,6 +61,7 @@ export interface PlayerSeasonStats {
   threePointAttemptRate: number | null;
   freeThrowRate: number | null;
   possessionsPerGame: number | null;
+  usagePercentage: number | null;
 }
 
 export interface RosterEntry {
