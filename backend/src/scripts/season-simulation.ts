@@ -40,9 +40,6 @@ const ROUNDS = 38;
 const GAMES_PER_ROUND = 10; // matches the live 2026-27 season (confirmed against the DB)
 const SEASON_DAYS = 210; // ~Oct-Apr EuroLeague season, matches the pacing assumption in services/packs.ts's comments
 
-// Proposed (not yet shipped): a "great round" bonus, gated on prediction
-// accuracy rather than luck-of-the-wheel — see the comment where it's
-// granted below.
 // Both shipped (services/cards.ts) as of the 2026-08-26 "predictions matter
 // more" pass — on by default here too so this script models reality. Set
 // SIM_GREAT_ROUND=0 / SIM_LEGENDARY_MILESTONE=0 to model the economy
@@ -249,12 +246,15 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
           correctThisRound++;
           state.points += POINTS_PER_CORRECT;
           cumulativeCorrect++;
-          // services/cards.ts's checkAndGrantLegendaryMilestones: a
-          // guaranteed-new legendary every LEGENDARY_MILESTONE cumulative
-          // correct picks, career-wide (not per-round) — targets the tier
-          // that's actually the bottleneck at realistic (<100%) wheel
-          // engagement, and unlike the wheel, only accrues from picks
-          // actually gotten right.
+          // services/cards.ts's checkAndGrantLegendaryMilestones: an
+          // unopened wheelLegendary pack (a guaranteed-new legendary once
+          // opened) every LEGENDARY_MILESTONE cumulative correct picks,
+          // career-wide (not per-round) — targets the tier that's actually
+          // the bottleneck at realistic (<100%) wheel engagement, and
+          // unlike the wheel, only accrues from picks actually gotten
+          // right. Modeled the same as grantGuaranteedNewOfTier below since
+          // wheelLegendary's single slot always lands on an unowned card —
+          // opening it is behaviorally identical to a direct grant.
           if (LEGENDARY_MILESTONE > 0 && cumulativeCorrect % LEGENDARY_MILESTONE === 0) {
             milestoneLegendaries++;
             grantGuaranteedNewOfTier(state, "legendary");
@@ -266,15 +266,17 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
         grantGuaranteedNewOfTier(state, "legendary");
       } else if (GREAT_ROUND_BONUS && correctThisRound >= GREAT_ROUND_THRESHOLD) {
         // services/cards.ts's checkAndGrantRoundRewards: a "great round"
-        // (8-9/10, not literally perfect) grants a single guaranteed-new
-        // rare — additive, doesn't touch pack/wheel internals at all.
-        // Binomial-tail-sensitive by construction: a big accuracy swing
-        // (50% -> 80%) swings this from ~2/season to ~22/season (see the
-        // standalone probability check run before adding this), far more
-        // than any linear points-per-correct scaling could, without
-        // re-deriving the packs' exploit-safety margins.
+        // (8-9/10, not literally perfect) grants an unopened wheelPro-type
+        // pack (1 common + 4 guaranteed rare) — same concept as a wheel
+        // win, not a specific card directly. Additive, doesn't touch
+        // pack/wheel internals at all. Binomial-tail-sensitive by
+        // construction: a big accuracy swing (50% -> 80%) swings this from
+        // ~2/season to ~22/season (see the standalone probability check run
+        // before adding this), far more than any linear points-per-correct
+        // scaling could, without re-deriving the packs' exploit-safety
+        // margins.
         greatRounds++;
-        grantGuaranteedNewOfTier(state, "rare");
+        state.points += openPack(state, WHEEL_PACKS.rare);
       }
       nextRound++;
       spendLoop(state, policy);

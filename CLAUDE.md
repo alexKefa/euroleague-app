@@ -192,26 +192,35 @@ If you need to apply a schema change without an interactive terminal
   something disproportionate to the rest of the economy (leaderboard,
   "Century" badge). Two small additive rewards were added instead, neither
   touching pack/wheel odds or costs: (1) a **"great round"** (>=8/10
-  correct, short of literally perfect) now also grants a guaranteed-new
-  **rare**, alongside perfect round's existing guaranteed-new legendary —
-  same `roundRewards` table/claim, see the branch in
-  `checkAndGrantRoundRewards` (`services/cards.ts`); (2) a new
+  correct, short of literally perfect) now also grants an unopened
+  **wheelPro** pack, alongside perfect round's existing unopened
+  **wheelLegendary** pack — same `roundRewards` table/claim, see the branch
+  in `checkAndGrantRoundRewards` (`services/cards.ts`); (2) a new
   **legendary milestone**: every `LEGENDARY_MILESTONE_INTERVAL` (60)
   cumulative correct predictions (career-wide, not per-round) grants
-  another guaranteed-new legendary, via a new `legendary_milestones` table
-  (mirrors `roundRewards`' claim-first/seenAt shape exactly, just keyed on
-  an ever-increasing milestone number instead of `(season, round)`) and
-  `checkAndGrantLegendaryMilestones`. Both are binomial/linear-in-accuracy
-  by construction rather than flat, so they scale with skill much harder
-  than a points multiplier could — e.g. a "great round" fires ~2x/season at
-  50% accuracy vs ~22x/season at 80%. Re-simulated at a realistic 85% daily
-  wheel engagement (the scenario that used to cap completion at ~77-79%
-  regardless of accuracy): full-album completion is now ~92-98% across the
-  50-75% accuracy range (up from ~77-79%), and completion *speed* now
-  differs meaningfully by accuracy too (median day ~160 at 50% vs ~145 at
-  75%) — see `predictions.ts`'s `newRoundRewards`/`newMilestoneRewards` and
-  the tier-aware "Perfect round!"/"Great round!"/"Prediction milestone!"
-  banners on the Predictions page for the user-facing side.
+  another unopened wheelLegendary pack, via a new `legendary_milestones`
+  table (mirrors `roundRewards`' claim-first/seenAt shape exactly, just
+  keyed on an ever-increasing milestone number instead of
+  `(season, round)`) and `checkAndGrantLegendaryMilestones`. Both are
+  binomial/linear-in-accuracy by construction rather than flat, so they
+  scale with skill much harder than a points multiplier could — e.g. a
+  "great round" fires ~2x/season at 50% accuracy vs ~22x/season at 80%.
+  Grants **an unopened pack, not a specific card directly** — same concept
+  as a wheel win (this was a follow-up same-day tweak: cards were granted
+  directly at first, then unified with the wheel's "open it yourself from
+  My Packs" flow so every non-purchase reward channel behaves the same
+  way). `roundRewards`/`legendary_milestones` reference the granted pack via
+  a new `ownedPackId` column (their old `collectibleId` column is unused by
+  new grants, kept only for historical rows from before this tweak).
+  Re-simulated at a realistic 85% daily wheel engagement (the scenario that
+  used to cap completion at ~77-79% regardless of accuracy): full-album
+  completion is now ~91-98% across the 50-75% accuracy range (up from
+  ~77-79%), and completion *speed* now differs meaningfully by accuracy too
+  (median day ~160 at 50% vs ~144 at 75%) — see `predictions.ts`'s
+  `newRoundRewards`/`newMilestoneRewards` (each entry is now
+  `{ id, packType, tier }`, not a card) and the tier-aware "Perfect round!"/
+  "Great round!"/"Prediction milestone!" banners linking to `/packs` (not
+  `/store`) on the Predictions page for the user-facing side.
 - **Referrals** (`services/referrals.ts`, `users.referralCode`/
   `referredByUserId`/`referralRewardGranted` in `schema.ts`). Every user
   gets a unique code at registration (`createUniqueReferralCode`), shared as

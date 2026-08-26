@@ -1,6 +1,6 @@
 import { eq, and, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { collectibles, userCollectibles, teams, games, predictions, roundRewards, legendaryMilestones } from "../db/schema.js";
+import { games, predictions, roundRewards, legendaryMilestones, ownedPacks } from "../db/schema.js";
 import { computeWinnerTeamId } from "./points.js";
 
 // A round with this many correct picks (out of GAMES_PER_ROUND, but short of
@@ -24,53 +24,21 @@ const GREAT_ROUND_THRESHOLD = 8;
 // scale into something disproportionate to the rest of the economy).
 export const LEGENDARY_MILESTONE_INTERVAL = 60;
 
-// Matches the shape GET /collectibles returns — the frontend's Collectible
-// model expects a joined `team` object, not just teamId, and both spin
-// routes hand this straight back as the win payload.
-export interface CollectibleWithTeam {
+// An unopened pack awarded by a round/milestone reward — same concept as a
+// wheel win (routes/spin.ts): it sits in ownedPacks until the user opens it
+// themselves from the Packs page, rather than instantly handing over a
+// specific card. `tier` is what the pack guarantees (legendary/rare), for
+// the caller's banner copy — deliberately not `PACKS[packType].label`,
+// which is wheel-flavored text ("Jump Ball — ...") that wouldn't make sense
+// announced from a perfect-round or milestone banner.
+export interface OwnedPackReward {
   id: string;
-  name: string;
-  tier: string;
-  pointsCost: number;
-  imageUrl: string | null;
-  team: { id: string; code: string; name: string; primaryColor: string | null };
+  packType: "wheelLegendary" | "wheelPro";
+  tier: "legendary" | "rare";
 }
 
-/** A random collectible of the given tier the user doesn't already own, or null if they own them all. */
-export async function pickRandomUnownedByTier(
-  userId: string,
-  tier: "common" | "rare" | "legendary"
-): Promise<CollectibleWithTeam | null> {
-  const [owned, ofTier] = await Promise.all([
-    db
-      .select({ collectibleId: userCollectibles.collectibleId })
-      .from(userCollectibles)
-      .where(eq(userCollectibles.userId, userId)),
-    db
-      .select({ collectible: collectibles, team: teams })
-      .from(collectibles)
-      .innerJoin(teams, eq(collectibles.teamId, teams.id))
-      .where(eq(collectibles.tier, tier)),
-  ]);
-
-  const ownedIds = new Set(owned.map((o) => o.collectibleId));
-  const candidates = ofTier.filter(({ collectible }) => !ownedIds.has(collectible.id));
-  if (candidates.length === 0) return null;
-
-  const { collectible, team } = candidates[Math.floor(Math.random() * candidates.length)];
-  return {
-    id: collectible.id,
-    name: collectible.name,
-    tier: collectible.tier,
-    pointsCost: collectible.pointsCost,
-    imageUrl: collectible.imageUrl,
-    team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor },
-  };
-}
-
-/** A random legendary collectible the user doesn't already own, or null if they own them all. */
-export async function pickRandomUnownedLegendary(userId: string): Promise<CollectibleWithTeam | null> {
-  return pickRandomUnownedByTier(userId, "legendary");
+function tierForRewardPackType(packType: "wheelLegendary" | "wheelPro"): "legendary" | "rare" {
+  return packType === "wheelLegendary" ? "legendary" : "rare";
 }
 
 /**
@@ -95,7 +63,7 @@ export async function pickRandomUnownedLegendary(userId: string): Promise<Collec
  * tested. The caller marks rewards seen (markRoundRewardsSeen) once
  * they've actually been displayed.
  */
-export async function checkAndGrantRoundRewards(userId: string): Promise<CollectibleWithTeam[]> {
+export async function checkAndGrantRoundRewards(userId: string): Promise<OwnedPackReward[]> {
   // `already` doesn't actually depend on `allGames`/`completeRounds` — only
   // on userId — so fetch both up front instead of gating it behind the
   // completeRounds check below, which just added a needless sequential
@@ -145,17 +113,23 @@ export async function checkAndGrantRoundRewards(userId: string): Promise<Collect
           return winnerTeamId !== null && winnerTeamId === pick.predictedWinnerTeamId ? count + 1 : count;
         }, 0);
 
-        // Perfect (every game right) still grants a legendary, unchanged.
-        // "Great" (short of perfect but at/above GREAT_ROUND_THRESHOLD)
-        // grants a rare instead — a much more frequent, still purely
-        // accuracy-gated reward (see LEGENDARY_MILESTONE_INTERVAL's comment
-        // for why "predictions matter more" needed a lever besides points).
-        // Anything below that threshold earns nothing and isn't claimed
-        // here, same as before this pass.
-        let tier: "legendary" | "rare" | null = null;
-        if (correctCount === roundGames.length) tier = "legendary";
-        else if (correctCount >= GREAT_ROUND_THRESHOLD) tier = "rare";
-        if (tier === null) continue;
+        // Perfect (every game right) still grants a legendary pack,
+        // unchanged in spirit. "Great" (short of perfect but at/above
+        // GREAT_ROUND_THRESHOLD) grants a rare pack instead — a much more
+        // frequent, still purely accuracy-gated reward (see
+        // LEGENDARY_MILESTONE_INTERVAL's comment for why "predictions
+        // matter more" needed a lever besides points). Anything below that
+        // threshold earns nothing and isn't claimed here, same as before
+        // this pass. Both grant an *unopened pack* (wheelLegendary/
+        // wheelPro), not a specific card directly — same concept as a
+        // wheel win (2026-08-26 pass), so every non-purchase reward channel
+        // behaves the same way: it lands in "My Packs" for the user to open
+        // themselves, rather than some channels instantly granting a card
+        // and others making you open a pack.
+        let packType: "wheelLegendary" | "wheelPro" | null = null;
+        if (correctCount === roundGames.length) packType = "wheelLegendary";
+        else if (correctCount >= GREAT_ROUND_THRESHOLD) packType = "wheelPro";
+        if (packType === null) continue;
 
         const [claim] = await db
           .insert(roundRewards)
@@ -164,33 +138,26 @@ export async function checkAndGrantRoundRewards(userId: string): Promise<Collect
           .returning();
         if (!claim) continue; // a concurrent request already claimed this round
 
-        const prize = await pickRandomUnownedByTier(userId, tier);
-        if (prize) {
-          await db.insert(userCollectibles).values({ userId, collectibleId: prize.id });
-          await db.update(roundRewards).set({ collectibleId: prize.id }).where(eq(roundRewards.id, claim.id));
-        }
+        const [pack] = await db.insert(ownedPacks).values({ userId, packType }).returning();
+        await db.update(roundRewards).set({ ownedPackId: pack.id }).where(eq(roundRewards.id, claim.id));
       }
     }
   }
 
   const unseen = await db
-    .select({ collectible: collectibles, team: teams })
+    .select({ pack: ownedPacks })
     .from(roundRewards)
-    .innerJoin(collectibles, eq(roundRewards.collectibleId, collectibles.id))
-    .innerJoin(teams, eq(collectibles.teamId, teams.id))
+    .innerJoin(ownedPacks, eq(roundRewards.ownedPackId, ownedPacks.id))
     .where(and(eq(roundRewards.userId, userId), isNull(roundRewards.seenAt)));
 
-  return unseen.map(({ collectible, team }) => ({
-    id: collectible.id,
-    name: collectible.name,
-    tier: collectible.tier,
-    pointsCost: collectible.pointsCost,
-    imageUrl: collectible.imageUrl,
-    team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor },
+  return unseen.map(({ pack }) => ({
+    id: pack.id,
+    packType: pack.packType as "wheelLegendary" | "wheelPro",
+    tier: tierForRewardPackType(pack.packType as "wheelLegendary" | "wheelPro"),
   }));
 }
 
-/** Marks every currently-unseen round reward this user has as seen — called once the "Perfect round!" banner has actually been shown. */
+/** Marks every currently-unseen round reward this user has as seen — called once the "Perfect round!"/"Great round!" banner has actually been shown. */
 export async function markRoundRewardsSeen(userId: string): Promise<void> {
   await db
     .update(roundRewards)
@@ -214,7 +181,7 @@ export async function markRoundRewardsSeen(userId: string): Promise<void> {
  * checkAndGrantRoundRewards, for the same reason — see that function's doc
  * comment.
  */
-export async function checkAndGrantLegendaryMilestones(userId: string): Promise<CollectibleWithTeam[]> {
+export async function checkAndGrantLegendaryMilestones(userId: string): Promise<OwnedPackReward[]> {
   const [correctRow] = await db.execute<{ correct: number }>(sql`
     select count(*)::int as correct
     from ${predictions} p
@@ -242,28 +209,23 @@ export async function checkAndGrantLegendaryMilestones(userId: string): Promise<
         .returning();
       if (!claim) continue; // a concurrent request already claimed this one
 
-      const prize = await pickRandomUnownedLegendary(userId);
-      if (prize) {
-        await db.insert(userCollectibles).values({ userId, collectibleId: prize.id });
-        await db.update(legendaryMilestones).set({ collectibleId: prize.id }).where(eq(legendaryMilestones.id, claim.id));
-      }
+      // Same "unopened pack, not a direct card" concept as
+      // checkAndGrantRoundRewards — see that function's comment.
+      const [pack] = await db.insert(ownedPacks).values({ userId, packType: "wheelLegendary" }).returning();
+      await db.update(legendaryMilestones).set({ ownedPackId: pack.id }).where(eq(legendaryMilestones.id, claim.id));
     }
   }
 
   const unseen = await db
-    .select({ collectible: collectibles, team: teams })
+    .select({ pack: ownedPacks })
     .from(legendaryMilestones)
-    .innerJoin(collectibles, eq(legendaryMilestones.collectibleId, collectibles.id))
-    .innerJoin(teams, eq(collectibles.teamId, teams.id))
+    .innerJoin(ownedPacks, eq(legendaryMilestones.ownedPackId, ownedPacks.id))
     .where(and(eq(legendaryMilestones.userId, userId), isNull(legendaryMilestones.seenAt)));
 
-  return unseen.map(({ collectible, team }) => ({
-    id: collectible.id,
-    name: collectible.name,
-    tier: collectible.tier,
-    pointsCost: collectible.pointsCost,
-    imageUrl: collectible.imageUrl,
-    team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor },
+  return unseen.map(({ pack }) => ({
+    id: pack.id,
+    packType: "wheelLegendary" as const,
+    tier: "legendary" as const,
   }));
 }
 

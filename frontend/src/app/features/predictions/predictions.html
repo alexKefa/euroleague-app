@@ -141,11 +141,11 @@
                 {{ i18n.t('predictions.perfectRoundPrefix') }}
                 {{
                   perfectRoundRewards().length === 1
-                    ? perfectRoundRewards()[0].name
-                    : perfectRoundRewards().length + " " + i18n.t('predictions.legendaryCards')
+                    ? i18n.t('predictions.aLegendaryPack')
+                    : perfectRoundRewards().length + " " + i18n.t('predictions.legendaryPacks')
                 }}
-                {{ i18n.t('predictions.perfectRoundSuffix') }}
-                <a routerLink="/store" class="underline">{{ i18n.t('predictions.collection') }}</a>.
+                {{ i18n.t('predictions.openFromPrefix') }}
+                <a routerLink="/packs" class="underline">{{ i18n.t('predictions.myPacksLink') }}</a>.
               </div>
             }
             @if (greatRoundRewards().length > 0) {
@@ -154,11 +154,11 @@
                 {{ i18n.t('predictions.greatRoundPrefix') }}
                 {{
                   greatRoundRewards().length === 1
-                    ? greatRoundRewards()[0].name
-                    : greatRoundRewards().length + " " + i18n.t('predictions.rareCards')
+                    ? i18n.t('predictions.aRarePack')
+                    : greatRoundRewards().length + " " + i18n.t('predictions.rarePacks')
                 }}
-                {{ i18n.t('predictions.perfectRoundSuffix') }}
-                <a routerLink="/store" class="underline">{{ i18n.t('predictions.collection') }}</a>.
+                {{ i18n.t('predictions.openFromPrefix') }}
+                <a routerLink="/packs" class="underline">{{ i18n.t('predictions.myPacksLink') }}</a>.
               </div>
             }
             @if (shownMilestoneRewards().length > 0) {
@@ -167,11 +167,11 @@
                 {{ i18n.t('predictions.milestonePrefix') }}
                 {{
                   shownMilestoneRewards().length === 1
-                    ? shownMilestoneRewards()[0].name
-                    : shownMilestoneRewards().length + " " + i18n.t('predictions.legendaryCards')
+                    ? i18n.t('predictions.aLegendaryPack')
+                    : shownMilestoneRewards().length + " " + i18n.t('predictions.legendaryPacks')
                 }}
-                {{ i18n.t('predictions.perfectRoundSuffix') }}
-                <a routerLink="/store" class="underline">{{ i18n.t('predictions.collection') }}</a>.
+                {{ i18n.t('predictions.openFromPrefix') }}
+                <a routerLink="/packs" class="underline">{{ i18n.t('predictions.myPacksLink') }}</a>.
               </div>
             }
             <div class="mb-3 pb-3 border-b border-line">

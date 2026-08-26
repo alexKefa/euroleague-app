@@ -374,7 +374,15 @@ export const roundRewards = pgTable(
     userId: uuid("user_id").notNull().references(() => users.id),
     season: varchar("season", { length: 9 }).notNull(),
     round: integer("round").notNull(),
+    // Unused by new grants as of the 2026-08-26 "reward a pack, not a card"
+    // pass (see ownedPackId below) — left in place rather than dropped,
+    // since existing historical rows from before that pass still carry it.
     collectibleId: uuid("collectible_id").references(() => collectibles.id),
+    // The unopened pack this reward actually grants — wheelLegendary for a
+    // perfect round, wheelPro for a "great" one — same concept as a wheel
+    // win: it sits in ownedPacks until the user opens it themselves from
+    // the Packs page, rather than instantly handing over a specific card.
+    ownedPackId: uuid("owned_pack_id").references(() => ownedPacks.id),
     grantedAt: timestamp("granted_at", { withTimezone: true }).defaultNow().notNull(),
     // Null until the user has actually been shown the "Perfect round!"
     // banner. Several other pages (inventory/store/packs) also hit the
@@ -410,7 +418,10 @@ export const legendaryMilestones = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     userId: uuid("user_id").notNull().references(() => users.id),
     milestoneNumber: integer("milestone_number").notNull(),
+    // Unused by new grants as of the 2026-08-26 "reward a pack, not a card"
+    // pass — see roundRewards.ownedPackId's comment, same reasoning here.
     collectibleId: uuid("collectible_id").references(() => collectibles.id),
+    ownedPackId: uuid("owned_pack_id").references(() => ownedPacks.id),
     grantedAt: timestamp("granted_at", { withTimezone: true }).defaultNow().notNull(),
     // Same "not shown yet" purpose as roundRewards.seenAt.
     seenAt: timestamp("seen_at", { withTimezone: true }),

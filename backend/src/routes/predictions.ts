@@ -479,8 +479,8 @@ predictionsRouter.get("/me/summary", requireAuth, async (req, res) => {
     res.json({
       points,
       badges,
-      newRoundRewards: newRoundRewards.map((c) => ({ id: c.id, name: c.name, imageUrl: c.imageUrl, tier: c.tier })),
-      newMilestoneRewards: newMilestoneRewards.map((c) => ({ id: c.id, name: c.name, imageUrl: c.imageUrl, tier: c.tier })),
+      newRoundRewards: newRoundRewards.map((p) => ({ id: p.id, packType: p.packType, tier: p.tier })),
+      newMilestoneRewards: newMilestoneRewards.map((p) => ({ id: p.id, packType: p.packType, tier: p.tier })),
     });
   } catch (err) {
     console.error("GET /api/predictions/me/summary failed:", err);

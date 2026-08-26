@@ -5,7 +5,7 @@ import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { EventsService } from "../../core/events.service";
-import { Prediction, LeaderboardEntry, PredictionSummary, Game, RoundRewardCard } from "../../core/models";
+import { Prediction, LeaderboardEntry, PredictionSummary, Game, RewardPack } from "../../core/models";
 import { TeamBadgeComponent } from "../../shared/team-badge";
 import { PageHintComponent } from "../../shared/page-hint";
 import { NavIconComponent, NavIconName } from "../../shared/nav-icon";
@@ -44,12 +44,12 @@ const BADGE_CATALOG: { id: string; icon: NavIconName }[] = [
   { id: "sharpshooter", icon: "picks" },
 ];
 
-// Appends only the cards not already present (by id) — a summary re-fetch
+// Appends only the packs not already present (by id) — a summary re-fetch
 // while a reward is still unacked server-side would otherwise return the
-// same card again and duplicate it in the shown list.
-function mergeById(existing: RoundRewardCard[], incoming: RoundRewardCard[]): RoundRewardCard[] {
-  const existingIds = new Set(existing.map((c) => c.id));
-  const newOnes = incoming.filter((c) => !existingIds.has(c.id));
+// same pack again and duplicate it in the shown list.
+function mergeById(existing: RewardPack[], incoming: RewardPack[]): RewardPack[] {
+  const existingIds = new Set(existing.map((p) => p.id));
+  const newOnes = incoming.filter((p) => !existingIds.has(p.id));
   return newOnes.length > 0 ? [...existing, ...newOnes] : existing;
 }
 
@@ -98,8 +98,8 @@ export class PredictionsComponent implements OnInit {
   // here instead means a shown reward survives for the rest of this visit;
   // a genuinely fresh page load still won't re-show it, since the ack from
   // this visit already landed server-side.
-  readonly shownRoundRewards = signal<RoundRewardCard[]>([]);
-  readonly shownMilestoneRewards = signal<RoundRewardCard[]>([]);
+  readonly shownRoundRewards = signal<RewardPack[]>([]);
+  readonly shownMilestoneRewards = signal<RewardPack[]>([]);
 
   // How many points this round's picks are worth if every one of them hits —
   // every game listed in upcomingGames is still "scheduled" by construction
@@ -213,16 +213,16 @@ export class PredictionsComponent implements OnInit {
     });
   }
 
-  // shownRoundRewards can mix a perfect round's legendary with a "great"
-  // round's rare (see backend/src/services/cards.ts) — split by tier so the
-  // template can show each with its own wording instead of assuming every
-  // round reward is a legendary.
-  perfectRoundRewards(): RoundRewardCard[] {
-    return this.shownRoundRewards().filter((c) => c.tier === "legendary");
+  // shownRoundRewards can mix a perfect round's legendary pack with a
+  // "great" round's rare pack (see backend/src/services/cards.ts) — split
+  // by tier so the template can show each with its own wording instead of
+  // assuming every round reward is a legendary.
+  perfectRoundRewards(): RewardPack[] {
+    return this.shownRoundRewards().filter((p) => p.tier === "legendary");
   }
 
-  greatRoundRewards(): RoundRewardCard[] {
-    return this.shownRoundRewards().filter((c) => c.tier === "rare");
+  greatRoundRewards(): RewardPack[] {
+    return this.shownRoundRewards().filter((p) => p.tier === "rare");
   }
 
   badgeIcon(badgeId: string): NavIconName {

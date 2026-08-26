@@ -17,10 +17,12 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
   "predictions.perfectRoundPrefix": { en: "Perfect round! You won", el: "Τέλειος γύρος! Κέρδισες" },
   "predictions.greatRoundPrefix": { en: "Great round! You won", el: "Σπουδαίος γύρος! Κέρδισες" },
   "predictions.milestonePrefix": { en: "Prediction milestone! You won", el: "Ορόσημο προβλέψεων! Κέρδισες" },
-  "predictions.perfectRoundSuffix": { en: "— check your", el: "— δες τη" },
-  "predictions.collection": { en: "collection", el: "συλλογή σου" },
-  "predictions.legendaryCards": { en: "legendary cards", el: "θρυλικές κάρτες" },
-  "predictions.rareCards": { en: "rare cards", el: "σπάνιες κάρτες" },
+  "predictions.openFromPrefix": { en: "— open from", el: "— άνοιξέ το από" },
+  "predictions.myPacksLink": { en: "My Packs", el: "Τα Πακέτα μου" },
+  "predictions.aLegendaryPack": { en: "a Legendary Pack", el: "ένα Θρυλικό Πακέτο" },
+  "predictions.legendaryPacks": { en: "Legendary Packs", el: "Θρυλικά Πακέτα" },
+  "predictions.aRarePack": { en: "a Rare Pack", el: "ένα Σπάνιο Πακέτο" },
+  "predictions.rarePacks": { en: "Rare Packs", el: "Σπάνια Πακέτα" },
   "predictions.pts": { en: "pts", el: "πόντοι" },
   "predictions.noBadgesYet": { en: "No badges yet", el: "Δεν υπάρχουν μετάλλια ακόμα" },
   "predictions.pending": { en: "Pending", el: "Εκκρεμεί" },
@@ -37,8 +39,8 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
   },
 
   "predictions.hint": {
-    en: "Pick a winner before tip-off. Each correct call earns 10 points, a great round (8+/10) wins a bonus rare, a perfect round wins a legendary, and every 60 correct picks overall wins another legendary.",
-    el: "Διάλεξε νικητή πριν το τζάμπολ. Με κάθε σωστή πρόβλεψη κερδίζεις 10 πόντους, ένας σπουδαίος γύρος (8+/10) σου δίνει μια σπάνια κάρτα, ένας τέλειος γύρος μια θρυλική κάρτα, και κάθε 60 συνολικές σωστές προβλέψεις ξεκλειδώνουν άλλη μία θρυλική κάρτα.",
+    en: "Pick a winner before tip-off. Each correct call earns 10 points, a great round (8+/10) wins a bonus rare pack, a perfect round wins a legendary pack, and every 60 correct picks overall wins another legendary pack.",
+    el: "Διάλεξε νικητή πριν το τζάμπολ. Με κάθε σωστή πρόβλεψη κερδίζεις 10 πόντους, ένας σπουδαίος γύρος (8+/10) σου δίνει ένα σπάνιο πακέτο, ένας τέλειος γύρος ένα θρυλικό πακέτο, και κάθε 60 συνολικές σωστές προβλέψεις ξεκλειδώνουν άλλο ένα θρυλικό πακέτο.",
   },
 
   // Badge legend — a tap-to-open key explaining every badge glyph (locked
