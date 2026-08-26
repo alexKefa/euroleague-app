@@ -44,6 +44,15 @@ const BADGE_CATALOG: { id: string; icon: NavIconName }[] = [
   { id: "sharpshooter", icon: "picks" },
 ];
 
+// Appends only the cards not already present (by id) — a summary re-fetch
+// while a reward is still unacked server-side would otherwise return the
+// same card again and duplicate it in the shown list.
+function mergeById(existing: RoundRewardCard[], incoming: RoundRewardCard[]): RoundRewardCard[] {
+  const existingIds = new Set(existing.map((c) => c.id));
+  const newOnes = incoming.filter((c) => !existingIds.has(c.id));
+  return newOnes.length > 0 ? [...existing, ...newOnes] : existing;
+}
+
 @Component({
   selector: "app-predictions",
   standalone: true,
@@ -75,6 +84,22 @@ export class PredictionsComponent implements OnInit {
   readonly teamLogos = signal<Map<string, string | null>>(new Map());
   readonly showBadgeLegend = signal(false);
   readonly badgeCatalog = BADGE_CATALOG;
+
+  // Rewards currently on screen for this page visit — deliberately NOT the
+  // same thing as mySummary()!.newRoundRewards/newMilestoneRewards, and
+  // only ever added to, never replaced wholesale. refreshMySummary() re-runs
+  // on every "a game finished" SSE event, which fires for *any* game, not
+  // just ones this user predicted — the live-score simulator ticks games to
+  // final every ~96s, so a second summary fetch routinely lands moments
+  // after the first. Reading the banner straight off mySummary() meant that
+  // second fetch (whose reward had, by then, already been marked seen by
+  // the first fetch's own ack call) came back with an empty reward list and
+  // wiped a banner the user hadn't even finished reading yet. Accumulating
+  // here instead means a shown reward survives for the rest of this visit;
+  // a genuinely fresh page load still won't re-show it, since the ack from
+  // this visit already landed server-side.
+  readonly shownRoundRewards = signal<RoundRewardCard[]>([]);
+  readonly shownMilestoneRewards = signal<RoundRewardCard[]>([]);
 
   // How many points this round's picks are worth if every one of them hits —
   // every game listed in upcomingGames is still "scheduled" by construction
@@ -172,12 +197,15 @@ export class PredictionsComponent implements OnInit {
     this.api.getMyPredictionSummary().subscribe({
       next: (summary) => {
         this.mySummary.set(summary);
-        // The banners below read straight off mySummary(), so by the time
-        // this fires they're already rendered — safe to mark seen now.
+        // Merge (by id, keep first-seen) rather than replace — see
+        // shownRoundRewards' doc comment for why a later, emptier fetch
+        // must not clear what's already being shown.
         if (summary.newRoundRewards.length > 0) {
+          this.shownRoundRewards.update((existing) => mergeById(existing, summary.newRoundRewards));
           this.api.ackRoundRewards().subscribe({ error: () => {} });
         }
         if (summary.newMilestoneRewards.length > 0) {
+          this.shownMilestoneRewards.update((existing) => mergeById(existing, summary.newMilestoneRewards));
           this.api.ackMilestoneRewards().subscribe({ error: () => {} });
         }
       },
@@ -185,16 +213,16 @@ export class PredictionsComponent implements OnInit {
     });
   }
 
-  // newRoundRewards can now mix a perfect round's legendary with a "great"
+  // shownRoundRewards can mix a perfect round's legendary with a "great"
   // round's rare (see backend/src/services/cards.ts) — split by tier so the
   // template can show each with its own wording instead of assuming every
   // round reward is a legendary.
   perfectRoundRewards(): RoundRewardCard[] {
-    return this.mySummary()?.newRoundRewards.filter((c) => c.tier === "legendary") ?? [];
+    return this.shownRoundRewards().filter((c) => c.tier === "legendary");
   }
 
   greatRoundRewards(): RoundRewardCard[] {
-    return this.mySummary()?.newRoundRewards.filter((c) => c.tier === "rare") ?? [];
+    return this.shownRoundRewards().filter((c) => c.tier === "rare");
   }
 
   badgeIcon(badgeId: string): NavIconName {

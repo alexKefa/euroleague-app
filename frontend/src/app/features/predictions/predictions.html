@@ -134,7 +134,7 @@
         }
 
         @if (auth.isAuthenticated()) {
-          @if (mySummary(); as summary) {
+          @if (mySummary()) {
             @if (perfectRoundRewards().length > 0) {
               <div class="flex items-center gap-2 rounded-xl bg-highlight/10 text-highlight text-xs font-bold px-3 py-2 mb-3">
                 <app-nav-icon name="trophy" [size]="18" class="shrink-0" />
@@ -161,14 +161,14 @@
                 <a routerLink="/store" class="underline">{{ i18n.t('predictions.collection') }}</a>.
               </div>
             }
-            @if (summary.newMilestoneRewards.length > 0) {
+            @if (shownMilestoneRewards().length > 0) {
               <div class="flex items-center gap-2 rounded-xl bg-highlight/10 text-highlight text-xs font-bold px-3 py-2 mb-3">
                 <app-nav-icon name="picks" [size]="18" class="shrink-0" />
                 {{ i18n.t('predictions.milestonePrefix') }}
                 {{
-                  summary.newMilestoneRewards.length === 1
-                    ? summary.newMilestoneRewards[0].name
-                    : summary.newMilestoneRewards.length + " " + i18n.t('predictions.legendaryCards')
+                  shownMilestoneRewards().length === 1
+                    ? shownMilestoneRewards()[0].name
+                    : shownMilestoneRewards().length + " " + i18n.t('predictions.legendaryCards')
                 }}
                 {{ i18n.t('predictions.perfectRoundSuffix') }}
                 <a routerLink="/store" class="underline">{{ i18n.t('predictions.collection') }}</a>.
