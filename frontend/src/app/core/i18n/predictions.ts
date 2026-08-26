@@ -27,6 +27,10 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
   "predictions.pts": { en: "pts", el: "πόντοι" },
   "predictions.noBadgesYet": { en: "No badges yet", el: "Δεν υπάρχουν μετάλλια ακόμα" },
   "predictions.pending": { en: "Pending", el: "Εκκρεμεί" },
+  // Distinct from "Pending" above — that means "game not resolved yet" for
+  // an already-submitted pick; this means "tapped but not yet sent" (see
+  // DisplayedPick.isPendingSubmit in predictions.ts).
+  "predictions.unsaved": { en: "Unsaved", el: "Μη αποθηκευμένο" },
   "predictions.correct": { en: "Correct", el: "Σωστό" },
   "predictions.wrong": { en: "Wrong", el: "Λάθος" },
   "predictions.noPredictionsYet": {

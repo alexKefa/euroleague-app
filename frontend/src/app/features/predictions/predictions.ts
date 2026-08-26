@@ -55,6 +55,19 @@ function mergeById(existing: RewardPack[], incoming: RewardPack[]): RewardPack[]
   return newOnes.length > 0 ? [...existing, ...newOnes] : existing;
 }
 
+// The "My picks" list's row shape — same fields as Prediction, plus
+// isPendingSubmit for a not-yet-submitted local tap. See
+// PredictionsComponent.displayedPicks for how these get built.
+interface DisplayedPick {
+  id: string;
+  gameId: string;
+  tipoffAt: string;
+  status: string;
+  predictedTeam: { id: string; code: string; name: string };
+  isCorrect: boolean | null;
+  isPendingSubmit: boolean;
+}
+
 @Component({
   selector: "app-predictions",
   standalone: true,
@@ -123,6 +136,57 @@ export class PredictionsComponent implements OnInit {
     return merged;
   });
   readonly hasPendingChanges = computed(() => this.pendingPicks().size > 0);
+
+  // The "My picks" list, layering pendingPicks over myPredictions so a tap
+  // shows up there immediately instead of only after "Complete predictions"
+  // round-trips and the list gets refetched. A new pick (a game not yet in
+  // myPredictions at all) is synthesized from upcomingGames, since that's
+  // the only place its team info exists before the backend has a
+  // Prediction row for it. A pending *clear* just drops the row from the
+  // list — same "gone the moment you untap it" feel as the team buttons
+  // above already have, rather than showing a "removing" state for
+  // something not actually removed yet.
+  readonly displayedPicks = computed<DisplayedPick[]>(() => {
+    const pending = this.pendingPicks();
+    const upcomingById = new Map(this.upcomingGames().map((g) => [g.id, g]));
+
+    const fromServer: DisplayedPick[] = [];
+    for (const p of this.myPredictions()) {
+      const pendingValue = pending.get(p.gameId);
+      if (pendingValue === undefined) {
+        fromServer.push({ ...p, isPendingSubmit: false });
+        continue;
+      }
+      if (pendingValue === null) continue; // pending clear — omit
+      const game = upcomingById.get(p.gameId);
+      const team = game && (pendingValue === game.homeTeam.id ? game.homeTeam : game.awayTeam);
+      fromServer.push({
+        ...p,
+        predictedTeam: team ? { id: team.id, code: team.code, name: team.name } : p.predictedTeam,
+        isPendingSubmit: true,
+      });
+    }
+
+    const serverGameIds = new Set(this.myPredictions().map((p) => p.gameId));
+    const brandNew: DisplayedPick[] = [];
+    for (const [gameId, teamId] of pending) {
+      if (teamId === null || serverGameIds.has(gameId)) continue;
+      const game = upcomingById.get(gameId);
+      if (!game) continue;
+      const team = teamId === game.homeTeam.id ? game.homeTeam : game.awayTeam;
+      brandNew.push({
+        id: `pending-${gameId}`,
+        gameId,
+        tipoffAt: game.tipoffAt,
+        status: game.status,
+        predictedTeam: { id: team.id, code: team.code, name: team.name },
+        isCorrect: null,
+        isPendingSubmit: true,
+      });
+    }
+
+    return [...fromServer, ...brandNew].sort((a, b) => new Date(b.tipoffAt).getTime() - new Date(a.tipoffAt).getTime());
+  });
   // teamId -> logoUrl — Prediction.predictedTeam doesn't carry a logo (it's
   // a lightweight ref), so it's looked up here for the "My picks" list;
   // upcoming games already have logoUrl on their own team objects.
