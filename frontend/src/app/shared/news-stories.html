@@ -1,23 +1,56 @@
-<div class="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 stories-rail">
-  @for (article of articles; track article.id; let i = $index) {
+<div class="relative">
+  <div #railEl class="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 stories-rail" (scroll)="onRailScroll()">
+    @for (article of articles; track article.id; let i = $index) {
+      <button
+        type="button"
+        (click)="openAt(i)"
+        class="flex flex-col items-center gap-1 shrink-0 w-16 focus:outline-none"
+        [attr.aria-label]="i18n.t('news.previewAriaPrefix') + ' ' + article.title"
+      >
+        <span class="story-ring" [class.story-ring--seen]="isViewed(article)">
+          <span class="story-ring-inner">
+            @if (article.imageUrl) {
+              <img [src]="article.imageUrl" [alt]="article.title" loading="lazy" decoding="async" appRetryImg class="w-full h-full object-cover rounded-full" />
+            } @else {
+              <span class="w-full h-full rounded-full bg-page flex items-center justify-center text-muted">
+                <app-nav-icon name="news" [size]="18" />
+              </span>
+            }
+          </span>
+        </span>
+        <span class="text-[10px] font-bold text-muted truncate w-full text-center">{{ article.sourceName }}</span>
+      </button>
+    }
+  </div>
+
+  <!-- Desktop only — touch already scrolls the rail via swipe, and there's
+       no equivalent with just a mouse. Hidden entirely (not disabled) past
+       either end, and behind a fade so they don't just look like stray
+       floating buttons over the last circle. -->
+  @if (canScrollLeft()) {
+    <span class="hidden sm:block absolute left-0 inset-y-0 w-10 rail-fade rail-fade--left pointer-events-none"></span>
     <button
       type="button"
-      (click)="openAt(i)"
-      class="flex flex-col items-center gap-1 shrink-0 w-16 focus:outline-none"
-      [attr.aria-label]="i18n.t('news.previewAriaPrefix') + ' ' + article.title"
+      (click)="scrollRail(-1)"
+      class="hidden sm:flex rail-arrow rail-arrow--left text-highlight bg-highlight/10 border-2 border-highlight hover:bg-highlight/20 transition-colors"
+      [attr.aria-label]="i18n.t('news.scrollStoriesLeft')"
     >
-      <span class="story-ring" [class.story-ring--seen]="isViewed(article)">
-        <span class="story-ring-inner">
-          @if (article.imageUrl) {
-            <img [src]="article.imageUrl" [alt]="article.title" loading="lazy" decoding="async" appRetryImg class="w-full h-full object-cover rounded-full" />
-          } @else {
-            <span class="w-full h-full rounded-full bg-page flex items-center justify-center text-muted">
-              <app-nav-icon name="news" [size]="18" />
-            </span>
-          }
-        </span>
-      </span>
-      <span class="text-[10px] font-bold text-muted truncate w-full text-center">{{ article.sourceName }}</span>
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6" />
+      </svg>
+    </button>
+  }
+  @if (canScrollRight()) {
+    <span class="hidden sm:block absolute right-0 inset-y-0 w-10 rail-fade rail-fade--right pointer-events-none"></span>
+    <button
+      type="button"
+      (click)="scrollRail(1)"
+      class="hidden sm:flex rail-arrow rail-arrow--right text-highlight bg-highlight/10 border-2 border-highlight hover:bg-highlight/20 transition-colors"
+      [attr.aria-label]="i18n.t('news.scrollStoriesRight')"
+    >
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 18 15 12 9 6" />
+      </svg>
     </button>
   }
 </div>

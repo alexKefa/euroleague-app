@@ -1,4 +1,18 @@
-import { Component, EventEmitter, HostListener, Input, OnDestroy, Output, computed, inject, signal } from "@angular/core";
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  EventEmitter,
+  HostListener,
+  Input,
+  OnChanges,
+  OnDestroy,
+  Output,
+  computed,
+  inject,
+  signal,
+  viewChild,
+} from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { NewsArticle } from "../core/models";
 import { I18nService } from "../core/i18n.service";
@@ -24,7 +38,7 @@ const TICK_MS = 50;
   templateUrl: "./news-stories.html",
   styleUrl: "./news-stories.css",
 })
-export class NewsStoriesComponent implements OnDestroy {
+export class NewsStoriesComponent implements OnChanges, AfterViewInit, OnDestroy {
   protected i18n = inject(I18nService);
 
   @Input({ required: true }) articles: NewsArticle[] = [];
@@ -46,6 +60,36 @@ export class NewsStoriesComponent implements OnDestroy {
     const idx = this.activeIndex();
     return idx === null ? null : (this.articles[idx] ?? null);
   });
+
+  // Desktop-only arrow buttons over the rail (see news-stories.html's
+  // `hidden sm:flex` on them) — touch already scrolls the rail natively via
+  // swipe, but there's no equivalent affordance with just a mouse, and a
+  // wide rail of 10 circles won't fully fit most desktop card widths.
+  // Hidden entirely (not just disabled) at either end, same convention as
+  // a typical carousel, rather than showing a dead button.
+  private readonly rail = viewChild<ElementRef<HTMLDivElement>>("railEl");
+  readonly canScrollLeft = signal(false);
+  readonly canScrollRight = signal(false);
+
+  scrollRail(direction: 1 | -1): void {
+    const el = this.rail()?.nativeElement;
+    if (!el) return;
+    el.scrollBy({ left: direction * el.clientWidth * 0.8, behavior: "smooth" });
+  }
+
+  onRailScroll(): void {
+    const el = this.rail()?.nativeElement;
+    if (!el) return;
+    // 4px slop — avoids both arrows flickering in/out from sub-pixel
+    // rounding right at either end.
+    this.canScrollLeft.set(el.scrollLeft > 4);
+    this.canScrollRight.set(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }
+
+  @HostListener("window:resize")
+  onWindowResize(): void {
+    this.onRailScroll();
+  }
 
   private timerHandle?: ReturnType<typeof setInterval>;
 
@@ -145,6 +189,21 @@ export class NewsStoriesComponent implements OnDestroy {
   @HostListener("document:keydown.arrowLeft")
   onArrowLeft(): void {
     if (this.activeIndex() !== null) this.prev();
+  }
+
+  ngAfterViewInit(): void {
+    // Deferred a tick — right after view init the rail's images haven't
+    // necessarily laid out yet, so scrollWidth can read too small and miss
+    // that the right arrow should show.
+    setTimeout(() => this.onRailScroll());
+  }
+
+  // articles is a plain @Input, not a signal — this is what notices a
+  // fresh set (e.g. a language toggle re-fetching the news feed) and
+  // re-checks whether the rail overflows, same reason ngAfterViewInit
+  // needs to.
+  ngOnChanges(): void {
+    setTimeout(() => this.onRailScroll());
   }
 
   ngOnDestroy(): void {

@@ -29,3 +29,40 @@
   background: var(--color-page, #0a0a0b);
   overflow: hidden;
 }
+
+/* Desktop scroll arrows over the rail — see the doc comment above them in
+   news-stories.html for why these exist only there, not on touch. Just
+   position/size/shadow here — color comes from Tailwind's highlight
+   utilities on the element itself (the app's fixed brand orange, same
+   "Court Line" outline treatment button.directive.ts uses, not the
+   per-team reskin color the story ring's own gradient uses above). */
+.rail-arrow {
+  position: absolute;
+  top: 22px; /* centers on the 56px ring, not the shorter caption below it */
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+.rail-arrow--left {
+  left: -4px;
+}
+.rail-arrow--right {
+  right: -4px;
+}
+
+/* A soft fade behind each arrow so it doesn't read as a stray button
+   floating over whichever circle happens to be at the edge. Position
+   (top/bottom) comes from the inset-y-0 Tailwind class already on these
+   elements in the template — only left/right/background live here, to
+   avoid two systems fighting over the same top/bottom properties. */
+.rail-fade--left {
+  left: 0;
+  background: linear-gradient(to right, var(--color-card, #151516), transparent);
+}
+.rail-fade--right {
+  right: 0;
+  background: linear-gradient(to left, var(--color-card, #151516), transparent);
+}

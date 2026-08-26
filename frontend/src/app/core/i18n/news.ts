@@ -18,4 +18,6 @@ export const newsTranslations: Record<string, Record<Lang, string>> = {
   "news.allSources": { en: "All sources", el: "Όλες οι πηγές" },
   "news.previousStory": { en: "Previous story", el: "Προηγούμενη ιστορία" },
   "news.nextStory": { en: "Next story", el: "Επόμενη ιστορία" },
+  "news.scrollStoriesLeft": { en: "Scroll stories left", el: "Κύλιση ιστοριών αριστερά" },
+  "news.scrollStoriesRight": { en: "Scroll stories right", el: "Κύλιση ιστοριών δεξιά" },
 };
