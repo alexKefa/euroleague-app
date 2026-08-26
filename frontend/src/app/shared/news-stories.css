@@ -1,9 +1,9 @@
-/* Long-pressing to pause a story (pointerdown/pointerup in news-stories.html)
-   is the same gesture mobile browsers use to trigger text selection and,
-   on iOS, the image "save/copy" callout — without this, holding down to
-   pause instead selected the whole story's text and/or popped up that
-   callout. Scoped to this component only (Angular's view encapsulation),
-   so it doesn't affect selection anywhere else in the app. */
+/* Pressing and dragging to swipe-close a story is the same gesture mobile
+   browsers use to trigger text selection and, on iOS, the image "save/copy"
+   callout — without this, a swipe attempt could select the story's text
+   and/or pop up that callout instead. Scoped to this component only
+   (Angular's view encapsulation), so it doesn't affect selection anywhere
+   else in the app. */
 :host {
   user-select: none;
   -webkit-user-select: none;

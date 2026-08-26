@@ -143,17 +143,17 @@ export class NewsStoriesComponent implements OnChanges, AfterViewInit, OnDestroy
     this.openAt(Math.max(0, idx - 1));
   }
 
-  private pauseTimer(): void {
-    this.stopTimer();
-  }
-
-  private resumeTimer(): void {
-    if (this.activeIndex() !== null && !this.timerHandle) this.startTimer(this.progress());
-  }
-
   // Swipe-down-to-dismiss, like Instagram — the X button still works too,
   // this is additive. dragStartX/Y are plain fields, not signals: they're
   // only ever read synchronously within the same gesture, never rendered.
+  // Deliberately NOT pausing the auto-advance timer on press anymore (an
+  // earlier version did, to double as a "hold to pause" gesture) — that,
+  // and a follow-up attempt at explicit setPointerCapture/
+  // releasePointerCapture, were the actual cause of touch input getting
+  // stuck app-wide on mobile after a press-and-drag. Plain pointer events
+  // with no capture calls and no side effects on the timer is the smallest
+  // version of this gesture that still does what was asked for
+  // (swipe-to-close) without the instability the extra behavior brought.
   private dragStartX: number | null = null;
   private dragStartY: number | null = null;
   readonly dragOffsetY = signal(0);
@@ -166,7 +166,6 @@ export class NewsStoriesComponent implements OnChanges, AfterViewInit, OnDestroy
     this.dragStartX = event.clientX;
     this.dragStartY = event.clientY;
     this.isDragging.set(true);
-    this.pauseTimer();
   }
 
   onStoryPointerMove(event: PointerEvent): void {
@@ -198,7 +197,6 @@ export class NewsStoriesComponent implements OnChanges, AfterViewInit, OnDestroy
     }
 
     this.dragOffsetY.set(0);
-    this.resumeTimer();
   }
 
   private markViewed(index: number): void {
