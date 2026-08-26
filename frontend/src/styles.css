@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=Fira+Code:wght@500;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Play:wght@400;700&family=Fira+Sans:wght@400;500;600;700&family=Fira+Code:wght@500;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -9,8 +9,19 @@
    Google Fonts' own metadata, not assumed), so every Greek heading/body
    line was silently falling back to a system font ever since the app
    started defaulting to Greek. This trio is Greek-verified end to end.
-   Syne reads bold even at 700 (no single ultra-heavy weight the way Anton/
-   Big Shoulders did), and most `font-display` usages across the templates
+   display later swapped Syne -> Play (2026-08-26, felt too "AI-generated
+   startup" for team names/headings/scores), then sans swapped
+   IBM Plex Sans -> Fira Sans same day for the same reason (body/UI text
+   read as generic dev-tool/AI-product) — same Greek-verified constraint
+   applies both times, and most trendy fonts checked (display: Oswald,
+   Anton, Archivo Black, Montserrat, Rubik; sans: Inter, Nunito Sans,
+   Public Sans, Karla, Figtree, Cabin, Mulish) turned out to have no Greek
+   subset at all per Google Fonts' own metadata, so the options were
+   narrower than they look both times. Fira Sans was picked specifically
+   because it's the sibling typeface to Fira Code (same
+   Mozilla/Carrois-Type design team) — sans and mono now actually match by
+   design rather than being two unrelated picks. Only weights 400/700
+   exist for Play, and most `font-display` usages across the templates
    don't separately add `font-bold` — keep the class's bold baseline so
    headers/scores keep the same punch without touching every template. */
 .font-display {

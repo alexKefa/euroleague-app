@@ -31,9 +31,10 @@ module.exports = {
       },
       fontFamily: {
         // Greek-verified trio (see styles.css) — Rajdhani/Barlow/JetBrains
-        // Mono had no Greek glyphs at all.
-        sans: ["IBM Plex Sans", "system-ui", "sans-serif"],
-        display: ["Syne", "Arial", "sans-serif"],
+        // Mono had no Greek glyphs at all. sans/mono are the Fira Sans/Fira
+        // Code sibling pair on purpose (same design team) — see styles.css.
+        sans: ["Fira Sans", "system-ui", "sans-serif"],
+        display: ["Play", "Arial", "sans-serif"],
         mono: ["Fira Code", "ui-monospace", "monospace"],
       },
       boxShadow: {
