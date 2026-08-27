@@ -2,7 +2,6 @@ import { Component, OnInit, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ActivatedRoute, RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
-import { ThemeService } from "../../core/theme.service";
 import { I18nService } from "../../core/i18n.service";
 import { PlayerDetail, PlayerShotChart, PlayerGameLogEntry } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
@@ -18,7 +17,6 @@ import { ShotChartComponent } from "./shot-chart";
 export class PlayerDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private api = inject(ApiService);
-  private theme = inject(ThemeService);
   protected i18n = inject(I18nService);
 
   readonly detail = signal<PlayerDetail | null>(null);
@@ -38,7 +36,6 @@ export class PlayerDetailComponent implements OnInit {
     this.api.getPlayer(playerId).subscribe({
       next: (detail) => {
         this.detail.set(detail);
-        this.theme.applyTeam(detail.team);
         this.loading.set(false);
       },
       error: () => {

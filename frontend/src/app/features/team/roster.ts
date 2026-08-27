@@ -2,7 +2,6 @@ import { Component, OnInit, inject, signal, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ActivatedRoute, RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
-import { ThemeService } from "../../core/theme.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { Team, RosterEntry, Game, GameTeamSummary, StandingsRow } from "../../core/models";
@@ -36,7 +35,6 @@ type ComparisonAxis = (typeof COMPARISON_AXES)[number];
 export class TeamRosterComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private api = inject(ApiService);
-  private theme = inject(ThemeService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
 
@@ -117,7 +115,6 @@ export class TeamRosterComponent implements OnInit {
       next: (teams) => {
         const team = teams.find((t) => t.id === teamId) ?? null;
         this.team.set(team);
-        this.theme.applyTeam(team);
       },
     });
 

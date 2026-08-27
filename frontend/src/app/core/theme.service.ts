@@ -3,6 +3,7 @@ import { Team } from "./models";
 
 const DEFAULT_PRIMARY = "#3E7CB1";
 const DEFAULT_SECONDARY = "#0B1220";
+const DEFAULT_THEME_COLOR = "#0b1220";
 
 export type ColorScheme = "dark" | "light";
 const COLOR_SCHEME_KEY = "clutch-color-scheme";
@@ -18,12 +19,17 @@ export class ThemeService {
 
   constructor() {
     this.applyColorScheme(this.colorScheme());
-    // applyTeam() only ever gets called once Dashboard (or a player page)
-    // loads and resolves the favorite team, so a refresh landing anywhere
-    // else showed the default blue accent/ambient glow until you visited
-    // Dashboard. Re-apply the last-known colors immediately on boot so
-    // every page starts correctly themed; Dashboard's own applyTeam() call
-    // still fires afterward with fresh data and overwrites this if needed.
+    // applyTeam() only ever gets called once Dashboard loads and resolves
+    // the user's favorite team, so a refresh landing anywhere else showed
+    // the default blue accent/ambient glow until you visited Dashboard.
+    // Re-apply the last-known colors immediately on boot so every page
+    // starts correctly themed; Dashboard's own applyTeam() call still fires
+    // afterward with fresh data and overwrites this if needed. Team/player
+    // detail pages deliberately do NOT call applyTeam() with the team being
+    // viewed (that used to reskin the whole app, including this ambient
+    // glow, to whatever team you were just browsing) — they render their
+    // own hero directly from that team's colors instead, so the global
+    // accent only ever reflects the user's actual favorite team.
     this.applyCachedAccentColors();
   }
 
@@ -34,6 +40,7 @@ export class ThemeService {
     const root = document.documentElement;
     root.style.setProperty("--accent-primary", primary);
     root.style.setProperty("--accent-secondary", secondary);
+    this.applyThemeColor(team ? primary : null);
 
     if (team) {
       try {
@@ -54,10 +61,20 @@ export class ThemeService {
       const root = document.documentElement;
       root.style.setProperty("--accent-primary", primary);
       root.style.setProperty("--accent-secondary", secondary);
+      this.applyThemeColor(primary);
     } catch {
       // Malformed/inaccessible cache — falls back to the CSS defaults,
       // same as before this cache existed.
     }
+  }
+
+  // Tints the mobile browser chrome (address bar, "recent apps" card) to
+  // the team's accent — kept even though the favicon swap it originally
+  // shipped alongside was reverted (the app keeps its own logo as favicon).
+  private applyThemeColor(primary: string | null): void {
+    document
+      .getElementById("theme-color-meta")
+      ?.setAttribute("content", primary ?? DEFAULT_THEME_COLOR);
   }
 
   setColorScheme(scheme: ColorScheme): void {
