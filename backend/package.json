@@ -15,7 +15,8 @@
     "economy:report": "tsx src/scripts/economy-report.ts",
     "economy:simulate": "tsx src/scripts/season-simulation.ts",
     "collectibles:expand": "tsx src/scripts/expand-collectibles.ts",
-    "seed:trade-marketplace": "tsx src/scripts/seed-trade-marketplace.ts"
+    "seed:trade-marketplace": "tsx src/scripts/seed-trade-marketplace.ts",
+    "promo:create": "tsx src/scripts/create-promo-code.ts"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

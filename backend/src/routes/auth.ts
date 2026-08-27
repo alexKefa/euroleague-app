@@ -6,6 +6,7 @@ import { users, pointAdjustments } from "../db/schema.js";
 import { hashPassword, verifyPassword } from "../auth/hash.js";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../auth/tokens.js";
 import { createUniqueReferralCode } from "../services/referrals.js";
+import { redeemPromoCode } from "../services/promoCodes.js";
 
 export const authRouter = Router();
 
@@ -65,7 +66,7 @@ function publicUser(user: typeof users.$inferSelect) {
 }
 
 authRouter.post("/register", credentialsLimiter, async (req, res) => {
-  const { email, password, favoriteTeamId, referralCode } = req.body ?? {};
+  const { email, password, favoriteTeamId, referralCode, promoCode } = req.body ?? {};
   if (typeof email !== "string" || typeof password !== "string" || password.length < 8) {
     res.status(400).json({ error: "email and password (min 8 chars) are required" });
     return;
@@ -114,10 +115,19 @@ authRouter.post("/register", credentialsLimiter, async (req, res) => {
     createdByUserId: user.id,
   });
 
+  // Same "silently ignore an invalid code rather than fail the signup"
+  // philosophy as referralCode above — worst case, no promo bonus, which
+  // isn't worth blocking registration over. `promo` in the response lets
+  // the frontend show a confirmation when it *did* apply.
+  let promo = null;
+  if (typeof promoCode === "string" && promoCode.length > 0) {
+    promo = await redeemPromoCode(promoCode, user.id);
+  }
+
   const accessToken = signAccessToken(user.id);
   setRefreshCookie(res, signRefreshToken(user.id));
 
-  res.status(201).json({ user: publicUser(user), accessToken });
+  res.status(201).json({ user: publicUser(user), accessToken, promo });
 });
 
 authRouter.post("/login", credentialsLimiter, async (req, res) => {

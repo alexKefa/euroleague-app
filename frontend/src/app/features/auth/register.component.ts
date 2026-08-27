@@ -35,6 +35,12 @@ export class RegisterComponent implements OnInit {
   // need to validate it here just to show this note.
   readonly referralCode = signal<string | null>(null);
 
+  // From a promo link (?promo=CODE, e.g. a YouTube video description —
+  // see scripts/create-promo-code.ts). Same "validity checked server-side,
+  // silently ignored if bad" shape as referralCode above.
+  readonly promoCode = signal<string | null>(null);
+  readonly promoApplied = signal(false);
+
   readonly form = this.fb.nonNullable.group({
     email: ["", [Validators.required, Validators.email]],
     password: ["", [Validators.required, Validators.minLength(8)]],
@@ -43,6 +49,7 @@ export class RegisterComponent implements OnInit {
   ngOnInit(): void {
     this.api.getTeams().subscribe({ next: (rows) => this.teams.set(rows), error: () => {} });
     this.referralCode.set(this.route.snapshot.queryParamMap.get("ref"));
+    this.promoCode.set(this.route.snapshot.queryParamMap.get("promo"));
   }
 
   pickTeam(teamId: string): void {
@@ -55,8 +62,18 @@ export class RegisterComponent implements OnInit {
     this.error.set(null);
 
     const { email, password } = this.form.getRawValue();
-    this.auth.register(email, password, this.favoriteTeamId(), this.referralCode()).subscribe({
-      next: () => this.router.navigateByUrl("/"),
+    this.auth.register(email, password, this.favoriteTeamId(), this.referralCode(), this.promoCode()).subscribe({
+      next: ({ promo }) => {
+        if (!promo) {
+          this.router.navigateByUrl("/");
+          return;
+        }
+        // Brief pause on a success note before leaving — otherwise the
+        // "your promo code worked" confirmation would never be visible,
+        // immediately replaced by the dashboard on navigation.
+        this.promoApplied.set(true);
+        setTimeout(() => this.router.navigateByUrl("/"), 1800);
+      },
       error: (err) => {
         this.error.set(
           err?.status === 409 ? this.i18n.t("auth.emailExists") : this.i18n.t("auth.genericError")

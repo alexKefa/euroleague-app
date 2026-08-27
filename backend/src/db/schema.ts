@@ -490,6 +490,26 @@ export const ownedPacks = pgTable("owned_packs", {
   openedAt: timestamp("opened_at", { withTimezone: true }),
 });
 
+// One-off marketing campaigns (e.g. a link in a YouTube video description),
+// redeemed at registration only — same "apply once at signup" shape as
+// users.referralCode, but this rewards the *new* user directly (an unopened
+// pack + optional bonus points) rather than whoever shared the link.
+// `active` is a manual on/off switch for ending a campaign without deleting
+// its history/redemption count; maxRedemptions/expiresAt are independent
+// optional caps (either or both null = uncapped). See
+// services/promoCodes.ts for the atomic claim-and-grant logic.
+export const promoCodes = pgTable("promo_codes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  code: varchar("code", { length: 32 }).notNull().unique(),
+  packType: varchar("pack_type", { length: 20 }).notNull(),
+  bonusPoints: integer("bonus_points").default(0).notNull(),
+  maxRedemptions: integer("max_redemptions"),
+  redemptionCount: integer("redemption_count").default(0).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const tradeOffers = pgTable("trade_offers", {
   id: uuid("id").defaultRandom().primaryKey(),
   fromUserId: uuid("from_user_id").notNull().references(() => users.id),

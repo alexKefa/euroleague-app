@@ -7,6 +7,12 @@ import { PublicUser } from "./models";
 interface AuthResponse {
   user: PublicUser;
   accessToken: string;
+  promo?: { packType: string; bonusPoints: number } | null;
+}
+
+export interface RegisterResult {
+  user: PublicUser;
+  promo: { packType: string; bonusPoints: number } | null;
 }
 
 @Injectable({ providedIn: "root" })
@@ -24,15 +30,19 @@ export class AuthService {
     email: string,
     password: string,
     favoriteTeamId?: string | null,
-    referralCode?: string | null
-  ): Observable<PublicUser> {
+    referralCode?: string | null,
+    promoCode?: string | null
+  ): Observable<RegisterResult> {
     return this.http
       .post<AuthResponse>(
         `${API_BASE_URL}/auth/register`,
-        { email, password, favoriteTeamId, referralCode },
+        { email, password, favoriteTeamId, referralCode, promoCode },
         { withCredentials: true }
       )
-      .pipe(tap((res) => this.setSession(res)), map((res) => res.user));
+      .pipe(
+        tap((res) => this.setSession(res)),
+        map((res) => ({ user: res.user, promo: res.promo ?? null }))
+      );
   }
 
   login(email: string, password: string): Observable<PublicUser> {

@@ -14,6 +14,8 @@ export const authTranslations: Record<string, Record<Lang, string>> = {
 
   "auth.createAccountTitle": { en: "Create an account", el: "Δημιουργία λογαριασμού" },
   "auth.referredBy": { en: "Referred by code", el: "Πρόσκληση με κωδικό" },
+  "auth.promoCodeNote": { en: "Promo code", el: "Κωδικός προσφοράς" },
+  "auth.promoCodeApplied": { en: "Promo code applied — a bonus pack is on its way!", el: "Ο κωδικός προσφοράς εφαρμόστηκε — έρχεται ένα δωρεάν πακέτο!" },
   "auth.favoriteTeamOptional": { en: "Favorite team (optional)", el: "Αγαπημένη ομάδα (προαιρετικό)" },
   "auth.creatingAccount": { en: "Creating account…", el: "Δημιουργία λογαριασμού…" },
   "auth.createAccountButton": { en: "Create account", el: "Δημιουργία λογαριασμού" },

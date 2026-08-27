@@ -4,6 +4,15 @@
   @if (referralCode(); as code) {
     <p class="font-mono text-[12px] text-highlight font-bold mb-4">{{ i18n.t('auth.referredBy') }} {{ code }}</p>
   }
+  @if (promoCode(); as code) {
+    <p class="font-mono text-[12px] text-highlight font-bold mb-4">{{ i18n.t('auth.promoCodeNote') }}: {{ code }}</p>
+  }
+
+  @if (promoApplied()) {
+    <p class="flex items-center gap-2 rounded-xl bg-highlight/10 text-highlight text-xs font-bold px-3 py-2.5 mb-4">
+      {{ i18n.t('auth.promoCodeApplied') }}
+    </p>
+  }
 
   <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3">
     <input
