@@ -8,11 +8,12 @@ import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { ButtonDirective } from "../../shared/button.directive";
 import { NavIconComponent } from "../../shared/nav-icon";
+import { SearchInputComponent } from "../../shared/search-input";
 
 @Component({
   selector: "app-teams-hub",
   standalone: true,
-  imports: [CommonModule, RouterLink, RetryImgDirective, SkeletonComponent, ButtonDirective, NavIconComponent],
+  imports: [CommonModule, RouterLink, RetryImgDirective, SkeletonComponent, ButtonDirective, NavIconComponent, SearchInputComponent],
   templateUrl: "./teams-hub.html",
 })
 export class TeamsHubComponent implements OnInit {

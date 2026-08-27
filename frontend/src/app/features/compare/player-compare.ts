@@ -6,6 +6,7 @@ import { I18nService } from "../../core/i18n.service";
 import { PlayerAdvancedStatsRow } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
+import { SearchInputComponent } from "../../shared/search-input";
 
 type Side = "a" | "b";
 
@@ -39,7 +40,7 @@ const MAX_SUGGESTIONS = 8;
 @Component({
   selector: "app-player-compare",
   standalone: true,
-  imports: [CommonModule, RouterLink, RetryImgDirective, SkeletonComponent],
+  imports: [CommonModule, RouterLink, RetryImgDirective, SkeletonComponent, SearchInputComponent],
   templateUrl: "./player-compare.html",
   styles: [
     `

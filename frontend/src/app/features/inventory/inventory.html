@@ -70,12 +70,11 @@
     </p>
   } @else {
     <div class="flex flex-wrap gap-2 mb-4">
-      <input
-        type="search"
+      <app-search-input
+        class="flex-1 min-w-[10rem]"
         [value]="searchQuery()"
-        (input)="onSearchInput($any($event.target).value)"
+        (valueChange)="onSearchInput($event)"
         [placeholder]="i18n.t('store.searchPlaceholder')"
-        class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
       />
       @if (filterTeams().length > 1) {
         <app-dropdown

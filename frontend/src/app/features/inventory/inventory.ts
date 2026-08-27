@@ -14,6 +14,7 @@ import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { ButtonDirective } from "../../shared/button.directive";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
+import { SearchInputComponent } from "../../shared/search-input";
 
 // Matches store.ts's PAGE_SIZE — same "reveal a page at a time" convention,
 // even though this page's data (already fully fetched client-side) doesn't
@@ -35,6 +36,7 @@ const PAGE_SIZE = 20;
     SkeletonComponent,
     ButtonDirective,
     LogoSpinnerComponent,
+    SearchInputComponent,
   ],
   templateUrl: "./inventory.html",
 })

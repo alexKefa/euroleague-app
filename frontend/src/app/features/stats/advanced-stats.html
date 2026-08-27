@@ -22,12 +22,11 @@
   } @else {
     <div class="flex flex-col gap-2 mb-4">
       <div class="flex flex-col sm:flex-row gap-2">
-        <input
-          type="search"
+        <app-search-input
+          class="flex-1 min-w-[10rem]"
           [value]="searchQuery()"
-          (input)="searchQuery.set($any($event.target).value)"
+          (valueChange)="searchQuery.set($event)"
           [placeholder]="i18n.t('stats.searchPlaceholder')"
-          class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
         />
         <app-dropdown
           class="sm:w-56 shrink-0"
@@ -92,7 +91,9 @@
               <tr
                 [routerLink]="['/players', row.player.id]"
                 class="border-t border-line hover:bg-page transition-colors cursor-pointer"
-                [ngClass]="{ 'bg-highlight/5': i === 0 && sortKey() === 'valuation' }"
+                [ngClass]="{ 'bg-highlight/5': i === 0 && sortKey() === 'valuation' && !isFavoriteTeam(row.team.id) }"
+                [style.background]="isFavoriteTeam(row.team.id) ? 'color-mix(in srgb, var(--accent-primary) 10%, transparent)' : null"
+                [style.box-shadow]="isFavoriteTeam(row.team.id) ? 'inset 3px 0 0 var(--accent-primary)' : null"
               >
                 <td class="px-3 py-2 font-bold whitespace-nowrap">
                   <span class="flex items-center gap-2">

@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
+import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { PlayerAdvancedStatsRow } from "../../core/models";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
@@ -9,6 +10,7 @@ import { ButtonDirective } from "../../shared/button.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { StatLegendComponent, StatLegendEntry } from "../../shared/stat-legend";
+import { SearchInputComponent } from "../../shared/search-input";
 
 // One column = one sortable stat. `get` pulls the raw number/string out of a
 // row (undefined/null sorts last regardless of direction, see sortedRows);
@@ -129,11 +131,12 @@ const LEGEND_KEYS: { code: string; key: string }[] = [
 @Component({
   selector: "app-advanced-stats",
   standalone: true,
-  imports: [CommonModule, RouterLink, DropdownComponent, ButtonDirective, SkeletonComponent, RetryImgDirective, StatLegendComponent],
+  imports: [CommonModule, RouterLink, DropdownComponent, ButtonDirective, SkeletonComponent, RetryImgDirective, StatLegendComponent, SearchInputComponent],
   templateUrl: "./advanced-stats.html",
 })
 export class AdvancedStatsComponent implements OnInit {
   private api = inject(ApiService);
+  protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
 
   readonly columns = COLUMNS;
@@ -230,6 +233,10 @@ export class AdvancedStatsComponent implements OnInit {
   setMinMinutes(value: string): void {
     const n = Number(value);
     this.minMinutes.set(Number.isFinite(n) && n >= 0 ? n : 0);
+  }
+
+  isFavoriteTeam(teamId: string): boolean {
+    return teamId === this.auth.currentUser()?.favoriteTeamId;
   }
 
   clearFilters(): void {

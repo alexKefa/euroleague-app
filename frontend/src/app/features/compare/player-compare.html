@@ -34,12 +34,11 @@
               </button>
             </div>
           } @else {
-            <input
-              type="search"
+            <app-search-input
+              class="w-full"
               [value]="side === 'a' ? queryA() : queryB()"
-              (input)="side === 'a' ? queryA.set($any($event.target).value) : queryB.set($any($event.target).value)"
+              (valueChange)="side === 'a' ? queryA.set($event) : queryB.set($event)"
               [placeholder]="i18n.t('stats.compare.searchPlaceholder')"
-              class="w-full px-3 py-2.5 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
             />
             @if ((side === 'a' ? suggestionsA() : suggestionsB()).length > 0) {
               <ul class="absolute z-20 left-0 right-0 mt-1 max-h-56 overflow-y-auto rounded-xl bg-card border-2 border-line shadow-pop py-1">

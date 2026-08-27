@@ -12,6 +12,7 @@ import { ButtonDirective } from "../../shared/button.directive";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { SkeletonComponent } from "../../shared/skeleton";
+import { SearchInputComponent } from "../../shared/search-input";
 
 const PAGE_SIZE = 20;
 const SEARCH_DEBOUNCE_MS = 300;
@@ -29,6 +30,7 @@ const SEARCH_DEBOUNCE_MS = 300;
     LogoSpinnerComponent,
     DropdownComponent,
     SkeletonComponent,
+    SearchInputComponent,
   ],
   templateUrl: "./store.html",
 })

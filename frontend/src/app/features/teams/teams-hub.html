@@ -29,24 +29,23 @@
 
   @if (loading()) {
     <div class="animate-pulse h-10 rounded-xl bg-line mb-4"></div>
-    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
       @for (i of [1, 2, 3, 4, 5, 6]; track i) {
         <app-skeleton class="rounded-2xl h-16" [iconSize]="18" />
       }
     </div>
   } @else {
-    <input
-      type="search"
+    <app-search-input
+      class="w-full mb-4"
       [value]="searchQuery()"
-      (input)="searchQuery.set($any($event.target).value)"
+      (valueChange)="searchQuery.set($event)"
       [placeholder]="i18n.t('teams.searchPlaceholder')"
-      class="w-full px-3 py-2.5 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-highlight outline-none mb-4"
     />
 
     @if (teams().length === 0) {
       <p class="text-sm text-muted text-center py-10">{{ i18n.t('teams.empty') }}</p>
     } @else {
-      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
         @for (team of teams(); track team.id) {
           <a
             [routerLink]="['/teams', team.id]"
