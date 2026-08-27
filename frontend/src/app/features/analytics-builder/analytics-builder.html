@@ -83,12 +83,12 @@
           </div>
         }
         <div class="relative mb-4">
-          <input
-            type="search"
+          <app-search-input
+            class="w-full"
+            surface="page"
             [value]="playerQuery()"
-            (input)="playerQuery.set($any($event.target).value)"
+            (valueChange)="playerQuery.set($event)"
             [placeholder]="i18n.t('builder.searchPlaceholder')"
-            class="w-full px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
           />
           @if (playerSuggestions().length > 0) {
             <ul class="absolute z-20 left-0 right-0 mt-1 max-h-56 overflow-y-auto rounded-xl bg-card border-2 border-line shadow-pop py-1">
@@ -119,54 +119,52 @@
         <label class="block text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('builder.customColumnsLabel') }}</label>
         <div class="flex flex-col gap-3 mb-2">
           @for (draft of customColumnDrafts(); track draft.id) {
-            <div class="bg-page rounded-xl border border-line p-3">
-              <div class="flex gap-2 mb-2">
+            <div class="relative bg-page rounded-xl border border-line p-3">
+              <button
+                type="button"
+                (click)="removeCustomColumn(draft.id)"
+                class="absolute -top-2.5 -right-2.5 w-7 h-7 flex items-center justify-center rounded-full text-base font-bold leading-none text-white bg-highlight hover:bg-[#FF7D4E] active:scale-90 transition-all shadow-pop"
+                [attr.aria-label]="i18n.t('builder.removeCustomColumn')"
+              >
+                &times;
+              </button>
+              <input
+                type="text"
+                [value]="draft.label"
+                (input)="updateCustomColumnLabel(draft.id, $any($event.target).value)"
+                [placeholder]="i18n.t('builder.customColumnLabelPlaceholder')"
+                maxlength="40"
+                class="w-full px-2.5 py-1.5 rounded-lg bg-card border-2 border-line text-xs font-semibold focus:border-highlight outline-none mb-2"
+              />
+              <div class="relative">
                 <input
                   type="text"
-                  [value]="draft.label"
-                  (input)="updateCustomColumnLabel(draft.id, $any($event.target).value)"
-                  [placeholder]="i18n.t('builder.customColumnLabelPlaceholder')"
-                  maxlength="40"
-                  class="w-2/5 min-w-0 px-2.5 py-1.5 rounded-lg bg-card border-2 border-line text-xs font-semibold focus:border-highlight outline-none"
+                  [id]="'custom-col-expr-' + draft.id"
+                  [value]="draft.expression"
+                  (input)="onExpressionInput(draft.id, $event)"
+                  (blur)="onExpressionBlur()"
+                  [placeholder]="i18n.t('builder.customColumnExpressionPlaceholder')"
+                  autocomplete="off"
+                  class="w-full px-2.5 py-1.5 rounded-lg bg-card border-2 border-line text-xs font-mono focus:border-highlight outline-none"
                 />
-                <div class="relative flex-1 min-w-0">
-                  <input
-                    type="text"
-                    [id]="'custom-col-expr-' + draft.id"
-                    [value]="draft.expression"
-                    (input)="onExpressionInput(draft.id, $event)"
-                    (blur)="onExpressionBlur()"
-                    [placeholder]="i18n.t('builder.customColumnExpressionPlaceholder')"
-                    autocomplete="off"
-                    class="w-full px-2.5 py-1.5 rounded-lg bg-card border-2 border-line text-xs font-mono focus:border-highlight outline-none"
-                  />
-                  @if (formulaSuggestions(); as sugg) {
-                    @if (sugg.draftId === draft.id) {
-                      <ul class="absolute z-20 left-0 right-0 mt-1 max-h-40 overflow-y-auto rounded-lg bg-card border-2 border-line shadow-pop py-1">
-                        @for (field of sugg.options; track field) {
-                          <li
-                            (mousedown)="$event.preventDefault()"
-                            (click)="selectSuggestion(field)"
-                            class="px-2.5 py-1.5 text-xs font-mono cursor-pointer hover:bg-page transition-colors"
-                          >
-                            {{ field }}
-                          </li>
-                        }
-                      </ul>
-                    }
+                @if (formulaSuggestions(); as sugg) {
+                  @if (sugg.draftId === draft.id) {
+                    <ul class="absolute z-20 left-0 right-0 mt-1 max-h-40 overflow-y-auto rounded-lg bg-card border-2 border-line shadow-pop py-1">
+                      @for (field of sugg.options; track field) {
+                        <li
+                          (mousedown)="$event.preventDefault()"
+                          (click)="selectSuggestion(field)"
+                          class="px-2.5 py-1.5 text-xs font-mono cursor-pointer hover:bg-page transition-colors"
+                        >
+                          {{ field }}
+                        </li>
+                      }
+                    </ul>
                   }
-                </div>
-                <button
-                  type="button"
-                  (click)="removeCustomColumn(draft.id)"
-                  class="text-muted hover:text-red-500 transition-colors leading-none px-1"
-                  [attr.aria-label]="i18n.t('builder.removeCustomColumn')"
-                >
-                  &times;
-                </button>
+                }
               </div>
               @if (customColumnError(draft); as err) {
-                <p class="text-red-500 text-[11px] font-semibold">{{ err }}</p>
+                <p class="text-red-500 text-[11px] font-semibold mt-2">{{ err }}</p>
               }
             </div>
           }
