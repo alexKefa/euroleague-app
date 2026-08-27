@@ -20,41 +20,55 @@
     </div>
     <app-skeleton class="rounded-2xl h-96" [iconSize]="28" />
   } @else {
-    <div class="flex flex-wrap items-center gap-2 mb-4">
-      <input
-        type="search"
-        [value]="searchQuery()"
-        (input)="searchQuery.set($any($event.target).value)"
-        [placeholder]="i18n.t('stats.searchPlaceholder')"
-        class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
-      />
-      <app-dropdown
-        class="flex-1 min-w-[10rem]"
-        [options]="teamDropdownOptions()"
-        [value]="teamFilter() ?? ''"
-        (valueChange)="setTeamFilter($event)"
-      />
-      <label class="flex items-center gap-2 text-sm font-semibold text-muted shrink-0">
-        {{ i18n.t('stats.minGamesLabel') }}
+    <div class="flex flex-col gap-2 mb-4">
+      <div class="flex flex-col sm:flex-row gap-2">
         <input
-          type="number"
-          min="0"
-          [value]="minGames()"
-          (input)="setMinGames($any($event.target).value)"
-          class="w-16 px-2 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold text-ink focus:border-highlight outline-none"
+          type="search"
+          [value]="searchQuery()"
+          (input)="searchQuery.set($any($event.target).value)"
+          [placeholder]="i18n.t('stats.searchPlaceholder')"
+          class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
         />
-      </label>
-      @if (hasActiveFilters()) {
-        <button type="button" (click)="clearFilters()" appButton="outline" appButtonSize="sm">
-          {{ i18n.t('stats.clearFilters') }}
-        </button>
-      }
+        <app-dropdown
+          class="sm:w-56 shrink-0"
+          [options]="teamDropdownOptions()"
+          [value]="teamFilter() ?? ''"
+          (valueChange)="setTeamFilter($event)"
+        />
+      </div>
+      <div class="flex flex-wrap items-end gap-3">
+        <div class="flex flex-col gap-1">
+          <span class="font-mono text-[10px] font-bold uppercase tracking-wider text-muted">{{ i18n.t('stats.minGamesLabel') }}</span>
+          <input
+            type="number"
+            min="0"
+            [value]="minGames()"
+            (input)="setMinGames($any($event.target).value)"
+            class="w-20 px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold text-ink focus:border-highlight outline-none"
+          />
+        </div>
+        <div class="flex flex-col gap-1">
+          <span class="font-mono text-[10px] font-bold uppercase tracking-wider text-muted">{{ i18n.t('stats.minMinutesLabel') }}</span>
+          <input
+            type="number"
+            min="0"
+            [value]="minMinutes()"
+            (input)="setMinMinutes($any($event.target).value)"
+            class="w-20 px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold text-ink focus:border-highlight outline-none"
+          />
+        </div>
+        @if (hasActiveFilters()) {
+          <button type="button" (click)="clearFilters()" appButton="outline" appButtonSize="sm" class="ml-auto">
+            {{ i18n.t('stats.clearFilters') }}
+          </button>
+        }
+      </div>
     </div>
 
     @if (rows().length === 0) {
       <p class="text-sm text-muted text-center py-10">{{ i18n.t('stats.empty') }}</p>
     } @else {
-      <div class="overflow-x-auto rounded-2xl border border-line shadow-card">
+      <div class="overflow-auto max-h-[65vh] rounded-2xl border border-line shadow-card">
         <table class="w-full text-sm border-collapse">
           <thead>
             <tr class="bg-card">
@@ -62,7 +76,7 @@
                 <th
                   scope="col"
                   (click)="setSort(col.key)"
-                  class="px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
+                  class="sticky top-0 z-10 bg-card px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
                   [class.text-highlight]="sortKey() === col.key"
                 >
                   {{ i18n.t(col.labelKey) }}

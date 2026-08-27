@@ -12,6 +12,7 @@ export const statsTranslations: Record<string, Record<Lang, string>> = {
   "stats.searchPlaceholder": { en: "Search players…", el: "Αναζήτηση παικτών…" },
   "stats.allTeams": { en: "All teams", el: "Όλες οι ομάδες" },
   "stats.minGamesLabel": { en: "Min. games", el: "Ελάχ. αγώνες" },
+  "stats.minMinutesLabel": { en: "Min. MPG", el: "Ελάχ. λεπτά" },
   "stats.empty": { en: "No players match your filters.", el: "Κανένας παίκτης δεν ταιριάζει με τα φίλτρα σου." },
   "stats.clearFilters": { en: "Clear filters", el: "Καθαρισμός φίλτρων" },
   "stats.colPlayer": { en: "Player", el: "Παίκτης" },

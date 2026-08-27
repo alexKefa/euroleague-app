@@ -104,6 +104,7 @@ const COLUMNS: ColumnDef[] = [
 ];
 
 const DEFAULT_MIN_GAMES = 5;
+const DEFAULT_MIN_MINUTES = 0;
 
 // {code, key} pairs, not translated strings — label text is resolved inside
 // the computed() below so it stays reactive to i18n.lang. Reuses roster.ts's
@@ -148,11 +149,16 @@ export class AdvancedStatsComponent implements OnInit {
   readonly searchQuery = signal("");
   readonly teamFilter = signal<string | null>(null);
   readonly minGames = signal(DEFAULT_MIN_GAMES);
+  readonly minMinutes = signal(DEFAULT_MIN_MINUTES);
   readonly sortKey = signal("valuation");
   readonly sortDesc = signal(true);
 
   readonly hasActiveFilters = computed(
-    () => this.searchQuery().trim().length > 0 || this.teamFilter() !== null || this.minGames() !== DEFAULT_MIN_GAMES
+    () =>
+      this.searchQuery().trim().length > 0 ||
+      this.teamFilter() !== null ||
+      this.minGames() !== DEFAULT_MIN_GAMES ||
+      this.minMinutes() !== DEFAULT_MIN_MINUTES
   );
 
   readonly teamDropdownOptions = computed<DropdownOption[]>(() => {
@@ -169,11 +175,13 @@ export class AdvancedStatsComponent implements OnInit {
     const query = this.searchQuery().trim().toLowerCase();
     const team = this.teamFilter();
     const minGp = this.minGames();
+    const minMin = this.minMinutes();
 
     const filtered = this.allRows().filter((row) => {
       if (query && !row.player.name.toLowerCase().includes(query)) return false;
       if (team && row.team.id !== team) return false;
       if ((row.stats.gamesPlayed ?? 0) < minGp) return false;
+      if ((row.stats.minutesPerGame ?? 0) < minMin) return false;
       return true;
     });
 
@@ -219,9 +227,15 @@ export class AdvancedStatsComponent implements OnInit {
     this.minGames.set(Number.isFinite(n) && n >= 0 ? n : 0);
   }
 
+  setMinMinutes(value: string): void {
+    const n = Number(value);
+    this.minMinutes.set(Number.isFinite(n) && n >= 0 ? n : 0);
+  }
+
   clearFilters(): void {
     this.searchQuery.set("");
     this.teamFilter.set(null);
     this.minGames.set(DEFAULT_MIN_GAMES);
+    this.minMinutes.set(DEFAULT_MIN_MINUTES);
   }
 }
