@@ -69,7 +69,7 @@ export const tourTranslations: Record<string, Record<Lang, string>> = {
 
   "tour.step.done.title": { en: "That's Clutch", el: "Αυτό είναι το Clutch" },
   "tour.step.done.body": {
-    en: "You've seen the whole loop: predict, earn, open, trade. Jump back in anytime — this tour is one tap away on the dashboard.",
-    el: "Είδες όλο τον κύκλο: πρόβλεψε, κέρδισε, άνοιξε, αντάλλαξε. Ξαναμπές όποτε θες — αυτή η ξενάγηση είναι πάντα διαθέσιμη στο dashboard.",
+    en: "You've seen the whole loop: predict, earn, open, trade. And there's plenty more to explore — standings, league-wide stats, player comparisons, news, and the full schedule. Jump back in anytime — this tour is one tap away on the dashboard.",
+    el: "Είδες όλο τον κύκλο: πρόβλεψε, κέρδισε, άνοιξε, αντάλλαξε. Υπάρχουν όμως κι άλλα πολλά να ανακαλύψεις — βαθμολογία, στατιστικά όλου του πρωταθλήματος, συγκρίσεις παικτών, νέα, και το πλήρες πρόγραμμα. Ξαναμπές όποτε θες — αυτή η ξενάγηση είναι πάντα διαθέσιμη στο dashboard.",
   },
 };
