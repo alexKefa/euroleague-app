@@ -196,7 +196,7 @@
                   [routerLink]="['/games', entry.game.id]"
                   class="border-t border-line hover:bg-page transition-colors cursor-pointer"
                 >
-                  <td class="sticky left-0 z-10 bg-card px-3 py-2 font-mono text-muted whitespace-nowrap">{{ entry.game.tipoffAt | date: "MMM d" }}</td>
+                  <td class="sticky left-0 z-10 bg-card px-3 py-2 font-mono text-muted whitespace-nowrap">{{ entry.game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}</td>
                   <td class="px-3 py-2 whitespace-nowrap">
                     <span class="flex items-center gap-1.5">
                       <span class="font-display text-xs">{{ isHomeGame(entry) ? "vs" : "@" }}</span>

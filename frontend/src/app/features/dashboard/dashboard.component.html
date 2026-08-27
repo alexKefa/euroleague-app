@@ -61,7 +61,7 @@
           <div class="flex items-center gap-2 mt-4 pt-3 border-t border-white/20 text-sm">
             <span class="font-mono text-[12px] font-bold opacity-65">{{ i18n.t('dashboard.next') }}</span>
             <span class="font-display text-sm">{{ isHomeGame(game) ? "vs" : "@" }} {{ opponentCode(game) }}</span>
-            <span class="font-mono text-[12px] opacity-65">&middot; {{ game.tipoffAt | date: "MMM d, HH:mm" }}</span>
+            <span class="font-mono text-[12px] opacity-65">&middot; {{ game.tipoffAt | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}</span>
           </div>
         }
       </div>
@@ -235,7 +235,7 @@
                     }
                     <span class="font-semibold truncate">{{ isHomeGame(game) ? "vs" : "@" }} {{ opponentCode(game) }}</span>
                   </span>
-                  <span class="font-mono text-muted text-xs shrink-0">{{ game.tipoffAt | date: "MMM d" }}</span>
+                  <span class="font-mono text-muted text-xs shrink-0">{{ game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}</span>
                 </a>
               }
             </div>

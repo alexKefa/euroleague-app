@@ -9,6 +9,7 @@ import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ChipDirective } from "../../shared/chip.directive";
 import { StatLegendComponent, StatLegendEntry } from "../../shared/stat-legend";
 import { SkeletonComponent } from "../../shared/skeleton";
+import { newsDateLocale, gameDateTimeFormat } from "../../shared/news-date-format";
 
 // Plain box-score terms instead of advanced-stat proxies (eFG%-based
 // "offRating"/"defRating", assist ratio for "playmaking") — those didn't
@@ -220,5 +221,16 @@ export class TeamRosterComponent implements OnInit {
 
   opponentScore(game: Game): number | null {
     return this.isHomeGame(game) ? game.awayScore : game.homeScore;
+  }
+
+  // Greek month names/day-first order for the date pipe — see
+  // shared/news-date-format.ts for why the locale has to be passed
+  // explicitly and why tip-off times stay 24h in both languages.
+  dateLocale(): string {
+    return newsDateLocale(this.i18n.lang());
+  }
+
+  gameDateTimeFormat(): string {
+    return gameDateTimeFormat(this.i18n.lang());
   }
 }

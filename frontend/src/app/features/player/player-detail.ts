@@ -7,6 +7,7 @@ import { PlayerDetail, PlayerShotChart, PlayerGameLogEntry } from "../../core/mo
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { ShotChartComponent } from "./shot-chart";
+import { newsDateLocale, shortDateFormat } from "../../shared/news-date-format";
 
 @Component({
   selector: "app-player-detail",
@@ -75,5 +76,16 @@ export class PlayerDetailComponent implements OnInit {
 
   fmtNum(value: number | null | undefined): string {
     return value !== null && value !== undefined ? value.toFixed(1) : "—";
+  }
+
+  // Greek month names/day-first order for the date pipe — see
+  // shared/news-date-format.ts for why the locale has to be passed
+  // explicitly.
+  dateLocale(): string {
+    return newsDateLocale(this.i18n.lang());
+  }
+
+  shortDateFormat(): string {
+    return shortDateFormat(this.i18n.lang());
   }
 }

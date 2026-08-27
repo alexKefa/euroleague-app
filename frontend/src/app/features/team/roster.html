@@ -204,7 +204,7 @@
                 }
                 <span class="font-display text-xs">{{ opponentTeam(game).code }}</span>
               </span>
-              <span class="font-mono text-muted text-[12px]">{{ game.tipoffAt | date: "MMM d, HH:mm" }}</span>
+              <span class="font-mono text-muted text-[12px]">{{ game.tipoffAt | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}</span>
             </a>
           }
         </div>

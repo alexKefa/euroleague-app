@@ -11,10 +11,17 @@ import { ButtonDirective } from "../../shared/button.directive";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { PageHintComponent } from "../../shared/page-hint";
 import { SkeletonComponent } from "../../shared/skeleton";
+import { newsDateLocale, weekdayDateFormat } from "../../shared/news-date-format";
 
 // The user asked specifically for the 2026-27 schedule — no season picker,
 // just round + team filters within that season.
 const SEASON = "2026-27";
+
+// en-CA renders as YYYY-MM-DD, a stable sortable/comparable key for "which
+// calendar day is this in the given IANA zone" without hand-rolled offset math.
+function athensDateKey(iso: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Athens" }).format(new Date(iso));
+}
 
 @Component({
   selector: "app-schedule",
@@ -97,16 +104,23 @@ export class ScheduleComponent implements OnInit {
   });
 
   // Rounds often span several days — group so each date gets its own header
-  // instead of one long undifferentiated list.
+  // instead of one long undifferentiated list. Buckets by the tipoff's
+  // Athens calendar day (not the viewer's browser-local day, which used to
+  // let a game near midnight land under the wrong date header for anyone
+  // outside Greece) — Intl's en-CA formatter gives a stable YYYY-MM-DD key
+  // for a given IANA zone without manual DST/offset math. `date` on each
+  // group is a real timestamp (any game in the bucket works, they all share
+  // the same Athens day) so the template's date pipe can still do its own
+  // Athens-timezone, locale-aware formatting for the header.
   readonly gamesByDate = computed(() => {
     const groups = new Map<string, Game[]>();
     for (const game of this.filteredGames()) {
-      const key = new Date(game.tipoffAt).toDateString();
+      const key = athensDateKey(game.tipoffAt);
       const arr = groups.get(key) ?? [];
       arr.push(game);
       groups.set(key, arr);
     }
-    return [...groups.entries()].map(([date, games]) => ({ date, games }));
+    return [...groups.entries()].map(([, games]) => ({ date: games[0].tipoffAt, games }));
   });
 
   ngOnInit(): void {
@@ -172,6 +186,17 @@ export class ScheduleComponent implements OnInit {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m}:${s.toString().padStart(2, "0")}`;
+  }
+
+  // Greek month names/day-first order for the date pipe — see
+  // shared/news-date-format.ts for why the locale has to be passed
+  // explicitly and why tip-off times stay 24h in both languages.
+  dateLocale(): string {
+    return newsDateLocale(this.i18n.lang());
+  }
+
+  weekdayDateFormat(): string {
+    return weekdayDateFormat(this.i18n.lang());
   }
 
   // Admin-only testing tool: EuroLeague's real live feed has nothing to

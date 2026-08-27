@@ -14,6 +14,11 @@ import { ButtonDirective } from "../../shared/button.directive";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { NewsStoriesComponent } from "../../shared/news-stories";
 import { SkeletonComponent } from "../../shared/skeleton";
+import {
+  newsDateLocale,
+  shortDateFormat as gameShortDateFormat,
+  gameDateTimeFormat as gameDateTimeFormatFn,
+} from "../../shared/news-date-format";
 
 const LEADER_CATEGORIES = [
   { value: "points", label: "PTS" },
@@ -223,6 +228,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   opponentTeam(game: Game) {
     return this.isHomeGame(game) ? game.awayTeam : game.homeTeam;
+  }
+
+  // Greek month names/day-first order for the date pipe — see
+  // shared/news-date-format.ts for why the locale has to be passed
+  // explicitly and why time stays 24h in both languages.
+  dateLocale(): string {
+    return newsDateLocale(this.i18n.lang());
+  }
+
+  shortDateFormat(): string {
+    return gameShortDateFormat(this.i18n.lang());
+  }
+
+  gameDateTimeFormat(): string {
+    return gameDateTimeFormatFn(this.i18n.lang());
   }
 
   teamResult(game: Game): "W" | "L" | null {

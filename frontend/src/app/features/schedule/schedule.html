@@ -78,7 +78,7 @@
       @for (group of gamesByDate(); track group.date) {
         <div>
           <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-2">
-            {{ group.date | date: "EEEE, MMM d" }}
+            {{ group.date | date: weekdayDateFormat():"Europe/Athens":dateLocale() }}
           </p>
           <div class="space-y-2">
             @for (game of group.games; track game.id) {
@@ -126,7 +126,7 @@
                       game.awayScore
                     }}</span>
                   } @else {
-                    <span class="font-mono text-xs text-muted">{{ game.tipoffAt | date: "HH:mm" }}</span>
+                    <span class="font-mono text-xs text-muted">{{ game.tipoffAt | date: "HH:mm":"Europe/Athens" }}</span>
                   }
                 </div>
 
