@@ -45,37 +45,61 @@
                   </span>
                   <span class="font-bold text-ink">{{ game.homeScore }}-{{ game.awayScore }}</span>
                 } @else {
-                  {{ game.tipoffAt | date: "MMM d" }}<br />{{ game.tipoffAt | date: "HH:mm" }}
+                  {{ game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}<br />{{ game.tipoffAt | date: "HH:mm":"Europe/Athens" }}
                 }
               </p>
               @if (auth.isAuthenticated()) {
-                <div class="flex-1 flex gap-1.5">
+                <div class="flex-1 flex items-center justify-center gap-3">
                   <button
                     type="button"
                     (click)="togglePick(game, game.homeTeam.id)"
                     [disabled]="isLocked(game)"
-                    class="flex-1 py-1 rounded-md font-mono text-[12px] font-bold border-2 transition-colors disabled:opacity-40 disabled:pointer-events-none"
-                    [class.border-highlight]="myPickFor(game) === game.homeTeam.id"
-                    [class.bg-highlight]="myPickFor(game) === game.homeTeam.id"
-                    [class.text-white]="myPickFor(game) === game.homeTeam.id"
-                    [class.border-line]="myPickFor(game) !== game.homeTeam.id"
-                    [class.text-muted]="myPickFor(game) !== game.homeTeam.id"
+                    [attr.aria-label]="game.homeTeam.name"
+                    class="shrink-0 flex flex-col items-center gap-0.5 disabled:opacity-40 disabled:pointer-events-none"
                   >
-                    <app-team-badge [code]="game.homeTeam.code" [logoUrl]="game.homeTeam.logoUrl" [size]="16"></app-team-badge>
+                    <span
+                      class="w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors overflow-hidden"
+                      [class.border-highlight]="myPickFor(game) === game.homeTeam.id"
+                      [class.border-line]="myPickFor(game) !== game.homeTeam.id"
+                    >
+                      @if (game.homeTeam.logoUrl) {
+                        <img [src]="game.homeTeam.logoUrl" [alt]="game.homeTeam.code" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain" />
+                      } @else {
+                        <span class="w-full h-full" [style.background]="game.homeTeam.primaryColor"></span>
+                      }
+                    </span>
+                    <span
+                      class="font-mono text-[9px] font-bold"
+                      [class.text-highlight]="myPickFor(game) === game.homeTeam.id"
+                      [class.text-muted]="myPickFor(game) !== game.homeTeam.id"
+                      >{{ game.homeTeam.code }}</span
+                    >
                   </button>
-                  <span class="font-mono text-muted text-[10px] self-center">{{ i18n.t('predictions.vs') }}</span>
+                  <span class="font-mono text-muted text-[10px]">{{ i18n.t('predictions.vs') }}</span>
                   <button
                     type="button"
                     (click)="togglePick(game, game.awayTeam.id)"
                     [disabled]="isLocked(game)"
-                    class="flex-1 py-1 rounded-md font-mono text-[12px] font-bold border-2 transition-colors disabled:opacity-40 disabled:pointer-events-none"
-                    [class.border-highlight]="myPickFor(game) === game.awayTeam.id"
-                    [class.bg-highlight]="myPickFor(game) === game.awayTeam.id"
-                    [class.text-white]="myPickFor(game) === game.awayTeam.id"
-                    [class.border-line]="myPickFor(game) !== game.awayTeam.id"
-                    [class.text-muted]="myPickFor(game) !== game.awayTeam.id"
+                    [attr.aria-label]="game.awayTeam.name"
+                    class="shrink-0 flex flex-col items-center gap-0.5 disabled:opacity-40 disabled:pointer-events-none"
                   >
-                    <app-team-badge [code]="game.awayTeam.code" [logoUrl]="game.awayTeam.logoUrl" [size]="16"></app-team-badge>
+                    <span
+                      class="w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors overflow-hidden"
+                      [class.border-highlight]="myPickFor(game) === game.awayTeam.id"
+                      [class.border-line]="myPickFor(game) !== game.awayTeam.id"
+                    >
+                      @if (game.awayTeam.logoUrl) {
+                        <img [src]="game.awayTeam.logoUrl" [alt]="game.awayTeam.code" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain" />
+                      } @else {
+                        <span class="w-full h-full" [style.background]="game.awayTeam.primaryColor"></span>
+                      }
+                    </span>
+                    <span
+                      class="font-mono text-[9px] font-bold"
+                      [class.text-highlight]="myPickFor(game) === game.awayTeam.id"
+                      [class.text-muted]="myPickFor(game) !== game.awayTeam.id"
+                      >{{ game.awayTeam.code }}</span
+                    >
                   </button>
                 </div>
               } @else {
@@ -243,7 +267,7 @@
                   <p class="font-display text-xs">
                     <app-team-badge [code]="p.predictedTeam.code" [logoUrl]="teamLogo(p.predictedTeam.id)"></app-team-badge>
                   </p>
-                  <p class="font-mono text-muted text-[12px] mt-0.5">{{ p.tipoffAt | date: "MMM d, HH:mm" }}</p>
+                  <p class="font-mono text-muted text-[12px] mt-0.5">{{ p.tipoffAt | date: pickDateFormat():"Europe/Athens":dateLocale() }}</p>
                 </div>
                 @if (p.isPendingSubmit) {
                   <span class="text-[12px] font-bold text-highlight">{{ i18n.t('predictions.unsaved') }}</span>

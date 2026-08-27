@@ -7,11 +7,13 @@ import { I18nService } from "../../core/i18n.service";
 import { EventsService } from "../../core/events.service";
 import { Prediction, LeaderboardEntry, PredictionSummary, Game, RewardPack } from "../../core/models";
 import { TeamBadgeComponent } from "../../shared/team-badge";
+import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { PageHintComponent } from "../../shared/page-hint";
 import { NavIconComponent, NavIconName } from "../../shared/nav-icon";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { ButtonDirective } from "../../shared/button.directive";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
+import { newsDateLocale, shortDateFormat as gameShortDateFormat, gameDateTimeFormat } from "../../shared/news-date-format";
 
 // Matches schedule.ts — no season picker here either, and predictions
 // should only ever be open for the round a user could actually be watching.
@@ -75,6 +77,7 @@ interface DisplayedPick {
     CommonModule,
     RouterLink,
     TeamBadgeComponent,
+    RetryImgDirective,
     PageHintComponent,
     NavIconComponent,
     SkeletonComponent,
@@ -368,6 +371,21 @@ export class PredictionsComponent implements OnInit {
 
   teamLogo(teamId: string): string | null {
     return this.teamLogos().get(teamId) ?? null;
+  }
+
+  // The date pipe's "MMM" token only renders in Greek if a Greek locale is
+  // explicitly passed as its 4th argument (registered in main.ts) — see
+  // shared/news-date-format.ts for the shared day-first-for-Greek convention.
+  dateLocale(): string {
+    return newsDateLocale(this.i18n.lang());
+  }
+
+  shortDateFormat(): string {
+    return gameShortDateFormat(this.i18n.lang());
+  }
+
+  pickDateFormat(): string {
+    return gameDateTimeFormat(this.i18n.lang());
   }
 
   // Tapping the already-picked team clears the pick instead of re-submitting

@@ -11,3 +11,20 @@ export function newsDateFormat(lang: Lang, withYear: boolean): string {
 export function newsDateLocale(lang: Lang): string {
   return lang === "el" ? "el" : "en-US";
 }
+
+// Game-time dates (dashboard, schedule, predictions) — unlike news' am/pm
+// English convention above, these stay 24h in both languages (matches
+// EuroLeague broadcasts/box scores) and only flip day/month order + the
+// month name's language for Greek. Reuses newsDateLocale for the pipe's
+// locale argument — same "el" vs "en-US" split.
+export function shortDateFormat(lang: Lang): string {
+  return lang === "el" ? "d MMM" : "MMM d";
+}
+
+export function gameDateTimeFormat(lang: Lang): string {
+  return lang === "el" ? "d MMM, HH:mm" : "MMM d, HH:mm";
+}
+
+export function weekdayDateFormat(lang: Lang): string {
+  return lang === "el" ? "EEEE, d MMM" : "EEEE, MMM d";
+}
