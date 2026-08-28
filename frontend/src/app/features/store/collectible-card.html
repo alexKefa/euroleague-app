@@ -52,8 +52,9 @@
       @if (style.holoVariant) {
         <div
           class="holo-sweep absolute pointer-events-none"
-          [class.holo-sweep--gold]="style.holoVariant === 'gold'"
+          [class.holo-sweep--gold]="style.holoVariant === 'gold' && !isFoil"
           [class.holo-sweep--silver]="style.holoVariant === 'silver'"
+          [class.holo-sweep--prismatic]="isFoil"
         ></div>
       }
 
@@ -62,9 +63,11 @@
         style="padding: 3px 8px 3px 6px"
         [style.background]="style.badgeBackground"
       >
-        <span class="text-[10px] font-extrabold tracking-wider" [style.color]="style.badgeTextColor">{{
-          style.badgeLabel
-        }}</span>
+        <span class="text-[10px] font-extrabold tracking-wider" [style.color]="style.badgeTextColor">
+          @if (isFoil) {
+            <span aria-hidden="true">&#10022;&nbsp;</span>
+          }{{ style.badgeLabel }}</span
+        >
       </div>
 
       <!-- print numbering — mirrors the tier badge on the opposite corner -->

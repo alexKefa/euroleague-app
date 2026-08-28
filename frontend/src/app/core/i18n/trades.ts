@@ -27,6 +27,24 @@ export const tradesTranslations: Record<string, Record<Lang, string>> = {
   "trades.listForTrade": { en: "List for trade", el: "Καταχώριση για ανταλλαγή" },
   "trades.marketplaceTitle": { en: "Marketplace", el: "Αγορά" },
   "trades.noListings": { en: "No cards listed for trade right now.", el: "Δεν υπάρχουν κάρτες για ανταλλαγή αυτή τη στιγμή." },
+  "trades.wishlistSet": { en: "Set wishlist", el: "Ορισμός λίστας επιθυμιών" },
+  "trades.wishlistEditPrefix": { en: "Edit wishlist", el: "Επεξεργασία λίστας επιθυμιών" },
+  "trades.wishlistHint": {
+    en: "Pick any legendary cards you'd accept in return — shown to browsers in the marketplace, but not required to complete a trade.",
+    el: "Διάλεξε θρυλικές κάρτες που θα δεχόσουν σε ανταλλαγή — εμφανίζονται σε όσους περιηγούνται στην αγορά, αλλά δεν είναι απαραίτητες για να ολοκληρωθεί μια ανταλλαγή.",
+  },
+  "trades.wishlistNoOptions": { en: "No other legendary cards exist yet.", el: "Δεν υπάρχουν ακόμα άλλες θρυλικές κάρτες." },
+  "trades.wishlistSave": { en: "Save", el: "Αποθήκευση" },
+  "trades.wishlistWantsPrefix": { en: "Wants:", el: "Θέλει:" },
+  "trades.wishlistWantedBadge": { en: "Wanted", el: "Ζητείται" },
+  "trades.err.INVALID_WISHLIST": {
+    en: "Wishlist can only contain legendary cards.",
+    el: "Η λίστα επιθυμιών μπορεί να περιέχει μόνο θρυλικές κάρτες.",
+  },
+  "trades.err.FAILED_TO_UPDATE_WISHLIST": {
+    en: "Failed to update your wishlist.",
+    el: "Η ενημέρωση της λίστας επιθυμιών απέτυχε.",
+  },
   "trades.alreadyOwned": { en: "Already owned", el: "Ήδη στη συλλογή σου" },
   "trades.offerForPrefix": {
     en: "Offer one or more of your cards for",

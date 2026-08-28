@@ -72,6 +72,7 @@ packsRouter.post("/:type/open", requireAuth, async (req, res) => {
       return;
     }
     const newlyOwnedIds = new Set(slots.filter((s) => !s.wasDuplicate).map((s) => s.collectible.id));
+    const finishByCollectibleId = new Map(slots.filter((s) => !s.wasDuplicate).map((s) => [s.collectible.id, s.finish]));
     const sellValues = slots.map(sellValueFor);
 
     const outcome = await db.transaction(async (tx) => {
@@ -113,9 +114,13 @@ packsRouter.post("/:type/open", requireAuth, async (req, res) => {
         });
 
       if (newlyOwnedIds.size > 0) {
-        await tx
-          .insert(userCollectibles)
-          .values([...newlyOwnedIds].map((collectibleId) => ({ userId: req.userId!, collectibleId })));
+        await tx.insert(userCollectibles).values(
+          [...newlyOwnedIds].map((collectibleId) => ({
+            userId: req.userId!,
+            collectibleId,
+            finish: finishByCollectibleId.get(collectibleId) ?? "standard",
+          }))
+        );
       }
 
       // Multi-row INSERT ... RETURNING preserves VALUES order, so
@@ -132,7 +137,7 @@ packsRouter.post("/:type/open", requireAuth, async (req, res) => {
         )
         .returning();
 
-      const results = slots.map(({ collectible, team, wasDuplicate }, i) => ({
+      const results = slots.map(({ collectible, team, wasDuplicate, finish }, i) => ({
         resultId: insertedResults[i].id,
         collectible: {
           id: collectible.id,
@@ -141,6 +146,7 @@ packsRouter.post("/:type/open", requireAuth, async (req, res) => {
           pointsCost: collectible.pointsCost,
           imageUrl: collectible.imageUrl,
           team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor },
+          finish,
         },
         wasDuplicate,
         sellValue: sellValues[i],
@@ -197,12 +203,13 @@ packsRouter.post("/owned/:id/open", requireAuth, async (req, res) => {
     let slots: RolledSlot[];
     let pity: PityState;
     try {
-      ({ slots, pity } = await rollPackForUser(req.userId!, packType));
+      ({ slots, pity } = await rollPackForUser(req.userId!, packType, { forceFoil: row.forceFoil }));
     } catch (err) {
       res.status(500).json({ error: (err as Error).message });
       return;
     }
     const newlyOwnedIds = new Set(slots.filter((s) => !s.wasDuplicate).map((s) => s.collectible.id));
+    const finishByCollectibleId = new Map(slots.filter((s) => !s.wasDuplicate).map((s) => [s.collectible.id, s.finish]));
     const sellValues = slots.map(sellValueFor);
 
     const outcome = await db.transaction(async (tx) => {
@@ -244,9 +251,13 @@ packsRouter.post("/owned/:id/open", requireAuth, async (req, res) => {
       }
 
       if (newlyOwnedIds.size > 0) {
-        await tx
-          .insert(userCollectibles)
-          .values([...newlyOwnedIds].map((collectibleId) => ({ userId: req.userId!, collectibleId })));
+        await tx.insert(userCollectibles).values(
+          [...newlyOwnedIds].map((collectibleId) => ({
+            userId: req.userId!,
+            collectibleId,
+            finish: finishByCollectibleId.get(collectibleId) ?? "standard",
+          }))
+        );
       }
 
       const insertedResults = await tx
@@ -261,7 +272,7 @@ packsRouter.post("/owned/:id/open", requireAuth, async (req, res) => {
         )
         .returning();
 
-      const results = slots.map(({ collectible, team, wasDuplicate }, i) => ({
+      const results = slots.map(({ collectible, team, wasDuplicate, finish }, i) => ({
         resultId: insertedResults[i].id,
         collectible: {
           id: collectible.id,
@@ -270,6 +281,7 @@ packsRouter.post("/owned/:id/open", requireAuth, async (req, res) => {
           pointsCost: collectible.pointsCost,
           imageUrl: collectible.imageUrl,
           team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor },
+          finish,
         },
         wasDuplicate,
         sellValue: sellValues[i],

@@ -106,6 +106,14 @@
   animation: legendary-shake 0.5s ease-out both;
 }
 
+/* Same jolt as .legendary-shake, delayed to land once the (much slower)
+   foil card has actually arrived instead of firing while it's still
+   mid-flight. */
+.legendary-shake--foil {
+  animation: legendary-shake 0.5s ease-out both;
+  animation-delay: 1.1s;
+}
+
 @keyframes legendary-label-pop {
   0% {
     opacity: 0;
@@ -222,6 +230,124 @@
 .card-exit-anim {
   animation: card-exit 0.32s cubic-bezier(0.4, 0, 1, 1) both;
   transform-style: preserve-3d;
+}
+
+/* Foil legendary reveal — a distinct, more dramatic version of
+   .card-reveal-anim above (further away, an extra spin, a brief
+   over-bright flash as it settles) plus every burst color below swapped
+   from gold to a spinning rainbow. Exists purely because a foil carries
+   zero gameplay weight over a plain legendary (see the finish column's
+   comment in schema.ts) — the reveal is the one place it gets to earn
+   feeling rarer. */
+@keyframes card-reveal-foil {
+  0% {
+    opacity: 0;
+    transform: translateY(70px) scale(0.4) rotateY(200deg) rotateZ(-10deg);
+    filter: brightness(1.8) saturate(1.4);
+  }
+  50% {
+    opacity: 1;
+  }
+  75% {
+    transform: translateY(-8px) scale(1.05) rotateY(-8deg) rotateZ(2deg);
+    filter: brightness(1.25) saturate(1.15);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotateY(0deg) rotateZ(0deg);
+    filter: brightness(1) saturate(1);
+  }
+}
+
+.card-reveal-anim--foil {
+  animation: card-reveal-foil 1.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-style: preserve-3d;
+}
+
+@keyframes burst-glow-foil {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) rotate(0deg);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.7) rotate(160deg);
+  }
+}
+
+/* A conic gradient (a real color wheel) rather than a tinted radial —
+   masked down to a soft-edged disc so it still reads as a "glow", just a
+   rotating rainbow one instead of a flat-hued gold bloom. */
+.burst-glow--foil {
+  animation: burst-glow-foil 1.9s ease-out both;
+  background: conic-gradient(from 0deg, #ff5aa0, #ffd25a, #7dffb0, #5ab4ff, #c878ff, #ff5aa0);
+  -webkit-mask-image: radial-gradient(circle, #000 0%, #000 42%, transparent 70%);
+  mask-image: radial-gradient(circle, #000 0%, #000 42%, transparent 70%);
+}
+
+/* Overrides .burst-ring's own (faster) animation-duration/delay — foil's
+   whole reveal runs slower, so its rings need to match pace. */
+.burst-ring--foil-a {
+  border: 3px solid rgba(120, 220, 255, 0.75);
+  animation-duration: 1.5s;
+}
+
+.burst-ring--foil-b {
+  border: 2px solid rgba(255, 130, 220, 0.6);
+  animation-duration: 1.5s;
+  animation-delay: 0.3s;
+}
+
+/* Each ray gets its own hue (--ray-hue, set per-index in packs.html) so the
+   12 rays sweep the whole color wheel instead of all sharing one tint. */
+.burst-ray-foil {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 50px;
+  margin: -25px 0 0 -2px;
+  border-radius: 2px;
+  transform-origin: 50% 100%;
+  animation: burst-ray 1.7s ease-out both;
+  background: linear-gradient(hsl(var(--ray-hue) 90% 65% / 1), hsl(var(--ray-hue) 90% 65% / 0));
+}
+
+.legendary-flash--foil {
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(210, 225, 255, 0.35) 45%, rgba(255, 255, 255, 0) 70%);
+  animation-duration: 0.7s;
+}
+
+/* Same twinkle motion as .sparkle, just per-glyph hued (--sparkle-hue, set
+   per-index in packs.html) instead of one warm gold tone. */
+.sparkle--foil {
+  color: hsl(var(--sparkle-hue) 90% 75%);
+  text-shadow: 0 0 8px hsl(var(--sparkle-hue) 90% 65% / 0.8);
+}
+
+@keyframes foil-label-shift {
+  0% {
+    background-position: 0% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.foil-label {
+  background: linear-gradient(90deg, #ff5aa0, #ffd25a, #7dffb0, #5ab4ff, #c878ff, #ff5aa0);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 20px rgba(200, 160, 255, 0.5);
+  animation:
+    legendary-label-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+    foil-label-shift 2.2s linear infinite;
+  animation-delay: 0.9s, 1.1s;
 }
 
 /* Pack-selection art — a physical foil-pack silhouette per tier: tapered

@@ -5,7 +5,7 @@ import { Observable } from "rxjs";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
-import { TradeableCard, MarketplaceCard, TradeOffer, TradeOfferStatus } from "../../core/models";
+import { TradeableCard, MarketplaceCard, TradeOffer, TradeOfferStatus, Collectible } from "../../core/models";
 import { TradesNotificationService } from "../../core/trades-notification.service";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { ButtonDirective } from "../../shared/button.directive";
@@ -37,6 +37,17 @@ export class TradesComponent implements OnInit {
   readonly myCards = signal<TradeableCard[]>([]);
   readonly marketplace = signal<MarketplaceCard[]>([]);
   readonly offers = signal<TradeOffer[]>([]);
+
+  // Every legendary in the catalog, used only as the picklist for the
+  // wishlist editor below — loaded once, not filtered by ownership (you can
+  // wishlist a card whether or not you've seen anyone list it yet).
+  readonly legendaryCatalog = signal<Collectible[]>([]);
+
+  // Which of "my cards" currently has its wishlist editor open — at most
+  // one at a time, keyed by the card's (collectible) id.
+  readonly editingWishlistId = signal<string | null>(null);
+  readonly wishlistDraft = signal<ReadonlySet<string>>(new Set());
+  readonly savingWishlist = signal(false);
 
   // A different owner can list the exact same legendary you already have —
   // that listing stays visible (so you can still see it exists) but can't
@@ -75,6 +86,13 @@ export class TradesComponent implements OnInit {
 
   readonly canPropose = computed(() => !!this.selectedListingId() && this.selectedMineIds().size > 0);
 
+  // Collectible ids the selected listing's owner said they'd want — used to
+  // highlight a likely-accepted offer in the composer instead of leaving it
+  // a blind pick. Purely a UI hint; the backend still accepts any offer.
+  readonly selectedListingWishlistIds = computed(
+    () => new Set((this.selectedListing()?.wishlist ?? []).map((c) => c.id))
+  );
+
   ngOnInit(): void {
     if (!this.auth.isAuthenticated()) {
       this.loading.set(false);
@@ -84,6 +102,10 @@ export class TradesComponent implements OnInit {
     this.loadMyCards();
     this.loadMarketplace();
     this.loadOffers();
+    this.api.getCollectibles().subscribe({
+      next: (cards) => this.legendaryCatalog.set(cards.filter((c) => c.tier === "legendary")),
+      error: () => {},
+    });
   }
 
   private loadMyCards(): void {
@@ -130,6 +152,43 @@ export class TradesComponent implements OnInit {
         this.togglingId.set(null);
       },
       error: () => this.togglingId.set(null),
+    });
+  }
+
+  wishlistPickOptions(card: TradeableCard): Collectible[] {
+    return this.legendaryCatalog().filter((c) => c.id !== card.id);
+  }
+
+  openWishlistEditor(card: TradeableCard): void {
+    this.editingWishlistId.set(card.id);
+    this.wishlistDraft.set(new Set(card.wishlist));
+  }
+
+  closeWishlistEditor(): void {
+    this.editingWishlistId.set(null);
+  }
+
+  toggleWishlistDraft(collectibleId: string): void {
+    const next = new Set(this.wishlistDraft());
+    if (next.has(collectibleId)) {
+      next.delete(collectibleId);
+    } else {
+      next.add(collectibleId);
+    }
+    this.wishlistDraft.set(next);
+  }
+
+  saveWishlist(card: TradeableCard): void {
+    if (this.savingWishlist()) return;
+    const wishlist = Array.from(this.wishlistDraft());
+    this.savingWishlist.set(true);
+    this.api.setCardWishlist(card.id, wishlist).subscribe({
+      next: ({ wishlist }) => {
+        this.myCards.update((cards) => cards.map((c) => (c.id === card.id ? { ...c, wishlist } : c)));
+        this.savingWishlist.set(false);
+        this.editingWishlistId.set(null);
+      },
+      error: () => this.savingWishlist.set(false),
     });
   }
 
@@ -190,6 +249,10 @@ export class TradesComponent implements OnInit {
 
   offeredNames(offer: TradeOffer): string {
     return offer.offered.map((c) => c.name).join(", ");
+  }
+
+  wishlistNames(card: MarketplaceCard): string {
+    return card.wishlist.map((c) => c.name).join(", ");
   }
 
   statusLabel(status: TradeOfferStatus): string {

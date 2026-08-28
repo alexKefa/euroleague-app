@@ -58,6 +58,7 @@ export const storeTranslations: Record<string, Record<Lang, string>> = {
   "wheel.spinning": { en: "Jump ball…", el: "Τζάμπολ…" },
   "wheel.nextAvailable": { en: "Next jump ball available", el: "Επόμενο τζάμπολ διαθέσιμο" },
   "wheel.cheatAdmin": { en: "Cheat jump ball (admin)", el: "Τζάμπολ απάτης (διαχειριστής)" },
+  "wheel.cheatFoilAdmin": { en: "Cheat foil legendary (admin)", el: "Θρυλική foil απάτης (διαχειριστής)" },
   "wheel.gotPack": { en: "You won a pack!", el: "Κέρδισες ένα πακέτο!" },
   "wheel.legendaryPackWon": { en: "Legendary pack!", el: "Θρυλικό πακέτο!" },
   "wheel.rarePackWon": { en: "Rare pack!", el: "Σπάνιο πακέτο!" },
@@ -91,6 +92,7 @@ export const storeTranslations: Record<string, Record<Lang, string>> = {
   "packs.soldForPrefix": { en: "Sold for", el: "Πουλήθηκε για" },
   "packs.ptsLower": { en: "pts", el: "πόν." },
   "packs.legendaryBang": { en: "Legendary!", el: "Θρυλική!" },
+  "packs.foilBang": { en: "Foil!", el: "Foil!" },
   "packs.rareBang": { en: "Rare!", el: "Σπάνια!" },
   "packs.newBang": { en: "New!", el: "Νέα!" },
   "packs.packOpened": { en: "Pack opened!", el: "Το πακέτο άνοιξε!" },
@@ -103,6 +105,16 @@ export const storeTranslations: Record<string, Record<Lang, string>> = {
   },
   "packs.openNow": { en: "Open", el: "Άνοιγμα" },
   "packs.opening": { en: "Opening…", el: "Άνοιγμα…" },
+  // Backend PACKS labels (services/packs.ts) are English-only internal
+  // display strings, not translated — the frontend never renders them
+  // directly, it looks up the pack's `type` here instead (packLabel() in
+  // packs.ts) so Greek users don't see "Regular Season Pack" verbatim.
+  "packs.label.starter": { en: "Regular Season Pack", el: "Πακέτο Κανονικής Περιόδου" },
+  "packs.label.pro": { en: "Playoffs Pack", el: "Πακέτο Play-Off" },
+  "packs.label.elite": { en: "Final Four Pack", el: "Πακέτο Final Four" },
+  "packs.label.wheelStarter": { en: "Jump Ball — Common Pull", el: "Τζάμπολ — Κοινή Κλήρωση" },
+  "packs.label.wheelPro": { en: "Jump Ball — Rare Pull", el: "Τζάμπολ — Σπάνια Κλήρωση" },
+  "packs.label.wheelLegendary": { en: "Jump Ball — Legendary Pull", el: "Τζάμπολ — Θρυλική Κλήρωση" },
   "packs.tagline.starter": { en: "Where every run starts", el: "Εκεί ξεκινά κάθε προσπάθεια" },
   "packs.tagline.pro": { en: "Win or go home", el: "Νίκη ή τίποτα" },
   "packs.tagline.elite": { en: "The biggest stage in EuroLeague", el: "Η μεγαλύτερη σκηνή της EuroLeague" },

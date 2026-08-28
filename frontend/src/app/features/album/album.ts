@@ -4,7 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
-import { Collectible, CollectibleTier, Team } from "../../core/models";
+import { Collectible, CollectibleFinish, CollectibleTier, Team } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { CardPreviewComponent } from "../store/card-preview";
 import { PageHintComponent } from "../../shared/page-hint";
@@ -51,6 +51,9 @@ export class AlbumComponent implements OnInit {
   private readonly teams = signal<Team[]>([]);
   private readonly catalog = signal<Collectible[]>([]);
   private readonly ownedIds = signal<Set<string>>(new Set());
+  // collectibleId -> finish, same "foil is legendary-only, never gameplay-
+  // weighted" flourish as inventory.ts — see CollectibleFinish.
+  private readonly finishByCollectibleId = signal<Map<string, CollectibleFinish>>(new Map());
   private readonly routeTeamId = signal<string | null>(null);
   private readonly previewItemId = signal<string | null>(null);
 
@@ -131,7 +134,14 @@ export class AlbumComponent implements OnInit {
     };
   });
 
-  readonly previewItem = computed(() => this.teamSlots().find((c) => c.id === this.previewItemId()) ?? null);
+  readonly previewItem = computed(() => {
+    const item = this.teamSlots().find((c) => c.id === this.previewItemId());
+    return item ? { ...item, finish: this.finishFor(item) } : null;
+  });
+
+  finishFor(card: { id: string }): CollectibleFinish {
+    return this.finishByCollectibleId().get(card.id) ?? "standard";
+  }
 
   // For the peek tabs flanking the leaflet — a dimmed sliver of the
   // previous/next team, teasing that there's another page just off-screen.
@@ -180,7 +190,10 @@ export class AlbumComponent implements OnInit {
 
     if (this.auth.isAuthenticated()) {
       this.api.getMyCollectibles().subscribe({
-        next: (rows) => this.ownedIds.set(new Set(rows.map((r) => r.collectibleId))),
+        next: (rows) => {
+          this.ownedIds.set(new Set(rows.map((r) => r.collectibleId)));
+          this.finishByCollectibleId.set(new Map(rows.map((r) => [r.collectibleId, r.finish])));
+        },
         error: () => {},
       });
     }

@@ -169,8 +169,17 @@ function rollTier(slot: PackSlot): Tier {
   return tiers[tiers.length - 1];
 }
 
+export type Finish = "standard" | "foil";
+
+// Cosmetic-only, legendary-only chance rolled on top of the tier itself —
+// see the finish column's comment in schema.ts. 12% keeps a foil feeling
+// genuinely special (roughly 1 in 8 fresh legendaries) without diluting
+// the moment a legendary drop already is on its own.
+const FOIL_CHANCE = 0.12;
+
 export interface RolledSlot extends CollectibleRow {
   wasDuplicate: boolean;
+  finish: Finish;
 }
 
 export interface PityState {
@@ -214,7 +223,10 @@ function isPityTier(tier: Tier): tier is "common" | "rare" {
 // calls here), so fewer statements is the only real lever.
 export async function rollPackForUser(
   userId: string,
-  packType: PackType
+  packType: PackType,
+  // Admin-only debug knob (routes/spin.ts's POST /cheat-foil) — see
+  // ownedPacks.forceFoil's comment in schema.ts. Never set for a real grant.
+  opts?: { forceFoil?: boolean }
 ): Promise<{ slots: RolledSlot[]; pity: PityState }> {
   const rows = await db
     .select({ collectible: collectibles, team: teams, ownedCollectibleId: userCollectibles.collectibleId })
@@ -267,7 +279,14 @@ export async function rollPackForUser(
     if (isPityTier(tier)) streak[tier] = wasDuplicate ? streak[tier] + 1 : 0;
     if (!wasDuplicate) newlyOwnedIds.add(picked.collectible.id);
 
-    return { ...picked, wasDuplicate };
+    // Only ever rolled for a legendary's first acquisition — a duplicate
+    // pull never inserts a new userCollectibles row (see the
+    // newlyOwnedIds-only insert in routes/packs.ts), so there'd be nowhere
+    // to persist a re-roll anyway.
+    const finish: Finish =
+      tier === "legendary" && !wasDuplicate && (opts?.forceFoil || Math.random() < FOIL_CHANCE) ? "foil" : "standard";
+
+    return { ...picked, wasDuplicate, finish };
   });
 
   return { slots, pity: streak };

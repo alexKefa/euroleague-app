@@ -1,3 +1,16 @@
+/* Desktop-only 20% size bump. Scaling the whole disc+hub+pointer group
+   uniformly (rather than resizing every internal absolute-positioned
+   measurement — the wedge dividers, tier-mark radius, etc. are all fixed
+   rem values tied to the original 14.4rem disc) keeps the wedges' dividers
+   and pack icons lined up with the enlarged rim instead of falling short
+   of it. 640px matches Tailwind's `sm` breakpoint, used elsewhere in the
+   app as the desktop cutoff. */
+@media (min-width: 640px) {
+  .wheel-scale-wrap {
+    transform: scale(1.2);
+  }
+}
+
 .wheel-disc {
   transition-property: transform;
   transition-timing-function: cubic-bezier(0.17, 0.67, 0.12, 0.99);

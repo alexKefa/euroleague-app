@@ -1,6 +1,6 @@
 import { Component, Input } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { CollectibleTier } from "../../core/models";
+import { CollectibleFinish, CollectibleTier } from "../../core/models";
 import { CollectibleCardComponent } from "./collectible-card";
 
 /**
@@ -25,4 +25,5 @@ export class CardStackComponent {
   @Input() unlocked = false;
   @Input() maxWidth = 220;
   @Input() stackCount = 1;
+  @Input() finish: CollectibleFinish = "standard";
 }

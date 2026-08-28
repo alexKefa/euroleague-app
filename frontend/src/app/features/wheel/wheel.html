@@ -27,7 +27,7 @@
 
   @if (!loading() && auth.isAuthenticated()) {
     @if (spinning() || lastWonPack() === undefined) {
-      <div data-tour="wheel-spin" class="relative w-[14.4rem] h-[14.4rem] mx-auto mb-6">
+      <div data-tour="wheel-spin" class="wheel-scale-wrap relative w-[14.4rem] h-[14.4rem] mx-auto mt-4 mb-6 sm:mt-10">
         <div
           class="absolute -top-1 left-1/2 -translate-x-1/2 z-10 w-0 h-0 border-l-[11px] border-l-transparent border-r-[11px] border-r-transparent border-t-[18px] border-t-highlight"
         ></div>
@@ -183,6 +183,16 @@
         class="w-full mt-2"
       >
         {{ i18n.t('wheel.cheatAdmin') }}
+      </button>
+      <button
+        type="button"
+        (click)="cheatSpinFoil()"
+        [disabled]="spinning()"
+        appButton="outline"
+        appButtonSize="sm"
+        class="w-full mt-2"
+      >
+        {{ i18n.t('wheel.cheatFoilAdmin') }}
       </button>
     }
 

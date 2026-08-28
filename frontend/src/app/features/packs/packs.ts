@@ -55,11 +55,11 @@ export class PacksComponent implements OnInit {
   // Grouped by type so "3x Legendary Pack" reads as a count with one Open
   // button, rather than three separate identical rows.
   readonly ownedPacksGrouped = computed(() => {
-    const groups = new Map<PackType, { packType: PackType; label: string; items: OwnedPack[] }>();
+    const groups = new Map<PackType, { packType: PackType; items: OwnedPack[] }>();
     for (const p of this.ownedPacks()) {
       const g = groups.get(p.packType);
       if (g) g.items.push(p);
-      else groups.set(p.packType, { packType: p.packType, label: p.label, items: [p] });
+      else groups.set(p.packType, { packType: p.packType, items: [p] });
     }
     return [...groups.values()];
   });
@@ -207,12 +207,27 @@ export class PacksComponent implements OnInit {
     return `EL 26–27 · ${PacksComponent.SET_CODES[type] ?? "—"}`;
   }
 
+  // Backend's PackDefinition.label (services/packs.ts) is an internal,
+  // English-only display string — see the packs.label.* comment in
+  // i18n/store.ts for why the frontend never renders it directly.
+  packLabel(type: PackType): string {
+    return this.i18n.t(`packs.label.${type}`);
+  }
+
   tagline(type: PackType): string {
     return this.i18n.t(`packs.tagline.${type}`);
   }
 
   blurb(type: PackType): string {
     return this.i18n.t(`packs.blurb.${type}`);
+  }
+
+  // A fresh (never a duplicate — those never touch userCollectibles, see
+  // schema.ts's finish column comment) foil legendary gets its own,
+  // more intense reveal — see the card-reveal-anim--foil/burst-*--foil
+  // rules in packs.css.
+  isFoilCard(card: PackOpenResultCard): boolean {
+    return !card.wasDuplicate && card.collectible.tier === "legendary" && card.collectible.finish === "foil";
   }
 
   canAfford(pack: PackDefinition): boolean {

@@ -51,7 +51,7 @@
                   <span class="pack-dots absolute inset-0 pointer-events-none"></span>
                 </span>
                 <div class="min-w-0 flex-1">
-                  <p class="text-[12px] font-bold truncate">{{ group.label }}</p>
+                  <p class="text-[12px] font-bold truncate">{{ packLabel(group.packType) }}</p>
                   @if (group.items.length > 1) {
                     <p class="text-[11px] text-muted">{{ group.items.length }}×</p>
                   }
@@ -88,7 +88,7 @@
             type="button"
             (click)="open(pack)"
             [disabled]="!canAfford(pack) || opening() !== null || pointsLoading()"
-            [attr.aria-label]="pack.label + ' — ' + pack.pointsCost + ' ' + i18n.t('packs.ptsLower')"
+            [attr.aria-label]="packLabel(pack.type) + ' — ' + pack.pointsCost + ' ' + i18n.t('packs.ptsLower')"
             class="pack-visual relative disabled:opacity-40 w-full max-w-[120px] mx-auto sm:max-w-none"
             [class]="visualClasses[pack.type]"
           >
@@ -136,7 +136,7 @@
             </span>
             <div class="min-w-0">
               <p class="text-[11px] font-bold">
-                {{ pack.label }} <span class="text-muted font-normal">— {{ tagline(pack.type) }}</span>
+                {{ packLabel(pack.type) }} <span class="text-muted font-normal">— {{ tagline(pack.type) }}</span>
               </p>
               <p class="text-xs text-muted mt-0.5 leading-snug">{{ blurb(pack.type) }}</p>
             </div>
@@ -222,7 +222,33 @@
 
           @if (!isTransitioning()) {
             @for (card of currentCard() ? [currentCard()!] : []; track revealIndex()) {
-              @if (!card.wasDuplicate && card.collectible.tier === "legendary") {
+              @if (isFoilCard(card)) {
+                <!-- Foil legendary hype — same shape as the plain legendary
+                     burst below, but every color swapped for a spinning
+                     rainbow instead of gold — see card-reveal-anim--foil and
+                     burst-*--foil in packs.css. A foil carries no extra
+                     gameplay value (schema.ts's finish column comment), so
+                     the reveal is where it has to earn feeling special. -->
+                <div class="legendary-flash legendary-flash--foil absolute inset-0 rounded-2xl pointer-events-none z-10"></div>
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                  <div class="burst-glow burst-glow--foil absolute w-96 h-96 rounded-full"></div>
+                  <div class="burst-ring burst-ring--foil-a absolute w-56 h-56 rounded-full"></div>
+                  <div class="burst-ring burst-ring-delay burst-ring--foil-b absolute w-56 h-56 rounded-full"></div>
+                  @for (angle of burstRays; track angle; let i = $index) {
+                    <div class="burst-ray burst-ray-foil" [style.--ray-angle.deg]="angle" [style.--ray-hue]="i * 30"></div>
+                  }
+                  @for (sparkle of sparklePositions; track $index; let i = $index) {
+                    <span
+                      class="sparkle sparkle--foil absolute"
+                      [style.top]="sparkle.top"
+                      [style.left]="sparkle.left"
+                      [style.animation-delay]="sparkle.delay"
+                      [style.--sparkle-hue]="i * 50"
+                      >✦</span
+                    >
+                  }
+                </div>
+              } @else if (!card.wasDuplicate && card.collectible.tier === "legendary") {
                 <!-- Legendary hype — bigger gold burst, a screen flash, a
                      double expanding ring, a full starburst, and scattered
                      twinkles, same proven pattern as the wheel's win reveal
@@ -274,9 +300,13 @@
               }
               <div
                 class="relative z-20"
-                [class.legendary-shake]="!card.wasDuplicate && card.collectible.tier === 'legendary'"
+                [class.legendary-shake]="!card.wasDuplicate && card.collectible.tier === 'legendary' && !isFoilCard(card)"
+                [class.legendary-shake--foil]="isFoilCard(card)"
               >
-                <div class="card-reveal-anim">
+                <div
+                  [class.card-reveal-anim]="!isFoilCard(card)"
+                  [class.card-reveal-anim--foil]="isFoilCard(card)"
+                >
                   <app-collectible-card
                     class="block mx-auto"
                     [name]="card.collectible.name"
@@ -286,6 +316,7 @@
                     [imageUrl]="card.collectible.imageUrl"
                     [unlocked]="true"
                     [maxWidth]="cardSize()"
+                    [finish]="card.collectible.finish ?? 'standard'"
                   ></app-collectible-card>
                 </div>
               </div>
@@ -301,6 +332,9 @@
             </p>
           } @else if (card.collectible.tier === "legendary") {
             <p class="legendary-label font-display text-2xl uppercase tracking-wide mt-5">{{ i18n.t('packs.legendaryBang') }}</p>
+            @if (card.collectible.finish === 'foil') {
+              <p class="foil-label font-display text-lg uppercase tracking-wide mt-1">{{ i18n.t('packs.foilBang') }}</p>
+            }
           } @else if (card.collectible.tier === "rare") {
             <p class="rare-label font-display text-lg uppercase tracking-wide mt-5">{{ i18n.t('packs.rareBang') }}</p>
           } @else {
@@ -333,6 +367,7 @@
                 [imageUrl]="card.collectible.imageUrl"
                 [unlocked]="true"
                 [maxWidth]="summaryCardSize()"
+                [finish]="card.collectible.finish ?? 'standard'"
               ></app-collectible-card>
               @if (card.wasDuplicate) {
                 <span

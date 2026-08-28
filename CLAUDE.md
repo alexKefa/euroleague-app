@@ -204,6 +204,44 @@ If you need to apply a schema change without an interactive terminal
   `pointAdjustments` like this one, only counting prediction-earned points,
   so a badge can't be bought or gifted. Trades (`trades.ts`) are an opt-in
   marketplace, many-for-one offers, scoped to cards both sides actually own.
+  **Listing wishlists + cosmetic foil finish (2026-08-28)**: the
+  marketplace has no pricing — every legendary is equally rare by design
+  (`forceNewLegendary`), so when the same card has several listings from
+  different owners, picking one used to be a genuine coin-flip and an offer
+  was a blind guess at what the owner would accept. Two additive changes,
+  neither touching trade eligibility or the accept/decline flow: (1) each
+  listing can now carry an optional `wishlist` (`userCollectibles.wishlist`,
+  jsonb array of other legendary collectible ids) set by its owner via
+  `POST /trades/my-cards/:collectibleId/wishlist` and shown to browsers in
+  `GET /trades/marketplace` — purely informational, `POST /trades` still
+  accepts any combination of the offerer's legendaries, this is never
+  enforced server-side; (2) a legendary rolled for the first time (never a
+  duplicate — see `forceNewLegendary`) has a 12% (`FOIL_CHANCE` in
+  `services/packs.ts`) chance of landing a cosmetic-only `foil` finish
+  (`userCollectibles.finish`, "standard" | "foil"), rendered as a rainbow
+  holo sweep instead of the tier's normal gold one
+  (`collectible-card.css`'s `holo-sweep--prismatic`) plus a small marker on
+  the tier badge. Finish carries zero gameplay weight — same album credit,
+  same `forceNewLegendary` guarantee, same trade eligibility as standard —
+  it exists so two listings of the same legendary aren't perfectly
+  interchangeable, and it transfers with the card on a completed trade
+  (unlike `tradeable`/`wishlist`, which reset to false/`[]` for the new
+  owner, since it describes the physical print rather than a listing
+  preference). Tiered/graded legendaries (a CS:GO-skin-style wear scale)
+  were considered and deliberately dropped: the whole economy — pity, pack
+  slots, wheel odds, `season-simulation.ts` — is calibrated around exactly
+  22 legendary catalog entries, and multiplying that into several wear
+  tiers per card would force re-deriving all of it rather than being a
+  small addition. The Wheel page's admin-only cheat tools (`wheel.html`,
+  gated on `currentUser.isAdmin`) got a second button alongside the
+  existing "cheat jump ball" one: **cheat foil legendary**
+  (`POST /spin/cheat-foil`) grants the same unopened `wheelLegendary` pack
+  as the plain cheat, but with `ownedPacks.forceFoil` set — without it, the
+  granted pack would still only have the normal 12% `FOIL_CHANCE` on open,
+  making a "verify the foil visual" button an unreliable coin flip.
+  `rollPackForUser` takes an optional `{ forceFoil }` (services/packs.ts),
+  read from the opened row in `routes/packs.ts`'s `POST /owned/:id/open`;
+  every real grant path leaves it at its `false` default.
   **"Album completable in a season" pass (2026-08-25)**: the album
   (`frontend/src/app/features/album/`) is the full 208-common/208-rare/
   22-legendary catalog. Simulating the real pity mechanics found the old

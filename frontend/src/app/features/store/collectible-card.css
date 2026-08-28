@@ -23,6 +23,24 @@
   );
 }
 
+/* Foil finish (cosmetic-only, legendary-only, rolled at first acquisition —
+   see CollectibleFinish) — a rainbow sweep instead of gold's single-hue one,
+   so a foil copy reads as visually distinct from every other legendary at a
+   glance, not just via the corner marker. */
+.holo-sweep--prismatic {
+  background: linear-gradient(
+    115deg,
+    transparent 20%,
+    rgba(255, 90, 160, 0.32) 32%,
+    rgba(255, 210, 90, 0.32) 41%,
+    rgba(120, 255, 170, 0.3) 50%,
+    rgba(90, 180, 255, 0.32) 59%,
+    rgba(200, 120, 255, 0.32) 68%,
+    transparent 80%
+  );
+  animation-duration: 3.2s;
+}
+
 @keyframes holo-sweep {
   0% {
     transform: translateX(-35%) translateY(-12%) rotate(10deg);

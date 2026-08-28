@@ -4,7 +4,7 @@ import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
-import { Collectible, CollectibleTier, CollectibleBundle, CollectibleBundleCard } from "../../core/models";
+import { Collectible, CollectibleFinish, CollectibleTier, CollectibleBundle, CollectibleBundleCard } from "../../core/models";
 import { TradesNotificationService } from "../../core/trades-notification.service";
 import { CardStackComponent } from "../store/card-stack";
 import { CardPreviewComponent } from "../store/card-preview";
@@ -66,6 +66,13 @@ export class InventoryComponent implements OnInit, OnDestroy {
   // owned and to sort bundles by most-recent acquisition.
   private readonly ownedAt = signal<Map<string, string>>(new Map());
   private readonly myCollectibleIds = computed(() => new Set(this.ownedAt().keys()));
+  // collectibleId -> finish — only ever "foil" for a legendary you own (see
+  // CollectibleFinish); absent entries (nothing owned yet) read as standard.
+  private readonly finishByCollectibleId = signal<Map<string, CollectibleFinish>>(new Map());
+
+  finishFor(card: { id: string }): CollectibleFinish {
+    return this.finishByCollectibleId().get(card.id) ?? "standard";
+  }
 
   readonly tierFilter = signal<CollectibleTier | null>(null);
   readonly tierOptions: { value: CollectibleTier | null; labelKey: string }[] = [
@@ -268,7 +275,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
     const bundle = this.previewBundle();
     if (!bundle) return null;
     const card = bundle.cards[this.previewTierIndex()] ?? bundle.cards[0];
-    return { ...card, team: bundle.team };
+    return { ...card, team: bundle.team, finish: this.finishFor(card) };
   });
   readonly previewCards = computed<CollectibleBundleCard[]>(() => this.previewBundle()?.cards ?? []);
 
@@ -313,7 +320,10 @@ export class InventoryComponent implements OnInit, OnDestroy {
     });
 
     this.api.getMyCollectibles().subscribe({
-      next: (rows) => this.ownedAt.set(new Map(rows.map((r) => [r.collectibleId, r.unlockedAt]))),
+      next: (rows) => {
+        this.ownedAt.set(new Map(rows.map((r) => [r.collectibleId, r.unlockedAt])));
+        this.finishByCollectibleId.set(new Map(rows.map((r) => [r.collectibleId, r.finish])));
+      },
       error: () => {},
     });
 

@@ -1,6 +1,6 @@
 import { Component, Input, OnChanges, SimpleChanges, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { CollectibleTier } from "../../core/models";
+import { CollectibleFinish, CollectibleTier } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 
@@ -44,6 +44,12 @@ export class CollectibleCardComponent implements OnChanges {
   @Input() unlocked = false;
   @Input() maxWidth = 220;
   @Input() selected = false;
+  // Cosmetic-only, legendary-only — see CollectibleFinish's doc comment.
+  @Input() finish: CollectibleFinish = "standard";
+
+  get isFoil(): boolean {
+    return this.tier === "legendary" && this.finish === "foil";
+  }
 
   // The player photo can take a beat to arrive (pack reveals fire a burst
   // of these at once) — track load state so the template can show the logo

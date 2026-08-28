@@ -111,3 +111,23 @@ spinRouter.post("/cheat", requireAuth, requireAdmin, async (req, res) => {
     res.status(500).json({ error: "Failed to cheat-spin" });
   }
 });
+
+// Same debug tool as /cheat above, plus forceFoil — otherwise a foil is
+// still just a FOIL_CHANCE coin flip on open, same as any real legendary
+// pull, which defeats the point of a button meant to reliably show the
+// foil visual/verify foil-dependent features (trades, inventory, etc.).
+spinRouter.post("/cheat-foil", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const [wonPack] = await db
+      .insert(ownedPacks)
+      .values({ userId: req.userId!, packType: "wheelLegendary", forceFoil: true })
+      .returning();
+    res.status(201).json({
+      wonPack: { id: wonPack.id, packType: "wheelLegendary", label: PACKS.wheelLegendary.label, tier: "legendary" },
+      nextEligibleAt: null,
+    });
+  } catch (err) {
+    console.error("POST /api/spin/cheat-foil failed:", err);
+    res.status(500).json({ error: "Failed to cheat-spin foil" });
+  }
+});

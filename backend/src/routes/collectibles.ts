@@ -295,7 +295,11 @@ collectiblesRouter.get("/:id/stats", async (req, res) => {
 collectiblesRouter.get("/me", requireAuth, async (req, res) => {
   try {
     const rows = await db
-      .select({ collectibleId: userCollectibles.collectibleId, unlockedAt: userCollectibles.unlockedAt })
+      .select({
+        collectibleId: userCollectibles.collectibleId,
+        unlockedAt: userCollectibles.unlockedAt,
+        finish: userCollectibles.finish,
+      })
       .from(userCollectibles)
       .where(eq(userCollectibles.userId, req.userId!));
 

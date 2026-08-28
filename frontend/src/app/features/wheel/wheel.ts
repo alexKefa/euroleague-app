@@ -137,6 +137,18 @@ export class WheelComponent implements OnInit {
     });
   }
 
+  /** Same as cheatSpin(), plus the granted pack is guaranteed to open foil. */
+  cheatSpinFoil(): void {
+    if (this.spinning()) return;
+    this.spinning.set(true);
+    this.spinError.set(null);
+
+    this.api.cheatSpinFoil().subscribe({
+      next: (result) => this.animateToResult(result, () => this.lastWonPack.set(result.wonPack)),
+      error: (err) => this.applyError(err),
+    });
+  }
+
   private animateToResult(result: SpinResult, apply: () => void): void {
     this.spinToWedge(result.wonPack.tier);
     setTimeout(() => {

@@ -373,6 +373,12 @@ export interface PredictionAnalytics {
 
 export type CollectibleTier = "common" | "rare" | "legendary";
 
+// Cosmetic-only, legendary-only flourish rolled once at first acquisition
+// (services/packs.ts) — never affects album completion, forceNewLegendary,
+// or trade eligibility. Absent/undefined reads the same as "standard" for
+// payload shapes that don't carry it.
+export type CollectibleFinish = "standard" | "foil";
+
 export interface Collectible {
   id: string;
   name: string;
@@ -390,6 +396,9 @@ export interface Collectible {
   serialNumber?: number;
   serialTotal?: number;
   team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
+  // Only ever "foil" for a legendary — see CollectibleFinish. Optional
+  // because most card shapes (store browse, album) don't carry it.
+  finish?: CollectibleFinish;
 }
 
 // A single tier's card within a bundle — same shape as Collectible minus
@@ -441,6 +450,7 @@ export interface CollectibleStatsResponse {
 export interface MyCollectible {
   collectibleId: string;
   unlockedAt: string;
+  finish: CollectibleFinish;
 }
 
 export interface SpinStatus {
@@ -496,6 +506,11 @@ export interface TradeableCard {
   imageUrl: string | null;
   team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
   tradeable: boolean;
+  finish: CollectibleFinish;
+  // Other legendary collectible ids you'd accept in return for this card,
+  // shown to browsers of the marketplace — purely informational, never
+  // enforced. Only meaningful while `tradeable` is true.
+  wishlist: string[];
 }
 
 export interface MarketplaceCard {
@@ -510,6 +525,10 @@ export interface MarketplaceCard {
   imageUrl: string | null;
   team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
   ownerName: string;
+  finish: CollectibleFinish;
+  // Resolved to name/image (not just ids) so the marketplace can render
+  // "wants: <name>" without a second round trip.
+  wishlist: TradeCardRef[];
 }
 
 export type TradeOfferStatus = "pending" | "accepted" | "declined" | "cancelled";

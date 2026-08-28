@@ -272,6 +272,10 @@ export class ApiService {
     return this.http.post<SpinResult>(`${API_BASE_URL}/spin/cheat`, {});
   }
 
+  cheatSpinFoil(): Observable<SpinResult> {
+    return this.http.post<SpinResult>(`${API_BASE_URL}/spin/cheat-foil`, {});
+  }
+
   getPacks(): Observable<PackDefinition[]> {
     return this.http.get<PackDefinition[]>(`${API_BASE_URL}/packs`);
   }
@@ -295,6 +299,12 @@ export class ApiService {
   setCardTradeable(collectibleId: string, tradeable: boolean): Observable<{ tradeable: boolean }> {
     return this.http.post<{ tradeable: boolean }>(`${API_BASE_URL}/trades/my-cards/${collectibleId}/tradeable`, {
       tradeable,
+    });
+  }
+
+  setCardWishlist(collectibleId: string, wishlist: string[]): Observable<{ wishlist: string[] }> {
+    return this.http.post<{ wishlist: string[] }>(`${API_BASE_URL}/trades/my-cards/${collectibleId}/wishlist`, {
+      wishlist,
     });
   }
 

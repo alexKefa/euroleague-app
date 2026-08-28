@@ -19,25 +19,76 @@ function displayName(email: string): string {
 tradesRouter.get("/my-cards", requireAuth, async (req, res) => {
   try {
     const rows = await db
-      .select({ collectible: collectibles, team: teams, tradeable: userCollectibles.tradeable })
+      .select({
+        collectible: collectibles,
+        team: teams,
+        tradeable: userCollectibles.tradeable,
+        finish: userCollectibles.finish,
+        wishlist: userCollectibles.wishlist,
+      })
       .from(userCollectibles)
       .innerJoin(collectibles, eq(userCollectibles.collectibleId, collectibles.id))
       .innerJoin(teams, eq(collectibles.teamId, teams.id))
       .where(and(eq(userCollectibles.userId, req.userId!), eq(collectibles.tier, "legendary")));
 
     res.json(
-      rows.map(({ collectible, team, tradeable }) => ({
+      rows.map(({ collectible, team, tradeable, finish, wishlist }) => ({
         id: collectible.id,
         name: collectible.name,
         tier: collectible.tier,
         imageUrl: collectible.imageUrl,
         team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor },
         tradeable,
+        finish,
+        wishlist,
       }))
     );
   } catch (err) {
     console.error("GET /api/trades/my-cards failed:", err);
     res.status(500).json({ error: "Failed to load your cards", code: "FAILED_TO_LOAD_CARDS" });
+  }
+});
+
+// Which other legendary collectible ids this listing's owner would accept
+// in return — purely informational (see the wishlist column's comment in
+// schema.ts), shown in the marketplace so an offer isn't a blind shot.
+tradesRouter.post("/my-cards/:collectibleId/wishlist", requireAuth, async (req, res) => {
+  try {
+    const { collectibleId } = req.params;
+    const { wishlist } = req.body ?? {};
+    if (!Array.isArray(wishlist) || !wishlist.every((id) => typeof id === "string")) {
+      res.status(400).json({ error: "wishlist must be an array of collectible ids", code: "INVALID_WISHLIST" });
+      return;
+    }
+
+    const uniqueWishlist = [...new Set(wishlist)].filter((id) => id !== collectibleId);
+
+    if (uniqueWishlist.length > 0) {
+      const validRows = await db
+        .select({ id: collectibles.id })
+        .from(collectibles)
+        .where(and(inArray(collectibles.id, uniqueWishlist), eq(collectibles.tier, "legendary")));
+      if (validRows.length !== uniqueWishlist.length) {
+        res.status(400).json({ error: "wishlist can only contain legendary collectible ids", code: "INVALID_WISHLIST" });
+        return;
+      }
+    }
+
+    const [row] = await db
+      .update(userCollectibles)
+      .set({ wishlist: uniqueWishlist })
+      .where(and(eq(userCollectibles.userId, req.userId!), eq(userCollectibles.collectibleId, collectibleId)))
+      .returning();
+
+    if (!row) {
+      res.status(404).json({ error: "You don't own that card", code: "CARD_NOT_OWNED" });
+      return;
+    }
+
+    res.json({ wishlist: row.wishlist });
+  } catch (err) {
+    console.error("POST /api/trades/my-cards/:collectibleId/wishlist failed:", err);
+    res.status(500).json({ error: "Failed to update wishlist", code: "FAILED_TO_UPDATE_WISHLIST" });
   }
 });
 
@@ -74,7 +125,14 @@ tradesRouter.post("/my-cards/:collectibleId/tradeable", requireAuth, async (req,
 tradesRouter.get("/marketplace", requireAuth, async (req, res) => {
   try {
     const rows = await db
-      .select({ listingId: userCollectibles.id, collectible: collectibles, team: teams, ownerEmail: users.email })
+      .select({
+        listingId: userCollectibles.id,
+        collectible: collectibles,
+        team: teams,
+        ownerEmail: users.email,
+        finish: userCollectibles.finish,
+        wishlist: userCollectibles.wishlist,
+      })
       .from(userCollectibles)
       .innerJoin(collectibles, eq(userCollectibles.collectibleId, collectibles.id))
       .innerJoin(teams, eq(collectibles.teamId, teams.id))
@@ -86,6 +144,15 @@ tradesRouter.get("/marketplace", requireAuth, async (req, res) => {
           ne(userCollectibles.userId, req.userId!)
         )
       );
+
+    // Every wishlist id across every listing, resolved once so the
+    // marketplace can show "wants: <name>" instead of just an id.
+    const wishlistIds = [...new Set(rows.flatMap((r) => r.wishlist))];
+    const wishlistCards =
+      wishlistIds.length > 0
+        ? await db.select().from(collectibles).where(inArray(collectibles.id, wishlistIds))
+        : [];
+    const wishlistCardById = new Map(wishlistCards.map((c) => [c.id, c]));
 
     // `id` here is the listing (userCollectibles.id), not the catalog card
     // (collectible.id) — the same legendary can be listed by more than one
@@ -101,7 +168,7 @@ tradesRouter.get("/marketplace", requireAuth, async (req, res) => {
     // up front instead of letting them propose an offer that can never
     // be accepted).
     res.json(
-      rows.map(({ listingId, collectible, team, ownerEmail }) => ({
+      rows.map(({ listingId, collectible, team, ownerEmail, finish, wishlist }) => ({
         id: listingId,
         collectibleId: collectible.id,
         name: collectible.name,
@@ -109,6 +176,11 @@ tradesRouter.get("/marketplace", requireAuth, async (req, res) => {
         imageUrl: collectible.imageUrl,
         team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor },
         ownerName: displayName(ownerEmail),
+        finish,
+        wishlist: wishlist
+          .map((id) => wishlistCardById.get(id))
+          .filter((c): c is typeof collectibles.$inferSelect => !!c)
+          .map((c) => ({ id: c.id, name: c.name, imageUrl: c.imageUrl })),
       }))
     );
   } catch (err) {
@@ -362,14 +434,16 @@ tradesRouter.post("/:id/accept", requireAuth, async (req, res) => {
       }
 
       // Re-pointed cards drop out of the marketplace on both sides — the
-      // new owner of either card hasn't opted their copy in.
+      // new owner of either card hasn't opted their copy in, or stated a
+      // wishlist for it (finish is deliberately left untouched: it's a
+      // property of that physical print, not of the old owner's listing).
       await tx
         .update(userCollectibles)
-        .set({ userId: offer.toUserId, tradeable: false })
+        .set({ userId: offer.toUserId, tradeable: false, wishlist: [] })
         .where(and(eq(userCollectibles.userId, offer.fromUserId), inArray(userCollectibles.collectibleId, offeredIds)));
       await tx
         .update(userCollectibles)
-        .set({ userId: offer.fromUserId, tradeable: false })
+        .set({ userId: offer.fromUserId, tradeable: false, wishlist: [] })
         .where(
           and(eq(userCollectibles.userId, offer.toUserId), eq(userCollectibles.collectibleId, offer.requestedCollectibleId))
         );

@@ -333,6 +333,24 @@ export const userCollectibles = pgTable(
     // false when a trade transfers the card (routes/trades.ts) — the new
     // owner hasn't opted their copy in.
     tradeable: boolean("tradeable").default(false).notNull(),
+    // Optional, listing-scoped: other legendary collectible ids this owner
+    // would accept in return, shown in the marketplace so a browser isn't
+    // guessing what to offer. Purely informational — POST /trades still
+    // accepts any combination of the offerer's legendaries, this is never
+    // enforced server-side. Reset to [] alongside tradeable when a trade
+    // transfers the card, same reasoning: the new owner hasn't stated one.
+    wishlist: jsonb("wishlist").notNull().default([]).$type<string[]>(),
+    // Cosmetic-only flourish rolled once, at first acquisition, for a
+    // legendary slot in rollPackForUser (services/packs.ts) — never rolled
+    // again for a later duplicate pull (that path never touches this row,
+    // see the newlyOwnedIds-only insert in routes/packs.ts) and carries no
+    // gameplay weight: same album-completion credit, same forceNewLegendary
+    // guarantee, same trade eligibility as "standard". Exists so two
+    // marketplace listings of the same legendary aren't perfectly
+    // interchangeable — see the trades.ts marketplace comment. Always
+    // "standard" for common/rare; the column isn't tier-scoped in the DB
+    // since every row already carries a default that's correct for them.
+    finish: varchar("finish", { length: 20 }).default("standard").notNull(),
   },
   (table) => ({
     userCollectibleUnique: uniqueIndex("user_collectible_unique").on(table.userId, table.collectibleId),
@@ -488,6 +506,12 @@ export const ownedPacks = pgTable("owned_packs", {
   packType: varchar("pack_type", { length: 20 }).notNull(),
   acquiredAt: timestamp("acquired_at", { withTimezone: true }).defaultNow().notNull(),
   openedAt: timestamp("opened_at", { withTimezone: true }),
+  // Admin-only debug knob (routes/spin.ts's POST /cheat-foil) — forces
+  // rollPackForUser's legendary slot to land "foil" instead of rolling
+  // FOIL_CHANCE, so the "pull 100% foil" cheat button doesn't just resolve
+  // to a coin flip on open like a real pull would. Always false for every
+  // real grant (purchase, real spin, round/milestone rewards).
+  forceFoil: boolean("force_foil").default(false).notNull(),
 });
 
 // One-off marketing campaigns (e.g. a link in a YouTube video description),
