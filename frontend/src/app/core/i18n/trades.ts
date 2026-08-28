@@ -27,6 +27,7 @@ export const tradesTranslations: Record<string, Record<Lang, string>> = {
   "trades.listForTrade": { en: "List for trade", el: "Καταχώριση για ανταλλαγή" },
   "trades.marketplaceTitle": { en: "Marketplace", el: "Αγορά" },
   "trades.noListings": { en: "No cards listed for trade right now.", el: "Δεν υπάρχουν κάρτες για ανταλλαγή αυτή τη στιγμή." },
+  "trades.alreadyOwned": { en: "Already owned", el: "Ήδη στη συλλογή σου" },
   "trades.offerForPrefix": {
     en: "Offer one or more of your cards for",
     el: "Πρόσφερε μία ή περισσότερες κάρτες σου για",
@@ -83,6 +84,7 @@ export const tradesTranslations: Record<string, Record<Lang, string>> = {
     el: "Αυτή η κάρτα δεν είναι πια καταχωρημένη στην αγορά.",
   },
   "trades.err.SELF_TRADE": { en: "You can't trade with yourself.", el: "Δεν μπορείς να κάνεις ανταλλαγή με τον εαυτό σου." },
+  "trades.err.ALREADY_OWNED": { en: "You already own that card.", el: "Ήδη κατέχεις αυτή την κάρτα." },
   "trades.err.CARDS_NOT_OWNED": {
     en: "You don't own all of the cards you're offering.",
     el: "Δεν κατέχεις όλες τις κάρτες που προσφέρεις.",

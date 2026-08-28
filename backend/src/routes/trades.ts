@@ -94,9 +94,16 @@ tradesRouter.get("/marketplace", requireAuth, async (req, res) => {
     // @for track) and, worse, an ambiguous "which listing did they mean"
     // on the backend once two owners listed the same card (see the
     // requestedListingId lookup in POST / below).
+    // collectibleId is separate from the listing `id` above — the frontend
+    // uses it to gray out a listing for a legendary the viewer already owns
+    // (they can never complete that trade; POST /:id/accept already blocks
+    // it server-side as OWNERSHIP_CONFLICT, this is just surfacing that
+    // up front instead of letting them propose an offer that can never
+    // be accepted).
     res.json(
       rows.map(({ listingId, collectible, team, ownerEmail }) => ({
         id: listingId,
+        collectibleId: collectible.id,
         name: collectible.name,
         tier: collectible.tier,
         imageUrl: collectible.imageUrl,
@@ -161,6 +168,23 @@ tradesRouter.post("/", requireAuth, async (req, res) => {
     }
     if (offeredCollectibleIds.includes(requestedCollectibleId)) {
       res.status(400).json({ error: "You can't trade a card for itself", code: "SAME_CARD" });
+      return;
+    }
+
+    // The requester already owning the requested legendary is the same
+    // OWNERSHIP_CONFLICT the accept step guards against — checked here too
+    // so the offer is refused up front rather than sitting pending until
+    // the other side tries (and fails) to accept it. The frontend already
+    // disables a marketplace listing the viewer already owns
+    // (trades.ts's alreadyOwned()); this is the same rule enforced
+    // server-side for anyone hitting the API directly.
+    const [alreadyOwned] = await db
+      .select({ id: userCollectibles.id })
+      .from(userCollectibles)
+      .where(and(eq(userCollectibles.userId, req.userId!), eq(userCollectibles.collectibleId, requestedCollectibleId)))
+      .limit(1);
+    if (alreadyOwned) {
+      res.status(400).json({ error: "You already own that card", code: "ALREADY_OWNED" });
       return;
     }
 

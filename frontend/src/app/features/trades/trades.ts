@@ -38,6 +38,17 @@ export class TradesComponent implements OnInit {
   readonly marketplace = signal<MarketplaceCard[]>([]);
   readonly offers = signal<TradeOffer[]>([]);
 
+  // A different owner can list the exact same legendary you already have —
+  // that listing stays visible (so you can still see it exists) but can't
+  // be selected, since a trade for it could never complete
+  // (OWNERSHIP_CONFLICT server-side). myCards() only ever holds legendaries
+  // you own, so its ids are exactly the "already own this" set.
+  private readonly ownedCollectibleIds = computed(() => new Set(this.myCards().map((c) => c.id)));
+
+  alreadyOwned(card: MarketplaceCard): boolean {
+    return this.ownedCollectibleIds().has(card.collectibleId);
+  }
+
   readonly togglingId = signal<string | null>(null);
 
   readonly selectedListingId = signal<string | null>(null);

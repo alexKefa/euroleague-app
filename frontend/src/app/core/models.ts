@@ -502,6 +502,9 @@ export interface MarketplaceCard {
   // The listing itself (userCollectibles.id) — not the catalog collectible
   // id, which the same legendary can share across multiple owners' listings.
   id: string;
+  // The catalog card this listing is for — used to detect "you already own
+  // this exact legendary" (a different owner can list the same collectible).
+  collectibleId: string;
   name: string;
   tier: CollectibleTier;
   imageUrl: string | null;

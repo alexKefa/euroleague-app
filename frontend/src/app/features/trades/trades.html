@@ -121,19 +121,30 @@
                 <button
                   type="button"
                   (click)="selectListing(card.id)"
-                  class="w-full flex flex-col items-center gap-1 focus:outline-none"
+                  [disabled]="alreadyOwned(card)"
+                  class="relative w-full flex flex-col items-center gap-1 focus:outline-none disabled:cursor-not-allowed"
+                  [attr.aria-label]="alreadyOwned(card) ? i18n.t('trades.alreadyOwned') + ' — ' + card.name : card.name"
                 >
-                  <app-collectible-card
-                    class="block w-[90%] sm:w-full mx-auto"
-                    [name]="card.name"
-                    [tier]="card.tier"
-                    [teamCode]="card.team.code"
-                    [teamColor]="card.team.primaryColor"
-                    [imageUrl]="card.imageUrl"
-                    [unlocked]="true"
-                    [selected]="selectedListingId() === card.id"
-                  ></app-collectible-card>
-                  <span class="text-xs text-muted font-semibold">{{ card.ownerName }}</span>
+                  <span class="relative block w-[90%] sm:w-full mx-auto" [class.opacity-40]="alreadyOwned(card)" [class.grayscale]="alreadyOwned(card)">
+                    <app-collectible-card
+                      class="block w-full"
+                      [name]="card.name"
+                      [tier]="card.tier"
+                      [teamCode]="card.team.code"
+                      [teamColor]="card.team.primaryColor"
+                      [imageUrl]="card.imageUrl"
+                      [unlocked]="true"
+                      [selected]="selectedListingId() === card.id"
+                    ></app-collectible-card>
+                    @if (alreadyOwned(card)) {
+                      <span class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <span class="px-2.5 py-1 rounded-full bg-black/70 text-white text-[11px] font-bold uppercase tracking-wide">
+                          {{ i18n.t('trades.alreadyOwned') }}
+                        </span>
+                      </span>
+                    }
+                  </span>
+                  <span class="text-xs text-muted font-semibold" [class.opacity-40]="alreadyOwned(card)">{{ card.ownerName }}</span>
                 </button>
               }
             </div>
