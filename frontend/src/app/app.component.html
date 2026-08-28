@@ -112,6 +112,12 @@
                 [attr.aria-label]="i18n.t('nav.liveGame')"
               ></span>
             }
+            @if (link.path === '/inventory' && auth.isAuthenticated() && trades.hasPendingIncoming()) {
+              <span
+                class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 animate-pulse"
+                [attr.aria-label]="i18n.t('nav.pendingTrades')"
+              ></span>
+            }
           </span>
           <span
             class="whitespace-nowrap text-sm font-semibold pr-4 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-150 delay-100"
@@ -151,6 +157,12 @@
           <span
             class="absolute top-0.5 right-2 w-2 h-2 rounded-full bg-red-500 animate-pulse"
             [attr.aria-label]="i18n.t('nav.liveGame')"
+          ></span>
+        }
+        @if (link.path === '/inventory' && auth.isAuthenticated() && trades.hasPendingIncoming()) {
+          <span
+            class="absolute top-0.5 right-2 w-2 h-2 rounded-full bg-red-500 animate-pulse"
+            [attr.aria-label]="i18n.t('nav.pendingTrades')"
           ></span>
         }
       </span>

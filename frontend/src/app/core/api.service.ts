@@ -302,8 +302,11 @@ export class ApiService {
     return this.http.get<MarketplaceCard[]>(`${API_BASE_URL}/trades/marketplace`);
   }
 
-  proposeTrade(offeredCollectibleIds: string[], requestedCollectibleId: string): Observable<unknown> {
-    return this.http.post(`${API_BASE_URL}/trades`, { offeredCollectibleIds, requestedCollectibleId });
+  // requestedListingId is a MarketplaceCard.id (userCollectibles.id) — not a
+  // collectible/catalog id, which the same legendary can share across
+  // multiple owners' listings (see routes/trades.ts's POST / comment).
+  proposeTrade(offeredCollectibleIds: string[], requestedListingId: string): Observable<unknown> {
+    return this.http.post(`${API_BASE_URL}/trades`, { offeredCollectibleIds, requestedListingId });
   }
 
   getMyTrades(): Observable<TradeOffer[]> {

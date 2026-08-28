@@ -63,6 +63,15 @@
   overflow: hidden;
 }
 
+/* Bigger on desktop, where there's room to spare — mobile keeps the
+   original 56px so the rail doesn't get cramped on a narrow screen. */
+@media (min-width: 640px) {
+  .story-ring-inner {
+    width: 72px;
+    height: 72px;
+  }
+}
+
 /* Desktop scroll arrows over the rail — see the doc comment above them in
    news-stories.html for why these exist only there, not on touch. Just
    position/size/shadow here — color comes from Tailwind's highlight
@@ -71,7 +80,7 @@
    per-team reskin color the story ring's own gradient uses above). */
 .rail-arrow {
   position: absolute;
-  top: 22px; /* centers on the 56px ring, not the shorter caption below it */
+  top: 28px; /* centers on the (desktop-only, see .story-ring-inner) 72px ring, not the shorter caption below it */
   align-items: center;
   justify-content: center;
   width: 28px;

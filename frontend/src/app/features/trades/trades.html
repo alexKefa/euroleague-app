@@ -30,109 +30,210 @@
         {{ i18n.t('trades.noCardsSuffix') }}
       </p>
     } @else {
-      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-6">
-        <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-1">{{ i18n.t('trades.myCardsTitle') }}</p>
-        <p class="text-xs text-muted mb-3">
-          {{ i18n.t('trades.myCardsHint') }}
-        </p>
+      <div class="bg-card rounded-2xl border border-line shadow-card p-5 mb-6">
+        <button
+          type="button"
+          (click)="toggleMyCardsSection()"
+          [attr.aria-expanded]="myCardsExpanded()"
+          class="w-full flex items-center justify-between gap-2 text-left"
+        >
+          <span class="text-[13px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('trades.myCardsTitle') }}</span>
+          <svg
+            class="shrink-0 w-3 h-3 text-muted transition-transform"
+            [class.rotate-180]="myCardsExpanded()"
+            viewBox="0 0 12 12"
+            fill="none"
+          >
+            <path
+              d="M2.5 4.5L6 8L9.5 4.5"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
 
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          @for (card of myCards(); track card.id) {
-            <div class="flex flex-col gap-2">
-              <app-collectible-card
-                class="block w-full"
-                [name]="card.name"
-                [tier]="card.tier"
-                [teamCode]="card.team.code"
-                [teamColor]="card.team.primaryColor"
-                [imageUrl]="card.imageUrl"
-                [unlocked]="true"
-              ></app-collectible-card>
-              <button
-                type="button"
-                (click)="toggleTradeable(card)"
-                [disabled]="togglingId() === card.id"
-                [appChip]="card.tradeable"
-                class="self-center"
-              >
-                {{ card.tradeable ? i18n.t('trades.listed') : i18n.t('trades.listForTrade') }}
-              </button>
-            </div>
-          }
-        </div>
+        @if (myCardsExpanded()) {
+          <p class="text-xs text-muted mb-3 mt-1">
+            {{ i18n.t('trades.myCardsHint') }}
+          </p>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-[28rem] overflow-y-auto p-1">
+            @for (card of myCards(); track card.id) {
+              <div class="flex flex-col gap-2">
+                <app-collectible-card
+                  class="block w-[90%] sm:w-full mx-auto"
+                  [name]="card.name"
+                  [tier]="card.tier"
+                  [teamCode]="card.team.code"
+                  [teamColor]="card.team.primaryColor"
+                  [imageUrl]="card.imageUrl"
+                  [unlocked]="true"
+                ></app-collectible-card>
+                <button
+                  type="button"
+                  (click)="toggleTradeable(card)"
+                  [disabled]="togglingId() === card.id"
+                  [appChip]="card.tradeable"
+                  class="self-center"
+                >
+                  {{ card.tradeable ? i18n.t('trades.listed') : i18n.t('trades.listForTrade') }}
+                </button>
+              </div>
+            }
+          </div>
+        }
       </div>
     }
 
-    <div data-tour="trades-marketplace" class="bg-card rounded-2xl border border-line shadow-card p-4 mb-6">
-      <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-3">{{ i18n.t('trades.marketplaceTitle') }}</p>
+    <div data-tour="trades-marketplace" class="bg-card rounded-2xl border border-line shadow-card p-5 mb-6">
+      <button
+        type="button"
+        (click)="toggleMarketplaceSection()"
+        [attr.aria-expanded]="marketplaceExpanded()"
+        class="w-full flex items-center justify-between gap-2 text-left"
+      >
+        <span class="text-[13px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('trades.marketplaceTitle') }}</span>
+        <svg
+          class="shrink-0 w-3 h-3 text-muted transition-transform"
+          [class.rotate-180]="marketplaceExpanded()"
+          viewBox="0 0 12 12"
+          fill="none"
+        >
+          <path
+            d="M2.5 4.5L6 8L9.5 4.5"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
 
-      @if (marketplace().length === 0) {
-        <p class="text-sm text-muted">{{ i18n.t('trades.noListings') }}</p>
-      } @else {
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4 max-h-[28rem] overflow-y-auto pr-1">
-          @for (card of marketplace(); track card.id) {
-            <button
-              type="button"
-              (click)="selectListing(card.id)"
-              class="w-full flex flex-col items-center gap-1 focus:outline-none"
-            >
-              <app-collectible-card
-                class="block w-full"
-                [name]="card.name"
-                [tier]="card.tier"
-                [teamCode]="card.team.code"
-                [teamColor]="card.team.primaryColor"
-                [imageUrl]="card.imageUrl"
-                [unlocked]="true"
-                [selected]="selectedListingId() === card.id"
-              ></app-collectible-card>
-              <span class="text-xs text-muted font-semibold">{{ card.ownerName }}</span>
-            </button>
+      @if (marketplaceExpanded()) {
+        <div class="mt-3">
+          @if (marketplace().length === 0) {
+            <p class="text-sm text-muted">{{ i18n.t('trades.noListings') }}</p>
+          } @else {
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-[28rem] overflow-y-auto p-1">
+              @for (card of marketplace(); track card.id) {
+                <button
+                  type="button"
+                  (click)="selectListing(card.id)"
+                  class="w-full flex flex-col items-center gap-1 focus:outline-none"
+                >
+                  <app-collectible-card
+                    class="block w-[90%] sm:w-full mx-auto"
+                    [name]="card.name"
+                    [tier]="card.tier"
+                    [teamCode]="card.team.code"
+                    [teamColor]="card.team.primaryColor"
+                    [imageUrl]="card.imageUrl"
+                    [unlocked]="true"
+                    [selected]="selectedListingId() === card.id"
+                  ></app-collectible-card>
+                  <span class="text-xs text-muted font-semibold">{{ card.ownerName }}</span>
+                </button>
+              }
+            </div>
           }
         </div>
-      }
-
-      @if (selectedListing() && myCards().length > 0) {
-        <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-1">
-          {{ i18n.t('trades.offerForPrefix') }} {{ selectedListing()!.name }}
-        </p>
-        <p class="text-xs text-muted mb-2">{{ i18n.t('trades.multiSelectHint') }}</p>
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
-          @for (card of myCards(); track card.id) {
-            <button type="button" (click)="toggleMine(card.id)" class="w-full focus:outline-none">
-              <app-collectible-card
-                class="block w-full"
-                [name]="card.name"
-                [tier]="card.tier"
-                [teamCode]="card.team.code"
-                [teamColor]="card.team.primaryColor"
-                [imageUrl]="card.imageUrl"
-                [unlocked]="true"
-                [selected]="selectedMineIds().has(card.id)"
-              ></app-collectible-card>
-            </button>
-          }
-        </div>
-
-        <button type="button" (click)="propose()" [disabled]="!canPropose() || proposing()" appButton>
-          {{ proposing() ? i18n.t('trades.sending') : i18n.t('trades.sendOffer') }}
-        </button>
-
-        @if (proposeError()) {
-          <p class="text-red-500 text-xs font-semibold mt-2">{{ proposeError() }}</p>
-        }
-        @if (proposeSuccess()) {
-          <p class="text-emerald-500 text-xs font-semibold mt-2">{{ i18n.t('trades.offerSent') }}</p>
-        }
       }
     </div>
 
-    <div class="bg-card rounded-2xl border border-line shadow-card p-4">
-      <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-3">{{ i18n.t('trades.myOffersTitle') }}</p>
-      @if (actionError()) {
-        <p class="text-red-500 text-xs font-semibold mb-3">{{ actionError() }}</p>
-      }
-      <div class="space-y-2">
+    <!-- Picking which of your own cards to offer used to live nested inside
+         the Marketplace card above — split into its own section so it isn't
+         buried at the bottom of a possibly-long listings scroll area. Only
+         rendered once a listing is actually selected. -->
+    @if (selectedListing() && myCards().length > 0) {
+      <div class="bg-card rounded-2xl border border-line shadow-card p-5 mb-6">
+        <button
+          type="button"
+          (click)="toggleOfferComposerSection()"
+          [attr.aria-expanded]="offerComposerExpanded()"
+          class="w-full flex items-center justify-between gap-2 text-left"
+        >
+          <span class="text-[13px] text-muted font-bold uppercase tracking-wider">
+            {{ i18n.t('trades.offerForPrefix') }} {{ selectedListing()!.name }}
+          </span>
+          <svg
+            class="shrink-0 w-3 h-3 text-muted transition-transform"
+            [class.rotate-180]="offerComposerExpanded()"
+            viewBox="0 0 12 12"
+            fill="none"
+          >
+            <path
+              d="M2.5 4.5L6 8L9.5 4.5"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
+
+        @if (offerComposerExpanded()) {
+          <p class="text-xs text-muted mb-2 mt-1">{{ i18n.t('trades.multiSelectHint') }}</p>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4 max-h-[28rem] overflow-y-auto p-1">
+            @for (card of myCards(); track card.id) {
+              <button type="button" (click)="toggleMine(card.id)" class="w-full focus:outline-none">
+                <app-collectible-card
+                  class="block w-[90%] sm:w-full mx-auto"
+                  [name]="card.name"
+                  [tier]="card.tier"
+                  [teamCode]="card.team.code"
+                  [teamColor]="card.team.primaryColor"
+                  [imageUrl]="card.imageUrl"
+                  [unlocked]="true"
+                  [selected]="selectedMineIds().has(card.id)"
+                ></app-collectible-card>
+              </button>
+            }
+          </div>
+
+          <button type="button" (click)="propose()" [disabled]="!canPropose() || proposing()" appButton>
+            {{ proposing() ? i18n.t('trades.sending') : i18n.t('trades.sendOffer') }}
+          </button>
+
+          @if (proposeError()) {
+            <p class="text-red-500 text-xs font-semibold mt-2">{{ proposeError() }}</p>
+          }
+          @if (proposeSuccess()) {
+            <p class="text-emerald-500 text-xs font-semibold mt-2">{{ i18n.t('trades.offerSent') }}</p>
+          }
+        }
+      </div>
+    }
+
+    <div class="bg-card rounded-2xl border border-line shadow-card p-5">
+      <button
+        type="button"
+        (click)="toggleMyOffersSection()"
+        [attr.aria-expanded]="myOffersExpanded()"
+        class="w-full flex items-center justify-between gap-2 text-left"
+      >
+        <span class="text-[13px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('trades.myOffersTitle') }}</span>
+        <svg
+          class="shrink-0 w-3 h-3 text-muted transition-transform"
+          [class.rotate-180]="myOffersExpanded()"
+          viewBox="0 0 12 12"
+          fill="none"
+        >
+          <path
+            d="M2.5 4.5L6 8L9.5 4.5"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+      @if (myOffersExpanded()) {
+        @if (actionError()) {
+          <p class="text-red-500 text-xs font-semibold mb-3 mt-3">{{ actionError() }}</p>
+        }
+        <div class="space-y-2" [class.mt-3]="!actionError()">
         @for (offer of offers(); track offer.id) {
           <div class="flex items-center justify-between gap-3 px-2 py-2 rounded-xl bg-page">
             <div class="text-sm">
@@ -186,7 +287,8 @@
         } @empty {
           <p class="text-sm text-muted">{{ i18n.t('trades.noOffers') }}</p>
         }
-      </div>
+        </div>
+      }
     </div>
   }
 </div>

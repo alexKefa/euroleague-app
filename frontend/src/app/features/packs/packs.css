@@ -225,47 +225,171 @@
 }
 
 /* Pack-selection art — a physical foil-pack silhouette per tier: tapered
-   top corners (clip-path), a diagonal dot texture, and a big embossed "C"
-   wordmark echoing the navbar/splash logo. Colors reuse the exact same
-   rare/legendary gradients as the card frames (collectible-card.ts) so the
-   pack you tap visually matches what's inside it. */
+   top corners (clip-path), a diagonal dot texture, one diagonal foil
+   stripe, and a single embossed version of the navbar/splash logo mark
+   (same 3 bars as app.component.html's nav logo). A real 3D lean (a
+   perspective + rotateX/rotateY transform, not just a flat rectangle) plus
+   a shape-hugging drop-shadow sell it as a physical card rather than flat
+   art — filter: drop-shadow (not box-shadow) is what follows the
+   clip-path's cut corners instead of boxing them in. Colors reuse the
+   exact same rare/legendary gradients as the card frames
+   (collectible-card.ts) so the pack you tap visually matches what's inside
+   it. */
 .pack-visual {
   aspect-ratio: 2 / 3.1;
   clip-path: polygon(14% 0%, 86% 0%, 100% 11%, 100% 100%, 0% 100%, 0% 11%);
-  /* clip-path only clips what's painted — it doesn't stop the rotated
-     .pack-wordmark's expanded (post-rotation) bounding box from
-     contributing to the page's scrollable area, which was pushing the
-     page into horizontal overflow on mobile. overflow:hidden actually
-     contains it. */
+  /* clip-path only clips what's painted — it doesn't stop the mark's
+     expanded bounding box from contributing to the page's scrollable
+     area, which was pushing the page into horizontal overflow on mobile.
+     overflow:hidden actually contains it; the drop-shadow filter below is
+     unaffected by that (filters paint outside the element's own overflow
+     clip). */
   overflow: hidden;
-  transition: transform 0.15s ease;
   cursor: pointer;
+  box-shadow:
+    inset 2px 2px 3px rgba(255, 255, 255, 0.4),
+    inset -4px -6px 9px rgba(0, 0, 0, 0.4);
+  transform: perspective(900px) rotateY(-10deg) rotateX(4deg);
+  filter: drop-shadow(8px 16px 14px rgba(0, 0, 0, 0.4)) drop-shadow(0 3px 5px rgba(0, 0, 0, 0.25));
+  transition:
+    transform 0.25s ease,
+    filter 0.25s ease;
 }
 
 .pack-visual:hover:not(:disabled) {
-  transform: translateY(-2px) scale(1.02);
+  transform: perspective(900px) rotateY(-4deg) rotateX(2deg) scale(1.04);
+  filter: drop-shadow(5px 12px 12px rgba(0, 0, 0, 0.45)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
 .pack-visual:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: perspective(900px) rotateY(-6deg) rotateX(2deg) scale(0.97);
 }
 
 .pack-dots {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.35) 1px, transparent 1.5px);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.3) 1px, transparent 1.5px);
   background-size: 9px 9px;
   transform: rotate(-18deg) scale(1.4);
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
-.pack-wordmark {
-  font-family: "Anton", "Arial Narrow", sans-serif;
-  font-size: 4.2rem;
-  font-weight: 700;
-  line-height: 1;
-  transform: rotate(-14deg);
+.pack-foil-stripe {
+  left: -25%;
+  right: -25%;
+  top: 24%;
+  height: 14%;
+  transform: rotate(-11deg);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.65) 20%,
+    rgba(190, 225, 255, 0.55) 38%,
+    rgba(255, 255, 255, 0.7) 52%,
+    rgba(255, 205, 235, 0.55) 68%,
+    rgba(255, 255, 255, 0.6) 84%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  mix-blend-mode: overlay;
+}
+
+.pack-gloss {
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0) 32%);
+  mix-blend-mode: overlay;
+}
+
+/* A thin, rotated beam translated across the card on a loop — clipped to
+   the card's own hexagon by .pack-visual's overflow:hidden, so it never
+   needs masking of its own. Holds off-screen for most of the cycle (the
+   40%..100% keyframe pair below) rather than sweeping continuously, so it
+   reads as a slight, occasional glint rather than a constant animation. */
+.pack-shine {
+  top: -40%;
+  left: -70%;
+  width: 36%;
+  height: 220%;
+  background: linear-gradient(rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.22) 50%, rgba(255, 255, 255, 0) 100%);
+  transform: rotate(18deg);
+  mix-blend-mode: overlay;
+  animation: pack-shine-sweep 4.8s ease-in-out infinite;
+}
+
+.grid > .pack-visual:nth-child(2) .pack-shine {
+  animation-delay: 0.6s;
+}
+
+.grid > .pack-visual:nth-child(3) .pack-shine {
+  animation-delay: 1.2s;
+}
+
+@keyframes pack-shine-sweep {
+  0%,
+  8% {
+    left: -70%;
+  }
+  40%,
+  100% {
+    left: 140%;
+  }
+}
+
+.pack-mark {
+  top: 12%;
+  bottom: 32%;
+  left: 20%;
+  right: 20%;
   color: currentColor;
-  opacity: 0.16;
-  letter-spacing: 0;
+}
+
+.pack-mark svg {
+  width: 74%;
+  filter: drop-shadow(-1px -1px 0 rgba(255, 255, 255, 0.45)) drop-shadow(1.5px 2px 2px rgba(0, 0, 0, 0.5));
+  opacity: 0.94;
+}
+
+/* Set-code (bottom-left) and price (bottom-right) echo a trading card's
+   back — no pill background, no full pack name (see setCode() in packs.ts
+   and the comment on the template usage). Stacked on different rows
+   rather than sharing one — at this font size the set-code string alone
+   can run close to a mobile card's full width, so same-row placement
+   risked running into the price tag regardless of how each was sized.
+   rem, not px, so both track the app's root font-size scale (styles.css
+   bumps html to 112.5% specifically so rem-based sizes grow together). */
+.pack-set-code {
+  bottom: 1.625rem;
+  left: 0.6875rem;
+  font-family: "Fira Code", ui-monospace, monospace;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  opacity: 0.6;
+}
+
+.pack-price-tag {
+  bottom: 0.5rem;
+  right: 0.6875rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+}
+
+/* On the ~120px mobile card (.pack-visual's max-w-[120px]) the set-code sits
+   right where the foil stripe/gloss/mark are busiest at the bottom — moving
+   it to the top corner instead, below the clip-path's tapered top edge (the
+   11%-height diagonal cut — see .pack-visual's clip-path), and shrinking it
+   further, keeps it legible without crowding the art. The price tag stays
+   at the bottom (that's the one number worth keeping close to the tap
+   target), just smaller. */
+@media (max-width: 639px) {
+  .pack-set-code {
+    top: 1.15rem;
+    bottom: auto;
+    left: 0.5rem;
+    font-size: 0.5rem;
+  }
+
+  .pack-price-tag {
+    font-size: 0.5625rem;
+  }
 }
 
 .pack-visual-starter {

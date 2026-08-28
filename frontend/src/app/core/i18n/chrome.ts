@@ -10,6 +10,7 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
   "nav.schedule": { en: "Schedule", el: "Πρόγραμμα" },
   "nav.picks": { en: "Picks", el: "Προβλέψεις" },
   "nav.liveGame": { en: "A game is live now", el: "Ένας αγώνας είναι ζωντανά τώρα" },
+  "nav.pendingTrades": { en: "You have a pending trade offer", el: "Έχεις μια εκκρεμή προσφορά ανταλλαγής" },
   "nav.cards": { en: "Cards", el: "Κάρτες" },
   "nav.teams": { en: "Teams", el: "Ομάδες" },
   "nav.standings": { en: "Standings", el: "Βαθμολογία" },

@@ -499,6 +499,8 @@ export interface TradeableCard {
 }
 
 export interface MarketplaceCard {
+  // The listing itself (userCollectibles.id) — not the catalog collectible
+  // id, which the same legendary can share across multiple owners' listings.
   id: string;
   name: string;
   tier: CollectibleTier;

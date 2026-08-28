@@ -4,12 +4,13 @@ import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
-import { CollectibleTier, SpinResult } from "../../core/models";
+import { CollectibleTier, PackType, SpinResult } from "../../core/models";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { PACK_VISUAL_CLASSES } from "../../shared/pack-visual";
 import { ButtonDirective } from "../../shared/button.directive";
 import { PageHintComponent } from "../../shared/page-hint";
 import { SkeletonComponent } from "../../shared/skeleton";
+import { newsDateLocale, gameDateTimeFormat as gameDateTimeFormatFn } from "../../shared/news-date-format";
 
 // Matches the CSS transition-duration on the wheel graphic — the reveal is
 // deliberately held back until the spin animation actually finishes, even
@@ -76,12 +77,14 @@ export class WheelComponent implements OnInit {
     "common",
   ];
 
-  // A glyph per tier, on top of the wedge's color, so rarity doesn't
-  // depend on distinguishing similar grey/silver/gold shades alone.
-  private static readonly TIER_GLYPH: Record<CollectibleTier, string> = {
-    common: "●",
-    rare: "★",
-    legendary: "✦",
+  // Which unopened pack a wedge actually grants (mirrors the backend's
+  // SPIN_ODDS tiers -> wheelStarter/wheelPro/wheelLegendary mapping) — used
+  // to render the real pack art (PACK_VISUAL_CLASSES) on each wedge instead
+  // of a plain glyph.
+  private static readonly WEDGE_PACK_TYPE: Record<CollectibleTier, PackType> = {
+    common: "wheelStarter",
+    rare: "wheelPro",
+    legendary: "wheelLegendary",
   };
 
   // One mark per wedge, centered at its mid-angle — rendered as an overlay
@@ -89,7 +92,7 @@ export class WheelComponent implements OnInit {
   readonly wedgeMarks = WheelComponent.WEDGE_TIERS.map((tier, i) => ({
     angle: i * 45 + 22.5,
     tier,
-    glyph: WheelComponent.TIER_GLYPH[tier],
+    packType: WheelComponent.WEDGE_PACK_TYPE[tier],
   }));
 
   ngOnInit(): void {
@@ -179,5 +182,16 @@ export class WheelComponent implements OnInit {
     this.spinning.set(false);
     const message = (err as { error?: { error?: string } })?.error?.error ?? "Couldn't spin right now.";
     this.spinError.set(message);
+  }
+
+  // Athens-time, Greek-aware — same shared/news-date-format.ts pattern
+  // already used on the dashboard/schedule/roster/predictions pages instead
+  // of the raw date pipe this used to use directly in the template.
+  dateLocale(): string {
+    return newsDateLocale(this.i18n.lang());
+  }
+
+  gameDateTimeFormat(): string {
+    return gameDateTimeFormatFn(this.i18n.lang());
   }
 }

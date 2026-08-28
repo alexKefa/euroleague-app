@@ -31,7 +31,7 @@
           type="button"
           (click)="openPreview(article)"
           [attr.aria-label]="i18n.t('news.previewAriaPrefix') + ' ' + article.title"
-          class="w-full flex gap-3 text-left bg-card rounded-2xl border border-line shadow-card p-4 hover:shadow-pop transition-all"
+          class="w-full flex flex-col sm:flex-row gap-3 text-left bg-card rounded-2xl border border-line shadow-card p-4 hover:shadow-pop transition-all"
         >
           @if (article.imageUrl) {
             <img
@@ -40,15 +40,15 @@
               loading="lazy"
               decoding="async"
               appRetryImg
-              class="w-20 h-20 rounded-xl object-cover shrink-0"
+              class="w-full h-40 sm:w-20 sm:h-20 rounded-xl object-cover shrink-0"
             />
           } @else {
-            <span class="w-20 h-20 rounded-xl bg-page flex items-center justify-center shrink-0 text-muted">
+            <span class="w-full h-40 sm:w-20 sm:h-20 rounded-xl bg-page flex items-center justify-center shrink-0 text-muted">
               <app-nav-icon name="news" [size]="28" />
             </span>
           }
-          <div class="min-w-0">
-            <div class="flex items-center gap-2 mb-2">
+          <div class="min-w-0 text-center sm:text-left">
+            <div class="flex items-center justify-center sm:justify-start gap-2 mb-2">
               <span class="text-[12px] font-bold uppercase tracking-wider text-highlight">{{
                 article.sourceName
               }}</span>

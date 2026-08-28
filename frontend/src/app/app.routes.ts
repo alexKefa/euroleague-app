@@ -6,6 +6,11 @@ export const routes: Routes = [
     loadComponent: () =>
       import("./features/dashboard/dashboard.component").then((m) => m.DashboardComponent),
   },
+  // No app code ever links here (the root path "" is the actual dashboard
+  // route) — this exists purely so a browser sitting on /home from a stale
+  // bookmark/history entry lands on the dashboard instead of a router
+  // "Cannot match any routes" error.
+  { path: "home", redirectTo: "", pathMatch: "full" },
   {
     path: "news",
     loadComponent: () => import("./features/news/news").then((m) => m.NewsComponent),

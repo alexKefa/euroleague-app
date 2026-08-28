@@ -193,6 +193,20 @@ export class PacksComponent implements OnInit {
     });
   }
 
+  // Trading-card-style set-code micro-print on the pack art, standing in for
+  // repeating the pack's full name on the card (the list below the grid
+  // already spells that out). Only the three purchasable tiers ever render
+  // in that grid, so wheel-exclusive types are never looked up here.
+  private static readonly SET_CODES: Partial<Record<PackType, string>> = {
+    starter: "RS",
+    pro: "PO",
+    elite: "F4",
+  };
+
+  setCode(type: PackType): string {
+    return `EL 26–27 · ${PacksComponent.SET_CODES[type] ?? "—"}`;
+  }
+
   tagline(type: PackType): string {
     return this.i18n.t(`packs.tagline.${type}`);
   }

@@ -100,36 +100,51 @@
       (pointerleave)="onStoryPointerEnd($event)"
       (pointercancel)="onStoryPointerEnd($event)"
     >
-      @if (article.imageUrl) {
-        <img [src]="article.imageUrl" [alt]="article.title" appRetryImg class="absolute inset-0 w-full h-full object-contain story-touch-surface" />
-      } @else {
-        <div class="absolute inset-0 flex items-center justify-center text-muted">
-          <app-nav-icon name="news" [size]="48" />
+      <!-- Same layout at every breakpoint: image gets its own top region
+           (natural size, never upscaled past it — a small source thumbnail
+           forced to fill the whole screen read as stretched/blurry,
+           especially on a wide desktop window) instead of filling the whole
+           screen behind the caption, with the text centered below it in
+           normal flow rather than a white-on-photo gradient caption pinned
+           to the bottom. -->
+      <div class="flex flex-col h-full min-h-0">
+        @if (article.imageUrl) {
+          <div class="relative w-full h-[46%] shrink-0">
+            <img
+              [src]="article.imageUrl"
+              [alt]="article.title"
+              appRetryImg
+              class="absolute inset-0 m-auto w-auto h-auto max-w-full max-h-full object-contain story-touch-surface"
+            />
+          </div>
+        } @else {
+          <div class="w-full h-[46%] shrink-0 flex items-center justify-center text-muted">
+            <app-nav-icon name="news" [size]="48" />
+          </div>
+        }
+        <div class="flex-1 min-h-0 flex flex-col items-center justify-center text-center px-6 py-4">
+          <div class="max-w-sm">
+            <h2 class="font-display text-white text-xl leading-snug mb-2">{{ article.title }}</h2>
+            @if (article.summary) {
+              <p class="text-white/80 text-sm leading-relaxed mb-3 line-clamp-4">{{ article.summary }}</p>
+            }
+            <a
+              [href]="article.url"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="pointer-events-auto inline-block text-white font-bold text-sm underline underline-offset-2"
+            >
+              {{ i18n.t('news.readFullArticle') }} &rarr;
+            </a>
+          </div>
         </div>
-      }
+      </div>
 
       <!-- Edge-only tap zones (20% each side) — a full-width half/half split
            made it too easy to accidentally trigger prev/next while just
            trying to read or tap-hold-pause the middle of a story. -->
       <button type="button" class="absolute inset-y-0 left-0 w-1/5" (click)="prev()" [attr.aria-label]="i18n.t('news.previousStory')"></button>
       <button type="button" class="absolute inset-y-0 right-0 w-1/5" (click)="next()" [attr.aria-label]="i18n.t('news.nextStory')"></button>
-
-      <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent pointer-events-none"></div>
-
-      <div class="absolute bottom-0 inset-x-0 p-5 pointer-events-none">
-        <h2 class="font-display text-white text-xl leading-snug mb-2">{{ article.title }}</h2>
-        @if (article.summary) {
-          <p class="text-white/80 text-sm leading-relaxed mb-3 line-clamp-3">{{ article.summary }}</p>
-        }
-        <a
-          [href]="article.url"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="pointer-events-auto inline-block text-white font-bold text-sm underline underline-offset-2"
-        >
-          {{ i18n.t('news.readFullArticle') }} &rarr;
-        </a>
-      </div>
     </div>
   </div>
 }

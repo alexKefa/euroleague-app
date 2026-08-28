@@ -6,6 +6,7 @@ import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { TradeableCard, MarketplaceCard, TradeOffer, TradeOfferStatus } from "../../core/models";
+import { TradesNotificationService } from "../../core/trades-notification.service";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { ButtonDirective } from "../../shared/button.directive";
 import { ChipDirective } from "../../shared/chip.directive";
@@ -30,6 +31,7 @@ export class TradesComponent implements OnInit {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
+  private tradesNotification = inject(TradesNotificationService);
 
   readonly loading = signal(true);
   readonly myCards = signal<TradeableCard[]>([]);
@@ -47,6 +49,14 @@ export class TradesComponent implements OnInit {
 
   readonly actingOnId = signal<string | null>(null);
   readonly actionError = signal<string | null>(null);
+
+  // Each of the three card containers (My Cards, Marketplace, My Offers)
+  // collapses independently — expanded by default so nothing changes for
+  // someone who never touches the header.
+  readonly myCardsExpanded = signal(true);
+  readonly marketplaceExpanded = signal(true);
+  readonly offerComposerExpanded = signal(true);
+  readonly myOffersExpanded = signal(true);
 
   readonly selectedListing = computed(
     () => this.marketplace().find((c) => c.id === this.selectedListingId()) ?? null
@@ -81,6 +91,22 @@ export class TradesComponent implements OnInit {
 
   private loadOffers(): void {
     this.api.getMyTrades().subscribe({ next: (rows) => this.offers.set(rows), error: () => {} });
+  }
+
+  toggleMyCardsSection(): void {
+    this.myCardsExpanded.update((v) => !v);
+  }
+
+  toggleMarketplaceSection(): void {
+    this.marketplaceExpanded.update((v) => !v);
+  }
+
+  toggleOfferComposerSection(): void {
+    this.offerComposerExpanded.update((v) => !v);
+  }
+
+  toggleMyOffersSection(): void {
+    this.myOffersExpanded.update((v) => !v);
   }
 
   toggleTradeable(card: TradeableCard): void {
@@ -180,6 +206,7 @@ export class TradesComponent implements OnInit {
         this.loadOffers();
         this.loadMyCards();
         this.loadMarketplace();
+        this.tradesNotification.refresh();
       },
       error: (err) => {
         this.actingOnId.set(null);

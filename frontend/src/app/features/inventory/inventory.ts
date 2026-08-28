@@ -5,6 +5,7 @@ import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { Collectible, CollectibleTier, CollectibleBundle, CollectibleBundleCard } from "../../core/models";
+import { TradesNotificationService } from "../../core/trades-notification.service";
 import { CardStackComponent } from "../store/card-stack";
 import { CardPreviewComponent } from "../store/card-preview";
 import { NavIconComponent, NavIconName } from "../../shared/nav-icon";
@@ -44,6 +45,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
+  protected trades = inject(TradesNotificationService);
 
   // Colors are grounded in hues already meaningful elsewhere: highlight is
   // the brand default, gold matches the wheel's own legendary wedge,

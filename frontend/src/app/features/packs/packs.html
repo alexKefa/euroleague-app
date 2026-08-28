@@ -88,21 +88,38 @@
             type="button"
             (click)="open(pack)"
             [disabled]="!canAfford(pack) || opening() !== null || pointsLoading()"
-            class="pack-visual relative flex flex-col items-center pt-4 pb-2 disabled:opacity-40 w-full max-w-[120px] mx-auto sm:max-w-none sm:pt-6 sm:pb-3"
+            [attr.aria-label]="pack.label + ' — ' + pack.pointsCost + ' ' + i18n.t('packs.ptsLower')"
+            class="pack-visual relative disabled:opacity-40 w-full max-w-[120px] mx-auto sm:max-w-none"
             [class]="visualClasses[pack.type]"
           >
             <span class="pack-dots absolute inset-0 pointer-events-none"></span>
-            <span class="pack-wordmark absolute inset-0 flex items-center justify-center pointer-events-none">C</span>
-
-            <span class="relative font-mono text-[9px] font-bold tracking-[0.15em] opacity-80">Clutch</span>
-            <span class="relative font-display text-[13px] tracking-wide mt-auto leading-tight px-1 text-center">
-              {{ pack.label }}
+            <!-- One diagonal foil band standing in for a physical parallel/
+                 refractor stripe, instead of a rail of repeated icons. -->
+            <span class="pack-foil-stripe absolute pointer-events-none"></span>
+            <!-- Single embossed mark — opposing light/dark drop-shadows read as
+                 a stamped emblem rather than a flat silhouette. -->
+            <span class="pack-mark absolute flex items-center justify-center pointer-events-none">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <rect x="3" y="11.25" width="5" height="8" rx="1.3" fill="currentColor" opacity="0.5" />
+                <rect x="9.5" y="4.75" width="5" height="14.5" rx="1.3" fill="currentColor" />
+                <rect x="16" y="8.25" width="5" height="11" rx="1.3" fill="currentColor" opacity="0.75" />
+              </svg>
             </span>
-            <span class="relative mt-1.5 px-2.5 py-1 rounded-full bg-black/25 font-mono text-[10px] font-bold">
+            <span class="pack-gloss absolute inset-0 pointer-events-none"></span>
+            <!-- A slight periodic shine passing over the whole card, on top
+                 of the static foil stripe/gloss above. -->
+            <span class="pack-shine absolute pointer-events-none"></span>
+
+            <!-- Set-code micro-print takes the pack name's place on the card
+                 itself — the list below the grid already spells the name out,
+                 same abbreviation convention real trading-card parallels use
+                 for a series/print run. -->
+            <span class="pack-set-code absolute pointer-events-none" aria-hidden="true">{{ setCode(pack.type) }}</span>
+            <span class="pack-price-tag absolute font-mono" aria-hidden="true">
               @if (opening() === pack.type) {
-                <app-logo-spinner [size]="14" />
+                <app-logo-spinner [size]="12" />
               } @else if (pointsLoading()) {
-                <span class="inline-block w-6 h-2.5 rounded-full bg-white/25 animate-pulse"></span>
+                <span class="inline-block w-6 h-2 rounded-full bg-white/25 animate-pulse"></span>
               } @else {
                 {{ pack.pointsCost }} {{ i18n.t('packs.ptsLower') }}
               }

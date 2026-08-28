@@ -74,7 +74,7 @@ tradesRouter.post("/my-cards/:collectibleId/tradeable", requireAuth, async (req,
 tradesRouter.get("/marketplace", requireAuth, async (req, res) => {
   try {
     const rows = await db
-      .select({ collectible: collectibles, team: teams, ownerEmail: users.email })
+      .select({ listingId: userCollectibles.id, collectible: collectibles, team: teams, ownerEmail: users.email })
       .from(userCollectibles)
       .innerJoin(collectibles, eq(userCollectibles.collectibleId, collectibles.id))
       .innerJoin(teams, eq(collectibles.teamId, teams.id))
@@ -87,9 +87,16 @@ tradesRouter.get("/marketplace", requireAuth, async (req, res) => {
         )
       );
 
+    // `id` here is the listing (userCollectibles.id), not the catalog card
+    // (collectible.id) — the same legendary can be listed by more than one
+    // owner at once, and the catalog id isn't unique across those rows.
+    // Using it as `id` produced duplicate keys client-side (Angular's
+    // @for track) and, worse, an ambiguous "which listing did they mean"
+    // on the backend once two owners listed the same card (see the
+    // requestedListingId lookup in POST / below).
     res.json(
-      rows.map(({ collectible, team, ownerEmail }) => ({
-        id: collectible.id,
+      rows.map(({ listingId, collectible, team, ownerEmail }) => ({
+        id: listingId,
         name: collectible.name,
         tier: collectible.tier,
         imageUrl: collectible.imageUrl,
@@ -105,38 +112,33 @@ tradesRouter.get("/marketplace", requireAuth, async (req, res) => {
 
 tradesRouter.post("/", requireAuth, async (req, res) => {
   try {
-    const { offeredCollectibleIds, requestedCollectibleId } = req.body ?? {};
+    const { offeredCollectibleIds, requestedListingId } = req.body ?? {};
     if (
       !Array.isArray(offeredCollectibleIds) ||
       offeredCollectibleIds.length === 0 ||
       !offeredCollectibleIds.every((id) => typeof id === "string") ||
-      typeof requestedCollectibleId !== "string"
+      typeof requestedListingId !== "string"
     ) {
       res.status(400).json({
-        error: "offeredCollectibleIds (a non-empty array) and requestedCollectibleId are required",
+        error: "offeredCollectibleIds (a non-empty array) and requestedListingId are required",
         code: "INVALID_REQUEST_BODY",
       });
       return;
     }
-    if (new Set(offeredCollectibleIds).size !== offeredCollectibleIds.length) {
-      res.status(400).json({ error: "You can't offer the same card twice", code: "DUPLICATE_OFFERED_CARD" });
-      return;
-    }
-    if (offeredCollectibleIds.includes(requestedCollectibleId)) {
-      res.status(400).json({ error: "You can't trade a card for itself", code: "SAME_CARD" });
-      return;
-    }
 
-    // Who currently owns the requested card *and* has it listed — the
-    // marketplace is the only path to a trade now, so there's no separate
-    // "look up this user" step; the recipient is derived from the listing.
+    // Looked up by the specific listing row (userCollectibles.id), not by
+    // collectibleId — the same legendary can be listed by more than one
+    // owner at once, so a collectibleId-only lookup (the old shape of this
+    // query, `.limit(1)` with no owner in the WHERE) could resolve to
+    // whichever owner's row Postgres happened to return first rather than
+    // the specific listing the user actually picked in the marketplace.
     const [listing] = await db
-      .select({ ownerId: userCollectibles.userId })
+      .select({ ownerId: userCollectibles.userId, collectibleId: userCollectibles.collectibleId })
       .from(userCollectibles)
       .innerJoin(collectibles, eq(userCollectibles.collectibleId, collectibles.id))
       .where(
         and(
-          eq(userCollectibles.collectibleId, requestedCollectibleId),
+          eq(userCollectibles.id, requestedListingId),
           eq(userCollectibles.tradeable, true),
           eq(collectibles.tier, "legendary")
         )
@@ -149,6 +151,16 @@ tradesRouter.post("/", requireAuth, async (req, res) => {
     }
     if (listing.ownerId === req.userId) {
       res.status(400).json({ error: "You can't trade with yourself", code: "SELF_TRADE" });
+      return;
+    }
+
+    const requestedCollectibleId = listing.collectibleId;
+    if (new Set(offeredCollectibleIds).size !== offeredCollectibleIds.length) {
+      res.status(400).json({ error: "You can't offer the same card twice", code: "DUPLICATE_OFFERED_CARD" });
+      return;
+    }
+    if (offeredCollectibleIds.includes(requestedCollectibleId)) {
+      res.status(400).json({ error: "You can't trade a card for itself", code: "SAME_CARD" });
       return;
     }
 
