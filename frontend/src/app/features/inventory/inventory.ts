@@ -234,10 +234,16 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.visibleCount.set(PAGE_SIZE);
   }
 
-  // Same as store.ts's identically-named helpers — the stack tile's front
-  // face is whichever tier the user owns highest (most satisfying thing to
-  // show off), falling back to the lowest/cheapest tier.
+  // Same as store.ts's identically-named helpers. An active tier filter
+  // wins first — filtering "Common" and still seeing the rare face (because
+  // that's the highest tier owned) read as the filter not working, even
+  // though the bundle itself was correctly included for owning a common.
+  // With no filter, falls back to whichever tier the user owns highest
+  // (most satisfying thing to show off), then the lowest/cheapest tier.
   frontCard(bundle: CollectibleBundle): CollectibleBundleCard {
+    const filterTier = this.tierFilter();
+    const filterMatch = filterTier && bundle.cards.find((c) => c.tier === filterTier);
+    if (filterMatch) return filterMatch;
     for (let i = bundle.cards.length - 1; i >= 0; i--) {
       if (this.myCollectibleIds().has(bundle.cards[i].id)) return bundle.cards[i];
     }
@@ -280,6 +286,11 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   private defaultTierIndexFor(bundle: CollectibleBundle): number {
+    const filterTier = this.tierFilter();
+    if (filterTier) {
+      const idx = bundle.cards.findIndex((c) => c.tier === filterTier);
+      if (idx >= 0) return idx;
+    }
     for (let i = bundle.cards.length - 1; i >= 0; i--) {
       if (this.myCollectibleIds().has(bundle.cards[i].id)) return i;
     }

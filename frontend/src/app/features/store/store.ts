@@ -228,12 +228,19 @@ export class StoreComponent implements OnInit, OnDestroy {
     if (this.searchDebounceHandle) clearTimeout(this.searchDebounceHandle);
   }
 
-  // The stack tile's front face: whichever tier the user owns highest (most
-  // satisfying thing to show off), falling back to the lowest/cheapest tier
-  // — showing a locked legendary front when the user actually owns the
-  // common would read as "you don't have this" for a bundle they're 1/3
-  // into.
+  // An active tier filter wins first — the tier chips include a bundle if
+  // it has *any* card of that tier (see routes/collectibles.ts's /browse
+  // comment), but still showing a different tier's face made filtering
+  // "Legendary" look broken when the front face was some other tier the
+  // user happened to own. With no filter: whichever tier the user owns
+  // highest (most satisfying thing to show off), falling back to the
+  // lowest/cheapest tier — showing a locked legendary front when the user
+  // actually owns the common would read as "you don't have this" for a
+  // bundle they're 1/3 into.
   frontCard(bundle: CollectibleBundle): CollectibleBundleCard {
+    const filterTier = this.tierFilter();
+    const filterMatch = filterTier && bundle.cards.find((c) => c.tier === filterTier);
+    if (filterMatch) return filterMatch;
     for (let i = bundle.cards.length - 1; i >= 0; i--) {
       if (this.myCollectibleIds().has(bundle.cards[i].id)) return bundle.cards[i];
     }
@@ -264,6 +271,11 @@ export class StoreComponent implements OnInit, OnDestroy {
   }
 
   private defaultTierIndexFor(bundle: CollectibleBundle): number {
+    const filterTier = this.tierFilter();
+    if (filterTier) {
+      const idx = bundle.cards.findIndex((c) => c.tier === filterTier);
+      if (idx >= 0) return idx;
+    }
     for (let i = bundle.cards.length - 1; i >= 0; i--) {
       if (this.myCollectibleIds().has(bundle.cards[i].id)) return i;
     }
