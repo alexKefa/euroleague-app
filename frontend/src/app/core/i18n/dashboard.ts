@@ -8,6 +8,7 @@ export const dashboardTranslations: Record<string, Record<Lang, string>> = {
   "dashboard.record": { en: "Record", el: "Ρεκόρ" },
   "dashboard.rank": { en: "Rank", el: "Θέση" },
   "dashboard.next": { en: "Next", el: "Επόμενο" },
+  "dashboard.form": { en: "Form", el: "Φόρμα" },
   "dashboard.latest": { en: "Latest", el: "Τελευταία" },
   "dashboard.viewAll": { en: "ALL", el: "ΟΛΑ" },
   "dashboard.round": { en: "Round", el: "Αγωνιστική" },

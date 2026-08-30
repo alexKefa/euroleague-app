@@ -2,6 +2,7 @@ import { Component, Input, computed, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { PlayerShot } from "../../core/models";
 import { I18nService } from "../../core/i18n.service";
+import { ChipDirective } from "../../shared/chip.directive";
 
 // EuroLeague's shot feed uses a coordinate system in cm, origin at the
 // basket, Y increasing away from the hoop toward half-court (confirmed
@@ -17,7 +18,7 @@ type ShotFilter = "all" | "made" | "missed";
 @Component({
   selector: "app-shot-chart",
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ChipDirective],
   templateUrl: "./shot-chart.html",
 })
 export class ShotChartComponent {
@@ -103,6 +104,31 @@ export class ShotChartComponent {
   readonly attempts = computed(() => this.shots.length);
   readonly made = computed(() => this.shots.filter((s) => s.made).length);
   readonly pct = computed(() => (this.attempts() > 0 ? Math.round((this.made() / this.attempts()) * 1000) / 10 : null));
+
+  // Zone efficiency — a distance-from-basket rollup of the same shot data
+  // above (no new fields synced), standing in for the arc/depth/left-right
+  // sensor readouts a real shooting-machine display would show, which
+  // EuroLeague's feed has no equivalent of. Boundaries are a rough analogue
+  // of paint/mid-range/three (in cm, same coordinate system as x/y above),
+  // not FIBA key geometry — good enough to bucket shots, not to redraw the
+  // key from.
+  private zoneFor(shot: PlayerShot): "paint" | "mid" | "three" {
+    const distance = Math.hypot(shot.x, shot.y);
+    if (distance < 150) return "paint";
+    if (distance < 650) return "mid";
+    return "three";
+  }
+
+  private zoneStats(zone: "paint" | "mid" | "three"): { made: number; attempts: number; pct: number } {
+    const zoneShots = this.shots.filter((s) => this.zoneFor(s) === zone);
+    const made = zoneShots.filter((s) => s.made).length;
+    const attempts = zoneShots.length;
+    return { made, attempts, pct: attempts > 0 ? Math.round((made / attempts) * 100) : 0 };
+  }
+
+  readonly paintStats = computed(() => this.zoneStats("paint"));
+  readonly midStats = computed(() => this.zoneStats("mid"));
+  readonly threeStats = computed(() => this.zoneStats("three"));
 
   toSvgX(x: number): number {
     return this.basketX + x / this.unit;

@@ -18,50 +18,78 @@
       </button>
     </div>
 
-    <!-- Hero: team-skinned gradient header — logged-in users with a selected team only -->
+    <!-- Hero: team color lives as an accent (ring, contained glow, one
+         highlighted stat) rather than a full-bleed gradient wash — a wash
+         put white text directly on top of the raw team color, which read
+         fine for a dark saturated team but went nearly unreadable for a
+         light one. Neutral bg-card surface underneath fixes that
+         regardless of which team is selected. -->
     @if (selectedRow(); as row) {
-      <div
-        class="relative rounded-lg p-5 mb-5 text-white overflow-hidden"
-        [style.background]="
-          'linear-gradient(155deg, var(--accent-primary) 0%, var(--accent-secondary) 70%, #000 130%)'
-        "
-      >
-        <p class="font-mono text-[12px] font-bold opacity-65 mb-2">{{ i18n.t('dashboard.yourTeam') }}</p>
-        <a [routerLink]="['/teams', row.team.id]" class="flex items-center gap-3 w-fit group">
-          @if (row.team.logoUrl) {
-            <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-10 h-10 object-contain" />
-          } @else {
-            <span
-              class="w-10 h-10 rounded-lg flex items-center justify-center font-display text-sm bg-white/15"
-            >
-              {{ row.team.code }}
-            </span>
-          }
+      <div class="relative rounded-2xl p-5 mb-5 bg-card border border-line shadow-card overflow-hidden">
+        <div
+          class="absolute -top-16 -left-16 w-56 h-56 rounded-full pointer-events-none"
+          [style.background]="'radial-gradient(circle, color-mix(in srgb, var(--accent-primary) 55%, transparent), transparent 70%)'"
+        ></div>
+
+        <p class="relative font-mono text-[12px] font-bold text-muted mb-2">{{ i18n.t('dashboard.yourTeam') }}</p>
+        <a [routerLink]="['/teams', row.team.id]" class="relative flex items-center gap-3 w-fit group">
+          <span
+            class="w-11 h-11 rounded-full flex items-center justify-center shrink-0 bg-card"
+            [style.border]="'2px solid var(--accent-primary)'"
+            [style.box-shadow]="'0 0 0 4px color-mix(in srgb, var(--accent-primary) 14%, transparent)'"
+          >
+            @if (row.team.logoUrl) {
+              <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-7 h-7 object-contain" />
+            } @else {
+              <span class="font-display text-sm">{{ row.team.code }}</span>
+            }
+          </span>
           <h1 class="font-display text-2xl tracking-wide group-hover:underline">
             {{ row.team.name }}
           </h1>
         </a>
-        <div class="flex flex-wrap gap-x-6 gap-y-3 mt-4">
+
+        <div class="relative flex flex-wrap gap-x-6 gap-y-3 mt-4">
           <div>
-            <p class="font-mono text-[11px] font-bold opacity-65">{{ i18n.t('dashboard.record') }}</p>
+            <p class="font-mono text-[11px] font-bold text-muted">{{ i18n.t('dashboard.record') }}</p>
             <p class="font-display text-2xl mt-0.5">{{ row.stats.wins }}-{{ row.stats.losses }}</p>
           </div>
           <div>
-            <p class="font-mono text-[11px] font-bold opacity-65">{{ i18n.t('dashboard.rank') }}</p>
-            <p class="font-display text-2xl mt-0.5">#{{ row.position }}</p>
+            <p class="font-mono text-[11px] font-bold text-muted">{{ i18n.t('dashboard.rank') }}</p>
+            <p class="font-display text-2xl mt-0.5" [style.color]="'var(--accent-primary)'">#{{ row.position }}</p>
           </div>
           @if (row.stats.ppg !== null) {
             <div>
-              <p class="font-mono text-[11px] font-bold opacity-65">PPG</p>
+              <p class="font-mono text-[11px] font-bold text-muted">PPG</p>
               <p class="font-display text-2xl mt-0.5">{{ row.stats.ppg | number: "1.1-1" }}</p>
             </div>
           }
         </div>
+
+        @if (recentGames().length > 0) {
+          <div class="relative flex items-center gap-2 mt-4">
+            <span class="font-mono text-[11px] font-bold text-muted">{{ i18n.t('dashboard.form') }}</span>
+            <div class="flex gap-1.5">
+              @for (g of recentGames(); track g.id) {
+                @if (teamResult(g); as result) {
+                  <span
+                    class="w-5 h-5 rounded-full flex items-center justify-center font-mono text-[10px] font-bold text-white"
+                    [class]="result === 'W' ? 'bg-emerald-600' : 'bg-red-500/75'"
+                    >{{ result }}</span
+                  >
+                }
+              }
+            </div>
+          </div>
+        }
+
         @if (nextGame(); as game) {
-          <div class="flex items-center gap-2 mt-4 pt-3 border-t border-white/20 text-sm">
-            <span class="font-mono text-[12px] font-bold opacity-65">{{ i18n.t('dashboard.next') }}</span>
-            <span class="font-display text-sm">{{ isHomeGame(game) ? "vs" : "@" }} {{ opponentCode(game) }}</span>
-            <span class="font-mono text-[12px] opacity-65">&middot; {{ game.tipoffAt | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}</span>
+          <div class="relative flex items-center gap-2 mt-4 pt-3 border-t border-line text-sm">
+            <span class="font-mono text-[12px] font-bold text-muted">{{ i18n.t('dashboard.next') }}</span>
+            <span class="font-display text-sm"
+              >{{ isHomeGame(game) ? "vs" : "@" }} <span [style.color]="'var(--accent-primary)'">{{ opponentCode(game) }}</span></span
+            >
+            <span class="font-mono text-[12px] text-muted">&middot; {{ game.tipoffAt | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}</span>
           </div>
         }
       </div>

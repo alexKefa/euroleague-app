@@ -31,4 +31,8 @@ export const playerTranslations: Record<string, Record<Lang, string>> = {
   "shotChart.made": { en: "Made", el: "Εύστοχο" },
   "shotChart.missed": { en: "Missed", el: "Άστοχο" },
   "shotChart.noData": { en: "No shot data yet", el: "Δεν υπάρχουν ακόμα δεδομένα σουτ" },
+  "shotChart.zonePaint": { en: "Paint", el: "Ρακέτα" },
+  "shotChart.zoneMid": { en: "Mid-range", el: "Μεσαία απόσταση" },
+  "shotChart.zoneThree": { en: "Three", el: "Τρίποντο" },
+  "shotChart.zoneAttempts": { en: "attempts", el: "προσπάθειες" },
 };

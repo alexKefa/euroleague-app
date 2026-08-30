@@ -9,10 +9,11 @@
     }
   </div>
 
+  <div class="flex flex-col sm:flex-row gap-4 items-center sm:items-stretch">
   <svg
     [attr.viewBox]="'0 0 ' + viewBoxWidth + ' ' + viewBoxHeight"
-    class="w-full h-auto"
-    style="max-width: 420px; margin: 0 auto; display: block"
+    class="w-full h-auto flex-1 min-w-0"
+    style="max-width: 340px; margin: 0 auto; display: block"
   >
     @if (photoUrl) {
       <defs>
@@ -57,20 +58,45 @@
     <!-- 3PT line -->
     <path [attr.d]="threePointArcPath" fill="none" class="stroke-line" stroke-width="1.5" />
 
-    <!-- Backboard + rim -->
+    <!-- Backboard -->
     <line [attr.x1]="backboardX1" [attr.x2]="backboardX2" [attr.y1]="backboardY" [attr.y2]="backboardY" class="stroke-ink" stroke-width="2" />
-    <circle [attr.cx]="basketX" [attr.cy]="basketY" [attr.r]="rimRadius" fill="none" class="stroke-highlight" stroke-width="1.6" />
 
-    <!-- Shots -->
+    <!-- Rim reticle — a glowing "target" ring + crosshair instead of a plain
+         outlined circle, echoing a shooting-machine's rim readout, but it's
+         just a fixed marker at the real rim position, not a precision-tracked
+         cluster (this app has no shot-trajectory data to plot one from). -->
+    <circle
+      [attr.cx]="basketX"
+      [attr.cy]="basketY"
+      [attr.r]="rimRadius * 2"
+      fill="none"
+      class="stroke-highlight"
+      stroke-width="1.4"
+      style="filter: drop-shadow(0 0 4px rgba(255, 107, 53, 0.65))"
+    />
+    <line [attr.x1]="basketX - rimRadius * 1.4" [attr.x2]="basketX + rimRadius * 1.4" [attr.y1]="basketY" [attr.y2]="basketY" class="stroke-highlight" stroke-width="0.8" opacity="0.85" />
+    <line [attr.x1]="basketX" [attr.x2]="basketX" [attr.y1]="basketY - rimRadius * 1.4" [attr.y2]="basketY + rimRadius * 1.4" class="stroke-highlight" stroke-width="0.8" opacity="0.85" />
+    <circle
+      [attr.cx]="basketX"
+      [attr.cy]="basketY"
+      [attr.r]="rimRadius"
+      fill="none"
+      class="stroke-highlight"
+      stroke-width="1.6"
+      style="filter: drop-shadow(0 0 3px rgba(255, 107, 53, 0.75))"
+    />
+
+    <!-- Shots — makes glow, misses stay flat, so the eye reads "hits" first -->
     @for (shot of filteredShots(); track $index) {
       <circle
         [attr.cx]="toSvgX(shot.x)"
         [attr.cy]="toSvgY(shot.y)"
         r="2.6"
         [attr.fill]="shot.made ? '#22c55e' : '#ef4444'"
-        [attr.fill-opacity]="shot.made ? 0.8 : 0.55"
+        [attr.fill-opacity]="shot.made ? 0.85 : 0.55"
         [attr.stroke]="shot.made ? '#16a34a' : 'none'"
         stroke-width="0.4"
+        [attr.style]="shot.made ? 'filter: drop-shadow(0 0 2.2px rgba(34, 197, 94, 0.85))' : null"
       />
     } @empty {
       <text [attr.x]="viewBoxWidth / 2" [attr.y]="viewBoxHeight / 2" text-anchor="middle" class="fill-muted" font-size="8">
@@ -79,31 +105,47 @@
     }
   </svg>
 
+  <!-- Zone efficiency — the same shots above, bucketed by distance instead
+       of plotted by position; stands in for a shooting-machine's arc/depth
+       gauges using data this app actually has. -->
+  <div class="flex-1 min-w-[130px] flex flex-col justify-center gap-3.5">
+    @for (zone of [
+      { labelKey: 'shotChart.zonePaint', stats: paintStats() },
+      { labelKey: 'shotChart.zoneMid', stats: midStats() },
+      { labelKey: 'shotChart.zoneThree', stats: threeStats() }
+    ]; track zone.labelKey) {
+      <div class="flex flex-col gap-1">
+        <div class="flex justify-between items-baseline">
+          <span class="font-mono text-[10px] font-bold uppercase tracking-wider text-muted">{{ i18n.t(zone.labelKey) }}</span>
+          <span class="font-display font-bold text-[15px]">{{ zone.stats.pct }}%</span>
+        </div>
+        <div class="relative h-1.5 rounded-full bg-line">
+          <div
+            class="absolute inset-y-0 left-0 rounded-full bg-highlight transition-[width] duration-700 ease-out"
+            [style.width.%]="zone.stats.pct"
+          ></div>
+          <div
+            class="absolute top-1/2 w-3 h-3 rounded-full bg-highlight -translate-y-1/2 -translate-x-1/2 transition-[left] duration-700 ease-out"
+            style="box-shadow: 0 0 8px rgba(255, 107, 53, 0.8)"
+            [style.left.%]="zone.stats.pct"
+          ></div>
+        </div>
+        <span class="font-mono text-[10px] text-muted">{{ zone.stats.made }}/{{ zone.stats.attempts }} {{ i18n.t('shotChart.zoneAttempts') }}</span>
+      </div>
+    }
+  </div>
+  </div>
+
   <!-- Legend doubles as a made/missed/all filter -->
-  <div class="flex items-center justify-center gap-2 mt-2">
-    <button
-      type="button"
-      (click)="setFilter('all')"
-      class="px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors"
-      [class]="filter() === 'all' ? 'bg-highlight/15 text-highlight' : 'text-muted hover:text-ink'"
-    >
+  <div class="flex items-center justify-center gap-1.5 mt-3">
+    <button type="button" (click)="setFilter('all')" [appChip]="filter() === 'all'">
       {{ i18n.t('shotChart.filterAll') }}
     </button>
-    <button
-      type="button"
-      (click)="setFilter('made')"
-      class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors"
-      [class]="filter() === 'made' ? 'bg-highlight/15 text-ink' : 'text-muted hover:text-ink'"
-    >
+    <button type="button" (click)="setFilter('made')" [appChip]="filter() === 'made'" class="flex items-center gap-1.5">
       <span class="w-2.5 h-2.5 rounded-full inline-block" style="background: #22c55e"></span>
       {{ i18n.t('shotChart.made') }}
     </button>
-    <button
-      type="button"
-      (click)="setFilter('missed')"
-      class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors"
-      [class]="filter() === 'missed' ? 'bg-highlight/15 text-ink' : 'text-muted hover:text-ink'"
-    >
+    <button type="button" (click)="setFilter('missed')" [appChip]="filter() === 'missed'" class="flex items-center gap-1.5">
       <span class="w-2.5 h-2.5 rounded-full inline-block" style="background: #ef4444"></span>
       {{ i18n.t('shotChart.missed') }}
     </button>
