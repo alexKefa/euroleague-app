@@ -121,6 +121,19 @@ export class AuthService {
       .pipe(tap((user) => this.currentUser.set(user)));
   }
 
+  // Backend returns just the saved list (not a full PublicUser), so merge
+  // it into the existing currentUser rather than replacing the signal.
+  updateShowcase(collectibleIds: string[]): Observable<{ showcaseCollectibleIds: string[] }> {
+    return this.http
+      .put<{ showcaseCollectibleIds: string[] }>(`${API_BASE_URL}/users/me/showcase`, { collectibleIds })
+      .pipe(
+        tap(({ showcaseCollectibleIds }) => {
+          const current = this.currentUser();
+          if (current) this.currentUser.set({ ...current, showcaseCollectibleIds });
+        })
+      );
+  }
+
   private setSession(res: AuthResponse): void {
     this.accessToken.set(res.accessToken);
     this.currentUser.set(res.user);

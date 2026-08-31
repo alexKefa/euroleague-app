@@ -16,6 +16,11 @@ export const dashboardTranslations: Record<string, Record<Lang, string>> = {
   "dashboard.leaders": { en: "Leaders", el: "Κορυφαίοι" },
   "dashboard.yourTeamSchedule": { en: "Your Team's Schedule", el: "Πρόγραμμα Ομάδας" },
   "dashboard.standings": { en: "Standings", el: "Βαθμολογία" },
+  "dashboard.myLeagues": { en: "My Leagues", el: "Οι Λίγκες μου" },
+  "dashboard.leaguesEmptyHint": {
+    en: "Create a private league and compete with friends.",
+    el: "Δημιούργησε μια ιδιωτική λίγκα και συναγωνίσου με φίλους.",
+  },
 
   "dashboard.pointsHintPrefix": { en: "Earn points by making correct predictions on", el: "Κέρδισε πόντους με σωστές προβλέψεις στις" },
   "dashboard.pointsHintMiddle": { en: ", then spend them on", el: ", και μετά εξαργύρωσέ τις σε" },

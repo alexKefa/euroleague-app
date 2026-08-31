@@ -28,7 +28,7 @@
     </div>
   } @else if (upcomingGames().length > 0) {
       <div data-tour="predictions-picks" class="bg-card rounded-2xl border border-line shadow-card p-3 sm:p-4 mb-5">
-        <div class="flex items-baseline justify-between mb-2">
+        <div class="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1 mb-2">
           <p class="text-[13px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('predictions.upcomingGames') }}</p>
           @if (auth.isAuthenticated()) {
             <p class="text-[11px] text-muted">{{ i18n.t('predictions.tapToClearHint') }}</p>
@@ -69,11 +69,14 @@
                       }
                     </span>
                     <span
-                      class="font-mono text-[9px] font-bold"
+                      class="font-mono text-[9px] font-bold leading-none"
                       [class.text-highlight]="myPickFor(game) === game.homeTeam.id"
                       [class.text-muted]="myPickFor(game) !== game.homeTeam.id"
                       >{{ game.homeTeam.code }}</span
                     >
+                    @if (game.homeFairProb != null) {
+                      <span class="font-mono text-[8px] text-muted leading-none mt-1 px-1 py-0.5 rounded-full bg-line/60 whitespace-nowrap">+{{ pointsForPick(game, game.homeTeam.id) }}</span>
+                    }
                   </button>
                   <span class="font-mono text-muted text-[10px]">{{ i18n.t('predictions.vs') }}</span>
                   <button
@@ -95,11 +98,14 @@
                       }
                     </span>
                     <span
-                      class="font-mono text-[9px] font-bold"
+                      class="font-mono text-[9px] font-bold leading-none"
                       [class.text-highlight]="myPickFor(game) === game.awayTeam.id"
                       [class.text-muted]="myPickFor(game) !== game.awayTeam.id"
                       >{{ game.awayTeam.code }}</span
                     >
+                    @if (game.awayFairProb != null) {
+                      <span class="font-mono text-[8px] text-muted leading-none mt-1 px-1 py-0.5 rounded-full bg-line/60 whitespace-nowrap">+{{ pointsForPick(game, game.awayTeam.id) }}</span>
+                    }
                   </button>
                 </div>
               } @else {
@@ -239,7 +245,7 @@
                 </span>
                 <div class="flex gap-1.5 items-center">
                   @for (badge of mySummary()!.badges; track badge.id) {
-                    <span [title]="badge.label + ' — ' + badge.description" class="text-highlight">
+                    <span [title]="badgeLabel(badge.id) + ' — ' + badgeDescription(badge.id)" class="text-highlight">
                       <app-nav-icon [name]="badgeIcon(badge.id)" [size]="22" />
                     </span>
                   }
@@ -302,7 +308,7 @@
                 }
                 &nbsp;{{ entry.displayName }}
                 @for (badge of entry.badges; track badge.id) {
-                  <span class="text-highlight" [title]="badge.label + ' — ' + badge.description">
+                  <span class="text-highlight" [title]="badgeLabel(badge.id) + ' — ' + badgeDescription(badge.id)">
                     <app-nav-icon [name]="badgeIcon(badge.id)" [size]="14" />
                   </span>
                 }
@@ -316,9 +322,14 @@
             <p class="text-sm text-muted">{{ i18n.t('predictions.noResolvedYet') }}</p>
           }
         </div>
-        <a routerLink="/predictions-analytics" class="mt-2 block text-right text-[12px] text-accent2 font-bold uppercase tracking-wider hover:opacity-80 transition-opacity"
-          >{{ i18n.t('predictions.analytics.navTitle') }} &rarr;</a
-        >
+        <div class="mt-2 flex items-center justify-end gap-4">
+          <a routerLink="/leagues" class="text-[12px] text-accent2 font-bold uppercase tracking-wider hover:opacity-80 transition-opacity"
+            >{{ i18n.t('leagues.navLink') }} &rarr;</a
+          >
+          <a routerLink="/predictions-analytics" class="text-[12px] text-accent2 font-bold uppercase tracking-wider hover:opacity-80 transition-opacity"
+            >{{ i18n.t('predictions.analytics.navTitle') }} &rarr;</a
+          >
+        </div>
       </div>
     </div>
   }

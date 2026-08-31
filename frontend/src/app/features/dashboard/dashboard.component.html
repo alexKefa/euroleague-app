@@ -75,7 +75,7 @@
                   <span
                     class="w-5 h-5 rounded-full flex items-center justify-center font-mono text-[10px] font-bold text-white"
                     [class]="result === 'W' ? 'bg-emerald-600' : 'bg-red-500/75'"
-                    >{{ result }}</span
+                    >{{ resultLabel(result) }}</span
                   >
                 }
               }
@@ -93,6 +93,60 @@
           </div>
         }
       </div>
+    }
+
+    <!-- My Leagues — a bold highlight-accent card (not the neutral bg-card
+         look every other dashboard section uses) placed right under the
+         hero on purpose: this is the primary discovery surface for
+         Leagues, so it needs to actually stand out rather than blend into
+         the grid of same-looking widgets further down the page. Uses
+         `highlight` (the app's one real brand accent — buttons, badges,
+         "spend points" links) rather than accent2, which is only ever a
+         small rank/position detail elsewhere and reads as out of place
+         carrying an entire card surface. Renders even with none joined yet
+         (a CTA instead of a list) — a user who's never heard of Leagues
+         needs to see *something* here, not just existing members getting a
+         shortcut. Gated behind auth like the hero itself, not shown to
+         guests (leagues need an account). -->
+    @if (auth.isAuthenticated()) {
+      <a
+        routerLink="/leagues"
+        class="relative flex items-center gap-4 rounded-2xl p-5 mb-5 bg-gradient-to-br from-highlight to-highlight-dim shadow-pop overflow-hidden group"
+      >
+        <div
+          class="absolute -bottom-10 -right-14 sm:-right-6 w-40 h-40 rounded-full bg-white/10 pointer-events-none"
+        ></div>
+        <span class="relative shrink-0 w-12 h-12 rounded-full bg-card shadow-pop flex items-center justify-center">
+          <!-- Official EuroLeague trophy artwork (public/euroleague_cup.png,
+               served at the site root by Angular's public-assets glob) — a
+               fixed-black-stroke PNG, not an app-nav-icon SVG, so it can't
+               follow currentColor the way the rest of this card's white
+               icons do. The badge itself is a solid theme-reactive bg-card
+               circle (near-black in dark mode, white in light) rather than
+               a translucent white tint, so it pops against the orange
+               gradient in both themes instead of just barely tinting it;
+               .icon-ink-invert (styles.css) keeps the trophy matching
+               --color-ink against that circle — inverted to near-white on
+               dark's near-black card, left as-is on light's white one. -->
+          <img src="/euroleague_cup.png" alt="" class="w-6 h-6 object-contain icon-ink-invert" />
+        </span>
+        <div class="relative flex-1 min-w-0">
+          <p class="font-display text-lg text-white tracking-wide">{{ i18n.t('dashboard.myLeagues') }}</p>
+          @if (myLeagues().length > 0) {
+            <p class="text-sm text-white/80 truncate">
+              @for (league of myLeagues().slice(0, 3); track league.id; let last = $last) {
+                {{ league.name }}{{ last ? "" : ", " }}
+              }
+              @if (myLeagues().length > 3) {
+                &hellip;
+              }
+            </p>
+          } @else {
+            <p class="text-sm text-white/80">{{ i18n.t('dashboard.leaguesEmptyHint') }}</p>
+          }
+        </div>
+        <span class="relative shrink-0 text-white/70 text-sm sm:text-lg font-bold group-hover:translate-x-0.5 transition-transform">&rarr;</span>
+      </a>
     }
 
     @if (auth.isAuthenticated()) {
@@ -292,7 +346,7 @@
                       class="font-mono font-bold w-4 shrink-0"
                       [class.text-highlight]="teamResult(game) === 'W'"
                       [class.text-muted]="teamResult(game) === 'L'"
-                      >{{ teamResult(game) }}</span
+                      >{{ resultLabel(teamResult(game)) }}</span
                     >
                     @if (opponentTeam(game).logoUrl) {
                       <img [src]="opponentTeam(game).logoUrl" [alt]="opponentTeam(game).name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0" />

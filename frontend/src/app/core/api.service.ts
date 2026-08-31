@@ -38,6 +38,9 @@ import {
   RoundsInfo,
   Schedule,
   GameDetail,
+  League,
+  LeagueDetail,
+  LeagueLeaderboardEntry,
 } from "./models";
 
 /**
@@ -333,5 +336,32 @@ export class ApiService {
 
   cancelTrade(id: string): Observable<unknown> {
     return this.http.post(`${API_BASE_URL}/trades/${id}/cancel`, {});
+  }
+
+  createLeague(name: string): Observable<{ id: string; name: string; code: string; memberCount: number }> {
+    return this.http.post<{ id: string; name: string; code: string; memberCount: number }>(
+      `${API_BASE_URL}/leagues`,
+      { name }
+    );
+  }
+
+  getMyLeagues(): Observable<League[]> {
+    return this.http.get<League[]>(`${API_BASE_URL}/leagues/mine`);
+  }
+
+  joinLeague(code: string): Observable<{ id: string; name: string; code: string }> {
+    return this.http.post<{ id: string; name: string; code: string }>(`${API_BASE_URL}/leagues/join`, { code });
+  }
+
+  getLeague(id: string): Observable<LeagueDetail> {
+    return this.http.get<LeagueDetail>(`${API_BASE_URL}/leagues/${id}`);
+  }
+
+  leaveLeague(id: string): Observable<void> {
+    return this.http.post<void>(`${API_BASE_URL}/leagues/${id}/leave`, {});
+  }
+
+  getLeagueLeaderboard(id: string): Observable<LeagueLeaderboardEntry[]> {
+    return this.http.get<LeagueLeaderboardEntry[]>(`${API_BASE_URL}/leagues/${id}/leaderboard`);
   }
 }

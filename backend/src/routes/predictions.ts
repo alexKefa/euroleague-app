@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { eq, and, desc, inArray, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { predictions, games, teams, users, pointAdjustments } from "../db/schema.js";
+import { predictions, games, gameOdds, teams, users, pointAdjustments } from "../db/schema.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
-import { computeWinnerTeamId, getUserPoints, POINTS_PER_CORRECT } from "../services/points.js";
+import { computeWinnerTeamId, getUserPoints, pointsForCorrectPick } from "../services/points.js";
+import { earnedBadges, getLeaderboardEntries, ResolvedPick } from "../services/leaderboard.js";
 import {
   checkAndGrantRoundRewards,
   markRoundRewardsSeen,
@@ -13,98 +14,6 @@ import {
 import { checkAndGrantReferralReward } from "../services/referrals.js";
 
 export const predictionsRouter = Router();
-
-interface ResolvedPick {
-  round: number | null;
-  tipoffAt: Date | string;
-  correct: boolean;
-}
-
-interface BadgeInfo {
-  id: string;
-  label: string;
-  description: string;
-}
-
-interface BadgeContext {
-  picks: ResolvedPick[];
-  hasAnyPick: boolean;
-  // Deliberately *excludes* pointAdjustments (admin grants, the
-  // registration welcome bonus, sold-duplicate refunds) — Century is meant
-  // to reflect prediction accuracy, not spendable balance. Those still
-  // count toward the balance shown/spent everywhere else (getUserPoints),
-  // just not toward "did you earn this".
-  predictionPoints: number;
-}
-
-interface BadgeDef extends BadgeInfo {
-  check: (ctx: BadgeContext) => boolean;
-}
-
-// Badge rules run against a user's *resolved* picks only (final games),
-// sorted oldest-first so streak-style checks see chronological order.
-const BADGES: BadgeDef[] = [
-  {
-    id: "first-call",
-    label: "First Call",
-    description: "Made your first prediction.",
-    check: (ctx) => ctx.hasAnyPick,
-  },
-  {
-    id: "on-a-roll",
-    label: "On a Roll",
-    description: "5 correct predictions in a row.",
-    check: (ctx) => {
-      let streak = 0;
-      for (const p of ctx.picks) {
-        streak = p.correct ? streak + 1 : 0;
-        if (streak >= 5) return true;
-      }
-      return false;
-    },
-  },
-  {
-    id: "perfect-round",
-    label: "Perfect Round",
-    description: "Got every prediction right in a single round.",
-    check: (ctx) => {
-      const byRound = new Map<number, boolean[]>();
-      for (const p of ctx.picks) {
-        if (p.round === null) continue;
-        const arr = byRound.get(p.round) ?? [];
-        arr.push(p.correct);
-        byRound.set(p.round, arr);
-      }
-      for (const arr of byRound.values()) {
-        if (arr.every(Boolean)) return true;
-      }
-      return false;
-    },
-  },
-  {
-    id: "century",
-    label: "Century",
-    description: "Earned 100+ points from predictions.",
-    check: (ctx) => ctx.predictionPoints >= 100,
-  },
-  {
-    id: "sharpshooter",
-    label: "Sharpshooter",
-    description: "75%+ accuracy across at least 10 resolved predictions.",
-    check: (ctx) => {
-      if (ctx.picks.length < 10) return false;
-      return ctx.picks.filter((p) => p.correct).length / ctx.picks.length >= 0.75;
-    },
-  },
-];
-
-function earnedBadges(ctx: BadgeContext): BadgeInfo[] {
-  return BADGES.filter((b) => b.check(ctx)).map(({ id, label, description }) => ({
-    id,
-    label,
-    description,
-  }));
-}
 
 predictionsRouter.post("/", requireAuth, async (req, res) => {
   try {
@@ -307,103 +216,14 @@ predictionsRouter.get("/me", requireAuth, async (req, res) => {
 
 // Ranked by lifetime *earned* points (correct picks + only the bonus
 // adjustments flagged countsTowardRanking), never spendable balance — see
-// the column's comment in schema.ts. This is deliberately still computed
-// live on every call, same "no backfill job, a scoring-rule change applies
-// instantly" guarantee as everywhere else in this file — but it used to
-// pull every prediction and every point_adjustment ever made, for every
-// user, over the wire and reduce them in JS, which only gets more
-// expensive as the app accumulates history. Phase 1 below does that
-// counting inside a single grouped SQL query instead (one row per user,
-// however much history exists behind it); phase 2 then fetches full pick
-// sequences — needed only for streak-based badges like "on-a-roll" — for
-// just the ~20 users who actually end up on the board, not everyone.
+// the column's comment in schema.ts. Delegates to
+// services/leaderboard.ts's getLeaderboardEntries, shared with a league's
+// scoped leaderboard (routes/leagues.ts) — see that function's doc comment
+// for why this is computed live in two phases rather than pulling every
+// prediction into JS.
 predictionsRouter.get("/leaderboard", async (_req, res) => {
   try {
-    const totals = await db.execute<{
-      user_id: string;
-      email: string;
-      correct: number;
-      total: number;
-      bonus: number;
-    }>(sql`
-      with correct_totals as (
-        select p.user_id,
-          count(*) filter (
-            where p.predicted_winner_team_id = case when g.home_score > g.away_score then g.home_team_id else g.away_team_id end
-          )::int as correct,
-          count(*)::int as total
-        from ${predictions} p
-        join ${games} g on p.game_id = g.id
-        where g.status = 'final' and g.home_score is not null and g.away_score is not null and g.home_score <> g.away_score
-        group by p.user_id
-      ),
-      bonus_totals as (
-        select user_id, coalesce(sum(points), 0)::int as bonus
-        from ${pointAdjustments}
-        where counts_toward_ranking = true
-        group by user_id
-      )
-      select coalesce(ct.user_id, bt.user_id) as user_id, u.email,
-        coalesce(ct.correct, 0)::int as correct,
-        coalesce(ct.total, 0)::int as total,
-        coalesce(bt.bonus, 0)::int as bonus
-      from correct_totals ct
-      full outer join bonus_totals bt on ct.user_id = bt.user_id
-      join ${users} u on u.id = coalesce(ct.user_id, bt.user_id)
-    `);
-
-    const ranked = totals
-      .map((row) => ({
-        userId: row.user_id,
-        // Placeholder display name — no dedicated username field exists yet.
-        // Showing full email addresses on a public leaderboard isn't great
-        // practice, so this uses just the local part as a stand-in.
-        displayName: row.email.split("@")[0],
-        correct: row.correct,
-        total: row.total,
-        accuracy: row.total > 0 ? row.correct / row.total : 0,
-        points: row.correct * POINTS_PER_CORRECT + row.bonus,
-      }))
-      .sort((a, b) => b.points - a.points || b.accuracy - a.accuracy)
-      .slice(0, 20);
-
-    const topIds = ranked.map((r) => r.userId);
-    const pickRows = topIds.length
-      ? await db
-          .select({ prediction: predictions, game: games })
-          .from(predictions)
-          .innerJoin(games, eq(predictions.gameId, games.id))
-          .where(and(eq(games.status, "final"), inArray(predictions.userId, topIds)))
-      : [];
-
-    const picksByUser = new Map<string, ResolvedPick[]>();
-    for (const { prediction, game } of pickRows) {
-      const winnerTeamId = computeWinnerTeamId(game);
-      if (winnerTeamId === null) continue;
-      const picks = picksByUser.get(prediction.userId) ?? [];
-      picks.push({
-        round: game.round,
-        tipoffAt: game.tipoffAt,
-        correct: winnerTeamId === prediction.predictedWinnerTeamId,
-      });
-      picksByUser.set(prediction.userId, picks);
-    }
-
-    const leaderboard = ranked.map((entry) => {
-      const picks = (picksByUser.get(entry.userId) ?? []).sort(
-        (a, b) => new Date(a.tipoffAt).getTime() - new Date(b.tipoffAt).getTime()
-      );
-      return {
-        ...entry,
-        badges: earnedBadges({
-          picks,
-          hasAnyPick: entry.total > 0,
-          predictionPoints: entry.correct * POINTS_PER_CORRECT,
-        }),
-      };
-    });
-
-    res.json(leaderboard);
+    res.json(await getLeaderboardEntries({ limit: 20 }));
   } catch (err) {
     console.error("GET /api/predictions/leaderboard failed:", err);
     res.status(500).json({ error: "Failed to load leaderboard" });
@@ -537,30 +357,40 @@ predictionsRouter.get("/me/summary", requireAuth, async (req, res) => {
   try {
     const [rows, points] = await Promise.all([
       db
-        .select({ prediction: predictions, game: games })
+        .select({ prediction: predictions, game: games, odds: gameOdds })
         .from(predictions)
         .innerJoin(games, eq(predictions.gameId, games.id))
+        .leftJoin(gameOdds, eq(gameOdds.gameId, games.id))
         .where(eq(predictions.userId, req.userId!)),
       getUserPoints(req.userId!),
     ]);
 
     const resolved: ResolvedPick[] = [];
-    for (const { prediction, game } of rows) {
+    // Century badge (below) needs real odds-weighted points, not a flat
+    // count*POINTS_PER_CORRECT — mirrors services/points.ts/leaderboard.ts's
+    // SQL version of the same formula, just computed in JS here since this
+    // route already loops resolved picks row-by-row.
+    let predictionPoints = 0;
+    for (const { prediction, game, odds } of rows) {
       const winnerTeamId = computeWinnerTeamId(game);
       if (winnerTeamId === null) continue;
-      resolved.push({
-        round: game.round,
-        tipoffAt: game.tipoffAt,
-        correct: winnerTeamId === prediction.predictedWinnerTeamId,
-      });
+      const correct = winnerTeamId === prediction.predictedWinnerTeamId;
+      resolved.push({ round: game.round, tipoffAt: game.tipoffAt, correct });
+      if (correct) {
+        const fairProb = odds
+          ? prediction.predictedWinnerTeamId === game.homeTeamId
+            ? odds.homeFairProb
+            : odds.awayFairProb
+          : null;
+        predictionPoints += pointsForCorrectPick(fairProb);
+      }
     }
     resolved.sort((a, b) => new Date(a.tipoffAt).getTime() - new Date(b.tipoffAt).getTime());
 
-    const correctCount = resolved.filter((p) => p.correct).length;
     const badges = earnedBadges({
       picks: resolved,
       hasAnyPick: rows.length > 0,
-      predictionPoints: correctCount * POINTS_PER_CORRECT,
+      predictionPoints,
     });
     // Independent of each other — none of these three affect one another —
     // so run them concurrently instead of adding their round trips to the

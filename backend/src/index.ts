@@ -20,7 +20,9 @@ import { tradesRouter } from "./routes/trades.js";
 import { packsRouter } from "./routes/packs.js";
 import { eventsRouter } from "./routes/events.js";
 import { analyticsViewsRouter } from "./routes/analyticsViews.js";
+import { leaguesRouter } from "./routes/leagues.js";
 import { syncNews } from "./sync/newsSync.js";
+import { syncOdds } from "./sync/oddsSync.js";
 
 const app = express();
 // Railway sits in front of the app as a single reverse-proxy hop, adding
@@ -84,6 +86,7 @@ app.use("/api/trades", tradesRouter);
 app.use("/api/packs", packsRouter);
 app.use("/api/events", eventsRouter);
 app.use("/api/analytics-views", analyticsViewsRouter);
+app.use("/api/leagues", leaguesRouter);
 
 // Serves the built Angular app (see ./Dockerfile) — absent in local dev,
 // where the frontend runs separately via `ng serve` on its own port.
@@ -117,4 +120,24 @@ if (process.env.NODE_ENV === "production") {
   };
   runNewsSync();
   setInterval(runNewsSync, NEWS_SYNC_INTERVAL_MS);
+
+  // Odds-weighted prediction scoring (services/points.ts's
+  // pointsForCorrectPick) — a no-op every run until ODDS_API_KEY is set
+  // (see sync/oddsSync.ts), so this is safe to always run rather than
+  // gating the interval itself on the env var being present. Each run only
+  // fetches games that don't already have a game_odds snapshot (see that
+  // table's schema comment), so most runs after the first catch-up do
+  // little-to-no work — a few times a day is plenty to catch new games as
+  // they enter the sync window, well within a free-tier request quota.
+  const ODDS_SYNC_INTERVAL_MS = 6 * 60 * 60 * 1000;
+  const runOddsSync = () => {
+    syncOdds()
+      .then(({ gamesMatched, gamesSkipped, unmatchedTeamNames }) => {
+        if (gamesMatched === 0 && gamesSkipped === 0) return; // nothing pending, not worth a log line
+        console.log(`[odds sync] matched ${gamesMatched} games, skipped ${gamesSkipped}${unmatchedTeamNames.length ? `, unmatched teams: ${unmatchedTeamNames.join(", ")}` : ""}`);
+      })
+      .catch((err) => console.error("[odds sync] failed:", err));
+  };
+  runOddsSync();
+  setInterval(runOddsSync, ODDS_SYNC_INTERVAL_MS);
 }

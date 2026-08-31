@@ -5,7 +5,7 @@ import { ApiService } from "../../core/api.service";
 import { ThemeService } from "../../core/theme.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
-import { StandingsRow, LeaderEntry, RoundMvp, NewsArticle, Game, LeaderboardEntry } from "../../core/models";
+import { StandingsRow, LeaderEntry, RoundMvp, NewsArticle, Game, LeaderboardEntry, League } from "../../core/models";
 import { PageHintComponent } from "../../shared/page-hint";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { NavIconComponent } from "../../shared/nav-icon";
@@ -73,6 +73,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // renders for guests too: social proof for the points economy the
   // guest-only hint below is pitching.
   readonly leaderboard = signal<LeaderboardEntry[]>([]);
+  // My Leagues teaser — unlike the other dashboard cards, this renders even
+  // when empty (a CTA to create/join one) rather than being omitted, since
+  // the whole point of putting it here is discovery: a user who's never
+  // heard of Leagues needs to see *something*, not just existing members
+  // getting a shortcut. Requires an account (leagues can't be created/
+  // joined as a guest), so gated behind auth like the favorite-team hero,
+  // not shown to guests the way the public leaderboard teaser is.
+  readonly myLeagues = signal<League[]>([]);
 
   readonly selectedRow = computed(
     () => this.standings().find((r) => r.team.id === this.selectedTeamId()) ?? null
@@ -158,6 +166,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
       next: (result) => this.roundMvp.set(result),
       error: () => {}, // non-critical widget
     });
+
+    if (this.auth.isAuthenticated()) {
+      this.api.getMyLeagues().subscribe({
+        next: (rows) => this.myLeagues.set(rows),
+        error: () => {}, // non-critical widget
+      });
+    }
 
     this.api.getLeaderboard().subscribe({
       next: (rows) => this.leaderboard.set(rows.slice(0, 5)),
@@ -251,5 +266,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
       ? game.homeScore > game.awayScore
       : game.awayScore > game.homeScore;
     return won ? "W" : "L";
+  }
+
+  // Display-only translation of teamResult()'s "W"/"L" — kept as a
+  // separate function rather than folded into teamResult() itself, since
+  // callers also compare the raw "W"/"L" value directly (win/loss color
+  // classes) and shouldn't have to compare against a language-dependent
+  // string. Ν/Η (Νίκη/Ήττα — Win/Loss) is the standard Greek sports
+  // shorthand, same convention as a standings table's Ν-Η record column.
+  resultLabel(result: "W" | "L" | null): string {
+    if (result === null) return "";
+    if (this.i18n.lang() !== "el") return result;
+    return result === "W" ? "Ν" : "Η";
   }
 }

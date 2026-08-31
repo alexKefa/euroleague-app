@@ -6,16 +6,27 @@ import { AuthService } from "../../core/auth.service";
 import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
 import { ThemeService } from "../../core/theme.service";
-import { Team, Collectible } from "../../core/models";
+import { Team, Collectible, CollectibleFinish } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ButtonDirective } from "../../shared/button.directive";
 import { ChipDirective } from "../../shared/chip.directive";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
+import { CollectibleCardComponent } from "../store/collectible-card";
+
+const MAX_SHOWCASE_CARDS = 3;
 
 @Component({
   selector: "app-profile",
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RetryImgDirective, ButtonDirective, ChipDirective, DropdownComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RetryImgDirective,
+    ButtonDirective,
+    ChipDirective,
+    DropdownComponent,
+    CollectibleCardComponent,
+  ],
   templateUrl: "./profile.html",
 })
 export class ProfileComponent implements OnInit {
@@ -35,6 +46,35 @@ export class ProfileComponent implements OnInit {
     return code ? `${location.origin}/register?ref=${code}` : null;
   });
   readonly referralCopied = signal(false);
+
+  // Showcase cards — which of the user's owned collectibles show up next to
+  // their name on a league leaderboard (routes/leagues.ts). allCollectibles
+  // + ownedIds mirror inventory.ts's exact "fetch the full catalog, cross-
+  // reference against GET /collectibles/me" pattern, since a showcase pick
+  // needs the same name/tier/team/imageUrl inventory shows, not just an id.
+  private readonly allCollectibles = signal<Collectible[]>([]);
+  private readonly ownedCollectibleIds = signal<ReadonlySet<string>>(new Set());
+  // Catalog rows (allCollectibles) don't carry a per-user finish — see
+  // Collectible.finish's doc comment — so it's tracked separately from the
+  // same GET /collectibles/me response ownedCollectibleIds is built from,
+  // same "cross-reference the catalog against my owned copies" split as
+  // inventory.ts's finishByCollectibleId/finishFor.
+  private readonly finishByCollectibleId = signal<ReadonlyMap<string, CollectibleFinish>>(new Map());
+  finishFor(card: { id: string }): CollectibleFinish {
+    return this.finishByCollectibleId().get(card.id) ?? "standard";
+  }
+  readonly myOwnedCollectibles = computed(() =>
+    this.allCollectibles().filter((c) => this.ownedCollectibleIds().has(c.id))
+  );
+  readonly showcaseSelected = signal<ReadonlySet<string>>(new Set());
+  readonly showcaseSaving = signal(false);
+  readonly showcaseSaved = signal(false);
+  readonly showcaseError = signal<string | null>(null);
+  readonly showcaseDirty = computed(() => {
+    const saved = new Set(this.auth.currentUser()?.showcaseCollectibleIds ?? []);
+    const selected = this.showcaseSelected();
+    return saved.size !== selected.size || [...selected].some((id) => !saved.has(id));
+  });
 
   // Admin-only tools — collectibles list is only fetched for the grant-a-
   // card form's dropdown, so there's no point loading it for non-admins.
@@ -84,10 +124,56 @@ export class ProfileComponent implements OnInit {
     if (this.auth.currentUser()?.isAdmin) {
       this.refreshCollectibles();
     }
+
+    if (this.auth.isAuthenticated()) {
+      this.api.getCollectibles().subscribe({ next: (rows) => this.allCollectibles.set(rows), error: () => {} });
+      this.api.getMyCollectibles().subscribe({
+        next: (rows) => {
+          this.ownedCollectibleIds.set(new Set(rows.map((r) => r.collectibleId)));
+          this.finishByCollectibleId.set(new Map(rows.map((r) => [r.collectibleId, r.finish])));
+        },
+        error: () => {},
+      });
+      this.showcaseSelected.set(new Set(this.auth.currentUser()?.showcaseCollectibleIds ?? []));
+    }
   }
 
   private refreshCollectibles(): void {
     this.api.getCollectibles().subscribe({ next: (rows) => this.collectibles.set(rows), error: () => {} });
+  }
+
+  toggleShowcase(collectibleId: string): void {
+    const next = new Set(this.showcaseSelected());
+    if (next.has(collectibleId)) {
+      next.delete(collectibleId);
+    } else {
+      if (next.size >= MAX_SHOWCASE_CARDS) {
+        this.showcaseError.set(this.i18n.t("profile.showcaseMaxReached"));
+        return;
+      }
+      next.add(collectibleId);
+    }
+    this.showcaseError.set(null);
+    this.showcaseSelected.set(next);
+  }
+
+  saveShowcase(): void {
+    if (this.showcaseSaving()) return;
+    this.showcaseSaving.set(true);
+    this.showcaseError.set(null);
+    this.showcaseSaved.set(false);
+
+    this.auth.updateShowcase(Array.from(this.showcaseSelected())).subscribe({
+      next: () => {
+        this.showcaseSaving.set(false);
+        this.showcaseSaved.set(true);
+        setTimeout(() => this.showcaseSaved.set(false), 2000);
+      },
+      error: () => {
+        this.showcaseSaving.set(false);
+        this.showcaseError.set(this.i18n.t("profile.showcaseSaveFailed"));
+      },
+    });
   }
 
   setFavoriteTeam(teamId: string): void {

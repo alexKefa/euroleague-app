@@ -2,7 +2,7 @@ import { Router } from "express";
 import { eq, and, inArray, isNotNull, asc, desc, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "../db/client.js";
-import { teams, games, players, playerGameStats, playerSeasonStats, teamSeasonStats } from "../db/schema.js";
+import { teams, games, gameOdds, players, playerGameStats, playerSeasonStats, teamSeasonStats } from "../db/schema.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
 
 export const gamesRouter = Router();
@@ -132,10 +132,17 @@ gamesRouter.get("/schedule", async (req, res) => {
           primaryColor: awayTeam.primaryColor,
           logoUrl: awayTeam.logoUrl,
         },
+        // Nullable — only present once sync/oddsSync.ts has captured a
+        // snapshot for this game (see game_odds' schema comment). Exposed
+        // here so the Predictions page can show a real per-pick point
+        // value before a pick resolves, not just after.
+        homeFairProb: gameOdds.homeFairProb,
+        awayFairProb: gameOdds.awayFairProb,
       })
       .from(games)
       .innerJoin(homeTeam, eq(games.homeTeamId, homeTeam.id))
       .innerJoin(awayTeam, eq(games.awayTeamId, awayTeam.id))
+      .leftJoin(gameOdds, eq(gameOdds.gameId, games.id))
       .where(and(eq(games.season, season), eq(games.round, round)))
       .orderBy(asc(games.tipoffAt));
 

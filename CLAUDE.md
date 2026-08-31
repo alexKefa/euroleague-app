@@ -88,14 +88,77 @@ If you need to apply a schema change without an interactive terminal
   model; `backend/src/db/client.ts` wires up `drizzle-orm/postgres-js`.
 - **Predictions points/badges are computed on read, never stored as a
   balance.** `backend/src/routes/predictions.ts` recomputes
-  `correct picks × 10 + sum(point_adjustments)` and badge eligibility on
-  every request from `predictions` + `games` + `point_adjustments`. This
-  mirrors how `isCorrect` was already computed lazily (via
-  `computeWinnerTeamId`) before points/badges existed. If you change a
-  scoring rule, every read reflects it immediately — no backfill job needed.
-  `point_adjustments` is an admin-only manual grant/deduction ledger
-  (`POST /predictions/points/adjust`, gated by `requireAdmin`); there is no
-  bootstrap flow for the first admin — flip `users.is_admin` by hand in the DB.
+  `sum(per-pick points) + sum(point_adjustments)` and badge eligibility on
+  every request from `predictions` + `games` + `point_adjustments` (+
+  `game_odds`, see below). This mirrors how `isCorrect` was already
+  computed lazily (via `computeWinnerTeamId`) before points/badges existed.
+  If you change a scoring rule, every read reflects it immediately — no
+  backfill job needed. `point_adjustments` is an admin-only manual
+  grant/deduction ledger (`POST /predictions/points/adjust`, gated by
+  `requireAdmin`); there is no bootstrap flow for the first admin — flip
+  `users.is_admin` by hand in the DB.
+- **Odds-weighted prediction points** (2026-08-31, redesigned same day from
+  a symmetric-penalty curve to a floor-not-penalty one — see below). A
+  correctly-picked underdog pays a bonus on top of the original flat
+  `POINTS_PER_CORRECT` (10) — the less likely the market thought it was,
+  the bigger the bonus — but a correctly-picked favorite is **never worth
+  less** than that original flat rate. `fairProb` is the picked team's
+  de-vigged implied win probability (`services/points.ts`'s
+  `pointsForCorrectPick`):
+  - `fairProb > 0.5` (favorite pick): flat `10`, always — no reduction
+    regardless of how big a favorite it was.
+  - `fairProb <= 0.5` (underdog pick, clamped to `>= 0.05`):
+    `max(10, round(10 × (1 + 1.5 × (0.5 − fairProb) / 0.5)))` — up to ~24pts
+    at `fairProb = 0.05`.
+
+  Both branches equal exactly 10 at `fairProb = 0.5` (continuous, no jump
+  at the boundary). **The first cut of this formula also scaled the
+  favorite side down** (toward ~1pt for a heavy favorite) on the reasoning
+  that the two sides being symmetric around `fairProb = 0.5` would keep the
+  *average* payout close to unchanged — that reasoning assumed favorite-
+  correct and underdog-correct picks would happen roughly equally often,
+  which doesn't hold in practice: people correctly pick favorites far more
+  often than they correctly pick underdogs (that's what makes them
+  favorites), so most real correct picks would've landed on the low end of
+  that range, dragging the realistic average payout well below 10 and
+  making the whole points economy (badges, pack costs) noticeably harder
+  to earn into than before odds-weighting existed at all — caught from
+  real usage, not simulation. Flooring the favorite side fixes that
+  directly: every correct pick is guaranteed at least what it always was;
+  odds only ever add upside for a correctly-called upset, never downside
+  for a safe one. Re-run `scripts/season-simulation.ts` if real-world data
+  ever shows total points inflating enough to matter for pack costs/badge
+  thresholds — this version can only ever pay *more* than the original
+  flat-rate economy, never less, so if anything drifts it'll be upward.
+  A game with no `game_odds` row
+  (API not configured, quota exhausted, outside the sync window) resolves
+  at exactly the flat rate via the same formula (`coalesce(fairProb, 0.5)`
+  in the SQL version) — odds data is a bonus signal, never a scoring
+  dependency. `game_odds` (schema.ts) is captured once per game by
+  `sync/oddsSync.ts` (`npm run sync:odds`, production `setInterval` in
+  `index.ts`, no-ops entirely without `ODDS_API_KEY` — see Environment
+  variables below) from **The Odds API** (a plain REST/JSON API, no SDK
+  needed) and is *never updated after insert* — that single insert is the
+  "fixed snapshot before tipoff" this was deliberately built around, so two
+  users who pick the same team score identically regardless of when they
+  picked or how the line moved afterward, and the sync job never re-spends
+  API quota re-fetching a game it already captured. `sync/oddsTeamMap.ts`
+  matches the odds API's team-name strings (unconfirmed exact format —
+  normalization + substring matching, plus a manual override map for
+  anything that doesn't match automatically) against this app's own
+  `teams` table; `oddsSync.ts` logs any odds-API team name it couldn't
+  match at all, which is the signal to extend that map. The formula is
+  reused as SQL (`services/points.ts`'s `pointsSqlExpr`) inside
+  `getUserPoints`/`services/leaderboard.ts`'s `getLeaderboardEntries` (both
+  score many predictions per call via one grouped query, not a per-row JS
+  loop — same "fewer round trips" reasoning as elsewhere in this app) and
+  in plain JS inside `/predictions/me/summary`'s badge-eligibility
+  calculation, which already loops resolved picks row-by-row. The
+  Predictions page's "Upcoming games" list and its "potential points"
+  preview (`predictions.ts`) read `homeFairProb`/`awayFairProb` off
+  `GET /games/schedule` (nullable — only present once a game has a
+  `game_odds` row) to show real per-pick point values before a pick
+  resolves, not just after.
 - **Predictions are submitted in one batch, not one request per tap**
   (2026-08-26). Tapping a team on the Predictions page's "Upcoming games"
   card only updates local component state (`pendingPicks` in
@@ -313,6 +376,41 @@ If you need to apply a schema change without an interactive terminal
   `referralRewardGranted` (claimed via a conditional UPDATE, same
   claim-first idempotency pattern as `roundRewards`) stops it from ever
   firing twice for the same referred user.
+- **Leagues** (2026-08-31; `leagues`/`leagueMembers` in `schema.ts`,
+  `services/leagues.ts`, `routes/leagues.ts`,
+  `frontend/src/app/features/leagues/`). Private friend groups ranked by the
+  same lifetime prediction points as the global leaderboard — no separate
+  scoring concept. `services/leaderboard.ts`'s `getLeaderboardEntries` was
+  extracted out of what used to be `predictions.ts`'s inline `/leaderboard`
+  handler so both the global board (`limit: 20`, no `userIds`) and a
+  league's scoped board (`userIds`: that league's member ids, no limit)
+  share the same ranking/badge logic — the `userIds` filter is applied in
+  JS to the same unfiltered totals query both callers already needed,
+  rather than parameterizing an array into the raw `sql` template. Unlike
+  the global board, a league's leaderboard still includes a member with
+  zero resolved predictions (0 points, ranked last) — small known friend
+  group, "everyone's here, nobody's scored yet" is worth showing rather
+  than silently omitting them until their first pick resolves. Invite codes
+  (`services/leagues.ts`'s `createUniqueLeagueCode`) reuse the exact same
+  alphabet/length as `users.referralCode`; `POST /leagues/join` is
+  idempotent (`onConflictDoNothing`) since a shared invite link can be
+  opened by someone already in that league. No v1 delete/kick — only join
+  and leave (`POST /leagues/:id/leave`); the creator is just the first
+  `leagueMembers` row (`leagues.createdByUserId` is provenance only, not an
+  ongoing owner role). **Showcase cards**
+  (`users.showcaseCollectibleIds`, `PUT /users/me/showcase`, capped at 3,
+  ownership-checked at write time) let a player pin a few owned cards to
+  show next to their name on a league leaderboard — global to the user
+  (not per-league) so the same picks show in every league they're in, set
+  from a new section on the Profile page reusing Trades' exact `Set`-based
+  toggle + `CollectibleCardComponent[selected]` pattern. Not pruned if a
+  showcased card is later traded away; the league leaderboard route just
+  silently drops any id it can't resolve to a still-existing collectible,
+  same best-effort staleness as trades' `wishlist` column. Reached via a
+  "My leagues →" link on the Predictions page's leaderboard card (not a new
+  top-level nav item — the rail is already at its documented max), same
+  visual convention as the existing `/predictions-analytics` link right
+  next to it.
 - **DB round trips, not query count via `Promise.all`, are the real latency
   lever against Neon.** Measured directly (2026-08-21, local dev against
   the same remote Neon instance production uses): 4 near-identical queries
@@ -543,7 +641,12 @@ Required: `DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`.
 Optional (defaults shown): `PORT` (4000), `JWT_ACCESS_EXPIRES_IN` (15m),
 `JWT_REFRESH_EXPIRES_IN` (30d), `EUROLEAGUE_API_BASE_URL`,
 `EUROLEAGUE_COMPETITION_CODE`, `NODE_ENV` (gates the refresh cookie's
-`secure` flag).
+`secure` flag), `ODDS_API_KEY` (unset = odds-weighted scoring quietly
+degrades to the flat rate everywhere, see the Leagues/predictions section
+below), `ODDS_API_SPORT_KEY` (defaults to `basketball_euroleague` — only
+inferred from web search, not confirmed against a live call; verify with
+`GET https://api.the-odds-api.com/v4/sports/?apiKey=KEY` if odds sync
+matches nothing).
 
 ## Deployment
 

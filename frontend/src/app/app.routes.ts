@@ -99,6 +99,14 @@ export const routes: Routes = [
     loadComponent: () => import("./features/trades/trades").then((m) => m.TradesComponent),
   },
   {
+    path: "leagues",
+    loadComponent: () => import("./features/leagues/leagues").then((m) => m.LeaguesComponent),
+  },
+  {
+    path: "leagues/:id",
+    loadComponent: () => import("./features/leagues/league-detail").then((m) => m.LeagueDetailComponent),
+  },
+  {
     path: "profile",
     loadComponent: () => import("./features/profile/profile").then((m) => m.ProfileComponent),
   },

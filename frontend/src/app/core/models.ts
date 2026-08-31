@@ -5,6 +5,9 @@ export interface PublicUser {
   avatarUrl: string | null;
   isAdmin: boolean;
   referralCode: string | null;
+  // Up to 3 owned collectible ids shown next to this user's name on a
+  // league leaderboard — see PUT /api/users/me/showcase.
+  showcaseCollectibleIds: string[];
 }
 
 export interface NewsSyncStatus {
@@ -235,6 +238,14 @@ export interface Game {
   homeTeam: GameTeamSummary;
   awayTeam: GameTeamSummary;
   highlightVideoId?: string | null;
+  // De-vigged implied win probability per side, from a one-time betting-
+  // odds snapshot (backend's game_odds table) — undefined/null until
+  // sync/oddsSync.ts has captured one for this game (only GET
+  // /games/schedule populates these; other Game-shaped endpoints omit
+  // them). Drives the real per-pick point preview on the Predictions page
+  // — see backend CLAUDE.md's "Odds-weighted prediction points" section.
+  homeFairProb?: number | null;
+  awayFairProb?: number | null;
 }
 
 export interface RoundsInfo {
@@ -541,6 +552,53 @@ export interface TradeOffer {
   counterpartyName: string;
   offered: TradeCardRef[];
   requested: TradeCardRef;
+}
+
+// GET /api/leagues/mine — a league the current user belongs to. joinedAt is
+// *this user's* join date, not the league's creation date (see the route's
+// comment) — a league someone else made you a member of long ago should
+// still surface like anything else new.
+export interface League {
+  id: string;
+  name: string;
+  code: string;
+  memberCount: number;
+  joinedAt: string;
+}
+
+export interface LeagueMember {
+  userId: string;
+  displayName: string;
+  joinedAt: string;
+}
+
+// GET /api/leagues/:id
+export interface LeagueDetail {
+  id: string;
+  name: string;
+  code: string;
+  createdByUserId: string;
+  createdAt: string;
+  members: LeagueMember[];
+}
+
+// Cosmetic-only card shown next to a leaderboard entry — resolved from
+// users.showcaseCollectibleIds server-side (routes/leagues.ts), not the
+// full Collectible shape (no pointsCost/buyPrice/serial, not relevant here).
+export interface LeagueShowcaseCard {
+  id: string;
+  name: string;
+  tier: CollectibleTier;
+  imageUrl: string | null;
+  team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
+}
+
+// GET /api/leagues/:id/leaderboard — same shape as the global
+// LeaderboardEntry plus each member's showcase cards. Unlike the global
+// board, a member with zero resolved predictions yet is still included
+// (0 points, ranked last) — see the route's comment.
+export interface LeagueLeaderboardEntry extends LeaderboardEntry {
+  showcase: LeagueShowcaseCard[];
 }
 
 export interface StandingsRow {

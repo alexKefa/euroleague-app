@@ -12,6 +12,7 @@
     "db:studio": "drizzle-kit studio --config=drizzle.config.ts",
     "sync:standings": "tsx src/sync/runSync.ts",
     "sync:news": "tsx src/sync/runNewsSync.ts",
+    "sync:odds": "tsx src/sync/runOddsSync.ts",
     "economy:report": "tsx src/scripts/economy-report.ts",
     "economy:simulate": "tsx src/scripts/season-simulation.ts",
     "collectibles:expand": "tsx src/scripts/expand-collectibles.ts",

@@ -19,11 +19,24 @@ import { newsDateLocale, shortDateFormat as gameShortDateFormat, gameDateTimeFor
 // should only ever be open for the round a user could actually be watching.
 const SEASON = "2026-27";
 
-// Mirrors backend/src/services/points.ts's POINTS_PER_CORRECT — kept as a
-// separate constant here (not fetched) since it's only used to preview a
-// number the backend will compute for real once each game resolves; keep
-// the two in sync if that scoring rule ever changes.
+// Mirrors backend/src/services/points.ts's POINTS_PER_CORRECT/
+// pointsForCorrectPick exactly — kept as a separate implementation here
+// (not fetched) since it's only used to preview a number the backend will
+// compute for real once each pick resolves; keep the two in sync if that
+// scoring rule ever changes. See that file's doc comment: a correctly-
+// picked favorite is always worth the flat POINTS_PER_CORRECT (never
+// reduced), a correctly-picked underdog pays that plus a bonus that grows
+// the less likely the market thought it was.
 const POINTS_PER_CORRECT = 10;
+const UNDERDOG_BOOST = 1.5;
+const MIN_FAIR_PROB = 0.05;
+
+function pointsForCorrectPick(fairProb: number | null | undefined): number {
+  if (fairProb == null || fairProb > 0.5) return POINTS_PER_CORRECT;
+  const p = Math.max(MIN_FAIR_PROB, Math.min(0.5, fairProb));
+  const raw = POINTS_PER_CORRECT * (1 + (UNDERDOG_BOOST * (0.5 - p)) / 0.5);
+  return Math.max(POINTS_PER_CORRECT, Math.round(raw));
+}
 
 // Icon glyphs for known badge ids — purely a display concern, the backend
 // only sends id/label/description. Unrecognized ids fall back to a medal.
@@ -218,12 +231,27 @@ export class PredictionsComponent implements OnInit {
   // (see ngOnInit's filter below), so any of them with a pick is necessarily
   // still unresolved. Reads effectivePicks (not myPicks) so this updates
   // the instant a pick is tapped, before it's even been submitted — no
-  // extra round trip, no waiting for the backend to confirm.
+  // extra round trip, no waiting for the backend to confirm. Sums each
+  // picked game's real odds-weighted value (pointsForCorrectPick, falling
+  // back to the flat rate for a game with no odds snapshot yet) rather
+  // than a flat per-pick count — an underdog pick now genuinely previews
+  // as worth more.
   readonly potentialPoints = computed(() => {
     const picks = this.effectivePicks();
-    const unresolvedPickCount = this.upcomingGames().filter((g) => picks.has(g.id)).length;
-    return unresolvedPickCount * POINTS_PER_CORRECT;
+    return this.upcomingGames().reduce((sum, g) => {
+      const teamId = picks.get(g.id);
+      return teamId ? sum + this.pointsForPick(g, teamId) : sum;
+    }, 0);
   });
+
+  // Points a specific pick on `game` would earn if it resolves correct —
+  // used both by potentialPoints above and directly in the template to
+  // show a value next to each team button, so the odds actually driving
+  // the score are visible *before* picking, not just discovered after.
+  pointsForPick(game: Game, teamId: string): number {
+    const fairProb = teamId === game.homeTeam.id ? game.homeFairProb : game.awayFairProb;
+    return pointsForCorrectPick(fairProb);
+  }
 
   constructor() {
     // Live score push, same pattern as schedule.ts: patch the matching

@@ -25,6 +25,45 @@
       </div>
     }
 
+    @if (myOwnedCollectibles().length > 0) {
+      <div class="bg-card rounded-lg shadow-card p-4 mb-5">
+        <p class="font-mono text-[12px] text-muted font-bold mb-1">{{ i18n.t('profile.showcaseTitle') }}</p>
+        <p class="text-xs text-muted mb-3">{{ i18n.t('profile.showcaseHint') }}</p>
+        <div class="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-3 max-h-80 overflow-y-auto p-1">
+          @for (card of myOwnedCollectibles(); track card.id) {
+            <button type="button" (click)="toggleShowcase(card.id)" class="w-full focus:outline-none">
+              <app-collectible-card
+                class="block w-full"
+                [name]="card.name"
+                [tier]="card.tier"
+                [teamCode]="card.team.code"
+                [teamColor]="card.team.primaryColor"
+                [imageUrl]="card.imageUrl"
+                [unlocked]="true"
+                [selected]="showcaseSelected().has(card.id)"
+                [finish]="finishFor(card)"
+              ></app-collectible-card>
+            </button>
+          }
+        </div>
+        <button
+          type="button"
+          (click)="saveShowcase()"
+          [disabled]="showcaseSaving() || !showcaseDirty()"
+          appButton
+          appButtonSize="sm"
+        >
+          {{ showcaseSaving() ? i18n.t('profile.showcaseSaving') : i18n.t('profile.showcaseSave') }}
+        </button>
+        @if (showcaseError()) {
+          <p class="text-red-500 text-xs font-semibold mt-2">{{ showcaseError() }}</p>
+        }
+        @if (showcaseSaved()) {
+          <p class="text-emerald-500 text-xs font-semibold mt-2">{{ i18n.t('profile.showcaseSaved') }}</p>
+        }
+      </div>
+    }
+
     <div class="bg-card rounded-lg shadow-card p-4 mb-5">
       <p class="font-mono text-[12px] text-muted font-bold mb-3">{{ i18n.t('profile.language') }}</p>
       <div class="inline-flex bg-page border-2 border-line rounded-2xl p-1 gap-1">

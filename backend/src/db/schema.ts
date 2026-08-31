@@ -5,6 +5,7 @@ import {
   varchar,
   integer,
   real,
+  doublePrecision,
   boolean,
   timestamp,
   primaryKey,
@@ -45,6 +46,13 @@ export const users = pgTable("users", {
   referralCode: varchar("referral_code", { length: 10 }),
   referredByUserId: uuid("referred_by_user_id").references((): AnyPgColumn => users.id),
   referralRewardGranted: boolean("referral_reward_granted").default(false).notNull(),
+
+  // Up to MAX_SHOWCASE_CARDS (routes/users.ts) collectible ids this user has
+  // chosen to display next to their name on a league leaderboard
+  // (routes/leagues.ts) — purely cosmetic, doesn't need to be owned
+  // long-term to keep showing (a traded-away card just silently stops
+  // resolving, same "best-effort" spirit as a stale wishlist entry).
+  showcaseCollectibleIds: jsonb("showcase_collectible_ids").notNull().default([]).$type<string[]>(),
 });
 
 export const players = pgTable("players", {
@@ -92,6 +100,39 @@ export const games = pgTable(
     seasonGameCodeUnique: uniqueIndex("season_game_code_unique").on(table.season, table.gameCode),
   })
 );
+
+// A one-time betting-odds snapshot for a game, captured by
+// sync/oddsSync.ts while the game is still `scheduled` — inserted once and
+// never updated, which *is* the "fixed snapshot before tipoff" (see
+// services/points.ts's pointsForCorrectPick): every user who picked that
+// game is scored against the same number regardless of later line
+// movement, and the sync job never re-spends odds-API quota re-fetching a
+// game it already captured (it only queries for games missing a row here).
+// home/awayFairProb are de-vigged (bookmaker margin removed, so the pair
+// sums to 1) implied win probabilities averaged across every bookmaker the
+// odds API returned for that game. No row at all for a game (API
+// down/quota exhausted/game outside the sync window) means
+// pointsForCorrectPick() falls back to the flat POINTS_PER_CORRECT rate —
+// this table is a bonus signal, never a scoring dependency.
+export const gameOdds = pgTable("game_odds", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  gameId: uuid("game_id")
+    .notNull()
+    .unique()
+    .references(() => games.id),
+  // double precision, not real (float4) — the scoring formula
+  // (services/points.ts) does all its arithmetic in float8 to match JS's
+  // own number type exactly; widening a float4 column value up to float8
+  // for that arithmetic doesn't reproduce the same bits as a float8
+  // literal would, which was enough to disagree with the JS-side formula
+  // by ±1 point right at a x.5 rounding boundary (caught by testing the
+  // SQL and JS implementations against the same input and finding they
+  // disagreed at fairProb=0.05 specifically).
+  homeFairProb: doublePrecision("home_fair_prob").notNull(),
+  awayFairProb: doublePrecision("away_fair_prob").notNull(),
+  bookmakerCount: integer("bookmaker_count").notNull(),
+  capturedAt: timestamp("captured_at", { withTimezone: true }).defaultNow().notNull(),
+});
 
 export const teamSeasonStats = pgTable(
   "team_season_stats",
@@ -558,6 +599,38 @@ export const tradeOfferItems = pgTable(
   })
 );
 
+// Private friend groups, ranked by the same lifetime prediction points as
+// the global leaderboard (services/leaderboard.ts's getLeaderboardEntries,
+// just scoped to a member list instead of the whole user base) — no
+// separate points/scoring concept of its own. code is a short, shareable
+// invite code (services/leagues.ts's createUniqueLeagueCode, same
+// alphabet/length as users.referralCode) rather than a raw league id, so an
+// invite link/code is short enough to read aloud or type by hand.
+export const leagues = pgTable("leagues", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  code: varchar("code", { length: 10 }).notNull().unique(),
+  createdByUserId: uuid("created_by_user_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// The creator is just the first row here (inserted alongside the league
+// itself) — no separate "owner" concept beyond leagues.createdByUserId,
+// and no v1 delete/kick, only join (POST /leagues/join) and leave (POST
+// /leagues/:id/leave).
+export const leagueMembers = pgTable(
+  "league_members",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    leagueId: uuid("league_id").notNull().references(() => leagues.id),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    joinedAt: timestamp("joined_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    leagueMemberUnique: uniqueIndex("league_member_unique").on(table.leagueId, table.userId),
+  })
+);
+
 // A user's saved custom stat table — which players and which
 // playerSeasonStats columns to show, plus how to sort it. Free (not
 // points-gated — considered and deliberately dropped), capped at 5 per
@@ -624,6 +697,11 @@ export const gamesRelations = relations(games, ({ one, many }) => ({
     relationName: "awayTeam",
   }),
   playerStats: many(playerGameStats),
+  odds: one(gameOdds, { fields: [games.id], references: [gameOdds.gameId] }),
+}));
+
+export const gameOddsRelations = relations(gameOdds, ({ one }) => ({
+  game: one(games, { fields: [gameOdds.gameId], references: [games.id] }),
 }));
 
 export const teamSeasonStatsRelations = relations(teamSeasonStats, ({ one }) => ({
@@ -733,4 +811,14 @@ export const tradeOfferItemsRelations = relations(tradeOfferItems, ({ one }) => 
     fields: [tradeOfferItems.collectibleId],
     references: [collectibles.id],
   }),
+}));
+
+export const leaguesRelations = relations(leagues, ({ one, many }) => ({
+  createdByUser: one(users, { fields: [leagues.createdByUserId], references: [users.id] }),
+  members: many(leagueMembers),
+}));
+
+export const leagueMembersRelations = relations(leagueMembers, ({ one }) => ({
+  league: one(leagues, { fields: [leagueMembers.leagueId], references: [leagues.id] }),
+  user: one(users, { fields: [leagueMembers.userId], references: [users.id] }),
 }));

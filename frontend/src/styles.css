@@ -56,6 +56,19 @@
   --color-ink: #14161a;
 }
 
+/* Tints a fixed-black-stroke raster icon (a PNG/SVG <img> with no
+   currentColor to hook into, unlike app-nav-icon's inline SVGs) to match
+   --color-ink in both themes: inverted to near-white on dark's near-black
+   ink, left alone on light's near-black ink (already close to black).
+   Dark is the unattributed default (see :root above), so the invert rule
+   is unscoped and light explicitly turns it back off. */
+.icon-ink-invert {
+  filter: brightness(0) invert(1);
+}
+:root[data-theme="light"] .icon-ink-invert {
+  filter: none;
+}
+
 body {
   @apply bg-page text-ink font-sans m-0;
   /* Ambient team-color wash — two radial glows anchored to the viewport
