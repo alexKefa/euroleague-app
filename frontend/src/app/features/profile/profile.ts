@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from "@angular/core";
+import { Component, OnInit, OnDestroy, ElementRef, viewChild, effect, inject, signal, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { Router } from "@angular/router";
 import { ReactiveFormsModule, FormBuilder, Validators } from "@angular/forms";
@@ -12,8 +12,15 @@ import { ButtonDirective } from "../../shared/button.directive";
 import { ChipDirective } from "../../shared/chip.directive";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { CollectibleCardComponent } from "../store/collectible-card";
+import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 
 const MAX_SHOWCASE_CARDS = 3;
+// Matches inventory.ts's own PAGE_SIZE — same "reveal a page at a time"
+// reasoning: a collector with a few hundred owned cards rendering every
+// app-collectible-card in the picker at once got laggy, same DOM-size
+// problem inventory.ts already solved this way, not a fetch-size one
+// (the full owned list is already fetched in one shot either way).
+const PAGE_SIZE = 20;
 
 @Component({
   selector: "app-profile",
@@ -26,10 +33,11 @@ const MAX_SHOWCASE_CARDS = 3;
     ChipDirective,
     DropdownComponent,
     CollectibleCardComponent,
+    LogoSpinnerComponent,
   ],
   templateUrl: "./profile.html",
 })
-export class ProfileComponent implements OnInit {
+export class ProfileComponent implements OnInit, OnDestroy {
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
   protected theme = inject(ThemeService);
@@ -66,6 +74,21 @@ export class ProfileComponent implements OnInit {
   readonly myOwnedCollectibles = computed(() =>
     this.allCollectibles().filter((c) => this.ownedCollectibleIds().has(c.id))
   );
+
+  // Windowed reveal of myOwnedCollectibles — see PAGE_SIZE's doc comment.
+  // The picker scrolls inside its own fixed-height box (not the page), so
+  // the IntersectionObserver below is rooted at that container element
+  // rather than the viewport (inventory.ts's page-level version leaves
+  // `root` unset for exactly the opposite reason).
+  readonly visibleCount = signal(PAGE_SIZE);
+  readonly loadingMoreOwned = signal(false);
+  readonly visibleOwnedCollectibles = computed(() => this.myOwnedCollectibles().slice(0, this.visibleCount()));
+  readonly hasMoreOwned = computed(() => this.visibleCount() < this.myOwnedCollectibles().length);
+
+  private readonly ownedScrollContainer = viewChild<ElementRef<HTMLDivElement>>("ownedScrollContainer");
+  private readonly ownedSentinel = viewChild<ElementRef<HTMLDivElement>>("ownedScrollSentinel");
+  private ownedObserver?: IntersectionObserver;
+
   readonly showcaseSelected = signal<ReadonlySet<string>>(new Set());
   readonly showcaseSaving = signal(false);
   readonly showcaseSaved = signal(false);
@@ -117,6 +140,38 @@ export class ProfileComponent implements OnInit {
     pointsCost: [50, [Validators.required, Validators.min(1)]],
     imageUrl: [""],
   });
+
+  constructor() {
+    effect(() => {
+      const root = this.ownedScrollContainer()?.nativeElement;
+      const sentinel = this.ownedSentinel()?.nativeElement;
+      this.ownedObserver?.disconnect();
+      if (!root || !sentinel) return;
+      this.ownedObserver = new IntersectionObserver(
+        (entries) => {
+          if (entries[0]?.isIntersecting) this.loadMoreOwned();
+        },
+        { root, rootMargin: "200px" }
+      );
+      this.ownedObserver.observe(sentinel);
+    });
+  }
+
+  loadMoreOwned(): void {
+    if (this.loadingMoreOwned() || !this.hasMoreOwned()) return;
+    this.loadingMoreOwned.set(true);
+    // Deferred a tick so the loader actually gets to paint before the
+    // comparatively expensive DOM work of revealing the next page runs —
+    // same reasoning as inventory.ts's loadMore().
+    setTimeout(() => {
+      this.visibleCount.update((n) => n + PAGE_SIZE);
+      this.loadingMoreOwned.set(false);
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.ownedObserver?.disconnect();
+  }
 
   ngOnInit(): void {
     this.api.getTeams().subscribe({ next: (rows) => this.teams.set(rows), error: () => {} });

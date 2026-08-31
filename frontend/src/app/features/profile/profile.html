@@ -29,8 +29,8 @@
       <div class="bg-card rounded-lg shadow-card p-4 mb-5">
         <p class="font-mono text-[12px] text-muted font-bold mb-1">{{ i18n.t('profile.showcaseTitle') }}</p>
         <p class="text-xs text-muted mb-3">{{ i18n.t('profile.showcaseHint') }}</p>
-        <div class="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-3 max-h-80 overflow-y-auto p-1">
-          @for (card of myOwnedCollectibles(); track card.id) {
+        <div #ownedScrollContainer class="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-3 max-h-80 overflow-y-auto p-1">
+          @for (card of visibleOwnedCollectibles(); track card.id) {
             <button type="button" (click)="toggleShowcase(card.id)" class="w-full focus:outline-none">
               <app-collectible-card
                 class="block w-full"
@@ -44,6 +44,14 @@
                 [finish]="finishFor(card)"
               ></app-collectible-card>
             </button>
+          }
+          @if (loadingMoreOwned()) {
+            <div class="col-span-full flex justify-center py-2">
+              <app-logo-spinner [size]="16" />
+            </div>
+          }
+          @if (hasMoreOwned()) {
+            <div #ownedScrollSentinel class="col-span-full h-1"></div>
           }
         </div>
         <button
