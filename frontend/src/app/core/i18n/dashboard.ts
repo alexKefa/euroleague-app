@@ -19,7 +19,7 @@ export const dashboardTranslations: Record<string, Record<Lang, string>> = {
   "dashboard.myLeagues": { en: "My Leagues", el: "Οι Λίγκες μου" },
   "dashboard.leaguesEmptyHint": {
     en: "Create a private league and compete with friends.",
-    el: "Δημιούργησε μια ιδιωτική λίγκα και συναγωνίσου με φίλους.",
+    el: "Δημιούργησε μια ιδιωτική λίγκα και παίξε με τους φίλους σου.",
   },
 
   "dashboard.pointsHintPrefix": { en: "Earn points by making correct predictions on", el: "Κέρδισε πόντους με σωστές προβλέψεις στις" },
