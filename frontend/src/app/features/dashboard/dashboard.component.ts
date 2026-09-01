@@ -32,6 +32,13 @@ const LEADER_CATEGORIES = [
 
 type LeaderCategory = (typeof LEADER_CATEGORIES)[number]["value"];
 
+// Performances/Leaders/Predictors/Schedule used to be four separate
+// stacked cards — merged into one tabbed card (2026-09-01 scroll-reduction
+// pass) since a dashboard should read "at a glance", and every one of these
+// already has its own full page a tap away (/stats, /predictions,
+// /schedule) via the links kept inside each tab.
+type DashboardTab = "performances" | "leaders" | "predictors" | "schedule";
+
 @Component({
   selector: "app-dashboard",
   standalone: true,
@@ -90,9 +97,35 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // not shown to guests the way the public leaderboard teaser is.
   readonly myLeagues = signal<League[]>([]);
 
+  // Which tab the merged Performances/Leaders/Predictors/Schedule card is
+  // showing. Defaults to the first section that actually has data (see the
+  // effect in the constructor) rather than a fixed tab, since e.g. an
+  // early-season roundMvp can be empty; userPickedTab stops that
+  // auto-selection from fighting a tap once someone's chosen one by hand.
+  readonly activeTab = signal<DashboardTab>("performances");
+  private userPickedTab = false;
+
   readonly selectedRow = computed(
     () => this.standings().find((r) => r.team.id === this.selectedTeamId()) ?? null
   );
+
+  // Top-3 + your team's own row (deduped) — replaces what used to be the
+  // full 21-row standings list. Your rank is already in the hero above;
+  // this is just enough context to place it, with the full table one tap
+  // away via the "view full" link kept on this card.
+  readonly miniStandings = computed(() => {
+    const rows = this.standings();
+    const top3 = rows.slice(0, 3);
+    const teamId = this.selectedTeamId();
+    if (!teamId || top3.some((r) => r.team.id === teamId)) return top3;
+    const yourRow = rows.find((r) => r.team.id === teamId);
+    return yourRow ? [...top3, yourRow] : top3;
+  });
+
+  readonly hasPerformances = computed(() => (this.roundMvp()?.leaders?.length ?? 0) > 0);
+  readonly hasLeaders = computed(() => this.leaders().length > 0);
+  readonly hasPredictors = computed(() => this.leaderboard().length > 0);
+  readonly hasSchedule = computed(() => this.recentGames().length > 0 || this.upcomingGames().length > 0);
 
   // teamGames is already ascending by tipoffAt (see GET /teams/:id/games).
   readonly recentGames = computed(() =>
@@ -117,12 +150,34 @@ export class DashboardComponent implements OnInit, OnDestroy {
       const lang = this.i18n.lang();
       // 10, not 3 — this now backs a stories rail (app-news-stories), which
       // wants a real row of circles to swipe/tap through, not just enough
-      // for a 3-item list.
-      this.api.getNews(10, lang).subscribe({
+      // for a 3-item list. dedupe:true collapses the same story appearing
+      // 2-3x in a row when several of our RSS feeds cover it near-
+      // simultaneously (see services/newsDedupe.ts) — the full /news page
+      // deliberately keeps every source's copy instead, so it doesn't pass
+      // this.
+      this.api.getNews(10, lang, true).subscribe({
         next: (articles) => this.news.set(articles),
         error: () => {}, // non-critical widget
       });
     });
+
+    effect(() => {
+      if (this.userPickedTab) return;
+      if (this.hasPerformances()) this.activeTab.set("performances");
+      else if (this.hasLeaders()) this.activeTab.set("leaders");
+      else if (this.hasPredictors()) this.activeTab.set("predictors");
+      else if (this.hasSchedule()) this.activeTab.set("schedule");
+    });
+  }
+
+  setTab(tab: DashboardTab): void {
+    this.userPickedTab = true;
+    this.activeTab.set(tab);
+  }
+
+  tabButtonClass(tab: DashboardTab): Record<string, boolean> {
+    const active = this.activeTab() === tab;
+    return { "bg-highlight text-page": active, "text-muted hover:bg-page": !active };
   }
 
   ngOnInit(): void {
@@ -176,7 +231,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     this.loadDashboardData();
     this.selectLeaderCategory(this.leaderCategory());
-    this.api.getNews(10, this.i18n.lang()).subscribe({
+    this.api.getNews(10, this.i18n.lang(), true).subscribe({
       next: (articles) => this.news.set(articles),
       error: () => {}, // non-critical widget
     });
