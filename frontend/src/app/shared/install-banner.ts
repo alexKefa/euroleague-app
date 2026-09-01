@@ -16,7 +16,13 @@ const VISIT_COUNT_KEY = "clutch-visit-count";
 const DISMISS_COOLDOWN_MS = 14 * 24 * 60 * 60 * 1000; // 2 weeks
 const SHOW_DELAY_MS = 3500; // let the splash screen settle first
 // Never nag on the very first visit — this is a "you've been using this a
-// bit" nudge, not a landing-page popup.
+// bit" nudge, not a landing-page popup. Bypassed for a "high-intent"
+// arrival (see isHighIntentArrival) — a visitor who just tapped
+// open-in-browser-banner.ts's "Open in Browser" from Messenger/Instagram
+// landed here specifically *to* install, on a real Safari/Chrome tab whose
+// localStorage never saw the in-app WebView's own (separate, sandboxed)
+// visit count. Making them come back a 2nd time to see this would silently
+// defeat the whole point of that other banner.
 const MIN_VISITS_BEFORE_SHOWING = 2;
 
 /**
@@ -77,13 +83,15 @@ export class InstallBannerComponent implements OnInit, OnDestroy {
     window.addEventListener("beforeinstallprompt", this.onBeforeInstallPrompt);
     window.addEventListener("appinstalled", this.onAppInstalled);
 
+    const highIntent = this.isHighIntentArrival();
+
     try {
       const dismissedUntil = Number(localStorage.getItem(DISMISS_KEY) ?? 0);
       if (Date.now() < dismissedUntil) return;
 
       const visits = Number(localStorage.getItem(VISIT_COUNT_KEY) ?? 0) + 1;
       localStorage.setItem(VISIT_COUNT_KEY, String(visits));
-      if (visits < MIN_VISITS_BEFORE_SHOWING) return;
+      if (visits < MIN_VISITS_BEFORE_SHOWING && !highIntent) return;
     } catch {
       // Private browsing / storage disabled — no memory of past visits or
       // dismissals, so it just shows every time. Not worth failing over.
@@ -102,6 +110,18 @@ export class InstallBannerComponent implements OnInit, OnDestroy {
       window.matchMedia?.("(display-mode: standalone)").matches === true ||
       (navigator as unknown as { standalone?: boolean }).standalone === true
     );
+  }
+
+  // Landed on the register page with a ?ref=/?promo= link — the exact
+  // shape open-in-browser-banner.ts targets on the way *out* of Messenger/
+  // Instagram. If they're here at all in a real browser, they either
+  // followed that banner's instructions or opened the link directly in
+  // Safari/Chrome to begin with; either way this is a deliberate visit
+  // worth treating as install-ready immediately, not "just passing through".
+  private isHighIntentArrival(): boolean {
+    if (!location.pathname.startsWith("/register")) return false;
+    const params = new URLSearchParams(location.search);
+    return params.has("ref") || params.has("promo");
   }
 
   private detectPlatform(): InstallPlatform | null {
