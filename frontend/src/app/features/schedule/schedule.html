@@ -93,7 +93,7 @@
                     >{{ game.homeTeam.name }}</span
                   >
                   @if (game.homeTeam.logoUrl) {
-                    <img [src]="game.homeTeam.logoUrl" [alt]="game.homeTeam.name" loading="lazy" decoding="async" appRetryImg class="w-7 h-7 object-contain shrink-0" />
+                    <img [src]="game.homeTeam.logoUrl" [alt]="game.homeTeam.name" loading="lazy" decoding="async" appRetryImg class="w-7 h-7 object-contain shrink-0 team-logo" />
                   } @else {
                     <span
                       class="w-7 h-7 rounded-full shrink-0"
@@ -132,7 +132,7 @@
 
                 <div class="flex items-center gap-2 flex-1 min-w-0">
                   @if (game.awayTeam.logoUrl) {
-                    <img [src]="game.awayTeam.logoUrl" [alt]="game.awayTeam.name" loading="lazy" decoding="async" appRetryImg class="w-7 h-7 object-contain shrink-0" />
+                    <img [src]="game.awayTeam.logoUrl" [alt]="game.awayTeam.name" loading="lazy" decoding="async" appRetryImg class="w-7 h-7 object-contain shrink-0 team-logo" />
                   } @else {
                     <span
                       class="w-7 h-7 rounded-full shrink-0"

@@ -51,7 +51,7 @@
           [style.background]="team.id === selectedTeamId() ? 'var(--color-card)' : null"
         >
           @if (team.logoUrl) {
-            <img [src]="team.logoUrl" [alt]="team.name" appRetryImg class="w-9 h-9 object-contain" />
+            <img [src]="team.logoUrl" [alt]="team.name" appRetryImg class="w-9 h-9 object-contain team-logo" />
           } @else {
             <div
               class="w-9 h-9 rounded-full flex items-center justify-center font-display text-[11px] text-white"
@@ -114,7 +114,7 @@
         >
           @if (teamById(adjacentTeamIds().prev); as prevTeam) {
             @if (prevTeam.logoUrl) {
-              <img [src]="prevTeam.logoUrl" [alt]="prevTeam.name" appRetryImg class="w-9 h-9 object-contain" />
+              <img [src]="prevTeam.logoUrl" [alt]="prevTeam.name" appRetryImg class="w-9 h-9 object-contain team-logo" />
             } @else {
               <div
                 class="w-9 h-9 rounded-full flex items-center justify-center font-display text-[10px] text-white"
@@ -152,7 +152,7 @@
 
           <div class="sm:w-64 shrink-0 border-b sm:border-b-0 border-line p-6 flex flex-col items-center text-center gap-4">
             @if (team.logoUrl) {
-              <img [src]="team.logoUrl" [alt]="team.name" appRetryImg class="w-16 h-16 object-contain" />
+              <img [src]="team.logoUrl" [alt]="team.name" appRetryImg class="w-16 h-16 object-contain team-logo" />
             } @else {
               <div
                 class="w-16 h-16 rounded-full flex items-center justify-center font-display text-lg text-white"
@@ -255,7 +255,7 @@
         >
           @if (teamById(adjacentTeamIds().next); as nextTeam) {
             @if (nextTeam.logoUrl) {
-              <img [src]="nextTeam.logoUrl" [alt]="nextTeam.name" appRetryImg class="w-9 h-9 object-contain" />
+              <img [src]="nextTeam.logoUrl" [alt]="nextTeam.name" appRetryImg class="w-9 h-9 object-contain team-logo" />
             } @else {
               <div
                 class="w-9 h-9 rounded-full flex items-center justify-center font-display text-[10px] text-white"

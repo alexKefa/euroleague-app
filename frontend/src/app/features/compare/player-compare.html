@@ -48,7 +48,7 @@
                     class="flex items-center gap-2 px-3 py-2 text-sm font-semibold cursor-pointer hover:bg-page transition-colors truncate"
                   >
                     @if (row.team.logoUrl) {
-                      <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0" />
+                      <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0 team-logo" />
                     }
                     <span class="truncate">{{ row.player.name }}</span>
                   </li>

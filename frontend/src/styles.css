@@ -69,6 +69,28 @@
   filter: none;
 }
 
+/* Team crest logos (.team-logo, applied to every <img [src]="team.logoUrl">
+   across the app) are transparent-background PNGs synced from the
+   EuroLeague media CDN — most are colorful/light enough to read fine
+   against the dark theme's near-black page, but the odd one (e.g. LDLC
+   ASVEL Villeurbanne's crest) is a solid near-black mark that otherwise
+   vanishes into it. A hard white outline traced along each logo's alpha
+   edge (four 1px-offset drop-shadows, not a background chip) keeps every
+   crest's silhouette visible regardless of how dark it is, without
+   special-casing teams by id and without changing how the
+   already-visible majority look. Skipped in light mode, where the page
+   is already light enough that nothing disappears into it. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .team-logo {
+    filter: drop-shadow(1px 0 0 rgba(255, 255, 255, 0.55)) drop-shadow(-1px 0 0 rgba(255, 255, 255, 0.55))
+      drop-shadow(0 1px 0 rgba(255, 255, 255, 0.55)) drop-shadow(0 -1px 0 rgba(255, 255, 255, 0.55));
+  }
+}
+:root[data-theme="dark"] .team-logo {
+  filter: drop-shadow(1px 0 0 rgba(255, 255, 255, 0.55)) drop-shadow(-1px 0 0 rgba(255, 255, 255, 0.55))
+    drop-shadow(0 1px 0 rgba(255, 255, 255, 0.55)) drop-shadow(0 -1px 0 rgba(255, 255, 255, 0.55));
+}
+
 body {
   @apply bg-page text-ink font-sans m-0;
   /* Ambient team-color wash — two radial glows anchored to the viewport

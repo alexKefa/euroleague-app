@@ -69,7 +69,7 @@
                   <td class="sticky left-0 z-10 bg-card px-3 py-2 font-bold whitespace-nowrap">
                     <span class="flex items-center gap-2">
                       @if (row.team.logoUrl) {
-                        <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0" />
+                        <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
                       } @else {
                         <span class="w-5 h-5 rounded-full shrink-0" [style.background]="row.team.primaryColor"></span>
                       }
@@ -100,7 +100,7 @@
             <a [routerLink]="['/games', u.gameId]" class="flex items-center justify-between gap-2 px-2 py-2 rounded-xl hover:bg-page transition-colors">
               <span class="flex items-center gap-2 min-w-0">
                 @if (u.homeTeam.logoUrl) {
-                  <img [src]="u.homeTeam.logoUrl" [alt]="u.homeTeam.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0" />
+                  <img [src]="u.homeTeam.logoUrl" [alt]="u.homeTeam.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
                 } @else {
                   <span class="w-5 h-5 rounded-full shrink-0 bg-line"></span>
                 }
@@ -108,7 +108,7 @@
                 <span class="font-mono font-bold text-sm">{{ u.homeScore }}-{{ u.awayScore }}</span>
                 <span class="font-display text-xs">{{ u.awayTeam.code }}</span>
                 @if (u.awayTeam.logoUrl) {
-                  <img [src]="u.awayTeam.logoUrl" [alt]="u.awayTeam.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0" />
+                  <img [src]="u.awayTeam.logoUrl" [alt]="u.awayTeam.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
                 } @else {
                   <span class="w-5 h-5 rounded-full shrink-0 bg-line"></span>
                 }

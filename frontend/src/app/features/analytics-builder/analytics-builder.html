@@ -74,7 +74,7 @@
             @for (row of selectedPlayers(); track row.player.id) {
               <span class="flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-full bg-page border border-line text-xs font-bold">
                 @if (row.team.logoUrl) {
-                  <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0" />
+                  <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0 team-logo" />
                 }
                 {{ row.player.name }}
                 <button type="button" (click)="removePlayer(row.player.id)" class="text-muted hover:text-red-500 transition-colors leading-none">&times;</button>
@@ -98,7 +98,7 @@
                   class="flex items-center gap-2 px-3 py-2 text-sm font-semibold cursor-pointer hover:bg-page transition-colors truncate"
                 >
                   @if (row.team.logoUrl) {
-                    <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0" />
+                    <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0 team-logo" />
                   }
                   <span class="truncate">{{ row.player.name }}</span>
                 </li>
@@ -245,7 +245,7 @@
                     <div class="flex items-center justify-between mb-1 gap-2">
                       <a [routerLink]="['/players', item.row.player.id]" class="flex items-center gap-1.5 text-xs font-bold truncate hover:text-highlight transition-colors">
                         @if (item.row.team.logoUrl) {
-                          <img [src]="item.row.team.logoUrl" [alt]="item.row.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0" />
+                          <img [src]="item.row.team.logoUrl" [alt]="item.row.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0 team-logo" />
                         } @else {
                           <span class="w-4 h-4 rounded-full shrink-0" [style.background]="item.row.team.primaryColor"></span>
                         }
@@ -294,7 +294,7 @@
                 <td class="sticky left-0 z-10 bg-card px-3 py-2 font-bold whitespace-nowrap">
                   <span class="flex items-center gap-2">
                     @if (row.team.logoUrl) {
-                      <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0" />
+                      <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
                     } @else {
                       <span class="w-5 h-5 rounded-full shrink-0" [style.background]="row.team.primaryColor"></span>
                     }

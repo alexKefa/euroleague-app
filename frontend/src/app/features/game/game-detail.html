@@ -36,7 +36,7 @@
       <div class="flex items-center justify-between gap-3">
         <a [routerLink]="['/teams', d.game.homeTeam.id]" class="flex flex-col items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition-opacity">
           @if (d.game.homeTeam.logoUrl) {
-            <img [src]="d.game.homeTeam.logoUrl" [alt]="d.game.homeTeam.name" loading="lazy" decoding="async" appRetryImg class="w-14 h-14 object-contain" />
+            <img [src]="d.game.homeTeam.logoUrl" [alt]="d.game.homeTeam.name" loading="lazy" decoding="async" appRetryImg class="w-14 h-14 object-contain team-logo" />
           } @else {
             <span class="w-14 h-14 rounded-full" [style.background]="d.game.homeTeam.primaryColor"></span>
           }
@@ -59,7 +59,7 @@
 
         <a [routerLink]="['/teams', d.game.awayTeam.id]" class="flex flex-col items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition-opacity">
           @if (d.game.awayTeam.logoUrl) {
-            <img [src]="d.game.awayTeam.logoUrl" [alt]="d.game.awayTeam.name" loading="lazy" decoding="async" appRetryImg class="w-14 h-14 object-contain" />
+            <img [src]="d.game.awayTeam.logoUrl" [alt]="d.game.awayTeam.name" loading="lazy" decoding="async" appRetryImg class="w-14 h-14 object-contain team-logo" />
           } @else {
             <span class="w-14 h-14 rounded-full" [style.background]="d.game.awayTeam.primaryColor"></span>
           }

@@ -98,7 +98,7 @@
                 <td class="px-3 py-2 font-bold whitespace-nowrap">
                   <span class="flex items-center gap-2">
                     @if (row.team.logoUrl) {
-                      <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0" />
+                      <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0 team-logo" />
                     } @else {
                       <span class="w-4 h-4 rounded-full shrink-0" [style.background]="row.team.primaryColor"></span>
                     }

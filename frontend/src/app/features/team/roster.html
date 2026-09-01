@@ -26,7 +26,7 @@
       >
         <div class="flex items-center gap-3">
           @if (t.logoUrl) {
-            <img [src]="t.logoUrl" [alt]="t.name" loading="lazy" decoding="async" appRetryImg class="w-10 h-10 object-contain shrink-0" />
+            <img [src]="t.logoUrl" [alt]="t.name" loading="lazy" decoding="async" appRetryImg class="w-10 h-10 object-contain shrink-0 team-logo" />
           } @else {
             <span
               class="w-10 h-10 rounded-lg flex items-center justify-center font-display text-sm bg-white/15 shrink-0"
@@ -167,7 +167,7 @@
               <span class="flex items-center gap-2">
                 <span class="font-display text-xs">{{ isHomeGame(game) ? "vs" : "@" }}</span>
                 @if (opponentTeam(game).logoUrl) {
-                  <img [src]="opponentTeam(game).logoUrl" [alt]="opponentTeam(game).name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0" />
+                  <img [src]="opponentTeam(game).logoUrl" [alt]="opponentTeam(game).name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
                 } @else {
                   <span class="w-5 h-5 rounded-full shrink-0" [style.background]="opponentTeam(game).primaryColor"></span>
                 }
@@ -198,7 +198,7 @@
               <span class="flex items-center gap-2">
                 <span class="font-display text-xs">{{ isHomeGame(game) ? "vs" : "@" }}</span>
                 @if (opponentTeam(game).logoUrl) {
-                  <img [src]="opponentTeam(game).logoUrl" [alt]="opponentTeam(game).name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0" />
+                  <img [src]="opponentTeam(game).logoUrl" [alt]="opponentTeam(game).name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
                 } @else {
                   <span class="w-5 h-5 rounded-full shrink-0" [style.background]="opponentTeam(game).primaryColor"></span>
                 }

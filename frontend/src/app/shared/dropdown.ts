@@ -40,7 +40,7 @@ export interface DropdownOption {
     >
       <span class="flex items-center gap-2 min-w-0">
         @if (selected()?.logoUrl) {
-          <img [src]="selected()!.logoUrl" alt="" appRetryImg class="w-4 h-4 object-contain shrink-0" />
+          <img [src]="selected()!.logoUrl" alt="" appRetryImg class="w-4 h-4 object-contain shrink-0 team-logo" />
         }
         <span class="truncate" [class.text-muted]="!selected()">{{ selected()?.label ?? placeholder }}</span>
       </span>
@@ -75,7 +75,7 @@ export interface DropdownOption {
             [class]="rowClasses(opt, i)"
           >
             @if (opt.logoUrl) {
-              <img [src]="opt.logoUrl" alt="" appRetryImg class="w-4 h-4 object-contain shrink-0" />
+              <img [src]="opt.logoUrl" alt="" appRetryImg class="w-4 h-4 object-contain shrink-0 team-logo" />
             }
             <span class="truncate">{{ opt.label }}</span>
           </li>

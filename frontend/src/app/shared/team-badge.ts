@@ -17,7 +17,7 @@ import { RetryImgDirective } from "./retry-img.directive";
           loading="lazy"
           decoding="async"
           appRetryImg
-          class="object-contain shrink-0"
+          class="object-contain shrink-0 team-logo"
           [style.height.px]="size"
           [style.width.px]="size"
         />

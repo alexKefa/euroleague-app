@@ -201,7 +201,7 @@
                     <span class="flex items-center gap-1.5">
                       <span class="font-display text-xs">{{ isHomeGame(entry) ? "vs" : "@" }}</span>
                       @if (opponentTeam(entry).logoUrl) {
-                        <img [src]="opponentTeam(entry).logoUrl" [alt]="opponentTeam(entry).name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0" />
+                        <img [src]="opponentTeam(entry).logoUrl" [alt]="opponentTeam(entry).name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0 team-logo" />
                       } @else {
                         <span class="w-4 h-4 rounded-full shrink-0" [style.background]="opponentTeam(entry).primaryColor"></span>
                       }
