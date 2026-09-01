@@ -11,27 +11,40 @@ export function computeWinnerTeamId(game: typeof games.$inferSelect): string | n
   return game.homeScore > game.awayScore ? game.homeTeamId : game.awayTeamId;
 }
 
-// Odds-weighted scoring (2026-08-31, floor-not-penalty redesign same day).
-// A correctly-picked underdog pays a bonus on top of the original flat
-// rate — the less likely the market thought it was, the bigger the bonus —
-// but a correctly-picked favorite is never worth *less* than the original
-// flat POINTS_PER_CORRECT. This was a deliberate reversal of the first cut
-// of this formula, which scaled the favorite side *down* toward ~1pt for
-// a heavy favorite: real prediction behavior isn't symmetric the way that
-// version assumed — people correctly pick favorites far more often than
-// they correctly pick underdogs (that's what makes them favorites), so in
-// practice most correct picks would've landed on the low end of that
-// range, dragging the realistic average payout well below 10 rather than
-// keeping it "roughly unchanged" as intended, and making the whole points
-// economy (badges, pack costs) noticeably harder to earn into than before
-// odds-weighting existed at all. Flooring the favorite side at the
-// original flat rate fixes that directly: every correct pick is still
-// worth at least what it always was, odds only ever add upside for a
-// correctly-called upset. The underdog side is clamped at MIN_FAIR_PROB so
-// a near-lock underdog doesn't blow past ~24pts on a rounding fluke in the
-// odds data; the favorite side needs no equivalent clamp since it's just
-// the flat rate regardless of how big a favorite it was.
-const UNDERDOG_BOOST = 1.5;
+// Odds-weighted scoring (2026-08-31 floor-not-penalty redesign; 2026-09-01
+// replaced entirely with a single direct-odds-multiple formula — see
+// below). Every correct pick is worth POINTS_PER_CORRECT times the picked
+// team's own fair odds (1/fairProb) — "pay roughly what the market itself
+// would," not a curve built around an arbitrary boost constant. There's no
+// favorite/underdog branch at all: a heavy favorite's fair odds sit close
+// to 1.0 so it scores close to the flat rate, a real underdog's fair odds
+// are much higher so it scores much more, and one formula covers both
+// continuously with no jump anywhere in between.
+//
+// This intentionally replaces the previous "floor favorites at exactly the
+// flat rate" design from the same week: that was built to fix a symmetric
+// curve that scaled favorites *down*, and flooring was the fix for that
+// specific problem. Once the underdog side became a direct odds multiple
+// (tried first as `fairOdds / 2`, still anchored to flat-10-for-favorites),
+// real numbers made clear that halving compressed real underdogs too much
+// (a ~39%-implied pick was only netting ~13, not the ~25 a direct multiply
+// gives) — and keeping favorites pinned at flat 10 while steepening the
+// underdog side to match would require a hard jump right at the coin-flip
+// line (a 51% favorite scoring 10 while a 49% underdog on the same game
+// scores 20), a real cliff that rewards picking whichever side is marked
+// ever-so-slightly the underdog. Dropping the favorite floor entirely
+// avoids that cliff, at the cost of favorites no longer being exactly flat
+// — a correct pick on a 55% favorite now scores ~18, not 10. Since most
+// correct picks land on favorites, this raises the *average* payout per
+// correct pick more than the old underdog-only bonus did —
+// season-simulation.ts doesn't model any odds bonus yet (only flat
+// POINTS_PER_CORRECT), so there's no simulated number confirming this
+// against pack-cost/badge-threshold pacing; re-run it (after teaching it to
+// model this) if real-world points start completing the album noticeably
+// faster than the documented ~140-155 median day. ODDS_POINTS_CAP keeps a
+// real long-shot from scaling unbounded (uncapped, a 5%-implied underdog
+// would net 200pts).
+const ODDS_POINTS_CAP = 40;
 const MIN_FAIR_PROB = 0.05;
 
 /**
@@ -43,10 +56,10 @@ const MIN_FAIR_PROB = 0.05;
  * flat rate rather than blocking scoring on external data availability.
  */
 export function pointsForCorrectPick(fairProb: number | null): number {
-  if (fairProb === null || fairProb > 0.5) return POINTS_PER_CORRECT;
-  const p = Math.max(MIN_FAIR_PROB, Math.min(0.5, fairProb));
-  const raw = POINTS_PER_CORRECT * (1 + (UNDERDOG_BOOST * (0.5 - p)) / 0.5);
-  return Math.max(POINTS_PER_CORRECT, Math.round(raw));
+  if (fairProb === null) return POINTS_PER_CORRECT;
+  const p = Math.max(MIN_FAIR_PROB, Math.min(1, fairProb));
+  const raw = POINTS_PER_CORRECT / p; // POINTS_PER_CORRECT * fairOdds
+  return Math.min(ODDS_POINTS_CAP, Math.max(POINTS_PER_CORRECT, Math.round(raw)));
 }
 
 // Same formula, inlined as a raw-SQL expression for the aggregate queries
@@ -67,15 +80,15 @@ export function pointsForCorrectPick(fairProb: number | null): number {
 // (not left as float8) — Postgres's single-argument round(double
 // precision) rounds half-to-even (and is exposed to float rounding noise
 // right at a x.5 boundary), which silently disagreed with JS's
-// Math.round's round-half-up at the exact fairProb=0.05/0.95 clamp
-// boundary (23 vs 24) until this was caught by testing both paths against
-// the same input.
+// Math.round's round-half-up at an exact clamp boundary until this was
+// caught by testing both paths against the same input.
 export function pointsSqlExpr(pickedFairProb: ReturnType<typeof sql>) {
-  // Clamped to [MIN_FAIR_PROB, 0.5] — anything above 0.5 (a favorite pick)
-  // never even reaches the bonus formula, it's just the flat rate.
-  const clampedP = sql`least(0.5::float8, greatest(${MIN_FAIR_PROB}::float8, coalesce(${pickedFairProb}, 0.5::float8)))`;
-  const underdogBranch = sql`${POINTS_PER_CORRECT}::float8 * (1::float8 + (${UNDERDOG_BOOST}::float8 * (0.5::float8 - (${clampedP}))) / 0.5::float8)`;
-  return sql<number>`case when coalesce(${pickedFairProb}, 0.5::float8) > 0.5 then ${POINTS_PER_CORRECT}::int else greatest(${POINTS_PER_CORRECT}, round((${underdogBranch})::numeric))::int end`;
+  // No game_odds row (coalesce to 1) degrades to the flat rate exactly like
+  // pointsForCorrectPick's `fairProb === null` branch does — POINTS_PER_CORRECT
+  // / 1 = POINTS_PER_CORRECT. Clamped to [MIN_FAIR_PROB, 1] otherwise.
+  const clampedP = sql`least(1::float8, greatest(${MIN_FAIR_PROB}::float8, coalesce(${pickedFairProb}, 1::float8)))`;
+  const raw = sql`${POINTS_PER_CORRECT}::float8 / (${clampedP})`;
+  return sql<number>`least(${ODDS_POINTS_CAP}, greatest(${POINTS_PER_CORRECT}, round((${raw})::numeric)))::int`;
 }
 
 /**

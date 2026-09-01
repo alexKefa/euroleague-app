@@ -24,19 +24,20 @@ const SEASON = "2026-27";
 // pointsForCorrectPick exactly — kept as a separate implementation here
 // (not fetched) since it's only used to preview a number the backend will
 // compute for real once each pick resolves; keep the two in sync if that
-// scoring rule ever changes. See that file's doc comment: a correctly-
-// picked favorite is always worth the flat POINTS_PER_CORRECT (never
-// reduced), a correctly-picked underdog pays that plus a bonus that grows
-// the less likely the market thought it was.
+// scoring rule ever changes. See that file's doc comment: no favorite/
+// underdog branch — every correct pick is worth POINTS_PER_CORRECT times
+// the picked team's own fair odds (1/fairProb), capped at ODDS_POINTS_CAP
+// so a real long-shot doesn't scale unbounded. No odds data (fairProb
+// null/undefined) degrades to the flat rate.
 const POINTS_PER_CORRECT = 10;
-const UNDERDOG_BOOST = 1.5;
+const ODDS_POINTS_CAP = 40;
 const MIN_FAIR_PROB = 0.05;
 
 function pointsForCorrectPick(fairProb: number | null | undefined): number {
-  if (fairProb == null || fairProb > 0.5) return POINTS_PER_CORRECT;
-  const p = Math.max(MIN_FAIR_PROB, Math.min(0.5, fairProb));
-  const raw = POINTS_PER_CORRECT * (1 + (UNDERDOG_BOOST * (0.5 - p)) / 0.5);
-  return Math.max(POINTS_PER_CORRECT, Math.round(raw));
+  if (fairProb == null) return POINTS_PER_CORRECT;
+  const p = Math.max(MIN_FAIR_PROB, Math.min(1, fairProb));
+  const raw = POINTS_PER_CORRECT / p;
+  return Math.min(ODDS_POINTS_CAP, Math.max(POINTS_PER_CORRECT, Math.round(raw)));
 }
 
 // Icon glyphs for known badge ids — purely a display concern, the backend

@@ -98,43 +98,68 @@ If you need to apply a schema change without an interactive terminal
   `requireAdmin`); there is no bootstrap flow for the first admin — flip
   `users.is_admin` by hand in the DB.
 - **Odds-weighted prediction points** (2026-08-31, redesigned same day from
-  a symmetric-penalty curve to a floor-not-penalty one — see below). A
-  correctly-picked underdog pays a bonus on top of the original flat
-  `POINTS_PER_CORRECT` (10) — the less likely the market thought it was,
-  the bigger the bonus — but a correctly-picked favorite is **never worth
-  less** than that original flat rate. `fairProb` is the picked team's
+  a symmetric-penalty curve to a floor-not-penalty one; replaced again
+  2026-09-01 with a single direct-odds-multiple formula — see below). Every
+  correct pick is worth `POINTS_PER_CORRECT` (10) times the picked team's
+  own fair odds — "pay roughly what the market itself would," not a curve
+  built around an arbitrary boost constant. `fairProb` is the picked team's
   de-vigged implied win probability (`services/points.ts`'s
   `pointsForCorrectPick`):
-  - `fairProb > 0.5` (favorite pick): flat `10`, always — no reduction
-    regardless of how big a favorite it was.
-  - `fairProb <= 0.5` (underdog pick, clamped to `>= 0.05`):
-    `max(10, round(10 × (1 + 1.5 × (0.5 − fairProb) / 0.5)))` — up to ~24pts
-    at `fairProb = 0.05`.
+  `min(40, max(10, round(10 / fairProb)))` — i.e. `POINTS_PER_CORRECT ×
+  fairOdds` (`fairOdds = 1 / fairProb`), floored at the flat rate (fair
+  odds are always ≥ 1.0, so this floor only ever bites on a rounding
+  fluke) and capped at 40. **There is no favorite/underdog branch at
+  all** — a heavy favorite's fair odds sit close to 1.0 so it scores close
+  to the flat rate, a real underdog's fair odds are much higher so it
+  scores much more, and the one formula covers both continuously with no
+  jump anywhere.
 
-  Both branches equal exactly 10 at `fairProb = 0.5` (continuous, no jump
-  at the boundary). **The first cut of this formula also scaled the
-  favorite side down** (toward ~1pt for a heavy favorite) on the reasoning
-  that the two sides being symmetric around `fairProb = 0.5` would keep the
-  *average* payout close to unchanged — that reasoning assumed favorite-
-  correct and underdog-correct picks would happen roughly equally often,
-  which doesn't hold in practice: people correctly pick favorites far more
-  often than they correctly pick underdogs (that's what makes them
-  favorites), so most real correct picks would've landed on the low end of
-  that range, dragging the realistic average payout well below 10 and
-  making the whole points economy (badges, pack costs) noticeably harder
-  to earn into than before odds-weighting existed at all — caught from
-  real usage, not simulation. Flooring the favorite side fixes that
-  directly: every correct pick is guaranteed at least what it always was;
-  odds only ever add upside for a correctly-called upset, never downside
-  for a safe one. Re-run `scripts/season-simulation.ts` if real-world data
-  ever shows total points inflating enough to matter for pack costs/badge
-  thresholds — this version can only ever pay *more* than the original
-  flat-rate economy, never less, so if anything drifts it'll be upward.
+  This is the third shape this formula has taken, each change driven by a
+  concrete problem with the previous one:
+  1. **Symmetric-penalty curve** (original): scaled the favorite side
+     *down* (toward ~1pt for a heavy favorite) on the assumption that
+     being symmetric around `fairProb = 0.5` would keep the *average*
+     payout roughly unchanged. Wrong in practice — people correctly pick
+     favorites far more often than they correctly pick underdogs (that's
+     what makes them favorites), so most real correct picks landed on the
+     low end of that range, dragging the realistic average payout well
+     below 10 and making the whole points economy (badges, pack costs)
+     harder to earn into than before odds-weighting existed — caught from
+     real usage, not simulation.
+  2. **Floor-not-penalty, linear underdog boost** (`10 × (1 + 1.5 ×
+     (0.5 − fairProb) / 0.5)`, favorites flat at 10, capped ~24pts): fixed
+     (1) by flooring every correct pick at the original flat rate — odds
+     only ever added upside for a correctly-called upset, never downside
+     for a safe one. But real numbers made clear the boost curve
+     compressed real underdogs too much (a ~39%-implied pick netted only
+     ~13, not the ~25 a direct multiply gives) — an arbitrary boost
+     constant, not the market's own price.
+  3. **Direct odds multiple, current**: replaces the boost curve with
+     `POINTS_PER_CORRECT × fairOdds` outright. Keeping favorites floored at
+     flat 10 while steepening only the underdog side to match would need a
+     hard jump right at the coin-flip line (a 51% favorite scoring 10
+     while a 49% underdog on the same game scores 20) — a real cliff
+     rewarding picking whichever side is marked ever-so-slightly the
+     underdog. Dropping the favorite floor removes that cliff, at the cost
+     of favorites no longer being exactly flat: a correct pick on a 55%
+     favorite now scores ~18, not 10. Since most correct picks land on
+     favorites, this raises the *average* payout per correct pick more
+     than either previous version did. `scripts/season-simulation.ts`
+     still only models flat `POINTS_PER_CORRECT` per correct pick, never
+     any odds bonus (at any of the three formula versions above) — there's
+     no simulated number confirming this against pack-cost/badge-threshold
+     pacing yet. Re-run it (after first teaching it to model the odds
+     bonus) if real-world points start completing the album noticeably
+     faster than the documented ~140-155 median day. `ODDS_POINTS_CAP = 40`
+     keeps a real long-shot from scaling unbounded (uncapped, a
+     5%-implied underdog would net 200pts).
+
   A game with no `game_odds` row
   (API not configured, quota exhausted, outside the sync window) resolves
-  at exactly the flat rate via the same formula (`coalesce(fairProb, 0.5)`
-  in the SQL version) — odds data is a bonus signal, never a scoring
-  dependency. `game_odds` (schema.ts) is captured once per game by
+  at exactly the flat rate via the same formula (`coalesce(fairProb, 1)`
+  in the SQL version, since `fairOdds` at `fairProb = 1` is exactly 1.0) —
+  odds data is a bonus signal, never a scoring dependency. `game_odds`
+  (schema.ts) is captured once per game by
   `sync/oddsSync.ts` (`npm run sync:odds`, production `setInterval` in
   `index.ts`, no-ops entirely without `ODDS_API_KEY` — see Environment
   variables below) from **The Odds API** (a plain REST/JSON API, no SDK
