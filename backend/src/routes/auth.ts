@@ -6,7 +6,7 @@ import { users, pointAdjustments } from "../db/schema.js";
 import { hashPassword, verifyPassword } from "../auth/hash.js";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../auth/tokens.js";
 import { createUniqueReferralCode } from "../services/referrals.js";
-import { createUniqueUsername } from "../services/username.js";
+import { createUniqueUsername, isUsernameTaken, isValidUsername } from "../services/username.js";
 import { redeemPromoCode } from "../services/promoCodes.js";
 
 export const authRouter = Router();
@@ -68,7 +68,7 @@ function publicUser(user: typeof users.$inferSelect) {
 }
 
 authRouter.post("/register", credentialsLimiter, async (req, res) => {
-  const { email, password, favoriteTeamId, referralCode, promoCode } = req.body ?? {};
+  const { email, password, username, favoriteTeamId, referralCode, promoCode } = req.body ?? {};
   if (typeof email !== "string" || typeof password !== "string" || password.length < 8) {
     res.status(400).json({ error: "email and password (min 8 chars) are required" });
     return;
@@ -77,10 +77,25 @@ authRouter.post("/register", credentialsLimiter, async (req, res) => {
     res.status(400).json({ error: "favoriteTeamId must be a string or null" });
     return;
   }
+  // Optional — a blank/omitted username falls back to createUniqueUsername()
+  // below, same generated handle pre-username accounts always got.
+  const trimmedUsername = typeof username === "string" ? username.trim() : "";
+  if (trimmedUsername.length > 0 && !isValidUsername(trimmedUsername)) {
+    res.status(400).json({
+      error: "Username must be 3-20 characters: letters, numbers, and underscores only",
+      code: "INVALID_USERNAME",
+    });
+    return;
+  }
 
   const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
   if (existing.length > 0) {
-    res.status(409).json({ error: "An account with that email already exists" });
+    res.status(409).json({ error: "An account with that email already exists", code: "EMAIL_TAKEN" });
+    return;
+  }
+
+  if (trimmedUsername.length > 0 && (await isUsernameTaken(trimmedUsername))) {
+    res.status(409).json({ error: "That username is already taken", code: "USERNAME_TAKEN" });
     return;
   }
 
@@ -99,7 +114,7 @@ authRouter.post("/register", credentialsLimiter, async (req, res) => {
 
   const passwordHash = await hashPassword(password);
   const newReferralCode = await createUniqueReferralCode();
-  const newUsername = await createUniqueUsername();
+  const newUsername = trimmedUsername.length > 0 ? trimmedUsername : await createUniqueUsername();
   const [user] = await db
     .insert(users)
     .values({

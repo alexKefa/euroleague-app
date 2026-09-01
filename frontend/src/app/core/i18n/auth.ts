@@ -12,6 +12,17 @@ export const authTranslations: Record<string, Record<Lang, string>> = {
   "auth.loggingIn": { en: "Logging in…", el: "Σύνδεση…" },
   "auth.noAccount": { en: "No account?", el: "Δεν έχεις λογαριασμό;" },
 
+  "auth.usernamePlaceholder": { en: "Username (optional)", el: "Όνομα χρήστη (προαιρετικό)" },
+  "auth.usernameHint": {
+    en: "Shown on leaderboards, leagues, and trades. Leave blank and we'll generate one.",
+    el: "Εμφανίζεται στις κατατάξεις, τις λίγκες και τις ανταλλαγές. Άσε το κενό για αυτόματη δημιουργία.",
+  },
+  "auth.usernameTaken": { en: "That username is already taken.", el: "Αυτό το όνομα χρήστη χρησιμοποιείται ήδη." },
+  "auth.usernameInvalid": {
+    en: "Username must be 3-20 characters: letters, numbers, and underscores only.",
+    el: "Το όνομα χρήστη πρέπει να έχει 3-20 χαρακτήρες: γράμματα, αριθμούς και κάτω παύλα μόνο.",
+  },
+
   "auth.createAccountTitle": { en: "Create an account", el: "Δημιουργία λογαριασμού" },
   "auth.referredBy": { en: "Referred by code", el: "Πρόσκληση με κωδικό" },
   "auth.promoCodeNote": { en: "Promo code", el: "Κωδικός προσφοράς" },

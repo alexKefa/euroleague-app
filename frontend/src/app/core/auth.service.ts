@@ -31,12 +31,13 @@ export class AuthService {
     password: string,
     favoriteTeamId?: string | null,
     referralCode?: string | null,
-    promoCode?: string | null
+    promoCode?: string | null,
+    username?: string | null
   ): Observable<RegisterResult> {
     return this.http
       .post<AuthResponse>(
         `${API_BASE_URL}/auth/register`,
-        { email, password, favoriteTeamId, referralCode, promoCode },
+        { email, password, username, favoriteTeamId, referralCode, promoCode },
         { withCredentials: true }
       )
       .pipe(

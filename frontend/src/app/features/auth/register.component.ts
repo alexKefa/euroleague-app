@@ -42,9 +42,14 @@ export class RegisterComponent implements OnInit {
   readonly promoCode = signal<string | null>(null);
   readonly promoApplied = signal(false);
 
+  // Optional — left blank, the backend generates a "clutch-user-######"
+  // handle same as before this field existed. Pattern mirrors the backend's
+  // isValidUsername (services/username.ts) so a bad value is caught before
+  // the round trip.
   readonly form = this.fb.nonNullable.group({
     email: ["", [Validators.required, Validators.email]],
     password: ["", [Validators.required, Validators.minLength(8)]],
+    username: ["", [Validators.pattern(/^[a-zA-Z0-9_]{3,20}$/)]],
   });
 
   ngOnInit(): void {
@@ -62,25 +67,34 @@ export class RegisterComponent implements OnInit {
     this.submitting.set(true);
     this.error.set(null);
 
-    const { email, password } = this.form.getRawValue();
-    this.auth.register(email, password, this.favoriteTeamId(), this.referralCode(), this.promoCode()).subscribe({
-      next: ({ promo }) => {
-        if (!promo) {
-          this.router.navigateByUrl("/");
-          return;
-        }
-        // Brief pause on a success note before leaving — otherwise the
-        // "your promo code worked" confirmation would never be visible,
-        // immediately replaced by the dashboard on navigation.
-        this.promoApplied.set(true);
-        setTimeout(() => this.router.navigateByUrl("/"), 1800);
-      },
-      error: (err) => {
-        this.error.set(
-          err?.status === 409 ? this.i18n.t("auth.emailExists") : this.i18n.t("auth.genericError")
-        );
-        this.submitting.set(false);
-      },
-    });
+    const { email, password, username } = this.form.getRawValue();
+    this.auth
+      .register(email, password, this.favoriteTeamId(), this.referralCode(), this.promoCode(), username.trim() || null)
+      .subscribe({
+        next: ({ promo }) => {
+          if (!promo) {
+            this.router.navigateByUrl("/");
+            return;
+          }
+          // Brief pause on a success note before leaving — otherwise the
+          // "your promo code worked" confirmation would never be visible,
+          // immediately replaced by the dashboard on navigation.
+          this.promoApplied.set(true);
+          setTimeout(() => this.router.navigateByUrl("/"), 1800);
+        },
+        error: (err) => {
+          const code = err?.error?.code;
+          this.error.set(
+            code === "USERNAME_TAKEN"
+              ? this.i18n.t("auth.usernameTaken")
+              : code === "INVALID_USERNAME"
+                ? this.i18n.t("auth.usernameInvalid")
+                : err?.status === 409
+                  ? this.i18n.t("auth.emailExists")
+                  : this.i18n.t("auth.genericError")
+          );
+          this.submitting.set(false);
+        },
+      });
   }
 }
