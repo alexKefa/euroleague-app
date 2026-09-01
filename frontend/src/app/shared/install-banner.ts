@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, inject, signal } from "@angular/core";
 import { I18nService } from "../core/i18n.service";
 import { NavIconComponent } from "./nav-icon";
 import { ButtonDirective } from "./button.directive";
+import { isInAppBrowser } from "./in-app-browser";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -62,6 +63,12 @@ export class InstallBannerComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     if (this.isStandalone()) return;
+    // Its "tap the Share icon" / "tap the menu icon" steps assume a real
+    // browser's own chrome — inside Messenger's/Instagram's in-app WebView
+    // neither exists, so those steps would just be wrong. open-in-browser-
+    // banner.ts (shown page-locally on referral/promo links) is the
+    // correct nudge for that context: escape to a real browser first.
+    if (isInAppBrowser()) return;
 
     const platform = this.detectPlatform();
     if (!platform) return;

@@ -1,6 +1,10 @@
 <div class="max-w-sm mx-auto p-6">
   <h1 class="font-display text-2xl tracking-wide mb-5">{{ i18n.t('auth.createAccountTitle') }}</h1>
 
+  @if (referralCode() || promoCode()) {
+    <app-open-in-browser-banner />
+  }
+
   @if (referralCode(); as code) {
     <p class="font-mono text-[12px] text-highlight font-bold mb-4">{{ i18n.t('auth.referredBy') }} {{ code }}</p>
   }

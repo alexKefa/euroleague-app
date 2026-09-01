@@ -8,11 +8,12 @@ import { I18nService } from "../../core/i18n.service";
 import { Team } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ButtonDirective } from "../../shared/button.directive";
+import { OpenInBrowserBannerComponent } from "../../shared/open-in-browser-banner";
 
 @Component({
   selector: "app-register",
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, RetryImgDirective, ButtonDirective],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, RetryImgDirective, ButtonDirective, OpenInBrowserBannerComponent],
   templateUrl: "./register.component.html",
 })
 export class RegisterComponent implements OnInit {

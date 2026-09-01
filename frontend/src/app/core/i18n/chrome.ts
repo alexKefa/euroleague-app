@@ -41,6 +41,14 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
   "install.androidStep1": { en: "Tap the menu icon", el: "Πάτησε το εικονίδιο μενού" },
   "install.androidStep2": { en: "Tap \"Install app\" or \"Add to Home screen\"", el: "Πάτησε \"Εγκατάσταση εφαρμογής\" ή \"Προσθήκη στην Αρχική οθόνη\"" },
 
+  // shared/open-in-browser-banner.ts — shown on the register page when a
+  // referral/promo link is opened inside Messenger's/Instagram's in-app
+  // browser, which can't offer "Add to Home Screen" at all.
+  "openInBrowser.message": {
+    en: "You're viewing this inside the app's built-in browser. Tap ⋯ (or the browser icon) above and choose \"Open in Browser\" to save Clutch to your home screen.",
+    el: "Βλέπεις αυτή τη σελίδα μέσα στον ενσωματωμένο browser της εφαρμογής. Πάτησε ⋯ (ή το εικονίδιο browser) πάνω και επίλεξε \"Άνοιγμα σε Browser\" για να προσθέσεις το Clutch στην αρχική οθόνη.",
+  },
+
   // shared/stat-legend.ts — the "what does this mean?" glossary popover,
   // reused by roster and game-detail's stat tables.
   "statLegend.title": { en: "What these mean", el: "Τι σημαίνουν" },
