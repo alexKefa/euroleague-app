@@ -5,7 +5,7 @@ import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { EventsService } from "../../core/events.service";
-import { Prediction, LeaderboardEntry, PredictionSummary, Game, RewardPack } from "../../core/models";
+import { Prediction, LeaderboardEntry, PredictionSummary, Game, GameTeamSummary, RewardPack } from "../../core/models";
 import { TeamBadgeComponent } from "../../shared/team-badge";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { PageHintComponent } from "../../shared/page-hint";
@@ -13,6 +13,7 @@ import { NavIconComponent, NavIconName } from "../../shared/nav-icon";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { ButtonDirective } from "../../shared/button.directive";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
+import { CollectibleCardComponent } from "../store/collectible-card";
 import { newsDateLocale, shortDateFormat as gameShortDateFormat, gameDateTimeFormat } from "../../shared/news-date-format";
 
 // Matches schedule.ts — no season picker here either, and predictions
@@ -96,6 +97,7 @@ interface DisplayedPick {
     SkeletonComponent,
     ButtonDirective,
     LogoSpinnerComponent,
+    CollectibleCardComponent,
   ],
   templateUrl: "./predictions.html",
 })
@@ -107,6 +109,10 @@ export class PredictionsComponent implements OnInit {
 
   readonly myPredictions = signal<Prediction[]>([]);
   readonly leaderboard = signal<LeaderboardEntry[]>([]);
+  // Showcase cards open in a modal on tap, same pattern as the league
+  // leaderboard (features/leagues/league-detail.ts) — a leaderboard row has
+  // no room for name, badges, *and* a handful of cards inline.
+  readonly selectedEntry = signal<LeaderboardEntry | null>(null);
   readonly mySummary = signal<PredictionSummary | null>(null);
   readonly upcomingGames = signal<Game[]>([]);
   readonly loading = signal(true);
@@ -383,6 +389,19 @@ export class PredictionsComponent implements OnInit {
     return this.i18n.t(`predictions.badge.${id}.description`);
   }
 
+  openMember(entry: LeaderboardEntry): void {
+    this.selectedEntry.set(entry);
+  }
+
+  closeMember(): void {
+    this.selectedEntry.set(null);
+  }
+
+  @HostListener("document:keydown.escape")
+  onEscape(): void {
+    this.closeMember();
+  }
+
   // Reads effectivePicks (saved + not-yet-submitted local changes layered
   // on top), not myPicks directly — see pendingPicks' doc comment.
   myPickFor(game: Game): string | null {
@@ -395,6 +414,13 @@ export class PredictionsComponent implements OnInit {
   // having it silently roll back.
   isLocked(game: Game): boolean {
     return game.status !== "scheduled";
+  }
+
+  // Fallback for a team with no primaryColor synced yet — same default
+  // used by the collectible-card component (store/collectible-card.ts),
+  // reused here rather than importing it just for one constant.
+  teamColor(team: GameTeamSummary): string {
+    return team.primaryColor ?? "#3E7CB1";
   }
 
   teamLogo(teamId: string): string | null {

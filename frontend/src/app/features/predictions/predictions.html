@@ -20,101 +20,108 @@
         <div class="h-3 w-28 bg-line rounded"></div>
         <div class="h-2.5 w-32 bg-line rounded"></div>
       </div>
-      <div class="space-y-1.5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
         @for (i of [1, 2, 3, 4]; track i) {
-          <app-skeleton class="h-8 rounded-md" [iconSize]="14" />
+          <app-skeleton class="h-24 rounded-2xl" [iconSize]="14" />
         }
       </div>
     </div>
   } @else if (upcomingGames().length > 0) {
       <div data-tour="predictions-picks" class="bg-card rounded-2xl border border-line shadow-card p-3 sm:p-4 mb-5">
-        <div class="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1 mb-2">
+        <div class="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1 mb-3">
           <p class="text-[13px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('predictions.upcomingGames') }}</p>
           @if (auth.isAuthenticated()) {
             <p class="text-[11px] text-muted">{{ i18n.t('predictions.tapToClearHint') }}</p>
           }
         </div>
-        <div class="space-y-1.5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
           @for (game of upcomingGames(); track game.id) {
-            <div class="flex items-center gap-2 px-2 py-1 rounded-xl bg-page">
-              <p class="font-mono text-muted text-[10px] leading-tight shrink-0 w-9 text-center">
+            <div class="relative rounded-2xl border border-line shadow-card overflow-hidden bg-page">
+              <!-- Tipoff/live ribbon floats over the split below rather than
+                   its own row — the two-team split is the whole point of this
+                   layout, so date/time/live-score share space with it instead
+                   of pushing it down. -->
+              <span class="absolute top-1.5 left-1/2 -translate-x-1/2 z-20 font-mono text-[9px] font-bold px-2 py-0.5 rounded-full bg-card border border-line text-muted whitespace-nowrap">
                 @if (game.status === "live") {
-                  <span class="flex items-center justify-center gap-1">
+                  <span class="flex items-center gap-1.5">
                     <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-                    <span class="text-[9px] font-bold uppercase tracking-wide text-red-500">{{ i18n.t('schedule.live') }}</span>
+                    <span class="uppercase tracking-wide text-red-500">{{ i18n.t('schedule.live') }}</span>
+                    <span class="text-ink font-bold">{{ game.homeScore }}-{{ game.awayScore }}</span>
                   </span>
-                  <span class="font-bold text-ink">{{ game.homeScore }}-{{ game.awayScore }}</span>
                 } @else {
-                  {{ game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}<br />{{ game.tipoffAt | date: "HH:mm":"Europe/Athens" }}
+                  {{ game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }} &middot; {{ game.tipoffAt | date: "HH:mm":"Europe/Athens" }}
                 }
-              </p>
-              @if (auth.isAuthenticated()) {
-                <div class="flex-1 flex items-center justify-center gap-3">
-                  <button
-                    type="button"
-                    (click)="togglePick(game, game.homeTeam.id)"
-                    [disabled]="isLocked(game)"
-                    [attr.aria-label]="game.homeTeam.name"
-                    class="shrink-0 flex flex-col items-center gap-0.5 disabled:opacity-40 disabled:pointer-events-none"
+              </span>
+
+              <div class="grid grid-cols-2 relative">
+                <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-6 h-6 rounded-full bg-card border border-line shadow-pop flex items-center justify-center font-display text-[9px] text-muted">
+                  {{ i18n.t('predictions.vs') }}
+                </span>
+
+                <button
+                  type="button"
+                  (click)="togglePick(game, game.homeTeam.id)"
+                  [disabled]="isLocked(game) || !auth.isAuthenticated()"
+                  [attr.aria-label]="game.homeTeam.name"
+                  [ngClass]="[isLocked(game) ? 'opacity-50' : '', myPickFor(game) === game.homeTeam.id ? 'bg-highlight/10' : 'hover:bg-line/30']"
+                  class="relative flex flex-col items-center justify-center gap-1 pt-8 pb-3 px-2 overflow-hidden transition-colors disabled:cursor-not-allowed"
+                >
+                  <span
+                    class="relative z-10 w-9 h-9 rounded-full flex items-center justify-center border-2 overflow-hidden transition-colors bg-card"
+                    [ngClass]="myPickFor(game) === game.homeTeam.id ? 'border-highlight' : 'border-line'"
                   >
-                    <span
-                      class="w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors overflow-hidden"
-                      [class.border-highlight]="myPickFor(game) === game.homeTeam.id"
-                      [class.border-line]="myPickFor(game) !== game.homeTeam.id"
-                    >
-                      @if (game.homeTeam.logoUrl) {
-                        <img [src]="game.homeTeam.logoUrl" [alt]="game.homeTeam.code" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain" />
-                      } @else {
-                        <span class="w-full h-full" [style.background]="game.homeTeam.primaryColor"></span>
-                      }
-                    </span>
-                    <span
-                      class="font-mono text-[9px] font-bold leading-none"
-                      [class.text-highlight]="myPickFor(game) === game.homeTeam.id"
-                      [class.text-muted]="myPickFor(game) !== game.homeTeam.id"
-                      >{{ game.homeTeam.code }}</span
-                    >
-                    @if (game.homeFairProb != null) {
-                      <span class="font-mono text-[8px] text-muted leading-none mt-1 px-1 py-0.5 rounded-full bg-line/60 whitespace-nowrap">+{{ pointsForPick(game, game.homeTeam.id) }}</span>
+                    @if (game.homeTeam.logoUrl) {
+                      <img [src]="game.homeTeam.logoUrl" [alt]="game.homeTeam.code" loading="lazy" decoding="async" appRetryImg class="w-6 h-6 object-contain team-logo" />
+                    } @else {
+                      <span class="w-full h-full" [style.background]="teamColor(game.homeTeam)"></span>
                     }
-                  </button>
-                  <span class="font-mono text-muted text-[10px]">{{ i18n.t('predictions.vs') }}</span>
-                  <button
-                    type="button"
-                    (click)="togglePick(game, game.awayTeam.id)"
-                    [disabled]="isLocked(game)"
-                    [attr.aria-label]="game.awayTeam.name"
-                    class="shrink-0 flex flex-col items-center gap-0.5 disabled:opacity-40 disabled:pointer-events-none"
+                  </span>
+                  <span
+                    class="relative z-10 text-[11px] font-semibold text-center leading-tight"
+                    [ngClass]="myPickFor(game) === game.homeTeam.id ? 'text-highlight' : 'text-ink'"
+                    >{{ game.homeTeam.name }}</span
                   >
+                  @if (auth.isAuthenticated() && game.homeFairProb != null) {
                     <span
-                      class="w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors overflow-hidden"
-                      [class.border-highlight]="myPickFor(game) === game.awayTeam.id"
-                      [class.border-line]="myPickFor(game) !== game.awayTeam.id"
+                      class="relative z-10 font-mono text-[9px] font-bold px-1.5 py-0.5 rounded-full transition-colors"
+                      [ngClass]="myPickFor(game) === game.homeTeam.id ? 'bg-highlight text-white' : 'bg-line/60 text-muted'"
+                      >+{{ pointsForPick(game, game.homeTeam.id) }} {{ i18n.t('predictions.pts') }}</span
                     >
-                      @if (game.awayTeam.logoUrl) {
-                        <img [src]="game.awayTeam.logoUrl" [alt]="game.awayTeam.code" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain" />
-                      } @else {
-                        <span class="w-full h-full" [style.background]="game.awayTeam.primaryColor"></span>
-                      }
-                    </span>
-                    <span
-                      class="font-mono text-[9px] font-bold leading-none"
-                      [class.text-highlight]="myPickFor(game) === game.awayTeam.id"
-                      [class.text-muted]="myPickFor(game) !== game.awayTeam.id"
-                      >{{ game.awayTeam.code }}</span
-                    >
-                    @if (game.awayFairProb != null) {
-                      <span class="font-mono text-[8px] text-muted leading-none mt-1 px-1 py-0.5 rounded-full bg-line/60 whitespace-nowrap">+{{ pointsForPick(game, game.awayTeam.id) }}</span>
+                  }
+                </button>
+
+                <button
+                  type="button"
+                  (click)="togglePick(game, game.awayTeam.id)"
+                  [disabled]="isLocked(game) || !auth.isAuthenticated()"
+                  [attr.aria-label]="game.awayTeam.name"
+                  [ngClass]="[isLocked(game) ? 'opacity-50' : '', myPickFor(game) === game.awayTeam.id ? 'bg-highlight/10' : 'hover:bg-line/30']"
+                  class="relative flex flex-col items-center justify-center gap-1 pt-8 pb-3 px-2 overflow-hidden transition-colors disabled:cursor-not-allowed"
+                >
+                  <span
+                    class="relative z-10 w-9 h-9 rounded-full flex items-center justify-center border-2 overflow-hidden transition-colors bg-card"
+                    [ngClass]="myPickFor(game) === game.awayTeam.id ? 'border-highlight' : 'border-line'"
+                  >
+                    @if (game.awayTeam.logoUrl) {
+                      <img [src]="game.awayTeam.logoUrl" [alt]="game.awayTeam.code" loading="lazy" decoding="async" appRetryImg class="w-6 h-6 object-contain team-logo" />
+                    } @else {
+                      <span class="w-full h-full" [style.background]="teamColor(game.awayTeam)"></span>
                     }
-                  </button>
-                </div>
-              } @else {
-                <p class="font-display text-xs flex-1 flex items-center gap-2">
-                  <app-team-badge [code]="game.homeTeam.code" [logoUrl]="game.homeTeam.logoUrl" [size]="16"></app-team-badge>
-                  vs
-                  <app-team-badge [code]="game.awayTeam.code" [logoUrl]="game.awayTeam.logoUrl" [size]="16"></app-team-badge>
-                </p>
-              }
+                  </span>
+                  <span
+                    class="relative z-10 text-[11px] font-semibold text-center leading-tight"
+                    [ngClass]="myPickFor(game) === game.awayTeam.id ? 'text-highlight' : 'text-ink'"
+                    >{{ game.awayTeam.name }}</span
+                  >
+                  @if (auth.isAuthenticated() && game.awayFairProb != null) {
+                    <span
+                      class="relative z-10 font-mono text-[9px] font-bold px-1.5 py-0.5 rounded-full transition-colors"
+                      [ngClass]="myPickFor(game) === game.awayTeam.id ? 'bg-highlight text-white' : 'bg-line/60 text-muted'"
+                      >+{{ pointsForPick(game, game.awayTeam.id) }} {{ i18n.t('predictions.pts') }}</span
+                    >
+                  }
+                </button>
+              </div>
             </div>
           }
         </div>
@@ -299,7 +306,12 @@
         <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-3">{{ i18n.t('predictions.leaderboard') }}</p>
         <div class="text-sm space-y-1 max-h-80 overflow-y-auto pr-1">
           @for (entry of leaderboard(); track entry.userId; let i = $index) {
-            <div class="flex justify-between items-center px-2 py-2 rounded-xl" [ngClass]="{ 'bg-highlight/10': i === 0 }">
+            <button
+              type="button"
+              (click)="openMember(entry)"
+              class="w-full flex justify-between items-center px-2 py-2 rounded-xl text-left hover:bg-white/5 transition-colors"
+              [ngClass]="{ 'bg-highlight/10': i === 0 }"
+            >
               <span class="font-semibold flex items-center gap-1">
                 @if (i === 0) {
                   <span class="font-mono text-[11px] font-bold w-5 h-5 rounded-full bg-highlight text-page flex items-center justify-center shrink-0">1</span>
@@ -317,7 +329,7 @@
                 <span class="font-mono text-highlight font-bold">{{ entry.points }} pts</span>
                 <span class="font-mono text-muted text-[12px] block">{{ entry.correct }}/{{ entry.total }}</span>
               </span>
-            </div>
+            </button>
           } @empty {
             <p class="text-sm text-muted">{{ i18n.t('predictions.noResolvedYet') }}</p>
           }
@@ -331,6 +343,66 @@
           >
         </div>
       </div>
+
+      @if (selectedEntry(); as entry) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="closeMember()">
+          <div
+            class="bg-card rounded-2xl border border-line shadow-pop p-5 max-w-sm w-full max-h-[85vh] overflow-y-auto"
+            (click)="$event.stopPropagation()"
+          >
+            <div class="flex items-start justify-between gap-2 mb-4">
+              <div>
+                <p class="font-display text-xl tracking-wide">{{ entry.displayName }}</p>
+                <p class="font-mono text-[12px] text-muted mt-0.5">{{ entry.correct }}/{{ entry.total }} &middot; {{ entry.points }} pts</p>
+              </div>
+              <button
+                type="button"
+                (click)="closeMember()"
+                class="text-muted hover:text-ink text-2xl leading-none font-bold shrink-0"
+                [attr.aria-label]="i18n.t('leagues.cancel')"
+              >
+                &times;
+              </button>
+            </div>
+
+            <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('leagues.badgesTitle') }}</p>
+            @if (entry.badges.length > 0) {
+              <div class="grid gap-2 mb-4">
+                @for (badge of entry.badges; track badge.id) {
+                  <div class="flex items-center gap-2 bg-page rounded-xl px-3 py-2">
+                    <app-nav-icon [name]="badgeIcon(badge.id)" [size]="16" class="text-highlight shrink-0" />
+                    <div class="min-w-0">
+                      <p class="text-sm font-semibold">{{ badgeLabel(badge.id) }}</p>
+                      <p class="text-[11px] text-muted">{{ badgeDescription(badge.id) }}</p>
+                    </div>
+                  </div>
+                }
+              </div>
+            } @else {
+              <p class="text-xs text-muted mb-4">{{ i18n.t('leagues.noBadgesYet') }}</p>
+            }
+
+            <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('leagues.cardsTitle') }}</p>
+            @if (entry.showcase.length > 0) {
+              <div class="grid grid-cols-3 gap-3">
+                @for (card of entry.showcase; track card.id) {
+                  <app-collectible-card
+                    class="block w-full"
+                    [name]="card.name"
+                    [tier]="card.tier"
+                    [teamCode]="card.team.code"
+                    [teamColor]="card.team.primaryColor"
+                    [imageUrl]="card.imageUrl"
+                    [unlocked]="true"
+                  ></app-collectible-card>
+                }
+              </div>
+            } @else {
+              <p class="text-xs text-muted">{{ i18n.t('leagues.noCards') }}</p>
+            }
+          </div>
+        </div>
+      }
     </div>
   }
 </div>
