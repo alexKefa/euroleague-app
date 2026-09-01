@@ -1,6 +1,6 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { predictions, games, gameOdds, users, pointAdjustments } from "../db/schema.js";
+import { predictions, games, gameOdds, users, pointAdjustments, collectibles, teams } from "../db/schema.js";
 import { computeWinnerTeamId, pointsSqlExpr } from "./points.js";
 
 export interface ResolvedPick {
@@ -95,6 +95,14 @@ export function earnedBadges(ctx: BadgeContext): BadgeInfo[] {
   }));
 }
 
+export interface ShowcaseCard {
+  id: string;
+  name: string;
+  tier: string;
+  imageUrl: string | null;
+  team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
+}
+
 export interface LeaderboardEntry {
   userId: string;
   displayName: string;
@@ -103,6 +111,7 @@ export interface LeaderboardEntry {
   accuracy: number;
   points: number;
   badges: BadgeInfo[];
+  showcase: ShowcaseCard[];
 }
 
 /**
@@ -122,6 +131,13 @@ export interface LeaderboardEntry {
  * rather than parameterizing an array into the raw sql template, and at
  * this app's scale (a handful of users total) the extra rows fetched and
  * discarded cost nothing worth optimizing for.
+ *
+ * Each entry also carries its showcase cards (users.showcaseCollectibleIds,
+ * set via PUT /users/me/showcase) resolved to name/tier/image/team — global
+ * and league leaderboards get this for free from the same place rather than
+ * each resolving it themselves. routes/leagues.ts still resolves showcase
+ * separately for zero-pick members, since those are never part of `ranked`
+ * here (no row in the totals query at all).
  */
 export async function getLeaderboardEntries(
   options: { userIds?: string[]; limit?: number } = {}
@@ -131,6 +147,7 @@ export async function getLeaderboardEntries(
   const totals = await db.execute<{
     user_id: string;
     email: string;
+    showcase_collectible_ids: string[];
     correct: number;
     total: number;
     correct_points: number;
@@ -160,7 +177,7 @@ export async function getLeaderboardEntries(
       where counts_toward_ranking = true
       group by user_id
     )
-    select coalesce(ct.user_id, bt.user_id) as user_id, u.email,
+    select coalesce(ct.user_id, bt.user_id) as user_id, u.email, u.showcase_collectible_ids,
       coalesce(ct.correct, 0)::int as correct,
       coalesce(ct.total, 0)::int as total,
       coalesce(ct.correct_points, 0)::int as correct_points,
@@ -185,12 +202,34 @@ export async function getLeaderboardEntries(
       accuracy: row.total > 0 ? row.correct / row.total : 0,
       correctPoints: row.correct_points,
       points: row.correct_points + row.bonus,
+      showcaseIds: row.showcase_collectible_ids ?? [],
     }))
     .sort((a, b) => b.points - a.points || b.accuracy - a.accuracy);
 
   if (options.limit) ranked = ranked.slice(0, options.limit);
 
   const topIds = ranked.map((r) => r.userId);
+
+  const allShowcaseIds = [...new Set(ranked.flatMap((r) => r.showcaseIds))];
+  const cardRows = allShowcaseIds.length
+    ? await db
+        .select({ collectible: collectibles, team: teams })
+        .from(collectibles)
+        .innerJoin(teams, eq(collectibles.teamId, teams.id))
+        .where(inArray(collectibles.id, allShowcaseIds))
+    : [];
+  const cardById = new Map<string, ShowcaseCard>(
+    cardRows.map(({ collectible, team }) => [
+      collectible.id,
+      {
+        id: collectible.id,
+        name: collectible.name,
+        tier: collectible.tier,
+        imageUrl: collectible.imageUrl,
+        team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor, logoUrl: team.logoUrl },
+      },
+    ])
+  );
   const pickRows = topIds.length
     ? await db
         .select({ prediction: predictions, game: games })
@@ -212,7 +251,7 @@ export async function getLeaderboardEntries(
     picksByUser.set(prediction.userId, picks);
   }
 
-  return ranked.map(({ correctPoints, ...entry }) => {
+  return ranked.map(({ correctPoints, showcaseIds, ...entry }) => {
     const picks = (picksByUser.get(entry.userId) ?? []).sort(
       (a, b) => new Date(a.tipoffAt).getTime() - new Date(b.tipoffAt).getTime()
     );
@@ -223,6 +262,7 @@ export async function getLeaderboardEntries(
         hasAnyPick: entry.total > 0,
         predictionPoints: correctPoints,
       }),
+      showcase: showcaseIds.map((cid) => cardById.get(cid)).filter((c): c is ShowcaseCard => !!c),
     };
   });
 }

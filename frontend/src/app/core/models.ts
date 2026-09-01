@@ -318,6 +318,18 @@ export interface Badge {
   description: string;
 }
 
+// Cosmetic-only card shown next to a leaderboard entry — resolved from
+// users.showcaseCollectibleIds server-side (services/leaderboard.ts), not
+// the full Collectible shape (no pointsCost/buyPrice/serial, not relevant
+// here). Shared by the global and league leaderboards alike.
+export interface ShowcaseCard {
+  id: string;
+  name: string;
+  tier: CollectibleTier;
+  imageUrl: string | null;
+  team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
+}
+
 export interface LeaderboardEntry {
   userId: string;
   displayName: string;
@@ -326,6 +338,7 @@ export interface LeaderboardEntry {
   accuracy: number;
   points: number;
   badges: Badge[];
+  showcase: ShowcaseCard[];
 }
 
 export interface TradeCardRef {
@@ -582,24 +595,13 @@ export interface LeagueDetail {
   members: LeagueMember[];
 }
 
-// Cosmetic-only card shown next to a leaderboard entry — resolved from
-// users.showcaseCollectibleIds server-side (routes/leagues.ts), not the
-// full Collectible shape (no pointsCost/buyPrice/serial, not relevant here).
-export interface LeagueShowcaseCard {
-  id: string;
-  name: string;
-  tier: CollectibleTier;
-  imageUrl: string | null;
-  team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
-}
-
-// GET /api/leagues/:id/leaderboard — same shape as the global
-// LeaderboardEntry plus each member's showcase cards. Unlike the global
+// GET /api/leagues/:id/leaderboard — identical shape to the global
+// LeaderboardEntry (showcase included on both now). Unlike the global
 // board, a member with zero resolved predictions yet is still included
-// (0 points, ranked last) — see the route's comment.
-export interface LeagueLeaderboardEntry extends LeaderboardEntry {
-  showcase: LeagueShowcaseCard[];
-}
+// (0 points, ranked last) — see the route's comment. Kept as a distinct
+// alias for readability at call sites, not because the shape differs.
+export type LeagueShowcaseCard = ShowcaseCard;
+export type LeagueLeaderboardEntry = LeaderboardEntry;
 
 export interface StandingsRow {
   team: Team;

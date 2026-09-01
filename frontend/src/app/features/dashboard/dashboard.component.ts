@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal, computed, effect } from "@angular/core";
+import { Component, OnInit, OnDestroy, HostListener, inject, signal, computed, effect } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
@@ -14,6 +14,7 @@ import { ButtonDirective } from "../../shared/button.directive";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { NewsStoriesComponent } from "../../shared/news-stories";
 import { SkeletonComponent } from "../../shared/skeleton";
+import { CollectibleCardComponent } from "../store/collectible-card";
 import {
   newsDateLocale,
   shortDateFormat as gameShortDateFormat,
@@ -44,6 +45,7 @@ type LeaderCategory = (typeof LEADER_CATEGORIES)[number]["value"];
     DropdownComponent,
     NewsStoriesComponent,
     SkeletonComponent,
+    CollectibleCardComponent,
   ],
   templateUrl: "./dashboard.component.html",
 })
@@ -73,6 +75,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // renders for guests too: social proof for the points economy the
   // guest-only hint below is pitching.
   readonly leaderboard = signal<LeaderboardEntry[]>([]);
+  // Showcase cards open in a modal on tap — same pattern as the full
+  // leaderboard (features/predictions/predictions.ts) and the league
+  // leaderboard (features/leagues/league-detail.ts), minus badges: this
+  // teaser deliberately never showed badges (see the comment above), so the
+  // modal here stays cards-only rather than pulling that in too.
+  readonly selectedEntry = signal<LeaderboardEntry | null>(null);
   // My Leagues teaser — unlike the other dashboard cards, this renders even
   // when empty (a CTA to create/join one) rather than being omitted, since
   // the whole point of putting it here is discovery: a user who's never
@@ -135,6 +143,19 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     document.removeEventListener("visibilitychange", this.onVisibilityChange);
+  }
+
+  openMember(entry: LeaderboardEntry): void {
+    this.selectedEntry.set(entry);
+  }
+
+  closeMember(): void {
+    this.selectedEntry.set(null);
+  }
+
+  @HostListener("document:keydown.escape")
+  onEscape(): void {
+    this.closeMember();
   }
 
   private hiddenAt: number | null = null;

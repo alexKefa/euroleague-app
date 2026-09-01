@@ -190,24 +190,15 @@ leaguesRouter.get("/:id/leaderboard", requireAuth, async (req, res) => {
       .where(eq(leagueMembers.leagueId, id));
 
     const memberIds = memberRows.map((r) => r.userId);
+    // getLeaderboardEntries already resolves each entry's showcase cards
+    // (services/leaderboard.ts) — only zero-pick members it omits need
+    // that resolved separately here.
     const entries = await getLeaderboardEntries({ userIds: memberIds });
 
     const presentIds = new Set(entries.map((e) => e.userId));
-    const zeroEntries = memberRows
-      .filter((r) => !presentIds.has(r.userId))
-      .map((r) => ({
-        userId: r.userId,
-        displayName: r.email.split("@")[0],
-        correct: 0,
-        total: 0,
-        accuracy: 0,
-        points: 0,
-        badges: [] as { id: string; label: string; description: string }[],
-      }))
-      .sort((a, b) => a.displayName.localeCompare(b.displayName));
+    const zeroMembers = memberRows.filter((r) => !presentIds.has(r.userId));
 
-    const showcaseIdsByUser = new Map(memberRows.map((r) => [r.userId, r.showcaseCollectibleIds]));
-    const allShowcaseIds = [...new Set(memberRows.flatMap((r) => r.showcaseCollectibleIds))];
+    const allShowcaseIds = [...new Set(zeroMembers.flatMap((r) => r.showcaseCollectibleIds))];
     const cardRows = allShowcaseIds.length
       ? await db
           .select({ collectible: collectibles, team: teams })
@@ -228,14 +219,22 @@ leaguesRouter.get("/:id/leaderboard", requireAuth, async (req, res) => {
       ])
     );
 
-    const withShowcase = [...entries, ...zeroEntries].map((entry) => ({
-      ...entry,
-      showcase: (showcaseIdsByUser.get(entry.userId) ?? [])
-        .map((cid) => cardById.get(cid))
-        .filter((c): c is NonNullable<typeof c> => !!c),
-    }));
+    const zeroEntries = zeroMembers
+      .map((r) => ({
+        userId: r.userId,
+        displayName: r.email.split("@")[0],
+        correct: 0,
+        total: 0,
+        accuracy: 0,
+        points: 0,
+        badges: [] as { id: string; label: string; description: string }[],
+        showcase: r.showcaseCollectibleIds
+          .map((cid) => cardById.get(cid))
+          .filter((c): c is NonNullable<typeof c> => !!c),
+      }))
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
 
-    res.json(withShowcase);
+    res.json([...entries, ...zeroEntries]);
   } catch (err) {
     console.error("GET /api/leagues/:id/leaderboard failed:", err);
     res.status(500).json({ error: "Failed to load league leaderboard" });

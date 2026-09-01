@@ -39,7 +39,7 @@
             [style.box-shadow]="'0 0 0 4px color-mix(in srgb, var(--accent-primary) 14%, transparent)'"
           >
             @if (row.team.logoUrl) {
-              <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-7 h-7 object-contain" />
+              <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-7 h-7 object-contain team-logo" />
             } @else {
               <span class="font-display text-sm">{{ row.team.code }}</span>
             }
@@ -209,7 +209,7 @@
                   <span class="font-mono text-muted w-5 shrink-0 text-right">{{ row.position }}</span>
                 }
                 @if (row.team.logoUrl) {
-                  <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0" />
+                  <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
                 } @else {
                   <span
                     class="w-5 h-5 rounded-full shrink-0"
@@ -255,7 +255,7 @@
                     <span class="font-mono text-muted shrink-0">{{ i + 1 }}</span>
                     <span class="truncate">{{ entry.player.name }}</span>
                     @if (entry.team.logoUrl) {
-                      <img [src]="entry.team.logoUrl" [alt]="entry.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0" />
+                      <img [src]="entry.team.logoUrl" [alt]="entry.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0 team-logo" />
                     } @else {
                       <span class="w-4 h-4 rounded-full shrink-0" [style.background]="entry.team.primaryColor"></span>
                     }
@@ -294,7 +294,7 @@
                     }
                     <span class="truncate">{{ entry.player.name }}</span>
                     @if (entry.team.logoUrl) {
-                      <img [src]="entry.team.logoUrl" [alt]="entry.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0" />
+                      <img [src]="entry.team.logoUrl" [alt]="entry.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0 team-logo" />
                     } @else {
                       <span class="w-4 h-4 rounded-full shrink-0" [style.background]="entry.team.primaryColor"></span>
                     }
@@ -318,7 +318,12 @@
             </div>
             <div class="text-sm space-y-1">
               @for (entry of leaderboard(); track entry.userId; let i = $index) {
-                <div class="flex justify-between items-center px-2 py-2 rounded-xl" [ngClass]="{ 'bg-highlight/10': i === 0 }">
+                <button
+                  type="button"
+                  (click)="openMember(entry)"
+                  class="w-full flex justify-between items-center px-2 py-2 rounded-xl text-left hover:bg-white/5 transition-colors"
+                  [ngClass]="{ 'bg-highlight/10': i === 0 }"
+                >
                   <span class="font-bold flex items-center gap-1.5 min-w-0">
                     @if (i === 0) {
                       <span class="font-mono text-[11px] font-bold w-5 h-5 shrink-0 rounded-full bg-highlight text-page flex items-center justify-center">1</span>
@@ -328,7 +333,7 @@
                     <span class="truncate">{{ entry.displayName }}</span>
                   </span>
                   <span class="font-mono text-highlight font-bold">{{ entry.points }} pts</span>
-                </div>
+                </button>
               }
             </div>
           </div>
@@ -349,7 +354,7 @@
                       >{{ resultLabel(teamResult(game)) }}</span
                     >
                     @if (opponentTeam(game).logoUrl) {
-                      <img [src]="opponentTeam(game).logoUrl" [alt]="opponentTeam(game).name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0" />
+                      <img [src]="opponentTeam(game).logoUrl" [alt]="opponentTeam(game).name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
                     } @else {
                       <span class="w-5 h-5 rounded-full shrink-0" [style.background]="opponentTeam(game).primaryColor"></span>
                     }
@@ -363,7 +368,7 @@
                   <span class="flex items-center gap-2 min-w-0">
                     <span class="font-mono text-muted w-4 shrink-0">&middot;</span>
                     @if (opponentTeam(game).logoUrl) {
-                      <img [src]="opponentTeam(game).logoUrl" [alt]="opponentTeam(game).name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0" />
+                      <img [src]="opponentTeam(game).logoUrl" [alt]="opponentTeam(game).name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
                     } @else {
                       <span class="w-5 h-5 rounded-full shrink-0" [style.background]="opponentTeam(game).primaryColor"></span>
                     }
@@ -374,6 +379,49 @@
               }
             </div>
           </div>
+        }
+      </div>
+    </div>
+  }
+
+  @if (selectedEntry(); as entry) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="closeMember()">
+      <div
+        class="bg-card rounded-2xl border border-line shadow-pop p-5 max-w-sm w-full max-h-[85vh] overflow-y-auto"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="flex items-start justify-between gap-2 mb-4">
+          <div>
+            <p class="font-display text-xl tracking-wide">{{ entry.displayName }}</p>
+            <p class="font-mono text-[12px] text-muted mt-0.5">{{ entry.correct }}/{{ entry.total }} &middot; {{ entry.points }} pts</p>
+          </div>
+          <button
+            type="button"
+            (click)="closeMember()"
+            class="text-muted hover:text-ink text-2xl leading-none font-bold shrink-0"
+            [attr.aria-label]="i18n.t('leagues.cancel')"
+          >
+            &times;
+          </button>
+        </div>
+
+        <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('leagues.cardsTitle') }}</p>
+        @if (entry.showcase.length > 0) {
+          <div class="grid grid-cols-3 gap-3">
+            @for (card of entry.showcase; track card.id) {
+              <app-collectible-card
+                class="block w-full"
+                [name]="card.name"
+                [tier]="card.tier"
+                [teamCode]="card.team.code"
+                [teamColor]="card.team.primaryColor"
+                [imageUrl]="card.imageUrl"
+                [unlocked]="true"
+              ></app-collectible-card>
+            }
+          </div>
+        } @else {
+          <p class="text-xs text-muted">{{ i18n.t('leagues.noCards') }}</p>
         }
       </div>
     </div>
