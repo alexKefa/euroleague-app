@@ -3,6 +3,12 @@
 
   @if (auth.currentUser(); as user) {
     <div class="bg-card rounded-lg shadow-card p-4 mb-5">
+      <p class="font-mono text-[12px] text-muted font-bold mb-1">{{ i18n.t('profile.username') }}</p>
+      <p class="font-semibold text-sm">{{ user.username }}</p>
+      <p class="text-xs text-muted mt-1">{{ i18n.t('profile.usernameHint') }}</p>
+    </div>
+
+    <div class="bg-card rounded-lg shadow-card p-4 mb-5">
       <p class="font-mono text-[12px] text-muted font-bold mb-1">{{ i18n.t('profile.email') }}</p>
       <p class="font-semibold text-sm">{{ user.email }}</p>
     </div>

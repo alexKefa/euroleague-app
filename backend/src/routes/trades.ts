@@ -7,13 +7,6 @@ import { requireAuth } from "../auth/middleware.js";
 
 export const tradesRouter = Router();
 
-// Placeholder display name — no dedicated username field exists yet, so the
-// leaderboard already shows just the email's local part rather than a full
-// address; trades reuses that same convention for the marketplace.
-function displayName(email: string): string {
-  return email.split("@")[0];
-}
-
 // Your own legendary collection, each flagged with whether it's currently
 // listed in the marketplace for others to request.
 tradesRouter.get("/my-cards", requireAuth, async (req, res) => {
@@ -129,7 +122,7 @@ tradesRouter.get("/marketplace", requireAuth, async (req, res) => {
         listingId: userCollectibles.id,
         collectible: collectibles,
         team: teams,
-        ownerEmail: users.email,
+        ownerUsername: users.username,
         finish: userCollectibles.finish,
         wishlist: userCollectibles.wishlist,
       })
@@ -168,14 +161,14 @@ tradesRouter.get("/marketplace", requireAuth, async (req, res) => {
     // up front instead of letting them propose an offer that can never
     // be accepted).
     res.json(
-      rows.map(({ listingId, collectible, team, ownerEmail, finish, wishlist }) => ({
+      rows.map(({ listingId, collectible, team, ownerUsername, finish, wishlist }) => ({
         id: listingId,
         collectibleId: collectible.id,
         name: collectible.name,
         tier: collectible.tier,
         imageUrl: collectible.imageUrl,
         team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor },
-        ownerName: displayName(ownerEmail),
+        ownerName: ownerUsername,
         finish,
         wishlist: wishlist
           .map((id) => wishlistCardById.get(id))
@@ -309,8 +302,8 @@ tradesRouter.get("/me", requireAuth, async (req, res) => {
     const rows = await db
       .select({
         offer: tradeOffers,
-        fromEmail: fromUser.email,
-        toEmail: toUser.email,
+        fromUsername: fromUser.username,
+        toUsername: toUser.username,
         requested: requestedCollectible,
       })
       .from(tradeOffers)
@@ -338,12 +331,12 @@ tradesRouter.get("/me", requireAuth, async (req, res) => {
     }
 
     res.json(
-      rows.map(({ offer, fromEmail, toEmail, requested }) => ({
+      rows.map(({ offer, fromUsername, toUsername, requested }) => ({
         id: offer.id,
         status: offer.status,
         createdAt: offer.createdAt,
         direction: offer.fromUserId === req.userId ? "outgoing" : "incoming",
-        counterpartyName: displayName(offer.fromUserId === req.userId ? toEmail : fromEmail),
+        counterpartyName: offer.fromUserId === req.userId ? toUsername : fromUsername,
         offered: offeredByOfferId.get(offer.id) ?? [],
         requested: { id: requested.id, name: requested.name, imageUrl: requested.imageUrl },
       }))

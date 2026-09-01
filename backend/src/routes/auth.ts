@@ -6,6 +6,7 @@ import { users, pointAdjustments } from "../db/schema.js";
 import { hashPassword, verifyPassword } from "../auth/hash.js";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../auth/tokens.js";
 import { createUniqueReferralCode } from "../services/referrals.js";
+import { createUniqueUsername } from "../services/username.js";
 import { redeemPromoCode } from "../services/promoCodes.js";
 
 export const authRouter = Router();
@@ -58,6 +59,7 @@ function publicUser(user: typeof users.$inferSelect) {
   return {
     id: user.id,
     email: user.email,
+    username: user.username,
     favoriteTeamId: user.favoriteTeamId,
     avatarUrl: user.avatarUrl,
     isAdmin: user.isAdmin,
@@ -97,10 +99,12 @@ authRouter.post("/register", credentialsLimiter, async (req, res) => {
 
   const passwordHash = await hashPassword(password);
   const newReferralCode = await createUniqueReferralCode();
+  const newUsername = await createUniqueUsername();
   const [user] = await db
     .insert(users)
     .values({
       email,
+      username: newUsername,
       passwordHash,
       favoriteTeamId: favoriteTeamId ?? null,
       referralCode: newReferralCode,

@@ -14,6 +14,7 @@ function publicUser(user: typeof users.$inferSelect) {
   return {
     id: user.id,
     email: user.email,
+    username: user.username,
     favoriteTeamId: user.favoriteTeamId,
     avatarUrl: user.avatarUrl,
     isAdmin: user.isAdmin,

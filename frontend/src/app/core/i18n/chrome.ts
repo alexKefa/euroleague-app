@@ -56,6 +56,11 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
 
   "profile.backToDashboard": { en: "Dashboard", el: "Πίνακας" },
   "profile.title": { en: "Profile", el: "Προφίλ" },
+  "profile.username": { en: "Username", el: "Όνομα χρήστη" },
+  "profile.usernameHint": {
+    en: "This is what other players see on leaderboards, leagues, and trades.",
+    el: "Αυτό βλέπουν οι άλλοι παίκτες στις κατατάξεις, τις λίγκες και τις ανταλλαγές.",
+  },
   "profile.email": { en: "Email", el: "Email" },
   "profile.favoriteTeam": { en: "Favorite team", el: "Αγαπημένη ομάδα" },
   "profile.clearHint": {

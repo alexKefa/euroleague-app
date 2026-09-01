@@ -126,7 +126,7 @@ leaguesRouter.get("/:id", requireAuth, async (req, res) => {
     }
 
     const memberRows = await db
-      .select({ userId: leagueMembers.userId, email: users.email, joinedAt: leagueMembers.joinedAt })
+      .select({ userId: leagueMembers.userId, username: users.username, joinedAt: leagueMembers.joinedAt })
       .from(leagueMembers)
       .innerJoin(users, eq(leagueMembers.userId, users.id))
       .where(eq(leagueMembers.leagueId, id));
@@ -139,10 +139,7 @@ leaguesRouter.get("/:id", requireAuth, async (req, res) => {
       createdAt: league.createdAt,
       members: memberRows.map((r) => ({
         userId: r.userId,
-        // Same "local part of the email" placeholder display name as the
-        // global leaderboard (services/leaderboard.ts) — no dedicated
-        // username field exists yet.
-        displayName: r.email.split("@")[0],
+        displayName: r.username,
         joinedAt: r.joinedAt,
       })),
     });
@@ -182,7 +179,7 @@ leaguesRouter.get("/:id/leaderboard", requireAuth, async (req, res) => {
     const memberRows = await db
       .select({
         userId: leagueMembers.userId,
-        email: users.email,
+        username: users.username,
         showcaseCollectibleIds: users.showcaseCollectibleIds,
       })
       .from(leagueMembers)
@@ -222,7 +219,7 @@ leaguesRouter.get("/:id/leaderboard", requireAuth, async (req, res) => {
     const zeroEntries = zeroMembers
       .map((r) => ({
         userId: r.userId,
-        displayName: r.email.split("@")[0],
+        displayName: r.username,
         correct: 0,
         total: 0,
         accuracy: 0,

@@ -28,6 +28,15 @@ export const teams = pgTable("teams", {
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
   email: text("email").notNull().unique(),
+  // Shown everywhere a person's identity appears publicly (leaderboards,
+  // trades, league rosters) instead of the email's local part, which used
+  // to leak part of a real address to strangers. Auto-generated at
+  // registration (services/username.ts's createUniqueUsername, "clutch-user-######")
+  // rather than chosen — nothing in the product asks a new user to pick one
+  // yet, so every account gets a placeholder identity for free. Existing
+  // pre-username accounts were backfilled the same way in a one-off pass
+  // (scripts/backfill-usernames.ts), not derived from their email.
+  username: text("username").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   favoriteTeamId: uuid("favorite_team_id").references(() => teams.id),
   avatarUrl: text("avatar_url"),

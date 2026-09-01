@@ -146,7 +146,7 @@ export async function getLeaderboardEntries(
 
   const totals = await db.execute<{
     user_id: string;
-    email: string;
+    username: string;
     showcase_collectible_ids: string[];
     correct: number;
     total: number;
@@ -177,7 +177,7 @@ export async function getLeaderboardEntries(
       where counts_toward_ranking = true
       group by user_id
     )
-    select coalesce(ct.user_id, bt.user_id) as user_id, u.email, u.showcase_collectible_ids,
+    select coalesce(ct.user_id, bt.user_id) as user_id, u.username, u.showcase_collectible_ids,
       coalesce(ct.correct, 0)::int as correct,
       coalesce(ct.total, 0)::int as total,
       coalesce(ct.correct_points, 0)::int as correct_points,
@@ -193,10 +193,7 @@ export async function getLeaderboardEntries(
     .filter((row) => !allowedIds || allowedIds.has(row.user_id))
     .map((row) => ({
       userId: row.user_id,
-      // Placeholder display name — no dedicated username field exists yet.
-      // Showing full email addresses on a public leaderboard isn't great
-      // practice, so this uses just the local part as a stand-in.
-      displayName: row.email.split("@")[0],
+      displayName: row.username,
       correct: row.correct,
       total: row.total,
       accuracy: row.total > 0 ? row.correct / row.total : 0,

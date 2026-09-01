@@ -1,6 +1,7 @@
 export interface PublicUser {
   id: string;
   email: string;
+  username: string;
   favoriteTeamId: string | null;
   avatarUrl: string | null;
   isAdmin: boolean;

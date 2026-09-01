@@ -17,6 +17,7 @@ import { db } from "../db/client.js";
 import { users, collectibles, userCollectibles } from "../db/schema.js";
 import { hashPassword } from "../auth/hash.js";
 import { createUniqueReferralCode } from "../services/referrals.js";
+import { createUniqueUsername } from "../services/username.js";
 
 const SELLER_COUNT = 4;
 const SELLER_EMAIL_DOMAIN = "trade-seed.local"; // never a real, deliverable address
@@ -31,6 +32,7 @@ async function ensureSeller(index: number): Promise<string> {
     .insert(users)
     .values({
       email,
+      username: await createUniqueUsername(),
       passwordHash: await hashPassword(SELLER_PASSWORD),
       referralCode: await createUniqueReferralCode(),
     })
