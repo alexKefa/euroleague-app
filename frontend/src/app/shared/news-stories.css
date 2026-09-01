@@ -95,6 +95,38 @@
   right: -4px;
 }
 
+/* Visible prev/next chevrons in the full-screen story viewer, layered over
+   the wider invisible edge tap-zones in news-stories.html. Semi-transparent
+   over the photo/black background at any point in the story, not tied to
+   the per-team accent like .story-ring — this is chrome over media, not
+   part of the app's own surface. */
+.story-nav-arrow {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  margin-top: auto;
+  margin-bottom: auto;
+  height: 36px;
+  width: 36px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(2px);
+}
+.story-nav-arrow:active {
+  background: rgba(0, 0, 0, 0.6);
+}
+.story-nav-arrow--left {
+  left: 10px;
+}
+.story-nav-arrow--right {
+  right: 10px;
+}
+
 /* A soft fade behind each arrow so it doesn't read as a stray button
    floating over whichever circle happens to be at the edge. Position
    (top/bottom) comes from the inset-y-0 Tailwind class already on these

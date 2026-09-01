@@ -145,6 +145,32 @@
            trying to read or tap-hold-pause the middle of a story. -->
       <button type="button" class="absolute inset-y-0 left-0 w-1/5" (click)="prev()" [attr.aria-label]="i18n.t('news.previousStory')"></button>
       <button type="button" class="absolute inset-y-0 right-0 w-1/5" (click)="next()" [attr.aria-label]="i18n.t('news.nextStory')"></button>
+
+      <!-- Visible chevrons over the tap zones above — the wide invisible
+           edge zones already handled prev/next, but nothing showed a first-
+           time (mostly mobile) viewer that tapping the edges does anything.
+           Sit after the tap-zone buttons in the DOM so they paint on top and
+           still receive the click themselves. -->
+      <button
+        type="button"
+        (click)="prev()"
+        class="story-nav-arrow story-nav-arrow--left"
+        [attr.aria-label]="i18n.t('news.previousStory')"
+      >
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        (click)="next()"
+        class="story-nav-arrow story-nav-arrow--right"
+        [attr.aria-label]="i18n.t('news.nextStory')"
+      >
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </button>
     </div>
   </div>
 }
