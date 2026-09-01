@@ -36,6 +36,13 @@ export const TOUR_STEPS: TourStep[] = [
     bodyKey: "tour.step.predictions.body",
   },
   {
+    route: "/leagues",
+    selector: "[data-tour='leagues-hub']",
+    requiresAuth: true,
+    titleKey: "tour.step.leagues.title",
+    bodyKey: "tour.step.leagues.body",
+  },
+  {
     route: "/inventory",
     selector: "[data-tour='cards-hub']",
     requiresAuth: true,

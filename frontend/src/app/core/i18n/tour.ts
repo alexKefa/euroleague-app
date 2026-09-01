@@ -25,6 +25,12 @@ export const tourTranslations: Record<string, Record<Lang, string>> = {
     el: "Διάλεξε νικητή πριν την έναρξη. Κάθε σωστή πρόβλεψη αξίζει 10 πόντους, και μια τέλεια αγωνιστική χαρίζει μια δωρεάν θρυλική κάρτα.",
   },
 
+  "tour.step.leagues.title": { en: "Compete with friends", el: "Διαγωνίσου με φίλους" },
+  "tour.step.leagues.body": {
+    en: "Create a private league or join one with an invite code — the same prediction points rank you here, just against a smaller group of friends.",
+    el: "Δημιούργησε ένα ιδιωτικό league ή μπες σε ένα με κωδικό πρόσκλησης — οι ίδιοι πόντοι προβλέψεων σε κατατάσσουν εδώ, απλά ανάμεσα σε μια μικρότερη παρέα φίλων.",
+  },
+
   "tour.step.cards.title": { en: "The Cards hub", el: "Ο κόμβος Κάρτες" },
   "tour.step.cards.body": {
     en: "Spend those points here: open card packs, spin the daily Jump Ball wheel, or trade with other players. This is your collection.",
