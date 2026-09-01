@@ -125,9 +125,10 @@ export class ApiService {
     return this.http.delete<void>(`${API_BASE_URL}/analytics-views/${id}`);
   }
 
-  getNews(limit = 20, lang?: string): Observable<NewsArticle[]> {
+  getNews(limit = 20, lang?: string, dedupe = false): Observable<NewsArticle[]> {
     const params: Record<string, number | string> = { limit };
     if (lang) params["lang"] = lang;
+    if (dedupe) params["dedupe"] = "true";
     return this.http.get<NewsArticle[]>(`${API_BASE_URL}/news`, { params });
   }
 
