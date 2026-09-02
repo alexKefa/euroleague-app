@@ -829,7 +829,12 @@ at the same Neon instance as local dev — there's no separate prod database.
     risk. 6 cards still show Monaco afterward: those 3 players (e.g. Nikola
     Mirotic) aren't on any 2026-27 roster in our data at all, so there's no
     current team to correct them to — a real data gap, not a bug in the
-    fix.
+    fix. Those 6 were then removed from the catalog outright
+    (`scripts/remove-collectibles-without-team.ts`) rather than left
+    showing a team that isn't even in the competition — safe for the same
+    reason (no ownership left to break), and the script verifies zero
+    references remain in every table that could point at a collectible id
+    before deleting, aborting instead of deleting if it finds one.
   - `teams.primaryColor`/`secondaryColor` (`sync/teamColors.ts`,
     `sync-py/standings_sync.py`'s matching `TEAM_COLORS`) were originally
     picked as subtle theme-accent colors (glows, borders, translucent
