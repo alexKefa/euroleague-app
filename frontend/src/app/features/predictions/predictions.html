@@ -53,7 +53,7 @@
                 }
               </span>
 
-              <div class="grid grid-cols-2 relative">
+              <div class="grid grid-cols-2 relative divide-x divide-line">
                 <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-6 h-6 rounded-full bg-card border border-line shadow-pop flex items-center justify-center font-display text-[9px] text-muted">
                   {{ i18n.t('predictions.vs') }}
                 </span>
@@ -64,7 +64,7 @@
                   [disabled]="isLocked(game) || !auth.isAuthenticated()"
                   [attr.aria-label]="game.homeTeam.name"
                   [ngClass]="[isLocked(game) ? 'opacity-50' : '', myPickFor(game) === game.homeTeam.id ? 'bg-highlight/10' : 'hover:bg-line/30']"
-                  class="relative flex flex-col items-center justify-center gap-1 pt-8 pb-3 px-2 overflow-hidden transition-colors disabled:cursor-not-allowed"
+                  class="relative flex flex-col items-center justify-center gap-1 pt-8 pb-3 px-2 overflow-hidden transition-colors cursor-pointer disabled:cursor-not-allowed"
                 >
                   <span
                     class="relative z-10 w-9 h-9 rounded-full flex items-center justify-center border-2 overflow-hidden transition-colors bg-card"
@@ -96,7 +96,7 @@
                   [disabled]="isLocked(game) || !auth.isAuthenticated()"
                   [attr.aria-label]="game.awayTeam.name"
                   [ngClass]="[isLocked(game) ? 'opacity-50' : '', myPickFor(game) === game.awayTeam.id ? 'bg-highlight/10' : 'hover:bg-line/30']"
-                  class="relative flex flex-col items-center justify-center gap-1 pt-8 pb-3 px-2 overflow-hidden transition-colors disabled:cursor-not-allowed"
+                  class="relative flex flex-col items-center justify-center gap-1 pt-8 pb-3 px-2 overflow-hidden transition-colors cursor-pointer disabled:cursor-not-allowed"
                 >
                   <span
                     class="relative z-10 w-9 h-9 rounded-full flex items-center justify-center border-2 overflow-hidden transition-colors bg-card"
