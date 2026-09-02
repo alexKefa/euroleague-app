@@ -87,8 +87,9 @@ export class PacksComponent implements OnInit {
   private static readonly DESKTOP_BREAKPOINT = 1024;
   readonly isDesktop = signal(this.checkDesktop());
   // Mobile size trimmed ~5% (220 -> 209) for a bit more breathing room
-  // around the reveal card on small screens.
-  readonly cardSize = computed(() => (this.isDesktop() ? 320 : 209));
+  // around the reveal card on small screens. Desktop trimmed 20%
+  // (320 -> 256, 2026-09-02) — felt oversized at the original size.
+  readonly cardSize = computed(() => (this.isDesktop() ? 256 : 209));
   readonly summaryCardSize = computed(() => (this.isDesktop() ? 170 : 120));
   // Same aspect ratio as the card (2.5:3.5) plus headroom for the stack's
   // diagonal peek — scales with cardSize so the peek stays proportional.
