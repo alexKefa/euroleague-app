@@ -20,11 +20,16 @@
         <div class="relative">
           @if (side === 'a' ? rowA() : rowB(); as row) {
             <div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-card border-2 border-line">
-              @if (row.player.photoUrl) {
-                <img [src]="row.player.photoUrl" [alt]="row.player.name" loading="lazy" decoding="async" appRetryImg class="w-8 h-8 rounded-full object-cover shrink-0 bg-page" />
-              } @else {
-                <span class="w-8 h-8 rounded-full flex items-center justify-center font-display text-[11px] bg-page shrink-0">{{ row.team.code }}</span>
-              }
+              <app-player-photo
+                [photoUrl]="row.player.photoUrl"
+                [name]="row.player.name"
+                [jerseyNumber]="row.player.jerseyNumber"
+                [teamCode]="row.team.code"
+                [primaryColor]="row.team.primaryColor"
+                [secondaryColor]="row.team.secondaryColor"
+                [size]="32"
+                class="shrink-0"
+              />
               <span class="min-w-0 flex-1">
                 <span class="block text-sm font-bold truncate">{{ row.player.name }}</span>
                 <span class="block text-[11px] text-muted truncate">{{ row.team.name }}</span>
@@ -68,9 +73,16 @@
             class="rounded-2xl p-4 text-white overflow-hidden"
             [style.background]="'linear-gradient(155deg, ' + a.team.primaryColor + ' 0%, #000 130%)'"
           >
-            @if (a.player.photoUrl) {
-              <img [src]="a.player.photoUrl" [alt]="a.player.name" loading="lazy" decoding="async" appRetryImg class="w-14 h-14 rounded-full object-cover bg-white/10 mb-2" />
-            }
+            <app-player-photo
+              [photoUrl]="a.player.photoUrl"
+              [name]="a.player.name"
+              [jerseyNumber]="a.player.jerseyNumber"
+              [teamCode]="a.team.code"
+              [primaryColor]="a.team.primaryColor"
+              [secondaryColor]="a.team.secondaryColor"
+              [size]="56"
+              class="mb-2"
+            />
             <p class="font-display text-lg leading-tight truncate">{{ a.player.name }}</p>
             <p class="font-mono text-[11px] opacity-70 truncate">{{ a.team.name }}</p>
           </div>
@@ -78,9 +90,16 @@
             class="rounded-2xl p-4 text-white overflow-hidden text-right"
             [style.background]="'linear-gradient(205deg, ' + b.team.primaryColor + ' 0%, #000 130%)'"
           >
-            @if (b.player.photoUrl) {
-              <img [src]="b.player.photoUrl" [alt]="b.player.name" loading="lazy" decoding="async" appRetryImg class="w-14 h-14 rounded-full object-cover bg-white/10 mb-2 ml-auto" />
-            }
+            <app-player-photo
+              [photoUrl]="b.player.photoUrl"
+              [name]="b.player.name"
+              [jerseyNumber]="b.player.jerseyNumber"
+              [teamCode]="b.team.code"
+              [primaryColor]="b.team.primaryColor"
+              [secondaryColor]="b.team.secondaryColor"
+              [size]="56"
+              class="mb-2 ml-auto"
+            />
             <p class="font-display text-lg leading-tight truncate">{{ b.player.name }}</p>
             <p class="font-mono text-[11px] opacity-70 truncate">{{ b.team.name }}</p>
           </div>

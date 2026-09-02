@@ -395,11 +395,15 @@
         </div>
       } @else if (playerPreview(); as pd) {
         <div class="flex flex-col items-center text-center gap-2">
-          @if (pd.player.photoUrl) {
-            <img [src]="pd.player.photoUrl" [alt]="pd.player.name" decoding="async" appRetryImg class="w-24 h-24 rounded-full object-cover" />
-          } @else {
-            <div class="w-24 h-24 rounded-full bg-line"></div>
-          }
+          <app-player-photo
+            [photoUrl]="pd.player.photoUrl"
+            [name]="pd.player.name"
+            [jerseyNumber]="pd.player.jerseyNumber"
+            [teamCode]="pd.team.code"
+            [primaryColor]="pd.team.primaryColor"
+            [secondaryColor]="pd.team.secondaryColor"
+            [size]="96"
+          />
           <p class="font-display text-lg tracking-wide leading-tight">{{ pd.player.name }}</p>
           <p class="font-mono text-xs text-muted">
             {{ pd.team.code }}

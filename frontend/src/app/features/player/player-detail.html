@@ -33,22 +33,16 @@
       "
     >
       <div class="flex items-center gap-4">
-        @if (d.player.photoUrl) {
-          <img
-            [src]="d.player.photoUrl"
-            [alt]="d.player.name"
-            loading="lazy"
-            decoding="async"
-            appRetryImg
-            class="w-20 h-20 rounded-full object-cover shrink-0 bg-white/10"
-          />
-        } @else {
-          <span
-            class="w-20 h-20 rounded-full flex items-center justify-center font-display text-xl bg-white/15 shrink-0"
-          >
-            {{ d.team.code }}
-          </span>
-        }
+        <app-player-photo
+          [photoUrl]="d.player.photoUrl"
+          [name]="d.player.name"
+          [jerseyNumber]="d.player.jerseyNumber"
+          [teamCode]="d.team.code"
+          [primaryColor]="d.team.primaryColor"
+          [secondaryColor]="d.team.secondaryColor"
+          [size]="80"
+          class="shrink-0"
+        />
         <div class="min-w-0">
           <h1 class="font-display text-2xl tracking-wide leading-tight">{{ d.player.name }}</h1>
           <p class="font-mono text-[12px] font-bold opacity-70 mt-1">

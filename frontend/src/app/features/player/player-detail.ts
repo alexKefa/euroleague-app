@@ -7,12 +7,13 @@ import { PlayerDetail, PlayerShotChart, PlayerGameLogEntry } from "../../core/mo
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { ShotChartComponent } from "./shot-chart";
+import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { newsDateLocale, shortDateFormat } from "../../shared/news-date-format";
 
 @Component({
   selector: "app-player-detail",
   standalone: true,
-  imports: [CommonModule, RouterLink, RetryImgDirective, SkeletonComponent, ShotChartComponent],
+  imports: [CommonModule, RouterLink, RetryImgDirective, SkeletonComponent, ShotChartComponent, PlayerPhotoComponent],
   templateUrl: "./player-detail.html",
 })
 export class PlayerDetailComponent implements OnInit {

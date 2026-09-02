@@ -12,6 +12,7 @@ import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { StatLegendComponent, StatLegendEntry } from "../../shared/stat-legend";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { LiveCourtComponent } from "../../shared/live-court";
+import { PlayerPhotoComponent } from "../../shared/player-photo";
 
 interface TeamTotals {
   points: number;
@@ -43,7 +44,7 @@ function totalsFor(lines: GameBoxscoreLine[]): TeamTotals {
 @Component({
   selector: "app-game-detail",
   standalone: true,
-  imports: [CommonModule, RouterLink, NavIconComponent, RetryImgDirective, StatLegendComponent, SkeletonComponent, LiveCourtComponent],
+  imports: [CommonModule, RouterLink, NavIconComponent, RetryImgDirective, StatLegendComponent, SkeletonComponent, LiveCourtComponent, PlayerPhotoComponent],
   templateUrl: "./game-detail.html",
 })
 export class GameDetailComponent implements OnInit {
