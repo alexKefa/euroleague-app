@@ -89,7 +89,7 @@
             (click)="open(pack)"
             [disabled]="!canAfford(pack) || opening() !== null || pointsLoading()"
             [attr.aria-label]="packLabel(pack.type) + ' — ' + pack.pointsCost + ' ' + i18n.t('packs.ptsLower')"
-            class="pack-visual relative disabled:opacity-40 w-full max-w-[120px] mx-auto sm:max-w-none"
+            class="pack-visual relative disabled:opacity-40 w-full max-w-[120px] mx-auto sm:max-w-[80%]"
             [class]="visualClasses[pack.type]"
           >
             <span class="pack-dots absolute inset-0 pointer-events-none"></span>
