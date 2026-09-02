@@ -711,11 +711,63 @@ at the same Neon instance as local dev — there's no separate prod database.
   treat any earlier "checked on <date>, covers N of M games" note as stale.
 - Redeploys to Railway are manual, not triggered by `git push` (see
   Deployment above).
-- Some teams have zero rows in `players` — e.g. Besiktas Istanbul, found
-  2026-08-21 while testing the live-score simulator. Not a sync bug in
-  anything built this session; whatever ran the roster sync just hasn't
-  covered every team yet. The simulator accounts for this (a team with no
-  roster can't score, rather than the scoreboard advancing with no player
-  ever credited for it), but real features reading `players` for a team
-  with none synced (roster page, "players to watch", etc.) will just show
-  empty/sparse — worth knowing if a team's page looks unexpectedly bare.
+- Some teams could have zero rows in `players` if `roster_sync.py` (see
+  below) hasn't been run for a freshly-registered club yet — found
+  2026-08-21 with Besiktas Istanbul via the live-score simulator, fixed for
+  the 2026-27 season by adding that script (2026-09-02, see below). The
+  simulator still accounts for the case (a team with no roster can't score,
+  rather than the scoreboard advancing with no player ever credited for
+  it), but real features reading `players` for a team with none synced
+  (roster page, "players to watch", etc.) will just show empty/sparse.
+
+## Season transition (2026-27, 2026-09-02)
+
+- `backend/src/services/season.ts`'s `getCurrentSeason()` (latest season
+  with any `games` row — see the comment there for why this replaced a
+  "most games played" heuristic) is the one place that should decide
+  "current season" anywhere a route needs one without an explicit
+  `?season=` param. `GET /players/leaders` and `GET /players/advanced-stats`
+  used to each independently pick "the latest season that happens to have
+  `player_season_stats` rows", which quietly disagrees with
+  `getCurrentSeason()` during a transition like this one: 2026-27 games
+  were synced (schedule + `roster_sync.py`) weeks before
+  `player_stats_sync.py` has anything to sync (it needs played games), so
+  both endpoints kept showing 2025-26 numbers as if they were the current
+  season's leaders. Fixed by pointing both at `getCurrentSeason()`; with
+  zero `player_season_stats` rows for 2026-27 they now correctly return an
+  empty list rather than falling back, which the dashboard's
+  `hasLeaders()`/`/stats` empty-state handling already knew how to render
+  — same pattern as `hasPerformances()` for an incomplete round.
+  `GET /players/:id`'s own "latest stats for this player" lookup is
+  deliberately left alone — a player-detail page showing last season's
+  numbers as history is a different (and reasonable) claim than a
+  leaderboard implying "these are this season's leaders."
+- `backend/src/scripts/reset-2026-27-season-data.ts` (one-off, run once
+  2026-09-02): rounds 2-5 of the already-synced 2026-27 schedule carried
+  leftover dev/test data from before this transition — 31 games marked
+  `final` with fabricated scores despite tipoff dates weeks in the future,
+  fabricated `player_game_stats`, real predictions made against those fake
+  results (62 of the app's 86 total), and `round_rewards` grants for
+  "completing" round 2-4 off the back of them. The script reverted those
+  games to `scheduled`, deleted their fabricated box scores and the
+  predictions made against them, and deleted the round 2-4 `round_rewards`
+  ledger rows (so the real completion of those rounds can grant normally
+  later instead of finding a claim already on file) — but deliberately
+  left the cards/packs those fake grants already paid out sitting in the
+  affected user's inventory untouched, along with every other
+  collectibles/points table, per an explicit "season data only, not a full
+  economy wipe" scope decision. It also nulled every `players.photo_url`
+  (all 208 that had one were synced against 2025-26 rosters) so
+  `PlayerPhotoComponent`'s jersey-number placeholder shows everywhere until
+  `player_stats_sync.py` repopulates real photos once 2026-27 games are
+  actually played. Always run `scripts/backup-db.ts` before it or a similar
+  one-off — it deletes rows and isn't itself idempotent-safe to reason
+  about twice.
+- `backend/src/sync-py/roster_sync.py` (added 2026-09-02): syncs team
+  rosters (player↔team, name, position, jersey number) from EuroLeague's
+  live club-roster endpoint, which is populated as soon as clubs register
+  their squads — unlike `player_stats_sync.py`'s season-stats endpoint,
+  which has nothing until real games are played. Run this first for a
+  freshly-synced season so roster/team pages aren't empty for months.
+  Deliberately never touches `players.photo_url` (the roster endpoint has
+  no photo field at all) — see the script's own doc comment.

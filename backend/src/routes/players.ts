@@ -3,6 +3,7 @@ import { eq, desc, and, isNotNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "../db/client.js";
 import { players, playerSeasonStats, playerGameStats, games, teams, shotEvents } from "../db/schema.js";
+import { getCurrentSeason } from "../services/season.js";
 
 export const playersRouter = Router();
 
@@ -39,16 +40,17 @@ playersRouter.get("/leaders", async (req, res) => {
     const category: LeaderCategory = isLeaderCategory(categoryParam) ? categoryParam : "points";
     const limit = Math.min(Number(req.query.limit) || 10, 50);
 
-    const latest = await db
-      .select({ season: playerSeasonStats.season })
-      .from(playerSeasonStats)
-      .orderBy(desc(playerSeasonStats.season))
-      .limit(1);
-
-    if (latest.length === 0) {
+    // Anchor on the app's own "current season" (latest season with games
+    // synced — see services/season.ts), not "latest season that happens to
+    // have player_season_stats rows": during a season transition those
+    // disagree, and picking the stats table's own latest season silently
+    // falls back to showing last season's leaders as if they were current
+    // (caught 2026-09-02 going into the 2026-27 transition, when 2026-27
+    // had zero player_season_stats rows and this fell back to 2025-26).
+    const season = await getCurrentSeason();
+    if (!season) {
       return res.json([]);
     }
-    const season = latest[0].season;
 
     const rows = await db
       .select({ player: players, team: teams, stats: playerSeasonStats })
@@ -158,16 +160,12 @@ playersRouter.get("/round-mvp", async (req, res) => {
 // analyst comparing columns wants the full table, not a fixed top-N.
 playersRouter.get("/advanced-stats", async (req, res) => {
   try {
-    const latest = await db
-      .select({ season: playerSeasonStats.season })
-      .from(playerSeasonStats)
-      .orderBy(desc(playerSeasonStats.season))
-      .limit(1);
-
-    if (latest.length === 0) {
+    // Same getCurrentSeason() anchor as GET /leaders, and for the same
+    // reason — see the comment there.
+    const season = await getCurrentSeason();
+    if (!season) {
       return res.json({ season: null, rows: [] });
     }
-    const season = latest[0].season;
 
     const rows = await db
       .select({ player: players, team: teams, stats: playerSeasonStats })
