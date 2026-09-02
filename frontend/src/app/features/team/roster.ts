@@ -135,7 +135,18 @@ export class TeamRosterComponent implements OnInit {
 
     this.api.getRoster(teamId).subscribe({
       next: (rows) => {
-        this.roster.set(rows);
+        // Ascending by jersey number, same as how a real roster sheet is
+        // read — players with no synced number yet (see the Besiktas/
+        // thin-roster gap in CLAUDE.md) sort to the end rather than being
+        // treated as "0" and jumping to the front.
+        const sorted = [...rows].sort((a, b) => {
+          const an = a.player.jerseyNumber;
+          const bn = b.player.jerseyNumber;
+          if (an === null) return bn === null ? 0 : 1;
+          if (bn === null) return -1;
+          return an - bn;
+        });
+        this.roster.set(sorted);
         this.loading.set(false);
       },
       error: () => {

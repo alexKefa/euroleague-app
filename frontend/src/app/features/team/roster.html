@@ -73,9 +73,12 @@
               @for (row of roster(); track row.player.id) {
                 <tr class="border-b border-line last:border-0 font-semibold hover:bg-page transition-colors">
                   <td class="sticky left-0 z-10 bg-card px-3 py-2">
-                    <a [routerLink]="['/players', row.player.id]" class="hover:text-highlight transition-colors">{{
-                      row.player.name
-                    }}</a>
+                    <a [routerLink]="['/players', row.player.id]" class="hover:text-highlight transition-colors">
+                      @if (row.player.jerseyNumber !== null) {
+                        <span class="font-mono text-muted font-normal">#{{ row.player.jerseyNumber }}</span>
+                      }
+                      {{ row.player.name }}
+                    </a>
                   </td>
                   <td class="text-right px-3 py-2 font-mono text-muted font-normal">
                     {{ row.stats.gamesPlayed ?? "—" }}
@@ -121,9 +124,12 @@
               @for (row of roster(); track row.player.id) {
                 <tr class="border-b border-line last:border-0 font-semibold hover:bg-page transition-colors">
                   <td class="sticky left-0 z-10 bg-card px-3 py-2">
-                    <a [routerLink]="['/players', row.player.id]" class="hover:text-highlight transition-colors">{{
-                      row.player.name
-                    }}</a>
+                    <a [routerLink]="['/players', row.player.id]" class="hover:text-highlight transition-colors">
+                      @if (row.player.jerseyNumber !== null) {
+                        <span class="font-mono text-muted font-normal">#{{ row.player.jerseyNumber }}</span>
+                      }
+                      {{ row.player.name }}
+                    </a>
                   </td>
                   <td class="text-right px-3 py-2 font-mono text-highlight font-bold">
                     {{ fmtPct(row.stats.trueShootingPct) }}
