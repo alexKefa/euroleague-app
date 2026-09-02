@@ -763,6 +763,21 @@ at the same Neon instance as local dev — there's no separate prod database.
   actually played. Always run `scripts/backup-db.ts` before it or a similar
   one-off — it deletes rows and isn't itself idempotent-safe to reason
   about twice.
+- `backend/src/scripts/clear-collectible-images.ts` (one-off, run once
+  2026-09-02, right after the reset above): `collectibles.image_url` is a
+  snapshot copied from `player.photoUrl` at catalog-generation time
+  (`scripts/expand-collectibles.ts`), not a live join — so nulling
+  `players.photo_url` alone left every collectible card's own baked-in
+  image untouched, still showing 2025-26 photos everywhere a card renders
+  (Store, Inventory, Album, pack reveals, trades, leagues). Nulls
+  `image_url` on all 438 rows; card identity (id, name, tier, pointsCost,
+  team) and every `user_collectibles` ownership/trade/wishlist row are
+  untouched. `CollectibleCardComponent`'s no-image fallback (`collectible-
+  card.html`) was changed from a generic bust-silhouette icon to the same
+  jersey-silhouette shape `PlayerPhotoComponent` uses, so a photo-less card
+  reads the same way a photo-less player does. Re-run `collectibles:expand`
+  (or the admin `PATCH /collectibles/:id`) once real 2026-27 photos exist
+  to repopulate.
 - `backend/src/sync-py/roster_sync.py` (added 2026-09-02): syncs team
   rosters (player↔team, name, position, jersey number) from EuroLeague's
   live club-roster endpoint, which is populated as soon as clubs register
