@@ -15,6 +15,7 @@ import { ButtonDirective } from "../../shared/button.directive";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { newsDateLocale, shortDateFormat as gameShortDateFormat, gameDateTimeFormat } from "../../shared/news-date-format";
+import { TeamCodePipe } from "../../shared/team-display-code";
 
 // Matches schedule.ts — no season picker here either, and predictions
 // should only ever be open for the round a user could actually be watching.
@@ -99,6 +100,7 @@ interface DisplayedPick {
     ButtonDirective,
     LogoSpinnerComponent,
     CollectibleCardComponent,
+    TeamCodePipe,
   ],
   templateUrl: "./predictions.html",
 })

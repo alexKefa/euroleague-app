@@ -13,6 +13,7 @@ import { ChipDirective } from "../../shared/chip.directive";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
+import { TeamCodePipe, displayTeamCode } from "../../shared/team-display-code";
 
 const MAX_SHOWCASE_CARDS = 3;
 // Matches inventory.ts's own PAGE_SIZE — same "reveal a page at a time"
@@ -34,6 +35,7 @@ const PAGE_SIZE = 20;
     DropdownComponent,
     CollectibleCardComponent,
     LogoSpinnerComponent,
+    TeamCodePipe,
   ],
   templateUrl: "./profile.html",
 })
@@ -103,10 +105,10 @@ export class ProfileComponent implements OnInit, OnDestroy {
   // card form's dropdown, so there's no point loading it for non-admins.
   readonly collectibles = signal<Collectible[]>([]);
   readonly collectibleDropdownOptions = computed<DropdownOption[]>(() =>
-    this.collectibles().map((c) => ({ value: c.id, label: `${c.name} — ${c.team.code} (${c.tier})` }))
+    this.collectibles().map((c) => ({ value: c.id, label: `${c.name} — ${displayTeamCode(c.team.code)} (${c.tier})` }))
   );
   readonly teamDropdownOptions = computed<DropdownOption[]>(() =>
-    this.teams().map((t) => ({ value: t.id, label: t.code, logoUrl: t.logoUrl }))
+    this.teams().map((t) => ({ value: t.id, label: displayTeamCode(t.code), logoUrl: t.logoUrl }))
   );
   readonly tierDropdownOptions = computed<DropdownOption[]>(() => [
     { value: "common", label: this.i18n.t("store.tierCommon") },

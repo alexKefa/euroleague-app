@@ -17,6 +17,20 @@ import { relations } from "drizzle-orm";
 
 export const teams = pgTable("teams", {
   id: uuid("id").defaultRandom().primaryKey(),
+  // The EuroLeague *feed's* internal club code (e.g. "BAS" for Baskonia) —
+  // this is a real API parameter, not just a label: sync-py/roster_sync.py
+  // sends it straight into a request URL
+  // (`/clubs/{club_code}/people`), and standings_sync.py/games_sync.py
+  // upsert ON CONFLICT(code) using whatever the feed itself calls each
+  // club. Confirmed 2026-09-02 (directly hitting the API) that this can
+  // differ from EuroLeague's own *public-site* abbreviation for the same
+  // club (KBA does not exist as an API club code at all, only BAS does) —
+  // never rename this to match the website, or every sync for that team
+  // silently breaks/skips going forward. The website-matching abbreviation
+  // is a frontend-only presentation concern instead — see
+  // frontend/src/app/shared/team-display-code.ts — since threading a
+  // second code through every one of this field's ~45 template call sites
+  // would be a much bigger change for the same outcome.
   code: varchar("code", { length: 10 }).notNull().unique(), // e.g. "OLY"
   name: text("name").notNull(),
   city: text("city"),

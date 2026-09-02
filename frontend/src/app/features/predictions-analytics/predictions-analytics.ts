@@ -5,13 +5,14 @@ import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
 import { PredictionAnalytics } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
+import { TeamCodePipe } from "../../shared/team-display-code";
 
 type SortKey = "timesPicked" | "accuracy";
 
 @Component({
   selector: "app-predictions-analytics",
   standalone: true,
-  imports: [CommonModule, RouterLink, RetryImgDirective],
+  imports: [CommonModule, RouterLink, RetryImgDirective, TeamCodePipe],
   templateUrl: "./predictions-analytics.html",
 })
 export class PredictionsAnalyticsComponent implements OnInit {

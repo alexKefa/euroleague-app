@@ -1,5 +1,6 @@
 import { Component, Input, computed, signal } from "@angular/core";
 import { RetryImgDirective } from "./retry-img.directive";
+import { displayTeamCode } from "./team-display-code";
 
 // Standalone jersey-silhouette placeholder for a player headshot — same
 // "fall back instead of a broken image" spirit as TeamBadgeComponent, used
@@ -51,7 +52,7 @@ import { RetryImgDirective } from "./retry-img.directive";
         </svg>
         <span class="relative flex flex-col items-center leading-none" [style.color]="numberColor()">
           @if (hasNumber() && teamCode) {
-            <span class="font-mono font-bold tracking-wide opacity-75" [style.font-size.px]="codeSize()">{{ teamCode }}</span>
+            <span class="font-mono font-bold tracking-wide opacity-75" [style.font-size.px]="codeSize()">{{ displayCode() }}</span>
           }
           <span class="font-mono font-extrabold tracking-tight" [style.font-size.px]="labelSize()" style="text-shadow: 0 1px 2px rgba(0,0,0,0.3)">{{
             label()
@@ -92,10 +93,11 @@ export class PlayerPhotoComponent {
   });
 
   protected hasNumber = computed(() => this.jerseyNumber !== null && this.jerseyNumber !== undefined);
+  protected displayCode = computed(() => displayTeamCode(this.teamCode));
 
   protected label = computed(() => {
     if (this.hasNumber()) return String(this.jerseyNumber);
-    if (this.teamCode) return this.teamCode;
+    if (this.teamCode) return this.displayCode();
     return this.name?.trim().charAt(0).toUpperCase() ?? "?";
   });
 

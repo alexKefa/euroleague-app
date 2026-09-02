@@ -71,7 +71,7 @@
                     [ngClass]="myPickFor(game) === game.homeTeam.id ? 'border-highlight' : 'border-line'"
                   >
                     @if (game.homeTeam.logoUrl) {
-                      <img [src]="game.homeTeam.logoUrl" [alt]="game.homeTeam.code" loading="lazy" decoding="async" appRetryImg class="w-6 h-6 object-contain team-logo" />
+                      <img [src]="game.homeTeam.logoUrl" [alt]="game.homeTeam.code | teamCode" loading="lazy" decoding="async" appRetryImg class="w-6 h-6 object-contain team-logo" />
                     } @else {
                       <span class="w-full h-full" [style.background]="teamColor(game.homeTeam)"></span>
                     }
@@ -103,7 +103,7 @@
                     [ngClass]="myPickFor(game) === game.awayTeam.id ? 'border-highlight' : 'border-line'"
                   >
                     @if (game.awayTeam.logoUrl) {
-                      <img [src]="game.awayTeam.logoUrl" [alt]="game.awayTeam.code" loading="lazy" decoding="async" appRetryImg class="w-6 h-6 object-contain team-logo" />
+                      <img [src]="game.awayTeam.logoUrl" [alt]="game.awayTeam.code | teamCode" loading="lazy" decoding="async" appRetryImg class="w-6 h-6 object-contain team-logo" />
                     } @else {
                       <span class="w-full h-full" [style.background]="teamColor(game.awayTeam)"></span>
                     }

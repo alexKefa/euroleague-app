@@ -1,5 +1,6 @@
 import { Component, Input } from "@angular/core";
 import { RetryImgDirective } from "./retry-img.directive";
+import { displayTeamCode } from "./team-display-code";
 
 // Small logo + three-letter code, used anywhere a bare team code (PAN, OLY,
 // ...) would otherwise stand alone — falls back to code-only if the team
@@ -22,7 +23,7 @@ import { RetryImgDirective } from "./retry-img.directive";
           [style.width.px]="size"
         />
       }
-      <span>{{ code }}</span>
+      <span>{{ displayCode }}</span>
     </span>
   `,
 })
@@ -30,4 +31,8 @@ export class TeamBadgeComponent {
   @Input({ required: true }) code!: string;
   @Input() logoUrl: string | null = null;
   @Input() size = 20;
+
+  get displayCode(): string {
+    return displayTeamCode(this.code);
+  }
 }

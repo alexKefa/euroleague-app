@@ -13,6 +13,7 @@ import { StatLegendComponent, StatLegendEntry } from "../../shared/stat-legend";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { LiveCourtComponent } from "../../shared/live-court";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
+import { TeamCodePipe } from "../../shared/team-display-code";
 
 interface TeamTotals {
   points: number;
@@ -44,7 +45,17 @@ function totalsFor(lines: GameBoxscoreLine[]): TeamTotals {
 @Component({
   selector: "app-game-detail",
   standalone: true,
-  imports: [CommonModule, RouterLink, NavIconComponent, RetryImgDirective, StatLegendComponent, SkeletonComponent, LiveCourtComponent, PlayerPhotoComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    NavIconComponent,
+    RetryImgDirective,
+    StatLegendComponent,
+    SkeletonComponent,
+    LiveCourtComponent,
+    PlayerPhotoComponent,
+    TeamCodePipe,
+  ],
   templateUrl: "./game-detail.html",
 })
 export class GameDetailComponent implements OnInit {

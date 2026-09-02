@@ -55,6 +55,13 @@ TEAM_COLORS = {
 }
 DEFAULT_COLORS = ("#3E7CB1", "#0B1220")
 
+# EuroLeague's own public-site 3-letter abbreviation differs from `code`
+# above (the feed's internal API club code — see the comment on
+# teams.code in schema.ts) for 11 of 20 clubs, but that's handled entirely
+# as a frontend presentation concern (frontend/src/app/shared/
+# team-display-code.ts) rather than a second column here — see that file's
+# comment for why.
+
 
 def season_label(season: int) -> str:
     """2025 -> '2025-26', matching team_season_stats.season in the Drizzle schema."""

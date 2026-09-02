@@ -3,6 +3,7 @@ import { CommonModule } from "@angular/common";
 import { CollectibleFinish, CollectibleTier } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
+import { displayTeamCode } from "../../shared/team-display-code";
 
 type HoloVariant = "gold" | "silver" | null;
 
@@ -55,6 +56,10 @@ export class CollectibleCardComponent implements OnChanges {
 
   get isFoil(): boolean {
     return this.tier === "legendary" && this.finish === "foil";
+  }
+
+  get displayTeamCode(): string {
+    return displayTeamCode(this.teamCode);
   }
 
   // The player photo can take a beat to arrive (pack reveals fire a burst

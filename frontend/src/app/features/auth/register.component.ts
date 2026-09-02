@@ -9,11 +9,12 @@ import { Team } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ButtonDirective } from "../../shared/button.directive";
 import { OpenInBrowserBannerComponent } from "../../shared/open-in-browser-banner";
+import { TeamCodePipe } from "../../shared/team-display-code";
 
 @Component({
   selector: "app-register",
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, RetryImgDirective, ButtonDirective, OpenInBrowserBannerComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, RetryImgDirective, ButtonDirective, OpenInBrowserBannerComponent, TeamCodePipe],
   templateUrl: "./register.component.html",
 })
 export class RegisterComponent implements OnInit {

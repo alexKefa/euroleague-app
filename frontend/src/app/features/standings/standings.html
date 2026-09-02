@@ -66,7 +66,7 @@
                   } @else {
                     <span class="w-5 h-5 rounded-full shrink-0" [style.background]="row.team.primaryColor"></span>
                   }
-                  <span class="truncate sm:hidden">{{ row.team.code }}</span>
+                  <span class="truncate sm:hidden">{{ row.team.code | teamCode }}</span>
                   <span class="truncate hidden sm:inline">{{ row.team.name }}</span>
                 </span>
               </td>

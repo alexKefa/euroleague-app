@@ -11,6 +11,7 @@ import { PageHintComponent } from "../../shared/page-hint";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { ButtonDirective } from "../../shared/button.directive";
+import { TeamCodePipe } from "../../shared/team-display-code";
 
 interface TierBreakdown {
   tier: CollectibleTier;
@@ -35,6 +36,7 @@ const TIER_ORDER: CollectibleTier[] = ["common", "rare", "legendary"];
     RetryImgDirective,
     SkeletonComponent,
     ButtonDirective,
+    TeamCodePipe,
   ],
   templateUrl: "./album.html",
   styleUrl: "./album.css",

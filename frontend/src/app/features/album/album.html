@@ -57,7 +57,7 @@
               class="w-9 h-9 rounded-full flex items-center justify-center font-display text-[11px] text-white"
               [style.background]="team.primaryColor ?? '#3E7CB1'"
             >
-              {{ team.code }}
+              {{ team.code | teamCode }}
             </div>
           }
           <span class="text-[9px] font-semibold text-center leading-tight truncate w-full">{{ team.name }}</span>
@@ -120,7 +120,7 @@
                 class="w-9 h-9 rounded-full flex items-center justify-center font-display text-[10px] text-white"
                 [style.background]="prevTeam.primaryColor ?? '#3E7CB1'"
               >
-                {{ prevTeam.code }}
+                {{ prevTeam.code | teamCode }}
               </div>
             }
             <span class="text-[9px] font-semibold text-muted text-center leading-tight truncate w-full">{{ prevTeam.name }}</span>
@@ -158,7 +158,7 @@
                 class="w-16 h-16 rounded-full flex items-center justify-center font-display text-lg text-white"
                 [style.background]="team.primaryColor ?? '#3E7CB1'"
               >
-                {{ team.code }}
+                {{ team.code | teamCode }}
               </div>
             }
             <h2 class="font-display text-lg tracking-wide -mt-1">{{ team.name }}</h2>
@@ -261,7 +261,7 @@
                 class="w-9 h-9 rounded-full flex items-center justify-center font-display text-[10px] text-white"
                 [style.background]="nextTeam.primaryColor ?? '#3E7CB1'"
               >
-                {{ nextTeam.code }}
+                {{ nextTeam.code | teamCode }}
               </div>
             }
             <span class="text-[9px] font-semibold text-muted text-center leading-tight truncate w-full">{{ nextTeam.name }}</span>

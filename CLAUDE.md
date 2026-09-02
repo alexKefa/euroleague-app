@@ -869,3 +869,35 @@ at the same Neon instance as local dev — there's no separate prod database.
     tinted per-tier (`iconColor`/`iconAccent` on `TierStyle`) instead of a
     hardcoded white that had barely any contrast against common's old pale
     background.
+- **`teams.code` vs. the public-site team abbreviation** (2026-09-02):
+  asked to make the app's 3-letter team codes match
+  euroleaguebasketball.net's own standings page. Checked the site's mobile
+  view (the desktop table shows full names instead) and found 11 of 20
+  differ from `teams.code` entirely — e.g. Baskonia is "BAS" in this app
+  but "KBA" on the site, Real Madrid is "MAD" here but "RMB" there. Confirmed
+  directly against EuroLeague's live API
+  (`api-live.euroleague.net/v2/.../clubs/{code}/people`) that this isn't
+  cosmetic: `BAS` returns Baskonia's real roster, `KBA` returns `"Team KBA
+  does not exist in season E2026"`. `teams.code` is the feed's own internal
+  club code and a real request parameter (`sync-py/roster_sync.py` sends it
+  straight into that URL; `standings_sync.py`/`games_sync.py` upsert
+  `ON CONFLICT(code)` using whatever the feed itself calls each club) — renaming
+  it to match the site would silently break every future sync for that team.
+  A `teams.displayCode` column was tried first and reverted: the site's
+  abbreviation is shown in ~45 places across ~20 frontend files, and
+  threading a second code through every backend response shape that
+  constructs an explicit team object (routes/games.ts, routes/players.ts,
+  routes/collectibles.ts, services/leaderboard.ts, etc. — none of them just
+  spread the full `teams` row) would have meant touching most of the same
+  files anyway, for a value that's purely presentational. Landed on
+  `frontend/src/app/shared/team-display-code.ts` instead: a hardcoded
+  `code -> site abbreviation` map (kept next to `teamColors.ts`/
+  `TEAM_COLORS` as a sibling "this is presentation data, not sync data"
+  concern), a pure `displayTeamCode()` function, and a `TeamCodePipe`
+  (`{{ team.code | teamCode }}`) for template call sites. `PlayerPhotoComponent`,
+  `CollectibleCardComponent`, and `TeamBadgeComponent` apply it internally to
+  their own `teamCode`/`code` inputs, so every one of their many callers
+  (`[teamCode]="x.team.code"`) gets the correction for free without
+  changing the caller. `teams-hub.ts`'s search also matches the site
+  abbreviation, not just the internal code and team name, so searching
+  "KBA" still finds Baskonia.

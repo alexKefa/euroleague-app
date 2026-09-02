@@ -41,7 +41,7 @@
             @if (row.team.logoUrl) {
               <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-7 h-7 object-contain team-logo" />
             } @else {
-              <span class="font-display text-sm">{{ row.team.code }}</span>
+              <span class="font-display text-sm">{{ row.team.code | teamCode }}</span>
             }
           </span>
           <h1 class="font-display text-2xl tracking-wide group-hover:underline">
@@ -86,9 +86,20 @@
         @if (nextGame(); as game) {
           <div class="relative flex items-center gap-2 mt-4 pt-3 border-t border-line text-sm">
             <span class="font-mono text-[12px] font-bold text-muted">{{ i18n.t('dashboard.next') }}</span>
-            <span class="font-display text-sm"
-              >{{ isHomeGame(game) ? "vs" : "@" }} <span [style.color]="'var(--accent-primary)'">{{ opponentCode(game) }}</span></span
-            >
+            <span class="font-display text-sm inline-flex items-center gap-1.5">
+              {{ isHomeGame(game) ? "vs" : "@" }}
+              @if (opponentTeam(game).logoUrl) {
+                <img
+                  [src]="opponentTeam(game).logoUrl"
+                  [alt]="opponentTeam(game).name"
+                  loading="lazy"
+                  decoding="async"
+                  appRetryImg
+                  class="w-4 h-4 object-contain team-logo"
+                />
+              }
+              <span [style.color]="'var(--accent-primary)'">{{ opponentCode(game) | teamCode }}</span>
+            </span>
             <span class="font-mono text-[12px] text-muted">&middot; {{ game.tipoffAt | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}</span>
           </div>
         }
@@ -363,7 +374,7 @@
                       } @else {
                         <span class="w-5 h-5 rounded-full shrink-0" [style.background]="opponentTeam(game).primaryColor"></span>
                       }
-                      <span class="font-semibold truncate">{{ isHomeGame(game) ? "vs" : "@" }} {{ opponentCode(game) }}</span>
+                      <span class="font-semibold truncate">{{ isHomeGame(game) ? "vs" : "@" }} {{ opponentCode(game) | teamCode }}</span>
                     </span>
                     <span class="font-mono text-muted text-xs shrink-0">{{ game.homeScore }}-{{ game.awayScore }}</span>
                   </a>
@@ -377,7 +388,7 @@
                       } @else {
                         <span class="w-5 h-5 rounded-full shrink-0" [style.background]="opponentTeam(game).primaryColor"></span>
                       }
-                      <span class="font-semibold truncate">{{ isHomeGame(game) ? "vs" : "@" }} {{ opponentCode(game) }}</span>
+                      <span class="font-semibold truncate">{{ isHomeGame(game) ? "vs" : "@" }} {{ opponentCode(game) | teamCode }}</span>
                     </span>
                     <span class="font-mono text-muted text-xs shrink-0">{{ game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}</span>
                   </a>

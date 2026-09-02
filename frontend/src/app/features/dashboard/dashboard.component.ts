@@ -20,6 +20,7 @@ import {
   shortDateFormat as gameShortDateFormat,
   gameDateTimeFormat as gameDateTimeFormatFn,
 } from "../../shared/news-date-format";
+import { TeamCodePipe } from "../../shared/team-display-code";
 
 const LEADER_CATEGORIES = [
   { value: "points", label: "PTS" },
@@ -53,6 +54,7 @@ type DashboardTab = "performances" | "leaders" | "predictors" | "schedule";
     NewsStoriesComponent,
     SkeletonComponent,
     CollectibleCardComponent,
+    TeamCodePipe,
   ],
   templateUrl: "./dashboard.component.html",
 })

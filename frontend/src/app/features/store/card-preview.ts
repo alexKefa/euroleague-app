@@ -5,6 +5,7 @@ import { CollectibleCardComponent } from "./collectible-card";
 import { I18nService } from "../../core/i18n.service";
 import { ApiService } from "../../core/api.service";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
+import { TeamCodePipe } from "../../shared/team-display-code";
 
 /**
  * Full-screen card preview — shared between Store and Inventory (and
@@ -21,7 +22,7 @@ import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 @Component({
   selector: "app-card-preview",
   standalone: true,
-  imports: [CommonModule, CollectibleCardComponent, LogoSpinnerComponent],
+  imports: [CommonModule, CollectibleCardComponent, LogoSpinnerComponent, TeamCodePipe],
   templateUrl: "./card-preview.html",
 })
 export class CardPreviewComponent implements OnChanges {

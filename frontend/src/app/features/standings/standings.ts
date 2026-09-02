@@ -5,6 +5,7 @@ import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
 import { StandingsRow } from "../../core/models";
 import { StatLegendComponent, StatLegendEntry } from "../../shared/stat-legend";
+import { TeamCodePipe } from "../../shared/team-display-code";
 
 interface ColumnDef {
   key: string;
@@ -40,7 +41,7 @@ const LEGEND_KEYS: { code: string; key: string }[] = [
 @Component({
   selector: "app-standings",
   standalone: true,
-  imports: [CommonModule, RouterLink, StatLegendComponent],
+  imports: [CommonModule, RouterLink, StatLegendComponent, TeamCodePipe],
   templateUrl: "./standings.html",
 })
 export class StandingsComponent implements OnInit {

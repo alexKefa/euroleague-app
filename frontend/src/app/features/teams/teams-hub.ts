@@ -9,11 +9,12 @@ import { SkeletonComponent } from "../../shared/skeleton";
 import { ButtonDirective } from "../../shared/button.directive";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { SearchInputComponent } from "../../shared/search-input";
+import { TeamCodePipe, displayTeamCode } from "../../shared/team-display-code";
 
 @Component({
   selector: "app-teams-hub",
   standalone: true,
-  imports: [CommonModule, RouterLink, RetryImgDirective, SkeletonComponent, ButtonDirective, NavIconComponent, SearchInputComponent],
+  imports: [CommonModule, RouterLink, RetryImgDirective, SkeletonComponent, ButtonDirective, NavIconComponent, SearchInputComponent, TeamCodePipe],
   templateUrl: "./teams-hub.html",
 })
 export class TeamsHubComponent implements OnInit {
@@ -31,7 +32,9 @@ export class TeamsHubComponent implements OnInit {
     const q = this.searchQuery().trim().toLowerCase();
     const rows = this.allTeams();
     if (!q) return rows;
-    return rows.filter((t) => t.name.toLowerCase().includes(q) || t.code.toLowerCase().includes(q));
+    return rows.filter(
+      (t) => t.name.toLowerCase().includes(q) || t.code.toLowerCase().includes(q) || displayTeamCode(t.code).toLowerCase().includes(q)
+    );
   });
 
   ngOnInit(): void {

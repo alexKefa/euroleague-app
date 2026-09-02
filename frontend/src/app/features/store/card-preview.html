@@ -62,7 +62,7 @@
         >
           <div class="mb-1">
             <p class="font-display text-lg tracking-wide leading-tight">{{ item.name }}</p>
-            <p class="font-mono text-[12px] font-bold text-muted">{{ item.team.code }}</p>
+            <p class="font-mono text-[12px] font-bold text-muted">{{ item.team.code | teamCode }}</p>
           </div>
 
           @if (statsLoading()) {
@@ -136,7 +136,7 @@
 
     <div class="text-center">
       <p class="font-display text-xl tracking-wide text-white">{{ item.name }}</p>
-      <p class="font-mono text-white/60 text-[13px] font-bold mt-1">{{ item.team.code }}</p>
+      <p class="font-mono text-white/60 text-[13px] font-bold mt-1">{{ item.team.code | teamCode }}</p>
     </div>
 
     <p class="text-white/40 text-[11px]">{{ i18n.t('store.tapToFlip') }}</p>

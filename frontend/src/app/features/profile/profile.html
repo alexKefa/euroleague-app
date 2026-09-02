@@ -118,7 +118,7 @@
             } @else {
               <span class="w-5 h-5 rounded-full shrink-0" [style.background]="team.primaryColor"></span>
             }
-            <span class="font-display text-xs">{{ team.code }}</span>
+            <span class="font-display text-xs">{{ team.code | teamCode }}</span>
             @if (savingTeamId() === team.id) {
               <span class="font-mono text-[11px] text-muted">…</span>
             }
