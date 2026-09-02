@@ -1,9 +1,10 @@
 import { Router } from "express";
-import { eq, and, inArray, isNotNull, asc, desc, sql } from "drizzle-orm";
+import { eq, and, inArray, isNotNull, asc, desc } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "../db/client.js";
 import { teams, games, gameOdds, players, playerGameStats, playerSeasonStats, teamSeasonStats } from "../db/schema.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
+import { getCurrentSeason } from "../services/season.js";
 
 export const gamesRouter = Router();
 
@@ -216,21 +217,11 @@ gamesRouter.get("/:id", async (req, res) => {
       return;
     }
 
-    // Team/player season stats are keyed by season, but a game's own season
-    // (e.g. 2026-27) may not have any played games yet — same "pick the
-    // season with real games" reasoning as /api/standings and
-    // /api/teams/:id/roster, reused here so a preview of an upcoming game
-    // still has something to show instead of a wall of nulls.
-    const mostActiveSeason = await db
-      .select({
-        season: teamSeasonStats.season,
-        totalGames: sql<number>`sum(${teamSeasonStats.wins} + ${teamSeasonStats.losses})`,
-      })
-      .from(teamSeasonStats)
-      .groupBy(teamSeasonStats.season)
-      .orderBy(sql`sum(${teamSeasonStats.wins} + ${teamSeasonStats.losses}) desc`)
-      .limit(1);
-    const statsSeason = mostActiveSeason[0]?.season ?? game.season;
+    // See services/season.ts — "latest season with games synced", not the
+    // old "most games played" heuristic, so this agrees with what
+    // /api/standings and /api/teams/:id/roster now show for the same
+    // season transition.
+    const statsSeason = (await getCurrentSeason()) ?? game.season;
 
     const [homeStats, awayStats] = await Promise.all([
       db

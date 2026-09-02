@@ -2,32 +2,21 @@ import { Router } from "express";
 import { eq, asc, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { teams, teamSeasonStats, playerSeasonStats } from "../db/schema.js";
+import { getCurrentSeason } from "../services/season.js";
 
 export const standingsRouter = Router();
 
 standingsRouter.get("/", async (_req, res) => {
   try {
-    // Pick whichever season has actually been played the most — NOT
-    // whichever season string sorts alphabetically latest. A season
-    // that's been synced for team-identity purposes before it starts
-    // (e.g. round 1, to pick up a newly promoted club) would otherwise
-    // incorrectly "win" with an all-zero standings table over a completed
-    // season with real games. If you're ever tracking multiple seasons
-    // at once deliberately, swap this for an explicit ?season= param.
-    const mostActive = await db
-      .select({
-        season: teamSeasonStats.season,
-        totalGames: sql<number>`sum(${teamSeasonStats.wins} + ${teamSeasonStats.losses})`,
-      })
-      .from(teamSeasonStats)
-      .groupBy(teamSeasonStats.season)
-      .orderBy(sql`sum(${teamSeasonStats.wins} + ${teamSeasonStats.losses}) desc`)
-      .limit(1);
-
-    if (mostActive.length === 0) {
+    // See services/season.ts for why this is "latest season with games
+    // synced" rather than "most games actually played" — the standings
+    // table is meant to go empty/reset the moment a new season starts,
+    // not keep showing the prior season's final table until real games
+    // pile up for the new one.
+    const season = await getCurrentSeason();
+    if (!season) {
       return res.json([]);
     }
-    const season = mostActive[0].season;
 
     const rows = await db
       .select({ team: teams, stats: teamSeasonStats })

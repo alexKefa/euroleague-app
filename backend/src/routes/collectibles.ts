@@ -4,6 +4,7 @@ import { db } from "../db/client.js";
 import { collectibles, userCollectibles, pointAdjustments, teams, users, players, playerSeasonStats } from "../db/schema.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
 import { getUserPoints } from "../services/points.js";
+import { getCurrentSeason } from "../services/season.js";
 
 // Collectibles were never given a real playerId (just a free-text name) —
 // the feed's player names come as "LASTNAME, Firstname" (players.name),
@@ -259,18 +260,11 @@ collectiblesRouter.get("/:id/stats", async (req, res) => {
       return;
     }
 
-    // Same "pick the season with the most actual games played" rule as
-    // GET /api/teams/:id/roster, so this agrees with what the roster page
-    // itself shows for the same player.
-    const [mostActive] = await db
-      .select({ season: playerSeasonStats.season, totalGames: sql<number>`sum(${playerSeasonStats.gamesPlayed})` })
-      .from(playerSeasonStats)
-      .where(eq(playerSeasonStats.playerId, player.id))
-      .groupBy(playerSeasonStats.season)
-      .orderBy(sql`sum(${playerSeasonStats.gamesPlayed}) desc`)
-      .limit(1);
-
-    if (!mostActive) {
+    // See services/season.ts — "latest season with games synced", so this
+    // agrees with what GET /api/teams/:id/roster now shows for the same
+    // player.
+    const season = await getCurrentSeason();
+    if (!season) {
       res.json({ matched: true, player: { id: player.id, name: player.name, position: player.position, jerseyNumber: player.jerseyNumber }, stats: null });
       return;
     }
@@ -278,7 +272,7 @@ collectiblesRouter.get("/:id/stats", async (req, res) => {
     const [stats] = await db
       .select()
       .from(playerSeasonStats)
-      .where(and(eq(playerSeasonStats.playerId, player.id), eq(playerSeasonStats.season, mostActive.season)))
+      .where(and(eq(playerSeasonStats.playerId, player.id), eq(playerSeasonStats.season, season)))
       .limit(1);
 
     res.json({

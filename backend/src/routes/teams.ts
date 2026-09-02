@@ -1,8 +1,42 @@
 import { Router } from "express";
-import { eq, and, or, asc, desc, sql } from "drizzle-orm";
+import { eq, and, or, asc, desc } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "../db/client.js";
 import { teams, players, playerSeasonStats, games } from "../db/schema.js";
+import { getCurrentSeason } from "../services/season.js";
+
+function emptyStats(playerId: string, teamId: string, season: string) {
+  return {
+    playerId,
+    teamId,
+    season,
+    gamesPlayed: null,
+    minutesPerGame: null,
+    pointsPerGame: null,
+    reboundsPerGame: null,
+    assistsPerGame: null,
+    stealsPerGame: null,
+    blocksPerGame: null,
+    turnoversPerGame: null,
+    fieldGoalPct: null,
+    threePointPct: null,
+    freeThrowPct: null,
+    valuation: null,
+    effectiveFieldGoalPct: null,
+    trueShootingPct: null,
+    offensiveReboundPct: null,
+    defensiveReboundPct: null,
+    totalReboundPct: null,
+    assistToTurnoverRatio: null,
+    assistRatio: null,
+    turnoverRatio: null,
+    twoPointAttemptRate: null,
+    threePointAttemptRate: null,
+    freeThrowRate: null,
+    possessionsPerGame: null,
+    usagePercentage: null,
+  };
+}
 
 export const teamsRouter = Router();
 
@@ -23,35 +57,37 @@ teamsRouter.get("/:id/roster", async (req, res) => {
   try {
     const teamId = req.params.id;
 
-    // Same reasoning as /api/standings — pick the season with the most
-    // games actually played, not whichever season string sorts latest.
-    const mostActive = await db
-      .select({
-        season: playerSeasonStats.season,
-        totalGames: sql<number>`sum(${playerSeasonStats.gamesPlayed})`,
-      })
-      .from(playerSeasonStats)
-      .where(eq(playerSeasonStats.teamId, teamId))
-      .groupBy(playerSeasonStats.season)
-      .orderBy(sql`sum(${playerSeasonStats.gamesPlayed}) desc`)
-      .limit(1);
-
-    if (mostActive.length === 0) {
+    // See services/season.ts — "latest season with games synced", not
+    // "most games played by this team's roster", so a team whose new-season
+    // roster is fully synced but hasn't played yet (or, before this fix,
+    // never had a single prior-season stats row at all — Besiktas) still
+    // shows its real roster instead of an empty page.
+    const season = await getCurrentSeason();
+    if (!season) {
       return res.json([]);
     }
-    const season = mostActive[0].season;
 
+    // LEFT JOIN, not INNER — a player's presence on the roster comes from
+    // players.teamId (always current), independent of whether they have a
+    // stats row for `season` yet (no games played this season, or a synced
+    // roster that predates any stats sync at all). Missing stats render as
+    // "—" in the UI already (roster.html's `?? "—"` on every stat cell).
     const rows = await db
       .select({ player: players, stats: playerSeasonStats })
       .from(players)
-      .innerJoin(
+      .leftJoin(
         playerSeasonStats,
         and(eq(playerSeasonStats.playerId, players.id), eq(playerSeasonStats.season, season))
       )
       .where(eq(players.teamId, teamId))
       .orderBy(desc(playerSeasonStats.pointsPerGame));
 
-    res.json(rows);
+    const withStats = rows.map((r) => ({
+      player: r.player,
+      stats: r.stats ?? emptyStats(r.player.id, teamId, season),
+    }));
+
+    res.json(withStats);
   } catch (err) {
     console.error("GET /api/teams/:id/roster failed:", err);
     res.status(500).json({ error: "Failed to load roster" });
