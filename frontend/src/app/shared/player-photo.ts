@@ -4,25 +4,28 @@ import { RetryImgDirective } from "./retry-img.directive";
 // Standalone jersey-silhouette placeholder for a player headshot — same
 // "fall back instead of a broken image" spirit as TeamBadgeComponent, used
 // everywhere player.photoUrl renders (player detail, game-detail top
-// performers, player compare). Styled after EuroLeague Fantasy's own player
-// tiles (2026-09-02 redesign): a flat, team-colored jersey graphic on a
-// neutral tile, jersey number printed on the chest and the team code
-// captioned above it, rather than a translucent icon over a soft gradient.
-// Falls back through jerseyNumber -> teamCode -> first initial of name, so
-// it degrades gracefully even for a roster with neither a synced photo nor
-// a jersey number yet (e.g. a freshly imported season before every squad is
-// fully synced — see the Besiktas/thin-roster gap noted in CLAUDE.md).
-// Colored from the player's own team (primaryColor/secondaryColor) when
-// given, otherwise from the app's own --accent-primary/--accent-secondary
-// reskin variables, so an unphotographed player still reads as "this app,
-// this team" rather than a generic gray box.
+// performers, player compare). v3 (2026-09-02, after user feedback on a
+// flat full-bleed square v2 modeled directly on EuroLeague Fantasy's own
+// tiles — disliked for being flat/plain, wrong corners, and off font/size):
+// back to a circular badge with real depth (a two-color diagonal gradient
+// plus a soft radial sheen, not a single flat fill), a translucent jersey
+// watermark for texture, and the number in a mono font (matches real
+// jersey numbering better than a display face). Falls back through
+// jerseyNumber -> teamCode -> first initial of name, so it degrades
+// gracefully even for a roster with neither a synced photo nor a jersey
+// number yet (e.g. a freshly imported season before every squad is fully
+// synced — see the Besiktas/thin-roster gap noted in CLAUDE.md). Colored
+// from the player's own team (primaryColor/secondaryColor) when given,
+// otherwise from the app's own --accent-primary/--accent-secondary reskin
+// variables, so an unphotographed player still reads as "this app, this
+// team" rather than a generic gray box.
 @Component({
   selector: "app-player-photo",
   standalone: true,
   imports: [RetryImgDirective],
   template: `
     <span
-      class="inline-flex items-center justify-center rounded-xl overflow-hidden shrink-0 relative bg-page"
+      class="inline-flex items-center justify-center rounded-full overflow-hidden shrink-0 relative"
       [style.width.px]="size"
       [style.height.px]="size"
     >
@@ -37,27 +40,22 @@ import { RetryImgDirective } from "./retry-img.directive";
           class="w-full h-full object-cover"
         />
       } @else {
-        <span class="absolute inset-0 flex items-center justify-center">
-          <svg viewBox="0 0 64 64" class="absolute w-[82%] h-[82%]" aria-hidden="true">
-            <path
-              d="M22,6 L32,17 L42,6 L50,14 L54,24 L47,21 L47,58 L17,58 L17,21 L10,24 L14,14 Z"
-              [attr.fill]="jerseyColor()"
-            />
-            <path
-              d="M22,6 L32,17 L42,6"
-              fill="none"
-              [attr.stroke]="trimColor()"
-              stroke-width="2.5"
-              stroke-linejoin="round"
-              stroke-linecap="round"
-            />
-          </svg>
-          <span class="relative flex flex-col items-center leading-none" [style.color]="numberColor()">
-            @if (hasNumber() && teamCode) {
-              <span class="font-mono font-bold tracking-wide opacity-80" [style.font-size.px]="codeSize()">{{ teamCode }}</span>
-            }
-            <span class="font-display font-bold tracking-wide" [style.font-size.px]="labelSize()">{{ label() }}</span>
-          </span>
+        <span class="absolute inset-0" [style.background]="gradient()"></span>
+        <span class="absolute inset-0" style="background: radial-gradient(circle at 32% 22%, rgba(255,255,255,0.32), transparent 58%)"></span>
+        <svg viewBox="0 0 64 64" class="absolute w-[68%] h-[68%]" aria-hidden="true">
+          <path
+            d="M22,6 L32,17 L42,6 L50,14 L54,24 L47,21 L47,58 L17,58 L17,21 L10,24 L14,14 Z"
+            fill="#fff"
+            fill-opacity="0.16"
+          />
+        </svg>
+        <span class="relative flex flex-col items-center leading-none" [style.color]="numberColor()">
+          @if (hasNumber() && teamCode) {
+            <span class="font-mono font-bold tracking-wide opacity-75" [style.font-size.px]="codeSize()">{{ teamCode }}</span>
+          }
+          <span class="font-mono font-extrabold tracking-tight" [style.font-size.px]="labelSize()" style="text-shadow: 0 1px 2px rgba(0,0,0,0.3)">{{
+            label()
+          }}</span>
         </span>
       }
     </span>
@@ -74,8 +72,11 @@ export class PlayerPhotoComponent {
 
   protected failed = signal(false);
 
-  protected jerseyColor = computed(() => this.primaryColor ?? "var(--accent-primary)");
-  protected trimColor = computed(() => this.secondaryColor ?? "rgba(255,255,255,0.65)");
+  protected gradient = computed(() => {
+    const from = this.primaryColor ?? "var(--accent-primary)";
+    const to = this.secondaryColor ?? "var(--accent-secondary)";
+    return `linear-gradient(150deg, ${from} 0%, ${to} 145%)`;
+  });
 
   // White text reads fine on nearly every EuroLeague team color, but a few
   // (e.g. a pale gold/yellow) are too light for it — fall back to a dark
@@ -98,6 +99,6 @@ export class PlayerPhotoComponent {
     return this.name?.trim().charAt(0).toUpperCase() ?? "?";
   });
 
-  protected labelSize = computed(() => Math.round(this.size * (this.hasNumber() ? 0.34 : 0.3)));
+  protected labelSize = computed(() => Math.round(this.size * (this.hasNumber() ? 0.36 : 0.3)));
   protected codeSize = computed(() => Math.round(this.size * 0.13));
 }

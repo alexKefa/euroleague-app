@@ -18,6 +18,12 @@ interface TierStyle {
   photoTint: string;
   bannerBackground: string;
   holoVariant: HoloVariant;
+  // Color for the no-image fallback's jersey silhouette + collar accent —
+  // needs to contrast with photoTint, which varies a lot more per tier
+  // than a single fixed white ever could (a pale common-tier tint needs a
+  // dark icon, a dark rare/legendary tint needs a light one).
+  iconColor: string;
+  iconAccent: string;
 }
 
 const DEFAULT_TEAM_COLOR = "#3E7CB1";
@@ -81,6 +87,20 @@ export class CollectibleCardComponent implements OnChanges {
     return `rgb(${clamp(r * factor)}, ${clamp(g * factor)}, ${clamp(b * factor)})`;
   }
 
+  // Blends a team color toward white — used for the common tier's photo
+  // background, which otherwise (see the fixed getUserPoints... no, see
+  // `style` below) used to be a flat neutral gray regardless of team,
+  // the main reason "cards have no team color" for the ~half of the
+  // catalog that's common tier.
+  private tint(hex: string, amount: number): string {
+    const h = hex.replace("#", "");
+    const r = parseInt(h.substring(0, 2), 16) || 0;
+    const g = parseInt(h.substring(2, 4), 16) || 0;
+    const b = parseInt(h.substring(4, 6), 16) || 0;
+    const mix = (c: number) => Math.round(c + (255 - c) * amount);
+    return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
+  }
+
   get style(): TierStyle {
     const accent = this.teamColor ?? DEFAULT_TEAM_COLOR;
     const accentDark = this.shade(accent, 0.35);
@@ -102,6 +122,8 @@ export class CollectibleCardComponent implements OnChanges {
         photoTint: `linear-gradient(160deg, ${accentSoft} 0%, ${accentDeep} 100%)`,
         bannerBackground: "rgba(11,15,13,0.55)",
         holoVariant: "silver",
+        iconColor: "#fff",
+        iconAccent: "#fff",
       };
     }
 
@@ -120,6 +142,8 @@ export class CollectibleCardComponent implements OnChanges {
         photoTint: `radial-gradient(120% 100% at 50% 10%, ${accentSoft} 0%, #05070a 70%)`,
         bannerBackground: "rgba(5,7,10,0.55)",
         holoVariant: "gold",
+        iconColor: "#fff",
+        iconAccent: "#fff",
       };
     }
 
@@ -132,9 +156,14 @@ export class CollectibleCardComponent implements OnChanges {
       badgeLabel: "COMMON",
       nameColor: "#14161A",
       metaColor: "#5B6169",
-      photoTint: "linear-gradient(160deg, #EEF3F0 0%, #E2E9E4 100%)",
+      // Pale team-color wash, not a flat neutral gray — commons are ~half
+      // the catalog, so a fixed gray here meant roughly half the Store had
+      // no team color on it at all (2026-09-02 fix).
+      photoTint: `linear-gradient(160deg, ${this.tint(accent, 0.72)} 0%, ${this.tint(accent, 0.5)} 100%)`,
       bannerBackground: "rgba(255,255,255,0.68)",
       holoVariant: null,
+      iconColor: this.shade(accent, 0.55),
+      iconAccent: this.shade(accent, 0.3),
     };
   }
 }

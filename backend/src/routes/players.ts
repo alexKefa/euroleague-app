@@ -160,12 +160,27 @@ playersRouter.get("/round-mvp", async (req, res) => {
 // analyst comparing columns wants the full table, not a fixed top-N.
 playersRouter.get("/advanced-stats", async (req, res) => {
   try {
-    // Same getCurrentSeason() anchor as GET /leaders, and for the same
-    // reason — see the comment there.
-    const season = await getCurrentSeason();
-    if (!season) {
+    // Deliberately NOT getCurrentSeason() here, unlike GET /leaders —
+    // tried that first (2026-09-02) and it broke /compare, which sources
+    // its entire player-search list from this same payload (see the
+    // CLAUDE.md comment on /compare): with zero 2026-27 player_season_stats
+    // rows synced yet, the search box had nothing to search at all, not
+    // just an empty leaderboard. /leaders is a "these are this season's
+    // leaders" claim, where showing last season's numbers as current is
+    // actively misleading — /stats and /compare are closer to
+    // GET /players/:id's "latest known numbers for this player", where
+    // showing last season's real stats until this season has its own is
+    // the useful behavior, not a bug.
+    const latest = await db
+      .select({ season: playerSeasonStats.season })
+      .from(playerSeasonStats)
+      .orderBy(desc(playerSeasonStats.season))
+      .limit(1);
+
+    if (latest.length === 0) {
       return res.json({ season: null, rows: [] });
     }
+    const season = latest[0].season;
 
     const rows = await db
       .select({ player: players, team: teams, stats: playerSeasonStats })

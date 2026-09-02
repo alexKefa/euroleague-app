@@ -33,24 +33,24 @@ DATABASE_URL = os.environ["DATABASE_URL"]
 TEAM_COLORS = {
     "MUN": ("#DC052D", "#0066B2"),  # FC Bayern Munich
     "ULK": ("#0C2340", "#FFD200"),  # Fenerbahce Beko Istanbul
-    "HTA": ("#E2001A", "#111111"),  # Hapoel IBI Tel Aviv
-    "BAS": ("#78BE20", "#111111"),  # Baskonia Vitoria-Gasteiz
+    "HTA": ("#E2001A", "#FFFFFF"),  # Hapoel IBI Tel Aviv
+    "BAS": ("#CF152D", "#0B2240"),  # Baskonia Vitoria-Gasteiz — actual club colors are red/navy, not green (checked 2026-09-02: the green was a ~2010-2016 kit era, teamcolorcodes.com lists red #CF152D/navy #0B2240 as current)
     "ASV": ("#E31E24", "#002654"),  # LDLC ASVEL Villeurbanne
     "TEL": ("#FFDD00", "#003399"),  # Maccabi Rapyd Tel Aviv
-    "OLY": ("#E31837", "#0A0A0A"),  # Olympiacos Piraeus
-    "PAN": ("#007A33", "#012D18"),  # Panathinaikos AKTOR Athens
-    "PRS": ("#8A1538", "#1A1A1A"),  # Paris Basketball
-    "PAR": ("#000000", "#3A3A3A"),  # Partizan Mozzart Bet Belgrade
-    "MAD": ("#1E3B70", "#FEBE10"),  # Real Madrid
+    "OLY": ("#D0061F", "#FFFFFF"),  # Olympiacos Piraeus
+    "PAN": ("#007841", "#FFFFFF"),  # Panathinaikos AKTOR Athens
+    "PRS": ("#000000", "#FFFFFF"),  # Paris Basketball
+    "PAR": ("#000000", "#FFFFFF"),  # Partizan Mozzart Bet Belgrade
+    "MAD": ("#FFFFFF", "#00529F"),  # Real Madrid — actual kit is white ("Los Blancos"), not navy; navy/blue is the trim color
     "PAM": ("#F7941E", "#12275A"),  # Valencia Basket
-    "VIR": ("#111111", "#8C7A3D"),  # Virtus Bologna
-    "ZAL": ("#0B8A3E", "#111111"),  # Zalgiris Kaunas
-    "MCO": ("#C8102E", "#111111"),  # AS Monaco
-    "IST": ("#E2231A", "#1A1A1A"),  # Anadolu Efes Istanbul
+    "VIR": ("#000000", "#FFFFFF"),  # Virtus Bologna — "Vu Nere" (the blacks), black/white
+    "ZAL": ("#146734", "#FFFFFF"),  # Zalgiris Kaunas
+    "MCO": ("#C8102E", "#111111"),  # AS Monaco — not in the 2026-27 competition, left as-is
+    "IST": ("#D73430", "#213557"),  # Anadolu Efes Istanbul
     "MIL": ("#0D0D0D", "#C8102E"),  # EA7 Emporio Armani Milan
-    "BES": ("#000000", "#8C1D1D"),  # Besiktas Istanbul
-    "RED": ("#E4022D", "#1A1A1A"),  # Crvena Zvezda Meridianbet Belgrade
-    "DUB": ("#0A0A0A", "#C9A227"),  # Dubai Basketball
+    "BES": ("#000000", "#FFFFFF"),  # Besiktas Istanbul
+    "RED": ("#EB1926", "#FFFFFF"),  # Crvena Zvezda Meridianbet Belgrade
+    "DUB": ("#FFFFFF", "#0A0A0A"),  # Dubai Basketball — home kit is white with black/gold trim
     "BAR": ("#004D98", "#A50044"),  # FC Barcelona
 }
 DEFAULT_COLORS = ("#3E7CB1", "#0B1220")

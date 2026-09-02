@@ -803,3 +803,64 @@ at the same Neon instance as local dev — there's no separate prod database.
   collectibles/points economy only. One side effect worth knowing: every
   user's one-time 150pt welcome bonus (a `point_adjustments` row) is gone
   with the rest of that table and is not re-granted by this script.
+- **Jersey-style placeholders, team colors, and stale collectible teams**
+  (2026-09-02, same day, after the above): once every player photo and card
+  image was nulled, three more problems surfaced from actually looking at
+  the result.
+  - `GET /teams` returned all 21 rows unconditionally, so AS Monaco (out of
+    the 2026-27 competition entirely — see the roster_sync.py note above)
+    still showed up in the Teams hub, the favorite-team picker, and every
+    other consumer. Fixed by scoping it to teams that actually appear in
+    `getCurrentSeason()`'s games — Monaco's `teams` row, its 38 real
+    2025-26 games, and its `team_season_stats` are all untouched (a hard
+    delete would violate those FKs anyway, and would destroy real
+    history); this only narrows what one endpoint returns.
+  - `scripts/fix-collectible-teams.ts` (one-off): `collectibles.teamId` is
+    a snapshot taken when `expand-collectibles.ts` first created each card,
+    matched by player name — that script only ever INSERTs a new
+    (teamId, tier, name) combo, it never re-checks an existing row when a
+    player transfers. A full offseason of real transfers left 117 of 437
+    collectibles (27%) pointing at a player's old team, discovered because
+    every one of AS Monaco's 21 cards was among them. Corrected by
+    resolving each collectible's player by name against `players.teamId`
+    (the always-current source) and updating in place — safe only because
+    `reset-economy-full.ts` had already wiped every `user_collectibles`/
+    trade/pack-opening row referencing these ids, so no ownership was at
+    risk. 6 cards still show Monaco afterward: those 3 players (e.g. Nikola
+    Mirotic) aren't on any 2026-27 roster in our data at all, so there's no
+    current team to correct them to — a real data gap, not a bug in the
+    fix.
+  - `teams.primaryColor`/`secondaryColor` (`sync/teamColors.ts`,
+    `sync-py/standings_sync.py`'s matching `TEAM_COLORS`) were originally
+    picked as subtle theme-accent colors (glows, borders, translucent
+    overlays) — never validated as literal kit colors, which is exactly
+    why they looked "messed up" once rendered as solid jersey fills.
+    Re-checked against teamcolorcodes.com and corrected in both files
+    (`scripts/fix-team-colors.ts` applied it to the live DB — note
+    `standings_sync.py`'s upsert uses
+    `COALESCE(teams.primary_color, EXCLUDED.primary_color)`, so it only
+    ever fills a NULL column; simply editing the Python dict and
+    re-syncing would **not** have updated already-populated rows). Most
+    consequential: Baskonia was solid green from a 2010-2016 kit era
+    rather than its actual red/navy; Real Madrid and Dubai Basketball both
+    have a white primary kit with a colored trim, not the solid dark tone
+    used before.
+  - `shared/player-photo.ts`'s jersey placeholder went through three
+    visual iterations the same day: a translucent icon over a soft
+    gradient circle (original) → a flat, full-bleed colored square modeled
+    directly on EuroLeague Fantasy's own player tiles (checked live against
+    euroleaguefantasy.euroleaguebasketball.net) → back to a circle after
+    that read as too flat/plain with the wrong corners and font, this time
+    with a real two-color gradient, a soft radial sheen for depth, a
+    translucent jersey watermark, and a mono font for the number. Landed on
+    the circle+gradient+depth combination — if it needs to change again,
+    that history is why a flat square was already tried and rejected.
+    `features/store/collectible-card.ts`'s no-image fallback got a matching
+    but separate fix: its common tier's `photoTint` was a fixed neutral
+    gray regardless of team (rare/legendary already used the team accent),
+    which is why roughly half the Store — every common card — showed no
+    team color at all. Now uses a pale team-color wash (`tint()`, blends
+    the accent toward white) for common, and the jersey icon itself is
+    tinted per-tier (`iconColor`/`iconAccent` on `TierStyle`) instead of a
+    hardcoded white that had barely any contrast against common's old pale
+    background.

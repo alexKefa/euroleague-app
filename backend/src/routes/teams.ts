@@ -45,8 +45,26 @@ const awayTeam = alias(teams, "away_team");
 
 teamsRouter.get("/", async (_req, res) => {
   try {
-    const rows = await db.select().from(teams);
-    res.json(rows);
+    // Scoped to teams actually in getCurrentSeason()'s schedule, not every
+    // row ever synced — otherwise a team no longer in the competition (e.g.
+    // AS Monaco, out for 2026-27, found 2026-09-02) keeps showing up in the
+    // Teams hub, the favorite-team picker, and every other GET /teams
+    // consumer, even though it can't be picked as "your team" or have a
+    // current roster/collectible meaningfully tied to it. Its `teams` row,
+    // 2025-26 games, and stats are untouched — this only narrows what this
+    // one endpoint returns, real history stays intact.
+    const season = await getCurrentSeason();
+    if (!season) {
+      const rows = await db.select().from(teams);
+      return res.json(rows);
+    }
+
+    const rows = await db
+      .selectDistinct({ team: teams })
+      .from(teams)
+      .innerJoin(games, or(eq(games.homeTeamId, teams.id), eq(games.awayTeamId, teams.id)))
+      .where(eq(games.season, season));
+    res.json(rows.map((r) => r.team));
   } catch (err) {
     console.error("GET /api/teams failed:", err);
     res.status(500).json({ error: "Failed to load teams" });
