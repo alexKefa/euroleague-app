@@ -786,3 +786,20 @@ at the same Neon instance as local dev — there's no separate prod database.
   freshly-synced season so roster/team pages aren't empty for months.
   Deliberately never touches `players.photo_url` (the roster endpoint has
   no photo field at all) — see the script's own doc comment.
+- `backend/src/scripts/reset-economy-full.ts` (one-off, run once
+  2026-09-02): a broader "every user starts the season at zero" wipe,
+  explicitly requested after `reset-2026-27-season-data.ts`'s narrower
+  "season data only" pass (offered and declined earlier the same day) left
+  every user's owned cards/points/packs untouched. Fully empties
+  `user_collectibles`, `owned_packs`, `pack_openings`/`pack_opening_results`,
+  `wheel_spins`, `point_adjustments`, `trade_offers`/`trade_offer_items`,
+  `round_rewards`, `legendary_milestones`, `pity_counters`, and
+  `leagues`/`league_members` (not filtered to any user or season — every row
+  in each table), and resets every user's `showcase_collectible_ids` to
+  `[]` and `referral_reward_granted` to `false` so a referral already paid
+  out of the now-wiped `point_adjustments` can be legitimately re-earned.
+  Deliberately leaves `predictions` and `games` alone — those were already
+  handled by `reset-2026-27-season-data.ts`, and this pass is scoped to the
+  collectibles/points economy only. One side effect worth knowing: every
+  user's one-time 150pt welcome bonus (a `point_adjustments` row) is gone
+  with the rest of that table and is not re-granted by this script.
