@@ -81,40 +81,48 @@ playersRouter.get("/leaders", async (req, res) => {
   }
 });
 
-// Top PIR (valuation) performance(s) for a round — defaults to the most
-// recently *completed* round (every game in it final) when season/round
-// aren't given, same "complete round" definition services/cards.ts uses
-// for perfect-round card grants.
+// Top PIR (valuation) performance(s) for a round — defaults to the current
+// season's most recently *completed* round (every game in it final) when
+// season/round aren't given, same "complete round" definition
+// services/cards.ts uses for perfect-round card grants. Scoped to
+// getCurrentSeason() rather than "most recently completed round across
+// every season ever synced" — the latter used to fall back to a real,
+// legitimately-completed round from *last* season (e.g. 2025-26's round 38)
+// once the new season starts with zero completed rounds of its own, which
+// reads as this season's "top performances" when it's actually stale —
+// same reasoning as GET /leaders (see the comment there).
 playersRouter.get("/round-mvp", async (req, res) => {
   try {
     let season = typeof req.query.season === "string" ? req.query.season : null;
     let round = req.query.round ? Number(req.query.round) : null;
 
     if (!season || !round) {
-      const allGames = await db
-        .select({ season: games.season, round: games.round, status: games.status })
-        .from(games)
-        .where(isNotNull(games.round));
-
-      const bySeasonRound = new Map<string, { season: string; round: number; total: number; final: number }>();
-      for (const g of allGames) {
-        const key = `${g.season} ${g.round}`;
-        const entry = bySeasonRound.get(key) ?? { season: g.season, round: g.round!, total: 0, final: 0 };
-        entry.total += 1;
-        if (g.status === "final") entry.final += 1;
-        bySeasonRound.set(key, entry);
+      const currentSeason = await getCurrentSeason();
+      if (!currentSeason) {
+        return res.json({ season: null, round: null, leaders: [] });
       }
 
-      const completed = [...bySeasonRound.values()]
-        .filter((e) => e.final === e.total)
-        .sort((a, b) => (a.season === b.season ? b.round - a.round : b.season.localeCompare(a.season)));
+      const seasonGames = await db
+        .select({ round: games.round, status: games.status })
+        .from(games)
+        .where(and(eq(games.season, currentSeason), isNotNull(games.round)));
+
+      const byRound = new Map<number, { total: number; final: number }>();
+      for (const g of seasonGames) {
+        const entry = byRound.get(g.round!) ?? { total: 0, final: 0 };
+        entry.total += 1;
+        if (g.status === "final") entry.final += 1;
+        byRound.set(g.round!, entry);
+      }
+
+      const completed = [...byRound.entries()].filter(([, e]) => e.final === e.total).sort((a, b) => b[0] - a[0]);
 
       if (completed.length === 0) {
         res.json({ season: null, round: null, leaders: [] });
         return;
       }
-      season = completed[0].season;
-      round = completed[0].round;
+      season = currentSeason;
+      round = completed[0][0];
     }
 
     const limit = Math.min(Number(req.query.limit) || 1, 20);

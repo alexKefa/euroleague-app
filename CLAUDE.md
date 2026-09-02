@@ -726,22 +726,33 @@ at the same Neon instance as local dev — there's no separate prod database.
   with any `games` row — see the comment there for why this replaced a
   "most games played" heuristic) is the one place that should decide
   "current season" anywhere a route needs one without an explicit
-  `?season=` param. `GET /players/leaders` and `GET /players/advanced-stats`
-  used to each independently pick "the latest season that happens to have
-  `player_season_stats` rows", which quietly disagrees with
-  `getCurrentSeason()` during a transition like this one: 2026-27 games
-  were synced (schedule + `roster_sync.py`) weeks before
+  `?season=` param, **but only for an endpoint making a "these are this
+  season's leaders" claim** — not for every "latest known stats" lookup.
+  `GET /players/leaders` used to independently pick "the latest season
+  that happens to have `player_season_stats` rows", which quietly
+  disagrees with `getCurrentSeason()` during a transition like this one:
+  2026-27 games were synced (schedule + `roster_sync.py`) weeks before
   `player_stats_sync.py` has anything to sync (it needs played games), so
-  both endpoints kept showing 2025-26 numbers as if they were the current
-  season's leaders. Fixed by pointing both at `getCurrentSeason()`; with
-  zero `player_season_stats` rows for 2026-27 they now correctly return an
-  empty list rather than falling back, which the dashboard's
-  `hasLeaders()`/`/stats` empty-state handling already knew how to render
-  — same pattern as `hasPerformances()` for an incomplete round.
-  `GET /players/:id`'s own "latest stats for this player" lookup is
-  deliberately left alone — a player-detail page showing last season's
-  numbers as history is a different (and reasonable) claim than a
-  leaderboard implying "these are this season's leaders."
+  it kept showing 2025-26 numbers as if they were the current season's
+  leaders. Fixed by pointing it at `getCurrentSeason()`; with zero
+  `player_season_stats` rows for 2026-27 it now correctly returns an empty
+  list rather than falling back, which the dashboard's `hasLeaders()`
+  empty-state handling already knew how to render. `GET /players/round-mvp`
+  (dashboard "Top Performances") had the identical bug one level up: its
+  own "most recently completed round" search spanned every season ever
+  synced, so with zero completed 2026-27 rounds it fell back to a real,
+  legitimately-completed round from *last* season (2025-26's round 38) —
+  fixed the same way, scoping the completed-round search to
+  `getCurrentSeason()`'s games only (2026-09-02).
+  `GET /players/advanced-stats` and `GET /players/:id` were **deliberately
+  left on their original "latest season with data" behavior** — tried
+  `getCurrentSeason()` there too the same day, but `/advanced-stats` is
+  also `/compare`'s entire player-search data source (see the `/compare`
+  bullet below), and with zero 2026-27 rows the search box had nothing to
+  search at all, not just an empty leaderboard. A player-detail/compare
+  page showing last season's real numbers as "latest known" is a different
+  (and reasonable) claim than a leaderboard implying "these are this
+  season's leaders" — reverted back to the season-with-data pick for both.
 - `backend/src/scripts/reset-2026-27-season-data.ts` (one-off, run once
   2026-09-02): rounds 2-5 of the already-synced 2026-27 schedule carried
   leftover dev/test data from before this transition — 31 games marked
