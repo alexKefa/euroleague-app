@@ -14,71 +14,78 @@
   @if (loading()) {
     <div class="animate-pulse h-96 rounded-2xl bg-line"></div>
   } @else {
-    <!-- overflow-x-auto alone silently forces overflow-y: auto too (a CSS
-         overflow-interaction quirk), turning this div into its own vertical
-         scroll container — but with no height cap it never actually
-         scrolls, so a sticky thead binds to that inert scrollport instead
-         of the page and never appears to stick. Capping the height with
-         overflow-y-auto makes it a real scrolling box the header can stick
-         inside, instead of a page-scroll-driven fake one. -->
-    <div class="overflow-auto rounded-2xl border border-line shadow-card max-h-[70vh]">
-      <table class="w-full text-sm border-collapse">
-        <thead>
-          <tr class="bg-card">
-            <th
-              scope="col"
-              (click)="setSort('position')"
-              class="sticky left-0 top-0 z-30 bg-card border-b border-line w-1/4 min-w-[7rem] px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
-              [class.text-highlight]="sortKey() === 'position'"
-            >
-              {{ i18n.t('standings.colTeam') }}
-              @if (sortKey() === 'position') {
-                <span class="inline-block">{{ sortDesc() ? '↓' : '↑' }}</span>
-              }
-            </th>
-            @for (col of columns.slice(1); track col.key) {
+    <!-- Scroll container is nested one level inside the visual card
+         (border/rounded/shadow on the outer div, overflow-hidden to clip
+         the inner scrollport to those rounded corners) — same split as
+         roster.html's table wrapper, so panning the table horizontally
+         only moves the table, not the whole bordered card with it. -->
+    <div class="rounded-2xl border border-line shadow-card overflow-hidden">
+      <!-- overflow-x-auto alone silently forces overflow-y: auto too (a CSS
+           overflow-interaction quirk), turning this div into its own vertical
+           scroll container — but with no height cap it never actually
+           scrolls, so a sticky thead binds to that inert scrollport instead
+           of the page and never appears to stick. Capping the height with
+           overflow-y-auto makes it a real scrolling box the header can stick
+           inside, instead of a page-scroll-driven fake one. -->
+      <div class="overflow-auto max-h-[70vh]">
+        <table class="w-full text-sm border-collapse">
+          <thead>
+            <tr class="bg-card">
               <th
                 scope="col"
-                (click)="setSort(col.key)"
-                class="sticky top-0 z-20 bg-card border-b border-line px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
-                [class.text-highlight]="sortKey() === col.key"
+                (click)="setSort('position')"
+                class="sticky left-0 top-0 z-30 bg-card border-b border-line w-1/4 min-w-[7rem] px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
+                [class.text-highlight]="sortKey() === 'position'"
               >
-                {{ i18n.t(col.labelKey) }}
-                @if (sortKey() === col.key) {
+                {{ i18n.t('standings.colTeam') }}
+                @if (sortKey() === 'position') {
                   <span class="inline-block">{{ sortDesc() ? '↓' : '↑' }}</span>
                 }
               </th>
-            }
-          </tr>
-        </thead>
-        <tbody>
-          @for (row of rows(); track row.team.id) {
-            <tr
-              [routerLink]="['/teams', row.team.id]"
-              class="border-t border-line hover:bg-page transition-colors cursor-pointer"
-              [ngClass]="{ 'bg-highlight/5': row.position === 1 }"
-            >
-              <td class="sticky left-0 z-10 bg-card w-1/4 min-w-[7rem] px-3 py-2 font-bold whitespace-nowrap">
-                <span class="flex items-center gap-2">
-                  <span class="font-mono font-normal w-4 shrink-0 text-right" [class.text-highlight]="sortKey() === 'position'">{{ row.position }}</span>
-                  @if (row.team.logoUrl) {
-                    <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" class="w-5 h-5 object-contain shrink-0 team-logo" />
-                  } @else {
-                    <span class="w-5 h-5 rounded-full shrink-0" [style.background]="row.team.primaryColor"></span>
-                  }
-                  <span class="truncate sm:hidden">{{ row.team.code | teamCode }}</span>
-                  <span class="truncate hidden sm:inline">{{ row.team.name }}</span>
-                </span>
-              </td>
               @for (col of columns.slice(1); track col.key) {
-                <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-highlight]="sortKey() === col.key">
-                  {{ col.format(row) }}
-                </td>
+                <th
+                  scope="col"
+                  (click)="setSort(col.key)"
+                  class="sticky top-0 z-20 bg-card border-b border-line px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
+                  [class.text-highlight]="sortKey() === col.key"
+                >
+                  {{ i18n.t(col.labelKey) }}
+                  @if (sortKey() === col.key) {
+                    <span class="inline-block">{{ sortDesc() ? '↓' : '↑' }}</span>
+                  }
+                </th>
               }
             </tr>
-          }
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            @for (row of rows(); track row.team.id) {
+              <tr
+                [routerLink]="['/teams', row.team.id]"
+                class="border-t border-line hover:bg-page transition-colors cursor-pointer"
+                [ngClass]="{ 'bg-highlight/5': row.position === 1 }"
+              >
+                <td class="sticky left-0 z-10 bg-card w-1/4 min-w-[7rem] px-3 py-2 font-bold whitespace-nowrap">
+                  <span class="flex items-center gap-2">
+                    <span class="font-mono font-normal w-4 shrink-0 text-right" [class.text-highlight]="sortKey() === 'position'">{{ row.position }}</span>
+                    @if (row.team.logoUrl) {
+                      <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" class="w-5 h-5 object-contain shrink-0 team-logo" />
+                    } @else {
+                      <span class="w-5 h-5 rounded-full shrink-0" [style.background]="row.team.primaryColor"></span>
+                    }
+                    <span class="truncate sm:hidden">{{ row.team.code | teamCode }}</span>
+                    <span class="truncate hidden sm:inline">{{ row.team.name }}</span>
+                  </span>
+                </td>
+                @for (col of columns.slice(1); track col.key) {
+                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-highlight]="sortKey() === col.key">
+                    {{ col.format(row) }}
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
     </div>
   }
 </div>
