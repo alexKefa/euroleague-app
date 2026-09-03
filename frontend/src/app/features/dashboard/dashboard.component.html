@@ -11,13 +11,6 @@
   }
 
   @if (!loading() && !error()) {
-    <div class="flex justify-end mb-3">
-      <button type="button" (click)="tour.start()" appButton="outline" appButtonSize="sm">
-        <app-nav-icon name="play" [size]="12" />
-        {{ i18n.t('tour.takeTour') }}
-      </button>
-    </div>
-
     <!-- Hero: team color lives as an accent (ring, contained glow, one
          highlighted stat) rather than a full-bleed gradient wash — a wash
          put white text directly on top of the raw team color, which read
@@ -30,6 +23,17 @@
           class="absolute -top-16 -left-16 w-56 h-56 rounded-full pointer-events-none"
           [style.background]="'radial-gradient(circle, color-mix(in srgb, var(--accent-primary) 55%, transparent), transparent 70%)'"
         ></div>
+
+        <button
+          type="button"
+          (click)="tour.start()"
+          appButton="outline"
+          [attr.aria-label]="i18n.t('tour.takeTour')"
+          [title]="i18n.t('tour.takeTour')"
+          class="absolute top-4 right-4 sm:top-5 sm:right-5 !p-2.5"
+        >
+          <app-nav-icon name="compass" [size]="20" />
+        </button>
 
         <p class="relative font-mono text-[12px] font-bold text-muted mb-2">{{ i18n.t('dashboard.yourTeam') }}</p>
         <a [routerLink]="['/teams', row.team.id]" class="relative flex items-center gap-3 w-fit group">
@@ -103,6 +107,23 @@
             <span class="font-mono text-[12px] text-muted">&middot; {{ game.tipoffAt | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}</span>
           </div>
         }
+      </div>
+    } @else {
+      <!-- No hero (guest with no favorite team, or mid-boot race — see
+           the bootstrap-race note in CLAUDE.md) means there's no card to
+           tuck the tour button into, so it still needs its own row here —
+           this is the only manual entry point into the tour. -->
+      <div class="flex justify-end mb-3">
+        <button
+          type="button"
+          (click)="tour.start()"
+          appButton="outline"
+          [attr.aria-label]="i18n.t('tour.takeTour')"
+          [title]="i18n.t('tour.takeTour')"
+          class="!p-2.5"
+        >
+          <app-nav-icon name="compass" [size]="20" />
+        </button>
       </div>
     }
 

@@ -93,14 +93,12 @@
 
 body {
   @apply bg-page text-ink font-sans m-0;
-  /* Ambient team-color wash — two radial glows anchored to the viewport
-     (not the page, so they don't scroll away) using the same
-     --accent-primary ThemeService.applyTeam() already sets. color-mix
-     degrades gracefully to no gradient on unsupported browsers. */
-  background-image:
-    radial-gradient(1100px circle at 15% 10%, var(--glow-primary), transparent 60%),
-    radial-gradient(900px circle at 100% 90%, var(--glow-secondary), transparent 55%);
-  background-attachment: fixed;
+  /* Ambient team-color wash — two radial glows anchored to the viewport,
+     painted on a fixed ::before instead of `background-attachment: fixed`
+     directly on body (see below) — using the same --accent-primary
+     ThemeService.applyTeam() already sets. color-mix degrades gracefully
+     to no gradient on unsupported browsers. */
+  position: relative;
 
   /* Several EuroLeague primary colors are themselves dark navy/near-black,
      so blending them straight into the near-black dark-mode page at low
@@ -109,6 +107,26 @@ body {
      brightness regardless of how dark the team color is. */
   --glow-primary: color-mix(in srgb, color-mix(in srgb, var(--accent-primary) 65%, white 35%) 45%, transparent);
   --glow-secondary: color-mix(in srgb, color-mix(in srgb, var(--accent-primary) 65%, white 35%) 32%, transparent);
+}
+
+/* `background-attachment: fixed` used to paint this gradient directly on
+   body, but that property forces a main-thread repaint on every scroll
+   frame rather than letting the compositor handle it on its own layer —
+   it visibly fights position:sticky elements (e.g. the standings table's
+   sticky thead/first column, itself nested in an overflow-auto scrollport)
+   during fast/flick scrolling, reading as "the whole element is moving",
+   on both iOS Safari and, under GPU load, desktop browsers too. A `fixed`
+   pseudo-element behind everything gives the identical "anchored to the
+   viewport, doesn't scroll away" look without that repaint cost. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1100px circle at 15% 10%, var(--glow-primary), transparent 60%),
+    radial-gradient(900px circle at 100% 90%, var(--glow-secondary), transparent 55%);
 }
 
 /* Light mode starts from a near-white page instead of near-black, so the

@@ -24,7 +24,7 @@ export type NavIconName =
   | "zap"
   | "ball"
   | "tip"
-  | "play"
+  | "compass"
   | "logout"
   | "album"
   // install-banner.ts — the "add to home screen" nudge and its per-platform
@@ -357,9 +357,19 @@ export type NavIconName =
           <path d="M12 8v5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
           <circle cx="12" cy="16.3" r="1.1" fill="currentColor" />
         }
-        @case ("play") {
-          <!-- "Take a tour" button. -->
-          <path d="M8 5.5v13l11-6.5-11-6.5z" fill="currentColor" />
+        @case ("compass") {
+          <!-- "Take a tour" button — a compass needle reads as "guide me
+               around", where the old play-triangle read as "video". -->
+          <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2" />
+          <path
+            d="M14.6 9.4l-1.8 4.3-4.4 1.9 1.8-4.3z"
+            stroke="currentColor"
+            stroke-width="1.4"
+            stroke-linejoin="round"
+            fill="currentColor"
+            fill-opacity="0.35"
+          />
+          <circle cx="12" cy="12" r="1" fill="currentColor" />
         }
         @case ("album") {
           <!-- open book — the Cards hub's leaflet/album tile. -->
