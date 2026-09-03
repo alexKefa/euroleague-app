@@ -10,4 +10,5 @@ export const teamsTranslations: Record<string, Record<Lang, string>> = {
   },
   "teams.searchPlaceholder": { en: "Search teams…", el: "Αναζήτηση ομάδων…" },
   "teams.empty": { en: "No teams match your search.", el: "Καμία ομάδα δεν ταιριάζει με την αναζήτησή σου." },
+  "teams.coach": { en: "Coach", el: "Προπονητής" },
 };

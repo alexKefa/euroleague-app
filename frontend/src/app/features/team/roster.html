@@ -34,7 +34,12 @@
               {{ t.code }}
             </span>
           }
-          <h1 class="font-display text-2xl tracking-wide">{{ t.name }}</h1>
+          <span class="min-w-0">
+            <h1 class="font-display text-2xl tracking-wide">{{ t.name }}</h1>
+            @if (t.headCoach) {
+              <p class="text-xs text-white/70 mt-0.5">{{ i18n.t('roster.headCoach') }}: {{ t.headCoach }}</p>
+            }
+          </span>
         </div>
       </div>
     }

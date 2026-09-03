@@ -37,6 +37,10 @@ export const teams = pgTable("teams", {
   primaryColor: varchar("primary_color", { length: 7 }), // "#DA1A32"
   secondaryColor: varchar("secondary_color", { length: 7 }),
   logoUrl: text("logo_url"),
+  // "SURNAME, First" raw off the feed, same untitled format as players.name
+  // — see roster_sync.py's Coach-entry handling. Null until roster_sync.py
+  // has run for a team, or if EuroLeague's feed has no Coach entry for it.
+  headCoach: text("head_coach"),
 });
 
 export const users = pgTable("users", {

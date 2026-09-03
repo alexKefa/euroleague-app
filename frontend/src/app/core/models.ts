@@ -198,6 +198,7 @@ export interface Team {
   primaryColor: string | null;
   secondaryColor: string | null;
   logoUrl: string | null;
+  headCoach: string | null;
 }
 
 export interface TeamSeasonStats {

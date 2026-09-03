@@ -1,7 +1,10 @@
 """
 Syncs team rosters (player <-> team assignment, name, position, jersey
 number) from EuroLeague's live club-roster endpoint, and upserts them into
-`players`.
+`players`. Also upserts each team's head coach (`teams.head_coach`) —
+the same club-people payload carries non-player entries too
+(typeName "Coach", "Assitant coach" [sic], "Team_Manager", etc.), and
+"Coach" is the head coach.
 
 Why this exists separately from player_stats_sync.py: that script pulls
 *season stats*, which the euroleague-api package only has for games that
@@ -63,7 +66,7 @@ def parse_dorsal(dorsal: str | None) -> int | None:
         return None
 
 
-def fetch_club_roster(season: int, club_code: str) -> list[dict] | None:
+def fetch_club_people(season: int, club_code: str) -> list[dict] | None:
     """Returns None (not []) on a non-200 response — lets the caller tell
     "this club has no roster in the feed for this season" apart from "the
     request itself failed", so a real HTTP error doesn't get silently
@@ -75,6 +78,10 @@ def fetch_club_roster(season: int, club_code: str) -> list[dict] | None:
     )
     if resp.status_code != 200:
         return None
+    return resp.json()
+
+
+def extract_roster(people: list[dict]) -> list[dict]:
     # A brand-new signing can appear in the club roster before EuroLeague's
     # backoffice has assigned them an official player code (seen live:
     # "BESSON, HUGO" with person.code = null) — `players.code` is our
@@ -88,9 +95,20 @@ def fetch_club_roster(season: int, club_code: str) -> list[dict] | None:
             "position": entry.get("positionName"),
             "jerseyNumber": parse_dorsal(entry.get("dorsal")),
         }
-        for entry in resp.json()
+        for entry in people
         if entry.get("typeName") == "Player" and entry.get("person", {}).get("code")
     ]
+
+
+def extract_head_coach(people: list[dict]) -> str | None:
+    """"Coach" is the feed's own typeName for the head coach, distinct from
+    "Assitant coach" (sic, misspelled in the feed itself) — only "Coach" is
+    stored, since that's the one role fans actually associate with a team.
+    Name comes back "SURNAME, First", same untitled format as a player's."""
+    for entry in people:
+        if entry.get("typeName") == "Coach":
+            return entry.get("person", {}).get("name")
+    return None
 
 
 def sync_rosters(season: int) -> None:
@@ -106,10 +124,17 @@ def sync_rosters(season: int) -> None:
         teams_skipped: list[str] = []
 
         for team_id, team_code, team_name in teams:
-            roster = fetch_club_roster(season, team_code)
-            if roster is None:
+            people = fetch_club_people(season, team_code)
+            if people is None:
                 teams_skipped.append(team_code)
                 continue
+
+            roster = extract_roster(people)
+            head_coach = extract_head_coach(people)
+            cur.execute(
+                "UPDATE teams SET head_coach = %s WHERE id = %s",
+                (head_coach, team_id),
+            )
 
             for p in roster:
                 cur.execute(
@@ -132,7 +157,8 @@ def sync_rosters(season: int) -> None:
                 )
             total_upserted += len(roster)
             teams_synced += 1
-            print(f"  {team_code:6s} {team_name:38s} {len(roster)} player(s)")
+            coach_note = head_coach or "no coach found"
+            print(f"  {team_code:6s} {team_name:38s} {len(roster)} player(s), coach: {coach_note}")
 
         conn.commit()
         print(f"\nDone — {total_upserted} player row(s) upserted across {teams_synced} team(s).")
