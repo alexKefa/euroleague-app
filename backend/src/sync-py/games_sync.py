@@ -10,7 +10,7 @@ method, which uses an older, sparser endpoint.
 Usage:
     python games_sync.py [season] [num_rounds]
 
-    season      start year of the season, e.g. 2025 (default 2025)
+    season      start year of the season, e.g. 2025 (default 2026)
     num_rounds  regular-season rounds to pull, 1..N (default 38)
 
 Requires teams to already be synced (via standings_sync.py) — games for
@@ -130,7 +130,10 @@ def sync_games(season: int, num_rounds: int) -> tuple:
 
 
 if __name__ == "__main__":
-    season = int(sys.argv[1]) if len(sys.argv) > 1 else 2025
+    # Bumped from 2025 to 2026 on 2026-09-03 — see roster_sync.py's
+    # identical fix for why a stale default silently overwrites correct
+    # current-season data with the prior season's once a season transitions.
+    season = int(sys.argv[1]) if len(sys.argv) > 1 else 2026
     num_rounds = int(sys.argv[2]) if len(sys.argv) > 2 else 38
 
     games_upserted, rounds_failed, skipped = sync_games(season, num_rounds)

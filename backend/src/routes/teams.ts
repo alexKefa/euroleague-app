@@ -97,7 +97,12 @@ teamsRouter.get("/:id/roster", async (req, res) => {
         playerSeasonStats,
         and(eq(playerSeasonStats.playerId, players.id), eq(playerSeasonStats.season, season))
       )
-      .where(eq(players.teamId, teamId))
+      // active: false excludes a player roster_sync.py found on no team's
+      // current-season roster (departed the league entirely) — see the
+      // schema comment on players.active. A same-league transfer doesn't
+      // hit this at all, since that player's team_id already moved to
+      // their new team.
+      .where(and(eq(players.teamId, teamId), eq(players.active, true)))
       .orderBy(desc(playerSeasonStats.pointsPerGame));
 
     const withStats = rows.map((r) => ({

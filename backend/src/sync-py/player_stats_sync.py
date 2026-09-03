@@ -5,7 +5,7 @@ into `players` and `player_season_stats`.
 Usage:
     python player_stats_sync.py [season]
 
-    season   start year of the season, e.g. 2025 for 2025-26 (default 2025)
+    season   start year of the season, e.g. 2025 for 2025-26 (default 2026)
 
 Requires teams to already be synced (via standings_sync.py) — this script
 looks up each player's team by `teams.code` and skips any player whose
@@ -272,7 +272,10 @@ def sync_player_stats(season: int) -> Tuple[int, int, int]:
 
 
 if __name__ == "__main__":
-    season = int(sys.argv[1]) if len(sys.argv) > 1 else 2025
+    # Bumped from 2025 to 2026 on 2026-09-03 — see roster_sync.py's
+    # identical fix for why a stale default silently overwrites correct
+    # current-season data with the prior season's once a season transitions.
+    season = int(sys.argv[1]) if len(sys.argv) > 1 else 2026
 
     players_upserted, stats_upserted, skipped = sync_player_stats(season)
     print(

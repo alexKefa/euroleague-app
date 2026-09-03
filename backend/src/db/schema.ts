@@ -85,11 +85,28 @@ export const users = pgTable("users", {
 export const players = pgTable("players", {
   id: uuid("id").defaultRandom().primaryKey(),
   code: varchar("code", { length: 20 }).notNull().unique(), // stable player code from the feed
+  // "Current" team per roster_sync.py's own upsert, but only ever moved
+  // *forward* to wherever a still-active player's current-season roster
+  // fetch places them — a player who drops off every 2026-27 roster
+  // entirely (retired, left for a non-EuroLeague league) keeps whatever
+  // team_id they last had, since it can't be null (NOT NULL FK) and can't
+  // be deleted without breaking the NOT NULL playerGameStats/
+  // playerSeasonStats FKs to their real season history. `active` (below)
+  // is what actually says whether they still belong on that team's roster.
   teamId: uuid("team_id").notNull().references(() => teams.id),
   name: text("name").notNull(),
   position: varchar("position", { length: 20 }),
   jerseyNumber: integer("jersey_number"),
   photoUrl: text("photo_url"),
+  // False once roster_sync.py's current-season fetch no longer lists this
+  // player on ANY team's roster (found 2026-09-03: departed players like
+  // Cedi Osman off Panathinaikos's real 2026-27 roster kept showing on its
+  // roster page forever, since nothing ever un-set their stale team_id —
+  // the sync only ever upserted players still present in a fetch, never
+  // reacted to one disappearing). Roster-listing routes should filter on
+  // this; stat/history routes keyed by season shouldn't, since a departed
+  // player's real past-season numbers are still real.
+  active: boolean("active").default(true).notNull(),
 });
 
 export const games = pgTable(

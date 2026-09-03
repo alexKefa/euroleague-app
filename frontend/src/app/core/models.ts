@@ -35,6 +35,7 @@ export interface Player {
   position: string | null;
   jerseyNumber: number | null;
   photoUrl: string | null;
+  active: boolean;
 }
 
 export interface PlayerSeasonStats {

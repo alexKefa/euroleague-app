@@ -12,7 +12,7 @@ data only.
 Usage:
     python shot_sync.py [season] [team_code] [start_index] [limit]
 
-    season       start year of the season (default 2025)
+    season       start year of the season (default 2026)
     team_code    optional 3-letter team code (e.g. "PAN") to scope the sync
                  to just that team's games, instead of the whole season —
                  useful for trying this out against one team/player first
@@ -170,7 +170,10 @@ def sync_shots(
 
 
 if __name__ == "__main__":
-    season = int(sys.argv[1]) if len(sys.argv) > 1 else 2025
+    # Bumped from 2025 to 2026 on 2026-09-03 — see roster_sync.py's
+    # identical fix for why a stale default silently overwrites correct
+    # current-season data with the prior season's once a season transitions.
+    season = int(sys.argv[1]) if len(sys.argv) > 1 else 2026
     team_code = sys.argv[2] if len(sys.argv) > 2 and sys.argv[2] else None
     start_index = int(sys.argv[3]) if len(sys.argv) > 3 else 0
     limit = int(sys.argv[4]) if len(sys.argv) > 4 else None

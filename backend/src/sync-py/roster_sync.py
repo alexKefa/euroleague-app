@@ -6,6 +6,22 @@ the same club-people payload carries non-player entries too
 (typeName "Coach", "Assitant coach" [sic], "Team_Manager", etc.), and
 "Coach" is the head coach.
 
+Also flips `players.active` to false for anyone who's dropped off every
+team's current-season roster (found 2026-09-03: departed players — e.g.
+Cedi Osman off Panathinaikos's real 2026-27 roster — kept showing on their
+old team's roster page forever, since the upsert loop only ever reacted to
+a player being *present* in a fetch, never to one disappearing from it).
+Fetches every successfully-synced team's roster first, then reconciles:
+a player still on some team's roster (same team or a new one, an
+in-league transfer) gets `active = true` and `team_id` pointed at wherever
+they are now; a player attached to a successfully-synced team but absent
+from every fetch this run gets `active = false`, with `team_id` left as
+their last known team — it can't be null (NOT NULL FK) and the row can't
+be deleted without breaking the NOT NULL playerGameStats/playerSeasonStats
+FKs to their real season history. A team the feed 404s for this run (e.g.
+last season's AS Monaco) is left entirely alone — no fresh data to judge
+its players by, so none of them are touched either way.
+
 Why this exists separately from player_stats_sync.py: that script pulls
 *season stats*, which the euroleague-api package only has for games that
 have actually been played — for a freshly imported season with zero games
@@ -119,8 +135,12 @@ def sync_rosters(season: int) -> None:
         cur.execute("SELECT id, code, name FROM teams ORDER BY code")
         teams = cur.fetchall()
 
-        total_upserted = 0
-        teams_synced = 0
+        # Pass 1: fetch every team's current-season roster before writing
+        # anything — deciding who's "still active anywhere" needs the full
+        # picture, not just whichever team happens to be processed first.
+        synced_team_ids: list[str] = []
+        active_codes: set[str] = set()
+        per_team: list[tuple[str, str, str, list[dict], str | None]] = []
         teams_skipped: list[str] = []
 
         for team_id, team_code, team_name in teams:
@@ -131,6 +151,13 @@ def sync_rosters(season: int) -> None:
 
             roster = extract_roster(people)
             head_coach = extract_head_coach(people)
+            per_team.append((team_id, team_code, team_name, roster, head_coach))
+            synced_team_ids.append(team_id)
+            active_codes.update(p["code"] for p in roster)
+
+        # Pass 2: upsert each team's current roster + coach.
+        total_upserted = 0
+        for team_id, team_code, team_name, roster, head_coach in per_team:
             cur.execute(
                 "UPDATE teams SET head_coach = %s WHERE id = %s",
                 (head_coach, team_id),
@@ -139,13 +166,14 @@ def sync_rosters(season: int) -> None:
             for p in roster:
                 cur.execute(
                     """
-                    INSERT INTO players (code, team_id, name, position, jersey_number)
-                    VALUES (%(code)s, %(team_id)s, %(name)s, %(position)s, %(jersey_number)s)
+                    INSERT INTO players (code, team_id, name, position, jersey_number, active)
+                    VALUES (%(code)s, %(team_id)s, %(name)s, %(position)s, %(jersey_number)s, true)
                     ON CONFLICT (code) DO UPDATE SET
                         team_id = EXCLUDED.team_id,
                         name = EXCLUDED.name,
                         position = EXCLUDED.position,
-                        jersey_number = EXCLUDED.jersey_number
+                        jersey_number = EXCLUDED.jersey_number,
+                        active = true
                     """,
                     {
                         "code": p["code"],
@@ -156,12 +184,30 @@ def sync_rosters(season: int) -> None:
                     },
                 )
             total_upserted += len(roster)
-            teams_synced += 1
             coach_note = head_coach or "no coach found"
             print(f"  {team_code:6s} {team_name:38s} {len(roster)} player(s), coach: {coach_note}")
 
+        # Pass 3: deactivate anyone attached to a successfully-synced team
+        # who didn't turn up on ANY team's roster this run — departed the
+        # league entirely rather than transferred within it (a transfer
+        # already got reassigned to their new team_id in pass 2 above).
+        deactivated = 0
+        if synced_team_ids:
+            cur.execute(
+                """
+                UPDATE players SET active = false
+                WHERE active = true
+                  AND team_id = ANY(%s::uuid[])
+                  AND NOT (code = ANY(%s))
+                """,
+                (synced_team_ids, list(active_codes)),
+            )
+            deactivated = cur.rowcount
+
         conn.commit()
-        print(f"\nDone — {total_upserted} player row(s) upserted across {teams_synced} team(s).")
+        print(f"\nDone — {total_upserted} player row(s) upserted across {len(per_team)} team(s).")
+        if deactivated:
+            print(f"Deactivated {deactivated} player(s) no longer on any {season_code(season)} roster.")
         if teams_skipped:
             print(f"Skipped {len(teams_skipped)} team(s) not found in the {season_code(season)} feed: {', '.join(teams_skipped)}")
     except Exception:

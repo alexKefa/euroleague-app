@@ -15,7 +15,7 @@ between requests to that origin; we use 400ms to stay comfortably under it.
 Usage:
     python boxscore_sync.py [season] [start_index] [limit]
 
-    season       start year of the season (default 2025)
+    season       start year of the season (default 2026)
     start_index  resume from this position in the games list (default 0)
     limit        max games to process this run (default: all remaining)
 """
@@ -195,7 +195,10 @@ def sync_boxscores(season: int, start_index: int = 0, limit: Optional[int] = Non
 
 
 if __name__ == "__main__":
-    season = int(sys.argv[1]) if len(sys.argv) > 1 else 2025
+    # Bumped from 2025 to 2026 on 2026-09-03 — see roster_sync.py's
+    # identical fix for why a stale default silently overwrites correct
+    # current-season data with the prior season's once a season transitions.
+    season = int(sys.argv[1]) if len(sys.argv) > 1 else 2026
     start_index = int(sys.argv[2]) if len(sys.argv) > 2 else 0
     limit = int(sys.argv[3]) if len(sys.argv) > 3 else None
 

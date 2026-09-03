@@ -75,6 +75,13 @@
               </tr>
             </thead>
             <tbody>
+              @if (team()?.headCoach; as coach) {
+                <tr class="border-b-2 border-line bg-page/50">
+                  <td colspan="8" class="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-highlight">
+                    {{ i18n.t('roster.headCoach') }} <span class="font-mono normal-case tracking-normal text-ink">{{ coach }}</span>
+                  </td>
+                </tr>
+              }
               @for (row of roster(); track row.player.id) {
                 <tr class="border-b border-line last:border-0 font-semibold hover:bg-page transition-colors">
                   <td class="sticky left-0 z-10 bg-card px-3 py-2">
@@ -126,6 +133,13 @@
               </tr>
             </thead>
             <tbody>
+              @if (team()?.headCoach; as coach) {
+                <tr class="border-b-2 border-line bg-page/50">
+                  <td colspan="8" class="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-highlight">
+                    {{ i18n.t('roster.headCoach') }} <span class="font-mono normal-case tracking-normal text-ink">{{ coach }}</span>
+                  </td>
+                </tr>
+              }
               @for (row of roster(); track row.player.id) {
                 <tr class="border-b border-line last:border-0 font-semibold hover:bg-page transition-colors">
                   <td class="sticky left-0 z-10 bg-card px-3 py-2">

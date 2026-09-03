@@ -6,7 +6,7 @@ defines (teams, team_season_stats).
 Usage:
     python standings_sync.py [season] [round_number]
 
-    season        start year of the season, e.g. 2025 for 2025-26 (default 2025)
+    season        start year of the season, e.g. 2025 for 2025-26 (default 2026)
     round_number  the round to pull standings as-of, e.g. 38 for the end
                   of a 38-round regular season (default 38)
 
@@ -192,7 +192,12 @@ def sync_standings(season: int, round_number: int) -> tuple[int, int]:
 
 
 if __name__ == "__main__":
-    season = int(sys.argv[1]) if len(sys.argv) > 1 else 2025
+    # Defaults bumped from the 2025-26 season to 2026-27 on 2026-09-03 —
+    # see roster_sync.py's identical fix for why a stale default here is a
+    # real footgun, not just cosmetic: running any of these scripts bare
+    # once a season has actually transitioned silently overwrites correct
+    # current-season data with the prior season's.
+    season = int(sys.argv[1]) if len(sys.argv) > 1 else 2026
     round_number = int(sys.argv[2]) if len(sys.argv) > 2 else 38
 
     teams_upserted, stats_upserted = sync_standings(season, round_number)
