@@ -16,25 +16,28 @@
   } @else {
     <!-- Scroll container is nested one level inside the visual card
          (border/rounded/shadow on the outer div, overflow-hidden to clip
-         the inner scrollport to those rounded corners) — same split as
-         roster.html's table wrapper, so panning the table horizontally
-         only moves the table, not the whole bordered card with it. -->
+         the inner scrollport to those rounded corners), and horizontal-only
+         — same split, same overflow-x-auto, as roster.html's table wrapper,
+         so panning the table only moves the table, not the whole bordered
+         card with it. Deliberately NOT sticky-top (tried twice, reverted
+         twice): a capped overflow-y-auto scrollport made the thead's sticky
+         nest inside the page's own sticky top nav, which WebKit renders
+         with a visible gap on a fast scroll-up and, on mobile, fights the
+         page's own vertical scroll for the gesture ("whole div moving,
+         unmanageable"); dropping the height cap instead just makes
+         overflow-x-auto's implicit overflow-y:auto bind sticky to its own
+         inert scrollport, so it silently never sticks at all. roster.html
+         hit the same wall, which is why it only ever uses `sticky left-0`
+         (for horizontal panning), never `sticky top-0`. -->
     <div class="rounded-2xl border border-line shadow-card overflow-hidden">
-      <!-- overflow-x-auto alone silently forces overflow-y: auto too (a CSS
-           overflow-interaction quirk), turning this div into its own vertical
-           scroll container — but with no height cap it never actually
-           scrolls, so a sticky thead binds to that inert scrollport instead
-           of the page and never appears to stick. Capping the height with
-           overflow-y-auto makes it a real scrolling box the header can stick
-           inside, instead of a page-scroll-driven fake one. -->
-      <div class="overflow-auto max-h-[70vh]">
-        <table class="w-full text-sm border-collapse">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm min-w-[480px] border-collapse">
           <thead>
             <tr class="bg-card">
               <th
                 scope="col"
                 (click)="setSort('position')"
-                class="sticky left-0 top-0 z-30 bg-card border-b border-line w-1/4 min-w-[7rem] px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
+                class="sticky left-0 z-10 bg-card border-b border-line w-1/4 min-w-[7rem] px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
                 [class.text-highlight]="sortKey() === 'position'"
               >
                 {{ i18n.t('standings.colTeam') }}
@@ -46,7 +49,7 @@
                 <th
                   scope="col"
                   (click)="setSort(col.key)"
-                  class="sticky top-0 z-20 bg-card border-b border-line px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
+                  class="bg-card border-b border-line px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
                   [class.text-highlight]="sortKey() === col.key"
                 >
                   {{ i18n.t(col.labelKey) }}
@@ -62,7 +65,12 @@
               <tr
                 [routerLink]="['/teams', row.team.id]"
                 class="border-t border-line hover:bg-page transition-colors cursor-pointer"
-                [ngClass]="{ 'bg-highlight/5': row.position === 1 }"
+                [ngClass]="{
+                  'bg-highlight/5': row.position === 1,
+                  'border-b-highlight': row.position === 6 || row.position === 10
+                }"
+                [style.border-bottom-width.px]="row.position === 6 || row.position === 10 ? 2 : null"
+                [style.border-bottom-style]="row.position === 6 ? 'dashed' : row.position === 10 ? 'solid' : null"
               >
                 <td class="sticky left-0 z-10 bg-card w-1/4 min-w-[7rem] px-3 py-2 font-bold whitespace-nowrap">
                   <span class="flex items-center gap-2">

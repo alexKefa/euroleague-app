@@ -42,6 +42,35 @@ standingsRouter.get("/", async (_req, res) => {
       .groupBy(playerSeasonStats.teamId);
     const rpgByTeam = new Map(reboundRows.map((r) => [r.teamId, r.rpg]));
 
+    // Last-10 record (matches euroleaguebasketball.net's own "L10" column).
+    // Not stored anywhere — games has no per-team "result" column, only
+    // home/away scores — so this unpivots each final game into one row per
+    // side, ranks each team's own games most-recent-first, and keeps only
+    // the top 10 before counting wins/losses. One query for every team
+    // rather than 20 (one per team), same "fewer round trips" reasoning as
+    // the rebounds query above and elsewhere in this app.
+    const last10Rows = await db.execute<{ teamId: string; wins: number; losses: number }>(sql`
+      WITH team_games AS (
+        SELECT home_team_id AS team_id, tipoff_at, (home_score > away_score) AS won
+        FROM games WHERE season = ${season} AND status = 'final'
+        UNION ALL
+        SELECT away_team_id AS team_id, tipoff_at, (away_score > home_score) AS won
+        FROM games WHERE season = ${season} AND status = 'final'
+      ),
+      ranked AS (
+        SELECT team_id, won, row_number() OVER (PARTITION BY team_id ORDER BY tipoff_at DESC) AS rn
+        FROM team_games
+      )
+      SELECT
+        team_id AS "teamId",
+        sum(CASE WHEN won THEN 1 ELSE 0 END)::int AS wins,
+        sum(CASE WHEN NOT won THEN 1 ELSE 0 END)::int AS losses
+      FROM ranked
+      WHERE rn <= 10
+      GROUP BY team_id
+    `);
+    const last10ByTeam = new Map(last10Rows.map((r) => [r.teamId, { wins: r.wins, losses: r.losses }]));
+
     const payload = rows.map(({ team, stats }) => ({
       team,
       position: stats.position ?? 0,
@@ -57,6 +86,7 @@ standingsRouter.get("/", async (_req, res) => {
         rebPct: stats.rebPct,
         astPct: stats.astPct,
         rpg: rpgByTeam.get(stats.teamId) ?? null,
+        last10: last10ByTeam.get(stats.teamId) ?? null,
       },
     }));
 
