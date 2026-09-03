@@ -1,0 +1,31 @@
+/* Hero card ambient effect — a slow diagonal wash of the user's own
+   --accent-primary/--accent-secondary drifting across the card, replacing
+   an earlier single-color static blob that read as generic (only ever
+   used primary, never moved). Same oversized-inset + rotated-translate
+   technique as collectible-card.css's holo-sweep, kept as its own
+   self-contained animation here rather than reused across components —
+   deliberately slower and broader than that one (8s vs 5s, wider color
+   bands) since this sits on screen persistently rather than for a one-off
+   reveal moment. */
+.team-hero-sweep {
+  position: absolute;
+  inset: -50%;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 5%,
+    color-mix(in srgb, var(--accent-primary) 45%, transparent) 35%,
+    color-mix(in srgb, var(--accent-secondary) 45%, transparent) 65%,
+    transparent 95%
+  );
+  animation: team-hero-sweep 8s ease-in-out infinite alternate;
+}
+
+@keyframes team-hero-sweep {
+  0% {
+    transform: translateX(-30%) translateY(-10%) rotate(8deg);
+  }
+  100% {
+    transform: translateX(30%) translateY(10%) rotate(8deg);
+  }
+}

@@ -11,18 +11,17 @@
   }
 
   @if (!loading() && !error()) {
-    <!-- Hero: team color lives as an accent (ring, contained glow, one
-         highlighted stat) rather than a full-bleed gradient wash — a wash
-         put white text directly on top of the raw team color, which read
-         fine for a dark saturated team but went nearly unreadable for a
-         light one. Neutral bg-card surface underneath fixes that
-         regardless of which team is selected. -->
+    <!-- Hero: team color lives as an accent (ring, a slow two-color sweep,
+         one highlighted stat) rather than a full-bleed gradient wash — a
+         wash put white text directly on top of the raw team color, which
+         read fine for a dark saturated team but went nearly unreadable for
+         a light one. Neutral bg-card surface underneath fixes that
+         regardless of which team is selected; the sweep (.team-hero-sweep,
+         dashboard.component.css) sits behind that same neutral surface's
+         text, not under it directly. -->
     @if (selectedRow(); as row) {
       <div class="relative rounded-2xl p-5 mb-5 bg-card border border-line shadow-card overflow-hidden">
-        <div
-          class="absolute -top-16 -left-16 w-56 h-56 rounded-full pointer-events-none"
-          [style.background]="'radial-gradient(circle, color-mix(in srgb, var(--accent-primary) 55%, transparent), transparent 70%)'"
-        ></div>
+        <div class="team-hero-sweep"></div>
 
         <button
           type="button"

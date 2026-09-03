@@ -57,6 +57,7 @@ type DashboardTab = "performances" | "leaders" | "predictors" | "schedule";
     TeamCodePipe,
   ],
   templateUrl: "./dashboard.component.html",
+  styleUrl: "./dashboard.component.css",
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
