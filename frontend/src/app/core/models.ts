@@ -398,7 +398,7 @@ export interface PredictionAnalytics {
   upsets: PredictionUpset[];
 }
 
-export type CollectibleTier = "common" | "rare" | "legendary";
+export type CollectibleTier = "common" | "rare" | "legendary" | "coach";
 
 // Cosmetic-only, legendary-only flourish rolled once at first acquisition
 // (services/packs.ts) — never affects album completion, forceNewLegendary,
@@ -494,7 +494,7 @@ export interface SpinResult {
   nextEligibleAt: string;
 }
 
-export type PackType = "starter" | "pro" | "elite" | "wheelStarter" | "wheelPro" | "wheelLegendary";
+export type PackType = "starter" | "pro" | "elite" | "wheelStarter" | "wheelPro" | "wheelLegendary" | "wheelCoach";
 
 export interface PackDefinition {
   type: PackType;

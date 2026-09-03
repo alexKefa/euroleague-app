@@ -38,9 +38,11 @@ packsRouter.get("/", (_req, res) => {
 // turns Elite packs and the wheel's legendary slot into a real infinite-money
 // exploit for anyone who's collected most of the legendary tier, directly
 // contradicting "legendaries can't be bought with points at any price, only
-// won." A duplicate legendary is just a keepsake now — no refund.
+// won." A duplicate legendary is just a keepsake now — no refund. Coach
+// duplicates (2026-09-03) get the identical exclusion, same reasoning —
+// coach's own 5,000pt collector-value pointsCost would be the same exploit.
 function sellValueFor(slot: RolledSlot): number | null {
-  if (slot.collectible.tier === "legendary") return null;
+  if (slot.collectible.tier === "legendary" || slot.collectible.tier === "coach") return null;
   return slot.wasDuplicate ? Math.round(slot.collectible.pointsCost * SELL_BACK_RATE) : null;
 }
 

@@ -80,11 +80,13 @@ export class InventoryComponent implements OnInit, OnDestroy {
     { value: "common", labelKey: "inventory.tierCommon" },
     { value: "rare", labelKey: "inventory.tierRare" },
     { value: "legendary", labelKey: "inventory.tierLegendary" },
+    { value: "coach", labelKey: "inventory.tierCoach" },
   ];
   private readonly tierLabelKeys: Record<CollectibleTier, string> = {
     common: "store.tierCommon",
     rare: "store.tierRare",
     legendary: "store.tierLegendary",
+    coach: "store.tierCoach",
   };
   tierLabel(tier: CollectibleTier): string {
     return this.i18n.t(this.tierLabelKeys[tier]);
@@ -106,7 +108,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   private readonly allBundles = computed<CollectibleBundle[]>(() => {
     const byKey = new Map<string, CollectibleBundle>();
     const order: string[] = [];
-    const tierRank: Record<CollectibleTier, number> = { common: 0, rare: 1, legendary: 2 };
+    const tierRank: Record<CollectibleTier, number> = { common: 0, rare: 1, legendary: 2, coach: 3 };
     for (const c of this.allCollectibles()) {
       const key = `${c.team.id}|${c.name}`;
       let bundle = byKey.get(key);

@@ -42,12 +42,14 @@ export class WheelComponent implements OnInit {
   // Angles for the win-burst starburst rays, evenly spaced around the card.
   readonly burstRays = Array.from({ length: 12 }, (_, i) => i * 30);
 
-  // Boundary angles between the wheel's 8 wedges — rendered as straight
+  // Boundary angles between the wheel's 12 wedges — rendered as straight
   // overlay lines (see .wheel-divider in wheel.css) rather than baked into
   // the conic-gradient as thin pie-slice dividers, which browsers render
   // with visible antialiasing artifacts (looked like broken/jagged lines,
-  // especially once the disc is rotated).
-  readonly wedgeBoundaries = Array.from({ length: 8 }, (_, i) => i * 45);
+  // especially once the disc is rotated). Bumped 8->12 wedges (2026-09-03,
+  // coach cards added) — 8 slices can't cleanly fit a 4th tier at anything
+  // close to its real odds share; 12 does (see WEDGE_TIERS below).
+  readonly wedgeBoundaries = Array.from({ length: 12 }, (_, i) => i * 30);
 
   // Scattered twinkle positions for the legendary reveal — fixed, not
   // random, so the effect is identical on every pull. Same set as the pack
@@ -62,10 +64,13 @@ export class WheelComponent implements OnInit {
     { top: "4%", left: "50%", delay: "0.36s" },
   ];
 
-  // The disc's 8 wedges, one tier per 45° slice — roughly mirrors the real
-  // server-side odds (65/25/10 common/rare/legendary) without needing exact
-  // fractional wedges: 5 common, 2 rare, 1 legendary. See the conic-gradient
-  // in wheel.html, which colors each slice to match.
+  // The disc's 12 wedges, one tier per 30° slice — roughly mirrors the real
+  // server-side odds (60/21/11/8 common/rare/legendary/coach, see
+  // routes/spin.ts's SPIN_ODDS) without needing exact fractional wedges:
+  // 7 common, 3 rare, 1 legendary, 1 coach. See the conic-gradient in
+  // wheel.html, which colors each slice to match. Legendary and coach sit
+  // well apart (wedges 4 and 8) rather than adjacent, so the disc doesn't
+  // read as "one big-win zone."
   private static readonly WEDGE_TIERS: CollectibleTier[] = [
     "common",
     "common",
@@ -75,22 +80,27 @@ export class WheelComponent implements OnInit {
     "common",
     "rare",
     "common",
+    "coach",
+    "common",
+    "rare",
+    "common",
   ];
 
   // Which unopened pack a wedge actually grants (mirrors the backend's
-  // SPIN_ODDS tiers -> wheelStarter/wheelPro/wheelLegendary mapping) — used
-  // to render the real pack art (PACK_VISUAL_CLASSES) on each wedge instead
-  // of a plain glyph.
+  // SPIN_ODDS tiers -> wheelStarter/wheelPro/wheelLegendary/wheelCoach
+  // mapping) — used to render the real pack art (PACK_VISUAL_CLASSES) on
+  // each wedge instead of a plain glyph.
   private static readonly WEDGE_PACK_TYPE: Record<CollectibleTier, PackType> = {
     common: "wheelStarter",
     rare: "wheelPro",
     legendary: "wheelLegendary",
+    coach: "wheelCoach",
   };
 
   // One mark per wedge, centered at its mid-angle — rendered as an overlay
   // in wheel.html the same way wedgeBoundaries' divider lines are.
   readonly wedgeMarks = WheelComponent.WEDGE_TIERS.map((tier, i) => ({
-    angle: i * 45 + 22.5,
+    angle: i * 30 + 15,
     tier,
     packType: WheelComponent.WEDGE_PACK_TYPE[tier],
   }));
@@ -149,6 +159,19 @@ export class WheelComponent implements OnInit {
     });
   }
 
+  /** Same as cheatSpin(), for the coach pool instead — otherwise verifying
+   * the jade reveal means waiting on an 8% real spin chance. */
+  cheatSpinCoach(): void {
+    if (this.spinning()) return;
+    this.spinning.set(true);
+    this.spinError.set(null);
+
+    this.api.cheatSpinCoach().subscribe({
+      next: (result) => this.animateToResult(result, () => this.lastWonPack.set(result.wonPack)),
+      error: (err) => this.applyError(err),
+    });
+  }
+
   private animateToResult(result: SpinResult, apply: () => void): void {
     this.spinToWedge(result.wonPack.tier);
     setTimeout(() => {
@@ -164,12 +187,12 @@ export class WheelComponent implements OnInit {
    */
   private spinToWedge(tier: CollectibleTier): void {
     const wedgeStarts = WheelComponent.WEDGE_TIERS.reduce<number[]>((starts, t, i) => {
-      if (t === tier) starts.push(i * 45);
+      if (t === tier) starts.push(i * 30);
       return starts;
     }, []);
     const start = wedgeStarts[Math.floor(Math.random() * wedgeStarts.length)];
-    const inset = 8; // stay clear of wedge boundaries so the color reads unambiguously
-    const targetAngle = start + inset + Math.random() * (45 - 2 * inset);
+    const inset = 6; // stay clear of wedge boundaries so the color reads unambiguously
+    const targetAngle = start + inset + Math.random() * (30 - 2 * inset);
 
     // The pointer sits at the top (screen angle 0); after rotating the
     // disc clockwise by R degrees, the wedge now under the pointer is the

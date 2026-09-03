@@ -15,6 +15,7 @@ export const inventoryTranslations: Record<string, Record<Lang, string>> = {
   "inventory.tierCommon": { en: "Common", el: "Κοινή" },
   "inventory.tierRare": { en: "Rare", el: "Σπάνια" },
   "inventory.tierLegendary": { en: "Legendary", el: "Θρυλική" },
+  "inventory.tierCoach": { en: "Coach", el: "Προπονητής" },
   "inventory.previewAriaPrefix": { en: "Preview", el: "Προεπισκόπηση" },
   "inventory.noMatch": { en: "No cards match your filters.", el: "Καμία κάρτα δεν ταιριάζει με τα φίλτρα σου." },
   "inventory.clearFilters": { en: "Clear filters", el: "Καθαρισμός φίλτρων" },

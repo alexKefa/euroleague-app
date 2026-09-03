@@ -35,14 +35,18 @@
           class="wheel-disc w-full h-full rounded-full border-4 border-line shadow-pop flex items-center justify-center relative"
           [style.transform]="'rotate(' + wheelRotation() + 'deg)'"
           style="background: conic-gradient(
-            #5b6169 0deg 45deg,
-            #5b6169 45deg 90deg,
-            #c9d3da 90deg 135deg,
-            #5b6169 135deg 180deg,
-            #e8b23c 180deg 225deg,
-            #5b6169 225deg 270deg,
-            #c9d3da 270deg 315deg,
-            #5b6169 315deg 360deg
+            #5b6169 0deg 30deg,
+            #5b6169 30deg 60deg,
+            #c9d3da 60deg 90deg,
+            #5b6169 90deg 120deg,
+            #e8b23c 120deg 150deg,
+            #5b6169 150deg 180deg,
+            #c9d3da 180deg 210deg,
+            #5b6169 210deg 240deg,
+            #3fd9a4 240deg 270deg,
+            #5b6169 270deg 300deg,
+            #c9d3da 300deg 330deg,
+            #5b6169 330deg 360deg
           )"
         >
           @for (angle of wedgeBoundaries; track angle) {
@@ -83,6 +87,8 @@
         @if (lastWonPack(); as won) {
           @if (won.tier === "legendary") {
             <p class="legendary-label font-display text-2xl uppercase tracking-wide mb-3">{{ i18n.t('wheel.legendaryPackWon') }}</p>
+          } @else if (won.tier === "coach") {
+            <p class="coach-label font-display text-lg uppercase tracking-wide mb-3">{{ i18n.t('wheel.coachPackWon') }}</p>
           } @else if (won.tier === "rare") {
             <p class="rare-label font-display text-lg uppercase tracking-wide mb-3">{{ i18n.t('wheel.rarePackWon') }}</p>
           } @else {
@@ -118,6 +124,14 @@
                     >✦</span
                   >
                 }
+              </div>
+            } @else if (won.tier === "coach") {
+              <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div
+                  class="burst-glow absolute w-72 h-72 rounded-full"
+                  style="background: radial-gradient(circle, rgba(80,230,175,0.5) 0%, rgba(80,230,175,0) 70%)"
+                ></div>
+                <div class="burst-ring absolute w-48 h-48 rounded-full border-2 border-emerald-300/70"></div>
               </div>
             } @else if (won.tier === "rare") {
               <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -193,6 +207,16 @@
         class="w-full mt-2"
       >
         {{ i18n.t('wheel.cheatFoilAdmin') }}
+      </button>
+      <button
+        type="button"
+        (click)="cheatSpinCoach()"
+        [disabled]="spinning()"
+        appButton="outline"
+        appButtonSize="sm"
+        class="w-full mt-2"
+      >
+        {{ i18n.t('wheel.cheatCoachAdmin') }}
       </button>
     }
 

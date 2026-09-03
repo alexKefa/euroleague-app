@@ -2,8 +2,8 @@ import { and, eq } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { collectibles, teams, userCollectibles, pityCounters } from "../db/schema.js";
 
-export type Tier = "common" | "rare" | "legendary";
-export type PackType = "starter" | "pro" | "elite" | "wheelStarter" | "wheelPro" | "wheelLegendary";
+export type Tier = "common" | "rare" | "legendary" | "coach";
+export type PackType = "starter" | "pro" | "elite" | "wheelStarter" | "wheelPro" | "wheelLegendary" | "wheelCoach";
 
 export interface CollectibleRow {
   collectible: typeof collectibles.$inferSelect;
@@ -110,19 +110,26 @@ export const PACKS: Record<PackType, PackDefinition> = {
     // cumulative shot at a legendary — doubling this doesn't replace the
     // wheel as the primary legendary path, it just stops a season of elite
     // prediction accuracy from feeling like it barely moved the needle.
+    // 6% legendary -> 6% legendary + 5% coach, taken out of rare's share
+    // (2026-09-03, coach cards added): an earlier attempt shaved legendary
+    // itself to make room and re-simulating showed a real album-completion
+    // regression (see routes/spin.ts's SPIN_ODDS comment for the numbers) —
+    // legendary's share stays exactly as tuned in the 2026-08-25 pass,
+    // coach comes out of rare instead (94->89%), which has far more EV
+    // headroom to spare here.
     slots: [
       { odds: { common: 1 } },
       { odds: { rare: 1 } },
       { odds: { rare: 1 } },
       { odds: { rare: 1 } },
-      { odds: { rare: 0.94, legendary: 0.06 } },
+      { odds: { rare: 0.89, legendary: 0.06, coach: 0.05 } },
     ],
   },
 
   // Wheel-exclusive, free (pointsCost 0), never purchasable — see the
-  // `purchasable` doc comment above. Weighted choice between these three on
-  // each spin reuses SPIN_ODDS (63/23/14) from routes/spin.ts verbatim,
-  // just reinterpreted as "which pack" instead of "which tier".
+  // `purchasable` doc comment above. Weighted choice between these four on
+  // each spin reuses SPIN_ODDS (58/20/14/8, 2026-09-03) from routes/spin.ts
+  // verbatim, just reinterpreted as "which pack" instead of "which tier".
   //
   // wheelStarter/wheelPro *used to* mirror the real starter/pro packs'
   // slot odds exactly ("a Jump Ball win should feel like the pack it's
@@ -154,6 +161,17 @@ export const PACKS: Record<PackType, PackDefinition> = {
     pointsCost: 0,
     purchasable: false,
     slots: [{ odds: { legendary: 1 } }],
+  },
+  // Coach cards (2026-09-03): a fourth Jump Ball outcome, single guaranteed
+  // slot — exact structural mirror of wheelLegendary above, just for the
+  // coach pool instead. See rollPackForUser's forceNewCoach for the
+  // "always a new one until all 20 are owned" guarantee.
+  wheelCoach: {
+    type: "wheelCoach",
+    label: "Jump Ball — Coach Pull",
+    pointsCost: 0,
+    purchasable: false,
+    slots: [{ odds: { coach: 1 } }],
   },
 };
 
@@ -234,7 +252,7 @@ export async function rollPackForUser(
     .innerJoin(teams, eq(collectibles.teamId, teams.id))
     .leftJoin(userCollectibles, and(eq(userCollectibles.collectibleId, collectibles.id), eq(userCollectibles.userId, userId)));
 
-  const byTier: Record<Tier, CollectibleRow[]> = { common: [], rare: [], legendary: [] };
+  const byTier: Record<Tier, CollectibleRow[]> = { common: [], rare: [], legendary: [], coach: [] };
   const preOwnedIds = new Set<string>();
   for (const { collectible, team, ownedCollectibleId } of rows) {
     byTier[collectible.tier as Tier].push({ collectible, team });
@@ -263,10 +281,14 @@ export async function rollPackForUser(
     // sellValueFor (routes/packs.ts) makes that fallback dupe worth nothing,
     // so there's no exploit in landing on one.
     const forceNewLegendary = tier === "legendary";
+    // Coach cards (2026-09-03) get the identical unconditional-forced-new
+    // treatment as legendary, not a pity streak — 20 total, "equally
+    // special" by design, same reasoning as forceNewLegendary above.
+    const forceNewCoach = tier === "coach";
     const forcePity = isPityTier(tier) && streak[tier] >= PITY_THRESHOLD[tier];
 
     let picked: CollectibleRow;
-    if (forceNewLegendary || forcePity) {
+    if (forceNewLegendary || forceNewCoach || forcePity) {
       const missing = pool.filter((c) => !preOwnedIds.has(c.collectible.id) && !newlyOwnedIds.has(c.collectible.id));
       // If the tier is somehow fully owned already, there's nothing left to
       // force — fall back to a normal roll (it'll just read as a dupe).

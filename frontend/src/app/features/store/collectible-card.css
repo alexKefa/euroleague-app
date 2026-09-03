@@ -23,6 +23,19 @@
   );
 }
 
+/* Coach cards (2026-09-03) — jade/emerald sweep, deliberately a third hue
+   family alongside gold/silver rather than a shade of either, so a coach
+   card's "different kind of card" identity reads at a glance. */
+.holo-sweep--jade {
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.35) 48%,
+    rgba(120, 240, 190, 0.32) 52%,
+    transparent 70%
+  );
+}
+
 /* Foil finish (cosmetic-only, legendary-only, rolled at first acquisition —
    see CollectibleFinish) — a rainbow sweep instead of gold's single-hue one,
    so a foil copy reads as visually distinct from every other legendary at a

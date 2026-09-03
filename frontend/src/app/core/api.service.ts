@@ -280,6 +280,10 @@ export class ApiService {
     return this.http.post<SpinResult>(`${API_BASE_URL}/spin/cheat-foil`, {});
   }
 
+  cheatSpinCoach(): Observable<SpinResult> {
+    return this.http.post<SpinResult>(`${API_BASE_URL}/spin/cheat-coach`, {});
+  }
+
   getPacks(): Observable<PackDefinition[]> {
     return this.http.get<PackDefinition[]>(`${API_BASE_URL}/packs`);
   }

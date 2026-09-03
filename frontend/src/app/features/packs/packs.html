@@ -279,6 +279,17 @@
                     >
                   }
                 </div>
+              } @else if (!card.wasDuplicate && card.collectible.tier === "coach") {
+                <!-- Coach gets its own jade glow, same weight as rare's —
+                     coach isn't "rarer" than rare, just a different kind of
+                     card, see collectible-card.ts's jade tier comment. -->
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                  <div
+                    class="burst-glow absolute w-72 h-72 rounded-full"
+                    style="background: radial-gradient(circle, rgba(80,230,175,0.5) 0%, rgba(80,230,175,0) 70%)"
+                  ></div>
+                  <div class="burst-ring absolute w-48 h-48 rounded-full border-2 border-emerald-300/70"></div>
+                </div>
               } @else if (!card.wasDuplicate && card.collectible.tier === "rare") {
                 <!-- Rare gets a lighter version of the same idea — a cool
                      silver glow and a single ring, no rays/shake, so the
@@ -335,6 +346,8 @@
             @if (card.collectible.finish === 'foil') {
               <p class="foil-label font-display text-lg uppercase tracking-wide mt-1">{{ i18n.t('packs.foilBang') }}</p>
             }
+          } @else if (card.collectible.tier === "coach") {
+            <p class="coach-label font-display text-lg uppercase tracking-wide mt-5">{{ i18n.t('packs.coachBang') }}</p>
           } @else if (card.collectible.tier === "rare") {
             <p class="rare-label font-display text-lg uppercase tracking-wide mt-5">{{ i18n.t('packs.rareBang') }}</p>
           } @else {

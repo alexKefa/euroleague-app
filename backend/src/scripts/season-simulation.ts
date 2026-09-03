@@ -4,31 +4,34 @@
  * correct picks, points-priced packs, the daily wheel, perfect/great-round
  * and legendary-milestone grants, pity, and duplicate auto-sell). Mirrors
  * the actual constants in services/packs.ts / routes/spin.ts / routes/auth.ts
- * / services/cards.ts as of the 2026-08-26 "predictions matter more" pass
- * (which followed the 2026-08-25 "album completable in a season" pass) —
- * re-run this after any future odds/cost/reward change to check it still
- * hits a season-completable target, instead of reasoning about pity/
- * duplicate/binomial math by hand.
+ * / services/cards.ts as of the 2026-09-03 "coach cards" pass (which
+ * followed the 2026-08-26 "predictions matter more" pass and the 2026-08-25
+ * "album completable in a season" pass) — re-run this after any future
+ * odds/cost/reward change to check it still hits a season-completable
+ * target, instead of reasoning about pity/duplicate/binomial math by hand.
  *
  * Answers: can a realistic player (a given prediction accuracy, not a
  * perfect one) actually finish the album (own every collectible: 208
  * common + 208 rare + 22 legendary) across a season, and how does that
- * scale with accuracy and spending habits?
+ * scale with accuracy and spending habits? Coach cards (20, tracked
+ * separately below) are deliberately NOT part of "album complete" — see
+ * CLAUDE.md's "Coach cards" section — they're modeled here only to confirm
+ * their new odds share didn't quietly wreck legendary's own pacing.
  *
  * Usage: npm run economy:simulate  (or: npx tsx src/scripts/season-simulation.ts)
  * Env overrides for quick iteration: SIM_N=500 SIM_QUICK=1 npm run economy:simulate
  */
 
-type Tier = "common" | "rare" | "legendary";
+type Tier = "common" | "rare" | "legendary" | "coach";
 
-const CATALOG_SIZE: Record<Tier, number> = { common: 208, rare: 208, legendary: 22 };
+const CATALOG_SIZE: Record<Tier, number> = { common: 208, rare: 208, legendary: 22, coach: 20 };
 // Common/rare pointsCost, for duplicate sell-back math — mirrors
-// scripts/expand-collectibles.ts. Legendary duplicates never sell (see
-// sellValueFor's comment in routes/packs.ts — the catalog's legendary
-// pointsCost is a display-only "collector value," not a real price), and a
-// legendary roll is forced onto an unowned card until all 22 are collected
-// (rollPackForUser's forceNewLegendary) — modeled directly below rather
-// than via TIER_COST.
+// scripts/expand-collectibles.ts. Legendary and coach duplicates never sell
+// (see sellValueFor's comment in routes/packs.ts — both catalogs' pointsCost
+// are display-only "collector values," not real prices), and both are
+// forced onto an unowned card until their whole tier is collected
+// (rollPackForUser's forceNewLegendary/forceNewCoach) — modeled directly
+// below rather than via TIER_COST.
 const TIER_COST: Record<"common" | "rare", number> = { common: 50, rare: 250 };
 const SELL_RATE = 0.5;
 
@@ -49,7 +52,7 @@ const GREAT_ROUND_THRESHOLD = 8; // out of GAMES_PER_ROUND, excludes literally-p
 const LEGENDARY_MILESTONE = Number(process.env.SIM_LEGENDARY_MILESTONE ?? 60); // 0 = off
 
 // routes/spin.ts SPIN_ODDS, verbatim.
-const SPIN_ODDS: Record<Tier, number> = { common: 0.63, rare: 0.23, legendary: 0.14 };
+const SPIN_ODDS: Record<Tier, number> = { common: 0.58, rare: 0.2, legendary: 0.14, coach: 0.08 };
 
 interface PackSlot {
   odds: Partial<Record<Tier, number>>;
@@ -96,7 +99,7 @@ const PACKS: PackDef[] = [
       { odds: { rare: 1 } },
       { odds: { rare: 1 } },
       { odds: { rare: 1 } },
-      { odds: { rare: 0.94, legendary: 0.06 } },
+      { odds: { rare: 0.89, legendary: 0.06, coach: 0.05 } },
     ],
   },
 ];
@@ -141,18 +144,21 @@ function openPack(state: UserState, pack: PackDef): number {
     const tier = rollTier(slot);
     const total = CATALOG_SIZE[tier];
 
-    // Legendary always forces an unowned card (forceNewLegendary) until the
-    // whole tier is owned — never sold even if it somehow lands on a dupe
-    // (sellValueFor returns null for legendary). Common/rare only force once
-    // the pity streak trips, and only if the tier isn't already fully owned
-    // (skips the O(total) missing-card scan once nothing's left to force —
-    // without this, a completed tier's pity streak sits pinned at/above
-    // threshold for the rest of the season, paying that scan on every roll).
-    const tierFullyOwned = tier !== "legendary" && state.owned[tier].size >= total;
-    const forceNew =
-      tier === "legendary"
-        ? state.owned.legendary.size < total
-        : !tierFullyOwned && state.pity[tier] >= PITY_THRESHOLD[tier];
+    // Legendary and coach both always force an unowned card
+    // (forceNewLegendary/forceNewCoach) until their whole tier is owned —
+    // never sold even if it somehow lands on a dupe (sellValueFor returns
+    // null for both). Common/rare only force once the pity streak trips,
+    // and only if the tier isn't already fully owned (skips the O(total)
+    // missing-card scan once nothing's left to force — without this, a
+    // completed tier's pity streak sits pinned at/above threshold for the
+    // rest of the season, paying that scan on every roll).
+    let forceNew: boolean;
+    if (tier === "legendary" || tier === "coach") {
+      forceNew = state.owned[tier].size < total;
+    } else {
+      const tierFullyOwned = state.owned[tier].size >= total;
+      forceNew = !tierFullyOwned && state.pity[tier] >= PITY_THRESHOLD[tier];
+    }
 
     let idx: number;
     if (forceNew) {
@@ -171,7 +177,7 @@ function openPack(state: UserState, pack: PackDef): number {
       state.pity[tier] = wasDuplicate ? state.pity[tier] + 1 : 0;
     }
     if (wasDuplicate) {
-      if (tier !== "legendary") pointsFromDupes += TIER_COST[tier] * SELL_RATE;
+      if (tier !== "legendary" && tier !== "coach") pointsFromDupes += TIER_COST[tier] * SELL_RATE;
     } else {
       state.owned[tier].add(idx);
       newlyOwnedThisPack.add(key);
@@ -210,6 +216,7 @@ interface SimResult {
   commonCountAtEnd: number;
   rareCountAtEnd: number;
   legendaryCountAtEnd: number;
+  coachCountAtEnd: number;
   endPoints: number;
   perfectRounds: number;
   greatRounds: number;
@@ -223,7 +230,7 @@ const ROUND_DAY = Array.from({ length: ROUNDS }, (_, i) => Math.round(((i + 1) *
 
 function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPolicy): SimResult {
   const state: UserState = {
-    owned: { common: new Set(), rare: new Set(), legendary: new Set() },
+    owned: { common: new Set(), rare: new Set(), legendary: new Set(), coach: new Set() },
     pity: { common: 0, rare: 0 },
     points: REGISTRATION_BONUS,
   };
@@ -284,9 +291,16 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
 
     if (Math.random() < spinEngagement) {
       const roll = Math.random();
-      const tier: Tier = roll < SPIN_ODDS.legendary ? "legendary" : roll < SPIN_ODDS.legendary + SPIN_ODDS.rare ? "rare" : "common";
-      if (tier === "legendary") {
-        grantGuaranteedNewOfTier(state, "legendary"); // same "always new" grant, different trigger
+      const tier: Tier =
+        roll < SPIN_ODDS.coach
+          ? "coach"
+          : roll < SPIN_ODDS.coach + SPIN_ODDS.legendary
+            ? "legendary"
+            : roll < SPIN_ODDS.coach + SPIN_ODDS.legendary + SPIN_ODDS.rare
+              ? "rare"
+              : "common";
+      if (tier === "legendary" || tier === "coach") {
+        grantGuaranteedNewOfTier(state, tier); // same "always new" grant, different trigger — wheelLegendary/wheelCoach's single slot always forces new anyway
       } else {
         state.points += openPack(state, WHEEL_PACKS[tier]);
       }
@@ -303,6 +317,7 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
     commonCountAtEnd: state.owned.common.size,
     rareCountAtEnd: state.owned.rare.size,
     legendaryCountAtEnd: state.owned.legendary.size,
+    coachCountAtEnd: state.owned.coach.size,
     endPoints: state.points,
     perfectRounds,
     greatRounds,
@@ -327,6 +342,7 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
   const pctPurchasable = (purchasableDays.length / n) * 100;
   const pctFull = (fullDays.length / n) * 100;
   const avgLegendaryAtEnd = results.reduce((s, r) => s + r.legendaryCountAtEnd, 0) / n;
+  const avgCoachAtEnd = results.reduce((s, r) => s + r.coachCountAtEnd, 0) / n;
   const avgEndPoints = results.reduce((s, r) => s + r.endPoints, 0) / n;
   const avgPerfectRounds = results.reduce((s, r) => s + r.perfectRounds, 0) / n;
   const avgGreatRounds = results.reduce((s, r) => s + r.greatRounds, 0) / n;
@@ -339,6 +355,7 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
       ` | commons+rares only: ${pctPurchasable.toFixed(0).padStart(3)}%` +
       ` (median day ${String(percentile(purchasableDays, 0.5)).padStart(3)})` +
       ` | avg legendaries: ${avgLegendaryAtEnd.toFixed(1).padStart(4)}/22` +
+      ` | avg coaches: ${avgCoachAtEnd.toFixed(1).padStart(4)}/20 (not in album)` +
       ` | avg perfect rounds: ${avgPerfectRounds.toFixed(2)}` +
       (GREAT_ROUND_BONUS ? ` | avg great rounds: ${avgGreatRounds.toFixed(2)}` : "") +
       (LEGENDARY_MILESTONE > 0 ? ` | avg milestone legendaries: ${avgMilestoneLegendaries.toFixed(2)}` : "") +

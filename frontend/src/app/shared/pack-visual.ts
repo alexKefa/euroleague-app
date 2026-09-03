@@ -17,4 +17,5 @@ export const PACK_VISUAL_CLASSES: Record<PackType, string> = {
   wheelStarter: "pack-visual-starter",
   wheelPro: "pack-visual-pro",
   wheelLegendary: "pack-visual-elite",
+  wheelCoach: "pack-visual-coach",
 };

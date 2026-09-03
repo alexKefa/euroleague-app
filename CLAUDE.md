@@ -388,6 +388,92 @@ If you need to apply a schema change without an interactive terminal
   `{ id, packType, tier }`, not a card) and the tier-aware "Perfect round!"/
   "Great round!"/"Prediction milestone!" banners linking to `/packs` (not
   `/store`) on the Predictions page for the user-facing side.
+- **Coach cards (2026-09-03)**: a second, deliberately distinct kind of
+  collectible alongside the player common/rare/legendary catalog — one card
+  per team's real head coach (`teams.head_coach`, synced by
+  `roster_sync.py`), 20 today (every current-season team except AS Monaco,
+  which has zero 2026-27 games and is excluded the same way `GET /api/teams`
+  already excludes it). `collectibles.tier` is a free-text `varchar` with no
+  DB check constraint, so this needed zero migration — just a `"coach"`
+  addition to the `Tier`/`CollectibleTier` union everywhere it's declared
+  (`services/packs.ts`, `routes/collectibles.ts`'s `TIERS`, frontend
+  `core/models.ts`), which the compiler then uses to flag every tier-keyed
+  map missing a "coach" arm.
+  - **Catalog**: `backend/src/scripts/expand-coach-collectibles.ts`
+    (idempotent, mirrors `expand-collectibles.ts`'s matched-by-normalized-
+    name-and-team pattern). Deliberately scopes to teams with an actual game
+    in `getCurrentSeason()` rather than trusting `teams.head_coach IS NOT
+    NULL` alone — `roster_sync.py` only ever *updates* that column for a
+    team the feed still recognizes, never clears it for one that drops out,
+    so a stale coach from a team no longer in the competition would
+    otherwise get its own phantom card (caught directly: the first run of
+    this script generated one for Monaco off a coach it hasn't had since
+    2025-26). No player-record link (coaches aren't in `players`), no
+    photo (`imageUrl: null` — falls back to the same jersey-silhouette icon
+    a photo-less player collectible already uses), `pointsCost: 5000` as a
+    display-only "collector value" (same idea as legendary's up-to-10000 —
+    never actually charged or paid, see below).
+  - **Acquisition — random pulls only, forced-unique like legendary**: no
+    direct Store purchase (`DIRECT_BUY_PRICE` has no `coach` entry, same
+    `NOT_PURCHASABLE` path legendary already takes) and no sell-back on a
+    duplicate (`sellValueFor` excludes `coach` alongside `legendary` — same
+    "collector-value pointsCost would be a real infinite-money exploit"
+    reasoning). `rollPackForUser`'s `forceNewCoach` mirrors
+    `forceNewLegendary` exactly: always lands on a coach the user doesn't
+    own yet until all 20 are collected, no pity-streak tracking needed
+    (`isPityTier` stays `common | rare` only). Two pull sources: the Elite
+    pack's 5th slot picked up a `coach: 0.05` share (taken out of `rare`'s
+    0.94, `legendary`'s 0.06 left untouched — see why below), and a new
+    wheel-exclusive `wheelCoach` pack (single guaranteed-coach slot, exact
+    structural mirror of `wheelLegendary`) joins `SPIN_ODDS` at 8%.
+  - **Odds tuning — legendary's share was NOT touched, on purpose**: the
+    first attempt at `SPIN_ODDS` shaved legendary 14%→11% to make room for
+    coach's 8% (63/23/14 → 60/21/11/8) — re-simulating (`economy:simulate`,
+    extended to model a 4th forced-unique 20-card pool) showed a real
+    regression: 85%-engagement full-album completion at 50-65% accuracy
+    dropped from the documented ~91-98%/day~144-181 down to 57-70%, since
+    legendary is the tightest existing bottleneck (per the 2026-08-25 pass)
+    and *any* cut to it costs more than common/rare's already-comfortable
+    100%-completion-well-before-season-end margin can. Fixed by leaving
+    legendary at its exact original 14% (Elite pack's legendary slot share
+    likewise unchanged at 6%) and taking coach's share out of common/rare
+    instead: `SPIN_ODDS` landed at `common 58 / rare 20 / legendary 14 /
+    coach 8`. Re-simulated result: 85%-engagement full-album completion is
+    now 92-99% across 50-80% accuracy (day 136-163) — at or above the
+    pre-coach baseline, not below it — while a season averages 14-16 of the
+    20 coaches collected. Re-run `economy:simulate` after any future change
+    to either odds table, same standing practice as every prior pass here.
+  - **Visual identity — "jade," deliberately not a 4th rarity rung**: coach
+    isn't rarer or less rare than a player card, it's a different kind of
+    card, so `CollectibleCardComponent`'s `style` getter gives it its own
+    frame/badge/holo-sweep in jade/emerald tones (`holoVariant: "jade"`,
+    badge label "COACH") rather than reusing gold/silver at any position —
+    same treatment mirrored in the pack art (`pack-visual-coach`, both
+    `packs.css` and `wheel.css`) and the wheel/pack-opening win reveals
+    (`.coach-label`, jade burst). Gets serial numbering too (`showSerial`
+    extended to include `coach` — "3/20" suits a 20-card print run). Foil
+    finish stays legendary-only, not extended to coach — its jade identity
+    already is the flourish. The wheel's disc grew 8→12 wedges (30° each:
+    7 common, 3 rare, 1 legendary, 1 coach) since 8 slices can't cleanly fit
+    a 4th tier at anything close to its real odds share; `wedgeBoundaries`/
+    `WEDGE_TIERS`/`spinToWedge` all scale off the wedge-count constant, nothing
+    hardcodes 8 elsewhere. Admin-only `POST /spin/cheat-coach` (mirrors
+    `/cheat`/`/cheat-foil` exactly) and a matching Wheel-page button exist
+    solely so the jade reveal can be verified on demand instead of waiting
+    on an 8%/5% real chance.
+  - **Store & Inventory**: both already bundle cards by `name + teamId`
+    (`routes/collectibles.ts`'s `/browse`, `inventory.ts`'s client-side
+    `allBundles`) — a coach's name never matches a player's, so a coach card
+    renders as its own singleton bundle with zero structural changes, just a
+    new "Coach" tier filter chip in both.
+  - **Left untouched, on purpose**: Album (`album.ts`'s `TIER_ORDER` is the
+    explicit literal `["common","rare","legendary"]`) doesn't track coaches
+    at all — completing the album still means the same 208+208+22 player
+    catalog it always has. Showcase (`users.showcaseCollectibleIds`) isn't
+    tier-gated to begin with, so a coach card became showcase-able the
+    moment it existed, no code change needed. Trades (`routes/trades.ts`'s
+    ~9 `tier === "legendary"` gates) stay legendary-only — coach cards
+    aren't tradeable for now, a deliberately smaller first pass.
 - **Referrals** (`services/referrals.ts`, `users.referralCode`/
   `referredByUserId`/`referralRewardGranted` in `schema.ts`). Every user
   gets a unique code at registration (`createUniqueReferralCode`), shared as

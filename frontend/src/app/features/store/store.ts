@@ -81,11 +81,13 @@ export class StoreComponent implements OnInit, OnDestroy {
     { value: "common", key: "store.tierCommon" },
     { value: "rare", key: "store.tierRare" },
     { value: "legendary", key: "store.tierLegendary" },
+    { value: "coach", key: "store.tierCoach" },
   ];
   private readonly tierLabelKeys: Record<CollectibleTier, string> = {
     common: "store.tierCommon",
     rare: "store.tierRare",
     legendary: "store.tierLegendary",
+    coach: "store.tierCoach",
   };
   tierLabel(tier: CollectibleTier): string {
     return this.i18n.t(this.tierLabelKeys[tier]);

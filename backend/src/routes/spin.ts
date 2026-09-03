@@ -25,19 +25,32 @@ export const COOLDOWN_MS = 24 * 60 * 60 * 1000;
 // pulls/season) fixed that without making legendary feel routine — see
 // scripts/economy-report.ts's LEGENDARY_CHANCE-derived pacing math, which
 // updates automatically from this constant.
-export const SPIN_ODDS = { common: 0.63, rare: 0.23, legendary: 0.14 } as const;
+// 63/23/14 -> 58/20/14/8 (2026-09-03, coach cards added): legendary is the
+// tightest completion bottleneck (see the 2026-08-25 pass above) — an
+// earlier attempt at this change shaved legendary 14->11 to make room for
+// coach and re-simulating showed a real regression (85%-engagement,
+// 50-65% accuracy full-album completion dropped from the documented
+// ~91-98%/day~160-181 down to 57-70%/day~179-185). Reverted legendary back
+// to its exact original 14% and took coach's 8% out of common+rare instead
+// (63->58, 23->20) — both tiers already reliably hit 100% completion well
+// before season end regardless (see the "commons+rares only" column below),
+// so a few points off their wheel share costs comparatively little.
+export const SPIN_ODDS = { common: 0.58, rare: 0.2, legendary: 0.14, coach: 0.08 } as const;
 export const LEGENDARY_CHANCE = SPIN_ODDS.legendary;
+export const COACH_CHANCE = SPIN_ODDS.coach;
 
 const WHEEL_PACK_BY_TIER: Record<keyof typeof SPIN_ODDS, PackType> = {
   common: "wheelStarter",
   rare: "wheelPro",
   legendary: "wheelLegendary",
+  coach: "wheelCoach",
 };
 
-function rollSpinTier(): "common" | "rare" | "legendary" {
+function rollSpinTier(): "common" | "rare" | "legendary" | "coach" {
   const roll = Math.random();
-  if (roll < SPIN_ODDS.legendary) return "legendary";
-  if (roll < SPIN_ODDS.legendary + SPIN_ODDS.rare) return "rare";
+  if (roll < SPIN_ODDS.coach) return "coach";
+  if (roll < SPIN_ODDS.coach + SPIN_ODDS.legendary) return "legendary";
+  if (roll < SPIN_ODDS.coach + SPIN_ODDS.legendary + SPIN_ODDS.rare) return "rare";
   return "common";
 }
 
@@ -109,6 +122,22 @@ spinRouter.post("/cheat", requireAuth, requireAdmin, async (req, res) => {
   } catch (err) {
     console.error("POST /api/spin/cheat failed:", err);
     res.status(500).json({ error: "Failed to cheat-spin" });
+  }
+});
+
+// Same debug tool as /cheat above, for the coach pool instead — otherwise
+// verifying the jade card visual means waiting on an 8% wheel / 5.5%
+// elite-pack-slot chance.
+spinRouter.post("/cheat-coach", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const [wonPack] = await db.insert(ownedPacks).values({ userId: req.userId!, packType: "wheelCoach" }).returning();
+    res.status(201).json({
+      wonPack: { id: wonPack.id, packType: "wheelCoach", label: PACKS.wheelCoach.label, tier: "coach" },
+      nextEligibleAt: null,
+    });
+  } catch (err) {
+    console.error("POST /api/spin/cheat-coach failed:", err);
+    res.status(500).json({ error: "Failed to cheat-spin coach" });
   }
 });
 

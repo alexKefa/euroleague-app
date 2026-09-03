@@ -533,6 +533,13 @@
   color: #241804;
 }
 
+/* Coach cards (2026-09-03) — matches collectible-card.ts's jade tier
+   frame, same "different kind of card, not a rarity" reasoning. */
+.pack-visual-coach {
+  background: linear-gradient(135deg, #0b3d2e 0%, #3fd9a4 22%, #eafff5 40%, #1f9e75 58%, #d8fff0 76%, #08291e 100%);
+  color: #052018;
+}
+
 /* Same foil-pack silhouette as .pack-visual (tapered corners, foil
    gradient, dot texture), shrunk to badge size for the pack description
    list and the My Packs inventory rows — this is the same pack art you tap
@@ -594,4 +601,13 @@
   color: transparent;
   text-shadow: 0 0 14px rgba(190, 210, 230, 0.4);
   animation: legendary-label-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.coach-label {
+  background: linear-gradient(135deg, #3fd9a4 0%, #eafff5 40%, #1f9e75 70%, #d8fff0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 16px rgba(80, 230, 175, 0.45);
+  animation: legendary-label-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }

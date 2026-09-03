@@ -5,7 +5,7 @@ import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { displayTeamCode } from "../../shared/team-display-code";
 
-type HoloVariant = "gold" | "silver" | null;
+type HoloVariant = "gold" | "silver" | "jade" | null;
 
 interface TierStyle {
   frameBackground: string;
@@ -80,7 +80,11 @@ export class CollectibleCardComponent implements OnChanges {
   @Input() serialTotal?: number;
 
   get showSerial(): boolean {
-    return (this.tier === "rare" || this.tier === "legendary") && this.serialNumber != null && this.serialTotal != null;
+    return (
+      (this.tier === "rare" || this.tier === "legendary" || this.tier === "coach") &&
+      this.serialNumber != null &&
+      this.serialTotal != null
+    );
   }
 
   private shade(hex: string, factor: number): string {
@@ -127,6 +131,30 @@ export class CollectibleCardComponent implements OnChanges {
         photoTint: `linear-gradient(160deg, ${accentSoft} 0%, ${accentDeep} 100%)`,
         bannerBackground: "rgba(11,15,13,0.55)",
         holoVariant: "silver",
+        iconColor: "#fff",
+        iconAccent: "#fff",
+      };
+    }
+
+    // Coach cards (2026-09-03) deliberately don't extend the common/rare/
+    // legendary rarity ladder — a coach isn't "rarer" or "less rare" than a
+    // player card, it's a different kind of card entirely, so this gets its
+    // own jade identity rather than reusing gold/silver at any position.
+    if (this.tier === "coach") {
+      return {
+        frameBackground:
+          "linear-gradient(135deg, #0b3d2e 0%, #3fd9a4 22%, #eafff5 40%, #1f9e75 58%, #d8fff0 76%, #08291e 100%)",
+        frameShadow:
+          "0 0 0 1px rgba(200,255,230,0.5) inset, 0 10px 26px rgba(0,0,0,0.45), 0 0 36px rgba(60,220,160,0.4)",
+        faceBackground: `radial-gradient(120% 90% at 50% 0%, ${accentDark} 0%, #05070a 60%)`,
+        badgeBackground: "linear-gradient(135deg, #14523d 0%, #7fe8c0 30%, #eafff5 50%, #35b78a 70%, #0d3a2b 100%)",
+        badgeTextColor: "#052018",
+        badgeLabel: "COACH",
+        nameColor: "#EAFFF5",
+        metaColor: "rgba(234,255,245,0.75)",
+        photoTint: `radial-gradient(120% 100% at 50% 10%, ${accentSoft} 0%, #05070a 70%)`,
+        bannerBackground: "rgba(5,7,10,0.55)",
+        holoVariant: "jade",
         iconColor: "#fff",
         iconAccent: "#fff",
       };

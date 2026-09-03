@@ -21,7 +21,7 @@ function normalizePlayerName(name: string): string {
 
 export const collectiblesRouter = Router();
 
-const TIERS = ["common", "rare", "legendary"] as const;
+const TIERS = ["common", "rare", "legendary", "coach"] as const;
 
 // Direct-purchase price for a specific card, deliberately priced ABOVE the
 // pack-implied cost of that tier (Starter's ~42pts/common, Pro's
@@ -30,8 +30,8 @@ const TIERS = ["common", "rare", "legendary"] as const;
 // used only for duplicate auto-sell — see packs.ts's SELL_BACK_RATE).
 // A pack pull is still the cheaper way to get *a* card of that tier; this
 // is the "I want this exact one" premium for whatever's left after RNG
-// hasn't cooperated. Legendary has no entry — never directly purchasable,
-// wheel/packs/perfect-round only, at any price.
+// hasn't cooperated. Legendary and coach have no entry — never directly
+// purchasable, wheel/packs (/perfect-round for legendary) only, at any price.
 const DIRECT_BUY_PRICE: Partial<Record<(typeof TIERS)[number], number>> = {
   common: 75,
   rare: 450,
