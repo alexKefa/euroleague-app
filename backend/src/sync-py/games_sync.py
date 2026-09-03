@@ -90,19 +90,28 @@ def sync_games(season: int, num_rounds: int) -> tuple:
                 status = "final" if played else "scheduled"
                 home_score = safe_int(row["local.score"])
                 away_score = safe_int(row["road.score"])
+                # "venue.name" — pandas' json_normalize flattens the feed's
+                # nested `venue: {name, code, capacity, address, ...}` object
+                # into a dotted column, same as "local.club.code" above. Only
+                # the name is captured; the rest of that object isn't needed
+                # yet.
+                venue_name = row.get("venue.name")
+                if pd.isna(venue_name):
+                    venue_name = None
 
                 cur.execute(
                     """
                     INSERT INTO games (
                         game_code, season, home_team_id, away_team_id, tipoff_at,
-                        round, status, home_score, away_score
+                        round, status, home_score, away_score, venue_name
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (season, game_code) DO UPDATE SET
                         tipoff_at = EXCLUDED.tipoff_at,
                         status = EXCLUDED.status,
                         home_score = EXCLUDED.home_score,
-                        away_score = EXCLUDED.away_score
+                        away_score = EXCLUDED.away_score,
+                        venue_name = EXCLUDED.venue_name
                     """,
                     (
                         game_code,
@@ -114,6 +123,7 @@ def sync_games(season: int, num_rounds: int) -> tuple:
                         status,
                         home_score,
                         away_score,
+                        venue_name,
                     ),
                 )
                 games_upserted += 1

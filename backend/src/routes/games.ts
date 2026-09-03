@@ -10,6 +10,8 @@ export const gamesRouter = Router();
 
 const homeTeam = alias(teams, "home_team_g");
 const awayTeam = alias(teams, "away_team_g");
+const homeStats = alias(teamSeasonStats, "home_stats_g");
+const awayStats = alias(teamSeasonStats, "away_stats_g");
 
 const DEFAULT_SEASON = "2026-27";
 
@@ -119,6 +121,9 @@ gamesRouter.get("/schedule", async (req, res) => {
         awayScore: games.awayScore,
         quarter: games.quarter,
         gameClockSeconds: games.gameClockSeconds,
+        // Straight from the feed (see schema.ts's comment) — null for any
+        // game synced before this column existed and not yet backfilled.
+        venueName: games.venueName,
         homeTeam: {
           id: homeTeam.id,
           code: homeTeam.code,
@@ -133,6 +138,12 @@ gamesRouter.get("/schedule", async (req, res) => {
           primaryColor: awayTeam.primaryColor,
           logoUrl: awayTeam.logoUrl,
         },
+        // Current league standing — same team_season_stats.position the
+        // standings page itself reads, joined per side so the schedule can
+        // show "(5)" next to a team name without a second round trip.
+        // Null until team_season_stats has a row for that team+season.
+        homeTeamPosition: homeStats.position,
+        awayTeamPosition: awayStats.position,
         // Nullable — only present once sync/oddsSync.ts has captured a
         // snapshot for this game (see game_odds' schema comment). Exposed
         // here so the Predictions page can show a real per-pick point
@@ -144,6 +155,8 @@ gamesRouter.get("/schedule", async (req, res) => {
       .innerJoin(homeTeam, eq(games.homeTeamId, homeTeam.id))
       .innerJoin(awayTeam, eq(games.awayTeamId, awayTeam.id))
       .leftJoin(gameOdds, eq(gameOdds.gameId, games.id))
+      .leftJoin(homeStats, and(eq(homeStats.teamId, games.homeTeamId), eq(homeStats.season, games.season)))
+      .leftJoin(awayStats, and(eq(awayStats.teamId, games.awayTeamId), eq(awayStats.season, games.season)))
       .where(and(eq(games.season, season), eq(games.round, round)))
       .orderBy(asc(games.tipoffAt));
 

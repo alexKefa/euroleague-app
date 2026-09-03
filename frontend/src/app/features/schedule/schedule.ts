@@ -12,6 +12,7 @@ import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { PageHintComponent } from "../../shared/page-hint";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { newsDateLocale, weekdayDateFormat } from "../../shared/news-date-format";
+import { TeamCodePipe } from "../../shared/team-display-code";
 
 // The user asked specifically for the 2026-27 schedule — no season picker,
 // just round + team filters within that season.
@@ -34,6 +35,7 @@ function athensDateKey(iso: string): string {
     DropdownComponent,
     PageHintComponent,
     SkeletonComponent,
+    TeamCodePipe,
   ],
   templateUrl: "./schedule.html",
 })

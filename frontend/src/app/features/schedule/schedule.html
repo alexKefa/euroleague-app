@@ -84,14 +84,23 @@
             @for (game of group.games; track game.id) {
               <a
                 [routerLink]="['/games', game.id]"
-                class="flex items-center justify-between gap-3 px-4 py-3 bg-card rounded-2xl border border-line shadow-card hover:shadow-pop transition-all"
+                class="flex items-center justify-between gap-3 px-4 py-4 sm:py-3 bg-card rounded-2xl border border-line shadow-card hover:shadow-pop transition-all"
               >
-                <div class="flex items-center gap-2 flex-1 min-w-0 justify-end text-right">
+                <!-- Mobile: logo on top, name+rank centered below it (flex-col-reverse
+                     so the logo — second in DOM, closest to center on desktop —
+                     renders visually first without reordering markup). Desktop:
+                     back to the original horizontal, right-aligned row. -->
+                <div class="flex flex-col-reverse items-center gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-2 flex-1 min-w-0">
                   <span
-                    class="font-semibold text-sm truncate"
+                    class="font-semibold text-sm truncate text-center sm:text-right"
                     [class.text-highlight]="gameResult(game) === 'home'"
-                    >{{ game.homeTeam.name }}</span
                   >
+                    <span class="sm:hidden">{{ game.homeTeam.code | teamCode }}</span>
+                    <span class="hidden sm:inline">{{ game.homeTeam.name }}</span>
+                    @if (game.homeTeamPosition) {
+                      <span class="font-mono font-normal text-muted">({{ game.homeTeamPosition }})</span>
+                    }
+                  </span>
                   @if (game.homeTeam.logoUrl) {
                     <img [src]="game.homeTeam.logoUrl" [alt]="game.homeTeam.name" loading="lazy" decoding="async" appRetryImg class="w-7 h-7 object-contain shrink-0 team-logo" />
                   } @else {
@@ -102,7 +111,7 @@
                   }
                 </div>
 
-                <div class="shrink-0 w-16 text-center">
+                <div class="shrink-0 w-20 text-center">
                   @if (game.status === "live") {
                     <span class="flex items-center justify-center gap-1 mb-0.5">
                       <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
@@ -128,9 +137,15 @@
                   } @else {
                     <span class="font-mono text-xs text-muted">{{ game.tipoffAt | date: "HH:mm":"Europe/Athens" }}</span>
                   }
+                  @if (game.venueName) {
+                    <p class="text-[9px] text-muted truncate mt-0.5" [title]="game.venueName">{{ game.venueName }}</p>
+                  }
                 </div>
 
-                <div class="flex items-center gap-2 flex-1 min-w-0">
+                <!-- Mobile: logo on top, name+rank centered below (already the
+                     right DOM order — logo first — so plain flex-col works).
+                     Desktop: back to the original horizontal, left-aligned row. -->
+                <div class="flex flex-col items-center gap-1 sm:flex-row sm:items-center sm:gap-2 flex-1 min-w-0">
                   @if (game.awayTeam.logoUrl) {
                     <img [src]="game.awayTeam.logoUrl" [alt]="game.awayTeam.name" loading="lazy" decoding="async" appRetryImg class="w-7 h-7 object-contain shrink-0 team-logo" />
                   } @else {
@@ -140,10 +155,15 @@
                     ></span>
                   }
                   <span
-                    class="font-semibold text-sm truncate"
+                    class="font-semibold text-sm truncate text-center sm:text-left"
                     [class.text-highlight]="gameResult(game) === 'away'"
-                    >{{ game.awayTeam.name }}</span
                   >
+                    <span class="sm:hidden">{{ game.awayTeam.code | teamCode }}</span>
+                    <span class="hidden sm:inline">{{ game.awayTeam.name }}</span>
+                    @if (game.awayTeamPosition) {
+                      <span class="font-mono font-normal text-muted">({{ game.awayTeamPosition }})</span>
+                    }
+                  </span>
                 </div>
               </a>
             }

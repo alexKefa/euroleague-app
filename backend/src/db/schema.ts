@@ -134,6 +134,11 @@ export const games = pgTable(
     // highlight, mirrors collectibles' admin imageUrl pattern) since there's
     // no sync source that maps a game to its highlight video yet.
     highlightVideoId: varchar("highlight_video_id", { length: 32 }),
+    // Straight from the feed's own `venue.name` (games_sync.py) — e.g.
+    // "ASTROBALLE". Not previously persisted even though the raw feed
+    // response already carries a full venue object (name, code, capacity,
+    // address); only the name is surfaced today, nothing else is needed yet.
+    venueName: varchar("venue_name", { length: 120 }),
   },
   (table) => ({
     // EuroLeague reuses game codes starting from 1 every season — game_code

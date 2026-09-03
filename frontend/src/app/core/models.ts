@@ -255,6 +255,12 @@ export interface Game {
   // — see backend CLAUDE.md's "Odds-weighted prediction points" section.
   homeFairProb?: number | null;
   awayFairProb?: number | null;
+  // Current league standing per side (team_season_stats.position) and the
+  // game's venue — only GET /games/schedule populates these, same
+  // "schedule-only extras" pattern as homeFairProb/awayFairProb above.
+  homeTeamPosition?: number | null;
+  awayTeamPosition?: number | null;
+  venueName?: string | null;
 }
 
 export interface RoundsInfo {
