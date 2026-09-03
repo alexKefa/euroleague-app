@@ -151,11 +151,11 @@
               <thead>
                 <tr class="text-muted uppercase tracking-wide">
                   <th class="text-left font-bold py-1">{{ i18n.t('game.playerColumn') }}</th>
-                  <th class="text-right font-bold py-1 px-1.5">MIN</th>
-                  <th class="text-right font-bold py-1 px-1.5">PTS</th>
-                  <th class="text-right font-bold py-1 px-1.5">REB</th>
-                  <th class="text-right font-bold py-1 px-1.5">AST</th>
-                  <th class="text-right font-bold py-1 px-1.5">PIR</th>
+                  <th class="text-right font-bold py-1 px-1.5">{{ i18n.t('game.colMIN') }}</th>
+                  <th class="text-right font-bold py-1 px-1.5">{{ i18n.t('game.colPTS') }}</th>
+                  <th class="text-right font-bold py-1 px-1.5">{{ i18n.t('game.colREB') }}</th>
+                  <th class="text-right font-bold py-1 px-1.5">{{ i18n.t('game.colAST') }}</th>
+                  <th class="text-right font-bold py-1 px-1.5">{{ i18n.t('game.colPIR') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -196,32 +196,32 @@
         <div class="text-sm space-y-1.5">
           <div class="flex justify-between items-center px-2">
             <span class="font-mono text-xs font-bold w-16 text-right">{{ totals.home.points }}</span>
-            <span class="text-muted text-[11px] uppercase tracking-wide">PTS</span>
+            <span class="text-muted text-[11px] uppercase tracking-wide">{{ i18n.t('game.colPTS') }}</span>
             <span class="font-mono text-xs font-bold w-16">{{ totals.away.points }}</span>
           </div>
           <div class="flex justify-between items-center px-2">
             <span class="font-mono text-xs font-bold w-16 text-right">{{ totals.home.rebounds }}</span>
-            <span class="text-muted text-[11px] uppercase tracking-wide">REB</span>
+            <span class="text-muted text-[11px] uppercase tracking-wide">{{ i18n.t('game.colREB') }}</span>
             <span class="font-mono text-xs font-bold w-16">{{ totals.away.rebounds }}</span>
           </div>
           <div class="flex justify-between items-center px-2">
             <span class="font-mono text-xs font-bold w-16 text-right">{{ totals.home.assists }}</span>
-            <span class="text-muted text-[11px] uppercase tracking-wide">AST</span>
+            <span class="text-muted text-[11px] uppercase tracking-wide">{{ i18n.t('game.colAST') }}</span>
             <span class="font-mono text-xs font-bold w-16">{{ totals.away.assists }}</span>
           </div>
           <div class="flex justify-between items-center px-2">
             <span class="font-mono text-xs font-bold w-16 text-right">{{ totals.home.steals }}</span>
-            <span class="text-muted text-[11px] uppercase tracking-wide">STL</span>
+            <span class="text-muted text-[11px] uppercase tracking-wide">{{ i18n.t('player.colStl') }}</span>
             <span class="font-mono text-xs font-bold w-16">{{ totals.away.steals }}</span>
           </div>
           <div class="flex justify-between items-center px-2">
             <span class="font-mono text-xs font-bold w-16 text-right">{{ totals.home.blocks }}</span>
-            <span class="text-muted text-[11px] uppercase tracking-wide">BLK</span>
+            <span class="text-muted text-[11px] uppercase tracking-wide">{{ i18n.t('player.colBlk') }}</span>
             <span class="font-mono text-xs font-bold w-16">{{ totals.away.blocks }}</span>
           </div>
           <div class="flex justify-between items-center px-2">
             <span class="font-mono text-xs font-bold w-16 text-right">{{ totals.home.turnovers }}</span>
-            <span class="text-muted text-[11px] uppercase tracking-wide">TO</span>
+            <span class="text-muted text-[11px] uppercase tracking-wide">{{ i18n.t('game.colTO') }}</span>
             <span class="font-mono text-xs font-bold w-16">{{ totals.away.turnovers }}</span>
           </div>
         </div>
@@ -417,29 +417,29 @@
           <div class="grid grid-cols-3 gap-2 mt-5 text-center">
             <div>
               <p class="font-display text-xl text-highlight">{{ fmtNum(s.pointsPerGame) }}</p>
-              <p class="text-[10px] text-muted uppercase tracking-wide">PPG</p>
+              <p class="text-[10px] text-muted uppercase tracking-wide">{{ i18n.t('roster.colPPG') }}</p>
             </div>
             <div>
               <p class="font-display text-xl">{{ fmtNum(s.reboundsPerGame) }}</p>
-              <p class="text-[10px] text-muted uppercase tracking-wide">RPG</p>
+              <p class="text-[10px] text-muted uppercase tracking-wide">{{ i18n.t('roster.colRPG') }}</p>
             </div>
             <div>
               <p class="font-display text-xl">{{ fmtNum(s.assistsPerGame) }}</p>
-              <p class="text-[10px] text-muted uppercase tracking-wide">APG</p>
+              <p class="text-[10px] text-muted uppercase tracking-wide">{{ i18n.t('roster.colAPG') }}</p>
             </div>
           </div>
           <div class="grid grid-cols-3 gap-2 mt-3 text-center">
             <div>
               <p class="font-mono font-bold text-highlight">{{ fmtNum(s.valuation) }}</p>
-              <p class="text-[10px] text-muted uppercase tracking-wide">PIR</p>
+              <p class="text-[10px] text-muted uppercase tracking-wide">{{ i18n.t('roster.colPIR') }}</p>
             </div>
             <div>
               <p class="font-mono font-bold">{{ fmtPct(s.fieldGoalPct) }}</p>
-              <p class="text-[10px] text-muted uppercase tracking-wide">FG%</p>
+              <p class="text-[10px] text-muted uppercase tracking-wide">{{ i18n.t('game.colFG') }}</p>
             </div>
             <div>
               <p class="font-mono font-bold">{{ fmtPct(s.freeThrowPct) }}</p>
-              <p class="text-[10px] text-muted uppercase tracking-wide">FT%</p>
+              <p class="text-[10px] text-muted uppercase tracking-wide">{{ i18n.t('game.colFT') }}</p>
             </div>
           </div>
         } @else {

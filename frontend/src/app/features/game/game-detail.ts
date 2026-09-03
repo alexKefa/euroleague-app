@@ -127,16 +127,21 @@ export class GameDetailComponent implements OnInit {
     return null;
   });
 
-  private readonly boxScoreLegendKeys: { code: string; key: string }[] = [
-    { code: "MIN", key: "game.legendMIN" },
-    { code: "PTS", key: "game.legendPTS" },
-    { code: "REB", key: "game.legendREB" },
-    { code: "AST", key: "game.legendAST" },
-    { code: "PIR", key: "game.legendPIR" },
+  // codeKey reuses the box score table's own header translations
+  // (game.colX) rather than a hardcoded English literal — otherwise the
+  // legend's short code stayed English even in Greek mode while its
+  // description translated fine, since only `key`/label ever went through
+  // i18n before.
+  private readonly boxScoreLegendKeys: { codeKey: string; key: string }[] = [
+    { codeKey: "game.colMIN", key: "game.legendMIN" },
+    { codeKey: "game.colPTS", key: "game.legendPTS" },
+    { codeKey: "game.colREB", key: "game.legendREB" },
+    { codeKey: "game.colAST", key: "game.legendAST" },
+    { codeKey: "game.colPIR", key: "game.legendPIR" },
   ];
 
   readonly boxScoreLegend = computed<StatLegendEntry[]>(() =>
-    this.boxScoreLegendKeys.map((k) => ({ code: k.code, label: this.i18n.t(k.key) }))
+    this.boxScoreLegendKeys.map((k) => ({ code: this.i18n.t(k.codeKey), label: this.i18n.t(k.key) }))
   );
 
   readonly isFinal = computed(() => this.detail()?.game.status === "final");

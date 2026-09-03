@@ -113,19 +113,24 @@ const DEFAULT_MIN_MINUTES = 0;
 // legend keys where the stat is identical (GP, MIN, PIR, TS%, eFG%, TOV%,
 // POSS) rather than duplicating the copy; only the columns roster doesn't
 // have (PTS as a bare code, split OREB%/DREB%, AST/TO) get their own keys.
-const LEGEND_KEYS: { code: string; key: string }[] = [
-  { code: "GP", key: "roster.legendGP" },
-  { code: "MIN", key: "roster.legendMIN" },
-  { code: "PTS", key: "roster.legendPPG" },
-  { code: "PIR", key: "roster.legendPIR" },
-  { code: "TS%", key: "roster.legendTS" },
-  { code: "eFG%", key: "roster.legendEFG" },
-  { code: "OREB%", key: "stats.legendOreb" },
-  { code: "DREB%", key: "stats.legendDreb" },
-  { code: "AST/TO", key: "stats.legendAstTo" },
-  { code: "TOV%", key: "roster.legendTOV" },
-  { code: "POSS", key: "roster.legendPOSS" },
-  { code: "USG%", key: "stats.legendUsg" },
+// codeKey reuses this page's own COLUMNS header translations (stats.colX,
+// the same keys the visible table headers use — see COLUMNS above) rather
+// than a hardcoded English literal — otherwise the legend's short code
+// stayed English even in Greek mode while its description translated fine,
+// since only `key`/label ever went through i18n before.
+const LEGEND_KEYS: { codeKey: string; key: string }[] = [
+  { codeKey: "stats.colGp", key: "roster.legendGP" },
+  { codeKey: "stats.colMin", key: "roster.legendMIN" },
+  { codeKey: "stats.colPts", key: "roster.legendPPG" },
+  { codeKey: "stats.colPir", key: "roster.legendPIR" },
+  { codeKey: "stats.colTs", key: "roster.legendTS" },
+  { codeKey: "stats.colEfg", key: "roster.legendEFG" },
+  { codeKey: "stats.colOreb", key: "stats.legendOreb" },
+  { codeKey: "stats.colDreb", key: "stats.legendDreb" },
+  { codeKey: "stats.colAstTo", key: "stats.legendAstTo" },
+  { codeKey: "stats.colTov", key: "roster.legendTOV" },
+  { codeKey: "stats.colPace", key: "roster.legendPOSS" },
+  { codeKey: "stats.colUsg", key: "stats.legendUsg" },
 ];
 
 @Component({
@@ -142,7 +147,7 @@ export class AdvancedStatsComponent implements OnInit {
   readonly columns = COLUMNS;
 
   readonly legendEntries = computed<StatLegendEntry[]>(() =>
-    LEGEND_KEYS.map((k) => ({ code: k.code, label: this.i18n.t(k.key) }))
+    LEGEND_KEYS.map((k) => ({ code: this.i18n.t(k.codeKey), label: this.i18n.t(k.key) }))
   );
 
   readonly loading = signal(true);

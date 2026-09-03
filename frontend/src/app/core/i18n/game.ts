@@ -24,6 +24,22 @@ export const gameTranslations: Record<string, Record<Lang, string>> = {
   "game.setHighlight": { en: "Set", el: "Ορισμός" },
   "game.playerColumn": { en: "Player", el: "Παίκτης" },
 
+  // Box-score column headers — same abbreviations roster.ts's own colMIN/
+  // colPPG/colRPG/colAPG/colPIR already use, for consistency across the app
+  // rather than a second, differently-worded set for the same stats.
+  "game.colMIN": { en: "MIN", el: "ΛΕΠ" },
+  "game.colPTS": { en: "PTS", el: "ΠΟΝ" },
+  "game.colREB": { en: "REB", el: "ΡΙΜΠ" },
+  "game.colAST": { en: "AST", el: "ΑΣΙ" },
+  "game.colPIR": { en: "PIR", el: "PIR" },
+  // Team Stats comparison widget's own turnovers label ("TO", not player.ts's
+  // "TOV") — same Greek meaning (ΛΑΘ), matching that widget's exact EN text.
+  "game.colTO": { en: "TO", el: "ΛΑΘ" },
+  // Shooting percentages stay untranslated in both languages — same
+  // convention as roster.ts's TS%/eFG%/TOV%/USG% columns.
+  "game.colFG": { en: "FG%", el: "FG%" },
+  "game.colFT": { en: "FT%", el: "FT%" },
+
   // Glossary entries for shared/stat-legend.ts, box-score columns.
   "game.legendMIN": { en: "Minutes played", el: "Λεπτά συμμετοχής" },
   "game.legendPTS": { en: "Points", el: "Πόντοι" },

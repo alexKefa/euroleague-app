@@ -55,29 +55,33 @@ export class TeamRosterComponent implements OnInit {
   // inside the computed() below so it stays reactive to i18n.lang (a plain
   // field initializer would freeze the label in whatever language was
   // active when the component was constructed).
-  private readonly traditionalLegendKeys: { code: string; key: string }[] = [
-    { code: "GP", key: "roster.legendGP" },
-    { code: "MIN", key: "roster.legendMIN" },
-    { code: "PPG", key: "roster.legendPPG" },
-    { code: "RPG", key: "roster.legendRPG" },
-    { code: "APG", key: "roster.legendAPG" },
-    { code: "SPG", key: "roster.legendSPG" },
-    { code: "PIR", key: "roster.legendPIR" },
+  // codeKey reuses each column's own header translation (roster.colX)
+  // rather than a hardcoded English literal — otherwise the legend's short
+  // code stayed English even in Greek mode while its description translated
+  // fine, since only `key`/label ever went through i18n before.
+  private readonly traditionalLegendKeys: { codeKey: string; key: string }[] = [
+    { codeKey: "roster.colGP", key: "roster.legendGP" },
+    { codeKey: "roster.colMIN", key: "roster.legendMIN" },
+    { codeKey: "roster.colPPG", key: "roster.legendPPG" },
+    { codeKey: "roster.colRPG", key: "roster.legendRPG" },
+    { codeKey: "roster.colAPG", key: "roster.legendAPG" },
+    { codeKey: "roster.colSPG", key: "roster.legendSPG" },
+    { codeKey: "roster.colPIR", key: "roster.legendPIR" },
   ];
 
-  private readonly advancedLegendKeys: { code: string; key: string }[] = [
-    { code: "TS%", key: "roster.legendTS" },
-    { code: "eFG%", key: "roster.legendEFG" },
-    { code: "REB%", key: "roster.legendREB" },
-    { code: "AST%", key: "roster.legendAST" },
-    { code: "TOV%", key: "roster.legendTOV" },
-    { code: "POSS", key: "roster.legendPOSS" },
-    { code: "USG%", key: "roster.legendUSG" },
+  private readonly advancedLegendKeys: { codeKey: string; key: string }[] = [
+    { codeKey: "roster.colTS", key: "roster.legendTS" },
+    { codeKey: "roster.colEFG", key: "roster.legendEFG" },
+    { codeKey: "roster.colREB", key: "roster.legendREB" },
+    { codeKey: "roster.colAST", key: "roster.legendAST" },
+    { codeKey: "roster.colTOV", key: "roster.legendTOV" },
+    { codeKey: "roster.colPOSS", key: "roster.legendPOSS" },
+    { codeKey: "roster.colUSG", key: "roster.legendUSG" },
   ];
 
   readonly statLegendEntries = computed<StatLegendEntry[]>(() => {
     const keys = this.statsView() === "traditional" ? this.traditionalLegendKeys : this.advancedLegendKeys;
-    return keys.map((k) => ({ code: k.code, label: this.i18n.t(k.key) }));
+    return keys.map((k) => ({ code: this.i18n.t(k.codeKey), label: this.i18n.t(k.key) }));
   });
 
   readonly teamStandingsRow = computed(
