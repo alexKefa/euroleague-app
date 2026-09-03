@@ -31,7 +31,7 @@ column default (NULL) — which the frontend's jersey-number placeholder
 Usage:
     python roster_sync.py [season]
 
-    season   start year of the season, e.g. 2026 for 2026-27 (default 2025)
+    season   start year of the season, e.g. 2026 for 2026-27 (default 2026)
 
 Requires teams to already be synced (via standings_sync.py) — loops over
 every row already in `teams` and skips any whose code the feed doesn't
@@ -173,5 +173,15 @@ def sync_rosters(season: int) -> None:
 
 
 if __name__ == "__main__":
-    season_arg = int(sys.argv[1]) if len(sys.argv) > 1 else 2025
+    # Bumped from 2025 to 2026 on 2026-09-03: this script's default is the
+    # one most likely to be run bare (no explicit season arg) as a quick
+    # "resync rosters/coaches" — running it against the wrong season
+    # silently overwrites the correct one with stale data (caught the hard
+    # way: an unqualified `python roster_sync.py 2025` re-synced last
+    # season's rosters and coaches over already-correct 2026-27 data,
+    # wrongly showing e.g. Bayern Munich's 2025-26 coach instead of
+    # 2026-27's actual one). Every other sync-py script still defaults to
+    # 2025 and shares this same trap — not fixed here, out of scope for
+    # this pass.
+    season_arg = int(sys.argv[1]) if len(sys.argv) > 1 else 2026
     sync_rosters(season_arg)
