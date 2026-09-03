@@ -15,16 +15,6 @@
   </a>
 
   <div class="flex items-center gap-2 min-w-0">
-    @if (!auth.isAuthenticated()) {
-      <button
-        type="button"
-        (click)="i18n.setLang(i18n.lang() === 'en' ? 'el' : 'en')"
-        class="shrink-0 w-8 h-8 rounded-xl border-2 border-line flex items-center justify-center text-muted hover:text-ink hover:bg-page transition-colors font-mono text-[11px] font-bold uppercase"
-        [attr.aria-label]="i18n.lang() === 'en' ? i18n.t('nav.switchToGreek') : i18n.t('nav.switchToEnglish')"
-      >
-        {{ i18n.lang() === "en" ? "ΕΛ" : "EN" }}
-      </button>
-    }
 
     @if (auth.isAuthenticated()) {
       <!-- Desktop only — on mobile this same identity/logout is one tap
@@ -69,18 +59,16 @@
         </a>
         <a routerLink="/register" appButton appButtonSize="sm">{{ i18n.t('nav.register') }}</a>
       </div>
-      <!-- Mobile: same login+register pair, no separate bottom-tab login
-           entry anymore (see the bottom nav's "More" tab). -->
-      <div class="sm:hidden flex items-center gap-2 shrink-0">
-        <a
-          routerLink="/login"
-          class="shrink-0 w-8 h-8 rounded-xl border-2 border-line flex items-center justify-center text-muted hover:text-ink hover:bg-page transition-colors"
-          [attr.aria-label]="i18n.t('nav.login')"
-        >
-          <app-nav-icon name="user" [size]="18" />
-        </a>
-        <a routerLink="/register" appButton appButtonSize="sm">{{ i18n.t('nav.register') }}</a>
-      </div>
+      <!-- Mobile: just Login now, not a login+register pair — matches the
+           reference EuroLeague site's own mobile top bar (a single labeled
+           button), and the login page itself already links to /register
+           ("Don't have an account?"), so dropping this one doesn't strand
+           anyone. Icon+visible label, not just an icon+aria-label — an
+           icon-only button here read as unclear on its own. -->
+      <a routerLink="/login" appButton="secondary" appButtonSize="sm" class="sm:hidden shrink-0">
+        <app-nav-icon name="user" [size]="14" class="text-highlight" />
+        {{ i18n.t('nav.login') }}
+      </a>
     }
   </div>
 </nav>
