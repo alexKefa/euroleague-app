@@ -71,6 +71,9 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
   "profile.theme": { en: "Theme", el: "Θέμα" },
   "profile.themeLight": { en: "Light", el: "Φωτεινό" },
   "profile.themeDark": { en: "Dark", el: "Σκοτεινό" },
+  "profile.pinchZoom": { en: "Pinch zoom", el: "Ζουμ με τσίμπημα" },
+  "profile.pinchZoomOff": { en: "Off", el: "Ανενεργό" },
+  "profile.pinchZoomOn": { en: "On", el: "Ενεργό" },
   "profile.logout": { en: "Log out", el: "Αποσύνδεση" },
   "profile.saveTeamFailed": {
     en: "Couldn't update your favorite team — try again.",

@@ -8,6 +8,11 @@ const DEFAULT_THEME_COLOR = "#0b1220";
 export type ColorScheme = "dark" | "light";
 const COLOR_SCHEME_KEY = "clutch-color-scheme";
 const ACCENT_COLORS_KEY = "clutch-accent-colors";
+const PINCH_ZOOM_KEY = "clutch-pinch-zoom-enabled";
+// Mirrors index.html's own static default (viewport-meta) — kept here too
+// so re-enabling can restore the exact original content, not a guess.
+const VIEWPORT_ZOOM_DISABLED = "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover";
+const VIEWPORT_ZOOM_ENABLED = "width=device-width, initial-scale=1, viewport-fit=cover";
 
 @Injectable({ providedIn: "root" })
 export class ThemeService {
@@ -17,8 +22,15 @@ export class ThemeService {
   // theme) — only switch to light if the user explicitly chose it before.
   readonly colorScheme = signal<ColorScheme>(this.loadColorScheme());
 
+  // Pinch/double-tap zoom is disabled by default (index.html's static
+  // viewport meta already ships that way, so this only ever needs to
+  // *loosen* it, never tighten it, before this service's constructor runs)
+  // — opt-in re-enable from Profile, not opt-out.
+  readonly pinchZoomEnabled = signal<boolean>(this.loadPinchZoomEnabled());
+
   constructor() {
     this.applyColorScheme(this.colorScheme());
+    this.applyPinchZoom(this.pinchZoomEnabled());
     // applyTeam() only ever gets called once Dashboard loads and resolves
     // the user's favorite team, so a refresh landing anywhere else showed
     // the default blue accent/ambient glow until you visited Dashboard.
@@ -97,6 +109,31 @@ export class ThemeService {
       return localStorage.getItem(COLOR_SCHEME_KEY) === "light" ? "light" : "dark";
     } catch {
       return "dark";
+    }
+  }
+
+  setPinchZoomEnabled(enabled: boolean): void {
+    this.pinchZoomEnabled.set(enabled);
+    this.applyPinchZoom(enabled);
+    try {
+      localStorage.setItem(PINCH_ZOOM_KEY, enabled ? "true" : "false");
+    } catch {
+      // Private-browsing/storage-disabled — the toggle still works for the
+      // current session, it just won't persist across reloads.
+    }
+  }
+
+  private applyPinchZoom(enabled: boolean): void {
+    document
+      .getElementById("viewport-meta")
+      ?.setAttribute("content", enabled ? VIEWPORT_ZOOM_ENABLED : VIEWPORT_ZOOM_DISABLED);
+  }
+
+  private loadPinchZoomEnabled(): boolean {
+    try {
+      return localStorage.getItem(PINCH_ZOOM_KEY) === "true";
+    } catch {
+      return false;
     }
   }
 }
