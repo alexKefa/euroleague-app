@@ -2,6 +2,15 @@
   <app-splash [hiding]="splashHiding()"></app-splash>
 }
 
+<!-- Ambient team-color wash, anchored to the viewport (not the page, so it
+     doesn't scroll away). A real element with an Angular style binding, not
+     a CSS `::before` reading a custom property directly — see
+     ThemeService.ambientGlowBackground's comment for why. -->
+<div
+  class="fixed inset-0 -z-10 pointer-events-none"
+  [style.background-image]="theme.ambientGlowBackground()"
+></div>
+
 <nav
   class="sticky top-0 z-30 flex justify-between items-center gap-3 px-4 sm:px-6 py-4 bg-card border-b border-line"
 >
