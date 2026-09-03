@@ -1,15 +1,33 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { users, pointAdjustments } from "../db/schema.js";
+import { users, pointAdjustments, teamSeasonStats } from "../db/schema.js";
 import { hashPassword, verifyPassword } from "../auth/hash.js";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../auth/tokens.js";
 import { createUniqueReferralCode } from "../services/referrals.js";
 import { createUniqueUsername, isUsernameTaken, isValidUsername } from "../services/username.js";
 import { redeemPromoCode } from "../services/promoCodes.js";
+import { getCurrentSeason } from "../services/season.js";
 
 export const authRouter = Router();
+
+// Picks a random team from the current competition (team_season_stats only
+// ever has a row for a team actually in getCurrentSeason() — same scoping
+// GET /teams uses to keep an out-of-competition team like AS Monaco from
+// being assignable) so a registration with no team picked still gets a
+// personalized reskin instead of sitting on the default blue indefinitely.
+async function randomFavoriteTeamId(): Promise<string | null> {
+  const season = await getCurrentSeason();
+  if (!season) return null;
+  const [row] = await db
+    .select({ teamId: teamSeasonStats.teamId })
+    .from(teamSeasonStats)
+    .where(eq(teamSeasonStats.season, season))
+    .orderBy(sql`random()`)
+    .limit(1);
+  return row?.teamId ?? null;
+}
 
 // Credential guessing / registration spam target — keep this tight. Keyed
 // by IP, so a shared network (office wifi, NAT) can still hit the ceiling;
@@ -115,13 +133,17 @@ authRouter.post("/register", credentialsLimiter, async (req, res) => {
   const passwordHash = await hashPassword(password);
   const newReferralCode = await createUniqueReferralCode();
   const newUsername = trimmedUsername.length > 0 ? trimmedUsername : await createUniqueUsername();
+  // A skipped team picker used to leave favoriteTeamId permanently null —
+  // default to a random current-competition team instead, so every account
+  // gets the personalized reskin from day one rather than the generic blue.
+  const resolvedFavoriteTeamId = favoriteTeamId ?? (await randomFavoriteTeamId());
   const [user] = await db
     .insert(users)
     .values({
       email,
       username: newUsername,
       passwordHash,
-      favoriteTeamId: favoriteTeamId ?? null,
+      favoriteTeamId: resolvedFavoriteTeamId,
       referralCode: newReferralCode,
       referredByUserId,
     })

@@ -242,7 +242,14 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.saveError.set(null);
 
     this.auth.updateFavoriteTeam(next).subscribe({
-      next: () => this.savingTeamId.set(null),
+      next: () => {
+        this.savingTeamId.set(null);
+        // Re-skin immediately rather than waiting for the next Dashboard
+        // visit (the only other applyTeam() call site) — picking a new
+        // team here should feel instant, not stale until you happen to
+        // navigate elsewhere.
+        this.theme.applyTeam(next ? (this.teams().find((t) => t.id === next) ?? null) : null);
+      },
       error: () => {
         this.savingTeamId.set(null);
         this.saveError.set(this.i18n.t("profile.saveTeamFailed"));
