@@ -28,7 +28,7 @@
     </div>
   }
 
-  @if (loading()) {
+  @if (initialLoad()) {
     <div class="flex flex-wrap gap-2 mb-4">
       <div class="animate-pulse flex-1 min-w-[10rem] h-10 rounded-xl bg-line"></div>
       <div class="animate-pulse w-28 h-10 rounded-full bg-line"></div>
@@ -41,7 +41,7 @@
     </div>
   }
 
-  @if (!loading()) {
+  @if (!initialLoad()) {
     <div class="flex flex-wrap gap-2 mb-4">
       <app-search-input
         class="flex-1 min-w-[10rem]"
@@ -59,53 +59,81 @@
       }
     </div>
 
-    <div data-tour="store-cards" class="inline-flex bg-card border-2 border-line rounded-2xl p-1 gap-1 mb-4">
-      @for (opt of tierOptions; track opt.value) {
-        <button type="button" (click)="setTierFilter(opt.value)" [appChip]="tierFilter() === opt.value">
-          {{ i18n.t(opt.key) }}
-        </button>
-      }
-    </div>
-
-    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-      @for (bundle of bundles(); track bundleKey(bundle)) {
-        <div class="flex flex-col items-center gap-2">
-          <button
-            type="button"
-            (click)="openPreview(bundle)"
-            class="w-full rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-highlight"
-            [attr.aria-label]="i18n.t('store.previewPrefix') + ' ' + bundle.name"
-          >
-            <app-card-stack
-              [name]="bundle.name"
-              [tier]="frontCard(bundle).tier"
-              [teamCode]="bundle.team.code"
-              [teamColor]="bundle.team.primaryColor"
-              [imageUrl]="frontCard(bundle).imageUrl"
-              [unlocked]="unlockedCount(bundle) > 0"
-              [stackCount]="bundle.cards.length"
-            ></app-card-stack>
+    <!-- data-tour lives on the outer wrapper, not either breakpoint's
+         control, so the guided tour still finds a visible spotlight target
+         on mobile once the chip row is hidden below sm:. -->
+    <div data-tour="store-cards">
+      <!-- Five chips (All/Common/Rare/Legendary/Coach, since the coach
+           tier was added) don't fit a narrow screen without cramming or
+           wrapping — a dropdown stands in below sm:, same chip row as
+           before at sm: and up. -->
+      <app-dropdown
+        class="sm:hidden mb-4"
+        [options]="tierDropdownOptions()"
+        [value]="tierFilter() ?? ''"
+        (valueChange)="setTierFilterFromDropdown($event)"
+      />
+      <div class="hidden sm:inline-flex bg-card border-2 border-line rounded-2xl p-1 gap-1 mb-4">
+        @for (opt of tierOptions; track opt.value) {
+          <button type="button" (click)="setTierFilter(opt.value)" [appChip]="tierFilter() === opt.value">
+            {{ i18n.t(opt.key) }}
           </button>
-
-          @if (unlockedCount(bundle) === bundle.cards.length) {
-            <span class="text-[12px] font-bold text-emerald-500">{{ i18n.t('store.unlocked') }}</span>
-          } @else if (unlockedCount(bundle) > 0) {
-            <span class="text-[12px] font-bold text-muted"
-              >{{ unlockedCount(bundle) }}/{{ bundle.cards.length }} {{ i18n.t('store.unlocked') }}</span
-            >
-          } @else {
-            <span class="text-[12px] font-bold text-muted uppercase tracking-wide">{{ i18n.t('store.tapToView') }}</span>
-          }
-        </div>
-      } @empty {
-        <p class="text-sm text-muted col-span-full">
-          {{ !hasActiveFilters() ? i18n.t('store.emptyStore') : i18n.t('store.emptySearch') }}
-          @if (hasActiveFilters()) {
-            <button type="button" (click)="clearFilters()" class="text-highlight font-semibold">{{ i18n.t('store.clearFilters') }}</button>
-          }
-        </p>
-      }
+        }
+      </div>
     </div>
+
+    <!-- Skeleton stands in for the grid while a search/filter refetch is
+         in flight (`loading`), same skeleton cards as the initial-load
+         state above — but the search bar/filter row above stays mounted
+         throughout, unlike the initialLoad() branch, so it never loses
+         focus mid-search. -->
+    @if (loading()) {
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+          <app-skeleton class="rounded-2xl" style="aspect-ratio: 2.5 / 3.5" [iconSize]="24" />
+        }
+      </div>
+    } @else {
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        @for (bundle of bundles(); track bundleKey(bundle)) {
+          <div class="flex flex-col items-center gap-2">
+            <button
+              type="button"
+              (click)="openPreview(bundle)"
+              class="w-full rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-highlight"
+              [attr.aria-label]="i18n.t('store.previewPrefix') + ' ' + bundle.name"
+            >
+              <app-card-stack
+                [name]="bundle.name"
+                [tier]="frontCard(bundle).tier"
+                [teamCode]="bundle.team.code"
+                [teamColor]="bundle.team.primaryColor"
+                [imageUrl]="frontCard(bundle).imageUrl"
+                [unlocked]="isUnlocked(frontCard(bundle))"
+                [stackCount]="bundle.cards.length"
+              ></app-card-stack>
+            </button>
+
+            @if (unlockedCount(bundle) === bundle.cards.length) {
+              <span class="text-[12px] font-bold text-emerald-500">{{ i18n.t('store.unlocked') }}</span>
+            } @else if (unlockedCount(bundle) > 0) {
+              <span class="text-[12px] font-bold text-muted"
+                >{{ unlockedCount(bundle) }}/{{ bundle.cards.length }} {{ i18n.t('store.unlocked') }}</span
+              >
+            } @else {
+              <span class="text-[12px] font-bold text-muted uppercase tracking-wide">{{ i18n.t('store.tapToView') }}</span>
+            }
+          </div>
+        } @empty {
+          <p class="text-sm text-muted col-span-full">
+            {{ !hasActiveFilters() ? i18n.t('store.emptyStore') : i18n.t('store.emptySearch') }}
+            @if (hasActiveFilters()) {
+              <button type="button" (click)="clearFilters()" class="text-highlight font-semibold">{{ i18n.t('store.clearFilters') }}</button>
+            }
+          </p>
+        }
+      </div>
+    }
 
     @if (loadingMore()) {
       <div class="flex justify-center py-6">

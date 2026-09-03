@@ -93,7 +93,17 @@
       }
     </div>
 
-    <div class="inline-flex bg-card border-2 border-line rounded-2xl p-1 gap-1 mb-4">
+    <!-- Five chips (All/Common/Rare/Legendary/Coach, since the coach tier
+         was added) don't fit a narrow screen without cramming or wrapping
+         — a dropdown stands in below sm:, same chip row as before at sm:
+         and up. -->
+    <app-dropdown
+      class="sm:hidden mb-4"
+      [options]="tierDropdownOptions()"
+      [value]="tierFilter() ?? ''"
+      (valueChange)="setTierFilterFromDropdown($event)"
+    />
+    <div class="hidden sm:inline-flex bg-card border-2 border-line rounded-2xl p-1 gap-1 mb-4">
       @for (opt of tierOptions; track opt.labelKey) {
         <button type="button" (click)="setTierFilter(opt.value)" [appChip]="tierFilter() === opt.value">
           {{ i18n.t(opt.labelKey) }}

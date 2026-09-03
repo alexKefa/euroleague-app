@@ -158,6 +158,14 @@ export class InventoryComponent implements OnInit, OnDestroy {
     ...this.filterTeams().map((t) => ({ value: t.id, label: t.name, logoUrl: t.logoUrl })),
   ]);
 
+  // Mobile-only stand-in for the tierOptions chip row below — five chips
+  // (All/Common/Rare/Legendary/Coach, since the coach tier was added) no
+  // longer fit a narrow screen without cramming or wrapping, same problem
+  // the dropdown already solves for the team filter.
+  readonly tierDropdownOptions = computed<DropdownOption[]>(() =>
+    this.tierOptions.map((opt) => ({ value: opt.value ?? "", label: this.i18n.t(opt.labelKey) })),
+  );
+
   // Same "which bundles show up" semantics as store.ts's tier chips, but
   // scoped to *owned* cards — a "Legendary" filter here means "bundles
   // where I own the legendary," not "bundles that have one," since this
@@ -241,6 +249,14 @@ export class InventoryComponent implements OnInit, OnDestroy {
   setTierFilter(tier: CollectibleTier | null): void {
     this.tierFilter.set(tier);
     this.visibleCount.set(PAGE_SIZE);
+  }
+
+  // app-dropdown emits a plain string ("" for "All", same convention as
+  // the team filter) — narrow it back to CollectibleTier before delegating,
+  // since it only ever carries a value this component itself put in
+  // tierDropdownOptions.
+  setTierFilterFromDropdown(value: string | null): void {
+    this.setTierFilter((value || null) as CollectibleTier | null);
   }
 
   // Same as store.ts's identically-named helpers. An active tier filter

@@ -46,6 +46,13 @@ export class StoreComponent implements OnInit, OnDestroy {
   readonly points = signal(0);
   readonly pointsLoading = signal(true);
   readonly loading = signal(true);
+  // True only until the very first fetch resolves, then never again — see
+  // fetchPage(). Distinct from `loading` (which flips true on every
+  // search/filter refetch too): the search bar and filter row are gated on
+  // this instead of `loading`, otherwise every debounced keystroke tore
+  // down and rebuilt the whole filter row on refetch, silently dropping
+  // focus out of the search input mid-typing.
+  readonly initialLoad = signal(true);
   readonly loadingMore = signal(false);
   readonly hasMore = signal(false);
   private offset = 0;
@@ -103,6 +110,14 @@ export class StoreComponent implements OnInit, OnDestroy {
     ...this.filterTeams().map((t) => ({ value: t.id, label: t.name, logoUrl: t.logoUrl })),
   ]);
 
+  // Mobile-only stand-in for the tierOptions chip row below — five chips
+  // (All/Common/Rare/Legendary/Coach, since the coach tier was added) no
+  // longer fit a narrow screen without cramming or wrapping, same problem
+  // the dropdown already solves for the team filter.
+  readonly tierDropdownOptions = computed<DropdownOption[]>(() =>
+    this.tierOptions.map((opt) => ({ value: opt.value ?? "", label: this.i18n.t(opt.key) })),
+  );
+
   constructor() {
     effect(() => {
       const el = this.sentinel()?.nativeElement;
@@ -132,6 +147,14 @@ export class StoreComponent implements OnInit, OnDestroy {
   setTierFilter(tier: CollectibleTier | null): void {
     this.tierFilter.set(tier);
     this.resetAndLoad();
+  }
+
+  // app-dropdown emits a plain string ("" for "All", same convention as
+  // the team filter) — narrow it back to CollectibleTier before delegating,
+  // since it only ever carries a value this component itself put in
+  // tierDropdownOptions.
+  setTierFilterFromDropdown(value: string | null): void {
+    this.setTierFilter((value || null) as CollectibleTier | null);
   }
 
   clearFilters(): void {
@@ -176,11 +199,13 @@ export class StoreComponent implements OnInit, OnDestroy {
           this.hasMore.set(page.hasMore);
           this.loading.set(false);
           this.loadingMore.set(false);
+          this.initialLoad.set(false);
         },
         error: () => {
           if (token !== this.requestToken) return;
           this.loading.set(false);
           this.loadingMore.set(false);
+          this.initialLoad.set(false);
         },
       });
   }
