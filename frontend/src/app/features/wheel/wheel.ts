@@ -160,7 +160,7 @@ export class WheelComponent implements OnInit {
   }
 
   /** Same as cheatSpin(), for the coach pool instead — otherwise verifying
-   * the jade reveal means waiting on an 8% real spin chance. */
+   * the violet reveal means waiting on an 8% real spin chance. */
   cheatSpinCoach(): void {
     if (this.spinning()) return;
     this.spinning.set(true);

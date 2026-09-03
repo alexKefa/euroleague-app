@@ -216,6 +216,12 @@ export interface TeamSeasonStats {
   // Approximated backend-side from player_season_stats (sum of each
   // roster player's own reboundsPerGame) — no raw team total is synced.
   rpg: number | null;
+  // Record across the team's last 10 *final* games (chronological, most
+  // recent first) — computed backend-side from `games`, not stored. Null
+  // rather than {wins:0, losses:0} when the team has zero final games yet,
+  // so the standings column can tell "0-0 so far" apart from "no games
+  // played this season" (see standings.ts's format function).
+  last10: { wins: number; losses: number } | null;
 }
 
 export interface GameTeamSummary {

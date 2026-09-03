@@ -34,16 +34,45 @@
               <app-logo-spinner [size]="22" class="opacity-50" />
             </div>
           }
-        } @else {
+        } @else if (tier === "coach") {
+          <!-- A cap + whistle bust, not a jersey — a coach doesn't wear a
+               jersey number, so reusing the player fallback read as
+               "player photo didn't load" rather than "this is a coach".
+               Same fill/accent-linework split as the jersey silhouette
+               below: cap (crown, button, brim) + shoulders in iconColor,
+               the whistle-on-a-cord picked out in iconAccent. -->
           <div class="absolute inset-0 flex items-center justify-center">
             <svg width="66%" height="66%" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+              <path d="M19,17 Q19,4 32,4 Q45,4 45,17 Z" [attr.fill]="style.iconColor" fill-opacity="0.55" />
+              <circle cx="32" cy="5" r="2" [attr.fill]="style.iconColor" fill-opacity="0.55" />
+              <path d="M14,18 Q32,29 50,18 L50,21.5 Q32,32.5 14,21.5 Z" [attr.fill]="style.iconColor" fill-opacity="0.55" />
               <path
-                d="M24,6 L32,15 L40,6 L48,8 L53,22 L43,22 L43,58 L21,58 L21,22 L11,22 L16,8 Z"
+                d="M12,58 Q12,40 24,37 L27,33 Q32,37 37,33 L40,37 Q52,40 52,58 Z"
                 [attr.fill]="style.iconColor"
                 fill-opacity="0.55"
               />
               <path
-                d="M24,6 L32,15 L40,6"
+                d="M27,36 Q32,42 37,36"
+                fill="none"
+                [attr.stroke]="style.iconAccent"
+                stroke-opacity="0.8"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+              <circle cx="32" cy="44" r="3" [attr.fill]="style.iconAccent" fill-opacity="0.9" />
+              <path d="M35,44h3" [attr.stroke]="style.iconAccent" stroke-opacity="0.9" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </div>
+        } @else {
+          <div class="absolute inset-0 flex items-center justify-center">
+            <svg width="66%" height="66%" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+              <path
+                d="M24,7 Q32,16 40,7 L48,8 L53,22 L43,22 L43,58 L21,58 L21,22 L11,22 L16,8 Z"
+                [attr.fill]="style.iconColor"
+                fill-opacity="0.55"
+              />
+              <path
+                d="M24,7 Q32,16 40,7"
                 fill="none"
                 [attr.stroke]="style.iconAccent"
                 stroke-opacity="0.8"
@@ -61,7 +90,7 @@
           class="holo-sweep absolute pointer-events-none"
           [class.holo-sweep--gold]="style.holoVariant === 'gold' && !isFoil"
           [class.holo-sweep--silver]="style.holoVariant === 'silver'"
-          [class.holo-sweep--jade]="style.holoVariant === 'jade'"
+          [class.holo-sweep--violet]="style.holoVariant === 'violet'"
           [class.holo-sweep--prismatic]="isFoil"
         ></div>
       }

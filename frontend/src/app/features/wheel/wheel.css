@@ -356,9 +356,10 @@
   color: #241804;
 }
 
-/* Coach cards (2026-09-03) — matches collectible-card.ts's jade tier
-   frame, same "different kind of card, not a rarity" reasoning. */
+/* Coach cards (2026-09-03) — matches collectible-card.ts's violet tier
+   frame (built around #603FEF), same "different kind of card, not a
+   rarity" reasoning. */
 .pack-visual-coach {
-  background: linear-gradient(135deg, #0b3d2e 0%, #3fd9a4 22%, #eafff5 40%, #1f9e75 58%, #d8fff0 76%, #08291e 100%);
-  color: #052018;
+  background: linear-gradient(135deg, #150c33 0%, #603FEF 22%, #EDE9FF 40%, #4526B0 58%, #DAD3FF 76%, #0D0824 100%);
+  color: #140B36;
 }

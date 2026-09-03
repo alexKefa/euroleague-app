@@ -1,11 +1,11 @@
-import { Component, Input, OnChanges, SimpleChanges, signal } from "@angular/core";
+import { ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { CollectibleFinish, CollectibleTier } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { displayTeamCode } from "../../shared/team-display-code";
 
-type HoloVariant = "gold" | "silver" | "jade" | null;
+type HoloVariant = "gold" | "silver" | "violet" | null;
 
 interface TierStyle {
   frameBackground: string;
@@ -41,6 +41,14 @@ const DEFAULT_TEAM_COLOR = "#3E7CB1";
   imports: [CommonModule, RetryImgDirective, LogoSpinnerComponent],
   templateUrl: "./collectible-card.html",
   styleUrl: "./collectible-card.css",
+  // Every input here is a primitive the parent @for loop only ever
+  // reassigns when the underlying card actually changes — so OnPush lets
+  // Angular skip re-checking already-rendered cards on unrelated updates
+  // elsewhere in the page (e.g. every keystroke in the Store search box
+  // triggers a global change-detection pass by default). Without it, every
+  // mounted card recomputed `style` (see below) on every such pass, which
+  // was the actual source of the input lag, not the search box itself.
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CollectibleCardComponent implements OnChanges {
   @Input({ required: true }) name!: string;
@@ -67,10 +75,18 @@ export class CollectibleCardComponent implements OnChanges {
   // spinner over the tint background instead of a blank card until it pops in.
   readonly imageLoaded = signal(false);
 
+  // Computed once per actual input change instead of on every template
+  // read — see the OnPush comment above for why a plain getter here was
+  // the real cost. ngOnChanges only fires when a bound @Input value
+  // actually differs from its previous one, so this is naturally as
+  // infrequent as the card's real content changing, not per keystroke.
+  style!: TierStyle;
+
   ngOnChanges(changes: SimpleChanges): void {
     if (changes["imageUrl"] && !changes["imageUrl"].firstChange) {
       this.imageLoaded.set(false);
     }
+    this.style = this.computeStyle();
   }
   // "042/208" print numbering — only rare/legendary get the corner badge
   // (mirrors the tier badge on the opposite corner); common cards stay as
@@ -110,7 +126,7 @@ export class CollectibleCardComponent implements OnChanges {
     return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
   }
 
-  get style(): TierStyle {
+  private computeStyle(): TierStyle {
     const accent = this.teamColor ?? DEFAULT_TEAM_COLOR;
     const accentDark = this.shade(accent, 0.35);
     const accentDeep = this.shade(accent, 0.16);
@@ -139,22 +155,25 @@ export class CollectibleCardComponent implements OnChanges {
     // Coach cards (2026-09-03) deliberately don't extend the common/rare/
     // legendary rarity ladder — a coach isn't "rarer" or "less rare" than a
     // player card, it's a different kind of card entirely, so this gets its
-    // own jade identity rather than reusing gold/silver at any position.
+    // own violet identity rather than reusing gold/silver at any position.
+    // Built around #603FEF — a vivid indigo/violet, distinct from every
+    // other tier's hue at a glance. Same 6-stop dark→bright→pale→mid→
+    // pale→dark shape as gold/legendary, just walked along this hue instead.
     if (this.tier === "coach") {
       return {
         frameBackground:
-          "linear-gradient(135deg, #0b3d2e 0%, #3fd9a4 22%, #eafff5 40%, #1f9e75 58%, #d8fff0 76%, #08291e 100%)",
+          "linear-gradient(135deg, #150c33 0%, #603FEF 22%, #EDE9FF 40%, #4526B0 58%, #DAD3FF 76%, #0D0824 100%)",
         frameShadow:
-          "0 0 0 1px rgba(200,255,230,0.5) inset, 0 10px 26px rgba(0,0,0,0.45), 0 0 36px rgba(60,220,160,0.4)",
+          "0 0 0 1px rgba(220,210,255,0.5) inset, 0 10px 26px rgba(0,0,0,0.45), 0 0 36px rgba(96,63,239,0.45)",
         faceBackground: `radial-gradient(120% 90% at 50% 0%, ${accentDark} 0%, #05070a 60%)`,
-        badgeBackground: "linear-gradient(135deg, #14523d 0%, #7fe8c0 30%, #eafff5 50%, #35b78a 70%, #0d3a2b 100%)",
-        badgeTextColor: "#052018",
+        badgeBackground: "linear-gradient(135deg, #2A1B70 0%, #603FEF 30%, #EDE9FF 50%, #4526B0 70%, #170F42 100%)",
+        badgeTextColor: "#140B36",
         badgeLabel: "COACH",
-        nameColor: "#EAFFF5",
-        metaColor: "rgba(234,255,245,0.75)",
+        nameColor: "#EDE9FF",
+        metaColor: "rgba(237,233,255,0.75)",
         photoTint: `radial-gradient(120% 100% at 50% 10%, ${accentSoft} 0%, #05070a 70%)`,
         bannerBackground: "rgba(5,7,10,0.55)",
-        holoVariant: "jade",
+        holoVariant: "violet",
         iconColor: "#fff",
         iconAccent: "#fff",
       };

@@ -23,15 +23,16 @@
   );
 }
 
-/* Coach cards (2026-09-03) — jade/emerald sweep, deliberately a third hue
-   family alongside gold/silver rather than a shade of either, so a coach
-   card's "different kind of card" identity reads at a glance. */
-.holo-sweep--jade {
+/* Coach cards (2026-09-03) — a violet sweep (built around #603FEF),
+   deliberately a third hue family alongside gold/silver rather than a
+   shade of either, so a coach card's "different kind of card" identity
+   reads at a glance. */
+.holo-sweep--violet {
   background: linear-gradient(
     115deg,
     transparent 30%,
     rgba(255, 255, 255, 0.35) 48%,
-    rgba(120, 240, 190, 0.32) 52%,
+    rgba(96, 63, 239, 0.45) 52%,
     transparent 70%
   );
 }

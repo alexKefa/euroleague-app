@@ -280,15 +280,16 @@
                   }
                 </div>
               } @else if (!card.wasDuplicate && card.collectible.tier === "coach") {
-                <!-- Coach gets its own jade glow, same weight as rare's —
-                     coach isn't "rarer" than rare, just a different kind of
-                     card, see collectible-card.ts's jade tier comment. -->
+                <!-- Coach gets its own violet glow (built around #603FEF),
+                     same weight as rare's — coach isn't "rarer" than rare,
+                     just a different kind of card, see collectible-card.ts's
+                     violet tier comment. -->
                 <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
                   <div
                     class="burst-glow absolute w-72 h-72 rounded-full"
-                    style="background: radial-gradient(circle, rgba(80,230,175,0.5) 0%, rgba(80,230,175,0) 70%)"
+                    style="background: radial-gradient(circle, rgba(96,63,239,0.5) 0%, rgba(96,63,239,0) 70%)"
                   ></div>
-                  <div class="burst-ring absolute w-48 h-48 rounded-full border-2 border-emerald-300/70"></div>
+                  <div class="burst-ring absolute w-48 h-48 rounded-full border-2 border-[#603FEF]/70"></div>
                 </div>
               } @else if (!card.wasDuplicate && card.collectible.tier === "rare") {
                 <!-- Rare gets a lighter version of the same idea — a cool

@@ -45,7 +45,7 @@ import { displayTeamCode } from "./team-display-code";
         <span class="absolute inset-0" style="background: radial-gradient(circle at 32% 22%, rgba(255,255,255,0.32), transparent 58%)"></span>
         <svg viewBox="0 0 64 64" class="absolute w-[68%] h-[68%]" aria-hidden="true">
           <path
-            d="M24,6 L32,15 L40,6 L48,8 L53,22 L43,22 L43,58 L21,58 L21,22 L11,22 L16,8 Z"
+            d="M24,7 Q32,16 40,7 L48,8 L53,22 L43,22 L43,58 L21,58 L21,22 L11,22 L16,8 Z"
             fill="#fff"
             fill-opacity="0.16"
           />
