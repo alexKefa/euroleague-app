@@ -109,6 +109,25 @@ body {
   position: relative;
 }
 
+/* Reported 2026-09-04: on iOS Safari in home-screen/standalone PWA mode,
+   the mobile bottom tab bar (app.component.html, [data-app-bottom-nav])
+   can visually detach from the bottom edge mid-momentum-scroll and appear
+   stuck partway up the screen until the scroll settles — a long-standing
+   WebKit `position: fixed` bug, worse in standalone mode than in a regular
+   Safari tab, and distinct from the keyboard-resize case already handled
+   by app.component.ts's resnapBottomNav. Promoting the element to its own
+   GPU compositing layer is the standard mitigation — it stops WebKit from
+   repainting the fixed element as part of the scrolling content. Couldn't
+   be reproduced/verified on the reporter's device from here, so if this
+   recurs the next step is decoupling the nav from document scroll
+   entirely (fixed body + an inner overflow-y:auto content wrapper),
+   which is a much bigger layout change. */
+[data-app-bottom-nav] {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform;
+}
+
 /* The ambient team-color wash used to live here as a `body::before` reading
    --glow-primary/--glow-secondary — moved to a real DOM element
    (app.component.html's .ambient-glow, background-image bound to
