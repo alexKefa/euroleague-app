@@ -244,6 +244,19 @@
                 <a routerLink="/packs" class="underline">{{ i18n.t('predictions.myPacksLink') }}</a>.
               </div>
             }
+            @if (shownCoachMilestoneRewards().length > 0) {
+              <div class="flex items-center gap-2 rounded-xl bg-highlight/10 text-highlight text-xs font-bold px-3 py-2 mb-3">
+                <app-nav-icon name="picks" [size]="18" class="shrink-0" />
+                {{ i18n.t('predictions.coachMilestonePrefix') }}
+                {{
+                  shownCoachMilestoneRewards().length === 1
+                    ? i18n.t('predictions.aCoachPack')
+                    : shownCoachMilestoneRewards().length + " " + i18n.t('predictions.coachPacks')
+                }}
+                {{ i18n.t('predictions.openFromPrefix') }}
+                <a routerLink="/packs" class="underline">{{ i18n.t('predictions.myPacksLink') }}</a>.
+              </div>
+            }
             <div class="mb-3 pb-3 border-b border-line">
               <div class="flex items-center justify-between">
                 <span class="flex items-baseline gap-1.5">

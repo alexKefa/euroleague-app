@@ -234,6 +234,7 @@ export class PredictionsComponent implements OnInit {
   // this visit already landed server-side.
   readonly shownRoundRewards = signal<RewardPack[]>([]);
   readonly shownMilestoneRewards = signal<RewardPack[]>([]);
+  readonly shownCoachMilestoneRewards = signal<RewardPack[]>([]);
 
   // How many points this round's picks are worth if every one of them hits —
   // every game listed in upcomingGames is still "scheduled" by construction
@@ -357,6 +358,10 @@ export class PredictionsComponent implements OnInit {
         if (summary.newMilestoneRewards.length > 0) {
           this.shownMilestoneRewards.update((existing) => mergeById(existing, summary.newMilestoneRewards));
           this.api.ackMilestoneRewards().subscribe({ error: () => {} });
+        }
+        if (summary.newCoachMilestoneRewards.length > 0) {
+          this.shownCoachMilestoneRewards.update((existing) => mergeById(existing, summary.newCoachMilestoneRewards));
+          this.api.ackCoachMilestoneRewards().subscribe({ error: () => {} });
         }
         this.summaryLoading.set(false);
       },

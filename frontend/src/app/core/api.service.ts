@@ -199,6 +199,12 @@ export class ApiService {
     return this.http.post<{ ok: boolean }>(`${API_BASE_URL}/predictions/milestone-rewards/ack`, {});
   }
 
+  // Same pattern again, for the coach-milestone track — see
+  // newCoachMilestoneRewards on PredictionSummary.
+  ackCoachMilestoneRewards(): Observable<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`${API_BASE_URL}/predictions/coach-milestone-rewards/ack`, {});
+  }
+
   adjustPoints(email: string, points: number, reason: string): Observable<unknown> {
     return this.http.post(`${API_BASE_URL}/predictions/points/adjust`, { email, points, reason });
   }

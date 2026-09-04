@@ -1,6 +1,6 @@
 import { eq, and, isNull, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { games, predictions, roundRewards, legendaryMilestones, ownedPacks } from "../db/schema.js";
+import { games, predictions, roundRewards, legendaryMilestones, coachMilestones, ownedPacks } from "../db/schema.js";
 
 // A round with this many correct picks (out of GAMES_PER_ROUND, but short of
 // literally perfect) grants a bonus rare — see the branch in
@@ -32,8 +32,8 @@ export const LEGENDARY_MILESTONE_INTERVAL = 60;
 // announced from a perfect-round or milestone banner.
 export interface OwnedPackReward {
   id: string;
-  packType: "wheelLegendary" | "wheelPro";
-  tier: "legendary" | "rare";
+  packType: "wheelLegendary" | "wheelPro" | "wheelCoach";
+  tier: "legendary" | "rare" | "coach";
 }
 
 function tierForRewardPackType(packType: "wheelLegendary" | "wheelPro"): "legendary" | "rare" {
@@ -224,4 +224,77 @@ export async function markLegendaryMilestonesSeen(userId: string): Promise<void>
     .update(legendaryMilestones)
     .set({ seenAt: new Date() })
     .where(and(eq(legendaryMilestones.userId, userId), isNull(legendaryMilestones.seenAt)));
+}
+
+// Career-wide grant of a guaranteed-new coach, every this-many cumulative
+// correct predictions — see coachMilestones' doc comment in schema.ts.
+// Added 2026-09-04 alongside the Elite-pack big-slot odds/pity changes
+// (services/packs.ts): before this, coach had NO acquisition path outside
+// the wheel except Elite's single-slot chance, and season-simulation.ts
+// showed that leaves a non-wheel player at ~0 coaches all season regardless
+// of accuracy. 45 (vs legendary's 60) — coach's catalog is 20 vs
+// legendary's 22, close enough that the interval difference is really
+// about the two tracks not always firing in lockstep, tuned against the
+// same simulation used for legendary's own interval; re-run
+// economy:simulate if this ever needs revisiting.
+export const COACH_MILESTONE_INTERVAL = 45;
+
+/**
+ * Exact structural mirror of checkAndGrantLegendaryMilestones — see that
+ * function's doc comment for the concurrency-safe claim pattern and the
+ * "return every unseen grant" shape. Grants an unopened wheelCoach pack
+ * (single guaranteed-coach slot, same as a wheel coach win) instead of
+ * wheelLegendary.
+ */
+export async function checkAndGrantCoachMilestones(userId: string): Promise<OwnedPackReward[]> {
+  const [{ correct, claimed_count }] = await db.execute<{ correct: number; claimed_count: number }>(sql`
+    select
+      (
+        select count(*)::int
+        from ${predictions} p
+        join ${games} g on p.game_id = g.id
+        where p.user_id = ${userId}
+          and g.status = 'final'
+          and g.home_score is not null
+          and g.away_score is not null
+          and g.home_score <> g.away_score
+          and p.predicted_winner_team_id = case when g.home_score > g.away_score then g.home_team_id else g.away_team_id end
+      ) as correct,
+      (select count(*)::int from ${coachMilestones} where user_id = ${userId}) as claimed_count
+  `);
+  const eligibleMilestones = Math.floor(correct / COACH_MILESTONE_INTERVAL);
+
+  if (eligibleMilestones > claimed_count) {
+    for (let milestoneNumber = claimed_count + 1; milestoneNumber <= eligibleMilestones; milestoneNumber++) {
+      const [claim] = await db
+        .insert(coachMilestones)
+        .values({ userId, milestoneNumber, collectibleId: null })
+        .onConflictDoNothing({ target: [coachMilestones.userId, coachMilestones.milestoneNumber] })
+        .returning();
+      if (!claim) continue; // a concurrent request already claimed this one
+
+      const [pack] = await db.insert(ownedPacks).values({ userId, packType: "wheelCoach" }).returning();
+      await db.update(coachMilestones).set({ ownedPackId: pack.id }).where(eq(coachMilestones.id, claim.id));
+    }
+  }
+
+  const unseen = await db
+    .select({ pack: ownedPacks })
+    .from(coachMilestones)
+    .innerJoin(ownedPacks, eq(coachMilestones.ownedPackId, ownedPacks.id))
+    .where(and(eq(coachMilestones.userId, userId), isNull(coachMilestones.seenAt)));
+
+  return unseen.map(({ pack }) => ({
+    id: pack.id,
+    packType: "wheelCoach" as const,
+    tier: "coach" as const,
+  }));
+}
+
+/** Marks every currently-unseen coach milestone this user has as seen — called once its banner has actually been shown. */
+export async function markCoachMilestonesSeen(userId: string): Promise<void> {
+  await db
+    .update(coachMilestones)
+    .set({ seenAt: new Date() })
+    .where(and(eq(coachMilestones.userId, userId), isNull(coachMilestones.seenAt)));
 }

@@ -474,6 +474,77 @@ If you need to apply a schema change without an interactive terminal
     moment it existed, no code change needed. Trades (`routes/trades.ts`'s
     ~9 `tier === "legendary"` gates) stay legendary-only — coach cards
     aren't tradeable for now, a deliberately smaller first pass.
+- **Reconsidering legendary/coach chances (2026-09-04)**: user report — 15
+  Elite ("Final Four") pack opens (1200pts each, ~18,000pts of correct
+  predictions) yielded 0 legendaries and 1 coach, and felt boring. CLAUDE.md
+  had documented the daily wheel as the *intentional* dominant card-supply
+  source (2026-08-25 pass) — the user pushed back on that premise directly:
+  the wheel isn't this app's main concept and shouldn't be a prerequisite
+  for a real shot at the exciting tiers. Re-ran `economy:simulate` with a
+  new zero-wheel-engagement scenario to check the premise: a full season of
+  nothing but Elite-pack buying (even at 80% accuracy) averaged only 8.8/22
+  legendaries and **0.0/20 coaches** — coach had no non-wheel acquisition
+  path at all beyond Elite's own thin per-slot chance. Three additive
+  changes, all in the same pass:
+  1. **Elite pack's big slot, 6%/5% -> 17%/13% legendary/coach**
+     (`services/packs.ts`'s `PACKS.elite`, taken out of that slot's rare
+     share, 70% -> down from 89%). Legendary/coach never sell for points
+     even as a "duplicate" (`sellValueFor` returns null for both), so this
+     only ever *lowers* the slot's points-worst-case EV, not raises it —
+     no new purchase-exploit risk, unlike a common/rare odds change would
+     be.
+  2. **A new Elite-pack-specific pity counter**
+     (`pityCounters.eliteBigSlotStreak`, `services/packs.ts`'s
+     `ELITE_BIG_SLOT_PITY_THRESHOLD = 6`): 6 consecutive Elite opens whose
+     big slot lands on rare forces the 7th onto legendary-or-coach
+     (weighted by their relative share). Detected structurally — `isBigSlot()`
+     checks a slot's odds for carrying *both* legendary and coach, not by
+     pack type — so a future pack with a similarly-shaped slot inherits
+     this for free. At the new 30% combined share, a real drought is now
+     capped at 6 misses (≈11.8% chance of tripping it) instead of running
+     indefinitely; the user's actual reported streak (a ~40% chance event
+     at the old 6% legendary-only odds) drops to a ~5.9% chance at 17%,
+     before pity even kicks in.
+  3. **A new coach milestone track** (`coach_milestones` table, exact
+     structural mirror of `legendary_milestones` — same claim-first
+     `(userId, milestoneNumber)` mutex, same "grants an unopened pack, not
+     a direct card" shape — `services/cards.ts`'s
+     `checkAndGrantCoachMilestones`/`COACH_MILESTONE_INTERVAL = 45`, vs.
+     legendary's 60): this is what actually fixed the "0.0 coaches all
+     season" zero-wheel number, since it accrues from correct predictions
+     alone, independent of pack-buying frequency. Frontend: `PackType`
+     already had `wheelCoach`; `RewardPack`/`OwnedPackReward` widened to
+     include it, a new `newCoachMilestoneRewards` array on
+     `PredictionSummary` (parallel to `newMilestoneRewards`, own
+     `POST /predictions/coach-milestone-rewards/ack`), and a "Coach
+     milestone!" banner on the Predictions page next to the existing
+     perfect-round/great-round/legendary-milestone ones.
+  Re-simulated result (zero wheel engagement, 50-80% accuracy): coaches
+  0.0/20 -> **3.8-6.1/20** (almost entirely from the new milestone track —
+  Elite-pack coach hits alone stay rare at realistic, non-wheel-funded
+  points income, since so few Elite packs get bought without the wheel's
+  duplicate-sell income topping up the points supply). Legendary's own
+  zero-wheel number barely moved (2.9-8.9/22, essentially unchanged) for
+  the same reason — at low Elite-pack purchase *volume*, the odds bump
+  on any single pack matters less than how many packs get opened at all;
+  legendary's zero-wheel floor was already coming almost entirely from its
+  pre-existing milestone (avg ~2.85-4.73/season, untouched by this pass),
+  not from pack RNG. The odds+pity change is instead aimed squarely at the
+  user's actual reported scenario — a heavy Elite-pack *purchaser* — where
+  it meaningfully tightens the worst-case streak. No regression on the
+  100%/85%-wheel-engagement scenarios: legendary still finishes at 22/22,
+  and coach actually improved there too (18.8-19.6/20, up from the
+  pre-pass 16.2-16.5 baseline) since the milestone stacks on top of
+  wheel/pack sources rather than replacing them. Schema change applied
+  directly against the live DB (`ALTER TABLE pity_counters ADD COLUMN
+  elite_big_slot_streak`, `CREATE TABLE coach_milestones`) rather than
+  through `db:push`, per the "no migrations checked in, write raw SQL by
+  hand for an automated session" note under Schema changes above — both
+  additions are backward-compatible with the pre-pass code (nullable/
+  defaulted, never read by it), so applying them ahead of the code deploy
+  was safe. Re-run `economy:simulate` (now including its own permanent
+  zero-wheel-engagement scenario, not just the 100%/85%/cheapest-first
+  ones) after any future odds/interval change.
 - **Referrals** (`services/referrals.ts`, `users.referralCode`/
   `referredByUserId`/`referralRewardGranted` in `schema.ts`). Every user
   gets a unique code at registration (`createUniqueReferralCode`), shared as

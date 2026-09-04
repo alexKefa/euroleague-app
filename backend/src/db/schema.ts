@@ -462,6 +462,14 @@ export const pityCounters = pgTable("pity_counters", {
     .references(() => users.id),
   commonStreak: integer("common_streak").default(0).notNull(),
   rareStreak: integer("rare_streak").default(0).notNull(),
+  // Consecutive Elite-pack opens whose "big slot" (the one slot carrying
+  // both legendary and coach odds) landed on rare instead — see
+  // ELITE_BIG_SLOT_PITY_THRESHOLD in services/packs.ts. Unlike
+  // commonStreak/rareStreak (which just avoid a duplicate), tripping this
+  // forces the slot itself onto legendary or coach, since a rare/common
+  // pity streak never helps a tier the slot can't even normally land on
+  // without one already dominating the roll.
+  eliteBigSlotStreak: integer("elite_big_slot_streak").default(0).notNull(),
 });
 
 // One row per spin attempt — a ledger, same style as point_adjustments,
@@ -544,6 +552,32 @@ export const legendaryMilestones = pgTable(
   },
   (table) => ({
     userMilestoneUnique: uniqueIndex("user_legendary_milestone_unique").on(
+      table.userId,
+      table.milestoneNumber
+    ),
+  })
+);
+
+// Exact structural mirror of legendaryMilestones — a separate table rather
+// than a shared "tier" column, since the two tracks accrue on independent
+// counters (see COACH_MILESTONE_INTERVAL in services/cards.ts) and this
+// keeps each track's own claim/mutex index simple. Added 2026-09-04:
+// legendary and great/perfect-round rewards were the only non-wheel,
+// non-elite-pack-luck path to a legendary; coach had none at all until this
+// gave it its own parallel milestone track.
+export const coachMilestones = pgTable(
+  "coach_milestones",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    milestoneNumber: integer("milestone_number").notNull(),
+    collectibleId: uuid("collectible_id").references(() => collectibles.id),
+    ownedPackId: uuid("owned_pack_id").references(() => ownedPacks.id),
+    grantedAt: timestamp("granted_at", { withTimezone: true }).defaultNow().notNull(),
+    seenAt: timestamp("seen_at", { withTimezone: true }),
+  },
+  (table) => ({
+    userMilestoneUnique: uniqueIndex("user_coach_milestone_unique").on(
       table.userId,
       table.milestoneNumber
     ),

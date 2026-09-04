@@ -50,6 +50,13 @@ const SEASON_DAYS = 210; // ~Oct-Apr EuroLeague season, matches the pacing assum
 const GREAT_ROUND_BONUS = process.env.SIM_GREAT_ROUND !== "0";
 const GREAT_ROUND_THRESHOLD = 8; // out of GAMES_PER_ROUND, excludes literally-perfect (that already gets the legendary)
 const LEGENDARY_MILESTONE = Number(process.env.SIM_LEGENDARY_MILESTONE ?? 60); // 0 = off
+// services/cards.ts's COACH_MILESTONE_INTERVAL, added in the same
+// 2026-09-04 "reconsider legendary/coach chances" pass as the Elite-pack
+// odds/pity changes below — coach previously had zero non-wheel
+// acquisition path at all besides Elite's thin single-slot chance.
+const COACH_MILESTONE = Number(process.env.SIM_COACH_MILESTONE ?? 45); // 0 = off
+// services/packs.ts's ELITE_BIG_SLOT_PITY_THRESHOLD, same pass.
+const ELITE_BIG_SLOT_PITY_THRESHOLD = 6;
 
 // routes/spin.ts SPIN_ODDS, verbatim.
 const SPIN_ODDS: Record<Tier, number> = { common: 0.58, rare: 0.2, legendary: 0.14, coach: 0.08 };
@@ -99,10 +106,14 @@ const PACKS: PackDef[] = [
       { odds: { rare: 1 } },
       { odds: { rare: 1 } },
       { odds: { rare: 1 } },
-      { odds: { rare: 0.89, legendary: 0.06, coach: 0.05 } },
+      { odds: { rare: 0.7, legendary: 0.17, coach: 0.13 } },
     ],
   },
 ];
+
+function isBigSlot(slot: PackSlot): boolean {
+  return slot.odds.legendary !== undefined && slot.odds.coach !== undefined;
+}
 const WHEEL_PACKS: Record<"common" | "rare", PackDef> = {
   common: {
     type: "wheelStarter",
@@ -121,6 +132,7 @@ const WHEEL_PACKS: Record<"common" | "rare", PackDef> = {
 interface UserState {
   owned: Record<Tier, Set<number>>;
   pity: Record<"common" | "rare", number>;
+  eliteBigSlotStreak: number;
   points: number;
 }
 
@@ -141,7 +153,19 @@ function openPack(state: UserState, pack: PackDef): number {
   const newlyOwnedThisPack = new Set<string>();
 
   for (const slot of pack.slots) {
-    const tier = rollTier(slot);
+    let tier: Tier;
+    if (isBigSlot(slot)) {
+      if (state.eliteBigSlotStreak >= ELITE_BIG_SLOT_PITY_THRESHOLD) {
+        const legendaryOdds = slot.odds.legendary ?? 0;
+        const coachOdds = slot.odds.coach ?? 0;
+        tier = Math.random() < legendaryOdds / (legendaryOdds + coachOdds) ? "legendary" : "coach";
+      } else {
+        tier = rollTier(slot);
+      }
+      state.eliteBigSlotStreak = tier === "legendary" || tier === "coach" ? 0 : state.eliteBigSlotStreak + 1;
+    } else {
+      tier = rollTier(slot);
+    }
     const total = CATALOG_SIZE[tier];
 
     // Legendary and coach both always force an unowned card
@@ -221,6 +245,7 @@ interface SimResult {
   perfectRounds: number;
   greatRounds: number;
   milestoneLegendaries: number;
+  milestoneCoaches: number;
 }
 
 // Spreads the season's 38 rounds evenly across SEASON_DAYS, e.g. round 1 on
@@ -232,11 +257,13 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
   const state: UserState = {
     owned: { common: new Set(), rare: new Set(), legendary: new Set(), coach: new Set() },
     pity: { common: 0, rare: 0 },
+    eliteBigSlotStreak: 0,
     points: REGISTRATION_BONUS,
   };
   let perfectRounds = 0;
   let greatRounds = 0;
   let milestoneLegendaries = 0;
+  let milestoneCoaches = 0;
   let cumulativeCorrect = 0;
   let purchasableCompleteDay: number | null = null;
   let fullCompleteDay: number | null = null;
@@ -265,6 +292,14 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
           if (LEGENDARY_MILESTONE > 0 && cumulativeCorrect % LEGENDARY_MILESTONE === 0) {
             milestoneLegendaries++;
             grantGuaranteedNewOfTier(state, "legendary");
+          }
+          // services/cards.ts's checkAndGrantCoachMilestones — same concept,
+          // independent counter/interval, added 2026-09-04 since coach
+          // otherwise had no non-wheel acquisition path at all besides
+          // Elite's thin single-slot chance.
+          if (COACH_MILESTONE > 0 && cumulativeCorrect % COACH_MILESTONE === 0) {
+            milestoneCoaches++;
+            grantGuaranteedNewOfTier(state, "coach");
           }
         }
       }
@@ -322,6 +357,7 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
     perfectRounds,
     greatRounds,
     milestoneLegendaries,
+    milestoneCoaches,
   };
 }
 
@@ -347,6 +383,7 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
   const avgPerfectRounds = results.reduce((s, r) => s + r.perfectRounds, 0) / n;
   const avgGreatRounds = results.reduce((s, r) => s + r.greatRounds, 0) / n;
   const avgMilestoneLegendaries = results.reduce((s, r) => s + r.milestoneLegendaries, 0) / n;
+  const avgMilestoneCoaches = results.reduce((s, r) => s + r.milestoneCoaches, 0) / n;
 
   console.log(
     `accuracy ${(accuracy * 100).toFixed(0).padStart(3)}%  spin engagement ${(spinEngagement * 100).toFixed(0).padStart(3)}%  (${policy})` +
@@ -359,6 +396,7 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
       ` | avg perfect rounds: ${avgPerfectRounds.toFixed(2)}` +
       (GREAT_ROUND_BONUS ? ` | avg great rounds: ${avgGreatRounds.toFixed(2)}` : "") +
       (LEGENDARY_MILESTONE > 0 ? ` | avg milestone legendaries: ${avgMilestoneLegendaries.toFixed(2)}` : "") +
+      (COACH_MILESTONE > 0 ? ` | avg milestone coaches: ${avgMilestoneCoaches.toFixed(2)}` : "") +
       ` | avg idle pts: ${avgEndPoints.toFixed(0)}`
   );
 }
@@ -376,3 +414,14 @@ for (const acc of ACCURACIES) runScenario(acc, 0.85, "highest-affordable", N);
 
 console.log("\n--- Daily wheel spin, 100% engagement, cheapest-first pack spending (spends impulsively, never saves for Elite) ---");
 for (const acc of ACCURACIES) runScenario(acc, 1.0, "cheapest-first", N);
+
+// Added 2026-09-04, "reconsider legendary/coach chances" pass — a real user
+// report that the wheel (Jump Ball) shouldn't be treated as this app's main
+// concept, and that a player who never touches it still deserves a real
+// shot at legendary/coach cards purely from predicting well and buying
+// packs. Zero engagement is a deliberately harsh floor (a genuinely engaged
+// player would spin at least occasionally), but it's the honest test of
+// "does the purchasable economy alone work" — see CLAUDE.md for the before/
+// after numbers this pass was built against.
+console.log("\n--- Zero wheel engagement (never spins), highest-affordable pack spending ---");
+for (const acc of ACCURACIES) runScenario(acc, 0.0, "highest-affordable", N);

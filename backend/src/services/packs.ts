@@ -105,24 +105,28 @@ export const PACKS: Record<PackType, PackDefinition> = {
     // 1200 even at 3 slots, since legendary duplicates no longer sell for
     // anything — see sellValueFor in routes/packs.ts), so the extra rare
     // slots cost nothing in exploit risk (worst-case is still only 517.5).
-    // 3% -> 6% legendary (2026-08-25, earlier pass): a full season of
-    // 70%-accuracy predicting only bought ~2 Elite packs, a ~5.9%
-    // cumulative shot at a legendary — doubling this doesn't replace the
-    // wheel as the primary legendary path, it just stops a season of elite
-    // prediction accuracy from feeling like it barely moved the needle.
-    // 6% legendary -> 6% legendary + 5% coach, taken out of rare's share
-    // (2026-09-03, coach cards added): an earlier attempt shaved legendary
-    // itself to make room and re-simulating showed a real album-completion
-    // regression (see routes/spin.ts's SPIN_ODDS comment for the numbers) —
-    // legendary's share stays exactly as tuned in the 2026-08-25 pass,
-    // coach comes out of rare instead (94->89%), which has far more EV
-    // headroom to spare here.
+    // 6% legendary + 5% coach -> 17% legendary + 13% coach (2026-09-04,
+    // "reconsider legendary/coach chances" pass): a user report + re-run
+    // simulation (see season-simulation.ts's zero-wheel-engagement
+    // scenario) found that WITHOUT the wheel — this app's daily spin was
+    // never meant to be the mandatory path — a season of buying nothing
+    // but Elite packs at 80% accuracy averaged only 8.8/22 legendaries and
+    // essentially 0/20 coaches all season, and a real 15-pack, 0-legendary
+    // streak (a ~40% chance event at the old 6%) felt exactly as bad as
+    // that math predicts. Tripling+ this slot's big-hit share, combined
+    // with ELITE_BIG_SLOT_PITY_THRESHOLD below and coach's own milestone
+    // track (services/cards.ts), is what actually moves the needle — see
+    // that file's re-simulated numbers. Legendary/coach never sell for
+    // points even as a "duplicate" (sellValueFor returns null for both),
+    // so shifting share away from rare here only ever LOWERS this slot's
+    // points-worst-case EV, not raises it — no new exploit risk, unlike a
+    // common/rare odds change would be.
     slots: [
       { odds: { common: 1 } },
       { odds: { rare: 1 } },
       { odds: { rare: 1 } },
       { odds: { rare: 1 } },
-      { odds: { rare: 0.89, legendary: 0.06, coach: 0.05 } },
+      { odds: { rare: 0.7, legendary: 0.17, coach: 0.13 } },
     ],
   },
 
@@ -203,6 +207,11 @@ export interface RolledSlot extends CollectibleRow {
 export interface PityState {
   common: number;
   rare: number;
+  // Consecutive Elite-pack opens whose "big slot" (see BIG_SLOT_TIERS
+  // below) rolled rare instead of legendary/coach — see
+  // ELITE_BIG_SLOT_PITY_THRESHOLD. 0 for any pack type that never rolls a
+  // big slot at all (the value is simply carried through unchanged).
+  eliteBigSlot: number;
 }
 
 // Consecutive-duplicate streak (per tier) that forces the next roll of that
@@ -212,7 +221,23 @@ export interface PityState {
 // meaningfully shortens the "10 packs, zero new cards" tail without making
 // pack contents feel predetermined. Legendary has no entry: it's handled
 // unconditionally below instead of via a streak (see forceNewLegendary).
-export const PITY_THRESHOLD: PityState = { common: 4, rare: 2 };
+export const PITY_THRESHOLD: { common: number; rare: number } = { common: 4, rare: 2 };
+
+// A "big slot" is any slot whose odds carry BOTH legendary and coach
+// (currently just Elite's 5th slot) — detected structurally rather than by
+// pack type, so a future pack with a similarly-shaped slot gets this pity
+// for free. 6 consecutive rare landings on that slot (2026-09-04, see the
+// Elite-pack comment in PACKS above for the report that prompted this) means
+// roughly a 1-in-8 chance of tripping it at the new 30% combined
+// legendary+coach share — a real backstop against a demoralizing streak
+// without making every pack's big slot feel predetermined, same spirit as
+// PITY_THRESHOLD above. Re-verify against season-simulation.ts if this ever
+// needs retuning.
+export const ELITE_BIG_SLOT_PITY_THRESHOLD = 6;
+
+function isBigSlot(slot: PackSlot): boolean {
+  return slot.odds.legendary !== undefined && slot.odds.coach !== undefined;
+}
 
 function rollCard(pool: CollectibleRow[]): CollectibleRow {
   return pool[Math.floor(Math.random() * pool.length)];
@@ -265,11 +290,30 @@ export async function rollPackForUser(
   }
 
   const [pityRow] = await db.select().from(pityCounters).where(eq(pityCounters.userId, userId)).limit(1);
-  const streak: PityState = { common: pityRow?.commonStreak ?? 0, rare: pityRow?.rareStreak ?? 0 };
+  const streak: PityState = {
+    common: pityRow?.commonStreak ?? 0,
+    rare: pityRow?.rareStreak ?? 0,
+    eliteBigSlot: pityRow?.eliteBigSlotStreak ?? 0,
+  };
 
   const newlyOwnedIds = new Set<string>();
   const slots: RolledSlot[] = PACKS[packType].slots.map((slot) => {
-    const tier = rollTier(slot);
+    let tier: Tier;
+    if (isBigSlot(slot)) {
+      if (streak.eliteBigSlot >= ELITE_BIG_SLOT_PITY_THRESHOLD) {
+        // Force onto legendary or coach — weighted by their relative share
+        // within this slot's own odds, not a flat coin flip, so a pity
+        // trigger still respects legendary being the rarer of the two.
+        const legendaryOdds = slot.odds.legendary ?? 0;
+        const coachOdds = slot.odds.coach ?? 0;
+        tier = Math.random() < legendaryOdds / (legendaryOdds + coachOdds) ? "legendary" : "coach";
+      } else {
+        tier = rollTier(slot);
+      }
+      streak.eliteBigSlot = tier === "legendary" || tier === "coach" ? 0 : streak.eliteBigSlot + 1;
+    } else {
+      tier = rollTier(slot);
+    }
     const pool = byTier[tier];
 
     // Legendary always lands on a card the user doesn't own yet, no streak

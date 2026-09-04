@@ -10,6 +10,8 @@ import {
   markRoundRewardsSeen,
   checkAndGrantLegendaryMilestones,
   markLegendaryMilestonesSeen,
+  checkAndGrantCoachMilestones,
+  markCoachMilestonesSeen,
 } from "../services/cards.js";
 import { checkAndGrantReferralReward } from "../services/referrals.js";
 
@@ -395,9 +397,10 @@ predictionsRouter.get("/me/summary", requireAuth, async (req, res) => {
     // Independent of each other — none of these three affect one another —
     // so run them concurrently instead of adding their round trips to the
     // DB back to back.
-    const [newRoundRewards, newMilestoneRewards] = await Promise.all([
+    const [newRoundRewards, newMilestoneRewards, newCoachMilestoneRewards] = await Promise.all([
       checkAndGrantRoundRewards(req.userId!),
       checkAndGrantLegendaryMilestones(req.userId!),
+      checkAndGrantCoachMilestones(req.userId!),
       checkAndGrantReferralReward(req.userId!),
     ]);
 
@@ -406,6 +409,7 @@ predictionsRouter.get("/me/summary", requireAuth, async (req, res) => {
       badges,
       newRoundRewards: newRoundRewards.map((p) => ({ id: p.id, packType: p.packType, tier: p.tier })),
       newMilestoneRewards: newMilestoneRewards.map((p) => ({ id: p.id, packType: p.packType, tier: p.tier })),
+      newCoachMilestoneRewards: newCoachMilestoneRewards.map((p) => ({ id: p.id, packType: p.packType, tier: p.tier })),
     });
   } catch (err) {
     console.error("GET /api/predictions/me/summary failed:", err);
@@ -436,6 +440,17 @@ predictionsRouter.post("/milestone-rewards/ack", requireAuth, async (req, res) =
   } catch (err) {
     console.error("POST /api/predictions/milestone-rewards/ack failed:", err);
     res.status(500).json({ error: "Failed to acknowledge milestone rewards" });
+  }
+});
+
+// Same pattern again, for the coach-milestone track — see checkAndGrantCoachMilestones.
+predictionsRouter.post("/coach-milestone-rewards/ack", requireAuth, async (req, res) => {
+  try {
+    await markCoachMilestonesSeen(req.userId!);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("POST /api/predictions/coach-milestone-rewards/ack failed:", err);
+    res.status(500).json({ error: "Failed to acknowledge coach milestone rewards" });
   }
 });
 

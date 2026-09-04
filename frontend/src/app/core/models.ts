@@ -368,7 +368,7 @@ export interface TradeCardRef {
 // name/image the way TradeCardRef does.
 export interface RewardPack {
   id: string;
-  packType: "wheelLegendary" | "wheelPro";
+  packType: "wheelLegendary" | "wheelPro" | "wheelCoach";
   tier: CollectibleTier;
 }
 
@@ -379,6 +379,9 @@ export interface PredictionSummary {
   // Career-wide (not round-scoped) legendary reward every N cumulative
   // correct predictions — see LEGENDARY_MILESTONE_INTERVAL on the backend.
   newMilestoneRewards: RewardPack[];
+  // Same concept as newMilestoneRewards, a parallel track for coach — see
+  // COACH_MILESTONE_INTERVAL on the backend (services/cards.ts).
+  newCoachMilestoneRewards: RewardPack[];
 }
 
 // GET /api/predictions/analytics — community-wide pick accuracy, not

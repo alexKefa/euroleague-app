@@ -109,10 +109,10 @@ packsRouter.post("/:type/open", requireAuth, async (req, res) => {
 
       await tx
         .insert(pityCounters)
-        .values({ userId: req.userId!, commonStreak: pity.common, rareStreak: pity.rare })
+        .values({ userId: req.userId!, commonStreak: pity.common, rareStreak: pity.rare, eliteBigSlotStreak: pity.eliteBigSlot })
         .onConflictDoUpdate({
           target: pityCounters.userId,
-          set: { commonStreak: pity.common, rareStreak: pity.rare },
+          set: { commonStreak: pity.common, rareStreak: pity.rare, eliteBigSlotStreak: pity.eliteBigSlot },
         });
 
       if (newlyOwnedIds.size > 0) {
@@ -232,10 +232,10 @@ packsRouter.post("/owned/:id/open", requireAuth, async (req, res) => {
 
       await tx
         .insert(pityCounters)
-        .values({ userId: req.userId!, commonStreak: pity.common, rareStreak: pity.rare })
+        .values({ userId: req.userId!, commonStreak: pity.common, rareStreak: pity.rare, eliteBigSlotStreak: pity.eliteBigSlot })
         .onConflictDoUpdate({
           target: pityCounters.userId,
-          set: { commonStreak: pity.common, rareStreak: pity.rare },
+          set: { commonStreak: pity.common, rareStreak: pity.rare, eliteBigSlotStreak: pity.eliteBigSlot },
         });
 
       const dupeSaleRows = slots
