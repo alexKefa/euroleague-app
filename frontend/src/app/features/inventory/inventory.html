@@ -129,6 +129,7 @@
               [unlocked]="true"
               [stackCount]="bundle.cards.length"
               [finish]="finishFor(frontCard(bundle))"
+              [jerseyNumber]="frontCard(bundle).jerseyNumber ?? null"
             ></app-card-stack>
           </button>
 

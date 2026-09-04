@@ -434,6 +434,11 @@ export interface Collectible {
   // don't carry it.
   serialNumber?: number;
   serialTotal?: number;
+  // Best-effort match against `players` (backend's normalizePlayerName) —
+  // null for a coach card (coaches aren't in `players`) or a player with no
+  // synced number. Shown on the card's no-photo fallback face, same idea as
+  // PlayerPhotoComponent's jersey placeholder.
+  jerseyNumber?: number | null;
   team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
   // Only ever "foil" for a legendary — see CollectibleFinish. Optional
   // because most card shapes (store browse, album) don't carry it.
@@ -453,6 +458,7 @@ export interface CollectibleBundleCard {
   imageUrl: string | null;
   serialNumber?: number;
   serialTotal?: number;
+  jerseyNumber?: number | null;
 }
 
 // One player's common/rare/legendary cards grouped together — `cards` holds

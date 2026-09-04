@@ -111,6 +111,7 @@
                 [imageUrl]="frontCard(bundle).imageUrl"
                 [unlocked]="isUnlocked(frontCard(bundle))"
                 [stackCount]="bundle.cards.length"
+                [jerseyNumber]="frontCard(bundle).jerseyNumber ?? null"
               ></app-card-stack>
             </button>
 

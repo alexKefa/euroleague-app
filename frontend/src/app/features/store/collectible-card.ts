@@ -61,6 +61,21 @@ export class CollectibleCardComponent implements OnChanges {
   @Input() selected = false;
   // Cosmetic-only, legendary-only — see CollectibleFinish's doc comment.
   @Input() finish: CollectibleFinish = "standard";
+  // Rendered over the no-photo fallback's jersey silhouette, same idea as
+  // PlayerPhotoComponent's placeholder on /compare — null renders the
+  // silhouette alone (a coach card, or a player with no synced number).
+  @Input() jerseyNumber: number | null = null;
+
+  get hasJerseyNumber(): boolean {
+    return this.jerseyNumber !== null && this.jerseyNumber !== undefined;
+  }
+
+  // Scales with the card's own size (maxWidth) rather than a fixed px value,
+  // since this component renders anywhere from a small grid tile to the
+  // 342px preview-modal face.
+  get jerseyNumberFontSize(): number {
+    return Math.round(this.maxWidth * 0.15);
+  }
 
   get isFoil(): boolean {
     return this.tier === "legendary" && this.finish === "foil";

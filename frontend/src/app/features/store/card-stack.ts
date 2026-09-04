@@ -26,4 +26,5 @@ export class CardStackComponent {
   @Input() maxWidth = 220;
   @Input() stackCount = 1;
   @Input() finish: CollectibleFinish = "standard";
+  @Input() jerseyNumber: number | null = null;
 }

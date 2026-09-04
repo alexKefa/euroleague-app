@@ -19,6 +19,23 @@ function normalizePlayerName(name: string): string {
   return reordered.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
+// Same best-effort name match as normalizePlayerName/`/:id/stats` above, but
+// done once in bulk (one query, then in-memory lookups) rather than a
+// per-card query — used to show a card's real jersey number on its
+// no-photo fallback face (GET / and GET /browse below). Keyed by
+// teamId+normalizedName since collectibles have no real playerId FK; a
+// coach card never matches (coaches aren't in `players`) and its
+// fallback ignores jerseyNumber entirely anyway.
+async function buildJerseyNumberLookup(): Promise<Map<string, number>> {
+  const rows = await db.select({ teamId: players.teamId, name: players.name, jerseyNumber: players.jerseyNumber }).from(players);
+  const map = new Map<string, number>();
+  for (const p of rows) {
+    if (p.jerseyNumber == null) continue;
+    map.set(`${p.teamId}|${normalizePlayerName(p.name)}`, p.jerseyNumber);
+  }
+  return map;
+}
+
 export const collectiblesRouter = Router();
 
 const TIERS = ["common", "rare", "legendary", "coach"] as const;
@@ -43,6 +60,7 @@ collectiblesRouter.get("/", async (_req, res) => {
       .select({ collectible: collectibles, team: teams })
       .from(collectibles)
       .innerJoin(teams, eq(collectibles.teamId, teams.id));
+    const jerseyNumbers = await buildJerseyNumberLookup();
 
     // "042/208" print numbering — a fixed rank within the card's own tier,
     // not stored (nothing about a card's identity actually depends on it,
@@ -71,6 +89,7 @@ collectiblesRouter.get("/", async (_req, res) => {
       imageUrl: collectible.imageUrl,
       serialNumber: serial.get(collectible.id)!.number,
       serialTotal: serial.get(collectible.id)!.total,
+      jerseyNumber: jerseyNumbers.get(`${collectible.teamId}|${normalizePlayerName(collectible.name)}`) ?? null,
       team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor, logoUrl: team.logoUrl },
     }));
 
@@ -158,6 +177,7 @@ collectiblesRouter.get("/browse", async (req, res) => {
       serial_number: number;
       serial_total: number;
     }>;
+    const jerseyNumbers = await buildJerseyNumberLookup();
 
     // Rows are already ordered player-then-tier, so a single pass groups
     // them back into bundles without re-sorting.
@@ -169,12 +189,12 @@ collectiblesRouter.get("/browse", async (req, res) => {
     for (const row of rows) {
       const last = bundles[bundles.length - 1];
       if (last && last.name === row.name && last.team.id === row.team_id) {
-        last.cards.push(mapCardRow(row));
+        last.cards.push(mapCardRow(row, jerseyNumbers));
       } else {
         bundles.push({
           name: row.name,
           team: { id: row.team_id, code: row.team_code, name: row.team_name, primaryColor: row.team_primary_color, logoUrl: row.team_logo_url },
-          cards: [mapCardRow(row)],
+          cards: [mapCardRow(row, jerseyNumbers)],
         });
       }
     }
@@ -189,15 +209,19 @@ collectiblesRouter.get("/browse", async (req, res) => {
   }
 });
 
-function mapCardRow(row: {
-  id: string;
-  name: string;
-  tier: string;
-  points_cost: number;
-  image_url: string | null;
-  serial_number: number;
-  serial_total: number;
-}) {
+function mapCardRow(
+  row: {
+    id: string;
+    name: string;
+    tier: string;
+    points_cost: number;
+    image_url: string | null;
+    team_id: string;
+    serial_number: number;
+    serial_total: number;
+  },
+  jerseyNumbers: Map<string, number>
+) {
   return {
     id: row.id,
     name: row.name,
@@ -207,6 +231,7 @@ function mapCardRow(row: {
     imageUrl: row.image_url,
     serialNumber: row.serial_number,
     serialTotal: row.serial_total,
+    jerseyNumber: jerseyNumbers.get(`${row.team_id}|${normalizePlayerName(row.name)}`) ?? null,
   };
 }
 
