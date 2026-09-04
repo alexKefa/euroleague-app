@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from "@angular/core";
+import { Component, OnInit, OnDestroy, inject, signal, computed, effect, viewChild, ElementRef } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
@@ -11,6 +11,7 @@ import { SkeletonComponent } from "../../shared/skeleton";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { StatLegendComponent, StatLegendEntry } from "../../shared/stat-legend";
 import { SearchInputComponent } from "../../shared/search-input";
+import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 
 // One column = one sortable stat. `get` pulls the raw number/string out of a
 // row (undefined/null sorts last regardless of direction, see sortedRows);
@@ -108,6 +109,13 @@ const COLUMNS: ColumnDef[] = [
 const DEFAULT_MIN_GAMES = 5;
 const DEFAULT_MIN_MINUTES = 0;
 
+// Whole league (~200 rows) is fetched and filtered/sorted client-side (see
+// the class doc comment), but rendering all ~200 as real <tr>s (12 columns
+// each) at once was the actual source of lag, not the fetch/sort/filter
+// itself — same "windowing is for DOM size, not fetch size" fix as
+// inventory.ts's owned-bundles grid.
+const PAGE_SIZE = 40;
+
 // {code, key} pairs, not translated strings — label text is resolved inside
 // the computed() below so it stays reactive to i18n.lang. Reuses roster.ts's
 // legend keys where the stat is identical (GP, MIN, PIR, TS%, eFG%, TOV%,
@@ -136,10 +144,20 @@ const LEGEND_KEYS: { codeKey: string; key: string }[] = [
 @Component({
   selector: "app-advanced-stats",
   standalone: true,
-  imports: [CommonModule, RouterLink, DropdownComponent, ButtonDirective, SkeletonComponent, RetryImgDirective, StatLegendComponent, SearchInputComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    DropdownComponent,
+    ButtonDirective,
+    SkeletonComponent,
+    RetryImgDirective,
+    StatLegendComponent,
+    SearchInputComponent,
+    LogoSpinnerComponent,
+  ],
   templateUrl: "./advanced-stats.html",
 })
-export class AdvancedStatsComponent implements OnInit {
+export class AdvancedStatsComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
@@ -206,6 +224,51 @@ export class AdvancedStatsComponent implements OnInit {
     });
   });
 
+  // Reveal a page at a time over the already-filtered/sorted rows — windows
+  // DOM size, not the underlying fetch/filter/sort, same convention as
+  // inventory.ts's owned-bundles grid. Not reset on a sort-column change
+  // (still shows the top `visibleCount` of whatever the new order is, which
+  // reads naturally as "same page, re-sorted"); reset to PAGE_SIZE on every
+  // filter change below, so narrowing/widening the filters always starts
+  // from the top of the new result set.
+  readonly visibleCount = signal(PAGE_SIZE);
+  readonly loadingMore = signal(false);
+  readonly visibleRows = computed(() => this.rows().slice(0, this.visibleCount()));
+  readonly hasMoreRows = computed(() => this.visibleCount() < this.rows().length);
+
+  private readonly sentinel = viewChild<ElementRef<HTMLDivElement>>("scrollSentinel");
+  private readonly scrollContainer = viewChild<ElementRef<HTMLDivElement>>("scrollContainer");
+  private observer?: IntersectionObserver;
+
+  constructor() {
+    effect(() => {
+      const el = this.sentinel()?.nativeElement;
+      const root = this.scrollContainer()?.nativeElement ?? null;
+      if (!el) return;
+      this.observer?.disconnect();
+      this.observer = new IntersectionObserver(
+        (entries) => {
+          if (entries[0]?.isIntersecting) this.loadMore();
+        },
+        { root, rootMargin: "400px" }
+      );
+      this.observer.observe(el);
+    });
+  }
+
+  loadMore(): void {
+    if (this.loadingMore() || !this.hasMoreRows()) return;
+    this.loadingMore.set(true);
+    setTimeout(() => {
+      this.visibleCount.update((n) => n + PAGE_SIZE);
+      this.loadingMore.set(false);
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.observer?.disconnect();
+  }
+
   ngOnInit(): void {
     this.api.getAdvancedStats().subscribe({
       next: (res) => {
@@ -226,18 +289,26 @@ export class AdvancedStatsComponent implements OnInit {
     }
   }
 
+  onSearchInput(value: string): void {
+    this.searchQuery.set(value);
+    this.visibleCount.set(PAGE_SIZE);
+  }
+
   setTeamFilter(value: string | null): void {
     this.teamFilter.set(value || null);
+    this.visibleCount.set(PAGE_SIZE);
   }
 
   setMinGames(value: string): void {
     const n = Number(value);
     this.minGames.set(Number.isFinite(n) && n >= 0 ? n : 0);
+    this.visibleCount.set(PAGE_SIZE);
   }
 
   setMinMinutes(value: string): void {
     const n = Number(value);
     this.minMinutes.set(Number.isFinite(n) && n >= 0 ? n : 0);
+    this.visibleCount.set(PAGE_SIZE);
   }
 
   isFavoriteTeam(teamId: string): boolean {
@@ -249,5 +320,6 @@ export class AdvancedStatsComponent implements OnInit {
     this.teamFilter.set(null);
     this.minGames.set(DEFAULT_MIN_GAMES);
     this.minMinutes.set(DEFAULT_MIN_MINUTES);
+    this.visibleCount.set(PAGE_SIZE);
   }
 }
