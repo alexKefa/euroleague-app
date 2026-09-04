@@ -23,18 +23,26 @@
       <div class="relative rounded-2xl p-5 mb-5 bg-card border border-line shadow-card overflow-hidden">
         <div class="team-hero-sweep"></div>
 
-        <button
-          type="button"
-          (click)="tour.start()"
-          appButton="outline"
-          [attr.aria-label]="i18n.t('tour.takeTour')"
-          [title]="i18n.t('tour.takeTour')"
-          class="absolute top-4 right-4 sm:top-5 sm:right-5 !p-2.5"
-        >
-          <app-nav-icon name="compass" [size]="20" />
-        </button>
-
-        <p class="relative font-mono text-[12px] font-bold text-muted mb-2">{{ i18n.t('dashboard.yourTeam') }}</p>
+        <!-- Row-based on mobile, not absolutely overlapping the corner: an
+             absolute button here used to occupy the same vertical band as
+             the team-name link right below it, so on a narrow screen the
+             two tap targets sat right on top of each other and taps landed
+             on the wrong one. Sharing a row with the "Your Team" label
+             keeps it well above the name row's tap area instead.
+             sm+ has more room, so it reverts to the corner overlay there. -->
+        <div class="relative flex items-center justify-between mb-3 sm:block sm:mb-2">
+          <p class="font-mono text-[12px] font-bold text-muted">{{ i18n.t('dashboard.yourTeam') }}</p>
+          <button
+            type="button"
+            (click)="tour.start()"
+            appButton="outline"
+            [attr.aria-label]="i18n.t('tour.takeTour')"
+            [title]="i18n.t('tour.takeTour')"
+            class="sm:absolute sm:top-5 sm:right-5 !p-2.5"
+          >
+            <app-nav-icon name="compass" [size]="20" />
+          </button>
+        </div>
         <a [routerLink]="['/teams', row.team.id]" class="relative flex items-center gap-3 w-fit group">
           <span
             class="w-11 h-11 rounded-full flex items-center justify-center shrink-0 bg-card"
