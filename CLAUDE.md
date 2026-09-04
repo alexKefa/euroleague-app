@@ -1023,3 +1023,43 @@ at the same Neon instance as local dev — there's no separate prod database.
   changing the caller. `teams-hub.ts`'s search also matches the site
   abbreviation, not just the internal code and team name, so searching
   "KBA" still finds Baskonia.
+- **Stale collectible teams, round 2 — departed players, not just transfers**
+  (2026-09-04): user report — Biberovic and De Colo still showing under
+  Fenerbahce in Store/Inventory despite roster syncs (requested 2 days
+  earlier) correctly marking them gone. Root cause: `collectibles.teamId`
+  is a one-time snapshot from `expand-collectibles.ts`, matched by player
+  name, never re-synced afterward — same underlying gap as the
+  `fix-collectible-teams.ts` pass on 2026-09-02, but that pass only
+  corrected cards for players who *transferred to a different real
+  2026-27 team* (re-resolved against `players.teamId`). It never touched
+  players who left the league/roster entirely, because `players.active`
+  (roster_sync.py's flag for "no longer on any current-season roster
+  fetch," see schema.ts's comment on `players.teamId`) didn't exist yet at
+  the time — it was added afterward, in the "stop departed players
+  lingering on their old team's roster page" pass. So a departed player's
+  `players.teamId` *also* stays frozen at their last club (can't be
+  nulled, NOT NULL FK) — re-joining against it the way the first fix did
+  wouldn't have helped here either; `active` is the only signal that
+  actually says so. Checked league-wide, not just the two reported names:
+  46 inactive players / 92 collectible rows were still pinned to their old
+  team. `backend/src/scripts/retire-inactive-player-collectibles.ts`
+  (one-off, run once 2026-09-04, `backup-db.ts` run first) removed all 92
+  outright — unlike `remove-collectibles-without-team.ts`'s MCO cleanup
+  (which only ever aborted on finding a reference, since ownership had
+  already been wiped by `reset-economy-full.ts` by that point), 25 of
+  these were genuinely owned and 27 had real `pack_opening_results`
+  history, so the script deletes those referencing rows too rather than
+  aborting. Explicitly confirmed with the user first: no compensation (no
+  sell-back credit, no replacement pack) for any of the 25 owned rows,
+  **including the one owned legendary** (Glynn Watson) even though that
+  drops the catalog's real legendary count to 21 against the 22 every
+  other economy calculation in this file (`season-simulation.ts`,
+  `forceNewLegendary`, wheel odds) assumes — worth knowing if legendary
+  pull rates or album-completion numbers ever look off going forward.
+  `wheel_spins`/`round_rewards`/`legendary_milestones`'s legacy
+  `collectibleId` columns and `trade_offers`/`trade_offer_items` had zero
+  references and were left untouched. This is a one-off cleanup, not a
+  recurring safeguard — a future roster sync that moves another active
+  player to inactive will reintroduce the same staleness until something
+  re-runs this same check (or it becomes a standing sweep instead of a
+  one-off script).
