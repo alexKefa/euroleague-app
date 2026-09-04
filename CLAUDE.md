@@ -783,6 +783,15 @@ at the same Neon instance as local dev — there's no separate prod database.
   destructive in `railway.ts` (shows as delete+recreate in `config plan`,
   drops env vars/history), but renaming just the *domain* is safe
   (`railway domain update <old> --domain <new>`, non-destructive).
+  **TODO: custom domain** — user wants something cleaner than
+  `clutchapp.up.railway.app` ("a more normal url"), explicitly deferred
+  rather than done immediately. Options already considered: DuckDNS
+  (`clutch.duckdns.org` — free, instant, no approval), is-a.dev
+  (`clutch.is-a.dev` — free, nicer, but needs a GitHub PR + manual review),
+  or a cheap real domain (~$1-15/yr via Namecheap/Porkbun/Cloudflare) for a
+  fully clean look. Whichever is picked, wire it up with `railway domain
+  <hostname>` on the `euroleague-app` service — Railway auto-provisions
+  HTTPS once DNS is verified.
 - **Redeploy**: currently manual (`railway up --service euroleague-app`)
   from a local checkout — not yet wired to auto-deploy on `git push`.
 - The same Railway account has an unrelated older project ("valiant-passion" /
@@ -797,6 +806,22 @@ at the same Neon instance as local dev — there's no separate prod database.
   treat any earlier "checked on <date>, covers N of M games" note as stale.
 - Redeploys to Railway are manual, not triggered by `git push` (see
   Deployment above).
+- **TODO: no dev/staging environment** — everything today is one production
+  Railway service on `main`, deployed by hand from a local checkout, against
+  the one live Neon database (`DATABASE_URL` is identical between local dev
+  and prod — see Environment variables above). There's no separate URL to
+  try a risky change against before it's live, and local dev itself already
+  writes straight into the real database (real users' points, cards, trades)
+  rather than a sandboxed copy. Worth splitting into a `dev` branch +
+  a second Railway environment/URL deployed from it — Railway supports
+  multiple environments per project natively, which pairs well with Neon's
+  own cheap copy-on-write database branching for a genuinely isolated
+  staging DB, rather than standing up a whole second Railway project. The
+  real cost isn't the branch or the URL, it's that `db:push` is
+  interactive-only (`drizzle.config.ts`'s `strict: true`, see Schema
+  changes above) with no migrations checked in — keeping two databases'
+  schemas in sync would become a manual step to remember on every schema
+  change, not something CI could enforce today.
 - Some teams could have zero rows in `players` if `roster_sync.py` (see
   below) hasn't been run for a freshly-registered club yet — found
   2026-08-21 with Besiktas Istanbul via the live-score simulator, fixed for

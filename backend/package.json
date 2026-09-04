@@ -18,7 +18,8 @@
     "collectibles:expand": "tsx src/scripts/expand-collectibles.ts",
     "collectibles:expand-coaches": "tsx src/scripts/expand-coach-collectibles.ts",
     "seed:trade-marketplace": "tsx src/scripts/seed-trade-marketplace.ts",
-    "promo:create": "tsx src/scripts/create-promo-code.ts"
+    "promo:create": "tsx src/scripts/create-promo-code.ts",
+    "check:rate-limit": "tsx src/scripts/check-rate-limit.ts"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

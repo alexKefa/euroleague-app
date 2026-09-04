@@ -33,8 +33,18 @@ const app = express();
 // as just a noisy console warning, but escalated to a hard failure on a
 // recent deploy. `1` (trust exactly one hop) is correct here, not `true`
 // (trust the whole chain) — that would let a client set its own
-// X-Forwarded-For and spoof past IP-based rate limiting entirely. Inert in
-// local dev, where nothing in front of the app sets X-Forwarded-For.
+// X-Forwarded-For and spoof past IP-based rate limiting entirely.
+// TODO(env-split): this is unconditional today, but there's genuinely no
+// proxy hop in local dev — so a script talking to the dev server directly
+// can set its own X-Forwarded-For and it gets trusted anyway, bypassing
+// per-IP rate limiting locally (not exploitable on Railway itself, since
+// Railway's own edge proxy overwrites/appends before this app ever sees
+// the header). Split this to `process.env.NODE_ENV === "production" ? 1 :
+// false` (or similar) once there's a real reason to trust dev-local rate
+// limiting numbers — same underlying idea (a production vs. development
+// posture) probably applies to other settings across this app that are
+// currently one-size-fits-all, not just this line; worth a pass over
+// index.ts and the security-relevant middleware here more broadly.
 app.set("trust proxy", 1);
 const port = process.env.PORT ? Number(process.env.PORT) : 4000;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
