@@ -46,6 +46,18 @@
   --color-line: #232324;
   --color-muted: #8a8a86;
   --color-ink: #f0f0ec;
+
+  /* Without this, Safari renders native form controls, focus rings, the
+     text-selection highlight, and scrollbars off the OS-level light/dark
+     preference — completely independent of the data-theme attribute below
+     — while Chrome mostly stays on a consistent light UA palette regardless
+     of OS. That's what made a Profile theme toggle look "high contrast" on
+     Safari only: native-styled elements (e.g. the plain `<input>`s in the
+     admin forms) rendered with whichever palette the OS happened to be in,
+     clashing with the custom bg-card/border-line colors right next to them.
+     Tying color-scheme to data-theme makes Safari's native chrome follow
+     the app's explicit choice instead of the OS's. */
+  color-scheme: dark;
 }
 
 :root[data-theme="light"] {
@@ -54,6 +66,7 @@
   --color-line: #e2e2df;
   --color-muted: #6b6b66;
   --color-ink: #14161a;
+  color-scheme: light;
 }
 
 /* Tints a fixed-black-stroke raster icon (a PNG/SVG <img> with no
