@@ -109,6 +109,25 @@ export const players = pgTable("players", {
   active: boolean("active").default(true).notNull(),
 });
 
+// Admin-entered, not synced — EuroLeague's own feed (euroleague-api) has no
+// injury endpoint at all, unlike everything else this app pulls in. One row
+// per currently-injured player (playerId unique — a fresh admin write
+// overwrites the prior report rather than accumulating a history), so
+// "healthy" is just "no row here" rather than a status value. Cleared by
+// deleting the row (routes/injuries.ts's DELETE), not by writing an
+// "available" status.
+export const playerInjuries = pgTable("player_injuries", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  playerId: uuid("player_id")
+    .notNull()
+    .unique()
+    .references(() => players.id),
+  status: varchar("status", { length: 20 }).notNull(), // "out" | "doubtful" | "questionable" | "probable"
+  note: text("note"),
+  updatedByUserId: uuid("updated_by_user_id").notNull().references(() => users.id),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const games = pgTable(
   "games",
   {
@@ -766,6 +785,12 @@ export const playersRelations = relations(players, ({ one, many }) => ({
   team: one(teams, { fields: [players.teamId], references: [teams.id] }),
   gameStats: many(playerGameStats),
   seasonStats: many(playerSeasonStats),
+  injury: one(playerInjuries, { fields: [players.id], references: [playerInjuries.playerId] }),
+}));
+
+export const playerInjuriesRelations = relations(playerInjuries, ({ one }) => ({
+  player: one(players, { fields: [playerInjuries.playerId], references: [players.id] }),
+  updatedByUser: one(users, { fields: [playerInjuries.updatedByUserId], references: [users.id] }),
 }));
 
 export const gamesRelations = relations(games, ({ one, many }) => ({

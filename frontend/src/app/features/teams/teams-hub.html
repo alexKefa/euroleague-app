@@ -8,7 +8,7 @@
     <p class="text-sm text-muted mt-1">{{ i18n.t('teams.subtitle') }}</p>
   </div>
 
-  <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-card border border-line rounded-2xl shadow-card p-1.5 mb-5">
+  <div class="grid grid-cols-2 sm:grid-cols-5 gap-1.5 bg-card border border-line rounded-2xl shadow-card p-1.5 mb-5">
     <a routerLink="/standings" appButton="outline" appButtonSize="sm" class="w-full">
       <app-nav-icon name="standings" [size]="14" />
       {{ i18n.t('standings.title') }}
@@ -24,6 +24,10 @@
     <a routerLink="/analytics-builder" appButton="outline" appButtonSize="sm" class="w-full">
       <app-nav-icon name="sliders" [size]="14" />
       {{ i18n.t('builder.navTitle') }}
+    </a>
+    <a routerLink="/injuries" appButton="outline" appButtonSize="sm" class="w-full col-span-2 sm:col-span-1">
+      <app-nav-icon name="injury" [size]="14" />
+      {{ i18n.t('injuries.title') }}
     </a>
   </div>
 

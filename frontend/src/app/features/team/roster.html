@@ -90,6 +90,13 @@
                         <span class="font-mono text-muted font-normal">#{{ row.player.jerseyNumber }}</span>
                       }
                       {{ row.player.name }}
+                      @if (row.injury; as injury) {
+                        <span
+                          class="ml-1 px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider align-middle"
+                          [ngClass]="injuryClass(injury.status)"
+                          >{{ injuryLabel(injury.status) }}</span
+                        >
+                      }
                     </a>
                   </td>
                   <td class="text-right px-3 py-2 font-mono text-muted font-normal">
@@ -148,6 +155,13 @@
                         <span class="font-mono text-muted font-normal">#{{ row.player.jerseyNumber }}</span>
                       }
                       {{ row.player.name }}
+                      @if (row.injury; as injury) {
+                        <span
+                          class="ml-1 px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider align-middle"
+                          [ngClass]="injuryClass(injury.status)"
+                          >{{ injuryLabel(injury.status) }}</span
+                        >
+                      }
                     </a>
                   </td>
                   <td class="text-right px-3 py-2 font-mono text-highlight font-bold">

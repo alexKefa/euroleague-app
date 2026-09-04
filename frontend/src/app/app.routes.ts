@@ -70,6 +70,11 @@ export const routes: Routes = [
       import("./features/team/roster").then((m) => m.TeamRosterComponent),
   },
   {
+    path: "injuries",
+    loadComponent: () =>
+      import("./features/injuries/injury-report").then((m) => m.InjuryReportComponent),
+  },
+  {
     path: "players/:id",
     loadComponent: () =>
       import("./features/player/player-detail").then((m) => m.PlayerDetailComponent),

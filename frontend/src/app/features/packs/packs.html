@@ -365,7 +365,16 @@
     @if (view() === "summary") {
       <div class="reveal-pop">
         <p class="font-display text-lg tracking-wide mb-3">{{ i18n.t('packs.packOpened') }}</p>
-        <div class="grid grid-cols-3 gap-2 mb-5">
+        <!-- Capped + internally scrollable rather than growing the page —
+             on a short viewport (e.g. a 13" MacBook's browser window) a
+             full 5-card grid at summaryCardSize() plus this page's own
+             header/hint chrome above it pushed the action buttons below
+             the fold, needing a full-page scroll to reach them. Bounding
+             the grid to a fraction of the viewport keeps "Open another"/
+             "My cards" always visible right below it, same "scroll the
+             content, not the buttons" fix as profile.html's owned-cards
+             picker (max-h + overflow-y-auto there too). -->
+        <div class="grid grid-cols-3 gap-2 mb-5 max-h-[45vh] overflow-y-auto p-1">
           @for (card of outcome()?.results; track card.resultId) {
             <div class="relative">
               <!-- Only the card face dims for a duplicate — the SOLD banner

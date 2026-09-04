@@ -69,9 +69,42 @@ export interface PlayerSeasonStats {
   usagePercentage: number | null;
 }
 
+export type InjuryStatus = "out" | "doubtful" | "questionable" | "probable";
+
+// Admin-entered, not synced — see the doc comment on backend/src/db/
+// schema.ts's playerInjuries. Only currently-injured players have one at
+// all; a healthy player's `injury` field is null wherever this appears.
+export interface PlayerInjury {
+  id: string;
+  playerId: string;
+  status: InjuryStatus;
+  note: string | null;
+  updatedAt: string;
+}
+
+// GET /api/injuries — the full current report, one row per injured player,
+// already joined with player/team display info so the Injury Report page
+// doesn't need a second round trip per row.
+export interface InjuryReportEntry {
+  id: string;
+  playerId: string;
+  playerName: string;
+  playerPosition: string | null;
+  playerPhotoUrl: string | null;
+  teamId: string;
+  teamCode: string;
+  teamName: string;
+  teamPrimaryColor: string | null;
+  teamLogoUrl: string | null;
+  status: InjuryStatus;
+  note: string | null;
+  updatedAt: string;
+}
+
 export interface RosterEntry {
   player: Player;
   stats: PlayerSeasonStats;
+  injury: PlayerInjury | null;
 }
 
 // GET /api/players/advanced-stats — full playerSeasonStats row per player,

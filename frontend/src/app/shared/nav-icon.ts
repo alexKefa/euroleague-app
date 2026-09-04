@@ -35,7 +35,10 @@ export type NavIconName =
   // Teams hub's top toolbar — the "full stats table" destination, distinct
   // from "standings" (ranked bars) since this one is a literal data grid.
   | "table"
-  | "sliders";
+  | "sliders"
+  // Teams hub's top toolbar (the "Injury Report" destination) and the
+  // roster/prediction badges for a player with an active report.
+  | "injury";
 
 @Component({
   selector: "app-nav-icon",
@@ -298,6 +301,19 @@ export type NavIconName =
             stroke-linecap="round"
             stroke-linejoin="round"
           />
+        }
+        @case ("injury") {
+          <!-- medical cross in a rounded shield — a player with an active
+               injury report. -->
+          <path
+            d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linejoin="round"
+            [attr.fill]="active ? 'currentColor' : 'none'"
+            [attr.fill-opacity]="active ? 0.18 : null"
+          />
+          <path d="M12 8.5v7M8.5 12h7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
         }
         @case ("medal") {
           <!-- fallback for any badge id without a specific icon. -->

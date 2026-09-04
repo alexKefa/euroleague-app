@@ -41,6 +41,8 @@ import {
   League,
   LeagueDetail,
   LeagueLeaderboardEntry,
+  InjuryReportEntry,
+  InjuryStatus,
 } from "./models";
 
 /**
@@ -207,6 +209,18 @@ export class ApiService {
 
   adjustPoints(email: string, points: number, reason: string): Observable<unknown> {
     return this.http.post(`${API_BASE_URL}/predictions/points/adjust`, { email, points, reason });
+  }
+
+  getInjuries(): Observable<InjuryReportEntry[]> {
+    return this.http.get<InjuryReportEntry[]>(`${API_BASE_URL}/injuries`);
+  }
+
+  setInjury(playerId: string, status: InjuryStatus, note?: string): Observable<unknown> {
+    return this.http.post(`${API_BASE_URL}/injuries`, { playerId, status, note });
+  }
+
+  clearInjury(playerId: string): Observable<unknown> {
+    return this.http.delete(`${API_BASE_URL}/injuries/${playerId}`);
   }
 
   getCollectibles(): Observable<Collectible[]> {

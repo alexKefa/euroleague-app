@@ -4,12 +4,13 @@ import { ActivatedRoute, RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
-import { Team, RosterEntry, Game, GameTeamSummary, StandingsRow } from "../../core/models";
+import { Team, RosterEntry, Game, GameTeamSummary, StandingsRow, InjuryStatus } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ChipDirective } from "../../shared/chip.directive";
 import { StatLegendComponent, StatLegendEntry } from "../../shared/stat-legend";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { newsDateLocale, gameDateTimeFormat } from "../../shared/news-date-format";
+import { injuryStatusLabel, injuryStatusClass } from "../../shared/injury-status";
 
 // Plain box-score terms instead of advanced-stat proxies (eFG%-based
 // "offRating"/"defRating", assist ratio for "playmaking") — those didn't
@@ -205,6 +206,14 @@ export class TeamRosterComponent implements OnInit {
     if (value >= 20) return "bg-emerald-500/15 text-emerald-400";
     if (value >= 12) return "bg-amber-500/15 text-amber-400";
     return "bg-slate-500/10 text-slate-400";
+  }
+
+  injuryLabel(status: InjuryStatus): string {
+    return injuryStatusLabel(this.i18n, status);
+  }
+
+  injuryClass(status: InjuryStatus): string {
+    return injuryStatusClass(status);
   }
 
   fmtPct(value: number | null): string {

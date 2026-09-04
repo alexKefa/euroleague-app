@@ -1,0 +1,174 @@
+<div class="max-w-3xl mx-auto p-4 sm:p-6">
+  <a routerLink="/teams" class="text-[12px] text-muted font-bold uppercase tracking-wider hover:text-ink transition-colors"
+    >&larr; {{ i18n.t('teams.title') }}</a
+  >
+
+  <div class="mt-4 mb-5">
+    <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('injuries.title') }}</h1>
+    <p class="text-sm text-muted mt-1">{{ i18n.t('injuries.subtitle') }}</p>
+  </div>
+
+  @if (auth.currentUser()?.isAdmin) {
+    <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
+      <p class="font-mono text-[12px] text-muted font-bold mb-3">{{ i18n.t('injuries.adminReportTitle') }}</p>
+
+      <form [formGroup]="adminForm" (ngSubmit)="submitReport()" class="flex flex-wrap gap-2">
+        <app-dropdown
+          class="w-32"
+          [options]="adminTeamDropdownOptions()"
+          [value]="adminForm.value.teamId ?? ''"
+          [placeholder]="i18n.t('store.teamPlaceholder')"
+          (valueChange)="onAdminTeamSelected($event)"
+        />
+        <app-dropdown
+          class="flex-1 min-w-[10rem]"
+          [options]="adminPlayerDropdownOptions()"
+          [value]="adminForm.value.playerId ?? ''"
+          [placeholder]="i18n.t('injuries.adminPlayerPlaceholder')"
+          (valueChange)="adminForm.patchValue({ playerId: $event ?? '' })"
+        />
+        <app-dropdown
+          class="w-36"
+          [options]="statusDropdownOptions()"
+          [value]="adminForm.value.status ?? 'out'"
+          (valueChange)="adminForm.patchValue({ status: $event ?? 'out' })"
+        />
+        <input
+          type="text"
+          formControlName="note"
+          [placeholder]="i18n.t('injuries.adminNotePlaceholder')"
+          class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
+        />
+        <button type="submit" [disabled]="adminForm.invalid || adminSubmitting()" appButton>
+          {{ adminSubmitting() ? i18n.t('injuries.adminSubmitting') : i18n.t('injuries.adminSubmit') }}
+        </button>
+      </form>
+
+      @if (adminError()) {
+        <p class="text-red-500 text-xs font-semibold mt-2">{{ adminError() }}</p>
+      }
+      @if (adminSuccess()) {
+        <p class="text-emerald-500 text-xs font-semibold mt-2">{{ adminSuccess() }}</p>
+      }
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="space-y-3">
+      @for (i of [1, 2, 3]; track i) {
+        <app-skeleton class="rounded-2xl h-24" [iconSize]="20" />
+      }
+    </div>
+  } @else if (error()) {
+    <p class="text-red-500 text-sm font-semibold">{{ i18n.t('injuries.loadError') }}</p>
+  } @else if (groups().length === 0) {
+    <p class="text-sm text-muted text-center py-10">{{ i18n.t('injuries.empty') }}</p>
+  } @else {
+    <div class="space-y-4">
+      @for (group of groups(); track group.teamId) {
+        <div class="bg-card rounded-2xl border border-line shadow-card">
+          <a
+            [routerLink]="['/teams', group.teamId]"
+            class="flex items-center gap-2.5 px-4 py-3 rounded-t-2xl border-b border-line hover:bg-page transition-colors"
+          >
+            <span class="w-1.5 h-6 rounded-full shrink-0" [style.background]="group.teamPrimaryColor"></span>
+            @if (group.teamLogoUrl) {
+              <img [src]="group.teamLogoUrl" [alt]="group.teamName" loading="lazy" decoding="async" appRetryImg class="w-6 h-6 object-contain shrink-0 team-logo" />
+            }
+            <span class="font-display text-sm tracking-wide">{{ group.teamName }}</span>
+            <span class="font-mono text-[11px] text-muted">{{ group.teamCode | teamCode }}</span>
+          </a>
+          <div class="divide-y divide-line">
+            @for (entry of group.entries; track entry.id; let last = $last) {
+              @if (editingPlayerId() === entry.playerId) {
+                <div [formGroup]="editForm" class="flex flex-wrap items-center gap-2 px-4 py-3 bg-page" [class.rounded-b-2xl]="last">
+                  <span class="flex items-center gap-2 mr-auto">
+                    <app-player-photo
+                      [photoUrl]="entry.playerPhotoUrl"
+                      [name]="entry.playerName"
+                      [teamCode]="group.teamCode"
+                      [primaryColor]="group.teamPrimaryColor"
+                      [size]="32"
+                    />
+                    <span class="font-semibold text-sm">{{ entry.playerName }}</span>
+                  </span>
+                  <app-dropdown
+                    class="w-36"
+                    [options]="statusDropdownOptions()"
+                    [value]="editForm.value.status ?? 'out'"
+                    (valueChange)="editForm.patchValue({ status: $event ?? 'out' })"
+                  />
+                  <input
+                    type="text"
+                    formControlName="note"
+                    [placeholder]="i18n.t('injuries.adminNotePlaceholder')"
+                    class="flex-1 min-w-[8rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
+                  />
+                  <button
+                    type="button"
+                    (click)="saveEdit(entry)"
+                    [disabled]="editSaving()"
+                    appButton
+                    appButtonSize="sm"
+                  >
+                    {{ i18n.t('injuries.adminSave') }}
+                  </button>
+                  <button type="button" (click)="cancelEdit()" appButton="outline" appButtonSize="sm">
+                    {{ i18n.t('injuries.adminCancel') }}
+                  </button>
+                </div>
+              } @else {
+                <div class="flex items-center gap-3 px-4 py-3 hover:bg-page transition-colors" [class.rounded-b-2xl]="last">
+                  <a [routerLink]="['/players', entry.playerId]" class="flex items-center gap-3 min-w-0 flex-1">
+                    <app-player-photo
+                      [photoUrl]="entry.playerPhotoUrl"
+                      [name]="entry.playerName"
+                      [teamCode]="group.teamCode"
+                      [primaryColor]="group.teamPrimaryColor"
+                      [size]="36"
+                    />
+                    <span class="min-w-0 flex-1">
+                      <span class="flex items-center gap-2">
+                        <span class="font-semibold text-sm truncate">{{ entry.playerName }}</span>
+                        <span
+                          class="shrink-0 px-2 py-0.5 rounded-md border text-[11px] font-bold uppercase tracking-wider"
+                          [ngClass]="statusClass(entry.status)"
+                        >
+                          {{ statusLabel(entry.status) }}
+                        </span>
+                      </span>
+                      @if (entry.note) {
+                        <span class="block text-xs text-muted mt-0.5 truncate">{{ entry.note }}</span>
+                      }
+                    </span>
+                  </a>
+                  <span class="shrink-0 text-[11px] text-muted font-mono text-right">
+                    {{ entry.updatedAt | date: "MMM d" }}
+                  </span>
+                  @if (auth.currentUser()?.isAdmin) {
+                    <span class="shrink-0 flex items-center gap-2 ml-1">
+                      <button
+                        type="button"
+                        (click)="startEdit(entry)"
+                        class="text-[11px] text-muted hover:text-highlight font-bold uppercase tracking-wider transition-colors"
+                      >
+                        {{ i18n.t('injuries.adminEdit') }}
+                      </button>
+                      <button
+                        type="button"
+                        (click)="removeReport(entry)"
+                        class="text-[11px] text-muted hover:text-red-500 font-bold uppercase tracking-wider transition-colors"
+                      >
+                        {{ i18n.t('injuries.adminRemove') }}
+                      </button>
+                    </span>
+                  }
+                </div>
+              }
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

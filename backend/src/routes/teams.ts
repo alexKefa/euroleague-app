@@ -2,7 +2,7 @@ import { Router } from "express";
 import { eq, and, or, asc, desc } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "../db/client.js";
-import { teams, players, playerSeasonStats, games } from "../db/schema.js";
+import { teams, players, playerSeasonStats, games, playerInjuries } from "../db/schema.js";
 import { getCurrentSeason } from "../services/season.js";
 
 function emptyStats(playerId: string, teamId: string, season: string) {
@@ -91,12 +91,16 @@ teamsRouter.get("/:id/roster", async (req, res) => {
     // roster that predates any stats sync at all). Missing stats render as
     // "—" in the UI already (roster.html's `?? "—"` on every stat cell).
     const rows = await db
-      .select({ player: players, stats: playerSeasonStats })
+      .select({ player: players, stats: playerSeasonStats, injury: playerInjuries })
       .from(players)
       .leftJoin(
         playerSeasonStats,
         and(eq(playerSeasonStats.playerId, players.id), eq(playerSeasonStats.season, season))
       )
+      // Admin-entered, not synced — see schema.ts's doc comment on
+      // playerInjuries. Left join since most players have no row at all
+      // (healthy), not a status value to default.
+      .leftJoin(playerInjuries, eq(playerInjuries.playerId, players.id))
       // active: false excludes a player roster_sync.py found on no team's
       // current-season roster (departed the league entirely) — see the
       // schema comment on players.active. A same-league transfer doesn't
@@ -108,6 +112,7 @@ teamsRouter.get("/:id/roster", async (req, res) => {
     const withStats = rows.map((r) => ({
       player: r.player,
       stats: r.stats ?? emptyStats(r.player.id, teamId, season),
+      injury: r.injury,
     }));
 
     res.json(withStats);
