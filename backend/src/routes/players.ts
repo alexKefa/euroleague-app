@@ -194,7 +194,12 @@ playersRouter.get("/advanced-stats", async (req, res) => {
       .select({ player: players, team: teams, stats: playerSeasonStats })
       .from(playerSeasonStats)
       .innerJoin(players, eq(playerSeasonStats.playerId, players.id))
-      .innerJoin(teams, eq(playerSeasonStats.teamId, teams.id))
+      // players.teamId (current roster team), not playerSeasonStats.teamId
+      // (a snapshot of whatever team the player was on *that season*) — a
+      // transferred player should show their current team here even while
+      // showing last season's stats, same "latest known numbers, current
+      // team" intent as GET /players/:id.
+      .innerJoin(teams, eq(players.teamId, teams.id))
       .where(eq(playerSeasonStats.season, season));
 
     res.json({ season, rows });
