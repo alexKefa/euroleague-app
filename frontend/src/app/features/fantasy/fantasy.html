@@ -117,15 +117,18 @@
         }
       </div>
 
-      <!-- Everything below is one flex column: filters, court, sixth man,
-           bench, coach, pool strip, submit — all sized to their content
-           instead of any one section forcing a tall page-level scroll.
-           The pool/coach lists are single HORIZONTALLY-scrolling strips,
-           not wrapping grids — a tall grid of cdkDrag cards meant a finger
-           had to land on a draggable card to reach anything below the
-           fold, and CDK sets touch-action:none on drag handles, which
-           blocks the browser's own touch-scroll on exactly the elements
-           you'd need to touch to scroll past them. -->
+      <!-- Everything below is one flex column: filters, [court+bench |
+           pool] side-by-side, coach, sort, submit. The court and the pool
+           used to stack vertically, which meant scrolling down far enough
+           to reach the pool pushed the court off-screen entirely — on a
+           real phone that makes dragging a pool card onto the court
+           impossible, not just awkward, since you can't scroll mid-drag
+           (see court-background.ts's own doc history). They're now a
+           permanent two-column row instead: the pool gets its OWN internal
+           scroll (stretched to match the court+bench column's height, so
+           it never needs the *page* to scroll), meaning both stay visible
+           together regardless of screen size — not just a desktop-only
+           fix, the narrow-phone case is the one this was actually for. -->
       <div class="flex flex-col gap-3">
         <!-- Filters -->
         <div class="flex flex-col sm:flex-row gap-2">
@@ -157,33 +160,86 @@
           </button>
         </div>
 
-        <!-- The court: 5 starter drop targets over a decorative half-court -->
-        <div class="relative w-full max-w-sm mx-auto rounded-2xl overflow-hidden bg-gradient-to-b from-highlight/10 to-transparent border border-line shadow-card" style="aspect-ratio: 320 / 210;">
-          <app-court-background class="absolute inset-0 w-full h-full" />
-          @for (pos of starterSlotPositions; track $index; let i = $index) {
-            <div class="absolute -translate-x-1/2 -translate-y-1/2" [style.left.%]="pos.left" [style.top.%]="pos.top">
-              <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: starterSlots()[i], size: 44 }" />
+        <!-- Two-column row: court+bench (3 parts) | pool (2 parts), always
+             side by side — `items-stretch` (the flex default) is what lets
+             the pool's height match the left column automatically instead
+             of a guessed fixed height. -->
+        <div class="flex gap-2.5">
+          <!-- LEFT: court (5 starter drop targets) + sixth man + bench -->
+          <div class="flex-[3] min-w-0 flex flex-col gap-2.5">
+            <div class="relative w-full rounded-2xl overflow-hidden bg-gradient-to-b from-highlight/10 to-transparent border border-line shadow-card" style="aspect-ratio: 320 / 210;">
+              <app-court-background class="absolute inset-0 w-full h-full" />
+              @for (pos of starterSlotPositions; track $index; let i = $index) {
+                <div class="absolute -translate-x-1/2 -translate-y-1/2" [style.left.%]="pos.left" [style.top.%]="pos.top">
+                  <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: starterSlots()[i], size: 36 }" />
+                </div>
+              }
             </div>
-          }
-        </div>
 
-        <!-- Sixth man + bench (50% score) -->
-        <div class="bg-card rounded-2xl border border-line shadow-card p-3">
-          <p class="text-[11px] text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.sixthManLabel') }}</p>
-          <div class="flex justify-center mb-3">
-            <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: sixthManSlot(), size: 40 }" />
+            <div class="bg-card rounded-2xl border border-line shadow-card p-2">
+              <p class="text-[10px] text-muted font-bold uppercase tracking-wider text-center mb-1.5">{{ i18n.t('fantasy.sixthManLabel') }}</p>
+              <div class="flex justify-center mb-2">
+                <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: sixthManSlot(), size: 32 }" />
+              </div>
+              <p class="text-[10px] text-muted font-bold uppercase tracking-wider text-center mb-1.5">{{ i18n.t('fantasy.benchLabel') }}</p>
+              <div class="flex justify-center gap-1.5 flex-wrap">
+                @for (slot of benchSlots(); track slot.id) {
+                  <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: slot, size: 28 }" />
+                }
+              </div>
+            </div>
+
+            <p class="text-center text-[11px] text-muted">
+              {{ squadFull() ? i18n.t('fantasy.courtFull') : i18n.t('fantasy.dragHint') }}
+            </p>
           </div>
-          <p class="text-[11px] text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.benchLabel') }}</p>
-          <div class="flex justify-center gap-3">
-            @for (slot of benchSlots(); track slot.id) {
-              <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: slot, size: 36 }" />
+
+          <!-- RIGHT: player pool — a vertical list with its own scroll
+               (not the page's), also the drop target for a player removed
+               from the squad. Compact single-row cards (photo + name +
+               price) rather than the old square tile, since this column is
+               narrow by design. -->
+          <div
+            cdkDropList
+            id="pool"
+            [cdkDropListConnectedTo]="dropListIds"
+            (cdkDropListDropped)="onDrop($event, 'pool')"
+            class="flex-[2] min-w-0 flex flex-col gap-1.5 bg-card rounded-2xl border border-line shadow-card p-2 overflow-y-auto"
+            style="-webkit-overflow-scrolling: touch;"
+          >
+            @for (row of visibleRows(); track row.player.id) {
+              <div
+                cdkDrag
+                [cdkDragData]="row.player.id"
+                (click)="toggle(row.player.id)"
+                class="flex items-center gap-1.5 rounded-lg border border-line bg-page p-1.5 cursor-grab active:cursor-grabbing hover:border-highlight transition-colors"
+              >
+                <app-player-photo
+                  [photoUrl]="row.player.photoUrl"
+                  [name]="row.player.name"
+                  [teamCode]="row.team.code"
+                  [primaryColor]="row.team.primaryColor"
+                  [size]="28"
+                />
+                <div class="min-w-0 flex-1">
+                  <p class="text-[10px] font-semibold truncate leading-tight">{{ row.player.name }}</p>
+                  <p class="font-mono text-[9px] font-bold text-highlight leading-tight">{{ row.price }}</p>
+                </div>
+              </div>
+            } @empty {
+              <p class="text-center text-xs text-muted py-4">{{ i18n.t('fantasy.courtFull') }}</p>
+            }
+            @if (hasMoreRows()) {
+              <button
+                type="button"
+                (click)="showMore()"
+                class="flex items-center justify-center gap-1 rounded-lg border border-dashed border-line text-muted hover:text-ink hover:border-highlight transition-colors py-1.5 text-[10px] font-bold"
+              >
+                {{ i18n.t('fantasy.showMore') }}
+              </button>
             }
           </div>
         </div>
-
-        <p class="text-center text-xs text-muted -mt-1">
-          {{ squadFull() ? i18n.t('fantasy.courtFull') : i18n.t('fantasy.dragHint') }}
-        </p>
 
         <!-- Coach picker — a single-select horizontal strip, no dragging
              needed (only ~20 choices, tap replaces the current pick). -->
@@ -204,57 +260,6 @@
               </button>
             }
           </div>
-        </div>
-
-        <!-- Player pool — a single horizontally-scrolling strip of
-             draggable cards, also the drop target for a player removed
-             from the squad. -->
-        <div
-          cdkDropList
-          id="pool"
-          cdkDropListOrientation="horizontal"
-          [cdkDropListConnectedTo]="dropListIds"
-          (cdkDropListDropped)="onDrop($event, 'pool')"
-          class="flex gap-2 overflow-x-auto bg-card rounded-2xl border border-line shadow-card p-2.5 min-h-[96px]"
-          style="scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch;"
-        >
-          @for (row of visibleRows(); track row.player.id) {
-            <div
-              cdkDrag
-              [cdkDragData]="row.player.id"
-              (click)="toggle(row.player.id)"
-              class="shrink-0 w-[86px] flex flex-col items-center gap-1 rounded-xl border border-line bg-page p-2 cursor-grab active:cursor-grabbing hover:border-highlight transition-colors"
-              style="scroll-snap-align: start;"
-            >
-              <app-player-photo
-                [photoUrl]="row.player.photoUrl"
-                [name]="row.player.name"
-                [teamCode]="row.team.code"
-                [primaryColor]="row.team.primaryColor"
-                [size]="38"
-              />
-              <p class="text-[10px] font-semibold text-center truncate w-full">{{ row.player.name }}</p>
-              <div class="flex items-center gap-1">
-                <app-team-badge [code]="row.team.code" [logoUrl]="row.team.logoUrl" [size]="12" />
-                @if (opponentFor(row.team.id); as opp) {
-                  <span class="text-[8px] text-muted font-mono">{{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }} {{ opp.opponent.code }}</span>
-                }
-              </div>
-              <p class="font-mono text-[11px] font-bold text-highlight">{{ row.price }}</p>
-            </div>
-          } @empty {
-            <p class="w-full text-center text-sm text-muted self-center py-4">{{ i18n.t('fantasy.courtFull') }}</p>
-          }
-          @if (hasMoreRows()) {
-            <button
-              type="button"
-              (click)="showMore()"
-              class="shrink-0 w-[86px] flex flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-line text-muted hover:text-ink hover:border-highlight transition-colors"
-            >
-              <span class="text-xl leading-none">&rarr;</span>
-              <span class="text-[10px] font-bold">{{ i18n.t('fantasy.showMore') }}</span>
-            </button>
-          }
         </div>
 
         <div class="flex items-center justify-center gap-3">
