@@ -135,6 +135,12 @@ export class AppComponent implements OnInit {
   // rather than fighting Angular bindings for a shared cross-tab element.
   @ViewChild("pillIndicator") private pillRef?: ElementRef<HTMLElement>;
   @ViewChild("basketball") private ballRef?: ElementRef<SVGElement>;
+  // The pt-2/pb-2 row *inside* #bottomNav, not #bottomNav itself — #bottomNav
+  // also carries the safe-area-inset bottom padding (invisible bg-card
+  // buffer for the home-indicator area on notched phones), which would
+  // otherwise pull this row's own measured rect off-true and make the
+  // pill/ball math drift by however big that inset is.
+  @ViewChild("bottomNavRow") private bottomNavRowRef?: ElementRef<HTMLElement>;
 
   private readonly resnapBottomNav = () => {
     const el = this.bottomNavRef?.nativeElement;
@@ -198,7 +204,7 @@ export class AppComponent implements OnInit {
   // template, so a reduced-motion user still sees the correct tab
   // highlighted, just without either animation.
   private repositionPill(allowBallTravel: boolean): void {
-    const nav = this.bottomNavRef?.nativeElement;
+    const nav = this.bottomNavRowRef?.nativeElement;
     const pill = this.pillRef?.nativeElement;
     const slot = this.activeTabSlot();
     if (!nav || !pill || slot === -1) return;

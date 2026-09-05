@@ -143,11 +143,19 @@
 <nav
   #bottomNav
   data-app-bottom-nav
-  class="sm:hidden fixed bottom-0 inset-x-0 bg-card border-t border-line flex items-center justify-around pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-40"
+  class="sm:hidden fixed bottom-0 inset-x-0 bg-card border-t border-line z-40 pb-[env(safe-area-inset-bottom)]"
 >
+  <!-- The safe-area allowance lives on the outer <nav> as plain padding
+       (same bg-card color, so it's invisible blank space, not a visible
+       gap) — kept OUT of this inner row so the tab icons/pill get a truly
+       symmetric pt-2/pb-2 regardless of how big a given device's home-
+       indicator inset is, rather than the icon row visually creeping
+       upward on notched phones. #bottomNavRow (not #bottomNav) is what
+       app.component.ts measures pill/ball positions against. -->
+  <div #bottomNavRow class="relative flex items-center justify-around pt-2 pb-2">
   <div
     #pillIndicator
-    class="pointer-events-none absolute top-2 h-8 w-0 rounded-full bg-highlight/15 border border-highlight/35 transition-[transform,width] duration-[380ms] [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none"
+    class="pointer-events-none absolute top-2 left-0 h-8 w-0 rounded-full bg-highlight/15 border border-highlight/35 transition-[transform,width] duration-[380ms] [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none"
   ></div>
   <svg
     #basketball
@@ -237,6 +245,7 @@
         }
       </div>
     }
+  </div>
   </div>
 </nav>
 
