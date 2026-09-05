@@ -215,7 +215,15 @@ export class AppComponent implements OnInit {
 
     const navRect = nav.getBoundingClientRect();
     const targetRect = target.getBoundingClientRect();
+    // Width AND height (not just width against a fixed CSS height) — the
+    // icon-wrap circle is a square (w-9 h-9), so a pill that only tracked
+    // width against a hardcoded height was a stadium shape stretched wider
+    // than its target, not a true circle around the icon. Same for top:
+    // measured fresh rather than a hand-tuned `top-*` class, so this can't
+    // drift out of sync if the icon-wrap size ever changes again.
     pill.style.width = `${targetRect.width}px`;
+    pill.style.height = `${targetRect.height}px`;
+    pill.style.top = `${targetRect.top - navRect.top}px`;
     pill.style.transform = `translateX(${targetRect.left - navRect.left}px)`;
 
     const prevSlot = this.previousTabSlot;
@@ -239,6 +247,11 @@ export class AppComponent implements OnInit {
     const fromX = fromRect.left - navRect.left + fromRect.width / 2 - ballSize / 2;
     const toX = toRect.left - navRect.left + toRect.width / 2 - ballSize / 2;
     const mid = fromX + (toX - fromX) / 2;
+    // Vertically centered on whichever circle it's leaving/landing on
+    // (they're the same size, so one base value works for both ends) —
+    // the keyframes' own translateY values are the arc *added* on top of
+    // this resting height, not an absolute position.
+    ball.style.top = `${fromRect.top - navRect.top + fromRect.height / 2 - ballSize / 2}px`;
 
     ball.getAnimations().forEach((a) => a.cancel());
     ball.animate(

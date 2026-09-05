@@ -155,7 +155,7 @@
   <div #bottomNavRow class="relative flex items-center justify-around pt-2 pb-2">
   <div
     #pillIndicator
-    class="pointer-events-none absolute top-2 left-0 h-8 w-0 rounded-full bg-highlight/15 border border-highlight/35 transition-[transform,width] duration-[380ms] [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none"
+    class="pointer-events-none absolute top-0 left-0 h-0 w-0 rounded-full bg-highlight/15 border border-highlight/35 transition-[transform,width,height] duration-[380ms] [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none"
   ></div>
   <svg
     #basketball
@@ -177,7 +177,7 @@
       [class.text-muted]="!isActive(link)"
       class="relative flex-1 flex flex-col items-center justify-center gap-0.5 py-1"
     >
-      <span class="icon-wrap relative flex items-center justify-center w-11 h-8 rounded-full transition-transform duration-200 motion-reduce:transition-none" [class]="isActive(link) ? 'scale-100' : 'scale-90'">
+      <span class="icon-wrap relative flex items-center justify-center w-9 h-9 rounded-full transition-transform duration-200 motion-reduce:transition-none" [class]="isActive(link) ? 'scale-100' : 'scale-90'">
         <app-nav-icon [name]="link.icon" [active]="isActive(link)" [size]="22" />
         @if (link.path === '/predictions' && auth.isAuthenticated() && events.hasLiveGame()) {
           <span
@@ -216,7 +216,7 @@
       [class.text-muted]="!isMoreActive() && !moreOpen()"
       class="flex flex-col items-center gap-0.5"
     >
-      <span class="icon-wrap relative flex items-center justify-center w-11 h-8 rounded-full transition-transform duration-200 motion-reduce:transition-none" [class]="(isMoreActive() || moreOpen()) ? 'scale-100' : 'scale-90'">
+      <span class="icon-wrap relative flex items-center justify-center w-9 h-9 rounded-full transition-transform duration-200 motion-reduce:transition-none" [class]="(isMoreActive() || moreOpen()) ? 'scale-100' : 'scale-90'">
         <app-nav-icon name="dots-vertical" [active]="isMoreActive() || moreOpen()" [size]="22" />
       </span>
       <span
