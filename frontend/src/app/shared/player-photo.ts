@@ -5,21 +5,22 @@ import { displayTeamCode } from "./team-display-code";
 // Standalone jersey-silhouette placeholder for a player headshot — same
 // "fall back instead of a broken image" spirit as TeamBadgeComponent, used
 // everywhere player.photoUrl renders (player detail, game-detail top
-// performers, player compare). v3 (2026-09-02, after user feedback on a
-// flat full-bleed square v2 modeled directly on EuroLeague Fantasy's own
-// tiles — disliked for being flat/plain, wrong corners, and off font/size):
-// back to a circular badge with real depth (a two-color diagonal gradient
-// plus a soft radial sheen, not a single flat fill), a translucent jersey
-// watermark for texture, and the number in a mono font (matches real
-// jersey numbering better than a display face). Falls back through
-// jerseyNumber -> teamCode -> first initial of name, so it degrades
-// gracefully even for a roster with neither a synced photo nor a jersey
-// number yet (e.g. a freshly imported season before every squad is fully
-// synced — see the Besiktas/thin-roster gap noted in CLAUDE.md). Colored
-// from the player's own team (primaryColor/secondaryColor) when given,
-// otherwise from the app's own --accent-primary/--accent-secondary reskin
-// variables, so an unphotographed player still reads as "this app, this
-// team" rather than a generic gray box.
+// performers, player compare, Fantasy Five). v5 (2026-09-05): after v4's
+// deep-V read as ambiguous to the user, iterated in a design-review
+// Artifact (several original front-facing silhouettes + finish treatments,
+// shown across real team colorways) rather than guessing blind again —
+// landed on "scoop neck, solid + collar trim" (the artifact's option D):
+// a shallow, rounded front dip (the dip itself, not a back's straight
+// neckline, is what reads as "front"), a solid team-primaryColor body, and
+// a single secondaryColor collar trim stroke — no armhole trim, no side
+// panel, no pattern (a diagonal-stripe pass was tried and explicitly
+// dropped earlier). Same sheen gradient + soft collar shadow as v4 for a
+// little real depth. Silhouette viewBox is taller than wide (100x120, a
+// torso proportion) rendered with `preserveAspectRatio="slice"` so it fills
+// the circular frame like a cropped photo would, rather than being
+// squashed to fit a square viewBox. Falls back through jerseyNumber ->
+// teamCode -> first initial of name exactly as before, colored from the
+// player's own team when given, otherwise the app's own reskin variables.
 @Component({
   selector: "app-player-photo",
   standalone: true,
@@ -41,20 +42,35 @@ import { displayTeamCode } from "./team-display-code";
           class="w-full h-full object-cover"
         />
       } @else {
-        <span class="absolute inset-0" [style.background]="gradient()"></span>
-        <span class="absolute inset-0" style="background: radial-gradient(circle at 32% 22%, rgba(255,255,255,0.32), transparent 58%)"></span>
-        <svg viewBox="0 0 64 64" class="absolute w-[68%] h-[68%]" aria-hidden="true">
-          <path
-            d="M24,7 Q32,16 40,7 L48,8 L53,22 L43,22 L43,58 L21,58 L21,22 L11,22 L16,8 Z"
-            fill="#fff"
-            fill-opacity="0.16"
-          />
+        <span class="absolute inset-0" [style.background]="backdrop()"></span>
+        <svg viewBox="0 0 100 120" preserveAspectRatio="xMidYMid slice" class="absolute inset-0 w-full h-full" aria-hidden="true">
+          <defs>
+            <linearGradient [attr.id]="sheenId" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#fff" stop-opacity="0.38" />
+              <stop offset="0.4" stop-color="#fff" stop-opacity="0" />
+              <stop offset="1" stop-color="#000" stop-opacity="0.3" />
+            </linearGradient>
+            <radialGradient [attr.id]="neckId" cx="0.5" cy="0.16" r="0.14">
+              <stop offset="0" stop-color="#000" stop-opacity="0.5" />
+              <stop offset="1" stop-color="#000" stop-opacity="0" />
+            </radialGradient>
+            <clipPath [attr.id]="clipId">
+              <path [attr.d]="jerseyPath" />
+            </clipPath>
+          </defs>
+          <g [attr.clip-path]="'url(#' + clipId + ')'">
+            <rect x="0" y="0" width="100" height="120" [style.fill]="primary()" />
+            <rect x="0" y="0" width="100" height="120" [attr.fill]="'url(#' + sheenId + ')'" />
+            <ellipse cx="50" cy="16" rx="16" ry="6" [attr.fill]="'url(#' + neckId + ')'" />
+          </g>
+          <path [attr.d]="jerseyPath" fill="none" stroke="rgba(0,0,0,0.35)" stroke-width="1.2" stroke-linejoin="round" />
+          <path [attr.d]="collarTrimPath" fill="none" [style.stroke]="secondary()" stroke-width="3" stroke-linecap="round" />
         </svg>
         <span class="relative flex flex-col items-center leading-none" [style.color]="numberColor()">
           @if (hasNumber() && teamCode) {
-            <span class="font-mono font-bold tracking-wide opacity-75" [style.font-size.px]="codeSize()">{{ displayCode() }}</span>
+            <span class="font-mono font-bold tracking-wide opacity-80" [style.font-size.px]="codeSize()" style="text-shadow: 0 1px 2px rgba(0,0,0,0.4)">{{ displayCode() }}</span>
           }
-          <span class="font-mono font-extrabold tracking-tight" [style.font-size.px]="labelSize()" style="text-shadow: 0 1px 2px rgba(0,0,0,0.3)">{{
+          <span class="font-mono font-extrabold tracking-tight" [style.font-size.px]="labelSize()" style="text-shadow: 0 1px 3px rgba(0,0,0,0.45)">{{
             label()
           }}</span>
         </span>
@@ -73,11 +89,32 @@ export class PlayerPhotoComponent {
 
   protected failed = signal(false);
 
-  protected gradient = computed(() => {
-    const from = this.primaryColor ?? "var(--accent-primary)";
-    const to = this.secondaryColor ?? "var(--accent-secondary)";
-    return `linear-gradient(150deg, ${from} 0%, ${to} 145%)`;
-  });
+  // Original silhouette (not traced from any third-party jersey artwork) —
+  // a shallow scoop-neck dip (dips at center, unlike a back neckline),
+  // flared shoulder straps, deep concave armholes, straight body sides.
+  // Also used as the stroke outline and the SVG clip path, so it's defined
+  // once rather than duplicated. Kept in sync by hand with
+  // features/store/collectible-card.html's matching fallback.
+  protected readonly jerseyPath =
+    "M24,6 Q50,17 76,6 Q88,8 87,15 Q74,19 70,44 L74,113 L26,113 L30,44 Q26,19 13,15 Q12,8 24,6 Z";
+  protected readonly collarTrimPath = "M24,6 Q50,17 76,6";
+
+  // Unique per instance so two placeholders on the same page don't fight
+  // over one <linearGradient>/<radialGradient>/<clipPath> id — same
+  // reasoning as shot-chart.ts's photoClipId.
+  private readonly instanceId = Math.random().toString(36).slice(2);
+  protected readonly sheenId = "player-photo-sheen-" + this.instanceId;
+  protected readonly neckId = "player-photo-neck-" + this.instanceId;
+  protected readonly clipId = "player-photo-clip-" + this.instanceId;
+
+  protected primary = computed(() => this.primaryColor ?? "var(--accent-primary)");
+  protected secondary = computed(() => this.secondaryColor ?? "var(--accent-secondary)");
+
+  // Behind the jersey (visible only at its clipped-away corners/edges
+  // inside the circular frame) — same two-color diagonal wash the old
+  // gradient fallback used, so an unphotographed player still reads as
+  // "this team" even in the gaps around the jersey silhouette.
+  protected backdrop = computed(() => `linear-gradient(150deg, ${this.primary()} 0%, ${this.secondary()} 145%)`);
 
   // White text reads fine on nearly every EuroLeague team color, but a few
   // (e.g. a pale gold/yellow) are too light for it — fall back to a dark
@@ -101,6 +138,6 @@ export class PlayerPhotoComponent {
     return this.name?.trim().charAt(0).toUpperCase() ?? "?";
   });
 
-  protected labelSize = computed(() => Math.round(this.size * (this.hasNumber() ? 0.36 : 0.3)));
-  protected codeSize = computed(() => Math.round(this.size * 0.13));
+  protected labelSize = computed(() => Math.round(this.size * (this.hasNumber() ? 0.34 : 0.28)));
+  protected codeSize = computed(() => Math.round(this.size * 0.12));
 }

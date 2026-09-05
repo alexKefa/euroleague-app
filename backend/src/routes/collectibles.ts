@@ -285,12 +285,81 @@ collectiblesRouter.get("/:id/stats", async (req, res) => {
       return;
     }
 
+    // Career averages — every synced season for this player (backfilled
+    // 2000-01 onward where the real feed has data, see
+    // scripts/backfill-career-stats.ts), weighted by that season's
+    // games_played so a 3-game cameo doesn't count the same as a full
+    // 34-game season. Percentage columns weight only over seasons where
+    // that specific column isn't null (defensive — in practice every
+    // backfilled/synced row has both endpoints' data together). Computed
+    // on read, same "no stored aggregate" philosophy as the rest of this
+    // app's economy — a future reprice/backfill run just changes the
+    // answer next time this is read, nothing to invalidate.
+    const [career] = await db.execute<{
+      seasons_played: number;
+      games_played: number;
+      minutes_per_game: number | null;
+      points_per_game: number | null;
+      rebounds_per_game: number | null;
+      assists_per_game: number | null;
+      steals_per_game: number | null;
+      blocks_per_game: number | null;
+      turnovers_per_game: number | null;
+      field_goal_pct: number | null;
+      three_point_pct: number | null;
+      free_throw_pct: number | null;
+      valuation: number | null;
+    }>(sql`
+      select
+        count(*)::int as seasons_played,
+        coalesce(sum(games_played), 0)::int as games_played,
+        sum(minutes_per_game * games_played) / nullif(sum(games_played), 0) as minutes_per_game,
+        sum(points_per_game * games_played) / nullif(sum(games_played), 0) as points_per_game,
+        sum(rebounds_per_game * games_played) / nullif(sum(games_played), 0) as rebounds_per_game,
+        sum(assists_per_game * games_played) / nullif(sum(games_played), 0) as assists_per_game,
+        sum(steals_per_game * games_played) / nullif(sum(games_played), 0) as steals_per_game,
+        sum(blocks_per_game * games_played) / nullif(sum(games_played), 0) as blocks_per_game,
+        sum(turnovers_per_game * games_played) / nullif(sum(games_played), 0) as turnovers_per_game,
+        sum(field_goal_pct * games_played) filter (where field_goal_pct is not null)
+          / nullif(sum(games_played) filter (where field_goal_pct is not null), 0) as field_goal_pct,
+        sum(three_point_pct * games_played) filter (where three_point_pct is not null)
+          / nullif(sum(games_played) filter (where three_point_pct is not null), 0) as three_point_pct,
+        sum(free_throw_pct * games_played) filter (where free_throw_pct is not null)
+          / nullif(sum(games_played) filter (where free_throw_pct is not null), 0) as free_throw_pct,
+        sum(valuation * games_played) / nullif(sum(games_played), 0) as valuation
+      from ${playerSeasonStats}
+      where player_id = ${player.id}
+    `);
+
+    const careerOut = career?.seasons_played
+      ? {
+          seasonsPlayed: career.seasons_played,
+          gamesPlayed: career.games_played,
+          minutesPerGame: career.minutes_per_game,
+          pointsPerGame: career.points_per_game,
+          reboundsPerGame: career.rebounds_per_game,
+          assistsPerGame: career.assists_per_game,
+          stealsPerGame: career.steals_per_game,
+          blocksPerGame: career.blocks_per_game,
+          turnoversPerGame: career.turnovers_per_game,
+          fieldGoalPct: career.field_goal_pct,
+          threePointPct: career.three_point_pct,
+          freeThrowPct: career.free_throw_pct,
+          valuation: career.valuation,
+        }
+      : null;
+
     // See services/season.ts — "latest season with games synced", so this
     // agrees with what GET /api/teams/:id/roster now shows for the same
     // player.
     const season = await getCurrentSeason();
     if (!season) {
-      res.json({ matched: true, player: { id: player.id, name: player.name, position: player.position, jerseyNumber: player.jerseyNumber }, stats: null });
+      res.json({
+        matched: true,
+        player: { id: player.id, name: player.name, position: player.position, jerseyNumber: player.jerseyNumber },
+        stats: null,
+        career: careerOut,
+      });
       return;
     }
 
@@ -304,6 +373,7 @@ collectiblesRouter.get("/:id/stats", async (req, res) => {
       matched: true,
       player: { id: player.id, name: player.name, position: player.position, jerseyNumber: player.jerseyNumber },
       stats: stats ?? null,
+      career: careerOut,
     });
   } catch (err) {
     console.error("GET /api/collectibles/:id/stats failed:", err);

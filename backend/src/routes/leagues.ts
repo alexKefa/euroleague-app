@@ -5,6 +5,8 @@ import { leagues, leagueMembers, users, collectibles, teams } from "../db/schema
 import { requireAuth } from "../auth/middleware.js";
 import { createUniqueLeagueCode } from "../services/leagues.js";
 import { getLeaderboardEntries } from "../services/leaderboard.js";
+import { getFantasyLeaderboardEntries } from "../services/fantasyScoring.js";
+import { getCurrentSeason } from "../services/season.js";
 
 export const leaguesRouter = Router();
 
@@ -235,5 +237,50 @@ leaguesRouter.get("/:id/leaderboard", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("GET /api/leagues/:id/leaderboard failed:", err);
     res.status(500).json({ error: "Failed to load league leaderboard" });
+  }
+});
+
+// Fantasy Five's league-scoped board — same getFantasyLeaderboardEntries
+// shared with the global GET /api/fantasy/leaderboard, just scoped to this
+// league's members, mirroring the points leaderboard's global/league split
+// above. Kept as its own endpoint/response shape rather than folded into
+// GET /:id/leaderboard's payload, so the two economies' numbers stay
+// visibly separate rather than implying they're the same score.
+leaguesRouter.get("/:id/fantasy-leaderboard", requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!(await requireMembership(id, req.userId!))) {
+      res.status(403).json({ error: "Not a member of this league", code: "NOT_A_MEMBER" });
+      return;
+    }
+
+    const season = typeof req.query.season === "string" ? req.query.season : await getCurrentSeason();
+    if (!season) {
+      res.json([]);
+      return;
+    }
+
+    const memberRows = await db
+      .select({ userId: leagueMembers.userId, username: users.username })
+      .from(leagueMembers)
+      .innerJoin(users, eq(leagueMembers.userId, users.id))
+      .where(eq(leagueMembers.leagueId, id));
+    const memberIds = memberRows.map((r) => r.userId);
+
+    const entries = await getFantasyLeaderboardEntries({ userIds: memberIds, season });
+
+    // Same "everyone's here, nobody's scored yet" inclusion as the points
+    // leaderboard above — a member with no lineup drafted this season still
+    // shows, ranked last at 0.
+    const presentIds = new Set(entries.map((e) => e.userId));
+    const zeroEntries = memberRows
+      .filter((r) => !presentIds.has(r.userId))
+      .map((r) => ({ userId: r.userId, displayName: r.username, fantasyPoints: 0, showcase: [] as never[] }))
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+    res.json([...entries, ...zeroEntries]);
+  } catch (err) {
+    console.error("GET /api/leagues/:id/fantasy-leaderboard failed:", err);
+    res.status(500).json({ error: "Failed to load fantasy leaderboard" });
   }
 });

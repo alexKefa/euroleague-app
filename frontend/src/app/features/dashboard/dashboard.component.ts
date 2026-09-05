@@ -5,7 +5,7 @@ import { ApiService } from "../../core/api.service";
 import { ThemeService } from "../../core/theme.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
-import { StandingsRow, LeaderEntry, RoundMvp, NewsArticle, Game, LeaderboardEntry, League } from "../../core/models";
+import { StandingsRow, LeaderEntry, RoundMvp, NewsArticle, Game, LeaderboardEntry, League, FantasyLineup } from "../../core/models";
 import { PageHintComponent } from "../../shared/page-hint";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { NavIconComponent } from "../../shared/nav-icon";
@@ -99,6 +99,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // joined as a guest), so gated behind auth like the favorite-team hero,
   // not shown to guests the way the public leaderboard teaser is.
   readonly myLeagues = signal<League[]>([]);
+  // Fantasy Five teaser, same "requires an account, gated like myLeagues"
+  // reasoning — surfaces the current round's lock status so this card is
+  // never just a static ad, without duplicating the roster-builder page's
+  // own fetch of the whole player pool.
+  readonly fantasyLineup = signal<FantasyLineup | null>(null);
 
   // Which tab the merged Performances/Leaders/Predictors/Schedule card is
   // showing. Defaults to the first section that actually has data (see the
@@ -249,6 +254,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (this.auth.isAuthenticated()) {
       this.api.getMyLeagues().subscribe({
         next: (rows) => this.myLeagues.set(rows),
+        error: () => {}, // non-critical widget
+      });
+      this.api.getFantasyLineup().subscribe({
+        next: (lineup) => this.fantasyLineup.set(lineup),
         error: () => {}, // non-critical widget
       });
     }

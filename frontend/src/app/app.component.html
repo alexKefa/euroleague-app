@@ -131,11 +131,17 @@
   </div>
 </div>
 
-<!-- Bottom tab nav — mobile only, primary nav within thumb reach -->
+<!-- Bottom tab nav — mobile only, primary nav within thumb reach. "Lift &
+     glow": the active tab's icon rises above the bar into a card-colored
+     ring + highlight halo (shadow-navLift, tailwind.config.js) rather than
+     a same-plane highlight fill — chosen over a sliding-pill alternative
+     in a design-review pass (see the Artifact this was prototyped in).
+     items-end (not items-center) so every tab's icon/label share the same
+     baseline regardless of which one is currently lifted. -->
 <nav
   #bottomNav
   data-app-bottom-nav
-  class="sm:hidden fixed bottom-0 inset-x-0 bg-card border-t border-line flex justify-around items-center pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-40"
+  class="sm:hidden fixed bottom-0 inset-x-0 bg-card border-t border-line flex items-end justify-around pt-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-40"
 >
   @for (link of mobileNavLinks; track link.path) {
     <a
@@ -143,11 +149,11 @@
       [attr.aria-label]="i18n.t(link.label)"
       [class.text-highlight]="isActive(link)"
       [class.text-muted]="!isActive(link)"
-      class="flex items-center justify-center px-1 py-1"
+      class="relative flex-1 flex flex-col items-center justify-end gap-0.5 py-1"
     >
       <span
-        class="relative flex items-center justify-center w-11 h-9 rounded-full transition-all duration-200"
-        [class]="isActive(link) ? 'bg-highlight/15 scale-100' : 'scale-90'"
+        class="relative flex items-center justify-center w-11 h-8 rounded-full transition-transform duration-300 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none"
+        [class]="isActive(link) ? '-translate-y-3.5 bg-card shadow-navLift' : 'translate-y-0'"
       >
         <app-nav-icon [name]="link.icon" [active]="isActive(link)" [size]="22" />
         @if (link.path === '/predictions' && auth.isAuthenticated() && events.hasLiveGame()) {
@@ -163,13 +169,21 @@
           ></span>
         }
       </span>
+      <!-- Small label, active tab only — the rest stay icon-only, same
+           "occasional text, not a permanent label row" spirit as the
+           desktop rail's hover tooltip. Fades/slides in ~60ms after the
+           lift starts so the two read as sequenced, not simultaneous. -->
+      <span
+        class="text-[10px] font-semibold leading-none h-3 transition-all duration-200 [transition-delay:60ms] motion-reduce:transition-none"
+        [class]="isActive(link) ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'"
+      >{{ i18n.t(link.label) }}</span>
     </a>
   }
 
   <!-- "More" — always last. Profile/login now live in the top bar instead
        of a tab here (see the nav at the top of this file); this overflow
        is just for secondary destinations like Schedule (MORE_LINKS). -->
-  <div class="relative flex items-center justify-center px-1 py-1">
+  <div class="relative flex-1 flex flex-col items-center justify-end gap-0.5 py-1">
     <button
       type="button"
       (click)="$event.stopPropagation(); toggleMore()"
@@ -177,14 +191,18 @@
       [attr.aria-expanded]="moreOpen()"
       [class.text-highlight]="isMoreActive() || moreOpen()"
       [class.text-muted]="!isMoreActive() && !moreOpen()"
-      class="flex items-center justify-center"
+      class="flex flex-col items-center gap-0.5"
     >
       <span
-        class="flex items-center justify-center w-11 h-9 rounded-full transition-all duration-200"
-        [class]="isMoreActive() || moreOpen() ? 'bg-highlight/15 scale-100' : 'scale-90'"
+        class="relative flex items-center justify-center w-11 h-8 rounded-full transition-transform duration-300 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none"
+        [class]="(isMoreActive() || moreOpen()) ? '-translate-y-3.5 bg-card shadow-navLift' : 'translate-y-0'"
       >
         <app-nav-icon name="dots-vertical" [active]="isMoreActive() || moreOpen()" [size]="22" />
       </span>
+      <span
+        class="text-[10px] font-semibold leading-none h-3 transition-all duration-200 [transition-delay:60ms] motion-reduce:transition-none"
+        [class]="(isMoreActive() || moreOpen()) ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'"
+      >{{ i18n.t('nav.more') }}</span>
     </button>
 
     @if (moreOpen()) {

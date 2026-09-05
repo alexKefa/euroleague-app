@@ -522,10 +522,33 @@ export type CollectibleTeamFilter = { id: string; code: string; name: string; pr
 // real players table (see backend/src/routes/collectibles.ts's
 // normalizePlayerName), so `matched: false` is a normal outcome to render,
 // not an error.
+// Career averages across every synced season for this player (2000-01
+// onward where the real feed has data — see backend's
+// scripts/backfill-career-stats.ts), weighted by each season's
+// gamesPlayed. Same field shape as PlayerSeasonStats' per-game stats, minus
+// season/teamId/playerId (a career line isn't tied to one season or team) —
+// gamesPlayed here is the career total, not one season's count.
+export interface CareerStats {
+  seasonsPlayed: number;
+  gamesPlayed: number;
+  minutesPerGame: number | null;
+  pointsPerGame: number | null;
+  reboundsPerGame: number | null;
+  assistsPerGame: number | null;
+  stealsPerGame: number | null;
+  blocksPerGame: number | null;
+  turnoversPerGame: number | null;
+  fieldGoalPct: number | null;
+  threePointPct: number | null;
+  freeThrowPct: number | null;
+  valuation: number | null;
+}
+
 export interface CollectibleStatsResponse {
   matched: boolean;
   player?: { id: string; name: string; position: string | null; jerseyNumber: number | null };
   stats?: PlayerSeasonStats | null;
+  career?: CareerStats | null;
 }
 
 export interface MyCollectible {
@@ -664,4 +687,71 @@ export interface StandingsRow {
   team: Team;
   stats: TeamSeasonStats;
   position: number;
+}
+
+// Fantasy Five — a season-long, budget-cap fantasy squad mode alongside
+// predictions. GET /api/fantasy/players — the whole draftable player pool
+// for the roster builder, one row per active player.
+export interface FantasyPlayerRow {
+  player: { id: string; name: string; position: string | null; photoUrl: string | null };
+  team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
+  price: number;
+  pointsPerGame: number | null;
+  valuation: number | null;
+  gamesPlayed: number | null;
+}
+
+export interface FantasyPlayers {
+  season: string | null;
+  rows: FantasyPlayerRow[];
+}
+
+// GET /api/fantasy/coaches — one row per team playing this season, priced
+// off real standings (backend's computeCoachPrice) since no coach-specific
+// stat exists to price off directly.
+export interface FantasyCoachRow {
+  team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
+  headCoach: string | null;
+  price: number;
+}
+
+export interface FantasyCoaches {
+  season: string | null;
+  rows: FantasyCoachRow[];
+}
+
+export type FantasySlotRole = "starter" | "sixth_man" | "bench";
+
+export interface FantasyLineupPlayer {
+  playerId: string;
+  slotRole: FantasySlotRole;
+  isCaptain: boolean;
+  // True once this specific player's own team has tipped off this round —
+  // EuroLeague Fantasy's real "Turns" rule locks a player individually,
+  // not the whole round at once (see backend's getTeamRoundGameTipoff).
+  locked: boolean;
+}
+
+// GET /api/fantasy/lineup — the current user's 10-player squad + coach pick
+// for a round. `locked` (round-level) only ever gates the coach pick —
+// each player has their own independent `locked` flag instead.
+export interface FantasyLineup {
+  season: string | null;
+  round: number | null;
+  players: FantasyLineupPlayer[];
+  coachTeamId: string | null;
+  coachLocked: boolean;
+  lockAt: string | null;
+  locked: boolean;
+}
+
+// GET /api/fantasy/leaderboard and /api/leagues/:id/fantasy-leaderboard —
+// cumulative fantasy points for a season, same showcase-card mechanic as
+// the predictions LeaderboardEntry, kept as a fully separate economy/shape
+// rather than folded into it.
+export interface FantasyLeaderboardEntry {
+  userId: string;
+  displayName: string;
+  fantasyPoints: number;
+  showcase: ShowcaseCard[];
 }

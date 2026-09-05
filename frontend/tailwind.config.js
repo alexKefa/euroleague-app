@@ -41,6 +41,13 @@ module.exports = {
         // indistinguishable from a plain bordered box on the near-black page.
         card: "0 8px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04)",
         pop: "0 4px 16px rgba(0,0,0,0.5)",
+        // Mobile bottom nav's "lift & glow" active tab (app.component.html)
+        // — a ring matching the nav's own background (so the lifted icon
+        // reads as a cutout bubble rather than a flat circle) plus a
+        // highlight-colored halo bleeding out behind it. The ring uses the
+        // theme-reactive card token; the glow color is fixed (highlight
+        // itself never shifts between themes either).
+        navLift: "0 0 0 6px var(--color-card, #151516), 0 6px 16px rgba(255,107,53,0.45)",
       },
     },
   },

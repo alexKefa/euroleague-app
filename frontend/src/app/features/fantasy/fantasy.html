@@ -1,0 +1,407 @@
+<div class="max-w-4xl mx-auto p-4 sm:p-6">
+  <h1 class="font-display text-2xl tracking-wide mb-1">{{ i18n.t('fantasy.title') }}</h1>
+  <p class="text-sm text-muted mb-5">{{ i18n.t('fantasy.hint') }}</p>
+
+  <div class="flex gap-2 mb-5">
+    <button
+      type="button"
+      (click)="setTab('roster')"
+      class="px-4 py-2 rounded-xl text-sm font-bold transition-colors"
+      [ngClass]="tab() === 'roster' ? 'bg-highlight text-page' : 'bg-card border-2 border-line text-muted'"
+    >
+      {{ i18n.t('fantasy.rosterTab') }}
+    </button>
+    <button
+      type="button"
+      (click)="setTab('leaderboard')"
+      class="px-4 py-2 rounded-xl text-sm font-bold transition-colors"
+      [ngClass]="tab() === 'leaderboard' ? 'bg-highlight text-page' : 'bg-card border-2 border-line text-muted'"
+    >
+      {{ i18n.t('fantasy.leaderboardTab') }}
+    </button>
+  </div>
+
+  @if (tab() === 'roster') {
+    @if (!auth.isAuthenticated()) {
+      <div class="bg-card rounded-2xl border border-line shadow-card p-6 text-center">
+        <p class="text-sm text-muted font-semibold mb-3">{{ i18n.t('fantasy.loginToUse') }}</p>
+        <a routerLink="/login" appButton appButtonSize="sm">{{ i18n.t('nav.login') }}</a>
+      </div>
+    } @else if (loading()) {
+      <app-skeleton class="h-64 rounded-2xl" />
+    } @else {
+      <!-- Reusable squad-slot rendering (starter/sixth-man/bench all share
+           this — a cdkDropList holding 0 or 1 player, a lock badge once
+           that player's own team has tipped off this round per real
+           EuroLeague Fantasy's "Turns" rule, not the whole round at once). -->
+      <ng-template #squadSlot let-slot let-size="size">
+        <div
+          cdkDropList
+          [id]="slot.id"
+          [cdkDropListConnectedTo]="dropListIds"
+          (cdkDropListDropped)="onDrop($event, slot.id)"
+          class="flex flex-col items-center"
+        >
+          @if (slot.playerId && rowById().get(slot.playerId); as row) {
+            <div
+              cdkDrag
+              [cdkDragDisabled]="isLocked(slot.playerId)"
+              [cdkDragData]="slot.playerId"
+              class="flex flex-col items-center gap-0.5"
+              [ngClass]="isLocked(slot.playerId) ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'"
+            >
+              <div class="relative" (click)="toggle(slot.playerId)">
+                <app-player-photo
+                  [photoUrl]="row.player.photoUrl"
+                  [name]="row.player.name"
+                  [teamCode]="row.team.code"
+                  [primaryColor]="row.team.primaryColor"
+                  [size]="size"
+                />
+                @if (slot.role === 'starter') {
+                  <button
+                    type="button"
+                    (click)="$event.stopPropagation(); setCaptain(slot.playerId)"
+                    class="absolute -top-1 -right-1 w-5 h-5 rounded-full font-mono text-[10px] font-bold flex items-center justify-center border border-line"
+                    [ngClass]="captainId() === slot.playerId ? 'bg-highlight text-page' : 'bg-card text-muted'"
+                  >
+                    C
+                  </button>
+                }
+                @if (isLocked(slot.playerId)) {
+                  <span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-card border border-line flex items-center justify-center text-[9px]">&#128274;</span>
+                }
+              </div>
+              <span class="text-[10px] font-semibold text-center truncate max-w-[64px] bg-page/80 rounded px-1">{{ row.player.name }}</span>
+              @if (opponentFor(row.team.id); as opp) {
+                <span class="text-[9px] text-muted font-mono">{{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }} {{ opp.opponent.code }}</span>
+              }
+            </div>
+          } @else {
+            <div class="rounded-full border-2 border-dashed border-line flex items-center justify-center text-muted text-xl" [style.width.px]="size" [style.height.px]="size">+</div>
+          }
+        </div>
+      </ng-template>
+
+      <!-- Status bar: round, lock, budget, position quota, fixtures -->
+      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <p class="text-sm font-semibold">{{ i18n.t('fantasy.round') }} {{ round() }}</p>
+          <div class="flex items-center gap-3">
+            <p class="font-mono text-sm font-bold" [ngClass]="overBudget() ? 'text-red-500' : 'text-highlight'">
+              {{ totalCost() }} / {{ budgetCap }} {{ i18n.t('fantasy.budgetLabel') }}
+            </p>
+            @if (fixtureGames().length > 0) {
+              <button type="button" (click)="showFixtures.set(true)" appButton="outline" appButtonSize="sm">
+                {{ i18n.t('fantasy.fixturesButton') }}
+              </button>
+            }
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-3 mt-2">
+          <span class="text-[11px] font-mono" [ngClass]="positionCounts().Guard === positionQuota.Guard ? 'text-highlight' : 'text-muted'">
+            {{ i18n.t('fantasy.posGuard') }} {{ positionCounts().Guard }}/{{ positionQuota.Guard }}
+          </span>
+          <span class="text-[11px] font-mono" [ngClass]="positionCounts().Forward === positionQuota.Forward ? 'text-highlight' : 'text-muted'">
+            {{ i18n.t('fantasy.posForward') }} {{ positionCounts().Forward }}/{{ positionQuota.Forward }}
+          </span>
+          <span class="text-[11px] font-mono" [ngClass]="positionCounts().Center === positionQuota.Center ? 'text-highlight' : 'text-muted'">
+            {{ i18n.t('fantasy.posCenter') }} {{ positionCounts().Center }}/{{ positionQuota.Center }}
+          </span>
+        </div>
+        @if (lockAt()) {
+          <p class="text-xs text-muted mt-2">
+            {{ coachLocked() ? i18n.t('fantasy.coachLocked') : i18n.t('fantasy.lockCountdown') }}
+            @if (!coachLocked()) { {{ lockAt() | date: 'medium' }} }
+          </p>
+        }
+      </div>
+
+      <!-- Everything below is one flex column: filters, court, sixth man,
+           bench, coach, pool strip, submit — all sized to their content
+           instead of any one section forcing a tall page-level scroll.
+           The pool/coach lists are single HORIZONTALLY-scrolling strips,
+           not wrapping grids — a tall grid of cdkDrag cards meant a finger
+           had to land on a draggable card to reach anything below the
+           fold, and CDK sets touch-action:none on drag handles, which
+           blocks the browser's own touch-scroll on exactly the elements
+           you'd need to touch to scroll past them. -->
+      <div class="flex flex-col gap-3">
+        <!-- Filters -->
+        <div class="flex flex-col sm:flex-row gap-2">
+          <app-search-input
+            class="flex-1"
+            [value]="searchQuery()"
+            [placeholder]="i18n.t('fantasy.searchPlaceholder')"
+            (valueChange)="onSearchInput($event)"
+          />
+          <app-dropdown
+            class="sm:w-56"
+            [options]="teamDropdownOptions()"
+            [value]="teamFilter()"
+            (valueChange)="setTeamFilter($event)"
+          />
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button type="button" (click)="setPositionFilter(null)" [appChip]="positionFilter() === null">
+            {{ i18n.t('fantasy.posAll') }}
+          </button>
+          <button type="button" (click)="setPositionFilter('Guard')" [appChip]="positionFilter() === 'Guard'">
+            {{ i18n.t('fantasy.posGuard') }}
+          </button>
+          <button type="button" (click)="setPositionFilter('Forward')" [appChip]="positionFilter() === 'Forward'">
+            {{ i18n.t('fantasy.posForward') }}
+          </button>
+          <button type="button" (click)="setPositionFilter('Center')" [appChip]="positionFilter() === 'Center'">
+            {{ i18n.t('fantasy.posCenter') }}
+          </button>
+        </div>
+
+        <!-- The court: 5 starter drop targets over a decorative half-court -->
+        <div class="relative w-full max-w-sm mx-auto rounded-2xl overflow-hidden bg-gradient-to-b from-highlight/10 to-transparent border border-line shadow-card" style="aspect-ratio: 320 / 210;">
+          <app-court-background class="absolute inset-0 w-full h-full" />
+          @for (pos of starterSlotPositions; track $index; let i = $index) {
+            <div class="absolute -translate-x-1/2 -translate-y-1/2" [style.left.%]="pos.left" [style.top.%]="pos.top">
+              <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: starterSlots()[i], size: 44 }" />
+            </div>
+          }
+        </div>
+
+        <!-- Sixth man + bench (50% score) -->
+        <div class="bg-card rounded-2xl border border-line shadow-card p-3">
+          <p class="text-[11px] text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.sixthManLabel') }}</p>
+          <div class="flex justify-center mb-3">
+            <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: sixthManSlot(), size: 40 }" />
+          </div>
+          <p class="text-[11px] text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.benchLabel') }}</p>
+          <div class="flex justify-center gap-3">
+            @for (slot of benchSlots(); track slot.id) {
+              <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: slot, size: 36 }" />
+            }
+          </div>
+        </div>
+
+        <p class="text-center text-xs text-muted -mt-1">
+          {{ squadFull() ? i18n.t('fantasy.courtFull') : i18n.t('fantasy.dragHint') }}
+        </p>
+
+        <!-- Coach picker — a single-select horizontal strip, no dragging
+             needed (only ~20 choices, tap replaces the current pick). -->
+        <div>
+          <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5">{{ i18n.t('fantasy.coachLabel') }}</p>
+          <div class="flex gap-2 overflow-x-auto bg-card rounded-2xl border border-line shadow-card p-2.5" style="-webkit-overflow-scrolling: touch;">
+            @for (row of coaches(); track row.team.id) {
+              <button
+                type="button"
+                (click)="selectCoach(row.team.id)"
+                [disabled]="coachLocked() && coachTeamId() !== row.team.id"
+                class="shrink-0 w-[92px] flex flex-col items-center gap-1 rounded-xl border p-2 transition-colors disabled:opacity-40"
+                [ngClass]="coachTeamId() === row.team.id ? 'border-highlight bg-highlight/10' : 'border-line bg-page hover:border-highlight'"
+              >
+                <app-team-badge [code]="row.team.code" [logoUrl]="row.team.logoUrl" [size]="28" />
+                <p class="text-[10px] font-semibold text-center truncate w-full">{{ row.headCoach ?? row.team.name }}</p>
+                <p class="font-mono text-[11px] font-bold text-highlight">{{ row.price }}</p>
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Player pool — a single horizontally-scrolling strip of
+             draggable cards, also the drop target for a player removed
+             from the squad. -->
+        <div
+          cdkDropList
+          id="pool"
+          cdkDropListOrientation="horizontal"
+          [cdkDropListConnectedTo]="dropListIds"
+          (cdkDropListDropped)="onDrop($event, 'pool')"
+          class="flex gap-2 overflow-x-auto bg-card rounded-2xl border border-line shadow-card p-2.5 min-h-[96px]"
+          style="scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch;"
+        >
+          @for (row of visibleRows(); track row.player.id) {
+            <div
+              cdkDrag
+              [cdkDragData]="row.player.id"
+              (click)="toggle(row.player.id)"
+              class="shrink-0 w-[86px] flex flex-col items-center gap-1 rounded-xl border border-line bg-page p-2 cursor-grab active:cursor-grabbing hover:border-highlight transition-colors"
+              style="scroll-snap-align: start;"
+            >
+              <app-player-photo
+                [photoUrl]="row.player.photoUrl"
+                [name]="row.player.name"
+                [teamCode]="row.team.code"
+                [primaryColor]="row.team.primaryColor"
+                [size]="38"
+              />
+              <p class="text-[10px] font-semibold text-center truncate w-full">{{ row.player.name }}</p>
+              <div class="flex items-center gap-1">
+                <app-team-badge [code]="row.team.code" [logoUrl]="row.team.logoUrl" [size]="12" />
+                @if (opponentFor(row.team.id); as opp) {
+                  <span class="text-[8px] text-muted font-mono">{{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }} {{ opp.opponent.code }}</span>
+                }
+              </div>
+              <p class="font-mono text-[11px] font-bold text-highlight">{{ row.price }}</p>
+            </div>
+          } @empty {
+            <p class="w-full text-center text-sm text-muted self-center py-4">{{ i18n.t('fantasy.courtFull') }}</p>
+          }
+          @if (hasMoreRows()) {
+            <button
+              type="button"
+              (click)="showMore()"
+              class="shrink-0 w-[86px] flex flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-line text-muted hover:text-ink hover:border-highlight transition-colors"
+            >
+              <span class="text-xl leading-none">&rarr;</span>
+              <span class="text-[10px] font-bold">{{ i18n.t('fantasy.showMore') }}</span>
+            </button>
+          }
+        </div>
+
+        <div class="flex items-center justify-center gap-3">
+          <button type="button" (click)="setSort('price')" class="text-[11px] font-bold uppercase tracking-wider" [ngClass]="sortKey() === 'price' ? 'text-highlight' : 'text-muted'">
+            {{ i18n.t('fantasy.colPrice') }}
+          </button>
+          <button type="button" (click)="setSort('pointsPerGame')" class="text-[11px] font-bold uppercase tracking-wider" [ngClass]="sortKey() === 'pointsPerGame' ? 'text-highlight' : 'text-muted'">
+            {{ i18n.t('fantasy.colPpg') }}
+          </button>
+          <button type="button" (click)="setSort('valuation')" class="text-[11px] font-bold uppercase tracking-wider" [ngClass]="sortKey() === 'valuation' ? 'text-highlight' : 'text-muted'">
+            {{ i18n.t('fantasy.colPir') }}
+          </button>
+        </div>
+
+        <div>
+          <button
+            type="button"
+            (click)="submit()"
+            [disabled]="!canSubmit() || submitting()"
+            appButton
+            class="w-full"
+          >
+            {{ submitting() ? i18n.t('fantasy.submitting') : i18n.t('fantasy.submit') }}
+          </button>
+          @if (saved() && !hasChanges()) {
+            <p class="text-xs text-highlight font-semibold mt-2 text-center">{{ i18n.t('fantasy.saved') }}</p>
+          }
+          @if (submitError()) {
+            <p class="text-xs text-red-500 font-semibold mt-2 text-center">{{ submitError() }}</p>
+          }
+        </div>
+      </div>
+    }
+  } @else {
+    <!-- Leaderboard tab -->
+    <div class="flex items-center gap-2 mb-3">
+      <button
+        type="button"
+        (click)="selectLeague(null)"
+        class="px-3 py-1.5 rounded-xl text-xs font-bold"
+        [ngClass]="!selectedLeagueId() ? 'bg-highlight text-page' : 'bg-card border-2 border-line text-muted'"
+      >
+        {{ i18n.t('fantasy.globalBoard') }}
+      </button>
+      @if (myLeagues().length > 0) {
+        <app-dropdown
+          class="w-56"
+          [options]="leagueDropdownOptions()"
+          [value]="selectedLeagueId()"
+          [placeholder]="i18n.t('fantasy.myLeagueBoard')"
+          (valueChange)="selectLeague($event)"
+        />
+      }
+    </div>
+
+    <div class="bg-card rounded-lg shadow-card p-4">
+      @if (leaderboardLoading()) {
+        <app-skeleton class="h-40 rounded-xl" />
+      } @else if (activeLeaderboard().length === 0) {
+        <p class="text-sm text-muted font-semibold">{{ i18n.t('fantasy.emptyLeaderboard') }}</p>
+      } @else {
+        <div class="space-y-1.5">
+          @for (entry of activeLeaderboard(); track entry.userId; let i = $index) {
+            <button
+              type="button"
+              (click)="openEntry(entry)"
+              class="w-full flex items-center justify-between gap-3 px-2 py-2 rounded-xl text-left hover:bg-white/5 transition-colors"
+              [ngClass]="{ 'bg-highlight/10': i === 0 }"
+            >
+              <div class="flex items-center gap-2 min-w-0">
+                @if (i === 0) {
+                  <span class="font-mono text-[11px] font-bold w-5 h-5 rounded-full bg-highlight text-page flex items-center justify-center shrink-0">1</span>
+                } @else {
+                  <span class="font-mono text-muted w-5 shrink-0">{{ i + 1 }}</span>
+                }
+                <span class="font-semibold truncate">{{ entry.displayName }}</span>
+              </div>
+              <span class="font-mono text-highlight font-bold shrink-0">{{ entry.fantasyPoints }} {{ i18n.t('fantasy.pointsAbbrev') }}</span>
+            </button>
+          }
+        </div>
+      }
+    </div>
+
+    @if (selectedEntry(); as entry) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="closeEntry()">
+        <div
+          class="bg-card rounded-2xl border border-line shadow-pop p-5 max-w-sm w-full max-h-[85vh] overflow-y-auto"
+          (click)="$event.stopPropagation()"
+        >
+          <div class="flex items-start justify-between gap-2 mb-4">
+            <div>
+              <p class="font-display text-xl tracking-wide">{{ entry.displayName }}</p>
+              <p class="font-mono text-[12px] text-muted mt-0.5">{{ entry.fantasyPoints }} {{ i18n.t('fantasy.pointsAbbrev') }}</p>
+            </div>
+            <button type="button" (click)="closeEntry()" class="text-muted hover:text-ink text-2xl leading-none font-bold shrink-0">&times;</button>
+          </div>
+
+          @if (entry.showcase.length > 0) {
+            <div class="grid grid-cols-3 gap-3">
+              @for (card of entry.showcase; track card.id) {
+                <app-collectible-card
+                  class="block w-full"
+                  [name]="card.name"
+                  [tier]="card.tier"
+                  [teamCode]="card.team.code"
+                  [teamColor]="card.team.primaryColor"
+                  [imageUrl]="card.imageUrl"
+                  [unlocked]="true"
+                ></app-collectible-card>
+              }
+            </div>
+          } @else {
+            <p class="text-xs text-muted">{{ i18n.t('leagues.noCards') }}</p>
+          }
+        </div>
+      </div>
+    }
+  }
+
+  @if (showFixtures()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="showFixtures.set(false)">
+      <div
+        class="bg-card rounded-2xl border border-line shadow-pop p-5 max-w-sm w-full max-h-[85vh] overflow-y-auto"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="flex items-center justify-between gap-2 mb-4">
+          <p class="font-display text-xl tracking-wide">{{ i18n.t('fantasy.fixturesTitle') }}</p>
+          <button type="button" (click)="showFixtures.set(false)" class="text-muted hover:text-ink text-2xl leading-none font-bold shrink-0">&times;</button>
+        </div>
+        @if (fixtureGames().length === 0) {
+          <p class="text-sm text-muted">{{ i18n.t('fantasy.noFixtures') }}</p>
+        } @else {
+          <div class="space-y-2">
+            @for (game of fixtureGames(); track game.id) {
+              <div class="flex items-center justify-between gap-2 bg-page rounded-xl px-3 py-2">
+                <div class="flex items-center gap-1.5 min-w-0">
+                  <app-team-badge [code]="game.homeTeam.code" [logoUrl]="game.homeTeam.logoUrl" [size]="18" />
+                  <span class="text-xs text-muted">&ndash;</span>
+                  <app-team-badge [code]="game.awayTeam.code" [logoUrl]="game.awayTeam.logoUrl" [size]="18" />
+                </div>
+                <span class="text-[11px] font-mono text-muted shrink-0">{{ game.tipoffAt | date: 'short' }}</span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

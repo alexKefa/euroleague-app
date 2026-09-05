@@ -51,19 +51,22 @@
           </div>
         } @else {
           <div class="absolute inset-0 flex items-center justify-center">
-            <svg width="66%" height="66%" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+            <svg width="66%" height="82%" viewBox="0 0 100 120" fill="none" aria-hidden="true">
+              <!-- Scoop neck, solid + collar trim — same silhouette and
+                   finish as shared/player-photo.ts's fallback (design
+                   option "D" from the jersey review), kept in sync by hand.
+                   The dip at center is what reads as a jersey *front*; a
+                   back neckline never dips like that. -->
               <path
-                d="M24,7 Q32,16 40,7 L48,8 L53,22 L43,22 L43,58 L21,58 L21,22 L11,22 L16,8 Z"
-                [attr.fill]="style.iconColor"
-                fill-opacity="0.55"
+                d="M24,6 Q50,17 76,6 Q88,8 87,15 Q74,19 70,44 L74,113 L26,113 L30,44 Q26,19 13,15 Q12,8 24,6 Z"
+                [attr.fill]="jerseyFill"
               />
               <path
-                d="M24,7 Q32,16 40,7"
+                d="M24,6 Q50,17 76,6"
                 fill="none"
-                [attr.stroke]="style.iconAccent"
-                stroke-opacity="0.8"
-                stroke-width="2.5"
-                stroke-linejoin="round"
+                [attr.stroke]="jerseyTrim"
+                stroke-opacity="0.85"
+                stroke-width="3"
                 stroke-linecap="round"
               />
             </svg>
@@ -73,7 +76,7 @@
               <span
                 class="font-mono font-extrabold tracking-tight"
                 [style.font-size.px]="jerseyNumberFontSize"
-                [style.color]="style.iconAccent"
+                [style.color]="jerseyTrim"
                 style="text-shadow: 0 1px 3px rgba(0,0,0,0.35)"
                 >{{ jerseyNumber }}</span
               >

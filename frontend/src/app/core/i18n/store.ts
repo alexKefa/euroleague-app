@@ -45,6 +45,9 @@ export const storeTranslations: Record<string, Record<Lang, string>> = {
   },
   "store.noStatsYet": { en: "No stats recorded yet this season.", el: "Δεν έχουν καταγραφεί στατιστικά αυτή τη σεζόν." },
   "store.gamesPlayed": { en: "Games played", el: "Αγώνες" },
+  "store.statsThisSeason": { en: "This season", el: "Φέτος" },
+  "store.statsCareer": { en: "Career", el: "Καριέρα" },
+  "store.statsSeasons": { en: "seasons", el: "σεζόν" },
 
   "wheel.title": { en: "Daily Jump Ball", el: "Καθημερινό Τζάμπολ" },
   "wheel.subtitle": {

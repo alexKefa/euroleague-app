@@ -22,6 +22,7 @@ import { eventsRouter } from "./routes/events.js";
 import { analyticsViewsRouter } from "./routes/analyticsViews.js";
 import { leaguesRouter } from "./routes/leagues.js";
 import { injuriesRouter } from "./routes/injuries.js";
+import { fantasyRouter } from "./routes/fantasy.js";
 import { syncNews } from "./sync/newsSync.js";
 import { syncOdds } from "./sync/oddsSync.js";
 
@@ -99,6 +100,7 @@ app.use("/api/events", eventsRouter);
 app.use("/api/analytics-views", analyticsViewsRouter);
 app.use("/api/leagues", leaguesRouter);
 app.use("/api/injuries", injuriesRouter);
+app.use("/api/fantasy", fantasyRouter);
 
 // Serves the built Angular app (see ./Dockerfile) — absent in local dev,
 // where the frontend runs separately via `ng serve` on its own port.

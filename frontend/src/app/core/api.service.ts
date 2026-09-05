@@ -43,6 +43,11 @@ import {
   LeagueLeaderboardEntry,
   InjuryReportEntry,
   InjuryStatus,
+  FantasyPlayers,
+  FantasyCoaches,
+  FantasyLineup,
+  FantasySlotRole,
+  FantasyLeaderboardEntry,
 } from "./models";
 
 /**
@@ -388,5 +393,45 @@ export class ApiService {
 
   getLeagueLeaderboard(id: string): Observable<LeagueLeaderboardEntry[]> {
     return this.http.get<LeagueLeaderboardEntry[]>(`${API_BASE_URL}/leagues/${id}/leaderboard`);
+  }
+
+  // Fantasy Five — the whole draftable player pool + price for the roster
+  // builder, fetched once and filtered/sorted client-side same as
+  // getAdvancedStats().
+  getFantasyPlayers(): Observable<FantasyPlayers> {
+    return this.http.get<FantasyPlayers>(`${API_BASE_URL}/fantasy/players`);
+  }
+
+  getFantasyCoaches(): Observable<FantasyCoaches> {
+    return this.http.get<FantasyCoaches>(`${API_BASE_URL}/fantasy/coaches`);
+  }
+
+  // Omit round to get the default (current) round's lineup + lock status.
+  getFantasyLineup(round?: number): Observable<FantasyLineup> {
+    return this.http.get<FantasyLineup>(`${API_BASE_URL}/fantasy/lineup`, {
+      params: round ? { round } : {},
+    });
+  }
+
+  submitFantasyLineupBatch(
+    season: string,
+    round: number,
+    players: { playerId: string; slotRole: FantasySlotRole; isCaptain: boolean }[],
+    coachTeamId: string
+  ): Observable<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`${API_BASE_URL}/fantasy/lineup/batch`, {
+      season,
+      round,
+      players,
+      coachTeamId,
+    });
+  }
+
+  getFantasyLeaderboard(): Observable<FantasyLeaderboardEntry[]> {
+    return this.http.get<FantasyLeaderboardEntry[]>(`${API_BASE_URL}/fantasy/leaderboard`);
+  }
+
+  getLeagueFantasyLeaderboard(leagueId: string): Observable<FantasyLeaderboardEntry[]> {
+    return this.http.get<FantasyLeaderboardEntry[]>(`${API_BASE_URL}/leagues/${leagueId}/fantasy-leaderboard`);
   }
 }

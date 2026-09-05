@@ -85,6 +85,38 @@ export class CollectibleCardComponent implements OnChanges {
     return displayTeamCode(this.teamCode);
   }
 
+  // The no-photo jersey fallback's own color pair — deliberately NOT
+  // style.iconColor/iconAccent (those are pre-shaded/whited-out per tier
+  // for contrast against each tier's photoTint background, which is also
+  // *why* the jersey read as flat grey/white regardless of team: rare/
+  // legendary/coach hardcode both to "#fff", and common's shaded-down
+  // accent read as washed-out at the old 55%-opacity watermark treatment).
+  // The actual team color, full strength, is the whole point of a jersey
+  // icon — every tier gets it now, with a contrast trim computed the same
+  // way shared/player-photo.ts's numberColor picks white vs. dark ink.
+  get jerseyFill(): string {
+    const base = this.teamColor ?? DEFAULT_TEAM_COLOR;
+    // rare/legendary/coach sit on a dark radial photoTint built from this
+    // same accent color (accentDark/accentDeep in computeStyle) — a
+    // naturally dark team color (black, navy) drawn at full strength on
+    // top of a *darker shade of itself* was reading as invisible, exactly
+    // the bug reported. Tinted toward white instead of left raw for those
+    // three tiers only; common's pale tint is the opposite situation (the
+    // raw accent already reads clearly against a *light* background), so
+    // it keeps the untinted color.
+    return this.tier === "common" ? base : this.tint(base, 0.45);
+  }
+
+  get jerseyTrim(): string {
+    const hex = this.jerseyFill;
+    if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return "#fff";
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    return luminance > 0.6 ? "#14161A" : "#fff";
+  }
+
   // The player photo can take a beat to arrive (pack reveals fire a burst
   // of these at once) — track load state so the template can show the logo
   // spinner over the tint background instead of a blank card until it pops in.

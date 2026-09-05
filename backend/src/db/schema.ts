@@ -13,7 +13,7 @@ import {
   jsonb,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 export const teams = pgTable("teams", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -929,4 +929,139 @@ export const leaguesRelations = relations(leagues, ({ one, many }) => ({
 export const leagueMembersRelations = relations(leagueMembers, ({ one }) => ({
   league: one(leagues, { fields: [leagueMembers.leagueId], references: [leagues.id] }),
   user: one(users, { fields: [leagueMembers.userId], references: [users.id] }),
+}));
+
+// Fantasy Five — a parallel, budget-cap fantasy squad mode alongside
+// predictions, added to compete with EuroLeague Fantasy's own core mechanic
+// directly rather than just accumulating around it. One row per (player,
+// season): the credit cost of drafting that player into a lineup, computed
+// from their rolling season PIR by scripts/reprice-fantasy-players.ts (run
+// manually, same cadence as sync:*/economy:* scripts — not a cron). A
+// player with no playerSeasonStats row yet (new/rookie, no games played
+// this season) still gets a row, floored at MIN_PRICE, so they're always
+// selectable in the roster builder.
+export const playerFantasyPrices = pgTable(
+  "player_fantasy_prices",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    playerId: uuid("player_id").notNull().references(() => players.id),
+    season: varchar("season", { length: 9 }).notNull(),
+    price: integer("price").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    playerFantasySeasonUnique: uniqueIndex("player_fantasy_season_unique").on(table.playerId, table.season),
+  })
+);
+
+// A user's fantasy lineup for one round — one row per player currently in
+// that round's 5-player squad. A round's rows are wholesale-replaced
+// (delete + multi-row insert in one transaction, routes/fantasy.ts) rather
+// than diffed like predictions, since a lineup is always exactly 5 fixed
+// slots, not an open-ended list. Editable until the round *locks* — the
+// earliest tipoffAt among that round's games (services/fantasyScoring.ts's
+// getRoundLockTime) — same "whole gameweek locks at the first game" rule
+// real fantasy uses, enforced at the route level like predictions'
+// before-tipoff window, not here. Once locked, a round's rows are never
+// touched again — the historical record scoring reads directly, same
+// "insert once, source of truth forever" spirit as game_odds. Scoring
+// (getFantasyLeaderboardEntries) sums playerGameStats.valuation for each
+// locked player's final games that round, captain doubled — an unplayed
+// game contributes 0 by construction (no playerGameStats row yet), so a
+// still-open or bye round needs no special-casing.
+export const fantasyLineups = pgTable(
+  "fantasy_lineups",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    season: varchar("season", { length: 9 }).notNull(),
+    round: integer("round").notNull(),
+    playerId: uuid("player_id").notNull().references(() => players.id),
+    isCaptain: boolean("is_captain").default(false).notNull(),
+    // "starter" | "sixth_man" | "bench" — added 2026-09-05 alongside the
+    // real-rules rebuild (see CLAUDE.md's Fantasy Five section): starters
+    // and the sixth man score 100% of a locked round's points, bench scores
+    // 50% (services/fantasyScoring.ts). Independent of isCaptain — the
+    // captain is always one of the 5 "starter" rows, never sixth_man/bench.
+    slotRole: varchar("slot_role", { length: 10 }).default("starter").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    fantasyLineupUnique: uniqueIndex("fantasy_lineups_user_id_season_round_player_id_key").on(
+      table.userId,
+      table.season,
+      table.round,
+      table.playerId
+    ),
+    // Enforces "at most one captain per (user, season, round)" at the DB
+    // level — a partial unique index rather than a full one, since only
+    // is_captain=true rows need to be unique per round (every non-captain
+    // row would otherwise collide on this same key).
+    fantasyLineupOneCaptain: uniqueIndex("fantasy_lineup_one_captain")
+      .on(table.userId, table.season, table.round)
+      .where(sql`${table.isCaptain}`),
+  })
+);
+
+// A team's head coach draft price for a Fantasy Five round — same
+// per-(entity, season) snapshot shape as player_fantasy_prices, just keyed
+// on team instead of player (coaches aren't in the `players` table).
+// Recomputed by the same `fantasy:reprice` script, off each team's real
+// standings position (team_season_stats.position) rather than any coach-
+// specific stat, since none is synced — see the script's own comment.
+export const coachFantasyPrices = pgTable(
+  "coach_fantasy_prices",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    teamId: uuid("team_id").notNull().references(() => teams.id),
+    season: varchar("season", { length: 9 }).notNull(),
+    price: integer("price").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    coachFantasyPriceUnique: uniqueIndex("coach_fantasy_prices_team_id_season_key").on(table.teamId, table.season),
+  })
+);
+
+// A user's coach pick for one round — a single row (unlike fantasy_lineups'
+// 10 player rows), since only one coach is ever drafted. Editable until the
+// round's overall lock time (its first tipoff, same as the original v1
+// lock — coach swaps aren't part of the real rules' per-player "turn"
+// substitution window, so this doesn't need the finer per-player lock
+// fantasy_lineups' bench/starter swaps do).
+export const fantasyCoachPicks = pgTable(
+  "fantasy_coach_picks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    season: varchar("season", { length: 9 }).notNull(),
+    round: integer("round").notNull(),
+    teamId: uuid("team_id").notNull().references(() => teams.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    fantasyCoachPickUnique: uniqueIndex("fantasy_coach_picks_user_id_season_round_key").on(
+      table.userId,
+      table.season,
+      table.round
+    ),
+  })
+);
+
+export const playerFantasyPricesRelations = relations(playerFantasyPrices, ({ one }) => ({
+  player: one(players, { fields: [playerFantasyPrices.playerId], references: [players.id] }),
+}));
+
+export const fantasyLineupsRelations = relations(fantasyLineups, ({ one }) => ({
+  user: one(users, { fields: [fantasyLineups.userId], references: [users.id] }),
+  player: one(players, { fields: [fantasyLineups.playerId], references: [players.id] }),
+}));
+
+export const coachFantasyPricesRelations = relations(coachFantasyPrices, ({ one }) => ({
+  team: one(teams, { fields: [coachFantasyPrices.teamId], references: [teams.id] }),
+}));
+
+export const fantasyCoachPicksRelations = relations(fantasyCoachPicks, ({ one }) => ({
+  user: one(users, { fields: [fantasyCoachPicks.userId], references: [users.id] }),
+  team: one(teams, { fields: [fantasyCoachPicks.teamId], references: [teams.id] }),
 }));

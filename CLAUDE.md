@@ -593,6 +593,238 @@ If you need to apply a schema change without an interactive terminal
   top-level nav item — the rail is already at its documented max), same
   visual convention as the existing `/predictions-analytics` link right
   next to it.
+- **Fantasy Five** (2026-09-05; `player_fantasy_prices`/`fantasy_lineups` in
+  `schema.ts`, `services/fantasyScoring.ts`, `routes/fantasy.ts`,
+  `frontend/src/app/features/fantasy/`) — a season-long, budget-cap fantasy
+  squad mode alongside predictions, built to compete with EuroLeague
+  Fantasy's own core mechanic directly rather than just accumulating around
+  it (predictions/collectibles don't touch "build a squad of real players
+  under a cap" at all). A lineup is exactly `FANTASY_ROSTER_SIZE` (5)
+  players plus one captain (2x that round's points), drafted under a
+  `FANTASY_BUDGET_CAP` (100 credit) cap — no bench, no position-slot
+  constraint (any 5 players fill any court slot; position is a browse
+  filter only). `fantasy_lineups` rows are wholesale-replaced (delete +
+  multi-row insert in one transaction, `POST /fantasy/lineup/batch`) rather
+  than diffed like predictions, since a lineup is always exactly 5 fixed
+  slots; editable until the round *locks* — the earliest `tipoffAt` among
+  that round's games (`getRoundLockTime`), same "whole gameweek locks at
+  the first game" rule real fantasy apps use, enforced at the route level
+  like predictions' own before-tipoff window. Scoring
+  (`getFantasyLeaderboardEntries`) sums each locked player's
+  `playerGameStats.valuation` (PIR) for that round's *final* games, captain
+  doubled — an unplayed game contributes 0 by construction (no
+  `playerGameStats` row yet), so a still-open or bye round needs no
+  special-casing, same on-read philosophy as `services/points.ts`. Global
+  and league-scoped leaderboards share this one query exactly the way the
+  points leaderboard already splits between global/`GET
+  /leagues/:id/leaderboard` — `GET /leagues/:id/fantasy-leaderboard` is the
+  fantasy twin, kept as a fully separate endpoint/response shape rather
+  than folded into the points one so the two economies' numbers stay
+  visibly distinct. No nav tab (the rail is already at its documented
+  7-item max) — reached via a Dashboard card and a link next to
+  Predictions' "My leagues →", same precedent Leagues itself set.
+  - **Draft pricing — recent-form + season-baseline blend, not a flat
+    season average** (`services/fantasyScoring.ts`'s `computeFantasyPrice`,
+    run by the manual `npm run fantasy:reprice` script, same cadence as
+    other sync/economy scripts, not a cron): v1 priced a player off nothing
+    but season-long average PIR, a single number that can't react to a hot
+    or cold streak and won't move until the next manual reprice. Now blends
+    **recent form** (average PIR over the last `RECENT_FORM_WINDOW` (8)
+    *final* games, once at least `MIN_RECENT_GAMES` (3) exist — below that,
+    too noisy a sample, falls back to the season baseline alone) with the
+    **season baseline** (`playerSeasonStats.valuation`, blended in at
+    `1 - RECENT_FORM_WEIGHT` (0.65 recent / 0.35 season) once recent form is
+    trusted, purely to stop one huge/tiny recent game swinging a price too
+    hard). Deliberately no separate minutes multiplier on top of PIR (PIR
+    is already a box-score sum, so more minutes already raises it — a
+    second multiplier would double-count that signal); `LOW_MINUTES_DAMPEN`
+    (0.7) only exists to catch the one thing raw PIR can't tell apart from
+    a real role player — a low-minutes garbage-time rate — triggered only
+    when average minutes fall below `LOW_MINUTES_THRESHOLD` (12). All of
+    these constants are unvalidated against real data as of this pass — the
+    2026-27 season has zero played games so far (confirmed directly: every
+    player's price floors at `FANTASY_MIN_PRICE` today), so there's no
+    actual recent-form signal yet to tune weights against. Revisit once a
+    few rounds are in the books, same "re-check against real numbers"
+    spirit as every points-formula revision in this file's sibling section
+    above.
+  - **Court-based drag-and-drop roster builder** (`frontend/src/app/shared/
+    court-background.ts` + `fantasy.ts`/`.html`): reuses the half-court SVG
+    geometry `shot-chart.ts` already draws (same FIBA-approximate
+    constants, just the bare court lines with no shot markers) as a
+    decorative backdrop, with 5 real HTML drop targets (Angular CDK's
+    `DragDropModule` — added as a new dependency, `@angular/cdk`, since
+    this app's mobile-first and HTML5's native drag-and-drop API has no
+    touch support at all, unlike CDK's) absolutely-positioned on top in a
+    cosmetic starting-five formation. A tap still places/removes a player
+    without dragging (CDK only intercepts an actual pointer-move past its
+    threshold, so a stationary tap fires a normal click alongside it) — a
+    deliberate fallback, not just a nicety, given real mobile friction found
+    after the first version: a tall wrapping grid of draggable player cards
+    meant a finger had to land on a `cdkDrag` element (which CDK sets
+    `touch-action: none` on) to reach anything below the fold, blocking the
+    browser's own touch-scroll entirely. Fixed by making the player pool a
+    single horizontally-scrolling flex strip directly under the court
+    instead of a tall grid — the whole builder now fits together without
+    needing a page-level scroll to get from pool to court mid-drag. Also
+    carries a position filter (Guard/Forward/Center — confirmed via a live
+    query, only those 3 values exist in `players.position`) and a per-player
+    "vs TEAM" opponent badge plus a "Fixtures" popup, both sourced from the
+    existing `GET /games/schedule` for the current round with no backend
+    changes needed.
+  - **Simulator test games were quietly poisoning real prices** (caught
+    2026-09-05, same day): the very first `fantasy:reprice` run priced
+    everyone near the floor for a suspicious reason — 3 of the 2026-27
+    season's games were marked `status: 'final'` despite a `tipoffAt` of
+    2026-09-24 (still in the future), with fabricated box scores
+    (`realtime/liveScoreSimulator.ts`'s doing — it fast-forwards a real
+    scheduled game through scheduled→live→final for demo/testing, since
+    there's nothing real to poll yet). The pricing query has no way to
+    tell a real final game from a simulator-fabricated one, so it picked up
+    those 3 games' unrealistically low fabricated PIR (avg ~2.4, max 9) as
+    real recent form. Backed up (`scripts/backup-db.ts`) then reverted:
+    those 3 games back to `scheduled` with scores/quarter/clock nulled, and
+    their fabricated `player_game_stats` rows deleted. The 2 real
+    predictions already made against them were deliberately left
+    untouched — once the game's status is back to `scheduled`, they're
+    just normal unresolved picks against the real future game again, no
+    cleanup needed there; and since points/pricing are computed on-read
+    from `games`' current state rather than a stored balance, reverting the
+    game alone was enough to undo any inflated points too. Round 1 wasn't
+    otherwise affected (`round_rewards` had zero 2026-27 rows already,
+    since 7 of round 1's 10 games were still genuinely scheduled). No
+    change needed to `services/fantasyScoring.ts` itself — this was purely
+    a data problem, not a formula bug — but it's worth knowing the pricing
+    script has no defense against this happening again if the simulator
+    gets triggered against a not-yet-real-final game and nobody resets it
+    afterward.
+  - **Real-rules rebuild (2026-09-05, same day)**: user feedback — "check
+    euroleague fantasy rules" — led to fetching EuroLeague Fantasy's own
+    published Classic Mode rules and rebuilding the squad shape to match
+    exactly, replacing the original 5-player/no-coach design:
+    - **Squad**: 10 outfield players (4 Guards + 4 Forwards + 2 Centers,
+      `FANTASY_POSITION_QUOTA` in `services/fantasyScoring.ts`, enforced at
+      write time in `POST /fantasy/lineup/batch`, not in the DB) + 1 head
+      coach, still under one `FANTASY_BUDGET_CAP` (100). Of the 10: 5
+      "starters" + 1 "sixth man" score 100% of a locked round's points, the
+      remaining 4 "bench" score `BENCH_SCORE_MULTIPLIER` (50%) — a new
+      `slotRole` column on `fantasy_lineups` (`"starter" | "sixth_man" |
+      "bench"`) drives this, read straight into
+      `getFantasyLeaderboardEntries`'s SQL rather than a second table.
+    - **Coach**: a new `coach_fantasy_prices` (teamId+season, mirrors
+      `player_fantasy_prices`) and `fantasy_coach_picks` (one row per user
+      per round — a coach is a single pick, not five) table. No coach-
+      specific stat is synced anywhere (coaches aren't in `players`), so
+      `computeCoachPrice` prices off real standings position instead
+      (`team_season_stats.position`, linearly interpolated 4-16 credits
+      across however many teams are playing this season, same prior-season
+      fallback pattern as player pricing) — confirmed while building this
+      that `team_season_stats` already had 20 real 2026-27 rows synced
+      (unlike `player_season_stats`, still empty), so coach pricing
+      differentiates immediately (Anadolu Efes's coach at 16, Zalgiris's at
+      4) without needing the fallback at all yet. Coach scoring is
+      real-world-result-based, not stat-based — `COACH_WIN_POINTS` (20) for
+      their team winning that round's game, `COACH_LOSS_POINTS` (0)
+      otherwise, always 100% (never bench-reduced, there's only one).
+    - **`FANTASY_MIN_PRICE` dropped 8 → 4** per direct user instruction
+      (an explicit "should be minimum 4 cr", not sourced from the official
+      rules fetch — nothing in what was fetched specified an exact
+      min/max price).
+    - **Per-player mid-round substitution ("Turns")**: real rules split a
+      round into "Turns" (the block of games on one match-day) and allow a
+      bench↔starter swap only for a player who "has not yet taken the
+      field" that round — this is *not* the same as the whole round's
+      overall lock. Modeled without a literal turns table: a new
+      `getTeamRoundGameTipoff(season, round, teamId)` resolves a specific
+      player's own team's tipoff within the round (not the round's
+      earliest tipoff across every game), and `POST /fantasy/lineup/batch`
+      diffs the submitted 10-player squad against what's currently saved —
+      only a player whose presence or `slotRole` actually *changed* has
+      their own team's tipoff checked against now(); an unchanged player
+      passes through regardless of their own lock status, since nothing
+      about them is being touched. This is why the batch endpoint went
+      back to a diff (like predictions) rather than the original wholesale
+      delete+insert — a full replace can't tell "this player's role didn't
+      change" from "this player was silently re-locked in place," which
+      matters once different players can lock at different times within
+      the same round. The coach pick, by contrast, still uses the
+      original single overall-round lock (`getRoundLockTime`) — real rules
+      don't give the coach a per-turn window of its own.
+    - **Frontend**: the court still shows only the 5 starters (position-
+      accurate slot dots are still purely cosmetic, not tied to G/F/C — a
+      player's *real* position only matters for the quota count, not which
+      dot they sit on); a "Sixth Man" single slot and a 4-wide "Bench" row
+      were added directly below the court, sharing the exact same
+      `cdkDropList`/`cdkDrag` slot template (factored via
+      `ng-template`/`ngTemplateOutlet` to avoid tripling the markup) so
+      dragging between starter/sixth-man/bench/pool all go through one
+      `onDrop` handler keyed by slot id. A locked player shows a small lock
+      badge and has `cdkDragDisabled` set, rather than being removed from
+      view — real rules let you *see* your locked-in picks for the round,
+      just not touch them. The coach picker is a separate, non-draggable
+      single-select strip (only ~20 choices) rather than another drop
+      list. A live Guard/Forward/Center count against the 4/4/2 quota sits
+      in the status bar so a user sees why submit is blocked before hitting
+      a server-side rejection.
+- **Career stats on the collectible card flip** (2026-09-05;
+  `scripts/backfill-career-stats.ts`, `GET /api/collectibles/:id/stats`'s
+  new `career` field, `features/store/card-preview.ts`'s season/career
+  toggle) — the existing tap-to-flip stats view (`CollectibleStatsResponse`)
+  only ever showed the current season; user asked for real historical
+  averages too. Confirmed directly against the live feed
+  (`api-live.euroleague.net/v3/competitions/E/statistics/players/...`, the
+  same public REST endpoint `sync-py/player_stats_sync.py` wraps) that
+  per-game data exists back to season 2000 (2000-01) — 1999 and earlier
+  404 cleanly, so that's the real edge of "as far back as data goes," not
+  an arbitrary cutoff — and that `player.code` stays stable for the same
+  real person across seasons (checked directly: Vezenkov's code matches in
+  both 2025 and 2020), which is what makes matching a historical row back
+  to an existing `players` row safe.
+  - **`backfill-career-stats.ts` is TypeScript, not Python**, unlike every
+    other sync script — practical, not stylistic: this machine's committed
+    `sync-py/venv` is a Windows venv (`Scripts/` not `bin/`) and doesn't run
+    here at all, and euroleague-api itself additionally needs Python 3.10+
+    (`str | None` syntax) while this machine's system `python3` is 3.9.
+    Neither was worth fixing just for this one-off — the target endpoint
+    turned out to need no auth and no SDK, just a plain `fetch`, confirmed
+    by hand with curl first. (Installed Homebrew's `python@3.11` and a
+    throwaway venv separately, just to verify the endpoint/column shapes
+    directly against euroleague-api before committing to the raw-fetch
+    approach — the real `sync-py/venv` on this machine is still broken for
+    anyone who needs to run the Python sync scripts locally on macOS; worth
+    fixing properly if that comes up again.)
+  - **Deliberately never creates a new `players` row** — only enriches
+    players *already* in the table (matched by `code`), unlike the regular
+    per-season sync (which exists to discover the roster). A dry run first
+    confirmed why this matters: of ~4,500 historical stat rows across 25
+    seasons (2000-01 through 2024-25), only 831 matched an existing player —
+    the rest are retired players this app's card economy has no reason to
+    know about. Inserting `players` rows for them would have polluted
+    roster-listing routes (which filter on `active`, a flag this script has
+    no season-aware way to set correctly) for zero benefit.
+  - **`player_season_stats` needed no schema change at all** — it was
+    already `(playerId, season)`-keyed for exactly this reason (a player's
+    stats differ every season); backfilling historical seasons is just
+    more rows in the table the regular sync already writes to, so a long-
+    career player like Sergio Llull now legitimately has 18 real seasons on
+    file (2007-08 through 2025-26, missing only 2017-18 — a real injury
+    gap, not a sync gap).
+  - **Career averages are computed on read**, weighted by each season's
+    `games_played` (a 3-game cameo shouldn't count the same as a full
+    34-game season) — same "no stored aggregate, just a smarter query"
+    philosophy as the rest of this app's economy. Percentage columns weight
+    only over seasons where that specific column isn't null. Verified
+    directly: Llull's career line (8.9 PPG, 483 games, 8.1 PIR across 18
+    seasons) correctly reads very differently from his declining 2025-26
+    season alone (3.1 PPG) — the two views are meant to tell different
+    stories, not agree.
+  - Frontend: the flip-card's stats view gained a "This season"/"Career"
+    chip toggle (`ChipDirective`, only shown when a `career` line actually
+    exists) — both share the same field names (`CareerStats` in models.ts
+    deliberately mirrors `PlayerSeasonStats`' per-game fields), so
+    `card-preview.ts`'s `activeStatLine()` computed lets the template read
+    through one place regardless of which is selected, rather than
+    branching on the toggle at every stat field.
 - **DB round trips, not query count via `Promise.all`, are the real latency
   lever against Neon.** Measured directly (2026-08-21, local dev against
   the same remote Neon instance production uses): 4 near-identical queries
@@ -1053,6 +1285,27 @@ at the same Neon instance as local dev — there's no separate prod database.
     translucent jersey watermark, and a mono font for the number. Landed on
     the circle+gradient+depth combination — if it needs to change again,
     that history is why a flat square was already tried and rejected.
+    **v4 (2026-09-05)**: user shared a reference screenshot of a third-party
+    fantasy app's jersey tile and asked to imitate it — declined to fetch or
+    view the actual asset (both a specific webpage under that account's own
+    fantasy-team ID and, once the user gave it directly, a raw asset URL on
+    that product's own CDN) since reproducing another product's specific
+    copyrighted illustration, even by eye, isn't something to build from;
+    landed instead on an original jersey illustration using only
+    genre-standard basketball-jersey conventions (V-neck, sleeve caps, a
+    diagonal stripe) that aren't anyone's proprietary design. Keeps v3's
+    circular outer frame (never the complaint) but the jersey silhouette —
+    the same path v3 already drew as a 16%-opacity watermark — is now the
+    actual fill: a diagonal two-color stripe pattern (team
+    primaryColor/secondaryColor) clipped to that path, layered with a sheen
+    gradient (light top-left, dark bottom-right) and a soft radial shadow
+    right under the collar so the V-neck reads as cut into the fabric
+    rather than flat-drawn on top of it — about as close to "real jersey"
+    as a hand-rolled SVG reasonably gets without 3D tooling this app has no
+    other use for. One consistent template across all 20 teams (not a
+    per-team real-kit-accurate pattern) — matching each team's actual
+    current kit style precisely isn't verifiable without a visual
+    reference, which this session didn't have (no browser tool connected).
     `features/store/collectible-card.ts`'s no-image fallback got a matching
     but separate fix: its common tier's `photoTint` was a fixed neutral
     gray regardless of team (rare/legendary already used the team accent),

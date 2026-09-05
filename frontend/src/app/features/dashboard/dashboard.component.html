@@ -188,6 +188,34 @@
       </a>
     }
 
+    <!-- Fantasy Team teaser — same "requires an account" gating as My
+         Leagues right above, but a plain bordered card rather than a second
+         gradient hero back-to-back with it. Shows the current round's lock
+         status once loaded so this reads as a live status, not just an ad. -->
+    @if (auth.isAuthenticated()) {
+      <a
+        routerLink="/fantasy"
+        class="flex items-center gap-4 rounded-2xl p-5 mb-5 bg-card border border-line shadow-card group"
+      >
+        <span class="shrink-0 w-12 h-12 rounded-full bg-page flex items-center justify-center">
+          <app-nav-icon name="picks" [size]="22" class="text-highlight" />
+        </span>
+        <div class="flex-1 min-w-0">
+          <p class="font-display text-lg tracking-wide">{{ i18n.t('fantasy.navLink') }}</p>
+          @if (fantasyLineup(); as lineup) {
+            @if (lineup.locked) {
+              <p class="text-sm text-muted">{{ i18n.t('fantasy.round') }} {{ lineup.round }} &middot; {{ i18n.t('fantasy.locked') }}</p>
+            } @else if (lineup.lockAt) {
+              <p class="text-sm text-muted">{{ i18n.t('fantasy.round') }} {{ lineup.round }} &middot; {{ i18n.t('fantasy.lockCountdown') }} {{ lineup.lockAt | date: 'short' }}</p>
+            }
+          } @else {
+            <p class="text-sm text-muted">{{ i18n.t('fantasy.hint') }}</p>
+          }
+        </div>
+        <span class="shrink-0 text-muted text-sm sm:text-lg font-bold group-hover:translate-x-0.5 transition-transform">&rarr;</span>
+      </a>
+    }
+
     <!-- News stories — full-width right under My Leagues rather than sharing
          half the two-column split further down, so the stories rail (and
          its images) gets the full container width instead of half of it. -->

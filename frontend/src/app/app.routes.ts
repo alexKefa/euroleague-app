@@ -112,6 +112,10 @@ export const routes: Routes = [
     loadComponent: () => import("./features/leagues/league-detail").then((m) => m.LeagueDetailComponent),
   },
   {
+    path: "fantasy",
+    loadComponent: () => import("./features/fantasy/fantasy").then((m) => m.FantasyComponent),
+  },
+  {
     path: "profile",
     loadComponent: () => import("./features/profile/profile").then((m) => m.ProfileComponent),
   },

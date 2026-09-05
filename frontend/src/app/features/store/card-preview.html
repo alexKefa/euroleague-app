@@ -74,62 +74,84 @@
             <div class="flex-1 flex items-center justify-center text-center px-2">
               <p class="text-xs text-muted leading-relaxed">{{ i18n.t('store.statsNotLinked') }}</p>
             </div>
-          } @else if (!stats()!.stats) {
+          } @else if (!stats()!.stats && !stats()!.career) {
             <div class="flex-1 flex items-center justify-center text-center px-2">
               <p class="text-xs text-muted leading-relaxed">{{ i18n.t('store.noStatsYet') }}</p>
             </div>
           } @else {
-            <div class="flex-1 flex flex-col justify-center gap-4">
-              <div class="grid grid-cols-4 gap-2 text-center">
-                <div>
-                  <div class="font-mono text-xl font-bold">{{ stats()!.stats!.pointsPerGame | number: "1.1-1" }}</div>
-                  <div class="text-[9px] uppercase tracking-wide text-muted mt-0.5">PPG</div>
+            @if (stats()!.career) {
+              <div class="flex items-center justify-center gap-1.5 mb-1">
+                <button type="button" (click)="$event.stopPropagation(); setStatsView('season')" [appChip]="statsView() === 'season'">
+                  {{ i18n.t('store.statsThisSeason') }}
+                </button>
+                <button type="button" (click)="$event.stopPropagation(); setStatsView('career')" [appChip]="statsView() === 'career'">
+                  {{ i18n.t('store.statsCareer') }}
+                </button>
+              </div>
+            }
+
+            @if (!activeStatLine()) {
+              <div class="flex-1 flex items-center justify-center text-center px-2">
+                <p class="text-xs text-muted leading-relaxed">{{ i18n.t('store.noStatsYet') }}</p>
+              </div>
+            } @else {
+              <div class="flex-1 flex flex-col justify-center gap-4">
+                <div class="grid grid-cols-4 gap-2 text-center">
+                  <div>
+                    <div class="font-mono text-xl font-bold">{{ activeStatLine()!.pointsPerGame | number: "1.1-1" }}</div>
+                    <div class="text-[9px] uppercase tracking-wide text-muted mt-0.5">PPG</div>
+                  </div>
+                  <div>
+                    <div class="font-mono text-xl font-bold">{{ activeStatLine()!.reboundsPerGame | number: "1.1-1" }}</div>
+                    <div class="text-[9px] uppercase tracking-wide text-muted mt-0.5">RPG</div>
+                  </div>
+                  <div>
+                    <div class="font-mono text-xl font-bold">{{ activeStatLine()!.assistsPerGame | number: "1.1-1" }}</div>
+                    <div class="text-[9px] uppercase tracking-wide text-muted mt-0.5">APG</div>
+                  </div>
+                  <div>
+                    <div class="font-mono text-xl font-bold text-highlight">{{ activeStatLine()!.valuation | number: "1.1-1" }}</div>
+                    <div class="text-[9px] uppercase tracking-wide text-muted mt-0.5">PIR</div>
+                  </div>
                 </div>
-                <div>
-                  <div class="font-mono text-xl font-bold">{{ stats()!.stats!.reboundsPerGame | number: "1.1-1" }}</div>
-                  <div class="text-[9px] uppercase tracking-wide text-muted mt-0.5">RPG</div>
-                </div>
-                <div>
-                  <div class="font-mono text-xl font-bold">{{ stats()!.stats!.assistsPerGame | number: "1.1-1" }}</div>
-                  <div class="text-[9px] uppercase tracking-wide text-muted mt-0.5">APG</div>
-                </div>
-                <div>
-                  <div class="font-mono text-xl font-bold text-highlight">{{ stats()!.stats!.valuation | number: "1.1-1" }}</div>
-                  <div class="text-[9px] uppercase tracking-wide text-muted mt-0.5">PIR</div>
+
+                <div class="grid grid-cols-3 gap-2 text-center border-t border-line pt-3">
+                  <div>
+                    <div class="font-mono text-sm font-semibold">{{ activeStatLine()!.stealsPerGame | number: "1.1-1" }}</div>
+                    <div class="text-[8.5px] uppercase tracking-wide text-muted mt-0.5">STL</div>
+                  </div>
+                  <div>
+                    <div class="font-mono text-sm font-semibold">{{ activeStatLine()!.blocksPerGame | number: "1.1-1" }}</div>
+                    <div class="text-[8.5px] uppercase tracking-wide text-muted mt-0.5">BLK</div>
+                  </div>
+                  <div>
+                    <div class="font-mono text-sm font-semibold">{{ activeStatLine()!.turnoversPerGame | number: "1.1-1" }}</div>
+                    <div class="text-[8.5px] uppercase tracking-wide text-muted mt-0.5">TOV</div>
+                  </div>
+                  <div>
+                    <div class="font-mono text-sm font-semibold">{{ formatPct(activeStatLine()!.fieldGoalPct) }}</div>
+                    <div class="text-[8.5px] uppercase tracking-wide text-muted mt-0.5">FG%</div>
+                  </div>
+                  <div>
+                    <div class="font-mono text-sm font-semibold">{{ formatPct(activeStatLine()!.threePointPct) }}</div>
+                    <div class="text-[8.5px] uppercase tracking-wide text-muted mt-0.5">3P%</div>
+                  </div>
+                  <div>
+                    <div class="font-mono text-sm font-semibold">{{ formatPct(activeStatLine()!.freeThrowPct) }}</div>
+                    <div class="text-[8.5px] uppercase tracking-wide text-muted mt-0.5">FT%</div>
+                  </div>
                 </div>
               </div>
 
-              <div class="grid grid-cols-3 gap-2 text-center border-t border-line pt-3">
-                <div>
-                  <div class="font-mono text-sm font-semibold">{{ stats()!.stats!.stealsPerGame | number: "1.1-1" }}</div>
-                  <div class="text-[8.5px] uppercase tracking-wide text-muted mt-0.5">STL</div>
-                </div>
-                <div>
-                  <div class="font-mono text-sm font-semibold">{{ stats()!.stats!.blocksPerGame | number: "1.1-1" }}</div>
-                  <div class="text-[8.5px] uppercase tracking-wide text-muted mt-0.5">BLK</div>
-                </div>
-                <div>
-                  <div class="font-mono text-sm font-semibold">{{ stats()!.stats!.turnoversPerGame | number: "1.1-1" }}</div>
-                  <div class="text-[8.5px] uppercase tracking-wide text-muted mt-0.5">TOV</div>
-                </div>
-                <div>
-                  <div class="font-mono text-sm font-semibold">{{ formatPct(stats()!.stats!.fieldGoalPct) }}</div>
-                  <div class="text-[8.5px] uppercase tracking-wide text-muted mt-0.5">FG%</div>
-                </div>
-                <div>
-                  <div class="font-mono text-sm font-semibold">{{ formatPct(stats()!.stats!.threePointPct) }}</div>
-                  <div class="text-[8.5px] uppercase tracking-wide text-muted mt-0.5">3P%</div>
-                </div>
-                <div>
-                  <div class="font-mono text-sm font-semibold">{{ formatPct(stats()!.stats!.freeThrowPct) }}</div>
-                  <div class="text-[8.5px] uppercase tracking-wide text-muted mt-0.5">FT%</div>
-                </div>
-              </div>
-            </div>
-
-            <p class="text-center text-[10px] text-muted font-mono mt-2">
-              {{ stats()!.stats!.gamesPlayed }} {{ i18n.t('store.gamesPlayed') }} &middot; {{ stats()!.stats!.season }}
-            </p>
+              <p class="text-center text-[10px] text-muted font-mono mt-2">
+                @if (statsView() === 'career') {
+                  {{ activeStatLine()!.gamesPlayed }} {{ i18n.t('store.gamesPlayed') }} &middot;
+                  {{ stats()!.career!.seasonsPlayed }} {{ i18n.t('store.statsSeasons') }}
+                } @else {
+                  {{ activeStatLine()!.gamesPlayed }} {{ i18n.t('store.gamesPlayed') }} &middot; {{ stats()!.stats!.season }}
+                }
+              </p>
+            }
           }
         </div>
       </div>
