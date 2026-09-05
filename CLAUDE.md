@@ -642,12 +642,47 @@ If you need to apply a schema change without an interactive terminal
     a real role player — a low-minutes garbage-time rate — triggered only
     when average minutes fall below `LOW_MINUTES_THRESHOLD` (12). All of
     these constants are unvalidated against real data as of this pass — the
-    2026-27 season has zero played games so far (confirmed directly: every
-    player's price floors at `FANTASY_MIN_PRICE` today), so there's no
-    actual recent-form signal yet to tune weights against. Revisit once a
-    few rounds are in the books, same "re-check against real numbers"
-    spirit as every points-formula revision in this file's sibling section
-    above.
+    2026-27 season has zero played games so far, so there's no actual
+    recent-form signal yet to tune weights against. Revisit once a few
+    rounds are in the books, same "re-check against real numbers" spirit as
+    every points-formula revision in this file's sibling section above.
+    (Superseded the same day by the season-baseline fallback and, on
+    2026-09-06, by the PIR-to-credit scale — see the next two bullets.)
+  - **Season-baseline fallback, so day-one prices aren't all identical**
+    (same day, later pass): with zero played 2026-27 games, every player's
+    blended PIR resolved to null and every price floored at
+    `FANTASY_MIN_PRICE` — real, but boring to draft against on day one.
+    `scripts/reprice-fantasy-players.ts`'s query now coalesces onto each
+    player's own most recent *prior* season with a `player_season_stats`
+    row (Postgres `DISTINCT ON`, same idiom used elsewhere in this app for
+    "latest row per group") whenever the current season has none yet — real
+    last-season performance instead of a flat floor, self-correcting to
+    current-season form the moment real games start. A brand-new
+    player/team with no history at all still correctly floors — there's
+    nothing to fall back to. `computeCoachPrice` mirrors the same fallback
+    off `team_season_stats.position`.
+  - **PIR-to-credit scale, calibrated to a real sourced reference point**
+    (2026-09-06): every version of the formula up to this point used
+    blended PIR *as* the credit price directly (rounded, clamped to
+    `[FANTASY_MIN_PRICE, FANTASY_MAX_PRICE]`) — not an actual scale, just a
+    coincidence that PIR values loosely resemble a plausible credit range.
+    Caught directly: with `FANTASY_MAX_PRICE` at 25, Vezenkov (the league's
+    real top performer, ~22 PIR last season) priced at 22cr, while real
+    EuroLeague Fantasy currently prices Vezenkov at 17cr — a concrete,
+    sourced reference point the user provided, not a guess. Rather than
+    re-derive a ceiling from scratch, `FANTASY_MAX_PRICE` dropped to 17 and
+    a new `FANTASY_PIR_CEILING` (22, calibrated to that same real Vezenkov
+    PIR) anchors a linear rescale: `FANTASY_MIN_PRICE + (raw / 
+    FANTASY_PIR_CEILING) * (FANTASY_MAX_PRICE - FANTASY_MIN_PRICE)`,
+    rounded and clamped, replacing the old direct `Math.round(raw)`. A
+    player performing at Vezenkov's level now lands at exactly the credit
+    price EuroLeague Fantasy itself lists for him; everyone else scales
+    proportionally against that same anchor rather than being clamped
+    independently. This also adds real differentiation at the low end,
+    which the old 1:1 mapping never had — two bench players at PIR 1 and
+    PIR 4 both used to floor at an identical `FANTASY_MIN_PRICE`; now they
+    land at visibly different (still low) prices. Applied immediately by
+    re-running `npm run fantasy:reprice` against the live DB.
   - **Court-based drag-and-drop roster builder** (`frontend/src/app/shared/
     court-background.ts` + `fantasy.ts`/`.html`): reuses the half-court SVG
     geometry `shot-chart.ts` already draws (same FIBA-approximate
@@ -672,6 +707,56 @@ If you need to apply a schema change without an interactive terminal
     "vs TEAM" opponent badge plus a "Fixtures" popup, both sourced from the
     existing `GET /games/schedule` for the current round with no backend
     changes needed.
+  - **Side-by-side court + pool, formation picker (2026-09-05/06)**: the
+    original builder stacked the court above a horizontally-scrolling pool
+    strip — on a real phone, scrolling down far enough to reach the pool
+    pushed the court off-screen entirely, making drag-and-drop onto a
+    starter slot impossible rather than just awkward. `fantasy.html`'s
+    roster section is now a permanent two-column row (`flex-[3]`
+    court+bench / `flex-[2]` pool, both screen sizes, not just desktop) —
+    the pool is its own `overflow-y-auto` list stretched to the left
+    column's height (flex's `items-stretch` default), so it scrolls
+    independently and both stay visible together regardless of viewport.
+    The pool also infinite-scrolls (`onPoolScroll`, same pattern as the
+    league-wide advanced-stats table) instead of a "show more" button, and
+    each row again shows position + next opponent (e.g. "G · @PAO") and a
+    boxed credit chip. Sort defaults to credits descending (`sortKey`
+    signal default flipped from `valuation` to `price`) with a direction
+    arrow, and the sort controls sit right above the pool instead of a
+    disconnected row near the page bottom. Position filters are `G`/`F`/`C`/
+    `All` buttons — kept in English for both locales by explicit request
+    (`fantasy.posGuard`/`posGuardAbbrev` etc. now have identical `en`/`el`
+    values), unlike the rest of this page's translated text.
+    A **formation picker** (`fantasy.ts`'s `Formation` type, `FORMATION_POSITIONS`)
+    adds a real tactical layer: 5 choices (`2-2-1`/`2-1-2`/`3-1-1`/`1-2-2`/
+    `1-3-1`, all summing to 5) picked via a single button that opens a
+    dialog (reusing the same modal-overlay pattern as the fixtures/
+    leaderboard-entry popups already in this file), not always-visible
+    buttons — a deliberate compactness call once a 3-choice row grew to 5.
+    Each of the 5 starter slots (`squadSlots()[0..4]`, always starters — see
+    `initialSquadSlots`) is tagged with a required position for the chosen
+    formation; `slotAcceptsPlayer()` gates both drag-drop (`onDrop`) and
+    tap-to-place (`toggle`) against it. This is **purely a frontend
+    affordance** — `routes/fantasy.ts`'s `POST /lineup/batch` only ever
+    validated the *overall* 4G/4F/2C squad quota across all 10 outfield
+    players, never a per-slot position, so adding this never touched the
+    submit contract. Changing formation (`setFormation`) re-seats or
+    benches whichever starter no longer fits their slot's new requirement
+    (never touching a locked player — their round's already started),
+    clearing the captain armband if it was theirs. A reload also re-derives
+    the right formation from whatever's actually saved
+    (`reconcileStarterFormation`, matches the loaded starters' real
+    position mix against each formation's G/F/C split) instead of always
+    defaulting to `2-2-1` regardless of reality — a mix that matches none
+    of the 5 (e.g. a lineup saved before this feature existed) is left
+    alone. The court background itself (`shared/court-background.ts`) was
+    also visibly too dark against the roster page's near-black surface —
+    line strokes were `stroke-line` (near-invisible on a `bg-page`-adjacent
+    background) at low opacity; switched to `stroke-muted` at 0.85 opacity
+    and slightly thicker strokes, plus a warmer, more opaque court-surface
+    gradient (`from-highlight/25 via-card to-card`, was `from-highlight/10
+    to-transparent`) so the court reads as an actual surface rather than a
+    near-black rectangle with barely-visible lines.
   - **Simulator test games were quietly poisoning real prices** (caught
     2026-09-05, same day): the very first `fantasy:reprice` run priced
     everyone near the floor for a suspicious reason — 3 of the 2026-27

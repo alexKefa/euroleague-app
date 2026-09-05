@@ -15,19 +15,20 @@ import { Component } from "@angular/core";
   standalone: true,
   template: `
     <svg viewBox="0 0 320 210" class="w-full h-full pointer-events-none" preserveAspectRatio="xMidYMid meet">
-      <path [attr.d]="courtOutlinePath" fill="none" class="stroke-line" stroke-width="1.5" />
+      <path [attr.d]="courtOutlinePath" fill="none" class="stroke-muted" stroke-width="1.8" opacity="0.85" />
       <rect
         [attr.x]="keyLeftX"
         [attr.y]="freeThrowLineY"
         [attr.width]="keyWidth"
         [attr.height]="keyHeight"
         fill="none"
-        class="stroke-line"
-        stroke-width="1.5"
+        class="stroke-muted"
+        stroke-width="1.8"
+        opacity="0.85"
       />
-      <circle [attr.cx]="basketX" [attr.cy]="freeThrowLineY" [attr.r]="freeThrowCircleRadius" fill="none" class="stroke-line" stroke-width="1.5" />
-      <path [attr.d]="restrictedAreaPath" fill="none" class="stroke-line" stroke-width="1.2" />
-      <path [attr.d]="threePointArcPath" fill="none" class="stroke-line" stroke-width="1.5" />
+      <circle [attr.cx]="basketX" [attr.cy]="freeThrowLineY" [attr.r]="freeThrowCircleRadius" fill="none" class="stroke-muted" stroke-width="1.8" opacity="0.85" />
+      <path [attr.d]="restrictedAreaPath" fill="none" class="stroke-muted" stroke-width="1.4" opacity="0.85" />
+      <path [attr.d]="threePointArcPath" fill="none" class="stroke-muted" stroke-width="1.8" opacity="0.85" />
       <line [attr.x1]="backboardX1" [attr.x2]="backboardX2" [attr.y1]="backboardY" [attr.y2]="backboardY" class="stroke-ink" stroke-width="2" />
       <circle
         [attr.cx]="basketX"

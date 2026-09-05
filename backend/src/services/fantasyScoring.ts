@@ -27,7 +27,7 @@ export const BENCH_SCORE_MULTIPLIER = 0.5;
 
 export const FANTASY_BUDGET_CAP = 100;
 export const FANTASY_MIN_PRICE = 4;
-export const FANTASY_MAX_PRICE = 25;
+export const FANTASY_MAX_PRICE = 17;
 
 // --- Fantasy Five draft-price formula (scripts/reprice-fantasy-players.ts) ---
 //
@@ -65,6 +65,25 @@ export const RECENT_FORM_WEIGHT = 0.65;
 export const LOW_MINUTES_THRESHOLD = 12;
 export const LOW_MINUTES_DAMPEN = 0.7;
 
+// --- PIR-to-credit scaling (2026-09-06) ---
+//
+// Every version of this formula up to now used the blended PIR number
+// *as* the credit price directly (just rounded and clamped to
+// [MIN_PRICE, MAX_PRICE]) — which happened to look reasonable only
+// because real PIR values loosely fall in a similar numeric range to a
+// plausible credit scale. It wasn't an actual scale: the top of the
+// league (Vezenkov, ~22 PIR) priced at 22cr, while real EuroLeague
+// Fantasy prices its own current top player (Vezenkov) at 17cr — a
+// directly comparable, sourced reference point (2026-09-06). Rather than
+// re-guess a ceiling, FANTASY_PIR_CEILING is calibrated to exactly that:
+// a player performing at Vezenkov's current level lands at FANTASY_MAX_PRICE,
+// and everyone else is scaled linearly against that same anchor, not just
+// individually clamped. This also gives real differentiation at the low
+// end, which the old 1:1 mapping didn't: two bench players at PIR 1 and
+// PIR 4 used to both floor at identical MIN_PRICE; now they land at
+// visibly different (still low) prices.
+export const FANTASY_PIR_CEILING = 22;
+
 export interface FantasyPriceInput {
   recentAvgPIR: number | null;
   recentAvgMinutes: number | null;
@@ -90,7 +109,8 @@ export function computeFantasyPrice(input: FantasyPriceInput): number {
   const effectiveMinutes = hasRecentForm ? input.recentAvgMinutes : input.seasonMinutesPerGame;
   const raw = effectiveMinutes !== null && effectiveMinutes < LOW_MINUTES_THRESHOLD ? blendedPIR * LOW_MINUTES_DAMPEN : blendedPIR;
 
-  return Math.min(FANTASY_MAX_PRICE, Math.max(FANTASY_MIN_PRICE, Math.round(raw)));
+  const scaled = FANTASY_MIN_PRICE + (raw / FANTASY_PIR_CEILING) * (FANTASY_MAX_PRICE - FANTASY_MIN_PRICE);
+  return Math.min(FANTASY_MAX_PRICE, Math.max(FANTASY_MIN_PRICE, Math.round(scaled)));
 }
 
 // --- Coach pricing + scoring ---

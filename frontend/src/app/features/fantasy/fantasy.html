@@ -181,7 +181,7 @@
                 <span class="text-muted text-[9px]">&#9662;</span>
               </button>
             </div>
-            <div class="relative w-full rounded-2xl overflow-hidden bg-gradient-to-b from-highlight/10 to-transparent border border-line shadow-card" style="aspect-ratio: 320 / 210;">
+            <div class="relative w-full rounded-2xl overflow-hidden bg-gradient-to-b from-highlight/25 via-card to-card border border-line shadow-card" style="aspect-ratio: 320 / 210;">
               <app-court-background class="absolute inset-0 w-full h-full" />
               @for (pos of starterSlotPositions(); track $index; let i = $index) {
                 <div class="absolute -translate-x-1/2 -translate-y-1/2" [style.left.%]="pos.left" [style.top.%]="pos.top">
