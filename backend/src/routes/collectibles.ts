@@ -5,6 +5,7 @@ import { collectibles, userCollectibles, pointAdjustments, teams, users, players
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
 import { getUserPoints } from "../services/points.js";
 import { getCurrentSeason } from "../services/season.js";
+import { getAlbumLeaderboardEntries } from "../services/albumLeaderboard.js";
 
 // Collectibles were never given a real playerId (just a free-text name) —
 // the feed's player names come as "LASTNAME, Firstname" (players.name),
@@ -257,6 +258,20 @@ collectiblesRouter.get("/teams", async (_req, res) => {
   } catch (err) {
     console.error("GET /api/collectibles/teams failed:", err);
     res.status(500).json({ error: "Failed to load teams" });
+  }
+});
+
+// Global album-completion leaderboard — a league-scoped version lives at
+// GET /leagues/:id/album-leaderboard (routes/leagues.ts), sharing
+// getAlbumLeaderboardEntries the same way the points/fantasy leaderboards
+// are already shared between their own global/league-scoped routes.
+collectiblesRouter.get("/leaderboard", async (_req, res) => {
+  try {
+    const entries = await getAlbumLeaderboardEntries({ limit: 20 });
+    res.json(entries);
+  } catch (err) {
+    console.error("GET /api/collectibles/leaderboard failed:", err);
+    res.status(500).json({ error: "Failed to load album leaderboard" });
   }
 });
 

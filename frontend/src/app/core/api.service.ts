@@ -48,6 +48,7 @@ import {
   FantasyLineup,
   FantasySlotRole,
   FantasyLeaderboardEntry,
+  AlbumLeaderboardEntry,
 } from "./models";
 
 /**
@@ -433,5 +434,13 @@ export class ApiService {
 
   getLeagueFantasyLeaderboard(leagueId: string): Observable<FantasyLeaderboardEntry[]> {
     return this.http.get<FantasyLeaderboardEntry[]>(`${API_BASE_URL}/leagues/${leagueId}/fantasy-leaderboard`);
+  }
+
+  getAlbumLeaderboard(): Observable<AlbumLeaderboardEntry[]> {
+    return this.http.get<AlbumLeaderboardEntry[]>(`${API_BASE_URL}/collectibles/leaderboard`);
+  }
+
+  getLeagueAlbumLeaderboard(leagueId: string): Observable<AlbumLeaderboardEntry[]> {
+    return this.http.get<AlbumLeaderboardEntry[]>(`${API_BASE_URL}/leagues/${leagueId}/album-leaderboard`);
   }
 }

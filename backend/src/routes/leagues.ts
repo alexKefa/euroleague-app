@@ -6,6 +6,7 @@ import { requireAuth } from "../auth/middleware.js";
 import { createUniqueLeagueCode } from "../services/leagues.js";
 import { getLeaderboardEntries } from "../services/leaderboard.js";
 import { getFantasyLeaderboardEntries } from "../services/fantasyScoring.js";
+import { getAlbumLeaderboardEntries, getCollectibleCatalogTotal } from "../services/albumLeaderboard.js";
 import { getCurrentSeason } from "../services/season.js";
 
 export const leaguesRouter = Router();
@@ -282,5 +283,80 @@ leaguesRouter.get("/:id/fantasy-leaderboard", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("GET /api/leagues/:id/fantasy-leaderboard failed:", err);
     res.status(500).json({ error: "Failed to load fantasy leaderboard" });
+  }
+});
+
+// Album-completion's league-scoped board — same getAlbumLeaderboardEntries
+// shared with the global GET /api/collectibles/leaderboard, mirroring the
+// points/fantasy leaderboards' global/league split above. A member who
+// owns zero collectibles at all is still shown (ranked last, same
+// "everyone's here" inclusion the points/fantasy league boards already
+// use), since a fresh member with nothing yet is a meaningful state to
+// see in a small friend group, not something to hide.
+leaguesRouter.get("/:id/album-leaderboard", requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!(await requireMembership(id, req.userId!))) {
+      res.status(403).json({ error: "Not a member of this league", code: "NOT_A_MEMBER" });
+      return;
+    }
+
+    const memberRows = await db
+      .select({
+        userId: leagueMembers.userId,
+        username: users.username,
+        showcaseCollectibleIds: users.showcaseCollectibleIds,
+      })
+      .from(leagueMembers)
+      .innerJoin(users, eq(leagueMembers.userId, users.id))
+      .where(eq(leagueMembers.leagueId, id));
+
+    const memberIds = memberRows.map((r) => r.userId);
+    // Sequential, not Promise.all — this driver gives no real cross-query
+    // concurrency against Neon (see CLAUDE.md's round-trip-cost note).
+    const entries = await getAlbumLeaderboardEntries({ userIds: memberIds });
+    const totalCount = await getCollectibleCatalogTotal();
+
+    const presentIds = new Set(entries.map((e) => e.userId));
+    const zeroMembers = memberRows.filter((r) => !presentIds.has(r.userId));
+
+    const allShowcaseIds = [...new Set(zeroMembers.flatMap((r) => r.showcaseCollectibleIds))];
+    const cardRows = allShowcaseIds.length
+      ? await db
+          .select({ collectible: collectibles, team: teams })
+          .from(collectibles)
+          .innerJoin(teams, eq(collectibles.teamId, teams.id))
+          .where(inArray(collectibles.id, allShowcaseIds))
+      : [];
+    const cardById = new Map(
+      cardRows.map(({ collectible, team }) => [
+        collectible.id,
+        {
+          id: collectible.id,
+          name: collectible.name,
+          tier: collectible.tier,
+          imageUrl: collectible.imageUrl,
+          team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor, logoUrl: team.logoUrl },
+        },
+      ])
+    );
+
+    const zeroEntries = zeroMembers
+      .map((r) => ({
+        userId: r.userId,
+        displayName: r.username,
+        ownedCount: 0,
+        totalCount,
+        completion: 0,
+        showcase: r.showcaseCollectibleIds
+          .map((cid) => cardById.get(cid))
+          .filter((c): c is NonNullable<typeof c> => !!c),
+      }))
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+    res.json([...entries, ...zeroEntries]);
+  } catch (err) {
+    console.error("GET /api/leagues/:id/album-leaderboard failed:", err);
+    res.status(500).json({ error: "Failed to load album leaderboard" });
   }
 });

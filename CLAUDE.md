@@ -1185,6 +1185,77 @@ at the same Neon instance as local dev — there's no separate prod database.
 - The same Railway account has an unrelated older project ("valiant-passion" /
   service "dsg-backend") — don't confuse it with this one.
 
+## Branding (2026-09-06)
+
+- **Isometric 3-bar mark** replaces the old flat version everywhere: browser
+  favicon (`frontend/src/favicon.svg` and `frontend/public/favicon.svg` — the
+  latter wins the build (Angular copies the `public/**` glob after the
+  explicit `src/favicon.svg` asset entry, confirmed directly against
+  `dist/.../favicon.svg`), the PWA home-screen icon set
+  (`frontend/public/icons/icon-*.png`, 8 sizes, rasterized from one 100x100
+  SVG source via `sharp` at build time — not checked in as a generator
+  script, just a one-off render since there's no icon-generation pipeline in
+  this repo), the top-nav wordmark lockup (`app.component.html`, right next
+  to the "Clutch" text — bumped from 17px to 22px so the extra dimension
+  actually reads), and the splash-screen intro (`shared/splash.html`, each
+  bar's 3 faces wrapped in its own `<g class="bar bar-N">` so `splash.css`'s
+  existing per-bar `scaleY` rise-in animation still applies to the whole
+  extruded shape as one rigid unit — `transform-box: fill-box` works the
+  same on an SVG `<g>` as it did on the plain `<rect>` it replaced). Same
+  silhouette/heights and the same three brand-orange shades as the original
+  flat mark (a short/tall/medium triptych), just rendered as three
+  isometric blocks (top face lit, front face mid-tone, implicit side shading
+  via a third, darker polygon) instead of flat rounded rects — chosen from
+  3 candidate directions sketched in an Artifact first (an isometric
+  version, a version with a basketball rim/net worked into the tall bar's
+  cap, and a glossy jewel-toned glass version) per this project's usual
+  "propose visually, then implement" pattern for design work.
+- **`src/favicon.svg` was a stale leftover from an even older logo** — an
+  orange-ring-with-a-cutout "C" mark, never actually served (shadowed by
+  `public/favicon.svg` at build time) and out of sync with every other
+  brand surface, which all agreed on the flat bar mark before this pass.
+  Updated to match rather than deleted, so both copies stay identical and
+  the shadow can't reintroduce a mismatch if the asset order ever changes.
+
+## Album leaderboard (2026-09-06)
+
+- **Competitive layer added to the collectibles side of the app** — until
+  now Predictions (points) and Fantasy Five both had global + league-scoped
+  leaderboards; the Album (`features/album/`) had none at all, no way to
+  see how your collection stacked up against anyone else's. Added the same
+  global/league-scoped pair, following the exact precedent both existing
+  economies already set:
+  - `backend/src/services/albumLeaderboard.ts`'s `getAlbumLeaderboardEntries`
+    ranks by `count(distinct collectible_id)` in `user_collectibles` per
+    user against the one shared catalog-size total
+    (`getCollectibleCatalogTotal`, exported separately since
+    `routes/leagues.ts` needs it standalone to fill in zero-card members —
+    see below). `GET /api/collectibles/leaderboard` (global, `limit: 20`)
+    and `GET /api/leagues/:id/album-leaderboard` (league-scoped, no limit)
+    share it exactly the way `getLeaderboardEntries`/
+    `getFantasyLeaderboardEntries` already split between their own
+    global/league routes — a `userIds` filter applied in JS to one
+    unfiltered query, not parameterized into the SQL.
+  - Same "everyone's here" league inclusion as the points/fantasy league
+    boards: a member who owns zero collectibles has no row in
+    `user_collectibles` at all and so is absent from
+    `getAlbumLeaderboardEntries`'s own result — `routes/leagues.ts`'s
+    `/:id/album-leaderboard` adds them back in itself (ranked last, 0/total),
+    same pattern as its sibling `/:id/leaderboard`/`/:id/fantasy-leaderboard`
+    routes, right down to resolving their showcase cards separately since
+    they were never part of the ranked query result to begin with.
+  - Frontend: rather than embed this in `league-detail.html` (which is
+    where the *points* leaderboard's league view lives), it follows Fantasy
+    Five's own precedent instead — a new "Leaderboard" tab on the Album
+    page itself (`features/album/album.ts`, `tab` signal), with the same
+    global/my-league `app-dropdown` toggle, ranked list, and showcase-card
+    entry modal, copied near-verbatim from `fantasy.html`'s own leaderboard
+    tab. Two different existing conventions for "where does a league-scoped
+    board live" already coexisted in this app before this pass (points on
+    League Detail, Fantasy on its own page) — Album followed Fantasy's
+    since, like Fantasy, it's a single-focus feature page without an
+    existing home on League Detail to slot into.
+
 ## Other known gaps
 
 - A traded player's season-long stat averages (across both teams) are

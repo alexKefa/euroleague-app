@@ -755,3 +755,16 @@ export interface FantasyLeaderboardEntry {
   fantasyPoints: number;
   showcase: ShowcaseCard[];
 }
+
+// GET /api/collectibles/leaderboard and /api/leagues/:id/album-leaderboard —
+// ranked by how much of the full collectible catalog a user owns at least
+// one copy of, same showcase-card mechanic as the other two leaderboards,
+// kept as its own separate economy/shape for the same reason those are.
+export interface AlbumLeaderboardEntry {
+  userId: string;
+  displayName: string;
+  ownedCount: number;
+  totalCount: number;
+  completion: number;
+  showcase: ShowcaseCard[];
+}

@@ -1,16 +1,17 @@
-import { Component, OnInit, inject, signal, computed, effect } from "@angular/core";
+import { Component, HostListener, OnInit, inject, signal, computed, effect } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
-import { Collectible, CollectibleFinish, CollectibleTier, Team } from "../../core/models";
+import { AlbumLeaderboardEntry, Collectible, CollectibleFinish, CollectibleTier, League, Team } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { CardPreviewComponent } from "../store/card-preview";
 import { PageHintComponent } from "../../shared/page-hint";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { ButtonDirective } from "../../shared/button.directive";
+import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { TeamCodePipe } from "../../shared/team-display-code";
 
 interface TierBreakdown {
@@ -36,6 +37,7 @@ const TIER_ORDER: CollectibleTier[] = ["common", "rare", "legendary"];
     RetryImgDirective,
     SkeletonComponent,
     ButtonDirective,
+    DropdownComponent,
     TeamCodePipe,
   ],
   templateUrl: "./album.html",
@@ -47,6 +49,55 @@ export class AlbumComponent implements OnInit {
   protected i18n = inject(I18nService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+
+  readonly tab = signal<"album" | "leaderboard">("album");
+
+  // --- Leaderboard state (a global/my-league toggle, same shape as
+  // Fantasy Five's own leaderboard tab) ---
+  readonly globalLeaderboard = signal<AlbumLeaderboardEntry[]>([]);
+  readonly myLeagues = signal<League[]>([]);
+  readonly selectedLeagueId = signal<string | null>(null);
+  readonly leagueLeaderboard = signal<AlbumLeaderboardEntry[]>([]);
+  readonly leaderboardLoading = signal(false);
+  readonly selectedEntry = signal<AlbumLeaderboardEntry | null>(null);
+
+  readonly leagueDropdownOptions = computed<DropdownOption[]>(() =>
+    this.myLeagues().map((l) => ({ value: l.id, label: l.name }))
+  );
+
+  readonly activeLeaderboard = computed(() =>
+    this.selectedLeagueId() ? this.leagueLeaderboard() : this.globalLeaderboard()
+  );
+
+  setTab(tab: "album" | "leaderboard"): void {
+    this.tab.set(tab);
+  }
+
+  selectLeague(id: string | null): void {
+    this.selectedLeagueId.set(id || null);
+    if (!id) return;
+    this.leaderboardLoading.set(true);
+    this.api.getLeagueAlbumLeaderboard(id).subscribe({
+      next: (rows) => {
+        this.leagueLeaderboard.set(rows);
+        this.leaderboardLoading.set(false);
+      },
+      error: () => this.leaderboardLoading.set(false),
+    });
+  }
+
+  openEntry(entry: AlbumLeaderboardEntry): void {
+    this.selectedEntry.set(entry);
+  }
+
+  closeEntry(): void {
+    this.selectedEntry.set(null);
+  }
+
+  @HostListener("document:keydown.escape")
+  onLeaderboardEscape(): void {
+    this.closeEntry();
+  }
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
@@ -198,7 +249,16 @@ export class AlbumComponent implements OnInit {
         },
         error: () => {},
       });
+      this.api.getMyLeagues().subscribe({
+        next: (rows) => this.myLeagues.set(rows),
+        error: () => {},
+      });
     }
+
+    this.api.getAlbumLeaderboard().subscribe({
+      next: (rows) => this.globalLeaderboard.set(rows),
+      error: () => {},
+    });
   }
 
   isOwned(collectible: Collectible): boolean {

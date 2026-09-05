@@ -15,4 +15,9 @@ export const albumTranslations: Record<string, Record<Lang, string>> = {
   "album.loadFailed": { en: "Failed to load the album — is the backend running?", el: "Αποτυχία φόρτωσης του άλμπουμ." },
   "album.guestHint": { en: "to see which of these you actually own.", el: "για να δεις ποιες από αυτές έχεις πραγματικά." },
   "album.noCards": { en: "No cards synced for this team yet.", el: "Δεν έχουν συγχρονιστεί ακόμα κάρτες για αυτή την ομάδα." },
+  "album.albumTab": { en: "Album", el: "Άλμπουμ" },
+  "album.leaderboardTab": { en: "Leaderboard", el: "Κατάταξη" },
+  "album.globalBoard": { en: "Global", el: "Γενική" },
+  "album.myLeagueBoard": { en: "My league", el: "Η λίγκα μου" },
+  "album.emptyLeaderboard": { en: "No cards collected yet this season.", el: "Δεν έχουν συλλεχθεί ακόμα κάρτες φέτος." },
 };
