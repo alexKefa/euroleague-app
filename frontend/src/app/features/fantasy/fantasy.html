@@ -34,7 +34,7 @@
            this — a cdkDropList holding 0 or 1 player, a lock badge once
            that player's own team has tipped off this round per real
            EuroLeague Fantasy's "Turns" rule, not the whole round at once). -->
-      <ng-template #squadSlot let-slot let-size="size">
+      <ng-template #squadSlot let-slot let-size="size" let-positionLabel="positionLabel">
         <div
           cdkDropList
           [id]="slot.id"
@@ -79,6 +79,9 @@
             </div>
           } @else {
             <div class="rounded-full border-2 border-dashed border-line flex items-center justify-center text-muted text-xl" [style.width.px]="size" [style.height.px]="size">+</div>
+            @if (positionLabel) {
+              <span class="text-[8px] font-bold uppercase tracking-wide text-muted mt-0.5">{{ positionLabel }}</span>
+            }
           }
         </div>
       </ng-template>
@@ -146,17 +149,17 @@
           />
         </div>
         <div class="flex items-center gap-1.5">
-          <button type="button" (click)="setPositionFilter(null)" [appChip]="positionFilter() === null">
+          <button type="button" (click)="setPositionFilter(null)" [appChip]="positionFilter() === null" class="min-w-[40px]">
             {{ i18n.t('fantasy.posAll') }}
           </button>
-          <button type="button" (click)="setPositionFilter('Guard')" [appChip]="positionFilter() === 'Guard'">
-            {{ i18n.t('fantasy.posGuard') }}
+          <button type="button" (click)="setPositionFilter('Guard')" [appChip]="positionFilter() === 'Guard'" class="min-w-[40px]">
+            {{ i18n.t('fantasy.posGuardAbbrev') }}
           </button>
-          <button type="button" (click)="setPositionFilter('Forward')" [appChip]="positionFilter() === 'Forward'">
-            {{ i18n.t('fantasy.posForward') }}
+          <button type="button" (click)="setPositionFilter('Forward')" [appChip]="positionFilter() === 'Forward'" class="min-w-[40px]">
+            {{ i18n.t('fantasy.posForwardAbbrev') }}
           </button>
-          <button type="button" (click)="setPositionFilter('Center')" [appChip]="positionFilter() === 'Center'">
-            {{ i18n.t('fantasy.posCenter') }}
+          <button type="button" (click)="setPositionFilter('Center')" [appChip]="positionFilter() === 'Center'" class="min-w-[40px]">
+            {{ i18n.t('fantasy.posCenterAbbrev') }}
           </button>
         </div>
 
@@ -165,13 +168,26 @@
              the pool's height match the left column automatically instead
              of a guessed fixed height. -->
         <div class="flex gap-2.5">
-          <!-- LEFT: court (5 starter drop targets) + sixth man + bench -->
+          <!-- LEFT: formation picker + court (5 starter drop targets,
+               position-gated per the chosen formation) + sixth man + bench -->
           <div class="flex-[3] min-w-0 flex flex-col gap-2.5">
+            <div class="flex items-center justify-center gap-1">
+              @for (f of formationOptions; track f) {
+                <button
+                  type="button"
+                  (click)="setFormation(f)"
+                  class="px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold border transition-colors"
+                  [ngClass]="formation() === f ? 'bg-highlight text-page border-highlight' : 'bg-card border-line text-muted hover:border-highlight'"
+                >
+                  {{ f }}
+                </button>
+              }
+            </div>
             <div class="relative w-full rounded-2xl overflow-hidden bg-gradient-to-b from-highlight/10 to-transparent border border-line shadow-card" style="aspect-ratio: 320 / 210;">
               <app-court-background class="absolute inset-0 w-full h-full" />
-              @for (pos of starterSlotPositions; track $index; let i = $index) {
+              @for (pos of starterSlotPositions(); track $index; let i = $index) {
                 <div class="absolute -translate-x-1/2 -translate-y-1/2" [style.left.%]="pos.left" [style.top.%]="pos.top">
-                  <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: starterSlots()[i], size: 36 }" />
+                  <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: starterSlots()[i], size: 36, positionLabel: posLabel(requiredPositionForStarterSlot(i)) }" />
                 </div>
               }
             </div>
@@ -196,48 +212,71 @@
 
           <!-- RIGHT: player pool — a vertical list with its own scroll
                (not the page's), also the drop target for a player removed
-               from the squad. Compact single-row cards (photo + name +
-               price) rather than the old square tile, since this column is
+               from the squad. A slim sort header sits above it (docked to
+               the list it controls, rather than a separate row far below);
+               the list itself loads more on scroll instead of a "show
+               more" button, same infinite-scroll pattern the league-wide
+               advanced-stats table already uses. Compact single-row cards
+               (photo + name/position/opponent + a boxed credit value)
+               rather than the old square tile, since this column is
                narrow by design. -->
-          <div
-            cdkDropList
-            id="pool"
-            [cdkDropListConnectedTo]="dropListIds"
-            (cdkDropListDropped)="onDrop($event, 'pool')"
-            class="flex-[2] min-w-0 flex flex-col gap-1.5 bg-card rounded-2xl border border-line shadow-card p-2 overflow-y-auto"
-            style="-webkit-overflow-scrolling: touch;"
-          >
-            @for (row of visibleRows(); track row.player.id) {
-              <div
-                cdkDrag
-                [cdkDragData]="row.player.id"
-                (click)="toggle(row.player.id)"
-                class="flex items-center gap-1.5 rounded-lg border border-line bg-page p-1.5 cursor-grab active:cursor-grabbing hover:border-highlight transition-colors"
-              >
-                <app-player-photo
-                  [photoUrl]="row.player.photoUrl"
-                  [name]="row.player.name"
-                  [teamCode]="row.team.code"
-                  [primaryColor]="row.team.primaryColor"
-                  [size]="28"
-                />
-                <div class="min-w-0 flex-1">
-                  <p class="text-[10px] font-semibold truncate leading-tight">{{ row.player.name }}</p>
-                  <p class="font-mono text-[9px] font-bold text-highlight leading-tight">{{ row.price }}</p>
-                </div>
-              </div>
-            } @empty {
-              <p class="text-center text-xs text-muted py-4">{{ i18n.t('fantasy.courtFull') }}</p>
-            }
-            @if (hasMoreRows()) {
-              <button
-                type="button"
-                (click)="showMore()"
-                class="flex items-center justify-center gap-1 rounded-lg border border-dashed border-line text-muted hover:text-ink hover:border-highlight transition-colors py-1.5 text-[10px] font-bold"
-              >
-                {{ i18n.t('fantasy.showMore') }}
+          <div class="flex-[2] min-w-0 flex flex-col gap-1.5">
+            <div class="flex items-center justify-around bg-card rounded-xl border border-line px-1 py-1">
+              <button type="button" (click)="setSort('price')" class="flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wide" [ngClass]="sortKey() === 'price' ? 'text-highlight' : 'text-muted'">
+                {{ i18n.t('fantasy.colPrice') }}
+                @if (sortKey() === 'price') { <span class="font-mono">{{ sortDesc() ? '▼' : '▲' }}</span> }
               </button>
-            }
+              <button type="button" (click)="setSort('pointsPerGame')" class="flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wide" [ngClass]="sortKey() === 'pointsPerGame' ? 'text-highlight' : 'text-muted'">
+                {{ i18n.t('fantasy.colPpg') }}
+                @if (sortKey() === 'pointsPerGame') { <span class="font-mono">{{ sortDesc() ? '▼' : '▲' }}</span> }
+              </button>
+              <button type="button" (click)="setSort('valuation')" class="flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wide" [ngClass]="sortKey() === 'valuation' ? 'text-highlight' : 'text-muted'">
+                {{ i18n.t('fantasy.colPir') }}
+                @if (sortKey() === 'valuation') { <span class="font-mono">{{ sortDesc() ? '▼' : '▲' }}</span> }
+              </button>
+            </div>
+
+            <div
+              cdkDropList
+              id="pool"
+              [cdkDropListConnectedTo]="dropListIds"
+              (cdkDropListDropped)="onDrop($event, 'pool')"
+              (scroll)="onPoolScroll($event)"
+              class="flex-1 min-h-0 flex flex-col gap-1.5 bg-card rounded-2xl border border-line shadow-card p-2 overflow-y-auto"
+              style="-webkit-overflow-scrolling: touch;"
+            >
+              @for (row of visibleRows(); track row.player.id) {
+                <div
+                  cdkDrag
+                  [cdkDragData]="row.player.id"
+                  (click)="toggle(row.player.id)"
+                  class="flex items-center gap-1.5 rounded-lg border border-line bg-page p-1.5 cursor-grab active:cursor-grabbing hover:border-highlight transition-colors"
+                >
+                  <app-player-photo
+                    [photoUrl]="row.player.photoUrl"
+                    [name]="row.player.name"
+                    [teamCode]="row.team.code"
+                    [primaryColor]="row.team.primaryColor"
+                    [size]="26"
+                  />
+                  <div class="min-w-0 flex-1">
+                    <p class="text-[10px] font-semibold truncate leading-tight">{{ row.player.name }}</p>
+                    <p class="text-[8px] font-mono text-muted truncate leading-tight">
+                      {{ posAbbrev(row.player.position) }}
+                      @if (opponentFor(row.team.id); as opp) {
+                        &middot; {{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }} {{ opp.opponent.code }}
+                      }
+                    </p>
+                  </div>
+                  <span class="shrink-0 font-mono text-[11px] font-bold text-highlight border border-highlight/30 rounded-md px-1.5 py-0.5">{{ row.price }}</span>
+                </div>
+              } @empty {
+                <p class="text-center text-xs text-muted py-4">{{ i18n.t('fantasy.courtFull') }}</p>
+              }
+              @if (hasMoreRows()) {
+                <p class="text-center text-[10px] text-muted py-1 tracking-widest">&middot;&middot;&middot;</p>
+              }
+            </div>
           </div>
         </div>
 
@@ -260,18 +299,6 @@
               </button>
             }
           </div>
-        </div>
-
-        <div class="flex items-center justify-center gap-3">
-          <button type="button" (click)="setSort('price')" class="text-[11px] font-bold uppercase tracking-wider" [ngClass]="sortKey() === 'price' ? 'text-highlight' : 'text-muted'">
-            {{ i18n.t('fantasy.colPrice') }}
-          </button>
-          <button type="button" (click)="setSort('pointsPerGame')" class="text-[11px] font-bold uppercase tracking-wider" [ngClass]="sortKey() === 'pointsPerGame' ? 'text-highlight' : 'text-muted'">
-            {{ i18n.t('fantasy.colPpg') }}
-          </button>
-          <button type="button" (click)="setSort('valuation')" class="text-[11px] font-bold uppercase tracking-wider" [ngClass]="sortKey() === 'valuation' ? 'text-highlight' : 'text-muted'">
-            {{ i18n.t('fantasy.colPir') }}
-          </button>
         </div>
 
         <div>

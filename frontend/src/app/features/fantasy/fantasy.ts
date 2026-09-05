@@ -41,6 +41,7 @@ const PAGE_SIZE = 40;
 
 type SortKey = "name" | "price" | "pointsPerGame" | "valuation";
 type PositionFilter = "Guard" | "Forward" | "Center" | null;
+type PositionName = "Guard" | "Forward" | "Center";
 
 interface SquadSlot {
   id: string;
@@ -48,13 +49,29 @@ interface SquadSlot {
   playerId: string | null;
 }
 
-const STARTER_SLOT_POSITIONS = [
-  { left: 50, top: 19 }, // top of the key
-  { left: 22, top: 43 }, // left wing
-  { left: 78, top: 43 }, // right wing
-  { left: 34, top: 79 }, // left post
-  { left: 66, top: 79 }, // right post
-];
+// Starting-five formation — which of the 5 starter slots (by index;
+// squadSlots()[0..4] are always the starters, see initialSquadSlots below)
+// requires which real position. Purely a frontend affordance: the backend
+// (routes/fantasy.ts) only enforces the *overall* 4G/4F/2C quota across
+// all 10 outfield players, never a per-slot position, so changing
+// formation never touches the submit contract — it just changes which
+// slot a given player is allowed to occupy on this screen.
+export type Formation = "2-2-1" | "2-1-2" | "3-1-1";
+const FORMATION_OPTIONS: Formation[] = ["2-2-1", "2-1-2", "3-1-1"];
+const FORMATION_POSITIONS: Record<Formation, PositionName[]> = {
+  "2-2-1": ["Guard", "Guard", "Forward", "Forward", "Center"],
+  "2-1-2": ["Guard", "Guard", "Forward", "Center", "Center"],
+  "3-1-1": ["Guard", "Guard", "Guard", "Forward", "Center"],
+};
+// Cosmetic court layout: Centers sit nearest the basket (largest top%),
+// Guards furthest out — the real per-formation counts decide how many
+// share a row and how they spread horizontally.
+const ROW_TOP: Record<PositionName, number> = { Guard: 22, Forward: 50, Center: 78 };
+function rowXPositions(count: number): number[] {
+  if (count === 1) return [50];
+  if (count === 2) return [30, 70];
+  return [18, 50, 82];
+}
 
 function initialSquadSlots(): SquadSlot[] {
   const slots: SquadSlot[] = [];
@@ -96,7 +113,8 @@ export class FantasyComponent implements OnInit {
   readonly starterCount = FANTASY_STARTER_COUNT;
   readonly budgetCap = FANTASY_BUDGET_CAP;
   readonly positionQuota = FANTASY_POSITION_QUOTA;
-  readonly starterSlotPositions = STARTER_SLOT_POSITIONS;
+  readonly formationOptions = FORMATION_OPTIONS;
+  readonly formation = signal<Formation>("2-2-1");
 
   readonly tab = signal<"roster" | "leaderboard">("roster");
 
@@ -129,7 +147,7 @@ export class FantasyComponent implements OnInit {
   readonly searchQuery = signal("");
   readonly teamFilter = signal<string | null>(null);
   readonly positionFilter = signal<PositionFilter>(null);
-  readonly sortKey = signal<SortKey>("valuation");
+  readonly sortKey = signal<SortKey>("price");
   readonly sortDesc = signal(true);
   readonly visibleCount = signal(PAGE_SIZE);
 
@@ -152,6 +170,21 @@ export class FantasyComponent implements OnInit {
   readonly starterSlots = computed(() => this.squadSlots().filter((s) => s.role === "starter"));
   readonly sixthManSlot = computed(() => this.squadSlots().find((s) => s.role === "sixth_man")!);
   readonly benchSlots = computed(() => this.squadSlots().filter((s) => s.role === "bench"));
+
+  // Cosmetic court coordinates for the 5 starter slots, derived from the
+  // chosen formation — see FORMATION_POSITIONS/ROW_TOP above.
+  readonly starterSlotPositions = computed(() => {
+    const positions = FORMATION_POSITIONS[this.formation()];
+    const totalByPos: Record<PositionName, number> = { Guard: 0, Forward: 0, Center: 0 };
+    for (const p of positions) totalByPos[p]++;
+    const seenByPos: Record<PositionName, number> = { Guard: 0, Forward: 0, Center: 0 };
+    return positions.map((pos) => {
+      const xs = rowXPositions(totalByPos[pos]);
+      const left = xs[seenByPos[pos]];
+      seenByPos[pos]++;
+      return { left, top: ROW_TOP[pos] };
+    });
+  });
 
   readonly positionCounts = computed(() => {
     const byId = this.rowById();
@@ -286,6 +319,7 @@ export class FantasyComponent implements OnInit {
         this.season.set(res.season);
         this.allRows.set(res.rows);
         this.loading.set(false);
+        this.reconcileStarterFormation();
       },
       error: () => this.loading.set(false),
     });
@@ -307,6 +341,53 @@ export class FantasyComponent implements OnInit {
       next: (rows) => this.globalLeaderboard.set(rows),
       error: () => {},
     });
+  }
+
+  // A saved lineup's 5 starters were placed into slots 0..4 in whatever
+  // order the DB happened to return them, with no formation recorded
+  // anywhere server-side — so right after a load, the formation picker's
+  // default and the court's row layout may not match the real position
+  // mix that's actually sitting in those slots. Re-derives the formation
+  // from the loaded starters' own positions (once player rows are known)
+  // and re-seats them into the slot each formation expects for their
+  // position, so the picker and the court agree with reality from the
+  // first render — not just after the user taps a formation button
+  // themselves. A mix that doesn't match any of the 3 known formations
+  // (e.g. a lineup saved before this feature existed) is left untouched.
+  private reconcileStarterFormation(): void {
+    const byId = this.rowById();
+    if (byId.size === 0) return;
+    const slots = [...this.squadSlots()];
+    const starterIds = slots.slice(0, this.starterCount).map((s) => s.playerId);
+    if (starterIds.some((id) => id === null)) return;
+
+    const positions: PositionName[] = [];
+    for (const id of starterIds) {
+      const pos = byId.get(id!)?.player.position;
+      if (pos !== "Guard" && pos !== "Forward" && pos !== "Center") return;
+      positions.push(pos);
+    }
+
+    const counts: Record<PositionName, number> = { Guard: 0, Forward: 0, Center: 0 };
+    for (const p of positions) counts[p]++;
+
+    const matched = FORMATION_OPTIONS.find((f) => {
+      const need: Record<PositionName, number> = { Guard: 0, Forward: 0, Center: 0 };
+      for (const p of FORMATION_POSITIONS[f]) need[p]++;
+      return need.Guard === counts.Guard && need.Forward === counts.Forward && need.Center === counts.Center;
+    });
+    if (!matched) return;
+
+    const byPosition: Record<PositionName, string[]> = { Guard: [], Forward: [], Center: [] };
+    for (let i = 0; i < this.starterCount; i++) byPosition[positions[i]].push(starterIds[i]!);
+
+    const requiredPositions = FORMATION_POSITIONS[matched];
+    for (let i = 0; i < this.starterCount; i++) {
+      slots[i] = { ...slots[i], playerId: byPosition[requiredPositions[i]].shift()! };
+    }
+
+    this.formation.set(matched);
+    this.squadSlots.set(slots);
   }
 
   private loadLineup(): void {
@@ -335,6 +416,7 @@ export class FantasyComponent implements OnInit {
         this.serverCaptainId.set(captain);
         this.coachTeamId.set(lineup.coachTeamId);
         this.serverCoachTeamId.set(lineup.coachTeamId);
+        this.reconcileStarterFormation();
 
         if (lineup.season && lineup.round !== null) {
           this.loadFixtures(lineup.season, lineup.round);
@@ -365,6 +447,77 @@ export class FantasyComponent implements OnInit {
 
   slotByRoleIndex(role: FantasySlotRole, index: number): SquadSlot {
     return this.squadSlots().filter((s) => s.role === role)[index];
+  }
+
+  requiredPositionForStarterSlot(index: number): PositionName {
+    return FORMATION_POSITIONS[this.formation()][index];
+  }
+
+  posLabel(pos: PositionName): string {
+    switch (pos) {
+      case "Guard":
+        return this.i18n.t("fantasy.posGuard");
+      case "Forward":
+        return this.i18n.t("fantasy.posForward");
+      case "Center":
+        return this.i18n.t("fantasy.posCenter");
+    }
+  }
+
+  posAbbrev(position: string | null): string {
+    switch (position) {
+      case "Guard":
+        return this.i18n.t("fantasy.posGuardAbbrev");
+      case "Forward":
+        return this.i18n.t("fantasy.posForwardAbbrev");
+      case "Center":
+        return this.i18n.t("fantasy.posCenterAbbrev");
+      default:
+        return "";
+    }
+  }
+
+  // Bench/sixth-man/pool never gate on position — only a starter slot
+  // (squadSlots()[0..4]) requires the player it holds to match that
+  // index's formation-assigned position.
+  slotAcceptsPlayer(slotId: string, playerId: string): boolean {
+    const idx = this.squadSlots().findIndex((s) => s.id === slotId);
+    if (idx === -1 || idx >= this.starterCount) return true;
+    return this.rowById().get(playerId)?.player.position === this.requiredPositionForStarterSlot(idx);
+  }
+
+  // Changing formation can strand a starter whose real position no longer
+  // matches their slot's new requirement — never touches a locked player
+  // (their round has already started). A stranded starter is parked in
+  // the first empty bench/sixth-man slot if one's free, otherwise dropped
+  // back to the pool entirely; either way they lose the captain armband
+  // if they held it, since only a starter can be captain.
+  setFormation(next: Formation): void {
+    if (this.formation() === next) return;
+    const newPositions = FORMATION_POSITIONS[next];
+    const byId = this.rowById();
+    const slots = [...this.squadSlots()];
+    for (let i = 0; i < this.starterCount; i++) {
+      const slot = slots[i];
+      if (!slot.playerId || this.isLocked(slot.playerId)) continue;
+      if (byId.get(slot.playerId)?.player.position === newPositions[i]) continue;
+      const displacedId = slot.playerId;
+      slots[i] = { ...slot, playerId: null };
+      const parkIdx = slots.findIndex((s, idx) => idx >= this.starterCount && s.playerId === null);
+      if (parkIdx !== -1) slots[parkIdx] = { ...slots[parkIdx], playerId: displacedId };
+      if (this.captainId() === displacedId) this.captainId.set(null);
+    }
+    this.formation.set(next);
+    this.squadSlots.set(slots);
+    this.saved.set(false);
+  }
+
+  // Infinite-scroll the pool instead of a "show more" button — same
+  // pattern as the league-wide advanced-stats table.
+  onPoolScroll(event: Event): void {
+    if (!this.hasMoreRows()) return;
+    const el = event.target as HTMLElement;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 80) this.showMore();
   }
 
   setTab(tab: "roster" | "leaderboard"): void {
@@ -417,11 +570,10 @@ export class FantasyComponent implements OnInit {
       slots[idx] = { ...slots[idx], playerId: null };
       if (this.captainId() === playerId) this.captainId.set(null);
     } else {
+      const benchIdx = slots.findIndex((s) => s.role === "bench" && s.playerId === null);
       const emptyIdx =
-        slots.findIndex((s) => s.role === "bench" && s.playerId === null) !== -1
-          ? slots.findIndex((s) => s.role === "bench" && s.playerId === null)
-          : slots.findIndex((s) => s.playerId === null);
-      if (emptyIdx === -1) return; // squad already full
+        benchIdx !== -1 ? benchIdx : slots.findIndex((s) => s.playerId === null && this.slotAcceptsPlayer(s.id, playerId));
+      if (emptyIdx === -1) return; // squad already full, or no matching-position slot left
       slots[emptyIdx] = { ...slots[emptyIdx], playerId };
     }
     this.squadSlots.set(slots);
@@ -451,20 +603,24 @@ export class FantasyComponent implements OnInit {
     if (this.isLocked(draggedPlayerId)) return;
     const sourceId = event.previousContainer.id;
     if (sourceId === targetId) return; // dropped back where it started
+    if (!this.slotAcceptsPlayer(targetId, draggedPlayerId)) return; // wrong position for a formation-gated starter slot
 
     const slots = [...this.squadSlots()];
     const sourceIdx = slots.findIndex((s) => s.id === sourceId);
-    if (sourceIdx !== -1) slots[sourceIdx] = { ...slots[sourceIdx], playerId: null };
 
     if (targetId !== "pool") {
       const targetIdx = slots.findIndex((s) => s.id === targetId);
       if (targetIdx === -1) return;
       const displaced = slots[targetIdx].playerId;
       if (displaced && this.isLocked(displaced)) return; // can't bump a locked player off their slot
+      if (displaced && sourceId !== "pool" && !this.slotAcceptsPlayer(sourceId, displaced)) return; // the swap-back would break the source slot's own gating
+      if (sourceIdx !== -1) slots[sourceIdx] = { ...slots[sourceIdx], playerId: null };
       slots[targetIdx] = { ...slots[targetIdx], playerId: draggedPlayerId };
       if (displaced && sourceIdx !== -1) {
         slots[sourceIdx] = { ...slots[sourceIdx], playerId: displaced };
       }
+    } else if (sourceIdx !== -1) {
+      slots[sourceIdx] = { ...slots[sourceIdx], playerId: null };
     }
 
     this.squadSlots.set(slots);
