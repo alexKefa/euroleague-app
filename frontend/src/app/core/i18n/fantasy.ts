@@ -40,12 +40,16 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.emptyLeaderboard": { en: "No fantasy points scored yet this season.", el: "Δεν έχουν σημειωθεί ακόμα fantasy πόντοι φέτος." },
   "fantasy.showMore": { en: "Show more", el: "Περισσότερα" },
   "fantasy.posAll": { en: "All", el: "Όλες" },
-  "fantasy.posGuard": { en: "Guard", el: "Γκαρντ" },
-  "fantasy.posForward": { en: "Forward", el: "Φόργουορντ" },
-  "fantasy.posCenter": { en: "Center", el: "Σέντερ" },
-  "fantasy.posGuardAbbrev": { en: "G", el: "Γ" },
-  "fantasy.posForwardAbbrev": { en: "F", el: "Φ" },
-  "fantasy.posCenterAbbrev": { en: "C", el: "Σ" },
+  // Position names/abbreviations stay English in both locales, by request
+  // — "Guard"/"Forward"/"Center" (and G/F/C) are how these positions are
+  // referred to on court regardless of language, unlike the rest of this
+  // page's UI text.
+  "fantasy.posGuard": { en: "Guard", el: "Guard" },
+  "fantasy.posForward": { en: "Forward", el: "Forward" },
+  "fantasy.posCenter": { en: "Center", el: "Center" },
+  "fantasy.posGuardAbbrev": { en: "G", el: "G" },
+  "fantasy.posForwardAbbrev": { en: "F", el: "F" },
+  "fantasy.posCenterAbbrev": { en: "C", el: "C" },
   "fantasy.dragHint": { en: "Drag a player onto the court, or tap to place them.", el: "Σύρε έναν παίκτη στο γήπεδο, ή πάτησέ τον για να τοποθετηθεί." },
   "fantasy.courtFull": { en: "Court full — drag a player off to swap.", el: "Το γήπεδο είναι γεμάτο — σύρε έναν παίκτη έξω για αλλαγή." },
   "fantasy.fixturesButton": { en: "Fixtures", el: "Πρόγραμμα" },
