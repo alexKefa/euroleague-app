@@ -59,4 +59,5 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.benchLabel": { en: "Bench (50%)", el: "Πάγκος (50%)" },
   "fantasy.coachLabel": { en: "Coach", el: "Προπονητής" },
   "fantasy.coachLocked": { en: "Coach locked for this round.", el: "Ο προπονητής κλείδωσε για αυτή την αγωνιστική." },
+  "fantasy.formationTitle": { en: "Choose a formation", el: "Επιλογή σχηματισμού" },
 };

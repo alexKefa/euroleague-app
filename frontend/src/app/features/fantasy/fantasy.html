@@ -171,17 +171,15 @@
           <!-- LEFT: formation picker + court (5 starter drop targets,
                position-gated per the chosen formation) + sixth man + bench -->
           <div class="flex-[3] min-w-0 flex flex-col gap-2.5">
-            <div class="flex items-center justify-center gap-1">
-              @for (f of formationOptions; track f) {
-                <button
-                  type="button"
-                  (click)="setFormation(f)"
-                  class="px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold border transition-colors"
-                  [ngClass]="formation() === f ? 'bg-highlight text-page border-highlight' : 'bg-card border-line text-muted hover:border-highlight'"
-                >
-                  {{ f }}
-                </button>
-              }
+            <div class="flex justify-center">
+              <button
+                type="button"
+                (click)="showFormationPicker.set(true)"
+                class="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-card border border-line text-ink hover:border-highlight transition-colors"
+              >
+                {{ formation() }}
+                <span class="text-muted text-[9px]">&#9662;</span>
+              </button>
             </div>
             <div class="relative w-full rounded-2xl overflow-hidden bg-gradient-to-b from-highlight/10 to-transparent border border-line shadow-card" style="aspect-ratio: 320 / 210;">
               <app-court-background class="absolute inset-0 w-full h-full" />
@@ -405,6 +403,37 @@
         </div>
       </div>
     }
+  }
+
+  @if (showFormationPicker()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="showFormationPicker.set(false)">
+      <div
+        class="bg-card rounded-2xl border border-line shadow-pop p-5 max-w-xs w-full"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="flex items-center justify-between gap-2 mb-4">
+          <p class="font-display text-xl tracking-wide">{{ i18n.t('fantasy.formationTitle') }}</p>
+          <button type="button" (click)="showFormationPicker.set(false)" class="text-muted hover:text-ink text-2xl leading-none font-bold shrink-0">&times;</button>
+        </div>
+        <div class="flex flex-col gap-2">
+          @for (f of formationOptions; track f) {
+            <button
+              type="button"
+              (click)="chooseFormation(f)"
+              class="flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left transition-colors"
+              [ngClass]="formation() === f ? 'border-highlight bg-highlight/10' : 'border-line bg-page hover:border-highlight'"
+            >
+              <span class="font-mono text-sm font-bold">{{ f }}</span>
+              <span class="text-[11px] text-muted">
+                {{ f.split('-')[0] }}{{ i18n.t('fantasy.posGuardAbbrev') }} &middot;
+                {{ f.split('-')[1] }}{{ i18n.t('fantasy.posForwardAbbrev') }} &middot;
+                {{ f.split('-')[2] }}{{ i18n.t('fantasy.posCenterAbbrev') }}
+              </span>
+            </button>
+          }
+        </div>
+      </div>
+    </div>
   }
 
   @if (showFixtures()) {

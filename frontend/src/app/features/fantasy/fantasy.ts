@@ -56,12 +56,14 @@ interface SquadSlot {
 // all 10 outfield players, never a per-slot position, so changing
 // formation never touches the submit contract — it just changes which
 // slot a given player is allowed to occupy on this screen.
-export type Formation = "2-2-1" | "2-1-2" | "3-1-1";
-const FORMATION_OPTIONS: Formation[] = ["2-2-1", "2-1-2", "3-1-1"];
+export type Formation = "2-2-1" | "2-1-2" | "3-1-1" | "1-2-2" | "1-3-1";
+const FORMATION_OPTIONS: Formation[] = ["2-2-1", "2-1-2", "3-1-1", "1-2-2", "1-3-1"];
 const FORMATION_POSITIONS: Record<Formation, PositionName[]> = {
   "2-2-1": ["Guard", "Guard", "Forward", "Forward", "Center"],
   "2-1-2": ["Guard", "Guard", "Forward", "Center", "Center"],
   "3-1-1": ["Guard", "Guard", "Guard", "Forward", "Center"],
+  "1-2-2": ["Guard", "Forward", "Forward", "Center", "Center"],
+  "1-3-1": ["Guard", "Forward", "Forward", "Forward", "Center"],
 };
 // Cosmetic court layout: Centers sit nearest the basket (largest top%),
 // Guards furthest out — the real per-formation counts decide how many
@@ -159,6 +161,7 @@ export class FantasyComponent implements OnInit {
   readonly fixtureGames = signal<Game[]>([]);
   readonly opponentByTeamId = signal<Map<string, OpponentInfo>>(new Map());
   readonly showFixtures = signal(false);
+  readonly showFormationPicker = signal(false);
 
   readonly rowById = computed(() => new Map(this.allRows().map((r) => [r.player.id, r])));
   readonly coachByTeamId = computed(() => new Map(this.coaches().map((c) => [c.team.id, c])));
@@ -512,6 +515,11 @@ export class FantasyComponent implements OnInit {
     this.saved.set(false);
   }
 
+  chooseFormation(next: Formation): void {
+    this.setFormation(next);
+    this.showFormationPicker.set(false);
+  }
+
   // Infinite-scroll the pool instead of a "show more" button — same
   // pattern as the league-wide advanced-stats table.
   onPoolScroll(event: Event): void {
@@ -681,5 +689,6 @@ export class FantasyComponent implements OnInit {
   onEscape(): void {
     this.closeEntry();
     this.showFixtures.set(false);
+    this.showFormationPicker.set(false);
   }
 }
