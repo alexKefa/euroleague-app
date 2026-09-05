@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, OnInit, ViewChild, inject, signal } from "@angular/core";
+import { Component, ElementRef, HostListener, OnInit, ViewChild, computed, effect, inject, signal } from "@angular/core";
 import { toSignal } from "@angular/core/rxjs-interop";
 import { NavigationEnd, Router, RouterOutlet, RouterLink } from "@angular/router";
 import { filter, map } from "rxjs";
@@ -127,6 +127,14 @@ export class AppComponent implements OnInit {
   // toggling display off and back on the next frame forces the browser to
   // recompute the nav's position fresh against the current real viewport.
   @ViewChild("bottomNav") private bottomNavRef?: ElementRef<HTMLElement>;
+  // Sliding-pill indicator + basketball courier (picked over a "lift &
+  // glow" alternative in a design-review pass — see the Artifact this was
+  // prototyped in) — both positioned imperatively by measuring real tab
+  // elements, same "direct DOM manipulation on this exact nav" approach
+  // resnapBottomNav already uses below for the iOS-stuck-mid-scroll fix,
+  // rather than fighting Angular bindings for a shared cross-tab element.
+  @ViewChild("pillIndicator") private pillRef?: ElementRef<HTMLElement>;
+  @ViewChild("basketball") private ballRef?: ElementRef<SVGElement>;
 
   private readonly resnapBottomNav = () => {
     const el = this.bottomNavRef?.nativeElement;
@@ -134,6 +142,7 @@ export class AppComponent implements OnInit {
     el.style.display = "none";
     requestAnimationFrame(() => {
       el.style.display = "";
+      this.repositionPill(false);
     });
   };
 
@@ -145,6 +154,31 @@ export class AppComponent implements OnInit {
     { initialValue: this.router.url.split(/[?#]/)[0] }
   );
 
+  // Which of the 5 bottom-bar slots (4 mobileNavLinks + "More", always
+  // last) the pill/ball should sit on. -1 only if truly nothing matches
+  // (shouldn't happen — every route falls under either a direct tab or
+  // MORE_LINKS), in which case repositionPill just leaves the pill where
+  // it was rather than guessing.
+  protected readonly activeTabSlot = computed<number>(() => {
+    const idx = this.mobileNavLinks.findIndex((l) => this.isActive(l));
+    if (idx !== -1) return idx;
+    return this.isMoreActive() ? this.mobileNavLinks.length : -1;
+  });
+
+  private previousTabSlot: number | null = null;
+
+  constructor() {
+    // Re-measures on every route change (activeTabSlot depends on
+    // currentUrl via isActive/isMoreActive) — requestAnimationFrame'd so
+    // the DOM has already repainted the new .active classes the measurement
+    // relies on, same reasoning as splash/resnap's own rAF use elsewhere in
+    // this file.
+    effect(() => {
+      this.activeTabSlot();
+      requestAnimationFrame(() => this.repositionPill(true));
+    });
+  }
+
   ngOnInit(): void {
     this.auth.restoreSession().subscribe();
     unregisterStaleServiceWorker();
@@ -154,6 +188,63 @@ export class AppComponent implements OnInit {
 
     window.visualViewport?.addEventListener("resize", this.resnapBottomNav);
     window.addEventListener("orientationchange", this.resnapBottomNav);
+  }
+
+  // Moves the shared pill under whichever tab is now active, and — only
+  // when triggered by a genuine tab change, not a resize/resnap — flies
+  // the basketball from the previously active tab to the new one.
+  // Skipped instead of instant-jumped under prefers-reduced-motion; the
+  // pill itself already gets `motion-reduce:transition-none` in the
+  // template, so a reduced-motion user still sees the correct tab
+  // highlighted, just without either animation.
+  private repositionPill(allowBallTravel: boolean): void {
+    const nav = this.bottomNavRef?.nativeElement;
+    const pill = this.pillRef?.nativeElement;
+    const slot = this.activeTabSlot();
+    if (!nav || !pill || slot === -1) return;
+
+    const tabIcons = nav.querySelectorAll<HTMLElement>("[data-nav-tab] .icon-wrap");
+    const target = tabIcons[slot];
+    if (!target) return;
+
+    const navRect = nav.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    pill.style.width = `${targetRect.width}px`;
+    pill.style.transform = `translateX(${targetRect.left - navRect.left}px)`;
+
+    const prevSlot = this.previousTabSlot;
+    this.previousTabSlot = slot;
+    if (!allowBallTravel || prevSlot === null || prevSlot === slot) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const prevEl = tabIcons[prevSlot];
+    if (prevEl) this.animateBasketball(prevEl, target, navRect);
+  }
+
+  // A stylized flight (fade + scale in, arc up with a couple of full
+  // spins, fade + scale out on arrival), not a physically accurate roll —
+  // the spin count/arc height are fixed regardless of how far the ball
+  // travels, only the horizontal distance is real.
+  private animateBasketball(fromEl: HTMLElement, toEl: HTMLElement, navRect: DOMRect): void {
+    const ball = this.ballRef?.nativeElement;
+    if (!ball || !ball.animate) return;
+    const ballSize = 16;
+    const fromRect = fromEl.getBoundingClientRect();
+    const toRect = toEl.getBoundingClientRect();
+    const fromX = fromRect.left - navRect.left + fromRect.width / 2 - ballSize / 2;
+    const toX = toRect.left - navRect.left + toRect.width / 2 - ballSize / 2;
+    const mid = fromX + (toX - fromX) / 2;
+
+    ball.getAnimations().forEach((a) => a.cancel());
+    ball.animate(
+      [
+        { transform: `translate(${fromX}px, 0px) scale(0.5) rotate(0deg)`, opacity: 0, offset: 0 },
+        { transform: `translate(${fromX + (toX - fromX) * 0.2}px, -15px) scale(1) rotate(140deg)`, opacity: 1, offset: 0.2 },
+        { transform: `translate(${mid}px, -22px) scale(1.08) rotate(300deg)`, opacity: 1, offset: 0.5 },
+        { transform: `translate(${toX - (toX - fromX) * 0.15}px, -11px) scale(1) rotate(460deg)`, opacity: 1, offset: 0.8 },
+        { transform: `translate(${toX}px, 0px) scale(0.55) rotate(620deg)`, opacity: 0, offset: 1 },
+      ],
+      { duration: 560, easing: "cubic-bezier(0.33, 0, 0.2, 1)", fill: "forwards" }
+    );
   }
 
   logout(): void {
