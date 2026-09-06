@@ -807,7 +807,15 @@ If you need to apply a schema change without an interactive terminal
       that `team_season_stats` already had 20 real 2026-27 rows synced
       (unlike `player_season_stats`, still empty), so coach pricing
       differentiates immediately (Anadolu Efes's coach at 16, Zalgiris's at
-      4) without needing the fallback at all yet. Coach scoring is
+      4) without needing the fallback at all yet.
+      **This "confirmation" was wrong — caught 2026-09-06, see the
+      "Reconsidering coach pricing" bullet further down** — those 20 rows
+      existed but every team had 0 wins/0 losses (no 2026-27 game played
+      yet), so `position` 1-20 was just the arbitrary order the feed lists
+      an unstarted season's teams in, not a real ranking; "differentiates
+      immediately" was true but meaningless — Anadolu Efes at 16 and Real
+      Madrid at 5.9 was the bug, not evidence the fallback wasn't needed.
+      Coach scoring is
       real-world-result-based, not stat-based — `COACH_WIN_POINTS` (20) for
       their team winning that round's game, `COACH_LOSS_POINTS` (0)
       otherwise, always 100% (never bench-reduced, there's only one).
@@ -851,6 +859,189 @@ If you need to apply a schema change without an interactive terminal
       list. A live Guard/Forward/Center count against the 4/4/2 quota sits
       in the status bar so a user sees why submit is blocked before hitting
       a server-side rejection.
+  - **Mobile-clarity pass (2026-09-06)**: user feedback — "everything feels
+    so packed" on mobile — plus a tap-target ambiguity: the pool row's
+    single `(click)="toggle(...)"` handler covered the whole card, so
+    there was no way to see a player's recent form before drafting them,
+    only add/remove. Went through two layout iterations before landing;
+    both are worth keeping on record since each was wrong for a concrete,
+    stated reason:
+    1. **Stack the pool under the court on mobile — reverted same day.**
+       First cut split the pool row's tap target (name/photo →
+       `/players/:id`, price → add) and, on the theory that tapping price
+       was now the primary add path, stacked the pool full-width under the
+       court instead of keeping the original permanent side-by-side split.
+       Wrong, pointed out directly: dragging a pool card onto the court is
+       still a fully supported way to build a squad (`onDrop`), there's no
+       way to drag while scrolling, and a pool below the court reintroduces
+       the *exact* bug the side-by-side layout was originally built to fix
+       (see the court+bench/pool comment history in `fantasy.html`) — reach
+       the pool by scrolling and the court is off-screen, so nothing can be
+       dropped onto it. Tapping being the *primary* add path doesn't make
+       dragging a *removed* one.
+    2. **Popup-based picker, replacing drag reliance on mobile entirely —
+       the actual landing design.** Rather than fight the "pool must be
+       visible to drag onto the court" constraint, side-stepped it: below
+       `sm:`, the persistent pool column is hidden outright, and tapping an
+       *empty* court/bench/sixth-man slot opens a full-screen "Choose a
+       player" popup instead (`openPicker`/`pickerSlot`/
+       `pickerRequiredPosition`/`pickPlayerForSlot` in `fantasy.ts`) with
+       the same search/team/position/sort filters and infinite-scroll list
+       the sm:+ pool column already had — a starter slot pins
+       `positionFilter` to its own required position for the picker's
+       duration instead of showing the position chips, since no other
+       position could ever be dropped there anyway
+       (`slotAcceptsPlayer`). This removes the mobile crowding without
+       reintroducing bug #1: there's no drag at all in the mobile flow, so
+       there's nothing that needs the court and the pool on screen at the
+       same time. Dragging *between* two squad slots (e.g. bench → starter)
+       still works on mobile too, since both ends of that drag are always
+       on the court/bench, never the hidden pool. `sm:` and up is
+       untouched — pool beside the court, drag-and-drop, and the
+       tap-price-to-add path (`addToSquad`, priority: starters matching the
+       active formation, then sixth man, then bench) all still work exactly
+       as before.
+    **Player info, on both breakpoints**: tapping a player's name/photo —
+    in the pool, the picker popup, or already placed on the court/bench —
+    opens an info popup (`openPlayerInfo`/`infoGameLog`) showing their last
+    5 games' PIR and opponent, rather than navigating to `/players/:id`.
+    Deliberately never leaves the page: reuses the exact same
+    `GET /players/:id/games` the real player-detail page already calls
+    (`player-detail.ts`), just trimmed to the first 5 rows client-side (the
+    endpoint has no `limit` param, returns a whole season most-recent-
+    first) — no new backend endpoint. A placed player's photo used to
+    remove them on tap; that moved to a small "×" badge (bottom-left
+    corner, opposite the captain "C" badge) via the new `removeFromSquad()`
+    so info and removal are two separate, unambiguous affordances.
+    **Decimal pricing**: `player_fantasy_prices.price`/
+    `coach_fantasy_prices.price` were `integer` — `computeFantasyPrice`/
+    `computeCoachPrice` (`services/fantasyScoring.ts`) rounded to a whole
+    credit, which collapsed several adjacent players/teams onto the same
+    price with no way to tell them apart. Both columns are now `real`
+    (altered directly against the live DB per the Schema changes section's
+    "no interactive `db:push`" workflow, then `npm run fantasy:reprice`
+    re-run to backfill real decimal values) and both formulas round to the
+    nearest 0.1 credit instead of the nearest whole one. `routes/fantasy.ts`'s
+    budget-cap check now rounds the summed cost to 1 decimal before
+    comparing against `FANTASY_BUDGET_CAP` — summing several float prices
+    can land a hair off the true total from binary float representation
+    (e.g. `27.999999999999996`), which would otherwise wrongly reject a
+    squad costing exactly the cap. Every price display in `fantasy.html`
+    (pool row, picker row, coach picker, status-bar total) uses Angular's
+    `number: '1.1-1'` pipe so a price always shows exactly one decimal
+    place, even a whole one (e.g. "12.0" not "12"). The pool/picker price
+    button also grew a bit (padding/font bumped, `min-w-[46px]` added) —
+    both an explicit sizing ask and a practical need, since two-decimal
+    widths like "12.3" no longer fit the original cramped chip.
+    **Nav reach**: Fantasy Five had no path into the mobile bottom bar's
+    "More" overflow at all (only a Dashboard card and the Predictions
+    "My leagues →" neighbor) — added as a `ball`-icon entry appended
+    directly onto `app.component.ts`'s `MORE_LINKS` (not through
+    `NAV_LINKS`/`MOBILE_OVERFLOW_PATHS` like Schedule/Teams/Standings,
+    since it isn't one of the desktop rail's seven at all — this keeps the
+    desktop rail unchanged while giving mobile a one-tap path).
+    **Copy**: `fantasy.homeAbbrev`/`awayAbbrev` were literal `"vs"`/`"@"`
+    in English already but translated Greek words (`"με"`/`"εκτός με"`) in
+    `el` — inconsistent with the same file's `posGuard`/`posGuardAbbrev`
+    precedent of keeping court shorthand identical across locales, and the
+    likely source of the "playing out vs / in vs" wording the user
+    described. Both are now the literal `"vs"`/`"@"` symbols in both
+    locales.
+- **Reconsidering coach pricing — the 2026-09-05 "confirmation" was wrong**
+  (2026-09-06): user report — coach prices "way off" (Anadolu Efes's coach
+  priced highest at 16cr, Real Madrid's near the bottom at 5.9cr). Root
+  cause: `computeCoachPrice` (`services/fantasyScoring.ts`) prices off
+  `team_season_stats.position`, and the doc note added when this was built
+  (see the Coach bullet above) had confirmed 2026-27 already had 20 real
+  rows there and stopped — it never checked whether the *position value
+  itself* meant anything yet. It didn't: every 2026-27 row has 0 wins/0
+  losses (confirmed directly — no game has been played), so `position`
+  1-20 was just whatever placeholder order `Standings.get_standings()`
+  returns for a season with nothing to rank, captured verbatim by
+  `standings_sync.py` the moment it saw a row for each team. The
+  prior-season fallback (`scripts/reprice-fantasy-players.ts`'s
+  `repriceCoaches`) already existed for exactly this situation but only
+  triggered when the current season had **no row at all**
+  (`tss.position is null`) — a row with a meaningless position still
+  counted as "has real data" and blocked the fallback. Fixed by gating the
+  fallback on `tss.wins + tss.losses > 0` instead of row-existence — a
+  team's current-season position is only trusted once they've actually
+  played a game; until then every team falls back to last season's real
+  final standings, same as a genuinely-missing row already did. Re-ran
+  `npm run fantasy:reprice`: 19 of 20 coaches now fall back (Besiktas,
+  freshly promoted with no prior EuroLeague season on file, correctly
+  floors at `COACH_MIN_PRICE` instead — nothing to fall back to), and the
+  resulting order matches reality (Olympiacos, Valencia, Real Madrid,
+  Fenerbahce, Zalgiris, Panathinaikos, Barcelona all top-priced off their
+  real 2025-26 finishes). This class of bug — a row existing being treated
+  as proof the data in it is meaningful — is worth watching for anywhere
+  else this app fell back on "confirmed N rows exist" during this same
+  transition without also checking *which* season the numbers in those
+  rows actually describe.
+- **Court/coach visual pass (2026-09-06)**: user feedback after the mobile-
+  clarity pass — the picker/info popups should animate open and closed
+  instead of snapping, coaches should follow the same popup pattern as
+  players, court/bench/sixth-man slots should be bigger, and the coach
+  section should stop being a permanent block on the page.
+  - **Popup open/close animation**: every popup (`infoPlayerId`,
+    `pickerSlotId`, the new `coachPickerOpen`) now has a paired `*Visible`
+    signal driving `opacity`/`scale`/`translate-y` Tailwind classes
+    (`transition-all duration-200`, `motion-reduce:transition-none`
+    respected). `showPopup()` (`fantasy.ts`) flips `*Visible` to `true` two
+    `requestAnimationFrame`s after mount, since the element has to actually
+    paint in its hidden state once before a CSS transition has anything to
+    animate *from* — flipping it synchronously in the same tick that sets
+    the id signal would just render already-visible with no animation.
+    Closing is the mirror: flip `*Visible` to `false` immediately (playing
+    the exit transition) but delay the actual unmount (`infoPlayerId.set(null)`
+    etc.) by `POPUP_CLOSE_MS` (200, matched to the Tailwind `duration-200`
+    class) via `setTimeout`, so the element stays mounted long enough for
+    that transition to finish instead of vanishing mid-animation. Each
+    open call clears any pending close timer first, so rapid reopen-while-
+    closing can't unmount a popup that was just told to open again.
+  - **Per-row reveal on filtering**: `fantasy.css` (new — `styleUrl` added
+    to the component) has one keyframe, `fantasy-row-in` (fade + slight
+    translateY, `motion-reduce` disables it), applied unconditionally to
+    every row in the pool list, the slot-picker popup's list, and the new
+    coach-picker popup's list. This needed no JS at all: Angular's `@for`
+    (tracked by id) only creates a new DOM node for a row genuinely new to
+    the array — narrowing a filter so fewer rows match, or widening it so
+    a previously-hidden one reappears, both insert a fresh node and the
+    CSS animation plays automatically on insertion; sorting the same rows
+    just moves existing nodes and doesn't replay it. Exactly "smooth on
+    filtering" with no manual before/after diffing.
+  - **Coach: block → slot + popup, same pattern as a player**: the
+    always-visible horizontal coach strip is gone. In its place, a third
+    small card below the sixth-man/bench block (a "Coach" slot, same
+    visual language as a squad slot — `app-team-badge` standing in for a
+    player photo, no captain/lock badges since a coach isn't gated the
+    same way) opens a new coach-picker popup (`openCoachPicker`/
+    `pickCoach`) on tap — mirrors the slot-picker popup's animation and
+    per-row reveal exactly. `pickCoach(teamId)` calls the existing
+    `selectCoach` then immediately closes the popup, same "pick it and
+    you're done" flow as `pickPlayerForSlot`. No search/sort was added to
+    the coach popup (~20 teams, same reasoning the original strip never
+    had filters either) — just the animated open/close and per-row reveal
+    the player pattern also gets. This is also most of "gain some space":
+    the coach strip cost real vertical space on every visit regardless of
+    whether a coach was being changed; the slot costs only as much room as
+    the sixth-man/bench card already used.
+  - **Bigger slots, taller court**: starter avatars 36px → 48px, sixth-man
+    32px → 42px, bench 28px → 38px (`fantasy.html`'s `ngTemplateOutletContext`
+    `size` values — `squadSlot` itself didn't need to change, it already
+    takes `size` as a parameter). The court's `aspect-ratio` widened from
+    `320/210` to `320/280` to give the bigger avatars proportionally more
+    room instead of crowding the same box; `starterSlotPositions()`'s
+    percentage-based layout needed no code change since it already
+    positions slots relative to the box's own height, not an absolute
+    pixel value.
+  - **Not yet verified in a live browser** — the Chrome extension wasn't
+    connected in this session, so this pass was checked by rebuilding
+    (`ng build`, clean) and a careful re-read of the template/component
+    diff, not by actually opening `/fantasy` and watching the animations
+    play. Worth a real visual pass (both breakpoints, both themes) next
+    time the extension is available, especially the popup enter/exit
+    timing and the coach slot's layout inside the sixth-man/bench card.
 - **Career stats on the collectible card flip** (2026-09-05;
   `scripts/backfill-career-stats.ts`, `GET /api/collectibles/:id/stats`'s
   new `career` field, `features/store/card-preview.ts`'s season/career

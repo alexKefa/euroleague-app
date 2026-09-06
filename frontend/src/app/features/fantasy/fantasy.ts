@@ -1,4 +1,4 @@
-import { Component, HostListener, OnInit, inject, signal, computed } from "@angular/core";
+import { Component, HostListener, OnInit, inject, signal, computed, WritableSignal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { DragDropModule, CdkDragDrop } from "@angular/cdk/drag-drop";
@@ -13,6 +13,7 @@ import {
   League,
   Game,
   GameTeamSummary,
+  PlayerGameLogEntry,
 } from "../../core/models";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { TeamBadgeComponent } from "../../shared/team-badge";
@@ -38,6 +39,15 @@ export const FANTASY_POSITION_QUOTA: Record<"Guard" | "Forward" | "Center", numb
 };
 
 const PAGE_SIZE = 40;
+
+// Every popup (player-info, slot-picker, coach-picker) mounts hidden, flips
+// to its "shown" CSS state a frame later so the entrance transition
+// actually plays, and un-mounts this long after being told to close so the
+// exit transition gets to play too instead of the element just vanishing —
+// see openPicker/closePicker (and the info/coach equivalents) below. Must
+// match the `duration-200` Tailwind class used on these popups in
+// fantasy.html.
+const POPUP_CLOSE_MS = 200;
 
 type SortKey = "name" | "price" | "pointsPerGame" | "valuation";
 type PositionFilter = "Guard" | "Forward" | "Center" | null;
@@ -106,6 +116,7 @@ interface OpponentInfo {
     CourtBackgroundComponent,
   ],
   templateUrl: "./fantasy.html",
+  styleUrl: "./fantasy.css",
 })
 export class FantasyComponent implements OnInit {
   private api = inject(ApiService);
@@ -163,8 +174,68 @@ export class FantasyComponent implements OnInit {
   readonly showFixtures = signal(false);
   readonly showFormationPicker = signal(false);
 
+  // --- Player-info popup — tapping a player (in the pool or on the court)
+  // shows this instead of navigating away to their full detail page, so
+  // building a squad never loses its in-progress state. Reuses the same
+  // GET /players/:id/games the real player-detail page already calls
+  // (player-detail.ts) — no new backend endpoint needed — trimmed to the
+  // 5 most recent rows client-side (the endpoint has no `limit` param,
+  // returns the whole season's rows most-recent-first).
+  readonly infoPlayerId = signal<string | null>(null);
+  readonly infoVisible = signal(false);
+  readonly infoLoading = signal(false);
+  readonly infoGameLog = signal<PlayerGameLogEntry[]>([]);
+  private infoCloseTimer?: ReturnType<typeof setTimeout>;
+
+  readonly infoPlayerRow = computed(() => {
+    const id = this.infoPlayerId();
+    return id ? this.rowById().get(id) ?? null : null;
+  });
+
+  // --- Slot-picker popup — tapping an empty court/bench/sixth-man slot
+  // opens this instead of requiring a drag from a pool that isn't always
+  // on screen (mobile hides the persistent pool column entirely — see
+  // fantasy.html's two-column comment — since there's no way to drag
+  // while scrolling, so keeping a pool half-visible would be worse than
+  // not showing it at all). Reuses the exact same search/team/position/
+  // sort filter state and `rows()`/`visibleRows()` the (still-present,
+  // desktop-only) pool column reads — a starter slot additionally pins
+  // positionFilter to its own required position for the picker's
+  // duration, since only a matching-position player could ever be
+  // dropped there anyway (see slotAcceptsPlayer).
+  readonly pickerSlotId = signal<string | null>(null);
+  readonly pickerVisible = signal(false);
+  private pickerCloseTimer?: ReturnType<typeof setTimeout>;
+
+  readonly pickerSlot = computed(() => {
+    const id = this.pickerSlotId();
+    return id ? this.squadSlots().find((s) => s.id === id) ?? null : null;
+  });
+
+  readonly pickerRequiredPosition = computed<PositionName | null>(() => {
+    const slot = this.pickerSlot();
+    if (!slot) return null;
+    const idx = this.squadSlots().findIndex((s) => s.id === slot.id);
+    return idx !== -1 && idx < this.starterCount ? this.requiredPositionForStarterSlot(idx) : null;
+  });
+
+  // --- Coach-picker popup — the coach equivalent of the slot-picker above.
+  // Coaches used to sit in a permanently-visible horizontal strip on the
+  // roster page; that's gone now (see the Coach slot in fantasy.html) in
+  // favor of a single tappable slot next to the sixth-man/bench block that
+  // opens this popup, freeing up the vertical space the strip used to cost
+  // on every visit regardless of whether a coach was being changed.
+  readonly coachPickerOpen = signal(false);
+  readonly coachPickerVisible = signal(false);
+  private coachPickerCloseTimer?: ReturnType<typeof setTimeout>;
+
   readonly rowById = computed(() => new Map(this.allRows().map((r) => [r.player.id, r])));
   readonly coachByTeamId = computed(() => new Map(this.coaches().map((c) => [c.team.id, c])));
+
+  readonly selectedCoach = computed(() => {
+    const id = this.coachTeamId();
+    return id ? this.coachByTeamId().get(id) ?? null : null;
+  });
 
   readonly selectedPlayerIds = computed(
     () => new Set(this.squadSlots().map((s) => s.playerId).filter((id): id is string => id !== null))
@@ -448,6 +519,17 @@ export class FantasyComponent implements OnInit {
     return this.opponentByTeamId().get(teamId) ?? null;
   }
 
+  // Which side of a past game log entry was the opponent, from the
+  // currently-open info popup's own player's team — mirrors opponentFor's
+  // isHome/opponent shape but reads it off a specific finished game
+  // instead of this round's upcoming fixture list.
+  opponentForLogEntry(entry: PlayerGameLogEntry): OpponentInfo {
+    const myTeamId = this.infoPlayerRow()?.team.id;
+    return entry.game.homeTeam.id === myTeamId
+      ? { opponent: entry.game.awayTeam, isHome: true }
+      : { opponent: entry.game.homeTeam, isHome: false };
+  }
+
   slotByRoleIndex(role: FantasySlotRole, index: number): SquadSlot {
     return this.squadSlots().filter((s) => s.role === role)[index];
   }
@@ -565,27 +647,135 @@ export class FantasyComponent implements OnInit {
   }
 
   // Tap fallback, alongside dragging — CDK's cdkDrag only intercepts an
-  // actual pointer move past its drag threshold, so a stationary tap still
-  // fires this normally rather than fighting the drag gesture. Tapping a
-  // pool player places them in the first empty slot (bench first, since
-  // that's the safer default — a starter/sixth-man promotion is a
-  // deliberate act); tapping a placed player clears their slot.
-  toggle(playerId: string): void {
+  // actual pointer move past its drag threshold, so a stationary tap on the
+  // price chip still fires this normally rather than fighting the drag
+  // gesture. Tapping a pool player's name/photo instead opens their player
+  // page (a plain [routerLink] in the template, no handler needed) — price
+  // is the "add" affordance, the rest of the row is "info". Fills the
+  // starting five first (matching the chosen formation's per-slot position,
+  // same gating as onDrop/the old toggle()), then the sixth-man slot, then
+  // the bench — a starter/sixth-man promotion used to require a deliberate
+  // drag; now it's the default since tapping price is the primary way to
+  // build a squad.
+  addToSquad(playerId: string): void {
+    const slots = [...this.squadSlots()];
+    const starterIdx = slots.findIndex(
+      (s, idx) => idx < this.starterCount && s.playerId === null && this.slotAcceptsPlayer(s.id, playerId)
+    );
+    const sixthManIdx = starterIdx !== -1 ? -1 : slots.findIndex((s) => s.role === "sixth_man" && s.playerId === null);
+    const benchIdx =
+      starterIdx !== -1 || sixthManIdx !== -1 ? -1 : slots.findIndex((s) => s.role === "bench" && s.playerId === null);
+    const targetIdx = starterIdx !== -1 ? starterIdx : sixthManIdx !== -1 ? sixthManIdx : benchIdx;
+    if (targetIdx === -1) return; // squad already full, or no formation-matching starter slot left
+    slots[targetIdx] = { ...slots[targetIdx], playerId };
+    this.squadSlots.set(slots);
+    this.saved.set(false);
+  }
+
+  // Clears a placed player's slot — the small "x" badge on a squad-slot
+  // avatar, now that tapping the avatar itself opens the player page
+  // instead of removing them (see addToSquad above).
+  removeFromSquad(playerId: string): void {
     if (this.isLocked(playerId)) return;
     const slots = [...this.squadSlots()];
     const idx = slots.findIndex((s) => s.playerId === playerId);
-    if (idx !== -1) {
-      slots[idx] = { ...slots[idx], playerId: null };
-      if (this.captainId() === playerId) this.captainId.set(null);
-    } else {
-      const benchIdx = slots.findIndex((s) => s.role === "bench" && s.playerId === null);
-      const emptyIdx =
-        benchIdx !== -1 ? benchIdx : slots.findIndex((s) => s.playerId === null && this.slotAcceptsPlayer(s.id, playerId));
-      if (emptyIdx === -1) return; // squad already full, or no matching-position slot left
-      slots[emptyIdx] = { ...slots[emptyIdx], playerId };
-    }
+    if (idx === -1) return;
+    slots[idx] = { ...slots[idx], playerId: null };
+    if (this.captainId() === playerId) this.captainId.set(null);
     this.squadSlots.set(slots);
     this.saved.set(false);
+  }
+
+  // Shared entrance choreography for every popup in this component
+  // (player-info, slot-picker, coach-picker): each mounts at the "hidden"
+  // CSS state, then this flips its `visible` signal to true a couple of
+  // frames later so the browser actually paints the hidden state first and
+  // the enter transition has something to animate from. Closing is the
+  // mirror of this (flip `visible` back to false, then unmount after the
+  // CSS transition's duration) but is only 3 lines and reads clearer
+  // written out per-popup than factored through a signal shared by name.
+  private showPopup(visible: WritableSignal<boolean>): void {
+    requestAnimationFrame(() => requestAnimationFrame(() => visible.set(true)));
+  }
+
+  // Opens the player-info popup (last-5-games PIR/opponent) instead of
+  // navigating to /players/:id — works the same for a pool player or a
+  // player already placed in the squad, since it's purely informational.
+  openPlayerInfo(playerId: string): void {
+    clearTimeout(this.infoCloseTimer);
+    this.infoPlayerId.set(playerId);
+    this.infoGameLog.set([]);
+    this.infoLoading.set(true);
+    this.showPopup(this.infoVisible);
+    this.api.getPlayerGames(playerId).subscribe({
+      next: (log) => {
+        this.infoGameLog.set(log.rows.slice(0, 5));
+        this.infoLoading.set(false);
+      },
+      error: () => this.infoLoading.set(false),
+    });
+  }
+
+  closePlayerInfo(): void {
+    if (!this.infoPlayerId()) return;
+    this.infoVisible.set(false);
+    clearTimeout(this.infoCloseTimer);
+    this.infoCloseTimer = setTimeout(() => this.infoPlayerId.set(null), POPUP_CLOSE_MS);
+  }
+
+  // Opens the slot-picker popup for one specific empty slot — a starter
+  // slot pins the shared positionFilter to its own required position for
+  // the picker's duration (see pickerRequiredPosition), since a
+  // mismatched player could never be dropped there anyway.
+  openPicker(slotId: string): void {
+    const idx = this.squadSlots().findIndex((s) => s.id === slotId);
+    if (idx !== -1 && idx < this.starterCount) this.positionFilter.set(this.requiredPositionForStarterSlot(idx));
+    clearTimeout(this.pickerCloseTimer);
+    this.pickerSlotId.set(slotId);
+    this.showPopup(this.pickerVisible);
+  }
+
+  closePicker(): void {
+    if (!this.pickerSlotId()) return;
+    this.pickerVisible.set(false);
+    clearTimeout(this.pickerCloseTimer);
+    this.pickerCloseTimer = setTimeout(() => this.pickerSlotId.set(null), POPUP_CLOSE_MS);
+  }
+
+  // Opens the coach-picker popup — see the coachPickerOpen field comment.
+  openCoachPicker(): void {
+    clearTimeout(this.coachPickerCloseTimer);
+    this.coachPickerOpen.set(true);
+    this.showPopup(this.coachPickerVisible);
+  }
+
+  closeCoachPicker(): void {
+    if (!this.coachPickerOpen()) return;
+    this.coachPickerVisible.set(false);
+    clearTimeout(this.coachPickerCloseTimer);
+    this.coachPickerCloseTimer = setTimeout(() => this.coachPickerOpen.set(false), POPUP_CLOSE_MS);
+  }
+
+  // Picking a coach from the popup both selects and closes in one tap,
+  // same "pick it and you're done" flow as pickPlayerForSlot.
+  pickCoach(teamId: string): void {
+    this.selectCoach(teamId);
+    this.closeCoachPicker();
+  }
+
+  // Assigns a player to the exact slot the picker was opened for — unlike
+  // addToSquad's priority search (starter, then sixth man, then bench),
+  // the user already chose the slot by tapping it, so this just fills it.
+  pickPlayerForSlot(playerId: string): void {
+    const slotId = this.pickerSlotId();
+    if (!slotId || !this.slotAcceptsPlayer(slotId, playerId)) return;
+    const slots = [...this.squadSlots()];
+    const idx = slots.findIndex((s) => s.id === slotId);
+    if (idx === -1) return;
+    slots[idx] = { ...slots[idx], playerId };
+    this.squadSlots.set(slots);
+    this.saved.set(false);
+    this.closePicker();
   }
 
   setCaptain(playerId: string): void {
@@ -690,5 +880,8 @@ export class FantasyComponent implements OnInit {
     this.closeEntry();
     this.showFixtures.set(false);
     this.showFormationPicker.set(false);
+    this.closePlayerInfo();
+    this.closePicker();
+    this.closeCoachPicker();
   }
 }

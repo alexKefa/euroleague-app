@@ -117,6 +117,21 @@ async function repriceCoaches(season: string): Promise<{ updated: number; usedFa
   // to exclude a club that's dropped out of the competition (see
   // CLAUDE.md). position falls back to each team's own most recent prior
   // season the same way a player's PIR does above.
+  //
+  // Bug fixed 2026-09-06: this used to fall back only when the current
+  // season had NO team_season_stats row at all (`tss.position is null`).
+  // But standings_sync.py inserts a row for every team as soon as the
+  // feed lists one, even before a single game has been played — at that
+  // point `position` is whatever placeholder order the feed's standings
+  // endpoint returns for a season with 0 wins/0 losses everywhere (not a
+  // real ranking; confirmed directly — Real Madrid and Panathinaikos, both
+  // real top teams, landed near the bottom of it). computeCoachPrice
+  // trusted that number as a genuine strength signal, which is how a
+  // legendarily strong club ended up priced near COACH_MIN_PRICE. The
+  // fix: only trust the current season's position once that team has
+  // actually played a game (`wins + losses > 0`) — until then, fall back
+  // to last season's real final standings exactly like a position-less
+  // row already did.
   const rows = await db.execute<{
     team_id: string;
     position: number | null;
@@ -134,8 +149,11 @@ async function repriceCoaches(season: string): Promise<{ updated: number; usedFa
       order by team_id, season desc
     )
     select st.team_id,
-      coalesce(tss.position, prior.position) as position,
-      case when tss.position is null then prior.season else null end as used_fallback_season
+      coalesce(
+        case when tss.wins + tss.losses > 0 then tss.position end,
+        prior.position
+      ) as position,
+      case when tss.wins + tss.losses > 0 then null else prior.season end as used_fallback_season
     from season_teams st
     left join team_season_stats tss on tss.team_id = st.team_id and tss.season = ${season}
     left join prior_position prior on prior.team_id = st.team_id

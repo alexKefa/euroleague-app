@@ -50,14 +50,27 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.posGuardAbbrev": { en: "G", el: "G" },
   "fantasy.posForwardAbbrev": { en: "F", el: "F" },
   "fantasy.posCenterAbbrev": { en: "C", el: "C" },
-  "fantasy.dragHint": { en: "Drag a player onto the court, or tap to place them.", el: "Σύρε έναν παίκτη στο γήπεδο, ή πάτησέ τον για να τοποθετηθεί." },
+  // dragHint shows at sm: and up, where the pool sits beside the court;
+  // tapSlotHint shows below sm:, where the pool is hidden and a slot opens
+  // the picker popup instead (see fantasy.html's two-column comment).
+  "fantasy.dragHint": { en: "Tap a player's price to add them, or drag them onto the court.", el: "Πάτησε την τιμή ενός παίκτη για να τον προσθέσεις, ή σύρε τον στο γήπεδο." },
+  "fantasy.tapSlotHint": { en: "Tap an empty slot to pick a player.", el: "Πάτησε μια άδεια θέση για να διαλέξεις παίκτη." },
   "fantasy.courtFull": { en: "Court full — drag a player off to swap.", el: "Το γήπεδο είναι γεμάτο — σύρε έναν παίκτη έξω για αλλαγή." },
+  "fantasy.pickPlayerTitle": { en: "Choose a player", el: "Επίλεξε παίκτη" },
+  "fantasy.pickerPositionHint": { en: "needed for this slot", el: "απαιτείται για αυτή τη θέση" },
+  "fantasy.noPlayersFound": { en: "No players match these filters.", el: "Κανένας παίκτης δεν ταιριάζει με αυτά τα φίλτρα." },
+  "fantasy.last5GamesTitle": { en: "Last 5 games", el: "Τελευταίοι 5 αγώνες" },
+  "fantasy.noRecentGames": { en: "No recent games found.", el: "Δεν βρέθηκαν πρόσφατοι αγώνες." },
   "fantasy.fixturesButton": { en: "Fixtures", el: "Πρόγραμμα" },
   "fantasy.fixturesTitle": { en: "This round's fixtures", el: "Το πρόγραμμα της αγωνιστικής" },
   "fantasy.noFixtures": { en: "No fixtures found for this round.", el: "Δεν βρέθηκαν αγώνες για αυτή την αγωνιστική." },
   "fantasy.close": { en: "Close", el: "Κλείσιμο" },
-  "fantasy.homeAbbrev": { en: "vs", el: "με" },
-  "fantasy.awayAbbrev": { en: "@", el: "εκτός με" },
+  // Kept as the literal "vs"/"@" symbols in both locales, same precedent as
+  // posGuard/posGuardAbbrev above — translating these as words ("με"/"εκτός
+  // με") read awkwardly next to a team code and cost more horizontal space
+  // than the symbol does.
+  "fantasy.homeAbbrev": { en: "vs", el: "vs" },
+  "fantasy.awayAbbrev": { en: "@", el: "@" },
   "fantasy.bye": { en: "No game", el: "Ρεπό" },
   "fantasy.sixthManLabel": { en: "Sixth Man (100%)", el: "6ος Παίκτης (100%)" },
   "fantasy.benchLabel": { en: "Bench (50%)", el: "Πάγκος (50%)" },

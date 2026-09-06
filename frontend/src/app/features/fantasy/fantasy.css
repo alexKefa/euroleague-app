@@ -1,0 +1,22 @@
+/* Plays automatically whenever Angular inserts a genuinely new row into a
+   `@for` list (initial mount, or a row newly matching a filter) — reordering
+   an existing row (e.g. clicking a sort header) moves its DOM node instead
+   of recreating it, so this only replays for rows that are actually new to
+   the list, not every row on every sort. */
+@keyframes fantasy-row-in {
+  from {
+    transform: translateY(10px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.fantasy-row-in {
+  animation: fantasy-row-in 220ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fantasy-row-in {
+    animation: none;
+  }
+}

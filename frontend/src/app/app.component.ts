@@ -80,8 +80,16 @@ const MOBILE_OVERFLOW_PATHS = new Set(["/schedule", "/teams", "/standings"]);
 const MOBILE_NAV_LINKS: NavLink[] = NAV_LINKS.filter((l) => !MOBILE_OVERFLOW_PATHS.has(l.path));
 
 // Mobile-only overflow behind the "More" tab (always last) — a spot for
-// destinations checked occasionally rather than every session.
-const MORE_LINKS: NavLink[] = NAV_LINKS.filter((l) => MOBILE_OVERFLOW_PATHS.has(l.path));
+// destinations checked occasionally rather than every session. Fantasy
+// Five has no desktop rail slot of its own (the rail's already at its
+// documented 7-item max) but was otherwise reachable only via a Dashboard
+// card, so it's appended here directly rather than through
+// MOBILE_OVERFLOW_PATHS/NAV_LINKS — it isn't one of the desktop rail's
+// seven at all, just a mobile-only shortcut.
+const MORE_LINKS: NavLink[] = [
+  ...NAV_LINKS.filter((l) => MOBILE_OVERFLOW_PATHS.has(l.path)),
+  { path: "/fantasy", label: "fantasy.navLink", icon: "ball" },
+];
 
 @Component({
   selector: "app-root",

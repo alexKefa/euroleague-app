@@ -946,7 +946,9 @@ export const playerFantasyPrices = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     playerId: uuid("player_id").notNull().references(() => players.id),
     season: varchar("season", { length: 9 }).notNull(),
-    price: integer("price").notNull(),
+    // real, not integer (2026-09-06) — computeFantasyPrice now rounds to
+    // the nearest 0.1 credit instead of a whole number, see its comment.
+    price: real("price").notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => ({
@@ -1015,7 +1017,9 @@ export const coachFantasyPrices = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     teamId: uuid("team_id").notNull().references(() => teams.id),
     season: varchar("season", { length: 9 }).notNull(),
-    price: integer("price").notNull(),
+    // real, not integer — same tenth-credit rounding change as
+    // player_fantasy_prices.price above.
+    price: real("price").notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => ({

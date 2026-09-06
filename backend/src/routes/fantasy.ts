@@ -337,7 +337,12 @@ fantasyRouter.post("/lineup/batch", requireAuth, async (req, res) => {
     const priceByPlayerId = new Map(priceRows.map((r) => [r.playerId, r.price]));
     const playersCost = newIds.reduce((sum, id) => sum + (priceByPlayerId.get(id) ?? FANTASY_MIN_PRICE), 0);
     const coachCost = coachPriceRows[0]?.price ?? COACH_MIN_PRICE;
-    const totalCost = playersCost + coachCost;
+    // Rounded to the nearest 0.1 before comparing — prices are now tenth-
+    // credit floats (see schema.ts), and summing several of them can land
+    // a fraction of a cent off the true total (e.g. 27.999999999999996)
+    // purely from binary float representation, which would wrongly reject
+    // a squad that costs exactly the cap.
+    const totalCost = Math.round((playersCost + coachCost) * 10) / 10;
     if (totalCost > FANTASY_BUDGET_CAP) {
       res.status(400).json({
         error: `Squad costs ${totalCost}, over the ${FANTASY_BUDGET_CAP}-credit budget`,

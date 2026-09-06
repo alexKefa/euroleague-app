@@ -110,7 +110,13 @@ export function computeFantasyPrice(input: FantasyPriceInput): number {
   const raw = effectiveMinutes !== null && effectiveMinutes < LOW_MINUTES_THRESHOLD ? blendedPIR * LOW_MINUTES_DAMPEN : blendedPIR;
 
   const scaled = FANTASY_MIN_PRICE + (raw / FANTASY_PIR_CEILING) * (FANTASY_MAX_PRICE - FANTASY_MIN_PRICE);
-  return Math.min(FANTASY_MAX_PRICE, Math.max(FANTASY_MIN_PRICE, Math.round(scaled)));
+  // Rounded to the nearest 0.1 credit, not a whole number (2026-09-06) —
+  // two players a fraction of a PIR point apart used to collapse onto the
+  // same integer price; the tenth-credit precision differentiates them
+  // without needing a wider [MIN_PRICE, MAX_PRICE] range. See the matching
+  // `real` column type on player_fantasy_prices/coach_fantasy_prices in
+  // schema.ts (was `integer`) and the price formatting in fantasy.html.
+  return Math.min(FANTASY_MAX_PRICE, Math.max(FANTASY_MIN_PRICE, Math.round(scaled * 10) / 10));
 }
 
 // --- Coach pricing + scoring ---
@@ -131,7 +137,10 @@ export function computeCoachPrice(position: number | null, totalTeams: number): 
   if (position === null || totalTeams <= 1) return COACH_MIN_PRICE;
   const clampedPosition = Math.min(Math.max(position, 1), totalTeams);
   const raw = COACH_MAX_PRICE - ((clampedPosition - 1) * (COACH_MAX_PRICE - COACH_MIN_PRICE)) / (totalTeams - 1);
-  return Math.min(COACH_MAX_PRICE, Math.max(COACH_MIN_PRICE, Math.round(raw)));
+  // Same tenth-credit rounding as computeFantasyPrice above, for the same
+  // reason — a linear interpolation across 20-ish standings positions
+  // otherwise collapses several adjacent teams onto the same integer price.
+  return Math.min(COACH_MAX_PRICE, Math.max(COACH_MIN_PRICE, Math.round(raw * 10) / 10));
 }
 
 // A coach scores off their real team's game result that round, not a stat
