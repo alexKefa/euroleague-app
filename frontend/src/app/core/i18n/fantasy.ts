@@ -19,7 +19,6 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.selectPlayer": { en: "Add", el: "Προσθήκη" },
   "fantasy.removePlayer": { en: "Remove", el: "Αφαίρεση" },
   "fantasy.slotsFilled": { en: "players selected", el: "παίκτες επιλεγμένοι" },
-  "fantasy.submit": { en: "Lock in lineup", el: "Κλείδωμα ομάδας" },
   "fantasy.submitting": { en: "Saving…", el: "Αποθήκευση…" },
   "fantasy.saved": { en: "Lineup saved.", el: "Η ομάδα αποθηκεύτηκε." },
   "fantasy.needFivePlayers": { en: "Pick exactly 5 players.", el: "Διάλεξε ακριβώς 5 παίκτες." },
@@ -62,8 +61,10 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.last5GamesTitle": { en: "Last 5 games", el: "Τελευταίοι 5 αγώνες" },
   "fantasy.noRecentGames": { en: "No recent games found.", el: "Δεν βρέθηκαν πρόσφατοι αγώνες." },
   "fantasy.fixturesButton": { en: "Fixtures", el: "Πρόγραμμα" },
-  "fantasy.fixturesTitle": { en: "This round's fixtures", el: "Το πρόγραμμα της αγωνιστικής" },
+  "fantasy.fixturesTitle": { en: "This round's games", el: "Οι αγώνες της αγωνιστικής" },
   "fantasy.noFixtures": { en: "No fixtures found for this round.", el: "Δεν βρέθηκαν αγώνες για αυτή την αγωνιστική." },
+  "fantasy.liveNow": { en: "Live", el: "Ζωντανά" },
+  "fantasy.gameFinal": { en: "Final", el: "Τέλος" },
   "fantasy.close": { en: "Close", el: "Κλείσιμο" },
   // Kept as the literal "vs"/"@" symbols in both locales, same precedent as
   // posGuard/posGuardAbbrev above — translating these as words ("με"/"εκτός
@@ -77,4 +78,12 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.coachLabel": { en: "Coach", el: "Προπονητής" },
   "fantasy.coachLocked": { en: "Coach locked for this round.", el: "Ο προπονητής κλείδωσε για αυτή την αγωνιστική." },
   "fantasy.formationTitle": { en: "Choose a formation", el: "Επιλογή σχηματισμού" },
+  "fantasy.saveShort": { en: "Save", el: "Αποθήκευση" },
+  "fantasy.swapPlayer": { en: "Swap", el: "Αλλαγή" },
+  "fantasy.swapPickerTitle": { en: "Swap with…", el: "Αλλαγή με…" },
+  "fantasy.swapPickerHint": { en: "Choose who trades places with", el: "Διάλεξε ποιος θα αλλάξει θέση με τον" },
+  "fantasy.noSwapCandidates": {
+    en: "No one available to swap with right now.",
+    el: "Κανείς δεν είναι διαθέσιμος για αλλαγή αυτή τη στιγμή.",
+  },
 };

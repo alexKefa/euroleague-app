@@ -1042,6 +1042,151 @@ If you need to apply a schema change without an interactive terminal
     play. Worth a real visual pass (both breakpoints, both themes) next
     time the extension is available, especially the popup enter/exit
     timing and the coach slot's layout inside the sixth-man/bench card.
+- **Quick save + tap-driven starter/bench swap (2026-09-06)**: user asked
+  for a save button next to the formation picker, and for players to be
+  movable between the starting five/sixth man and the bench (plus captain
+  changes) between a round's game days — real EuroLeague Fantasy rounds
+  split across "Turns" (day 1 / day 2 game blocks), and a player who
+  hasn't played yet should stay editable even after others in the same
+  round have. That per-player timing was already fully built
+  (`getTeamRoundGameTipoff`/`isLocked`, documented under Fantasy Five's
+  "Per-player mid-round substitution" bullet above) — dragging one squad
+  slot onto another already worked within it. What was missing was a
+  non-drag way to trigger the same thing, since the rest of this feature's
+  mobile-clarity passes had already moved everything else off drag-as-
+  primary.
+  - **Save button**: a compact button next to the formation-picker button
+    at the top of the court, calling the existing `submit()` (`fantasy.ts`)
+    — same `canSubmit()`/`submitting()` state the bottom submit button
+    already used, just reachable without scrolling.
+  - **Swap popup**: every unlocked squad-slot avatar (court, sixth man,
+    bench) now has a small "⇄" badge (top-left, opposite the captain "C")
+    that opens a popup listing only the *other* side of the active/bench
+    line — a starter or sixth-man swaps into bench candidates, a bench
+    player swaps into starter/sixth-man candidates — filtered through the
+    same `slotAcceptsPlayer` position gating `onDrop` already used, and
+    excluding anyone `isLocked()` on either side, so this automatically
+    respects the day-1/day-2 window with no new date logic
+    (`swapPlayerId`/`swapCandidates`/`performSwap` in `fantasy.ts`). Same
+    popup shell/animation/per-row-reveal as the slot-picker and coach
+    popups.
+  - **Real bug found and fixed while building this**: `onDrop` only ever
+    cleared `captainId` when the captain left the squad *entirely*
+    (`!slots.some(s => s.playerId === captainId)`), not when they merely
+    moved from a starter slot to bench/sixth-man within it — dragging the
+    captain onto the bench silently left `captainId` pointing at a player
+    who no longer wore a starter slot at all, which `submit()` would then
+    send as `isCaptain: true` on a bench entry. `performSwap` would have
+    had the identical gap if built the same way. Fixed with a shared
+    `releaseCaptainIfNotStarter(slots)` (captain must always be a
+    starter), called from both `onDrop` and `performSwap` after any
+    squad-slot mutation — this was a pre-existing bug in drag-and-drop,
+    not something introduced by the new swap popup, just caught while
+    reasoning through the same code path for it.
+  - **Known gap, not fixed here**: `routes/fantasy.ts`'s `POST
+    /lineup/batch` diffs `changedIds` off `slotRole` changes and
+    add/remove only — a captain-only edit (same player, same `slotRole`,
+    just `isCaptain` flipping) never lands in `changedIds`, so the
+    backend's own per-player tipoff check never runs for a pure captain
+    reassignment. The frontend already refuses to let this happen
+    (`setCaptain` checks `isLocked`), so a normal user can't hit it, but a
+    client bypassing the frontend could still crown an already-played
+    starter captain after the fact. Worth closing given the "no
+    migrations checked in" schema-change workflow doesn't block a
+    route-only fix — flag `isCaptain` changes into `changedIds` too,
+    the same way slotRole changes already are.
+  - **Duplicate save button, caught and fixed same day**: the new top
+    "Save" button and the pre-existing full-width "Lock in lineup" button
+    at the bottom of the page both called the exact same `submit()` —
+    asked about directly ("what is the lock team button below?"). Per the
+    user's choice, the bottom one is gone (along with the now-dead
+    `fantasy.submit` translation key); the top Save button is the only
+    submit action now, made larger/more prominent (`text-sm`/`px-4 py-1.5`,
+    up from a small `text-[11px]` chip) since it's carrying that job alone,
+    with the `saved`/`submitError` feedback text moved to sit directly
+    under it instead of under the removed bottom button.
+- **Live round-game awareness (2026-09-06)**: user asked for three related
+  things — a squad player's current PIR while their game is being played,
+  visibility into when games are live, and a list of the round's games —
+  plus, implicitly, that this needed no new backend work: `GET /games/:id`
+  already computes its box score for `status === "live"` the same as
+  `"final"` (see the live-scores section above), and `EventsService`
+  already runs one shared SSE connection app-wide with a `lastGameUpdate`
+  signal the nav badge and dashboard already consume. Fantasy Five just
+  hadn't been wired into either yet.
+  - `fantasy.ts`'s `liveUpdatesEffect` (a field-initializer `effect()`,
+    valid since fields still run in the component's injection context)
+    patches the relevant game's `status`/score/quarter/clock straight into
+    `fixtureGames()` whenever `events.lastGameUpdate()` ticks for a game
+    id that belongs to this round, and calls the new
+    `refreshRoundBoxscore(gameId)` (a plain `GET /games/:id` via the
+    existing `api.getGame`) whenever that game is live or just went final.
+    `loadFixtures()` also fires that same refresh once at load time for
+    any game that was *already* live/final before the page opened — the
+    SSE stream only ticks on the next change, it doesn't replay past ones.
+    `roundPirByPlayerId` (merged from both sides' box score lines) is the
+    single source `roundPir(playerId)` reads from everywhere.
+  - **Court/bench**: a placed player's slot swaps its "vs/@ opponent" line
+    for their live/final PIR (`gameForTeam().get(row.team.id)`, `fantasy.html`)
+    the moment their own game's status leaves `scheduled` — a small pulsing
+    red dot only while `status === 'live'`, so a finished game shows the
+    plain final PIR with no live indicator once it's over.
+  - **Round-wide live indicator**: a pulsing "Live" pill next to the round
+    number in the status bar, shown whenever `hasLiveGameThisRound()` —
+    tapping it opens the same Fixtures popup as the existing button (no
+    separate destination needed).
+  - **Games list**: the existing Fixtures popup (previously just team
+    badges + tipoff time, forward-looking only) now shows the real score
+    once a game leaves `scheduled` and a Live/Final status tag instead of
+    the tipoff time — satisfies "a list of the games played" by extending
+    what was already there rather than building a second, separate list.
+- **Court background: rim removed after a letterboxing bug and a failed
+  recalibration (2026-09-06)**: user report — the Center starter slot
+  visually sits on top of the rim graphic. Root cause: `court-background.ts`
+  kept its original `viewBox="0 0 320 210"` when the caller's court
+  container (`fantasy.html`) was widened to a taller `320/300` box for
+  bigger slot avatars (see the court/coach visual pass above) —
+  `preserveAspectRatio="meet"` doesn't stretch a mismatched viewBox to
+  fill, it letterboxes, so the real court art kept rendering at its native
+  210-tall proportions, centered, occupying only the middle ~70% of the
+  now-taller container. `fantasy.ts`'s `ROW_TOP` percentages (Guard/
+  Forward/Center) were computed assuming the court art fills the whole
+  container, so once it visibly shrank to that centered band, Center's
+  position (the largest top%) landed almost exactly on the rim's real
+  on-screen spot. First fix attempt: extended the SVG's `viewBox` to
+  `0 -90 320 300` (the extra 90 units added entirely above the 3-point
+  line as more open half-court floor, not stretched into the basket/key/
+  arc geometry) so the art fills the container edge-to-edge again, then
+  recalibrated `ROW_TOP` to the corrected coordinates. Reported as still
+  overlapping — this session has no live browser connected to verify exact
+  pixel geometry, so rather than keep guessing at coordinates, removed the
+  rim circle (and its now-unused `rimRadius` field) outright, keeping the
+  backboard line, key, restricted area, and 3-point arc. No slot avatar can
+  visually collide with a rim that isn't drawn, regardless of where
+  positioning math lands it. The taller-viewBox fix (no letterboxing) is
+  still in place and still correct on its own terms — worth revisiting
+  whether the rim can come back once a live browser is available to check
+  real rendered positions directly instead of computing them by hand.
+  **Round 2, same day**: reported still overlapping ("over the line of the
+  rim") even with the rim circle gone — most likely the backboard line,
+  which sat right where the rim used to be (basketY + 3) and was the one
+  remaining basket-shaped element. Removed it too (and its now-unused
+  `backboardY`/`backboardX1`/`backboardX2` fields) — nothing at the basket
+  end remains except the key, restricted-area arc, and 3-point line, none
+  of which sit anywhere near where a starter slot renders. Also added a
+  translucent "glass floor" gradient (`glassFloorGradient` +
+  `glassSheenGradient`, a diagonal cool-blue-to-navy gradient plus a
+  soft diagonal white sheen streak, painted as a rounded-rect bottom layer
+  before the court lines) per the user's own suggestion, so a slot avatar
+  reads as "standing on a floor" wherever it lands rather than floating
+  over a blank backdrop with a stray line under it — chosen over a literal
+  wood-grain texture to match this app's existing gradient-heavy,
+  non-skeuomorphic visual language (team-hero-sweep, the collectible
+  cards' holo-sweep) rather than introduce the app's first photographic-
+  style texture. Deliberately fixed cool-blue tones rather than
+  `--color-page`/`--color-card`-reactive, same reasoning as the `highlight`
+  accent staying fixed across themes: a glass floor's icy identity
+  shouldn't shift with light/dark mode.
 - **Career stats on the collectible card flip** (2026-09-05;
   `scripts/backfill-career-stats.ts`, `GET /api/collectibles/:id/stats`'s
   new `career` field, `features/store/card-preview.ts`'s season/career

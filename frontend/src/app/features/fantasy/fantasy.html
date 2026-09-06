@@ -51,7 +51,7 @@
               [ngClass]="isLocked(slot.playerId) ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'"
             >
               <div class="relative">
-                <button type="button" (click)="$event.stopPropagation(); openPlayerInfo(slot.playerId)" class="block">
+                <button type="button" (click)="$event.stopPropagation(); openPlayerInfo(slot.playerId)" class="block rounded-full border-2 border-ink">
                   <app-player-photo
                     [photoUrl]="row.player.photoUrl"
                     [name]="row.player.name"
@@ -81,18 +81,41 @@
                   >
                     &times;
                   </button>
+                  <button
+                    type="button"
+                    (click)="$event.stopPropagation(); openSwapPicker(slot.playerId)"
+                    [attr.aria-label]="i18n.t('fantasy.swapPlayer')"
+                    class="absolute -top-1 -left-1 w-5 h-5 rounded-full text-[11px] leading-none flex items-center justify-center border border-line bg-card text-muted hover:text-highlight hover:border-highlight transition-colors"
+                  >
+                    &#8645;
+                  </button>
                 }
               </div>
               <button type="button" (click)="openPlayerInfo(slot.playerId)" class="block text-[10px] font-semibold text-center truncate max-w-[64px] bg-page/80 rounded px-1 hover:text-highlight transition-colors">{{ row.player.name }}</button>
-              @if (opponentFor(row.team.id); as opp) {
-                <span class="text-[9px] text-muted font-mono">{{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }} {{ opp.opponent.code }}</span>
+              @if (gameForTeam().get(row.team.id); as game) {
+                @if (game.status === 'scheduled') {
+                  @if (opponentFor(row.team.id); as opp) {
+                    <span class="text-[9px] text-muted font-mono">{{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }} {{ opp.opponent.code }}</span>
+                  }
+                } @else {
+                  <!-- Their game has started — show this round's real PIR
+                       so far instead of the now-moot "vs/@ opponent" line,
+                       live-updated via roundPirByPlayerId (see
+                       liveUpdatesEffect in fantasy.ts). -->
+                  <span class="text-[9px] font-mono font-bold flex items-center gap-1" [ngClass]="game.status === 'live' ? 'text-highlight' : 'text-muted'">
+                    @if (game.status === 'live') {
+                      <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
+                    }
+                    {{ roundPir(row.player.id) ?? '—' }} {{ i18n.t('fantasy.colPir') }}
+                  </span>
+                }
               }
             </div>
           } @else {
             <button
               type="button"
               (click)="openPicker(slot.id)"
-              class="rounded-full border-2 border-dashed border-line flex items-center justify-center text-muted text-xl hover:border-highlight hover:text-highlight transition-colors"
+              class="rounded-full border-2 border-dashed border-ink flex items-center justify-center text-muted text-xl hover:border-highlight hover:text-highlight transition-colors"
               [style.width.px]="size"
               [style.height.px]="size"
             >+</button>
@@ -106,7 +129,19 @@
       <!-- Status bar: round, lock, budget, position quota, fixtures -->
       <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4">
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <p class="text-sm font-semibold">{{ i18n.t('fantasy.round') }} {{ round() }}</p>
+          <div class="flex items-center gap-2">
+            <p class="text-sm font-semibold">{{ i18n.t('fantasy.round') }} {{ round() }}</p>
+            @if (hasLiveGameThisRound()) {
+              <button
+                type="button"
+                (click)="showFixtures.set(true)"
+                class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-red-500/15 text-red-500 hover:bg-red-500/25 transition-colors"
+              >
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                {{ i18n.t('fantasy.liveNow') }}
+              </button>
+            }
+          </div>
           <div class="flex items-center gap-3">
             <p class="font-mono text-sm font-bold" [ngClass]="overBudget() ? 'text-red-500' : 'text-highlight'">
               {{ totalCost() | number: '1.1-1' }} / {{ budgetCap }} {{ i18n.t('fantasy.budgetLabel') }}
@@ -200,7 +235,7 @@
           <!-- LEFT: formation picker + court (5 starter drop targets,
                position-gated per the chosen formation) + sixth man + bench -->
           <div class="flex-1 sm:flex-[3] min-w-0 flex flex-col gap-2.5">
-            <div class="flex justify-center">
+            <div class="flex items-center justify-center gap-2">
               <button
                 type="button"
                 (click)="showFormationPicker.set(true)"
@@ -209,12 +244,26 @@
                 {{ formation() }}
                 <span class="text-muted text-[9px]">&#9662;</span>
               </button>
+              <button
+                type="button"
+                (click)="submit()"
+                [disabled]="!canSubmit() || submitting()"
+                class="px-4 py-1.5 rounded-lg text-sm font-bold bg-highlight text-page disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+              >
+                {{ submitting() ? i18n.t('fantasy.submitting') : i18n.t('fantasy.saveShort') }}
+              </button>
             </div>
-            <div class="relative w-full rounded-2xl overflow-hidden bg-gradient-to-b from-highlight/25 via-card to-card border border-line shadow-card" style="aspect-ratio: 320 / 280;">
+            @if (saved() && !hasChanges()) {
+              <p class="text-xs text-highlight font-semibold text-center">{{ i18n.t('fantasy.saved') }}</p>
+            }
+            @if (submitError()) {
+              <p class="text-xs text-red-500 font-semibold text-center">{{ submitError() }}</p>
+            }
+            <div class="relative w-full rounded-2xl overflow-hidden bg-gradient-to-b from-highlight/25 via-card to-card border border-line shadow-card" style="aspect-ratio: 320 / 300;">
               <app-court-background class="absolute inset-0 w-full h-full" />
               @for (pos of starterSlotPositions(); track $index; let i = $index) {
                 <div class="absolute -translate-x-1/2 -translate-y-1/2" [style.left.%]="pos.left" [style.top.%]="pos.top">
-                  <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: starterSlots()[i], size: 48, positionLabel: posLabel(requiredPositionForStarterSlot(i)) }" />
+                  <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: starterSlots()[i], size: 56, positionLabel: posLabel(requiredPositionForStarterSlot(i)) }" />
                 </div>
               }
             </div>
@@ -222,12 +271,12 @@
             <div class="bg-card rounded-2xl border border-line shadow-card p-3">
               <p class="text-[10px] text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.sixthManLabel') }}</p>
               <div class="flex justify-center mb-3">
-                <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: sixthManSlot(), size: 42 }" />
+                <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: sixthManSlot(), size: 50 }" />
               </div>
               <p class="text-[10px] text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.benchLabel') }}</p>
               <div class="flex justify-center gap-3 flex-wrap">
                 @for (slot of benchSlots(); track slot.id) {
-                  <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: slot, size: 38 }" />
+                  <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: slot, size: 44 }" />
                 }
               </div>
             </div>
@@ -245,7 +294,7 @@
                 <button type="button" (click)="openCoachPicker()" class="flex flex-col items-center gap-1">
                   @if (selectedCoach(); as coach) {
                     <div class="relative">
-                      <app-team-badge [code]="coach.team.code" [logoUrl]="coach.team.logoUrl" [size]="42" />
+                      <app-team-badge [code]="coach.team.code" [logoUrl]="coach.team.logoUrl" [size]="48" />
                       @if (coachLocked()) {
                         <span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-card border border-line flex items-center justify-center text-[9px]">&#128274;</span>
                       }
@@ -253,7 +302,7 @@
                     <span class="text-[10px] font-semibold text-center truncate max-w-[80px]">{{ coach.headCoach ?? coach.team.name }}</span>
                     <span class="font-mono text-[11px] font-bold text-highlight">{{ coach.price | number: '1.1-1' }}</span>
                   } @else {
-                    <div class="rounded-full border-2 border-dashed border-line flex items-center justify-center text-muted text-xl w-[42px] h-[42px] hover:border-highlight hover:text-highlight transition-colors">+</div>
+                    <div class="rounded-full border-2 border-dashed border-ink flex items-center justify-center text-muted text-xl w-[48px] h-[48px] hover:border-highlight hover:text-highlight transition-colors">+</div>
                     <span class="text-[8px] font-bold uppercase tracking-wide text-muted mt-0.5">{{ i18n.t('fantasy.coachLabel') }}</span>
                   }
                 </button>
@@ -347,24 +396,6 @@
               }
             </div>
           </div>
-        </div>
-
-        <div>
-          <button
-            type="button"
-            (click)="submit()"
-            [disabled]="!canSubmit() || submitting()"
-            appButton
-            class="w-full"
-          >
-            {{ submitting() ? i18n.t('fantasy.submitting') : i18n.t('fantasy.submit') }}
-          </button>
-          @if (saved() && !hasChanges()) {
-            <p class="text-xs text-highlight font-semibold mt-2 text-center">{{ i18n.t('fantasy.saved') }}</p>
-          }
-          @if (submitError()) {
-            <p class="text-xs text-red-500 font-semibold mt-2 text-center">{{ submitError() }}</p>
-          }
         </div>
       </div>
     }
@@ -659,6 +690,55 @@
     </div>
   }
 
+  <!-- Swap popup — tap-driven alternative to dragging a squad-slot avatar
+       onto another (see the swap badge, top-left on every unlocked squad
+       avatar, and openSwapPicker/swapCandidates/performSwap in
+       fantasy.ts). Lists only the other side of the active/bench line
+       (starter+sixth-man swap into bench, bench swaps into starter+sixth-
+       man), excluding anyone already locked this round. -->
+  @if (swapPlayerId(); as sourceId) {
+    <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm" (click)="closeSwapPicker()">
+      <div
+        class="bg-card rounded-t-2xl sm:rounded-2xl border border-line shadow-pop w-full sm:max-w-md max-h-[80vh] flex flex-col transition-transform duration-200 motion-reduce:transition-none"
+        [ngClass]="swapVisible() ? 'translate-y-0' : 'translate-y-full sm:translate-y-8'"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="flex items-center justify-between gap-2 p-4 border-b border-line shrink-0">
+          <div>
+            <p class="font-display text-lg tracking-wide">{{ i18n.t('fantasy.swapPickerTitle') }}</p>
+            @if (swapPlayerRow(); as row) {
+              <p class="text-xs text-muted">{{ i18n.t('fantasy.swapPickerHint') }} {{ row.player.name }}</p>
+            }
+          </div>
+          <button type="button" (click)="closeSwapPicker()" class="text-muted hover:text-ink text-2xl leading-none font-bold shrink-0">&times;</button>
+        </div>
+        <div class="flex-1 min-h-0 overflow-y-auto p-2.5 flex flex-col gap-1.5">
+          @for (candidate of swapCandidates(); track candidate.slotId) {
+            <button
+              type="button"
+              (click)="performSwap(candidate.row.player.id)"
+              class="fantasy-row-in w-full flex items-center gap-2 rounded-lg border border-line bg-page p-2 hover:border-highlight transition-colors text-left"
+            >
+              <app-player-photo
+                [photoUrl]="candidate.row.player.photoUrl"
+                [name]="candidate.row.player.name"
+                [teamCode]="candidate.row.team.code"
+                [primaryColor]="candidate.row.team.primaryColor"
+                [size]="30"
+              />
+              <div class="min-w-0 flex-1">
+                <p class="text-[12px] font-semibold truncate leading-tight">{{ candidate.row.player.name }}</p>
+                <p class="text-[10px] font-mono text-muted truncate leading-tight">{{ posAbbrev(candidate.row.player.position) }}</p>
+              </div>
+            </button>
+          } @empty {
+            <p class="text-center text-xs text-muted py-4">{{ i18n.t('fantasy.noSwapCandidates') }}</p>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
   @if (showFormationPicker()) {
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="showFormationPicker.set(false)">
       <div
@@ -708,10 +788,23 @@
               <div class="flex items-center justify-between gap-2 bg-page rounded-xl px-3 py-2">
                 <div class="flex items-center gap-1.5 min-w-0">
                   <app-team-badge [code]="game.homeTeam.code" [logoUrl]="game.homeTeam.logoUrl" [size]="18" />
-                  <span class="text-xs text-muted">&ndash;</span>
+                  @if (game.status === 'scheduled') {
+                    <span class="text-xs text-muted">&ndash;</span>
+                  } @else {
+                    <span class="text-xs font-mono font-bold text-ink">{{ game.homeScore }}&ndash;{{ game.awayScore }}</span>
+                  }
                   <app-team-badge [code]="game.awayTeam.code" [logoUrl]="game.awayTeam.logoUrl" [size]="18" />
                 </div>
-                <span class="text-[11px] font-mono text-muted shrink-0">{{ game.tipoffAt | date: 'short' }}</span>
+                @if (game.status === 'live') {
+                  <span class="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-red-500 shrink-0">
+                    <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                    {{ i18n.t('fantasy.liveNow') }}
+                  </span>
+                } @else if (game.status === 'final') {
+                  <span class="text-[10px] font-bold uppercase tracking-wide text-muted shrink-0">{{ i18n.t('fantasy.gameFinal') }}</span>
+                } @else {
+                  <span class="text-[11px] font-mono text-muted shrink-0">{{ game.tipoffAt | date: 'short' }}</span>
+                }
               </div>
             }
           </div>

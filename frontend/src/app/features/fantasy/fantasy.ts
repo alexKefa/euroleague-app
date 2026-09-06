@@ -1,10 +1,11 @@
-import { Component, HostListener, OnInit, inject, signal, computed, WritableSignal } from "@angular/core";
+import { Component, HostListener, OnInit, inject, signal, computed, effect, WritableSignal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { DragDropModule, CdkDragDrop } from "@angular/cdk/drag-drop";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
+import { EventsService } from "../../core/events.service";
 import {
   FantasyPlayerRow,
   FantasyCoachRow,
@@ -77,8 +78,15 @@ const FORMATION_POSITIONS: Record<Formation, PositionName[]> = {
 };
 // Cosmetic court layout: Centers sit nearest the basket (largest top%),
 // Guards furthest out — the real per-formation counts decide how many
-// share a row and how they spread horizontally.
-const ROW_TOP: Record<PositionName, number> = { Guard: 22, Forward: 50, Center: 78 };
+// share a row and how they spread horizontally. Recalibrated 2026-09-06
+// alongside court-background.ts's taller viewBox (see that file's comment)
+// — these are the same absolute on-court positions as before (just past
+// the top of the key for Center, around the free-throw line for Forward,
+// out past the arc for Guard), re-expressed as percentages of the new
+// taller box so they land in the same real spots rather than drifting
+// down onto the rim the way the old percentages did once the box grew
+// without the court art growing to match.
+const ROW_TOP: Record<PositionName, number> = { Guard: 45, Forward: 65, Center: 85 };
 function rowXPositions(count: number): number[] {
   if (count === 1) return [50];
   if (count === 2) return [30, 70];
@@ -122,6 +130,7 @@ export class FantasyComponent implements OnInit {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
+  private events = inject(EventsService);
 
   readonly starterCount = FANTASY_STARTER_COUNT;
   readonly budgetCap = FANTASY_BUDGET_CAP;
@@ -173,6 +182,73 @@ export class FantasyComponent implements OnInit {
   readonly opponentByTeamId = signal<Map<string, OpponentInfo>>(new Map());
   readonly showFixtures = signal(false);
   readonly showFormationPicker = signal(false);
+
+  // --- Live/final round-game awareness — "what is my squad doing right
+  // now". fixtureGames' own `status`/score fields are kept fresh in place
+  // (see the effect below) via EventsService's shared SSE stream — the
+  // same one the nav's live-game badge and dashboard already use — rather
+  // than this component polling on its own timer. gameForTeam is a plain
+  // lookup off fixtureGames (not a separate fetch) so it always agrees
+  // with whatever the Fixtures popup is showing.
+  readonly gameForTeam = computed(() => {
+    const map = new Map<string, Game>();
+    for (const g of this.fixtureGames()) {
+      map.set(g.homeTeam.id, g);
+      map.set(g.awayTeam.id, g);
+    }
+    return map;
+  });
+  readonly liveGamesThisRound = computed(() => this.fixtureGames().filter((g) => g.status === "live"));
+  readonly hasLiveGameThisRound = computed(() => this.liveGamesThisRound().length > 0);
+
+  // Per-player PIR for this round's live/final games, fetched from the
+  // same per-game box score the game-detail page already reads
+  // (GET /games/:id — routes/games.ts computes it for status "live" too,
+  // not just "final", so this needs no backend change at all). Keyed by
+  // player id so any squad member's slot can look theirs up directly.
+  readonly roundPirByPlayerId = signal<Map<string, number | null>>(new Map());
+
+  // Keeps fixtureGames' status/score current and refreshes the relevant
+  // game's box score whenever the shared SSE stream ticks for a game that
+  // belongs to this round — effects run in the injection context a field
+  // initializer runs in, so this is safe to declare here rather than in
+  // ngOnInit; it just does nothing until fixtureGames has any games in it.
+  private readonly liveUpdatesEffect = effect(() => {
+    const update = this.events.lastGameUpdate();
+    if (!update) return;
+    const games = this.fixtureGames();
+    const idx = games.findIndex((g) => g.id === update.gameId);
+    if (idx === -1) return;
+    const next = [...games];
+    next[idx] = {
+      ...next[idx],
+      status: update.status,
+      homeScore: update.homeScore,
+      awayScore: update.awayScore,
+      quarter: update.quarter ?? next[idx].quarter,
+      gameClockSeconds: update.gameClockSeconds ?? next[idx].gameClockSeconds,
+    };
+    this.fixtureGames.set(next);
+    if (update.status === "live" || update.status === "final") this.refreshRoundBoxscore(update.gameId);
+  });
+
+  private refreshRoundBoxscore(gameId: string): void {
+    this.api.getGame(gameId).subscribe({
+      next: (detail) => {
+        const lines = [...(detail.boxscore?.home ?? []), ...(detail.boxscore?.away ?? [])];
+        this.roundPirByPlayerId.update((map) => {
+          const next = new Map(map);
+          for (const line of lines) next.set(line.player.id, line.valuation);
+          return next;
+        });
+      },
+      error: () => {}, // non-critical — the slot just falls back to showing the opponent instead
+    });
+  }
+
+  roundPir(playerId: string): number | null | undefined {
+    return this.roundPirByPlayerId().get(playerId);
+  }
 
   // --- Player-info popup — tapping a player (in the pool or on the court)
   // shows this instead of navigating away to their full detail page, so
@@ -228,6 +304,52 @@ export class FantasyComponent implements OnInit {
   readonly coachPickerOpen = signal(false);
   readonly coachPickerVisible = signal(false);
   private coachPickerCloseTimer?: ReturnType<typeof setTimeout>;
+
+  // --- Swap popup — a tap-driven alternative to dragging a squad member
+  // between the active group (starter + sixth man, both score 100%) and
+  // the bench (scores BENCH_SCORE_MULTIPLIER). Dragging one squad slot
+  // onto another already does this (see onDrop) and still works — this is
+  // just a discoverable, non-drag path to the exact same outcome, reached
+  // via a small swap badge on every unlocked squad-slot avatar. Real rules
+  // let this happen for any not-yet-"turned" player even after some of the
+  // round's other games have started (see getTeamRoundGameTipoff on the
+  // backend) — swapCandidates below excludes anyone `isLocked()`, the same
+  // guard every other squad-editing action already uses, so this
+  // automatically respects that per-player, per-game-day window with no
+  // extra date logic needed on the frontend.
+  readonly swapPlayerId = signal<string | null>(null);
+  readonly swapVisible = signal(false);
+  private swapCloseTimer?: ReturnType<typeof setTimeout>;
+
+  readonly swapPlayerRow = computed(() => {
+    const id = this.swapPlayerId();
+    return id ? this.rowById().get(id) ?? null : null;
+  });
+
+  // Swapping always crosses the active/bench line: a starter or sixth-man
+  // swaps with a bench occupant, a bench player swaps into the starter/
+  // sixth-man group. slotAcceptsPlayer is checked both ways since either
+  // side of the swap could be landing in a position-gated starter slot.
+  readonly swapCandidates = computed(() => {
+    const id = this.swapPlayerId();
+    if (!id) return [];
+    const slots = this.squadSlots();
+    const sourceSlot = slots.find((s) => s.playerId === id);
+    if (!sourceSlot) return [];
+    const wantsBench = sourceSlot.role !== "bench";
+    const byId = this.rowById();
+    return slots
+      .filter(
+        (s) =>
+          s.playerId &&
+          s.playerId !== id &&
+          !this.isLocked(s.playerId) &&
+          (s.role === "bench") === wantsBench &&
+          this.slotAcceptsPlayer(s.id, id) &&
+          this.slotAcceptsPlayer(sourceSlot.id, s.playerId!)
+      )
+      .map((s) => ({ slotId: s.id, row: byId.get(s.playerId!)! }));
+  });
 
   readonly rowById = computed(() => new Map(this.allRows().map((r) => [r.player.id, r])));
   readonly coachByTeamId = computed(() => new Map(this.coaches().map((c) => [c.team.id, c])));
@@ -508,6 +630,12 @@ export class FantasyComponent implements OnInit {
         for (const g of schedule.games) {
           map.set(g.homeTeam.id, { opponent: g.awayTeam, isHome: true });
           map.set(g.awayTeam.id, { opponent: g.homeTeam, isHome: false });
+          // Games that were already live or final by the time this page
+          // loaded (as opposed to going live while it stays open, which
+          // the liveUpdatesEffect above handles) still need their box
+          // score fetched at least once — the SSE stream only ticks on
+          // the *next* change, it doesn't replay past ones.
+          if (g.status === "live" || g.status === "final") this.refreshRoundBoxscore(g.id);
         }
         this.opponentByTeamId.set(map);
       },
@@ -763,6 +891,44 @@ export class FantasyComponent implements OnInit {
     this.closeCoachPicker();
   }
 
+  // Opens the swap popup for one squad member — see swapPlayerId/
+  // swapCandidates above. No-ops for a locked player (their own game's
+  // already tipped off this round), same guard as removeFromSquad/onDrop.
+  openSwapPicker(playerId: string): void {
+    if (this.isLocked(playerId)) return;
+    clearTimeout(this.swapCloseTimer);
+    this.swapPlayerId.set(playerId);
+    this.showPopup(this.swapVisible);
+  }
+
+  closeSwapPicker(): void {
+    if (!this.swapPlayerId()) return;
+    this.swapVisible.set(false);
+    clearTimeout(this.swapCloseTimer);
+    this.swapCloseTimer = setTimeout(() => this.swapPlayerId.set(null), POPUP_CLOSE_MS);
+  }
+
+  // Trades the two players' slots outright — both are already occupied
+  // (unlike pickPlayerForSlot, which only ever fills an empty one), so
+  // this is a straight swap rather than a displace-and-shift.
+  performSwap(targetPlayerId: string): void {
+    const sourceId = this.swapPlayerId();
+    if (!sourceId || this.isLocked(sourceId) || this.isLocked(targetPlayerId)) return;
+    const slots = [...this.squadSlots()];
+    const sourceIdx = slots.findIndex((s) => s.playerId === sourceId);
+    const targetIdx = slots.findIndex((s) => s.playerId === targetPlayerId);
+    if (sourceIdx === -1 || targetIdx === -1) return;
+    if (!this.slotAcceptsPlayer(slots[targetIdx].id, sourceId) || !this.slotAcceptsPlayer(slots[sourceIdx].id, targetPlayerId)) {
+      return;
+    }
+    slots[sourceIdx] = { ...slots[sourceIdx], playerId: targetPlayerId };
+    slots[targetIdx] = { ...slots[targetIdx], playerId: sourceId };
+    this.squadSlots.set(slots);
+    this.releaseCaptainIfNotStarter(slots);
+    this.saved.set(false);
+    this.closeSwapPicker();
+  }
+
   // Assigns a player to the exact slot the picker was opened for — unlike
   // addToSquad's priority search (starter, then sixth man, then bench),
   // the user already chose the slot by tapping it, so this just fills it.
@@ -822,8 +988,21 @@ export class FantasyComponent implements OnInit {
     }
 
     this.squadSlots.set(slots);
-    if (this.captainId() && !slots.some((s) => s.playerId === this.captainId())) this.captainId.set(null);
+    this.releaseCaptainIfNotStarter(slots);
     this.saved.set(false);
+  }
+
+  // Captain must always be a starter — dragging or swapping them onto the
+  // bench (or sixth man) has to release the armband, not just leave
+  // captainId pointing at a player who no longer holds a starter slot
+  // (which used to be possible via onDrop alone: it only cleared captainId
+  // when the captain left the squad entirely, not when they merely moved
+  // to a non-starter slot within it).
+  private releaseCaptainIfNotStarter(slots: SquadSlot[]): void {
+    const captain = this.captainId();
+    if (captain && !slots.some((s) => s.playerId === captain && s.role === "starter")) {
+      this.captainId.set(null);
+    }
   }
 
   submit(): void {
@@ -883,5 +1062,6 @@ export class FantasyComponent implements OnInit {
     this.closePlayerInfo();
     this.closePicker();
     this.closeCoachPicker();
+    this.closeSwapPicker();
   }
 }
