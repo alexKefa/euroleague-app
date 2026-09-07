@@ -727,22 +727,59 @@ export interface FantasyLineupPlayer {
   slotRole: FantasySlotRole;
   isCaptain: boolean;
   // True once this specific player's own team has tipped off this round —
-  // EuroLeague Fantasy's real "Turns" rule locks a player individually,
-  // not the whole round at once (see backend's getTeamRoundGameTipoff).
+  // informational only now (see FantasyLineup.locked's comment) — kept for
+  // display (e.g. the squad-slot lock badge) even though edits are gated
+  // on the round's own overall lock, not this per-player flag.
   locked: boolean;
+  // Raw PIR for that round's *final* game (null if the game isn't final
+  // yet, whether scheduled or live) — 2026-09-07, for reviewing a round's
+  // result (current or past) without stitching together per-game box
+  // scores client-side.
+  valuation: number | null;
+  // valuation with the captain-double/bench-half multipliers applied —
+  // always a definite number (0 while valuation is null).
+  points: number;
 }
 
 // GET /api/fantasy/lineup — the current user's 10-player squad + coach pick
-// for a round. `locked` (round-level) only ever gates the coach pick —
-// each player has their own independent `locked` flag instead.
+// for a round (any round, not just the current one — see `defaultRound`).
+// `locked` (round-level) gates every edit now, not just the coach pick —
+// see routes/fantasy.ts's POST /lineup/batch doc comment.
 export interface FantasyLineup {
   season: string | null;
   round: number | null;
+  // The season's current active round (services/fantasyScoring.ts's
+  // getDefaultRound) — 2026-09-07, added so the roster builder can tell
+  // "the round I'm viewing" apart from "the round I could still edit" once
+  // round navigation lets you browse history (round < defaultRound is
+  // always read-only, already-locked-and-final).
+  defaultRound: number | null;
   players: FantasyLineupPlayer[];
   coachTeamId: string | null;
   coachLocked: boolean;
   lockAt: string | null;
   locked: boolean;
+  // True once every one of this round's games is final (both EuroLeague
+  // "Turns"/match-days, not just the first) — 2026-09-07.
+  roundComplete: boolean;
+  coachPoints: number;
+  totalPoints: number;
+  // Sum of every squad player's raw valuation, no captain/bench multiplier
+  // applied — distinct from totalPoints, which is the actual scored
+  // (weighted) total.
+  totalPir: number;
+  // How many players in the current squad differ from the previous round's
+  // saved squad (see services/fantasyScoring.ts's getBaselineSquad) — 0 for
+  // round 1 or any round with no prior-round baseline to compare against.
+  transfersUsed: number;
+  // FANTASY_TRANSFERS_PER_ROUND, or null when there's no baseline (a free,
+  // unlimited draft — same as round 1 always has been).
+  transfersAllowed: number | null;
+  // The previous round's player-id set, for the roster builder to mirror
+  // the transfer-limit check client-side while editing (same pre-emptive-
+  // gating pattern the position quota already uses) — null exactly when
+  // transfersAllowed is null.
+  baselinePlayerIds: string[] | null;
 }
 
 // GET /api/fantasy/leaderboard and /api/leagues/:id/fantasy-leaderboard —

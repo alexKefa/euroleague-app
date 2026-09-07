@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { games, users, collectibles, teams } from "../db/schema.js";
+import { games, users, collectibles, teams, fantasyLineups, fantasyCoachPicks } from "../db/schema.js";
 
 // --- Squad shape (2026-09-05 rebuild to match EuroLeague Fantasy's real
 // Classic Mode rules directly, rather than our own simplified variant —
@@ -24,6 +24,18 @@ export const FANTASY_POSITION_QUOTA: Record<"Guard" | "Forward" | "Center", numb
   Center: 2,
 };
 export const BENCH_SCORE_MULTIPLIER = 0.5;
+
+// Round-to-round transfers (2026-09-07): a squad now carries forward
+// automatically from the previous round (see routes/fantasy.ts's
+// GET /lineup carry-forward and getBaselineSquad) instead of starting every
+// round from an empty court — real fantasy-sports "gameweek" model. Only
+// up to this many *player* changes are allowed against that carried-over
+// baseline before the round locks; the coach is a separate, unlimited
+// change (real rules don't ration coach picks the way they ration
+// transfers), and moving an already-selected player between starter/sixth-
+// man/bench costs nothing since no player id actually changed. Round 1 (no
+// prior round to carry from) stays a free, unlimited draft, same as always.
+export const FANTASY_TRANSFERS_PER_ROUND = 3;
 
 export const FANTASY_BUDGET_CAP = 100;
 export const FANTASY_MIN_PRICE = 4;
@@ -192,6 +204,44 @@ export async function getDefaultRound(season: string): Promise<number | null> {
   const sortedRounds = [...byRound.keys()].sort((a, b) => a - b);
   if (sortedRounds.length === 0) return null;
   return sortedRounds.find((rnd) => byRound.get(rnd)!.some((s) => s !== "final")) ?? sortedRounds[sortedRounds.length - 1];
+}
+
+export interface FantasyBaselineSquad {
+  playerIds: Set<string>;
+  rows: { playerId: string; slotRole: string; isCaptain: boolean }[];
+  coachTeamId: string | null;
+}
+
+/**
+ * The "transfer baseline" for a round: the user's saved squad + coach from
+ * the round immediately before it. Used two ways in routes/fantasy.ts —
+ * GET /lineup seeds a never-touched current round from it (so a squad
+ * carries forward instead of starting empty every round), and POST
+ * /lineup/batch limits how many *players* may differ from it
+ * (FANTASY_TRANSFERS_PER_ROUND) when saving. Null for round 1 (nothing
+ * before it) or when the user has no saved squad for that prior round
+ * either (missed a round, or this is their first round playing) — both
+ * fall back to a free, unlimited draft, same as round 1 always has been.
+ */
+export async function getBaselineSquad(userId: string, season: string, round: number): Promise<FantasyBaselineSquad | null> {
+  if (round <= 1) return null;
+  const [lineupRows, coachRows] = await Promise.all([
+    db
+      .select({ playerId: fantasyLineups.playerId, slotRole: fantasyLineups.slotRole, isCaptain: fantasyLineups.isCaptain })
+      .from(fantasyLineups)
+      .where(and(eq(fantasyLineups.userId, userId), eq(fantasyLineups.season, season), eq(fantasyLineups.round, round - 1))),
+    db
+      .select({ teamId: fantasyCoachPicks.teamId })
+      .from(fantasyCoachPicks)
+      .where(and(eq(fantasyCoachPicks.userId, userId), eq(fantasyCoachPicks.season, season), eq(fantasyCoachPicks.round, round - 1)))
+      .limit(1),
+  ]);
+  if (lineupRows.length === 0) return null;
+  return {
+    playerIds: new Set(lineupRows.map((r) => r.playerId)),
+    rows: lineupRows,
+    coachTeamId: coachRows[0]?.teamId ?? null,
+  };
 }
 
 export interface FantasyLeaderboardEntry {

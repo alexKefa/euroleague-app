@@ -100,4 +100,11 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
     en: "This round has already locked — no changes can be made.",
     el: "Αυτή η αγωνιστική έχει ήδη κλειδώσει — δεν μπορούν να γίνουν αλλαγές.",
   },
+  "fantasy.previousRound": { en: "Previous round", el: "Προηγούμενη αγωνιστική" },
+  "fantasy.nextRound": { en: "Next round", el: "Επόμενη αγωνιστική" },
+  "fantasy.pastRound": { en: "Past round", el: "Παλιότερη αγωνιστική" },
+  "fantasy.pointsLabel": { en: "Points", el: "Πόντοι" },
+  "fantasy.pirTotalLabel": { en: "PIR total", el: "Σύνολο PIR" },
+  "fantasy.transfersLabel": { en: "Transfers", el: "Μεταγραφές" },
+  "fantasy.roundCompleteTitle": { en: "Round complete!", el: "Η αγωνιστική ολοκληρώθηκε!" },
 };

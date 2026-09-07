@@ -1217,6 +1217,84 @@ If you need to apply a schema change without an interactive terminal
   `--color-page`/`--color-card`-reactive, same reasoning as the `highlight`
   accent staying fixed across themes: a glass floor's icy identity
   shouldn't shift with light/dark mode.
+- **Round-to-round carry-forward, transfers, a round navigator, and a
+  completion reveal (2026-09-07)** — until now a squad started every round
+  from an empty court, drafted fresh each time; asked to make it "stay the
+  same" round to round with only a small number of changes allowed, plus a
+  way to review past rounds' results. Landed as one connected pass:
+  - **Carry-forward + transfer limit**
+    (`services/fantasyScoring.ts`'s `getBaselineSquad`,
+    `FANTASY_TRANSFERS_PER_ROUND = 3`): `GET /fantasy/lineup` now seeds a
+    never-touched round from the immediately previous round's saved squad
+    the first time anyone reads it — but only the season's actual current
+    round (`getDefaultRound`), never a future one reached early via the
+    navigator below — and persists that copy immediately (same "lazy write
+    on read" precedent as round rewards/referral grants elsewhere in this
+    app), so it's locked in for scoring even if the page is never opened
+    again before the round locks. `POST /fantasy/lineup/batch` limits how
+    many *players* may differ from that same baseline to 3; the coach is a
+    separate, unlimited change, and moving an already-owned player between
+    starter/sixth-man/bench costs nothing (only a genuine net swap against
+    the baseline counts, computed fresh each save — not tallied
+    incrementally — so re-saving the same still-unlocked round as many
+    times as you like never resets or drifts the budget). Round 1 (no
+    round before it) and any round whose predecessor has no saved squad
+    either both stay a free, unlimited draft, same as always. The frontend
+    mirrors the same check locally (`localTransfersUsed`/`canUseTransfer`)
+    off a `baselinePlayerIds` set the endpoint now returns, so the pool can
+    pre-emptively disable a new (non-baseline) pick before a save
+    round-trip — same pattern `canAddPosition`'s quota gating already used.
+  - **Round navigator + read-only history**: `round` (whichever round is
+    being viewed) and `defaultRound` (the season's actual current one) are
+    now two separate signals — a new prev/next pair in the status bar
+    clamps between 1 and `defaultRound`. `isCurrentRound` folds into
+    `roundLocked` (see the whole-round-lock bullet above), so browsing to
+    any past round automatically reuses every existing edit guard to make
+    it read-only — no separate "view mode" flag needed. The
+    formation/captain/save action row is hidden entirely for a past round
+    (replaced with plain, non-interactive formation/captain badges) rather
+    than just disabled, since nothing there applies to a locked, already-
+    scored history view.
+  - **Per-round points/PIR review**: `GET /fantasy/lineup` now also
+    computes that round's own scoring server-side — each player's raw
+    `valuation` and captain/bench-weighted `points`, `totalPoints`,
+    `totalPir` (the raw, unweighted sum — "PIR total", a genuinely new
+    number, distinct from the weighted score the leaderboard already
+    showed), `coachPoints`, and `roundComplete` (every one of the round's
+    games final, both EuroLeague match-days, not just the first). Computed
+    directly in the route rather than by calling
+    `getFantasyLeaderboardEntries` (which would need a whole extra grouped
+    query just to get one user's one-round total) since the per-player
+    breakdown this endpoint needs anyway already requires fetching the
+    same `player_game_stats` rows. Shown in the status bar for whichever
+    round is being viewed, current or past.
+  - **Live-ish refresh via a light re-fetch, not client-side re-derivation**:
+    rather than duplicating this scoring math in the frontend against
+    `roundPirByPlayerId` (the live per-player map `liveUpdatesEffect`
+    already keeps current for other reasons — see the whole-round-lock
+    bullet), `liveUpdatesEffect` now also calls a new `refreshRoundSummary`
+    whenever a game in the *currently-viewed* round goes final: a plain
+    `GET /fantasy/lineup` re-fetch that only updates the read-only scoring
+    signals, deliberately never touching `squadSlots`/`captainId`/
+    `coachTeamId`, so it can't clobber an in-progress, unsaved edit the way
+    reloading the whole lineup mid-session would.
+  - **Completion reveal**: a celebratory modal (`showRoundComplete`,
+    `fantasy.css`'s `fantasy-round-complete-in` overshoot-then-settle
+    scale/opacity keyframe, matching this app's existing hand-rolled-CSS-
+    only animation convention — no library) fires the first time a round
+    is seen to be complete, tracked per-round in a session-local
+    `celebratedRounds` set so re-visiting an already-celebrated round via
+    the navigator doesn't replay it.
+  - **Bigger slots, again**: starter/sixth-man/bench avatars bumped once
+    more (46/40/36 mobile, 56/50/44 desktop → 50/44/40 mobile, 62/54/48
+    desktop) — a further, explicit "make the slots even bigger" ask, on
+    top of some of the row-crowding headroom the 2026-09-07 mobile-size-
+    down pass earlier the same day was written to protect.
+  - Reset round 1's games back to `scheduled` (fabricated box scores
+    cleared) after this pass landed, specifically so the new completion
+    reveal could be watched fire live rather than only reasoned about from
+    a cold reload — the previously-saved round-1 fantasy squad itself was
+    left untouched, only the games.
 - **Career stats on the collectible card flip** (2026-09-05;
   `scripts/backfill-career-stats.ts`, `GET /api/collectibles/:id/stats`'s
   new `career` field, `features/store/card-preview.ts`'s season/career

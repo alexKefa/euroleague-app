@@ -38,6 +38,7 @@ export const FANTASY_POSITION_QUOTA: Record<"Guard" | "Forward" | "Center", numb
   Forward: 4,
   Center: 2,
 };
+export const FANTASY_TRANSFERS_PER_ROUND = 3;
 
 const PAGE_SIZE = 40;
 
@@ -161,9 +162,13 @@ export class FantasyComponent implements OnInit {
   onWindowResize(): void {
     this.isMobileViewport.set(window.innerWidth < MOBILE_BREAKPOINT_PX);
   }
-  readonly starterAvatarSize = computed(() => (this.isMobileViewport() ? 46 : 56));
-  readonly sixthManAvatarSize = computed(() => (this.isMobileViewport() ? 40 : 50));
-  readonly benchAvatarSize = computed(() => (this.isMobileViewport() ? 36 : 44));
+  // Bumped again 2026-09-07 (from 46/40/36 mobile, 56/50/44 desktop) by
+  // request ("make the slots even bigger") — a bit more of the row-to-row
+  // crowding risk the 2026-09-07 mobile-size-down pass above was written to
+  // avoid, but a direct, explicit ask outweighs that caution here.
+  readonly starterAvatarSize = computed(() => (this.isMobileViewport() ? 50 : 62));
+  readonly sixthManAvatarSize = computed(() => (this.isMobileViewport() ? 44 : 54));
+  readonly benchAvatarSize = computed(() => (this.isMobileViewport() ? 40 : 48));
 
   readonly tab = signal<"roster" | "leaderboard">("roster");
 
@@ -172,10 +177,45 @@ export class FantasyComponent implements OnInit {
   readonly allRows = signal<FantasyPlayerRow[]>([]);
   readonly coaches = signal<FantasyCoachRow[]>([]);
   readonly season = signal<string | null>(null);
+  // `round` is whichever round is currently being *viewed* — the round
+  // navigator (viewRound/viewPreviousRound/viewNextRound below) can point
+  // this at any past round, read-only, without disturbing `defaultRound`.
   readonly round = signal<number | null>(null);
+  // The season's actual current active round (services/fantasyScoring.ts's
+  // getDefaultRound) — 2026-09-07. Editing is only ever allowed while
+  // `round() === defaultRound()` (see isCurrentRound/roundLocked below); any
+  // other round reached via the navigator is always a locked, read-only
+  // history view, regardless of that round's own lock time (it's already
+  // guaranteed fully final by construction — getDefaultRound only advances
+  // past a round once every one of its games is 'final').
+  readonly defaultRound = signal<number | null>(null);
   readonly lockAt = signal<string | null>(null);
   readonly coachLocked = signal(false);
   readonly lockedPlayerIds = signal<Set<string>>(new Set());
+
+  // --- Round review — points/PIR/completion for whichever round is being
+  // viewed (2026-09-07). Sourced from GET /fantasy/lineup's own per-round
+  // scoring (routes/fantasy.ts), not re-derived client-side, so this reads
+  // correctly for a past round immediately on navigation, before any
+  // per-game box score has necessarily been fetched this session.
+  readonly roundComplete = signal(false);
+  readonly totalPoints = signal(0);
+  readonly totalPir = signal(0);
+  readonly coachPoints = signal(0);
+
+  // --- Transfers (2026-09-07) — see services/fantasyScoring.ts's
+  // getBaselineSquad doc comment. transfersUsed/transfersAllowed are the
+  // server's own count as of the last load/save; localTransfersUsed below
+  // recomputes live off the in-progress squad so the pool can pre-emptively
+  // disable a new pick before a save round-trip, same pattern as the
+  // position-quota gating.
+  readonly transfersUsed = signal(0);
+  readonly transfersAllowed = signal<number | null>(null);
+  readonly baselinePlayerIds = signal<Set<string> | null>(null);
+
+  readonly isCurrentRound = computed(
+    () => this.round() !== null && this.defaultRound() !== null && this.round() === this.defaultRound()
+  );
 
   // Last-confirmed-by-server state, so hasChanges can tell a fresh edit
   // apart from re-loading the same squad.
@@ -268,14 +308,20 @@ export class FantasyComponent implements OnInit {
   // freezes — every player, formation, captain, and coach — not just
   // whichever specific players' own games have started. Matches the
   // backend's own POST /lineup/batch gate (see that route's doc comment)
-  // exactly, just computed reactively here off two signals that are
-  // already kept live: coachLocked() is the server's own snapshot from
-  // load time (covers the very first render, before any SSE tick has
-  // arrived), and fixtureGames() is kept current via the SSE stream (see
-  // liveUpdatesEffect above) so this flips true mid-session the moment a
-  // game actually goes live, with no need to reload the page or re-fetch
-  // the lineup.
-  readonly roundLocked = computed(() => this.coachLocked() || this.fixtureGames().some((g) => g.status !== "scheduled"));
+  // exactly, just computed reactively here off signals that are already
+  // kept live: coachLocked() is the server's own snapshot from load time
+  // (covers the very first render, before any SSE tick has arrived), and
+  // fixtureGames() is kept current via the SSE stream (see liveUpdatesEffect
+  // above) so this flips true mid-session the moment a game actually goes
+  // live, with no need to reload the page or re-fetch the lineup.
+  // !isCurrentRound() (2026-09-07) additionally locks every past round
+  // reached via the round navigator — always read-only history, regardless
+  // of the two checks above (which would already independently agree, since
+  // a past round is by construction fully final, but this makes the intent
+  // explicit rather than relying on that coincidence).
+  readonly roundLocked = computed(
+    () => !this.isCurrentRound() || this.coachLocked() || this.fixtureGames().some((g) => g.status !== "scheduled")
+  );
 
   // Per-player PIR for this round's live/final games, fetched from the
   // same per-game box score the game-detail page already reads
@@ -317,6 +363,13 @@ export class FantasyComponent implements OnInit {
       return next;
     });
     if (matched && (update.status === "live" || update.status === "final")) this.refreshRoundBoxscore(update.gameId);
+    // A game in the currently-viewed round just finished — re-pull that
+    // round's own scoring summary (points/PIR/completion) so "PIR total
+    // upon completion" and the completion animation react live instead of
+    // needing a manual reload. Deliberately scoped to just those signals
+    // (see refreshRoundSummary), not squadSlots/captain/coach, so it can
+    // never clobber an in-progress, unsaved edit.
+    if (matched && update.status === "final") this.refreshRoundSummary();
   });
 
   private refreshRoundBoxscore(gameId: string): void {
@@ -449,6 +502,22 @@ export class FantasyComponent implements OnInit {
   readonly selectedPlayerIds = computed(
     () => new Set(this.squadSlots().map((s) => s.playerId).filter((id): id is string => id !== null))
   );
+
+  // Recomputed live off the in-progress squad (2026-09-07), not just the
+  // server's last-saved count, so the pool can pre-emptively disable a new
+  // pick before a save round-trip — same reasoning as positionCounts below.
+  // Only a player NOT in the baseline counts: bringing back a baseline
+  // player you'd temporarily removed costs nothing, matching how the
+  // backend's own transfersUsed is computed (services/fantasyScoring.ts's
+  // getBaselineSquad) — a net diff against last round's squad, not a tally
+  // of individual add/remove actions taken along the way.
+  readonly localTransfersUsed = computed(() => {
+    const baseline = this.baselinePlayerIds();
+    if (!baseline) return 0;
+    let count = 0;
+    for (const id of this.selectedPlayerIds()) if (!baseline.has(id)) count++;
+    return count;
+  });
 
   readonly starterSlots = computed(() => this.squadSlots().filter((s) => s.role === "starter"));
   readonly sixthManSlot = computed(() => this.squadSlots().find((s) => s.role === "sixth_man")!);
@@ -674,17 +743,26 @@ export class FantasyComponent implements OnInit {
     this.squadSlots.set(slots);
   }
 
-  private loadLineup(): void {
-    this.api.getFantasyLineup().subscribe({
+  // `round` selects which round to view — omit for the current active one.
+  // Shared by ngOnInit's initial load and the round navigator below.
+  private loadLineup(round?: number): void {
+    this.api.getFantasyLineup(round).subscribe({
       next: (lineup) => {
         this.season.set(lineup.season);
         this.round.set(lineup.round);
+        this.defaultRound.set(lineup.defaultRound);
         this.lockAt.set(lineup.lockAt);
         this.coachLocked.set(lineup.coachLocked);
         this.lockedPlayerIds.set(new Set(lineup.players.filter((p) => p.locked).map((p) => p.playerId)));
+        this.roundComplete.set(lineup.roundComplete);
+        this.totalPoints.set(lineup.totalPoints);
+        this.totalPir.set(lineup.totalPir);
+        this.coachPoints.set(lineup.coachPoints);
+        this.transfersUsed.set(lineup.transfersUsed);
+        this.transfersAllowed.set(lineup.transfersAllowed);
+        this.baselinePlayerIds.set(lineup.baselinePlayerIds ? new Set(lineup.baselinePlayerIds) : null);
 
         const slots = initialSquadSlots();
-        const roleCounters: Record<FantasySlotRole, number> = { starter: 0, sixth_man: 0, bench: 0 };
         const serverMap = new Map<string, FantasySlotRole>();
         let captain: string | null = null;
         for (const p of lineup.players) {
@@ -692,7 +770,6 @@ export class FantasyComponent implements OnInit {
           if (p.isCaptain) captain = p.playerId;
           const idx = slots.findIndex((s) => s.role === p.slotRole && s.playerId === null);
           if (idx !== -1) slots[idx] = { ...slots[idx], playerId: p.playerId };
-          roleCounters[p.slotRole]++;
         }
         this.squadSlots.set(slots);
         this.serverSlotByPlayerId.set(serverMap);
@@ -705,9 +782,70 @@ export class FantasyComponent implements OnInit {
         if (lineup.season && lineup.round !== null) {
           this.loadFixtures(lineup.season, lineup.round);
         }
+        this.maybeCelebrateRoundComplete(lineup.round, lineup.roundComplete);
       },
       error: () => {},
     });
+  }
+
+  // Lightweight re-pull of just a round's scoring summary (points/PIR/
+  // completion), triggered when a game in the currently-viewed round goes
+  // final mid-session (see liveUpdatesEffect) — deliberately never touches
+  // squadSlots/captainId/coachTeamId, so it can't clobber an in-progress,
+  // unsaved edit the way a full loadLineup() reload would.
+  private refreshRoundSummary(): void {
+    const round = this.round();
+    if (round === null) return;
+    this.api.getFantasyLineup(round).subscribe({
+      next: (lineup) => {
+        this.roundComplete.set(lineup.roundComplete);
+        this.totalPoints.set(lineup.totalPoints);
+        this.totalPir.set(lineup.totalPir);
+        this.coachPoints.set(lineup.coachPoints);
+        this.maybeCelebrateRoundComplete(lineup.round, lineup.roundComplete);
+      },
+      error: () => {},
+    });
+  }
+
+  // --- Round navigator (2026-09-07) — browse any past round read-only
+  // (isCurrentRound/roundLocked above enforce the read-only part), clamped
+  // to [1, defaultRound] since nothing exists before round 1 and nothing
+  // meaningful exists past the season's actual current round yet.
+  viewRound(round: number): void {
+    const max = this.defaultRound();
+    if (round < 1 || (max !== null && round > max) || round === this.round()) return;
+    this.closeAllPopups();
+    this.loadLineup(round);
+  }
+
+  viewPreviousRound(): void {
+    const r = this.round();
+    if (r !== null) this.viewRound(r - 1);
+  }
+
+  viewNextRound(): void {
+    const r = this.round();
+    if (r !== null) this.viewRound(r + 1);
+  }
+
+  // --- Round-complete celebration (2026-09-07) — fires once per round per
+  // session (celebratedRounds), the first time that round is seen to be
+  // fully complete (both EuroLeague match-days, not just the first —
+  // roundComplete already requires every one of the round's games to be
+  // 'final'). Re-visiting an already-celebrated round via the navigator
+  // doesn't replay it.
+  private readonly celebratedRounds = new Set<number>();
+  readonly showRoundComplete = signal(false);
+
+  private maybeCelebrateRoundComplete(round: number | null, complete: boolean): void {
+    if (!complete || round === null || this.celebratedRounds.has(round)) return;
+    this.celebratedRounds.add(round);
+    this.showRoundComplete.set(true);
+  }
+
+  closeRoundComplete(): void {
+    this.showRoundComplete.set(false);
   }
 
   private loadFixtures(season: string, round: number): void {
@@ -896,14 +1034,25 @@ export class FantasyComponent implements OnInit {
     return this.positionCounts()[position] < this.positionQuota[position];
   }
 
-  // Combines the round-wide freeze with the position-quota gate above for
-  // the pool/picker row lists' disabled state — the persistent desktop
-  // pool column isn't reached through openPicker (that guard only covers
-  // mobile's tap-to-open-picker flow), so it needs its own roundLocked()
-  // check here rather than relying on that method never having been
-  // callable in the first place.
-  poolRowDisabled(position: string | null | undefined): boolean {
-    return this.roundLocked() || !this.canAddPosition(position);
+  // Blocks bringing in a player who'd exceed the round's transfer budget
+  // (2026-09-07) — free (no baseline, e.g. round 1) or already part of the
+  // baseline squad always passes; otherwise only allowed while
+  // localTransfersUsed hasn't already reached transfersAllowed.
+  canUseTransfer(playerId: string): boolean {
+    const baseline = this.baselinePlayerIds();
+    const allowed = this.transfersAllowed();
+    if (!baseline || allowed === null || baseline.has(playerId)) return true;
+    return this.localTransfersUsed() < allowed;
+  }
+
+  // Combines the round-wide freeze, the position-quota gate, and the
+  // transfer-budget gate above for the pool/picker row lists' disabled
+  // state — the persistent desktop pool column isn't reached through
+  // openPicker (that guard only covers mobile's tap-to-open-picker flow),
+  // so it needs its own roundLocked() check here rather than relying on
+  // that method never having been callable in the first place.
+  poolRowDisabled(playerId: string, position: string | null | undefined): boolean {
+    return this.roundLocked() || !this.canAddPosition(position) || !this.canUseTransfer(playerId);
   }
 
   // Tap fallback, alongside dragging — CDK's cdkDrag only intercepts an
@@ -918,7 +1067,8 @@ export class FantasyComponent implements OnInit {
   // drag; now it's the default since tapping price is the primary way to
   // build a squad.
   addToSquad(playerId: string): void {
-    if (this.roundLocked() || !this.canAddPosition(this.rowById().get(playerId)?.player.position)) return;
+    if (this.roundLocked() || !this.canAddPosition(this.rowById().get(playerId)?.player.position) || !this.canUseTransfer(playerId))
+      return;
     const slots = [...this.squadSlots()];
     const starterIdx = slots.findIndex(
       (s, idx) => idx < this.starterCount && s.playerId === null && this.slotAcceptsPlayer(s.id, playerId)
@@ -1071,7 +1221,7 @@ export class FantasyComponent implements OnInit {
     if (this.roundLocked()) return;
     const slotId = this.pickerSlotId();
     if (!slotId || !this.slotAcceptsPlayer(slotId, playerId)) return;
-    if (!this.canAddPosition(this.rowById().get(playerId)?.player.position)) return;
+    if (!this.canAddPosition(this.rowById().get(playerId)?.player.position) || !this.canUseTransfer(playerId)) return;
     const slots = [...this.squadSlots()];
     const idx = slots.findIndex((s) => s.id === slotId);
     if (idx === -1) return;
@@ -1116,7 +1266,11 @@ export class FantasyComponent implements OnInit {
     // Only a pool-sourced drop adds a brand-new player to the squad (moving
     // between two of the squad's own slots doesn't change any position's
     // total count), so the quota gate only applies here.
-    if (sourceId === "pool" && !this.canAddPosition(this.rowById().get(draggedPlayerId)?.player.position)) return;
+    if (
+      sourceId === "pool" &&
+      (!this.canAddPosition(this.rowById().get(draggedPlayerId)?.player.position) || !this.canUseTransfer(draggedPlayerId))
+    )
+      return;
 
     const slots = [...this.squadSlots()];
     const sourceIdx = slots.findIndex((s) => s.id === sourceId);
@@ -1206,6 +1360,11 @@ export class FantasyComponent implements OnInit {
   @HostListener("document:keydown.escape")
   onEscape(): void {
     this.closeEntry();
+    this.closeAllPopups();
+    this.closeRoundComplete();
+  }
+
+  private closeAllPopups(): void {
     this.showFixtures.set(false);
     this.showFormationPicker.set(false);
     this.showCaptainPicker.set(false);

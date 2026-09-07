@@ -20,3 +20,30 @@
     animation: none;
   }
 }
+
+/* Round-complete celebration reveal (2026-09-07) — a slight overshoot
+   pop-in (scale past 1 then settle) rather than a plain fade, so the
+   points/PIR summary reads as a deliberate "reveal" moment. */
+@keyframes fantasy-round-complete-in {
+  0% {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.03);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.fantasy-round-complete {
+  animation: fantasy-round-complete-in 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fantasy-round-complete {
+    animation: none;
+  }
+}
