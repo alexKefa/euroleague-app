@@ -54,15 +54,20 @@ interface NavLink {
 
 // label is an i18n translation key, not display text — resolved via
 // i18n.t() in the template so nav labels follow the language toggle.
-// Desktop's rail has the vertical room for all seven, so it uses this list
-// directly. Only the mobile bottom bar (cramped, thumb-reach real estate)
-// trims to MOBILE_NAV_LINKS + a "More" overflow for Schedule/Teams/
-// Standings — see MOBILE_NAV_LINKS/MORE_LINKS below and app.component.html.
+// Desktop's rail has the vertical room for all eight, so it uses this list
+// directly (Fantasy Five joined 2026-09-07, by request — it used to be
+// mobile/dashboard-only, deliberately left off the rail's then-documented
+// 7-item max; that cap wasn't load-bearing enough to keep it off once
+// asked for directly). Only the mobile bottom bar (cramped, thumb-reach
+// real estate) trims to MOBILE_NAV_LINKS + a "More" overflow for Schedule/
+// Teams/Standings/Fantasy — see MOBILE_NAV_LINKS/MORE_LINKS below and
+// app.component.html.
 const NAV_LINKS: NavLink[] = [
   { path: "/", label: "nav.home", icon: "home", exact: true },
   { path: "/news", label: "nav.news", icon: "news" },
   { path: "/schedule", label: "nav.schedule", icon: "schedule" },
   { path: "/predictions", label: "nav.picks", icon: "picks" },
+  { path: "/fantasy", label: "fantasy.navLink", icon: "ball" },
   {
     path: "/inventory",
     label: "nav.cards",
@@ -74,22 +79,16 @@ const NAV_LINKS: NavLink[] = [
 ];
 
 // Mobile-only: the four most-used destinations as direct tabs; Schedule,
-// Teams, Standings, and profile/login all live one tap further away (More
-// overflow / the top bar) instead of crowding a fifth+ bottom tab.
-const MOBILE_OVERFLOW_PATHS = new Set(["/schedule", "/teams", "/standings"]);
+// Teams, Standings, Fantasy, and profile/login all live one tap further
+// away (More overflow / the top bar) instead of crowding a fifth+ bottom
+// tab — Fantasy joining the desktop rail above doesn't change mobile's own
+// tab count, it's still reached via "More" there.
+const MOBILE_OVERFLOW_PATHS = new Set(["/schedule", "/teams", "/standings", "/fantasy"]);
 const MOBILE_NAV_LINKS: NavLink[] = NAV_LINKS.filter((l) => !MOBILE_OVERFLOW_PATHS.has(l.path));
 
 // Mobile-only overflow behind the "More" tab (always last) — a spot for
-// destinations checked occasionally rather than every session. Fantasy
-// Five has no desktop rail slot of its own (the rail's already at its
-// documented 7-item max) but was otherwise reachable only via a Dashboard
-// card, so it's appended here directly rather than through
-// MOBILE_OVERFLOW_PATHS/NAV_LINKS — it isn't one of the desktop rail's
-// seven at all, just a mobile-only shortcut.
-const MORE_LINKS: NavLink[] = [
-  ...NAV_LINKS.filter((l) => MOBILE_OVERFLOW_PATHS.has(l.path)),
-  { path: "/fantasy", label: "fantasy.navLink", icon: "ball" },
-];
+// destinations checked occasionally rather than every session.
+const MORE_LINKS: NavLink[] = NAV_LINKS.filter((l) => MOBILE_OVERFLOW_PATHS.has(l.path));
 
 @Component({
   selector: "app-root",
