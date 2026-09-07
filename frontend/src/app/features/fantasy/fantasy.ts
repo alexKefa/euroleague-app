@@ -213,23 +213,34 @@ export class FantasyComponent implements OnInit {
   // belongs to this round — effects run in the injection context a field
   // initializer runs in, so this is safe to declare here rather than in
   // ngOnInit; it just does nothing until fixtureGames has any games in it.
+  // Only tracks `lastGameUpdate()` — reading `fixtureGames()` via its
+  // tracked getter and writing back to it in the same effect would make the
+  // effect depend on its own output, so every write (a new array/object
+  // reference each time) schedules another run with no way to settle, an
+  // infinite loop for as long as a live game keeps ticking (same pitfall
+  // documented on game-detail.ts's equivalent effect). `.update()`'s read
+  // of the current value isn't tracked, so it's safe.
   private readonly liveUpdatesEffect = effect(() => {
     const update = this.events.lastGameUpdate();
     if (!update) return;
-    const games = this.fixtureGames();
-    const idx = games.findIndex((g) => g.id === update.gameId);
-    if (idx === -1) return;
-    const next = [...games];
-    next[idx] = {
-      ...next[idx],
-      status: update.status,
-      homeScore: update.homeScore,
-      awayScore: update.awayScore,
-      quarter: update.quarter ?? next[idx].quarter,
-      gameClockSeconds: update.gameClockSeconds ?? next[idx].gameClockSeconds,
-    };
-    this.fixtureGames.set(next);
-    if (update.status === "live" || update.status === "final") this.refreshRoundBoxscore(update.gameId);
+
+    let matched = false;
+    this.fixtureGames.update((games) => {
+      const idx = games.findIndex((g) => g.id === update.gameId);
+      if (idx === -1) return games;
+      matched = true;
+      const next = [...games];
+      next[idx] = {
+        ...next[idx],
+        status: update.status,
+        homeScore: update.homeScore,
+        awayScore: update.awayScore,
+        quarter: update.quarter ?? next[idx].quarter,
+        gameClockSeconds: update.gameClockSeconds ?? next[idx].gameClockSeconds,
+      };
+      return next;
+    });
+    if (matched && (update.status === "live" || update.status === "final")) this.refreshRoundBoxscore(update.gameId);
   });
 
   private refreshRoundBoxscore(gameId: string): void {
