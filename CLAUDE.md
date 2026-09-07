@@ -1760,6 +1760,49 @@ at the same Neon instance as local dev — there's no separate prod database.
   rather than the scoreboard advancing with no player ever credited for
   it), but real features reading `players` for a team with none synced
   (roster page, "players to watch", etc.) will just show empty/sparse.
+- **TODO: live in-game "prop" predictions** (2026-09-07, idea only, not
+  started) — a new prediction type layered on top of a *live* game, distinct
+  from both the existing win/loss game predictions and Fantasy Five: pick a
+  specific in-game outcome (the user's own example: "PAO-Baskonia's top
+  scorer will be Jerian Grant") rather than which team wins. Resolves off
+  the same real box-score data everything else already reads on completion
+  (`player_game_stats`, once the game is `final`), no new sync needed for
+  resolution itself.
+  - **Open design question — free pick vs. real stake**: existing
+    predictions are a free daily pick that *earns* points, never risks
+    them; the user explicitly floated this as possibly a genuine bet
+    instead — stake some of your existing points, lose them on a wrong
+    call. Whichever way this goes needs its own scoring path
+    (`services/points.ts`'s formula assumes a free pick with a floor at the
+    flat rate, not a stake that can go to zero) and its own UI framing
+    (predictions' existing "pick a team" card doesn't fit a wager amount).
+  - **Odds** — the user's own example cites a real "6x" market odds figure
+    for a specific prop. `game_odds`/`oddsSync.ts` (The Odds API) only
+    captures the moneyline market today; a player-prop market (top scorer,
+    points over/under, etc.) may or may not be available from that same
+    provider for EuroLeague specifically — needs checking before assuming
+    real odds are even sourceable the way moneyline odds already are,
+    versus computing an internal proxy (e.g. off `playerSeasonStats`) the
+    way `computeFantasyPrice` does for draft prices.
+  - **Surfacing UI (2026-09-07, two concrete ideas from the user)** — tied
+    to a *live* game specifically (the game-detail page's scoreboard), not
+    the upcoming-games list predictions already uses:
+    1. Small player icons overlaid directly on the game-detail page's
+       court/scoreboard visual, tappable to quick-predict a prop for that
+       specific player (e.g. tap a player's icon to bet they'll be the
+       game's top scorer) — reuses whatever player-photo/avatar component
+       already exists (`shared/player-photo.ts`) rather than a new one.
+    2. A separate menu/list below the scoreboard for the same picks — a
+       more conventional list-based alternative (or complement) to the
+       on-court icons, closer to predictions' existing pick-a-team card
+       pattern.
+    Game-detail already has a court/scoreboard visual to attach idea 1 to
+    (`shared/live-court.ts`'s `<app-live-court>`, `homeColor`/`awayColor`/
+    `homeLogoUrl`/`awayLogoUrl`/`homeScore`/`awayScore`/`hotSide`/`active`
+    inputs) — but it's team-level only today (logos, colors, score, an
+    "on fire" glow), nothing player-level, so the per-player icon overlay
+    would be new input/template work on top of it, not a from-scratch
+    court.
 
 ## Season transition (2026-27, 2026-09-02)
 
