@@ -1617,6 +1617,26 @@ at the same Neon instance as local dev — there's no separate prod database.
   changes above) with no migrations checked in — keeping two databases'
   schemas in sync would become a manual step to remember on every schema
   change, not something CI could enforce today.
+  **Setup started 2026-09-04, paused mid-way — pick back up from here:**
+  global `@railway/cli` was upgraded 5.44.0 → 5.49.1 (done, lasting). The
+  `.railway/railway.ts` config-as-code workflow this doc describes
+  (`railway config plan`/`apply`) turned out to be **broken on this Windows
+  setup** — the `railway` npm package's `assertMinimumIacCliVersion()`
+  shells out to `railway --version` to double check the CLI, and that
+  spawn always fails (reproduced identically on git-bash and native
+  PowerShell, filed as product feedback), so `config plan`/`apply` always
+  dies with a misleading "upgrade your CLI" error no matter the real CLI
+  version. Don't re-fight that tool — drive the dev environment/branch
+  setup with plain imperative `railway` CLI commands instead
+  (`railway environment new dev --duplicate production`,
+  `railway variables --set ... --environment dev`, `railway domain`,
+  `railway up --environment dev`), which work fine. Still to do: (1) create
+  a Neon branch DB for `dev` — blocked on Neon auth, either run
+  `npx neonctl auth` (opens a browser login) or create a branch named
+  "dev" off production by hand in the Neon console and hand over its
+  pooled connection string; (2) create the `dev` git branch; (3) create the
+  Railway `dev` environment and point its `DATABASE_URL` at the Neon dev
+  branch; (4) get a domain + first deploy for it.
 - Some teams could have zero rows in `players` if `roster_sync.py` (see
   below) hasn't been run for a freshly-registered club yet — found
   2026-08-21 with Besiktas Istanbul via the live-score simulator, fixed for
