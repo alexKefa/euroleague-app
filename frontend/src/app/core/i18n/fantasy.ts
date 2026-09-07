@@ -86,4 +86,18 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
     en: "No one available to swap with right now.",
     el: "Κανείς δεν είναι διαθέσιμος για αλλαγή αυτή τη στιγμή.",
   },
+  "fantasy.captainPickerTitle": { en: "Choose your captain", el: "Επίλεξε αρχηγό" },
+  "fantasy.captainPickerEmpty": { en: "Fill your starting five first.", el: "Συμπλήρωσε πρώτα την πεντάδα σου." },
+  "fantasy.whatsMissingTitle": { en: "What's missing", el: "Τι λείπει" },
+  "fantasy.missingSquadFull": { en: "Fill all 10 squad slots.", el: "Συμπλήρωσε και τις 10 θέσεις της ομάδας." },
+  "fantasy.missingPositionQuota": {
+    en: "Position quota not met — need 4 Guards, 4 Forwards, 2 Centers.",
+    el: "Δεν καλύφθηκε η αναλογία θέσεων — χρειάζονται 4 Guards, 4 Forwards, 2 Centers.",
+  },
+  "fantasy.missingCaptain": { en: "Pick a captain.", el: "Όρισε αρχηγό." },
+  "fantasy.missingCoach": { en: "Pick a coach.", el: "Επίλεξε προπονητή." },
+  "fantasy.missingRoundLocked": {
+    en: "This round has already locked — no changes can be made.",
+    el: "Αυτή η αγωνιστική έχει ήδη κλειδώσει — δεν μπορούν να γίνουν αλλαγές.",
+  },
 };

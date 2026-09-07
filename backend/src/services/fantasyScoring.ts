@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { games, users, collectibles, teams } from "../db/schema.js";
 
@@ -169,27 +169,6 @@ export async function getRoundLockTime(season: string, round: number): Promise<D
   return row ? new Date(row.tipoffAt) : null;
 }
 
-/**
- * A single player's own lock moment for one round: their team's specific
- * game tipoff within that round — NOT the round's overall first tipoff.
- * This is what actually implements EuroLeague Fantasy's real "Turns" rule
- * (a round split across match-days; you can swap bench<->starter for any
- * player who "has not yet taken the field" this round, right up until
- * their own team's game starts, even if other teams in the same round
- * already played). Null if that team has no game in this round at all
- * (a bye) — treated as "never locks" by callers, since there's no tipoff
- * event to lock against.
- */
-export async function getTeamRoundGameTipoff(season: string, round: number, teamId: string): Promise<Date | null> {
-  const [row] = await db
-    .select({ tipoffAt: games.tipoffAt })
-    .from(games)
-    .where(
-      and(eq(games.season, season), eq(games.round, round), or(eq(games.homeTeamId, teamId), eq(games.awayTeamId, teamId)))
-    )
-    .limit(1);
-  return row ? new Date(row.tipoffAt) : null;
-}
 
 /**
  * The round the lineup builder should default to: the first round that

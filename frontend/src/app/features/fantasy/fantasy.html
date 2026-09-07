@@ -45,10 +45,10 @@
           @if (slot.playerId && rowById().get(slot.playerId); as row) {
             <div
               cdkDrag
-              [cdkDragDisabled]="isLocked(slot.playerId)"
+              [cdkDragDisabled]="isPlayerLocked(slot.playerId)"
               [cdkDragData]="slot.playerId"
               class="flex flex-col items-center gap-0.5"
-              [ngClass]="isLocked(slot.playerId) ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'"
+              [ngClass]="isPlayerLocked(slot.playerId) ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'"
             >
               <div class="relative">
                 <button type="button" (click)="$event.stopPropagation(); openPlayerInfo(slot.playerId)" class="block rounded-full border-2 border-ink">
@@ -60,24 +60,21 @@
                     [size]="size"
                   />
                 </button>
-                @if (slot.role === 'starter') {
-                  <button
-                    type="button"
-                    (click)="$event.stopPropagation(); setCaptain(slot.playerId)"
-                    class="absolute -top-1 -right-1 w-5 h-5 rounded-full font-mono text-[10px] font-bold flex items-center justify-center border border-line"
-                    [ngClass]="captainId() === slot.playerId ? 'bg-highlight text-page' : 'bg-card text-muted'"
-                  >
-                    C
-                  </button>
+                @if (slot.role === 'starter' && captainId() === slot.playerId) {
+                  <!-- Purely informational now — picking/changing the captain
+                       moved to a dialog next to the formation button (see
+                       showCaptainPicker), so this is a static badge, not a
+                       button, on whichever starter currently holds it. -->
+                  <span class="absolute -top-1 -right-1 w-5 h-5 rounded-full font-mono text-[10px] font-bold flex items-center justify-center border border-line bg-highlight text-page">C</span>
                 }
-                @if (isLocked(slot.playerId)) {
+                @if (isPlayerLocked(slot.playerId)) {
                   <span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-card border border-line flex items-center justify-center text-[9px]">&#128274;</span>
                 } @else {
                   <button
                     type="button"
                     (click)="$event.stopPropagation(); removeFromSquad(slot.playerId)"
                     [attr.aria-label]="i18n.t('fantasy.removePlayer')"
-                    class="absolute -bottom-1 -left-1 w-5 h-5 rounded-full font-bold text-[11px] leading-none flex items-center justify-center border border-line bg-card text-muted hover:text-red-500 hover:border-red-500/40 transition-colors"
+                    class="absolute -bottom-1.5 -left-1.5 w-6 h-6 rounded-full font-bold text-sm leading-none flex items-center justify-center border border-line bg-card text-muted hover:text-red-500 hover:border-red-500/40 transition-colors"
                   >
                     &times;
                   </button>
@@ -115,7 +112,8 @@
             <button
               type="button"
               (click)="openPicker(slot.id)"
-              class="rounded-full border-2 border-dashed border-ink flex items-center justify-center text-muted text-xl hover:border-highlight hover:text-highlight transition-colors"
+              [disabled]="roundLocked()"
+              class="rounded-full border-2 border-dashed border-ink flex items-center justify-center text-muted text-xl hover:border-highlight hover:text-highlight disabled:opacity-40 disabled:hover:border-ink disabled:hover:text-muted disabled:cursor-not-allowed transition-colors"
               [style.width.px]="size"
               [style.height.px]="size"
             >+</button>
@@ -166,8 +164,8 @@
         </div>
         @if (lockAt()) {
           <p class="text-xs text-muted mt-2">
-            {{ coachLocked() ? i18n.t('fantasy.coachLocked') : i18n.t('fantasy.lockCountdown') }}
-            @if (!coachLocked()) { {{ lockAt() | date: 'medium' }} }
+            {{ roundLocked() ? i18n.t('fantasy.locked') : i18n.t('fantasy.lockCountdown') }}
+            @if (!roundLocked()) { {{ lockAt() | date: 'medium' }} }
           </p>
         }
       </div>
@@ -234,24 +232,54 @@
         <div class="flex gap-2.5">
           <!-- LEFT: formation picker + court (5 starter drop targets,
                position-gated per the chosen formation) + sixth man + bench -->
-          <div class="flex-1 sm:flex-[3] min-w-0 flex flex-col gap-2.5">
-            <div class="flex items-center justify-center gap-2">
+          <div class="flex-1 sm:flex-[3] min-w-0 flex flex-col gap-3 sm:gap-2.5">
+            <div class="flex items-center justify-center flex-wrap gap-2">
               <button
                 type="button"
                 (click)="showFormationPicker.set(true)"
-                class="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-card border border-line text-ink hover:border-highlight transition-colors"
+                [disabled]="roundLocked()"
+                class="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-card border border-line text-ink hover:border-highlight disabled:opacity-40 disabled:hover:border-line disabled:cursor-not-allowed transition-colors"
               >
                 {{ formation() }}
                 <span class="text-muted text-[9px]">&#9662;</span>
               </button>
+              <!-- Captain — a dialog next to formation, replacing the old
+                   per-avatar tappable "C" badge (see squadSlot above). -->
               <button
                 type="button"
-                (click)="submit()"
-                [disabled]="!canSubmit() || submitting()"
-                class="px-4 py-1.5 rounded-lg text-sm font-bold bg-highlight text-page disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+                (click)="showCaptainPicker.set(true)"
+                [disabled]="roundLocked()"
+                class="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-card border border-line text-ink hover:border-highlight disabled:opacity-40 disabled:hover:border-line disabled:cursor-not-allowed transition-colors"
               >
-                {{ submitting() ? i18n.t('fantasy.submitting') : i18n.t('fantasy.saveShort') }}
+                @if (captainRow(); as cap) {
+                  <span class="w-4 h-4 rounded-full bg-highlight text-page flex items-center justify-center text-[9px] font-bold shrink-0">C</span>
+                  <span class="max-w-[64px] truncate">{{ cap.player.name }}</span>
+                } @else {
+                  <span class="w-4 h-4 rounded-full border border-dashed border-ink flex items-center justify-center text-[9px] shrink-0 text-muted">C</span>
+                  {{ i18n.t('fantasy.captainLabel') }}
+                }
+                <span class="text-muted text-[9px]">&#9662;</span>
               </button>
+              <div class="relative flex items-center">
+                <button
+                  type="button"
+                  (click)="submit()"
+                  [disabled]="!canSubmit() || submitting()"
+                  class="px-4 py-1.5 rounded-lg text-sm font-bold bg-highlight text-page disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+                >
+                  {{ submitting() ? i18n.t('fantasy.submitting') : i18n.t('fantasy.saveShort') }}
+                </button>
+                @if (missingRequirements().length > 0) {
+                  <button
+                    type="button"
+                    (click)="showMissingInfo.set(true)"
+                    [attr.aria-label]="i18n.t('fantasy.whatsMissingTitle')"
+                    class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500/15 text-red-500 border border-red-500/40 flex items-center justify-center text-[11px] font-bold"
+                  >
+                    !
+                  </button>
+                }
+              </div>
             </div>
             @if (saved() && !hasChanges()) {
               <p class="text-xs text-highlight font-semibold text-center">{{ i18n.t('fantasy.saved') }}</p>
@@ -263,7 +291,7 @@
               <app-court-background class="absolute inset-0 w-full h-full" />
               @for (pos of starterSlotPositions(); track $index; let i = $index) {
                 <div class="absolute -translate-x-1/2 -translate-y-1/2" [style.left.%]="pos.left" [style.top.%]="pos.top">
-                  <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: starterSlots()[i], size: 56, positionLabel: posLabel(requiredPositionForStarterSlot(i)) }" />
+                  <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: starterSlots()[i], size: starterAvatarSize(), positionLabel: posLabel(requiredPositionForStarterSlot(i)) }" />
                 </div>
               }
             </div>
@@ -271,12 +299,12 @@
             <div class="bg-card rounded-2xl border border-line shadow-card p-3">
               <p class="text-[10px] text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.sixthManLabel') }}</p>
               <div class="flex justify-center mb-3">
-                <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: sixthManSlot(), size: 50 }" />
+                <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: sixthManSlot(), size: sixthManAvatarSize() }" />
               </div>
               <p class="text-[10px] text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.benchLabel') }}</p>
-              <div class="flex justify-center gap-3 flex-wrap">
+              <div class="flex justify-center gap-4 sm:gap-3 flex-wrap">
                 @for (slot of benchSlots(); track slot.id) {
-                  <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: slot, size: 44 }" />
+                  <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: slot, size: benchAvatarSize() }" />
                 }
               </div>
             </div>
@@ -291,11 +319,11 @@
             <div class="bg-card rounded-2xl border border-line shadow-card p-3">
               <p class="text-[10px] text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.coachLabel') }}</p>
               <div class="flex justify-center">
-                <button type="button" (click)="openCoachPicker()" class="flex flex-col items-center gap-1">
+                <button type="button" (click)="openCoachPicker()" [disabled]="roundLocked()" class="flex flex-col items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed">
                   @if (selectedCoach(); as coach) {
                     <div class="relative">
                       <app-team-badge [code]="coach.team.code" [logoUrl]="coach.team.logoUrl" [size]="48" />
-                      @if (coachLocked()) {
+                      @if (roundLocked()) {
                         <span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-card border border-line flex items-center justify-center text-[9px]">&#128274;</span>
                       }
                     </div>
@@ -359,7 +387,9 @@
                 <div
                   cdkDrag
                   [cdkDragData]="row.player.id"
-                  class="fantasy-row-in flex items-center gap-1.5 rounded-lg border border-line bg-page p-1.5 cursor-grab active:cursor-grabbing hover:border-highlight transition-colors"
+                  [cdkDragDisabled]="poolRowDisabled(row.player.position)"
+                  class="fantasy-row-in flex items-center gap-1.5 rounded-lg border border-line bg-page p-1.5 transition-colors"
+                  [ngClass]="poolRowDisabled(row.player.position) ? 'opacity-40' : 'cursor-grab active:cursor-grabbing hover:border-highlight'"
                 >
                   <button type="button" (click)="$event.stopPropagation(); openPlayerInfo(row.player.id)" class="flex items-center gap-1.5 min-w-0 flex-1 text-left">
                     <app-player-photo
@@ -382,8 +412,9 @@
                   <button
                     type="button"
                     (click)="$event.stopPropagation(); addToSquad(row.player.id)"
+                    [disabled]="poolRowDisabled(row.player.position)"
                     [attr.aria-label]="i18n.t('fantasy.selectPlayer') + ': ' + row.player.name"
-                    class="shrink-0 font-mono text-[13px] font-bold text-highlight border border-highlight/30 rounded-lg px-2.5 py-1.5 min-w-[46px] text-center hover:bg-highlight hover:text-page transition-colors cursor-pointer"
+                    class="shrink-0 font-mono text-[13px] font-bold text-highlight border border-highlight/30 rounded-lg px-2.5 py-1.5 min-w-[46px] text-center hover:bg-highlight hover:text-page transition-colors disabled:hover:bg-transparent disabled:hover:text-highlight disabled:cursor-not-allowed cursor-pointer"
                   >
                     {{ row.price | number: '1.1-1' }}
                   </button>
@@ -618,7 +649,8 @@
             <button
               type="button"
               (click)="pickPlayerForSlot(row.player.id)"
-              class="fantasy-row-in w-full flex items-center gap-2 rounded-lg border border-line bg-page p-2 hover:border-highlight transition-colors text-left"
+              [disabled]="poolRowDisabled(row.player.position)"
+              class="fantasy-row-in w-full flex items-center gap-2 rounded-lg border border-line bg-page p-2 hover:border-highlight transition-colors text-left disabled:opacity-40 disabled:hover:border-line disabled:cursor-not-allowed"
             >
               <app-player-photo
                 [photoUrl]="row.player.photoUrl"
@@ -766,6 +798,82 @@
             </button>
           }
         </div>
+      </div>
+    </div>
+  }
+
+  <!-- Captain-picker dialog — replaces the old per-avatar tappable "C"
+       badge on each starter (see squadSlot above). Lists the 5 starter
+       slots that are actually filled; a starter whose game has already
+       started can't newly become (or stop being) captain, same "Turns"
+       guard setCaptain already enforced. -->
+  @if (showCaptainPicker()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="showCaptainPicker.set(false)">
+      <div
+        class="bg-card rounded-2xl border border-line shadow-pop p-5 max-w-xs w-full"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="flex items-center justify-between gap-2 mb-4">
+          <p class="font-display text-xl tracking-wide">{{ i18n.t('fantasy.captainPickerTitle') }}</p>
+          <button type="button" (click)="showCaptainPicker.set(false)" class="text-muted hover:text-ink text-2xl leading-none font-bold shrink-0">&times;</button>
+        </div>
+        @if (!hasAnyStarter()) {
+          <p class="text-sm text-muted text-center py-2">{{ i18n.t('fantasy.captainPickerEmpty') }}</p>
+        } @else {
+          <div class="flex flex-col gap-2">
+            @for (slot of starterSlots(); track slot.id) {
+              @if (slot.playerId && rowById().get(slot.playerId); as row) {
+                <button
+                  type="button"
+                  (click)="chooseCaptain(slot.playerId)"
+                  [disabled]="isPlayerLocked(slot.playerId)"
+                  [attr.aria-label]="i18n.t('fantasy.setCaptain') + ': ' + row.player.name"
+                  class="flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  [ngClass]="captainId() === slot.playerId ? 'border-highlight bg-highlight/10' : 'border-line bg-page hover:border-highlight'"
+                >
+                  <app-player-photo
+                    [photoUrl]="row.player.photoUrl"
+                    [name]="row.player.name"
+                    [teamCode]="row.team.code"
+                    [primaryColor]="row.team.primaryColor"
+                    [size]="30"
+                  />
+                  <div class="min-w-0 flex-1">
+                    <p class="text-[12px] font-semibold truncate leading-tight">{{ row.player.name }}</p>
+                    <p class="text-[10px] font-mono text-muted truncate leading-tight">{{ posAbbrev(row.player.position) }}</p>
+                  </div>
+                  @if (captainId() === slot.playerId) {
+                    <span class="w-5 h-5 rounded-full bg-highlight text-page flex items-center justify-center text-[10px] font-bold shrink-0">C</span>
+                  }
+                </button>
+              }
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- "What's missing" dialog — opened from the small "!" badge next to
+       Save (only rendered once missingRequirements() is non-empty). -->
+  @if (showMissingInfo()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="showMissingInfo.set(false)">
+      <div
+        class="bg-card rounded-2xl border border-line shadow-pop p-5 max-w-xs w-full"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="flex items-center justify-between gap-2 mb-4">
+          <p class="font-display text-lg tracking-wide">{{ i18n.t('fantasy.whatsMissingTitle') }}</p>
+          <button type="button" (click)="showMissingInfo.set(false)" class="text-muted hover:text-ink text-2xl leading-none font-bold shrink-0">&times;</button>
+        </div>
+        <ul class="flex flex-col gap-2">
+          @for (item of missingRequirements(); track item) {
+            <li class="flex items-center gap-2 text-sm text-ink">
+              <span class="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></span>
+              {{ item }}
+            </li>
+          }
+        </ul>
       </div>
     </div>
   }

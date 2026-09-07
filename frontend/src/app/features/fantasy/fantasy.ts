@@ -87,11 +87,28 @@ const FORMATION_POSITIONS: Record<Formation, PositionName[]> = {
 // down onto the rim the way the old percentages did once the box grew
 // without the court art growing to match.
 const ROW_TOP: Record<PositionName, number> = { Guard: 45, Forward: 65, Center: 85 };
+// Widened 2026-09-07 (from [30,70]/[18,50,82]) — on a narrow mobile court
+// column, avatars in the same row sat close enough to visually crowd each
+// other. Horizontal-only change: spreading a row wider doesn't touch
+// ROW_TOP/the court-background SVG's calibration (see court-background.ts's
+// own doc comment on how fragile that vertical alignment has been), it just
+// moves same-row slots further apart within a still-symmetric layout.
 function rowXPositions(count: number): number[] {
   if (count === 1) return [50];
-  if (count === 2) return [30, 70];
-  return [18, 50, 82];
+  if (count === 2) return [20, 80];
+  return [10, 50, 90];
 }
+
+// Mobile gets smaller slot avatars than desktop (2026-09-07) — same
+// motivation as the rowXPositions widening above: the court column's own
+// height is a fixed 320/300 aspect ratio off its *width*, so a narrower
+// mobile column is also a shorter one in real pixels, while the avatar
+// pixel sizes (56/50/44) stayed fixed regardless — on mobile that left
+// barely more real vertical gap between rows than the avatar-plus-label
+// stack actually needs, reading as cramped. Smaller avatars on mobile free
+// up that same real vertical gap without touching ROW_TOP.
+const MOBILE_BREAKPOINT_PX = 640; // matches Tailwind's `sm:` breakpoint
+
 
 function initialSquadSlots(): SquadSlot[] {
   const slots: SquadSlot[] = [];
@@ -138,6 +155,16 @@ export class FantasyComponent implements OnInit {
   readonly formationOptions = FORMATION_OPTIONS;
   readonly formation = signal<Formation>("2-2-1");
 
+  // See the rowXPositions/MOBILE_BREAKPOINT_PX comment above.
+  readonly isMobileViewport = signal(window.innerWidth < MOBILE_BREAKPOINT_PX);
+  @HostListener("window:resize")
+  onWindowResize(): void {
+    this.isMobileViewport.set(window.innerWidth < MOBILE_BREAKPOINT_PX);
+  }
+  readonly starterAvatarSize = computed(() => (this.isMobileViewport() ? 46 : 56));
+  readonly sixthManAvatarSize = computed(() => (this.isMobileViewport() ? 40 : 50));
+  readonly benchAvatarSize = computed(() => (this.isMobileViewport() ? 36 : 44));
+
   readonly tab = signal<"roster" | "leaderboard">("roster");
 
   // --- Roster builder state ---
@@ -183,6 +210,41 @@ export class FantasyComponent implements OnInit {
   readonly showFixtures = signal(false);
   readonly showFormationPicker = signal(false);
 
+  // --- Captain picker — a dialog next to the formation button, replacing
+  // the old per-avatar tappable "C" badge on each starter (2026-09-07):
+  // that badge doubled as both the captain indicator AND the control to
+  // change it, which meant the only way to see who your captain even was
+  // required looking at 5 small badges rather than one clear affordance.
+  // Same plain centered-modal pattern as showFormationPicker (no
+  // entrance-animation dance — that's reserved for the bottom-sheet-style
+  // popups, see the popup-choreography comment below).
+  readonly showCaptainPicker = signal(false);
+  readonly captainRow = computed(() => {
+    const id = this.captainId();
+    return id ? this.rowById().get(id) ?? null : null;
+  });
+  readonly hasAnyStarter = computed(() => this.starterSlots().some((s) => s.playerId !== null));
+
+  // --- "What's missing" indicator next to Save (2026-09-07) — canSubmit()
+  // was already a single boolean with no way to tell a visitor *which*
+  // requirement was unmet short of poking at every part of the screen.
+  // Deliberately excludes hasChanges(): "nothing to save" isn't a missing
+  // requirement, it's just an idle, already-valid state.
+  readonly showMissingInfo = signal(false);
+  readonly missingRequirements = computed<string[]>(() => {
+    const list: string[] = [];
+    // Checked first — once the round's locked, it's the *only* reason Save
+    // is disabled for an otherwise-already-valid, already-saved lineup, so
+    // it has to surface here too or the "!" badge simply wouldn't appear.
+    if (this.roundLocked()) list.push(this.i18n.t("fantasy.missingRoundLocked"));
+    if (!this.squadFull()) list.push(this.i18n.t("fantasy.missingSquadFull"));
+    if (!this.positionQuotaMet()) list.push(this.i18n.t("fantasy.missingPositionQuota"));
+    if (this.captainId() === null) list.push(this.i18n.t("fantasy.missingCaptain"));
+    if (this.coachTeamId() === null) list.push(this.i18n.t("fantasy.missingCoach"));
+    if (this.overBudget()) list.push(this.i18n.t("fantasy.overBudget"));
+    return list;
+  });
+
   // --- Live/final round-game awareness — "what is my squad doing right
   // now". fixtureGames' own `status`/score fields are kept fresh in place
   // (see the effect below) via EventsService's shared SSE stream — the
@@ -200,6 +262,20 @@ export class FantasyComponent implements OnInit {
   });
   readonly liveGamesThisRound = computed(() => this.fixtureGames().filter((g) => g.status === "live"));
   readonly hasLiveGameThisRound = computed(() => this.liveGamesThisRound().length > 0);
+
+  // Whole-round lock (2026-09-07, replacing a per-player-only "Turns"
+  // lock): once ANY game in this round has tipped off, the entire lineup
+  // freezes — every player, formation, captain, and coach — not just
+  // whichever specific players' own games have started. Matches the
+  // backend's own POST /lineup/batch gate (see that route's doc comment)
+  // exactly, just computed reactively here off two signals that are
+  // already kept live: coachLocked() is the server's own snapshot from
+  // load time (covers the very first render, before any SSE tick has
+  // arrived), and fixtureGames() is kept current via the SSE stream (see
+  // liveUpdatesEffect above) so this flips true mid-session the moment a
+  // game actually goes live, with no need to reload the page or re-fetch
+  // the lineup.
+  readonly roundLocked = computed(() => this.coachLocked() || this.fixtureGames().some((g) => g.status !== "scheduled"));
 
   // Per-player PIR for this round's live/final games, fetched from the
   // same per-game box score the game-detail page already reads
@@ -354,7 +430,7 @@ export class FantasyComponent implements OnInit {
         (s) =>
           s.playerId &&
           s.playerId !== id &&
-          !this.isLocked(s.playerId) &&
+          !this.isPlayerLocked(s.playerId) &&
           (s.role === "bench") === wantsBench &&
           this.slotAcceptsPlayer(s.id, id) &&
           this.slotAcceptsPlayer(sourceSlot.id, s.playerId!)
@@ -442,7 +518,8 @@ export class FantasyComponent implements OnInit {
       this.positionQuotaMet() &&
       this.captainId() !== null &&
       this.coachTeamId() !== null &&
-      !this.overBudget()
+      !this.overBudget() &&
+      !this.roundLocked()
   );
 
   readonly teamDropdownOptions = computed<DropdownOption[]>(() => {
@@ -717,13 +794,13 @@ export class FantasyComponent implements OnInit {
   // back to the pool entirely; either way they lose the captain armband
   // if they held it, since only a starter can be captain.
   setFormation(next: Formation): void {
-    if (this.formation() === next) return;
+    if (this.formation() === next || this.roundLocked()) return;
     const newPositions = FORMATION_POSITIONS[next];
     const byId = this.rowById();
     const slots = [...this.squadSlots()];
     for (let i = 0; i < this.starterCount; i++) {
       const slot = slots[i];
-      if (!slot.playerId || this.isLocked(slot.playerId)) continue;
+      if (!slot.playerId || this.isPlayerLocked(slot.playerId)) continue;
       if (byId.get(slot.playerId)?.player.position === newPositions[i]) continue;
       const displacedId = slot.playerId;
       slots[i] = { ...slot, playerId: null };
@@ -785,6 +862,50 @@ export class FantasyComponent implements OnInit {
     return this.lockedPlayerIds().has(playerId);
   }
 
+  // The real "can this player still be edited" check (2026-09-07) —
+  // isLocked() alone only reflects lockedPlayerIds, a snapshot taken once
+  // at page load (GET /fantasy/lineup's own `locked` flag). It never
+  // updates for a game that goes live *while this page stays open*, since
+  // nothing re-fetches the lineup mid-session — gameForTeam() is the piece
+  // that does stay live (see liveUpdatesEffect above), so this combines
+  // both: locked either because the server already said so, or because
+  // this round's schedule (kept fresh via SSE) shows that player's team
+  // has tipped off. Used everywhere a squad edit needs to be blocked once
+  // a player's game has actually started, not just once the server's own
+  // stale-by-design snapshot caught up. roundLocked() short-circuits this
+  // to true for every player at once, per the whole-round lock above.
+  isPlayerLocked(playerId: string): boolean {
+    if (this.roundLocked()) return true;
+    if (this.isLocked(playerId)) return true;
+    const teamId = this.rowById().get(playerId)?.team.id;
+    const game = teamId ? this.gameForTeam().get(teamId) : undefined;
+    return !!game && game.status !== "scheduled";
+  }
+
+  // Blocks adding a *new* player of a position whose quota is already met
+  // (2026-09-07) — positionQuotaMet() already caught this at submit time,
+  // but nothing stopped the selection itself: a non-starter (sixth-man/
+  // bench) slot was never position-gated, so a user could stack a 3rd
+  // Center there and only discover the quota violation once Save stayed
+  // disabled. Checked wherever a player is newly added from the pool
+  // (addToSquad, pickPlayerForSlot, a pool-sourced onDrop) — never for
+  // moving an already-selected player between two of their own squad
+  // slots, which doesn't change any position's total count.
+  canAddPosition(position: string | null | undefined): boolean {
+    if (position !== "Guard" && position !== "Forward" && position !== "Center") return true;
+    return this.positionCounts()[position] < this.positionQuota[position];
+  }
+
+  // Combines the round-wide freeze with the position-quota gate above for
+  // the pool/picker row lists' disabled state — the persistent desktop
+  // pool column isn't reached through openPicker (that guard only covers
+  // mobile's tap-to-open-picker flow), so it needs its own roundLocked()
+  // check here rather than relying on that method never having been
+  // callable in the first place.
+  poolRowDisabled(position: string | null | undefined): boolean {
+    return this.roundLocked() || !this.canAddPosition(position);
+  }
+
   // Tap fallback, alongside dragging — CDK's cdkDrag only intercepts an
   // actual pointer move past its drag threshold, so a stationary tap on the
   // price chip still fires this normally rather than fighting the drag
@@ -797,6 +918,7 @@ export class FantasyComponent implements OnInit {
   // drag; now it's the default since tapping price is the primary way to
   // build a squad.
   addToSquad(playerId: string): void {
+    if (this.roundLocked() || !this.canAddPosition(this.rowById().get(playerId)?.player.position)) return;
     const slots = [...this.squadSlots()];
     const starterIdx = slots.findIndex(
       (s, idx) => idx < this.starterCount && s.playerId === null && this.slotAcceptsPlayer(s.id, playerId)
@@ -815,7 +937,7 @@ export class FantasyComponent implements OnInit {
   // avatar, now that tapping the avatar itself opens the player page
   // instead of removing them (see addToSquad above).
   removeFromSquad(playerId: string): void {
-    if (this.isLocked(playerId)) return;
+    if (this.isPlayerLocked(playerId)) return;
     const slots = [...this.squadSlots()];
     const idx = slots.findIndex((s) => s.playerId === playerId);
     if (idx === -1) return;
@@ -867,6 +989,7 @@ export class FantasyComponent implements OnInit {
   // the picker's duration (see pickerRequiredPosition), since a
   // mismatched player could never be dropped there anyway.
   openPicker(slotId: string): void {
+    if (this.roundLocked()) return;
     const idx = this.squadSlots().findIndex((s) => s.id === slotId);
     if (idx !== -1 && idx < this.starterCount) this.positionFilter.set(this.requiredPositionForStarterSlot(idx));
     clearTimeout(this.pickerCloseTimer);
@@ -883,6 +1006,7 @@ export class FantasyComponent implements OnInit {
 
   // Opens the coach-picker popup — see the coachPickerOpen field comment.
   openCoachPicker(): void {
+    if (this.roundLocked()) return;
     clearTimeout(this.coachPickerCloseTimer);
     this.coachPickerOpen.set(true);
     this.showPopup(this.coachPickerVisible);
@@ -906,7 +1030,7 @@ export class FantasyComponent implements OnInit {
   // swapCandidates above. No-ops for a locked player (their own game's
   // already tipped off this round), same guard as removeFromSquad/onDrop.
   openSwapPicker(playerId: string): void {
-    if (this.isLocked(playerId)) return;
+    if (this.isPlayerLocked(playerId)) return;
     clearTimeout(this.swapCloseTimer);
     this.swapPlayerId.set(playerId);
     this.showPopup(this.swapVisible);
@@ -924,7 +1048,7 @@ export class FantasyComponent implements OnInit {
   // this is a straight swap rather than a displace-and-shift.
   performSwap(targetPlayerId: string): void {
     const sourceId = this.swapPlayerId();
-    if (!sourceId || this.isLocked(sourceId) || this.isLocked(targetPlayerId)) return;
+    if (!sourceId || this.isPlayerLocked(sourceId) || this.isPlayerLocked(targetPlayerId)) return;
     const slots = [...this.squadSlots()];
     const sourceIdx = slots.findIndex((s) => s.playerId === sourceId);
     const targetIdx = slots.findIndex((s) => s.playerId === targetPlayerId);
@@ -944,8 +1068,10 @@ export class FantasyComponent implements OnInit {
   // addToSquad's priority search (starter, then sixth man, then bench),
   // the user already chose the slot by tapping it, so this just fills it.
   pickPlayerForSlot(playerId: string): void {
+    if (this.roundLocked()) return;
     const slotId = this.pickerSlotId();
     if (!slotId || !this.slotAcceptsPlayer(slotId, playerId)) return;
+    if (!this.canAddPosition(this.rowById().get(playerId)?.player.position)) return;
     const slots = [...this.squadSlots()];
     const idx = slots.findIndex((s) => s.id === slotId);
     if (idx === -1) return;
@@ -957,13 +1083,21 @@ export class FantasyComponent implements OnInit {
 
   setCaptain(playerId: string): void {
     const slot = this.squadSlots().find((s) => s.playerId === playerId);
-    if (!slot || slot.role !== "starter" || this.isLocked(playerId)) return;
+    if (!slot || slot.role !== "starter" || this.isPlayerLocked(playerId)) return;
     this.captainId.set(this.captainId() === playerId ? null : playerId);
     this.saved.set(false);
   }
 
+  // Called from the captain-picker dialog (see showCaptainPicker) —
+  // selects and closes in one tap, same "pick it and you're done" flow as
+  // pickCoach below.
+  chooseCaptain(playerId: string): void {
+    this.setCaptain(playerId);
+    this.showCaptainPicker.set(false);
+  }
+
   selectCoach(teamId: string): void {
-    if (this.coachLocked() && this.coachTeamId() !== teamId) return;
+    if (this.roundLocked()) return;
     this.coachTeamId.set(this.coachTeamId() === teamId ? null : teamId);
     this.saved.set(false);
   }
@@ -975,10 +1109,14 @@ export class FantasyComponent implements OnInit {
   // fantasy.html for how both are wired.
   onDrop(event: CdkDragDrop<unknown>, targetId: string): void {
     const draggedPlayerId = event.item.data as string;
-    if (this.isLocked(draggedPlayerId)) return;
+    if (this.isPlayerLocked(draggedPlayerId)) return;
     const sourceId = event.previousContainer.id;
     if (sourceId === targetId) return; // dropped back where it started
     if (!this.slotAcceptsPlayer(targetId, draggedPlayerId)) return; // wrong position for a formation-gated starter slot
+    // Only a pool-sourced drop adds a brand-new player to the squad (moving
+    // between two of the squad's own slots doesn't change any position's
+    // total count), so the quota gate only applies here.
+    if (sourceId === "pool" && !this.canAddPosition(this.rowById().get(draggedPlayerId)?.player.position)) return;
 
     const slots = [...this.squadSlots()];
     const sourceIdx = slots.findIndex((s) => s.id === sourceId);
@@ -987,7 +1125,7 @@ export class FantasyComponent implements OnInit {
       const targetIdx = slots.findIndex((s) => s.id === targetId);
       if (targetIdx === -1) return;
       const displaced = slots[targetIdx].playerId;
-      if (displaced && this.isLocked(displaced)) return; // can't bump a locked player off their slot
+      if (displaced && this.isPlayerLocked(displaced)) return; // can't bump a locked player off their slot
       if (displaced && sourceId !== "pool" && !this.slotAcceptsPlayer(sourceId, displaced)) return; // the swap-back would break the source slot's own gating
       if (sourceIdx !== -1) slots[sourceIdx] = { ...slots[sourceIdx], playerId: null };
       slots[targetIdx] = { ...slots[targetIdx], playerId: draggedPlayerId };
@@ -1070,6 +1208,8 @@ export class FantasyComponent implements OnInit {
     this.closeEntry();
     this.showFixtures.set(false);
     this.showFormationPicker.set(false);
+    this.showCaptainPicker.set(false);
+    this.showMissingInfo.set(false);
     this.closePlayerInfo();
     this.closePicker();
     this.closeCoachPicker();

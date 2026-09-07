@@ -843,6 +843,36 @@ If you need to apply a schema change without an interactive terminal
       the same round. The coach pick, by contrast, still uses the
       original single overall-round lock (`getRoundLockTime`) — real rules
       don't give the coach a per-turn window of its own.
+    - **Reverted to a whole-round lock (2026-09-07)**, by explicit request:
+      "since a game is live no changes can be made at all... disable
+      everything" — the per-player "Turns" model above was working exactly
+      as designed (a player whose own team hadn't tipped off yet stayed
+      editable even mid-round), but that was no longer the wanted behavior.
+      `POST /fantasy/lineup/batch` now checks `getRoundLockTime` once, up
+      front, and rejects the *entire* submission — every player, the
+      formation-driven `slotRole` mix, the captain, the coach — once the
+      round's first game has tipped off, superseding the coach-only
+      `roundLockAt` check mentioned above. `getTeamRoundGameTipoff` and the
+      per-player `changedIds`/diff-against-the-old-squad logic it powered
+      are gone entirely — provably dead once the blanket check exists
+      (a player's own team tipoff can never be earlier than the round's
+      overall first tipoff, so nothing could ever have reached the
+      per-player check without the blanket one already having fired first)
+      — which also dropped the batch endpoint's own round-trip count (no
+      more fetching the old squad/coach pick just to diff against it, no
+      more one `getTeamRoundGameTipoff` query per changed player). Went
+      back to a plain wholesale delete+insert rather than the diff-based
+      write the Turns model had required. `GET /fantasy/lineup`'s
+      per-player `locked` flag is untouched and still means what it always
+      did ("has this specific player's own game tipped off") — it's
+      display-only now (e.g. the squad-slot PIR-instead-of-opponent
+      swap), never an edit gate. Frontend mirrors this with one
+      `roundLocked` computed (`coachLocked()` OR "any of this round's
+      fixtures is no longer `scheduled`") folded into the existing
+      `isPlayerLocked` check everywhere it already gated an edit
+      (remove/swap/drag/captain), plus new guards on the formation,
+      captain, and coach pickers and the pool's add button/drag — all of
+      it, not just the players whose own games are actually live.
     - **Frontend**: the court still shows only the 5 starters (position-
       accurate slot dots are still purely cosmetic, not tied to G/F/C — a
       player's *real* position only matters for the quota count, not which
@@ -1307,17 +1337,24 @@ If you need to apply a schema change without an interactive terminal
   icons, not the same `NAV_LINKS` array rendered twice (2026-08-24
   redesign — mobile bottom-tab space was cramped at 6 icons, desktop's
   vertical rail isn't):
-  - **Desktop rail** (`NAV_LINKS`): Home, News, Schedule, Picks, Cards,
-    Teams, Standings — all seven, directly.
+  - **Desktop rail** (`NAV_LINKS`): Home, News, Schedule, Picks, Fantasy
+    Five, Cards, Teams, Standings — all eight, directly. Fantasy Five
+    joined 2026-09-07 by explicit request; it used to be mobile/dashboard-
+    only, deliberately left off the rail's then-documented 7-item max —
+    that cap wasn't load-bearing enough to keep it off once someone
+    actually asked for it on desktop.
   - **Mobile bottom bar** (`MOBILE_NAV_LINKS`): just Home, News, Picks,
     Cards — the four checked every session. A trailing **"More"** tab
     (always last, `dots-vertical` icon) toggles a popover (`moreOpen`
     signal, closes on outside-click/Escape/link-click) listing
-    `MORE_LINKS` — Schedule, Teams, and Standings, destinations checked
-    occasionally rather than constantly (`MOBILE_OVERFLOW_PATHS` is the
-    single set both `MOBILE_NAV_LINKS` and `MORE_LINKS` derive from — add
-    a path there, not to two places by hand). Add anything similarly
-    "occasional" to that same set, not as a 5th+ mobile tab.
+    `MORE_LINKS` — Schedule, Teams, Standings, and Fantasy Five,
+    destinations checked occasionally rather than constantly
+    (`MOBILE_OVERFLOW_PATHS` is the single set both `MOBILE_NAV_LINKS` and
+    `MORE_LINKS` derive from — add a path there, not to two places by
+    hand). Add anything similarly "occasional" to that same set, not as a
+    5th+ mobile tab. Fantasy joining the desktop rail didn't change this —
+    `MOBILE_OVERFLOW_PATHS` keeps it in "More" on mobile specifically so
+    the bottom bar stays at exactly four.
   - **Profile/Login live in the top bar only**, on both breakpoints — not
     as a nav tab. Desktop shows email+admin-badge+logout (`sm:` and up) or
     login+register; mobile gets a compact profile icon (logged in) or

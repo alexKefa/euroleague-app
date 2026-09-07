@@ -15,7 +15,6 @@ import { requireAuth } from "../auth/middleware.js";
 import { getCurrentSeason } from "../services/season.js";
 import {
   getRoundLockTime,
-  getTeamRoundGameTipoff,
   getDefaultRound,
   getFantasyLeaderboardEntries,
   FANTASY_STARTER_COUNT,
@@ -113,10 +112,10 @@ fantasyRouter.get("/coaches", async (req, res) => {
 
 // The current user's 10-player squad + coach for a round (defaults to the
 // current season's default round), each player individually flagged
-// `locked` — their own team's game for this round has already tipped off,
-// per EuroLeague Fantasy's real "Turns" rule (see services/
-// fantasyScoring.ts's getTeamRoundGameTipoff doc comment) — not the whole
-// round's overall lock, which only gates the coach pick.
+// `locked` — their own team's game for this round has already tipped off.
+// Display-only now (see the doc comment on POST /lineup/batch below): edits
+// are gated on the round's own overall lock (`coachLocked`/`lockAt`), not
+// on this per-player flag.
 fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
   try {
     const season = await resolveSeason(req.query.season);
@@ -189,18 +188,36 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
 });
 
 // Wholesale-replaces the user's 10-player squad + coach pick for one round.
-// A lock check runs first, per EuroLeague Fantasy's real "Turns" rule: only
-// a player whose *own team's* game for this round hasn't tipped off yet may
-// be added, removed, or have their slotRole changed — an unchanged player
-// passes straight through regardless of their own lock status, since
-// nothing about them is being touched. The coach pick only locks at the
-// round's overall first tipoff (real rules don't give it a per-turn
-// window), and only when actually changing from what's already saved.
+// Whole-round lock (2026-09-07, replacing a per-player "Turns" rule): once
+// this round's first game has tipped off, the entire lineup — every
+// player, the formation-driven slotRole mix, the captain, the coach —
+// freezes, not just whichever specific players' own games have started.
+// The previous design mirrored real EuroLeague Fantasy's actual per-player
+// "Turns" mechanic (swap a not-yet-played player right up until their own
+// team's tipoff, even if other round games were already live) — reverted
+// by explicit request: "since a game is live no changes can be made at
+// all... disable everything". Checked once, up front, against the round's
+// own first tipoff (getRoundLockTime) rather than per-player — cheaper
+// too: one round trip instead of one per changed player, and no need to
+// fetch the old squad/coach pick at all just to diff against it.
+// GET /lineup's per-player `locked` flag below is a separate, still-live
+// concept — "has this specific player's own game actually tipped off" —
+// used only for display (e.g. showing live PIR instead of an upcoming
+// opponent), not for gating edits any more.
 fantasyRouter.post("/lineup/batch", requireAuth, async (req, res) => {
   try {
     const { season, round, players: entries, coachTeamId } = req.body ?? {};
     if (typeof season !== "string" || typeof round !== "number" || !Number.isInteger(round)) {
       res.status(400).json({ error: "season and round are required" });
+      return;
+    }
+    const roundLockAt = await getRoundLockTime(season, round);
+    if (roundLockAt === null) {
+      res.status(400).json({ error: "Unknown round", code: "ROUND_NOT_FOUND" });
+      return;
+    }
+    if (roundLockAt.getTime() <= Date.now()) {
+      res.status(400).json({ error: "This round has already locked", code: "ROUND_LOCKED" });
       return;
     }
     if (typeof coachTeamId !== "string" || !uuidPattern.test(coachTeamId)) {
@@ -247,23 +264,10 @@ fantasyRouter.post("/lineup/batch", requireAuth, async (req, res) => {
 
     const newIds = typedEntries.map((e) => e.playerId);
 
-    const [oldRows, oldCoachRows] = await Promise.all([
-      db
-        .select({ playerId: fantasyLineups.playerId, slotRole: fantasyLineups.slotRole })
-        .from(fantasyLineups)
-        .where(and(eq(fantasyLineups.userId, req.userId!), eq(fantasyLineups.season, season), eq(fantasyLineups.round, round))),
-      db
-        .select({ teamId: fantasyCoachPicks.teamId })
-        .from(fantasyCoachPicks)
-        .where(and(eq(fantasyCoachPicks.userId, req.userId!), eq(fantasyCoachPicks.season, season), eq(fantasyCoachPicks.round, round)))
-        .limit(1),
-    ]);
-    const oldRoleByPlayerId = new Map(oldRows.map((r) => [r.playerId, r.slotRole]));
-
-    const allRelevantIds = [...new Set([...newIds, ...oldRows.map((r) => r.playerId)])];
-    const playerRows = allRelevantIds.length
-      ? await db.select({ id: players.id, teamId: players.teamId, position: players.position }).from(players).where(inArray(players.id, allRelevantIds))
-      : [];
+    const playerRows = await db
+      .select({ id: players.id, teamId: players.teamId, position: players.position })
+      .from(players)
+      .where(inArray(players.id, newIds));
     const playerById = new Map(playerRows.map((p) => [p.id, p]));
 
     // Position quota — only over the newly submitted squad.
@@ -281,46 +285,6 @@ fantasyRouter.post("/lineup/batch", requireAuth, async (req, res) => {
         res.status(400).json({ error: `Need exactly ${quota} ${position}s, got ${posCounts[position] ?? 0}`, code: "POSITION_QUOTA" });
         return;
       }
-    }
-
-    // Changed players: added, removed, or moved between starter/sixth
-    // man/bench — each one individually needs their own team's game for
-    // this round to not have started yet.
-    const changedIds = new Set<string>();
-    for (const e of typedEntries) {
-      const oldRole = oldRoleByPlayerId.get(e.playerId);
-      if (oldRole === undefined || oldRole !== e.slotRole) changedIds.add(e.playerId);
-    }
-    for (const oldId of oldRoleByPlayerId.keys()) {
-      if (!seenIds.has(oldId)) changedIds.add(oldId);
-    }
-
-    const now = Date.now();
-    const lockedPlayerIds: string[] = [];
-    for (const id of changedIds) {
-      const p = playerById.get(id);
-      if (!p) continue;
-      const tipoff = await getTeamRoundGameTipoff(season, round, p.teamId);
-      if (tipoff && tipoff.getTime() <= now) lockedPlayerIds.push(id);
-    }
-    if (lockedPlayerIds.length > 0) {
-      res.status(400).json({
-        error: "Some players' games have already started this round",
-        code: "PLAYER_LOCKED",
-        playerIds: lockedPlayerIds,
-      });
-      return;
-    }
-
-    const roundLockAt = await getRoundLockTime(season, round);
-    if (roundLockAt === null) {
-      res.status(400).json({ error: "Unknown round", code: "ROUND_NOT_FOUND" });
-      return;
-    }
-    const oldCoachTeamId = oldCoachRows[0]?.teamId ?? null;
-    if (coachTeamId !== oldCoachTeamId && roundLockAt.getTime() <= now) {
-      res.status(400).json({ error: "This round has already locked", code: "ROUND_LOCKED" });
-      return;
     }
 
     const [priceRows, coachPriceRows] = await Promise.all([
