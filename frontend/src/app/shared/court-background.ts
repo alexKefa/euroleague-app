@@ -65,6 +65,18 @@ import { Component } from "@angular/core";
       </defs>
       <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#glassFloorGradient)" />
       <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#glassSheenGradient)" />
+      <!-- Center-court logo decal — the app's own C-ring+basketball mark
+           (same path data as app.component.html's wordmark), faint and
+           fixed-color like the rest of this glass floor rather than
+           theme-reactive, painted over the floor but under the real court
+           lines so the key/arc strokes stay crisp on top of it. -->
+      <g transform="translate(160 63) scale(1.7) translate(-54 -50)" opacity="0.16">
+        <path d="M 80 28 A 34 34 0 1 0 80 72" fill="none" stroke="#eef3f7" stroke-width="10" stroke-linecap="round" />
+        <circle cx="54" cy="50" r="19" fill="none" stroke="#FF6B35" stroke-width="4.5" />
+        <path d="M 54 31 L 54 69" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round" />
+        <path d="M 40.6 36.6 Q 48 50 40.6 63.4" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round" />
+        <path d="M 67.4 36.6 Q 60 50 67.4 63.4" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round" />
+      </g>
       <path [attr.d]="courtOutlinePath" fill="none" class="stroke-muted" stroke-width="1.8" opacity="0.85" />
       <rect
         [attr.x]="keyLeftX"

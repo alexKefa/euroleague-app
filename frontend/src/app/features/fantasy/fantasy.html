@@ -33,7 +33,26 @@
         <a routerLink="/login" appButton appButtonSize="sm">{{ i18n.t('nav.login') }}</a>
       </div>
     } @else if (loading()) {
-      <app-skeleton class="h-64 rounded-2xl" />
+      <!-- Mirrors the real roster-builder layout below (status bar, court,
+           bench/coach, pool) piece-by-piece instead of one generic box, so
+           the page's actual shape is visible before any data has loaded. -->
+      <app-skeleton class="h-24 rounded-2xl mb-4" />
+      <div class="flex gap-2.5">
+        <div class="flex-1 sm:flex-[3] min-w-0 flex flex-col gap-3 sm:gap-2.5">
+          <app-skeleton class="h-8 rounded-lg mx-auto w-40" [icon]="false" />
+          <app-skeleton class="w-full rounded-2xl" style="aspect-ratio: 320 / 300;" />
+          <app-skeleton class="h-40 rounded-2xl" />
+          <app-skeleton class="h-20 rounded-2xl" />
+        </div>
+        <div class="hidden sm:flex sm:flex-[2] min-w-0 flex-col gap-1.5">
+          <app-skeleton class="h-8 rounded-xl" [icon]="false" />
+          <div class="flex-1 flex flex-col gap-1.5 bg-card rounded-2xl border border-line shadow-card p-2">
+            @for (i of skeletonRows; track i) {
+              <app-skeleton class="h-12 rounded-lg" [icon]="false" />
+            }
+          </div>
+        </div>
+      </div>
     } @else {
       <!-- Reusable squad-slot rendering (starter/sixth-man/bench all share
            this — a cdkDropList holding 0 or 1 player, a lock badge once

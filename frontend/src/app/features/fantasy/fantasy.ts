@@ -204,6 +204,9 @@ export class FantasyComponent implements OnInit {
 
   // --- Roster builder state ---
   readonly loading = signal(true);
+  // Placeholder-row count for the pool skeleton (loading()) — just an
+  // @for track source, no real data behind it.
+  readonly skeletonRows = [0, 1, 2, 3, 4, 5];
   readonly allRows = signal<FantasyPlayerRow[]>([]);
   readonly coaches = signal<FantasyCoachRow[]>([]);
   readonly season = signal<string | null>(null);
@@ -764,15 +767,32 @@ export class FantasyComponent implements OnInit {
     this.selectedLeagueId() ? this.leagueLeaderboard() : this.globalLeaderboard()
   );
 
+  // loading() used to clear as soon as getFantasyPlayers() resolved, even
+  // though loadLineup() (round, budget, captain, coach, every squad slot —
+  // effectively the whole roster builder below the player pool) is a
+  // separate request that often finishes later. The skeleton would vanish
+  // right into a still-empty court for up to ~2s until loadLineup caught
+  // up. Both requests now have to report in before the skeleton clears.
+  private playersReady = false;
+  private lineupReady = false;
+
+  private maybeFinishLoading(): void {
+    if (this.playersReady && this.lineupReady) this.loading.set(false);
+  }
+
   ngOnInit(): void {
     this.api.getFantasyPlayers().subscribe({
       next: (res) => {
         this.season.set(res.season);
         this.allRows.set(res.rows);
-        this.loading.set(false);
         this.reconcileStarterFormation();
+        this.playersReady = true;
+        this.maybeFinishLoading();
       },
-      error: () => this.loading.set(false),
+      error: () => {
+        this.playersReady = true;
+        this.maybeFinishLoading();
+      },
     });
 
     this.api.getFantasyCoaches().subscribe({
@@ -786,6 +806,12 @@ export class FantasyComponent implements OnInit {
         next: (rows) => this.myLeagues.set(rows),
         error: () => {},
       });
+    } else {
+      // No lineup call is made at all for a logged-out visitor — nothing
+      // to wait on, so this half of the gate is trivially satisfied. (The
+      // skeleton itself never actually renders for this case anyway; the
+      // template shows the "log in to use this" panel first.)
+      this.lineupReady = true;
     }
 
     this.api.getFantasyLeaderboard().subscribe({
@@ -897,8 +923,13 @@ export class FantasyComponent implements OnInit {
           this.loadFixtures(lineup.season, lineup.round);
         }
         this.maybeCelebrateRoundComplete(lineup.round, lineup.roundComplete);
+        this.lineupReady = true;
+        this.maybeFinishLoading();
       },
-      error: () => {},
+      error: () => {
+        this.lineupReady = true;
+        this.maybeFinishLoading();
+      },
     });
   }
 

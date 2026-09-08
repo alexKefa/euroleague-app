@@ -145,13 +145,16 @@ export class AppComponent implements OnInit {
   // toggling display off and back on the next frame forces the browser to
   // recompute the nav's position fresh against the current real viewport.
   @ViewChild("bottomNav") private bottomNavRef?: ElementRef<HTMLElement>;
-  // Sliding-pill indicator + basketball courier (picked over a "lift &
-  // glow" alternative in a design-review pass — see the Artifact this was
-  // prototyped in) — both positioned imperatively by measuring real tab
-  // elements, same "direct DOM manipulation on this exact nav" approach
-  // resnapBottomNav already uses below for the iOS-stuck-mid-scroll fix,
-  // rather than fighting Angular bindings for a shared cross-tab element.
-  @ViewChild("pillIndicator") private pillRef?: ElementRef<HTMLElement>;
+  // Basketball courier (picked over a "lift & glow" alternative in a
+  // design-review pass — see the Artifact this was prototyped in) —
+  // positioned imperatively by measuring real tab elements, same "direct
+  // DOM manipulation on this exact nav" approach resnapBottomNav already
+  // uses below for the iOS-stuck-mid-scroll fix, rather than fighting
+  // Angular bindings for a value that travels between N sibling positions.
+  // The background pill it used to ride alongside was dropped in the
+  // 2026-09-08 Instagram-style pass (icon-only active state, no
+  // highlighted background) — the ball itself never depended on the pill
+  // existing, just on the same tab-icon rects.
   @ViewChild("basketball") private ballRef?: ElementRef<SVGElement>;
   // The pt-2/pb-2 row *inside* #bottomNav, not #bottomNav itself — #bottomNav
   // also carries the safe-area-inset bottom padding (invisible bg-card
@@ -166,7 +169,7 @@ export class AppComponent implements OnInit {
     el.style.display = "none";
     requestAnimationFrame(() => {
       el.style.display = "";
-      this.repositionPill(false);
+      this.trackActiveTab(false);
     });
   };
 
@@ -199,7 +202,7 @@ export class AppComponent implements OnInit {
     // this file.
     effect(() => {
       this.activeTabSlot();
-      requestAnimationFrame(() => this.repositionPill(true));
+      requestAnimationFrame(() => this.trackActiveTab(true));
     });
   }
 
@@ -214,35 +217,19 @@ export class AppComponent implements OnInit {
     window.addEventListener("orientationchange", this.resnapBottomNav);
   }
 
-  // Moves the shared pill under whichever tab is now active, and — only
-  // when triggered by a genuine tab change, not a resize/resnap — flies
-  // the basketball from the previously active tab to the new one.
-  // Skipped instead of instant-jumped under prefers-reduced-motion; the
-  // pill itself already gets `motion-reduce:transition-none` in the
-  // template, so a reduced-motion user still sees the correct tab
-  // highlighted, just without either animation.
-  private repositionPill(allowBallTravel: boolean): void {
+  // Tracks which tab is active and — only when triggered by a genuine tab
+  // change, not a resize/resnap — flies the basketball from the previously
+  // active tab to the new one. Skipped instead of instant-jumped under
+  // prefers-reduced-motion.
+  private trackActiveTab(allowBallTravel: boolean): void {
     const nav = this.bottomNavRowRef?.nativeElement;
-    const pill = this.pillRef?.nativeElement;
     const slot = this.activeTabSlot();
-    if (!nav || !pill || slot === -1) return;
+    if (!nav || slot === -1) return;
 
     const tabIcons = nav.querySelectorAll<HTMLElement>("[data-nav-tab] .icon-wrap");
     const target = tabIcons[slot];
     if (!target) return;
-
     const navRect = nav.getBoundingClientRect();
-    const targetRect = target.getBoundingClientRect();
-    // Width AND height (not just width against a fixed CSS height) — the
-    // icon-wrap circle is a square (w-9 h-9), so a pill that only tracked
-    // width against a hardcoded height was a stadium shape stretched wider
-    // than its target, not a true circle around the icon. Same for top:
-    // measured fresh rather than a hand-tuned `top-*` class, so this can't
-    // drift out of sync if the icon-wrap size ever changes again.
-    pill.style.width = `${targetRect.width}px`;
-    pill.style.height = `${targetRect.height}px`;
-    pill.style.top = `${targetRect.top - navRect.top}px`;
-    pill.style.transform = `translateX(${targetRect.left - navRect.left}px)`;
 
     const prevSlot = this.previousTabSlot;
     this.previousTabSlot = slot;
