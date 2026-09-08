@@ -152,20 +152,26 @@
      than a neutral glass tint, the "their layout, our identity" split this
      app's other reference-inspired passes already follow. Still `fixed`
      (unaffected by page scroll, "stays sticky" by construction) — floating
-     only changes its own shape/position, not its positioning scheme. The
-     courier basketball (fades in, arcs across, lands on the new tab on
-     every switch) is unaffected by any of this — it's a flourish riding on
-     top of icon position, not a background shape. Still positioned
-     imperatively in app.component.ts (measuring the real .icon-wrap
-     elements below via [data-nav-tab]), not via Angular bindings — there's
-     no clean declarative way to animate one shared element between N
-     sibling positions. -->
+     only changes its own shape/position, not its positioning scheme.
+     "Sliding pill": one shared highlight-tinted pill glides between tabs
+     on every switch, sized to exactly fill whichever tab's own slot
+     (equal-width flex-1 boxes, so the pill's width never actually changes
+     between tabs — only its transform does), plus the courier basketball
+     (fades in, arcs across, lands on the new tab). Both are positioned
+     imperatively in app.component.ts (measuring the real [data-nav-tab]
+     elements below), not via Angular bindings — there's no clean
+     declarative way to animate one shared element between N sibling
+     positions. -->
 <nav
   #bottomNav
   data-app-bottom-nav
   class="sm:hidden fixed left-3 right-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-40 rounded-full bg-highlight/15 backdrop-blur-xl border border-highlight/25 shadow-pop"
 >
   <div #bottomNavRow class="relative flex items-center justify-around px-0 py-0">
+  <div
+    #pillIndicator
+    class="pointer-events-none absolute top-0 left-0 h-0 w-0 rounded-full bg-highlight/20 transition-[transform,width,height] duration-[380ms] [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none"
+  ></div>
   <svg
     #basketball
     viewBox="0 0 32 32"
@@ -177,7 +183,7 @@
     <path d="M16 1c8 5 8 25 0 30M16 1c-8 5-8 25 0 30" stroke="#1a1015" stroke-width="1.3" fill="none" />
   </svg>
 
-  @for (link of mobileNavLinks; track link.path; let isFirstTab = $first) {
+  @for (link of mobileNavLinks; track link.path) {
     <a
       data-nav-tab
       [routerLink]="link.path"
@@ -186,20 +192,7 @@
       [class.text-muted]="!isActive(link)"
       class="relative flex-1 flex items-center justify-center py-0.5"
     >
-      <!-- The first tab (Home) is also the capsule's own left end — when
-           it's active, the highlight fills the whole slot edge-to-edge
-           (inset-0 against this relative `<a>`, whose own left edge is
-           flush with the capsule's left edge since the row has no
-           padding) instead of floating as an inset circle, so it visually
-           merges into the capsule's rounded cap rather than leaving a gap.
-           Middle tabs keep the inset-circle look on .icon-wrap below. -->
-      @if (isActive(link) && isFirstTab) {
-        <span class="absolute inset-0 rounded-full bg-highlight/20"></span>
-      }
-      <span
-        class="icon-wrap relative flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-200"
-        [class]="isActive(link) && !isFirstTab ? 'bg-highlight/20' : ''"
-      >
+      <span class="icon-wrap relative flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-200">
         <app-nav-icon [name]="link.icon" [active]="isActive(link)" [size]="25" />
         @if (link.path === '/predictions' && auth.isAuthenticated() && events.hasLiveGame()) {
           <span
@@ -217,13 +210,12 @@
     </a>
   }
 
-  <!-- "More" — always last, which also makes it the capsule's own right
-       end: same edge-to-edge highlight treatment as the first (Home) tab
-       above when active/open, instead of an inset circle. -->
+  <!-- "More" — always last. Profile/login live in the top bar instead of a
+       tab here; this overflow is just for secondary destinations like
+       Schedule (MORE_LINKS). Its active highlight is the same shared
+       sliding pill as every other tab (see #pillIndicator above), not a
+       per-tab element. -->
   <div data-nav-tab class="relative flex-1 flex items-center justify-center py-0.5">
-    @if (isMoreActive() || moreOpen()) {
-      <span class="absolute inset-0 rounded-full bg-highlight/20"></span>
-    }
     <button
       type="button"
       (click)="$event.stopPropagation(); toggleMore()"
