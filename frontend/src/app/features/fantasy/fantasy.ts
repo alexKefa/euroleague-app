@@ -77,6 +77,25 @@ const FORMATION_POSITIONS: Record<Formation, PositionName[]> = {
   "1-2-2": ["Guard", "Forward", "Forward", "Center", "Center"],
   "1-3-1": ["Guard", "Forward", "Forward", "Forward", "Center"],
 };
+
+// Which of the 5 supported formations (if any) fits a given Guard/Forward/
+// Center count split — used by swapCandidates/performSwap below to figure
+// out whether swapping a starting-five player for a different-position
+// bench player still lands on one of the 5 shapes this app supports (and
+// which one), rather than only ever allowing an exact same-position swap.
+// All 5 FORMATION_POSITIONS entries happen to list Guards, then Forwards,
+// then Centers as a contiguous block — the count vector alone is enough to
+// identify a formation uniquely (no two of the 5 share one).
+function formationForPositionCounts(counts: Record<PositionName, number>): Formation | null {
+  return (
+    FORMATION_OPTIONS.find((f) => {
+      const need: Record<PositionName, number> = { Guard: 0, Forward: 0, Center: 0 };
+      for (const p of FORMATION_POSITIONS[f]) need[p]++;
+      return need.Guard === counts.Guard && need.Forward === counts.Forward && need.Center === counts.Center;
+    }) ?? null
+  );
+}
+
 // Cosmetic court layout: Centers sit nearest the basket (largest top%),
 // Guards furthest out — the real per-formation counts decide how many
 // share a row and how they spread horizontally. Recalibrated 2026-09-06
@@ -122,6 +141,17 @@ function initialSquadSlots(): SquadSlot[] {
 interface OpponentInfo {
   opponent: GameTeamSummary;
   isHome: boolean;
+}
+
+// One entry in the swap popup — `formation` is null for a sixth-man <->
+// bench pairing (neither side has a position requirement, so the swap has
+// no formation implication at all); otherwise it's the formation this
+// swap would leave the starting five in, which may or may not be the
+// current one — see swapCandidates/performSwap.
+interface SwapCandidate {
+  slotId: string;
+  row: FantasyPlayerRow;
+  formation: Formation | null;
 }
 
 @Component({
@@ -468,28 +498,78 @@ export class FantasyComponent implements OnInit {
 
   // Swapping always crosses the active/bench line: a starter or sixth-man
   // swaps with a bench occupant, a bench player swaps into the starter/
-  // sixth-man group. slotAcceptsPlayer is checked both ways since either
-  // side of the swap could be landing in a position-gated starter slot.
-  readonly swapCandidates = computed(() => {
+  // sixth-man group.
+  //
+  // Position/formation gating only ever applies to the 5 *starter* slots —
+  // a sixth-man <-> bench pairing (neither side is one of those 5) stays
+  // fully unrestricted, exactly as before, since the sixth-man slot has no
+  // position requirement to protect. When one side IS a starter slot,
+  // candidates used to be limited to an exact same-position swap
+  // (slotAcceptsPlayer both ways). That's needlessly strict: swapping a
+  // starter for a different-position bench player is fine as long as the
+  // *resulting* 5-starter position mix still matches one of the 5 formations
+  // this app supports — just possibly a different one than the current
+  // formation (performSwap re-seats the starters into it and flips the
+  // `formation` signal when that happens; the template flags any candidate
+  // whose `formation` differs from the current one so the user sees the
+  // formation is about to change before picking it). A resulting mix that
+  // fits none of the 5 shapes (e.g. swapping 2-1-2's only Forward for
+  // another Guard, leaving zero Forwards) has no candidate at all — it's
+  // dropped from the list rather than offered with a null formation.
+  readonly swapCandidates = computed<SwapCandidate[]>(() => {
     const id = this.swapPlayerId();
     if (!id) return [];
     const slots = this.squadSlots();
-    const sourceSlot = slots.find((s) => s.playerId === id);
-    if (!sourceSlot) return [];
-    const wantsBench = sourceSlot.role !== "bench";
+    const sourceIdx = slots.findIndex((s) => s.playerId === id);
+    if (sourceIdx === -1) return [];
+    const wantsBench = slots[sourceIdx].role !== "bench";
     const byId = this.rowById();
-    return slots
-      .filter(
-        (s) =>
-          s.playerId &&
-          s.playerId !== id &&
-          !this.isPlayerLocked(s.playerId) &&
-          (s.role === "bench") === wantsBench &&
-          this.slotAcceptsPlayer(s.id, id) &&
-          this.slotAcceptsPlayer(sourceSlot.id, s.playerId!)
-      )
-      .map((s) => ({ slotId: s.id, row: byId.get(s.playerId!)! }));
+
+    const results: SwapCandidate[] = [];
+    for (let targetIdx = 0; targetIdx < slots.length; targetIdx++) {
+      const target = slots[targetIdx];
+      if (!target.playerId || target.playerId === id) continue;
+      if (this.isPlayerLocked(target.playerId)) continue;
+      if ((target.role === "bench") !== wantsBench) continue;
+      const targetRow = byId.get(target.playerId);
+      if (!targetRow) continue;
+      const result = this.evaluateSwap(slots, sourceIdx, targetIdx);
+      if (!result.ok) continue;
+      results.push({ slotId: target.id, row: targetRow, formation: result.formation });
+    }
+    return results;
   });
+
+  // Whether swapping the two given (already-occupied) slot indices is
+  // allowed, and what formation the starting five ends up in — the one
+  // place both the tap-driven swap popup (swapCandidates/performSwap) and
+  // onDrop's slot-to-slot drag case decide this, so dragging one squad
+  // member onto another behaves identically to picking them from the
+  // popup. Neither slot being a starter is always allowed with no
+  // formation implication (`formation: null` — a sixth-man <-> bench
+  // pairing has no position stakes); when at least one side is a starter,
+  // it's only allowed if the resulting 5-starter position mix fits one of
+  // the 5 supported formations, which may or may not be the current one.
+  private evaluateSwap(
+    slots: SquadSlot[],
+    sourceIdx: number,
+    targetIdx: number
+  ): { ok: true; formation: Formation | null } | { ok: false } {
+    if (sourceIdx >= this.starterCount && targetIdx >= this.starterCount) return { ok: true, formation: null };
+
+    const byId = this.rowById();
+    const counts: Record<PositionName, number> = { Guard: 0, Forward: 0, Center: 0 };
+    for (let i = 0; i < this.starterCount; i++) {
+      let playerId = slots[i].playerId;
+      if (i === sourceIdx) playerId = slots[targetIdx].playerId;
+      else if (i === targetIdx) playerId = slots[sourceIdx].playerId;
+      const position = playerId ? byId.get(playerId)?.player.position : null;
+      if (position !== "Guard" && position !== "Forward" && position !== "Center") return { ok: false };
+      counts[position]++;
+    }
+    const formation = formationForPositionCounts(counts);
+    return formation ? { ok: true, formation } : { ok: false }; // no supported formation fits this mix
+  }
 
   readonly rowById = computed(() => new Map(this.allRows().map((r) => [r.player.id, r])));
   readonly coachByTeamId = computed(() => new Map(this.coaches().map((c) => [c.team.id, c])));
@@ -724,23 +804,39 @@ export class FantasyComponent implements OnInit {
     const counts: Record<PositionName, number> = { Guard: 0, Forward: 0, Center: 0 };
     for (const p of positions) counts[p]++;
 
-    const matched = FORMATION_OPTIONS.find((f) => {
-      const need: Record<PositionName, number> = { Guard: 0, Forward: 0, Center: 0 };
-      for (const p of FORMATION_POSITIONS[f]) need[p]++;
-      return need.Guard === counts.Guard && need.Forward === counts.Forward && need.Center === counts.Center;
-    });
+    const matched = formationForPositionCounts(counts);
     if (!matched) return;
 
-    const byPosition: Record<PositionName, string[]> = { Guard: [], Forward: [], Center: [] };
-    for (let i = 0; i < this.starterCount; i++) byPosition[positions[i]].push(starterIds[i]!);
-
-    const requiredPositions = FORMATION_POSITIONS[matched];
-    for (let i = 0; i < this.starterCount; i++) {
-      slots[i] = { ...slots[i], playerId: byPosition[requiredPositions[i]].shift()! };
-    }
-
     this.formation.set(matched);
-    this.squadSlots.set(slots);
+    this.squadSlots.set(this.reseatStartersForFormation(slots, matched));
+  }
+
+  // Re-seats the 5 starters into the block order every FORMATION_POSITIONS
+  // entry itself uses (Guards, then Forwards, then Centers) for the given
+  // `formation` — the caller must already know the 5 starters' real
+  // positions match that formation's count vector (see
+  // formationForPositionCounts), this only decides *which* of the 5 slots
+  // each one lands in. Needed because a plain 1-for-1 index swap (see
+  // performSwap) can leave a starter's real position mismatched against
+  // their own slot's requirement even when the *overall* mix is valid for
+  // a different arrangement of the same formation — e.g. swapping out the
+  // second of 2-1-2's two Centers (slot index 4) for a bench Forward still
+  // adds up to 2-2-1's count vector, but slot 4 is 2-2-1's Center slot and
+  // slot 3 (unchanged, still a real Center) is 2-2-1's Forward slot — both
+  // wrong until the 5 are re-bucketed by position and re-seated in order.
+  private reseatStartersForFormation(slots: SquadSlot[], formation: Formation): SquadSlot[] {
+    const byId = this.rowById();
+    const byPosition: Record<PositionName, string[]> = { Guard: [], Forward: [], Center: [] };
+    for (let i = 0; i < this.starterCount; i++) {
+      const playerId = slots[i].playerId!;
+      byPosition[byId.get(playerId)!.player.position as PositionName].push(playerId);
+    }
+    const requiredPositions = FORMATION_POSITIONS[formation];
+    const next = [...slots];
+    for (let i = 0; i < this.starterCount; i++) {
+      next[i] = { ...next[i], playerId: byPosition[requiredPositions[i]].shift()! };
+    }
+    return next;
   }
 
   // `round` selects which round to view — omit for the current active one.
@@ -914,6 +1010,20 @@ export class FantasyComponent implements OnInit {
       default:
         return "";
     }
+  }
+
+  // Player names sync from the feed as "SURNAME, First" — on the court's
+  // cramped avatar labels (a fixed, narrow max-width, see fantasy.html's
+  // squadSlot template) that truncated mid-first-name (e.g.
+  // "BALCEROWSKI, A…"), burying the one part (the surname) that actually
+  // identifies the player. Showing just the surname there instead means
+  // truncation, when it still happens on a genuinely long name, only ever
+  // eats into the surname itself — never the more identifying part. Falls
+  // back to the name as-is for anything not in that "X, Y" shape (there's
+  // no comma to split on).
+  courtDisplayName(name: string): string {
+    const commaIdx = name.indexOf(",");
+    return commaIdx === -1 ? name : name.slice(0, commaIdx).trim();
   }
 
   // Bench/sixth-man/pool never gate on position — only a starter slot
@@ -1195,19 +1305,26 @@ export class FantasyComponent implements OnInit {
 
   // Trades the two players' slots outright — both are already occupied
   // (unlike pickPlayerForSlot, which only ever fills an empty one), so
-  // this is a straight swap rather than a displace-and-shift.
+  // this is a straight swap rather than a displace-and-shift. Validity
+  // (including whether it involves a starter slot at all, and whether the
+  // resulting position mix fits a supported formation) is fully decided by
+  // swapCandidates already — re-deriving it here would just duplicate that
+  // logic, so this only ever acts on an id that's actually in the list.
   performSwap(targetPlayerId: string): void {
     const sourceId = this.swapPlayerId();
     if (!sourceId || this.isPlayerLocked(sourceId) || this.isPlayerLocked(targetPlayerId)) return;
-    const slots = [...this.squadSlots()];
+    const candidate = this.swapCandidates().find((c) => c.row.player.id === targetPlayerId);
+    if (!candidate) return;
+    let slots = [...this.squadSlots()];
     const sourceIdx = slots.findIndex((s) => s.playerId === sourceId);
     const targetIdx = slots.findIndex((s) => s.playerId === targetPlayerId);
     if (sourceIdx === -1 || targetIdx === -1) return;
-    if (!this.slotAcceptsPlayer(slots[targetIdx].id, sourceId) || !this.slotAcceptsPlayer(slots[sourceIdx].id, targetPlayerId)) {
-      return;
-    }
     slots[sourceIdx] = { ...slots[sourceIdx], playerId: targetPlayerId };
     slots[targetIdx] = { ...slots[targetIdx], playerId: sourceId };
+    if (candidate.formation && candidate.formation !== this.formation()) {
+      slots = this.reseatStartersForFormation(slots, candidate.formation);
+      this.formation.set(candidate.formation);
+    }
     this.squadSlots.set(slots);
     this.releaseCaptainIfNotStarter(slots);
     this.saved.set(false);
@@ -1262,36 +1379,82 @@ export class FantasyComponent implements OnInit {
     if (this.isPlayerLocked(draggedPlayerId)) return;
     const sourceId = event.previousContainer.id;
     if (sourceId === targetId) return; // dropped back where it started
-    if (!this.slotAcceptsPlayer(targetId, draggedPlayerId)) return; // wrong position for a formation-gated starter slot
-    // Only a pool-sourced drop adds a brand-new player to the squad (moving
-    // between two of the squad's own slots doesn't change any position's
-    // total count), so the quota gate only applies here.
-    if (
-      sourceId === "pool" &&
-      (!this.canAddPosition(this.rowById().get(draggedPlayerId)?.player.position) || !this.canUseTransfer(draggedPlayerId))
-    )
-      return;
 
     const slots = [...this.squadSlots()];
     const sourceIdx = slots.findIndex((s) => s.id === sourceId);
 
-    if (targetId !== "pool") {
-      const targetIdx = slots.findIndex((s) => s.id === targetId);
-      if (targetIdx === -1) return;
-      const displaced = slots[targetIdx].playerId;
-      if (displaced && this.isPlayerLocked(displaced)) return; // can't bump a locked player off their slot
-      if (displaced && sourceId !== "pool" && !this.slotAcceptsPlayer(sourceId, displaced)) return; // the swap-back would break the source slot's own gating
-      if (sourceIdx !== -1) slots[sourceIdx] = { ...slots[sourceIdx], playerId: null };
-      slots[targetIdx] = { ...slots[targetIdx], playerId: draggedPlayerId };
-      if (displaced && sourceIdx !== -1) {
-        slots[sourceIdx] = { ...slots[sourceIdx], playerId: displaced };
+    if (targetId === "pool") {
+      if (sourceIdx !== -1) {
+        slots[sourceIdx] = { ...slots[sourceIdx], playerId: null };
+        this.squadSlots.set(slots);
+        this.releaseCaptainIfNotStarter(slots);
+        this.saved.set(false);
       }
-    } else if (sourceIdx !== -1) {
-      slots[sourceIdx] = { ...slots[sourceIdx], playerId: null };
+      return;
     }
 
-    this.squadSlots.set(slots);
-    this.releaseCaptainIfNotStarter(slots);
+    const targetIdx = slots.findIndex((s) => s.id === targetId);
+    if (targetIdx === -1) return;
+    const displaced = slots[targetIdx].playerId;
+
+    if (sourceId === "pool") {
+      // Adding a brand-new player — nobody returns to the pool, so this
+      // isn't a swap and keeps the original strict same-position gating;
+      // the flexible formation logic below only ever applies to trading
+      // two squad members' places with each other (see evaluateSwap).
+      if (!this.slotAcceptsPlayer(targetId, draggedPlayerId)) return;
+      if (displaced && this.isPlayerLocked(displaced)) return;
+      if (
+        !this.canAddPosition(this.rowById().get(draggedPlayerId)?.player.position) ||
+        !this.canUseTransfer(draggedPlayerId)
+      )
+        return;
+      slots[targetIdx] = { ...slots[targetIdx], playerId: draggedPlayerId };
+      this.squadSlots.set(slots);
+      this.releaseCaptainIfNotStarter(slots);
+      this.saved.set(false);
+      return;
+    }
+
+    if (!displaced) {
+      // Moving into an empty slot — not a swap, same strict gating the
+      // slot-picker itself uses for filling an empty starter slot.
+      if (!this.slotAcceptsPlayer(targetId, draggedPlayerId)) return;
+      slots[sourceIdx] = { ...slots[sourceIdx], playerId: null };
+      slots[targetIdx] = { ...slots[targetIdx], playerId: draggedPlayerId };
+      this.squadSlots.set(slots);
+      this.releaseCaptainIfNotStarter(slots);
+      this.saved.set(false);
+      return;
+    }
+
+    // A genuine two-player swap. Only the same shape the swap popup itself
+    // offers (one side bench-role, the other starter/sixth-man) gets the
+    // popup's position/formation-aware treatment (evaluateSwap) — dragging
+    // one squad member onto another now behaves identically to picking
+    // them from the ⇄ popup. Any other pairing (starter <-> starter,
+    // bench <-> bench, or a starter dragged straight onto the sixth man)
+    // is outside that shape and keeps the original same-required-position
+    // rule, unchanged.
+    if (this.isPlayerLocked(displaced)) return;
+    const sourceSlot = slots[sourceIdx];
+    const targetSlot = slots[targetIdx];
+    const crossesActiveBenchLine = (sourceSlot.role === "bench") !== (targetSlot.role === "bench");
+    let formation: Formation | null = null;
+    if (crossesActiveBenchLine) {
+      const result = this.evaluateSwap(slots, sourceIdx, targetIdx);
+      if (!result.ok) return;
+      formation = result.formation;
+    } else if (!this.slotAcceptsPlayer(targetId, draggedPlayerId) || !this.slotAcceptsPlayer(sourceId, displaced)) {
+      return;
+    }
+
+    slots[sourceIdx] = { ...slots[sourceIdx], playerId: displaced };
+    slots[targetIdx] = { ...slots[targetIdx], playerId: draggedPlayerId };
+    const finalSlots = formation ? this.reseatStartersForFormation(slots, formation) : slots;
+    if (formation) this.formation.set(formation);
+    this.squadSlots.set(finalSlots);
+    this.releaseCaptainIfNotStarter(finalSlots);
     this.saved.set(false);
   }
 

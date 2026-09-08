@@ -86,6 +86,7 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
     en: "No one available to swap with right now.",
     el: "Κανείς δεν είναι διαθέσιμος για αλλαγή αυτή τη στιγμή.",
   },
+  "fantasy.swapFormationChange": { en: "Formation becomes", el: "Ο σχηματισμός γίνεται" },
   "fantasy.captainPickerTitle": { en: "Choose your captain", el: "Επίλεξε αρχηγό" },
   "fantasy.captainPickerEmpty": { en: "Fill your starting five first.", el: "Συμπλήρωσε πρώτα την πεντάδα σου." },
   "fantasy.whatsMissingTitle": { en: "What's missing", el: "Τι λείπει" },

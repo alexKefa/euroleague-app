@@ -88,7 +88,7 @@
                   </button>
                 }
               </div>
-              <button type="button" (click)="openPlayerInfo(slot.playerId)" class="block text-[10px] font-semibold text-center truncate max-w-[64px] bg-page/80 rounded px-1 hover:text-highlight transition-colors">{{ row.player.name }}</button>
+              <button type="button" (click)="openPlayerInfo(slot.playerId)" [title]="row.player.name" class="block text-[11px] font-semibold text-center truncate max-w-[84px] bg-page/80 rounded px-1 hover:text-highlight transition-colors">{{ courtDisplayName(row.player.name) }}</button>
               @if (gameForTeam().get(row.team.id); as game) {
                 @if (game.status === 'scheduled') {
                   @if (opponentFor(row.team.id); as opp) {
@@ -821,6 +821,11 @@
                 <p class="text-[12px] font-semibold truncate leading-tight">{{ candidate.row.player.name }}</p>
                 <p class="text-[10px] font-mono text-muted truncate leading-tight">{{ posAbbrev(candidate.row.player.position) }}</p>
               </div>
+              @if (candidate.formation && candidate.formation !== formation()) {
+                <span class="shrink-0 text-[9px] font-mono font-bold text-highlight border border-highlight/30 rounded-md px-1.5 py-1 text-center leading-tight">
+                  {{ i18n.t('fantasy.swapFormationChange') }}<br />{{ candidate.formation }}
+                </span>
+              }
             </button>
           } @empty {
             <p class="text-center text-xs text-muted py-4">{{ i18n.t('fantasy.noSwapCandidates') }}</p>
