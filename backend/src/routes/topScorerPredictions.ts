@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { topScorerPredictions, games, players } from "../db/schema.js";
 import { requireAuth } from "../auth/middleware.js";
-import { computeTopScorerPlayerId } from "../services/topScorerPoints.js";
+import { computeTopScorerPlayerId, isTopScorerPickLocked } from "../services/topScorerPoints.js";
 
 export const topScorerPredictionsRouter = Router();
 
@@ -22,10 +22,11 @@ topScorerPredictionsRouter.post("/", requireAuth, async (req, res) => {
     }
     // Intentional deviation from predictions.ts's tipoff lock: this is a
     // live in-game prop, so a pick is allowed pre-tipoff or any time the
-    // game is live, right up until it's final — unlike win/loss picks,
-    // which lock the moment the game starts.
-    if (game.status === "final") {
-      res.status(400).json({ error: "This game has already finished" });
+    // game is live, up until the 4th quarter starts — see
+    // isTopScorerPickLocked's doc comment for why that cutoff (not tipoff,
+    // not final) was chosen.
+    if (isTopScorerPickLocked(game)) {
+      res.status(400).json({ error: "Picks lock once the 4th quarter starts" });
       return;
     }
 
@@ -66,8 +67,8 @@ topScorerPredictionsRouter.delete("/:gameId", requireAuth, async (req, res) => {
       res.status(404).json({ error: "Game not found" });
       return;
     }
-    if (game.status === "final") {
-      res.status(400).json({ error: "This game has already finished" });
+    if (isTopScorerPickLocked(game)) {
+      res.status(400).json({ error: "Picks lock once the 4th quarter starts" });
       return;
     }
 

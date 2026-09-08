@@ -11,7 +11,7 @@ import { NavIconComponent } from "../../shared/nav-icon";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { StatLegendComponent, StatLegendEntry } from "../../shared/stat-legend";
 import { SkeletonComponent } from "../../shared/skeleton";
-import { LiveCourtComponent, TopScorerCourtPlayer } from "../../shared/live-court";
+import { LiveCourtComponent } from "../../shared/live-court";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { TeamCodePipe } from "../../shared/team-display-code";
 
@@ -197,10 +197,20 @@ export class GameDetailComponent implements OnInit {
   readonly topScorerPickSaving = signal(false);
   readonly topScorerPickError = signal<string | null>(null);
 
-  // Only disabled once the game is final — unlike every other lock check on
-  // this page, this pick is deliberately open pre-tipoff AND while live
-  // (see routes/topScorerPredictions.ts on the backend for why).
-  readonly isTopScorerLocked = computed(() => this.isFinal());
+  // Mirrors backend/src/services/topScorerPoints.ts's isTopScorerPickLocked
+  // exactly (kept in sync by hand, same "preview only" pattern as the
+  // points-formula mirror above) — locks at the start of the 4th quarter,
+  // not at tipoff (unlike every other pick on this page) and not all the
+  // way to final either: leaving it open to the final buzzer would let a
+  // pick degenerate into just reading the box score once the game is
+  // basically decided. See that function's doc comment for the full
+  // reasoning (2026-09-08).
+  readonly isTopScorerLocked = computed(() => {
+    const g = this.detail()?.game;
+    if (!g) return false;
+    if (g.status === "final") return true;
+    return g.status === "live" && g.quarter !== null && g.quarter !== undefined && g.quarter >= 4;
+  });
 
   private candidatesFor(roster: RosterEntry[], side: "home" | "away"): TopScorerCandidate[] {
     const box = this.detail()?.boxscore;
@@ -227,42 +237,21 @@ export class GameDetailComponent implements OnInit {
   // Feeds <app-live-court>'s player overlay — only meaningful while live
   // (the list picker below the scoreboard covers the pre-tipoff case, see
   // game-detail.html).
-  // Capped per side (a full ~12-player roster stacked on the court's own
-  // key overlaps too densely to be usable) — the list picker below already
-  // covers the full roster, this is just a visual shortcut for the most
-  // relevant candidates: highest live points once the game is underway,
-  // otherwise season pointsPerGame. The user's own pick is always kept
-  // visible even if it falls outside the top N, so tapping a long-shot in
-  // the list doesn't make it vanish from the court.
-  private static readonly COURT_OVERLAY_MAX_PER_SIDE = 6;
+  // Sorted highest live points (once underway) / season pointsPerGame
+  // first — feeds the horizontally-scrolling photo strip above the court
+  // (game-detail.html) so the most relevant candidates are reachable
+  // without scrolling. Unlike the old on-court overlay this replaced
+  // (2026-09-08 — icons stacked on the court itself were too dense even
+  // capped at 4-6/side on a real phone), a horizontal strip has no
+  // realistic cap: scrolling handles overflow instead of overlap, so this
+  // shows the full roster in ranked order rather than a truncated top-N.
+  private sortedCandidates(list: TopScorerCandidate[]): TopScorerCandidate[] {
+    return [...list].sort((a, b) => (b.livePoints ?? b.pointsPerGame ?? 0) - (a.livePoints ?? a.pointsPerGame ?? 0));
+  }
 
-  readonly topScorerCourtPlayers = computed<TopScorerCourtPlayer[]>(() => {
-    const d = this.detail();
-    if (!d) return [];
-    const picked = this.myTopScorerPick()?.predictedPlayer.id ?? null;
+  readonly topScorerStripPlayers = computed<{ home: TopScorerCandidate[]; away: TopScorerCandidate[] }>(() => {
     const { home, away } = this.topScorerCandidates();
-    const toCourtPlayer = (c: TopScorerCandidate, teamCode: string): TopScorerCourtPlayer => ({
-      id: c.player.id,
-      name: c.player.name,
-      photoUrl: c.player.photoUrl,
-      jerseyNumber: c.player.jerseyNumber,
-      teamCode,
-      side: c.side,
-      isPicked: c.player.id === picked,
-    });
-    const topCandidates = (list: TopScorerCandidate[]): TopScorerCandidate[] => {
-      const sorted = [...list].sort((a, b) => (b.livePoints ?? b.pointsPerGame ?? 0) - (a.livePoints ?? a.pointsPerGame ?? 0));
-      const top = sorted.slice(0, GameDetailComponent.COURT_OVERLAY_MAX_PER_SIDE);
-      if (picked && !top.some((c) => c.player.id === picked)) {
-        const pickedCandidate = list.find((c) => c.player.id === picked);
-        if (pickedCandidate) top.push(pickedCandidate);
-      }
-      return top;
-    };
-    return [
-      ...topCandidates(home).map((c) => toCourtPlayer(c, d.game.homeTeam.code)),
-      ...topCandidates(away).map((c) => toCourtPlayer(c, d.game.awayTeam.code)),
-    ];
+    return { home: this.sortedCandidates(home), away: this.sortedCandidates(away) };
   });
 
   pickTopScorer(playerId: string): void {

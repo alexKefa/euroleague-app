@@ -3,8 +3,12 @@ import { Lang } from "./lang";
 export const topScorerPredictionsTranslations: Record<string, Record<Lang, string>> = {
   "topScorer.pickTitle": { en: "Top scorer pick", el: "Πρόβλεψη κορυφαίου σκόρερ" },
   "topScorer.hint": {
-    en: "Pick anytime before the game ends — you can change your pick while it's live.",
-    el: "Διάλεξε οποτεδήποτε πριν τελειώσει ο αγώνας — μπορείς να αλλάξεις την επιλογή σου ενώ είναι live.",
+    en: "Pick anytime before the 4th quarter starts — you can change your pick while it's live.",
+    el: "Διάλεξε οποτεδήποτε πριν ξεκινήσει το 4ο δεκάλεπτο — μπορείς να αλλάξεις την επιλογή σου ενώ είναι live.",
+  },
+  "topScorer.locked": {
+    en: "Picks are locked — the 4th quarter has started.",
+    el: "Οι επιλογές κλείδωσαν — το 4ο δεκάλεπτο ξεκίνησε.",
   },
   "topScorer.myPick": { en: "Your pick", el: "Η επιλογή σου" },
   "topScorer.potentialPoints": { en: "pts", el: "πόντοι" },

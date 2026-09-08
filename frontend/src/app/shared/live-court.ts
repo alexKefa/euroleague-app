@@ -1,26 +1,7 @@
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, computed, input, signal } from "@angular/core";
+import { Component, Input, OnChanges, SimpleChanges, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { PlayerPhotoComponent } from "./player-photo";
 
 type Side = "home" | "away";
-
-// The live "top scorer" prop pick's on-court overlay (game-detail.ts) —
-// each candidate player, tappable, positioned near their team's own key.
-// Uses a signal input() rather than this file's existing plain @Input()s
-// deliberately: any per-player derived state (isPicked styling) needs to go
-// through a computed() that actually tracks changes, and player-photo.ts's
-// own doc comment documents a real bug in this app from exactly the
-// plain-@Input()-vs-computed() mismatch (Fantasy Five court swap,
-// 2026-09-08) — don't reintroduce it here.
-export interface TopScorerCourtPlayer {
-  id: string;
-  name: string;
-  photoUrl: string | null;
-  jerseyNumber: number | null;
-  teamCode: string;
-  side: Side;
-  isPicked: boolean;
-}
 
 // A reactive full-court diagram, inspired by OAKA's ASB GlassFloor (the LED
 // glass court Panathinaikos plays on) — the point there isn't the glass
@@ -49,7 +30,7 @@ export interface TopScorerCourtPlayer {
 @Component({
   selector: "app-live-court",
   standalone: true,
-  imports: [CommonModule, PlayerPhotoComponent],
+  imports: [CommonModule],
   templateUrl: "./live-court.html",
   styles: [
     `
@@ -182,15 +163,6 @@ export class LiveCourtComponent implements OnChanges {
   // then, but this guards direct usage too).
   @Input() active = true;
 
-  // Top-scorer prop overlay — see TopScorerCourtPlayer's doc comment above
-  // for why this is a signal input rather than a plain @Input() like the
-  // rest of this component.
-  readonly players = input<TopScorerCourtPlayer[]>([]);
-  readonly homeCourtPlayers = computed(() => this.players().filter((p) => p.side === "home"));
-  readonly awayCourtPlayers = computed(() => this.players().filter((p) => p.side === "away"));
-
-  @Output() pickPlayer = new EventEmitter<string>();
-
   readonly pulseSide = signal<Side | null>(null);
   // The shot value driving the "+1"/"+2"/"+3" number and which tier of
   // effect plays — null for a score jump that isn't a clean 1/2/3
@@ -308,22 +280,4 @@ export class LiveCourtComponent implements OnChanges {
   readonly homeLogoX = this.centerX / 2 - this.logoSize / 2;
   readonly awayLogoX = this.centerX + this.centerX / 2 - this.logoSize / 2;
   readonly logoY = this.basketY - this.logoSize / 2;
-
-  // --- Top-scorer overlay positioning ---
-  // A plain HTML layer absolutely-positioned over this SVG (percentage
-  // coordinates, same technique fantasy.html's court roster builder
-  // already uses for its starter slots), not new elements inside the
-  // viewBox — keeps the SVG's own burst/glow animations untouched. Each
-  // side's candidates stack vertically near that side's key
-  // (homeKeyX/awayKeyX converted to a %, roughly), spread from 15%-85% of
-  // the court's height so a full ~12-player roster doesn't overflow.
-  overlayLeftPercent(side: Side): number {
-    return side === "home" ? (this.homeKeyX + this.keyWidth / 2) / this.viewBoxWidth * 100 : (this.awayKeyX + this.keyWidth / 2) / this.viewBoxWidth * 100;
-  }
-
-  overlayTopPercent(index: number, count: number): number {
-    if (count <= 1) return 50;
-    const span = 70; // 15%..85%
-    return 15 + (span * index) / (count - 1);
-  }
 }

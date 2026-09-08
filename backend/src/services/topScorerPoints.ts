@@ -34,6 +34,24 @@ export function pointsForCorrectTopScorerPick(pointsPerGame: number | null): num
 }
 
 /**
+ * Locks at the start of the 4th quarter (2026-09-08), not at `final` like
+ * the rest of this file's comments originally described — a pick left open
+ * all the way to the final buzzer degenerates into just reading the box
+ * score once the game is basically decided, which defeats the internal-
+ * proxy formula's whole point of rewarding a real long-shot call. Locking
+ * at tipoff (like win/loss Predictions) was rejected too: this is
+ * specifically a *live* prop, so three full quarters of picking/repicking
+ * while the game is in progress is the feature, not a bug — Q4 is the
+ * latest point that still leaves genuine uncertainty. `quarter` is
+ * nullable and only meaningful while `status === "live"`; a `final` game
+ * is always locked regardless of `quarter`.
+ */
+export function isTopScorerPickLocked(game: typeof games.$inferSelect): boolean {
+  if (game.status === "final") return true;
+  return game.status === "live" && game.quarter !== null && game.quarter >= 4;
+}
+
+/**
  * Only knowable once the game is final — a live in-progress leader can
  * still change, so this deliberately does NOT resolve while status is
  * merely "live" even though a pick itself is allowed to be made/changed

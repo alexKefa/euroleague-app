@@ -1774,12 +1774,14 @@ at the same Neon instance as local dev — there's no separate prod database.
     "internal proxy" precedent `computeFantasyPrice` already set, chosen
     since that provider's EuroLeague player-prop coverage was never
     confirmed to exist.
-  - **Locks at `final`, not at tipoff** — the one deliberate behavioral
-    deviation from win/loss Predictions: a pick can be made or changed any
-    time up to the game going final, including while it's live, since
-    "live" is the whole point of a prop tied to an in-progress game.
-    `top_scorer_predictions` (schema.ts) is a separate table from
-    `predictions` for exactly this reason, not an extension of it.
+  - **Locks at the start of the 4th quarter, not at tipoff** (originally
+    shipped locking at `final`; tightened same-day — see the follow-up pass
+    below) — the one deliberate behavioral deviation from win/loss
+    Predictions: a pick can be made or changed any time up to Q4 starting,
+    including while it's live, since "live" is the whole point of a prop
+    tied to an in-progress game. `top_scorer_predictions` (schema.ts) is a
+    separate table from `predictions` for exactly this reason, not an
+    extension of it.
   - **v1 deliberately does not touch the shared points economy** — `GET
     /api/top-scorer-predictions/:gameId` returns `isCorrect` and the
     frontend shows a points *preview*, but nothing here calls into
@@ -1795,17 +1797,9 @@ at the same Neon instance as local dev — there's no separate prod database.
   - **Both surfacing ideas from 2026-09-07 were built, not just one**: a
     list picker below the scoreboard (candidate pool is each team's full
     active roster via the already-existing `GET /teams/:id/roster`, not
-    just "players to watch") and a tappable on-court overlay on
-    `<app-live-court>`. The overlay caps at 6 candidates per side (by live
-    points, falling back to season PPG) plus the user's own pick if it
-    falls outside that top 6 — an uncapped full-roster overlay was tried
-    first and was too visually dense (~12 stacked, overlapping icons per
-    side). `live-court.ts` gained a signal `input()` (`players`) for this —
-    deliberately not matching this file's existing plain `@Input()`/
-    `OnChanges` style, since any per-player derived state (the picked-player
-    ring) needs a `computed()` that actually tracks changes; see
-    `player-photo.ts`'s doc comment on the Fantasy Five court-swap bug this
-    would otherwise reintroduce.
+    just "players to watch") and a photo-based picker tied to the live
+    court — see the same-day follow-up pass below for how that second
+    surface's shape changed after real mobile testing.
   - **Real bug caught and fixed during this same pass**: `game-detail.ts`'s
     `ngOnInit` originally gated its pick fetch on `auth.currentUser()` being
     already set — but on a fresh page load that signal isn't populated yet
@@ -1824,6 +1818,71 @@ at the same Neon instance as local dev — there's no separate prod database.
     aggregates it server-side in v1 — add one (with explicit `::numeric`
     casts, see the fantasyScoring.ts bug fixed the same session) only once
     a real caller needs it.
+
+- **Same-day follow-up pass (2026-09-08), after real mobile testing** — the
+  on-court overlay from the initial v1 above didn't survive contact with a
+  real phone:
+  - **On-court overlay replaced with a horizontally-scrolling photo strip
+    positioned above the court**, not on it. Even capped at 6 candidates/side
+    with 28px icons, real-phone testing showed visible overlap (the court
+    renders far narrower than its 480px cap on a real screen); a mobile
+    report ("even 5-6 players" still looks packed) confirmed capping/
+    shrinking further wasn't the fix — the underlying problem was fighting
+    for space *inside* the court's fixed footprint at all. Moved the
+    picker entirely off `<app-live-court>` (all `players`/`pickPlayer`/
+    `picksLocked` overlay plumbing removed from `live-court.ts`/`.html`,
+    which reverts to its pre-feature, top-scorer-agnostic state) into a new
+    section in `game-detail.html` directly above where the court renders:
+    two horizontally-scrolling rows (home, away) of tappable player photos,
+    sized up to 52px (bigger, per explicit request, than both the old
+    on-court icons and the list picker's 28px rows) since a horizontal
+    strip has no realistic crowding ceiling the way stacking on the court
+    did — it scrolls instead of overlapping, so it shows the *full* roster
+    ranked by live points/season PPG rather than a capped top-N.
+  - **Ring-around-selected-player bug, fixed twice**: the first attempt put
+    `ring-2`/`ring-highlight` directly on `<app-player-photo>` itself
+    (the custom element tag) — same mistake `collectible-card.html`'s own
+    `[class.ring-highlight]="selected"` precedent had already avoided by
+    applying the ring to a real wrapping `<div>` instead. Moved the ring to
+    a wrapping element and it was *still* visibly elongated/oval, not
+    circular — root cause: a `<button>`'s implicit box (from default
+    line-height/inline sizing) isn't actually square even when its content
+    is, so `rounded-full` (border-radius 9999px) on a non-square box draws
+    an ellipse. Fixed by explicitly sizing the ring wrapper (`[style.width.
+    px]`/`[style.height.px]` bound to the icon size, `inline-flex` +
+    `leading-none`) so its box is guaranteed square regardless of the
+    button/content's own implicit sizing.
+  - **Real player photos surfaced, not just jersey silhouettes**: both the
+    strip and the list picker were missing `[primaryColor]` on
+    `<app-player-photo>` (only `teamCode` was passed), so every photo-less
+    fallback rendered in this app's generic reskin accent instead of the
+    *player's own team* color — confirmed and fixed by passing
+    `d.game.homeTeam.primaryColor`/`awayTeam.primaryColor` (the one team-
+    color field `GameTeamSummary` actually carries; it has no
+    `secondaryColor`) through at all four call sites. Verified with real
+    photo URLs temporarily pulled live from
+    `api-live.euroleague.net/v3/.../statistics/players/traditional`
+    (`player.imageUrl`, matched by `players.code` — the same field
+    `player_stats_sync.py` normally populates from once real 2026-27 games
+    exist) for visual QA only; reverted to `NULL` afterward rather than
+    left as an undocumented, sync-bypassing write — the real fix for
+    missing 2026-27 photos is still "wait for `player_stats_sync.py`", not
+    this ad hoc backfill.
+  - **Q4 lock tightened from `final`**: leaving a pick open all the way to
+    the final buzzer let it degenerate into just reading the box score once
+    a game is already decided, undercutting the whole point of the
+    internal-proxy formula rewarding a real long-shot call. `isTopScorerPickLocked`
+    (`services/topScorerPoints.ts`) now locks at `status === "final"` OR
+    (`"live"` AND `quarter >= 4`) — Q4 chosen as late enough to keep three
+    full quarters of genuine live picking/repicking (the feature's actual
+    point), early enough that the last stretch still carries real
+    uncertainty. Enforced on both `POST`/`DELETE` routes and mirrored
+    client-side (`game-detail.ts`'s `isTopScorerLocked`, kept in sync by
+    hand like the points-formula mirror). The photo strip disables and
+    dims once locked instead of silently no-op'ing on tap, since it's the
+    *only* picking surface still visible once locked (the list picker
+    hides entirely) — verified directly: a tap on a non-picked player
+    during Q4 correctly left the existing pick untouched.
 
 - **Original idea (2026-09-07, superseded by the shipped version above)** —
   a new prediction type layered on top of a *live* game, distinct from both

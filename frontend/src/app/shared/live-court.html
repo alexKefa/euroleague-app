@@ -1,8 +1,7 @@
-<div style="position: relative; max-width: 480px; margin: 0 auto">
 <svg
   [attr.viewBox]="'0 0 ' + viewBoxWidth + ' ' + viewBoxHeight"
   class="w-full h-auto"
-  style="display: block"
+  style="max-width: 480px; margin: 0 auto; display: block"
 >
   <!-- Team-color wash, split at half-court — the "glass floor" tint -->
   <rect x="0" y="0" [attr.width]="centerX" [attr.height]="viewBoxHeight" [attr.fill]="homeColor ?? '#888'" opacity="0.14" />
@@ -118,34 +117,3 @@
     }
   }
 </svg>
-
-<!-- Top-scorer prop overlay — plain HTML absolutely positioned over the
-     SVG above (percentage coords), not new SVG elements, so the burst/glow
-     animations above stay untouched. See live-court.ts's overlayLeft/TopPercent. -->
-@for (p of homeCourtPlayers(); track p.id; let i = $index) {
-  <button
-    type="button"
-    class="absolute -translate-x-1/2 -translate-y-1/2 rounded-full transition-transform"
-    [class.scale-110]="p.isPicked"
-    [style.left.%]="overlayLeftPercent('home')"
-    [style.top.%]="overlayTopPercent(i, homeCourtPlayers().length)"
-    [attr.aria-label]="p.name"
-    (click)="pickPlayer.emit(p.id)"
-  >
-    <app-player-photo [name]="p.name" [photoUrl]="p.photoUrl" [jerseyNumber]="p.jerseyNumber" [teamCode]="p.teamCode" [size]="28" [class.ring-2]="p.isPicked" [class.ring-highlight]="p.isPicked" class="rounded-full block shadow" />
-  </button>
-}
-@for (p of awayCourtPlayers(); track p.id; let i = $index) {
-  <button
-    type="button"
-    class="absolute -translate-x-1/2 -translate-y-1/2 rounded-full transition-transform"
-    [class.scale-110]="p.isPicked"
-    [style.left.%]="overlayLeftPercent('away')"
-    [style.top.%]="overlayTopPercent(i, awayCourtPlayers().length)"
-    [attr.aria-label]="p.name"
-    (click)="pickPlayer.emit(p.id)"
-  >
-    <app-player-photo [name]="p.name" [photoUrl]="p.photoUrl" [jerseyNumber]="p.jerseyNumber" [teamCode]="p.teamCode" [size]="28" [class.ring-2]="p.isPicked" [class.ring-highlight]="p.isPicked" class="rounded-full block shadow" />
-  </button>
-}
-</div>

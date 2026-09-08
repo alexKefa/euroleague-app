@@ -71,6 +71,60 @@
 
       @if (isLive()) {
         <div class="mt-4">
+          <!-- Top-scorer pick, bigger tappable photos, positioned above the
+               court rather than overlaid on it — an on-court overlay was
+               tried first (2026-09-08) and was too cramped on a real phone
+               even capped and shrunk; a horizontal strip has no realistic
+               size ceiling since it scrolls instead of overlapping. -->
+          <div class="space-y-2 mb-3">
+            <div class="flex gap-3 overflow-x-auto pb-1">
+              @for (c of topScorerStripPlayers().home; track c.player.id) {
+                <button
+                  type="button"
+                  class="shrink-0 flex flex-col items-center gap-1 w-16"
+                  [disabled]="isTopScorerLocked()"
+                  (click)="pickTopScorer(c.player.id)"
+                >
+                  <span
+                    class="relative inline-flex rounded-full ring-offset-2 ring-offset-card transition-transform"
+                    [class.scale-105]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
+                    [class.ring-2]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
+                    [class.ring-highlight]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
+                    [class.opacity-40]="isTopScorerLocked() && myTopScorerPick()?.predictedPlayer?.id !== c.player.id"
+                    [style.width.px]="52"
+                    [style.height.px]="52"
+                  >
+                    <app-player-photo [name]="c.player.name" [photoUrl]="c.player.photoUrl" [jerseyNumber]="c.player.jerseyNumber" [teamCode]="d.game.homeTeam.code" [primaryColor]="d.game.homeTeam.primaryColor" [size]="52" class="rounded-full block shadow" />
+                  </span>
+                  <span class="text-[9px] text-muted font-semibold truncate w-full text-center">{{ c.player.name.split(',')[0] }}</span>
+                </button>
+              }
+            </div>
+            <div class="flex gap-3 overflow-x-auto pb-1">
+              @for (c of topScorerStripPlayers().away; track c.player.id) {
+                <button
+                  type="button"
+                  class="shrink-0 flex flex-col items-center gap-1 w-16"
+                  [disabled]="isTopScorerLocked()"
+                  (click)="pickTopScorer(c.player.id)"
+                >
+                  <span
+                    class="relative inline-flex rounded-full ring-offset-2 ring-offset-card transition-transform"
+                    [class.scale-105]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
+                    [class.ring-2]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
+                    [class.ring-highlight]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
+                    [class.opacity-40]="isTopScorerLocked() && myTopScorerPick()?.predictedPlayer?.id !== c.player.id"
+                    [style.width.px]="52"
+                    [style.height.px]="52"
+                  >
+                    <app-player-photo [name]="c.player.name" [photoUrl]="c.player.photoUrl" [jerseyNumber]="c.player.jerseyNumber" [teamCode]="d.game.awayTeam.code" [primaryColor]="d.game.awayTeam.primaryColor" [size]="52" class="rounded-full block shadow" />
+                  </span>
+                  <span class="text-[9px] text-muted font-semibold truncate w-full text-center">{{ c.player.name.split(',')[0] }}</span>
+                </button>
+              }
+            </div>
+          </div>
+
           <app-live-court
             [homeColor]="d.game.homeTeam.primaryColor"
             [awayColor]="d.game.awayTeam.primaryColor"
@@ -79,8 +133,6 @@
             [homeScore]="d.game.homeScore"
             [awayScore]="d.game.awayScore"
             [hotSide]="hotSide()"
-            [players]="topScorerCourtPlayers()"
-            (pickPlayer)="pickTopScorer($event)"
           />
         </div>
       }
@@ -88,21 +140,25 @@
 
     <!-- Live "top scorer" prop pick — a free, no-stake pick, separate from
          win/loss Predictions. Open pre-tipoff AND while live (unlike
-         Predictions, which lock at tipoff) — only hidden once final. -->
-    @if (auth.currentUser() && (myTopScorerPick() || !isFinal())) {
+         Predictions, which lock at tipoff) — locks once the 4th quarter
+         starts, not at final, so a late pick can't just read the box score
+         (see isTopScorerLocked's doc comment). -->
+    @if (auth.currentUser() && (myTopScorerPick() || !isTopScorerLocked())) {
       <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
         <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-1">{{ i18n.t('topScorer.pickTitle') }}</p>
-        @if (!isFinal()) {
+        @if (!isTopScorerLocked()) {
           <p class="text-xs text-muted mb-3">{{ i18n.t('topScorer.hint') }}</p>
+        } @else if (!isFinal()) {
+          <p class="text-xs text-muted mb-3">{{ i18n.t('topScorer.locked') }}</p>
         }
 
         @if (topScorerPickError()) {
           <p class="text-red-500 text-xs font-semibold mb-2">{{ topScorerPickError() }}</p>
         }
 
-        @if (!isFinal()) {
+        @if (!isTopScorerLocked()) {
         <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1">
+          <div class="space-y-1 max-h-72 overflow-y-auto pr-1">
             @for (c of topScorerCandidates().home; track c.player.id) {
               <button
                 type="button"
@@ -112,7 +168,7 @@
                 [disabled]="topScorerPickSaving()"
                 (click)="pickTopScorer(c.player.id)"
               >
-                <app-player-photo [name]="c.player.name" [photoUrl]="c.player.photoUrl" [jerseyNumber]="c.player.jerseyNumber" [teamCode]="d.game.homeTeam.code" [size]="28" />
+                <app-player-photo [name]="c.player.name" [photoUrl]="c.player.photoUrl" [jerseyNumber]="c.player.jerseyNumber" [teamCode]="d.game.homeTeam.code" [primaryColor]="d.game.homeTeam.primaryColor" [size]="28" />
                 <span class="min-w-0 flex-1">
                   <span class="block text-xs font-semibold truncate">{{ c.player.name }}</span>
                   <span class="block text-[10px] text-muted">
@@ -126,7 +182,7 @@
               </button>
             }
           </div>
-          <div class="space-y-1">
+          <div class="space-y-1 max-h-72 overflow-y-auto pr-1">
             @for (c of topScorerCandidates().away; track c.player.id) {
               <button
                 type="button"
@@ -136,7 +192,7 @@
                 [disabled]="topScorerPickSaving()"
                 (click)="pickTopScorer(c.player.id)"
               >
-                <app-player-photo [name]="c.player.name" [photoUrl]="c.player.photoUrl" [jerseyNumber]="c.player.jerseyNumber" [teamCode]="d.game.awayTeam.code" [size]="28" />
+                <app-player-photo [name]="c.player.name" [photoUrl]="c.player.photoUrl" [jerseyNumber]="c.player.jerseyNumber" [teamCode]="d.game.awayTeam.code" [primaryColor]="d.game.awayTeam.primaryColor" [size]="28" />
                 <span class="min-w-0 flex-1">
                   <span class="block text-xs font-semibold truncate">{{ c.player.name }}</span>
                   <span class="block text-[10px] text-muted">
