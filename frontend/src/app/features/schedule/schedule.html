@@ -62,6 +62,16 @@
       >
         {{ i18n.t('schedule.finishLiveAdmin') }}
       </button>
+      <button
+        type="button"
+        (click)="confirmingResetRound.set(true)"
+        [disabled]="resettingRound()"
+        appButton="outline"
+        appButtonSize="sm"
+        class="flex-1"
+      >
+        {{ i18n.t('schedule.resetRoundAdmin') }}
+      </button>
     </div>
   }
 
@@ -140,6 +150,18 @@
                   @if (game.venueName) {
                     <p class="text-[9px] text-muted truncate mt-0.5" [title]="game.venueName">{{ game.venueName }}</p>
                   }
+                  @if (auth.currentUser()?.isAdmin && game.status !== 'scheduled') {
+                    <button
+                      type="button"
+                      class="mt-1 text-muted hover:text-red-500 transition-colors disabled:opacity-40"
+                      [disabled]="resettingGameId() === game.id"
+                      [attr.aria-label]="i18n.t('schedule.resetGame')"
+                      [title]="i18n.t('schedule.resetGame')"
+                      (click)="$event.preventDefault(); $event.stopPropagation(); confirmingResetGameId.set(game.id)"
+                    >
+                      <span class="text-xs leading-none">↺</span>
+                    </button>
+                  }
                 </div>
 
                 <!-- Mobile: logo on top, name+rank centered below (already the
@@ -178,5 +200,24 @@
         </p>
       }
     </div>
+  }
+
+  @if (confirmingResetGameId(); as gameId) {
+    <app-confirm-dialog
+      [message]="i18n.t('schedule.resetGameConfirm')"
+      [confirmLabel]="i18n.t('schedule.resetGameConfirmButton')"
+      [cancelLabel]="i18n.t('schedule.cancel')"
+      (confirmed)="confirmResetGame()"
+      (cancelled)="confirmingResetGameId.set(null)"
+    />
+  }
+  @if (confirmingResetRound()) {
+    <app-confirm-dialog
+      [message]="i18n.t('schedule.resetRoundConfirm')"
+      [confirmLabel]="i18n.t('schedule.resetRoundConfirmButton')"
+      [cancelLabel]="i18n.t('schedule.cancel')"
+      (confirmed)="confirmResetRound()"
+      (cancelled)="confirmingResetRound.set(false)"
+    />
   }
 </div>

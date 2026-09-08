@@ -11,6 +11,7 @@ import { ButtonDirective } from "../../shared/button.directive";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { PageHintComponent } from "../../shared/page-hint";
 import { SkeletonComponent } from "../../shared/skeleton";
+import { ConfirmDialogComponent } from "../../shared/confirm-dialog";
 import { newsDateLocale, weekdayDateFormat } from "../../shared/news-date-format";
 import { TeamCodePipe } from "../../shared/team-display-code";
 
@@ -35,6 +36,7 @@ function athensDateKey(iso: string): string {
     DropdownComponent,
     PageHintComponent,
     SkeletonComponent,
+    ConfirmDialogComponent,
     TeamCodePipe,
   ],
   templateUrl: "./schedule.html",
@@ -53,6 +55,15 @@ export class ScheduleComponent implements OnInit {
   readonly teamFilter = signal<string | null>(null);
   readonly simulating = signal(false);
   readonly completingSimulation = signal(false);
+
+  // Admin-only reset — undoes a live-score-simulator run (or bad test data)
+  // on one game or a whole round. Destructive (deletes predictions made
+  // against the reset game(s)), so both paths go through app-confirm-dialog
+  // rather than firing on a single tap.
+  readonly confirmingResetGameId = signal<string | null>(null);
+  readonly confirmingResetRound = signal(false);
+  readonly resettingGameId = signal<string | null>(null);
+  readonly resettingRound = signal(false);
 
   constructor() {
     // Live score push: patch the matching game in place instead of
@@ -223,6 +234,41 @@ export class ScheduleComponent implements OnInit {
     this.api.completeLiveSimulation().subscribe({
       next: () => this.completingSimulation.set(false),
       error: () => this.completingSimulation.set(false),
+    });
+  }
+
+  confirmResetGame(): void {
+    const gameId = this.confirmingResetGameId();
+    const round = this.currentRound();
+    if (!gameId || round === null) return;
+    this.confirmingResetGameId.set(null);
+    this.resettingGameId.set(gameId);
+    // Reload the round rather than splicing the response into `games` —
+    // the reset endpoint returns a raw `games` row (no homeTeam/awayTeam
+    // join, unlike the list's own shape), so patching it in directly
+    // crashed the template on `game.homeTeam.code` (caught live during
+    // testing: TypeError, stale row left on screen since the render threw
+    // mid-update).
+    this.api.resetGame(gameId).subscribe({
+      next: () => {
+        this.resettingGameId.set(null);
+        this.loadRound(round);
+      },
+      error: () => this.resettingGameId.set(null),
+    });
+  }
+
+  confirmResetRound(): void {
+    const round = this.currentRound();
+    if (round === null) return;
+    this.confirmingResetRound.set(false);
+    this.resettingRound.set(true);
+    this.api.resetRound(SEASON, round).subscribe({
+      next: () => {
+        this.resettingRound.set(false);
+        this.loadRound(round);
+      },
+      error: () => this.resettingRound.set(false),
     });
   }
 }

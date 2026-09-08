@@ -2,7 +2,17 @@ import { Router } from "express";
 import { eq, and, inArray, isNotNull, asc, desc } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "../db/client.js";
-import { teams, games, gameOdds, players, playerGameStats, playerSeasonStats, teamSeasonStats } from "../db/schema.js";
+import {
+  teams,
+  games,
+  gameOdds,
+  players,
+  playerGameStats,
+  playerSeasonStats,
+  teamSeasonStats,
+  predictions,
+  topScorerPredictions,
+} from "../db/schema.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
 import { getCurrentSeason } from "../services/season.js";
 
@@ -363,5 +373,80 @@ gamesRouter.patch("/:id/highlight", requireAuth, requireAdmin, async (req, res) 
   } catch (err) {
     console.error("PATCH /api/games/:id/highlight failed:", err);
     res.status(500).json({ error: "Failed to save highlight" });
+  }
+});
+
+// Admin-only testing/demo utility — undoes a live-score-simulator run (see
+// realtime/liveScoreSimulator.ts) on one game: back to "scheduled", scores/
+// quarter/clock cleared, its fabricated player_game_stats deleted, and any
+// predictions/top-scorer picks made against it deleted too, since those
+// were made against a result that no longer exists once the game is
+// unresolved again. Deliberately narrower than the one-off
+// scripts/reset-2026-27-season-data.ts this mirrors — it never touches
+// already-granted collectibles/points (round_rewards, point_adjustments,
+// owned packs), same "season data only, not a full economy wipe" scope
+// that script's own doc comment describes; a routine per-game admin button
+// needs to stay that narrow, not become a bigger economy-reset tool.
+gamesRouter.post("/:id/reset", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [existing] = await db.select({ id: games.id }).from(games).where(eq(games.id, id)).limit(1);
+    if (!existing) {
+      res.status(404).json({ error: "Game not found" });
+      return;
+    }
+
+    const [game] = await db.transaction(async (tx) => {
+      await tx.delete(playerGameStats).where(eq(playerGameStats.gameId, id));
+      await tx.delete(predictions).where(eq(predictions.gameId, id));
+      await tx.delete(topScorerPredictions).where(eq(topScorerPredictions.gameId, id));
+      return tx
+        .update(games)
+        .set({ status: "scheduled", homeScore: null, awayScore: null, quarter: null, gameClockSeconds: null })
+        .where(eq(games.id, id))
+        .returning();
+    });
+
+    res.json(game);
+  } catch (err) {
+    console.error("POST /api/games/:id/reset failed:", err);
+    res.status(500).json({ error: "Failed to reset game" });
+  }
+});
+
+// Same reset, applied to every game in one round at once — same scope
+// limits as the single-game version above.
+gamesRouter.post("/reset-round", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { season, round } = req.body ?? {};
+    if (typeof season !== "string" || typeof round !== "number") {
+      res.status(400).json({ error: "season and round are required" });
+      return;
+    }
+
+    const roundGames = await db
+      .select({ id: games.id })
+      .from(games)
+      .where(and(eq(games.season, season), eq(games.round, round)));
+    if (roundGames.length === 0) {
+      res.json({ resetCount: 0 });
+      return;
+    }
+    const gameIds = roundGames.map((g) => g.id);
+
+    await db.transaction(async (tx) => {
+      await tx.delete(playerGameStats).where(inArray(playerGameStats.gameId, gameIds));
+      await tx.delete(predictions).where(inArray(predictions.gameId, gameIds));
+      await tx.delete(topScorerPredictions).where(inArray(topScorerPredictions.gameId, gameIds));
+      await tx
+        .update(games)
+        .set({ status: "scheduled", homeScore: null, awayScore: null, quarter: null, gameClockSeconds: null })
+        .where(inArray(games.id, gameIds));
+    });
+
+    res.json({ resetCount: gameIds.length });
+  } catch (err) {
+    console.error("POST /api/games/reset-round failed:", err);
+    res.status(500).json({ error: "Failed to reset round" });
   }
 });

@@ -1398,6 +1398,38 @@ If you need to apply a schema change without an interactive terminal
   live game with no separate code path. Swap-in later: point the
   simulator's tick source at the real feed (or a poller) once the season
   starts — the hub/route/frontend plumbing doesn't need to change.
+- **Admin "reset game"/"reset round" (2026-09-08)** — a UI shortcut for
+  undoing a live-score-simulator run, instead of hand-writing SQL for it
+  every time (this was previously a genuine repeated friction point).
+  `POST /api/games/:id/reset` and `POST /api/games/reset-round`
+  (`routes/games.ts`, `requireAuth, requireAdmin`) both do the same thing —
+  `status` back to `scheduled`, score/quarter/clock cleared, that game's
+  `player_game_stats` deleted, and any `predictions`/`top_scorer_predictions`
+  made against it deleted too (a prediction against a result that no longer
+  exists shouldn't linger) — one game or every game in a round, in one
+  `db.transaction()`. Deliberately narrower than the one-off
+  `scripts/reset-2026-27-season-data.ts` this mirrors: never touches
+  already-granted collectibles/points (`round_rewards`, `point_adjustments`,
+  owned packs) — see that script's own "season data only, not a full
+  economy wipe" scope note, which a routine admin button needs to respect
+  even more strictly since it's reachable far more casually than a one-off
+  script. Surfaced on the Schedule page (`features/schedule/`): a small ↺
+  icon next to any non-`scheduled` game (admin-only, via the existing
+  `auth.currentUser()?.isAdmin` gate this page already used for the
+  simulate/complete-simulation buttons), plus a third admin button
+  resetting the whole visible round. Both go through
+  `shared/confirm-dialog.ts` first (same component/pattern as Leagues'
+  "leave league" confirmation) since this deletes real prediction rows, not
+  just cosmetic state. **Real bug caught while verifying this**: the single-
+  game endpoint's `.returning()` gives back a raw `games` row with no
+  `homeTeam`/`awayTeam` join, but the first version spliced that response
+  straight into the Schedule page's `games` list — crashed the template
+  (`Cannot read properties of undefined (reading 'code')` on
+  `game.homeTeam.code`) and left the stale pre-reset row on screen even
+  though the reset had actually succeeded server-side. Fixed by reloading
+  the current round after a successful reset instead of trying to keep the
+  list's joined shape in sync with a raw table row — same fix shape the
+  round-reset path already used for the same reason.
 - In production the backend also serves the built Angular app as static
   files with an SPA fallback (see Deployment below) — absent in local dev,
   where `ng serve` handles the frontend on its own port instead.

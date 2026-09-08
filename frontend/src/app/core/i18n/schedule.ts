@@ -29,4 +29,17 @@ export const scheduleTranslations: Record<string, Record<Lang, string>> = {
     en: "Admin: fast-forward simulation",
     el: "Διαχειριστής: γρήγορη προσομοίωση",
   },
+  "schedule.resetRoundAdmin": { en: "Admin: reset round", el: "Διαχειριστής: επαναφορά γύρου" },
+  "schedule.resetGame": { en: "Reset this game", el: "Επαναφορά αγώνα" },
+  "schedule.resetGameConfirm": {
+    en: "Reset this game back to scheduled? This clears its score and deletes any predictions made against it.",
+    el: "Επαναφορά αγώνα σε προγραμματισμένο; Θα διαγραφούν το σκορ και οι προβλέψεις που έγιναν γι' αυτόν.",
+  },
+  "schedule.resetGameConfirmButton": { en: "Reset game", el: "Επαναφορά αγώνα" },
+  "schedule.resetRoundConfirm": {
+    en: "Reset every game in this round back to scheduled? This clears scores and deletes any predictions made against them.",
+    el: "Επαναφορά όλων των αγώνων του γύρου σε προγραμματισμένους; Θα διαγραφούν τα σκορ και οι προβλέψεις που έγιναν γι' αυτούς.",
+  },
+  "schedule.resetRoundConfirmButton": { en: "Reset round", el: "Επαναφορά γύρου" },
+  "schedule.cancel": { en: "Cancel", el: "Ακύρωση" },
 };
