@@ -1,35 +1,191 @@
-/* The logo mark's bars rising into place — transform-box: fill-box makes
-   each rect scale from its own bottom edge instead of the SVG viewport's
-   origin, which is what makes this read as three independent bars rising
-   rather than the whole icon squashing. */
-.bar {
-  transform-box: fill-box;
-  transform-origin: center bottom;
-  transform: scaleY(0);
-  animation: bar-rise 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+/* Card fan (2026-09-08, alongside the longer splash hold — see
+   app.component.ts's SPLASH_DURATION_MS comment) — three mini cards rise
+   into their fanned resting pose first, each with its own from/to
+   keyframe (rather than one shared keyframe) since every card's resting
+   transform is different; a shared keyframe with an unspecified `to`
+   transform would fight the per-card resting `transform` instead of
+   composing with it. Colors are the exact same tier gradients as the real
+   Store/Album cards (collectible-card.ts's TierStyle rare/legendary/coach
+   entries) so this reads as "this app's actual cards," not generic
+   placeholder rectangles.
+
+   Three layers deep on purpose, each owning one motion so they compose
+   instead of fighting over the same `transform` (two `animation`s on one
+   element targeting the same property don't reliably add without
+   `animation-composition: add`, which isn't worth relying on here):
+     .mini-card       — one-shot entrance to the fanned resting pose (this
+                         block), forwards-filled, never touched again. Pure
+                         positioning now — no visible frame of its own.
+     .mini-card-float — a continuous idle slide-and-scale layered
+                         underneath (below), independent per card so they
+                         drift out of sync with each other rather than
+                         moving in lockstep. THIS is where the visible card
+                         frame (tier-gradient background, padding, shadow —
+                         .mini-card-frame--* further below) actually lives
+                         now: an earlier version kept the frame on the
+                         outer .mini-card and only animated the inner face,
+                         which left the colored border sitting still while
+                         the photo slid around inside it — looked broken.
+                         Moving the frame onto this same animated element
+                         means the whole card (border included) moves as
+                         one piece.
+     .mini-card-face  — the shimmer sweep (further below), on yet another
+                         nested element for the same reason. */
+.mini-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 40px;
+  height: 56px;
+  opacity: 0;
 }
-.bar-1 {
-  animation-delay: 0.05s;
+
+/* Desktop-only size bump (2026-09-08), matching Tailwind's own `sm:`
+   breakpoint (640px, same one this app's mobile/desktop nav split uses —
+   see MOBILE_BREAKPOINT_PX) so it lines up with every other
+   desktop-vs-mobile distinction in the app rather than picking an
+   unrelated width. Everything below .mini-card sizes itself off this in
+   percentages (.mini-card-float/.mini-card-frame/.mini-card-face are all
+   width/height: 100%), so bumping just this one rule scales the whole
+   card — frame, face, and photo — together with nothing else to touch. */
+@media (min-width: 640px) {
+  .mini-card {
+    width: 48px;
+    height: 68px;
+  }
 }
-.bar-2 {
-  animation-delay: 0.15s;
+
+/* Continuous idle motion — this is the actual "cards moving" layer, running
+   for the whole splash hold rather than the cards going still once fanned
+   in. Each card rotates further open then relaxes back, a real fan
+   gesture rather than boxes sliding sideways (see the float-a/b/c
+   keyframes below) — the same tiny scale bump on all three regardless of
+   tier, kept deliberately small since these are real photos (see that
+   comment). Each variant gets its own duration/keyframe so the three
+   drift independently instead of visibly moving in sync. */
+.mini-card-float {
+  width: 100%;
+  height: 100%;
 }
-.bar-3 {
-  animation-delay: 0.25s;
+.mini-card-float--a {
+  animation: float-a 2.6s ease-in-out infinite;
+  animation-delay: 0.5s;
+}
+.mini-card-float--b {
+  animation: float-b 3.1s ease-in-out infinite;
+  animation-delay: 0.58s;
+}
+.mini-card-float--c {
+  animation: float-c 2.9s ease-in-out infinite;
+  animation-delay: 0.66s;
+}
+
+/* The visible card frame — tier-gradient border, rounded corners, drop
+   shadow — moved here (see the comment on .mini-card-float above) so it
+   travels with the rest of the card during the idle slide instead of
+   sitting fixed while the face/photo moves inside it. */
+.mini-card-frame {
+  border-radius: 8px;
+  padding: 2px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+}
+.mini-card-frame--silver {
+  background: linear-gradient(135deg, #cfd6dc 0%, #f5f7f9 25%, #aab2ba 50%, #f5f7f9 75%, #cfd6dc 100%);
+}
+.mini-card-frame--gold {
+  background: linear-gradient(135deg, #7a5b12 0%, #f4d675 22%, #fff6d8 40%, #caa53a 58%, #fff2c9 76%, #6e4e10 100%);
+}
+.mini-card-frame--violet {
+  background: linear-gradient(135deg, #150c33 0%, #603fef 22%, #ede9ff 40%, #4526b0 58%, #dad3ff 76%, #0d0824 100%);
+}
+
+.mini-card-face {
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  /* Also the fallback behind the real photo below — these are transparent
+     cutout PNGs (EuroLeague's own player-render style), so this radial
+     gradient shows through as a "spotlight" behind the cutout rather than
+     leaving a hard-edged blank gap, same idea as this app's real
+     photoTint treatment (collectible-card.ts) for the same CDN images. */
+  background: radial-gradient(120% 100% at 50% 0%, #1c1c1e 0%, #08090a 75%);
+  position: relative;
+  overflow: hidden;
+}
+
+.mini-card-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+}
+
+/* Bottom vignette for depth, sitting between the photo and the shimmer
+   sweep below (stacking order = source order for same-position elements,
+   so this ::before paints under the ::after). */
+.mini-card-face::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.55) 0%, transparent 45%);
+}
+
+/* The idle shimmer — same diagonal-sweep idea as the real cards'
+   .holo-sweep (collectible-card.css), simplified: one pass, not a
+   tier-specific gradient, since three mini cards each running the full
+   holo treatment would be a lot of motion for a small decorative flourish.
+   Runs continuously through the whole splash hold, independent of the
+   one-shot entrance animation above (a separate element, so no conflict). */
+.mini-card-face::after {
+  content: "";
+  position: absolute;
+  inset: -60%;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.5) 50%, transparent 65%);
+  animation: mini-shimmer 2.8s ease-in-out infinite;
+}
+
+/* Purely selects which entrance keyframe/timing this card uses — no visual
+   styling here anymore, that's all on .mini-card-frame--* above. */
+.mini-card--silver {
+  animation: silver-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation-delay: 0s;
+}
+
+.mini-card--gold {
+  z-index: 2;
+  animation: gold-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation-delay: 0.09s;
+}
+
+.mini-card--violet {
+  animation: violet-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation-delay: 0.18s;
+}
+
+/* The swish mark settling in after the cards — a small bounce (the same
+   overshoot easing wordmark/tagline use) reads as the ball's own motion
+   rather than just another fading box. */
+.brand-icon {
+  opacity: 0;
+  transform: scale(0.7);
+  animation: icon-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation-delay: 0.5s;
 }
 
 .wordmark {
   opacity: 0;
   transform: translateY(6px);
   animation: wordmark-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  animation-delay: 0.45s;
+  animation-delay: 0.68s;
 }
 
 .tagline {
   opacity: 0;
   transform: translateY(6px);
   animation: wordmark-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  animation-delay: 0.62s;
+  animation-delay: 0.84s;
 }
 
 /* Sits behind everything for the whole splash — fades in slowly rather
@@ -41,9 +197,92 @@
   animation-delay: 0.1s;
 }
 
-@keyframes bar-rise {
+/* An actual fan motion — each card rotates further open, away from its
+   entrance rotation (composes with .mini-card's own fixed rotate() from
+   the silver-in/gold-in/violet-in "to" state, since this is a child
+   transform), then relaxes back — like a hand of cards being fanned open
+   and closed, not three boxes sliding sideways. Scale is deliberately
+   tiny (1.06, was 1.35): these are real photos, and CSS-scaling a raster
+   image up by a third made the upscale blur/softening obvious at this
+   size — a small scale still sells "this card is lifting toward you"
+   without visibly degrading the image. */
+@keyframes float-a {
+  0%,
+  100% {
+    transform: rotate(0deg) translateX(0) scale(1);
+  }
+  50% {
+    transform: rotate(-9deg) translateX(-5px) scale(1.06);
+  }
+}
+
+@keyframes float-b {
+  0%,
+  100% {
+    transform: rotate(0deg) translateX(0) scale(1);
+  }
+  50% {
+    transform: rotate(4deg) translateX(3px) scale(1.06);
+  }
+}
+
+@keyframes float-c {
+  0%,
+  100% {
+    transform: rotate(0deg) translateX(0) scale(1);
+  }
+  50% {
+    transform: rotate(9deg) translateX(5px) scale(1.06);
+  }
+}
+
+@keyframes silver-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateX(-46px) translateY(28px) rotate(-16deg) scale(0.6);
+  }
   to {
-    transform: scaleY(1);
+    opacity: 1;
+    transform: translate(-50%, -50%) translateX(-46px) rotate(-16deg);
+  }
+}
+
+@keyframes gold-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(28px) scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) translateY(-8px) scale(1.08);
+  }
+}
+
+@keyframes violet-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateX(46px) translateY(28px) rotate(16deg) scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) translateX(46px) rotate(16deg);
+  }
+}
+
+@keyframes mini-shimmer {
+  0%,
+  100% {
+    transform: translateX(-40%) translateY(-15%) rotate(10deg);
+  }
+  50% {
+    transform: translateX(40%) translateY(15%) rotate(10deg);
+  }
+}
+
+@keyframes icon-in {
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 

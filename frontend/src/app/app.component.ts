@@ -13,11 +13,22 @@ import { ButtonDirective } from "./shared/button.directive";
 import { TourOverlayComponent } from "./shared/tour-overlay";
 import { InstallBannerComponent } from "./shared/install-banner";
 
-// Covers splash.css's bar-rise/wordmark-in animation (finishes ~950ms)
-// plus a short hold — the fade-out starts once the mark has actually
-// settled, not on some unrelated timer.
-const SPLASH_DURATION_MS = 1200;
-const SPLASH_FADE_MS = 400;
+// 2026-09-08: bumped from 1200ms — the old duration was timed to just the
+// splash's own entrance animation (cards fan in, then the C+ball+wordmark
+// settle, ~750ms total), not to whether the destination route had actually
+// rendered yet. On a real network round trip (dashboard fires several
+// parallel API calls — standings, leaders, news, predictions — see the
+// round-trip-cost notes in CLAUDE.md) that let the splash disappear before
+// the dashboard had painted anything, showing a bare skeleton/blank flash
+// underneath for a beat. This isn't wired to real readiness (no shared
+// "is the destination route done loading" signal exists across
+// components, and building one just for this felt like the wrong amount
+// of coupling for a startup animation) — it's a longer flat hold instead,
+// generous enough to comfortably cover a normal cold load, with the extra
+// time doubling as room for the card-fan animation (splash.css) to
+// actually be seen rather than being cut off mid-entrance like before.
+const SPLASH_DURATION_MS = 2600;
+const SPLASH_FADE_MS = 450;
 
 // The PWA service worker (added, then pulled 2026-08-21 — see project
 // memory) was implicated in cross-origin resources — Google Fonts, the

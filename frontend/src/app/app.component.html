@@ -14,19 +14,25 @@
 <nav
   class="sticky top-0 z-30 flex justify-between items-center gap-3 px-4 sm:px-6 py-4 bg-card border-b border-line"
 >
-  <a routerLink="/" class="flex items-center gap-2 font-display text-base tracking-wide shrink-0">
-    <svg width="22" height="22" viewBox="0 0 100 100" aria-hidden="true">
-      <polygon points="18,55 28,49 28,77 18,83" fill="#5E2513"/>
-      <polygon points="28,49 38,55 38,83 28,77" fill="#8B3A22"/>
-      <polygon points="18,55 28,49 38,55 28,61" fill="#C1552F"/>
-      <polygon points="40,23 50,17 50,77 40,83" fill="#B84A26"/>
-      <polygon points="50,17 60,23 60,83 50,77" fill="#FF6B35"/>
-      <polygon points="40,23 50,17 60,23 50,29" fill="#FF9D6E"/>
-      <polygon points="62,39 72,33 72,77 62,83" fill="#8E351B"/>
-      <polygon points="72,33 82,39 82,83 72,77" fill="#C94A24"/>
-      <polygon points="62,39 72,33 82,39 72,45" fill="#E27A4C"/>
+  <!-- The "C" is a real open ring (like a letterform), with a small
+       basketball nested inside its hollow — not a ball replacing the C
+       outright (an earlier pass got this wrong: a plain full circle read
+       as "no C at all"). The ring stays ink (theme-reactive); the ball is
+       the app's own fixed highlight orange (#FF6B35, not var(--color-ink)
+       — same "fixed accent, not a chrome color" reasoning as every other
+       highlight usage in this app, see tailwind.config.js), the one spot
+       of real color in an otherwise monochrome mark. "lutch" continues
+       right after it as real text, so screen readers/search only ever see
+       "lutch" from this markup alone; aria-label restores the full word. -->
+  <a routerLink="/" aria-label="Clutch" class="flex items-center font-display text-lg tracking-wide shrink-0">
+    <svg width="28" height="28" viewBox="0 0 100 100" aria-hidden="true" class="-mr-0.5">
+      <path d="M 80 28 A 34 34 0 1 0 80 72" fill="none" stroke="var(--color-ink)" stroke-width="10" stroke-linecap="round"/>
+      <circle cx="54" cy="50" r="19" fill="none" stroke="#FF6B35" stroke-width="4.5"/>
+      <path d="M 54 31 L 54 69" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M 40.6 36.6 Q 48 50 40.6 63.4" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M 67.4 36.6 Q 60 50 67.4 63.4" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round"/>
     </svg>
-    Clutch
+    lutch
   </a>
 
   <div class="flex items-center gap-2 min-w-0">

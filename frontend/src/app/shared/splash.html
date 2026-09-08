@@ -21,27 +21,62 @@
     />
   </svg>
 
-  <div class="relative flex flex-col items-center gap-4">
-    <svg width="104" height="104" viewBox="0 0 100 100">
-      <g class="bar bar-1">
-        <polygon points="18,55 28,49 28,77 18,83" fill="#5E2513"/>
-        <polygon points="28,49 38,55 38,83 28,77" fill="#8B3A22"/>
-        <polygon points="18,55 28,49 38,55 28,61" fill="#C1552F"/>
-      </g>
-      <g class="bar bar-2">
-        <polygon points="40,23 50,17 50,77 40,83" fill="#B84A26"/>
-        <polygon points="50,17 60,23 60,83 50,77" fill="#FF6B35"/>
-        <polygon points="40,23 50,17 60,23 50,29" fill="#FF9D6E"/>
-      </g>
-      <g class="bar bar-3">
-        <polygon points="62,39 72,33 72,77 62,83" fill="#8E351B"/>
-        <polygon points="72,33 82,39 82,83 72,77" fill="#C94A24"/>
-        <polygon points="62,39 72,33 82,39 72,45" fill="#E27A4C"/>
-      </g>
-    </svg>
-    <div class="flex flex-col items-center gap-1">
-      <p class="wordmark font-display text-3xl tracking-wide" style="color: var(--color-ink)">Clutch</p>
-      <p class="tagline font-mono text-xs font-bold uppercase tracking-wider text-muted">{{ i18n.t('splash.tagline') }}</p>
+  <div class="relative flex flex-col items-center gap-3">
+    <!-- A small fan of collectible cards (silver/gold/violet — the same
+         tier gradients as the real Store/Album cards, see
+         collectible-card.ts's TierStyle) rises in first, a nod to the
+         card economy this app is actually built around, before the brand
+         mark settles. Real photos, not placeholders: Evan Fournier and
+         Kendrick Nunn from EuroLeague's own live media CDN (the same
+         source player_stats_sync.py pulls from, media-cdn.cortextech.io —
+         confirmed reachable before wiring in); Zeljko Obradovic's real
+         headshot isn't in that feed (the live E2026 roster's `images`
+         field for him is empty), so his card uses a direct photo URL the
+         user supplied instead (paobc.gr, Panathinaikos's own site —
+         confirmed reachable, real PNG, before wiring in). Decorative
+         only, no real card content/stats attached. -->
+    <div class="relative h-28 w-56 sm:h-32 sm:w-64 mb-1" aria-hidden="true">
+      <div class="mini-card mini-card--silver">
+        <div class="mini-card-float mini-card-float--a mini-card-frame mini-card-frame--silver">
+          <div class="mini-card-face">
+            <img class="mini-card-photo" src="https://media-cdn.cortextech.io/948551c5-285e-44d1-8a50-35cd9b019e97.png" alt="" />
+          </div>
+        </div>
+      </div>
+      <div class="mini-card mini-card--gold">
+        <div class="mini-card-float mini-card-float--b mini-card-frame mini-card-frame--gold">
+          <div class="mini-card-face">
+            <img class="mini-card-photo" src="https://media-cdn.cortextech.io/6a45d41a-03f4-482a-b7ed-40adc56d5af8.png" alt="" />
+          </div>
+        </div>
+      </div>
+      <div class="mini-card mini-card--violet">
+        <div class="mini-card-float mini-card-float--c mini-card-frame mini-card-frame--violet">
+          <div class="mini-card-face">
+            <img class="mini-card-photo" src="https://www.paobc.gr/wp-content/uploads/2026/06/zeljko-head-coach.png" alt="" />
+          </div>
+        </div>
+      </div>
     </div>
+
+    <!-- The "C" is a real open ring, with a small basketball nested inside
+         its hollow (not a ball replacing the C outright — see the nav
+         wordmark's comment for why that was wrong). Same combination-mark
+         construction as the nav wordmark, just bigger. The row wrapper
+         itself carries no animation (always visible) so .brand-icon and
+         .wordmark keep animating independently as true siblings — nesting
+         one inside the other would mask the icon's own earlier fade-in
+         behind its parent's still-zero opacity. -->
+    <div class="flex items-center" aria-label="Clutch" role="img">
+      <svg class="brand-icon" width="52" height="52" viewBox="0 0 100 100" aria-hidden="true">
+        <path d="M 80 28 A 34 34 0 1 0 80 72" fill="none" stroke="var(--color-ink)" stroke-width="10" stroke-linecap="round"/>
+        <circle cx="54" cy="50" r="19" fill="none" stroke="#FF6B35" stroke-width="4.5"/>
+        <path d="M 54 31 L 54 69" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round"/>
+        <path d="M 40.6 36.6 Q 48 50 40.6 63.4" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round"/>
+        <path d="M 67.4 36.6 Q 60 50 67.4 63.4" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round"/>
+      </svg>
+      <p class="wordmark font-display text-4xl tracking-wide -ml-1" style="color: var(--color-ink)" aria-hidden="true">lutch</p>
+    </div>
+    <p class="tagline font-mono text-xs font-bold uppercase tracking-wider text-muted">{{ i18n.t('splash.tagline') }}</p>
   </div>
 </div>
