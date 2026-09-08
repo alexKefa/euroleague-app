@@ -327,4 +327,37 @@ export class AppComponent implements OnInit {
   onEscape(): void {
     this.closeMore();
   }
+
+  // Shrinks the bottom tab bar 10% while scrolling down (less visually
+  // competing with whatever content the user is actually reading), back to
+  // full size on any upward scroll — same "give ground to the content, come
+  // back on demand" idea as a browser's own auto-hiding toolbar, just a
+  // resize instead of a hide since this nav is the primary way to navigate
+  // on mobile and disappearing entirely would cost more than it saves.
+  // rAF-throttled to at most one recompute per frame; the 4px delta
+  // ignores sub-pixel/bounce-scroll noise so the bar doesn't flicker on a
+  // stationary page, and near the very top (<=24px) it's always full size
+  // regardless of direction, so the first scroll of a session never starts
+  // shrunk.
+  protected readonly bottomNavShrunk = signal(false);
+  private lastScrollY = 0;
+  private scrollRaf: number | null = null;
+
+  @HostListener("window:scroll")
+  onWindowScroll(): void {
+    if (this.scrollRaf !== null) return;
+    this.scrollRaf = requestAnimationFrame(() => {
+      this.scrollRaf = null;
+      const y = window.scrollY;
+      const delta = y - this.lastScrollY;
+      if (y <= 24) {
+        this.bottomNavShrunk.set(false);
+      } else if (delta > 4) {
+        this.bottomNavShrunk.set(true);
+      } else if (delta < -4) {
+        this.bottomNavShrunk.set(false);
+      }
+      this.lastScrollY = y;
+    });
+  }
 }

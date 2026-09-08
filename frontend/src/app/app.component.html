@@ -165,7 +165,8 @@
 <nav
   #bottomNav
   data-app-bottom-nav
-  class="sm:hidden fixed left-3 right-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-40 rounded-full bg-highlight/15 backdrop-blur-xl border border-highlight/25 shadow-pop"
+  class="sm:hidden fixed left-3 right-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-40 rounded-full bg-highlight/15 backdrop-blur-xl border border-highlight/25 shadow-pop origin-bottom transition-transform duration-300 ease-out motion-reduce:transition-none"
+  [style.transform]="bottomNavShrunk() ? 'translateZ(0) scale(0.9)' : 'translateZ(0)'"
 >
   <div #bottomNavRow class="relative flex items-center justify-around px-0 py-0">
   <div
