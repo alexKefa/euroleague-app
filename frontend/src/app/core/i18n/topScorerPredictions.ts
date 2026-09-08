@@ -11,7 +11,6 @@ export const topScorerPredictionsTranslations: Record<string, Record<Lang, strin
     el: "Οι επιλογές κλείδωσαν — το 4ο δεκάλεπτο ξεκίνησε.",
   },
   "topScorer.myPick": { en: "Your pick", el: "Η επιλογή σου" },
-  "topScorer.potentialPoints": { en: "pts", el: "πόντοι" },
   "topScorer.correct": { en: "Correct!", el: "Σωστό!" },
   "topScorer.wrong": { en: "Not this time", el: "Όχι αυτή τη φορά" },
   "topScorer.unresolvedTie": {

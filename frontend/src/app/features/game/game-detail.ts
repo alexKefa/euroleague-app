@@ -15,24 +15,6 @@ import { LiveCourtComponent } from "../../shared/live-court";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { TeamCodePipe } from "../../shared/team-display-code";
 
-// Mirrors backend/src/services/topScorerPoints.ts's
-// pointsForCorrectTopScorerPick exactly — kept as a separate implementation
-// here (not fetched), same "preview only, keep in sync by hand" pattern as
-// predictions.ts's own pointsForCorrectPick mirror. No favorite/underdog
-// branch: a player's own season pointsPerGame, normalized against
-// TYPICAL_TOP_SCORER_PPG, stands in for how big a long-shot the pick is.
-const TOP_SCORER_POINTS_PER_CORRECT = 10;
-const TOP_SCORER_POINTS_CAP = 40;
-const TOP_SCORER_MIN_SHARE = 0.15;
-const TYPICAL_TOP_SCORER_PPG = 19;
-
-function pointsForCorrectTopScorerPick(pointsPerGame: number | null | undefined): number {
-  if (pointsPerGame == null) return TOP_SCORER_POINTS_PER_CORRECT;
-  const share = Math.max(TOP_SCORER_MIN_SHARE, Math.min(1, pointsPerGame / TYPICAL_TOP_SCORER_PPG));
-  const raw = TOP_SCORER_POINTS_PER_CORRECT / share;
-  return Math.min(TOP_SCORER_POINTS_CAP, Math.max(TOP_SCORER_POINTS_PER_CORRECT, Math.round(raw)));
-}
-
 interface TopScorerCandidate {
   player: RosterEntry["player"];
   pointsPerGame: number | null;
@@ -230,13 +212,6 @@ export class GameDetailComponent implements OnInit {
     away: this.candidatesFor(this.awayRoster(), "away"),
   }));
 
-  topScorerPointsPreview(pointsPerGame: number | null): number {
-    return pointsForCorrectTopScorerPick(pointsPerGame);
-  }
-
-  // Feeds <app-live-court>'s player overlay — only meaningful while live
-  // (the list picker below the scoreboard covers the pre-tipoff case, see
-  // game-detail.html).
   // Sorted highest live points (once underway) / season pointsPerGame
   // first — feeds the horizontally-scrolling photo strip above the court
   // (game-detail.html) so the most relevant candidates are reachable

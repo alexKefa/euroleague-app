@@ -1879,10 +1879,36 @@ at the same Neon instance as local dev — there's no separate prod database.
     uncertainty. Enforced on both `POST`/`DELETE` routes and mirrored
     client-side (`game-detail.ts`'s `isTopScorerLocked`, kept in sync by
     hand like the points-formula mirror). The photo strip disables and
-    dims once locked instead of silently no-op'ing on tap, since it's the
-    *only* picking surface still visible once locked (the list picker
-    hides entirely) — verified directly: a tap on a non-picked player
-    during Q4 correctly left the existing pick untouched.
+    dims once locked instead of silently no-op'ing on tap, since it was
+    (at the time) the only picking surface still visible once locked — see
+    the next bullet, since the separate list picker it was contrasted
+    against no longer exists — verified directly: a tap on a non-picked
+    player during Q4 correctly left the existing pick untouched.
+  - **List picker removed entirely; strip consolidated into one section
+    with a title, right after the score** (same day, later in the pass):
+    once the photo strip covered the full roster (not just a capped top-N)
+    the separate vertical list further down the page was fully redundant —
+    two ways to pick the same thing, one of them scrolled past the
+    Highlights/box-score cards to reach. Deleted the whole list card
+    (title, hint, two-column roster list, "your pick" line) and moved its
+    title/hint/locked-message/error/"your pick" text to sit directly above
+    the strip instead, all in one `@if` block — a user now sees what this
+    feature is and picks it in one place near the top of the page, not
+    split across two cards. The now-fully-unused points-preview mirror
+    (`pointsForCorrectTopScorerPick`, its constants, and the per-row "~10
+    pts" display the deleted list showed) was deleted with it rather than
+    left dead — nothing renders a points estimate anywhere in v1 now.
+  - **Ring-clipping bug #2, same underlying CSS quirk as the mobile-density
+    pass**: even after the earlier oval-ring fix, the picked player's ring
+    still rendered with its top edge cut off. Cause: `overflow-x-auto` on
+    the scrolling strip row implicitly forces `overflow-y` to compute as
+    `auto` too (a real CSS behavior — setting only one axis to a
+    scrolling value stops the other axis's `visible` from applying), which
+    silently clipped the ring/`scale-105` since the row had no vertical
+    room to spare. Fixed with top padding on the scroll row (`pt-3`) rather
+    than fighting the axis-coupling directly — doubles as the "add padding
+    above the strip" ask, since the same padding creates breathing room
+    under the title too.
 
 - **Original idea (2026-09-07, superseded by the shipped version above)** —
   a new prediction type layered on top of a *live* game, distinct from both
