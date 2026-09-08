@@ -177,7 +177,7 @@
     <path d="M16 1c8 5 8 25 0 30M16 1c-8 5-8 25 0 30" stroke="#1a1015" stroke-width="1.3" fill="none" />
   </svg>
 
-  @for (link of mobileNavLinks; track link.path) {
+  @for (link of mobileNavLinks; track link.path; let isFirstTab = $first) {
     <a
       data-nav-tab
       [routerLink]="link.path"
@@ -186,9 +186,19 @@
       [class.text-muted]="!isActive(link)"
       class="relative flex-1 flex items-center justify-center py-0.5"
     >
+      <!-- The first tab (Home) is also the capsule's own left end — when
+           it's active, the highlight fills the whole slot edge-to-edge
+           (inset-0 against this relative `<a>`, whose own left edge is
+           flush with the capsule's left edge since the row has no
+           padding) instead of floating as an inset circle, so it visually
+           merges into the capsule's rounded cap rather than leaving a gap.
+           Middle tabs keep the inset-circle look on .icon-wrap below. -->
+      @if (isActive(link) && isFirstTab) {
+        <span class="absolute inset-0 rounded-full bg-highlight/20"></span>
+      }
       <span
         class="icon-wrap relative flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-200"
-        [class]="isActive(link) ? 'bg-highlight/20' : ''"
+        [class]="isActive(link) && !isFirstTab ? 'bg-highlight/20' : ''"
       >
         <app-nav-icon [name]="link.icon" [active]="isActive(link)" [size]="25" />
         @if (link.path === '/predictions' && auth.isAuthenticated() && events.hasLiveGame()) {
@@ -207,10 +217,13 @@
     </a>
   }
 
-  <!-- "More" — always last. Profile/login now live in the top bar instead
-       of a tab here (see the nav at the top of this file); this overflow
-       is just for secondary destinations like Schedule (MORE_LINKS). -->
+  <!-- "More" — always last, which also makes it the capsule's own right
+       end: same edge-to-edge highlight treatment as the first (Home) tab
+       above when active/open, instead of an inset circle. -->
   <div data-nav-tab class="relative flex-1 flex items-center justify-center py-0.5">
+    @if (isMoreActive() || moreOpen()) {
+      <span class="absolute inset-0 rounded-full bg-highlight/20"></span>
+    }
     <button
       type="button"
       (click)="$event.stopPropagation(); toggleMore()"
@@ -220,10 +233,7 @@
       [class.text-muted]="!isMoreActive() && !moreOpen()"
       class="flex items-center justify-center"
     >
-      <span
-        class="icon-wrap relative flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-200"
-        [class]="(isMoreActive() || moreOpen()) ? 'bg-highlight/20' : ''"
-      >
+      <span class="icon-wrap relative flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-200">
         <app-nav-icon name="dots-vertical" [active]="isMoreActive() || moreOpen()" [size]="25" />
       </span>
     </button>
