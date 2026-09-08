@@ -108,4 +108,36 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.pirTotalLabel": { en: "PIR total", el: "Σύνολο PIR" },
   "fantasy.transfersLabel": { en: "Transfers", el: "Μεταγραφές" },
   "fantasy.roundCompleteTitle": { en: "Round complete!", el: "Η αγωνιστική ολοκληρώθηκε!" },
+  "fantasy.rulesButton": { en: "How points work", el: "Πώς μετράνε οι πόντοι" },
+  "fantasy.rulesTitle": { en: "How Fantasy Five scoring works", el: "Πώς μετράνε οι πόντοι στο Fantasy Πεντάδα" },
+  "fantasy.rulesSquadTitle": { en: "Your squad", el: "Η ομάδα σου" },
+  "fantasy.rulesSquadBody": {
+    en: "10 outfield players (4 Guards, 4 Forwards, 2 Centers) plus 1 head coach, all under a 100-credit budget cap.",
+    el: "10 παίκτες (4 Guards, 4 Forwards, 2 Centers) συν 1 προπονητής, μέσα σε όριο προϋπολογισμού 100 credits.",
+  },
+  "fantasy.rulesScoringTitle": { en: "Scoring", el: "Βαθμολόγηση" },
+  "fantasy.rulesScoringBody": {
+    en: "Once a round locks, your 5 starters and Sixth Man each score 100% of their real PIR (Performance Index Rating) from that round's games. Your 4 Bench players score 50% of theirs. A player with no game that round scores 0.",
+    el: "Μόλις κλειδώσει μια αγωνιστική, οι 5 βασικοί σου και ο 6ος παίκτης μετράνε το 100% του πραγματικού τους PIR από τους αγώνες της αγωνιστικής. Οι 4 παίκτες του πάγκου μετράνε το 50%. Παίκτης χωρίς αγώνα εκείνη την αγωνιστική μετράει 0.",
+  },
+  "fantasy.rulesCaptainTitle": { en: "Captain", el: "Αρχηγός" },
+  "fantasy.rulesCaptainBody": {
+    en: "Pick one of your 5 starters as captain — their points for the round are doubled.",
+    el: "Όρισε έναν από τους 5 βασικούς σου ως αρχηγό — οι πόντοι του διπλασιάζονται για την αγωνιστική.",
+  },
+  "fantasy.rulesCoachTitle": { en: "Coach", el: "Προπονητής" },
+  "fantasy.rulesCoachBody": {
+    en: "Scores off their real team's result that round, not a stat line: +20 points for a win, 0 for a loss. Always counts at full value.",
+    el: "Βαθμολογείται με βάση το πραγματικό αποτέλεσμα της ομάδας του εκείνη την αγωνιστική, όχι στατιστικά: +20 πόντοι για νίκη, 0 για ήττα. Πάντα μετράει στο 100%.",
+  },
+  "fantasy.rulesTransfersTitle": { en: "Transfers", el: "Μεταγραφές" },
+  "fantasy.rulesTransfersBody": {
+    en: "Your squad carries over round to round. You can swap up to 3 players against last round's squad before each round locks — moving an already-picked player between starter/Sixth Man/Bench is free. Your coach pick can change every round with no limit. Round 1 is a free, unlimited draft.",
+    el: "Η ομάδα σου μεταφέρεται από αγωνιστική σε αγωνιστική. Μπορείς να αλλάξεις έως 3 παίκτες σε σχέση με την προηγούμενη αγωνιστική πριν κλειδώσει η επόμενη — η μετακίνηση ήδη επιλεγμένου παίκτη μεταξύ βασικής πεντάδας/6ου/πάγκου είναι δωρεάν. Ο προπονητής μπορεί να αλλάξει κάθε αγωνιστική χωρίς όριο. Η 1η αγωνιστική είναι ελεύθερη κατασκευή χωρίς όριο.",
+  },
+  "fantasy.rulesLockTitle": { en: "Lock", el: "Κλείδωμα" },
+  "fantasy.rulesLockBody": {
+    en: "The whole round locks the moment its first game tips off — lineup, formation, captain, and coach all become read-only until the next round.",
+    el: "Όλη η αγωνιστική κλειδώνει μόλις ξεκινήσει ο πρώτος αγώνας — η ομάδα, ο σχηματισμός, ο αρχηγός και ο προπονητής κλειδώνουν μέχρι την επόμενη αγωνιστική.",
+  },
 };

@@ -1,6 +1,11 @@
 <div class="max-w-4xl mx-auto p-4 sm:p-6">
   <h1 class="font-display text-2xl tracking-wide mb-1">{{ i18n.t('fantasy.title') }}</h1>
-  <p class="text-sm text-muted mb-5">{{ i18n.t('fantasy.hint') }}</p>
+  <div class="flex flex-wrap items-center justify-between gap-2 mb-5">
+    <p class="text-sm text-muted">{{ i18n.t('fantasy.hint') }}</p>
+    <button type="button" (click)="showRules.set(true)" class="text-xs font-bold text-highlight hover:underline shrink-0">
+      {{ i18n.t('fantasy.rulesButton') }}
+    </button>
+  </div>
 
   <div class="flex gap-2 mb-5">
     <button
@@ -981,6 +986,48 @@
             }
           </div>
         }
+      </div>
+    </div>
+  }
+
+  <!-- Rules reference — static content, no per-round data, so a plain
+       boolean modal (same shell as the Fixtures popup above) is enough. -->
+  @if (showRules()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="showRules.set(false)">
+      <div
+        class="bg-card rounded-2xl border border-line shadow-pop p-5 max-w-sm w-full max-h-[85vh] overflow-y-auto"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="flex items-center justify-between gap-2 mb-4">
+          <p class="font-display text-xl tracking-wide">{{ i18n.t('fantasy.rulesTitle') }}</p>
+          <button type="button" (click)="showRules.set(false)" class="text-muted hover:text-ink text-2xl leading-none font-bold shrink-0">&times;</button>
+        </div>
+        <div class="space-y-4">
+          <div>
+            <p class="text-sm font-bold text-highlight mb-1">{{ i18n.t('fantasy.rulesSquadTitle') }}</p>
+            <p class="text-xs text-muted leading-relaxed">{{ i18n.t('fantasy.rulesSquadBody') }}</p>
+          </div>
+          <div>
+            <p class="text-sm font-bold text-highlight mb-1">{{ i18n.t('fantasy.rulesScoringTitle') }}</p>
+            <p class="text-xs text-muted leading-relaxed">{{ i18n.t('fantasy.rulesScoringBody') }}</p>
+          </div>
+          <div>
+            <p class="text-sm font-bold text-highlight mb-1">{{ i18n.t('fantasy.rulesCaptainTitle') }}</p>
+            <p class="text-xs text-muted leading-relaxed">{{ i18n.t('fantasy.rulesCaptainBody') }}</p>
+          </div>
+          <div>
+            <p class="text-sm font-bold text-highlight mb-1">{{ i18n.t('fantasy.rulesCoachTitle') }}</p>
+            <p class="text-xs text-muted leading-relaxed">{{ i18n.t('fantasy.rulesCoachBody') }}</p>
+          </div>
+          <div>
+            <p class="text-sm font-bold text-highlight mb-1">{{ i18n.t('fantasy.rulesTransfersTitle') }}</p>
+            <p class="text-xs text-muted leading-relaxed">{{ i18n.t('fantasy.rulesTransfersBody') }}</p>
+          </div>
+          <div>
+            <p class="text-sm font-bold text-highlight mb-1">{{ i18n.t('fantasy.rulesLockTitle') }}</p>
+            <p class="text-xs text-muted leading-relaxed">{{ i18n.t('fantasy.rulesLockBody') }}</p>
+          </div>
+        </div>
       </div>
     </div>
   }

@@ -279,6 +279,13 @@ export class FantasyComponent implements OnInit {
   readonly opponentByTeamId = signal<Map<string, OpponentInfo>>(new Map());
   readonly showFixtures = signal(false);
   readonly showFormationPicker = signal(false);
+  // Static rules reference (no per-round data, so a plain boolean modal is
+  // enough — same pattern as showFixtures/showFormationPicker) explaining
+  // how squad/scoring/captain/coach/transfers/lock work, straight out of
+  // services/fantasyScoring.ts's own doc comments. Reachable from either
+  // tab (roster or leaderboard) since a leaderboard viewer might want the
+  // same explanation without switching tabs first.
+  readonly showRules = signal(false);
 
   // --- Captain picker — a dialog next to the formation button, replacing
   // the old per-avatar tappable "C" badge on each starter (2026-09-07):
@@ -496,9 +503,20 @@ export class FantasyComponent implements OnInit {
     return id ? this.rowById().get(id) ?? null : null;
   });
 
-  // Swapping always crosses the active/bench line: a starter or sixth-man
-  // swaps with a bench occupant, a bench player swaps into the starter/
-  // sixth-man group.
+  // Swapping pairs any two occupied slots that AREN'T the same role — a
+  // starter or sixth-man swaps with a bench occupant, a bench player swaps
+  // into the starter/sixth-man group, and (2026-09-08 fix) a starter also
+  // swaps directly with the sixth-man slot. A same-role pair (bench<->bench,
+  // starter<->starter — sixth-man<->sixth-man can't happen, there's only
+  // one such slot) is excluded as a pointless no-op: it can't change the
+  // starting position mix or the bench-vs-active scoring split.
+  //
+  // The starter<->sixth-man case matters in practice specifically because a
+  // position can be scarce: with only 2 Centers in a 10-man squad, it's
+  // common for both to already sit in "active" roles (one starter, one
+  // sixth man) with none left on the bench — before this fix, that meant
+  // the starter Center's swap popup showed zero candidates even though a
+  // perfectly good Center swap partner existed one slot over.
   //
   // Position/formation gating only ever applies to the 5 *starter* slots —
   // a sixth-man <-> bench pairing (neither side is one of those 5) stays
@@ -506,7 +524,7 @@ export class FantasyComponent implements OnInit {
   // position requirement to protect. When one side IS a starter slot,
   // candidates used to be limited to an exact same-position swap
   // (slotAcceptsPlayer both ways). That's needlessly strict: swapping a
-  // starter for a different-position bench player is fine as long as the
+  // starter for a different-position candidate is fine as long as the
   // *resulting* 5-starter position mix still matches one of the 5 formations
   // this app supports — just possibly a different one than the current
   // formation (performSwap re-seats the starters into it and flips the
@@ -522,7 +540,7 @@ export class FantasyComponent implements OnInit {
     const slots = this.squadSlots();
     const sourceIdx = slots.findIndex((s) => s.playerId === id);
     if (sourceIdx === -1) return [];
-    const wantsBench = slots[sourceIdx].role !== "bench";
+    const sourceRole = slots[sourceIdx].role;
     const byId = this.rowById();
 
     const results: SwapCandidate[] = [];
@@ -530,7 +548,7 @@ export class FantasyComponent implements OnInit {
       const target = slots[targetIdx];
       if (!target.playerId || target.playerId === id) continue;
       if (this.isPlayerLocked(target.playerId)) continue;
-      if ((target.role === "bench") !== wantsBench) continue;
+      if (target.role === sourceRole) continue;
       const targetRow = byId.get(target.playerId);
       if (!targetRow) continue;
       const result = this.evaluateSwap(slots, sourceIdx, targetIdx);
