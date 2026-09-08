@@ -296,7 +296,7 @@ export async function getFantasyLeaderboardEntries(
         sum(
           coalesce(rs.valuation, 0)
           * (case when fl.is_captain then 2 else 1 end)
-          * (case when fl.slot_role = 'bench' then ${BENCH_SCORE_MULTIPLIER} else 1 end)
+          * (case when fl.slot_role = 'bench' then ${BENCH_SCORE_MULTIPLIER}::numeric else 1 end)
         ) as pts
       from fantasy_lineups fl
       left join round_stats rs on rs.player_id = fl.player_id and rs.season = fl.season and rs.round = fl.round
