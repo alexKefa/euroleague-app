@@ -5,6 +5,7 @@ import { dashboardTranslations } from "./dashboard";
 import { newsTranslations } from "./news";
 import { scheduleTranslations } from "./schedule";
 import { predictionsTranslations } from "./predictions";
+import { topScorerPredictionsTranslations } from "./topScorerPredictions";
 import { playerTranslations } from "./player";
 import { gameTranslations } from "./game";
 import { storeTranslations } from "./store";
@@ -34,6 +35,7 @@ export const translations: Record<string, Record<Lang, string>> = {
   ...newsTranslations,
   ...scheduleTranslations,
   ...predictionsTranslations,
+  ...topScorerPredictionsTranslations,
   ...playerTranslations,
   ...gameTranslations,
   ...storeTranslations,

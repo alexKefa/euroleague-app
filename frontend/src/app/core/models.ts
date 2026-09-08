@@ -325,6 +325,11 @@ export interface PlayerToWatch {
 
 export interface GameBoxscoreLine {
   player: { id: string; code: string; name: string };
+  // Already present on the backend's real JSON response (routes/games.ts's
+  // toLine() attaches it before splitting into home/away) — added here so
+  // the top-scorer prop UI can tell which side a live box-score player is
+  // on without a second lookup.
+  teamId: string;
   minutes: number | null;
   points: number | null;
   rebounds: number | null;
@@ -358,6 +363,17 @@ export interface Prediction {
   status: string; // "scheduled" | "final"
   predictedTeam: { id: string; code: string; name: string };
   isCorrect: boolean | null; // null = game not resolved yet
+}
+
+// Live in-game "top scorer" prop pick — a separate, free (no-stake) pick
+// from the win/loss Prediction above. Deliberately not integrated into the
+// points/leaderboard economy yet (v1 scope) — isCorrect/points here are
+// preview-only, see game-detail.ts.
+export interface TopScorerPrediction {
+  id: string;
+  gameId: string;
+  predictedPlayer: { id: string; code: string; name: string };
+  isCorrect: boolean | null; // null = game not final yet, or a tie with no clear top scorer
 }
 
 export interface Badge {

@@ -395,6 +395,29 @@ export const predictions = pgTable(
   })
 );
 
+// Live in-game "top scorer" prop pick — a separate table from `predictions`
+// rather than an extension of it, because the lock timing and resolution
+// target both differ: this locks at the game going final (not at tipoff —
+// picking/changing a pick while the game is live is the whole point of a
+// live prop), and resolves against a player, not a team. See
+// routes/topScorerPredictions.ts for the tipoff-lock deviation and
+// services/topScorerPoints.ts for resolution/scoring, both computed on read
+// from this table + games + player_game_stats, never a stored balance —
+// same convention as `predictions`.
+export const topScorerPredictions = pgTable(
+  "top_scorer_predictions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    gameId: uuid("game_id").notNull().references(() => games.id),
+    predictedPlayerId: uuid("predicted_player_id").notNull().references(() => players.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    userGameUnique: uniqueIndex("user_game_top_scorer_prediction_unique").on(table.userId, table.gameId),
+  })
+);
+
 // Manual point grants/deductions — layered on top of the picks-derived
 // points at read time rather than mutating a stored balance, since there
 // is no stored balance (see predictions.ts). Points may be negative.
@@ -847,6 +870,15 @@ export const predictionsRelations = relations(predictions, ({ one }) => ({
   predictedWinnerTeam: one(teams, {
     fields: [predictions.predictedWinnerTeamId],
     references: [teams.id],
+  }),
+}));
+
+export const topScorerPredictionsRelations = relations(topScorerPredictions, ({ one }) => ({
+  user: one(users, { fields: [topScorerPredictions.userId], references: [users.id] }),
+  game: one(games, { fields: [topScorerPredictions.gameId], references: [games.id] }),
+  predictedPlayer: one(players, {
+    fields: [topScorerPredictions.predictedPlayerId],
+    references: [players.id],
   }),
 }));
 

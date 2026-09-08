@@ -79,10 +79,96 @@
             [homeScore]="d.game.homeScore"
             [awayScore]="d.game.awayScore"
             [hotSide]="hotSide()"
+            [players]="topScorerCourtPlayers()"
+            (pickPlayer)="pickTopScorer($event)"
           />
         </div>
       }
     </div>
+
+    <!-- Live "top scorer" prop pick — a free, no-stake pick, separate from
+         win/loss Predictions. Open pre-tipoff AND while live (unlike
+         Predictions, which lock at tipoff) — only hidden once final. -->
+    @if (auth.currentUser() && (myTopScorerPick() || !isFinal())) {
+      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
+        <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-1">{{ i18n.t('topScorer.pickTitle') }}</p>
+        @if (!isFinal()) {
+          <p class="text-xs text-muted mb-3">{{ i18n.t('topScorer.hint') }}</p>
+        }
+
+        @if (topScorerPickError()) {
+          <p class="text-red-500 text-xs font-semibold mb-2">{{ topScorerPickError() }}</p>
+        }
+
+        @if (!isFinal()) {
+        <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-1">
+            @for (c of topScorerCandidates().home; track c.player.id) {
+              <button
+                type="button"
+                class="w-full flex items-center gap-2 p-1.5 rounded-lg text-left transition-colors hover:bg-page"
+                [class.bg-highlight]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
+                [class.bg-opacity-10]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
+                [disabled]="topScorerPickSaving()"
+                (click)="pickTopScorer(c.player.id)"
+              >
+                <app-player-photo [name]="c.player.name" [photoUrl]="c.player.photoUrl" [jerseyNumber]="c.player.jerseyNumber" [teamCode]="d.game.homeTeam.code" [size]="28" />
+                <span class="min-w-0 flex-1">
+                  <span class="block text-xs font-semibold truncate">{{ c.player.name }}</span>
+                  <span class="block text-[10px] text-muted">
+                    @if (c.livePoints !== null) {
+                      {{ c.livePoints }} {{ i18n.t('game.colPTS') }}
+                    } @else {
+                      ~{{ topScorerPointsPreview(c.pointsPerGame) }} {{ i18n.t('topScorer.potentialPoints') }}
+                    }
+                  </span>
+                </span>
+              </button>
+            }
+          </div>
+          <div class="space-y-1">
+            @for (c of topScorerCandidates().away; track c.player.id) {
+              <button
+                type="button"
+                class="w-full flex items-center gap-2 p-1.5 rounded-lg text-left transition-colors hover:bg-page"
+                [class.bg-highlight]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
+                [class.bg-opacity-10]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
+                [disabled]="topScorerPickSaving()"
+                (click)="pickTopScorer(c.player.id)"
+              >
+                <app-player-photo [name]="c.player.name" [photoUrl]="c.player.photoUrl" [jerseyNumber]="c.player.jerseyNumber" [teamCode]="d.game.awayTeam.code" [size]="28" />
+                <span class="min-w-0 flex-1">
+                  <span class="block text-xs font-semibold truncate">{{ c.player.name }}</span>
+                  <span class="block text-[10px] text-muted">
+                    @if (c.livePoints !== null) {
+                      {{ c.livePoints }} {{ i18n.t('game.colPTS') }}
+                    } @else {
+                      ~{{ topScorerPointsPreview(c.pointsPerGame) }} {{ i18n.t('topScorer.potentialPoints') }}
+                    }
+                  </span>
+                </span>
+              </button>
+            }
+          </div>
+        </div>
+        }
+
+        @if (myTopScorerPick(); as pick) {
+          <p class="text-xs font-semibold mt-3">
+            {{ i18n.t('topScorer.myPick') }}: {{ pick.predictedPlayer.name }}
+            @if (isFinal() && pick.isCorrect === true) {
+              <span class="text-green-500">— {{ i18n.t('topScorer.correct') }}</span>
+            }
+            @if (isFinal() && pick.isCorrect === false) {
+              <span class="text-red-500">— {{ i18n.t('topScorer.wrong') }}</span>
+            }
+            @if (isFinal() && pick.isCorrect === null) {
+              <span class="text-muted">— {{ i18n.t('topScorer.unresolvedTie') }}</span>
+            }
+          </p>
+        }
+      </div>
+    }
 
     <!-- Highlights (experimental: admin-set YouTube embed, no sync source yet) -->
     @if (d.game.highlightVideoId || auth.currentUser()?.isAdmin) {

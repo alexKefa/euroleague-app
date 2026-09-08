@@ -6,14 +6,39 @@ import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
 import { EventsService } from "../../core/events.service";
 import { AuthService } from "../../core/auth.service";
-import { GameDetail, GameBoxscoreLine, PlayerDetail } from "../../core/models";
+import { GameDetail, GameBoxscoreLine, PlayerDetail, RosterEntry, TopScorerPrediction } from "../../core/models";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { StatLegendComponent, StatLegendEntry } from "../../shared/stat-legend";
 import { SkeletonComponent } from "../../shared/skeleton";
-import { LiveCourtComponent } from "../../shared/live-court";
+import { LiveCourtComponent, TopScorerCourtPlayer } from "../../shared/live-court";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { TeamCodePipe } from "../../shared/team-display-code";
+
+// Mirrors backend/src/services/topScorerPoints.ts's
+// pointsForCorrectTopScorerPick exactly — kept as a separate implementation
+// here (not fetched), same "preview only, keep in sync by hand" pattern as
+// predictions.ts's own pointsForCorrectPick mirror. No favorite/underdog
+// branch: a player's own season pointsPerGame, normalized against
+// TYPICAL_TOP_SCORER_PPG, stands in for how big a long-shot the pick is.
+const TOP_SCORER_POINTS_PER_CORRECT = 10;
+const TOP_SCORER_POINTS_CAP = 40;
+const TOP_SCORER_MIN_SHARE = 0.15;
+const TYPICAL_TOP_SCORER_PPG = 19;
+
+function pointsForCorrectTopScorerPick(pointsPerGame: number | null | undefined): number {
+  if (pointsPerGame == null) return TOP_SCORER_POINTS_PER_CORRECT;
+  const share = Math.max(TOP_SCORER_MIN_SHARE, Math.min(1, pointsPerGame / TYPICAL_TOP_SCORER_PPG));
+  const raw = TOP_SCORER_POINTS_PER_CORRECT / share;
+  return Math.min(TOP_SCORER_POINTS_CAP, Math.max(TOP_SCORER_POINTS_PER_CORRECT, Math.round(raw)));
+}
+
+interface TopScorerCandidate {
+  player: RosterEntry["player"];
+  pointsPerGame: number | null;
+  livePoints: number | null;
+  side: "home" | "away";
+}
 
 interface TeamTotals {
   points: number;
@@ -162,6 +187,102 @@ export class GameDetailComponent implements OnInit {
     return !!d && d.statsSeason !== d.game.season;
   });
 
+  // Live "top scorer" prop pick — a separate, free pick from win/loss
+  // Predictions (see TopScorerPrediction's doc comment). Candidate pool is
+  // each team's full active roster (not just "players to watch"), fetched
+  // once alongside the game itself since the pool doesn't change mid-game.
+  readonly homeRoster = signal<RosterEntry[]>([]);
+  readonly awayRoster = signal<RosterEntry[]>([]);
+  readonly myTopScorerPick = signal<TopScorerPrediction | null>(null);
+  readonly topScorerPickSaving = signal(false);
+  readonly topScorerPickError = signal<string | null>(null);
+
+  // Only disabled once the game is final — unlike every other lock check on
+  // this page, this pick is deliberately open pre-tipoff AND while live
+  // (see routes/topScorerPredictions.ts on the backend for why).
+  readonly isTopScorerLocked = computed(() => this.isFinal());
+
+  private candidatesFor(roster: RosterEntry[], side: "home" | "away"): TopScorerCandidate[] {
+    const box = this.detail()?.boxscore;
+    const liveLines = side === "home" ? box?.home : box?.away;
+    return roster
+      .filter((r) => r.player.active)
+      .map((r) => ({
+        player: r.player,
+        pointsPerGame: r.stats?.pointsPerGame ?? null,
+        livePoints: liveLines?.find((l) => l.player.id === r.player.id)?.points ?? null,
+        side,
+      }));
+  }
+
+  readonly topScorerCandidates = computed<{ home: TopScorerCandidate[]; away: TopScorerCandidate[] }>(() => ({
+    home: this.candidatesFor(this.homeRoster(), "home"),
+    away: this.candidatesFor(this.awayRoster(), "away"),
+  }));
+
+  topScorerPointsPreview(pointsPerGame: number | null): number {
+    return pointsForCorrectTopScorerPick(pointsPerGame);
+  }
+
+  // Feeds <app-live-court>'s player overlay — only meaningful while live
+  // (the list picker below the scoreboard covers the pre-tipoff case, see
+  // game-detail.html).
+  // Capped per side (a full ~12-player roster stacked on the court's own
+  // key overlaps too densely to be usable) — the list picker below already
+  // covers the full roster, this is just a visual shortcut for the most
+  // relevant candidates: highest live points once the game is underway,
+  // otherwise season pointsPerGame. The user's own pick is always kept
+  // visible even if it falls outside the top N, so tapping a long-shot in
+  // the list doesn't make it vanish from the court.
+  private static readonly COURT_OVERLAY_MAX_PER_SIDE = 6;
+
+  readonly topScorerCourtPlayers = computed<TopScorerCourtPlayer[]>(() => {
+    const d = this.detail();
+    if (!d) return [];
+    const picked = this.myTopScorerPick()?.predictedPlayer.id ?? null;
+    const { home, away } = this.topScorerCandidates();
+    const toCourtPlayer = (c: TopScorerCandidate, teamCode: string): TopScorerCourtPlayer => ({
+      id: c.player.id,
+      name: c.player.name,
+      photoUrl: c.player.photoUrl,
+      jerseyNumber: c.player.jerseyNumber,
+      teamCode,
+      side: c.side,
+      isPicked: c.player.id === picked,
+    });
+    const topCandidates = (list: TopScorerCandidate[]): TopScorerCandidate[] => {
+      const sorted = [...list].sort((a, b) => (b.livePoints ?? b.pointsPerGame ?? 0) - (a.livePoints ?? a.pointsPerGame ?? 0));
+      const top = sorted.slice(0, GameDetailComponent.COURT_OVERLAY_MAX_PER_SIDE);
+      if (picked && !top.some((c) => c.player.id === picked)) {
+        const pickedCandidate = list.find((c) => c.player.id === picked);
+        if (pickedCandidate) top.push(pickedCandidate);
+      }
+      return top;
+    };
+    return [
+      ...topCandidates(home).map((c) => toCourtPlayer(c, d.game.homeTeam.code)),
+      ...topCandidates(away).map((c) => toCourtPlayer(c, d.game.awayTeam.code)),
+    ];
+  });
+
+  pickTopScorer(playerId: string): void {
+    const d = this.detail();
+    if (!d || this.isTopScorerLocked() || this.topScorerPickSaving()) return;
+
+    this.topScorerPickSaving.set(true);
+    this.topScorerPickError.set(null);
+    this.api.submitTopScorerPick(d.game.id, playerId).subscribe({
+      next: (pick) => {
+        this.myTopScorerPick.set(pick);
+        this.topScorerPickSaving.set(false);
+      },
+      error: (err) => {
+        this.topScorerPickError.set(err?.error?.error ?? this.i18n.t("topScorer.pickFailed"));
+        this.topScorerPickSaving.set(false);
+      },
+    });
+  }
+
   constructor() {
     // Only track `lastGameUpdate()` here — reading `detail()` via its
     // tracked getter and then writing back to it in the same effect would
@@ -197,6 +318,12 @@ export class GameDetailComponent implements OnInit {
       // up too. This subscribe callback runs outside the effect's tracked
       // scope, so setting `detail` here again doesn't re-trigger this effect.
       this.api.getGame(update.gameId).subscribe({ next: (d) => this.detail.set(d) });
+
+      // Re-fetch the top scorer pick once the game goes final so isCorrect
+      // resolves — nothing about the pick itself arrives over SSE.
+      if (update.status === "final" && this.auth.currentUser()) {
+        this.api.getTopScorerPick(update.gameId).subscribe({ next: (pick) => this.myTopScorerPick.set(pick) });
+      }
     });
   }
 
@@ -212,11 +339,23 @@ export class GameDetailComponent implements OnInit {
       next: (detail) => {
         this.detail.set(detail);
         this.loading.set(false);
+        this.api.getRoster(detail.game.homeTeam.id).subscribe({ next: (r) => this.homeRoster.set(r) });
+        this.api.getRoster(detail.game.awayTeam.id).subscribe({ next: (r) => this.awayRoster.set(r) });
       },
       error: (err) => {
         this.error.set(err?.error?.error ?? this.i18n.t("game.failedToLoad"));
         this.loading.set(false);
       },
+    });
+
+    // Not gated on auth.currentUser() — on a fresh page load that signal
+    // isn't populated yet at this point (restoreSession() resolves it
+    // asynchronously off the httpOnly refresh cookie, same "bootstrap
+    // race" documented in CLAUDE.md for the dashboard's team-hero). A
+    // logged-out request just 401s, which is silently ignored here.
+    this.api.getTopScorerPick(gameId).subscribe({
+      next: (pick) => this.myTopScorerPick.set(pick),
+      error: () => {},
     });
   }
 

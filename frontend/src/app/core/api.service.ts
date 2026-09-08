@@ -18,6 +18,7 @@ import {
   NewsSyncStatus,
   Game,
   Prediction,
+  TopScorerPrediction,
   LeaderboardEntry,
   PredictionSummary,
   PredictionAnalytics,
@@ -215,6 +216,21 @@ export class ApiService {
 
   adjustPoints(email: string, points: number, reason: string): Observable<unknown> {
     return this.http.post(`${API_BASE_URL}/predictions/points/adjust`, { email, points, reason });
+  }
+
+  // Live in-game "top scorer" prop pick — a separate, free pick from the
+  // win/loss Prediction above, allowed any time up to a game going final
+  // (not locked at tipoff). See TopScorerPrediction's doc comment.
+  submitTopScorerPick(gameId: string, playerId: string): Observable<TopScorerPrediction> {
+    return this.http.post<TopScorerPrediction>(`${API_BASE_URL}/top-scorer-predictions`, { gameId, playerId });
+  }
+
+  clearTopScorerPick(gameId: string): Observable<void> {
+    return this.http.delete<void>(`${API_BASE_URL}/top-scorer-predictions/${gameId}`);
+  }
+
+  getTopScorerPick(gameId: string): Observable<TopScorerPrediction | null> {
+    return this.http.get<TopScorerPrediction | null>(`${API_BASE_URL}/top-scorer-predictions/${gameId}`);
   }
 
   getInjuries(): Observable<InjuryReportEntry[]> {
