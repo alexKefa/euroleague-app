@@ -1760,14 +1760,76 @@ at the same Neon instance as local dev — there's no separate prod database.
   rather than the scoreboard advancing with no player ever credited for
   it), but real features reading `players` for a team with none synced
   (roster page, "players to watch", etc.) will just show empty/sparse.
-- **TODO: live in-game "prop" predictions** (2026-09-07, idea only, not
-  started) — a new prediction type layered on top of a *live* game, distinct
-  from both the existing win/loss game predictions and Fantasy Five: pick a
-  specific in-game outcome (the user's own example: "PAO-Baskonia's top
-  scorer will be Jerian Grant") rather than which team wins. Resolves off
-  the same real box-score data everything else already reads on completion
-  (`player_game_stats`, once the game is `final`), no new sync needed for
-  resolution itself.
+- **Live in-game "top scorer" prop predictions, v1 shipped (2026-09-08)** —
+  the 2026-09-07 idea (below, kept for context) is now built: pick which
+  player will be a game's top scorer, a new prediction type distinct from
+  both win/loss Predictions and Fantasy Five. Both open design questions
+  from the original idea were resolved before building:
+  - **Free pick, not a stake** — same no-risk philosophy as win/loss
+    Predictions, not the genuine-wager alternative that was floated.
+  - **Internal proxy, not real odds** — `services/topScorerPoints.ts`
+    prices a pick off the player's own `playerSeasonStats.pointsPerGame`
+    (normalized against a `TYPICAL_TOP_SCORER_PPG` constant, calibrated off
+    real max-PPG values from the last 3 seasons), not The Odds API — same
+    "internal proxy" precedent `computeFantasyPrice` already set, chosen
+    since that provider's EuroLeague player-prop coverage was never
+    confirmed to exist.
+  - **Locks at `final`, not at tipoff** — the one deliberate behavioral
+    deviation from win/loss Predictions: a pick can be made or changed any
+    time up to the game going final, including while it's live, since
+    "live" is the whole point of a prop tied to an in-progress game.
+    `top_scorer_predictions` (schema.ts) is a separate table from
+    `predictions` for exactly this reason, not an extension of it.
+  - **v1 deliberately does not touch the shared points economy** — `GET
+    /api/top-scorer-predictions/:gameId` returns `isCorrect` and the
+    frontend shows a points *preview*, but nothing here calls into
+    `getUserPoints()`, `services/leaderboard.ts`, or badge eligibility yet.
+    Wiring a correct pick into the real points/leaderboard total is a
+    follow-up decision, not bundled into this pass.
+  - **Resolution**: `computeTopScorerPlayerId` (mirrors `computeWinnerTeamId`)
+    finds the game's max `player_game_stats.points`; a tie between two or
+    more players resolves to `null` (no winner) — a real, expected case for
+    a shared stat total (unlike a tied final score), surfaced in the UI as
+    "no clear top scorer" rather than looking like a bug. Verified directly
+    by forcing a tie via a manual DB edit during testing.
+  - **Both surfacing ideas from 2026-09-07 were built, not just one**: a
+    list picker below the scoreboard (candidate pool is each team's full
+    active roster via the already-existing `GET /teams/:id/roster`, not
+    just "players to watch") and a tappable on-court overlay on
+    `<app-live-court>`. The overlay caps at 6 candidates per side (by live
+    points, falling back to season PPG) plus the user's own pick if it
+    falls outside that top 6 — an uncapped full-roster overlay was tried
+    first and was too visually dense (~12 stacked, overlapping icons per
+    side). `live-court.ts` gained a signal `input()` (`players`) for this —
+    deliberately not matching this file's existing plain `@Input()`/
+    `OnChanges` style, since any per-player derived state (the picked-player
+    ring) needs a `computed()` that actually tracks changes; see
+    `player-photo.ts`'s doc comment on the Fantasy Five court-swap bug this
+    would otherwise reintroduce.
+  - **Real bug caught and fixed during this same pass**: `game-detail.ts`'s
+    `ngOnInit` originally gated its pick fetch on `auth.currentUser()` being
+    already set — but on a fresh page load that signal isn't populated yet
+    (`restoreSession()` resolves it asynchronously off the httpOnly refresh
+    cookie), the same "bootstrap race" already documented under Frontend
+    architecture for the dashboard's team-hero. A logged-in user's own pick
+    silently never loaded. Fixed by always attempting the fetch and
+    swallowing a logged-out 401, rather than depending on that signal's
+    timing.
+  - **Not yet done, left as real follow-ups**: no leaderboard/badge
+    integration (see above); `TYPICAL_TOP_SCORER_PPG` and the points cap
+    are unvalidated against real 2026-27 play (the season has zero played
+    games as of this pass, so every pick currently prices at the flat
+    fallback rate — same season-transition gap `computeFantasyPrice` hit);
+    no SQL-fragment twin of the points formula exists yet since nothing
+    aggregates it server-side in v1 — add one (with explicit `::numeric`
+    casts, see the fantasyScoring.ts bug fixed the same session) only once
+    a real caller needs it.
+
+- **Original idea (2026-09-07, superseded by the shipped version above)** —
+  a new prediction type layered on top of a *live* game, distinct from both
+  the existing win/loss game predictions and Fantasy Five: pick a specific
+  in-game outcome (the user's own example: "PAO-Baskonia's top scorer will
+  be Jerian Grant") rather than which team wins.
   - **Open design question — free pick vs. real stake**: existing
     predictions are a free daily pick that *earns* points, never risks
     them; the user explicitly floated this as possibly a genuine bet
