@@ -2,7 +2,7 @@ import { Lang } from "./lang";
 
 export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.navLink": { en: "Fantasy Team", el: "Fantasy Ομάδα" },
-  "fantasy.title": { en: "Fantasy Five", el: "Fantasy Πεντάδα" },
+  "fantasy.title": { en: "Clutch Fantasy", el: "Clutch Fantasy" },
   "fantasy.hint": {
     en: "Draft 5 real players under a budget cap, name a captain (2x points), and score off their real box-score performance each round.",
     el: "Διάλεξε 5 πραγματικούς παίκτες μέσα σε ένα όριο προϋπολογισμού, όρισε αρχηγό (διπλοί πόντοι) και βαθμολογήσου με βάση την πραγματική τους απόδοση κάθε αγωνιστική.",
