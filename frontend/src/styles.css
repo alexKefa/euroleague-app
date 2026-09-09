@@ -1,17 +1,16 @@
 @import url("https://fonts.googleapis.com/css2?family=Iosevka+Charon+Mono:wght@500;700&display=swap");
 
-/* CYN Gamer isn't on Google Fonts — self-hosted below, see the comment
-   above .font-display for why. Single Black-weight file only — the
-   `100 900` range means every requested weight (font-medium,
-   font-semibold, font-bold, .font-display's own 700) resolves to this
-   one face rather than falling back to a system font for anything but
-   exactly 400/700. */
+/* Hellenica isn't on Google Fonts — self-hosted below, see the comment
+   above .font-display for why. Single weight file only — the `100 900`
+   range means every requested weight (font-medium, font-semibold,
+   font-bold, .font-display's own 700) resolves to this one face rather
+   than falling back to a system font for anything but exactly 400. */
 @font-face {
-  font-family: "CYN Gamer";
+  font-family: "Hellenica";
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
-  src: url("/assets/fonts/CYNGamer.otf") format("opentype");
+  src: url("/assets/fonts/Hellenica.ttf") format("truetype");
 }
 
 @tailwind base;
@@ -119,7 +118,30 @@
    for commercial use"), which requires attribution; that requirement and
    the license statement are preserved at
    `frontend/src/assets/fonts/CYNGamer-LICENSE.txt`. Iosevka Charon Mono
-   (mono) is still untouched. */
+   (mono) is still untouched.
+   Ninth swap, same day: display AND sans, CYN Gamer -> Hellenica (one
+   family for both roles again — CYN Gamer's files deleted outright).
+   A geometric display face by George Triantafyllakos (backpacker.gr,
+   Athens) — "the remake of one of my first attempts to design a
+   geometric typeface," per the designer's own page, with real lowercase
+   Latin/Greek/Cyrillic added Dec. 2019 (this app uses that current
+   version, not the original caps-only one). Single weight file, wired
+   in with the same `font-weight: 100 900` range trick as the two self-
+   hosted picks before it. License checked directly against
+   backpacker.gr's own fonts page (not Fontesk, which again only said
+   "free for commercial use" with no real terms): "the BP free collection
+   provides a diverse set of typefaces distributed free ('as in beer') ...
+   Feel free to use them either on personal or commercial projects ...
+   don't forget to refer to backpacker.gr whenever possible" — free with
+   a requested (not legally mandatory, unlike CYN Gamer's CC BY) courtesy
+   attribution, preserved at `Hellenica-LICENSE.txt`. The actual font file
+   came from a third-party mirror (globalfonts.pro) since backpacker.gr's
+   own download button is a JS/session-gated flow this session's tooling
+   couldn't drive — the license itself was independently verified against
+   backpacker.gr directly, not trusted from the mirror. Greek coverage
+   (every tonos vowel, final sigma, both dialytika marks) verified
+   glyph-by-glyph against the real binary, same as every self-hosted pick
+   above. Iosevka Charon Mono (mono) is still untouched. */
 .font-display {
   font-weight: 700;
 }

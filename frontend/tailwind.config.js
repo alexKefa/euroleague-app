@@ -31,11 +31,11 @@ module.exports = {
       },
       fontFamily: {
         // Greek-verified trio (see styles.css) — Rajdhani/Barlow/JetBrains
-        // Mono had no Greek glyphs at all. CYN Gamer is self-hosted (not
-        // on Google Fonts, single Black-weight file covering the whole
-        // 100-900 range) — see the @font-face block in styles.css.
-        sans: ["CYN Gamer", "system-ui", "sans-serif"],
-        display: ["CYN Gamer", "Arial", "sans-serif"],
+        // Mono had no Greek glyphs at all. Hellenica is self-hosted (not
+        // on Google Fonts, single-weight file covering the whole 100-900
+        // range) — see the @font-face block in styles.css.
+        sans: ["Hellenica", "system-ui", "sans-serif"],
+        display: ["Hellenica", "Arial", "sans-serif"],
         mono: ["Iosevka Charon Mono", "ui-monospace", "monospace"],
       },
       boxShadow: {
