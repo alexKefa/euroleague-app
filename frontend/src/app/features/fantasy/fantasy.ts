@@ -114,7 +114,15 @@ function formationForPositionCounts(counts: Record<PositionName, number>): Forma
 // already removed from that art (see its own doc comment), nothing in
 // the court drawing needs the avatars to land on a specific spot any
 // more — this only changes spacing between the avatar rows themselves.
-const ROW_TOP: Record<PositionName, number> = { Guard: 34, Forward: 62, Center: 90 };
+// Center pulled back from 90 to 80 the same day, caught immediately after
+// ("player on the rim, can't see the name below"): the court container
+// (`overflow-hidden`, fixed 320/300 aspect ratio) clips anything that
+// falls outside its own box, and a slot's PIR-line+avatar+name stack is
+// centered on ROW_TOP via `-translate-y-1/2` — at 90% top, roughly half
+// that stack's real height (~40-45px on a court only ~300-335px tall)
+// landed below the container's bottom edge and got clipped outright, not
+// just cramped. 80% leaves real margin instead of none.
+const ROW_TOP: Record<PositionName, number> = { Guard: 33, Forward: 57, Center: 80 };
 // Widened 2026-09-07 (from [30,70]/[18,50,82]) — on a narrow mobile court
 // column, avatars in the same row sat close enough to visually crowd each
 // other. Horizontal-only change: spreading a row wider doesn't touch
