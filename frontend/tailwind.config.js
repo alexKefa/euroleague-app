@@ -31,11 +31,11 @@ module.exports = {
       },
       fontFamily: {
         // Greek-verified trio (see styles.css) — Rajdhani/Barlow/JetBrains
-        // Mono had no Greek glyphs at all. Vela Sans and Lulu Monospace
-        // are both self-hosted (not on Google Fonts) — see the
-        // @font-face blocks in styles.css.
-        sans: ["Vela Sans", "system-ui", "sans-serif"],
-        display: ["Vela Sans", "Arial", "sans-serif"],
+        // Mono had no Greek glyphs at all. New Computer Modern Sans and
+        // Lulu Monospace are both self-hosted (not on Google Fonts) —
+        // see the @font-face blocks in styles.css.
+        sans: ["New Computer Modern Sans", "system-ui", "sans-serif"],
+        display: ["New Computer Modern Sans", "Arial", "sans-serif"],
         mono: ["Lulu Monospace", "ui-monospace", "monospace"],
       },
       boxShadow: {

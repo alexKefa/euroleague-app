@@ -1,0 +1,14 @@
+New Computer Modern Sans typeface by Antonis Tsolomitis (Samos, Greece)
+Source: https://ctan.org/pkg/newcomputermodern
+
+A modern extension of Donald Knuth's original Computer Modern (TeX),
+adding full Latin, Greek (monotonic and polytonic), and Cyrillic
+coverage. Verified directly against the package's own License.txt
+(mirrors.ctan.org/fonts/newcomputermodern/License.txt, checked
+2026-09-09): "All fonts are distributed under the GUST license except
+NewCM10-Regular, all NewCMUncial, and all NewCM*Devanagari" (which use
+GPL3+FontException+DistributionException instead) — NewCMSans10 (the
+two files used here) falls under the plain GUST Font License (GFL), not
+the GPL3 exception list.
+
+Full GUST Font License text: https://www.gust.org.pl/projects/e-foundry/licenses

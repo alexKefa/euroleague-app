@@ -1579,18 +1579,27 @@ If you need to apply a schema change without an interactive terminal
   themselves backed by CSS variables (not fixed hex), which is what makes
   the dark/light toggle (`ThemeService.toggleColorScheme()`, stamps
   `data-theme` on `<html>`) repaint the whole app with zero template
-  changes. Fonts, current as of 2026-09-09: **Vela Sans** (display AND
-  sans/body, one family for both roles — the first self-hosted pick with
-  4 genuinely separate weight files, 400/500/600/700, rather than one
-  face stretched across a `100 900` range) and **Lulu Monospace** (mono/
-  labels, single weight, `100 900` range) — both self-hosted, set up in
-  `frontend/src/styles.css`, full `@font-face` blocks and swap history in
-  the comment above `.font-display` there.
-  **Vela Sans** (`frontend/src/assets/fonts/VelaSans-*.otf`) is a
-  semi-condensed modern grotesque by Ravid Balaliev (behance.net/ravid29)
-  — explicitly a modification of the Manrope font project. Genuinely
-  OFL 1.1 licensed (confirmed via the designer's own Behance post — the
-  one font added today where Fontesk's license tag was actually right).
+  changes. Fonts, current as of 2026-09-09: **New Computer Modern Sans**
+  (display AND sans/body, one family for both roles — 2 real weight
+  files, Regular/Bold, wired with `100 500`/`600 900` ranges so
+  font-medium/font-semibold land on the nearer one) and **Lulu Monospace**
+  (mono/labels, single weight, `100 900` range) — both self-hosted, set
+  up in `frontend/src/styles.css`, full `@font-face` blocks and swap
+  history in the comment above `.font-display` there.
+  **New Computer Modern Sans** (`frontend/src/assets/fonts/NewCMSans-*.otf`,
+  ~650-670KB each — far larger than any pick before it) is the sans
+  member of Antonis Tsolomitis's New Computer Modern family (Samos,
+  Greece), a modern, hugely-extended descendant of Donald Knuth's
+  original Computer Modern (the classic TeX/LaTeX font) — full Latin,
+  Greek (monotonic AND polytonic — no other pick here has been checked
+  against polytonic), Cyrillic, and math symbol coverage, 5000+ glyphs.
+  Distributed via CTAN (the Comprehensive TeX Archive Network), about as
+  authoritative a primary source as font licensing gets. Its own
+  `License.txt` names an exception list of fonts under
+  GPL3+FontException+DistributionException; the two files used here
+  (`NewCMSans10-Regular`/`-Bold`) aren't on that list, so they fall under
+  the package's default **GUST Font License (GFL)** instead — a real,
+  established license (gust.org.pl), not an aggregator paraphrase.
   **Lulu Monospace** (`LuluMonospace-Regular.otf`) is by Stelios
   Ypsilantis — "free for personal & commercial use," verified against
   both the designer's Behance post and a co-designer's ipassas.com store
@@ -1617,13 +1626,14 @@ If you need to apply a schema change without an interactive terminal
   Condensed → GFS Neohellenic/Noto Sans → Fervojo (self-hosted, rejected
   same day, "i dont like it") → Moderustic → LT Superior (self-hosted,
   retired Noto Sans, one family for both roles) → Swanston (self-hosted)
-  → CYN Gamer (self-hosted) → Hellenica (self-hosted) → **Vela Sans**
-  (self-hosted) for display/sans; mono went Rajdhani-trio → Fira Code →
-  Iosevka Charon Mono → **Lulu Monospace** (self-hosted). The first two
-  display swaps went through a side-by-side Artifact comparison; every
-  swap after that was a named-font "just apply it" request — each
-  self-hosted font's files were deleted outright the moment it was
-  replaced, nothing legacy left behind at any point in this chain.
+  → CYN Gamer (self-hosted) → Hellenica (self-hosted) → Vela Sans
+  (self-hosted) → **New Computer Modern Sans** (self-hosted) for
+  display/sans; mono went Rajdhani-trio → Fira Code → Iosevka Charon Mono
+  → **Lulu Monospace** (self-hosted). The first two display swaps went
+  through a side-by-side Artifact comparison; every swap after that was a
+  named-font "just apply it" request — each self-hosted font's files were
+  deleted outright the moment it was replaced, nothing legacy left behind
+  at any point in this chain.
 - Forms use Angular Reactive Forms (`ReactiveFormsModule` + `FormBuilder`),
   not template-driven/`ngModel` — follow that pattern for new forms.
 - **Buttons**: `shared/button.directive.ts`'s `ButtonDirective` (`[appButton]`,
