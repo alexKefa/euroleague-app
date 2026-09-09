@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { registerClient } from "../realtime/hub.js";
-import { startSimulation, completeSimulation, isSimulationRunning } from "../realtime/liveScoreSimulator.js";
+import { startSimulation, completeSimulation, isSimulationRunning, simulateRound } from "../realtime/liveScoreSimulator.js";
 import { verifyAccessToken } from "../auth/tokens.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
 
@@ -54,6 +54,27 @@ eventsRouter.post("/simulate", requireAuth, requireAdmin, async (req, res) => {
   } catch (err) {
     console.error("POST /api/events/simulate failed:", err);
     res.status(500).json({ error: "Failed to start live-game simulation" });
+  }
+});
+
+// Simulates every still-scheduled game in one round, one after another —
+// see simulateRound() in liveScoreSimulator.ts.
+eventsRouter.post("/simulate/round", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { season, round } = req.body ?? {};
+    if (typeof season !== "string" || typeof round !== "number") {
+      res.status(400).json({ error: "season and round are required" });
+      return;
+    }
+    const result = await simulateRound(season, round);
+    if ("error" in result) {
+      res.status(400).json(result);
+      return;
+    }
+    res.json(result);
+  } catch (err) {
+    console.error("POST /api/events/simulate/round failed:", err);
+    res.status(500).json({ error: "Failed to simulate round" });
   }
 });
 

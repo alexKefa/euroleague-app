@@ -344,3 +344,31 @@ export async function completeSimulation(): Promise<void> {
     await scheduleTick();
   }
 }
+
+/**
+ * Simulates every still-scheduled game in one round, one at a time
+ * (startSimulation only ever allows one `running` sim at a time, so this
+ * just drives that same start -> fast-forward-to-final sequence in a loop
+ * rather than trying to run several games concurrently). Each game still
+ * gets its own full tick-by-tick sequence and broadcasts exactly as it
+ * would if simulated individually — this is a driver loop, not a shortcut
+ * that skips straight to final scores.
+ */
+export async function simulateRound(season: string, round: number): Promise<{ simulatedCount: number } | { error: string }> {
+  if (running) return { error: "A simulation is already running" };
+
+  const roundGames = await db
+    .select({ id: games.id })
+    .from(games)
+    .where(and(eq(games.season, season), eq(games.round, round), eq(games.status, "scheduled")))
+    .orderBy(asc(games.tipoffAt));
+
+  let simulatedCount = 0;
+  for (const g of roundGames) {
+    const result = await startSimulation(g.id);
+    if ("error" in result) continue;
+    await completeSimulation();
+    simulatedCount += 1;
+  }
+  return { simulatedCount };
+}

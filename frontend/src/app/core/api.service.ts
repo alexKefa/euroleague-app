@@ -171,6 +171,10 @@ export class ApiService {
     return this.http.post<{ running: boolean }>(`${API_BASE_URL}/events/simulate/complete`, {});
   }
 
+  simulateRound(season: string, round: number): Observable<{ simulatedCount: number }> {
+    return this.http.post<{ simulatedCount: number }>(`${API_BASE_URL}/events/simulate/round`, { season, round });
+  }
+
   // One request for a whole round's worth of picks/clears, submitted only
   // once the user taps "Complete predictions" — not one POST/DELETE per
   // tap. teamId: null clears that game's pick. errors (if any) is keyed by

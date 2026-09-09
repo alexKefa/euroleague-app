@@ -55,6 +55,7 @@ export class ScheduleComponent implements OnInit {
   readonly teamFilter = signal<string | null>(null);
   readonly simulating = signal(false);
   readonly completingSimulation = signal(false);
+  readonly simulatingRound = signal(false);
 
   // Admin-only reset — undoes a live-score-simulator run (or bad test data)
   // on one game or a whole round. Destructive (deletes predictions made
@@ -234,6 +235,24 @@ export class ScheduleComponent implements OnInit {
     this.api.completeLiveSimulation().subscribe({
       next: () => this.completingSimulation.set(false),
       error: () => this.completingSimulation.set(false),
+    });
+  }
+
+  // Simulates every still-scheduled game in the current round, one after
+  // another (the backend only ever runs one sim at a time, see
+  // simulateRound() in liveScoreSimulator.ts) — the request only resolves
+  // once every game in the round has reached "final", so a single reload
+  // afterward picks up every game's final state at once.
+  simulateWholeRound(): void {
+    const round = this.currentRound();
+    if (round === null) return;
+    this.simulatingRound.set(true);
+    this.api.simulateRound(SEASON, round).subscribe({
+      next: () => {
+        this.simulatingRound.set(false);
+        this.loadRound(round);
+      },
+      error: () => this.simulatingRound.set(false),
     });
   }
 

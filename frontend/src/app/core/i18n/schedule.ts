@@ -29,6 +29,10 @@ export const scheduleTranslations: Record<string, Record<Lang, string>> = {
     en: "Admin: fast-forward simulation",
     el: "Διαχειριστής: γρήγορη προσομοίωση",
   },
+  "schedule.simulateRoundAdmin": {
+    en: "Admin: simulate whole round",
+    el: "Διαχειριστής: προσομοίωση όλου του γύρου",
+  },
   "schedule.resetRoundAdmin": { en: "Admin: reset round", el: "Διαχειριστής: επαναφορά γύρου" },
   "schedule.resetGame": { en: "Reset this game", el: "Επαναφορά αγώνα" },
   "schedule.resetGameConfirm": {

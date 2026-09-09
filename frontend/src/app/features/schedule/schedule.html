@@ -41,37 +41,53 @@
   </div>
 
   @if (auth.currentUser()?.isAdmin) {
-    <div class="flex gap-2 mb-4">
-      <button
-        type="button"
-        (click)="simulateLiveGame()"
-        [disabled]="simulating()"
-        appButton="outline"
-        appButtonSize="sm"
-        class="flex-1"
-      >
-        {{ i18n.t('schedule.simulateLiveAdmin') }}
-      </button>
-      <button
-        type="button"
-        (click)="completeSimulation()"
-        [disabled]="completingSimulation()"
-        appButton="secondary"
-        appButtonSize="sm"
-        class="flex-1"
-      >
-        {{ i18n.t('schedule.finishLiveAdmin') }}
-      </button>
-      <button
-        type="button"
-        (click)="confirmingResetRound.set(true)"
-        [disabled]="resettingRound()"
-        appButton="outline"
-        appButtonSize="sm"
-        class="flex-1"
-      >
-        {{ i18n.t('schedule.resetRoundAdmin') }}
-      </button>
+    <div class="space-y-2 mb-4">
+      <!-- Simulation tools: start one/all games and fast-forward whatever's running. -->
+      <div class="grid grid-cols-1 sm:flex gap-2">
+        <button
+          type="button"
+          (click)="simulateLiveGame()"
+          [disabled]="simulating() || simulatingRound()"
+          appButton="outline"
+          appButtonSize="sm"
+          class="sm:flex-1"
+        >
+          {{ i18n.t('schedule.simulateLiveAdmin') }}
+        </button>
+        <button
+          type="button"
+          (click)="simulateWholeRound()"
+          [disabled]="simulatingRound() || simulating()"
+          appButton="outline"
+          appButtonSize="sm"
+          class="sm:flex-1"
+        >
+          {{ i18n.t('schedule.simulateRoundAdmin') }}
+        </button>
+        <button
+          type="button"
+          (click)="completeSimulation()"
+          [disabled]="completingSimulation()"
+          appButton="secondary"
+          appButtonSize="sm"
+          class="sm:flex-1"
+        >
+          {{ i18n.t('schedule.finishLiveAdmin') }}
+        </button>
+      </div>
+      <!-- Destructive: undoes simulated/test data for the round. -->
+      <div class="grid grid-cols-1 sm:flex gap-2">
+        <button
+          type="button"
+          (click)="confirmingResetRound.set(true)"
+          [disabled]="resettingRound()"
+          appButton="outline"
+          appButtonSize="sm"
+          class="sm:flex-1"
+        >
+          {{ i18n.t('schedule.resetRoundAdmin') }}
+        </button>
+      </div>
     </div>
   }
 
