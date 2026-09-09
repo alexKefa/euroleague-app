@@ -1,4 +1,14 @@
-@import url("https://fonts.googleapis.com/css2?family=GFS+Neohellenic:wght@400;700&family=Noto+Sans:wght@400;500;600;700&family=Fira+Code:wght@500;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Fira+Code:wght@500;700&display=swap");
+
+/* Fervojo isn't on Google Fonts — self-hosted below, see the @font-face
+   block and the comment above .font-display for why. */
+@font-face {
+  font-family: "Fervojo";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/assets/fonts/Fervojo-Bold.woff2") format("woff2");
+}
 
 @tailwind base;
 @tailwind components;
@@ -35,11 +45,23 @@
    chosen deliberately over another generic-sans display face, since this
    app is bilingual EN/EL and the old picks (Rajdhani, Syne, Play) all
    treated Greek as something to retrofit onto rather than a first-class
-   design constraint. Only weights 400/700 exist for GFS Neohellenic
-   (same as Play before it), and most `font-display` usages across the
-   templates don't separately add `font-bold` — keep the class's bold
-   baseline so headers/scores keep the same punch without touching every
-   template. */
+   design constraint.
+   display swapped a fourth time, same day, GFS Neohellenic -> Fervojo
+   (self-hosted, see @font-face above) — Noto Sans (sans/body) is
+   untouched, only the display face changed, same "swap just the headline
+   face, keep the proven body" move as before. Fervojo isn't on Google
+   Fonts at all (open-source, OFL-licensed, github.com/Kohakuno-Layer/
+   Fervojo, originally a numerals-only face for Tokyo's subway signage
+   before its Latin/Greek expansion) — its real Greek coverage was
+   verified glyph-by-glyph against the actual font binary (every tonos-
+   accented vowel, final sigma, both dialytika marks) rather than trusted
+   from the README, same rigor the Hauora Sans check used. Only the Bold
+   (700) weight is shipped — `.font-display`'s own 700 baseline plus the
+   few templates that add `font-bold` cover every real usage in the
+   templates, so Regular/Medium/etc. were never fetched. License text
+   kept alongside the font file at
+   `frontend/src/assets/fonts/Fervojo-OFL.txt` per the OFL's redistribution
+   terms. */
 .font-display {
   font-weight: 700;
 }
