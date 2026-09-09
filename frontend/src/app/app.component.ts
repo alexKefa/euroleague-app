@@ -214,11 +214,54 @@ export class AppComponent implements OnInit {
     // measurement means trackActiveTab only ever measures true, unscaled
     // dimensions, so the pill can never end up baked against a shrunk
     // frame in the first place.
+    //
+    // Still reported broken with just a couple of rAFs after the reset —
+    // the bar's transform doesn't snap back instantly, it *animates* over
+    // the template's own `duration-300` transition, which is 10x longer
+    // than two frames. trackActiveTabAfterShrinkReset below waits for that
+    // transition to actually finish (transitionend, with a timeout safety
+    // net) before measuring whenever the bar really was shrunk — "reset
+    // scale, then change tab" as two real, sequential steps, not raced.
     effect(() => {
       this.activeTabSlot();
+      const wasShrunk = this.bottomNavShrunk();
       this.bottomNavShrunk.set(false);
-      requestAnimationFrame(() => this.trackActiveTab(true));
+      this.trackActiveTabAfterShrinkReset(wasShrunk);
     });
+  }
+
+  // See the constructor's effect above. When the bar wasn't shrunk to
+  // begin with (the common case — nothing to reset, so bottomNavShrunk's
+  // value/the transform never actually changes and no transition ever
+  // fires) this just measures next frame like before. When it *was*
+  // shrunk, waits for the reset transition's real transitionend (not a
+  // guessed frame count) before measuring — with a timeout fallback
+  // (duration-300 + slack) in case the event never fires for any reason
+  // (e.g. the transition gets interrupted by another scroll mid-flight),
+  // and an immediate measure under prefers-reduced-motion, where the
+  // template's `motion-reduce:transition-none` means the transform snaps
+  // instantly and no transitionend would ever come.
+  private trackActiveTabAfterShrinkReset(wasShrunk: boolean): void {
+    const nav = this.bottomNavRef?.nativeElement;
+    const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    if (!wasShrunk || !nav || reducedMotion) {
+      requestAnimationFrame(() => requestAnimationFrame(() => this.trackActiveTab(true)));
+      return;
+    }
+
+    let settled = false;
+    const settle = () => {
+      if (settled) return;
+      settled = true;
+      nav.removeEventListener("transitionend", onTransitionEnd);
+      clearTimeout(timer);
+      this.trackActiveTab(true);
+    };
+    const onTransitionEnd = (e: TransitionEvent) => {
+      if (e.target === nav && e.propertyName === "transform") settle();
+    };
+    nav.addEventListener("transitionend", onTransitionEnd);
+    const timer = window.setTimeout(settle, 400);
   }
 
   ngOnInit(): void {
