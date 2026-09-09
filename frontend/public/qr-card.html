@@ -138,7 +138,15 @@
     <p class="features">Προβλέψεις &middot; Κάρτες &middot; Fantasy</p>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.6.0/lib/qr-code-styling.js"></script>
+  <!-- Vendored locally (vendor-qr-code-styling.js), not loaded from a CDN:
+       the real production server's own CSP (backend/src/index.ts) scopes
+       script-src to 'self' + 'unsafe-inline' — no external script host is
+       allowlisted — so a <script src="https://cdn.jsdelivr.net/..."> tag
+       is silently blocked by the browser on the live site (this file's
+       QR never rendered for exactly this reason: QRCodeStyling was never
+       defined, and the code below no-ops rather than throwing). Serving
+       the library from this app's own origin needs no CSP change at all. -->
+  <script src="/vendor-qr-code-styling.js"></script>
   <script>
     // No center logo: it caused two different failures across two rendering
     // modes (svg: could silently fail to load and leave a hidden-dots hole
