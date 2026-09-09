@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Play:wght@400;700&family=Roboto+Condensed:wght@400;500;600;700&family=Fira+Code:wght@500;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=GFS+Neohellenic:wght@400;700&family=Noto+Sans:wght@400;500;600;700&family=Fira+Code:wght@500;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -21,9 +21,23 @@
    Fira Sans -> Roboto Condensed (2026-08-31) — breaks the old Fira Sans/
    Fira Code sibling pairing on purpose, this was a deliberate visual pick,
    not a Greek-support fix (Roboto Condensed's Greek subset was verified
-   the same way via Google Fonts' own CSS API before switching). Only
-   weights 400/700 exist for Play, and most `font-display` usages across
-   the templates don't separately add `font-bold` — keep the class's bold
+   the same way via Google Fonts' own CSS API before switching).
+   display/sans swapped a third time, Play/Roboto Condensed -> GFS
+   Neohellenic/Noto Sans (2026-09-09) — Play+Roboto Condensed itself
+   started reading generic/AI-produced after enough exposure. This round
+   checked the *real* Google Fonts subset metadata (1946 families, only
+   118 actually carry Greek glyphs — most "trendy" candidates tried,
+   Titillium Web/Antonio/Saira/Exo 2/Rajdhani/Bebas Neue/Oswald-adjacent
+   condensed faces among them, still have none) via a side-by-side
+   Artifact comparison rendering real app strings before picking, rather
+   than swapping fonts into the live app one at a time. GFS Neohellenic is
+   built by the Greek Font Society specifically for Greek typesetting —
+   chosen deliberately over another generic-sans display face, since this
+   app is bilingual EN/EL and the old picks (Rajdhani, Syne, Play) all
+   treated Greek as something to retrofit onto rather than a first-class
+   design constraint. Only weights 400/700 exist for GFS Neohellenic
+   (same as Play before it), and most `font-display` usages across the
+   templates don't separately add `font-bold` — keep the class's bold
    baseline so headers/scores keep the same punch without touching every
    template. */
 .font-display {

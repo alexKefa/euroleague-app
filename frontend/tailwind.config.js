@@ -32,8 +32,8 @@ module.exports = {
       fontFamily: {
         // Greek-verified trio (see styles.css) — Rajdhani/Barlow/JetBrains
         // Mono had no Greek glyphs at all.
-        sans: ["Roboto Condensed", "system-ui", "sans-serif"],
-        display: ["Play", "Arial", "sans-serif"],
+        sans: ["Noto Sans", "system-ui", "sans-serif"],
+        display: ["GFS Neohellenic", "Georgia", "serif"],
         mono: ["Fira Code", "ui-monospace", "monospace"],
       },
       boxShadow: {
