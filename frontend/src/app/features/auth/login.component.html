@@ -1,30 +1,59 @@
-<div class="max-w-sm mx-auto p-6">
-  <h1 class="font-display text-2xl tracking-wide mb-5">{{ i18n.t('nav.login') }}</h1>
+<div class="min-h-[70vh] flex flex-col items-center justify-center px-6 py-10">
+  <!-- Brand mark — same C-ring-with-nested-basketball combination mark as
+       the nav wordmark (app.component.html), just standalone and bigger. -->
+  <div class="flex items-center gap-2.5 mb-9" aria-hidden="true">
+    <svg width="42" height="42" viewBox="0 0 100 100">
+      <path d="M 80 28 A 34 34 0 1 0 80 72" fill="none" stroke="var(--color-ink)" stroke-width="10" stroke-linecap="round"/>
+      <circle cx="54" cy="50" r="19" fill="none" stroke="#FF6B35" stroke-width="4.5"/>
+      <path d="M 54 31 L 54 69" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M 40.6 36.6 Q 48 50 40.6 63.4" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M 67.4 36.6 Q 60 50 67.4 63.4" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round"/>
+    </svg>
+    <span class="font-display text-3xl tracking-wide">Clutch</span>
+  </div>
 
-  <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3">
-    <input
-      type="email"
-      formControlName="email"
-      [placeholder]="i18n.t('auth.emailPlaceholder')"
-      class="w-full px-4 py-3 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
-    />
-    <input
-      type="password"
-      formControlName="password"
-      [placeholder]="i18n.t('auth.passwordPlaceholder')"
-      class="w-full px-4 py-3 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
-    />
+  <!-- Glass capsule panel — same backdrop-blur/highlight-tint/highlight-border
+       treatment as the mobile bottom nav's floating capsule (app.component.html),
+       plus a diagonal holo-sweep shimmer echoing the collectible cards' tier
+       gradient (features/store/collectible-card). Picked as "Direction C" from
+       a 3-direction canvas comparison. -->
+  <div class="relative w-full max-w-sm overflow-hidden rounded-[28px] bg-highlight/10 backdrop-blur-xl border border-highlight/25 shadow-pop px-6 py-8">
+    <div
+      class="pointer-events-none absolute inset-0"
+      style="background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.14) 45%, rgba(124,108,240,0.18) 52%, transparent 65%)"
+    ></div>
 
-    @if (error()) {
-      <p class="text-red-500 text-xs font-semibold">{{ error() }}</p>
-    }
+    <div class="relative">
+      <h1 class="font-mono text-xs font-bold tracking-widest uppercase text-highlight mb-5">
+        {{ i18n.t('nav.login') }}
+      </h1>
 
-    <button type="submit" [disabled]="form.invalid || submitting()" appButton class="w-full">
-      {{ submitting() ? i18n.t('auth.loggingIn') : i18n.t('nav.login') }}
-    </button>
-  </form>
+      <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3">
+        <input
+          type="email"
+          formControlName="email"
+          [placeholder]="i18n.t('auth.emailPlaceholder')"
+          class="w-full px-4 py-3 rounded-2xl bg-page/40 border-2 border-highlight/20 text-sm font-semibold placeholder:text-muted focus:border-highlight outline-none"
+        />
+        <input
+          type="password"
+          formControlName="password"
+          [placeholder]="i18n.t('auth.passwordPlaceholder')"
+          class="w-full px-4 py-3 rounded-2xl bg-page/40 border-2 border-highlight/20 text-sm font-semibold placeholder:text-muted focus:border-highlight outline-none"
+        />
 
-  <p class="text-xs text-muted font-semibold mt-4">
+        @if (error()) {
+          <p class="text-red-500 text-xs font-semibold">{{ error() }}</p>
+        }
+
+        <button type="submit" [disabled]="form.invalid || submitting()" appButton class="w-full mt-1">
+          {{ submitting() ? i18n.t('auth.loggingIn') : i18n.t('nav.login') }}
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <p class="text-xs text-muted font-semibold mt-6">
     {{ i18n.t('auth.noAccount') }} <a routerLink="/register" class="text-highlight">{{ i18n.t('nav.register') }}</a>
   </p>
 </div>
