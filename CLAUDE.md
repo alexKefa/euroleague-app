@@ -1579,61 +1579,45 @@ If you need to apply a schema change without an interactive terminal
   themselves backed by CSS variables (not fixed hex), which is what makes
   the dark/light toggle (`ThemeService.toggleColorScheme()`, stamps
   `data-theme` on `<html>`) repaint the whole app with zero template
-  changes. Fonts, current as of 2026-09-09: **New Computer Modern Sans**
-  (display AND sans/body, one family for both roles — 2 real weight
-  files, Regular/Bold, wired with `100 500`/`600 900` ranges so
-  font-medium/font-semibold land on the nearer one) and **Lulu Monospace**
-  (mono/labels, single weight, `100 900` range) — both self-hosted, set
-  up in `frontend/src/styles.css`, full `@font-face` blocks and swap
-  history in the comment above `.font-display` there.
-  **New Computer Modern Sans** (`frontend/src/assets/fonts/NewCMSans-*.otf`,
-  ~650-670KB each — far larger than any pick before it) is the sans
-  member of Antonis Tsolomitis's New Computer Modern family (Samos,
-  Greece), a modern, hugely-extended descendant of Donald Knuth's
-  original Computer Modern (the classic TeX/LaTeX font) — full Latin,
-  Greek (monotonic AND polytonic — no other pick here has been checked
-  against polytonic), Cyrillic, and math symbol coverage, 5000+ glyphs.
-  Distributed via CTAN (the Comprehensive TeX Archive Network), about as
-  authoritative a primary source as font licensing gets. Its own
-  `License.txt` names an exception list of fonts under
-  GPL3+FontException+DistributionException; the two files used here
-  (`NewCMSans10-Regular`/`-Bold`) aren't on that list, so they fall under
-  the package's default **GUST Font License (GFL)** instead — a real,
-  established license (gust.org.pl), not an aggregator paraphrase.
-  **Lulu Monospace** (`LuluMonospace-Regular.otf`) is by Stelios
-  Ypsilantis — "free for personal & commercial use," verified against
-  both the designer's Behance post and a co-designer's ipassas.com store
-  listing (its narrow carve-outs — government/bank/political/police
-  commercial use — don't apply here); the designer's own site no longer
-  resolves, so the file came from a mirror (myfontlib.com) while the
-  license was confirmed at the two primary sources above. Every
-  self-hosted font's license is preserved verbatim as `*-LICENSE.txt`
-  alongside it. One hardcoded font-family (not routed through the
-  `font-mono` Tailwind class) in
-  `frontend/src/app/features/packs/packs.css`'s `.pack-set-code` rule has
-  needed updating by hand on every mono swap so far. Every self-hosted
-  pick's Greek coverage was verified glyph-by-glyph against the real font
-  binary, not trusted from a README or aggregator claim — this mattered
-  in practice more than once: Hauora Sans's README overclaimed Greek
-  support its published package didn't ship, LT Superior's GitHub repo
-  had no license file in its plain tree (the real OFL.txt only existed
-  inside its release zip), and CYN Gamer's own Fontesk listing didn't
-  name its actual license at all (turned out to be CC BY 4.0, found on
-  the designer's blog). `.font-display` carries a `font-weight: 700`
-  baseline.
+  changes. Fonts, current as of 2026-09-09: **IBM Plex Sans**, one family
+  for *all three* roles (display, sans/body, AND mono) — back to a plain
+  Google Fonts `@import` in `frontend/src/styles.css`, no self-hosted
+  `@font-face`/asset files at all, for the first time since the GFS
+  Neohellenic/Noto Sans pairing earlier the same day. Full swap history
+  (twelve display/sans swaps and three mono swaps in one day — a
+  genuinely wild ride, worth reading in full at least once) is in the
+  comment above `.font-display` there.
+  This landed here after asking for **IBM Plex *Mono*** specifically,
+  which turned out to have zero Greek glyphs at all per Google Fonts'
+  own metadata (`subsets: [cyrillic, cyrillic-ext, latin, latin-ext,
+  vietnamese]`, no `greek`) — checked directly, not assumed, same
+  standard as every font this whole day. Of the entire IBM Plex
+  superfamily, only the base **IBM Plex Sans** actually carries Greek
+  (Plex Mono, Plex Sans Condensed, and Plex Serif all lack it); given a
+  three-way choice (skip it / use Plex Sans everywhere / accept broken
+  Greek in the mono role), the pick was Plex Sans for all three roles.
+  Notably, IBM Plex Sans was tried once before, very early in this same
+  saga (Syne → IBM Plex Sans, 2026-08-26) and rejected then for reading
+  "generic dev-tool/AI-product" — worth knowing if it comes up again.
+  One hardcoded font-family (not routed through the `font-mono` Tailwind
+  class) in `frontend/src/app/features/packs/packs.css`'s
+  `.pack-set-code` rule has needed updating by hand on every mono swap
+  today. `.font-display` carries a `font-weight: 700` baseline.
   **The short version of a very eventful single day**: Rajdhani/Barlow/
   JetBrains Mono (no Greek at all) → Syne/IBM Plex Sans → Play/Roboto
   Condensed → GFS Neohellenic/Noto Sans → Fervojo (self-hosted, rejected
   same day, "i dont like it") → Moderustic → LT Superior (self-hosted,
   retired Noto Sans, one family for both roles) → Swanston (self-hosted)
   → CYN Gamer (self-hosted) → Hellenica (self-hosted) → Vela Sans
-  (self-hosted) → **New Computer Modern Sans** (self-hosted) for
-  display/sans; mono went Rajdhani-trio → Fira Code → Iosevka Charon Mono
-  → **Lulu Monospace** (self-hosted). The first two display swaps went
+  (self-hosted) → New Computer Modern Sans (self-hosted) for display/sans;
+  mono went Rajdhani-trio → Fira Code → Iosevka Charon Mono → Lulu
+  Monospace (self-hosted); both roles then unified onto **IBM Plex Sans**
+  (Google Fonts, no self-hosting). The first two display swaps went
   through a side-by-side Artifact comparison; every swap after that was a
-  named-font "just apply it" request — each self-hosted font's files were
-  deleted outright the moment it was replaced, nothing legacy left behind
-  at any point in this chain.
+  named-font "just apply it" request — every self-hosted font's files
+  were deleted outright the moment it was replaced, nothing legacy left
+  behind at any point in this chain, and `frontend/src/assets/fonts/` is
+  now empty again.
 - Forms use Angular Reactive Forms (`ReactiveFormsModule` + `FormBuilder`),
   not template-driven/`ngModel` — follow that pattern for new forms.
 - **Buttons**: `shared/button.directive.ts`'s `ButtonDirective` (`[appButton]`,

@@ -31,12 +31,13 @@ module.exports = {
       },
       fontFamily: {
         // Greek-verified trio (see styles.css) — Rajdhani/Barlow/JetBrains
-        // Mono had no Greek glyphs at all. New Computer Modern Sans and
-        // Lulu Monospace are both self-hosted (not on Google Fonts) —
-        // see the @font-face blocks in styles.css.
-        sans: ["New Computer Modern Sans", "system-ui", "sans-serif"],
-        display: ["New Computer Modern Sans", "Arial", "sans-serif"],
-        mono: ["Lulu Monospace", "ui-monospace", "monospace"],
+        // Mono had no Greek glyphs at all. IBM Plex Sans covers all three
+        // roles — IBM Plex Mono was asked for but has no Greek subset at
+        // all per Google Fonts' own metadata; Plex Sans is the only
+        // member of that superfamily that does.
+        sans: ["IBM Plex Sans", "system-ui", "sans-serif"],
+        display: ["IBM Plex Sans", "Arial", "sans-serif"],
+        mono: ["IBM Plex Sans", "ui-monospace", "monospace"],
       },
       boxShadow: {
         // Real elevation instead of a near-flat 1px line — was previously

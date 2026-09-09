@@ -1,32 +1,4 @@
-/* New Computer Modern Sans and Lulu Monospace aren't on Google Fonts —
-   both self-hosted below, see the comment above .font-display for why.
-   NewCM Sans ships 2 real weights (Regular/Bold — `100 500`/`600 900`
-   ranges route the in-between font-medium/font-semibold requests to
-   whichever is closer, same idea as the earlier single-weight `100 900`
-   trick, just split at the midpoint since there are two real files to
-   choose between here); Lulu Monospace is still single-weight, wired
-   with the `100 900` range as before. */
-@font-face {
-  font-family: "New Computer Modern Sans";
-  font-style: normal;
-  font-weight: 100 500;
-  font-display: swap;
-  src: url("/assets/fonts/NewCMSans-Regular.otf") format("opentype");
-}
-@font-face {
-  font-family: "New Computer Modern Sans";
-  font-style: normal;
-  font-weight: 600 900;
-  font-display: swap;
-  src: url("/assets/fonts/NewCMSans-Bold.otf") format("opentype");
-}
-@font-face {
-  font-family: "Lulu Monospace";
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url("/assets/fonts/LuluMonospace-Regular.otf") format("opentype");
-}
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -216,7 +188,26 @@
    font. License preserved at `NewCMSans-LICENSE.txt`. Greek coverage
    (every tonos vowel, final sigma, both dialytika marks) verified
    glyph-by-glyph against both real binaries, same as every self-hosted
-   pick above. Lulu Monospace (mono) is untouched. */
+   pick above. Lulu Monospace (mono) is untouched.
+   Twelfth swap, same day: all three roles (display, sans, AND mono) ->
+   IBM Plex Sans — asked for IBM Plex *Mono* specifically, but Google
+   Fonts' own metadata shows it carries zero Greek glyphs at all
+   (`subsets: [cyrillic, cyrillic-ext, latin, latin-ext, vietnamese]`, no
+   `greek` entry) — checked directly, not assumed, same as every font
+   this session. Of the whole IBM Plex superfamily, only the base **IBM
+   Plex Sans** actually has Greek (Plex Mono, Plex Sans Condensed, and
+   Plex Serif all lack it too). Given a straight choice between skipping
+   it, using Plex Sans everywhere, or accepting broken Greek in the mono
+   role, the call was to use IBM Plex Sans for all three roles — not
+   monospaced, but genuinely Greek-complete, and it fixes New Computer
+   Modern Sans/Lulu Monospace's own drawback of not being on Google Fonts
+   at all: both self-hosted fonts' files were deleted outright, and this
+   is back to a single `@import` line, no local `@font-face`/asset files
+   needed for the first time since the GFS Neohellenic/Noto Sans pairing.
+   IBM Plex Sans was actually tried once before, very early in this same
+   font saga (Syne -> IBM Plex Sans, 2026-08-26) and rejected then for
+   reading "generic dev-tool/AI-product" — worth knowing if it gets
+   reconsidered again down the line. */
 .font-display {
   font-weight: 700;
 }
