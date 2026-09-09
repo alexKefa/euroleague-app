@@ -200,8 +200,23 @@ export class AppComponent implements OnInit {
     // the DOM has already repainted the new .active classes the measurement
     // relies on, same reasoning as splash/resnap's own rAF use elsewhere in
     // this file.
+    //
+    // Also resets bottomNavShrunk to false first (2026-09-09 report): the
+    // shrink is a CSS `scale(0.9)` on the whole bar (see the template), so
+    // trackActiveTab's getBoundingClientRect() calls below measure
+    // *post-transform* (already-shrunk) pixel sizes while scrolled down.
+    // Those screen-space numbers get baked straight into the pill's own
+    // raw (pre-transform) width/height/transform — which the ancestor's
+    // scale(0.9) then applies to *again*, compounding into a pill that's
+    // visibly undersized/misaligned the moment the bar returns to full
+    // size (scrolling back up doesn't re-measure on its own, only a tab
+    // change does). Forcing the bar back to full size before every
+    // measurement means trackActiveTab only ever measures true, unscaled
+    // dimensions, so the pill can never end up baked against a shrunk
+    // frame in the first place.
     effect(() => {
       this.activeTabSlot();
+      this.bottomNavShrunk.set(false);
       requestAnimationFrame(() => this.trackActiveTab(true));
     });
   }
