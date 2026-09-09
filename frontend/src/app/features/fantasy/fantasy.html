@@ -71,9 +71,37 @@
               cdkDrag
               [cdkDragDisabled]="isPlayerLocked(slot.playerId)"
               [cdkDragData]="slot.playerId"
-              class="flex flex-col items-center gap-0.5"
+              class="flex flex-col items-center gap-1"
               [ngClass]="isPlayerLocked(slot.playerId) ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'"
             >
+              <!-- PIR/opponent sits above the avatar, not stacked below the
+                   name — on a narrow mobile court column, cramming avatar +
+                   name + this line all below one another left barely any
+                   real gap before the next row's own label started (see
+                   the "leave more space between players" ask, 2026-09-09).
+                   A fixed-height wrapper keeps every slot's avatar sitting
+                   at the same vertical spot regardless of whether this line
+                   has content (e.g. no game found for a bye round). -->
+              <div class="h-3 flex items-center justify-center">
+                @if (gameForTeam().get(row.team.id); as game) {
+                  @if (game.status === 'scheduled') {
+                    @if (opponentFor(row.team.id); as opp) {
+                      <span class="text-[9px] text-muted font-mono">{{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }} {{ opp.opponent.code }}</span>
+                    }
+                  } @else {
+                    <!-- Their game has started — show this round's real PIR
+                         so far instead of the now-moot "vs/@ opponent" line,
+                         live-updated via roundPirByPlayerId (see
+                         liveUpdatesEffect in fantasy.ts). -->
+                    <span class="text-[9px] font-mono font-bold flex items-center gap-1" [ngClass]="game.status === 'live' ? 'text-highlight' : 'text-muted'">
+                      @if (game.status === 'live') {
+                        <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
+                      }
+                      {{ roundPir(row.player.id) ?? '—' }} {{ i18n.t('fantasy.colPir') }}
+                    </span>
+                  }
+                }
+              </div>
               <div class="relative">
                 <button type="button" (click)="$event.stopPropagation(); openPlayerInfo(slot.playerId)" class="block rounded-full border-2 border-ink">
                   <app-player-photo
@@ -114,24 +142,6 @@
                 }
               </div>
               <button type="button" (click)="openPlayerInfo(slot.playerId)" [title]="row.player.name" class="block text-[11px] font-semibold text-center truncate max-w-[84px] bg-page/80 rounded px-1 hover:text-highlight transition-colors">{{ courtDisplayName(row.player.name) }}</button>
-              @if (gameForTeam().get(row.team.id); as game) {
-                @if (game.status === 'scheduled') {
-                  @if (opponentFor(row.team.id); as opp) {
-                    <span class="text-[9px] text-muted font-mono">{{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }} {{ opp.opponent.code }}</span>
-                  }
-                } @else {
-                  <!-- Their game has started — show this round's real PIR
-                       so far instead of the now-moot "vs/@ opponent" line,
-                       live-updated via roundPirByPlayerId (see
-                       liveUpdatesEffect in fantasy.ts). -->
-                  <span class="text-[9px] font-mono font-bold flex items-center gap-1" [ngClass]="game.status === 'live' ? 'text-highlight' : 'text-muted'">
-                    @if (game.status === 'live') {
-                      <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
-                    }
-                    {{ roundPir(row.player.id) ?? '—' }} {{ i18n.t('fantasy.colPir') }}
-                  </span>
-                }
-              }
             </div>
           } @else {
             <button
@@ -384,7 +394,7 @@
                 <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: sixthManSlot(), size: sixthManAvatarSize() }" />
               </div>
               <p class="text-[10px] text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.benchLabel') }}</p>
-              <div class="flex justify-center gap-4 sm:gap-3 flex-wrap">
+              <div class="flex justify-center gap-x-4 gap-y-5 sm:gap-3 flex-wrap">
                 @for (slot of benchSlots(); track slot.id) {
                   <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: slot, size: benchAvatarSize() }" />
                 }
@@ -441,8 +451,21 @@
                opens the player-info popup (last 5 games, see
                openPlayerInfo) instead of navigating away; the boxed price
                is a separate button that adds them to the squad instead
-               (see addToSquad) — the two used to be the same tap target. -->
-          <div class="hidden sm:flex sm:flex-[2] min-w-0 flex-col gap-1.5">
+               (see addToSquad) — the two used to be the same tap target.
+               `sm:sticky` + `sm:self-start` + a viewport-relative
+               `sm:max-h` (2026-09-09) turns this column into its own
+               bounded region instead of stretching to match the court
+               column's height (the parent row's default cross-axis
+               `stretch` was doing that) — the inner list's existing
+               `flex-1 min-h-0 overflow-y-auto` only actually scrolls once
+               its own box has a real bound to scroll within, and pinning
+               it in view while the (usually taller) court/bench column
+               scrolls past is the point of a sidebar list. The outer
+               border here is what visually reads as "the list of players,
+               bordered, to the right of the court" — the pieces inside it
+               (sort header, scrolling rows) keep their own subtler
+               borders as sub-divisions of that one panel. -->
+          <div class="hidden sm:flex sm:flex-[2] min-w-0 flex-col gap-1.5 sm:sticky sm:top-4 sm:self-start sm:max-h-[calc(100vh-2rem)] sm:border sm:border-line sm:rounded-2xl sm:p-2">
             <div class="flex items-center justify-around bg-card rounded-xl border border-line px-1 py-1">
               <button type="button" (click)="setSort('price')" class="flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wide" [ngClass]="sortKey() === 'price' ? 'text-highlight' : 'text-muted'">
                 {{ i18n.t('fantasy.colPrice') }}

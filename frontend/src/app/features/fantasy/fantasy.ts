@@ -106,7 +106,15 @@ function formationForPositionCounts(counts: Record<PositionName, number>): Forma
 // taller box so they land in the same real spots rather than drifting
 // down onto the rim the way the old percentages did once the box grew
 // without the court art growing to match.
-const ROW_TOP: Record<PositionName, number> = { Guard: 45, Forward: 65, Center: 85 };
+// Spread wider 2026-09-09 (from 45/65/85, a flat 20pt gap) — a mobile
+// squad slot now shows a PIR/opponent line above the avatar as well as
+// the name below it (see squadSlot's template), so each row needs more
+// real vertical room than a 20pt-of-300 gap gave it. Safe to widen
+// without re-touching court-background.ts: since the rim/backboard were
+// already removed from that art (see its own doc comment), nothing in
+// the court drawing needs the avatars to land on a specific spot any
+// more — this only changes spacing between the avatar rows themselves.
+const ROW_TOP: Record<PositionName, number> = { Guard: 34, Forward: 62, Center: 90 };
 // Widened 2026-09-07 (from [30,70]/[18,50,82]) — on a narrow mobile court
 // column, avatars in the same row sat close enough to visually crowd each
 // other. Horizontal-only change: spreading a row wider doesn't touch
