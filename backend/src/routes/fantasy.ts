@@ -9,6 +9,7 @@ import {
   fantasyLineups,
   coachFantasyPrices,
   fantasyCoachPicks,
+  fantasyPricingState,
   games,
   playerGameStats,
 } from "../db/schema.js";
@@ -25,12 +26,14 @@ import {
   FANTASY_TOTAL_OUTFIELD,
   FANTASY_POSITION_QUOTA,
   FANTASY_BUDGET_CAP,
+  FANTASY_PIR_CEILING_FLOOR,
   FANTASY_MIN_PRICE,
   COACH_MIN_PRICE,
   FANTASY_TRANSFERS_PER_ROUND,
   BENCH_SCORE_MULTIPLIER,
   COACH_WIN_POINTS,
   COACH_LOSS_POINTS,
+  computeBudgetCap,
 } from "../services/fantasyScoring.js";
 
 export const fantasyRouter = Router();
@@ -43,6 +46,21 @@ type SlotRole = (typeof SLOT_ROLES)[number];
 async function resolveSeason(seasonParam: unknown): Promise<string | null> {
   if (typeof seasonParam === "string") return seasonParam;
   return getCurrentSeason();
+}
+
+// The effective budget cap for a season — FANTASY_BUDGET_CAP scaled by how
+// far scripts/reprice-fantasy-players.ts's dynamic price ceiling has moved
+// off its floor (services/fantasyScoring.ts's computeBudgetCap). Falls back
+// to the flat FANTASY_BUDGET_CAP (ceiling === floor) if reprice has never
+// run for this season yet — same "unpriced player floors at MIN_PRICE"
+// spirit as the rest of this router before any pricing data exists.
+async function getBudgetCap(season: string): Promise<number> {
+  const [row] = await db
+    .select({ ceiling: fantasyPricingState.ceiling })
+    .from(fantasyPricingState)
+    .where(eq(fantasyPricingState.season, season))
+    .limit(1);
+  return computeBudgetCap(row?.ceiling ?? FANTASY_PIR_CEILING_FLOOR);
 }
 
 // The whole player pool + draft price for the roster builder — same
@@ -116,7 +134,7 @@ fantasyRouter.get("/coaches", async (req, res) => {
   }
 });
 
-function emptyLineupResponse(season: string | null, defaultRound: number | null) {
+function emptyLineupResponse(season: string | null, defaultRound: number | null, budgetCap: number = FANTASY_BUDGET_CAP) {
   return {
     season,
     round: null,
@@ -133,6 +151,7 @@ function emptyLineupResponse(season: string | null, defaultRound: number | null)
     transfersUsed: 0,
     transfersAllowed: null,
     baselinePlayerIds: null,
+    budgetCap,
   };
 }
 
@@ -202,7 +221,7 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
 
     const playerIds = lineupRows.map((r) => r.playerId);
 
-    const [lockAt, playerTeamRows, roundGames] = await Promise.all([
+    const [lockAt, playerTeamRows, roundGames, budgetCap] = await Promise.all([
       getRoundLockTime(season, round),
       playerIds.length
         ? db.select({ id: players.id, teamId: players.teamId }).from(players).where(inArray(players.id, playerIds))
@@ -219,6 +238,7 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
         })
         .from(games)
         .where(and(eq(games.season, season), eq(games.round, round))),
+      getBudgetCap(season),
     ]);
 
     const teamIdByPlayer = new Map(playerTeamRows.map((p) => [p.id, p.teamId]));
@@ -293,6 +313,7 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
       totalPir,
       transfersUsed,
       transfersAllowed: baseline ? FANTASY_TRANSFERS_PER_ROUND : null,
+      budgetCap,
       // The client-side mirror of the transfer-limit check above — lets the
       // roster builder disable adding a *new* (non-baseline) player once
       // the limit's already spent, the same pre-emptive-gating pattern the
@@ -448,9 +469,10 @@ fantasyRouter.post("/lineup/batch", requireAuth, async (req, res) => {
     // purely from binary float representation, which would wrongly reject
     // a squad that costs exactly the cap.
     const totalCost = Math.round((playersCost + coachCost) * 10) / 10;
-    if (totalCost > FANTASY_BUDGET_CAP) {
+    const budgetCap = await getBudgetCap(season);
+    if (totalCost > budgetCap) {
       res.status(400).json({
-        error: `Squad costs ${totalCost}, over the ${FANTASY_BUDGET_CAP}-credit budget`,
+        error: `Squad costs ${totalCost}, over the ${budgetCap}-credit budget`,
         code: "OVER_BUDGET",
       });
       return;

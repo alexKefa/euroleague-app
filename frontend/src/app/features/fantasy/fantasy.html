@@ -185,7 +185,7 @@
           <div class="flex items-center gap-3">
             @if (isCurrentRound()) {
               <p class="font-mono text-sm font-bold" [ngClass]="overBudget() ? 'text-red-500' : 'text-highlight'">
-                {{ totalCost() | number: '1.1-1' }} / {{ budgetCap }} {{ i18n.t('fantasy.budgetLabel') }}
+                {{ totalCost() | number: '1.1-1' }} / {{ budgetCap() | number: '1.1-1' }} {{ i18n.t('fantasy.budgetLabel') }}
               </p>
             }
             @if (fixtureGames().length > 0) {

@@ -26,11 +26,17 @@
 import "dotenv/config";
 import { sql } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { players, playerFantasyPrices, coachFantasyPrices } from "../db/schema.js";
+import { players, playerFantasyPrices, coachFantasyPrices, fantasyPricingState } from "../db/schema.js";
 import { getCurrentSeason } from "../services/season.js";
-import { computeFantasyPrice, computeCoachPrice, RECENT_FORM_WINDOW } from "../services/fantasyScoring.js";
+import {
+  computeFantasyPrice,
+  computeCoachPrice,
+  computeRawFantasyValue,
+  RECENT_FORM_WINDOW,
+  FANTASY_PIR_CEILING_FLOOR,
+} from "../services/fantasyScoring.js";
 
-async function repricePlayers(season: string): Promise<{ updated: number; usedFallback: number }> {
+async function repricePlayers(season: string): Promise<{ updated: number; usedFallback: number; ceiling: number }> {
   const allPlayers = await db.select({ id: players.id }).from(players);
 
   // One grouped query for every player's recent-form + season-baseline
@@ -85,19 +91,42 @@ async function repricePlayers(season: string): Promise<{ updated: number; usedFa
     left join prior_season prior on prior.player_id = p.id
   `);
   const inputByPlayerId = new Map(rows.map((r) => [r.player_id, r]));
+  const priceInputs = new Map(
+    allPlayers.map((player) => {
+      const input = inputByPlayerId.get(player.id);
+      return [
+        player.id,
+        {
+          recentAvgPIR: input?.recent_avg_pir ?? null,
+          recentAvgMinutes: input?.recent_avg_minutes ?? null,
+          recentGameCount: input?.recent_count ?? 0,
+          seasonPIR: input?.season_pir ?? null,
+          seasonMinutesPerGame: input?.season_minutes ?? null,
+        },
+      ];
+    })
+  );
+
+  // Dynamic re-anchor (2026-09-09, see FANTASY_PIR_CEILING_FLOOR's doc
+  // comment): the ceiling every player's raw value gets scaled against is
+  // the pool's own actual current top raw value this run, floored at the
+  // original Vezenkov calibration so a thin sample can't collapse the
+  // whole price curve. Whoever tops the pool this run always lands at
+  // exactly FANTASY_MAX_PRICE by construction — same as the fixed-ceiling
+  // version always put Vezenkov there, just no longer requiring it to be
+  // him specifically.
+  let maxRaw = FANTASY_PIR_CEILING_FLOOR;
+  for (const input of priceInputs.values()) {
+    const raw = computeRawFantasyValue(input);
+    if (raw !== null && raw > maxRaw) maxRaw = raw;
+  }
 
   let updated = 0;
   let usedFallback = 0;
   for (const player of allPlayers) {
     const input = inputByPlayerId.get(player.id);
     if (input?.used_fallback_season) usedFallback++;
-    const price = computeFantasyPrice({
-      recentAvgPIR: input?.recent_avg_pir ?? null,
-      recentAvgMinutes: input?.recent_avg_minutes ?? null,
-      recentGameCount: input?.recent_count ?? 0,
-      seasonPIR: input?.season_pir ?? null,
-      seasonMinutesPerGame: input?.season_minutes ?? null,
-    });
+    const price = computeFantasyPrice(priceInputs.get(player.id)!, maxRaw);
     await db
       .insert(playerFantasyPrices)
       .values({ playerId: player.id, season, price })
@@ -108,7 +137,18 @@ async function repricePlayers(season: string): Promise<{ updated: number; usedFa
     updated++;
   }
 
-  return { updated, usedFallback };
+  // Persisted so routes/fantasy.ts can compute the effective budget cap
+  // (computeBudgetCap) cheaply on every lineup load/save, without
+  // recomputing the whole pool's raw values on every request.
+  await db
+    .insert(fantasyPricingState)
+    .values({ season, ceiling: maxRaw })
+    .onConflictDoUpdate({
+      target: fantasyPricingState.season,
+      set: { ceiling: maxRaw, updatedAt: new Date() },
+    });
+
+  return { updated, usedFallback, ceiling: maxRaw };
 }
 
 async function repriceCoaches(season: string): Promise<{ updated: number; usedFallback: number }> {
@@ -187,7 +227,7 @@ async function main() {
 
   const players_ = await repricePlayers(season);
   console.log(
-    `Player prices upserted for ${players_.updated} players, season ${season} (${players_.usedFallback} priced off a prior season's stats).`
+    `Player prices upserted for ${players_.updated} players, season ${season} (${players_.usedFallback} priced off a prior season's stats, ceiling re-anchored to raw value ${players_.ceiling.toFixed(2)}).`
   );
 
   const coaches = await repriceCoaches(season);

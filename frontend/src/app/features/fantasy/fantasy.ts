@@ -181,7 +181,12 @@ export class FantasyComponent implements OnInit {
   private events = inject(EventsService);
 
   readonly starterCount = FANTASY_STARTER_COUNT;
-  readonly budgetCap = FANTASY_BUDGET_CAP;
+  // The season's effective cap (models.ts's FantasyLineup.budgetCap) — a
+  // signal, not a constant, since it now scales with real price inflation
+  // (2026-09-09, see computeBudgetCap in services/fantasyScoring.ts).
+  // Defaults to the flat FANTASY_BUDGET_CAP until loadLineup's first
+  // response sets the real value.
+  readonly budgetCap = signal(FANTASY_BUDGET_CAP);
   readonly positionQuota = FANTASY_POSITION_QUOTA;
   readonly formationOptions = FORMATION_OPTIONS;
   readonly formation = signal<Formation>("2-2-1");
@@ -665,7 +670,7 @@ export class FantasyComponent implements OnInit {
     return sum;
   });
 
-  readonly overBudget = computed(() => this.totalCost() > this.budgetCap);
+  readonly overBudget = computed(() => this.totalCost() > this.budgetCap());
 
   readonly squadFull = computed(() => this.squadSlots().every((s) => s.playerId !== null));
 
@@ -901,6 +906,7 @@ export class FantasyComponent implements OnInit {
         this.transfersUsed.set(lineup.transfersUsed);
         this.transfersAllowed.set(lineup.transfersAllowed);
         this.baselinePlayerIds.set(lineup.baselinePlayerIds ? new Set(lineup.baselinePlayerIds) : null);
+        this.budgetCap.set(lineup.budgetCap);
 
         const slots = initialSquadSlots();
         const serverMap = new Map<string, FantasySlotRole>();

@@ -1748,24 +1748,62 @@ at the same Neon instance as local dev — there's no separate prod database.
   treat any earlier "checked on <date>, covers N of M games" note as stale.
 - Redeploys to Railway are manual, not triggered by `git push` (see
   Deployment above).
-- **TODO: fantasy price ceiling shouldn't stay pinned to the season-start
-  anchor forever** (flagged 2026-09-09, not implemented) — `FANTASY_MIN_PRICE`
-  (4) and `FANTASY_MAX_PRICE` (17) in `services/fantasyScoring.ts` were both
-  picked once, at 2026-27's season start, the max anchored to a single real
-  reference point (Vezenkov's real-world EuroLeague Fantasy price — see the
-  "PIR-to-credit scale" bullet under Fantasy Five above). Explicit ask: every
-  player's price should be able to move up or down as the season plays out
-  (which `computeFantasyPrice` already does implicitly — it's recalculated
-  from blended recent-form + season PIR on every `fantasy:reprice` run), but
-  never drop below the 4cr floor — that part already holds today via the
-  existing `Math.max(FANTASY_MIN_PRICE, ...)` clamp. What's unresolved: the
-  17cr ceiling itself is still hard-pinned to wherever Vezenkov happened to
-  sit on day one, so nobody can ever price above that even if their real
-  in-season form clearly overtakes his. Revisit whether the ceiling should
-  stay fixed for the whole season or flex (e.g. re-anchor
-  `FANTASY_PIR_CEILING` off the season's actual current top performer on
-  each reprice, rather than a fixed constant) once there's real in-season
-  form to judge it against.
+- **Fantasy price ceiling now re-anchors instead of staying pinned to the
+  season-start anchor forever** (flagged 2026-09-09, fixed same day) —
+  `FANTASY_MAX_PRICE` (17, `services/fantasyScoring.ts`) was hard-pinned to
+  wherever Vezenkov's raw blended-PIR value happened to sit on day one
+  (`FANTASY_PIR_CEILING`, the scaling denominator), so nobody could ever
+  price above 17cr even once their real in-season form clearly overtook
+  his. Fixed by pulling the pre-scale value out into its own
+  `computeRawFantasyValue()`, renaming the old constant to
+  `FANTASY_PIR_CEILING_FLOOR`, and making `computeFantasyPrice()` accept an
+  optional `ceiling` (still defaults to the floor for a caller with no
+  whole-pool context). `scripts/reprice-fantasy-players.ts` now computes
+  every player's raw value up front each run, takes
+  `Math.max(FANTASY_PIR_CEILING_FLOOR, ...that pool's own max)`, and passes
+  it through — so the ceiling can only ever move *up* from the original
+  Vezenkov calibration (never down, so a thin early-season sample can't
+  collapse the whole price curve), and whoever actually tops the pool that
+  run lands at exactly `FANTASY_MAX_PRICE` by construction, no longer
+  requiring it to be Vezenkov specifically. `FANTASY_MIN_PRICE`'s floor
+  behavior was already correct and untouched. Verified live: re-running
+  `npm run fantasy:reprice` against the real DB re-anchored to raw value
+  22.10 (Vezenkov's own prior-season value edges just above the 22.0 floor)
+  and still topped the board at Vezenkov/17cr — expected, since real
+  2026-27 play still hasn't produced anyone who beats his prior-season
+  number yet; the mechanism will move the ceiling for real once someone's
+  actual in-season form does.
+
+  **Follow-up, same day: `FANTASY_BUDGET_CAP` now scales with that same
+  ceiling movement** — explicit ask ("budget should improve if current
+  players increased their cr"): if real price inflation makes an
+  otherwise-unchanged squad cost more, the 100cr cap should grow to match,
+  rather than quietly squeezing a user's transfer room for owning players
+  who got better. Considered three shapes (asked the user to pick):
+  tie the cap to the ceiling ratio (chosen), per-user headroom tracking
+  each user's own owned-squad cost increase, or market-wide average price
+  inflation. Landed on the simplest, most consistent option — same
+  mechanism for every user, no extra per-user state to track.
+  `computeBudgetCap(ceiling)` (`services/fantasyScoring.ts`) is
+  `FANTASY_BUDGET_CAP × (ceiling / FANTASY_PIR_CEILING_FLOOR)`, rounded to
+  the same tenth-credit precision as a price. The ceiling itself now
+  persists per season in a new `fantasy_pricing_state` table (season PK,
+  `ceiling`, `updatedAt` — schema change applied directly against the live
+  DB, not through `db:push`, per the Schema-changes workflow above) —
+  `scripts/reprice-fantasy-players.ts` upserts it every run rather than
+  leaving it a value that only ever existed transiently inside that one
+  script invocation, since `routes/fantasy.ts` needs it cheaply on every
+  lineup load/save (`getBudgetCap()`), not just once a week when reprice
+  runs. `GET /fantasy/lineup` now returns `budgetCap` (falls back to the
+  flat `FANTASY_BUDGET_CAP` if reprice has never run for a season —
+  `emptyLineupResponse`'s default), and `POST /lineup/batch`'s over-budget
+  check compares against it instead of the flat constant. Frontend:
+  `fantasy.ts`'s `budgetCap` changed from a fixed constant to a signal set
+  from the load response (`overBudget` and the status-bar display both
+  updated to call it). Verified live: re-running `fantasy:reprice` after
+  creating the table wrote `{ season: '2026-27', ceiling: 22.1 }`, which
+  computes to a 100.5cr cap today — a small, correct move matching how
+  little the ceiling itself has moved so far (see above).
 - **TODO: no dev/staging environment** — everything today is one production
   Railway service on `main`, deployed by hand from a local checkout, against
   the one live Neon database (`DATABASE_URL` is identical between local dev

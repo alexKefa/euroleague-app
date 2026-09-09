@@ -796,6 +796,13 @@ export interface FantasyLineup {
   // gating pattern the position quota already uses) — null exactly when
   // transfersAllowed is null.
   baselinePlayerIds: string[] | null;
+  // The season's effective budget cap (2026-09-09) — FANTASY_BUDGET_CAP
+  // scaled by how far the dynamic price ceiling has moved off its floor
+  // (services/fantasyScoring.ts's computeBudgetCap), so real price
+  // inflation grows a squad's spending power to match instead of quietly
+  // squeezing it. Defaults to the flat 100 before fantasy:reprice has ever
+  // run for a season.
+  budgetCap: number;
 }
 
 // GET /api/fantasy/leaderboard and /api/leagues/:id/fantasy-leaderboard —

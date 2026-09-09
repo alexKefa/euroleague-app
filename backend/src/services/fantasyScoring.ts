@@ -77,7 +77,7 @@ export const RECENT_FORM_WEIGHT = 0.65;
 export const LOW_MINUTES_THRESHOLD = 12;
 export const LOW_MINUTES_DAMPEN = 0.7;
 
-// --- PIR-to-credit scaling (2026-09-06) ---
+// --- PIR-to-credit scaling (2026-09-06; re-anchoring added 2026-09-09) ---
 //
 // Every version of this formula up to now used the blended PIR number
 // *as* the credit price directly (just rounded and clamped to
@@ -87,14 +87,28 @@ export const LOW_MINUTES_DAMPEN = 0.7;
 // league (Vezenkov, ~22 PIR) priced at 22cr, while real EuroLeague
 // Fantasy prices its own current top player (Vezenkov) at 17cr — a
 // directly comparable, sourced reference point (2026-09-06). Rather than
-// re-guess a ceiling, FANTASY_PIR_CEILING is calibrated to exactly that:
-// a player performing at Vezenkov's current level lands at FANTASY_MAX_PRICE,
-// and everyone else is scaled linearly against that same anchor, not just
+// re-guess a ceiling, the scale is calibrated to exactly that: a player
+// performing at Vezenkov's day-one level lands at FANTASY_MAX_PRICE, and
+// everyone else is scaled linearly against that same anchor, not just
 // individually clamped. This also gives real differentiation at the low
 // end, which the old 1:1 mapping didn't: two bench players at PIR 1 and
 // PIR 4 used to both floor at identical MIN_PRICE; now they land at
 // visibly different (still low) prices.
-export const FANTASY_PIR_CEILING = 22;
+//
+// FANTASY_PIR_CEILING_FLOOR was originally a single fixed constant
+// (FANTASY_PIR_CEILING) — pinned forever at Vezenkov's day-one raw value,
+// so nobody could ever price above FANTASY_MAX_PRICE even once their real
+// in-season form clearly overtook him (flagged 2026-09-09). Fixed by
+// re-anchoring the ceiling to the season's actual current top raw value on
+// every reprice run instead (scripts/reprice-fantasy-players.ts computes
+// this across the whole pool via computeRawFantasyValue below and passes
+// it into computeFantasyPrice as `ceiling`) — the constant here is now
+// only a *floor* on that dynamic value, kept at the original Vezenkov
+// calibration so a thin early-season sample can't collapse the whole price
+// curve just because nobody has matched his real level yet; the ceiling
+// can only ever move up from here, never down, rewarding someone who
+// genuinely overtakes it.
+export const FANTASY_PIR_CEILING_FLOOR = 22;
 
 export interface FantasyPriceInput {
   recentAvgPIR: number | null;
@@ -105,23 +119,39 @@ export interface FantasyPriceInput {
 }
 
 /**
- * See the formula comment above this file's constants. Returns
- * FANTASY_MIN_PRICE for a player with no usable PIR at all yet (no games
+ * The pre-scale "raw" value computeFantasyPrice would otherwise scale
+ * straight to a credit price — recent-form/season-baseline blend, with the
+ * low-minutes dampen applied. Pulled out on its own so
+ * scripts/reprice-fantasy-players.ts can find the pool's actual maximum
+ * (the dynamic ceiling's re-anchor point) without duplicating this blend
+ * logic. Returns null for a player with no usable PIR at all yet (no games
  * played this season or any prior one — a true rookie/new signing).
  */
-export function computeFantasyPrice(input: FantasyPriceInput): number {
+export function computeRawFantasyValue(input: FantasyPriceInput): number | null {
   const hasRecentForm = input.recentGameCount >= MIN_RECENT_GAMES && input.recentAvgPIR !== null;
 
   const blendedPIR = hasRecentForm
     ? RECENT_FORM_WEIGHT * input.recentAvgPIR! + (1 - RECENT_FORM_WEIGHT) * (input.seasonPIR ?? input.recentAvgPIR!)
     : input.seasonPIR ?? input.recentAvgPIR;
 
-  if (blendedPIR === null || blendedPIR === undefined) return FANTASY_MIN_PRICE;
+  if (blendedPIR === null || blendedPIR === undefined) return null;
 
   const effectiveMinutes = hasRecentForm ? input.recentAvgMinutes : input.seasonMinutesPerGame;
-  const raw = effectiveMinutes !== null && effectiveMinutes < LOW_MINUTES_THRESHOLD ? blendedPIR * LOW_MINUTES_DAMPEN : blendedPIR;
+  return effectiveMinutes !== null && effectiveMinutes < LOW_MINUTES_THRESHOLD ? blendedPIR * LOW_MINUTES_DAMPEN : blendedPIR;
+}
 
-  const scaled = FANTASY_MIN_PRICE + (raw / FANTASY_PIR_CEILING) * (FANTASY_MAX_PRICE - FANTASY_MIN_PRICE);
+/**
+ * See the formula comment above this file's constants. `ceiling` is the
+ * dynamic re-anchor point (defaults to the original fixed calibration,
+ * FANTASY_PIR_CEILING_FLOOR, for any caller that doesn't pass one — e.g. a
+ * one-off/test call with no whole-pool context to compute a real ceiling
+ * from). Returns FANTASY_MIN_PRICE for a player with no usable PIR at all.
+ */
+export function computeFantasyPrice(input: FantasyPriceInput, ceiling: number = FANTASY_PIR_CEILING_FLOOR): number {
+  const raw = computeRawFantasyValue(input);
+  if (raw === null) return FANTASY_MIN_PRICE;
+
+  const scaled = FANTASY_MIN_PRICE + (raw / ceiling) * (FANTASY_MAX_PRICE - FANTASY_MIN_PRICE);
   // Rounded to the nearest 0.1 credit, not a whole number (2026-09-06) —
   // two players a fraction of a PIR point apart used to collapse onto the
   // same integer price; the tenth-credit precision differentiates them
@@ -129,6 +159,21 @@ export function computeFantasyPrice(input: FantasyPriceInput): number {
   // `real` column type on player_fantasy_prices/coach_fantasy_prices in
   // schema.ts (was `integer`) and the price formatting in fantasy.html.
   return Math.min(FANTASY_MAX_PRICE, Math.max(FANTASY_MIN_PRICE, Math.round(scaled * 10) / 10));
+}
+
+/**
+ * The effective budget cap for a season, given the dynamic price ceiling
+ * currently in effect (fantasy_pricing_state.ceiling, set by
+ * scripts/reprice-fantasy-players.ts). Scales FANTASY_BUDGET_CAP by the
+ * same ratio the ceiling has moved off its floor — explicit request
+ * (2026-09-09): if real price inflation means an otherwise-unchanged squad
+ * now costs more, the budget available for transfers should grow to match,
+ * rather than quietly squeezing a player for owning cards that got better.
+ * Never below FANTASY_BUDGET_CAP itself, since the ceiling never drops
+ * below FANTASY_PIR_CEILING_FLOOR either (see that constant's comment).
+ */
+export function computeBudgetCap(ceiling: number): number {
+  return Math.round(FANTASY_BUDGET_CAP * (ceiling / FANTASY_PIR_CEILING_FLOOR) * 10) / 10;
 }
 
 // --- Coach pricing + scoring ---

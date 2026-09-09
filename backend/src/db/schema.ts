@@ -1084,6 +1084,24 @@ export const fantasyCoachPicks = pgTable(
   })
 );
 
+// The dynamic price-ceiling re-anchor point actually used the last time
+// scripts/reprice-fantasy-players.ts ran for a season (2026-09-09 — see
+// services/fantasyScoring.ts's FANTASY_PIR_CEILING_FLOOR doc comment for
+// why the ceiling is no longer a fixed constant). One row per season,
+// upserted by that script. Persisted rather than recomputed on read
+// because computing it requires the whole player pool's raw values — the
+// same query the reprice script already ran — and routes/fantasy.ts needs
+// it cheaply on every lineup load/save, not just once a week. Also drives
+// FANTASY_BUDGET_CAP's own scaling (computeBudgetCap) — by explicit
+// request, a squad's spending power should grow by the same ratio the
+// price ceiling has, so real price inflation from players improving
+// doesn't quietly squeeze an otherwise-unchanged squad's transfer room.
+export const fantasyPricingState = pgTable("fantasy_pricing_state", {
+  season: varchar("season", { length: 9 }).primaryKey(),
+  ceiling: real("ceiling").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const playerFantasyPricesRelations = relations(playerFantasyPrices, ({ one }) => ({
   player: one(players, { fields: [playerFantasyPrices.playerId], references: [players.id] }),
 }));
