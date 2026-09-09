@@ -1,158 +1,171 @@
-<title>Clutch QR Card</title>
-<meta name="description" content="Print-ready QR card for Clutch, in Greek — logo, scannable code, and a one-line feature summary." />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link
-  href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap"
-  rel="stylesheet"
-/>
-<style>
-  :root {
-    --bg: #f1efea;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Clutch QR Card</title>
+  <meta name="description" content="Print-ready QR card for Clutch, in Greek — logo, scannable code, and a one-line feature summary." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    :root {
+      --bg: #f1efea;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0a0a0b;
+      }
+    }
+    :root[data-theme="dark"] {
       --bg: #0a0a0b;
     }
-  }
-  :root[data-theme="dark"] {
-    --bg: #0a0a0b;
-  }
 
-  * {
-    box-sizing: border-box;
-  }
-  body {
-    background: var(--bg);
-    display: flex;
-    justify-content: center;
-    padding: 3.5rem 1.5rem;
-  }
+    * {
+      box-sizing: border-box;
+    }
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+    }
+    body {
+      background: var(--bg);
+      display: flex;
+      justify-content: center;
+      padding: 3.5rem 1.5rem;
+    }
 
-  /* The card is the print artifact itself — a fixed dark object, not page
-     chrome, so it keeps one identity regardless of the viewer's theme
-     (same reasoning a printed sticker or table-tent would: it doesn't
-     repaint itself when someone's phone is in light mode). */
-  .card {
-    --ink: #f0f0ec;
-    --muted: #8a8a86;
-    --accent: #ff6b35;
-    --line: #232324;
-    width: 100%;
-    max-width: 380px;
-    aspect-ratio: 4 / 5;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background: #151516;
-    border: 1px solid var(--line);
-    border-radius: 20px;
-    padding: 1.9rem 1.6rem 1.6rem;
-    color: var(--ink);
-    font-family: "Barlow", sans-serif;
-    filter: drop-shadow(0 22px 36px rgba(0, 0, 0, 0.3));
-  }
+    /* The card is the print artifact itself — a fixed dark object, not page
+       chrome, so it keeps one identity regardless of the viewer's theme
+       (same reasoning a printed sticker or table-tent would: it doesn't
+       repaint itself when someone's phone is in light mode). */
+    .card {
+      --ink: #f0f0ec;
+      --muted: #8a8a86;
+      --accent: #ff6b35;
+      --line: #232324;
+      width: 100%;
+      max-width: 380px;
+      aspect-ratio: 4 / 5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #151516;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 1.9rem 1.6rem 1.6rem;
+      color: var(--ink);
+      font-family: "Barlow", sans-serif;
+      filter: drop-shadow(0 22px 36px rgba(0, 0, 0, 0.3));
+    }
 
-  .brand {
-    display: inline-flex;
-    align-items: center;
-    font-family: "Rajdhani", sans-serif;
-    font-weight: 700;
-    font-size: 1.15rem;
-    letter-spacing: 0.03em;
-  }
-  .brand svg {
-    display: block;
-    margin-right: 0.2rem;
-  }
-  .subtitle {
-    font-family: "JetBrains Mono", monospace;
-    font-size: 0.62rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin: 0.35rem 0 0;
-  }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      font-family: "Rajdhani", sans-serif;
+      font-weight: 700;
+      font-size: 1.15rem;
+      letter-spacing: 0.03em;
+    }
+    .brand svg {
+      display: block;
+      margin-right: 0.2rem;
+    }
+    .subtitle {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.62rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 0.35rem 0 0;
+    }
 
-  .qr-wrap {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.8rem;
-    width: 100%;
-  }
-  .qr-box {
-    width: 78%;
-    aspect-ratio: 1 / 1;
-    line-height: 0;
-  }
-  .qr-box canvas,
-  .qr-box svg {
-    display: block;
-    width: 100%;
-    height: 100%;
-  }
-  .scan {
-    font-family: "JetBrains Mono", monospace;
-    font-size: 0.66rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--accent);
-  }
+    .qr-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.8rem;
+      width: 100%;
+    }
+    .qr-box {
+      width: 78%;
+      aspect-ratio: 1 / 1;
+      line-height: 0;
+    }
+    .qr-box canvas,
+    .qr-box svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    .scan {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.66rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
 
-  .features {
-    font-family: "JetBrains Mono", monospace;
-    font-size: 0.6rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--muted);
-    text-align: center;
-    border-top: 1px solid var(--line);
-    padding-top: 0.85rem;
-    width: 100%;
-  }
-</style>
+    .features {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-align: center;
+      border-top: 1px solid var(--line);
+      padding-top: 0.85rem;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <span class="brand"><svg width="20" height="20" viewBox="0 0 100 100" aria-hidden="true"><path d="M 80 28 A 34 34 0 1 0 80 72" fill="none" stroke="#F0F0EC" stroke-width="10" stroke-linecap="round" /><circle cx="54" cy="50" r="19" fill="none" stroke="#FF6B35" stroke-width="4.5" /><path d="M 54 31 L 54 69" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round" /><path d="M 40.6 36.6 Q 48 50 40.6 63.4" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round" /><path d="M 67.4 36.6 Q 60 50 67.4 63.4" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round" /></svg>lutch</span>
+    <p class="subtitle">Τα πάντα για την Euroleague.</p>
 
-<div class="card">
-  <span class="brand"><svg width="20" height="20" viewBox="0 0 100 100" aria-hidden="true"><path d="M 80 28 A 34 34 0 1 0 80 72" fill="none" stroke="#F0F0EC" stroke-width="10" stroke-linecap="round" /><circle cx="54" cy="50" r="19" fill="none" stroke="#FF6B35" stroke-width="4.5" /><path d="M 54 31 L 54 69" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round" /><path d="M 40.6 36.6 Q 48 50 40.6 63.4" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round" /><path d="M 67.4 36.6 Q 60 50 67.4 63.4" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round" /></svg>lutch</span>
-  <p class="subtitle">Τα πάντα για την Euroleague.</p>
+    <div class="qr-wrap">
+      <div class="qr-box" id="qr-card"></div>
+      <span class="scan">Σκάναρε για να παίξεις</span>
+    </div>
 
-  <div class="qr-wrap">
-    <div class="qr-box" id="qr-card"></div>
-    <span class="scan">Σκάναρε για να παίξεις</span>
+    <p class="features">Προβλέψεις &middot; Κάρτες &middot; Fantasy</p>
   </div>
 
-  <p class="features">Προβλέψεις &middot; Κάρτες &middot; Fantasy</p>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.6.0/lib/qr-code-styling.js"></script>
-<script>
-  // No center logo: it caused two different failures across two rendering
-  // modes (svg: could silently fail to load and leave a hidden-dots hole
-  // per the library's own docs; canvas: likely blocks the *entire* paint
-  // on that same image loading, since canvas compositing is imperative and
-  // has no separate async layer the way svg's <image> does — so a stalled
-  // load means nothing draws at all, not just a missing logo). A plain
-  // code sidesteps both failure classes entirely. The brand is already
-  // shown above the code on the card itself, so nothing is lost.
-  (function () {
-    var URL_TARGET = "https://clutchapp.up.railway.app";
-    if (typeof QRCodeStyling === "undefined") return;
-    var qr = new QRCodeStyling({
-      width: 320,
-      height: 320,
-      type: "canvas",
-      data: URL_TARGET,
-      margin: 8,
-      qrOptions: { errorCorrectionLevel: "H" },
-      dotsOptions: { color: "#F0F0EC", type: "rounded" },
-      cornersSquareOptions: { color: "#FF6B35", type: "extra-rounded" },
-      cornersDotOptions: { color: "#FF6B35", type: "dot" },
-      backgroundOptions: { color: "#151516" },
-    });
-    var el = document.getElementById("qr-card");
-    if (el) qr.append(el);
-  })();
-</script>
+  <script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.6.0/lib/qr-code-styling.js"></script>
+  <script>
+    // No center logo: it caused two different failures across two rendering
+    // modes (svg: could silently fail to load and leave a hidden-dots hole
+    // per the library's own docs; canvas: likely blocks the *entire* paint
+    // on that same image loading, since canvas compositing is imperative and
+    // has no separate async layer the way svg's <image> does — so a stalled
+    // load means nothing draws at all, not just a missing logo). A plain
+    // code sidesteps both failure classes entirely. The brand is already
+    // shown above the code on the card itself, so nothing is lost.
+    (function () {
+      var URL_TARGET = "https://clutchapp.up.railway.app";
+      if (typeof QRCodeStyling === "undefined") return;
+      var qr = new QRCodeStyling({
+        width: 320,
+        height: 320,
+        type: "canvas",
+        data: URL_TARGET,
+        margin: 8,
+        qrOptions: { errorCorrectionLevel: "H" },
+        dotsOptions: { color: "#F0F0EC", type: "rounded" },
+        cornersSquareOptions: { color: "#FF6B35", type: "extra-rounded" },
+        cornersDotOptions: { color: "#FF6B35", type: "dot" },
+        backgroundOptions: { color: "#151516" },
+      });
+      var el = document.getElementById("qr-card");
+      if (el) qr.append(el);
+    })();
+  </script>
+</body>
+</html>
