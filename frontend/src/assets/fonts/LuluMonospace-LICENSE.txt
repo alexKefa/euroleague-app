@@ -1,0 +1,13 @@
+Lulu Monospace typeface by Stelios Ypsilantis
+Sources checked directly (2026-09-09):
+- https://www.behance.net/gallery/66442101/Lulu-Monospace-Free-Typeface
+  ("Free for personal & commercial use", "free for download and any purposes")
+- https://ipassas.com/typeface-design (co-designer's own store listing):
+  "pay what you like starting from 0 ... free for any use personal or
+  commercial. Except government, banks, political parties, and police
+  commercials." (none of which apply to this app)
+
+Font file obtained via a third-party mirror (myfontlib.com) since the
+designer's own site (steliosyps.com/lulu-monospace/) no longer resolves
+(404) - the license above was verified against the designer's own
+Behance post and the ipassas.com store, not the mirror.

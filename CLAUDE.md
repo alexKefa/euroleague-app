@@ -1580,48 +1580,45 @@ If you need to apply a schema change without an interactive terminal
   the dark/light toggle (`ThemeService.toggleColorScheme()`, stamps
   `data-theme` on `<html>`) repaint the whole app with zero template
   changes. Fonts, current as of 2026-09-09: **Hellenica** (display AND
-  sans/body, one family for both roles — single-weight file, wired in
-  with a `font-weight: 100 900` range so every requested weight still
-  resolves to it) and **Iosevka Charon Mono** (mono/labels) — set up in
-  `frontend/src/styles.css`, full `@font-face` blocks and swap history in
-  the comment above `.font-display` there.
-  **Hellenica** (self-hosted, not on Google Fonts, `.ttf` at
-  `frontend/src/assets/fonts/Hellenica.ttf`) is a geometric display face
-  by George Triantafyllakos (backpacker.gr, Athens) — real lowercase
-  Latin/Greek/Cyrillic added Dec. 2019, per the designer's own page.
-  Licensed free "as in beer" for personal/commercial use with a requested
-  (not legally mandatory) attribution — verified against backpacker.gr's
-  own fonts page directly, not the Fontesk page that first surfaced it
-  (which only vaguely said "free for commercial use" with no real terms);
-  that statement is preserved at `Hellenica-LICENSE.txt`. The font file
-  itself came from a third-party mirror (globalfonts.pro) since
-  backpacker.gr's own download button is a JS/session-gated flow no
-  in-session tooling could drive — only the *file* came from the mirror,
-  the license was independently confirmed straight from backpacker.gr.
-  **Iosevka Charon Mono** is a plain Google Fonts pick (narrower than the
-  prior Fira Code, better fit for this app's many tight numeric chips —
-  fantasy price tags, serial numbers, stat lines); one hardcoded
-  `"Fira Code"` in `frontend/src/app/features/packs/packs.css`'s
-  `.pack-set-code` rule needed updating by hand alongside
-  `tailwind.config.js`, since it sat outside the `font-mono` Tailwind
-  class. Every self-hosted pick's Greek coverage was verified
-  glyph-by-glyph against the real font binary, not trusted from a README
-  or aggregator claim — this mattered in practice more than once: Hauora
-  Sans's README overclaimed Greek support its published package didn't
-  ship, LT Superior's GitHub repo had no license file in its plain tree
-  (the real OFL.txt only existed inside its release zip), and CYN Gamer's
-  own Fontesk listing didn't name its actual license at all (turned out
-  to be CC BY 4.0, found on the designer's blog). `.font-display` carries
-  a `font-weight: 700` baseline.
+  sans/body, one family for both roles) and **Lulu Monospace** (mono/
+  labels) — both self-hosted, single-weight files each wired in with a
+  `font-weight: 100 900` range so every requested weight still resolves
+  to them — set up in `frontend/src/styles.css`, full `@font-face` blocks
+  and swap history in the comment above `.font-display` there.
+  **Hellenica** (`frontend/src/assets/fonts/Hellenica.ttf`) is a
+  geometric display face by George Triantafyllakos (backpacker.gr,
+  Athens), free "as in beer" with a requested (not mandatory) attribution
+  — verified against backpacker.gr's own fonts page directly, not the
+  Fontesk page that first surfaced it. **Lulu Monospace**
+  (`LuluMonospace-Regular.otf`) is by Stelios Ypsilantis — "free for
+  personal & commercial use," verified against both the designer's
+  Behance post and a co-designer's ipassas.com store listing (its narrow
+  carve-outs — government/bank/political/police commercial use — don't
+  apply here); the designer's own site no longer resolves, so the file
+  came from a mirror (myfontlib.com) while the license was confirmed at
+  the two primary sources above. Both licenses preserved verbatim as
+  `*-LICENSE.txt` alongside their fonts. One hardcoded font-family (not
+  routed through the `font-mono` Tailwind class) in
+  `frontend/src/app/features/packs/packs.css`'s `.pack-set-code` rule has
+  needed updating by hand on every mono swap so far. Every self-hosted
+  pick's Greek coverage was verified glyph-by-glyph against the real font
+  binary, not trusted from a README or aggregator claim — this mattered
+  in practice more than once: Hauora Sans's README overclaimed Greek
+  support its published package didn't ship, LT Superior's GitHub repo
+  had no license file in its plain tree (the real OFL.txt only existed
+  inside its release zip), and CYN Gamer's own Fontesk listing didn't
+  name its actual license at all (turned out to be CC BY 4.0, found on
+  the designer's blog). `.font-display` carries a `font-weight: 700`
+  baseline.
   **The short version of a very eventful single day**: Rajdhani/Barlow/
   JetBrains Mono (no Greek at all) → Syne/IBM Plex Sans → Play/Roboto
   Condensed → GFS Neohellenic/Noto Sans → Fervojo (self-hosted, rejected
   same day, "i dont like it") → Moderustic → LT Superior (self-hosted,
   retired Noto Sans, one family for both roles) → Swanston (self-hosted)
   → CYN Gamer (self-hosted) → **Hellenica** (self-hosted) for
-  display/sans; mono went Rajdhani-trio → Fira Code →
-  **Iosevka Charon Mono**. The first two display swaps went through a
-  side-by-side Artifact comparison; every swap after that was a
+  display/sans; mono went Rajdhani-trio → Fira Code → Iosevka Charon Mono
+  → **Lulu Monospace** (self-hosted). The first two display swaps went
+  through a side-by-side Artifact comparison; every swap after that was a
   named-font "just apply it" request — each self-hosted font's files were
   deleted outright the moment it was replaced, nothing legacy left behind
   at any point in this chain.

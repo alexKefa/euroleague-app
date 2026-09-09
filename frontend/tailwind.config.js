@@ -31,12 +31,13 @@ module.exports = {
       },
       fontFamily: {
         // Greek-verified trio (see styles.css) — Rajdhani/Barlow/JetBrains
-        // Mono had no Greek glyphs at all. Hellenica is self-hosted (not
-        // on Google Fonts, single-weight file covering the whole 100-900
-        // range) — see the @font-face block in styles.css.
+        // Mono had no Greek glyphs at all. Hellenica and Lulu Monospace
+        // are both self-hosted (not on Google Fonts, single-weight files
+        // covering the whole 100-900 range) — see the @font-face blocks
+        // in styles.css.
         sans: ["Hellenica", "system-ui", "sans-serif"],
         display: ["Hellenica", "Arial", "sans-serif"],
-        mono: ["Iosevka Charon Mono", "ui-monospace", "monospace"],
+        mono: ["Lulu Monospace", "ui-monospace", "monospace"],
       },
       boxShadow: {
         // Real elevation instead of a near-flat 1px line — was previously

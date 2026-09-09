@@ -1,16 +1,21 @@
-@import url("https://fonts.googleapis.com/css2?family=Iosevka+Charon+Mono:wght@500;700&display=swap");
-
-/* Hellenica isn't on Google Fonts — self-hosted below, see the comment
-   above .font-display for why. Single weight file only — the `100 900`
-   range means every requested weight (font-medium, font-semibold,
-   font-bold, .font-display's own 700) resolves to this one face rather
-   than falling back to a system font for anything but exactly 400. */
+/* Hellenica and Lulu Monospace aren't on Google Fonts — both self-hosted
+   below, see the comment above .font-display for why. Single weight file
+   each — the `100 900` range means every requested weight (font-medium,
+   font-semibold, font-bold, .font-display's own 700) resolves to the one
+   face shipped rather than falling back to a system font. */
 @font-face {
   font-family: "Hellenica";
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
   src: url("/assets/fonts/Hellenica.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Lulu Monospace";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/assets/fonts/LuluMonospace-Regular.otf") format("opentype");
 }
 
 @tailwind base;
@@ -141,7 +146,23 @@
    backpacker.gr directly, not trusted from the mirror. Greek coverage
    (every tonos vowel, final sigma, both dialytika marks) verified
    glyph-by-glyph against the real binary, same as every self-hosted pick
-   above. Iosevka Charon Mono (mono) is still untouched. */
+   above.
+   Mono swapped for the second time, same day: Iosevka Charon Mono ->
+   Lulu Monospace (self-hosted — not on Google Fonts, single weight file,
+   same `100 900` range trick). By Stelios Ypsilantis, digital-era/
+   neo-grotesque-inspired. License checked against two primary sources
+   (Fontesk again gave no real terms): the designer's own Behance post
+   ("Free for personal & commercial use") and co-designer ipassas.com's
+   store listing ("pay what you like starting from 0 ... free for any use
+   personal or commercial. Except government, banks, political parties,
+   and police commercials" — none of which apply here); preserved at
+   `LuluMonospace-LICENSE.txt`. The designer's own site
+   (steliosyps.com/lulu-monospace/) no longer resolves, so the file itself
+   came from a third-party mirror (myfontlib.com) — same "license verified
+   at the primary source, file from a mirror" split as Hellenica above.
+   Greek coverage (every tonos vowel, final sigma, both dialytika marks)
+   verified glyph-by-glyph against the real binary. Hellenica
+   (display/sans) is untouched by this swap. */
 .font-display {
   font-weight: 700;
 }
