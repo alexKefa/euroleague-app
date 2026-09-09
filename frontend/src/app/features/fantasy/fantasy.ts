@@ -25,6 +25,7 @@ import { ChipDirective } from "../../shared/chip.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { CourtBackgroundComponent } from "../../shared/court-background";
+import { newsDateLocale, gameDateTimeFormat as gameDateTimeFormatFn } from "../../shared/news-date-format";
 
 // Squad shape — mirrors backend/src/services/fantasyScoring.ts's constants
 // exactly (kept in sync by hand, same as e.g. analytics-builder.ts keeping
@@ -288,7 +289,10 @@ export class FantasyComponent implements OnInit {
   readonly dropListIds = ["pool", ...initialSquadSlots().map((s) => s.id)];
 
   readonly searchQuery = signal("");
-  readonly teamFilter = signal<string | null>(null);
+  // "" (not null) by default — matches teamDropdownOptions' own "All teams"
+  // option value exactly, so app-dropdown's selected() lookup finds it and
+  // shows that label instead of rendering blank until a real team is picked.
+  readonly teamFilter = signal<string | null>("");
   readonly positionFilter = signal<PositionFilter>(null);
   readonly sortKey = signal<SortKey>("price");
   readonly sortDesc = signal(true);
@@ -1097,6 +1101,22 @@ export class FantasyComponent implements OnInit {
     return commaIdx === -1 ? name : name.slice(0, commaIdx).trim();
   }
 
+  // Greek month names/day-first order for the date pipe (lockAt, fixture
+  // tipoff times) — same shared/news-date-format.ts helpers the
+  // dashboard/schedule/predictions pages already use, see their own
+  // comment for why the locale has to be passed explicitly and why time
+  // stays 24h in both languages. This page's date pipes previously used a
+  // bare 'medium'/'short' format string with no locale argument, which
+  // always renders in English month names/AM-PM regardless of the app's
+  // own language toggle.
+  dateLocale(): string {
+    return newsDateLocale(this.i18n.lang());
+  }
+
+  gameDateTimeFormat(): string {
+    return gameDateTimeFormatFn(this.i18n.lang());
+  }
+
   // Bench/sixth-man/pool never gate on position — only a starter slot
   // (squadSlots()[0..4]) requires the player it holds to match that
   // index's formation-assigned position.
@@ -1108,25 +1128,66 @@ export class FantasyComponent implements OnInit {
 
   // Changing formation can strand a starter whose real position no longer
   // matches their slot's new requirement — never touches a locked player
-  // (their round has already started). A stranded starter is parked in
-  // the first empty bench/sixth-man slot if one's free, otherwise dropped
-  // back to the pool entirely; either way they lose the captain armband
-  // if they held it, since only a starter can be captain.
+  // (their round has already started). Three passes, run in this order on
+  // purpose (2026-09-10 fix — see below for what was wrong before):
+  //   1. Vacate every mismatched unlocked starter, just collecting who got
+  //      displaced rather than immediately hunting for a bench slot to
+  //      park them in.
+  //   2. Fill each now-empty starter slot from the bench/sixth man,
+  //      preferring whoever already plays the position that slot now
+  //      needs — since the whole squad's overall position mix never
+  //      changes here (nobody's added or removed, only reassigned), the
+  //      bench always holds exactly as many of a position as any
+  //      formation could need more of at the starter level.
+  //   3. Only now park the players displaced in step 1, into whichever
+  //      bench/sixth-man slots step 2 just freed up (there are always at
+  //      least as many, by the same conservation-of-players logic).
+  //   A displaced starter loses the captain armband if they held it,
+  //   since only a starter can be captain.
+  // The previous version tried to park a displaced starter in step 1
+  // immediately, before step 2 had freed anything up — in a fully drafted
+  // 10-player squad every bench/sixth-man slot is already occupied at
+  // that point, so "find an empty slot" always failed and the player was
+  // simply dropped from `slots` entirely (silently removed from the whole
+  // squad, not just benched) instead of swapping places with the bench
+  // player their old slot's new requirement actually needed.
   setFormation(next: Formation): void {
     if (this.formation() === next || this.roundLocked()) return;
     const newPositions = FORMATION_POSITIONS[next];
     const byId = this.rowById();
     const slots = [...this.squadSlots()];
+
+    const outgoing: string[] = [];
     for (let i = 0; i < this.starterCount; i++) {
       const slot = slots[i];
       if (!slot.playerId || this.isPlayerLocked(slot.playerId)) continue;
       if (byId.get(slot.playerId)?.player.position === newPositions[i]) continue;
-      const displacedId = slot.playerId;
+      outgoing.push(slot.playerId);
       slots[i] = { ...slot, playerId: null };
-      const parkIdx = slots.findIndex((s, idx) => idx >= this.starterCount && s.playerId === null);
-      if (parkIdx !== -1) slots[parkIdx] = { ...slots[parkIdx], playerId: displacedId };
-      if (this.captainId() === displacedId) this.captainId.set(null);
+      if (this.captainId() === slot.playerId) this.captainId.set(null);
     }
+
+    for (let i = 0; i < this.starterCount; i++) {
+      if (slots[i].playerId) continue;
+      const required = newPositions[i];
+      const benchIdx = slots.findIndex(
+        (s, idx) =>
+          idx >= this.starterCount &&
+          s.playerId !== null &&
+          !this.isPlayerLocked(s.playerId) &&
+          byId.get(s.playerId)?.player.position === required,
+      );
+      if (benchIdx === -1) continue;
+      slots[i] = { ...slots[i], playerId: slots[benchIdx].playerId };
+      slots[benchIdx] = { ...slots[benchIdx], playerId: null };
+    }
+
+    for (const playerId of outgoing) {
+      const emptyIdx = slots.findIndex((s, idx) => idx >= this.starterCount && s.playerId === null);
+      if (emptyIdx === -1) break;
+      slots[emptyIdx] = { ...slots[emptyIdx], playerId };
+    }
+
     this.formation.set(next);
     this.squadSlots.set(slots);
     this.saved.set(false);
@@ -1164,7 +1225,7 @@ export class FantasyComponent implements OnInit {
   }
 
   setTeamFilter(value: string | null): void {
-    this.teamFilter.set(value || null);
+    this.teamFilter.set(value ?? "");
     this.visibleCount.set(PAGE_SIZE);
   }
 

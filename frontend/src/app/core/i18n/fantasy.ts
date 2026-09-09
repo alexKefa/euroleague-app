@@ -58,6 +58,7 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.pickPlayerTitle": { en: "Choose a player", el: "Επίλεξε παίκτη" },
   "fantasy.pickerPositionHint": { en: "needed for this slot", el: "απαιτείται για αυτή τη θέση" },
   "fantasy.noPlayersFound": { en: "No players match these filters.", el: "Κανένας παίκτης δεν ταιριάζει με αυτά τα φίλτρα." },
+  "fantasy.seasonAverageTitle": { en: "Season average", el: "Μέσος όρος σεζόν" },
   "fantasy.last5GamesTitle": { en: "Last 5 games", el: "Τελευταίοι 5 αγώνες" },
   "fantasy.noRecentGames": { en: "No recent games found.", el: "Δεν βρέθηκαν πρόσφατοι αγώνες." },
   "fantasy.fixturesButton": { en: "Fixtures", el: "Πρόγραμμα" },

@@ -241,9 +241,85 @@
           @if (lockAt()) {
             <p class="text-xs text-muted mt-2">
               {{ roundLocked() ? i18n.t('fantasy.locked') : i18n.t('fantasy.lockCountdown') }}
-              @if (!roundLocked()) { {{ lockAt() | date: 'medium' }} }
+              @if (!roundLocked()) { {{ lockAt() | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }} }
             </p>
           }
+
+          <!-- Formation/captain/save — used to float above the court with no
+               container of its own, visually disconnected from this card
+               even though it's the same "current roster" status the rest of
+               this card already shows (budget, quota, lock). Moved in here
+               (2026-09-10) as its own section, divided by a border-t like
+               the points/PIR section above, so budget/quota/lock/formation/
+               captain/save all read as one panel instead of a card plus a
+               loose row of buttons floating above the court. -->
+          <div class="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-line/60">
+            <button
+              type="button"
+              (click)="showFormationPicker.set(true)"
+              [disabled]="roundLocked()"
+              class="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-page border border-line text-ink hover:border-highlight disabled:opacity-40 disabled:hover:border-line disabled:cursor-not-allowed transition-colors"
+            >
+              {{ formation() }}
+              <span class="text-muted text-[9px]">&#9662;</span>
+            </button>
+            <!-- Captain — a dialog next to formation, replacing the old
+                 per-avatar tappable "C" badge (see squadSlot above). -->
+            <button
+              type="button"
+              (click)="showCaptainPicker.set(true)"
+              [disabled]="roundLocked()"
+              class="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-page border border-line text-ink hover:border-highlight disabled:opacity-40 disabled:hover:border-line disabled:cursor-not-allowed transition-colors"
+            >
+              @if (captainRow(); as cap) {
+                <span class="w-4 h-4 rounded-full bg-highlight text-page flex items-center justify-center text-[9px] font-bold shrink-0">C</span>
+                <span class="max-w-[64px] truncate">{{ cap.player.name }}</span>
+              } @else {
+                <span class="w-4 h-4 rounded-full border border-dashed border-ink flex items-center justify-center text-[9px] shrink-0 text-muted">C</span>
+                {{ i18n.t('fantasy.captainLabel') }}
+              }
+              <span class="text-muted text-[9px]">&#9662;</span>
+            </button>
+            <div class="relative flex items-center ml-auto">
+              <button
+                type="button"
+                (click)="submit()"
+                [disabled]="!canSubmit() || submitting()"
+                class="px-4 py-1.5 rounded-lg text-sm font-bold bg-highlight text-page disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+              >
+                {{ submitting() ? i18n.t('fantasy.submitting') : i18n.t('fantasy.saveShort') }}
+              </button>
+              @if (missingRequirements().length > 0) {
+                <button
+                  type="button"
+                  (click)="showMissingInfo.set(true)"
+                  [attr.aria-label]="i18n.t('fantasy.whatsMissingTitle')"
+                  class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500/15 text-red-500 border border-red-500/40 flex items-center justify-center text-[11px] font-bold"
+                >
+                  !
+                </button>
+              }
+            </div>
+          </div>
+          @if (saved() && !hasChanges()) {
+            <p class="text-xs text-highlight font-semibold text-center mt-2">{{ i18n.t('fantasy.saved') }}</p>
+          }
+          @if (submitError()) {
+            <p class="text-xs text-red-500 font-semibold text-center mt-2">{{ submitError() }}</p>
+          }
+        } @else {
+          <!-- Read-only history view — no formation/captain dialogs, no save
+               button, since roundLocked() already blocks every underlying
+               edit action for a past round anyway. -->
+          <div class="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-line/60">
+            <span class="px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-page border border-line text-muted">{{ formation() }}</span>
+            @if (captainRow(); as cap) {
+              <span class="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-page border border-line text-muted">
+                <span class="w-4 h-4 rounded-full bg-highlight text-page flex items-center justify-center text-[9px] font-bold shrink-0">C</span>
+                {{ cap.player.name }}
+              </span>
+            }
+          </div>
         }
       </div>
 
@@ -268,177 +344,84 @@
                spot) still works on mobile too, since both ends of that
                drag are always on the court/bench, never the hidden pool. -->
       <div class="flex flex-col gap-3">
-        <!-- Filters — feed the sm:+ persistent pool column below; hidden on
-             mobile since there's no pool to filter there any more (the
-             equivalent search/dropdown/chips live inside the picker popup
-             instead, scoped to whichever slot is being filled). -->
-        <div class="hidden sm:flex sm:flex-col gap-2.5">
-          <div class="flex flex-col sm:flex-row gap-2.5">
-            <app-search-input
-              class="flex-1"
-              [value]="searchQuery()"
-              [placeholder]="i18n.t('fantasy.searchPlaceholder')"
-              (valueChange)="onSearchInput($event)"
-            />
-            <app-dropdown
-              class="sm:w-56"
-              [options]="teamDropdownOptions()"
-              [value]="teamFilter()"
-              (valueChange)="setTeamFilter($event)"
-            />
-          </div>
-          <div class="flex items-center gap-2">
-            <button type="button" (click)="setPositionFilter(null)" [appChip]="positionFilter() === null" class="min-w-[44px]">
-              {{ i18n.t('fantasy.posAll') }}
-            </button>
-            <button type="button" (click)="setPositionFilter('Guard')" [appChip]="positionFilter() === 'Guard'" class="min-w-[44px]">
-              {{ i18n.t('fantasy.posGuardAbbrev') }}
-            </button>
-            <button type="button" (click)="setPositionFilter('Forward')" [appChip]="positionFilter() === 'Forward'" class="min-w-[44px]">
-              {{ i18n.t('fantasy.posForwardAbbrev') }}
-            </button>
-            <button type="button" (click)="setPositionFilter('Center')" [appChip]="positionFilter() === 'Center'" class="min-w-[44px]">
-              {{ i18n.t('fantasy.posCenterAbbrev') }}
-            </button>
-          </div>
-        </div>
-
         <!-- Two-column row: court+bench (3 parts) | pool (2 parts) at `sm:`
              and up; the pool column disappears below that (see above) and
              the court+bench column takes the full width instead. -->
         <div class="flex gap-2.5">
           <!-- LEFT: formation picker + court (5 starter drop targets,
-               position-gated per the chosen formation) + sixth man + bench -->
-          <div class="flex-1 sm:flex-[3] min-w-0 flex flex-col gap-3 sm:gap-2.5">
-            @if (isCurrentRound()) {
-              <div class="flex items-center justify-center flex-wrap gap-2">
-                <button
-                  type="button"
-                  (click)="showFormationPicker.set(true)"
-                  [disabled]="roundLocked()"
-                  class="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-card border border-line text-ink hover:border-highlight disabled:opacity-40 disabled:hover:border-line disabled:cursor-not-allowed transition-colors"
-                >
-                  {{ formation() }}
-                  <span class="text-muted text-[9px]">&#9662;</span>
-                </button>
-                <!-- Captain — a dialog next to formation, replacing the old
-                     per-avatar tappable "C" badge (see squadSlot above). -->
-                <button
-                  type="button"
-                  (click)="showCaptainPicker.set(true)"
-                  [disabled]="roundLocked()"
-                  class="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-card border border-line text-ink hover:border-highlight disabled:opacity-40 disabled:hover:border-line disabled:cursor-not-allowed transition-colors"
-                >
-                  @if (captainRow(); as cap) {
-                    <span class="w-4 h-4 rounded-full bg-highlight text-page flex items-center justify-center text-[9px] font-bold shrink-0">C</span>
-                    <span class="max-w-[64px] truncate">{{ cap.player.name }}</span>
-                  } @else {
-                    <span class="w-4 h-4 rounded-full border border-dashed border-ink flex items-center justify-center text-[9px] shrink-0 text-muted">C</span>
-                    {{ i18n.t('fantasy.captainLabel') }}
+               position-gated per the chosen formation) + sixth man + bench.
+               One bg-card panel, same "sections divided by border-t" pattern
+               as the status bar above (2026-09-10) — court/bench/coach/hint
+               used to be four separate stacked cards with gaps between them,
+               each with its own border+shadow, which read as unrelated
+               widgets rather than one roster builder. The court itself keeps
+               its own nested border+gradient (it's a genuinely different
+               surface — the "glass floor" playing area, not just another
+               status section) but everything below it now lives inside the
+               same outer card. -->
+          <div class="flex-1 sm:flex-[3] min-w-0">
+            <div class="bg-card rounded-2xl border border-line shadow-card p-3">
+              <div class="relative w-full rounded-2xl overflow-hidden bg-gradient-to-b from-highlight/25 via-card to-card border border-line shadow-card" style="aspect-ratio: 320 / 300;">
+                <app-court-background class="absolute inset-0 w-full h-full" />
+                @for (pos of starterSlotPositions(); track $index; let i = $index) {
+                  <div class="absolute -translate-x-1/2 -translate-y-1/2" [style.left.%]="pos.left" [style.top.%]="pos.top">
+                    <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: starterSlots()[i], size: starterAvatarSize(), positionLabel: posLabel(requiredPositionForStarterSlot(i)) }" />
+                  </div>
+                }
+              </div>
+
+              <div class="mt-3 pt-3 border-t border-line/60">
+                <p class="text-[10px] text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.sixthManLabel') }}</p>
+                <div class="flex justify-center mb-3">
+                  <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: sixthManSlot(), size: sixthManAvatarSize() }" />
+                </div>
+                <p class="text-[10px] text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.benchLabel') }}</p>
+                <div class="flex justify-center gap-x-4 gap-y-5 sm:gap-3 flex-wrap">
+                  @for (slot of benchSlots(); track slot.id) {
+                    <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: slot, size: benchAvatarSize() }" />
                   }
-                  <span class="text-muted text-[9px]">&#9662;</span>
-                </button>
-                <div class="relative flex items-center">
-                  <button
-                    type="button"
-                    (click)="submit()"
-                    [disabled]="!canSubmit() || submitting()"
-                    class="px-4 py-1.5 rounded-lg text-sm font-bold bg-highlight text-page disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
-                  >
-                    {{ submitting() ? i18n.t('fantasy.submitting') : i18n.t('fantasy.saveShort') }}
+                </div>
+              </div>
+
+              <!-- Coach slot — a single tappable slot, same visual language as
+                   a squad slot (team badge stands in for a player photo, no
+                   lock/captain badges since a coach isn't gated the same way).
+                   Opens the coach-picker popup below instead of the old
+                   always-visible horizontal strip, which cost real vertical
+                   space on every visit whether or not the coach was being
+                   changed. -->
+              <div class="mt-3 pt-3 border-t border-line/60">
+                <p class="text-[10px] text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.coachLabel') }}</p>
+                <div class="flex justify-center">
+                  <button type="button" (click)="openCoachPicker()" [disabled]="roundLocked()" class="flex flex-col items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed">
+                    @if (selectedCoach(); as coach) {
+                      <div class="relative">
+                        <app-team-badge [code]="coach.team.code" [logoUrl]="coach.team.logoUrl" [size]="48" />
+                        @if (roundLocked()) {
+                          <span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-card border border-line flex items-center justify-center text-[9px]">&#128274;</span>
+                        }
+                      </div>
+                      <span class="text-[10px] font-semibold text-center truncate max-w-[80px]">{{ coach.headCoach ?? coach.team.name }}</span>
+                      <span class="font-mono text-[11px] font-bold text-highlight">{{ coach.price | number: '1.1-1' }}</span>
+                    } @else {
+                      <div class="rounded-full border-2 border-dashed border-ink flex items-center justify-center text-muted text-xl w-[48px] h-[48px] hover:border-highlight hover:text-highlight transition-colors">+</div>
+                      <span class="text-[8px] font-bold uppercase tracking-wide text-muted mt-0.5">{{ i18n.t('fantasy.coachLabel') }}</span>
+                    }
                   </button>
-                  @if (missingRequirements().length > 0) {
-                    <button
-                      type="button"
-                      (click)="showMissingInfo.set(true)"
-                      [attr.aria-label]="i18n.t('fantasy.whatsMissingTitle')"
-                      class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500/15 text-red-500 border border-red-500/40 flex items-center justify-center text-[11px] font-bold"
-                    >
-                      !
-                    </button>
-                  }
                 </div>
               </div>
-              @if (saved() && !hasChanges()) {
-                <p class="text-xs text-highlight font-semibold text-center">{{ i18n.t('fantasy.saved') }}</p>
-              }
-              @if (submitError()) {
-                <p class="text-xs text-red-500 font-semibold text-center">{{ submitError() }}</p>
-              }
-            } @else {
-              <!-- Read-only history view — no formation/captain dialogs, no
-                   save button, since roundLocked() already blocks every
-                   underlying edit action for a past round anyway. -->
-              <div class="flex items-center justify-center flex-wrap gap-2">
-                <span class="px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-page border border-line text-muted">{{ formation() }}</span>
-                @if (captainRow(); as cap) {
-                  <span class="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-page border border-line text-muted">
-                    <span class="w-4 h-4 rounded-full bg-highlight text-page flex items-center justify-center text-[9px] font-bold shrink-0">C</span>
-                    {{ cap.player.name }}
-                  </span>
-                }
-              </div>
-            }
-            <div class="relative w-full rounded-2xl overflow-hidden bg-gradient-to-b from-highlight/25 via-card to-card border border-line shadow-card" style="aspect-ratio: 320 / 300;">
-              <app-court-background class="absolute inset-0 w-full h-full" />
-              @for (pos of starterSlotPositions(); track $index; let i = $index) {
-                <div class="absolute -translate-x-1/2 -translate-y-1/2" [style.left.%]="pos.left" [style.top.%]="pos.top">
-                  <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: starterSlots()[i], size: starterAvatarSize(), positionLabel: posLabel(requiredPositionForStarterSlot(i)) }" />
-                </div>
-              }
-            </div>
 
-            <div class="bg-card rounded-2xl border border-line shadow-card p-3">
-              <p class="text-[10px] text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.sixthManLabel') }}</p>
-              <div class="flex justify-center mb-3">
-                <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: sixthManSlot(), size: sixthManAvatarSize() }" />
-              </div>
-              <p class="text-[10px] text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.benchLabel') }}</p>
-              <div class="flex justify-center gap-x-4 gap-y-5 sm:gap-3 flex-wrap">
-                @for (slot of benchSlots(); track slot.id) {
-                  <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: slot, size: benchAvatarSize() }" />
-                }
-              </div>
-            </div>
-
-            <!-- Coach slot — a single tappable slot, same visual language as
-                 a squad slot (team badge stands in for a player photo, no
-                 lock/captain badges since a coach isn't gated the same way).
-                 Opens the coach-picker popup below instead of the old
-                 always-visible horizontal strip, which cost real vertical
-                 space on every visit whether or not the coach was being
-                 changed. -->
-            <div class="bg-card rounded-2xl border border-line shadow-card p-3">
-              <p class="text-[10px] text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.coachLabel') }}</p>
-              <div class="flex justify-center">
-                <button type="button" (click)="openCoachPicker()" [disabled]="roundLocked()" class="flex flex-col items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed">
-                  @if (selectedCoach(); as coach) {
-                    <div class="relative">
-                      <app-team-badge [code]="coach.team.code" [logoUrl]="coach.team.logoUrl" [size]="48" />
-                      @if (roundLocked()) {
-                        <span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-card border border-line flex items-center justify-center text-[9px]">&#128274;</span>
-                      }
-                    </div>
-                    <span class="text-[10px] font-semibold text-center truncate max-w-[80px]">{{ coach.headCoach ?? coach.team.name }}</span>
-                    <span class="font-mono text-[11px] font-bold text-highlight">{{ coach.price | number: '1.1-1' }}</span>
+              @if (isCurrentRound()) {
+                <p class="text-center text-[11px] text-muted mt-3 pt-3 border-t border-line/60">
+                  @if (squadFull()) {
+                    {{ i18n.t('fantasy.courtFull') }}
                   } @else {
-                    <div class="rounded-full border-2 border-dashed border-ink flex items-center justify-center text-muted text-xl w-[48px] h-[48px] hover:border-highlight hover:text-highlight transition-colors">+</div>
-                    <span class="text-[8px] font-bold uppercase tracking-wide text-muted mt-0.5">{{ i18n.t('fantasy.coachLabel') }}</span>
+                    <span class="sm:hidden">{{ i18n.t('fantasy.tapSlotHint') }}</span>
+                    <span class="hidden sm:inline">{{ i18n.t('fantasy.dragHint') }}</span>
                   }
-                </button>
-              </div>
+                </p>
+              }
             </div>
-
-            @if (isCurrentRound()) {
-              <p class="text-center text-[11px] text-muted">
-                @if (squadFull()) {
-                  {{ i18n.t('fantasy.courtFull') }}
-                } @else {
-                  <span class="sm:hidden">{{ i18n.t('fantasy.tapSlotHint') }}</span>
-                  <span class="hidden sm:inline">{{ i18n.t('fantasy.dragHint') }}</span>
-                }
-              </p>
-            }
           </div>
 
           <!-- RIGHT: player pool — hidden below `sm:` (see the two-column
@@ -466,6 +449,36 @@
                (sort header, scrolling rows) keep their own subtler
                borders as sub-divisions of that one panel. -->
           <div class="hidden sm:flex sm:flex-[2] min-w-0 flex-col gap-1.5 sm:sticky sm:top-4 sm:self-start sm:max-h-[calc(100vh-2rem)] sm:border sm:border-line sm:rounded-2xl sm:p-2">
+            <!-- Filters — used to float in their own unbordered row above
+                 both the court and pool columns, controlling the pool below
+                 with nothing tying the two together visually. Moved inside
+                 this same outer-bordered panel (2026-09-10) as its own
+                 sub-section, same "pieces inside one panel keep their own
+                 subtler borders" convention the sort header/pool list below
+                 already use, rather than a fourth free-floating element. -->
+            <div class="flex flex-col gap-2 bg-card rounded-xl border border-line p-1.5">
+              <app-search-input
+                [value]="searchQuery()"
+                [placeholder]="i18n.t('fantasy.searchPlaceholder')"
+                (valueChange)="onSearchInput($event)"
+              />
+              <app-dropdown [options]="teamDropdownOptions()" [value]="teamFilter()" (valueChange)="setTeamFilter($event)" />
+              <div class="flex items-center gap-2">
+                <button type="button" (click)="setPositionFilter(null)" [appChip]="positionFilter() === null" class="min-w-[44px]">
+                  {{ i18n.t('fantasy.posAll') }}
+                </button>
+                <button type="button" (click)="setPositionFilter('Guard')" [appChip]="positionFilter() === 'Guard'" class="min-w-[44px]">
+                  {{ i18n.t('fantasy.posGuardAbbrev') }}
+                </button>
+                <button type="button" (click)="setPositionFilter('Forward')" [appChip]="positionFilter() === 'Forward'" class="min-w-[44px]">
+                  {{ i18n.t('fantasy.posForwardAbbrev') }}
+                </button>
+                <button type="button" (click)="setPositionFilter('Center')" [appChip]="positionFilter() === 'Center'" class="min-w-[44px]">
+                  {{ i18n.t('fantasy.posCenterAbbrev') }}
+                </button>
+              </div>
+            </div>
+
             <div class="flex items-center justify-around bg-card rounded-xl border border-line px-1 py-1">
               <button type="button" (click)="setSort('price')" class="flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wide" [ngClass]="sortKey() === 'price' ? 'text-highlight' : 'text-muted'">
                 {{ i18n.t('fantasy.colPrice') }}
@@ -655,6 +668,28 @@
           }
           <button type="button" (click)="closePlayerInfo()" class="text-muted hover:text-ink text-2xl leading-none font-bold shrink-0">&times;</button>
         </div>
+
+        <!-- Season average — already in allRows()/rowById() (each
+             FantasyPlayerRow carries pointsPerGame/valuation/gamesPlayed
+             straight from player_season_stats), so no extra API call
+             needed alongside the last-5-games log fetch below. -->
+        @if (infoPlayerRow(); as row) {
+          <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('fantasy.seasonAverageTitle') }}</p>
+          <div class="grid grid-cols-3 gap-2 mb-4">
+            <div class="bg-page rounded-xl px-3 py-2 text-center">
+              <p class="text-[9px] text-muted font-bold uppercase tracking-wide">{{ i18n.t('fantasy.colPpg') }}</p>
+              <p class="font-mono text-sm font-bold text-highlight">{{ row.pointsPerGame !== null ? (row.pointsPerGame | number: "1.1-1") : "—" }}</p>
+            </div>
+            <div class="bg-page rounded-xl px-3 py-2 text-center">
+              <p class="text-[9px] text-muted font-bold uppercase tracking-wide">{{ i18n.t('fantasy.colPir') }}</p>
+              <p class="font-mono text-sm font-bold text-highlight">{{ row.valuation !== null ? (row.valuation | number: "1.1-1") : "—" }}</p>
+            </div>
+            <div class="bg-page rounded-xl px-3 py-2 text-center">
+              <p class="text-[9px] text-muted font-bold uppercase tracking-wide">{{ i18n.t('stats.colGp') }}</p>
+              <p class="font-mono text-sm font-bold text-ink">{{ row.gamesPlayed ?? "—" }}</p>
+            </div>
+          </div>
+        }
 
         <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('fantasy.last5GamesTitle') }}</p>
         @if (infoLoading()) {
@@ -1028,7 +1063,7 @@
                 } @else if (game.status === 'final') {
                   <span class="text-[10px] font-bold uppercase tracking-wide text-muted shrink-0">{{ i18n.t('fantasy.gameFinal') }}</span>
                 } @else {
-                  <span class="text-[11px] font-mono text-muted shrink-0">{{ game.tipoffAt | date: 'short' }}</span>
+                  <span class="text-[11px] font-mono text-muted shrink-0">{{ game.tipoffAt | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}</span>
                 }
               </div>
             }
