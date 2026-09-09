@@ -1,9 +1,10 @@
-import { Component, OnInit, inject, signal, computed } from "@angular/core";
+import { Component, OnInit, inject, signal, computed, effect } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { Observable } from "rxjs";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
+import { EventsService } from "../../core/events.service";
 import { I18nService } from "../../core/i18n.service";
 import { TradeableCard, MarketplaceCard, TradeOffer, TradeOfferStatus, Collectible } from "../../core/models";
 import { TradesNotificationService } from "../../core/trades-notification.service";
@@ -30,8 +31,23 @@ import { SkeletonComponent } from "../../shared/skeleton";
 export class TradesComponent implements OnInit {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
+  private events = inject(EventsService);
   protected i18n = inject(I18nService);
   private tradesNotification = inject(TradesNotificationService);
+
+  // A trade offer involving this user changed state somewhere else (the
+  // counterparty accepted/declined/cancelled, or a new offer arrived) —
+  // reload this page's three lists live instead of leaving them stale
+  // until a manual refresh. Guarded on lastTradeUpdate() itself (not just
+  // auth) since this effect's first run at construction always sees the
+  // signal's initial null value, which ngOnInit's own load already covers.
+  private readonly refreshOnTradeUpdate = effect(() => {
+    if (this.events.lastTradeUpdate() && this.auth.isAuthenticated()) {
+      this.loadMyCards();
+      this.loadMarketplace();
+      this.loadOffers();
+    }
+  });
 
   readonly loading = signal(true);
   readonly myCards = signal<TradeableCard[]>([]);

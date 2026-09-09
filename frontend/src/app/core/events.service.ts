@@ -13,6 +13,11 @@ export interface GameUpdate {
   gameClockSeconds?: number;
 }
 
+export interface TradeUpdate {
+  offerId: string;
+  reason: "offered" | "accepted" | "declined" | "cancelled";
+}
+
 /**
  * One shared SSE connection to /api/events for the whole app. Live scores
  * are public, so this connects whether or not the user is logged in; it
@@ -27,6 +32,16 @@ export class EventsService {
   private source: EventSource | null = null;
 
   readonly lastGameUpdate = signal<GameUpdate | null>(null);
+
+  // A trade offer involving the logged-in user just changed state (see
+  // routes/trades.ts's notifyTradeUpdate) — pushed only to that user's own
+  // connection (sendToUser, not broadcast), so anything reacting to this
+  // doesn't need to check whether the update is "theirs". Every listener
+  // (TradesNotificationService's badge, TradesComponent, InventoryComponent)
+  // re-fetches its own state from REST on receipt rather than trusting this
+  // payload directly — it only carries enough to know *that* something
+  // changed, not what.
+  readonly lastTradeUpdate = signal<TradeUpdate | null>(null);
 
   // Game ids currently live. Seeded once from a REST fetch on boot, so a
   // visitor who opens the app mid-game sees it immediately rather than
@@ -104,6 +119,9 @@ export class EventsService {
         else next.delete(update.gameId);
         return next;
       });
+    });
+    source.addEventListener("trade-update", (event) => {
+      this.lastTradeUpdate.set(JSON.parse((event as MessageEvent).data));
     });
     this.source = source;
   }

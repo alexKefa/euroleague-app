@@ -3,6 +3,7 @@ import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
+import { EventsService } from "../../core/events.service";
 import { I18nService } from "../../core/i18n.service";
 import { Collectible, CollectibleFinish, CollectibleTier, CollectibleBundle, CollectibleBundleCard } from "../../core/models";
 import { TradesNotificationService } from "../../core/trades-notification.service";
@@ -44,6 +45,7 @@ const PAGE_SIZE = 20;
 export class InventoryComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
+  private events = inject(EventsService);
   protected i18n = inject(I18nService);
   protected trades = inject(TradesNotificationService);
 
@@ -198,6 +200,18 @@ export class InventoryComponent implements OnInit, OnDestroy {
   private readonly sentinel = viewChild<ElementRef<HTMLDivElement>>("scrollSentinel");
   private observer?: IntersectionObserver;
 
+  // A trade you're part of just changed state elsewhere (see
+  // EventsService.lastTradeUpdate) — re-fetch owned cards live, since
+  // acceptance moves a legendary between two users' collections. Guarded on
+  // the signal itself (not just auth) since this effect's first run at
+  // construction always sees its initial null value, which ngOnInit's own
+  // load already covers.
+  private readonly refreshOnTradeUpdate = effect(() => {
+    if (this.events.lastTradeUpdate() && this.auth.isAuthenticated()) {
+      this.loadMyCollectibles();
+    }
+  });
+
   constructor() {
     effect(() => {
       const el = this.sentinel()?.nativeElement;
@@ -322,6 +336,16 @@ export class InventoryComponent implements OnInit, OnDestroy {
     return 0;
   }
 
+  private loadMyCollectibles(): void {
+    this.api.getMyCollectibles().subscribe({
+      next: (rows) => {
+        this.ownedAt.set(new Map(rows.map((r) => [r.collectibleId, r.unlockedAt])));
+        this.finishByCollectibleId.set(new Map(rows.map((r) => [r.collectibleId, r.finish])));
+      },
+      error: () => {},
+    });
+  }
+
   ngOnInit(): void {
     if (!this.auth.isAuthenticated()) {
       this.loading.set(false);
@@ -337,13 +361,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
       error: () => this.loading.set(false),
     });
 
-    this.api.getMyCollectibles().subscribe({
-      next: (rows) => {
-        this.ownedAt.set(new Map(rows.map((r) => [r.collectibleId, r.unlockedAt])));
-        this.finishByCollectibleId.set(new Map(rows.map((r) => [r.collectibleId, r.finish])));
-      },
-      error: () => {},
-    });
+    this.loadMyCollectibles();
 
     this.api.getMyPredictionSummary().subscribe({
       next: (summary) => {

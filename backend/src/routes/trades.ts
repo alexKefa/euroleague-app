@@ -4,8 +4,22 @@ import { alias } from "drizzle-orm/pg-core";
 import { db } from "../db/client.js";
 import { tradeOffers, tradeOfferItems, userCollectibles, collectibles, teams, users } from "../db/schema.js";
 import { requireAuth } from "../auth/middleware.js";
+import { sendToUser } from "../realtime/hub.js";
 
 export const tradesRouter = Router();
+
+// Pushed to an affected user's open tabs whenever a trade offer changes
+// state, so /inventory, the marketplace, and the nav bar's pending-offers
+// badge update live instead of needing a manual refresh (see project memory
+// "planned-realtime-trade-updates"). Payload is deliberately minimal —
+// every listener re-fetches its own state from REST on receipt rather than
+// trusting push-delivered data directly, same as the live-score stream's
+// game-update event driving a REST re-fetch elsewhere in this app.
+function notifyTradeUpdate(userIds: string[], reason: "offered" | "accepted" | "declined" | "cancelled", offerId: string): void {
+  for (const userId of new Set(userIds)) {
+    sendToUser(userId, "trade-update", { offerId, reason });
+  }
+}
 
 // Your own legendary collection, each flagged with whether it's currently
 // listed in the marketplace for others to request.
@@ -286,6 +300,7 @@ tradesRouter.post("/", requireAuth, async (req, res) => {
       return row;
     });
 
+    notifyTradeUpdate([listing.ownerId], "offered", offer.id);
     res.status(201).json({ ...offer, offeredCollectibleIds });
   } catch (err) {
     console.error("POST /api/trades failed:", err);
@@ -448,7 +463,7 @@ tradesRouter.post("/:id/accept", requireAuth, async (req, res) => {
       // The card just moved, so any other pending offer still asking this
       // user for it can never be accepted — close it out now instead of
       // leaving it stuck as a zombie "pending" offer for its sender.
-      await tx
+      const autoDeclined = await tx
         .update(tradeOffers)
         .set({ status: "declined", respondedAt: new Date() })
         .where(
@@ -458,14 +473,24 @@ tradesRouter.post("/:id/accept", requireAuth, async (req, res) => {
             eq(tradeOffers.requestedCollectibleId, offer.requestedCollectibleId),
             ne(tradeOffers.id, id)
           )
-        );
+        )
+        .returning({ id: tradeOffers.id, fromUserId: tradeOffers.fromUserId });
 
-      return { status: 200 } as const;
+      return {
+        status: 200,
+        fromUserId: offer.fromUserId,
+        toUserId: offer.toUserId,
+        autoDeclined,
+      } as const;
     });
 
     if (outcome.status !== 200) {
       res.status(outcome.status).json({ error: outcome.error, code: outcome.code });
       return;
+    }
+    notifyTradeUpdate([outcome.fromUserId, outcome.toUserId], "accepted", id);
+    for (const declined of outcome.autoDeclined) {
+      notifyTradeUpdate([declined.fromUserId], "declined", declined.id);
     }
     res.json({ status: "accepted" });
   } catch (err) {
@@ -501,6 +526,7 @@ tradesRouter.post("/:id/decline", requireAuth, async (req, res) => {
       return;
     }
 
+    notifyTradeUpdate([declined.fromUserId], "declined", declined.id);
     res.json({ status: "declined" });
   } catch (err) {
     console.error("POST /api/trades/:id/decline failed:", err);
@@ -534,6 +560,7 @@ tradesRouter.post("/:id/cancel", requireAuth, async (req, res) => {
       return;
     }
 
+    notifyTradeUpdate([cancelled.toUserId], "cancelled", cancelled.id);
     res.json({ status: "cancelled" });
   } catch (err) {
     console.error("POST /api/trades/:id/cancel failed:", err);
