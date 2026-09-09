@@ -4,6 +4,7 @@ import { db } from "../db/client.js";
 import { predictions, games, gameOdds, teams, users, pointAdjustments } from "../db/schema.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
 import { computeWinnerTeamId, getUserPoints, pointsForCorrectPick } from "../services/points.js";
+import { getUserTopScorerPoints } from "../services/topScorerPoints.js";
 import { earnedBadges, getLeaderboardEntries, ResolvedPick } from "../services/leaderboard.js";
 import {
   checkAndGrantRoundRewards,
@@ -357,7 +358,7 @@ predictionsRouter.get("/analytics", async (_req, res) => {
 
 predictionsRouter.get("/me/summary", requireAuth, async (req, res) => {
   try {
-    const [rows, points] = await Promise.all([
+    const [rows, points, topScorerPoints] = await Promise.all([
       db
         .select({ prediction: predictions, game: games, odds: gameOdds })
         .from(predictions)
@@ -365,14 +366,19 @@ predictionsRouter.get("/me/summary", requireAuth, async (req, res) => {
         .leftJoin(gameOdds, eq(gameOdds.gameId, games.id))
         .where(eq(predictions.userId, req.userId!)),
       getUserPoints(req.userId!),
+      getUserTopScorerPoints(req.userId!),
     ]);
 
     const resolved: ResolvedPick[] = [];
     // Century badge (below) needs real odds-weighted points, not a flat
     // count*POINTS_PER_CORRECT — mirrors services/points.ts/leaderboard.ts's
     // SQL version of the same formula, just computed in JS here since this
-    // route already loops resolved picks row-by-row.
-    let predictionPoints = 0;
+    // route already loops resolved picks row-by-row. Seeded with
+    // topScorerPoints (2026-09-09) so Century reflects the same shared pool
+    // getUserPoints/the leaderboard now do — top-scorer picks don't need
+    // their own loop here since (unlike win/loss picks) nothing else in
+    // this response needs their per-pick detail, only the sum.
+    let predictionPoints = topScorerPoints;
     for (const { prediction, game, odds } of rows) {
       const winnerTeamId = computeWinnerTeamId(game);
       if (winnerTeamId === null) continue;

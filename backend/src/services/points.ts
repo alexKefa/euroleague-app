@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { predictions, games, gameOdds, pointAdjustments } from "../db/schema.js";
+import { getUserTopScorerPoints } from "./topScorerPoints.js";
 
 export const POINTS_PER_CORRECT = 10;
 
@@ -92,20 +93,27 @@ export function pointsSqlExpr(pickedFairProb: ReturnType<typeof sql>) {
 }
 
 /**
- * A user's current spendable points: resolved correct picks plus any
+ * A user's current spendable points: resolved correct picks (win/loss
+ * Predictions + top-scorer prop picks, see getUserTopScorerPoints — the
+ * two were explicitly decided to share one pool, 2026-09-09) plus any
  * manual adjustments (grants from an admin, or negative rows recorded when
  * redeeming a store item). Recomputed on every call — see predictions.ts
  * for why points aren't stored as a balance.
  *
- * One round trip instead of two independent queries — each round trip to
- * this (remote) DB costs real, mostly-fixed latency regardless of whether
- * queries are awaited sequentially or fired via Promise.all (measured
- * directly: 4 queries via Promise.all took as long as 4 sequential ones —
- * this driver/pool doesn't give genuine concurrency across separate
- * `db.select()` calls), so the only real lever is fewer statements, not
- * reordering them. The correct-pick condition here mirrors
- * computeWinnerTeamId() exactly (final, both scores present, no tie) — keep
- * the two in sync if that logic ever changes.
+ * Two round trips, not one — the win/loss aggregate stays a single query
+ * (see the "fewer round trips" reasoning below), but the top-scorer total
+ * is a genuinely separate table/formula living in topScorerPoints.ts (kept
+ * as a sibling file on purpose, not merged into this one's SQL — see that
+ * file's own doc comment), so it's a second call rather than folding its
+ * CTEs into this query too. Each round trip to this (remote) DB costs
+ * real, mostly-fixed latency regardless of whether queries are awaited
+ * sequentially or fired via Promise.all (measured directly: 4 queries via
+ * Promise.all took as long as 4 sequential ones — this driver/pool doesn't
+ * give genuine concurrency across separate calls), so there's no
+ * Promise.all win available here either way. The correct-pick condition in
+ * the first query mirrors computeWinnerTeamId() exactly (final, both
+ * scores present, no tie) — keep the two in sync if that logic ever
+ * changes.
  */
 export async function getUserPoints(userId: string): Promise<number> {
   const pickedFairProb = sql`case when p.predicted_winner_team_id = g.home_team_id then go.home_fair_prob else go.away_fair_prob end`;
@@ -125,6 +133,7 @@ export async function getUserPoints(userId: string): Promise<number> {
       ), 0)::int as correct_points,
       coalesce((select sum(points) from ${pointAdjustments} where user_id = ${userId}), 0)::int as bonus
   `);
+  const topScorerPoints = await getUserTopScorerPoints(userId);
 
-  return row.correct_points + row.bonus;
+  return row.correct_points + row.bonus + topScorerPoints;
 }

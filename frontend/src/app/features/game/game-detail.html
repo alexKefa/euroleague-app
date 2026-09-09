@@ -148,6 +148,7 @@
           @if (myTopScorerPick(); as pick) {
             <p class="text-xs font-semibold mt-3">
               {{ i18n.t('topScorer.myPick') }}: {{ pick.predictedPlayer.name }}
+              <span class="font-mono text-highlight">+{{ pick.pointsAtPick }} {{ i18n.t('predictions.pts') }}</span>
               @if (isFinal() && pick.isCorrect === true) {
                 <span class="text-green-500">— {{ i18n.t('topScorer.correct') }}</span>
               }

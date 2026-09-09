@@ -2,6 +2,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { predictions, games, gameOdds, users, pointAdjustments, collectibles, teams } from "../db/schema.js";
 import { computeWinnerTeamId, pointsSqlExpr } from "./points.js";
+import { topScorerTotalsCte } from "./topScorerPoints.js";
 
 export interface ResolvedPick {
   round: number | null;
@@ -151,6 +152,7 @@ export async function getLeaderboardEntries(
     correct: number;
     total: number;
     correct_points: number;
+    top_scorer_points: number;
     bonus: number;
   }>(sql`
     with correct_totals as (
@@ -176,15 +178,26 @@ export async function getLeaderboardEntries(
       from ${pointAdjustments}
       where counts_toward_ranking = true
       group by user_id
+    ),
+    ${topScorerTotalsCte()},
+    all_user_ids as (
+      select user_id from correct_totals
+      union
+      select user_id from bonus_totals
+      union
+      select user_id from top_scorer_totals
     )
-    select coalesce(ct.user_id, bt.user_id) as user_id, u.username, u.showcase_collectible_ids,
+    select a.user_id, u.username, u.showcase_collectible_ids,
       coalesce(ct.correct, 0)::int as correct,
       coalesce(ct.total, 0)::int as total,
       coalesce(ct.correct_points, 0)::int as correct_points,
+      coalesce(tst.points, 0)::int as top_scorer_points,
       coalesce(bt.bonus, 0)::int as bonus
-    from correct_totals ct
-    full outer join bonus_totals bt on ct.user_id = bt.user_id
-    join ${users} u on u.id = coalesce(ct.user_id, bt.user_id)
+    from all_user_ids a
+    left join correct_totals ct on ct.user_id = a.user_id
+    left join bonus_totals bt on bt.user_id = a.user_id
+    left join top_scorer_totals tst on tst.user_id = a.user_id
+    join ${users} u on u.id = a.user_id
   `);
 
   const allowedIds = options.userIds ? new Set(options.userIds) : null;
@@ -197,8 +210,11 @@ export async function getLeaderboardEntries(
       correct: row.correct,
       total: row.total,
       accuracy: row.total > 0 ? row.correct / row.total : 0,
-      correctPoints: row.correct_points,
-      points: row.correct_points + row.bonus,
+      // Century's threshold counts every prediction-earned point, win/loss
+      // and top-scorer alike — deliberately excludes `bonus` (see
+      // BadgeContext.predictionPoints's own comment).
+      correctPoints: row.correct_points + row.top_scorer_points,
+      points: row.correct_points + row.top_scorer_points + row.bonus,
       showcaseIds: row.showcase_collectible_ids ?? [],
     }))
     .sort((a, b) => b.points - a.points || b.accuracy - a.accuracy);

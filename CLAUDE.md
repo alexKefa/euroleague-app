@@ -1897,15 +1897,74 @@ at the same Neon instance as local dev — there's no separate prod database.
     silently never loaded. Fixed by always attempting the fetch and
     swallowing a logged-out 401, rather than depending on that signal's
     timing.
-  - **Not yet done, left as real follow-ups**: no leaderboard/badge
-    integration (see above); `TYPICAL_TOP_SCORER_PPG` and the points cap
-    are unvalidated against real 2026-27 play (the season has zero played
-    games as of this pass, so every pick currently prices at the flat
-    fallback rate — same season-transition gap `computeFantasyPrice` hit);
-    no SQL-fragment twin of the points formula exists yet since nothing
-    aggregates it server-side in v1 — add one (with explicit `::numeric`
-    casts, see the fantasyScoring.ts bug fixed the same session) only once
-    a real caller needs it.
+  - **Not yet done, left as real follow-ups**: `TYPICAL_TOP_SCORER_PPG` and
+    the points cap are unvalidated against real 2026-27 play (the season
+    has zero played games as of this pass, so every pick currently prices
+    at the flat fallback rate — same season-transition gap
+    `computeFantasyPrice` hit).
+
+- **Top-scorer picks wired into the shared points economy (2026-09-09)** —
+  the leaderboard/badge integration flagged as an open follow-up above is
+  now built. Explicit decision, asked directly rather than assumed: a
+  correct top-scorer pick adds to the *same* points pool as win/loss
+  Predictions (one leaderboard, one "Century" badge threshold), not a
+  separate track.
+  - **Points captured at pick time, never recomputed** — a new
+    `top_scorer_predictions.points_at_pick` column (schema change applied
+    directly to the live DB, per the Schema-changes workflow above) stores
+    `pointsForCorrectTopScorerPick()`'s output at the moment `POST
+    /top-scorer-predictions` is called (or a pick is changed), priced off
+    the player's `playerSeasonStats.pointsPerGame` for *that specific
+    game's season* as of right then. `GET /:gameId` always reads this
+    stored value back, never re-prices live — this is the point of the
+    column: a pick made mid-live-game shows and scores exactly what it was
+    worth "at the exact time" it was made, regardless of how the player's
+    season PPG moves afterward (more games synced) or when the pick is
+    later viewed/resolved — same "fixed snapshot before resolution"
+    philosophy `game_odds` already established for win/loss picks. Nullable
+    only for defense (zero real picks existed at migration time, nothing to
+    backfill); a null sums as the flat `TOP_SCORER_POINTS_PER_CORRECT` rate
+    everywhere it's read, same "missing data isn't a scoring dependency"
+    convention as everywhere else in this economy.
+  - **`topScorerTotalsCte()`** (`services/topScorerPoints.ts`) is the one
+    place "which player was a game's top scorer, with
+    `computeTopScorerPlayerId`'s exact tie-null rule" lives as a reusable
+    SQL fragment (three CTEs: per-game max points, per-game leader-or-null,
+    per-user summed `points_at_pick` for correct/final picks) — shared by
+    `points.ts`'s `getUserPoints` (single user, `getUserTopScorerPoints`)
+    and `leaderboard.ts`'s `getLeaderboardEntries` (every user at once via
+    a `union` of user ids across all three totals CTEs — correct/bonus/
+    top-scorer — replacing the old two-way `full outer join`, since a
+    three-way one gets unwieldy fast) rather than duplicating this logic in
+    both places or in `predictions.ts`'s `/me/summary` (which just calls
+    `getUserTopScorerPoints` once and seeds its `predictionPoints` loop
+    with it, no per-pick detail needed there since nothing else in that
+    response depends on individual top-scorer picks).
+  - **Real bug caught during this pass**: the first version of
+    `per_game_leader` used `max(pgs.player_id)` to pick the single leader's
+    id — failed live with `function max(uuid) does not exist`, since
+    Postgres has no built-in max/min aggregate for `uuid` (unlike every
+    other id-typed column this app's SQL usually groups by). Fixed with
+    `(array_agg(pgs.player_id))[1]`, safe to index blindly only because the
+    surrounding `case when count(*) = 1` already guarantees exactly one row.
+  - **Deliberately left out of scope**: only the *points total* (and
+    Century's threshold) includes top-scorer picks — the leaderboard's own
+    `correct`/`total`/`accuracy` fields and the streak/round-based badges
+    ("On a Roll", "Perfect Round") stay scoped to win/loss Predictions
+    only, since those are structurally about a different kind of pick;
+    folding top-scorer accuracy into the same stat would conflate two
+    different-difficulty games rather than just share a currency. Round
+    rewards/legendary milestones (the 10-pick-per-round completion
+    mechanics) are untouched for the same reason.
+  - **Verified live** (not just type-checked): inserted a real correct
+    pick (an existing final game's actual, untied high scorer,
+    `points_at_pick = 27`) directly against the production DB, confirmed
+    `getUserTopScorerPoints` summed exactly 27, then deleted the test row —
+    the table was empty before and after.
+  - Frontend: `TopScorerPrediction.pointsAtPick` (models.ts) is shown next
+    to "Your pick" on the game-detail page's live-score section
+    (`+{{ pick.pointsAtPick }} pts`, reusing `predictions.pts`'s existing
+    i18n key rather than adding a duplicate).
 
 - **Same-day follow-up pass (2026-09-08), after real mobile testing** — the
   on-court overlay from the initial v1 above didn't survive contact with a

@@ -366,14 +366,19 @@ export interface Prediction {
 }
 
 // Live in-game "top scorer" prop pick — a separate, free (no-stake) pick
-// from the win/loss Prediction above. Deliberately not integrated into the
-// points/leaderboard economy yet (v1 scope) — isCorrect/points here are
-// preview-only, see game-detail.ts.
+// from the win/loss Prediction above. Feeds the same points/leaderboard/
+// badge pool as win/loss Predictions (2026-09-09).
 export interface TopScorerPrediction {
   id: string;
   gameId: string;
   predictedPlayer: { id: string; code: string; name: string };
   isCorrect: boolean | null; // null = game not final yet, or a tie with no clear top scorer
+  // What this pick is worth if correct, priced off the player's season PPG
+  // at the exact moment the pick was made (or last changed) — never
+  // recomputed afterward, so this stays fixed even while the game is still
+  // live and the player's own season stats keep moving. See schema.ts's
+  // pointsAtPick doc comment on the backend.
+  pointsAtPick: number;
 }
 
 export interface Badge {

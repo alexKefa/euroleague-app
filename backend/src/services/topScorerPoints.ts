@@ -1,6 +1,6 @@
-import { and, eq, isNotNull } from "drizzle-orm";
+import { and, eq, isNotNull, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { games, playerGameStats } from "../db/schema.js";
+import { games, playerGameStats, topScorerPredictions } from "../db/schema.js";
 
 // Points formula for the live "top scorer" prop pick — a sibling to
 // services/points.ts, not merged into it, since that file's comments are
@@ -78,4 +78,60 @@ export async function computeTopScorerPlayerId(gameId: string): Promise<string |
   const maxPoints = Math.max(...lines.map((l) => l.points!));
   const topScorers = lines.filter((l) => l.points === maxPoints);
   return topScorers.length === 1 ? topScorers[0].playerId : null;
+}
+
+// --- Wiring correct picks into the shared points economy (2026-09-09) ---
+//
+// Explicit decision: top-scorer points feed the *same* total as win/loss
+// Predictions (getUserPoints, the leaderboard, the "Century" badge) rather
+// than a separate track — this CTE is the one place the "which player was
+// this game's top scorer, with computeTopScorerPlayerId's exact tie-null
+// rule" logic lives as SQL, shared by services/points.ts's getUserPoints
+// (single user) and services/leaderboard.ts's getLeaderboardEntries (every
+// user at once via one grouped query, same "fewer round trips" reasoning
+// as everywhere else in this app's economy) rather than duplicated in both.
+// `points_at_pick` is summed as stored (see schema.ts's doc comment on that
+// column) — a null (a pick made before this column existed; none exist in
+// production as of this pass) falls back to the flat
+// TOP_SCORER_POINTS_PER_CORRECT rate, same "missing data isn't a scoring
+// dependency" convention as game_odds/pointsForCorrectPick.
+export function topScorerTotalsCte() {
+  return sql`
+    per_game_max as (
+      select game_id, max(points) as max_points
+      from ${playerGameStats}
+      where points is not null
+      group by game_id
+    ),
+    per_game_leader as (
+      -- array_agg, not max()/min() — Postgres has no default max/min
+      -- aggregate for uuid (confirmed live: "function max(uuid) does not
+      -- exist"), unlike every other id type this app's SQL usually groups
+      -- by. Safe to index [1] only because the surrounding case already
+      -- guarantees exactly one row when count(*) = 1.
+      select pgm.game_id,
+        case when count(*) = 1 then (array_agg(pgs.player_id))[1] else null end as top_scorer_player_id
+      from per_game_max pgm
+      join ${playerGameStats} pgs on pgs.game_id = pgm.game_id and pgs.points = pgm.max_points
+      group by pgm.game_id
+    ),
+    top_scorer_totals as (
+      select tsp.user_id,
+        coalesce(sum(coalesce(tsp.points_at_pick, ${TOP_SCORER_POINTS_PER_CORRECT})), 0)::int as points
+      from ${topScorerPredictions} tsp
+      join ${games} g on g.id = tsp.game_id
+      join per_game_leader pgl on pgl.game_id = tsp.game_id
+      where g.status = 'final' and pgl.top_scorer_player_id = tsp.predicted_player_id
+      group by tsp.user_id
+    )
+  `;
+}
+
+/** Single-user read of topScorerTotalsCte() — see getUserPoints/predictions.ts's /me/summary. */
+export async function getUserTopScorerPoints(userId: string): Promise<number> {
+  const [row] = await db.execute<{ points: number }>(sql`
+    with ${topScorerTotalsCte()}
+    select coalesce((select points from top_scorer_totals where user_id = ${userId}), 0)::int as points
+  `);
+  return row.points;
 }

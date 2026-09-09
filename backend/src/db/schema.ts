@@ -411,6 +411,18 @@ export const topScorerPredictions = pgTable(
     userId: uuid("user_id").notNull().references(() => users.id),
     gameId: uuid("game_id").notNull().references(() => games.id),
     predictedPlayerId: uuid("predicted_player_id").notNull().references(() => players.id),
+    // Points this pick is worth if correct, captured once at pick time
+    // (pointsForCorrectTopScorerPick off the player's playerSeasonStats.
+    // pointsPerGame as of that moment — see topScorerPoints.ts) and never
+    // recomputed afterward (2026-09-09) — same "fixed snapshot before
+    // resolution" philosophy as game_odds: a pick made/changed while the
+    // game is live always shows and scores the value it had "at the exact
+    // time" it was made, regardless of how the player's season PPG moves
+    // afterward or when the pick is later displayed/resolved. Nullable
+    // only for defense (no pre-existing rows to backfill as of this
+    // migration — the feature had zero real picks yet); a null reads as
+    // the flat TOP_SCORER_POINTS_PER_CORRECT rate everywhere it's summed.
+    pointsAtPick: integer("points_at_pick"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => ({
