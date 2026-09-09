@@ -1,14 +1,35 @@
-/* Hellenica and Lulu Monospace aren't on Google Fonts — both self-hosted
-   below, see the comment above .font-display for why. Single weight file
-   each — the `100 900` range means every requested weight (font-medium,
-   font-semibold, font-bold, .font-display's own 700) resolves to the one
-   face shipped rather than falling back to a system font. */
+/* Vela Sans and Lulu Monospace aren't on Google Fonts — both self-hosted
+   below, see the comment above .font-display for why. Vela Sans ships 4
+   real weights (unlike every self-hosted pick before it, which had only
+   one); Lulu Monospace is still single-weight, wired with the same
+   `100 900` range trick as before. */
 @font-face {
-  font-family: "Hellenica";
+  font-family: "Vela Sans";
   font-style: normal;
-  font-weight: 100 900;
+  font-weight: 400;
   font-display: swap;
-  src: url("/assets/fonts/Hellenica.ttf") format("truetype");
+  src: url("/assets/fonts/VelaSans-Regular.otf") format("opentype");
+}
+@font-face {
+  font-family: "Vela Sans";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/assets/fonts/VelaSans-Medium.otf") format("opentype");
+}
+@font-face {
+  font-family: "Vela Sans";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/assets/fonts/VelaSans-SemiBold.otf") format("opentype");
+}
+@font-face {
+  font-family: "Vela Sans";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/assets/fonts/VelaSans-Bold.otf") format("opentype");
 }
 @font-face {
   font-family: "Lulu Monospace";
@@ -162,7 +183,25 @@
    at the primary source, file from a mirror" split as Hellenica above.
    Greek coverage (every tonos vowel, final sigma, both dialytika marks)
    verified glyph-by-glyph against the real binary. Hellenica
-   (display/sans) is untouched by this swap. */
+   (display/sans) is untouched by this swap.
+   Tenth swap, same day: display AND sans, Hellenica -> Vela Sans (one
+   family for both roles again — Hellenica's files deleted outright). A
+   semi-condensed modern-grotesque by Ravid Balaliev (behance.net/ravid29)
+   — explicitly a modification of the Manrope font project (itself
+   Greek-verified earlier this same session, so the lineage checks out).
+   Self-hosted, but the *first* self-hosted pick today with real, distinct
+   weight files rather than a single face stretched across `100 900` —
+   400/500/600/700 all ship, matching Hellenica/CYN Gamer/Swanston/LT
+   Superior's own weight patterns before it, just as 4 genuinely separate
+   files this time. License is genuinely OFL 1.1 (Fontesk actually named
+   it correctly this round, unlike every other font added today) —
+   still independently confirmed against the designer's own Behance post
+   rather than taken on Fontesk's word alone, preserved at
+   `VelaSans-LICENSE.txt`. Font files came from a third-party mirror
+   (myfontlib.com), license confirmed at the primary Behance source. Greek
+   coverage (every tonos vowel, final sigma, both dialytika marks)
+   verified glyph-by-glyph against all 4 real binaries. Lulu Monospace
+   (mono) is untouched. */
 .font-display {
   font-weight: 700;
 }

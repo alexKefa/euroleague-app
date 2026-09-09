@@ -1,0 +1,15 @@
+Vela Sans typeface by Ravid Balaliev (behance.net/ravid29)
+Source: https://www.behance.net/gallery/118694463/Vela-Sans-Free-font-family
+
+"This Font Software is licensed under the SIL Open Font License,
+Version 1.1." Confirmed via the designer's own Behance post (checked
+directly, 2026-09-09) and consistent with the Fontesk listing that
+first surfaced it (which named OFL explicitly this time, unlike several
+other fonts added this same day). Vela Sans is stated to be a
+modification of the Manrope font project.
+
+Font files obtained via a third-party mirror (myfontlib.com) — the
+license was verified against the designer's own Behance post directly,
+not the mirror.
+
+Full SIL Open Font License 1.1 text: https://scripts.sil.org/OFL
