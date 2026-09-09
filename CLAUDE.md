@@ -1748,6 +1748,24 @@ at the same Neon instance as local dev — there's no separate prod database.
   treat any earlier "checked on <date>, covers N of M games" note as stale.
 - Redeploys to Railway are manual, not triggered by `git push` (see
   Deployment above).
+- **TODO: fantasy price ceiling shouldn't stay pinned to the season-start
+  anchor forever** (flagged 2026-09-09, not implemented) — `FANTASY_MIN_PRICE`
+  (4) and `FANTASY_MAX_PRICE` (17) in `services/fantasyScoring.ts` were both
+  picked once, at 2026-27's season start, the max anchored to a single real
+  reference point (Vezenkov's real-world EuroLeague Fantasy price — see the
+  "PIR-to-credit scale" bullet under Fantasy Five above). Explicit ask: every
+  player's price should be able to move up or down as the season plays out
+  (which `computeFantasyPrice` already does implicitly — it's recalculated
+  from blended recent-form + season PIR on every `fantasy:reprice` run), but
+  never drop below the 4cr floor — that part already holds today via the
+  existing `Math.max(FANTASY_MIN_PRICE, ...)` clamp. What's unresolved: the
+  17cr ceiling itself is still hard-pinned to wherever Vezenkov happened to
+  sit on day one, so nobody can ever price above that even if their real
+  in-season form clearly overtakes his. Revisit whether the ceiling should
+  stay fixed for the whole season or flex (e.g. re-anchor
+  `FANTASY_PIR_CEILING` off the season's actual current top performer on
+  each reprice, rather than a fixed constant) once there's real in-season
+  form to judge it against.
 - **TODO: no dev/staging environment** — everything today is one production
   Railway service on `main`, deployed by hand from a local checkout, against
   the one live Neon database (`DATABASE_URL` is identical between local dev

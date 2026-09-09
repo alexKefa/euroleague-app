@@ -23,6 +23,7 @@ export type NavIconName =
   | "sprout"
   | "zap"
   | "ball"
+  | "fantasy"
   | "tip"
   | "compass"
   | "logout"
@@ -366,6 +367,27 @@ export type NavIconName =
             stroke-width="1.4"
             stroke-linecap="round"
           />
+        }
+        @case ("fantasy") {
+          <!-- Mini basketball court, top-down (boundary, half-court line,
+               center circle, both keys) — Fantasy Five's own "build a
+               squad on a court" identity, distinct from the plain "ball"
+               icon reused elsewhere for points/the wheel. -->
+          <rect
+            x="4"
+            y="3"
+            width="16"
+            height="18"
+            rx="1.5"
+            stroke="currentColor"
+            stroke-width="2"
+            [attr.fill]="active ? 'currentColor' : 'none'"
+            [attr.fill-opacity]="active ? 0.12 : null"
+          />
+          <line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.3" />
+          <circle cx="12" cy="12" r="2.3" stroke="currentColor" stroke-width="1.3" />
+          <rect x="9" y="3" width="6" height="4.2" stroke="currentColor" stroke-width="1.3" />
+          <rect x="9" y="16.8" width="6" height="4.2" stroke="currentColor" stroke-width="1.3" />
         }
         @case ("tip") {
           <!-- default page-hint icon when a page doesn't pass a specific one. -->

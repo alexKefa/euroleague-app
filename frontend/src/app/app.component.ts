@@ -78,7 +78,7 @@ const NAV_LINKS: NavLink[] = [
   { path: "/news", label: "nav.news", icon: "news" },
   { path: "/schedule", label: "nav.schedule", icon: "schedule" },
   { path: "/predictions", label: "nav.picks", icon: "picks" },
-  { path: "/fantasy", label: "fantasy.navLink", icon: "ball" },
+  { path: "/fantasy", label: "fantasy.navLink", icon: "fantasy" },
   {
     path: "/inventory",
     label: "nav.cards",
