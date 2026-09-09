@@ -1,23 +1,17 @@
 @import url("https://fonts.googleapis.com/css2?family=Iosevka+Charon+Mono:wght@500;700&display=swap");
 
-/* Swanston isn't on Google Fonts — self-hosted below, see the comment
-   above .font-display for why. Only Regular/Bold exist (no Medium/
-   SemiBold — it's a 2-weight terminal-style face), so font-medium/
-   font-semibold utility classes fall back to the nearest real weight
-   the browser picks (400 or 700). */
+/* CYN Gamer isn't on Google Fonts — self-hosted below, see the comment
+   above .font-display for why. Single Black-weight file only — the
+   `100 900` range means every requested weight (font-medium,
+   font-semibold, font-bold, .font-display's own 700) resolves to this
+   one face rather than falling back to a system font for anything but
+   exactly 400/700. */
 @font-face {
-  font-family: "Swanston";
+  font-family: "CYN Gamer";
   font-style: normal;
-  font-weight: 400;
+  font-weight: 100 900;
   font-display: swap;
-  src: url("/assets/fonts/Swanston-Regular.ttf") format("truetype");
-}
-@font-face {
-  font-family: "Swanston";
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url("/assets/fonts/Swanston-Bold.ttf") format("truetype");
+  src: url("/assets/fonts/CYNGamer.otf") format("opentype");
 }
 
 @tailwind base;
@@ -107,7 +101,25 @@
    the browser picks. Greek coverage (every tonos vowel, final sigma, both
    dialytika marks) verified glyph-by-glyph against the real font binary,
    same as every self-hosted pick above. Iosevka Charon Mono (mono) is
-   untouched by this swap. */
+   untouched by this swap.
+   Eighth swap, same day: display AND sans, Swanston -> CYN Gamer (one
+   family for both roles again — Swanston's files deleted outright, same
+   as LT Superior and Fervojo before it). A bold, black-weight, geometric
+   "gamer" display face by Petros Vasiadis (+CYN Fonts, Athens) — single
+   Black weight only, no separate Regular/Bold files, wired in with a
+   `font-weight: 100 900` range so every real usage still resolves to it
+   rather than falling back for anything but exactly 400/700. Its
+   lowercase Latin/Greek codepoints are mapped (confirmed via the real
+   binary — 'a', 'α', 'ά', final 'ς' all present, 72/144 of the Greek
+   block), but drawn as full-cap-height glyphs, a common all-caps-style
+   display convention — mixed-case text won't be missing glyphs, it'll
+   just always render visually as caps. Licensed CC BY 4.0 (not OFL —
+   checked directly against the designer's own blog post, not the Fontesk
+   aggregator page that first surfaced it, which only vaguely said "free
+   for commercial use"), which requires attribution; that requirement and
+   the license statement are preserved at
+   `frontend/src/assets/fonts/CYNGamer-LICENSE.txt`. Iosevka Charon Mono
+   (mono) is still untouched. */
 .font-display {
   font-weight: 700;
 }

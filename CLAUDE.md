@@ -1579,46 +1579,46 @@ If you need to apply a schema change without an interactive terminal
   themselves backed by CSS variables (not fixed hex), which is what makes
   the dark/light toggle (`ThemeService.toggleColorScheme()`, stamps
   `data-theme` on `<html>`) repaint the whole app with zero template
-  changes. Fonts, current as of 2026-09-09: **Swanston** (display AND
-  sans/body, one family for both roles — weights 400/700 only, no Medium/
-  SemiBold) and **Iosevka Charon Mono** (mono/labels) — set up in
+  changes. Fonts, current as of 2026-09-09: **CYN Gamer** (display AND
+  sans/body, one family for both roles — single Black-weight file, wired
+  in with a `font-weight: 100 900` range so every requested weight still
+  resolves to it) and **Iosevka Charon Mono** (mono/labels) — set up in
   `frontend/src/styles.css`, full `@font-face` blocks and swap history in
   the comment above `.font-display` there.
-  Both are self-hosted (not on Google Fonts) under
-  `frontend/src/assets/fonts/`, `.ttf` not woff2 (not size-optimized —
-  every self-hosted pick here was added fast to preview, not tuned for
-  load size). **Swanston** (github.com/lwhitelaw/Swanston) is a
-  monospaced, retro bitmap-terminal-style outline face — applying a
-  terminal font as the *main* display/body face, not just mono, is a
-  deliberate, unusual call flagged directly rather than softened: its own
-  README says it "looks best at 16 pixel size or multiples thereof" with
-  "compromised legibility" below that, a real tradeoff at this app's
-  smaller text sizes. No bundled license file, but its README states
-  plainly "licenced under the SIL OFL" — that statement is preserved
-  verbatim at `Swanston-LICENSE.txt` since there's nothing to copy
-  instead. **Iosevka Charon Mono** is a plain Google Fonts pick (narrower
-  than the prior Fira Code, better fit for this app's many tight numeric
-  chips — fantasy price tags, serial numbers, stat lines); one hardcoded
-  `"Fira Code"` in `frontend/src/app/features/packs/packs.css`'s
-  `.pack-set-code` rule needed updating by hand alongside
-  `tailwind.config.js`, since it sat outside the `font-mono` Tailwind
-  class. Every self-hosted pick's Greek coverage (tonos vowels, final
-  sigma, both dialytika marks) was verified glyph-by-glyph against the
-  real font binary, not trusted from a README or third-party aggregator
-  claim — this mattered in practice: Hauora Sans's README overclaimed
-  Greek support its published package didn't actually ship, and LT
-  Superior's own GitHub repo has no license file in its plain file tree
-  (the real OFL.txt only exists inside its release zip). `.font-display`
-  carries a `font-weight: 700` baseline.
+  **CYN Gamer** (self-hosted, not on Google Fonts, `.otf` at
+  `frontend/src/assets/fonts/CYNGamer.otf`) is a bold, black-weight,
+  geometric "gamer" display face by Petros Vasiadis (+CYN Fonts, Athens).
+  Its lowercase Latin/Greek codepoints exist (confirmed via the real
+  binary) but are drawn as full-cap-height glyphs, a common all-caps-style
+  display convention — mixed-case text renders visually as caps, not as
+  missing glyphs. Licensed **CC BY 4.0**, not OFL — verified against the
+  designer's own blog post directly, since the Fontesk page that first
+  surfaced it only vaguely said "free for commercial use"; CC BY requires
+  attribution, preserved at `CYNGamer-LICENSE.txt`. **Iosevka Charon
+  Mono** is a plain Google Fonts pick (narrower than the prior Fira Code,
+  better fit for this app's many tight numeric chips — fantasy price
+  tags, serial numbers, stat lines); one hardcoded `"Fira Code"` in
+  `frontend/src/app/features/packs/packs.css`'s `.pack-set-code` rule
+  needed updating by hand alongside `tailwind.config.js`, since it sat
+  outside the `font-mono` Tailwind class. Every self-hosted pick's Greek
+  coverage was verified glyph-by-glyph against the real font binary, not
+  trusted from a README or aggregator claim — this mattered in practice:
+  Hauora Sans's README overclaimed Greek support its published package
+  didn't ship, LT Superior's GitHub repo had no license file in its plain
+  tree (the real OFL.txt only existed inside its release zip), and CYN
+  Gamer's own Fontesk listing didn't name its actual license at all.
+  `.font-display` carries a `font-weight: 700` baseline.
   **The short version of a very eventful single day**: Rajdhani/Barlow/
   JetBrains Mono (no Greek at all) → Syne/IBM Plex Sans → Play/Roboto
   Condensed → GFS Neohellenic/Noto Sans → Fervojo (self-hosted, rejected
-  same day, "i dont like it") → Moderustic → **LT Superior** (self-hosted,
-  retired Noto Sans, one family for both roles) → **Swanston** (self-
-  hosted, replaced LT Superior) for display/sans; mono went
-  Rajdhani-trio → Fira Code → **Iosevka Charon Mono**. The first two
-  display swaps went through a side-by-side Artifact comparison; every
-  swap after that was a named-font "just apply it" request.
+  same day, "i dont like it") → Moderustic → LT Superior (self-hosted,
+  retired Noto Sans, one family for both roles) → Swanston (self-hosted)
+  → **CYN Gamer** (self-hosted) for display/sans; mono went Rajdhani-trio
+  → Fira Code → **Iosevka Charon Mono**. The first two display swaps went
+  through a side-by-side Artifact comparison; every swap after that was a
+  named-font "just apply it" request — each self-hosted font's files were
+  deleted outright the moment it was replaced, nothing legacy left behind
+  at any point in this chain.
 - Forms use Angular Reactive Forms (`ReactiveFormsModule` + `FormBuilder`),
   not template-driven/`ngModel` — follow that pattern for new forms.
 - **Buttons**: `shared/button.directive.ts`'s `ButtonDirective` (`[appButton]`,
