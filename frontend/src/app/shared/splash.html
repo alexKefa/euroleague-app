@@ -21,62 +21,93 @@
     />
   </svg>
 
-  <div class="relative flex flex-col items-center gap-3">
-    <!-- A small fan of collectible cards (silver/gold/violet — the same
-         tier gradients as the real Store/Album cards, see
-         collectible-card.ts's TierStyle) rises in first, a nod to the
-         card economy this app is actually built around, before the brand
-         mark settles. Real photos, not placeholders: Evan Fournier and
-         Kendrick Nunn from EuroLeague's own live media CDN (the same
-         source player_stats_sync.py pulls from, media-cdn.cortextech.io —
-         confirmed reachable before wiring in); Zeljko Obradovic's real
-         headshot isn't in that feed (the live E2026 roster's `images`
-         field for him is empty), so his card uses a direct photo URL the
-         user supplied instead (paobc.gr, Panathinaikos's own site —
-         confirmed reachable, real PNG, before wiring in). Decorative
-         only, no real card content/stats attached. -->
-    <div class="relative h-28 w-56 sm:h-32 sm:w-64 mb-1" aria-hidden="true">
-      <div class="mini-card mini-card--silver">
-        <div class="mini-card-float mini-card-float--a mini-card-frame mini-card-frame--silver">
-          <div class="mini-card-face">
-            <img class="mini-card-photo" src="https://media-cdn.cortextech.io/948551c5-285e-44d1-8a50-35cd9b019e97.png" alt="" />
-          </div>
-        </div>
-      </div>
-      <div class="mini-card mini-card--gold">
-        <div class="mini-card-float mini-card-float--b mini-card-frame mini-card-frame--gold">
-          <div class="mini-card-face">
-            <img class="mini-card-photo" src="https://media-cdn.cortextech.io/6a45d41a-03f4-482a-b7ed-40adc56d5af8.png" alt="" />
-          </div>
-        </div>
-      </div>
-      <div class="mini-card mini-card--violet">
-        <div class="mini-card-float mini-card-float--c mini-card-frame mini-card-frame--violet">
-          <div class="mini-card-face">
-            <img class="mini-card-photo" src="https://www.paobc.gr/wp-content/uploads/2026/06/zeljko-head-coach.png" alt="" />
-          </div>
+  <!-- A small fan of collectible cards (silver/gold — the same tier
+       gradients as the real Store/Album cards, see collectible-card.ts's
+       TierStyle; third slot also silver now that all three are player
+       cards, not two players + a coach) flips face-up first, a nod to the
+       card economy this app is actually built around. Positioned as its
+       own absolutely-centered layer (2026-09-10, same "inset-0 m-auto"
+       trick as .watermark/.tagline-arc below), nudged up from that
+       centered baseline via translate-y so it floats over the ball's
+       upper half instead of sharing a flex column with the logo — that
+       old shared-column layout was what pushed the logo below the
+       watermark's actual center in the first place. `perspective` (not on
+       .mini-card itself) is what gives the flip real depth instead of a
+       flat horizontal squash — a shared vanishing point behind all three
+       cards, same as a real deck viewed from one spot. Real photos, not
+       placeholders — see splash.ts's SPLASH_CARD_POOL for where these
+       come from and why they're a small hardcoded pool rather than a live
+       fetch. -->
+  <div
+    class="absolute inset-0 m-auto h-28 w-56 sm:h-32 sm:w-64 -translate-y-24 [perspective:600px]"
+    aria-hidden="true"
+  >
+    <div class="mini-card mini-card--silver">
+      <div class="mini-card-float mini-card-float--a mini-card-frame mini-card-frame--silver">
+        <div class="mini-card-face">
+          <img class="mini-card-photo" [src]="cards[0].photoUrl" alt="" />
         </div>
       </div>
     </div>
-
-    <!-- The "C" is a real open ring, with a small basketball nested inside
-         its hollow (not a ball replacing the C outright — see the nav
-         wordmark's comment for why that was wrong). Same combination-mark
-         construction as the nav wordmark, just bigger. The row wrapper
-         itself carries no animation (always visible) so .brand-icon and
-         .wordmark keep animating independently as true siblings — nesting
-         one inside the other would mask the icon's own earlier fade-in
-         behind its parent's still-zero opacity. -->
-    <div class="flex items-center" aria-label="Clutch" role="img">
-      <svg class="brand-icon" width="52" height="52" viewBox="0 0 100 100" aria-hidden="true">
-        <path d="M 80 28 A 34 34 0 1 0 80 72" fill="none" stroke="var(--color-ink)" stroke-width="10" stroke-linecap="round"/>
-        <circle cx="54" cy="50" r="19" fill="none" stroke="#FF6B35" stroke-width="4.5"/>
-        <path d="M 54 31 L 54 69" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round"/>
-        <path d="M 40.6 36.6 Q 48 50 40.6 63.4" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round"/>
-        <path d="M 67.4 36.6 Q 60 50 67.4 63.4" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round"/>
-      </svg>
-      <p class="wordmark font-display text-4xl tracking-wide -ml-1" style="color: var(--color-ink)" aria-hidden="true">lutch</p>
+    <div class="mini-card mini-card--gold">
+      <div class="mini-card-float mini-card-float--b mini-card-frame mini-card-frame--gold">
+        <div class="mini-card-face">
+          <img class="mini-card-photo" [src]="cards[1].photoUrl" alt="" />
+        </div>
+      </div>
     </div>
-    <p class="tagline font-mono text-xs font-bold uppercase tracking-wider text-muted">{{ i18n.t('splash.tagline') }}</p>
+    <div class="mini-card mini-card--violet">
+      <div class="mini-card-float mini-card-float--c mini-card-frame mini-card-frame--silver">
+        <div class="mini-card-face">
+          <img class="mini-card-photo" [src]="cards[2].photoUrl" alt="" />
+        </div>
+      </div>
+    </div>
   </div>
+
+  <!-- The "C" is a real open ring, with a small basketball nested inside
+       its hollow (not a ball replacing the C outright — see the nav
+       wordmark's comment for why that was wrong). Same combination-mark
+       construction as the nav wordmark, just bigger. Now the only normal-
+       flow child of .splash-root's centered flex column (2026-09-10 — see
+       the cards' own comment above), so justify-center/items-center
+       center exactly this at the watermark's true center, not a "cards +
+       logo" block's midpoint. The row wrapper itself carries no animation
+       (always visible) so .brand-icon and .wordmark keep animating
+       independently as true siblings — nesting one inside the other would
+       mask the icon's own earlier fade-in behind its parent's still-zero
+       opacity. -->
+  <div class="relative flex items-center min-w-0 px-6 max-w-[92vw]" aria-label="Clutch" role="img">
+    <svg class="brand-icon shrink-0" viewBox="0 0 100 100" aria-hidden="true">
+      <path d="M 80 28 A 34 34 0 1 0 80 72" fill="none" stroke="var(--color-ink)" stroke-width="10" stroke-linecap="round"/>
+      <circle cx="54" cy="50" r="19" fill="none" stroke="#FF6B35" stroke-width="4.5"/>
+      <path d="M 54 31 L 54 69" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M 40.6 36.6 Q 48 50 40.6 63.4" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M 67.4 36.6 Q 60 50 67.4 63.4" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round"/>
+    </svg>
+    <p class="wordmark font-display tracking-wide -ml-1" style="color: var(--color-ink)" aria-hidden="true">lutch</p>
+  </div>
+
+  <!-- Tagline, curved along the bottom of the watermark ball rather than
+       sitting under it as a straight line — same "8.5"-radius circle as
+       the watermark svg above (same viewBox, same 80vmin box, so the two
+       are concentric and same-scale with zero extra math), just traced by
+       an invisible guide path instead of drawn. font-size is left
+       unitless/"px" on purpose: inside an SVG with a viewBox, both are
+       user units, not device pixels, so the text scales with the ball
+       (vmin-based) exactly like the watermark's own lines do, instead of
+       needing its own separate clamp(). role="img" + aria-label carries
+       the real motto for screen readers, since not every reader walks
+       into a <textPath>'s text node the way it would a plain <p>. -->
+  <svg
+    class="tagline-arc absolute inset-0 m-auto"
+    width="80vmin"
+    height="80vmin"
+    viewBox="0 0 24 24"
+    role="img"
+    [attr.aria-label]="'Clutch' + i18n.t('splash.taglineSuffix')"
+  >
+    <path id="taglineArcPath" d="M 3.5 12 A 8.5 8.5 0 0 0 20.5 12" fill="none" stroke="none" />
+    <text aria-hidden="true"><textPath href="#taglineArcPath" startOffset="50%" text-anchor="middle"><tspan class="tagline-arc-brand">Clutch</tspan><tspan>{{ i18n.t('splash.taglineSuffix') }}</tspan></textPath></text>
+  </svg>
 </div>

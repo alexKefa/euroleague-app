@@ -2,8 +2,11 @@ import { Lang } from "./lang";
 
 // App shell: top bar, side/bottom nav, profile page.
 export const chromeTranslations: Record<string, Record<Lang, string>> = {
-  // shared/splash.ts — the brief brand moment shown on app load.
-  "splash.tagline": { en: "Clutch it", el: "Clutch-ωσέ το" },
+  // shared/splash.ts — the brief brand moment shown on app load. Just the
+  // part after the literal "Clutch" (rendered separately, in brand orange,
+  // by splash.html) — concatenating "Clutch" + this reconstructs the
+  // exact original phrase in both languages ("Clutch it" / "Clutch-ωσέ το").
+  "splash.taglineSuffix": { en: " it", el: "-ωσέ το" },
 
   "nav.home": { en: "Home", el: "Αρχική" },
   "nav.news": { en: "News", el: "Νέα" },
