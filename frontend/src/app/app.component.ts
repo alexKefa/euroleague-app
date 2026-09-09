@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, OnInit, ViewChild, computed, effect, inject, signal } from "@angular/core";
+import { Component, ElementRef, HostListener, OnInit, ViewChild, computed, effect, inject, signal, untracked } from "@angular/core";
 import { toSignal } from "@angular/core/rxjs-interop";
 import { NavigationEnd, Router, RouterOutlet, RouterLink } from "@angular/router";
 import { filter, map } from "rxjs";
@@ -224,7 +224,15 @@ export class AppComponent implements OnInit {
     // scale, then change tab" as two real, sequential steps, not raced.
     effect(() => {
       this.activeTabSlot();
-      const wasShrunk = this.bottomNavShrunk();
+      // untracked — reading bottomNavShrunk() as a normal (tracked) signal
+      // read would make *this* effect a dependency of it too, so every
+      // scroll-driven bottomNavShrunk.set(true) below would immediately
+      // re-trigger this same effect, which unconditionally sets it back to
+      // false right after — killing the shrink-on-scroll feature entirely
+      // (2026-09-09 report: "you removed scale 0.9 on scroll"). This effect
+      // should only ever re-run on a real tab/route change (activeTabSlot),
+      // never react to bottomNavShrunk's own value changing.
+      const wasShrunk = untracked(() => this.bottomNavShrunk());
       this.bottomNavShrunk.set(false);
       this.trackActiveTabAfterShrinkReset(wasShrunk);
     });
