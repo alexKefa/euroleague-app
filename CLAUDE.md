@@ -1579,26 +1579,33 @@ If you need to apply a schema change without an interactive terminal
   themselves backed by CSS variables (not fixed hex), which is what makes
   the dark/light toggle (`ThemeService.toggleColorScheme()`, stamps
   `data-theme` on `<html>`) repaint the whole app with zero template
-  changes. Fonts: Moderustic (display/headings), Fira Code (mono/labels),
-  Noto Sans (sans/body) — set up in `frontend/src/styles.css` (see the
-  `@import`/`.font-display` comment there for the full swap history: the
-  original Rajdhani/Barlow/JetBrains Mono trio had no Greek glyphs at all;
-  Syne, Play, GFS Neohellenic, and Fervojo were each tried as the display
-  face in turn and rejected in turn — the first two via a side-by-side
-  Artifact comparison, the last two ("just apply it") directly. Fervojo
-  (self-hosted — it isn't on Google Fonts at all, an open-source,
-  OFL-licensed face originally built for Tokyo-subway numerals signage;
-  its Greek coverage was verified glyph-by-glyph against the real font
-  binary rather than trusted from its README, the same check that caught
-  Hauora Sans's README overclaiming what its published package actually
-  shipped) lasted under a day before "i dont like it" — its
-  `@font-face`/`.woff2`/OFL-text were removed outright, nothing legacy
-  left behind. Moderustic, current as of 2026-09-09, is back on Google
-  Fonts (Greek-verified the same metadata-checking way as every pick
-  before Fervojo). Noto Sans/Fira Code have been untouched through every
-  one of these swaps — only the display face keeps moving). `.font-display`
-  also carries a `font-weight: 700` baseline there; Moderustic ships up to
-  800, pulled in alongside 700 for anywhere that wants extra punch.
+  changes. Fonts: LT Superior (display AND sans/body, one family for both
+  roles), Fira Code (mono/labels) — set up in `frontend/src/styles.css`
+  (see the `@import`/`@font-face`/`.font-display` comment there for the
+  full swap history — six display-face swaps and one sans swap in a single
+  day, 2026-09-09: the original Rajdhani/Barlow/JetBrains Mono trio had no
+  Greek glyphs at all; Syne, Play, GFS Neohellenic, Fervojo, and Moderustic
+  were each tried as the display face in turn — the first two via a
+  side-by-side Artifact comparison, the rest ("just apply it") directly.
+  Fervojo (self-hosted, OFL-licensed, originally a Tokyo-subway numerals
+  face) lasted under a day before "i dont like it" and was fully removed,
+  no legacy left behind; Moderustic (Google Fonts, Greek-verified the
+  metadata-checking way) was the pick right before this one. LT Superior
+  then replaced Moderustic *and* retired Noto Sans (sans/body) at the same
+  time — one family for both roles instead of a display+body pairing.
+  It's self-hosted (not on Google Fonts, `.ttf` not woff2 — quick to try,
+  not size-optimized), 4 weights (400/500/600/700) at
+  `frontend/src/assets/fonts/LTSuperior-*.ttf`. Its GitHub repo
+  (github.com/LyonsType/LTSuperior) has no license file in the plain file
+  tree — easy to mistake for unlicensed — but its release zip does contain
+  a genuine OFL 1.1 `OFL.txt` (copyright LyonsType, 2024), checked directly
+  rather than trusted from a third-party aggregator site's claim before
+  using it; that text is kept alongside the fonts at
+  `LTSuperior-OFL.txt`. Greek coverage (every tonos vowel, final sigma,
+  both dialytika marks) verified glyph-by-glyph against the real font
+  binary, same check every self-hosted pick here has gotten. Fira Code
+  (mono) is the only face untouched through all of this). `.font-display`
+  also carries a `font-weight: 700` baseline there.
 - Forms use Angular Reactive Forms (`ReactiveFormsModule` + `FormBuilder`),
   not template-driven/`ngModel` — follow that pattern for new forms.
 - **Buttons**: `shared/button.directive.ts`'s `ButtonDirective` (`[appButton]`,

@@ -1,4 +1,35 @@
-@import url("https://fonts.googleapis.com/css2?family=Moderustic:wght@700;800&family=Noto+Sans:wght@400;500;600;700&family=Fira+Code:wght@500;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@500;700&display=swap");
+
+/* LT Superior isn't on Google Fonts — self-hosted below, see the comment
+   above .font-display for why. */
+@font-face {
+  font-family: "LT Superior";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/assets/fonts/LTSuperior-Regular.ttf") format("truetype");
+}
+@font-face {
+  font-family: "LT Superior";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/assets/fonts/LTSuperior-Medium.ttf") format("truetype");
+}
+@font-face {
+  font-family: "LT Superior";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/assets/fonts/LTSuperior-SemiBold.ttf") format("truetype");
+}
+@font-face {
+  font-family: "LT Superior";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/assets/fonts/LTSuperior-Bold.ttf") format("truetype");
+}
 
 @tailwind base;
 @tailwind components;
@@ -44,13 +75,21 @@
    deleted along with the @font-face block that pointed at it.
    display swapped a fifth time, same day, Fervojo -> Moderustic — back on
    Google Fonts (Greek-verified the same way as GFS Neohellenic, no
-   self-hosting needed). Noto Sans (sans/body) and Fira Code (mono) are
-   untouched through all five swaps — only the display face keeps
-   changing. Weights 700/800 are pulled in (Moderustic's variable axis
-   goes up to 800); most `font-display` usages rely on the class's own
-   700 baseline below, a handful of templates add `font-bold` (also 700),
-   and 800 is available for anywhere that wants extra punch without a new
-   `@import`. */
+   self-hosting needed).
+   Sixth swap, same day: both display AND sans -> LT Superior, one family
+   for both roles (Noto Sans retired). Not on Google Fonts — self-hosted,
+   `.ttf` (not woff2 — added quickly to try, not size-optimized yet) at
+   `frontend/src/assets/fonts/LTSuperior-*.ttf`, OFL text alongside at
+   `LTSuperior-OFL.txt`. Its own GitHub repo (github.com/LyonsType/
+   LTSuperior) has no license file in the plain file tree — the OFL.txt
+   only exists inside its release zip, easy to miss — so this one got a
+   real licensing check before use (confirmed genuine OFL 1.1, copyright
+   LyonsType 2024, from the zip's own OFL.txt, not just a third-party
+   aggregator's claim) rather than assumed. Greek coverage (every tonos
+   vowel, final sigma, both dialytika marks) verified glyph-by-glyph
+   against the real font binary, same as every self-hosted pick before it.
+   Fira Code (mono) is the only thing untouched through all six swaps.
+   Weights 400/500/600/700 shipped, matching what Noto Sans carried. */
 .font-display {
   font-weight: 700;
 }
