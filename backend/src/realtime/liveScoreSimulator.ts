@@ -298,7 +298,7 @@ export async function startSimulation(gameId?: string): Promise<{ gameId: string
   const roster = await db
     .select({ id: players.id, teamId: players.teamId })
     .from(players)
-    .where(inArray(players.teamId, [game.homeTeamId, game.awayTeamId]));
+    .where(and(inArray(players.teamId, [game.homeTeamId, game.awayTeamId]), eq(players.active, true)));
 
   // Clean slate — a repeat test run on the same game shouldn't pile stats
   // on top of a previous run's.
