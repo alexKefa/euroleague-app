@@ -40,6 +40,8 @@ import { displayTeamCode } from "./team-display-code";
           appRetryImg
           (error)="failed.set(true)"
           class="w-full h-full object-cover"
+          [style.object-position]="zoom() ? '50% -80%' : null"
+          [style.transform]="zoom() ? 'scale(2.2)' : null"
         />
       } @else {
         <span class="absolute inset-0" [style.background]="backdrop()"></span>
@@ -98,6 +100,26 @@ export class PlayerPhotoComponent {
   readonly primaryColor = input<string | null>(null);
   readonly secondaryColor = input<string | null>(null);
   readonly size = input(48);
+  // Real EuroLeague roster photos (media-cdn.cortextech.io, 750x1000,
+  // confirmed directly against several samples) are standardized waist-up
+  // studio shots with the face occupying only roughly the top ~5%-30% of
+  // the frame — object-cover's default center crop shows mostly torso/
+  // jersey with the face awkwardly high or clipped (2026-09-09 report:
+  // "place of face is missing"). `zoom` opts an instance into a crop
+  // biased and scaled toward that known face region instead of the
+  // default center-crop — derived from the fixed 750x1000 aspect ratio
+  // (0.75) so the object-position/scale pair puts the face dead center:
+  // object-position's Y shifts which slice of the (fixed, cover-driven)
+  // 75%-tall window is shown, then scale(2.2) magnifies around the
+  // frame's own center — the two combine so the image band roughly
+  // spanning original-image y=0%-35% (hairline to collar) fills the
+  // whole circle with the face centered, not just object-position's crop
+  // alone (which can't zoom, only pick which 75%-tall slice shows).
+  // Opt-in rather than the component's default, since every other caller
+  // (player detail, game-detail top performers, compare, roster) wasn't
+  // reported as having this problem and a global change here would be
+  // broader than what was actually asked for.
+  readonly zoom = input(false);
 
   protected failed = signal(false);
 

@@ -82,6 +82,7 @@
                     [teamCode]="row.team.code"
                     [primaryColor]="row.team.primaryColor"
                     [size]="size"
+                    [zoom]="true"
                   />
                 </button>
                 @if (slot.role === 'starter' && captainId() === slot.playerId) {
@@ -481,6 +482,7 @@
                       [teamCode]="row.team.code"
                       [primaryColor]="row.team.primaryColor"
                       [size]="26"
+                      [zoom]="true"
                     />
                     <div class="min-w-0 flex-1">
                       <p class="text-[10px] font-semibold truncate leading-tight">{{ row.player.name }}</p>
@@ -620,6 +622,7 @@
                 [teamCode]="row.team.code"
                 [primaryColor]="row.team.primaryColor"
                 [size]="48"
+                [zoom]="true"
               />
               <div class="min-w-0">
                 <p class="font-display text-lg tracking-wide truncate">{{ row.player.name }}</p>
@@ -741,6 +744,7 @@
                 [teamCode]="row.team.code"
                 [primaryColor]="row.team.primaryColor"
                 [size]="30"
+                [zoom]="true"
               />
               <div class="min-w-0 flex-1">
                 <p class="text-[12px] font-semibold truncate leading-tight">{{ row.player.name }}</p>
@@ -840,6 +844,7 @@
                 [teamCode]="candidate.row.team.code"
                 [primaryColor]="candidate.row.team.primaryColor"
                 [size]="30"
+                [zoom]="true"
               />
               <div class="min-w-0 flex-1">
                 <p class="text-[12px] font-semibold truncate leading-tight">{{ candidate.row.player.name }}</p>
@@ -925,6 +930,7 @@
                     [teamCode]="row.team.code"
                     [primaryColor]="row.team.primaryColor"
                     [size]="30"
+                    [zoom]="true"
                   />
                   <div class="min-w-0 flex-1">
                     <p class="text-[12px] font-semibold truncate leading-tight">{{ row.player.name }}</p>
