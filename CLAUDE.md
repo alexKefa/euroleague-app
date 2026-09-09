@@ -97,62 +97,29 @@ If you need to apply a schema change without an interactive terminal
   grant/deduction ledger (`POST /predictions/points/adjust`, gated by
   `requireAdmin`); there is no bootstrap flow for the first admin — flip
   `users.is_admin` by hand in the DB.
-- **Odds-weighted prediction points** (2026-08-31, redesigned same day from
-  a symmetric-penalty curve to a floor-not-penalty one; replaced again
-  2026-09-01 with a single direct-odds-multiple formula — see below). Every
-  correct pick is worth `POINTS_PER_CORRECT` (10) times the picked team's
-  own fair odds — "pay roughly what the market itself would," not a curve
-  built around an arbitrary boost constant. `fairProb` is the picked team's
-  de-vigged implied win probability (`services/points.ts`'s
-  `pointsForCorrectPick`):
-  `min(40, max(10, round(10 / fairProb)))` — i.e. `POINTS_PER_CORRECT ×
-  fairOdds` (`fairOdds = 1 / fairProb`), floored at the flat rate (fair
-  odds are always ≥ 1.0, so this floor only ever bites on a rounding
-  fluke) and capped at 40. **There is no favorite/underdog branch at
-  all** — a heavy favorite's fair odds sit close to 1.0 so it scores close
-  to the flat rate, a real underdog's fair odds are much higher so it
-  scores much more, and the one formula covers both continuously with no
-  jump anywhere.
+- **Odds-weighted prediction points** (`services/points.ts`'s `pointsForCorrectPick`,
+  reworked twice on 2026-08-31/09-01 before landing on the current formula).
+  Every correct pick is worth `POINTS_PER_CORRECT` (10) times the picked team's
+  own fair odds — `fairProb` is the picked team's de-vigged implied win
+  probability: `min(40, max(10, round(10 / fairProb)))`, i.e.
+  `POINTS_PER_CORRECT × fairOdds` (`fairOdds = 1 / fairProb`), floored at the
+  flat rate and capped at 40 (`ODDS_POINTS_CAP`, so an uncapped long-shot
+  can't scale unbounded — a 5%-implied underdog would otherwise net 200pts).
+  **No favorite/underdog branch** — a heavy favorite's fair odds sit near 1.0
+  (scores near the flat rate), a real underdog's are much higher (scores much
+  more), one continuous formula covers both.
 
-  This is the third shape this formula has taken, each change driven by a
-  concrete problem with the previous one:
-  1. **Symmetric-penalty curve** (original): scaled the favorite side
-     *down* (toward ~1pt for a heavy favorite) on the assumption that
-     being symmetric around `fairProb = 0.5` would keep the *average*
-     payout roughly unchanged. Wrong in practice — people correctly pick
-     favorites far more often than they correctly pick underdogs (that's
-     what makes them favorites), so most real correct picks landed on the
-     low end of that range, dragging the realistic average payout well
-     below 10 and making the whole points economy (badges, pack costs)
-     harder to earn into than before odds-weighting existed — caught from
-     real usage, not simulation.
-  2. **Floor-not-penalty, linear underdog boost** (`10 × (1 + 1.5 ×
-     (0.5 − fairProb) / 0.5)`, favorites flat at 10, capped ~24pts): fixed
-     (1) by flooring every correct pick at the original flat rate — odds
-     only ever added upside for a correctly-called upset, never downside
-     for a safe one. But real numbers made clear the boost curve
-     compressed real underdogs too much (a ~39%-implied pick netted only
-     ~13, not the ~25 a direct multiply gives) — an arbitrary boost
-     constant, not the market's own price.
-  3. **Direct odds multiple, current**: replaces the boost curve with
-     `POINTS_PER_CORRECT × fairOdds` outright. Keeping favorites floored at
-     flat 10 while steepening only the underdog side to match would need a
-     hard jump right at the coin-flip line (a 51% favorite scoring 10
-     while a 49% underdog on the same game scores 20) — a real cliff
-     rewarding picking whichever side is marked ever-so-slightly the
-     underdog. Dropping the favorite floor removes that cliff, at the cost
-     of favorites no longer being exactly flat: a correct pick on a 55%
-     favorite now scores ~18, not 10. Since most correct picks land on
-     favorites, this raises the *average* payout per correct pick more
-     than either previous version did. `scripts/season-simulation.ts`
-     still only models flat `POINTS_PER_CORRECT` per correct pick, never
-     any odds bonus (at any of the three formula versions above) — there's
-     no simulated number confirming this against pack-cost/badge-threshold
-     pacing yet. Re-run it (after first teaching it to model the odds
-     bonus) if real-world points start completing the album noticeably
-     faster than the documented ~140-155 median day. `ODDS_POINTS_CAP = 40`
-     keeps a real long-shot from scaling unbounded (uncapped, a
-     5%-implied underdog would net 200pts).
+  Two earlier shapes were tried and replaced: a symmetric-penalty curve that
+  scaled favorites *down* (wrong in practice — people correctly pick
+  favorites far more often, so this dragged the realistic average payout well
+  below 10), then a floor-not-penalty linear underdog boost (fixed the
+  favorite problem but compressed real underdogs too much vs. a direct market
+  multiple). The current direct-multiple formula trades away an exactly-flat
+  favorite rate (a 55% favorite now scores ~18, not 10) to avoid a hard cliff
+  right at the coin-flip line. `scripts/season-simulation.ts` still only
+  models flat `POINTS_PER_CORRECT`, never the odds bonus — re-run it (after
+  teaching it to model the bonus) if real points start completing the album
+  faster than the documented ~140-155 median day.
 
   A game with no `game_odds` row
   (API not configured, quota exhausted, outside the sync window) resolves
@@ -593,708 +560,103 @@ If you need to apply a schema change without an interactive terminal
   top-level nav item — the rail is already at its documented max), same
   visual convention as the existing `/predictions-analytics` link right
   next to it.
-- **Fantasy Five** (2026-09-05; `player_fantasy_prices`/`fantasy_lineups` in
-  `schema.ts`, `services/fantasyScoring.ts`, `routes/fantasy.ts`,
+- **Fantasy Five** (2026-09-05, rebuilt same day to match EuroLeague Fantasy's
+  own published Classic Mode rules; `player_fantasy_prices`/`coach_fantasy_prices`/
+  `fantasy_lineups`/`fantasy_coach_picks`/`fantasy_pricing_state` in `schema.ts`,
+  `services/fantasyScoring.ts`, `routes/fantasy.ts`,
   `frontend/src/app/features/fantasy/`) — a season-long, budget-cap fantasy
-  squad mode alongside predictions, built to compete with EuroLeague
-  Fantasy's own core mechanic directly rather than just accumulating around
-  it (predictions/collectibles don't touch "build a squad of real players
-  under a cap" at all). A lineup is exactly `FANTASY_ROSTER_SIZE` (5)
-  players plus one captain (2x that round's points), drafted under a
-  `FANTASY_BUDGET_CAP` (100 credit) cap — no bench, no position-slot
-  constraint (any 5 players fill any court slot; position is a browse
-  filter only). `fantasy_lineups` rows are wholesale-replaced (delete +
-  multi-row insert in one transaction, `POST /fantasy/lineup/batch`) rather
-  than diffed like predictions, since a lineup is always exactly 5 fixed
-  slots; editable until the round *locks* — the earliest `tipoffAt` among
-  that round's games (`getRoundLockTime`), same "whole gameweek locks at
-  the first game" rule real fantasy apps use, enforced at the route level
-  like predictions' own before-tipoff window. Scoring
-  (`getFantasyLeaderboardEntries`) sums each locked player's
-  `playerGameStats.valuation` (PIR) for that round's *final* games, captain
-  doubled — an unplayed game contributes 0 by construction (no
-  `playerGameStats` row yet), so a still-open or bye round needs no
-  special-casing, same on-read philosophy as `services/points.ts`. Global
-  and league-scoped leaderboards share this one query exactly the way the
-  points leaderboard already splits between global/`GET
-  /leagues/:id/leaderboard` — `GET /leagues/:id/fantasy-leaderboard` is the
-  fantasy twin, kept as a fully separate endpoint/response shape rather
-  than folded into the points one so the two economies' numbers stay
-  visibly distinct. No nav tab (the rail is already at its documented
-  7-item max) — reached via a Dashboard card and a link next to
-  Predictions' "My leagues →", same precedent Leagues itself set.
-  - **Draft pricing — recent-form + season-baseline blend, not a flat
-    season average** (`services/fantasyScoring.ts`'s `computeFantasyPrice`,
-    run by the manual `npm run fantasy:reprice` script, same cadence as
-    other sync/economy scripts, not a cron): v1 priced a player off nothing
-    but season-long average PIR, a single number that can't react to a hot
-    or cold streak and won't move until the next manual reprice. Now blends
-    **recent form** (average PIR over the last `RECENT_FORM_WINDOW` (8)
-    *final* games, once at least `MIN_RECENT_GAMES` (3) exist — below that,
-    too noisy a sample, falls back to the season baseline alone) with the
-    **season baseline** (`playerSeasonStats.valuation`, blended in at
-    `1 - RECENT_FORM_WEIGHT` (0.65 recent / 0.35 season) once recent form is
-    trusted, purely to stop one huge/tiny recent game swinging a price too
-    hard). Deliberately no separate minutes multiplier on top of PIR (PIR
-    is already a box-score sum, so more minutes already raises it — a
-    second multiplier would double-count that signal); `LOW_MINUTES_DAMPEN`
-    (0.7) only exists to catch the one thing raw PIR can't tell apart from
-    a real role player — a low-minutes garbage-time rate — triggered only
-    when average minutes fall below `LOW_MINUTES_THRESHOLD` (12). All of
-    these constants are unvalidated against real data as of this pass — the
-    2026-27 season has zero played games so far, so there's no actual
-    recent-form signal yet to tune weights against. Revisit once a few
-    rounds are in the books, same "re-check against real numbers" spirit as
-    every points-formula revision in this file's sibling section above.
-    (Superseded the same day by the season-baseline fallback and, on
-    2026-09-06, by the PIR-to-credit scale — see the next two bullets.)
-  - **Season-baseline fallback, so day-one prices aren't all identical**
-    (same day, later pass): with zero played 2026-27 games, every player's
-    blended PIR resolved to null and every price floored at
-    `FANTASY_MIN_PRICE` — real, but boring to draft against on day one.
-    `scripts/reprice-fantasy-players.ts`'s query now coalesces onto each
-    player's own most recent *prior* season with a `player_season_stats`
-    row (Postgres `DISTINCT ON`, same idiom used elsewhere in this app for
-    "latest row per group") whenever the current season has none yet — real
-    last-season performance instead of a flat floor, self-correcting to
-    current-season form the moment real games start. A brand-new
-    player/team with no history at all still correctly floors — there's
-    nothing to fall back to. `computeCoachPrice` mirrors the same fallback
-    off `team_season_stats.position`.
-  - **PIR-to-credit scale, calibrated to a real sourced reference point**
-    (2026-09-06): every version of the formula up to this point used
-    blended PIR *as* the credit price directly (rounded, clamped to
-    `[FANTASY_MIN_PRICE, FANTASY_MAX_PRICE]`) — not an actual scale, just a
-    coincidence that PIR values loosely resemble a plausible credit range.
-    Caught directly: with `FANTASY_MAX_PRICE` at 25, Vezenkov (the league's
-    real top performer, ~22 PIR last season) priced at 22cr, while real
-    EuroLeague Fantasy currently prices Vezenkov at 17cr — a concrete,
-    sourced reference point the user provided, not a guess. Rather than
-    re-derive a ceiling from scratch, `FANTASY_MAX_PRICE` dropped to 17 and
-    a new `FANTASY_PIR_CEILING` (22, calibrated to that same real Vezenkov
-    PIR) anchors a linear rescale: `FANTASY_MIN_PRICE + (raw / 
-    FANTASY_PIR_CEILING) * (FANTASY_MAX_PRICE - FANTASY_MIN_PRICE)`,
-    rounded and clamped, replacing the old direct `Math.round(raw)`. A
-    player performing at Vezenkov's level now lands at exactly the credit
-    price EuroLeague Fantasy itself lists for him; everyone else scales
-    proportionally against that same anchor rather than being clamped
-    independently. This also adds real differentiation at the low end,
-    which the old 1:1 mapping never had — two bench players at PIR 1 and
-    PIR 4 both used to floor at an identical `FANTASY_MIN_PRICE`; now they
-    land at visibly different (still low) prices. Applied immediately by
-    re-running `npm run fantasy:reprice` against the live DB.
-  - **Court-based drag-and-drop roster builder** (`frontend/src/app/shared/
-    court-background.ts` + `fantasy.ts`/`.html`): reuses the half-court SVG
-    geometry `shot-chart.ts` already draws (same FIBA-approximate
-    constants, just the bare court lines with no shot markers) as a
-    decorative backdrop, with 5 real HTML drop targets (Angular CDK's
-    `DragDropModule` — added as a new dependency, `@angular/cdk`, since
-    this app's mobile-first and HTML5's native drag-and-drop API has no
-    touch support at all, unlike CDK's) absolutely-positioned on top in a
-    cosmetic starting-five formation. A tap still places/removes a player
-    without dragging (CDK only intercepts an actual pointer-move past its
-    threshold, so a stationary tap fires a normal click alongside it) — a
-    deliberate fallback, not just a nicety, given real mobile friction found
-    after the first version: a tall wrapping grid of draggable player cards
-    meant a finger had to land on a `cdkDrag` element (which CDK sets
-    `touch-action: none` on) to reach anything below the fold, blocking the
-    browser's own touch-scroll entirely. Fixed by making the player pool a
-    single horizontally-scrolling flex strip directly under the court
-    instead of a tall grid — the whole builder now fits together without
-    needing a page-level scroll to get from pool to court mid-drag. Also
-    carries a position filter (Guard/Forward/Center — confirmed via a live
-    query, only those 3 values exist in `players.position`) and a per-player
-    "vs TEAM" opponent badge plus a "Fixtures" popup, both sourced from the
-    existing `GET /games/schedule` for the current round with no backend
-    changes needed.
-  - **Side-by-side court + pool, formation picker (2026-09-05/06)**: the
-    original builder stacked the court above a horizontally-scrolling pool
-    strip — on a real phone, scrolling down far enough to reach the pool
-    pushed the court off-screen entirely, making drag-and-drop onto a
-    starter slot impossible rather than just awkward. `fantasy.html`'s
-    roster section is now a permanent two-column row (`flex-[3]`
-    court+bench / `flex-[2]` pool, both screen sizes, not just desktop) —
-    the pool is its own `overflow-y-auto` list stretched to the left
-    column's height (flex's `items-stretch` default), so it scrolls
-    independently and both stay visible together regardless of viewport.
-    The pool also infinite-scrolls (`onPoolScroll`, same pattern as the
-    league-wide advanced-stats table) instead of a "show more" button, and
-    each row again shows position + next opponent (e.g. "G · @PAO") and a
-    boxed credit chip. Sort defaults to credits descending (`sortKey`
-    signal default flipped from `valuation` to `price`) with a direction
-    arrow, and the sort controls sit right above the pool instead of a
-    disconnected row near the page bottom. Position filters are `G`/`F`/`C`/
-    `All` buttons — kept in English for both locales by explicit request
-    (`fantasy.posGuard`/`posGuardAbbrev` etc. now have identical `en`/`el`
-    values), unlike the rest of this page's translated text.
-    A **formation picker** (`fantasy.ts`'s `Formation` type, `FORMATION_POSITIONS`)
-    adds a real tactical layer: 5 choices (`2-2-1`/`2-1-2`/`3-1-1`/`1-2-2`/
-    `1-3-1`, all summing to 5) picked via a single button that opens a
-    dialog (reusing the same modal-overlay pattern as the fixtures/
-    leaderboard-entry popups already in this file), not always-visible
-    buttons — a deliberate compactness call once a 3-choice row grew to 5.
-    Each of the 5 starter slots (`squadSlots()[0..4]`, always starters — see
-    `initialSquadSlots`) is tagged with a required position for the chosen
-    formation; `slotAcceptsPlayer()` gates both drag-drop (`onDrop`) and
-    tap-to-place (`toggle`) against it. This is **purely a frontend
-    affordance** — `routes/fantasy.ts`'s `POST /lineup/batch` only ever
-    validated the *overall* 4G/4F/2C squad quota across all 10 outfield
-    players, never a per-slot position, so adding this never touched the
-    submit contract. Changing formation (`setFormation`) re-seats or
-    benches whichever starter no longer fits their slot's new requirement
-    (never touching a locked player — their round's already started),
-    clearing the captain armband if it was theirs. A reload also re-derives
-    the right formation from whatever's actually saved
-    (`reconcileStarterFormation`, matches the loaded starters' real
-    position mix against each formation's G/F/C split) instead of always
-    defaulting to `2-2-1` regardless of reality — a mix that matches none
-    of the 5 (e.g. a lineup saved before this feature existed) is left
-    alone. The court background itself (`shared/court-background.ts`) was
-    also visibly too dark against the roster page's near-black surface —
-    line strokes were `stroke-line` (near-invisible on a `bg-page`-adjacent
-    background) at low opacity; switched to `stroke-muted` at 0.85 opacity
-    and slightly thicker strokes, plus a warmer, more opaque court-surface
-    gradient (`from-highlight/25 via-card to-card`, was `from-highlight/10
-    to-transparent`) so the court reads as an actual surface rather than a
-    near-black rectangle with barely-visible lines.
-  - **Simulator test games were quietly poisoning real prices** (caught
-    2026-09-05, same day): the very first `fantasy:reprice` run priced
-    everyone near the floor for a suspicious reason — 3 of the 2026-27
-    season's games were marked `status: 'final'` despite a `tipoffAt` of
-    2026-09-24 (still in the future), with fabricated box scores
-    (`realtime/liveScoreSimulator.ts`'s doing — it fast-forwards a real
-    scheduled game through scheduled→live→final for demo/testing, since
-    there's nothing real to poll yet). The pricing query has no way to
-    tell a real final game from a simulator-fabricated one, so it picked up
-    those 3 games' unrealistically low fabricated PIR (avg ~2.4, max 9) as
-    real recent form. Backed up (`scripts/backup-db.ts`) then reverted:
-    those 3 games back to `scheduled` with scores/quarter/clock nulled, and
-    their fabricated `player_game_stats` rows deleted. The 2 real
-    predictions already made against them were deliberately left
-    untouched — once the game's status is back to `scheduled`, they're
-    just normal unresolved picks against the real future game again, no
-    cleanup needed there; and since points/pricing are computed on-read
-    from `games`' current state rather than a stored balance, reverting the
-    game alone was enough to undo any inflated points too. Round 1 wasn't
-    otherwise affected (`round_rewards` had zero 2026-27 rows already,
-    since 7 of round 1's 10 games were still genuinely scheduled). No
-    change needed to `services/fantasyScoring.ts` itself — this was purely
-    a data problem, not a formula bug — but it's worth knowing the pricing
-    script has no defense against this happening again if the simulator
-    gets triggered against a not-yet-real-final game and nobody resets it
-    afterward.
-  - **Real-rules rebuild (2026-09-05, same day)**: user feedback — "check
-    euroleague fantasy rules" — led to fetching EuroLeague Fantasy's own
-    published Classic Mode rules and rebuilding the squad shape to match
-    exactly, replacing the original 5-player/no-coach design:
-    - **Squad**: 10 outfield players (4 Guards + 4 Forwards + 2 Centers,
-      `FANTASY_POSITION_QUOTA` in `services/fantasyScoring.ts`, enforced at
-      write time in `POST /fantasy/lineup/batch`, not in the DB) + 1 head
-      coach, still under one `FANTASY_BUDGET_CAP` (100). Of the 10: 5
-      "starters" + 1 "sixth man" score 100% of a locked round's points, the
-      remaining 4 "bench" score `BENCH_SCORE_MULTIPLIER` (50%) — a new
-      `slotRole` column on `fantasy_lineups` (`"starter" | "sixth_man" |
-      "bench"`) drives this, read straight into
-      `getFantasyLeaderboardEntries`'s SQL rather than a second table.
-    - **Coach**: a new `coach_fantasy_prices` (teamId+season, mirrors
-      `player_fantasy_prices`) and `fantasy_coach_picks` (one row per user
-      per round — a coach is a single pick, not five) table. No coach-
-      specific stat is synced anywhere (coaches aren't in `players`), so
-      `computeCoachPrice` prices off real standings position instead
-      (`team_season_stats.position`, linearly interpolated 4-16 credits
-      across however many teams are playing this season, same prior-season
-      fallback pattern as player pricing) — confirmed while building this
-      that `team_season_stats` already had 20 real 2026-27 rows synced
-      (unlike `player_season_stats`, still empty), so coach pricing
-      differentiates immediately (Anadolu Efes's coach at 16, Zalgiris's at
-      4) without needing the fallback at all yet.
-      **This "confirmation" was wrong — caught 2026-09-06, see the
-      "Reconsidering coach pricing" bullet further down** — those 20 rows
-      existed but every team had 0 wins/0 losses (no 2026-27 game played
-      yet), so `position` 1-20 was just the arbitrary order the feed lists
-      an unstarted season's teams in, not a real ranking; "differentiates
-      immediately" was true but meaningless — Anadolu Efes at 16 and Real
-      Madrid at 5.9 was the bug, not evidence the fallback wasn't needed.
-      Coach scoring is
-      real-world-result-based, not stat-based — `COACH_WIN_POINTS` (20) for
-      their team winning that round's game, `COACH_LOSS_POINTS` (0)
-      otherwise, always 100% (never bench-reduced, there's only one).
-    - **`FANTASY_MIN_PRICE` dropped 8 → 4** per direct user instruction
-      (an explicit "should be minimum 4 cr", not sourced from the official
-      rules fetch — nothing in what was fetched specified an exact
-      min/max price).
-    - **Per-player mid-round substitution ("Turns")**: real rules split a
-      round into "Turns" (the block of games on one match-day) and allow a
-      bench↔starter swap only for a player who "has not yet taken the
-      field" that round — this is *not* the same as the whole round's
-      overall lock. Modeled without a literal turns table: a new
-      `getTeamRoundGameTipoff(season, round, teamId)` resolves a specific
-      player's own team's tipoff within the round (not the round's
-      earliest tipoff across every game), and `POST /fantasy/lineup/batch`
-      diffs the submitted 10-player squad against what's currently saved —
-      only a player whose presence or `slotRole` actually *changed* has
-      their own team's tipoff checked against now(); an unchanged player
-      passes through regardless of their own lock status, since nothing
-      about them is being touched. This is why the batch endpoint went
-      back to a diff (like predictions) rather than the original wholesale
-      delete+insert — a full replace can't tell "this player's role didn't
-      change" from "this player was silently re-locked in place," which
-      matters once different players can lock at different times within
-      the same round. The coach pick, by contrast, still uses the
-      original single overall-round lock (`getRoundLockTime`) — real rules
-      don't give the coach a per-turn window of its own.
-    - **Reverted to a whole-round lock (2026-09-07)**, by explicit request:
-      "since a game is live no changes can be made at all... disable
-      everything" — the per-player "Turns" model above was working exactly
-      as designed (a player whose own team hadn't tipped off yet stayed
-      editable even mid-round), but that was no longer the wanted behavior.
-      `POST /fantasy/lineup/batch` now checks `getRoundLockTime` once, up
-      front, and rejects the *entire* submission — every player, the
-      formation-driven `slotRole` mix, the captain, the coach — once the
-      round's first game has tipped off, superseding the coach-only
-      `roundLockAt` check mentioned above. `getTeamRoundGameTipoff` and the
-      per-player `changedIds`/diff-against-the-old-squad logic it powered
-      are gone entirely — provably dead once the blanket check exists
-      (a player's own team tipoff can never be earlier than the round's
-      overall first tipoff, so nothing could ever have reached the
-      per-player check without the blanket one already having fired first)
-      — which also dropped the batch endpoint's own round-trip count (no
-      more fetching the old squad/coach pick just to diff against it, no
-      more one `getTeamRoundGameTipoff` query per changed player). Went
-      back to a plain wholesale delete+insert rather than the diff-based
-      write the Turns model had required. `GET /fantasy/lineup`'s
-      per-player `locked` flag is untouched and still means what it always
-      did ("has this specific player's own game tipped off") — it's
-      display-only now (e.g. the squad-slot PIR-instead-of-opponent
-      swap), never an edit gate. Frontend mirrors this with one
-      `roundLocked` computed (`coachLocked()` OR "any of this round's
-      fixtures is no longer `scheduled`") folded into the existing
-      `isPlayerLocked` check everywhere it already gated an edit
-      (remove/swap/drag/captain), plus new guards on the formation,
-      captain, and coach pickers and the pool's add button/drag — all of
-      it, not just the players whose own games are actually live.
-    - **Frontend**: the court still shows only the 5 starters (position-
-      accurate slot dots are still purely cosmetic, not tied to G/F/C — a
-      player's *real* position only matters for the quota count, not which
-      dot they sit on); a "Sixth Man" single slot and a 4-wide "Bench" row
-      were added directly below the court, sharing the exact same
-      `cdkDropList`/`cdkDrag` slot template (factored via
-      `ng-template`/`ngTemplateOutlet` to avoid tripling the markup) so
-      dragging between starter/sixth-man/bench/pool all go through one
-      `onDrop` handler keyed by slot id. A locked player shows a small lock
-      badge and has `cdkDragDisabled` set, rather than being removed from
-      view — real rules let you *see* your locked-in picks for the round,
-      just not touch them. The coach picker is a separate, non-draggable
-      single-select strip (only ~20 choices) rather than another drop
-      list. A live Guard/Forward/Center count against the 4/4/2 quota sits
-      in the status bar so a user sees why submit is blocked before hitting
-      a server-side rejection.
-  - **Mobile-clarity pass (2026-09-06)**: user feedback — "everything feels
-    so packed" on mobile — plus a tap-target ambiguity: the pool row's
-    single `(click)="toggle(...)"` handler covered the whole card, so
-    there was no way to see a player's recent form before drafting them,
-    only add/remove. Went through two layout iterations before landing;
-    both are worth keeping on record since each was wrong for a concrete,
-    stated reason:
-    1. **Stack the pool under the court on mobile — reverted same day.**
-       First cut split the pool row's tap target (name/photo →
-       `/players/:id`, price → add) and, on the theory that tapping price
-       was now the primary add path, stacked the pool full-width under the
-       court instead of keeping the original permanent side-by-side split.
-       Wrong, pointed out directly: dragging a pool card onto the court is
-       still a fully supported way to build a squad (`onDrop`), there's no
-       way to drag while scrolling, and a pool below the court reintroduces
-       the *exact* bug the side-by-side layout was originally built to fix
-       (see the court+bench/pool comment history in `fantasy.html`) — reach
-       the pool by scrolling and the court is off-screen, so nothing can be
-       dropped onto it. Tapping being the *primary* add path doesn't make
-       dragging a *removed* one.
-    2. **Popup-based picker, replacing drag reliance on mobile entirely —
-       the actual landing design.** Rather than fight the "pool must be
-       visible to drag onto the court" constraint, side-stepped it: below
-       `sm:`, the persistent pool column is hidden outright, and tapping an
-       *empty* court/bench/sixth-man slot opens a full-screen "Choose a
-       player" popup instead (`openPicker`/`pickerSlot`/
-       `pickerRequiredPosition`/`pickPlayerForSlot` in `fantasy.ts`) with
-       the same search/team/position/sort filters and infinite-scroll list
-       the sm:+ pool column already had — a starter slot pins
-       `positionFilter` to its own required position for the picker's
-       duration instead of showing the position chips, since no other
-       position could ever be dropped there anyway
-       (`slotAcceptsPlayer`). This removes the mobile crowding without
-       reintroducing bug #1: there's no drag at all in the mobile flow, so
-       there's nothing that needs the court and the pool on screen at the
-       same time. Dragging *between* two squad slots (e.g. bench → starter)
-       still works on mobile too, since both ends of that drag are always
-       on the court/bench, never the hidden pool. `sm:` and up is
-       untouched — pool beside the court, drag-and-drop, and the
-       tap-price-to-add path (`addToSquad`, priority: starters matching the
-       active formation, then sixth man, then bench) all still work exactly
-       as before.
-    **Player info, on both breakpoints**: tapping a player's name/photo —
-    in the pool, the picker popup, or already placed on the court/bench —
-    opens an info popup (`openPlayerInfo`/`infoGameLog`) showing their last
-    5 games' PIR and opponent, rather than navigating to `/players/:id`.
-    Deliberately never leaves the page: reuses the exact same
-    `GET /players/:id/games` the real player-detail page already calls
-    (`player-detail.ts`), just trimmed to the first 5 rows client-side (the
-    endpoint has no `limit` param, returns a whole season most-recent-
-    first) — no new backend endpoint. A placed player's photo used to
-    remove them on tap; that moved to a small "×" badge (bottom-left
-    corner, opposite the captain "C" badge) via the new `removeFromSquad()`
-    so info and removal are two separate, unambiguous affordances.
-    **Decimal pricing**: `player_fantasy_prices.price`/
-    `coach_fantasy_prices.price` were `integer` — `computeFantasyPrice`/
-    `computeCoachPrice` (`services/fantasyScoring.ts`) rounded to a whole
-    credit, which collapsed several adjacent players/teams onto the same
-    price with no way to tell them apart. Both columns are now `real`
-    (altered directly against the live DB per the Schema changes section's
-    "no interactive `db:push`" workflow, then `npm run fantasy:reprice`
-    re-run to backfill real decimal values) and both formulas round to the
-    nearest 0.1 credit instead of the nearest whole one. `routes/fantasy.ts`'s
-    budget-cap check now rounds the summed cost to 1 decimal before
-    comparing against `FANTASY_BUDGET_CAP` — summing several float prices
-    can land a hair off the true total from binary float representation
-    (e.g. `27.999999999999996`), which would otherwise wrongly reject a
-    squad costing exactly the cap. Every price display in `fantasy.html`
-    (pool row, picker row, coach picker, status-bar total) uses Angular's
-    `number: '1.1-1'` pipe so a price always shows exactly one decimal
-    place, even a whole one (e.g. "12.0" not "12"). The pool/picker price
-    button also grew a bit (padding/font bumped, `min-w-[46px]` added) —
-    both an explicit sizing ask and a practical need, since two-decimal
-    widths like "12.3" no longer fit the original cramped chip.
-    **Nav reach**: Fantasy Five had no path into the mobile bottom bar's
-    "More" overflow at all (only a Dashboard card and the Predictions
-    "My leagues →" neighbor) — added as a `ball`-icon entry appended
-    directly onto `app.component.ts`'s `MORE_LINKS` (not through
-    `NAV_LINKS`/`MOBILE_OVERFLOW_PATHS` like Schedule/Teams/Standings,
-    since it isn't one of the desktop rail's seven at all — this keeps the
-    desktop rail unchanged while giving mobile a one-tap path).
-    **Copy**: `fantasy.homeAbbrev`/`awayAbbrev` were literal `"vs"`/`"@"`
-    in English already but translated Greek words (`"με"`/`"εκτός με"`) in
-    `el` — inconsistent with the same file's `posGuard`/`posGuardAbbrev`
-    precedent of keeping court shorthand identical across locales, and the
-    likely source of the "playing out vs / in vs" wording the user
-    described. Both are now the literal `"vs"`/`"@"` symbols in both
-    locales.
-- **Reconsidering coach pricing — the 2026-09-05 "confirmation" was wrong**
-  (2026-09-06): user report — coach prices "way off" (Anadolu Efes's coach
-  priced highest at 16cr, Real Madrid's near the bottom at 5.9cr). Root
-  cause: `computeCoachPrice` (`services/fantasyScoring.ts`) prices off
-  `team_season_stats.position`, and the doc note added when this was built
-  (see the Coach bullet above) had confirmed 2026-27 already had 20 real
-  rows there and stopped — it never checked whether the *position value
-  itself* meant anything yet. It didn't: every 2026-27 row has 0 wins/0
-  losses (confirmed directly — no game has been played), so `position`
-  1-20 was just whatever placeholder order `Standings.get_standings()`
-  returns for a season with nothing to rank, captured verbatim by
-  `standings_sync.py` the moment it saw a row for each team. The
-  prior-season fallback (`scripts/reprice-fantasy-players.ts`'s
-  `repriceCoaches`) already existed for exactly this situation but only
-  triggered when the current season had **no row at all**
-  (`tss.position is null`) — a row with a meaningless position still
-  counted as "has real data" and blocked the fallback. Fixed by gating the
-  fallback on `tss.wins + tss.losses > 0` instead of row-existence — a
-  team's current-season position is only trusted once they've actually
-  played a game; until then every team falls back to last season's real
-  final standings, same as a genuinely-missing row already did. Re-ran
-  `npm run fantasy:reprice`: 19 of 20 coaches now fall back (Besiktas,
-  freshly promoted with no prior EuroLeague season on file, correctly
-  floors at `COACH_MIN_PRICE` instead — nothing to fall back to), and the
-  resulting order matches reality (Olympiacos, Valencia, Real Madrid,
-  Fenerbahce, Zalgiris, Panathinaikos, Barcelona all top-priced off their
-  real 2025-26 finishes). This class of bug — a row existing being treated
-  as proof the data in it is meaningful — is worth watching for anywhere
-  else this app fell back on "confirmed N rows exist" during this same
-  transition without also checking *which* season the numbers in those
-  rows actually describe.
-- **Court/coach visual pass (2026-09-06)**: user feedback after the mobile-
-  clarity pass — the picker/info popups should animate open and closed
-  instead of snapping, coaches should follow the same popup pattern as
-  players, court/bench/sixth-man slots should be bigger, and the coach
-  section should stop being a permanent block on the page.
-  - **Popup open/close animation**: every popup (`infoPlayerId`,
-    `pickerSlotId`, the new `coachPickerOpen`) now has a paired `*Visible`
-    signal driving `opacity`/`scale`/`translate-y` Tailwind classes
-    (`transition-all duration-200`, `motion-reduce:transition-none`
-    respected). `showPopup()` (`fantasy.ts`) flips `*Visible` to `true` two
-    `requestAnimationFrame`s after mount, since the element has to actually
-    paint in its hidden state once before a CSS transition has anything to
-    animate *from* — flipping it synchronously in the same tick that sets
-    the id signal would just render already-visible with no animation.
-    Closing is the mirror: flip `*Visible` to `false` immediately (playing
-    the exit transition) but delay the actual unmount (`infoPlayerId.set(null)`
-    etc.) by `POPUP_CLOSE_MS` (200, matched to the Tailwind `duration-200`
-    class) via `setTimeout`, so the element stays mounted long enough for
-    that transition to finish instead of vanishing mid-animation. Each
-    open call clears any pending close timer first, so rapid reopen-while-
-    closing can't unmount a popup that was just told to open again.
-  - **Per-row reveal on filtering**: `fantasy.css` (new — `styleUrl` added
-    to the component) has one keyframe, `fantasy-row-in` (fade + slight
-    translateY, `motion-reduce` disables it), applied unconditionally to
-    every row in the pool list, the slot-picker popup's list, and the new
-    coach-picker popup's list. This needed no JS at all: Angular's `@for`
-    (tracked by id) only creates a new DOM node for a row genuinely new to
-    the array — narrowing a filter so fewer rows match, or widening it so
-    a previously-hidden one reappears, both insert a fresh node and the
-    CSS animation plays automatically on insertion; sorting the same rows
-    just moves existing nodes and doesn't replay it. Exactly "smooth on
-    filtering" with no manual before/after diffing.
-  - **Coach: block → slot + popup, same pattern as a player**: the
-    always-visible horizontal coach strip is gone. In its place, a third
-    small card below the sixth-man/bench block (a "Coach" slot, same
-    visual language as a squad slot — `app-team-badge` standing in for a
-    player photo, no captain/lock badges since a coach isn't gated the
-    same way) opens a new coach-picker popup (`openCoachPicker`/
-    `pickCoach`) on tap — mirrors the slot-picker popup's animation and
-    per-row reveal exactly. `pickCoach(teamId)` calls the existing
-    `selectCoach` then immediately closes the popup, same "pick it and
-    you're done" flow as `pickPlayerForSlot`. No search/sort was added to
-    the coach popup (~20 teams, same reasoning the original strip never
-    had filters either) — just the animated open/close and per-row reveal
-    the player pattern also gets. This is also most of "gain some space":
-    the coach strip cost real vertical space on every visit regardless of
-    whether a coach was being changed; the slot costs only as much room as
-    the sixth-man/bench card already used.
-  - **Bigger slots, taller court**: starter avatars 36px → 48px, sixth-man
-    32px → 42px, bench 28px → 38px (`fantasy.html`'s `ngTemplateOutletContext`
-    `size` values — `squadSlot` itself didn't need to change, it already
-    takes `size` as a parameter). The court's `aspect-ratio` widened from
-    `320/210` to `320/280` to give the bigger avatars proportionally more
-    room instead of crowding the same box; `starterSlotPositions()`'s
-    percentage-based layout needed no code change since it already
-    positions slots relative to the box's own height, not an absolute
-    pixel value.
-  - **Not yet verified in a live browser** — the Chrome extension wasn't
-    connected in this session, so this pass was checked by rebuilding
-    (`ng build`, clean) and a careful re-read of the template/component
-    diff, not by actually opening `/fantasy` and watching the animations
-    play. Worth a real visual pass (both breakpoints, both themes) next
-    time the extension is available, especially the popup enter/exit
-    timing and the coach slot's layout inside the sixth-man/bench card.
-- **Quick save + tap-driven starter/bench swap (2026-09-06)**: user asked
-  for a save button next to the formation picker, and for players to be
-  movable between the starting five/sixth man and the bench (plus captain
-  changes) between a round's game days — real EuroLeague Fantasy rounds
-  split across "Turns" (day 1 / day 2 game blocks), and a player who
-  hasn't played yet should stay editable even after others in the same
-  round have. That per-player timing was already fully built
-  (`getTeamRoundGameTipoff`/`isLocked`, documented under Fantasy Five's
-  "Per-player mid-round substitution" bullet above) — dragging one squad
-  slot onto another already worked within it. What was missing was a
-  non-drag way to trigger the same thing, since the rest of this feature's
-  mobile-clarity passes had already moved everything else off drag-as-
-  primary.
-  - **Save button**: a compact button next to the formation-picker button
-    at the top of the court, calling the existing `submit()` (`fantasy.ts`)
-    — same `canSubmit()`/`submitting()` state the bottom submit button
-    already used, just reachable without scrolling.
-  - **Swap popup**: every unlocked squad-slot avatar (court, sixth man,
-    bench) now has a small "⇄" badge (top-left, opposite the captain "C")
-    that opens a popup listing only the *other* side of the active/bench
-    line — a starter or sixth-man swaps into bench candidates, a bench
-    player swaps into starter/sixth-man candidates — filtered through the
-    same `slotAcceptsPlayer` position gating `onDrop` already used, and
-    excluding anyone `isLocked()` on either side, so this automatically
-    respects the day-1/day-2 window with no new date logic
-    (`swapPlayerId`/`swapCandidates`/`performSwap` in `fantasy.ts`). Same
-    popup shell/animation/per-row-reveal as the slot-picker and coach
-    popups.
-  - **Real bug found and fixed while building this**: `onDrop` only ever
-    cleared `captainId` when the captain left the squad *entirely*
-    (`!slots.some(s => s.playerId === captainId)`), not when they merely
-    moved from a starter slot to bench/sixth-man within it — dragging the
-    captain onto the bench silently left `captainId` pointing at a player
-    who no longer wore a starter slot at all, which `submit()` would then
-    send as `isCaptain: true` on a bench entry. `performSwap` would have
-    had the identical gap if built the same way. Fixed with a shared
-    `releaseCaptainIfNotStarter(slots)` (captain must always be a
-    starter), called from both `onDrop` and `performSwap` after any
-    squad-slot mutation — this was a pre-existing bug in drag-and-drop,
-    not something introduced by the new swap popup, just caught while
-    reasoning through the same code path for it.
-  - **Known gap, not fixed here**: `routes/fantasy.ts`'s `POST
-    /lineup/batch` diffs `changedIds` off `slotRole` changes and
-    add/remove only — a captain-only edit (same player, same `slotRole`,
-    just `isCaptain` flipping) never lands in `changedIds`, so the
-    backend's own per-player tipoff check never runs for a pure captain
-    reassignment. The frontend already refuses to let this happen
-    (`setCaptain` checks `isLocked`), so a normal user can't hit it, but a
-    client bypassing the frontend could still crown an already-played
-    starter captain after the fact. Worth closing given the "no
-    migrations checked in" schema-change workflow doesn't block a
-    route-only fix — flag `isCaptain` changes into `changedIds` too,
-    the same way slotRole changes already are.
-  - **Duplicate save button, caught and fixed same day**: the new top
-    "Save" button and the pre-existing full-width "Lock in lineup" button
-    at the bottom of the page both called the exact same `submit()` —
-    asked about directly ("what is the lock team button below?"). Per the
-    user's choice, the bottom one is gone (along with the now-dead
-    `fantasy.submit` translation key); the top Save button is the only
-    submit action now, made larger/more prominent (`text-sm`/`px-4 py-1.5`,
-    up from a small `text-[11px]` chip) since it's carrying that job alone,
-    with the `saved`/`submitError` feedback text moved to sit directly
-    under it instead of under the removed bottom button.
-- **Live round-game awareness (2026-09-06)**: user asked for three related
-  things — a squad player's current PIR while their game is being played,
-  visibility into when games are live, and a list of the round's games —
-  plus, implicitly, that this needed no new backend work: `GET /games/:id`
-  already computes its box score for `status === "live"` the same as
-  `"final"` (see the live-scores section above), and `EventsService`
-  already runs one shared SSE connection app-wide with a `lastGameUpdate`
-  signal the nav badge and dashboard already consume. Fantasy Five just
-  hadn't been wired into either yet.
-  - `fantasy.ts`'s `liveUpdatesEffect` (a field-initializer `effect()`,
-    valid since fields still run in the component's injection context)
-    patches the relevant game's `status`/score/quarter/clock straight into
-    `fixtureGames()` whenever `events.lastGameUpdate()` ticks for a game
-    id that belongs to this round, and calls the new
-    `refreshRoundBoxscore(gameId)` (a plain `GET /games/:id` via the
-    existing `api.getGame`) whenever that game is live or just went final.
-    `loadFixtures()` also fires that same refresh once at load time for
-    any game that was *already* live/final before the page opened — the
-    SSE stream only ticks on the next change, it doesn't replay past ones.
-    `roundPirByPlayerId` (merged from both sides' box score lines) is the
-    single source `roundPir(playerId)` reads from everywhere.
-  - **Court/bench**: a placed player's slot swaps its "vs/@ opponent" line
-    for their live/final PIR (`gameForTeam().get(row.team.id)`, `fantasy.html`)
-    the moment their own game's status leaves `scheduled` — a small pulsing
-    red dot only while `status === 'live'`, so a finished game shows the
-    plain final PIR with no live indicator once it's over.
-  - **Round-wide live indicator**: a pulsing "Live" pill next to the round
-    number in the status bar, shown whenever `hasLiveGameThisRound()` —
-    tapping it opens the same Fixtures popup as the existing button (no
-    separate destination needed).
-  - **Games list**: the existing Fixtures popup (previously just team
-    badges + tipoff time, forward-looking only) now shows the real score
-    once a game leaves `scheduled` and a Live/Final status tag instead of
-    the tipoff time — satisfies "a list of the games played" by extending
-    what was already there rather than building a second, separate list.
-- **Court background: rim removed after a letterboxing bug and a failed
-  recalibration (2026-09-06)**: user report — the Center starter slot
-  visually sits on top of the rim graphic. Root cause: `court-background.ts`
-  kept its original `viewBox="0 0 320 210"` when the caller's court
-  container (`fantasy.html`) was widened to a taller `320/300` box for
-  bigger slot avatars (see the court/coach visual pass above) —
-  `preserveAspectRatio="meet"` doesn't stretch a mismatched viewBox to
-  fill, it letterboxes, so the real court art kept rendering at its native
-  210-tall proportions, centered, occupying only the middle ~70% of the
-  now-taller container. `fantasy.ts`'s `ROW_TOP` percentages (Guard/
-  Forward/Center) were computed assuming the court art fills the whole
-  container, so once it visibly shrank to that centered band, Center's
-  position (the largest top%) landed almost exactly on the rim's real
-  on-screen spot. First fix attempt: extended the SVG's `viewBox` to
-  `0 -90 320 300` (the extra 90 units added entirely above the 3-point
-  line as more open half-court floor, not stretched into the basket/key/
-  arc geometry) so the art fills the container edge-to-edge again, then
-  recalibrated `ROW_TOP` to the corrected coordinates. Reported as still
-  overlapping — this session has no live browser connected to verify exact
-  pixel geometry, so rather than keep guessing at coordinates, removed the
-  rim circle (and its now-unused `rimRadius` field) outright, keeping the
-  backboard line, key, restricted area, and 3-point arc. No slot avatar can
-  visually collide with a rim that isn't drawn, regardless of where
-  positioning math lands it. The taller-viewBox fix (no letterboxing) is
-  still in place and still correct on its own terms — worth revisiting
-  whether the rim can come back once a live browser is available to check
-  real rendered positions directly instead of computing them by hand.
-  **Round 2, same day**: reported still overlapping ("over the line of the
-  rim") even with the rim circle gone — most likely the backboard line,
-  which sat right where the rim used to be (basketY + 3) and was the one
-  remaining basket-shaped element. Removed it too (and its now-unused
-  `backboardY`/`backboardX1`/`backboardX2` fields) — nothing at the basket
-  end remains except the key, restricted-area arc, and 3-point line, none
-  of which sit anywhere near where a starter slot renders. Also added a
-  translucent "glass floor" gradient (`glassFloorGradient` +
-  `glassSheenGradient`, a diagonal cool-blue-to-navy gradient plus a
-  soft diagonal white sheen streak, painted as a rounded-rect bottom layer
-  before the court lines) per the user's own suggestion, so a slot avatar
-  reads as "standing on a floor" wherever it lands rather than floating
-  over a blank backdrop with a stray line under it — chosen over a literal
-  wood-grain texture to match this app's existing gradient-heavy,
-  non-skeuomorphic visual language (team-hero-sweep, the collectible
-  cards' holo-sweep) rather than introduce the app's first photographic-
-  style texture. Deliberately fixed cool-blue tones rather than
-  `--color-page`/`--color-card`-reactive, same reasoning as the `highlight`
-  accent staying fixed across themes: a glass floor's icy identity
-  shouldn't shift with light/dark mode.
-- **Round-to-round carry-forward, transfers, a round navigator, and a
-  completion reveal (2026-09-07)** — until now a squad started every round
-  from an empty court, drafted fresh each time; asked to make it "stay the
-  same" round to round with only a small number of changes allowed, plus a
-  way to review past rounds' results. Landed as one connected pass:
-  - **Carry-forward + transfer limit**
-    (`services/fantasyScoring.ts`'s `getBaselineSquad`,
-    `FANTASY_TRANSFERS_PER_ROUND = 3`): `GET /fantasy/lineup` now seeds a
-    never-touched round from the immediately previous round's saved squad
-    the first time anyone reads it — but only the season's actual current
-    round (`getDefaultRound`), never a future one reached early via the
-    navigator below — and persists that copy immediately (same "lazy write
-    on read" precedent as round rewards/referral grants elsewhere in this
-    app), so it's locked in for scoring even if the page is never opened
-    again before the round locks. `POST /fantasy/lineup/batch` limits how
-    many *players* may differ from that same baseline to 3; the coach is a
-    separate, unlimited change, and moving an already-owned player between
-    starter/sixth-man/bench costs nothing (only a genuine net swap against
-    the baseline counts, computed fresh each save — not tallied
-    incrementally — so re-saving the same still-unlocked round as many
-    times as you like never resets or drifts the budget). Round 1 (no
-    round before it) and any round whose predecessor has no saved squad
-    either both stay a free, unlimited draft, same as always. The frontend
-    mirrors the same check locally (`localTransfersUsed`/`canUseTransfer`)
-    off a `baselinePlayerIds` set the endpoint now returns, so the pool can
-    pre-emptively disable a new (non-baseline) pick before a save
-    round-trip — same pattern `canAddPosition`'s quota gating already used.
-  - **Round navigator + read-only history**: `round` (whichever round is
-    being viewed) and `defaultRound` (the season's actual current one) are
-    now two separate signals — a new prev/next pair in the status bar
-    clamps between 1 and `defaultRound`. `isCurrentRound` folds into
-    `roundLocked` (see the whole-round-lock bullet above), so browsing to
-    any past round automatically reuses every existing edit guard to make
-    it read-only — no separate "view mode" flag needed. The
-    formation/captain/save action row is hidden entirely for a past round
-    (replaced with plain, non-interactive formation/captain badges) rather
-    than just disabled, since nothing there applies to a locked, already-
-    scored history view.
-  - **Per-round points/PIR review**: `GET /fantasy/lineup` now also
-    computes that round's own scoring server-side — each player's raw
-    `valuation` and captain/bench-weighted `points`, `totalPoints`,
-    `totalPir` (the raw, unweighted sum — "PIR total", a genuinely new
-    number, distinct from the weighted score the leaderboard already
-    showed), `coachPoints`, and `roundComplete` (every one of the round's
-    games final, both EuroLeague match-days, not just the first). Computed
-    directly in the route rather than by calling
-    `getFantasyLeaderboardEntries` (which would need a whole extra grouped
-    query just to get one user's one-round total) since the per-player
-    breakdown this endpoint needs anyway already requires fetching the
-    same `player_game_stats` rows. Shown in the status bar for whichever
-    round is being viewed, current or past.
-  - **Live-ish refresh via a light re-fetch, not client-side re-derivation**:
-    rather than duplicating this scoring math in the frontend against
-    `roundPirByPlayerId` (the live per-player map `liveUpdatesEffect`
-    already keeps current for other reasons — see the whole-round-lock
-    bullet), `liveUpdatesEffect` now also calls a new `refreshRoundSummary`
-    whenever a game in the *currently-viewed* round goes final: a plain
-    `GET /fantasy/lineup` re-fetch that only updates the read-only scoring
-    signals, deliberately never touching `squadSlots`/`captainId`/
-    `coachTeamId`, so it can't clobber an in-progress, unsaved edit the way
-    reloading the whole lineup mid-session would.
-  - **Completion reveal**: a celebratory modal (`showRoundComplete`,
-    `fantasy.css`'s `fantasy-round-complete-in` overshoot-then-settle
-    scale/opacity keyframe, matching this app's existing hand-rolled-CSS-
-    only animation convention — no library) fires the first time a round
-    is seen to be complete, tracked per-round in a session-local
-    `celebratedRounds` set so re-visiting an already-celebrated round via
-    the navigator doesn't replay it.
-  - **Bigger slots, again**: starter/sixth-man/bench avatars bumped once
-    more (46/40/36 mobile, 56/50/44 desktop → 50/44/40 mobile, 62/54/48
-    desktop) — a further, explicit "make the slots even bigger" ask, on
-    top of some of the row-crowding headroom the 2026-09-07 mobile-size-
-    down pass earlier the same day was written to protect.
-  - Reset round 1's games back to `scheduled` (fabricated box scores
-    cleared) after this pass landed, specifically so the new completion
-    reveal could be watched fire live rather than only reasoned about from
-    a cold reload — the previously-saved round-1 fantasy squad itself was
-    left untouched, only the games.
+  squad mode alongside Predictions, built to compete with EuroLeague Fantasy's
+  own core mechanic directly.
+  - **Squad**: 10 outfield players (4 Guards + 4 Forwards + 2 Centers,
+    `FANTASY_POSITION_QUOTA`, enforced at write time in `POST
+    /fantasy/lineup/batch`, not in the DB) + 1 head coach, under one
+    `FANTASY_BUDGET_CAP` (100cr nominal — see the re-anchoring note under
+    Other known gaps below). Of the 10: 5 "starters" + 1 "sixth man" score
+    100% of a locked round's points (`slotRole` column on `fantasy_lineups`);
+    the remaining 4 "bench" score `BENCH_SCORE_MULTIPLIER` (50%). Coach
+    scoring is result-based, not stat-based (coaches aren't in `players`):
+    `COACH_WIN_POINTS` (20) if their team won that round's game, else 0,
+    always 100% (there's only one coach).
+  - **Pricing**: `computeFantasyPrice`/`computeCoachPrice`
+    (`services/fantasyScoring.ts`, run by the manual `npm run
+    fantasy:reprice` script, not a cron) blend recent form (last
+    `RECENT_FORM_WINDOW` (8) final games, `MIN_RECENT_GAMES` (3) minimum) with
+    a season baseline (`playerSeasonStats.valuation`), falling back to the
+    player/team's most recent *prior* season when the current season has no
+    games yet. The blended raw PIR is rescaled onto a credit range anchored
+    to a real sourced reference point (Vezenkov's real EuroLeague Fantasy
+    price, 17cr) rather than used as a credit value directly — see
+    `FANTASY_PIR_CEILING` and the "price ceiling re-anchors" note under Other
+    known gaps for how that ceiling (and the budget cap, which scales with
+    it) move over time. `FANTASY_MIN_PRICE` is 4 (explicit user instruction,
+    not derived). Coach price interpolates off real standings position
+    (`team_season_stats.position`), gated on `wins + losses > 0` so an
+    unstarted season's meaningless placeholder position doesn't get read as
+    real data (caught 2026-09-06 — a team having *a* position value isn't
+    proof it means anything yet; falls back to last season's final standings
+    until real games are played).
+  - **Locking — whole-round, not per-player**: a per-player mid-round
+    "Turns" substitution model (matching real rules' day-1/day-2 game
+    blocks) was built and then deliberately reverted the same day (2026-09-07)
+    by explicit request ("since a game is live no changes can be made at
+    all"). `POST /fantasy/lineup/batch` now checks `getRoundLockTime` (the
+    round's earliest tipoff, same rule Predictions uses) once, up front, and
+    rejects the *entire* submission — every player, formation, captain, and
+    coach — once the round's first game has tipped off. Writes are a plain
+    wholesale delete+insert (not a diff) as a result. `GET
+    /fantasy/lineup`'s per-player `locked` flag still reports whether that
+    specific player's own game has tipped off, but is display-only now (e.g.
+    swapping the opponent line for live PIR), never an edit gate.
+  - **Round carry-forward + transfers** (2026-09-07): a never-touched round
+    seeds itself from the previous round's saved squad the first time it's
+    read (`getBaselineSquad`, persisted immediately, same "lazy write on
+    read" pattern as round rewards) — but only for the season's actual
+    current round, never a future one reached early. Up to
+    `FANTASY_TRANSFERS_PER_ROUND` (3) *players* may differ from that baseline
+    per save; the coach is a separate, unlimited change; moving an
+    already-owned player between starter/sixth-man/bench costs nothing.
+    Round 1 (no predecessor) drafts free and unlimited. A round navigator
+    (`round` vs. `defaultRound` signals) lets a user browse past rounds
+    read-only (reuses the same round-lock guards) and see that round's own
+    computed points/PIR breakdown (`GET /fantasy/lineup` computes this
+    server-side — `totalPoints`, `totalPir`, `coachPoints`,
+    `roundComplete`), with a one-time completion-reveal modal per round.
+  - **Live awareness**: `fantasy.ts`'s `liveUpdatesEffect` patches the
+    relevant game's status/score into the fixtures list off the app-wide SSE
+    `EventsService`, swaps a placed player's opponent line for their
+    live/final PIR once their game leaves `scheduled`, and shows a pulsing
+    "Live" pill / real scores in the Fixtures popup — no new backend
+    endpoints needed (`GET /games/:id` already computes live box scores).
+  - **UI**: a court+bench builder using Angular CDK drag-and-drop
+    (`@angular/cdk`, needed for touch support HTML5 native DnD lacks) with a
+    tap-to-place fallback, a 5-choice formation picker
+    (`2-2-1`/`2-1-2`/`3-1-1`/`1-2-2`/`1-3-1`, purely a frontend layout
+    affordance — the backend only enforces the overall 4G/4F/2C quota, never
+    a per-slot position), and a court background reusing `shot-chart.ts`'s
+    half-court SVG geometry (no rim/backboard drawn — removed after repeated
+    reports of a starter slot visually overlapping the basket art; a
+    translucent "glass floor" gradient was added in its place). **Below
+    `sm:`, the pool is a full-screen tap-to-pick popup instead of a
+    persistent drag-and-drop column** (`openPicker`/`pickPlayerForSlot`) —
+    landed on this after a mobile-crowding pass tried and reverted stacking
+    the pool under the court, which reintroduced the exact "court is
+    off-screen while scrolling to the pool" bug the original side-by-side
+    layout was built to avoid. Desktop/`sm:`+ keeps the pool beside the
+    court with full drag-and-drop. A swap popup (⇄ badge on any unlocked
+    squad slot) gives a non-drag way to move a player between
+    starter/sixth-man/bench. Tapping a player's name/photo anywhere opens an
+    info popup with their last 5 games' PIR, rather than navigating away.
+  - **Known gap**: `POST /lineup/batch`'s `changedIds` diff is keyed off
+    presence/`slotRole` changes only — a captain-only reassignment
+    (`isCaptain` flipping with everything else unchanged) never triggers the
+    per-player lock recheck. The frontend already blocks this
+    (`setCaptain` checks `isLocked`), so it needs a client bypassing the UI
+    to hit; worth closing by folding `isCaptain` changes into `changedIds`
+    too.
+  - **Not verified in a live browser** as of the 2026-09-06/07 UI passes —
+    checked by rebuild + template/diff review only, since no Chrome
+    extension was connected in those sessions. Worth a real visual pass
+    (both breakpoints/themes) when the extension is available.
 - **Career stats on the collectible card flip** (2026-09-05;
   `scripts/backfill-career-stats.ts`, `GET /api/collectibles/:id/stats`'s
   new `career` field, `features/store/card-preview.ts`'s season/career
@@ -2001,136 +1363,32 @@ at the same Neon instance as local dev — there's no separate prod database.
     i18n key rather than adding a duplicate).
 
 - **Same-day follow-up pass (2026-09-08), after real mobile testing** — the
-  on-court overlay from the initial v1 above didn't survive contact with a
-  real phone:
-  - **On-court overlay replaced with a horizontally-scrolling photo strip
-    positioned above the court**, not on it. Even capped at 6 candidates/side
-    with 28px icons, real-phone testing showed visible overlap (the court
-    renders far narrower than its 480px cap on a real screen); a mobile
-    report ("even 5-6 players" still looks packed) confirmed capping/
-    shrinking further wasn't the fix — the underlying problem was fighting
-    for space *inside* the court's fixed footprint at all. Moved the
-    picker entirely off `<app-live-court>` (all `players`/`pickPlayer`/
-    `picksLocked` overlay plumbing removed from `live-court.ts`/`.html`,
-    which reverts to its pre-feature, top-scorer-agnostic state) into a new
-    section in `game-detail.html` directly above where the court renders:
-    two horizontally-scrolling rows (home, away) of tappable player photos,
-    sized up to 52px (bigger, per explicit request, than both the old
-    on-court icons and the list picker's 28px rows) since a horizontal
-    strip has no realistic crowding ceiling the way stacking on the court
-    did — it scrolls instead of overlapping, so it shows the *full* roster
-    ranked by live points/season PPG rather than a capped top-N.
-  - **Ring-around-selected-player bug, fixed twice**: the first attempt put
-    `ring-2`/`ring-highlight` directly on `<app-player-photo>` itself
-    (the custom element tag) — same mistake `collectible-card.html`'s own
-    `[class.ring-highlight]="selected"` precedent had already avoided by
-    applying the ring to a real wrapping `<div>` instead. Moved the ring to
-    a wrapping element and it was *still* visibly elongated/oval, not
-    circular — root cause: a `<button>`'s implicit box (from default
-    line-height/inline sizing) isn't actually square even when its content
-    is, so `rounded-full` (border-radius 9999px) on a non-square box draws
-    an ellipse. Fixed by explicitly sizing the ring wrapper (`[style.width.
-    px]`/`[style.height.px]` bound to the icon size, `inline-flex` +
-    `leading-none`) so its box is guaranteed square regardless of the
-    button/content's own implicit sizing.
-  - **Real player photos surfaced, not just jersey silhouettes**: both the
-    strip and the list picker were missing `[primaryColor]` on
-    `<app-player-photo>` (only `teamCode` was passed), so every photo-less
-    fallback rendered in this app's generic reskin accent instead of the
-    *player's own team* color — confirmed and fixed by passing
-    `d.game.homeTeam.primaryColor`/`awayTeam.primaryColor` (the one team-
-    color field `GameTeamSummary` actually carries; it has no
-    `secondaryColor`) through at all four call sites. Verified with real
-    photo URLs temporarily pulled live from
-    `api-live.euroleague.net/v3/.../statistics/players/traditional`
-    (`player.imageUrl`, matched by `players.code` — the same field
-    `player_stats_sync.py` normally populates from once real 2026-27 games
-    exist) for visual QA only; reverted to `NULL` afterward rather than
-    left as an undocumented, sync-bypassing write — the real fix for
-    missing 2026-27 photos is still "wait for `player_stats_sync.py`", not
-    this ad hoc backfill.
-  - **Q4 lock tightened from `final`**: leaving a pick open all the way to
-    the final buzzer let it degenerate into just reading the box score once
-    a game is already decided, undercutting the whole point of the
-    internal-proxy formula rewarding a real long-shot call. `isTopScorerPickLocked`
-    (`services/topScorerPoints.ts`) now locks at `status === "final"` OR
-    (`"live"` AND `quarter >= 4`) — Q4 chosen as late enough to keep three
-    full quarters of genuine live picking/repicking (the feature's actual
-    point), early enough that the last stretch still carries real
-    uncertainty. Enforced on both `POST`/`DELETE` routes and mirrored
-    client-side (`game-detail.ts`'s `isTopScorerLocked`, kept in sync by
-    hand like the points-formula mirror). The photo strip disables and
-    dims once locked instead of silently no-op'ing on tap, since it was
-    (at the time) the only picking surface still visible once locked — see
-    the next bullet, since the separate list picker it was contrasted
-    against no longer exists — verified directly: a tap on a non-picked
-    player during Q4 correctly left the existing pick untouched.
-  - **List picker removed entirely; strip consolidated into one section
-    with a title, right after the score** (same day, later in the pass):
-    once the photo strip covered the full roster (not just a capped top-N)
-    the separate vertical list further down the page was fully redundant —
-    two ways to pick the same thing, one of them scrolled past the
-    Highlights/box-score cards to reach. Deleted the whole list card
-    (title, hint, two-column roster list, "your pick" line) and moved its
-    title/hint/locked-message/error/"your pick" text to sit directly above
-    the strip instead, all in one `@if` block — a user now sees what this
-    feature is and picks it in one place near the top of the page, not
-    split across two cards. The now-fully-unused points-preview mirror
-    (`pointsForCorrectTopScorerPick`, its constants, and the per-row "~10
-    pts" display the deleted list showed) was deleted with it rather than
-    left dead — nothing renders a points estimate anywhere in v1 now.
-  - **Ring-clipping bug #2, same underlying CSS quirk as the mobile-density
-    pass**: even after the earlier oval-ring fix, the picked player's ring
-    still rendered with its top edge cut off. Cause: `overflow-x-auto` on
-    the scrolling strip row implicitly forces `overflow-y` to compute as
-    `auto` too (a real CSS behavior — setting only one axis to a
-    scrolling value stops the other axis's `visible` from applying), which
-    silently clipped the ring/`scale-105` since the row had no vertical
-    room to spare. Fixed with top padding on the scroll row (`pt-3`) rather
-    than fighting the axis-coupling directly — doubles as the "add padding
-    above the strip" ask, since the same padding creates breathing room
-    under the title too.
+  on-court player-icon overlay from v1 didn't survive contact with a real
+  phone (visible overlap even capped at 6 candidates/side). Replaced with a
+  horizontally-scrolling photo strip of the full roster (both teams),
+  positioned above the court rather than on it (`live-court.ts` reverted to
+  its pre-feature, top-scorer-agnostic state) — a strip scrolls instead of
+  overlapping, so it needs no candidate cap. The separate list-picker card
+  further down the page was also removed once the strip covered the full
+  roster, consolidating everything into one section right after the score.
+  Two real bugs worth remembering if a similar circular-avatar-with-ring
+  pattern comes up again: (1) a selection ring applied directly to a custom
+  element, or to a `<button>`-boxed wrapper without explicit square sizing,
+  renders as an ellipse, not a circle — `rounded-full` only draws a true
+  circle on a box that's actually square; (2) `overflow-x-auto` on a
+  scrolling row implicitly forces `overflow-y` to `auto` too (real CSS
+  axis-coupling behavior), which silently clipped the selection ring/scale
+  transform — fixed with top padding on the scroll row rather than fighting
+  the axis coupling. Also tightened the pick lock from `final` to Q4 start
+  (`isTopScorerPickLocked`: `status === "final"` OR (`"live"` AND `quarter
+  >= 4`)) since letting a pick stay open to the final buzzer let it
+  degenerate into reading the box score instead of a real live call.
 
-- **Original idea (2026-09-07, superseded by the shipped version above)** —
-  a new prediction type layered on top of a *live* game, distinct from both
-  the existing win/loss game predictions and Fantasy Five: pick a specific
-  in-game outcome (the user's own example: "PAO-Baskonia's top scorer will
-  be Jerian Grant") rather than which team wins.
-  - **Open design question — free pick vs. real stake**: existing
-    predictions are a free daily pick that *earns* points, never risks
-    them; the user explicitly floated this as possibly a genuine bet
-    instead — stake some of your existing points, lose them on a wrong
-    call. Whichever way this goes needs its own scoring path
-    (`services/points.ts`'s formula assumes a free pick with a floor at the
-    flat rate, not a stake that can go to zero) and its own UI framing
-    (predictions' existing "pick a team" card doesn't fit a wager amount).
-  - **Odds** — the user's own example cites a real "6x" market odds figure
-    for a specific prop. `game_odds`/`oddsSync.ts` (The Odds API) only
-    captures the moneyline market today; a player-prop market (top scorer,
-    points over/under, etc.) may or may not be available from that same
-    provider for EuroLeague specifically — needs checking before assuming
-    real odds are even sourceable the way moneyline odds already are,
-    versus computing an internal proxy (e.g. off `playerSeasonStats`) the
-    way `computeFantasyPrice` does for draft prices.
-  - **Surfacing UI (2026-09-07, two concrete ideas from the user)** — tied
-    to a *live* game specifically (the game-detail page's scoreboard), not
-    the upcoming-games list predictions already uses:
-    1. Small player icons overlaid directly on the game-detail page's
-       court/scoreboard visual, tappable to quick-predict a prop for that
-       specific player (e.g. tap a player's icon to bet they'll be the
-       game's top scorer) — reuses whatever player-photo/avatar component
-       already exists (`shared/player-photo.ts`) rather than a new one.
-    2. A separate menu/list below the scoreboard for the same picks — a
-       more conventional list-based alternative (or complement) to the
-       on-court icons, closer to predictions' existing pick-a-team card
-       pattern.
-    Game-detail already has a court/scoreboard visual to attach idea 1 to
-    (`shared/live-court.ts`'s `<app-live-court>`, `homeColor`/`awayColor`/
-    `homeLogoUrl`/`awayLogoUrl`/`homeScore`/`awayScore`/`hotSide`/`active`
-    inputs) — but it's team-level only today (logos, colors, score, an
-    "on fire" glow), nothing player-level, so the per-player icon overlay
-    would be new input/template work on top of it, not a from-scratch
-    court.
+- **Original idea (2026-09-07), superseded by the shipped version above** —
+  floated as a free pick vs. a genuine points-stake wager (free pick was
+  chosen) and real market odds vs. an internal proxy (proxy was chosen,
+  since player-prop coverage on The Odds API was never confirmed for
+  EuroLeague) — both open questions the shipped version above resolved.
 
 ## Season transition (2026-27, 2026-09-02)
 
@@ -2273,46 +1531,22 @@ at the same Neon instance as local dev — there's no separate prod database.
     rather than its actual red/navy; Real Madrid and Dubai Basketball both
     have a white primary kit with a colored trim, not the solid dark tone
     used before.
-  - `shared/player-photo.ts`'s jersey placeholder went through three
-    visual iterations the same day: a translucent icon over a soft
-    gradient circle (original) → a flat, full-bleed colored square modeled
-    directly on EuroLeague Fantasy's own player tiles (checked live against
-    euroleaguefantasy.euroleaguebasketball.net) → back to a circle after
-    that read as too flat/plain with the wrong corners and font, this time
-    with a real two-color gradient, a soft radial sheen for depth, a
-    translucent jersey watermark, and a mono font for the number. Landed on
-    the circle+gradient+depth combination — if it needs to change again,
-    that history is why a flat square was already tried and rejected.
-    **v4 (2026-09-05)**: user shared a reference screenshot of a third-party
-    fantasy app's jersey tile and asked to imitate it — declined to fetch or
-    view the actual asset (both a specific webpage under that account's own
-    fantasy-team ID and, once the user gave it directly, a raw asset URL on
-    that product's own CDN) since reproducing another product's specific
-    copyrighted illustration, even by eye, isn't something to build from;
-    landed instead on an original jersey illustration using only
-    genre-standard basketball-jersey conventions (V-neck, sleeve caps, a
-    diagonal stripe) that aren't anyone's proprietary design. Keeps v3's
-    circular outer frame (never the complaint) but the jersey silhouette —
-    the same path v3 already drew as a 16%-opacity watermark — is now the
-    actual fill: a diagonal two-color stripe pattern (team
-    primaryColor/secondaryColor) clipped to that path, layered with a sheen
-    gradient (light top-left, dark bottom-right) and a soft radial shadow
-    right under the collar so the V-neck reads as cut into the fabric
-    rather than flat-drawn on top of it — about as close to "real jersey"
-    as a hand-rolled SVG reasonably gets without 3D tooling this app has no
-    other use for. One consistent template across all 20 teams (not a
-    per-team real-kit-accurate pattern) — matching each team's actual
-    current kit style precisely isn't verifiable without a visual
-    reference, which this session didn't have (no browser tool connected).
-    `features/store/collectible-card.ts`'s no-image fallback got a matching
-    but separate fix: its common tier's `photoTint` was a fixed neutral
-    gray regardless of team (rare/legendary already used the team accent),
-    which is why roughly half the Store — every common card — showed no
-    team color at all. Now uses a pale team-color wash (`tint()`, blends
-    the accent toward white) for common, and the jersey icon itself is
-    tinted per-tier (`iconColor`/`iconAccent` on `TierStyle`) instead of a
-    hardcoded white that had barely any contrast against common's old pale
-    background.
+  - `shared/player-photo.ts`'s jersey placeholder went through several
+    visual iterations before landing on a circular frame with a two-color
+    gradient, radial sheen, and a jersey silhouette (V-neck/sleeve-cap/
+    diagonal-stripe, using only genre-standard, non-proprietary jersey
+    conventions — a user-shared reference screenshot from a third-party
+    fantasy app was deliberately not fetched/viewed, since imitating another
+    product's specific illustration isn't something to build from). The
+    jersey silhouette is filled with a diagonal two-color stripe in the
+    player's own team colors, clipped to the same path an earlier iteration
+    drew as a faint watermark. One consistent template across all 20 teams,
+    not a per-team-accurate kit pattern (no visual reference available to
+    verify real kits against). `features/store/collectible-card.ts`'s
+    no-image fallback got a matching fix: common-tier cards used a fixed
+    neutral gray regardless of team (rare/legendary already used the team
+    accent) — now a pale team-color wash, with the jersey icon tinted
+    per-tier instead of a hardcoded white.
     **Real photos backfilled, 2026-09-09** (`scripts/backfill-player-photos.ts`,
     `npx tsx src/scripts/backfill-player-photos.ts`) — asked directly to see
     real player images instead of the placeholder while checking Fantasy

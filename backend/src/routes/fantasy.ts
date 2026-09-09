@@ -148,6 +148,7 @@ function emptyLineupResponse(season: string | null, defaultRound: number | null,
     coachPoints: 0,
     totalPoints: 0,
     totalPir: 0,
+    creditsChange: 0,
     transfersUsed: 0,
     transfersAllowed: null,
     baselinePlayerIds: null,
@@ -178,17 +179,24 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
 
     const baseline = await getBaselineSquad(req.userId!, season, round);
 
-    let lineupRows = await db
-      .select({ playerId: fantasyLineups.playerId, slotRole: fantasyLineups.slotRole, isCaptain: fantasyLineups.isCaptain })
+    let lineupRows: { playerId: string; slotRole: string; isCaptain: boolean; priceAtPick: number | null }[] = await db
+      .select({
+        playerId: fantasyLineups.playerId,
+        slotRole: fantasyLineups.slotRole,
+        isCaptain: fantasyLineups.isCaptain,
+        priceAtPick: fantasyLineups.priceAtPick,
+      })
       .from(fantasyLineups)
       .where(and(eq(fantasyLineups.userId, req.userId!), eq(fantasyLineups.season, season), eq(fantasyLineups.round, round)));
-    let coachTeamId: string | null = (
+    const coachPickRow = (
       await db
-        .select({ teamId: fantasyCoachPicks.teamId })
+        .select({ teamId: fantasyCoachPicks.teamId, priceAtPick: fantasyCoachPicks.priceAtPick })
         .from(fantasyCoachPicks)
         .where(and(eq(fantasyCoachPicks.userId, req.userId!), eq(fantasyCoachPicks.season, season), eq(fantasyCoachPicks.round, round)))
         .limit(1)
-    )[0]?.teamId ?? null;
+    )[0];
+    let coachTeamId: string | null = coachPickRow?.teamId ?? null;
+    let coachPriceAtPick: number | null = coachPickRow?.priceAtPick ?? null;
 
     // Carry-forward (2026-09-07) — a round nobody has touched yet, but only
     // the current active round, never a future one someone poked at via a
@@ -200,6 +208,29 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
     // write precedent as round rewards/referral grants elsewhere in this
     // app (see CLAUDE.md).
     if (lineupRows.length === 0 && round === defaultRound && baseline) {
+      // Stamped with *today's* price, not carried over from whatever the
+      // previous round's own priceAtPick snapshot was — this auto-seed is
+      // itself a fresh "pick" for the new round, same as an explicit save
+      // (see fantasy_lineups.priceAtPick's doc comment in schema.ts).
+      const baselinePlayerIds = baseline.rows.map((r) => r.playerId);
+      const [freshPriceRows, freshCoachPriceRows] = await Promise.all([
+        baselinePlayerIds.length
+          ? db
+              .select({ playerId: playerFantasyPrices.playerId, price: playerFantasyPrices.price })
+              .from(playerFantasyPrices)
+              .where(and(eq(playerFantasyPrices.season, season), inArray(playerFantasyPrices.playerId, baselinePlayerIds)))
+          : Promise.resolve([] as { playerId: string; price: number }[]),
+        baseline.coachTeamId
+          ? db
+              .select({ price: coachFantasyPrices.price })
+              .from(coachFantasyPrices)
+              .where(and(eq(coachFantasyPrices.teamId, baseline.coachTeamId), eq(coachFantasyPrices.season, season)))
+              .limit(1)
+          : Promise.resolve([] as { price: number }[]),
+      ]);
+      const freshPriceByPlayerId = new Map(freshPriceRows.map((r) => [r.playerId, r.price]));
+      const freshCoachPrice = freshCoachPriceRows[0]?.price ?? COACH_MIN_PRICE;
+
       await db.transaction(async (tx) => {
         await tx.insert(fantasyLineups).values(
           baseline.rows.map((r) => ({
@@ -209,19 +240,27 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
             playerId: r.playerId,
             slotRole: r.slotRole,
             isCaptain: r.isCaptain,
+            priceAtPick: freshPriceByPlayerId.get(r.playerId) ?? FANTASY_MIN_PRICE,
           }))
         );
         if (baseline.coachTeamId) {
-          await tx.insert(fantasyCoachPicks).values({ userId: req.userId!, season, round, teamId: baseline.coachTeamId });
+          await tx.insert(fantasyCoachPicks).values({
+            userId: req.userId!,
+            season,
+            round,
+            teamId: baseline.coachTeamId,
+            priceAtPick: freshCoachPrice,
+          });
         }
       });
-      lineupRows = baseline.rows;
+      lineupRows = baseline.rows.map((r) => ({ ...r, priceAtPick: freshPriceByPlayerId.get(r.playerId) ?? FANTASY_MIN_PRICE }));
       coachTeamId = baseline.coachTeamId;
+      coachPriceAtPick = baseline.coachTeamId ? freshCoachPrice : null;
     }
 
     const playerIds = lineupRows.map((r) => r.playerId);
 
-    const [lockAt, playerTeamRows, roundGames, budgetCap] = await Promise.all([
+    const [lockAt, playerTeamRows, roundGames, budgetCap, currentPriceRows, currentCoachPriceRows] = await Promise.all([
       getRoundLockTime(season, round),
       playerIds.length
         ? db.select({ id: players.id, teamId: players.teamId }).from(players).where(inArray(players.id, playerIds))
@@ -239,6 +278,21 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
         .from(games)
         .where(and(eq(games.season, season), eq(games.round, round))),
       getBudgetCap(season),
+      // Current prices, to diff against each row's frozen priceAtPick for
+      // the "cr gained/lost this round" recap total below.
+      playerIds.length
+        ? db
+            .select({ playerId: playerFantasyPrices.playerId, price: playerFantasyPrices.price })
+            .from(playerFantasyPrices)
+            .where(and(eq(playerFantasyPrices.season, season), inArray(playerFantasyPrices.playerId, playerIds)))
+        : Promise.resolve([] as { playerId: string; price: number }[]),
+      coachTeamId
+        ? db
+            .select({ price: coachFantasyPrices.price })
+            .from(coachFantasyPrices)
+            .where(and(eq(coachFantasyPrices.teamId, coachTeamId), eq(coachFantasyPrices.season, season)))
+            .limit(1)
+        : Promise.resolve([] as { price: number }[]),
     ]);
 
     const teamIdByPlayer = new Map(playerTeamRows.map((p) => [p.id, p.teamId]));
@@ -298,6 +352,22 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
     const roundComplete = roundGames.length > 0 && roundGames.every((g) => g.status === "final");
     const transfersUsed = baseline ? playerIds.filter((id) => !baseline.playerIds.has(id)).length : 0;
 
+    // "cr gained/lost this round" (2026-09-10) — each row's current price
+    // minus its own frozen priceAtPick snapshot, summed across the squad +
+    // coach. A row written before priceAtPick existed (null) is skipped
+    // rather than guessed at, same "missing data isn't a scoring
+    // dependency" convention as everywhere else in this economy.
+    const currentPriceByPlayerId = new Map(currentPriceRows.map((r) => [r.playerId, r.price]));
+    let creditsChange = 0;
+    for (const r of lineupRows) {
+      if (r.priceAtPick == null) continue;
+      creditsChange += (currentPriceByPlayerId.get(r.playerId) ?? FANTASY_MIN_PRICE) - r.priceAtPick;
+    }
+    if (coachTeamId && coachPriceAtPick != null) {
+      creditsChange += (currentCoachPriceRows[0]?.price ?? COACH_MIN_PRICE) - coachPriceAtPick;
+    }
+    creditsChange = Math.round(creditsChange * 10) / 10;
+
     res.json({
       season,
       round,
@@ -311,6 +381,7 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
       coachPoints,
       totalPoints,
       totalPir,
+      creditsChange,
       transfersUsed,
       transfersAllowed: baseline ? FANTASY_TRANSFERS_PER_ROUND : null,
       budgetCap,
@@ -490,14 +561,15 @@ fantasyRouter.post("/lineup/batch", requireAuth, async (req, res) => {
           playerId: e.playerId,
           slotRole: e.slotRole,
           isCaptain: !!e.isCaptain,
+          priceAtPick: priceByPlayerId.get(e.playerId) ?? FANTASY_MIN_PRICE,
         }))
       );
       await tx
         .insert(fantasyCoachPicks)
-        .values({ userId: req.userId!, season, round, teamId: coachTeamId })
+        .values({ userId: req.userId!, season, round, teamId: coachTeamId, priceAtPick: coachCost })
         .onConflictDoUpdate({
           target: [fantasyCoachPicks.userId, fantasyCoachPicks.season, fantasyCoachPicks.round],
-          set: { teamId: coachTeamId },
+          set: { teamId: coachTeamId, priceAtPick: coachCost },
         });
     });
 

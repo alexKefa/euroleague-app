@@ -141,7 +141,13 @@
                   </button>
                 }
               </div>
-              <button type="button" (click)="openPlayerInfo(slot.playerId)" [title]="row.player.name" class="block text-[11px] font-semibold text-center truncate max-w-[84px] bg-page/80 rounded px-1 hover:text-highlight transition-colors">{{ courtDisplayName(row.player.name) }}</button>
+              <!-- 2 lines instead of a single truncated one (2026-09-10) —
+                   courtDisplayName already trims to just the surname, but a
+                   genuinely long/hyphenated one (e.g. "LUWAWU-CABARROT")
+                   still ate the single 84px line down to a few letters plus
+                   an ellipsis. line-clamp-2 shows the whole name for all but
+                   the most extreme cases before it ever has to truncate. -->
+              <button type="button" (click)="openPlayerInfo(slot.playerId)" [title]="row.player.name" class="block text-[10px] font-semibold text-center leading-tight line-clamp-2 max-w-[92px] bg-page/80 rounded px-1 hover:text-highlight transition-colors">{{ courtDisplayName(row.player.name) }}</button>
             </div>
           } @else {
             <button
@@ -238,12 +244,6 @@
               </span>
             }
           </div>
-          @if (lockAt()) {
-            <p class="text-xs text-muted mt-2">
-              {{ roundLocked() ? i18n.t('fantasy.locked') : i18n.t('fantasy.lockCountdown') }}
-              @if (!roundLocked()) { {{ lockAt() | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }} }
-            </p>
-          }
 
           <!-- Formation/captain/save — used to float above the court with no
                container of its own, visually disconnected from this card
@@ -280,6 +280,20 @@
               }
               <span class="text-muted text-[9px]">&#9662;</span>
             </button>
+            <!-- Unsaved-changes indicator (2026-09-10) — hasChanges() already
+                 existed to gate canSubmit()/the "Saved" message below, but
+                 nothing surfaced the in-between state (an edit made, not yet
+                 saved). A small pill rather than a silent Save button, so a
+                 change is never mistaken for already-saved. -->
+            @if (hasChanges() && !submitting()) {
+              <span
+                class="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-mono font-bold bg-amber-500/15 text-amber-600"
+                [attr.title]="i18n.t('fantasy.unsavedChanges')"
+              >
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                {{ i18n.t('fantasy.unsavedChanges') }}
+              </span>
+            }
             <div class="relative flex items-center ml-auto">
               <button
                 type="button"
@@ -366,6 +380,26 @@
                 @for (pos of starterSlotPositions(); track $index; let i = $index) {
                   <div class="absolute -translate-x-1/2 -translate-y-1/2" [style.left.%]="pos.left" [style.top.%]="pos.top">
                     <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: starterSlots()[i], size: starterAvatarSize(), positionLabel: posLabel(requiredPositionForStarterSlot(i)) }" />
+                  </div>
+                }
+                <!-- Round-lock "buzzer" (2026-09-10) — replaces the plain
+                     text deadline line that used to sit in the status bar
+                     above; same lockAt()/roundLocked() state, just shown on
+                     the court itself as a shot-clock-style badge instead of
+                     a sentence, with the full date/time only in the
+                     tooltip. -->
+                @if (isCurrentRound() && lockAt()) {
+                  <div
+                    class="absolute top-2 right-2 z-10 flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-mono font-bold shadow-card"
+                    [ngClass]="roundLocked() ? 'bg-red-500/90 text-white' : 'bg-page/90 text-ink border border-line'"
+                    [attr.title]="roundLocked() ? i18n.t('fantasy.locked') : (i18n.t('fantasy.lockCountdown') + ' ' + (lockAt() | date: gameDateTimeFormat():'Europe/Athens':dateLocale()))"
+                  >
+                    <app-nav-icon name="bell" [size]="12" [active]="roundLocked()" />
+                    @if (roundLocked()) {
+                      {{ i18n.t('fantasy.locked') }}
+                    } @else {
+                      {{ lockAt() | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}
+                    }
                   </div>
                 }
               </div>
@@ -1127,7 +1161,7 @@
       >
         <p class="text-[11px] font-bold uppercase tracking-widest text-highlight mb-1">{{ i18n.t('fantasy.roundCompleteTitle') }}</p>
         <p class="font-display text-2xl tracking-wide mb-5">{{ i18n.t('fantasy.round') }} {{ round() }}</p>
-        <div class="flex items-center justify-center gap-8 mb-6">
+        <div class="flex items-center justify-center gap-5 mb-6">
           <div>
             <p class="font-mono text-3xl font-bold text-highlight">{{ totalPoints() | number: '1.0-1' }}</p>
             <p class="text-[10px] text-muted uppercase tracking-wide mt-1">{{ i18n.t('fantasy.pointsLabel') }}</p>
@@ -1135,6 +1169,19 @@
           <div>
             <p class="font-mono text-3xl font-bold text-ink">{{ totalPir() | number: '1.0-1' }}</p>
             <p class="text-[10px] text-muted uppercase tracking-wide mt-1">{{ i18n.t('fantasy.pirTotalLabel') }}</p>
+          </div>
+          <!-- Credit value gained/lost this round (2026-09-10) — each squad/
+               coach pick's current price vs. what it was priced at when
+               locked in, from repricing since (services/fantasyScoring.ts's
+               priceAtPick). Zero reads as neutral, not a loss. -->
+          <div>
+            <p
+              class="font-mono text-3xl font-bold"
+              [ngClass]="creditsChange() > 0 ? 'text-highlight' : creditsChange() < 0 ? 'text-red-500' : 'text-ink'"
+            >
+              {{ creditsChange() > 0 ? "+" : "" }}{{ creditsChange() | number: "1.1-1" }}
+            </p>
+            <p class="text-[10px] text-muted uppercase tracking-wide mt-1">{{ i18n.t('fantasy.creditsChangeLabel') }}</p>
           </div>
         </div>
         <button type="button" (click)="closeRoundComplete()" appButton appButtonSize="sm">{{ i18n.t('fantasy.close') }}</button>

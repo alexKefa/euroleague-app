@@ -808,6 +808,12 @@ export interface FantasyLineup {
   // squeezing it. Defaults to the flat 100 before fantasy:reprice has ever
   // run for a season.
   budgetCap: number;
+  // Sum of (current price - price at the moment each squad/coach row was
+  // written) across the squad — how much real credit value this round's
+  // picks have gained or lost since they were locked in, from repricing
+  // that's happened since (2026-09-10). Rows written before priceAtPick
+  // existed don't contribute, so this can under-count for old rounds.
+  creditsChange: number;
 }
 
 // GET /api/fantasy/leaderboard and /api/leagues/:id/fantasy-leaderboard —

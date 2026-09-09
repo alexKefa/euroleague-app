@@ -1030,6 +1030,15 @@ export const fantasyLineups = pgTable(
     // 50% (services/fantasyScoring.ts). Independent of isCaptain — the
     // captain is always one of the 5 "starter" rows, never sixth_man/bench.
     slotRole: varchar("slot_role", { length: 10 }).default("starter").notNull(),
+    // The player's draft price (player_fantasy_prices) at the moment this
+    // row was written — a save, or the round carry-forward auto-seed (see
+    // routes/fantasy.ts) — never recomputed after, same "fixed snapshot"
+    // philosophy as game_odds/top_scorer_predictions.points_at_pick. Diffed
+    // against the player's *current* price once a round is complete to show
+    // "how much cr your squad gained/lost" in the round-complete recap
+    // (2026-09-10). Nullable only for rows written before this column
+    // existed — those just don't contribute to that total.
+    priceAtPick: real("price_at_pick"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => ({
@@ -1085,6 +1094,9 @@ export const fantasyCoachPicks = pgTable(
     season: varchar("season", { length: 9 }).notNull(),
     round: integer("round").notNull(),
     teamId: uuid("team_id").notNull().references(() => teams.id),
+    // Same snapshot-at-write-time shape as fantasy_lineups.priceAtPick above
+    // — see that column's comment.
+    priceAtPick: real("price_at_pick"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => ({

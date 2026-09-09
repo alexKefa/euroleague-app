@@ -25,6 +25,7 @@ import { ChipDirective } from "../../shared/chip.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { CourtBackgroundComponent } from "../../shared/court-background";
+import { NavIconComponent } from "../../shared/nav-icon";
 import { newsDateLocale, gameDateTimeFormat as gameDateTimeFormatFn } from "../../shared/news-date-format";
 
 // Squad shape — mirrors backend/src/services/fantasyScoring.ts's constants
@@ -187,6 +188,7 @@ interface SwapCandidate {
     SkeletonComponent,
     CollectibleCardComponent,
     CourtBackgroundComponent,
+    NavIconComponent,
   ],
   templateUrl: "./fantasy.html",
   styleUrl: "./fantasy.css",
@@ -257,6 +259,7 @@ export class FantasyComponent implements OnInit {
   readonly totalPoints = signal(0);
   readonly totalPir = signal(0);
   readonly coachPoints = signal(0);
+  readonly creditsChange = signal(0);
 
   // --- Transfers (2026-09-07) — see services/fantasyScoring.ts's
   // getBaselineSquad doc comment. transfersUsed/transfersAllowed are the
@@ -922,6 +925,7 @@ export class FantasyComponent implements OnInit {
         this.roundComplete.set(lineup.roundComplete);
         this.totalPoints.set(lineup.totalPoints);
         this.totalPir.set(lineup.totalPir);
+        this.creditsChange.set(lineup.creditsChange);
         this.coachPoints.set(lineup.coachPoints);
         this.transfersUsed.set(lineup.transfersUsed);
         this.transfersAllowed.set(lineup.transfersAllowed);
@@ -972,6 +976,7 @@ export class FantasyComponent implements OnInit {
         this.roundComplete.set(lineup.roundComplete);
         this.totalPoints.set(lineup.totalPoints);
         this.totalPir.set(lineup.totalPir);
+        this.creditsChange.set(lineup.creditsChange);
         this.coachPoints.set(lineup.coachPoints);
         this.maybeCelebrateRoundComplete(lineup.round, lineup.roundComplete);
       },

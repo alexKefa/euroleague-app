@@ -39,7 +39,11 @@ export type NavIconName =
   | "sliders"
   // Teams hub's top toolbar (the "Injury Report" destination) and the
   // roster/prediction badges for a player with an active report.
-  | "injury";
+  | "injury"
+  // Fantasy Five's on-court round-lock badge — replaces the 🔔 emoji used
+  // there originally (see fantasy.html), same "no emoji, hand-drawn glyph"
+  // convention as the achievement/celebration set above.
+  | "bell";
 
 @Component({
   selector: "app-nav-icon",
@@ -472,6 +476,18 @@ export type NavIconName =
           <circle cx="12" cy="5.5" r="1.8" fill="currentColor" />
           <circle cx="12" cy="12" r="1.8" fill="currentColor" />
           <circle cx="12" cy="18.5" r="1.8" fill="currentColor" />
+        }
+        @case ("bell") {
+          <path
+            d="M18 8.5a6 6 0 0 0-12 0c0 6.5-2.5 8.5-2.5 8.5h17s-2.5-2-2.5-8.5z"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            [attr.fill]="active ? 'currentColor' : 'none'"
+            [attr.fill-opacity]="active ? 0.14 : null"
+          />
+          <path d="M13.7 21a2 2 0 0 1-3.4 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
         }
         @case ("table") {
           <rect x="4" y="5" width="16" height="14" rx="1.5" stroke="currentColor" stroke-width="2.1" />
