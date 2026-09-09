@@ -1579,28 +1579,26 @@ If you need to apply a schema change without an interactive terminal
   themselves backed by CSS variables (not fixed hex), which is what makes
   the dark/light toggle (`ThemeService.toggleColorScheme()`, stamps
   `data-theme` on `<html>`) repaint the whole app with zero template
-  changes. Fonts: Fervojo (display/headings), Fira Code (mono/labels),
+  changes. Fonts: Moderustic (display/headings), Fira Code (mono/labels),
   Noto Sans (sans/body) — set up in `frontend/src/styles.css` (see the
   `@import`/`.font-display` comment there for the full swap history: the
   original Rajdhani/Barlow/JetBrains Mono trio had no Greek glyphs at all;
-  three later Greek-verified display picks — Syne, Play, then GFS
-  Neohellenic — each got swapped out in turn for reading too generic/
-  AI-produced, the first two picked via a side-by-side Artifact comparing
-  real Greek-verified candidates against real app content instead of
-  one-at-a-time live swaps. Fervojo, 2026-09-09 same day as GFS
-  Neohellenic, is the one exception to "Greek-verified via Google Fonts'
-  own metadata" — it isn't on Google Fonts at all (open-source, OFL-
-  licensed, originally a Tokyo-subway numerals face) and is self-hosted
-  instead: its `.woff2` lives at `frontend/src/assets/fonts/Fervojo-Bold.woff2`
-  with an `@font-face` block in `styles.css`, and its Greek coverage was
-  verified glyph-by-glyph against the real font binary rather than trusted
-  from its README, the same check later applied when Hauora Sans's own
-  README claim turned out to not match what its published package actually
-  shipped. Noto Sans/Fira Code are untouched by this swap — only the
-  display face changed). `.font-display` also carries a `font-weight: 700`
-  baseline there since Fervojo's only shipped weight is Bold (700) — no
-  other weight is fetched, since `.font-display`'s own baseline plus the
-  few templates that add `font-bold` cover every real display usage.
+  Syne, Play, GFS Neohellenic, and Fervojo were each tried as the display
+  face in turn and rejected in turn — the first two via a side-by-side
+  Artifact comparison, the last two ("just apply it") directly. Fervojo
+  (self-hosted — it isn't on Google Fonts at all, an open-source,
+  OFL-licensed face originally built for Tokyo-subway numerals signage;
+  its Greek coverage was verified glyph-by-glyph against the real font
+  binary rather than trusted from its README, the same check that caught
+  Hauora Sans's README overclaiming what its published package actually
+  shipped) lasted under a day before "i dont like it" — its
+  `@font-face`/`.woff2`/OFL-text were removed outright, nothing legacy
+  left behind. Moderustic, current as of 2026-09-09, is back on Google
+  Fonts (Greek-verified the same metadata-checking way as every pick
+  before Fervojo). Noto Sans/Fira Code have been untouched through every
+  one of these swaps — only the display face keeps moving). `.font-display`
+  also carries a `font-weight: 700` baseline there; Moderustic ships up to
+  800, pulled in alongside 700 for anywhere that wants extra punch.
 - Forms use Angular Reactive Forms (`ReactiveFormsModule` + `FormBuilder`),
   not template-driven/`ngModel` — follow that pattern for new forms.
 - **Buttons**: `shared/button.directive.ts`'s `ButtonDirective` (`[appButton]`,

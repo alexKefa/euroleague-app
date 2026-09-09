@@ -1,14 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Fira+Code:wght@500;700&display=swap");
-
-/* Fervojo isn't on Google Fonts — self-hosted below, see the @font-face
-   block and the comment above .font-display for why. */
-@font-face {
-  font-family: "Fervojo";
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url("/assets/fonts/Fervojo-Bold.woff2") format("woff2");
-}
+@import url("https://fonts.googleapis.com/css2?family=Moderustic:wght@700;800&family=Noto+Sans:wght@400;500;600;700&family=Fira+Code:wght@500;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -47,21 +37,20 @@
    treated Greek as something to retrofit onto rather than a first-class
    design constraint.
    display swapped a fourth time, same day, GFS Neohellenic -> Fervojo
-   (self-hosted, see @font-face above) — Noto Sans (sans/body) is
-   untouched, only the display face changed, same "swap just the headline
-   face, keep the proven body" move as before. Fervojo isn't on Google
-   Fonts at all (open-source, OFL-licensed, github.com/Kohakuno-Layer/
-   Fervojo, originally a numerals-only face for Tokyo's subway signage
-   before its Latin/Greek expansion) — its real Greek coverage was
-   verified glyph-by-glyph against the actual font binary (every tonos-
-   accented vowel, final sigma, both dialytika marks) rather than trusted
-   from the README, same rigor the Hauora Sans check used. Only the Bold
-   (700) weight is shipped — `.font-display`'s own 700 baseline plus the
-   few templates that add `font-bold` cover every real usage in the
-   templates, so Regular/Medium/etc. were never fetched. License text
-   kept alongside the font file at
-   `frontend/src/assets/fonts/Fervojo-OFL.txt` per the OFL's redistribution
-   terms. */
+   (self-hosted, github.com/Kohakuno-Layer/Fervojo, OFL-licensed,
+   originally a numerals-only face for Tokyo's subway signage before its
+   Latin/Greek expansion) — rejected same day ("i dont like it"), no
+   longer in the codebase; `frontend/src/assets/fonts/Fervojo-*` was
+   deleted along with the @font-face block that pointed at it.
+   display swapped a fifth time, same day, Fervojo -> Moderustic — back on
+   Google Fonts (Greek-verified the same way as GFS Neohellenic, no
+   self-hosting needed). Noto Sans (sans/body) and Fira Code (mono) are
+   untouched through all five swaps — only the display face keeps
+   changing. Weights 700/800 are pulled in (Moderustic's variable axis
+   goes up to 800); most `font-display` usages rely on the class's own
+   700 baseline below, a handful of templates add `font-bold` (also 700),
+   and 800 is available for anywhere that wants extra punch without a new
+   `@import`. */
 .font-display {
   font-weight: 700;
 }

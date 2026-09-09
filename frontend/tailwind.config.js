@@ -31,11 +31,9 @@ module.exports = {
       },
       fontFamily: {
         // Greek-verified trio (see styles.css) — Rajdhani/Barlow/JetBrains
-        // Mono had no Greek glyphs at all. Fervojo is self-hosted (not on
-        // Google Fonts), only weight 700 exists — see the @font-face block
-        // in styles.css.
+        // Mono had no Greek glyphs at all.
         sans: ["Noto Sans", "system-ui", "sans-serif"],
-        display: ["Fervojo", "Arial", "sans-serif"],
+        display: ["Moderustic", "Arial", "sans-serif"],
         mono: ["Fira Code", "ui-monospace", "monospace"],
       },
       boxShadow: {
