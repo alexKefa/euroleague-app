@@ -10,11 +10,21 @@ import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ButtonDirective } from "../../shared/button.directive";
 import { OpenInBrowserBannerComponent } from "../../shared/open-in-browser-banner";
 import { TeamCodePipe } from "../../shared/team-display-code";
+import { SkeletonComponent } from "../../shared/skeleton";
 
 @Component({
   selector: "app-register",
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, RetryImgDirective, ButtonDirective, OpenInBrowserBannerComponent, TeamCodePipe],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterLink,
+    RetryImgDirective,
+    ButtonDirective,
+    OpenInBrowserBannerComponent,
+    TeamCodePipe,
+    SkeletonComponent,
+  ],
   templateUrl: "./register.component.html",
 })
 export class RegisterComponent implements OnInit {
@@ -29,6 +39,7 @@ export class RegisterComponent implements OnInit {
   readonly error = signal<string | null>(null);
 
   readonly teams = signal<Team[]>([]);
+  readonly teamsLoading = signal(true);
   readonly favoriteTeamId = signal<string | null>(null);
 
   // From a shared referral link (?ref=CODE, see profile.html) — validity is
@@ -54,7 +65,13 @@ export class RegisterComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.api.getTeams().subscribe({ next: (rows) => this.teams.set(rows), error: () => {} });
+    this.api.getTeams().subscribe({
+      next: (rows) => {
+        this.teams.set(rows);
+        this.teamsLoading.set(false);
+      },
+      error: () => this.teamsLoading.set(false),
+    });
     this.referralCode.set(this.route.snapshot.queryParamMap.get("ref"));
     this.promoCode.set(this.route.snapshot.queryParamMap.get("promo"));
   }
