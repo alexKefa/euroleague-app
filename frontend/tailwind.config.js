@@ -31,10 +31,11 @@ module.exports = {
       },
       fontFamily: {
         // Greek-verified trio (see styles.css) — Rajdhani/Barlow/JetBrains
-        // Mono had no Greek glyphs at all. LT Superior is self-hosted (not
-        // on Google Fonts) — see the @font-face blocks in styles.css.
-        sans: ["LT Superior", "system-ui", "sans-serif"],
-        display: ["LT Superior", "Arial", "sans-serif"],
+        // Mono had no Greek glyphs at all. Swanston is self-hosted (not on
+        // Google Fonts, only weights 400/700 exist) — see the @font-face
+        // blocks in styles.css.
+        sans: ["Swanston", "system-ui", "sans-serif"],
+        display: ["Swanston", "Arial", "sans-serif"],
         mono: ["Iosevka Charon Mono", "ui-monospace", "monospace"],
       },
       boxShadow: {

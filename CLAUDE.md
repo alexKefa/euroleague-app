@@ -1579,41 +1579,46 @@ If you need to apply a schema change without an interactive terminal
   themselves backed by CSS variables (not fixed hex), which is what makes
   the dark/light toggle (`ThemeService.toggleColorScheme()`, stamps
   `data-theme` on `<html>`) repaint the whole app with zero template
-  changes. Fonts: LT Superior (display AND sans/body, one family for both
-  roles), Iosevka Charon Mono (mono/labels) — set up in `frontend/src/styles.css`
-  (see the `@import`/`@font-face`/`.font-display` comment there for the
-  full swap history — six display-face swaps and one sans swap in a single
-  day, 2026-09-09: the original Rajdhani/Barlow/JetBrains Mono trio had no
-  Greek glyphs at all; Syne, Play, GFS Neohellenic, Fervojo, and Moderustic
-  were each tried as the display face in turn — the first two via a
-  side-by-side Artifact comparison, the rest ("just apply it") directly.
-  Fervojo (self-hosted, OFL-licensed, originally a Tokyo-subway numerals
-  face) lasted under a day before "i dont like it" and was fully removed,
-  no legacy left behind; Moderustic (Google Fonts, Greek-verified the
-  metadata-checking way) was the pick right before this one. LT Superior
-  then replaced Moderustic *and* retired Noto Sans (sans/body) at the same
-  time — one family for both roles instead of a display+body pairing.
-  It's self-hosted (not on Google Fonts, `.ttf` not woff2 — quick to try,
-  not size-optimized), 4 weights (400/500/600/700) at
-  `frontend/src/assets/fonts/LTSuperior-*.ttf`. Its GitHub repo
-  (github.com/LyonsType/LTSuperior) has no license file in the plain file
-  tree — easy to mistake for unlicensed — but its release zip does contain
-  a genuine OFL 1.1 `OFL.txt` (copyright LyonsType, 2024), checked directly
-  rather than trusted from a third-party aggregator site's claim before
-  using it; that text is kept alongside the fonts at
-  `LTSuperior-OFL.txt`. Greek coverage (every tonos vowel, final sigma,
-  both dialytika marks) verified glyph-by-glyph against the real font
-  binary, same check every self-hosted pick here has gotten.
-  Mono swapped too, same day: Fira Code -> Iosevka Charon Mono (Google
-  Fonts, Greek-verified the same metadata way as the other Google-hosted
-  picks — mono wasn't part of the original "feels generic" complaint, this
-  was picked for its narrower letterforms fitting this app's many tight
-  numeric chips — fantasy price tags, serial numbers, stat lines — better
-  than Fira Code's wider ones). `frontend/src/app/features/packs/packs.css`
-  had one hardcoded `"Fira Code"` outside the `font-mono` Tailwind class
-  (a `.pack-set-code` rule) that needed updating by hand alongside
-  `tailwind.config.js`.). `.font-display` also carries a `font-weight: 700`
-  baseline there.
+  changes. Fonts, current as of 2026-09-09: **Swanston** (display AND
+  sans/body, one family for both roles — weights 400/700 only, no Medium/
+  SemiBold) and **Iosevka Charon Mono** (mono/labels) — set up in
+  `frontend/src/styles.css`, full `@font-face` blocks and swap history in
+  the comment above `.font-display` there.
+  Both are self-hosted (not on Google Fonts) under
+  `frontend/src/assets/fonts/`, `.ttf` not woff2 (not size-optimized —
+  every self-hosted pick here was added fast to preview, not tuned for
+  load size). **Swanston** (github.com/lwhitelaw/Swanston) is a
+  monospaced, retro bitmap-terminal-style outline face — applying a
+  terminal font as the *main* display/body face, not just mono, is a
+  deliberate, unusual call flagged directly rather than softened: its own
+  README says it "looks best at 16 pixel size or multiples thereof" with
+  "compromised legibility" below that, a real tradeoff at this app's
+  smaller text sizes. No bundled license file, but its README states
+  plainly "licenced under the SIL OFL" — that statement is preserved
+  verbatim at `Swanston-LICENSE.txt` since there's nothing to copy
+  instead. **Iosevka Charon Mono** is a plain Google Fonts pick (narrower
+  than the prior Fira Code, better fit for this app's many tight numeric
+  chips — fantasy price tags, serial numbers, stat lines); one hardcoded
+  `"Fira Code"` in `frontend/src/app/features/packs/packs.css`'s
+  `.pack-set-code` rule needed updating by hand alongside
+  `tailwind.config.js`, since it sat outside the `font-mono` Tailwind
+  class. Every self-hosted pick's Greek coverage (tonos vowels, final
+  sigma, both dialytika marks) was verified glyph-by-glyph against the
+  real font binary, not trusted from a README or third-party aggregator
+  claim — this mattered in practice: Hauora Sans's README overclaimed
+  Greek support its published package didn't actually ship, and LT
+  Superior's own GitHub repo has no license file in its plain file tree
+  (the real OFL.txt only exists inside its release zip). `.font-display`
+  carries a `font-weight: 700` baseline.
+  **The short version of a very eventful single day**: Rajdhani/Barlow/
+  JetBrains Mono (no Greek at all) → Syne/IBM Plex Sans → Play/Roboto
+  Condensed → GFS Neohellenic/Noto Sans → Fervojo (self-hosted, rejected
+  same day, "i dont like it") → Moderustic → **LT Superior** (self-hosted,
+  retired Noto Sans, one family for both roles) → **Swanston** (self-
+  hosted, replaced LT Superior) for display/sans; mono went
+  Rajdhani-trio → Fira Code → **Iosevka Charon Mono**. The first two
+  display swaps went through a side-by-side Artifact comparison; every
+  swap after that was a named-font "just apply it" request.
 - Forms use Angular Reactive Forms (`ReactiveFormsModule` + `FormBuilder`),
   not template-driven/`ngModel` — follow that pattern for new forms.
 - **Buttons**: `shared/button.directive.ts`'s `ButtonDirective` (`[appButton]`,

@@ -1,0 +1,8 @@
+Swanston typeface by Liam Whitelaw (github.com/lwhitelaw/Swanston)
+
+The repository ships no separate license file, but its README states
+plainly: "Swanston is licenced under the SIL OFL, so freely use it for
+whatever you want." (README.md, section "Notes", checked directly against
+the repo at the time this font was added — 2026-09-09.)
+
+Full SIL Open Font License 1.1 text: https://scripts.sil.org/OFL

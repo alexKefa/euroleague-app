@@ -1,34 +1,23 @@
 @import url("https://fonts.googleapis.com/css2?family=Iosevka+Charon+Mono:wght@500;700&display=swap");
 
-/* LT Superior isn't on Google Fonts — self-hosted below, see the comment
-   above .font-display for why. */
+/* Swanston isn't on Google Fonts — self-hosted below, see the comment
+   above .font-display for why. Only Regular/Bold exist (no Medium/
+   SemiBold — it's a 2-weight terminal-style face), so font-medium/
+   font-semibold utility classes fall back to the nearest real weight
+   the browser picks (400 or 700). */
 @font-face {
-  font-family: "LT Superior";
+  font-family: "Swanston";
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("/assets/fonts/LTSuperior-Regular.ttf") format("truetype");
+  src: url("/assets/fonts/Swanston-Regular.ttf") format("truetype");
 }
 @font-face {
-  font-family: "LT Superior";
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url("/assets/fonts/LTSuperior-Medium.ttf") format("truetype");
-}
-@font-face {
-  font-family: "LT Superior";
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-  src: url("/assets/fonts/LTSuperior-SemiBold.ttf") format("truetype");
-}
-@font-face {
-  font-family: "LT Superior";
+  font-family: "Swanston";
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url("/assets/fonts/LTSuperior-Bold.ttf") format("truetype");
+  src: url("/assets/fonts/Swanston-Bold.ttf") format("truetype");
 }
 
 @tailwind base;
@@ -96,7 +85,29 @@
    way as every other Google-Fonts-hosted pick above (mono wasn't part of
    the original "feels generic" complaint, but it's a straightforward
    Google Fonts swap, not a self-hosting one). Weights 500/700 pulled in,
-   matching what Fira Code carried. */
+   matching what Fira Code carried.
+   Seventh swap, same day: display AND sans, LT Superior -> Swanston (one
+   family for both roles again — LT Superior's own files were deleted
+   outright, same as Fervojo before it). Swanston is a genuinely different
+   kind of pick from everything before it: a monospaced, retro
+   bitmap-terminal-inspired outline face (github.com/lwhitelaw/Swanston) —
+   "designed for and looks best at 16 pixel size or multiples thereof"
+   per its own README, with smaller sizes having "compromised legibility"
+   by the author's own admission. Applying a terminal font as the *main*
+   display/body face (not just mono, where this style usually lives) is a
+   deliberate, unusual choice — flagged directly rather than silently
+   softened, since it's a real legibility tradeoff at this app's smaller
+   text sizes, not just a taste call. No separate license file exists in
+   the repo, but its README states plainly "Swanston is licenced under the
+   SIL OFL, so freely use it for whatever you want" — that statement is
+   preserved verbatim at `frontend/src/assets/fonts/Swanston-LICENSE.txt`
+   since there's no bundled OFL.txt to copy instead. Only two weights exist
+   (Regular 400, Bold 700 — no Medium/SemiBold), so `font-medium`/
+   `font-semibold` utility classes now fall back to whichever of those two
+   the browser picks. Greek coverage (every tonos vowel, final sigma, both
+   dialytika marks) verified glyph-by-glyph against the real font binary,
+   same as every self-hosted pick above. Iosevka Charon Mono (mono) is
+   untouched by this swap. */
 .font-display {
   font-weight: 700;
 }
