@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@500;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Iosevka+Charon+Mono:wght@500;700&display=swap");
 
 /* LT Superior isn't on Google Fonts — self-hosted below, see the comment
    above .font-display for why. */
@@ -88,8 +88,15 @@
    aggregator's claim) rather than assumed. Greek coverage (every tonos
    vowel, final sigma, both dialytika marks) verified glyph-by-glyph
    against the real font binary, same as every self-hosted pick before it.
-   Fira Code (mono) is the only thing untouched through all six swaps.
-   Weights 400/500/600/700 shipped, matching what Noto Sans carried. */
+   Weights 400/500/600/700 shipped, matching what Noto Sans carried.
+   mono swapped for the first time, same day, Fira Code -> Iosevka Charon
+   Mono — narrower letterforms than Fira Code, which suits this app's many
+   tight numeric chips (fantasy price tags, serial numbers, stat lines)
+   better, and it's Greek-verified via Google Fonts' own metadata the same
+   way as every other Google-Fonts-hosted pick above (mono wasn't part of
+   the original "feels generic" complaint, but it's a straightforward
+   Google Fonts swap, not a self-hosting one). Weights 500/700 pulled in,
+   matching what Fira Code carried. */
 .font-display {
   font-weight: 700;
 }

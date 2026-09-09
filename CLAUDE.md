@@ -1580,7 +1580,7 @@ If you need to apply a schema change without an interactive terminal
   the dark/light toggle (`ThemeService.toggleColorScheme()`, stamps
   `data-theme` on `<html>`) repaint the whole app with zero template
   changes. Fonts: LT Superior (display AND sans/body, one family for both
-  roles), Fira Code (mono/labels) — set up in `frontend/src/styles.css`
+  roles), Iosevka Charon Mono (mono/labels) — set up in `frontend/src/styles.css`
   (see the `@import`/`@font-face`/`.font-display` comment there for the
   full swap history — six display-face swaps and one sans swap in a single
   day, 2026-09-09: the original Rajdhani/Barlow/JetBrains Mono trio had no
@@ -1603,9 +1603,17 @@ If you need to apply a schema change without an interactive terminal
   using it; that text is kept alongside the fonts at
   `LTSuperior-OFL.txt`. Greek coverage (every tonos vowel, final sigma,
   both dialytika marks) verified glyph-by-glyph against the real font
-  binary, same check every self-hosted pick here has gotten. Fira Code
-  (mono) is the only face untouched through all of this). `.font-display`
-  also carries a `font-weight: 700` baseline there.
+  binary, same check every self-hosted pick here has gotten.
+  Mono swapped too, same day: Fira Code -> Iosevka Charon Mono (Google
+  Fonts, Greek-verified the same metadata way as the other Google-hosted
+  picks — mono wasn't part of the original "feels generic" complaint, this
+  was picked for its narrower letterforms fitting this app's many tight
+  numeric chips — fantasy price tags, serial numbers, stat lines — better
+  than Fira Code's wider ones). `frontend/src/app/features/packs/packs.css`
+  had one hardcoded `"Fira Code"` outside the `font-mono` Tailwind class
+  (a `.pack-set-code` rule) that needed updating by hand alongside
+  `tailwind.config.js`.). `.font-display` also carries a `font-weight: 700`
+  baseline there.
 - Forms use Angular Reactive Forms (`ReactiveFormsModule` + `FormBuilder`),
   not template-driven/`ngModel` — follow that pattern for new forms.
 - **Buttons**: `shared/button.directive.ts`'s `ButtonDirective` (`[appButton]`,

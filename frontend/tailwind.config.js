@@ -35,7 +35,7 @@ module.exports = {
         // on Google Fonts) — see the @font-face blocks in styles.css.
         sans: ["LT Superior", "system-ui", "sans-serif"],
         display: ["LT Superior", "Arial", "sans-serif"],
-        mono: ["Fira Code", "ui-monospace", "monospace"],
+        mono: ["Iosevka Charon Mono", "ui-monospace", "monospace"],
       },
       boxShadow: {
         // Real elevation instead of a near-flat 1px line — was previously
