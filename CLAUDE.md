@@ -2220,6 +2220,29 @@ at the same Neon instance as local dev — there's no separate prod database.
     tinted per-tier (`iconColor`/`iconAccent` on `TierStyle`) instead of a
     hardcoded white that had barely any contrast against common's old pale
     background.
+    **Real photos backfilled, 2026-09-09** (`scripts/backfill-player-photos.ts`,
+    `npx tsx src/scripts/backfill-player-photos.ts`) — asked directly to see
+    real player images instead of the placeholder while checking Fantasy
+    Five's roster builder UI, since 2026-27 still has zero played games so
+    `player_stats_sync.py` hasn't had anything to repopulate `photo_url`
+    from. Same real endpoint `player_stats_sync.py` wraps
+    (`api-live.euroleague.net/v3/.../statistics/players/traditional`),
+    fetched directly via `fetch` for the same practical reason
+    `backfill-career-stats.ts` gives (this machine's `sync-py/venv` doesn't
+    run), matched by `players.code` against season 2025-26 (the most recent
+    with real per-game data) and only ever writing a currently-`NULL`
+    `photo_url` — never overwrites, never touches any other column. Unlike
+    the 2026-09-08 top-scorer-predictions QA pull (which was reverted to
+    `NULL` afterward as throwaway QA), **this one is deliberately left in
+    place** — a player's photo doesn't change season to season for the same
+    real person, so this is the same real image `player_stats_sync.py`
+    would eventually write once 2026-27 has real stats, just sourced a
+    season early rather than fabricated. Covers 208 of ~425 `players` rows
+    (163 of them on a current 2026-27 roster) — only players with real
+    2025-26 per-game minutes are in that dataset at all, so a call-up/
+    incoming transfer/reserve with no EuroLeague minutes last season still
+    shows the placeholder until real 2026-27 data exists. Safe to re-run
+    (idempotent — skips anyone already photo'd) if more players get synced.
 - **`teams.code` vs. the public-site team abbreviation** (2026-09-02):
   asked to make the app's 3-letter team codes match
   euroleaguebasketball.net's own standings page. Checked the site's mobile
