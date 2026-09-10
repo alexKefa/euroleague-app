@@ -1332,6 +1332,32 @@ at the same Neon instance as local dev — there's no separate prod database.
   — has no adjacent text to combine with, was never part of the
   "C+lutch" complaint, and keeps the plain ring+ball mark approved
   earlier the same day.
+- **`textLength` forcing dropped, ball clearance widened, nav sized up
+  (2026-09-10, same day)** — real bug, not a style tweak: the "h" in
+  "Clutch" rendered hidden. Root cause was the `textLength="220"
+  lengthAdjust="spacingAndGlyphs"` forcing added in the pass above, meant
+  to align the line/ball exactly under the word — "Clutch" at
+  `font-weight="800"`/`font-size="80"` in IBM Plex Sans actually renders
+  notably wider than 220 (closer to ~258-262 by hand calculation; couldn't
+  get an exact browser measurement to confirm — Chrome DevTools was
+  disconnected for this pass and a direct Google Fonts fetch from this
+  environment's shell was blocked by bot-protection), and cross-browser
+  support for `lengthAdjust="spacingAndGlyphs"` actually compressing
+  glyphs (not just spacing) to hit that target is inconsistent — so the
+  real "h" ended up rendering underneath the ball, which sat at a fixed
+  `cx` regardless. Fixed by dropping the forcing entirely: text now
+  renders at its natural width, and every measurement past it (the line's
+  endpoint, the ball's position) uses a generous hand-estimated safety
+  margin instead of a precise-looking number that silently broke —
+  `viewBox` widened `264×150` → `320×150`, ball moved `cx=240` → `290` (a
+  real gap past the estimated word-end, not flush against it). Same six
+  files. Also bumped the nav logo specifically (`49×28` → `81×38` — the
+  one explicitly reported as too small on desktop; the four auth-hero
+  logos and splash were left at their existing pixel sizes, just
+  re-based onto the new 320-wide viewBox so the geometry stays
+  consistent). **Not yet re-verified live** — Chrome was disconnected for
+  this whole pass; worth a real visual check (both the "h" fix and the
+  nav size) next time the extension is available.
 - **`src/favicon.svg` was a stale leftover from an even older logo** as of
   the 2026-09-06 pass (an orange-ring-with-a-cutout "C" mark, never
   actually served, shadowed by `public/favicon.svg` at build time) — kept

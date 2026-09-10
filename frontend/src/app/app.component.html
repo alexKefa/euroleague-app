@@ -15,14 +15,20 @@
   class="sticky top-0 z-30 flex justify-between items-center gap-3 px-4 sm:px-6 py-4 bg-card border-b border-line"
 >
   <!-- The logo — "Clutch" set in real type (SVG <text>, not a letterform
-       substitution), a curved shaded line tracking under the word from
-       "C" to the "h", and the ball riding just past the last letter. One
-       drawn graphic, not an icon element sitting beside a text element —
-       see CLAUDE.md's Branding section for why that mattered. Text fill
-       is a two-stop var(--color-ink) gradient (full opacity to ~82%) so
-       it stays legible in both themes, not a fixed white. -->
+       substitution), a curved shaded line tracking under most of the
+       word, and the ball riding well clear of the last letter. One drawn
+       graphic, not an icon element sitting beside a text element — see
+       CLAUDE.md's Branding section for why that mattered. Text fill is a
+       two-stop var(--color-ink) gradient (full opacity to ~82%) so it
+       stays legible in both themes, not a fixed white. Deliberately NOT
+       using textLength/lengthAdjust to force an exact width (tried once,
+       reverted): "Clutch" at this weight/size renders wider than assumed,
+       and browsers vary in how much of that forcing actually compresses
+       glyphs vs. just spacing — the "h" ended up rendering underneath the
+       ball. Natural width plus a generous gap before the ball is more
+       robust than a precise-looking number that silently breaks. -->
   <a routerLink="/" class="flex items-center shrink-0">
-    <svg role="img" aria-label="Clutch" width="49" height="28" viewBox="0 0 264 150">
+    <svg role="img" aria-label="Clutch" width="81" height="38" viewBox="0 0 320 150">
       <defs>
         <radialGradient id="ballGradNav" cx="35%" cy="32%" r="75%">
           <stop offset="0%" stop-color="#FF9E70"/>
@@ -41,12 +47,12 @@
           <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#FF6B35" flood-opacity="0.4"/>
         </filter>
       </defs>
-      <text x="0" y="74" font-family="'IBM Plex Sans',sans-serif" font-weight="800" font-size="80" textLength="220" lengthAdjust="spacingAndGlyphs" fill="url(#textGradNav)">Clutch</text>
-      <path d="M 0 98 Q 110 124 220 92" fill="none" stroke="url(#lineGradNav)" stroke-width="5" stroke-linecap="round" filter="url(#shadowNav)"/>
-      <circle cx="240" cy="86" r="15" fill="url(#ballGradNav)" filter="url(#shadowNav)"/>
-      <path d="M 240 72 L 240 100" stroke="rgba(0,0,0,0.3)" stroke-width="1.8" stroke-linecap="round"/>
-      <path d="M 229 76 Q 235.5 86 229 96" fill="none" stroke="rgba(0,0,0,0.3)" stroke-width="1.8" stroke-linecap="round"/>
-      <path d="M 251 76 Q 244.5 86 251 96" fill="none" stroke="rgba(0,0,0,0.3)" stroke-width="1.8" stroke-linecap="round"/>
+      <text x="0" y="74" font-family="'IBM Plex Sans',sans-serif" font-weight="800" font-size="80" fill="url(#textGradNav)">Clutch</text>
+      <path d="M 0 98 Q 115 122 255 84" fill="none" stroke="url(#lineGradNav)" stroke-width="5" stroke-linecap="round" filter="url(#shadowNav)"/>
+      <circle cx="290" cy="80" r="15" fill="url(#ballGradNav)" filter="url(#shadowNav)"/>
+      <path d="M 290 66 L 290 94" stroke="rgba(0,0,0,0.3)" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M 279 70 Q 285.5 80 279 90" fill="none" stroke="rgba(0,0,0,0.3)" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M 301 70 Q 294.5 80 301 90" fill="none" stroke="rgba(0,0,0,0.3)" stroke-width="1.8" stroke-linecap="round"/>
     </svg>
   </a>
 
