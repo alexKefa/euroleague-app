@@ -52,6 +52,18 @@ export class AuthService {
       .pipe(tap((res) => this.setSession(res)), map((res) => res.user));
   }
 
+  // Deliberately no session change here — the reset link's email address
+  // isn't known to be the requester's, so nothing about this call should
+  // reveal whether that address actually has an account (same generic
+  // response either way, mirrored server-side in routes/auth.ts).
+  forgotPassword(email: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${API_BASE_URL}/auth/forgot-password`, { email });
+  }
+
+  resetPassword(token: string, password: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${API_BASE_URL}/auth/reset-password`, { token, password });
+  }
+
   logout(): Observable<void> {
     return this.http.post<void>(`${API_BASE_URL}/auth/logout`, {}, { withCredentials: true }).pipe(
       tap(() => {

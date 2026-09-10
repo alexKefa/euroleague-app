@@ -1,6 +1,7 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
-import { eq, sql } from "drizzle-orm";
+import crypto from "node:crypto";
+import { eq, sql, and, gt } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { users, pointAdjustments, teamSeasonStats } from "../db/schema.js";
 import { hashPassword, verifyPassword } from "../auth/hash.js";
@@ -9,6 +10,7 @@ import { createUniqueReferralCode } from "../services/referrals.js";
 import { createUniqueUsername, isUsernameTaken, isValidUsername } from "../services/username.js";
 import { redeemPromoCode } from "../services/promoCodes.js";
 import { getCurrentSeason } from "../services/season.js";
+import { sendPasswordResetEmail } from "../services/email.js";
 
 export const authRouter = Router();
 
@@ -58,6 +60,17 @@ const refreshLimiter = rateLimit({
 // designed (pick a pack, watch the reveal) instead of a second, bespoke
 // "welcome pack" code path.
 const WELCOME_BONUS_POINTS = 150;
+
+// A raw token only ever exists in the emailed link + this ephemeral value —
+// the DB only ever stores its sha256 digest (schema.ts's doc comment on
+// passwordResetTokenHash explains why). 32 random bytes (64 hex chars) is
+// unguessable, so no expensive hashing (bcrypt etc.) is needed here the way
+// it is for a user-chosen password.
+function hashResetToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
 
 const REFRESH_COOKIE_NAME = "refreshToken";
 // Keep this in sync with JWT_REFRESH_EXPIRES_IN in .env (default 30d).
@@ -217,4 +230,65 @@ authRouter.post("/refresh", refreshLimiter, async (req, res) => {
 authRouter.post("/logout", (_req, res) => {
   res.clearCookie(REFRESH_COOKIE_NAME, { path: "/api/auth" });
   res.status(204).send();
+});
+
+// Always responds the same way regardless of whether the email is
+// registered — a different response would let an attacker enumerate real
+// accounts by trying addresses one at a time. Reuses credentialsLimiter
+// (10/15min per IP) so this can't be used to email-bomb an arbitrary
+// address either.
+authRouter.post("/forgot-password", credentialsLimiter, async (req, res) => {
+  const { email } = req.body ?? {};
+  if (typeof email !== "string" || email.length === 0) {
+    res.status(400).json({ error: "email is required" });
+    return;
+  }
+
+  const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  if (user) {
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    await db
+      .update(users)
+      .set({
+        passwordResetTokenHash: hashResetToken(rawToken),
+        passwordResetTokenExpiresAt: new Date(Date.now() + RESET_TOKEN_EXPIRY_MS),
+      })
+      .where(eq(users.id, user.id));
+
+    // Best-effort — a transient email-provider failure shouldn't surface as
+    // a 500 to the client and reveal that the address was actually found.
+    sendPasswordResetEmail(user.email, rawToken).catch((err) =>
+      console.error("[forgot-password] failed to send reset email:", err)
+    );
+  }
+
+  res.json({ message: "If that email is registered, a reset link is on its way." });
+});
+
+authRouter.post("/reset-password", credentialsLimiter, async (req, res) => {
+  const { token, password } = req.body ?? {};
+  if (typeof token !== "string" || token.length === 0 || typeof password !== "string" || password.length < 8) {
+    res.status(400).json({ error: "token and password (min 8 chars) are required" });
+    return;
+  }
+
+  const tokenHash = hashResetToken(token);
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(and(eq(users.passwordResetTokenHash, tokenHash), gt(users.passwordResetTokenExpiresAt, new Date())))
+    .limit(1);
+
+  if (!user) {
+    res.status(400).json({ error: "This reset link is invalid or has expired." });
+    return;
+  }
+
+  const passwordHash = await hashPassword(password);
+  await db
+    .update(users)
+    .set({ passwordHash, passwordResetTokenHash: null, passwordResetTokenExpiresAt: null })
+    .where(eq(users.id, user.id));
+
+  res.json({ message: "Password updated — you can now log in." });
 });

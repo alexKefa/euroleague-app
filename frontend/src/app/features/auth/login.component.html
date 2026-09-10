@@ -50,6 +50,10 @@
           {{ submitting() ? i18n.t('auth.loggingIn') : i18n.t('nav.login') }}
         </button>
       </form>
+
+      <p class="text-xs text-center mt-4">
+        <a routerLink="/forgot-password" class="text-highlight font-semibold">{{ i18n.t('auth.forgotPasswordLink') }}</a>
+      </p>
     </div>
   </div>
 

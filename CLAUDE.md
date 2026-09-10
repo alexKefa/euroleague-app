@@ -97,6 +97,48 @@ If you need to apply a schema change without an interactive terminal
   grant/deduction ledger (`POST /predictions/points/adjust`, gated by
   `requireAdmin`); there is no bootstrap flow for the first admin — flip
   `users.is_admin` by hand in the DB.
+- **Forgot password (2026-09-10)** — full email-based self-service, not the
+  admin-assisted alternative that was also considered (originally flagged
+  as a todo 2026-08-21). Two new nullable columns on `users`
+  (`passwordResetTokenHash`, `passwordResetTokenExpiresAt`, applied
+  directly against the live DB per the Schema-changes workflow above, not
+  through `db:push`) rather than a separate table — a user only ever has
+  one outstanding reset request at a time, and a second request just
+  overwrites both columns. `POST /auth/forgot-password` (`routes/auth.ts`,
+  rate-limited by the existing `credentialsLimiter`) always responds 200
+  with the same generic message regardless of whether the email is
+  registered — a different response would let an attacker enumerate real
+  accounts by trying addresses one at a time, and the same limiter also
+  keeps this from being usable to email-bomb an arbitrary address. Only a
+  sha256 hex digest of the raw token is ever stored (`hashResetToken`) —
+  same "never store the plain secret" posture as `passwordHash`, except no
+  expensive hashing (bcrypt) is needed here since 32 random bytes is
+  already unguessable. `POST /auth/reset-password` re-hashes whatever's
+  submitted, matches it against a still-unexpired row (1 hour,
+  `RESET_TOKEN_EXPIRY_MS`), and clears both columns the moment a reset
+  succeeds — so a used or expired link can never be replayed, verified
+  directly against the live DB (register a test account, forgot-password,
+  reset with a known token, confirm the old password is rejected and the
+  new one works, confirm the same token is rejected on reuse, then delete
+  the test account).
+  `services/email.ts` wraps **Resend** (`RESEND_API_KEY`) — chosen over
+  SendGrid/SES for the least setup friction (a generous free tier, and no
+  custom-domain verification needed since this app doesn't have one yet,
+  see the Deployment section's "TODO: custom domain"; Resend's own shared
+  `onboarding@resend.dev` sender works out of the box). Same "no-op without
+  an API key" posture as `sync/oddsSync.ts`'s `ODDS_API_KEY` check — a
+  missing key just logs the reset link to the console instead of failing,
+  so local dev needs no real Resend account. The emailed link points at
+  `APP_BASE_URL` (the frontend's own origin, not the API's) — still unset
+  in production as of this pass, so a real reset email won't actually send
+  from Railway until both `RESEND_API_KEY` and `APP_BASE_URL` are set
+  there. Frontend: `/forgot-password` and `/reset-password` (reading
+  `?token=`) are new standalone routes mirroring the login page's visual
+  shell exactly, plus a "Forgot password?" link added to the login page.
+  `AuthService.forgotPassword`/`resetPassword` are deliberately separate
+  from `setSession()` — neither call changes `accessToken`/`currentUser`,
+  since a reset doesn't imply the requester is who they say they are until
+  they've actually logged in with the new password afterward.
 - **Odds-weighted prediction points** (`services/points.ts`'s `pointsForCorrectPick`,
   reworked twice on 2026-08-31/09-01 before landing on the current formula).
   Every correct pick is worth `POINTS_PER_CORRECT` (10) times the picked team's
@@ -1024,7 +1066,14 @@ degrades to the flat rate everywhere, see the Leagues/predictions section
 below), `ODDS_API_SPORT_KEY` (defaults to `basketball_euroleague` — only
 inferred from web search, not confirmed against a live call; verify with
 `GET https://api.the-odds-api.com/v4/sports/?apiKey=KEY` if odds sync
-matches nothing).
+matches nothing), `RESEND_API_KEY` (unset = forgot-password emails log
+their reset link to the console instead of sending, see Forgot password
+below), `RESEND_FROM_EMAIL` (defaults to Resend's own shared
+`onboarding@resend.dev` sender — no custom domain exists yet, see the
+Deployment section's "TODO: custom domain"), `APP_BASE_URL` (defaults to
+`http://localhost:4200`; set to the Railway URL in production — this is
+the frontend's own origin, not the API's, since that's where the emailed
+reset link needs to point).
 
 ## Deployment
 

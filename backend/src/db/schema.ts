@@ -80,6 +80,19 @@ export const users = pgTable("users", {
   // long-term to keep showing (a traded-away card just silently stops
   // resolving, same "best-effort" spirit as a stale wishlist entry).
   showcaseCollectibleIds: jsonb("showcase_collectible_ids").notNull().default([]).$type<string[]>(),
+
+  // Forgot-password (2026-09-10). A sha256 hex digest of a random token,
+  // never the raw token itself — mirrors how passwordHash never stores a
+  // plain password. The raw token only ever exists in the emailed link and
+  // this row's ephemeral in-memory value at generation time; POST
+  // /auth/reset-password re-hashes whatever the user submits and compares
+  // digests, so a leaked DB row alone can't be replayed as a working reset
+  // link. Cleared (both columns back to null) the moment a reset actually
+  // succeeds, so a used/expired link can never be replayed. Nullable — most
+  // users never request a reset, and re-requesting one before the first
+  // expires just overwrites both columns rather than needing a separate table.
+  passwordResetTokenHash: text("password_reset_token_hash"),
+  passwordResetTokenExpiresAt: timestamp("password_reset_token_expires_at", { withTimezone: true }),
 });
 
 export const players = pgTable("players", {
