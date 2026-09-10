@@ -1358,6 +1358,23 @@ at the same Neon instance as local dev — there's no separate prod database.
   consistent). **Not yet re-verified live** — Chrome was disconnected for
   this whole pass; worth a real visual check (both the "h" fix and the
   nav size) next time the extension is available.
+- **Home-screen icon cache-busted, `?v=2` (2026-09-10, same day)** — user
+  report: "Add to Home Screen" still showed the old flat-icon design after
+  the gradient-ball redesign earlier this same day, even on a fresh save.
+  Root cause: `icon-*.png`/`favicon.svg` keep the same filename across a
+  redesign (this app has no icon-generation pipeline that content-hashes
+  them — see the earlier "not checked in, one-off render" note), and
+  iOS/Android cache a PWA's home-screen icon at install/save time in a way
+  that doesn't reliably revalidate against normal HTTP cache rules even
+  across an otherwise-fresh page load — a real, well-known platform
+  behavior, not a bug in this app's serving code (`index.ts`'s
+  `express.static` uses Express's own default caching, nothing unusually
+  aggressive was set). Fixed by appending `?v=2` to every icon URL in both
+  `index.html` (favicon, apple-touch-icon) and `manifest.webmanifest`
+  (all 8 sizes) — a plain query string, no file renaming needed, but a
+  URL the OS has never cached before, so it's forced to fetch fresh.
+  **Bump this version param on any future icon change** — same reasoning,
+  same fix, every time.
 - **`src/favicon.svg` was a stale leftover from an even older logo** as of
   the 2026-09-06 pass (an orange-ring-with-a-cutout "C" mark, never
   actually served, shadowed by `public/favicon.svg` at build time) — kept
