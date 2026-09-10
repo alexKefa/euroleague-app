@@ -14,32 +14,40 @@
 <nav
   class="sticky top-0 z-30 flex justify-between items-center gap-3 px-4 sm:px-6 py-4 bg-card border-b border-line"
 >
-  <!-- The "C" is a real open ring (like a letterform), with a small
-       basketball nested inside its hollow — not a ball replacing the C
-       outright (an earlier pass got this wrong: a plain full circle read
-       as "no C at all"). The ring stays ink (theme-reactive); the ball is
-       the app's own fixed highlight orange (#FF6B35, not var(--color-ink)
-       — same "fixed accent, not a chrome color" reasoning as every other
-       highlight usage in this app, see tailwind.config.js), the one spot
-       of real color in an otherwise monochrome mark. "lutch" continues
-       right after it as real text, so screen readers/search only ever see
-       "lutch" from this markup alone; aria-label restores the full word. -->
-  <a routerLink="/" aria-label="Clutch" class="flex items-center gap-1 font-display text-lg tracking-wide shrink-0">
-    <svg width="24" height="28" viewBox="0 0 86 100" aria-hidden="true">
+  <!-- The logo — "Clutch" set in real type (SVG <text>, not a letterform
+       substitution), a curved shaded line tracking under the word from
+       "C" to the "h", and the ball riding just past the last letter. One
+       drawn graphic, not an icon element sitting beside a text element —
+       see CLAUDE.md's Branding section for why that mattered. Text fill
+       is a two-stop var(--color-ink) gradient (full opacity to ~82%) so
+       it stays legible in both themes, not a fixed white. -->
+  <a routerLink="/" class="flex items-center shrink-0">
+    <svg role="img" aria-label="Clutch" width="49" height="28" viewBox="0 0 264 150">
       <defs>
         <radialGradient id="ballGradNav" cx="35%" cy="32%" r="75%">
           <stop offset="0%" stop-color="#FF9E70"/>
           <stop offset="55%" stop-color="#FF6B35"/>
           <stop offset="100%" stop-color="#C94A24"/>
         </radialGradient>
+        <linearGradient id="lineGradNav" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0%" stop-color="#C94A24"/>
+          <stop offset="100%" stop-color="#FF6B35"/>
+        </linearGradient>
+        <linearGradient id="textGradNav" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" style="stop-color:var(--color-ink)"/>
+          <stop offset="100%" style="stop-color:var(--color-ink)" stop-opacity="0.82"/>
+        </linearGradient>
+        <filter id="shadowNav" x="-50%" y="-50%" width="200%" height="200%">
+          <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#FF6B35" flood-opacity="0.4"/>
+        </filter>
       </defs>
-      <path d="M 78 26 A 36 36 0 1 0 78 74" fill="none" stroke="var(--color-ink)" stroke-width="13" stroke-linecap="round"/>
-      <circle cx="50" cy="50" r="17" fill="url(#ballGradNav)"/>
-      <path d="M 50 34 L 50 66" stroke="rgba(0,0,0,0.35)" stroke-width="2" stroke-linecap="round"/>
-      <path d="M 37.5 39 Q 45 50 37.5 61" fill="none" stroke="rgba(0,0,0,0.35)" stroke-width="2" stroke-linecap="round"/>
-      <path d="M 62.5 39 Q 55 50 62.5 61" fill="none" stroke="rgba(0,0,0,0.35)" stroke-width="2" stroke-linecap="round"/>
+      <text x="0" y="74" font-family="'IBM Plex Sans',sans-serif" font-weight="800" font-size="80" textLength="220" lengthAdjust="spacingAndGlyphs" fill="url(#textGradNav)">Clutch</text>
+      <path d="M 0 98 Q 110 124 220 92" fill="none" stroke="url(#lineGradNav)" stroke-width="5" stroke-linecap="round" filter="url(#shadowNav)"/>
+      <circle cx="240" cy="86" r="15" fill="url(#ballGradNav)" filter="url(#shadowNav)"/>
+      <path d="M 240 72 L 240 100" stroke="rgba(0,0,0,0.3)" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M 229 76 Q 235.5 86 229 96" fill="none" stroke="rgba(0,0,0,0.3)" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M 251 76 Q 244.5 86 251 96" fill="none" stroke="rgba(0,0,0,0.3)" stroke-width="1.8" stroke-linecap="round"/>
     </svg>
-    lutch
   </a>
 
   <div class="flex items-center gap-2 min-w-0">

@@ -1278,6 +1278,60 @@ at the same Neon instance as local dev — there's no separate prod database.
   heroes, 36px icon), `gap-2` (splash, up to ~45px icon). Ring
   stroke-width (13) and the cropped `86×100` viewBox are both unchanged
   from the passes above.
+- **Icon-as-C wordmark retired entirely, replaced with a full logo
+  (2026-09-10, same day)** — everything in the several bullets above this
+  one (the icon-as-"C" + "lutch" combination mark, all its spacing/weight
+  tuning) is now historical only — superseded, not deleted, since the
+  back-and-forth in getting there is worth keeping. Explicit direction:
+  "remove anywhere the C + lutch... design a logo and replace everything
+  with our logo." Landed via the same design-canvas comparison pattern
+  (3 fresh directions, none constrained to the old icon-as-letter idea),
+  then iterated live in the canvas per direct feedback (curved not
+  straight line, symmetric ball seams — the first cut was missing the
+  right-side curve entirely, a real asymmetry bug, not just a style
+  choice — text width pinned via `textLength` so the line/ball align to
+  it exactly rather than eyeballed, ball moved clear of the last letter
+  instead of overlapping it).
+
+  **The shipped mark**: real "Clutch" text (SVG `<text>`, not a
+  letterform substitution — a plain, normal, actually-spelled word,
+  `font-weight="800"`, `textLength="220" lengthAdjust="spacingAndGlyphs"`
+  so its rendered width is a known, exact value everything else aligns
+  to), a curved orange line (`stroke="url(#lineGrad...)"`, a
+  `feDropShadow` filter for depth — the "shady line" ask) tracking under
+  the word from the "C" to the "h", and the ball (same seam pattern as
+  the standalone icon: one vertical + two symmetric curves — the earlier
+  asymmetric version only had one) riding just past the last letter with
+  a small gap, never overlapping it. Text fill is a two-stop
+  `var(--color-ink)` gradient (100% → 82% opacity) rather than a fixed
+  color, so it stays legible in both themes — the canvas mockup itself
+  was only ever checked against a dark background, and a fixed near-white
+  fill would have been unreadable in light mode; this is a correctness
+  fix made during implementation, not something explicitly requested.
+  One `viewBox="0 0 264 150"` SVG (gradient/filter ids suffixed per
+  usage — `Nav`/`Hero`/`Splash`/`Qr` — to avoid duplicate-id collisions
+  where more than one instance can be mounted at once) replaces the old
+  icon-element-plus-text-element pairing everywhere it appeared: the nav
+  (`app.component.html`), all four auth pages
+  (login/register/forgot-password/reset-password — identical block,
+  `width="106" height="60"`), the splash screen
+  (`shared/splash.html`/`splash.css` — `.brand-icon`/`.wordmark` merged
+  into one `.logo-mark` class, `height: clamp(46px, 13vw, 68px); width:
+  auto; aspect-ratio: 264/150`, reusing the existing `icon-in` keyframe
+  since there's now only one element to animate in, not two), and
+  `public/qr-card.html` (a static, non-Angular page with no `--color-ink`
+  var — uses its own already-defined fixed `--ink: #f0f0ec`, and picked
+  up an `IBM Plex Sans:wght@800` addition to its Google Fonts link, which
+  it didn't previously load at all, having been built with the
+  Rajdhani/Barlow/JetBrains-Mono trio instead).
+
+  **Left alone, on purpose**: this pass only ever touches contexts where
+  the icon sat next to "Clutch" text. The standalone square icon by
+  itself — `favicon.svg` (both copies), the PWA icon set, `email.ts`'s
+  `LOGO_URL`, and the Fantasy court background's faint center-court decal
+  — has no adjacent text to combine with, was never part of the
+  "C+lutch" complaint, and keeps the plain ring+ball mark approved
+  earlier the same day.
 - **`src/favicon.svg` was a stale leftover from an even older logo** as of
   the 2026-09-06 pass (an orange-ring-with-a-cutout "C" mark, never
   actually served, shadowed by `public/favicon.svg` at build time) — kept

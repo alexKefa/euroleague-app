@@ -191,28 +191,19 @@
    the actual fix for "text wraps" — clamp already keeps them narrow
    enough to fit on one line, nowrap makes that the guarantee rather than
    a coincidence. */
-.brand-icon {
-  /* viewBox is 86x100 (not square) — the wordmark pass (2026-09-10)
-     switched to a bolder, tighter-cropped icon, matched to "lutch"'s own
-     weight. height drives the clamp, width follows via aspect-ratio so
-     the mark doesn't stretch. */
-  height: clamp(38px, 11vw, 52px);
+.logo-mark {
+  /* viewBox is 264x150 — the full-logo pass (2026-09-10) replaced the
+     separate icon+wordmark pair with one unified SVG ("Clutch" as real
+     type + a curved line + the ball), so this is now the only element
+     driving the splash logo's size/animation. height drives the clamp,
+     width follows via aspect-ratio so the mark doesn't stretch. */
+  height: clamp(46px, 13vw, 68px);
   width: auto;
-  aspect-ratio: 86 / 100;
+  aspect-ratio: 264 / 150;
   opacity: 0;
   transform: scale(0.7);
   animation: icon-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   animation-delay: 0.5s;
-}
-
-.wordmark {
-  font-size: clamp(1.5rem, 7.5vw, 2.25rem);
-  line-height: 1.15;
-  white-space: nowrap;
-  opacity: 0;
-  transform: translateY(6px);
-  animation: wordmark-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  animation-delay: 0.68s;
 }
 
 /* The curved tagline (splash.html) — same fade/rise timing the straight
