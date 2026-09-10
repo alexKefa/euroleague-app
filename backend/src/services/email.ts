@@ -21,6 +21,16 @@ const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "Clutch <onboarding@resend.d
 // "https://host.app/" would otherwise produce a double-slash reset link.
 const APP_BASE_URL = (process.env.APP_BASE_URL ?? "http://localhost:4200").replace(/\/+$/, "");
 
+// The app's real PWA icon (frontend/public/icons/, same ring+basketball
+// mark as favicon.svg and the nav wordmark's inline SVG) — reused as-is
+// rather than duplicated as inline SVG, since email clients need a hosted
+// raster image for reliable rendering (see the comment above the <img> tag
+// below). Shares APP_BASE_URL's own "local dev has no publicly-reachable
+// host" limitation — a local send embeds an unreachable localhost URL, same
+// as the reset link itself already does; harmless since local sends are
+// only ever for testing, not real users.
+const LOGO_URL = `${APP_BASE_URL}/icons/icon-192x192.png`;
+
 // Same brand orange as the web app's login/register hero mark
 // (login.component.html's inline SVG stroke="#FF6B35") — kept as a literal
 // hex here rather than importing anything, since this HTML string is sent
@@ -107,11 +117,14 @@ function buildResetPasswordEmailHtmlFromCopy(copy: (typeof EMAIL_COPY)[EmailLang
         <td align="center" style="padding:40px 16px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;">
 
-            <!-- Wordmark, above the card -->
+            <!-- Logo, above the card — the app's real mark (same PNG as the
+                 PWA home-screen icon), not a placeholder emoji/wordmark.
+                 Hosted, not inlined: email clients (Outlook especially)
+                 don't render inline SVG reliably, but a plain <img> is
+                 universally supported. -->
             <tr>
               <td align="center" style="padding-bottom:20px;">
-                <span style="font-size:22px;">🏀</span>
-                <span style="font-size:20px; font-weight:800; color:#17161c; letter-spacing:0.02em; vertical-align:middle;">Clutch</span>
+                <img src="${LOGO_URL}" width="56" height="56" alt="Clutch" style="display:block; border-radius:14px;" />
               </td>
             </tr>
 

@@ -70,12 +70,19 @@ import { Component } from "@angular/core";
            fixed-color like the rest of this glass floor rather than
            theme-reactive, painted over the floor but under the real court
            lines so the key/arc strokes stay crisp on top of it. -->
-      <g transform="translate(160 63) scale(1.7) translate(-54 -50)" opacity="0.16">
-        <path d="M 80 28 A 34 34 0 1 0 80 72" fill="none" stroke="#eef3f7" stroke-width="10" stroke-linecap="round" />
-        <circle cx="54" cy="50" r="19" fill="none" stroke="#FF6B35" stroke-width="4.5" />
-        <path d="M 54 31 L 54 69" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round" />
-        <path d="M 40.6 36.6 Q 48 50 40.6 63.4" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round" />
-        <path d="M 67.4 36.6 Q 60 50 67.4 63.4" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round" />
+      <g transform="translate(160 63) scale(1.7) translate(-50 -50)" opacity="0.16">
+        <defs>
+          <radialGradient id="ballGradCourt" cx="35%" cy="32%" r="75%">
+            <stop offset="0%" stop-color="#FF9E70" />
+            <stop offset="55%" stop-color="#FF6B35" />
+            <stop offset="100%" stop-color="#C94A24" />
+          </radialGradient>
+        </defs>
+        <path d="M 78 26 A 36 36 0 1 0 78 74" fill="none" stroke="#eef3f7" stroke-width="8" stroke-linecap="round" />
+        <circle cx="50" cy="50" r="17" fill="url(#ballGradCourt)" />
+        <path d="M 50 34 L 50 66" stroke="rgba(0,0,0,0.35)" stroke-width="2" stroke-linecap="round" />
+        <path d="M 37.5 39 Q 45 50 37.5 61" fill="none" stroke="rgba(0,0,0,0.35)" stroke-width="2" stroke-linecap="round" />
+        <path d="M 62.5 39 Q 55 50 62.5 61" fill="none" stroke="rgba(0,0,0,0.35)" stroke-width="2" stroke-linecap="round" />
       </g>
       <path [attr.d]="courtOutlinePath" fill="none" class="stroke-muted" stroke-width="1.8" opacity="0.85" />
       <rect

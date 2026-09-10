@@ -1137,37 +1137,95 @@ at the same Neon instance as local dev — there's no separate prod database.
 - The same Railway account has an unrelated older project ("valiant-passion" /
   service "dsg-backend") — don't confuse it with this one.
 
-## Branding (2026-09-06)
+## Branding
 
-- **Isometric 3-bar mark** replaces the old flat version everywhere: browser
-  favicon (`frontend/src/favicon.svg` and `frontend/public/favicon.svg` — the
-  latter wins the build (Angular copies the `public/**` glob after the
-  explicit `src/favicon.svg` asset entry, confirmed directly against
-  `dist/.../favicon.svg`), the PWA home-screen icon set
-  (`frontend/public/icons/icon-*.png`, 8 sizes, rasterized from one 100x100
-  SVG source via `sharp` at build time — not checked in as a generator
-  script, just a one-off render since there's no icon-generation pipeline in
-  this repo), the top-nav wordmark lockup (`app.component.html`, right next
-  to the "Clutch" text — bumped from 17px to 22px so the extra dimension
-  actually reads), and the splash-screen intro (`shared/splash.html`, each
-  bar's 3 faces wrapped in its own `<g class="bar bar-N">` so `splash.css`'s
-  existing per-bar `scaleY` rise-in animation still applies to the whole
-  extruded shape as one rigid unit — `transform-box: fill-box` works the
-  same on an SVG `<g>` as it did on the plain `<rect>` it replaced). Same
-  silhouette/heights and the same three brand-orange shades as the original
-  flat mark (a short/tall/medium triptych), just rendered as three
-  isometric blocks (top face lit, front face mid-tone, implicit side shading
-  via a third, darker polygon) instead of flat rounded rects — chosen from
-  3 candidate directions sketched in an Artifact first (an isometric
-  version, a version with a basketball rim/net worked into the tall bar's
-  cap, and a glossy jewel-toned glass version) per this project's usual
-  "propose visually, then implement" pattern for design work.
-- **`src/favicon.svg` was a stale leftover from an even older logo** — an
-  orange-ring-with-a-cutout "C" mark, never actually served (shadowed by
-  `public/favicon.svg` at build time) and out of sync with every other
-  brand surface, which all agreed on the flat bar mark before this pass.
-  Updated to match rather than deleted, so both copies stay identical and
-  the shadow can't reintroduce a mismatch if the asset order ever changes.
+- **Timeline correction (2026-09-10)**: this section previously described
+  an "isometric 3-bar mark" as the current logo everywhere — that was
+  real (commit `ac973cd`, 2026-09-06) but got reverted back to the
+  ring+basketball mark by a later, undocumented commit
+  (`72c954a`, "Land the C-ring-with-nested-basketball mark…") that never
+  updated this doc to match. Caught 2026-09-10 while building the
+  forgot-password email's logo — every real surface (favicon, nav,
+  login/register hero, splash) still had the ring+ball mark, not the bars.
+  The isometric bars now live on only as `logo-spinner.ts`'s loading
+  animation (a literal bar-chart pulse, unrelated to this correction) — if
+  a future pass wants the isometric mark back as the primary logo, it needs
+  rebuilding from scratch; nothing currently references the old SVG.
+- **Ring + ball, refined (2026-09-10)** — a full logo redesign, resolved via
+  a 4-direction Artifact canvas comparison (this project's standard
+  "propose visually, then implement" pattern): a refined ring+ball
+  evolution, an abstract "clutch moment" spark mark, a revisit of the
+  isometric bars as a proper icon, and a hoop-swish mark. **Refined
+  ring+ball was chosen** — same silhouette as the mark that's been live
+  since `72c954a` (a "C"-shaped ring with a basketball at its center), but
+  with real depth: the ball is now a radial gradient (`#FF9E70` → `#FF6B35`
+  → `#C94A24`, same brand orange family, not a flat stroke-only circle),
+  its seam lines use a subtle `rgba(0,0,0,0.35)` inset shade instead of a
+  second orange tone, and the ring itself is slightly larger/thinner
+  (`r=36`/`stroke-width=8`, was `r=34`/`10`) for a lighter, more refined
+  read. Geometry: `viewBox 0 0 100 100`, ring path
+  `M 78 26 A 36 36 0 1 0 78 74`, ball `circle cx="50" cy="50" r="17"`
+  (both concentric — the ring's rightward gap is what reads as a "C").
+  Applied everywhere the old mark was, all with a locally-scoped
+  `radialGradient` id per usage (`ballGradFavicon`/`ballGradNav`/
+  `ballGradHero`/`ballGradSplash`/`ballGradCourt`/`ballGradQr` — kept
+  distinct per file rather than one shared id, since several of these
+  render simultaneously in the same document and duplicate SVG element
+  ids across sibling components is invalid, even though it happens to
+  still resolve correctly in every browser tested): `frontend/src/favicon.svg`
+  and `frontend/public/favicon.svg` (the latter wins the build — Angular
+  copies the `public/**` glob after the explicit `src/favicon.svg` asset
+  entry, confirmed against `dist/.../favicon.svg`), the PWA icon set
+  (`frontend/public/icons/icon-*.png`, 8 sizes, rasterized from the new
+  favicon SVG via a temporary `sharp` install — `npm install sharp
+  --no-save` then `npm uninstall sharp` after, so nothing lands in
+  `package.json`, matching the "no icon-generation pipeline checked in"
+  precedent from the original isometric-bar pass), the top-nav wordmark
+  (`app.component.html`), all four auth-page heroes (login/register/
+  forgot-password/reset-password — identical inline SVG duplicated across
+  all four, updated in all four), the splash-screen intro
+  (`shared/splash.html`'s `.brand-icon`, distinct from the *unrelated*
+  large background basketball watermark on the same page — that one's its
+  own separate SVG, untouched here, see splash.html's own comments), and a
+  previously-undocumented **center-court decal**
+  (`shared/court-background.ts`'s Fantasy court background, a faint
+  `opacity="0.16"` copy of the mark painted under the court lines —
+  found and updated in the same pass, translate offset adjusted from
+  `-54 -50` to `-50 -50` to match the refined mark's now-perfectly-
+  concentric center). The email logo
+  (`backend/src/services/email.ts`'s `LOGO_URL`, added the same day for
+  the forgot-password email) needed no code change — it already points at
+  `icon-192x192.png`, so regenerating that PNG picked up the new design
+  automatically.
+- **Wordmark lockup, standardized (2026-09-10, same day)** — a second
+  design-canvas round, specifically about how the icon combines with the
+  literal word "Clutch" (the icon mark itself was already settled above).
+  Three lockup options compared: (A) the icon doubling as the letter "C"
+  with literal text "lutch" continuing right after — the nav bar's
+  existing trick; (B) the icon in its own separate badge next to the full
+  word "Clutch" spelled out normally; (C) a from-scratch logotype ("Clutch"
+  resting on a thin court-line rule, the ball rolling off the last
+  letter). **(A) was chosen** — explicitly the opposite call from the
+  forgot-password email's own logo (that one deliberately stayed a
+  standalone icon with no wordmark trick, since email image-blocking can
+  strand the "lutch" half with nothing to anchor it — a risk that doesn't
+  exist for a live web page). This surfaced a real inconsistency:
+  `app.component.html`'s nav and `shared/splash.html` already did the
+  icon-as-C trick, but all four auth pages (login/register/
+  forgot-password/reset-password) used a *different*, separately-gapped
+  "icon + full 'Clutch' word" layout instead — their own code comment even
+  claimed to match the nav's "combination mark," which it didn't. Fixed by
+  converting all four to the same pattern: `aria-label="Clutch" role="img"`
+  on the wrapping div (screen readers get the real word), `aria-hidden`
+  on both the icon and the visible "lutch" text, `-mr-1` tightening the
+  gap between them — same shape as the nav's own `-mr-0.5` at its smaller
+  28px size. `email.ts`'s standalone-icon choice is deliberately
+  unchanged by this pass.
+- **`src/favicon.svg` was a stale leftover from an even older logo** as of
+  the 2026-09-06 pass (an orange-ring-with-a-cutout "C" mark, never
+  actually served, shadowed by `public/favicon.svg` at build time) — kept
+  in sync with `public/favicon.svg` ever since rather than deleted, so the
+  shadow can't reintroduce a mismatch if the asset order ever changes.
 
 ## Album leaderboard (2026-09-06)
 

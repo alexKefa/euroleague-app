@@ -1,15 +1,22 @@
 <div class="min-h-[70vh] flex flex-col items-center justify-center px-6 py-10">
-  <!-- Brand mark — same C-ring-with-nested-basketball combination mark as
-       the nav wordmark (app.component.html), just standalone and bigger. -->
-  <div class="flex items-center gap-2.5 mb-9" aria-hidden="true">
-    <svg width="42" height="42" viewBox="0 0 100 100">
-      <path d="M 80 28 A 34 34 0 1 0 80 72" fill="none" stroke="var(--color-ink)" stroke-width="10" stroke-linecap="round"/>
-      <circle cx="54" cy="50" r="19" fill="none" stroke="#FF6B35" stroke-width="4.5"/>
-      <path d="M 54 31 L 54 69" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round"/>
-      <path d="M 40.6 36.6 Q 48 50 40.6 63.4" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round"/>
-      <path d="M 67.4 36.6 Q 60 50 67.4 63.4" fill="none" stroke="#FF6B35" stroke-width="3.5" stroke-linecap="round"/>
+  <!-- Brand mark — same icon-as-"C" combination mark as the nav wordmark
+       (app.component.html), just standalone and bigger. -->
+  <div class="flex items-center mb-9" aria-label="Clutch" role="img">
+    <svg width="42" height="42" viewBox="0 0 100 100" aria-hidden="true" class="-mr-1">
+      <defs>
+        <radialGradient id="ballGradHero" cx="35%" cy="32%" r="75%">
+          <stop offset="0%" stop-color="#FF9E70"/>
+          <stop offset="55%" stop-color="#FF6B35"/>
+          <stop offset="100%" stop-color="#C94A24"/>
+        </radialGradient>
+      </defs>
+      <path d="M 78 26 A 36 36 0 1 0 78 74" fill="none" stroke="var(--color-ink)" stroke-width="8" stroke-linecap="round"/>
+      <circle cx="50" cy="50" r="17" fill="url(#ballGradHero)"/>
+      <path d="M 50 34 L 50 66" stroke="rgba(0,0,0,0.35)" stroke-width="2" stroke-linecap="round"/>
+      <path d="M 37.5 39 Q 45 50 37.5 61" fill="none" stroke="rgba(0,0,0,0.35)" stroke-width="2" stroke-linecap="round"/>
+      <path d="M 62.5 39 Q 55 50 62.5 61" fill="none" stroke="rgba(0,0,0,0.35)" stroke-width="2" stroke-linecap="round"/>
     </svg>
-    <span class="font-display text-3xl tracking-wide">Clutch</span>
+    <span class="font-display text-3xl tracking-wide" aria-hidden="true">lutch</span>
   </div>
 
   <!-- Glass capsule panel — same backdrop-blur/highlight-tint/highlight-border
