@@ -1263,6 +1263,21 @@ at the same Neon instance as local dev — there's no separate prod database.
   untouched, and still fit since the ring's right edge only retracts by
   about half a viewBox unit at this size — nowhere near enough to reopen
   a visible gap.
+- **Flush spacing reverted to a normal gap (2026-09-10, same day)** — the
+  fully-flush treatment above (icon/text boxes overlapping) was explicit,
+  approved feedback at the time, but reads as too fused once actually
+  lived with — asked for "normal" spacing instead. This is NOT a reversion
+  of the icon-as-C concept itself (a genuine miscommunication mid-pass: "I
+  don't want C+lutch anywhere" from earlier in the day was about the
+  *mismatched-weight, gappy* execution, not the combined-mark idea — the
+  ball-nested-in-the-ring "C" stays, confirmed explicitly as "ONE PIECE
+  but the C with the ball in it"). Swapped the per-usage negative-margin
+  hack (`-mr-px`/`-mr-[1.5px]`/`-ml-[3px]`) for a plain flex `gap` on each
+  wrapping container instead — simpler, and avoids hand-tuning a margin
+  value per usage: `gap-1` (nav, 24px icon), `gap-1.5` (all four auth
+  heroes, 36px icon), `gap-2` (splash, up to ~45px icon). Ring
+  stroke-width (13) and the cropped `86×100` viewBox are both unchanged
+  from the passes above.
 - **`src/favicon.svg` was a stale leftover from an even older logo** as of
   the 2026-09-06 pass (an orange-ring-with-a-cutout "C" mark, never
   actually served, shadowed by `public/favicon.svg` at build time) — kept
