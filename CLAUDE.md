@@ -1358,28 +1358,41 @@ at the same Neon instance as local dev — there's no separate prod database.
   consistent). **Not yet re-verified live** — Chrome was disconnected for
   this whole pass; worth a real visual check (both the "h" fix and the
   nav size) next time the extension is available.
-- **Home-screen icon cache-busted, `?v=2` (2026-09-10, same day)** — user
-  report: "Add to Home Screen" still showed the old flat-icon design after
-  the gradient-ball redesign earlier this same day, even on a fresh save.
-  Root cause: `icon-*.png`/`favicon.svg` keep the same filename across a
-  redesign (this app has no icon-generation pipeline that content-hashes
-  them — see the earlier "not checked in, one-off render" note), and
-  iOS/Android cache a PWA's home-screen icon at install/save time in a way
-  that doesn't reliably revalidate against normal HTTP cache rules even
-  across an otherwise-fresh page load — a real, well-known platform
-  behavior, not a bug in this app's serving code (`index.ts`'s
-  `express.static` uses Express's own default caching, nothing unusually
-  aggressive was set). Fixed by appending `?v=2` to every icon URL in both
-  `index.html` (favicon, apple-touch-icon) and `manifest.webmanifest`
-  (all 8 sizes) — a plain query string, no file renaming needed, but a
-  URL the OS has never cached before, so it's forced to fetch fresh.
-  **Bump this version param on any future icon change** — same reasoning,
-  same fix, every time.
+- **Icon cache-busting, round 2 — renamed the files, not just the URL
+  (2026-09-10, same day)** — user report: "Add to Home Screen" still
+  showed the old flat-icon design after the gradient-ball redesign earlier
+  this same day, even on a fresh save. First attempt appended `?v=2` to
+  every icon URL in `index.html` and `manifest.webmanifest` — reasoning:
+  `icon-*.png`/`favicon.svg` keep the same filename across a redesign
+  (this app has no icon-generation pipeline that content-hashes them —
+  see the earlier "not checked in, one-off render" note), and iOS/Android
+  cache a PWA's home-screen icon at install/save time in a way that
+  doesn't reliably revalidate against normal HTTP cache rules even across
+  an otherwise-fresh page load. **The query-string version didn't fully
+  fix it** — still showed stale (a browser-tab favicon specifically is
+  known to sometimes ignore query-string busting entirely, caching by
+  origin+path rather than full URL) — so escalated to the more reliable
+  fix: rename the files themselves. `src/favicon.svg`/`public/favicon.svg`
+  → `favicon-v2.svg` (both copies, same "keep both in sync" discipline as
+  the 2026-09-06 stale-leftover fix below), `icon-<size>.png` →
+  `icon-v2-<size>.png` for all 8 PWA sizes. Updated everywhere they're
+  referenced: `angular.json`'s explicit `src/favicon-v2.svg` asset entry,
+  `index.html` (favicon link, apple-touch-icon), `manifest.webmanifest`
+  (all 8 icons), and `backend/src/services/email.ts`'s `LOGO_URL` (missed
+  on the first pass — caught by grepping for every remaining reference to
+  the old filenames before considering this done). No `?v=` query strings
+  needed anymore — a genuinely new filename is a URL no cache layer has
+  ever seen, which is strictly more reliable than hoping a query string is
+  honored. **Bump the version marker again (`v2` → `v3`, etc.) on any
+  future icon change** — same reasoning, same fix, every time; this is
+  now the load-bearing convention, not the query-string approach.
 - **`src/favicon.svg` was a stale leftover from an even older logo** as of
   the 2026-09-06 pass (an orange-ring-with-a-cutout "C" mark, never
   actually served, shadowed by `public/favicon.svg` at build time) — kept
   in sync with `public/favicon.svg` ever since rather than deleted, so the
   shadow can't reintroduce a mismatch if the asset order ever changes.
+  Both copies renamed to `favicon-v2.svg` in the 2026-09-10 cache-busting
+  pass above — same sync discipline applies to the new name.
 
 ## Album leaderboard (2026-09-06)
 
