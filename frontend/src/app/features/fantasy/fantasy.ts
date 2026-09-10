@@ -372,24 +372,36 @@ export class FantasyComponent implements OnInit {
   readonly hasLiveGameThisRound = computed(() => this.liveGamesThisRound().length > 0);
 
   // Whole-round lock (2026-09-07, replacing a per-player-only "Turns"
-  // lock): once ANY game in this round has tipped off, the entire lineup
+  // lock): once the round's first game has tipped off, the entire lineup
   // freezes — every player, formation, captain, and coach — not just
   // whichever specific players' own games have started. Matches the
   // backend's own POST /lineup/batch gate (see that route's doc comment)
-  // exactly, just computed reactively here off signals that are already
-  // kept live: coachLocked() is the server's own snapshot from load time
-  // (covers the very first render, before any SSE tick has arrived), and
-  // fixtureGames() is kept current via the SSE stream (see liveUpdatesEffect
-  // above) so this flips true mid-session the moment a game actually goes
-  // live, with no need to reload the page or re-fetch the lineup.
+  // exactly: `lockAt` (this round's earliest tipoff) compared against
+  // wall-clock time, nothing else.
+  //
+  // Real bug fixed 2026-09-10: this used to also lock whenever
+  // `fixtureGames().some((g) => g.status !== "scheduled")` — the idea being
+  // a live SSE tick should flip this true mid-session without waiting on a
+  // clock. But the backend's gate has no such condition at all, and a
+  // game's `status` can disagree with its `tipoffAt` (caught live: a
+  // freshly-registered test account saw round 1 as locked even though its
+  // earliest game was two weeks out, because that game's row was leftover
+  // "final" test/simulator data with a future tipoffAt). Any one game's
+  // stale or wrong status could freeze the whole round early — or, in the
+  // opposite direction, leave it open past the real deadline if a sync job
+  // lagged behind actual tipoff. Fixed by comparing `lockAt()` to
+  // `Date.now()` directly — the same value the backend's own gate uses —
+  // and keeping `fixtureGames()` only as a reactivity trigger (read but not
+  // branched on) so this still re-checks the clock on every SSE tick
+  // without depending on any game's status being accurate.
   // !isCurrentRound() (2026-09-07) additionally locks every past round
-  // reached via the round navigator — always read-only history, regardless
-  // of the two checks above (which would already independently agree, since
-  // a past round is by construction fully final, but this makes the intent
-  // explicit rather than relying on that coincidence).
-  readonly roundLocked = computed(
-    () => !this.isCurrentRound() || this.coachLocked() || this.fixtureGames().some((g) => g.status !== "scheduled")
-  );
+  // reached via the round navigator — always read-only history.
+  readonly roundLocked = computed(() => {
+    if (!this.isCurrentRound()) return true;
+    this.fixtureGames();
+    const lockAt = this.lockAt();
+    return lockAt !== null && new Date(lockAt).getTime() <= Date.now();
+  });
 
   // Per-player PIR for this round's live/final games, fetched from the
   // same per-game box score the game-detail page already reads

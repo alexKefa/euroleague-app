@@ -710,17 +710,48 @@ If you need to apply a schema change without an interactive terminal
     squad slot) gives a non-drag way to move a player between
     starter/sixth-man/bench. Tapping a player's name/photo anywhere opens an
     info popup with their last 5 games' PIR, rather than navigating away.
-  - **Known gap**: `POST /lineup/batch`'s `changedIds` diff is keyed off
-    presence/`slotRole` changes only — a captain-only reassignment
-    (`isCaptain` flipping with everything else unchanged) never triggers the
-    per-player lock recheck. The frontend already blocks this
-    (`setCaptain` checks `isLocked`), so it needs a client bypassing the UI
-    to hit; worth closing by folding `isCaptain` changes into `changedIds`
-    too.
-  - **Not verified in a live browser** as of the 2026-09-06/07 UI passes —
-    checked by rebuild + template/diff review only, since no Chrome
-    extension was connected in those sessions. Worth a real visual pass
-    (both breakpoints/themes) when the extension is available.
+  - ~~**Known gap**: `POST /lineup/batch`'s `changedIds` diff is keyed off
+    presence/`slotRole` changes only — a captain-only reassignment never
+    triggers the per-player lock recheck.~~ Stale, not an active fix
+    (caught 2026-09-10 while about to work on it): this described the
+    reverted per-player "Turns" model's diff logic — the "Locking —
+    whole-round, not per-player" revert right above (same day) already
+    replaced it wholesale with one up-front `roundLockAt` check plus a
+    delete+insert, no diffing at all. `changedIds` doesn't exist anywhere
+    in the codebase any more (confirmed by grep), and the lock check now
+    runs unconditionally before any per-player logic on every
+    `/lineup/batch` call regardless of what changed — a captain-only
+    payload hits the exact same round-wide gate a full squad rewrite
+    does. This bullet just never got removed once the revert made it
+    moot.
+  - ~~**Not verified in a live browser** as of the 2026-09-06/07 UI
+    passes~~ — done 2026-09-10: registered a fresh test account and drove
+    the real builder (desktop drag-and-drop, mobile tap-to-pick popup,
+    formation switching, captain/coach pickers, position/team filters,
+    both themes at both breakpoints). Everything held up — no console
+    errors, drag-and-drop places correctly, switching formation
+    auto-reflows the squad into the new slot mix, the disabled Save
+    button surfaces a missing-requirements badge instead of silently
+    failing on an incomplete squad.
+  - **Real bug caught and fixed during that pass**: `roundLocked()`
+    (`fantasy.ts`) used to OR in
+    `fixtureGames().some((g) => g.status !== "scheduled")` alongside the
+    server's real `lockAt`-based `coachLocked()` snapshot — the intent was
+    reacting to a live SSE tick without waiting on a clock, but the
+    backend's actual gate (`POST /lineup/batch`'s `lockAt <= now`) has no
+    status condition at all, and a game's `status` can disagree with its
+    `tipoffAt`. Hit live: a brand-new account saw round 1 as locked even
+    though its earliest game was two weeks out, because that game's row
+    was leftover "final" test/simulator data with a future `tipoffAt` (see
+    the season-transition scripts above — this looks like the same
+    category of stale row `reset-2026-27-season-data.ts` was built to
+    clean up, just recurred since). Fixed by computing `roundLocked()`
+    from `lockAt()` vs `Date.now()` directly — the same value the
+    backend's gate uses — keeping `fixtureGames()` only as a reactivity
+    trigger (read, never branched on) so it still re-checks the clock on
+    every SSE tick without trusting any game's status field. The stale
+    DUB-vs-MAD row itself (season 2026-27, round 1) was left untouched —
+    a data cleanup, not a code fix, and out of scope for this pass.
 - **Career stats on the collectible card flip** (2026-09-05;
   `scripts/backfill-career-stats.ts`, `GET /api/collectibles/:id/stats`'s
   new `career` field, `features/store/card-preview.ts`'s season/career
