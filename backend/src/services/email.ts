@@ -22,14 +22,14 @@ const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "Clutch <onboarding@resend.d
 const APP_BASE_URL = (process.env.APP_BASE_URL ?? "http://localhost:4200").replace(/\/+$/, "");
 
 // The app's real PWA icon (frontend/public/icons/, same ring+basketball
-// mark as favicon-v3.svg) — reused as-is
+// mark as favicon-v4.svg) — reused as-is
 // rather than duplicated as inline SVG, since email clients need a hosted
 // raster image for reliable rendering (see the comment above the <img> tag
 // below). Shares APP_BASE_URL's own "local dev has no publicly-reachable
 // host" limitation — a local send embeds an unreachable localhost URL, same
 // as the reset link itself already does; harmless since local sends are
 // only ever for testing, not real users.
-const LOGO_URL = `${APP_BASE_URL}/icons/icon-v3-192x192.png`;
+const LOGO_URL = `${APP_BASE_URL}/icons/icon-v4-192x192.png`;
 
 // Same brand orange as the web app's login/register hero mark
 // (login.component.html's inline SVG stroke="#FF6B35") — kept as a literal

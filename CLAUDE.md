@@ -1416,14 +1416,36 @@ at the same Neon instance as local dev — there's no separate prod database.
   mark's bounding box isn't centered the same way the old ring was.
   `qr-card.html` needed no change — it already carries the full wordmark
   logo, not the standalone icon.
+- **Icon composition rebalanced, `v3` → `v4` (2026-09-10, same day)** — the
+  v3 composition (C on the left, line trailing off diagonally, ball far to
+  the right past the C) read as lopsided once actually looked at — several
+  rounds of direct feedback narrowed it down: the line now spans the
+  **full width of the C** (not just trailing from one side of it,
+  `M 22 75.5 Q 49 89.5 76 75.5`), the ball sits at the line's **right
+  edge, vertically centered on the line itself** (`cx=76 cy=75.5`,
+  matching the line's own endpoint exactly) rather than hanging below it
+  or drifting further out, the ball was sized down (`r=13` → `8`) since it
+  was competing with the C for visual weight, and the C's stroke was
+  thinned slightly (`15` → `13`) and the whole group re-centered in the
+  square (`translate(-54 -55)` → `translate(-60 -54)` on the court decal;
+  analogous shift baked directly into the favicon/icon coordinates
+  themselves). Iterated live in the design canvas — the same "propose
+  visually, then implement" pattern as every prior pass here — before
+  touching the real app, specifically because the v3 pass had gone
+  straight from approval to full implementation and still needed two
+  more real-file correction passes after; landing the composition in the
+  canvas first this time avoided that. Same six-surface update as v3
+  (favicon, 8 PWA icons, `angular.json`, `index.html`,
+  `manifest.webmanifest`, `email.ts`, court decal), bumped to `v4` since
+  v3 had been live long enough to plausibly be cached somewhere real.
 - **`src/favicon.svg` was a stale leftover from an even older logo** as of
   the 2026-09-06 pass (an orange-ring-with-a-cutout "C" mark, never
   actually served, shadowed by `public/favicon.svg` at build time) — kept
   in sync with `public/favicon.svg` ever since rather than deleted, so the
   shadow can't reintroduce a mismatch if the asset order ever changes.
-  Both copies renamed to `favicon-v2.svg`, then `favicon-v3.svg`, in the
-  2026-09-10 passes above — same sync discipline applies to the current
-  name.
+  Both copies renamed to `favicon-v2.svg`, then `favicon-v3.svg`, then
+  `favicon-v4.svg`, across the 2026-09-10 passes above — same sync
+  discipline applies to the current name.
 
 ## Album leaderboard (2026-09-06)
 
