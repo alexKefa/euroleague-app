@@ -1248,6 +1248,21 @@ at the same Neon instance as local dev — there's no separate prod database.
   uncropped `0 0 100 100` — since those contexts have no adjacent "lutch"
   text to weight-match against, and `email.ts`'s standalone-icon choice
   (no wordmark trick at all) stands for the reason given above.
+- **Ring weight tuned down, `16` → `13` (2026-09-10, same day)** — verified
+  live via Chrome DevTools (`claude-in-chrome`, not just reasoning about
+  the markup): the flush spacing from the pass above was confirmed already
+  correct on the real deployed site (`getBoundingClientRect` showed the
+  icon and text boxes overlapping by 1.5px, i.e. genuinely touching, and
+  `CanvasRenderingContext2D.measureText`'s `actualBoundingBoxLeft` showed
+  the "l" glyph's own ink overshooting slightly further left than that —
+  no remaining gap at the font-metrics level either). But `stroke-width="16"`
+  rendered visibly heavier than "lutch"'s own bold stem (~6.7px vs ~5.5px
+  at the auth-hero's ~36px display scale) — dropped to `13` (~5.4px at
+  that same scale) to actually match rather than exceed the text weight.
+  Same six files as the pass above; the crop/margin values themselves are
+  untouched, and still fit since the ring's right edge only retracts by
+  about half a viewBox unit at this size — nowhere near enough to reopen
+  a visible gap.
 - **`src/favicon.svg` was a stale leftover from an even older logo** as of
   the 2026-09-06 pass (an orange-ring-with-a-cutout "C" mark, never
   actually served, shadowed by `public/favicon.svg` at build time) — kept
