@@ -1386,13 +1386,44 @@ at the same Neon instance as local dev — there's no separate prod database.
   honored. **Bump the version marker again (`v2` → `v3`, etc.) on any
   future icon change** — same reasoning, same fix, every time; this is
   now the load-bearing convention, not the query-string approach.
+- **Standalone icon redesigned to match the current logo, `v2` → `v3`
+  (2026-09-10, same day)** — real inconsistency, not a caching bug this
+  time: the standalone icon (favicon, PWA icons, email logo, court decal)
+  still used the ring-with-ball-in-a-"C" mark that was explicitly retired
+  earlier the same day in favor of the "Clutch" + curved line + ball logo.
+  User caught it by directly inspecting the icon files on disk. New
+  design: a bold "C" (same visual weight as the wordmark's own C) with the
+  same curved shaded line and ball beneath it — a monogram crop of the
+  real logo, not a different mark. **The "C" is drawn as a hand-built
+  vector arc (`M 54 23 A 26 26 0 1 0 54 57`, thick rounded stroke), not
+  real `<text>`** — a deliberate implementation choice, not what the
+  approved canvas mockup showed: a standalone favicon SVG loads as a bare
+  image resource with no access to the page's Google Fonts import, and
+  the PNG rasterizer (`sharp`/librsvg) has no web fonts installed either,
+  so real text would silently fall back to a generic system font in both
+  contexts — an arc is pure vector geometry with zero font dependency,
+  guaranteed identical everywhere. Same file-rename discipline as the
+  round-2 fix above, bumped again: `favicon-v2.svg` → `favicon-v3.svg`
+  (both copies), `icon-v2-<size>.png` → `icon-v3-<size>.png` (all 8,
+  regenerated via a temporary `sharp` install same as every other
+  icon-generation pass in this app). Updated every reference again:
+  `angular.json`, `index.html`, `manifest.webmanifest`,
+  `email.ts`'s `LOGO_URL`, and — missed by the previous pass entirely,
+  since it wasn't part of the wordmark complaint that pass was scoped to
+  — the Fantasy court background's center-court decal
+  (`shared/court-background.ts`), whose centering transform also needed
+  recomputing (`translate(-50 -50)` → `translate(-54 -55)`) since the new
+  mark's bounding box isn't centered the same way the old ring was.
+  `qr-card.html` needed no change — it already carries the full wordmark
+  logo, not the standalone icon.
 - **`src/favicon.svg` was a stale leftover from an even older logo** as of
   the 2026-09-06 pass (an orange-ring-with-a-cutout "C" mark, never
   actually served, shadowed by `public/favicon.svg` at build time) — kept
   in sync with `public/favicon.svg` ever since rather than deleted, so the
   shadow can't reintroduce a mismatch if the asset order ever changes.
-  Both copies renamed to `favicon-v2.svg` in the 2026-09-10 cache-busting
-  pass above — same sync discipline applies to the new name.
+  Both copies renamed to `favicon-v2.svg`, then `favicon-v3.svg`, in the
+  2026-09-10 passes above — same sync discipline applies to the current
+  name.
 
 ## Album leaderboard (2026-09-06)
 

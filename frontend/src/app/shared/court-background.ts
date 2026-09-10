@@ -65,12 +65,13 @@ import { Component } from "@angular/core";
       </defs>
       <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#glassFloorGradient)" />
       <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#glassSheenGradient)" />
-      <!-- Center-court logo decal — the app's own C-ring+basketball mark
-           (same path data as app.component.html's wordmark), faint and
-           fixed-color like the rest of this glass floor rather than
-           theme-reactive, painted over the floor but under the real court
-           lines so the key/arc strokes stay crisp on top of it. -->
-      <g transform="translate(160 63) scale(1.7) translate(-50 -50)" opacity="0.16">
+      <!-- Center-court logo decal — the app's own standalone icon (same
+           path data as favicon-v3.svg: a "C" arc + curved line + ball, not
+           the retired C-ring-with-ball-inside mark), faint and fixed-color
+           like the rest of this glass floor rather than theme-reactive,
+           painted over the floor but under the real court lines so the
+           key/arc strokes stay crisp on top of it. -->
+      <g transform="translate(160 63) scale(1.7) translate(-54 -55)" opacity="0.16">
         <defs>
           <radialGradient id="ballGradCourt" cx="35%" cy="32%" r="75%">
             <stop offset="0%" stop-color="#FF9E70" />
@@ -78,11 +79,12 @@ import { Component } from "@angular/core";
             <stop offset="100%" stop-color="#C94A24" />
           </radialGradient>
         </defs>
-        <path d="M 78 26 A 36 36 0 1 0 78 74" fill="none" stroke="#eef3f7" stroke-width="8" stroke-linecap="round" />
-        <circle cx="50" cy="50" r="17" fill="url(#ballGradCourt)" />
-        <path d="M 50 34 L 50 66" stroke="rgba(0,0,0,0.35)" stroke-width="2" stroke-linecap="round" />
-        <path d="M 37.5 39 Q 45 50 37.5 61" fill="none" stroke="rgba(0,0,0,0.35)" stroke-width="2" stroke-linecap="round" />
-        <path d="M 62.5 39 Q 55 50 62.5 61" fill="none" stroke="rgba(0,0,0,0.35)" stroke-width="2" stroke-linecap="round" />
+        <path d="M 54 23 A 26 26 0 1 0 54 57" fill="none" stroke="#eef3f7" stroke-width="15" stroke-linecap="round" />
+        <path d="M 14 76 Q 45 92 66 74" fill="none" stroke="#FF6B35" stroke-width="4" stroke-linecap="round" />
+        <circle cx="82" cy="72" r="13" fill="url(#ballGradCourt)" />
+        <path d="M 82 60 L 82 84" stroke="rgba(0,0,0,0.35)" stroke-width="1.6" stroke-linecap="round" />
+        <path d="M 72 64 Q 78.2 72 72 80" fill="none" stroke="rgba(0,0,0,0.35)" stroke-width="1.6" stroke-linecap="round" />
+        <path d="M 92 64 Q 85.8 72 92 80" fill="none" stroke="rgba(0,0,0,0.35)" stroke-width="1.6" stroke-linecap="round" />
       </g>
       <path [attr.d]="courtOutlinePath" fill="none" class="stroke-muted" stroke-width="1.8" opacity="0.85" />
       <rect
