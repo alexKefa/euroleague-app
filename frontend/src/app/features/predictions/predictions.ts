@@ -5,13 +5,14 @@ import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { EventsService } from "../../core/events.service";
-import { Prediction, LeaderboardEntry, PredictionSummary, Game, GameTeamSummary, RewardPack } from "../../core/models";
+import { Prediction, LeaderboardEntry, PredictionSummary, Game, GameTeamSummary, RewardPack, MyTopScorerPrediction } from "../../core/models";
 import { TeamBadgeComponent } from "../../shared/team-badge";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { PageHintComponent } from "../../shared/page-hint";
 import { NavIconComponent, NavIconName } from "../../shared/nav-icon";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { ButtonDirective } from "../../shared/button.directive";
+import { ChipDirective } from "../../shared/chip.directive";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { newsDateLocale, shortDateFormat as gameShortDateFormat, gameDateTimeFormat } from "../../shared/news-date-format";
@@ -98,6 +99,7 @@ interface DisplayedPick {
     NavIconComponent,
     SkeletonComponent,
     ButtonDirective,
+    ChipDirective,
     LogoSpinnerComponent,
     CollectibleCardComponent,
     TeamCodePipe,
@@ -151,6 +153,15 @@ export class PredictionsComponent implements OnInit {
   readonly pendingPicks = signal<Map<string, string | null>>(new Map());
   readonly submitting = signal(false);
   readonly submitError = signal<string | null>(null);
+
+  // "My picks" card tab — win/loss Predictions (the original, still the
+  // default) vs. the top-scorer prop picks made from game-detail.ts's
+  // photo-strip picker, which previously had no aggregate view anywhere
+  // (2026-09-10). Independent fetch/loading state from myPredictions below,
+  // same "own gate so it doesn't pop in late" reasoning as upcomingGamesLoading.
+  readonly picksTab = signal<"winLoss" | "topScorer">("winLoss");
+  readonly myTopScorerPredictions = signal<MyTopScorerPrediction[]>([]);
+  readonly topScorerPicksLoading = signal(true);
 
   readonly effectivePicks = computed(() => {
     const merged = new Map(this.myPicks());
@@ -292,6 +303,7 @@ export class PredictionsComponent implements OnInit {
         if (this.auth.isAuthenticated()) {
           this.refreshMyPredictions();
           this.refreshMySummary();
+          this.refreshMyTopScorerPredictions();
         }
       }
     });
@@ -320,9 +332,11 @@ export class PredictionsComponent implements OnInit {
     if (this.auth.isAuthenticated()) {
       this.refreshMyPredictions(() => this.loading.set(false));
       this.refreshMySummary();
+      this.refreshMyTopScorerPredictions();
     } else {
       this.loading.set(false);
       this.summaryLoading.set(false);
+      this.topScorerPicksLoading.set(false);
     }
   }
 
@@ -341,6 +355,16 @@ export class PredictionsComponent implements OnInit {
         onDone?.();
       },
       error: () => onDone?.(),
+    });
+  }
+
+  private refreshMyTopScorerPredictions(): void {
+    this.api.getMyTopScorerPredictions().subscribe({
+      next: (rows) => {
+        this.myTopScorerPredictions.set(rows);
+        this.topScorerPicksLoading.set(false);
+      },
+      error: () => this.topScorerPicksLoading.set(false), // non-critical
     });
   }
 

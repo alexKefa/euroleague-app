@@ -101,7 +101,7 @@
                   <button
                     type="button"
                     class="shrink-0 flex flex-col items-center gap-1 w-16"
-                    [disabled]="isTopScorerLocked()"
+                    [disabled]="isTopScorerLocked() || !!topScorerPickSavingId()"
                     (click)="pickTopScorer(c.player.id)"
                   >
                     <span
@@ -109,11 +109,16 @@
                       [class.scale-105]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
                       [class.ring-2]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
                       [class.ring-highlight]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
-                      [class.opacity-40]="isTopScorerLocked() && myTopScorerPick()?.predictedPlayer?.id !== c.player.id"
+                      [class.opacity-40]="(isTopScorerLocked() && myTopScorerPick()?.predictedPlayer?.id !== c.player.id) || (!!topScorerPickSavingId() && topScorerPickSavingId() !== c.player.id)"
                       [style.width.px]="52"
                       [style.height.px]="52"
                     >
                       <app-player-photo [name]="c.player.name" [photoUrl]="c.player.photoUrl" [jerseyNumber]="c.player.jerseyNumber" [teamCode]="d.game.homeTeam.code" [primaryColor]="d.game.homeTeam.primaryColor" [size]="52" class="rounded-full block shadow" />
+                      @if (topScorerPickSavingId() === c.player.id) {
+                        <span class="absolute inset-0 flex items-center justify-center rounded-full bg-card/70">
+                          <app-logo-spinner [size]="18" />
+                        </span>
+                      }
                     </span>
                     <span class="text-[9px] text-muted font-semibold truncate w-full text-center">{{ c.player.name.split(',')[0] }}</span>
                   </button>
@@ -124,7 +129,7 @@
                   <button
                     type="button"
                     class="shrink-0 flex flex-col items-center gap-1 w-16"
-                    [disabled]="isTopScorerLocked()"
+                    [disabled]="isTopScorerLocked() || !!topScorerPickSavingId()"
                     (click)="pickTopScorer(c.player.id)"
                   >
                     <span
@@ -132,11 +137,16 @@
                       [class.scale-105]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
                       [class.ring-2]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
                       [class.ring-highlight]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
-                      [class.opacity-40]="isTopScorerLocked() && myTopScorerPick()?.predictedPlayer?.id !== c.player.id"
+                      [class.opacity-40]="(isTopScorerLocked() && myTopScorerPick()?.predictedPlayer?.id !== c.player.id) || (!!topScorerPickSavingId() && topScorerPickSavingId() !== c.player.id)"
                       [style.width.px]="52"
                       [style.height.px]="52"
                     >
                       <app-player-photo [name]="c.player.name" [photoUrl]="c.player.photoUrl" [jerseyNumber]="c.player.jerseyNumber" [teamCode]="d.game.awayTeam.code" [primaryColor]="d.game.awayTeam.primaryColor" [size]="52" class="rounded-full block shadow" />
+                      @if (topScorerPickSavingId() === c.player.id) {
+                        <span class="absolute inset-0 flex items-center justify-center rounded-full bg-card/70">
+                          <app-logo-spinner [size]="18" />
+                        </span>
+                      }
                     </span>
                     <span class="text-[9px] text-muted font-semibold truncate w-full text-center">{{ c.player.name.split(',')[0] }}</span>
                   </button>

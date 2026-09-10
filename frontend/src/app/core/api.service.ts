@@ -19,6 +19,7 @@ import {
   Game,
   Prediction,
   TopScorerPrediction,
+  MyTopScorerPrediction,
   LeaderboardEntry,
   PredictionSummary,
   PredictionAnalytics,
@@ -235,6 +236,13 @@ export class ApiService {
 
   getTopScorerPick(gameId: string): Observable<TopScorerPrediction | null> {
     return this.http.get<TopScorerPrediction | null>(`${API_BASE_URL}/top-scorer-predictions/${gameId}`);
+  }
+
+  // All of the caller's top-scorer picks across every game — the
+  // Predictions page's "Top scorer" tab, distinct from the per-game
+  // getTopScorerPick above.
+  getMyTopScorerPredictions(): Observable<MyTopScorerPrediction[]> {
+    return this.http.get<MyTopScorerPrediction[]>(`${API_BASE_URL}/top-scorer-predictions/me`);
   }
 
   getInjuries(): Observable<InjuryReportEntry[]> {

@@ -40,6 +40,12 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
     en: "No predictions yet — pick a winner from any team's upcoming games list.",
     el: "Δεν υπάρχουν προβλέψεις ακόμα — διάλεξε νικητή από τη λίστα επερχόμενων αγώνων μιας ομάδας.",
   },
+  "predictions.tabWinLoss": { en: "Win/Loss", el: "Νίκη/Ήττα" },
+  "predictions.tabTopScorer": { en: "Top scorer", el: "Κορυφαίος σκόρερ" },
+  "predictions.noTopScorerPicksYet": {
+    en: "No top scorer picks yet — make one from any live or upcoming game's page.",
+    el: "Δεν υπάρχουν προβλέψεις κορυφαίου σκόρερ ακόμα — διάλεξε από τη σελίδα ενός αγώνα.",
+  },
   "predictions.leaderboard": { en: "Leaderboard", el: "Κατάταξη" },
   "predictions.noResolvedYet": {
     en: "No resolved predictions yet.",

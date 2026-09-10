@@ -180,7 +180,19 @@
     <div class="grid gap-5 sm:grid-cols-2">
       <!-- My picks -->
       <div class="bg-card rounded-lg shadow-card p-4">
-        <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-3">{{ i18n.t('predictions.myPicks') }}</p>
+        <div class="flex items-center justify-between gap-2 mb-3">
+          <p class="text-[13px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('predictions.myPicks') }}</p>
+          @if (auth.isAuthenticated()) {
+            <div class="flex gap-1.5 shrink-0">
+              <button type="button" [appChip]="picksTab() === 'winLoss'" (click)="picksTab.set('winLoss')">
+                {{ i18n.t('predictions.tabWinLoss') }}
+              </button>
+              <button type="button" [appChip]="picksTab() === 'topScorer'" (click)="picksTab.set('topScorer')">
+                {{ i18n.t('predictions.tabTopScorer') }}
+              </button>
+            </div>
+          }
+        </div>
 
         @if (!auth.isAuthenticated()) {
           <p class="text-sm text-muted">
@@ -286,31 +298,67 @@
             </div>
           }
 
-          <div class="text-sm space-y-1 max-h-80 overflow-y-auto pr-1">
-            @for (p of displayedPicks(); track p.id) {
-              <div class="flex justify-between items-center px-2 py-2 rounded-xl" [ngClass]="{ 'bg-highlight/5': p.isPendingSubmit }">
-                <div>
-                  <p class="font-display text-xs">
-                    <app-team-badge [code]="p.predictedTeam.code" [logoUrl]="teamLogo(p.predictedTeam.id)"></app-team-badge>
-                  </p>
-                  <p class="font-mono text-muted text-[12px] mt-0.5">{{ p.tipoffAt | date: pickDateFormat():"Europe/Athens":dateLocale() }}</p>
+          @if (picksTab() === 'winLoss') {
+            <div class="text-sm space-y-1 max-h-80 overflow-y-auto pr-1">
+              @for (p of displayedPicks(); track p.id) {
+                <div class="flex justify-between items-center px-2 py-2 rounded-xl" [ngClass]="{ 'bg-highlight/5': p.isPendingSubmit }">
+                  <div>
+                    <p class="font-display text-xs">
+                      <app-team-badge [code]="p.predictedTeam.code" [logoUrl]="teamLogo(p.predictedTeam.id)"></app-team-badge>
+                    </p>
+                    <p class="font-mono text-muted text-[12px] mt-0.5">{{ p.tipoffAt | date: pickDateFormat():"Europe/Athens":dateLocale() }}</p>
+                  </div>
+                  @if (p.isPendingSubmit) {
+                    <span class="text-[12px] font-bold text-highlight">{{ i18n.t('predictions.unsaved') }}</span>
+                  } @else if (p.isCorrect === null) {
+                    <span class="text-[12px] font-bold text-muted">{{ i18n.t('predictions.pending') }}</span>
+                  } @else if (p.isCorrect === true) {
+                    <span class="text-[12px] font-bold text-emerald-500">{{ i18n.t('predictions.correct') }}</span>
+                  } @else {
+                    <span class="text-[12px] font-bold text-red-500">{{ i18n.t('predictions.wrong') }}</span>
+                  }
                 </div>
-                @if (p.isPendingSubmit) {
-                  <span class="text-[12px] font-bold text-highlight">{{ i18n.t('predictions.unsaved') }}</span>
-                } @else if (p.isCorrect === null) {
-                  <span class="text-[12px] font-bold text-muted">{{ i18n.t('predictions.pending') }}</span>
-                } @else if (p.isCorrect === true) {
-                  <span class="text-[12px] font-bold text-emerald-500">{{ i18n.t('predictions.correct') }}</span>
-                } @else {
-                  <span class="text-[12px] font-bold text-red-500">{{ i18n.t('predictions.wrong') }}</span>
-                }
-              </div>
-            } @empty {
-              <p class="text-sm text-muted">
-                {{ i18n.t('predictions.noPredictionsYet') }}
-              </p>
-            }
-          </div>
+              } @empty {
+                <p class="text-sm text-muted">
+                  {{ i18n.t('predictions.noPredictionsYet') }}
+                </p>
+              }
+            </div>
+          } @else if (topScorerPicksLoading()) {
+            <div class="animate-pulse space-y-2">
+              @for (i of [1, 2, 3]; track i) {
+                <app-skeleton class="h-9 rounded-md" [iconSize]="14" />
+              }
+            </div>
+          } @else {
+            <div class="text-sm space-y-1 max-h-80 overflow-y-auto pr-1">
+              @for (p of myTopScorerPredictions(); track p.id) {
+                <div class="flex justify-between items-center px-2 py-2 rounded-xl">
+                  <div class="min-w-0">
+                    <p class="font-display text-xs truncate">{{ p.predictedPlayer.name }}</p>
+                    <p class="font-mono text-muted text-[12px] mt-0.5 truncate">
+                      {{ p.homeTeam.code | teamCode }} &ndash; {{ p.awayTeam.code | teamCode }}
+                      &middot; {{ p.tipoffAt | date: pickDateFormat():"Europe/Athens":dateLocale() }}
+                    </p>
+                  </div>
+                  <div class="text-right shrink-0 ml-2">
+                    <span class="font-mono text-highlight text-[11px] font-bold block">+{{ p.pointsAtPick }} {{ i18n.t('predictions.pts') }}</span>
+                    @if (p.isCorrect === null) {
+                      <span class="text-[12px] font-bold text-muted">{{ i18n.t('predictions.pending') }}</span>
+                    } @else if (p.isCorrect === true) {
+                      <span class="text-[12px] font-bold text-emerald-500">{{ i18n.t('predictions.correct') }}</span>
+                    } @else {
+                      <span class="text-[12px] font-bold text-red-500">{{ i18n.t('predictions.wrong') }}</span>
+                    }
+                  </div>
+                </div>
+              } @empty {
+                <p class="text-sm text-muted">
+                  {{ i18n.t('predictions.noTopScorerPicksYet') }}
+                </p>
+              }
+            </div>
+          }
         }
       </div>
 

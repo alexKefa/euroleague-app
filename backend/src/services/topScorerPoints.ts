@@ -1,36 +1,111 @@
-import { and, eq, isNotNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { games, playerGameStats, topScorerPredictions } from "../db/schema.js";
+import { games, playerGameStats, playerSeasonStats, topScorerPredictions } from "../db/schema.js";
 
 // Points formula for the live "top scorer" prop pick — a sibling to
 // services/points.ts, not merged into it, since that file's comments are
 // specifically about the odds-weighted (game_odds) win/loss formula;
 // mixing in a differently-sourced one here would make those misleading.
 //
-// This formula uses only this app's own data (playerSeasonStats.pointsPerGame)
-// rather than The Odds API, whose EuroLeague player-prop coverage is
-// unconfirmed — an internal proxy for "how big a long-shot was this pick",
-// in the same spirit as services/points.ts's odds multiple but not the same
-// math: a player's own season PPG, normalized against TYPICAL_TOP_SCORER_PPG
-// (the real max points-per-game seen across the 2023-24/2024-25/2025-26
-// seasons was 19-20.4 — 19 picked as a realistic "what a real top scorer
-// averages" reference, not an arbitrary guess), stands in for fairProb.
+// This formula uses only this app's own data rather than The Odds API,
+// whose EuroLeague player-prop coverage is unconfirmed (no ODDS_API_KEY
+// configured to even test it as of this pass, 2026-09-10) — an internal
+// proxy for "how big a long-shot was this pick", in the same spirit as
+// services/points.ts's odds multiple but not the same math.
+//
+// Reworked 2026-09-10 to actually move *during* a live game, not just at
+// pick time off a static season average — explicit ask: a player already
+// sitting on a big scoring lead partway through the game is now an obvious
+// call and should pay out less than picking them would have pre-tipoff;
+// a player who hasn't gotten going yet (or a normally-low scorer who's
+// suddenly hot) is a bigger claim about how the rest of the game plays out
+// and should pay more. This does NOT make an already-placed pick's stored
+// value float on its own — pointsAtPick is still captured once, at the
+// exact moment a pick is made or changed, and never recomputed afterward
+// (see schema.ts's doc comment on that column); what changes is that
+// *re-picking* mid-game (already allowed anytime up to Q4, see
+// isTopScorerPickLocked) now prices meaningfully differently than picking
+// the same player pre-tipoff would have, instead of both landing on the
+// same season-PPG-derived number.
+//
+// The mechanism: project each player's likely final point total as
+// pointsSoFar + baselinePPG × (fraction of the game still remaining), then
+// normalize that projection against TYPICAL_TOP_SCORER_PPG exactly like
+// the old formula normalized a flat season PPG (the real max points-per-
+// game seen across the 2023-24/2024-25/2025-26 seasons was 19-20.4 — 19
+// picked as a realistic "what a real top scorer averages" reference, not
+// an arbitrary guess). Pre-tipoff (remaining fraction = 1, no points
+// scored yet) this reduces to exactly the old formula — a deliberate
+// property, not a coincidence, so nothing changes for a pick made before a
+// game starts.
 export const TOP_SCORER_POINTS_PER_CORRECT = 10;
 export const TOP_SCORER_POINTS_CAP = 40;
 const MIN_SHARE = 0.15;
 const TYPICAL_TOP_SCORER_PPG = 19;
+// EuroLeague quarters are 10 real minutes each; overtime isn't modeled here
+// (or by liveScoreSimulator.ts, which never ticks a game past quarter 4) —
+// a pick this locked-at-Q4 formula would apply to during OT would just see
+// remaining clamp to 0, same as a Q4 pick, which is the right degenerate
+// answer anyway (isTopScorerPickLocked already forbids picking that late).
+const QUARTER_SECONDS = 600;
+const REGULATION_SECONDS = QUARTER_SECONDS * 4;
 
 /**
- * A player with no playerSeasonStats row yet (new import, or — as of the
- * 2026-27 season transition — simply no games played yet this season, see
- * CLAUDE.md's "Season transition" notes) degrades to the flat rate, same
- * "missing data isn't a scoring dependency" philosophy as pointsForCorrectPick.
+ * 1 before tipoff (quarter null) down to 0 at the final horn — how much of
+ * regulation is still ahead of a live game, from `games.quarter`/
+ * `gameClockSeconds`. Missing/stale gameClockSeconds (no live feed yet
+ * this tick) degrades to "start of the quarter", the conservative
+ * (more-remaining) direction.
  */
-export function pointsForCorrectTopScorerPick(pointsPerGame: number | null): number {
-  if (pointsPerGame === null) return TOP_SCORER_POINTS_PER_CORRECT;
-  const share = Math.max(MIN_SHARE, Math.min(1, pointsPerGame / TYPICAL_TOP_SCORER_PPG));
+function remainingGameFraction(quarter: number | null, gameClockSeconds: number | null): number {
+  if (quarter === null) return 1;
+  const clockLeftInQuarter = gameClockSeconds ?? QUARTER_SECONDS;
+  const elapsed = (quarter - 1) * QUARTER_SECONDS + (QUARTER_SECONDS - clockLeftInQuarter);
+  return Math.max(0, Math.min(1, 1 - elapsed / REGULATION_SECONDS));
+}
+
+/**
+ * `baselinePPG` is this player's season PPG, or (see getTopScorerBaselinePPG)
+ * their career PPG when the season has no games for them yet, or null when
+ * neither exists — same "missing data isn't a scoring dependency" fallback
+ * chain as before, just now feeding a projection instead of being used
+ * directly. `pointsSoFar`/`quarter`/`gameClockSeconds` should all be null/0
+ * for a pick made before tipoff, which collapses this to the pre-2026-09-10
+ * formula exactly (see the file-level comment above).
+ */
+export function pointsForCorrectTopScorerPick(params: {
+  baselinePPG: number | null;
+  pointsSoFar: number;
+  quarter: number | null;
+  gameClockSeconds: number | null;
+}): number {
+  const effectiveBaselinePPG = params.baselinePPG ?? TYPICAL_TOP_SCORER_PPG;
+  const remaining = remainingGameFraction(params.quarter, params.gameClockSeconds);
+  const projectedFinal = params.pointsSoFar + effectiveBaselinePPG * remaining;
+
+  const share = Math.max(MIN_SHARE, Math.min(1, projectedFinal / TYPICAL_TOP_SCORER_PPG));
   const raw = TOP_SCORER_POINTS_PER_CORRECT / share;
   return Math.min(TOP_SCORER_POINTS_CAP, Math.max(TOP_SCORER_POINTS_PER_CORRECT, Math.round(raw)));
+}
+
+/**
+ * Season PPG for `season`, falling back to a games-played-weighted career
+ * PPG across every synced season on file (same weighting as the collectible
+ * card flip's "Career" stat line, routes/collectibles.ts) when this player
+ * has no row for `season` yet — a call-up, incoming transfer, or simply a
+ * season that hasn't started (see CLAUDE.md's "Season transition" notes).
+ * One query, not two, for the same "fewer round trips" reason as everywhere
+ * else in this app's economy.
+ */
+export async function getTopScorerBaselinePPG(playerId: string, season: string): Promise<number | null> {
+  const [row] = await db.execute<{ season_ppg: number | null; career_ppg: number | null }>(sql`
+    select
+      (array_agg(points_per_game) filter (where season = ${season}))[1] as season_ppg,
+      sum(points_per_game * games_played) / nullif(sum(games_played), 0) as career_ppg
+    from ${playerSeasonStats}
+    where player_id = ${playerId}
+  `);
+  return row?.season_ppg ?? row?.career_ppg ?? null;
 }
 
 /**
@@ -78,6 +153,46 @@ export async function computeTopScorerPlayerId(gameId: string): Promise<string |
   const maxPoints = Math.max(...lines.map((l) => l.points!));
   const topScorers = lines.filter((l) => l.points === maxPoints);
   return topScorers.length === 1 ? topScorers[0].playerId : null;
+}
+
+/**
+ * Batched sibling to computeTopScorerPlayerId, for a list of games at once
+ * (routes/topScorerPredictions.ts's GET /me) instead of one query per game
+ * — same "fewer round trips" reasoning as topScorerTotalsCte. Applies the
+ * exact same rules per game: not final -> absent from the returned map
+ * (caller should treat a missing key as "not yet resolvable", same as this
+ * function's single-game sibling returning null for a non-final game); no
+ * box-score rows yet -> absent as well; a tie -> present with value null.
+ */
+export async function computeTopScorerPlayerIdsForGames(gameIds: string[]): Promise<Map<string, string | null>> {
+  const result = new Map<string, string | null>();
+  if (gameIds.length === 0) return result;
+
+  const finalGames = await db
+    .select({ id: games.id })
+    .from(games)
+    .where(and(inArray(games.id, gameIds), eq(games.status, "final")));
+  const finalGameIds = finalGames.map((g) => g.id);
+  if (finalGameIds.length === 0) return result;
+
+  const lines = await db
+    .select({ gameId: playerGameStats.gameId, playerId: playerGameStats.playerId, points: playerGameStats.points })
+    .from(playerGameStats)
+    .where(and(inArray(playerGameStats.gameId, finalGameIds), isNotNull(playerGameStats.points)));
+
+  const byGame = new Map<string, { playerId: string; points: number }[]>();
+  for (const l of lines) {
+    const list = byGame.get(l.gameId) ?? [];
+    list.push({ playerId: l.playerId, points: l.points! });
+    byGame.set(l.gameId, list);
+  }
+
+  for (const [gameId, ls] of byGame) {
+    const maxPoints = Math.max(...ls.map((l) => l.points));
+    const topScorers = ls.filter((l) => l.points === maxPoints);
+    result.set(gameId, topScorers.length === 1 ? topScorers[0].playerId : null);
+  }
+  return result;
 }
 
 // --- Wiring correct picks into the shared points economy (2026-09-09) ---

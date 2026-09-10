@@ -381,6 +381,22 @@ export interface TopScorerPrediction {
   pointsAtPick: number;
 }
 
+// One row of GET /top-scorer-predictions/me — the same pick as
+// TopScorerPrediction, but for the Predictions page's aggregate "Top
+// scorer" tab rather than a single game-detail page, so it also carries
+// the game/team context that page already has from its own route param.
+export interface MyTopScorerPrediction {
+  id: string;
+  gameId: string;
+  tipoffAt: string;
+  status: string; // "scheduled" | "live" | "final"
+  homeTeam: { id: string; code: string; name: string };
+  awayTeam: { id: string; code: string; name: string };
+  predictedPlayer: { id: string; code: string; name: string };
+  isCorrect: boolean | null; // null = game not final yet, or a tie with no clear top scorer
+  pointsAtPick: number;
+}
+
 export interface Badge {
   id: string;
   label: string;

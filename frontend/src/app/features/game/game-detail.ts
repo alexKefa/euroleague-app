@@ -14,6 +14,7 @@ import { SkeletonComponent } from "../../shared/skeleton";
 import { LiveCourtComponent } from "../../shared/live-court";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { TeamCodePipe } from "../../shared/team-display-code";
+import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 
 interface TopScorerCandidate {
   player: RosterEntry["player"];
@@ -62,6 +63,7 @@ function totalsFor(lines: GameBoxscoreLine[]): TeamTotals {
     LiveCourtComponent,
     PlayerPhotoComponent,
     TeamCodePipe,
+    LogoSpinnerComponent,
   ],
   templateUrl: "./game-detail.html",
 })
@@ -176,7 +178,10 @@ export class GameDetailComponent implements OnInit {
   readonly homeRoster = signal<RosterEntry[]>([]);
   readonly awayRoster = signal<RosterEntry[]>([]);
   readonly myTopScorerPick = signal<TopScorerPrediction | null>(null);
-  readonly topScorerPickSaving = signal(false);
+  // Tracks which player id the in-flight pick request is for (not just a
+  // bare boolean) so the photo-strip button being saved can show its own
+  // spinner instead of a single ambiguous loading state for the whole strip.
+  readonly topScorerPickSavingId = signal<string | null>(null);
   readonly topScorerPickError = signal<string | null>(null);
 
   // Mirrors backend/src/services/topScorerPoints.ts's isTopScorerPickLocked
@@ -231,18 +236,18 @@ export class GameDetailComponent implements OnInit {
 
   pickTopScorer(playerId: string): void {
     const d = this.detail();
-    if (!d || this.isTopScorerLocked() || this.topScorerPickSaving()) return;
+    if (!d || this.isTopScorerLocked() || this.topScorerPickSavingId()) return;
 
-    this.topScorerPickSaving.set(true);
+    this.topScorerPickSavingId.set(playerId);
     this.topScorerPickError.set(null);
     this.api.submitTopScorerPick(d.game.id, playerId).subscribe({
       next: (pick) => {
         this.myTopScorerPick.set(pick);
-        this.topScorerPickSaving.set(false);
+        this.topScorerPickSavingId.set(null);
       },
       error: (err) => {
         this.topScorerPickError.set(err?.error?.error ?? this.i18n.t("topScorer.pickFailed"));
-        this.topScorerPickSaving.set(false);
+        this.topScorerPickSavingId.set(null);
       },
     });
   }

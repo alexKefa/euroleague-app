@@ -1390,6 +1390,94 @@ at the same Neon instance as local dev — there's no separate prod database.
   since player-prop coverage on The Odds API was never confirmed for
   EuroLeague) — both open questions the shipped version above resolved.
 
+- **Aggregate "My picks" view, top-scorer tab (2026-09-10)** — until now a
+  user's top-scorer picks only ever existed one game at a time
+  (`game-detail.ts`'s photo strip); there was no way to see them all
+  together the way win/loss Predictions' "My picks" list already did.
+  Added `GET /api/top-scorer-predictions/me` (mirrors `predictions.ts`'s
+  `GET /me` exactly — one joined, `orderBy(desc(tipoffAt))`, `.limit(40)`
+  query) plus `computeTopScorerPlayerIdsForGames` (`topScorerPoints.ts`), a
+  batched sibling to the single-game `computeTopScorerPlayerId` so
+  resolving correctness for up to 40 rows is one query, not up to 40 (same
+  "fewer round trips" reasoning as `topScorerTotalsCte`). Surfaced as a new
+  "Top scorer" `appChip` tab next to "Win/Loss" inside the Predictions
+  page's existing "My picks" card (`picksTab` signal) — deliberately not a
+  separate top-level card or its own page, since it's the same "your
+  picks" concept just for a different pick type, and the points/badge
+  summary above it already covers both (top-scorer points feed the same
+  pool, see the 2026-09-09 entry above). Also fixed a real gap while in
+  this area: `game-detail.ts`'s `pickTopScorer` had a `topScorerPickSaving`
+  signal that was set/cleared but never read in the template at all — a
+  tap showed no loading feedback for however long the request took.
+  Reworked into `topScorerPickSavingId` (tracks *which* player id is
+  in-flight, not just a bare boolean) so the tapped avatar shows an
+  `app-logo-spinner` overlay and the whole strip disables until it
+  resolves, instead of a silent wait.
+
+- **Live-reactive top-scorer points formula (2026-09-10)** — until this
+  pass, `pointsForCorrectTopScorerPick` priced a pick off a single static
+  number (season PPG) no matter when during the game it was made — a pick
+  re-made in Q3 after a player had already gone off for 20 priced exactly
+  the same as picking that player cold at tipoff. Explicit ask: trust real
+  betting odds if available, otherwise our own season/career stats, and
+  the payout should keep moving *throughout* the live game as the picture
+  of who's actually going to lead becomes clearer — a player already
+  sitting on a big lead partway through is now an obvious call and should
+  pay less, a player who hasn't gotten going yet (or a normally-quiet
+  scorer suddenly hot) is a bigger claim about the rest of the game and
+  should pay more. Two open questions were resolved with the user before
+  building, since this touches a formula CLAUDE.md had deliberately
+  documented as needing to work a specific way, in a production economy
+  with no staging environment (see "TODO: no dev/staging environment"
+  above):
+  1. **Real odds were explicitly deferred, not built** — there's no
+     `ODDS_API_KEY` configured even to test whether The Odds API actually
+     carries a EuroLeague player-points/top-scorer market (CLAUDE.md's
+     existing "Original idea" entry above already flagged this coverage as
+     unconfirmed). Decision: build the internal-data version now, revisit
+     real odds later once that market's existence is actually verified
+     against a live key.
+  2. **A pick's *stored* value still never floats after the fact** — this
+     was the one non-negotiable carried over from the existing
+     `pointsAtPick`/`game_odds` "fixed snapshot, never recomputed"
+     philosophy (schema.ts's doc comment on that column). What changed is
+     only what a *fresh* pick or a *re-pick* prices at, mid-game — not
+     what an already-placed pick is worth after the fact. This needed no
+     architecture change at all: re-picking mid-game (already allowed
+     anytime up to Q4, see `isTopScorerPickLocked`) already re-prices at
+     the moment of the tap; the formula just now looks at more than season
+     PPG when it does.
+  - **Mechanism** (`services/topScorerPoints.ts`): project a player's
+    likely final total as `pointsSoFar + baselinePPG × remainingGameFraction`,
+    then normalize that projection against `TYPICAL_TOP_SCORER_PPG` exactly
+    like the old formula normalized a flat season PPG. `remainingGameFraction`
+    reads `games.quarter`/`gameClockSeconds` (10-minute EuroLeague quarters,
+    2400 regulation seconds total) and is exactly `1` pre-tipoff — a
+    deliberate property, not a coincidence: with `pointsSoFar = 0` and
+    `remaining = 1`, the new formula reduces to precisely the old one, so
+    nothing changes for a pick made before a game starts. Verified directly
+    (a standalone script, not just reasoning): a typical-PPG favorite picked
+    pre-tipoff prices at the flat 10; the same player re-picked in Q3 after
+    already scoring 22 drops to the floor of 10 (an obvious call now); a
+    similarly-average player who's only scored 2 by Q3 prices *up* to 26
+    (bigger claim); a player picked seconds into Q1 with 0 points prices
+    essentially identically to a pre-tipoff pick (14 vs 14) — no jarring
+    jump right at tipoff.
+  - **`baselinePPG`** now falls back through season PPG -> a games-played-
+    weighted career PPG (`getTopScorerBaselinePPG`, one query, same
+    weighting the collectible card flip's "Career" stat already uses,
+    `routes/collectibles.ts`) -> `TYPICAL_TOP_SCORER_PPG` as a neutral
+    default when neither exists — same "missing data isn't a scoring
+    dependency" fallback chain as before, just feeding a projection now
+    instead of being used directly. This is the "figure it out from
+    career/season stats" half of the ask; the career step is new — the old
+    formula only ever looked at the current season, degrading straight to
+    the flat rate for a call-up/transfer/early-season player with no
+    season row yet.
+  - Nothing schema-side changed — `pointsAtPick` is still a plain nullable
+    int, `POST /top-scorer-predictions` just computes a richer input into
+    the same formula/column it always wrote to.
+
 ## Season transition (2026-27, 2026-09-02)
 
 - `backend/src/services/season.ts`'s `getCurrentSeason()` (latest season
