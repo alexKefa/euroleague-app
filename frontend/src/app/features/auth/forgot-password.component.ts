@@ -37,7 +37,7 @@ export class ForgotPasswordComponent {
     this.error.set(null);
 
     const { email } = this.form.getRawValue();
-    this.auth.forgotPassword(email).subscribe({
+    this.auth.forgotPassword(email, this.i18n.lang()).subscribe({
       next: () => {
         this.sent.set(true);
         this.submitting.set(false);

@@ -10,7 +10,7 @@ import { createUniqueReferralCode } from "../services/referrals.js";
 import { createUniqueUsername, isUsernameTaken, isValidUsername } from "../services/username.js";
 import { redeemPromoCode } from "../services/promoCodes.js";
 import { getCurrentSeason } from "../services/season.js";
-import { sendPasswordResetEmail } from "../services/email.js";
+import { sendPasswordResetEmail, type EmailLang } from "../services/email.js";
 
 export const authRouter = Router();
 
@@ -238,11 +238,17 @@ authRouter.post("/logout", (_req, res) => {
 // (10/15min per IP) so this can't be used to email-bomb an arbitrary
 // address either.
 authRouter.post("/forgot-password", credentialsLimiter, async (req, res) => {
-  const { email } = req.body ?? {};
+  const { email, lang } = req.body ?? {};
   if (typeof email !== "string" || email.length === 0) {
     res.status(400).json({ error: "email is required" });
     return;
   }
+  // No account-level language preference exists (I18nService is a
+  // frontend-only, localStorage-backed concern — see lang.ts) — the caller
+  // passes whatever the UI is currently showing. Same "el unless explicitly
+  // en" default as I18nService.loadLang(), so a malformed/missing value
+  // still degrades to this app's own default language, not English.
+  const emailLang: EmailLang = lang === "en" ? "en" : "el";
 
   const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
   if (user) {
@@ -257,7 +263,7 @@ authRouter.post("/forgot-password", credentialsLimiter, async (req, res) => {
 
     // Best-effort — a transient email-provider failure shouldn't surface as
     // a 500 to the client and reveal that the address was actually found.
-    sendPasswordResetEmail(user.email, rawToken).catch((err) =>
+    sendPasswordResetEmail(user.email, rawToken, emailLang).catch((err) =>
       console.error("[forgot-password] failed to send reset email:", err)
     );
   }

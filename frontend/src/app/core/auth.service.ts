@@ -55,9 +55,13 @@ export class AuthService {
   // Deliberately no session change here — the reset link's email address
   // isn't known to be the requester's, so nothing about this call should
   // reveal whether that address actually has an account (same generic
-  // response either way, mirrored server-side in routes/auth.ts).
-  forgotPassword(email: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${API_BASE_URL}/auth/forgot-password`, { email });
+  // response either way, mirrored server-side in routes/auth.ts). `lang`
+  // is the caller's current I18nService.lang() — there's no server-side
+  // language preference (I18nService is frontend-only/localStorage), so
+  // the email is written in whatever language the requester's UI was
+  // showing when they asked, same as everything else in this app.
+  forgotPassword(email: string, lang: "en" | "el"): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${API_BASE_URL}/auth/forgot-password`, { email, lang });
   }
 
   resetPassword(token: string, password: string): Observable<{ message: string }> {

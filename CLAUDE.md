@@ -122,21 +122,43 @@ If you need to apply a schema change without an interactive terminal
   new one works, confirm the same token is rejected on reuse, then delete
   the test account).
   `services/email.ts` wraps **Resend** (`RESEND_API_KEY`) — chosen over
-  SendGrid/SES for the least setup friction (a generous free tier, and no
-  custom-domain verification needed since this app doesn't have one yet,
-  see the Deployment section's "TODO: custom domain"; Resend's own shared
-  `onboarding@resend.dev` sender works out of the box). Same "no-op without
-  an API key" posture as `sync/oddsSync.ts`'s `ODDS_API_KEY` check — a
-  missing key just logs the reset link to the console instead of failing,
-  so local dev needs no real Resend account. The emailed link points at
-  `APP_BASE_URL` (the frontend's own origin, not the API's) — still unset
-  in production as of this pass, so a real reset email won't actually send
-  from Railway until both `RESEND_API_KEY` and `APP_BASE_URL` are set
-  there. Frontend: `/forgot-password` and `/reset-password` (reading
-  `?token=`) are new standalone routes mirroring the login page's visual
-  shell exactly, plus a "Forgot password?" link added to the login page.
-  `AuthService.forgotPassword`/`resetPassword` are deliberately separate
-  from `setSession()` — neither call changes `accessToken`/`currentUser`,
+  SendGrid/SES for the least setup friction (a generous free tier). Same
+  "no-op without an API key" posture as `sync/oddsSync.ts`'s
+  `ODDS_API_KEY` check — a missing key just logs the reset link to the
+  console instead of failing, so local dev needs no real Resend account.
+  **Real gotcha, caught only by testing live, not by reading Resend's
+  docs**: without a verified custom domain, Resend's shared
+  `onboarding@resend.dev` sender does NOT work "out of the box" for
+  arbitrary recipients the way it first looked like it would — it only
+  ever delivers to the email address the Resend *account itself* was
+  signed up with (every other recipient gets a 403
+  `"You can only send testing emails to your own email address"`). This
+  app has no verified domain yet (see the Deployment section's "TODO:
+  custom domain" — actively being pursued as of this pass specifically to
+  unblock this), so as of this pass, forgot-password email only actually
+  reaches the Resend account's own inbox; every other user's request still
+  writes a real, valid reset token to the DB (so the mechanism is fully
+  correct end-to-end) but the email itself silently never lands for them.
+  Revisit `RESEND_FROM_EMAIL` once a domain is verified in Resend. The
+  emailed link points at `APP_BASE_URL` (the frontend's own origin, not
+  the API's, trailing slash stripped defensively in `email.ts` since a
+  Railway var can easily carry one) — set on Railway as of this pass.
+  **Localized (2026-09-10)** — `sendPasswordResetEmail` takes an
+  `EmailLang` ("en" | "el", default "el"), since there's no server-side
+  language preference to read (`I18nService` is frontend-only,
+  `localStorage`-backed — see Frontend architecture's i18n bullet). The
+  frontend passes its current `i18n.lang()` on every
+  `POST /auth/forgot-password` call; the backend defaults to "el" for
+  anything else, same "el unless explicitly en" rule
+  `I18nService.loadLang()` already uses. `EMAIL_COPY` is a tiny two-language
+  dictionary local to `email.ts` — not pulled from the frontend's
+  `translations.ts`, since that file is Angular-bundled and not importable
+  from the backend. Frontend: `/forgot-password` and `/reset-password`
+  (reading `?token=`) are new standalone routes mirroring the login page's
+  visual shell exactly, plus a "Forgot password?" link added to the login
+  page. `AuthService.forgotPassword`/`resetPassword` are deliberately
+  separate from `setSession()` — neither call changes
+  `accessToken`/`currentUser`,
   since a reset doesn't imply the requester is who they say they are until
   they've actually logged in with the new password afterward.
 - **Odds-weighted prediction points** (`services/points.ts`'s `pointsForCorrectPick`,
@@ -1069,8 +1091,10 @@ inferred from web search, not confirmed against a live call; verify with
 matches nothing), `RESEND_API_KEY` (unset = forgot-password emails log
 their reset link to the console instead of sending, see Forgot password
 below), `RESEND_FROM_EMAIL` (defaults to Resend's own shared
-`onboarding@resend.dev` sender — no custom domain exists yet, see the
-Deployment section's "TODO: custom domain"), `APP_BASE_URL` (defaults to
+`onboarding@resend.dev` sender — only actually delivers to the Resend
+account's own signup email until a custom domain is verified, see the
+"real gotcha" note under Forgot password below and the Deployment
+section's "TODO: custom domain"), `APP_BASE_URL` (defaults to
 `http://localhost:4200`; set to the Railway URL in production — this is
 the frontend's own origin, not the API's, since that's where the emailed
 reset link needs to point).
