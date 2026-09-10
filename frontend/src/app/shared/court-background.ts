@@ -71,7 +71,7 @@ import { Component } from "@angular/core";
            like the rest of this glass floor rather than theme-reactive,
            painted over the floor but under the real court lines so the
            key/arc strokes stay crisp on top of it. -->
-      <g transform="translate(160 63) scale(1.7) translate(-54 -55)" opacity="0.16">
+      <g transform="translate(160 63) scale(1.7) translate(-53 -49)" opacity="0.16">
         <defs>
           <radialGradient id="ballGradCourt" cx="35%" cy="32%" r="75%">
             <stop offset="0%" stop-color="#FF9E70" />
@@ -79,12 +79,12 @@ import { Component } from "@angular/core";
             <stop offset="100%" stop-color="#C94A24" />
           </radialGradient>
         </defs>
-        <path d="M 54 23 A 26 26 0 1 0 54 57" fill="none" stroke="#eef3f7" stroke-width="15" stroke-linecap="round" />
+        <path d="M 60 23 A 26 26 0 1 0 60 57" fill="none" stroke="#eef3f7" stroke-width="15" stroke-linecap="round" />
         <path d="M 14 76 Q 45 92 66 74" fill="none" stroke="#FF6B35" stroke-width="4" stroke-linecap="round" />
-        <circle cx="82" cy="72" r="13" fill="url(#ballGradCourt)" />
-        <path d="M 82 60 L 82 84" stroke="rgba(0,0,0,0.35)" stroke-width="1.6" stroke-linecap="round" />
-        <path d="M 72 64 Q 78.2 72 72 80" fill="none" stroke="rgba(0,0,0,0.35)" stroke-width="1.6" stroke-linecap="round" />
-        <path d="M 92 64 Q 85.8 72 92 80" fill="none" stroke="rgba(0,0,0,0.35)" stroke-width="1.6" stroke-linecap="round" />
+        <circle cx="80" cy="70" r="13" fill="url(#ballGradCourt)" />
+        <path d="M 80 58 L 80 82" stroke="rgba(0,0,0,0.35)" stroke-width="1.6" stroke-linecap="round" />
+        <path d="M 70 62 Q 76.2 70 70 78" fill="none" stroke="rgba(0,0,0,0.35)" stroke-width="1.6" stroke-linecap="round" />
+        <path d="M 90 62 Q 83.8 70 90 78" fill="none" stroke="rgba(0,0,0,0.35)" stroke-width="1.6" stroke-linecap="round" />
       </g>
       <path [attr.d]="courtOutlinePath" fill="none" class="stroke-muted" stroke-width="1.8" opacity="0.85" />
       <rect
