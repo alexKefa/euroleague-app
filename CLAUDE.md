@@ -1217,10 +1217,37 @@ at the same Neon instance as local dev — there's no separate prod database.
   claimed to match the nav's "combination mark," which it didn't. Fixed by
   converting all four to the same pattern: `aria-label="Clutch" role="img"`
   on the wrapping div (screen readers get the real word), `aria-hidden`
-  on both the icon and the visible "lutch" text, `-mr-1` tightening the
-  gap between them — same shape as the nav's own `-mr-0.5` at its smaller
-  28px size. `email.ts`'s standalone-icon choice is deliberately
-  unchanged by this pass.
+  on both the icon and the visible "lutch" text.
+
+  **First execution of (A) was rejected, then corrected (same day)** — the
+  initial pass just dropped the standalone icon (thin `stroke-width="8"`,
+  proportioned for an app-icon context) in at a smaller size next to bold
+  "lutch" text; direct feedback: it read as two mismatched pieces bolted
+  together, not one logo, and a first fix attempt (shifting the ball off-
+  center into the ring's "counter," like a real letterform's aperture)
+  missed the actual ask — the ball needed to stay centered, matching the
+  standalone icon's own geometry, just heavier. The corrected, shipped
+  version: same ring center/radius as the standalone icon (`M 78 26 A 36
+  36 0 1 0 78 74`, centered on `(50,50)`), but `stroke-width="16"` (was
+  `8`) so the ring's weight actually matches "lutch"'s bold type, and a
+  **cropped `viewBox="0 0 86 100"`** (was the icon's own `0 0 100 100`) —
+  the ring's rightmost edge only reaches ~x=86 given its radius/stroke, so
+  the uncropped 100-wide box left visible empty padding between the icon
+  and the text no matter how negative a margin was applied; cropping the
+  box to the mark's real bounding edge is what actually let the two sit
+  flush with a tiny (`-mr-[1.5px]`/`-mr-px`, scaled to each usage's size)
+  margin instead of guessing an increasingly large negative value. Applied
+  everywhere the wordmark (icon immediately before "lutch"/"Clutch")
+  renders: nav (`app.component.html`, `-mr-px` at 24×28), all four auth
+  pages (`-mr-[1.5px]` at 36×42), and the splash screen
+  (`shared/splash.html`/`splash.css` — `.brand-icon` switched from a fixed
+  square `width`/`height` clamp to `height` + `aspect-ratio: 86/100`, since
+  the viewBox is no longer square). The standalone icon (favicon, PWA
+  icons, `email.ts`'s `LOGO_URL`, the Fantasy court decal, `qr-card.html`)
+  is deliberately untouched by any of this — still `stroke-width="8"`,
+  uncropped `0 0 100 100` — since those contexts have no adjacent "lutch"
+  text to weight-match against, and `email.ts`'s standalone-icon choice
+  (no wordmark trick at all) stands for the reason given above.
 - **`src/favicon.svg` was a stale leftover from an even older logo** as of
   the 2026-09-06 pass (an orange-ring-with-a-cutout "C" mark, never
   actually served, shadowed by `public/favicon.svg` at build time) — kept
