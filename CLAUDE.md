@@ -1136,6 +1136,59 @@ at the same Neon instance as local dev — there's no separate prod database.
   from a local checkout — not yet wired to auto-deploy on `git push`.
 - The same Railway account has an unrelated older project ("valiant-passion" /
   service "dsg-backend") — don't confuse it with this one.
+- **Dev/staging environment (2026-09-10)** — the "no dev/staging environment"
+  gap tracked below under Other known gaps (setup paused 2026-09-04 on a
+  Windows machine) is done, finished on a macOS checkout where the
+  `.railway/railway.ts` config-as-code brokenness documented there didn't
+  reproduce (untested whether it's actually Windows-specific or just
+  environment-specific — still avoided it here in favor of the same plain
+  imperative `railway` CLI commands the paused note already recommended).
+  One **euroleague-app** Railway project now has two environments sharing
+  the one service: `production` (`main` branch, `clutchapp.up.railway.app`)
+  and `dev` (`dev` branch, auto-generated
+  `euroleague-app-dev.up.railway.app` domain — no custom domain chosen for
+  it, not worth it for an internal staging URL). `dev` was created via
+  `railway environment new dev --duplicate production`, which cloned every
+  production env var, then only `DATABASE_URL` and `APP_BASE_URL` were
+  overwritten to point at the dev branch/domain — every other var
+  (`JWT_*_SECRET`, `ODDS_API_KEY`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`,
+  `NODE_ENV=production`) is intentionally shared with prod, since none of
+  them are database- or domain-scoped and `NODE_ENV=production` is what
+  makes the refresh cookie's `secure` flag and the static-frontend serving
+  behave the same as real production (`dev` is still served over real
+  HTTPS, so there's no reason to run it as `NODE_ENV=development`).
+  **Database**: a Neon branch named `dev`
+  (`br-odd-dawn-axpif6gt`, project `EuroleagueProj`/`round-truth-86080193`)
+  created off `production` (`br-late-queen-ax4i8kmo`) via `neonctl branches
+  create --parent`, copy-on-write per Neon's own branching model — a full
+  independent copy of real data at branch time, cheap to store, and
+  completely isolated from prod from that point on (nothing written to `dev`
+  ever touches `production`, and vice versa). `dev`'s `DATABASE_URL` uses
+  the branch's own pooled connection string
+  (`neonctl connection-string dev --pooled`), matching the `-pooler` suffix
+  pattern production's own `DATABASE_URL` already uses. `neonctl auth`
+  needed an interactive browser login (run by the user, not scriptable) and
+  defaults to prompting for an org on every command once authenticated —
+  pass `--org-id org-dark-hat-10818944` to skip that prompt in a
+  non-interactive session.
+  **First deploy**: `railway up --environment dev --service euroleague-app`
+  from the `dev` git branch, verified live (`GET /` → 200,
+  `GET /api/teams` → real rows read back from the Neon dev branch, not
+  production). The schema-sync gap the original TODO flagged as the "real
+  cost" is still exactly that — `db:push`'s `strict: true` interactive
+  prompt (see Schema changes above) means a schema change still has to be
+  pushed to `dev` and `production` as two manual, separate steps; nothing
+  here automated that, it only made having a place to run the `dev` push
+  against first possible. To use going forward: branch off `dev` (not
+  `main`) for a change worth trying live before it's real, `railway up
+  --environment dev` to deploy it there, verify at
+  `euroleague-app-dev.up.railway.app`, then merge to `main` and
+  `railway up --environment production` (or `--service euroleague-app` with
+  production linked, the existing default) once satisfied. The CLI's linked
+  environment/service (`railway environment <name>` / `railway service
+  <name>`) is a local, per-checkout default — it was left pointed back at
+  `production`/`main` after this setup, not `dev`, so an unqualified future
+  `railway up` doesn't accidentally deploy to the wrong one.
 
 ## Branding
 
@@ -1551,42 +1604,12 @@ at the same Neon instance as local dev — there's no separate prod database.
   creating the table wrote `{ season: '2026-27', ceiling: 22.1 }`, which
   computes to a 100.5cr cap today — a small, correct move matching how
   little the ceiling itself has moved so far (see above).
-- **TODO: no dev/staging environment** — everything today is one production
-  Railway service on `main`, deployed by hand from a local checkout, against
-  the one live Neon database (`DATABASE_URL` is identical between local dev
-  and prod — see Environment variables above). There's no separate URL to
-  try a risky change against before it's live, and local dev itself already
-  writes straight into the real database (real users' points, cards, trades)
-  rather than a sandboxed copy. Worth splitting into a `dev` branch +
-  a second Railway environment/URL deployed from it — Railway supports
-  multiple environments per project natively, which pairs well with Neon's
-  own cheap copy-on-write database branching for a genuinely isolated
-  staging DB, rather than standing up a whole second Railway project. The
-  real cost isn't the branch or the URL, it's that `db:push` is
-  interactive-only (`drizzle.config.ts`'s `strict: true`, see Schema
-  changes above) with no migrations checked in — keeping two databases'
-  schemas in sync would become a manual step to remember on every schema
-  change, not something CI could enforce today.
-  **Setup started 2026-09-04, paused mid-way — pick back up from here:**
-  global `@railway/cli` was upgraded 5.44.0 → 5.49.1 (done, lasting). The
-  `.railway/railway.ts` config-as-code workflow this doc describes
-  (`railway config plan`/`apply`) turned out to be **broken on this Windows
-  setup** — the `railway` npm package's `assertMinimumIacCliVersion()`
-  shells out to `railway --version` to double check the CLI, and that
-  spawn always fails (reproduced identically on git-bash and native
-  PowerShell, filed as product feedback), so `config plan`/`apply` always
-  dies with a misleading "upgrade your CLI" error no matter the real CLI
-  version. Don't re-fight that tool — drive the dev environment/branch
-  setup with plain imperative `railway` CLI commands instead
-  (`railway environment new dev --duplicate production`,
-  `railway variables --set ... --environment dev`, `railway domain`,
-  `railway up --environment dev`), which work fine. Still to do: (1) create
-  a Neon branch DB for `dev` — blocked on Neon auth, either run
-  `npx neonctl auth` (opens a browser login) or create a branch named
-  "dev" off production by hand in the Neon console and hand over its
-  pooled connection string; (2) create the `dev` git branch; (3) create the
-  Railway `dev` environment and point its `DATABASE_URL` at the Neon dev
-  branch; (4) get a domain + first deploy for it.
+- ~~No dev/staging environment~~ — done, see the Deployment section's
+  "Dev/staging environment" entry above. Local dev's own `DATABASE_URL`
+  still points at the same shared production Neon database it always has
+  (see Environment variables above) — only the *deployed* Railway service
+  gained an isolated `dev` counterpart, local dev itself was out of scope
+  for this pass and still writes straight into real data.
 - Some teams could have zero rows in `players` if `roster_sync.py` (see
   below) hasn't been run for a freshly-registered club yet — found
   2026-08-21 with Besiktas Istanbul via the live-score simulator, fixed for
@@ -1779,8 +1802,9 @@ at the same Neon instance as local dev — there's no separate prod database.
   should pay more. Two open questions were resolved with the user before
   building, since this touches a formula CLAUDE.md had deliberately
   documented as needing to work a specific way, in a production economy
-  with no staging environment (see "TODO: no dev/staging environment"
-  above):
+  that had no staging environment yet at the time (the gap tracked under
+  Other known gaps below — since closed, see the Deployment section's
+  "Dev/staging environment" entry):
   1. **Real odds were explicitly deferred, not built** — there's no
      `ODDS_API_KEY` configured even to test whether The Odds API actually
      carries a EuroLeague player-points/top-scorer market (CLAUDE.md's
