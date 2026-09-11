@@ -49,15 +49,21 @@ export class InventoryComponent implements OnInit, OnDestroy {
   protected i18n = inject(I18nService);
   protected trades = inject(TradesNotificationService);
 
-  // Colors are grounded in hues already meaningful elsewhere: highlight is
-  // the brand default, gold matches the wheel's own legendary wedge,
-  // emerald matches the app's existing "unlocked"/"correct" green.
-  protected readonly hubTiles: { path: string; icon: NavIconName; iconClass: string; labelKey: string }[] = [
-    { path: "/store", icon: "store", iconClass: "text-highlight", labelKey: "store.title" },
-    { path: "/wheel", icon: "wheel", iconClass: "text-[#E8B23C]", labelKey: "store.jumpBall" },
-    { path: "/packs", icon: "packs", iconClass: "text-sky-400", labelKey: "store.packs" },
-    { path: "/trades", icon: "trade", iconClass: "text-emerald-500", labelKey: "store.trades" },
-    { path: "/album", icon: "album", iconClass: "text-accent2", labelKey: "album.hubTile" },
+  // "Scoreboard" tiles (2026-09-11 — picked via a 4-direction design-canvas
+  // comparison over the earlier flat bordered-tile look, which read as too
+  // plain) — each tile extends the app's own shared "Scoreboard" button
+  // identity (button.directive.ts: solid fill, chunky bottom-border "lip"
+  // that collapses on press) rather than inventing a new tile chrome, just
+  // with its own brand color instead of one shared primary color. Colors
+  // are the same hues the old iconClass-tinting used: highlight is the
+  // brand default, gold matches the wheel's own legendary wedge, emerald
+  // matches the app's existing "unlocked"/"correct" green.
+  protected readonly hubTiles: { path: string; icon: NavIconName; classes: string; labelKey: string }[] = [
+    { path: "/store", icon: "store", classes: "bg-highlight border-b-highlight-dim", labelKey: "store.title" },
+    { path: "/wheel", icon: "wheel", classes: "bg-[#E8B23C] border-b-[#B8862E]", labelKey: "store.jumpBall" },
+    { path: "/packs", icon: "packs", classes: "bg-[#38BDF8] border-b-[#0284C7]", labelKey: "store.packs" },
+    { path: "/trades", icon: "trade", classes: "bg-[#10B981] border-b-[#047857]", labelKey: "store.trades" },
+    { path: "/album", icon: "album", classes: "bg-accent2 border-b-accent2-dim", labelKey: "album.hubTile" },
   ];
 
   readonly loading = signal(true);

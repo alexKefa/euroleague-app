@@ -6,7 +6,6 @@ import { I18nService } from "../../core/i18n.service";
 import { Team } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
-import { ButtonDirective } from "../../shared/button.directive";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { SearchInputComponent } from "../../shared/search-input";
 import { TeamCodePipe, displayTeamCode } from "../../shared/team-display-code";
@@ -14,7 +13,7 @@ import { TeamCodePipe, displayTeamCode } from "../../shared/team-display-code";
 @Component({
   selector: "app-teams-hub",
   standalone: true,
-  imports: [CommonModule, RouterLink, RetryImgDirective, SkeletonComponent, ButtonDirective, NavIconComponent, SearchInputComponent, TeamCodePipe],
+  imports: [CommonModule, RouterLink, RetryImgDirective, SkeletonComponent, NavIconComponent, SearchInputComponent, TeamCodePipe],
   templateUrl: "./teams-hub.html",
 })
 export class TeamsHubComponent implements OnInit {

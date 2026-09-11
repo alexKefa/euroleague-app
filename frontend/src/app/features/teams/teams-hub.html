@@ -8,25 +8,45 @@
     <p class="text-sm text-muted mt-1">{{ i18n.t('teams.subtitle') }}</p>
   </div>
 
-  <div class="grid grid-cols-2 sm:grid-cols-5 gap-1.5 bg-card border border-line rounded-2xl shadow-card p-1.5 mb-5">
-    <a routerLink="/standings" appButton="outline" appButtonSize="sm" class="w-full">
-      <app-nav-icon name="standings" [size]="14" />
+  <!-- "Scoreboard" tiles, same pattern as the Cards hub (inventory.html) —
+       solid fill + chunky bottom-border "lip" that collapses on press —
+       just one shared brand color instead of a color per tile, since these
+       five are all the same kind of thing (analytics destinations), not
+       distinct systems the way Store/Wheel/Packs/Trades/Album are. -->
+  <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-5">
+    <a
+      routerLink="/standings"
+      class="relative inline-flex flex-col items-center justify-center gap-1 rounded-xl font-display font-bold text-xs text-white px-2 py-2 bg-highlight border-b-[3px] border-b-highlight-dim transition-all duration-150 active:duration-100 hover:brightness-110 active:brightness-95 active:translate-y-[3px] active:border-b-0"
+    >
+      <app-nav-icon name="standings" [size]="16" class="text-white" />
       {{ i18n.t('standings.title') }}
     </a>
-    <a routerLink="/compare" appButton="outline" appButtonSize="sm" class="w-full">
-      <app-nav-icon name="teams" [size]="14" />
+    <a
+      routerLink="/compare"
+      class="relative inline-flex flex-col items-center justify-center gap-1 rounded-xl font-display font-bold text-xs text-white px-2 py-2 bg-highlight border-b-[3px] border-b-highlight-dim transition-all duration-150 active:duration-100 hover:brightness-110 active:brightness-95 active:translate-y-[3px] active:border-b-0"
+    >
+      <app-nav-icon name="teams" [size]="16" class="text-white" />
       {{ i18n.t('stats.compare.navTitle') }}
     </a>
-    <a routerLink="/stats" appButton="outline" appButtonSize="sm" class="w-full">
-      <app-nav-icon name="table" [size]="14" />
+    <a
+      routerLink="/stats"
+      class="relative inline-flex flex-col items-center justify-center gap-1 rounded-xl font-display font-bold text-xs text-white px-2 py-2 bg-highlight border-b-[3px] border-b-highlight-dim transition-all duration-150 active:duration-100 hover:brightness-110 active:brightness-95 active:translate-y-[3px] active:border-b-0"
+    >
+      <app-nav-icon name="table" [size]="16" class="text-white" />
       {{ i18n.t('stats.title') }}
     </a>
-    <a routerLink="/analytics-builder" appButton="outline" appButtonSize="sm" class="w-full">
-      <app-nav-icon name="sliders" [size]="14" />
+    <a
+      routerLink="/analytics-builder"
+      class="relative inline-flex flex-col items-center justify-center gap-1 rounded-xl font-display font-bold text-xs text-white px-2 py-2 bg-highlight border-b-[3px] border-b-highlight-dim transition-all duration-150 active:duration-100 hover:brightness-110 active:brightness-95 active:translate-y-[3px] active:border-b-0"
+    >
+      <app-nav-icon name="sliders" [size]="16" class="text-white" />
       {{ i18n.t('builder.navTitle') }}
     </a>
-    <a routerLink="/injuries" appButton="outline" appButtonSize="sm" class="w-full col-span-2 sm:col-span-1">
-      <app-nav-icon name="injury" [size]="14" />
+    <a
+      routerLink="/injuries"
+      class="relative inline-flex flex-col items-center justify-center gap-1 rounded-xl font-display font-bold text-xs text-white px-2 py-2 bg-highlight border-b-[3px] border-b-highlight-dim transition-all duration-150 active:duration-100 hover:brightness-110 active:brightness-95 active:translate-y-[3px] active:border-b-0 col-span-2 sm:col-span-1"
+    >
+      <app-nav-icon name="injury" [size]="16" class="text-white" />
       {{ i18n.t('injuries.title') }}
     </a>
   </div>
