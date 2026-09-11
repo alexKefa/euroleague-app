@@ -1530,6 +1530,25 @@ at the same Neon instance as local dev — there's no separate prod database.
   Both copies renamed to `favicon-v2.svg`, then `favicon-v3.svg`, then
   `favicon-v4.svg`, across the 2026-09-10 passes above — same sync
   discipline applies to the current name.
+- **`v4` → `v5` ring-with-centered-ball redesign, tried and then reverted
+  back to `v4` (2026-09-10 night, reverted 2026-09-11)** — a same-night
+  follow-up replaced the "comet" mark (Clutch text + curved line + ball)
+  with a plainer thin ring and the ball dead-centered inside it, and split
+  the nav/auth-hero/splash wordmark lockups into a separate icon element
+  beside plain HTML "Clutch" text (rather than one combined SVG) — applied
+  as `v5` across the favicon, 8 PWA icons, `angular.json`, `index.html`,
+  `manifest.webmanifest`, `email.ts`'s `LOGO_URL`, the Fantasy court decal,
+  and all five wordmark surfaces (nav + 4 auth pages) + splash. Explicit
+  next-day feedback: didn't like it, wanted the comet mark back. Reverted
+  by restoring every one of those files to its pre-`v5` (`v4`) state — the
+  `v5` files were deleted outright rather than kept alongside, same "no
+  legacy files left behind" discipline as every other font/logo swap in
+  this app. Left at `v4`, not bumped to a new version number, since this
+  is a straight revert to a design that was already live and cached under
+  that name — no new visual content exists that would need cache-busting.
+  If `v5`'s ring+centered-ball direction is ever wanted again, it needs
+  rebuilding from this history rather than un-reverting, since the files
+  were deleted, not archived.
 
 ## Album leaderboard (2026-09-06)
 

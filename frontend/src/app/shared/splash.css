@@ -192,30 +192,22 @@
    enough to fit on one line, nowrap makes that the guarantee rather than
    a coincidence. */
 .logo-mark {
-  /* Back to a real icon-beside-wordmark pair (2026-09-10, later same
-     day) — the icon is now a standalone C+ball mark, not a letterform,
-     so there's no flush-alignment reason to fuse them into one SVG the
-     way the retired full-logo pass did. One clamp()'d font-size drives
-     both children's scale (icon height in em, word at 1em) so they stay
-     proportioned together at any viewport width, same "one number
-     drives everything" idea the old aspect-ratio approach used. */
-  display: flex;
-  align-items: center;
-  gap: 0.3em;
-  font-size: clamp(34px, 9.5vw, 50px);
+  /* viewBox is 320x150 (widened 2026-09-10 same day — the ball needs
+     real clearance past "h" rather than sitting flush against it, and
+     forcing an exact text width via textLength turned out unreliable
+     cross-browser, see app.component.html's comment) — the full-logo
+     pass (2026-09-10) replaced the separate icon+wordmark pair with one
+     unified SVG ("Clutch" as real type + a curved line + the ball), so
+     this is now the only element driving the splash logo's size/
+     animation. height drives the clamp, width follows via aspect-ratio
+     so the mark doesn't stretch. */
+  height: clamp(46px, 13vw, 68px);
+  width: auto;
+  aspect-ratio: 320 / 150;
   opacity: 0;
   transform: scale(0.7);
   animation: icon-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   animation-delay: 0.5s;
-}
-.logo-icon {
-  height: 1.05em;
-  width: 1.05em;
-  flex-shrink: 0;
-}
-.logo-word {
-  font-size: 1em;
-  white-space: nowrap;
 }
 
 /* The curved tagline (splash.html) — same fade/rise timing the straight
