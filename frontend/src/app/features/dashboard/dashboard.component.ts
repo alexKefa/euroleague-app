@@ -57,7 +57,6 @@ type DashboardTab = "performances" | "leaders" | "predictors" | "schedule";
     TeamCodePipe,
   ],
   templateUrl: "./dashboard.component.html",
-  styleUrl: "./dashboard.component.css",
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
@@ -117,17 +116,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
     () => this.standings().find((r) => r.team.id === this.selectedTeamId()) ?? null
   );
 
-  // Top-3 + your team's own row (deduped) — replaces what used to be the
+  // Top-5 + your team's own row (deduped) — replaces what used to be the
   // full 21-row standings list. Your rank is already in the hero above;
   // this is just enough context to place it, with the full table one tap
   // away via the "view full" link kept on this card.
   readonly miniStandings = computed(() => {
     const rows = this.standings();
-    const top3 = rows.slice(0, 3);
+    const top5 = rows.slice(0, 5);
     const teamId = this.selectedTeamId();
-    if (!teamId || top3.some((r) => r.team.id === teamId)) return top3;
+    if (!teamId || top5.some((r) => r.team.id === teamId)) return top5;
     const yourRow = rows.find((r) => r.team.id === teamId);
-    return yourRow ? [...top3, yourRow] : top3;
+    return yourRow ? [...top5, yourRow] : top5;
   });
 
   readonly hasPerformances = computed(() => (this.roundMvp()?.leaders?.length ?? 0) > 0);

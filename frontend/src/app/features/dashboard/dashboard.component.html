@@ -1,8 +1,14 @@
 <div class="max-w-3xl lg:max-w-6xl mx-auto p-4 sm:p-6">
   @if (loading()) {
     <div>
-      <app-skeleton class="rounded-lg h-[168px] mb-5" [iconSize]="28" />
-      <app-skeleton class="h-64 rounded-lg" [iconSize]="24" />
+      <app-skeleton class="rounded-3xl h-[76px] mb-4" [iconSize]="24" />
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+        <app-skeleton class="rounded-3xl h-[92px]" [iconSize]="20" />
+        <app-skeleton class="rounded-3xl h-[92px]" [iconSize]="20" />
+        <app-skeleton class="rounded-3xl h-[92px]" [iconSize]="20" />
+        <app-skeleton class="rounded-3xl h-[92px]" [iconSize]="20" />
+      </div>
+      <app-skeleton class="rounded-3xl h-64" [iconSize]="24" />
     </div>
   }
 
@@ -11,76 +17,83 @@
   }
 
   @if (!loading() && !error()) {
-    <!-- Hero: team color lives as an accent (ring, a slow two-color sweep,
-         one highlighted stat) rather than a full-bleed gradient wash — a
-         wash put white text directly on top of the raw team color, which
-         read fine for a dark saturated team but went nearly unreadable for
-         a light one. Neutral bg-card surface underneath fixes that
-         regardless of which team is selected; the sweep (.team-hero-sweep,
-         dashboard.component.css) sits behind that same neutral surface's
-         text, not under it directly. -->
+    <!-- Tour entry point lives in its own row above everything, not tucked
+         into a corner of the hero — "glanceable widgets" broke the old
+         single hero card into several small tiles below, so there's no
+         longer one obvious card to overlay a button on, and a standalone
+         row sidesteps the old mobile tap-target-overlap workaround
+         entirely (nothing sits underneath it to overlap). Shown
+         regardless of whether a favorite-team hero renders below (a guest
+         with no team still gets the tour). -->
+    <div class="flex justify-end mb-4">
+      <button
+        type="button"
+        (click)="tour.start()"
+        appButton="outline"
+        [attr.aria-label]="i18n.t('tour.takeTour')"
+        [title]="i18n.t('tour.takeTour')"
+        class="!p-2.5"
+      >
+        <app-nav-icon name="compass" [size]="20" />
+      </button>
+    </div>
+
     @if (selectedRow(); as row) {
-      <div class="relative rounded-2xl p-5 mb-5 bg-card border border-line shadow-card overflow-hidden">
-        <div class="team-hero-sweep"></div>
-
-        <!-- Row-based on mobile, not absolutely overlapping the corner: an
-             absolute button here used to occupy the same vertical band as
-             the team-name link right below it, so on a narrow screen the
-             two tap targets sat right on top of each other and taps landed
-             on the wrong one. Sharing a row with the "Your Team" label
-             keeps it well above the name row's tap area instead.
-             sm+ has more room, so it reverts to the corner overlay there. -->
-        <div class="relative flex items-center justify-between mb-3 sm:block sm:mb-2">
-          <p class="font-mono text-[12px] font-bold text-muted">{{ i18n.t('dashboard.yourTeam') }}</p>
-          <button
-            type="button"
-            (click)="tour.start()"
-            appButton="outline"
-            [attr.aria-label]="i18n.t('tour.takeTour')"
-            [title]="i18n.t('tour.takeTour')"
-            class="sm:absolute sm:top-5 sm:right-5 !p-2.5"
-          >
-            <app-nav-icon name="compass" [size]="20" />
-          </button>
-        </div>
-        <a [routerLink]="['/teams', row.team.id]" class="relative flex items-center gap-3 w-fit group">
-          <span
-            class="w-11 h-11 rounded-full flex items-center justify-center shrink-0 bg-card"
-            [style.border]="'2px solid var(--accent-primary)'"
-            [style.box-shadow]="'0 0 0 4px color-mix(in srgb, var(--accent-primary) 14%, transparent)'"
-          >
-            @if (row.team.logoUrl) {
-              <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-7 h-7 object-contain team-logo" />
-            } @else {
-              <span class="font-display text-sm">{{ row.team.code | teamCode }}</span>
-            }
-          </span>
-          <h1 class="font-display text-2xl tracking-wide group-hover:underline">
-            {{ row.team.name }}
-          </h1>
-        </a>
-
-        <div class="relative flex flex-wrap gap-x-6 gap-y-3 mt-4">
-          <div>
-            <p class="font-mono text-[11px] font-bold text-muted">{{ i18n.t('dashboard.record') }}</p>
-            <p class="font-display text-2xl mt-0.5">{{ row.stats.wins }}-{{ row.stats.losses }}</p>
-          </div>
-          <div>
-            <p class="font-mono text-[11px] font-bold text-muted">{{ i18n.t('dashboard.rank') }}</p>
-            <p class="font-display text-2xl mt-0.5" [style.color]="'var(--accent-primary)'">#{{ row.position }}</p>
-          </div>
-          @if (row.stats.ppg !== null) {
-            <div>
-              <p class="font-mono text-[11px] font-bold text-muted">PPG</p>
-              <p class="font-display text-2xl mt-0.5">{{ row.stats.ppg | number: "1.1-1" }}</p>
-            </div>
+      <!-- Identity widget — compact, tappable, just team + rank context.
+           Record/PPG/form/next-game each get their own small widget below
+           instead of being crammed into one big hero card. -->
+      <a [routerLink]="['/teams', row.team.id]" class="flex items-center gap-3 rounded-3xl p-4 mb-4 bg-card border border-line shadow-card group">
+        <span
+          class="w-12 h-12 rounded-full flex items-center justify-center shrink-0 bg-page"
+          [style.border]="'2px solid var(--accent-primary)'"
+          [style.box-shadow]="'0 0 0 4px color-mix(in srgb, var(--accent-primary) 14%, transparent)'"
+        >
+          @if (row.team.logoUrl) {
+            <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-7 h-7 object-contain team-logo" />
+          } @else {
+            <span class="font-display text-sm">{{ row.team.code | teamCode }}</span>
           }
-        </div>
+        </span>
+        <span class="min-w-0 flex-1">
+          <span class="block font-mono text-[11px] font-bold text-muted">{{ i18n.t('dashboard.yourTeam') }}</span>
+          <span class="block font-display text-base tracking-wide truncate">{{ row.team.name }}</span>
+        </span>
+        <span class="text-muted text-sm font-bold group-hover:translate-x-0.5 transition-transform shrink-0">&rsaquo;</span>
+      </a>
 
+      <!-- Record / rank / PPG / form / next game — small glanceable
+           widgets. flex, not grid: a fixed-column grid keeps its column
+           tracks the same width no matter how many tiles actually land in
+           a row, so an incomplete row (PPG or form hidden, or a wrapped
+           mobile row with an odd tile out) just leaves an empty gap
+           instead of the remaining tiles filling the space. flex-grow
+           redistributes whatever's left in each wrapped line
+           automatically, so any row — 2, 3, 4 or 5 tiles — always splits
+           evenly across the full width. Mobile forces a ~2-up wrap via a
+           45% basis; sm+ drops the basis to 0 so however many tiles are
+           present that day share one full-width row equally. Each tile
+           stays conditional exactly like the old hero's own stat pills
+           did (PPG only when known, form only once there are recent
+           games, next game only once one's scheduled). -->
+      <div class="flex flex-wrap gap-3 mb-4">
+        <div class="flex-[1_1_45%] sm:flex-[1_1_0%] rounded-3xl p-4 bg-card border border-line shadow-card">
+          <p class="font-mono text-[10.5px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('dashboard.record') }}</p>
+          <p class="font-display text-2xl mt-1.5">{{ row.stats.wins }}-{{ row.stats.losses }}</p>
+        </div>
+        <div class="flex-[1_1_45%] sm:flex-[1_1_0%] rounded-3xl p-4 bg-card border border-line shadow-card">
+          <p class="font-mono text-[10.5px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('dashboard.rank') }}</p>
+          <p class="font-display text-2xl mt-1.5" [style.color]="'var(--accent-primary)'">#{{ row.position }}</p>
+        </div>
+        @if (row.stats.ppg !== null) {
+          <div class="flex-[1_1_45%] sm:flex-[1_1_0%] rounded-3xl p-4 bg-card border border-line shadow-card">
+            <p class="font-mono text-[10.5px] font-bold text-muted uppercase tracking-wider">PPG</p>
+            <p class="font-display text-2xl mt-1.5">{{ row.stats.ppg | number: "1.1-1" }}</p>
+          </div>
+        }
         @if (recentGames().length > 0) {
-          <div class="relative flex items-center gap-2 mt-4">
-            <span class="font-mono text-[11px] font-bold text-muted">{{ i18n.t('dashboard.form') }}</span>
-            <div class="flex gap-1.5">
+          <div class="flex-[1_1_45%] sm:flex-[1_1_0%] rounded-3xl p-4 bg-card border border-line shadow-card">
+            <p class="font-mono text-[10.5px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('dashboard.form') }}</p>
+            <div class="flex gap-1.5 mt-2">
               @for (g of recentGames(); track g.id) {
                 @if (teamResult(g); as result) {
                   <span
@@ -93,12 +106,10 @@
             </div>
           </div>
         }
-
         @if (nextGame(); as game) {
-          <div class="relative flex items-center gap-2 mt-4 pt-3 border-t border-line text-sm">
-            <span class="font-mono text-[12px] font-bold text-muted">{{ i18n.t('dashboard.next') }}</span>
-            <span class="font-display text-sm inline-flex items-center gap-1.5">
-              {{ isHomeGame(game) ? "vs" : "@" }}
+          <div class="flex-[1_1_45%] sm:flex-[1_1_0%] rounded-3xl p-4 bg-card border border-line shadow-card">
+            <p class="font-mono text-[10.5px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('dashboard.next') }}</p>
+            <div class="flex items-center gap-1.5 mt-1.5 min-w-0">
               @if (opponentTeam(game).logoUrl) {
                 <img
                   [src]="opponentTeam(game).logoUrl"
@@ -106,70 +117,32 @@
                   loading="lazy"
                   decoding="async"
                   appRetryImg
-                  class="w-4 h-4 object-contain team-logo"
+                  class="w-5 h-5 object-contain team-logo shrink-0"
                 />
+              } @else {
+                <span class="w-5 h-5 rounded-full shrink-0" [style.background]="opponentTeam(game).primaryColor"></span>
               }
-              <span [style.color]="'var(--accent-primary)'">{{ opponentCode(game) | teamCode }}</span>
-            </span>
-            <span class="font-mono text-[12px] text-muted">&middot; {{ game.tipoffAt | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}</span>
+              <span class="font-display text-sm truncate">
+                {{ isHomeGame(game) ? "vs" : "@" }}
+                <span [style.color]="'var(--accent-primary)'">{{ opponentCode(game) | teamCode }}</span>
+              </span>
+            </div>
+            <p class="font-mono text-[11px] text-muted mt-1 truncate">{{ game.tipoffAt | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}</p>
           </div>
         }
       </div>
-    } @else {
-      <!-- No hero (guest with no favorite team, or mid-boot race — see
-           the bootstrap-race note in CLAUDE.md) means there's no card to
-           tuck the tour button into, so it still needs its own row here —
-           this is the only manual entry point into the tour. -->
-      <div class="flex justify-end mb-3">
-        <button
-          type="button"
-          (click)="tour.start()"
-          appButton="outline"
-          [attr.aria-label]="i18n.t('tour.takeTour')"
-          [title]="i18n.t('tour.takeTour')"
-          class="!p-2.5"
-        >
-          <app-nav-icon name="compass" [size]="20" />
-        </button>
-      </div>
     }
 
-    <!-- My Leagues + Fantasy Team — a paired-tile row, not two stacked
-         full-width rows (2026-09-09 redesign: the old version put a
-         highlight-gradient hero directly above a second, bordered hero,
-         which read as one long repetitive block to scroll past). Same
-         hero-vs-bordered hierarchy as before (Leagues still owns
-         `highlight`, the app's one real brand accent, since it's the
-         primary discovery surface for the feature; Fantasy stays a plain
-         bg-card/border-line tile) — just side by side at roughly half the
-         combined height, so the pair reads as one deliberate unit instead
-         of two competing hero blocks. Both keep their live status line
-         (league names / round + lock time) rather than collapsing to a
-         bare icon+label button, which would've been faster to scan but
-         thrown away the one thing that makes these read as status widgets
-         instead of ads. Both still gated behind auth like the hero itself
-         (not shown to guests — leagues/fantasy need an account), sharing
-         one `@if` now that they're one visual unit. -->
+    <!-- My Leagues + Fantasy Team -->
     @if (auth.isAuthenticated()) {
-      <div class="grid grid-cols-2 gap-3 mb-5">
+      <div class="grid grid-cols-2 gap-3 mb-4">
         <a
           routerLink="/leagues"
-          class="relative flex flex-col gap-2 rounded-2xl p-4 bg-gradient-to-br from-highlight to-highlight-dim shadow-pop overflow-hidden group"
+          class="relative flex flex-col gap-2 rounded-3xl p-4 bg-gradient-to-br from-highlight to-highlight-dim shadow-pop overflow-hidden group"
         >
           <div class="absolute -bottom-8 -right-10 w-28 h-28 rounded-full bg-white/10 pointer-events-none"></div>
           <div class="relative flex items-center justify-between">
             <span class="shrink-0 w-9 h-9 rounded-full bg-card shadow-pop flex items-center justify-center">
-              <!-- Official EuroLeague trophy artwork (public/euroleague_cup.png,
-                   served at the site root by Angular's public-assets glob) — a
-                   fixed-black-stroke PNG, not an app-nav-icon SVG, so it can't
-                   follow currentColor the way the rest of this tile's white
-                   icons do. The badge itself is a solid theme-reactive bg-card
-                   circle (near-black in dark mode, white in light) rather than
-                   a translucent white tint, so it pops against the orange
-                   gradient in both themes instead of just barely tinting it;
-                   .icon-ink-invert (styles.css) keeps the trophy matching
-                   --color-ink against that circle — inverted to near-white on
-                   dark's near-black card, left as-is on light's white one. -->
               <img src="/euroleague_cup.png" alt="" class="w-5 h-5 object-contain icon-ink-invert" />
             </span>
             <span class="relative text-white/70 text-sm font-bold group-hover:translate-x-0.5 transition-transform">&rarr;</span>
@@ -193,7 +166,7 @@
 
         <a
           routerLink="/fantasy"
-          class="flex flex-col gap-2 rounded-2xl p-4 bg-card border border-line shadow-card group"
+          class="flex flex-col gap-2 rounded-3xl p-4 bg-card border border-line shadow-card group"
         >
           <div class="flex items-center justify-between">
             <span class="shrink-0 w-9 h-9 rounded-full bg-page flex items-center justify-center">
@@ -217,11 +190,9 @@
       </div>
     }
 
-    <!-- News stories — full-width right under My Leagues rather than sharing
-         half the two-column split further down, so the stories rail (and
-         its images) gets the full container width instead of half of it. -->
+    <!-- News stories -->
     @if (news().length > 0) {
-      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
+      <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
         <div class="flex justify-between items-center mb-3">
           <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('dashboard.latest') }}</p>
           <a routerLink="/news" class="text-[12px] text-accent2 font-bold uppercase tracking-wider">{{ i18n.t('dashboard.viewAll') }} &rarr;</a>
@@ -252,22 +223,13 @@
       </app-page-hint>
     }
 
-    <!-- Mini standings (top-3 + your team, not the full 21-row table) sits
-         beside a single tabbed card covering what used to be four separate
-         stacked sections (Performances/Leaders/Predictors/Schedule) —
-         2026-09-01 pass to cut dashboard scroll length on both breakpoints.
-         Every one of these still has its own full page a tap away
-         (/standings, /stats, /predictions, /schedule), linked from inside
-         each card/tab. -->
-    <div class="flex flex-col lg:flex-row gap-5 lg:items-start">
-      <!-- Left column: mini standings — no extra wrapper now that News moved
-           out (see above). Deliberately lg:items-start, not items-stretch:
-           stretching to match the taller tabs card just padded this one out
-           with dead space under its 3-4 short rows, which read worse than
-           the two cards having slightly different heights. Both still share
-           the exact same card chrome (bg/border/radius/padding), which is
-           what actually reads as "cohesive" here, not equal height. -->
-      <div class="lg:flex-1 lg:min-w-0 bg-card rounded-2xl border border-line shadow-card p-4">
+    <!-- Mini standings + tabbed card — items-stretch (the flex default) so
+         both cards match height now that standings shows 5-6 rows (top 5
+         + your team) instead of the old 3-4, close enough to the tabbed
+         card's own height that stretching no longer reads as padded-out
+         dead space the way it used to at 3 rows. -->
+    <div class="flex flex-col lg:flex-row gap-4 mt-4">
+      <div class="lg:flex-1 lg:min-w-0 bg-card rounded-3xl border border-line shadow-card p-4">
         <div class="flex justify-between items-center mb-3">
           <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('dashboard.standings') }}</p>
           <a routerLink="/standings" class="text-[12px] text-accent2 font-bold uppercase tracking-wider">{{ i18n.t('standings.viewFull') }} &rarr;</a>
@@ -276,7 +238,7 @@
           @for (row of miniStandings(); track row.team.id) {
             <a
               [routerLink]="['/teams', row.team.id]"
-              class="flex justify-between items-center gap-2 px-2 py-2 rounded-xl hover:bg-page transition-colors"
+              class="flex justify-between items-center gap-2 px-2 py-2 rounded-2xl hover:bg-page transition-colors"
               [class.bg-page]="row.team.id === selectedTeamId()"
               [ngClass]="{ 'bg-highlight/10': row.position === 1 }"
             >
@@ -302,9 +264,8 @@
         </div>
       </div>
 
-      <!-- Right column: Performances / Leaders / Predictors / Schedule tabs -->
       @if (hasPerformances() || hasLeaders() || hasPredictors() || hasSchedule()) {
-        <div class="lg:flex-1 lg:min-w-0 bg-card rounded-2xl border border-line shadow-card p-4 flex flex-col">
+        <div class="lg:flex-1 lg:min-w-0 bg-card rounded-3xl border border-line shadow-card p-4 flex flex-col">
           <div class="flex gap-1.5 mb-3 overflow-x-auto">
             @if (hasPerformances()) {
               <button type="button" (click)="setTab('performances')" [ngClass]="tabButtonClass('performances')" class="px-3 py-1.5 rounded-full font-mono text-[11px] font-bold whitespace-nowrap transition-colors shrink-0">
@@ -336,7 +297,7 @@
                   @for (entry of roundMvp()?.leaders; track entry.player.id; let i = $index) {
                     <a
                       [routerLink]="['/players', entry.player.id]"
-                      class="flex justify-between items-center px-2 py-2 rounded-xl hover:bg-page transition-colors"
+                      class="flex justify-between items-center px-2 py-2 rounded-2xl hover:bg-page transition-colors"
                     >
                       <span class="font-bold flex items-center gap-1.5 min-w-0">
                         <span class="font-mono text-muted shrink-0">{{ i + 1 }}</span>
@@ -366,7 +327,7 @@
                 @for (entry of leaders(); track entry.player.id; let i = $index) {
                   <a
                     [routerLink]="['/players', entry.player.id]"
-                    class="flex justify-between items-center px-2 py-2 rounded-xl hover:bg-page transition-colors"
+                    class="flex justify-between items-center px-2 py-2 rounded-2xl hover:bg-page transition-colors"
                     [ngClass]="{ 'bg-highlight/10': i === 0 }"
                   >
                     <span class="font-bold flex items-center gap-1.5 min-w-0">
@@ -396,7 +357,7 @@
                   <button
                     type="button"
                     (click)="openMember(entry)"
-                    class="w-full flex justify-between items-center px-2 py-2 rounded-xl text-left hover:bg-white/5 transition-colors"
+                    class="w-full flex justify-between items-center px-2 py-2 rounded-2xl text-left hover:bg-white/5 transition-colors"
                     [ngClass]="{ 'bg-highlight/10': i === 0 }"
                   >
                     <span class="font-bold flex items-center gap-1.5 min-w-0">
@@ -418,7 +379,7 @@
             @case ('schedule') {
               <div class="text-sm space-y-1">
                 @for (game of recentGames(); track game.id) {
-                  <a [routerLink]="['/games', game.id]" class="flex justify-between items-center px-2 py-2 rounded-xl hover:bg-page transition-colors">
+                  <a [routerLink]="['/games', game.id]" class="flex justify-between items-center px-2 py-2 rounded-2xl hover:bg-page transition-colors">
                     <span class="flex items-center gap-2 min-w-0">
                       <span
                         class="font-mono font-bold w-4 shrink-0"
@@ -437,7 +398,7 @@
                   </a>
                 }
                 @for (game of upcomingGames(); track game.id) {
-                  <a [routerLink]="['/games', game.id]" class="flex justify-between items-center px-2 py-2 rounded-xl hover:bg-page transition-colors">
+                  <a [routerLink]="['/games', game.id]" class="flex justify-between items-center px-2 py-2 rounded-2xl hover:bg-page transition-colors">
                     <span class="flex items-center gap-2 min-w-0">
                       <span class="font-mono text-muted w-4 shrink-0">&middot;</span>
                       @if (opponentTeam(game).logoUrl) {
@@ -461,7 +422,7 @@
   @if (selectedEntry(); as entry) {
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="closeMember()">
       <div
-        class="bg-card rounded-2xl border border-line shadow-pop p-5 max-w-sm w-full max-h-[85vh] overflow-y-auto"
+        class="bg-card rounded-3xl border border-line shadow-pop p-5 max-w-sm w-full max-h-[85vh] overflow-y-auto"
         (click)="$event.stopPropagation()"
       >
         <div class="flex items-start justify-between gap-2 mb-4">
