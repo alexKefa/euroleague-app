@@ -1,0 +1,355 @@
+<div class="min-h-screen bg-page overflow-x-hidden">
+  <!-- Top bar: small wordmark + language toggle. No nav rail/tab bar here —
+       this page exists outside the logged-in app shell entirely (see
+       app.component.ts's hideChrome()). -->
+  <header class="flex items-center justify-between px-5 sm:px-8 py-5 max-w-5xl mx-auto">
+    <svg role="img" aria-label="Clutch" width="88" height="41" viewBox="0 0 320 150">
+      <defs>
+        <radialGradient id="ballGradLanding" cx="35%" cy="32%" r="75%">
+          <stop offset="0%" stop-color="#FF9E70"/>
+          <stop offset="55%" stop-color="#FF6B35"/>
+          <stop offset="100%" stop-color="#C94A24"/>
+        </radialGradient>
+        <linearGradient id="lineGradLanding" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0%" stop-color="#C94A24"/>
+          <stop offset="100%" stop-color="#FF6B35"/>
+        </linearGradient>
+        <linearGradient id="textGradLanding" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" style="stop-color:var(--color-ink)"/>
+          <stop offset="100%" style="stop-color:var(--color-ink)" stop-opacity="0.82"/>
+        </linearGradient>
+        <filter id="shadowLanding" x="-50%" y="-50%" width="200%" height="200%">
+          <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#FF6B35" flood-opacity="0.4"/>
+        </filter>
+      </defs>
+      <text x="0" y="74" font-family="'IBM Plex Sans',sans-serif" font-weight="800" font-size="80" fill="url(#textGradLanding)">Clutch</text>
+      <path d="M 0 98 Q 115 122 255 84" fill="none" stroke="url(#lineGradLanding)" stroke-width="5" stroke-linecap="round" filter="url(#shadowLanding)"/>
+      <circle cx="290" cy="80" r="15" fill="url(#ballGradLanding)" filter="url(#shadowLanding)"/>
+      <path d="M 290 66 L 290 94" stroke="rgba(0,0,0,0.3)" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M 279 70 Q 285.5 80 279 90" fill="none" stroke="rgba(0,0,0,0.3)" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M 301 70 Q 294.5 80 301 90" fill="none" stroke="rgba(0,0,0,0.3)" stroke-width="1.8" stroke-linecap="round"/>
+    </svg>
+
+    <div class="inline-flex bg-card border-2 border-line rounded-2xl p-1 gap-1">
+      <button type="button" (click)="i18n.setLang('en')" [appChip]="i18n.lang() === 'en'">EN</button>
+      <button type="button" (click)="i18n.setLang('el')" [appChip]="i18n.lang() === 'el'">EL</button>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="px-5 sm:px-8 pt-4 pb-8 max-w-3xl mx-auto text-center">
+    <p class="font-mono text-xs font-bold tracking-widest uppercase text-highlight mb-4">
+      {{ i18n.t('landing.tagline') }}
+    </p>
+    <h1 class="font-display font-bold text-3xl sm:text-5xl leading-tight tracking-tight">
+      {{ i18n.t('landing.heroHeadline') }}
+    </h1>
+  </section>
+
+  <!-- Stepper — one core loop at a time, autoplaying (LandingComponent's
+       ngOnInit) until the visitor touches an arrow/dot themselves. -->
+  <section class="px-5 sm:px-8 pb-16 max-w-4xl mx-auto">
+    <div class="bg-card border border-line rounded-2xl shadow-card overflow-hidden">
+      <div class="grid sm:grid-cols-2">
+        <!-- Visual pane -->
+        <div class="relative bg-page/60 border-b sm:border-b-0 sm:border-r border-line p-6 sm:p-8 flex items-center justify-center min-h-[220px]">
+          @switch (steps[activeStep()].visual) {
+            @case ("team") {
+              <!-- The app's actual core mechanic (ThemeService.applyTeam),
+                   scoped to this local preview only — a team pick here
+                   never touches the real global theme or a logged-in
+                   user's cached colors, see LandingComponent's comment on
+                   selectedTeam. The team color is used only as a low-
+                   opacity background tint plus one plain solid swatch —
+                   never as a solid button fill under fixed text — so
+                   contrast never depends on how light or dark that team's
+                   own color happens to be (a white-kit team used to make
+                   white button text disappear). -->
+              <div class="landing-step-in w-full">
+                @if (teams().length) {
+                  <p class="text-center font-mono text-[10px] font-bold tracking-widest uppercase text-muted mb-3">
+                    {{ i18n.t('landing.demoPrompt') }}
+                  </p>
+                  <!-- pt-2 matters, not just pb-2: overflow-x-auto implicitly
+                       forces overflow-y to auto too (real CSS axis-coupling),
+                       which clips the selected swatch's ring/scale-110 growth
+                       at the top edge without it — same fix as the
+                       top-scorer photo strip's identical bug (see CLAUDE.md). -->
+                  <div class="flex gap-2 overflow-x-auto pt-2 pb-1 px-1 justify-start sm:justify-center [scrollbar-width:none] [&::-webkit-scrollbar]:hidden max-w-[240px] mx-auto">
+                    @for (team of teams(); track team.id) {
+                      <button
+                        type="button"
+                        (click)="selectTeam(team)"
+                        [class]="selectedTeamId() === team.id
+                          ? 'relative shrink-0 w-10 h-10 rounded-full border-2 border-highlight scale-110 flex items-center justify-center bg-card transition-all duration-200'
+                          : 'relative shrink-0 w-10 h-10 rounded-full border-2 border-line flex items-center justify-center bg-card transition-all duration-200 hover:border-[#3a3a3b]'"
+                        [attr.aria-label]="team.name"
+                        [attr.aria-pressed]="selectedTeamId() === team.id"
+                      >
+                        @if (team.logoUrl) {
+                          <img
+                            [src]="team.logoUrl"
+                            [alt]="team.name"
+                            loading="lazy"
+                            decoding="async"
+                            appRetryImg
+                            class="w-6 h-6 object-contain"
+                          />
+                        } @else {
+                          <span class="font-mono text-[9px] font-bold text-muted">{{ team.code | teamCode }}</span>
+                        }
+                      </button>
+                    }
+                  </div>
+
+                  <div
+                    class="mt-4 w-full max-w-[220px] mx-auto rounded-2xl border border-line p-4 transition-colors duration-300"
+                    [style.--accent-primary]="previewPrimary()"
+                    [style.background]="'color-mix(in srgb, var(--accent-primary) 16%, var(--color-card))'"
+                  >
+                    <div class="flex items-center gap-2 min-w-0 mb-3">
+                      @if (selectedTeam()?.logoUrl) {
+                        <img
+                          [src]="selectedTeam()!.logoUrl"
+                          [alt]="selectedTeam()!.name"
+                          appRetryImg
+                          class="w-6 h-6 object-contain shrink-0"
+                        />
+                      }
+                      <span class="font-display font-bold text-xs truncate">{{ selectedTeam()?.name }}</span>
+                    </div>
+                    <div class="h-6 rounded-lg border border-line" [style.background]="'var(--accent-primary)'"></div>
+                  </div>
+                }
+              </div>
+            }
+            @case ("scores") {
+              <div class="landing-step-in w-full max-w-[220px] space-y-2.5">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                  <span class="font-mono text-[10px] font-bold uppercase tracking-wide text-red-500">{{ i18n.t('landing.mockLive') }}</span>
+                </div>
+                @for (row of [82, 61, 45]; track $index) {
+                  <div class="flex items-center gap-2">
+                    <span class="w-4 font-mono text-[10px] font-bold text-muted">{{ $index + 1 }}</span>
+                    <div class="flex-1 h-2.5 rounded-full bg-line overflow-hidden">
+                      <div class="h-full rounded-full bg-highlight" [style.width.%]="row"></div>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+            @case ("predictions") {
+              <!-- Real team badges (app-team-badge, logo + code), not plain
+                   3-letter text pills — a real classic matchup off the same
+                   already-loaded teams() list the "team" step's picker
+                   uses. -->
+              <div class="landing-step-in relative w-full max-w-[220px]">
+                <div class="flex gap-2">
+                  <div class="flex-1 flex flex-col items-center gap-1.5 rounded-xl border-2 border-highlight bg-highlight/10 text-highlight py-3">
+                    @if (predictionsDemoTeams()[0]; as teamA) {
+                      <app-team-badge [code]="teamA.code" [logoUrl]="teamA.logoUrl" [size]="26" />
+                    }
+                  </div>
+                  <div class="flex-1 flex flex-col items-center gap-1.5 rounded-xl border-2 border-line text-muted py-3">
+                    @if (predictionsDemoTeams()[1]; as teamB) {
+                      <app-team-badge [code]="teamB.code" [logoUrl]="teamB.logoUrl" [size]="26" />
+                    }
+                  </div>
+                </div>
+                <span class="absolute -top-3 -right-2 bg-highlight text-white font-mono text-[10px] font-bold rounded-full px-2 py-1 shadow-pop">+18 pts</span>
+              </div>
+            }
+            @case ("fantasy") {
+              <!-- The real half-court (app-court-background — key, free-throw
+                   circle, restricted area, 3pt arc; same geometry the real
+                   Fantasy builder's own court uses), not a halfway-line +
+                   center-circle rectangle — that generic layout read as a
+                   football/soccer pitch, not basketball. Dots sit at the
+                   same 2-2-1 guard/forward/center rows as the real builder's
+                   ROW_TOP (fantasy.ts: Guard 33%, Forward 57%, Center 80%),
+                   over the court's own basket-at-the-bottom orientation. -->
+              <div class="landing-step-in w-full max-w-[150px]">
+                <div class="relative aspect-[320/300] rounded-xl border-2 border-line overflow-hidden bg-page">
+                  <app-court-background />
+                  <span class="absolute w-3 h-3 rounded-full bg-highlight -translate-x-1/2 -translate-y-1/2" style="left:28%; top:33%"></span>
+                  <span class="absolute w-3 h-3 rounded-full bg-highlight -translate-x-1/2 -translate-y-1/2" style="left:72%; top:33%"></span>
+                  <span class="absolute w-3 h-3 rounded-full bg-accent2 -translate-x-1/2 -translate-y-1/2" style="left:22%; top:57%"></span>
+                  <span class="absolute w-3 h-3 rounded-full bg-accent2 -translate-x-1/2 -translate-y-1/2" style="left:78%; top:57%"></span>
+                  <span class="absolute w-3 h-3 rounded-full bg-emerald-500 -translate-x-1/2 -translate-y-1/2" style="left:50%; top:80%"></span>
+                </div>
+                <div class="mt-2.5 h-1.5 rounded-full bg-line overflow-hidden">
+                  <div class="h-full bg-emerald-500 rounded-full" style="width: 84%"></div>
+                </div>
+              </div>
+            }
+            @case ("cards") {
+              <!-- The real CollectibleCardComponent, one per catalog tier —
+                   not a hand-drawn approximation, so this is exactly what a
+                   pulled card actually looks like. CollectibleCardComponent's
+                   name/badge/banner text is fixed-px, not proportional to
+                   its own `maxWidth` — rendering it directly at a small
+                   maxWidth (tried at 104px, then 76px) left the bottom
+                   banner's fixed-size text/padding dominating the whole
+                   card face and covering the photo entirely (confirmed
+                   live via screenshot/description — "description bigger
+                   than the card, image not visible"). Fixed by rendering
+                   each card at its real, properly-proportioned size
+                   (CARD_RENDER_WIDTH, matching where this component
+                   normally lives — Store/Album grids) and scaling the
+                   *whole* rendered card down with a CSS transform instead —
+                   photo, banner, and badge all shrink together in
+                   proportion, rather than just the outer box. The outer
+                   wrapper reserves the final small footprint (CARD_FAN_SIZE)
+                   for layout/fan-rotation purposes; the inner one is the
+                   true-size card, scaled and pinned to that wrapper's
+                   top-left corner so its painted (post-scale) size exactly
+                   fills it. -->
+              <div class="landing-step-in flex items-end justify-center w-full">
+                @for (card of showcaseCards(); track card.tier; let i = $index) {
+                  <div
+                    [class]="i === 0 ? 'shrink-0' : 'shrink-0 -ml-[16px]'"
+                    [style.z-index]="i + 1"
+                    [style.transform]="cardFanTransforms[i]"
+                    [style.width.px]="cardFanSize.width"
+                    [style.height.px]="cardFanSize.height"
+                    style="transform-origin: bottom center"
+                  >
+                    <div
+                      [style.width.px]="cardRenderWidth"
+                      [style.transform]="'scale(' + cardFanScale + ')'"
+                      style="transform-origin: top left"
+                    >
+                      <app-collectible-card
+                        [name]="card.name"
+                        [tier]="card.tier"
+                        [teamCode]="card.teamCode"
+                        [teamColor]="card.teamColor"
+                        [imageUrl]="card.imageUrl"
+                        [pointsPerGame]="card.pointsPerGame"
+                        [unlocked]="true"
+                        [maxWidth]="cardRenderWidth"
+                      />
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+            @case ("leagues") {
+              <div class="landing-step-in w-full max-w-[220px] space-y-1.5">
+                @for (row of [1, 2, 3]; track row) {
+                  <div [class]="row === 1 ? 'flex items-center gap-2 rounded-lg px-2 py-1.5 bg-highlight/10' : 'flex items-center gap-2 rounded-lg px-2 py-1.5'">
+                    <span [class]="row === 1 ? 'w-4 font-mono text-[10px] font-bold text-highlight' : 'w-4 font-mono text-[10px] font-bold text-muted'">{{ row }}</span>
+                    <span class="flex-1 h-2 rounded-full bg-line"></span>
+                    <span class="font-mono text-[9px] text-muted">{{ 420 - row * 35 }}</span>
+                  </div>
+                }
+              </div>
+            }
+            @case ("cta") {
+              <!-- The closing slide's own real button, not a mockup —
+                   scale() rather than fighting ButtonDirective's own
+                   size/padding classes with more of the same, which would
+                   depend on Tailwind's generated rule order to "win" and
+                   isn't reliable. -->
+              <div class="landing-step-in w-full max-w-[220px] mx-auto">
+                <a
+                  routerLink="/register"
+                  appButton
+                  appButtonSize="md"
+                  class="w-full scale-110 shadow-pop"
+                >
+                  {{ i18n.t('landing.finalCta') }}
+                </a>
+              </div>
+            }
+          }
+        </div>
+
+        <!-- Copy pane — a fixed min-height (long enough for the wordiest
+             step/language combo) so switching steps never resizes this
+             pane, which would otherwise carry the prev/next buttons out
+             from under the cursor on a fast double-click. -->
+        <div class="p-6 sm:p-8 flex flex-col min-h-[260px]">
+          <div class="landing-step-in" [attr.data-step]="activeStep()">
+            <div class="w-10 h-10 rounded-xl bg-highlight/12 flex items-center justify-center mb-4 text-highlight">
+              <app-nav-icon [name]="steps[activeStep()].icon" [size]="22" />
+            </div>
+            <h2 class="font-display font-bold text-lg mb-2">{{ i18n.t(steps[activeStep()].titleKey) }}</h2>
+            @if (steps[activeStep()].bodyKey; as bodyKey) {
+              <p class="text-sm text-muted leading-relaxed mb-6">{{ i18n.t(bodyKey) }}</p>
+            }
+          </div>
+
+          <div class="mt-auto flex items-center justify-between">
+            <div class="flex gap-1.5">
+              @for (step of steps; track $index) {
+                <button
+                  type="button"
+                  (click)="goToStep($index)"
+                  [class]="activeStep() === $index ? 'h-1.5 w-6 rounded-full bg-highlight transition-all' : 'h-1.5 w-1.5 rounded-full bg-line transition-all'"
+                  [attr.aria-label]="i18n.t(step.titleKey)"
+                  [attr.aria-current]="activeStep() === $index"
+                ></button>
+              }
+            </div>
+            <div class="flex gap-2">
+              <button
+                type="button"
+                (click)="prevStep()"
+                class="w-8 h-8 rounded-full border-2 border-line flex items-center justify-center text-muted hover:text-ink hover:border-[#3a3a3b] transition-colors"
+                [attr.aria-label]="i18n.t('landing.stepPrev')"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <button
+                type="button"
+                (click)="nextStep()"
+                class="w-8 h-8 rounded-full border-2 border-line flex items-center justify-center text-muted hover:text-ink hover:border-[#3a3a3b] transition-colors"
+                [attr.aria-label]="i18n.t('landing.stepNext')"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTAs — below the carousel, once the visitor has actually seen what
+       they'd be signing up for, rather than asked for a decision before
+       any of it. Desktop only here (sm:+) — mobile gets a sticky bottom
+       bar instead (below), same "always reachable, not just at the
+       bottom of a scroll" reasoning as the logged-in app shell's own
+       floating bottom nav (app.component.html). -->
+  <section class="hidden sm:block px-5 sm:px-8 pb-14 max-w-3xl mx-auto">
+    <div class="flex items-center justify-center gap-3">
+      <a routerLink="/register" appButton appButtonSize="md" class="px-8">
+        {{ i18n.t('landing.ctaRegister') }}
+      </a>
+      <a routerLink="/login" appButton="secondary" appButtonSize="md" class="px-8">
+        {{ i18n.t('landing.ctaLogin') }}
+      </a>
+    </div>
+  </section>
+
+  <!-- Mobile-only spacer matching the sticky bar's own height below, so it
+       never covers the carousel's last bit of content. -->
+  <div class="sm:hidden h-16"></div>
+</div>
+
+<!-- Mobile sticky CTA bar — fixed to the viewport, not the scrolling page,
+     so both buttons stay reachable no matter how far down the carousel
+     someone has scrolled. -->
+<div
+  class="sm:hidden fixed inset-x-0 bottom-0 z-40 flex gap-2 bg-card/95 backdrop-blur-xl border-t border-line px-3 pt-2"
+  style="padding-bottom: calc(0.5rem + env(safe-area-inset-bottom))"
+>
+  <a routerLink="/login" appButton="secondary" appButtonSize="sm" class="flex-1">
+    {{ i18n.t('landing.ctaLogin') }}
+  </a>
+  <a routerLink="/register" appButton appButtonSize="sm" class="flex-1">
+    {{ i18n.t('landing.ctaRegister') }}
+  </a>
+</div>

@@ -6,6 +6,13 @@ export const routes: Routes = [
     loadComponent: () =>
       import("./features/dashboard/dashboard.component").then((m) => m.DashboardComponent),
   },
+  // Public, unauthenticated pitch page for cold traffic (the QR card, a
+  // shared link) — deliberately not the "" route, which stays the real
+  // dashboard for anyone who already knows the app.
+  {
+    path: "welcome",
+    loadComponent: () => import("./features/landing/landing").then((m) => m.LandingComponent),
+  },
   // No app code ever links here (the root path "" is the actual dashboard
   // route) — this exists purely so a browser sitting on /home from a stale
   // bookmark/history entry lands on the dashboard instead of a router

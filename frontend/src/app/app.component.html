@@ -11,6 +11,7 @@
   [style.background-image]="theme.ambientGlowBackground()"
 ></div>
 
+@if (!hideChrome()) {
 <nav
   class="sticky top-0 z-30 flex justify-between items-center gap-3 px-4 sm:px-6 py-4 bg-card border-b border-line"
 >
@@ -114,8 +115,10 @@
     }
   </div>
 </nav>
+}
 
 <div class="flex">
+  @if (!hideChrome()) {
   <!-- Desktop primary nav — icon-only rail, sm and up; labels surface on hover/focus instead of sitting on screen permanently. The bottom tab nav below is mobile-only. -->
   <nav
     class="hidden sm:flex flex-col items-center shrink-0 w-16 border-r border-line bg-card py-4 gap-2 sticky top-16 h-[calc(100vh-4rem)] z-40"
@@ -158,8 +161,11 @@
       </div>
     }
   </nav>
+  }
 
-  <div class="flex-1 min-w-0 pb-[calc(3.5rem+env(safe-area-inset-bottom))] sm:pb-0">
+  <div
+    [class]="hideChrome() ? 'flex-1 min-w-0' : 'flex-1 min-w-0 pb-[calc(3.5rem+env(safe-area-inset-bottom))] sm:pb-0'"
+  >
     <router-outlet></router-outlet>
   </div>
 </div>
@@ -183,6 +189,7 @@
      elements below), not via Angular bindings — there's no clean
      declarative way to animate one shared element between N sibling
      positions. -->
+@if (!hideChrome()) {
 <nav
   #bottomNav
   data-app-bottom-nav
@@ -275,6 +282,9 @@
   </div>
   </div>
 </nav>
+}
 
+@if (!hideChrome()) {
 <app-tour-overlay></app-tour-overlay>
 <app-install-banner></app-install-banner>
+}

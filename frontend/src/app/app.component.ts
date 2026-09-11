@@ -181,6 +181,11 @@ export class AppComponent implements OnInit {
     { initialValue: this.router.url.split(/[?#]/)[0] }
   );
 
+  // /welcome is a standalone public pitch page (QR/shared-link cold
+  // traffic) — it renders its own header and has no use for the logged-in
+  // app shell's top bar, desktop rail, or mobile tab bar around it.
+  protected readonly hideChrome = computed(() => this.currentUrl() === "/welcome");
+
   // Which of the 5 bottom-bar slots (4 mobileNavLinks + "More", always
   // last) the pill/ball should sit on. -1 only if truly nothing matches
   // (shouldn't happen — every route falls under either a direct tab or

@@ -21,6 +21,7 @@ import { analyticsBuilderTranslations } from "./analytics-builder";
 import { leaguesTranslations } from "./leagues";
 import { injuriesTranslations } from "./injuries";
 import { fantasyTranslations } from "./fantasy";
+import { landingTranslations } from "./landing";
 
 export type { Lang };
 
@@ -51,4 +52,5 @@ export const translations: Record<string, Record<Lang, string>> = {
   ...leaguesTranslations,
   ...injuriesTranslations,
   ...fantasyTranslations,
+  ...landingTranslations,
 };

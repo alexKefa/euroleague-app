@@ -1589,6 +1589,78 @@ at the same Neon instance as local dev — there's no separate prod database.
     since, like Fantasy, it's a single-focus feature page without an
     existing home on League Detail to slot into.
 
+## Landing page (2026-09-11)
+
+- **`/welcome`** (`frontend/src/app/features/landing/`) — a public,
+  unauthenticated pitch page for cold traffic (the QR card, a shared link),
+  deliberately not the `""` route (the real dashboard, unchanged for anyone
+  who already knows the app). `LandingComponent.ngOnInit` bounces an
+  already-logged-in visitor straight to `/` rather than showing the pitch
+  again; `app.component.ts`'s `hideChrome()` (keyed on the current URL
+  being exactly `/welcome`) suppresses the logged-in app shell's top bar,
+  desktop rail, and mobile tab bar specifically on this route — those
+  otherwise render unconditionally around every route including this one.
+  **Not yet live** — this only exists in local dev as of this pass;
+  redeploy is still manual (`railway up`, see Deployment above) and hasn't
+  been run since this was built. `qr-card.html`'s QR now encodes
+  `https://clutchapp.up.railway.app/welcome` (was the bare domain), but
+  that's only real once (a) this is redeployed and (b) the **TODO: custom
+  domain** decision above lands — whichever hostname is finally picked is
+  what the printed flyer/banner (already made, outside this repo — to be
+  provided) needs to actually point at, not necessarily the current
+  Railway subdomain.
+  - **Interactive "reskin" demo**: tapping a real team logo (fetched from
+    the already-public `GET /api/teams`) repaints a small preview card in
+    that team's kit colors — the app's actual core mechanic
+    (`ThemeService.applyTeam`), demonstrated rather than described. Never
+    calls `applyTeam()` itself though — that would cache into
+    `localStorage` and mutate `<html>` globally, clobbering a real logged-in
+    user's actual colors if this ever ran while signed in. Instead
+    `previewPrimary` (in `landing.ts`) computes a scoped value written only
+    to a local `--accent-primary` custom property on the preview's own
+    wrapper div; Tailwind's existing `bg-team-primary`/`border-team-primary`
+    utilities pick it up via normal CSS cascade with zero effect outside
+    that one element. Raw team colors are used at full intensity when
+    already bright enough (a real live-reported bug: blending everything
+    toward white first turned Olympiacos red into pink) — only a color dark
+    enough to actually risk disappearing (checked via `hexLuma`) gets
+    lifted, and a genuinely near-black one blends toward the app's own
+    `--color-muted` grey rather than white, since mixing near-black with
+    white still reads as a washed pastel.
+  - **"Cards & collectibles" step showcases one real card per catalog
+    tier** (common/rare/legendary/coach) using the actual
+    `CollectibleCardComponent`, not a hand-drawn approximation — real player
+    photos/names come from the same public `GET /players/advanced-stats`
+    payload `/compare` already uses unauthenticated, shuffled once per page
+    load (`shuffled()` in `landing.ts`) so the showcase doesn't always land
+    on 3 players from the same club (a real reported bug — the payload's
+    own row order groups by team). The coach card uses a real team's actual
+    head coach name. **Real layout bug, took three live-reported rounds to
+    actually fix**: `CollectibleCardComponent`'s name/badge/banner text is
+    fixed-px, not proportional to its own `maxWidth` input — shrinking that
+    input directly (tried at 104px, then 76px) either collapsed the whole
+    card to a ~14px dot (a bare flex row with no `flex-shrink:0` lets
+    flexbox's default shrink squeeze items toward nothing instead of
+    wrapping) or left the fixed-size banner text dominating the tiny card
+    face and hiding the photo under it entirely. Fixed by rendering each
+    card at its real, correctly-proportioned size (130px, matching Album's
+    own grid) and scaling the *whole* rendered card down via a CSS
+    `transform: scale()` to the actual on-page footprint — photo, banner,
+    and badge all shrink together in proportion, rather than shrinking just
+    the box. The four cards fan out (rotation + a slight vertical drop on
+    the outer two, pivoting from the bottom edge) rather than sitting in a
+    grid, echoing `shared/splash.html`'s own mini-card fan.
+  - Six-slide carousel (autoplaying every 4.5s, stopping on any manual
+    dot/arrow/team-pick interaction): team-color demo, live scores,
+    predictions & points, Fantasy Five, cards, leagues, then a closing CTA
+    slide (icon "zap") with a real `routerLink="/register"` button reading
+    "Γίνε Clutcher" ("Become a Clutcher") — scaled up via `transform:
+    scale()` rather than fighting `ButtonDirective`'s own size classes with
+    more of the same (unreliable, depends on Tailwind's generated rule
+    order). The copy pane has a fixed `min-h-[260px]` — real reported bug:
+    without it, a shorter step's pane would shrink, carrying the prev/next
+    arrow buttons out from under the cursor on a fast double-click.
+
 ## Other known gaps
 
 - A traded player's season-long stat averages (across both teams) are

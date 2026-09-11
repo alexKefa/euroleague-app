@@ -1,0 +1,23 @@
+/* Plays automatically whenever a step's visual/copy pane is freshly mounted
+   by @switch (landing.html) — a CSS `animation` fires on insertion with no
+   JS needed, unlike a `transition`, which requires an existing element to
+   change property. */
+@keyframes landingStepIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.landing-step-in {
+  animation: landingStepIn 320ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-step-in {
+    animation: none;
+  }
+}
