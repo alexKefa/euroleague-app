@@ -65,6 +65,11 @@ export class CollectibleCardComponent implements OnChanges {
   // PlayerPhotoComponent's placeholder on /compare — null renders the
   // silhouette alone (a coach card, or a player with no synced number).
   @Input() jerseyNumber: number | null = null;
+  // Single headline stat shown on the face, next to the team code (2026-09-11
+  // — replaces nothing, tap-to-flip still shows the full stat block). null
+  // hides the badge entirely rather than rendering a placeholder — a coach
+  // card or a player with no synced stats just shows the team code alone.
+  @Input() pointsPerGame: number | null = null;
 
   get hasJerseyNumber(): boolean {
     return this.jerseyNumber !== null && this.jerseyNumber !== undefined;

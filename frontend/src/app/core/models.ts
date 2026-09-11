@@ -516,6 +516,12 @@ export interface Collectible {
   // Only ever "foil" for a legendary — see CollectibleFinish. Optional
   // because most card shapes (store browse, album) don't carry it.
   finish?: CollectibleFinish;
+  // Single headline stat shown on the card face (2026-09-11) — current
+  // season's PPG, falling back to career PPG if the season has no games yet
+  // (see backend's buildPpgLookup). null for a coach card (coaches aren't in
+  // `players`) or a player with no synced stats at all. Optional because
+  // leaner shapes elsewhere don't carry it.
+  pointsPerGame?: number | null;
 }
 
 // A single tier's card within a bundle — same shape as Collectible minus
@@ -532,6 +538,7 @@ export interface CollectibleBundleCard {
   serialNumber?: number;
   serialTotal?: number;
   jerseyNumber?: number | null;
+  pointsPerGame?: number | null;
 }
 
 // One player's common/rare/legendary cards grouped together — `cards` holds

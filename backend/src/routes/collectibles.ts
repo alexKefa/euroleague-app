@@ -37,6 +37,36 @@ async function buildJerseyNumberLookup(): Promise<Map<string, number>> {
   return map;
 }
 
+// Same bulk-lookup shape as buildJerseyNumberLookup, for the card face's
+// single-stat badge (points per game) — one query for every player rather
+// than a per-card round trip. Prefers the current season's PPG, falling
+// back to the games-played-weighted career average (same weighting as
+// `/:id/stats`'s careerOut) when the current season has no rows yet — real
+// right now, mid a season transition with zero 2026-27 games played (see
+// CLAUDE.md's Season transition section), not just a defensive fallback.
+// A coach card never matches (coaches aren't in `players`) and just gets no
+// badge, same as jerseyNumber.
+async function buildPpgLookup(): Promise<Map<string, number>> {
+  const season = (await getCurrentSeason()) ?? "__none__";
+  const rows = await db.execute<{ team_id: string; name: string; ppg: number | null }>(sql`
+    select
+      p.team_id as team_id,
+      p.name as name,
+      coalesce(
+        (select pss.points_per_game from ${playerSeasonStats} pss where pss.player_id = p.id and pss.season = ${season} limit 1),
+        (select sum(pss2.points_per_game * pss2.games_played) / nullif(sum(pss2.games_played), 0)
+         from ${playerSeasonStats} pss2 where pss2.player_id = p.id)
+      ) as ppg
+    from ${players} p
+  `);
+  const map = new Map<string, number>();
+  for (const row of rows) {
+    if (row.ppg == null) continue;
+    map.set(`${row.team_id}|${normalizePlayerName(row.name)}`, Math.round(row.ppg * 10) / 10);
+  }
+  return map;
+}
+
 export const collectiblesRouter = Router();
 
 const TIERS = ["common", "rare", "legendary", "coach"] as const;
@@ -62,6 +92,7 @@ collectiblesRouter.get("/", async (_req, res) => {
       .from(collectibles)
       .innerJoin(teams, eq(collectibles.teamId, teams.id));
     const jerseyNumbers = await buildJerseyNumberLookup();
+    const ppgLookup = await buildPpgLookup();
 
     // "042/208" print numbering — a fixed rank within the card's own tier,
     // not stored (nothing about a card's identity actually depends on it,
@@ -91,6 +122,7 @@ collectiblesRouter.get("/", async (_req, res) => {
       serialNumber: serial.get(collectible.id)!.number,
       serialTotal: serial.get(collectible.id)!.total,
       jerseyNumber: jerseyNumbers.get(`${collectible.teamId}|${normalizePlayerName(collectible.name)}`) ?? null,
+      pointsPerGame: ppgLookup.get(`${collectible.teamId}|${normalizePlayerName(collectible.name)}`) ?? null,
       team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor, logoUrl: team.logoUrl },
     }));
 
@@ -179,6 +211,7 @@ collectiblesRouter.get("/browse", async (req, res) => {
       serial_total: number;
     }>;
     const jerseyNumbers = await buildJerseyNumberLookup();
+    const ppgLookup = await buildPpgLookup();
 
     // Rows are already ordered player-then-tier, so a single pass groups
     // them back into bundles without re-sorting.
@@ -190,12 +223,12 @@ collectiblesRouter.get("/browse", async (req, res) => {
     for (const row of rows) {
       const last = bundles[bundles.length - 1];
       if (last && last.name === row.name && last.team.id === row.team_id) {
-        last.cards.push(mapCardRow(row, jerseyNumbers));
+        last.cards.push(mapCardRow(row, jerseyNumbers, ppgLookup));
       } else {
         bundles.push({
           name: row.name,
           team: { id: row.team_id, code: row.team_code, name: row.team_name, primaryColor: row.team_primary_color, logoUrl: row.team_logo_url },
-          cards: [mapCardRow(row, jerseyNumbers)],
+          cards: [mapCardRow(row, jerseyNumbers, ppgLookup)],
         });
       }
     }
@@ -221,7 +254,8 @@ function mapCardRow(
     serial_number: number;
     serial_total: number;
   },
-  jerseyNumbers: Map<string, number>
+  jerseyNumbers: Map<string, number>,
+  ppgLookup: Map<string, number>
 ) {
   return {
     id: row.id,
@@ -233,6 +267,7 @@ function mapCardRow(
     serialNumber: row.serial_number,
     serialTotal: row.serial_total,
     jerseyNumber: jerseyNumbers.get(`${row.team_id}|${normalizePlayerName(row.name)}`) ?? null,
+    pointsPerGame: ppgLookup.get(`${row.team_id}|${normalizePlayerName(row.name)}`) ?? null,
   };
 }
 
