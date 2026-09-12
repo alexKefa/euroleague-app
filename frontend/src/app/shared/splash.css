@@ -192,14 +192,14 @@
    enough to fit on one line, nowrap makes that the guarantee rather than
    a coincidence. */
 .logo-mark {
-  /* viewBox is 460x130 ("Bracket" mark, 2026-09-12 — three bars forming
-     an open bracket beside real "Clutch" type, replacing the earlier
-     ring/swoosh/ball family, see app.component.html's comment). height
+  /* viewBox is 600x200 ("Pure Wordmark," 2026-09-12 — Archivo Black
+     "Clutch" plus a thin curved rule, no icon, replacing the earlier
+     bracket+ball family, see app.component.html's comment). height
      drives the clamp, width follows via aspect-ratio so the mark doesn't
      stretch. */
   height: clamp(46px, 13vw, 68px);
   width: auto;
-  aspect-ratio: 460 / 130;
+  aspect-ratio: 600 / 200;
   opacity: 0;
   transform: scale(0.7);
   animation: icon-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;

@@ -1600,6 +1600,32 @@ at the same Neon instance as local dev — there's no separate prod database.
     still doubles as a loose "C" frame around the ball, so both readings
     (bracket-as-letter, ball-as-basketball) still reinforce each other —
     just via a real ball now, not an ambiguous rectangle.
+  - **Flat fill wasn't enough either — needed real shading, not just
+    correct seams (2026-09-12, same day)**: getting the seam pattern
+    right didn't land the ball on its own — direct feedback on that
+    correctly-seamed-but-flat version, then on six follow-up variants
+    (a two-tone split, cream seams on a darker fill, a bare cross, thin
+    subtled-down seams, a plain dot) was "I dont like none of them."
+    Asked directly what the actual problem was rather than guessing a
+    7th variant blind: "every version looks too flat/cartoonish" — the
+    issue was never the seam geometry, it was that a flat vector fill
+    reads as an icon glyph, not an object. Fixed with real dimensional
+    shading, chosen from 3 shaded options (a plain gradient sphere; the
+    same gradient plus a glossy highlight and a drop shadow; a
+    warmer/browner "photographic" recolor) — the gradient+gloss+shadow
+    version was picked. `gBall*` (radial gradient, `#FFC49E` highlight to
+    `#8F2E12` shadow, light source upper-left same as the ball's own
+    highlight ellipse) replaces the old flat `#FF6B35` fill; `gloss*` is
+    a small white radial-gradient ellipse near the highlight corner for
+    the specular sheen; `shadow*` is a `feDropShadow` filter (offset
+    down-right, soft blur) grounding the sphere against the flat bracket
+    bars behind it. Seam stroke opacity/width bumped slightly (0.4→0.5,
+    same widths) so the seams still read clearly against the now-lit
+    surface instead of just the old flat fill. Verified directly that
+    `feDropShadow` rasterizes correctly through the same temporary-`sharp`
+    pipeline already used for the PWA icons, and that the shading still
+    reads at 72px (it does — the gradient's own contrast survives
+    downscaling better than a flat-fill-plus-thin-line would have).
   - **Two SVGs, not one**: a standalone square icon (bars + ball, on a
     dark rounded tile, `favicon-v6.svg`) for every icon-only surface, and
     a wider lockup (the same bars + ball, plus real "Clutch" `<text>`)
@@ -1636,6 +1662,94 @@ at the same Neon instance as local dev — there's no separate prod database.
     on every icon change" discipline documented earlier in this section
     is specifically about cache-busting a change real users have already
     seen, which didn't yet apply here.
+- **The entire bracket+ball family retired, replaced with "Pure Wordmark"
+  (2026-09-12, same day, after `v6` had already gone live)** — direct,
+  blunt feedback after the shaded-ball pass above shipped to production:
+  "I dont like it. Ball is too basic. I want a complete logo professional
+  designed... think of a more professional logo." Rather than iterate the
+  ball a 4th time, the actual pattern across every rejected round (flyer
+  swoosh, monogram badge, shield crest, shot-clock/buzzer variants,
+  bracket+backboard, six ball-style variants, three shaded-ball variants)
+  was named directly: every one of them tried to make a *tiny icon*
+  literally depict a basketball, which is genuinely hard to pull off at
+  favicon scale without looking like a stock-icon pictogram. Real
+  sports-media brands mostly don't try — ESPN, The Athletic, Bleacher
+  Report, DAZN all lead with a distinctive wordmark and skip a
+  pictorial icon almost entirely. That's the model this landed on.
+  - **Two directions shown, one picked outright**: "Pure Wordmark" ("Clutch"
+    in a distinctive display face, no icon at all) vs. "Wordmark + Rise
+    Mark" (same wordmark plus one abstract, non-literal accent icon — a
+    bold upward chevron, no ball, no letterform trick, for app-icon slots
+    that want more than a bare letter). **Pure Wordmark was chosen.**
+  - **Font swap, logo-scoped only**: switched from the app's regular UI
+    font (IBM Plex Sans, still used for every real Greek/English UI
+    string) to **Archivo Black** for the wordmark specifically — loaded
+    in `styles.css`'s existing single `@import` line alongside IBM Plex
+    Sans. Archivo Black has **no Greek glyphs at all**, which would
+    ordinarily disqualify it outright given this app's entire earlier
+    font saga (see the Frontend architecture section) — but the logo only
+    ever renders the literal Latin word "Clutch"/"C" (a proper noun,
+    never translated), so Greek coverage doesn't apply to it the way it
+    does to real UI copy. `styles.css` carries an explicit comment on this
+    distinction so it doesn't read as an oversight later.
+  - **Curved line, exact-width, per direct request**: "Add a simple
+    curved line below it... exactly below the word Clutch, not more." A
+    first cut estimated the curve's endpoints against Archivo Black's
+    presumed natural width and overshot. Fixed with `textLength="530"
+    lengthAdjust="spacingAndGlyphs"` on the `<text>` element — this forces
+    the text's *rendered* width to a known, exact value (unlike the old
+    mark's own comment warning against this same technique: that failure
+    was two independently-positioned elements — a line and a ball —
+    fighting an *unforced* text's unpredictable natural width; here only
+    one thing needs to match a known number, so forcing it is what
+    actually guarantees precision instead of undermining it). The curve
+    itself is thin and understated (`stroke-width="4.5"`), deliberately
+    not the thick dramatic swoosh from the very first rejected flyer-style
+    round.
+  - **The standalone app icon is a real font glyph, not a hand-drawn
+    approximation — extracted as a plain vector path so it has zero
+    runtime font dependency.** The obvious approach (an SVG `<text>C</text>`
+    in Archivo Black) breaks for the icon specifically: `favicon-v7.svg`
+    is rasterized into 8 PWA PNGs via a temporary local `sharp` install
+    (per the established precedent), and confirmed directly that Archivo
+    Black is **not** installed as a system font on this machine — `sharp`/
+    librsvg cannot fetch Google Fonts the way a browser does, so `<text>`
+    would have silently rasterized in a generic fallback font, visibly
+    mismatching the real browser-rendered wordmark everywhere else. Fixed
+    by fetching the actual variable-free static Archivo Black `.ttf` from
+    `fonts.gstatic.com` (confirmed first that embedding it as a base64
+    `@font-face` data-URI *does* render correctly through the same `sharp`
+    pipeline — a working but wasteful ~117KB-per-favicon approach), then
+    using `fontTools` (`pip install fonttools`, a one-off build-time tool,
+    never shipped) to extract the actual "C" glyph's outline as a plain
+    SVG path (`SVGPathPen`) in the font's own 1000-unit-per-em space. That
+    raw path — a few hundred bytes, zero font dependency, pixel-identical
+    everywhere it's used — replaces the icon content in `favicon-v7.svg`
+    (`translate(50 50) scale(0.09 -0.09) translate(-389 -344)` maps the
+    glyph's font-space bounding box, y-up, onto the icon's centered
+    100×100 tile, y-down) and in the Fantasy court background's
+    center-court decal (`shared/court-background.ts`, same path nested
+    inside the decal's existing faint/fixed-color transform group).
+    Verified at both 192px and 72px raster sizes before treating this as
+    done.
+  - **`v6` → `v7`, a real bump this time**: unlike the backboard-square
+    tweak earlier in this section (which stayed on `v6` because nothing
+    had shipped yet), the shaded-ball `v6` icon *had* already been
+    deployed to production and could be cached in a real visitor's
+    browser or home screen — so this pass follows the actual "bump on
+    every icon change a real user might have seen" discipline: new
+    `favicon-v7.svg` (both copies), new `icon-v7-*.png` (all 8 sizes, old
+    `v6` files deleted outright), and every reference updated
+    (`angular.json`, `index.html`, `manifest.webmanifest`,
+    `email.ts`'s `LOGO_URL`).
+  - **Every wordmark surface updated to drop the icon entirely**: the nav
+    bar, all four auth-page heroes, the splash screen
+    (`splash.html`/`splash.css` — `.logo-mark`'s `aspect-ratio` now
+    `600/200`, the new viewBox), the `/welcome` landing page, and
+    `public/qr-card.html` (which also swapped its own Google Fonts
+    `<link>` from `IBM+Plex+Sans:wght@800` — no longer used anywhere in
+    that file — to `Archivo+Black`). None of these render an icon glyph
+    inline any more; the wordmark SVG is the entire lockup.
 
 ## Album leaderboard (2026-09-06)
 

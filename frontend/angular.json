@@ -18,7 +18,7 @@
             "browser": "src/main.ts",
             "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
-            "assets": ["src/favicon-v6.svg", "src/assets", { "glob": "**/*", "input": "public" }],
+            "assets": ["src/favicon-v7.svg", "src/assets", { "glob": "**/*", "input": "public" }],
             "styles": ["src/styles.css"],
             "scripts": []
           },

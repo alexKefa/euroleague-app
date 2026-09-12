@@ -65,19 +65,18 @@ import { Component } from "@angular/core";
       </defs>
       <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#glassFloorGradient)" />
       <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#glassSheenGradient)" />
-      <!-- Center-court logo decal — the app's own standalone icon
-           ("Bracket", 2026-09-12: three straight bars forming an open
-           bracket with a backboard shooting-square nested inside, same
-           path data as favicon-v6.svg, replacing the retired
-           ring+curved-line+ball mark), faint and fixed-color like the
-           rest of this glass floor rather than theme-reactive, painted
-           over the floor but under the real court lines so the key/arc
-           strokes stay crisp on top of it. -->
+      <!-- Center-court logo decal — the app's own standalone icon (the
+           "C" mark, 2026-09-12: the real Archivo Black "C" glyph outline,
+           extracted once via fontTools so it's a plain vector path with
+           no runtime font dependency — same path data as favicon-v7.svg,
+           replacing the retired bracket+ball mark), faint and
+           fixed-color like the rest of this glass floor rather than
+           theme-reactive, painted over the floor but under the real
+           court lines so the key/arc strokes stay crisp on top of it. -->
       <g transform="translate(160 63) scale(1.7) translate(-49 -50)" opacity="0.16">
-        <rect x="24" y="22" width="12" height="56" rx="3" fill="#eef3f7" />
-        <rect x="32" y="22" width="42" height="12" rx="3" fill="#eef3f7" />
-        <rect x="32" y="66" width="42" height="12" rx="3" fill="#eef3f7" />
-        <circle cx="58" cy="50" r="15" fill="#eef3f7" />
+        <g transform="translate(50 50) scale(0.09 -0.09) translate(-389 -344)">
+          <path d="M733 405H522Q522 465 490.5 500.0Q459 535 401 535Q334 535 302.5 493.0Q271 451 271 376V312Q271 238 302.5 195.5Q334 153 399 153Q463 153 496.0 186.0Q529 219 529 279H733Q733 138 646.5 63.0Q560 -12 402 -12Q226 -12 135.5 78.0Q45 168 45 344Q45 520 135.5 610.0Q226 700 402 700Q555 700 644.0 623.5Q733 547 733 405Z" fill="#eef3f7" />
+        </g>
       </g>
       <path [attr.d]="courtOutlinePath" fill="none" class="stroke-muted" stroke-width="1.8" opacity="0.85" />
       <rect
