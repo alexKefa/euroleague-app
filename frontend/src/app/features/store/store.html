@@ -94,47 +94,65 @@
         }
       </div>
     } @else {
-      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        @for (bundle of bundles(); track bundleKey(bundle)) {
-          <div class="flex flex-col items-center gap-2">
-            <button
-              type="button"
-              (click)="openPreview(bundle)"
-              class="w-full rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-highlight"
-              [attr.aria-label]="i18n.t('store.previewPrefix') + ' ' + bundle.name"
-            >
-              <app-card-stack
-                [name]="bundle.name"
-                [tier]="frontCard(bundle).tier"
-                [teamCode]="bundle.team.code"
-                [teamColor]="bundle.team.primaryColor"
-                [imageUrl]="frontCard(bundle).imageUrl"
-                [unlocked]="isUnlocked(frontCard(bundle))"
-                [stackCount]="bundle.cards.length"
-                [jerseyNumber]="frontCard(bundle).jerseyNumber ?? null"
-                [pointsPerGame]="frontCard(bundle).pointsPerGame ?? null"
-              ></app-card-stack>
-            </button>
-
-            @if (unlockedCount(bundle) === bundle.cards.length) {
-              <span class="text-[12px] font-bold text-emerald-500">{{ i18n.t('store.unlocked') }}</span>
-            } @else if (unlockedCount(bundle) > 0) {
-              <span class="text-[12px] font-bold text-muted"
-                >{{ unlockedCount(bundle) }}/{{ bundle.cards.length }} {{ i18n.t('store.unlocked') }}</span
-              >
+      <!-- Grouped by team (2026-09-12 redesign, replacing one flat grid) —
+           a small crest+name divider before each team's own run of
+           bundles, relying on /browse's own team_name-ordered result (see
+           the comment on bundleGroups in store.ts) rather than a client
+           re-sort. -->
+      @for (group of bundleGroups(); track group.team.id) {
+        <div class="flex items-center gap-2 mb-3 mt-5 first:mt-0">
+          <span class="w-7 h-7 rounded-full bg-card flex items-center justify-center shrink-0" [style.border]="'2px solid ' + group.team.primaryColor">
+            @if (group.team.logoUrl) {
+              <img [src]="group.team.logoUrl" [alt]="group.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain team-logo" />
             } @else {
-              <span class="text-[12px] font-bold text-muted uppercase tracking-wide">{{ i18n.t('store.tapToView') }}</span>
+              <span class="font-display text-[8px]">{{ group.team.code | teamCode }}</span>
             }
-          </div>
-        } @empty {
-          <p class="text-sm text-muted col-span-full">
-            {{ !hasActiveFilters() ? i18n.t('store.emptyStore') : i18n.t('store.emptySearch') }}
-            @if (hasActiveFilters()) {
-              <button type="button" (click)="clearFilters()" class="text-highlight font-semibold">{{ i18n.t('store.clearFilters') }}</button>
-            }
-          </p>
-        }
-      </div>
+          </span>
+          <p class="text-[13px] font-bold truncate">{{ group.team.name }}</p>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          @for (bundle of group.bundles; track bundleKey(bundle)) {
+            <div class="flex flex-col items-center gap-2">
+              <button
+                type="button"
+                (click)="openPreview(bundle)"
+                class="w-full rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-highlight"
+                [attr.aria-label]="i18n.t('store.previewPrefix') + ' ' + bundle.name"
+              >
+                <app-card-stack
+                  [name]="bundle.name"
+                  [tier]="frontCard(bundle).tier"
+                  [teamCode]="bundle.team.code"
+                  [teamColor]="bundle.team.primaryColor"
+                  [imageUrl]="frontCard(bundle).imageUrl"
+                  [unlocked]="isUnlocked(frontCard(bundle))"
+                  [stackCount]="bundle.cards.length"
+                  [jerseyNumber]="frontCard(bundle).jerseyNumber ?? null"
+                  [pointsPerGame]="frontCard(bundle).pointsPerGame ?? null"
+                ></app-card-stack>
+              </button>
+
+              @if (unlockedCount(bundle) === bundle.cards.length) {
+                <span class="text-[12px] font-bold text-emerald-500">{{ i18n.t('store.unlocked') }}</span>
+              } @else if (unlockedCount(bundle) > 0) {
+                <span class="text-[12px] font-bold text-muted"
+                  >{{ unlockedCount(bundle) }}/{{ bundle.cards.length }} {{ i18n.t('store.unlocked') }}</span
+                >
+              } @else {
+                <span class="text-[12px] font-bold text-muted uppercase tracking-wide">{{ i18n.t('store.tapToView') }}</span>
+              }
+            </div>
+          }
+        </div>
+      } @empty {
+        <p class="text-sm text-muted">
+          {{ !hasActiveFilters() ? i18n.t('store.emptyStore') : i18n.t('store.emptySearch') }}
+          @if (hasActiveFilters()) {
+            <button type="button" (click)="clearFilters()" class="text-highlight font-semibold">{{ i18n.t('store.clearFilters') }}</button>
+          }
+        </p>
+      }
     }
 
     @if (loadingMore()) {
