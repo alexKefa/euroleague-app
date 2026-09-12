@@ -107,8 +107,15 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.nextRound": { en: "Next round", el: "Επόμενη αγωνιστική" },
   "fantasy.pastRound": { en: "Past round", el: "Παλιότερη αγωνιστική" },
   "fantasy.pointsLabel": { en: "Points", el: "Πόντοι" },
-  "fantasy.pirTotalLabel": { en: "PIR total", el: "Σύνολο PIR" },
-  "fantasy.creditsChangeLabel": { en: "Credits (cr)", el: "Credits (cr)" },
+  "fantasy.creditsChangeLabel": { en: "Credits (CR)", el: "Credits (CR)" },
+  // Same "stays English in both locales" precedent as posGuard/homeAbbrev
+  // above — a currency-style abbreviation, not a translatable word.
+  "fantasy.creditsAbbrev": { en: "CR", el: "CR" },
+  // Shown next to a player/coach's price while picking (2026-09-12) — the
+  // budget line in the status bar shows spent/cap, but neither picker
+  // screen previously surfaced "how much do I actually have left to
+  // spend" at the moment it matters most.
+  "fantasy.creditsAvailable": { en: "available", el: "διαθέσιμα" },
   "fantasy.transfersLabel": { en: "Transfers", el: "Μεταγραφές" },
   "fantasy.roundCompleteTitle": { en: "Round complete!", el: "Η αγωνιστική ολοκληρώθηκε!" },
   "fantasy.rulesButton": { en: "How points work", el: "Πώς μετράνε οι πόντοι" },

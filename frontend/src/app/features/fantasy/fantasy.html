@@ -7,20 +7,24 @@
     </button>
   </div>
 
-  <div class="flex gap-2 mb-5">
+  <!-- Segmented control (2026-09-12, matching the dashboard's/album's/
+       predictions' tab switchers) — one joined tonal track instead of two
+       separate solid pill buttons, for consistency with the rest of the
+       app's tab switches. -->
+  <div class="flex gap-1 mb-5 bg-page rounded-2xl p-1">
     <button
       type="button"
       (click)="setTab('roster')"
-      class="px-4 py-2 rounded-xl text-sm font-bold transition-colors"
-      [ngClass]="tab() === 'roster' ? 'bg-highlight text-page' : 'bg-card border-2 border-line text-muted'"
+      class="flex-1 px-4 py-2 rounded-xl text-sm font-bold transition-colors"
+      [ngClass]="tab() === 'roster' ? 'bg-ink text-page' : 'text-muted hover:text-ink'"
     >
       {{ i18n.t('fantasy.rosterTab') }}
     </button>
     <button
       type="button"
       (click)="setTab('leaderboard')"
-      class="px-4 py-2 rounded-xl text-sm font-bold transition-colors"
-      [ngClass]="tab() === 'leaderboard' ? 'bg-highlight text-page' : 'bg-card border-2 border-line text-muted'"
+      class="flex-1 px-4 py-2 rounded-xl text-sm font-bold transition-colors"
+      [ngClass]="tab() === 'leaderboard' ? 'bg-ink text-page' : 'text-muted hover:text-ink'"
     >
       {{ i18n.t('fantasy.leaderboardTab') }}
     </button>
@@ -165,11 +169,15 @@
         </div>
       </ng-template>
 
-      <!-- Status bar: round navigation, points/PIR review, lock, budget,
-           position quota + transfers, fixtures. -->
+      <!-- Status bar (2026-09-12 "Scoreboard Strip" redesign) — replaces
+           four stacked rows of small same-weight mono pills with a real
+           hierarchy: round/live up top, budget as an actual progress bar
+           (the one number that can block Save), a single quiet stat row
+           for everything else, then one bordered action row for
+           formation/captain/save. -->
       <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div class="flex items-center gap-1">
+        <div class="flex items-center justify-between gap-2 mb-3">
+          <div class="flex items-center gap-1.5">
             <button
               type="button"
               (click)="viewPreviousRound()"
@@ -177,7 +185,7 @@
               [attr.aria-label]="i18n.t('fantasy.previousRound')"
               class="w-6 h-6 rounded-full flex items-center justify-center text-muted hover:text-highlight disabled:opacity-30 disabled:hover:text-muted transition-colors"
             >&#8249;</button>
-            <p class="text-sm font-semibold">{{ i18n.t('fantasy.round') }} {{ round() }}</p>
+            <p class="text-sm font-bold">{{ i18n.t('fantasy.round') }} {{ round() }}</p>
             <button
               type="button"
               (click)="viewNextRound()"
@@ -188,77 +196,81 @@
             @if (!isCurrentRound()) {
               <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-page text-muted">{{ i18n.t('fantasy.pastRound') }}</span>
             }
-            @if (hasLiveGameThisRound()) {
-              <button
-                type="button"
-                (click)="showFixtures.set(true)"
-                class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-red-500/15 text-red-500 hover:bg-red-500/25 transition-colors"
-              >
-                <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-                {{ i18n.t('fantasy.liveNow') }}
-              </button>
-            }
           </div>
-          <div class="flex items-center gap-3">
-            @if (isCurrentRound()) {
-              <p class="font-mono text-sm font-bold" [ngClass]="overBudget() ? 'text-red-500' : 'text-highlight'">
-                {{ totalCost() | number: '1.1-1' }} / {{ budgetCap() | number: '1.1-1' }} {{ i18n.t('fantasy.budgetLabel') }}
-              </p>
-            }
-            @if (fixtureGames().length > 0) {
-              <button type="button" (click)="showFixtures.set(true)" appButton="outline" appButtonSize="sm">
-                {{ i18n.t('fantasy.fixturesButton') }}
-              </button>
-            }
-          </div>
-        </div>
-
-        <!-- Points/PIR review for whichever round is being viewed — kept
-             fresh via refreshRoundSummary as this round's games go final,
-             not just on navigation (see liveUpdatesEffect in fantasy.ts). -->
-        <div class="flex items-center gap-4 mt-2 pt-2 border-t border-line/60">
-          <p class="text-[11px] font-mono">
-            <span class="text-muted">{{ i18n.t('fantasy.pointsLabel') }}</span>
-            <span class="font-bold ml-1" [ngClass]="roundComplete() ? 'text-highlight' : 'text-ink'">{{ totalPoints() | number: '1.0-1' }}</span>
-          </p>
-          <p class="text-[11px] font-mono">
-            <span class="text-muted">{{ i18n.t('fantasy.pirTotalLabel') }}</span>
-            <span class="font-bold ml-1" [ngClass]="roundComplete() ? 'text-highlight' : 'text-ink'">{{ totalPir() | number: '1.0-1' }}</span>
-          </p>
+          <!-- else-if, not two independent @ifs — both used to be able to
+               render at once (a live game AND the "Fixtures" button doing
+               the exact same thing), which was its own bit of clutter. -->
+          @if (hasLiveGameThisRound()) {
+            <button
+              type="button"
+              (click)="showFixtures.set(true)"
+              class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-red-500/15 text-red-500 hover:bg-red-500/25 transition-colors"
+            >
+              <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+              {{ i18n.t('fantasy.liveNow') }}
+            </button>
+          } @else if (fixtureGames().length > 0) {
+            <button type="button" (click)="showFixtures.set(true)" appButton="outline" appButtonSize="sm">
+              {{ i18n.t('fantasy.fixturesButton') }}
+            </button>
+          }
         </div>
 
         @if (isCurrentRound()) {
-          <div class="flex flex-wrap items-center gap-3 mt-2">
-            <span class="text-[11px] font-mono" [ngClass]="positionCounts().Guard === positionQuota.Guard ? 'text-highlight' : 'text-muted'">
-              {{ i18n.t('fantasy.posGuard') }} {{ positionCounts().Guard }}/{{ positionQuota.Guard }}
-            </span>
-            <span class="text-[11px] font-mono" [ngClass]="positionCounts().Forward === positionQuota.Forward ? 'text-highlight' : 'text-muted'">
-              {{ i18n.t('fantasy.posForward') }} {{ positionCounts().Forward }}/{{ positionQuota.Forward }}
-            </span>
-            <span class="text-[11px] font-mono" [ngClass]="positionCounts().Center === positionQuota.Center ? 'text-highlight' : 'text-muted'">
-              {{ i18n.t('fantasy.posCenter') }} {{ positionCounts().Center }}/{{ positionQuota.Center }}
-            </span>
-            @if (transfersAllowed(); as allowed) {
-              <span class="text-[11px] font-mono" [ngClass]="localTransfersUsed() >= allowed ? 'text-red-500' : 'text-muted'">
-                {{ i18n.t('fantasy.transfersLabel') }} {{ localTransfersUsed() }}/{{ allowed }}
+          <div class="mb-3">
+            <div class="flex items-baseline justify-between mb-1.5">
+              <span class="text-[10px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('fantasy.budgetLabel') }}</span>
+              <span class="font-mono text-sm font-bold" [ngClass]="overBudget() ? 'text-red-500' : 'text-highlight'">
+                {{ totalCost() | number: '1.1-1' }}<span class="text-muted font-semibold"> / {{ budgetCap() | number: '1.1-1' }} {{ i18n.t('fantasy.creditsAbbrev') }}</span>
               </span>
-            }
+            </div>
+            <div class="h-1.5 rounded-full bg-page overflow-hidden">
+              <div class="h-full rounded-full transition-[width]" [ngClass]="overBudget() ? 'bg-red-500' : 'bg-highlight'" [style.width.%]="budgetBarPct()"></div>
+            </div>
           </div>
+        }
 
-          <!-- Formation/captain/save — used to float above the court with no
-               container of its own, visually disconnected from this card
-               even though it's the same "current roster" status the rest of
-               this card already shows (budget, quota, lock). Moved in here
-               (2026-09-10) as its own section, divided by a border-t like
-               the points/PIR section above, so budget/quota/lock/formation/
-               captain/save all read as one panel instead of a card plus a
-               loose row of buttons floating above the court. -->
-          <div class="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-line/60">
+        <!-- Points/quota/transfers — one quiet stat row instead of two
+             separate rows of mono label-value pairs. flex-1 lets it adapt
+             automatically to however many of these actually apply (a past
+             round shows only points). Raw PIR total dropped (2026-09-12,
+             "no one cares about total PIR, this is a mini-game with its
+             own points, not complete stats") — Points is the number that
+             actually counts, and PIR duplicated it at a different weighting
+             for no real benefit; a player's own PIR still shows on the
+             court avatar and in the pool/picker sort, where it's a useful
+             per-player signal, not an aggregate nobody asked for. -->
+        <div class="flex gap-2 mb-3">
+          <div class="flex-1 bg-page rounded-xl p-2 text-center min-w-0">
+            <p class="text-sm font-bold truncate" [ngClass]="roundComplete() ? 'text-highlight' : 'text-ink'">{{ totalPoints() | number: '1.0-1' }}</p>
+            <p class="text-[8px] font-bold text-muted uppercase tracking-wider mt-0.5">{{ i18n.t('fantasy.pointsLabel') }}</p>
+          </div>
+          @if (isCurrentRound()) {
+            <div class="flex-1 bg-page rounded-xl p-2 text-center min-w-0">
+              <p class="text-sm font-bold truncate" [ngClass]="positionQuotaMet() ? 'text-emerald-500' : 'text-ink'">
+                {{ positionCounts().Guard }}/{{ positionQuota.Guard }} {{ positionCounts().Forward }}/{{ positionQuota.Forward }} {{ positionCounts().Center }}/{{ positionQuota.Center }}
+              </p>
+              <p class="text-[8px] font-bold text-muted uppercase tracking-wider mt-0.5">{{ i18n.t('fantasy.posGuardAbbrev') }}&middot;{{ i18n.t('fantasy.posForwardAbbrev') }}&middot;{{ i18n.t('fantasy.posCenterAbbrev') }}</p>
+            </div>
+            @if (transfersAllowed(); as allowed) {
+              <div class="flex-1 bg-page rounded-xl p-2 text-center min-w-0">
+                <p class="text-sm font-bold truncate" [ngClass]="localTransfersUsed() >= allowed ? 'text-red-500' : 'text-ink'">{{ localTransfersUsed() }}/{{ allowed }}</p>
+                <p class="text-[8px] font-bold text-muted uppercase tracking-wider mt-0.5">{{ i18n.t('fantasy.transfersLabel') }}</p>
+              </div>
+            }
+          }
+        </div>
+
+        @if (isCurrentRound()) {
+          <!-- Formation/captain/save — one bordered action row, divided
+               from the stats above by a border-t so it reads as "the
+               thing you do" vs. "the things you're told". -->
+          <div class="flex flex-wrap items-center gap-2 pt-3 border-t border-line/60">
             <button
               type="button"
               (click)="showFormationPicker.set(true)"
               [disabled]="roundLocked()"
-              class="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-page border border-line text-ink hover:border-highlight disabled:opacity-40 disabled:hover:border-line disabled:cursor-not-allowed transition-colors"
+              class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-mono font-bold bg-page border border-line text-ink hover:border-highlight disabled:opacity-40 disabled:hover:border-line disabled:cursor-not-allowed transition-colors"
             >
               {{ formation() }}
               <span class="text-muted text-[9px]">&#9662;</span>
@@ -269,7 +281,7 @@
               type="button"
               (click)="showCaptainPicker.set(true)"
               [disabled]="roundLocked()"
-              class="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-page border border-line text-ink hover:border-highlight disabled:opacity-40 disabled:hover:border-line disabled:cursor-not-allowed transition-colors"
+              class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-mono font-bold bg-page border border-line text-ink hover:border-highlight disabled:opacity-40 disabled:hover:border-line disabled:cursor-not-allowed transition-colors"
             >
               @if (captainRow(); as cap) {
                 <span class="w-4 h-4 rounded-full bg-highlight text-page flex items-center justify-center text-[9px] font-bold shrink-0">C</span>
@@ -325,7 +337,7 @@
           <!-- Read-only history view — no formation/captain dialogs, no save
                button, since roundLocked() already blocks every underlying
                edit action for a past round anyway. -->
-          <div class="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-line/60">
+          <div class="flex flex-wrap items-center gap-2 pt-3 border-t border-line/60">
             <span class="px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-page border border-line text-muted">{{ formation() }}</span>
             @if (captainRow(); as cap) {
               <span class="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-page border border-line text-muted">
@@ -436,7 +448,7 @@
                         }
                       </div>
                       <span class="text-[10px] font-semibold text-center truncate max-w-[80px]">{{ coach.headCoach ?? coach.team.name }}</span>
-                      <span class="font-mono text-[11px] font-bold text-highlight">{{ coach.price | number: '1.1-1' }}</span>
+                      <span class="font-mono text-[11px] font-bold text-highlight">{{ coach.price | number: '1.1-1' }} {{ i18n.t('fantasy.creditsAbbrev') }}</span>
                     } @else {
                       <div class="rounded-full border-2 border-dashed border-ink flex items-center justify-center text-muted text-xl w-[48px] h-[48px] hover:border-highlight hover:text-highlight transition-colors">+</div>
                       <span class="text-[8px] font-bold uppercase tracking-wide text-muted mt-0.5">{{ i18n.t('fantasy.coachLabel') }}</span>
@@ -513,6 +525,14 @@
               </div>
             </div>
 
+            <!-- Remaining budget (2026-09-12) — this is the moment a "how
+                 much do I actually have left" number matters most, not just
+                 the spent/cap fraction in the status bar above the court. -->
+            <div class="flex items-baseline justify-center gap-1 bg-highlight/10 border border-highlight/25 rounded-xl px-2 py-1.5">
+              <span class="font-mono text-sm font-bold" [ngClass]="overBudget() ? 'text-red-500' : 'text-highlight'">{{ remainingBudget() | number: '1.1-1' }} {{ i18n.t('fantasy.creditsAbbrev') }}</span>
+              <span class="text-[10px] font-bold text-muted uppercase tracking-wide">{{ i18n.t('fantasy.creditsAvailable') }}</span>
+            </div>
+
             <div class="flex items-center justify-around bg-card rounded-xl border border-line px-1 py-1">
               <button type="button" (click)="setSort('price')" class="flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wide" [ngClass]="sortKey() === 'price' ? 'text-highlight' : 'text-muted'">
                 {{ i18n.t('fantasy.colPrice') }}
@@ -571,7 +591,7 @@
                     [attr.aria-label]="i18n.t('fantasy.selectPlayer') + ': ' + row.player.name"
                     class="shrink-0 font-mono text-[13px] font-bold text-highlight border border-highlight/30 rounded-lg px-2.5 py-1.5 min-w-[46px] text-center hover:bg-highlight hover:text-page transition-colors disabled:hover:bg-transparent disabled:hover:text-highlight disabled:cursor-not-allowed cursor-pointer"
                   >
-                    {{ row.price | number: '1.1-1' }}
+                    {{ row.price | number: '1.1-1' }} <span class="text-[9px]">{{ i18n.t('fantasy.creditsAbbrev') }}</span>
                   </button>
                 </div>
               } @empty {
@@ -591,8 +611,8 @@
       <button
         type="button"
         (click)="selectLeague(null)"
-        class="px-3 py-1.5 rounded-xl text-xs font-bold"
-        [ngClass]="!selectedLeagueId() ? 'bg-highlight text-page' : 'bg-card border-2 border-line text-muted'"
+        class="px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors"
+        [ngClass]="!selectedLeagueId() ? 'bg-highlight/10 border-highlight/30 text-highlight' : 'bg-card border-line text-muted'"
       >
         {{ i18n.t('fantasy.globalBoard') }}
       </button>
@@ -772,7 +792,15 @@
               <p class="text-xs text-muted">{{ posLabel(pos) }} {{ i18n.t('fantasy.pickerPositionHint') }}</p>
             }
           </div>
-          <button type="button" (click)="closePicker()" class="text-muted hover:text-ink text-2xl leading-none font-bold shrink-0">&times;</button>
+          <div class="flex items-center gap-3 shrink-0">
+            <!-- Remaining budget (2026-09-12) — visible right here, not just
+                 as the spent/cap fraction in the status bar behind this
+                 popup, since this is the screen where it actually matters. -->
+            <span class="font-mono text-xs font-bold" [ngClass]="overBudget() ? 'text-red-500' : 'text-highlight'"
+              >{{ remainingBudget() | number: '1.1-1' }} {{ i18n.t('fantasy.creditsAbbrev') }} <span class="text-muted font-semibold">{{ i18n.t('fantasy.creditsAvailable') }}</span></span
+            >
+            <button type="button" (click)="closePicker()" class="text-muted hover:text-ink text-2xl leading-none font-bold">&times;</button>
+          </div>
         </div>
 
         <div class="flex flex-col gap-2 p-3 border-b border-line shrink-0">
@@ -848,7 +876,7 @@
                 </p>
               </div>
               <span class="shrink-0 font-mono text-[13px] font-bold text-highlight border border-highlight/30 rounded-lg px-2.5 py-1.5 min-w-[46px] text-center">
-                {{ row.price | number: '1.1-1' }}
+                {{ row.price | number: '1.1-1' }} <span class="text-[9px]">{{ i18n.t('fantasy.creditsAbbrev') }}</span>
               </span>
             </button>
           } @empty {
@@ -875,14 +903,22 @@
       >
         <div class="flex items-center justify-between gap-2 p-4 border-b border-line shrink-0">
           <p class="font-display text-lg tracking-wide">{{ i18n.t('fantasy.coachLabel') }}</p>
-          <button type="button" (click)="closeCoachPicker()" class="text-muted hover:text-ink text-2xl leading-none font-bold shrink-0">&times;</button>
+          <div class="flex items-center gap-3 shrink-0">
+            <!-- Coach shares the same budget pool as players (see
+                 totalCost()), so the same remaining-budget line applies
+                 here too. -->
+            <span class="font-mono text-xs font-bold" [ngClass]="overBudget() ? 'text-red-500' : 'text-highlight'"
+              >{{ remainingBudget() | number: '1.1-1' }} {{ i18n.t('fantasy.creditsAbbrev') }} <span class="text-muted font-semibold">{{ i18n.t('fantasy.creditsAvailable') }}</span></span
+            >
+            <button type="button" (click)="closeCoachPicker()" class="text-muted hover:text-ink text-2xl leading-none font-bold">&times;</button>
+          </div>
         </div>
         <div class="flex-1 min-h-0 overflow-y-auto p-2.5 flex flex-col gap-1.5">
           @for (row of coaches(); track row.team.id) {
             <button
               type="button"
               (click)="pickCoach(row.team.id)"
-              [disabled]="coachLocked() && coachTeamId() !== row.team.id"
+              [disabled]="(coachLocked() && coachTeamId() !== row.team.id) || !canAffordCoach(row.team.id, row.price)"
               class="fantasy-row-in w-full flex items-center gap-2 rounded-lg border p-2 transition-colors text-left disabled:opacity-40"
               [ngClass]="coachTeamId() === row.team.id ? 'border-highlight bg-highlight/10' : 'border-line bg-page hover:border-highlight'"
             >
@@ -892,7 +928,7 @@
                 <p class="text-[10px] font-mono text-muted truncate leading-tight">{{ row.team.name }}</p>
               </div>
               <span class="shrink-0 font-mono text-[13px] font-bold text-highlight border border-highlight/30 rounded-lg px-2.5 py-1.5 min-w-[46px] text-center">
-                {{ row.price | number: '1.1-1' }}
+                {{ row.price | number: '1.1-1' }} <span class="text-[9px]">{{ i18n.t('fantasy.creditsAbbrev') }}</span>
               </span>
             </button>
           }
@@ -1165,10 +1201,6 @@
           <div>
             <p class="font-mono text-3xl font-bold text-highlight">{{ totalPoints() | number: '1.0-1' }}</p>
             <p class="text-[10px] text-muted uppercase tracking-wide mt-1">{{ i18n.t('fantasy.pointsLabel') }}</p>
-          </div>
-          <div>
-            <p class="font-mono text-3xl font-bold text-ink">{{ totalPir() | number: '1.0-1' }}</p>
-            <p class="text-[10px] text-muted uppercase tracking-wide mt-1">{{ i18n.t('fantasy.pirTotalLabel') }}</p>
           </div>
           <!-- Credit value gained/lost this round (2026-09-10) — each squad/
                coach pick's current price vs. what it was priced at when
