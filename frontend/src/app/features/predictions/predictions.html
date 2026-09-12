@@ -183,11 +183,25 @@
         <div class="flex items-center justify-between gap-2 mb-3">
           <p class="text-[13px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('predictions.myPicks') }}</p>
           @if (auth.isAuthenticated()) {
-            <div class="flex gap-1.5 shrink-0">
-              <button type="button" [appChip]="picksTab() === 'winLoss'" (click)="picksTab.set('winLoss')">
+            <!-- Segmented control (2026-09-12, matching the dashboard's and
+                 album's tab switchers) — one joined tonal track instead of
+                 two separate appChip pills, so this page's own tab switch
+                 reads consistently with the rest of the app. -->
+            <div class="flex gap-1 shrink-0 bg-page rounded-xl p-1">
+              <button
+                type="button"
+                (click)="picksTab.set('winLoss')"
+                class="px-3 py-1.5 rounded-lg font-mono text-[11px] font-bold whitespace-nowrap transition-colors"
+                [ngClass]="picksTab() === 'winLoss' ? 'bg-ink text-page' : 'text-muted hover:text-ink'"
+              >
                 {{ i18n.t('predictions.tabWinLoss') }}
               </button>
-              <button type="button" [appChip]="picksTab() === 'topScorer'" (click)="picksTab.set('topScorer')">
+              <button
+                type="button"
+                (click)="picksTab.set('topScorer')"
+                class="px-3 py-1.5 rounded-lg font-mono text-[11px] font-bold whitespace-nowrap transition-colors"
+                [ngClass]="picksTab() === 'topScorer' ? 'bg-ink text-page' : 'text-muted hover:text-ink'"
+              >
                 {{ i18n.t('predictions.tabTopScorer') }}
               </button>
             </div>
