@@ -17,26 +17,11 @@
   }
 
   @if (!loading() && !error()) {
-    <!-- Tour entry point lives in its own row above everything, not tucked
-         into a corner of the hero — "glanceable widgets" broke the old
-         single hero card into several small tiles below, so there's no
-         longer one obvious card to overlay a button on, and a standalone
-         row sidesteps the old mobile tap-target-overlap workaround
-         entirely (nothing sits underneath it to overlap). Shown
-         regardless of whether a favorite-team hero renders below (a guest
-         with no team still gets the tour). -->
-    <div class="flex justify-end mb-4">
-      <button
-        type="button"
-        (click)="tour.start()"
-        appButton="outline"
-        [attr.aria-label]="i18n.t('tour.takeTour')"
-        [title]="i18n.t('tour.takeTour')"
-        class="!p-2.5"
-      >
-        <app-nav-icon name="compass" [size]="20" />
-      </button>
-    </div>
+    <!-- Tour entry point moved to the app-wide top bar (2026-09-12) — it's a
+         cross-page walkthrough, not a dashboard-specific one, and having its
+         own full-width row here gave it more visual priority than the
+         team hero/next-game content a returning visitor actually opens
+         this page for. See app.component.html for the new home. -->
 
     @if (selectedRow(); as row) {
       <!-- Identity widget — compact, tappable, just team + rank context.
@@ -61,43 +46,36 @@
         <span class="text-muted text-sm font-bold group-hover:translate-x-0.5 transition-transform shrink-0">&rsaquo;</span>
       </a>
 
-      <!-- Record / rank / PPG / form / next game — small glanceable
-           widgets. flex, not grid: a fixed-column grid keeps its column
-           tracks the same width no matter how many tiles actually land in
-           a row, so an incomplete row (PPG or form hidden, or a wrapped
-           mobile row with an odd tile out) just leaves an empty gap
-           instead of the remaining tiles filling the space. flex-grow
-           redistributes whatever's left in each wrapped line
-           automatically, so any row — 2, 3, 4 or 5 tiles — always splits
-           evenly across the full width. Mobile forces a ~2-up wrap via a
-           45% basis; sm+ drops the basis to 0 so however many tiles are
-           present that day share one full-width row equally. Each tile
-           stays conditional exactly like the old hero's own stat pills
-           did (PPG only when known, form only once there are recent
-           games, next game only once one's scheduled). -->
-      <div class="flex flex-wrap gap-3 mb-4">
-        <div class="flex-[1_1_45%] sm:flex-[1_1_0%] rounded-3xl p-4 bg-card border border-line shadow-card">
-          <p class="font-mono text-[10.5px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('dashboard.record') }}</p>
-          <p class="font-display text-2xl mt-1.5">{{ row.stats.wins }}-{{ row.stats.losses }}</p>
+      <!-- Record / rank / PPG / form — Material-3-style "assist chips" in a
+           single horizontally-scrolling row (2026-09-12 redesign), replacing
+           the old flex-wrap grid of full tiles. Next game moved out into its
+           own featured card below — it carries a CTA (tap through to the
+           game), which never fit this row's compact chip shape. Each chip
+           stays conditional exactly like the old tiles did (PPG only when
+           known, form only once there are recent games). -->
+      <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1 mb-4">
+        <div class="shrink-0 flex items-center gap-1.5 rounded-full pl-3.5 pr-4 py-2 bg-card border border-line">
+          <span class="font-mono text-[9px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('dashboard.record') }}</span>
+          <span class="font-display text-[13px] font-bold">{{ row.stats.wins }}-{{ row.stats.losses }}</span>
         </div>
-        <div class="flex-[1_1_45%] sm:flex-[1_1_0%] rounded-3xl p-4 bg-card border border-line shadow-card">
-          <p class="font-mono text-[10.5px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('dashboard.rank') }}</p>
-          <p class="font-display text-2xl mt-1.5" [style.color]="'var(--accent-primary)'">#{{ row.position }}</p>
+        <div class="shrink-0 flex items-center gap-1.5 rounded-full pl-3.5 pr-4 py-2 bg-highlight/10 border border-highlight/30">
+          <span class="font-mono text-[9px] font-bold text-highlight uppercase tracking-wider">{{ i18n.t('dashboard.rank') }}</span>
+          <span class="font-display text-[13px] font-bold text-highlight">#{{ row.position }}</span>
         </div>
         @if (row.stats.ppg !== null) {
-          <div class="flex-[1_1_45%] sm:flex-[1_1_0%] rounded-3xl p-4 bg-card border border-line shadow-card">
-            <p class="font-mono text-[10.5px] font-bold text-muted uppercase tracking-wider">PPG</p>
-            <p class="font-display text-2xl mt-1.5">{{ row.stats.ppg | number: "1.1-1" }}</p>
+          <div class="shrink-0 flex items-center gap-1.5 rounded-full pl-3.5 pr-4 py-2 bg-card border border-line">
+            <span class="font-mono text-[9px] font-bold text-muted uppercase tracking-wider">PPG</span>
+            <span class="font-display text-[13px] font-bold">{{ row.stats.ppg | number: "1.1-1" }}</span>
           </div>
         }
         @if (recentGames().length > 0) {
-          <div class="flex-[1_1_45%] sm:flex-[1_1_0%] rounded-3xl p-4 bg-card border border-line shadow-card">
-            <p class="font-mono text-[10.5px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('dashboard.form') }}</p>
-            <div class="flex gap-1.5 mt-2">
+          <div class="shrink-0 flex items-center gap-1.5 rounded-full pl-3.5 pr-4 py-2 bg-card border border-line">
+            <span class="font-mono text-[9px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('dashboard.form') }}</span>
+            <div class="flex gap-1">
               @for (g of recentGames(); track g.id) {
                 @if (teamResult(g); as result) {
                   <span
-                    class="w-5 h-5 rounded-full flex items-center justify-center font-mono text-[10px] font-bold text-white"
+                    class="w-4 h-4 rounded-full flex items-center justify-center font-mono text-[8px] font-bold text-white"
                     [class]="result === 'W' ? 'bg-emerald-600' : 'bg-red-500/75'"
                     >{{ resultLabel(result) }}</span
                   >
@@ -106,31 +84,39 @@
             </div>
           </div>
         }
-        @if (nextGame(); as game) {
-          <div class="flex-[1_1_45%] sm:flex-[1_1_0%] rounded-3xl p-4 bg-card border border-line shadow-card">
-            <p class="font-mono text-[10.5px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('dashboard.next') }}</p>
-            <div class="flex items-center gap-1.5 mt-1.5 min-w-0">
-              @if (opponentTeam(game).logoUrl) {
-                <img
-                  [src]="opponentTeam(game).logoUrl"
-                  [alt]="opponentTeam(game).name"
-                  loading="lazy"
-                  decoding="async"
-                  appRetryImg
-                  class="w-5 h-5 object-contain team-logo shrink-0"
-                />
-              } @else {
-                <span class="w-5 h-5 rounded-full shrink-0" [style.background]="opponentTeam(game).primaryColor"></span>
-              }
-              <span class="font-display text-sm truncate">
-                {{ isHomeGame(game) ? "vs" : "@" }}
-                <span [style.color]="'var(--accent-primary)'">{{ opponentCode(game) | teamCode }}</span>
-              </span>
-            </div>
-            <p class="font-mono text-[11px] text-muted mt-1 truncate">{{ game.tipoffAt | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}</p>
-          </div>
-        }
       </div>
+
+      <!-- Next game — featured card, tonal (team-color-tinted) background,
+           tapping through to the game itself instead of just displaying it. -->
+      @if (nextGame(); as game) {
+        <a
+          [routerLink]="['/games', game.id]"
+          class="relative block rounded-3xl p-4 mb-4 border border-line shadow-card overflow-hidden group"
+          [style.background]="'radial-gradient(120% 140% at 15% 0%, color-mix(in srgb, var(--accent-primary) 20%, transparent) 0%, var(--color-card) 65%)'"
+        >
+          <p class="font-mono text-[10.5px] font-bold text-muted uppercase tracking-wider mb-3">
+            {{ i18n.t('dashboard.next') }} &middot; {{ game.tipoffAt | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}
+          </p>
+          <div class="flex items-center justify-center gap-4">
+            <span class="w-11 h-11 rounded-full flex items-center justify-center bg-page shrink-0" [style.border]="'2px solid var(--accent-primary)'">
+              @if (row.team.logoUrl) {
+                <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-6 h-6 object-contain team-logo" />
+              } @else {
+                <span class="font-display text-[11px]">{{ row.team.code | teamCode }}</span>
+              }
+            </span>
+            <span class="font-display text-xs font-bold text-muted">{{ isHomeGame(game) ? "vs" : "@" }}</span>
+            <span class="w-11 h-11 rounded-full flex items-center justify-center bg-page shrink-0" [style.border]="'2px solid ' + opponentTeam(game).primaryColor">
+              @if (opponentTeam(game).logoUrl) {
+                <img [src]="opponentTeam(game).logoUrl" [alt]="opponentTeam(game).name" loading="lazy" decoding="async" appRetryImg class="w-6 h-6 object-contain team-logo" />
+              } @else {
+                <span class="font-display text-[11px]">{{ opponentCode(game) | teamCode }}</span>
+              }
+            </span>
+          </div>
+          <span class="absolute right-4 top-4 text-muted text-sm font-bold group-hover:translate-x-0.5 transition-transform">&rsaquo;</span>
+        </a>
+      }
     }
 
     <!-- My Leagues + Fantasy Team -->
@@ -166,13 +152,13 @@
 
         <a
           routerLink="/fantasy"
-          class="flex flex-col gap-2 rounded-3xl p-4 bg-card border border-line shadow-card group"
+          class="flex flex-col gap-2 rounded-3xl p-4 bg-accent2/10 border border-accent2/25 group"
         >
           <div class="flex items-center justify-between">
-            <span class="shrink-0 w-9 h-9 rounded-full bg-page flex items-center justify-center">
-              <app-nav-icon name="fantasy" [size]="18" class="text-highlight" />
+            <span class="shrink-0 w-9 h-9 rounded-full bg-accent2/15 flex items-center justify-center">
+              <app-nav-icon name="fantasy" [size]="18" class="text-accent2" />
             </span>
-            <span class="text-muted text-sm font-bold group-hover:translate-x-0.5 transition-transform">&rarr;</span>
+            <span class="text-accent2/70 text-sm font-bold group-hover:translate-x-0.5 transition-transform">&rarr;</span>
           </div>
           <div class="min-w-0">
             <p class="font-display text-sm tracking-wide">{{ i18n.t('fantasy.navLink') }}</p>
@@ -266,24 +252,28 @@
 
       @if (hasPerformances() || hasLeaders() || hasPredictors() || hasSchedule()) {
         <div class="lg:flex-1 lg:min-w-0 bg-card rounded-3xl border border-line shadow-card p-4 flex flex-col">
-          <div class="flex gap-1.5 mb-3 overflow-x-auto">
+          <!-- Segmented control (2026-09-12 redesign) — one joined tonal
+               track instead of separate floating pill buttons; flex-1 on
+               each segment splits the track evenly across however many tabs
+               actually have data today (same conditional set as before). -->
+          <div class="flex gap-1 mb-3 overflow-x-auto no-scrollbar bg-page rounded-2xl p-1">
             @if (hasPerformances()) {
-              <button type="button" (click)="setTab('performances')" [ngClass]="tabButtonClass('performances')" class="px-3 py-1.5 rounded-full font-mono text-[11px] font-bold whitespace-nowrap transition-colors shrink-0">
+              <button type="button" (click)="setTab('performances')" [ngClass]="tabButtonClass('performances')" class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold whitespace-nowrap transition-colors shrink-0">
                 {{ i18n.t('dashboard.topPerformances') }}
               </button>
             }
             @if (hasLeaders()) {
-              <button type="button" (click)="setTab('leaders')" [ngClass]="tabButtonClass('leaders')" class="px-3 py-1.5 rounded-full font-mono text-[11px] font-bold whitespace-nowrap transition-colors shrink-0">
+              <button type="button" (click)="setTab('leaders')" [ngClass]="tabButtonClass('leaders')" class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold whitespace-nowrap transition-colors shrink-0">
                 {{ i18n.t('dashboard.leaders') }}
               </button>
             }
             @if (hasPredictors()) {
-              <button type="button" (click)="setTab('predictors')" [ngClass]="tabButtonClass('predictors')" class="px-3 py-1.5 rounded-full font-mono text-[11px] font-bold whitespace-nowrap transition-colors shrink-0">
+              <button type="button" (click)="setTab('predictors')" [ngClass]="tabButtonClass('predictors')" class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold whitespace-nowrap transition-colors shrink-0">
                 {{ i18n.t('dashboard.topPredictors') }}
               </button>
             }
             @if (hasSchedule()) {
-              <button type="button" (click)="setTab('schedule')" [ngClass]="tabButtonClass('schedule')" class="px-3 py-1.5 rounded-full font-mono text-[11px] font-bold whitespace-nowrap transition-colors shrink-0">
+              <button type="button" (click)="setTab('schedule')" [ngClass]="tabButtonClass('schedule')" class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold whitespace-nowrap transition-colors shrink-0">
                 {{ i18n.t('dashboard.yourTeamSchedule') }}
               </button>
             }
@@ -417,6 +407,22 @@
         </div>
       }
     </div>
+
+    <!-- FAB (2026-09-12 redesign) — Material 3's floating action button for
+         this app's single most-frequent action, making today's pick.
+         Mobile only: the desktop rail already has a permanent "Picks" nav
+         item, so a FAB there would just duplicate it. Positioned well
+         clear of the floating bottom-tab pill (app.component.html) rather
+         than stacked directly above it, since that pill is itself inset
+         and floating, not a flush full-height bar to just clear the top
+         edge of. -->
+    <a
+      routerLink="/predictions"
+      class="sm:hidden fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 w-14 h-14 rounded-full bg-highlight shadow-pop flex items-center justify-center"
+      [attr.aria-label]="i18n.t('nav.picks')"
+    >
+      <app-nav-icon name="picks" [size]="24" class="text-page" />
+    </a>
   }
 
   @if (selectedEntry(); as entry) {

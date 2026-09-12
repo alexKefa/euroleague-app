@@ -1,0 +1,10 @@
+/* Hides the scrollbar on the stat-chip row and the tabs' segmented control
+   (2026-09-12 redesign) — both are meant to read as a single row/track, not
+   a scroll area with visible chrome. Same convention as
+   shared/news-stories.css's .stories-rail. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

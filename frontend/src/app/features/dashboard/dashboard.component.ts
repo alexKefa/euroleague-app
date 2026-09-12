@@ -9,8 +9,6 @@ import { StandingsRow, LeaderEntry, RoundMvp, NewsArticle, Game, LeaderboardEntr
 import { PageHintComponent } from "../../shared/page-hint";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { NavIconComponent } from "../../shared/nav-icon";
-import { TourService } from "../../core/tour/tour.service";
-import { ButtonDirective } from "../../shared/button.directive";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { NewsStoriesComponent } from "../../shared/news-stories";
 import { SkeletonComponent } from "../../shared/skeleton";
@@ -49,7 +47,6 @@ type DashboardTab = "performances" | "leaders" | "predictors" | "schedule";
     PageHintComponent,
     RetryImgDirective,
     NavIconComponent,
-    ButtonDirective,
     DropdownComponent,
     NewsStoriesComponent,
     SkeletonComponent,
@@ -57,13 +54,13 @@ type DashboardTab = "performances" | "leaders" | "predictors" | "schedule";
     TeamCodePipe,
   ],
   templateUrl: "./dashboard.component.html",
+  styleUrl: "./dashboard.component.css",
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   private theme = inject(ThemeService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
-  protected tour = inject(TourService);
 
   readonly standings = signal<StandingsRow[]>([]);
   readonly loading = signal(true);
@@ -182,9 +179,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.activeTab.set(tab);
   }
 
+  // Segmented-control styling (2026-09-12 redesign) — the active segment
+  // fills solid (bg-ink), matching Material 3's segmented button, rather
+  // than the old separate pill buttons' bg-highlight treatment (which read
+  // as its own floating button, not one joined control).
   tabButtonClass(tab: DashboardTab): Record<string, boolean> {
     const active = this.activeTab() === tab;
-    return { "bg-highlight text-page": active, "text-muted hover:bg-page": !active };
+    return { "bg-ink text-page": active, "text-muted hover:text-ink": !active };
   }
 
   ngOnInit(): void {
