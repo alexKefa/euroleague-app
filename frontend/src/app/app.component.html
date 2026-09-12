@@ -15,45 +15,19 @@
 <nav
   class="sticky top-0 z-30 flex justify-between items-center gap-3 px-4 sm:px-6 py-4 bg-card border-b border-line"
 >
-  <!-- The logo — "Clutch" set in real type (SVG <text>, not a letterform
-       substitution), a curved shaded line tracking under most of the
-       word, and the ball riding well clear of the last letter. One drawn
-       graphic, not an icon element sitting beside a text element — see
-       CLAUDE.md's Branding section for why that mattered. Text fill is a
-       two-stop var(--color-ink) gradient (full opacity to ~82%) so it
-       stays legible in both themes, not a fixed white. Deliberately NOT
-       using textLength/lengthAdjust to force an exact width (tried once,
-       reverted): "Clutch" at this weight/size renders wider than assumed,
-       and browsers vary in how much of that forcing actually compresses
-       glyphs vs. just spacing — the "h" ended up rendering underneath the
-       ball. Natural width plus a generous gap before the ball is more
-       robust than a precise-looking number that silently breaks. -->
+  <!-- The logo — "Bracket" (2026-09-12, see CLAUDE.md's Branding section):
+       three straight orange bars forming an open bracket that reads as a
+       "C", set beside real "Clutch" type (SVG <text>, not a letterform
+       substitution). Replaces the earlier ring/swoosh/ball family
+       entirely — no curves anywhere in the mark on purpose. Text fill is
+       flat var(--color-ink) (no gradient) so it stays legible in both
+       themes. -->
   <a routerLink="/" class="flex items-center shrink-0">
-    <svg role="img" aria-label="Clutch" width="81" height="38" viewBox="0 0 320 150">
-      <defs>
-        <radialGradient id="ballGradNav" cx="35%" cy="32%" r="75%">
-          <stop offset="0%" stop-color="#FF9E70"/>
-          <stop offset="55%" stop-color="#FF6B35"/>
-          <stop offset="100%" stop-color="#C94A24"/>
-        </radialGradient>
-        <linearGradient id="lineGradNav" x1="0" y1="1" x2="1" y2="0">
-          <stop offset="0%" stop-color="#C94A24"/>
-          <stop offset="100%" stop-color="#FF6B35"/>
-        </linearGradient>
-        <linearGradient id="textGradNav" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" style="stop-color:var(--color-ink)"/>
-          <stop offset="100%" style="stop-color:var(--color-ink)" stop-opacity="0.82"/>
-        </linearGradient>
-        <filter id="shadowNav" x="-50%" y="-50%" width="200%" height="200%">
-          <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#FF6B35" flood-opacity="0.4"/>
-        </filter>
-      </defs>
-      <text x="0" y="74" font-family="'IBM Plex Sans',sans-serif" font-weight="800" font-size="80" fill="url(#textGradNav)">Clutch</text>
-      <path d="M 0 98 Q 115 122 255 84" fill="none" stroke="url(#lineGradNav)" stroke-width="5" stroke-linecap="round" filter="url(#shadowNav)"/>
-      <circle cx="290" cy="80" r="15" fill="url(#ballGradNav)" filter="url(#shadowNav)"/>
-      <path d="M 290 66 L 290 94" stroke="rgba(0,0,0,0.3)" stroke-width="1.8" stroke-linecap="round"/>
-      <path d="M 279 70 Q 285.5 80 279 90" fill="none" stroke="rgba(0,0,0,0.3)" stroke-width="1.8" stroke-linecap="round"/>
-      <path d="M 301 70 Q 294.5 80 301 90" fill="none" stroke="rgba(0,0,0,0.3)" stroke-width="1.8" stroke-linecap="round"/>
+    <svg role="img" aria-label="Clutch" width="120" height="34" viewBox="0 0 460 130">
+      <rect x="14" y="22" width="16" height="86" rx="4" fill="#FF6B35"/>
+      <rect x="30" y="22" width="58" height="16" rx="4" fill="#FF6B35"/>
+      <rect x="30" y="92" width="58" height="16" rx="4" fill="#FF6B35"/><circle cx="59" cy="65" r="22" fill="#FF6B35"/><path d="M 59 43 L 59 87" stroke="rgba(0,0,0,0.4)" stroke-width="2.4" stroke-linecap="round"/><path d="M 37 65 L 81 65" stroke="rgba(0,0,0,0.4)" stroke-width="2.4" stroke-linecap="round"/><path d="M 59 43 Q 37 65 59 87" fill="none" stroke="rgba(0,0,0,0.4)" stroke-width="2.4" stroke-linecap="round"/><path d="M 59 43 Q 81 65 59 87" fill="none" stroke="rgba(0,0,0,0.4)" stroke-width="2.4" stroke-linecap="round"/>
+      <text x="118" y="100" font-family="'IBM Plex Sans',sans-serif" font-weight="800" font-size="92" letter-spacing="-2" fill="var(--color-ink)">Clutch</text>
     </svg>
   </a>
 

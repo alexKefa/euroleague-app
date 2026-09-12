@@ -1549,6 +1549,93 @@ at the same Neon instance as local dev — there's no separate prod database.
   If `v5`'s ring+centered-ball direction is ever wanted again, it needs
   rebuilding from this history rather than un-reverting, since the files
   were deleted, not archived.
+- **`v4` retired entirely, replaced with "Bracket" (2026-09-12)** — the
+  whole ring/swoosh/ball family (the "comet" mark, live since the `v4`
+  revert above) was rejected outright ("i dont like it. Approach
+  different concept"), not tweaked. Explored across several rounds, each
+  as a 4-option comparison canvas: (1) a cleaner version of a shared
+  marketing flyer's own bold-italic-Clutch + textured-ball + swoosh
+  concept — rejected; (2) an icon-first professional family modeled on
+  how real sports/fantasy apps actually brand themselves (theScore,
+  Bleacher Report, Sofascore, ESPN) — a monogram badge, a shield crest, a
+  fully abstract "spark" mark, and a type-only wordmark; the monogram
+  badge (a thick orange "C"-ring) got provisional interest, prompting a
+  follow-up round building a shot-clock/buzzer motif into that same ring
+  (dial ticks, an LED-style blip, a stopwatch hand, a spark burst) — all
+  four of those buzzer variants were also rejected, including after a
+  direct tweak pass (a literal "24" digit + a speaker/buzzer glyph, tried
+  both baked into the icon and as a separate companion badge). At that
+  point the ring/circle motif itself was identified as the likely common
+  problem (every round had one at its center) and dropped entirely; (3) a
+  ring-free family — a straight-bars-only angular bracket, a rectilinear
+  backboard silhouette, an abstract two-tone diamond, and a plain type
+  monogram. The **Bracket** direction (three straight orange bars forming
+  an open bracket that reads as a "C", no curve anywhere) was the one
+  that landed, paired with a plain upright "Clutch" wordmark (no italics,
+  no swoosh, no gradient — flat `var(--color-ink)` text, a deliberate
+  reaction against how gradient/curve-heavy every earlier round had
+  been).
+  - **Basketball essence, three attempts to get right**: the plain
+    bracket alone read as generic/fintech rather than basketball-specific
+    ("add something that has an essence of basketball"). First tried a
+    small backboard "shooting square" (a stroked rectangle) nested in the
+    bracket's open interior — rejected as illegible ("I cant tell this is
+    a backboard"). Second tried adding a small ball tucked at the box's
+    bottom edge, half-overlapping it — the gap between the box and the
+    bracket's bottom bar was only ~8 local units, too tight to fit a ball
+    large enough to read as one; rendered small it looked like a smudge,
+    not a basketball, at every size checked. Fixed by dropping the box
+    entirely and centering one generously-sized, properly-seamed
+    basketball in the bracket's full interior instead (radius sized to
+    nearly fill the gap between all three bars, not squeezed into a
+    corner of it) — the seam pattern itself also got corrected mid-pass
+    ("add a better basketball shape, see how basketballs are"): the first
+    cut used a vertical line plus two arcs both bulging *toward* the
+    center (reading as a pair of eyes, not a ball); real basketballs read
+    as a vertical seam, a horizontal seam, and two more seams that bulge
+    *outward* toward the ball's own left/right edges, so the fix routes
+    each side curve's control point to sit exactly on the circle's own
+    edge (`Q {cx-r} {cy} ...` / `Q {cx+r} {cy} ...`), which is what
+    actually produces the familiar "globe" look. The bracket's own shape
+    still doubles as a loose "C" frame around the ball, so both readings
+    (bracket-as-letter, ball-as-basketball) still reinforce each other —
+    just via a real ball now, not an ambiguous rectangle.
+  - **Two SVGs, not one**: a standalone square icon (bars + ball, on a
+    dark rounded tile, `favicon-v6.svg`) for every icon-only surface, and
+    a wider lockup (the same bars + ball, plus real "Clutch" `<text>`)
+    for every surface that pairs the mark with the wordmark.
+    `favicon-v6.svg` viewBox is `0 0 100 100`; the wordmark lockup's is
+    `0 0 460 130` — the bracket/ball geometry is independently sized for
+    each rather than one shared symbol scaled into both, same "each
+    context gets its own numbers" approach the mark's predecessors
+    already used. The Fantasy court background's center-court decal
+    (`shared/court-background.ts`) reuses the same ball position but as a
+    plain filled circle with no seam lines — at that decal's faint
+    `opacity: 0.16` and small rendered size, seams added visual noise
+    without adding legibility.
+  - **Every surface updated in one pass**: `frontend/src/favicon-v6.svg` +
+    `frontend/public/favicon-v6.svg`, the 8 PWA icon PNGs
+    (`frontend/public/icons/icon-v6-*.png`, rasterized via a temporary
+    `sharp` install per the established "no icon-generation pipeline
+    checked in" precedent), `angular.json`'s asset entry, `index.html`
+    (favicon link + apple-touch-icon), `manifest.webmanifest` (all 8
+    icons), `backend/src/services/email.ts`'s `LOGO_URL`, the nav bar
+    (`app.component.html`), all four auth-page heroes
+    (login/register/forgot-password/reset-password), the splash screen
+    (`splash.html`/`splash.css` — `.logo-mark`'s `aspect-ratio` updated to
+    the new `460/130` viewBox), the `/welcome` landing page's top bar
+    (`features/landing/landing.html` — missed in the original branding
+    docs' surface list until this pass, found by grepping for the old
+    mark's gradient ids), the Fantasy court background's center-court
+    decal (`shared/court-background.ts`, same faint fixed-color
+    `#eef3f7` treatment as before, re-centered via
+    `translate(-49 -50)` to match the new geometry's bounding box), and
+    `public/qr-card.html`'s brand mark. No version bump mid-pass (stayed
+    on `v6` throughout, including the backboard-square addition) since
+    none of it had been deployed yet this session — the "bump the version
+    on every icon change" discipline documented earlier in this section
+    is specifically about cache-busting a change real users have already
+    seen, which didn't yet apply here.
 
 ## Album leaderboard (2026-09-06)
 

@@ -65,27 +65,19 @@ import { Component } from "@angular/core";
       </defs>
       <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#glassFloorGradient)" />
       <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#glassSheenGradient)" />
-      <!-- Center-court logo decal — the app's own standalone icon (same
-           path data as favicon-v4.svg: a "C" arc + a curved line spanning
-           its full width + the ball at the line's right edge, not the
-           retired C-ring-with-ball-inside mark), faint and fixed-color
-           like the rest of this glass floor rather than theme-reactive,
-           painted over the floor but under the real court lines so the
-           key/arc strokes stay crisp on top of it. -->
-      <g transform="translate(160 63) scale(1.7) translate(-60 -54)" opacity="0.16">
-        <defs>
-          <radialGradient id="ballGradCourt" cx="35%" cy="32%" r="75%">
-            <stop offset="0%" stop-color="#FF9E70" />
-            <stop offset="55%" stop-color="#FF6B35" />
-            <stop offset="100%" stop-color="#C94A24" />
-          </radialGradient>
-        </defs>
-        <path d="M 70 22.5 A 27 27 0 1 0 70 56.5" fill="none" stroke="#eef3f7" stroke-width="13" stroke-linecap="round" />
-        <path d="M 22 75.5 Q 49 89.5 76 75.5" fill="none" stroke="#FF6B35" stroke-width="4" stroke-linecap="round" />
-        <circle cx="76" cy="75.5" r="8" fill="url(#ballGradCourt)" />
-        <path d="M 76 68 L 76 83" stroke="rgba(0,0,0,0.35)" stroke-width="1.2" stroke-linecap="round" />
-        <path d="M 70 70 Q 73.65 75.5 70 81" fill="none" stroke="rgba(0,0,0,0.35)" stroke-width="1.2" stroke-linecap="round" />
-        <path d="M 82 70 Q 78.35 75.5 82 81" fill="none" stroke="rgba(0,0,0,0.35)" stroke-width="1.2" stroke-linecap="round" />
+      <!-- Center-court logo decal — the app's own standalone icon
+           ("Bracket", 2026-09-12: three straight bars forming an open
+           bracket with a backboard shooting-square nested inside, same
+           path data as favicon-v6.svg, replacing the retired
+           ring+curved-line+ball mark), faint and fixed-color like the
+           rest of this glass floor rather than theme-reactive, painted
+           over the floor but under the real court lines so the key/arc
+           strokes stay crisp on top of it. -->
+      <g transform="translate(160 63) scale(1.7) translate(-49 -50)" opacity="0.16">
+        <rect x="24" y="22" width="12" height="56" rx="3" fill="#eef3f7" />
+        <rect x="32" y="22" width="42" height="12" rx="3" fill="#eef3f7" />
+        <rect x="32" y="66" width="42" height="12" rx="3" fill="#eef3f7" />
+        <circle cx="58" cy="50" r="15" fill="#eef3f7" />
       </g>
       <path [attr.d]="courtOutlinePath" fill="none" class="stroke-muted" stroke-width="1.8" opacity="0.85" />
       <rect
