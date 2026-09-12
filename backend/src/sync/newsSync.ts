@@ -1,4 +1,5 @@
 import Parser from "rss-parser";
+import he from "he";
 import { sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { newsArticles, syncState } from "../db/schema.js";
@@ -90,13 +91,23 @@ export async function syncNews(): Promise<{ articlesUpserted: number; feedsFaile
       if (feed.filter && !feed.filter(item.link)) continue;
 
       const publishedAt = item.isoDate ? new Date(item.isoDate) : new Date();
-      const summary = (item.contentSnippet ?? item.content ?? "").slice(0, 400) || null;
+      // Several of these feeds (WordPress-based) put an already
+      // HTML-escaped title inside a CDATA block — CDATA content isn't
+      // entity-decoded by XML parsing, so rss-parser hands it back with
+      // literal "&quot;"/"&#039;"/etc. still in the text. Angular's
+      // interpolation doesn't decode entities either (it escapes for
+      // display, the opposite direction), so left alone these rendered as
+      // literal "&quot;" in the UI instead of a real quote mark. Decoding
+      // here, once, at sync time is simpler than teaching the frontend to
+      // unescape everything it displays.
+      const title = he.decode(item.title ?? "");
+      const summary = he.decode((item.contentSnippet ?? item.content ?? "").slice(0, 400)) || null;
       const imageUrl = item.enclosure?.url ?? item.mediaContent?.$?.url ?? null;
 
       await db
         .insert(newsArticles)
         .values({
-          title: item.title,
+          title,
           url: item.link,
           sourceName: feed.sourceName,
           sourceUrl: feed.sourceUrl,
@@ -107,7 +118,7 @@ export async function syncNews(): Promise<{ articlesUpserted: number; feedsFaile
         })
         .onConflictDoUpdate({
           target: newsArticles.url,
-          set: { title: item.title, summary, imageUrl, lang: feed.lang },
+          set: { title, summary, imageUrl, lang: feed.lang },
         });
 
       articlesUpserted++;
