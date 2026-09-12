@@ -11,6 +11,7 @@ import { NavIconComponent, NavIconName } from "./shared/nav-icon";
 import { SplashComponent } from "./shared/splash";
 import { ButtonDirective } from "./shared/button.directive";
 import { TourOverlayComponent } from "./shared/tour-overlay";
+import { TourService } from "./core/tour/tour.service";
 import { InstallBannerComponent } from "./shared/install-banner";
 
 // 2026-09-08: bumped from 1200ms — the old duration was timed to just the
@@ -125,6 +126,7 @@ export class AppComponent implements OnInit {
   protected i18n = inject(I18nService);
   protected events = inject(EventsService);
   protected trades = inject(TradesNotificationService);
+  protected tour = inject(TourService);
   private router = inject(Router);
   protected readonly navLinks = NAV_LINKS;
   protected readonly mobileNavLinks = MOBILE_NAV_LINKS;

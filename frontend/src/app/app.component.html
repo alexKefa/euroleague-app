@@ -58,6 +58,24 @@
   </a>
 
   <div class="flex items-center gap-2 min-w-0">
+    <!-- Tour entry point (2026-09-12, moved from its own full-width row atop
+         the dashboard) — the tour itself is a cross-page walkthrough
+         (Dashboard → Predictions → Cards hub → Wheel → Packs → Trades →
+         Profile, see TourService's own doc comment: it navigates between
+         routes as it goes), so a single dashboard-only entry point was
+         always a slightly arbitrary home for it. Living here instead means
+         it's reachable from anywhere, at the same modest weight as
+         profile/logout next to it — visible on every page, but no longer
+         competing with a page's own content for the most prominent spot. -->
+    <button
+      type="button"
+      (click)="tour.start()"
+      class="shrink-0 w-8 h-8 rounded-xl border-2 border-line flex items-center justify-center text-muted hover:text-highlight hover:bg-page transition-colors"
+      [attr.aria-label]="i18n.t('tour.takeTour')"
+      [title]="i18n.t('tour.takeTour')"
+    >
+      <app-nav-icon name="compass" [size]="18" />
+    </button>
 
     @if (auth.isAuthenticated()) {
       <!-- Desktop only — on mobile this same identity/logout is one tap
