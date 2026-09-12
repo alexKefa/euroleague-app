@@ -1,0 +1,10 @@
+/* Hides the scrollbar on each team group's horizontally-scrolling card row
+   (2026-09-12 redesign) — meant to read as a swipeable row, not a scroll
+   area with visible chrome. Same convention as
+   shared/news-stories.css's .stories-rail. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

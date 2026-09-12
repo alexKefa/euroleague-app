@@ -76,6 +76,31 @@
       {{ i18n.t('inventory.noCardsMiddle') }} <a routerLink="/wheel" class="text-highlight font-semibold">{{ i18n.t('inventory.wheelLinkText') }}</a>.
     </p>
   } @else {
+    <!-- Whole-album progress ring (2026-09-12 redesign) — "how much have I
+         collected", independent of whatever search/tier/team filter is
+         active below. -->
+    <div class="flex items-center gap-4 rounded-3xl p-4 mb-4 bg-card border border-line shadow-card">
+      <svg width="60" height="60" viewBox="0 0 60 60" class="shrink-0" aria-hidden="true">
+        <circle cx="30" cy="30" r="22" fill="none" stroke="var(--color-line)" stroke-width="7" />
+        <circle
+          cx="30"
+          cy="30"
+          r="22"
+          fill="none"
+          stroke="#FF6B35"
+          stroke-width="7"
+          stroke-linecap="round"
+          [attr.stroke-dasharray]="ringCircumference"
+          [attr.stroke-dashoffset]="ringOffset()"
+          transform="rotate(-90 30 30)"
+        />
+      </svg>
+      <div>
+        <p class="font-display text-lg">{{ totalOwned() }}<span class="text-muted text-sm"> / {{ totalCatalog() }}</span></p>
+        <p class="font-mono text-[10.5px] font-bold text-muted uppercase tracking-wider mt-0.5">{{ i18n.t('album.collected') }}</p>
+      </div>
+    </div>
+
     <div class="flex flex-wrap gap-2 mb-4">
       <app-search-input
         class="flex-1 min-w-[10rem]"
@@ -111,44 +136,73 @@
       }
     </div>
 
-    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-      @for (bundle of visibleBundles(); track bundleKey(bundle)) {
-        <div class="flex flex-col items-center gap-2">
-          <button
-            type="button"
-            (click)="openPreview(bundle)"
-            class="w-full rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-highlight"
-            [attr.aria-label]="i18n.t('inventory.previewAriaPrefix') + ' ' + bundle.name"
-          >
-            <app-card-stack
-              [name]="bundle.name"
-              [tier]="frontCard(bundle).tier"
-              [teamCode]="bundle.team.code"
-              [teamColor]="bundle.team.primaryColor"
-              [imageUrl]="frontCard(bundle).imageUrl"
-              [unlocked]="true"
-              [stackCount]="bundle.cards.length"
-              [finish]="finishFor(frontCard(bundle))"
-              [jerseyNumber]="frontCard(bundle).jerseyNumber ?? null"
-              [pointsPerGame]="frontCard(bundle).pointsPerGame ?? null"
-            ></app-card-stack>
-          </button>
-
-          @if (unlockedCount(bundle) === bundle.cards.length) {
-            <span class="text-[12px] font-bold text-emerald-500">{{ i18n.t('store.unlocked') }}</span>
+    <!-- Grouped by team (2026-09-12 redesign, replacing one flat grid of
+         every owned bundle) — a header (crest, name, "owned/total for this
+         team" progress bar) followed by that team's own bundles in a
+         horizontal scroll, closer to how a collector actually thinks about
+         their cards ("what do I have from this club") than one
+         undifferentiated wall. -->
+    @for (group of teamGroups(); track group.team.id) {
+      <div class="flex items-center gap-2.5 mb-2">
+        <span
+          class="w-8 h-8 rounded-full bg-card flex items-center justify-center shrink-0"
+          [style.border]="'2px solid ' + group.team.primaryColor"
+        >
+          @if (group.team.logoUrl) {
+            <img [src]="group.team.logoUrl" [alt]="group.team.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain team-logo" />
           } @else {
-            <span class="text-[12px] font-bold text-muted"
-              >{{ unlockedCount(bundle) }}/{{ bundle.cards.length }} {{ i18n.t('store.unlocked') }}</span
-            >
+            <span class="font-display text-[9px]">{{ group.team.code | teamCode }}</span>
           }
+        </span>
+        <div class="flex-1 min-w-0">
+          <p class="text-[12.5px] font-bold truncate">{{ group.team.name }}</p>
+          <div class="h-[3px] rounded-full bg-line mt-1 overflow-hidden">
+            <div class="h-full rounded-full" [style.width.%]="(teamOwnedCount(group.team.id) / teamTotalCount(group.team.id)) * 100" [style.background]="group.team.primaryColor"></div>
+          </div>
         </div>
-      } @empty {
-        <p class="text-sm text-muted col-span-full">
-          {{ i18n.t('inventory.noMatch') }}
-          <button type="button" (click)="clearFilters()" class="text-highlight font-semibold">{{ i18n.t('inventory.clearFilters') }}</button>
-        </p>
-      }
-    </div>
+        <span class="font-mono text-[11px] text-muted shrink-0">{{ teamOwnedCount(group.team.id) }}/{{ teamTotalCount(group.team.id) }}</span>
+      </div>
+
+      <div class="flex gap-3 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1 mb-5">
+        @for (bundle of group.bundles; track bundleKey(bundle)) {
+          <div class="flex flex-col items-center gap-1.5 shrink-0 w-28">
+            <button
+              type="button"
+              (click)="openPreview(bundle)"
+              class="w-full rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-highlight"
+              [attr.aria-label]="i18n.t('inventory.previewAriaPrefix') + ' ' + bundle.name"
+            >
+              <app-card-stack
+                [name]="bundle.name"
+                [tier]="frontCard(bundle).tier"
+                [teamCode]="bundle.team.code"
+                [teamColor]="bundle.team.primaryColor"
+                [imageUrl]="frontCard(bundle).imageUrl"
+                [unlocked]="true"
+                [maxWidth]="112"
+                [stackCount]="bundle.cards.length"
+                [finish]="finishFor(frontCard(bundle))"
+                [jerseyNumber]="frontCard(bundle).jerseyNumber ?? null"
+                [pointsPerGame]="frontCard(bundle).pointsPerGame ?? null"
+              ></app-card-stack>
+            </button>
+
+            @if (unlockedCount(bundle) === bundle.cards.length) {
+              <span class="text-[11px] font-bold text-emerald-500">{{ i18n.t('store.unlocked') }}</span>
+            } @else {
+              <span class="text-[11px] font-bold text-muted"
+                >{{ unlockedCount(bundle) }}/{{ bundle.cards.length }} {{ i18n.t('store.unlocked') }}</span
+              >
+            }
+          </div>
+        }
+      </div>
+    } @empty {
+      <p class="text-sm text-muted">
+        {{ i18n.t('inventory.noMatch') }}
+        <button type="button" (click)="clearFilters()" class="text-highlight font-semibold">{{ i18n.t('inventory.clearFilters') }}</button>
+      </p>
+    }
 
     @if (loadingMore()) {
       <div class="flex justify-center py-6">

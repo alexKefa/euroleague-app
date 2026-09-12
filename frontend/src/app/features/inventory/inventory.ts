@@ -17,6 +17,7 @@ import { SkeletonComponent } from "../../shared/skeleton";
 import { ButtonDirective } from "../../shared/button.directive";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { SearchInputComponent } from "../../shared/search-input";
+import { TeamCodePipe } from "../../shared/team-display-code";
 
 // Matches store.ts's PAGE_SIZE — same "reveal a page at a time" convention,
 // even though this page's data (already fully fetched client-side) doesn't
@@ -39,8 +40,10 @@ const PAGE_SIZE = 20;
     ButtonDirective,
     LogoSpinnerComponent,
     SearchInputComponent,
+    TeamCodePipe,
   ],
   templateUrl: "./inventory.html",
+  styleUrl: "./inventory.css",
 })
 export class InventoryComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
@@ -151,6 +154,68 @@ export class InventoryComponent implements OnInit, OnDestroy {
       }))
       .sort((a, b) => b.newestAcquired - a.newestAcquired)
       .map(({ bundle }) => bundle);
+  });
+
+  // Whole-catalog completion (2026-09-12 redesign) — "how much of the
+  // album have I collected", independent of any active search/tier/team
+  // filter below. Backs the progress-ring summary card.
+  readonly totalOwned = computed(() => this.myCollectibleIds().size);
+  readonly totalCatalog = computed(() => this.allCollectibles().length);
+  // SVG stroke-dashoffset for a circle of this radius — see
+  // inventory.html's progress-ring markup, which uses the same radius.
+  private static readonly RING_RADIUS = 22;
+  private static readonly RING_CIRCUMFERENCE = 2 * Math.PI * InventoryComponent.RING_RADIUS;
+  readonly ringCircumference = InventoryComponent.RING_CIRCUMFERENCE;
+  readonly ringOffset = computed(() => {
+    const total = this.totalCatalog();
+    const pct = total === 0 ? 0 : this.totalOwned() / total;
+    return InventoryComponent.RING_CIRCUMFERENCE * (1 - pct);
+  });
+
+  // Per-team completion, computed once over the flat catalog (2026-09-12
+  // redesign) rather than re-filtering the whole catalog per team per
+  // render — same "compute once, read via Map lookup" convention as
+  // ownedAt/finishByCollectibleId above. Backs each team group's header
+  // progress bar ("3/9 owned"), which is deliberately the team's TRUE
+  // completion regardless of the active search/tier filter below — a
+  // stable collection-progress stat, not "how many match my current view".
+  private readonly teamCompletion = computed(() => {
+    const totals = new Map<string, number>();
+    const owned = new Map<string, number>();
+    const ownedIds = this.myCollectibleIds();
+    for (const c of this.allCollectibles()) {
+      totals.set(c.team.id, (totals.get(c.team.id) ?? 0) + 1);
+      if (ownedIds.has(c.id)) owned.set(c.team.id, (owned.get(c.team.id) ?? 0) + 1);
+    }
+    return { totals, owned };
+  });
+  teamOwnedCount(teamId: string): number {
+    return this.teamCompletion().owned.get(teamId) ?? 0;
+  }
+  teamTotalCount(teamId: string): number {
+    return this.teamCompletion().totals.get(teamId) ?? 0;
+  }
+
+  // Groups the (already filtered + paginated) visible bundles by team,
+  // preserving each team's first-appearance position in the
+  // most-recently-acquired ordering — so the team you pulled from most
+  // recently still leads, same spirit as myBundles()'s own ordering, just
+  // one level up. A team's bundles are consolidated into one group even if
+  // they don't happen to sit contiguously in visibleBundles() (mirrors the
+  // byKey-Map-plus-order-array pattern allBundles() above already uses).
+  readonly teamGroups = computed(() => {
+    const byTeam = new Map<string, { team: CollectibleBundle["team"]; bundles: CollectibleBundle[] }>();
+    const order: string[] = [];
+    for (const bundle of this.visibleBundles()) {
+      let group = byTeam.get(bundle.team.id);
+      if (!group) {
+        group = { team: bundle.team, bundles: [] };
+        byTeam.set(bundle.team.id, group);
+        order.push(bundle.team.id);
+      }
+      group.bundles.push(bundle);
+    }
+    return order.map((id) => byTeam.get(id)!);
   });
 
   // Only teams you actually own a card from — no point offering a filter
