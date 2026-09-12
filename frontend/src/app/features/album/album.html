@@ -14,20 +14,24 @@
     }
   </div>
 
-  <div class="flex gap-2 mb-4">
+  <!-- Segmented control (2026-09-12, matching the dashboard's tab switcher)
+       — one joined tonal track instead of two separate solid pill buttons,
+       so this page's own tab switch reads consistently with the rest of
+       the app rather than its own one-off treatment. -->
+  <div class="flex gap-1 mb-4 bg-page rounded-2xl p-1">
     <button
       type="button"
       (click)="setTab('album')"
-      class="px-4 py-2 rounded-xl text-sm font-bold transition-colors"
-      [ngClass]="tab() === 'album' ? 'bg-highlight text-page' : 'bg-card border-2 border-line text-muted'"
+      class="flex-1 px-4 py-2 rounded-xl text-sm font-bold transition-colors"
+      [ngClass]="tab() === 'album' ? 'bg-ink text-page' : 'text-muted hover:text-ink'"
     >
       {{ i18n.t('album.albumTab') }}
     </button>
     <button
       type="button"
       (click)="setTab('leaderboard')"
-      class="px-4 py-2 rounded-xl text-sm font-bold transition-colors"
-      [ngClass]="tab() === 'leaderboard' ? 'bg-highlight text-page' : 'bg-card border-2 border-line text-muted'"
+      class="flex-1 px-4 py-2 rounded-xl text-sm font-bold transition-colors"
+      [ngClass]="tab() === 'leaderboard' ? 'bg-ink text-page' : 'text-muted hover:text-ink'"
     >
       {{ i18n.t('album.leaderboardTab') }}
     </button>
@@ -38,8 +42,8 @@
       <button
         type="button"
         (click)="selectLeague(null)"
-        class="px-3 py-1.5 rounded-xl text-xs font-bold"
-        [ngClass]="!selectedLeagueId() ? 'bg-highlight text-page' : 'bg-card border-2 border-line text-muted'"
+        class="px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors"
+        [ngClass]="!selectedLeagueId() ? 'bg-highlight/10 border-highlight/30 text-highlight' : 'bg-card border-line text-muted'"
       >
         {{ i18n.t('album.globalBoard') }}
       </button>
