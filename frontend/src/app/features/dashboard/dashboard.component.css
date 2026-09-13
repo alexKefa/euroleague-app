@@ -10,25 +10,28 @@
 }
 
 /* Sponsor ticker (2026-09-13) — deliberately NOT this app's usual
-   bg-card/border-line/shadow-card tile language: flat near-black plus
-   amber "LED scoreboard" text (with a soft glow, like a real stadium
-   perimeter board) so it visually reads as sponsored/external content,
-   distinct from every other dashboard widget rather than blending in as
-   one more feature card. */
+   bg-card/border-line/shadow-card tile language: flat near-black, no
+   rounded corners (full-bleed edge-to-edge, like a real stadium
+   perimeter board — see dashboard.component.html for why it now sits
+   outside the page's own max-width/padding wrapper), plus amber "LED
+   scoreboard" text in Nova Mono (imported in styles.css) with a soft
+   glow, so it visually reads as sponsored/external content, distinct
+   from every other dashboard widget rather than blending in as one more
+   feature card. */
 .sponsor-ticker {
   background: #000;
-  border: 1px solid #2a2a2a;
+  border-top: 1px solid #2a2a2a;
+  border-bottom: 1px solid #2a2a2a;
   text-decoration: none;
 }
 .sponsor-tag {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 9px;
-  font-weight: 700;
+  font-family: "Nova Mono", monospace;
+  font-size: 10px;
   letter-spacing: 0.08em;
   color: #000;
   background: #ffb800;
   border-radius: 999px;
-  padding: 3px 8px;
+  padding: 3px 9px;
 }
 .sponsor-ticker-viewport {
   flex: 1;
@@ -44,10 +47,9 @@
   flex-shrink: 0;
   white-space: nowrap;
   padding-right: 3rem;
-  font-family: "JetBrains Mono", monospace;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-family: "Nova Mono", monospace;
+  font-size: 13px;
+  letter-spacing: 0.03em;
   color: #ffc940;
   text-shadow: 0 0 6px rgba(255, 184, 0, 0.55);
 }

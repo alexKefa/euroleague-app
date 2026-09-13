@@ -1,4 +1,13 @@
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+/* Nova Mono — scoped only to the dashboard's sponsor ticker
+   (dashboard.component.css), not part of the regular font stack above.
+   Picked specifically because most "digital/LED display" Google Fonts
+   (Orbitron, VT323, Audiowide, Share Tech Mono, etc.) are Latin-only —
+   checked directly against Google Fonts' own metadata, same standing
+   practice as every other font choice in this app — and the ticker's
+   sponsor copy is in Greek. Nova Mono is one of the few with real Greek
+   glyph coverage that still reads as distinctly blocky/digital. */
+@import url("https://fonts.googleapis.com/css2?family=Nova+Mono&display=swap");
 
 @tailwind base;
 @tailwind components;
