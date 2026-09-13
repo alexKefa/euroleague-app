@@ -8,3 +8,68 @@
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* Sponsor ticker (2026-09-13) — deliberately NOT this app's usual
+   bg-card/border-line/shadow-card tile language: flat near-black plus
+   amber "LED scoreboard" text (with a soft glow, like a real stadium
+   perimeter board) so it visually reads as sponsored/external content,
+   distinct from every other dashboard widget rather than blending in as
+   one more feature card. */
+.sponsor-ticker {
+  background: #000;
+  border: 1px solid #2a2a2a;
+  text-decoration: none;
+}
+.sponsor-tag {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #000;
+  background: #ffb800;
+  border-radius: 999px;
+  padding: 3px 8px;
+}
+.sponsor-ticker-viewport {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.sponsor-ticker-track {
+  display: flex;
+  width: max-content;
+  animation: sponsor-ticker-scroll 16s linear infinite;
+}
+.sponsor-ticker-text {
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding-right: 3rem;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #ffc940;
+  text-shadow: 0 0 6px rgba(255, 184, 0, 0.55);
+}
+
+@keyframes sponsor-ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    /* Exactly one copy's width, since the track holds two identical
+       copies back-to-back (see dashboard.component.html) — this is what
+       makes the loop seamless instead of jumping. */
+    transform: translateX(-50%);
+  }
+}
+
+/* Real accessibility need, not a nicety: a continuously-scrolling board is
+   exactly the kind of motion prefers-reduced-motion exists for. Freezes on
+   the first copy instead of animating; the second (aria-hidden) copy is
+   still there but simply sits off-screen, unseen. */
+@media (prefers-reduced-motion: reduce) {
+  .sponsor-ticker-track {
+    animation: none;
+  }
+}

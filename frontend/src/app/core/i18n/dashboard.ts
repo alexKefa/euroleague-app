@@ -46,4 +46,6 @@ export const dashboardTranslations: Record<string, Record<Lang, string>> = {
   "dashboard.guestHintSuffix": { en: "to get started — takes a minute.", el: "για να ξεκινήσεις — παίρνει ένα λεπτό." },
 
   "dashboard.topPredictors": { en: "Top Predictors", el: "Κορυφαίοι στις Προβλέψεις" },
+
+  "dashboard.sponsorTag": { en: "SPONSOR", el: "ΧΟΡΗΓΟΣ" },
 };

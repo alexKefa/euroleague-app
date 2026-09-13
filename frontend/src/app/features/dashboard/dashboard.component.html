@@ -26,6 +26,34 @@
          team hero/next-game content a returning visitor actually opens
          this page for. See app.component.html for the new home. -->
 
+    <!-- Sponsor ticker (2026-09-13) — a stadium-style scrolling LED-board
+         placement for a paid sponsor (first real one: Υγειοσωματική, a
+         gym, linking to their Instagram), deliberately styled distinct
+         from every other dashboard tile (flat black, amber "LED" text
+         with a glow, a small "ΧΟΡΗΓΟΣ" label chip) so it reads as
+         external/sponsored content rather than blending in as an app
+         feature — same reasoning real broadcasts label ads clearly
+         instead of disguising them. Shows unconditionally for every
+         visitor (guest or logged-in), unlike the team-scoped widgets
+         below it. The whole strip is one tappable link (target="_blank",
+         same outbound-link convention as everywhere else in this app) —
+         real stadium boards aren't clickable, but there's no reason not
+         to make a digital one earn the tap. -->
+    <a
+      [href]="sponsorLink"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="sponsor-ticker rounded-2xl mb-4 flex items-center gap-3 px-3 py-2.5"
+    >
+      <span class="sponsor-tag shrink-0">{{ i18n.t('dashboard.sponsorTag') }}</span>
+      <div class="sponsor-ticker-viewport">
+        <div class="sponsor-ticker-track">
+          <span class="sponsor-ticker-text">{{ sponsorText }}</span>
+          <span class="sponsor-ticker-text" aria-hidden="true">{{ sponsorText }}</span>
+        </div>
+      </div>
+    </a>
+
     @if (selectedRow(); as row) {
       <!-- Identity widget — compact, tappable, just team + rank context.
            Record/PPG/form/next-game each get their own small widget below

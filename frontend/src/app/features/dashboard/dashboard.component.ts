@@ -64,6 +64,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
 
+  // Sponsor ticker banner (2026-09-13) — two plain fields, not a
+  // signal/API call: there's no sponsor backend yet, this is a static
+  // slot to swap real copy/link into once a sponsor is confirmed. Move
+  // this to a real config/API source if/when more than one sponsor ever
+  // needs to rotate through here. First real sponsor: Υγειοσωματική (a
+  // gym), linking out to their Instagram — opened via target="_blank" in
+  // the template, same as any other outbound link in this app.
+  readonly sponsorText = "🏋️ Υγειοσωματική — Δύναμη για κάθε buzzer-beater. Ακολούθησέ μας στο Instagram.";
+  readonly sponsorLink = "https://www.instagram.com/igiosomatiki/";
+
   readonly standings = signal<StandingsRow[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
