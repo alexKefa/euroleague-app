@@ -49,44 +49,49 @@
         <span class="text-muted text-sm font-bold group-hover:translate-x-0.5 transition-transform shrink-0">&rsaquo;</span>
       </a>
 
-      <!-- Record / rank / PPG / form — Material-3-style "assist chips" in a
-           single horizontally-scrolling row (2026-09-12 redesign), replacing
-           the old flex-wrap grid of full tiles. Next game moved out into its
-           own featured card below — it carries a CTA (tap through to the
-           game), which never fit this row's compact chip shape. Each chip
-           stays conditional exactly like the old tiles did (PPG only when
-           known, form only once there are recent games). -->
-      <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1 mb-4">
-        <div class="shrink-0 flex items-center gap-1.5 rounded-full pl-3.5 pr-4 py-2 bg-card border border-line">
-          <span class="font-mono text-[9px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('dashboard.record') }}</span>
-          <span class="font-display text-[13px] font-bold">{{ row.stats.wins }}-{{ row.stats.losses }}</span>
-        </div>
-        <div class="shrink-0 flex items-center gap-1.5 rounded-full pl-3.5 pr-4 py-2 bg-highlight/10 border border-highlight/30">
-          <span class="font-mono text-[9px] font-bold text-highlight uppercase tracking-wider">{{ i18n.t('dashboard.rank') }}</span>
-          <span class="font-display text-[13px] font-bold text-highlight">#{{ row.position }}</span>
-        </div>
-        @if (row.stats.ppg !== null) {
-          <div class="shrink-0 flex items-center gap-1.5 rounded-full pl-3.5 pr-4 py-2 bg-card border border-line">
-            <span class="font-mono text-[9px] font-bold text-muted uppercase tracking-wider">PPG</span>
-            <span class="font-display text-[13px] font-bold">{{ row.stats.ppg | number: "1.1-1" }}</span>
-          </div>
-        }
-        @if (recentGames().length > 0) {
-          <div class="shrink-0 flex items-center gap-1.5 rounded-full pl-3.5 pr-4 py-2 bg-card border border-line">
-            <span class="font-mono text-[9px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('dashboard.form') }}</span>
-            <div class="flex gap-1">
-              @for (g of recentGames(); track g.id) {
-                @if (teamResult(g); as result) {
-                  <span
-                    class="w-4 h-4 rounded-full flex items-center justify-center font-mono text-[8px] font-bold text-white"
-                    [class]="result === 'W' ? 'bg-emerald-600' : 'bg-red-500/75'"
-                    >{{ resultLabel(result) }}</span
-                  >
-                }
-              }
+      <!-- Record / rank / PPG / form — one tile (2026-09-13), matching the
+           rounded-3xl bg-card border shadow-card shape every other dashboard
+           tile (My Leagues, Fantasy, News, Standings, tabbed card) uses,
+           replacing the earlier free-floating chip row. Next game stays out
+           as its own featured card below — it carries a CTA (tap through to
+           the game), a different shape than this stat tile. Each stat stays
+           conditional exactly like the old chips did (PPG only when known,
+           form only once there are recent games). -->
+      <div class="rounded-3xl p-4 mb-4 bg-card border border-line shadow-card">
+        <div class="flex items-center justify-between gap-4 flex-wrap">
+          <div class="flex items-center gap-5">
+            <div>
+              <p class="font-mono text-[9px] font-bold text-muted uppercase tracking-wider mb-0.5">{{ i18n.t('dashboard.record') }}</p>
+              <p class="font-display text-base font-bold">{{ row.stats.wins }}-{{ row.stats.losses }}</p>
             </div>
+            <div>
+              <p class="font-mono text-[9px] font-bold text-highlight uppercase tracking-wider mb-0.5">{{ i18n.t('dashboard.rank') }}</p>
+              <p class="font-display text-base font-bold text-highlight">#{{ row.position }}</p>
+            </div>
+            @if (row.stats.ppg !== null) {
+              <div>
+                <p class="font-mono text-[9px] font-bold text-muted uppercase tracking-wider mb-0.5">PPG</p>
+                <p class="font-display text-base font-bold">{{ row.stats.ppg | number: "1.1-1" }}</p>
+              </div>
+            }
           </div>
-        }
+          @if (recentGames().length > 0) {
+            <div>
+              <p class="font-mono text-[9px] font-bold text-muted uppercase tracking-wider mb-1.5 text-right">{{ i18n.t('dashboard.form') }}</p>
+              <div class="flex gap-1.5">
+                @for (g of recentGames(); track g.id) {
+                  @if (teamResult(g); as result) {
+                    <span
+                      class="w-6 h-6 rounded-full flex items-center justify-center font-mono text-[10px] font-bold text-white"
+                      [class]="result === 'W' ? 'bg-emerald-600' : 'bg-red-500/75'"
+                      >{{ resultLabel(result) }}</span
+                    >
+                  }
+                }
+              </div>
+            </div>
+          }
+        </div>
       </div>
 
       <!-- Next game — featured card, tonal (team-color-tinted) background,
