@@ -13,15 +13,18 @@
        fully clear a stuck browser-tab favicon, so this is the more
        reliable fix. Bump the version marker on any future icon change —
        same idea for manifest.webmanifest's own icon list below.
-       v8 (2026-09-13) is a real, raster (not vector) mark for the first
+       v8/v9 (2026-09-13) is a real, raster (not vector) mark for the first
        time — the user-generated backboard/hoop/net "CLUTCH" illustration —
        so the old vector favicon-v*.svg is retired outright rather than
        regenerated; there's no vector source for this artwork to regenerate
-       an svg from. -->
-  <link rel="icon" type="image/png" sizes="32x32" href="favicon-v8.png"/>
-  <link rel="icon" type="image/png" sizes="96x96" href="icons/icon-v8-96x96.png"/>
+       an svg from. v9 fills the icon's canvas with the app's own dark
+       theme_color (#0b1220) instead of leaving it transparent — a
+       transparent PWA icon renders on a white home-screen tile on most
+       platforms, which read wrong next to this dark-orange mark. -->
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-v9.png"/>
+  <link rel="icon" type="image/png" sizes="96x96" href="icons/icon-v9-96x96.png"/>
   <meta id="theme-color-meta" name="theme-color" content="#0b1220"/>
-  <link rel="apple-touch-icon" href="icons/icon-v8-192x192.png"/>
+  <link rel="apple-touch-icon" href="icons/icon-v9-192x192.png"/>
 
   <!-- iOS ignores the manifest's "display": "standalone" for its own
        home-screen behavior and needs this explicitly — without it, "Add to
