@@ -1,196 +1,53 @@
-/* Card fan (2026-09-08, alongside the longer splash hold — see
-   app.component.ts's SPLASH_DURATION_MS comment; entrance reworked
-   2026-09-10, twice — first a toss-and-fall, then replaced same-day with a
-   Y-axis flip reveal, see the silver-in/gold-in/violet-in keyframes
-   further down) — three mini cards flip face-up into their fanned resting
-   pose, each with its own from/to
-   keyframe (rather than one shared keyframe) since every card's resting
-   transform is different; a shared keyframe with an unspecified `to`
-   transform would fight the per-card resting `transform` instead of
-   composing with it. Colors are the exact same tier gradients as the real
-   Store/Album cards (collectible-card.ts's TierStyle rare/legendary/coach
-   entries) so this reads as "this app's actual cards," not generic
-   placeholder rectangles.
-
-   Three layers deep on purpose, each owning one motion so they compose
-   instead of fighting over the same `transform` (two `animation`s on one
-   element targeting the same property don't reliably add without
-   `animation-composition: add`, which isn't worth relying on here):
-     .mini-card       — one-shot entrance to the fanned resting pose (this
-                         block), forwards-filled, never touched again. Pure
-                         positioning now — no visible frame of its own.
-     .mini-card-float — a continuous idle slide-and-scale layered
-                         underneath (below), independent per card so they
-                         drift out of sync with each other rather than
-                         moving in lockstep. THIS is where the visible card
-                         frame (tier-gradient background, padding, shadow —
-                         .mini-card-frame--* further below) actually lives
-                         now: an earlier version kept the frame on the
-                         outer .mini-card and only animated the inner face,
-                         which left the colored border sitting still while
-                         the photo slid around inside it — looked broken.
-                         Moving the frame onto this same animated element
-                         means the whole card (border included) moves as
-                         one piece.
-     .mini-card-face  — the shimmer sweep (further below), on yet another
-                         nested element for the same reason. */
-.mini-card {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 40px;
-  height: 56px;
-  opacity: 0;
-  /* The Y-axis flip (silver-in/gold-in/violet-in) rotates this element
-     itself, so backface-visibility has to live here too, not on a child —
-     without it, the rotation's first half (180deg -> 90deg) would render
-     as a horizontally-mirrored version of the card instead of nothing. */
-  backface-visibility: hidden;
+/* Half-court draw-on (2026-09-13, replacing the earlier card-fan +
+   basketball-watermark concept — see splash.ts's header comment for the
+   full history and why both got dropped). Each court element strokes
+   itself on via a stroke-dashoffset animation, then settles to a lower
+   opacity so it reads as a backdrop once fully drawn rather than
+   competing with the wordmark for attention. `stroke-dasharray`/
+   `stroke-dashoffset` are both set to a fixed 900 — comfortably longer
+   than any path here (the longest, the sideline outline, is ~720 units) —
+   rather than each path's exact length, since "one long dash, animated
+   from fully hidden to fully shown" doesn't need to know the real length,
+   just an upper bound. Staggered animation-delay per element (outline,
+   then key+circle, then the arc, then backboard+rim) so the court
+   assembles in a sensible drawing order instead of every line appearing
+   at once. */
+.court-line {
+  fill: none;
+  stroke: #ff6b35;
+  stroke-width: 1.6;
+  stroke-dasharray: 900;
+  stroke-dashoffset: 900;
+  animation: court-draw 0.9s ease-out forwards;
 }
-
-/* Desktop-only size bump (2026-09-08), matching Tailwind's own `sm:`
-   breakpoint (640px, same one this app's mobile/desktop nav split uses —
-   see MOBILE_BREAKPOINT_PX) so it lines up with every other
-   desktop-vs-mobile distinction in the app rather than picking an
-   unrelated width. Everything below .mini-card sizes itself off this in
-   percentages (.mini-card-float/.mini-card-frame/.mini-card-face are all
-   width/height: 100%), so bumping just this one rule scales the whole
-   card — frame, face, and photo — together with nothing else to touch. */
-@media (min-width: 640px) {
-  .mini-card {
-    width: 48px;
-    height: 68px;
-  }
-}
-
-/* Continuous idle motion — this is the actual "cards moving" layer, running
-   for the whole splash hold rather than the cards going still once fanned
-   in. Each card rotates further open then relaxes back, a real fan
-   gesture rather than boxes sliding sideways (see the float-a/b/c
-   keyframes below) — the same tiny scale bump on all three regardless of
-   tier, kept deliberately small since these are real photos (see that
-   comment). Each variant gets its own duration/keyframe so the three
-   drift independently instead of visibly moving in sync. */
-.mini-card-float {
-  width: 100%;
-  height: 100%;
-}
-.mini-card-float--a {
-  animation: float-a 2.6s ease-in-out infinite;
-  animation-delay: 0.5s;
-}
-.mini-card-float--b {
-  animation: float-b 3.1s ease-in-out infinite;
-  animation-delay: 0.58s;
-}
-.mini-card-float--c {
-  animation: float-c 2.9s ease-in-out infinite;
-  animation-delay: 0.66s;
-}
-
-/* The visible card frame — tier-gradient border, rounded corners, drop
-   shadow — moved here (see the comment on .mini-card-float above) so it
-   travels with the rest of the card during the idle slide instead of
-   sitting fixed while the face/photo moves inside it. */
-.mini-card-frame {
-  border-radius: 8px;
-  padding: 2px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
-}
-.mini-card-frame--silver {
-  background: linear-gradient(135deg, #cfd6dc 0%, #f5f7f9 25%, #aab2ba 50%, #f5f7f9 75%, #cfd6dc 100%);
-}
-.mini-card-frame--gold {
-  background: linear-gradient(135deg, #7a5b12 0%, #f4d675 22%, #fff6d8 40%, #caa53a 58%, #fff2c9 76%, #6e4e10 100%);
-}
-.mini-card-frame--violet {
-  background: linear-gradient(135deg, #150c33 0%, #603fef 22%, #ede9ff 40%, #4526b0 58%, #dad3ff 76%, #0d0824 100%);
-}
-
-.mini-card-face {
-  width: 100%;
-  height: 100%;
-  border-radius: 6px;
-  /* Also the fallback behind the real photo below — these are transparent
-     cutout PNGs (EuroLeague's own player-render style), so this radial
-     gradient shows through as a "spotlight" behind the cutout rather than
-     leaving a hard-edged blank gap, same idea as this app's real
-     photoTint treatment (collectible-card.ts) for the same CDN images. */
-  background: radial-gradient(120% 100% at 50% 0%, #1c1c1e 0%, #08090a 75%);
-  position: relative;
-  overflow: hidden;
-}
-
-.mini-card-photo {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: top center;
-}
-
-/* Bottom vignette for depth, sitting between the photo and the shimmer
-   sweep below (stacking order = source order for same-position elements,
-   so this ::before paints under the ::after). */
-.mini-card-face::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.55) 0%, transparent 45%);
-}
-
-/* The idle shimmer — same diagonal-sweep idea as the real cards'
-   .holo-sweep (collectible-card.css), simplified: one pass, not a
-   tier-specific gradient, since three mini cards each running the full
-   holo treatment would be a lot of motion for a small decorative flourish.
-   Runs continuously through the whole splash hold, independent of the
-   one-shot entrance animation above (a separate element, so no conflict). */
-.mini-card-face::after {
-  content: "";
-  position: absolute;
-  inset: -60%;
-  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.5) 50%, transparent 65%);
-  animation: mini-shimmer 2.8s ease-in-out infinite;
-}
-
-/* Purely selects which entrance keyframe/timing this card uses — no visual
-   styling here anymore, that's all on .mini-card-frame--* above. A flip
-   reads best a touch snappier than the old fall did (0.55s, was 0.65s);
-   the same overshoot easing the wordmark/tagline already use gives the
-   flip a small overshoot past face-on before settling, rather than a
-   dead stop. */
-.mini-card--silver {
-  animation: silver-in 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+.court-line--outline {
   animation-delay: 0s;
 }
-
-.mini-card--gold {
-  z-index: 2;
-  animation: gold-in 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  animation-delay: 0.09s;
+.court-line--key {
+  animation-delay: 0.25s;
+}
+.court-line--ft-circle {
+  animation-delay: 0.35s;
+}
+.court-line--arc {
+  animation-delay: 0.5s;
 }
 
-.mini-card--violet {
-  animation: violet-in 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  animation-delay: 0.18s;
+/* Small marks (backboard, rim) — too short for the draw effect to read as
+   anything but an instant blip, so these just pop in with a small
+   overshoot once the lines around them have finished. */
+.court-mark {
+  stroke: #ff6b35;
+  stroke-width: 1.8;
+  opacity: 0;
+  transform-origin: 160px 185px; /* basketX, basketY — see splash.html's court geometry comment */
+  animation: court-mark-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation-delay: 0.95s;
+}
+.court-mark--rim {
+  fill: none;
 }
 
-/* The swish mark settling in after the cards — a small bounce (the same
-   overshoot easing wordmark/tagline use) reads as the ball's own motion
-   rather than just another fading box. */
-/* Sized in vw, not a fixed px, so the wordmark row (icon + "Clutch") and
-   the tagline below it shrink together on a narrow phone instead of
-   overflowing past the screen edge or wrapping onto a second line — both
-   previously fixed-size (52px icon, text-4xl/text-xs), which was fine at
-   this app's normal phone widths but had no floor once real narrow
-   devices or a bumped OS text-size setting (rem-based) pushed the row
-   past the viewport. clamp()'s vw middle term does the actual shrinking;
-   the rem-based min/max keep it from ever going below/above a sane size
-   on a very narrow or very wide screen. white-space: nowrap on both is
-   the actual fix for "text wraps" — clamp already keeps them narrow
-   enough to fit on one line, nowrap makes that the guarantee rather than
-   a coincidence. */
 .logo-mark {
   /* viewBox is 600x200 ("Pure Wordmark," 2026-09-12 — Archivo Black
      "Clutch" plus a thin curved rule, no icon, replacing the earlier
@@ -203,136 +60,53 @@
   opacity: 0;
   transform: scale(0.7);
   animation: icon-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  animation-delay: 0.5s;
+  animation-delay: 0.9s;
 }
 
-/* The curved tagline (splash.html) — same fade/rise timing the straight
-   version used, applied to the whole <svg> since the guide path it
-   traces (stroke="none"/fill="none") is already invisible regardless of
-   opacity. Text styling lives on the <textPath> itself: font-size and
-   letter-spacing are unitless/"px"/"em" so they resolve as user units
-   inside this svg's viewBox, scaling with the same 80vmin box the
-   watermark ball uses rather than needing a separate vw-based clamp(). */
-.tagline-arc {
+/* Plain centered tagline (replacing the old curved-text-on-a-circle
+   treatment, which traced the ball watermark's own circle — there's no
+   equivalent screen-centered circle in the court diagram to trace, so a
+   flat line is the honest version of this now rather than an arc with
+   nothing real to justify its curve). */
+.tagline-flat {
   opacity: 0;
   transform: translateY(6px);
   animation: wordmark-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  animation-delay: 0.84s;
-}
-.tagline-arc textPath {
-  fill: var(--color-muted);
+  animation-delay: 1.15s;
   font-family: "IBM Plex Sans", system-ui, sans-serif;
   font-weight: 700;
-  font-size: 0.85px;
+  font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  color: var(--color-muted);
 }
-/* "Clutch" in brand orange (matching the wordmark/ball above it, same
-   literal #FF6B35 this file already uses for those rather than a CSS
-   var — highlight has no --color- token, see styles.css), the rest of
-   the phrase (splash.taglineSuffix) stays --color-muted. */
-.tagline-arc-brand {
-  fill: #ff6b35;
+.tagline-flat-brand {
+  color: #ff6b35;
 }
 
-/* Sits behind everything for the whole splash — fades in slowly rather
-   than popping in with the bars/wordmark, so it reads as ambient backdrop
-   rather than competing for attention. */
-.watermark {
-  opacity: 0;
-  animation: watermark-in 1.1s ease-out forwards;
-  animation-delay: 0.1s;
-}
-
-/* An actual fan motion — each card rotates further open, away from its
-   entrance rotation (composes with .mini-card's own fixed rotate() from
-   the silver-in/gold-in/violet-in "to" state, since this is a child
-   transform), then relaxes back — like a hand of cards being fanned open
-   and closed, not three boxes sliding sideways. Scale is deliberately
-   tiny (1.06, was 1.35): these are real photos, and CSS-scaling a raster
-   image up by a third made the upscale blur/softening obvious at this
-   size — a small scale still sells "this card is lifting toward you"
-   without visibly degrading the image. */
-@keyframes float-a {
-  0%,
+@keyframes court-draw {
+  0% {
+    stroke-dashoffset: 900;
+    opacity: 0.9;
+  }
+  70% {
+    stroke-dashoffset: 0;
+    opacity: 0.9;
+  }
   100% {
-    transform: rotate(0deg) translateX(0) scale(1);
-  }
-  50% {
-    transform: rotate(-9deg) translateX(-5px) scale(1.06);
+    stroke-dashoffset: 0;
+    opacity: 0.4;
   }
 }
 
-@keyframes float-b {
-  0%,
-  100% {
-    transform: rotate(0deg) translateX(0) scale(1);
-  }
-  50% {
-    transform: rotate(4deg) translateX(3px) scale(1.06);
-  }
-}
-
-@keyframes float-c {
-  0%,
-  100% {
-    transform: rotate(0deg) translateX(0) scale(1);
-  }
-  50% {
-    transform: rotate(9deg) translateX(5px) scale(1.06);
-  }
-}
-
-/* Flip-reveal entrance (2026-09-10, replacing an earlier toss-and-fall,
-   which itself replaced a rise-from-below-into-a-fan): each card starts
-   already sitting at its final fanned spot — same translateX/rotate/scale
-   the "to" block always used — just turned edge-on via rotateY(180deg),
-   then flips face-up in place. Position never moves during the animation,
-   only the Y rotation does, so .mini-card-float's idle drift and
-   .mini-card-frame's tier styling underneath compose against a fixed
-   base transform exactly like before. requires the `perspective` set on
-   the cards' wrapper in splash.html — without it, rotateY reads as a flat
-   horizontal squash instead of an actual turn in depth. */
-@keyframes silver-in {
+@keyframes court-mark-in {
   from {
     opacity: 0;
-    transform: translate(-50%, -50%) translateX(-46px) rotate(-16deg) rotateY(180deg) scale(0.6);
+    transform: scale(0.5);
   }
   to {
-    opacity: 1;
-    transform: translate(-50%, -50%) translateX(-46px) rotate(-16deg) rotateY(0deg);
-  }
-}
-
-@keyframes gold-in {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -50%) translateY(-8px) rotateY(180deg) scale(0.6);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -50%) translateY(-8px) rotateY(0deg) scale(1.08);
-  }
-}
-
-@keyframes violet-in {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -50%) translateX(46px) rotate(16deg) rotateY(180deg) scale(0.6);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -50%) translateX(46px) rotate(16deg) rotateY(0deg);
-  }
-}
-
-@keyframes mini-shimmer {
-  0%,
-  100% {
-    transform: translateX(-40%) translateY(-15%) rotate(10deg);
-  }
-  50% {
-    transform: translateX(40%) translateY(15%) rotate(10deg);
+    opacity: 0.4;
+    transform: scale(1);
   }
 }
 
@@ -347,11 +121,5 @@
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-@keyframes watermark-in {
-  to {
-    opacity: 0.05;
   }
 }
