@@ -383,25 +383,28 @@ export type NavIconName =
           />
         }
         @case ("fantasy") {
-          <!-- Mini basketball court, top-down (boundary, half-court line,
-               center circle, both keys) — Fantasy Five's own "build a
-               squad on a court" identity, distinct from the plain "ball"
-               icon reused elsewhere for points/the wheel. -->
+          <!-- Half-court basketball diagram (2026-09-13) — baseline,
+               backboard/rim, key, free-throw circle, and the three-point
+               arc read unambiguously as basketball. Replaces a symmetric
+               top-down full-court glyph (two mirrored keys around a center
+               circle) that was reported as reading like a soccer pitch at
+               nav-icon size. -->
           <rect
-            x="4"
-            y="3"
-            width="16"
-            height="18"
-            rx="1.5"
+            x="5"
+            y="2.5"
+            width="14"
+            height="18.5"
+            rx="1.3"
             stroke="currentColor"
-            stroke-width="2"
+            stroke-width="1.8"
             [attr.fill]="active ? 'currentColor' : 'none'"
-            [attr.fill-opacity]="active ? 0.12 : null"
+            [attr.fill-opacity]="active ? 0.1 : null"
           />
-          <line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.3" />
-          <circle cx="12" cy="12" r="2.3" stroke="currentColor" stroke-width="1.3" />
-          <rect x="9" y="3" width="6" height="4.2" stroke="currentColor" stroke-width="1.3" />
-          <rect x="9" y="16.8" width="6" height="4.2" stroke="currentColor" stroke-width="1.3" />
+          <line x1="9" y1="3.6" x2="15" y2="3.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+          <path d="M10.7 4.3Q12 5.6 13.3 4.3" stroke="currentColor" stroke-width="1" fill="none" stroke-linecap="round" />
+          <rect x="9.5" y="2.5" width="5" height="7" stroke="currentColor" stroke-width="1.3" />
+          <circle cx="12" cy="9.5" r="2.7" stroke="currentColor" stroke-width="1.3" />
+          <path d="M6.3 4.2Q6.3 16 12 16Q17.7 16 17.7 4.2" stroke="currentColor" stroke-width="1.3" fill="none" />
         }
         @case ("tip") {
           <!-- default page-hint icon when a page doesn't pass a specific one. -->
