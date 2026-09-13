@@ -21,6 +21,32 @@
   background: #000;
   border: 1px solid #2a2a2a;
 }
+/* Floating overlay positioning + drop-in — a jumbotron screen hangs above
+   the arena, it doesn't sit in the stands, so this is `fixed` (see
+   dashboard.component.html) rather than flowing inline with the page.
+   `top` clears the sticky nav bar (app.component.html's nav) with a small
+   gap. Animates in once on mount — translateY from above plus a fade,
+   not a bounce/spring (a real screen lowering into place is a controlled
+   motion, not springy) — and settles with a small overshoot-free ease. */
+.sponsor-jumbotron-float {
+  top: calc(env(safe-area-inset-top, 0px) + 68px);
+  animation: sponsor-jumbotron-drop-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes sponsor-jumbotron-drop-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -28px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sponsor-jumbotron-float {
+    animation: none;
+  }
+}
 .sponsor-jumbotron-glow {
   background: radial-gradient(120% 160% at 12% 0%, rgba(255, 184, 0, 0.16) 0%, transparent 60%);
 }

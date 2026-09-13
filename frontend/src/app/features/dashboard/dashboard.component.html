@@ -26,22 +26,27 @@
          team hero/next-game content a returning visitor actually opens
          this page for. See app.component.html for the new home. -->
 
-    <!-- Sponsor jumbotron card (2026-09-13) — replaces an earlier full-
-         bleed scrolling-ticker attempt (see git history) with a smaller,
-         static "jumbotron screen" card: a spotlight glow on black,
-         "ΧΟΡΗΓΟΣ" tag in Nova Mono (a genuinely blocky/digital-looking
-         Google Font that, unlike most techy display faces — Orbitron,
-         VT323, Audiowide — actually has real Greek glyph coverage,
-         checked directly against Google Fonts' own metadata before
-         picking it), and the sponsor's own real logo (Υγειοσωματική, a
-         gym) inset in a small white chip — real stadium jumbotrons show
-         a sponsor's actual logo on its own panel, not just styled text.
-         Dismissible (top-right ×, same localStorage-per-hintId pattern as
-         shared/page-hint.ts's PageHintComponent) since this is a full
-         card taking real space, unlike the old thin ticker strip — once
-         someone closes it, it doesn't come back on that device. -->
+    <!-- Sponsor jumbotron banner (2026-09-13) — a real stadium jumbotron
+         is a screen suspended above the arena, not a panel sitting in the
+         stands — so this floats as a `fixed` overlay above the page
+         (doesn't push content down, stays put while scrolling) and drops
+         in with an entrance animation on mount, rather than being static
+         inline content (see two earlier tried-and-replaced shapes in git
+         history: a full-bleed scrolling ticker, then a plain inline
+         card). Spotlight glow on black, "ΧΟΡΗΓΟΣ" tag in Nova Mono (a
+         genuinely blocky/digital-looking Google Font that, unlike most
+         techy display faces — Orbitron, VT323, Audiowide — actually has
+         real Greek glyph coverage, checked directly against Google
+         Fonts' own metadata before picking it), and the sponsor's own
+         real logo (Υγειοσωματική, a gym) inset in a small white chip —
+         real jumbotron ad spots show a sponsor's actual logo, not just
+         styled text. Dismissible (top-right ×, same localStorage-per-id
+         pattern as shared/page-hint.ts's PageHintComponent) — once closed
+         it doesn't come back on that device. -->
     @if (!sponsorDismissed()) {
-      <div class="sponsor-jumbotron relative rounded-3xl mb-4 p-4 overflow-hidden">
+      <div
+        class="sponsor-jumbotron sponsor-jumbotron-float fixed left-1/2 z-40 rounded-3xl p-4 overflow-hidden shadow-2xl w-[calc(100%-2rem)] max-w-sm"
+      >
         <div class="sponsor-jumbotron-glow pointer-events-none absolute inset-0"></div>
         <button
           type="button"
