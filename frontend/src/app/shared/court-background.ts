@@ -65,14 +65,19 @@ import { Component } from "@angular/core";
       </defs>
       <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#glassFloorGradient)" />
       <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#glassSheenGradient)" />
-      <!-- Center-court logo decal — the app's own standalone icon (the
-           "C" mark, 2026-09-12: the real Archivo Black "C" glyph outline,
-           extracted once via fontTools so it's a plain vector path with
-           no runtime font dependency — same path data as favicon-v7.svg,
-           replacing the retired bracket+ball mark), faint and
-           fixed-color like the rest of this glass floor rather than
-           theme-reactive, painted over the floor but under the real
-           court lines so the key/arc strokes stay crisp on top of it. -->
+      <!-- Center-court logo decal — the "C" mark (2026-09-12: the real
+           Archivo Black "C" glyph outline, extracted once via fontTools so
+           it's a plain vector path with no runtime font dependency,
+           replacing the retired bracket+ball mark), faint and fixed-color
+           like the rest of this glass floor rather than theme-reactive,
+           painted over the floor but under the real court lines so the
+           key/arc strokes stay crisp on top of it. Deliberately NOT
+           swapped for the v8 (2026-09-13) illustrated mark used elsewhere —
+           that mark is a raster PNG with no vector source, and this decal
+           needs to stay a lightweight vector path rendered at 0.16 opacity;
+           the old standalone favicon this path used to match (favicon-v7.svg)
+           is gone, but the path itself is unaffected — it was always this
+           app's own extracted "C" outline, not the favicon file itself. -->
       <g transform="translate(160 63) scale(1.7) translate(-49 -50)" opacity="0.16">
         <g transform="translate(50 50) scale(0.09 -0.09) translate(-389 -344)">
           <path d="M733 405H522Q522 465 490.5 500.0Q459 535 401 535Q334 535 302.5 493.0Q271 451 271 376V312Q271 238 302.5 195.5Q334 153 399 153Q463 153 496.0 186.0Q529 219 529 279H733Q733 138 646.5 63.0Q560 -12 402 -12Q226 -12 135.5 78.0Q45 168 45 344Q45 520 135.5 610.0Q226 700 402 700Q555 700 644.0 623.5Q733 547 733 405Z" fill="#eef3f7" />

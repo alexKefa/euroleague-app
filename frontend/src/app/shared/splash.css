@@ -1,62 +1,13 @@
-/* Half-court draw-on (2026-09-13, replacing the earlier card-fan +
-   basketball-watermark concept — see splash.ts's header comment for the
-   full history and why both got dropped). Each court element strokes
-   itself on via a stroke-dashoffset animation, then settles to a lower
-   opacity so it reads as a backdrop once fully drawn rather than
-   competing with the wordmark for attention. `stroke-dasharray`/
-   `stroke-dashoffset` are both set to a fixed 900 — comfortably longer
-   than any path here (the longest, the sideline outline, is ~720 units) —
-   rather than each path's exact length, since "one long dash, animated
-   from fully hidden to fully shown" doesn't need to know the real length,
-   just an upper bound. Staggered animation-delay per element (outline,
-   then key+circle, then the arc, then backboard+rim) so the court
-   assembles in a sensible drawing order instead of every line appearing
-   at once. */
-.court-line {
-  fill: none;
-  stroke: #ff6b35;
-  stroke-width: 1.6;
-  stroke-dasharray: 900;
-  stroke-dashoffset: 900;
-  animation: court-draw 0.9s ease-out forwards;
-}
-.court-line--outline {
-  animation-delay: 0s;
-}
-.court-line--key {
-  animation-delay: 0.25s;
-}
-.court-line--ft-circle {
-  animation-delay: 0.35s;
-}
-.court-line--arc {
-  animation-delay: 0.5s;
-}
-
-/* Small marks (backboard, rim) — too short for the draw effect to read as
-   anything but an instant blip, so these just pop in with a small
-   overshoot once the lines around them have finished. */
-.court-mark {
-  stroke: #ff6b35;
-  stroke-width: 1.8;
-  opacity: 0;
-  transform-origin: 160px 185px; /* basketX, basketY — see splash.html's court geometry comment */
-  animation: court-mark-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  animation-delay: 0.95s;
-}
-.court-mark--rim {
-  fill: none;
-}
-
 .logo-mark {
-  /* viewBox is 600x200 ("Pure Wordmark," 2026-09-12 — Archivo Black
-     "Clutch" plus a thin curved rule, no icon, replacing the earlier
-     bracket+ball family, see app.component.html's comment). height
-     drives the clamp, width follows via aspect-ratio so the mark doesn't
-     stretch. */
-  height: clamp(46px, 13vw, 68px);
+  /* v8 (2026-09-13 trial) — a roughly-square illustrated raster mark, not
+     the old wide 600x200 wordmark, so it needs a much taller clamp to stay
+     legible: tested small (matching the old wordmark's clamp) and the
+     baked-in "CLUTCH" text/net weave read as a blur, only becoming clearly
+     legible around 45-55vmin. aspect-ratio matches the source crop
+     (1434x1323, frontend/public/clutch-mark.png) so it doesn't stretch. */
+  height: clamp(160px, 50vmin, 320px);
   width: auto;
-  aspect-ratio: 600 / 200;
+  aspect-ratio: 1434 / 1323;
   opacity: 0;
   transform: scale(0.7);
   animation: icon-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
@@ -82,32 +33,6 @@
 }
 .tagline-flat-brand {
   color: #ff6b35;
-}
-
-@keyframes court-draw {
-  0% {
-    stroke-dashoffset: 900;
-    opacity: 0.9;
-  }
-  70% {
-    stroke-dashoffset: 0;
-    opacity: 0.9;
-  }
-  100% {
-    stroke-dashoffset: 0;
-    opacity: 0.4;
-  }
-}
-
-@keyframes court-mark-in {
-  from {
-    opacity: 0;
-    transform: scale(0.5);
-  }
-  to {
-    opacity: 0.4;
-    transform: scale(1);
-  }
 }
 
 @keyframes icon-in {
