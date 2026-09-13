@@ -3,7 +3,15 @@ import { db } from "../db/client.js";
 import { collectibles, teams, userCollectibles, pityCounters } from "../db/schema.js";
 
 export type Tier = "common" | "rare" | "legendary" | "coach";
-export type PackType = "starter" | "pro" | "elite" | "wheelStarter" | "wheelPro" | "wheelLegendary" | "wheelCoach";
+export type PackType =
+  | "starter"
+  | "pro"
+  | "elite"
+  | "wheelStarter"
+  | "wheelPro"
+  | "wheelLegendary"
+  | "wheelCoach"
+  | "qrBonus";
 
 export interface CollectibleRow {
   collectible: typeof collectibles.$inferSelect;
@@ -176,6 +184,39 @@ export const PACKS: Record<PackType, PackDefinition> = {
     pointsCost: 0,
     purchasable: false,
     slots: [{ odds: { coach: 1 } }],
+  },
+
+  // QR promo codes (2026-09-13, services/promoCodes.ts / routes/
+  // promoCodes.ts) — granted via a promo code (npm run promo:create --
+  // <code> qrBonus ...), redeemed either at registration or by an
+  // already-logged-in user via POST /api/promo-codes/redeem, e.g. a QR
+  // flyer at a live event. Unlike every other pack in this file, this one
+  // is never granted repeatedly to the same person by design
+  // (promoCodeRedemptions' per-user unique constraint) — a one-off signup/
+  // event incentive, not a recurring supply channel like the wheel — so it
+  // doesn't need the same worst-case-EV-vs-cost accounting a purchasable
+  // pack needs (pointsCost 0, nothing is ever spent on it) and doesn't need
+  // season-simulation retuning the way a recurring odds change would (same
+  // "one-off, not recurring" category as the referral/welcome-bonus point
+  // grants, not the wheel/pack economy). Structured as a free "Elite"-tier
+  // pull — 3 guaranteed rares plus a legendary/coach-capable 5th slot — so
+  // scanning a real-world QR code feels like a genuine event, and its 5th
+  // slot is a structural "big slot" (isBigSlot below), so it shares
+  // ELITE_BIG_SLOT_PITY_THRESHOLD's pity counter with Elite purchases for
+  // free, same as the doc comment there already promises for any
+  // similarly-shaped slot.
+  qrBonus: {
+    type: "qrBonus",
+    label: "QR Bonus Pack",
+    pointsCost: 0,
+    purchasable: false,
+    slots: [
+      { odds: { common: 1 } },
+      { odds: { rare: 1 } },
+      { odds: { rare: 1 } },
+      { odds: { rare: 1 } },
+      { odds: { rare: 0.9, legendary: 0.06, coach: 0.04 } },
+    ],
   },
 };
 

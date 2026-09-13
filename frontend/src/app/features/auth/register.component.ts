@@ -11,6 +11,7 @@ import { ButtonDirective } from "../../shared/button.directive";
 import { OpenInBrowserBannerComponent } from "../../shared/open-in-browser-banner";
 import { TeamCodePipe } from "../../shared/team-display-code";
 import { SkeletonComponent } from "../../shared/skeleton";
+import { peekPendingPromoClaim, consumePendingPromoClaim } from "../../shared/pending-promo-claim";
 
 @Component({
   selector: "app-register",
@@ -73,7 +74,10 @@ export class RegisterComponent implements OnInit {
       error: () => this.teamsLoading.set(false),
     });
     this.referralCode.set(this.route.snapshot.queryParamMap.get("ref"));
-    this.promoCode.set(this.route.snapshot.queryParamMap.get("promo"));
+    // A promo QR link (features/claim/claim.ts) may have sent the visitor
+    // here via /welcome instead of straight to /register?promo=CODE — fall
+    // back to the code it stashed so it still applies either way.
+    this.promoCode.set(this.route.snapshot.queryParamMap.get("promo") ?? peekPendingPromoClaim());
   }
 
   pickTeam(teamId: string): void {
@@ -90,6 +94,10 @@ export class RegisterComponent implements OnInit {
       .register(email, password, this.favoriteTeamId(), this.referralCode(), this.promoCode(), username.trim() || null)
       .subscribe({
         next: ({ promo }) => {
+          // Registration itself already redeemed this.promoCode() directly
+          // (routes/auth.ts) — clear the stash so a later /claim visit
+          // doesn't try the same code again.
+          consumePendingPromoClaim();
           if (!promo) {
             this.router.navigateByUrl("/");
             return;

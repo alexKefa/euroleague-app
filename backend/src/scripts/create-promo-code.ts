@@ -1,8 +1,12 @@
 /**
- * Create (or update) a promo code redeemable at registration — e.g. a link
- * dropped in a YouTube video description (clutchapp.up.railway.app/register
- * ?promo=CODE). See services/promoCodes.ts for the redemption logic and
- * routes/auth.ts for where it's wired into /register.
+ * Create (or update) a promo code — redeemable either at registration (e.g.
+ * a link dropped in a YouTube video description, getclutchapp.com/register
+ * ?promo=CODE) or, since 2026-09-13, by an already-logged-in user via
+ * POST /api/promo-codes/redeem (e.g. a QR flyer at a live event, which
+ * should point at getclutchapp.com/claim?promo=CODE instead — see
+ * features/claim/claim.ts). See services/promoCodes.ts for the redemption
+ * logic and routes/auth.ts / routes/promoCodes.ts for where each is wired
+ * up.
  *
  * Usage:
  *   npm run promo:create -- <code> <packType> [bonusPoints] [maxRedemptions] [expiresInDays]
@@ -68,7 +72,12 @@ async function main() {
     bonusPoints,
     maxRedemptions: maxRedemptions ?? "uncapped",
     expiresAt: expiresAt?.toISOString() ?? "never",
-    registerLink: `https://clutchapp.up.railway.app/register?promo=${normalizedCode}`,
+    // Two different landing spots for the same code, depending on channel:
+    // /register for cold traffic that doesn't have an account yet (a video
+    // description), /claim for something meant to work for existing users
+    // too (a QR flyer at a live event) — see features/claim/claim.ts.
+    registerLink: `https://getclutchapp.com/register?promo=${normalizedCode}`,
+    claimLink: `https://getclutchapp.com/claim?promo=${normalizedCode}`,
   });
 }
 

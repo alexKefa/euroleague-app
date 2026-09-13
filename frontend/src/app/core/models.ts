@@ -615,7 +615,23 @@ export interface SpinResult {
   nextEligibleAt: string;
 }
 
-export type PackType = "starter" | "pro" | "elite" | "wheelStarter" | "wheelPro" | "wheelLegendary" | "wheelCoach";
+export type PackType =
+  | "starter"
+  | "pro"
+  | "elite"
+  | "wheelStarter"
+  | "wheelPro"
+  | "wheelLegendary"
+  | "wheelCoach"
+  | "qrBonus";
+
+// A promo code (registered at signup, or via POST /api/promo-codes/redeem
+// for an already-logged-in user — see features/claim/claim.ts) resolves to
+// exactly one of these three shapes.
+export type PromoRedemptionResponse =
+  | { status: "granted"; packType: PackType; bonusPoints: number }
+  | { status: "already_claimed" }
+  | { status: "invalid" };
 
 export interface PackDefinition {
   type: PackType;

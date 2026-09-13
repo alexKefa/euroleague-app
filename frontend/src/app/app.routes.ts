@@ -150,4 +150,10 @@ export const routes: Routes = [
     loadComponent: () =>
       import("./features/auth/reset-password.component").then((m) => m.ResetPasswordComponent),
   },
+  // A promo QR code's landing spot (services/promoCodes.ts) — distinct from
+  // the marketing /welcome flyer's own QR. See features/claim/claim.ts.
+  {
+    path: "claim",
+    loadComponent: () => import("./features/claim/claim").then((m) => m.ClaimComponent),
+  },
 ];

@@ -18,4 +18,9 @@ export const PACK_VISUAL_CLASSES: Record<PackType, string> = {
   wheelPro: "pack-visual-pro",
   wheelLegendary: "pack-visual-elite",
   wheelCoach: "pack-visual-coach",
+  // Reuses the Elite art rather than a new skin — a QR promo pack is
+  // structured as a free "Elite"-tier pull (services/packs.ts) and is a
+  // one-off, not a recurring reward channel, so it doesn't warrant its own
+  // dedicated art the way a real recurring pack type does.
+  qrBonus: "pack-visual-elite",
 };

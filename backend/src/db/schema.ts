@@ -722,10 +722,14 @@ export const ownedPacks = pgTable("owned_packs", {
   forceFoil: boolean("force_foil").default(false).notNull(),
 });
 
-// One-off marketing campaigns (e.g. a link in a YouTube video description),
-// redeemed at registration only — same "apply once at signup" shape as
-// users.referralCode, but this rewards the *new* user directly (an unopened
-// pack + optional bonus points) rather than whoever shared the link.
+// One-off marketing campaigns (e.g. a link in a YouTube video description,
+// or a QR code at a live event — see promoCodeRedemptions/routes/
+// promoCodes.ts below). Originally redeemed at registration only; a
+// same-day follow-up (2026-09-13) added a second redemption path for an
+// already-registered user (a QR scan is just as likely to hit an existing
+// user as a brand-new one). Rewards the redeeming user directly (an
+// unopened pack + optional bonus points), same "apply once, per user"
+// shape as users.referralCode's reward-the-referrer flow.
 // `active` is a manual on/off switch for ending a campaign without deleting
 // its history/redemption count; maxRedemptions/expiresAt are independent
 // optional caps (either or both null = uncapped). See
@@ -741,6 +745,31 @@ export const promoCodes = pgTable("promo_codes", {
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// Per-user redemption ledger for promo_codes — needed now that a promo code
+// can also be redeemed by an already-registered user (routes/promoCodes.ts's
+// POST /redeem, e.g. a QR code scanned at a live event) instead of only ever
+// being applied once at signup. uniquePerUser is the actual one-time-per-user
+// guard: redeemPromoCodeForUser inserts here FIRST (onConflictDoNothing) and
+// only proceeds to grant the reward if that insert actually landed a row —
+// same claim-first idempotency pattern as roundRewards/legendaryMilestones —
+// so re-scanning (or re-submitting) the same code can't grant it twice, even
+// racing itself. redeemPromoCode (the at-signup path) also writes a row here
+// for the same reason: without it, a brand-new account could immediately
+// turn around and hit POST /redeem with the exact code it just used at
+// signup and double-dip the reward.
+export const promoCodeRedemptions = pgTable(
+  "promo_code_redemptions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    promoCodeId: uuid("promo_code_id").notNull().references(() => promoCodes.id),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    redeemedAt: timestamp("redeemed_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    uniquePerUser: uniqueIndex("promo_code_redemption_unique").on(table.promoCodeId, table.userId),
+  })
+);
 
 export const tradeOffers = pgTable("trade_offers", {
   id: uuid("id").defaultRandom().primaryKey(),

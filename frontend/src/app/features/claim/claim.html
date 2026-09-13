@@ -1,0 +1,66 @@
+<div class="min-h-[70vh] flex flex-col items-center justify-center px-6 py-10">
+  <div class="mb-9">
+    <img src="/clutch-mark.png" alt="Clutch" height="64" style="height: 64px; width: auto;" />
+  </div>
+
+  <div class="relative w-full max-w-sm overflow-hidden rounded-[28px] bg-highlight/10 backdrop-blur-xl border border-highlight/25 shadow-pop px-6 py-8 text-center">
+    <div
+      class="pointer-events-none absolute inset-0"
+      style="background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.14) 45%, rgba(124,108,240,0.18) 52%, transparent 65%)"
+    ></div>
+
+    <div class="relative">
+      @switch (state()) {
+        @case ("loading") {
+          <div class="flex flex-col items-center gap-3 py-4">
+            <app-logo-spinner [size]="28" />
+            <p class="text-sm font-semibold text-muted">{{ i18n.t('claim.loading') }}</p>
+          </div>
+        }
+        @case ("granted") {
+          <p class="text-3xl mb-2">🎁</p>
+          <h1 class="font-mono text-xs font-bold tracking-widest uppercase text-highlight mb-2">
+            {{ i18n.t('claim.granted.title') }}
+          </h1>
+          @if (grantedPackLabel()) {
+            <p class="text-sm font-bold mb-1">{{ grantedPackLabel() }}</p>
+          }
+          <p class="text-xs text-muted font-semibold mb-5">{{ i18n.t('claim.granted.body') }}</p>
+          <a routerLink="/inventory" appButton class="w-full block">{{ i18n.t('claim.openPacks') }}</a>
+        }
+        @case ("already_claimed") {
+          <p class="text-3xl mb-2">✅</p>
+          <h1 class="font-mono text-xs font-bold tracking-widest uppercase text-highlight mb-2">
+            {{ i18n.t('claim.alreadyClaimed.title') }}
+          </h1>
+          <p class="text-xs text-muted font-semibold mb-5">{{ i18n.t('claim.alreadyClaimed.body') }}</p>
+          <a routerLink="/" appButton="outline" class="w-full block">{{ i18n.t('claim.backHome') }}</a>
+        }
+        @case ("invalid") {
+          <p class="text-3xl mb-2">🤔</p>
+          <h1 class="font-mono text-xs font-bold tracking-widest uppercase text-highlight mb-2">
+            {{ i18n.t('claim.invalid.title') }}
+          </h1>
+          <p class="text-xs text-muted font-semibold mb-5">{{ i18n.t('claim.invalid.body') }}</p>
+          <a routerLink="/" appButton="outline" class="w-full block">{{ i18n.t('claim.backHome') }}</a>
+        }
+        @case ("no_code") {
+          <p class="text-3xl mb-2">🤔</p>
+          <h1 class="font-mono text-xs font-bold tracking-widest uppercase text-highlight mb-2">
+            {{ i18n.t('claim.invalid.title') }}
+          </h1>
+          <p class="text-xs text-muted font-semibold mb-5">{{ i18n.t('claim.invalid.body') }}</p>
+          <a routerLink="/" appButton="outline" class="w-full block">{{ i18n.t('claim.backHome') }}</a>
+        }
+        @default {
+          <p class="text-3xl mb-2">⚠️</p>
+          <h1 class="font-mono text-xs font-bold tracking-widest uppercase text-highlight mb-2">
+            {{ i18n.t('claim.error.title') }}
+          </h1>
+          <p class="text-xs text-muted font-semibold mb-5">{{ i18n.t('claim.error.body') }}</p>
+          <a routerLink="/" appButton="outline" class="w-full block">{{ i18n.t('claim.backHome') }}</a>
+        }
+      }
+    </div>
+  </div>
+</div>

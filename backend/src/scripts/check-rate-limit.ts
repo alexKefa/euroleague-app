@@ -7,7 +7,7 @@
  *
  * Usage:
  *   npm run check:rate-limit                 # against local dev (npm run dev first)
- *   BASE_URL=https://clutchapp.up.railway.app npm run check:rate-limit
+ *   BASE_URL=https://getclutchapp.com npm run check:rate-limit
  *
  * Reuses one throwaway email across every register call — the first
  * succeeds and creates a real (junk) user row, every later attempt 409s as

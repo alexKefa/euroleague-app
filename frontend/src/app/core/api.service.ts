@@ -54,6 +54,7 @@ import {
   LegendaryPoll,
   LegendaryPollCandidateOption,
   FavoritePlayer,
+  PromoRedemptionResponse,
 } from "./models";
 
 /**
@@ -357,6 +358,12 @@ export class ApiService {
 
   getPacks(): Observable<PackDefinition[]> {
     return this.http.get<PackDefinition[]>(`${API_BASE_URL}/packs`);
+  }
+
+  // The logged-in counterpart to registration's own ?promo=CODE handling —
+  // see features/claim/claim.ts.
+  redeemPromoCode(code: string): Observable<PromoRedemptionResponse> {
+    return this.http.post<PromoRedemptionResponse>(`${API_BASE_URL}/promo-codes/redeem`, { code });
   }
 
   openPack(type: PackType): Observable<PackOpenOutcome> {
