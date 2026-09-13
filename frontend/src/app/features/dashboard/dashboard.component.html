@@ -229,18 +229,26 @@
     </a>
 
     @if (auth.isAuthenticated()) {
-      <app-page-hint hintId="dashboard-welcome-bonus" icon="cards">
-        {{ i18n.t('dashboard.welcomeBonusPrefix') }}
-        <a routerLink="/inventory" class="text-highlight font-semibold">{{ i18n.t('nav.cards') }}</a>
-        {{ i18n.t('dashboard.welcomeBonusSuffix') }}
-      </app-page-hint>
-      <app-page-hint hintId="dashboard-points" icon="ball">
-        {{ i18n.t('dashboard.pointsHintPrefix') }}
+      <!-- Consolidated economy hint (2026-09-13) — was two separate
+           stacked hints (welcome-bonus, then points/economy), which read
+           as clutter right after the next-game card. One hint now covers
+           the whole loop in a single pass: predict -> earn -> spend
+           -> (bonus for new accounts). Also fixes a real bug: the old
+           welcome-bonus copy said "100-point", stale since the
+           2026-08-25 repricing pass bumped it to 150
+           (backend/src/routes/auth.ts's WELCOME_BONUS_POINTS) — this is
+           a new hintId, so anyone who already dismissed the old
+           (wrong-number) hints sees the corrected one once. -->
+      <app-page-hint hintId="dashboard-economy" icon="ball">
+        {{ i18n.t('dashboard.economyHintPrefix') }}
         <a routerLink="/predictions" class="text-highlight font-semibold">{{ i18n.t('nav.picks') }}</a>
-        {{ i18n.t('dashboard.pointsHintMiddle') }}
+        {{ i18n.t('dashboard.economyHintMiddle1') }}
         <a routerLink="/packs" class="text-highlight font-semibold">{{ i18n.t('store.packs') }}</a>
-        {{ i18n.t('dashboard.pointsHintSuffix') }}
+        {{ i18n.t('dashboard.economyHintMiddle2') }}
         <a routerLink="/wheel" class="text-highlight font-semibold">{{ i18n.t('store.jumpBall') }}</a>
+        {{ i18n.t('dashboard.economyHintMiddle3') }}
+        <a routerLink="/inventory" class="text-highlight font-semibold">{{ i18n.t('nav.cards') }}</a>
+        {{ i18n.t('dashboard.economyHintSuffix') }}
       </app-page-hint>
     } @else {
       <app-page-hint hintId="dashboard-guest-cta" icon="trophy">

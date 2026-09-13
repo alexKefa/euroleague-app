@@ -22,21 +22,24 @@ export const dashboardTranslations: Record<string, Record<Lang, string>> = {
     el: "Δημιούργησε μια ιδιωτική λίγκα και παίξε με τους φίλους σου.",
   },
 
-  "dashboard.pointsHintPrefix": { en: "Earn points by making correct predictions on", el: "Κέρδισε πόντους με σωστές προβλέψεις στις" },
-  "dashboard.pointsHintMiddle": { en: ", then spend them on", el: ", και μετά εξαργύρωσέ τις σε" },
-  "dashboard.pointsHintSuffix": {
-    en: "for a shot at rare and legendary cards — or try the free daily",
-    el: "για μια ευκαιρία σε σπάνιες και θρυλικές κάρτες — ή δοκίμασε το δωρεάν καθημερινό",
+  // Consolidated (2026-09-13) — this used to be two separate stacked
+  // hints (a welcome-bonus one and a points/economy one), which read as
+  // clutter/nagging right after the next-game card rather than a single
+  // clear orientation. Merged into one, and fixed a real bug in the
+  // process: the old welcome-bonus copy said "100-point", stale since the
+  // 2026-08-25 repricing pass bumped it to 150 (backend/src/routes/
+  // auth.ts's WELCOME_BONUS_POINTS) — never updated here.
+  "dashboard.economyHintPrefix": { en: "Predict games on", el: "Πρόβλεψε αγώνες στις" },
+  "dashboard.economyHintMiddle1": { en: "to earn points, then spend them on", el: ", και μετά εξαργύρωσέ τους σε" },
+  "dashboard.economyHintMiddle2": {
+    en: "or the free daily",
+    el: "ή στο δωρεάν καθημερινό",
   },
-
-  "dashboard.welcomeBonusPrefix": {
-    en: "New accounts start with a 100-point welcome bonus — head to",
-    el: "Οι νέοι λογαριασμοί ξεκινούν με δώρο 100 πόντων — πήγαινε στις",
+  "dashboard.economyHintMiddle3": {
+    en: "for a shot at rare and legendary cards. New accounts also start with a 150-point bonus — open your first pack in",
+    el: "για μια ευκαιρία σε σπάνιες και θρυλικές κάρτες. Οι νέοι λογαριασμοί ξεκινούν επιπλέον με δώρο 150 πόντων — άνοιξε το πρώτο σου πακέτο στις",
   },
-  "dashboard.welcomeBonusSuffix": {
-    en: "to open your first pack.",
-    el: "για να ανοίξεις το πρώτο σου πακέτο.",
-  },
+  "dashboard.economyHintSuffix": { en: ".", el: "." },
 
   "dashboard.guestHintPrefix": {
     en: "Predict games, earn points, and collect cards —",
