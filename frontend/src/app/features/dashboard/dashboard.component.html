@@ -1,35 +1,3 @@
-<!-- Sponsor ticker (2026-09-13) — a stadium-style scrolling LED-board
-     placement for a paid sponsor (first real one: Υγειοσωματική, a gym,
-     linking to their Instagram), deliberately styled distinct from every
-     dashboard tile (flat black, amber "LED" text in Nova Mono — a
-     genuinely blocky/digital-looking Google Font that, unlike most
-     techy display faces (Orbitron/VT323/Audiowide/etc.), actually has
-     real Greek glyph coverage, checked directly against Google Fonts'
-     own metadata before picking it, same standing practice as every
-     other font choice in this app — with a glow, plus a small "ΧΟΡΗΓΟΣ"
-     label chip) so it reads as external/sponsored content rather than
-     blending in as an app feature. Full-bleed and above the page's own
-     max-width/padding wrapper, sitting flush under the global nav bar,
-     and unconditional (rendered even during loading()/error()) — a real
-     stadium ribbon board spans the whole venue and doesn't wait for
-     anything to load. The whole strip is one tappable link
-     (target="_blank", same outbound-link convention as everywhere else
-     in this app). -->
-<a
-  [href]="sponsorLink"
-  target="_blank"
-  rel="noopener noreferrer"
-  class="sponsor-ticker w-full flex items-center gap-3 px-4 sm:px-6 py-2.5"
->
-  <span class="sponsor-tag shrink-0">{{ i18n.t('dashboard.sponsorTag') }}</span>
-  <div class="sponsor-ticker-viewport">
-    <div class="sponsor-ticker-track">
-      <span class="sponsor-ticker-text">{{ sponsorText }}</span>
-      <span class="sponsor-ticker-text" aria-hidden="true">{{ sponsorText }}</span>
-    </div>
-  </div>
-</a>
-
 <div class="max-w-3xl lg:max-w-6xl mx-auto p-4 sm:p-6">
   @if (loading()) {
     <div>
@@ -57,6 +25,43 @@
          own full-width row here gave it more visual priority than the
          team hero/next-game content a returning visitor actually opens
          this page for. See app.component.html for the new home. -->
+
+    <!-- Sponsor jumbotron card (2026-09-13) — replaces an earlier full-
+         bleed scrolling-ticker attempt (see git history) with a smaller,
+         static "jumbotron screen" card: a spotlight glow on black,
+         "ΧΟΡΗΓΟΣ" tag in Nova Mono (a genuinely blocky/digital-looking
+         Google Font that, unlike most techy display faces — Orbitron,
+         VT323, Audiowide — actually has real Greek glyph coverage,
+         checked directly against Google Fonts' own metadata before
+         picking it), and the sponsor's own real logo (Υγειοσωματική, a
+         gym) inset in a small white chip — real stadium jumbotrons show
+         a sponsor's actual logo on its own panel, not just styled text.
+         Dismissible (top-right ×, same localStorage-per-hintId pattern as
+         shared/page-hint.ts's PageHintComponent) since this is a full
+         card taking real space, unlike the old thin ticker strip — once
+         someone closes it, it doesn't come back on that device. -->
+    @if (!sponsorDismissed()) {
+      <div class="sponsor-jumbotron relative rounded-3xl mb-4 p-4 overflow-hidden">
+        <div class="sponsor-jumbotron-glow pointer-events-none absolute inset-0"></div>
+        <button
+          type="button"
+          (click)="dismissSponsor()"
+          class="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-white/10 transition-colors z-10"
+          [attr.aria-label]="i18n.t('hint.dismiss')"
+        >
+          &times;
+        </button>
+        <a [href]="sponsorLink" target="_blank" rel="noopener noreferrer" class="relative flex items-center gap-3 pr-6">
+          <span class="sponsor-tag shrink-0">{{ i18n.t('dashboard.sponsorTag') }}</span>
+          <span class="w-px h-8 bg-white/10 shrink-0"></span>
+          <span class="sponsor-logo-chip shrink-0">
+            <img src="/sponsors/ygiosomatiki-logo.png" alt="Υγειοσωματική" class="h-4 w-auto" />
+          </span>
+          <span class="min-w-0 flex-1 text-xs text-muted leading-snug truncate">{{ sponsorText }}</span>
+          <span class="text-muted text-sm font-bold shrink-0">&rsaquo;</span>
+        </a>
+      </div>
+    }
 
     @if (selectedRow(); as row) {
       <!-- Identity widget — compact, tappable, just team + rank context.

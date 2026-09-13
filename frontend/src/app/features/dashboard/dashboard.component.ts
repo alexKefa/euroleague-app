@@ -64,15 +64,30 @@ export class DashboardComponent implements OnInit, OnDestroy {
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
 
-  // Sponsor ticker banner (2026-09-13) — two plain fields, not a
-  // signal/API call: there's no sponsor backend yet, this is a static
-  // slot to swap real copy/link into once a sponsor is confirmed. Move
-  // this to a real config/API source if/when more than one sponsor ever
-  // needs to rotate through here. First real sponsor: Υγειοσωματική (a
-  // gym), linking out to their Instagram — opened via target="_blank" in
-  // the template, same as any other outbound link in this app.
-  readonly sponsorText = "🏋️ Υγειοσωματική — Δύναμη για κάθε buzzer-beater. Ακολούθησέ μας στο Instagram.";
+  // Sponsor jumbotron card (2026-09-13) — plain fields, not a signal/API
+  // call: there's no sponsor backend yet, this is a static slot to swap
+  // real copy/link into once a sponsor is confirmed. Move this to a real
+  // config/API source if/when more than one sponsor ever needs to rotate
+  // through here. First real sponsor: Υγειοσωματική (a gym), linking out
+  // to their Instagram — opened via target="_blank" in the template, same
+  // as any other outbound link in this app.
+  readonly sponsorText = "Δύναμη για κάθε buzzer-beater. Ακολούθησέ μας στο Instagram.";
   readonly sponsorLink = "https://www.instagram.com/igiosomatiki/";
+  // Dismissible, same localStorage-per-id pattern as shared/page-hint.ts's
+  // PageHintComponent — "clutch-hint-dismissed-*" is that component's own
+  // key prefix, so this uses a distinct "clutch-sponsor-dismissed-*" one
+  // rather than colliding with it.
+  private readonly sponsorStorageKey = "clutch-sponsor-dismissed-ygiosomatiki";
+  readonly sponsorDismissed = signal(false);
+
+  dismissSponsor(): void {
+    this.sponsorDismissed.set(true);
+    try {
+      localStorage.setItem(this.sponsorStorageKey, "1");
+    } catch {
+      // No persistence available — it'll reappear next visit, not worth failing over.
+    }
+  }
 
   readonly standings = signal<StandingsRow[]>([]);
   readonly loading = signal(true);
@@ -203,6 +218,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.selectLeaderCategory("points");
     this.loadDashboardData();
+
+    try {
+      this.sponsorDismissed.set(localStorage.getItem(this.sponsorStorageKey) === "1");
+    } catch {
+      // Private browsing / storage disabled — card just stays visible every visit.
+    }
 
     // Standalone home-screen PWAs (iOS especially) have no browser chrome
     // at all — no pull-to-refresh, no reload button — and the page gets

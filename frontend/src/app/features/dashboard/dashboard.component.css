@@ -9,20 +9,20 @@
   display: none;
 }
 
-/* Sponsor ticker (2026-09-13) — deliberately NOT this app's usual
-   bg-card/border-line/shadow-card tile language: flat near-black, no
-   rounded corners (full-bleed edge-to-edge, like a real stadium
-   perimeter board — see dashboard.component.html for why it now sits
-   outside the page's own max-width/padding wrapper), plus amber "LED
-   scoreboard" text in Nova Mono (imported in styles.css) with a soft
-   glow, so it visually reads as sponsored/external content, distinct
-   from every other dashboard widget rather than blending in as one more
-   feature card. */
-.sponsor-ticker {
+/* Sponsor jumbotron card (2026-09-13) — deliberately NOT this app's usual
+   bg-card/border-line/shadow-card tile language: flat black with a warm
+   radial "spotlight" glow (like a stadium jumbotron screen), an amber
+   "ΧΟΡΗΓΟΣ" tag in Nova Mono (imported in styles.css), and the sponsor's
+   own logo inset in a small white chip — so it visually reads as
+   sponsored/external content, distinct from every other dashboard widget
+   rather than blending in as one more feature card. Replaces an earlier
+   full-bleed scrolling-ticker version (see git history). */
+.sponsor-jumbotron {
   background: #000;
-  border-top: 1px solid #2a2a2a;
-  border-bottom: 1px solid #2a2a2a;
-  text-decoration: none;
+  border: 1px solid #2a2a2a;
+}
+.sponsor-jumbotron-glow {
+  background: radial-gradient(120% 160% at 12% 0%, rgba(255, 184, 0, 0.16) 0%, transparent 60%);
 }
 .sponsor-tag {
   font-family: "Nova Mono", monospace;
@@ -33,45 +33,14 @@
   border-radius: 999px;
   padding: 3px 9px;
 }
-.sponsor-ticker-viewport {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-}
-.sponsor-ticker-track {
-  display: flex;
-  width: max-content;
-  animation: sponsor-ticker-scroll 16s linear infinite;
-}
-.sponsor-ticker-text {
-  flex-shrink: 0;
-  white-space: nowrap;
-  padding-right: 3rem;
-  font-family: "Nova Mono", monospace;
-  font-size: 13px;
-  letter-spacing: 0.03em;
-  color: #ffc940;
-  text-shadow: 0 0 6px rgba(255, 184, 0, 0.55);
-}
-
-@keyframes sponsor-ticker-scroll {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    /* Exactly one copy's width, since the track holds two identical
-       copies back-to-back (see dashboard.component.html) — this is what
-       makes the loop seamless instead of jumping. */
-    transform: translateX(-50%);
-  }
-}
-
-/* Real accessibility need, not a nicety: a continuously-scrolling board is
-   exactly the kind of motion prefers-reduced-motion exists for. Freezes on
-   the first copy instead of animating; the second (aria-hidden) copy is
-   still there but simply sits off-screen, unseen. */
-@media (prefers-reduced-motion: reduce) {
-  .sponsor-ticker-track {
-    animation: none;
-  }
+/* A small white panel for the sponsor's own logo — real jumbotron ad
+   spots show a sponsor's actual logo on its own inset panel rather than
+   recoloring it, and this particular logo (dark charcoal wordmark) needs
+   a light backing to read at all against the card's black background. */
+.sponsor-logo-chip {
+  display: inline-flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 8px;
+  padding: 4px 8px;
 }
