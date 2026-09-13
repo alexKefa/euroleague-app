@@ -26,48 +26,6 @@
          team hero/next-game content a returning visitor actually opens
          this page for. See app.component.html for the new home. -->
 
-    <!-- Sponsor jumbotron banner (2026-09-13) — a real stadium jumbotron
-         is a screen suspended above the arena, not a panel sitting in the
-         stands — so this floats as a `fixed` overlay above the page
-         (doesn't push content down, stays put while scrolling) and drops
-         in with an entrance animation on mount, rather than being static
-         inline content (see two earlier tried-and-replaced shapes in git
-         history: a full-bleed scrolling ticker, then a plain inline
-         card). Spotlight glow on black, "ΧΟΡΗΓΟΣ" tag in Nova Mono (a
-         genuinely blocky/digital-looking Google Font that, unlike most
-         techy display faces — Orbitron, VT323, Audiowide — actually has
-         real Greek glyph coverage, checked directly against Google
-         Fonts' own metadata before picking it), and the sponsor's own
-         real logo (Υγειοσωματική, a gym) inset in a small white chip —
-         real jumbotron ad spots show a sponsor's actual logo, not just
-         styled text. Dismissible (top-right ×, same localStorage-per-id
-         pattern as shared/page-hint.ts's PageHintComponent) — once closed
-         it doesn't come back on that device. -->
-    @if (!sponsorDismissed()) {
-      <div
-        class="sponsor-jumbotron sponsor-jumbotron-float fixed left-1/2 z-40 rounded-3xl p-4 overflow-hidden shadow-2xl w-[calc(100%-2rem)] max-w-sm"
-      >
-        <div class="sponsor-jumbotron-glow pointer-events-none absolute inset-0"></div>
-        <button
-          type="button"
-          (click)="dismissSponsor()"
-          class="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-white/10 transition-colors z-10"
-          [attr.aria-label]="i18n.t('hint.dismiss')"
-        >
-          &times;
-        </button>
-        <a [href]="sponsorLink" target="_blank" rel="noopener noreferrer" class="relative flex items-center gap-3 pr-6">
-          <span class="sponsor-tag shrink-0">{{ i18n.t('dashboard.sponsorTag') }}</span>
-          <span class="w-px h-8 bg-white/10 shrink-0"></span>
-          <span class="sponsor-logo-chip shrink-0">
-            <img src="/sponsors/ygiosomatiki-logo.png" alt="Υγειοσωματική" class="h-4 w-auto" />
-          </span>
-          <span class="min-w-0 flex-1 text-xs text-muted leading-snug truncate">{{ sponsorText }}</span>
-          <span class="text-muted text-sm font-bold shrink-0">&rsaquo;</span>
-        </a>
-      </div>
-    }
-
     @if (selectedRow(); as row) {
       <!-- Identity widget — compact, tappable, just team + rank context.
            Record/PPG/form/next-game each get their own small widget below
@@ -238,6 +196,37 @@
         <app-news-stories [articles]="news()" />
       </div>
     }
+
+    <!-- Sponsor ticker (2026-09-13) — a stadium-style scrolling LED-board
+         placement for a paid sponsor (first real one: Υγειοσωματική, a
+         gym, linking to their Instagram), deliberately styled distinct
+         from every other dashboard tile (flat black, amber "LED" text in
+         Nova Mono — a genuinely blocky/digital-looking Google Font that,
+         unlike most techy display faces (Orbitron/VT323/Audiowide/etc.),
+         actually has real Greek glyph coverage, checked directly against
+         Google Fonts' own metadata before picking it — with a glow, plus
+         a small "ΧΟΡΗΓΟΣ" label chip) so it reads as external/sponsored
+         content rather than blending in as an app feature. Placed below
+         the news tile, in normal flow like every other dashboard card —
+         two earlier placements (full-bleed above everything, then a
+         floating "jumbotron" overlay, see git history) were both tried
+         and reverted on direct feedback. The whole strip is still one
+         tappable link (target="_blank", same outbound-link convention as
+         everywhere else in this app). -->
+    <a
+      [href]="sponsorLink"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="sponsor-ticker rounded-3xl mb-4 flex items-center gap-3 px-4 py-3"
+    >
+      <span class="sponsor-tag shrink-0">{{ i18n.t('dashboard.sponsorTag') }}</span>
+      <div class="sponsor-ticker-viewport">
+        <div class="sponsor-ticker-track">
+          <span class="sponsor-ticker-text">{{ sponsorText }}</span>
+          <span class="sponsor-ticker-text" aria-hidden="true">{{ sponsorText }}</span>
+        </div>
+      </div>
+    </a>
 
     @if (auth.isAuthenticated()) {
       <app-page-hint hintId="dashboard-welcome-bonus" icon="cards">
