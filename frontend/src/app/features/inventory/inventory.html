@@ -29,7 +29,7 @@
          3px bottom-border "lip" that collapses on press — just applied
          per-tile instead of through the directive, since each tile needs
          its own color rather than the directive's one fixed primary. -->
-    <div data-tour="cards-hub" class="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-5">
+    <div data-tour="cards-hub" class="grid grid-cols-2 sm:grid-cols-6 gap-2 mb-5">
       @for (tile of hubTiles; track tile.path) {
         <a
           [routerLink]="tile.path"

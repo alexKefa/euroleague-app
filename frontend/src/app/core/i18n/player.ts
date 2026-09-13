@@ -9,6 +9,8 @@ export const playerTranslations: Record<string, Record<Lang, string>> = {
   },
   "player.noPlayerSpecified": { en: "No player specified.", el: "Δεν έχει οριστεί παίκτης." },
   "player.couldntLoad": { en: "Couldn't load this player.", el: "Δεν ήταν δυνατή η φόρτωση αυτού του παίκτη." },
+  "player.favorite": { en: "Add to favorites", el: "Προσθήκη στα αγαπημένα" },
+  "player.unfavorite": { en: "Remove from favorites", el: "Αφαίρεση από τα αγαπημένα" },
 
   // Game log — GET /api/players/:id/games
   "player.gameLog": { en: "Game Log", el: "Ιστορικό Αγώνων" },

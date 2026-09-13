@@ -32,6 +32,16 @@
         'linear-gradient(155deg, ' + d.team.primaryColor + ' 0%, ' + d.team.secondaryColor + ' 70%, #000 130%)'
       "
     >
+      @if (auth.isAuthenticated()) {
+        <button
+          type="button"
+          (click)="toggleFavorite(d)"
+          [attr.aria-label]="i18n.t(isFavorite(d.player.id) ? 'player.unfavorite' : 'player.favorite')"
+          class="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/25 hover:bg-black/40 flex items-center justify-center transition-colors text-[#FFD166]"
+        >
+          <app-nav-icon name="star" [active]="isFavorite(d.player.id)" [size]="20" />
+        </button>
+      }
       <div class="flex items-center gap-4">
         <app-player-photo
           [photoUrl]="d.player.photoUrl"

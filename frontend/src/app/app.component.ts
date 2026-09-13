@@ -84,7 +84,7 @@ const NAV_LINKS: NavLink[] = [
     path: "/inventory",
     label: "nav.cards",
     icon: "cards",
-    activePrefixes: ["/store", "/wheel", "/trades", "/packs", "/album"],
+    activePrefixes: ["/store", "/wheel", "/trades", "/packs", "/album", "/legendary-vote"],
   },
   { path: "/teams", label: "nav.teams", icon: "teams" },
   { path: "/standings", label: "nav.standings", icon: "standings" },

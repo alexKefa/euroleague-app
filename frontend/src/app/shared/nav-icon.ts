@@ -43,7 +43,17 @@ export type NavIconName =
   // Fantasy Five's on-court round-lock badge — replaces the 🔔 emoji used
   // there originally (see fantasy.html), same "no emoji, hand-drawn glyph"
   // convention as the achievement/celebration set above.
-  | "bell";
+  | "bell"
+  // Legendary Vote hub tile + page header — a ballot going into a box, so
+  // it reads as "vote" specifically rather than reusing "trophy" (which
+  // already means "an achievement you earned", the wrong signal for "cast
+  // a vote").
+  | "vote"
+  // Favorite-player toggle — player-detail's hero and the roster table's
+  // quick-favorite button (2026-09-13) share this one icon so both read as
+  // the same action; `active` fills it solid, same convention as
+  // home/cards/etc.
+  | "star";
 
 @Component({
   selector: "app-nav-icon",
@@ -494,6 +504,32 @@ export type NavIconName =
           <line x1="4" y1="10" x2="20" y2="10" stroke="currentColor" stroke-width="1.8" />
           <line x1="9.3" y1="10" x2="9.3" y2="19" stroke="currentColor" stroke-width="1.8" />
           <line x1="14.7" y1="10" x2="14.7" y2="19" stroke="currentColor" stroke-width="1.8" />
+        }
+        @case ("vote") {
+          <path
+            d="M5 10v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9"
+            stroke="currentColor"
+            stroke-width="2.1"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path d="M3.5 10h17L18 4H6l-2.5 6z" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round" />
+          <path
+            d="M9 13.5l2 2 4-4"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        }
+        @case ("star") {
+          <path
+            d="M12 3.5l2.6 5.6 6.1.6-4.6 4.1 1.3 6-5.4-3.1-5.4 3.1 1.3-6-4.6-4.1 6.1-.6 2.6-5.6z"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linejoin="round"
+            [attr.fill]="active ? 'currentColor' : 'none'"
+          />
         }
         @case ("sliders") {
           <!-- Adjustment sliders — "customize/build your own", the

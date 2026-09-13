@@ -4,13 +4,15 @@ import { ActivatedRoute, RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
-import { Team, RosterEntry, Game, GameTeamSummary, StandingsRow, InjuryStatus } from "../../core/models";
+import { Team, RosterEntry, Game, GameTeamSummary, StandingsRow, InjuryStatus, Player } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ChipDirective } from "../../shared/chip.directive";
 import { StatLegendComponent, StatLegendEntry } from "../../shared/stat-legend";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { newsDateLocale, gameDateTimeFormat } from "../../shared/news-date-format";
 import { injuryStatusLabel, injuryStatusClass } from "../../shared/injury-status";
+import { NavIconComponent } from "../../shared/nav-icon";
+import { FavoritePlayersService } from "../../core/favorite-players.service";
 
 // Plain box-score terms instead of advanced-stat proxies (eFG%-based
 // "offRating"/"defRating", assist ratio for "playmaking") — those didn't
@@ -31,7 +33,15 @@ type ComparisonAxis = (typeof COMPARISON_AXES)[number];
 @Component({
   selector: "app-team-roster",
   standalone: true,
-  imports: [CommonModule, RouterLink, RetryImgDirective, ChipDirective, StatLegendComponent, SkeletonComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    RetryImgDirective,
+    ChipDirective,
+    StatLegendComponent,
+    SkeletonComponent,
+    NavIconComponent,
+  ],
   templateUrl: "./roster.html",
 })
 export class TeamRosterComponent implements OnInit {
@@ -39,6 +49,7 @@ export class TeamRosterComponent implements OnInit {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
+  private favoritePlayers = inject(FavoritePlayersService);
 
   protected readonly comparisonAxes = COMPARISON_AXES;
 
@@ -206,6 +217,29 @@ export class TeamRosterComponent implements OnInit {
     if (value >= 20) return "bg-emerald-500/15 text-emerald-400";
     if (value >= 12) return "bg-amber-500/15 text-amber-400";
     return "bg-slate-500/10 text-slate-400";
+  }
+
+  isFavorite(playerId: string): boolean {
+    return this.favoritePlayers.isFavorite(playerId);
+  }
+
+  // Quick-favorite straight from the roster table (2026-09-13) — same
+  // toggle as player-detail's hero button, without having to open the
+  // player's own page first. Stops propagation since the star sits inside
+  // the same cell as the row's own link to that page.
+  toggleFavorite(player: Player, event: Event): void {
+    event.stopPropagation();
+    event.preventDefault();
+    const team = this.team();
+    if (!team) return;
+    this.favoritePlayers.toggle({
+      id: player.id,
+      name: player.name,
+      photoUrl: player.photoUrl,
+      teamId: team.id,
+      teamName: team.name,
+      teamCode: team.code,
+    });
   }
 
   injuryLabel(status: InjuryStatus): string {

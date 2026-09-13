@@ -111,6 +111,11 @@ export const routes: Routes = [
     loadComponent: () => import("./features/trades/trades").then((m) => m.TradesComponent),
   },
   {
+    path: "legendary-vote",
+    loadComponent: () =>
+      import("./features/legendary-vote/legendary-vote").then((m) => m.LegendaryVoteComponent),
+  },
+  {
     path: "leagues",
     loadComponent: () => import("./features/leagues/leagues").then((m) => m.LeaguesComponent),
   },

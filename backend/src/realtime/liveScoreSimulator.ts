@@ -3,14 +3,17 @@ import { db } from "../db/client.js";
 import { games, players, playerGameStats } from "../db/schema.js";
 import { broadcast } from "./hub.js";
 
-// Stand-in for the real EuroLeague live feed, which has nothing to poll
-// until the season actually starts (see CLAUDE.md / project memory). Ticks
-// a real `games` row through scheduled -> live -> final on a compressed
-// timeline, and fabricates a per-player box score alongside it (into the
-// real `player_game_stats` table, same one the boxscore sync fills for real
-// games) so the SSE plumbing (this module + routes/events.ts + frontend
-// EventsService) can be built and tested end-to-end now, and swapped for a
-// real feed later without touching the push mechanism or the frontend.
+// Originally a stand-in for the real EuroLeague live feed, back when there
+// was nothing to poll until the season actually started. sync/liveGamesSync.ts
+// (2026-09-13) is that real feed now, confirmed working directly against
+// live.euroleague.net's Header endpoint, and takes over `games` rows during
+// their actual tipoff window in production. This module still exists as an
+// admin-only testing tool for anything liveGamesSync.ts can't cover: a
+// per-player fabricated box score (games_sync.py/boxscore_sync.py have no
+// live equivalent), and exercising the SSE plumbing (this module + routes/
+// events.ts + frontend EventsService) on demand without waiting for a real
+// tipoff. liveGamesSync.ts skips whichever game this is actively simulating
+// (getSimulatedGameId()) so the two never fight over the same row.
 
 const TICK_MS = 4000;
 const MAX_TICKS = 24; // ~96s per simulated game
@@ -88,6 +91,13 @@ function scheduleTick(): Promise<void> {
 
 export function isSimulationRunning(): boolean {
   return running !== null;
+}
+
+// So sync/liveGamesSync.ts's real poller can skip whichever game an admin
+// is currently test-simulating, rather than the two racing to update the
+// same row from two different "sources of truth" for its score.
+export function getSimulatedGameId(): string | null {
+  return running?.gameId ?? null;
 }
 
 function randomPick<T>(list: T[]): T {

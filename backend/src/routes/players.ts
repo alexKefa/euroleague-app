@@ -2,8 +2,9 @@ import { Router } from "express";
 import { eq, desc, and, isNotNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "../db/client.js";
-import { players, playerSeasonStats, playerGameStats, games, teams, shotEvents } from "../db/schema.js";
+import { players, playerSeasonStats, playerGameStats, games, teams, shotEvents, favoritePlayers } from "../db/schema.js";
 import { getCurrentSeason } from "../services/season.js";
+import { requireAuth } from "../auth/middleware.js";
 
 export const playersRouter = Router();
 
@@ -343,6 +344,76 @@ playersRouter.get("/:id/games", async (req, res) => {
   } catch (err) {
     console.error("GET /api/players/:id/games failed:", err);
     res.status(500).json({ error: "Failed to load player game log" });
+  }
+});
+
+// Must be declared before GET /:id — a single-segment GET route, so it
+// would otherwise be swallowed by the generic player-by-id handler below.
+playersRouter.get("/favorites", requireAuth, async (req, res) => {
+  try {
+    const season = await getCurrentSeason();
+
+    // Left join, not inner — a favorited rookie/preseason player with no
+    // current-season row yet should still show up (stats just render as
+    // "—"), same "current season, not latest-ever" anchor as GET /leaders.
+    const rows = await db
+      .select({ player: players, team: teams, stats: playerSeasonStats })
+      .from(favoritePlayers)
+      .innerJoin(players, eq(favoritePlayers.playerId, players.id))
+      .innerJoin(teams, eq(players.teamId, teams.id))
+      .leftJoin(
+        playerSeasonStats,
+        and(eq(playerSeasonStats.playerId, players.id), eq(playerSeasonStats.season, season ?? ""))
+      )
+      .where(eq(favoritePlayers.userId, req.userId!));
+
+    res.json(
+      rows.map((r) => ({
+        id: r.player.id,
+        name: r.player.name,
+        photoUrl: r.player.photoUrl,
+        teamId: r.team.id,
+        teamName: r.team.name,
+        teamCode: r.team.code,
+        pointsPerGame: r.stats?.pointsPerGame ?? null,
+        reboundsPerGame: r.stats?.reboundsPerGame ?? null,
+        assistsPerGame: r.stats?.assistsPerGame ?? null,
+        valuation: r.stats?.valuation ?? null,
+      }))
+    );
+  } catch (err) {
+    console.error("GET /api/players/favorites failed:", err);
+    res.status(500).json({ error: "Failed to load favorite players" });
+  }
+});
+
+playersRouter.post("/:id/favorite", requireAuth, async (req, res) => {
+  try {
+    const [player] = await db.select({ id: players.id }).from(players).where(eq(players.id, req.params.id)).limit(1);
+    if (!player) {
+      res.status(404).json({ error: "Player not found" });
+      return;
+    }
+    await db
+      .insert(favoritePlayers)
+      .values({ userId: req.userId!, playerId: req.params.id })
+      .onConflictDoNothing();
+    res.status(201).json({ ok: true });
+  } catch (err) {
+    console.error("POST /api/players/:id/favorite failed:", err);
+    res.status(500).json({ error: "Failed to favorite player" });
+  }
+});
+
+playersRouter.delete("/:id/favorite", requireAuth, async (req, res) => {
+  try {
+    await db
+      .delete(favoritePlayers)
+      .where(and(eq(favoritePlayers.userId, req.userId!), eq(favoritePlayers.playerId, req.params.id)));
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("DELETE /api/players/:id/favorite failed:", err);
+    res.status(500).json({ error: "Failed to unfavorite player" });
   }
 });
 

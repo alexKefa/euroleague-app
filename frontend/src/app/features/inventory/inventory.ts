@@ -67,6 +67,12 @@ export class InventoryComponent implements OnInit, OnDestroy {
     { path: "/packs", icon: "packs", classes: "bg-[#38BDF8] border-b-[#0284C7]", labelKey: "store.packs" },
     { path: "/trades", icon: "trade", classes: "bg-[#10B981] border-b-[#047857]", labelKey: "store.trades" },
     { path: "/album", icon: "album", classes: "bg-accent2 border-b-accent2-dim", labelKey: "album.hubTile" },
+    {
+      path: "/legendary-vote",
+      icon: "vote",
+      classes: "bg-[#EF4444] border-b-[#B91C1C]",
+      labelKey: "legendaryVote.hubTile",
+    },
   ];
 
   readonly loading = signal(true);

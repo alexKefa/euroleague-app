@@ -13,6 +13,7 @@ import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { NewsStoriesComponent } from "../../shared/news-stories";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { CollectibleCardComponent } from "../store/collectible-card";
+import { LiveCenterComponent } from "./live-center";
 import {
   newsDateLocale,
   shortDateFormat as gameShortDateFormat,
@@ -52,6 +53,7 @@ type DashboardTab = "performances" | "leaders" | "predictors" | "schedule";
     SkeletonComponent,
     CollectibleCardComponent,
     TeamCodePipe,
+    LiveCenterComponent,
   ],
   templateUrl: "./dashboard.component.html",
   styleUrl: "./dashboard.component.css",

@@ -862,3 +862,65 @@ export interface AlbumLeaderboardEntry {
   completion: number;
   showcase: ShowcaseCard[];
 }
+
+// GET/POST /api/legendary-polls* — a community vote for which player becomes
+// a genuine new legendary catalog entry (not a per-team override of the
+// existing auto-picked one). Vote counts are always live/computed, never a
+// cached total the client trusts across a session.
+export interface LegendaryPollCandidate {
+  id: string;
+  playerId: string;
+  name: string;
+  teamId: string;
+  teamName: string;
+  teamCode: string;
+  photoUrl: string | null;
+  voteCount: number;
+}
+
+export interface LegendaryPoll {
+  id: string;
+  title: string;
+  status: "open" | "closed";
+  createdAt: string;
+  closesAt: string | null;
+  closedAt: string | null;
+  candidates: LegendaryPollCandidate[];
+  totalVotes: number;
+  // null when this viewer hasn't voted (or isn't logged in) — the vote is
+  // changeable up until the poll closes, so this always reflects the
+  // *current* pick, not the first one cast.
+  myVoteCandidateId: string | null;
+  winner: { id: string; name: string; teamId: string; imageUrl: string | null } | null;
+}
+
+// GET /api/legendary-polls/candidates (admin-only) — the eligible-player
+// picker backing poll creation: active players who don't already hold a
+// legendary card.
+export interface LegendaryPollCandidateOption {
+  id: string;
+  name: string;
+  photoUrl: string | null;
+  teamId: string;
+  teamName: string;
+  teamCode: string;
+}
+
+// GET/POST/DELETE /api/players/favorites and /api/players/:id/favorite — a
+// player-level watchlist (distinct from users.favoriteTeamId, the one
+// "your team" pick) backing the dashboard's Live Center favorites tab.
+// Season-average fields are null until the current season has synced stats
+// for this player (rookie/preseason) — GET /players/favorites only, not
+// carried by the favorite/unfavorite actions' own {ok} responses.
+export interface FavoritePlayer {
+  id: string;
+  name: string;
+  photoUrl: string | null;
+  teamId: string;
+  teamName: string;
+  teamCode: string;
+  pointsPerGame?: number | null;
+  reboundsPerGame?: number | null;
+  assistsPerGame?: number | null;
+  valuation?: number | null;
+}

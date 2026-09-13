@@ -85,19 +85,33 @@
               @for (row of roster(); track row.player.id) {
                 <tr class="border-b border-line last:border-0 font-semibold hover:bg-page transition-colors">
                   <td class="sticky left-0 z-10 bg-card px-3 py-2">
-                    <a [routerLink]="['/players', row.player.id]" class="hover:text-highlight transition-colors">
-                      @if (row.player.jerseyNumber !== null) {
-                        <span class="font-mono text-muted font-normal">#{{ row.player.jerseyNumber }}</span>
-                      }
-                      {{ row.player.name }}
-                      @if (row.injury; as injury) {
-                        <span
-                          class="ml-1 px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider align-middle"
-                          [ngClass]="injuryClass(injury.status)"
-                          >{{ injuryLabel(injury.status) }}</span
+                    <div class="flex items-center gap-1.5">
+                      @if (auth.isAuthenticated()) {
+                        <button
+                          type="button"
+                          (click)="toggleFavorite(row.player, $event)"
+                          [attr.aria-label]="i18n.t(isFavorite(row.player.id) ? 'player.unfavorite' : 'player.favorite')"
+                          class="shrink-0 hover:text-amber-400 transition-colors"
+                          [class.text-amber-400]="isFavorite(row.player.id)"
+                          [class.text-muted]="!isFavorite(row.player.id)"
                         >
+                          <app-nav-icon name="star" [active]="isFavorite(row.player.id)" [size]="15" />
+                        </button>
                       }
-                    </a>
+                      <a [routerLink]="['/players', row.player.id]" class="hover:text-highlight transition-colors min-w-0">
+                        @if (row.player.jerseyNumber !== null) {
+                          <span class="font-mono text-muted font-normal">#{{ row.player.jerseyNumber }}</span>
+                        }
+                        {{ row.player.name }}
+                        @if (row.injury; as injury) {
+                          <span
+                            class="ml-1 px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider align-middle"
+                            [ngClass]="injuryClass(injury.status)"
+                            >{{ injuryLabel(injury.status) }}</span
+                          >
+                        }
+                      </a>
+                    </div>
                   </td>
                   <td class="text-right px-3 py-2 font-mono text-muted font-normal">
                     {{ row.stats.gamesPlayed ?? "—" }}
@@ -150,19 +164,33 @@
               @for (row of roster(); track row.player.id) {
                 <tr class="border-b border-line last:border-0 font-semibold hover:bg-page transition-colors">
                   <td class="sticky left-0 z-10 bg-card px-3 py-2">
-                    <a [routerLink]="['/players', row.player.id]" class="hover:text-highlight transition-colors">
-                      @if (row.player.jerseyNumber !== null) {
-                        <span class="font-mono text-muted font-normal">#{{ row.player.jerseyNumber }}</span>
-                      }
-                      {{ row.player.name }}
-                      @if (row.injury; as injury) {
-                        <span
-                          class="ml-1 px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider align-middle"
-                          [ngClass]="injuryClass(injury.status)"
-                          >{{ injuryLabel(injury.status) }}</span
+                    <div class="flex items-center gap-1.5">
+                      @if (auth.isAuthenticated()) {
+                        <button
+                          type="button"
+                          (click)="toggleFavorite(row.player, $event)"
+                          [attr.aria-label]="i18n.t(isFavorite(row.player.id) ? 'player.unfavorite' : 'player.favorite')"
+                          class="shrink-0 hover:text-amber-400 transition-colors"
+                          [class.text-amber-400]="isFavorite(row.player.id)"
+                          [class.text-muted]="!isFavorite(row.player.id)"
                         >
+                          <app-nav-icon name="star" [active]="isFavorite(row.player.id)" [size]="15" />
+                        </button>
                       }
-                    </a>
+                      <a [routerLink]="['/players', row.player.id]" class="hover:text-highlight transition-colors min-w-0">
+                        @if (row.player.jerseyNumber !== null) {
+                          <span class="font-mono text-muted font-normal">#{{ row.player.jerseyNumber }}</span>
+                        }
+                        {{ row.player.name }}
+                        @if (row.injury; as injury) {
+                          <span
+                            class="ml-1 px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider align-middle"
+                            [ngClass]="injuryClass(injury.status)"
+                            >{{ injuryLabel(injury.status) }}</span
+                          >
+                        }
+                      </a>
+                    </div>
                   </td>
                   <td class="text-right px-3 py-2 font-mono text-highlight font-bold">
                     {{ fmtPct(row.stats.trueShootingPct) }}

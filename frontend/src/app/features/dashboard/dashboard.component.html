@@ -8,6 +8,9 @@
         <app-skeleton class="rounded-3xl h-[92px]" [iconSize]="20" />
         <app-skeleton class="rounded-3xl h-[92px]" [iconSize]="20" />
       </div>
+      <!-- Live Center placeholder — roughly its tab-bar + 3-row loaded
+           height, so the page doesn't visibly grow once it mounts. -->
+      <app-skeleton class="rounded-3xl h-[190px] mb-4" [iconSize]="22" />
       <app-skeleton class="rounded-3xl h-64" [iconSize]="24" />
     </div>
   }
@@ -118,6 +121,8 @@
         </a>
       }
     }
+
+    <app-live-center />
 
     <!-- My Leagues + Fantasy Team -->
     @if (auth.isAuthenticated()) {
@@ -408,21 +413,11 @@
       }
     </div>
 
-    <!-- FAB (2026-09-12 redesign) — Material 3's floating action button for
-         this app's single most-frequent action, making today's pick.
-         Mobile only: the desktop rail already has a permanent "Picks" nav
-         item, so a FAB there would just duplicate it. Positioned well
-         clear of the floating bottom-tab pill (app.component.html) rather
-         than stacked directly above it, since that pill is itself inset
-         and floating, not a flush full-height bar to just clear the top
-         edge of. -->
-    <a
-      routerLink="/predictions"
-      class="sm:hidden fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 w-14 h-14 rounded-full bg-highlight shadow-pop flex items-center justify-center"
-      [attr.aria-label]="i18n.t('nav.picks')"
-    >
-      <app-nav-icon name="picks" [size]="24" class="text-page" />
-    </a>
+    <!-- No dashboard FAB for predictions (tried, then dropped 2026-09-13 on
+         direct feedback — "I don't like the fab") — /predictions is already
+         a permanent mobile bottom-nav tab (see MOBILE_OVERFLOW_PATHS in
+         app.component.ts) and a permanent desktop rail item, so the nudge
+         lives there rather than as a second floating control. -->
   }
 
   @if (selectedEntry(); as entry) {

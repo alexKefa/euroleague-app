@@ -51,6 +51,9 @@ import {
   FantasySlotRole,
   FantasyLeaderboardEntry,
   AlbumLeaderboardEntry,
+  LegendaryPoll,
+  LegendaryPollCandidateOption,
+  FavoritePlayer,
 } from "./models";
 
 /**
@@ -484,5 +487,45 @@ export class ApiService {
 
   getLeagueAlbumLeaderboard(leagueId: string): Observable<AlbumLeaderboardEntry[]> {
     return this.http.get<AlbumLeaderboardEntry[]>(`${API_BASE_URL}/leagues/${leagueId}/album-leaderboard`);
+  }
+
+  getLegendaryPolls(): Observable<LegendaryPoll[]> {
+    return this.http.get<LegendaryPoll[]>(`${API_BASE_URL}/legendary-polls`);
+  }
+
+  voteLegendaryPoll(pollId: string, candidateId: string): Observable<LegendaryPoll> {
+    return this.http.post<LegendaryPoll>(`${API_BASE_URL}/legendary-polls/${pollId}/vote`, { candidateId });
+  }
+
+  removeLegendaryPollVote(pollId: string): Observable<LegendaryPoll> {
+    return this.http.delete<LegendaryPoll>(`${API_BASE_URL}/legendary-polls/${pollId}/vote`);
+  }
+
+  // Admin only (enforced server-side) — the eligible-player picker for
+  // creating a new poll.
+  getLegendaryPollCandidateOptions(search?: string): Observable<LegendaryPollCandidateOption[]> {
+    return this.http.get<LegendaryPollCandidateOption[]>(`${API_BASE_URL}/legendary-polls/candidates`, {
+      params: search ? { search } : {},
+    });
+  }
+
+  createLegendaryPoll(title: string, playerIds: string[], closesAt?: string): Observable<LegendaryPoll> {
+    return this.http.post<LegendaryPoll>(`${API_BASE_URL}/legendary-polls`, { title, playerIds, closesAt });
+  }
+
+  closeLegendaryPoll(pollId: string): Observable<LegendaryPoll> {
+    return this.http.post<LegendaryPoll>(`${API_BASE_URL}/legendary-polls/${pollId}/close`, {});
+  }
+
+  getFavoritePlayers(): Observable<FavoritePlayer[]> {
+    return this.http.get<FavoritePlayer[]>(`${API_BASE_URL}/players/favorites`);
+  }
+
+  favoritePlayer(playerId: string): Observable<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`${API_BASE_URL}/players/${playerId}/favorite`, {});
+  }
+
+  unfavoritePlayer(playerId: string): Observable<{ ok: boolean }> {
+    return this.http.delete<{ ok: boolean }>(`${API_BASE_URL}/players/${playerId}/favorite`);
   }
 }

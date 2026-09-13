@@ -357,6 +357,23 @@ export const favorites = pgTable(
   })
 );
 
+// Player-level favorites (2026-09-13) — a separate concept from `favorites`
+// above (team-level, and never actually wired up to any route — dead since
+// users.favoriteTeamId became the one real "your team" mechanism). This one
+// backs the dashboard's "Live Center" favorites tab: a player, not a whole
+// team, to watch for game-day status.
+export const favoritePlayers = pgTable(
+  "favorite_players",
+  {
+    userId: uuid("user_id").notNull().references(() => users.id),
+    playerId: uuid("player_id").notNull().references(() => players.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.userId, table.playerId] }),
+  })
+);
+
 export const deviceTokens = pgTable("device_tokens", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").notNull().references(() => users.id),
@@ -809,6 +826,63 @@ export const analyticsViews = pgTable("analytics_views", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+// Community "which player becomes the next legendary card" vote (2026-09-13)
+// — admin-created, adds a genuine new legendary to the catalog on close, not
+// a per-team override of expand-collectibles.ts's existing top-PIR pick.
+// IMPORTANT: the whole economy (pity counters, SPIN_ODDS, Elite pack odds,
+// season-simulation.ts's CATALOG_SIZE) is calibrated around a fixed
+// legendary count — re-run `economy:simulate` after any poll actually adds
+// one, same standing practice as every other legendary-count change
+// documented in this file's history.
+export const legendaryPolls = pgTable("legendary_polls", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  title: text("title").notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("open"), // "open" | "closed"
+  createdByUserId: uuid("created_by_user_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  // Optional display deadline — closing is still always an explicit admin
+  // action (POST /legendary-polls/:id/close), never a cron, so a poll left
+  // past its closesAt just shows as "voting closes soon"/overdue rather
+  // than silently locking itself.
+  closesAt: timestamp("closes_at", { withTimezone: true }),
+  closedAt: timestamp("closed_at", { withTimezone: true }),
+  // Set once the poll is closed AND a winner was actually inserted into
+  // `collectibles` — stays null for a closed poll with zero votes (nothing
+  // to crown).
+  winnerCollectibleId: uuid("winner_collectible_id").references(() => collectibles.id),
+});
+
+export const legendaryPollCandidates = pgTable(
+  "legendary_poll_candidates",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    pollId: uuid("poll_id").notNull().references(() => legendaryPolls.id),
+    playerId: uuid("player_id").notNull().references(() => players.id),
+  },
+  (table) => ({
+    pollCandidateUnique: uniqueIndex("legendary_poll_candidate_unique").on(table.pollId, table.playerId),
+  })
+);
+
+// One row per (poll, user) — a vote is changed by upserting this same row,
+// never by inserting a second one, so "one vote per user, changeable until
+// close" falls out of the unique constraint itself rather than app-level
+// bookkeeping. Vote counts are computed on read (grouped count query), same
+// "no stored balance" philosophy as points/collectible ownership elsewhere.
+export const legendaryPollVotes = pgTable(
+  "legendary_poll_votes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    pollId: uuid("poll_id").notNull().references(() => legendaryPolls.id),
+    candidateId: uuid("candidate_id").notNull().references(() => legendaryPollCandidates.id),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    votedAt: timestamp("voted_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    pollVoterUnique: uniqueIndex("legendary_poll_voter_unique").on(table.pollId, table.userId),
+  })
+);
+
 // Relations — mainly so query.teams.findMany({ with: { ... } }) style
 // lookups work without hand-written joins later.
 
@@ -883,6 +957,11 @@ export const playerSeasonStatsRelations = relations(playerSeasonStats, ({ one })
 export const favoritesRelations = relations(favorites, ({ one }) => ({
   user: one(users, { fields: [favorites.userId], references: [users.id] }),
   team: one(teams, { fields: [favorites.teamId], references: [teams.id] }),
+}));
+
+export const favoritePlayersRelations = relations(favoritePlayers, ({ one }) => ({
+  user: one(users, { fields: [favoritePlayers.userId], references: [users.id] }),
+  player: one(players, { fields: [favoritePlayers.playerId], references: [players.id] }),
 }));
 
 export const deviceTokensRelations = relations(deviceTokens, ({ one }) => ({
@@ -986,6 +1065,29 @@ export const leaguesRelations = relations(leagues, ({ one, many }) => ({
 export const leagueMembersRelations = relations(leagueMembers, ({ one }) => ({
   league: one(leagues, { fields: [leagueMembers.leagueId], references: [leagues.id] }),
   user: one(users, { fields: [leagueMembers.userId], references: [users.id] }),
+}));
+
+export const legendaryPollsRelations = relations(legendaryPolls, ({ one, many }) => ({
+  createdByUser: one(users, { fields: [legendaryPolls.createdByUserId], references: [users.id] }),
+  winnerCollectible: one(collectibles, {
+    fields: [legendaryPolls.winnerCollectibleId],
+    references: [collectibles.id],
+  }),
+  candidates: many(legendaryPollCandidates),
+}));
+
+export const legendaryPollCandidatesRelations = relations(legendaryPollCandidates, ({ one }) => ({
+  poll: one(legendaryPolls, { fields: [legendaryPollCandidates.pollId], references: [legendaryPolls.id] }),
+  player: one(players, { fields: [legendaryPollCandidates.playerId], references: [players.id] }),
+}));
+
+export const legendaryPollVotesRelations = relations(legendaryPollVotes, ({ one }) => ({
+  poll: one(legendaryPolls, { fields: [legendaryPollVotes.pollId], references: [legendaryPolls.id] }),
+  candidate: one(legendaryPollCandidates, {
+    fields: [legendaryPollVotes.candidateId],
+    references: [legendaryPollCandidates.id],
+  }),
+  user: one(users, { fields: [legendaryPollVotes.userId], references: [users.id] }),
 }));
 
 // Fantasy Five — a parallel, budget-cap fantasy squad mode alongside
