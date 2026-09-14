@@ -131,6 +131,14 @@ export const routes: Routes = [
     path: "profile",
     loadComponent: () => import("./features/profile/profile").then((m) => m.ProfileComponent),
   },
+  // Admin-only "Users" panel — plain roster data + signup analytics, reached
+  // via a link from Profile's existing admin section rather than a nav tab
+  // (server-side gated by requireAdmin; the component itself also checks
+  // auth.currentUser()?.isAdmin for a non-admin who navigates here directly).
+  {
+    path: "admin/users",
+    loadComponent: () => import("./features/admin/admin-users").then((m) => m.AdminUsersComponent),
+  },
   {
     path: "login",
     loadComponent: () => import("./features/auth/login.component").then((m) => m.LoginComponent),

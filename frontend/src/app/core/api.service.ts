@@ -55,6 +55,7 @@ import {
   LegendaryPollCandidateOption,
   FavoritePlayer,
   PromoRedemptionResponse,
+  AdminUsersResponse,
 } from "./models";
 
 /**
@@ -534,5 +535,10 @@ export class ApiService {
 
   unfavoritePlayer(playerId: string): Observable<{ ok: boolean }> {
     return this.http.delete<{ ok: boolean }>(`${API_BASE_URL}/players/${playerId}/favorite`);
+  }
+
+  // Admin only (enforced server-side).
+  getAdminUsers(): Observable<AdminUsersResponse> {
+    return this.http.get<AdminUsersResponse>(`${API_BASE_URL}/admin/users`);
   }
 }

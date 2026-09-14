@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, ElementRef, viewChild, effect, inject, signal, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { Router } from "@angular/router";
+import { Router, RouterLink } from "@angular/router";
 import { ReactiveFormsModule, FormBuilder, Validators } from "@angular/forms";
 import { AuthService } from "../../core/auth.service";
 import { ApiService } from "../../core/api.service";
@@ -28,6 +28,7 @@ const PAGE_SIZE = 20;
   standalone: true,
   imports: [
     CommonModule,
+    RouterLink,
     ReactiveFormsModule,
     RetryImgDirective,
     ButtonDirective,

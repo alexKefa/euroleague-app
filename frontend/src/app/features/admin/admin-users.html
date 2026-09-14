@@ -1,0 +1,158 @@
+<div class="max-w-6xl mx-auto p-4 sm:p-6">
+  <a routerLink="/profile" class="text-[12px] text-muted font-bold uppercase tracking-wider hover:text-ink transition-colors"
+    >&larr; {{ i18n.t('admin.backToProfile') }}</a
+  >
+
+  @if (!auth.currentUser()?.isAdmin) {
+    <div class="mt-6 rounded-2xl border border-line bg-card p-6 text-center">
+      <p class="font-display text-lg">{{ i18n.t('admin.accessDenied') }}</p>
+      <p class="text-sm text-muted mt-1">{{ i18n.t('admin.accessDeniedBody') }}</p>
+    </div>
+  } @else {
+    <div class="mt-4 mb-5">
+      <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('admin.title') }}</h1>
+      <p class="text-sm text-muted mt-1">{{ i18n.t('admin.subtitle') }}</p>
+    </div>
+
+    @if (loading()) {
+      <div class="animate-pulse h-96 rounded-2xl bg-line"></div>
+    } @else if (error()) {
+      <p class="text-red-500 text-sm font-semibold">{{ i18n.t('admin.loadError') }}</p>
+    } @else {
+      <!-- KPI tiles -->
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
+        <div class="rounded-xl border border-line bg-card p-3">
+          <p class="text-[11px] font-bold uppercase tracking-wider text-muted">{{ i18n.t('admin.kpiTotal') }}</p>
+          <p class="font-display text-2xl mt-1">{{ kpis().total }}</p>
+        </div>
+        <div class="rounded-xl border border-line bg-card p-3">
+          <p class="text-[11px] font-bold uppercase tracking-wider text-muted">{{ i18n.t('admin.kpiToday') }}</p>
+          <p class="font-display text-2xl mt-1 text-highlight">{{ kpis().today }}</p>
+        </div>
+        <div class="rounded-xl border border-line bg-card p-3">
+          <p class="text-[11px] font-bold uppercase tracking-wider text-muted">{{ i18n.t('admin.kpiWeek') }}</p>
+          <p class="font-display text-2xl mt-1">{{ kpis().last7 }}</p>
+        </div>
+        <div class="rounded-xl border border-line bg-card p-3">
+          <p class="text-[11px] font-bold uppercase tracking-wider text-muted">{{ i18n.t('admin.kpiMonth') }}</p>
+          <p class="font-display text-2xl mt-1">{{ kpis().last30 }}</p>
+        </div>
+        <div class="rounded-xl border border-line bg-card p-3">
+          <p class="text-[11px] font-bold uppercase tracking-wider text-muted">{{ i18n.t('admin.kpiAdmins') }}</p>
+          <p class="font-display text-2xl mt-1">{{ kpis().admins }}</p>
+        </div>
+      </div>
+
+      <!-- Signups per day -->
+      <div class="rounded-2xl border border-line bg-card p-4 mb-5">
+        <div class="flex items-baseline justify-between mb-3">
+          <p class="font-display text-sm">{{ i18n.t('admin.chartTitle') }}</p>
+          <p class="text-[11px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('admin.chartSubtitle') }}</p>
+        </div>
+        @if (kpis().total === 0) {
+          <p class="text-sm text-muted">{{ i18n.t('admin.chartEmpty') }}</p>
+        } @else {
+          <div class="flex items-end gap-[3px] h-28">
+            @for (d of chartDays(); track d.date) {
+              <div
+                class="flex-1 rounded-t-[2px] bg-highlight/70 hover:bg-highlight transition-colors min-h-[2px]"
+                [style.height.%]="(d.count / chartMax()) * 100"
+                [title]="formatChartDate(d.date) + ': ' + d.count"
+              ></div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Search -->
+      <input
+        type="text"
+        [value]="search()"
+        (input)="search.set($any($event.target).value)"
+        [placeholder]="i18n.t('admin.searchPlaceholder')"
+        class="w-full mb-3 px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
+      />
+      <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-2">
+        {{ filteredUsers().length }} / {{ allUsers().length }} {{ i18n.t('admin.usersLabel') }}
+      </p>
+
+      <div class="rounded-2xl border border-line shadow-card overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm min-w-[720px] border-collapse">
+            <thead>
+              <tr class="bg-card">
+                <th
+                  scope="col"
+                  (click)="setSort('username')"
+                  class="sticky left-0 z-10 bg-card border-b border-line min-w-[10rem] px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
+                  [class.text-highlight]="sortKey() === 'username'"
+                >
+                  {{ i18n.t('admin.colUser') }}
+                  @if (sortKey() === 'username') {
+                    <span class="inline-block">{{ sortDesc() ? '↓' : '↑' }}</span>
+                  }
+                </th>
+                @for (col of columns.slice(1); track col.key) {
+                  <th
+                    scope="col"
+                    (click)="setSort(col.key)"
+                    class="bg-card border-b border-line px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
+                    [class.text-highlight]="sortKey() === col.key"
+                  >
+                    {{ i18n.t(col.labelKey) }}
+                    @if (sortKey() === col.key) {
+                      <span class="inline-block">{{ sortDesc() ? '↓' : '↑' }}</span>
+                    }
+                  </th>
+                }
+                <th
+                  scope="col"
+                  class="bg-card border-b border-line px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap"
+                >
+                  {{ i18n.t('admin.colTeam') }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of filteredUsers(); track row.id) {
+                <tr class="border-t border-line hover:bg-page transition-colors">
+                  <td class="sticky left-0 z-10 bg-card min-w-[10rem] px-3 py-2 font-bold whitespace-nowrap">
+                    <span class="flex items-center gap-1.5">
+                      <span class="truncate">{{ row.username }}</span>
+                      @if (row.isAdmin) {
+                        <span class="text-[9px] font-bold uppercase tracking-wider bg-highlight/15 text-highlight rounded px-1.5 py-0.5 shrink-0">
+                          {{ i18n.t('admin.kpiAdmins') }}
+                        </span>
+                      }
+                    </span>
+                  </td>
+                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap text-muted" [class.text-highlight]="sortKey() === 'email'">
+                    {{ row.email }}
+                  </td>
+                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-highlight]="sortKey() === 'createdAt'">
+                    {{ formatDate(row.createdAt) }}
+                  </td>
+                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-highlight]="sortKey() === 'points'">
+                    {{ row.totalPoints }}
+                  </td>
+                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-highlight]="sortKey() === 'cards'">
+                    {{ row.cardsOwned }}
+                  </td>
+                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-highlight]="sortKey() === 'predictions'">
+                    {{ row.predictionsMade }}
+                  </td>
+                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-highlight]="sortKey() === 'referrals'">
+                    {{ row.referralsCount }}
+                  </td>
+                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap text-muted">
+                    {{ row.favoriteTeam ? (row.favoriteTeam.code | teamCode) : i18n.t('admin.noTeam') }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+  }
+</div>

@@ -148,6 +148,14 @@
         {{ i18n.t('profile.adminSectionTitle') }}
       </p>
 
+      <a
+        routerLink="/admin/users"
+        class="flex items-center justify-between bg-card rounded-lg shadow-card p-4 mb-3 hover:bg-page transition-colors"
+      >
+        <span class="font-mono text-[12px] font-bold">{{ i18n.t('profile.adminUsersLink') }}</span>
+        <span class="text-muted">&rarr;</span>
+      </a>
+
       <div class="bg-card rounded-lg shadow-card p-4 mb-3">
         <p class="font-mono text-[12px] text-muted font-bold mb-3">
           {{ i18n.t('profile.grantPointsTitle') }}

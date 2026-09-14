@@ -940,3 +940,25 @@ export interface FavoritePlayer {
   assistsPerGame?: number | null;
   valuation?: number | null;
 }
+
+// GET /api/admin/users (admin-only) — plain roster data plus a few
+// at-a-glance numbers, backing the admin "Users" panel
+// (features/admin/admin-users.ts) so checking who's using the app doesn't
+// need opening Drizzle Studio / the DB directly.
+export interface AdminUserRow {
+  id: string;
+  email: string;
+  username: string;
+  createdAt: string;
+  isAdmin: boolean;
+  favoriteTeam: { id: string; code: string; name: string } | null;
+  totalPoints: number;
+  cardsOwned: number;
+  predictionsMade: number;
+  referralsCount: number;
+}
+
+export interface AdminUsersResponse {
+  users: AdminUserRow[];
+  signupsByDay: { date: string; count: number }[];
+}

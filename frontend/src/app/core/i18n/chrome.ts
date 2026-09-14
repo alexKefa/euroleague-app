@@ -94,6 +94,7 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
   // Admin-only tools, consolidated here rather than scattered across the
   // pages they act on (except the wheel's cheat-spin, which stays there).
   "profile.adminSectionTitle": { en: "Admin tools", el: "Εργαλεία διαχειριστή" },
+  "profile.adminUsersLink": { en: "View all users", el: "Προβολή όλων των χρηστών" },
   "profile.userEmailPlaceholder": { en: "User email", el: "Email χρήστη" },
   "profile.grantedPrefix": { en: "Granted", el: "Δόθηκαν" },
 
