@@ -2,15 +2,19 @@
   class="splash-root fixed inset-0 z-[100] flex flex-col items-center justify-center gap-3 bg-page transition-opacity duration-[400ms] overflow-hidden"
   [class.opacity-0]="hiding"
 >
-  <!-- v8 (2026-09-13 trial) — the old animated half-court line-draw diagram
-       (kept in git history, not deleted-and-lost) is retired here since the
-       new logo already bakes its own hoop/backboard/net illustration in;
-       drawing a second, separate court behind it read as redundant when
-       tested in a mockup. The old "Pure Wordmark" SVG is likewise replaced
-       with a plain raster <img> — see app.component.html's comment for the
-       full rationale/tradeoffs of this swap. -->
+  <!-- v9 (2026-09-13) — a new glossy backboard/hoop/net "CLUTCH" mark
+       replaces the earlier flat-orange-line-art v8 render (same concept,
+       different illustration), promoted to the real clutch-mark.png after
+       a live splash-screen trial. The old animated half-court line-draw
+       diagram (kept in git history, not deleted-and-lost) stays retired —
+       the mark already bakes its own hoop/backboard/net illustration in,
+       so drawing a second, separate court behind it read as redundant when
+       tested in a mockup. See app.component.html's comment for the fuller
+       history of the wordmark-to-image swap. -->
   <div class="relative px-6 max-w-[92vw]" aria-label="Clutch" role="img">
-    <img src="/clutch-mark.png" alt="" class="logo-mark" />
+    <div class="logo-scan-wrap">
+      <img src="/clutch-mark.png" alt="" class="logo-mark" />
+    </div>
   </div>
 
   <!-- Tagline — a plain centered line now (the old curved-text treatment

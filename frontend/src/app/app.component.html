@@ -15,26 +15,26 @@
 <nav
   class="sticky top-0 z-30 flex justify-between items-center gap-3 px-4 sm:px-6 py-4 bg-card border-b border-line"
 >
-  <!-- The logo — v8 (2026-09-13, trial pass, see CLAUDE.md's Branding
-       section): the user-generated backboard/hoop/net "CLUTCH"
-       illustration replaces the old "Pure Wordmark" SVG here, but that
-       illustration's own baked-in "CLUTCH" text is illegible at nav-icon
-       size (confirmed directly, not assumed — every earlier pictorial mark
-       in this app's history hit the same wall, see the Branding section).
-       So the nav bar keeps a real, live "Clutch" <span> next to the icon,
-       same as the icon+text pairing "as it was" before the Pure Wordmark
-       pass dropped the icon entirely. A first cut set this in Archivo
-       Black (the old wordmark's own face) but that read too heavy next to
-       the icon on direct feedback ("more light") — this uses the app's
-       regular sans font (IBM Plex Sans, `font-sans` in tailwind.config.js)
-       at its normal weight instead, needing no extra font import. Unlike
-       the old wordmark this can't recolor the icon half via
-       var(--color-ink) for the light/dark toggle — the image is a
-       fixed-color raster with no vector source — but the text half still
-       does via text-ink. -->
+  <!-- The logo — v8/v9 (2026-09-13, see CLAUDE.md's Branding section): the
+       user-generated backboard/hoop/net "CLUTCH" illustration replaces the
+       old "Pure Wordmark" SVG here, but that illustration's own baked-in
+       "CLUTCH" text is illegible at nav-icon size (confirmed directly, not
+       assumed — every earlier pictorial mark in this app's history hit the
+       same wall, see the Branding section). So the nav bar keeps a real,
+       live "Clutch" <span> next to the icon, same as the icon+text pairing
+       "as it was" before the Pure Wordmark pass dropped the icon entirely.
+       Weight/size history: Archivo Black (too heavy) -> IBM Plex Sans at
+       normal weight/text-lg ("more light") -> bumped back up to font-bold/
+       text-xl (2026-09-13, explicit ask for "more intense and bold" once
+       the new v9 mark landed) — the regular sans font stays (`font-sans`
+       in tailwind.config.js), just bolder/larger now, still needing no
+       extra font import. Unlike the old wordmark this can't recolor the
+       icon half via var(--color-ink) for the light/dark toggle — the image
+       is a fixed-color raster with no vector source — but the text half
+       still does via text-ink. -->
   <a routerLink="/" class="flex items-center gap-2 shrink-0">
     <img src="/clutch-mark.png" alt="" height="34" style="height: 34px; width: auto;" />
-    <span class="font-sans font-normal text-ink text-lg tracking-wide">Clutch</span>
+    <span class="font-sans font-bold text-ink text-xl tracking-wide">Clutch</span>
   </a>
 
   <div class="flex items-center gap-2 min-w-0">

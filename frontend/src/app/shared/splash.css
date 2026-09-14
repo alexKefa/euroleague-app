@@ -1,17 +1,74 @@
+/* Wraps the logo tightly (no padding) so the shine sweep below lines up
+   exactly with the image's own bounds rather than the outer div's wider,
+   padded box. overflow:hidden keeps the sweep clipped to the mark itself
+   instead of spilling past its edges. */
+.logo-scan-wrap {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+  overflow: hidden;
+}
+
 .logo-mark {
-  /* v8 (2026-09-13 trial) — a roughly-square illustrated raster mark, not
-     the old wide 600x200 wordmark, so it needs a much taller clamp to stay
-     legible: tested small (matching the old wordmark's clamp) and the
-     baked-in "CLUTCH" text/net weave read as a blur, only becoming clearly
-     legible around 45-55vmin. aspect-ratio matches the source crop
-     (1434x1323, frontend/public/clutch-mark.png) so it doesn't stretch. */
+  /* v9 (2026-09-13) — clutch-mark.png is now a glossy 3D-rendered
+     backboard/net/"CLUTCH" mark (was flat orange line art). Cropped tight
+     to its own content (400x370, was 542x542 with a lot of dead
+     transparent margin around it, which read as "off-center" once the
+     tagline sat below it) — aspect-ratio matches that exact crop. */
   height: clamp(160px, 50vmin, 320px);
   width: auto;
-  aspect-ratio: 1434 / 1323;
+  aspect-ratio: 400 / 370;
+  display: block;
   opacity: 0;
-  transform: scale(0.7);
-  animation: icon-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  transform: scale(0.85);
+  /* Reveal, take 3 — plain and calm instead of the scanline/glitch
+     attempts: a smooth fade+scale entrance. The shine sweep (below) is a
+     separate, single pass layered on top once the logo has settled. */
+  animation: logo-fade-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   animation-delay: 0.9s;
+}
+
+/* A single diagonal light band that sweeps across the settled logo once —
+   the common "premium app icon" shine, not a repeating loop. */
+.logo-scan-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    75deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 60%
+  );
+  transform: translateX(-130%);
+  opacity: 0;
+  pointer-events: none;
+  animation: logo-shine-sweep 0.7s ease-out forwards;
+  animation-delay: 1.5s;
+}
+
+@keyframes logo-fade-in {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes logo-shine-sweep {
+  0% {
+    transform: translateX(-130%);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(130%);
+    opacity: 0;
+  }
 }
 
 /* Plain centered tagline (replacing the old curved-text-on-a-circle
@@ -33,13 +90,6 @@
 }
 .tagline-flat-brand {
   color: #ff6b35;
-}
-
-@keyframes icon-in {
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
 }
 
 @keyframes wordmark-in {
