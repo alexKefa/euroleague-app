@@ -10,15 +10,20 @@
 }
 
 .logo-mark {
-  /* v9 (2026-09-13) — clutch-mark.png is now a glossy 3D-rendered
-     backboard/net/"CLUTCH" mark (was flat orange line art). Cropped tight
-     to its own content (400x370, was 542x542 with a lot of dead
-     transparent margin around it, which read as "off-center" once the
-     tagline sat below it) — aspect-ratio matches that exact crop. */
+  /* v14 (2026-09-14) — clutch-mark.png/clutch-mark-dark.png are now two
+     genuinely separate, purpose-designed exports (a real Canva dark-theme
+     recolor with proper contrast, not an algorithmic invert — see
+     CLAUDE.md's v11->v14 entries for the full story of why that was
+     needed). Cropped tight to real content (738x698 light, 592x560 dark —
+     coincidentally almost the exact same aspect ratio, so one CSS ratio
+     fits both without a visible jump on theme toggle). Two stacked
+     <img>s share this class; display is deliberately NOT set here —
+     styles.css's .brand-mark-light/.brand-mark-dark own show/hide, and
+     declaring display here would win over that global rule under
+     Angular's component-style encapsulation and show both at once. */
   height: clamp(160px, 50vmin, 320px);
   width: auto;
-  aspect-ratio: 400 / 370;
-  display: block;
+  aspect-ratio: 738 / 698;
   opacity: 0;
   transform: scale(0.85);
   /* Reveal, take 3 — plain and calm instead of the scanline/glitch

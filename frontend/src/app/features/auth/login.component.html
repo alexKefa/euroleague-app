@@ -1,10 +1,14 @@
 <div class="min-h-[70vh] flex flex-col items-center justify-center px-6 py-10">
-  <!-- The logo — v9 (2026-09-13), a glossy 3D-rendered backboard/hoop/net
-       "CLUTCH" mark (replacing v8's flatter orange line-art render of the
-       same concept); see app.component.html's comment for the full
-       history/rationale. -->
+  <!-- The logo — v14 (2026-09-14), a new user-supplied "C"-swoosh
+       basketball/hoop mark with a baked-in serif "Clutch" wordmark; see
+       app.component.html's comment for the full history/rationale. Sized
+       up from v9/v10's 64px so the baked-in text stays legible (this
+       art's wordmark sits well below the graphic, not beside it, so it
+       needs more height than a horizontal lockup would for the same
+       readable text size). Light/dark pair, same reasoning as the nav. -->
   <div class="mb-9">
-    <img src="/clutch-mark.png" alt="Clutch" height="64" style="height: 64px; width: auto;" />
+    <img src="/clutch-mark.png" alt="Clutch" height="96" class="brand-mark-light" style="height: 96px; width: auto;" />
+    <img src="/clutch-mark-dark.png" alt="Clutch" height="96" class="brand-mark-dark" style="height: 96px; width: auto;" />
   </div>
 
   <!-- Glass capsule panel — same backdrop-blur/highlight-tint/highlight-border

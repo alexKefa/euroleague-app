@@ -3,7 +3,13 @@
        this page exists outside the logged-in app shell entirely (see
        app.component.ts's hideChrome()). -->
   <header class="flex items-center justify-between px-5 sm:px-8 py-5 max-w-5xl mx-auto">
-    <img src="/clutch-mark.png" alt="Clutch" height="32" style="height: 32px; width: auto;" />
+    <!-- Icon-only crop (not the full icon+text mark) — at this header's
+       compact height the source art's baked-in "Clutch" text renders
+       illegibly small (same issue as the nav bar, see
+       app.component.html's comment); the page's own title already reads
+       "Clutch" regardless. -->
+    <img src="/clutch-icon.png" alt="Clutch" height="40" class="brand-mark-light" style="height: 40px; width: auto;" />
+    <img src="/clutch-icon-dark.png" alt="Clutch" height="40" class="brand-mark-dark" style="height: 40px; width: auto;" />
 
     <div class="inline-flex bg-card border-2 border-line rounded-2xl p-1 gap-1">
       <button type="button" (click)="i18n.setLang('en')" [appChip]="i18n.lang() === 'en'">EN</button>

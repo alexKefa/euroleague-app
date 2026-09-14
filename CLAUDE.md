@@ -1750,6 +1750,204 @@ at the same Neon instance as local dev — there's no separate prod database.
     `<link>` from `IBM+Plex+Sans:wght@800` — no longer used anywhere in
     that file — to `Archivo+Black`). None of these render an icon glyph
     inline any more; the wordmark SVG is the entire lockup.
+- **Timeline correction (2026-09-14)**: this doc's "Pure Wordmark" entry
+  right above was the last logo pass it had on record — but four more
+  undocumented commits happened after it the same/next day: a "Bracket"
+  mark, a "v8" trial (a real, user-generated illustrated raster
+  backboard/hoop/net "CLUTCH" graphic — the pure-SVG-wordmark approach was
+  abandoned here, not iterated on), "v9" (a glossier render of the same
+  concept, `clutch-mark.png`), and "v10" (fixed the PWA icon's background
+  fill color). None updated this file. Caught while implementing the v11
+  pass below, the same way each of this section's prior "Timeline
+  correction" entries got caught — by comparing what's actually live
+  against what this doc claimed.
+- **`v10` → `v11`, another new user-supplied illustrated mark (2026-09-14)**
+  — replaces v9/v10's backboard/hoop/net "CLUTCH" graphic with a different
+  user-supplied illustration: a "C"-shaped swoosh wrapped around a
+  basketball, a hoop/backboard, and a bold serif "Clutch" wordmark stacked
+  below the graphic (not beside it — a genuinely different lockup shape
+  than every prior version, which matters below). Source was a flattened
+  PNG on an opaque white background with no transparency and no vector
+  original, same raw-artwork starting point v8 was.
+  - **De-matting, tuned twice**: a naive `alpha = 255 - min(r,g,b)`
+    formula (the textbook inverse of alpha-blending onto a white matte,
+    assuming a *pure black* foreground) was tried first and rejected —
+    this art's linework is a dark charcoal, not `(0,0,0)`, so the formula
+    read every interior "black" pixel as only ~80-85% opaque and the whole
+    mark looked visibly washed out once actually composited onto the
+    app's real dark background (checked directly by flattening onto
+    `#0a0a0b`, not assumed). Fixed with a threshold band instead
+    (`process-logo.js`, not checked in — a scratch script, deleted after
+    running, per this app's standing "no icon-generation pipeline checked
+    in" precedent): pixels within ~18-35 units of pure white fade smoothly
+    (catches real anti-aliasing at the true background edge), anything
+    darker than that stays at full opacity and its own real color. Trimmed
+    to content afterward (738×702).
+  - **A real dark-theme problem, not just a de-matte artifact**: even
+    correctly de-matted, the art's own linework/text color is a dark
+    charcoal — by design, for a white-background context — which reads as
+    near-invisible against this app's actual dark-theme page (`#0a0a0b`,
+    the default theme). Every prior raster mark (v8/v9/v10) sidestepped
+    this because their linework/fill was already light/orange-toned. This
+    is the first mark here dark enough to need an explicit fix: a second
+    PNG (`clutch-mark-dark.png`) recolors only the near-neutral dark
+    pixels (low saturation, luminance < 150 — the swoosh linework and the
+    "Clutch" text) via a component-wise invert, leaving the orange ball
+    and the backboard's already-light glass panel untouched so neither
+    shifts hue. `styles.css` gained `.brand-mark-light`/`.brand-mark-dark`
+    (paired `<img>`s, shown/hidden via `display`) as a reusable pattern,
+    same dark-unscoped-default/light-explicit-override convention as the
+    existing `.icon-ink-invert` rule right above it — a plain
+    `brightness(0) invert(1)` filter (that rule's own technique) wasn't an
+    option here since it would have inverted the orange ball's hue too.
+  - **The nav bar (and `/welcome`'s header) crop out the text, again**:
+    the stacked (icon-above-text) composition means the baked-in "Clutch"
+    text renders at a small fraction of the mark's total display height —
+    illegible at nav-icon size (~34px), the same wall every earlier
+    pictorial mark hit here (see the "v8/v9" nav-bar entry above). Fixed
+    by cropping an icon-only variant (`clutch-icon.png`/`-dark.png`) at
+    the graphic/text boundary, found by scanning for the blank row band
+    between them (~y=484-516 of the trimmed 738×702 art) rather than
+    eyeballed, and pairing it with the nav's existing real, live "Clutch"
+    `<span>` — continuing the same pairing the v8/v9 pass used, not a step
+    backward from it. The auth-page heroes and `claim.html` instead just
+    render the full mark larger (64px → 96px) so its own baked-in text
+    stays legible without needing a separate span; the splash screen
+    (already large via `clamp(160px, 50vmin, 320px)`, `.logo-mark`'s
+    `aspect-ratio` updated to `738/702`) and `qr-card.html` (a fixed-dark
+    card regardless of viewer theme, so it points straight at
+    `clutch-mark-dark.png`, no light/dark pair needed) needed no sizing
+    change at all.
+  - **Left alone, on purpose**: the Fantasy court background's
+    center-court decal (`shared/court-background.ts`) stays the separate
+    extracted-glyph vector "C" path it's been since the `v7` pass above —
+    its own comment already explains why a raster mark with no vector
+    source doesn't belong there, and that reasoning is unaffected by which
+    raster mark is currently live elsewhere.
+- **`v11` → `v12`, same design, a cleaner re-export (2026-09-14, later same
+  day)** — a second file for the identical logo concept arrived, claimed as
+  transparent; checked directly and it wasn't (alpha=255 everywhere, same
+  opaque-white situation as `v11`), but it was a genuinely higher-resolution
+  export (2000×2000 vs. `v11`'s ~1900×1900 flattened source) worth
+  re-deriving the mark from rather than reusing `v11`'s assets as-is.
+  - **The de-matte approach itself had to change twice more.** `v11`'s
+    per-pixel min/max threshold band, tried first on this source, blew the
+    bounding box up to nearly the full canvas — this source has a faint
+    background shadow/vignette baked in (confirmed directly: pixels far
+    from any graphic sampled as low as 243, not pure 255), and that
+    gradient's value range overlaps the real graphic's own anti-aliased
+    edge pixels, so no single min-channel cutoff can separate "background"
+    from "content" — tightening the band made it worse (243 fell on the
+    wrong side and read as fully *opaque*), not better. Fixed with a flood
+    fill instead: BFS from the canvas border through any pixel light enough
+    to plausibly be background — the shadow, however uneven, is one region
+    contiguous with the white edges, while the graphic's saturated/dark
+    pixels form a separate island a light-only flood fill can't cross into.
+    Correctly produced a tight, real bounding box (588×555) on the first
+    try once framed this way. A 2px erosion pass on the resulting mask was
+    also needed — the hard flood-fill boundary otherwise keeps a thin ring
+    of the source's own white-blended anti-aliased edge pixels at full
+    opacity, which showed up as a visible light-gray fringe once
+    composited onto the app's real dark background (checked directly).
+  - **Same dark-theme recolor and icon/text gap-crop logic as `v11`**,
+    just re-run against this source's own proportions (the graphic/text
+    gap this time is a real blank-row band found by scanning, not the
+    `v11` fallback heuristic that had to be used once before).
+  - **Every reference bumped `v11` → `v12`** (`favicon-v12.png`,
+    `icons/icon-v12-*.png`, `index.html`, `manifest.webmanifest`,
+    `email.ts`'s `LOGO_URL`) — old `v11` files deleted outright, same "no
+    legacy files left behind" discipline as every other icon-version bump
+    in this section. `clutch-mark.png`/`clutch-mark-dark.png`/
+    `clutch-icon.png`/`clutch-icon-dark.png` keep their stable filenames
+    (not versioned — see the `v11` entry above for why), just overwritten
+    with the newly-derived crop; `splash.css`'s `.logo-mark` aspect-ratio
+    updated to the new crop's own `588/555`.
+- **`v12` → `v13`, fixing real ugliness on dark theme, not just re-deriving
+  again (2026-09-14, later same day)** — direct report: "the quality is
+  low. on white background works fine. on dark is ugly." Compared `v12`'s
+  light and dark variants at the same blown-up scale to isolate the cause
+  before guessing: the light variant held up fine (soft from upscaling a
+  ~590px-native crop, but smooth, no artifacts) — proof the *source*
+  resolution itself wasn't the real problem, contrary to how it first
+  looked. The dark variant was visibly blocky/jagged by comparison,
+  especially the hoop net's crosshatch (partly melted together) and the
+  swoosh/text edges — traced to `v12`'s 2-pass hard erosion (added to fix
+  `v11`'s white-fringe-on-dark halo by shrinking the foreground mask),
+  which eats real pixels uniformly regardless of feature thickness — fine
+  for the swoosh's thick strokes, destructive on the net's thin threads,
+  and it replaced what should be smooth anti-aliasing with a hard,
+  un-anti-aliased binary boundary.
+  - **Real fix: color decontamination in a boundary zone, not erosion.**
+    The actual bug in `v11`'s fringe was never "the mask is too generous"
+    (what erosion treats it as) — it's that a partially-transparent edge
+    pixel's *stored color* was left as its observed white-blended tone
+    while being marked fully opaque, so a light halo painted itself in
+    directly. Fixed by keeping `v12`'s flood-fill for robust background
+    classification (still needed — see the `v12` entry above for why a
+    plain threshold can't handle this source's baked-in vignette), then
+    dilating that mask by 4px to mark a thin real-edge boundary zone, and
+    *only inside that zone* running a smooth min-channel alpha formula
+    plus proper unmix (`trueColor = (observed - (1-a)·white) / a`) to
+    recover each edge pixel's actual foreground color at its real partial
+    alpha — instead of discarding those pixels outright. Deep foreground
+    (the vast majority of the graphic, never within 4px of the flood-filled
+    boundary) is untouched at full opacity; deep background stays alpha 0.
+    Verified directly at the sizes actually used in the app (96px auth
+    hero, 34px nav icon, 192px PWA icon) — all clean, no blockiness, net
+    crosshatch intact — not just at an artificially blown-up test scale.
+  - Trimmed content came out `592×559` this time (was `588×555` — a few
+    px of difference from decontamination changing which edge pixels cross
+    the bbox's alpha>10 cutoff, not a meaningfully different crop).
+    `splash.css`'s aspect-ratio updated to match. Every reference bumped
+    `v12` → `v13` the same way as the `v11` → `v12` bump.
+- **`v13` → `v14`, a real Canva-authored dark variant, not an algorithmic
+  recolor at all (2026-09-14, later same day)** — direct report on `v13`:
+  "logo on dark background is wrong." Right call: `v13`'s dark variant
+  inverted only dark/low-saturation pixels, which breaks for any element
+  that gets its definition from a dark stroke over an *already-light*
+  fill (the backboard's outline against its own glass panel, specifically)
+  — inverting the stroke to white left it sitting on an already-light
+  fill, collapsing two tonal layers into one washed-out blob. No per-pixel
+  recolor formula fixes that; it needs an actual new color decision, which
+  only a human (or the source design tool) can make. Wrote up a checklist
+  for what to get from Canva instead of continuing to patch pixels: a
+  real, separately-designed dark-background version (not just recolored,
+  redesigned — e.g. the backboard could drop its fill entirely and become
+  pure white line art, sidestepping the layering problem outright), PNG
+  export with "Transparent background" actually toggled on, and a
+  reasonably large/tight canvas.
+  - **Two new files, genuinely transparent this time** — checked directly
+    (as every file in this saga has been): both `hasAlpha: true` with real
+    alpha=0 at the corners and smooth intermediate alpha values at edges,
+    the first time any of the four source files handed over across this
+    whole saga has actually been what it claimed. No de-matte step needed
+    for either.
+  - **The dark file had its own new problem, not a repeat of any prior
+    one**: a flat opaque "preview backdrop" rectangle baked in behind the
+    real white/orange graphic — sampled directly at `(24,25,31)`, alpha
+    255, across a wide area; only the canvas's outer margin past that
+    rectangle was real alpha 0. A plain alpha-based trim picked up the
+    whole rectangle as "content" (1600×1600, obviously wrong next to the
+    light file's 738×698). Fixed with a chroma-key against that exact
+    sampled color (`stripDarkBackdrop` in `process-logo.js`, smooth
+    unmix at the blended edge, same unmix math as `v13`'s boundary-zone
+    fix) — safe to do unambiguously here specifically because *this*
+    design's foreground has no dark-colored elements at all (pure white
+    linework + the orange ball), so nothing real could be mistaken for
+    backdrop. Trimmed down to `592×560` once removed — matches the light
+    file's own proportions almost exactly (both designs share the same
+    icon-above-text layout, just at different absolute sizes), so
+    `splash.css`'s single `aspect-ratio` (now `738/698`, the light file's
+    real dimensions) fits both without a visible jump on theme toggle.
+  - **Everything downstream is now built from these two real exports
+    directly** (`clutch-mark.png`/`clutch-mark-dark.png`, the icon-only
+    crops, the favicon/PWA-icon master composited from the real dark
+    file) — no recolor/erosion/decontamination step in the pipeline at
+    all for this pass, since neither source needed one. Verified at real
+    display sizes again (dark variant especially: backboard structure,
+    net crosshatch, and "Clutch" text all read cleanly at both a large
+    blown-up scale and the actual 34px nav-icon size). Every reference
+    bumped `v13` → `v14` the same way as every prior bump in this section.
 
 ## Album leaderboard (2026-09-06)
 

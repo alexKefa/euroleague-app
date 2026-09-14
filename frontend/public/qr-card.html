@@ -175,7 +175,11 @@
          header art. Sized much larger than the old 102x34 wordmark since
          this mark's baked-in text needs real room to stay legible (see
          app.component.html's comment for the full rationale). -->
-    <img src="/clutch-mark.png" alt="Clutch" style="width: 62%; max-width: 230px; height: auto; display: block; margin: 0 auto;" />
+    <!-- clutch-mark-dark.png, not clutch-mark.png — the card (see the
+       .card comment above) is a fixed dark object regardless of viewer
+       theme, and the source art's own dark linework/text reads as
+       near-invisible on it (v11, 2026-09-14). -->
+    <img src="/clutch-mark-dark.png" alt="Clutch" style="width: 62%; max-width: 230px; height: auto; display: block; margin: 0 auto;" />
     <p class="subtitle" style="margin-top: 0.7rem;">Τα πάντα για την EuroLeague</p>
 
     <div class="grid">

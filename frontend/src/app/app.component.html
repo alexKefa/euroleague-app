@@ -15,26 +15,31 @@
 <nav
   class="sticky top-0 z-30 flex justify-between items-center gap-3 px-4 sm:px-6 py-4 bg-card border-b border-line"
 >
-  <!-- The logo — v8/v9 (2026-09-13, see CLAUDE.md's Branding section): the
-       user-generated backboard/hoop/net "CLUTCH" illustration replaces the
-       old "Pure Wordmark" SVG here, but that illustration's own baked-in
-       "CLUTCH" text is illegible at nav-icon size (confirmed directly, not
-       assumed — every earlier pictorial mark in this app's history hit the
-       same wall, see the Branding section). So the nav bar keeps a real,
-       live "Clutch" <span> next to the icon, same as the icon+text pairing
-       "as it was" before the Pure Wordmark pass dropped the icon entirely.
-       Weight/size history: Archivo Black (too heavy) -> IBM Plex Sans at
-       normal weight/text-lg ("more light") -> bumped back up to font-bold/
-       text-xl (2026-09-13, explicit ask for "more intense and bold" once
-       the new v9 mark landed) — the regular sans font stays (`font-sans`
-       in tailwind.config.js), just bolder/larger now, still needing no
-       extra font import. Unlike the old wordmark this can't recolor the
-       icon half via var(--color-ink) for the light/dark toggle — the image
-       is a fixed-color raster with no vector source — but the text half
-       still does via text-ink. -->
+  <!-- The logo — v14 (2026-09-14, see CLAUDE.md's Branding section): a new
+       user-supplied "C"-swoosh basketball/hoop mark with its own baked-in
+       serif "Clutch" wordmark below it, replacing v9/v10's backboard/net
+       illustration. Same nav-specific problem as the mark it replaces: the
+       source art is a stacked (icon-above-text) composition, and its own
+       "Clutch" text renders illegibly small once the whole thing is
+       shrunk to nav-icon height — so the nav uses clutch-icon(-dark).png,
+       a crop of just the graphic (found via a blank-row scan, not
+       eyeballed — see process-logo.js's history in git if regenerating),
+       paired with a real, live "Clutch" <span>, same pairing this nav has
+       used across every pictorial-mark redesign. Two <img>s (light/dark)
+       toggle via styles.css's .brand-mark-light/.brand-mark-dark, since
+       the source art's dark linework is otherwise near-invisible on this
+       app's actual dark-theme page background (also in that CLAUDE.md
+       entry) — the raster has no vector source to recolor via
+       var(--color-ink) the way the old wordmark SVG could. The "Clutch"
+       <span> itself (2026-09-14) switched fonts from font-sans to
+       .brand-wordmark (Bigshot One, styles.css) to echo the logo's own
+       bold vintage-serif "Clutch" wordmark instead of reading as plain UI
+       text next to it — see styles.css's comment for why it's a Google
+       Fonts lookalike rather than the logo's actual (non-free) typeface. -->
   <a routerLink="/" class="flex items-center gap-2 shrink-0">
-    <img src="/clutch-mark.png" alt="" height="34" style="height: 34px; width: auto;" />
-    <span class="font-sans font-bold text-ink text-xl tracking-wide">Clutch</span>
+    <img src="/clutch-icon.png" alt="" height="34" class="brand-mark-light" style="height: 34px; width: auto;" />
+    <img src="/clutch-icon-dark.png" alt="" height="34" class="brand-mark-dark" style="height: 34px; width: auto;" />
+    <span class="brand-wordmark text-ink text-xl tracking-wide">Clutch</span>
   </a>
 
   <div class="flex items-center gap-2 min-w-0">

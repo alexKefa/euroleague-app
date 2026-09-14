@@ -2,18 +2,14 @@
   class="splash-root fixed inset-0 z-[100] flex flex-col items-center justify-center gap-3 bg-page transition-opacity duration-[400ms] overflow-hidden"
   [class.opacity-0]="hiding"
 >
-  <!-- v9 (2026-09-13) — a new glossy backboard/hoop/net "CLUTCH" mark
-       replaces the earlier flat-orange-line-art v8 render (same concept,
-       different illustration), promoted to the real clutch-mark.png after
-       a live splash-screen trial. The old animated half-court line-draw
-       diagram (kept in git history, not deleted-and-lost) stays retired —
-       the mark already bakes its own hoop/backboard/net illustration in,
-       so drawing a second, separate court behind it read as redundant when
-       tested in a mockup. See app.component.html's comment for the fuller
-       history of the wordmark-to-image swap. -->
+  <!-- v14 (2026-09-14) — a new user-supplied "C"-swoosh basketball/hoop
+       mark with a baked-in serif "Clutch" wordmark, replacing v9/v10's
+       backboard/net illustration. See app.component.html's comment for
+       the fuller history/dark-theme-variant rationale. -->
   <div class="relative px-6 max-w-[92vw]" aria-label="Clutch" role="img">
     <div class="logo-scan-wrap">
-      <img src="/clutch-mark.png" alt="" class="logo-mark" />
+      <img src="/clutch-mark.png" alt="" class="logo-mark brand-mark-light" />
+      <img src="/clutch-mark-dark.png" alt="" class="logo-mark brand-mark-dark" />
     </div>
   </div>
 
