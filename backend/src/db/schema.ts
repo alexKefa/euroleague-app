@@ -738,6 +738,10 @@ export const promoCodes = pgTable("promo_codes", {
   id: uuid("id").defaultRandom().primaryKey(),
   code: varchar("code", { length: 32 }).notNull().unique(),
   packType: varchar("pack_type", { length: 20 }).notNull(),
+  // How many unopened packs a single redemption grants — 1 for every code
+  // until 2026-09-15, when a gym-flyer promo wanted a bigger one-time
+  // incentive than the usual single pack.
+  quantity: integer("quantity").default(1).notNull(),
   bonusPoints: integer("bonus_points").default(0).notNull(),
   maxRedemptions: integer("max_redemptions"),
   redemptionCount: integer("redemption_count").default(0).notNull(),

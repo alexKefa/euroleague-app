@@ -78,6 +78,11 @@ export class InventoryComponent implements OnInit, OnDestroy {
   readonly loading = signal(true);
   readonly points = signal(0);
   readonly pointsLoading = signal(true);
+  // Unopened-pack count for the Packs tile's pill — GET /packs/owned
+  // already filters to openedAt IS NULL, so this is just its length, same
+  // "fetch once on load" simplicity as points/collectibles above (unlike
+  // trades' pendingIncomingCount, nothing here needs a live SSE refresh).
+  readonly unopenedPackCount = signal(0);
   private readonly allCollectibles = signal<Collectible[]>([]);
   // collectibleId -> unlockedAt (ISO string) — used both to know what's
   // owned and to sort bundles by most-recent acquisition.
@@ -446,6 +451,11 @@ export class InventoryComponent implements OnInit, OnDestroy {
         this.pointsLoading.set(false);
       },
       error: () => this.pointsLoading.set(false),
+    });
+
+    this.api.getOwnedPacks().subscribe({
+      next: (packs) => this.unopenedPackCount.set(packs.length),
+      error: () => {},
     });
   }
 }

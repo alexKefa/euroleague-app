@@ -4,6 +4,7 @@ import { promoCodes, promoCodeRedemptions, ownedPacks, pointAdjustments } from "
 
 export interface PromoRedemptionResult {
   packType: string;
+  quantity: number;
   bonusPoints: number;
 }
 
@@ -37,11 +38,18 @@ export async function redeemPromoCode(rawCode: string, userId: string): Promise<
         or(isNull(promoCodes.maxRedemptions), lt(promoCodes.redemptionCount, promoCodes.maxRedemptions))
       )
     )
-    .returning({ id: promoCodes.id, packType: promoCodes.packType, bonusPoints: promoCodes.bonusPoints });
+    .returning({
+      id: promoCodes.id,
+      packType: promoCodes.packType,
+      quantity: promoCodes.quantity,
+      bonusPoints: promoCodes.bonusPoints,
+    });
 
   if (!claimed) return null;
 
-  await db.insert(ownedPacks).values({ userId, packType: claimed.packType, openedAt: null });
+  await db.insert(ownedPacks).values(
+    Array.from({ length: claimed.quantity }, () => ({ userId, packType: claimed.packType, openedAt: null }))
+  );
 
   // Records the redemption for this brand-new account too — see
   // promoCodeRedemptions' own doc comment (schema.ts): without this, the
@@ -109,14 +117,16 @@ export async function redeemPromoCodeForUser(rawCode: string, userId: string): P
         or(isNull(promoCodes.maxRedemptions), lt(promoCodes.redemptionCount, promoCodes.maxRedemptions))
       )
     )
-    .returning({ packType: promoCodes.packType, bonusPoints: promoCodes.bonusPoints });
+    .returning({ packType: promoCodes.packType, quantity: promoCodes.quantity, bonusPoints: promoCodes.bonusPoints });
 
   if (!claimed) {
     await db.delete(promoCodeRedemptions).where(eq(promoCodeRedemptions.id, claim.id));
     return null;
   }
 
-  await db.insert(ownedPacks).values({ userId, packType: claimed.packType, openedAt: null });
+  await db.insert(ownedPacks).values(
+    Array.from({ length: claimed.quantity }, () => ({ userId, packType: claimed.packType, openedAt: null }))
+  );
 
   if (claimed.bonusPoints > 0) {
     await db.insert(pointAdjustments).values({

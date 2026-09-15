@@ -46,6 +46,13 @@
               >{{ trades.pendingIncomingCount() }}</span
             >
           }
+          @if (tile.path === '/packs' && unopenedPackCount() > 0) {
+            <span
+              class="absolute -top-1.5 -right-1.5 min-w-[1.25rem] h-5 px-1 rounded-full bg-white text-[#0284C7] text-[11px] font-bold flex items-center justify-center leading-none border-2 border-page"
+              [attr.aria-label]="i18n.t('inventory.unopenedPacks')"
+              >{{ unopenedPackCount() }}</span
+            >
+          }
         </a>
       }
     </div>

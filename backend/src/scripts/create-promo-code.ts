@@ -9,17 +9,22 @@
  * up.
  *
  * Usage:
- *   npm run promo:create -- <code> <packType> [bonusPoints] [maxRedemptions] [expiresInDays]
+ *   npm run promo:create -- <code> <packType> [bonusPoints] [maxRedemptions] [expiresInDays] [quantity]
  *
  * Examples:
  *   npm run promo:create -- YOUTUBE2026 wheelPro 0 500 30
  *     -> code YOUTUBE2026, an unopened wheelPro pack (guaranteed rare(s)),
- *        no extra points, capped at 500 redemptions, expires in 30 days.
+ *        no extra points, capped at 500 redemptions, expires in 30 days,
+ *        one pack per redemption (quantity defaults to 1).
  *   npm run promo:create -- YOUTUBE2026 wheelPro
  *     -> same pack, no points, uncapped, no expiry.
+ *   npm run promo:create -- GYM qrBonus 0 "" "" 2
+ *     -> code GYM, uncapped, no expiry, grants 2 unopened qrBonus packs per
+ *        redemption instead of 1 — pass "" for an arg you want left at its
+ *        default so a later positional arg can still be set.
  *
- * Re-running with the same code updates that row (pack/points/caps/expiry)
- * rather than creating a duplicate — the code column is unique.
+ * Re-running with the same code updates that row (pack/points/caps/expiry/
+ * quantity) rather than creating a duplicate — the code column is unique.
  */
 import "dotenv/config";
 import { eq } from "drizzle-orm";
@@ -28,10 +33,12 @@ import { promoCodes } from "../db/schema.js";
 import { PACKS, PackType } from "../services/packs.js";
 
 async function main() {
-  const [code, packType, bonusPointsArg, maxRedemptionsArg, expiresInDaysArg] = process.argv.slice(2);
+  const [code, packType, bonusPointsArg, maxRedemptionsArg, expiresInDaysArg, quantityArg] = process.argv.slice(2);
 
   if (!code || !packType) {
-    console.error("Usage: npm run promo:create -- <code> <packType> [bonusPoints] [maxRedemptions] [expiresInDays]");
+    console.error(
+      "Usage: npm run promo:create -- <code> <packType> [bonusPoints] [maxRedemptions] [expiresInDays] [quantity]"
+    );
     console.error(`packType must be one of: ${Object.keys(PACKS).join(", ")}`);
     process.exit(1);
   }
@@ -45,6 +52,7 @@ async function main() {
   const expiresAt = expiresInDaysArg
     ? new Date(Date.now() + Number(expiresInDaysArg) * 24 * 60 * 60 * 1000)
     : null;
+  const quantity = quantityArg ? Number(quantityArg) : 1;
 
   const normalizedCode = code.trim().toUpperCase();
 
@@ -53,6 +61,7 @@ async function main() {
   const values = {
     code: normalizedCode,
     packType: packType as PackType,
+    quantity,
     bonusPoints,
     maxRedemptions,
     expiresAt,
@@ -69,6 +78,7 @@ async function main() {
 
   console.log({
     packType,
+    quantity,
     bonusPoints,
     maxRedemptions: maxRedemptions ?? "uncapped",
     expiresAt: expiresAt?.toISOString() ?? "never",

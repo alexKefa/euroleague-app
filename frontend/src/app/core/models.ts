@@ -629,7 +629,7 @@ export type PackType =
 // for an already-logged-in user — see features/claim/claim.ts) resolves to
 // exactly one of these three shapes.
 export type PromoRedemptionResponse =
-  | { status: "granted"; packType: PackType; bonusPoints: number }
+  | { status: "granted"; packType: PackType; quantity: number; bonusPoints: number }
   | { status: "already_claimed" }
   | { status: "invalid" };
 

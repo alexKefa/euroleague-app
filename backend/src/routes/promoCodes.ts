@@ -29,7 +29,12 @@ promoCodesRouter.post("/redeem", requireAuth, async (req, res) => {
       res.status(200).json({ status: "already_claimed" });
       return;
     }
-    res.status(200).json({ status: "granted", packType: result.packType, bonusPoints: result.bonusPoints });
+    res.status(200).json({
+      status: "granted",
+      packType: result.packType,
+      quantity: result.quantity,
+      bonusPoints: result.bonusPoints,
+    });
   } catch (err) {
     console.error("POST /api/promo-codes/redeem failed:", err);
     res.status(500).json({ error: "Failed to redeem code" });

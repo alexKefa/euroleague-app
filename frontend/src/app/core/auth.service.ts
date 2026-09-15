@@ -7,12 +7,12 @@ import { PublicUser } from "./models";
 interface AuthResponse {
   user: PublicUser;
   accessToken: string;
-  promo?: { packType: string; bonusPoints: number } | null;
+  promo?: { packType: string; quantity: number; bonusPoints: number } | null;
 }
 
 export interface RegisterResult {
   user: PublicUser;
-  promo: { packType: string; bonusPoints: number } | null;
+  promo: { packType: string; quantity: number; bonusPoints: number } | null;
 }
 
 @Injectable({ providedIn: "root" })

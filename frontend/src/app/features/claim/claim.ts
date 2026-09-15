@@ -62,7 +62,8 @@ export class ClaimComponent implements OnInit {
       next: (res) => {
         consumePendingPromoClaim();
         if (res.status === "granted") {
-          this.grantedPackLabel.set(this.i18n.t(`packs.label.${res.packType}`));
+          const label = this.i18n.t(`packs.label.${res.packType}`);
+          this.grantedPackLabel.set(res.quantity > 1 ? `${res.quantity}× ${label}` : label);
         }
         this.state.set(res.status);
       },
