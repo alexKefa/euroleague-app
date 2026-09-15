@@ -175,7 +175,7 @@
 
 <!-- Bottom tab nav — mobile only, primary nav within thumb reach.
      Icon-only, Instagram-inspired active state (bold/filled color, no
-     background highlight — see app-nav-icon's [active] input), now as a
+     background highlight — see app-nav-icon's [active] input), as a
      floating glass capsule (2026-09-08 pass) instead of a flush edge-to-
      edge bar: inset from all three edges, fully rounded, backdrop-blur'd
      translucent background — tinted the app's own highlight orange rather
@@ -183,15 +183,16 @@
      app's other reference-inspired passes already follow. Still `fixed`
      (unaffected by page scroll, "stays sticky" by construction) — floating
      only changes its own shape/position, not its positioning scheme.
-     "Sliding pill": one shared highlight-tinted pill glides between tabs
-     on every switch, sized to exactly fill whichever tab's own slot
-     (equal-width flex-1 boxes, so the pill's width never actually changes
-     between tabs — only its transform does), plus the courier basketball
-     (fades in, arcs across, lands on the new tab). Both are positioned
-     imperatively in app.component.ts (measuring the real [data-nav-tab]
-     elements below), not via Angular bindings — there's no clean
-     declarative way to animate one shared element between N sibling
-     positions. -->
+     A sliding pill + basketball-courier active-tab indicator (both
+     positioned imperatively by measuring real DOM elements) was tried and
+     removed 2026-09-15 after repeated real-device bugs — most recently
+     one bad enough to drop touch events on the nav entirely — every one
+     traceable back to that imperative measurement going stale against the
+     shrink-on-scroll transform below. The active state is now just this
+     each-tab [class.text-highlight]/[active] binding: a synchronous
+     Angular class binding driven directly by isActive(), so there is
+     nothing to measure and nothing that can go stale regardless of scroll/
+     resize timing. -->
 @if (!hideChrome()) {
 <nav
   #bottomNav
@@ -199,22 +200,7 @@
   class="sm:hidden fixed left-3 right-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-40 rounded-full bg-highlight/15 backdrop-blur-xl border border-highlight/25 shadow-pop origin-bottom transition-transform duration-300 ease-out motion-reduce:transition-none"
   [style.transform]="bottomNavShrunk() ? 'translateZ(0) scale(0.9)' : 'translateZ(0)'"
 >
-  <div #bottomNavRow class="relative flex items-center justify-around px-0 py-0">
-  <div
-    #pillIndicator
-    class="pointer-events-none absolute top-0 left-0 h-0 w-0 rounded-full bg-highlight/20 transition-[transform,width,height] duration-[380ms] [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none"
-  ></div>
-  <svg
-    #basketball
-    viewBox="0 0 32 32"
-    aria-hidden="true"
-    class="pointer-events-none absolute top-[10px] left-0 z-10 w-4 h-4 opacity-0 [filter:drop-shadow(0_3px_4px_rgba(0,0,0,0.35))]"
-  >
-    <circle cx="16" cy="16" r="15" fill="#ff6b35" stroke="#1a1015" stroke-width="1.4" />
-    <path d="M16 1v30M1 16h30" stroke="#1a1015" stroke-width="1.3" fill="none" />
-    <path d="M16 1c8 5 8 25 0 30M16 1c-8 5-8 25 0 30" stroke="#1a1015" stroke-width="1.3" fill="none" />
-  </svg>
-
+  <div class="relative flex items-center justify-around px-0 py-0">
   @for (link of mobileNavLinks; track link.path) {
     <a
       data-nav-tab
@@ -244,9 +230,7 @@
 
   <!-- "More" — always last. Profile/login live in the top bar instead of a
        tab here; this overflow is just for secondary destinations like
-       Schedule (MORE_LINKS). Its active highlight is the same shared
-       sliding pill as every other tab (see #pillIndicator above), not a
-       per-tab element. -->
+       Schedule (MORE_LINKS). -->
   <div data-nav-tab class="relative flex-1 flex items-center justify-center py-0.5">
     <button
       type="button"
