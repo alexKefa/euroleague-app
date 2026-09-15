@@ -374,6 +374,7 @@ export async function getFantasyLeaderboardEntries(
     from player_totals pt
     full outer join coach_totals ct on ct.user_id = pt.user_id
     join ${users} u on u.id = coalesce(pt.user_id, ct.user_id)
+    where u.is_admin = false
   `);
 
   const allowedIds = options.userIds ? new Set(options.userIds) : null;
