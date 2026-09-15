@@ -13,6 +13,7 @@ import { ChipDirective } from "../../shared/chip.directive";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
+import { TeamPickDialogComponent } from "../../shared/team-pick-dialog";
 import { TeamCodePipe, displayTeamCode } from "../../shared/team-display-code";
 
 const MAX_SHOWCASE_CARDS = 3;
@@ -36,6 +37,7 @@ const PAGE_SIZE = 20;
     DropdownComponent,
     CollectibleCardComponent,
     LogoSpinnerComponent,
+    TeamPickDialogComponent,
     TeamCodePipe,
   ],
   templateUrl: "./profile.html",
@@ -49,8 +51,14 @@ export class ProfileComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
 
   readonly teams = signal<Team[]>([]);
-  readonly savingTeamId = signal<string | null>(null);
-  readonly saveError = signal<string | null>(null);
+  // Team picking now goes through the same modal register.ts uses
+  // (shared/team-pick-dialog.ts, 2026-09-15) instead of this page's own
+  // inline chip grid — the dialog owns its own saving/error state, this
+  // page just needs to know whether it's open and which team is current.
+  readonly showTeamDialog = signal(false);
+  readonly currentFavoriteTeam = computed(
+    () => this.teams().find((t) => t.id === this.auth.currentUser()?.favoriteTeamId) ?? null
+  );
 
   readonly referralLink = computed(() => {
     const code = this.auth.currentUser()?.referralCode;
@@ -230,30 +238,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
       error: () => {
         this.showcaseSaving.set(false);
         this.showcaseError.set(this.i18n.t("profile.showcaseSaveFailed"));
-      },
-    });
-  }
-
-  setFavoriteTeam(teamId: string): void {
-    if (this.savingTeamId()) return;
-    const current = this.auth.currentUser()?.favoriteTeamId;
-    const next = current === teamId ? null : teamId;
-
-    this.savingTeamId.set(teamId);
-    this.saveError.set(null);
-
-    this.auth.updateFavoriteTeam(next).subscribe({
-      next: () => {
-        this.savingTeamId.set(null);
-        // Re-skin immediately rather than waiting for the next Dashboard
-        // visit (the only other applyTeam() call site) — picking a new
-        // team here should feel instant, not stale until you happen to
-        // navigate elsewhere.
-        this.theme.applyTeam(next ? (this.teams().find((t) => t.id === next) ?? null) : null);
-      },
-      error: () => {
-        this.savingTeamId.set(null);
-        this.saveError.set(this.i18n.t("profile.saveTeamFailed"));
       },
     });
   }

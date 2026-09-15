@@ -52,12 +52,17 @@
           [placeholder]="i18n.t('auth.emailPlaceholder')"
           class="w-full px-4 py-3 rounded-2xl bg-page/40 border-2 border-highlight/20 text-sm font-semibold placeholder:text-muted focus:border-highlight outline-none"
         />
-        <input
-          type="password"
-          formControlName="password"
-          [placeholder]="i18n.t('auth.passwordMinLengthPlaceholder')"
-          class="w-full px-4 py-3 rounded-2xl bg-page/40 border-2 border-highlight/20 text-sm font-semibold placeholder:text-muted focus:border-highlight outline-none"
-        />
+        <div>
+          <input
+            type="password"
+            formControlName="password"
+            [placeholder]="i18n.t('auth.passwordMinLengthPlaceholder')"
+            class="w-full px-4 py-3 rounded-2xl bg-page/40 border-2 border-highlight/20 text-sm font-semibold placeholder:text-muted focus:border-highlight outline-none"
+          />
+          @if (form.controls.password.invalid && form.controls.password.dirty) {
+            <p class="text-red-500 text-xs font-semibold mt-1">{{ i18n.t('auth.passwordTooShort') }}</p>
+          }
+        </div>
         <div>
           <input
             type="text"
@@ -70,42 +75,6 @@
             <p class="text-red-500 text-xs font-semibold mt-1">{{ i18n.t('auth.usernameInvalid') }}</p>
           }
         </div>
-
-        @if (teamsLoading()) {
-          <div>
-            <p class="font-mono text-[12px] text-muted font-bold mb-2">
-              {{ i18n.t('auth.favoriteTeamOptional') }}
-            </p>
-            <div class="flex flex-wrap gap-2">
-              @for (i of [1, 2, 3, 4, 5, 6]; track i) {
-                <app-skeleton [icon]="false" class="w-[74px] h-[30px] rounded-xl" />
-              }
-            </div>
-          </div>
-        } @else if (teams().length > 0) {
-          <div>
-            <p class="font-mono text-[12px] text-muted font-bold mb-2">
-              {{ i18n.t('auth.favoriteTeamOptional') }}
-            </p>
-            <div class="flex flex-wrap gap-2">
-              @for (team of teams(); track team.id) {
-                <button
-                  type="button"
-                  (click)="pickTeam(team.id)"
-                  class="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-xl bg-page/40 border-2 border-transparent hover:shadow-pop transition-all"
-                  [style.borderColor]="favoriteTeamId() === team.id ? team.primaryColor : 'transparent'"
-                >
-                  @if (team.logoUrl) {
-                    <img [src]="team.logoUrl" [alt]="team.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
-                  } @else {
-                    <span class="w-5 h-5 rounded-full shrink-0" [style.background]="team.primaryColor"></span>
-                  }
-                  <span class="font-display text-xs">{{ team.code | teamCode }}</span>
-                </button>
-              }
-            </div>
-          </div>
-        }
 
         @if (error()) {
           <p class="text-red-500 text-xs font-semibold">{{ error() }}</p>
@@ -122,3 +91,7 @@
     {{ i18n.t('auth.alreadyHaveAccount') }} <a routerLink="/login" class="text-highlight">{{ i18n.t('nav.login') }}</a>
   </p>
 </div>
+
+@if (showTeamDialog()) {
+  <app-team-pick-dialog (closed)="onTeamDialogClosed()" />
+}

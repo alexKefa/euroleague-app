@@ -64,6 +64,8 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
   },
   "profile.email": { en: "Email", el: "Email" },
   "profile.favoriteTeam": { en: "Favorite team", el: "Αγαπημένη ομάδα" },
+  "profile.noFavoriteTeam": { en: "No team picked yet", el: "Δεν έχει επιλεγεί ομάδα" },
+  "profile.changeTeam": { en: "Change", el: "Αλλαγή" },
   "profile.clearHint": {
     en: "Tap your team again to clear it.",
     el: "Πάτησε ξανά την ομάδα σου για να την αφαιρέσεις.",
