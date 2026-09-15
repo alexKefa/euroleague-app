@@ -13,7 +13,7 @@ wheel, points-priced card packs, and a player-to-player trade marketplace —
 under a "Cards" hub. The whole app is bilingual (EN/EL) via a custom i18n
 service, not a library like ngx-translate.
 
-**Live**: https://clutchapp.up.railway.app (Railway, see Deployment below).
+**Live**: https://getclutchapp.com (Railway, see Deployment below).
 
 ## Stack
 
@@ -1181,7 +1181,7 @@ reset link needs to point).
 ## Deployment
 
 Live on Railway as a single service (project + service both named
-"euroleague-app"): https://clutchapp.up.railway.app. `DATABASE_URL` points
+"euroleague-app"): https://getclutchapp.com. `DATABASE_URL` points
 at the same Neon instance as local dev — there's no separate prod database.
 
 - **Config-as-code**: `.railway/railway.ts` (Railway's TypeScript
@@ -1202,15 +1202,17 @@ at the same Neon instance as local dev — there's no separate prod database.
   destructive in `railway.ts` (shows as delete+recreate in `config plan`,
   drops env vars/history), but renaming just the *domain* is safe
   (`railway domain update <old> --domain <new>`, non-destructive).
-  **TODO: custom domain** — user wants something cleaner than
-  `clutchapp.up.railway.app` ("a more normal url"), explicitly deferred
-  rather than done immediately. Options already considered: DuckDNS
-  (`clutch.duckdns.org` — free, instant, no approval), is-a.dev
-  (`clutch.is-a.dev` — free, nicer, but needs a GitHub PR + manual review),
-  or a cheap real domain (~$1-15/yr via Namecheap/Porkbun/Cloudflare) for a
-  fully clean look. Whichever is picked, wire it up with `railway domain
-  <hostname>` on the `euroleague-app` service — Railway auto-provisions
-  HTTPS once DNS is verified.
+  **Custom domain — done** (undocumented until 2026-09-15, caught the same
+  way every other "Timeline correction" in this file has been: by comparing
+  what's actually live against what this doc claimed). The "a more normal
+  url" ask this bullet used to track as a TODO is resolved — production
+  answers at `getclutchapp.com` (a real registered domain, not the DuckDNS/
+  is-a.dev free-subdomain options this bullet used to list as candidates),
+  wired up via `railway domain <hostname>` on the `euroleague-app` service
+  same as documented. `qr-card.html`'s QR code already encodes
+  `https://getclutchapp.com/welcome` for real. No record of exactly when
+  this shipped — worth keeping in mind that infra changes like this one can
+  land without a CLAUDE.md update alongside them.
 - **Redeploy**: currently manual (`railway up --service euroleague-app`)
   from a local checkout — not yet wired to auto-deploy on `git push`.
 - The same Railway account has an unrelated older project ("valiant-passion" /
@@ -1223,8 +1225,9 @@ at the same Neon instance as local dev — there's no separate prod database.
   environment-specific — still avoided it here in favor of the same plain
   imperative `railway` CLI commands the paused note already recommended).
   One **euroleague-app** Railway project now has two environments sharing
-  the one service: `production` (`main` branch, `clutchapp.up.railway.app`)
-  and `dev` (`dev` branch, auto-generated
+  the one service: `production` (`main` branch, `clutchapp.up.railway.app`
+  at the time — since renamed to `getclutchapp.com`, see the Deployment
+  section's domain bullet above) and `dev` (`dev` branch, auto-generated
   `euroleague-app-dev.up.railway.app` domain — no custom domain chosen for
   it, not worth it for an internal staging URL). `dev` was created via
   `railway environment new dev --duplicate production`, which cloned every
@@ -2047,15 +2050,12 @@ at the same Neon instance as local dev — there's no separate prod database.
   being exactly `/welcome`) suppresses the logged-in app shell's top bar,
   desktop rail, and mobile tab bar specifically on this route — those
   otherwise render unconditionally around every route including this one.
-  **Not yet live** — this only exists in local dev as of this pass;
-  redeploy is still manual (`railway up`, see Deployment above) and hasn't
-  been run since this was built. `qr-card.html`'s QR now encodes
-  `https://clutchapp.up.railway.app/welcome` (was the bare domain), but
-  that's only real once (a) this is redeployed and (b) the **TODO: custom
-  domain** decision above lands — whichever hostname is finally picked is
-  what the printed flyer/banner (already made, outside this repo — to be
-  provided) needs to actually point at, not necessarily the current
-  Railway subdomain.
+  **Timeline correction (2026-09-15)**: this bullet originally said "not
+  yet live" — stale. `/welcome` has since been redeployed and is live in
+  production, and the custom-domain decision this note was waiting on has
+  also landed (see the Deployment section's domain bullet). `qr-card.html`'s
+  QR now encodes `https://getclutchapp.com/welcome` for real — that's what
+  the printed flyer/banner should point at.
   - **Interactive "reskin" demo**: tapping a real team logo (fetched from
     the already-public `GET /api/teams`) repaints a small preview card in
     that team's kit colors — the app's actual core mechanic
