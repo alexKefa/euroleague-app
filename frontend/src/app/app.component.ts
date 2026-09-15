@@ -171,20 +171,7 @@ export class AppComponent implements OnInit {
     el.style.display = "none";
     requestAnimationFrame(() => {
       el.style.display = "";
-      // Same bake-in risk the constructor's effect already guards against
-      // (see trackActiveTabAfterShrinkReset's own comment): a mobile
-      // browser's address bar auto-hiding while scrolling down fires a
-      // visualViewport resize mid-scroll, i.e. while bottomNavShrunk is
-      // still true — measuring the pill against the shrunk transform here
-      // bakes in undersized pixel values that then look broken once the
-      // bar returns to full size. Reset first and wait for the real
-      // transition to finish, same as a tab change does, rather than
-      // measuring whatever's on screen right now. allowBallTravel: false
-      // — this isn't a real tab change, so no basketball flight even if
-      // it weren't already blocked by prevSlot === slot.
-      const wasShrunk = this.bottomNavShrunk();
-      this.bottomNavShrunk.set(false);
-      this.trackActiveTabAfterShrinkReset(wasShrunk, false);
+      this.trackActiveTab(false);
     });
   };
 
@@ -269,11 +256,11 @@ export class AppComponent implements OnInit {
   // and an immediate measure under prefers-reduced-motion, where the
   // template's `motion-reduce:transition-none` means the transform snaps
   // instantly and no transitionend would ever come.
-  private trackActiveTabAfterShrinkReset(wasShrunk: boolean, allowBallTravel = true): void {
+  private trackActiveTabAfterShrinkReset(wasShrunk: boolean): void {
     const nav = this.bottomNavRef?.nativeElement;
     const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
     if (!wasShrunk || !nav || reducedMotion) {
-      requestAnimationFrame(() => requestAnimationFrame(() => this.trackActiveTab(allowBallTravel)));
+      requestAnimationFrame(() => requestAnimationFrame(() => this.trackActiveTab(true)));
       return;
     }
 
@@ -283,7 +270,7 @@ export class AppComponent implements OnInit {
       settled = true;
       nav.removeEventListener("transitionend", onTransitionEnd);
       clearTimeout(timer);
-      this.trackActiveTab(allowBallTravel);
+      this.trackActiveTab(true);
     };
     const onTransitionEnd = (e: TransitionEvent) => {
       if (e.target === nav && e.propertyName === "transform") settle();
