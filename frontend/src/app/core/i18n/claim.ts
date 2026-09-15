@@ -3,10 +3,10 @@ import { Lang } from "./lang";
 // features/claim/claim.ts — the QR promo-code landing page.
 export const claimTranslations: Record<string, Record<Lang, string>> = {
   "claim.loading": { en: "Checking your code…", el: "Έλεγχος κωδικού…" },
-  "claim.granted.title": { en: "You got a pack!", el: "Κέρδισες ένα πακέτο!" },
+  "claim.granted.title": { en: "You got a pack!", el: "Κέρδισες δύο πακέτα!" },
   "claim.granted.body": {
     en: "It's waiting for you, unopened, in My Packs.",
-    el: "Σε περιμένει, αδιάνοιχτο, στα Πακέτα μου.",
+    el: "Σε περιμένει, κλειστό, στα Πακέτα μου.",
   },
   "claim.alreadyClaimed.title": { en: "Already claimed", el: "Έχει ήδη χρησιμοποιηθεί" },
   "claim.alreadyClaimed.body": {
