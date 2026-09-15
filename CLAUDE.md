@@ -1107,6 +1107,54 @@ If you need to apply a schema change without an interactive terminal
   user can still briefly see no team-hero before it resolves. Self-corrects
   on the next interaction; not yet fixed with a resolver/bootstrap
   reordering.
+- **"Add to Home Screen" prompts** (undocumented until 2026-09-15 — found
+  by grepping the codebase, not from any changelog entry) —
+  `shared/install-banner.ts` (`<app-install-banner>`, mounted globally in
+  `app.component.html`) is a dismissible iOS/Android nudge, not a bare
+  browser popup: it detects platform via user-agent (iPadOS 13+ reports as
+  a plain "Macintosh", told apart from a real Mac only by
+  `navigator.maxTouchPoints > 1`), waits until a visitor's 2nd visit before
+  showing at all (`MIN_VISITS_BEFORE_SHOWING`, tracked in `localStorage` —
+  never nags on a first landing), and backs off for 2 weeks on dismiss or
+  effectively forever once `appinstalled` fires. **Deliberately doesn't
+  depend on a service worker** — Chrome's native `beforeinstallprompt`
+  normally wants one to consider the app installable, but this app ships
+  none (see [[feedback_no_service_worker]]), so Android almost always
+  falls back to the same manual numbered-steps panel iOS uses rather than
+  a one-tap native install button; the native-prompt path (`deferredPrompt`
+  + `appinstalled` listeners) still works unmodified if a service worker
+  is ever added later. Skips itself entirely inside an in-app browser
+  (Messenger/Instagram/Line/WeChat/Snapchat — `shared/in-app-browser.ts`'s
+  `isInAppBrowser()`, UA-substring sniffing since there's no direct API for
+  this) since its "tap the Share icon"/"tap the menu icon" steps assume a
+  real browser's own chrome, which none of those in-app WebViews have. A
+  visitor who arrives at `/register` with a `?ref=`/`?promo=` link
+  (`isHighIntentArrival()`) skips the visit-count wait entirely — they
+  followed a real invite specifically to sign up, not "just passing
+  through".
+  - **The Messenger/Instagram problem specifically**: those apps open a
+    shared link in their own locked-down WebView with no address bar, no
+    browser menu, and no `beforeinstallprompt` — there's no way to add to
+    home screen from inside it at all, install-banner.ts included (it just
+    stays hidden there, correctly, since its own steps don't apply). The
+    only fix is getting the visitor into a real browser tab first.
+    `shared/open-in-browser-banner.ts` (`<app-open-in-browser-banner>`) is
+    the nudge for that: shown at most once ever per device (tracked the
+    moment it renders, not just on dismiss — by a 2nd visit the visitor's
+    either already acted on it or isn't going to), instructing them to tap
+    the in-app browser's own "⋯"/browser-icon menu and choose "Open in
+    Browser". The component itself doesn't own the "is this a
+    shareable-link flow" judgment call — that's left to whatever page
+    embeds it. `register.component.html` gates it behind
+    `@if (referralCode() || promoCode())` (only a real `?ref=`/`?promo=`
+    arrival is a shared-link flow there). **`landing.html` (2026-09-15)
+    mounts it unconditionally** instead, right below the header — `/welcome`
+    *is* the QR-flyer/shared-link destination by definition (see the
+    Landing page section below), so unlike register there's no query param
+    to gate on; every visitor there is a plausible Messenger/Instagram
+    arrival. This closed a real gap that existed until this pass: the
+    flyer's QR and any social-shared landing-page link previously gave a
+    Messenger/Instagram visitor no nudge to escape the WebView at all.
 
 ## Environment variables (backend `.env`)
 

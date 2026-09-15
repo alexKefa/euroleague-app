@@ -14,6 +14,7 @@ import { TeamCodePipe } from "../../shared/team-display-code";
 import { TeamBadgeComponent } from "../../shared/team-badge";
 import { CourtBackgroundComponent } from "../../shared/court-background";
 import { CollectibleCardComponent } from "../store/collectible-card";
+import { OpenInBrowserBannerComponent } from "../../shared/open-in-browser-banner";
 
 interface ShowcaseCard {
   tier: CollectibleTier;
@@ -126,6 +127,7 @@ function hexLuma(hex: string): number | null {
     CollectibleCardComponent,
     TeamBadgeComponent,
     CourtBackgroundComponent,
+    OpenInBrowserBannerComponent,
   ],
   templateUrl: "./landing.html",
   styleUrl: "./landing.css",

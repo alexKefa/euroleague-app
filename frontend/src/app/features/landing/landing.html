@@ -17,6 +17,15 @@
     </div>
   </header>
 
+  <!-- A shared /welcome link is exactly the kind of thing that gets opened
+       from inside Messenger's/Instagram's in-app browser — this page IS the
+       "shareable link" destination (see LandingComponent's own doc comment),
+       so unlike register.html's gated @if, this always mounts rather than
+       waiting on a ref/promo param. -->
+  <div class="px-5 sm:px-8 max-w-3xl mx-auto">
+    <app-open-in-browser-banner />
+  </div>
+
   <!-- Hero -->
   <section class="px-5 sm:px-8 pt-4 pb-8 max-w-3xl mx-auto text-center">
     <p class="font-mono text-xs font-bold tracking-widest uppercase text-highlight mb-4">
