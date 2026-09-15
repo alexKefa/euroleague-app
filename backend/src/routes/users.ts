@@ -3,6 +3,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { users, userCollectibles } from "../db/schema.js";
 import { requireAuth } from "../auth/middleware.js";
+import { isValidUsername } from "../services/username.js";
 
 export const usersRouter = Router();
 
@@ -74,17 +75,52 @@ usersRouter.put("/me/showcase", requireAuth, async (req, res) => {
 });
 
 usersRouter.patch("/me", requireAuth, async (req, res) => {
-  const { favoriteTeamId } = req.body ?? {};
+  const { favoriteTeamId, username } = req.body ?? {};
   if (favoriteTeamId !== undefined && typeof favoriteTeamId !== "string" && favoriteTeamId !== null) {
     res.status(400).json({ error: "favoriteTeamId must be a string or null" });
     return;
   }
 
-  const [user] = await db
-    .update(users)
-    .set({ favoriteTeamId: favoriteTeamId ?? null })
-    .where(eq(users.id, req.userId!))
-    .returning();
+  // Same validation/uniqueness rules registration already enforces
+  // (services/username.ts) — this is the one place a user can change the
+  // auto-generated "clutch-user-######" handle they were given at signup.
+  let trimmedUsername: string | undefined;
+  if (username !== undefined) {
+    if (typeof username !== "string") {
+      res.status(400).json({ error: "username must be a string" });
+      return;
+    }
+    trimmedUsername = username.trim();
+    if (!isValidUsername(trimmedUsername)) {
+      res.status(400).json({
+        error: "Username must be 3-20 characters: letters, numbers, and underscores only",
+        code: "INVALID_USERNAME",
+      });
+      return;
+    }
+    const [existing] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.username, trimmedUsername))
+      .limit(1);
+    if (existing && existing.id !== req.userId) {
+      res.status(409).json({ error: "That username is already taken", code: "USERNAME_TAKEN" });
+      return;
+    }
+  }
+
+  // Only ever set keys the request actually included — an omitted
+  // favoriteTeamId must leave the existing one untouched, not null it out.
+  const updates: Partial<typeof users.$inferInsert> = {};
+  if (favoriteTeamId !== undefined) updates.favoriteTeamId = favoriteTeamId ?? null;
+  if (trimmedUsername !== undefined) updates.username = trimmedUsername;
+
+  if (Object.keys(updates).length === 0) {
+    res.status(400).json({ error: "Nothing to update" });
+    return;
+  }
+
+  const [user] = await db.update(users).set(updates).where(eq(users.id, req.userId!)).returning();
 
   if (!user) {
     res.status(404).json({ error: "User not found" });

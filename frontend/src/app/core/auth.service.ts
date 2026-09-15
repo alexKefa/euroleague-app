@@ -138,6 +138,12 @@ export class AuthService {
       .pipe(tap((user) => this.currentUser.set(user)));
   }
 
+  updateUsername(username: string): Observable<PublicUser> {
+    return this.http
+      .patch<PublicUser>(`${API_BASE_URL}/users/me`, { username })
+      .pipe(tap((user) => this.currentUser.set(user)));
+  }
+
   // Backend returns just the saved list (not a full PublicUser), so merge
   // it into the existing currentUser rather than replacing the signal.
   updateShowcase(collectibleIds: string[]): Observable<{ showcaseCollectibleIds: string[] }> {

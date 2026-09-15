@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, ElementRef, viewChild, effect, inject, signal, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { Router, RouterLink } from "@angular/router";
-import { ReactiveFormsModule, FormBuilder, Validators } from "@angular/forms";
+import { ReactiveFormsModule, FormsModule, FormBuilder, Validators } from "@angular/forms";
 import { AuthService } from "../../core/auth.service";
 import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
@@ -31,6 +31,7 @@ const PAGE_SIZE = 20;
     CommonModule,
     RouterLink,
     ReactiveFormsModule,
+    FormsModule,
     RetryImgDirective,
     ButtonDirective,
     ChipDirective,
@@ -59,6 +60,55 @@ export class ProfileComponent implements OnInit, OnDestroy {
   readonly currentFavoriteTeam = computed(
     () => this.teams().find((t) => t.id === this.auth.currentUser()?.favoriteTeamId) ?? null
   );
+
+  // Editing the auto-generated "clutch-user-######" handle every account
+  // gets at registration (services/username.ts) — same validation rules
+  // the register form already enforces, reused here via the same error
+  // codes (INVALID_USERNAME/USERNAME_TAKEN) the backend returns.
+  readonly editingUsername = signal(false);
+  readonly usernameInput = signal("");
+  readonly usernameSaving = signal(false);
+  readonly usernameError = signal<string | null>(null);
+
+  startEditingUsername(): void {
+    this.usernameInput.set(this.auth.currentUser()?.username ?? "");
+    this.usernameError.set(null);
+    this.editingUsername.set(true);
+  }
+
+  cancelEditingUsername(): void {
+    this.editingUsername.set(false);
+    this.usernameError.set(null);
+  }
+
+  saveUsername(): void {
+    const trimmed = this.usernameInput().trim();
+    if (this.usernameSaving() || !trimmed || trimmed === this.auth.currentUser()?.username) {
+      if (trimmed === this.auth.currentUser()?.username) this.editingUsername.set(false);
+      return;
+    }
+
+    this.usernameSaving.set(true);
+    this.usernameError.set(null);
+
+    this.auth.updateUsername(trimmed).subscribe({
+      next: () => {
+        this.usernameSaving.set(false);
+        this.editingUsername.set(false);
+      },
+      error: (err) => {
+        this.usernameSaving.set(false);
+        const code = (err as { error?: { code?: string } } | undefined)?.error?.code;
+        this.usernameError.set(
+          code === "USERNAME_TAKEN"
+            ? this.i18n.t("auth.usernameTaken")
+            : code === "INVALID_USERNAME"
+              ? this.i18n.t("auth.usernameInvalid")
+              : this.i18n.t("profile.usernameSaveFailed")
+        );
+      },
+    });
+  }
 
   readonly referralLink = computed(() => {
     const code = this.auth.currentUser()?.referralCode;
