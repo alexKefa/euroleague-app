@@ -30,6 +30,8 @@ import { adminRouter } from "./routes/admin.js";
 import { syncNews } from "./sync/newsSync.js";
 import { syncOdds } from "./sync/oddsSync.js";
 import { syncLiveGames } from "./sync/liveGamesSync.js";
+import { applyDailyFantasyPriceChanges } from "./services/fantasyDailyReprice.js";
+import { getCurrentSeason } from "./services/season.js";
 
 const app = express();
 // Railway sits in front of the app as a single reverse-proxy hop, adding
@@ -183,4 +185,24 @@ if (process.env.NODE_ENV === "production") {
   };
   runLiveGamesSync();
   setInterval(runLiveGamesSync, LIVE_GAMES_SYNC_INTERVAL_MS);
+
+  // Daily Fantasy Five price changes (2026-09-16, matching EuroLeague
+  // Fantasy's own real rules — see fantasyDailyReprice.ts's doc comment).
+  // Each run only processes (player/coach, game) pairs with no
+  // fantasy_price_change_log row yet, so this is safe on a fixed interval
+  // regardless of exact timing or a mid-day restart — same idempotency
+  // shape as the odds/news jobs above, not a fragile "once per calendar
+  // day" scheduler. A day with no games played is a cheap no-op.
+  const FANTASY_REPRICE_INTERVAL_MS = 24 * 60 * 60 * 1000;
+  const runFantasyReprice = () => {
+    getCurrentSeason()
+      .then((season) => (season ? applyDailyFantasyPriceChanges(season) : Promise.resolve(null)))
+      .then((result) => {
+        if (!result || (result.playersUpdated === 0 && result.coachesUpdated === 0)) return;
+        console.log(`[fantasy daily reprice] ${result.playersUpdated} player(s), ${result.coachesUpdated} coach(es)`);
+      })
+      .catch((err) => console.error("[fantasy daily reprice] failed:", err));
+  };
+  runFantasyReprice();
+  setInterval(runFantasyReprice, FANTASY_REPRICE_INTERVAL_MS);
 }

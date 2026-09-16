@@ -1228,6 +1228,47 @@ export const coachFantasyPrices = pgTable(
   })
 );
 
+// Daily algorithmic price changes (2026-09-16) — until now
+// player_fantasy_prices/coach_fantasy_prices only ever moved when someone
+// ran `npm run fantasy:reprice` by hand. EuroLeague Fantasy's own rules
+// move prices every day off real performance instead: a claim-first log,
+// one row per (player, game) already applied, is what makes the daily job
+// (services/fantasyDailyReprice.ts) safe to run on a fixed interval
+// regardless of restarts or exact timing — same "each run only processes
+// what doesn't already have a row" idempotency shape index.ts's odds/news
+// sync jobs already use, rather than a timestamp watermark that could
+// silently skip a game if it wasn't final yet the moment a run checked.
+export const fantasyPriceChangeLog = pgTable(
+  "fantasy_price_change_log",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    playerId: uuid("player_id").notNull().references(() => players.id),
+    gameId: uuid("game_id").notNull().references(() => games.id),
+    delta: real("delta").notNull(),
+    appliedAt: timestamp("applied_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    fantasyPriceChangeLogUnique: uniqueIndex("fantasy_price_change_log_unique").on(table.playerId, table.gameId),
+  })
+);
+
+// Same shape as fantasyPriceChangeLog, for coach prices — a coach has no
+// per-game box score (coaches aren't in `players`), so their daily move is
+// off pointsForCoachResult's margin-based result, not a stat line.
+export const fantasyCoachPriceChangeLog = pgTable(
+  "fantasy_coach_price_change_log",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    teamId: uuid("team_id").notNull().references(() => teams.id),
+    gameId: uuid("game_id").notNull().references(() => games.id),
+    delta: real("delta").notNull(),
+    appliedAt: timestamp("applied_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    fantasyCoachPriceChangeLogUnique: uniqueIndex("fantasy_coach_price_change_log_unique").on(table.teamId, table.gameId),
+  })
+);
+
 // A user's coach pick for one round — a single row (unlike fantasy_lineups'
 // 10 player rows), since only one coach is ever drafted. Editable until the
 // round's overall lock time (its first tipoff, same as the original v1
@@ -1317,6 +1358,16 @@ export const fantasyRoundPointsRelations = relations(fantasyRoundPoints, ({ one 
 
 export const playerFantasyPricesRelations = relations(playerFantasyPrices, ({ one }) => ({
   player: one(players, { fields: [playerFantasyPrices.playerId], references: [players.id] }),
+}));
+
+export const fantasyPriceChangeLogRelations = relations(fantasyPriceChangeLog, ({ one }) => ({
+  player: one(players, { fields: [fantasyPriceChangeLog.playerId], references: [players.id] }),
+  game: one(games, { fields: [fantasyPriceChangeLog.gameId], references: [games.id] }),
+}));
+
+export const fantasyCoachPriceChangeLogRelations = relations(fantasyCoachPriceChangeLog, ({ one }) => ({
+  team: one(teams, { fields: [fantasyCoachPriceChangeLog.teamId], references: [teams.id] }),
+  game: one(games, { fields: [fantasyCoachPriceChangeLog.gameId], references: [games.id] }),
 }));
 
 export const fantasyLineupsRelations = relations(fantasyLineups, ({ one }) => ({
