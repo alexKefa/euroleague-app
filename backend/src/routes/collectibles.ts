@@ -196,7 +196,7 @@ collectiblesRouter.get("/browse", async (req, res) => {
       SELECT r.*
       FROM ranked r
       JOIN filtered_groups g ON r.name = g.name AND r.team_id = g.team_id
-      ORDER BY g.team_name, g.name,
+      ORDER BY g.team_name, g.is_coach DESC, g.name,
         CASE r.tier WHEN 'common' THEN 0 WHEN 'rare' THEN 1 ELSE 2 END
     `;
 
