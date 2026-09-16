@@ -181,12 +181,16 @@ collectiblesRouter.get("/browse", async (req, res) => {
         JOIN teams t ON c.team_id = t.id
       ),
       filtered_groups AS (
-        SELECT name, team_id, team_name
+        SELECT name, team_id, team_name,
+          -- A coach bundle is always single-tier ("coach"), never mixed
+          -- with a player's common/rare/legendary — bool_and is true only
+          -- for that case, letting a team's coach sort first below.
+          bool_and(tier = 'coach') AS is_coach
         FROM ranked
         ${whereClause}
         GROUP BY name, team_id, team_name
         ${havingClause}
-        ORDER BY team_name, name
+        ORDER BY team_name, is_coach DESC, name
         LIMIT ${limit + 1} OFFSET ${offset}
       )
       SELECT r.*
