@@ -90,14 +90,23 @@
                 @if (gameForTeam().get(row.team.id); as game) {
                   @if (game.status === 'scheduled') {
                     @if (opponentFor(row.team.id); as opp) {
-                      <span class="text-[9px] text-muted font-mono">{{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }} {{ opp.opponent.code }}</span>
+                      <!-- White, not the theme's text-muted grey (2026-09-16)
+                           — this sits directly on the court's own fixed warm
+                           floor color (court-background.ts), not a themed
+                           page background, so a theme-reactive grey lost
+                           contrast there ("grey is not visible"). Fixed white
+                           regardless of theme, same reasoning as the court's
+                           own cream line color. -->
+                      <span class="text-[9px] text-white font-mono">{{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }} {{ opp.opponent.code }}</span>
                     }
                   } @else {
                     <!-- Their game has started — show this round's real PIR
                          so far instead of the now-moot "vs/@ opponent" line,
                          live-updated via roundPirByPlayerId (see
-                         liveUpdatesEffect in fantasy.ts). -->
-                    <span class="text-[9px] font-mono font-bold flex items-center gap-1" [ngClass]="game.status === 'live' ? 'text-highlight' : 'text-muted'">
+                         liveUpdatesEffect in fantasy.ts). White fallback for
+                         the same court-contrast reason as the opponent line
+                         above, not text-muted. -->
+                    <span class="text-[9px] font-mono font-bold flex items-center gap-1" [ngClass]="game.status === 'live' ? 'text-highlight' : 'text-white'">
                       @if (game.status === 'live') {
                         <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
                       }
