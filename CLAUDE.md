@@ -699,7 +699,9 @@ If you need to apply a schema change without an interactive terminal
     a per-slot position), and a court background reusing `shot-chart.ts`'s
     half-court SVG geometry (no rim/backboard drawn — removed after repeated
     reports of a starter slot visually overlapping the basket art; a
-    translucent "glass floor" gradient was added in its place). **Below
+    translucent "glass floor" gradient was added in its place, then replaced
+    2026-09-16 with a warm saturated hardwood look — see
+    `shared/court-background.ts`'s own doc comment). **Below
     `sm:`, the pool is a full-screen tap-to-pick popup instead of a
     persistent drag-and-drop column** (`openPicker`/`pickPlayerForSlot`) —
     landed on this after a mobile-crowding pass tried and reverted stacking

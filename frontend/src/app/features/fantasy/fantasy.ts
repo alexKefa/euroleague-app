@@ -243,9 +243,25 @@ export class FantasyComponent implements OnInit {
   // request ("make the slots even bigger") — a bit more of the row-to-row
   // crowding risk the 2026-09-07 mobile-size-down pass above was written to
   // avoid, but a direct, explicit ask outweighs that caution here.
-  readonly starterAvatarSize = computed(() => (this.isMobileViewport() ? 50 : 62));
-  readonly sixthManAvatarSize = computed(() => (this.isMobileViewport() ? 44 : 54));
-  readonly benchAvatarSize = computed(() => (this.isMobileViewport() ? 40 : 48));
+  //
+  // Bumped again 2026-09-16 ("increase photos of players size... I want
+  // them more visible") — no live browser this session to re-verify pixel
+  // overlap (see court-background.ts's own note on the same constraint),
+  // so the two size groups were treated differently by real risk:
+  // sixthMan/bench sit in normal document flow below the court card, not
+  // inside its fixed-aspect-ratio overflow-hidden box, so they have no
+  // clipping/overlap risk at all and were bumped generously. starter sits
+  // absolutely-positioned inside that fixed box at ROW_TOP's calibrated
+  // percentages — worked through the actual pixel math instead of
+  // guessing: at the tightest case (mobile, Center row at 80% of a
+  // ~320px-tall court), the current 50px avatar's full stack (PIR line +
+  // avatar + 2-line name) already left only ~15-20px of bottom margin
+  // (see the ROW_TOP comment above), so this only moved starter up a more
+  // conservative +6/+10 (mobile/desktop) rather than matching the other
+  // two groups' jump, to stay inside that margin.
+  readonly starterAvatarSize = computed(() => (this.isMobileViewport() ? 56 : 72));
+  readonly sixthManAvatarSize = computed(() => (this.isMobileViewport() ? 54 : 64));
+  readonly benchAvatarSize = computed(() => (this.isMobileViewport() ? 50 : 58));
 
   readonly tab = signal<"roster" | "leaderboard">("roster");
 
