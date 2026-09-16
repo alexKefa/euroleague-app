@@ -71,7 +71,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // needs to rotate through here. First real sponsor: Υγειοσωματική (a
   // gym), linking out to their Instagram — opened via target="_blank" in
   // the template, same as any other outbound link in this app.
-  readonly sponsorText = "🏋️ Υγειοσωματική — Δύναμη για κάθε buzzer-beater. Ακολούθησέ μας στο Instagram.";
+  readonly sponsorText = "Υγειοσωματική — Δύναμη για κάθε buzzer-beater. Ακολούθησέ μας στο Instagram.";
   readonly sponsorLink = "https://www.instagram.com/igiosomatiki/";
 
   readonly standings = signal<StandingsRow[]>([]);
