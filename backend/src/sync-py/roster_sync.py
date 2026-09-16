@@ -35,22 +35,21 @@ populated as soon as clubs register their squads — confirmed working
 2026-09-02 by fetching Besiktas's actual 2026-27 roster (14 players) even
 though they have zero played-game stats.
 
-Also opportunistically captures `players.photo_url` when the feed has one
-(2026-09-16) — originally this endpoint's "images" key was always `{}` for
-every entry (checked directly when this script was written), so photos
-only ever came from player_stats_sync.py's season-stats endpoint once real
-games exist. Re-checked live: a handful of clubs have started populating
-real 2026-27 photos here before a single game's been played (5 of ~330
-current players as of this check, one "action" or "headshot" URL per
-person.images) — `extract_photo_url()` picks "action" first, falling back
-to any other populated key. Written via `COALESCE(new, existing)` in the
-upsert (never `EXCLUDED.photo_url` unconditionally) so a run that finds no
-image for a player — still the overwhelming majority — can't blank out a
-real photo already on file (e.g. from scripts/backfill-player-photos.ts's
-2025-26 backfill, or a prior run of this same script). player_stats_sync.py
-remains the eventual authoritative source once real 2026-27 games exist;
-this is just a stopgap that fills in real, current photos as clubs
-register them instead of waiting on that.
+Also captures `players.photo_url` when the feed has one (2026-09-16,
+corrected same day). First cut checked `person.images`, which really is
+always `{}` for every entry — but that's the wrong field: the real photo
+data sits one level up, on the roster *entry* itself (`entry["images"]`,
+a sibling of `"person"`, not nested inside it). That field carries a real
+"action"/"headshot" URL for the large majority of *both* the current
+2026-27 roster and a re-check of 2025-26's — this was there all along,
+not something that only started populating recently. `extract_photo_url()`
+picks "action" first, falling back to any other populated key (e.g.
+"headshot", seen live for Shane Larkin). Written via `COALESCE(new,
+existing)` in the upsert (never `EXCLUDED.photo_url` unconditionally) so a
+run that finds nothing for a given player can't blank out a real photo
+already on file. Same underlying `api-live.euroleague.net` feed this whole
+script already hits — not a different/riskier data source, just a JSON
+path that was read wrong.
 
 Usage:
     python roster_sync.py [season]
@@ -90,16 +89,25 @@ def parse_dorsal(dorsal: str | None) -> int | None:
         return None
 
 
-def extract_photo_url(images: dict) -> str | None:
-    """Prefers the "action" shot (what every real 2026-27 photo seen so far
-    is keyed under); falls back to any other populated key (e.g.
-    "headshot", seen live for Shane Larkin) rather than assuming "action"
-    is the only one the feed will ever use."""
-    if images.get("action"):
-        return images["action"]
-    for value in images.values():
-        if value:
-            return value
+def extract_photo_url(entry: dict) -> str | None:
+    """The feed carries real photo data in two different, independent
+    places, populated for different entries — not one field that moved.
+    `entry["images"]` (top-level, sibling of "person") is a bulk 2026-27
+    photoshoot collection covering most of a handful of teams (Real Madrid,
+    Dubai, Fenerbahce, Olympiacos confirmed 2026-09-16). `entry["person"]
+    ["images"]` is a separate, older per-person assignment that covers
+    scattered individual players on OTHER teams whose top-level field is
+    empty (e.g. Panathinaikos's Kalaitzakis) — a regression caught the hard
+    way: an earlier pass switched from checking only person.images to only
+    entry.images and silently lost every one of these. Check both, prefer
+    the top-level collection when both happen to be populated (no observed
+    case of that yet, but it's the newer/larger source)."""
+    for images in (entry.get("images") or {}, entry.get("person", {}).get("images") or {}):
+        if images.get("action"):
+            return images["action"]
+        for value in images.values():
+            if value:
+                return value
     return None
 
 
@@ -131,7 +139,7 @@ def extract_roster(people: list[dict]) -> list[dict]:
             "name": entry["person"]["name"],
             "position": entry.get("positionName"),
             "jerseyNumber": parse_dorsal(entry.get("dorsal")),
-            "photoUrl": extract_photo_url(entry["person"].get("images") or {}),
+            "photoUrl": extract_photo_url(entry),
         }
         for entry in people
         if entry.get("typeName") == "Player" and entry.get("person", {}).get("code")

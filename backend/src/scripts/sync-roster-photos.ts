@@ -19,7 +19,7 @@
  * (real or null) is left untouched, same COALESCE-equivalent guard
  * roster_sync.py's SQL now uses.
  *
- * Usage: npx tsx src/scripts/sync-roster-photos.ts [--dry-run]
+ * Usage: npx tsx src/scripts/sync-roster-photos.ts [--dry-run] [--team=CODE]
  */
 import "dotenv/config";
 import { sql } from "drizzle-orm";
@@ -31,21 +31,35 @@ const SEASON = 2026; // 2026-27 — bump alongside roster_sync.py's own default 
 interface ClubPerson {
   typeName: string;
   person?: { code?: string; images?: Record<string, string | null> };
+  // A sibling of "person", not nested inside it — the bulk 2026-27
+  // photoshoot collection (confirmed live for most of Real Madrid, Dubai,
+  // Fenerbahce, Olympiacos). person.images below is a SEPARATE, older
+  // per-person assignment covering scattered individual players on other
+  // teams whose top-level field is empty (e.g. Panathinaikos's
+  // Kalaitzakis) — both must be checked, one doesn't supersede the other
+  // (a first pass checked only person.images, a second switched to only
+  // this field and silently lost every person.images-only player; fixed
+  // 2026-09-16 by checking both).
+  images?: Record<string, string | null>;
 }
 
-function extractPhotoUrl(images: Record<string, string | null> | undefined): string | null {
-  if (!images) return null;
-  if (images.action) return images.action;
-  for (const value of Object.values(images)) {
-    if (value) return value;
+function extractPhotoUrl(entry: ClubPerson): string | null {
+  for (const images of [entry.images, entry.person?.images]) {
+    if (!images) continue;
+    if (images.action) return images.action;
+    for (const value of Object.values(images)) {
+      if (value) return value;
+    }
   }
   return null;
 }
 
 async function main() {
   const dryRun = process.argv.includes("--dry-run");
+  const teamArg = process.argv.find((a) => a.startsWith("--team="))?.split("=")[1];
 
-  const teamRows = await db.select({ code: teams.code }).from(teams);
+  const allTeamRows = await db.select({ code: teams.code }).from(teams);
+  const teamRows = teamArg ? allTeamRows.filter((t) => t.code === teamArg) : allTeamRows;
 
   const photoByCode = new Map<string, string>();
   for (const { code } of teamRows) {
@@ -56,7 +70,7 @@ async function main() {
     if (!Array.isArray(people)) continue;
     for (const entry of people) {
       if (entry.typeName !== "Player" || !entry.person?.code) continue;
-      const photoUrl = extractPhotoUrl(entry.person.images);
+      const photoUrl = extractPhotoUrl(entry);
       if (photoUrl) photoByCode.set(entry.person.code, photoUrl);
     }
   }
