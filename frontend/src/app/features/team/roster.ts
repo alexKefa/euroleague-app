@@ -60,6 +60,16 @@ export class TeamRosterComponent implements OnInit {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
 
+  // The head coach has no `players` row at all (coaches aren't synced
+  // there — see CLAUDE.md's Coach cards section), no real photo (checked
+  // live 2026-09-16 — the roster feed's images field is empty for every
+  // coach across every team), and no coach-specific stat either. A simple
+  // toggle rather than a real "coach page": tapping the name reveals the
+  // team's own current-season record (already loaded on this page via
+  // teamStandingsRow below) as the closest real, honest context there is
+  // to show — not a fabricated stat or a placeholder photo.
+  readonly coachInfoOpen = signal(false);
+
   readonly standings = signal<StandingsRow[]>([]);
   readonly statsView = signal<"traditional" | "advanced">("traditional");
 

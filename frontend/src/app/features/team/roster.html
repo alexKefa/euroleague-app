@@ -37,10 +37,40 @@
           <span class="min-w-0">
             <h1 class="font-display text-2xl tracking-wide">{{ t.name }}</h1>
             @if (t.headCoach) {
-              <p class="text-xs text-white/70 mt-0.5">{{ i18n.t('roster.headCoach') }}: {{ t.headCoach }}</p>
+              <button
+                type="button"
+                (click)="coachInfoOpen.set(!coachInfoOpen())"
+                class="text-xs text-white/70 mt-0.5 hover:text-white hover:underline transition-colors"
+              >
+                {{ i18n.t('roster.headCoach') }}: {{ t.headCoach }}
+              </button>
             }
           </span>
         </div>
+
+        @if (coachInfoOpen() && t.headCoach) {
+          <div class="mt-4 pt-4 border-t border-white/20 flex items-center gap-4">
+            <span
+              class="w-11 h-11 rounded-full flex items-center justify-center shrink-0 bg-white/15 font-display text-lg"
+              [attr.title]="i18n.t('roster.coachNoPhoto')"
+            >
+              {{ t.headCoach.charAt(0) }}
+            </span>
+            <div class="text-sm">
+              @if (teamStandingsRow(); as row) {
+                <p>
+                  <span class="text-white/70">{{ i18n.t('roster.coachRecord') }}:</span>
+                  <span class="font-bold">
+                    {{ row.stats.wins }}-{{ row.stats.losses }}
+                  </span>
+                  <span class="text-white/70 ml-2">{{ i18n.t('roster.coachRank') }}:</span>
+                  <span class="font-bold">#{{ row.position }}</span>
+                </p>
+              }
+              <p class="text-[11px] text-white/50 mt-1">{{ i18n.t('roster.coachNoPhoto') }}</p>
+            </div>
+          </div>
+        }
       </div>
     }
 
@@ -78,7 +108,9 @@
               @if (team()?.headCoach; as coach) {
                 <tr class="border-b-2 border-line bg-page/50">
                   <td colspan="8" class="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-highlight">
-                    {{ i18n.t('roster.headCoach') }} <span class="font-mono normal-case tracking-normal text-ink">{{ coach }}</span>
+                    <button type="button" (click)="coachInfoOpen.set(!coachInfoOpen())" class="hover:underline">
+                      {{ i18n.t('roster.headCoach') }} <span class="font-mono normal-case tracking-normal text-ink">{{ coach }}</span>
+                    </button>
                   </td>
                 </tr>
               }
@@ -157,7 +189,9 @@
               @if (team()?.headCoach; as coach) {
                 <tr class="border-b-2 border-line bg-page/50">
                   <td colspan="8" class="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-highlight">
-                    {{ i18n.t('roster.headCoach') }} <span class="font-mono normal-case tracking-normal text-ink">{{ coach }}</span>
+                    <button type="button" (click)="coachInfoOpen.set(!coachInfoOpen())" class="hover:underline">
+                      {{ i18n.t('roster.headCoach') }} <span class="font-mono normal-case tracking-normal text-ink">{{ coach }}</span>
+                    </button>
                   </td>
                 </tr>
               }
