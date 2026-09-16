@@ -144,9 +144,18 @@ export class InventoryComponent implements OnInit, OnDestroy {
     for (const bundle of byKey.values()) {
       bundle.cards.sort((a, b) => tierRank[a.tier] - tierRank[b.tier]);
     }
+    // Coach bundle sorts first within its team (a coach card is always a
+    // singleton "coach"-tier bundle, never mixed with a player's tiers —
+    // see CLAUDE.md's coach-cards section), then the rest alphabetically.
+    const isCoach = (b: CollectibleBundle) => b.cards[0]?.tier === "coach";
     return order
       .map((key) => byKey.get(key)!)
-      .sort((a, b) => a.team.name.localeCompare(b.team.name) || a.name.localeCompare(b.name));
+      .sort(
+        (a, b) =>
+          a.team.name.localeCompare(b.team.name) ||
+          Number(isCoach(b)) - Number(isCoach(a)) ||
+          a.name.localeCompare(b.name)
+      );
   });
 
   // Only bundles with at least one owned card — this page is "my cards",

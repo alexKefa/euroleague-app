@@ -13,9 +13,10 @@
  * Usage: npm run collectibles:expand
  */
 import "dotenv/config";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { players, teams, collectibles, playerSeasonStats } from "../db/schema.js";
+import { players, teams, collectibles, playerSeasonStats, games } from "../db/schema.js";
+import { getCurrentSeason } from "../services/season.js";
 
 const COMMON_COST = 50;
 const RARE_COST = 250;
@@ -38,7 +39,32 @@ function normalize(name: string): string {
 }
 
 async function main() {
-  const allPlayers = await db.select().from(players);
+  // Scoped to active players on teams actually in getCurrentSeason()'s
+  // schedule — same scoping GET /teams already uses (see its own comment)
+  // — not every row ever synced. Without this, a team no longer in the
+  // competition (e.g. AS Monaco, out for 2026-27) still gets cards for
+  // whatever players its `players` rows last happened to point at,
+  // because its roster feed 404s every sync run and so never gets the
+  // chance to flip those players to `active: false` itself (caught
+  // 2026-09-16: 5 stale Monaco rows still `active: true` months later).
+  // A departed player on a real current-season team (active: false) is
+  // excluded the same way.
+  const season = await getCurrentSeason();
+  const currentSeasonTeamIds = season
+    ? new Set(
+        (
+          await db
+            .selectDistinct({ id: teams.id })
+            .from(teams)
+            .innerJoin(games, or(eq(games.homeTeamId, teams.id), eq(games.awayTeamId, teams.id)))
+            .where(eq(games.season, season))
+        ).map((t) => t.id)
+      )
+    : null; // no season with any game synced yet — fall back to every team rather than cataloging nothing
+
+  const allPlayers = (await db.select().from(players)).filter(
+    (p) => p.active && (!currentSeasonTeamIds || currentSeasonTeamIds.has(p.teamId))
+  );
   const allTeams = await db.select().from(teams);
   const teamById = new Map(allTeams.map((t) => [t.id, t]));
 

@@ -35,14 +35,22 @@ populated as soon as clubs register their squads — confirmed working
 2026-09-02 by fetching Besiktas's actual 2026-27 roster (14 players) even
 though they have zero played-game stats.
 
-Deliberately does NOT touch `players.photo_url` — this endpoint has no
-photo field at all (checked directly: every entry's "images" key is `{}`),
-photos only ever come from player_stats_sync.py's season-stats endpoint
-once real games exist. Leaving photo_url out of the UPDATE SET clause
-entirely (rather than setting it to NULL) preserves whatever photo a
-returning player already has and leaves a new player's photo_url at its
-column default (NULL) — which the frontend's jersey-number placeholder
-(PlayerPhotoComponent) is exactly the fallback for.
+Also opportunistically captures `players.photo_url` when the feed has one
+(2026-09-16) — originally this endpoint's "images" key was always `{}` for
+every entry (checked directly when this script was written), so photos
+only ever came from player_stats_sync.py's season-stats endpoint once real
+games exist. Re-checked live: a handful of clubs have started populating
+real 2026-27 photos here before a single game's been played (5 of ~330
+current players as of this check, one "action" or "headshot" URL per
+person.images) — `extract_photo_url()` picks "action" first, falling back
+to any other populated key. Written via `COALESCE(new, existing)` in the
+upsert (never `EXCLUDED.photo_url` unconditionally) so a run that finds no
+image for a player — still the overwhelming majority — can't blank out a
+real photo already on file (e.g. from scripts/backfill-player-photos.ts's
+2025-26 backfill, or a prior run of this same script). player_stats_sync.py
+remains the eventual authoritative source once real 2026-27 games exist;
+this is just a stopgap that fills in real, current photos as clubs
+register them instead of waiting on that.
 
 Usage:
     python roster_sync.py [season]
@@ -82,6 +90,19 @@ def parse_dorsal(dorsal: str | None) -> int | None:
         return None
 
 
+def extract_photo_url(images: dict) -> str | None:
+    """Prefers the "action" shot (what every real 2026-27 photo seen so far
+    is keyed under); falls back to any other populated key (e.g.
+    "headshot", seen live for Shane Larkin) rather than assuming "action"
+    is the only one the feed will ever use."""
+    if images.get("action"):
+        return images["action"]
+    for value in images.values():
+        if value:
+            return value
+    return None
+
+
 def fetch_club_people(season: int, club_code: str) -> list[dict] | None:
     """Returns None (not []) on a non-200 response — lets the caller tell
     "this club has no roster in the feed for this season" apart from "the
@@ -110,6 +131,7 @@ def extract_roster(people: list[dict]) -> list[dict]:
             "name": entry["person"]["name"],
             "position": entry.get("positionName"),
             "jerseyNumber": parse_dorsal(entry.get("dorsal")),
+            "photoUrl": extract_photo_url(entry["person"].get("images") or {}),
         }
         for entry in people
         if entry.get("typeName") == "Player" and entry.get("person", {}).get("code")
@@ -166,13 +188,14 @@ def sync_rosters(season: int) -> None:
             for p in roster:
                 cur.execute(
                     """
-                    INSERT INTO players (code, team_id, name, position, jersey_number, active)
-                    VALUES (%(code)s, %(team_id)s, %(name)s, %(position)s, %(jersey_number)s, true)
+                    INSERT INTO players (code, team_id, name, position, jersey_number, photo_url, active)
+                    VALUES (%(code)s, %(team_id)s, %(name)s, %(position)s, %(jersey_number)s, %(photo_url)s, true)
                     ON CONFLICT (code) DO UPDATE SET
                         team_id = EXCLUDED.team_id,
                         name = EXCLUDED.name,
                         position = EXCLUDED.position,
                         jersey_number = EXCLUDED.jersey_number,
+                        photo_url = COALESCE(EXCLUDED.photo_url, players.photo_url),
                         active = true
                     """,
                     {
@@ -181,6 +204,7 @@ def sync_rosters(season: int) -> None:
                         "name": p["name"],
                         "position": p["position"],
                         "jersey_number": p["jerseyNumber"],
+                        "photo_url": p["photoUrl"],
                     },
                 )
             total_upserted += len(roster)

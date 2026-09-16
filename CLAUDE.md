@@ -1946,6 +1946,58 @@ at the same Neon instance as local dev — there's no separate prod database.
     incoming transfer/reserve with no EuroLeague minutes last season still
     shows the placeholder until real 2026-27 data exists. Safe to re-run
     (idempotent — skips anyone already photo'd) if more players get synced.
+    **Real 2026-27 club photos start appearing, 2026-09-16** — asked which
+    script surfaces real photos as clubs release their actual 2026-27
+    rosters. Neither existing photo source covers this: `player_stats_sync.py`
+    still returns zero rows for `E2026` (confirmed live — the season
+    genuinely has zero played games), and `backfill-player-photos.ts` only
+    ever sources last season's (2025-26) photos. Checked the club-roster
+    endpoint `roster_sync.py` already hits directly (`/clubs/{code}/people`)
+    and found its `person.images` field — documented in that script as
+    always `{}` when written — has started carrying real photos for a
+    handful of players (5 of ~330 as of this check, across 5 different
+    clubs; keyed `"action"` for most, `"headshot"` for one) even though no
+    game has been played. `roster_sync.py` now captures this going forward
+    (`extract_photo_url()`, written via `COALESCE(new, existing)` so a run
+    that finds nothing for a given player — still nearly everyone — can't
+    blank out a real photo already on file). Since this machine's
+    `sync-py/venv` doesn't run locally, `npm run roster:sync-photos`
+    (`scripts/sync-roster-photos.ts`) is the TS/fetch equivalent — same
+    workaround as `backfill-player-photos.ts`/`backfill-career-stats.ts` —
+    and is the one to actually run for this locally; unlike that one-off,
+    it's meant to be safe to re-run periodically (unconditionally
+    overwrites with whatever the feed has *now*, so a real 2026-27 photo
+    supersedes an older 2025-26 one) since clubs are registering photos
+    gradually rather than all at once. Run once already (2026-09-16),
+    backfilling exactly the 5 players found live.
+    **Follow-up same day: those photos (and the 2025-26 backfill's own 208)
+    weren't reaching card images at all** — user report ("many players do
+    have photos... I don't see all players there [on cards]") surfaced two
+    separate real gaps, not one. First,
+    `collectibles:expand`(`expand-collectibles.ts`) was re-run and inserted
+    292 common + 292 rare + 10 legendary cards for players who'd joined a
+    roster since the catalog was last expanded — it only ever creates a
+    card for a player who doesn't have one yet, it was just stale.
+    Second, and the actual root cause of "many players have photos but
+    their cards don't": `collectibles.image_url` is a one-time snapshot of
+    `players.photo_url` taken only at insert (see `expand-collectibles.ts`
+    and the "Jersey-style placeholders" pass above that nulled every
+    `image_url` on 2026-09-02) — it is never re-synced afterward, so the
+    208 players photo'd by `backfill-player-photos.ts` on 2026-09-09 (and
+    now this session's 5 new ones) never propagated to their
+    *already-existing* card rows at all, only to a brand-new card created
+    after their photo existed. New one-off-but-rerunnable script,
+    `npm run collectibles:sync-images`
+    (`scripts/sync-collectible-images.ts`) — matches each collectible to
+    its player the same way `expand-collectibles.ts` matches on insert
+    (team + normalized display name) and overwrites `image_url` wherever
+    it disagrees with that player's current `photo_url`, only ever when
+    the player actually has one (never blanks a card back to null). Run
+    live 2026-09-16: 337 of 955 collectibles updated — confirms the gap
+    was real and large, not just the 5 from today. Run this (or fold it
+    into `collectibles:expand` itself as a real follow-up, not done here)
+    any time `players.photo_url` gets backfilled for a batch of players
+    whose cards already exist, not just for new players.
 - **`teams.code` vs. the public-site team abbreviation** (2026-09-02):
   asked to make the app's 3-letter team codes match
   euroleaguebasketball.net's own standings page. Checked the site's mobile
