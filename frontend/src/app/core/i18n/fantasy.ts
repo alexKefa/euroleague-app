@@ -4,8 +4,8 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.navLink": { en: "Fantasy Team", el: "Fantasy Ομάδα" },
   "fantasy.title": { en: "Clutch Fantasy", el: "Clutch Fantasy" },
   "fantasy.hint": {
-    en: "Draft 5 real players under a budget cap, name a captain (2x points), and score off their real box-score performance each round.",
-    el: "Διάλεξε 5 πραγματικούς παίκτες μέσα σε ένα όριο προϋπολογισμού, όρισε αρχηγό (διπλοί πόντοι) και βαθμολογήσου με βάση την πραγματική τους απόδοση κάθε αγωνιστική.",
+    en: "Draft 10 real players (starters + bench) and a coach under a budget cap, name a captain (2x points), and score off their real box-score performance each round.",
+    el: "Διάλεξε 10 πραγματικούς παίκτες (βασικούς και πάγκο) και προπονητή μέσα σε ένα όριο προϋπολογισμού, όρισε αρχηγό (διπλοί πόντοι) και βαθμολογήσου με βάση την πραγματική τους απόδοση κάθε αγωνιστική.",
   },
   "fantasy.loginToUse": { en: "Log in to build a fantasy lineup.", el: "Συνδέσου για να φτιάξεις τη fantasy ομάδα σου." },
   "fantasy.budgetLabel": { en: "Budget", el: "Προϋπολογισμός" },
