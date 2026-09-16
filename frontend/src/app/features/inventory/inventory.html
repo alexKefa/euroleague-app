@@ -172,7 +172,7 @@
 
       <div class="flex gap-3 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1 mb-5">
         @for (bundle of group.bundles; track bundleKey(bundle)) {
-          <div class="flex flex-col items-center gap-1.5 shrink-0 w-28">
+          <div class="flex flex-col items-center gap-1.5 shrink-0" [style.width.px]="cardRenderWidth">
             <button
               type="button"
               (click)="openPreview(bundle)"
@@ -186,7 +186,7 @@
                 [teamColor]="bundle.team.primaryColor"
                 [imageUrl]="frontCard(bundle).imageUrl"
                 [unlocked]="true"
-                [maxWidth]="112"
+                [maxWidth]="cardRenderWidth"
                 [stackCount]="bundle.cards.length"
                 [finish]="finishFor(frontCard(bundle))"
                 [jerseyNumber]="frontCard(bundle).jerseyNumber ?? null"

@@ -1,9 +1,10 @@
-import { ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges, signal } from "@angular/core";
+import { ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { CollectibleFinish, CollectibleTier } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { displayTeamCode } from "../../shared/team-display-code";
+import { I18nService } from "../../core/i18n.service";
 
 type HoloVariant = "gold" | "silver" | "violet" | null;
 
@@ -13,6 +14,9 @@ interface TierStyle {
   faceBackground: string;
   badgeBackground: string;
   badgeTextColor: string;
+  // An i18n key (e.g. "store.tierRare"), not the literal label — resolved
+  // via i18n.t() in the template so the badge stays reactive to a language
+  // switch without needing an @Input change to re-run computeStyle().
   badgeLabel: string;
   nameColor: string;
   metaColor: string;
@@ -51,6 +55,8 @@ const DEFAULT_TEAM_COLOR = "#3E7CB1";
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CollectibleCardComponent implements OnChanges {
+  protected readonly i18n = inject(I18nService);
+
   @Input({ required: true }) name!: string;
   @Input({ required: true }) tier!: CollectibleTier;
   @Input() teamCode = "";
@@ -193,7 +199,7 @@ export class CollectibleCardComponent implements OnChanges {
         faceBackground: `linear-gradient(160deg, ${accentDark} 0%, ${accentDeep} 55%, #0b0f0d 100%)`,
         badgeBackground: "linear-gradient(135deg, #b9c1c8 0%, #eef1f3 50%, #9aa3ab 100%)",
         badgeTextColor: "#1c2226",
-        badgeLabel: "RARE",
+        badgeLabel: "store.tierRare",
         nameColor: "#F5F7F6",
         metaColor: "rgba(245,247,246,0.72)",
         photoTint: `linear-gradient(160deg, ${accentSoft} 0%, ${accentDeep} 100%)`,
@@ -220,7 +226,7 @@ export class CollectibleCardComponent implements OnChanges {
         faceBackground: `radial-gradient(120% 90% at 50% 0%, ${accentDark} 0%, #05070a 60%)`,
         badgeBackground: "linear-gradient(135deg, #2A1B70 0%, #603FEF 30%, #EDE9FF 50%, #4526B0 70%, #170F42 100%)",
         badgeTextColor: "#140B36",
-        badgeLabel: "COACH",
+        badgeLabel: "store.tierCoach",
         nameColor: "#EDE9FF",
         metaColor: "rgba(237,233,255,0.75)",
         photoTint: `radial-gradient(120% 100% at 50% 10%, ${accentSoft} 0%, #05070a 70%)`,
@@ -240,7 +246,7 @@ export class CollectibleCardComponent implements OnChanges {
         faceBackground: `radial-gradient(120% 90% at 50% 0%, ${accentDark} 0%, #05070a 60%)`,
         badgeBackground: "linear-gradient(135deg, #9c7415 0%, #f7dd85 30%, #fffbe8 50%, #e0ac36 70%, #855f10 100%)",
         badgeTextColor: "#241804",
-        badgeLabel: "LEGENDARY",
+        badgeLabel: "store.tierLegendary",
         nameColor: "#FFF7E0",
         metaColor: "rgba(255,247,224,0.75)",
         photoTint: `radial-gradient(120% 100% at 50% 10%, ${accentSoft} 0%, #05070a 70%)`,
@@ -257,7 +263,7 @@ export class CollectibleCardComponent implements OnChanges {
       faceBackground: "#FBFDFC",
       badgeBackground: "#E7E9EC",
       badgeTextColor: "#5B6169",
-      badgeLabel: "COMMON",
+      badgeLabel: "store.tierCommon",
       nameColor: "#14161A",
       metaColor: "#5B6169",
       // Pale team-color wash, not a flat neutral gray — commons are ~half

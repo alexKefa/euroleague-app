@@ -24,6 +24,14 @@ import { TeamCodePipe } from "../../shared/team-display-code";
 // need server-side pagination the way the full catalog does.
 const PAGE_SIZE = 20;
 
+// CollectibleCardComponent's name/badge/banner text is fixed-px, not
+// proportional to its own `maxWidth` input — this row used to render at
+// 112px, too tight for the fixed 15px name text, which truncated real
+// names ("Sasha V..."). Bumped straight to 150px (bigger than Album's own
+// 130px grid) rather than fighting it with a scale-transform — simplest
+// fix that actually gives the fixed-size text room to breathe.
+const CARD_RENDER_WIDTH = 150;
+
 @Component({
   selector: "app-inventory",
   standalone: true,
@@ -51,6 +59,8 @@ export class InventoryComponent implements OnInit, OnDestroy {
   private events = inject(EventsService);
   protected i18n = inject(I18nService);
   protected trades = inject(TradesNotificationService);
+
+  protected readonly cardRenderWidth = CARD_RENDER_WIDTH;
 
   // "Scoreboard" tiles (2026-09-11 — picked via a 4-direction design-canvas
   // comparison over the earlier flat bordered-tile look, which read as too

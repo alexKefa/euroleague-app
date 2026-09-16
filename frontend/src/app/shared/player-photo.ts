@@ -124,11 +124,15 @@ export class PlayerPhotoComponent {
   // `centerFace` is the middle ground — full image like every other
   // caller, just nudged so the face isn't the part that gets cropped.
   //
-  // Opt-in rather than the component's default, since every other caller
-  // (player detail, game-detail top performers, compare, roster) wasn't
-  // reported as having this problem and a global change here would be
-  // broader than what was actually asked for.
-  readonly centerFace = input(false);
+  // Made the default (2026-09-16), not opt-in — was Fantasy Five-only at
+  // first since no other caller had been reported as having this problem
+  // yet, but the same face-cropping issue turned out to be universal, not
+  // Fantasy-specific: it showed up again on player-detail/game-detail/
+  // compare/injury-report once those pages had more real photos to show.
+  // Every caller of this shared component renders the same standardized
+  // waist-up studio photos, so there's no real case where the default
+  // center-crop would ever be preferable.
+  readonly centerFace = input(true);
 
   protected failed = signal(false);
 
