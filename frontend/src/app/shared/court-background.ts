@@ -88,24 +88,30 @@ import { Component } from "@angular/core";
       <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#courtWoodGrain)" />
       <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#courtSheenGradient)" />
       <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#courtVignette)" />
-      <!-- Center-court logo decal — the "C" mark (2026-09-12: the real
-           Archivo Black "C" glyph outline, extracted once via fontTools so
-           it's a plain vector path with no runtime font dependency,
-           replacing the retired bracket+ball mark), faint and fixed-color
-           like the rest of this floor rather than theme-reactive,
+      <!-- Center-court logo decal (2026-09-16) — now the real current app
+           mark (clutch-icon-dark.png, the icon-only crop of the live logo,
+           see CLAUDE.md's Branding section), not the extracted Archivo
+           Black "C" glyph this used to be. That vector "C" was kept here
+           specifically because it had no raster dependency and this decal
+           needed to stay a lightweight path — moot now that the app's own
+           logo is the source of truth for "the mark" everywhere else, so
+           matching it here beats a bespoke vector stand-in that's already
+           stale the moment the real logo changes again. The PNG's own
+           transparency is used as-is, no reprocessing — same file every
+           other icon-only usage (nav bar, /welcome header) renders.
+           The "-dark" file (light-on-dark artwork), not the light variant, since its
+           pale linework reads as a subtle sheen on this warm floor color,
+           closer to the old decal's own pale #eef3f7 fill than the light
+           variant's dark linework would. Fixed regardless of app
+           light/dark theme — same "this floor's identity doesn't shift
+           with the theme toggle" reasoning as the rest of this component —
            painted over the floor but under the real court lines so the
-           key/arc strokes stay crisp on top of it. Deliberately NOT
-           swapped for the v8 (2026-09-13) illustrated mark used elsewhere —
-           that mark is a raster PNG with no vector source, and this decal
-           needs to stay a lightweight vector path rendered at 0.16 opacity;
-           the old standalone favicon this path used to match (favicon-v7.svg)
-           is gone, but the path itself is unaffected — it was always this
-           app's own extracted "C" outline, not the favicon file itself. -->
-      <g transform="translate(160 63) scale(1.7) translate(-49 -50)" opacity="0.16">
-        <g transform="translate(50 50) scale(0.09 -0.09) translate(-389 -344)">
-          <path d="M733 405H522Q522 465 490.5 500.0Q459 535 401 535Q334 535 302.5 493.0Q271 451 271 376V312Q271 238 302.5 195.5Q334 153 399 153Q463 153 496.0 186.0Q529 219 529 279H733Q733 138 646.5 63.0Q560 -12 402 -12Q226 -12 135.5 78.0Q45 168 45 344Q45 520 135.5 610.0Q226 700 402 700Q555 700 644.0 623.5Q733 547 733 405Z" fill="#eef3f7" />
-        </g>
-      </g>
+           key/arc strokes stay crisp on top of it. Sized/positioned to
+           roughly the same footprint the old "C" glyph occupied (centered
+           a little above the free-throw line, in the open floor), scaled
+           to the PNG's own real 531:391 aspect ratio rather than forced
+           square like the old glyph was. -->
+      <image href="/clutch-icon-dark.png" x="102" y="19" width="120" height="88" opacity="0.2" preserveAspectRatio="xMidYMid meet" />
       <path [attr.d]="courtOutlinePath" fill="none" stroke="#fdf3e2" stroke-width="2.2" opacity="0.95" />
       <rect
         [attr.x]="keyLeftX"

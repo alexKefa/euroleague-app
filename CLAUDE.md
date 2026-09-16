@@ -1333,14 +1333,16 @@ at the same Neon instance as local dev — there's no separate prod database.
     was tried once and proved unreliable (a browser tab's favicon
     specifically can ignore it, caching by origin+path); a genuinely new
     filename is the only cache buster confirmed to work.
-  - **Left alone, on purpose**: the Fantasy court background's
-    center-court decal (`shared/court-background.ts`) does NOT use this
-    raster mark — it still renders a plain vector path (the "C" glyph
-    outline extracted from an earlier Archivo Black wordmark attempt via
-    `fontTools`, faint and fixed-color at 0.16 opacity). The current mark
-    is a raster PNG with no vector source, so it can't be swapped in
-    without rasterizing that decal too; the old vector path was kept
-    instead since it still reads fine at that faint, small size.
+  - **Fantasy court center-court decal now uses the real mark too
+    (2026-09-16)** — `shared/court-background.ts` used to render a plain
+    vector "C" glyph here instead (extracted from an earlier Archivo Black
+    wordmark attempt via `fontTools`), specifically because the current
+    mark is a raster PNG with no vector source. Switched to an inline SVG
+    `<image>` referencing `clutch-icon-dark.png` directly (same file the
+    nav bar's dark-mode icon uses) at low opacity (0.2) — there's no
+    per-decal rasterization step needed since `<image href>` just embeds
+    the PNG as-is; the old vector "C" is gone from this file entirely, not
+    kept as a fallback.
 
 ## Album leaderboard (2026-09-06)
 
