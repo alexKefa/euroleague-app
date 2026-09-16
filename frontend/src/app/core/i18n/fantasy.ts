@@ -118,6 +118,11 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.creditsAvailable": { en: "available", el: "διαθέσιμα" },
   "fantasy.transfersLabel": { en: "Transfers", el: "Μεταγραφές" },
   "fantasy.roundCompleteTitle": { en: "Round complete!", el: "Η αγωνιστική ολοκληρώθηκε!" },
+  // Shown in the round-complete modal when this round also earned Clutch
+  // points into the shared economy (2026-09-16) — a fraction of the
+  // round's fantasy score, on top of the fantasy leaderboard points shown
+  // right above it.
+  "fantasy.economyPointsEarned": { en: "Clutch points earned", el: "Πόντοι Clutch που κέρδισες" },
   "fantasy.rulesButton": { en: "How points work", el: "Πώς μετράνε οι πόντοι" },
   "fantasy.rulesTitle": { en: "How Fantasy Five scoring works", el: "Πώς μετράνε οι πόντοι στο Fantasy Πεντάδα" },
   "fantasy.rulesSquadTitle": { en: "Your squad", el: "Η ομάδα σου" },

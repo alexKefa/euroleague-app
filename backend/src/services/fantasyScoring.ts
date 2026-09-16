@@ -1,6 +1,15 @@
-import { and, asc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { games, users, collectibles, teams, fantasyLineups, fantasyCoachPicks } from "../db/schema.js";
+import {
+  games,
+  users,
+  collectibles,
+  teams,
+  fantasyLineups,
+  fantasyCoachPicks,
+  fantasyRoundPoints,
+  pointAdjustments,
+} from "../db/schema.js";
 
 // --- Squad shape (2026-09-05 rebuild to match EuroLeague Fantasy's real
 // Classic Mode rules directly, rather than our own simplified variant —
@@ -257,6 +266,82 @@ export function pointsForCoachResult(scoreFor: number, scoreAgainst: number): nu
   if (margin <= COACH_MARGIN_CLOSE) return COACH_LOSS_CLOSE_POINTS;
   if (margin <= COACH_MARGIN_MID) return COACH_LOSS_MID_POINTS;
   return COACH_LOSS_BLOWOUT_POINTS;
+}
+
+// Fantasy Five's own points (2026-09-16, see fantasyRoundPoints' doc
+// comment in schema.ts for the full context) feed the shared points
+// economy at this fraction of a completed round's real totalPoints —
+// picked to land in roughly the same order of magnitude a good round of
+// win/loss predictions earns (10-40/correct pick), not a guess at exact
+// parity. Floored to a whole point; tune this constant (and re-run
+// economy:simulate once it models fantasy, which it doesn't yet) if real
+// play shows the economy skewing too hard toward fantasy or barely moved
+// by it at all.
+export const FANTASY_POINTS_CONVERSION_RATE = 0.5;
+
+/**
+ * Grants `Math.floor(totalPoints * FANTASY_POINTS_CONVERSION_RATE)` points
+ * into the shared economy for one user's one completed fantasy round —
+ * call only once that round's `roundComplete` is true (see routes/
+ * fantasy.ts), since totalPoints for a still-live round keeps changing as
+ * games progress. Claim-first via fantasyRoundPoints' unique index: a
+ * conflict means this round was already granted, so this is safe to call
+ * on every read of a completed round (same pattern as
+ * checkAndGrantRoundRewards), not just once — returns the newly-inserted
+ * row (for a "+N points" banner) or null if already claimed / the round
+ * scored zero-or-negative. A bad fantasy round or a coach blowout loss
+ * never *deducts* from the shared economy — this is a bonus channel only.
+ */
+export async function checkAndGrantFantasyRoundPoints(
+  userId: string,
+  season: string,
+  round: number,
+  totalPoints: number
+): Promise<{ id: string; round: number; points: number } | null> {
+  const points = Math.floor(totalPoints * FANTASY_POINTS_CONVERSION_RATE);
+  if (points <= 0) return null;
+
+  const [claimed] = await db
+    .insert(fantasyRoundPoints)
+    .values({ userId, season, round, points })
+    .onConflictDoNothing()
+    .returning({ id: fantasyRoundPoints.id });
+  if (claimed) {
+    await db.insert(pointAdjustments).values({
+      userId,
+      points,
+      reason: `Fantasy Five — Round ${round}`,
+      createdByUserId: userId,
+    });
+  }
+
+  // Read back this round's row regardless of whether *this* call was the
+  // one that inserted it — a second, unrelated page load hitting this same
+  // still-unseen round shouldn't silently "eat" the banner the way a naive
+  // insert-returning-only check would (same race roundRewards.seenAt
+  // guards against, see its own doc comment).
+  const [row] = await db
+    .select({ id: fantasyRoundPoints.id, round: fantasyRoundPoints.round, points: fantasyRoundPoints.points })
+    .from(fantasyRoundPoints)
+    .where(
+      and(
+        eq(fantasyRoundPoints.userId, userId),
+        eq(fantasyRoundPoints.season, season),
+        eq(fantasyRoundPoints.round, round),
+        isNull(fantasyRoundPoints.seenAt)
+      )
+    );
+  return row ?? null;
+}
+
+/** Same pattern as markRoundRewardsSeen (services/cards.ts) — marks every
+ * currently-unseen fantasy-points grant as seen once the frontend's shown
+ * its banner for it. */
+export async function markFantasyRoundPointsSeen(userId: string): Promise<void> {
+  await db
+    .update(fantasyRoundPoints)
+    .set({ seenAt: new Date() })
+    .where(and(eq(fantasyRoundPoints.userId, userId), isNull(fantasyRoundPoints.seenAt)));
 }
 
 /**

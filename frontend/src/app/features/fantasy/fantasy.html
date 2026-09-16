@@ -1225,6 +1225,11 @@
             <p class="text-[10px] text-muted uppercase tracking-wide mt-1">{{ i18n.t('fantasy.creditsChangeLabel') }}</p>
           </div>
         </div>
+        @if (newFantasyRoundPoints(); as grant) {
+          <p class="text-sm font-bold text-emerald-500 mb-5">
+            +{{ grant.points }} {{ i18n.t('fantasy.economyPointsEarned') }}
+          </p>
+        }
         <button type="button" (click)="closeRoundComplete()" appButton appButtonSize="sm">{{ i18n.t('fantasy.close') }}</button>
       </div>
     </div>

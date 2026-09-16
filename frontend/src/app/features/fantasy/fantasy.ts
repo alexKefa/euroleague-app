@@ -298,6 +298,11 @@ export class FantasyComponent implements OnInit {
   readonly totalPoints = signal(0);
   readonly coachPoints = signal(0);
   readonly creditsChange = signal(0);
+  // Shared-economy points grant for the currently-viewed round (2026-09-16,
+  // see checkAndGrantFantasyRoundPoints) — shown inside the round-complete
+  // modal below and acknowledged (ackFantasyRoundPoints) when that modal
+  // closes, same one-shot-banner shape as predictions' round rewards.
+  readonly newFantasyRoundPoints = signal<{ id: string; round: number; points: number } | null>(null);
 
   // --- Transfers (2026-09-07) — see services/fantasyScoring.ts's
   // getBaselineSquad doc comment. transfersUsed/transfersAllowed are the
@@ -989,6 +994,7 @@ export class FantasyComponent implements OnInit {
         this.totalPoints.set(lineup.totalPoints);
         this.creditsChange.set(lineup.creditsChange);
         this.coachPoints.set(lineup.coachPoints);
+        this.newFantasyRoundPoints.set(lineup.newFantasyRoundPoints);
         this.transfersUsed.set(lineup.transfersUsed);
         this.transfersAllowed.set(lineup.transfersAllowed);
         this.baselinePlayerIds.set(lineup.baselinePlayerIds ? new Set(lineup.baselinePlayerIds) : null);
@@ -1039,6 +1045,7 @@ export class FantasyComponent implements OnInit {
         this.totalPoints.set(lineup.totalPoints);
         this.creditsChange.set(lineup.creditsChange);
         this.coachPoints.set(lineup.coachPoints);
+        this.newFantasyRoundPoints.set(lineup.newFantasyRoundPoints);
         this.maybeCelebrateRoundComplete(lineup.round, lineup.roundComplete);
       },
       error: () => {},
@@ -1083,6 +1090,10 @@ export class FantasyComponent implements OnInit {
 
   closeRoundComplete(): void {
     this.showRoundComplete.set(false);
+    if (this.newFantasyRoundPoints()) {
+      this.newFantasyRoundPoints.set(null);
+      this.api.ackFantasyRoundPoints().subscribe({ error: () => {} });
+    }
   }
 
   private loadFixtures(season: string, round: number): void {

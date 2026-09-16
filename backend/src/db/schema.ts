@@ -1274,6 +1274,47 @@ export const fantasyPricingState = pgTable("fantasy_pricing_state", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+// Fantasy Five wired into the shared points economy (2026-09-16) — until
+// now a round's fantasy score only fed the fantasy-specific leaderboard,
+// completely separate from the points predictions/top-scorer picks earn
+// (the currency Store/Packs/Wheel actually spend and the general
+// leaderboard ranks by). Every locked round, checkAndGrantFantasyRoundPoints
+// (services/fantasyScoring.ts) grants a point_adjustments row worth
+// FANTASY_POINTS_CONVERSION_RATE of that round's real totalPoints (PIR,
+// already including captain/bench/coach) — same claim-first idempotency
+// shape as roundRewards (unique on user+season+round) so re-reading a
+// completed round's score never grants twice. Deliberately does NOT count
+// toward the "Century" badge (routes/predictions.ts computes that from
+// predictions/top-scorer picks directly, never from point_adjustments at
+// all — no extra exclusion code needed here) — Century is meant to reflect
+// prediction skill specifically, not points earned by any means.
+export const fantasyRoundPoints = pgTable(
+  "fantasy_round_points",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    season: varchar("season", { length: 9 }).notNull(),
+    round: integer("round").notNull(),
+    points: integer("points").notNull(),
+    grantedAt: timestamp("granted_at", { withTimezone: true }).defaultNow().notNull(),
+    // Null until the user's been shown the "+N points" banner — same
+    // multiple-pages-hit-the-same-endpoint race roundRewards.seenAt guards
+    // against (see its own doc comment).
+    seenAt: timestamp("seen_at", { withTimezone: true }),
+  },
+  (table) => ({
+    userRoundFantasyPointsUnique: uniqueIndex("user_round_fantasy_points_unique").on(
+      table.userId,
+      table.season,
+      table.round
+    ),
+  })
+);
+
+export const fantasyRoundPointsRelations = relations(fantasyRoundPoints, ({ one }) => ({
+  user: one(users, { fields: [fantasyRoundPoints.userId], references: [users.id] }),
+}));
+
 export const playerFantasyPricesRelations = relations(playerFantasyPrices, ({ one }) => ({
   player: one(players, { fields: [playerFantasyPrices.playerId], references: [players.id] }),
 }));

@@ -853,6 +853,12 @@ export interface FantasyLineup {
   // that's happened since (2026-09-10). Rows written before priceAtPick
   // existed don't contribute, so this can under-count for old rounds.
   creditsChange: number;
+  // Set once this round is complete and its shared-economy points grant
+  // (services/fantasyScoring.ts's checkAndGrantFantasyRoundPoints,
+  // 2026-09-16) hasn't been acknowledged yet — null once acked via
+  // POST /fantasy/round-points/ack, same one-shot-banner shape as
+  // predictions' newRoundRewards.
+  newFantasyRoundPoints: { id: string; round: number; points: number } | null;
 }
 
 // GET /api/fantasy/leaderboard and /api/leagues/:id/fantasy-leaderboard —

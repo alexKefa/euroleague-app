@@ -481,6 +481,13 @@ export class ApiService {
     });
   }
 
+  // Only the Fantasy page should call this, once it's actually shown the
+  // "+N points" banner for whatever newFantasyRoundPoints it got back —
+  // same pattern as ackRoundRewards above.
+  ackFantasyRoundPoints(): Observable<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`${API_BASE_URL}/fantasy/round-points/ack`, {});
+  }
+
   getFantasyLeaderboard(): Observable<FantasyLeaderboardEntry[]> {
     return this.http.get<FantasyLeaderboardEntry[]>(`${API_BASE_URL}/fantasy/leaderboard`);
   }
