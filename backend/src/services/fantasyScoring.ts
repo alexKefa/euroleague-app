@@ -207,6 +207,58 @@ export function computeBudgetCap(ceiling: number): number {
   return Math.round(FANTASY_BUDGET_CAP * (ceiling / FANTASY_PIR_CEILING_FLOOR) * 10) / 10;
 }
 
+// --- Live per-game player scoring (2026-09-16) ---
+//
+// Replaces the earlier PIR-as-fantasy-score shortcut with EuroLeague
+// Fantasy's own actual per-stat formula (read directly off their rules
+// site): +1/point, +1/rebound, +1/assist, +1 steal, -1 turnover, +1
+// block-for, -1 block-against, +1 foul drawn, -1 foul committed, -1 missed
+// field goal, -1 missed free throw — then a +10% bonus on that line if the
+// player's own team won the game. Applied per player per game (not once
+// per fantasy manager's whole round) since it's evaluated inside the same
+// per-player join every other scoring path already uses; PIR wasn't a bad
+// proxy (both roughly reward the same good performances) but it's not
+// what the real game actually uses, and a "wait why doesn't this match
+// the real number I'd expect" report was only a matter of time.
+export interface FantasyGameBoxScore {
+  points: number | null;
+  rebounds: number | null;
+  assists: number | null;
+  steals: number | null;
+  turnovers: number | null;
+  blocksFavour: number | null;
+  blocksAgainst: number | null;
+  foulsCommitted: number | null;
+  foulsReceived: number | null;
+  fieldGoalsMade2: number | null;
+  fieldGoalsAttempted2: number | null;
+  fieldGoalsMade3: number | null;
+  fieldGoalsAttempted3: number | null;
+  freeThrowsMade: number | null;
+  freeThrowsAttempted: number | null;
+}
+export const FANTASY_TEAM_WIN_BONUS = 0.1;
+
+export function computeFantasyGamePoints(stats: FantasyGameBoxScore, teamWon: boolean): number {
+  const n = (v: number | null) => v ?? 0;
+  const missedFieldGoals =
+    n(stats.fieldGoalsAttempted2) - n(stats.fieldGoalsMade2) + (n(stats.fieldGoalsAttempted3) - n(stats.fieldGoalsMade3));
+  const missedFreeThrows = n(stats.freeThrowsAttempted) - n(stats.freeThrowsMade);
+  const base =
+    n(stats.points) +
+    n(stats.rebounds) +
+    n(stats.assists) +
+    n(stats.steals) -
+    n(stats.turnovers) +
+    n(stats.blocksFavour) -
+    n(stats.blocksAgainst) +
+    n(stats.foulsReceived) -
+    n(stats.foulsCommitted) -
+    missedFieldGoals -
+    missedFreeThrows;
+  return teamWon ? base * (1 + FANTASY_TEAM_WIN_BONUS) : base;
+}
+
 // --- Coach pricing + scoring ---
 //
 // No coach-specific stat is synced anywhere (coaches aren't in `players`),
@@ -440,8 +492,9 @@ export interface FantasyLeaderboardEntry {
 
 /**
  * Ranked by cumulative fantasy points for a season: each locked round's
- * picked players' playerGameStats.valuation (PIR) for that round's *final*
- * games — captain doubled, bench scored at BENCH_SCORE_MULTIPLIER — plus
+ * picked players' real per-stat fantasy score (computeFantasyGamePoints)
+ * for that round's *final* games — captain doubled, bench scored at
+ * BENCH_SCORE_MULTIPLIER — plus
  * each round's coach pick's margin-based real-result points (see
  * pointsForCoachResult's doc comment, always 100%, never bench-reduced). A player/coach who
  * hasn't played yet that round (game not final, or a bye) contributes 0 by
@@ -467,15 +520,36 @@ export async function getFantasyLeaderboardEntries(
     fantasy_points: number;
   }>(sql`
     with round_stats as (
-      select pgs.player_id, g.season, g.round, pgs.valuation
+      -- Real EuroLeague Fantasy per-stat formula (see
+      -- computeFantasyGamePoints's doc comment for the JS equivalent used
+      -- by routes/fantasy.ts's single-round detail view) — replaces the
+      -- earlier PIR shortcut. p.team_id is the player's *current* team, not
+      -- necessarily who they played for in this specific historical game
+      -- (a traded player's old games), same simplification already made
+      -- elsewhere in this app (e.g. usage% — see CLAUDE.md).
+      select pgs.player_id, g.season, g.round,
+        (
+          coalesce(pgs.points, 0) + coalesce(pgs.rebounds, 0) + coalesce(pgs.assists, 0)
+          + coalesce(pgs.steals, 0) - coalesce(pgs.turnovers, 0)
+          + coalesce(pgs.blocks_favour, 0) - coalesce(pgs.blocks_against, 0)
+          + coalesce(pgs.fouls_received, 0) - coalesce(pgs.fouls_committed, 0)
+          - (coalesce(pgs.field_goals_attempted_2, 0) - coalesce(pgs.field_goals_made_2, 0))
+          - (coalesce(pgs.field_goals_attempted_3, 0) - coalesce(pgs.field_goals_made_3, 0))
+          - (coalesce(pgs.free_throws_attempted, 0) - coalesce(pgs.free_throws_made, 0))
+        ) * (case
+          when p.team_id = g.home_team_id and g.home_score > g.away_score then ${1 + FANTASY_TEAM_WIN_BONUS}::numeric
+          when p.team_id = g.away_team_id and g.away_score > g.home_score then ${1 + FANTASY_TEAM_WIN_BONUS}::numeric
+          else 1::numeric
+        end) as fantasy_points
       from player_game_stats pgs
       join games g on g.id = pgs.game_id
+      join players p on p.id = pgs.player_id
       where g.status = 'final'
     ),
     player_totals as (
       select fl.user_id,
         sum(
-          coalesce(rs.valuation, 0)
+          coalesce(rs.fantasy_points, 0)
           * (case when fl.is_captain then 2 else 1 end)
           * (case when fl.slot_role = 'bench' then ${BENCH_SCORE_MULTIPLIER}::numeric else 1 end)
         ) as pts

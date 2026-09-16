@@ -37,6 +37,7 @@ import {
   FANTASY_MAX_PLAYERS_PER_CLUB,
   checkAndGrantFantasyRoundPoints,
   markFantasyRoundPointsSeen,
+  computeFantasyGamePoints,
 } from "../services/fantasyScoring.js";
 
 export const fantasyRouter = Router();
@@ -306,19 +307,41 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
       gameByTeamId.set(g.awayTeamId, g);
     }
 
-    // Per-player scoring — same rule as getFantasyLeaderboardEntries's SQL
-    // (only a *final* game's real box score counts), just computed in JS
-    // here since this endpoint also needs each player's own raw valuation
-    // for display, not only the aggregate total that query returns.
+    // Per-player scoring — same rule and same real per-stat formula as
+    // getFantasyLeaderboardEntries's SQL (computeFantasyGamePoints; only a
+    // *final* game's real box score counts), just computed in JS here
+    // since this endpoint also needs each player's own raw stat line for
+    // display, not only the aggregate total that query returns. `valuation`
+    // (PIR) is kept separately purely as an informational stat — it's not
+    // what actually scores a round any more.
     const finalGameIds = roundGames.filter((g) => g.status === "final").map((g) => g.id);
     const statsRows =
       finalGameIds.length && playerIds.length
         ? await db
-            .select({ playerId: playerGameStats.playerId, gameId: playerGameStats.gameId, valuation: playerGameStats.valuation })
+            .select({
+              playerId: playerGameStats.playerId,
+              gameId: playerGameStats.gameId,
+              valuation: playerGameStats.valuation,
+              points: playerGameStats.points,
+              rebounds: playerGameStats.rebounds,
+              assists: playerGameStats.assists,
+              steals: playerGameStats.steals,
+              turnovers: playerGameStats.turnovers,
+              blocksFavour: playerGameStats.blocksFavour,
+              blocksAgainst: playerGameStats.blocksAgainst,
+              foulsCommitted: playerGameStats.foulsCommitted,
+              foulsReceived: playerGameStats.foulsReceived,
+              fieldGoalsMade2: playerGameStats.fieldGoalsMade2,
+              fieldGoalsAttempted2: playerGameStats.fieldGoalsAttempted2,
+              fieldGoalsMade3: playerGameStats.fieldGoalsMade3,
+              fieldGoalsAttempted3: playerGameStats.fieldGoalsAttempted3,
+              freeThrowsMade: playerGameStats.freeThrowsMade,
+              freeThrowsAttempted: playerGameStats.freeThrowsAttempted,
+            })
             .from(playerGameStats)
             .where(and(inArray(playerGameStats.playerId, playerIds), inArray(playerGameStats.gameId, finalGameIds)))
         : [];
-    const statsByPlayerGame = new Map(statsRows.map((r) => [`${r.playerId}:${r.gameId}`, r.valuation ?? 0]));
+    const statsByPlayerGame = new Map(statsRows.map((r) => [`${r.playerId}:${r.gameId}`, r]));
 
     const now = Date.now();
     let totalPoints = 0;
@@ -327,8 +350,16 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
       const teamId = teamIdByPlayer.get(r.playerId);
       const game = teamId ? gameByTeamId.get(teamId) : undefined;
       const tipoff = game ? new Date(game.tipoffAt) : undefined;
-      const valuation = game && game.status === "final" ? statsByPlayerGame.get(`${r.playerId}:${game.id}`) ?? 0 : null;
-      const points = (valuation ?? 0) * (r.isCaptain ? 2 : 1) * (r.slotRole === "bench" ? BENCH_SCORE_MULTIPLIER : 1);
+      const stats = game && game.status === "final" ? statsByPlayerGame.get(`${r.playerId}:${game.id}`) : undefined;
+      const valuation = stats ? stats.valuation ?? 0 : game?.status === "final" ? 0 : null;
+      let fantasyPoints = 0;
+      if (stats && game && teamId) {
+        const teamWon =
+          (teamId === game.homeTeamId && (game.homeScore ?? 0) > (game.awayScore ?? 0)) ||
+          (teamId === game.awayTeamId && (game.awayScore ?? 0) > (game.homeScore ?? 0));
+        fantasyPoints = computeFantasyGamePoints(stats, teamWon);
+      }
+      const points = fantasyPoints * (r.isCaptain ? 2 : 1) * (r.slotRole === "bench" ? BENCH_SCORE_MULTIPLIER : 1);
       totalPoints += points;
       totalPir += valuation ?? 0;
       return {
