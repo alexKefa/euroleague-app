@@ -12,7 +12,7 @@ import { games, users, collectibles, teams, fantasyLineups, fantasyCoachPicks } 
 // 1 "sixth man" score 100% of a locked round's points; the remaining 4
 // "bench" players score BENCH_SCORE_MULTIPLIER (50%). The captain (always
 // one of the 5 starters) doubles on top of that. The coach always scores
-// 100% — see COACH_WIN_POINTS below — never bench-reduced, since there's
+// 100% — see pointsForCoachResult below — never bench-reduced, since there's
 // only ever one of them.
 export const FANTASY_STARTER_COUNT = 5;
 export const FANTASY_SIXTH_MAN_COUNT = 1;
@@ -23,19 +23,41 @@ export const FANTASY_POSITION_QUOTA: Record<"Guard" | "Forward" | "Center", numb
   Forward: 4,
   Center: 2,
 };
+// EuroLeague Fantasy's own published rules (2026-09-16 read) cap how many
+// of the 10 outfield players can come from the same real club, to stop a
+// degenerate "just draft one contender's whole roster" strategy — not
+// previously enforced here at all. Scoped to the outfield 10 only, not the
+// coach (a separate roster slot with its own club, same as real rules).
+export const FANTASY_MAX_PLAYERS_PER_CLUB = 6;
 export const BENCH_SCORE_MULTIPLIER = 0.5;
 
-// Round-to-round transfers (2026-09-07): a squad now carries forward
-// automatically from the previous round (see routes/fantasy.ts's
-// GET /lineup carry-forward and getBaselineSquad) instead of starting every
-// round from an empty court — real fantasy-sports "gameweek" model. Only
-// up to this many *player* changes are allowed against that carried-over
-// baseline before the round locks; the coach is a separate, unlimited
-// change (real rules don't ration coach picks the way they ration
-// transfers), and moving an already-selected player between starter/sixth-
-// man/bench costs nothing since no player id actually changed. Round 1 (no
-// prior round to carry from) stays a free, unlimited draft, same as always.
-export const FANTASY_TRANSFERS_PER_ROUND = 3;
+// Round-to-round transfers (2026-09-07, limit corrected 2026-09-16): a
+// squad now carries forward automatically from the previous round (see
+// routes/fantasy.ts's GET /lineup carry-forward and getBaselineSquad)
+// instead of starting every round from an empty court — real
+// fantasy-sports "gameweek" model. Only up to this many *player* changes
+// are allowed against that carried-over baseline before the round locks
+// (EuroLeague Fantasy's own published rules say 4, not 3 — corrected
+// against a direct read of their rules site); the coach is a separate,
+// unlimited change (real rules don't ration coach picks the way they
+// ration transfers), and moving an already-selected player between
+// starter/sixth-man/bench costs nothing since no player id actually
+// changed. Round 1 (no prior round to carry from) stays a free, unlimited
+// draft, same as always.
+export const FANTASY_TRANSFERS_PER_ROUND = 4;
+
+// Real EuroLeague Fantasy also grants a handful of *unlimited*-transfer
+// rounds across a season, roughly tied to real-world FIBA/schedule
+// breaks — the round immediately following each of these regular-season
+// rounds has no transfer cap at all, on top of the regular-season's last
+// round (34) onward, once playoffs start. Exact round numbers are an
+// approximation (EuroLeague's rules page describes them as tied to real
+// calendar breaks, not fixed round numbers we could read verbatim) —
+// revisit once a real 2026-27 schedule confirms the actual break rounds.
+const FANTASY_UNLIMITED_TRANSFER_TRIGGER_ROUNDS = [6, 13, 18, 23, 28, 34];
+export function isUnlimitedTransferRound(round: number): boolean {
+  return FANTASY_UNLIMITED_TRANSFER_TRIGGER_ROUNDS.some((r) => round === r + 1) || round > 34;
+}
 
 export const FANTASY_BUDGET_CAP = 100;
 export const FANTASY_MIN_PRICE = 4;
@@ -200,13 +222,42 @@ export function computeCoachPrice(position: number | null, totalTeams: number): 
   return Math.min(COACH_MAX_PRICE, Math.max(COACH_MIN_PRICE, Math.round(raw * 10) / 10));
 }
 
-// A coach scores off their real team's game result that round, not a stat
-// line — +20 for a win, 0 for a loss, straight from EuroLeague Fantasy's
-// own published rules (see CLAUDE.md). No game that round (bye) or the
-// game not final yet both correctly resolve to 0 via the SQL in
-// getFantasyLeaderboardEntries below (coalesce onto a missing/non-final row).
-export const COACH_WIN_POINTS = 20;
-export const COACH_LOSS_POINTS = 0;
+// A coach scores off their real team's game result and its margin, not a
+// stat line — corrected 2026-09-16 against EuroLeague Fantasy's own
+// published rules (was flat +20/0, which turned out to not match): win by
+// 0-10 (or in OT) = +10, win by 11-20 = +20, win by 21+ = +25; loss by
+// 0-10 (or in OT) = -5, loss by 11-20 = -10, loss by 21+ = -20. `games`
+// doesn't track overtime at all (see schema.ts's comment on `quarter`), so
+// an OT win/loss is scored purely by its final margin like any other game
+// — a real simplification, but a mild one in practice, since an OT game's
+// final margin is almost always small anyway (it was tied at the end of
+// regulation). No game that round (bye) or the game not final yet both
+// correctly resolve to 0 via the SQL in getFantasyLeaderboardEntries below
+// (coalesce onto a missing/non-final row).
+export const COACH_MARGIN_CLOSE = 10; // inclusive upper bound of the "close" tier
+export const COACH_MARGIN_MID = 20; // inclusive upper bound of the "mid" tier; above this is a blowout
+export const COACH_WIN_CLOSE_POINTS = 10;
+export const COACH_WIN_MID_POINTS = 20;
+export const COACH_WIN_BLOWOUT_POINTS = 25;
+export const COACH_LOSS_CLOSE_POINTS = -5;
+export const COACH_LOSS_MID_POINTS = -10;
+export const COACH_LOSS_BLOWOUT_POINTS = -20;
+
+/** JS equivalent of the SQL CASE in getFantasyLeaderboardEntries below — used
+ * by routes/fantasy.ts's single-round lineup computation, which already has
+ * the game row in hand and doesn't need a second query for it. */
+export function pointsForCoachResult(scoreFor: number, scoreAgainst: number): number {
+  const margin = Math.abs(scoreFor - scoreAgainst);
+  const won = scoreFor > scoreAgainst;
+  if (won) {
+    if (margin <= COACH_MARGIN_CLOSE) return COACH_WIN_CLOSE_POINTS;
+    if (margin <= COACH_MARGIN_MID) return COACH_WIN_MID_POINTS;
+    return COACH_WIN_BLOWOUT_POINTS;
+  }
+  if (margin <= COACH_MARGIN_CLOSE) return COACH_LOSS_CLOSE_POINTS;
+  if (margin <= COACH_MARGIN_MID) return COACH_LOSS_MID_POINTS;
+  return COACH_LOSS_BLOWOUT_POINTS;
+}
 
 /**
  * A round locks the moment its first game tips off — the whole round, not
@@ -306,8 +357,8 @@ export interface FantasyLeaderboardEntry {
  * Ranked by cumulative fantasy points for a season: each locked round's
  * picked players' playerGameStats.valuation (PIR) for that round's *final*
  * games — captain doubled, bench scored at BENCH_SCORE_MULTIPLIER — plus
- * each round's coach pick's real-result points (COACH_WIN_POINTS/
- * COACH_LOSS_POINTS, always 100%, never bench-reduced). A player/coach who
+ * each round's coach pick's margin-based real-result points (see
+ * pointsForCoachResult's doc comment, always 100%, never bench-reduced). A player/coach who
  * hasn't played yet that round (game not final, or a bye) contributes 0 by
  * construction (the left joins below find no matching row), so an
  * in-progress or future round needs no special-casing — same "on-read,
@@ -350,15 +401,27 @@ export async function getFantasyLeaderboardEntries(
     ),
     coach_game_result as (
       select season, round, home_team_id as team_id,
-        case when status = 'final' and home_score > away_score then ${COACH_WIN_POINTS}::int
-             when status = 'final' then ${COACH_LOSS_POINTS}::int
-             else 0 end as pts
+        case
+          when status != 'final' then 0
+          when home_score > away_score and (home_score - away_score) <= ${COACH_MARGIN_CLOSE} then ${COACH_WIN_CLOSE_POINTS}::int
+          when home_score > away_score and (home_score - away_score) <= ${COACH_MARGIN_MID} then ${COACH_WIN_MID_POINTS}::int
+          when home_score > away_score then ${COACH_WIN_BLOWOUT_POINTS}::int
+          when (away_score - home_score) <= ${COACH_MARGIN_CLOSE} then ${COACH_LOSS_CLOSE_POINTS}::int
+          when (away_score - home_score) <= ${COACH_MARGIN_MID} then ${COACH_LOSS_MID_POINTS}::int
+          else ${COACH_LOSS_BLOWOUT_POINTS}::int
+        end as pts
       from games
       union all
       select season, round, away_team_id as team_id,
-        case when status = 'final' and away_score > home_score then ${COACH_WIN_POINTS}::int
-             when status = 'final' then ${COACH_LOSS_POINTS}::int
-             else 0 end as pts
+        case
+          when status != 'final' then 0
+          when away_score > home_score and (away_score - home_score) <= ${COACH_MARGIN_CLOSE} then ${COACH_WIN_CLOSE_POINTS}::int
+          when away_score > home_score and (away_score - home_score) <= ${COACH_MARGIN_MID} then ${COACH_WIN_MID_POINTS}::int
+          when away_score > home_score then ${COACH_WIN_BLOWOUT_POINTS}::int
+          when (home_score - away_score) <= ${COACH_MARGIN_CLOSE} then ${COACH_LOSS_CLOSE_POINTS}::int
+          when (home_score - away_score) <= ${COACH_MARGIN_MID} then ${COACH_LOSS_MID_POINTS}::int
+          else ${COACH_LOSS_BLOWOUT_POINTS}::int
+        end as pts
       from games
     ),
     coach_totals as (

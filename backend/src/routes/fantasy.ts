@@ -31,9 +31,10 @@ import {
   COACH_MIN_PRICE,
   FANTASY_TRANSFERS_PER_ROUND,
   BENCH_SCORE_MULTIPLIER,
-  COACH_WIN_POINTS,
-  COACH_LOSS_POINTS,
+  pointsForCoachResult,
   computeBudgetCap,
+  isUnlimitedTransferRound,
+  FANTASY_MAX_PLAYERS_PER_CLUB,
 } from "../services/fantasyScoring.js";
 
 export const fantasyRouter = Router();
@@ -341,10 +342,9 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
     let coachPoints = 0;
     if (coachGame && coachGame.status === "final") {
       const isHome = coachGame.homeTeamId === coachTeamId;
-      const won = isHome
-        ? (coachGame.homeScore ?? 0) > (coachGame.awayScore ?? 0)
-        : (coachGame.awayScore ?? 0) > (coachGame.homeScore ?? 0);
-      coachPoints = won ? COACH_WIN_POINTS : COACH_LOSS_POINTS;
+      const scoreFor = (isHome ? coachGame.homeScore : coachGame.awayScore) ?? 0;
+      const scoreAgainst = (isHome ? coachGame.awayScore : coachGame.homeScore) ?? 0;
+      coachPoints = pointsForCoachResult(scoreFor, scoreAgainst);
     }
     totalPoints += coachPoints;
 
@@ -383,7 +383,7 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
       totalPir,
       creditsChange,
       transfersUsed,
-      transfersAllowed: baseline ? FANTASY_TRANSFERS_PER_ROUND : null,
+      transfersAllowed: baseline && !isUnlimitedTransferRound(round) ? FANTASY_TRANSFERS_PER_ROUND : null,
       budgetCap,
       // The client-side mirror of the transfer-limit check above — lets the
       // roster builder disable adding a *new* (non-baseline) player once
@@ -498,6 +498,24 @@ fantasyRouter.post("/lineup/batch", requireAuth, async (req, res) => {
       }
     }
 
+    // Max players from one real club (2026-09-16, see FANTASY_MAX_PLAYERS_PER_CLUB).
+    const countByTeamId = new Map<string, number>();
+    for (const id of newIds) {
+      const teamId = playerById.get(id)!.teamId;
+      countByTeamId.set(teamId, (countByTeamId.get(teamId) ?? 0) + 1);
+    }
+    for (const [teamId, count] of countByTeamId) {
+      if (count > FANTASY_MAX_PLAYERS_PER_CLUB) {
+        res.status(400).json({
+          error: `At most ${FANTASY_MAX_PLAYERS_PER_CLUB} players from the same club are allowed`,
+          code: "CLUB_LIMIT_EXCEEDED",
+          teamId,
+          count,
+        });
+        return;
+      }
+    }
+
     // Transfer limit (2026-09-07) — see getBaselineSquad's doc comment.
     // Counted against the previous round's squad specifically, not
     // whatever was last saved *this* round, so re-saving within the same
@@ -507,7 +525,7 @@ fantasyRouter.post("/lineup/batch", requireAuth, async (req, res) => {
     // had last round. No limit at all when there's no baseline (round 1,
     // or a round with no saved squad the round before it).
     const baseline = await getBaselineSquad(req.userId!, season, round);
-    if (baseline) {
+    if (baseline && !isUnlimitedTransferRound(round)) {
       const transfersUsed = newIds.filter((id) => !baseline.playerIds.has(id)).length;
       if (transfersUsed > FANTASY_TRANSFERS_PER_ROUND) {
         res.status(400).json({
