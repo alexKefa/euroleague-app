@@ -291,8 +291,10 @@ export class FantasyComponent implements OnInit {
 
   // --- Roster builder state ---
   readonly loading = signal(true);
-  // Admin-only "randomize squad" dice trigger — see autoFillSquad below.
-  // confirmingAutoFill gates the "are you sure" dialog (a randomize
+  // "Randomize squad" dice trigger (round 1 only, any user — see
+  // autoFillSquad below and fantasy.html's doc comment on the button for
+  // why this isn't admin-gated). confirmingAutoFill gates the "are you
+  // sure" dialog (a randomize
   // overwrites whatever's currently on the court, so it's confirmed like
   // schedule.ts's reset buttons rather than firing on a single tap);
   // autoFillNotice is a brief self-clearing "done" notice, same

@@ -503,8 +503,17 @@
                          4-transfer budget rather than the "draft a fresh
                          test squad" use case this button exists for; round
                          1 (no baseline at all) is the only round where it's
-                         actually unconstrained. -->
-                    @if (auth.currentUser()?.isAdmin && isCurrentRound() && !roundLocked() && round() === 1) {
+                         actually unconstrained. Not admin-gated (unlike the
+                         simulate-round button above) — this only ever
+                         touches the current viewer's own squad, and gating
+                         it on isAdmin defeated the whole point of helping a
+                         brand-new account get started (reported live
+                         2026-09-17: "brand new account can't use the
+                         randomize squad"). See routes/fantasy.ts's
+                         POST /admin/auto-fill for the matching backend fix —
+                         admin is only required there when targeting someone
+                         else's squad. -->
+                    @if (isCurrentRound() && !roundLocked() && round() === 1) {
                       <button
                         type="button"
                         (click)="requestAutoFillSquad()"

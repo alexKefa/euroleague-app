@@ -11,8 +11,9 @@ import {
   fantasyCoachPicks,
   games,
   playerGameStats,
+  users,
 } from "../db/schema.js";
-import { requireAuth, requireAdmin } from "../auth/middleware.js";
+import { requireAuth } from "../auth/middleware.js";
 import { getCurrentSeason } from "../services/season.js";
 import {
   getRoundLockTime,
@@ -478,18 +479,31 @@ fantasyRouter.post("/lineup/batch", requireAuth, async (req, res) => {
   }
 });
 
-// Admin-only test tool (2026-09-17 — see CLAUDE.md's Fantasy Five
-// simulation-button TODO, flagged 2026-09-17): instantly drafts a real,
-// valid, budget-respecting squad for a user instead of hand-picking one in
-// the roster builder every time a test account needs one. Optional
-// `userId` targets someone other than the calling admin (e.g. a freshly
-// created test account); `season`/`round` default to the current season's
-// active round. Delegates to autoFillFantasySquad/saveFantasyLineup, so the
-// result is never a special-cased shortcut — it's exactly what a real save
-// would accept.
-fantasyRouter.post("/admin/auto-fill", requireAuth, requireAdmin, async (req, res) => {
+// Instantly drafts a real, valid, budget-respecting squad instead of
+// hand-picking one in the roster builder — the whole point being to help
+// a brand-new account get started (see CLAUDE.md's Fantasy Five
+// simulation-button TODO, flagged 2026-09-17). Originally gated entirely
+// behind requireAdmin, which defeated that purpose: a genuinely fresh
+// test account (not itself an admin) could never reach this route at all,
+// reported live 2026-09-17 as "brand new account can't use the randomize
+// squad." Fixed by only requiring admin when the caller asks to auto-fill
+// *someone else's* squad (the `userId` override, for an admin setting up
+// a test account from their own session) — auto-filling your own squad
+// needs nothing beyond being logged in, same as a normal manual save.
+// `season`/`round` default to the current season's active round.
+// Delegates to autoFillFantasySquad/saveFantasyLineup, so the result is
+// never a special-cased shortcut — it's exactly what a real save would
+// accept.
+fantasyRouter.post("/admin/auto-fill", requireAuth, async (req, res) => {
   try {
     const targetUserId = typeof req.body?.userId === "string" && uuidPattern.test(req.body.userId) ? req.body.userId : req.userId!;
+    if (targetUserId !== req.userId!) {
+      const [caller] = await db.select({ isAdmin: users.isAdmin }).from(users).where(eq(users.id, req.userId!)).limit(1);
+      if (!caller?.isAdmin) {
+        res.status(403).json({ error: "Admin access required" });
+        return;
+      }
+    }
     const season = await resolveSeason(req.body?.season);
     if (!season) {
       res.status(400).json({ error: "No current season to auto-fill for" });

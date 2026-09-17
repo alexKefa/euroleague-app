@@ -106,8 +106,9 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.previousRound": { en: "Previous round", el: "Προηγούμενη αγωνιστική" },
   "fantasy.nextRound": { en: "Next round", el: "Επόμενη αγωνιστική" },
   "fantasy.pastRound": { en: "Past round", el: "Παλιότερη αγωνιστική" },
-  // Admin-only randomize-squad dice trigger (2026-09-17) — not user-facing
-  // outside admin accounts.
+  // Randomize-squad dice trigger, round 1 only (2026-09-17) — any logged-in
+  // user can use this on their own squad, not just admins (see
+  // fantasy.html's doc comment on the button itself for why that changed).
   "fantasy.autoFillSquad": { en: "Randomize squad", el: "Τυχαία συμπλήρωση" },
   "fantasy.autoFillConfirm": {
     en: "Your team is going to be randomized. Are you sure?",
