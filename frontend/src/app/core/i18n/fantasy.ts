@@ -106,8 +106,17 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.previousRound": { en: "Previous round", el: "Προηγούμενη αγωνιστική" },
   "fantasy.nextRound": { en: "Next round", el: "Επόμενη αγωνιστική" },
   "fantasy.pastRound": { en: "Past round", el: "Παλιότερη αγωνιστική" },
-  // Admin-only auto-fill button (2026-09-17) — not user-facing outside admin accounts.
-  "fantasy.autoFillSquad": { en: "Auto-fill squad", el: "Αυτόματη συμπλήρωση" },
+  // Admin-only randomize-squad dice trigger (2026-09-17) — not user-facing
+  // outside admin accounts.
+  "fantasy.autoFillSquad": { en: "Randomize squad", el: "Τυχαία συμπλήρωση" },
+  "fantasy.autoFillConfirm": {
+    en: "Your team is going to be randomized. Are you sure?",
+    el: "Η ομάδα σου θα συμπληρωθεί τυχαία. Είσαι σίγουρος/η;",
+  },
+  "fantasy.autoFillConfirmButton": { en: "Randomize", el: "Τυχαία συμπλήρωση" },
+  "fantasy.cancel": { en: "Cancel", el: "Ακύρωση" },
+  "fantasy.autoFillNotice": { en: "Squad randomized!", el: "Η ομάδα συμπληρώθηκε τυχαία!" },
+  "fantasy.simulateRoundAdmin": { en: "Admin: simulate whole round", el: "Διαχειριστής: προσομοίωση όλου του γύρου" },
   "fantasy.pointsLabel": { en: "Points", el: "Πόντοι" },
   "fantasy.creditsChangeLabel": { en: "Credits (CR)", el: "Credits (CR)" },
   // Same "stays English in both locales" precedent as posGuard/homeAbbrev

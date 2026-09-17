@@ -225,17 +225,6 @@
           }
         </div>
 
-        @if (auth.currentUser()?.isAdmin && isCurrentRound() && !roundLocked()) {
-          <button
-            type="button"
-            (click)="autoFillSquad()"
-            [disabled]="autoFilling()"
-            appButton="outline"
-            appButtonSize="sm"
-            class="w-full mb-3"
-          >{{ i18n.t('fantasy.autoFillSquad') }}</button>
-        }
-
         @if (isCurrentRound()) {
           <div class="mb-3">
             <div class="flex items-baseline justify-between mb-1.5">
@@ -421,17 +410,64 @@
                      a sentence, with the full date/time only in the
                      tooltip. -->
                 @if (isCurrentRound() && lockAt()) {
-                  <div
-                    class="absolute top-2 right-2 z-10 flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-mono font-bold shadow-card"
-                    [ngClass]="roundLocked() ? 'bg-red-500/90 text-white' : 'bg-page/90 text-ink border border-line'"
-                    [attr.title]="roundLocked() ? i18n.t('fantasy.locked') : (i18n.t('fantasy.lockCountdown') + ' ' + (lockAt() | date: gameDateTimeFormat():'Europe/Athens':dateLocale()))"
-                  >
-                    <app-nav-icon name="bell" [size]="12" [active]="roundLocked()" />
-                    @if (roundLocked()) {
-                      {{ i18n.t('fantasy.locked') }}
-                    } @else {
-                      {{ lockAt() | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}
+                  <div class="absolute top-2 right-2 z-10 flex items-center gap-1.5">
+                    <!-- Admin-only "randomize squad" trigger (2026-09-17) —
+                         a bare dice icon next to the deadline badge rather
+                         than a labeled button, opens a confirm dialog before
+                         doing anything since it overwrites whatever's
+                         currently on the court. -->
+                    <!-- Admin-only "simulate whole round" trigger
+                         (2026-09-17) — reuses the same simulator the
+                         Schedule page's own button drives; no confirm
+                         dialog since it only advances state, same
+                         precedent Schedule's simulate button already
+                         set (unlike the reset buttons there). -->
+                    @if (auth.currentUser()?.isAdmin && isCurrentRound()) {
+                      <button
+                        type="button"
+                        (click)="simulateWholeRound()"
+                        [disabled]="simulatingRound()"
+                        [attr.aria-label]="i18n.t('fantasy.simulateRoundAdmin')"
+                        [title]="i18n.t('fantasy.simulateRoundAdmin')"
+                        class="flex items-center justify-center w-6 h-6 rounded-full bg-page/90 text-ink border border-line shadow-card hover:text-highlight hover:border-highlight transition-colors disabled:opacity-40"
+                      >
+                        <app-nav-icon name="fast-forward" [size]="13" />
+                      </button>
                     }
+                    @if (auth.currentUser()?.isAdmin && isCurrentRound() && !roundLocked()) {
+                      <button
+                        type="button"
+                        (click)="requestAutoFillSquad()"
+                        [disabled]="autoFilling()"
+                        [attr.aria-label]="i18n.t('fantasy.autoFillSquad')"
+                        [title]="i18n.t('fantasy.autoFillSquad')"
+                        class="flex items-center justify-center w-6 h-6 rounded-full bg-page/90 text-ink border border-line shadow-card hover:text-highlight hover:border-highlight transition-colors disabled:opacity-40"
+                      >
+                        <app-nav-icon name="dice" [size]="13" />
+                      </button>
+                    }
+                    <div
+                      class="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-mono font-bold shadow-card"
+                      [ngClass]="roundLocked() ? 'bg-red-500/90 text-white' : 'bg-page/90 text-ink border border-line'"
+                      [attr.title]="roundLocked() ? i18n.t('fantasy.locked') : (i18n.t('fantasy.lockCountdown') + ' ' + (lockAt() | date: gameDateTimeFormat():'Europe/Athens':dateLocale()))"
+                    >
+                      <app-nav-icon name="bell" [size]="12" [active]="roundLocked()" />
+                      @if (roundLocked()) {
+                        {{ i18n.t('fantasy.locked') }}
+                      } @else {
+                        {{ lockAt() | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}
+                      }
+                    </div>
+                  </div>
+                }
+                <!-- Self-clearing "randomize completed" notice (2026-09-17)
+                     — this app has no shared toast service, so it's a
+                     small pill anchored to the court itself, auto-clearing
+                     after 2.5s the same way profile.ts's referralCopied
+                     does for its own one-shot confirmation. -->
+                @if (autoFillNotice()) {
+                  <div class="absolute top-2 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-full text-[10px] font-bold bg-highlight text-white shadow-pop">
+                    {{ i18n.t('fantasy.autoFillNotice') }}
                   </div>
                 }
               </div>
@@ -1248,5 +1284,16 @@
         <button type="button" (click)="closeRoundComplete()" appButton appButtonSize="sm">{{ i18n.t('fantasy.close') }}</button>
       </div>
     </div>
+  }
+
+  @if (confirmingAutoFill()) {
+    <app-confirm-dialog
+      [message]="i18n.t('fantasy.autoFillConfirm')"
+      [confirmLabel]="i18n.t('fantasy.autoFillConfirmButton')"
+      [cancelLabel]="i18n.t('fantasy.cancel')"
+      [danger]="false"
+      (confirmed)="autoFillSquad()"
+      (cancelled)="confirmingAutoFill.set(false)"
+    />
   }
 </div>

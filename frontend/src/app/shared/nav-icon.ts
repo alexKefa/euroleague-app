@@ -64,7 +64,16 @@ export type NavIconName =
   // handshake at all once rendered — verified side by side against
   // "trophy" (now Fantasy Five's nav icon, see below) in a real browser
   // screenshot before landing on this one, not just reasoned about blind.
-  | "bracket";
+  | "bracket"
+  // Fantasy Five's admin-only "randomize squad" trigger (2026-09-17) — a
+  // literal six-sided die face reads as "randomize" more directly than any
+  // existing icon here would.
+  | "dice"
+  // Fantasy Five's admin-only "simulate whole round" trigger (2026-09-17,
+  // reusing the same POST /events/simulate/round the Schedule page's own
+  // button already calls) — two stacked play triangles read as
+  // "fast-forward" distinctly from "zap" (already the on-fire/CTA icon).
+  | "fast-forward";
 
 @Component({
   selector: "app-nav-icon",
@@ -552,6 +561,28 @@ export type NavIconName =
           />
           <path d="M9.3 4.6H7.3a2 2 0 0 0 2 2.6M14.7 4.6h2a2 2 0 0 1-2 2.6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
           <path d="M12 9v2.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+        }
+        @case ("dice") {
+          <rect
+            x="4"
+            y="4"
+            width="16"
+            height="16"
+            rx="4"
+            stroke="currentColor"
+            stroke-width="2"
+            [attr.fill]="active ? 'currentColor' : 'none'"
+            [attr.fill-opacity]="active ? 0.14 : null"
+          />
+          <circle cx="8.3" cy="8.3" r="1.4" fill="currentColor" stroke="none" />
+          <circle cx="15.7" cy="8.3" r="1.4" fill="currentColor" stroke="none" />
+          <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+          <circle cx="8.3" cy="15.7" r="1.4" fill="currentColor" stroke="none" />
+          <circle cx="15.7" cy="15.7" r="1.4" fill="currentColor" stroke="none" />
+        }
+        @case ("fast-forward") {
+          <path d="M4 5.5v13l9-6.5-9-6.5z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" fill="currentColor" fill-opacity="0.2" />
+          <path d="M12.5 5.5v13l9-6.5-9-6.5z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" fill="currentColor" fill-opacity="0.2" />
         }
       }
     </svg>

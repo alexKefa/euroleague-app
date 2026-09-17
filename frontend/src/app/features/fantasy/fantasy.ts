@@ -26,6 +26,7 @@ import { SkeletonComponent } from "../../shared/skeleton";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { CourtBackgroundComponent } from "../../shared/court-background";
 import { NavIconComponent } from "../../shared/nav-icon";
+import { ConfirmDialogComponent } from "../../shared/confirm-dialog";
 import { newsDateLocale, gameDateTimeFormat as gameDateTimeFormatFn } from "../../shared/news-date-format";
 
 // Squad shape — mirrors backend/src/services/fantasyScoring.ts's constants
@@ -212,6 +213,7 @@ interface SwapCandidate {
     CollectibleCardComponent,
     CourtBackgroundComponent,
     NavIconComponent,
+    ConfirmDialogComponent,
   ],
   templateUrl: "./fantasy.html",
   styleUrl: "./fantasy.css",
@@ -267,8 +269,24 @@ export class FantasyComponent implements OnInit {
 
   // --- Roster builder state ---
   readonly loading = signal(true);
-  // Admin-only auto-fill button's in-flight flag — see autoFillSquad below.
+  // Admin-only "randomize squad" dice trigger — see autoFillSquad below.
+  // confirmingAutoFill gates the "are you sure" dialog (a randomize
+  // overwrites whatever's currently on the court, so it's confirmed like
+  // schedule.ts's reset buttons rather than firing on a single tap);
+  // autoFillNotice is a brief self-clearing "done" notice, same
+  // signal-plus-setTimeout pattern profile.ts's referralCopied already uses
+  // for its own one-shot confirmation — this app has no shared toast
+  // service, so each transient confirmation owns its own timer like that.
   readonly autoFilling = signal(false);
+  readonly confirmingAutoFill = signal(false);
+  readonly autoFillNotice = signal(false);
+  // Admin-only "simulate whole round" trigger (2026-09-17) — same
+  // POST /events/simulate/round the Schedule page's own button already
+  // calls, just reachable from here too so testing Fantasy scoring doesn't
+  // need a tab switch. No confirm dialog, matching Schedule's own
+  // precedent (simulate advances state, it doesn't delete anything the way
+  // the reset buttons do).
+  readonly simulatingRound = signal(false);
   // Placeholder-row count for the pool skeleton (loading()) — just an
   // @for track source, no real data behind it.
   readonly skeletonRows = [0, 1, 2, 3, 4, 5];
@@ -1033,19 +1051,49 @@ export class FantasyComponent implements OnInit {
     });
   }
 
+  // Opens the "are you sure" confirm dialog — a randomize overwrites
+  // whatever's currently on the court, so it's a confirmed action like
+  // schedule.ts's reset buttons, not a single-tap one.
+  requestAutoFillSquad(): void {
+    this.confirmingAutoFill.set(true);
+  }
+
   // Admin-only testing tool (2026-09-17, see CLAUDE.md's Fantasy Five
   // simulation-button TODO): drafts a real, valid squad for the calling
   // admin's own account server-side, then reloads the lineup the normal way
   // — no special client-side rendering path, since the saved squad is a
   // real one, not a preview.
   autoFillSquad(): void {
+    this.confirmingAutoFill.set(false);
     this.autoFilling.set(true);
     this.api.autoFillFantasySquad().subscribe({
       next: () => {
         this.autoFilling.set(false);
         this.loadLineup(this.round() ?? undefined);
+        this.autoFillNotice.set(true);
+        setTimeout(() => this.autoFillNotice.set(false), 2500);
       },
       error: () => this.autoFilling.set(false),
+    });
+  }
+
+  // Admin-only testing tool (2026-09-17) — plays out every still-scheduled
+  // game in the currently-viewed round via the existing live-score
+  // simulator (see realtime/liveScoreSimulator.ts's simulateRound), the
+  // same one Schedule's own "Simulate round" button drives. Reloads the
+  // lineup afterward so scoring/roundComplete/newFantasyRoundPoints all
+  // reflect the freshly-fabricated final games immediately.
+  simulateWholeRound(): void {
+    const season = this.season();
+    const round = this.round();
+    if (season === null || round === null) return;
+    this.simulatingRound.set(true);
+    this.api.simulateRound(season, round).subscribe({
+      next: () => {
+        this.simulatingRound.set(false);
+        this.loadLineup(round);
+      },
+      error: () => this.simulatingRound.set(false),
     });
   }
 
