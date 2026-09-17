@@ -677,7 +677,7 @@ export async function autoFillFantasySquad(userId: string, season: string, round
   const budgetCap = await getBudgetCap(season);
   const playerBudget = Math.max(0, budgetCap - COACH_MIN_PRICE);
 
-  const [playerRows, coachRows] = await Promise.all([
+  const [playerRows, coachRows, baseline] = await Promise.all([
     db
       .select({ id: players.id, position: players.position, teamId: players.teamId, price: playerFantasyPrices.price })
       .from(players)
@@ -687,23 +687,52 @@ export async function autoFillFantasySquad(userId: string, season: string, round
       .select({ teamId: coachFantasyPrices.teamId, price: coachFantasyPrices.price })
       .from(coachFantasyPrices)
       .where(eq(coachFantasyPrices.season, season)),
+    getBaselineSquad(userId, season, round),
   ]);
 
-  type Candidate = { id: string; teamId: string; price: number };
+  type Candidate = { id: string; teamId: string; position: string; price: number };
+  const allById = new Map<string, Candidate>();
   const byPosition = new Map<string, Candidate[]>();
   for (const p of playerRows) {
     if (!p.position || !(p.position in FANTASY_POSITION_QUOTA)) continue;
+    const c: Candidate = { id: p.id, teamId: p.teamId, position: p.position, price: p.price ?? FANTASY_MIN_PRICE };
+    allById.set(c.id, c);
     const list = byPosition.get(p.position) ?? [];
-    list.push({ id: p.id, teamId: p.teamId, price: p.price ?? FANTASY_MIN_PRICE });
+    list.push(c);
     byPosition.set(p.position, list);
   }
 
+  // Respect the same transfer limit a manual save would (FANTASY_TRANSFERS_PER_ROUND,
+  // see saveFantasyLineup) — a fully random redraft every round would almost
+  // always exceed it once a baseline exists (round > 1, not an unlimited-
+  // transfer round), and got caught live doing exactly that (2026-09-17):
+  // round 2 carried round 1's squad forward, and a from-scratch auto-fill
+  // tried to change all 10 players against a 4-player cap. Keeps a random
+  // subset of the baseline squad up to that cap and only redrafts the rest.
+  const unlimitedTransfers = isUnlimitedTransferRound(round);
+  const maxNewPlayers = !baseline || unlimitedTransfers ? FANTASY_TOTAL_OUTFIELD : FANTASY_TRANSFERS_PER_ROUND;
+  const keepCount = Math.max(0, FANTASY_TOTAL_OUTFIELD - maxNewPlayers);
+
   const picked: Candidate[] = [];
+  const pickedIds = new Set<string>();
   const clubCount = new Map<string, number>();
   let spent = 0;
 
+  if (baseline && keepCount > 0) {
+    const keepFrom = shuffle([...baseline.playerIds]).slice(0, keepCount);
+    for (const id of keepFrom) {
+      const c = allById.get(id);
+      if (!c) continue; // no longer an active/priced player — treat as a forced change below
+      picked.push(c);
+      pickedIds.add(c.id);
+      clubCount.set(c.teamId, (clubCount.get(c.teamId) ?? 0) + 1);
+      spent += c.price;
+    }
+  }
+
   function tryPick(pool: Candidate[], enforceBudget: boolean): Candidate | null {
     for (const c of pool) {
+      if (pickedIds.has(c.id)) continue;
       const club = clubCount.get(c.teamId) ?? 0;
       if (club >= FANTASY_MAX_PLAYERS_PER_CLUB) continue;
       if (enforceBudget && spent + c.price > playerBudget) continue;
@@ -713,21 +742,21 @@ export async function autoFillFantasySquad(userId: string, season: string, round
   }
 
   for (const [position, quota] of Object.entries(FANTASY_POSITION_QUOTA)) {
+    const already = picked.filter((c) => c.position === position).length;
+    const need = quota - already;
+    if (need <= 0) continue;
     const pool = byPosition.get(position) ?? [];
     const shuffled = shuffle(pool);
     const cheapestFirst = [...pool].sort((a, b) => a.price - b.price);
     let filled = 0;
-    while (filled < quota) {
-      const remainingShuffled = shuffled.filter((c) => !picked.includes(c));
-      let choice = tryPick(remainingShuffled, true);
-      if (!choice) {
-        const remainingCheapest = cheapestFirst.filter((c) => !picked.includes(c));
-        choice = tryPick(remainingCheapest, false);
-      }
+    while (filled < need) {
+      let choice = tryPick(shuffled, true);
+      if (!choice) choice = tryPick(cheapestFirst, false);
       if (!choice) {
         return { error: `Not enough eligible ${position}s synced to auto-fill a squad` };
       }
       picked.push(choice);
+      pickedIds.add(choice.id);
       clubCount.set(choice.teamId, (clubCount.get(choice.teamId) ?? 0) + 1);
       spent += choice.price;
       filled++;
