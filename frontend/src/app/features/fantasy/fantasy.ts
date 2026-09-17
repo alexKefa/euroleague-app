@@ -1160,6 +1160,12 @@ export class FantasyComponent implements OnInit {
       this.newFantasyRoundPoints.set(null);
       this.api.ackFantasyRoundPoints().subscribe({ error: () => {} });
     }
+    // Closing the "round complete" recap moves the view on to the next
+    // round (2026-09-17) — viewNextRound() already clamps to defaultRound,
+    // which this same round-completing load just returned freshly advanced
+    // (GET /fantasy/lineup recomputes it every call), so this is a no-op
+    // rather than a stale value if this was the season's last round.
+    this.viewNextRound();
   }
 
   private loadFixtures(season: string, round: number): void {

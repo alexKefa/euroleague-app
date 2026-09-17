@@ -355,18 +355,180 @@ export async function completeSimulation(): Promise<void> {
   }
 }
 
+// --- Instant round simulation (2026-09-17) ---
+//
+// simulateRound originally reused startSimulation+completeSimulation per
+// game — the real tick-by-tick machinery above, just with no artificial
+// delay between ticks. That was still MAX_TICKS (24) individual DB round
+// trips *per game*, times however many games are in a round (typically
+// 9-10), and every tick unconditionally scored (no miss modeled at all),
+// which is also why final scores landed around 25-35 per team — not a
+// realistic EuroLeague box score. Caught live testing Fantasy Five's new
+// "simulate round" button: a real, noticeable wait, and unrealistic
+// scores once it finished.
+//
+// This is a from-scratch generator instead: a possession-by-possession
+// loop that runs entirely in memory (no DB calls inside the loop at all)
+// and includes actual misses/turnovers, then writes the whole game's box
+// score in exactly two round trips (one multi-row player_game_stats
+// insert, one games update) regardless of possession count. Deliberately
+// NOT used for the single-game "Simulate"/"Complete" buttons on the
+// Schedule page — those exist specifically to exercise the SSE tick-by-
+// tick path on demand (see this file's own top comment), which this
+// shortcut has no reason to replace.
+const POSSESSIONS_PER_TEAM = 78; // ~EuroLeague pace over 40 minutes
+const TURNOVER_RATE = 0.14;
+const FT_TRIP_RATE = 0.16;
+const TWO_PT_RATE = 0.38; // remainder (~0.32) is a 3PT attempt
+const TWO_PT_MAKE_PCT = 0.5;
+const THREE_PT_MAKE_PCT = 0.37;
+const FT_MAKE_PCT = 0.75;
+
+function simulateTeamPossessions(lines: Map<string, PlayerLine>, scoringRoster: RosterPlayer[], defendingRoster: RosterPlayer[]): number {
+  if (scoringRoster.length === 0) return 0;
+  const t1 = TURNOVER_RATE;
+  const t2 = t1 + FT_TRIP_RATE;
+  const t3 = t2 + TWO_PT_RATE;
+  let teamPoints = 0;
+
+  for (let i = 0; i < POSSESSIONS_PER_TEAM; i++) {
+    const roll = Math.random();
+
+    if (roll < t1) {
+      getLine(lines, randomPick(scoringRoster).id).turnovers += 1;
+      if (defendingRoster.length > 0 && Math.random() < 0.35) {
+        getLine(lines, randomPick(defendingRoster).id).steals += 1;
+      }
+      continue;
+    }
+
+    if (roll < t2) {
+      const line = getLine(lines, randomPick(scoringRoster).id);
+      let made = 0;
+      for (let ft = 0; ft < 2; ft++) {
+        line.freeThrowsAttempted += 1;
+        if (Math.random() < FT_MAKE_PCT) {
+          line.freeThrowsMade += 1;
+          made += 1;
+        }
+      }
+      line.points += made;
+      teamPoints += made;
+      continue;
+    }
+
+    const isThree = roll >= t3;
+    const shooter = randomPick(scoringRoster);
+    const line = getLine(lines, shooter.id);
+    const madePct = isThree ? THREE_PT_MAKE_PCT : TWO_PT_MAKE_PCT;
+    const made = Math.random() < madePct;
+    if (isThree) {
+      line.fieldGoalsAttempted3 += 1;
+      if (made) line.fieldGoalsMade3 += 1;
+    } else {
+      line.fieldGoalsAttempted2 += 1;
+      if (made) line.fieldGoalsMade2 += 1;
+    }
+
+    if (made) {
+      const pts = isThree ? 3 : 2;
+      line.points += pts;
+      teamPoints += pts;
+      const teammates = scoringRoster.filter((p) => p.id !== shooter.id);
+      if (teammates.length > 0 && Math.random() < 0.55) {
+        getLine(lines, randomPick(teammates).id).assists += 1;
+      }
+    } else {
+      if (defendingRoster.length > 0 && Math.random() < 0.1) {
+        getLine(lines, randomPick(defendingRoster).id).blocksFavour += 1;
+      }
+      if (defendingRoster.length > 0 && Math.random() < 0.7) {
+        const r = getLine(lines, randomPick(defendingRoster).id);
+        r.rebounds += 1;
+        r.defensiveRebounds += 1;
+      } else {
+        const teammates = scoringRoster.filter((p) => p.id !== shooter.id);
+        if (teammates.length > 0) {
+          const r = getLine(lines, randomPick(teammates).id);
+          r.rebounds += 1;
+          r.offensiveRebounds += 1;
+        }
+      }
+    }
+  }
+
+  return teamPoints;
+}
+
+async function simulateGameInstant(gameId: string): Promise<{ error: string } | { homeScore: number; awayScore: number }> {
+  const [game] = await db.select().from(games).where(eq(games.id, gameId)).limit(1);
+  if (!game) return { error: "Game not found" };
+
+  const roster = await db
+    .select({ id: players.id, teamId: players.teamId })
+    .from(players)
+    .where(and(inArray(players.teamId, [game.homeTeamId, game.awayTeamId]), eq(players.active, true)));
+  const homeRoster = roster.filter((p) => p.teamId === game.homeTeamId);
+  const awayRoster = roster.filter((p) => p.teamId === game.awayTeamId);
+
+  const lines = new Map<string, PlayerLine>();
+  const homeScore = simulateTeamPossessions(lines, homeRoster, awayRoster);
+  const awayScore = simulateTeamPossessions(lines, awayRoster, homeRoster);
+
+  // Clean slate, same as startSimulation — a repeat run on the same game
+  // shouldn't pile stats on top of a previous run's.
+  await db.delete(playerGameStats).where(eq(playerGameStats.gameId, gameId));
+  const values = [...lines.values()].map((line) => ({
+    playerId: line.playerId,
+    gameId,
+    points: line.points,
+    rebounds: line.rebounds,
+    offensiveRebounds: line.offensiveRebounds,
+    defensiveRebounds: line.defensiveRebounds,
+    assists: line.assists,
+    steals: line.steals,
+    turnovers: line.turnovers,
+    blocksFavour: line.blocksFavour,
+    fieldGoalsMade2: line.fieldGoalsMade2,
+    fieldGoalsAttempted2: line.fieldGoalsAttempted2,
+    fieldGoalsMade3: line.fieldGoalsMade3,
+    fieldGoalsAttempted3: line.fieldGoalsAttempted3,
+    freeThrowsMade: line.freeThrowsMade,
+    freeThrowsAttempted: line.freeThrowsAttempted,
+    valuation: valuationOf(line),
+  }));
+  if (values.length > 0) {
+    await db.insert(playerGameStats).values(values);
+  }
+
+  await db
+    .update(games)
+    .set({ homeScore, awayScore, status: "final", quarter: 4, gameClockSeconds: 0 })
+    .where(eq(games.id, gameId));
+
+  broadcast("game-update", {
+    gameId,
+    homeScore,
+    awayScore,
+    status: "final",
+    onFireIds: [],
+    quarter: 4,
+    gameClockSeconds: 0,
+  });
+
+  return { homeScore, awayScore };
+}
+
 /**
- * Simulates every still-scheduled game in one round, one at a time
- * (startSimulation only ever allows one `running` sim at a time, so this
- * just drives that same start -> fast-forward-to-final sequence in a loop
- * rather than trying to run several games concurrently). Each game still
- * gets its own full tick-by-tick sequence and broadcasts exactly as it
- * would if simulated individually — this is a driver loop, not a shortcut
- * that skips straight to final scores.
+ * Simulates every still-scheduled game in one round — instantly, and with
+ * realistic scores. See the "Instant round simulation" section above for
+ * why this no longer reuses the tick machinery. Independent of the
+ * single-slot `running` state (no ticking involved at all), so this can
+ * run even while an admin has a separate single-game tick demo going —
+ * simulateRound only ever touches "scheduled" games, and a game actively
+ * being tick-simulated is already "live", so the two can't collide.
  */
 export async function simulateRound(season: string, round: number): Promise<{ simulatedCount: number } | { error: string }> {
-  if (running) return { error: "A simulation is already running" };
-
   const roundGames = await db
     .select({ id: games.id })
     .from(games)
@@ -375,9 +537,8 @@ export async function simulateRound(season: string, round: number): Promise<{ si
 
   let simulatedCount = 0;
   for (const g of roundGames) {
-    const result = await startSimulation(g.id);
+    const result = await simulateGameInstant(g.id);
     if ("error" in result) continue;
-    await completeSimulation();
     simulatedCount += 1;
   }
   return { simulatedCount };
