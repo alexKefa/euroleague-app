@@ -1,5 +1,6 @@
 import { Component, OnInit, HostListener, computed, effect, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
+import { forkJoin } from "rxjs";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
@@ -153,6 +154,7 @@ export class PredictionsComponent implements OnInit {
   readonly pendingPicks = signal<Map<string, string | null>>(new Map());
   readonly submitting = signal(false);
   readonly submitError = signal<string | null>(null);
+  readonly clearingAll = signal(false);
 
   // "My picks" card tab — win/loss Predictions (the original, still the
   // default) vs. the top-scorer prop picks made from game-detail.ts's
@@ -195,6 +197,14 @@ export class PredictionsComponent implements OnInit {
     return merged;
   });
   readonly hasPendingChanges = computed(() => this.pendingPicks().size > 0);
+  // The floating save bar's own "is there anything to act on" check used
+  // to only look at hasPendingChanges (win/loss taps) — a top-scorer pick
+  // saves immediately on tap (no local "pending" staging the way a
+  // win/loss tap has, see TopScorerPickerComponent), so making one with no
+  // win/loss taps pending left the bar (and any way to reset it) hidden
+  // entirely. Reported live 2026-09-17: "reset should be available if
+  // player predictions is active, not just matches."
+  readonly hasUpcomingTopScorerPicks = computed(() => this.upcomingGames().some((g) => this.topScorerByGameId().has(g.id)));
 
   // The "My picks" list, layering pendingPicks over myPredictions so a tap
   // shows up there immediately instead of only after "Complete predictions"
@@ -280,11 +290,19 @@ export class PredictionsComponent implements OnInit {
   // back to the flat rate for a game with no odds snapshot yet) rather
   // than a flat per-pick count — an underdog pick now genuinely previews
   // as worth more.
+  // Includes each upcoming match's top-scorer pick too (2026-09-17, direct
+  // request), not just the win/loss one — topScorerByGameId's pointsAtPick
+  // is already the fixed value that pick would score if correct (see its
+  // own doc comment), same "priced at pick time, never recomputed" value
+  // the merged win/loss-row's top-scorer sub-line already shows.
   readonly potentialPoints = computed(() => {
     const picks = this.effectivePicks();
+    const topScorer = this.topScorerByGameId();
     return this.upcomingGames().reduce((sum, g) => {
       const teamId = picks.get(g.id);
-      return teamId ? sum + this.pointsForPick(g, teamId) : sum;
+      const winLossPoints = teamId ? this.pointsForPick(g, teamId) : 0;
+      const topScorerPoints = topScorer.get(g.id)?.pointsAtPick ?? 0;
+      return sum + winLossPoints + topScorerPoints;
     }, 0);
   });
 
@@ -526,6 +544,51 @@ export class PredictionsComponent implements OnInit {
     // until the next full picks refresh.
     if (newValue) this.events.markPredicted(game.id);
     else this.events.unmarkPredicted(game.id);
+  }
+
+  // Discards every unsaved win/loss tap/clear at once — same purely-local
+  // nature as togglePick (no request fires; myPicks/the server are
+  // untouched), just for the whole pending diff instead of one game at a
+  // time. Re-syncs the live-game nav badge for every game that had a
+  // pending change back to whatever the already-saved picks (myPicks)
+  // actually say, the same way togglePick's own markPredicted/
+  // unmarkPredicted calls stay accurate per-tap — otherwise a badge set
+  // by a since-discarded pending pick would keep showing "predicted" with
+  // nothing behind it.
+  //
+  // Also clears any top-scorer pick made for an upcoming game (2026-09-17,
+  // direct request: "reset should be available if player predictions is
+  // active, not just matches") — those save immediately on tap, with no
+  // local "pending" staging the way a win/loss tap has (see
+  // TopScorerPickerComponent), so "reset" for them means actually
+  // deleting the saved pick server-side via the existing (until now
+  // unused anywhere) clearTopScorerPick endpoint, not just discarding an
+  // unsaved local diff.
+  clearAllPendingPicks(): void {
+    const pending = this.pendingPicks();
+    const saved = this.myPicks();
+    for (const gameId of pending.keys()) {
+      if (saved.has(gameId)) this.events.markPredicted(gameId);
+      else this.events.unmarkPredicted(gameId);
+    }
+    this.pendingPicks.set(new Map());
+
+    const topScorerGameIds = this.upcomingGames()
+      .map((g) => g.id)
+      .filter((gameId) => this.topScorerByGameId().has(gameId));
+    if (topScorerGameIds.length === 0) return;
+
+    this.clearingAll.set(true);
+    forkJoin(topScorerGameIds.map((gameId) => this.api.clearTopScorerPick(gameId))).subscribe({
+      next: () => {
+        this.refreshMyTopScorerPredictions();
+        this.clearingAll.set(false);
+      },
+      error: () => {
+        this.refreshMyTopScorerPredictions();
+        this.clearingAll.set(false);
+      },
+    });
   }
 
   // Sends every pending tap/clear in one request instead of one per tap —

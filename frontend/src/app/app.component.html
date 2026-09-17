@@ -89,7 +89,7 @@
       </div>
       <a
         routerLink="/profile"
-        [class]="isProfileActive() ? 'bg-highlight/15 border-highlight/30 text-highlight' : 'border-line text-muted hover:text-ink hover:bg-page'"
+        [class]="isProfileActive() ? 'bg-team-primary/15 border-team-primary/30 text-team-primary' : 'border-line text-muted hover:text-ink hover:bg-page'"
         class="sm:hidden shrink-0 w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-colors"
         [attr.aria-label]="i18n.t('nav.profile')"
       >
@@ -196,7 +196,17 @@
      underline off the same synchronous isActive() signal the color
      already used (a plain [style.transform]/[style.opacity] binding, not
      a shared/measured element), so there's still nothing to go stale
-     regardless of scroll/resize timing. -->
+     regardless of scroll/resize timing.
+
+     Active color is the user's own team accent (text-team-primary/
+     bg-team-primary, backed by --accent-primary — ThemeService.applyTeam,
+     same variable every other reskinned element already reads), not the
+     fixed brand highlight orange (2026-09-17, direct request: "customize
+     based on selected color... icon color and active dash pill"). Falls
+     back to the same neutral blue every other team-colored element on the
+     page already falls back to pre-team-selection (theme.service.ts's
+     DEFAULT_PRIMARY) — not a new inconsistency, just this nav joining the
+     rest of the app's existing reskin system. -->
 @if (!hideChrome()) {
 <nav
   #bottomNav
@@ -210,12 +220,12 @@
       data-nav-tab
       [routerLink]="link.path"
       [attr.aria-label]="i18n.t(link.label)"
-      [class.text-highlight]="isActive(link)"
+      [class.text-team-primary]="isActive(link)"
       [class.text-muted]="!isActive(link)"
       class="relative flex-1 flex items-center justify-center py-0.5"
     >
       <span
-        class="absolute top-0 left-1/2 w-6 h-[3px] rounded-b-full bg-highlight origin-top transition-all duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)]"
+        class="absolute top-0 left-1/2 w-6 h-[3px] rounded-b-full bg-team-primary origin-top transition-all duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)]"
         [style.transform]="isActive(link) ? 'translateX(-50%) scaleX(1)' : 'translateX(-50%) scaleX(0)'"
         [style.opacity]="isActive(link) ? 1 : 0"
       ></span>
@@ -250,12 +260,12 @@
       (click)="$event.stopPropagation(); toggleMore()"
       [attr.aria-label]="i18n.t('nav.more')"
       [attr.aria-expanded]="moreOpen()"
-      [class.text-highlight]="isMoreActive() || moreOpen()"
+      [class.text-team-primary]="isMoreActive() || moreOpen()"
       [class.text-muted]="!isMoreActive() && !moreOpen()"
       class="relative flex items-center justify-center"
     >
       <span
-        class="absolute top-0 left-1/2 w-6 h-[3px] rounded-b-full bg-highlight origin-top transition-all duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)]"
+        class="absolute top-0 left-1/2 w-6 h-[3px] rounded-b-full bg-team-primary origin-top transition-all duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)]"
         [style.transform]="(isMoreActive() || moreOpen()) ? 'translateX(-50%) scaleX(1)' : 'translateX(-50%) scaleX(0)'"
         [style.opacity]="(isMoreActive() || moreOpen()) ? 1 : 0"
       ></span>
@@ -296,4 +306,5 @@
 @if (!hideChrome()) {
 <app-tour-overlay></app-tour-overlay>
 <app-install-banner></app-install-banner>
+<app-tour-fab></app-tour-fab>
 }

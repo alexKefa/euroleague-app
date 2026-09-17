@@ -635,6 +635,13 @@ function shuffle<T>(list: T[]): T[] {
   return arr;
 }
 
+const TARGET_SPEND_MIN_RATIO = 0.9;
+const TARGET_SPEND_MAX_RATIO = 0.98;
+// How many of the closest-to-target-price candidates to randomize among
+// per pick — keeps the result a genuine randomize (not always the single
+// closest price) while still tightly biased toward the target.
+const TARGET_SPEND_CANDIDATE_BAND = 3;
+
 /**
  * Admin-only test tool (flagged in CLAUDE.md 2026-09-17, not started until
  * now): instantly assembles a real, budget-respecting random squad for a
@@ -646,12 +653,26 @@ function shuffle<T>(list: T[]): T[] {
  * POST /api/events/simulate/round already fabricates finals into — so the
  * missing piece was only ever this auto-draft, not a second simulator.
  *
+ * Spends toward a real squad, not just "whatever fits": picking purely at
+ * random per slot (the original version) could land anywhere from a
+ * bare-minimum-price squad to a maxed-out one with no consistency, which
+ * read as a worse test fixture than a real manually-built squad usually is
+ * (direct request, 2026-09-17: "randomize should be around 90-98cr"). Each
+ * pick is instead chosen by TARGET_SPEND_MIN_RATIO..TARGET_SPEND_MAX_RATIO
+ * of the budget cap, spread evenly over however many picks (outfield slots
+ * + coach) remain, and drawn randomly from the few candidates closest to
+ * that per-pick target price rather than the single closest — keeps it a
+ * genuine randomize, just biased toward spending most of the budget instead
+ * of any amount. This is a soft target, not a guarantee (explicitly
+ * accepted: "if it's difficult, it's fine") — a thin synced pool can still
+ * miss the range, same as the original cheapest-first budget fallback
+ * below can still kick in on a very sparse roster.
+ *
  * Reserves COACH_MIN_PRICE of the budget for the coach up front, then fills
- * each position bucket by shuffling that position's candidates and greedily
- * taking ones that fit both the remaining player budget and the
- * FANTASY_MAX_PLAYERS_PER_CLUB limit — falling back to a plain
- * cheapest-first pass (club limit still enforced, budget constraint
- * dropped) if a position's pool is too thin/expensive for the randomized
+ * each position bucket, taking ones that fit both the remaining player
+ * budget and the FANTASY_MAX_PLAYERS_PER_CLUB limit — falling back to a
+ * plain cheapest-first pass (club limit still enforced, budget constraint
+ * dropped) if a position's pool is too thin/expensive for the targeted
  * pass to fill its quota, since the real budget cap is generous enough
  * (comfortably clears 10 * FANTASY_MIN_PRICE + COACH_MIN_PRICE) that this
  * should only ever bite on a very sparse synced roster. Delegates the
@@ -715,6 +736,18 @@ export async function autoFillFantasySquad(userId: string, season: string, round
     }
   }
 
+  // Rolled once per call, not per pick — a stable target for the whole
+  // squad, same as a real budget-conscious drafter would set for
+  // themselves rather than re-deciding "how much to spend" every slot.
+  const targetSpend = budgetCap * (TARGET_SPEND_MIN_RATIO + Math.random() * (TARGET_SPEND_MAX_RATIO - TARGET_SPEND_MIN_RATIO));
+  // Coach isn't drafted until every player slot is filled (below), but its
+  // typical price still needs to count against the target *now* — else the
+  // player-picking pass would spend as if the whole target were available
+  // for players alone, then have nothing left for a coach anywhere near
+  // that same target.
+  const assumedCoachPrice = (COACH_MIN_PRICE + COACH_MAX_PRICE) / 2;
+  const playerTargetSpend = Math.max(0, Math.min(playerBudget, targetSpend - assumedCoachPrice));
+
   function tryPick(pool: Candidate[], enforceBudget: boolean): Candidate | null {
     for (const c of pool) {
       if (pickedIds.has(c.id)) continue;
@@ -726,16 +759,37 @@ export async function autoFillFantasySquad(userId: string, season: string, round
     return null;
   }
 
+  // Randomizes among the few remaining-budget-respecting candidates whose
+  // price sits closest to `targetPrice`, rather than either a uniformly
+  // random pick (the original version — see this function's doc comment
+  // for why that read as inconsistent) or the single closest-priced one
+  // (no randomness left at all).
+  function tryPickTargeted(pool: Candidate[], targetPrice: number): Candidate | null {
+    const eligible = pool.filter((c) => {
+      if (pickedIds.has(c.id)) return false;
+      const club = clubCount.get(c.teamId) ?? 0;
+      if (club >= FANTASY_MAX_PLAYERS_PER_CLUB) return false;
+      return spent + c.price <= playerBudget;
+    });
+    if (eligible.length === 0) return null;
+    const closest = [...eligible].sort((a, b) => Math.abs(a.price - targetPrice) - Math.abs(b.price - targetPrice));
+    const band = closest.slice(0, Math.min(TARGET_SPEND_CANDIDATE_BAND, closest.length));
+    return band[Math.floor(Math.random() * band.length)];
+  }
+
   for (const [position, quota] of Object.entries(FANTASY_POSITION_QUOTA)) {
     const already = picked.filter((c) => c.position === position).length;
     const need = quota - already;
     if (need <= 0) continue;
     const pool = byPosition.get(position) ?? [];
-    const shuffled = shuffle(pool);
     const cheapestFirst = [...pool].sort((a, b) => a.price - b.price);
     let filled = 0;
     while (filled < need) {
-      let choice = tryPick(shuffled, true);
+      // +1 for this pick itself — picksRemaining is "how many outfield
+      // slots, including the one about to be filled, are still open".
+      const picksRemaining = FANTASY_TOTAL_OUTFIELD - picked.length;
+      const perPickTarget = Math.max(FANTASY_MIN_PRICE, (playerTargetSpend - spent) / picksRemaining);
+      let choice = tryPickTargeted(pool, perPickTarget);
       if (!choice) choice = tryPick(cheapestFirst, false);
       if (!choice) {
         return { error: `Not enough eligible ${position}s synced to auto-fill a squad` };
@@ -748,8 +802,14 @@ export async function autoFillFantasySquad(userId: string, season: string, round
     }
   }
 
-  const affordableCoaches = shuffle(coachRows.filter((c) => c.price <= budgetCap - spent));
-  const coach = affordableCoaches[0] ?? [...coachRows].sort((a, b) => a.price - b.price)[0];
+  // Same closest-to-target randomization as the player picks above — the
+  // remaining room to `targetSpend` after however much the players ended
+  // up actually costing (not the earlier `assumedCoachPrice` estimate).
+  const coachTarget = Math.max(COACH_MIN_PRICE, targetSpend - spent);
+  const affordableCoaches = coachRows.filter((c) => c.price <= budgetCap - spent);
+  const coachByCloseness = [...affordableCoaches].sort((a, b) => Math.abs(a.price - coachTarget) - Math.abs(b.price - coachTarget));
+  const coachBand = coachByCloseness.slice(0, Math.min(TARGET_SPEND_CANDIDATE_BAND, coachByCloseness.length));
+  const coach = coachBand.length > 0 ? coachBand[Math.floor(Math.random() * coachBand.length)] : [...coachRows].sort((a, b) => a.price - b.price)[0];
   if (!coach) {
     return { error: "No coaches priced for this season yet — run fantasy:reprice first" };
   }

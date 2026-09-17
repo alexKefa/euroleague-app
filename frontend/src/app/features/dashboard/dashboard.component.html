@@ -1,17 +1,35 @@
 <div class="max-w-3xl lg:max-w-6xl mx-auto p-4 sm:p-6">
+  <!-- Rewritten (2026-09-17) to actually mirror the real post-load order —
+       the old version stopped at 4 sections (a leftover 4-tile record/rank/
+       PPG/form grid from before that got consolidated into one tile on
+       2026-09-13, never updated here) and was a fraction of the real
+       page's height, so `loading()` flipping false used to reveal the
+       whole rest of the dashboard (My Leagues/Fantasy, News, sponsor
+       ticker, economy hint, standings + tabbed card) all at once in a
+       single jarring jump. News and the tabbed card below now carry their
+       own skeletons (newsLoading()/statsCardLoading()) for the same
+       reason — this one only needs to roughly cover what has NO loading
+       state of its own (My Leagues/Fantasy render immediately either way;
+       the sponsor ticker and economy hint are static). -->
   @if (loading()) {
     <div>
       <app-skeleton class="rounded-3xl h-[76px] mb-4" [iconSize]="24" />
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-        <app-skeleton class="rounded-3xl h-[92px]" [iconSize]="20" />
-        <app-skeleton class="rounded-3xl h-[92px]" [iconSize]="20" />
-        <app-skeleton class="rounded-3xl h-[92px]" [iconSize]="20" />
-        <app-skeleton class="rounded-3xl h-[92px]" [iconSize]="20" />
-      </div>
+      <app-skeleton class="rounded-3xl h-[72px] mb-4" [iconSize]="18" />
+      <app-skeleton class="rounded-3xl h-[100px] mb-4" [iconSize]="20" />
       <!-- Live Center placeholder — roughly its tab-bar + 3-row loaded
            height, so the page doesn't visibly grow once it mounts. -->
       <app-skeleton class="rounded-3xl h-[190px] mb-4" [iconSize]="22" />
-      <app-skeleton class="rounded-3xl h-64" [iconSize]="24" />
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <app-skeleton class="rounded-3xl h-[92px]" [iconSize]="18" />
+        <app-skeleton class="rounded-3xl h-[92px]" [iconSize]="18" />
+      </div>
+      <app-skeleton class="rounded-3xl h-[190px] mb-4" [iconSize]="20" />
+      <app-skeleton class="rounded-3xl h-[52px] mb-4" [icon]="false" />
+      <app-skeleton class="rounded-2xl h-[56px] mb-4" [icon]="false" />
+      <div class="flex flex-col lg:flex-row gap-4">
+        <app-skeleton class="rounded-3xl h-64 flex-1" [iconSize]="20" />
+        <app-skeleton class="rounded-3xl h-64 flex-1" [iconSize]="20" />
+      </div>
     </div>
   }
 
@@ -186,8 +204,15 @@
       </div>
     }
 
-    <!-- News stories -->
-    @if (news().length > 0) {
+    <!-- News stories — its own skeleton while newsLoading() (2026-09-17):
+         this card used to just not exist at all until the news fetch
+         resolved, which pops in later and shoves the sponsor ticker/
+         economy hint/standings card down once it finally arrives, often
+         well after loading() (standings-only) had already revealed
+         everything below it. -->
+    @if (newsLoading()) {
+      <app-skeleton class="rounded-3xl h-[190px] mb-4" [iconSize]="20" />
+    } @else if (news().length > 0) {
       <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
         <div class="flex justify-between items-center mb-3">
           <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('dashboard.latest') }}</p>
@@ -299,7 +324,16 @@
         </div>
       </div>
 
-      @if (hasPerformances() || hasLeaders() || hasPredictors() || hasSchedule()) {
+      <!-- Own skeleton while statsCardLoading() (2026-09-17) — this card
+           used to just not exist at all until every one of
+           roundMvp/leaders/leaderboard/teamGames had resolved (whichever
+           made hasPerformances()/hasLeaders()/hasPredictors()/
+           hasSchedule() first go true), popping in later next to the
+           standings card on its left, which had already rendered as soon
+           as loading() (standings-only) flipped. -->
+      @if (statsCardLoading()) {
+        <app-skeleton class="lg:flex-1 rounded-3xl h-64" [iconSize]="20" />
+      } @else if (hasPerformances() || hasLeaders() || hasPredictors() || hasSchedule()) {
         <div class="lg:flex-1 lg:min-w-0 bg-card rounded-3xl border border-line shadow-card p-4 flex flex-col">
           <!-- Segmented control (2026-09-12 redesign) — one joined tonal
                track instead of separate floating pill buttons; flex-1 on

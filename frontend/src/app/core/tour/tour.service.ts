@@ -51,7 +51,33 @@ export class TourService {
   private token = 0;
   private readonly onViewportChange = () => this.remeasure();
 
+  // Whether this browser has ever started (or explicitly dismissed) the
+  // tour — the single source of truth shared/tour-fab.ts's first-visit
+  // floating prompt reads, regardless of whether the tour was actually
+  // entered through that prompt or the permanent top-bar icon. Kept here
+  // (not inside the fab component itself) so either entry point marks the
+  // same flag.
+  private static readonly SEEN_KEY = "clutch-tour-seen";
+
+  hasBeenSeen(): boolean {
+    try {
+      return localStorage.getItem(TourService.SEEN_KEY) === "1";
+    } catch {
+      return false;
+    }
+  }
+
+  markSeen(): void {
+    try {
+      localStorage.setItem(TourService.SEEN_KEY, "1");
+    } catch {
+      // Private browsing / blocked storage — same defensive posture as
+      // install-banner.ts's own localStorage reads/writes.
+    }
+  }
+
   start(): void {
+    this.markSeen();
     this.stepIndex.set(this.firstVisibleIndex(0, 1) ?? 0);
     this.active.set(true);
     window.addEventListener("resize", this.onViewportChange);

@@ -202,7 +202,7 @@
            (the one number that can block Save), a single quiet stat row
            for everything else, then one bordered action row for
            formation/captain/save. -->
-      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4">
+      <div data-tour="fantasy-status" class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4">
         <div class="flex items-center justify-between gap-2 mb-3">
           <div class="flex items-center gap-1.5 min-w-0">
             <button
@@ -466,79 +466,6 @@
                     <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: starterSlots()[i], size: starterAvatarSize(), positionLabel: posLabel(requiredPositionForStarterSlot(i)) }" />
                   </div>
                 }
-                <!-- Round-lock "buzzer" (2026-09-10) — replaces the plain
-                     text deadline line that used to sit in the status bar
-                     above; same lockAt()/roundLocked() state, just shown on
-                     the court itself as a shot-clock-style badge instead of
-                     a sentence, with the full date/time only in the
-                     tooltip. -->
-                @if (isCurrentRound() && lockAt()) {
-                  <div class="absolute top-2 right-2 z-10 flex items-center gap-1.5">
-                    <!-- Admin-only "randomize squad" trigger (2026-09-17) —
-                         a bare dice icon next to the deadline badge rather
-                         than a labeled button, opens a confirm dialog before
-                         doing anything since it overwrites whatever's
-                         currently on the court. -->
-                    <!-- Admin-only "simulate whole round" trigger
-                         (2026-09-17) — reuses the same simulator the
-                         Schedule page's own button drives; no confirm
-                         dialog since it only advances state, same
-                         precedent Schedule's simulate button already
-                         set (unlike the reset buttons there). -->
-                    @if (auth.currentUser()?.isAdmin && isCurrentRound()) {
-                      <button
-                        type="button"
-                        (click)="simulateWholeRound()"
-                        [disabled]="simulatingRound()"
-                        [attr.aria-label]="i18n.t('fantasy.simulateRoundAdmin')"
-                        [title]="i18n.t('fantasy.simulateRoundAdmin')"
-                        class="flex items-center justify-center w-6 h-6 rounded-full bg-page/90 text-ink border border-line shadow-card hover:text-highlight hover:border-highlight transition-colors disabled:opacity-40"
-                      >
-                        <app-nav-icon name="fast-forward" [size]="13" />
-                      </button>
-                    }
-                    <!-- Round 1 only (2026-09-17) — every later round already
-                         carries a squad forward (getBaselineSquad), so a
-                         randomize there is a rebuild-from-scratch within a
-                         4-transfer budget rather than the "draft a fresh
-                         test squad" use case this button exists for; round
-                         1 (no baseline at all) is the only round where it's
-                         actually unconstrained. Not admin-gated (unlike the
-                         simulate-round button above) — this only ever
-                         touches the current viewer's own squad, and gating
-                         it on isAdmin defeated the whole point of helping a
-                         brand-new account get started (reported live
-                         2026-09-17: "brand new account can't use the
-                         randomize squad"). See routes/fantasy.ts's
-                         POST /admin/auto-fill for the matching backend fix —
-                         admin is only required there when targeting someone
-                         else's squad. -->
-                    @if (isCurrentRound() && !roundLocked() && round() === 1) {
-                      <button
-                        type="button"
-                        (click)="requestAutoFillSquad()"
-                        [disabled]="autoFilling()"
-                        [attr.aria-label]="i18n.t('fantasy.autoFillSquad')"
-                        [title]="i18n.t('fantasy.autoFillSquad')"
-                        class="flex items-center justify-center w-6 h-6 rounded-full bg-page/90 text-ink border border-line shadow-card hover:text-highlight hover:border-highlight transition-colors disabled:opacity-40"
-                      >
-                        <app-nav-icon name="dice" [size]="13" />
-                      </button>
-                    }
-                    <div
-                      class="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-mono font-bold shadow-card"
-                      [ngClass]="roundLocked() ? 'bg-red-500/90 text-white' : 'bg-page/90 text-ink border border-line'"
-                      [attr.title]="roundLocked() ? i18n.t('fantasy.locked') : (i18n.t('fantasy.lockCountdown') + ' ' + (lockAt() | date: gameDateTimeFormat():'Europe/Athens':dateLocale()))"
-                    >
-                      <app-nav-icon name="bell" [size]="12" [active]="roundLocked()" />
-                      @if (roundLocked()) {
-                        {{ i18n.t('fantasy.locked') }}
-                      } @else {
-                        {{ lockAt() | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}
-                      }
-                    </div>
-                  </div>
-                }
                 <!-- Self-clearing "randomize completed" notice (2026-09-17)
                      — this app has no shared toast service, so it's a
                      small pill anchored to the court itself, auto-clearing
@@ -550,6 +477,91 @@
                   </div>
                 }
               </div>
+
+              <!-- Randomize/deadline/simulate row, moved off the court
+                   itself (2026-09-17, direct report: floating them over the
+                   court ate into the court's own space) — this row sits in
+                   the gap between the court and the sixth-man/bench section
+                   below instead, in normal flow rather than absolutely
+                   positioned. Order left to right matches how they were
+                   asked for: randomize, deadline, simulate. -->
+              @if (isCurrentRound()) {
+                <div class="mt-2 flex items-center justify-center gap-2">
+                  <!-- Round 1 only — every later round already carries a
+                       squad forward (getBaselineSquad), so a randomize
+                       there is a rebuild-from-scratch within a 4-transfer
+                       budget rather than the "draft a fresh test squad"
+                       use case this button exists for; round 1 (no
+                       baseline at all) is the only round where it's
+                       actually unconstrained. Not admin-gated (unlike the
+                       simulate-round button below) — this only ever
+                       touches the current viewer's own squad, and gating
+                       it on isAdmin defeated the whole point of helping a
+                       brand-new account get started (reported live
+                       2026-09-17: "brand new account can't use the
+                       randomize squad"). See routes/fantasy.ts's
+                       POST /admin/auto-fill for the matching backend fix —
+                       admin is only required there when targeting someone
+                       else's squad. -->
+                  @if (!roundLocked() && round() === 1) {
+                    <!-- Swaps to a spinner while the request is in flight
+                         (2026-09-17, direct report: "it takes some time"
+                         with no feedback at all before this) —
+                         autoFilling() was already tracked for [disabled],
+                         just never rendered anywhere. -->
+                    <button
+                      type="button"
+                      (click)="requestAutoFillSquad()"
+                      [disabled]="autoFilling()"
+                      [attr.aria-label]="i18n.t('fantasy.autoFillSquad')"
+                      [title]="i18n.t('fantasy.autoFillSquad')"
+                      class="flex items-center justify-center w-9 h-9 rounded-full bg-page text-ink border border-line shadow-card hover:text-highlight hover:border-highlight transition-colors disabled:opacity-40"
+                    >
+                      @if (autoFilling()) {
+                        <app-logo-spinner [size]="16" />
+                      } @else {
+                        <app-nav-icon name="dice" [size]="18" />
+                      }
+                    </button>
+                  }
+                  <!-- Round-lock "buzzer" (2026-09-10) — replaces the plain
+                       text deadline line that used to sit in the status bar
+                       above; same lockAt()/roundLocked() state, with the
+                       full date/time only in the tooltip. -->
+                  @if (lockAt()) {
+                    <div
+                      class="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-mono font-bold shadow-card"
+                      [ngClass]="roundLocked() ? 'bg-red-500/90 text-white' : 'bg-page text-ink border border-line'"
+                      [attr.title]="roundLocked() ? i18n.t('fantasy.locked') : (i18n.t('fantasy.lockCountdown') + ' ' + (lockAt() | date: gameDateTimeFormat():'Europe/Athens':dateLocale()))"
+                    >
+                      <app-nav-icon name="bell" [size]="12" [active]="roundLocked()" />
+                      @if (roundLocked()) {
+                        {{ i18n.t('fantasy.locked') }}
+                      } @else {
+                        {{ lockAt() | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}
+                      }
+                    </div>
+                  }
+                  <!-- Admin-only "simulate whole round" trigger
+                       (2026-09-17) — reuses the same simulator the
+                       Schedule page's own button drives; no confirm
+                       dialog since it only advances state, same
+                       precedent Schedule's simulate button already
+                       set (unlike the reset buttons there). -->
+                  @if (auth.currentUser()?.isAdmin) {
+                    <button
+                      type="button"
+                      (click)="simulateWholeRound()"
+                      [disabled]="simulatingRound()"
+                      [attr.aria-label]="i18n.t('fantasy.simulateRoundAdmin')"
+                      [title]="i18n.t('fantasy.simulateRoundAdmin')"
+                      class="flex items-center justify-center w-6 h-6 rounded-full bg-page text-ink border border-line shadow-card hover:text-highlight hover:border-highlight transition-colors disabled:opacity-40"
+                    >
+                      <app-nav-icon name="fast-forward" [size]="13" />
+                    </button>
+                  }
+                </div>
+              }
 
               <!-- Sixth man + coach stacked on the left, bench 2x2 on the
                    right, one divider between (2026-09-17) — coach used to

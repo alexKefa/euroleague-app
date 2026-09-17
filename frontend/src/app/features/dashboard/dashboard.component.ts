@@ -95,6 +95,24 @@ export class DashboardComponent implements OnInit, OnDestroy {
     label: c.label,
   }));
   readonly news = signal<NewsArticle[]>([]);
+  // News/roundMvp/leaders/leaderboard/teamGames each used to have no
+  // loading state of their own — the News card and the tabbed Performances/
+  // Leaders/Predictors/Schedule card below both just didn't render at all
+  // until their own fetch resolved (their `@if`s gate on the data itself,
+  // e.g. `news().length > 0`), popping in later and shoving the rest of
+  // the page down once each one finally arrived, sometimes a good while
+  // after loading() (standings-only) had already flipped and revealed
+  // everything below. Reported live 2026-09-17 ("fix skeleton loaders on
+  // dashboard"). These give each of those two sections its own skeleton
+  // instead of just not existing yet.
+  readonly newsLoading = signal(true);
+  readonly roundMvpLoading = signal(true);
+  readonly leadersLoading = signal(true);
+  readonly predictorsLoading = signal(true);
+  readonly scheduleLoading = signal(true);
+  readonly statsCardLoading = computed(
+    () => this.roundMvpLoading() || this.leadersLoading() || this.predictorsLoading() || this.scheduleLoading()
+  );
   readonly teamGames = signal<Game[]>([]);
   readonly roundMvp = signal<RoundMvp | null>(null);
   // Top 5 of the predictions leaderboard — a compact teaser here (full
@@ -260,16 +278,26 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     this.loadDashboardData();
     this.selectLeaderCategory(this.leaderCategory());
+    // No newsLoading.set(true) here — this same call also runs on the
+    // background-refresh path below, and (like `loading` itself) a stale
+    // blip on that path should silently refresh in place, never flash the
+    // skeleton back over an already-loaded dashboard.
     this.api.getNews(10, this.i18n.lang(), true).subscribe({
-      next: (articles) => this.news.set(articles),
-      error: () => {}, // non-critical widget
+      next: (articles) => {
+        this.news.set(articles);
+        this.newsLoading.set(false);
+      },
+      error: () => this.newsLoading.set(false), // non-critical widget
     });
   };
 
   private loadDashboardData(): void {
     this.api.getRoundMvp(5).subscribe({
-      next: (result) => this.roundMvp.set(result),
-      error: () => {}, // non-critical widget
+      next: (result) => {
+        this.roundMvp.set(result);
+        this.roundMvpLoading.set(false);
+      },
+      error: () => this.roundMvpLoading.set(false), // non-critical widget
     });
 
     if (this.auth.isAuthenticated()) {
@@ -284,8 +312,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
 
     this.api.getLeaderboard().subscribe({
-      next: (rows) => this.leaderboard.set(rows.slice(0, 5)),
-      error: () => {}, // non-critical widget
+      next: (rows) => {
+        this.leaderboard.set(rows.slice(0, 5));
+        this.predictorsLoading.set(false);
+      },
+      error: () => this.predictorsLoading.set(false), // non-critical widget
     });
 
     this.api.getStandings().subscribe({
@@ -298,6 +329,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
           const savedTeamId = this.auth.currentUser()?.favoriteTeamId;
           const hasSavedTeam = savedTeamId && rows.some((r) => r.team.id === savedTeamId);
           this.loadTeam(hasSavedTeam ? savedTeamId! : rows[0].team.id);
+        } else {
+          // loadTeam (below) is the only thing that ever resolves
+          // scheduleLoading — a guest, or an authenticated account with no
+          // standings rows yet, never calls it at all, which used to leave
+          // the tabbed card's skeleton spinning forever instead of settling
+          // into "no schedule tab for you", same as hasSchedule() already
+          // correctly evaluates to false in that case.
+          this.scheduleLoading.set(false);
         }
       },
       error: () => {
@@ -312,6 +351,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
           );
         }
         this.loading.set(false);
+        this.scheduleLoading.set(false);
       },
     });
   }
@@ -322,17 +362,30 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.theme.applyTeam(row?.team ?? null);
 
     this.teamGames.set([]);
+    this.scheduleLoading.set(true);
     this.api.getTeamGames(teamId).subscribe({
-      next: (games) => this.teamGames.set(games),
-      error: () => {}, // non-critical widget
+      next: (games) => {
+        this.teamGames.set(games);
+        this.scheduleLoading.set(false);
+      },
+      error: () => this.scheduleLoading.set(false), // non-critical widget
     });
   }
 
   selectLeaderCategory(category: LeaderCategory): void {
     this.leaderCategory.set(category);
     this.api.getLeaders(category, 5).subscribe({
-      next: (rows) => this.leaders.set(rows),
-      error: () => {}, // non-critical widget — fail quietly, standings error already covers the main failure mode
+      // Only ever set to false, never back to true here — this same
+      // method also runs on every dropdown category switch, and
+      // statsCardLoading ORs leadersLoading in; resetting it on a switch
+      // would put the whole tabbed card back into its full skeleton just
+      // because someone picked a different leader stat, long after the
+      // real initial load finished.
+      next: (rows) => {
+        this.leaders.set(rows);
+        this.leadersLoading.set(false);
+      },
+      error: () => this.leadersLoading.set(false), // non-critical widget — fail quietly, standings error already covers the main failure mode
     });
   }
 

@@ -36,6 +36,19 @@ export const TOUR_STEPS: TourStep[] = [
     bodyKey: "tour.step.predictions.body",
   },
   {
+    // Added 2026-09-17 — this step list predates Fantasy Five and never
+    // got a step added for it despite the feature being a top-level nav
+    // item on desktop since; the walkthrough silently skipped an entire
+    // game mode. requiresAuth: the page's own roster builder only renders
+    // for a logged-in user (a guest gets a plain "log in to use this"
+    // card instead), same reasoning as every other requiresAuth step here.
+    route: "/fantasy",
+    selector: "[data-tour='fantasy-status']",
+    requiresAuth: true,
+    titleKey: "tour.step.fantasy.title",
+    bodyKey: "tour.step.fantasy.body",
+  },
+  {
     route: "/leagues",
     selector: "[data-tour='leagues-hub']",
     requiresAuth: true,

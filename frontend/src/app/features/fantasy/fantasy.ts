@@ -27,6 +27,7 @@ import { CollectibleCardComponent } from "../store/collectible-card";
 import { CourtBackgroundComponent } from "../../shared/court-background";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { ConfirmDialogComponent } from "../../shared/confirm-dialog";
+import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { newsDateLocale, gameDateTimeFormat as gameDateTimeFormatFn } from "../../shared/news-date-format";
 
 // Squad shape — mirrors backend/src/services/fantasyScoring.ts's constants
@@ -231,6 +232,7 @@ interface SwapCandidate {
     CourtBackgroundComponent,
     NavIconComponent,
     ConfirmDialogComponent,
+    LogoSpinnerComponent,
   ],
   templateUrl: "./fantasy.html",
   styleUrl: "./fantasy.css",
@@ -1025,7 +1027,7 @@ export class FantasyComponent implements OnInit {
 
   // `round` selects which round to view — omit for the current active one.
   // Shared by ngOnInit's initial load and the round navigator below.
-  private loadLineup(round?: number): void {
+  private loadLineup(round?: number, onDone?: () => void): void {
     this.api.getFantasyLineup(round).subscribe({
       next: (lineup) => {
         this.season.set(lineup.season);
@@ -1067,10 +1069,12 @@ export class FantasyComponent implements OnInit {
         this.maybeCelebrateRoundComplete(lineup.round, lineup.roundComplete);
         this.lineupReady = true;
         this.maybeFinishLoading();
+        onDone?.();
       },
       error: () => {
         this.lineupReady = true;
         this.maybeFinishLoading();
+        onDone?.();
       },
     });
   }
@@ -1091,11 +1095,18 @@ export class FantasyComponent implements OnInit {
     this.confirmingAutoFill.set(false);
     this.autoFilling.set(true);
     this.api.autoFillFantasySquad().subscribe({
+      // Stays spinning through loadLineup's own round trip too, not just
+      // the auto-fill POST itself — otherwise the button flips back to the
+      // plain dice icon while the court still visibly shows the old squad
+      // for however long that second request takes (reported live,
+      // 2026-09-17: "it takes some time" with no loading feedback at all
+      // before this).
       next: () => {
-        this.autoFilling.set(false);
-        this.loadLineup(this.round() ?? undefined);
-        this.autoFillNotice.set(true);
-        setTimeout(() => this.autoFillNotice.set(false), 2500);
+        this.loadLineup(this.round() ?? undefined, () => {
+          this.autoFilling.set(false);
+          this.autoFillNotice.set(true);
+          setTimeout(() => this.autoFillNotice.set(false), 2500);
+        });
       },
       error: () => this.autoFilling.set(false),
     });

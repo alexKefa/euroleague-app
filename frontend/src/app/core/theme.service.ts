@@ -1,5 +1,11 @@
 import { Injectable, computed, signal } from "@angular/core";
 import { Team } from "./models";
+import { hexLuma } from "./color-utils";
+
+// Below this, a color reads as "too dark to serve as a visible accent" —
+// same cutoff landing.ts's own previewPrimary uses for "genuinely
+// near-black, not just a dark saturated color".
+const DARK_LUMA_THRESHOLD = 35;
 
 const DEFAULT_PRIMARY = "#3E7CB1";
 const DEFAULT_SECONDARY = "#0B1220";
@@ -94,8 +100,33 @@ export class ThemeService {
 
   applyTeam(team: Team | null): void {
     this.favoriteTeam.set(team);
-    const primary = team?.primaryColor ?? DEFAULT_PRIMARY;
-    const secondary = team?.secondaryColor ?? DEFAULT_SECONDARY;
+    let primary = team?.primaryColor ?? DEFAULT_PRIMARY;
+    let secondary = team?.secondaryColor ?? DEFAULT_SECONDARY;
+
+    // A near-black primary (Besiktas, Paris, Partizan, Virtus all ship
+    // #000000) makes every reskinned element that reads --accent-primary
+    // at full strength — this nav's own active-tab color/pill among them —
+    // invisible against this app's already near-black page/card
+    // background. Reported live 2026-09-17 ("paris besiktas and other
+    // will black colors does not make sense... maybe their secondary
+    // ones"): swap the pair wholesale rather than lightening/blending the
+    // primary the way landing.ts's own preview swatch does — every
+    // affected real team's secondary is a real, deliberate brand color
+    // (white, in every current case) already meant to read clearly
+    // against a dark background, so using it as the *actual* accent
+    // reads as "this team's colors", not a washed-out approximation of
+    // one. Only swaps when the secondary is itself genuinely brighter
+    // (guards a hypothetical future team whose secondary is *also* dark —
+    // swapping into an equally invisible color would fix nothing), and
+    // the swapped-in secondary slot still ends up holding a dark tone
+    // (the original primary), consistent with what --accent-secondary is
+    // everywhere else in this app (DEFAULT_SECONDARY is dark navy too).
+    const primaryLuma = hexLuma(primary);
+    const secondaryLuma = hexLuma(secondary);
+    if (primaryLuma !== null && primaryLuma < DARK_LUMA_THRESHOLD && secondaryLuma !== null && secondaryLuma >= DARK_LUMA_THRESHOLD) {
+      [primary, secondary] = [secondary, primary];
+    }
+
     const root = document.documentElement;
     root.style.setProperty("--accent-primary", primary);
     root.style.setProperty("--accent-secondary", secondary);

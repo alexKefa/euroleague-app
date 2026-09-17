@@ -16,6 +16,7 @@ import { CourtBackgroundComponent } from "../../shared/court-background";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { OpenInBrowserBannerComponent } from "../../shared/open-in-browser-banner";
 import { markVisited } from "../../shared/visited";
+import { hexLuma } from "../../core/color-utils";
 
 interface ShowcaseCard {
   tier: CollectibleTier;
@@ -97,15 +98,6 @@ function shuffled<T>(arr: T[]): T[] {
   return out;
 }
 
-function hexLuma(hex: string): number | null {
-  const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex.trim());
-  if (!m) return null;
-  const full = m[1].length === 3 ? m[1].split("").map((c) => c + c).join("") : m[1];
-  const r = parseInt(full.slice(0, 2), 16);
-  const g = parseInt(full.slice(2, 4), 16);
-  const b = parseInt(full.slice(4, 6), 16);
-  return 0.299 * r + 0.587 * g + 0.114 * b;
-}
 
 // Public, unauthenticated entry point for cold traffic — the QR card and any
 // shared link point here, not at "/" (the dashboard), since someone who's

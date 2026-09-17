@@ -25,6 +25,12 @@ export const tourTranslations: Record<string, Record<Lang, string>> = {
     el: "Διάλεξε νικητή πριν την έναρξη. Κάθε σωστή πρόβλεψη αξίζει 10 πόντους, και μια τέλεια αγωνιστική χαρίζει μια δωρεάν θρυλική κάρτα.",
   },
 
+  "tour.step.fantasy.title": { en: "Build a Fantasy Five squad", el: "Φτιάξε ομάδα στο Fantasy Five" },
+  "tour.step.fantasy.body": {
+    en: "A separate, season-long game: draft 10 players and a coach under a budget cap, and score real per-stat points every round based on how they actually play.",
+    el: "Ένα ξεχωριστό παιχνίδι για όλη τη σεζόν: επίλεξε 10 παίκτες και έναν προπονητή μέσα σε συγκεκριμένο budget, και κέρδισε πραγματικούς πόντους κάθε αγωνιστική με βάση την πραγματική τους απόδοση.",
+  },
+
   "tour.step.leagues.title": { en: "Compete with friends", el: "Διαγωνίσου με φίλους" },
   "tour.step.leagues.body": {
     en: "Create a private league or join one with an invite code — the same prediction points rank you here, just against a smaller group of friends.",
@@ -75,7 +81,7 @@ export const tourTranslations: Record<string, Record<Lang, string>> = {
 
   "tour.step.done.title": { en: "That's Clutch", el: "Αυτό είναι το Clutch" },
   "tour.step.done.body": {
-    en: "You've seen the whole loop: predict, earn, open, trade. And there's plenty more to explore — standings, league-wide stats, player comparisons, news, and the full schedule. Jump back in anytime — this tour is one tap away on the dashboard.",
-    el: "Είδες όλο τον κύκλο: πρόβλεψε, κέρδισε, άνοιξε, αντάλλαξε. Υπάρχουν όμως κι άλλα πολλά να ανακαλύψεις — βαθμολογία, στατιστικά όλου του πρωταθλήματος, συγκρίσεις παικτών, νέα, και το πλήρες πρόγραμμα. Ξαναμπές όποτε θες — αυτή η ξενάγηση είναι πάντα διαθέσιμη στο dashboard.",
+    en: "You've seen the whole loop: predict, earn, open, trade. And there's plenty more to explore — Fantasy Five, standings, league-wide stats, player comparisons, news, and the full schedule. Jump back in anytime — this tour is one tap away from the compass icon at the top of any page.",
+    el: "Είδες όλο τον κύκλο: πρόβλεψε, κέρδισε, άνοιξε, αντάλλαξε. Υπάρχουν όμως κι άλλα πολλά να ανακαλύψεις — Fantasy Five, βαθμολογία, στατιστικά όλου του πρωταθλήματος, συγκρίσεις παικτών, νέα, και το πλήρες πρόγραμμα. Ξαναμπές όποτε θες — αυτή η ξενάγηση είναι πάντα ένα κλικ μακριά, στο εικονίδιο της πυξίδας στο πάνω μέρος κάθε σελίδας.",
   },
 };
