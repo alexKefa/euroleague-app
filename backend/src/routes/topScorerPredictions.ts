@@ -150,7 +150,12 @@ topScorerPredictionsRouter.get("/me", requireAuth, async (req, res) => {
         status: game.status,
         homeTeam: { id: home.id, code: home.code, name: home.name },
         awayTeam: { id: away.id, code: away.code, name: away.name },
-        predictedPlayer: { id: predictedPlayer.id, code: predictedPlayer.code, name: predictedPlayer.name },
+        predictedPlayer: {
+          id: predictedPlayer.id,
+          code: predictedPlayer.code,
+          name: predictedPlayer.name,
+          photoUrl: predictedPlayer.photoUrl,
+        },
         isCorrect: topScorerPlayerId == null ? null : topScorerPlayerId === prediction.predictedPlayerId,
         pointsAtPick: prediction.pointsAtPick ?? TOP_SCORER_POINTS_PER_CORRECT,
       };

@@ -6,8 +6,10 @@ import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { EventsService } from "../../core/events.service";
 import { FavoritePlayersService } from "../../core/favorite-players.service";
-import { Game, Prediction, LegendaryPoll, FavoritePlayer } from "../../core/models";
+import { Game, Prediction, LegendaryPoll, FavoritePlayer, MyTopScorerPrediction } from "../../core/models";
 import { TeamCodePipe } from "../../shared/team-display-code";
+import { TeamBadgeComponent } from "../../shared/team-badge";
+import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { newsDateLocale, shortDateFormat } from "../../shared/news-date-format";
@@ -41,7 +43,7 @@ interface FavoriteRow extends FavoritePlayer {
 @Component({
   selector: "app-live-center",
   standalone: true,
-  imports: [CommonModule, RouterLink, TeamCodePipe, RetryImgDirective, SkeletonComponent],
+  imports: [CommonModule, RouterLink, TeamCodePipe, TeamBadgeComponent, PlayerPhotoComponent, RetryImgDirective, SkeletonComponent],
   templateUrl: "./live-center.html",
 })
 export class LiveCenterComponent implements OnInit {
@@ -56,6 +58,11 @@ export class LiveCenterComponent implements OnInit {
   // and the team-lookup used by the predictions/favorites tabs, one fetch.
   readonly games = signal<Game[]>([]);
   readonly myPredictions = signal<Prediction[]>([]);
+  // The same match's top-scorer pick, shown under its win/loss row in the
+  // predictions tab below — same merged-row idea as /predictions' and the
+  // dashboard's own "My picks" card, just for this card's upcoming-picks list.
+  readonly myTopScorerPredictions = signal<MyTopScorerPrediction[]>([]);
+  readonly topScorerByGameId = computed(() => new Map(this.myTopScorerPredictions().map((p) => [p.gameId, p])));
   readonly openPolls = signal<LegendaryPoll[]>([]);
 
   private readonly gameById = computed(() => new Map(this.games().map((g) => [g.id, g])));
@@ -160,6 +167,10 @@ export class LiveCenterComponent implements OnInit {
     });
     this.api.getMyPredictions().subscribe({
       next: (rows) => this.myPredictions.set(rows),
+      error: () => {}, // non-critical widget
+    });
+    this.api.getMyTopScorerPredictions().subscribe({
+      next: (rows) => this.myTopScorerPredictions.set(rows),
       error: () => {}, // non-critical widget
     });
     this.api.getLegendaryPolls().subscribe({

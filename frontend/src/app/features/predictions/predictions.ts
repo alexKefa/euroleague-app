@@ -16,6 +16,7 @@ import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { newsDateLocale, shortDateFormat as gameShortDateFormat, gameDateTimeFormat } from "../../shared/news-date-format";
 import { TeamCodePipe } from "../../shared/team-display-code";
+import { TopScorerPickerComponent } from "../../shared/top-scorer-picker";
 
 // Matches schedule.ts — no season picker here either, and predictions
 // should only ever be open for the round a user could actually be watching.
@@ -101,6 +102,7 @@ interface DisplayedPick {
     LogoSpinnerComponent,
     CollectibleCardComponent,
     TeamCodePipe,
+    TopScorerPickerComponent,
   ],
   templateUrl: "./predictions.html",
 })
@@ -160,6 +162,29 @@ export class PredictionsComponent implements OnInit {
   readonly picksTab = signal<"winLoss" | "topScorer">("winLoss");
   readonly myTopScorerPredictions = signal<MyTopScorerPrediction[]>([]);
   readonly topScorerPicksLoading = signal(true);
+  // gameId -> that match's top-scorer pick, so the Win/Loss tab's own
+  // per-match row can show both picks together instead of only the game
+  // outcome — the two pick types used to only ever appear in their own
+  // separate tab, with no single place showing "everything about this
+  // match" at once.
+  readonly topScorerByGameId = computed(() => new Map(this.myTopScorerPredictions().map((p) => [p.gameId, p])));
+
+  // The upcoming-games card's own top-scorer picker modal — lets a pick be
+  // made right from this page's game grid instead of needing to go via
+  // Schedule -> that game's own detail page first for its live photo strip.
+  readonly topScorerPickerGame = signal<Game | null>(null);
+
+  openTopScorerPicker(game: Game): void {
+    this.topScorerPickerGame.set(game);
+  }
+
+  closeTopScorerPicker(): void {
+    this.topScorerPickerGame.set(null);
+    // Refreshes the "already picked" state shown on the game card itself
+    // and the aggregate "My picks" -> Top scorer tab, both of which read
+    // off this same list.
+    this.refreshMyTopScorerPredictions();
+  }
 
   readonly effectivePicks = computed(() => {
     const merged = new Map(this.myPicks());

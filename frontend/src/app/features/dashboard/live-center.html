@@ -88,22 +88,40 @@
           @if (myUpcomingPredictions().length > 0) {
             <div class="text-sm space-y-1">
               @for (row of myUpcomingPredictions(); track row.prediction.id) {
-                <a [routerLink]="['/games', row.game.id]" class="flex items-center justify-between gap-2 px-2 py-2 rounded-2xl hover:bg-page transition-colors">
-                  <span class="flex items-center gap-2 min-w-0 flex-1">
-                    <span class="font-semibold truncate">{{ row.game.homeTeam.code | teamCode }}</span>
-                    <span class="text-muted text-xs">vs</span>
-                    <span class="font-semibold truncate">{{ row.game.awayTeam.code | teamCode }}</span>
-                  </span>
-                  <span class="flex items-center gap-2 shrink-0">
-                    <span class="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-highlight/10 text-highlight whitespace-nowrap">
-                      {{ i18n.t('liveCenter.picked') }} {{ row.prediction.predictedTeam.code | teamCode }}
+                <a [routerLink]="['/games', row.game.id]" class="block px-2 py-2 rounded-2xl hover:bg-page transition-colors">
+                  <span class="flex items-center justify-between gap-2">
+                    <span class="flex items-center gap-1.5 min-w-0 flex-1">
+                      <app-team-badge [code]="row.game.homeTeam.code" [logoUrl]="row.game.homeTeam.logoUrl" [size]="16"></app-team-badge>
+                      <span class="text-muted text-xs">vs</span>
+                      <app-team-badge [code]="row.game.awayTeam.code" [logoUrl]="row.game.awayTeam.logoUrl" [size]="16"></app-team-badge>
                     </span>
-                    @if (row.game.status === 'live') {
-                      <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
-                    } @else {
-                      <span class="font-mono text-xs text-muted">{{ row.game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}</span>
-                    }
+                    <span class="flex items-center gap-2 shrink-0">
+                      <span class="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-highlight/10 text-highlight whitespace-nowrap">
+                        {{ i18n.t('liveCenter.picked') }} {{ row.prediction.predictedTeam.code | teamCode }}
+                      </span>
+                      @if (row.game.status === 'live') {
+                        <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
+                      } @else {
+                        <span class="font-mono text-xs text-muted">{{ row.game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}</span>
+                      }
+                    </span>
                   </span>
+                  <!-- This same match's top-scorer pick, if any — the player's
+                       own photo (falls back to a jersey silhouette) rather
+                       than just their name. -->
+                  @if (topScorerByGameId().get(row.game.id); as tsPick) {
+                    <span class="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-line/60">
+                      <app-player-photo [name]="tsPick.predictedPlayer.name" [photoUrl]="tsPick.predictedPlayer.photoUrl" [size]="22" class="rounded-full shrink-0" />
+                      <span class="font-mono text-[11px] text-muted truncate flex-1">{{ tsPick.predictedPlayer.name }}</span>
+                      @if (tsPick.isCorrect === null) {
+                        <span class="text-[11px] font-bold text-muted shrink-0">{{ i18n.t('predictions.pending') }}</span>
+                      } @else if (tsPick.isCorrect === true) {
+                        <span class="text-[11px] font-bold text-emerald-500 shrink-0">+{{ tsPick.pointsAtPick }} {{ i18n.t('predictions.pts') }}</span>
+                      } @else {
+                        <span class="text-[11px] font-bold text-red-500 shrink-0">{{ i18n.t('predictions.wrong') }}</span>
+                      }
+                    </span>
+                  }
                 </a>
               }
             </div>

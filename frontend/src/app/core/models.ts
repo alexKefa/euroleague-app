@@ -392,7 +392,7 @@ export interface MyTopScorerPrediction {
   status: string; // "scheduled" | "live" | "final"
   homeTeam: { id: string; code: string; name: string };
   awayTeam: { id: string; code: string; name: string };
-  predictedPlayer: { id: string; code: string; name: string };
+  predictedPlayer: { id: string; code: string; name: string; photoUrl: string | null };
   isCorrect: boolean | null; // null = game not final yet, or a tie with no clear top scorer
   pointsAtPick: number;
 }

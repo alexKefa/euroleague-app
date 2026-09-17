@@ -299,7 +299,7 @@
         </div>
       </div>
 
-      @if (hasPerformances() || hasLeaders() || hasPredictors() || hasSchedule()) {
+      @if (hasPerformances() || hasLeaders() || hasMyPicks() || hasPredictors() || hasSchedule()) {
         <div class="lg:flex-1 lg:min-w-0 bg-card rounded-3xl border border-line shadow-card p-4 flex flex-col">
           <!-- Segmented control (2026-09-12 redesign) — one joined tonal
                track instead of separate floating pill buttons; flex-1 on
@@ -314,6 +314,11 @@
             @if (hasLeaders()) {
               <button type="button" (click)="setTab('leaders')" [ngClass]="tabButtonClass('leaders')" class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold whitespace-nowrap transition-colors shrink-0">
                 {{ i18n.t('dashboard.leaders') }}
+              </button>
+            }
+            @if (hasMyPicks()) {
+              <button type="button" (click)="setTab('myPicks')" [ngClass]="tabButtonClass('myPicks')" class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold whitespace-nowrap transition-colors shrink-0">
+                {{ i18n.t('dashboard.myPicks') }}
               </button>
             }
             @if (hasPredictors()) {
@@ -388,6 +393,57 @@
               </div>
               <a routerLink="/stats" class="mt-2 block text-right text-[12px] text-accent2 font-bold uppercase tracking-wider"
                 >{{ i18n.t('stats.viewFull') }} &rarr;</a
+              >
+            }
+            @case ('myPicks') {
+              <!-- Same merged win/loss + top-scorer row design as
+                   /predictions' own "My picks" card, just a 5-match teaser
+                   here (see myPicksTeaser's doc comment — it's keyed by
+                   gameId, not by win/loss pick, specifically so a
+                   top-scorer-only match still shows up). -->
+              <div class="text-sm space-y-1 max-h-72 overflow-y-auto pr-1">
+                @for (gameId of myPicksTeaser(); track gameId) {
+                  <div class="px-2 py-2 rounded-2xl">
+                    <div class="flex justify-between items-center">
+                      @if (myPredictionsByGameId().get(gameId); as p) {
+                        <app-team-badge [code]="p.predictedTeam.code" [logoUrl]="teamLogo(p.predictedTeam.id)"></app-team-badge>
+                        @if (p.isCorrect === null) {
+                          <span class="text-[12px] font-bold text-muted">{{ i18n.t('predictions.pending') }}</span>
+                        } @else if (p.isCorrect === true) {
+                          <span class="text-[12px] font-bold text-emerald-500">{{ i18n.t('predictions.correct') }}</span>
+                        } @else {
+                          <span class="text-[12px] font-bold text-red-500">{{ i18n.t('predictions.wrong') }}</span>
+                        }
+                      } @else if (topScorerByGameId().get(gameId); as tsOnly) {
+                        <!-- No win/loss pick for this match — just the
+                             matchup, since there's no team pick to badge. -->
+                        <span class="flex items-center gap-1 font-mono text-[12px] text-muted">
+                          <app-team-badge [code]="tsOnly.homeTeam.code" [logoUrl]="teamLogo(tsOnly.homeTeam.id)" [size]="16"></app-team-badge>
+                          <span>&ndash;</span>
+                          <app-team-badge [code]="tsOnly.awayTeam.code" [logoUrl]="teamLogo(tsOnly.awayTeam.id)" [size]="16"></app-team-badge>
+                        </span>
+                      }
+                    </div>
+                    @if (topScorerByGameId().get(gameId); as tsPick) {
+                      <div class="flex justify-between items-center gap-2 mt-1.5 pt-1.5 border-t border-line/60">
+                        <span class="flex items-center gap-1.5 min-w-0">
+                          <app-nav-icon name="picks" [size]="12" class="text-muted shrink-0" />
+                          <span class="font-mono text-[11px] text-muted truncate">{{ tsPick.predictedPlayer.name }}</span>
+                        </span>
+                        @if (tsPick.isCorrect === null) {
+                          <span class="text-[11px] font-bold text-muted shrink-0">{{ i18n.t('predictions.pending') }}</span>
+                        } @else if (tsPick.isCorrect === true) {
+                          <span class="text-[11px] font-bold text-emerald-500 shrink-0">+{{ tsPick.pointsAtPick }} {{ i18n.t('predictions.pts') }}</span>
+                        } @else {
+                          <span class="text-[11px] font-bold text-red-500 shrink-0">{{ i18n.t('predictions.wrong') }}</span>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+              <a routerLink="/predictions" class="mt-2 block text-right text-[12px] text-accent2 font-bold uppercase tracking-wider"
+                >{{ i18n.t('dashboard.viewAll') }} &rarr;</a
               >
             }
             @case ('predictors') {

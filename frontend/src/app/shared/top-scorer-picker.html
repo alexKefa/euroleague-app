@@ -1,0 +1,101 @@
+@if (loading()) {
+  <div class="flex justify-center py-8">
+    <app-logo-spinner [size]="24" />
+  </div>
+} @else {
+  @if (error()) {
+    <p class="text-red-500 text-xs font-semibold mb-2">{{ error() }}</p>
+  }
+
+  <div class="space-y-4">
+    <div>
+      <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5">{{ homeTeam.name }}</p>
+      <!-- pt-2 on the scroll row clears the picked player's ring/scale-105
+           top edge — overflow-x-auto forces overflow-y to auto too, which
+           clips it with no padding (same fix as game-detail.html's strip). -->
+      <div class="flex gap-3 overflow-x-auto pt-2 pb-1">
+        @for (c of homeCandidates(); track c.player.id) {
+          <button
+            type="button"
+            class="shrink-0 flex flex-col items-center gap-1 w-16"
+            [disabled]="!!savingId()"
+            (click)="pick(c.player.id)"
+          >
+            <span
+              class="relative inline-flex rounded-full ring-offset-2 ring-offset-card transition-transform"
+              [class.scale-105]="myPick()?.predictedPlayer?.id === c.player.id"
+              [class.ring-2]="myPick()?.predictedPlayer?.id === c.player.id"
+              [class.ring-highlight]="myPick()?.predictedPlayer?.id === c.player.id"
+              [class.opacity-40]="!!savingId() && savingId() !== c.player.id"
+              [style.width.px]="52"
+              [style.height.px]="52"
+            >
+              <app-player-photo
+                [name]="c.player.name"
+                [photoUrl]="c.player.photoUrl"
+                [jerseyNumber]="c.player.jerseyNumber"
+                [teamCode]="homeTeam.code"
+                [primaryColor]="homeTeam.primaryColor"
+                [size]="52"
+                class="rounded-full block shadow"
+              />
+              @if (savingId() === c.player.id) {
+                <span class="absolute inset-0 flex items-center justify-center rounded-full bg-card/70">
+                  <app-logo-spinner [size]="18" />
+                </span>
+              }
+            </span>
+            <span class="text-[9px] text-muted font-semibold truncate w-full text-center">{{ c.player.name.split(',')[0] }}</span>
+          </button>
+        }
+      </div>
+    </div>
+
+    <div>
+      <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5">{{ awayTeam.name }}</p>
+      <div class="flex gap-3 overflow-x-auto pt-2 pb-1">
+        @for (c of awayCandidates(); track c.player.id) {
+          <button
+            type="button"
+            class="shrink-0 flex flex-col items-center gap-1 w-16"
+            [disabled]="!!savingId()"
+            (click)="pick(c.player.id)"
+          >
+            <span
+              class="relative inline-flex rounded-full ring-offset-2 ring-offset-card transition-transform"
+              [class.scale-105]="myPick()?.predictedPlayer?.id === c.player.id"
+              [class.ring-2]="myPick()?.predictedPlayer?.id === c.player.id"
+              [class.ring-highlight]="myPick()?.predictedPlayer?.id === c.player.id"
+              [class.opacity-40]="!!savingId() && savingId() !== c.player.id"
+              [style.width.px]="52"
+              [style.height.px]="52"
+            >
+              <app-player-photo
+                [name]="c.player.name"
+                [photoUrl]="c.player.photoUrl"
+                [jerseyNumber]="c.player.jerseyNumber"
+                [teamCode]="awayTeam.code"
+                [primaryColor]="awayTeam.primaryColor"
+                [size]="52"
+                class="rounded-full block shadow"
+              />
+              @if (savingId() === c.player.id) {
+                <span class="absolute inset-0 flex items-center justify-center rounded-full bg-card/70">
+                  <app-logo-spinner [size]="18" />
+                </span>
+              }
+            </span>
+            <span class="text-[9px] text-muted font-semibold truncate w-full text-center">{{ c.player.name.split(',')[0] }}</span>
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+
+  @if (myPick(); as pick) {
+    <p class="text-xs font-semibold mt-4 pt-3 border-t border-line">
+      {{ i18n.t('topScorer.myPick') }}: {{ pick.predictedPlayer.name }}
+      <span class="font-mono text-highlight">+{{ pick.pointsAtPick }} {{ i18n.t('predictions.pts') }}</span>
+    </p>
+  }
+}
