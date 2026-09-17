@@ -6,17 +6,10 @@
   <base href="/"/>
   <meta id="viewport-meta" name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
   <meta name="description" content="EuroLeague stats, predictions, and cards for your favorite team."/>
-  <!-- Filenames themselves carry a "-v4"/"v4-" version marker, not just a
-       ?v= query string: browsers/iOS/Android cache a favicon and a PWA's
-       home-screen icon in ways that don't reliably revalidate against
-       normal HTTP cache rules — a query-bust was tried first and didn't
-       fully clear a stuck browser-tab favicon, so this is the more
-       reliable fix. Bump the version marker on any future icon change —
-       same idea for manifest.webmanifest's own icon list below. -->
-  <link rel="icon" type="image/svg+xml" href="favicon-v4.svg"/>
-  <link rel="icon" type="image/png" sizes="96x96" href="icons/icon-v4-96x96.png"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-v14.png"/>
+  <link rel="icon" type="image/png" sizes="96x96" href="icons/icon-v14-96x96.png"/>
   <meta id="theme-color-meta" name="theme-color" content="#0b1220"/>
-  <link rel="apple-touch-icon" href="icons/icon-v4-192x192.png"/>
+  <link rel="apple-touch-icon" href="icons/icon-v14-192x192.png"/>
 
   <!-- iOS ignores the manifest's "display": "standalone" for its own
        home-screen behavior and needs this explicitly — without it, "Add to
@@ -40,14 +33,14 @@
   <meta property="og:type" content="website"/>
   <meta property="og:title" content="Clutch"/>
   <meta property="og:description" content="EuroLeague stats, predictions, and cards for your favorite team."/>
-  <meta property="og:url" content="https://clutchapp.up.railway.app"/>
-  <meta property="og:image" content="https://clutchapp.up.railway.app/og-image.png"/>
+  <meta property="og:url" content="https://getclutchapp.com"/>
+  <meta property="og:image" content="https://getclutchapp.com/og-image.png"/>
   <meta property="og:image:width" content="1200"/>
   <meta property="og:image:height" content="630"/>
   <meta name="twitter:card" content="summary_large_image"/>
   <meta name="twitter:title" content="Clutch"/>
   <meta name="twitter:description" content="EuroLeague stats, predictions, and cards for your favorite team."/>
-  <meta name="twitter:image" content="https://clutchapp.up.railway.app/og-image.png"/>
+  <meta name="twitter:image" content="https://getclutchapp.com/og-image.png"/>
   <script>
     // Stamp the saved color scheme before Angular even loads, so a
     // returning visitor who chose light doesn't see a flash of the dark

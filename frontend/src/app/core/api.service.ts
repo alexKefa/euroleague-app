@@ -51,6 +51,11 @@ import {
   FantasySlotRole,
   FantasyLeaderboardEntry,
   AlbumLeaderboardEntry,
+  LegendaryPoll,
+  LegendaryPollCandidateOption,
+  FavoritePlayer,
+  PromoRedemptionResponse,
+  AdminUsersResponse,
 } from "./models";
 
 /**
@@ -356,6 +361,12 @@ export class ApiService {
     return this.http.get<PackDefinition[]>(`${API_BASE_URL}/packs`);
   }
 
+  // The logged-in counterpart to registration's own ?promo=CODE handling —
+  // see features/claim/claim.ts.
+  redeemPromoCode(code: string): Observable<PromoRedemptionResponse> {
+    return this.http.post<PromoRedemptionResponse>(`${API_BASE_URL}/promo-codes/redeem`, { code });
+  }
+
   openPack(type: PackType): Observable<PackOpenOutcome> {
     return this.http.post<PackOpenOutcome>(`${API_BASE_URL}/packs/${type}/open`, {});
   }
@@ -470,6 +481,21 @@ export class ApiService {
     });
   }
 
+  // Only the Fantasy page should call this, once it's actually shown the
+  // "+N points" banner for whatever newFantasyRoundPoints it got back —
+  // same pattern as ackRoundRewards above.
+  ackFantasyRoundPoints(): Observable<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`${API_BASE_URL}/fantasy/round-points/ack`, {});
+  }
+
+  // Admin-only testing tool (2026-09-17): drafts a real, valid squad for
+  // the calling admin's own account instead of hand-picking one in the
+  // builder every time a test account needs one. See
+  // routes/fantasy.ts's POST /admin/auto-fill.
+  autoFillFantasySquad(): Observable<{ ok: boolean; season: string; round: number }> {
+    return this.http.post<{ ok: boolean; season: string; round: number }>(`${API_BASE_URL}/fantasy/admin/auto-fill`, {});
+  }
+
   getFantasyLeaderboard(): Observable<FantasyLeaderboardEntry[]> {
     return this.http.get<FantasyLeaderboardEntry[]>(`${API_BASE_URL}/fantasy/leaderboard`);
   }
@@ -484,5 +510,50 @@ export class ApiService {
 
   getLeagueAlbumLeaderboard(leagueId: string): Observable<AlbumLeaderboardEntry[]> {
     return this.http.get<AlbumLeaderboardEntry[]>(`${API_BASE_URL}/leagues/${leagueId}/album-leaderboard`);
+  }
+
+  getLegendaryPolls(): Observable<LegendaryPoll[]> {
+    return this.http.get<LegendaryPoll[]>(`${API_BASE_URL}/legendary-polls`);
+  }
+
+  voteLegendaryPoll(pollId: string, candidateId: string): Observable<LegendaryPoll> {
+    return this.http.post<LegendaryPoll>(`${API_BASE_URL}/legendary-polls/${pollId}/vote`, { candidateId });
+  }
+
+  removeLegendaryPollVote(pollId: string): Observable<LegendaryPoll> {
+    return this.http.delete<LegendaryPoll>(`${API_BASE_URL}/legendary-polls/${pollId}/vote`);
+  }
+
+  // Admin only (enforced server-side) — the eligible-player picker for
+  // creating a new poll.
+  getLegendaryPollCandidateOptions(search?: string): Observable<LegendaryPollCandidateOption[]> {
+    return this.http.get<LegendaryPollCandidateOption[]>(`${API_BASE_URL}/legendary-polls/candidates`, {
+      params: search ? { search } : {},
+    });
+  }
+
+  createLegendaryPoll(title: string, playerIds: string[], closesAt?: string): Observable<LegendaryPoll> {
+    return this.http.post<LegendaryPoll>(`${API_BASE_URL}/legendary-polls`, { title, playerIds, closesAt });
+  }
+
+  closeLegendaryPoll(pollId: string): Observable<LegendaryPoll> {
+    return this.http.post<LegendaryPoll>(`${API_BASE_URL}/legendary-polls/${pollId}/close`, {});
+  }
+
+  getFavoritePlayers(): Observable<FavoritePlayer[]> {
+    return this.http.get<FavoritePlayer[]>(`${API_BASE_URL}/players/favorites`);
+  }
+
+  favoritePlayer(playerId: string): Observable<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`${API_BASE_URL}/players/${playerId}/favorite`, {});
+  }
+
+  unfavoritePlayer(playerId: string): Observable<{ ok: boolean }> {
+    return this.http.delete<{ ok: boolean }>(`${API_BASE_URL}/players/${playerId}/favorite`);
+  }
+
+  // Admin only (enforced server-side).
+  getAdminUsers(): Observable<AdminUsersResponse> {
+    return this.http.get<AdminUsersResponse>(`${API_BASE_URL}/admin/users`);
   }
 }

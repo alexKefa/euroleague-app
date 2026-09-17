@@ -187,7 +187,7 @@ leaguesRouter.get("/:id/leaderboard", requireAuth, async (req, res) => {
       })
       .from(leagueMembers)
       .innerJoin(users, eq(leagueMembers.userId, users.id))
-      .where(eq(leagueMembers.leagueId, id));
+      .where(and(eq(leagueMembers.leagueId, id), eq(users.isAdmin, false)));
 
     const memberIds = memberRows.map((r) => r.userId);
     // getLeaderboardEntries already resolves each entry's showcase cards
@@ -265,7 +265,7 @@ leaguesRouter.get("/:id/fantasy-leaderboard", requireAuth, async (req, res) => {
       .select({ userId: leagueMembers.userId, username: users.username })
       .from(leagueMembers)
       .innerJoin(users, eq(leagueMembers.userId, users.id))
-      .where(eq(leagueMembers.leagueId, id));
+      .where(and(eq(leagueMembers.leagueId, id), eq(users.isAdmin, false)));
     const memberIds = memberRows.map((r) => r.userId);
 
     const entries = await getFantasyLeaderboardEntries({ userIds: memberIds, season });
@@ -309,7 +309,7 @@ leaguesRouter.get("/:id/album-leaderboard", requireAuth, async (req, res) => {
       })
       .from(leagueMembers)
       .innerJoin(users, eq(leagueMembers.userId, users.id))
-      .where(eq(leagueMembers.leagueId, id));
+      .where(and(eq(leagueMembers.leagueId, id), eq(users.isAdmin, false)));
 
     const memberIds = memberRows.map((r) => r.userId);
     // Sequential, not Promise.all — this driver gives no real cross-query

@@ -33,74 +33,100 @@ import { Component } from "@angular/core";
 // culprit, both are gone: nothing basket-shaped remains for a slot avatar
 // to visually collide with, regardless of exactly where it lands.
 //
-// A translucent glass-floor gradient (glassFloorGradient/glassSheenGradient
-// below, painted as the bottom-most layer before the court lines) replaces
-// the plain transparent backdrop the lines used to float on — a slot
-// avatar now visually reads as "standing on a floor" wherever it lands,
-// rather than as a circle overlapping a thin line on nothing. Picked glass
-// over a literal wood-grain texture to match this app's existing gradient-
-// heavy, non-skeuomorphic visual language (team-hero-sweep, the
-// collectible cards' holo-sweep, etc. — see CLAUDE.md) rather than
-// introducing a photographic/textured look that would be the only one of
-// its kind in the app. Deliberately not theme-reactive (fixed cool-blue
-// tones, not --color-page/--color-card) — like the highlight accent color,
-// a glass floor's icy look is a stylistic identity that should stay
-// consistent whether the app is in light or dark mode, not shift with it.
+// Hardwood-court floor (2026-09-16, replacing the earlier "glass floor"
+// look) — direct feedback that the icy blue-glass gradient didn't read as
+// an actual basketball court and asked for more intense color. Swapped the
+// cool translucent glassFloorGradient/glassSheenGradient pair for a warm,
+// saturated amber-wood gradient (courtFloorGradient), a subtle repeating
+// plank-seam pattern (courtWoodGrain) for real floor texture, a soft corner
+// vignette for depth, and a painted key (the keyLeftX/keyWidth/keyHeight
+// rect now gets a translucent var(--accent-primary) fill, not just an
+// outline) — real broadcast courts paint the lane a distinct color, and
+// tying it to the user's own reskin accent echoes this app's existing
+// team-color theming rather than introducing an unrelated new color.
+// Court lines switched from the muted `stroke-muted` theme color to a
+// fixed bright cream (line paint reads white/cream on real hardwood,
+// regardless of app theme) at a heavier stroke-width and full opacity for
+// real contrast against the now-much-busier floor. Deliberately still not
+// theme-reactive (fixed warm tones) — same reasoning as before: a floor's
+// material identity shouldn't flip with light/dark mode, only the accent
+// tint (already theme-independent itself) ties it to the user's team.
+// Geometry (viewBox, courtOutlinePath, keyLeftX/keyWidth/etc., the arc
+// paths) is untouched — every one of those numbers was calibrated against
+// a live browser in earlier passes (see the calibration comments below and
+// in fantasy.ts's ROW_TOP/rowXPositions), and this pass has no live
+// browser to re-verify pixel alignment against, so it's colors/fills only.
 @Component({
   selector: "app-court-background",
   standalone: true,
   template: `
     <svg viewBox="0 -90 320 300" class="w-full h-full pointer-events-none" preserveAspectRatio="xMidYMid meet">
       <defs>
-        <linearGradient id="glassFloorGradient" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#cfe6f2" stop-opacity="0.22" />
-          <stop offset="55%" stop-color="#6f93ab" stop-opacity="0.14" />
-          <stop offset="100%" stop-color="#101a24" stop-opacity="0.32" />
+        <linearGradient id="courtFloorGradient" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#f0b46a" stop-opacity="0.96" />
+          <stop offset="50%" stop-color="#d68a3e" stop-opacity="0.94" />
+          <stop offset="100%" stop-color="#96551f" stop-opacity="0.96" />
         </linearGradient>
-        <linearGradient id="glassSheenGradient" x1="0" y1="0" x2="1" y2="0.4">
+        <linearGradient id="courtSheenGradient" x1="0" y1="0" x2="1" y2="0.4">
           <stop offset="0%" stop-color="#ffffff" stop-opacity="0" />
-          <stop offset="45%" stop-color="#ffffff" stop-opacity="0.14" />
+          <stop offset="45%" stop-color="#ffffff" stop-opacity="0.22" />
           <stop offset="55%" stop-color="#ffffff" stop-opacity="0" />
         </linearGradient>
+        <radialGradient id="courtVignette" cx="0.5" cy="0.45" r="0.75">
+          <stop offset="55%" stop-color="#000000" stop-opacity="0" />
+          <stop offset="100%" stop-color="#000000" stop-opacity="0.3" />
+        </radialGradient>
+        <!-- Plank seams — thin darker verticals every 16 units (~20 across
+             the 308-wide floor), just enough to read as real wood grain
+             rather than a flat color fill, at low enough opacity to stay
+             behind the court lines and player avatars. -->
+        <pattern id="courtWoodGrain" width="16" height="294" patternUnits="userSpaceOnUse" patternTransform="translate(6, -84)">
+          <line x1="16" y1="0" x2="16" y2="294" stroke="#5a3512" stroke-opacity="0.14" stroke-width="1" />
+        </pattern>
       </defs>
-      <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#glassFloorGradient)" />
-      <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#glassSheenGradient)" />
-      <!-- Center-court logo decal — the app's own standalone icon (same
-           path data as favicon-v4.svg: a "C" arc + a curved line spanning
-           its full width + the ball at the line's right edge, not the
-           retired C-ring-with-ball-inside mark), faint and fixed-color
-           like the rest of this glass floor rather than theme-reactive,
+      <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#courtFloorGradient)" />
+      <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#courtWoodGrain)" />
+      <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#courtSheenGradient)" />
+      <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#courtVignette)" />
+      <!-- Center-court logo decal (2026-09-16) — now the real current app
+           mark (clutch-icon-dark.png, the icon-only crop of the live logo,
+           see CLAUDE.md's Branding section), not the extracted Archivo
+           Black "C" glyph this used to be. That vector "C" was kept here
+           specifically because it had no raster dependency and this decal
+           needed to stay a lightweight path — moot now that the app's own
+           logo is the source of truth for "the mark" everywhere else, so
+           matching it here beats a bespoke vector stand-in that's already
+           stale the moment the real logo changes again. The PNG's own
+           transparency is used as-is, no reprocessing — same file every
+           other icon-only usage (nav bar, /welcome header) renders.
+           The "-dark" file (light-on-dark artwork), not the light variant, since its
+           pale linework reads as a subtle sheen on this warm floor color,
+           closer to the old decal's own pale #eef3f7 fill than the light
+           variant's dark linework would. Fixed regardless of app
+           light/dark theme — same "this floor's identity doesn't shift
+           with the theme toggle" reasoning as the rest of this component —
            painted over the floor but under the real court lines so the
-           key/arc strokes stay crisp on top of it. -->
-      <g transform="translate(160 63) scale(1.7) translate(-60 -54)" opacity="0.16">
-        <defs>
-          <radialGradient id="ballGradCourt" cx="35%" cy="32%" r="75%">
-            <stop offset="0%" stop-color="#FF9E70" />
-            <stop offset="55%" stop-color="#FF6B35" />
-            <stop offset="100%" stop-color="#C94A24" />
-          </radialGradient>
-        </defs>
-        <path d="M 70 22.5 A 27 27 0 1 0 70 56.5" fill="none" stroke="#eef3f7" stroke-width="13" stroke-linecap="round" />
-        <path d="M 22 75.5 Q 49 89.5 76 75.5" fill="none" stroke="#FF6B35" stroke-width="4" stroke-linecap="round" />
-        <circle cx="76" cy="75.5" r="8" fill="url(#ballGradCourt)" />
-        <path d="M 76 68 L 76 83" stroke="rgba(0,0,0,0.35)" stroke-width="1.2" stroke-linecap="round" />
-        <path d="M 70 70 Q 73.65 75.5 70 81" fill="none" stroke="rgba(0,0,0,0.35)" stroke-width="1.2" stroke-linecap="round" />
-        <path d="M 82 70 Q 78.35 75.5 82 81" fill="none" stroke="rgba(0,0,0,0.35)" stroke-width="1.2" stroke-linecap="round" />
-      </g>
-      <path [attr.d]="courtOutlinePath" fill="none" class="stroke-muted" stroke-width="1.8" opacity="0.85" />
+           key/arc strokes stay crisp on top of it. Sized/positioned to
+           roughly the same footprint the old "C" glyph occupied (centered
+           a little above the free-throw line, in the open floor), scaled
+           to the PNG's own real 531:391 aspect ratio rather than forced
+           square like the old glyph was. -->
+      <image href="/clutch-icon-dark.png" x="102" y="19" width="120" height="88" opacity="0.2" preserveAspectRatio="xMidYMid meet" />
+      <path [attr.d]="courtOutlinePath" fill="none" stroke="#fdf3e2" stroke-width="2.2" opacity="0.95" />
       <rect
         [attr.x]="keyLeftX"
         [attr.y]="freeThrowLineY"
         [attr.width]="keyWidth"
         [attr.height]="keyHeight"
-        fill="none"
-        class="stroke-muted"
-        stroke-width="1.8"
-        opacity="0.85"
+        fill="var(--accent-primary)"
+        fill-opacity="0.28"
+        stroke="#fdf3e2"
+        stroke-width="2.2"
+        stroke-opacity="0.95"
       />
-      <circle [attr.cx]="basketX" [attr.cy]="freeThrowLineY" [attr.r]="freeThrowCircleRadius" fill="none" class="stroke-muted" stroke-width="1.8" opacity="0.85" />
-      <path [attr.d]="restrictedAreaPath" fill="none" class="stroke-muted" stroke-width="1.4" opacity="0.85" />
-      <path [attr.d]="threePointArcPath" fill="none" class="stroke-muted" stroke-width="1.8" opacity="0.85" />
+      <circle [attr.cx]="basketX" [attr.cy]="freeThrowLineY" [attr.r]="freeThrowCircleRadius" fill="none" stroke="#fdf3e2" stroke-width="2.2" opacity="0.95" />
+      <path [attr.d]="restrictedAreaPath" fill="none" stroke="#fdf3e2" stroke-width="1.7" opacity="0.95" />
+      <path [attr.d]="threePointArcPath" fill="none" stroke="#fdf3e2" stroke-width="2.2" opacity="0.95" />
     </svg>
   `,
 })

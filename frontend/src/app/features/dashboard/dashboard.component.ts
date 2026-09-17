@@ -9,12 +9,11 @@ import { StandingsRow, LeaderEntry, RoundMvp, NewsArticle, Game, LeaderboardEntr
 import { PageHintComponent } from "../../shared/page-hint";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { NavIconComponent } from "../../shared/nav-icon";
-import { TourService } from "../../core/tour/tour.service";
-import { ButtonDirective } from "../../shared/button.directive";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { NewsStoriesComponent } from "../../shared/news-stories";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { CollectibleCardComponent } from "../store/collectible-card";
+import { LiveCenterComponent } from "./live-center";
 import {
   newsDateLocale,
   shortDateFormat as gameShortDateFormat,
@@ -49,12 +48,12 @@ type DashboardTab = "performances" | "leaders" | "predictors" | "schedule";
     PageHintComponent,
     RetryImgDirective,
     NavIconComponent,
-    ButtonDirective,
     DropdownComponent,
     NewsStoriesComponent,
     SkeletonComponent,
     CollectibleCardComponent,
     TeamCodePipe,
+    LiveCenterComponent,
   ],
   templateUrl: "./dashboard.component.html",
   styleUrl: "./dashboard.component.css",
@@ -64,7 +63,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private theme = inject(ThemeService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
-  protected tour = inject(TourService);
+
+  // Sponsor ticker banner (2026-09-13) — two plain fields, not a
+  // signal/API call: there's no sponsor backend yet, this is a static
+  // slot to swap real copy/link into once a sponsor is confirmed. Move
+  // this to a real config/API source if/when more than one sponsor ever
+  // needs to rotate through here. First real sponsor: Υγειοσωματική (a
+  // gym), linking out to their Instagram — opened via target="_blank" in
+  // the template, same as any other outbound link in this app.
+  readonly sponsorText = "Υγειοσωματική — Δύναμη για κάθε buzzer-beater. Ακολούθησέ μας στο Instagram.";
+  readonly sponsorLink = "https://www.instagram.com/igiosomatiki/";
 
   readonly standings = signal<StandingsRow[]>([]);
   readonly loading = signal(true);
@@ -117,17 +125,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
     () => this.standings().find((r) => r.team.id === this.selectedTeamId()) ?? null
   );
 
-  // Top-3 + your team's own row (deduped) — replaces what used to be the
+  // Top-5 + your team's own row (deduped) — replaces what used to be the
   // full 21-row standings list. Your rank is already in the hero above;
   // this is just enough context to place it, with the full table one tap
   // away via the "view full" link kept on this card.
   readonly miniStandings = computed(() => {
     const rows = this.standings();
-    const top3 = rows.slice(0, 3);
+    const top5 = rows.slice(0, 5);
     const teamId = this.selectedTeamId();
-    if (!teamId || top3.some((r) => r.team.id === teamId)) return top3;
+    if (!teamId || top5.some((r) => r.team.id === teamId)) return top5;
     const yourRow = rows.find((r) => r.team.id === teamId);
-    return yourRow ? [...top3, yourRow] : top3;
+    return yourRow ? [...top5, yourRow] : top5;
   });
 
   readonly hasPerformances = computed(() => (this.roundMvp()?.leaders?.length ?? 0) > 0);
@@ -183,9 +191,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.activeTab.set(tab);
   }
 
+  // Segmented-control styling (2026-09-12 redesign) — the active segment
+  // fills solid (bg-ink), matching Material 3's segmented button, rather
+  // than the old separate pill buttons' bg-highlight treatment (which read
+  // as its own floating button, not one joined control).
   tabButtonClass(tab: DashboardTab): Record<string, boolean> {
     const active = this.activeTab() === tab;
-    return { "bg-highlight text-page": active, "text-muted hover:bg-page": !active };
+    return { "bg-ink text-page": active, "text-muted hover:text-ink": !active };
   }
 
   ngOnInit(): void {

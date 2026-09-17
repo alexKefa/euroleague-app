@@ -6,13 +6,13 @@ import { Resend } from "resend";
 // link to the console instead of sending an email.
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
-// Resend's own shared sending domain — works without verifying a custom
-// domain, which this app doesn't have yet (see CLAUDE.md's "TODO: custom
-// domain"). Swap to a "Clutch <noreply@yourdomain>" address once that
-// domain exists and is verified in the Resend dashboard. Note: Resend's
-// sandbox mode (no verified domain) only actually delivers to the email
-// address the Resend account itself was signed up with — every other
-// recipient gets a 403 until a domain is verified.
+// getclutchapp.com is verified in Resend (2026-09-17) — RESEND_FROM_EMAIL
+// on Railway now sends from noreply@getclutchapp.com instead of Resend's
+// shared sandbox sender. Note: Resend's sandbox mode (no verified domain)
+// only actually delivers to the email address the Resend account itself
+// was signed up with — every other recipient gets a 403 until a domain is
+// verified, which is why real users' forgot-password emails weren't
+// landing before this was fixed.
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "Clutch <onboarding@resend.dev>";
 
 // Where the emailed link points — the frontend's own origin, not the API's.
@@ -21,15 +21,15 @@ const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "Clutch <onboarding@resend.d
 // "https://host.app/" would otherwise produce a double-slash reset link.
 const APP_BASE_URL = (process.env.APP_BASE_URL ?? "http://localhost:4200").replace(/\/+$/, "");
 
-// The app's real PWA icon (frontend/public/icons/, same ring+basketball
-// mark as favicon-v4.svg) — reused as-is
+// The app's real PWA icon (frontend/public/icons/, same "C"-swoosh
+// basketball/hoop/"Clutch" mark as favicon-v14.png) — reused as-is
 // rather than duplicated as inline SVG, since email clients need a hosted
 // raster image for reliable rendering (see the comment above the <img> tag
 // below). Shares APP_BASE_URL's own "local dev has no publicly-reachable
 // host" limitation — a local send embeds an unreachable localhost URL, same
 // as the reset link itself already does; harmless since local sends are
 // only ever for testing, not real users.
-const LOGO_URL = `${APP_BASE_URL}/icons/icon-v4-192x192.png`;
+const LOGO_URL = `${APP_BASE_URL}/icons/icon-v14-192x192.png`;
 
 // Same brand orange as the web app's login/register hero mark
 // (login.component.html's inline SVG stroke="#FF6B35") — kept as a literal

@@ -1,31 +1,75 @@
-/* Hero card ambient effect — a slow diagonal wash of the user's own
-   --accent-primary/--accent-secondary drifting across the card, replacing
-   an earlier single-color static blob that read as generic (only ever
-   used primary, never moved). Same oversized-inset + rotated-translate
-   technique as collectible-card.css's holo-sweep, kept as its own
-   self-contained animation here rather than reused across components —
-   deliberately slower and broader than that one (8s vs 5s, wider color
-   bands) since this sits on screen persistently rather than for a one-off
-   reveal moment. */
-.team-hero-sweep {
-  position: absolute;
-  inset: -50%;
-  pointer-events: none;
-  background: linear-gradient(
-    115deg,
-    transparent 5%,
-    color-mix(in srgb, var(--accent-primary) 45%, transparent) 35%,
-    color-mix(in srgb, var(--accent-secondary) 45%, transparent) 65%,
-    transparent 95%
-  );
-  animation: team-hero-sweep 8s ease-in-out infinite alternate;
+/* Hides the scrollbar on the stat-chip row and the tabs' segmented control
+   (2026-09-12 redesign) — both are meant to read as a single row/track, not
+   a scroll area with visible chrome. Same convention as
+   shared/news-stories.css's .stories-rail. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
-@keyframes team-hero-sweep {
-  0% {
-    transform: translateX(-30%) translateY(-10%) rotate(8deg);
+/* Sponsor ticker (2026-09-13) — deliberately NOT this app's usual
+   bg-card/border-line/shadow-card tile language: flat near-black plus
+   amber "LED scoreboard" text in Nova Mono (imported in styles.css) with
+   a soft glow, so it visually reads as sponsored/external content,
+   distinct from every other dashboard widget rather than blending in as
+   one more feature card. Sits in normal flow (rounded-3xl, like every
+   other dashboard tile) below the news tile — full-bleed and floating
+   "jumbotron" placements were both tried and reverted, see git history. */
+.sponsor-ticker {
+  background: #000;
+  border: 1px solid #2a2a2a;
+  text-decoration: none;
+}
+.sponsor-tag {
+  font-family: "Nova Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: #000;
+  background: #ffb800;
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+.sponsor-ticker-viewport {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.sponsor-ticker-track {
+  display: flex;
+  width: max-content;
+  animation: sponsor-ticker-scroll 16s linear infinite;
+}
+.sponsor-ticker-text {
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding-right: 3rem;
+  font-family: "Nova Mono", monospace;
+  font-size: 13px;
+  letter-spacing: 0.03em;
+  color: #ffc940;
+  text-shadow: 0 0 6px rgba(255, 184, 0, 0.55);
+}
+
+@keyframes sponsor-ticker-scroll {
+  from {
+    transform: translateX(0);
   }
-  100% {
-    transform: translateX(30%) translateY(10%) rotate(8deg);
+  to {
+    /* Exactly one copy's width, since the track holds two identical
+       copies back-to-back (see dashboard.component.html) — this is what
+       makes the loop seamless instead of jumping. */
+    transform: translateX(-50%);
+  }
+}
+
+/* Real accessibility need, not a nicety: a continuously-scrolling board is
+   exactly the kind of motion prefers-reduced-motion exists for. Freezes on
+   the first copy instead of animating; the second (aria-hidden) copy is
+   still there but simply sits off-screen, unseen. */
+@media (prefers-reduced-motion: reduce) {
+  .sponsor-ticker-track {
+    animation: none;
   }
 }

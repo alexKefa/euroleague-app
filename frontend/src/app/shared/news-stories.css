@@ -99,7 +99,17 @@
    the wider invisible edge tap-zones in news-stories.html. Semi-transparent
    over the photo/black background at any point in the story, not tied to
    the per-team accent like .story-ring — this is chrome over media, not
-   part of the app's own surface. */
+   part of the app's own surface. Desktop only (2026-09-12) — the wide
+   invisible edge tap-zones aren't the issue on mobile, but these visible
+   chevrons sitting right on top of the photo/caption read as clutter on a
+   small screen where a swipe/tap is already the obvious gesture. Display
+   itself is intentionally NOT set here — it's controlled by the `hidden
+   sm:flex` Tailwind classes on the buttons in news-stories.html instead,
+   same reason .rail-arrow below leaves it to Tailwind too: an Angular
+   component style's own selector gets a scoping attribute added, which
+   outranks a plain global `.hidden{display:none}` on specificity alone —
+   setting `display` here would silently win over `hidden` regardless of
+   which one is meant to apply. */
 .story-nav-arrow {
   position: absolute;
   top: 0;
@@ -109,7 +119,6 @@
   height: 36px;
   width: 36px;
   border-radius: 9999px;
-  display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.4);

@@ -5,6 +5,7 @@ import { Router, RouterLink } from "@angular/router";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { ButtonDirective } from "../../shared/button.directive";
+import { consumePendingPromoClaim } from "../../shared/pending-promo-claim";
 
 @Component({
   selector: "app-login",
@@ -33,7 +34,14 @@ export class LoginComponent {
 
     const { email, password } = this.form.getRawValue();
     this.auth.login(email, password).subscribe({
-      next: () => this.router.navigateByUrl("/"),
+      next: () => {
+        // A promo QR link (features/claim/claim.ts) stashed a code before
+        // sending a logged-out visitor here via /welcome — pick it back up
+        // now that they're actually signed in, instead of just landing on
+        // the dashboard with the code forgotten.
+        const pendingPromo = consumePendingPromoClaim();
+        this.router.navigateByUrl(pendingPromo ? `/claim?promo=${encodeURIComponent(pendingPromo)}` : "/");
+      },
       error: () => {
         this.error.set(this.i18n.t("auth.invalidCredentials"));
         this.submitting.set(false);

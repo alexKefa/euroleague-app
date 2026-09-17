@@ -4,11 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Clutch QR Card</title>
-  <meta name="description" content="Print-ready QR card for Clutch, in Greek — logo, scannable code, and a one-line feature summary." />
+  <meta name="description" content="Print-ready QR flyer for Clutch, in Greek — logo, a four-feature showcase grid, a scannable code, and a feature summary." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@800&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap"
     rel="stylesheet"
   />
   <style>
@@ -42,54 +42,96 @@
     /* The card is the print artifact itself — a fixed dark object, not page
        chrome, so it keeps one identity regardless of the viewer's theme
        (same reasoning a printed sticker or table-tent would: it doesn't
-       repaint itself when someone's phone is in light mode). */
+       repaint itself when someone's phone is in light mode). Height is left
+       intrinsic (no forced aspect-ratio) since the four-panel showcase grid
+       below needs real room — a locked ratio would either clip the grid or
+       force it to be squeezed, both worse than a card that's simply a bit
+       taller than the old QR-only version. */
     .card {
       --ink: #f0f0ec;
       --muted: #8a8a86;
       --accent: #ff6b35;
       --line: #232324;
       width: 100%;
-      max-width: 380px;
-      aspect-ratio: 4 / 5;
+      max-width: 400px;
       display: flex;
       flex-direction: column;
       align-items: center;
       background: #151516;
       border: 1px solid var(--line);
       border-radius: 20px;
-      padding: 1.9rem 1.6rem 1.6rem;
+      padding: 1.9rem 1.5rem 1.5rem;
       color: var(--ink);
       font-family: "Barlow", sans-serif;
       filter: drop-shadow(0 22px 36px rgba(0, 0, 0, 0.3));
     }
 
-    .brand {
-      display: inline-flex;
-      align-items: center;
-    }
-    .brand svg {
-      display: block;
-    }
     .subtitle {
       font-family: "JetBrains Mono", monospace;
-      font-size: 0.62rem;
-      letter-spacing: 0.08em;
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.09em;
       text-transform: uppercase;
-      color: var(--muted);
-      margin: 0.35rem 0 0;
+      color: var(--accent);
+      margin: 0.4rem 0 0;
+      text-align: center;
     }
 
-    .qr-wrap {
-      flex: 1;
+    /* Four-feature showcase grid (2026-09-13) — replaces the old bare QR
+       with a preview of what scanning actually leads to, same reasoning
+       the landing page's own carousel demonstrates the app rather than
+       just describing it. Icons are this app's real nav-icon glyphs
+       (shared/nav-icon.ts), not illustrated mockups — keeps the flyer
+       visually consistent with the live product instead of introducing a
+       one-off illustration style that could drift from it. */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      width: 100%;
+      margin: 1rem 0;
+    }
+    .panel {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 0.8rem;
-      width: 100%;
+      gap: 0.3rem;
+      text-align: center;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 0.7rem 0.4rem;
+    }
+    .panel svg {
+      width: 24px;
+      height: 24px;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+    .panel-label {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.48rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted);
+      line-height: 1.25;
+    }
+
+    .qr-panel {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.7rem;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 0.9rem 0.9rem 0.8rem;
+      order: 3;
     }
     .qr-box {
-      width: 78%;
+      width: 58%;
+      max-width: 190px;
       aspect-ratio: 1 / 1;
       line-height: 0;
     }
@@ -101,16 +143,22 @@
     }
     .scan {
       font-family: "JetBrains Mono", monospace;
-      font-size: 0.66rem;
-      letter-spacing: 0.12em;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
+      color: var(--ink);
+      text-align: center;
+      line-height: 1.5;
+    }
+    .scan span {
       color: var(--accent);
     }
 
     .features {
       font-family: "JetBrains Mono", monospace;
-      font-size: 0.6rem;
-      letter-spacing: 0.06em;
+      font-size: 0.56rem;
+      letter-spacing: 0.05em;
       text-transform: uppercase;
       color: var(--muted);
       text-align: center;
@@ -122,15 +170,70 @@
 </head>
 <body>
   <div class="card">
-    <span class="brand"><svg width="73" height="34" viewBox="0 0 320 150" role="img" aria-label="Clutch"><defs><radialGradient id="ballGradQr" cx="35%" cy="32%" r="75%"><stop offset="0%" stop-color="#FF9E70" /><stop offset="55%" stop-color="#FF6B35" /><stop offset="100%" stop-color="#C94A24" /></radialGradient><linearGradient id="lineGradQr" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="#C94A24" /><stop offset="100%" stop-color="#FF6B35" /></linearGradient><filter id="shadowQr" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#FF6B35" flood-opacity="0.4" /></filter></defs><text x="0" y="74" font-family="'IBM Plex Sans',sans-serif" font-weight="800" font-size="80" fill="var(--ink)">Clutch</text><path d="M 0 98 Q 115 122 255 84" fill="none" stroke="url(#lineGradQr)" stroke-width="5" stroke-linecap="round" filter="url(#shadowQr)" /><circle cx="290" cy="80" r="15" fill="url(#ballGradQr)" filter="url(#shadowQr)" /><path d="M 290 66 L 290 94" stroke="rgba(0,0,0,0.3)" stroke-width="1.8" stroke-linecap="round" /><path d="M 279 70 Q 285.5 80 279 90" fill="none" stroke="rgba(0,0,0,0.3)" stroke-width="1.8" stroke-linecap="round" /><path d="M 301 70 Q 294.5 80 301 90" fill="none" stroke="rgba(0,0,0,0.3)" stroke-width="1.8" stroke-linecap="round" /></svg></span>
-    <p class="subtitle">Τα πάντα για την Euroleague.</p>
+    <!-- v8 (2026-09-13 trial) — the user-generated backboard/hoop/net
+         "CLUTCH" illustration, replacing the plain wordmark as the card's
+         header art. Sized much larger than the old 102x34 wordmark since
+         this mark's baked-in text needs real room to stay legible (see
+         app.component.html's comment for the full rationale). -->
+    <!-- clutch-mark-dark.png, not clutch-mark.png — the card (see the
+       .card comment above) is a fixed dark object regardless of viewer
+       theme, and the source art's own dark linework/text reads as
+       near-invisible on it (v11, 2026-09-14). -->
+    <img src="/clutch-mark-dark.png" alt="Clutch" style="width: 62%; max-width: 230px; height: auto; display: block; margin: 0 auto;" />
+    <p class="subtitle" style="margin-top: 0.7rem;">Τα πάντα για την EuroLeague</p>
 
-    <div class="qr-wrap">
-      <div class="qr-box" id="qr-card"></div>
-      <span class="scan">Σκάναρε για να παίξεις</span>
+    <div class="grid">
+      <!-- Predictions — "picks" bullseye, matching shared/nav-icon.ts exactly. -->
+      <div class="panel">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2" />
+          <circle cx="12" cy="12" r="4.6" stroke="currentColor" stroke-width="1.8" />
+          <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+        </svg>
+        <span class="panel-label">Προβλέψεις</span>
+      </div>
+
+      <!-- Collectible cards — the fanned two-card glyph from nav-icon.ts. -->
+      <div class="panel">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="3.2" y="6.5" width="9.5" height="13" rx="1.4" transform="rotate(-13 8 13)" stroke="currentColor" stroke-width="2" />
+          <rect x="11.3" y="4.5" width="9.5" height="13" rx="1.4" transform="rotate(13 16 11)" stroke="currentColor" stroke-width="2" />
+          <circle cx="16" cy="9.2" r="1.3" fill="currentColor" transform="rotate(13 16 11)" />
+        </svg>
+        <span class="panel-label">Συλλεκτικές<br />κάρτες</span>
+      </div>
+
+      <div class="qr-panel">
+        <div class="qr-box" id="qr-card"></div>
+        <p class="scan">Σκάναρε το QR και<br /><span>Clutch</span>-ώσε το</p>
+      </div>
+
+      <!-- Stats — the ranked-bars glyph from nav-icon.ts's "standings" case. -->
+      <div class="panel">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="4" y="13" width="4.5" height="7" rx="1" stroke="currentColor" stroke-width="2" />
+          <rect x="9.75" y="7" width="4.5" height="13" rx="1" stroke="currentColor" stroke-width="2" />
+          <rect x="15.5" y="10" width="4.5" height="10" rx="1" stroke="currentColor" stroke-width="2" />
+        </svg>
+        <span class="panel-label">Στατιστικά</span>
+      </div>
+
+      <!-- Fantasy Five — half-court basketball glyph, matching
+           shared/nav-icon.ts's "fantasy" case exactly. -->
+      <div class="panel">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="5" y="2.5" width="14" height="18.5" rx="1.3" stroke="currentColor" stroke-width="1.8" />
+          <line x1="9" y1="3.6" x2="15" y2="3.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+          <path d="M10.7 4.3Q12 5.6 13.3 4.3" stroke="currentColor" stroke-width="1" stroke-linecap="round" />
+          <rect x="9.5" y="2.5" width="5" height="7" stroke="currentColor" stroke-width="1.3" />
+          <circle cx="12" cy="9.5" r="2.7" stroke="currentColor" stroke-width="1.3" />
+          <path d="M6.3 4.2Q6.3 16 12 16Q17.7 16 17.7 4.2" stroke="currentColor" stroke-width="1.3" />
+        </svg>
+        <span class="panel-label">Fantasy</span>
+      </div>
     </div>
 
-    <p class="features">Προβλέψεις &middot; Κάρτες &middot; Fantasy</p>
+    <p class="features">Στατιστικά &middot; Προβλέψεις &middot; Συλλεκτικές κάρτες &middot; Fantasy</p>
   </div>
 
   <!-- Vendored locally (vendor-qr-code-styling.js), not loaded from a CDN:
@@ -149,10 +252,11 @@
     // on that same image loading, since canvas compositing is imperative and
     // has no separate async layer the way svg's <image> does — so a stalled
     // load means nothing draws at all, not just a missing logo). A plain
-    // code sidesteps both failure classes entirely. The brand is already
-    // shown above the code on the card itself, so nothing is lost.
+    // code sidesteps both failure classes entirely — doubly so now that a
+    // stylized/artistic QR render was explicitly considered and rejected in
+    // favor of this library's real, verified-scannable output.
     (function () {
-      var URL_TARGET = "https://clutchapp.up.railway.app";
+      var URL_TARGET = "https://getclutchapp.com/claim?promo=QRFLYER";
       if (typeof QRCodeStyling === "undefined") return;
       var qr = new QRCodeStyling({
         width: 320,

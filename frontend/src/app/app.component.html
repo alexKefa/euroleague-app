@@ -11,52 +11,56 @@
   [style.background-image]="theme.ambientGlowBackground()"
 ></div>
 
+@if (!hideChrome()) {
 <nav
   class="sticky top-0 z-30 flex justify-between items-center gap-3 px-4 sm:px-6 py-4 bg-card border-b border-line"
 >
-  <!-- The logo — "Clutch" set in real type (SVG <text>, not a letterform
-       substitution), a curved shaded line tracking under most of the
-       word, and the ball riding well clear of the last letter. One drawn
-       graphic, not an icon element sitting beside a text element — see
-       CLAUDE.md's Branding section for why that mattered. Text fill is a
-       two-stop var(--color-ink) gradient (full opacity to ~82%) so it
-       stays legible in both themes, not a fixed white. Deliberately NOT
-       using textLength/lengthAdjust to force an exact width (tried once,
-       reverted): "Clutch" at this weight/size renders wider than assumed,
-       and browsers vary in how much of that forcing actually compresses
-       glyphs vs. just spacing — the "h" ended up rendering underneath the
-       ball. Natural width plus a generous gap before the ball is more
-       robust than a precise-looking number that silently breaks. -->
-  <a routerLink="/" class="flex items-center shrink-0">
-    <svg role="img" aria-label="Clutch" width="81" height="38" viewBox="0 0 320 150">
-      <defs>
-        <radialGradient id="ballGradNav" cx="35%" cy="32%" r="75%">
-          <stop offset="0%" stop-color="#FF9E70"/>
-          <stop offset="55%" stop-color="#FF6B35"/>
-          <stop offset="100%" stop-color="#C94A24"/>
-        </radialGradient>
-        <linearGradient id="lineGradNav" x1="0" y1="1" x2="1" y2="0">
-          <stop offset="0%" stop-color="#C94A24"/>
-          <stop offset="100%" stop-color="#FF6B35"/>
-        </linearGradient>
-        <linearGradient id="textGradNav" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" style="stop-color:var(--color-ink)"/>
-          <stop offset="100%" style="stop-color:var(--color-ink)" stop-opacity="0.82"/>
-        </linearGradient>
-        <filter id="shadowNav" x="-50%" y="-50%" width="200%" height="200%">
-          <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#FF6B35" flood-opacity="0.4"/>
-        </filter>
-      </defs>
-      <text x="0" y="74" font-family="'IBM Plex Sans',sans-serif" font-weight="800" font-size="80" fill="url(#textGradNav)">Clutch</text>
-      <path d="M 0 98 Q 115 122 255 84" fill="none" stroke="url(#lineGradNav)" stroke-width="5" stroke-linecap="round" filter="url(#shadowNav)"/>
-      <circle cx="290" cy="80" r="15" fill="url(#ballGradNav)" filter="url(#shadowNav)"/>
-      <path d="M 290 66 L 290 94" stroke="rgba(0,0,0,0.3)" stroke-width="1.8" stroke-linecap="round"/>
-      <path d="M 279 70 Q 285.5 80 279 90" fill="none" stroke="rgba(0,0,0,0.3)" stroke-width="1.8" stroke-linecap="round"/>
-      <path d="M 301 70 Q 294.5 80 301 90" fill="none" stroke="rgba(0,0,0,0.3)" stroke-width="1.8" stroke-linecap="round"/>
-    </svg>
+  <!-- The logo — v14 (2026-09-14, see CLAUDE.md's Branding section): a new
+       user-supplied "C"-swoosh basketball/hoop mark with its own baked-in
+       serif "Clutch" wordmark below it, replacing v9/v10's backboard/net
+       illustration. Same nav-specific problem as the mark it replaces: the
+       source art is a stacked (icon-above-text) composition, and its own
+       "Clutch" text renders illegibly small once the whole thing is
+       shrunk to nav-icon height — so the nav uses clutch-icon(-dark).png,
+       a crop of just the graphic (found via a blank-row scan, not
+       eyeballed — see process-logo.js's history in git if regenerating),
+       paired with a real, live "Clutch" <span>, same pairing this nav has
+       used across every pictorial-mark redesign. Two <img>s (light/dark)
+       toggle via styles.css's .brand-mark-light/.brand-mark-dark, since
+       the source art's dark linework is otherwise near-invisible on this
+       app's actual dark-theme page background (also in that CLAUDE.md
+       entry) — the raster has no vector source to recolor via
+       var(--color-ink) the way the old wordmark SVG could. The "Clutch"
+       <span> itself (2026-09-14) switched fonts from font-sans to
+       .brand-wordmark (Bigshot One, styles.css) to echo the logo's own
+       bold vintage-serif "Clutch" wordmark instead of reading as plain UI
+       text next to it — see styles.css's comment for why it's a Google
+       Fonts lookalike rather than the logo's actual (non-free) typeface. -->
+  <a routerLink="/" class="flex items-center gap-2 shrink-0">
+    <img src="/clutch-icon.png" alt="" height="34" class="brand-mark-light" style="height: 34px; width: auto;" />
+    <img src="/clutch-icon-dark.png" alt="" height="34" class="brand-mark-dark" style="height: 34px; width: auto;" />
+    <span class="brand-wordmark text-ink text-xl tracking-wide">Clutch</span>
   </a>
 
   <div class="flex items-center gap-2 min-w-0">
+    <!-- Tour entry point (2026-09-12, moved from its own full-width row atop
+         the dashboard) — the tour itself is a cross-page walkthrough
+         (Dashboard → Predictions → Cards hub → Wheel → Packs → Trades →
+         Profile, see TourService's own doc comment: it navigates between
+         routes as it goes), so a single dashboard-only entry point was
+         always a slightly arbitrary home for it. Living here instead means
+         it's reachable from anywhere, at the same modest weight as
+         profile/logout next to it — visible on every page, but no longer
+         competing with a page's own content for the most prominent spot. -->
+    <button
+      type="button"
+      (click)="tour.start()"
+      class="shrink-0 w-8 h-8 rounded-xl border-2 border-line flex items-center justify-center text-muted hover:text-highlight hover:bg-page transition-colors"
+      [attr.aria-label]="i18n.t('tour.takeTour')"
+      [title]="i18n.t('tour.takeTour')"
+    >
+      <app-nav-icon name="compass" [size]="18" />
+    </button>
 
     @if (auth.isAuthenticated()) {
       <!-- Desktop only — on mobile this same identity/logout is one tap
@@ -114,8 +118,10 @@
     }
   </div>
 </nav>
+}
 
 <div class="flex">
+  @if (!hideChrome()) {
   <!-- Desktop primary nav — icon-only rail, sm and up; labels surface on hover/focus instead of sitting on screen permanently. The bottom tab nav below is mobile-only. -->
   <nav
     class="hidden sm:flex flex-col items-center shrink-0 w-16 border-r border-line bg-card py-4 gap-2 sticky top-16 h-[calc(100vh-4rem)] z-40"
@@ -158,15 +164,18 @@
       </div>
     }
   </nav>
+  }
 
-  <div class="flex-1 min-w-0 pb-[calc(3.5rem+env(safe-area-inset-bottom))] sm:pb-0">
+  <div
+    [class]="hideChrome() ? 'flex-1 min-w-0' : 'flex-1 min-w-0 pb-[calc(3.5rem+env(safe-area-inset-bottom))] sm:pb-0'"
+  >
     <router-outlet></router-outlet>
   </div>
 </div>
 
 <!-- Bottom tab nav — mobile only, primary nav within thumb reach.
      Icon-only, Instagram-inspired active state (bold/filled color, no
-     background highlight — see app-nav-icon's [active] input), now as a
+     background highlight — see app-nav-icon's [active] input), as a
      floating glass capsule (2026-09-08 pass) instead of a flush edge-to-
      edge bar: inset from all three edges, fully rounded, backdrop-blur'd
      translucent background — tinted the app's own highlight orange rather
@@ -174,37 +183,28 @@
      app's other reference-inspired passes already follow. Still `fixed`
      (unaffected by page scroll, "stays sticky" by construction) — floating
      only changes its own shape/position, not its positioning scheme.
-     "Sliding pill": one shared highlight-tinted pill glides between tabs
-     on every switch, sized to exactly fill whichever tab's own slot
-     (equal-width flex-1 boxes, so the pill's width never actually changes
-     between tabs — only its transform does), plus the courier basketball
-     (fades in, arcs across, lands on the new tab). Both are positioned
-     imperatively in app.component.ts (measuring the real [data-nav-tab]
-     elements below), not via Angular bindings — there's no clean
-     declarative way to animate one shared element between N sibling
-     positions. -->
+     A sliding pill + basketball-courier active-tab indicator (both
+     positioned imperatively by measuring real DOM elements) was tried and
+     removed 2026-09-15 after repeated real-device bugs — most recently
+     one bad enough to drop touch events on the nav entirely — every one
+     traceable back to that imperative measurement going stale against the
+     shrink-on-scroll transform below. The active state is now this
+     each-tab [class.text-highlight]/[active] binding plus a per-tab
+     background chip (2026-09-16 — each icon-wrap's own [class] ternary
+     below, bg-highlight/20 + a slight scale-up), not a single shared
+     pill: every tab paints its own active state from the same synchronous
+     isActive() signal the color already used, so there is still nothing
+     to measure and nothing that can go stale regardless of scroll/resize
+     timing — the chip gets the old pill's visual "something moved" payoff
+     without reintroducing the imperative-positioning bug class. -->
+@if (!hideChrome()) {
 <nav
   #bottomNav
   data-app-bottom-nav
   class="sm:hidden fixed left-3 right-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-40 rounded-full bg-highlight/15 backdrop-blur-xl border border-highlight/25 shadow-pop origin-bottom transition-transform duration-300 ease-out motion-reduce:transition-none"
   [style.transform]="bottomNavShrunk() ? 'translateZ(0) scale(0.9)' : 'translateZ(0)'"
 >
-  <div #bottomNavRow class="relative flex items-center justify-around px-0 py-0">
-  <div
-    #pillIndicator
-    class="pointer-events-none absolute top-0 left-0 h-0 w-0 rounded-full bg-highlight/20 transition-[transform,width,height] duration-[380ms] [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none"
-  ></div>
-  <svg
-    #basketball
-    viewBox="0 0 32 32"
-    aria-hidden="true"
-    class="pointer-events-none absolute top-[10px] left-0 z-10 w-4 h-4 opacity-0 [filter:drop-shadow(0_3px_4px_rgba(0,0,0,0.35))]"
-  >
-    <circle cx="16" cy="16" r="15" fill="#ff6b35" stroke="#1a1015" stroke-width="1.4" />
-    <path d="M16 1v30M1 16h30" stroke="#1a1015" stroke-width="1.3" fill="none" />
-    <path d="M16 1c8 5 8 25 0 30M16 1c-8 5-8 25 0 30" stroke="#1a1015" stroke-width="1.3" fill="none" />
-  </svg>
-
+  <div class="relative flex items-center justify-around px-0 py-0">
   @for (link of mobileNavLinks; track link.path) {
     <a
       data-nav-tab
@@ -214,7 +214,11 @@
       [class.text-muted]="!isActive(link)"
       class="relative flex-1 flex items-center justify-center py-0.5"
     >
-      <span class="icon-wrap relative flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-200">
+      <span
+        [class]="isActive(link)
+          ? 'icon-wrap relative flex items-center justify-center w-9 h-9 rounded-full bg-highlight/20 scale-[1.08] transition-all duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)]'
+          : 'icon-wrap relative flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)]'"
+      >
         <app-nav-icon [name]="link.icon" [active]="isActive(link)" [size]="25" />
         @if (link.path === '/predictions' && auth.isAuthenticated() && events.hasLiveGame()) {
           <span
@@ -234,9 +238,7 @@
 
   <!-- "More" — always last. Profile/login live in the top bar instead of a
        tab here; this overflow is just for secondary destinations like
-       Schedule (MORE_LINKS). Its active highlight is the same shared
-       sliding pill as every other tab (see #pillIndicator above), not a
-       per-tab element. -->
+       Schedule (MORE_LINKS). -->
   <div data-nav-tab class="relative flex-1 flex items-center justify-center py-0.5">
     <button
       type="button"
@@ -247,7 +249,11 @@
       [class.text-muted]="!isMoreActive() && !moreOpen()"
       class="flex items-center justify-center"
     >
-      <span class="icon-wrap relative flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-200">
+      <span
+        [class]="isMoreActive() || moreOpen()
+          ? 'icon-wrap relative flex items-center justify-center w-9 h-9 rounded-full bg-highlight/20 scale-[1.08] transition-all duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)]'
+          : 'icon-wrap relative flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)]'"
+      >
         <app-nav-icon name="dots-vertical" [active]="isMoreActive() || moreOpen()" [size]="25" />
       </span>
     </button>
@@ -275,6 +281,9 @@
   </div>
   </div>
 </nav>
+}
 
+@if (!hideChrome()) {
 <app-tour-overlay></app-tour-overlay>
 <app-install-banner></app-install-banner>
+}

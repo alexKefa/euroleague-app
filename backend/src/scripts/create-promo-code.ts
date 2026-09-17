@@ -1,21 +1,30 @@
 /**
- * Create (or update) a promo code redeemable at registration — e.g. a link
- * dropped in a YouTube video description (clutchapp.up.railway.app/register
- * ?promo=CODE). See services/promoCodes.ts for the redemption logic and
- * routes/auth.ts for where it's wired into /register.
+ * Create (or update) a promo code — redeemable either at registration (e.g.
+ * a link dropped in a YouTube video description, getclutchapp.com/register
+ * ?promo=CODE) or, since 2026-09-13, by an already-logged-in user via
+ * POST /api/promo-codes/redeem (e.g. a QR flyer at a live event, which
+ * should point at getclutchapp.com/claim?promo=CODE instead — see
+ * features/claim/claim.ts). See services/promoCodes.ts for the redemption
+ * logic and routes/auth.ts / routes/promoCodes.ts for where each is wired
+ * up.
  *
  * Usage:
- *   npm run promo:create -- <code> <packType> [bonusPoints] [maxRedemptions] [expiresInDays]
+ *   npm run promo:create -- <code> <packType> [bonusPoints] [maxRedemptions] [expiresInDays] [quantity]
  *
  * Examples:
  *   npm run promo:create -- YOUTUBE2026 wheelPro 0 500 30
  *     -> code YOUTUBE2026, an unopened wheelPro pack (guaranteed rare(s)),
- *        no extra points, capped at 500 redemptions, expires in 30 days.
+ *        no extra points, capped at 500 redemptions, expires in 30 days,
+ *        one pack per redemption (quantity defaults to 1).
  *   npm run promo:create -- YOUTUBE2026 wheelPro
  *     -> same pack, no points, uncapped, no expiry.
+ *   npm run promo:create -- GYM qrBonus 0 "" "" 2
+ *     -> code GYM, uncapped, no expiry, grants 2 unopened qrBonus packs per
+ *        redemption instead of 1 — pass "" for an arg you want left at its
+ *        default so a later positional arg can still be set.
  *
- * Re-running with the same code updates that row (pack/points/caps/expiry)
- * rather than creating a duplicate — the code column is unique.
+ * Re-running with the same code updates that row (pack/points/caps/expiry/
+ * quantity) rather than creating a duplicate — the code column is unique.
  */
 import "dotenv/config";
 import { eq } from "drizzle-orm";
@@ -24,10 +33,12 @@ import { promoCodes } from "../db/schema.js";
 import { PACKS, PackType } from "../services/packs.js";
 
 async function main() {
-  const [code, packType, bonusPointsArg, maxRedemptionsArg, expiresInDaysArg] = process.argv.slice(2);
+  const [code, packType, bonusPointsArg, maxRedemptionsArg, expiresInDaysArg, quantityArg] = process.argv.slice(2);
 
   if (!code || !packType) {
-    console.error("Usage: npm run promo:create -- <code> <packType> [bonusPoints] [maxRedemptions] [expiresInDays]");
+    console.error(
+      "Usage: npm run promo:create -- <code> <packType> [bonusPoints] [maxRedemptions] [expiresInDays] [quantity]"
+    );
     console.error(`packType must be one of: ${Object.keys(PACKS).join(", ")}`);
     process.exit(1);
   }
@@ -41,6 +52,7 @@ async function main() {
   const expiresAt = expiresInDaysArg
     ? new Date(Date.now() + Number(expiresInDaysArg) * 24 * 60 * 60 * 1000)
     : null;
+  const quantity = quantityArg ? Number(quantityArg) : 1;
 
   const normalizedCode = code.trim().toUpperCase();
 
@@ -49,6 +61,7 @@ async function main() {
   const values = {
     code: normalizedCode,
     packType: packType as PackType,
+    quantity,
     bonusPoints,
     maxRedemptions,
     expiresAt,
@@ -65,10 +78,16 @@ async function main() {
 
   console.log({
     packType,
+    quantity,
     bonusPoints,
     maxRedemptions: maxRedemptions ?? "uncapped",
     expiresAt: expiresAt?.toISOString() ?? "never",
-    registerLink: `https://clutchapp.up.railway.app/register?promo=${normalizedCode}`,
+    // Two different landing spots for the same code, depending on channel:
+    // /register for cold traffic that doesn't have an account yet (a video
+    // description), /claim for something meant to work for existing users
+    // too (a QR flyer at a live event) — see features/claim/claim.ts.
+    registerLink: `https://getclutchapp.com/register?promo=${normalizedCode}`,
+    claimLink: `https://getclutchapp.com/claim?promo=${normalizedCode}`,
   });
 }
 

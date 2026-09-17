@@ -352,9 +352,10 @@
 
 /* Pack-selection art — a physical foil-pack silhouette per tier: tapered
    top corners (clip-path), a diagonal dot texture, one diagonal foil
-   stripe, and a single embossed version of the navbar/splash logo mark
-   (same 3 bars as app.component.html's nav logo). A real 3D lean (a
-   perspective + rotateX/rotateY transform, not just a flat rectangle) plus
+   stripe, and the app's real brand mark (clutch-icon.png/-dark.png, same
+   pair used everywhere else the logo appears) printed onto the face. A
+   real 3D lean (a perspective + rotateX/rotateY transform, not just a
+   flat rectangle) plus
    a shape-hugging drop-shadow sell it as a physical card rather than flat
    art — filter: drop-shadow (not box-shadow) is what follows the
    clip-path's cut corners instead of boxing them in. Colors reuse the
@@ -462,13 +463,17 @@
   bottom: 32%;
   left: 20%;
   right: 20%;
-  color: currentColor;
 }
 
-.pack-mark svg {
-  width: 74%;
-  filter: drop-shadow(-1px -1px 0 rgba(255, 255, 255, 0.45)) drop-shadow(1.5px 2px 2px rgba(0, 0, 0, 0.5));
-  opacity: 0.94;
+/* Brand mark printed onto the pack face rather than a currentColor-stamped
+   glyph — it's a full-color raster logo (see app.component.html's own
+   .brand-mark-light/.brand-mark-dark pair), so no emboss/tint trick, just
+   opacity plus a drop-shadow for a little lift off the foil. */
+.pack-mark img {
+  width: 72%;
+  height: auto;
+  opacity: 0.55;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
 }
 
 /* Set-code (bottom-left) and price (bottom-right) echo a trading card's

@@ -62,8 +62,18 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
     en: "This is what other players see on leaderboards, leagues, and trades.",
     el: "Αυτό βλέπουν οι άλλοι παίκτες στις κατατάξεις, τις λίγκες και τις ανταλλαγές.",
   },
+  "profile.usernameEdit": { en: "Change", el: "Αλλαγή" },
+  "profile.usernameSave": { en: "Save", el: "Αποθήκευση" },
+  "profile.usernameSaving": { en: "Saving…", el: "Αποθήκευση…" },
+  "profile.usernameCancel": { en: "Cancel", el: "Ακύρωση" },
+  "profile.usernameSaveFailed": {
+    en: "Couldn't update your username — try again.",
+    el: "Δεν ήταν δυνατή η ενημέρωση του ονόματος χρήστη — δοκίμασε ξανά.",
+  },
   "profile.email": { en: "Email", el: "Email" },
   "profile.favoriteTeam": { en: "Favorite team", el: "Αγαπημένη ομάδα" },
+  "profile.noFavoriteTeam": { en: "No team picked yet", el: "Δεν έχει επιλεγεί ομάδα" },
+  "profile.changeTeam": { en: "Change", el: "Αλλαγή" },
   "profile.clearHint": {
     en: "Tap your team again to clear it.",
     el: "Πάτησε ξανά την ομάδα σου για να την αφαιρέσεις.",
@@ -94,6 +104,7 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
   // Admin-only tools, consolidated here rather than scattered across the
   // pages they act on (except the wheel's cheat-spin, which stays there).
   "profile.adminSectionTitle": { en: "Admin tools", el: "Εργαλεία διαχειριστή" },
+  "profile.adminUsersLink": { en: "View all users", el: "Προβολή όλων των χρηστών" },
   "profile.userEmailPlaceholder": { en: "User email", el: "Email χρήστη" },
   "profile.grantedPrefix": { en: "Granted", el: "Δόθηκαν" },
 

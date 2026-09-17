@@ -7,12 +7,12 @@ import { PublicUser } from "./models";
 interface AuthResponse {
   user: PublicUser;
   accessToken: string;
-  promo?: { packType: string; bonusPoints: number } | null;
+  promo?: { packType: string; quantity: number; bonusPoints: number } | null;
 }
 
 export interface RegisterResult {
   user: PublicUser;
-  promo: { packType: string; bonusPoints: number } | null;
+  promo: { packType: string; quantity: number; bonusPoints: number } | null;
 }
 
 @Injectable({ providedIn: "root" })
@@ -135,6 +135,12 @@ export class AuthService {
   updateFavoriteTeam(teamId: string | null): Observable<PublicUser> {
     return this.http
       .patch<PublicUser>(`${API_BASE_URL}/users/me`, { favoriteTeamId: teamId })
+      .pipe(tap((user) => this.currentUser.set(user)));
+  }
+
+  updateUsername(username: string): Observable<PublicUser> {
+    return this.http
+      .patch<PublicUser>(`${API_BASE_URL}/users/me`, { username })
       .pipe(tap((user) => this.currentUser.set(user)));
   }
 

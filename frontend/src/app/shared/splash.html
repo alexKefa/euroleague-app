@@ -1,126 +1,24 @@
 <div
-  class="splash-root fixed inset-0 z-[100] flex flex-col items-center justify-center bg-page transition-opacity duration-[400ms] overflow-hidden"
+  class="splash-root fixed inset-0 z-[100] flex flex-col items-center justify-center gap-3 bg-page transition-opacity duration-[400ms] overflow-hidden"
   [class.opacity-0]="hiding"
 >
-  <!-- Big, faint background watermark — an original basketball motif (same
-       glyph as nav-icon.ts's "ball" case), not the EuroLeague brand mark. -->
-  <svg
-    class="watermark absolute inset-0 m-auto"
-    width="80vmin"
-    height="80vmin"
-    viewBox="0 0 24 24"
-    fill="none"
-    aria-hidden="true"
-  >
-    <circle cx="12" cy="12" r="8.5" stroke="#FF6B35" stroke-width="0.15" fill="#FF6B35" fill-opacity="0.5" />
-    <path
-      d="M12 3.5v17M3.5 12h17M6 6c2 2 2 10-0.5 12M18 6c-2 2-2 10 0.5 12"
-      stroke="#FF6B35"
-      stroke-width="0.12"
-      stroke-linecap="round"
-    />
-  </svg>
-
-  <!-- A small fan of collectible cards (silver/gold — the same tier
-       gradients as the real Store/Album cards, see collectible-card.ts's
-       TierStyle; third slot also silver now that all three are player
-       cards, not two players + a coach) flips face-up first, a nod to the
-       card economy this app is actually built around. Positioned as its
-       own absolutely-centered layer (2026-09-10, same "inset-0 m-auto"
-       trick as .watermark/.tagline-arc below), nudged up from that
-       centered baseline via translate-y so it floats over the ball's
-       upper half instead of sharing a flex column with the logo — that
-       old shared-column layout was what pushed the logo below the
-       watermark's actual center in the first place. `perspective` (not on
-       .mini-card itself) is what gives the flip real depth instead of a
-       flat horizontal squash — a shared vanishing point behind all three
-       cards, same as a real deck viewed from one spot. Real photos, not
-       placeholders — see splash.ts's SPLASH_CARD_POOL for where these
-       come from and why they're a small hardcoded pool rather than a live
-       fetch. -->
-  <div
-    class="absolute inset-0 m-auto h-28 w-56 sm:h-32 sm:w-64 -translate-y-24 [perspective:600px]"
-    aria-hidden="true"
-  >
-    <div class="mini-card mini-card--silver">
-      <div class="mini-card-float mini-card-float--a mini-card-frame mini-card-frame--silver">
-        <div class="mini-card-face">
-          <img class="mini-card-photo" [src]="cards[0].photoUrl" alt="" />
-        </div>
-      </div>
-    </div>
-    <div class="mini-card mini-card--gold">
-      <div class="mini-card-float mini-card-float--b mini-card-frame mini-card-frame--gold">
-        <div class="mini-card-face">
-          <img class="mini-card-photo" [src]="cards[1].photoUrl" alt="" />
-        </div>
-      </div>
-    </div>
-    <div class="mini-card mini-card--violet">
-      <div class="mini-card-float mini-card-float--c mini-card-frame mini-card-frame--silver">
-        <div class="mini-card-face">
-          <img class="mini-card-photo" [src]="cards[2].photoUrl" alt="" />
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- The logo — one unified SVG (real "Clutch" type + a curved shaded
-       line + the ball riding past the last letter), not an icon element
-       sitting beside a text element — see app.component.html's comment
-       for the full rationale. Still the only normal-flow child of
-       .splash-root's centered flex column (2026-09-10), so
-       justify-center/items-center center exactly this at the watermark's
-       true center. -->
+  <!-- v14 (2026-09-14) — a new user-supplied "C"-swoosh basketball/hoop
+       mark with a baked-in serif "Clutch" wordmark, replacing v9/v10's
+       backboard/net illustration. See app.component.html's comment for
+       the fuller history/dark-theme-variant rationale. -->
   <div class="relative px-6 max-w-[92vw]" aria-label="Clutch" role="img">
-    <svg class="logo-mark" viewBox="0 0 320 150" aria-hidden="true">
-      <defs>
-        <radialGradient id="ballGradSplash" cx="35%" cy="32%" r="75%">
-          <stop offset="0%" stop-color="#FF9E70"/>
-          <stop offset="55%" stop-color="#FF6B35"/>
-          <stop offset="100%" stop-color="#C94A24"/>
-        </radialGradient>
-        <linearGradient id="lineGradSplash" x1="0" y1="1" x2="1" y2="0">
-          <stop offset="0%" stop-color="#C94A24"/>
-          <stop offset="100%" stop-color="#FF6B35"/>
-        </linearGradient>
-        <linearGradient id="textGradSplash" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" style="stop-color:var(--color-ink)"/>
-          <stop offset="100%" style="stop-color:var(--color-ink)" stop-opacity="0.82"/>
-        </linearGradient>
-        <filter id="shadowSplash" x="-50%" y="-50%" width="200%" height="200%">
-          <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#FF6B35" flood-opacity="0.4"/>
-        </filter>
-      </defs>
-      <text x="0" y="74" font-family="'IBM Plex Sans',sans-serif" font-weight="800" font-size="80" fill="url(#textGradSplash)">Clutch</text>
-      <path d="M 0 98 Q 115 122 255 84" fill="none" stroke="url(#lineGradSplash)" stroke-width="5" stroke-linecap="round" filter="url(#shadowSplash)"/>
-      <circle cx="290" cy="80" r="15" fill="url(#ballGradSplash)" filter="url(#shadowSplash)"/>
-      <path d="M 290 66 L 290 94" stroke="rgba(0,0,0,0.3)" stroke-width="1.8" stroke-linecap="round"/>
-      <path d="M 279 70 Q 285.5 80 279 90" fill="none" stroke="rgba(0,0,0,0.3)" stroke-width="1.8" stroke-linecap="round"/>
-      <path d="M 301 70 Q 294.5 80 301 90" fill="none" stroke="rgba(0,0,0,0.3)" stroke-width="1.8" stroke-linecap="round"/>
-    </svg>
+    <div class="logo-scan-wrap">
+      <img src="/clutch-mark.png" alt="" class="logo-mark brand-mark-light" />
+      <img src="/clutch-mark-dark.png" alt="" class="logo-mark brand-mark-dark" />
+    </div>
   </div>
 
-  <!-- Tagline, curved along the bottom of the watermark ball rather than
-       sitting under it as a straight line — same "8.5"-radius circle as
-       the watermark svg above (same viewBox, same 80vmin box, so the two
-       are concentric and same-scale with zero extra math), just traced by
-       an invisible guide path instead of drawn. font-size is left
-       unitless/"px" on purpose: inside an SVG with a viewBox, both are
-       user units, not device pixels, so the text scales with the ball
-       (vmin-based) exactly like the watermark's own lines do, instead of
-       needing its own separate clamp(). role="img" + aria-label carries
-       the real motto for screen readers, since not every reader walks
-       into a <textPath>'s text node the way it would a plain <p>. -->
-  <svg
-    class="tagline-arc absolute inset-0 m-auto"
-    width="80vmin"
-    height="80vmin"
-    viewBox="0 0 24 24"
-    role="img"
-    [attr.aria-label]="'Clutch' + i18n.t('splash.taglineSuffix')"
-  >
-    <path id="taglineArcPath" d="M 3.5 12 A 8.5 8.5 0 0 0 20.5 12" fill="none" stroke="none" />
-    <text aria-hidden="true"><textPath href="#taglineArcPath" startOffset="50%" text-anchor="middle"><tspan class="tagline-arc-brand">Clutch</tspan><tspan>{{ i18n.t('splash.taglineSuffix') }}</tspan></textPath></text>
-  </svg>
+  <!-- Tagline — a plain centered line now (the old curved-text treatment
+       traced the ball watermark's own circle, which no longer exists in
+       this design; the free-throw circle behind isn't dead-center on
+       screen the way the ball was, so tracing it would look accidental
+       rather than deliberate). -->
+  <p class="tagline-flat" [attr.aria-label]="'Clutch' + i18n.t('splash.taglineSuffix')">
+    <span class="tagline-flat-brand">Clutch</span>{{ i18n.t('splash.taglineSuffix') }}
+  </p>
 </div>

@@ -357,6 +357,23 @@ export const favorites = pgTable(
   })
 );
 
+// Player-level favorites (2026-09-13) — a separate concept from `favorites`
+// above (team-level, and never actually wired up to any route — dead since
+// users.favoriteTeamId became the one real "your team" mechanism). This one
+// backs the dashboard's "Live Center" favorites tab: a player, not a whole
+// team, to watch for game-day status.
+export const favoritePlayers = pgTable(
+  "favorite_players",
+  {
+    userId: uuid("user_id").notNull().references(() => users.id),
+    playerId: uuid("player_id").notNull().references(() => players.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.userId, table.playerId] }),
+  })
+);
+
 export const deviceTokens = pgTable("device_tokens", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").notNull().references(() => users.id),
@@ -705,10 +722,14 @@ export const ownedPacks = pgTable("owned_packs", {
   forceFoil: boolean("force_foil").default(false).notNull(),
 });
 
-// One-off marketing campaigns (e.g. a link in a YouTube video description),
-// redeemed at registration only — same "apply once at signup" shape as
-// users.referralCode, but this rewards the *new* user directly (an unopened
-// pack + optional bonus points) rather than whoever shared the link.
+// One-off marketing campaigns (e.g. a link in a YouTube video description,
+// or a QR code at a live event — see promoCodeRedemptions/routes/
+// promoCodes.ts below). Originally redeemed at registration only; a
+// same-day follow-up (2026-09-13) added a second redemption path for an
+// already-registered user (a QR scan is just as likely to hit an existing
+// user as a brand-new one). Rewards the redeeming user directly (an
+// unopened pack + optional bonus points), same "apply once, per user"
+// shape as users.referralCode's reward-the-referrer flow.
 // `active` is a manual on/off switch for ending a campaign without deleting
 // its history/redemption count; maxRedemptions/expiresAt are independent
 // optional caps (either or both null = uncapped). See
@@ -717,6 +738,10 @@ export const promoCodes = pgTable("promo_codes", {
   id: uuid("id").defaultRandom().primaryKey(),
   code: varchar("code", { length: 32 }).notNull().unique(),
   packType: varchar("pack_type", { length: 20 }).notNull(),
+  // How many unopened packs a single redemption grants — 1 for every code
+  // until 2026-09-15, when a gym-flyer promo wanted a bigger one-time
+  // incentive than the usual single pack.
+  quantity: integer("quantity").default(1).notNull(),
   bonusPoints: integer("bonus_points").default(0).notNull(),
   maxRedemptions: integer("max_redemptions"),
   redemptionCount: integer("redemption_count").default(0).notNull(),
@@ -724,6 +749,31 @@ export const promoCodes = pgTable("promo_codes", {
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// Per-user redemption ledger for promo_codes — needed now that a promo code
+// can also be redeemed by an already-registered user (routes/promoCodes.ts's
+// POST /redeem, e.g. a QR code scanned at a live event) instead of only ever
+// being applied once at signup. uniquePerUser is the actual one-time-per-user
+// guard: redeemPromoCodeForUser inserts here FIRST (onConflictDoNothing) and
+// only proceeds to grant the reward if that insert actually landed a row —
+// same claim-first idempotency pattern as roundRewards/legendaryMilestones —
+// so re-scanning (or re-submitting) the same code can't grant it twice, even
+// racing itself. redeemPromoCode (the at-signup path) also writes a row here
+// for the same reason: without it, a brand-new account could immediately
+// turn around and hit POST /redeem with the exact code it just used at
+// signup and double-dip the reward.
+export const promoCodeRedemptions = pgTable(
+  "promo_code_redemptions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    promoCodeId: uuid("promo_code_id").notNull().references(() => promoCodes.id),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    redeemedAt: timestamp("redeemed_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    uniquePerUser: uniqueIndex("promo_code_redemption_unique").on(table.promoCodeId, table.userId),
+  })
+);
 
 export const tradeOffers = pgTable("trade_offers", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -809,6 +859,63 @@ export const analyticsViews = pgTable("analytics_views", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+// Community "which player becomes the next legendary card" vote (2026-09-13)
+// — admin-created, adds a genuine new legendary to the catalog on close, not
+// a per-team override of expand-collectibles.ts's existing top-PIR pick.
+// IMPORTANT: the whole economy (pity counters, SPIN_ODDS, Elite pack odds,
+// season-simulation.ts's CATALOG_SIZE) is calibrated around a fixed
+// legendary count — re-run `economy:simulate` after any poll actually adds
+// one, same standing practice as every other legendary-count change
+// documented in this file's history.
+export const legendaryPolls = pgTable("legendary_polls", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  title: text("title").notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("open"), // "open" | "closed"
+  createdByUserId: uuid("created_by_user_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  // Optional display deadline — closing is still always an explicit admin
+  // action (POST /legendary-polls/:id/close), never a cron, so a poll left
+  // past its closesAt just shows as "voting closes soon"/overdue rather
+  // than silently locking itself.
+  closesAt: timestamp("closes_at", { withTimezone: true }),
+  closedAt: timestamp("closed_at", { withTimezone: true }),
+  // Set once the poll is closed AND a winner was actually inserted into
+  // `collectibles` — stays null for a closed poll with zero votes (nothing
+  // to crown).
+  winnerCollectibleId: uuid("winner_collectible_id").references(() => collectibles.id),
+});
+
+export const legendaryPollCandidates = pgTable(
+  "legendary_poll_candidates",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    pollId: uuid("poll_id").notNull().references(() => legendaryPolls.id),
+    playerId: uuid("player_id").notNull().references(() => players.id),
+  },
+  (table) => ({
+    pollCandidateUnique: uniqueIndex("legendary_poll_candidate_unique").on(table.pollId, table.playerId),
+  })
+);
+
+// One row per (poll, user) — a vote is changed by upserting this same row,
+// never by inserting a second one, so "one vote per user, changeable until
+// close" falls out of the unique constraint itself rather than app-level
+// bookkeeping. Vote counts are computed on read (grouped count query), same
+// "no stored balance" philosophy as points/collectible ownership elsewhere.
+export const legendaryPollVotes = pgTable(
+  "legendary_poll_votes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    pollId: uuid("poll_id").notNull().references(() => legendaryPolls.id),
+    candidateId: uuid("candidate_id").notNull().references(() => legendaryPollCandidates.id),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    votedAt: timestamp("voted_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    pollVoterUnique: uniqueIndex("legendary_poll_voter_unique").on(table.pollId, table.userId),
+  })
+);
+
 // Relations — mainly so query.teams.findMany({ with: { ... } }) style
 // lookups work without hand-written joins later.
 
@@ -883,6 +990,11 @@ export const playerSeasonStatsRelations = relations(playerSeasonStats, ({ one })
 export const favoritesRelations = relations(favorites, ({ one }) => ({
   user: one(users, { fields: [favorites.userId], references: [users.id] }),
   team: one(teams, { fields: [favorites.teamId], references: [teams.id] }),
+}));
+
+export const favoritePlayersRelations = relations(favoritePlayers, ({ one }) => ({
+  user: one(users, { fields: [favoritePlayers.userId], references: [users.id] }),
+  player: one(players, { fields: [favoritePlayers.playerId], references: [players.id] }),
 }));
 
 export const deviceTokensRelations = relations(deviceTokens, ({ one }) => ({
@@ -986,6 +1098,29 @@ export const leaguesRelations = relations(leagues, ({ one, many }) => ({
 export const leagueMembersRelations = relations(leagueMembers, ({ one }) => ({
   league: one(leagues, { fields: [leagueMembers.leagueId], references: [leagues.id] }),
   user: one(users, { fields: [leagueMembers.userId], references: [users.id] }),
+}));
+
+export const legendaryPollsRelations = relations(legendaryPolls, ({ one, many }) => ({
+  createdByUser: one(users, { fields: [legendaryPolls.createdByUserId], references: [users.id] }),
+  winnerCollectible: one(collectibles, {
+    fields: [legendaryPolls.winnerCollectibleId],
+    references: [collectibles.id],
+  }),
+  candidates: many(legendaryPollCandidates),
+}));
+
+export const legendaryPollCandidatesRelations = relations(legendaryPollCandidates, ({ one }) => ({
+  poll: one(legendaryPolls, { fields: [legendaryPollCandidates.pollId], references: [legendaryPolls.id] }),
+  player: one(players, { fields: [legendaryPollCandidates.playerId], references: [players.id] }),
+}));
+
+export const legendaryPollVotesRelations = relations(legendaryPollVotes, ({ one }) => ({
+  poll: one(legendaryPolls, { fields: [legendaryPollVotes.pollId], references: [legendaryPolls.id] }),
+  candidate: one(legendaryPollCandidates, {
+    fields: [legendaryPollVotes.candidateId],
+    references: [legendaryPollCandidates.id],
+  }),
+  user: one(users, { fields: [legendaryPollVotes.userId], references: [users.id] }),
 }));
 
 // Fantasy Five — a parallel, budget-cap fantasy squad mode alongside
@@ -1093,6 +1228,47 @@ export const coachFantasyPrices = pgTable(
   })
 );
 
+// Daily algorithmic price changes (2026-09-16) — until now
+// player_fantasy_prices/coach_fantasy_prices only ever moved when someone
+// ran `npm run fantasy:reprice` by hand. EuroLeague Fantasy's own rules
+// move prices every day off real performance instead: a claim-first log,
+// one row per (player, game) already applied, is what makes the daily job
+// (services/fantasyDailyReprice.ts) safe to run on a fixed interval
+// regardless of restarts or exact timing — same "each run only processes
+// what doesn't already have a row" idempotency shape index.ts's odds/news
+// sync jobs already use, rather than a timestamp watermark that could
+// silently skip a game if it wasn't final yet the moment a run checked.
+export const fantasyPriceChangeLog = pgTable(
+  "fantasy_price_change_log",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    playerId: uuid("player_id").notNull().references(() => players.id),
+    gameId: uuid("game_id").notNull().references(() => games.id),
+    delta: real("delta").notNull(),
+    appliedAt: timestamp("applied_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    fantasyPriceChangeLogUnique: uniqueIndex("fantasy_price_change_log_unique").on(table.playerId, table.gameId),
+  })
+);
+
+// Same shape as fantasyPriceChangeLog, for coach prices — a coach has no
+// per-game box score (coaches aren't in `players`), so their daily move is
+// off pointsForCoachResult's margin-based result, not a stat line.
+export const fantasyCoachPriceChangeLog = pgTable(
+  "fantasy_coach_price_change_log",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    teamId: uuid("team_id").notNull().references(() => teams.id),
+    gameId: uuid("game_id").notNull().references(() => games.id),
+    delta: real("delta").notNull(),
+    appliedAt: timestamp("applied_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    fantasyCoachPriceChangeLogUnique: uniqueIndex("fantasy_coach_price_change_log_unique").on(table.teamId, table.gameId),
+  })
+);
+
 // A user's coach pick for one round — a single row (unlike fantasy_lineups'
 // 10 player rows), since only one coach is ever drafted. Editable until the
 // round's overall lock time (its first tipoff, same as the original v1
@@ -1139,8 +1315,59 @@ export const fantasyPricingState = pgTable("fantasy_pricing_state", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+// Fantasy Five wired into the shared points economy (2026-09-16) — until
+// now a round's fantasy score only fed the fantasy-specific leaderboard,
+// completely separate from the points predictions/top-scorer picks earn
+// (the currency Store/Packs/Wheel actually spend and the general
+// leaderboard ranks by). Every locked round, checkAndGrantFantasyRoundPoints
+// (services/fantasyScoring.ts) grants a point_adjustments row worth
+// FANTASY_POINTS_CONVERSION_RATE of that round's real totalPoints (PIR,
+// already including captain/bench/coach) — same claim-first idempotency
+// shape as roundRewards (unique on user+season+round) so re-reading a
+// completed round's score never grants twice. Deliberately does NOT count
+// toward the "Century" badge (routes/predictions.ts computes that from
+// predictions/top-scorer picks directly, never from point_adjustments at
+// all — no extra exclusion code needed here) — Century is meant to reflect
+// prediction skill specifically, not points earned by any means.
+export const fantasyRoundPoints = pgTable(
+  "fantasy_round_points",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    season: varchar("season", { length: 9 }).notNull(),
+    round: integer("round").notNull(),
+    points: integer("points").notNull(),
+    grantedAt: timestamp("granted_at", { withTimezone: true }).defaultNow().notNull(),
+    // Null until the user's been shown the "+N points" banner — same
+    // multiple-pages-hit-the-same-endpoint race roundRewards.seenAt guards
+    // against (see its own doc comment).
+    seenAt: timestamp("seen_at", { withTimezone: true }),
+  },
+  (table) => ({
+    userRoundFantasyPointsUnique: uniqueIndex("user_round_fantasy_points_unique").on(
+      table.userId,
+      table.season,
+      table.round
+    ),
+  })
+);
+
+export const fantasyRoundPointsRelations = relations(fantasyRoundPoints, ({ one }) => ({
+  user: one(users, { fields: [fantasyRoundPoints.userId], references: [users.id] }),
+}));
+
 export const playerFantasyPricesRelations = relations(playerFantasyPrices, ({ one }) => ({
   player: one(players, { fields: [playerFantasyPrices.playerId], references: [players.id] }),
+}));
+
+export const fantasyPriceChangeLogRelations = relations(fantasyPriceChangeLog, ({ one }) => ({
+  player: one(players, { fields: [fantasyPriceChangeLog.playerId], references: [players.id] }),
+  game: one(games, { fields: [fantasyPriceChangeLog.gameId], references: [games.id] }),
+}));
+
+export const fantasyCoachPriceChangeLogRelations = relations(fantasyCoachPriceChangeLog, ({ one }) => ({
+  team: one(teams, { fields: [fantasyCoachPriceChangeLog.teamId], references: [teams.id] }),
+  game: one(games, { fields: [fantasyCoachPriceChangeLog.gameId], references: [games.id] }),
 }));
 
 export const fantasyLineupsRelations = relations(fantasyLineups, ({ one }) => ({

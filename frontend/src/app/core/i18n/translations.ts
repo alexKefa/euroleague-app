@@ -21,6 +21,11 @@ import { analyticsBuilderTranslations } from "./analytics-builder";
 import { leaguesTranslations } from "./leagues";
 import { injuriesTranslations } from "./injuries";
 import { fantasyTranslations } from "./fantasy";
+import { landingTranslations } from "./landing";
+import { legendaryVoteTranslations } from "./legendary-vote";
+import { liveCenterTranslations } from "./live-center";
+import { claimTranslations } from "./claim";
+import { adminTranslations } from "./admin";
 
 export type { Lang };
 
@@ -51,4 +56,9 @@ export const translations: Record<string, Record<Lang, string>> = {
   ...leaguesTranslations,
   ...injuriesTranslations,
   ...fantasyTranslations,
+  ...landingTranslations,
+  ...legendaryVoteTranslations,
+  ...liveCenterTranslations,
+  ...claimTranslations,
+  ...adminTranslations,
 };

@@ -9,17 +9,30 @@ import { SkeletonComponent } from "../../shared/skeleton";
 import { ShotChartComponent } from "./shot-chart";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { newsDateLocale, shortDateFormat } from "../../shared/news-date-format";
+import { AuthService } from "../../core/auth.service";
+import { FavoritePlayersService } from "../../core/favorite-players.service";
+import { NavIconComponent } from "../../shared/nav-icon";
 
 @Component({
   selector: "app-player-detail",
   standalone: true,
-  imports: [CommonModule, RouterLink, RetryImgDirective, SkeletonComponent, ShotChartComponent, PlayerPhotoComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    RetryImgDirective,
+    SkeletonComponent,
+    ShotChartComponent,
+    PlayerPhotoComponent,
+    NavIconComponent,
+  ],
   templateUrl: "./player-detail.html",
 })
 export class PlayerDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private api = inject(ApiService);
   protected i18n = inject(I18nService);
+  protected auth = inject(AuthService);
+  private favoritePlayers = inject(FavoritePlayersService);
 
   readonly detail = signal<PlayerDetail | null>(null);
   readonly loading = signal(true);
@@ -54,6 +67,21 @@ export class PlayerDetailComponent implements OnInit {
     this.api.getPlayerGames(playerId).subscribe({
       next: (log) => this.gameLog.set(log.rows),
       error: () => {}, // non-critical section — page still works with no log
+    });
+  }
+
+  isFavorite(playerId: string): boolean {
+    return this.favoritePlayers.isFavorite(playerId);
+  }
+
+  toggleFavorite(detail: PlayerDetail): void {
+    this.favoritePlayers.toggle({
+      id: detail.player.id,
+      name: detail.player.name,
+      photoUrl: detail.player.photoUrl,
+      teamId: detail.team.id,
+      teamName: detail.team.name,
+      teamCode: detail.team.code,
     });
   }
 

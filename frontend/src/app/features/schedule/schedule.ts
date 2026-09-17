@@ -190,6 +190,16 @@ export class ScheduleComponent implements OnInit {
     if (idx >= 0 && idx < rounds.length - 1) this.loadRound(rounds[idx + 1]);
   }
 
+  // Tonal highlight for a game involving the viewer's own favorite team
+  // (2026-09-12) — this page had zero "your team" awareness before, unlike
+  // the dashboard's standings list or the album's team focus, even though a
+  // fan scanning a round for "when do I play" is exactly what this page is
+  // for. Same bg-highlight/10 tint already used for that purpose elsewhere.
+  isFavoriteTeamGame(game: Game): boolean {
+    const favoriteTeamId = this.auth.currentUser()?.favoriteTeamId;
+    return !!favoriteTeamId && (game.homeTeam.id === favoriteTeamId || game.awayTeam.id === favoriteTeamId);
+  }
+
   gameResult(game: Game): "home" | "away" | null {
     if (game.status !== "final") return null;
     return game.homeScore! > game.awayScore! ? "home" : "away";

@@ -17,11 +17,20 @@ import { SkeletonComponent } from "../../shared/skeleton";
 import { ButtonDirective } from "../../shared/button.directive";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { SearchInputComponent } from "../../shared/search-input";
+import { TeamCodePipe } from "../../shared/team-display-code";
 
 // Matches store.ts's PAGE_SIZE — same "reveal a page at a time" convention,
 // even though this page's data (already fully fetched client-side) doesn't
 // need server-side pagination the way the full catalog does.
 const PAGE_SIZE = 20;
+
+// CollectibleCardComponent's name/badge/banner text is fixed-px, not
+// proportional to its own `maxWidth` input — this row used to render at
+// 112px, too tight for the fixed 15px name text, which truncated real
+// names ("Sasha V..."). Bumped straight to 150px (bigger than Album's own
+// 130px grid) rather than fighting it with a scale-transform — simplest
+// fix that actually gives the fixed-size text room to breathe.
+const CARD_RENDER_WIDTH = 150;
 
 @Component({
   selector: "app-inventory",
@@ -39,8 +48,10 @@ const PAGE_SIZE = 20;
     ButtonDirective,
     LogoSpinnerComponent,
     SearchInputComponent,
+    TeamCodePipe,
   ],
   templateUrl: "./inventory.html",
+  styleUrl: "./inventory.css",
 })
 export class InventoryComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
@@ -49,20 +60,39 @@ export class InventoryComponent implements OnInit, OnDestroy {
   protected i18n = inject(I18nService);
   protected trades = inject(TradesNotificationService);
 
-  // Colors are grounded in hues already meaningful elsewhere: highlight is
-  // the brand default, gold matches the wheel's own legendary wedge,
-  // emerald matches the app's existing "unlocked"/"correct" green.
-  protected readonly hubTiles: { path: string; icon: NavIconName; iconClass: string; labelKey: string }[] = [
-    { path: "/store", icon: "store", iconClass: "text-highlight", labelKey: "store.title" },
-    { path: "/wheel", icon: "wheel", iconClass: "text-[#E8B23C]", labelKey: "store.jumpBall" },
-    { path: "/packs", icon: "packs", iconClass: "text-sky-400", labelKey: "store.packs" },
-    { path: "/trades", icon: "trade", iconClass: "text-emerald-500", labelKey: "store.trades" },
-    { path: "/album", icon: "album", iconClass: "text-accent2", labelKey: "album.hubTile" },
+  protected readonly cardRenderWidth = CARD_RENDER_WIDTH;
+
+  // "Scoreboard" tiles (2026-09-11 — picked via a 4-direction design-canvas
+  // comparison over the earlier flat bordered-tile look, which read as too
+  // plain) — each tile extends the app's own shared "Scoreboard" button
+  // identity (button.directive.ts: solid fill, chunky bottom-border "lip"
+  // that collapses on press) rather than inventing a new tile chrome, just
+  // with its own brand color instead of one shared primary color. Colors
+  // are the same hues the old iconClass-tinting used: highlight is the
+  // brand default, gold matches the wheel's own legendary wedge, emerald
+  // matches the app's existing "unlocked"/"correct" green.
+  protected readonly hubTiles: { path: string; icon: NavIconName; classes: string; labelKey: string }[] = [
+    { path: "/store", icon: "store", classes: "bg-highlight border-b-highlight-dim", labelKey: "store.title" },
+    { path: "/wheel", icon: "wheel", classes: "bg-[#E8B23C] border-b-[#B8862E]", labelKey: "store.jumpBall" },
+    { path: "/packs", icon: "packs", classes: "bg-[#38BDF8] border-b-[#0284C7]", labelKey: "store.packs" },
+    { path: "/trades", icon: "trade", classes: "bg-[#10B981] border-b-[#047857]", labelKey: "store.trades" },
+    { path: "/album", icon: "album", classes: "bg-accent2 border-b-accent2-dim", labelKey: "album.hubTile" },
+    {
+      path: "/legendary-vote",
+      icon: "vote",
+      classes: "bg-[#EF4444] border-b-[#B91C1C]",
+      labelKey: "legendaryVote.hubTile",
+    },
   ];
 
   readonly loading = signal(true);
   readonly points = signal(0);
   readonly pointsLoading = signal(true);
+  // Unopened-pack count for the Packs tile's pill — GET /packs/owned
+  // already filters to openedAt IS NULL, so this is just its length, same
+  // "fetch once on load" simplicity as points/collectibles above (unlike
+  // trades' pendingIncomingCount, nothing here needs a live SSE refresh).
+  readonly unopenedPackCount = signal(0);
   private readonly allCollectibles = signal<Collectible[]>([]);
   // collectibleId -> unlockedAt (ISO string) — used both to know what's
   // owned and to sort bundles by most-recent acquisition.
@@ -124,9 +154,18 @@ export class InventoryComponent implements OnInit, OnDestroy {
     for (const bundle of byKey.values()) {
       bundle.cards.sort((a, b) => tierRank[a.tier] - tierRank[b.tier]);
     }
+    // Coach bundle sorts first within its team (a coach card is always a
+    // singleton "coach"-tier bundle, never mixed with a player's tiers —
+    // see CLAUDE.md's coach-cards section), then the rest alphabetically.
+    const isCoach = (b: CollectibleBundle) => b.cards[0]?.tier === "coach";
     return order
       .map((key) => byKey.get(key)!)
-      .sort((a, b) => a.team.name.localeCompare(b.team.name) || a.name.localeCompare(b.name));
+      .sort(
+        (a, b) =>
+          a.team.name.localeCompare(b.team.name) ||
+          Number(isCoach(b)) - Number(isCoach(a)) ||
+          a.name.localeCompare(b.name)
+      );
   });
 
   // Only bundles with at least one owned card — this page is "my cards",
@@ -145,6 +184,68 @@ export class InventoryComponent implements OnInit, OnDestroy {
       }))
       .sort((a, b) => b.newestAcquired - a.newestAcquired)
       .map(({ bundle }) => bundle);
+  });
+
+  // Whole-catalog completion (2026-09-12 redesign) — "how much of the
+  // album have I collected", independent of any active search/tier/team
+  // filter below. Backs the progress-ring summary card.
+  readonly totalOwned = computed(() => this.myCollectibleIds().size);
+  readonly totalCatalog = computed(() => this.allCollectibles().length);
+  // SVG stroke-dashoffset for a circle of this radius — see
+  // inventory.html's progress-ring markup, which uses the same radius.
+  private static readonly RING_RADIUS = 22;
+  private static readonly RING_CIRCUMFERENCE = 2 * Math.PI * InventoryComponent.RING_RADIUS;
+  readonly ringCircumference = InventoryComponent.RING_CIRCUMFERENCE;
+  readonly ringOffset = computed(() => {
+    const total = this.totalCatalog();
+    const pct = total === 0 ? 0 : this.totalOwned() / total;
+    return InventoryComponent.RING_CIRCUMFERENCE * (1 - pct);
+  });
+
+  // Per-team completion, computed once over the flat catalog (2026-09-12
+  // redesign) rather than re-filtering the whole catalog per team per
+  // render — same "compute once, read via Map lookup" convention as
+  // ownedAt/finishByCollectibleId above. Backs each team group's header
+  // progress bar ("3/9 owned"), which is deliberately the team's TRUE
+  // completion regardless of the active search/tier filter below — a
+  // stable collection-progress stat, not "how many match my current view".
+  private readonly teamCompletion = computed(() => {
+    const totals = new Map<string, number>();
+    const owned = new Map<string, number>();
+    const ownedIds = this.myCollectibleIds();
+    for (const c of this.allCollectibles()) {
+      totals.set(c.team.id, (totals.get(c.team.id) ?? 0) + 1);
+      if (ownedIds.has(c.id)) owned.set(c.team.id, (owned.get(c.team.id) ?? 0) + 1);
+    }
+    return { totals, owned };
+  });
+  teamOwnedCount(teamId: string): number {
+    return this.teamCompletion().owned.get(teamId) ?? 0;
+  }
+  teamTotalCount(teamId: string): number {
+    return this.teamCompletion().totals.get(teamId) ?? 0;
+  }
+
+  // Groups the (already filtered + paginated) visible bundles by team,
+  // preserving each team's first-appearance position in the
+  // most-recently-acquired ordering — so the team you pulled from most
+  // recently still leads, same spirit as myBundles()'s own ordering, just
+  // one level up. A team's bundles are consolidated into one group even if
+  // they don't happen to sit contiguously in visibleBundles() (mirrors the
+  // byKey-Map-plus-order-array pattern allBundles() above already uses).
+  readonly teamGroups = computed(() => {
+    const byTeam = new Map<string, { team: CollectibleBundle["team"]; bundles: CollectibleBundle[] }>();
+    const order: string[] = [];
+    for (const bundle of this.visibleBundles()) {
+      let group = byTeam.get(bundle.team.id);
+      if (!group) {
+        group = { team: bundle.team, bundles: [] };
+        byTeam.set(bundle.team.id, group);
+        order.push(bundle.team.id);
+      }
+      group.bundles.push(bundle);
+    }
+    return order.map((id) => byTeam.get(id)!);
   });
 
   // Only teams you actually own a card from — no point offering a filter
@@ -369,6 +470,11 @@ export class InventoryComponent implements OnInit, OnDestroy {
         this.pointsLoading.set(false);
       },
       error: () => this.pointsLoading.set(false),
+    });
+
+    this.api.getOwnedPacks().subscribe({
+      next: (packs) => this.unopenedPackCount.set(packs.length),
+      error: () => {},
     });
   }
 }

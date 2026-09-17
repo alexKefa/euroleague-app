@@ -4,8 +4,8 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.navLink": { en: "Fantasy Team", el: "Fantasy Ομάδα" },
   "fantasy.title": { en: "Clutch Fantasy", el: "Clutch Fantasy" },
   "fantasy.hint": {
-    en: "Draft 5 real players under a budget cap, name a captain (2x points), and score off their real box-score performance each round.",
-    el: "Διάλεξε 5 πραγματικούς παίκτες μέσα σε ένα όριο προϋπολογισμού, όρισε αρχηγό (διπλοί πόντοι) και βαθμολογήσου με βάση την πραγματική τους απόδοση κάθε αγωνιστική.",
+    en: "Draft 10 real players (starters + bench) and a coach under a budget cap, name a captain (2x points), and score off their real box-score performance each round.",
+    el: "Διάλεξε 10 πραγματικούς παίκτες (βασικούς και αναπληρωματικούς) και προπονητή μέσα σε ένα όριο προϋπολογισμού, όρισε αρχηγό (διπλοί πόντοι) και βαθμολογήσου με βάση την πραγματική τους απόδοση κάθε αγωνιστική.",
   },
   "fantasy.loginToUse": { en: "Log in to build a fantasy lineup.", el: "Συνδέσου για να φτιάξεις τη fantasy ομάδα σου." },
   "fantasy.budgetLabel": { en: "Budget", el: "Προϋπολογισμός" },
@@ -106,11 +106,25 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.previousRound": { en: "Previous round", el: "Προηγούμενη αγωνιστική" },
   "fantasy.nextRound": { en: "Next round", el: "Επόμενη αγωνιστική" },
   "fantasy.pastRound": { en: "Past round", el: "Παλιότερη αγωνιστική" },
+  // Admin-only auto-fill button (2026-09-17) — not user-facing outside admin accounts.
+  "fantasy.autoFillSquad": { en: "Auto-fill squad", el: "Αυτόματη συμπλήρωση" },
   "fantasy.pointsLabel": { en: "Points", el: "Πόντοι" },
-  "fantasy.pirTotalLabel": { en: "PIR total", el: "Σύνολο PIR" },
-  "fantasy.creditsChangeLabel": { en: "Credits (cr)", el: "Credits (cr)" },
+  "fantasy.creditsChangeLabel": { en: "Credits (CR)", el: "Credits (CR)" },
+  // Same "stays English in both locales" precedent as posGuard/homeAbbrev
+  // above — a currency-style abbreviation, not a translatable word.
+  "fantasy.creditsAbbrev": { en: "CR", el: "CR" },
+  // Shown next to a player/coach's price while picking (2026-09-12) — the
+  // budget line in the status bar shows spent/cap, but neither picker
+  // screen previously surfaced "how much do I actually have left to
+  // spend" at the moment it matters most.
+  "fantasy.creditsAvailable": { en: "available", el: "διαθέσιμα" },
   "fantasy.transfersLabel": { en: "Transfers", el: "Μεταγραφές" },
   "fantasy.roundCompleteTitle": { en: "Round complete!", el: "Η αγωνιστική ολοκληρώθηκε!" },
+  // Shown in the round-complete modal when this round also earned Clutch
+  // points into the shared economy (2026-09-16) — a fraction of the
+  // round's fantasy score, on top of the fantasy leaderboard points shown
+  // right above it.
+  "fantasy.economyPointsEarned": { en: "Clutch points earned", el: "Πόντοι Clutch που κέρδισες" },
   "fantasy.rulesButton": { en: "How points work", el: "Πώς μετράνε οι πόντοι" },
   "fantasy.rulesTitle": { en: "How Fantasy Five scoring works", el: "Πώς μετράνε οι πόντοι στο Fantasy Πεντάδα" },
   "fantasy.rulesSquadTitle": { en: "Your squad", el: "Η ομάδα σου" },
@@ -120,8 +134,8 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   },
   "fantasy.rulesScoringTitle": { en: "Scoring", el: "Βαθμολόγηση" },
   "fantasy.rulesScoringBody": {
-    en: "Once a round locks, your 5 starters and Sixth Man each score 100% of their real PIR (Performance Index Rating) from that round's games. Your 4 Bench players score 50% of theirs. A player with no game that round scores 0.",
-    el: "Μόλις κλειδώσει μια αγωνιστική, οι 5 βασικοί σου και ο 6ος παίκτης μετράνε το 100% του πραγματικού τους PIR από τους αγώνες της αγωνιστικής. Οι 4 παίκτες του πάγκου μετράνε το 50%. Παίκτης χωρίς αγώνα εκείνη την αγωνιστική μετράει 0.",
+    en: "Once a round locks, each player's game is scored +1 per point/rebound/assist/steal, -1 per turnover, +1/-1 for blocks for/against, +1/-1 for fouls drawn/committed, and -1 per missed field goal or free throw — plus a 10% bonus if their team won. Your 5 starters and Sixth Man score 100% of that; your 4 Bench players score 50%. A player with no game that round scores 0.",
+    el: "Μόλις κλειδώσει μια αγωνιστική, κάθε αγώνας βαθμολογείται +1 ανά πόντο/ριμπάουντ/ασίστ/κλέψιμο, -1 ανά λάθος, +1/-1 για τάπες υπέρ/κατά, +1/-1 για φάουλ που δέχτηκε/έκανε, και -1 ανά αστοχία σε σουτ ή βολή — συν 10% μπόνους αν κέρδισε η ομάδα του. Οι 5 βασικοί σου και ο 6ος παίκτης μετράνε το 100% αυτού. Οι 4 παίκτες του πάγκου μετράνε το 50%. Παίκτης χωρίς αγώνα εκείνη την αγωνιστική μετράει 0.",
   },
   "fantasy.rulesCaptainTitle": { en: "Captain", el: "Αρχηγός" },
   "fantasy.rulesCaptainBody": {
@@ -130,13 +144,18 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   },
   "fantasy.rulesCoachTitle": { en: "Coach", el: "Προπονητής" },
   "fantasy.rulesCoachBody": {
-    en: "Scores off their real team's result that round, not a stat line: +20 points for a win, 0 for a loss. Always counts at full value.",
-    el: "Βαθμολογείται με βάση το πραγματικό αποτέλεσμα της ομάδας του εκείνη την αγωνιστική, όχι στατιστικά: +20 πόντοι για νίκη, 0 για ήττα. Πάντα μετράει στο 100%.",
+    en: "Scores off their real team's result and its margin, not a stat line: a win by 0-10 (or in OT) is +10, by 11-20 is +20, by 21+ is +25. A loss scores -5/-10/-20 the same way. Always counts at full value.",
+    el: "Βαθμολογείται με βάση το πραγματικό αποτέλεσμα της ομάδας του και τη διαφορά, όχι στατιστικά: νίκη με 0-10 (ή σε παράταση) δίνει +10, με 11-20 δίνει +20, με 21+ δίνει +25. Η ήττα βαθμολογείται αντίστοιχα -5/-10/-20. Πάντα μετράει στο 100%.",
   },
   "fantasy.rulesTransfersTitle": { en: "Transfers", el: "Μεταγραφές" },
   "fantasy.rulesTransfersBody": {
-    en: "Your squad carries over round to round. You can swap up to 3 players against last round's squad before each round locks — moving an already-picked player between starter/Sixth Man/Bench is free. Your coach pick can change every round with no limit. Round 1 is a free, unlimited draft.",
-    el: "Η ομάδα σου μεταφέρεται από αγωνιστική σε αγωνιστική. Μπορείς να αλλάξεις έως 3 παίκτες σε σχέση με την προηγούμενη αγωνιστική πριν κλειδώσει η επόμενη — η μετακίνηση ήδη επιλεγμένου παίκτη μεταξύ βασικής πεντάδας/6ου/πάγκου είναι δωρεάν. Ο προπονητής μπορεί να αλλάξει κάθε αγωνιστική χωρίς όριο. Η 1η αγωνιστική είναι ελεύθερη κατασκευή χωρίς όριο.",
+    en: "Your squad carries over round to round. You can swap up to 4 players against last round's squad before each round locks — moving an already-picked player between starter/Sixth Man/Bench is free. Transfers are unlimited on rounds 7, 14, 19, 24, 29, and from round 35 (playoffs) onward. Your coach pick can change every round with no limit. Round 1 is a free, unlimited draft. At most 6 players from the same real club are allowed.",
+    el: "Η ομάδα σου μεταφέρεται από αγωνιστική σε αγωνιστική. Μπορείς να αλλάξεις έως 4 παίκτες σε σχέση με την προηγούμενη αγωνιστική πριν κλειδώσει η επόμενη — η μετακίνηση ήδη επιλεγμένου παίκτη μεταξύ βασικής πεντάδας/6ου/πάγκου είναι δωρεάν. Οι μεταγραφές είναι απεριόριστες στις αγωνιστικές 7, 14, 19, 24, 29, και από την 35η (πλέι οφ) και μετά. Ο προπονητής μπορεί να αλλάξει κάθε αγωνιστική χωρίς όριο. Η 1η αγωνιστική είναι ελεύθερη κατασκευή χωρίς όριο. Επιτρέπονται έως 6 παίκτες από την ίδια πραγματική ομάδα.",
+  },
+  "fantasy.rulesEconomyTitle": { en: "Clutch points", el: "Πόντοι Clutch" },
+  "fantasy.rulesEconomyBody": {
+    en: "Once a round completes, half of your fantasy score for it is added to your Clutch points too — the same points Predictions earns and Store/Packs/Wheel spend. It doesn't count toward the Century badge, which stays scoped to prediction accuracy.",
+    el: "Μόλις ολοκληρωθεί μια αγωνιστική, οι μισοί πόντοι fantasy που πέτυχες προστίθενται και στους πόντους Clutch — τους ίδιους πόντους που κερδίζεις από τις Προβλέψεις και ξοδεύεις στο Κατάστημα/Πακέτα/Τζάμπολ. Δεν μετράνε για το βραβείο Century, που παραμένει βασισμένο μόνο στην ακρίβεια προβλέψεων.",
   },
   "fantasy.rulesLockTitle": { en: "Lock", el: "Κλείδωμα" },
   "fantasy.rulesLockBody": {

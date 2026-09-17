@@ -1,4 +1,26 @@
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+/* Nova Mono — scoped only to the dashboard's sponsor ticker
+   (dashboard.component.css), not part of the regular font stack above.
+   Picked specifically because most "digital/LED display" Google Fonts
+   (Orbitron, VT323, Audiowide, Share Tech Mono, etc.) are Latin-only —
+   checked directly against Google Fonts' own metadata, same standing
+   practice as every other font choice in this app — and the ticker's
+   sponsor copy is in Greek. Nova Mono is one of the few with real Greek
+   glyph coverage that still reads as distinctly blocky/digital. */
+@import url("https://fonts.googleapis.com/css2?family=Nova+Mono&display=swap");
+
+/* Bigshot One — scoped only to the nav bar's "Clutch" text
+   (app.component.html's `.brand-wordmark`), matching the logo's own bold,
+   high-contrast vintage-serif "Clutch" wordmark more closely than the
+   regular font-sans stack did. The logo's actual typeface ("Kabal") isn't
+   genuinely free to use (checked directly — its official source sells it;
+   only unlicensed mirror copies claim otherwise), so this is a free
+   Google Fonts lookalike, picked via a side-by-side comparison, not the
+   exact same face. No Greek-coverage requirement here unlike the rest of
+   this app's type (CLAUDE.md's Branding section already exempts the
+   literal, untranslated word "Clutch" from that rule for the same
+   reason). */
+@import url("https://fonts.googleapis.com/css2?family=Bigshot+One&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -212,6 +234,14 @@
   font-weight: 700;
 }
 
+/* Nav bar's "Clutch" <span> only (app.component.html) — see the Bigshot
+   One @import comment above for why. Bigshot One ships one weight (400,
+   already visually heavy/display-weight by design), so no font-weight
+   override here the way .font-display needs one. */
+.brand-wordmark {
+  font-family: "Bigshot One", serif;
+}
+
 :root {
   --accent-primary: #3e7cb1;
   --accent-secondary: #0b1220;
@@ -262,6 +292,28 @@
 }
 :root[data-theme="light"] .icon-ink-invert {
   filter: none;
+}
+
+/* Brand mark (clutch-mark.png / clutch-mark-dark.png, 2026-09-14): the
+   logo's own linework/"Clutch" text is a fixed dark charcoal baked into
+   the raster art, not overridable via currentColor/CSS variables the way
+   .icon-ink-invert's icons are — and a plain brightness/invert filter
+   would also flip the orange ball's hue, so two separate pre-rendered
+   PNGs are swapped by display instead (clutch-mark-dark.png recolors only
+   the near-neutral dark pixels to light, keeping the ball's orange and the
+   backboard's already-light glass untouched). Same dark-unscoped-default/
+   light-explicit-override convention as .icon-ink-invert above. */
+.brand-mark-light {
+  display: none;
+}
+.brand-mark-dark {
+  display: inline-block;
+}
+:root[data-theme="light"] .brand-mark-light {
+  display: inline-block;
+}
+:root[data-theme="light"] .brand-mark-dark {
+  display: none;
 }
 
 /* Team crest logos (.team-logo, applied to every <img [src]="team.logoUrl">

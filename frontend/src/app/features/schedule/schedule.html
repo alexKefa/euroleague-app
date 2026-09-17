@@ -110,7 +110,8 @@
             @for (game of group.games; track game.id) {
               <a
                 [routerLink]="['/games', game.id]"
-                class="flex items-center justify-between gap-3 px-4 py-4 sm:py-3 bg-card rounded-2xl border border-line shadow-card hover:shadow-pop transition-all"
+                class="flex items-center justify-between gap-3 px-4 py-4 sm:py-3 rounded-2xl shadow-card hover:shadow-pop transition-all"
+                [ngClass]="isFavoriteTeamGame(game) ? 'bg-highlight/10 border border-highlight/30' : 'bg-card border border-line'"
               >
                 <!-- Mobile: logo on top, name+rank centered below it (flex-col-reverse
                      so the logo — second in DOM, closest to center on desktop —

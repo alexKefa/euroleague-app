@@ -332,13 +332,17 @@
   bottom: 12%;
   left: 20%;
   right: 20%;
-  color: currentColor;
 }
 
-.pack-mark svg {
-  width: 74%;
-  filter: drop-shadow(-1px -1px 0 rgba(255, 255, 255, 0.45)) drop-shadow(1.5px 2px 2px rgba(0, 0, 0, 0.5));
-  opacity: 0.94;
+/* Brand mark printed onto the pack face rather than a currentColor-stamped
+   glyph — it's a full-color raster logo (see app.component.html's own
+   .brand-mark-light/.brand-mark-dark pair), so no emboss/tint trick, just
+   opacity plus a drop-shadow for a little lift off the foil. */
+.pack-mark img {
+  width: 72%;
+  height: auto;
+  opacity: 0.55;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
 }
 
 .pack-visual-starter {

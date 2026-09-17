@@ -6,6 +6,13 @@ export const routes: Routes = [
     loadComponent: () =>
       import("./features/dashboard/dashboard.component").then((m) => m.DashboardComponent),
   },
+  // Public, unauthenticated pitch page for cold traffic (the QR card, a
+  // shared link) — deliberately not the "" route, which stays the real
+  // dashboard for anyone who already knows the app.
+  {
+    path: "welcome",
+    loadComponent: () => import("./features/landing/landing").then((m) => m.LandingComponent),
+  },
   // No app code ever links here (the root path "" is the actual dashboard
   // route) — this exists purely so a browser sitting on /home from a stale
   // bookmark/history entry lands on the dashboard instead of a router
@@ -104,6 +111,11 @@ export const routes: Routes = [
     loadComponent: () => import("./features/trades/trades").then((m) => m.TradesComponent),
   },
   {
+    path: "legendary-vote",
+    loadComponent: () =>
+      import("./features/legendary-vote/legendary-vote").then((m) => m.LegendaryVoteComponent),
+  },
+  {
     path: "leagues",
     loadComponent: () => import("./features/leagues/leagues").then((m) => m.LeaguesComponent),
   },
@@ -118,6 +130,14 @@ export const routes: Routes = [
   {
     path: "profile",
     loadComponent: () => import("./features/profile/profile").then((m) => m.ProfileComponent),
+  },
+  // Admin-only "Users" panel — plain roster data + signup analytics, reached
+  // via a link from Profile's existing admin section rather than a nav tab
+  // (server-side gated by requireAdmin; the component itself also checks
+  // auth.currentUser()?.isAdmin for a non-admin who navigates here directly).
+  {
+    path: "admin/users",
+    loadComponent: () => import("./features/admin/admin-users").then((m) => m.AdminUsersComponent),
   },
   {
     path: "login",
@@ -137,5 +157,11 @@ export const routes: Routes = [
     path: "reset-password",
     loadComponent: () =>
       import("./features/auth/reset-password.component").then((m) => m.ResetPasswordComponent),
+  },
+  // A promo QR code's landing spot (services/promoCodes.ts) — distinct from
+  // the marketing /welcome flyer's own QR. See features/claim/claim.ts.
+  {
+    path: "claim",
+    loadComponent: () => import("./features/claim/claim").then((m) => m.ClaimComponent),
   },
 ];

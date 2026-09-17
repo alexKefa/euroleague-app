@@ -24,8 +24,14 @@ import { analyticsViewsRouter } from "./routes/analyticsViews.js";
 import { leaguesRouter } from "./routes/leagues.js";
 import { injuriesRouter } from "./routes/injuries.js";
 import { fantasyRouter } from "./routes/fantasy.js";
+import { legendaryPollsRouter } from "./routes/legendaryPolls.js";
+import { promoCodesRouter } from "./routes/promoCodes.js";
+import { adminRouter } from "./routes/admin.js";
 import { syncNews } from "./sync/newsSync.js";
 import { syncOdds } from "./sync/oddsSync.js";
+import { syncLiveGames } from "./sync/liveGamesSync.js";
+import { applyDailyFantasyPriceChanges } from "./services/fantasyDailyReprice.js";
+import { getCurrentSeason } from "./services/season.js";
 
 const app = express();
 // Railway sits in front of the app as a single reverse-proxy hop, adding
@@ -103,6 +109,9 @@ app.use("/api/analytics-views", analyticsViewsRouter);
 app.use("/api/leagues", leaguesRouter);
 app.use("/api/injuries", injuriesRouter);
 app.use("/api/fantasy", fantasyRouter);
+app.use("/api/legendary-polls", legendaryPollsRouter);
+app.use("/api/promo-codes", promoCodesRouter);
+app.use("/api/admin", adminRouter);
 
 // Serves the built Angular app (see ./Dockerfile) — absent in local dev,
 // where the frontend runs separately via `ng serve` on its own port.
@@ -156,4 +165,44 @@ if (process.env.NODE_ENV === "production") {
   };
   runOddsSync();
   setInterval(runOddsSync, ODDS_SYNC_INTERVAL_MS);
+
+  // Real live scores (sync/liveGamesSync.ts, replacing the admin-only
+  // realtime/liveScoreSimulator.ts test tool now that there's a confirmed
+  // real feed to poll — see that module's own header comment). Short
+  // interval since this is the one sync job users actually notice lag on,
+  // but each run is a cheap no-op (one lightweight DB query, zero fetches)
+  // whenever nothing is within its tipoff window, so polling this often
+  // costs nothing between rounds.
+  const LIVE_GAMES_SYNC_INTERVAL_MS = 20 * 1000;
+  const runLiveGamesSync = () => {
+    syncLiveGames()
+      .then(({ checked, wentLive, wentFinal }) => {
+        if (checked === 0) return; // nothing in-window right now, not worth a log line
+        if (wentLive === 0 && wentFinal === 0) return; // checked in-progress games, nothing changed
+        console.log(`[live games sync] checked ${checked}, ${wentLive} went live, ${wentFinal} went final`);
+      })
+      .catch((err) => console.error("[live games sync] failed:", err));
+  };
+  runLiveGamesSync();
+  setInterval(runLiveGamesSync, LIVE_GAMES_SYNC_INTERVAL_MS);
+
+  // Daily Fantasy Five price changes (2026-09-16, matching EuroLeague
+  // Fantasy's own real rules — see fantasyDailyReprice.ts's doc comment).
+  // Each run only processes (player/coach, game) pairs with no
+  // fantasy_price_change_log row yet, so this is safe on a fixed interval
+  // regardless of exact timing or a mid-day restart — same idempotency
+  // shape as the odds/news jobs above, not a fragile "once per calendar
+  // day" scheduler. A day with no games played is a cheap no-op.
+  const FANTASY_REPRICE_INTERVAL_MS = 24 * 60 * 60 * 1000;
+  const runFantasyReprice = () => {
+    getCurrentSeason()
+      .then((season) => (season ? applyDailyFantasyPriceChanges(season) : Promise.resolve(null)))
+      .then((result) => {
+        if (!result || (result.playersUpdated === 0 && result.coachesUpdated === 0)) return;
+        console.log(`[fantasy daily reprice] ${result.playersUpdated} player(s), ${result.coachesUpdated} coach(es)`);
+      })
+      .catch((err) => console.error("[fantasy daily reprice] failed:", err));
+  };
+  runFantasyReprice();
+  setInterval(runFantasyReprice, FANTASY_REPRICE_INTERVAL_MS);
 }

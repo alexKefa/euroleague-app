@@ -1,0 +1,201 @@
+@if (auth.isAuthenticated()) {
+  <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+    @if (loading()) {
+      <app-skeleton class="h-9 rounded-2xl mb-3" [icon]="false" />
+      <div class="space-y-2">
+        @for (i of [1, 2, 3]; track i) {
+          <app-skeleton class="h-12 rounded-2xl" [icon]="false" />
+        }
+      </div>
+    } @else {
+      <!-- Games and Favorites are always shown (each has its own empty
+           state) — Predictions and Polls only earn a tab when there's
+           actually something live/open in them, so the bar doesn't
+           advertise empty sections. -->
+      <div class="flex gap-1 mb-3 overflow-x-auto no-scrollbar bg-page rounded-2xl p-1">
+        <button type="button" (click)="setTab('games')" [ngClass]="tabButtonClass('games')" class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold whitespace-nowrap transition-colors shrink-0 flex items-center justify-center gap-1.5">
+          {{ i18n.t('liveCenter.games') }}
+          @if (hasLive()) {
+            <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+          }
+        </button>
+        @if (hasPredictions()) {
+          <button type="button" (click)="setTab('predictions')" [ngClass]="tabButtonClass('predictions')" class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold whitespace-nowrap transition-colors shrink-0">
+            {{ i18n.t('liveCenter.predictions') }}
+          </button>
+        }
+        <button type="button" (click)="setTab('favorites')" [ngClass]="tabButtonClass('favorites')" class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold whitespace-nowrap transition-colors shrink-0">
+          {{ i18n.t('liveCenter.favorites') }}
+        </button>
+        @if (hasPolls()) {
+          <button type="button" (click)="setTab('polls')" [ngClass]="tabButtonClass('polls')" class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold whitespace-nowrap transition-colors shrink-0">
+            {{ i18n.t('liveCenter.polls') }}
+          </button>
+        }
+      </div>
+
+      @switch (activeTab()) {
+        @case ('games') {
+          @if (liveGames().length > 0 || upcomingGames().length > 0) {
+            <div class="text-sm space-y-1">
+              @for (game of liveGames(); track game.id) {
+                <a [routerLink]="['/games', game.id]" class="flex items-center justify-between gap-2 px-2 py-2 rounded-2xl hover:bg-page transition-colors">
+                  <span class="flex items-center gap-2 min-w-0 flex-1">
+                    @if (game.homeTeam.logoUrl) {
+                      <img [src]="game.homeTeam.logoUrl" [alt]="game.homeTeam.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
+                    }
+                    <span class="font-semibold truncate">{{ game.homeTeam.code | teamCode }}</span>
+                    <span class="text-muted text-xs">vs</span>
+                    <span class="font-semibold truncate">{{ game.awayTeam.code | teamCode }}</span>
+                    @if (game.awayTeam.logoUrl) {
+                      <img [src]="game.awayTeam.logoUrl" [alt]="game.awayTeam.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
+                    }
+                  </span>
+                  <span class="shrink-0 text-right">
+                    <span class="flex items-center justify-end gap-1">
+                      <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
+                      @if (game.quarter) {
+                        <span class="text-[9px] font-bold font-mono text-red-500 whitespace-nowrap">Q{{ game.quarter }} {{ formatClock(game.gameClockSeconds) }}</span>
+                      }
+                    </span>
+                    <span class="font-mono font-bold text-sm">{{ game.homeScore }}-{{ game.awayScore }}</span>
+                  </span>
+                </a>
+              }
+              @for (game of upcomingGames(); track game.id) {
+                <a [routerLink]="['/games', game.id]" class="flex items-center justify-between gap-2 px-2 py-2 rounded-2xl hover:bg-page transition-colors">
+                  <span class="flex items-center gap-2 min-w-0 flex-1">
+                    @if (game.homeTeam.logoUrl) {
+                      <img [src]="game.homeTeam.logoUrl" [alt]="game.homeTeam.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
+                    }
+                    <span class="font-semibold truncate">{{ game.homeTeam.code | teamCode }}</span>
+                    <span class="text-muted text-xs">vs</span>
+                    <span class="font-semibold truncate">{{ game.awayTeam.code | teamCode }}</span>
+                    @if (game.awayTeam.logoUrl) {
+                      <img [src]="game.awayTeam.logoUrl" [alt]="game.awayTeam.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
+                    }
+                  </span>
+                  <span class="font-mono text-xs text-muted shrink-0">{{ game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}</span>
+                </a>
+              }
+            </div>
+          } @else {
+            <p class="text-sm text-muted font-semibold px-2 py-3">{{ i18n.t('liveCenter.noGames') }}</p>
+          }
+        }
+
+        @case ('predictions') {
+          @if (myUpcomingPredictions().length > 0) {
+            <div class="text-sm space-y-1">
+              @for (row of myUpcomingPredictions(); track row.prediction.id) {
+                <a [routerLink]="['/games', row.game.id]" class="flex items-center justify-between gap-2 px-2 py-2 rounded-2xl hover:bg-page transition-colors">
+                  <span class="flex items-center gap-2 min-w-0 flex-1">
+                    <span class="font-semibold truncate">{{ row.game.homeTeam.code | teamCode }}</span>
+                    <span class="text-muted text-xs">vs</span>
+                    <span class="font-semibold truncate">{{ row.game.awayTeam.code | teamCode }}</span>
+                  </span>
+                  <span class="flex items-center gap-2 shrink-0">
+                    <span class="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-highlight/10 text-highlight whitespace-nowrap">
+                      {{ i18n.t('liveCenter.picked') }} {{ row.prediction.predictedTeam.code | teamCode }}
+                    </span>
+                    @if (row.game.status === 'live') {
+                      <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
+                    } @else {
+                      <span class="font-mono text-xs text-muted">{{ row.game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}</span>
+                    }
+                  </span>
+                </a>
+              }
+            </div>
+          } @else {
+            <p class="text-sm text-muted font-semibold px-2 py-3">
+              {{ i18n.t('liveCenter.noPredictionsPrefix') }}
+              <a routerLink="/predictions" class="text-highlight font-semibold">{{ i18n.t('nav.picks') }}</a>
+              {{ i18n.t('liveCenter.noPredictionsSuffix') }}
+            </p>
+          }
+        }
+
+        @case ('favorites') {
+          @if (favoriteRows().length > 0) {
+            <div class="text-sm space-y-1.5">
+              @for (row of favoriteRows(); track row.id) {
+                <a [routerLink]="['/players', row.id]" class="flex items-center gap-3 px-2 py-2 rounded-2xl hover:bg-page transition-colors">
+                  @if (row.photoUrl) {
+                    <img [src]="row.photoUrl" [alt]="row.name" loading="lazy" decoding="async" appRetryImg class="w-9 h-9 rounded-full object-cover shrink-0" />
+                  } @else {
+                    <span class="w-9 h-9 rounded-full bg-page border border-line shrink-0 flex items-center justify-center font-mono text-[10px] text-muted">{{ row.teamCode }}</span>
+                  }
+
+                  <span class="min-w-0 flex-1">
+                    <span class="flex items-center justify-between gap-2">
+                      <span class="font-semibold truncate">{{ row.name }}</span>
+                      @if (row.game; as game) {
+                        @if (game.status === 'live') {
+                          <span class="flex items-center gap-1 shrink-0">
+                            <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
+                            <span class="font-mono font-bold text-xs">{{ game.homeScore }}-{{ game.awayScore }}</span>
+                          </span>
+                        } @else {
+                          <span class="font-mono text-[11px] text-muted shrink-0">{{ game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}</span>
+                        }
+                      } @else {
+                        <span class="font-mono text-[10px] text-muted shrink-0">{{ i18n.t('liveCenter.noGameThisRound') }}</span>
+                      }
+                    </span>
+                    <span class="flex items-center gap-2.5 mt-0.5">
+                      <span class="font-mono text-[10px] text-muted">{{ row.teamCode }}</span>
+                      @if (row.pointsPerGame !== null && row.pointsPerGame !== undefined) {
+                        <span class="font-mono text-[10px] text-muted">{{ row.pointsPerGame | number: '1.1-1' }} {{ i18n.t('liveCenter.ppg') }}</span>
+                        <span class="font-mono text-[10px] text-muted">{{ row.reboundsPerGame | number: '1.1-1' }} {{ i18n.t('liveCenter.rpg') }}</span>
+                        <span class="font-mono text-[10px] text-muted">{{ row.assistsPerGame | number: '1.1-1' }} {{ i18n.t('liveCenter.apg') }}</span>
+                        <span class="font-mono text-[10px] font-bold text-highlight">{{ row.valuation | number: '1.1-1' }} {{ i18n.t('liveCenter.pir') }}</span>
+                      } @else {
+                        <span class="font-mono text-[10px] text-muted">{{ i18n.t('liveCenter.noStatsYet') }}</span>
+                      }
+                    </span>
+                  </span>
+
+                  <button
+                    type="button"
+                    (click)="removeFavorite(row, $event)"
+                    [attr.aria-label]="i18n.t('player.unfavorite')"
+                    class="shrink-0 text-muted hover:text-red-500 transition-colors text-sm leading-none px-1"
+                  >
+                    &times;
+                  </button>
+                </a>
+              }
+            </div>
+          } @else {
+            <p class="text-sm text-muted font-semibold px-2 py-3">{{ i18n.t('liveCenter.noFavorites') }}</p>
+          }
+        }
+
+        @case ('polls') {
+          @if (openPollsList().length > 0) {
+            <div class="text-sm space-y-1">
+              @for (poll of openPollsList(); track poll.id) {
+                <a routerLink="/legendary-vote" class="flex items-center justify-between gap-2 px-2 py-2 rounded-2xl hover:bg-page transition-colors">
+                  <span class="min-w-0 flex-1">
+                    <span class="block font-semibold truncate">{{ poll.title }}</span>
+                    @if (leadingCandidate(poll); as leader) {
+                      <span class="block text-[11px] text-muted truncate">{{ leader.name }} &middot; {{ leadingPercent(poll) }}%</span>
+                    }
+                  </span>
+                  <span class="font-mono text-[10px] font-bold text-muted shrink-0">{{ poll.totalVotes }} {{ i18n.t('legendaryVote.votes') }}</span>
+                </a>
+              }
+            </div>
+          } @else {
+            <p class="text-sm text-muted font-semibold px-2 py-3">
+              {{ i18n.t('liveCenter.noPollsPrefix') }}
+              <a routerLink="/legendary-vote" class="text-highlight font-semibold">{{ i18n.t('legendaryVote.title') }}</a>
+              {{ i18n.t('liveCenter.noPollsSuffix') }}
+            </p>
+          }
+        }
+      }
+    }
+  </div>
+}

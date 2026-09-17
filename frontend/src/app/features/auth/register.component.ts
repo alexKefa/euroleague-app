@@ -3,34 +3,21 @@ import { CommonModule } from "@angular/common";
 import { ReactiveFormsModule, FormBuilder, Validators } from "@angular/forms";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { AuthService } from "../../core/auth.service";
-import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
-import { Team } from "../../core/models";
-import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ButtonDirective } from "../../shared/button.directive";
 import { OpenInBrowserBannerComponent } from "../../shared/open-in-browser-banner";
-import { TeamCodePipe } from "../../shared/team-display-code";
-import { SkeletonComponent } from "../../shared/skeleton";
+import { TeamPickDialogComponent } from "../../shared/team-pick-dialog";
+import { peekPendingPromoClaim, consumePendingPromoClaim } from "../../shared/pending-promo-claim";
 
 @Component({
   selector: "app-register",
   standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    RouterLink,
-    RetryImgDirective,
-    ButtonDirective,
-    OpenInBrowserBannerComponent,
-    TeamCodePipe,
-    SkeletonComponent,
-  ],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, ButtonDirective, OpenInBrowserBannerComponent, TeamPickDialogComponent],
   templateUrl: "./register.component.html",
 })
 export class RegisterComponent implements OnInit {
   private fb = inject(FormBuilder);
   private auth = inject(AuthService);
-  private api = inject(ApiService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   protected i18n = inject(I18nService);
@@ -38,9 +25,11 @@ export class RegisterComponent implements OnInit {
   readonly submitting = signal(false);
   readonly error = signal<string | null>(null);
 
-  readonly teams = signal<Team[]>([]);
-  readonly teamsLoading = signal(true);
-  readonly favoriteTeamId = signal<string | null>(null);
+  // Team picking moved out of this form entirely (2026-09-15, "Direction C"
+  // from that day's design-canvas comparison) — TeamPickDialogComponent
+  // shows once, right after a successful registration, instead of a chip
+  // grid competing with the actual account fields for space on mobile.
+  readonly showTeamDialog = signal(false);
 
   // From a shared referral link (?ref=CODE, see profile.html) — validity is
   // checked server-side at submit time; an unrecognized code is silently
@@ -65,19 +54,11 @@ export class RegisterComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.api.getTeams().subscribe({
-      next: (rows) => {
-        this.teams.set(rows);
-        this.teamsLoading.set(false);
-      },
-      error: () => this.teamsLoading.set(false),
-    });
     this.referralCode.set(this.route.snapshot.queryParamMap.get("ref"));
-    this.promoCode.set(this.route.snapshot.queryParamMap.get("promo"));
-  }
-
-  pickTeam(teamId: string): void {
-    this.favoriteTeamId.set(this.favoriteTeamId() === teamId ? null : teamId);
+    // A promo QR link (features/claim/claim.ts) may have sent the visitor
+    // here via /welcome instead of straight to /register?promo=CODE — fall
+    // back to the code it stashed so it still applies either way.
+    this.promoCode.set(this.route.snapshot.queryParamMap.get("promo") ?? peekPendingPromoClaim());
   }
 
   submit(): void {
@@ -87,18 +68,22 @@ export class RegisterComponent implements OnInit {
 
     const { email, password, username } = this.form.getRawValue();
     this.auth
-      .register(email, password, this.favoriteTeamId(), this.referralCode(), this.promoCode(), username.trim() || null)
+      .register(email, password, null, this.referralCode(), this.promoCode(), username.trim() || null)
       .subscribe({
         next: ({ promo }) => {
+          // Registration itself already redeemed this.promoCode() directly
+          // (routes/auth.ts) — clear the stash so a later /claim visit
+          // doesn't try the same code again.
+          consumePendingPromoClaim();
           if (!promo) {
-            this.router.navigateByUrl("/");
+            this.showTeamDialog.set(true);
             return;
           }
-          // Brief pause on a success note before leaving — otherwise the
-          // "your promo code worked" confirmation would never be visible,
-          // immediately replaced by the dashboard on navigation.
+          // Brief pause on the "promo applied" note before the team dialog
+          // takes over — otherwise it'd never be visible, immediately
+          // covered by the dialog's own backdrop.
           this.promoApplied.set(true);
-          setTimeout(() => this.router.navigateByUrl("/"), 1800);
+          setTimeout(() => this.showTeamDialog.set(true), 1400);
         },
         error: (err) => {
           const code = err?.error?.code;
@@ -114,5 +99,9 @@ export class RegisterComponent implements OnInit {
           this.submitting.set(false);
         },
       });
+  }
+
+  onTeamDialogClosed(): void {
+    this.router.navigateByUrl("/");
   }
 }

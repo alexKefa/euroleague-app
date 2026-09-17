@@ -123,17 +123,40 @@ function formationForPositionCounts(counts: Record<PositionName, number>): Forma
 // centered on ROW_TOP via `-translate-y-1/2` — at 90% top, roughly half
 // that stack's real height (~40-45px on a court only ~300-335px tall)
 // landed below the container's bottom edge and got clipped outright, not
-// just cramped. 80% leaves real margin instead of none.
-const ROW_TOP: Record<PositionName, number> = { Guard: 33, Forward: 57, Center: 80 };
+// just cramped. 80% leaves real margin instead of none. Left untouched by
+// the 2026-09-12 pass below — it's the one boundary this file has actually
+// verified live before, and the two-line player name added the day after
+// this note (see squadSlot's line-clamp-2 comment) made the stack taller
+// still, so 80% likely has less spare margin today than this paragraph
+// claims. Not re-verified live either way — leaving it exactly where it
+// last proved safe rather than nudging it on top of an already-stacked
+// uncertainty.
+//
+// Guard/Forward opened up 2026-09-12 ("increase space between players...
+// take all available space, on mobile is very packed") — 33/57 left more
+// unused whitespace above the Guard row than the stack actually needs.
+// First tried 20/50/80 (evenly spaced down to Center's proven-safe floor)
+// and 10/90 horizontally below — live-reported as sitting right at the
+// court's edges, so both pulled back to a middle ground: real, visible
+// extra room over the original 33/57/80, but with actual margin left at
+// every edge rather than none.
+const ROW_TOP: Record<PositionName, number> = { Guard: 26, Forward: 53, Center: 80 };
 // Widened 2026-09-07 (from [30,70]/[18,50,82]) — on a narrow mobile court
 // column, avatars in the same row sat close enough to visually crowd each
 // other. Horizontal-only change: spreading a row wider doesn't touch
 // ROW_TOP/the court-background SVG's calibration (see court-background.ts's
 // own doc comment on how fragile that vertical alignment has been), it just
 // moves same-row slots further apart within a still-symmetric layout.
+// Widened again 2026-09-12, same "use more of the court" pass as ROW_TOP
+// above — [10, 90] (tried first) sat right at the mobile avatar's own
+// half-width margin, reported as too close to the edge live; pulled back
+// to [15, 85], still a real increase over the original [20, 80] but with
+// visible margin left at each side. The 3-slot case ([10, 50, 90], only
+// 3-1-1's Guard row ever uses it) was already close to that same edge and
+// left alone rather than pushed further.
 function rowXPositions(count: number): number[] {
   if (count === 1) return [50];
-  if (count === 2) return [20, 80];
+  if (count === 2) return [15, 85];
   return [10, 50, 90];
 }
 
@@ -220,14 +243,32 @@ export class FantasyComponent implements OnInit {
   // request ("make the slots even bigger") — a bit more of the row-to-row
   // crowding risk the 2026-09-07 mobile-size-down pass above was written to
   // avoid, but a direct, explicit ask outweighs that caution here.
-  readonly starterAvatarSize = computed(() => (this.isMobileViewport() ? 50 : 62));
-  readonly sixthManAvatarSize = computed(() => (this.isMobileViewport() ? 44 : 54));
-  readonly benchAvatarSize = computed(() => (this.isMobileViewport() ? 40 : 48));
+  //
+  // Bumped again 2026-09-16 ("increase photos of players size... I want
+  // them more visible") — no live browser this session to re-verify pixel
+  // overlap (see court-background.ts's own note on the same constraint),
+  // so the two size groups were treated differently by real risk:
+  // sixthMan/bench sit in normal document flow below the court card, not
+  // inside its fixed-aspect-ratio overflow-hidden box, so they have no
+  // clipping/overlap risk at all and were bumped generously. starter sits
+  // absolutely-positioned inside that fixed box at ROW_TOP's calibrated
+  // percentages — worked through the actual pixel math instead of
+  // guessing: at the tightest case (mobile, Center row at 80% of a
+  // ~320px-tall court), the current 50px avatar's full stack (PIR line +
+  // avatar + 2-line name) already left only ~15-20px of bottom margin
+  // (see the ROW_TOP comment above), so this only moved starter up a more
+  // conservative +6/+10 (mobile/desktop) rather than matching the other
+  // two groups' jump, to stay inside that margin.
+  readonly starterAvatarSize = computed(() => (this.isMobileViewport() ? 56 : 72));
+  readonly sixthManAvatarSize = computed(() => (this.isMobileViewport() ? 54 : 64));
+  readonly benchAvatarSize = computed(() => (this.isMobileViewport() ? 50 : 58));
 
   readonly tab = signal<"roster" | "leaderboard">("roster");
 
   // --- Roster builder state ---
   readonly loading = signal(true);
+  // Admin-only auto-fill button's in-flight flag — see autoFillSquad below.
+  readonly autoFilling = signal(false);
   // Placeholder-row count for the pool skeleton (loading()) — just an
   // @for track source, no real data behind it.
   readonly skeletonRows = [0, 1, 2, 3, 4, 5];
@@ -257,9 +298,13 @@ export class FantasyComponent implements OnInit {
   // per-game box score has necessarily been fetched this session.
   readonly roundComplete = signal(false);
   readonly totalPoints = signal(0);
-  readonly totalPir = signal(0);
   readonly coachPoints = signal(0);
   readonly creditsChange = signal(0);
+  // Shared-economy points grant for the currently-viewed round (2026-09-16,
+  // see checkAndGrantFantasyRoundPoints) — shown inside the round-complete
+  // modal below and acknowledged (ackFantasyRoundPoints) when that modal
+  // closes, same one-shot-banner shape as predictions' round rewards.
+  readonly newFantasyRoundPoints = signal<{ id: string; round: number; points: number } | null>(null);
 
   // --- Transfers (2026-09-07) — see services/fantasyScoring.ts's
   // getBaselineSquad doc comment. transfersUsed/transfersAllowed are the
@@ -372,24 +417,36 @@ export class FantasyComponent implements OnInit {
   readonly hasLiveGameThisRound = computed(() => this.liveGamesThisRound().length > 0);
 
   // Whole-round lock (2026-09-07, replacing a per-player-only "Turns"
-  // lock): once ANY game in this round has tipped off, the entire lineup
+  // lock): once the round's first game has tipped off, the entire lineup
   // freezes — every player, formation, captain, and coach — not just
   // whichever specific players' own games have started. Matches the
   // backend's own POST /lineup/batch gate (see that route's doc comment)
-  // exactly, just computed reactively here off signals that are already
-  // kept live: coachLocked() is the server's own snapshot from load time
-  // (covers the very first render, before any SSE tick has arrived), and
-  // fixtureGames() is kept current via the SSE stream (see liveUpdatesEffect
-  // above) so this flips true mid-session the moment a game actually goes
-  // live, with no need to reload the page or re-fetch the lineup.
+  // exactly: `lockAt` (this round's earliest tipoff) compared against
+  // wall-clock time, nothing else.
+  //
+  // Real bug fixed 2026-09-10: this used to also lock whenever
+  // `fixtureGames().some((g) => g.status !== "scheduled")` — the idea being
+  // a live SSE tick should flip this true mid-session without waiting on a
+  // clock. But the backend's gate has no such condition at all, and a
+  // game's `status` can disagree with its `tipoffAt` (caught live: a
+  // freshly-registered test account saw round 1 as locked even though its
+  // earliest game was two weeks out, because that game's row was leftover
+  // "final" test/simulator data with a future tipoffAt). Any one game's
+  // stale or wrong status could freeze the whole round early — or, in the
+  // opposite direction, leave it open past the real deadline if a sync job
+  // lagged behind actual tipoff. Fixed by comparing `lockAt()` to
+  // `Date.now()` directly — the same value the backend's own gate uses —
+  // and keeping `fixtureGames()` only as a reactivity trigger (read but not
+  // branched on) so this still re-checks the clock on every SSE tick
+  // without depending on any game's status being accurate.
   // !isCurrentRound() (2026-09-07) additionally locks every past round
-  // reached via the round navigator — always read-only history, regardless
-  // of the two checks above (which would already independently agree, since
-  // a past round is by construction fully final, but this makes the intent
-  // explicit rather than relying on that coincidence).
-  readonly roundLocked = computed(
-    () => !this.isCurrentRound() || this.coachLocked() || this.fixtureGames().some((g) => g.status !== "scheduled")
-  );
+  // reached via the round navigator — always read-only history.
+  readonly roundLocked = computed(() => {
+    if (!this.isCurrentRound()) return true;
+    this.fixtureGames();
+    const lockAt = this.lockAt();
+    return lockAt !== null && new Date(lockAt).getTime() <= Date.now();
+  });
 
   // Per-player PIR for this round's live/final games, fetched from the
   // same per-game box score the game-detail page already reads
@@ -694,6 +751,19 @@ export class FantasyComponent implements OnInit {
   });
 
   readonly overBudget = computed(() => this.totalCost() > this.budgetCap());
+  // "How much do I have left to spend" (2026-09-12) — shown while picking
+  // a player/coach, not just as the spent/cap fraction in the status bar.
+  // Negative once overBudget() (a squad can go over via repricing between
+  // rounds, not just by picking) — shown as-is rather than floored at 0,
+  // same "don't hide the real number" reasoning as overBudget's own red text.
+  readonly remainingBudget = computed(() => this.budgetCap() - this.totalCost());
+  // Status bar's budget progress-bar fill — Angular templates have no
+  // access to a global `Math`, so the clamped percentage is computed here
+  // rather than inline.
+  readonly budgetBarPct = computed(() => {
+    const cap = this.budgetCap();
+    return cap > 0 ? Math.min(100, (this.totalCost() / cap) * 100) : 0;
+  });
 
   readonly squadFull = computed(() => this.squadSlots().every((s) => s.playerId !== null));
 
@@ -924,9 +994,9 @@ export class FantasyComponent implements OnInit {
         this.lockedPlayerIds.set(new Set(lineup.players.filter((p) => p.locked).map((p) => p.playerId)));
         this.roundComplete.set(lineup.roundComplete);
         this.totalPoints.set(lineup.totalPoints);
-        this.totalPir.set(lineup.totalPir);
         this.creditsChange.set(lineup.creditsChange);
         this.coachPoints.set(lineup.coachPoints);
+        this.newFantasyRoundPoints.set(lineup.newFantasyRoundPoints);
         this.transfersUsed.set(lineup.transfersUsed);
         this.transfersAllowed.set(lineup.transfersAllowed);
         this.baselinePlayerIds.set(lineup.baselinePlayerIds ? new Set(lineup.baselinePlayerIds) : null);
@@ -963,6 +1033,22 @@ export class FantasyComponent implements OnInit {
     });
   }
 
+  // Admin-only testing tool (2026-09-17, see CLAUDE.md's Fantasy Five
+  // simulation-button TODO): drafts a real, valid squad for the calling
+  // admin's own account server-side, then reloads the lineup the normal way
+  // — no special client-side rendering path, since the saved squad is a
+  // real one, not a preview.
+  autoFillSquad(): void {
+    this.autoFilling.set(true);
+    this.api.autoFillFantasySquad().subscribe({
+      next: () => {
+        this.autoFilling.set(false);
+        this.loadLineup(this.round() ?? undefined);
+      },
+      error: () => this.autoFilling.set(false),
+    });
+  }
+
   // Lightweight re-pull of just a round's scoring summary (points/PIR/
   // completion), triggered when a game in the currently-viewed round goes
   // final mid-session (see liveUpdatesEffect) — deliberately never touches
@@ -975,9 +1061,9 @@ export class FantasyComponent implements OnInit {
       next: (lineup) => {
         this.roundComplete.set(lineup.roundComplete);
         this.totalPoints.set(lineup.totalPoints);
-        this.totalPir.set(lineup.totalPir);
         this.creditsChange.set(lineup.creditsChange);
         this.coachPoints.set(lineup.coachPoints);
+        this.newFantasyRoundPoints.set(lineup.newFantasyRoundPoints);
         this.maybeCelebrateRoundComplete(lineup.round, lineup.roundComplete);
       },
       error: () => {},
@@ -1022,6 +1108,10 @@ export class FantasyComponent implements OnInit {
 
   closeRoundComplete(): void {
     this.showRoundComplete.set(false);
+    if (this.newFantasyRoundPoints()) {
+      this.newFantasyRoundPoints.set(null);
+      this.api.ackFantasyRoundPoints().subscribe({ error: () => {} });
+    }
   }
 
   private loadFixtures(season: string, round: number): void {
@@ -1292,14 +1382,43 @@ export class FantasyComponent implements OnInit {
     return this.localTransfersUsed() < allowed;
   }
 
-  // Combines the round-wide freeze, the position-quota gate, and the
-  // transfer-budget gate above for the pool/picker row lists' disabled
-  // state — the persistent desktop pool column isn't reached through
-  // openPicker (that guard only covers mobile's tap-to-open-picker flow),
-  // so it needs its own roundLocked() check here rather than relying on
-  // that method never having been callable in the first place.
+  // A player whose price would push totalCost() past budgetCap() (2026-09-12)
+  // — same spirit as canAddPosition/canUseTransfer below: catch it at
+  // selection time in the pool, not just at submit time via overBudget().
+  // Only meaningful for a brand-new addition to an empty slot (what the
+  // pool/picker are for) — a squad member already counted in totalCost()
+  // never appears in the pool to begin with, so there's no double-counting
+  // to worry about here.
+  canAfford(price: number): boolean {
+    return price <= this.remainingBudget();
+  }
+
+  // Coach variant (2026-09-12) — unlike the player pool, the coach picker's
+  // rows include the CURRENTLY selected coach (selectCoach toggles it off
+  // on a second tap), and switching coaches frees the old one's price back
+  // up at the same time it spends the new one's. remainingBudget() alone
+  // already has the current coach's cost baked into totalCost(), so
+  // switching is only really "affordable" if the *net* change (new price
+  // minus what the old one was costing) fits — always true for the
+  // already-selected coach itself, which is why that case short-circuits
+  // to true rather than comparing prices at all.
+  canAffordCoach(teamId: string, price: number): boolean {
+    const currentCoachId = this.coachTeamId();
+    if (currentCoachId === teamId) return true;
+    const currentCoachPrice = currentCoachId ? this.coachByTeamId().get(currentCoachId)?.price ?? 0 : 0;
+    return price <= this.remainingBudget() + currentCoachPrice;
+  }
+
+  // Combines the round-wide freeze, the position-quota gate, the
+  // transfer-budget gate, and the budget-cap gate above for the pool/
+  // picker row lists' disabled state — the persistent desktop pool column
+  // isn't reached through openPicker (that guard only covers mobile's
+  // tap-to-open-picker flow), so it needs its own roundLocked() check here
+  // rather than relying on that method never having been callable in the
+  // first place.
   poolRowDisabled(playerId: string, position: string | null | undefined): boolean {
-    return this.roundLocked() || !this.canAddPosition(position) || !this.canUseTransfer(playerId);
+    const price = this.rowById().get(playerId)?.price ?? 0;
+    return this.roundLocked() || !this.canAddPosition(position) || !this.canUseTransfer(playerId) || !this.canAfford(price);
   }
 
   // Tap fallback, alongside dragging — CDK's cdkDrag only intercepts an
@@ -1314,7 +1433,13 @@ export class FantasyComponent implements OnInit {
   // drag; now it's the default since tapping price is the primary way to
   // build a squad.
   addToSquad(playerId: string): void {
-    if (this.roundLocked() || !this.canAddPosition(this.rowById().get(playerId)?.player.position) || !this.canUseTransfer(playerId))
+    const row = this.rowById().get(playerId);
+    if (
+      this.roundLocked() ||
+      !this.canAddPosition(row?.player.position) ||
+      !this.canUseTransfer(playerId) ||
+      !this.canAfford(row?.price ?? 0)
+    )
       return;
     const slots = [...this.squadSlots()];
     const starterIdx = slots.findIndex(
@@ -1475,7 +1600,8 @@ export class FantasyComponent implements OnInit {
     if (this.roundLocked()) return;
     const slotId = this.pickerSlotId();
     if (!slotId || !this.slotAcceptsPlayer(slotId, playerId)) return;
-    if (!this.canAddPosition(this.rowById().get(playerId)?.player.position) || !this.canUseTransfer(playerId)) return;
+    const row = this.rowById().get(playerId);
+    if (!this.canAddPosition(row?.player.position) || !this.canUseTransfer(playerId) || !this.canAfford(row?.price ?? 0)) return;
     const slots = [...this.squadSlots()];
     const idx = slots.findIndex((s) => s.id === slotId);
     if (idx === -1) return;
@@ -1502,6 +1628,7 @@ export class FantasyComponent implements OnInit {
 
   selectCoach(teamId: string): void {
     if (this.roundLocked()) return;
+    if (this.coachTeamId() !== teamId && !this.canAffordCoach(teamId, this.coachByTeamId().get(teamId)?.price ?? 0)) return;
     this.coachTeamId.set(this.coachTeamId() === teamId ? null : teamId);
     this.saved.set(false);
   }
@@ -1541,9 +1668,11 @@ export class FantasyComponent implements OnInit {
       // two squad members' places with each other (see evaluateSwap).
       if (!this.slotAcceptsPlayer(targetId, draggedPlayerId)) return;
       if (displaced && this.isPlayerLocked(displaced)) return;
+      const draggedRow = this.rowById().get(draggedPlayerId);
       if (
-        !this.canAddPosition(this.rowById().get(draggedPlayerId)?.player.position) ||
-        !this.canUseTransfer(draggedPlayerId)
+        !this.canAddPosition(draggedRow?.player.position) ||
+        !this.canUseTransfer(draggedPlayerId) ||
+        !this.canAfford(draggedRow?.price ?? 0)
       )
         return;
       slots[targetIdx] = { ...slots[targetIdx], playerId: draggedPlayerId };

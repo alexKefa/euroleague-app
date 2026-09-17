@@ -1,6 +1,19 @@
-import { and, asc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { games, users, collectibles, teams, fantasyLineups, fantasyCoachPicks } from "../db/schema.js";
+import {
+  games,
+  users,
+  collectibles,
+  teams,
+  players,
+  playerFantasyPrices,
+  coachFantasyPrices,
+  fantasyPricingState,
+  fantasyLineups,
+  fantasyCoachPicks,
+  fantasyRoundPoints,
+  pointAdjustments,
+} from "../db/schema.js";
 
 // --- Squad shape (2026-09-05 rebuild to match EuroLeague Fantasy's real
 // Classic Mode rules directly, rather than our own simplified variant —
@@ -12,7 +25,7 @@ import { games, users, collectibles, teams, fantasyLineups, fantasyCoachPicks } 
 // 1 "sixth man" score 100% of a locked round's points; the remaining 4
 // "bench" players score BENCH_SCORE_MULTIPLIER (50%). The captain (always
 // one of the 5 starters) doubles on top of that. The coach always scores
-// 100% — see COACH_WIN_POINTS below — never bench-reduced, since there's
+// 100% — see pointsForCoachResult below — never bench-reduced, since there's
 // only ever one of them.
 export const FANTASY_STARTER_COUNT = 5;
 export const FANTASY_SIXTH_MAN_COUNT = 1;
@@ -23,19 +36,41 @@ export const FANTASY_POSITION_QUOTA: Record<"Guard" | "Forward" | "Center", numb
   Forward: 4,
   Center: 2,
 };
+// EuroLeague Fantasy's own published rules (2026-09-16 read) cap how many
+// of the 10 outfield players can come from the same real club, to stop a
+// degenerate "just draft one contender's whole roster" strategy — not
+// previously enforced here at all. Scoped to the outfield 10 only, not the
+// coach (a separate roster slot with its own club, same as real rules).
+export const FANTASY_MAX_PLAYERS_PER_CLUB = 6;
 export const BENCH_SCORE_MULTIPLIER = 0.5;
 
-// Round-to-round transfers (2026-09-07): a squad now carries forward
-// automatically from the previous round (see routes/fantasy.ts's
-// GET /lineup carry-forward and getBaselineSquad) instead of starting every
-// round from an empty court — real fantasy-sports "gameweek" model. Only
-// up to this many *player* changes are allowed against that carried-over
-// baseline before the round locks; the coach is a separate, unlimited
-// change (real rules don't ration coach picks the way they ration
-// transfers), and moving an already-selected player between starter/sixth-
-// man/bench costs nothing since no player id actually changed. Round 1 (no
-// prior round to carry from) stays a free, unlimited draft, same as always.
-export const FANTASY_TRANSFERS_PER_ROUND = 3;
+// Round-to-round transfers (2026-09-07, limit corrected 2026-09-16): a
+// squad now carries forward automatically from the previous round (see
+// routes/fantasy.ts's GET /lineup carry-forward and getBaselineSquad)
+// instead of starting every round from an empty court — real
+// fantasy-sports "gameweek" model. Only up to this many *player* changes
+// are allowed against that carried-over baseline before the round locks
+// (EuroLeague Fantasy's own published rules say 4, not 3 — corrected
+// against a direct read of their rules site); the coach is a separate,
+// unlimited change (real rules don't ration coach picks the way they
+// ration transfers), and moving an already-selected player between
+// starter/sixth-man/bench costs nothing since no player id actually
+// changed. Round 1 (no prior round to carry from) stays a free, unlimited
+// draft, same as always.
+export const FANTASY_TRANSFERS_PER_ROUND = 4;
+
+// Real EuroLeague Fantasy also grants a handful of *unlimited*-transfer
+// rounds across a season, roughly tied to real-world FIBA/schedule
+// breaks — the round immediately following each of these regular-season
+// rounds has no transfer cap at all, on top of the regular-season's last
+// round (34) onward, once playoffs start. Exact round numbers are an
+// approximation (EuroLeague's rules page describes them as tied to real
+// calendar breaks, not fixed round numbers we could read verbatim) —
+// revisit once a real 2026-27 schedule confirms the actual break rounds.
+const FANTASY_UNLIMITED_TRANSFER_TRIGGER_ROUNDS = [6, 13, 18, 23, 28, 34];
+export function isUnlimitedTransferRound(round: number): boolean {
+  return FANTASY_UNLIMITED_TRANSFER_TRIGGER_ROUNDS.some((r) => round === r + 1) || round > 34;
+}
 
 export const FANTASY_BUDGET_CAP = 100;
 export const FANTASY_MIN_PRICE = 4;
@@ -176,6 +211,74 @@ export function computeBudgetCap(ceiling: number): number {
   return Math.round(FANTASY_BUDGET_CAP * (ceiling / FANTASY_PIR_CEILING_FLOOR) * 10) / 10;
 }
 
+/**
+ * DB-backed wrapper around computeBudgetCap — the effective cap for a
+ * season, falling back to the flat FANTASY_BUDGET_CAP (ceiling === floor)
+ * if scripts/reprice-fantasy-players.ts has never run for it yet. Moved
+ * here from routes/fantasy.ts (2026-09-17) so autoFillFantasySquad below
+ * can share it without importing from a route file.
+ */
+export async function getBudgetCap(season: string): Promise<number> {
+  const [row] = await db
+    .select({ ceiling: fantasyPricingState.ceiling })
+    .from(fantasyPricingState)
+    .where(eq(fantasyPricingState.season, season))
+    .limit(1);
+  return computeBudgetCap(row?.ceiling ?? FANTASY_PIR_CEILING_FLOOR);
+}
+
+// --- Live per-game player scoring (2026-09-16) ---
+//
+// Replaces the earlier PIR-as-fantasy-score shortcut with EuroLeague
+// Fantasy's own actual per-stat formula (read directly off their rules
+// site): +1/point, +1/rebound, +1/assist, +1 steal, -1 turnover, +1
+// block-for, -1 block-against, +1 foul drawn, -1 foul committed, -1 missed
+// field goal, -1 missed free throw — then a +10% bonus on that line if the
+// player's own team won the game. Applied per player per game (not once
+// per fantasy manager's whole round) since it's evaluated inside the same
+// per-player join every other scoring path already uses; PIR wasn't a bad
+// proxy (both roughly reward the same good performances) but it's not
+// what the real game actually uses, and a "wait why doesn't this match
+// the real number I'd expect" report was only a matter of time.
+export interface FantasyGameBoxScore {
+  points: number | null;
+  rebounds: number | null;
+  assists: number | null;
+  steals: number | null;
+  turnovers: number | null;
+  blocksFavour: number | null;
+  blocksAgainst: number | null;
+  foulsCommitted: number | null;
+  foulsReceived: number | null;
+  fieldGoalsMade2: number | null;
+  fieldGoalsAttempted2: number | null;
+  fieldGoalsMade3: number | null;
+  fieldGoalsAttempted3: number | null;
+  freeThrowsMade: number | null;
+  freeThrowsAttempted: number | null;
+}
+export const FANTASY_TEAM_WIN_BONUS = 0.1;
+
+export function computeFantasyGamePoints(stats: FantasyGameBoxScore, teamWon: boolean): number {
+  const n = (v: number | null) => v ?? 0;
+  const missedFieldGoals =
+    n(stats.fieldGoalsAttempted2) - n(stats.fieldGoalsMade2) + (n(stats.fieldGoalsAttempted3) - n(stats.fieldGoalsMade3));
+  const missedFreeThrows = n(stats.freeThrowsAttempted) - n(stats.freeThrowsMade);
+  const base =
+    n(stats.points) +
+    n(stats.rebounds) +
+    n(stats.assists) +
+    n(stats.steals) -
+    n(stats.turnovers) +
+    n(stats.blocksFavour) -
+    n(stats.blocksAgainst) +
+    n(stats.foulsReceived) -
+    n(stats.foulsCommitted) -
+    missedFieldGoals -
+    missedFreeThrows;
+  return teamWon ? base * (1 + FANTASY_TEAM_WIN_BONUS) : base;
+}
+
 // --- Coach pricing + scoring ---
 //
 // No coach-specific stat is synced anywhere (coaches aren't in `players`),
@@ -200,13 +303,118 @@ export function computeCoachPrice(position: number | null, totalTeams: number): 
   return Math.min(COACH_MAX_PRICE, Math.max(COACH_MIN_PRICE, Math.round(raw * 10) / 10));
 }
 
-// A coach scores off their real team's game result that round, not a stat
-// line — +20 for a win, 0 for a loss, straight from EuroLeague Fantasy's
-// own published rules (see CLAUDE.md). No game that round (bye) or the
-// game not final yet both correctly resolve to 0 via the SQL in
-// getFantasyLeaderboardEntries below (coalesce onto a missing/non-final row).
-export const COACH_WIN_POINTS = 20;
-export const COACH_LOSS_POINTS = 0;
+// A coach scores off their real team's game result and its margin, not a
+// stat line — corrected 2026-09-16 against EuroLeague Fantasy's own
+// published rules (was flat +20/0, which turned out to not match): win by
+// 0-10 (or in OT) = +10, win by 11-20 = +20, win by 21+ = +25; loss by
+// 0-10 (or in OT) = -5, loss by 11-20 = -10, loss by 21+ = -20. `games`
+// doesn't track overtime at all (see schema.ts's comment on `quarter`), so
+// an OT win/loss is scored purely by its final margin like any other game
+// — a real simplification, but a mild one in practice, since an OT game's
+// final margin is almost always small anyway (it was tied at the end of
+// regulation). No game that round (bye) or the game not final yet both
+// correctly resolve to 0 via the SQL in getFantasyLeaderboardEntries below
+// (coalesce onto a missing/non-final row).
+export const COACH_MARGIN_CLOSE = 10; // inclusive upper bound of the "close" tier
+export const COACH_MARGIN_MID = 20; // inclusive upper bound of the "mid" tier; above this is a blowout
+export const COACH_WIN_CLOSE_POINTS = 10;
+export const COACH_WIN_MID_POINTS = 20;
+export const COACH_WIN_BLOWOUT_POINTS = 25;
+export const COACH_LOSS_CLOSE_POINTS = -5;
+export const COACH_LOSS_MID_POINTS = -10;
+export const COACH_LOSS_BLOWOUT_POINTS = -20;
+
+/** JS equivalent of the SQL CASE in getFantasyLeaderboardEntries below — used
+ * by routes/fantasy.ts's single-round lineup computation, which already has
+ * the game row in hand and doesn't need a second query for it. */
+export function pointsForCoachResult(scoreFor: number, scoreAgainst: number): number {
+  const margin = Math.abs(scoreFor - scoreAgainst);
+  const won = scoreFor > scoreAgainst;
+  if (won) {
+    if (margin <= COACH_MARGIN_CLOSE) return COACH_WIN_CLOSE_POINTS;
+    if (margin <= COACH_MARGIN_MID) return COACH_WIN_MID_POINTS;
+    return COACH_WIN_BLOWOUT_POINTS;
+  }
+  if (margin <= COACH_MARGIN_CLOSE) return COACH_LOSS_CLOSE_POINTS;
+  if (margin <= COACH_MARGIN_MID) return COACH_LOSS_MID_POINTS;
+  return COACH_LOSS_BLOWOUT_POINTS;
+}
+
+// Fantasy Five's own points (2026-09-16, see fantasyRoundPoints' doc
+// comment in schema.ts for the full context) feed the shared points
+// economy at this fraction of a completed round's real totalPoints —
+// picked to land in roughly the same order of magnitude a good round of
+// win/loss predictions earns (10-40/correct pick), not a guess at exact
+// parity. Floored to a whole point; tune this constant (and re-run
+// economy:simulate once it models fantasy, which it doesn't yet) if real
+// play shows the economy skewing too hard toward fantasy or barely moved
+// by it at all.
+export const FANTASY_POINTS_CONVERSION_RATE = 0.5;
+
+/**
+ * Grants `Math.floor(totalPoints * FANTASY_POINTS_CONVERSION_RATE)` points
+ * into the shared economy for one user's one completed fantasy round —
+ * call only once that round's `roundComplete` is true (see routes/
+ * fantasy.ts), since totalPoints for a still-live round keeps changing as
+ * games progress. Claim-first via fantasyRoundPoints' unique index: a
+ * conflict means this round was already granted, so this is safe to call
+ * on every read of a completed round (same pattern as
+ * checkAndGrantRoundRewards), not just once — returns the newly-inserted
+ * row (for a "+N points" banner) or null if already claimed / the round
+ * scored zero-or-negative. A bad fantasy round or a coach blowout loss
+ * never *deducts* from the shared economy — this is a bonus channel only.
+ */
+export async function checkAndGrantFantasyRoundPoints(
+  userId: string,
+  season: string,
+  round: number,
+  totalPoints: number
+): Promise<{ id: string; round: number; points: number } | null> {
+  const points = Math.floor(totalPoints * FANTASY_POINTS_CONVERSION_RATE);
+  if (points <= 0) return null;
+
+  const [claimed] = await db
+    .insert(fantasyRoundPoints)
+    .values({ userId, season, round, points })
+    .onConflictDoNothing()
+    .returning({ id: fantasyRoundPoints.id });
+  if (claimed) {
+    await db.insert(pointAdjustments).values({
+      userId,
+      points,
+      reason: `Fantasy Five — Round ${round}`,
+      createdByUserId: userId,
+    });
+  }
+
+  // Read back this round's row regardless of whether *this* call was the
+  // one that inserted it — a second, unrelated page load hitting this same
+  // still-unseen round shouldn't silently "eat" the banner the way a naive
+  // insert-returning-only check would (same race roundRewards.seenAt
+  // guards against, see its own doc comment).
+  const [row] = await db
+    .select({ id: fantasyRoundPoints.id, round: fantasyRoundPoints.round, points: fantasyRoundPoints.points })
+    .from(fantasyRoundPoints)
+    .where(
+      and(
+        eq(fantasyRoundPoints.userId, userId),
+        eq(fantasyRoundPoints.season, season),
+        eq(fantasyRoundPoints.round, round),
+        isNull(fantasyRoundPoints.seenAt)
+      )
+    );
+  return row ?? null;
+}
+
+/** Same pattern as markRoundRewardsSeen (services/cards.ts) — marks every
+ * currently-unseen fantasy-points grant as seen once the frontend's shown
+ * its banner for it. */
+export async function markFantasyRoundPointsSeen(userId: string): Promise<void> {
+  await db
+    .update(fantasyRoundPoints)
+    .set({ seenAt: new Date() })
+    .where(and(eq(fantasyRoundPoints.userId, userId), isNull(fantasyRoundPoints.seenAt)));
+}
 
 /**
  * A round locks the moment its first game tips off — the whole round, not
@@ -289,6 +497,259 @@ export async function getBaselineSquad(userId: string, season: string, round: nu
   };
 }
 
+export const SLOT_ROLES = ["starter", "sixth_man", "bench"] as const;
+export type SlotRole = (typeof SLOT_ROLES)[number];
+
+export interface SaveLineupEntry {
+  playerId: string;
+  slotRole: SlotRole;
+  isCaptain?: boolean;
+}
+
+export type SaveLineupResult = { ok: true } | { error: string; code?: string; [key: string]: unknown };
+
+/**
+ * The actual domain validation + write behind POST /fantasy/lineup/batch —
+ * extracted (2026-09-17) so autoFillFantasySquad below can produce a real,
+ * fully-valid saved squad by calling the exact same rules a real user's
+ * save goes through, rather than a special-cased shortcut that could drift
+ * from them. The route still does its own request-shape parsing (types,
+ * uuid format, slotRole enum) before calling this — everything from "is
+ * this a legal squad" onward (round lock, exact slot-role counts, the
+ * position/club quotas, transfer limit, budget) lives here instead.
+ */
+export async function saveFantasyLineup(
+  userId: string,
+  season: string,
+  round: number,
+  entries: SaveLineupEntry[],
+  coachTeamId: string
+): Promise<SaveLineupResult> {
+  const roundLockAt = await getRoundLockTime(season, round);
+  if (roundLockAt === null) {
+    return { error: "Unknown round", code: "ROUND_NOT_FOUND" };
+  }
+  if (roundLockAt.getTime() <= Date.now()) {
+    return { error: "This round has already locked", code: "ROUND_LOCKED" };
+  }
+  if (entries.length !== FANTASY_TOTAL_OUTFIELD) {
+    return { error: `Squad must contain exactly ${FANTASY_TOTAL_OUTFIELD} players` };
+  }
+
+  const seenIds = new Set<string>();
+  for (const e of entries) {
+    if (seenIds.has(e.playerId)) return { error: "Duplicate player in squad" };
+    seenIds.add(e.playerId);
+  }
+
+  const starters = entries.filter((e) => e.slotRole === "starter");
+  const sixthMen = entries.filter((e) => e.slotRole === "sixth_man");
+  const bench = entries.filter((e) => e.slotRole === "bench");
+  if (starters.length !== FANTASY_STARTER_COUNT || sixthMen.length !== FANTASY_SIXTH_MAN_COUNT || bench.length !== FANTASY_BENCH_COUNT) {
+    return { error: `Need exactly ${FANTASY_STARTER_COUNT} starters, ${FANTASY_SIXTH_MAN_COUNT} sixth man, ${FANTASY_BENCH_COUNT} bench` };
+  }
+  const captains = starters.filter((e) => e.isCaptain);
+  if (captains.length !== 1 || entries.some((e) => e.isCaptain && e.slotRole !== "starter")) {
+    return { error: "Exactly one starter must be captain" };
+  }
+
+  const newIds = entries.map((e) => e.playerId);
+  const playerRows = await db
+    .select({ id: players.id, teamId: players.teamId, position: players.position })
+    .from(players)
+    .where(inArray(players.id, newIds));
+  const playerById = new Map(playerRows.map((p) => [p.id, p]));
+
+  const posCounts: Record<string, number> = { Guard: 0, Forward: 0, Center: 0 };
+  for (const id of newIds) {
+    const p = playerById.get(id);
+    if (!p) return { error: "Unknown player in squad" };
+    if (p.position && p.position in posCounts) posCounts[p.position]++;
+  }
+  for (const [position, quota] of Object.entries(FANTASY_POSITION_QUOTA)) {
+    if (posCounts[position] !== quota) {
+      return { error: `Need exactly ${quota} ${position}s, got ${posCounts[position] ?? 0}`, code: "POSITION_QUOTA" };
+    }
+  }
+
+  const countByTeamId = new Map<string, number>();
+  for (const id of newIds) {
+    const teamId = playerById.get(id)!.teamId;
+    countByTeamId.set(teamId, (countByTeamId.get(teamId) ?? 0) + 1);
+  }
+  for (const [teamId, count] of countByTeamId) {
+    if (count > FANTASY_MAX_PLAYERS_PER_CLUB) {
+      return { error: `At most ${FANTASY_MAX_PLAYERS_PER_CLUB} players from the same club are allowed`, code: "CLUB_LIMIT_EXCEEDED", teamId, count };
+    }
+  }
+
+  const baseline = await getBaselineSquad(userId, season, round);
+  if (baseline && !isUnlimitedTransferRound(round)) {
+    const transfersUsed = newIds.filter((id) => !baseline.playerIds.has(id)).length;
+    if (transfersUsed > FANTASY_TRANSFERS_PER_ROUND) {
+      return {
+        error: `Too many changes — up to ${FANTASY_TRANSFERS_PER_ROUND} player changes are allowed per round`,
+        code: "TRANSFERS_EXCEEDED",
+        transfersUsed,
+        transfersAllowed: FANTASY_TRANSFERS_PER_ROUND,
+      };
+    }
+  }
+
+  const [priceRows, coachPriceRows] = await Promise.all([
+    db
+      .select({ playerId: playerFantasyPrices.playerId, price: playerFantasyPrices.price })
+      .from(playerFantasyPrices)
+      .where(and(eq(playerFantasyPrices.season, season), inArray(playerFantasyPrices.playerId, newIds))),
+    db
+      .select({ price: coachFantasyPrices.price })
+      .from(coachFantasyPrices)
+      .where(and(eq(coachFantasyPrices.teamId, coachTeamId), eq(coachFantasyPrices.season, season)))
+      .limit(1),
+  ]);
+  const priceByPlayerId = new Map(priceRows.map((r) => [r.playerId, r.price]));
+  const playersCost = newIds.reduce((sum, id) => sum + (priceByPlayerId.get(id) ?? FANTASY_MIN_PRICE), 0);
+  const coachCost = coachPriceRows[0]?.price ?? COACH_MIN_PRICE;
+  const totalCost = Math.round((playersCost + coachCost) * 10) / 10;
+  const budgetCap = await getBudgetCap(season);
+  if (totalCost > budgetCap) {
+    return { error: `Squad costs ${totalCost}, over the ${budgetCap}-credit budget`, code: "OVER_BUDGET" };
+  }
+
+  await db.transaction(async (tx) => {
+    await tx.delete(fantasyLineups).where(and(eq(fantasyLineups.userId, userId), eq(fantasyLineups.season, season), eq(fantasyLineups.round, round)));
+    await tx.insert(fantasyLineups).values(
+      entries.map((e) => ({
+        userId,
+        season,
+        round,
+        playerId: e.playerId,
+        slotRole: e.slotRole,
+        isCaptain: !!e.isCaptain,
+        priceAtPick: priceByPlayerId.get(e.playerId) ?? FANTASY_MIN_PRICE,
+      }))
+    );
+    await tx
+      .insert(fantasyCoachPicks)
+      .values({ userId, season, round, teamId: coachTeamId, priceAtPick: coachCost })
+      .onConflictDoUpdate({
+        target: [fantasyCoachPicks.userId, fantasyCoachPicks.season, fantasyCoachPicks.round],
+        set: { teamId: coachTeamId, priceAtPick: coachCost },
+      });
+  });
+
+  return { ok: true };
+}
+
+function shuffle<T>(list: T[]): T[] {
+  const arr = [...list];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
+ * Admin-only test tool (flagged in CLAUDE.md 2026-09-17, not started until
+ * now): instantly assembles a real, budget-respecting random squad for a
+ * user instead of hand-picking one in the roster builder every time a test
+ * account needs one — reason (1) from that TODO. Reason (2), exercising
+ * Fantasy scoring against real-shaped data without waiting for real rounds,
+ * turned out to already be covered: Fantasy points are read straight off
+ * `games`/`player_game_stats` (see GET /fantasy/lineup), the exact tables
+ * POST /api/events/simulate/round already fabricates finals into — so the
+ * missing piece was only ever this auto-draft, not a second simulator.
+ *
+ * Reserves COACH_MIN_PRICE of the budget for the coach up front, then fills
+ * each position bucket by shuffling that position's candidates and greedily
+ * taking ones that fit both the remaining player budget and the
+ * FANTASY_MAX_PLAYERS_PER_CLUB limit — falling back to a plain
+ * cheapest-first pass (club limit still enforced, budget constraint
+ * dropped) if a position's pool is too thin/expensive for the randomized
+ * pass to fill its quota, since the real budget cap is generous enough
+ * (comfortably clears 10 * FANTASY_MIN_PRICE + COACH_MIN_PRICE) that this
+ * should only ever bite on a very sparse synced roster. Delegates the
+ * actual write to saveFantasyLineup, so an auto-filled squad is never a
+ * special-cased shortcut — it passes the exact same rules a real save does.
+ */
+export async function autoFillFantasySquad(userId: string, season: string, round: number): Promise<SaveLineupResult> {
+  const budgetCap = await getBudgetCap(season);
+  const playerBudget = Math.max(0, budgetCap - COACH_MIN_PRICE);
+
+  const [playerRows, coachRows] = await Promise.all([
+    db
+      .select({ id: players.id, position: players.position, teamId: players.teamId, price: playerFantasyPrices.price })
+      .from(players)
+      .leftJoin(playerFantasyPrices, and(eq(playerFantasyPrices.playerId, players.id), eq(playerFantasyPrices.season, season)))
+      .where(eq(players.active, true)),
+    db
+      .select({ teamId: coachFantasyPrices.teamId, price: coachFantasyPrices.price })
+      .from(coachFantasyPrices)
+      .where(eq(coachFantasyPrices.season, season)),
+  ]);
+
+  type Candidate = { id: string; teamId: string; price: number };
+  const byPosition = new Map<string, Candidate[]>();
+  for (const p of playerRows) {
+    if (!p.position || !(p.position in FANTASY_POSITION_QUOTA)) continue;
+    const list = byPosition.get(p.position) ?? [];
+    list.push({ id: p.id, teamId: p.teamId, price: p.price ?? FANTASY_MIN_PRICE });
+    byPosition.set(p.position, list);
+  }
+
+  const picked: Candidate[] = [];
+  const clubCount = new Map<string, number>();
+  let spent = 0;
+
+  function tryPick(pool: Candidate[], enforceBudget: boolean): Candidate | null {
+    for (const c of pool) {
+      const club = clubCount.get(c.teamId) ?? 0;
+      if (club >= FANTASY_MAX_PLAYERS_PER_CLUB) continue;
+      if (enforceBudget && spent + c.price > playerBudget) continue;
+      return c;
+    }
+    return null;
+  }
+
+  for (const [position, quota] of Object.entries(FANTASY_POSITION_QUOTA)) {
+    const pool = byPosition.get(position) ?? [];
+    const shuffled = shuffle(pool);
+    const cheapestFirst = [...pool].sort((a, b) => a.price - b.price);
+    let filled = 0;
+    while (filled < quota) {
+      const remainingShuffled = shuffled.filter((c) => !picked.includes(c));
+      let choice = tryPick(remainingShuffled, true);
+      if (!choice) {
+        const remainingCheapest = cheapestFirst.filter((c) => !picked.includes(c));
+        choice = tryPick(remainingCheapest, false);
+      }
+      if (!choice) {
+        return { error: `Not enough eligible ${position}s synced to auto-fill a squad` };
+      }
+      picked.push(choice);
+      clubCount.set(choice.teamId, (clubCount.get(choice.teamId) ?? 0) + 1);
+      spent += choice.price;
+      filled++;
+    }
+  }
+
+  const affordableCoaches = shuffle(coachRows.filter((c) => c.price <= budgetCap - spent));
+  const coach = affordableCoaches[0] ?? [...coachRows].sort((a, b) => a.price - b.price)[0];
+  if (!coach) {
+    return { error: "No coaches priced for this season yet — run fantasy:reprice first" };
+  }
+
+  const shuffledPicked = shuffle(picked);
+  const entries: SaveLineupEntry[] = shuffledPicked.map((c, i) => ({
+    playerId: c.id,
+    slotRole: i < FANTASY_STARTER_COUNT ? "starter" : i < FANTASY_STARTER_COUNT + FANTASY_SIXTH_MAN_COUNT ? "sixth_man" : "bench",
+    isCaptain: i === 0,
+  }));
+
+  return saveFantasyLineup(userId, season, round, entries, coach.teamId);
+}
+
 export interface FantasyLeaderboardEntry {
   userId: string;
   displayName: string;
@@ -304,10 +765,11 @@ export interface FantasyLeaderboardEntry {
 
 /**
  * Ranked by cumulative fantasy points for a season: each locked round's
- * picked players' playerGameStats.valuation (PIR) for that round's *final*
- * games — captain doubled, bench scored at BENCH_SCORE_MULTIPLIER — plus
- * each round's coach pick's real-result points (COACH_WIN_POINTS/
- * COACH_LOSS_POINTS, always 100%, never bench-reduced). A player/coach who
+ * picked players' real per-stat fantasy score (computeFantasyGamePoints)
+ * for that round's *final* games — captain doubled, bench scored at
+ * BENCH_SCORE_MULTIPLIER — plus
+ * each round's coach pick's margin-based real-result points (see
+ * pointsForCoachResult's doc comment, always 100%, never bench-reduced). A player/coach who
  * hasn't played yet that round (game not final, or a bye) contributes 0 by
  * construction (the left joins below find no matching row), so an
  * in-progress or future round needs no special-casing — same "on-read,
@@ -331,15 +793,36 @@ export async function getFantasyLeaderboardEntries(
     fantasy_points: number;
   }>(sql`
     with round_stats as (
-      select pgs.player_id, g.season, g.round, pgs.valuation
+      -- Real EuroLeague Fantasy per-stat formula (see
+      -- computeFantasyGamePoints's doc comment for the JS equivalent used
+      -- by routes/fantasy.ts's single-round detail view) — replaces the
+      -- earlier PIR shortcut. p.team_id is the player's *current* team, not
+      -- necessarily who they played for in this specific historical game
+      -- (a traded player's old games), same simplification already made
+      -- elsewhere in this app (e.g. usage% — see CLAUDE.md).
+      select pgs.player_id, g.season, g.round,
+        (
+          coalesce(pgs.points, 0) + coalesce(pgs.rebounds, 0) + coalesce(pgs.assists, 0)
+          + coalesce(pgs.steals, 0) - coalesce(pgs.turnovers, 0)
+          + coalesce(pgs.blocks_favour, 0) - coalesce(pgs.blocks_against, 0)
+          + coalesce(pgs.fouls_received, 0) - coalesce(pgs.fouls_committed, 0)
+          - (coalesce(pgs.field_goals_attempted_2, 0) - coalesce(pgs.field_goals_made_2, 0))
+          - (coalesce(pgs.field_goals_attempted_3, 0) - coalesce(pgs.field_goals_made_3, 0))
+          - (coalesce(pgs.free_throws_attempted, 0) - coalesce(pgs.free_throws_made, 0))
+        ) * (case
+          when p.team_id = g.home_team_id and g.home_score > g.away_score then ${1 + FANTASY_TEAM_WIN_BONUS}::numeric
+          when p.team_id = g.away_team_id and g.away_score > g.home_score then ${1 + FANTASY_TEAM_WIN_BONUS}::numeric
+          else 1::numeric
+        end) as fantasy_points
       from player_game_stats pgs
       join games g on g.id = pgs.game_id
+      join players p on p.id = pgs.player_id
       where g.status = 'final'
     ),
     player_totals as (
       select fl.user_id,
         sum(
-          coalesce(rs.valuation, 0)
+          coalesce(rs.fantasy_points, 0)
           * (case when fl.is_captain then 2 else 1 end)
           * (case when fl.slot_role = 'bench' then ${BENCH_SCORE_MULTIPLIER}::numeric else 1 end)
         ) as pts
@@ -350,15 +833,27 @@ export async function getFantasyLeaderboardEntries(
     ),
     coach_game_result as (
       select season, round, home_team_id as team_id,
-        case when status = 'final' and home_score > away_score then ${COACH_WIN_POINTS}::int
-             when status = 'final' then ${COACH_LOSS_POINTS}::int
-             else 0 end as pts
+        case
+          when status != 'final' then 0
+          when home_score > away_score and (home_score - away_score) <= ${COACH_MARGIN_CLOSE} then ${COACH_WIN_CLOSE_POINTS}::int
+          when home_score > away_score and (home_score - away_score) <= ${COACH_MARGIN_MID} then ${COACH_WIN_MID_POINTS}::int
+          when home_score > away_score then ${COACH_WIN_BLOWOUT_POINTS}::int
+          when (away_score - home_score) <= ${COACH_MARGIN_CLOSE} then ${COACH_LOSS_CLOSE_POINTS}::int
+          when (away_score - home_score) <= ${COACH_MARGIN_MID} then ${COACH_LOSS_MID_POINTS}::int
+          else ${COACH_LOSS_BLOWOUT_POINTS}::int
+        end as pts
       from games
       union all
       select season, round, away_team_id as team_id,
-        case when status = 'final' and away_score > home_score then ${COACH_WIN_POINTS}::int
-             when status = 'final' then ${COACH_LOSS_POINTS}::int
-             else 0 end as pts
+        case
+          when status != 'final' then 0
+          when away_score > home_score and (away_score - home_score) <= ${COACH_MARGIN_CLOSE} then ${COACH_WIN_CLOSE_POINTS}::int
+          when away_score > home_score and (away_score - home_score) <= ${COACH_MARGIN_MID} then ${COACH_WIN_MID_POINTS}::int
+          when away_score > home_score then ${COACH_WIN_BLOWOUT_POINTS}::int
+          when (home_score - away_score) <= ${COACH_MARGIN_CLOSE} then ${COACH_LOSS_CLOSE_POINTS}::int
+          when (home_score - away_score) <= ${COACH_MARGIN_MID} then ${COACH_LOSS_MID_POINTS}::int
+          else ${COACH_LOSS_BLOWOUT_POINTS}::int
+        end as pts
       from games
     ),
     coach_totals as (
@@ -374,6 +869,7 @@ export async function getFantasyLeaderboardEntries(
     from player_totals pt
     full outer join coach_totals ct on ct.user_id = pt.user_id
     join ${users} u on u.id = coalesce(pt.user_id, ct.user_id)
+    where u.is_admin = false
   `);
 
   const allowedIds = options.userIds ? new Set(options.userIds) : null;

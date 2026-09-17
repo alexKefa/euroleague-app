@@ -35,14 +35,21 @@ populated as soon as clubs register their squads — confirmed working
 2026-09-02 by fetching Besiktas's actual 2026-27 roster (14 players) even
 though they have zero played-game stats.
 
-Deliberately does NOT touch `players.photo_url` — this endpoint has no
-photo field at all (checked directly: every entry's "images" key is `{}`),
-photos only ever come from player_stats_sync.py's season-stats endpoint
-once real games exist. Leaving photo_url out of the UPDATE SET clause
-entirely (rather than setting it to NULL) preserves whatever photo a
-returning player already has and leaves a new player's photo_url at its
-column default (NULL) — which the frontend's jersey-number placeholder
-(PlayerPhotoComponent) is exactly the fallback for.
+Also captures `players.photo_url` when the feed has one (2026-09-16,
+corrected same day). First cut checked `person.images`, which really is
+always `{}` for every entry — but that's the wrong field: the real photo
+data sits one level up, on the roster *entry* itself (`entry["images"]`,
+a sibling of `"person"`, not nested inside it). That field carries a real
+"action"/"headshot" URL for the large majority of *both* the current
+2026-27 roster and a re-check of 2025-26's — this was there all along,
+not something that only started populating recently. `extract_photo_url()`
+picks "action" first, falling back to any other populated key (e.g.
+"headshot", seen live for Shane Larkin). Written via `COALESCE(new,
+existing)` in the upsert (never `EXCLUDED.photo_url` unconditionally) so a
+run that finds nothing for a given player can't blank out a real photo
+already on file. Same underlying `api-live.euroleague.net` feed this whole
+script already hits — not a different/riskier data source, just a JSON
+path that was read wrong.
 
 Usage:
     python roster_sync.py [season]
@@ -82,6 +89,28 @@ def parse_dorsal(dorsal: str | None) -> int | None:
         return None
 
 
+def extract_photo_url(entry: dict) -> str | None:
+    """The feed carries real photo data in two different, independent
+    places, populated for different entries — not one field that moved.
+    `entry["images"]` (top-level, sibling of "person") is a bulk 2026-27
+    photoshoot collection covering most of a handful of teams (Real Madrid,
+    Dubai, Fenerbahce, Olympiacos confirmed 2026-09-16). `entry["person"]
+    ["images"]` is a separate, older per-person assignment that covers
+    scattered individual players on OTHER teams whose top-level field is
+    empty (e.g. Panathinaikos's Kalaitzakis) — a regression caught the hard
+    way: an earlier pass switched from checking only person.images to only
+    entry.images and silently lost every one of these. Check both, prefer
+    the top-level collection when both happen to be populated (no observed
+    case of that yet, but it's the newer/larger source)."""
+    for images in (entry.get("images") or {}, entry.get("person", {}).get("images") or {}):
+        if images.get("action"):
+            return images["action"]
+        for value in images.values():
+            if value:
+                return value
+    return None
+
+
 def fetch_club_people(season: int, club_code: str) -> list[dict] | None:
     """Returns None (not []) on a non-200 response — lets the caller tell
     "this club has no roster in the feed for this season" apart from "the
@@ -110,6 +139,7 @@ def extract_roster(people: list[dict]) -> list[dict]:
             "name": entry["person"]["name"],
             "position": entry.get("positionName"),
             "jerseyNumber": parse_dorsal(entry.get("dorsal")),
+            "photoUrl": extract_photo_url(entry),
         }
         for entry in people
         if entry.get("typeName") == "Player" and entry.get("person", {}).get("code")
@@ -166,13 +196,14 @@ def sync_rosters(season: int) -> None:
             for p in roster:
                 cur.execute(
                     """
-                    INSERT INTO players (code, team_id, name, position, jersey_number, active)
-                    VALUES (%(code)s, %(team_id)s, %(name)s, %(position)s, %(jersey_number)s, true)
+                    INSERT INTO players (code, team_id, name, position, jersey_number, photo_url, active)
+                    VALUES (%(code)s, %(team_id)s, %(name)s, %(position)s, %(jersey_number)s, %(photo_url)s, true)
                     ON CONFLICT (code) DO UPDATE SET
                         team_id = EXCLUDED.team_id,
                         name = EXCLUDED.name,
                         position = EXCLUDED.position,
                         jersey_number = EXCLUDED.jersey_number,
+                        photo_url = COALESCE(EXCLUDED.photo_url, players.photo_url),
                         active = true
                     """,
                     {
@@ -181,6 +212,7 @@ def sync_rosters(season: int) -> None:
                         "name": p["name"],
                         "position": p["position"],
                         "jersey_number": p["jerseyNumber"],
+                        "photo_url": p["photoUrl"],
                     },
                 )
             total_upserted += len(roster)

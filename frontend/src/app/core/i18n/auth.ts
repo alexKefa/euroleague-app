@@ -9,6 +9,7 @@ export const authTranslations: Record<string, Record<Lang, string>> = {
     en: "Password (min 8 characters)",
     el: "Κωδικός πρόσβασης (τουλάχιστον 8 χαρακτήρες)",
   },
+  "auth.passwordTooShort": { en: "At least 8 characters.", el: "Τουλάχιστον 8 χαρακτήρες." },
   "auth.loggingIn": { en: "Logging in…", el: "Σύνδεση…" },
   "auth.noAccount": { en: "No account?", el: "Δεν έχεις λογαριασμό;" },
 
@@ -27,10 +28,22 @@ export const authTranslations: Record<string, Record<Lang, string>> = {
   "auth.referredBy": { en: "Referred by code", el: "Πρόσκληση με κωδικό" },
   "auth.promoCodeNote": { en: "Promo code", el: "Κωδικός προσφοράς" },
   "auth.promoCodeApplied": { en: "Promo code applied — a bonus pack is on its way!", el: "Ο κωδικός προσφοράς εφαρμόστηκε — έρχεται ένα δωρεάν πακέτο!" },
-  "auth.favoriteTeamOptional": { en: "Favorite team (optional)", el: "Αγαπημένη ομάδα (προαιρετικό)" },
   "auth.creatingAccount": { en: "Creating account…", el: "Δημιουργία λογαριασμού…" },
   "auth.createAccountButton": { en: "Create account", el: "Δημιουργία λογαριασμού" },
   "auth.alreadyHaveAccount": { en: "Already have an account?", el: "Έχεις ήδη λογαριασμό;" },
+
+  // shared/team-pick-dialog.ts — shown once right after a successful
+  // registration (see register.component.ts), and reused as-is by
+  // Profile's "change team" button (profile.ts), replacing both that page's
+  // old inline chip grid and this form's original one.
+  "auth.pickTeamTitle": { en: "Pick your team", el: "Διάλεξε την ομάδα σου" },
+  "auth.pickTeamSubtitle": {
+    en: "The app reskins to their colors everywhere. You can change this anytime.",
+    el: "Η εφαρμογή παίρνει τα χρώματά της παντού. Μπορείς να το αλλάξεις όποτε θες.",
+  },
+  "auth.pickTeamSkip": { en: "Skip for now", el: "Παράλειψη για τώρα" },
+  "auth.pickTeamCancel": { en: "Cancel", el: "Ακύρωση" },
+  "auth.pickTeamSuccess": { en: "You're all set!", el: "Είσαι έτοιμος/η!" },
 
   "auth.forgotPasswordLink": { en: "Forgot password?", el: "Ξέχασες τον κωδικό;" },
   "auth.forgotPasswordTitle": { en: "Reset your password", el: "Επαναφορά κωδικού" },

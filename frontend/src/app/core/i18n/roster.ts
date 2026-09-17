@@ -42,6 +42,12 @@ export const rosterTranslations: Record<string, Record<Lang, string>> = {
   "roster.axisOffense": { en: "Offense", el: "Επίθεση" },
   "roster.axisDefense": { en: "Defense", el: "Άμυνα" },
   "roster.axisRebounding": { en: "Rebounding", el: "Ριμπάουντ" },
+  "roster.coachRecord": { en: "This season", el: "Φέτος" },
+  "roster.coachRank": { en: "Standing", el: "Θέση" },
+  "roster.coachNoPhoto": {
+    en: "No official photo available yet",
+    el: "Δεν υπάρχει ακόμα επίσημη φωτογραφία",
+  },
 
   // Glossary entries for shared/stat-legend.ts — one full sentence per
   // column abbreviation, shown in the "what these mean" popover.

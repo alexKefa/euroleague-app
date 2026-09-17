@@ -13,6 +13,7 @@ import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { SearchInputComponent } from "../../shared/search-input";
+import { TeamCodePipe } from "../../shared/team-display-code";
 
 const PAGE_SIZE = 20;
 const SEARCH_DEBOUNCE_MS = 300;
@@ -31,6 +32,7 @@ const SEARCH_DEBOUNCE_MS = 300;
     DropdownComponent,
     SkeletonComponent,
     SearchInputComponent,
+    TeamCodePipe,
   ],
   templateUrl: "./store.html",
 })
@@ -104,6 +106,30 @@ export class StoreComponent implements OnInit, OnDestroy {
   // dedicated endpoint rather than the loaded `bundles`, otherwise the
   // dropdown would only ever list teams the user happened to scroll to.
   readonly filterTeams = signal<CollectibleTeamFilter[]>([]);
+
+  // Groups the already-loaded bundles into contiguous per-team runs
+  // (2026-09-12 redesign) — safe to do client-side, without a dedicated
+  // per-team-count endpoint, because /browse's SQL always orders by
+  // `team_name, name` regardless of which filters are active (see
+  // backend/src/routes/collectibles.ts), so a team's bundles are already
+  // contiguous in `bundles()` — including across a loadMore() page
+  // boundary, since this groups the whole accumulated signal each time,
+  // not page-by-page. Just a section divider per team (crest + name), not
+  // a progress bar like Inventory's team groups — this page is "browse
+  // the catalog to buy/preview", not "track what I've collected", so an
+  // ownership fraction here would be the wrong headline stat.
+  readonly bundleGroups = computed(() => {
+    const groups: { team: CollectibleBundle["team"]; bundles: CollectibleBundle[] }[] = [];
+    for (const bundle of this.bundles()) {
+      const last = groups[groups.length - 1];
+      if (last && last.team.id === bundle.team.id) {
+        last.bundles.push(bundle);
+      } else {
+        groups.push({ team: bundle.team, bundles: [bundle] });
+      }
+    }
+    return groups;
+  });
 
   readonly teamDropdownOptions = computed<DropdownOption[]>(() => [
     { value: "", label: this.i18n.t("store.allTeams") },

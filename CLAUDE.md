@@ -13,7 +13,7 @@ wheel, points-priced card packs, and a player-to-player trade marketplace —
 under a "Cards" hub. The whole app is bilingual (EN/EL) via a custom i18n
 service, not a library like ngx-translate.
 
-**Live**: https://clutchapp.up.railway.app (Railway, see Deployment below).
+**Live**: https://getclutchapp.com (Railway, see Deployment below).
 
 ## Stack
 
@@ -699,7 +699,9 @@ If you need to apply a schema change without an interactive terminal
     a per-slot position), and a court background reusing `shot-chart.ts`'s
     half-court SVG geometry (no rim/backboard drawn — removed after repeated
     reports of a starter slot visually overlapping the basket art; a
-    translucent "glass floor" gradient was added in its place). **Below
+    translucent "glass floor" gradient was added in its place, then replaced
+    2026-09-16 with a warm saturated hardwood look — see
+    `shared/court-background.ts`'s own doc comment). **Below
     `sm:`, the pool is a full-screen tap-to-pick popup instead of a
     persistent drag-and-drop column** (`openPicker`/`pickPlayerForSlot`) —
     landed on this after a mobile-crowding pass tried and reverted stacking
@@ -710,17 +712,48 @@ If you need to apply a schema change without an interactive terminal
     squad slot) gives a non-drag way to move a player between
     starter/sixth-man/bench. Tapping a player's name/photo anywhere opens an
     info popup with their last 5 games' PIR, rather than navigating away.
-  - **Known gap**: `POST /lineup/batch`'s `changedIds` diff is keyed off
-    presence/`slotRole` changes only — a captain-only reassignment
-    (`isCaptain` flipping with everything else unchanged) never triggers the
-    per-player lock recheck. The frontend already blocks this
-    (`setCaptain` checks `isLocked`), so it needs a client bypassing the UI
-    to hit; worth closing by folding `isCaptain` changes into `changedIds`
-    too.
-  - **Not verified in a live browser** as of the 2026-09-06/07 UI passes —
-    checked by rebuild + template/diff review only, since no Chrome
-    extension was connected in those sessions. Worth a real visual pass
-    (both breakpoints/themes) when the extension is available.
+  - ~~**Known gap**: `POST /lineup/batch`'s `changedIds` diff is keyed off
+    presence/`slotRole` changes only — a captain-only reassignment never
+    triggers the per-player lock recheck.~~ Stale, not an active fix
+    (caught 2026-09-10 while about to work on it): this described the
+    reverted per-player "Turns" model's diff logic — the "Locking —
+    whole-round, not per-player" revert right above (same day) already
+    replaced it wholesale with one up-front `roundLockAt` check plus a
+    delete+insert, no diffing at all. `changedIds` doesn't exist anywhere
+    in the codebase any more (confirmed by grep), and the lock check now
+    runs unconditionally before any per-player logic on every
+    `/lineup/batch` call regardless of what changed — a captain-only
+    payload hits the exact same round-wide gate a full squad rewrite
+    does. This bullet just never got removed once the revert made it
+    moot.
+  - ~~**Not verified in a live browser** as of the 2026-09-06/07 UI
+    passes~~ — done 2026-09-10: registered a fresh test account and drove
+    the real builder (desktop drag-and-drop, mobile tap-to-pick popup,
+    formation switching, captain/coach pickers, position/team filters,
+    both themes at both breakpoints). Everything held up — no console
+    errors, drag-and-drop places correctly, switching formation
+    auto-reflows the squad into the new slot mix, the disabled Save
+    button surfaces a missing-requirements badge instead of silently
+    failing on an incomplete squad.
+  - **Real bug caught and fixed during that pass**: `roundLocked()`
+    (`fantasy.ts`) used to OR in
+    `fixtureGames().some((g) => g.status !== "scheduled")` alongside the
+    server's real `lockAt`-based `coachLocked()` snapshot — the intent was
+    reacting to a live SSE tick without waiting on a clock, but the
+    backend's actual gate (`POST /lineup/batch`'s `lockAt <= now`) has no
+    status condition at all, and a game's `status` can disagree with its
+    `tipoffAt`. Hit live: a brand-new account saw round 1 as locked even
+    though its earliest game was two weeks out, because that game's row
+    was leftover "final" test/simulator data with a future `tipoffAt` (see
+    the season-transition scripts above — this looks like the same
+    category of stale row `reset-2026-27-season-data.ts` was built to
+    clean up, just recurred since). Fixed by computing `roundLocked()`
+    from `lockAt()` vs `Date.now()` directly — the same value the
+    backend's gate uses — keeping `fixtureGames()` only as a reactivity
+    trigger (read, never branched on) so it still re-checks the clock on
+    every SSE tick without trusting any game's status field. The stale
+    DUB-vs-MAD row itself (season 2026-27, round 1) was left untouched —
+    a data cleanup, not a code fix, and out of scope for this pass.
 - **Career stats on the collectible card flip** (2026-09-05;
   `scripts/backfill-career-stats.ts`, `GET /api/collectibles/:id/stats`'s
   new `career` field, `features/store/card-preview.ts`'s season/career
@@ -1076,6 +1109,54 @@ If you need to apply a schema change without an interactive terminal
   user can still briefly see no team-hero before it resolves. Self-corrects
   on the next interaction; not yet fixed with a resolver/bootstrap
   reordering.
+- **"Add to Home Screen" prompts** (undocumented until 2026-09-15 — found
+  by grepping the codebase, not from any changelog entry) —
+  `shared/install-banner.ts` (`<app-install-banner>`, mounted globally in
+  `app.component.html`) is a dismissible iOS/Android nudge, not a bare
+  browser popup: it detects platform via user-agent (iPadOS 13+ reports as
+  a plain "Macintosh", told apart from a real Mac only by
+  `navigator.maxTouchPoints > 1`), waits until a visitor's 2nd visit before
+  showing at all (`MIN_VISITS_BEFORE_SHOWING`, tracked in `localStorage` —
+  never nags on a first landing), and backs off for 2 weeks on dismiss or
+  effectively forever once `appinstalled` fires. **Deliberately doesn't
+  depend on a service worker** — Chrome's native `beforeinstallprompt`
+  normally wants one to consider the app installable, but this app ships
+  none (see [[feedback_no_service_worker]]), so Android almost always
+  falls back to the same manual numbered-steps panel iOS uses rather than
+  a one-tap native install button; the native-prompt path (`deferredPrompt`
+  + `appinstalled` listeners) still works unmodified if a service worker
+  is ever added later. Skips itself entirely inside an in-app browser
+  (Messenger/Instagram/Line/WeChat/Snapchat — `shared/in-app-browser.ts`'s
+  `isInAppBrowser()`, UA-substring sniffing since there's no direct API for
+  this) since its "tap the Share icon"/"tap the menu icon" steps assume a
+  real browser's own chrome, which none of those in-app WebViews have. A
+  visitor who arrives at `/register` with a `?ref=`/`?promo=` link
+  (`isHighIntentArrival()`) skips the visit-count wait entirely — they
+  followed a real invite specifically to sign up, not "just passing
+  through".
+  - **The Messenger/Instagram problem specifically**: those apps open a
+    shared link in their own locked-down WebView with no address bar, no
+    browser menu, and no `beforeinstallprompt` — there's no way to add to
+    home screen from inside it at all, install-banner.ts included (it just
+    stays hidden there, correctly, since its own steps don't apply). The
+    only fix is getting the visitor into a real browser tab first.
+    `shared/open-in-browser-banner.ts` (`<app-open-in-browser-banner>`) is
+    the nudge for that: shown at most once ever per device (tracked the
+    moment it renders, not just on dismiss — by a 2nd visit the visitor's
+    either already acted on it or isn't going to), instructing them to tap
+    the in-app browser's own "⋯"/browser-icon menu and choose "Open in
+    Browser". The component itself doesn't own the "is this a
+    shareable-link flow" judgment call — that's left to whatever page
+    embeds it. `register.component.html` gates it behind
+    `@if (referralCode() || promoCode())` (only a real `?ref=`/`?promo=`
+    arrival is a shared-link flow there). **`landing.html` (2026-09-15)
+    mounts it unconditionally** instead, right below the header — `/welcome`
+    *is* the QR-flyer/shared-link destination by definition (see the
+    Landing page section below), so unlike register there's no query param
+    to gate on; every visitor there is a plausible Messenger/Instagram
+    arrival. This closed a real gap that existed until this pass: the
+    flyer's QR and any social-shared landing-page link previously gave a
+    Messenger/Instagram visitor no nudge to escape the WebView at all.
 
 ## Environment variables (backend `.env`)
 
@@ -1102,7 +1183,7 @@ reset link needs to point).
 ## Deployment
 
 Live on Railway as a single service (project + service both named
-"euroleague-app"): https://clutchapp.up.railway.app. `DATABASE_URL` points
+"euroleague-app"): https://getclutchapp.com. `DATABASE_URL` points
 at the same Neon instance as local dev — there's no separate prod database.
 
 - **Config-as-code**: `.railway/railway.ts` (Railway's TypeScript
@@ -1123,329 +1204,145 @@ at the same Neon instance as local dev — there's no separate prod database.
   destructive in `railway.ts` (shows as delete+recreate in `config plan`,
   drops env vars/history), but renaming just the *domain* is safe
   (`railway domain update <old> --domain <new>`, non-destructive).
-  **TODO: custom domain** — user wants something cleaner than
-  `clutchapp.up.railway.app` ("a more normal url"), explicitly deferred
-  rather than done immediately. Options already considered: DuckDNS
-  (`clutch.duckdns.org` — free, instant, no approval), is-a.dev
-  (`clutch.is-a.dev` — free, nicer, but needs a GitHub PR + manual review),
-  or a cheap real domain (~$1-15/yr via Namecheap/Porkbun/Cloudflare) for a
-  fully clean look. Whichever is picked, wire it up with `railway domain
-  <hostname>` on the `euroleague-app` service — Railway auto-provisions
-  HTTPS once DNS is verified.
+  **Custom domain — done** (undocumented until 2026-09-15, caught the same
+  way every other "Timeline correction" in this file has been: by comparing
+  what's actually live against what this doc claimed). The "a more normal
+  url" ask this bullet used to track as a TODO is resolved — production
+  answers at `getclutchapp.com` (a real registered domain, not the DuckDNS/
+  is-a.dev free-subdomain options this bullet used to list as candidates),
+  wired up via `railway domain <hostname>` on the `euroleague-app` service
+  same as documented. `qr-card.html`'s QR code already encodes
+  `https://getclutchapp.com/welcome` for real. No record of exactly when
+  this shipped — worth keeping in mind that infra changes like this one can
+  land without a CLAUDE.md update alongside them.
 - **Redeploy**: currently manual (`railway up --service euroleague-app`)
   from a local checkout — not yet wired to auto-deploy on `git push`.
 - The same Railway account has an unrelated older project ("valiant-passion" /
   service "dsg-backend") — don't confuse it with this one.
+- **Dev/staging environment (2026-09-10)** — the "no dev/staging environment"
+  gap tracked below under Other known gaps (setup paused 2026-09-04 on a
+  Windows machine) is done, finished on a macOS checkout where the
+  `.railway/railway.ts` config-as-code brokenness documented there didn't
+  reproduce (untested whether it's actually Windows-specific or just
+  environment-specific — still avoided it here in favor of the same plain
+  imperative `railway` CLI commands the paused note already recommended).
+  One **euroleague-app** Railway project now has two environments sharing
+  the one service: `production` (`main` branch, `clutchapp.up.railway.app`
+  at the time — since renamed to `getclutchapp.com`, see the Deployment
+  section's domain bullet above) and `dev` (`dev` branch, auto-generated
+  `euroleague-app-dev.up.railway.app` domain — no custom domain chosen for
+  it, not worth it for an internal staging URL). `dev` was created via
+  `railway environment new dev --duplicate production`, which cloned every
+  production env var, then only `DATABASE_URL` and `APP_BASE_URL` were
+  overwritten to point at the dev branch/domain — every other var
+  (`JWT_*_SECRET`, `ODDS_API_KEY`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`,
+  `NODE_ENV=production`) is intentionally shared with prod, since none of
+  them are database- or domain-scoped and `NODE_ENV=production` is what
+  makes the refresh cookie's `secure` flag and the static-frontend serving
+  behave the same as real production (`dev` is still served over real
+  HTTPS, so there's no reason to run it as `NODE_ENV=development`).
+  **Database**: a Neon branch named `dev`
+  (`br-odd-dawn-axpif6gt`, project `EuroleagueProj`/`round-truth-86080193`)
+  created off `production` (`br-late-queen-ax4i8kmo`) via `neonctl branches
+  create --parent`, copy-on-write per Neon's own branching model — a full
+  independent copy of real data at branch time, cheap to store, and
+  completely isolated from prod from that point on (nothing written to `dev`
+  ever touches `production`, and vice versa). `dev`'s `DATABASE_URL` uses
+  the branch's own pooled connection string
+  (`neonctl connection-string dev --pooled`), matching the `-pooler` suffix
+  pattern production's own `DATABASE_URL` already uses. `neonctl auth`
+  needed an interactive browser login (run by the user, not scriptable) and
+  defaults to prompting for an org on every command once authenticated —
+  pass `--org-id org-dark-hat-10818944` to skip that prompt in a
+  non-interactive session.
+  **First deploy**: `railway up --environment dev --service euroleague-app`
+  from the `dev` git branch, verified live (`GET /` → 200,
+  `GET /api/teams` → real rows read back from the Neon dev branch, not
+  production). The schema-sync gap the original TODO flagged as the "real
+  cost" is still exactly that — `db:push`'s `strict: true` interactive
+  prompt (see Schema changes above) means a schema change still has to be
+  pushed to `dev` and `production` as two manual, separate steps; nothing
+  here automated that, it only made having a place to run the `dev` push
+  against first possible. To use going forward: branch off `dev` (not
+  `main`) for a change worth trying live before it's real, `railway up
+  --environment dev` to deploy it there, verify at
+  `euroleague-app-dev.up.railway.app`, then merge to `main` and
+  `railway up --environment production` (or `--service euroleague-app` with
+  production linked, the existing default) once satisfied. The CLI's linked
+  environment/service (`railway environment <name>` / `railway service
+  <name>`) is a local, per-checkout default — it was left pointed back at
+  `production`/`main` after this setup, not `dev`, so an unqualified future
+  `railway up` doesn't accidentally deploy to the wrong one.
 
 ## Branding
 
-- **Timeline correction (2026-09-10)**: this section previously described
-  an "isometric 3-bar mark" as the current logo everywhere — that was
-  real (commit `ac973cd`, 2026-09-06) but got reverted back to the
-  ring+basketball mark by a later, undocumented commit
-  (`72c954a`, "Land the C-ring-with-nested-basketball mark…") that never
-  updated this doc to match. Caught 2026-09-10 while building the
-  forgot-password email's logo — every real surface (favicon, nav,
-  login/register hero, splash) still had the ring+ball mark, not the bars.
-  The isometric bars now live on only as `logo-spinner.ts`'s loading
-  animation (a literal bar-chart pulse, unrelated to this correction) — if
-  a future pass wants the isometric mark back as the primary logo, it needs
-  rebuilding from scratch; nothing currently references the old SVG.
-- **Ring + ball, refined (2026-09-10)** — a full logo redesign, resolved via
-  a 4-direction Artifact canvas comparison (this project's standard
-  "propose visually, then implement" pattern): a refined ring+ball
-  evolution, an abstract "clutch moment" spark mark, a revisit of the
-  isometric bars as a proper icon, and a hoop-swish mark. **Refined
-  ring+ball was chosen** — same silhouette as the mark that's been live
-  since `72c954a` (a "C"-shaped ring with a basketball at its center), but
-  with real depth: the ball is now a radial gradient (`#FF9E70` → `#FF6B35`
-  → `#C94A24`, same brand orange family, not a flat stroke-only circle),
-  its seam lines use a subtle `rgba(0,0,0,0.35)` inset shade instead of a
-  second orange tone, and the ring itself is slightly larger/thinner
-  (`r=36`/`stroke-width=8`, was `r=34`/`10`) for a lighter, more refined
-  read. Geometry: `viewBox 0 0 100 100`, ring path
-  `M 78 26 A 36 36 0 1 0 78 74`, ball `circle cx="50" cy="50" r="17"`
-  (both concentric — the ring's rightward gap is what reads as a "C").
-  Applied everywhere the old mark was, all with a locally-scoped
-  `radialGradient` id per usage (`ballGradFavicon`/`ballGradNav`/
-  `ballGradHero`/`ballGradSplash`/`ballGradCourt`/`ballGradQr` — kept
-  distinct per file rather than one shared id, since several of these
-  render simultaneously in the same document and duplicate SVG element
-  ids across sibling components is invalid, even though it happens to
-  still resolve correctly in every browser tested): `frontend/src/favicon.svg`
-  and `frontend/public/favicon.svg` (the latter wins the build — Angular
-  copies the `public/**` glob after the explicit `src/favicon.svg` asset
-  entry, confirmed against `dist/.../favicon.svg`), the PWA icon set
-  (`frontend/public/icons/icon-*.png`, 8 sizes, rasterized from the new
-  favicon SVG via a temporary `sharp` install — `npm install sharp
-  --no-save` then `npm uninstall sharp` after, so nothing lands in
-  `package.json`, matching the "no icon-generation pipeline checked in"
-  precedent from the original isometric-bar pass), the top-nav wordmark
-  (`app.component.html`), all four auth-page heroes (login/register/
-  forgot-password/reset-password — identical inline SVG duplicated across
-  all four, updated in all four), the splash-screen intro
-  (`shared/splash.html`'s `.brand-icon`, distinct from the *unrelated*
-  large background basketball watermark on the same page — that one's its
-  own separate SVG, untouched here, see splash.html's own comments), and a
-  previously-undocumented **center-court decal**
-  (`shared/court-background.ts`'s Fantasy court background, a faint
-  `opacity="0.16"` copy of the mark painted under the court lines —
-  found and updated in the same pass, translate offset adjusted from
-  `-54 -50` to `-50 -50` to match the refined mark's now-perfectly-
-  concentric center). The email logo
-  (`backend/src/services/email.ts`'s `LOGO_URL`, added the same day for
-  the forgot-password email) needed no code change — it already points at
-  `icon-192x192.png`, so regenerating that PNG picked up the new design
-  automatically.
-- **Wordmark lockup, standardized (2026-09-10, same day)** — a second
-  design-canvas round, specifically about how the icon combines with the
-  literal word "Clutch" (the icon mark itself was already settled above).
-  Three lockup options compared: (A) the icon doubling as the letter "C"
-  with literal text "lutch" continuing right after — the nav bar's
-  existing trick; (B) the icon in its own separate badge next to the full
-  word "Clutch" spelled out normally; (C) a from-scratch logotype ("Clutch"
-  resting on a thin court-line rule, the ball rolling off the last
-  letter). **(A) was chosen** — explicitly the opposite call from the
-  forgot-password email's own logo (that one deliberately stayed a
-  standalone icon with no wordmark trick, since email image-blocking can
-  strand the "lutch" half with nothing to anchor it — a risk that doesn't
-  exist for a live web page). This surfaced a real inconsistency:
-  `app.component.html`'s nav and `shared/splash.html` already did the
-  icon-as-C trick, but all four auth pages (login/register/
-  forgot-password/reset-password) used a *different*, separately-gapped
-  "icon + full 'Clutch' word" layout instead — their own code comment even
-  claimed to match the nav's "combination mark," which it didn't. Fixed by
-  converting all four to the same pattern: `aria-label="Clutch" role="img"`
-  on the wrapping div (screen readers get the real word), `aria-hidden`
-  on both the icon and the visible "lutch" text.
-
-  **First execution of (A) was rejected, then corrected (same day)** — the
-  initial pass just dropped the standalone icon (thin `stroke-width="8"`,
-  proportioned for an app-icon context) in at a smaller size next to bold
-  "lutch" text; direct feedback: it read as two mismatched pieces bolted
-  together, not one logo, and a first fix attempt (shifting the ball off-
-  center into the ring's "counter," like a real letterform's aperture)
-  missed the actual ask — the ball needed to stay centered, matching the
-  standalone icon's own geometry, just heavier. The corrected, shipped
-  version: same ring center/radius as the standalone icon (`M 78 26 A 36
-  36 0 1 0 78 74`, centered on `(50,50)`), but `stroke-width="16"` (was
-  `8`) so the ring's weight actually matches "lutch"'s bold type, and a
-  **cropped `viewBox="0 0 86 100"`** (was the icon's own `0 0 100 100`) —
-  the ring's rightmost edge only reaches ~x=86 given its radius/stroke, so
-  the uncropped 100-wide box left visible empty padding between the icon
-  and the text no matter how negative a margin was applied; cropping the
-  box to the mark's real bounding edge is what actually let the two sit
-  flush with a tiny (`-mr-[1.5px]`/`-mr-px`, scaled to each usage's size)
-  margin instead of guessing an increasingly large negative value. Applied
-  everywhere the wordmark (icon immediately before "lutch"/"Clutch")
-  renders: nav (`app.component.html`, `-mr-px` at 24×28), all four auth
-  pages (`-mr-[1.5px]` at 36×42), and the splash screen
-  (`shared/splash.html`/`splash.css` — `.brand-icon` switched from a fixed
-  square `width`/`height` clamp to `height` + `aspect-ratio: 86/100`, since
-  the viewBox is no longer square). The standalone icon (favicon, PWA
-  icons, `email.ts`'s `LOGO_URL`, the Fantasy court decal, `qr-card.html`)
-  is deliberately untouched by any of this — still `stroke-width="8"`,
-  uncropped `0 0 100 100` — since those contexts have no adjacent "lutch"
-  text to weight-match against, and `email.ts`'s standalone-icon choice
-  (no wordmark trick at all) stands for the reason given above.
-- **Ring weight tuned down, `16` → `13` (2026-09-10, same day)** — verified
-  live via Chrome DevTools (`claude-in-chrome`, not just reasoning about
-  the markup): the flush spacing from the pass above was confirmed already
-  correct on the real deployed site (`getBoundingClientRect` showed the
-  icon and text boxes overlapping by 1.5px, i.e. genuinely touching, and
-  `CanvasRenderingContext2D.measureText`'s `actualBoundingBoxLeft` showed
-  the "l" glyph's own ink overshooting slightly further left than that —
-  no remaining gap at the font-metrics level either). But `stroke-width="16"`
-  rendered visibly heavier than "lutch"'s own bold stem (~6.7px vs ~5.5px
-  at the auth-hero's ~36px display scale) — dropped to `13` (~5.4px at
-  that same scale) to actually match rather than exceed the text weight.
-  Same six files as the pass above; the crop/margin values themselves are
-  untouched, and still fit since the ring's right edge only retracts by
-  about half a viewBox unit at this size — nowhere near enough to reopen
-  a visible gap.
-- **Flush spacing reverted to a normal gap (2026-09-10, same day)** — the
-  fully-flush treatment above (icon/text boxes overlapping) was explicit,
-  approved feedback at the time, but reads as too fused once actually
-  lived with — asked for "normal" spacing instead. This is NOT a reversion
-  of the icon-as-C concept itself (a genuine miscommunication mid-pass: "I
-  don't want C+lutch anywhere" from earlier in the day was about the
-  *mismatched-weight, gappy* execution, not the combined-mark idea — the
-  ball-nested-in-the-ring "C" stays, confirmed explicitly as "ONE PIECE
-  but the C with the ball in it"). Swapped the per-usage negative-margin
-  hack (`-mr-px`/`-mr-[1.5px]`/`-ml-[3px]`) for a plain flex `gap` on each
-  wrapping container instead — simpler, and avoids hand-tuning a margin
-  value per usage: `gap-1` (nav, 24px icon), `gap-1.5` (all four auth
-  heroes, 36px icon), `gap-2` (splash, up to ~45px icon). Ring
-  stroke-width (13) and the cropped `86×100` viewBox are both unchanged
-  from the passes above.
-- **Icon-as-C wordmark retired entirely, replaced with a full logo
-  (2026-09-10, same day)** — everything in the several bullets above this
-  one (the icon-as-"C" + "lutch" combination mark, all its spacing/weight
-  tuning) is now historical only — superseded, not deleted, since the
-  back-and-forth in getting there is worth keeping. Explicit direction:
-  "remove anywhere the C + lutch... design a logo and replace everything
-  with our logo." Landed via the same design-canvas comparison pattern
-  (3 fresh directions, none constrained to the old icon-as-letter idea),
-  then iterated live in the canvas per direct feedback (curved not
-  straight line, symmetric ball seams — the first cut was missing the
-  right-side curve entirely, a real asymmetry bug, not just a style
-  choice — text width pinned via `textLength` so the line/ball align to
-  it exactly rather than eyeballed, ball moved clear of the last letter
-  instead of overlapping it).
-
-  **The shipped mark**: real "Clutch" text (SVG `<text>`, not a
-  letterform substitution — a plain, normal, actually-spelled word,
-  `font-weight="800"`, `textLength="220" lengthAdjust="spacingAndGlyphs"`
-  so its rendered width is a known, exact value everything else aligns
-  to), a curved orange line (`stroke="url(#lineGrad...)"`, a
-  `feDropShadow` filter for depth — the "shady line" ask) tracking under
-  the word from the "C" to the "h", and the ball (same seam pattern as
-  the standalone icon: one vertical + two symmetric curves — the earlier
-  asymmetric version only had one) riding just past the last letter with
-  a small gap, never overlapping it. Text fill is a two-stop
-  `var(--color-ink)` gradient (100% → 82% opacity) rather than a fixed
-  color, so it stays legible in both themes — the canvas mockup itself
-  was only ever checked against a dark background, and a fixed near-white
-  fill would have been unreadable in light mode; this is a correctness
-  fix made during implementation, not something explicitly requested.
-  One `viewBox="0 0 264 150"` SVG (gradient/filter ids suffixed per
-  usage — `Nav`/`Hero`/`Splash`/`Qr` — to avoid duplicate-id collisions
-  where more than one instance can be mounted at once) replaces the old
-  icon-element-plus-text-element pairing everywhere it appeared: the nav
-  (`app.component.html`), all four auth pages
-  (login/register/forgot-password/reset-password — identical block,
-  `width="106" height="60"`), the splash screen
-  (`shared/splash.html`/`splash.css` — `.brand-icon`/`.wordmark` merged
-  into one `.logo-mark` class, `height: clamp(46px, 13vw, 68px); width:
-  auto; aspect-ratio: 264/150`, reusing the existing `icon-in` keyframe
-  since there's now only one element to animate in, not two), and
-  `public/qr-card.html` (a static, non-Angular page with no `--color-ink`
-  var — uses its own already-defined fixed `--ink: #f0f0ec`, and picked
-  up an `IBM Plex Sans:wght@800` addition to its Google Fonts link, which
-  it didn't previously load at all, having been built with the
-  Rajdhani/Barlow/JetBrains-Mono trio instead).
-
-  **Left alone, on purpose**: this pass only ever touches contexts where
-  the icon sat next to "Clutch" text. The standalone square icon by
-  itself — `favicon.svg` (both copies), the PWA icon set, `email.ts`'s
-  `LOGO_URL`, and the Fantasy court background's faint center-court decal
-  — has no adjacent text to combine with, was never part of the
-  "C+lutch" complaint, and keeps the plain ring+ball mark approved
-  earlier the same day.
-- **`textLength` forcing dropped, ball clearance widened, nav sized up
-  (2026-09-10, same day)** — real bug, not a style tweak: the "h" in
-  "Clutch" rendered hidden. Root cause was the `textLength="220"
-  lengthAdjust="spacingAndGlyphs"` forcing added in the pass above, meant
-  to align the line/ball exactly under the word — "Clutch" at
-  `font-weight="800"`/`font-size="80"` in IBM Plex Sans actually renders
-  notably wider than 220 (closer to ~258-262 by hand calculation; couldn't
-  get an exact browser measurement to confirm — Chrome DevTools was
-  disconnected for this pass and a direct Google Fonts fetch from this
-  environment's shell was blocked by bot-protection), and cross-browser
-  support for `lengthAdjust="spacingAndGlyphs"` actually compressing
-  glyphs (not just spacing) to hit that target is inconsistent — so the
-  real "h" ended up rendering underneath the ball, which sat at a fixed
-  `cx` regardless. Fixed by dropping the forcing entirely: text now
-  renders at its natural width, and every measurement past it (the line's
-  endpoint, the ball's position) uses a generous hand-estimated safety
-  margin instead of a precise-looking number that silently broke —
-  `viewBox` widened `264×150` → `320×150`, ball moved `cx=240` → `290` (a
-  real gap past the estimated word-end, not flush against it). Same six
-  files. Also bumped the nav logo specifically (`49×28` → `81×38` — the
-  one explicitly reported as too small on desktop; the four auth-hero
-  logos and splash were left at their existing pixel sizes, just
-  re-based onto the new 320-wide viewBox so the geometry stays
-  consistent). **Not yet re-verified live** — Chrome was disconnected for
-  this whole pass; worth a real visual check (both the "h" fix and the
-  nav size) next time the extension is available.
-- **Icon cache-busting, round 2 — renamed the files, not just the URL
-  (2026-09-10, same day)** — user report: "Add to Home Screen" still
-  showed the old flat-icon design after the gradient-ball redesign earlier
-  this same day, even on a fresh save. First attempt appended `?v=2` to
-  every icon URL in `index.html` and `manifest.webmanifest` — reasoning:
-  `icon-*.png`/`favicon.svg` keep the same filename across a redesign
-  (this app has no icon-generation pipeline that content-hashes them —
-  see the earlier "not checked in, one-off render" note), and iOS/Android
-  cache a PWA's home-screen icon at install/save time in a way that
-  doesn't reliably revalidate against normal HTTP cache rules even across
-  an otherwise-fresh page load. **The query-string version didn't fully
-  fix it** — still showed stale (a browser-tab favicon specifically is
-  known to sometimes ignore query-string busting entirely, caching by
-  origin+path rather than full URL) — so escalated to the more reliable
-  fix: rename the files themselves. `src/favicon.svg`/`public/favicon.svg`
-  → `favicon-v2.svg` (both copies, same "keep both in sync" discipline as
-  the 2026-09-06 stale-leftover fix below), `icon-<size>.png` →
-  `icon-v2-<size>.png` for all 8 PWA sizes. Updated everywhere they're
-  referenced: `angular.json`'s explicit `src/favicon-v2.svg` asset entry,
-  `index.html` (favicon link, apple-touch-icon), `manifest.webmanifest`
-  (all 8 icons), and `backend/src/services/email.ts`'s `LOGO_URL` (missed
-  on the first pass — caught by grepping for every remaining reference to
-  the old filenames before considering this done). No `?v=` query strings
-  needed anymore — a genuinely new filename is a URL no cache layer has
-  ever seen, which is strictly more reliable than hoping a query string is
-  honored. **Bump the version marker again (`v2` → `v3`, etc.) on any
-  future icon change** — same reasoning, same fix, every time; this is
-  now the load-bearing convention, not the query-string approach.
-- **Standalone icon redesigned to match the current logo, `v2` → `v3`
-  (2026-09-10, same day)** — real inconsistency, not a caching bug this
-  time: the standalone icon (favicon, PWA icons, email logo, court decal)
-  still used the ring-with-ball-in-a-"C" mark that was explicitly retired
-  earlier the same day in favor of the "Clutch" + curved line + ball logo.
-  User caught it by directly inspecting the icon files on disk. New
-  design: a bold "C" (same visual weight as the wordmark's own C) with the
-  same curved shaded line and ball beneath it — a monogram crop of the
-  real logo, not a different mark. **The "C" is drawn as a hand-built
-  vector arc (`M 54 23 A 26 26 0 1 0 54 57`, thick rounded stroke), not
-  real `<text>`** — a deliberate implementation choice, not what the
-  approved canvas mockup showed: a standalone favicon SVG loads as a bare
-  image resource with no access to the page's Google Fonts import, and
-  the PNG rasterizer (`sharp`/librsvg) has no web fonts installed either,
-  so real text would silently fall back to a generic system font in both
-  contexts — an arc is pure vector geometry with zero font dependency,
-  guaranteed identical everywhere. Same file-rename discipline as the
-  round-2 fix above, bumped again: `favicon-v2.svg` → `favicon-v3.svg`
-  (both copies), `icon-v2-<size>.png` → `icon-v3-<size>.png` (all 8,
-  regenerated via a temporary `sharp` install same as every other
-  icon-generation pass in this app). Updated every reference again:
-  `angular.json`, `index.html`, `manifest.webmanifest`,
-  `email.ts`'s `LOGO_URL`, and — missed by the previous pass entirely,
-  since it wasn't part of the wordmark complaint that pass was scoped to
-  — the Fantasy court background's center-court decal
-  (`shared/court-background.ts`), whose centering transform also needed
-  recomputing (`translate(-50 -50)` → `translate(-54 -55)`) since the new
-  mark's bounding box isn't centered the same way the old ring was.
-  `qr-card.html` needed no change — it already carries the full wordmark
-  logo, not the standalone icon.
-- **Icon composition rebalanced, `v3` → `v4` (2026-09-10, same day)** — the
-  v3 composition (C on the left, line trailing off diagonally, ball far to
-  the right past the C) read as lopsided once actually looked at — several
-  rounds of direct feedback narrowed it down: the line now spans the
-  **full width of the C** (not just trailing from one side of it,
-  `M 22 75.5 Q 49 89.5 76 75.5`), the ball sits at the line's **right
-  edge, vertically centered on the line itself** (`cx=76 cy=75.5`,
-  matching the line's own endpoint exactly) rather than hanging below it
-  or drifting further out, the ball was sized down (`r=13` → `8`) since it
-  was competing with the C for visual weight, and the C's stroke was
-  thinned slightly (`15` → `13`) and the whole group re-centered in the
-  square (`translate(-54 -55)` → `translate(-60 -54)` on the court decal;
-  analogous shift baked directly into the favicon/icon coordinates
-  themselves). Iterated live in the design canvas — the same "propose
-  visually, then implement" pattern as every prior pass here — before
-  touching the real app, specifically because the v3 pass had gone
-  straight from approval to full implementation and still needed two
-  more real-file correction passes after; landing the composition in the
-  canvas first this time avoided that. Same six-surface update as v3
-  (favicon, 8 PWA icons, `angular.json`, `index.html`,
-  `manifest.webmanifest`, `email.ts`, court decal), bumped to `v4` since
-  v3 had been live long enough to plausibly be cached somewhere real.
-- **`src/favicon.svg` was a stale leftover from an even older logo** as of
-  the 2026-09-06 pass (an orange-ring-with-a-cutout "C" mark, never
-  actually served, shadowed by `public/favicon.svg` at build time) — kept
-  in sync with `public/favicon.svg` ever since rather than deleted, so the
-  shadow can't reintroduce a mismatch if the asset order ever changes.
-  Both copies renamed to `favicon-v2.svg`, then `favicon-v3.svg`, then
-  `favicon-v4.svg`, across the 2026-09-10 passes above — same sync
-  discipline applies to the current name.
+- **Current mark ("v14", 2026-09-14)** — the logo went through roughly a
+  dozen rejected directions (isometric bars, ring+ball, an icon-as-"C"
+  wordmark, a pure-SVG "Clutch"+curved-line+ball comet mark, several
+  hand-drawn basketball icon/shading attempts, a "Bracket" mark) before
+  landing on the current one: a user-supplied Canva illustration — a
+  backboard/hoop/net graphic with an orange basketball, and a bold serif
+  "Clutch" wordmark stacked below it (icon-above-text, not side-by-side).
+  None of the earlier directions are live anywhere in the app; if that
+  history ever matters again it's in git log, not worth re-deriving here.
+  - **Two real source exports, not an algorithmic recolor**: a light
+    variant (`clutch-mark.png`) and a separately-designed dark variant
+    (`clutch-mark-dark.png`) — both genuinely transparent PNGs. Earlier
+    attempts (v11–v13) tried to derive the dark variant by recoloring the
+    light one (threshold bands, flood-fill masks, chroma-key de-matting,
+    boundary color-decontamination) and kept failing in different ways
+    (fringing, blocky edges, dark-on-dark elements collapsing together) —
+    don't re-attempt a recolor; a real second Canva export was what
+    actually worked, and no processing pipeline is needed for either file.
+  - **Two lockups**: the full mark (icon + baked-in "Clutch" text) is used
+    at 96px on the login/register/forgot-password/reset-password/claim
+    hero and via `.logo-mark` (aspect-ratio matches the real trimmed
+    dimensions — 738×698 light / 592×560 dark) on the splash screen. A
+    cropped icon-only variant (`clutch-icon.png`/`clutch-icon-dark.png`,
+    cut at the icon/text boundary since the baked-in text is illegible at
+    icon size) is used on the nav bar and `/welcome`'s header, each paired
+    with a real, live "Clutch" `<span>` — same pairing every earlier
+    pictorial mark used. `qr-card.html` is a fixed-dark card regardless of
+    viewer theme, so it always points at `clutch-mark-dark.png` only.
+  - **Theme switching**: every usage renders both a `.brand-mark-light`
+    and `.brand-mark-dark` `<img>`, toggled via `styles.css` (same
+    dark-unscoped-default/light-explicit-override convention as
+    `.icon-ink-invert`) — necessary because this is a raster mark with no
+    vector source to recolor via `var(--color-ink)` the way the old SVG
+    wordmarks could.
+  - **Nav wordmark font (2026-09-14, undocumented until this pass — caught
+    the same way every prior "Timeline correction" in this file has been,
+    by checking what's actually live)**: the nav's "Clutch" `<span>` uses
+    a new `.brand-wordmark` class (`styles.css`, "Bigshot One" from Google
+    Fonts) instead of the regular `font-sans` stack, to echo the logo's
+    own bold vintage-serif wordmark. The logo's actual typeface ("Kabal")
+    isn't genuinely free (checked directly — only unlicensed mirrors claim
+    otherwise), so this is a free lookalike, not the exact face. No
+    Greek-coverage requirement, same exemption as the logo's own literal
+    "Clutch" text — it's a proper noun, never translated.
+  - **Favicon/PWA icons/email logo**: rasterized from these same sources
+    via a temporary local `sharp` install (`npm install sharp --no-save`,
+    run, then `npm uninstall sharp` — no icon-generation pipeline is
+    checked in). Files: `frontend/public/favicon-v14.png`,
+    `frontend/public/icons/icon-v14-*.png` (8 sizes), referenced from
+    `index.html` (favicon link + apple-touch-icon), `manifest.webmanifest`
+    (all 8), and `backend/src/services/email.ts`'s `LOGO_URL`. Angular's
+    `assets` config just globs `public/**` — no per-file asset entry to
+    update. **Bump the version suffix (`v14` → `v15`, etc.) on any future
+    icon-visible change and rename every file** — a query-string cache-bust
+    was tried once and proved unreliable (a browser tab's favicon
+    specifically can ignore it, caching by origin+path); a genuinely new
+    filename is the only cache buster confirmed to work.
+  - **Fantasy court center-court decal now uses the real mark too
+    (2026-09-16)** — `shared/court-background.ts` used to render a plain
+    vector "C" glyph here instead (extracted from an earlier Archivo Black
+    wordmark attempt via `fontTools`), specifically because the current
+    mark is a raster PNG with no vector source. Switched to an inline SVG
+    `<image>` referencing `clutch-icon-dark.png` directly (same file the
+    nav bar's dark-mode icon uses) at low opacity (0.2) — there's no
+    per-decal rasterization step needed since `<image href>` just embeds
+    the PNG as-is; the old vector "C" is gone from this file entirely, not
+    kept as a fallback.
 
 ## Album leaderboard (2026-09-06)
 
@@ -1486,6 +1383,75 @@ at the same Neon instance as local dev — there's no separate prod database.
     since, like Fantasy, it's a single-focus feature page without an
     existing home on League Detail to slot into.
 
+## Landing page (2026-09-11)
+
+- **`/welcome`** (`frontend/src/app/features/landing/`) — a public,
+  unauthenticated pitch page for cold traffic (the QR card, a shared link),
+  deliberately not the `""` route (the real dashboard, unchanged for anyone
+  who already knows the app). `LandingComponent.ngOnInit` bounces an
+  already-logged-in visitor straight to `/` rather than showing the pitch
+  again; `app.component.ts`'s `hideChrome()` (keyed on the current URL
+  being exactly `/welcome`) suppresses the logged-in app shell's top bar,
+  desktop rail, and mobile tab bar specifically on this route — those
+  otherwise render unconditionally around every route including this one.
+  **Timeline correction (2026-09-15)**: this bullet originally said "not
+  yet live" — stale. `/welcome` has since been redeployed and is live in
+  production, and the custom-domain decision this note was waiting on has
+  also landed (see the Deployment section's domain bullet). `qr-card.html`'s
+  QR now encodes `https://getclutchapp.com/welcome` for real — that's what
+  the printed flyer/banner should point at.
+  - **Interactive "reskin" demo**: tapping a real team logo (fetched from
+    the already-public `GET /api/teams`) repaints a small preview card in
+    that team's kit colors — the app's actual core mechanic
+    (`ThemeService.applyTeam`), demonstrated rather than described. Never
+    calls `applyTeam()` itself though — that would cache into
+    `localStorage` and mutate `<html>` globally, clobbering a real logged-in
+    user's actual colors if this ever ran while signed in. Instead
+    `previewPrimary` (in `landing.ts`) computes a scoped value written only
+    to a local `--accent-primary` custom property on the preview's own
+    wrapper div; Tailwind's existing `bg-team-primary`/`border-team-primary`
+    utilities pick it up via normal CSS cascade with zero effect outside
+    that one element. Raw team colors are used at full intensity when
+    already bright enough (a real live-reported bug: blending everything
+    toward white first turned Olympiacos red into pink) — only a color dark
+    enough to actually risk disappearing (checked via `hexLuma`) gets
+    lifted, and a genuinely near-black one blends toward the app's own
+    `--color-muted` grey rather than white, since mixing near-black with
+    white still reads as a washed pastel.
+  - **"Cards & collectibles" step showcases one real card per catalog
+    tier** (common/rare/legendary/coach) using the actual
+    `CollectibleCardComponent`, not a hand-drawn approximation — real player
+    photos/names come from the same public `GET /players/advanced-stats`
+    payload `/compare` already uses unauthenticated, shuffled once per page
+    load (`shuffled()` in `landing.ts`) so the showcase doesn't always land
+    on 3 players from the same club (a real reported bug — the payload's
+    own row order groups by team). The coach card uses a real team's actual
+    head coach name. **Real layout bug, took three live-reported rounds to
+    actually fix**: `CollectibleCardComponent`'s name/badge/banner text is
+    fixed-px, not proportional to its own `maxWidth` input — shrinking that
+    input directly (tried at 104px, then 76px) either collapsed the whole
+    card to a ~14px dot (a bare flex row with no `flex-shrink:0` lets
+    flexbox's default shrink squeeze items toward nothing instead of
+    wrapping) or left the fixed-size banner text dominating the tiny card
+    face and hiding the photo under it entirely. Fixed by rendering each
+    card at its real, correctly-proportioned size (130px, matching Album's
+    own grid) and scaling the *whole* rendered card down via a CSS
+    `transform: scale()` to the actual on-page footprint — photo, banner,
+    and badge all shrink together in proportion, rather than shrinking just
+    the box. The four cards fan out (rotation + a slight vertical drop on
+    the outer two, pivoting from the bottom edge) rather than sitting in a
+    grid, echoing `shared/splash.html`'s own mini-card fan.
+  - Six-slide carousel (autoplaying every 4.5s, stopping on any manual
+    dot/arrow/team-pick interaction): team-color demo, live scores,
+    predictions & points, Fantasy Five, cards, leagues, then a closing CTA
+    slide (icon "zap") with a real `routerLink="/register"` button reading
+    "Γίνε Clutcher" ("Become a Clutcher") — scaled up via `transform:
+    scale()` rather than fighting `ButtonDirective`'s own size classes with
+    more of the same (unreliable, depends on Tailwind's generated rule
+    order). The copy pane has a fixed `min-h-[260px]` — real reported bug:
+    without it, a shorter step's pane would shrink, carrying the prev/next
+    arrow buttons out from under the cursor on a fast double-click.
+
 ## Other known gaps
 
 - A traded player's season-long stat averages (across both teams) are
@@ -1495,6 +1461,25 @@ at the same Neon instance as local dev — there's no separate prod database.
   treat any earlier "checked on <date>, covers N of M games" note as stale.
 - Redeploys to Railway are manual, not triggered by `git push` (see
   Deployment above).
+- **`dev`'s database schema silently drifts behind production** (found
+  2026-09-17, verifying the Fantasy auto-fill tool above) — every schema
+  change in this app is applied by hand against `DATABASE_URL` (see
+  Schema changes above), and nothing ever reminds anyone to run that same
+  SQL against the `dev` Neon branch too. Concretely: `dev` was branched
+  from production on 2026-09-10; `fantasy_price_change_log`,
+  `fantasy_coach_price_change_log`, and `fantasy_round_points` were all
+  added to production after that (2026-09-16), so `dev` was missing all
+  three until this pass hand-added them. This is a real, live-reproduced
+  gap, not theoretical — `GET /fantasy/lineup` 500'd and
+  `[fantasy daily reprice]`'s background job was failing every run on
+  `dev` because of it. Nothing here fixes this structurally (that would
+  mean either switching to real migrations, checked in and run against
+  both databases, or a standing "did this schema change also go to dev"
+  checklist step) — just noting it so a future session doesn't waste time
+  debugging a `relation does not exist` error and assuming it's a real
+  code bug. Worth a `select table_name from information_schema.tables`
+  diff between the two databases next time a schema change is applied, if
+  `dev` is about to be used for testing that area.
 - **Fantasy price ceiling now re-anchors instead of staying pinned to the
   season-start anchor forever** (flagged 2026-09-09, fixed same day) —
   `FANTASY_MAX_PRICE` (17, `services/fantasyScoring.ts`) was hard-pinned to
@@ -1551,42 +1536,12 @@ at the same Neon instance as local dev — there's no separate prod database.
   creating the table wrote `{ season: '2026-27', ceiling: 22.1 }`, which
   computes to a 100.5cr cap today — a small, correct move matching how
   little the ceiling itself has moved so far (see above).
-- **TODO: no dev/staging environment** — everything today is one production
-  Railway service on `main`, deployed by hand from a local checkout, against
-  the one live Neon database (`DATABASE_URL` is identical between local dev
-  and prod — see Environment variables above). There's no separate URL to
-  try a risky change against before it's live, and local dev itself already
-  writes straight into the real database (real users' points, cards, trades)
-  rather than a sandboxed copy. Worth splitting into a `dev` branch +
-  a second Railway environment/URL deployed from it — Railway supports
-  multiple environments per project natively, which pairs well with Neon's
-  own cheap copy-on-write database branching for a genuinely isolated
-  staging DB, rather than standing up a whole second Railway project. The
-  real cost isn't the branch or the URL, it's that `db:push` is
-  interactive-only (`drizzle.config.ts`'s `strict: true`, see Schema
-  changes above) with no migrations checked in — keeping two databases'
-  schemas in sync would become a manual step to remember on every schema
-  change, not something CI could enforce today.
-  **Setup started 2026-09-04, paused mid-way — pick back up from here:**
-  global `@railway/cli` was upgraded 5.44.0 → 5.49.1 (done, lasting). The
-  `.railway/railway.ts` config-as-code workflow this doc describes
-  (`railway config plan`/`apply`) turned out to be **broken on this Windows
-  setup** — the `railway` npm package's `assertMinimumIacCliVersion()`
-  shells out to `railway --version` to double check the CLI, and that
-  spawn always fails (reproduced identically on git-bash and native
-  PowerShell, filed as product feedback), so `config plan`/`apply` always
-  dies with a misleading "upgrade your CLI" error no matter the real CLI
-  version. Don't re-fight that tool — drive the dev environment/branch
-  setup with plain imperative `railway` CLI commands instead
-  (`railway environment new dev --duplicate production`,
-  `railway variables --set ... --environment dev`, `railway domain`,
-  `railway up --environment dev`), which work fine. Still to do: (1) create
-  a Neon branch DB for `dev` — blocked on Neon auth, either run
-  `npx neonctl auth` (opens a browser login) or create a branch named
-  "dev" off production by hand in the Neon console and hand over its
-  pooled connection string; (2) create the `dev` git branch; (3) create the
-  Railway `dev` environment and point its `DATABASE_URL` at the Neon dev
-  branch; (4) get a domain + first deploy for it.
+- ~~No dev/staging environment~~ — done, see the Deployment section's
+  "Dev/staging environment" entry above. Local dev's own `DATABASE_URL`
+  still points at the same shared production Neon database it always has
+  (see Environment variables above) — only the *deployed* Railway service
+  gained an isolated `dev` counterpart, local dev itself was out of scope
+  for this pass and still writes straight into real data.
 - Some teams could have zero rows in `players` if `roster_sync.py` (see
   below) hasn't been run for a freshly-registered club yet — found
   2026-08-21 with Besiktas Istanbul via the live-score simulator, fixed for
@@ -1779,8 +1734,9 @@ at the same Neon instance as local dev — there's no separate prod database.
   should pay more. Two open questions were resolved with the user before
   building, since this touches a formula CLAUDE.md had deliberately
   documented as needing to work a specific way, in a production economy
-  with no staging environment (see "TODO: no dev/staging environment"
-  above):
+  that had no staging environment yet at the time (the gap tracked under
+  Other known gaps below — since closed, see the Deployment section's
+  "Dev/staging environment" entry):
   1. **Real odds were explicitly deferred, not built** — there's no
      `ODDS_API_KEY` configured even to test whether The Odds API actually
      carries a EuroLeague player-points/top-scorer market (CLAUDE.md's
@@ -1828,6 +1784,57 @@ at the same Neon instance as local dev — there's no separate prod database.
   - Nothing schema-side changed — `pointsAtPick` is still a plain nullable
     int, `POST /top-scorer-predictions` just computes a richer input into
     the same formula/column it always wrote to.
+- **Fantasy Five simulation button — built (2026-09-17, same day it was
+  flagged)**. Scoping it turned out to answer its own open design
+  questions: reason (2) from the original note — exercising Fantasy scoring
+  against real-shaped data without waiting for real rounds — was already
+  fully covered by existing tools. Fantasy points are read straight off
+  `games`/`player_game_stats` (`GET /fantasy/lineup`), the exact tables
+  `POST /api/events/simulate/round` already fabricates finals into, and
+  `checkAndGrantFantasyRoundPoints` already fires correctly the moment a
+  round's games are all final — verified live (see below), not assumed.
+  So the only real gap was reason (1), auto-generating a squad, which is
+  what got built:
+  - `services/fantasyScoring.ts`'s `POST /lineup/batch` validation+write
+    logic (round lock, slot-role counts, one-captain rule, position/club
+    quotas, transfer limit, budget check, the transaction) was extracted
+    into a standalone `saveFantasyLineup(userId, season, round, entries,
+    coachTeamId)` — the route now just does request-shape parsing
+    (types/uuid format/enum) and delegates. `getBudgetCap` moved from a
+    route-local function to an export there too.
+  - `autoFillFantasySquad(userId, season, round)` (same file) builds a
+    random valid squad — reserves `COACH_MIN_PRICE` of budget for the
+    coach, then per position (`FANTASY_POSITION_QUOTA`) shuffles that
+    position's active-player pool and greedily takes affordable, club-
+    limit-respecting picks, falling back to a cheapest-first pass (budget
+    constraint dropped, club limit still enforced) if the randomized pass
+    can't fill a quota — then calls `saveFantasyLineup` with the result.
+    Never a special-cased shortcut: an auto-filled squad passes the exact
+    same rules a real save does, since it's *written* by the same function.
+  - `POST /fantasy/admin/auto-fill` (`requireAuth, requireAdmin`) — targets
+    the calling admin by default, or `userId` in the body (e.g. a freshly
+    created test account). A single "Auto-fill squad" button was added to
+    the Fantasy Five page (admin-only, current-round-and-unlocked only).
+  - **Verified live against the Railway `dev` environment's database, not
+    production** (explicit instruction this session: "testing should be
+    done on development database for now") — auto-filled a squad for
+    round 1 (10 players correctly split 5 starter/1 sixth-man/4 bench, one
+    captain, under the 100.5cr budget cap), then called the existing
+    `POST /api/events/simulate/round` to finalize all 9 of that round's
+    games, then re-read `GET /fantasy/lineup`: `roundComplete: true`,
+    scoring computed correctly from the fabricated box scores, and
+    `newFantasyRoundPoints` showed a real grant — confirmed as exactly one
+    `point_adjustments` row server-side (the `onConflictDoNothing` claim-
+    first guard holds under a repeat read, same as `roundRewards`).
+  - **Real bug caught during this verification, unrelated to the new code**:
+    `GET /fantasy/lineup` 500'd with `relation "fantasy_round_points" does
+    not exist` (and `[fantasy daily reprice] failed: relation
+    "fantasy_price_change_log" does not exist` in the logs) — see the new
+    "dev/prod schema drift" gap below. Fixed by hand-applying the same
+    `CREATE TABLE` for `fantasy_price_change_log`,
+    `fantasy_coach_price_change_log`, and `fantasy_round_points` to the
+    `dev` Neon branch that production already had. Not a code bug at all;
+    dev's schema had simply never caught up.
 
 ## Season transition (2026-27, 2026-09-02)
 
@@ -2009,6 +2016,58 @@ at the same Neon instance as local dev — there's no separate prod database.
     incoming transfer/reserve with no EuroLeague minutes last season still
     shows the placeholder until real 2026-27 data exists. Safe to re-run
     (idempotent — skips anyone already photo'd) if more players get synced.
+    **Real 2026-27 club photos start appearing, 2026-09-16** — asked which
+    script surfaces real photos as clubs release their actual 2026-27
+    rosters. Neither existing photo source covers this: `player_stats_sync.py`
+    still returns zero rows for `E2026` (confirmed live — the season
+    genuinely has zero played games), and `backfill-player-photos.ts` only
+    ever sources last season's (2025-26) photos. Checked the club-roster
+    endpoint `roster_sync.py` already hits directly (`/clubs/{code}/people`)
+    and found its `person.images` field — documented in that script as
+    always `{}` when written — has started carrying real photos for a
+    handful of players (5 of ~330 as of this check, across 5 different
+    clubs; keyed `"action"` for most, `"headshot"` for one) even though no
+    game has been played. `roster_sync.py` now captures this going forward
+    (`extract_photo_url()`, written via `COALESCE(new, existing)` so a run
+    that finds nothing for a given player — still nearly everyone — can't
+    blank out a real photo already on file). Since this machine's
+    `sync-py/venv` doesn't run locally, `npm run roster:sync-photos`
+    (`scripts/sync-roster-photos.ts`) is the TS/fetch equivalent — same
+    workaround as `backfill-player-photos.ts`/`backfill-career-stats.ts` —
+    and is the one to actually run for this locally; unlike that one-off,
+    it's meant to be safe to re-run periodically (unconditionally
+    overwrites with whatever the feed has *now*, so a real 2026-27 photo
+    supersedes an older 2025-26 one) since clubs are registering photos
+    gradually rather than all at once. Run once already (2026-09-16),
+    backfilling exactly the 5 players found live.
+    **Follow-up same day: those photos (and the 2025-26 backfill's own 208)
+    weren't reaching card images at all** — user report ("many players do
+    have photos... I don't see all players there [on cards]") surfaced two
+    separate real gaps, not one. First,
+    `collectibles:expand`(`expand-collectibles.ts`) was re-run and inserted
+    292 common + 292 rare + 10 legendary cards for players who'd joined a
+    roster since the catalog was last expanded — it only ever creates a
+    card for a player who doesn't have one yet, it was just stale.
+    Second, and the actual root cause of "many players have photos but
+    their cards don't": `collectibles.image_url` is a one-time snapshot of
+    `players.photo_url` taken only at insert (see `expand-collectibles.ts`
+    and the "Jersey-style placeholders" pass above that nulled every
+    `image_url` on 2026-09-02) — it is never re-synced afterward, so the
+    208 players photo'd by `backfill-player-photos.ts` on 2026-09-09 (and
+    now this session's 5 new ones) never propagated to their
+    *already-existing* card rows at all, only to a brand-new card created
+    after their photo existed. New one-off-but-rerunnable script,
+    `npm run collectibles:sync-images`
+    (`scripts/sync-collectible-images.ts`) — matches each collectible to
+    its player the same way `expand-collectibles.ts` matches on insert
+    (team + normalized display name) and overwrites `image_url` wherever
+    it disagrees with that player's current `photo_url`, only ever when
+    the player actually has one (never blanks a card back to null). Run
+    live 2026-09-16: 337 of 955 collectibles updated — confirms the gap
+    was real and large, not just the 5 from today. Run this (or fold it
+    into `collectibles:expand` itself as a real follow-up, not done here)
+    any time `players.photo_url` gets backfilled for a batch of players
+    whose cards already exist, not just for new players.
 - **`teams.code` vs. the public-site team abbreviation** (2026-09-02):
   asked to make the app's 3-letter team codes match
   euroleaguebasketball.net's own standings page. Checked the site's mobile

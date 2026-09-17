@@ -27,4 +27,5 @@ export class CardStackComponent {
   @Input() stackCount = 1;
   @Input() finish: CollectibleFinish = "standard";
   @Input() jerseyNumber: number | null = null;
+  @Input() pointsPerGame: number | null = null;
 }
