@@ -1765,6 +1765,22 @@ at the same Neon instance as local dev — there's no separate prod database.
   - Nothing schema-side changed — `pointsAtPick` is still a plain nullable
     int, `POST /top-scorer-predictions` just computes a richer input into
     the same formula/column it always wrote to.
+- **TODO: Fantasy Five simulation button (not started, flagged 2026-09-17)**
+  — an admin-only control to run/advance Fantasy rounds on demand, for two
+  distinct reasons: (1) **auto-generate a team** — instantly fill a squad
+  (10 outfield + coach, respecting `FANTASY_POSITION_QUOTA` and the budget
+  cap) instead of hand-picking one every time a test account is needed;
+  (2) **exercise new rules/features against real-shaped data** without
+  waiting for actual EuroLeague rounds to lock/play out — the same
+  motivation `realtime/liveScoreSimulator.ts` already serves for live
+  scores/predictions (compressed ~96s scheduled→live→final tick) and the
+  admin reset-game/reset-round buttons serve for undoing a simulator run
+  (see both above). No design decided yet — e.g. whether this reuses/
+  extends `liveScoreSimulator.ts`'s tick machinery (Fantasy scoring is
+  already read off `games`/`player_game_stats`, the same tables that
+  simulator drives) or is a separate standalone script/route, and whether
+  "run a round" only advances the clock/score or also fabricates a full
+  Fantasy scoring pass. Revisit this note once actually scoped.
 
 ## Season transition (2026-27, 2026-09-02)
 

@@ -44,9 +44,9 @@ const STEPS: LandingStep[] = [
   { icon: "ball", titleKey: "landing.featureTeamTitle", bodyKey: "landing.featureTeamBody", visual: "team" },
   { icon: "schedule", titleKey: "landing.featureScoresTitle", bodyKey: "landing.featureScoresBody", visual: "scores" },
   { icon: "picks", titleKey: "landing.featurePredictionsTitle", bodyKey: "landing.featurePredictionsBody", visual: "predictions" },
-  { icon: "fantasy", titleKey: "landing.featureFantasyTitle", bodyKey: "landing.featureFantasyBody", visual: "fantasy" },
+  { icon: "trophy", titleKey: "landing.featureFantasyTitle", bodyKey: "landing.featureFantasyBody", visual: "fantasy" },
   { icon: "cards", titleKey: "landing.featureCardsTitle", bodyKey: "landing.featureCardsBody", visual: "cards" },
-  { icon: "trophy", titleKey: "landing.featureLeaguesTitle", bodyKey: "landing.featureLeaguesBody", visual: "leagues" },
+  { icon: "bracket", titleKey: "landing.featureLeaguesTitle", bodyKey: "landing.featureLeaguesBody", visual: "leagues" },
   // Closing slide, deliberately last — a real actionable button (not
   // another mockup) rather than one more thing to read, so no body copy.
   { icon: "zap", titleKey: "landing.finalTitle", visual: "cta" },

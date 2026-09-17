@@ -23,7 +23,6 @@ export type NavIconName =
   | "sprout"
   | "zap"
   | "ball"
-  | "fantasy"
   | "tip"
   | "compass"
   | "logout"
@@ -53,7 +52,19 @@ export type NavIconName =
   // quick-favorite button (2026-09-13) share this one icon so both read as
   // the same action; `active` fills it solid, same convention as
   // home/cards/etc.
-  | "star";
+  | "star"
+  // Leagues hub, dashboard's My Leagues tile, and landing's leagues
+  // feature slide (2026-09-17) — a small bracket tree (two nodes
+  // converging up to an apex) reads as "a private standings bracket among
+  // a few people", the actual shape of what Leagues is. Two earlier
+  // drafts were tried and reverted in the same pass: "friends" (two
+  // overlapping heads) was nearly identical in silhouette to "teams"
+  // (also two player heads, "browse rosters") at nav-icon size; a literal
+  // "handshake" (two arms + a clasped-fist diamond) didn't read as a
+  // handshake at all once rendered — verified side by side against
+  // "trophy" (now Fantasy Five's nav icon, see below) in a real browser
+  // screenshot before landing on this one, not just reasoned about blind.
+  | "bracket";
 
 @Component({
   selector: "app-nav-icon",
@@ -382,30 +393,6 @@ export type NavIconName =
             stroke-linecap="round"
           />
         }
-        @case ("fantasy") {
-          <!-- Half-court basketball diagram (2026-09-13) — baseline,
-               backboard/rim, key, free-throw circle, and the three-point
-               arc read unambiguously as basketball. Replaces a symmetric
-               top-down full-court glyph (two mirrored keys around a center
-               circle) that was reported as reading like a soccer pitch at
-               nav-icon size. -->
-          <rect
-            x="5"
-            y="2.5"
-            width="14"
-            height="18.5"
-            rx="1.3"
-            stroke="currentColor"
-            stroke-width="1.8"
-            [attr.fill]="active ? 'currentColor' : 'none'"
-            [attr.fill-opacity]="active ? 0.1 : null"
-          />
-          <line x1="9" y1="3.6" x2="15" y2="3.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
-          <path d="M10.7 4.3Q12 5.6 13.3 4.3" stroke="currentColor" stroke-width="1" fill="none" stroke-linecap="round" />
-          <rect x="9.5" y="2.5" width="5" height="7" stroke="currentColor" stroke-width="1.3" />
-          <circle cx="12" cy="9.5" r="2.7" stroke="currentColor" stroke-width="1.3" />
-          <path d="M6.3 4.2Q6.3 16 12 16Q17.7 16 17.7 4.2" stroke="currentColor" stroke-width="1.3" fill="none" />
-        }
         @case ("tip") {
           <!-- default page-hint icon when a page doesn't pass a specific one. -->
           <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2" fill="currentColor" fill-opacity="0.1" />
@@ -543,6 +530,28 @@ export type NavIconName =
           <circle cx="5" cy="9" r="2.2" fill="currentColor" stroke="none" />
           <circle cx="12" cy="15" r="2.2" fill="currentColor" stroke="none" />
           <circle cx="19" cy="7" r="2.2" fill="currentColor" stroke="none" />
+        }
+        @case ("bracket") {
+          <!-- Bracket tree — two entrants converging up to a small trophy
+               apex, the actual shape of a tournament bracket (see the
+               type comment above for the two reverted drafts). Modeled
+               after a user-supplied reference icon (a trophy atop a
+               4-team bracket tree), simplified to two nodes for legibility
+               at nav-icon size. -->
+          <circle cx="5.5" cy="18" r="2" stroke="currentColor" stroke-width="1.8" [attr.fill]="active ? 'currentColor' : 'none'" [attr.fill-opacity]="active ? 0.18 : null" />
+          <circle cx="18.5" cy="18" r="2" stroke="currentColor" stroke-width="1.8" [attr.fill]="active ? 'currentColor' : 'none'" [attr.fill-opacity]="active ? 0.18 : null" />
+          <path d="M5.5 16v-2.5h4M18.5 16v-2.5h-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M9.5 13.5h5M12 13.5v-2.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+          <path
+            d="M9.3 4h5.4v2.3a2.7 2.7 0 0 1-5.4 0V4z"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linejoin="round"
+            fill="currentColor"
+            fill-opacity="0.16"
+          />
+          <path d="M9.3 4.6H7.3a2 2 0 0 0 2 2.6M14.7 4.6h2a2 2 0 0 1-2 2.6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+          <path d="M12 9v2.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
         }
       }
     </svg>
