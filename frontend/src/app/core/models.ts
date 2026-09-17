@@ -483,6 +483,30 @@ export interface PredictionAnalytics {
   upsets: PredictionUpset[];
 }
 
+// One row of GET /predictions/history — every match with a pick (win/loss
+// and/or top-scorer), merged the same way /predictions' own "My picks"
+// card merges them client-side, just already merged server-side and with
+// no cap (this endpoint backs the full round-by-round log, not a capped
+// recent-picks panel).
+export interface PredictionHistoryPick {
+  gameId: string;
+  tipoffAt: string;
+  homeTeam: { id: string; code: string; name: string; logoUrl: string | null };
+  awayTeam: { id: string; code: string; name: string; logoUrl: string | null };
+  predictedTeam: { id: string; code: string; name: string } | null;
+  winLossCorrect: boolean | null;
+  winLossPoints: number;
+  topScorerPlayer: { id: string; name: string; photoUrl: string | null } | null;
+  topScorerCorrect: boolean | null;
+  topScorerPoints: number;
+}
+
+export interface PredictionHistoryRound {
+  round: number | null;
+  points: number;
+  picks: PredictionHistoryPick[];
+}
+
 export type CollectibleTier = "common" | "rare" | "legendary" | "coach";
 
 // Cosmetic-only, legendary-only flourish rolled once at first acquisition

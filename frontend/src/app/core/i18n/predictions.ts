@@ -121,4 +121,19 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
     el: "Καμία ανατροπή ακόμα — το κοινό έχει πέσει μέσα μέχρι στιγμής.",
   },
   "predictions.analytics.pickedThem": { en: "picked them", el: "τους διάλεξαν" },
+
+  // features/predictions-history/ — the full round-by-round log of a
+  // user's own picks and what they scored, linked from the main
+  // Predictions page's "My picks" card.
+  "predictions.history.navTitle": { en: "Full prediction log", el: "Πλήρες ιστορικό προβλέψεων" },
+  "predictions.history.title": { en: "Prediction Log", el: "Ιστορικό Προβλέψεων" },
+  "predictions.history.subtitle": {
+    en: "Every pick you've made, round by round, and what it earned.",
+    el: "Κάθε πρόβλεψη που έκανες, ανά αγωνιστική, και τι σου απέφερε.",
+  },
+  "predictions.history.roundLabel": { en: "Round", el: "Αγωνιστική" },
+  "predictions.history.noHistoryYet": {
+    en: "No picks yet — head over to Predictions to make your first one.",
+    el: "Καμία πρόβλεψη ακόμα — πήγαινε στις Προβλέψεις για να κάνεις την πρώτη σου.",
+  },
 };

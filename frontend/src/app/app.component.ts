@@ -193,6 +193,14 @@ export class AppComponent implements OnInit {
     );
   }
 
+  // Profile/login live in the top bar, not as a NAV_LINKS entry (see the
+  // Frontend architecture notes), so they don't go through isActive() above
+  // — this is that same "is the current route this" check for the mobile
+  // top bar's own profile icon.
+  isProfileActive(): boolean {
+    return this.currentUrl() === "/profile";
+  }
+
   isMoreActive(): boolean {
     return this.moreLinks.some((l) => this.isActive(l));
   }

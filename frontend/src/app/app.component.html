@@ -89,10 +89,11 @@
       </div>
       <a
         routerLink="/profile"
-        class="sm:hidden shrink-0 w-8 h-8 rounded-xl border-2 border-line flex items-center justify-center text-muted hover:text-ink hover:bg-page transition-colors"
+        [class]="isProfileActive() ? 'bg-highlight/15 border-highlight/30 text-highlight' : 'border-line text-muted hover:text-ink hover:bg-page'"
+        class="sm:hidden shrink-0 w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-colors"
         [attr.aria-label]="i18n.t('nav.profile')"
       >
-        <app-nav-icon name="user" [size]="18" />
+        <app-nav-icon name="user" [active]="isProfileActive()" [size]="18" />
       </a>
     } @else {
       <div class="hidden sm:flex items-center gap-3 sm:gap-4 shrink-0">

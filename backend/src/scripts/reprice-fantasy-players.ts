@@ -137,9 +137,11 @@ async function repricePlayers(season: string): Promise<{ updated: number; usedFa
     updated++;
   }
 
-  // Persisted so routes/fantasy.ts can compute the effective budget cap
-  // (computeBudgetCap) cheaply on every lineup load/save, without
-  // recomputing the whole pool's raw values on every request.
+  // Persisted so computeFantasyPrice's own price-scaling ceiling is cheap
+  // to read on every lineup load/save, without recomputing the whole
+  // pool's raw values on every request. No longer feeds the budget cap
+  // (getBudgetCap is a flat FANTASY_BUDGET_CAP now — see that function's
+  // doc comment).
   await db
     .insert(fantasyPricingState)
     .values({ season, ceiling: maxRaw })

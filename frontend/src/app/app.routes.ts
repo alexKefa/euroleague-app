@@ -47,6 +47,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: "predictions-history",
+    loadComponent: () =>
+      import("./features/predictions-history/predictions-history").then(
+        (m) => m.PredictionsHistoryComponent
+      ),
+  },
+  {
     path: "store",
     loadComponent: () => import("./features/store/store").then((m) => m.StoreComponent),
   },

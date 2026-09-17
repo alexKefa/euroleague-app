@@ -14,8 +14,6 @@ import {
   LeaderboardEntry,
   League,
   FantasyLineup,
-  Prediction,
-  MyTopScorerPrediction,
 } from "../../core/models";
 import { PageHintComponent } from "../../shared/page-hint";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
@@ -24,7 +22,6 @@ import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { NewsStoriesComponent } from "../../shared/news-stories";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { CollectibleCardComponent } from "../store/collectible-card";
-import { TeamBadgeComponent } from "../../shared/team-badge";
 import { LiveCenterComponent } from "./live-center";
 import {
   newsDateLocale,
@@ -49,7 +46,7 @@ type LeaderCategory = (typeof LEADER_CATEGORIES)[number]["value"];
 // pass) since a dashboard should read "at a glance", and every one of these
 // already has its own full page a tap away (/stats, /predictions,
 // /schedule) via the links kept inside each tab.
-type DashboardTab = "performances" | "leaders" | "myPicks" | "predictors" | "schedule";
+type DashboardTab = "performances" | "leaders" | "predictors" | "schedule";
 
 @Component({
   selector: "app-dashboard",
@@ -65,7 +62,6 @@ type DashboardTab = "performances" | "leaders" | "myPicks" | "predictors" | "sch
     SkeletonComponent,
     CollectibleCardComponent,
     TeamCodePipe,
-    TeamBadgeComponent,
     LiveCenterComponent,
   ],
   templateUrl: "./dashboard.component.html",
@@ -126,35 +122,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // own fetch of the whole player pool.
   readonly fantasyLineup = signal<FantasyLineup | null>(null);
 
-  // "My Picks" teaser — requires an account like myLeagues/fantasyLineup
-  // above. Shows both pick types for the same match together (win/loss +
-  // that match's top-scorer pick, if any), same merged-row design as
-  // /predictions' own "My picks" card, with real team badges rather than
-  // bare codes. teamLogos is fetched here specifically for this teaser —
-  // Prediction.predictedTeam/MyTopScorerPrediction's team refs don't carry
-  // a logoUrl the way Game's own team objects do (see opponentTeam below).
-  readonly myPredictions = signal<Prediction[]>([]);
-  readonly myTopScorerPredictions = signal<MyTopScorerPrediction[]>([]);
-  readonly teamLogos = signal<Map<string, string | null>>(new Map());
-  readonly myPredictionsByGameId = computed(() => new Map(this.myPredictions().map((p) => [p.gameId, p])));
-  readonly topScorerByGameId = computed(() => new Map(this.myTopScorerPredictions().map((p) => [p.gameId, p])));
-  // The 5 most recently-tipped-off *matches* with any pick at all, win/loss
-  // or top-scorer — not just the 5 most recent win/loss picks. A real gap
-  // this closed: an admin account's top-scorer picks were both for an
-  // earlier round than its 5 most recent win/loss picks, so a naive
-  // `myPredictions().slice(0, 5)` teaser never had a single gameId in
-  // common with topScorerByGameId and silently never showed the
-  // top-scorer sub-row at all, even though picks existed.
-  readonly myPicksTeaser = computed(() => {
-    const preds = this.myPredictionsByGameId();
-    const topScorer = this.topScorerByGameId();
-    const tipoffFor = (gameId: string) => preds.get(gameId)?.tipoffAt ?? topScorer.get(gameId)?.tipoffAt ?? "";
-    const gameIds = new Set<string>([...preds.keys(), ...topScorer.keys()]);
-    return [...gameIds]
-      .sort((a, b) => new Date(tipoffFor(b)).getTime() - new Date(tipoffFor(a)).getTime())
-      .slice(0, 5);
-  });
-
   // Which tab the merged Performances/Leaders/Predictors/Schedule card is
   // showing. Defaults to the first section that actually has data (see the
   // effect in the constructor) rather than a fixed tab, since e.g. an
@@ -182,7 +149,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   readonly hasPerformances = computed(() => (this.roundMvp()?.leaders?.length ?? 0) > 0);
   readonly hasLeaders = computed(() => this.leaders().length > 0);
-  readonly hasMyPicks = computed(() => this.myPredictions().length > 0 || this.myTopScorerPredictions().length > 0);
   readonly hasPredictors = computed(() => this.leaderboard().length > 0);
   readonly hasSchedule = computed(() => this.recentGames().length > 0 || this.upcomingGames().length > 0);
 
@@ -224,7 +190,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       if (this.userPickedTab) return;
       if (this.hasPerformances()) this.activeTab.set("performances");
       else if (this.hasLeaders()) this.activeTab.set("leaders");
-      else if (this.hasMyPicks()) this.activeTab.set("myPicks");
       else if (this.hasPredictors()) this.activeTab.set("predictors");
       else if (this.hasSchedule()) this.activeTab.set("schedule");
     });
@@ -316,18 +281,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
         next: (lineup) => this.fantasyLineup.set(lineup),
         error: () => {}, // non-critical widget
       });
-      this.api.getMyPredictions().subscribe({
-        next: (rows) => this.myPredictions.set(rows),
-        error: () => {}, // non-critical widget
-      });
-      this.api.getMyTopScorerPredictions().subscribe({
-        next: (rows) => this.myTopScorerPredictions.set(rows),
-        error: () => {}, // non-critical widget
-      });
-      this.api.getTeams().subscribe({
-        next: (teams) => this.teamLogos.set(new Map(teams.map((t) => [t.id, t.logoUrl]))),
-        error: () => {}, // non-critical widget
-      });
     }
 
     this.api.getLeaderboard().subscribe({
@@ -399,10 +352,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   opponentTeam(game: Game) {
     return this.isHomeGame(game) ? game.awayTeam : game.homeTeam;
-  }
-
-  teamLogo(teamId: string): string | null {
-    return this.teamLogos().get(teamId) ?? null;
   }
 
   // Greek month names/day-first order for the date pipe — see

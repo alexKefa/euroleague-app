@@ -1304,11 +1304,12 @@ export const fantasyCoachPicks = pgTable(
 // upserted by that script. Persisted rather than recomputed on read
 // because computing it requires the whole player pool's raw values — the
 // same query the reprice script already ran — and routes/fantasy.ts needs
-// it cheaply on every lineup load/save, not just once a week. Also drives
-// FANTASY_BUDGET_CAP's own scaling (computeBudgetCap) — by explicit
-// request, a squad's spending power should grow by the same ratio the
-// price ceiling has, so real price inflation from players improving
-// doesn't quietly squeeze an otherwise-unchanged squad's transfer room.
+// it cheaply on every lineup load/save, not just once a week. Used only
+// for computeFantasyPrice's own price scaling now — it used to also scale
+// FANTASY_BUDGET_CAP (getBudgetCap), reverted 2026-09-17 after a fresh
+// account was reported showing 100.5cr instead of a plain 100 the moment
+// this ceiling moved at all, which read as a bug rather than the intended
+// "spending power grows with price inflation" feature.
 export const fantasyPricingState = pgTable("fantasy_pricing_state", {
   season: varchar("season", { length: 9 }).primaryKey(),
   ceiling: real("ceiling").notNull(),

@@ -1,0 +1,87 @@
+<div class="max-w-3xl mx-auto p-4 sm:p-6">
+  <a routerLink="/predictions" class="text-[12px] text-muted font-bold uppercase tracking-wider hover:text-ink transition-colors"
+    >&larr; {{ i18n.t('nav.picks') }}</a
+  >
+
+  <div class="mt-4 mb-5">
+    <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('predictions.history.title') }}</h1>
+    <p class="text-sm text-muted mt-1">{{ i18n.t('predictions.history.subtitle') }}</p>
+  </div>
+
+  @if (loading()) {
+    <div class="animate-pulse space-y-4">
+      @for (i of [1, 2, 3]; track i) {
+        <app-skeleton class="h-40 rounded-2xl" [iconSize]="14" />
+      }
+    </div>
+  }
+
+  @if (error()) {
+    <p class="text-red-500 text-sm font-semibold">{{ error() }}</p>
+  }
+
+  @if (!loading() && !error()) {
+    @if (rounds().length === 0) {
+      <p class="text-sm text-muted py-6 text-center">{{ i18n.t('predictions.history.noHistoryYet') }}</p>
+    } @else {
+      <div class="space-y-4">
+        @for (round of rounds(); track round.round) {
+          <div class="bg-card rounded-2xl border border-line shadow-card p-4">
+            <div class="flex items-center justify-between mb-3 pb-3 border-b border-line">
+              <p class="font-display text-base tracking-wide">
+                {{ i18n.t('predictions.history.roundLabel') }} {{ round.round ?? '—' }}
+              </p>
+              <span class="font-mono text-highlight font-bold">+{{ round.points }} {{ i18n.t('predictions.pts') }}</span>
+            </div>
+
+            <div class="space-y-2">
+              @for (pick of round.picks; track pick.gameId) {
+                <a [routerLink]="['/games', pick.gameId]" class="block px-2 py-2 rounded-xl hover:bg-page transition-colors">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="flex items-center gap-1.5">
+                      <app-team-badge [code]="pick.homeTeam.code" [logoUrl]="pick.homeTeam.logoUrl" [size]="16"></app-team-badge>
+                      <span class="text-muted text-xs">&ndash;</span>
+                      <app-team-badge [code]="pick.awayTeam.code" [logoUrl]="pick.awayTeam.logoUrl" [size]="16"></app-team-badge>
+                    </span>
+                    <span class="font-mono text-[11px] text-muted shrink-0">{{ pick.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}</span>
+                  </div>
+
+                  @if (pick.predictedTeam) {
+                    <div class="flex items-center justify-between gap-2 mt-1.5 pt-1.5 border-t border-line/60">
+                      <span class="flex items-center gap-1.5 min-w-0">
+                        <app-team-badge [code]="pick.predictedTeam.code" [logoUrl]="predictedTeamLogo(pick)" [size]="16"></app-team-badge>
+                      </span>
+                      @if (pick.winLossCorrect === null) {
+                        <span class="text-[11px] font-bold text-muted shrink-0">{{ i18n.t('predictions.pending') }}</span>
+                      } @else if (pick.winLossCorrect === true) {
+                        <span class="text-[11px] font-bold text-emerald-500 shrink-0">+{{ pick.winLossPoints }} {{ i18n.t('predictions.pts') }}</span>
+                      } @else {
+                        <span class="text-[11px] font-bold text-red-500 shrink-0">{{ i18n.t('predictions.wrong') }}</span>
+                      }
+                    </div>
+                  }
+
+                  @if (pick.topScorerPlayer; as scorer) {
+                    <div class="flex items-center justify-between gap-2 mt-1.5 pt-1.5 border-t border-line/60">
+                      <span class="flex items-center gap-1.5 min-w-0">
+                        <app-player-photo [name]="scorer.name" [photoUrl]="scorer.photoUrl" [size]="20" class="rounded-full shrink-0" />
+                        <span class="font-mono text-[11px] text-muted truncate">{{ scorer.name }}</span>
+                      </span>
+                      @if (pick.topScorerCorrect === null) {
+                        <span class="text-[11px] font-bold text-muted shrink-0">{{ i18n.t('predictions.pending') }}</span>
+                      } @else if (pick.topScorerCorrect === true) {
+                        <span class="text-[11px] font-bold text-emerald-500 shrink-0">+{{ pick.topScorerPoints }} {{ i18n.t('predictions.pts') }}</span>
+                      } @else {
+                        <span class="text-[11px] font-bold text-red-500 shrink-0">{{ i18n.t('predictions.wrong') }}</span>
+                      }
+                    </div>
+                  }
+                </a>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+</div>

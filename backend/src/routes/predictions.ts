@@ -1,10 +1,11 @@
 import { Router } from "express";
 import { eq, and, desc, inArray, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { db } from "../db/client.js";
-import { predictions, games, gameOdds, teams, users, pointAdjustments } from "../db/schema.js";
+import { predictions, games, gameOdds, teams, players, topScorerPredictions, users, pointAdjustments } from "../db/schema.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
 import { computeWinnerTeamId, getUserPoints, pointsForCorrectPick } from "../services/points.js";
-import { getUserTopScorerPoints } from "../services/topScorerPoints.js";
+import { getUserTopScorerPoints, computeTopScorerPlayerIdsForGames, TOP_SCORER_POINTS_PER_CORRECT } from "../services/topScorerPoints.js";
 import { earnedBadges, getLeaderboardEntries, ResolvedPick } from "../services/leaderboard.js";
 import {
   checkAndGrantRoundRewards,
@@ -214,6 +215,141 @@ predictionsRouter.get("/me", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("GET /api/predictions/me failed:", err);
     res.status(500).json({ error: "Failed to load predictions" });
+  }
+});
+
+// The full history behind the points/badges summary — every round the
+// user has any pick in (win/loss and/or top-scorer), each match's two
+// picks merged into one row (same shape the frontend already builds
+// client-side for /me's list + top-scorer/me, just server-side and
+// unbounded here since this *is* the "see everything" view rather than a
+// capped recent-picks panel). Deliberately a separate endpoint from /me
+// rather than that route losing its cap — /me backs a small "recent
+// picks" list elsewhere that has no reason to pull a whole season.
+predictionsRouter.get("/history", requireAuth, async (req, res) => {
+  try {
+    const userId = req.userId!;
+    const homeTeam = alias(teams, "home_team_hist");
+    const awayTeam = alias(teams, "away_team_hist");
+    const pickedFairProb = sql<number | null>`case when ${predictions.predictedWinnerTeamId} = ${games.homeTeamId} then ${gameOdds.homeFairProb} else ${gameOdds.awayFairProb} end`;
+
+    const winLossRows = await db
+      .select({
+        prediction: predictions,
+        game: games,
+        homeTeam: { id: homeTeam.id, code: homeTeam.code, name: homeTeam.name, logoUrl: homeTeam.logoUrl },
+        awayTeam: { id: awayTeam.id, code: awayTeam.code, name: awayTeam.name, logoUrl: awayTeam.logoUrl },
+        fairProb: pickedFairProb,
+      })
+      .from(predictions)
+      .innerJoin(games, eq(predictions.gameId, games.id))
+      .innerJoin(homeTeam, eq(games.homeTeamId, homeTeam.id))
+      .innerJoin(awayTeam, eq(games.awayTeamId, awayTeam.id))
+      .leftJoin(gameOdds, eq(gameOdds.gameId, games.id))
+      .where(eq(predictions.userId, userId));
+
+    const topScorerRows = await db
+      .select({
+        prediction: topScorerPredictions,
+        game: games,
+        predictedPlayer: players,
+        homeTeam: { id: homeTeam.id, code: homeTeam.code, name: homeTeam.name, logoUrl: homeTeam.logoUrl },
+        awayTeam: { id: awayTeam.id, code: awayTeam.code, name: awayTeam.name, logoUrl: awayTeam.logoUrl },
+      })
+      .from(topScorerPredictions)
+      .innerJoin(games, eq(topScorerPredictions.gameId, games.id))
+      .innerJoin(players, eq(topScorerPredictions.predictedPlayerId, players.id))
+      .innerJoin(homeTeam, eq(games.homeTeamId, homeTeam.id))
+      .innerJoin(awayTeam, eq(games.awayTeamId, awayTeam.id))
+      .where(eq(topScorerPredictions.userId, userId));
+
+    const topScorerLeaderByGame = await computeTopScorerPlayerIdsForGames(topScorerRows.map((r) => r.game.id));
+
+    // Merge both pick types into one row per match — the same "does this
+    // gameId already have a row" merge the frontend does client-side
+    // (predictions.ts's topScorerByGameId), just once here instead of in
+    // every caller.
+    const byGameId = new Map<
+      string,
+      {
+        gameId: string;
+        round: number | null;
+        tipoffAt: Date;
+        homeTeam: { id: string; code: string; name: string; logoUrl: string | null };
+        awayTeam: { id: string; code: string; name: string; logoUrl: string | null };
+        predictedTeam: { id: string; code: string; name: string } | null;
+        winLossCorrect: boolean | null;
+        winLossPoints: number;
+        topScorerPlayer: { id: string; name: string; photoUrl: string | null } | null;
+        topScorerCorrect: boolean | null;
+        topScorerPoints: number;
+      }
+    >();
+
+    for (const { prediction, game, homeTeam: home, awayTeam: away, fairProb } of winLossRows) {
+      const winnerTeamId = computeWinnerTeamId(game);
+      const isCorrect = winnerTeamId === null ? null : winnerTeamId === prediction.predictedWinnerTeamId;
+      const predictedTeam = prediction.predictedWinnerTeamId === home.id ? home : away;
+      byGameId.set(game.id, {
+        gameId: game.id,
+        round: game.round,
+        tipoffAt: game.tipoffAt,
+        homeTeam: home,
+        awayTeam: away,
+        predictedTeam: { id: predictedTeam.id, code: predictedTeam.code, name: predictedTeam.name },
+        winLossCorrect: isCorrect,
+        winLossPoints: isCorrect ? pointsForCorrectPick(fairProb) : 0,
+        topScorerPlayer: null,
+        topScorerCorrect: null,
+        topScorerPoints: 0,
+      });
+    }
+
+    for (const { prediction, game, predictedPlayer, homeTeam: home, awayTeam: away } of topScorerRows) {
+      const topScorerPlayerId = topScorerLeaderByGame.get(game.id);
+      const isCorrect = topScorerPlayerId == null ? null : topScorerPlayerId === prediction.predictedPlayerId;
+      const points = prediction.pointsAtPick ?? TOP_SCORER_POINTS_PER_CORRECT;
+      const existing = byGameId.get(game.id);
+      if (existing) {
+        existing.topScorerPlayer = { id: predictedPlayer.id, name: predictedPlayer.name, photoUrl: predictedPlayer.photoUrl };
+        existing.topScorerCorrect = isCorrect;
+        existing.topScorerPoints = isCorrect ? points : 0;
+      } else {
+        byGameId.set(game.id, {
+          gameId: game.id,
+          round: game.round,
+          tipoffAt: game.tipoffAt,
+          homeTeam: home,
+          awayTeam: away,
+          predictedTeam: null,
+          winLossCorrect: null,
+          winLossPoints: 0,
+          topScorerPlayer: { id: predictedPlayer.id, name: predictedPlayer.name, photoUrl: predictedPlayer.photoUrl },
+          topScorerCorrect: isCorrect,
+          topScorerPoints: isCorrect ? points : 0,
+        });
+      }
+    }
+
+    const roundsMap = new Map<number | null, typeof byGameId extends Map<string, infer V> ? V[] : never>();
+    for (const pick of byGameId.values()) {
+      const bucket = roundsMap.get(pick.round);
+      if (bucket) bucket.push(pick);
+      else roundsMap.set(pick.round, [pick]);
+    }
+
+    const rounds = [...roundsMap.entries()]
+      .map(([round, picks]) => ({
+        round,
+        points: picks.reduce((sum, p) => sum + p.winLossPoints + p.topScorerPoints, 0),
+        picks: picks.sort((a, b) => new Date(a.tipoffAt).getTime() - new Date(b.tipoffAt).getTime()),
+      }))
+      .sort((a, b) => (b.round ?? -1) - (a.round ?? -1));
+
+    res.json(rounds);
+  } catch (err) {
+    console.error("GET /api/predictions/history failed:", err);
+    res.status(500).json({ error: "Failed to load prediction history" });
   }
 });
 

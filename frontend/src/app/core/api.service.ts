@@ -23,6 +23,7 @@ import {
   LeaderboardEntry,
   PredictionSummary,
   PredictionAnalytics,
+  PredictionHistoryRound,
   Collectible,
   CollectiblesPage,
   CollectibleTeamFilter,
@@ -192,6 +193,10 @@ export class ApiService {
 
   getMyPredictions(): Observable<Prediction[]> {
     return this.http.get<Prediction[]>(`${API_BASE_URL}/predictions/me`);
+  }
+
+  getPredictionHistory(): Observable<PredictionHistoryRound[]> {
+    return this.http.get<PredictionHistoryRound[]>(`${API_BASE_URL}/predictions/history`);
   }
 
   getLeaderboard(): Observable<LeaderboardEntry[]> {

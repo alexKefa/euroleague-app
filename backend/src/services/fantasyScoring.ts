@@ -8,7 +8,6 @@ import {
   players,
   playerFantasyPrices,
   coachFantasyPrices,
-  fantasyPricingState,
   fantasyLineups,
   fantasyCoachPicks,
   fantasyRoundPoints,
@@ -197,34 +196,20 @@ export function computeFantasyPrice(input: FantasyPriceInput, ceiling: number = 
 }
 
 /**
- * The effective budget cap for a season, given the dynamic price ceiling
- * currently in effect (fantasy_pricing_state.ceiling, set by
- * scripts/reprice-fantasy-players.ts). Scales FANTASY_BUDGET_CAP by the
- * same ratio the ceiling has moved off its floor — explicit request
- * (2026-09-09): if real price inflation means an otherwise-unchanged squad
- * now costs more, the budget available for transfers should grow to match,
- * rather than quietly squeezing a player for owning cards that got better.
- * Never below FANTASY_BUDGET_CAP itself, since the ceiling never drops
- * below FANTASY_PIR_CEILING_FLOOR either (see that constant's comment).
+ * The budget cap for a season — always the flat FANTASY_BUDGET_CAP for
+ * every user (2026-09-17, reverted the same day it was reported: a fresh
+ * account was showing 100.5cr instead of a plain 100). This used to scale
+ * with fantasy_pricing_state.ceiling (the same dynamic ceiling
+ * computeFantasyPrice's own price scaling still uses), on the reasoning
+ * that rising prices should grow the budget to match — but that meant
+ * *every* user's cap silently drifted off 100 the moment the ceiling
+ * moved at all, including a brand-new account that had never played a
+ * game, which read as a bug rather than a feature. Kept as an async
+ * function (not a bare constant) so routes/fantasy.ts's existing
+ * `await getBudgetCap(season)` call sites don't need to change.
  */
-export function computeBudgetCap(ceiling: number): number {
-  return Math.round(FANTASY_BUDGET_CAP * (ceiling / FANTASY_PIR_CEILING_FLOOR) * 10) / 10;
-}
-
-/**
- * DB-backed wrapper around computeBudgetCap — the effective cap for a
- * season, falling back to the flat FANTASY_BUDGET_CAP (ceiling === floor)
- * if scripts/reprice-fantasy-players.ts has never run for it yet. Moved
- * here from routes/fantasy.ts (2026-09-17) so autoFillFantasySquad below
- * can share it without importing from a route file.
- */
-export async function getBudgetCap(season: string): Promise<number> {
-  const [row] = await db
-    .select({ ceiling: fantasyPricingState.ceiling })
-    .from(fantasyPricingState)
-    .where(eq(fantasyPricingState.season, season))
-    .limit(1);
-  return computeBudgetCap(row?.ceiling ?? FANTASY_PIR_CEILING_FLOOR);
+export async function getBudgetCap(_season: string): Promise<number> {
+  return FANTASY_BUDGET_CAP;
 }
 
 // --- Live per-game player scoring (2026-09-16) ---

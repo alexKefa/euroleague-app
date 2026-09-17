@@ -1,5 +1,5 @@
 /* Wraps the logo tightly (no padding) so it sits centered without the
-   outer div's wider, padded box throwing off the iris reveal below. */
+   outer div's wider, padded box throwing off the draw-reveal below. */
 .logo-scan-wrap {
   position: relative;
   display: inline-block;
@@ -26,24 +26,19 @@
   height: clamp(160px, 50vmin, 320px);
   width: auto;
   aspect-ratio: 738 / 698;
-  /* Iris reveal — replaces the earlier top-left draw-on wipe (2026-09-14,
-     same day) after comparing four candidates in a design canvas
-     (Draw Reveal / Tip-Off Drop / Buzzer Flash / Iris Reveal); this one was
-     picked. A circular clip-path opens outward from dead center, like an
-     arena spotlight finding center court, rather than wiping in from a
-     corner — reads as more deliberate/centered than the old top-left-led
-     wipe, and doesn't privilege one part of the mark (ball vs. wordmark)
-     over another the way the corner wipe did. Both keyframes use a
-     percentage radius (not `farthest-corner`) — a percentage interpolates
-     against a percentage, but Chrome/Firefox can't interpolate a
-     percentage into a keyword radius at all, which silently breaks the
-     whole animation (caught live: the logo never appeared, stuck at the
-     0% starting clip forever). 100% comfortably clears every corner for
-     this near-square crop — the percentage radius formula is
-     sqrt(w²+h²)/√2, so a perfect square only needs ~71% to fully cover
-     itself; 100% leaves real margin without needing per-crop tuning. */
-  clip-path: circle(0% at 50% 50%);
-  animation: logo-iris-reveal 0.9s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  /* Draw-on reveal — back from the iris reveal (2026-09-17, direct
+     request: "iris reveal I don't like it, let's try a draw reveal
+     again") after the two had already been compared once in a design
+     canvas alongside Tip-Off Drop/Buzzer Flash and iris was picked then;
+     this reverses that call. The logo is a flattened raster with no
+     stroke-path data to trace literally, so this fakes a "being drawn"
+     feel the way a raster asset actually can: clip-path grows the visible
+     rectangle from the top-left corner outward, so the ball/swoosh (top-
+     left of the crop) appears to lead the reveal into the hoop and then
+     the "Clutch" text below it, rather than the whole mark fading in at
+     once or opening from center. */
+  clip-path: inset(0 100% 100% 0);
+  animation: logo-draw-reveal 0.85s cubic-bezier(0.65, 0, 0.35, 1) forwards;
   animation-delay: 0.85s;
 }
 
@@ -59,9 +54,9 @@
   }
 }
 
-@keyframes logo-iris-reveal {
+@keyframes logo-draw-reveal {
   to {
-    clip-path: circle(100% at 50% 50%);
+    clip-path: inset(0 0% 0% 0);
   }
 }
 
@@ -74,7 +69,7 @@
   opacity: 0;
   transform: translateY(6px);
   animation: wordmark-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  /* Starts partway through the logo's own iris reveal above (0.85s-1.75s),
+  /* Starts partway through the logo's own draw-reveal above (0.85s-1.7s),
      not only after it finishes — settles at roughly the same moment. */
   animation-delay: 1.3s;
   font-family: "IBM Plex Sans", system-ui, sans-serif;
