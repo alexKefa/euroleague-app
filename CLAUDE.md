@@ -1461,25 +1461,33 @@ at the same Neon instance as local dev — there's no separate prod database.
   treat any earlier "checked on <date>, covers N of M games" note as stale.
 - Redeploys to Railway are manual, not triggered by `git push` (see
   Deployment above).
-- **`dev`'s database schema silently drifts behind production** (found
-  2026-09-17, verifying the Fantasy auto-fill tool above) — every schema
-  change in this app is applied by hand against `DATABASE_URL` (see
-  Schema changes above), and nothing ever reminds anyone to run that same
-  SQL against the `dev` Neon branch too. Concretely: `dev` was branched
-  from production on 2026-09-10; `fantasy_price_change_log`,
-  `fantasy_coach_price_change_log`, and `fantasy_round_points` were all
-  added to production after that (2026-09-16), so `dev` was missing all
-  three until this pass hand-added them. This is a real, live-reproduced
-  gap, not theoretical — `GET /fantasy/lineup` 500'd and
-  `[fantasy daily reprice]`'s background job was failing every run on
-  `dev` because of it. Nothing here fixes this structurally (that would
-  mean either switching to real migrations, checked in and run against
-  both databases, or a standing "did this schema change also go to dev"
-  checklist step) — just noting it so a future session doesn't waste time
-  debugging a `relation does not exist` error and assuming it's a real
-  code bug. Worth a `select table_name from information_schema.tables`
-  diff between the two databases next time a schema change is applied, if
-  `dev` is about to be used for testing that area.
+- **`dev`'s database schema silently drifts behind production** — every
+  schema change in this app is applied by hand against `DATABASE_URL`
+  (see Schema changes above), and nothing ever reminds anyone to run that
+  same SQL against the `dev` Neon branch too. First caught 2026-09-17
+  verifying the Fantasy auto-fill tool above (`dev` was missing
+  `fantasy_price_change_log`, `fantasy_coach_price_change_log`, and
+  `fantasy_round_points`, all added to production 2026-09-16 — `GET
+  /fantasy/lineup` 500'd and the `[fantasy daily reprice]` background job
+  failed every run on `dev` because of it) — then confirmed much larger
+  the same day once `main`'s ~80 commits of accumulated work were finally
+  merged into the long-stale `dev` git branch: a full column-level diff
+  (`information_schema.columns`, not just table names) found `dev` also
+  missing `favorite_players`, `promo_code_redemptions`,
+  `legendary_polls`, `legendary_poll_candidates`,
+  `legendary_poll_votes`, and `promo_codes.quantity`. All hand-added to
+  `dev` to restore parity (2026-09-17) — but **this was reactive, not a
+  fix**: nothing prevents the same drift from recurring the next time a
+  schema change lands only on production. A full recheck (`select
+  table_name, column_name, data_type, is_nullable from
+  information_schema.columns where table_schema='public'`, diffed
+  between the two `DATABASE_URL`s) found zero drift immediately after
+  this pass — that's a snapshot, not a standing guarantee. Worth running
+  that same diff again before trusting `dev` for testing anything that
+  touched the schema recently, or before a future `dev`→`main` git merge
+  after a long gap like this one, until this becomes either real
+  migrations (checked in, run against both databases) or a standing
+  checklist step on every schema change.
 - **Fantasy price ceiling now re-anchors instead of staying pinned to the
   season-start anchor forever** (flagged 2026-09-09, fixed same day) —
   `FANTASY_MAX_PRICE` (17, `services/fantasyScoring.ts`) was hard-pinned to
