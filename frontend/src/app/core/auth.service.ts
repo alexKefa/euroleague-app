@@ -77,6 +77,12 @@ export class AuthService {
     );
   }
 
+  // Cached so concurrent callers (AppComponent's own boot-time call, plus
+  // the root route's firstVisitGuard, which needs to know the outcome
+  // before deciding whether to redirect) share one call instead of each
+  // firing their own /auth/refresh + /users/me round trip.
+  private sessionRestore$: Observable<boolean> | null = null;
+
   /**
    * Called once on app startup. Tries to trade the httpOnly refresh
    * cookie (if any) for a fresh access token, so a page reload doesn't
@@ -84,9 +90,13 @@ export class AuthService {
    * that's just "not logged in", not an error worth surfacing.
    */
   restoreSession(): Observable<boolean> {
-    return this.refreshAccessToken().pipe(
-      switchMap((token) => (token ? this.loadCurrentUser().pipe(map(() => true)) : of(false)))
-    );
+    if (!this.sessionRestore$) {
+      this.sessionRestore$ = this.refreshAccessToken().pipe(
+        switchMap((token) => (token ? this.loadCurrentUser().pipe(map(() => true)) : of(false))),
+        shareReplay(1)
+      );
+    }
+    return this.sessionRestore$;
   }
 
   // Access tokens expire after JWT_ACCESS_EXPIRES_IN (15m default) and

@@ -1,14 +1,18 @@
 import { Routes } from "@angular/router";
+import { firstVisitGuard } from "./core/first-visit.guard";
 
 export const routes: Routes = [
   {
     path: "",
+    canActivate: [firstVisitGuard],
     loadComponent: () =>
       import("./features/dashboard/dashboard.component").then((m) => m.DashboardComponent),
   },
   // Public, unauthenticated pitch page for cold traffic (the QR card, a
-  // shared link) — deliberately not the "" route, which stays the real
-  // dashboard for anyone who already knows the app.
+  // shared link, or an IG/social bio link — social shares now point at the
+  // plain root URL; firstVisitGuard above is what routes a genuinely cold,
+  // logged-out visitor here instead). Deliberately not the "" route, which
+  // stays the real dashboard for anyone who already knows the app.
   {
     path: "welcome",
     loadComponent: () => import("./features/landing/landing").then((m) => m.LandingComponent),

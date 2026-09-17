@@ -1400,6 +1400,28 @@ at the same Neon instance as local dev — there's no separate prod database.
   also landed (see the Deployment section's domain bullet). `qr-card.html`'s
   QR now encodes `https://getclutchapp.com/welcome` for real — that's what
   the printed flyer/banner should point at.
+  **Root-URL sharing for social (2026-09-17)**: IG/social posts share the
+  plain `getclutchapp.com` now instead of typing `/welcome` into every bio
+  link — `frontend/src/app/core/first-visit.guard.ts`, added as
+  `canActivate` on the `""` route, bounces a visitor to `/welcome` only when
+  they're both logged out *and* have never been marked as visited
+  (`frontend/src/app/shared/visited.ts`'s `clutch-visited` localStorage
+  flag — a one-time "have they ever been oriented" marker, deliberately its
+  own key rather than reusing install-banner.ts's own visit *counter*, which
+  is a different concern). `LandingComponent.ngOnInit` also marks it, so a
+  visitor who lands on `/welcome` directly (an old link, or the guard's own
+  redirect) isn't shown the pitch again on their next plain root visit. The
+  guard waits on `AuthService.restoreSession()` rather than reading
+  `currentUser()` immediately — that signal is still null for the first
+  stretch of boot even for a real logged-in user restoring their session off
+  the httpOnly refresh cookie (the bootstrap race documented under Frontend
+  architecture below), and deciding before that resolves would wrongly bounce
+  a real returning user to `/welcome`. `restoreSession()` itself was made
+  idempotent (cached via `shareReplay`, `sessionRestore$`) so the guard and
+  `AppComponent`'s own unrelated boot-time call share one `/auth/refresh` +
+  `/users/me` round trip instead of firing two. The QR flyer (`qr-card.html`)
+  is unaffected — it already points at `/claim?ref=...`, a different flow
+  entirely, not `/welcome`.
   - **Interactive "reskin" demo**: tapping a real team logo (fetched from
     the already-public `GET /api/teams`) repaints a small preview card in
     that team's kit colors — the app's actual core mechanic

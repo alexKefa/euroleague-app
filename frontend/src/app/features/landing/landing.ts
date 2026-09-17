@@ -15,6 +15,7 @@ import { TeamBadgeComponent } from "../../shared/team-badge";
 import { CourtBackgroundComponent } from "../../shared/court-background";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { OpenInBrowserBannerComponent } from "../../shared/open-in-browser-banner";
+import { markVisited } from "../../shared/visited";
 
 interface ShowcaseCard {
   tier: CollectibleTier;
@@ -246,6 +247,12 @@ export class LandingComponent implements OnInit {
   private autoplayHandle?: ReturnType<typeof setInterval>;
 
   ngOnInit(): void {
+    // Marked here (not just by firstVisitGuard letting a root visit
+    // through) so a visitor who lands directly on /welcome — a still-live
+    // old shared link, or firstVisitGuard's own redirect — isn't shown the
+    // pitch again on their next plain root visit.
+    markVisited();
+
     if (this.auth.currentUser()) {
       this.router.navigateByUrl("/");
       return;
