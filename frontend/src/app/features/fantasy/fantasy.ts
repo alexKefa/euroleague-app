@@ -141,7 +141,15 @@ function formationForPositionCounts(counts: Record<PositionName, number>): Forma
 // court's edges, so both pulled back to a middle ground: real, visible
 // extra room over the original 33/57/80, but with actual margin left at
 // every edge rather than none.
-const ROW_TOP: Record<PositionName, number> = { Guard: 26, Forward: 53, Center: 80 };
+// Flipped 2026-09-17 (100 - each old value) to match court-background.ts's
+// own vertical flip — the key/basket now renders at the *top* of the box
+// (a reference EuroLeague Fantasy screenshot's convention: Center right at
+// the key, Guards toward open floor at the bottom), not the bottom like
+// before. Every calibration note above this line describes the pre-flip
+// layout and is otherwise still accurate (same real pixel margins, just
+// mirrored) — not rewritten wholesale since the underlying spacing math
+// didn't change, only which end it's measured from.
+const ROW_TOP: Record<PositionName, number> = { Guard: 74, Forward: 47, Center: 20 };
 // Widened 2026-09-07 (from [30,70]/[18,50,82]) — on a narrow mobile court
 // column, avatars in the same row sat close enough to visually crowd each
 // other. Horizontal-only change: spreading a row wider doesn't touch
@@ -155,9 +163,18 @@ const ROW_TOP: Record<PositionName, number> = { Guard: 26, Forward: 53, Center: 
 // visible margin left at each side. The 3-slot case ([10, 50, 90], only
 // 3-1-1's Guard row ever uses it) was already close to that same edge and
 // left alone rather than pushed further.
+// Pulled in from [15, 85] to [25, 75] (2026-09-17, "on 2-2-1 move guards
+// more on the middle so data are visible") — the consolidated info box
+// below each avatar (position+name, price, opponent/PIR all in one card
+// now, see squadSlot) is wider than the plain name label this was last
+// calibrated against, so a 2-count row anchored at 15%/85% could push that
+// box's outer edge past the court container's own bounds and get clipped
+// by its overflow-hidden. Every 2-count row shares this function (Guards in
+// 2-2-1/2-1-2, Forwards in 2-1-2/1-2-2, Centers in 2-1-2/1-2-2), so this
+// fixes all of them, not just the reported Guard case.
 function rowXPositions(count: number): number[] {
   if (count === 1) return [50];
-  if (count === 2) return [15, 85];
+  if (count === 2) return [25, 75];
   return [10, 50, 90];
 }
 
@@ -263,7 +280,12 @@ export class FantasyComponent implements OnInit {
   // two groups' jump, to stay inside that margin.
   readonly starterAvatarSize = computed(() => (this.isMobileViewport() ? 56 : 72));
   readonly sixthManAvatarSize = computed(() => (this.isMobileViewport() ? 54 : 64));
-  readonly benchAvatarSize = computed(() => (this.isMobileViewport() ? 50 : 58));
+  // Bumped mobile 50->64 (2026-09-17, "make the bench bigger" ask) — same
+  // "no clipping risk" freedom the 2026-09-16 pass already documented:
+  // bench sits in normal document flow below the court card, not inside
+  // its fixed-aspect-ratio box, so there's no Center-row-style pixel
+  // budget to worry about here.
+  readonly benchAvatarSize = computed(() => (this.isMobileViewport() ? 64 : 58));
 
   readonly tab = signal<"roster" | "leaderboard">("roster");
 

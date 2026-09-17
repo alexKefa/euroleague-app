@@ -60,6 +60,16 @@ import { Component } from "@angular/core";
   selector: "app-court-background",
   standalone: true,
   template: `
+    <!-- Reverted to "meet" (2026-09-17) — "none" (tried the same pass, to
+         fill the container's new taller mobile ratio without letterboxing)
+         visibly distorted the court's circles/arcs into ovals, reported
+         live as "court looks stretched". "meet" always scales uniformly
+         (no distortion) at the cost of letterboxing if the container's
+         ratio doesn't exactly match this SVG's own 320x300 — fantasy.html
+         dialed the mobile ratio back closer to that shape for the same
+         reason, so whatever gap remains reads as intentional breathing
+         room (the wrapper's own gradient shows through) rather than a
+         glaring empty band. -->
     <svg viewBox="0 -90 320 300" class="w-full h-full pointer-events-none" preserveAspectRatio="xMidYMid meet">
       <defs>
         <linearGradient id="courtFloorGradient" x1="0" y1="0" x2="1" y2="1">
@@ -84,10 +94,45 @@ import { Component } from "@angular/core";
           <line x1="16" y1="0" x2="16" y2="294" stroke="#5a3512" stroke-opacity="0.14" stroke-width="1" />
         </pattern>
       </defs>
-      <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#courtFloorGradient)" />
-      <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#courtWoodGrain)" />
-      <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#courtSheenGradient)" />
-      <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#courtVignette)" />
+      <!-- Flipped vertically (2026-09-17, "switch sides — go to the other
+           side (top)" ask) — the key/basket end used to render at the
+           bottom of this box (baselineY=210, the viewBox's own bottom
+           edge) with open floor up top, matching fantasy.ts's old
+           ROW_TOP (Center near the bottom at 80%). A reference EuroLeague
+           Fantasy screenshot instead puts the key/basket at the TOP with
+           the Center standing right at it, guards toward open floor at
+           the bottom — the more common "looking downcourt" convention.
+           translate(0,120) scale(1,-1) mirrors every y-coordinate as
+           newY = 120 - oldY around the viewBox's own vertical midpoint
+           (-90 and 210 average to 60; the extra +60 lands the flip axis
+           at 120 in the group's local pre-translate space) — cheaper and
+           safer than hand-recalculating every path/rect's y-coordinate
+           individually, and doesn't touch a single one of the calibrated
+           geometry constants below (basketY, freeThrowLineY, etc.) — they
+           stay exactly as calibrated, just rendered through this one
+           transform. fantasy.ts's ROW_TOP was flipped to match
+           (100 - old value each), same flip-around-center math. -->
+      <g transform="translate(0, 120) scale(1, -1)">
+        <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#courtFloorGradient)" />
+        <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#courtWoodGrain)" />
+        <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#courtSheenGradient)" />
+        <rect x="6" y="-84" width="308" height="294" rx="4" fill="url(#courtVignette)" />
+        <path [attr.d]="courtOutlinePath" fill="none" stroke="#fdf3e2" stroke-width="2.2" opacity="0.95" />
+        <rect
+          [attr.x]="keyLeftX"
+          [attr.y]="freeThrowLineY"
+          [attr.width]="keyWidth"
+          [attr.height]="keyHeight"
+          fill="var(--accent-primary)"
+          fill-opacity="0.28"
+          stroke="#fdf3e2"
+          stroke-width="2.2"
+          stroke-opacity="0.95"
+        />
+        <circle [attr.cx]="basketX" [attr.cy]="freeThrowLineY" [attr.r]="freeThrowCircleRadius" fill="none" stroke="#fdf3e2" stroke-width="2.2" opacity="0.95" />
+        <path [attr.d]="restrictedAreaPath" fill="none" stroke="#fdf3e2" stroke-width="1.7" opacity="0.95" />
+        <path [attr.d]="threePointArcPath" fill="none" stroke="#fdf3e2" stroke-width="2.2" opacity="0.95" />
+      </g>
       <!-- Center-court logo decal (2026-09-16) — now the real current app
            mark (clutch-icon-dark.png, the icon-only crop of the live logo,
            see CLAUDE.md's Branding section), not the extracted Archivo
@@ -106,27 +151,18 @@ import { Component } from "@angular/core";
            light/dark theme — same "this floor's identity doesn't shift
            with the theme toggle" reasoning as the rest of this component —
            painted over the floor but under the real court lines so the
-           key/arc strokes stay crisp on top of it. Sized/positioned to
-           roughly the same footprint the old "C" glyph occupied (centered
-           a little above the free-throw line, in the open floor), scaled
-           to the PNG's own real 531:391 aspect ratio rather than forced
-           square like the old glyph was. -->
-      <image href="/clutch-icon-dark.png" x="102" y="19" width="120" height="88" opacity="0.2" preserveAspectRatio="xMidYMid meet" />
-      <path [attr.d]="courtOutlinePath" fill="none" stroke="#fdf3e2" stroke-width="2.2" opacity="0.95" />
-      <rect
-        [attr.x]="keyLeftX"
-        [attr.y]="freeThrowLineY"
-        [attr.width]="keyWidth"
-        [attr.height]="keyHeight"
-        fill="var(--accent-primary)"
-        fill-opacity="0.28"
-        stroke="#fdf3e2"
-        stroke-width="2.2"
-        stroke-opacity="0.95"
-      />
-      <circle [attr.cx]="basketX" [attr.cy]="freeThrowLineY" [attr.r]="freeThrowCircleRadius" fill="none" stroke="#fdf3e2" stroke-width="2.2" opacity="0.95" />
-      <path [attr.d]="restrictedAreaPath" fill="none" stroke="#fdf3e2" stroke-width="1.7" opacity="0.95" />
-      <path [attr.d]="threePointArcPath" fill="none" stroke="#fdf3e2" stroke-width="2.2" opacity="0.95" />
+           key/arc strokes stay crisp on top of it.
+           Deliberately kept OUTSIDE the flip group above and unrotated
+           (2026-09-17) — flipping it along with the floor would render the
+           logo upside-down, not just relocated. It happened to sit close
+           to the viewBox's own vertical midpoint already (old y=19-107,
+           center y=63, almost exactly the flip axis at 60), so it barely
+           needed to move — nudged down (y=19->50) for real margin from the
+           key's new top-edge boundary (the key's bottom, at
+           flip(freeThrowLineY)=flip(96)=24, is now visually the top of
+           open floor via the sibling group's flip — y=50 leaves 26 units
+           of clearance below it, unlike the tighter first pass at y=40). -->
+      <image href="/clutch-icon-dark.png" x="102" y="50" width="120" height="88" opacity="0.2" preserveAspectRatio="xMidYMid meet" />
     </svg>
   `,
 })

@@ -44,7 +44,7 @@
       <div class="flex gap-2.5">
         <div class="flex-1 sm:flex-[3] min-w-0 flex flex-col gap-3 sm:gap-2.5">
           <app-skeleton class="h-8 rounded-lg mx-auto w-40" [icon]="false" />
-          <app-skeleton class="w-full rounded-2xl" style="aspect-ratio: 320 / 300;" />
+          <app-skeleton class="w-full rounded-2xl aspect-[320/380] sm:aspect-[320/300]" />
           <app-skeleton class="h-40 rounded-2xl" />
           <app-skeleton class="h-20 rounded-2xl" />
         </div>
@@ -71,52 +71,32 @@
           class="flex flex-col items-center"
         >
           @if (slot.playerId && rowById().get(slot.playerId); as row) {
+            <!-- No glass panel once a player's actually in the slot
+                 (2026-09-17, corrected same day — the glass belongs on the
+                 *empty* "+" placeholder only, see the @else branch below;
+                 an occupied slot sticks with the plain photo). -->
             <div
               cdkDrag
               [cdkDragDisabled]="isPlayerLocked(slot.playerId)"
               [cdkDragData]="slot.playerId"
-              class="flex flex-col items-center gap-1"
+              class="flex flex-col items-center gap-1.5"
               [ngClass]="isPlayerLocked(slot.playerId) ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'"
             >
-              <!-- PIR/opponent sits above the avatar, not stacked below the
-                   name — on a narrow mobile court column, cramming avatar +
-                   name + this line all below one another left barely any
-                   real gap before the next row's own label started (see
-                   the "leave more space between players" ask, 2026-09-09).
-                   A fixed-height wrapper keeps every slot's avatar sitting
-                   at the same vertical spot regardless of whether this line
-                   has content (e.g. no game found for a bye round). -->
-              <div class="h-3 flex items-center justify-center">
-                @if (gameForTeam().get(row.team.id); as game) {
-                  @if (game.status === 'scheduled') {
-                    @if (opponentFor(row.team.id); as opp) {
-                      <!-- White, not the theme's text-muted grey (2026-09-16)
-                           — this sits directly on the court's own fixed warm
-                           floor color (court-background.ts), not a themed
-                           page background, so a theme-reactive grey lost
-                           contrast there ("grey is not visible"). Fixed white
-                           regardless of theme, same reasoning as the court's
-                           own cream line color. -->
-                      <span class="text-[9px] text-white font-mono">{{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }} {{ opp.opponent.code }}</span>
-                    }
-                  } @else {
-                    <!-- Their game has started — show this round's real PIR
-                         so far instead of the now-moot "vs/@ opponent" line,
-                         live-updated via roundPirByPlayerId (see
-                         liveUpdatesEffect in fantasy.ts). White fallback for
-                         the same court-contrast reason as the opponent line
-                         above, not text-muted. -->
-                    <span class="text-[9px] font-mono font-bold flex items-center gap-1" [ngClass]="game.status === 'live' ? 'text-highlight' : 'text-white'">
-                      @if (game.status === 'live') {
-                        <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
-                      }
-                      {{ roundPir(row.player.id) ?? '—' }} {{ i18n.t('fantasy.colPir') }}
-                    </span>
-                  }
-                }
-              </div>
+              <!-- The opponent/PIR line that used to sit here, above the
+                   avatar, moved into the info box below (2026-09-17, "add
+                   the cost of each player next to their name... add boxes
+                   for info, include them all in there" — consolidating
+                   everything into one card like the reference screenshot,
+                   rather than splitting it above/below the avatar). -->
               <div class="relative">
-                <button type="button" (click)="$event.stopPropagation(); openPlayerInfo(slot.playerId)" class="block rounded-full border-2 border-ink">
+                <!-- No border ring (2026-09-17, "remove the white border
+                     circle" — a reference EuroLeague Fantasy screenshot
+                     shows the jersey sitting directly on the court with no
+                     outline at all). Dropped border-2 border-ink outright
+                     rather than swapping to a lighter theme-reactive one —
+                     the glass panel behind the whole slot already gives the
+                     avatar a defined edge to sit against in both themes. -->
+                <button type="button" (click)="$event.stopPropagation(); openPlayerInfo(slot.playerId)" class="block rounded-full">
                   <app-player-photo
                     [photoUrl]="row.player.photoUrl"
                     [name]="row.player.name"
@@ -130,17 +110,23 @@
                   <!-- Purely informational now — picking/changing the captain
                        moved to a dialog next to the formation button (see
                        showCaptainPicker), so this is a static badge, not a
-                       button, on whichever starter currently holds it. -->
-                  <span class="absolute -top-1 -right-1 w-5 h-5 rounded-full font-mono text-[10px] font-bold flex items-center justify-center border border-line bg-highlight text-page">C</span>
+                       button, on whichever starter currently holds it.
+                       Moved to bottom-left (2026-09-17) — top-right is now
+                       the remove button (see below), freed up by moving
+                       this out of its way. -->
+                  <span class="absolute -bottom-1 -left-1 w-5 h-5 rounded-full font-mono text-[10px] font-bold flex items-center justify-center border border-line bg-highlight text-page">C</span>
                 }
                 @if (isPlayerLocked(slot.playerId)) {
                   <span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-card border border-line flex items-center justify-center text-[9px]">&#128274;</span>
                 } @else {
+                  <!-- Top-right (2026-09-17, "X should be top right") —
+                       was bottom-left, which is now the captain badge's
+                       spot instead (see above). -->
                   <button
                     type="button"
                     (click)="$event.stopPropagation(); removeFromSquad(slot.playerId)"
                     [attr.aria-label]="i18n.t('fantasy.removePlayer')"
-                    class="absolute -bottom-1.5 -left-1.5 w-6 h-6 rounded-full font-bold text-sm leading-none flex items-center justify-center border border-line bg-card text-muted hover:text-red-500 hover:border-red-500/40 transition-colors"
+                    class="absolute -top-1 -right-1 w-5 h-5 rounded-full font-bold text-sm leading-none flex items-center justify-center border border-line bg-card text-muted hover:text-red-500 hover:border-red-500/40 transition-colors"
                   >
                     &times;
                   </button>
@@ -154,26 +140,58 @@
                   </button>
                 }
               </div>
-              <!-- 2 lines instead of a single truncated one (2026-09-10) —
-                   courtDisplayName already trims to just the surname, but a
-                   genuinely long/hyphenated one (e.g. "LUWAWU-CABARROT")
-                   still ate the single 84px line down to a few letters plus
-                   an ellipsis. line-clamp-2 shows the whole name for all but
-                   the most extreme cases before it ever has to truncate. -->
-              <button type="button" (click)="openPlayerInfo(slot.playerId)" [title]="row.player.name" class="block text-[10px] font-semibold text-center leading-tight line-clamp-2 max-w-[92px] bg-page/80 rounded px-1 hover:text-highlight transition-colors">{{ courtDisplayName(row.player.name) }}</button>
+              <!-- Consolidated info box (2026-09-17, reworked from an
+                   earlier two-tier version after "add boxes for info,
+                   include them all in there" — a reference EuroLeague
+                   Fantasy screenshot's player card puts position+name,
+                   price, AND next-opponent/live-PIR all in one stacked
+                   card, not split between above and below the avatar the
+                   way this app's own 2026-09-09 pass had them). Fixed dark
+                   rows throughout (not theme-reactive bg-page) since this
+                   sits directly on the court/team-photo behind it — same
+                   "names should be on a dark colored box to be visible"
+                   reasoning as everywhere else in this template. -->
+              <button type="button" (click)="openPlayerInfo(slot.playerId)" [title]="row.player.name" class="block max-w-[96px] rounded-lg overflow-hidden hover:opacity-90 transition-opacity">
+                <span class="block bg-highlight text-white text-[8px] font-bold uppercase tracking-wide text-center leading-tight line-clamp-2 px-1 py-0.5">{{ posAbbrev(row.player.position) }} {{ courtDisplayName(row.player.name) }}</span>
+                <span class="flex items-center justify-center gap-1.5 bg-[#17161c]/80 text-white text-[8px] font-mono font-bold px-1.5 py-0.5">
+                  <span class="text-highlight">{{ row.price | number: '1.1-1' }}{{ i18n.t('fantasy.creditsAbbrev') }}</span>
+                  @if (gameForTeam().get(row.team.id); as game) {
+                    <span class="text-white/40">&middot;</span>
+                    @if (game.status === 'scheduled') {
+                      @if (opponentFor(row.team.id); as opp) {
+                        <span>{{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }} {{ opp.opponent.code }}</span>
+                      }
+                    } @else {
+                      <span class="flex items-center gap-1" [ngClass]="game.status === 'live' ? 'text-highlight' : ''">
+                        @if (game.status === 'live') {
+                          <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
+                        }
+                        {{ roundPir(row.player.id) ?? '—' }} {{ i18n.t('fantasy.colPir') }}
+                      </span>
+                    }
+                  }
+                </span>
+              </button>
             </div>
           } @else {
-            <button
-              type="button"
-              (click)="openPicker(slot.id)"
-              [disabled]="roundLocked()"
-              class="rounded-full border-2 border-dashed border-ink flex items-center justify-center text-muted text-xl hover:border-highlight hover:text-highlight disabled:opacity-40 disabled:hover:border-ink disabled:hover:text-muted disabled:cursor-not-allowed transition-colors"
-              [style.width.px]="size"
-              [style.height.px]="size"
-            >+</button>
-            @if (positionLabel) {
-              <span class="text-[8px] font-bold uppercase tracking-wide text-muted mt-0.5">{{ positionLabel }}</span>
-            }
+            <!-- Same glass panel as an occupied slot (2026-09-17, "add the
+                 glass effect when players are not added" — extends it here
+                 too for visual consistency), but the content inside stays
+                 exactly what it was — just the dashed "+" and the position
+                 label, nothing extra added ("stick with the image"). -->
+            <div class="flex flex-col items-center gap-1.5 rounded-2xl bg-gradient-to-b from-page/85 to-page/65 backdrop-blur-lg backdrop-saturate-150 shadow-card border border-white/20 px-2.5 py-2">
+              <button
+                type="button"
+                (click)="openPicker(slot.id)"
+                [disabled]="roundLocked()"
+                class="rounded-full border-2 border-dashed border-ink flex items-center justify-center text-muted text-xl hover:border-highlight hover:text-highlight disabled:opacity-40 disabled:hover:border-ink disabled:hover:text-muted disabled:cursor-not-allowed transition-colors"
+                [style.width.px]="size"
+                [style.height.px]="size"
+              >+</button>
+              @if (positionLabel) {
+                <span class="text-[8px] font-bold uppercase tracking-wide text-muted">{{ positionLabel }}</span>
+              }
+            </div>
           }
         </div>
       </ng-template>
@@ -415,8 +433,34 @@
                same outer card. -->
           <div class="flex-1 sm:flex-[3] min-w-0">
             <div class="bg-card rounded-2xl border border-line shadow-card p-3">
-              <div class="relative w-full rounded-2xl overflow-hidden bg-gradient-to-b from-highlight/25 via-card to-card border border-line shadow-card" style="aspect-ratio: 320 / 300;">
-                <app-court-background class="absolute inset-0 w-full h-full" />
+              <!-- Taller on mobile (2026-09-17, "make the court way bigger
+                   on mobile, stretch on height" ask) — ROW_TOP/
+                   starterSlotPositions (fantasy.ts) place each row by
+                   percentage of this box's own height, not a fixed pixel
+                   offset, so a taller box just gives every row more real
+                   vertical room automatically; nothing there needed to
+                   change. sm:+ keeps the original ratio — desktop's
+                   side-by-side pool layout was already tuned around it.
+                   Dialed back from an initial 320/460 to 320/380 the same
+                   pass, after "none" (to stretch the court art itself to
+                   fill 460's height) visibly distorted the circles/arcs
+                   and got reverted (see court-background.ts) — 380 keeps
+                   "meet" mode's now-unavoidable top/bottom letterbox gap
+                   small enough to read as intentional breathing room
+                   rather than an empty band. -->
+              <div class="relative w-full rounded-2xl overflow-hidden bg-gradient-to-b from-highlight/25 via-card to-card border border-line shadow-card aspect-[320/380] sm:aspect-[320/300]">
+                <!-- Trapezoid clip on the court art only (2026-09-17,
+                     approved approach: "CSS trapezoid clip on our existing
+                     court, lower risk") — narrower top / wider bottom, the
+                     real-perspective cue from the reference screenshot,
+                     without touching the SVG's own geometry. Deliberately
+                     clips only this decorative layer, not the outer div
+                     the player slots also live in — an avatar sitting
+                     close to an edge (the Center row is right at the top
+                     now, post-flip) is never at risk of being cut off by
+                     it, it just floats over whatever the trapezoid shows
+                     underneath. -->
+                <app-court-background class="absolute inset-0 w-full h-full [clip-path:polygon(5%_0%,95%_0%,100%_100%,0%_100%)]" />
                 @for (pos of starterSlotPositions(); track $index; let i = $index) {
                   <div class="absolute -translate-x-1/2 -translate-y-1/2" [style.left.%]="pos.left" [style.top.%]="pos.top">
                     <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: starterSlots()[i], size: starterAvatarSize(), positionLabel: posLabel(requiredPositionForStarterSlot(i)) }" />
@@ -453,7 +497,14 @@
                         <app-nav-icon name="fast-forward" [size]="13" />
                       </button>
                     }
-                    @if (auth.currentUser()?.isAdmin && isCurrentRound() && !roundLocked()) {
+                    <!-- Round 1 only (2026-09-17) — every later round already
+                         carries a squad forward (getBaselineSquad), so a
+                         randomize there is a rebuild-from-scratch within a
+                         4-transfer budget rather than the "draft a fresh
+                         test squad" use case this button exists for; round
+                         1 (no baseline at all) is the only round where it's
+                         actually unconstrained. -->
+                    @if (auth.currentUser()?.isAdmin && isCurrentRound() && !roundLocked() && round() === 1) {
                       <button
                         type="button"
                         (click)="requestAutoFillSquad()"
@@ -491,44 +542,62 @@
                 }
               </div>
 
-              <div class="mt-3 pt-3 border-t border-line/60">
-                <p class="text-[10px] text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.sixthManLabel') }}</p>
-                <div class="flex justify-center mb-3">
-                  <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: sixthManSlot(), size: sixthManAvatarSize() }" />
+              <!-- Sixth man + coach stacked on the left, bench 2x2 on the
+                   right, one divider between (2026-09-17) — coach used to
+                   be its own full-width section below with its own
+                   mt-3/pt-3/border-t "section" spacing; stacking it under
+                   the 6th man instead ("save space" ask) reclaims that
+                   whole section's worth of vertical room, since this
+                   column already had room to spare next to the taller
+                   2x2 bench grid on the right. items-center on the row
+                   (not items-stretch) so the divider's own h-full only
+                   stretches to the taller side's actual content height. -->
+              <div class="mt-3 pt-3 border-t border-line/60 flex items-center justify-center gap-4">
+                <div class="flex flex-col items-center gap-3">
+                  <div class="flex flex-col items-center">
+                    <p class="text-[10px] text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.sixthManLabel') }}</p>
+                    <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: sixthManSlot(), size: sixthManAvatarSize() }" />
+                  </div>
+                  <!-- Coach slot — a single tappable slot, same visual
+                       language as a squad slot (team badge stands in for a
+                       player photo, no lock/captain badges since a coach
+                       isn't gated the same way). Opens the coach-picker
+                       popup below instead of an always-visible horizontal
+                       strip. -->
+                  <div class="w-full pt-3 border-t border-line/40 flex flex-col items-center">
+                    <p class="text-[10px] text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.coachLabel') }}</p>
+                    <!-- Same glass-only-when-empty rule as a player slot
+                         (2026-09-17, "coach should be same style with
+                         players") — selected shows the plain team badge
+                         with no glass; the empty dashed "+" gets the same
+                         glass panel the empty player slot uses. -->
+                    <button type="button" (click)="openCoachPicker()" [disabled]="roundLocked()" class="flex flex-col items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed">
+                      @if (selectedCoach(); as coach) {
+                        <div class="relative">
+                          <app-team-badge [code]="coach.team.code" [logoUrl]="coach.team.logoUrl" [size]="48" />
+                          @if (roundLocked()) {
+                            <span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-card border border-line flex items-center justify-center text-[9px]">&#128274;</span>
+                          }
+                        </div>
+                        <span class="text-[10px] font-semibold text-center truncate max-w-[80px]">{{ coach.headCoach ?? coach.team.name }}</span>
+                        <span class="font-mono text-[11px] font-bold text-highlight">{{ coach.price | number: '1.1-1' }} {{ i18n.t('fantasy.creditsAbbrev') }}</span>
+                      } @else {
+                        <div class="flex flex-col items-center gap-1 rounded-2xl bg-gradient-to-b from-page/85 to-page/65 backdrop-blur-lg backdrop-saturate-150 shadow-card border border-white/20 px-2.5 py-2">
+                          <div class="rounded-full border-2 border-dashed border-ink flex items-center justify-center text-muted text-xl w-[48px] h-[48px] hover:border-highlight hover:text-highlight transition-colors">+</div>
+                          <span class="text-[8px] font-bold uppercase tracking-wide text-muted">{{ i18n.t('fantasy.coachLabel') }}</span>
+                        </div>
+                      }
+                    </button>
+                  </div>
                 </div>
-                <p class="text-[10px] text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.benchLabel') }}</p>
-                <div class="flex justify-center gap-x-4 gap-y-5 sm:gap-3 flex-wrap">
-                  @for (slot of benchSlots(); track slot.id) {
-                    <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: slot, size: benchAvatarSize() }" />
-                  }
-                </div>
-              </div>
-
-              <!-- Coach slot — a single tappable slot, same visual language as
-                   a squad slot (team badge stands in for a player photo, no
-                   lock/captain badges since a coach isn't gated the same way).
-                   Opens the coach-picker popup below instead of the old
-                   always-visible horizontal strip, which cost real vertical
-                   space on every visit whether or not the coach was being
-                   changed. -->
-              <div class="mt-3 pt-3 border-t border-line/60">
-                <p class="text-[10px] text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.coachLabel') }}</p>
-                <div class="flex justify-center">
-                  <button type="button" (click)="openCoachPicker()" [disabled]="roundLocked()" class="flex flex-col items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed">
-                    @if (selectedCoach(); as coach) {
-                      <div class="relative">
-                        <app-team-badge [code]="coach.team.code" [logoUrl]="coach.team.logoUrl" [size]="48" />
-                        @if (roundLocked()) {
-                          <span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-card border border-line flex items-center justify-center text-[9px]">&#128274;</span>
-                        }
-                      </div>
-                      <span class="text-[10px] font-semibold text-center truncate max-w-[80px]">{{ coach.headCoach ?? coach.team.name }}</span>
-                      <span class="font-mono text-[11px] font-bold text-highlight">{{ coach.price | number: '1.1-1' }} {{ i18n.t('fantasy.creditsAbbrev') }}</span>
-                    } @else {
-                      <div class="rounded-full border-2 border-dashed border-ink flex items-center justify-center text-muted text-xl w-[48px] h-[48px] hover:border-highlight hover:text-highlight transition-colors">+</div>
-                      <span class="text-[8px] font-bold uppercase tracking-wide text-muted mt-0.5">{{ i18n.t('fantasy.coachLabel') }}</span>
+                <div class="w-px self-stretch bg-line/60"></div>
+                <div class="flex flex-col items-center">
+                  <p class="text-[10px] text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.benchLabel') }}</p>
+                  <div class="grid grid-cols-2 gap-x-5 gap-y-5 sm:gap-4">
+                    @for (slot of benchSlots(); track slot.id) {
+                      <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: slot, size: benchAvatarSize() }" />
                     }
-                  </button>
+                  </div>
                 </div>
               </div>
 
