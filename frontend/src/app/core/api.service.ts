@@ -488,6 +488,14 @@ export class ApiService {
     return this.http.post<{ ok: boolean }>(`${API_BASE_URL}/fantasy/round-points/ack`, {});
   }
 
+  // Admin-only testing tool (2026-09-17): drafts a real, valid squad for
+  // the calling admin's own account instead of hand-picking one in the
+  // builder every time a test account needs one. See
+  // routes/fantasy.ts's POST /admin/auto-fill.
+  autoFillFantasySquad(): Observable<{ ok: boolean; season: string; round: number }> {
+    return this.http.post<{ ok: boolean; season: string; round: number }>(`${API_BASE_URL}/fantasy/admin/auto-fill`, {});
+  }
+
   getFantasyLeaderboard(): Observable<FantasyLeaderboardEntry[]> {
     return this.http.get<FantasyLeaderboardEntry[]>(`${API_BASE_URL}/fantasy/leaderboard`);
   }

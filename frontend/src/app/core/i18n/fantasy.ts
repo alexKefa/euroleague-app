@@ -106,6 +106,8 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.previousRound": { en: "Previous round", el: "Προηγούμενη αγωνιστική" },
   "fantasy.nextRound": { en: "Next round", el: "Επόμενη αγωνιστική" },
   "fantasy.pastRound": { en: "Past round", el: "Παλιότερη αγωνιστική" },
+  // Admin-only auto-fill button (2026-09-17) — not user-facing outside admin accounts.
+  "fantasy.autoFillSquad": { en: "Auto-fill squad", el: "Αυτόματη συμπλήρωση" },
   "fantasy.pointsLabel": { en: "Points", el: "Πόντοι" },
   "fantasy.creditsChangeLabel": { en: "Credits (CR)", el: "Credits (CR)" },
   // Same "stays English in both locales" precedent as posGuard/homeAbbrev

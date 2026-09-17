@@ -225,6 +225,17 @@
           }
         </div>
 
+        @if (auth.currentUser()?.isAdmin && isCurrentRound() && !roundLocked()) {
+          <button
+            type="button"
+            (click)="autoFillSquad()"
+            [disabled]="autoFilling()"
+            appButton="outline"
+            appButtonSize="sm"
+            class="w-full mb-3"
+          >{{ i18n.t('fantasy.autoFillSquad') }}</button>
+        }
+
         @if (isCurrentRound()) {
           <div class="mb-3">
             <div class="flex items-baseline justify-between mb-1.5">

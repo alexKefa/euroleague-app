@@ -9,32 +9,29 @@ import {
   fantasyLineups,
   coachFantasyPrices,
   fantasyCoachPicks,
-  fantasyPricingState,
   games,
   playerGameStats,
 } from "../db/schema.js";
-import { requireAuth } from "../auth/middleware.js";
+import { requireAuth, requireAdmin } from "../auth/middleware.js";
 import { getCurrentSeason } from "../services/season.js";
 import {
   getRoundLockTime,
   getDefaultRound,
   getBaselineSquad,
   getFantasyLeaderboardEntries,
-  FANTASY_STARTER_COUNT,
-  FANTASY_SIXTH_MAN_COUNT,
-  FANTASY_BENCH_COUNT,
+  getBudgetCap,
+  saveFantasyLineup,
+  autoFillFantasySquad,
+  SLOT_ROLES,
+  SlotRole,
   FANTASY_TOTAL_OUTFIELD,
-  FANTASY_POSITION_QUOTA,
   FANTASY_BUDGET_CAP,
-  FANTASY_PIR_CEILING_FLOOR,
   FANTASY_MIN_PRICE,
   COACH_MIN_PRICE,
-  FANTASY_TRANSFERS_PER_ROUND,
   BENCH_SCORE_MULTIPLIER,
   pointsForCoachResult,
-  computeBudgetCap,
   isUnlimitedTransferRound,
-  FANTASY_MAX_PLAYERS_PER_CLUB,
+  FANTASY_TRANSFERS_PER_ROUND,
   checkAndGrantFantasyRoundPoints,
   markFantasyRoundPointsSeen,
   computeFantasyGamePoints,
@@ -43,28 +40,11 @@ import {
 export const fantasyRouter = Router();
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const SLOT_ROLES = ["starter", "sixth_man", "bench"] as const;
-type SlotRole = (typeof SLOT_ROLES)[number];
 
 /** Explicit ?season= wins; otherwise falls back to getCurrentSeason(). */
 async function resolveSeason(seasonParam: unknown): Promise<string | null> {
   if (typeof seasonParam === "string") return seasonParam;
   return getCurrentSeason();
-}
-
-// The effective budget cap for a season — FANTASY_BUDGET_CAP scaled by how
-// far scripts/reprice-fantasy-players.ts's dynamic price ceiling has moved
-// off its floor (services/fantasyScoring.ts's computeBudgetCap). Falls back
-// to the flat FANTASY_BUDGET_CAP (ceiling === floor) if reprice has never
-// run for this season yet — same "unpriced player floors at MIN_PRICE"
-// spirit as the rest of this router before any pricing data exists.
-async function getBudgetCap(season: string): Promise<number> {
-  const [row] = await db
-    .select({ ceiling: fantasyPricingState.ceiling })
-    .from(fantasyPricingState)
-    .where(eq(fantasyPricingState.season, season))
-    .limit(1);
-  return computeBudgetCap(row?.ceiling ?? FANTASY_PIR_CEILING_FLOOR);
 }
 
 // The whole player pool + draft price for the roster builder — same
@@ -466,25 +446,14 @@ fantasyRouter.post("/lineup/batch", requireAuth, async (req, res) => {
       res.status(400).json({ error: "season and round are required" });
       return;
     }
-    const roundLockAt = await getRoundLockTime(season, round);
-    if (roundLockAt === null) {
-      res.status(400).json({ error: "Unknown round", code: "ROUND_NOT_FOUND" });
-      return;
-    }
-    if (roundLockAt.getTime() <= Date.now()) {
-      res.status(400).json({ error: "This round has already locked", code: "ROUND_LOCKED" });
-      return;
-    }
     if (typeof coachTeamId !== "string" || !uuidPattern.test(coachTeamId)) {
       res.status(400).json({ error: "coachTeamId is required" });
       return;
     }
-    if (!Array.isArray(entries) || entries.length !== FANTASY_TOTAL_OUTFIELD) {
+    if (!Array.isArray(entries)) {
       res.status(400).json({ error: `Squad must contain exactly ${FANTASY_TOTAL_OUTFIELD} players` });
       return;
     }
-
-    const seenIds = new Set<string>();
     for (const e of entries) {
       if (typeof e?.playerId !== "string" || !uuidPattern.test(e.playerId)) {
         res.status(400).json({ error: "Each squad entry needs a valid playerId" });
@@ -494,151 +463,52 @@ fantasyRouter.post("/lineup/batch", requireAuth, async (req, res) => {
         res.status(400).json({ error: "Each squad entry needs a valid slotRole" });
         return;
       }
-      if (seenIds.has(e.playerId)) {
-        res.status(400).json({ error: "Duplicate player in squad" });
-        return;
-      }
-      seenIds.add(e.playerId);
     }
 
     const typedEntries = entries as { playerId: string; slotRole: SlotRole; isCaptain?: boolean }[];
-    const starters = typedEntries.filter((e) => e.slotRole === "starter");
-    const sixthMen = typedEntries.filter((e) => e.slotRole === "sixth_man");
-    const bench = typedEntries.filter((e) => e.slotRole === "bench");
-    if (starters.length !== FANTASY_STARTER_COUNT || sixthMen.length !== FANTASY_SIXTH_MAN_COUNT || bench.length !== FANTASY_BENCH_COUNT) {
-      res.status(400).json({
-        error: `Need exactly ${FANTASY_STARTER_COUNT} starters, ${FANTASY_SIXTH_MAN_COUNT} sixth man, ${FANTASY_BENCH_COUNT} bench`,
-      });
+    const result = await saveFantasyLineup(req.userId!, season, round, typedEntries, coachTeamId);
+    if ("error" in result) {
+      res.status(400).json(result);
       return;
     }
-    const captains = starters.filter((e) => e.isCaptain);
-    if (captains.length !== 1 || typedEntries.some((e) => e.isCaptain && e.slotRole !== "starter")) {
-      res.status(400).json({ error: "Exactly one starter must be captain" });
-      return;
-    }
-
-    const newIds = typedEntries.map((e) => e.playerId);
-
-    const playerRows = await db
-      .select({ id: players.id, teamId: players.teamId, position: players.position })
-      .from(players)
-      .where(inArray(players.id, newIds));
-    const playerById = new Map(playerRows.map((p) => [p.id, p]));
-
-    // Position quota — only over the newly submitted squad.
-    const posCounts: Record<string, number> = { Guard: 0, Forward: 0, Center: 0 };
-    for (const id of newIds) {
-      const p = playerById.get(id);
-      if (!p) {
-        res.status(400).json({ error: "Unknown player in squad" });
-        return;
-      }
-      if (p.position && p.position in posCounts) posCounts[p.position]++;
-    }
-    for (const [position, quota] of Object.entries(FANTASY_POSITION_QUOTA)) {
-      if (posCounts[position] !== quota) {
-        res.status(400).json({ error: `Need exactly ${quota} ${position}s, got ${posCounts[position] ?? 0}`, code: "POSITION_QUOTA" });
-        return;
-      }
-    }
-
-    // Max players from one real club (2026-09-16, see FANTASY_MAX_PLAYERS_PER_CLUB).
-    const countByTeamId = new Map<string, number>();
-    for (const id of newIds) {
-      const teamId = playerById.get(id)!.teamId;
-      countByTeamId.set(teamId, (countByTeamId.get(teamId) ?? 0) + 1);
-    }
-    for (const [teamId, count] of countByTeamId) {
-      if (count > FANTASY_MAX_PLAYERS_PER_CLUB) {
-        res.status(400).json({
-          error: `At most ${FANTASY_MAX_PLAYERS_PER_CLUB} players from the same club are allowed`,
-          code: "CLUB_LIMIT_EXCEEDED",
-          teamId,
-          count,
-        });
-        return;
-      }
-    }
-
-    // Transfer limit (2026-09-07) — see getBaselineSquad's doc comment.
-    // Counted against the previous round's squad specifically, not
-    // whatever was last saved *this* round, so re-saving within the same
-    // still-unlocked round never resets the budget: however many times a
-    // user changes their mind before the deadline, at most
-    // FANTASY_TRANSFERS_PER_ROUND players may ever differ from what they
-    // had last round. No limit at all when there's no baseline (round 1,
-    // or a round with no saved squad the round before it).
-    const baseline = await getBaselineSquad(req.userId!, season, round);
-    if (baseline && !isUnlimitedTransferRound(round)) {
-      const transfersUsed = newIds.filter((id) => !baseline.playerIds.has(id)).length;
-      if (transfersUsed > FANTASY_TRANSFERS_PER_ROUND) {
-        res.status(400).json({
-          error: `Too many changes — up to ${FANTASY_TRANSFERS_PER_ROUND} player changes are allowed per round`,
-          code: "TRANSFERS_EXCEEDED",
-          transfersUsed,
-          transfersAllowed: FANTASY_TRANSFERS_PER_ROUND,
-        });
-        return;
-      }
-    }
-
-    const [priceRows, coachPriceRows] = await Promise.all([
-      db
-        .select({ playerId: playerFantasyPrices.playerId, price: playerFantasyPrices.price })
-        .from(playerFantasyPrices)
-        .where(and(eq(playerFantasyPrices.season, season), inArray(playerFantasyPrices.playerId, newIds))),
-      db
-        .select({ price: coachFantasyPrices.price })
-        .from(coachFantasyPrices)
-        .where(and(eq(coachFantasyPrices.teamId, coachTeamId), eq(coachFantasyPrices.season, season)))
-        .limit(1),
-    ]);
-    const priceByPlayerId = new Map(priceRows.map((r) => [r.playerId, r.price]));
-    const playersCost = newIds.reduce((sum, id) => sum + (priceByPlayerId.get(id) ?? FANTASY_MIN_PRICE), 0);
-    const coachCost = coachPriceRows[0]?.price ?? COACH_MIN_PRICE;
-    // Rounded to the nearest 0.1 before comparing — prices are now tenth-
-    // credit floats (see schema.ts), and summing several of them can land
-    // a fraction of a cent off the true total (e.g. 27.999999999999996)
-    // purely from binary float representation, which would wrongly reject
-    // a squad that costs exactly the cap.
-    const totalCost = Math.round((playersCost + coachCost) * 10) / 10;
-    const budgetCap = await getBudgetCap(season);
-    if (totalCost > budgetCap) {
-      res.status(400).json({
-        error: `Squad costs ${totalCost}, over the ${budgetCap}-credit budget`,
-        code: "OVER_BUDGET",
-      });
-      return;
-    }
-
-    await db.transaction(async (tx) => {
-      await tx
-        .delete(fantasyLineups)
-        .where(and(eq(fantasyLineups.userId, req.userId!), eq(fantasyLineups.season, season), eq(fantasyLineups.round, round)));
-      await tx.insert(fantasyLineups).values(
-        typedEntries.map((e) => ({
-          userId: req.userId!,
-          season,
-          round,
-          playerId: e.playerId,
-          slotRole: e.slotRole,
-          isCaptain: !!e.isCaptain,
-          priceAtPick: priceByPlayerId.get(e.playerId) ?? FANTASY_MIN_PRICE,
-        }))
-      );
-      await tx
-        .insert(fantasyCoachPicks)
-        .values({ userId: req.userId!, season, round, teamId: coachTeamId, priceAtPick: coachCost })
-        .onConflictDoUpdate({
-          target: [fantasyCoachPicks.userId, fantasyCoachPicks.season, fantasyCoachPicks.round],
-          set: { teamId: coachTeamId, priceAtPick: coachCost },
-        });
-    });
-
-    res.json({ ok: true });
+    res.json(result);
   } catch (err) {
     console.error("POST /api/fantasy/lineup/batch failed:", err);
     res.status(500).json({ error: "Failed to save lineup" });
+  }
+});
+
+// Admin-only test tool (2026-09-17 — see CLAUDE.md's Fantasy Five
+// simulation-button TODO, flagged 2026-09-17): instantly drafts a real,
+// valid, budget-respecting squad for a user instead of hand-picking one in
+// the roster builder every time a test account needs one. Optional
+// `userId` targets someone other than the calling admin (e.g. a freshly
+// created test account); `season`/`round` default to the current season's
+// active round. Delegates to autoFillFantasySquad/saveFantasyLineup, so the
+// result is never a special-cased shortcut — it's exactly what a real save
+// would accept.
+fantasyRouter.post("/admin/auto-fill", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const targetUserId = typeof req.body?.userId === "string" && uuidPattern.test(req.body.userId) ? req.body.userId : req.userId!;
+    const season = await resolveSeason(req.body?.season);
+    if (!season) {
+      res.status(400).json({ error: "No current season to auto-fill for" });
+      return;
+    }
+    const round = typeof req.body?.round === "number" ? req.body.round : await getDefaultRound(season);
+    if (round === null) {
+      res.status(400).json({ error: "No round to auto-fill for" });
+      return;
+    }
+    const result = await autoFillFantasySquad(targetUserId, season, round);
+    if ("error" in result) {
+      res.status(400).json(result);
+      return;
+    }
+    res.json({ ok: true, userId: targetUserId, season, round });
+  } catch (err) {
+    console.error("POST /api/fantasy/admin/auto-fill failed:", err);
+    res.status(500).json({ error: "Failed to auto-fill fantasy squad" });
   }
 });
 

@@ -1461,6 +1461,25 @@ at the same Neon instance as local dev — there's no separate prod database.
   treat any earlier "checked on <date>, covers N of M games" note as stale.
 - Redeploys to Railway are manual, not triggered by `git push` (see
   Deployment above).
+- **`dev`'s database schema silently drifts behind production** (found
+  2026-09-17, verifying the Fantasy auto-fill tool above) — every schema
+  change in this app is applied by hand against `DATABASE_URL` (see
+  Schema changes above), and nothing ever reminds anyone to run that same
+  SQL against the `dev` Neon branch too. Concretely: `dev` was branched
+  from production on 2026-09-10; `fantasy_price_change_log`,
+  `fantasy_coach_price_change_log`, and `fantasy_round_points` were all
+  added to production after that (2026-09-16), so `dev` was missing all
+  three until this pass hand-added them. This is a real, live-reproduced
+  gap, not theoretical — `GET /fantasy/lineup` 500'd and
+  `[fantasy daily reprice]`'s background job was failing every run on
+  `dev` because of it. Nothing here fixes this structurally (that would
+  mean either switching to real migrations, checked in and run against
+  both databases, or a standing "did this schema change also go to dev"
+  checklist step) — just noting it so a future session doesn't waste time
+  debugging a `relation does not exist` error and assuming it's a real
+  code bug. Worth a `select table_name from information_schema.tables`
+  diff between the two databases next time a schema change is applied, if
+  `dev` is about to be used for testing that area.
 - **Fantasy price ceiling now re-anchors instead of staying pinned to the
   season-start anchor forever** (flagged 2026-09-09, fixed same day) —
   `FANTASY_MAX_PRICE` (17, `services/fantasyScoring.ts`) was hard-pinned to
@@ -1765,22 +1784,57 @@ at the same Neon instance as local dev — there's no separate prod database.
   - Nothing schema-side changed — `pointsAtPick` is still a plain nullable
     int, `POST /top-scorer-predictions` just computes a richer input into
     the same formula/column it always wrote to.
-- **TODO: Fantasy Five simulation button (not started, flagged 2026-09-17)**
-  — an admin-only control to run/advance Fantasy rounds on demand, for two
-  distinct reasons: (1) **auto-generate a team** — instantly fill a squad
-  (10 outfield + coach, respecting `FANTASY_POSITION_QUOTA` and the budget
-  cap) instead of hand-picking one every time a test account is needed;
-  (2) **exercise new rules/features against real-shaped data** without
-  waiting for actual EuroLeague rounds to lock/play out — the same
-  motivation `realtime/liveScoreSimulator.ts` already serves for live
-  scores/predictions (compressed ~96s scheduled→live→final tick) and the
-  admin reset-game/reset-round buttons serve for undoing a simulator run
-  (see both above). No design decided yet — e.g. whether this reuses/
-  extends `liveScoreSimulator.ts`'s tick machinery (Fantasy scoring is
-  already read off `games`/`player_game_stats`, the same tables that
-  simulator drives) or is a separate standalone script/route, and whether
-  "run a round" only advances the clock/score or also fabricates a full
-  Fantasy scoring pass. Revisit this note once actually scoped.
+- **Fantasy Five simulation button — built (2026-09-17, same day it was
+  flagged)**. Scoping it turned out to answer its own open design
+  questions: reason (2) from the original note — exercising Fantasy scoring
+  against real-shaped data without waiting for real rounds — was already
+  fully covered by existing tools. Fantasy points are read straight off
+  `games`/`player_game_stats` (`GET /fantasy/lineup`), the exact tables
+  `POST /api/events/simulate/round` already fabricates finals into, and
+  `checkAndGrantFantasyRoundPoints` already fires correctly the moment a
+  round's games are all final — verified live (see below), not assumed.
+  So the only real gap was reason (1), auto-generating a squad, which is
+  what got built:
+  - `services/fantasyScoring.ts`'s `POST /lineup/batch` validation+write
+    logic (round lock, slot-role counts, one-captain rule, position/club
+    quotas, transfer limit, budget check, the transaction) was extracted
+    into a standalone `saveFantasyLineup(userId, season, round, entries,
+    coachTeamId)` — the route now just does request-shape parsing
+    (types/uuid format/enum) and delegates. `getBudgetCap` moved from a
+    route-local function to an export there too.
+  - `autoFillFantasySquad(userId, season, round)` (same file) builds a
+    random valid squad — reserves `COACH_MIN_PRICE` of budget for the
+    coach, then per position (`FANTASY_POSITION_QUOTA`) shuffles that
+    position's active-player pool and greedily takes affordable, club-
+    limit-respecting picks, falling back to a cheapest-first pass (budget
+    constraint dropped, club limit still enforced) if the randomized pass
+    can't fill a quota — then calls `saveFantasyLineup` with the result.
+    Never a special-cased shortcut: an auto-filled squad passes the exact
+    same rules a real save does, since it's *written* by the same function.
+  - `POST /fantasy/admin/auto-fill` (`requireAuth, requireAdmin`) — targets
+    the calling admin by default, or `userId` in the body (e.g. a freshly
+    created test account). A single "Auto-fill squad" button was added to
+    the Fantasy Five page (admin-only, current-round-and-unlocked only).
+  - **Verified live against the Railway `dev` environment's database, not
+    production** (explicit instruction this session: "testing should be
+    done on development database for now") — auto-filled a squad for
+    round 1 (10 players correctly split 5 starter/1 sixth-man/4 bench, one
+    captain, under the 100.5cr budget cap), then called the existing
+    `POST /api/events/simulate/round` to finalize all 9 of that round's
+    games, then re-read `GET /fantasy/lineup`: `roundComplete: true`,
+    scoring computed correctly from the fabricated box scores, and
+    `newFantasyRoundPoints` showed a real grant — confirmed as exactly one
+    `point_adjustments` row server-side (the `onConflictDoNothing` claim-
+    first guard holds under a repeat read, same as `roundRewards`).
+  - **Real bug caught during this verification, unrelated to the new code**:
+    `GET /fantasy/lineup` 500'd with `relation "fantasy_round_points" does
+    not exist` (and `[fantasy daily reprice] failed: relation
+    "fantasy_price_change_log" does not exist` in the logs) — see the new
+    "dev/prod schema drift" gap below. Fixed by hand-applying the same
+    `CREATE TABLE` for `fantasy_price_change_log`,
+    `fantasy_coach_price_change_log`, and `fantasy_round_points` to the
+    `dev` Neon branch that production already had. Not a code bug at all;
+    dev's schema had simply never caught up.
 
 ## Season transition (2026-27, 2026-09-02)
 

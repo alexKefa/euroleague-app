@@ -5,6 +5,10 @@ import {
   users,
   collectibles,
   teams,
+  players,
+  playerFantasyPrices,
+  coachFantasyPrices,
+  fantasyPricingState,
   fantasyLineups,
   fantasyCoachPicks,
   fantasyRoundPoints,
@@ -205,6 +209,22 @@ export function computeFantasyPrice(input: FantasyPriceInput, ceiling: number = 
  */
 export function computeBudgetCap(ceiling: number): number {
   return Math.round(FANTASY_BUDGET_CAP * (ceiling / FANTASY_PIR_CEILING_FLOOR) * 10) / 10;
+}
+
+/**
+ * DB-backed wrapper around computeBudgetCap — the effective cap for a
+ * season, falling back to the flat FANTASY_BUDGET_CAP (ceiling === floor)
+ * if scripts/reprice-fantasy-players.ts has never run for it yet. Moved
+ * here from routes/fantasy.ts (2026-09-17) so autoFillFantasySquad below
+ * can share it without importing from a route file.
+ */
+export async function getBudgetCap(season: string): Promise<number> {
+  const [row] = await db
+    .select({ ceiling: fantasyPricingState.ceiling })
+    .from(fantasyPricingState)
+    .where(eq(fantasyPricingState.season, season))
+    .limit(1);
+  return computeBudgetCap(row?.ceiling ?? FANTASY_PIR_CEILING_FLOOR);
 }
 
 // --- Live per-game player scoring (2026-09-16) ---
@@ -475,6 +495,259 @@ export async function getBaselineSquad(userId: string, season: string, round: nu
     rows: lineupRows,
     coachTeamId: coachRows[0]?.teamId ?? null,
   };
+}
+
+export const SLOT_ROLES = ["starter", "sixth_man", "bench"] as const;
+export type SlotRole = (typeof SLOT_ROLES)[number];
+
+export interface SaveLineupEntry {
+  playerId: string;
+  slotRole: SlotRole;
+  isCaptain?: boolean;
+}
+
+export type SaveLineupResult = { ok: true } | { error: string; code?: string; [key: string]: unknown };
+
+/**
+ * The actual domain validation + write behind POST /fantasy/lineup/batch —
+ * extracted (2026-09-17) so autoFillFantasySquad below can produce a real,
+ * fully-valid saved squad by calling the exact same rules a real user's
+ * save goes through, rather than a special-cased shortcut that could drift
+ * from them. The route still does its own request-shape parsing (types,
+ * uuid format, slotRole enum) before calling this — everything from "is
+ * this a legal squad" onward (round lock, exact slot-role counts, the
+ * position/club quotas, transfer limit, budget) lives here instead.
+ */
+export async function saveFantasyLineup(
+  userId: string,
+  season: string,
+  round: number,
+  entries: SaveLineupEntry[],
+  coachTeamId: string
+): Promise<SaveLineupResult> {
+  const roundLockAt = await getRoundLockTime(season, round);
+  if (roundLockAt === null) {
+    return { error: "Unknown round", code: "ROUND_NOT_FOUND" };
+  }
+  if (roundLockAt.getTime() <= Date.now()) {
+    return { error: "This round has already locked", code: "ROUND_LOCKED" };
+  }
+  if (entries.length !== FANTASY_TOTAL_OUTFIELD) {
+    return { error: `Squad must contain exactly ${FANTASY_TOTAL_OUTFIELD} players` };
+  }
+
+  const seenIds = new Set<string>();
+  for (const e of entries) {
+    if (seenIds.has(e.playerId)) return { error: "Duplicate player in squad" };
+    seenIds.add(e.playerId);
+  }
+
+  const starters = entries.filter((e) => e.slotRole === "starter");
+  const sixthMen = entries.filter((e) => e.slotRole === "sixth_man");
+  const bench = entries.filter((e) => e.slotRole === "bench");
+  if (starters.length !== FANTASY_STARTER_COUNT || sixthMen.length !== FANTASY_SIXTH_MAN_COUNT || bench.length !== FANTASY_BENCH_COUNT) {
+    return { error: `Need exactly ${FANTASY_STARTER_COUNT} starters, ${FANTASY_SIXTH_MAN_COUNT} sixth man, ${FANTASY_BENCH_COUNT} bench` };
+  }
+  const captains = starters.filter((e) => e.isCaptain);
+  if (captains.length !== 1 || entries.some((e) => e.isCaptain && e.slotRole !== "starter")) {
+    return { error: "Exactly one starter must be captain" };
+  }
+
+  const newIds = entries.map((e) => e.playerId);
+  const playerRows = await db
+    .select({ id: players.id, teamId: players.teamId, position: players.position })
+    .from(players)
+    .where(inArray(players.id, newIds));
+  const playerById = new Map(playerRows.map((p) => [p.id, p]));
+
+  const posCounts: Record<string, number> = { Guard: 0, Forward: 0, Center: 0 };
+  for (const id of newIds) {
+    const p = playerById.get(id);
+    if (!p) return { error: "Unknown player in squad" };
+    if (p.position && p.position in posCounts) posCounts[p.position]++;
+  }
+  for (const [position, quota] of Object.entries(FANTASY_POSITION_QUOTA)) {
+    if (posCounts[position] !== quota) {
+      return { error: `Need exactly ${quota} ${position}s, got ${posCounts[position] ?? 0}`, code: "POSITION_QUOTA" };
+    }
+  }
+
+  const countByTeamId = new Map<string, number>();
+  for (const id of newIds) {
+    const teamId = playerById.get(id)!.teamId;
+    countByTeamId.set(teamId, (countByTeamId.get(teamId) ?? 0) + 1);
+  }
+  for (const [teamId, count] of countByTeamId) {
+    if (count > FANTASY_MAX_PLAYERS_PER_CLUB) {
+      return { error: `At most ${FANTASY_MAX_PLAYERS_PER_CLUB} players from the same club are allowed`, code: "CLUB_LIMIT_EXCEEDED", teamId, count };
+    }
+  }
+
+  const baseline = await getBaselineSquad(userId, season, round);
+  if (baseline && !isUnlimitedTransferRound(round)) {
+    const transfersUsed = newIds.filter((id) => !baseline.playerIds.has(id)).length;
+    if (transfersUsed > FANTASY_TRANSFERS_PER_ROUND) {
+      return {
+        error: `Too many changes — up to ${FANTASY_TRANSFERS_PER_ROUND} player changes are allowed per round`,
+        code: "TRANSFERS_EXCEEDED",
+        transfersUsed,
+        transfersAllowed: FANTASY_TRANSFERS_PER_ROUND,
+      };
+    }
+  }
+
+  const [priceRows, coachPriceRows] = await Promise.all([
+    db
+      .select({ playerId: playerFantasyPrices.playerId, price: playerFantasyPrices.price })
+      .from(playerFantasyPrices)
+      .where(and(eq(playerFantasyPrices.season, season), inArray(playerFantasyPrices.playerId, newIds))),
+    db
+      .select({ price: coachFantasyPrices.price })
+      .from(coachFantasyPrices)
+      .where(and(eq(coachFantasyPrices.teamId, coachTeamId), eq(coachFantasyPrices.season, season)))
+      .limit(1),
+  ]);
+  const priceByPlayerId = new Map(priceRows.map((r) => [r.playerId, r.price]));
+  const playersCost = newIds.reduce((sum, id) => sum + (priceByPlayerId.get(id) ?? FANTASY_MIN_PRICE), 0);
+  const coachCost = coachPriceRows[0]?.price ?? COACH_MIN_PRICE;
+  const totalCost = Math.round((playersCost + coachCost) * 10) / 10;
+  const budgetCap = await getBudgetCap(season);
+  if (totalCost > budgetCap) {
+    return { error: `Squad costs ${totalCost}, over the ${budgetCap}-credit budget`, code: "OVER_BUDGET" };
+  }
+
+  await db.transaction(async (tx) => {
+    await tx.delete(fantasyLineups).where(and(eq(fantasyLineups.userId, userId), eq(fantasyLineups.season, season), eq(fantasyLineups.round, round)));
+    await tx.insert(fantasyLineups).values(
+      entries.map((e) => ({
+        userId,
+        season,
+        round,
+        playerId: e.playerId,
+        slotRole: e.slotRole,
+        isCaptain: !!e.isCaptain,
+        priceAtPick: priceByPlayerId.get(e.playerId) ?? FANTASY_MIN_PRICE,
+      }))
+    );
+    await tx
+      .insert(fantasyCoachPicks)
+      .values({ userId, season, round, teamId: coachTeamId, priceAtPick: coachCost })
+      .onConflictDoUpdate({
+        target: [fantasyCoachPicks.userId, fantasyCoachPicks.season, fantasyCoachPicks.round],
+        set: { teamId: coachTeamId, priceAtPick: coachCost },
+      });
+  });
+
+  return { ok: true };
+}
+
+function shuffle<T>(list: T[]): T[] {
+  const arr = [...list];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
+ * Admin-only test tool (flagged in CLAUDE.md 2026-09-17, not started until
+ * now): instantly assembles a real, budget-respecting random squad for a
+ * user instead of hand-picking one in the roster builder every time a test
+ * account needs one — reason (1) from that TODO. Reason (2), exercising
+ * Fantasy scoring against real-shaped data without waiting for real rounds,
+ * turned out to already be covered: Fantasy points are read straight off
+ * `games`/`player_game_stats` (see GET /fantasy/lineup), the exact tables
+ * POST /api/events/simulate/round already fabricates finals into — so the
+ * missing piece was only ever this auto-draft, not a second simulator.
+ *
+ * Reserves COACH_MIN_PRICE of the budget for the coach up front, then fills
+ * each position bucket by shuffling that position's candidates and greedily
+ * taking ones that fit both the remaining player budget and the
+ * FANTASY_MAX_PLAYERS_PER_CLUB limit — falling back to a plain
+ * cheapest-first pass (club limit still enforced, budget constraint
+ * dropped) if a position's pool is too thin/expensive for the randomized
+ * pass to fill its quota, since the real budget cap is generous enough
+ * (comfortably clears 10 * FANTASY_MIN_PRICE + COACH_MIN_PRICE) that this
+ * should only ever bite on a very sparse synced roster. Delegates the
+ * actual write to saveFantasyLineup, so an auto-filled squad is never a
+ * special-cased shortcut — it passes the exact same rules a real save does.
+ */
+export async function autoFillFantasySquad(userId: string, season: string, round: number): Promise<SaveLineupResult> {
+  const budgetCap = await getBudgetCap(season);
+  const playerBudget = Math.max(0, budgetCap - COACH_MIN_PRICE);
+
+  const [playerRows, coachRows] = await Promise.all([
+    db
+      .select({ id: players.id, position: players.position, teamId: players.teamId, price: playerFantasyPrices.price })
+      .from(players)
+      .leftJoin(playerFantasyPrices, and(eq(playerFantasyPrices.playerId, players.id), eq(playerFantasyPrices.season, season)))
+      .where(eq(players.active, true)),
+    db
+      .select({ teamId: coachFantasyPrices.teamId, price: coachFantasyPrices.price })
+      .from(coachFantasyPrices)
+      .where(eq(coachFantasyPrices.season, season)),
+  ]);
+
+  type Candidate = { id: string; teamId: string; price: number };
+  const byPosition = new Map<string, Candidate[]>();
+  for (const p of playerRows) {
+    if (!p.position || !(p.position in FANTASY_POSITION_QUOTA)) continue;
+    const list = byPosition.get(p.position) ?? [];
+    list.push({ id: p.id, teamId: p.teamId, price: p.price ?? FANTASY_MIN_PRICE });
+    byPosition.set(p.position, list);
+  }
+
+  const picked: Candidate[] = [];
+  const clubCount = new Map<string, number>();
+  let spent = 0;
+
+  function tryPick(pool: Candidate[], enforceBudget: boolean): Candidate | null {
+    for (const c of pool) {
+      const club = clubCount.get(c.teamId) ?? 0;
+      if (club >= FANTASY_MAX_PLAYERS_PER_CLUB) continue;
+      if (enforceBudget && spent + c.price > playerBudget) continue;
+      return c;
+    }
+    return null;
+  }
+
+  for (const [position, quota] of Object.entries(FANTASY_POSITION_QUOTA)) {
+    const pool = byPosition.get(position) ?? [];
+    const shuffled = shuffle(pool);
+    const cheapestFirst = [...pool].sort((a, b) => a.price - b.price);
+    let filled = 0;
+    while (filled < quota) {
+      const remainingShuffled = shuffled.filter((c) => !picked.includes(c));
+      let choice = tryPick(remainingShuffled, true);
+      if (!choice) {
+        const remainingCheapest = cheapestFirst.filter((c) => !picked.includes(c));
+        choice = tryPick(remainingCheapest, false);
+      }
+      if (!choice) {
+        return { error: `Not enough eligible ${position}s synced to auto-fill a squad` };
+      }
+      picked.push(choice);
+      clubCount.set(choice.teamId, (clubCount.get(choice.teamId) ?? 0) + 1);
+      spent += choice.price;
+      filled++;
+    }
+  }
+
+  const affordableCoaches = shuffle(coachRows.filter((c) => c.price <= budgetCap - spent));
+  const coach = affordableCoaches[0] ?? [...coachRows].sort((a, b) => a.price - b.price)[0];
+  if (!coach) {
+    return { error: "No coaches priced for this season yet — run fantasy:reprice first" };
+  }
+
+  const shuffledPicked = shuffle(picked);
+  const entries: SaveLineupEntry[] = shuffledPicked.map((c, i) => ({
+    playerId: c.id,
+    slotRole: i < FANTASY_STARTER_COUNT ? "starter" : i < FANTASY_STARTER_COUNT + FANTASY_SIXTH_MAN_COUNT ? "sixth_man" : "bench",
+    isCaptain: i === 0,
+  }));
+
+  return saveFantasyLineup(userId, season, round, entries, coach.teamId);
 }
 
 export interface FantasyLeaderboardEntry {

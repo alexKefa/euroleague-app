@@ -267,6 +267,8 @@ export class FantasyComponent implements OnInit {
 
   // --- Roster builder state ---
   readonly loading = signal(true);
+  // Admin-only auto-fill button's in-flight flag — see autoFillSquad below.
+  readonly autoFilling = signal(false);
   // Placeholder-row count for the pool skeleton (loading()) — just an
   // @for track source, no real data behind it.
   readonly skeletonRows = [0, 1, 2, 3, 4, 5];
@@ -1028,6 +1030,22 @@ export class FantasyComponent implements OnInit {
         this.lineupReady = true;
         this.maybeFinishLoading();
       },
+    });
+  }
+
+  // Admin-only testing tool (2026-09-17, see CLAUDE.md's Fantasy Five
+  // simulation-button TODO): drafts a real, valid squad for the calling
+  // admin's own account server-side, then reloads the lineup the normal way
+  // — no special client-side rendering path, since the saved squad is a
+  // real one, not a preview.
+  autoFillSquad(): void {
+    this.autoFilling.set(true);
+    this.api.autoFillFantasySquad().subscribe({
+      next: () => {
+        this.autoFilling.set(false);
+        this.loadLineup(this.round() ?? undefined);
+      },
+      error: () => this.autoFilling.set(false),
     });
   }
 
