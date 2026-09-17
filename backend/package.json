@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "dev:dev-db": "tsx watch --env-file=.env.dev src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "db:generate": "drizzle-kit generate --config=drizzle.config.ts",

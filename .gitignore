@@ -10,6 +10,7 @@ backend/public/
 # Environment secrets — never commit these
 .env
 .env.local
+.env.*
 *.env
 
 # Python (sync-py)
