@@ -186,7 +186,7 @@
            formation/captain/save. -->
       <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4">
         <div class="flex items-center justify-between gap-2 mb-3">
-          <div class="flex items-center gap-1.5">
+          <div class="flex items-center gap-1.5 min-w-0">
             <button
               type="button"
               (click)="viewPreviousRound()"
@@ -203,24 +203,43 @@
               class="w-6 h-6 rounded-full flex items-center justify-center text-muted hover:text-highlight disabled:opacity-30 disabled:hover:text-muted transition-colors"
             >&#8250;</button>
             @if (!isCurrentRound()) {
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-page text-muted">{{ i18n.t('fantasy.pastRound') }}</span>
+              <span class="min-w-0 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-page text-muted truncate" [title]="i18n.t('fantasy.pastRound')">{{ i18n.t('fantasy.pastRound') }}</span>
             }
           </div>
           <!-- else-if, not two independent @ifs — both used to be able to
                render at once (a live game AND the "Fixtures" button doing
-               the exact same thing), which was its own bit of clutter. -->
+               the exact same thing), which was its own bit of clutter.
+               Icon-only below sm: (2026-09-17) — the round navigator's own
+               left side (prev/next + round number + the "past round"
+               badge, especially long in Greek — "Παλιότερη αγωνιστική")
+               could already fill most of a phone's width, pushing this
+               button past the edge of the card with no way to reach it.
+               flex-shrink-0 keeps it from ever being squeezed to nothing;
+               hiding the label below sm: is what actually saves the space
+               that matters, rather than fighting the left side for room. -->
           @if (hasLiveGameThisRound()) {
             <button
               type="button"
               (click)="showFixtures.set(true)"
-              class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-red-500/15 text-red-500 hover:bg-red-500/25 transition-colors"
+              [attr.aria-label]="i18n.t('fantasy.liveNow')"
+              [title]="i18n.t('fantasy.liveNow')"
+              class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-red-500/15 text-red-500 hover:bg-red-500/25 transition-colors flex-shrink-0"
             >
               <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-              {{ i18n.t('fantasy.liveNow') }}
+              <span class="hidden sm:inline">{{ i18n.t('fantasy.liveNow') }}</span>
             </button>
           } @else if (fixtureGames().length > 0) {
-            <button type="button" (click)="showFixtures.set(true)" appButton="outline" appButtonSize="sm">
-              {{ i18n.t('fantasy.fixturesButton') }}
+            <button
+              type="button"
+              (click)="showFixtures.set(true)"
+              [attr.aria-label]="i18n.t('fantasy.fixturesButton')"
+              [title]="i18n.t('fantasy.fixturesButton')"
+              appButton="outline"
+              appButtonSize="sm"
+              class="flex-shrink-0 !px-2.5 sm:!px-4"
+            >
+              <app-nav-icon name="schedule" [size]="14" class="sm:hidden" />
+              <span class="hidden sm:inline">{{ i18n.t('fantasy.fixturesButton') }}</span>
             </button>
           }
         </div>
