@@ -199,8 +199,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
       // deliberately keeps every source's copy instead, so it doesn't pass
       // this.
       this.api.getNews(10, lang, true).subscribe({
-        next: (articles) => this.news.set(articles),
-        error: () => {}, // non-critical widget
+        next: (articles) => {
+          this.news.set(articles);
+          this.newsLoading.set(false);
+        },
+        error: () => this.newsLoading.set(false), // non-critical widget
       });
     });
 
