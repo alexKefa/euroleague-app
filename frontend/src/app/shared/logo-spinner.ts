@@ -5,6 +5,11 @@ import { Component, Input } from "@angular/core";
 // bar-chart mark is a natural fit for a "working" animation, and it reads
 // as "this app" for any inline loading state, from a full skeleton
 // placeholder down to a small busy-button spinner.
+// Deliberately KEPT on fill-highlight (the fixed brand orange), not swapped
+// to team-primary in the 2026-09-18 "change everywhere... default orange
+// with the preferred team" pass — this is the app's own brand mark, shown
+// identically to every user regardless of team, closer to a favicon than a
+// themeable UI element.
 @Component({
   selector: "app-logo-spinner",
   standalone: true,

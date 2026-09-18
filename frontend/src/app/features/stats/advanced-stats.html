@@ -43,7 +43,7 @@
             min="0"
             [value]="minGames()"
             (input)="setMinGames($any($event.target).value)"
-            class="w-20 px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold text-ink focus:border-highlight outline-none"
+            class="w-20 px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold text-ink focus:border-team-primary outline-none"
           />
         </div>
         <div class="flex flex-col gap-1">
@@ -53,7 +53,7 @@
             min="0"
             [value]="minMinutes()"
             (input)="setMinMinutes($any($event.target).value)"
-            class="w-20 px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold text-ink focus:border-highlight outline-none"
+            class="w-20 px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold text-ink focus:border-team-primary outline-none"
           />
         </div>
         @if (hasActiveFilters()) {
@@ -76,7 +76,7 @@
                   scope="col"
                   (click)="setSort(col.key)"
                   class="sticky top-0 z-10 bg-card px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
-                  [class.text-highlight]="sortKey() === col.key"
+                  [class.text-team-primary]="sortKey() === col.key"
                 >
                   {{ i18n.t(col.labelKey) }}
                   @if (sortKey() === col.key) {
@@ -88,6 +88,15 @@
           </thead>
           <tbody>
             @for (row of visibleRows(); track row.player.id; let i = $index) {
+              <!-- bg-highlight/5 KEPT fixed (2026-09-18, "change
+                   everywhere on the app the default orange color with
+                   the preferred team") — this marks the league leader in
+                   the currently-sorted column, already explicitly
+                   excluding the viewer's own favorite team (which gets
+                   its own always-on --accent-primary tint two lines
+                   below instead) — swapping this to team color too would
+                   collide with that existing, separate favorite-team
+                   treatment. -->
               <tr
                 [routerLink]="['/players', row.player.id]"
                 class="border-t border-line hover:bg-page transition-colors cursor-pointer"
@@ -106,7 +115,7 @@
                   </span>
                 </td>
                 @for (col of columns.slice(1); track col.key) {
-                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-highlight]="sortKey() === col.key">
+                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-team-primary]="sortKey() === col.key">
                     {{ col.format ? col.format(row) : (col.get(row) ?? '—') }}
                   </td>
                 }

@@ -83,8 +83,8 @@
               <p class="font-display text-base font-bold">{{ row.stats.wins }}-{{ row.stats.losses }}</p>
             </div>
             <div>
-              <p class="font-mono text-[9px] font-bold text-highlight uppercase tracking-wider mb-0.5">{{ i18n.t('dashboard.rank') }}</p>
-              <p class="font-display text-base font-bold text-highlight">#{{ row.position }}</p>
+              <p class="font-mono text-[9px] font-bold text-team-primary uppercase tracking-wider mb-0.5">{{ i18n.t('dashboard.rank') }}</p>
+              <p class="font-display text-base font-bold text-team-primary">#{{ row.position }}</p>
             </div>
             @if (row.stats.ppg !== null) {
               <div>
@@ -150,21 +150,32 @@
     <!-- My Leagues + Fantasy Team -->
     @if (auth.isAuthenticated()) {
       <div class="grid grid-cols-2 gap-3 mb-4">
+        <!-- from-highlight/text-white -> from-team-primary/text-team-secondary
+             (2026-09-18, "change everywhere on the app the default orange
+             color with the preferred team") — this was a solid gradient
+             fill with hardcoded white text, the exact contrast risk a
+             near-white team color (Real Madrid, Dubai Basketball) breaks:
+             text-team-secondary instead of text-white fixes it the same
+             way the earlier tab-group/hub-tile passes this session did. No
+             team-primary-dim token exists for the gradient's second stop,
+             so it fades to a translucent team-primary instead (same "dim
+             via opacity" trick used for the Scoreboard tiles' border-b
+             lip). -->
         <a
           routerLink="/leagues"
-          class="relative flex flex-col gap-2 rounded-3xl p-4 bg-gradient-to-br from-highlight to-highlight-dim shadow-pop overflow-hidden group"
+          class="relative flex flex-col gap-2 rounded-3xl p-4 bg-gradient-to-br from-team-primary to-team-primary/70 shadow-pop overflow-hidden group"
         >
           <div class="absolute -bottom-8 -right-10 w-28 h-28 rounded-full bg-white/10 pointer-events-none"></div>
           <div class="relative flex items-center justify-between">
             <span class="shrink-0 w-9 h-9 rounded-full bg-card shadow-pop flex items-center justify-center">
               <app-nav-icon name="bracket" [size]="18" class="text-ink" />
             </span>
-            <span class="relative text-white/70 text-sm font-bold group-hover:translate-x-0.5 transition-transform">&rarr;</span>
+            <span class="relative text-team-secondary/70 text-sm font-bold group-hover:translate-x-0.5 transition-transform">&rarr;</span>
           </div>
           <div class="relative min-w-0">
-            <p class="font-display text-sm tracking-wide text-white">{{ i18n.t('dashboard.myLeagues') }}</p>
+            <p class="font-display text-sm tracking-wide text-team-secondary">{{ i18n.t('dashboard.myLeagues') }}</p>
             @if (myLeagues().length > 0) {
-              <p class="text-xs text-white/80 truncate">
+              <p class="text-xs text-team-secondary/80 truncate">
                 @for (league of myLeagues().slice(0, 3); track league.id; let last = $last) {
                   {{ league.name }}{{ last ? "" : ", " }}
                 }
@@ -173,7 +184,7 @@
                 }
               </p>
             } @else {
-              <p class="text-xs text-white/80 truncate">{{ i18n.t('dashboard.leaguesEmptyHint') }}</p>
+              <p class="text-xs text-team-secondary/80 truncate">{{ i18n.t('dashboard.leaguesEmptyHint') }}</p>
             }
           </div>
         </a>
@@ -266,19 +277,19 @@
            (wrong-number) hints sees the corrected one once. -->
       <app-page-hint hintId="dashboard-economy" icon="ball">
         {{ i18n.t('dashboard.economyHintPrefix') }}
-        <a routerLink="/predictions" class="text-highlight font-semibold">{{ i18n.t('nav.picks') }}</a>
+        <a routerLink="/predictions" class="text-team-primary font-semibold">{{ i18n.t('nav.picks') }}</a>
         {{ i18n.t('dashboard.economyHintMiddle1') }}
-        <a routerLink="/packs" class="text-highlight font-semibold">{{ i18n.t('store.packs') }}</a>
+        <a routerLink="/packs" class="text-team-primary font-semibold">{{ i18n.t('store.packs') }}</a>
         {{ i18n.t('dashboard.economyHintMiddle2') }}
-        <a routerLink="/wheel" class="text-highlight font-semibold">{{ i18n.t('store.jumpBall') }}</a>
+        <a routerLink="/wheel" class="text-team-primary font-semibold">{{ i18n.t('store.jumpBall') }}</a>
         {{ i18n.t('dashboard.economyHintMiddle3') }}
-        <a routerLink="/inventory" class="text-highlight font-semibold">{{ i18n.t('nav.cards') }}</a>
+        <a routerLink="/inventory" class="text-team-primary font-semibold">{{ i18n.t('nav.cards') }}</a>
         {{ i18n.t('dashboard.economyHintSuffix') }}
       </app-page-hint>
     } @else {
       <app-page-hint hintId="dashboard-guest-cta" icon="trophy">
         {{ i18n.t('dashboard.guestHintPrefix') }}
-        <a routerLink="/register" class="text-highlight font-semibold">{{ i18n.t('dashboard.guestHintCta') }}</a>
+        <a routerLink="/register" class="text-team-primary font-semibold">{{ i18n.t('dashboard.guestHintCta') }}</a>
         {{ i18n.t('dashboard.guestHintSuffix') }}
       </app-page-hint>
     }
@@ -296,15 +307,21 @@
         </div>
         <div class="text-sm space-y-1">
           @for (row of miniStandings(); track row.team.id) {
+            <!-- "#1" rank badges (this one and its two siblings further down
+                 this file, standings/advanced-stats/predictions leader
+                 lists): bg-highlight text-page -> bg-team-primary
+                 text-team-secondary (2026-09-18, same pass as the My
+                 Leagues tile above) — solid fill + hardcoded page/white
+                 text was the same near-white-team contrast risk. -->
             <a
               [routerLink]="['/teams', row.team.id]"
               class="flex justify-between items-center gap-2 px-2 py-2 rounded-2xl hover:bg-page transition-colors"
               [class.bg-page]="row.team.id === selectedTeamId()"
-              [ngClass]="{ 'bg-highlight/10': row.position === 1 }"
+              [ngClass]="{ 'bg-team-primary/10': row.position === 1 }"
             >
               <span class="flex items-center gap-2 min-w-0">
                 @if (row.position === 1) {
-                  <span class="font-mono text-[11px] font-bold w-5 h-5 shrink-0 rounded-full bg-highlight text-page flex items-center justify-center">1</span>
+                  <span class="font-mono text-[11px] font-bold w-5 h-5 shrink-0 rounded-full bg-team-primary text-team-secondary flex items-center justify-center">1</span>
                 } @else {
                   <span class="font-mono text-muted w-5 shrink-0 text-right">{{ row.position }}</span>
                 }
@@ -381,7 +398,7 @@
                           <span class="w-4 h-4 rounded-full shrink-0" [style.background]="entry.team.primaryColor"></span>
                         }
                       </span>
-                      <span class="font-mono text-highlight font-bold">{{ entry.valuation }} PIR</span>
+                      <span class="font-mono text-team-primary font-bold">{{ entry.valuation }} PIR</span>
                     </a>
                   }
                 </div>
@@ -401,11 +418,11 @@
                   <a
                     [routerLink]="['/players', entry.player.id]"
                     class="flex justify-between items-center px-2 py-2 rounded-2xl hover:bg-page transition-colors"
-                    [ngClass]="{ 'bg-highlight/10': i === 0 }"
+                    [ngClass]="{ 'bg-team-primary/10': i === 0 }"
                   >
                     <span class="font-bold flex items-center gap-1.5 min-w-0">
                       @if (i === 0) {
-                        <span class="font-mono text-[11px] font-bold w-5 h-5 shrink-0 rounded-full bg-highlight text-page flex items-center justify-center">1</span>
+                        <span class="font-mono text-[11px] font-bold w-5 h-5 shrink-0 rounded-full bg-team-primary text-team-secondary flex items-center justify-center">1</span>
                       } @else {
                         <span class="font-mono text-muted w-5 shrink-0 text-center">{{ i + 1 }}</span>
                       }
@@ -416,7 +433,7 @@
                         <span class="w-4 h-4 rounded-full shrink-0" [style.background]="entry.team.primaryColor"></span>
                       }
                     </span>
-                    <span class="font-mono text-highlight font-bold">{{ entry.value | number: "1.1-1" }}</span>
+                    <span class="font-mono text-team-primary font-bold">{{ entry.value | number: "1.1-1" }}</span>
                   </a>
                 }
               </div>
@@ -431,17 +448,17 @@
                     type="button"
                     (click)="openMember(entry)"
                     class="w-full flex justify-between items-center px-2 py-2 rounded-2xl text-left hover:bg-white/5 transition-colors"
-                    [ngClass]="{ 'bg-highlight/10': i === 0 }"
+                    [ngClass]="{ 'bg-team-primary/10': i === 0 }"
                   >
                     <span class="font-bold flex items-center gap-1.5 min-w-0">
                       @if (i === 0) {
-                        <span class="font-mono text-[11px] font-bold w-5 h-5 shrink-0 rounded-full bg-highlight text-page flex items-center justify-center">1</span>
+                        <span class="font-mono text-[11px] font-bold w-5 h-5 shrink-0 rounded-full bg-team-primary text-team-secondary flex items-center justify-center">1</span>
                       } @else {
                         <span class="font-mono text-muted w-5 shrink-0 text-center">{{ i + 1 }}</span>
                       }
                       <span class="truncate">{{ entry.displayName }}</span>
                     </span>
-                    <span class="font-mono text-highlight font-bold">{{ entry.points }} pts</span>
+                    <span class="font-mono text-team-primary font-bold">{{ entry.points }} pts</span>
                   </button>
                 }
               </div>
@@ -456,7 +473,7 @@
                     <span class="flex items-center gap-2 min-w-0">
                       <span
                         class="font-mono font-bold w-4 shrink-0"
-                        [class.text-highlight]="teamResult(game) === 'W'"
+                        [class.text-team-primary]="teamResult(game) === 'W'"
                         [class.text-muted]="teamResult(game) === 'L'"
                         >{{ resultLabel(teamResult(game)) }}</span
                       >

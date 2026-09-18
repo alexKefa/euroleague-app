@@ -81,9 +81,16 @@
             <p class="font-mono text-[10px] text-muted font-bold tracking-wide">MIN</p>
             <p class="font-display text-xl mt-0.5">{{ fmtNum(stats.minutesPerGame) }}</p>
           </div>
+          <!-- text-highlight -> text-team-primary here and at the 3 other
+               stat-emphasis numbers below (2026-09-18, "change everywhere
+               on the app the default orange color with the preferred
+               team") — pure typography emphasis with no comparative claim,
+               recolors for whichever player is being viewed, same
+               reasoning the highlight-usage audit gave this exact pattern
+               on game-detail/player pages. -->
           <div>
             <p class="font-mono text-[10px] text-muted font-bold tracking-wide">PTS</p>
-            <p class="font-display text-xl mt-0.5 text-highlight">{{ fmtNum(stats.pointsPerGame) }}</p>
+            <p class="font-display text-xl mt-0.5 text-team-primary">{{ fmtNum(stats.pointsPerGame) }}</p>
           </div>
           <div>
             <p class="font-mono text-[10px] text-muted font-bold tracking-wide">REB</p>
@@ -119,7 +126,7 @@
           </div>
           <div>
             <p class="font-mono text-[10px] text-muted font-bold tracking-wide">PIR</p>
-            <p class="font-display text-xl mt-0.5 text-highlight">{{ fmtNum(stats.valuation) }}</p>
+            <p class="font-display text-xl mt-0.5 text-team-primary">{{ fmtNum(stats.valuation) }}</p>
           </div>
         </div>
       </div>
@@ -216,13 +223,13 @@
                     {{ isWin(entry) ? "W" : "L" }} {{ entry.game.homeScore }}-{{ entry.game.awayScore }}
                   </td>
                   <td class="px-3 py-2 text-right font-mono text-muted">{{ fmtNum(entry.stats.minutes) }}</td>
-                  <td class="px-3 py-2 text-right font-mono text-highlight font-bold">{{ entry.stats.points ?? "—" }}</td>
+                  <td class="px-3 py-2 text-right font-mono text-team-primary font-bold">{{ entry.stats.points ?? "—" }}</td>
                   <td class="px-3 py-2 text-right font-mono">{{ entry.stats.rebounds ?? "—" }}</td>
                   <td class="px-3 py-2 text-right font-mono">{{ entry.stats.assists ?? "—" }}</td>
                   <td class="px-3 py-2 text-right font-mono">{{ entry.stats.steals ?? "—" }}</td>
                   <td class="px-3 py-2 text-right font-mono">{{ entry.stats.blocksFavour ?? "—" }}</td>
                   <td class="px-3 py-2 text-right font-mono">{{ entry.stats.turnovers ?? "—" }}</td>
-                  <td class="px-3 py-2 text-right font-mono font-bold text-highlight">{{ entry.stats.valuation ?? "—" }}</td>
+                  <td class="px-3 py-2 text-right font-mono font-bold text-team-primary">{{ entry.stats.valuation ?? "—" }}</td>
                 </tr>
               }
             </tbody>

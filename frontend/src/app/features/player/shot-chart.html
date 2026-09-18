@@ -3,7 +3,7 @@
     <p class="font-mono text-[12px] text-muted font-bold">{{ i18n.t('shotChart.title') }}</p>
     @if (pct() !== null) {
       <p class="font-mono text-[12px] font-bold">
-        <span class="text-highlight">{{ made() }}/{{ attempts() }}</span>
+        <span class="text-team-primary">{{ made() }}/{{ attempts() }}</span>
         <span class="text-muted">({{ pct() }}%)</span>
       </p>
     }
@@ -65,25 +65,35 @@
          outlined circle, echoing a shooting-machine's rim readout, but it's
          just a fixed marker at the real rim position, not a precision-tracked
          cluster (this app has no shot-trajectory data to plot one from). -->
+    <!-- The two drop-shadow glows below use color-mix on --accent-primary
+         instead of a plain hex (2026-09-18, part of the same highlight ->
+         team-color pass) — CSS drop-shadow() has no separate opacity
+         channel the way rgba() does, so color-mix is what lets the glow
+         keep its original ~65%/75% intensity at any team's hex value,
+         not just the old fixed orange. Missed while first swapping this
+         file's stroke-highlight classes, since these two hardcoded rgba(255,
+         107, 53, ...) glows live in inline `style`, not a Tailwind class a
+         find/replace on "highlight" would ever match — caught rereading
+         the file, not live-verified. -->
     <circle
       [attr.cx]="basketX"
       [attr.cy]="basketY"
       [attr.r]="rimRadius * 2"
       fill="none"
-      class="stroke-highlight"
+      class="stroke-team-primary"
       stroke-width="1.4"
-      style="filter: drop-shadow(0 0 4px rgba(255, 107, 53, 0.65))"
+      style="filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent-primary, #3E7CB1) 65%, transparent))"
     />
-    <line [attr.x1]="basketX - rimRadius * 1.4" [attr.x2]="basketX + rimRadius * 1.4" [attr.y1]="basketY" [attr.y2]="basketY" class="stroke-highlight" stroke-width="0.8" opacity="0.85" />
-    <line [attr.x1]="basketX" [attr.x2]="basketX" [attr.y1]="basketY - rimRadius * 1.4" [attr.y2]="basketY + rimRadius * 1.4" class="stroke-highlight" stroke-width="0.8" opacity="0.85" />
+    <line [attr.x1]="basketX - rimRadius * 1.4" [attr.x2]="basketX + rimRadius * 1.4" [attr.y1]="basketY" [attr.y2]="basketY" class="stroke-team-primary" stroke-width="0.8" opacity="0.85" />
+    <line [attr.x1]="basketX" [attr.x2]="basketX" [attr.y1]="basketY - rimRadius * 1.4" [attr.y2]="basketY + rimRadius * 1.4" class="stroke-team-primary" stroke-width="0.8" opacity="0.85" />
     <circle
       [attr.cx]="basketX"
       [attr.cy]="basketY"
       [attr.r]="rimRadius"
       fill="none"
-      class="stroke-highlight"
+      class="stroke-team-primary"
       stroke-width="1.6"
-      style="filter: drop-shadow(0 0 3px rgba(255, 107, 53, 0.75))"
+      style="filter: drop-shadow(0 0 3px color-mix(in srgb, var(--accent-primary, #3E7CB1) 75%, transparent))"
     />
 
     <!-- Shots — makes glow, misses stay flat, so the eye reads "hits" first -->
@@ -121,11 +131,11 @@
         </div>
         <div class="relative h-1.5 rounded-full bg-line">
           <div
-            class="absolute inset-y-0 left-0 rounded-full bg-highlight transition-[width] duration-700 ease-out"
+            class="absolute inset-y-0 left-0 rounded-full bg-team-primary transition-[width] duration-700 ease-out"
             [style.width.%]="zone.stats.pct"
           ></div>
           <div
-            class="absolute top-1/2 w-3 h-3 rounded-full bg-highlight -translate-y-1/2 -translate-x-1/2 transition-[left] duration-700 ease-out"
+            class="absolute top-1/2 w-3 h-3 rounded-full bg-team-primary -translate-y-1/2 -translate-x-1/2 transition-[left] duration-700 ease-out"
             style="box-shadow: 0 0 8px rgba(255, 107, 53, 0.8)"
             [style.left.%]="zone.stats.pct"
           ></div>

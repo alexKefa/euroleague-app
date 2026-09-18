@@ -15,17 +15,21 @@ import { NavIconComponent, NavIconName } from "./nav-icon";
   imports: [NavIconComponent],
   template: `
     @if (!dismissed()) {
+      <!-- bg-highlight/border-highlight -> team-primary equivalents
+           (2026-09-18, "change everywhere on the app the default orange
+           color with the preferred team") — same swap as
+           open-in-browser-banner.ts's identical layout. -->
       <div
-        class="relative flex items-start gap-2.5 pl-3.5 pr-9 py-3 mb-5 rounded-r-lg bg-highlight/[0.06] border-l-2 border-highlight"
+        class="relative flex items-start gap-2.5 pl-3.5 pr-9 py-3 mb-5 rounded-r-lg bg-team-primary/[0.06] border-l-2 border-team-primary"
       >
-        <app-nav-icon [name]="icon" [size]="18" class="text-highlight shrink-0 mt-0.5" />
+        <app-nav-icon [name]="icon" [size]="18" class="text-team-primary shrink-0 mt-0.5" />
         <p class="text-sm text-muted leading-relaxed">
           <ng-content></ng-content>
         </p>
         <button
           type="button"
           (click)="dismiss()"
-          class="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-highlight/10 transition-colors"
+          class="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-team-primary/10 transition-colors"
           [attr.aria-label]="i18n.t('hint.dismiss')"
         >
           &times;

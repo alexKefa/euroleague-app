@@ -21,11 +21,15 @@
   }
 
   @if (!loading() && !error() && data(); as d) {
+    <!-- text-highlight -> text-team-primary throughout this page
+         (2026-09-18, "change everywhere on the app the default orange
+         color with the preferred team") — this whole page is the viewer's
+         own prediction accuracy, so it's personalization-relevant. -->
     <!-- Overall accuracy -->
     <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
       <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('predictions.analytics.overallAccuracy') }}</p>
       <div class="flex items-baseline gap-2">
-        <span class="font-display text-4xl text-highlight">{{ fmtPct(d.overall.accuracy) }}</span>
+        <span class="font-display text-4xl text-team-primary">{{ fmtPct(d.overall.accuracy) }}</span>
         <span class="text-sm text-muted">
           {{ d.overall.correct }}/{{ d.overall.total }} {{ i18n.t('predictions.analytics.resolvedPicksLabel') }}
         </span>
@@ -50,14 +54,14 @@
                 <th
                   (click)="setSort('timesPicked')"
                   class="sticky top-0 z-10 bg-card px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
-                  [class.text-highlight]="sortKey() === 'timesPicked'"
+                  [class.text-team-primary]="sortKey() === 'timesPicked'"
                 >
                   {{ i18n.t('predictions.analytics.colPicked') }}
                 </th>
                 <th
                   (click)="setSort('accuracy')"
                   class="sticky top-0 z-10 bg-card px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
-                  [class.text-highlight]="sortKey() === 'accuracy'"
+                  [class.text-team-primary]="sortKey() === 'accuracy'"
                 >
                   {{ i18n.t('predictions.analytics.colAccuracy') }}
                 </th>
@@ -77,8 +81,8 @@
                       <span class="truncate hidden sm:inline">{{ row.team.name }}</span>
                     </span>
                   </td>
-                  <td class="px-3 py-2 text-right font-mono text-muted" [class.text-highlight]="sortKey() === 'timesPicked'">{{ row.timesPicked }}</td>
-                  <td class="px-3 py-2 text-right font-mono font-bold" [class.text-highlight]="sortKey() === 'accuracy'">{{ fmtPct(row.accuracy) }}</td>
+                  <td class="px-3 py-2 text-right font-mono text-muted" [class.text-team-primary]="sortKey() === 'timesPicked'">{{ row.timesPicked }}</td>
+                  <td class="px-3 py-2 text-right font-mono font-bold" [class.text-team-primary]="sortKey() === 'accuracy'">{{ fmtPct(row.accuracy) }}</td>
                 </tr>
               }
             </tbody>

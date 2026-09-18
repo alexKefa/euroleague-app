@@ -26,13 +26,17 @@ const SEEN_KEY = "clutch-open-in-browser-banner-seen";
   imports: [NavIconComponent],
   template: `
     @if (visible()) {
-      <div class="relative flex items-start gap-2.5 pl-3.5 pr-9 py-3 mb-4 rounded-r-lg bg-highlight/[0.06] border-l-2 border-highlight">
-        <app-nav-icon name="share" [size]="18" class="text-highlight shrink-0 mt-0.5" />
+      <!-- bg-highlight/border-highlight -> team-primary equivalents
+           (2026-09-18, "change everywhere on the app the default orange
+           color with the preferred team") — translucent wash + border +
+           icon, no solid fill, safe regardless of team color lightness. -->
+      <div class="relative flex items-start gap-2.5 pl-3.5 pr-9 py-3 mb-4 rounded-r-lg bg-team-primary/[0.06] border-l-2 border-team-primary">
+        <app-nav-icon name="share" [size]="18" class="text-team-primary shrink-0 mt-0.5" />
         <p class="text-sm text-muted leading-relaxed">{{ i18n.t('openInBrowser.message') }}</p>
         <button
           type="button"
           (click)="dismiss()"
-          class="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-highlight/10 transition-colors"
+          class="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-team-primary/10 transition-colors"
           [attr.aria-label]="i18n.t('hint.dismiss')"
         >
           &times;

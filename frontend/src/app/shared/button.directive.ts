@@ -19,15 +19,32 @@ export type ButtonSize = "sm" | "md";
 // the press itself reads instant while hover/color changes stay smooth.
 const BASE = "inline-flex items-center justify-center gap-1.5 rounded-2xl font-display font-bold transition-all duration-150 active:duration-100 active:scale-[0.97] disabled:opacity-35 disabled:pointer-events-none";
 
+// primary/outline switched from the fixed bg-highlight brand orange to the
+// user's own team color (2026-09-18, explicit ask: "change everywhere on
+// the app the default orange color with the preferred team... go for it")
+// — this is the app's single most-used CTA style (login, register, submit,
+// every primary action), so it's the highest-impact swap in that pass.
+// text-white -> text-team-secondary on primary is not cosmetic, it's a
+// contrast fix: some teams' primary color is near-white (Real Madrid,
+// Dubai Basketball), and white text on a near-white fill would be
+// unreadable — team-secondary is each team's own chosen contrast color,
+// so it's built to read against team-primary already. border-b-highlight-
+// dim (the "lip" shade) has no team-color-dim token, so it's approximated
+// with border-b-team-primary/60 — translucent team-primary blended against
+// the page's own dark background reads as a dimmer shade, same technique
+// used on inventory.html's/teams-hub.html's tiles earlier this session.
+// hover:bg-[#FF7D4E] (a hardcoded lighten of the fixed orange) likewise has
+// no team equivalent — hover:brightness-110 gives the same "lighten on
+// hover" feel relative to whatever the fill color actually is.
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   // The bottom border is a raised 3D "lip" (the Scoreboard button's whole
   // identity) — pressing it collapses the lip and drops the button down to
   // fill the gap, like a real chunky button being pushed into its socket,
   // instead of just scaling like the flatter variants below.
   primary:
-    "text-white bg-highlight border-b-[3px] border-b-highlight-dim hover:bg-[#FF7D4E] active:translate-y-[3px] active:border-b-0 disabled:border-b-transparent",
+    "text-team-secondary bg-team-primary border-b-[3px] border-b-team-primary/60 hover:brightness-110 active:translate-y-[3px] active:border-b-0 disabled:border-b-transparent",
   outline:
-    "text-highlight bg-highlight/10 border-2 border-highlight hover:bg-highlight/20 active:bg-highlight/25",
+    "text-team-primary bg-team-primary/10 border-2 border-team-primary hover:bg-team-primary/20 active:bg-team-primary/25",
   secondary:
     "text-ink bg-transparent border-2 border-line hover:border-[#3a3a3b] active:bg-white/5",
   danger:

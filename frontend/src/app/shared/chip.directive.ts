@@ -10,13 +10,16 @@ import { Directive, HostBinding, Input } from "@angular/core";
 // same language for a selectable chip rather than an action button — apply
 // `[appChip]="isActive"` to any two-or-more-state toggle button.
 //
-// Active state is a tinted accent (bg-highlight/15 + border-highlight +
-// text-highlight), not a solid bg-highlight fill — it used to be, but that
-// made a selected chip visually identical in weight to ButtonDirective's
-// `primary` variant (the actual "submit this" CTA), so a page with both a
-// selected filter and a real action button had two equally "loud" orange
-// elements competing for attention. This matches the accent language
-// ButtonDirective's own `outline` variant already uses for the same reason.
+// Active state is a tinted accent (bg-team-primary/15 + border-team-primary +
+// text-team-primary), not a solid fill — it used to be, but that made a
+// selected chip visually identical in weight to ButtonDirective's `primary`
+// variant (the actual "submit this" CTA), so a page with both a selected
+// filter and a real action button had two equally "loud" elements competing
+// for attention. This matches the accent language ButtonDirective's own
+// `outline` variant already uses for the same reason.
+// bg-highlight -> bg-team-primary (2026-09-18, "change everywhere on the
+// app the default orange color with the preferred team") — same team-color
+// swap as button.directive.ts's own outline variant.
 const BASE =
   "font-display font-bold text-xs px-3 py-1.5 rounded-xl border transition-colors disabled:opacity-40 disabled:pointer-events-none";
 
@@ -30,7 +33,7 @@ export class ChipDirective {
   @HostBinding("class")
   get classes(): string {
     return this.active
-      ? `${BASE} bg-highlight/15 text-highlight border-highlight`
+      ? `${BASE} bg-team-primary/15 text-team-primary border-team-primary`
       : `${BASE} text-muted border-line hover:border-[#3a3a3b] hover:text-ink`;
   }
 }

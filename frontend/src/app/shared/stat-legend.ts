@@ -10,6 +10,9 @@ export interface StatLegendEntry {
 // (roster tables, box scores) — same modal chrome as predictions' badge
 // legend (bg-card rounded-2xl border shadow-pop over a dark backdrop) so it
 // reads as the same kind of glossary rather than a new pattern per page.
+// hover:text-highlight/bg-highlight -> team-primary equivalents (2026-09-18,
+// "change everywhere on the app the default orange color with the
+// preferred team").
 @Component({
   selector: "app-stat-legend",
   standalone: true,
@@ -17,7 +20,7 @@ export interface StatLegendEntry {
     <button
       type="button"
       (click)="open.set(true)"
-      class="w-5 h-5 rounded-full flex items-center justify-center text-muted hover:text-highlight hover:bg-highlight/10 transition-colors shrink-0"
+      class="w-5 h-5 rounded-full flex items-center justify-center text-muted hover:text-team-primary hover:bg-team-primary/10 transition-colors shrink-0"
       [attr.aria-label]="i18n.t('statLegend.title')"
     >
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -44,7 +47,7 @@ export interface StatLegendEntry {
           <div class="space-y-2.5 text-sm">
             @for (entry of entries; track entry.code) {
               <div class="flex items-baseline gap-3">
-                <span class="font-mono text-highlight font-bold shrink-0 max-w-[40%] break-words">{{ entry.code }}</span>
+                <span class="font-mono text-team-primary font-bold shrink-0 max-w-[40%] break-words">{{ entry.code }}</span>
                 <span class="text-muted min-w-0 break-words">{{ entry.label }}</span>
               </div>
             }

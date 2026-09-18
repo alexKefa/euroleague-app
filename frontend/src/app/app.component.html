@@ -52,10 +52,15 @@
          it's reachable from anywhere, at the same modest weight as
          profile/logout next to it — visible on every page, but no longer
          competing with a page's own content for the most prominent spot. -->
+    <!-- hover:text-highlight -> hover:text-team-primary on the tour/logout
+         icon buttons and the mobile login icon below (2026-09-18, "change
+         everywhere on the app the default orange color with the preferred
+         team") — plain hover-tint/icon-tint uses, no contrast risk since
+         neither is a solid fill. -->
     <button
       type="button"
       (click)="tour.start()"
-      class="shrink-0 w-8 h-8 rounded-xl border-2 border-line flex items-center justify-center text-muted hover:text-highlight hover:bg-page transition-colors"
+      class="shrink-0 w-8 h-8 rounded-xl border-2 border-line flex items-center justify-center text-muted hover:text-team-primary hover:bg-page transition-colors"
       [attr.aria-label]="i18n.t('tour.takeTour')"
       [title]="i18n.t('tour.takeTour')"
     >
@@ -81,7 +86,7 @@
         <button
           type="button"
           (click)="logout()"
-          class="shrink-0 w-8 h-8 rounded-xl border-2 border-line flex items-center justify-center text-muted hover:text-highlight hover:bg-page transition-colors"
+          class="shrink-0 w-8 h-8 rounded-xl border-2 border-line flex items-center justify-center text-muted hover:text-team-primary hover:bg-page transition-colors"
           [attr.aria-label]="i18n.t('nav.logout')"
         >
           <app-nav-icon name="logout" [size]="18" />
@@ -113,7 +118,7 @@
            anyone. Icon+visible label, not just an icon+aria-label — an
            icon-only button here read as unclear on its own. -->
       <a routerLink="/login" appButton="secondary" appButtonSize="sm" class="sm:hidden shrink-0">
-        <app-nav-icon name="user" [size]="14" class="text-highlight" />
+        <app-nav-icon name="user" [size]="14" class="text-team-primary" />
         {{ i18n.t('nav.login') }}
       </a>
     }

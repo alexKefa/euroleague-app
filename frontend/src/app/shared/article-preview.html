@@ -24,7 +24,10 @@
 
     <div class="p-5 overflow-y-auto">
       <div class="flex items-center gap-2 mb-2">
-        <span class="text-[12px] font-bold uppercase tracking-wider text-highlight">{{ article.sourceName }}</span>
+        <!-- text-highlight -> text-team-primary (2026-09-18, "change
+             everywhere on the app the default orange color with the
+             preferred team"). -->
+        <span class="text-[12px] font-bold uppercase tracking-wider text-team-primary">{{ article.sourceName }}</span>
         <span class="font-mono text-[12px] text-muted">&middot; {{ article.publishedAt | date: dateFormat() : undefined : dateLocale() }}</span>
       </div>
 

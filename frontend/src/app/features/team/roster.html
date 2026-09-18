@@ -90,6 +90,14 @@
         </div>
       </div>
       <div class="overflow-x-auto">
+        <!-- text-highlight -> text-team-primary throughout both stat
+             tables below (2026-09-18, "change everywhere on the app the
+             default orange color with the preferred team") — section
+             headers, player-name hover, and stat-emphasis numbers. This
+             page is reachable for ANY team (not just the viewer's
+             favorite), but same as player-detail.html's stat numbers,
+             it's pure typography emphasis with no comparative claim, so
+             recoloring per-viewer rather than per-viewed-team is fine. -->
         <table class="w-full text-sm min-w-[480px] border-collapse mt-3">
           @if (statsView() === "traditional") {
             <thead>
@@ -107,7 +115,7 @@
             <tbody>
               @if (team()?.headCoach; as coach) {
                 <tr class="border-b-2 border-line bg-page/50">
-                  <td colspan="8" class="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-highlight">
+                  <td colspan="8" class="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-team-primary">
                     <button type="button" (click)="coachInfoOpen.set(!coachInfoOpen())" class="hover:underline">
                       {{ i18n.t('roster.headCoach') }} <span class="font-mono normal-case tracking-normal text-ink">{{ coach }}</span>
                     </button>
@@ -130,7 +138,7 @@
                           <app-nav-icon name="star" [active]="isFavorite(row.player.id)" [size]="15" />
                         </button>
                       }
-                      <a [routerLink]="['/players', row.player.id]" class="hover:text-highlight transition-colors min-w-0">
+                      <a [routerLink]="['/players', row.player.id]" class="hover:text-team-primary transition-colors min-w-0">
                         @if (row.player.jerseyNumber !== null) {
                           <span class="font-mono text-muted font-normal">#{{ row.player.jerseyNumber }}</span>
                         }
@@ -151,7 +159,7 @@
                   <td class="text-right px-3 py-2 font-mono text-muted font-normal">
                     {{ fmtNum(row.stats.minutesPerGame) }}
                   </td>
-                  <td class="text-right px-3 py-2 font-mono text-highlight font-bold">
+                  <td class="text-right px-3 py-2 font-mono text-team-primary font-bold">
                     {{ fmtNum(row.stats.pointsPerGame) }}
                   </td>
                   <td class="text-right px-3 py-2 font-mono">{{ fmtNum(row.stats.reboundsPerGame) }}</td>
@@ -188,7 +196,7 @@
             <tbody>
               @if (team()?.headCoach; as coach) {
                 <tr class="border-b-2 border-line bg-page/50">
-                  <td colspan="8" class="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-highlight">
+                  <td colspan="8" class="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-team-primary">
                     <button type="button" (click)="coachInfoOpen.set(!coachInfoOpen())" class="hover:underline">
                       {{ i18n.t('roster.headCoach') }} <span class="font-mono normal-case tracking-normal text-ink">{{ coach }}</span>
                     </button>
@@ -211,7 +219,7 @@
                           <app-nav-icon name="star" [active]="isFavorite(row.player.id)" [size]="15" />
                         </button>
                       }
-                      <a [routerLink]="['/players', row.player.id]" class="hover:text-highlight transition-colors min-w-0">
+                      <a [routerLink]="['/players', row.player.id]" class="hover:text-team-primary transition-colors min-w-0">
                         @if (row.player.jerseyNumber !== null) {
                           <span class="font-mono text-muted font-normal">#{{ row.player.jerseyNumber }}</span>
                         }
@@ -226,7 +234,7 @@
                       </a>
                     </div>
                   </td>
-                  <td class="text-right px-3 py-2 font-mono text-highlight font-bold">
+                  <td class="text-right px-3 py-2 font-mono text-team-primary font-bold">
                     {{ fmtPct(row.stats.trueShootingPct) }}
                   </td>
                   <td class="text-right px-3 py-2 font-mono">{{ fmtPct(row.stats.effectiveFieldGoalPct) }}</td>

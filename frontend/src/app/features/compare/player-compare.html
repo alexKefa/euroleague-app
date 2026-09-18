@@ -110,7 +110,13 @@
           </span>
         </div>
 
-        <!-- Category score -->
+        <!-- Category score. Every text-highlight/bg-highlight below KEPT
+             fixed (2026-09-18, "change everywhere on the app the default
+             orange color with the preferred team") — this whole section
+             marks which of two arbitrary, possibly-team-unrelated players
+             is "winning" a given stat category. Swapping it to the
+             viewer's team color would misleadingly imply the color means
+             "my team", when it actually means "this specific player". -->
         <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5 compare-rise">
           <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2 text-center">{{ i18n.t('stats.compare.categoryScore') }}</p>
           <div class="flex items-center justify-between mb-2">

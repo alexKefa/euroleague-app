@@ -25,6 +25,10 @@ export interface DropdownOption {
 // were unified. This owns both states end to end: the trigger matches
 // ButtonDirective's secondary variant (flat rectangle, bordered), the panel
 // and its rows match ChipDirective's selected/hover language.
+// focus:border-highlight -> focus:border-team-primary, selected-row
+// bg-highlight/10 text-highlight -> bg-team-primary/10 text-team-primary
+// (2026-09-18, "change everywhere on the app the default orange color with
+// the preferred team") — matches ChipDirective's own selected-state swap.
 @Component({
   selector: "app-dropdown",
   standalone: true,
@@ -34,7 +38,7 @@ export interface DropdownOption {
       type="button"
       (click)="toggle()"
       [disabled]="disabled"
-      class="w-full flex items-center justify-between gap-2 pl-3 pr-2.5 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold text-ink hover:border-[#3a3a3b] focus:border-highlight outline-none transition-colors disabled:opacity-40 disabled:cursor-default"
+      class="w-full flex items-center justify-between gap-2 pl-3 pr-2.5 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold text-ink hover:border-[#3a3a3b] focus:border-team-primary outline-none transition-colors disabled:opacity-40 disabled:cursor-default"
       [attr.aria-expanded]="open()"
       aria-haspopup="listbox"
     >
@@ -105,7 +109,7 @@ export class DropdownComponent {
   }
 
   protected rowClasses(opt: DropdownOption, index: number): string {
-    if (opt.value === this.value) return "bg-highlight/10 text-highlight";
+    if (opt.value === this.value) return "bg-team-primary/10 text-team-primary";
     if (this.highlightedIndex() === index) return "bg-page text-ink";
     return "text-ink";
   }

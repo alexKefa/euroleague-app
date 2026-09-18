@@ -13,7 +13,7 @@
             (ngModelChange)="usernameInput.set($event)"
             name="username"
             maxlength="20"
-            class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
+            class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
           />
           <button type="submit" [disabled]="usernameSaving()" appButton appButtonSize="sm">
             {{ usernameSaving() ? i18n.t('profile.usernameSaving') : i18n.t('profile.usernameSave') }}
@@ -34,7 +34,7 @@
       } @else {
         <div class="flex items-center gap-2">
           <p class="font-semibold text-sm">{{ user.username }}</p>
-          <button type="button" (click)="startEditingUsername()" class="text-xs font-semibold text-highlight">
+          <button type="button" (click)="startEditingUsername()" class="text-xs font-semibold text-team-primary">
             {{ i18n.t('profile.usernameEdit') }}
           </button>
         </div>
@@ -166,7 +166,7 @@
         } @else {
           <span class="font-display font-bold text-sm text-muted">{{ i18n.t('profile.noFavoriteTeam') }}</span>
         }
-        <span class="ml-auto text-xs font-bold text-highlight shrink-0">{{ i18n.t('profile.changeTeam') }}</span>
+        <span class="ml-auto text-xs font-bold text-team-primary shrink-0">{{ i18n.t('profile.changeTeam') }}</span>
       </button>
     </div>
 
@@ -201,19 +201,19 @@
             type="email"
             formControlName="email"
             [placeholder]="i18n.t('profile.userEmailPlaceholder')"
-            class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
+            class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
           />
           <input
             type="number"
             formControlName="points"
             [placeholder]="i18n.t('profile.pointsPlaceholder')"
-            class="w-24 px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
+            class="w-24 px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
           />
           <input
             type="text"
             formControlName="reason"
             [placeholder]="i18n.t('profile.reasonPlaceholder')"
-            class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
+            class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
           />
           <button type="submit" [disabled]="pointsForm.invalid || pointsSubmitting()" appButton>
             {{ pointsSubmitting() ? i18n.t('profile.granting') : i18n.t('profile.grant') }}
@@ -238,7 +238,7 @@
             type="email"
             formControlName="email"
             [placeholder]="i18n.t('profile.userEmailPlaceholder')"
-            class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
+            class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
           />
           <app-dropdown
             class="flex-1 min-w-[10rem]"
@@ -270,7 +270,7 @@
             type="text"
             formControlName="name"
             [placeholder]="i18n.t('store.namePlaceholder')"
-            class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
+            class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
           />
           <app-dropdown
             class="w-28"
@@ -289,13 +289,13 @@
             type="number"
             formControlName="pointsCost"
             [placeholder]="i18n.t('store.pointsPlaceholder')"
-            class="w-24 px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
+            class="w-24 px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
           />
           <input
             type="text"
             formControlName="imageUrl"
             [placeholder]="i18n.t('store.imageUrlPlaceholder')"
-            class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
+            class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
           />
           <button type="submit" [disabled]="addForm.invalid || addSubmitting()" appButton>
             {{ addSubmitting() ? i18n.t('store.adding') : i18n.t('store.add') }}

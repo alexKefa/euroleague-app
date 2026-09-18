@@ -1,3 +1,12 @@
+<!-- App-wide highlight -> team-color pass (2026-09-18, "change everywhere
+     on the app the default orange color with the preferred team") — the
+     "collected" counter chip, league-board toggle/rank badge, tier filter,
+     and search focus ring all swapped from highlight to team-primary/
+     team-secondary in one pass. The "#1" rank badge (solid fill + fixed
+     text) got text-team-secondary instead of text-page, same near-white-
+     team contrast fix as elsewhere this session. One spot deliberately
+     NOT swapped — see the comment right above the team-strip's completion
+     count span further down. -->
 <div class="max-w-3xl lg:max-w-5xl mx-auto p-4 sm:p-6">
   <a
     routerLink="/inventory"
@@ -8,7 +17,7 @@
   <div class="flex items-center justify-between mt-4 mb-2">
     <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('album.title') }}</h1>
     @if (!loading() && tab() === 'album') {
-      <span class="font-mono text-xs font-bold text-highlight bg-card border-2 border-line rounded-xl px-3 py-1"
+      <span class="font-mono text-xs font-bold text-team-primary bg-card border-2 border-line rounded-xl px-3 py-1"
         >{{ overallOwnedCount() }} / {{ overallTotalCount() }} {{ i18n.t('album.collected') }}</span
       >
     }
@@ -48,7 +57,7 @@
         type="button"
         (click)="selectLeague(null)"
         class="px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors"
-        [ngClass]="!selectedLeagueId() ? 'bg-highlight/10 border-highlight/30 text-highlight' : 'bg-card border-line text-muted'"
+        [ngClass]="!selectedLeagueId() ? 'bg-team-primary/10 border-team-primary/30 text-team-primary' : 'bg-card border-line text-muted'"
       >
         {{ i18n.t('album.globalBoard') }}
       </button>
@@ -75,17 +84,17 @@
               type="button"
               (click)="openEntry(entry)"
               class="w-full flex items-center justify-between gap-3 px-2 py-2 rounded-xl text-left hover:bg-white/5 transition-colors"
-              [ngClass]="{ 'bg-highlight/10': i === 0 }"
+              [ngClass]="{ 'bg-team-primary/10': i === 0 }"
             >
               <div class="flex items-center gap-2 min-w-0">
                 @if (i === 0) {
-                  <span class="font-mono text-[11px] font-bold w-5 h-5 rounded-full bg-highlight text-page flex items-center justify-center shrink-0">1</span>
+                  <span class="font-mono text-[11px] font-bold w-5 h-5 rounded-full bg-team-primary text-team-secondary flex items-center justify-center shrink-0">1</span>
                 } @else {
                   <span class="font-mono text-muted w-5 shrink-0">{{ i + 1 }}</span>
                 }
                 <span class="font-semibold truncate">{{ entry.displayName }}</span>
               </div>
-              <span class="font-mono text-highlight font-bold shrink-0">{{ entry.ownedCount }} / {{ entry.totalCount }}</span>
+              <span class="font-mono text-team-primary font-bold shrink-0">{{ entry.ownedCount }} / {{ entry.totalCount }}</span>
             </button>
           }
         </div>
@@ -178,6 +187,14 @@
           }
           <span class="text-[9px] font-semibold text-center leading-tight truncate w-full">{{ team.name }}</span>
           @if (teamCompletionCounts().get(team.id); as counts) {
+            <!-- Deliberately left on text-highlight, not swapped to
+                 text-team-primary like the rest of this page's 2026-09-18
+                 pass — this card's border/logo-fallback already color
+                 itself from THIS row's own team.primaryColor (see
+                 [style.border-color] above), not the viewer's favorite
+                 team, so team-primary here would misleadingly recolor a
+                 completion count for an arbitrary browsed team as if it
+                 were "your team's" color. -->
             <span
               class="text-[9px] font-mono"
               [class.text-highlight]="team.id === selectedTeamId()"
@@ -281,13 +298,21 @@
 
             <div class="relative w-28 h-28">
               <svg viewBox="0 0 128 128" class="w-full h-full -rotate-90">
+                <!-- stroke="#FF6B35" -> var(--accent-primary) (2026-09-18,
+                     same pass as inventory.html's whole-album ring) — this
+                     ring is the viewer's OWN completion progress for this
+                     one team's set, not a claim about the team's own
+                     identity color, so it's the same "my progress" case as
+                     Inventory's ring, not the team-strip's "which team am I
+                     browsing" case a few hundred lines up (left alone,
+                     see its own comment). -->
                 <circle cx="64" cy="64" r="54" fill="none" stroke="var(--color-line)" stroke-width="10" />
                 <circle
                   cx="64"
                   cy="64"
                   r="54"
                   fill="none"
-                  stroke="#FF6B35"
+                  stroke="var(--accent-primary, #3E7CB1)"
                   stroke-width="10"
                   stroke-linecap="round"
                   stroke-dasharray="339.3"
@@ -312,13 +337,13 @@
                   class="flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-lg border transition-colors"
                   [class.bg-page]="tierFilter() !== row.tier"
                   [class.border-line]="tierFilter() !== row.tier"
-                  [class.bg-highlight/10]="tierFilter() === row.tier"
-                  [class.border-highlight]="tierFilter() === row.tier"
+                  [class.bg-team-primary/10]="tierFilter() === row.tier"
+                  [class.border-team-primary]="tierFilter() === row.tier"
                   [attr.aria-pressed]="tierFilter() === row.tier"
                 >
                   <span class="w-2.5 h-2.5 rounded-full shrink-0" [class]="tierDotClass(row.tier)"></span>
-                  <span class="flex-1 text-left" [class.text-highlight]="tierFilter() === row.tier">{{ i18n.t(tierLabelKey(row.tier)) }}</span>
-                  <span class="font-mono" [class.text-muted]="tierFilter() !== row.tier" [class.text-highlight]="tierFilter() === row.tier"
+                  <span class="flex-1 text-left" [class.text-team-primary]="tierFilter() === row.tier">{{ i18n.t(tierLabelKey(row.tier)) }}</span>
+                  <span class="font-mono" [class.text-muted]="tierFilter() !== row.tier" [class.text-team-primary]="tierFilter() === row.tier"
                     >{{ row.owned }} / {{ row.total }}</span
                   >
                 </button>
@@ -339,7 +364,7 @@
                 <button
                   type="button"
                   (click)="openPreview(item)"
-                  class="w-full rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-highlight"
+                  class="w-full rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-team-primary"
                   [attr.aria-label]="i18n.t('album.previewAriaPrefix') + ' ' + item.name"
                 >
                   <app-collectible-card

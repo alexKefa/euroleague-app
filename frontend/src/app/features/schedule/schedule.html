@@ -111,13 +111,19 @@
               <a
                 [routerLink]="['/games', game.id]"
                 class="flex items-center justify-between gap-3 px-4 py-4 sm:py-3 rounded-2xl shadow-card hover:shadow-pop transition-all"
-                [ngClass]="isFavoriteTeamGame(game) ? 'bg-highlight/10 border border-highlight/30' : 'bg-card border border-line'"
+                [ngClass]="isFavoriteTeamGame(game) ? 'bg-team-primary/10 border border-team-primary/30' : 'bg-card border border-line'"
               >
                 <!-- Mobile: logo on top, name+rank centered below it (flex-col-reverse
                      so the logo — second in DOM, closest to center on desktop —
                      renders visually first without reordering markup). Desktop:
                      back to the original horizontal, right-aligned row. -->
                 <div class="flex flex-col-reverse items-center gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-2 flex-1 min-w-0">
+                  <!-- gameResult() text-highlight below KEPT fixed
+                       (2026-09-18, see game-detail.html's own comment on
+                       the identical pattern) — marks which team WON,
+                       could be either side, not necessarily the viewer's
+                       favorite (that's the row tint above instead, which
+                       DID swap to team-primary). -->
                   <span
                     class="font-semibold text-sm truncate text-center sm:text-right"
                     [class.text-highlight]="gameResult(game) === 'home'"
@@ -212,7 +218,7 @@
         <p class="text-sm text-muted text-center py-8">
           {{ teamFilter() ? i18n.t('schedule.noGamesForTeam') : i18n.t('schedule.noGamesRound') }}
           @if (teamFilter()) {
-            <button type="button" (click)="teamFilter.set(null)" class="text-highlight font-semibold">{{ i18n.t('schedule.clearTeamFilter') }}</button>
+            <button type="button" (click)="teamFilter.set(null)" class="text-team-primary font-semibold">{{ i18n.t('schedule.clearTeamFilter') }}</button>
           }
         </p>
       }

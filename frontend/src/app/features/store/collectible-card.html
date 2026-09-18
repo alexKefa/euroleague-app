@@ -1,7 +1,11 @@
+<!-- ring-highlight -> ring-team-primary (2026-09-18, "change everywhere
+     on the app the default orange color with the preferred team") — a
+     generic "this card is selected" ring (trades/showcase pickers etc.),
+     not tied to the card's own tier styling, so it's fair game. -->
 <div
   class="relative w-full mx-auto rounded-2xl"
   [class.ring-4]="selected"
-  [class.ring-highlight]="selected"
+  [class.ring-team-primary]="selected"
   [style.max-width.px]="maxWidth"
   style="aspect-ratio: 2.5 / 3.5"
 >

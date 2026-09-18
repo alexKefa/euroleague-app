@@ -38,7 +38,7 @@
                 scope="col"
                 (click)="setSort('position')"
                 class="sticky left-0 z-10 bg-card border-b border-line w-1/4 min-w-[7rem] px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
-                [class.text-highlight]="sortKey() === 'position'"
+                [class.text-team-primary]="sortKey() === 'position'"
               >
                 {{ i18n.t('standings.colTeam') }}
                 @if (sortKey() === 'position') {
@@ -50,7 +50,7 @@
                   scope="col"
                   (click)="setSort(col.key)"
                   class="bg-card border-b border-line px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
-                  [class.text-highlight]="sortKey() === col.key"
+                  [class.text-team-primary]="sortKey() === col.key"
                 >
                   {{ i18n.t(col.labelKey) }}
                   @if (sortKey() === col.key) {
@@ -62,6 +62,13 @@
           </thead>
           <tbody>
             @for (row of rows(); track row.team.id) {
+              <!-- bg-highlight/5 (leader) and border-b-highlight (playoff/
+                   play-in cutoff lines) KEPT fixed on purpose (2026-09-18,
+                   "change everywhere on the app the default orange color
+                   with the preferred team") — these mark objective league-
+                   structure facts (who's #1, where the cutoffs fall), not
+                   the viewer's own team, so swapping to team color would
+                   make a competitive threshold look like personalization. -->
               <tr
                 [routerLink]="['/teams', row.team.id]"
                 class="border-t border-line hover:bg-page transition-colors cursor-pointer"
@@ -74,7 +81,7 @@
               >
                 <td class="sticky left-0 z-10 bg-card w-1/4 min-w-[7rem] px-3 py-2 font-bold whitespace-nowrap">
                   <span class="flex items-center gap-2">
-                    <span class="font-mono font-normal w-4 shrink-0 text-right" [class.text-highlight]="sortKey() === 'position'">{{ row.position }}</span>
+                    <span class="font-mono font-normal w-4 shrink-0 text-right" [class.text-team-primary]="sortKey() === 'position'">{{ row.position }}</span>
                     @if (row.team.logoUrl) {
                       <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" class="w-5 h-5 object-contain shrink-0 team-logo" />
                     } @else {
@@ -85,7 +92,7 @@
                   </span>
                 </td>
                 @for (col of columns.slice(1); track col.key) {
-                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-highlight]="sortKey() === col.key">
+                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-team-primary]="sortKey() === col.key">
                     {{ col.format(row) }}
                   </td>
                 }
