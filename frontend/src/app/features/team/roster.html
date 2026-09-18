@@ -89,7 +89,15 @@
           </button>
         </div>
       </div>
-      <div class="overflow-x-auto">
+      <!-- overflow-x-auto -> overflow-auto max-h-[60vh] (2026-09-18, "fix
+           roster as well" — same sticky-header fix just applied to
+           standings.html, see that file's own doc comment for the full
+           history of why a plain sticky thead inside an overflow-x-auto
+           box doesn't work). Deliberately only wraps the table itself, not
+           this whole card — the title/Traditional-Advanced toggle above
+           stays outside the scrollport, always visible, rather than
+           scrolling away with the rows. -->
+      <div class="overflow-auto max-h-[60vh]">
         <!-- text-highlight -> text-team-primary throughout both stat
              tables below (2026-09-18, "change everywhere on the app the
              default orange color with the preferred team") — section
@@ -102,14 +110,14 @@
           @if (statsView() === "traditional") {
             <thead>
               <tr class="text-muted text-[11px] font-bold uppercase tracking-wider border-b border-line">
-                <th class="sticky left-0 z-10 bg-card text-left px-3 py-2.5">{{ i18n.t('roster.colPlayer') }}</th>
-                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colGP') }}</th>
-                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colMIN') }}</th>
-                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colPPG') }}</th>
-                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colRPG') }}</th>
-                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colAPG') }}</th>
-                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colSPG') }}</th>
-                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colPIR') }}</th>
+                <th class="sticky left-0 top-0 z-20 bg-card text-left px-3 py-2.5">{{ i18n.t('roster.colPlayer') }}</th>
+                <th class="sticky top-0 z-10 bg-card text-right px-3 py-2.5">{{ i18n.t('roster.colGP') }}</th>
+                <th class="sticky top-0 z-10 bg-card text-right px-3 py-2.5">{{ i18n.t('roster.colMIN') }}</th>
+                <th class="sticky top-0 z-10 bg-card text-right px-3 py-2.5">{{ i18n.t('roster.colPPG') }}</th>
+                <th class="sticky top-0 z-10 bg-card text-right px-3 py-2.5">{{ i18n.t('roster.colRPG') }}</th>
+                <th class="sticky top-0 z-10 bg-card text-right px-3 py-2.5">{{ i18n.t('roster.colAPG') }}</th>
+                <th class="sticky top-0 z-10 bg-card text-right px-3 py-2.5">{{ i18n.t('roster.colSPG') }}</th>
+                <th class="sticky top-0 z-10 bg-card text-right px-3 py-2.5">{{ i18n.t('roster.colPIR') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -183,14 +191,14 @@
           } @else {
             <thead>
               <tr class="text-muted text-[11px] font-bold uppercase tracking-wider border-b border-line">
-                <th class="sticky left-0 z-10 bg-card text-left px-3 py-2.5">{{ i18n.t('roster.colPlayer') }}</th>
-                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colTS') }}</th>
-                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colEFG') }}</th>
-                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colREB') }}</th>
-                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colAST') }}</th>
-                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colTOV') }}</th>
-                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colPOSS') }}</th>
-                <th class="text-right px-3 py-2.5">{{ i18n.t('roster.colUSG') }}</th>
+                <th class="sticky left-0 top-0 z-20 bg-card text-left px-3 py-2.5">{{ i18n.t('roster.colPlayer') }}</th>
+                <th class="sticky top-0 z-10 bg-card text-right px-3 py-2.5">{{ i18n.t('roster.colTS') }}</th>
+                <th class="sticky top-0 z-10 bg-card text-right px-3 py-2.5">{{ i18n.t('roster.colEFG') }}</th>
+                <th class="sticky top-0 z-10 bg-card text-right px-3 py-2.5">{{ i18n.t('roster.colREB') }}</th>
+                <th class="sticky top-0 z-10 bg-card text-right px-3 py-2.5">{{ i18n.t('roster.colAST') }}</th>
+                <th class="sticky top-0 z-10 bg-card text-right px-3 py-2.5">{{ i18n.t('roster.colTOV') }}</th>
+                <th class="sticky top-0 z-10 bg-card text-right px-3 py-2.5">{{ i18n.t('roster.colPOSS') }}</th>
+                <th class="sticky top-0 z-10 bg-card text-right px-3 py-2.5">{{ i18n.t('roster.colUSG') }}</th>
               </tr>
             </thead>
             <tbody>

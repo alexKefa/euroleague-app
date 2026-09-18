@@ -14,30 +14,41 @@
   @if (loading()) {
     <div class="animate-pulse h-96 rounded-2xl bg-line"></div>
   } @else {
-    <!-- Scroll container is nested one level inside the visual card
-         (border/rounded/shadow on the outer div, overflow-hidden to clip
-         the inner scrollport to those rounded corners), and horizontal-only
-         — same split, same overflow-x-auto, as roster.html's table wrapper,
-         so panning the table only moves the table, not the whole bordered
-         card with it. Deliberately NOT sticky-top (tried twice, reverted
-         twice): a capped overflow-y-auto scrollport made the thead's sticky
-         nest inside the page's own sticky top nav, which WebKit renders
-         with a visible gap on a fast scroll-up and, on mobile, fights the
-         page's own vertical scroll for the gesture ("whole div moving,
-         unmanageable"); dropping the height cap instead just makes
-         overflow-x-auto's implicit overflow-y:auto bind sticky to its own
-         inert scrollport, so it silently never sticks at all. roster.html
-         hit the same wall, which is why it only ever uses `sticky left-0`
-         (for horizontal panning), never `sticky top-0`. -->
-    <div class="rounded-2xl border border-line shadow-card overflow-hidden">
-      <div class="overflow-x-auto">
+    <!-- Sticky header + sticky left column together, both within one
+         self-contained capped-height scrollport (2026-09-18, "table
+         headers on standings are not sticky. teams are but top headers
+         are not").
+         Two real approaches were tried and reverted before this (see git
+         history if curious): (1) a capped overflow-y-auto scrollport whose
+         sticky thead had to coordinate with the PAGE's own sticky top
+         nav — WebKit rendered a visible gap on fast scroll-up, and on
+         mobile the gesture fought the page's own scroll ("whole div
+         moving, unmanageable"); (2) dropping the height cap instead, which
+         just made overflow-x-auto's implicit overflow-y:auto bind sticky
+         to its own inert (never-actually-scrolling) box, so it silently
+         never stuck at all.
+         This is neither of those — it's the same working pattern
+         advanced-stats.html already uses successfully (a single
+         `overflow-auto max-h-[...]` box, not two nested divs split by
+         axis): the table gets its OWN small internal scrollport, entirely
+         independent of the page's scroll and its sticky nav, so there's no
+         cross-context coordination for WebKit to get wrong. The only thing
+         advanced-stats.html didn't need is a sticky LEFT column too — the
+         top-left "Team" header cell below is sticky on BOTH axes at once
+         (`sticky left-0 top-0`) with a higher z-index (z-20 vs. the other
+         sticky cells' z-10) so it stays on top at the corner where a
+         top-sticky header row and a left-sticky body column overlap.
+         roster.html has the identical two-axis structure and hit the same
+         original wall — not touched in this pass since only Standings was
+         reported, but it's a candidate for the same fix later. -->
+    <div class="overflow-auto max-h-[65vh] rounded-2xl border border-line shadow-card">
         <table class="w-full text-sm min-w-[480px] border-collapse">
           <thead>
             <tr class="bg-card">
               <th
                 scope="col"
                 (click)="setSort('position')"
-                class="sticky left-0 z-10 bg-card border-b border-line w-1/4 min-w-[7rem] px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
+                class="sticky left-0 top-0 z-20 bg-card border-b border-line w-1/4 min-w-[7rem] px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
                 [class.text-team-primary]="sortKey() === 'position'"
               >
                 {{ i18n.t('standings.colTeam') }}
@@ -49,7 +60,7 @@
                 <th
                   scope="col"
                   (click)="setSort(col.key)"
-                  class="bg-card border-b border-line px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
+                  class="sticky top-0 z-10 bg-card border-b border-line px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
                   [class.text-team-primary]="sortKey() === col.key"
                 >
                   {{ i18n.t(col.labelKey) }}
@@ -100,7 +111,6 @@
             }
           </tbody>
         </table>
-      </div>
     </div>
   }
 </div>
