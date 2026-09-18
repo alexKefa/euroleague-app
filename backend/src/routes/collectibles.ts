@@ -566,22 +566,40 @@ collectiblesRouter.post("/", requireAuth, requireAdmin, async (req, res) => {
 // handing out a specific card (e.g. as a one-off reward or to fix a
 // support issue), independent of the normal unlock paths (wheel/packs/
 // round rewards).
+// userId instead of email + optional finish (2026-09-18, "add foil
+// legendary to certain account... autofill usernames instead of me typing
+// whole email"): userId comes from the Profile admin form's username/
+// email typeahead (GET /admin/users/search) now, same reasoning as
+// predictions.ts's points/adjust route. finish defaults to "standard" —
+// only a legendary can be granted as "foil", same restriction the real
+// roll mechanic enforces (services/packs.ts's FOIL_CHANCE only ever rolls
+// on a legendary slot); rejecting it here rather than silently ignoring a
+// foil request on a common/rare keeps the admin from thinking it worked
+// when it didn't.
 collectiblesRouter.post("/grant", requireAuth, requireAdmin, async (req, res) => {
-  const { email, collectibleId } = req.body ?? {};
-  if (typeof email !== "string" || typeof collectibleId !== "string") {
-    res.status(400).json({ error: "email and collectibleId are required", code: "INVALID_REQUEST_BODY" });
+  const { userId: targetUserId, collectibleId, finish } = req.body ?? {};
+  if (typeof targetUserId !== "string" || typeof collectibleId !== "string") {
+    res.status(400).json({ error: "userId and collectibleId are required", code: "INVALID_REQUEST_BODY" });
+    return;
+  }
+  if (finish !== undefined && finish !== "standard" && finish !== "foil") {
+    res.status(400).json({ error: "finish must be \"standard\" or \"foil\"", code: "INVALID_FINISH" });
     return;
   }
 
-  const [target] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+  const [target] = await db.select({ id: users.id, username: users.username }).from(users).where(eq(users.id, targetUserId)).limit(1);
   if (!target) {
-    res.status(404).json({ error: "No user with that email", code: "USER_NOT_FOUND" });
+    res.status(404).json({ error: "No user with that id", code: "USER_NOT_FOUND" });
     return;
   }
 
   const [collectible] = await db.select().from(collectibles).where(eq(collectibles.id, collectibleId)).limit(1);
   if (!collectible) {
     res.status(404).json({ error: "Collectible not found", code: "COLLECTIBLE_NOT_FOUND" });
+    return;
+  }
+  if (finish === "foil" && collectible.tier !== "legendary") {
+    res.status(400).json({ error: "Only legendary cards can be granted as foil", code: "FOIL_REQUIRES_LEGENDARY" });
     return;
   }
 
@@ -595,9 +613,9 @@ collectiblesRouter.post("/grant", requireAuth, requireAdmin, async (req, res) =>
     return;
   }
 
-  await db.insert(userCollectibles).values({ userId: target.id, collectibleId });
+  await db.insert(userCollectibles).values({ userId: target.id, collectibleId, finish: finish ?? "standard" });
 
-  res.status(201).json({ email, collectible: { id: collectible.id, name: collectible.name } });
+  res.status(201).json({ username: target.username, collectible: { id: collectible.id, name: collectible.name } });
 });
 
 collectiblesRouter.patch("/:id", requireAuth, requireAdmin, async (req, res) => {
