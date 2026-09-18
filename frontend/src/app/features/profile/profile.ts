@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, ElementRef, viewChild, effect, inject, signal, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { Router, RouterLink } from "@angular/router";
-import { ReactiveFormsModule, FormsModule, FormBuilder, Validators } from "@angular/forms";
+import { FormsModule } from "@angular/forms";
 import { AuthService } from "../../core/auth.service";
 import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
@@ -10,11 +10,10 @@ import { Team, Collectible, CollectibleFinish } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ButtonDirective } from "../../shared/button.directive";
 import { ChipDirective } from "../../shared/chip.directive";
-import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { TeamPickDialogComponent } from "../../shared/team-pick-dialog";
-import { TeamCodePipe, displayTeamCode } from "../../shared/team-display-code";
+import { TeamCodePipe } from "../../shared/team-display-code";
 import { NavIconComponent } from "../../shared/nav-icon";
 
 const MAX_SHOWCASE_CARDS = 3;
@@ -31,12 +30,10 @@ const PAGE_SIZE = 20;
   imports: [
     CommonModule,
     RouterLink,
-    ReactiveFormsModule,
     FormsModule,
     RetryImgDirective,
     ButtonDirective,
     ChipDirective,
-    DropdownComponent,
     CollectibleCardComponent,
     LogoSpinnerComponent,
     TeamPickDialogComponent,
@@ -51,7 +48,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
   protected theme = inject(ThemeService);
   private api = inject(ApiService);
   private router = inject(Router);
-  private fb = inject(FormBuilder);
 
   readonly teams = signal<Team[]>([]);
   // Team picking now goes through the same modal register.ts uses
@@ -162,48 +158,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
     return saved.size !== selected.size || [...selected].some((id) => !saved.has(id));
   });
 
-  // Admin-only tools — collectibles list is only fetched for the grant-a-
-  // card form's dropdown, so there's no point loading it for non-admins.
-  readonly collectibles = signal<Collectible[]>([]);
-  readonly collectibleDropdownOptions = computed<DropdownOption[]>(() =>
-    this.collectibles().map((c) => ({ value: c.id, label: `${c.name} — ${displayTeamCode(c.team.code)} (${c.tier})` }))
-  );
-  readonly teamDropdownOptions = computed<DropdownOption[]>(() =>
-    this.teams().map((t) => ({ value: t.id, label: displayTeamCode(t.code), logoUrl: t.logoUrl }))
-  );
-  readonly tierDropdownOptions = computed<DropdownOption[]>(() => [
-    { value: "common", label: this.i18n.t("store.tierCommon") },
-    { value: "rare", label: this.i18n.t("store.tierRare") },
-    { value: "legendary", label: this.i18n.t("store.tierLegendary") },
-  ]);
-
-  readonly pointsSubmitting = signal(false);
-  readonly pointsError = signal<string | null>(null);
-  readonly pointsSuccess = signal<string | null>(null);
-  readonly pointsForm = this.fb.nonNullable.group({
-    email: ["", [Validators.required, Validators.email]],
-    points: [10, [Validators.required]],
-    reason: ["", [Validators.required]],
-  });
-
-  readonly cardSubmitting = signal(false);
-  readonly cardError = signal<string | null>(null);
-  readonly cardSuccess = signal<string | null>(null);
-  readonly cardForm = this.fb.nonNullable.group({
-    email: ["", [Validators.required, Validators.email]],
-    collectibleId: ["", [Validators.required]],
-  });
-
-  readonly addSubmitting = signal(false);
-  readonly addError = signal<string | null>(null);
-  readonly addForm = this.fb.nonNullable.group({
-    name: ["", [Validators.required]],
-    teamId: ["", [Validators.required]],
-    tier: ["common", [Validators.required]],
-    pointsCost: [50, [Validators.required, Validators.min(1)]],
-    imageUrl: [""],
-  });
-
   constructor() {
     effect(() => {
       const root = this.ownedScrollContainer()?.nativeElement;
@@ -239,10 +193,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.api.getTeams().subscribe({ next: (rows) => this.teams.set(rows), error: () => {} });
 
-    if (this.auth.currentUser()?.isAdmin) {
-      this.refreshCollectibles();
-    }
-
     if (this.auth.isAuthenticated()) {
       this.api.getCollectibles().subscribe({ next: (rows) => this.allCollectibles.set(rows), error: () => {} });
       this.api.getMyCollectibles().subscribe({
@@ -254,10 +204,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
       });
       this.showcaseSelected.set(new Set(this.auth.currentUser()?.showcaseCollectibleIds ?? []));
     }
-  }
-
-  private refreshCollectibles(): void {
-    this.api.getCollectibles().subscribe({ next: (rows) => this.collectibles.set(rows), error: () => {} });
   }
 
   toggleShowcase(collectibleId: string): void {
@@ -307,79 +253,4 @@ export class ProfileComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Backend responses carry a stable `code` alongside their English
-  // `error` text (see trades.ts's tradeErrorMessage() for the original
-  // pattern this mirrors) so the frontend can translate without the
-  // server needing to know about languages at all.
-  private adminErrorMessage(err: unknown, fallbackKey: string): string {
-    const body = (err as { error?: { code?: string; error?: string } } | undefined)?.error;
-    const key = body?.code ? `profile.adminErr.${body.code}` : undefined;
-    const translated = key ? this.i18n.t(key) : undefined;
-    if (translated && translated !== key) return translated;
-    return body?.error ?? this.i18n.t(fallbackKey);
-  }
-
-  submitPointsGrant(): void {
-    if (this.pointsForm.invalid || this.pointsForm.value.points === 0) return;
-    this.pointsSubmitting.set(true);
-    this.pointsError.set(null);
-    this.pointsSuccess.set(null);
-
-    const { email, points, reason } = this.pointsForm.getRawValue();
-    this.api.adjustPoints(email, Number(points), reason).subscribe({
-      next: () => {
-        this.pointsSubmitting.set(false);
-        this.pointsSuccess.set(
-          `${this.i18n.t("profile.grantedPrefix")} ${points} ${this.i18n.t("profile.grantedPointsTo")} ${email}.`
-        );
-        this.pointsForm.patchValue({ email: "", reason: "" });
-      },
-      error: (err) => {
-        this.pointsSubmitting.set(false);
-        this.pointsError.set(this.adminErrorMessage(err, "profile.grantPointsFailed"));
-      },
-    });
-  }
-
-  submitCardGrant(): void {
-    if (this.cardForm.invalid) return;
-    this.cardSubmitting.set(true);
-    this.cardError.set(null);
-    this.cardSuccess.set(null);
-
-    const { email, collectibleId } = this.cardForm.getRawValue();
-    const card = this.collectibles().find((c) => c.id === collectibleId);
-    this.api.grantCard(email, collectibleId).subscribe({
-      next: () => {
-        this.cardSubmitting.set(false);
-        this.cardSuccess.set(
-          `${this.i18n.t("profile.grantedPrefix")} ${card?.name ?? ""} ${this.i18n.t("profile.grantedCardTo")} ${email}.`
-        );
-        this.cardForm.patchValue({ email: "" });
-      },
-      error: (err) => {
-        this.cardSubmitting.set(false);
-        this.cardError.set(this.adminErrorMessage(err, "profile.grantCardFailed"));
-      },
-    });
-  }
-
-  submitAddCollectible(): void {
-    if (this.addForm.invalid) return;
-    this.addSubmitting.set(true);
-    this.addError.set(null);
-
-    const { name, teamId, tier, pointsCost, imageUrl } = this.addForm.getRawValue();
-    this.api.addCollectible(name, teamId, tier, Number(pointsCost), imageUrl || undefined).subscribe({
-      next: () => {
-        this.addSubmitting.set(false);
-        this.addForm.patchValue({ name: "", imageUrl: "" });
-        this.refreshCollectibles();
-      },
-      error: (err) => {
-        this.addSubmitting.set(false);
-        this.addError.set(this.adminErrorMessage(err, "profile.addCollectibleFailed"));
-      },
-    });
-  }
 }

@@ -216,121 +216,13 @@
         <span class="text-muted">&rarr;</span>
       </a>
 
-      <div class="bg-card rounded-lg shadow-card p-4 mb-3">
-        <p class="font-mono text-[12px] text-muted font-bold mb-3">
-          {{ i18n.t('profile.grantPointsTitle') }}
-        </p>
-
-        <form [formGroup]="pointsForm" (ngSubmit)="submitPointsGrant()" class="flex flex-wrap gap-2">
-          <input
-            type="email"
-            formControlName="email"
-            [placeholder]="i18n.t('profile.userEmailPlaceholder')"
-            class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
-          />
-          <input
-            type="number"
-            formControlName="points"
-            [placeholder]="i18n.t('profile.pointsPlaceholder')"
-            class="w-24 px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
-          />
-          <input
-            type="text"
-            formControlName="reason"
-            [placeholder]="i18n.t('profile.reasonPlaceholder')"
-            class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
-          />
-          <button type="submit" [disabled]="pointsForm.invalid || pointsSubmitting()" appButton>
-            {{ pointsSubmitting() ? i18n.t('profile.granting') : i18n.t('profile.grant') }}
-          </button>
-        </form>
-
-        @if (pointsError()) {
-          <p class="text-red-500 text-xs font-semibold mt-2">{{ pointsError() }}</p>
-        }
-        @if (pointsSuccess()) {
-          <p class="text-emerald-500 text-xs font-semibold mt-2">{{ pointsSuccess() }}</p>
-        }
-      </div>
-
-      <div class="bg-card rounded-lg shadow-card p-4">
-        <p class="font-mono text-[12px] text-muted font-bold mb-3">
-          {{ i18n.t('profile.grantCardTitle') }}
-        </p>
-
-        <form [formGroup]="cardForm" (ngSubmit)="submitCardGrant()" class="flex flex-wrap gap-2">
-          <input
-            type="email"
-            formControlName="email"
-            [placeholder]="i18n.t('profile.userEmailPlaceholder')"
-            class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
-          />
-          <app-dropdown
-            class="flex-1 min-w-[10rem]"
-            [options]="collectibleDropdownOptions()"
-            [value]="cardForm.value.collectibleId ?? ''"
-            [placeholder]="i18n.t('profile.collectiblePlaceholder')"
-            (valueChange)="cardForm.patchValue({ collectibleId: $event ?? '' })"
-          />
-          <button type="submit" [disabled]="cardForm.invalid || cardSubmitting()" appButton>
-            {{ cardSubmitting() ? i18n.t('profile.grantingCard') : i18n.t('profile.grantCardButton') }}
-          </button>
-        </form>
-
-        @if (cardError()) {
-          <p class="text-red-500 text-xs font-semibold mt-2">{{ cardError() }}</p>
-        }
-        @if (cardSuccess()) {
-          <p class="text-emerald-500 text-xs font-semibold mt-2">{{ cardSuccess() }}</p>
-        }
-      </div>
-
-      <div class="bg-card rounded-lg shadow-card p-4 mt-3">
-        <p class="font-mono text-[12px] text-muted font-bold mb-3">
-          {{ i18n.t('profile.addCollectibleTitle') }}
-        </p>
-
-        <form [formGroup]="addForm" (ngSubmit)="submitAddCollectible()" class="flex flex-wrap gap-2">
-          <input
-            type="text"
-            formControlName="name"
-            [placeholder]="i18n.t('store.namePlaceholder')"
-            class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
-          />
-          <app-dropdown
-            class="w-28"
-            [options]="teamDropdownOptions()"
-            [value]="addForm.value.teamId ?? ''"
-            [placeholder]="i18n.t('store.teamPlaceholder')"
-            (valueChange)="addForm.patchValue({ teamId: $event ?? '' })"
-          />
-          <app-dropdown
-            class="w-32"
-            [options]="tierDropdownOptions()"
-            [value]="addForm.value.tier ?? 'common'"
-            (valueChange)="addForm.patchValue({ tier: $event ?? 'common' })"
-          />
-          <input
-            type="number"
-            formControlName="pointsCost"
-            [placeholder]="i18n.t('store.pointsPlaceholder')"
-            class="w-24 px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
-          />
-          <input
-            type="text"
-            formControlName="imageUrl"
-            [placeholder]="i18n.t('store.imageUrlPlaceholder')"
-            class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
-          />
-          <button type="submit" [disabled]="addForm.invalid || addSubmitting()" appButton>
-            {{ addSubmitting() ? i18n.t('store.adding') : i18n.t('store.add') }}
-          </button>
-        </form>
-
-        @if (addError()) {
-          <p class="text-red-500 text-xs font-semibold mt-2">{{ addError() }}</p>
-        }
-      </div>
+      <!-- Grant points/grant card/add-collectible forms moved to
+           /admin/tools (2026-09-18, "Maybe since this is an admin tool
+           transfer into admin tools component we added earlier? and the
+           points and the add card below") — same reasoning as the Sync
+           Images button's own move there: general-purpose admin utilities
+           that aren't really "profile settings" belong on the dedicated
+           Tools page, not bolted onto Profile. See admin-tools.ts/.html. -->
     }
 
     <button type="button" (click)="logout()" appButton="outline" class="w-full mt-5">

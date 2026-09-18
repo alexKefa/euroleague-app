@@ -229,8 +229,12 @@ export class ApiService {
     return this.http.post<{ ok: boolean }>(`${API_BASE_URL}/predictions/coach-milestone-rewards/ack`, {});
   }
 
-  adjustPoints(email: string, points: number, reason: string): Observable<unknown> {
-    return this.http.post(`${API_BASE_URL}/predictions/points/adjust`, { email, points, reason });
+  // userId instead of email (2026-09-18, "autofill usernames instead of me
+  // typing whole email") — the admin grant forms resolve a target user via
+  // app-user-search (shared/user-search.ts) now, which already hands back
+  // a real id.
+  adjustPoints(userId: string, points: number, reason: string): Observable<{ username: string }> {
+    return this.http.post<{ username: string }>(`${API_BASE_URL}/predictions/points/adjust`, { userId, points, reason });
   }
 
   // Live in-game "top scorer" prop pick — a separate, free pick from the
@@ -299,8 +303,27 @@ export class ApiService {
     return this.http.get<MyCollectible[]>(`${API_BASE_URL}/collectibles/me`);
   }
 
-  grantCard(email: string, collectibleId: string): Observable<unknown> {
-    return this.http.post(`${API_BASE_URL}/collectibles/grant`, { email, collectibleId });
+  // userId instead of email, plus optional finish (2026-09-18, "add foil
+  // legendary to certain account... autofill usernames instead of me
+  // typing whole email") — see collectibles.ts's own route comment.
+  grantCard(
+    userId: string,
+    collectibleId: string,
+    finish?: "standard" | "foil"
+  ): Observable<{ username: string; collectible: { id: string; name: string } }> {
+    return this.http.post<{ username: string; collectible: { id: string; name: string } }>(
+      `${API_BASE_URL}/collectibles/grant`,
+      { userId, collectibleId, finish }
+    );
+  }
+
+  // Admin username/email typeahead backing app-user-search
+  // (shared/user-search.ts) — see admin.ts's own route comment.
+  searchUsers(q: string): Observable<{ users: { id: string; username: string; email: string }[] }> {
+    return this.http.get<{ users: { id: string; username: string; email: string }[] }>(
+      `${API_BASE_URL}/admin/users/search`,
+      { params: { q } }
+    );
   }
 
   addCollectible(

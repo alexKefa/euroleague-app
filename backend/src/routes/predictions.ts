@@ -596,12 +596,17 @@ predictionsRouter.post("/coach-milestone-rewards/ack", requireAuth, async (req, 
   }
 });
 
+// userId instead of email (2026-09-18, "autofill usernames instead of me
+// typing whole email") — the Profile admin form now resolves a target
+// user through a username/email typeahead (GET /admin/users/search) that
+// already hands back a real id, so there's no reason to make this route
+// re-resolve an email string the admin no longer types by hand.
 predictionsRouter.post("/points/adjust", requireAuth, requireAdmin, async (req, res) => {
-  const { email, points, reason } = req.body ?? {};
-  if (typeof email !== "string" || typeof points !== "number" || !Number.isInteger(points) || points === 0) {
+  const { userId: targetUserId, points, reason } = req.body ?? {};
+  if (typeof targetUserId !== "string" || typeof points !== "number" || !Number.isInteger(points) || points === 0) {
     res
       .status(400)
-      .json({ error: "email and a non-zero integer points are required", code: "INVALID_REQUEST_BODY" });
+      .json({ error: "userId and a non-zero integer points are required", code: "INVALID_REQUEST_BODY" });
     return;
   }
   if (typeof reason !== "string" || reason.trim().length === 0) {
@@ -609,9 +614,9 @@ predictionsRouter.post("/points/adjust", requireAuth, requireAdmin, async (req, 
     return;
   }
 
-  const [target] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+  const [target] = await db.select({ id: users.id, username: users.username }).from(users).where(eq(users.id, targetUserId)).limit(1);
   if (!target) {
-    res.status(404).json({ error: "No user with that email", code: "USER_NOT_FOUND" });
+    res.status(404).json({ error: "No user with that id", code: "USER_NOT_FOUND" });
     return;
   }
 
@@ -620,5 +625,5 @@ predictionsRouter.post("/points/adjust", requireAuth, requireAdmin, async (req, 
     .values({ userId: target.id, points, reason: reason.trim(), createdByUserId: req.userId! })
     .returning();
 
-  res.status(201).json({ ...adjustment, email });
+  res.status(201).json({ ...adjustment, username: target.username });
 });

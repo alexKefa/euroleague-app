@@ -106,8 +106,13 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
   "profile.adminSectionTitle": { en: "Admin tools", el: "Εργαλεία διαχειριστή" },
   "profile.adminUsersLink": { en: "View all users", el: "Προβολή όλων των χρηστών" },
   "profile.adminToolsLink": { en: "Tools", el: "Εργαλεία" },
-  "profile.userEmailPlaceholder": { en: "User email", el: "Email χρήστη" },
+  // Replaces the old "User email" placeholder (2026-09-18, "autofill
+  // usernames instead of me typing whole email") — app-user-search
+  // (shared/user-search.ts) searches by username OR email, so the
+  // placeholder no longer promises only one works.
+  "profile.userSearchPlaceholder": { en: "Search username or email…", el: "Αναζήτηση ονόματος χρήστη ή email…" },
   "profile.grantedPrefix": { en: "Granted", el: "Δόθηκαν" },
+  "profile.foilFinish": { en: "Foil finish", el: "Φινίρισμα foil" },
 
   "profile.grantPointsTitle": { en: "Grant points", el: "Παραχώρηση πόντων" },
   "profile.pointsPlaceholder": { en: "Points", el: "Πόντοι" },
@@ -118,7 +123,10 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
   "profile.grantPointsFailed": { en: "Failed to grant points.", el: "Αποτυχία παραχώρησης πόντων." },
 
   "profile.grantCardTitle": { en: "Grant a card", el: "Παραχώρηση κάρτας" },
-  "profile.collectiblePlaceholder": { en: "Choose a card", el: "Επίλεξε κάρτα" },
+  // "Choose a card" -> "Search cards…" (2026-09-18, "have a search for
+  // players to give not just list") — this now labels a type-to-filter
+  // search input, not a <select>-style dropdown.
+  "profile.collectiblePlaceholder": { en: "Search cards…", el: "Αναζήτηση καρτών…" },
   "profile.grantCardButton": { en: "Grant card", el: "Παραχώρηση κάρτας" },
   "profile.grantingCard": { en: "Granting…", el: "Παραχώρηση…" },
   "profile.grantedCardTo": { en: "to", el: "στον/στην" },

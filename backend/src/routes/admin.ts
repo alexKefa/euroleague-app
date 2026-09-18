@@ -1,12 +1,35 @@
 import { Router } from "express";
-import { sql } from "drizzle-orm";
+import { sql, or, ilike } from "drizzle-orm";
 import { db } from "../db/client.js";
+import { users } from "../db/schema.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
 import { pointsSqlExpr } from "../services/points.js";
 import { topScorerTotalsCte } from "../services/topScorerPoints.js";
 import { syncRosterPhotos, syncCollectibleImages } from "../services/imageSync.js";
 
 export const adminRouter = Router();
+
+// Lightweight username/email typeahead for the Profile page's admin grant
+// forms (2026-09-18, "autofill usernames instead of me typing whole
+// email") — deliberately its own small query rather than reusing GET
+// /users (which joins across predictions/collectibles/point_adjustments
+// for the Users-page KPIs), since a search box firing on every keystroke
+// shouldn't pay for aggregates it never shows. Matches on username OR
+// email substring so an admin who only remembers someone's email can
+// still find them, capped at 8 results — a typeahead, not a full listing.
+adminRouter.get("/users/search", requireAuth, requireAdmin, async (req, res) => {
+  const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  if (q.length === 0) {
+    res.json({ users: [] });
+    return;
+  }
+  const rows = await db
+    .select({ id: users.id, username: users.username, email: users.email })
+    .from(users)
+    .where(or(ilike(users.username, `%${q}%`), ilike(users.email, `%${q}%`)))
+    .limit(8);
+  res.json({ users: rows });
+});
 
 // Read-only overview for the admin "Users" panel — plain roster data
 // (name/email/joined date) plus a few numbers worth knowing at a glance
