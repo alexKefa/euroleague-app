@@ -187,7 +187,32 @@
         routerLink="/admin/users"
         class="flex items-center justify-between bg-card rounded-lg shadow-card p-4 mb-3 hover:bg-page transition-colors"
       >
-        <span class="font-mono text-[12px] font-bold">{{ i18n.t('profile.adminUsersLink') }}</span>
+        <span class="flex items-center gap-2">
+          <app-nav-icon name="user" [size]="16" class="text-muted" />
+          <span class="font-mono text-[12px] font-bold">{{ i18n.t('profile.adminUsersLink') }}</span>
+        </span>
+        <span class="text-muted">&rarr;</span>
+      </a>
+
+      <!-- "Tools" link (2026-09-18, "before pushing on tools of admin add
+           an icon and inside split into an admin-tools component") — the
+           "Sync images" button that used to sit inline on the Users page
+           moved to its own /admin/tools route/component, reached from
+           here the same way Users already is, so general-purpose admin
+           utilities (not tied to any one feature page, unlike e.g.
+           schedule.html's reset-game button) have one growing home
+           instead of getting bolted onto whichever page happened to need
+           the first one. "sliders" reused from analytics-builder's own
+           icon — no dedicated wrench/tools icon exists in nav-icon.ts, and
+           a settings-style slider glyph reads close enough to "tools". -->
+      <a
+        routerLink="/admin/tools"
+        class="flex items-center justify-between bg-card rounded-lg shadow-card p-4 mb-3 hover:bg-page transition-colors"
+      >
+        <span class="flex items-center gap-2">
+          <app-nav-icon name="sliders" [size]="16" class="text-muted" />
+          <span class="font-mono text-[12px] font-bold">{{ i18n.t('profile.adminToolsLink') }}</span>
+        </span>
         <span class="text-muted">&rarr;</span>
       </a>
 

@@ -15,6 +15,7 @@ import { CollectibleCardComponent } from "../store/collectible-card";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { TeamPickDialogComponent } from "../../shared/team-pick-dialog";
 import { TeamCodePipe, displayTeamCode } from "../../shared/team-display-code";
+import { NavIconComponent } from "../../shared/nav-icon";
 
 const MAX_SHOWCASE_CARDS = 3;
 // Matches inventory.ts's own PAGE_SIZE — same "reveal a page at a time"
@@ -40,6 +41,7 @@ const PAGE_SIZE = 20;
     LogoSpinnerComponent,
     TeamPickDialogComponent,
     TeamCodePipe,
+    NavIconComponent,
   ],
   templateUrl: "./profile.html",
 })
