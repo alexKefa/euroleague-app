@@ -80,7 +80,7 @@
         @for (team of teams(); track team.id) {
           <a
             [routerLink]="['/teams', team.id]"
-            class="flex items-center gap-3 p-3 rounded-2xl bg-card border-2 border-line hover:border-highlight/50 shadow-card transition-colors"
+            class="flex items-center gap-3 p-3 rounded-2xl bg-card border-2 border-line hover:border-team-primary/50 shadow-card transition-colors"
           >
             <span class="w-1.5 h-10 rounded-full shrink-0" [style.background]="team.primaryColor"></span>
             @if (team.logoUrl) {

@@ -14,6 +14,14 @@
       <p class="text-sm text-muted mt-1">{{ i18n.t('admin.subtitle') }}</p>
     </div>
 
+    <!-- Most text-highlight/bg-highlight below -> team-primary equivalents
+         (2026-09-18, "change everywhere on the app the default orange
+         color with the preferred team") — KPI stat, chart bars, sort
+         indicators. The per-row ADMIN badge stays fixed highlight though
+         (see its own comment below) — first swapped, then reverted the same
+         pass on a second look: it marks a DIFFERENT user's role in this
+         table, not the viewer's own team, same "role chrome" reasoning the
+         top-bar's own ADMIN badge was already kept fixed for. -->
     @if (loading()) {
       <div class="animate-pulse h-96 rounded-2xl bg-line"></div>
     } @else if (error()) {
@@ -27,7 +35,7 @@
         </div>
         <div class="rounded-xl border border-line bg-card p-3">
           <p class="text-[11px] font-bold uppercase tracking-wider text-muted">{{ i18n.t('admin.kpiToday') }}</p>
-          <p class="font-display text-2xl mt-1 text-highlight">{{ kpis().today }}</p>
+          <p class="font-display text-2xl mt-1 text-team-primary">{{ kpis().today }}</p>
         </div>
         <div class="rounded-xl border border-line bg-card p-3">
           <p class="text-[11px] font-bold uppercase tracking-wider text-muted">{{ i18n.t('admin.kpiWeek') }}</p>
@@ -55,7 +63,7 @@
           <div class="flex items-end gap-[3px] h-28">
             @for (d of chartDays(); track d.date) {
               <div
-                class="flex-1 rounded-t-[2px] bg-highlight/70 hover:bg-highlight transition-colors min-h-[2px]"
+                class="flex-1 rounded-t-[2px] bg-team-primary/70 hover:bg-team-primary transition-colors min-h-[2px]"
                 [style.height.%]="(d.count / chartMax()) * 100"
                 [title]="formatChartDate(d.date) + ': ' + d.count"
               ></div>
@@ -70,7 +78,7 @@
         [value]="search()"
         (input)="search.set($any($event.target).value)"
         [placeholder]="i18n.t('admin.searchPlaceholder')"
-        class="w-full mb-3 px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
+        class="w-full mb-3 px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
       />
       <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-2">
         {{ filteredUsers().length }} / {{ allUsers().length }} {{ i18n.t('admin.usersLabel') }}
@@ -85,7 +93,7 @@
                   scope="col"
                   (click)="setSort('username')"
                   class="sticky left-0 z-10 bg-card border-b border-line min-w-[10rem] px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
-                  [class.text-highlight]="sortKey() === 'username'"
+                  [class.text-team-primary]="sortKey() === 'username'"
                 >
                   {{ i18n.t('admin.colUser') }}
                   @if (sortKey() === 'username') {
@@ -97,7 +105,7 @@
                     scope="col"
                     (click)="setSort(col.key)"
                     class="bg-card border-b border-line px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
-                    [class.text-highlight]="sortKey() === col.key"
+                    [class.text-team-primary]="sortKey() === col.key"
                   >
                     {{ i18n.t(col.labelKey) }}
                     @if (sortKey() === col.key) {
@@ -120,28 +128,37 @@
                     <span class="flex items-center gap-1.5">
                       <span class="truncate">{{ row.username }}</span>
                       @if (row.isAdmin) {
+                        <!-- Reverted to fixed highlight (2026-09-18, second
+                             look right after the swap above) — on
+                             reflection this is the same "role chrome, not
+                             personalization" case as the top-bar's own
+                             ADMIN badge: it marks a DIFFERENT user's role in
+                             this management table, so team-primary here
+                             would just always show the viewer's own team
+                             color next to every admin row regardless of
+                             who's listed — coincidental, not meaningful. -->
                         <span class="text-[9px] font-bold uppercase tracking-wider bg-highlight/15 text-highlight rounded px-1.5 py-0.5 shrink-0">
                           {{ i18n.t('admin.kpiAdmins') }}
                         </span>
                       }
                     </span>
                   </td>
-                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap text-muted" [class.text-highlight]="sortKey() === 'email'">
+                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap text-muted" [class.text-team-primary]="sortKey() === 'email'">
                     {{ row.email }}
                   </td>
-                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-highlight]="sortKey() === 'createdAt'">
+                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-team-primary]="sortKey() === 'createdAt'">
                     {{ formatDate(row.createdAt) }}
                   </td>
-                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-highlight]="sortKey() === 'points'">
+                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-team-primary]="sortKey() === 'points'">
                     {{ row.totalPoints }}
                   </td>
-                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-highlight]="sortKey() === 'cards'">
+                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-team-primary]="sortKey() === 'cards'">
                     {{ row.cardsOwned }}
                   </td>
-                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-highlight]="sortKey() === 'predictions'">
+                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-team-primary]="sortKey() === 'predictions'">
                     {{ row.predictionsMade }}
                   </td>
-                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-highlight]="sortKey() === 'referrals'">
+                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-team-primary]="sortKey() === 'referrals'">
                     {{ row.referralsCount }}
                   </td>
                   <td class="px-3 py-2 font-mono text-right whitespace-nowrap text-muted">

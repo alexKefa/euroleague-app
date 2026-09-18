@@ -11,7 +11,7 @@
       @if (pointsLoading()) {
         <span class="animate-pulse inline-block w-16 h-6 rounded-full bg-line"></span>
       } @else {
-        <span class="font-mono text-xs font-bold text-highlight bg-card border-2 border-line rounded-xl px-3 py-1"
+        <span class="font-mono text-xs font-bold text-team-primary bg-card border-2 border-line rounded-xl px-3 py-1"
           >{{ points() }} {{ i18n.t('packs.pointsBadge') }}</span
         >
       }
@@ -349,6 +349,13 @@
           } @else if (card.collectible.tier === "rare") {
             <p class="rare-label font-display text-lg uppercase tracking-wide mt-5">{{ i18n.t('packs.rareBang') }}</p>
           } @else {
+            <!-- Deliberately kept on text-highlight, not swapped in the
+                 2026-09-18 app-wide team-color pass — foil/coach/rare each
+                 have their own fixed tier-identity color (.foil-label/
+                 .coach-label/.rare-label above), so this common-tier "NEW!"
+                 bang is the 4th member of that same fixed color family, not
+                 a standalone decorative use. Recoloring only this one to
+                 team color would make the common reveal the odd one out. -->
             <p class="text-[12px] font-bold uppercase tracking-wide text-highlight mt-8">{{ i18n.t('packs.newBang') }}</p>
           }
 

@@ -6,7 +6,7 @@
         <span class="animate-pulse inline-block w-16 h-6 rounded-full bg-line"></span>
       } @else {
         <span
-          class="font-mono text-xs font-bold text-highlight bg-card border-2 border-line rounded-xl px-3 py-1"
+          class="font-mono text-xs font-bold text-team-primary bg-card border-2 border-line rounded-xl px-3 py-1"
           >{{ points() }} {{ i18n.t('store.pointsBadge') }}</span
         >
       }
@@ -16,9 +16,9 @@
   @if (auth.isAuthenticated()) {
     <app-page-hint hintId="cards-hub" icon="cards">
       {{ i18n.t('inventory.hintPrefix') }}
-      <a routerLink="/packs" class="text-highlight font-semibold">{{ i18n.t('store.packs') }}</a>
+      <a routerLink="/packs" class="text-team-primary font-semibold">{{ i18n.t('store.packs') }}</a>
       {{ i18n.t('inventory.hintMiddle') }}
-      <a routerLink="/wheel" class="text-highlight font-semibold">{{ i18n.t('store.jumpBall') }}</a>,
+      <a routerLink="/wheel" class="text-team-primary font-semibold">{{ i18n.t('store.jumpBall') }}</a>,
       {{ i18n.t('inventory.hintSuffix') }}
     </app-page-hint>
 
@@ -92,8 +92,8 @@
   } @else if (myBundles().length === 0) {
     <p class="text-sm text-muted">
       {{ i18n.t('inventory.noCardsPrefix') }}
-      <a routerLink="/store" class="text-highlight font-semibold">{{ i18n.t('inventory.storeLinkText') }}</a>
-      {{ i18n.t('inventory.noCardsMiddle') }} <a routerLink="/wheel" class="text-highlight font-semibold">{{ i18n.t('inventory.wheelLinkText') }}</a>.
+      <a routerLink="/store" class="text-team-primary font-semibold">{{ i18n.t('inventory.storeLinkText') }}</a>
+      {{ i18n.t('inventory.noCardsMiddle') }} <a routerLink="/wheel" class="text-team-primary font-semibold">{{ i18n.t('inventory.wheelLinkText') }}</a>.
     </p>
   } @else {
     <!-- Whole-album progress ring (2026-09-12 redesign) — "how much have I
@@ -101,13 +101,19 @@
          active below. -->
     <div class="flex items-center gap-4 rounded-3xl p-4 mb-4 bg-card border border-line shadow-card">
       <svg width="60" height="60" viewBox="0 0 60 60" class="shrink-0" aria-hidden="true">
+        <!-- stroke="#FF6B35" -> var(--accent-primary) (2026-09-18, "change
+             everywhere on the app the default orange color with the
+             preferred team") — an inline SVG stroke, so this hardcoded hex
+             wasn't caught by find/replacing Tailwind's "highlight" classes
+             elsewhere on this page; found sweeping the whole scope for the
+             raw hex afterward. -->
         <circle cx="30" cy="30" r="22" fill="none" stroke="var(--color-line)" stroke-width="7" />
         <circle
           cx="30"
           cy="30"
           r="22"
           fill="none"
-          stroke="#FF6B35"
+          stroke="var(--accent-primary, #3E7CB1)"
           stroke-width="7"
           stroke-linecap="round"
           [attr.stroke-dasharray]="ringCircumference"
@@ -189,7 +195,7 @@
             <button
               type="button"
               (click)="openPreview(bundle)"
-              class="w-full rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-highlight"
+              class="w-full rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-team-primary"
               [attr.aria-label]="i18n.t('inventory.previewAriaPrefix') + ' ' + bundle.name"
             >
               <app-card-stack
@@ -220,7 +226,7 @@
     } @empty {
       <p class="text-sm text-muted">
         {{ i18n.t('inventory.noMatch') }}
-        <button type="button" (click)="clearFilters()" class="text-highlight font-semibold">{{ i18n.t('inventory.clearFilters') }}</button>
+        <button type="button" (click)="clearFilters()" class="text-team-primary font-semibold">{{ i18n.t('inventory.clearFilters') }}</button>
       </p>
     }
 

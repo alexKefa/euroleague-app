@@ -10,13 +10,16 @@ import { Component, EventEmitter, HostBinding, Input, Output, signal } from "@an
 // hover/focus border colors) rather than inventing a new style, plus a
 // leading magnifying-glass icon and a trailing clear button that only
 // appears once there's something to clear.
+// text-highlight/focus:border-highlight -> team-primary equivalents
+// (2026-09-18, "change everywhere on the app the default orange color with
+// the preferred team") — same swap as dropdown.ts's own focus border.
 @Component({
   selector: "app-search-input",
   standalone: true,
   template: `
     <svg
       class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 transition-colors"
-      [class.text-highlight]="focused()"
+      [class.text-team-primary]="focused()"
       [class.text-muted]="!focused()"
       width="15"
       height="15"
@@ -33,7 +36,7 @@ import { Component, EventEmitter, HostBinding, Input, Output, signal } from "@an
       (focus)="focused.set(true)"
       (blur)="focused.set(false)"
       [placeholder]="placeholder"
-      class="search-input-native w-full pl-9 py-2.5 rounded-xl border-2 border-line text-sm font-semibold text-ink placeholder:text-muted placeholder:font-semibold hover:border-[#3a3a3b] focus:border-highlight outline-none transition-colors"
+      class="search-input-native w-full pl-9 py-2.5 rounded-xl border-2 border-line text-sm font-semibold text-ink placeholder:text-muted placeholder:font-semibold hover:border-[#3a3a3b] focus:border-team-primary outline-none transition-colors"
       [class.bg-card]="surface === 'card'"
       [class.bg-page]="surface === 'page'"
       [class.pr-8]="value"

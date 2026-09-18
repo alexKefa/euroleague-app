@@ -1,3 +1,9 @@
+<!-- App-wide highlight -> team-color pass (2026-09-18, "change everywhere
+     on the app the default orange color with the preferred team") — the
+     "#1" leaderboard rank badge, badge count, points, and badge icons all
+     swapped to team-primary/team-secondary. The rank badge (solid fill +
+     fixed text) got text-team-secondary instead of text-page, same
+     near-white-team contrast fix as elsewhere this session. -->
 <div class="max-w-3xl mx-auto p-4 sm:p-6">
   <a
     routerLink="/leagues"
@@ -57,12 +63,12 @@
             type="button"
             (click)="openMember(entry)"
             class="w-full flex items-center justify-between gap-3 px-2 py-2 rounded-xl text-left hover:bg-white/5 transition-colors"
-            [ngClass]="{ 'bg-highlight/10': i === 0 }"
+            [ngClass]="{ 'bg-team-primary/10': i === 0 }"
           >
             <div class="flex items-center gap-2 min-w-0">
               @if (i === 0) {
                 <span
-                  class="font-mono text-[11px] font-bold w-5 h-5 rounded-full bg-highlight text-page flex items-center justify-center shrink-0"
+                  class="font-mono text-[11px] font-bold w-5 h-5 rounded-full bg-team-primary text-team-secondary flex items-center justify-center shrink-0"
                   >1</span
                 >
               } @else {
@@ -70,11 +76,11 @@
               }
               <span class="font-semibold truncate">{{ entry.displayName }}</span>
               @if (entry.badges.length > 0) {
-                <span class="font-mono text-[10px] text-highlight shrink-0">&#9733; {{ entry.badges.length }}</span>
+                <span class="font-mono text-[10px] text-team-primary shrink-0">&#9733; {{ entry.badges.length }}</span>
               }
             </div>
             <div class="text-right shrink-0">
-              <span class="font-mono text-highlight font-bold block">{{ entry.points }} pts</span>
+              <span class="font-mono text-team-primary font-bold block">{{ entry.points }} pts</span>
               <span class="font-mono text-muted text-[12px]">{{ entry.correct }}/{{ entry.total }}</span>
             </div>
           </button>
@@ -108,7 +114,7 @@
             <div class="grid gap-2 mb-4">
               @for (badge of entry.badges; track badge.id) {
                 <div class="flex items-center gap-2 bg-page rounded-xl px-3 py-2">
-                  <app-nav-icon [name]="badgeIcon(badge.id)" [size]="16" class="text-highlight shrink-0" />
+                  <app-nav-icon [name]="badgeIcon(badge.id)" [size]="16" class="text-team-primary shrink-0" />
                   <div class="min-w-0">
                     <p class="text-sm font-semibold">{{ badgeLabel(badge.id) }}</p>
                     <p class="text-[11px] text-muted">{{ badgeDescription(badge.id) }}</p>

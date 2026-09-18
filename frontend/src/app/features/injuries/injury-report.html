@@ -37,7 +37,7 @@
           type="text"
           formControlName="note"
           [placeholder]="i18n.t('injuries.adminNotePlaceholder')"
-          class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
+          class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
         />
         <button type="submit" [disabled]="adminForm.invalid || adminSubmitting()" appButton>
           {{ adminSubmitting() ? i18n.t('injuries.adminSubmitting') : i18n.t('injuries.adminSubmit') }}
@@ -102,7 +102,7 @@
                     type="text"
                     formControlName="note"
                     [placeholder]="i18n.t('injuries.adminNotePlaceholder')"
-                    class="flex-1 min-w-[8rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
+                    class="flex-1 min-w-[8rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
                   />
                   <button
                     type="button"
@@ -150,7 +150,7 @@
                       <button
                         type="button"
                         (click)="startEdit(entry)"
-                        class="text-[11px] text-muted hover:text-highlight font-bold uppercase tracking-wider transition-colors"
+                        class="text-[11px] text-muted hover:text-team-primary font-bold uppercase tracking-wider transition-colors"
                       >
                         {{ i18n.t('injuries.adminEdit') }}
                       </button>

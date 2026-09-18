@@ -96,7 +96,14 @@
                       <app-team-badge [code]="row.game.awayTeam.code" [logoUrl]="row.game.awayTeam.logoUrl" [size]="16"></app-team-badge>
                     </span>
                     <span class="flex items-center gap-2 shrink-0">
-                      <span class="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-highlight/10 text-highlight whitespace-nowrap">
+                      <!-- Was bg-highlight/10 text-highlight, now team-primary
+                           (2026-09-18, "change everywhere on the app the
+                           default orange color with the preferred team") —
+                           this badge names the viewer's OWN predicted team,
+                           so it's personalization-appropriate the same way
+                           the dashboard's "your team" W/L schedule color is;
+                           translucent wash, no contrast risk. -->
+                      <span class="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-team-primary/10 text-team-primary whitespace-nowrap">
                         {{ i18n.t('liveCenter.picked') }} {{ row.prediction.predictedTeam.code | teamCode }}
                       </span>
                       @if (row.game.status === 'live') {
@@ -128,7 +135,7 @@
           } @else {
             <p class="text-sm text-muted font-semibold px-2 py-3">
               {{ i18n.t('liveCenter.noPredictionsPrefix') }}
-              <a routerLink="/predictions" class="text-highlight font-semibold">{{ i18n.t('nav.picks') }}</a>
+              <a routerLink="/predictions" class="text-team-primary font-semibold">{{ i18n.t('nav.picks') }}</a>
               {{ i18n.t('liveCenter.noPredictionsSuffix') }}
             </p>
           }
@@ -167,7 +174,7 @@
                         <span class="font-mono text-[10px] text-muted">{{ row.pointsPerGame | number: '1.1-1' }} {{ i18n.t('liveCenter.ppg') }}</span>
                         <span class="font-mono text-[10px] text-muted">{{ row.reboundsPerGame | number: '1.1-1' }} {{ i18n.t('liveCenter.rpg') }}</span>
                         <span class="font-mono text-[10px] text-muted">{{ row.assistsPerGame | number: '1.1-1' }} {{ i18n.t('liveCenter.apg') }}</span>
-                        <span class="font-mono text-[10px] font-bold text-highlight">{{ row.valuation | number: '1.1-1' }} {{ i18n.t('liveCenter.pir') }}</span>
+                        <span class="font-mono text-[10px] font-bold text-team-primary">{{ row.valuation | number: '1.1-1' }} {{ i18n.t('liveCenter.pir') }}</span>
                       } @else {
                         <span class="font-mono text-[10px] text-muted">{{ i18n.t('liveCenter.noStatsYet') }}</span>
                       }
@@ -208,7 +215,7 @@
           } @else {
             <p class="text-sm text-muted font-semibold px-2 py-3">
               {{ i18n.t('liveCenter.noPollsPrefix') }}
-              <a routerLink="/legendary-vote" class="text-highlight font-semibold">{{ i18n.t('legendaryVote.title') }}</a>
+              <a routerLink="/legendary-vote" class="text-team-primary font-semibold">{{ i18n.t('legendaryVote.title') }}</a>
               {{ i18n.t('liveCenter.noPollsSuffix') }}
             </p>
           }

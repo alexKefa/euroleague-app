@@ -110,8 +110,13 @@
                     <div class="font-mono text-xl font-bold">{{ activeStatLine()!.assistsPerGame | number: "1.1-1" }}</div>
                     <div class="text-[9px] uppercase tracking-wide text-muted mt-0.5">APG</div>
                   </div>
+                  <!-- text-highlight -> text-team-primary (2026-09-18,
+                       "change everywhere on the app the default orange
+                       color with the preferred team") — pure stat-emphasis
+                       typography, same as other per-player number
+                       highlights elsewhere in the app. -->
                   <div>
-                    <div class="font-mono text-xl font-bold text-highlight">{{ activeStatLine()!.valuation | number: "1.1-1" }}</div>
+                    <div class="font-mono text-xl font-bold text-team-primary">{{ activeStatLine()!.valuation | number: "1.1-1" }}</div>
                     <div class="text-[9px] uppercase tracking-wide text-muted mt-0.5">PIR</div>
                   </div>
                 </div>

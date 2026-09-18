@@ -80,6 +80,14 @@ function currentViewportSize(): { width: number; height: number } {
             [style.width.px]="box.width"
             [style.height.px]="box.height"
           ></div>
+          <!-- Deliberately KEPT on the fixed brand orange, not swapped to
+               team-primary (2026-09-18 pass, "change everywhere on the app
+               the default orange color with the preferred team") — this
+               ring spotlights whatever UI element the tour is explaining,
+               which is very often something already team-colored itself
+               (an active tab, a button). A team-colored ring around an
+               already team-colored element would lose contrast right where
+               the tour most needs to draw the eye. -->
           <div
             class="absolute rounded-xl border-2 border-highlight pointer-events-none transition-all duration-300 ease-out"
             [style.top.px]="box.top"

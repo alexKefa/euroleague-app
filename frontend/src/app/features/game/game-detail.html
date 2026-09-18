@@ -40,6 +40,14 @@
           } @else {
             <span class="w-14 h-14 rounded-full" [style.background]="d.game.homeTeam.primaryColor"></span>
           }
+          <!-- text-highlight on gameResult() ===  'home'/'away' below KEPT
+               fixed (2026-09-18 pass, "change everywhere on the app the
+               default orange color with the preferred team") — this marks
+               which team WON this specific game, an objective result that
+               could be either team (not necessarily the viewer's
+               favorite), same reasoning as the "On Fire" indicator and
+               player-compare.html's "who's winning this stat" marker
+               further down this file/elsewhere, both also kept fixed. -->
           <span class="font-bold text-sm text-center truncate w-full" [class.text-highlight]="gameResult() === 'home'">{{
             d.game.homeTeam.name
           }}</span>
@@ -108,7 +116,7 @@
                       class="relative inline-flex rounded-full ring-offset-2 ring-offset-card transition-transform"
                       [class.scale-105]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
                       [class.ring-2]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
-                      [class.ring-highlight]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
+                      [class.ring-team-primary]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
                       [class.opacity-40]="(isTopScorerLocked() && myTopScorerPick()?.predictedPlayer?.id !== c.player.id) || (!!topScorerPickSavingId() && topScorerPickSavingId() !== c.player.id)"
                       [style.width.px]="52"
                       [style.height.px]="52"
@@ -136,7 +144,7 @@
                       class="relative inline-flex rounded-full ring-offset-2 ring-offset-card transition-transform"
                       [class.scale-105]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
                       [class.ring-2]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
-                      [class.ring-highlight]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
+                      [class.ring-team-primary]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
                       [class.opacity-40]="(isTopScorerLocked() && myTopScorerPick()?.predictedPlayer?.id !== c.player.id) || (!!topScorerPickSavingId() && topScorerPickSavingId() !== c.player.id)"
                       [style.width.px]="52"
                       [style.height.px]="52"
@@ -158,7 +166,7 @@
           @if (myTopScorerPick(); as pick) {
             <p class="text-xs font-semibold mt-3">
               {{ i18n.t('topScorer.myPick') }}: {{ pick.predictedPlayer.name }}
-              <span class="font-mono text-highlight">+{{ pick.pointsAtPick }} {{ i18n.t('predictions.pts') }}</span>
+              <span class="font-mono text-team-primary">+{{ pick.pointsAtPick }} {{ i18n.t('predictions.pts') }}</span>
               @if (isFinal() && pick.isCorrect === true) {
                 <span class="text-green-500">— {{ i18n.t('topScorer.correct') }}</span>
               }
@@ -213,13 +221,13 @@
               maxlength="32"
               [value]="d.game.highlightVideoId ?? ''"
               placeholder="YouTube video ID"
-              class="flex-1 min-w-0 px-2 py-1.5 rounded-xl bg-page border-2 border-line text-xs font-semibold focus:border-highlight outline-none"
+              class="flex-1 min-w-0 px-2 py-1.5 rounded-xl bg-page border-2 border-line text-xs font-semibold focus:border-team-primary outline-none"
             />
             <button
               type="button"
               (click)="setHighlight(highlightInput.value)"
               [disabled]="highlightSaving()"
-              class="font-display font-bold text-xs px-3 py-1.5 rounded-xl bg-highlight/15 text-highlight hover:bg-highlight/25 transition-colors disabled:opacity-40"
+              class="font-display font-bold text-xs px-3 py-1.5 rounded-xl bg-team-primary/15 text-team-primary hover:bg-team-primary/25 transition-colors disabled:opacity-40"
             >
               {{ highlightSaving() ? "…" : i18n.t('game.setHighlight') }}
             </button>
@@ -249,7 +257,7 @@
         </p>
 
         @for (side of [{ label: d.game.homeTeam.name, lines: d.boxscore.home }, { label: d.game.awayTeam.name, lines: d.boxscore.away }]; track side.label) {
-          <p class="text-[11px] text-highlight font-bold uppercase tracking-wider mt-3 mb-1.5">{{ side.label }}</p>
+          <p class="text-[11px] text-team-primary font-bold uppercase tracking-wider mt-3 mb-1.5">{{ side.label }}</p>
           <div class="overflow-x-auto">
             <table class="w-full text-xs">
               <thead>
@@ -266,8 +274,12 @@
                 @for (line of side.lines; track line.player.id) {
                   <tr class="border-t border-line">
                     <td class="py-1.5 font-semibold truncate max-w-[9rem]">
-                      <button type="button" (click)="openPlayer(line.player.id)" class="hover:text-highlight transition-colors text-left">
+                      <button type="button" (click)="openPlayer(line.player.id)" class="hover:text-team-primary transition-colors text-left">
                         {{ line.player.name }}
+                        <!-- "On Fire" zap icon KEPT fixed (2026-09-18,
+                             see the gameResult() comment near the top of
+                             this file) — a hot-streak signal about any
+                             player, could be the opponent. -->
                         @if (onFireIds().includes(line.player.id)) {
                           <app-nav-icon name="zap" [size]="14" [title]="i18n.t('game.onFire')" class="inline-block align-text-bottom text-highlight" />
                         }
@@ -277,7 +289,7 @@
                     <td class="text-right font-mono py-1.5 px-1.5">{{ line.points }}</td>
                     <td class="text-right font-mono py-1.5 px-1.5">{{ line.rebounds }}</td>
                     <td class="text-right font-mono py-1.5 px-1.5">{{ line.assists }}</td>
-                    <td class="text-right font-mono font-bold py-1.5 px-1.5 text-highlight">{{ line.valuation }}</td>
+                    <td class="text-right font-mono font-bold py-1.5 px-1.5 text-team-primary">{{ line.valuation }}</td>
                   </tr>
                 }
               </tbody>
@@ -351,13 +363,14 @@
               <span class="font-bold">
                 <span class="font-mono text-muted">{{ i + 1 }}</span
                 >&nbsp;&nbsp;{{ p.player.name }}
+                <!-- On Fire icon KEPT fixed, same reasoning as above. -->
                 @if (onFireIds().includes(p.player.id)) {
                   <app-nav-icon name="zap" [size]="14" [title]="i18n.t('game.onFire')" class="inline-block align-text-bottom text-highlight" />
                 }
               </span>
               <span class="font-mono text-xs text-muted"
                 >{{ p.points }}p / {{ p.rebounds }}r / {{ p.assists }}a &middot;
-                <span class="text-highlight font-bold">{{ p.valuation }} PIR</span></span
+                <span class="text-team-primary font-bold">{{ p.valuation }} PIR</span></span
               >
             </button>
           }
@@ -367,7 +380,7 @@
           <div class="mt-3 pt-3 border-t border-line flex flex-wrap gap-1.5">
             @for (p of d.doubleDoubles; track p.player.id) {
               <span
-                class="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-highlight/10 text-highlight"
+                class="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-team-primary/10 text-team-primary"
               >
                 <app-nav-icon name="flame" [size]="13" />
                 {{ p.player.name }} — {{ i18n.t('game.doubleDouble') }}</span
@@ -520,7 +533,7 @@
         @if (pd.stats; as s) {
           <div class="grid grid-cols-3 gap-2 mt-5 text-center">
             <div>
-              <p class="font-display text-xl text-highlight">{{ fmtNum(s.pointsPerGame) }}</p>
+              <p class="font-display text-xl text-team-primary">{{ fmtNum(s.pointsPerGame) }}</p>
               <p class="text-[10px] text-muted uppercase tracking-wide">{{ i18n.t('roster.colPPG') }}</p>
             </div>
             <div>
@@ -534,7 +547,7 @@
           </div>
           <div class="grid grid-cols-3 gap-2 mt-3 text-center">
             <div>
-              <p class="font-mono font-bold text-highlight">{{ fmtNum(s.valuation) }}</p>
+              <p class="font-mono font-bold text-team-primary">{{ fmtNum(s.valuation) }}</p>
               <p class="text-[10px] text-muted uppercase tracking-wide">{{ i18n.t('roster.colPIR') }}</p>
             </div>
             <div>

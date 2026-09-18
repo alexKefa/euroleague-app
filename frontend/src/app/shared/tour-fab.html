@@ -4,13 +4,20 @@
          wrapper with no explicit width/height of its own (shrink-to-fit
          around the button), same "ring behind the real element" trick as
          the mobile nav's old (since-removed) active-tab treatments. -->
-    <span class="absolute inset-0 rounded-full bg-highlight/60 animate-ping motion-reduce:hidden"></span>
+    <!-- bg-highlight -> bg-team-primary (2026-09-18, "change everywhere on
+         the app the default orange color with the preferred team") —
+         text-white -> text-team-secondary on the solid-fill button is a
+         contrast fix, not cosmetic: a near-white team color (Real Madrid,
+         Dubai Basketball) would make white text unreadable on a solid
+         team-primary fill. The pulsing ring (bg-highlight/60) is a
+         translucent wash, not a fill, so it just swaps color directly. -->
+    <span class="absolute inset-0 rounded-full bg-team-primary/60 animate-ping motion-reduce:hidden"></span>
     <button
       type="button"
       (click)="start()"
-      class="relative flex items-center gap-2 pl-3 pr-4 py-2.5 rounded-full bg-highlight text-white font-display text-sm font-bold shadow-pop hover:brightness-110 active:brightness-95 transition-[filter]"
+      class="relative flex items-center gap-2 pl-3 pr-4 py-2.5 rounded-full bg-team-primary text-team-secondary font-display text-sm font-bold shadow-pop hover:brightness-110 active:brightness-95 transition-[filter]"
     >
-      <app-nav-icon name="compass" [size]="18" class="text-white" />
+      <app-nav-icon name="compass" [size]="18" class="text-team-secondary" />
       {{ i18n.t('tour.takeTour') }}
     </button>
     <button

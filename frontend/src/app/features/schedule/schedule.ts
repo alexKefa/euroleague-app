@@ -194,7 +194,11 @@ export class ScheduleComponent implements OnInit {
   // (2026-09-12) — this page had zero "your team" awareness before, unlike
   // the dashboard's standings list or the album's team focus, even though a
   // fan scanning a round for "when do I play" is exactly what this page is
-  // for. Same bg-highlight/10 tint already used for that purpose elsewhere.
+  // for. Was a bg-highlight/10 tint (the fixed brand orange); switched to
+  // bg-team-primary/10 (2026-09-18, "change everywhere on the app the
+  // default orange color with the preferred team") — this row tint was
+  // always conceptually "your team's color" already, just implemented with
+  // the wrong fixed color until now.
   isFavoriteTeamGame(game: Game): boolean {
     const favoriteTeamId = this.auth.currentUser()?.favoriteTeamId;
     return !!favoriteTeamId && (game.homeTeam.id === favoriteTeamId || game.awayTeam.id === favoriteTeamId);

@@ -1,3 +1,6 @@
+<!-- focus:border-highlight -> focus:border-team-primary, both input focus
+     rings below (2026-09-18, "change everywhere on the app the default
+     orange color with the preferred team"). -->
 <div class="max-w-2xl mx-auto p-4 sm:p-6">
   <h1 class="font-display text-2xl tracking-wide mb-5">{{ i18n.t('leagues.title') }}</h1>
 
@@ -16,7 +19,7 @@
             type="text"
             formControlName="name"
             [placeholder]="i18n.t('leagues.namePlaceholder')"
-            class="flex-1 min-w-0 px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
+            class="flex-1 min-w-0 px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
           />
           <button type="submit" [disabled]="createForm.invalid || creating()" appButton appButtonSize="sm" class="shrink-0">
             {{ creating() ? i18n.t('leagues.creating') : i18n.t('leagues.createButton') }}
@@ -34,7 +37,7 @@
             type="text"
             formControlName="code"
             [placeholder]="i18n.t('leagues.codePlaceholder')"
-            class="flex-1 min-w-0 px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-highlight outline-none"
+            class="flex-1 min-w-0 px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
           />
           <button type="submit" [disabled]="joinForm.invalid || joining()" appButton appButtonSize="sm" class="shrink-0">
             {{ joining() ? i18n.t('leagues.joining') : i18n.t('leagues.joinButton') }}

@@ -74,10 +74,13 @@
 
 /* Desktop scroll arrows over the rail — see the doc comment above them in
    news-stories.html for why these exist only there, not on touch. Just
-   position/size/shadow here — color comes from Tailwind's highlight
-   utilities on the element itself (the app's fixed brand orange, same
-   "Court Line" outline treatment button.directive.ts uses, not the
-   per-team reskin color the story ring's own gradient uses above). */
+   position/size/shadow here — color comes from Tailwind's team-primary
+   utilities on the element itself. Used to be the fixed brand orange
+   (Tailwind's highlight utilities), deliberately distinct from the story
+   ring's own --accent-primary/--accent-secondary gradient above — swapped
+   to team-primary too (2026-09-18, "change everywhere on the app the
+   default orange color with the preferred team"), so both now share the
+   same team-color family instead of contrasting with it. */
 .rail-arrow {
   position: absolute;
   top: 28px; /* centers on the (desktop-only, see .story-ring-inner) 72px ring, not the shorter caption below it */
