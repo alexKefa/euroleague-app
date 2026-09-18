@@ -123,7 +123,13 @@
 
 <div class="flex">
   @if (!hideChrome()) {
-  <!-- Desktop primary nav — icon-only rail, sm and up; labels surface on hover/focus instead of sitting on screen permanently. The bottom tab nav below is mobile-only. -->
+  <!-- Desktop primary nav — icon-only rail, sm and up; labels surface on hover/focus instead of sitting on screen permanently. The bottom tab nav below is mobile-only.
+       Active tab: bg-highlight/15 text-highlight -> bg-team-primary/15
+       text-team-primary (2026-09-18, same pass as fixing the mobile bottom
+       nav's "More" popover) — this rail had the identical stale-brand-color
+       gap the popover did, just never reported until that fix surfaced it:
+       the fixed orange instead of the mobile nav's already-correct
+       text-team-primary. -->
   <nav
     class="hidden sm:flex flex-col items-center shrink-0 w-16 border-r border-line bg-card py-4 gap-2 sticky top-16 h-[calc(100vh-4rem)] z-40"
   >
@@ -138,7 +144,7 @@
         <a
           [routerLink]="link.path"
           [attr.aria-label]="i18n.t(link.label)"
-          [class]="isActive(link) ? 'bg-highlight/15 text-highlight' : 'text-muted hover:text-ink hover:bg-page'"
+          [class]="isActive(link) ? 'bg-team-primary/15 text-team-primary' : 'text-muted hover:text-ink hover:bg-page'"
           class="group absolute left-0 top-0 flex items-center h-11 w-11 hover:w-44 focus-visible:w-44 rounded-full overflow-hidden transition-all duration-200 z-20"
         >
           <span class="relative flex items-center justify-center w-11 h-11 shrink-0">
@@ -279,6 +285,13 @@
     </button>
 
     @if (moreOpen()) {
+      <!-- text-highlight->text-team-primary (2026-09-18, "on bottom menu
+           on more (three dots) active tab should be preferred color") —
+           the "More" trigger button above already used team-primary for
+           its own active state (see [class.text-team-primary] on the
+           button), this popover's own active list item was just missed
+           when that convention was set up (2026-09-17, see the big doc
+           comment above this nav). -->
       <div
         (click)="$event.stopPropagation()"
         class="absolute bottom-full right-0 mb-2 min-w-[9rem] rounded-2xl bg-card border-2 border-line shadow-pop py-1.5 overflow-hidden"
@@ -289,7 +302,7 @@
             (click)="closeMore()"
             [attr.aria-label]="i18n.t(link.label)"
             class="flex items-center gap-2.5 px-3.5 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors"
-            [class.text-highlight]="isActive(link)"
+            [class.text-team-primary]="isActive(link)"
             [class.text-ink]="!isActive(link)"
           >
             <app-nav-icon [name]="link.icon" [active]="isActive(link)" [size]="18" />

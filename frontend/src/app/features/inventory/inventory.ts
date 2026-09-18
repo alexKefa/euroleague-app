@@ -66,23 +66,25 @@ export class InventoryComponent implements OnInit, OnDestroy {
   // comparison over the earlier flat bordered-tile look, which read as too
   // plain) — each tile extends the app's own shared "Scoreboard" button
   // identity (button.directive.ts: solid fill, chunky bottom-border "lip"
-  // that collapses on press) rather than inventing a new tile chrome, just
-  // with its own brand color instead of one shared primary color. Colors
-  // are the same hues the old iconClass-tinting used: highlight is the
-  // brand default, gold matches the wheel's own legendary wedge, emerald
-  // matches the app's existing "unlocked"/"correct" green.
-  protected readonly hubTiles: { path: string; icon: NavIconName; classes: string; labelKey: string }[] = [
-    { path: "/store", icon: "store", classes: "bg-highlight border-b-highlight-dim", labelKey: "store.title" },
-    { path: "/wheel", icon: "wheel", classes: "bg-[#E8B23C] border-b-[#B8862E]", labelKey: "store.jumpBall" },
-    { path: "/packs", icon: "packs", classes: "bg-[#38BDF8] border-b-[#0284C7]", labelKey: "store.packs" },
-    { path: "/trades", icon: "trade", classes: "bg-[#10B981] border-b-[#047857]", labelKey: "store.trades" },
-    { path: "/album", icon: "album", classes: "bg-accent2 border-b-accent2-dim", labelKey: "album.hubTile" },
-    {
-      path: "/legendary-vote",
-      icon: "vote",
-      classes: "bg-[#EF4444] border-b-[#B91C1C]",
-      labelKey: "legendaryVote.hubTile",
-    },
+  // that collapses on press) rather than inventing a new tile chrome.
+  // Originally each tile got its own fixed brand color (highlight/gold/sky/
+  // emerald/purple/red) so Store/Wheel/Packs/Trades/Album/Vote stayed
+  // visually distinct at a glance. Unified to the team accent (2026-09-18,
+  // "looks way off with these colors, does not match our application at
+  // all" — explicit choice among a few options, this one over keeping
+  // per-tile colors or going neutral-with-tinted-icon) — same
+  // bg-team-primary/text-team-secondary pattern the dashboard/fantasy/
+  // predictions/album tab switchers just got fixed to. No more per-tile
+  // `classes` field: every tile now shares one identical color, so the
+  // template applies it directly instead of concatenating a per-tile
+  // string.
+  protected readonly hubTiles: { path: string; icon: NavIconName; labelKey: string }[] = [
+    { path: "/store", icon: "store", labelKey: "store.title" },
+    { path: "/wheel", icon: "wheel", labelKey: "store.jumpBall" },
+    { path: "/packs", icon: "packs", labelKey: "store.packs" },
+    { path: "/trades", icon: "trade", labelKey: "store.trades" },
+    { path: "/album", icon: "album", labelKey: "album.hubTile" },
+    { path: "/legendary-vote", icon: "vote", labelKey: "legendaryVote.hubTile" },
   ];
 
   readonly loading = signal(true);

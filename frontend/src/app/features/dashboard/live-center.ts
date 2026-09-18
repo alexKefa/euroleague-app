@@ -147,9 +147,15 @@ export class LiveCenterComponent implements OnInit {
     this.activeTab.set(tab);
   }
 
+  // Same bg-ink -> team-color swap as dashboard.component.ts's own
+  // tabButtonClass, through the same two corrections the same day (see
+  // that file's own comment for the full reasoning): first highlight (a
+  // fixed brand orange) -> team-primary/team-secondary (the real per-team
+  // accent), then a translucent wash -> the final solid bg-team-primary
+  // text-team-secondary fill, by explicit instruction.
   tabButtonClass(tab: LiveCenterTab): Record<string, boolean> {
     const active = this.activeTab() === tab;
-    return { "bg-ink text-page": active, "text-muted hover:text-ink": !active };
+    return { "bg-team-primary text-team-secondary": active, "text-muted hover:text-team-primary": !active };
   }
 
   ngOnInit(): void {

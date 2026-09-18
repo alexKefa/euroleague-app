@@ -26,19 +26,24 @@
          look — see the comment on hubTiles in inventory.ts for how this
          was picked and why). Same chunky-lip mechanics as the shared
          appButton primary variant (button.directive.ts) — solid fill,
-         3px bottom-border "lip" that collapses on press — just applied
-         per-tile instead of through the directive, since each tile needs
-         its own color rather than the directive's one fixed primary. -->
+         3px bottom-border "lip" that collapses on press.
+         One shared team-colored style now, not a per-tile classes string
+         (2026-09-18, see hubTiles' own comment in inventory.ts) —
+         bg-team-primary/text-team-secondary, same pattern the dashboard/
+         fantasy/predictions/album tab switchers already use. The border-b
+         "lip" has no separate team-primary-dim token to reach for (unlike
+         the old per-tile colors, which each had a hand-picked darker
+         pair), so it reuses team-primary at reduced opacity instead —
+         blended against the page's own dark background this reads as a
+         dimmer shade of the same color, the same effect a dedicated dim
+         token would give. -->
     <div data-tour="cards-hub" class="grid grid-cols-2 sm:grid-cols-6 gap-2 mb-5">
       @for (tile of hubTiles; track tile.path) {
         <a
           [routerLink]="tile.path"
-          [class]="
-            'relative inline-flex flex-col items-center justify-center gap-1 rounded-xl font-display font-bold text-xs text-white px-2 py-2 border-b-[3px] transition-all duration-150 active:duration-100 hover:brightness-110 active:brightness-95 active:translate-y-[3px] active:border-b-0 ' +
-            tile.classes
-          "
+          class="relative inline-flex flex-col items-center justify-center gap-1 rounded-xl font-display font-bold text-xs text-team-secondary px-2 py-2 border-b-[3px] border-b-team-primary/60 bg-team-primary transition-all duration-150 active:duration-100 hover:brightness-110 active:brightness-95 active:translate-y-[3px] active:border-b-0"
         >
-          <app-nav-icon [name]="tile.icon" [size]="16" class="text-white" />{{ i18n.t(tile.labelKey) }}
+          <app-nav-icon [name]="tile.icon" [size]="16" class="text-team-secondary" />{{ i18n.t(tile.labelKey) }}
           @if (tile.path === '/trades' && trades.pendingIncomingCount() > 0) {
             <span
               class="absolute -top-1.5 -right-1.5 min-w-[1.25rem] h-5 px-1 rounded-full bg-red-500 text-white text-[11px] font-bold flex items-center justify-center leading-none border-2 border-page"
@@ -47,8 +52,16 @@
             >
           }
           @if (tile.path === '/packs' && unopenedPackCount() > 0) {
+            <!-- text-[#0284C7] (the old Packs tile's own fixed sky-blue)
+                 replaced with text-highlight (2026-09-18, same pass) — that
+                 hex referenced a per-tile color that no longer exists, and
+                 team-primary isn't safe to reuse on a fixed bg-white pill
+                 for the same reason it isn't used for tile text directly
+                 (a near-white team color, e.g. Real Madrid, would vanish
+                 against it) — highlight is a fixed brand color for exactly
+                 this "always readable regardless of team/theme" case. -->
             <span
-              class="absolute -top-1.5 -right-1.5 min-w-[1.25rem] h-5 px-1 rounded-full bg-white text-[#0284C7] text-[11px] font-bold flex items-center justify-center leading-none border-2 border-page"
+              class="absolute -top-1.5 -right-1.5 min-w-[1.25rem] h-5 px-1 rounded-full bg-white text-highlight text-[11px] font-bold flex items-center justify-center leading-none border-2 border-page"
               [attr.aria-label]="i18n.t('inventory.unopenedPacks')"
               >{{ unopenedPackCount() }}</span
             >
