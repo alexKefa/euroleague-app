@@ -75,6 +75,22 @@ export const FANTASY_BUDGET_CAP = 100;
 export const FANTASY_MIN_PRICE = 4;
 export const FANTASY_MAX_PRICE = 17;
 
+// A player with zero usable PIR at all (no games this season or any prior
+// one — a true rookie or a signing new to EuroLeague, e.g. an NBA/other-
+// league transfer) used to floor at the flat FANTASY_MIN_PRICE here, same
+// as a genuine deep-bench player. Calibrated 2026-09-18 against real
+// EuroLeague Fantasy (Dunkest) quotations, via a one-time authenticated
+// pull from a personal account (not a standing sync — see CLAUDE.md):
+// FANTASY_MIN_PRICE (4) and FANTASY_PIR_CEILING_FLOOR's 17-credit anchor
+// both came back exactly right, but of 71 real players our formula floored
+// at 4, only about half are genuinely priced near the real floor — the
+// rest are exactly this "no EuroLeague history yet" group, which the real
+// market prices on reputation/expected role instead (e.g. Valančiūnas,
+// a marquee signing with no recent EuroLeague stats on file, real-priced
+// 15.5 vs our 4 before this fix). That group's real prices had a median of
+// 5.7 and a mean of 6.45 — this constant is that evidence, not a guess.
+export const FANTASY_NO_DATA_PRICE = 6;
+
 // --- Fantasy Five draft-price formula (scripts/reprice-fantasy-players.ts) ---
 //
 // v1 (the original build) priced a player off nothing but their season-long
@@ -179,11 +195,11 @@ export function computeRawFantasyValue(input: FantasyPriceInput): number | null 
  * dynamic re-anchor point (defaults to the original fixed calibration,
  * FANTASY_PIR_CEILING_FLOOR, for any caller that doesn't pass one — e.g. a
  * one-off/test call with no whole-pool context to compute a real ceiling
- * from). Returns FANTASY_MIN_PRICE for a player with no usable PIR at all.
+ * from). Returns FANTASY_NO_DATA_PRICE for a player with no usable PIR at all.
  */
 export function computeFantasyPrice(input: FantasyPriceInput, ceiling: number = FANTASY_PIR_CEILING_FLOOR): number {
   const raw = computeRawFantasyValue(input);
-  if (raw === null) return FANTASY_MIN_PRICE;
+  if (raw === null) return FANTASY_NO_DATA_PRICE;
 
   const scaled = FANTASY_MIN_PRICE + (raw / ceiling) * (FANTASY_MAX_PRICE - FANTASY_MIN_PRICE);
   // Rounded to the nearest 0.1 credit, not a whole number (2026-09-06) —
