@@ -186,7 +186,7 @@
                 type="button"
                 (click)="picksTab.set('winLoss')"
                 class="px-3 py-1.5 rounded-lg font-mono text-[11px] font-bold whitespace-nowrap transition-colors"
-                [ngClass]="picksTab() === 'winLoss' ? 'bg-ink text-page' : 'text-muted hover:text-ink'"
+                [ngClass]="picksTab() === 'winLoss' ? 'bg-team-primary text-team-secondary' : 'text-muted hover:text-team-primary'"
               >
                 {{ i18n.t('predictions.tabWinLoss') }}
               </button>
@@ -194,7 +194,7 @@
                 type="button"
                 (click)="picksTab.set('topScorer')"
                 class="px-3 py-1.5 rounded-lg font-mono text-[11px] font-bold whitespace-nowrap transition-colors"
-                [ngClass]="picksTab() === 'topScorer' ? 'bg-ink text-page' : 'text-muted hover:text-ink'"
+                [ngClass]="picksTab() === 'topScorer' ? 'bg-team-primary text-team-secondary' : 'text-muted hover:text-team-primary'"
               >
                 {{ i18n.t('predictions.tabTopScorer') }}
               </button>

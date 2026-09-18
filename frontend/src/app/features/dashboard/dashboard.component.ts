@@ -222,12 +222,37 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   // Segmented-control styling (2026-09-12 redesign) — the active segment
-  // fills solid (bg-ink), matching Material 3's segmented button, rather
-  // than the old separate pill buttons' bg-highlight treatment (which read
-  // as its own floating button, not one joined control).
+  // fills solid, matching Material 3's segmented button, rather than the
+  // old separate pill buttons' bg-highlight treatment (which read as its
+  // own floating button, not one joined control). That pass filled the
+  // active segment with bg-ink (a flat white/black pill) specifically to
+  // avoid re-triggering that floating-button look.
+  // 2026-09-18: first swapped bg-ink for bg-highlight text-white, then
+  // corrected the same day ("i meant this colors not to be our main color.
+  // but preffered color for team preference") — highlight is explicitly a
+  // FIXED brand orange (tailwind.config.js: "stays a fixed brand color on
+  // purpose — it shouldn't shift between themes"), not the per-team color
+  // at all. The actual team accent is team-primary/team-secondary (backed
+  // by --accent-primary/--accent-secondary, ThemeService.applyTeam) — same
+  // variable app.component.html's own nav already uses for exactly this
+  // ask (see its "Active color is the user's own team accent... not the
+  // fixed brand highlight orange" comment, 2026-09-17, an near-identical
+  // prior request for the nav specifically).
+  // First tried a translucent bg-team-primary/15 + text-team-primary wash
+  // (matching app.component.html's profile nav icon) instead of a solid
+  // fill, specifically to dodge a contrast risk: a team's primary color can
+  // be near-white (Real Madrid, Dubai Basketball — both documented in
+  // CLAUDE.md as white-primary-kit teams), which would make fixed-white
+  // text on a solid fill unreadable for those teams. Overridden the same
+  // day by explicit instruction ("main color should be background and
+  // secondary font") — solid bg-team-primary + text-team-secondary instead
+  // of a wash. This actually addresses the same contrast concern a
+  // different way: secondary is each team's own chosen trim/contrast color
+  // (see CLAUDE.md's team-colors note), not a fixed white, so it's
+  // generally chosen to read against that team's own primary already.
   tabButtonClass(tab: DashboardTab): Record<string, boolean> {
     const active = this.activeTab() === tab;
-    return { "bg-ink text-page": active, "text-muted hover:text-ink": !active };
+    return { "bg-team-primary text-team-secondary": active, "text-muted hover:text-team-primary": !active };
   }
 
   ngOnInit(): void {

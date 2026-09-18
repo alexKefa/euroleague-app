@@ -17,21 +17,26 @@
   <!-- Segmented control (2026-09-12, matching the dashboard's tab switcher)
        — one joined tonal track instead of two separate solid pill buttons,
        so this page's own tab switch reads consistently with the rest of
-       the app rather than its own one-off treatment. -->
+       the app rather than its own one-off treatment.
+       Resized + recolored (2026-09-18, same pass as fantasy.html's
+       identical fix) — text-sm px-4 -> text-[11px] font-mono px-3 to match
+       dashboard.component.ts's own segmented control, and bg-ink ->
+       bg-team-primary/text-team-secondary (see dashboard.component.ts's
+       tabButtonClass comment for the full color reasoning). -->
   <div class="flex gap-1 mb-4 bg-page rounded-2xl p-1">
     <button
       type="button"
       (click)="setTab('album')"
-      class="flex-1 px-4 py-2 rounded-xl text-sm font-bold transition-colors"
-      [ngClass]="tab() === 'album' ? 'bg-ink text-page' : 'text-muted hover:text-ink'"
+      class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold transition-colors"
+      [ngClass]="tab() === 'album' ? 'bg-team-primary text-team-secondary' : 'text-muted hover:text-team-primary'"
     >
       {{ i18n.t('album.albumTab') }}
     </button>
     <button
       type="button"
       (click)="setTab('leaderboard')"
-      class="flex-1 px-4 py-2 rounded-xl text-sm font-bold transition-colors"
-      [ngClass]="tab() === 'leaderboard' ? 'bg-ink text-page' : 'text-muted hover:text-ink'"
+      class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold transition-colors"
+      [ngClass]="tab() === 'leaderboard' ? 'bg-team-primary text-team-secondary' : 'text-muted hover:text-team-primary'"
     >
       {{ i18n.t('album.leaderboardTab') }}
     </button>

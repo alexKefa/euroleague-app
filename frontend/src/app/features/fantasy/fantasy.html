@@ -10,21 +10,31 @@
   <!-- Segmented control (2026-09-12, matching the dashboard's/album's/
        predictions' tab switchers) — one joined tonal track instead of two
        separate solid pill buttons, for consistency with the rest of the
-       app's tab switches. -->
+       app's tab switches.
+       Resized + recolored (2026-09-18, "the group button on top is bigger
+       than expected. also does not match this pattern of colors") — was
+       text-sm px-4 (14px text, wider padding), now text-[11px] font-mono
+       px-3 to match dashboard.component.ts's own segmented control exactly
+       rather than running its own larger scale. Color follows the same
+       bg-ink -> bg-team-primary/text-team-secondary fix already applied to
+       the dashboard's two tab groups (see dashboard.component.ts's
+       tabButtonClass comment for the full reasoning) — this one had been
+       missed since it's driven by inline ngClass here, not a shared
+       function. -->
   <div class="flex gap-1 mb-5 bg-page rounded-2xl p-1">
     <button
       type="button"
       (click)="setTab('roster')"
-      class="flex-1 px-4 py-2 rounded-xl text-sm font-bold transition-colors"
-      [ngClass]="tab() === 'roster' ? 'bg-ink text-page' : 'text-muted hover:text-ink'"
+      class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold transition-colors"
+      [ngClass]="tab() === 'roster' ? 'bg-team-primary text-team-secondary' : 'text-muted hover:text-team-primary'"
     >
       {{ i18n.t('fantasy.rosterTab') }}
     </button>
     <button
       type="button"
       (click)="setTab('leaderboard')"
-      class="flex-1 px-4 py-2 rounded-xl text-sm font-bold transition-colors"
-      [ngClass]="tab() === 'leaderboard' ? 'bg-ink text-page' : 'text-muted hover:text-ink'"
+      class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold transition-colors"
+      [ngClass]="tab() === 'leaderboard' ? 'bg-team-primary text-team-secondary' : 'text-muted hover:text-team-primary'"
     >
       {{ i18n.t('fantasy.leaderboardTab') }}
     </button>
