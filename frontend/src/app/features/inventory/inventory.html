@@ -79,16 +79,50 @@
       <a routerLink="/login" appButton appButtonSize="sm">{{ i18n.t('inventory.logInLinkText') }}</a>
     </div>
   } @else if (loading()) {
-    <div class="flex flex-wrap gap-2 mb-4">
-      <div class="animate-pulse flex-1 min-w-[10rem] h-10 rounded-xl bg-line"></div>
-      <div class="animate-pulse w-28 h-10 rounded-full bg-line"></div>
+    <!-- Rewritten (2026-09-18) to mirror the real loaded layout below —
+         the album progress-ring card, the search+team-filter row, the
+         tier chip row (desktop) / dropdown (mobile), then team-grouped
+         rows each with their own header and a horizontal run of
+         card-shaped placeholders — instead of the old flat 2/3-col grid,
+         which didn't resemble any of this once real data arrives. -->
+    <div class="flex items-center gap-4 rounded-3xl p-4 mb-4 bg-card border border-line shadow-card">
+      <app-skeleton class="w-[60px] h-[60px] rounded-full shrink-0" [icon]="false" />
+      <div class="flex-1 space-y-2">
+        <app-skeleton class="h-5 w-24 rounded" [icon]="false" />
+        <app-skeleton class="h-3 w-32 rounded" [icon]="false" />
+      </div>
     </div>
-    <div class="animate-pulse inline-flex bg-line rounded-full h-9 w-64 mb-4"></div>
-    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-      @for (i of [1, 2, 3, 4, 5, 6]; track i) {
-        <app-skeleton class="rounded-2xl" style="aspect-ratio: 2.5 / 3.5" [iconSize]="24" />
+
+    <div class="flex flex-wrap gap-2 mb-4">
+      <app-skeleton class="flex-1 min-w-[10rem] h-10 rounded-xl" [icon]="false" />
+      <app-skeleton class="flex-1 min-w-[10rem] h-10 rounded-xl" [icon]="false" />
+    </div>
+
+    <app-skeleton class="sm:hidden h-10 rounded-xl mb-4" [icon]="false" />
+    <div class="hidden sm:flex bg-card border-2 border-line rounded-2xl p-1 gap-1 mb-4">
+      @for (i of [1, 2, 3, 4, 5]; track i) {
+        <app-skeleton class="h-7 w-16 rounded-xl" [icon]="false" />
       }
     </div>
+
+    @for (i of [1, 2]; track i) {
+      <div class="flex items-center gap-2.5 mb-2">
+        <app-skeleton class="w-8 h-8 rounded-full shrink-0" [icon]="false" />
+        <div class="flex-1 min-w-0 space-y-1.5">
+          <app-skeleton class="h-3 w-32 rounded" [icon]="false" />
+          <app-skeleton class="h-[3px] w-full rounded-full" [icon]="false" />
+        </div>
+        <app-skeleton class="h-3 w-10 rounded shrink-0" [icon]="false" />
+      </div>
+      <div class="flex gap-3 mb-5">
+        @for (j of [1, 2, 3, 4]; track j) {
+          <div class="flex flex-col items-center gap-1.5 shrink-0" [style.width.px]="cardRenderWidth">
+            <app-skeleton class="w-full rounded-2xl" style="aspect-ratio: 2.5 / 3.5" [iconSize]="20" />
+            <app-skeleton class="h-3 w-16 rounded" [icon]="false" />
+          </div>
+        }
+      </div>
+    }
   } @else if (myBundles().length === 0) {
     <p class="text-sm text-muted">
       {{ i18n.t('inventory.noCardsPrefix') }}
