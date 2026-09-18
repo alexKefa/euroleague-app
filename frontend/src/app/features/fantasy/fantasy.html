@@ -272,6 +272,16 @@
             @if (!isCurrentRound()) {
               <span class="min-w-0 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-page text-muted truncate" [title]="i18n.t('fantasy.pastRound')">{{ i18n.t('fantasy.pastRound') }}</span>
             }
+            <!-- "Day X/Y" (2026-09-18) — mirrors the real EuroLeague Fantasy
+                 Challenge's own header (checked live), which shows which of
+                 the round's match days ("ΗΜΕΡΑ") is current, out of how many
+                 the round actually has (2 for a normal round, more for a
+                 compressed double week). flex-shrink-0 for the same reason
+                 the "past round" badge next to it needs it — this row is
+                 already tight on a phone. -->
+            @if (roundDayInfo(); as day) {
+              <span class="min-w-0 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-page text-muted truncate flex-shrink-0">{{ i18n.t('fantasy.dayAbbrev') }} {{ day.current }}/{{ day.total }}</span>
+            }
           </div>
           <!-- else-if, not two independent @ifs — both used to be able to
                render at once (a live game AND the "Fixtures" button doing
@@ -592,7 +602,7 @@
                       [disabled]="autoFilling()"
                       [attr.aria-label]="i18n.t('fantasy.autoFillSquad')"
                       [title]="i18n.t('fantasy.autoFillSquad')"
-                      class="flex items-center justify-center w-9 h-9 rounded-full bg-page text-ink border border-line shadow-card hover:text-team-primary hover:border-team-primary transition-colors disabled:opacity-40"
+                      class="flex items-center justify-center w-9 h-9 rounded-full bg-page text-highlight border border-line shadow-card hover:text-highlight-dim hover:border-highlight transition-colors disabled:opacity-40"
                     >
                       @if (autoFilling()) {
                         <app-logo-spinner [size]="16" />
@@ -601,21 +611,41 @@
                       }
                     </button>
                   }
-                  <!-- Round-lock "buzzer" (2026-09-10) — replaces the plain
-                       text deadline line that used to sit in the status bar
-                       above; same lockAt()/roundLocked() state, with the
-                       full date/time only in the tooltip. -->
+                  <!-- Round-lock "buzzer" (2026-09-10, days-countdown text +
+                       green/red status color 2026-09-18) — replaces the
+                       plain text deadline line that used to sit in the
+                       status bar above; same lockAt()/roundLocked() state.
+                       Visible text + color now mirror the real EuroLeague
+                       Fantasy Challenge's own header (checked live): a
+                       vivid green "ΑΝΟΙΚ. ΜΕΤΑΓΡΑΦΕΣ / 6 ΗΜΕΡΕΣ" pill while
+                       open, same red-when-locked this badge already had.
+                       The neutral bg-page/border style it used to use for
+                       the open state read as too low-contrast ("black")
+                       against the court/status cards. Full date/time is
+                       still one tap/hover away in the tooltip. Label
+                       hidden below sm: — "Ανοικτές μεταγραφές" is long
+                       enough to threaten this already-tight row on
+                       mobile (see the auto-fill/simulate buttons right
+                       next to it), so a phone gets just the day count. -->
                   @if (lockAt()) {
                     <div
                       class="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-mono font-bold shadow-card"
-                      [ngClass]="roundLocked() ? 'bg-red-500/90 text-white' : 'bg-page text-ink border border-line'"
+                      [ngClass]="roundLocked() ? 'bg-red-500/90 text-white' : 'bg-emerald-500/90 text-white'"
                       [attr.title]="roundLocked() ? i18n.t('fantasy.locked') : (i18n.t('fantasy.lockCountdown') + ' ' + (lockAt() | date: gameDateTimeFormat():'Europe/Athens':dateLocale()))"
                     >
-                      <app-nav-icon name="bell" [size]="12" [active]="roundLocked()" />
                       @if (roundLocked()) {
                         {{ i18n.t('fantasy.locked') }}
+                      } @else if (daysUntilLock() === 0) {
+                        {{ i18n.t('fantasy.locksToday') }}
                       } @else {
-                        {{ lockAt() | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}
+                        <!-- Raw inline SVG (2026-09-18), not the shared
+                             app-nav-icon "bell" case — that one read wrong
+                             sitting this small on a solid color pill. -->
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" class="shrink-0" aria-hidden="true">
+                          <path d="M18 8.5a6 6 0 0 0-12 0c0 6.5-2.5 8.5-2.5 8.5h17s-2.5-2-2.5-8.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                          <path d="M13.7 21a2 2 0 0 1-3.4 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                        <span class="hidden sm:inline">{{ i18n.t('fantasy.transfersOpen') }}&nbsp;&middot;&nbsp;</span>{{ daysUntilLock() }} {{ i18n.t('fantasy.daysWord') }}
                       }
                     </div>
                   }

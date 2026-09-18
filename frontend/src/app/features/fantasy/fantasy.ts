@@ -519,6 +519,56 @@ export class FantasyComponent implements OnInit {
     return lockAt !== null && new Date(lockAt).getTime() <= Date.now();
   });
 
+  // --- Round "Day X/Y" + transfer-window countdown (2026-09-18) — mirrors
+  // the real EuroLeague Fantasy Challenge's own header info (checked live
+  // against euroleaguefantasy.euroleaguebasketball.net: a "1 ▾ / ΓΥΡΟΣ",
+  // "1/2 / ΗΜΕΡΑ", "ΑΝΟΙΚ. ΜΕΤΑΓΡΑΦΕΣ / 6 ΗΜΕΡΕΣ" header row). A round
+  // spans one calendar day per match day — 2 for a normal round, more for
+  // a compressed "double" week — and a "closes in N days" countdown reads
+  // better than a raw date once you're more than a day out, same
+  // motivation as the "buzzer" badge below already had for showing
+  // "Locked" instead of a stale past date. Both derived from
+  // fixtureGames()/lockAt(), no new backend data needed. Calendar days are
+  // computed in Europe/Athens (the league's own reference tz, same as
+  // every other date on this page) rather than the browser's local tz, so
+  // the count doesn't shift by one near a midnight boundary for a viewer
+  // elsewhere.
+  private athensDateKey(iso: string): string {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Athens", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(iso));
+  }
+
+  readonly roundDayInfo = computed<{ current: number; total: number } | null>(() => {
+    const games = this.fixtureGames();
+    if (games.length === 0) return null;
+    const byDate = new Map<string, Game[]>();
+    for (const g of games) {
+      const key = this.athensDateKey(g.tipoffAt);
+      const arr = byDate.get(key);
+      if (arr) arr.push(g);
+      else byDate.set(key, [g]);
+    }
+    const dateKeys = [...byDate.keys()].sort();
+    // "Current" day = the first day not yet fully final; once every day
+    // is final, pin to the last day rather than falling off the end (a
+    // completed round should still read e.g. "2/2", not revert to "1/2").
+    let current = dateKeys.length;
+    for (let i = 0; i < dateKeys.length; i++) {
+      if (byDate.get(dateKeys[i])!.some((g) => g.status !== "final")) {
+        current = i + 1;
+        break;
+      }
+    }
+    return { current, total: dateKeys.length };
+  });
+
+  readonly daysUntilLock = computed<number | null>(() => {
+    const lockAt = this.lockAt();
+    if (lockAt === null) return null;
+    const today = new Date(this.athensDateKey(new Date().toISOString()) + "T00:00:00Z").getTime();
+    const lock = new Date(this.athensDateKey(lockAt) + "T00:00:00Z").getTime();
+    return Math.max(0, Math.round((lock - today) / 86400000));
+  });
+
   // Per-player PIR for this round's live/final games, fetched from the
   // same per-game box score the game-detail page already reads
   // (GET /games/:id — routes/games.ts computes it for status "live" too,

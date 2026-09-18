@@ -35,6 +35,23 @@ export const FANTASY_POSITION_QUOTA: Record<"Guard" | "Forward" | "Center", numb
   Forward: 4,
   Center: 2,
 };
+
+// Mirrors frontend/src/app/features/fantasy/fantasy.ts's FORMATION_POSITIONS
+// count vectors (2-2-1/2-1-2/3-1-1/1-2-2/1-3-1) — the 5 on-court shapes a
+// valid 5-starter group can take. The backend has no formation concept of
+// its own (slotRole is just "starter"/"sixth_man"/"bench", never a specific
+// court slot — see saveFantasyLineup's doc comment), but autoFillFantasySquad
+// still needs this to guarantee its randomly-picked starters actually form
+// one of these shapes, rather than an arbitrary 5-of-10 split that might
+// match none of them. Keep in sync with the frontend list by hand if a
+// formation is ever added/removed there.
+const FANTASY_FORMATION_VECTORS: Record<"Guard" | "Forward" | "Center", number>[] = [
+  { Guard: 2, Forward: 2, Center: 1 }, // 2-2-1
+  { Guard: 2, Forward: 1, Center: 2 }, // 2-1-2
+  { Guard: 3, Forward: 1, Center: 1 }, // 3-1-1
+  { Guard: 1, Forward: 2, Center: 2 }, // 1-2-2
+  { Guard: 1, Forward: 3, Center: 1 }, // 1-3-1
+];
 // EuroLeague Fantasy's own published rules (2026-09-16 read) cap how many
 // of the 10 outfield players can come from the same real club, to stop a
 // degenerate "just draft one contender's whole roster" strategy — not
@@ -830,8 +847,40 @@ export async function autoFillFantasySquad(userId: string, season: string, round
     return { error: "No coaches priced for this season yet — run fantasy:reprice first" };
   }
 
-  const shuffledPicked = shuffle(picked);
-  const entries: SaveLineupEntry[] = shuffledPicked.map((c, i) => ({
+  // Real bug caught live (2026-09-18, direct report: "randomize places
+  // wrong positions... placed guard on center") — this used to shuffle all
+  // 10 picked players together and take the first 5 as "starter" with no
+  // regard for position at all. saveFantasyLineup/the DB only ever track a
+  // player's slotRole ("starter"/"sixth_man"/"bench"), never which of the
+  // 5 on-court slots a starter occupies — that's a frontend-only concept
+  // (fantasy.ts's FORMATION_POSITIONS) reconciled after load by matching
+  // the 5 starters' own position counts against one of the app's 5 known
+  // formations (2-2-1/2-1-2/3-1-1/1-2-2/1-3-1). A random 5-of-10 split only
+  // has 2 Centers to draw from at all, so it frequently produced a starter
+  // group with 0 Centers (or 2 Guards short, etc.) that matches *none* of
+  // those 5 shapes — reconcileStarterFormation() then has nothing to
+  // reconcile against and silently leaves the raw, position-blind slot
+  // order on screen, which is how a Guard ended up rendered in the court's
+  // Center slot. Fixed by picking a random one of those same 5 formation
+  // shapes here first, then drawing exactly that many Guards/Forwards/
+  // Centers (randomly, from within the 4/4/2 already drafted) as starters
+  // — guaranteeing the 5 starters always match a real formation, the same
+  // guarantee a manual save's own formation picker gives for free.
+  const formationVector = FANTASY_FORMATION_VECTORS[Math.floor(Math.random() * FANTASY_FORMATION_VECTORS.length)];
+  const pickedByPosition: Record<string, Candidate[]> = { Guard: [], Forward: [], Center: [] };
+  for (const c of picked) pickedByPosition[c.position].push(c);
+
+  const starters: Candidate[] = [];
+  const rest: Candidate[] = [];
+  for (const [position, count] of Object.entries(formationVector)) {
+    const shuffledPos = shuffle(pickedByPosition[position]);
+    starters.push(...shuffledPos.slice(0, count));
+    rest.push(...shuffledPos.slice(count));
+  }
+
+  const shuffledStarters = shuffle(starters);
+  const shuffledRest = shuffle(rest);
+  const entries: SaveLineupEntry[] = [...shuffledStarters, ...shuffledRest].map((c, i) => ({
     playerId: c.id,
     slotRole: i < FANTASY_STARTER_COUNT ? "starter" : i < FANTASY_STARTER_COUNT + FANTASY_SIXTH_MAN_COUNT ? "sixth_man" : "bench",
     isCaptain: i === 0,
