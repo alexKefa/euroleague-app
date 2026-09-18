@@ -561,4 +561,13 @@ export class ApiService {
   getAdminUsers(): Observable<AdminUsersResponse> {
     return this.http.get<AdminUsersResponse>(`${API_BASE_URL}/admin/users`);
   }
+
+  // Admin only — "Sync images" button (2026-09-18), see routes/admin.ts's
+  // own comment for what this actually runs.
+  syncImages(): Observable<{ playersUpdated: number; coachCardsUpdated: number; collectiblesUpdated: number }> {
+    return this.http.post<{ playersUpdated: number; coachCardsUpdated: number; collectiblesUpdated: number }>(
+      `${API_BASE_URL}/admin/sync-images`,
+      {}
+    );
+  }
 }

@@ -1,0 +1,59 @@
+<div class="max-w-3xl mx-auto p-4 sm:p-6">
+  <a routerLink="/profile" class="text-[12px] text-muted font-bold uppercase tracking-wider hover:text-ink transition-colors"
+    >&larr; {{ i18n.t('admin.backToProfile') }}</a
+  >
+
+  @if (!auth.currentUser()?.isAdmin) {
+    <div class="mt-6 rounded-2xl border border-line bg-card p-6 text-center">
+      <p class="font-display text-lg">{{ i18n.t('admin.accessDenied') }}</p>
+      <p class="text-sm text-muted mt-1">{{ i18n.t('admin.accessDeniedBody') }}</p>
+    </div>
+  } @else {
+    <div class="flex items-center gap-2 mt-4 mb-1">
+      <app-nav-icon name="sliders" [size]="20" class="text-team-primary" />
+      <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('admin.toolsTitle') }}</h1>
+    </div>
+    <p class="text-sm text-muted mb-5">{{ i18n.t('admin.toolsSubtitle') }}</p>
+
+    <!-- One card per tool — see admin-tools.ts's own doc comment on why
+         this is a plain copy-paste-able block per tool rather than a
+         data-driven list. -->
+    <div class="bg-card rounded-2xl border border-line shadow-card p-4">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="min-w-0">
+          <p class="font-mono text-[12px] font-bold">{{ i18n.t('admin.syncImages') }}</p>
+          <p class="text-[12px] text-muted mt-1 max-w-md">{{ i18n.t('admin.syncImagesDescription') }}</p>
+        </div>
+        <div class="shrink-0 text-right">
+          <button type="button" (click)="syncImages()" [disabled]="syncing()" appButton="outline" appButtonSize="sm">
+            @if (syncing()) {
+              <app-logo-spinner [size]="14" />
+              {{ i18n.t('admin.syncImagesRunning') }}
+            } @else {
+              {{ i18n.t('admin.syncImages') }}
+            }
+          </button>
+          @if (syncError()) {
+            <p class="text-[11px] text-red-500 font-semibold mt-1.5 max-w-[16rem]">{{ i18n.t('admin.syncImagesError') }}</p>
+          } @else if (syncResult(); as result) {
+            <p class="text-[11px] text-muted font-semibold mt-1.5 max-w-[16rem]">
+              @if (result.playersUpdated === 0 && result.coachCardsUpdated === 0 && result.collectiblesUpdated === 0) {
+                {{ i18n.t('admin.syncImagesResultEmpty') }}
+              } @else {
+                @if (result.playersUpdated > 0) {
+                  <span class="block text-team-primary">{{ result.playersUpdated }} {{ i18n.t('admin.syncImagesPlayers') }}</span>
+                }
+                @if (result.coachCardsUpdated > 0) {
+                  <span class="block text-team-primary">{{ result.coachCardsUpdated }} {{ i18n.t('admin.syncImagesCoaches') }}</span>
+                }
+                @if (result.collectiblesUpdated > 0) {
+                  <span class="block text-team-primary">{{ result.collectiblesUpdated }} {{ i18n.t('admin.syncImagesCollectibles') }}</span>
+                }
+              }
+            </p>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

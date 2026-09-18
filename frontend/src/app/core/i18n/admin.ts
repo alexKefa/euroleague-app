@@ -38,4 +38,31 @@ export const adminTranslations: Record<string, Record<Lang, string>> = {
   "admin.colReferrals": { en: "Referrals", el: "Παραπομπές" },
   "admin.noTeam": { en: "—", el: "—" },
   "admin.usersLabel": { en: "users", el: "χρήστες" },
+
+  // "Tools" page (features/admin/admin-tools.ts) — reached from Profile's
+  // admin section alongside "View all users".
+  "admin.toolsTitle": { en: "Tools", el: "Εργαλεία" },
+  "admin.toolsSubtitle": {
+    en: "One-off maintenance actions, run on demand instead of from a terminal.",
+    el: "Ενέργειες συντήρησης, εκτελούνται κατ' απαίτηση αντί από τερματικό.",
+  },
+
+  // "Sync images" button (2026-09-18) — pulls new real player/coach photos
+  // from EuroLeague's live feed, then pushes any that changed into their
+  // matching collectible card. See routes/admin.ts's own comment.
+  // I18nService.t() takes no interpolation params, so the result summary
+  // is composed in the template from these short labels + raw numbers
+  // (same pattern the KPI tiles on the Users page already use), not a
+  // single printf-style sentence.
+  "admin.syncImages": { en: "Sync images", el: "Συγχρονισμός εικόνων" },
+  "admin.syncImagesDescription": {
+    en: "Pulls new real player/coach photos from EuroLeague's live feed, then updates any collectible cards whose image has fallen behind.",
+    el: "Αντλεί νέες πραγματικές φωτογραφίες παικτών/προπονητών από το ζωντανό feed του EuroLeague, και ενημερώνει κάθε συλλεκτική κάρτα της οποίας η εικόνα έχει μείνει πίσω.",
+  },
+  "admin.syncImagesRunning": { en: "Syncing…", el: "Συγχρονισμός…" },
+  "admin.syncImagesError": { en: "Sync failed — try again.", el: "Ο συγχρονισμός απέτυχε — δοκιμάστε ξανά." },
+  "admin.syncImagesResultEmpty": { en: "Already up to date — nothing new to sync.", el: "Ήδη ενημερωμένο — δεν υπάρχει τίποτα νέο για συγχρονισμό." },
+  "admin.syncImagesPlayers": { en: "player photo(s) updated", el: "φωτογραφία(-ες) παίκτη ενημερώθηκαν" },
+  "admin.syncImagesCoaches": { en: "coach card(s) updated", el: "κάρτα(-ες) προπονητή ενημερώθηκαν" },
+  "admin.syncImagesCollectibles": { en: "collectible(s) updated", el: "συλλεκτικό(-ά) αντικείμενο(-α) ενημερώθηκαν" },
 };

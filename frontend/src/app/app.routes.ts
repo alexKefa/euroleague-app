@@ -150,6 +150,14 @@ export const routes: Routes = [
     path: "admin/users",
     loadComponent: () => import("./features/admin/admin-users").then((m) => m.AdminUsersComponent),
   },
+  // Admin-only "Tools" panel (2026-09-18) — general-purpose maintenance
+  // actions (currently just "Sync images") not tied to any one feature
+  // page, split out of admin/users so that page stays scoped to the user
+  // roster/signups it's actually about. Same auth gating as admin/users.
+  {
+    path: "admin/tools",
+    loadComponent: () => import("./features/admin/admin-tools").then((m) => m.AdminToolsComponent),
+  },
   {
     path: "login",
     loadComponent: () => import("./features/auth/login.component").then((m) => m.LoginComponent),

@@ -4,6 +4,7 @@ import { db } from "../db/client.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
 import { pointsSqlExpr } from "../services/points.js";
 import { topScorerTotalsCte } from "../services/topScorerPoints.js";
+import { syncRosterPhotos, syncCollectibleImages } from "../services/imageSync.js";
 
 export const adminRouter = Router();
 
@@ -115,5 +116,26 @@ adminRouter.get("/users", requireAuth, requireAdmin, async (_req, res) => {
       referralsCount: r.referrals_count,
     })),
     signupsByDay: signupsByDay.map((r) => ({ date: r.day, count: r.count })),
+  });
+});
+
+// "Sync images" button on the admin Users page (2026-09-18) — a UI
+// shortcut for the two-step pipeline (scripts/sync-roster-photos.ts then
+// scripts/sync-collectible-images.ts) that previously only ever ran when
+// asked for by hand from a terminal: pull real player/coach photos from
+// EuroLeague's live club-roster feed, then push any newly-changed player
+// photo into its matching collectible card's own image. Same "admin
+// shortcut instead of a manual script" precedent as games.ts's
+// reset-game/reset-round buttons. Runs both steps in one request/one
+// button press, same order this was always run by hand — roster photos
+// have to land on `players` first for the collectible step to have
+// anything new to pick up.
+adminRouter.post("/sync-images", requireAuth, requireAdmin, async (_req, res) => {
+  const roster = await syncRosterPhotos();
+  const cards = await syncCollectibleImages();
+  res.json({
+    playersUpdated: roster.playerUpdates.length,
+    coachCardsUpdated: roster.coachCardUpdates.length,
+    collectiblesUpdated: cards.collectibleUpdates.length,
   });
 });
