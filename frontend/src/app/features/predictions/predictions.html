@@ -589,8 +589,15 @@
      hasPendingChanges()-only check was watching for. Complete predictions
      only makes sense (and only shows) when there's an actual win/loss
      diff to submit; Clear all always shows once the bar itself does,
-     since clearAllPendingPicks() now clears both kinds. -->
-@if (auth.isAuthenticated() && (hasPendingChanges() || hasUpcomingTopScorerPicks())) {
+     since clearAllPendingPicks() now clears both kinds.
+
+     Also shows on a plain reload with nothing pending at all, as long as
+     there's an already-saved win/loss pick sitting on an upcoming game
+     (hasSavedUpcomingPicks(), 2026-09-18 direct request) — previously the
+     only way to reach Clear all was to make some new edit first, so a
+     visitor who'd only ever predicted on a past visit had no way to reset
+     without touching a pick. -->
+@if (auth.isAuthenticated() && (hasPendingChanges() || hasUpcomingTopScorerPicks() || hasSavedUpcomingPicks())) {
   <div class="fixed inset-x-0 z-40 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] sm:bottom-4 px-4 flex justify-center pointer-events-none">
     <div class="w-full max-w-sm pointer-events-auto bg-card border border-line rounded-2xl shadow-pop p-3">
       @if (potentialPoints() > 0) {
@@ -601,16 +608,21 @@
       }
       <!-- Grouped pair (2026-09-17, direct request: "next to complete
            predictions floating button add clear all, like a group
-           button") — Clear all needs no confirm dialog the way a real
-           delete would: the win/loss half is purely local (same "no
-           request fires" nature as a single togglePick), and even the
-           top-scorer half only ever costs a re-tap to redo, same as
-           picking a different player already does. -->
+           button"). Clear all now goes through a confirm dialog
+           (2026-09-18) since it deletes real saved data — both any
+           already-saved win/loss prediction on an upcoming game and any
+           saved top-scorer pick, not just the purely-local unsaved diff —
+           see clearAllPendingPicks()'s own comment. Both buttons also
+           disable once roundActionsLocked() (2026-09-18 direct request:
+           "5 minutes before the round starts" the round-wide reset/submit
+           actions stop being available) — a single pick tap is still
+           gated per-game by isLocked() above, unaffected by this earlier,
+           round-wide buffer. -->
       <div class="flex gap-2">
         <button
           type="button"
-          (click)="clearAllPendingPicks()"
-          [disabled]="submitting() || clearingAll()"
+          (click)="requestClearAll()"
+          [disabled]="submitting() || clearingAll() || roundActionsLocked()"
           appButton="secondary"
           appButtonSize="sm"
           [ngClass]="hasPendingChanges() ? 'shrink-0' : 'flex-1'"
@@ -622,7 +634,14 @@
           }
         </button>
         @if (hasPendingChanges()) {
-          <button type="button" (click)="submitPredictions()" [disabled]="submitting()" appButton appButtonSize="sm" class="flex-1">
+          <button
+            type="button"
+            (click)="submitPredictions()"
+            [disabled]="submitting() || roundActionsLocked()"
+            appButton
+            appButtonSize="sm"
+            class="flex-1"
+          >
             @if (submitting()) {
               <app-logo-spinner [size]="14" />
             } @else {
@@ -631,9 +650,21 @@
           </button>
         }
       </div>
-      @if (submitError()) {
+      @if (roundActionsLocked()) {
+        <p class="text-muted text-[11px] font-semibold text-center mt-1.5">{{ i18n.t('predictions.roundActionsLocked') }}</p>
+      } @else if (submitError()) {
         <p class="text-red-500 text-[11px] font-semibold text-center mt-1.5">{{ submitError() }}</p>
       }
     </div>
   </div>
+}
+
+@if (confirmingClearAll()) {
+  <app-confirm-dialog
+    [message]="i18n.t('predictions.clearAllConfirm')"
+    [confirmLabel]="i18n.t('predictions.clearAllConfirmButton')"
+    [cancelLabel]="i18n.t('predictions.cancel')"
+    (confirmed)="confirmClearAll()"
+    (cancelled)="confirmingClearAll.set(false)"
+  />
 }

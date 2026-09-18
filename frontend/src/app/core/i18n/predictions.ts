@@ -10,6 +10,16 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
   },
   "predictions.completePredictions": { en: "Complete predictions", el: "Ολοκλήρωση προβλέψεων" },
   "predictions.clearAll": { en: "Clear all", el: "Καθαρισμός όλων" },
+  "predictions.clearAllConfirm": {
+    en: "Clear all your unsaved changes and delete your saved predictions for upcoming games?",
+    el: "Καθαρισμός όλων των μη αποθηκευμένων αλλαγών και διαγραφή των αποθηκευμένων προβλέψεών σου για τους επερχόμενους αγώνες;",
+  },
+  "predictions.clearAllConfirmButton": { en: "Clear all", el: "Καθαρισμός όλων" },
+  "predictions.cancel": { en: "Cancel", el: "Ακύρωση" },
+  "predictions.roundActionsLocked": {
+    en: "Locked — the round is about to start.",
+    el: "Κλειδωμένο — ο γύρος ξεκινά σε λίγο.",
+  },
   "predictions.myPicks": { en: "My picks", el: "Οι προβλέψεις μου" },
   "predictions.potentialPoints": { en: "If they all hit", el: "Αν βγουν όλες σωστές" },
   "predictions.loginPromptSuffix": {

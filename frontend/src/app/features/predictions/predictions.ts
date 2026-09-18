@@ -1,6 +1,6 @@
-import { Component, OnInit, HostListener, computed, effect, inject, signal } from "@angular/core";
+import { Component, OnInit, OnDestroy, HostListener, computed, effect, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { forkJoin } from "rxjs";
+import { forkJoin, of } from "rxjs";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
@@ -18,6 +18,7 @@ import { CollectibleCardComponent } from "../store/collectible-card";
 import { newsDateLocale, shortDateFormat as gameShortDateFormat, gameDateTimeFormat } from "../../shared/news-date-format";
 import { TeamCodePipe } from "../../shared/team-display-code";
 import { TopScorerPickerComponent } from "../../shared/top-scorer-picker";
+import { ConfirmDialogComponent } from "../../shared/confirm-dialog";
 
 // Matches schedule.ts — no season picker here either, and predictions
 // should only ever be open for the round a user could actually be watching.
@@ -35,6 +36,14 @@ const SEASON = "2026-27";
 const POINTS_PER_CORRECT = 10;
 const ODDS_POINTS_CAP = 40;
 const MIN_FAIR_PROB = 0.05;
+
+// Round-wide pre-lock for Clear all / Complete predictions (2026-09-18,
+// direct request) — a 5-minute buffer before the round's own earliest
+// tipoff, not the exact tipoff itself, so a last-second submit/clear can't
+// race the round actually starting. Only gates those two round-wide
+// actions; a single game's own pick-tap still locks at that game's own
+// tipoff via isLocked() below, unaffected by this earlier buffer.
+const ROUND_LOCK_BUFFER_MS = 5 * 60 * 1000;
 
 function pointsForCorrectPick(fairProb: number | null | undefined): number {
   if (fairProb == null) return POINTS_PER_CORRECT;
@@ -104,10 +113,11 @@ interface DisplayedPick {
     CollectibleCardComponent,
     TeamCodePipe,
     TopScorerPickerComponent,
+    ConfirmDialogComponent,
   ],
   templateUrl: "./predictions.html",
 })
-export class PredictionsComponent implements OnInit {
+export class PredictionsComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
@@ -155,6 +165,11 @@ export class PredictionsComponent implements OnInit {
   readonly submitting = signal(false);
   readonly submitError = signal<string | null>(null);
   readonly clearingAll = signal(false);
+  // Gates clearAllPendingPicks() behind a confirm prompt now that it also
+  // deletes real saved predictions server-side (see that method's own
+  // comment), not just a local unsaved diff — same "real delete needs a
+  // confirm" convention as schedule.ts's reset game/round buttons.
+  readonly confirmingClearAll = signal(false);
 
   // "My picks" card tab — win/loss Predictions (the original, still the
   // default) vs. the top-scorer prop picks made from game-detail.ts's
@@ -205,6 +220,35 @@ export class PredictionsComponent implements OnInit {
   // entirely. Reported live 2026-09-17: "reset should be available if
   // player predictions is active, not just matches."
   readonly hasUpcomingTopScorerPicks = computed(() => this.upcomingGames().some((g) => this.topScorerByGameId().has(g.id)));
+  // Same gap for win/loss picks, closed 2026-09-18 (direct request: "Clear
+  // button should appear... without having to make a change. If there are
+  // existing predictions on a refresh") — a picks-only-from-a-prior-visit
+  // reload had no pending diff and no top-scorer pick either, so the bar
+  // (and the only way to reset already-saved picks) never appeared at all
+  // until the user made some new edit first. Checked against myPicks, not
+  // effectivePicks — a pending *clear* already drops a game from
+  // effectivePicks, but the bar should still show (hasPendingChanges()
+  // already covers that case on its own).
+  readonly hasSavedUpcomingPicks = computed(() => this.upcomingGames().some((g) => this.myPicks().has(g.id)));
+
+  // Round-wide pre-lock for Clear all / Complete predictions — see
+  // ROUND_LOCK_BUFFER_MS's own comment. `now` only needs to be
+  // "close enough", not second-accurate (there's a 5-minute buffer either
+  // side of it), so a 30s tick is enough to flip roundActionsLocked() on
+  // its own even if nothing else re-renders the page in the meantime.
+  private readonly now = signal(Date.now());
+  private nowTimer?: ReturnType<typeof setInterval>;
+
+  readonly roundStartAt = computed<number | null>(() => {
+    const games = this.upcomingGames();
+    if (games.length === 0) return null;
+    return Math.min(...games.map((g) => new Date(g.tipoffAt).getTime()));
+  });
+
+  readonly roundActionsLocked = computed(() => {
+    const start = this.roundStartAt();
+    return start !== null && this.now() >= start - ROUND_LOCK_BUFFER_MS;
+  });
 
   // The "My picks" list, layering pendingPicks over myPredictions so a tap
   // shows up there immediately instead of only after "Complete predictions"
@@ -379,6 +423,12 @@ export class PredictionsComponent implements OnInit {
       this.summaryLoading.set(false);
       this.topScorerPicksLoading.set(false);
     }
+
+    this.nowTimer = setInterval(() => this.now.set(Date.now()), 30_000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.nowTimer) clearInterval(this.nowTimer);
   }
 
   private refreshLeaderboard(): void {
@@ -564,6 +614,20 @@ export class PredictionsComponent implements OnInit {
   // deleting the saved pick server-side via the existing (until now
   // unused anywhere) clearTopScorerPick endpoint, not just discarding an
   // unsaved local diff.
+  //
+  // And now also deletes any *saved* win/loss prediction on an upcoming
+  // (still-unresolved) game (2026-09-18, direct request: "clear all...
+  // should also clear out predicted games") — previously this only ever
+  // discarded the local pendingPicks diff, so a pick already saved via a
+  // prior "Complete predictions" submit survived a reset untouched. Scoped
+  // to upcomingGames() only, same as the top-scorer half above: a resolved
+  // game's prediction is history (already scored), not something this
+  // "start over" action should touch, and the backend would reject
+  // clearing a locked game's pick anyway. Sent through the same
+  // submitPredictionsBatch endpoint (teamId: null clears a pick) rather
+  // than the older per-game DELETE, for the same "one request, not N"
+  // reasoning as submitPredictions(). Real deletions now happen here, so
+  // this is gated behind a confirm dialog — see confirmingClearAll.
   clearAllPendingPicks(): void {
     const pending = this.pendingPicks();
     const saved = this.myPicks();
@@ -573,14 +637,30 @@ export class PredictionsComponent implements OnInit {
     }
     this.pendingPicks.set(new Map());
 
+    const savedUpcomingGameIds = this.upcomingGames()
+      .map((g) => g.id)
+      .filter((gameId) => saved.has(gameId));
     const topScorerGameIds = this.upcomingGames()
       .map((g) => g.id)
       .filter((gameId) => this.topScorerByGameId().has(gameId));
-    if (topScorerGameIds.length === 0) return;
+    if (savedUpcomingGameIds.length === 0 && topScorerGameIds.length === 0) return;
 
     this.clearingAll.set(true);
-    forkJoin(topScorerGameIds.map((gameId) => this.api.clearTopScorerPick(gameId))).subscribe({
+    const winLossClear$ =
+      savedUpcomingGameIds.length > 0
+        ? this.api.submitPredictionsBatch(savedUpcomingGameIds.map((gameId) => ({ gameId, teamId: null })))
+        : of(null);
+    const topScorerClear$ =
+      topScorerGameIds.length > 0 ? forkJoin(topScorerGameIds.map((gameId) => this.api.clearTopScorerPick(gameId))) : of([]);
+
+    forkJoin([winLossClear$, topScorerClear$]).subscribe({
       next: () => {
+        const next = new Map(this.myPicks());
+        for (const gameId of savedUpcomingGameIds) {
+          next.delete(gameId);
+          this.events.unmarkPredicted(gameId);
+        }
+        this.myPicks.set(next);
         this.refreshMyTopScorerPredictions();
         this.clearingAll.set(false);
       },
@@ -591,11 +671,21 @@ export class PredictionsComponent implements OnInit {
     });
   }
 
+  requestClearAll(): void {
+    if (this.roundActionsLocked()) return;
+    this.confirmingClearAll.set(true);
+  }
+
+  confirmClearAll(): void {
+    this.confirmingClearAll.set(false);
+    this.clearAllPendingPicks();
+  }
+
   // Sends every pending tap/clear in one request instead of one per tap —
   // see pendingPicks' doc comment for why. Only called from the "Complete
   // predictions" button, never automatically.
   submitPredictions(): void {
-    if (!this.hasPendingChanges() || this.submitting()) return;
+    if (!this.hasPendingChanges() || this.submitting() || this.roundActionsLocked()) return;
     const picks = [...this.pendingPicks().entries()].map(([gameId, teamId]) => ({ gameId, teamId }));
 
     this.submitting.set(true);

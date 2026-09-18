@@ -18,12 +18,12 @@
      styles.css's .brand-mark-light/.brand-mark-dark own show/hide, and
      declaring display here would win over that global rule under
      Angular's component-style encapsulation and show both at once.
-     Base size is the original clamp(160px, 50vmin, 320px) again — a
-     same-day pass tried shrinking it everywhere and that overshot; the
-     actual ask was mobile only (see the media query below). height +
-     aspect-ratio + width:auto scales the whole image proportionally,
-     never crops any of it. */
-  height: clamp(160px, 50vmin, 320px);
+     Base size was clamp(160px, 50vmin, 320px) — cut 20% for desktop
+     (2026-09-18, direct request) to clamp(128px, 40vmin, 256px); the
+     mobile-only override below is untouched. height + aspect-ratio +
+     width:auto scales the whole image proportionally, never crops any
+     of it. */
+  height: clamp(128px, 40vmin, 256px);
   width: auto;
   aspect-ratio: 738 / 698;
   /* Draw-on reveal — back from the iris reveal (2026-09-17, direct
