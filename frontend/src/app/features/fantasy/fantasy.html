@@ -75,11 +75,15 @@
                  (2026-09-17, corrected same day — the glass belongs on the
                  *empty* "+" placeholder only, see the @else branch below;
                  an occupied slot sticks with the plain photo). -->
+            <!-- gap-1.5->gap-1 (2026-09-18, part of the same "box overrides
+                 some others" fix as the aspect-ratio bump above) — trims a
+                 couple px of chrome between the avatar and its info box
+                 without touching avatar size or font size. -->
             <div
               cdkDrag
               [cdkDragDisabled]="isPlayerLocked(slot.playerId)"
               [cdkDragData]="slot.playerId"
-              class="flex flex-col items-center gap-1.5"
+              class="flex flex-col items-center gap-1"
               [ngClass]="isPlayerLocked(slot.playerId) ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'"
             >
               <!-- The opponent/PIR line that used to sit here, above the
@@ -151,9 +155,18 @@
                    sits directly on the court/team-photo behind it — same
                    "names should be on a dark colored box to be visible"
                    reasoning as everywhere else in this template. -->
-              <button type="button" (click)="openPlayerInfo(slot.playerId)" [title]="row.player.name" class="block max-w-[96px] rounded-lg overflow-hidden hover:opacity-90 transition-opacity">
-                <span class="block bg-highlight text-white text-[8px] font-bold uppercase tracking-wide text-center leading-tight line-clamp-2 px-1 py-0.5">{{ posAbbrev(row.player.position) }} {{ courtDisplayName(row.player.name) }}</span>
-                <span class="flex items-center justify-center gap-1.5 bg-[#17161c]/80 text-white text-[8px] font-mono font-bold px-1.5 py-0.5">
+              <!-- Font sizes bumped 8px->10px and the box widened to match
+                   (2026-09-18, "make our players bigger and their font
+                   size i want to see clearly", same pass as the avatar
+                   size bump above) — line-clamp-2 and max-w both scale
+                   together so a long name still wraps the same way, just
+                   larger. -->
+              <!-- py-0.5->py-px on both rows (2026-09-18, same
+                   chrome-only trim as the gap-1 change above) — the font
+                   itself stays 10px, only the padding around it shrinks. -->
+              <button type="button" (click)="openPlayerInfo(slot.playerId)" [title]="row.player.name" class="block max-w-[116px] rounded-lg overflow-hidden hover:opacity-90 transition-opacity">
+                <span class="block bg-highlight text-white text-[10px] font-bold uppercase tracking-wide text-center leading-tight line-clamp-2 px-1 py-px">{{ posAbbrev(row.player.position) }} {{ courtDisplayName(row.player.name) }}</span>
+                <span class="flex items-center justify-center gap-1.5 bg-[#17161c]/80 text-white text-[10px] font-mono font-bold px-1.5 py-px">
                   <span class="text-highlight">{{ row.price | number: '1.1-1' }}{{ i18n.t('fantasy.creditsAbbrev') }}</span>
                   @if (gameForTeam().get(row.team.id); as game) {
                     <span class="text-white/40">&middot;</span>
@@ -447,20 +460,48 @@
                    and got reverted (see court-background.ts) — 380 keeps
                    "meet" mode's now-unavoidable top/bottom letterbox gap
                    small enough to read as intentional breathing room
-                   rather than an empty band. -->
-              <div class="relative w-full rounded-2xl overflow-hidden bg-gradient-to-b from-highlight/25 via-card to-card border border-line shadow-card aspect-[320/380] sm:aspect-[320/300]">
-                <!-- Trapezoid clip on the court art only (2026-09-17,
-                     approved approach: "CSS trapezoid clip on our existing
-                     court, lower risk") — narrower top / wider bottom, the
-                     real-perspective cue from the reference screenshot,
-                     without touching the SVG's own geometry. Deliberately
-                     clips only this decorative layer, not the outer div
-                     the player slots also live in — an avatar sitting
-                     close to an edge (the Center row is right at the top
-                     now, post-flip) is never at risk of being cut off by
-                     it, it just floats over whatever the trapezoid shows
-                     underneath. -->
-                <app-court-background class="absolute inset-0 w-full h-full [clip-path:polygon(5%_0%,95%_0%,100%_100%,0%_100%)]" />
+                   rather than an empty band.
+
+                   Bumped again, 380->430 (2026-09-18, "the box below
+                   players with cr info overrides some others... i dont
+                   want to lose size") — the 2026-09-18 avatar/font size
+                   bump (fantasy.ts's starterAvatarSize, this file's
+                   squadSlot info-box text) grew each starter's stack
+                   height but nothing grew the real pixel gap between
+                   ROW_TOP's rows to match, so adjacent slots started
+                   visually colliding. Since ROW_TOP/starterSlotPositions
+                   place rows by PERCENTAGE of this box, and this box still
+                   uses "meet" (not "none") — the fix that caused the
+                   460 revert was specifically stretching the court art,
+                   not the box height itself — a taller box scales every
+                   row's real gap up proportionally with no distortion
+                   risk, same lever the original 300->380 bump already
+                   used successfully. The starter slot positions are
+                   explicitly "cosmetic court coordinates" (see
+                   starterSlotPositions' own comment in fantasy.ts), not
+                   pixel-exact, so a bit more court background showing
+                   through the top/bottom letterbox is an acceptable
+                   trade for the space. Not verified live this pass —
+                   if the letterbox band now reads as too much empty
+                   space rather than breathing room, dial back toward 380. -->
+              <div class="relative w-full rounded-2xl overflow-hidden bg-gradient-to-b from-highlight/25 via-card to-card border border-line shadow-card aspect-[320/430] sm:aspect-[320/300]">
+                <!-- Trapezoid clip removed (2026-09-18) — it was a
+                     narrower-top/wider-bottom perspective cue (2026-09-17),
+                     but it clipped away most of each sideline's length (see
+                     court-background.ts's courtOutlinePath comment: the
+                     lines sit at ~1.9%/98.1% across, well outside the
+                     clip's 5%-95% top window), which is what caused "i
+                     dont see side lines". Plain rectangle now — the outer
+                     div's own rounded-2xl overflow-hidden is the only clip
+                     left, so the full outline (all 4 sides) is visible. -->
+                <!-- viewBoxTop=-220 on mobile (2026-09-18, "expand svg for
+                     mobile as well") matches this box's own aspect-[320/430]
+                     exactly (210-(-220)=430) — see court-background.ts's
+                     "Responsive viewBox" doc comment. Desktop leaves the
+                     input at its default (-90), matching sm:aspect-[320/300]
+                     unchanged. Reuses the same isMobileViewport signal the
+                     avatar-size computed()s above already read. -->
+                <app-court-background class="absolute inset-0 w-full h-full" [viewBoxTop]="isMobileViewport() ? -220 : -90" />
                 @for (pos of starterSlotPositions(); track $index; let i = $index) {
                   <div class="absolute -translate-x-1/2 -translate-y-1/2" [style.left.%]="pos.left" [style.top.%]="pos.top">
                     <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: starterSlots()[i], size: starterAvatarSize(), positionLabel: posLabel(requiredPositionForStarterSlot(i)) }" />

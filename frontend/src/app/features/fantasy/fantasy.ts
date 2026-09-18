@@ -150,7 +150,24 @@ function formationForPositionCounts(counts: Record<PositionName, number>): Forma
 // layout and is otherwise still accurate (same real pixel margins, just
 // mirrored) — not rewritten wholesale since the underlying spacing math
 // didn't change, only which end it's measured from.
-const ROW_TOP: Record<PositionName, number> = { Guard: 74, Forward: 47, Center: 20 };
+// Spread further toward the edges, 20/47/74 -> 15/50/85 (2026-09-18,
+// "you made mobile taller for court box but not stretched the elements in
+// it") — the fantasy.html aspect-ratio bump (320/380 -> 320/430) the same
+// pass made the box taller, but these percentages didn't change, so the
+// rows kept their old relative spacing and just left bigger empty margins
+// above Center and below Guard instead of actually using the extra height.
+// Reworked the margin math fresh rather than reusing the old "~15-20px"
+// note above (stale — avatar/font grew since then too): current starter
+// stack is roughly avatar(64px) + gap-1(4px) + 2 info rows at 10px/
+// leading-tight/py-px each (~29px) = ~97px, so a ~50px half-stack. At a
+// ~300-340px-wide mobile court (the realistic narrow-to-typical phone
+// range, height = width * 430/320), that's ~11-13% of the container's own
+// height. 15% top (Center) / 15% bottom (100-85, Guard) leaves a ~2-4pt
+// buffer over that worst case — real margin, not zero, but tighter than
+// the wide cushion 20/74 had before. Not verified live — if either edge
+// row clips or crowds the court boundary, that buffer is the first thing
+// to widen back.
+const ROW_TOP: Record<PositionName, number> = { Guard: 85, Forward: 50, Center: 15 };
 // Widened 2026-09-07 (from [30,70]/[18,50,82]) — on a narrow mobile court
 // column, avatars in the same row sat close enough to visually crowd each
 // other. Horizontal-only change: spreading a row wider doesn't touch
@@ -280,14 +297,24 @@ export class FantasyComponent implements OnInit {
   // (see the ROW_TOP comment above), so this only moved starter up a more
   // conservative +6/+10 (mobile/desktop) rather than matching the other
   // two groups' jump, to stay inside that margin.
-  readonly starterAvatarSize = computed(() => (this.isMobileViewport() ? 56 : 72));
-  readonly sixthManAvatarSize = computed(() => (this.isMobileViewport() ? 54 : 64));
+  // Bumped again 2026-09-18 ("make our players bigger... I want to see
+  // clearly") — same real-risk split as the 2026-09-16 pass above, still no
+  // live browser this session to re-verify pixel overlap: starter moved a
+  // conservative +8/+10 (mobile/desktop, same increment size as last time)
+  // since it's the one absolutely-positioned inside the court's fixed-
+  // aspect-ratio overflow-hidden box with a real (if now slightly looser —
+  // see court-background.ts's trapezoid-clip removal the same pass, which
+  // didn't touch this vertical budget) bottom-margin constraint at the
+  // Center row. sixthMan/bench have no such constraint and were bumped
+  // more generously.
+  readonly starterAvatarSize = computed(() => (this.isMobileViewport() ? 64 : 82));
+  readonly sixthManAvatarSize = computed(() => (this.isMobileViewport() ? 62 : 74));
   // Bumped mobile 50->64 (2026-09-17, "make the bench bigger" ask) — same
   // "no clipping risk" freedom the 2026-09-16 pass already documented:
   // bench sits in normal document flow below the court card, not inside
   // its fixed-aspect-ratio box, so there's no Center-row-style pixel
-  // budget to worry about here.
-  readonly benchAvatarSize = computed(() => (this.isMobileViewport() ? 64 : 58));
+  // budget to worry about here. Bumped again 2026-09-18 (see comment above).
+  readonly benchAvatarSize = computed(() => (this.isMobileViewport() ? 74 : 68));
 
   readonly tab = signal<"roster" | "leaderboard">("roster");
 
