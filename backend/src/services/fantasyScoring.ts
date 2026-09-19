@@ -95,18 +95,25 @@ export const FANTASY_MAX_PRICE = 17;
 // A player with zero usable PIR at all (no games this season or any prior
 // one — a true rookie or a signing new to EuroLeague, e.g. an NBA/other-
 // league transfer) used to floor at the flat FANTASY_MIN_PRICE here, same
-// as a genuine deep-bench player. Calibrated 2026-09-18 against real
-// EuroLeague Fantasy (Dunkest) quotations, via a one-time authenticated
-// pull from a personal account (not a standing sync — see CLAUDE.md):
-// FANTASY_MIN_PRICE (4) and FANTASY_PIR_CEILING_FLOOR's 17-credit anchor
-// both came back exactly right, but of 71 real players our formula floored
-// at 4, only about half are genuinely priced near the real floor — the
-// rest are exactly this "no EuroLeague history yet" group, which the real
-// market prices on reputation/expected role instead (e.g. Valančiūnas,
-// a marquee signing with no recent EuroLeague stats on file, real-priced
-// 15.5 vs our 4 before this fix). That group's real prices had a median of
-// 5.7 and a mean of 6.45 — this constant is that evidence, not a guess.
-export const FANTASY_NO_DATA_PRICE = 6;
+// as a genuine deep-bench player. First calibrated 2026-09-18 (median 5.7/
+// mean 6.45 off a 71-player Dunkest sample) to 6; re-calibrated 2026-09-19
+// off a much larger 335-player pull (306 matched our own `players` — 100
+// landed in this exact zero-history bucket), exported directly from the
+// live EuroLeague Fantasy app's own "Download" button while logged in
+// (not scraped — every unauthenticated attempt against either the app's
+// real API or Dunkest's public stats page returned 401/empty, see the
+// session notes; this data came from the app's own built-in export
+// instead). Real prices in that 100-player zero-history group had a
+// median of 6.6 and a mean of 6.84, both a bit above the old 6, so this
+// constant moves to 6.5. The underlying limit is unchanged and worth
+// restating: this group's real range is 4-11.3, a spread no single flat
+// number can represent — Valančiūnas (the marquee-signing example that
+// justified the original 4->6 bump) is *still* underpriced even now that
+// he has some real EuroLeague data on file (see the price-curve comment
+// below) — reputation/role-expectation pricing isn't something a
+// stats-only pipeline can compute at all, only work around with a flat,
+// imprecise average.
+export const FANTASY_NO_DATA_PRICE = 6.5;
 
 // --- Fantasy Five draft-price formula (scripts/reprice-fantasy-players.ts) ---
 //
@@ -177,6 +184,24 @@ export const LOW_MINUTES_DAMPEN = 0.7;
 // genuinely overtakes it.
 export const FANTASY_PIR_CEILING_FLOOR = 22;
 
+// (raw/ceiling)^k before scaling into [MIN_PRICE, MAX_PRICE] — k=1 (a
+// straight line) was the formula from 2026-09-06 until this pass.
+// Calibrated 2026-09-19 against the same 335-player live export
+// FANTASY_NO_DATA_PRICE's comment describes: bucketing the 206 matched
+// players with real PIR data by raw value showed the *linear* formula
+// (k=1) systematically overpricing the bottom half of the pool — 70% of
+// its misses in the raw<10 range were "priced too high," vs. a roughly
+// even split above raw=10 — real EuroLeague Fantasy compresses bench-tier
+// prices more tightly toward the floor than a straight line does. A sweep
+// of k from 1.0 to 2.0 against that same real-price data found 1.1-1.2 as
+// the actual minimum-error range (mean abs error 1.23 -> 1.13 credits,
+// RMSE 1.60 -> 1.53); error gets worse quickly past ~1.3, so this is a
+// mild, data-fitted correction, not a guess at a dramatically different
+// curve shape. k has no effect at raw=0 (still floors at MIN_PRICE) or
+// raw=ceiling (still exactly MAX_PRICE, ratio=1 regardless of exponent) —
+// only points in between shift, toward the floor.
+export const FANTASY_PRICE_CURVE_EXPONENT = 1.15;
+
 export interface FantasyPriceInput {
   recentAvgPIR: number | null;
   recentAvgMinutes: number | null;
@@ -218,7 +243,13 @@ export function computeFantasyPrice(input: FantasyPriceInput, ceiling: number = 
   const raw = computeRawFantasyValue(input);
   if (raw === null) return FANTASY_NO_DATA_PRICE;
 
-  const scaled = FANTASY_MIN_PRICE + (raw / ceiling) * (FANTASY_MAX_PRICE - FANTASY_MIN_PRICE);
+  // Math.max(0, raw) before the exponent — a fractional power of a
+  // negative base is NaN in JS, and a single bad recent stretch can
+  // legitimately push the recent-form/season blend below 0. Clamping to 0
+  // here is harmless either way, since the final Math.max(MIN_PRICE, ...)
+  // below would floor a negative result to MIN_PRICE regardless.
+  const ratio = Math.max(0, raw) / ceiling;
+  const scaled = FANTASY_MIN_PRICE + ratio ** FANTASY_PRICE_CURVE_EXPONENT * (FANTASY_MAX_PRICE - FANTASY_MIN_PRICE);
   // Rounded to the nearest 0.1 credit, not a whole number (2026-09-06) —
   // two players a fraction of a PIR point apart used to collapse onto the
   // same integer price; the tenth-credit precision differentiates them
