@@ -54,6 +54,10 @@ export const landingTranslations: Record<string, Record<Lang, string>> = {
     en: "Tap a team",
     el: "Πάτησε μια ομάδα",
   },
+  "landing.demoPlaceholder": {
+    en: "Your team",
+    el: "Η ομάδα σου",
+  },
   "landing.mockLive": { en: "Live", el: "Ζωντανά" },
   "landing.stepPrev": { en: "Previous", el: "Προηγούμενο" },
   "landing.stepNext": { en: "Next", el: "Επόμενο" },

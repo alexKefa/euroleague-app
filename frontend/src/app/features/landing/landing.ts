@@ -184,6 +184,9 @@ export class LandingComponent implements OnInit {
   // pastel — a true near-black doesn't carry enough of its own hue for
   // "lighter" to mean anything other than "grey".
   protected readonly previewPrimary = computed(() => {
+    // "#FF6B35" is the app's own fixed brand orange (tailwind.config.js's
+    // "highlight") — the preview's starting color before any team is
+    // tapped, see ngOnInit's comment.
     const raw = this.selectedTeam()?.primaryColor ?? "#FF6B35";
     const luma = hexLuma(raw);
     const light = this.theme.colorScheme() === "light";
@@ -252,12 +255,15 @@ export class LandingComponent implements OnInit {
 
     this.api.getTeams().subscribe((teams) => {
       this.teams.set(teams);
-      // Pick a team with real kit colors set, not just whichever sorts
-      // first — a team with null primary/secondary would make the very
-      // first thing a visitor sees the flat default accent instead of the
-      // "look, it actually changes" payoff this demo exists for.
-      const withColors = teams.find((t) => t.primaryColor);
-      this.selectedTeamId.set((withColors ?? teams[0])?.id ?? null);
+      // Deliberately left unselected — the preview starts on the app's own
+      // brand orange (previewPrimary()'s "#FF6B35" fallback below), and only
+      // switches to a real team's colors once the visitor taps one. An
+      // earlier version auto-picked "the first team with colors set" so the
+      // very first thing shown wasn't a flat default — but GET /api/teams
+      // has no ORDER BY, so "first" wasn't pinned to anything and the color
+      // shown on load varied by environment (confirmed live: a different
+      // team's color on production than on a local DB). The fixed brand
+      // orange is a stable, intentional starting point instead.
     });
 
     // Shuffled here, once, rather than taking the payload's own order —

@@ -98,15 +98,19 @@
                     [style.background]="'color-mix(in srgb, var(--accent-primary) 16%, var(--color-card))'"
                   >
                     <div class="flex items-center gap-2 min-w-0 mb-3">
-                      @if (selectedTeam()?.logoUrl) {
-                        <img
-                          [src]="selectedTeam()!.logoUrl"
-                          [alt]="selectedTeam()!.name"
-                          appRetryImg
-                          class="w-6 h-6 object-contain shrink-0"
-                        />
+                      @if (selectedTeam(); as team) {
+                        @if (team.logoUrl) {
+                          <img
+                            [src]="team.logoUrl"
+                            [alt]="team.name"
+                            appRetryImg
+                            class="w-6 h-6 object-contain shrink-0"
+                          />
+                        }
+                        <span class="font-display font-bold text-xs truncate">{{ team.name }}</span>
+                      } @else {
+                        <span class="font-display font-bold text-xs truncate text-muted">{{ i18n.t('landing.demoPlaceholder') }}</span>
                       }
-                      <span class="font-display font-bold text-xs truncate">{{ selectedTeam()?.name }}</span>
                     </div>
                     <div class="h-6 rounded-lg border border-line" [style.background]="'var(--accent-primary)'"></div>
                   </div>
