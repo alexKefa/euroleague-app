@@ -901,24 +901,35 @@
     }
   } @else {
     <!-- Leaderboard tab -->
-    <div class="flex items-center gap-2 mb-3">
-      <button
-        type="button"
-        (click)="selectLeague(null)"
-        class="px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors"
-        [ngClass]="!selectedLeagueId() ? 'bg-team-primary/10 border-team-primary/30 text-team-primary' : 'bg-card border-line text-muted'"
+    <div class="flex items-center justify-between gap-2 mb-3">
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          (click)="selectLeague(null)"
+          class="px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors"
+          [ngClass]="!selectedLeagueId() ? 'bg-team-primary/10 border-team-primary/30 text-team-primary' : 'bg-card border-line text-muted'"
+        >
+          {{ i18n.t('fantasy.globalBoard') }}
+        </button>
+        @if (myLeagues().length > 0) {
+          <app-dropdown
+            class="w-56"
+            [options]="leagueDropdownOptions()"
+            [value]="selectedLeagueId()"
+            [placeholder]="i18n.t('fantasy.myLeagueBoard')"
+            (valueChange)="selectLeague($event)"
+          />
+        }
+      </div>
+      <!-- Same "leagues.navLink" destination Predictions' own leaderboard
+           card links to (/leagues — create/join, same shared leagues/
+           leagueMembers table this page's own league dropdown already
+           reads via getMyLeagues) — without this, a visitor with zero
+           leagues had no way to discover how to get one from here at all,
+           only ever seeing the always-on Global board. -->
+      <a routerLink="/leagues" class="text-[12px] text-accent2 font-bold uppercase tracking-wider hover:opacity-80 transition-opacity shrink-0"
+        >{{ i18n.t('leagues.navLink') }} &rarr;</a
       >
-        {{ i18n.t('fantasy.globalBoard') }}
-      </button>
-      @if (myLeagues().length > 0) {
-        <app-dropdown
-          class="w-56"
-          [options]="leagueDropdownOptions()"
-          [value]="selectedLeagueId()"
-          [placeholder]="i18n.t('fantasy.myLeagueBoard')"
-          (valueChange)="selectLeague($event)"
-        />
-      }
     </div>
 
     <div class="bg-card rounded-lg shadow-card p-4">
