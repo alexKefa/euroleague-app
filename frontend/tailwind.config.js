@@ -26,7 +26,11 @@ module.exports = {
           DEFAULT: "#7C6CF0",
           dim: "#5B48D9",
         },
-        "team-primary": "var(--accent-primary, #3E7CB1)",
+        // Fallback matches styles.css's :root default / ThemeService's
+        // DEFAULT_PRIMARY (the "no favorite team yet" brand orange) — kept
+        // in sync even though --accent-primary is always defined there in
+        // practice, so this var() fallback never actually triggers.
+        "team-primary": "var(--accent-primary, #FF6B35)",
         "team-secondary": "var(--accent-secondary, #0B1220)",
       },
       fontFamily: {

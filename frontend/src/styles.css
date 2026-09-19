@@ -243,7 +243,12 @@
 }
 
 :root {
-  --accent-primary: #3e7cb1;
+  /* Matches ThemeService's DEFAULT_PRIMARY/SECONDARY — the "no favorite
+     team yet" accent, now the app's real brand orange rather than the
+     arbitrary blue this shipped with originally. This static value is
+     only what paints before ThemeService's JS runs (or for a guest with
+     no cached team colors at all); keep it in sync with that constant. */
+  --accent-primary: #ff6b35;
   --accent-secondary: #0b1220;
   /* Bumps every rem-based Tailwind size (text, spacing, radii) up together
      so type and layout grow in proportion instead of just text overflowing. */

@@ -7,7 +7,18 @@ import { hexLuma } from "./color-utils";
 // near-black, not just a dark saturated color".
 const DARK_LUMA_THRESHOLD = 35;
 
-const DEFAULT_PRIMARY = "#3E7CB1";
+// The "no favorite team yet" accent — guests, a fresh registration before
+// a team is picked, /welcome's own page chrome (not its scoped preview
+// swatch, which has its own copy of this same value — see landing.ts).
+// Was a plain blue (#3E7CB1) since the very first commit, which read as an
+// arbitrary color rather than a brand choice once button.directive.ts's
+// primary/outline variants switched from the fixed brand-orange highlight
+// to this same team-primary accent (2026-09-18) — every button anyone saw
+// before choosing a team (or before ThemeService.applyTeam() resolves at
+// all) turned blue as a side effect of that change, not by design. Now the
+// app's real brand orange (tailwind.config.js's "highlight"), so the
+// unthemed state matches the brand instead of a leftover placeholder.
+const DEFAULT_PRIMARY = "#FF6B35";
 const DEFAULT_SECONDARY = "#0B1220";
 const DEFAULT_THEME_COLOR = "#0b1220";
 
