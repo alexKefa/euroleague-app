@@ -6,9 +6,9 @@
      near-white-team contrast fix as elsewhere this session. -->
 <div class="max-w-3xl mx-auto p-4 sm:p-6">
   <a
-    routerLink="/leagues"
+    [routerLink]="navHistory.previousUrl() ?? '/leagues'"
     class="text-[12px] text-accent2 font-bold uppercase tracking-wider hover:opacity-80 transition-opacity block mb-3"
-    >&larr; {{ i18n.t('leagues.backToLeagues') }}</a
+    >&larr; {{ navHistory.previousUrl() ? i18n.t('nav.back') : i18n.t('leagues.backToLeagues') }}</a
   >
 
   @if (loading()) {

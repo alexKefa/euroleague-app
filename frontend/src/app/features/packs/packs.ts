@@ -4,6 +4,7 @@ import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
+import { NavHistoryService } from "../../core/nav-history.service";
 import { PackDefinition, OwnedPack, PackOpenOutcome, PackOpenResultCard, PackType } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { PackIconComponent } from "../../shared/pack-icon";
@@ -39,6 +40,7 @@ export class PacksComponent implements OnInit {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
+  protected navHistory = inject(NavHistoryService);
 
   readonly loading = signal(true);
   readonly packs = signal<PackDefinition[]>([]);

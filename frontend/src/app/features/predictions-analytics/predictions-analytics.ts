@@ -3,6 +3,7 @@ import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
+import { NavHistoryService } from "../../core/nav-history.service";
 import { PredictionAnalytics } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { TeamCodePipe } from "../../shared/team-display-code";
@@ -18,6 +19,7 @@ type SortKey = "timesPicked" | "accuracy";
 export class PredictionsAnalyticsComponent implements OnInit {
   private api = inject(ApiService);
   protected i18n = inject(I18nService);
+  protected navHistory = inject(NavHistoryService);
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);

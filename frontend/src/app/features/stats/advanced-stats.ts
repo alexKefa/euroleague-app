@@ -4,6 +4,7 @@ import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
+import { NavHistoryService } from "../../core/nav-history.service";
 import { PlayerAdvancedStatsRow } from "../../core/models";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { ButtonDirective } from "../../shared/button.directive";
@@ -161,6 +162,7 @@ export class AdvancedStatsComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
+  protected navHistory = inject(NavHistoryService);
 
   readonly columns = COLUMNS;
 

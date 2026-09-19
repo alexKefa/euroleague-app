@@ -4,6 +4,7 @@ import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
+import { NavHistoryService } from "../../core/nav-history.service";
 import { Collectible, CollectibleBundle, CollectibleBundleCard, CollectibleTier, CollectibleTeamFilter } from "../../core/models";
 import { CardStackComponent } from "./card-stack";
 import { CardPreviewComponent } from "./card-preview";
@@ -40,6 +41,7 @@ export class StoreComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
+  protected navHistory = inject(NavHistoryService);
 
   // Bundles fetched so far for the current filter set — grows as loadMore()
   // appends pages; reset to empty whenever a filter changes (see resetAndLoad).

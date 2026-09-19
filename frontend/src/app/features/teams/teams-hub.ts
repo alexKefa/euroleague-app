@@ -3,6 +3,7 @@ import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
+import { NavHistoryService } from "../../core/nav-history.service";
 import { Team } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
@@ -19,6 +20,7 @@ import { TeamCodePipe, displayTeamCode } from "../../shared/team-display-code";
 export class TeamsHubComponent implements OnInit {
   private api = inject(ApiService);
   protected i18n = inject(I18nService);
+  protected navHistory = inject(NavHistoryService);
 
   readonly loading = signal(true);
   readonly allTeams = signal<Team[]>([]);

@@ -8,6 +8,7 @@ import { TeamBadgeComponent } from "../../shared/team-badge";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { newsDateLocale, shortDateFormat } from "../../shared/news-date-format";
+import { NavHistoryService } from "../../core/nav-history.service";
 
 // The full round-by-round log behind /predictions' own compact "My picks"
 // card — every match with a pick (win/loss and/or top-scorer), grouped by
@@ -25,6 +26,7 @@ import { newsDateLocale, shortDateFormat } from "../../shared/news-date-format";
 export class PredictionsHistoryComponent implements OnInit {
   private api = inject(ApiService);
   protected i18n = inject(I18nService);
+  protected navHistory = inject(NavHistoryService);
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);

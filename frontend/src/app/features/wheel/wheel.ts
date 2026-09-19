@@ -4,6 +4,7 @@ import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
+import { NavHistoryService } from "../../core/nav-history.service";
 import { CollectibleTier, PackType, SpinResult } from "../../core/models";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { PACK_VISUAL_CLASSES } from "../../shared/pack-visual";
@@ -28,6 +29,7 @@ export class WheelComponent implements OnInit {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
+  protected navHistory = inject(NavHistoryService);
 
   readonly loading = signal(true);
   readonly canSpin = signal(false);

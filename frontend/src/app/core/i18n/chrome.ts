@@ -23,6 +23,11 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
   "nav.register": { en: "Register", el: "Εγγραφή" },
   "nav.logout": { en: "Log out", el: "Αποσύνδεση" },
   "nav.admin": { en: "Admin", el: "Διαχειριστής" },
+  // Generic back-link label (nav-history.service.ts) — shown instead of a
+  // page's own hardcoded "back to X" label whenever there's a real in-app
+  // previous page to return to, since that page isn't necessarily "X"
+  // anymore once a drill-down page is reachable from several places.
+  "nav.back": { en: "Back", el: "Πίσω" },
 
   // shared/page-hint.ts — dismiss button, reused across every page hint.
   "hint.dismiss": { en: "Dismiss", el: "Απόρριψη" },

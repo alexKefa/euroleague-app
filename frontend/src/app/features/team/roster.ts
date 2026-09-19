@@ -4,6 +4,7 @@ import { ActivatedRoute, RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
+import { NavHistoryService } from "../../core/nav-history.service";
 import { Team, RosterEntry, Game, GameTeamSummary, StandingsRow, InjuryStatus, Player } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ChipDirective } from "../../shared/chip.directive";
@@ -49,6 +50,7 @@ export class TeamRosterComponent implements OnInit {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
+  protected navHistory = inject(NavHistoryService);
   private favoritePlayers = inject(FavoritePlayersService);
 
   protected readonly comparisonAxes = COMPARISON_AXES;

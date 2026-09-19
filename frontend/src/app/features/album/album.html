@@ -9,9 +9,9 @@
      count span further down. -->
 <div class="max-w-3xl lg:max-w-5xl mx-auto p-4 sm:p-6">
   <a
-    routerLink="/inventory"
+    [routerLink]="navHistory.previousUrl() ?? '/inventory'"
     class="text-[12px] text-muted font-bold uppercase tracking-wider hover:text-ink transition-colors"
-    >&larr; {{ i18n.t('store.myCards') }}</a
+    >&larr; {{ navHistory.previousUrl() ? i18n.t('nav.back') : i18n.t('store.myCards') }}</a
   >
 
   <div class="flex items-center justify-between mt-4 mb-2">

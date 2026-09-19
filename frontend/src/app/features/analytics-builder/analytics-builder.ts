@@ -4,6 +4,7 @@ import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
+import { NavHistoryService } from "../../core/nav-history.service";
 import { AnalyticsView, AnalyticsViewCustomColumn, PlayerAdvancedStatsRow, PlayerSeasonStats } from "../../core/models";
 import { FormulaNode, compileFormula, evaluateFormula } from "./formula";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
@@ -133,6 +134,7 @@ export class AnalyticsBuilderComponent implements OnInit {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
+  protected navHistory = inject(NavHistoryService);
 
   readonly columns = COLUMNS;
   readonly maxViews = MAX_VIEWS;

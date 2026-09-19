@@ -8,6 +8,7 @@ import { EventsService } from "../../core/events.service";
 import { I18nService } from "../../core/i18n.service";
 import { TradeableCard, MarketplaceCard, TradeOffer, TradeOfferStatus, Collectible } from "../../core/models";
 import { TradesNotificationService } from "../../core/trades-notification.service";
+import { NavHistoryService } from "../../core/nav-history.service";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { ButtonDirective } from "../../shared/button.directive";
 import { ChipDirective } from "../../shared/chip.directive";
@@ -33,6 +34,7 @@ export class TradesComponent implements OnInit {
   protected auth = inject(AuthService);
   private events = inject(EventsService);
   protected i18n = inject(I18nService);
+  protected navHistory = inject(NavHistoryService);
   private tradesNotification = inject(TradesNotificationService);
 
   // A trade offer involving this user changed state somewhere else (the

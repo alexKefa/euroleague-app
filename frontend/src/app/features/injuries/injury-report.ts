@@ -13,6 +13,7 @@ import { TeamCodePipe, displayTeamCode } from "../../shared/team-display-code";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { ButtonDirective } from "../../shared/button.directive";
 import { injuryStatusLabel, injuryStatusClass, injuryNoteFor } from "../../shared/injury-status";
+import { NavHistoryService } from "../../core/nav-history.service";
 
 interface TeamGroup {
   teamId: string;
@@ -46,6 +47,7 @@ export class InjuryReportComponent implements OnInit {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
+  protected navHistory = inject(NavHistoryService);
   private fb = inject(FormBuilder);
 
   readonly loading = signal(true);

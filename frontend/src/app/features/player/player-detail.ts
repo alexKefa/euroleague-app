@@ -12,6 +12,7 @@ import { newsDateLocale, shortDateFormat } from "../../shared/news-date-format";
 import { AuthService } from "../../core/auth.service";
 import { FavoritePlayersService } from "../../core/favorite-players.service";
 import { NavIconComponent } from "../../shared/nav-icon";
+import { NavHistoryService } from "../../core/nav-history.service";
 
 @Component({
   selector: "app-player-detail",
@@ -33,6 +34,7 @@ export class PlayerDetailComponent implements OnInit {
   protected i18n = inject(I18nService);
   protected auth = inject(AuthService);
   private favoritePlayers = inject(FavoritePlayersService);
+  protected navHistory = inject(NavHistoryService);
 
   readonly detail = signal<PlayerDetail | null>(null);
   readonly loading = signal(true);

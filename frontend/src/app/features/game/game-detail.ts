@@ -4,6 +4,7 @@ import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
 import { ActivatedRoute, RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
+import { NavHistoryService } from "../../core/nav-history.service";
 import { EventsService } from "../../core/events.service";
 import { AuthService } from "../../core/auth.service";
 import { GameDetail, GameBoxscoreLine, PlayerDetail, RosterEntry, TopScorerPrediction } from "../../core/models";
@@ -71,6 +72,7 @@ export class GameDetailComponent implements OnInit {
   private api = inject(ApiService);
   private route = inject(ActivatedRoute);
   protected i18n = inject(I18nService);
+  protected navHistory = inject(NavHistoryService);
   private events = inject(EventsService);
   protected auth = inject(AuthService);
   private sanitizer = inject(DomSanitizer);

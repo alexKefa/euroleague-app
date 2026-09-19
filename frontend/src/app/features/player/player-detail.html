@@ -1,15 +1,15 @@
 <div class="max-w-3xl mx-auto p-4 sm:p-6">
   @if (detail(); as d) {
     <a
-      [routerLink]="['/teams', d.team.id]"
+      [routerLink]="navHistory.previousUrl() ?? ['/teams', d.team.id]"
       class="font-mono text-[12px] text-muted font-bold hover:text-ink transition-colors"
-      >&larr; {{ d.team.name }}</a
+      >&larr; {{ navHistory.previousUrl() ? i18n.t('nav.back') : d.team.name }}</a
     >
   } @else {
     <a
-      routerLink="/"
+      [routerLink]="navHistory.previousUrl() ?? '/'"
       class="font-mono text-[12px] text-muted font-bold hover:text-ink transition-colors"
-      >&larr; {{ i18n.t('profile.backToDashboard') }}</a
+      >&larr; {{ navHistory.previousUrl() ? i18n.t('nav.back') : i18n.t('profile.backToDashboard') }}</a
     >
   }
 

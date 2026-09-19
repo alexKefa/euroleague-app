@@ -1144,6 +1144,29 @@ If you need to apply a schema change without an interactive terminal
   background); and one-off contexts like icon-only nav buttons and the
   card-preview modal's overlay controls (sit on a translucent image
   backdrop, not the page/card background the directive's colors assume).
+- **History-aware back-links (2026-09-19)** — every drill-down page's
+  "&larr; back" link (player detail, a team roster, a game, Compare,
+  Stats, the Injury Report, Trades, Wheel/Packs/Album, Standings, Teams
+  hub, League Detail, Predictions History/Analytics, both admin pages —
+  19 pages total) used to hard-code a single assumed parent route, even
+  though most of these are reachable from several different places (a
+  team roster alone has 7+ entry points: Standings, the dashboard,
+  Injuries, a game, Teams hub, another player's page). Reported live: open
+  a player from the Injury Report, tap "back", land on that player's team
+  roster instead of the Injury Report. `core/nav-history.service.ts`'s
+  `NavHistoryService` tracks the URLs this session has actually navigated
+  through inside the app (a signal-backed stack pushed on every router
+  `NavigationEnd`, capped at 50) and exposes `previousUrl()` — every one of
+  those 19 back-links now reads
+  `[routerLink]="navHistory.previousUrl() ?? '<old hardcoded target>'"`,
+  with the label switching to a generic `nav.back` ("Back"/"Πίσω") instead
+  of the old page-specific name whenever `previousUrl()` is real, since
+  that name is no longer necessarily accurate. Falls back to the exact
+  original hardcoded destination+label only when there's no real in-app
+  previous page (this session's first render, a refresh, or a shared
+  link) — deliberately not real browser history (`Location.back()`),
+  since that could leave the app entirely on a fresh tab with no prior
+  in-app navigation.
 - Known bootstrap race: `AppComponent.restoreSession()` and the dashboard's
   standings fetch fire independently on app load. If standings resolve
   first, the dashboard doesn't yet know `favoriteTeamId` yet for that

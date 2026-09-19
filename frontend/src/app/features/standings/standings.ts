@@ -3,6 +3,7 @@ import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
+import { NavHistoryService } from "../../core/nav-history.service";
 import { StandingsRow } from "../../core/models";
 import { StatLegendComponent, StatLegendEntry } from "../../shared/stat-legend";
 import { TeamCodePipe } from "../../shared/team-display-code";
@@ -97,6 +98,7 @@ const LEGEND_KEYS: { codeKey: string; key: string }[] = [
 export class StandingsComponent implements OnInit {
   private api = inject(ApiService);
   protected i18n = inject(I18nService);
+  protected navHistory = inject(NavHistoryService);
 
   readonly columns = COLUMNS;
   readonly loading = signal(true);

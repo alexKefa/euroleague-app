@@ -4,6 +4,7 @@ import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
+import { NavHistoryService } from "../../core/nav-history.service";
 import { AdminUserRow } from "../../core/models";
 import { TeamCodePipe } from "../../shared/team-display-code";
 
@@ -38,6 +39,7 @@ export class AdminUsersComponent implements OnInit {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
+  protected navHistory = inject(NavHistoryService);
 
   readonly columns = COLUMNS;
   readonly loading = signal(true);

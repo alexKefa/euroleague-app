@@ -3,6 +3,7 @@ import { CommonModule } from "@angular/common";
 import { RouterLink, ActivatedRoute } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
+import { NavHistoryService } from "../../core/nav-history.service";
 import { PlayerAdvancedStatsRow } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
@@ -65,6 +66,7 @@ export class PlayerCompareComponent implements OnInit {
   private api = inject(ApiService);
   private route = inject(ActivatedRoute);
   protected i18n = inject(I18nService);
+  protected navHistory = inject(NavHistoryService);
 
   readonly categories = CATEGORIES;
   readonly loading = signal(true);
