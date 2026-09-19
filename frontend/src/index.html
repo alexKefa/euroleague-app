@@ -5,7 +5,7 @@
   <title>Clutch</title>
   <base href="/"/>
   <meta id="viewport-meta" name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
-  <meta name="description" content="EuroLeague stats, predictions, and cards for your favorite team."/>
+  <meta name="description" content="Στατιστικά, προβλέψεις και συλλεκτικές κάρτες για την αγαπημένη σου ομάδα στην Euroleague."/>
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-v14.png"/>
   <link rel="icon" type="image/png" sizes="96x96" href="icons/icon-v14-96x96.png"/>
   <meta id="theme-color-meta" name="theme-color" content="#0b1220"/>
@@ -29,17 +29,23 @@
   <!-- Link-preview metadata — without these, sharing the URL fell back to
        whatever a platform's crawler could scrape on its own (nothing
        useful), which is what showed the framework's default icon instead
-       of the app's. -->
+       of the app's. og:image previously pointed at a real file that was
+       never actually generated (og-image.png, 404) — that's why a shared
+       link's preview showed no image at all; frontend/public/og-image.png
+       is now a real 1200x630 asset (the brand mark + Greek copy, mirroring
+       this document's own lang="el" default) rendered once via a headless
+       Chrome pass, not hand-drawn. -->
   <meta property="og:type" content="website"/>
+  <meta property="og:locale" content="el_GR"/>
   <meta property="og:title" content="Clutch"/>
-  <meta property="og:description" content="EuroLeague stats, predictions, and cards for your favorite team."/>
+  <meta property="og:description" content="Στατιστικά, προβλέψεις και συλλεκτικές κάρτες για την αγαπημένη σου ομάδα στην Euroleague."/>
   <meta property="og:url" content="https://getclutchapp.com"/>
   <meta property="og:image" content="https://getclutchapp.com/og-image.png"/>
   <meta property="og:image:width" content="1200"/>
   <meta property="og:image:height" content="630"/>
   <meta name="twitter:card" content="summary_large_image"/>
   <meta name="twitter:title" content="Clutch"/>
-  <meta name="twitter:description" content="EuroLeague stats, predictions, and cards for your favorite team."/>
+  <meta name="twitter:description" content="Στατιστικά, προβλέψεις και συλλεκτικές κάρτες για την αγαπημένη σου ομάδα στην Euroleague."/>
   <meta name="twitter:image" content="https://getclutchapp.com/og-image.png"/>
   <script>
     // Stamp the saved color scheme before Angular even loads, so a
