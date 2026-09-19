@@ -68,25 +68,26 @@ interface NavLink {
 // label is an i18n translation key, not display text — resolved via
 // i18n.t() in the template so nav labels follow the language toggle.
 // Desktop's rail has the vertical room for all eight, so it uses this list
-// directly, in this order (Fantasy Five joined 2026-09-07, by request — it
-// used to be mobile/dashboard-only, deliberately left off the rail's
-// then-documented 7-item max; that cap wasn't load-bearing enough to keep
-// it off once asked for directly). The mobile bottom bar (cramped,
-// thumb-reach real estate) has its own separate order entirely — see
-// MOBILE_NAV_LINKS/MORE_LINKS below, which build their own explicit lists
-// off this one rather than reusing its order.
+// directly, in this order. Cards moved ahead of Fantasy here (2026-09-19,
+// explicit ask: "Match in desktop the order as well") to match mobile's
+// own Home/Predictions/Cards/Fantasy sequence (see MOBILE_NAV_LINKS below)
+// — the two lists used to disagree on that relative order (desktop had
+// Fantasy before Cards). Fantasy Five itself joined this list 2026-09-07,
+// by request — it used to be mobile/dashboard-only, deliberately left off
+// the rail's then-documented 7-item max; that cap wasn't load-bearing
+// enough to keep it off once asked for directly.
 const NAV_LINKS: NavLink[] = [
   { path: "/", label: "nav.home", icon: "home", exact: true },
   { path: "/news", label: "nav.news", icon: "news" },
   { path: "/schedule", label: "nav.schedule", icon: "schedule" },
   { path: "/predictions", label: "nav.picks", icon: "picks" },
-  { path: "/fantasy", label: "fantasy.navLink", icon: "trophy" },
   {
     path: "/inventory",
     label: "nav.cards",
     icon: "cards",
     activePrefixes: ["/store", "/wheel", "/trades", "/packs", "/album", "/legendary-vote"],
   },
+  { path: "/fantasy", label: "fantasy.navLink", icon: "trophy" },
   { path: "/teams", label: "nav.teams", icon: "teams" },
   { path: "/standings", label: "nav.standings", icon: "standings" },
 ];
