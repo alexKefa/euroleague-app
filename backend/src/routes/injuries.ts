@@ -83,11 +83,25 @@ injuriesRouter.post("/", requireAuth, requireAdmin, async (req, res) => {
       status,
       note: note || null,
       noteEl: noteEl || null,
+      // Always "admin" through this endpoint — the daily basketnews sync
+      // (sync/injurySync.ts) writes "sync" via a separate code path and
+      // its own reconcile step only ever manages "sync" rows, so marking
+      // every human edit "admin" here (even one that overwrites a row the
+      // sync previously wrote) protects it from being silently reverted
+      // by the next sync run. See schema.ts's doc comment on `source`.
+      source: "admin",
       updatedByUserId: req.userId!,
     })
     .onConflictDoUpdate({
       target: playerInjuries.playerId,
-      set: { status, note: note || null, noteEl: noteEl || null, updatedByUserId: req.userId!, updatedAt: new Date() },
+      set: {
+        status,
+        note: note || null,
+        noteEl: noteEl || null,
+        source: "admin",
+        updatedByUserId: req.userId!,
+        updatedAt: new Date(),
+      },
     })
     .returning();
 

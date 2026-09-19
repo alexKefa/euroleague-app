@@ -40,6 +40,7 @@ npm run db:generate      # generate a migration file from schema.ts (see below)
 npm run db:studio        # Drizzle Studio GUI against the live DB
 npm run sync:standings   # tsx src/sync/runSync.ts
 npm run sync:news        # tsx src/sync/runNewsSync.ts
+npm run sync:injuries    # tsx src/sync/runInjurySync.ts — basketnews.com's EuroLeague injury report
 npm run economy:report   # tsx src/scripts/economy-report.ts — points/collectibles sanity check
 npm run economy:simulate # tsx src/scripts/season-simulation.ts — Monte Carlo: can a season finish the album?
 npm run collectibles:expand  # tsx src/scripts/expand-collectibles.ts — regenerate the card catalog
@@ -261,6 +262,48 @@ If you need to apply a schema change without an interactive terminal
   `backend/src/sync-py/` (Python + `euroleague-api`) for games/boxscores/
   player stats — the Python path exists because `euroleague-api` is the only
   tested wrapper around EuroLeague's feed for that data.
+- **Injuries — now (partly) synced, not purely admin-entered (2026-09-19)**
+  — `playerInjuries`' original "admin-entered, not synced" design (no
+  official EuroLeague feed has this data at all) is unchanged as a
+  fallback, but `sync/injurySync.ts` now also pulls a daily automated
+  report from **basketnews.com's EuroLeague injury report** — the only
+  other source found for this at all — via `npm run sync:injuries` /
+  a 24h `setInterval` in `index.ts` (prod-only, same pattern as the other
+  sync jobs there). That page (`news-212393-euroleague-injury-report-updated.html`)
+  is confirmed to be a persistent, in-place-updated page ("updated daily"
+  per its own subtitle, checked live), not a dated one-off news article —
+  otherwise a fixed URL wouldn't work for a recurring job. Parsed with
+  `cheerio` against its real HTML table (`#injury-reports-table` — team
+  header rows carry the team as `<tr id="team-slug">`, a real player row is
+  always exactly 5 plain `<td>`s with no `colspan`, which is what
+  distinguishes it from a team's "No injured players" placeholder row).
+  `sync/injuryTeamMap.ts` hand-maps basketnews' kebab-case team slugs to
+  `teams.code` (confirmed against a live fetch, mirrors `oddsTeamMap.ts`'s
+  "no algorithmic match" reasoning). Status labels map off basketnews' own
+  on-page "Player status color guide" legend (Ready/Expected/Questionable/
+  Game-time/Doubtful/Out/Uncertain), not guesswork — Expected→probable,
+  Game-time/Uncertain→questionable (no clean 1:1 counterpart for either),
+  Ready is never written (it's basketnews' own "healthy"/placeholder
+  status). Rows whose comment matches `/coach'?s?\s+decision/i` are
+  excluded outright — a healthy scratch, not an injury; **this exact
+  regex check caught a real bug in the one-off manual import that preceded
+  this job** (`scripts/import-basketnews-injuries.ts`, a same-day earlier
+  pass): two Zalgiris players had been imported as "questionable" off a
+  WebFetch-summarized read of the article that silently dropped the
+  raw comment's "(Coach decision)" qualifier — the first real
+  `sync:injuries` run correctly excluded and reconciled both away.
+  `playerInjuries.source` ("admin" | "sync", schema change applied
+  directly against the live DB per the Schema-changes workflow above) is
+  what lets the sync's own reconcile step (delete a `source: "sync"` row
+  for a player no longer on the report — a recovery) never touch a human's
+  own entry through `routes/injuries.ts`'s admin form, which always writes
+  `source: "admin"` regardless of what a row's source was before. A sync
+  run whose parse comes back with zero rows bails out entirely rather than
+  reconciling — a real page-structure change should surface as a loud
+  failure, not silently wipe every synced row. No Greek translation source
+  exists for the sync path (basketnews is English-only) — `noteEl` is left
+  untouched on a conflict update (never nulled out), so a human's own
+  hand-translated note survives a re-sync of the same player.
 - **Collectibles economy** (`collectibles`, `userCollectibles`,
   `wheelSpins`, `roundRewards`, `packOpenings`/`packOpeningResults`,
   `ownedPacks`, `tradeOffers`/`tradeOfferItems` in `schema.ts`; routes in

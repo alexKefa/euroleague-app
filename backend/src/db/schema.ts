@@ -122,13 +122,17 @@ export const players = pgTable("players", {
   active: boolean("active").default(true).notNull(),
 });
 
-// Admin-entered, not synced — EuroLeague's own feed (euroleague-api) has no
-// injury endpoint at all, unlike everything else this app pulls in. One row
-// per currently-injured player (playerId unique — a fresh admin write
-// overwrites the prior report rather than accumulating a history), so
-// "healthy" is just "no row here" rather than a status value. Cleared by
-// deleting the row (routes/injuries.ts's DELETE), not by writing an
-// "available" status.
+// Originally admin-entered only, not synced — EuroLeague's own feed
+// (euroleague-api) has no injury endpoint at all, unlike everything else
+// this app pulls in. Automated sync added 2026-09-19 (sync/injurySync.ts,
+// scraping basketnews.com's own EuroLeague injury-report page — no other
+// source exists) alongside `source`, so both paths coexist now. One row
+// per currently-injured player (playerId unique — a fresh write, from
+// either path, overwrites the prior report rather than accumulating a
+// history), so "healthy" is just "no row here" rather than a status
+// value. Cleared by deleting the row (routes/injuries.ts's DELETE, or
+// injurySync.ts's own reconcile step for a 'sync' row — see `source`
+// below), not by writing an "available" status.
 export const playerInjuries = pgTable("player_injuries", {
   id: uuid("id").defaultRandom().primaryKey(),
   playerId: uuid("player_id")
@@ -137,6 +141,15 @@ export const playerInjuries = pgTable("player_injuries", {
     .references(() => players.id),
   status: varchar("status", { length: 20 }).notNull(), // "out" | "doubtful" | "questionable" | "probable"
   note: text("note"),
+  // "admin" (routes/injuries.ts's POST, a human via the Injury Report
+  // page) | "sync" (injurySync.ts's daily basketnews.com job). Lets the
+  // sync job safely reconcile its own stale rows (a player who recovered
+  // or dropped off the report) without ever touching a row a human
+  // entered by hand — its cleanup query is scoped to `source = 'sync'`
+  // only. A sync run that re-matches an admin-entered row overwrites it
+  // (most-recent-write-wins, same as everywhere else in this app) and
+  // flips it to 'sync' — accepted tradeoff, not specially guarded against.
+  source: varchar("source", { length: 20 }).notNull().default("admin"),
   // Optional Greek translation of `note` (2026-09-19) — the status itself
   // was already bilingual (injuries.status* in i18n/injuries.ts), but the
   // free-text note wasn't. Nullable and falls back to `note` wherever it's

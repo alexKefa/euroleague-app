@@ -30,6 +30,7 @@ import { adminRouter } from "./routes/admin.js";
 import { syncNews } from "./sync/newsSync.js";
 import { syncOdds } from "./sync/oddsSync.js";
 import { syncLiveGames } from "./sync/liveGamesSync.js";
+import { syncInjuries } from "./sync/injurySync.js";
 import { applyDailyFantasyPriceChanges } from "./services/fantasyDailyReprice.js";
 import { getCurrentSeason } from "./services/season.js";
 
@@ -205,4 +206,26 @@ if (process.env.NODE_ENV === "production") {
   };
   runFantasyReprice();
   setInterval(runFantasyReprice, FANTASY_REPRICE_INTERVAL_MS);
+
+  // Daily EuroLeague injury report (2026-09-19, sync/injurySync.ts) —
+  // basketnews.com is the only source for this at all (see schema.ts's
+  // playerInjuries doc comment), scraped from a page they keep updating in
+  // place rather than a "find today's article" discovery step. Idempotent
+  // upsert-by-playerId same as every other sync here, plus its own
+  // reconcile step (clears a 'sync' row for a player no longer listed,
+  // never touches an admin's own manual entry) — safe on a fixed interval
+  // regardless of exact timing or a mid-day restart.
+  const INJURY_SYNC_INTERVAL_MS = 24 * 60 * 60 * 1000;
+  const runInjurySync = () => {
+    syncInjuries()
+      .then(({ matched, cleared, unmatched, unmatchedTeamSlugs, unmappedStatuses }) => {
+        console.log(`[injury sync] matched ${matched}, cleared ${cleared} resolved`);
+        if (unmatched.length) console.warn(`[injury sync] unmatched players: ${unmatched.map((u) => `${u.teamSlug}/${u.playerName}`).join(", ")}`);
+        if (unmatchedTeamSlugs.length) console.warn(`[injury sync] unmatched team slugs: ${unmatchedTeamSlugs.join(", ")}`);
+        if (unmappedStatuses.length) console.warn(`[injury sync] unmapped statuses: ${unmappedStatuses.join(", ")}`);
+      })
+      .catch((err) => console.error("[injury sync] failed:", err));
+  };
+  runInjurySync();
+  setInterval(runInjurySync, INJURY_SYNC_INTERVAL_MS);
 }
