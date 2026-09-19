@@ -68,18 +68,18 @@ interface NavLink {
 // label is an i18n translation key, not display text — resolved via
 // i18n.t() in the template so nav labels follow the language toggle.
 // Desktop's rail has the vertical room for all eight, so it uses this list
-// directly, in this order. Cards moved ahead of Fantasy here (2026-09-19,
-// explicit ask: "Match in desktop the order as well") to match mobile's
-// own Home/Predictions/Cards/Fantasy sequence (see MOBILE_NAV_LINKS below)
-// — the two lists used to disagree on that relative order (desktop had
-// Fantasy before Cards). Fantasy Five itself joined this list 2026-09-07,
-// by request — it used to be mobile/dashboard-only, deliberately left off
-// the rail's then-documented 7-item max; that cap wasn't load-bearing
-// enough to keep it off once asked for directly.
+// directly, in this order — deliberately matching mobile's own full order
+// now (2026-09-19, explicit ask: "should be like mobile order" — an
+// earlier pass that same day only fixed Cards/Fantasy's relative order,
+// which wasn't enough): Home, Predictions, Cards, Fantasy (mobile's four
+// direct tabs, see MOBILE_NAV_LINKS below), then Schedule, Teams,
+// Standings, News (mobile's "More" overflow, in that same order, News
+// last). Fantasy Five itself joined this list 2026-09-07, by request — it
+// used to be mobile/dashboard-only, deliberately left off the rail's
+// then-documented 7-item max; that cap wasn't load-bearing enough to keep
+// it off once asked for directly.
 const NAV_LINKS: NavLink[] = [
   { path: "/", label: "nav.home", icon: "home", exact: true },
-  { path: "/news", label: "nav.news", icon: "news" },
-  { path: "/schedule", label: "nav.schedule", icon: "schedule" },
   { path: "/predictions", label: "nav.picks", icon: "picks" },
   {
     path: "/inventory",
@@ -88,8 +88,10 @@ const NAV_LINKS: NavLink[] = [
     activePrefixes: ["/store", "/wheel", "/trades", "/packs", "/album", "/legendary-vote"],
   },
   { path: "/fantasy", label: "fantasy.navLink", icon: "trophy" },
+  { path: "/schedule", label: "nav.schedule", icon: "schedule" },
   { path: "/teams", label: "nav.teams", icon: "teams" },
   { path: "/standings", label: "nav.standings", icon: "standings" },
+  { path: "/news", label: "nav.news", icon: "news" },
 ];
 
 // Mobile-only: the four most-used destinations as direct tabs; Schedule,
