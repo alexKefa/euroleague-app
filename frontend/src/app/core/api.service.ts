@@ -263,8 +263,8 @@ export class ApiService {
     return this.http.get<InjuryReportEntry[]>(`${API_BASE_URL}/injuries`);
   }
 
-  setInjury(playerId: string, status: InjuryStatus, note?: string): Observable<unknown> {
-    return this.http.post(`${API_BASE_URL}/injuries`, { playerId, status, note });
+  setInjury(playerId: string, status: InjuryStatus, note?: string, noteEl?: string): Observable<unknown> {
+    return this.http.post(`${API_BASE_URL}/injuries`, { playerId, status, note, noteEl });
   }
 
   clearInjury(playerId: string): Observable<unknown> {

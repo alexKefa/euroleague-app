@@ -12,6 +12,7 @@ import {
   games,
   playerGameStats,
   users,
+  playerInjuries,
 } from "../db/schema.js";
 import { requireAuth } from "../auth/middleware.js";
 import { getCurrentSeason } from "../services/season.js";
@@ -62,7 +63,15 @@ fantasyRouter.get("/players", async (req, res) => {
     }
 
     const rows = await db
-      .select({ player: players, team: teams, price: playerFantasyPrices.price, stats: playerSeasonStats })
+      .select({
+        player: players,
+        team: teams,
+        price: playerFantasyPrices.price,
+        stats: playerSeasonStats,
+        injuryStatus: playerInjuries.status,
+        injuryNote: playerInjuries.note,
+        injuryNoteEl: playerInjuries.noteEl,
+      })
       .from(players)
       .innerJoin(teams, eq(players.teamId, teams.id))
       .leftJoin(
@@ -70,6 +79,10 @@ fantasyRouter.get("/players", async (req, res) => {
         and(eq(playerFantasyPrices.playerId, players.id), eq(playerFantasyPrices.season, season))
       )
       .leftJoin(playerSeasonStats, and(eq(playerSeasonStats.playerId, players.id), eq(playerSeasonStats.season, season)))
+      // Same admin-entered table the Injury Report page/roster badge read
+      // (see schema.ts's doc comment on playerInjuries) — left join since
+      // "healthy" is just "no row", not a status value.
+      .leftJoin(playerInjuries, eq(playerInjuries.playerId, players.id))
       .where(eq(players.active, true));
 
     res.json({
@@ -81,6 +94,7 @@ fantasyRouter.get("/players", async (req, res) => {
         pointsPerGame: r.stats?.pointsPerGame ?? null,
         valuation: r.stats?.valuation ?? null,
         gamesPlayed: r.stats?.gamesPlayed ?? null,
+        injury: r.injuryStatus ? { status: r.injuryStatus, note: r.injuryNote, noteEl: r.injuryNoteEl } : null,
       })),
     });
   } catch (err) {

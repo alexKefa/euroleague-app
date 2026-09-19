@@ -15,6 +15,7 @@ import {
   Game,
   GameTeamSummary,
   PlayerGameLogEntry,
+  InjuryStatus,
 } from "../../core/models";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { TeamBadgeComponent } from "../../shared/team-badge";
@@ -29,6 +30,14 @@ import { NavIconComponent } from "../../shared/nav-icon";
 import { ConfirmDialogComponent } from "../../shared/confirm-dialog";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { newsDateLocale, gameDateTimeFormat as gameDateTimeFormatFn } from "../../shared/news-date-format";
+import { InjuryBadgeComponent } from "../../shared/injury-badge";
+import {
+  injuryStatusLabel,
+  injuryStatusClass,
+  injuryBadgeBgClass,
+  injuryAccentTextClass,
+  injuryNoteFor,
+} from "../../shared/injury-status";
 
 // Squad shape — mirrors backend/src/services/fantasyScoring.ts's constants
 // exactly (kept in sync by hand, same as e.g. analytics-builder.ts keeping
@@ -250,6 +259,7 @@ interface SwapCandidate {
     NavIconComponent,
     ConfirmDialogComponent,
     LogoSpinnerComponent,
+    InjuryBadgeComponent,
   ],
   templateUrl: "./fantasy.html",
   styleUrl: "./fantasy.css",
@@ -1346,6 +1356,36 @@ export class FantasyComponent implements OnInit {
       default:
         return "";
     }
+  }
+
+  // Info popup's injury pill — the one Fantasy context with room for the
+  // full text pill (status + note), same styling roster.html/injury-
+  // report.html already use. Every other spot (court slot, pool rows,
+  // picker popups) uses the compact InjuryBadgeComponent dot instead, see
+  // fantasy.html.
+  injuryLabel(status: InjuryStatus): string {
+    return injuryStatusLabel(this.i18n, status);
+  }
+
+  injuryClass(status: InjuryStatus): string {
+    return injuryStatusClass(status);
+  }
+
+  injuryNote(injury: { note: string | null; noteEl: string | null }): string | null {
+    return injuryNoteFor(this.i18n, injury.note, injury.noteEl);
+  }
+
+  // Higher-visibility recoloring for a name/price — the small corner dot
+  // alone read as too easy to miss (2026-09-19 report). Used on the court
+  // slot's name bar (solid bg + white text, matching InjuryBadgeComponent's
+  // own solid fill) and everywhere else a plain text/price color swap is
+  // enough (pool rows, swap/captain pickers).
+  injuryNameBarClass(status: InjuryStatus): string {
+    return `${injuryBadgeBgClass(status)} text-white`;
+  }
+
+  injuryAccentClass(status: InjuryStatus): string {
+    return injuryAccentTextClass(status);
   }
 
   // Player names sync from the feed as "SURNAME, First" — on the court's

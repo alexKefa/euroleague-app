@@ -137,6 +137,13 @@ export const playerInjuries = pgTable("player_injuries", {
     .references(() => players.id),
   status: varchar("status", { length: 20 }).notNull(), // "out" | "doubtful" | "questionable" | "probable"
   note: text("note"),
+  // Optional Greek translation of `note` (2026-09-19) — the status itself
+  // was already bilingual (injuries.status* in i18n/injuries.ts), but the
+  // free-text note wasn't. Nullable and falls back to `note` wherever it's
+  // read (see shared/injury-status.ts's injuryNoteFor) rather than being
+  // required, since an admin typing a quick English note shouldn't be
+  // blocked on also having a Greek one ready.
+  noteEl: text("note_el"),
   updatedByUserId: uuid("updated_by_user_id").notNull().references(() => users.id),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });

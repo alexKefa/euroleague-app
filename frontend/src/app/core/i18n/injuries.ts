@@ -24,6 +24,10 @@ export const injuriesTranslations: Record<string, Record<Lang, string>> = {
   "injuries.adminReportTitle": { en: "Report an injury", el: "Καταχώρηση τραυματισμού" },
   "injuries.adminPlayerPlaceholder": { en: "Choose a player", el: "Επίλεξε παίκτη" },
   "injuries.adminNotePlaceholder": { en: "Note (optional)", el: "Σημείωση (προαιρετικό)" },
+  "injuries.adminNoteElPlaceholder": {
+    en: "Note in Greek (optional)",
+    el: "Σημείωση στα ελληνικά (προαιρετικό)",
+  },
   "injuries.adminSubmit": { en: "Set status", el: "Ορισμός κατάστασης" },
   "injuries.adminSubmitting": { en: "Saving…", el: "Αποθήκευση…" },
   "injuries.adminSetFor": { en: "Set injury status for", el: "Ορίστηκε κατάσταση τραυματισμού για" },

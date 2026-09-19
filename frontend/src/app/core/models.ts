@@ -79,6 +79,9 @@ export interface PlayerInjury {
   playerId: string;
   status: InjuryStatus;
   note: string | null;
+  // Optional Greek translation of `note` — see shared/injury-status.ts's
+  // injuryNoteFor for the fallback-to-`note` read pattern.
+  noteEl: string | null;
   updatedAt: string;
 }
 
@@ -98,6 +101,7 @@ export interface InjuryReportEntry {
   teamLogoUrl: string | null;
   status: InjuryStatus;
   note: string | null;
+  noteEl: string | null;
   updatedAt: string;
 }
 
@@ -783,6 +787,11 @@ export interface FantasyPlayerRow {
   pointsPerGame: number | null;
   valuation: number | null;
   gamesPlayed: number | null;
+  // Same admin-entered report the Injury Report page/roster badge read
+  // (playerInjuries — null means healthy, not "unknown"). Surfaced here so
+  // the roster builder can flag a risky pick before it's locked into a
+  // squad, not just after.
+  injury: { status: InjuryStatus; note: string | null; noteEl: string | null } | null;
 }
 
 export interface FantasyPlayers {

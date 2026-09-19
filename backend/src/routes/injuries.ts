@@ -33,6 +33,7 @@ injuriesRouter.get("/", async (_req, res) => {
         teamLogoUrl: teams.logoUrl,
         status: playerInjuries.status,
         note: playerInjuries.note,
+        noteEl: playerInjuries.noteEl,
         updatedAt: playerInjuries.updatedAt,
       })
       .from(playerInjuries)
@@ -51,7 +52,7 @@ injuriesRouter.get("/", async (_req, res) => {
 // it outright rather than layering a second row, since there's only ever
 // one "current" status per player (see schema.ts).
 injuriesRouter.post("/", requireAuth, requireAdmin, async (req, res) => {
-  const { playerId, status, note } = req.body ?? {};
+  const { playerId, status, note, noteEl } = req.body ?? {};
   if (typeof playerId !== "string") {
     res.status(400).json({ error: "playerId is required" });
     return;
@@ -62,6 +63,10 @@ injuriesRouter.post("/", requireAuth, requireAdmin, async (req, res) => {
   }
   if (note !== undefined && note !== null && typeof note !== "string") {
     res.status(400).json({ error: "note must be a string" });
+    return;
+  }
+  if (noteEl !== undefined && noteEl !== null && typeof noteEl !== "string") {
+    res.status(400).json({ error: "noteEl must be a string" });
     return;
   }
 
@@ -77,11 +82,12 @@ injuriesRouter.post("/", requireAuth, requireAdmin, async (req, res) => {
       playerId,
       status,
       note: note || null,
+      noteEl: noteEl || null,
       updatedByUserId: req.userId!,
     })
     .onConflictDoUpdate({
       target: playerInjuries.playerId,
-      set: { status, note: note || null, updatedByUserId: req.userId!, updatedAt: new Date() },
+      set: { status, note: note || null, noteEl: noteEl || null, updatedByUserId: req.userId!, updatedAt: new Date() },
     })
     .returning();
 

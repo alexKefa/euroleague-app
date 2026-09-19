@@ -39,6 +39,12 @@
           [placeholder]="i18n.t('injuries.adminNotePlaceholder')"
           class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
         />
+        <input
+          type="text"
+          formControlName="noteEl"
+          [placeholder]="i18n.t('injuries.adminNoteElPlaceholder')"
+          class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
+        />
         <button type="submit" [disabled]="adminForm.invalid || adminSubmitting()" appButton>
           {{ adminSubmitting() ? i18n.t('injuries.adminSubmitting') : i18n.t('injuries.adminSubmit') }}
         </button>
@@ -104,6 +110,12 @@
                     [placeholder]="i18n.t('injuries.adminNotePlaceholder')"
                     class="flex-1 min-w-[8rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
                   />
+                  <input
+                    type="text"
+                    formControlName="noteEl"
+                    [placeholder]="i18n.t('injuries.adminNoteElPlaceholder')"
+                    class="flex-1 min-w-[8rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
+                  />
                   <button
                     type="button"
                     (click)="saveEdit(entry)"
@@ -137,8 +149,8 @@
                           {{ statusLabel(entry.status) }}
                         </span>
                       </span>
-                      @if (entry.note) {
-                        <span class="block text-xs text-muted mt-0.5 truncate">{{ entry.note }}</span>
+                      @if (noteFor(entry); as note) {
+                        <span class="block text-xs text-muted mt-0.5 truncate">{{ note }}</span>
                       }
                     </span>
                   </a>

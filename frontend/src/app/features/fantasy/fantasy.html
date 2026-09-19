@@ -133,6 +133,14 @@
                     [centerFace]="true"
                   />
                 </button>
+                @if (row.injury; as injury) {
+                  <!-- Top-center — the only corner this slot's avatar has
+                       free (captain/lock bottom-left/-right, remove/swap
+                       top-right/-left, see below). -->
+                  <span class="absolute -top-1.5 left-1/2 -translate-x-1/2">
+                    <app-injury-badge [status]="injury.status" [note]="injury.note" [noteEl]="injury.noteEl" [size]="14" />
+                  </span>
+                }
                 @if (slot.role === 'starter' && captainId() === slot.playerId) {
                   <!-- Purely informational now — picking/changing the captain
                        moved to a dialog next to the formation button (see
@@ -201,9 +209,16 @@
                    same way regardless, so this doesn't reintroduce a
                    height mismatch. -->
               <button type="button" (click)="openPlayerInfo(slot.playerId)" [title]="row.player.name" class="block w-[116px] rounded-lg overflow-hidden hover:opacity-90 transition-opacity">
-                <span class="block bg-team-primary text-team-secondary text-[10px] font-bold uppercase tracking-wide text-center leading-tight line-clamp-2 px-1 py-px">{{ posAbbrev(row.player.position) }} {{ courtDisplayName(row.player.name) }}</span>
+                <!-- Recolored solid (not just team-primary) when injured —
+                     the small corner dot alone read as too easy to miss
+                     (2026-09-19). -->
+                <span
+                  class="block text-[10px] font-bold uppercase tracking-wide text-center leading-tight line-clamp-2 px-1 py-px"
+                  [ngClass]="row.injury ? injuryNameBarClass(row.injury.status) : 'bg-team-primary text-team-secondary'"
+                  >{{ posAbbrev(row.player.position) }} {{ courtDisplayName(row.player.name) }}</span
+                >
                 <span class="flex items-center justify-center gap-1.5 bg-[#17161c]/80 text-white text-[10px] font-mono font-bold px-1.5 py-px">
-                  <span class="text-team-primary">{{ row.price | number: '1.1-1' }}{{ i18n.t('fantasy.creditsAbbrev') }}</span>
+                  <span [ngClass]="row.injury ? injuryAccentClass(row.injury.status) : 'text-team-primary'">{{ row.price | number: '1.1-1' }}{{ i18n.t('fantasy.creditsAbbrev') }}</span>
                   @if (gameForTeam().get(row.team.id); as game) {
                     <span class="text-white/40">&middot;</span>
                     @if (game.status === 'scheduled') {
@@ -838,16 +853,23 @@
                   [ngClass]="poolRowDisabled(row.player.id, row.player.position) ? 'opacity-40' : 'cursor-grab active:cursor-grabbing hover:border-team-primary'"
                 >
                   <button type="button" (click)="$event.stopPropagation(); openPlayerInfo(row.player.id)" class="flex items-center gap-1.5 min-w-0 flex-1 text-left">
-                    <app-player-photo
-                      [photoUrl]="row.player.photoUrl"
-                      [name]="row.player.name"
-                      [teamCode]="row.team.code"
-                      [primaryColor]="row.team.primaryColor"
-                      [size]="26"
-                      [centerFace]="true"
-                    />
+                    <span class="relative shrink-0">
+                      <app-player-photo
+                        [photoUrl]="row.player.photoUrl"
+                        [name]="row.player.name"
+                        [teamCode]="row.team.code"
+                        [primaryColor]="row.team.primaryColor"
+                        [size]="26"
+                        [centerFace]="true"
+                      />
+                      @if (row.injury; as injury) {
+                        <span class="absolute -top-0.5 -right-0.5">
+                          <app-injury-badge [status]="injury.status" [note]="injury.note" [noteEl]="injury.noteEl" [size]="11" />
+                        </span>
+                      }
+                    </span>
                     <div class="min-w-0 flex-1">
-                      <p class="text-[10px] font-semibold truncate leading-tight">{{ row.player.name }}</p>
+                      <p class="text-[10px] font-semibold truncate leading-tight" [ngClass]="row.injury ? injuryAccentClass(row.injury.status) : ''">{{ row.player.name }}</p>
                       <p class="text-[8px] font-mono text-muted truncate leading-tight">
                         {{ posAbbrev(row.player.position) }}
                         @if (opponentFor(row.team.id); as opp) {
@@ -989,6 +1011,16 @@
               <div class="min-w-0">
                 <p class="font-display text-lg tracking-wide truncate">{{ row.player.name }}</p>
                 <p class="text-xs text-muted">{{ posAbbrev(row.player.position) }} &middot; {{ row.team.name }}</p>
+                @if (row.injury; as injury) {
+                  <!-- Full text pill (status + note) — the one Fantasy
+                       spot roomy enough for it, same styling as roster.html/
+                       injury-report.html's own pill. -->
+                  <span
+                    class="inline-block mt-1 text-[10px] font-bold uppercase tracking-wide rounded-full border px-2 py-0.5"
+                    [ngClass]="injuryClass(injury.status)"
+                    >{{ injuryLabel(injury.status) }}@if (injuryNote(injury); as note) { — {{ note }} }</span
+                  >
+                }
               </div>
             </div>
           }
@@ -1130,16 +1162,23 @@
               [disabled]="poolRowDisabled(row.player.id, row.player.position)"
               class="fantasy-row-in w-full flex items-center gap-2 rounded-lg border border-line bg-page p-2 hover:border-team-primary transition-colors text-left disabled:opacity-40 disabled:hover:border-line disabled:cursor-not-allowed"
             >
-              <app-player-photo
-                [photoUrl]="row.player.photoUrl"
-                [name]="row.player.name"
-                [teamCode]="row.team.code"
-                [primaryColor]="row.team.primaryColor"
-                [size]="30"
-                [centerFace]="true"
-              />
+              <span class="relative shrink-0">
+                <app-player-photo
+                  [photoUrl]="row.player.photoUrl"
+                  [name]="row.player.name"
+                  [teamCode]="row.team.code"
+                  [primaryColor]="row.team.primaryColor"
+                  [size]="30"
+                  [centerFace]="true"
+                />
+                @if (row.injury; as injury) {
+                  <span class="absolute -top-0.5 -right-0.5">
+                    <app-injury-badge [status]="injury.status" [note]="injury.note" [noteEl]="injury.noteEl" [size]="12" />
+                  </span>
+                }
+              </span>
               <div class="min-w-0 flex-1">
-                <p class="text-[12px] font-semibold truncate leading-tight">{{ row.player.name }}</p>
+                <p class="text-[12px] font-semibold truncate leading-tight" [ngClass]="row.injury ? injuryAccentClass(row.injury.status) : ''">{{ row.player.name }}</p>
                 <p class="text-[10px] font-mono text-muted truncate leading-tight">
                   {{ posAbbrev(row.player.position) }}
                   @if (opponentFor(row.team.id); as opp) {
@@ -1147,7 +1186,10 @@
                   }
                 </p>
               </div>
-              <span class="shrink-0 font-mono text-[13px] font-bold text-team-primary border border-team-primary/30 rounded-lg px-2.5 py-1.5 min-w-[46px] text-center">
+              <span
+                class="shrink-0 font-mono text-[13px] font-bold rounded-lg px-2.5 py-1.5 min-w-[46px] text-center border"
+                [ngClass]="row.injury ? injuryAccentClass(row.injury.status) + ' border-current' : 'text-team-primary border-team-primary/30'"
+              >
                 {{ row.price | number: '1.1-1' }} <span class="text-[9px]">{{ i18n.t('fantasy.creditsAbbrev') }}</span>
               </span>
             </button>
@@ -1238,16 +1280,23 @@
               (click)="performSwap(candidate.row.player.id)"
               class="fantasy-row-in w-full flex items-center gap-2 rounded-lg border border-line bg-page p-2 hover:border-team-primary transition-colors text-left"
             >
-              <app-player-photo
-                [photoUrl]="candidate.row.player.photoUrl"
-                [name]="candidate.row.player.name"
-                [teamCode]="candidate.row.team.code"
-                [primaryColor]="candidate.row.team.primaryColor"
-                [size]="30"
-                [centerFace]="true"
-              />
+              <span class="relative shrink-0">
+                <app-player-photo
+                  [photoUrl]="candidate.row.player.photoUrl"
+                  [name]="candidate.row.player.name"
+                  [teamCode]="candidate.row.team.code"
+                  [primaryColor]="candidate.row.team.primaryColor"
+                  [size]="30"
+                  [centerFace]="true"
+                />
+                @if (candidate.row.injury; as injury) {
+                  <span class="absolute -top-0.5 -right-0.5">
+                    <app-injury-badge [status]="injury.status" [note]="injury.note" [noteEl]="injury.noteEl" [size]="12" />
+                  </span>
+                }
+              </span>
               <div class="min-w-0 flex-1">
-                <p class="text-[12px] font-semibold truncate leading-tight">{{ candidate.row.player.name }}</p>
+                <p class="text-[12px] font-semibold truncate leading-tight" [ngClass]="candidate.row.injury ? injuryAccentClass(candidate.row.injury.status) : ''">{{ candidate.row.player.name }}</p>
                 <p class="text-[10px] font-mono text-muted truncate leading-tight">{{ posAbbrev(candidate.row.player.position) }}</p>
               </div>
               @if (candidate.formation && candidate.formation !== formation()) {
@@ -1324,16 +1373,23 @@
                   class="flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   [ngClass]="captainId() === slot.playerId ? 'border-team-primary bg-team-primary/10' : 'border-line bg-page hover:border-team-primary'"
                 >
-                  <app-player-photo
-                    [photoUrl]="row.player.photoUrl"
-                    [name]="row.player.name"
-                    [teamCode]="row.team.code"
-                    [primaryColor]="row.team.primaryColor"
-                    [size]="30"
-                    [centerFace]="true"
-                  />
+                  <span class="relative shrink-0">
+                    <app-player-photo
+                      [photoUrl]="row.player.photoUrl"
+                      [name]="row.player.name"
+                      [teamCode]="row.team.code"
+                      [primaryColor]="row.team.primaryColor"
+                      [size]="30"
+                      [centerFace]="true"
+                    />
+                    @if (row.injury; as injury) {
+                      <span class="absolute -top-0.5 -right-0.5">
+                        <app-injury-badge [status]="injury.status" [note]="injury.note" [noteEl]="injury.noteEl" [size]="12" />
+                      </span>
+                    }
+                  </span>
                   <div class="min-w-0 flex-1">
-                    <p class="text-[12px] font-semibold truncate leading-tight">{{ row.player.name }}</p>
+                    <p class="text-[12px] font-semibold truncate leading-tight" [ngClass]="row.injury ? injuryAccentClass(row.injury.status) : ''">{{ row.player.name }}</p>
                     <p class="text-[10px] font-mono text-muted truncate leading-tight">{{ posAbbrev(row.player.position) }}</p>
                   </div>
                   @if (captainId() === slot.playerId) {

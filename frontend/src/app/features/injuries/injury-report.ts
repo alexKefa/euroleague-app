@@ -12,7 +12,7 @@ import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { TeamCodePipe, displayTeamCode } from "../../shared/team-display-code";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { ButtonDirective } from "../../shared/button.directive";
-import { injuryStatusLabel, injuryStatusClass } from "../../shared/injury-status";
+import { injuryStatusLabel, injuryStatusClass, injuryNoteFor } from "../../shared/injury-status";
 
 interface TeamGroup {
   teamId: string;
@@ -88,6 +88,10 @@ export class InjuryReportComponent implements OnInit {
     return injuryStatusClass(status);
   }
 
+  noteFor(entry: InjuryReportEntry): string | null {
+    return injuryNoteFor(this.i18n, entry.note, entry.noteEl);
+  }
+
   // --- Admin tools: report a new injury, or edit/remove one inline ---
   // Team picked first, then its roster loads on demand for the player
   // dropdown (same "fetch a team's roster only when needed" spirit as the
@@ -104,6 +108,7 @@ export class InjuryReportComponent implements OnInit {
     playerId: ["", [Validators.required]],
     status: ["out", [Validators.required]],
     note: [""],
+    noteEl: [""],
   });
   readonly adminTeamDropdownOptions = computed<DropdownOption[]>(() =>
     this.adminTeams().map((t) => ({ value: t.id, label: displayTeamCode(t.code), logoUrl: t.logoUrl }))
@@ -120,6 +125,7 @@ export class InjuryReportComponent implements OnInit {
   readonly editForm = this.fb.nonNullable.group({
     status: ["out", [Validators.required]],
     note: [""],
+    noteEl: [""],
   });
   readonly editSaving = signal(false);
 
@@ -159,16 +165,16 @@ export class InjuryReportComponent implements OnInit {
     this.adminError.set(null);
     this.adminSuccess.set(null);
 
-    const { playerId, status, note } = this.adminForm.getRawValue();
+    const { playerId, status, note, noteEl } = this.adminForm.getRawValue();
     const injuryStatus = status as InjuryStatus;
     const player = this.adminRoster().find((r) => r.player.id === playerId)?.player;
-    this.api.setInjury(playerId, injuryStatus, note || undefined).subscribe({
+    this.api.setInjury(playerId, injuryStatus, note || undefined, noteEl || undefined).subscribe({
       next: () => {
         this.adminSubmitting.set(false);
         this.adminSuccess.set(
           `${this.i18n.t("injuries.adminSetFor")} ${player?.name ?? ""} (${this.statusLabel(injuryStatus)}).`
         );
-        this.adminForm.patchValue({ playerId: "", note: "" });
+        this.adminForm.patchValue({ playerId: "", note: "", noteEl: "" });
         this.refreshInjuries();
       },
       error: (err) => {
@@ -182,7 +188,7 @@ export class InjuryReportComponent implements OnInit {
 
   startEdit(entry: InjuryReportEntry): void {
     this.editingPlayerId.set(entry.playerId);
-    this.editForm.setValue({ status: entry.status, note: entry.note ?? "" });
+    this.editForm.setValue({ status: entry.status, note: entry.note ?? "", noteEl: entry.noteEl ?? "" });
   }
 
   cancelEdit(): void {
@@ -192,8 +198,8 @@ export class InjuryReportComponent implements OnInit {
   saveEdit(entry: InjuryReportEntry): void {
     if (this.editForm.invalid) return;
     this.editSaving.set(true);
-    const { status, note } = this.editForm.getRawValue();
-    this.api.setInjury(entry.playerId, status as InjuryStatus, note || undefined).subscribe({
+    const { status, note, noteEl } = this.editForm.getRawValue();
+    this.api.setInjury(entry.playerId, status as InjuryStatus, note || undefined, noteEl || undefined).subscribe({
       next: () => {
         this.editSaving.set(false);
         this.editingPlayerId.set(null);
