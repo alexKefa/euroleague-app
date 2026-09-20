@@ -145,6 +145,19 @@
       }
     }
 
+    <!-- €100 "first to complete the album" prize banner (2026-09-20,
+         upgraded same day from a plain app-page-hint to the real animated
+         podium graphic — see shared/prize-banner.ts) — placed right after
+         the team-hero/next-game block, ahead of Live Center, for visibility
+         without pushing it above the identity content a returning visitor
+         opens this page for. Dismissible (own hintId, separate from the
+         economy/guest hints below) since an engaged daily visitor doesn't
+         need this re-shown forever — it stays permanently visible on the
+         Album page itself regardless. -->
+    <div class="mb-4">
+      <app-prize-banner size="compact" ctaLink="/album" hintId="dashboard-album-prize" />
+    </div>
+
     <app-live-center />
 
     <!-- My Leagues + Fantasy Team -->

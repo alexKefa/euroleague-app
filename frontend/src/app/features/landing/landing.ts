@@ -15,6 +15,7 @@ import { TeamBadgeComponent } from "../../shared/team-badge";
 import { CourtBackgroundComponent } from "../../shared/court-background";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { OpenInBrowserBannerComponent } from "../../shared/open-in-browser-banner";
+import { PrizeBannerComponent } from "../../shared/prize-banner";
 import { markVisited } from "../../shared/visited";
 import { hexLuma } from "../../core/color-utils";
 
@@ -121,6 +122,7 @@ function shuffled<T>(arr: T[]): T[] {
     TeamBadgeComponent,
     CourtBackgroundComponent,
     OpenInBrowserBannerComponent,
+    PrizeBannerComponent,
   ],
   templateUrl: "./landing.html",
   styleUrl: "./landing.css",

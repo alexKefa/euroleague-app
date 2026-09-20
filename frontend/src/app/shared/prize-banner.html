@@ -1,0 +1,64 @@
+@if (!dismissed()) {
+  <div class="prize-banner relative overflow-hidden rounded-2xl border-2" [class.prize-banner--compact]="size === 'compact'">
+    <div class="prize-banner-sweep absolute pointer-events-none"></div>
+
+    @if (hintId) {
+      <button
+        type="button"
+        (click)="dismiss()"
+        class="absolute top-2 right-2 z-10 w-6 h-6 rounded-full flex items-center justify-center text-black/50 hover:text-black hover:bg-black/10 transition-colors"
+        [attr.aria-label]="i18n.t('hint.dismiss')"
+      >
+        &times;
+      </button>
+    }
+
+    <div class="relative flex flex-col items-center px-5 py-4 sm:px-6 sm:py-5 text-center">
+      <div class="prize-trophy relative w-12 h-12 mb-2 flex items-center justify-center">
+        <span class="prize-trophy-glow absolute inset-0 rounded-full"></span>
+        <span class="prize-trophy-bob relative flex items-center justify-center">
+          <app-nav-icon name="trophy" [size]="size === 'hero' ? 30 : 24" class="prize-trophy-icon" />
+        </span>
+        <span class="prize-sparkle prize-sparkle--a"></span>
+        <span class="prize-sparkle prize-sparkle--b"></span>
+      </div>
+
+      <p class="prize-ink font-mono text-[11px] font-bold tracking-widest uppercase mb-1">
+        {{ i18n.t('contest.prizeTagline') }}
+      </p>
+
+      @if (size === 'hero') {
+        <p class="prize-ink font-display font-bold text-base sm:text-lg leading-snug mb-3">
+          {{ i18n.t('contest.prizeTitle') }}
+        </p>
+      }
+
+      <!-- Podium — 2nd/1st/3rd left-to-right, heights fixed per column
+           (not scaled by amount) so the shape always reads as a real
+           podium at a glance. -->
+      <div class="flex items-end justify-center gap-2 mb-3">
+        @for (spot of podium; track spot.place) {
+          <div class="prize-podium-col flex flex-col items-center" [style.animation-delay.ms]="spot.place * 90">
+            <span class="prize-ink font-mono text-[11px] font-bold mb-1">&euro;{{ spot.amount }}</span>
+            <div class="prize-podium-bar prize-podium-bar--{{ spot.place }} flex items-start justify-center pt-1.5">
+              <span class="font-display font-bold text-sm text-white">{{ spot.place }}</span>
+            </div>
+          </div>
+        }
+      </div>
+
+      <p class="prize-ink prize-body text-sm leading-relaxed max-w-sm">
+        {{ i18n.t('contest.prizeBody') }}
+      </p>
+
+      @if (ctaLink) {
+        <a
+          [routerLink]="ctaLink"
+          class="prize-ink mt-3 inline-flex items-center gap-1 font-mono text-xs font-bold uppercase tracking-wide hover:opacity-70 transition-opacity"
+        >
+          {{ i18n.t('contest.prizeCta') }} &rarr;
+        </a>
+      }
+    </div>
+  </div>
+}

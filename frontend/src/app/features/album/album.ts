@@ -9,6 +9,7 @@ import { AlbumLeaderboardEntry, Collectible, CollectibleFinish, CollectibleTier,
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { CardPreviewComponent } from "../store/card-preview";
 import { PageHintComponent } from "../../shared/page-hint";
+import { PrizeBannerComponent } from "../../shared/prize-banner";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { ButtonDirective } from "../../shared/button.directive";
@@ -35,6 +36,7 @@ const TIER_ORDER: CollectibleTier[] = ["common", "rare", "legendary"];
     CollectibleCardComponent,
     CardPreviewComponent,
     PageHintComponent,
+    PrizeBannerComponent,
     RetryImgDirective,
     SkeletonComponent,
     ButtonDirective,

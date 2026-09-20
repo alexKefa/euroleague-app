@@ -36,6 +36,16 @@
     </h1>
   </section>
 
+  <!-- €100 prize banner (2026-09-20, upgraded to app-prize-banner same day
+       for real graphics/animation — see shared/prize-banner.ts) — placed
+       right after the headline and before the feature carousel on purpose:
+       this page is the cold-traffic destination (QR flyer, a shared link),
+       so a visitor should see this before anything else, not buried a few
+       carousel steps in. -->
+  <section class="px-5 sm:px-8 pb-8 max-w-3xl mx-auto">
+    <app-prize-banner size="hero" />
+  </section>
+
   <!-- Stepper — one core loop at a time, autoplaying (LandingComponent's
        ngOnInit) until the visitor touches an arrow/dot themselves. -->
   <section class="px-5 sm:px-8 pb-16 max-w-4xl mx-auto">

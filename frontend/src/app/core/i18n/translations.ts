@@ -26,6 +26,7 @@ import { legendaryVoteTranslations } from "./legendary-vote";
 import { liveCenterTranslations } from "./live-center";
 import { claimTranslations } from "./claim";
 import { adminTranslations } from "./admin";
+import { contestTranslations } from "./contest";
 
 export type { Lang };
 
@@ -61,4 +62,5 @@ export const translations: Record<string, Record<Lang, string>> = {
   ...liveCenterTranslations,
   ...claimTranslations,
   ...adminTranslations,
+  ...contestTranslations,
 };

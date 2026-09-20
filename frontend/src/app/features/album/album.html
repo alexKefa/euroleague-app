@@ -23,6 +23,15 @@
     }
   </div>
 
+  <!-- €100 prize banner (2026-09-20, upgraded same day to the shared
+       animated app-prize-banner — see shared/prize-banner.ts) — this is the
+       actual page the contest is about, so unlike the dashboard's
+       dismissible version, no hintId here: it stays up for good rather than
+       being a one-time nudge, regardless of which tab someone's on. -->
+  <div class="mb-4">
+    <app-prize-banner size="compact" />
+  </div>
+
   <!-- Segmented control (2026-09-12, matching the dashboard's tab switcher)
        — one joined tonal track instead of two separate solid pill buttons,
        so this page's own tab switch reads consistently with the rest of

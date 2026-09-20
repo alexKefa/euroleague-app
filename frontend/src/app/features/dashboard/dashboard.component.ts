@@ -16,6 +16,7 @@ import {
   FantasyLineup,
 } from "../../core/models";
 import { PageHintComponent } from "../../shared/page-hint";
+import { PrizeBannerComponent } from "../../shared/prize-banner";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
@@ -55,6 +56,7 @@ type DashboardTab = "performances" | "leaders" | "predictors" | "schedule";
     CommonModule,
     RouterLink,
     PageHintComponent,
+    PrizeBannerComponent,
     RetryImgDirective,
     NavIconComponent,
     DropdownComponent,
