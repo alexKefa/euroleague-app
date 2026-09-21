@@ -651,7 +651,8 @@ export type PackType =
   | "wheelPro"
   | "wheelLegendary"
   | "wheelCoach"
-  | "qrBonus";
+  | "qrBonus"
+  | "welcomeBonus";
 
 // A promo code (registered at signup, or via POST /api/promo-codes/redeem
 // for an already-logged-in user — see features/claim/claim.ts) resolves to

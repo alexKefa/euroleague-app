@@ -3,7 +3,7 @@ import rateLimit from "express-rate-limit";
 import crypto from "node:crypto";
 import { eq, sql, and, gt } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { users, pointAdjustments, teamSeasonStats } from "../db/schema.js";
+import { users, teamSeasonStats, ownedPacks } from "../db/schema.js";
 import { hashPassword, verifyPassword } from "../auth/hash.js";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../auth/tokens.js";
 import { createUniqueReferralCode } from "../services/referrals.js";
@@ -52,14 +52,14 @@ const refreshLimiter = rateLimit({
   message: { error: "Too many requests — try again later." },
 });
 
-// Exactly a Regular Season Pack's cost (services/packs.ts's "starter" pack
-// — 150pts as of the 2026-08-25 album-economy pass, up from 100) — a new
-// account can immediately afford one open, rather than starting completely
-// empty with nothing to do until their first correct prediction resolves.
-// Points, not a pre-opened pack: reuses the pack-opening flow exactly as
-// designed (pick a pack, watch the reveal) instead of a second, bespoke
-// "welcome pack" code path.
-const WELCOME_BONUS_POINTS = 150;
+// Replaced the old flat 150-point welcome bonus (2026-09-21, "no points
+// will be added [to new users] from now on... just packs") — a new
+// account gets this many unopened "welcomeBonus" packs (services/packs.ts)
+// directly instead of points to go spend on one later. Deliberately less
+// than QRFLYER's 5 (a real promo/QR code granted at the same registration
+// step, see the `promo` branch below) — QR/live-event scans stay the more
+// generous path on purpose.
+const WELCOME_PACK_QUANTITY = 2;
 
 // A raw token only ever exists in the emailed link + this ephemeral value —
 // the DB only ever stores its sha256 digest (schema.ts's doc comment on
@@ -162,13 +162,6 @@ authRouter.post("/register", credentialsLimiter, async (req, res) => {
     })
     .returning();
 
-  await db.insert(pointAdjustments).values({
-    userId: user.id,
-    points: WELCOME_BONUS_POINTS,
-    reason: "Welcome bonus",
-    createdByUserId: user.id,
-  });
-
   // Same "silently ignore an invalid code rather than fail the signup"
   // philosophy as referralCode above — worst case, no promo bonus, which
   // isn't worth blocking registration over. `promo` in the response lets
@@ -176,6 +169,18 @@ authRouter.post("/register", credentialsLimiter, async (req, res) => {
   let promo = null;
   if (typeof promoCode === "string" && promoCode.length > 0) {
     promo = await redeemPromoCode(promoCode, user.id);
+  }
+
+  // Packs, not points, as of 2026-09-21 — WELCOME_BONUS_POINTS (a flat 150
+  // points to go spend on a pack later) replaced with granting the pack
+  // directly. A user who came in on a real promo/QR code already got their
+  // (usually more generous, e.g. QRFLYER's 5) packs above; everyone else
+  // gets this smaller default so registering with no code still comes with
+  // something to open.
+  if (!promo) {
+    await db.insert(ownedPacks).values(
+      Array.from({ length: WELCOME_PACK_QUANTITY }, () => ({ userId: user.id, packType: "welcomeBonus" as const, openedAt: null }))
+    );
   }
 
   const accessToken = signAccessToken(user.id);

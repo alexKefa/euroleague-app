@@ -36,8 +36,8 @@ export const dashboardTranslations: Record<string, Record<Lang, string>> = {
     el: "ή στο δωρεάν καθημερινό",
   },
   "dashboard.economyHintMiddle3": {
-    en: "for a shot at rare and legendary cards. New accounts also start with a 150-point bonus — open your first pack in",
-    el: "για μια ευκαιρία σε σπάνιες και θρυλικές κάρτες. Οι νέοι λογαριασμοί ξεκινούν επιπλέον με δώρο 150 πόντων — άνοιξε το πρώτο σου πακέτο στις",
+    en: "for a shot at rare and legendary cards. New accounts also start with free Welcome Packs — open yours in",
+    el: "για μια ευκαιρία σε σπάνιες και θρυλικές κάρτες. Οι νέοι λογαριασμοί ξεκινούν επιπλέον με δωρεάν Πακέτα Καλωσορίσματος — άνοιξέ τα στις",
   },
   "dashboard.economyHintSuffix": { en: ".", el: "." },
 

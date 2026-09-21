@@ -11,7 +11,8 @@ export type PackType =
   | "wheelPro"
   | "wheelLegendary"
   | "wheelCoach"
-  | "qrBonus";
+  | "qrBonus"
+  | "welcomeBonus";
 
 export interface CollectibleRow {
   collectible: typeof collectibles.$inferSelect;
@@ -208,6 +209,30 @@ export const PACKS: Record<PackType, PackDefinition> = {
   qrBonus: {
     type: "qrBonus",
     label: "QR Bonus Pack",
+    pointsCost: 0,
+    purchasable: false,
+    slots: [
+      { odds: { common: 1 } },
+      { odds: { rare: 1 } },
+      { odds: { rare: 1 } },
+      { odds: { rare: 1 } },
+      { odds: { rare: 0.9, legendary: 0.06, coach: 0.04 } },
+    ],
+  },
+
+  // Replaces the flat 150-point WELCOME_BONUS_POINTS grant (2026-09-21) —
+  // every new registration gets packs directly now instead of points to
+  // spend later, and this is the plain (no promo code) case specifically:
+  // routes/auth.ts grants 2 of these when no QR/promo code applied, vs. 5
+  // qrBonus packs when one did. Same exact odds shape as qrBonus
+  // (3 guaranteed rares + a legendary/coach-capable 5th slot) by explicit
+  // request ("same Elite shape as QR, just fewer") — kept as its own
+  // distinct type/label rather than literally reusing qrBonus, since
+  // showing a "QR Bonus Pack" to someone who never scanned anything would
+  // be a mislabel.
+  welcomeBonus: {
+    type: "welcomeBonus",
+    label: "Welcome Pack",
     pointsCost: 0,
     purchasable: false,
     slots: [

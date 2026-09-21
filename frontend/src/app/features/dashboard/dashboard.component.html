@@ -287,7 +287,13 @@
            2026-08-25 repricing pass bumped it to 150
            (backend/src/routes/auth.ts's WELCOME_BONUS_POINTS) — this is
            a new hintId, so anyone who already dismissed the old
-           (wrong-number) hints sees the corrected one once. -->
+           (wrong-number) hints sees the corrected one once.
+
+           Points-based bonus replaced with a pack grant entirely
+           (2026-09-21, WELCOME_PACK_QUANTITY) — the copy below now talks
+           about "Welcome Packs", not a point amount, so it doesn't need
+           re-touching the next time that quantity changes the way the
+           100->150 point swap above once did. -->
       <app-page-hint hintId="dashboard-economy" icon="ball">
         {{ i18n.t('dashboard.economyHintPrefix') }}
         <a routerLink="/predictions" class="text-team-primary font-semibold">{{ i18n.t('nav.picks') }}</a>

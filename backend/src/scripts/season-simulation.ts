@@ -10,6 +10,34 @@
  * odds/cost/reward change to check it still hits a season-completable
  * target, instead of reasoning about pity/duplicate/binomial math by hand.
  *
+ * Fantasy Five's contribution to the shared points economy added 2026-09-21
+ * (services/fantasyScoring.ts's checkAndGrantFantasyRoundPoints,
+ * FANTASY_POINTS_CONVERSION_RATE = 0.5 of that round's real fantasy
+ * totalPoints) — this was the "economy:simulate once it models fantasy,
+ * which it doesn't yet" TODO left in that file's own comment. Modeled as a
+ * flat average round score (FANTASY_ROUND_AVG_POINTS, default 100 — a
+ * squad-wide totalPoints figure, not a single player's stat line) rather
+ * than simulating the actual 10-player-squad/captain/coach formula, since
+ * that would need its own separate Monte Carlo over real player price/
+ * performance distributions; a flat per-round average is the right
+ * fidelity level for "how much does this add to the points economy",
+ * same spirit as this file's existing flat POINTS_PER_CORRECT. Assumes
+ * full-season fantasy participation (every round, not gated by an
+ * engagement roll like the wheel) — Fantasy Five's round carry-forward
+ * (getBaselineSquad) means a squad drafted once keeps scoring every
+ * subsequent round with zero further action required, structurally unlike
+ * the wheel's daily opt-in spin. Still NOT modeled here: the odds-weighted
+ * prediction-points bonus (services/points.ts's pointsForCorrectPick can
+ * pay up to 40/correct pick, not the flat POINTS_PER_CORRECT this file
+ * uses) and top-scorer prediction points (a second, separate per-game pick
+ * feeding the same pool) — both real income streams, left out for the same
+ * reason odds was already flagged as a known gap: no real odds-probability
+ * distribution to sample from without live ODDS_API_KEY data, so any
+ * assumed multiplier would be an invented number, not a measured one.
+ * SIM_FANTASY=0 disables the addition below entirely, for an apples-to-
+ * apples comparison against the pre-2026-09-21 numbers this file's own
+ * history documents.
+ *
  * Answers: can a realistic player (a given prediction accuracy, not a
  * perfect one) actually finish the album (own every collectible: 208
  * common + 208 rare + 22 legendary) across a season, and how does that
@@ -57,6 +85,17 @@ const LEGENDARY_MILESTONE = Number(process.env.SIM_LEGENDARY_MILESTONE ?? 60); /
 const COACH_MILESTONE = Number(process.env.SIM_COACH_MILESTONE ?? 45); // 0 = off
 // services/packs.ts's ELITE_BIG_SLOT_PITY_THRESHOLD, same pass.
 const ELITE_BIG_SLOT_PITY_THRESHOLD = 6;
+
+// services/fantasyScoring.ts's FANTASY_POINTS_CONVERSION_RATE, verbatim.
+const FANTASY_POINTS_CONVERSION_RATE = 0.5;
+// The assumed average *real fantasy totalPoints* for one completed round
+// (10-player squad + coach, captain doubled, bench at 50%) — not a single
+// player's PIR. 100 is this file's own calibration assumption (roughly a
+// mid-pack, no-standout-week squad); override with SIM_FANTASY_ROUND_POINTS
+// to test a stronger/weaker assumed squad.
+const FANTASY_ROUND_AVG_POINTS = Number(process.env.SIM_FANTASY_ROUND_POINTS ?? 100);
+const FANTASY_ENABLED = process.env.SIM_FANTASY !== "0";
+const FANTASY_CLUTCH_PER_ROUND = Math.floor(FANTASY_ROUND_AVG_POINTS * FANTASY_POINTS_CONVERSION_RATE);
 
 // routes/spin.ts SPIN_ODDS, verbatim.
 const SPIN_ODDS: Record<Tier, number> = { common: 0.58, rare: 0.2, legendary: 0.14, coach: 0.08 };
@@ -246,6 +285,7 @@ interface SimResult {
   greatRounds: number;
   milestoneLegendaries: number;
   milestoneCoaches: number;
+  fantasyPointsEarned: number;
 }
 
 // Spreads the season's 38 rounds evenly across SEASON_DAYS, e.g. round 1 on
@@ -264,6 +304,7 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
   let greatRounds = 0;
   let milestoneLegendaries = 0;
   let milestoneCoaches = 0;
+  let fantasyPointsEarned = 0;
   let cumulativeCorrect = 0;
   let purchasableCompleteDay: number | null = null;
   let fullCompleteDay: number | null = null;
@@ -320,6 +361,13 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
         greatRounds++;
         state.points += openPack(state, WHEEL_PACKS.rare);
       }
+      // Fantasy Five round points (checkAndGrantFantasyRoundPoints) — a
+      // completely separate mechanic from win/loss predictions above, so
+      // it fires every round regardless of that round's pick accuracy.
+      if (FANTASY_ENABLED) {
+        state.points += FANTASY_CLUTCH_PER_ROUND;
+        fantasyPointsEarned += FANTASY_CLUTCH_PER_ROUND;
+      }
       nextRound++;
       spendLoop(state, policy);
     }
@@ -358,6 +406,7 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
     greatRounds,
     milestoneLegendaries,
     milestoneCoaches,
+    fantasyPointsEarned,
   };
 }
 
@@ -384,6 +433,7 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
   const avgGreatRounds = results.reduce((s, r) => s + r.greatRounds, 0) / n;
   const avgMilestoneLegendaries = results.reduce((s, r) => s + r.milestoneLegendaries, 0) / n;
   const avgMilestoneCoaches = results.reduce((s, r) => s + r.milestoneCoaches, 0) / n;
+  const avgFantasyPoints = results.reduce((s, r) => s + r.fantasyPointsEarned, 0) / n;
 
   console.log(
     `accuracy ${(accuracy * 100).toFixed(0).padStart(3)}%  spin engagement ${(spinEngagement * 100).toFixed(0).padStart(3)}%  (${policy})` +
@@ -397,6 +447,7 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
       (GREAT_ROUND_BONUS ? ` | avg great rounds: ${avgGreatRounds.toFixed(2)}` : "") +
       (LEGENDARY_MILESTONE > 0 ? ` | avg milestone legendaries: ${avgMilestoneLegendaries.toFixed(2)}` : "") +
       (COACH_MILESTONE > 0 ? ` | avg milestone coaches: ${avgMilestoneCoaches.toFixed(2)}` : "") +
+      (FANTASY_ENABLED ? ` | avg fantasy pts earned: ${avgFantasyPoints.toFixed(0)}` : "") +
       ` | avg idle pts: ${avgEndPoints.toFixed(0)}`
   );
 }
@@ -404,13 +455,24 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
 const N = Number(process.env.SIM_N ?? 3000);
 const ACCURACIES = process.env.SIM_QUICK ? [0.75] : [0.5, 0.6, 0.65, 0.7, 0.75, 0.8];
 
-console.log(`=== Season simulation: ${N} simulated users, ${ROUNDS} rounds x ${GAMES_PER_ROUND} games over ${SEASON_DAYS} days, ${POINTS_PER_CORRECT}pts/correct ===\n`);
+console.log(
+  `=== Season simulation: ${N} simulated users, ${ROUNDS} rounds x ${GAMES_PER_ROUND} games over ${SEASON_DAYS} days, ${POINTS_PER_CORRECT}pts/correct` +
+    (FANTASY_ENABLED ? `, Fantasy Five ~${FANTASY_ROUND_AVG_POINTS}pts/round -> ${FANTASY_CLUTCH_PER_ROUND} Clutch pts/round (full season)` : ", Fantasy Five disabled (SIM_FANTASY=0)") +
+    " ===\n"
+);
 
 console.log("--- Daily wheel spin, 100% engagement (spins every single day), highest-affordable pack spending ---");
 for (const acc of ACCURACIES) runScenario(acc, 1.0, "highest-affordable", N);
 
 console.log("\n--- Daily wheel spin, 85% engagement (misses ~1 in 7 days), highest-affordable pack spending ---");
 for (const acc of ACCURACIES) runScenario(acc, 0.85, "highest-affordable", N);
+
+// Added 2026-09-21, direct request — the middle ground between the 85%
+// "misses ~1 in 7 days" and 0% floor scenarios: a real but inconsistent
+// player who only spins about half the time, now also carrying a season
+// of Fantasy Five points on top (see the file-header comment).
+console.log("\n--- Daily wheel spin, 50% engagement (misses about half the days), highest-affordable pack spending ---");
+for (const acc of ACCURACIES) runScenario(acc, 0.5, "highest-affordable", N);
 
 console.log("\n--- Daily wheel spin, 100% engagement, cheapest-first pack spending (spends impulsively, never saves for Elite) ---");
 for (const acc of ACCURACIES) runScenario(acc, 1.0, "cheapest-first", N);

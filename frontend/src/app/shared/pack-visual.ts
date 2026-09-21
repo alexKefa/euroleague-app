@@ -23,4 +23,7 @@ export const PACK_VISUAL_CLASSES: Record<PackType, string> = {
   // one-off, not a recurring reward channel, so it doesn't warrant its own
   // dedicated art the way a real recurring pack type does.
   qrBonus: "pack-visual-elite",
+  // Same reasoning as qrBonus above — a free Elite-shaped one-off grant,
+  // not a recurring pack type, so it reuses the Elite art too.
+  welcomeBonus: "pack-visual-elite",
 };
