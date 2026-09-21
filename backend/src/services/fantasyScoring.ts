@@ -339,8 +339,18 @@ export function computeFantasyGamePoints(stats: FantasyGameBoxScore, teamWon: bo
 // the reprice script). Linearly interpolated across the whole standings
 // table rather than banded, so 20 teams spread smoothly across the price
 // range instead of clustering at a few values.
-export const COACH_MIN_PRICE = 4;
-export const COACH_MAX_PRICE = 16;
+// Recalibrated 2026-09-20 against a real 20-coach EuroLeague Fantasy price
+// export (players_stats.xlsx's "Head Coach" rows) — the old 4-16 range was
+// never validated against real data and was badly off (real quotations run
+// exactly 5-10: Obradovic/Bartzokas top out at 10, four coaches sit at the
+// 5 floor). Real coach prices are also now written directly per-team by
+// scripts/import-real-coach-fantasy-prices.ts (every one of the 20 current
+// teams matched, unlike the player import's partial match rate) — this
+// range only matters for a *future* reprice run with no fresh export to
+// import, so a team's price stays in the right neighborhood instead of
+// drifting back toward the old, wrong 4-16 spread.
+export const COACH_MIN_PRICE = 5;
+export const COACH_MAX_PRICE = 10;
 
 export function computeCoachPrice(position: number | null, totalTeams: number): number {
   if (position === null || totalTeams <= 1) return COACH_MIN_PRICE;

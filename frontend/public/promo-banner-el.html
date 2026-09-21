@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="utf-8" />
+  <title>Clutch Promo Banner (Greek)</title>
+  <meta
+    name="description"
+    content="Greek-language variant of promo-banner.html — same 1600x900 layout/assets/script, copy translated to Greek (app's default language, see I18nService's 'el unless explicitly en' rule). Export by screenshotting the fixed-size .art board at 100% zoom, no window chrome."
+  />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow:wght@400;500;600;700&family=Bigshot+One&family=JetBrains+Mono:wght@400;500;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    html,
+    body {
+      margin: 0;
+      background: #050506;
+    }
+    body {
+      display: flex;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .art {
+      position: relative;
+      width: 100rem;
+      height: 56.25rem;
+      overflow: hidden;
+      border-radius: 1.25rem;
+      background: radial-gradient(120% 140% at 82% 8%, #2a1200 0%, #050506 46%), #050506;
+      color: #f0f0ec;
+      font-family: "Barlow", sans-serif;
+    }
+
+    .glow {
+      position: absolute;
+      border-radius: 624.9375rem;
+      filter: blur(4.375rem);
+      pointer-events: none;
+    }
+    .glow--a {
+      width: 40rem;
+      height: 40rem;
+      top: -13.75rem;
+      right: -10rem;
+      background: radial-gradient(circle, rgba(255, 107, 53, 0.55) 0%, rgba(255, 107, 53, 0) 70%);
+    }
+    .glow--b {
+      width: 30rem;
+      height: 30rem;
+      bottom: -12.5rem;
+      left: 30%;
+      background: radial-gradient(circle, rgba(255, 107, 53, 0.18) 0%, rgba(255, 107, 53, 0) 70%);
+    }
+
+    /* Real EuroLeague players, faded into the background — Sasha Vezenkov
+       (Olympiacos) and Kostas Sloukas (Panathinaikos), the two sides of
+       Greek basketball's biggest derby. Real official cutout photos
+       (transparent PNG) pulled straight from this app's own public
+       /api/players/advanced-stats — the exact same asset already shown on
+       their collectible cards/roster pages, not new licensed photography.
+       Desaturated + screen-blended into the dark gradient so they read as
+       atmosphere, not competing with the foreground copy/phones for
+       attention. */
+    .bg-player {
+      position: absolute;
+      /* -1.875rem put this photo's real top edge (worked out from this offset
+         plus its own height) exactly level with the top-left logo's bottom
+         edge, a zero-margin coincidence that read as a genuine overlap —
+         pushed down further so its head/hairline clears the logo row with
+         real headroom. */
+      bottom: -4.375rem;
+      height: 53.75rem;
+      width: auto;
+      z-index: 1;
+      opacity: 0.4;
+      filter: grayscale(1) brightness(0.6) contrast(1.05);
+      mix-blend-mode: screen;
+      pointer-events: none;
+    }
+    .bg-player--left {
+      left: -4.375rem;
+    }
+    .bg-player--right {
+      right: -11.875rem;
+    }
+
+    .content {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      height: 100%;
+      padding: 0 4.875rem;
+      gap: 2.5rem;
+    }
+
+    .copy {
+      flex: 1;
+      min-width: 0;
+    }
+    .eyebrow {
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 800;
+      font-size: 0.9375rem;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: #ff6b35;
+      margin: 0 0 1.125rem;
+    }
+    h1 {
+      font-family: "Archivo Black", sans-serif;
+      font-size: 5.5rem;
+      line-height: 0.98;
+      letter-spacing: -0.0625rem;
+      text-transform: uppercase;
+      margin: 0 0 1.625rem;
+    }
+    h1 .accent {
+      color: #ff6b35;
+    }
+    .tagline {
+      font-size: 1.3125rem;
+      line-height: 1.5;
+      color: #b9b9b4;
+      max-width: 31.25rem;
+      margin: 0 0 2.375rem;
+    }
+
+    .bullets {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem 1.875rem;
+      margin-bottom: 2.75rem;
+      max-width: 30rem;
+    }
+    .bullet {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .bullet svg {
+      width: 1.75rem;
+      height: 1.75rem;
+      color: #ff6b35;
+      flex-shrink: 0;
+    }
+    .bullet span {
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 700;
+      font-size: 0.90625rem;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: #e6e6e2;
+    }
+
+    /* Single CTA, not a button + a separate "scan" hint duplicating the
+       same action — the QR itself plus bold typography carries the call
+       to action now (a "Play Now" pill sitting right next to a QR/url that
+       says the same thing was genuinely redundant). */
+    .cta-row {
+      display: flex;
+      align-items: center;
+      gap: 1.375rem;
+    }
+    /* No background box at all — a transparent, single-color (brand orange)
+       QR sitting directly on the banner's own dark gradient, rather than
+       either a white or a dark filled tile. High error-correction ("H",
+       set below) plus the strong orange-vs-near-black contrast keeps it
+       scannable without a background fill. */
+    .qr-mini {
+      width: 8rem;
+      height: 8rem;
+      line-height: 0;
+    }
+    .cta-text {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3125rem;
+    }
+    .cta-text .headline {
+      font-family: "Archivo Black", sans-serif;
+      font-size: 1.4375rem;
+      text-transform: uppercase;
+      letter-spacing: 0.01em;
+      color: #f0f0ec;
+    }
+    .cta-text .url {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: #ff6b35;
+    }
+
+    .visual {
+      position: relative;
+      flex: 0 0 38.75rem;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .phone-frame {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      border-radius: 2.375rem;
+      border: 0.4375rem solid #1c1c1d;
+      background: #0a0a0b;
+      overflow: hidden;
+      box-shadow:
+        0 0 5.625rem rgba(255, 107, 53, 0.28),
+        0 2.5rem 5.625rem -1.25rem rgba(0, 0, 0, 0.7);
+    }
+    .phone-frame img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .phone-frame--center {
+      width: 14rem;
+      height: 30.5rem;
+      margin: -15.25rem 0 0 -7rem;
+      z-index: 3;
+      transform: rotate(-2deg);
+    }
+    .phone-frame--left {
+      width: 11.75rem;
+      height: 25.5625rem;
+      margin: -12.8125rem 0 0 -5.875rem;
+      z-index: 2;
+      transform: translate(-7.75rem, 2.125rem) rotate(-13deg);
+      filter: brightness(0.8);
+    }
+    .phone-frame--right {
+      width: 11.75rem;
+      height: 25.5625rem;
+      margin: -12.8125rem 0 0 -5.875rem;
+      z-index: 1;
+      transform: translate(7.75rem, 3.125rem) rotate(13deg);
+      filter: brightness(0.7);
+    }
+
+    .floaty {
+      position: absolute;
+      width: 4.875rem;
+      height: 4.875rem;
+      border-radius: 50%;
+      background: #151516;
+      border: 0.125rem solid #232324;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1.125rem 2.125rem -0.625rem rgba(0, 0, 0, 0.6);
+      z-index: 4;
+    }
+    .floaty img {
+      width: 2.625rem;
+      height: 2.625rem;
+      object-fit: contain;
+    }
+    .floaty--1 {
+      top: 2%;
+      left: -2%;
+      transform: rotate(-8deg);
+    }
+    .floaty--2 {
+      bottom: 4%;
+      right: -2%;
+      width: 5.5rem;
+      height: 5.5rem;
+      transform: rotate(6deg);
+    }
+    .floaty--2 img {
+      width: 3rem;
+      height: 3rem;
+    }
+
+    .ribbon {
+      position: absolute;
+      top: 2.125rem;
+      right: 2.125rem;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.125rem;
+      background: linear-gradient(135deg, #fff4d6 0%, #ffd76b 45%, #ffb238 100%);
+      border: 0.125rem solid #c98a1f;
+      border-radius: 1rem;
+      padding: 0.625rem 1rem;
+      transform: rotate(4deg);
+      box-shadow: 0 0.75rem 1.625rem -0.5rem rgba(201, 138, 31, 0.55);
+    }
+    .ribbon strong {
+      font-family: "Archivo Black", sans-serif;
+      font-size: 1.25rem;
+      color: #4a2e00;
+      line-height: 1;
+    }
+    .ribbon span {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.5625rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #4a2e00;
+    }
+
+    /* Top-left, mirroring the prize ribbon's top-right position. Two
+       earlier placements were tried and reverted the same day: top-left at
+       a shallower offset touched the faded Vezenkov photo's hairline
+       exactly at the boundary (the photo's real top edge, worked out from
+       its bottom-anchored offset, sat right where the logo's own bottom
+       edge landed — a zero-margin coincidence, not a deliberate gap); top-
+       center collided with the floating team-badge circle
+       (.floaty--1) a few rem to its right, since that narrow strip between
+       the headline block and .visual was never wide enough for both. Fixed
+       properly this time by giving the background photo real clearance
+       (see .bg-player's own bottom offset below) rather than hunting for
+       another cramped gap. */
+    /* In normal document flow, first thing in .copy, not absolutely
+       positioned in a corner — three different absolute spots were each
+       fought over by something else on this crowded artboard (the CTA row
+       once the bullet list grew, the floating team-badge circle, the
+       background photo's own head/hairline). Living in the flow instead
+       means it just gets the same margin every other line in this column
+       already gets, guaranteed clear of all three. */
+    footer {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      margin: 0 0 1.75rem;
+    }
+    footer img {
+      height: 1.875rem;
+      width: auto;
+    }
+    /* Bigshot One, not Archivo Black — matches the real app's own nav-bar
+       wordmark exactly (styles.css's .brand-wordmark), which exists
+       specifically to echo the logo artwork's bold vintage-serif "Clutch"
+       lettering. No trailing accent dot either — the real mark doesn't
+       have one (app.component.html's actual markup is plain "Clutch"). */
+    footer .wordmark {
+      font-family: "Bigshot One", serif;
+      font-size: 1.25rem;
+      letter-spacing: 0.02em;
+    }
+  </style>
+</head>
+<body>
+  <div class="art" id="art">
+    <div class="glow glow--a"></div>
+    <div class="glow glow--b"></div>
+    <img class="bg-player bg-player--left" src="/promo/player-vezenkov.png" alt="" />
+    <img class="bg-player bg-player--right" src="/promo/player-sloukas.png" alt="" />
+
+    <div class="ribbon">
+      <span>Διεκδίκησε έως</span>
+      <strong>100&euro;</strong>
+    </div>
+
+    <div class="content">
+      <div class="copy">
+        <footer>
+          <img src="/clutch-icon-dark.png" alt="" />
+          <span class="wordmark">Clutch</span>
+        </footer>
+        <p class="eyebrow">Τα πάντα για την EuroLeague</p>
+        <h1>Η ομάδα σου.<br />Το <span class="accent">Clutch</span> σου.</h1>
+        <p class="tagline">
+          Ζωντανά σκορ, προβλέψεις με πραγματικές αποδόσεις, Clutch Fantasy, και ένα πλήρες σύστημα συλλεκτικών — όλα
+          βαμμένα στα χρώματα της ομάδας σου. Παίξε δωρεάν.
+        </p>
+
+        <div class="bullets">
+          <div class="bullet">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2" />
+              <circle cx="12" cy="12" r="4.6" stroke="currentColor" stroke-width="1.8" />
+              <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+            </svg>
+            <span>Προβλέψεις</span>
+          </div>
+          <div class="bullet">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="3.2" y="6.5" width="9.5" height="13" rx="1.4" transform="rotate(-13 8 13)" stroke="currentColor" stroke-width="2" />
+              <rect x="11.3" y="4.5" width="9.5" height="13" rx="1.4" transform="rotate(13 16 11)" stroke="currentColor" stroke-width="2" />
+              <circle cx="16" cy="9.2" r="1.3" fill="currentColor" transform="rotate(13 16 11)" />
+            </svg>
+            <span>Συλλεκτικές κάρτες</span>
+          </div>
+          <div class="bullet">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="4" y="13" width="4.5" height="7" rx="1" stroke="currentColor" stroke-width="2" />
+              <rect x="9.75" y="7" width="4.5" height="13" rx="1" stroke="currentColor" stroke-width="2" />
+              <rect x="15.5" y="10" width="4.5" height="10" rx="1" stroke="currentColor" stroke-width="2" />
+            </svg>
+            <span>Ζωντανά σκορ</span>
+          </div>
+          <div class="bullet">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="5" y="2.5" width="14" height="18.5" rx="1.3" stroke="currentColor" stroke-width="1.8" />
+              <line x1="9" y1="3.6" x2="15" y2="3.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+              <path d="M10.7 4.3Q12 5.6 13.3 4.3" stroke="currentColor" stroke-width="1" stroke-linecap="round" />
+              <rect x="9.5" y="2.5" width="5" height="7" stroke="currentColor" stroke-width="1.3" />
+              <circle cx="12" cy="9.5" r="2.7" stroke="currentColor" stroke-width="1.3" />
+              <path d="M6.3 4.2Q6.3 16 12 16Q17.7 16 17.7 4.2" stroke="currentColor" stroke-width="1.3" />
+            </svg>
+            <span>Clutch Fantasy</span>
+          </div>
+          <div class="bullet">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="5.5" cy="18" r="2" stroke="currentColor" stroke-width="1.8" />
+              <circle cx="18.5" cy="18" r="2" stroke="currentColor" stroke-width="1.8" />
+              <path d="M5.5 16v-2.5h4M18.5 16v-2.5h-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M9.5 13.5h5M12 13.5v-2.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+              <path
+                d="M9.3 4h5.4v2.3a2.7 2.7 0 0 1-5.4 0V4z"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linejoin="round"
+                fill="currentColor"
+                fill-opacity="0.16"
+              />
+              <path d="M9.3 4.6H7.3a2 2 0 0 0 2 2.6M14.7 4.6h2a2 2 0 0 1-2 2.6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+              <path d="M12 9v2.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+            </svg>
+            <span>Λίγκες</span>
+          </div>
+          <div class="bullet">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="5" y="4" width="14" height="16" rx="1" stroke="currentColor" stroke-width="2.2" />
+              <rect x="7.2" y="6.8" width="4" height="4" rx="0.6" fill="currentColor" />
+              <line x1="13" y1="7.5" x2="16.8" y2="7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              <line x1="13" y1="10" x2="16.8" y2="10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              <line x1="7.2" y1="14" x2="16.8" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              <line x1="7.2" y1="16.5" x2="13.5" y2="16.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+            <span>Νέα</span>
+          </div>
+        </div>
+
+        <div class="cta-row">
+          <div class="qr-mini" id="qr-mini"></div>
+          <div class="cta-text">
+            <span class="headline">Σκάναρε και παίξε — δωρεάν</span>
+            <span class="url">getclutchapp.com</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="visual">
+        <div class="floaty floaty--1" data-floaty></div>
+        <div class="floaty floaty--2" data-floaty></div>
+
+        <!-- Three real, live screenshots of the actual app (not a
+             mockup): the €100 prize modal, a legendary card flip, and the
+             schedule/top-scorer picks screen. -->
+        <div class="phone-frame phone-frame--left">
+          <img src="/promo/screen-card.jpg" alt="" />
+        </div>
+        <div class="phone-frame phone-frame--center">
+          <img src="/promo/screen-prize.jpg" alt="" />
+        </div>
+        <div class="phone-frame phone-frame--right">
+          <img src="/promo/screen-schedule.jpg" alt="" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Same vendored QR lib as qr-card.html/promo-banner.html (CSP only
+       allows same-origin scripts on the live site). -->
+  <script src="/vendor-qr-code-styling.js"></script>
+  <script>
+    (function () {
+      if (typeof QRCodeStyling === "undefined") return;
+      var qr = new QRCodeStyling({
+        width: 108,
+        height: 108,
+        type: "canvas",
+        data: "https://getclutchapp.com/welcome?promo=BANNER",
+        margin: 0,
+        qrOptions: { errorCorrectionLevel: "H" },
+        dotsOptions: { color: "#ff6b35", type: "rounded" },
+        cornersSquareOptions: { color: "#ff6b35", type: "extra-rounded" },
+        cornersDotOptions: { color: "#ff6b35", type: "dot" },
+        backgroundOptions: { color: "rgba(0,0,0,0)" },
+      });
+      var el = document.getElementById("qr-mini");
+      if (el) qr.append(el);
+    })();
+
+    // Real, current club badges — same public, unauthenticated endpoint
+    // landing.ts already calls. Picks 3 at random each load, falls back to
+    // empty rings if the API isn't reachable (e.g. opened as a bare file).
+    (function () {
+      fetch("/api/teams")
+        .then(function (r) {
+          return r.json();
+        })
+        .then(function (teams) {
+          var withLogos = teams.filter(function (t) {
+            return t.logoUrl;
+          });
+          for (var i = withLogos.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var tmp = withLogos[i];
+            withLogos[i] = withLogos[j];
+            withLogos[j] = tmp;
+          }
+          var slots = document.querySelectorAll("[data-floaty]");
+          slots.forEach(function (slot, i) {
+            var team = withLogos[i];
+            if (!team) return;
+            var img = document.createElement("img");
+            img.src = team.logoUrl;
+            img.alt = team.name;
+            slot.appendChild(img);
+          });
+        })
+        .catch(function () {
+          // No API reachable — floaty circles just stay empty rings.
+        });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="utf-8" />
+  <title>Clutch Promo Story (Greek)</title>
+  <meta
+    name="description"
+    content="1080x1920 (9:16) Instagram/Facebook Story or Reel cover — full-screen vertical variant of promo-square.html, with extra top/bottom padding respecting Instagram's own Stories safe zone (profile/reply UI overlays those bands). Export by screenshotting the fixed-size .art board at 100% zoom."
+  />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow:wght@400;500;600;700&family=Bigshot+One&family=JetBrains+Mono:wght@400;500;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    html,
+    body {
+      margin: 0;
+      background: #050506;
+    }
+    body {
+      display: flex;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .art {
+      position: relative;
+      width: 67.5rem;
+      height: 120rem;
+      overflow: hidden;
+      border-radius: 1.25rem;
+      background: radial-gradient(120% 55% at 50% 0%, #2a1200 0%, #050506 55%), #050506;
+      color: #f0f0ec;
+      font-family: "Barlow", sans-serif;
+    }
+
+    .glow {
+      position: absolute;
+      border-radius: 624.9375rem;
+      filter: blur(4.375rem);
+      pointer-events: none;
+    }
+    .glow--a {
+      width: 40rem;
+      height: 40rem;
+      top: -6rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: radial-gradient(circle, rgba(255, 107, 53, 0.4) 0%, rgba(255, 107, 53, 0) 70%);
+    }
+
+    .bg-player {
+      position: absolute;
+      bottom: 6rem;
+      height: 34rem;
+      width: auto;
+      z-index: 1;
+      opacity: 0.28;
+      filter: grayscale(1) brightness(0.6) contrast(1.05);
+      mix-blend-mode: screen;
+      pointer-events: none;
+    }
+    .bg-player--left {
+      left: -3rem;
+    }
+    .bg-player--right {
+      right: -3rem;
+    }
+
+    /* Content sits inside Instagram's own Stories "safe zone" — the top
+       ~14% and bottom ~14% of a real Story are covered by the app's own
+       profile/reply-bar UI chrome, so real content (not just background)
+       stays clear of both bands via generous top/bottom padding here,
+       rather than bleeding a headline or the CTA right to the edge the
+       way the square/portrait variants safely can. */
+    .content {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100%;
+      padding: 9rem 3rem 8rem;
+      text-align: center;
+    }
+
+    footer {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      margin: 0 0 1.25rem;
+    }
+    footer img {
+      height: 2.25rem;
+      width: auto;
+    }
+    footer .wordmark {
+      font-family: "Bigshot One", serif;
+      font-size: 1.4375rem;
+      letter-spacing: 0.02em;
+    }
+
+    .eyebrow {
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 800;
+      font-size: 1rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #ff6b35;
+      margin: 0 0 1.125rem;
+    }
+    h1 {
+      font-family: "Archivo Black", sans-serif;
+      font-size: 4.75rem;
+      line-height: 0.98;
+      letter-spacing: -0.055rem;
+      text-transform: uppercase;
+      margin: 0 0 1.5rem;
+    }
+    h1 .accent {
+      color: #ff6b35;
+    }
+    .tagline {
+      font-size: 1.3125rem;
+      line-height: 1.5;
+      color: #b9b9b4;
+      max-width: 38rem;
+      margin: 0 0 2rem;
+    }
+
+    .visual {
+      position: relative;
+      width: 100%;
+      flex: 1 1 auto;
+      min-height: 0;
+      margin-bottom: 2rem;
+    }
+    .phone-frame {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      border-radius: 2rem;
+      border: 0.5rem solid #1c1c1d;
+      background: #0a0a0b;
+      overflow: hidden;
+      box-shadow:
+        0 0 5rem rgba(255, 107, 53, 0.28),
+        0 2.25rem 4.5rem -1.125rem rgba(0, 0, 0, 0.7);
+    }
+    .phone-frame img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .phone-frame--center {
+      width: 19rem;
+      height: 41.375rem;
+      margin: -20.6875rem 0 0 -9.5rem;
+      z-index: 3;
+      transform: rotate(-2deg);
+    }
+    .phone-frame--left {
+      width: 16rem;
+      height: 34.9375rem;
+      margin: -17.46875rem 0 0 -8rem;
+      z-index: 2;
+      transform: translate(-10.25rem, 2.25rem) rotate(-13deg);
+      filter: brightness(0.8);
+    }
+    .phone-frame--right {
+      width: 16rem;
+      height: 34.9375rem;
+      margin: -17.46875rem 0 0 -8rem;
+      z-index: 1;
+      transform: translate(10.25rem, 3.25rem) rotate(13deg);
+      filter: brightness(0.7);
+    }
+
+    .bullets {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.875rem 0.875rem;
+      margin: 0 0 1.75rem;
+      width: 100%;
+      max-width: 42rem;
+    }
+    .bullet {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .bullet svg {
+      width: 1.9375rem;
+      height: 1.9375rem;
+      color: #ff6b35;
+      flex-shrink: 0;
+    }
+    .bullet span {
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 700;
+      font-size: 0.875rem;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: #e6e6e2;
+      text-align: center;
+      line-height: 1.25;
+    }
+
+    .cta-row {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+    .qr-mini {
+      width: 7.5rem;
+      height: 7.5rem;
+      line-height: 0;
+    }
+    .cta-text {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3125rem;
+      text-align: left;
+    }
+    .cta-text .headline {
+      font-family: "Archivo Black", sans-serif;
+      font-size: 1.4375rem;
+      text-transform: uppercase;
+      letter-spacing: 0.01em;
+      color: #f0f0ec;
+    }
+    .cta-text .url {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 1.0625rem;
+      font-weight: 700;
+      color: #ff6b35;
+    }
+
+    .ribbon {
+      position: absolute;
+      top: 9rem;
+      right: 2.5rem;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.1875rem;
+      background: linear-gradient(135deg, #fff4d6 0%, #ffd76b 45%, #ffb238 100%);
+      border: 0.1875rem solid #c98a1f;
+      border-radius: 1.25rem;
+      padding: 0.6875rem 1.125rem;
+      transform: rotate(4deg);
+      box-shadow: 0 1rem 2rem -0.625rem rgba(201, 138, 31, 0.55);
+    }
+    .ribbon span {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #4a2e00;
+    }
+    .ribbon strong {
+      font-family: "Archivo Black", sans-serif;
+      font-size: 1.5rem;
+      color: #4a2e00;
+      line-height: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="art" id="art">
+    <div class="glow glow--a"></div>
+    <img class="bg-player bg-player--left" src="/promo/player-vezenkov.png" alt="" />
+    <img class="bg-player bg-player--right" src="/promo/player-sloukas.png" alt="" />
+
+    <div class="ribbon">
+      <span>Διεκδίκησε έως</span>
+      <strong>100&euro;</strong>
+    </div>
+
+    <div class="content">
+      <footer>
+        <img src="/clutch-icon-dark.png" alt="" />
+        <span class="wordmark">Clutch</span>
+      </footer>
+      <p class="eyebrow">Τα πάντα για την EuroLeague</p>
+      <h1>Η ομάδα σου.<br />Το <span class="accent">Clutch</span> σου.</h1>
+      <p class="tagline">
+        Ζωντανά σκορ, προβλέψεις με πραγματικές αποδόσεις, Clutch Fantasy, και ένα πλήρες σύστημα συλλεκτικών — όλα
+        βαμμένα στα χρώματα της ομάδας σου.
+      </p>
+
+      <div class="visual">
+        <div class="phone-frame phone-frame--left">
+          <img src="/promo/screen-card.jpg" alt="" />
+        </div>
+        <div class="phone-frame phone-frame--center">
+          <img src="/promo/screen-prize.jpg" alt="" />
+        </div>
+        <div class="phone-frame phone-frame--right">
+          <img src="/promo/screen-schedule.jpg" alt="" />
+        </div>
+      </div>
+
+      <div class="bullets">
+        <div class="bullet">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2" />
+            <circle cx="12" cy="12" r="4.6" stroke="currentColor" stroke-width="1.8" />
+            <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+          </svg>
+          <span>Προβλέψεις</span>
+        </div>
+        <div class="bullet">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="3.2" y="6.5" width="9.5" height="13" rx="1.4" transform="rotate(-13 8 13)" stroke="currentColor" stroke-width="2" />
+            <rect x="11.3" y="4.5" width="9.5" height="13" rx="1.4" transform="rotate(13 16 11)" stroke="currentColor" stroke-width="2" />
+            <circle cx="16" cy="9.2" r="1.3" fill="currentColor" transform="rotate(13 16 11)" />
+          </svg>
+          <span>Κάρτες</span>
+        </div>
+        <div class="bullet">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="4" y="13" width="4.5" height="7" rx="1" stroke="currentColor" stroke-width="2" />
+            <rect x="9.75" y="7" width="4.5" height="13" rx="1" stroke="currentColor" stroke-width="2" />
+            <rect x="15.5" y="10" width="4.5" height="10" rx="1" stroke="currentColor" stroke-width="2" />
+          </svg>
+          <span>Ζωντανά σκορ</span>
+        </div>
+        <div class="bullet">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="5" y="2.5" width="14" height="18.5" rx="1.3" stroke="currentColor" stroke-width="1.8" />
+            <line x1="9" y1="3.6" x2="15" y2="3.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+            <path d="M10.7 4.3Q12 5.6 13.3 4.3" stroke="currentColor" stroke-width="1" stroke-linecap="round" />
+            <rect x="9.5" y="2.5" width="5" height="7" stroke="currentColor" stroke-width="1.3" />
+            <circle cx="12" cy="9.5" r="2.7" stroke="currentColor" stroke-width="1.3" />
+            <path d="M6.3 4.2Q6.3 16 12 16Q17.7 16 17.7 4.2" stroke="currentColor" stroke-width="1.3" />
+          </svg>
+          <span>Clutch Fantasy</span>
+        </div>
+        <div class="bullet">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="5.5" cy="18" r="2" stroke="currentColor" stroke-width="1.8" />
+            <circle cx="18.5" cy="18" r="2" stroke="currentColor" stroke-width="1.8" />
+            <path d="M5.5 16v-2.5h4M18.5 16v-2.5h-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M9.5 13.5h5M12 13.5v-2.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+            <path
+              d="M9.3 4h5.4v2.3a2.7 2.7 0 0 1-5.4 0V4z"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linejoin="round"
+              fill="currentColor"
+              fill-opacity="0.16"
+            />
+            <path d="M9.3 4.6H7.3a2 2 0 0 0 2 2.6M14.7 4.6h2a2 2 0 0 1-2 2.6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+            <path d="M12 9v2.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+          </svg>
+          <span>Λίγκες</span>
+        </div>
+        <div class="bullet">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="5" y="4" width="14" height="16" rx="1" stroke="currentColor" stroke-width="2.2" />
+            <rect x="7.2" y="6.8" width="4" height="4" rx="0.6" fill="currentColor" />
+            <line x1="13" y1="7.5" x2="16.8" y2="7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            <line x1="13" y1="10" x2="16.8" y2="10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            <line x1="7.2" y1="14" x2="16.8" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            <line x1="7.2" y1="16.5" x2="13.5" y2="16.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          </svg>
+          <span>Νέα</span>
+        </div>
+      </div>
+
+      <div class="cta-row">
+        <div class="qr-mini" id="qr-mini"></div>
+        <div class="cta-text">
+          <span class="headline">Σκάναρε και παίξε — δωρεάν</span>
+          <span class="url">getclutchapp.com</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Same vendored QR lib as promo-banner.html (CSP only allows
+       same-origin scripts on the live site). -->
+  <script src="/vendor-qr-code-styling.js"></script>
+  <script>
+    (function () {
+      if (typeof QRCodeStyling === "undefined") return;
+      var qr = new QRCodeStyling({
+        width: 120,
+        height: 120,
+        type: "canvas",
+        data: "https://getclutchapp.com/welcome?promo=IG",
+        margin: 0,
+        qrOptions: { errorCorrectionLevel: "H" },
+        dotsOptions: { color: "#ff6b35", type: "rounded" },
+        cornersSquareOptions: { color: "#ff6b35", type: "extra-rounded" },
+        cornersDotOptions: { color: "#ff6b35", type: "dot" },
+        backgroundOptions: { color: "rgba(0,0,0,0)" },
+      });
+      var el = document.getElementById("qr-mini");
+      if (el) qr.append(el);
+    })();
+  </script>
+</body>
+</html>

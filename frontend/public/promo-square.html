@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Clutch Promo Square</title>
+  <meta
+    name="description"
+    content="1080x1080 Instagram feed post — a vertical-stack restructure of promo-banner.html for a square canvas, same branding/assets/icons, not a resize of the landscape version. Export by screenshotting the fixed-size .art board at 100% zoom."
+  />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow:wght@400;500;600;700&family=Bigshot+One&family=JetBrains+Mono:wght@400;500;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    html,
+    body {
+      margin: 0;
+      background: #050506;
+    }
+    body {
+      display: flex;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    /* 1080x1080 — same fixed-artboard-to-screenshot convention as
+       promo-banner.html, just square instead of landscape. Content is a
+       vertical stack (logo -> headline -> phone fan -> features -> CTA)
+       rather than the landscape file's two-column layout, since a square
+       canvas has no room for copy and a phone fan side by side. */
+    .art {
+      position: relative;
+      width: 67.5rem;
+      height: 67.5rem;
+      overflow: hidden;
+      border-radius: 1.25rem;
+      background: radial-gradient(120% 90% at 50% 0%, #2a1200 0%, #050506 55%), #050506;
+      color: #f0f0ec;
+      font-family: "Barlow", sans-serif;
+    }
+
+    .glow {
+      position: absolute;
+      border-radius: 624.9375rem;
+      filter: blur(4.375rem);
+      pointer-events: none;
+    }
+    .glow--a {
+      width: 34rem;
+      height: 34rem;
+      top: -10rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: radial-gradient(circle, rgba(255, 107, 53, 0.45) 0%, rgba(255, 107, 53, 0) 70%);
+    }
+
+    /* Same real Vezenkov/Sloukas cutout photos as the landscape banner
+       (see that file's own doc comment for the licensing reasoning),
+       bleeding off the bottom-left/right corners instead of the full
+       height — a square canvas has far less width to spend on them. */
+    .bg-player {
+      position: absolute;
+      bottom: -2rem;
+      height: 26rem;
+      width: auto;
+      z-index: 1;
+      opacity: 0.3;
+      filter: grayscale(1) brightness(0.6) contrast(1.05);
+      mix-blend-mode: screen;
+      pointer-events: none;
+    }
+    .bg-player--left {
+      left: -3rem;
+    }
+    .bg-player--right {
+      right: -3rem;
+    }
+
+    .content {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100%;
+      padding: 2.25rem 2.5rem 2rem;
+      text-align: center;
+    }
+
+    footer {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 0 0 0.75rem;
+    }
+    footer img {
+      height: 1.625rem;
+      width: auto;
+    }
+    footer .wordmark {
+      font-family: "Bigshot One", serif;
+      font-size: 1.0625rem;
+      letter-spacing: 0.02em;
+    }
+
+    .eyebrow {
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 800;
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #ff6b35;
+      margin: 0 0 0.75rem;
+    }
+    h1 {
+      font-family: "Archivo Black", sans-serif;
+      font-size: 3.5rem;
+      line-height: 0.98;
+      letter-spacing: -0.04rem;
+      text-transform: uppercase;
+      margin: 0 0 1rem;
+    }
+    h1 .accent {
+      color: #ff6b35;
+    }
+
+    /* Absorbs whatever vertical space is left over after every other block
+       takes its natural height — the phone fan centers within whatever
+       that ends up being, rather than this file hand-computing a fixed
+       height budget for a stack of blocks whose sizes can still move. */
+    .visual {
+      position: relative;
+      width: 100%;
+      flex: 1 1 auto;
+      min-height: 0;
+      margin-bottom: 1rem;
+    }
+    .phone-frame {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      border-radius: 1.5rem;
+      border: 0.375rem solid #1c1c1d;
+      background: #0a0a0b;
+      overflow: hidden;
+      box-shadow:
+        0 0 3.5rem rgba(255, 107, 53, 0.28),
+        0 1.5rem 3rem -0.75rem rgba(0, 0, 0, 0.7);
+    }
+    .phone-frame img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .phone-frame--center {
+      width: 11rem;
+      height: 24rem;
+      margin: -12rem 0 0 -5.5rem;
+      z-index: 3;
+      transform: rotate(-2deg);
+    }
+    .phone-frame--left {
+      width: 9.25rem;
+      height: 20.25rem;
+      margin: -10.125rem 0 0 -4.625rem;
+      z-index: 2;
+      transform: translate(-6rem, 1.25rem) rotate(-13deg);
+      filter: brightness(0.8);
+    }
+    .phone-frame--right {
+      width: 9.25rem;
+      height: 20.25rem;
+      margin: -10.125rem 0 0 -4.625rem;
+      z-index: 1;
+      transform: translate(6rem, 1.75rem) rotate(13deg);
+      filter: brightness(0.7);
+    }
+
+    .bullets {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem 0.5rem;
+      margin: 0 0 1.125rem;
+      width: 100%;
+      max-width: 34rem;
+    }
+    .bullet {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3125rem;
+    }
+    .bullet svg {
+      width: 1.375rem;
+      height: 1.375rem;
+      color: #ff6b35;
+      flex-shrink: 0;
+    }
+    .bullet span {
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 700;
+      font-size: 0.625rem;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: #e6e6e2;
+      text-align: center;
+      line-height: 1.2;
+    }
+
+    .cta-row {
+      display: flex;
+      align-items: center;
+      gap: 0.875rem;
+    }
+    .qr-mini {
+      width: 5.25rem;
+      height: 5.25rem;
+      line-height: 0;
+    }
+    .cta-text {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1875rem;
+      text-align: left;
+    }
+    .cta-text .headline {
+      font-family: "Archivo Black", sans-serif;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.01em;
+      color: #f0f0ec;
+    }
+    .cta-text .url {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #ff6b35;
+    }
+
+    .ribbon {
+      position: absolute;
+      top: 1.5rem;
+      right: 1.5rem;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.125rem;
+      background: linear-gradient(135deg, #fff4d6 0%, #ffd76b 45%, #ffb238 100%);
+      border: 0.125rem solid #c98a1f;
+      border-radius: 0.875rem;
+      padding: 0.4375rem 0.75rem;
+      transform: rotate(4deg);
+      box-shadow: 0 0.625rem 1.375rem -0.4375rem rgba(201, 138, 31, 0.55);
+    }
+    .ribbon span {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.5rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #4a2e00;
+    }
+    .ribbon strong {
+      font-family: "Archivo Black", sans-serif;
+      font-size: 1rem;
+      color: #4a2e00;
+      line-height: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="art" id="art">
+    <div class="glow glow--a"></div>
+    <img class="bg-player bg-player--left" src="/promo/player-vezenkov.png" alt="" />
+    <img class="bg-player bg-player--right" src="/promo/player-sloukas.png" alt="" />
+
+    <div class="ribbon">
+      <span>Win up to</span>
+      <strong>&euro;100</strong>
+    </div>
+
+    <div class="content">
+      <footer>
+        <img src="/clutch-icon-dark.png" alt="" />
+        <span class="wordmark">Clutch</span>
+      </footer>
+      <p class="eyebrow">Everything for EuroLeague</p>
+      <h1>Your team.<br />Your <span class="accent">Clutch</span>.</h1>
+
+      <div class="visual">
+        <div class="phone-frame phone-frame--left">
+          <img src="/promo/screen-card.jpg" alt="" />
+        </div>
+        <div class="phone-frame phone-frame--center">
+          <img src="/promo/screen-prize.jpg" alt="" />
+        </div>
+        <div class="phone-frame phone-frame--right">
+          <img src="/promo/screen-schedule.jpg" alt="" />
+        </div>
+      </div>
+
+      <div class="bullets">
+        <div class="bullet">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2" />
+            <circle cx="12" cy="12" r="4.6" stroke="currentColor" stroke-width="1.8" />
+            <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+          </svg>
+          <span>Predictions</span>
+        </div>
+        <div class="bullet">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="3.2" y="6.5" width="9.5" height="13" rx="1.4" transform="rotate(-13 8 13)" stroke="currentColor" stroke-width="2" />
+            <rect x="11.3" y="4.5" width="9.5" height="13" rx="1.4" transform="rotate(13 16 11)" stroke="currentColor" stroke-width="2" />
+            <circle cx="16" cy="9.2" r="1.3" fill="currentColor" transform="rotate(13 16 11)" />
+          </svg>
+          <span>Cards</span>
+        </div>
+        <div class="bullet">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="4" y="13" width="4.5" height="7" rx="1" stroke="currentColor" stroke-width="2" />
+            <rect x="9.75" y="7" width="4.5" height="13" rx="1" stroke="currentColor" stroke-width="2" />
+            <rect x="15.5" y="10" width="4.5" height="10" rx="1" stroke="currentColor" stroke-width="2" />
+          </svg>
+          <span>Live scores</span>
+        </div>
+        <div class="bullet">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="5" y="2.5" width="14" height="18.5" rx="1.3" stroke="currentColor" stroke-width="1.8" />
+            <line x1="9" y1="3.6" x2="15" y2="3.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+            <path d="M10.7 4.3Q12 5.6 13.3 4.3" stroke="currentColor" stroke-width="1" stroke-linecap="round" />
+            <rect x="9.5" y="2.5" width="5" height="7" stroke="currentColor" stroke-width="1.3" />
+            <circle cx="12" cy="9.5" r="2.7" stroke="currentColor" stroke-width="1.3" />
+            <path d="M6.3 4.2Q6.3 16 12 16Q17.7 16 17.7 4.2" stroke="currentColor" stroke-width="1.3" />
+          </svg>
+          <span>Clutch Fantasy</span>
+        </div>
+        <div class="bullet">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="5.5" cy="18" r="2" stroke="currentColor" stroke-width="1.8" />
+            <circle cx="18.5" cy="18" r="2" stroke="currentColor" stroke-width="1.8" />
+            <path d="M5.5 16v-2.5h4M18.5 16v-2.5h-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M9.5 13.5h5M12 13.5v-2.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+            <path
+              d="M9.3 4h5.4v2.3a2.7 2.7 0 0 1-5.4 0V4z"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linejoin="round"
+              fill="currentColor"
+              fill-opacity="0.16"
+            />
+            <path d="M9.3 4.6H7.3a2 2 0 0 0 2 2.6M14.7 4.6h2a2 2 0 0 1-2 2.6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+            <path d="M12 9v2.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+          </svg>
+          <span>Leagues</span>
+        </div>
+        <div class="bullet">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="5" y="4" width="14" height="16" rx="1" stroke="currentColor" stroke-width="2.2" />
+            <rect x="7.2" y="6.8" width="4" height="4" rx="0.6" fill="currentColor" />
+            <line x1="13" y1="7.5" x2="16.8" y2="7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            <line x1="13" y1="10" x2="16.8" y2="10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            <line x1="7.2" y1="14" x2="16.8" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            <line x1="7.2" y1="16.5" x2="13.5" y2="16.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          </svg>
+          <span>News</span>
+        </div>
+      </div>
+
+      <div class="cta-row">
+        <div class="qr-mini" id="qr-mini"></div>
+        <div class="cta-text">
+          <span class="headline">Scan to play — free</span>
+          <span class="url">getclutchapp.com</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Same vendored QR lib as promo-banner.html (CSP only allows
+       same-origin scripts on the live site). -->
+  <script src="/vendor-qr-code-styling.js"></script>
+  <script>
+    (function () {
+      if (typeof QRCodeStyling === "undefined") return;
+      var qr = new QRCodeStyling({
+        width: 84,
+        height: 84,
+        type: "canvas",
+        data: "https://getclutchapp.com/welcome?promo=IG",
+        margin: 0,
+        qrOptions: { errorCorrectionLevel: "H" },
+        dotsOptions: { color: "#ff6b35", type: "rounded" },
+        cornersSquareOptions: { color: "#ff6b35", type: "extra-rounded" },
+        cornersDotOptions: { color: "#ff6b35", type: "dot" },
+        backgroundOptions: { color: "rgba(0,0,0,0)" },
+      });
+      var el = document.getElementById("qr-mini");
+      if (el) qr.append(el);
+    })();
+  </script>
+</body>
+</html>
