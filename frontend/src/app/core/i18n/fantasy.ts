@@ -185,4 +185,11 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
     el: "Η ομάδα αποκαλύπτεται μόλις ξεκινήσει η αγωνιστική.",
   },
   "fantasy.noTeamYet": { en: "No team set up yet", el: "Δεν έχει φτιάξει ομάδα ακόμα" },
+  // Completed-rounds milestone banner (2026-09-21) — same wording pattern
+  // as predictions.ts's own milestone banners.
+  "fantasy.milestonePrefix": { en: "Fantasy milestone! You won", el: "Ορόσημο Fantasy! Κέρδισες" },
+  "fantasy.openFromPrefix": { en: "— open from", el: "— άνοιξέ το από" },
+  "fantasy.myPacksLink": { en: "My Packs", el: "Τα Πακέτα μου" },
+  "fantasy.aLegendaryPack": { en: "a Legendary Pack", el: "ένα Θρυλικό Πακέτο" },
+  "fantasy.legendaryPacks": { en: "Legendary Packs", el: "Θρυλικά Πακέτα" },
 };

@@ -39,6 +39,7 @@ import {
   markFantasyRoundPointsSeen,
   computeFantasyGamePoints,
 } from "../services/fantasyScoring.js";
+import { checkAndGrantFantasyMilestones, markFantasyMilestonesSeen } from "../services/cards.js";
 
 export const fantasyRouter = Router();
 
@@ -158,6 +159,7 @@ function emptyLineupResponse(season: string | null, defaultRound: number | null,
     baselinePlayerIds: null,
     budgetCap,
     newFantasyRoundPoints: null,
+    newFantasyMilestoneRewards: [],
   };
 }
 
@@ -395,6 +397,14 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
       ? await checkAndGrantFantasyRoundPoints(req.userId!, season, round, totalPoints)
       : null;
 
+    // FANTASY_MILESTONE_INTERVAL-completed-rounds milestone (2026-09-21,
+    // services/cards.ts) — deliberately not gated on this round's own
+    // roundComplete: it counts every fantasy_round_points row this user has
+    // ever earned (any round, any season), so a milestone crossed while
+    // browsing a different round still surfaces here, same "return every
+    // unseen grant" shape as checkAndGrantFantasyRoundPoints's own return.
+    const newFantasyMilestoneRewards = await checkAndGrantFantasyMilestones(req.userId!);
+
     // "cr gained/lost this round" (2026-09-10) — each row's current price
     // minus its own frozen priceAtPick snapshot, summed across the squad +
     // coach. A row written before priceAtPick existed (null) is skipped
@@ -429,6 +439,7 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
       transfersAllowed: baseline && !isUnlimitedTransferRound(round) ? FANTASY_TRANSFERS_PER_ROUND : null,
       budgetCap,
       newFantasyRoundPoints,
+      newFantasyMilestoneRewards: newFantasyMilestoneRewards.map((p) => ({ id: p.id, packType: p.packType, tier: p.tier })),
       // The client-side mirror of the transfer-limit check above — lets the
       // roster builder disable adding a *new* (non-baseline) player once
       // the limit's already spent, the same pre-emptive-gating pattern the
@@ -558,6 +569,18 @@ fantasyRouter.post("/round-points/ack", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("POST /api/fantasy/round-points/ack failed:", err);
     res.status(500).json({ error: "Failed to acknowledge fantasy round points" });
+  }
+});
+
+// Same pattern again, for the Fantasy Five completed-rounds milestone track
+// — see checkAndGrantFantasyMilestones (services/cards.ts).
+fantasyRouter.post("/milestone-rewards/ack", requireAuth, async (req, res) => {
+  try {
+    await markFantasyMilestonesSeen(req.userId!);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("POST /api/fantasy/milestone-rewards/ack failed:", err);
+    res.status(500).json({ error: "Failed to acknowledge fantasy milestone rewards" });
   }
 });
 

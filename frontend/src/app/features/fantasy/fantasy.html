@@ -336,6 +336,20 @@
           }
         </div>
 
+        @if (shownFantasyMilestoneRewards().length > 0) {
+          <div class="flex items-center gap-2 rounded-xl bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3">
+            <app-nav-icon name="picks" [size]="18" class="shrink-0" />
+            {{ i18n.t('fantasy.milestonePrefix') }}
+            {{
+              shownFantasyMilestoneRewards().length === 1
+                ? i18n.t('fantasy.aLegendaryPack')
+                : shownFantasyMilestoneRewards().length + " " + i18n.t('fantasy.legendaryPacks')
+            }}
+            {{ i18n.t('fantasy.openFromPrefix') }}
+            <a routerLink="/packs" class="underline">{{ i18n.t('fantasy.myPacksLink') }}</a>.
+          </div>
+        }
+
         @if (isCurrentRound()) {
           <div class="mb-3">
             <div class="flex items-baseline justify-between mb-1.5">

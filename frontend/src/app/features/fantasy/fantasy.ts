@@ -16,6 +16,7 @@ import {
   GameTeamSummary,
   PlayerGameLogEntry,
   InjuryStatus,
+  RewardPack,
 } from "../../core/models";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { TeamBadgeComponent } from "../../shared/team-badge";
@@ -220,6 +221,15 @@ function rowXPositions(count: number): number[] {
 const MOBILE_BREAKPOINT_PX = 640; // matches Tailwind's `sm:` breakpoint
 
 
+// Appends only the packs not already present (by id) — same "don't
+// duplicate a still-unacked reward on re-fetch" reasoning as predictions.ts's
+// own mergeById.
+function mergeById(existing: RewardPack[], incoming: RewardPack[]): RewardPack[] {
+  const existingIds = new Set(existing.map((p) => p.id));
+  const newOnes = incoming.filter((p) => !existingIds.has(p.id));
+  return newOnes.length > 0 ? [...existing, ...newOnes] : existing;
+}
+
 function initialSquadSlots(): SquadSlot[] {
   const slots: SquadSlot[] = [];
   for (let i = 0; i < FANTASY_STARTER_COUNT; i++) slots.push({ id: `starter-${i}`, role: "starter", playerId: null });
@@ -390,6 +400,12 @@ export class FantasyComponent implements OnInit {
   // modal below and acknowledged (ackFantasyRoundPoints) when that modal
   // closes, same one-shot-banner shape as predictions' round rewards.
   readonly newFantasyRoundPoints = signal<{ id: string; round: number; points: number } | null>(null);
+  // Completed-rounds milestone track (2026-09-21, see
+  // checkAndGrantFantasyMilestones) — a persistent banner, merged/acked
+  // immediately on arrival rather than tied to the round-complete modal
+  // above, same pattern as predictions.ts's shownMilestoneRewards (it isn't
+  // scoped to "this round," so it can arrive on any lineup load).
+  readonly shownFantasyMilestoneRewards = signal<RewardPack[]>([]);
 
   // --- Transfers (2026-09-07) — see services/fantasyScoring.ts's
   // getBaselineSquad doc comment. transfersUsed/transfersAllowed are the
@@ -1130,6 +1146,14 @@ export class FantasyComponent implements OnInit {
     return next;
   }
 
+  // Shared by loadLineup and refreshRoundSummary below — see
+  // shownFantasyMilestoneRewards' doc comment.
+  private applyFantasyMilestoneRewards(rewards: RewardPack[]): void {
+    if (rewards.length === 0) return;
+    this.shownFantasyMilestoneRewards.update((existing) => mergeById(existing, rewards));
+    this.api.ackFantasyMilestoneRewards().subscribe({ error: () => {} });
+  }
+
   // `round` selects which round to view — omit for the current active one.
   // Shared by ngOnInit's initial load and the round navigator below.
   private loadLineup(round?: number, onDone?: () => void): void {
@@ -1146,6 +1170,7 @@ export class FantasyComponent implements OnInit {
         this.creditsChange.set(lineup.creditsChange);
         this.coachPoints.set(lineup.coachPoints);
         this.newFantasyRoundPoints.set(lineup.newFantasyRoundPoints);
+        this.applyFantasyMilestoneRewards(lineup.newFantasyMilestoneRewards);
         this.transfersUsed.set(lineup.transfersUsed);
         this.transfersAllowed.set(lineup.transfersAllowed);
         this.baselinePlayerIds.set(lineup.baselinePlayerIds ? new Set(lineup.baselinePlayerIds) : null);
@@ -1252,6 +1277,7 @@ export class FantasyComponent implements OnInit {
         this.creditsChange.set(lineup.creditsChange);
         this.coachPoints.set(lineup.coachPoints);
         this.newFantasyRoundPoints.set(lineup.newFantasyRoundPoints);
+        this.applyFantasyMilestoneRewards(lineup.newFantasyMilestoneRewards);
         this.maybeCelebrateRoundComplete(lineup.round, lineup.roundComplete);
       },
       error: () => {},

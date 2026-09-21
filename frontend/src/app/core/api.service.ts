@@ -516,6 +516,12 @@ export class ApiService {
     return this.http.post<{ ok: boolean }>(`${API_BASE_URL}/fantasy/round-points/ack`, {});
   }
 
+  // Same pattern, for the completed-rounds milestone track — see
+  // newFantasyMilestoneRewards on FantasyLineup.
+  ackFantasyMilestoneRewards(): Observable<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`${API_BASE_URL}/fantasy/milestone-rewards/ack`, {});
+  }
+
   // Admin-only testing tool (2026-09-17): drafts a real, valid squad for
   // the calling admin's own account instead of hand-picking one in the
   // builder every time a test account needs one. See

@@ -619,6 +619,76 @@ If you need to apply a schema change without an interactive terminal
   was safe. Re-run `economy:simulate` (now including its own permanent
   zero-wheel-engagement scenario, not just the 100%/85%/cheapest-first
   ones) after any future odds/interval change.
+- **"Fix everything" album-completability pass (2026-09-21)** — direct
+  request, after `economy:simulate` (extended the same session to model
+  top-scorer prediction points and Fantasy Five, see that script's own doc
+  comment) showed a real gap at 50% wheel engagement (a realistic, not-
+  fully-engaged player, in between the already-documented 85%/0% floors):
+  full-album completion was only 5/13/23/31/43/68% across 50-80% win/loss
+  accuracy — legendary was still the bottleneck, and the two milestone
+  tracks above (the single biggest non-wheel lever, per
+  `LEGENDARY_MILESTONE_INTERVAL`'s own doc comment) only ever counted
+  win/loss picks, giving zero credit for a real, separate skill (top-scorer
+  picking) or for Fantasy Five's steady ~1900pts/season (which fed only
+  spending power, never the bottleneck tier directly). Two additive
+  changes, both in `services/cards.ts`:
+  1. **`checkAndGrantLegendaryMilestones`/`checkAndGrantCoachMilestones` now
+     count correct top-scorer picks too**, not just win/loss —
+     `topScorerCorrectCountSql()` mirrors `topScorerPoints.ts`'s
+     `topScorerTotalsCte()`'s per-game-leader derivation (same tie-null
+     rule) as a scalar count instead of a summed-points CTE, added directly
+     into the existing "correct" scalar subquery so both milestone
+     functions stay a single round trip.
+  2. **A new third milestone track, Fantasy Five-based**: `fantasyMilestones`
+     (schema.ts, exact structural mirror of `legendaryMilestones`/
+     `coachMilestones`) + `checkAndGrantFantasyMilestones`
+     (`FANTASY_MILESTONE_INTERVAL = 6`) grants an unopened `wheelLegendary`
+     pack every 6 completed Fantasy Five rounds — counted from this user's
+     own `fantasy_round_points` rows (services/fantasyScoring.ts), not
+     prediction accuracy at all. Deliberately engagement-based, not
+     skill-based, on purpose — Fantasy's round carry-forward means a squad
+     drafted once keeps scoring every subsequent round with zero further
+     weekly effort, so this rewards "did you keep an active squad" the same
+     way the wheel's own milestone already rewards daily spin habit,
+     structurally different from the pick-based track above. Wired into
+     `routes/fantasy.ts`'s `GET /lineup` (unconditionally, not gated on the
+     currently-viewed round's own completeness, since the underlying count
+     is career-wide — same "return every unseen grant" shape as
+     `checkAndGrantFantasyRoundPoints`), with a new
+     `POST /fantasy/milestone-rewards/ack` and a "Fantasy milestone!" banner
+     on the Fantasy Five page (`shownFantasyMilestoneRewards`, same
+     merge-by-id/immediate-ack pattern as Predictions' own milestone
+     banners).
+  - **Re-simulated before building** (interval picked by trial against
+    `economy:simulate`, not from independent design rationale — flagged
+    directly): at 50% wheel engagement, both changes together raised full-
+    album completion from 5/13/23/31/43/68% to 38/69/84/93/98/99% across
+    50-80% accuracy, with zero regression at 85%/100% engagement (still
+    ~100% everywhere) or the cheapest-first spending policy. The 0%-
+    engagement floor (never touches the wheel) stays at 0% full completion
+    — commons/rares still depend on wheel volume, a separate bottleneck
+    this pass didn't touch — but legendary count nearly tripled at low
+    accuracy (2.9→10.0 at 50%, up to 8.9→16.7 at 80%), a real improvement
+    to "does skill/engagement alone give a shot at the exciting tier" even
+    short of full completion. `season-simulation.ts`'s
+    `SIM_FANTASY_MILESTONE` default was updated from 0 (off) to 6 to match
+    the shipped constant, so a plain `economy:simulate` run now reflects
+    reality; `SIM_TOPSCORER_ACC_RATIO` (default 0.4, an assumed fraction of
+    win/loss accuracy) remains the one genuinely speculative input in this
+    whole model — no real top-scorer-pick accuracy data exists to calibrate
+    it against.
+  - **Verified against the real service functions, not just the
+    simulator**: a throwaway test user on the `dev` Neon branch was given
+    60 fabricated correct top-scorer picks (games + `player_game_stats` +
+    `top_scorer_predictions` rows) and 6 fabricated `fantasy_round_points`
+    rows, then `checkAndGrantLegendaryMilestones`/
+    `checkAndGrantFantasyMilestones` were called directly — both granted
+    exactly one milestone, a second call each stayed idempotent (no double
+    grant), and everything fabricated (including the test user) was deleted
+    afterward. Schema change (`CREATE TABLE fantasy_milestones`) applied
+    directly against both the `dev` and production databases per the
+    Schema-changes workflow above, ahead of the code deploy — safe since
+    the table is new and unreferenced by any pre-pass code.
 - **Referrals** (`services/referrals.ts`, `users.referralCode`/
   `referredByUserId`/`referralRewardGranted` in `schema.ts`). Every user
   gets a unique code at registration (`createUniqueReferralCode`), shared as
