@@ -702,6 +702,37 @@ If you need to apply a schema change without an interactive terminal
     real data (caught 2026-09-06 — a team having *a* position value isn't
     proof it means anything yet; falls back to last season's final standings
     until real games are played).
+  - **Daily/round price variation — real, entity-specific formulas
+    (2026-09-21)**: `services/fantasyDailyReprice.ts` (added 2026-09-16, run
+    on a background interval in `index.ts`, `[fantasy daily reprice]` in the
+    logs) nudges every player's/coach's price after each of their *final*
+    games — separate from `computeFantasyPrice`/`computeCoachPrice`/the
+    manual `fantasy:reprice` script above, which only ever set the
+    season-long *baseline* this daily job nudges day to day, never
+    recomputing from scratch. Originally used one unsourced guessed formula
+    applied identically to both (`gamePoints / (currentPrice * 10)`, picked
+    only to loosely match EuroLeague Fantasy's own public worked example)
+    since neither real formula was known at launch. Replaced with
+    EuroLeague Fantasy's actual published formulas once sourced (two
+    separate EuroLeague Fantasist/@ELFantasist graphics) — **players and
+    coaches are genuinely different formulas, not shared constants**:
+    player `X = (N - P*1.1) / 25`, coach `X = (N - P) / 40` (no breakeven
+    multiplier at all, and a wider /40 divisor than a player's /25 — a
+    coach's price moves more gently per round for a same-sized miss). `X`
+    is always the credit gain/loss, `N` that round's real fantasy points
+    (`computeFantasyGamePoints`/`pointsForCoachResult`), `P` the price
+    *before* the round. A player's `P*1.1` is a breakeven bar scaled to
+    their own price (score below ~110% of your price, lose credits; above,
+    gain), which is what gives a cheap player's price more room to swing
+    than an expensive one's for the same performance — a coach only needs
+    to match their own price to hold steady. Both still clamped to
+    `+-DAILY_PRICE_MAX_DELTA` (1.0) as a safety net against one outlier
+    stat line — not part of either sourced formula, just close to the
+    natural range each already produces. Each (player/coach, game) pair is
+    applied at most once (claim-first via `fantasy_price_change_log`/
+    `fantasy_coach_price_change_log`, same idempotency shape as the other
+    interval sync jobs), so swapping either formula only changes *future*
+    deltas — no backfill/replay of already-applied rows.
   - **Locking — whole-round, not per-player**: a per-player mid-round
     "Turns" substitution model (matching real rules' day-1/day-2 game
     blocks) was built and then deliberately reverted the same day (2026-09-07)
