@@ -88,6 +88,21 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
+// No API response should ever be cached by the browser (or an intermediary)
+// — most of this API is per-user (JWT-scoped via requireAuth), and nothing
+// distinguishes that in the cache key: same URL, no Vary on the
+// Authorization header. Without this, a browser can legally serve a
+// *previous* logged-in user's cached response (e.g. GET /users/me) after a
+// logout/login in the same tab — confirmed live: an account correctly shown
+// as isAdmin: false server-side still rendered the admin badge client-side,
+// because Express's default ETag on res.json() gave the browser a cached
+// response to revalidate against instead of hitting the real DB-backed
+// value for the newly-logged-in user.
+app.use("/api", (_req, res, next) => {
+  res.set("Cache-Control", "no-store");
+  next();
+});
+
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", service: "euroleague-app-backend" });
 });

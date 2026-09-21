@@ -16,6 +16,7 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.lockCountdown": { en: "Locks at first tipoff:", el: "Κλειδώνει στο πρώτο τζάμπολ:" },
   "fantasy.daysWord": { en: "days", el: "ημέρες" },
   "fantasy.transfersOpen": { en: "Transfers open", el: "Ανοικτές μεταγραφές" },
+  "fantasy.transferWindowIcon": { en: "Transfer window", el: "Παράθυρο μεταγραφών" },
   "fantasy.locksToday": { en: "Locks today", el: "Κλειδώνει σήμερα" },
   "fantasy.dayAbbrev": { en: "Day", el: "Ημέρα" },
   "fantasy.captainLabel": { en: "Captain", el: "Αρχηγός" },
