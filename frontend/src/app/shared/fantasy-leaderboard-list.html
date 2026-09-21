@@ -1,0 +1,187 @@
+<!-- Premium leaderboard rows — bordered/elevated card per entry (not a flat
+     hover row), gold/silver/bronze rank badge for the top 3 (rank-badge.ts,
+     same podium hues as the album-completion prize banner), and the round's
+     fantasy team surfaced as a compact "team preview" icon: the coach's own
+     team badge once the round has locked, a padlock while picks are still
+     hidden. Round/Total PIR sit as a muted subtitle line; the fantasy-points
+     total reads as a stat pill on the right rather than plain trailing text. -->
+@if (entries().length === 0) {
+  <p class="text-sm text-muted font-semibold">{{ emptyLabel() }}</p>
+} @else {
+  <div class="space-y-2">
+    @for (entry of entries(); track entry.userId; let i = $index) {
+      <button
+        type="button"
+        (click)="openEntry(entry)"
+        class="w-full flex items-center gap-3 rounded-2xl border bg-card px-3 py-2.5 text-left transition-all duration-150 hover:-translate-y-0.5 hover:shadow-pop"
+        [class]="rankRowClasses(i)"
+      >
+        <span
+          class="w-8 h-8 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0"
+          [class]="rankBadgeClasses(i)"
+        >
+          {{ i + 1 }}
+        </span>
+
+        <!-- Coach avatar (jersey-silhouette placeholder, no real coach
+             photos exist anywhere in this app — see FantasySquadPreviewCoach's
+             doc comment) rather than the full app-team-badge (logo + text
+             code): that reads fine in the modal where there's room, but on
+             a narrow phone the extra text code crowded the name out. -->
+        @if (entry.squad) {
+          @if (entry.coach; as coach) {
+            <app-player-photo [photoUrl]="coach.imageUrl" [name]="coach.headCoach ?? coach.teamName" [teamCode]="coach.teamCode" [primaryColor]="coach.teamPrimaryColor" [size]="28" [centerFace]="true" class="shrink-0" />
+          } @else {
+            <span class="w-7 h-7 rounded-full bg-line shrink-0"></span>
+          }
+        } @else {
+          <svg
+            class="w-5 h-5 text-muted shrink-0"
+            [attr.title]="i18n.t('fantasy.squadPreviewLocked')"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="4" y="11" width="16" height="10" rx="2" />
+            <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+          </svg>
+        }
+
+        <div class="min-w-0 flex-1">
+          <p class="font-semibold truncate">{{ entry.displayName }}</p>
+          <!-- Hidden below sm: to keep the mobile row to one clean line —
+               still one tap away in the detail modal below. -->
+          <p class="hidden sm:block font-mono text-[10px] text-muted truncate"
+            >{{ i18n.t('fantasy.roundPirAbbrev') }} {{ entry.roundPir }} &middot; {{ i18n.t('fantasy.totalPirAbbrev') }} {{ entry.totalPir }}</p
+          >
+        </div>
+
+        <div class="shrink-0 text-center bg-page rounded-xl px-2.5 py-1.5 min-w-[3rem]">
+          <p class="font-mono text-team-primary font-bold text-sm leading-none">{{ entry.fantasyPoints }}</p>
+          <p class="font-mono text-[9px] text-muted uppercase tracking-wide mt-0.5">{{ i18n.t('fantasy.pointsAbbrev') }}</p>
+        </div>
+      </button>
+    }
+  </div>
+}
+
+@if (selectedEntry(); as entry) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="closeEntry()">
+    <div
+      class="bg-card rounded-2xl border border-line shadow-pop p-5 max-w-sm w-full max-h-[85vh] overflow-y-auto"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-start justify-between gap-2 mb-4">
+        <div>
+          <p class="font-display text-xl tracking-wide">{{ entry.displayName }}</p>
+          <p class="font-mono text-[12px] text-muted mt-0.5">{{ entry.fantasyPoints }} {{ i18n.t('fantasy.pointsAbbrev') }}</p>
+          <p class="font-mono text-[11px] text-muted mt-0.5"
+            >{{ i18n.t('fantasy.roundPirAbbrev') }} {{ entry.roundPir }} &middot; {{ i18n.t('fantasy.totalPirAbbrev') }} {{ entry.totalPir }}</p
+          >
+        </div>
+        <button type="button" (click)="closeEntry()" class="text-muted hover:text-ink text-2xl leading-none font-bold shrink-0">&times;</button>
+      </div>
+
+      <div class="mb-4">
+        <p class="text-[11px] font-bold uppercase tracking-wider text-muted mb-2">{{ i18n.t('fantasy.squadPreviewTitle') }}</p>
+        @if (entry.squad; as squad) {
+          @if (squad.length > 0) {
+            <!-- Starters, placed on the same half-court art the roster
+                 builder uses — grouped by each player's real position
+                 (Guard/Forward/Center) rather than a specific formation
+                 slot, since another user's saved lineup has no guarantee
+                 its 5 starters match one of this app's 5 named formations
+                 (see court-position.ts's doc comment). -->
+            @let courtPositions = starterCourtPositions(squad);
+            <!-- aspect-[320/300] matches app-court-background's own default
+                 viewBoxTop=-90 shape exactly (baselineY 210 - (-90) = 300),
+                 so the SVG's "meet" scaling fills the box with zero
+                 letterboxing — a mismatched container ratio here would
+                 shrink/off-center the actual court art relative to these
+                 percentage-based overlay positions. -->
+            <div class="relative w-full aspect-[320/300] rounded-xl overflow-hidden mb-3">
+              <app-court-background class="absolute inset-0 w-full h-full" />
+              @for (p of starters(squad); track p.playerId; let i = $index) {
+                <div
+                  class="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-0.5 w-16"
+                  [style.left.%]="courtPositions[i].left"
+                  [style.top.%]="courtPositions[i].top"
+                >
+                  <div class="relative">
+                    <app-player-photo [photoUrl]="p.photoUrl" [name]="p.name" [teamCode]="p.teamCode" [primaryColor]="p.teamPrimaryColor" [size]="40" [centerFace]="true" />
+                    @if (p.isCaptain) {
+                      <span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-team-primary text-team-secondary text-[9px] font-bold flex items-center justify-center">C</span>
+                    }
+                  </div>
+                  <!-- White + shadow, not text-muted — the court floor is a
+                       fixed warm-wood color regardless of light/dark theme
+                       (see court-background.ts's own doc comment), so a
+                       theme-reactive muted grey could go dark-on-dark; a
+                       plain drop-shadow keeps it legible over the wood
+                       grain/lines either way. -->
+                  <span class="text-[9px] text-white font-semibold truncate w-full text-center leading-tight [text-shadow:0_1px_2px_rgba(0,0,0,0.85)]">{{ p.name }}</span>
+                  <span class="font-mono text-[10px] text-white font-bold leading-none [text-shadow:0_1px_2px_rgba(0,0,0,0.85)]">{{ p.pir ?? '–' }}</span>
+                </div>
+              }
+            </div>
+
+            @if (sixthMan(squad); as sm) {
+              <p class="text-[10px] font-bold uppercase tracking-wider text-muted mb-1.5">{{ i18n.t('fantasy.sixthManLabel') }}</p>
+              <div class="flex items-center gap-2 rounded-xl bg-page px-2.5 py-2 mb-3">
+                <app-player-photo [photoUrl]="sm.photoUrl" [name]="sm.name" [teamCode]="sm.teamCode" [primaryColor]="sm.teamPrimaryColor" [size]="36" [centerFace]="true" class="shrink-0" />
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs font-semibold truncate">{{ sm.name }}</p>
+                  <p class="text-[9px] text-muted">{{ posAbbrev(sm.position) }}</p>
+                </div>
+                <span class="font-mono text-xs font-bold shrink-0">{{ sm.pir ?? '–' }}</span>
+              </div>
+            }
+
+            @if (bench(squad); as benchPlayers) {
+              @if (benchPlayers.length > 0) {
+                <p class="text-[10px] font-bold uppercase tracking-wider text-muted mb-1.5">{{ i18n.t('fantasy.benchLabel') }}</p>
+                <div class="grid grid-cols-4 gap-2 mb-3">
+                  @for (p of benchPlayers; track p.playerId) {
+                    <div class="flex flex-col items-center gap-0.5 min-w-0 rounded-xl bg-page py-2 px-1 opacity-80">
+                      <app-player-photo [photoUrl]="p.photoUrl" [name]="p.name" [teamCode]="p.teamCode" [primaryColor]="p.teamPrimaryColor" [size]="34" [centerFace]="true" />
+                      <span class="text-[9px] text-muted truncate w-full text-center">{{ p.name }}</span>
+                      <span class="font-mono text-[10px] font-bold">{{ p.pir ?? '–' }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            }
+          }
+          @if (entry.coach; as coach) {
+            <div class="flex items-center gap-2 mt-3 pt-3 border-t border-line">
+              <app-player-photo [photoUrl]="coach.imageUrl" [name]="coach.headCoach ?? coach.teamName" [teamCode]="coach.teamCode" [primaryColor]="coach.teamPrimaryColor" [size]="36" [centerFace]="true" />
+              <span class="text-xs text-muted">{{ i18n.t('fantasy.coachLabel') }}: {{ coach.headCoach ?? coach.teamName }}</span>
+            </div>
+          }
+        } @else {
+          <p class="text-xs text-muted">{{ i18n.t('fantasy.squadPreviewLocked') }}</p>
+        }
+      </div>
+
+      @if (entry.showcase.length > 0) {
+        <p class="text-[11px] font-bold uppercase tracking-wider text-muted mb-2">{{ i18n.t('leagues.cardsTitle') }}</p>
+        <div class="grid grid-cols-3 gap-3">
+          @for (card of entry.showcase; track card.id) {
+            <app-collectible-card
+              class="block w-full"
+              [name]="card.name"
+              [tier]="card.tier"
+              [teamCode]="card.team.code"
+              [teamColor]="card.team.primaryColor"
+              [imageUrl]="card.imageUrl"
+              [unlocked]="true"
+            ></app-collectible-card>
+          }
+        </div>
+      }
+    </div>
+  </div>
+}

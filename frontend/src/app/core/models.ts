@@ -805,6 +805,10 @@ export interface FantasyPlayers {
 export interface FantasyCoachRow {
   team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
   headCoach: string | null;
+  // The team's coach collectible's own image — a real photo for most
+  // teams, falls back to app-player-photo's jersey-silhouette placeholder
+  // when null.
+  imageUrl: string | null;
   price: number;
 }
 
@@ -898,10 +902,38 @@ export interface FantasyLineup {
 // cumulative fantasy points for a season, same showcase-card mechanic as
 // the predictions LeaderboardEntry, kept as a fully separate economy/shape
 // rather than folded into it.
+export interface FantasySquadPreviewPlayer {
+  playerId: string;
+  name: string;
+  photoUrl: string | null;
+  position: string | null;
+  teamCode: string;
+  teamPrimaryColor: string | null;
+  slotRole: string;
+  isCaptain: boolean;
+  pir: number | null;
+}
+
+export interface FantasySquadPreviewCoach {
+  teamId: string;
+  teamCode: string;
+  teamName: string;
+  teamLogoUrl: string | null;
+  teamPrimaryColor: string | null;
+  headCoach: string | null;
+  imageUrl: string | null;
+}
+
 export interface FantasyLeaderboardEntry {
   userId: string;
   displayName: string;
   fantasyPoints: number;
+  roundPir: number;
+  totalPir: number;
+  // Null until the round has locked — see backend's FantasyLeaderboardEntry
+  // doc comment for why picks stay hidden pre-lock.
+  squad: FantasySquadPreviewPlayer[] | null;
+  coach: FantasySquadPreviewCoach | null;
   showcase: ShowcaseCard[];
 }
 

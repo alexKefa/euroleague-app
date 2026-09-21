@@ -55,38 +55,71 @@
       </div>
     </div>
 
-    <div class="bg-card rounded-lg shadow-card p-4">
-      <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-3">{{ i18n.t('leagues.leaderboardTitle') }}</p>
-      <div class="space-y-1.5">
-        @for (entry of leaderboard(); track entry.userId; let i = $index) {
-          <button
-            type="button"
-            (click)="openMember(entry)"
-            class="w-full flex items-center justify-between gap-3 px-2 py-2 rounded-xl text-left hover:bg-white/5 transition-colors"
-            [ngClass]="{ 'bg-team-primary/10': i === 0 }"
-          >
-            <div class="flex items-center gap-2 min-w-0">
-              @if (i === 0) {
-                <span
-                  class="font-mono text-[11px] font-bold w-5 h-5 rounded-full bg-team-primary text-team-secondary flex items-center justify-center shrink-0"
-                  >1</span
-                >
-              } @else {
-                <span class="font-mono text-muted w-5 shrink-0">{{ i + 1 }}</span>
-              }
-              <span class="font-semibold truncate">{{ entry.displayName }}</span>
-              @if (entry.badges.length > 0) {
-                <span class="font-mono text-[10px] text-team-primary shrink-0">&#9733; {{ entry.badges.length }}</span>
-              }
-            </div>
-            <div class="text-right shrink-0">
-              <span class="font-mono text-team-primary font-bold block">{{ entry.points }} pts</span>
-              <span class="font-mono text-muted text-[12px]">{{ entry.correct }}/{{ entry.total }}</span>
-            </div>
-          </button>
-        }
-      </div>
+    <!-- Points/Fantasy tab — same segmented-control pattern as Fantasy
+         Five's own roster/leaderboard tabs (fantasy.html), so the two
+         leaderboard "kinds" this app has (prediction points, Fantasy Five)
+         read the same way wherever a league surfaces them. -->
+    <div class="flex gap-1 mb-4 bg-page rounded-2xl p-1">
+      <button
+        type="button"
+        (click)="setTab('points')"
+        class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold transition-colors"
+        [ngClass]="tab() === 'points' ? 'bg-team-primary text-team-secondary' : 'text-muted hover:text-team-primary'"
+      >
+        {{ i18n.t('leagues.pointsTab') }}
+      </button>
+      <button
+        type="button"
+        (click)="setTab('fantasy')"
+        class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold transition-colors"
+        [ngClass]="tab() === 'fantasy' ? 'bg-team-primary text-team-secondary' : 'text-muted hover:text-team-primary'"
+      >
+        {{ i18n.t('leagues.fantasyTab') }}
+      </button>
     </div>
+
+    @if (tab() === 'points') {
+      @if (leaderboard().length === 0) {
+        <p class="text-sm text-muted font-semibold">{{ i18n.t('leagues.emptyLeaderboard') }}</p>
+      } @else {
+        <div class="space-y-2">
+          @for (entry of leaderboard(); track entry.userId; let i = $index) {
+            <button
+              type="button"
+              (click)="openMember(entry)"
+              class="w-full flex items-center gap-3 rounded-2xl border bg-card px-3 py-2.5 text-left transition-all duration-150 hover:-translate-y-0.5 hover:shadow-pop"
+              [class]="rankRowClasses(i)"
+            >
+              <span
+                class="w-8 h-8 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0"
+                [class]="rankBadgeClasses(i)"
+              >
+                {{ i + 1 }}
+              </span>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5 min-w-0">
+                  <span class="font-semibold truncate">{{ entry.displayName }}</span>
+                  @if (entry.badges.length > 0) {
+                    <span class="font-mono text-[10px] text-team-primary shrink-0">&#9733; {{ entry.badges.length }}</span>
+                  }
+                </div>
+                <p class="font-mono text-[10px] text-muted truncate">{{ entry.correct }}/{{ entry.total }}</p>
+              </div>
+              <div class="shrink-0 text-center bg-page rounded-xl px-3 py-1.5 min-w-[3.25rem]">
+                <p class="font-mono text-team-primary font-bold text-sm leading-none">{{ entry.points }}</p>
+                <p class="font-mono text-[9px] text-muted uppercase tracking-wide mt-0.5">{{ i18n.t('fantasy.pointsAbbrev') }}</p>
+              </div>
+            </button>
+          }
+        </div>
+      }
+    } @else {
+      @if (fantasyLoading()) {
+        <app-skeleton class="h-40 rounded-xl" />
+      } @else {
+        <app-fantasy-leaderboard-list [entries]="fantasyLeaderboard()" [emptyLabel]="i18n.t('fantasy.emptyLeaderboard')" />
+      }
+    }
 
     @if (selectedEntry(); as entry) {
       <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="closeMember()">

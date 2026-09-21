@@ -13,6 +13,7 @@ import {
   playerGameStats,
   users,
   playerInjuries,
+  collectibles,
 } from "../db/schema.js";
 import { requireAuth } from "../auth/middleware.js";
 import { getCurrentSeason } from "../services/season.js";
@@ -114,9 +115,12 @@ fantasyRouter.get("/coaches", async (req, res) => {
     }
 
     const rows = await db
-      .select({ team: teams, price: coachFantasyPrices.price })
+      .select({ team: teams, price: coachFantasyPrices.price, imageUrl: collectibles.imageUrl })
       .from(coachFantasyPrices)
       .innerJoin(teams, eq(coachFantasyPrices.teamId, teams.id))
+      // One coach collectible per team by design (expand-coach-collectibles.ts)
+      // — a plain left join can't duplicate rows here, so no need to dedupe.
+      .leftJoin(collectibles, and(eq(collectibles.teamId, teams.id), eq(collectibles.tier, "coach")))
       .where(eq(coachFantasyPrices.season, season));
 
     res.json({
@@ -124,6 +128,7 @@ fantasyRouter.get("/coaches", async (req, res) => {
       rows: rows.map((r) => ({
         team: { id: r.team.id, code: r.team.code, name: r.team.name, primaryColor: r.team.primaryColor, logoUrl: r.team.logoUrl },
         headCoach: r.team.headCoach,
+        imageUrl: r.imageUrl,
         price: r.price ?? COACH_MIN_PRICE,
       })),
     });
@@ -565,7 +570,10 @@ fantasyRouter.get("/leaderboard", async (req, res) => {
       return;
     }
     const round = req.query.round ? Number(req.query.round) : undefined;
-    const entries = await getFantasyLeaderboardEntries({ season, round });
+    const pirRound = await getDefaultRound(season);
+    const roundLockAt = pirRound != null ? await getRoundLockTime(season, pirRound) : null;
+    const revealSquads = roundLockAt !== null && roundLockAt.getTime() <= Date.now();
+    const entries = await getFantasyLeaderboardEntries({ season, round, pirRound, revealSquads });
     res.json(entries);
   } catch (err) {
     console.error("GET /api/fantasy/leaderboard failed:", err);

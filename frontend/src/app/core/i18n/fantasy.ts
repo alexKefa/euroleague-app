@@ -176,4 +176,11 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
     en: "The whole round locks the moment its first game tips off — lineup, formation, captain, and coach all become read-only until the next round.",
     el: "Όλη η αγωνιστική κλειδώνει μόλις ξεκινήσει ο πρώτος αγώνας — η ομάδα, ο σχηματισμός, ο αρχηγός και ο προπονητής κλειδώνουν μέχρι την επόμενη αγωνιστική.",
   },
+  "fantasy.roundPirAbbrev": { en: "Round PIR", el: "PIR Αγωνιστικής" },
+  "fantasy.totalPirAbbrev": { en: "Total PIR", el: "Σύνολο PIR" },
+  "fantasy.squadPreviewTitle": { en: "Squad", el: "Ομάδα" },
+  "fantasy.squadPreviewLocked": {
+    en: "This squad reveals once the round starts.",
+    el: "Η ομάδα αποκαλύπτεται μόλις ξεκινήσει η αγωνιστική.",
+  },
 };

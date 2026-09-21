@@ -5,7 +5,7 @@ import { leagues, leagueMembers, users, collectibles, teams } from "../db/schema
 import { requireAuth } from "../auth/middleware.js";
 import { createUniqueLeagueCode } from "../services/leagues.js";
 import { getLeaderboardEntries } from "../services/leaderboard.js";
-import { getFantasyLeaderboardEntries } from "../services/fantasyScoring.js";
+import { getFantasyLeaderboardEntries, getDefaultRound, getRoundLockTime } from "../services/fantasyScoring.js";
 import { getAlbumLeaderboardEntries, getCollectibleCatalogTotal } from "../services/albumLeaderboard.js";
 import { getCurrentSeason } from "../services/season.js";
 
@@ -268,7 +268,10 @@ leaguesRouter.get("/:id/fantasy-leaderboard", requireAuth, async (req, res) => {
       .where(and(eq(leagueMembers.leagueId, id), eq(users.isAdmin, false)));
     const memberIds = memberRows.map((r) => r.userId);
 
-    const entries = await getFantasyLeaderboardEntries({ userIds: memberIds, season });
+    const pirRound = await getDefaultRound(season);
+    const roundLockAt = pirRound != null ? await getRoundLockTime(season, pirRound) : null;
+    const revealSquads = roundLockAt !== null && roundLockAt.getTime() <= Date.now();
+    const entries = await getFantasyLeaderboardEntries({ userIds: memberIds, season, pirRound, revealSquads });
 
     // Same "everyone's here, nobody's scored yet" inclusion as the points
     // leaderboard above — a member with no lineup drafted this season still
@@ -276,7 +279,16 @@ leaguesRouter.get("/:id/fantasy-leaderboard", requireAuth, async (req, res) => {
     const presentIds = new Set(entries.map((e) => e.userId));
     const zeroEntries = memberRows
       .filter((r) => !presentIds.has(r.userId))
-      .map((r) => ({ userId: r.userId, displayName: r.username, fantasyPoints: 0, showcase: [] as never[] }))
+      .map((r) => ({
+        userId: r.userId,
+        displayName: r.username,
+        fantasyPoints: 0,
+        roundPir: 0,
+        totalPir: 0,
+        squad: revealSquads ? ([] as never[]) : null,
+        coach: null,
+        showcase: [] as never[],
+      }))
       .sort((a, b) => a.displayName.localeCompare(b.displayName));
 
     res.json([...entries, ...zeroEntries]);

@@ -24,13 +24,13 @@ import { SearchInputComponent } from "../../shared/search-input";
 import { ButtonDirective } from "../../shared/button.directive";
 import { ChipDirective } from "../../shared/chip.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
-import { CollectibleCardComponent } from "../store/collectible-card";
 import { CourtBackgroundComponent } from "../../shared/court-background";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { ConfirmDialogComponent } from "../../shared/confirm-dialog";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { newsDateLocale, gameDateTimeFormat as gameDateTimeFormatFn } from "../../shared/news-date-format";
 import { InjuryBadgeComponent } from "../../shared/injury-badge";
+import { FantasyLeaderboardListComponent } from "../../shared/fantasy-leaderboard-list";
 import {
   injuryStatusLabel,
   injuryStatusClass,
@@ -63,6 +63,10 @@ const PAGE_SIZE = 40;
 // match the `duration-200` Tailwind class used on these popups in
 // fantasy.html.
 const POPUP_CLOSE_MS = 200;
+
+// Sentinel for the leaderboard's Global+leagues dropdown — see
+// leagueDropdownOptions/onBoardChange below.
+const GLOBAL_BOARD_VALUE = "__global__";
 
 type SortKey = "name" | "price" | "pointsPerGame" | "valuation";
 type PositionFilter = "Guard" | "Forward" | "Center" | null;
@@ -254,12 +258,12 @@ interface SwapCandidate {
     ButtonDirective,
     ChipDirective,
     SkeletonComponent,
-    CollectibleCardComponent,
     CourtBackgroundComponent,
     NavIconComponent,
     ConfirmDialogComponent,
     LogoSpinnerComponent,
     InjuryBadgeComponent,
+    FantasyLeaderboardListComponent,
   ],
   templateUrl: "./fantasy.html",
   styleUrl: "./fantasy.css",
@@ -986,11 +990,25 @@ export class FantasyComponent implements OnInit {
   readonly selectedLeagueId = signal<string | null>(null);
   readonly leagueLeaderboard = signal<FantasyLeaderboardEntry[]>([]);
   readonly leaderboardLoading = signal(false);
-  readonly selectedEntry = signal<FantasyLeaderboardEntry | null>(null);
 
-  readonly leagueDropdownOptions = computed<DropdownOption[]>(() =>
-    this.myLeagues().map((l) => ({ value: l.id, label: l.name }))
-  );
+  // Global + every league in one dropdown (2026-09-21, replacing a "Global"
+  // pill button sitting next to a separate league dropdown) — two
+  // differently-styled controls for what's really one choice ("which board
+  // am I viewing") read as visually disconnected, and didn't scale past a
+  // couple of leagues anyway. GLOBAL_BOARD_VALUE is a sentinel since
+  // DropdownOption.value can't be null; boardDropdownValue/onBoardChange
+  // below translate it back to the real null selectedLeagueId() everywhere
+  // else on this page already expects.
+  readonly leagueDropdownOptions = computed<DropdownOption[]>(() => [
+    { value: GLOBAL_BOARD_VALUE, label: this.i18n.t("fantasy.globalBoard") },
+    ...this.myLeagues().map((l) => ({ value: l.id, label: l.name })),
+  ]);
+
+  readonly boardDropdownValue = computed(() => this.selectedLeagueId() ?? GLOBAL_BOARD_VALUE);
+
+  onBoardChange(value: string | null): void {
+    this.selectLeague(value === GLOBAL_BOARD_VALUE ? null : value);
+  }
 
   readonly activeLeaderboard = computed(() =>
     this.selectedLeagueId() ? this.leagueLeaderboard() : this.globalLeaderboard()
@@ -1984,17 +2002,8 @@ export class FantasyComponent implements OnInit {
     });
   }
 
-  openEntry(entry: FantasyLeaderboardEntry): void {
-    this.selectedEntry.set(entry);
-  }
-
-  closeEntry(): void {
-    this.selectedEntry.set(null);
-  }
-
   @HostListener("document:keydown.escape")
   onEscape(): void {
-    this.closeEntry();
     this.closeAllPopups();
     this.closeRoundComplete();
   }

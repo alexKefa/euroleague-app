@@ -12,6 +12,7 @@ import {
   fantasyCoachPicks,
   fantasyRoundPoints,
   pointAdjustments,
+  playerGameStats,
 } from "../db/schema.js";
 
 // --- Squad shape (2026-09-05 rebuild to match EuroLeague Fantasy's real
@@ -930,10 +931,53 @@ export async function autoFillFantasySquad(userId: string, season: string, round
   return saveFantasyLineup(userId, season, round, entries, coach.teamId);
 }
 
+export interface FantasySquadPreviewPlayer {
+  playerId: string;
+  name: string;
+  photoUrl: string | null;
+  position: string | null;
+  teamCode: string;
+  teamPrimaryColor: string | null;
+  slotRole: string;
+  isCaptain: boolean;
+  pir: number | null;
+}
+
+export interface FantasySquadPreviewCoach {
+  teamId: string;
+  teamCode: string;
+  teamName: string;
+  teamLogoUrl: string | null;
+  teamPrimaryColor: string | null;
+  // The actual person (teams.headCoach, "SURNAME, First" raw off the feed,
+  // shown as-is — same convention as GET /fantasy/coaches), not just their
+  // team's name. Null until roster_sync.py has captured it for that team.
+  headCoach: string | null;
+  // The team's coach collectible's own image (collectibles.imageUrl, tier
+  // "coach") — a real photo for most teams (16/20 as of this pass), not
+  // just a jersey-silhouette placeholder like FantasySquadPreviewPlayer's
+  // photoUrl falls back to when null.
+  imageUrl: string | null;
+}
+
 export interface FantasyLeaderboardEntry {
   userId: string;
   displayName: string;
   fantasyPoints: number;
+  // Real per-game valuation (PIR), not the fantasy-points formula — purely
+  // informational, same "kept separately" convention GET /fantasy/lineup's
+  // own totalPir already established. roundPir is unweighted (no captain
+  // double, no bench discount) for the same reason that field isn't either.
+  roundPir: number;
+  totalPir: number;
+  // Null until pirRound's round has actually locked (getRoundLockTime <=
+  // now) — revealing a squad before its round starts would let a league
+  // member copy another's picks before their own lock. Set by the caller
+  // (routes/fantasy.ts, routes/leagues.ts) via revealSquads, not computed
+  // from "now" inside this function, so a single request has one consistent
+  // answer for every entry.
+  squad: FantasySquadPreviewPlayer[] | null;
+  coach: FantasySquadPreviewCoach | null;
   showcase: {
     id: string;
     name: string;
@@ -961,16 +1005,32 @@ export interface FantasyLeaderboardEntry {
  * single round's score (e.g. a "this round" dashboard card).
  */
 export async function getFantasyLeaderboardEntries(
-  options: { userIds?: string[]; season: string; round?: number }
+  options: {
+    userIds?: string[];
+    season: string;
+    round?: number;
+    // Which round's raw PIR to surface as roundPir/squad — independent of
+    // `round` above (that one scopes fantasyPoints itself, and stays
+    // season-cumulative for every real caller today). Defaults to no round
+    // PIR/squad data at all when omitted.
+    pirRound?: number | null;
+    // Only fetches/returns squad+coach when true — see FantasyLeaderboardEntry's
+    // doc comment on `squad` for why this is the caller's call, not this
+    // function's.
+    revealSquads?: boolean;
+  }
 ): Promise<FantasyLeaderboardEntry[]> {
   const roundFilterFl = options.round !== undefined ? sql`and fl.round = ${options.round}` : sql``;
   const roundFilterFcp = options.round !== undefined ? sql`and fcp.round = ${options.round}` : sql``;
+  const pirRoundFilter = options.pirRound != null ? sql`and fl.round = ${options.pirRound}` : sql`and false`;
 
   const totals = await db.execute<{
     user_id: string;
     username: string;
     showcase_collectible_ids: string[];
     fantasy_points: number;
+    round_pir: number;
+    total_pir: number;
   }>(sql`
     with round_stats as (
       -- Real EuroLeague Fantasy per-stat formula (see
@@ -993,11 +1053,26 @@ export async function getFantasyLeaderboardEntries(
           when p.team_id = g.home_team_id and g.home_score > g.away_score then ${1 + FANTASY_TEAM_WIN_BONUS}::numeric
           when p.team_id = g.away_team_id and g.away_score > g.home_score then ${1 + FANTASY_TEAM_WIN_BONUS}::numeric
           else 1::numeric
-        end) as fantasy_points
+        end) as fantasy_points,
+        coalesce(pgs.valuation, 0) as pir
       from player_game_stats pgs
       join games g on g.id = pgs.game_id
       join players p on p.id = pgs.player_id
       where g.status = 'final'
+    ),
+    player_pir_round_totals as (
+      select fl.user_id, sum(coalesce(rs.pir, 0)) as pir
+      from fantasy_lineups fl
+      left join round_stats rs on rs.player_id = fl.player_id and rs.season = fl.season and rs.round = fl.round
+      where fl.season = ${options.season} ${pirRoundFilter}
+      group by fl.user_id
+    ),
+    player_pir_season_totals as (
+      select fl.user_id, sum(coalesce(rs.pir, 0)) as pir
+      from fantasy_lineups fl
+      left join round_stats rs on rs.player_id = fl.player_id and rs.season = fl.season and rs.round = fl.round
+      where fl.season = ${options.season}
+      group by fl.user_id
     ),
     player_totals as (
       select fl.user_id,
@@ -1045,9 +1120,13 @@ export async function getFantasyLeaderboardEntries(
       group by fcp.user_id
     )
     select coalesce(pt.user_id, ct.user_id) as user_id, u.username, u.showcase_collectible_ids,
-      (coalesce(pt.pts, 0) + coalesce(ct.pts, 0))::int as fantasy_points
+      (coalesce(pt.pts, 0) + coalesce(ct.pts, 0))::int as fantasy_points,
+      coalesce(prt.pir, 0)::int as round_pir,
+      coalesce(pst.pir, 0)::int as total_pir
     from player_totals pt
     full outer join coach_totals ct on ct.user_id = pt.user_id
+    left join player_pir_round_totals prt on prt.user_id = coalesce(pt.user_id, ct.user_id)
+    left join player_pir_season_totals pst on pst.user_id = coalesce(pt.user_id, ct.user_id)
     join ${users} u on u.id = coalesce(pt.user_id, ct.user_id)
     where u.is_admin = false
   `);
@@ -1060,6 +1139,8 @@ export async function getFantasyLeaderboardEntries(
       userId: row.user_id,
       displayName: row.username,
       fantasyPoints: row.fantasy_points,
+      roundPir: row.round_pir,
+      totalPir: row.total_pir,
       showcaseIds: row.showcase_collectible_ids ?? [],
     }))
     .sort((a, b) => b.fantasyPoints - a.fantasyPoints);
@@ -1085,8 +1166,105 @@ export async function getFantasyLeaderboardEntries(
     ])
   );
 
+  const squadByUserId = new Map<string, FantasySquadPreviewPlayer[]>();
+  const coachByUserId = new Map<string, FantasySquadPreviewCoach>();
+  if (options.revealSquads && options.pirRound != null && ranked.length > 0) {
+    const rankedUserIds = ranked.map((r) => r.userId);
+    const pirRound = options.pirRound;
+
+    const [squadRows, coachRows, roundGames] = await Promise.all([
+      db
+        .select({
+          userId: fantasyLineups.userId,
+          playerId: fantasyLineups.playerId,
+          slotRole: fantasyLineups.slotRole,
+          isCaptain: fantasyLineups.isCaptain,
+          name: players.name,
+          position: players.position,
+          photoUrl: players.photoUrl,
+          teamId: players.teamId,
+          teamCode: teams.code,
+          teamPrimaryColor: teams.primaryColor,
+        })
+        .from(fantasyLineups)
+        .innerJoin(players, eq(players.id, fantasyLineups.playerId))
+        .innerJoin(teams, eq(teams.id, players.teamId))
+        .where(
+          and(eq(fantasyLineups.season, options.season), eq(fantasyLineups.round, pirRound), inArray(fantasyLineups.userId, rankedUserIds))
+        ),
+      db
+        .select({
+          userId: fantasyCoachPicks.userId,
+          teamId: fantasyCoachPicks.teamId,
+          teamCode: teams.code,
+          teamName: teams.name,
+          teamLogoUrl: teams.logoUrl,
+          teamPrimaryColor: teams.primaryColor,
+          headCoach: teams.headCoach,
+          imageUrl: collectibles.imageUrl,
+        })
+        .from(fantasyCoachPicks)
+        .innerJoin(teams, eq(teams.id, fantasyCoachPicks.teamId))
+        // One coach collectible per team by design — see the matching join
+        // in routes/fantasy.ts's GET /coaches for the same reasoning.
+        .leftJoin(collectibles, and(eq(collectibles.teamId, teams.id), eq(collectibles.tier, "coach")))
+        .where(
+          and(eq(fantasyCoachPicks.season, options.season), eq(fantasyCoachPicks.round, pirRound), inArray(fantasyCoachPicks.userId, rankedUserIds))
+        ),
+      db.select().from(games).where(and(eq(games.season, options.season), eq(games.round, pirRound))),
+    ]);
+
+    const gameByTeamId = new Map<string, (typeof roundGames)[number]>();
+    for (const g of roundGames) {
+      gameByTeamId.set(g.homeTeamId, g);
+      gameByTeamId.set(g.awayTeamId, g);
+    }
+    const squadPlayerIds = [...new Set(squadRows.map((r) => r.playerId))];
+    const finalGameIds = roundGames.filter((g) => g.status === "final").map((g) => g.id);
+    const statsRows =
+      squadPlayerIds.length && finalGameIds.length
+        ? await db
+            .select({ playerId: playerGameStats.playerId, gameId: playerGameStats.gameId, valuation: playerGameStats.valuation })
+            .from(playerGameStats)
+            .where(and(inArray(playerGameStats.playerId, squadPlayerIds), inArray(playerGameStats.gameId, finalGameIds)))
+        : [];
+    const statsByPlayerGame = new Map(statsRows.map((r) => [`${r.playerId}:${r.gameId}`, r.valuation]));
+
+    for (const r of squadRows) {
+      const game = gameByTeamId.get(r.teamId);
+      const pir = game && game.status === "final" ? statsByPlayerGame.get(`${r.playerId}:${game.id}`) ?? 0 : null;
+      const list = squadByUserId.get(r.userId) ?? [];
+      list.push({
+        playerId: r.playerId,
+        name: r.name,
+        photoUrl: r.photoUrl,
+        position: r.position,
+        teamCode: r.teamCode,
+        teamPrimaryColor: r.teamPrimaryColor,
+        slotRole: r.slotRole,
+        isCaptain: r.isCaptain,
+        pir,
+      });
+      squadByUserId.set(r.userId, list);
+    }
+    for (const r of coachRows) {
+      coachByUserId.set(r.userId, {
+        teamId: r.teamId,
+        teamCode: r.teamCode,
+        teamName: r.teamName,
+        teamLogoUrl: r.teamLogoUrl,
+        teamPrimaryColor: r.teamPrimaryColor,
+        headCoach: r.headCoach,
+        imageUrl: r.imageUrl,
+      });
+    }
+  }
+
+  const squadsRevealed = !!options.revealSquads && options.pirRound != null;
   return ranked.map(({ showcaseIds, ...entry }) => ({
     ...entry,
+    squad: squadsRevealed ? squadByUserId.get(entry.userId) ?? [] : null,
+    coach: squadsRevealed ? coachByUserId.get(entry.userId) ?? null : null,
     showcase: showcaseIds.map((cid) => cardById.get(cid)).filter((c): c is NonNullable<typeof c> => !!c),
   }));
 }

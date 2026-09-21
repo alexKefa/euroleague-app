@@ -717,7 +717,7 @@
                     <button type="button" (click)="openCoachPicker()" [disabled]="roundLocked()" class="flex flex-col items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed">
                       @if (selectedCoach(); as coach) {
                         <div class="relative">
-                          <app-team-badge [code]="coach.team.code" [logoUrl]="coach.team.logoUrl" [size]="48" />
+                          <app-player-photo [photoUrl]="coach.imageUrl" [name]="coach.headCoach ?? coach.team.name" [teamCode]="coach.team.code" [primaryColor]="coach.team.primaryColor" [size]="48" [centerFace]="true" />
                           @if (roundLocked()) {
                             <span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-card border border-line flex items-center justify-center text-[9px]">&#128274;</span>
                           }
@@ -901,26 +901,26 @@
     }
   } @else {
     <!-- Leaderboard tab -->
-    <div class="flex items-center justify-between gap-2 mb-3">
-      <div class="flex items-center gap-2">
-        <button
-          type="button"
-          (click)="selectLeague(null)"
-          class="px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors"
-          [ngClass]="!selectedLeagueId() ? 'bg-team-primary/10 border-team-primary/30 text-team-primary' : 'bg-card border-line text-muted'"
-        >
+    <!-- Board switcher (2026-09-21) — one dropdown for "Global" + every
+         league, not a "Global" pill button sitting next to a separately-
+         styled dropdown. Those were two different control paradigms for
+         what's really a single choice, and the pair didn't scale past a
+         couple of leagues either. Falls back to a plain static label when
+         there's nothing to switch to (no leagues joined yet) — a dropdown
+         with a single fixed option would be a pointless affordance. -->
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+      @if (myLeagues().length > 0) {
+        <app-dropdown
+          class="w-40 sm:w-56"
+          [options]="leagueDropdownOptions()"
+          [value]="boardDropdownValue()"
+          (valueChange)="onBoardChange($event)"
+        />
+      } @else {
+        <span class="px-3 py-1.5 rounded-xl text-xs font-bold border bg-team-primary/10 border-team-primary/30 text-team-primary">
           {{ i18n.t('fantasy.globalBoard') }}
-        </button>
-        @if (myLeagues().length > 0) {
-          <app-dropdown
-            class="w-56"
-            [options]="leagueDropdownOptions()"
-            [value]="selectedLeagueId()"
-            [placeholder]="i18n.t('fantasy.myLeagueBoard')"
-            (valueChange)="selectLeague($event)"
-          />
-        }
-      </div>
+        </span>
+      }
       <!-- Same "leagues.navLink" destination Predictions' own leaderboard
            card links to (/leagues — create/join, same shared leagues/
            leagueMembers table this page's own league dropdown already
@@ -932,68 +932,10 @@
       >
     </div>
 
-    <div class="bg-card rounded-lg shadow-card p-4">
-      @if (leaderboardLoading()) {
-        <app-skeleton class="h-40 rounded-xl" />
-      } @else if (activeLeaderboard().length === 0) {
-        <p class="text-sm text-muted font-semibold">{{ i18n.t('fantasy.emptyLeaderboard') }}</p>
-      } @else {
-        <div class="space-y-1.5">
-          @for (entry of activeLeaderboard(); track entry.userId; let i = $index) {
-            <button
-              type="button"
-              (click)="openEntry(entry)"
-              class="w-full flex items-center justify-between gap-3 px-2 py-2 rounded-xl text-left hover:bg-white/5 transition-colors"
-              [ngClass]="{ 'bg-team-primary/10': i === 0 }"
-            >
-              <div class="flex items-center gap-2 min-w-0">
-                @if (i === 0) {
-                  <span class="font-mono text-[11px] font-bold w-5 h-5 rounded-full bg-team-primary text-team-secondary flex items-center justify-center shrink-0">1</span>
-                } @else {
-                  <span class="font-mono text-muted w-5 shrink-0">{{ i + 1 }}</span>
-                }
-                <span class="font-semibold truncate">{{ entry.displayName }}</span>
-              </div>
-              <span class="font-mono text-team-primary font-bold shrink-0">{{ entry.fantasyPoints }} {{ i18n.t('fantasy.pointsAbbrev') }}</span>
-            </button>
-          }
-        </div>
-      }
-    </div>
-
-    @if (selectedEntry(); as entry) {
-      <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="closeEntry()">
-        <div
-          class="bg-card rounded-2xl border border-line shadow-pop p-5 max-w-sm w-full max-h-[85vh] overflow-y-auto"
-          (click)="$event.stopPropagation()"
-        >
-          <div class="flex items-start justify-between gap-2 mb-4">
-            <div>
-              <p class="font-display text-xl tracking-wide">{{ entry.displayName }}</p>
-              <p class="font-mono text-[12px] text-muted mt-0.5">{{ entry.fantasyPoints }} {{ i18n.t('fantasy.pointsAbbrev') }}</p>
-            </div>
-            <button type="button" (click)="closeEntry()" class="text-muted hover:text-ink text-2xl leading-none font-bold shrink-0">&times;</button>
-          </div>
-
-          @if (entry.showcase.length > 0) {
-            <div class="grid grid-cols-3 gap-3">
-              @for (card of entry.showcase; track card.id) {
-                <app-collectible-card
-                  class="block w-full"
-                  [name]="card.name"
-                  [tier]="card.tier"
-                  [teamCode]="card.team.code"
-                  [teamColor]="card.team.primaryColor"
-                  [imageUrl]="card.imageUrl"
-                  [unlocked]="true"
-                ></app-collectible-card>
-              }
-            </div>
-          } @else {
-            <p class="text-xs text-muted">{{ i18n.t('leagues.noCards') }}</p>
-          }
-        </div>
-      </div>
+    @if (leaderboardLoading()) {
+      <app-skeleton class="h-40 rounded-xl" />
+    } @else {
+      <app-fantasy-leaderboard-list [entries]="activeLeaderboard()" [emptyLabel]="i18n.t('fantasy.emptyLeaderboard')" />
     }
   }
 
@@ -1247,7 +1189,7 @@
               class="fantasy-row-in w-full flex items-center gap-2 rounded-lg border p-2 transition-colors text-left disabled:opacity-40"
               [ngClass]="coachTeamId() === row.team.id ? 'border-team-primary bg-team-primary/10' : 'border-line bg-page hover:border-team-primary'"
             >
-              <app-team-badge [code]="row.team.code" [logoUrl]="row.team.logoUrl" [size]="30" />
+              <app-player-photo [photoUrl]="row.imageUrl" [name]="row.headCoach ?? row.team.name" [teamCode]="row.team.code" [primaryColor]="row.team.primaryColor" [size]="34" [centerFace]="true" />
               <div class="min-w-0 flex-1">
                 <p class="text-[12px] font-semibold truncate leading-tight">{{ row.headCoach ?? row.team.name }}</p>
                 <p class="text-[10px] font-mono text-muted truncate leading-tight">{{ row.team.name }}</p>

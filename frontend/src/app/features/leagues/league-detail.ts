@@ -5,12 +5,14 @@ import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { NavHistoryService } from "../../core/nav-history.service";
-import { LeagueDetail, LeagueLeaderboardEntry } from "../../core/models";
+import { LeagueDetail, LeagueLeaderboardEntry, FantasyLeaderboardEntry } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { NavIconComponent, NavIconName } from "../../shared/nav-icon";
 import { ButtonDirective } from "../../shared/button.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { ConfirmDialogComponent } from "../../shared/confirm-dialog";
+import { FantasyLeaderboardListComponent } from "../../shared/fantasy-leaderboard-list";
+import { rankBadgeClasses, rankRowClasses } from "../../shared/rank-badge";
 
 // Same badge-id -> icon map as predictions.ts — keep both in sync if a
 // badge is ever added there (backend/src/services/leaderboard.ts's BADGES).
@@ -25,7 +27,16 @@ const BADGE_ICONS: Record<string, NavIconName> = {
 @Component({
   selector: "app-league-detail",
   standalone: true,
-  imports: [CommonModule, RouterLink, CollectibleCardComponent, NavIconComponent, ButtonDirective, SkeletonComponent, ConfirmDialogComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    CollectibleCardComponent,
+    NavIconComponent,
+    ButtonDirective,
+    SkeletonComponent,
+    ConfirmDialogComponent,
+    FantasyLeaderboardListComponent,
+  ],
   templateUrl: "./league-detail.html",
 })
 export class LeagueDetailComponent implements OnInit {
@@ -40,6 +51,21 @@ export class LeagueDetailComponent implements OnInit {
   readonly notFound = signal(false);
   readonly league = signal<LeagueDetail | null>(null);
   readonly leaderboard = signal<LeagueLeaderboardEntry[]>([]);
+
+  // Points/Fantasy tab (2026-09-21) — same segmented-control pattern as
+  // Fantasy Five's own roster/leaderboard tabs. Both boards are fetched
+  // eagerly on init rather than on first tab switch — a league is a small,
+  // known group of friends, so the extra round trip is cheap and avoids a
+  // second loading flicker the first time someone taps "Fantasy".
+  readonly tab = signal<"points" | "fantasy">("points");
+  readonly fantasyLeaderboard = signal<FantasyLeaderboardEntry[]>([]);
+  readonly fantasyLoading = signal(true);
+  protected readonly rankBadgeClasses = rankBadgeClasses;
+  protected readonly rankRowClasses = rankRowClasses;
+
+  setTab(tab: "points" | "fantasy"): void {
+    this.tab.set(tab);
+  }
 
   readonly copied = signal(false);
 
@@ -71,6 +97,14 @@ export class LeagueDetailComponent implements OnInit {
     this.api.getLeagueLeaderboard(this.leagueId).subscribe({
       next: (rows) => this.leaderboard.set(rows),
       error: () => {},
+    });
+
+    this.api.getLeagueFantasyLeaderboard(this.leagueId).subscribe({
+      next: (rows) => {
+        this.fantasyLeaderboard.set(rows);
+        this.fantasyLoading.set(false);
+      },
+      error: () => this.fantasyLoading.set(false),
     });
   }
 
