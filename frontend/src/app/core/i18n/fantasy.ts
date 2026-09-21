@@ -183,4 +183,5 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
     en: "This squad reveals once the round starts.",
     el: "Η ομάδα αποκαλύπτεται μόλις ξεκινήσει η αγωνιστική.",
   },
+  "fantasy.noTeamYet": { en: "No team set up yet", el: "Δεν έχει φτιάξει ομάδα ακόμα" },
 };

@@ -934,6 +934,11 @@ export interface FantasyLeaderboardEntry {
   // doc comment for why picks stay hidden pre-lock.
   squad: FantasySquadPreviewPlayer[] | null;
   coach: FantasySquadPreviewCoach | null;
+  // False for a league member with no fantasy_lineups/coach_picks rows
+  // this season at all — distinguishes "never set up a team" from "has a
+  // team, scored zero so far" (both would otherwise show an identical
+  // "0 pts" row).
+  hasTeam: boolean;
   showcase: ShowcaseCard[];
 }
 

@@ -287,6 +287,7 @@ leaguesRouter.get("/:id/fantasy-leaderboard", requireAuth, async (req, res) => {
         totalPir: 0,
         squad: revealSquads ? ([] as never[]) : null,
         coach: null,
+        hasTeam: false,
         showcase: [] as never[],
       }))
       .sort((a, b) => a.displayName.localeCompare(b.displayName));

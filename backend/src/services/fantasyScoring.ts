@@ -978,6 +978,13 @@ export interface FantasyLeaderboardEntry {
   // answer for every entry.
   squad: FantasySquadPreviewPlayer[] | null;
   coach: FantasySquadPreviewCoach | null;
+  // True for every entry this function itself returns (a real
+  // fantasy_lineups/fantasy_coach_picks row exists for this season) —
+  // routes/leagues.ts sets this false on the zero-point rows it backfills
+  // for league members with no fantasy activity at all, so the frontend
+  // can tell "never set up a team" apart from "has a team, scored zero so
+  // far" instead of both reading as an identical "0 pts" row.
+  hasTeam: boolean;
   showcase: {
     id: string;
     name: string;
@@ -1265,6 +1272,7 @@ export async function getFantasyLeaderboardEntries(
     ...entry,
     squad: squadsRevealed ? squadByUserId.get(entry.userId) ?? [] : null,
     coach: squadsRevealed ? coachByUserId.get(entry.userId) ?? null : null,
+    hasTeam: true,
     showcase: showcaseIds.map((cid) => cardById.get(cid)).filter((c): c is NonNullable<typeof c> => !!c),
   }));
 }
