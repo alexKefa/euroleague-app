@@ -1,4 +1,5 @@
 import { Component, Input, OnInit, computed, inject, signal } from "@angular/core";
+import { DecimalPipe } from "@angular/common";
 import { forkJoin } from "rxjs";
 import { ApiService } from "../core/api.service";
 import { I18nService } from "../core/i18n.service";
@@ -24,7 +25,7 @@ interface TopScorerCandidate {
 @Component({
   selector: "app-top-scorer-picker",
   standalone: true,
-  imports: [PlayerPhotoComponent, LogoSpinnerComponent],
+  imports: [PlayerPhotoComponent, LogoSpinnerComponent, DecimalPipe],
   templateUrl: "./top-scorer-picker.html",
 })
 export class TopScorerPickerComponent implements OnInit {

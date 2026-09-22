@@ -20,6 +20,17 @@
 
   <app-page-hint hintId="predictions" icon="picks">{{ i18n.t('predictions.hint') }}</app-page-hint>
 
+  <!-- Sticky-bar containing block (2026-09-22, "when scrolling down and we
+       reach above the my predictions box... make this button stick there")
+       — wraps the Upcoming games card AND the floating save bar together
+       so the bar (moved down into the flow here, see its own comment
+       below) has a real boundary to dock against: `position: sticky`
+       releases a bottom-anchored element exactly when its own containing
+       block's bottom edge reaches it, which is precisely "right above My
+       picks" as long as this wrapper ends there — no scroll-listener/
+       IntersectionObserver needed, just where the wrapper happens to
+       close. -->
+  <div>
   <!-- Upcoming games — its own loading gate, independent of the predictions/
        leaderboard fetches below: the schedule request can resolve slower or
        faster than those, and used to leave this card popping in late with
@@ -136,26 +147,174 @@
               @if (auth.isAuthenticated()) {
                 <!-- Top-scorer pick for this same match, made right here via
                      a modal (app-top-scorer-picker) instead of needing to go
-                     via Schedule -> this game's own detail page first. -->
-                <button
-                  type="button"
-                  (click)="openTopScorerPicker(game)"
-                  class="w-full flex items-center justify-center gap-1.5 py-1.5 border-t transition-colors text-[10px] font-bold uppercase tracking-wider"
-                  [ngClass]="topScorerByGameId().get(game.id) ? 'bg-team-primary/10 border-team-primary/30 text-team-primary' : 'border-line text-muted hover:text-team-primary'"
-                >
-                  <app-nav-icon name="picks" [size]="12" />
-                  @if (topScorerByGameId().get(game.id); as tsPick) {
-                    <span class="truncate">{{ i18n.t('predictions.tabTopScorer') }}: {{ tsPick.predictedPlayer.name.split(',')[0] }}</span>
-                  } @else {
-                    <span>{{ i18n.t('topScorer.pickTitle') }}</span>
-                  }
-                </button>
+                     via Schedule -> this game's own detail page first.
+
+                     Restyled as a compact pill in the same "tonal track"
+                     language as My picks' own winLoss/topScorer tab switcher
+                     below (2026-09-22, "change the button before clicking...
+                     change the design of the tabs maybe overall" — a
+                     follow-up on the 2026-09-22 photo-instead-of-icon pass
+                     above, which fixed the picked state's content but not
+                     the row's own heavy full-width bordered-bar look). A
+                     bg-page track wrapping one pill, centered rather than
+                     stretched edge-to-edge, so it reads as a small chip
+                     action next to the win/loss picker instead of a second
+                     competing bar — picked state fills solid team-primary
+                     (matching that switcher's own *active* tab treatment),
+                     not just a translucent tint. Picked state still shows
+                     the player's actual photo instead of a generic icon
+                     (unchanged from the earlier pass). -->
+                <div class="flex justify-center pt-2.5">
+                  <button
+                    type="button"
+                    (click)="openTopScorerPicker(game)"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-mono text-[11px] font-bold whitespace-nowrap transition-colors max-w-full"
+                    [ngClass]="topScorerByGameId().get(game.id) ? 'bg-team-primary text-team-secondary' : 'bg-page text-muted hover:text-team-primary'"
+                  >
+                    @if (topScorerByGameId().get(game.id); as tsPick) {
+                      <app-player-photo [name]="tsPick.predictedPlayer.name" [photoUrl]="tsPick.predictedPlayer.photoUrl" [size]="18" class="rounded-full block shrink-0" />
+                      <span class="truncate">{{ tsPick.predictedPlayer.name.split(',')[0] }}</span>
+                    } @else {
+                      <app-nav-icon name="picks" [size]="12" />
+                      <span>{{ i18n.t('topScorer.pickTitle') }}</span>
+                    }
+                  </button>
+                </div>
               }
             </div>
           }
         </div>
       </div>
     }
+
+  <!-- "Save" bar (2026-09-17, direct request: "when predicting and im on
+       the top show a floating button to save... you dont have to scroll
+       down to save") — the ONLY save button on this page; the old one at
+       the bottom of the Upcoming games card was removed the same day
+       (direct follow-up: "remove the bottom one") once this covered the
+       same job while actually being reachable regardless of scroll
+       position.
+
+       Moved from a page-level `fixed` overlay into the document flow here,
+       as `sticky` (2026-09-22, "make this button stick there" once
+       scrolling reaches above My picks) — see the wrapping <div>'s own
+       comment above for the mechanism. Still clears the mobile floating
+       bottom nav while pinned, and sits just above the viewport edge on
+       desktop, where there's no bottom nav to clear.
+       pointer-events-none on the centering row + pointer-events-auto on
+       the actual card, so the empty margin on either side of it doesn't
+       block clicks/scroll on the page underneath while it's floating.
+
+       bottom-[calc(5.5rem+...)] -> 2rem, in three same-day passes
+       (2026-09-22: "when is sticky leave less margin from the bottom bar
+       almost sticked to it. to not interrupt" -> 4rem, "less margin" ->
+       3.5rem, "do 2 rem" -> 2rem) — 5.5rem originally just reused
+       shared/tour-fab.ts's own clearance (a different element, a FAB that
+       wants real breathing room above the nav); this bar wants the
+       opposite, sitting close enough to read as anchored to the bottom nav
+       rather than floating with a gap. The bottom nav itself
+       (app.component.html's <nav data-app-bottom-nav>) is
+       bottom-[calc(0.75rem+safe-area)] and ~40px tall (w-9 h-9 icon +
+       py-0.5, zero extra padding on the nav/its inner row), so its own top
+       edge sits at roughly 0.75rem + 40px ~= 3.25rem above the safe area —
+       2rem sits *below* that estimate, meaning this bar's own bottom edge
+       likely now sits slightly behind the nav's top edge rather than just
+       above it. Deliberately left there rather than clamped back up to
+       3.25rem: this was a direct, explicit final value ("do 2 rem"), and
+       z-20 (see below) keeps the nav painting on top of this bar at that
+       overlap regardless, so it can't visually cover the nav even if the
+       two now share a few px of space.
+
+       Shows on a top-scorer pick alone too, not just a pending win/loss
+       tap (2026-09-17 follow-up: "reset should be available if player
+       predictions is active, not just matches") — a top-scorer pick saves
+       immediately with nothing "pending" to reveal this bar the original
+       hasPendingChanges()-only check was watching for. Complete predictions
+       only makes sense (and only shows) when there's an actual win/loss
+       diff to submit; Clear all always shows once the bar itself does,
+       since clearAllPendingPicks() now clears both kinds.
+
+       Also shows on a plain reload with nothing pending at all, as long as
+       there's an already-saved win/loss pick sitting on an upcoming game
+       (hasSavedUpcomingPicks(), 2026-09-18 direct request) — previously the
+       only way to reach Clear all was to make some new edit first, so a
+       visitor who'd only ever predicted on a past visit had no way to reset
+       without touching a pick. -->
+  @if (auth.isAuthenticated() && (hasPendingChanges() || hasUpcomingTopScorerPicks() || hasSavedUpcomingPicks())) {
+    <!-- z-40 -> z-20 (2026-09-22, "zindex is above navbar") — the top bar
+         (app.component.html) is sticky top-0 z-30 and the mobile bottom
+         tab bar/desktop rail are z-40; matching or exceeding either let
+         this bar render over them whenever it scrolled near one. z-20
+         still clears plain page content (which has no explicit z-index)
+         without ever outranking the app shell.
+
+         pt-3 -> pt-3 pb-5 ("add some margin from the bottom when it is not
+         sticky anymore") — while pinned, the padding is invisible (the bar
+         floats above whatever's behind it); once it un-stickies and settles
+         into normal flow right above My picks, pb-5 is what actually
+         separates it from that card instead of sitting flush against it —
+         matches the mb-5 gap every other card on this page already uses. -->
+    <div class="sticky z-20 bottom-[calc(2rem+env(safe-area-inset-bottom))] sm:bottom-4 pt-3 pb-5 flex justify-center pointer-events-none">
+      <div class="w-full max-w-sm pointer-events-auto bg-card border border-line rounded-2xl shadow-pop p-3">
+        @if (potentialPoints() > 0) {
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[11px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('predictions.potentialPoints') }}</span>
+            <span class="font-mono text-team-primary font-bold text-sm">+{{ potentialPoints() }} {{ i18n.t('predictions.pts') }}</span>
+          </div>
+        }
+        <!-- Grouped pair (2026-09-17, direct request: "next to complete
+             predictions floating button add clear all, like a group
+             button"). Clear all now goes through a confirm dialog
+             (2026-09-18) since it deletes real saved data — both any
+             already-saved win/loss prediction on an upcoming game and any
+             saved top-scorer pick, not just the purely-local unsaved diff —
+             see clearAllPendingPicks()'s own comment. Both buttons also
+             disable once roundActionsLocked() (2026-09-18 direct request:
+             "5 minutes before the round starts" the round-wide reset/submit
+             actions stop being available) — a single pick tap is still
+             gated per-game by isLocked() above, unaffected by this earlier,
+             round-wide buffer. -->
+        <div class="flex gap-2">
+          <button
+            type="button"
+            (click)="requestClearAll()"
+            [disabled]="submitting() || clearingAll() || roundActionsLocked()"
+            appButton="secondary"
+            appButtonSize="sm"
+            [ngClass]="hasPendingChanges() ? 'shrink-0' : 'flex-1'"
+          >
+            @if (clearingAll()) {
+              <app-logo-spinner [size]="14" />
+            } @else {
+              {{ i18n.t('predictions.clearAll') }}
+            }
+          </button>
+          @if (hasPendingChanges()) {
+            <button
+              type="button"
+              (click)="submitPredictions()"
+              [disabled]="submitting() || roundActionsLocked()"
+              appButton
+              appButtonSize="sm"
+              class="flex-1"
+            >
+              @if (submitting()) {
+                <app-logo-spinner [size]="14" />
+              } @else {
+                {{ i18n.t('predictions.completePredictions') }}
+              }
+            </button>
+          }
+        </div>
+        @if (roundActionsLocked()) {
+          <p class="text-muted text-[11px] font-semibold text-center mt-1.5">{{ i18n.t('predictions.roundActionsLocked') }}</p>
+        } @else if (submitError()) {
+          <p class="text-red-500 text-[11px] font-semibold text-center mt-1.5">{{ submitError() }}</p>
+        }
+      </div>
+    </div>
+  }
+  </div>
 
     @if (loading()) {
       <div class="animate-pulse grid gap-5 sm:grid-cols-2">
@@ -575,96 +734,6 @@
           </div>
         }
       </div>
-    </div>
-  </div>
-}
-
-<!-- Floating "save" bar (2026-09-17, direct request: "when predicting and
-     im on the top show a floating button to save... you dont have to
-     scroll down to save") — now the ONLY save button on this page; the
-     old one at the bottom of the Upcoming games card was removed the same
-     day (direct follow-up: "remove the bottom one") once this covered the
-     same job while actually being reachable regardless of scroll position.
-     Sits above the mobile floating bottom nav (bottom-[calc(5.5rem+...)],
-     same clearance shared/tour-fab.ts uses for the same reason) and just
-     above the viewport edge on desktop, where there's no bottom nav to
-     clear. pointer-events-none on the centering wrapper + pointer-events-
-     auto on the actual card, so the empty margin on either side of it
-     doesn't block clicks/scroll on the page underneath.
-
-     Shows on a top-scorer pick alone too, not just a pending win/loss
-     tap (2026-09-17 follow-up: "reset should be available if player
-     predictions is active, not just matches") — a top-scorer pick saves
-     immediately with nothing "pending" to reveal this bar the original
-     hasPendingChanges()-only check was watching for. Complete predictions
-     only makes sense (and only shows) when there's an actual win/loss
-     diff to submit; Clear all always shows once the bar itself does,
-     since clearAllPendingPicks() now clears both kinds.
-
-     Also shows on a plain reload with nothing pending at all, as long as
-     there's an already-saved win/loss pick sitting on an upcoming game
-     (hasSavedUpcomingPicks(), 2026-09-18 direct request) — previously the
-     only way to reach Clear all was to make some new edit first, so a
-     visitor who'd only ever predicted on a past visit had no way to reset
-     without touching a pick. -->
-@if (auth.isAuthenticated() && (hasPendingChanges() || hasUpcomingTopScorerPicks() || hasSavedUpcomingPicks())) {
-  <div class="fixed inset-x-0 z-40 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] sm:bottom-4 px-4 flex justify-center pointer-events-none">
-    <div class="w-full max-w-sm pointer-events-auto bg-card border border-line rounded-2xl shadow-pop p-3">
-      @if (potentialPoints() > 0) {
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-[11px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('predictions.potentialPoints') }}</span>
-          <span class="font-mono text-team-primary font-bold text-sm">+{{ potentialPoints() }} {{ i18n.t('predictions.pts') }}</span>
-        </div>
-      }
-      <!-- Grouped pair (2026-09-17, direct request: "next to complete
-           predictions floating button add clear all, like a group
-           button"). Clear all now goes through a confirm dialog
-           (2026-09-18) since it deletes real saved data — both any
-           already-saved win/loss prediction on an upcoming game and any
-           saved top-scorer pick, not just the purely-local unsaved diff —
-           see clearAllPendingPicks()'s own comment. Both buttons also
-           disable once roundActionsLocked() (2026-09-18 direct request:
-           "5 minutes before the round starts" the round-wide reset/submit
-           actions stop being available) — a single pick tap is still
-           gated per-game by isLocked() above, unaffected by this earlier,
-           round-wide buffer. -->
-      <div class="flex gap-2">
-        <button
-          type="button"
-          (click)="requestClearAll()"
-          [disabled]="submitting() || clearingAll() || roundActionsLocked()"
-          appButton="secondary"
-          appButtonSize="sm"
-          [ngClass]="hasPendingChanges() ? 'shrink-0' : 'flex-1'"
-        >
-          @if (clearingAll()) {
-            <app-logo-spinner [size]="14" />
-          } @else {
-            {{ i18n.t('predictions.clearAll') }}
-          }
-        </button>
-        @if (hasPendingChanges()) {
-          <button
-            type="button"
-            (click)="submitPredictions()"
-            [disabled]="submitting() || roundActionsLocked()"
-            appButton
-            appButtonSize="sm"
-            class="flex-1"
-          >
-            @if (submitting()) {
-              <app-logo-spinner [size]="14" />
-            } @else {
-              {{ i18n.t('predictions.completePredictions') }}
-            }
-          </button>
-        }
-      </div>
-      @if (roundActionsLocked()) {
-        <p class="text-muted text-[11px] font-semibold text-center mt-1.5">{{ i18n.t('predictions.roundActionsLocked') }}</p>
-      } @else if (submitError()) {
-        <p class="text-red-500 text-[11px] font-semibold text-center mt-1.5">{{ submitError() }}</p>
-      }
     </div>
   </div>
 }

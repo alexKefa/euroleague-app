@@ -18,4 +18,8 @@ export const topScorerPredictionsTranslations: Record<string, Record<Lang, strin
     el: "Δεν υπήρξε ξεκάθαρος κορυφαίος σκόρερ — ισοπαλία",
   },
   "topScorer.pickFailed": { en: "Failed to save your pick", el: "Αποτυχία αποθήκευσης επιλογής" },
+  // Shown under each candidate in the picker (2026-09-22, "it's hard to
+  // pick informed, show PPG" — the list was already sorted by season PPG,
+  // just never displayed it).
+  "topScorer.ppgAbbrev": { en: "PPG", el: "ΠΟΝ" },
 };
