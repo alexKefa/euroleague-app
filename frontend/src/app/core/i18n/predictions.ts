@@ -38,6 +38,13 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
   "predictions.coachMilestonePrefix": { en: "Coach milestone! You won", el: "Ορόσημο προπονητή! Κέρδισες" },
   "predictions.aCoachPack": { en: "a Coach Pack", el: "ένα Πακέτο Προπονητή" },
   "predictions.coachPacks": { en: "Coach Packs", el: "Πακέτα Προπονητή" },
+  // Rare milestone (2026-09-22) grants the card directly — different
+  // phrasing from the pack-based rewards above, since there's nothing to
+  // "open", it's already in the collection.
+  "predictions.rareMilestonePrefix": { en: "Prediction streak! You just won", el: "Σερί προβλέψεων! Μόλις κέρδισες" },
+  "predictions.aRareCard": { en: "a Rare card", el: "μια Σπάνια κάρτα" },
+  "predictions.rareCards": { en: "Rare cards", el: "Σπάνιες κάρτες" },
+  "predictions.addedToCollection": { en: "— added to your collection.", el: "— προστέθηκε στη συλλογή σου." },
   "predictions.pts": { en: "pts", el: "πόντοι" },
   "predictions.noBadgesYet": { en: "No badges yet", el: "Δεν υπάρχουν μετάλλια ακόμα" },
   "predictions.pending": { en: "Pending", el: "Εκκρεμεί" },

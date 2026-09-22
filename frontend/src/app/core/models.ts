@@ -454,6 +454,17 @@ export interface RewardPack {
   tier: CollectibleTier;
 }
 
+// A rare milestone (2026-09-22) grants the card directly, unlike the
+// legendary/coach tracks above — see checkAndGrantRareMilestones's own
+// comment on the backend for why. Same shape as TradeCardRef, plus
+// teamCode since the banner shows it next to the card.
+export interface RareMilestoneReward {
+  collectibleId: string;
+  name: string;
+  imageUrl: string | null;
+  teamCode: string;
+}
+
 export interface PredictionSummary {
   points: number;
   badges: Badge[];
@@ -464,6 +475,11 @@ export interface PredictionSummary {
   // Same concept as newMilestoneRewards, a parallel track for coach — see
   // COACH_MILESTONE_INTERVAL on the backend (services/cards.ts).
   newCoachMilestoneRewards: RewardPack[];
+  // Same concept again, a parallel track for rare — see
+  // RARE_MILESTONE_INTERVAL on the backend (services/cards.ts). Fires much
+  // more often than legendary/coach (every 2 correct picks vs 18/45), so it
+  // grants the card directly rather than an unopened pack.
+  newRareMilestoneRewards: RareMilestoneReward[];
 }
 
 // GET /api/predictions/analytics — community-wide pick accuracy, not

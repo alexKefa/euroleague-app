@@ -446,6 +446,28 @@
                 <a routerLink="/packs" class="underline">{{ i18n.t('predictions.myPacksLink') }}</a>.
               </div>
             }
+            <!-- Grants the card directly (see RareMilestoneReward's own doc
+                 comment, models.ts) — no "open from My Packs" link, since
+                 there's nothing left to open. Fires far more often than the
+                 pack-based rewards above (every 2 correct picks vs 18/45),
+                 so it names the specific card on a single grant rather than
+                 just a count, but falls back to a count once several stack
+                 up (e.g. after being away for a while). -->
+            @if (shownRareMilestoneRewards().length > 0) {
+              <div class="flex items-center gap-2 rounded-xl bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3">
+                <app-nav-icon name="picks" [size]="18" class="shrink-0" />
+                {{ i18n.t('predictions.rareMilestonePrefix') }}
+                {{
+                  shownRareMilestoneRewards().length === 1
+                    ? i18n.t('predictions.aRareCard')
+                    : shownRareMilestoneRewards().length + " " + i18n.t('predictions.rareCards')
+                }}
+                @if (shownRareMilestoneRewards().length === 1) {
+                  <span class="truncate">({{ shownRareMilestoneRewards()[0].name }})</span>
+                }
+                {{ i18n.t('predictions.addedToCollection') }}
+              </div>
+            }
             <div class="mb-3 pb-3 border-b border-line">
               <div class="flex items-center justify-between">
                 <span class="flex items-baseline gap-1.5">

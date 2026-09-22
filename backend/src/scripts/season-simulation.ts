@@ -103,6 +103,10 @@ const SELL_RATE = 0.5;
 const POINTS_PER_CORRECT = Number(process.env.SIM_PPC ?? 10);
 const REGISTRATION_BONUS = 150; // routes/auth.ts WELCOME_BONUS_POINTS
 const PITY_THRESHOLD: Record<"common" | "rare", number> = { common: 4, rare: 2 }; // services/packs.ts
+// services/cards.ts's RARE_MILESTONE_INTERVAL, added 2026-09-22 ("explore
+// retuning" pass — see that constant's own comment for the full context and
+// re-simulated numbers). 0 = off.
+const RARE_MILESTONE = Number(process.env.SIM_RARE_MILESTONE ?? 2);
 
 const ROUNDS = 38;
 const GAMES_PER_ROUND = 10; // matches the live 2026-27 season (confirmed against the DB)
@@ -114,7 +118,9 @@ const SEASON_DAYS = 210; // ~Oct-Apr EuroLeague season, matches the pacing assum
 // without them (e.g. to compare against before this pass).
 const GREAT_ROUND_BONUS = process.env.SIM_GREAT_ROUND !== "0";
 const GREAT_ROUND_THRESHOLD = 8; // out of GAMES_PER_ROUND, excludes literally-perfect (that already gets the legendary)
-const LEGENDARY_MILESTONE = Number(process.env.SIM_LEGENDARY_MILESTONE ?? 25); // 0 = off; matches services/cards.ts's real LEGENDARY_MILESTONE_INTERVAL (2026-09-22 legendary-pool-doubling retune)
+// 25 -> 18 (2026-09-22, same pass that added RARE_MILESTONE above — see
+// services/cards.ts's LEGENDARY_MILESTONE_INTERVAL for the full context).
+const LEGENDARY_MILESTONE = Number(process.env.SIM_LEGENDARY_MILESTONE ?? 18); // 0 = off; matches services/cards.ts's real LEGENDARY_MILESTONE_INTERVAL
 // services/cards.ts's COACH_MILESTONE_INTERVAL, added in the same
 // 2026-09-04 "reconsider legendary/coach chances" pass as the Elite-pack
 // odds/pity changes below — coach previously had zero non-wheel
@@ -206,8 +212,14 @@ const PACKS: PackDef[] = [
     type: "elite",
     cost: 1200,
     purchasable: true,
+    // services/packs.ts's elite pack, verbatim — 1st slot common -> rare
+    // (2026-09-22, "explore retuning" pass): 4 guaranteed rares instead of
+    // 3+1 common, worst-case EV 487.5 -> 587.5 against the 1200 cost, still
+    // a safe 612.5pt margin. See that file's own comment for the full
+    // "rares, not legendary, were the real points-only bottleneck" finding
+    // this pass was built on.
     slots: [
-      { odds: { common: 1 } },
+      { odds: { rare: 1 } },
       { odds: { rare: 1 } },
       { odds: { rare: 1 } },
       { odds: { rare: 1 } },
@@ -242,6 +254,7 @@ interface UserState {
   pity: Record<"common" | "rare", number>;
   eliteBigSlotStreak: number;
   points: number;
+  packsOpenedByType: Record<string, number>;
 }
 
 function rollTier(slot: PackSlot): Tier {
@@ -329,9 +342,29 @@ function grantGuaranteedNewOfTier(state: UserState, tier: Tier): void {
   state.owned[tier].add(missing[Math.floor(Math.random() * missing.length)]);
 }
 
-type SpendPolicy = "highest-affordable" | "cheapest-first";
+// "save-for-elite" (2026-09-22, "explore retuning" pass) — models a
+// deliberate player who saves up rather than spending the moment anything's
+// affordable, unlike "highest-affordable" (which still spends immediately,
+// just prefers the priciest affordable pack at that instant) — direct user
+// report: "I was buying [Elite] packs... mixed" describes exactly this
+// behavior, and it turned out to matter enormously: under
+// "highest-affordable", points trickle in a few at a time (10-40/correct
+// pick) and get spent on cheap Starter packs long before the balance ever
+// reaches Elite's 1200 cost — avg packs bought at 75% zero-wheel accuracy
+// was 56.8 Starter / 4.7 Pro / *zero* Elite. This policy holds everything
+// until it can afford Elite specifically, ignoring Starter/Pro entirely.
+type SpendPolicy = "highest-affordable" | "cheapest-first" | "save-for-elite";
 
 function spendLoop(state: UserState, policy: SpendPolicy): void {
+  if (policy === "save-for-elite") {
+    const elite = PACKS.find((p) => p.type === "elite")!;
+    while (state.points >= elite.cost) {
+      state.points -= elite.cost;
+      state.points += openPack(state, elite);
+      state.packsOpenedByType[elite.type] = (state.packsOpenedByType[elite.type] ?? 0) + 1;
+    }
+    return;
+  }
   for (;;) {
     const affordable = PACKS.filter((p) => p.purchasable && p.cost <= state.points);
     if (affordable.length === 0) return;
@@ -339,6 +372,7 @@ function spendLoop(state: UserState, policy: SpendPolicy): void {
     const pack = affordable[0];
     state.points -= pack.cost;
     state.points += openPack(state, pack);
+    state.packsOpenedByType[pack.type] = (state.packsOpenedByType[pack.type] ?? 0) + 1;
   }
 }
 
@@ -354,9 +388,11 @@ interface SimResult {
   greatRounds: number;
   milestoneLegendaries: number;
   milestoneCoaches: number;
+  milestoneRares: number;
   fantasyPointsEarned: number;
   topScorerPointsEarned: number;
   fantasyMilestones: number;
+  packsOpenedByType: Record<string, number>;
 }
 
 // Spreads the season's 38 rounds evenly across SEASON_DAYS, e.g. round 1 on
@@ -370,11 +406,13 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
     pity: { common: 0, rare: 0 },
     eliteBigSlotStreak: 0,
     points: REGISTRATION_BONUS,
+    packsOpenedByType: {},
   };
   let perfectRounds = 0;
   let greatRounds = 0;
   let milestoneLegendaries = 0;
   let milestoneCoaches = 0;
+  let milestoneRares = 0;
   let fantasyPointsEarned = 0;
   let topScorerPointsEarned = 0;
   let fantasyRoundsPlayed = 0;
@@ -413,6 +451,14 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
     if (COACH_MILESTONE > 0 && cumulativeCorrect % COACH_MILESTONE === 0) {
       milestoneCoaches++;
       grantGuaranteedNewOfTier(state, "coach");
+    }
+    // services/cards.ts's checkAndGrantRareMilestones (2026-09-22) — exact
+    // same shape as legendary/coach above, targeting the tier that turned
+    // out to be the actual non-wheel bottleneck (see that function's own
+    // comment for the full "why rares, why interval 2" reasoning).
+    if (RARE_MILESTONE > 0 && cumulativeCorrect % RARE_MILESTONE === 0) {
+      milestoneRares++;
+      grantGuaranteedNewOfTier(state, "rare");
     }
   }
 
@@ -505,9 +551,11 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
     greatRounds,
     milestoneLegendaries,
     milestoneCoaches,
+    milestoneRares,
     fantasyPointsEarned,
     topScorerPointsEarned,
     fantasyMilestones,
+    packsOpenedByType: state.packsOpenedByType,
   };
 }
 
@@ -527,6 +575,8 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
   const fullDays = results.map((r) => r.fullCompleteDay).filter((d): d is number => d !== null).sort((a, b) => a - b);
   const pctPurchasable = (purchasableDays.length / n) * 100;
   const pctFull = (fullDays.length / n) * 100;
+  const avgCommonAtEnd = results.reduce((s, r) => s + r.commonCountAtEnd, 0) / n;
+  const avgRareAtEnd = results.reduce((s, r) => s + r.rareCountAtEnd, 0) / n;
   const avgLegendaryAtEnd = results.reduce((s, r) => s + r.legendaryCountAtEnd, 0) / n;
   const avgCoachAtEnd = results.reduce((s, r) => s + r.coachCountAtEnd, 0) / n;
   const avgEndPoints = results.reduce((s, r) => s + r.endPoints, 0) / n;
@@ -534,9 +584,19 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
   const avgGreatRounds = results.reduce((s, r) => s + r.greatRounds, 0) / n;
   const avgMilestoneLegendaries = results.reduce((s, r) => s + r.milestoneLegendaries, 0) / n;
   const avgMilestoneCoaches = results.reduce((s, r) => s + r.milestoneCoaches, 0) / n;
+  const avgMilestoneRares = results.reduce((s, r) => s + r.milestoneRares, 0) / n;
   const avgFantasyPoints = results.reduce((s, r) => s + r.fantasyPointsEarned, 0) / n;
   const avgTopScorerPoints = results.reduce((s, r) => s + r.topScorerPointsEarned, 0) / n;
   const avgFantasyMilestones = results.reduce((s, r) => s + r.fantasyMilestones, 0) / n;
+  const avgPacksByType: Record<string, number> = {};
+  for (const r of results) {
+    for (const [type, count] of Object.entries(r.packsOpenedByType)) {
+      avgPacksByType[type] = (avgPacksByType[type] ?? 0) + count / n;
+    }
+  }
+  const packsSummary = Object.entries(avgPacksByType)
+    .map(([type, avg]) => `${type}:${avg.toFixed(1)}`)
+    .join(" ");
 
   console.log(
     `accuracy ${(accuracy * 100).toFixed(0).padStart(3)}%  spin engagement ${(spinEngagement * 100).toFixed(0).padStart(3)}%  (${policy})` +
@@ -544,15 +604,19 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
       ` (median day ${String(percentile(fullDays, 0.5)).padStart(3)}/${SEASON_DAYS})` +
       ` | commons+rares only: ${pctPurchasable.toFixed(0).padStart(3)}%` +
       ` (median day ${String(percentile(purchasableDays, 0.5)).padStart(3)})` +
+      ` | avg commons: ${avgCommonAtEnd.toFixed(0).padStart(3)}/${CATALOG_SIZE.common}` +
+      ` | avg rares: ${avgRareAtEnd.toFixed(0).padStart(3)}/${CATALOG_SIZE.rare}` +
       ` | avg legendaries: ${avgLegendaryAtEnd.toFixed(1).padStart(4)}/${CATALOG_SIZE.legendary}` +
       ` | avg coaches: ${avgCoachAtEnd.toFixed(1).padStart(4)}/20 (not in album)` +
       ` | avg perfect rounds: ${avgPerfectRounds.toFixed(2)}` +
       (GREAT_ROUND_BONUS ? ` | avg great rounds: ${avgGreatRounds.toFixed(2)}` : "") +
       (LEGENDARY_MILESTONE > 0 ? ` | avg milestone legendaries: ${avgMilestoneLegendaries.toFixed(2)}` : "") +
       (COACH_MILESTONE > 0 ? ` | avg milestone coaches: ${avgMilestoneCoaches.toFixed(2)}` : "") +
+      (RARE_MILESTONE > 0 ? ` | avg milestone rares: ${avgMilestoneRares.toFixed(2)}` : "") +
       (FANTASY_ENABLED ? ` | avg fantasy pts earned: ${avgFantasyPoints.toFixed(0)}` : "") +
       (TOP_SCORER_ENABLED ? ` | avg top-scorer pts earned: ${avgTopScorerPoints.toFixed(0)}` : "") +
       (FANTASY_MILESTONE_INTERVAL > 0 ? ` | avg fantasy milestones: ${avgFantasyMilestones.toFixed(2)}` : "") +
+      (packsSummary ? ` | avg packs bought: ${packsSummary}` : "") +
       ` | avg idle pts: ${avgEndPoints.toFixed(0)}`
   );
 }
@@ -609,4 +673,14 @@ if (ENGAGEMENT_ONLY === null) {
 if (shouldRun(0)) {
   console.log("\n--- Zero wheel engagement (never spins), highest-affordable pack spending ---");
   for (const acc of ACCURACIES) runScenario(acc, 0.0, "highest-affordable", N);
+}
+
+// Added 2026-09-22, "explore retuning" pass — see spendLoop's own comment
+// on save-for-elite for why this scenario exists: "highest-affordable"
+// looked like it should already model an Elite-focused buyer, but its
+// spend-immediately behavior meant it almost never actually reached
+// Elite's cost before the balance got drained on cheap Starter packs.
+if (shouldRun(0)) {
+  console.log("\n--- Zero wheel engagement (never spins), save-for-elite pack spending ---");
+  for (const acc of ACCURACIES) runScenario(acc, 0.0, "save-for-elite", N);
 }

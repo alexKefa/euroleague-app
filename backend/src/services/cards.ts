@@ -6,11 +6,15 @@ import {
   roundRewards,
   legendaryMilestones,
   coachMilestones,
+  rareMilestones,
   fantasyMilestones,
   ownedPacks,
   topScorerPredictions,
   playerGameStats,
   fantasyRoundPoints,
+  collectibles,
+  userCollectibles,
+  teams,
 } from "../db/schema.js";
 
 // A round with this many correct picks (out of GAMES_PER_ROUND, but short of
@@ -70,7 +74,15 @@ const GREAT_ROUND_THRESHOLD = 8;
 // tradeoff (not album-tracked, so this was an acceptable one-way cost).
 // Re-run economy:simulate after any future change to either interval or
 // either odds table.
-export const LEGENDARY_MILESTONE_INTERVAL = 25;
+//
+// 25 -> 18 (2026-09-22, same "explore retuning" pass that added the rare
+// milestone below): once rares stopped being the bottleneck, legendary
+// became the trailing tier at 25 (29.7/40, 74%, vs rares' 270/289 at 93%
+// under the new rare milestone at zero wheel engagement) — direct user
+// choice to tighten this back in step rather than let legendary lag
+// behind. See RARE_MILESTONE_INTERVAL's own comment for the combined
+// re-simulated numbers with both changes together.
+export const LEGENDARY_MILESTONE_INTERVAL = 18;
 
 // An unopened pack awarded by a round/milestone reward — same concept as a
 // wheel win (routes/spin.ts): it sits in ownedPacks until the user opens it
@@ -389,6 +401,152 @@ export async function markCoachMilestonesSeen(userId: string): Promise<void> {
     .update(coachMilestones)
     .set({ seenAt: new Date() })
     .where(and(eq(coachMilestones.userId, userId), isNull(coachMilestones.seenAt)));
+}
+
+// Every this-many cumulative correct picks (win/loss + top-scorer, same
+// counter as legendary/coach above) grants a guaranteed-new RARE — added
+// 2026-09-22, "explore retuning" pass, direct user report: bought a mix of
+// Elite/Pro packs with real predicted points and only came away with 1
+// legendary and a handful of rares. Re-simulating (season-simulation.ts)
+// found rares, not legendary, were the actual non-wheel bottleneck: only
+// 95/289 (33%) owned on average at 80% accuracy after a full season of
+// buying whatever pack was affordable, since every purchasable pack is
+// common-heavy by design and duplicate saturation makes the last third of
+// 289 rares exponentially harder without real pull volume — confirmed
+// directly: even a player who saved every point specifically for Elite
+// packs only managed ~6/season (1200pts each), and even a 5x points-income
+// test only reached 45% rares before diminishing returns from duplicate
+// saturation flattened out. The actual working, wheel-independent source of
+// rares turned out to already be great/perfect-round rewards
+// (checkAndGrantRoundRewards above) — this milestone just extends that same
+// proven mechanic to fire on every correct pick instead of only within a
+// round. Interval 2 was chosen to roughly match that existing rate (a great
+// round needs 8+ correct in one round for 4 guaranteed rares, ~1 rare per 2
+// correct picks already) rather than being invented from scratch.
+// Final re-simulated numbers (3000 users/scenario, combined with tightening
+// LEGENDARY_MILESTONE_INTERVAL 25->18 in the same pass — see that
+// constant's own comment):
+// - 100%/85% wheel engagement: still 100% full-album completion everywhere
+//   (50-80% accuracy), and noticeably *faster* now (e.g. 75% accuracy/100%
+//   engagement median day 137 -> 111) since the new milestones stack on
+//   top of wheel income too. Zero regression.
+// - 50% wheel engagement (a realistic, not-fully-engaged player): this was
+//   the range most exposed to the old rare bottleneck — full completion
+//   rose to 94-100% across 50-80% accuracy (previously degraded hard at
+//   lower accuracy in this band).
+// - 0% wheel engagement, "highest-affordable" spending: rares 95-95/289
+//   -> 145-286/289 (50-99%) across 50-80% accuracy, commons 142-201/289 ->
+//   148-246/289 (51-85%), legendary 22-32/40 -> 26-39/40 (66-97%) — an 80%-
+//   accuracy points-only player now reaches 1% full completion and 3%
+//   commons+rares-only by day 210, up from a hard 0% before across the
+//   whole accuracy range.
+// - 0% wheel engagement, "save-for-elite" spending (see spendLoop's own
+//   comment): rares reach 153-285/289 (53-99%), legendary 27-40/40
+//   (68-99%) — commons stay low (2-21/289) since this policy never buys a
+//   common-guaranteed Starter/Pro pack at all, a real remaining gap for a
+//   purely Elite-focused buyer specifically (not a concern for a normal
+//   mixed-spending player, which is what "highest-affordable" models).
+export const RARE_MILESTONE_INTERVAL = 2;
+
+/**
+ * Picks a random collectible of `tier` the user doesn't already own (or any
+ * one of that tier if it's somehow fully owned — matches forceNewLegendary/
+ * forceNewCoach's own fallback in rollPackForUser, services/packs.ts) and
+ * inserts it straight into user_collectibles. Deliberately NOT routed
+ * through rollPackForUser's full pack-opening pipeline (pity streaks, foil
+ * rolls, multi-slot handling) — this only ever grants exactly one card of
+ * one known tier, so that machinery is unneeded overhead. Foil is never
+ * rolled here on purpose: finish is a legendary-only flourish (see
+ * CollectibleFinish's doc comment), and this never grants a legendary.
+ */
+async function grantGuaranteedNewCollectible(userId: string, tier: "rare"): Promise<string> {
+  const rows = await db
+    .select({ id: collectibles.id, ownedCollectibleId: userCollectibles.collectibleId })
+    .from(collectibles)
+    .leftJoin(userCollectibles, and(eq(userCollectibles.collectibleId, collectibles.id), eq(userCollectibles.userId, userId)))
+    .where(eq(collectibles.tier, tier));
+
+  const owned = new Set(rows.filter((r) => r.ownedCollectibleId).map((r) => r.id));
+  const missing = rows.map((r) => r.id).filter((id) => !owned.has(id));
+  const pool = missing.length > 0 ? missing : rows.map((r) => r.id);
+  const collectibleId = pool[Math.floor(Math.random() * pool.length)];
+
+  // No onConflictDoNothing needed — this only ever runs once per
+  // (userId, milestoneNumber), guarded by rareMilestones' own unique claim
+  // above, so there's no concurrent-duplicate risk to guard against here.
+  await db.insert(userCollectibles).values({ userId, collectibleId });
+  return collectibleId;
+}
+
+/** One granted-rare entry for the Predictions page's milestone banner. */
+export interface RareMilestoneReward {
+  collectibleId: string;
+  name: string;
+  imageUrl: string | null;
+  teamCode: string;
+}
+
+/**
+ * Exact same concurrency-safe claim pattern as checkAndGrantLegendaryMilestones
+ * (see that function's doc comment) — but grants the card directly instead
+ * of an unopened pack, see RARE_MILESTONE_INTERVAL's own comment for why.
+ */
+export async function checkAndGrantRareMilestones(userId: string): Promise<RareMilestoneReward[]> {
+  const [{ correct, claimed_count }] = await db.execute<{ correct: number; claimed_count: number }>(sql`
+    select
+      (
+        (
+          select count(*)::int
+          from ${predictions} p
+          join ${games} g on p.game_id = g.id
+          where p.user_id = ${userId}
+            and g.status = 'final'
+            and g.home_score is not null
+            and g.away_score is not null
+            and g.home_score <> g.away_score
+            and p.predicted_winner_team_id = case when g.home_score > g.away_score then g.home_team_id else g.away_team_id end
+        )
+        + ${topScorerCorrectCountSql(userId)}
+      )::int as correct,
+      (select count(*)::int from ${rareMilestones} where user_id = ${userId}) as claimed_count
+  `);
+  const eligibleMilestones = Math.floor(correct / RARE_MILESTONE_INTERVAL);
+
+  if (eligibleMilestones > claimed_count) {
+    for (let milestoneNumber = claimed_count + 1; milestoneNumber <= eligibleMilestones; milestoneNumber++) {
+      const [claim] = await db
+        .insert(rareMilestones)
+        .values({ userId, milestoneNumber, collectibleId: null })
+        .onConflictDoNothing({ target: [rareMilestones.userId, rareMilestones.milestoneNumber] })
+        .returning();
+      if (!claim) continue; // a concurrent request already claimed this one
+
+      const collectibleId = await grantGuaranteedNewCollectible(userId, "rare");
+      await db.update(rareMilestones).set({ collectibleId }).where(eq(rareMilestones.id, claim.id));
+    }
+  }
+
+  const unseen = await db
+    .select({ card: collectibles, teamCode: teams.code })
+    .from(rareMilestones)
+    .innerJoin(collectibles, eq(rareMilestones.collectibleId, collectibles.id))
+    .innerJoin(teams, eq(collectibles.teamId, teams.id))
+    .where(and(eq(rareMilestones.userId, userId), isNull(rareMilestones.seenAt)));
+
+  return unseen.map(({ card, teamCode }) => ({
+    collectibleId: card.id,
+    name: card.name,
+    imageUrl: card.imageUrl,
+    teamCode,
+  }));
+}
+
+/** Marks every currently-unseen rare milestone this user has as seen — called once its banner has actually been shown. */
+export async function markRareMilestonesSeen(userId: string): Promise<void> {
+  await db
+    .update(rareMilestones)
+    .set({ seenAt: new Date() })
+    .where(and(eq(rareMilestones.userId, userId), isNull(rareMilestones.seenAt)));
 }
 
 // A third milestone track — "fix everything" album-completability pass,

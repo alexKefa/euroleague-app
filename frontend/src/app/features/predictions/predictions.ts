@@ -6,7 +6,7 @@ import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { EventsService } from "../../core/events.service";
-import { Prediction, LeaderboardEntry, PredictionSummary, Game, GameTeamSummary, RewardPack, MyTopScorerPrediction } from "../../core/models";
+import { Prediction, LeaderboardEntry, PredictionSummary, Game, GameTeamSummary, RewardPack, MyTopScorerPrediction, RareMilestoneReward } from "../../core/models";
 import { TeamBadgeComponent } from "../../shared/team-badge";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { PageHintComponent } from "../../shared/page-hint";
@@ -82,6 +82,15 @@ const BADGE_CATALOG: { id: string; icon: NavIconName }[] = [
 function mergeById(existing: RewardPack[], incoming: RewardPack[]): RewardPack[] {
   const existingIds = new Set(existing.map((p) => p.id));
   const newOnes = incoming.filter((p) => !existingIds.has(p.id));
+  return newOnes.length > 0 ? [...existing, ...newOnes] : existing;
+}
+
+// Same concept as mergeById, keyed on collectibleId instead — a rare
+// milestone reward has no pack id of its own (see RareMilestoneReward's
+// doc comment, models.ts).
+function mergeByCollectibleId(existing: RareMilestoneReward[], incoming: RareMilestoneReward[]): RareMilestoneReward[] {
+  const existingIds = new Set(existing.map((c) => c.collectibleId));
+  const newOnes = incoming.filter((c) => !existingIds.has(c.collectibleId));
   return newOnes.length > 0 ? [...existing, ...newOnes] : existing;
 }
 
@@ -325,6 +334,7 @@ export class PredictionsComponent implements OnInit, OnDestroy {
   readonly shownRoundRewards = signal<RewardPack[]>([]);
   readonly shownMilestoneRewards = signal<RewardPack[]>([]);
   readonly shownCoachMilestoneRewards = signal<RewardPack[]>([]);
+  readonly shownRareMilestoneRewards = signal<RareMilestoneReward[]>([]);
 
   // How many points this round's picks are worth if every one of them hits —
   // every game listed in upcomingGames is still "scheduled" by construction
@@ -479,6 +489,10 @@ export class PredictionsComponent implements OnInit, OnDestroy {
         if (summary.newCoachMilestoneRewards.length > 0) {
           this.shownCoachMilestoneRewards.update((existing) => mergeById(existing, summary.newCoachMilestoneRewards));
           this.api.ackCoachMilestoneRewards().subscribe({ error: () => {} });
+        }
+        if (summary.newRareMilestoneRewards.length > 0) {
+          this.shownRareMilestoneRewards.update((existing) => mergeByCollectibleId(existing, summary.newRareMilestoneRewards));
+          this.api.ackRareMilestoneRewards().subscribe({ error: () => {} });
         }
         this.summaryLoading.set(false);
       },

@@ -688,6 +688,43 @@ export const coachMilestones = pgTable(
   })
 );
 
+// A fourth milestone track (2026-09-22, "explore retuning" pass) — grants a
+// guaranteed-new RARE directly into user_collectibles rather than an
+// unopened pack (unlike legendary/coach/fantasy below), same "direct card,
+// not a pack" shape legendaryMilestones/coachMilestones' own now-unused
+// collectibleId columns show those two originally had before the 2026-08-26
+// "reward a pack, not a card" pass — chosen deliberately for rares over
+// matching that later convention: rares are lower-stakes than legendary, so
+// instant credit with zero "open it yourself" friction fits better, and
+// re-simulating (season-simulation.ts) found the actual bottleneck for a
+// non-wheel player wasn't legendary at all (32.6/40, 81%, mostly from the
+// legendary milestone already) — it was rares, at just 95/289 (33%), since
+// every purchasable pack is common-heavy by design and duplicate saturation
+// makes the last third of a 289-card tier exponentially harder without real
+// volume. Interval 2 (every other cumulative correct pick, win/loss +
+// top-scorer) took that to 270/289 (93%) with zero regression to the
+// already-~100% wheel-engaged scenarios — chosen to roughly match the
+// existing "great round" reward's own implied rate (8+ correct in one round
+// -> 4 guaranteed rares from a wheelPro pack, almost exactly 1 rare per 2
+// correct picks already), not an arbitrary number.
+export const rareMilestones = pgTable(
+  "rare_milestones",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    milestoneNumber: integer("milestone_number").notNull(),
+    collectibleId: uuid("collectible_id").references(() => collectibles.id),
+    grantedAt: timestamp("granted_at", { withTimezone: true }).defaultNow().notNull(),
+    seenAt: timestamp("seen_at", { withTimezone: true }),
+  },
+  (table) => ({
+    userMilestoneUnique: uniqueIndex("user_rare_milestone_unique").on(
+      table.userId,
+      table.milestoneNumber
+    ),
+  })
+);
+
 // A third milestone track — "fix everything" album-completability pass,
 // 2026-09-21 (see season-simulation.ts's own doc comment and CLAUDE.md).
 // Same exact structural mirror as legendaryMilestones/coachMilestones, but

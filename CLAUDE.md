@@ -750,6 +750,84 @@ If you need to apply a schema change without an interactive terminal
     odds defaults were updated to match so a plain `economy:simulate` run
     reflects the new reality; re-run it after any future change to either
     interval or either odds table.
+  - **`CATALOG_SIZE.common`/`rare` was stale in the simulator (208/208 vs
+    the live catalog's real 289/289)**, 2026-09-22, caught while updating
+    `season-simulation.ts` after the legendary-doubling pass above —
+    ongoing roster syncs had grown the real catalog since 208/208 was first
+    measured, undetected because nothing compared the constant against
+    live data. Fixed to 289/289; legendary numbers were unaffected, but it
+    revealed real album-completion at 50% wheel engagement was much lower
+    than the stale constant implied (~15% vs a previously-reported ~99%).
+  - **"Explore retuning" — a genuinely new bottleneck found and fixed**
+    (2026-09-22, same day): direct user report after spending ~10,000
+    points on a mix of Elite/Pro packs — only 1 legendary, a handful of
+    rares. Re-simulating (`economy:simulate`'s zero-wheel-engagement
+    scenario, extended this pass with `avg commons`/`avg rares`/`avg packs
+    bought` diagnostics) found **rares, not legendary, were the actual
+    non-wheel bottleneck**: only 95/289 (33%) owned on average at 80%
+    accuracy after a full season of buying whatever pack was affordable —
+    every purchasable pack is common-heavy by design, and duplicate
+    saturation makes the last third of a 289-card tier exponentially
+    harder without real pull volume. Two things that turned out NOT to be
+    the fix, checked directly before finding the real one: a 5x
+    points-income test only reached 45% rares before diminishing returns
+    flattened out (ruling out "just give more points"), and a dedicated
+    `save-for-elite` spend policy (added to the simulator to model a
+    deliberate saver, since `highest-affordable`'s spend-immediately
+    behavior meant points rarely actually reached Elite's 1200 cost before
+    getting spent on cheap Starter packs first — avg packs bought was
+    56.8 Starter/4.7 Pro/**zero** Elite) found only ~6 Elite packs/season
+    even when every point was saved specifically for it — not remotely
+    enough raw pull volume regardless of duplicate handling.
+    The actual fix, once found: the existing great/perfect-round rewards
+    (`checkAndGrantRoundRewards`) were already the dominant non-wheel
+    source of rares, completely independent of both the wheel and pack
+    purchases. A new **rare milestone** (`checkAndGrantRareMilestones`,
+    `rare_milestones` table — exact structural mirror of
+    `legendaryMilestones`/`coachMilestones`, career-wide cumulative correct
+    picks as the counter) extends that same proven mechanic to fire on
+    every correct pick instead of only within a round. Direct user choice
+    on two design questions before building: grants the card **directly**
+    into `user_collectibles` rather than an unopened pack (rares are
+    lower-stakes than legendary, so instant credit with no "open it
+    yourself" friction fits better — this is actually a *reversion* to how
+    `legendaryMilestones`/`coachMilestones` originally worked, before their
+    now-unused `collectibleId` columns were superseded by the 2026-08-26
+    "reward a pack" pass), and `LEGENDARY_MILESTONE_INTERVAL` was tightened
+    alongside it (25 -> 18) so legendary — now the trailing tier once rares
+    stopped being the bottleneck — keeps pace.
+    `RARE_MILESTONE_INTERVAL = 2` wasn't invented from scratch — a great
+    round already implies almost exactly that rate (8+ correct in one round
+    -> 4 guaranteed rares from a wheelPro pack). Elite pack's own 1st slot
+    was also bumped common -> rare in the same pass (worst-case EV 487.5 ->
+    587.5 against its 1200 cost, still a safe 612.5pt margin — no new
+    sell-back exploit) — a smaller, independent improvement, not the actual
+    fix (it alone barely moved rares at all once the real "how points
+    actually get spent" bottleneck was understood).
+    Re-simulated (3000 users/scenario) with everything combined: 100%/85%
+    wheel engagement stayed 100% full-album completion everywhere (and got
+    *faster* — e.g. 75% accuracy/100% engagement median day 137 -> 111,
+    since the new milestones stack on top of wheel income too). 50% wheel
+    engagement — previously the range most exposed to the old rare
+    bottleneck — rose to 94-100% across 50-80% accuracy. The 0%-engagement
+    floor (`highest-affordable` policy, realistic mixed spending): rares
+    95-212/289 (33-73%, varies by accuracy) rose to 145-286/289 (50-99%),
+    commons 142-212/289 rose to 148-246/289 (51-85%), legendary 22-32/40
+    rose to 26-39/40 (66-97%) — an 80%-accuracy points-only player now
+    actually reaches full album completion (1%) by day 210, up from a hard
+    0% across the entire accuracy range before this pass. `save-for-elite`
+    specifically reaches rares 53-99% and legendary 68-99%, but commons
+    stay low (2-21/289, since that policy never buys a common-guaranteed
+    Starter/Pro pack) — a real remaining gap only for a purely
+    Elite-focused buyer, not a concern for realistic mixed spending.
+    Schema change (`CREATE TABLE rare_milestones`) applied directly against
+    both the live production DB and the `dev` Neon branch in the same pass
+    (see the dev/prod schema-drift gap under Other known gaps below — this
+    one was caught immediately rather than left to drift).
+    Deliberately left untouched, per explicit user direction ("jump ball
+    secondary... leave it as is"): `SPIN_ODDS`, the wheel's own pack odds,
+    and Elite's big slot legendary/coach split — the fix targeted
+    predictions/Fantasy as the primary progression path, not the wheel.
 - **Referrals** (`services/referrals.ts`, `users.referralCode`/
   `referredByUserId`/`referralRewardGranted` in `schema.ts`). Every user
   gets a unique code at registration (`createUniqueReferralCode`), shared as

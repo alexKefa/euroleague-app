@@ -229,6 +229,12 @@ export class ApiService {
     return this.http.post<{ ok: boolean }>(`${API_BASE_URL}/predictions/coach-milestone-rewards/ack`, {});
   }
 
+  // Same pattern again, for the rare-milestone track — see
+  // newRareMilestoneRewards on PredictionSummary.
+  ackRareMilestoneRewards(): Observable<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`${API_BASE_URL}/predictions/rare-milestone-rewards/ack`, {});
+  }
+
   // userId instead of email (2026-09-18, "autofill usernames instead of me
   // typing whole email") — the admin grant forms resolve a target user via
   // app-user-search (shared/user-search.ts) now, which already hands back

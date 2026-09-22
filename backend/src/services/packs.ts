@@ -136,8 +136,26 @@ export const PACKS: Record<PackType, PackDefinition> = {
     // of coach's share (13 -> 6), same "coach isn't in the album, free
     // lever" reasoning as the wheel change, rather than rare's — rare
     // already reliably completes regardless of this slot's exact split.
+    //
+    // 1st slot common -> rare (2026-09-22, "explore retuning" a points-only
+    // path to a finished album — direct user report: bought a mix of
+    // Elite/Pro packs with real points and got 1 legendary + a handful of
+    // rares). Re-simulating the zero-wheel-engagement scenario (services/
+    // packs.ts's own diagnostic, season-simulation.ts) found legendary was
+    // NOT actually the bottleneck it looked like (32.5/40 average at 80%
+    // accuracy, mostly from the milestone track) — rares were: only 95/289
+    // owned on average at that same best-case accuracy, since every
+    // purchasable pack was common-heavy by design and duplicate saturation
+    // makes the last third of 289 rares exponentially harder without real
+    // volume. This slot had the most EV headroom of anywhere to fix that
+    // (worst-case was 487.5 against this 1200 cost, a 712.5pt margin) — 4
+    // guaranteed rares instead of 3+1 common raises worst-case to 587.5,
+    // still a comfortable 612.5pt margin under cost, so no new sell-back
+    // exploit. Big slot's own legendary/coach split is untouched — that
+    // wasn't the actual problem, and cutting it would have undone the
+    // 2026-09-22 legendary-doubling retune for no reason.
     slots: [
-      { odds: { common: 1 } },
+      { odds: { rare: 1 } },
       { odds: { rare: 1 } },
       { odds: { rare: 1 } },
       { odds: { rare: 1 } },
