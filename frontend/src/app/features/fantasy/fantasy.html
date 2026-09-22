@@ -181,52 +181,56 @@
                    Fantasy screenshot's player card puts position+name,
                    price, AND next-opponent/live-PIR all in one stacked
                    card, not split between above and below the avatar the
-                   way this app's own 2026-09-09 pass had them). Fixed dark
-                   rows throughout (not theme-reactive bg-page) since this
-                   sits directly on the court/team-photo behind it — same
-                   "names should be on a dark colored box to be visible"
-                   reasoning as everywhere else in this template. -->
-              <!-- Font sizes bumped 8px->10px and the box widened to match
-                   (2026-09-18, "make our players bigger and their font
-                   size i want to see clearly", same pass as the avatar
-                   size bump above) — line-clamp-2 and max-w both scale
-                   together so a long name still wraps the same way, just
-                   larger. -->
-              <!-- py-0.5->py-px on both rows (2026-09-18, same
-                   chrome-only trim as the gap-1 change above) — the font
-                   itself stays 10px, only the padding around it shrinks.
+                   way this app's own 2026-09-09 pass had them).
 
-                   max-w->w (2026-09-18, "some players box below their info
-                   expands more than other... they're not aligned") — this
-                   button sits in a `flex flex-col items-center` parent, so
-                   with only a max-width cap it shrink-wraps to its own
-                   content instead of stretching: a long name/price string
-                   ("C TAVARES", "F PRADILLA") rendered a visibly wider box
-                   than a short one ("F GINAT"), since each slot's box was
-                   independently sized off its own text. A fixed w-[116px]
-                   makes every slot the same width regardless of content;
-                   line-clamp-2 on the name row already caps height the
-                   same way regardless, so this doesn't reintroduce a
-                   height mismatch. -->
-              <button type="button" (click)="openPlayerInfo(slot.playerId)" [title]="row.player.name" class="block w-[116px] rounded-lg overflow-hidden hover:opacity-90 transition-opacity">
+                   Shrunk + switched to a fixed white card (2026-09-22,
+                   "make boxes below players smaller. and white
+                   backgrounded") — replaces the old fixed-dark two-tone
+                   rows (team-primary bar + near-black bar). Still a fixed
+                   (not theme-reactive bg-page/bg-card) color rather than
+                   theme-aware, same reasoning as before: this sits directly
+                   on the court/team-photo behind it, so it needs to read
+                   the same regardless of light/dark mode — white just
+                   reads cleaner here than the old dark pairing, and
+                   incidentally matches a real EuroLeague Fantasy Challenge
+                   player card's own look. Price/PIR/opponent text is a
+                   fixed dark neutral rather than team-primary now, on
+                   purpose — a team whose real kit primary color is white or
+                   near-white (Real Madrid, Dubai Basketball, see
+                   fix-team-colors.ts) would otherwise render invisible text
+                   on this same white background, the exact failure class
+                   documented elsewhere in this app for team-color-on-light
+                   surfaces. Injury rows keep their own solid status color
+                   (red/orange/yellow/emerald) over this white base — those
+                   are curated app-wide, not team-derived, so they don't
+                   carry that same risk.
+
+                   116px -> 92px width (bonus fix for the 3-1-1 Guard row's
+                   own reported clipping, see rowXPositions' comment in
+                   fantasy.ts — a narrower box leaves real room even at
+                   [20, 50, 80]'s tighter spacing). Font 10px -> 9px and
+                   padding trimmed to match the smaller box; line-clamp-2 on
+                   the name row still caps height the same way regardless of
+                   how long a name is. -->
+              <button type="button" (click)="openPlayerInfo(slot.playerId)" [title]="row.player.name" class="block w-[92px] rounded-lg overflow-hidden shadow-sm border border-black/10 hover:opacity-90 transition-opacity">
                 <!-- Recolored solid (not just team-primary) when injured —
                      the small corner dot alone read as too easy to miss
                      (2026-09-19). -->
                 <span
-                  class="block text-[10px] font-bold uppercase tracking-wide text-center leading-tight line-clamp-2 px-1 py-px"
-                  [ngClass]="row.injury ? injuryNameBarClass(row.injury.status) : 'bg-team-primary text-team-secondary'"
+                  class="block text-[9px] font-bold uppercase tracking-wide text-center leading-tight line-clamp-2 px-1 py-px"
+                  [ngClass]="row.injury ? injuryNameBarClass(row.injury.status) : 'bg-white text-[#14161A]'"
                   >{{ posAbbrev(row.player.position) }} {{ courtDisplayName(row.player.name) }}</span
                 >
-                <span class="flex items-center justify-center gap-1.5 bg-[#17161c]/80 text-white text-[10px] font-mono font-bold px-1.5 py-px">
-                  <span [ngClass]="row.injury ? injuryAccentClass(row.injury.status) : 'text-team-primary'">{{ row.price | number: '1.1-1' }}{{ i18n.t('fantasy.creditsAbbrev') }}</span>
+                <span class="flex items-center justify-center gap-1 bg-white text-[#14161A] text-[9px] font-mono font-bold px-1 py-px border-t border-black/10">
+                  <span [ngClass]="row.injury ? injuryAccentClass(row.injury.status) : ''">{{ row.price | number: '1.1-1' }}{{ i18n.t('fantasy.creditsAbbrev') }}</span>
                   @if (gameForTeam().get(row.team.id); as game) {
-                    <span class="text-white/40">&middot;</span>
+                    <span class="text-black/30">&middot;</span>
                     @if (game.status === 'scheduled') {
                       @if (opponentFor(row.team.id); as opp) {
                         <span>{{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }} {{ opp.opponent.code }}</span>
                       }
                     } @else {
-                      <span class="flex items-center gap-1" [ngClass]="game.status === 'live' ? 'text-team-primary' : ''">
+                      <span class="flex items-center gap-1" [ngClass]="game.status === 'live' ? 'text-red-500' : ''">
                         @if (game.status === 'live') {
                           <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
                         }
@@ -747,6 +751,25 @@
                           <app-player-photo [photoUrl]="coach.imageUrl" [name]="coach.headCoach ?? coach.team.name" [teamCode]="coach.team.code" [primaryColor]="coach.team.primaryColor" [size]="48" [centerFace]="true" />
                           @if (roundLocked()) {
                             <span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-card border border-line flex items-center justify-center text-[9px]">&#128274;</span>
+                          } @else {
+                            <!-- Same top-right X as a player slot's remove
+                                 button (see squadSlot above) — "add x on
+                                 the coach as well to stay on same pattern"
+                                 (2026-09-22). No swap icon alongside it:
+                                 tapping the rest of the slot already opens
+                                 the coach picker directly (unlike a player
+                                 slot, where tapping the avatar opens player
+                                 info instead), so there's already a
+                                 one-tap way to change coach — only "remove
+                                 entirely" was missing. -->
+                            <button
+                              type="button"
+                              (click)="$event.stopPropagation(); removeCoach()"
+                              [attr.aria-label]="i18n.t('fantasy.removePlayer')"
+                              class="absolute -top-1 -right-1 w-5 h-5 rounded-full font-bold text-sm leading-none flex items-center justify-center border border-line bg-card text-muted hover:text-red-500 hover:border-red-500/40 transition-colors"
+                            >
+                              &times;
+                            </button>
                           }
                         </div>
                         <span class="text-[10px] font-semibold text-center truncate max-w-[80px]">{{ coach.headCoach ?? coach.team.name }}</span>

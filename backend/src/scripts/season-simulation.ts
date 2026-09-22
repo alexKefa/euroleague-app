@@ -72,8 +72,8 @@
  * 40, matching the real catalog.
  *
  * Answers: can a realistic player (a given prediction accuracy, not a
- * perfect one) actually finish the album (own every collectible: 208
- * common + 208 rare + 40 legendary) across a season, and how does that
+ * perfect one) actually finish the album (own every collectible: 289
+ * common + 289 rare + 40 legendary) across a season, and how does that
  * scale with accuracy and spending habits? Coach cards (20, tracked
  * separately below) are deliberately NOT part of "album complete" — see
  * CLAUDE.md's "Coach cards" section — they're modeled here only to confirm
@@ -85,7 +85,11 @@
 
 type Tier = "common" | "rare" | "legendary" | "coach";
 
-const CATALOG_SIZE: Record<Tier, number> = { common: 208, rare: 208, legendary: 40, coach: 20 };
+// common/rare bumped 208 -> 289 (2026-09-22) to match the live catalog,
+// which has grown from ongoing roster syncs since 208/208 was first
+// measured — this constant had drifted stale (CLAUDE.md still says 208 too,
+// worth correcting there too next time that file's touched).
+const CATALOG_SIZE: Record<Tier, number> = { common: 289, rare: 289, legendary: 40, coach: 20 };
 // Common/rare pointsCost, for duplicate sell-back math — mirrors
 // scripts/expand-collectibles.ts. Legendary and coach duplicates never sell
 // (see sellValueFor's comment in routes/packs.ts — both catalogs' pointsCost

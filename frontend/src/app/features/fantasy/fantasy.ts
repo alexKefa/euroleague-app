@@ -194,7 +194,19 @@ const ROW_TOP: Record<PositionName, number> = { Guard: 85, Forward: 50, Center: 
 // to [15, 85], still a real increase over the original [20, 80] but with
 // visible margin left at each side. The 3-slot case ([10, 50, 90], only
 // 3-1-1's Guard row ever uses it) was already close to that same edge and
-// left alone rather than pushed further.
+// left alone rather than pushed further — until reported live (2026-09-22,
+// "on fantasy 3-1-1 guards are getting out of view on mobile"): pulled in
+// to [20, 50, 80], same reasoning as the 2-count fix below. The court's own
+// padded container (`p-4` = 16px each side, fantasy.html) leaves as little
+// as ~288px of real width on the narrowest common phones (320px viewport),
+// and the info box is a fixed 116px (squadSlot's w-[116px], not
+// breakpoint-scaled) — centering it at 10%/90% of a 288px row puts its
+// outer edge ~26px past the court's overflow-hidden boundary, clipping it
+// out of view entirely. 20%/80% keeps a small but real margin (~2-3px) at
+// that same worst-case width; three 116px boxes still can't fit a ~300px
+// row without some overlap with the middle slot, but overlap (still
+// visible, still tappable) is the acceptable tradeoff here — a slot
+// disappearing past the edge, which is what was actually reported, isn't.
 // Pulled in from [15, 85] to [25, 75] (2026-09-17, "on 2-2-1 move guards
 // more on the middle so data are visible") — the consolidated info box
 // below each avatar (position+name, price, opponent/PIR all in one card
@@ -207,7 +219,7 @@ const ROW_TOP: Record<PositionName, number> = { Guard: 85, Forward: 50, Center: 
 function rowXPositions(count: number): number[] {
   if (count === 1) return [50];
   if (count === 2) return [25, 75];
-  return [10, 50, 90];
+  return [20, 50, 80];
 }
 
 // Mobile gets smaller slot avatars than desktop (2026-09-07) — same
@@ -1880,6 +1892,17 @@ export class FantasyComponent implements OnInit {
     if (this.roundLocked()) return;
     if (this.coachTeamId() !== teamId && !this.canAffordCoach(teamId, this.coachByTeamId().get(teamId)?.price ?? 0)) return;
     this.coachTeamId.set(this.coachTeamId() === teamId ? null : teamId);
+    this.saved.set(false);
+  }
+
+  // Dedicated X button on the court's coach slot (2026-09-22, "add x on the
+  // coach as well to stay on same pattern") — mirrors removeFromSquad's
+  // player-slot X exactly (same locked guard, same saved.set(false)), so a
+  // coach can be cleared without reopening the picker just to tap the same
+  // coach again (selectCoach's own toggle-off still works too, unchanged).
+  removeCoach(): void {
+    if (this.roundLocked()) return;
+    this.coachTeamId.set(null);
     this.saved.set(false);
   }
 
