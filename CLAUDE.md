@@ -689,6 +689,67 @@ If you need to apply a schema change without an interactive terminal
     directly against both the `dev` and production databases per the
     Schema-changes workflow above, ahead of the code deploy — safe since
     the table is new and unreferenced by any pre-pass code.
+- **Legendary catalog replaced with each team's real "brand name" players
+  (2026-09-22)** — direct request: "replace our legendary cards with the
+  brand name players of each team." Explicit decisions confirmed with the
+  user first, since this touches real production collectible ownership:
+  2 legendaries per team (not 1), picked by real synced season PIR
+  (`playerSeasonStats.valuation`, not a hand-curated fame list), old rows
+  removed outright with no compensation. That last part was verified safe
+  *before* running anything destructive — a direct production query found
+  **zero** real `userCollectibles` rows for any of the 20 old legendaries
+  and zero pending trades referencing one (only 6 historical
+  `packOpeningResults` log rows, not live ownership), so nobody actually
+  lost an owned card.
+  - `backend/src/scripts/replace-legendary-catalog.ts` (one-off, kept for
+    history — not safe to re-run once real legendary ownership exists,
+    since it force-deletes every row referencing the old catalog in one
+    transaction: `tradeOfferItems`/`tradeOffers`, `userCollectibles`,
+    `packOpeningResults`, `wheelSpins`/`roundRewards`/`legendaryMilestones`/
+    `coachMilestones`'s legacy `collectibleId` columns, then the old
+    `collectibles` rows themselves, before inserting the new 40). Season
+    PIR uses the same per-player current-season-else-most-recent-prior-
+    season fallback as `reprice-fantasy-players.ts`, needed since 2026-27
+    has zero played games league-wide as of this pass — every real pick
+    this run actually came from each player's 2025-26 form. Run against
+    `dev` first and verified (40 rows, exactly 2/team) before running
+    against production. Top picks: Sasha Vezenkov (PIR 22.1), Mike
+    James/Mathias Lessort (19.1-19.6), matching this file's own existing
+    Fantasy-pricing calibration reference points.
+  - `expand-collectibles.ts`'s ongoing legendary-generation logic was
+    modernized to match: was "1 per team, skip any team that already has
+    one" (so a re-run after this migration would never notice the new
+    2-per-team model existed), now "top up to `LEGENDARIES_PER_TEAM` (2),
+    filling only what's missing" — also replaced its hardcoded
+    `SEASON = "2025-26"` with the same dynamic current-season-with-fallback
+    query the migration script uses, since a hardcoded season string goes
+    stale every transition. Verified idempotent on both `dev` and
+    production immediately after (re-run inserted 0 new legendaries on
+    both, as expected with the catalog already at exactly 2/team).
+  - **Doubling the pool (20 -> 40) required re-tuning the whole economy** —
+    without any other change, `economy:simulate` showed 50%-engagement
+    full-album completion collapsing to 0-4% across every accuracy (down
+    from the "fix everything" pass's own 5-99% just above). Retuned in the
+    same pass: `LEGENDARY_MILESTONE_INTERVAL` 60->25, `FANTASY_MILESTONE_
+    INTERVAL` 6->3 (`services/cards.ts`), `SPIN_ODDS` 58/20/14/8 ->
+    58/20/20/2 (`routes/spin.ts`), Elite pack big slot 17%/13% -> 24%/6%
+    legendary/coach (`services/packs.ts`) — both odds bumps taken entirely
+    out of **coach's** share, not common's/rare's, since coach isn't
+    album-tracked and so is a genuinely free lever (a lesson directly
+    reused from the 2026-09-03 coach-cards pass's own odds tuning).
+    Result: 50%-engagement completion restored to 37/72/89/96/99/100%
+    across accuracy 50-80% — matching or exceeding the original 22-card
+    numbers at every level — with zero regression to commons/rares (never
+    touched) or the 85%/100%/cheapest-first scenarios (still ~100%
+    everywhere). The 0%-engagement floor even improved in relative terms:
+    22-33/40 legendaries (55-81%) vs the original 2.9-8.9/22 (13-40%),
+    since the career-wide milestones (now tighter) don't depend on wheel
+    engagement at all. Coach supply dropped moderately as the one real
+    tradeoff — acceptable since coach was never part of "album complete."
+    `season-simulation.ts`'s own `CATALOG_SIZE.legendary` and milestone/
+    odds defaults were updated to match so a plain `economy:simulate` run
+    reflects the new reality; re-run it after any future change to either
+    interval or either odds table.
 - **Referrals** (`services/referrals.ts`, `users.referralCode`/
   `referredByUserId`/`referralRewardGranted` in `schema.ts`). Every user
   gets a unique code at registration (`createUniqueReferralCode`), shared as

@@ -130,18 +130,24 @@ export const PACKS: Record<PackType, PackDefinition> = {
     // so shifting share away from rare here only ever LOWERS this slot's
     // points-worst-case EV, not raises it — no new exploit risk, unlike a
     // common/rare odds change would be.
+    // 17%/13% legendary/coach -> 24%/6% (2026-09-22, same legendary-
+    // catalog-doubling pass as SPIN_ODDS in routes/spin.ts — see that
+    // constant's comment for the full context/numbers). Taken entirely out
+    // of coach's share (13 -> 6), same "coach isn't in the album, free
+    // lever" reasoning as the wheel change, rather than rare's — rare
+    // already reliably completes regardless of this slot's exact split.
     slots: [
       { odds: { common: 1 } },
       { odds: { rare: 1 } },
       { odds: { rare: 1 } },
       { odds: { rare: 1 } },
-      { odds: { rare: 0.7, legendary: 0.17, coach: 0.13 } },
+      { odds: { rare: 0.7, legendary: 0.24, coach: 0.06 } },
     ],
   },
 
   // Wheel-exclusive, free (pointsCost 0), never purchasable — see the
   // `purchasable` doc comment above. Weighted choice between these four on
-  // each spin reuses SPIN_ODDS (58/20/14/8, 2026-09-03) from routes/spin.ts
+  // each spin reuses SPIN_ODDS (58/20/20/2, 2026-09-22) from routes/spin.ts
   // verbatim, just reinterpreted as "which pack" instead of "which tier".
   //
   // wheelStarter/wheelPro *used to* mirror the real starter/pro packs'

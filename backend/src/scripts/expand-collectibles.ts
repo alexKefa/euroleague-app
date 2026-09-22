@@ -1,9 +1,11 @@
 /**
  * One-time (but idempotent — safe to re-run) catalog expansion: grows the
  * `collectibles` table from a hand-curated ~40 cards covering 2 teams to a
- * common + rare card for every real player across every team, plus one
- * legendary per team (the roster's top season PIR) for teams that don't
- * already have a legendary.
+ * common + rare card for every real player across every team, plus (as of
+ * the 2026-09-22 "replace legendary with brand-name players" pass, see
+ * replace-legendary-catalog.ts for the one-off migration that first set
+ * this up) LEGENDARIES_PER_TEAM legendaries per team — the roster's top
+ * players by season PIR — for any team that doesn't already have that many.
  *
  * Existing hand-curated rows are left untouched and matched by normalized
  * name + team so this never creates a duplicate for a player who already
@@ -13,15 +15,15 @@
  * Usage: npm run collectibles:expand
  */
 import "dotenv/config";
-import { eq, or } from "drizzle-orm";
+import { eq, or, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { players, teams, collectibles, playerSeasonStats, games } from "../db/schema.js";
+import { players, teams, collectibles, games } from "../db/schema.js";
 import { getCurrentSeason } from "../services/season.js";
 
 const COMMON_COST = 50;
 const RARE_COST = 250;
 const LEGENDARY_COST = 2500;
-const SEASON = "2025-26";
+const LEGENDARIES_PER_TEAM = 2;
 
 function titleCase(word: string): string {
   return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
@@ -71,13 +73,31 @@ async function main() {
   const existing = await db.select().from(collectibles);
   // Key: `${teamId}::${tier}::${normalizedName}` -> exists
   const existingKeys = new Set(existing.map((c) => `${c.teamId}::${c.tier}::${normalize(c.name)}`));
-  const legendaryTeamIds = new Set(existing.filter((c) => c.tier === "legendary").map((c) => c.teamId));
+  const legendaryCountByTeam = new Map<string, number>();
+  for (const c of existing) {
+    if (c.tier !== "legendary") continue;
+    legendaryCountByTeam.set(c.teamId, (legendaryCountByTeam.get(c.teamId) ?? 0) + 1);
+  }
 
-  const seasonStats = await db
-    .select()
-    .from(playerSeasonStats)
-    .where(eq(playerSeasonStats.season, SEASON));
-  const statsByPlayerId = new Map(seasonStats.map((s) => [s.playerId, s]));
+  // Current season's own valuation if a player has a row there, else their
+  // own most recent prior season — same per-player fallback
+  // replace-legendary-catalog.ts uses, needed since a freshly-transitioned
+  // season has zero rows league-wide for a while.
+  const valuationRows = season
+    ? await db.execute<{ player_id: string; valuation: number | null }>(sql`
+        with prior_season as (
+          select distinct on (player_id) player_id, valuation
+          from player_season_stats
+          where season < ${season}
+          order by player_id, season desc
+        )
+        select p.id as player_id, coalesce(cs.valuation, ps.valuation) as valuation
+        from ${players} p
+        left join player_season_stats cs on cs.player_id = p.id and cs.season = ${season}
+        left join prior_season ps on ps.player_id = p.id
+      `)
+    : [];
+  const valuationByPlayerId = new Map(valuationRows.map((r) => [r.player_id, r.valuation]));
 
   let commonsInserted = 0;
   let raresInserted = 0;
@@ -115,9 +135,11 @@ async function main() {
     }
   }
 
-  // One legendary per team that doesn't already have one — the roster's
-  // top season PIR (playerSeasonStats.valuation), an objective "best
-  // player" pick now that boxscore-derived stats are synced.
+  // Up to LEGENDARIES_PER_TEAM legendaries per team, topping up whatever's
+  // missing — the roster's top players by season PIR (an objective "best
+  // player" pick now that boxscore-derived stats are synced), skipping
+  // anyone already a legendary for that team (existingKeys) so a re-run
+  // never creates a duplicate.
   const byTeam = new Map<string, typeof allPlayers>();
   for (const p of allPlayers) {
     const arr = byTeam.get(p.teamId) ?? [];
@@ -126,29 +148,36 @@ async function main() {
   }
 
   for (const [teamId, roster] of byTeam) {
-    if (legendaryTeamIds.has(teamId)) continue;
+    const already = legendaryCountByTeam.get(teamId) ?? 0;
+    const need = LEGENDARIES_PER_TEAM - already;
+    if (need <= 0) continue;
     const team = teamById.get(teamId);
     if (!team) continue;
 
     const ranked = roster
-      .map((p) => ({ player: p, valuation: statsByPlayerId.get(p.id)?.valuation ?? -Infinity }))
+      .map((p) => ({ player: p, valuation: valuationByPlayerId.get(p.id) ?? -Infinity }))
       .sort((a, b) => b.valuation - a.valuation);
-    const best = ranked[0];
-    if (!best || best.valuation === -Infinity) continue; // no stats to rank by
 
-    const name = displayName(best.player.name);
-    const key = `${team.id}::legendary::${normalize(name)}`;
-    if (existingKeys.has(key)) continue;
+    let filled = 0;
+    for (const { player, valuation } of ranked) {
+      if (filled >= need) break;
+      if (valuation === -Infinity) break; // no stats to rank the rest by either
 
-    await db.insert(collectibles).values({
-      name,
-      teamId: team.id,
-      tier: "legendary",
-      pointsCost: LEGENDARY_COST,
-      imageUrl: best.player.photoUrl,
-    });
-    existingKeys.add(key);
-    legendariesInserted++;
+      const name = displayName(player.name);
+      const key = `${team.id}::legendary::${normalize(name)}`;
+      if (existingKeys.has(key)) continue;
+
+      await db.insert(collectibles).values({
+        name,
+        teamId: team.id,
+        tier: "legendary",
+        pointsCost: LEGENDARY_COST,
+        imageUrl: player.photoUrl,
+      });
+      existingKeys.add(key);
+      legendariesInserted++;
+      filled++;
+    }
   }
 
   console.log(

@@ -44,9 +44,33 @@ const GREAT_ROUND_THRESHOLD = 8;
 // below: full-album completion rose from 5/13/23/31/43/68% to
 // 38/69/84/93/98/99% across 50-80% win/loss accuracy, with no regression at
 // 85%/100% engagement (still ~100% everywhere) or the cheapest-first
-// spending policy. Re-run economy:simulate after any future change to
-// either interval.
-export const LEGENDARY_MILESTONE_INTERVAL = 60;
+// spending policy.
+//
+// Retuned again the same week, 2026-09-22, alongside the legendary catalog
+// doubling from 20 to 40 (see replace-legendary-catalog.ts — "replace our
+// legendary cards with the brand name players of each team," 2 per team
+// instead of 1). Doubling the pool with no other change collapsed 50%-
+// engagement completion right back to 0-4% across every accuracy — the
+// same bottleneck as before this file's history describes, just worse.
+// 60 -> 25 (roughly proportional to the pool doubling, then a small extra
+// nudge down after checking the numbers), combined with
+// FANTASY_MILESTONE_INTERVAL 6 -> 3 and a legendary-odds bump on the wheel/
+// Elite pack (routes/spin.ts, services/packs.ts — both took the increase
+// out of coach's share specifically, since coach isn't in the album and so
+// is a free lever that doesn't cost any commons/rares/legendary supply),
+// restored 50%-engagement completion to 37/72/89/96/99/100% — matching or
+// exceeding the original 22-card numbers at every accuracy level, with
+// commons/rares completion completely unaffected (the odds increase never
+// touched common's/rare's share) and 85%/100%/cheapest-first still ~100%
+// everywhere. The 0%-engagement floor (never touches the wheel) also
+// improved in relative terms: legendary count there is now 22-33/40 (55-
+// 81%) vs the original 2.9-8.9/22 (13-40%) — the tighter, career-wide
+// milestones don't depend on wheel engagement at all, so tightening them
+// helps this floor specifically. Coach supply dropped moderately as the
+// tradeoff (not album-tracked, so this was an acceptable one-way cost).
+// Re-run economy:simulate after any future change to either interval or
+// either odds table.
+export const LEGENDARY_MILESTONE_INTERVAL = 25;
 
 // An unopened pack awarded by a round/milestone reward — same concept as a
 // wheel win (routes/spin.ts): it sits in ownedPacks until the user opens it
@@ -377,9 +401,13 @@ export async function markCoachMilestonesSeen(userId: string): Promise<void> {
 // via scripts/season-simulation.ts alongside the top-scorer milestone
 // change above: at 50% wheel engagement, 6 pushed full-album completion
 // from 5/13/23/31/43/68% to 38/69/84/93/98/99% across 50-80% win/loss
-// accuracy, with no regression at 85%/100% engagement. Re-run
-// economy:simulate if this ever needs revisiting.
-export const FANTASY_MILESTONE_INTERVAL = 6;
+// accuracy, with no regression at 85%/100% engagement.
+//
+// Retuned to 3, 2026-09-22, in the same legendary-catalog-doubling pass
+// LEGENDARY_MILESTONE_INTERVAL's own comment describes — see that comment
+// for the full before/after numbers (both intervals were retuned together
+// against the same simulation runs).
+export const FANTASY_MILESTONE_INTERVAL = 3;
 
 /**
  * Exact structural mirror of checkAndGrantLegendaryMilestones/

@@ -59,9 +59,21 @@
  * (services/referrals.ts, 400pts once, only if you refer someone who then
  * gets a correct pick).
  *
+ * Legendary catalog doubled 20 -> 40, 2026-09-22 ("replace our legendary
+ * cards with the brand name players of each team" — see
+ * replace-legendary-catalog.ts for the one-off migration, 2 per team by
+ * real season PIR instead of 1). This alone collapsed 50%-engagement
+ * full-album completion to 0-4% across every accuracy — re-tuning
+ * SPIN_ODDS (routes/spin.ts), the Elite pack's big slot (services/
+ * packs.ts), and both milestone intervals (services/cards.ts) restored it
+ * to 37/72/89/96/99/100%, matching or exceeding the original 22-card
+ * numbers — see LEGENDARY_MILESTONE_INTERVAL's comment in services/cards.ts
+ * for the full before/after breakdown. CATALOG_SIZE.legendary below is now
+ * 40, matching the real catalog.
+ *
  * Answers: can a realistic player (a given prediction accuracy, not a
  * perfect one) actually finish the album (own every collectible: 208
- * common + 208 rare + 22 legendary) across a season, and how does that
+ * common + 208 rare + 40 legendary) across a season, and how does that
  * scale with accuracy and spending habits? Coach cards (20, tracked
  * separately below) are deliberately NOT part of "album complete" — see
  * CLAUDE.md's "Coach cards" section — they're modeled here only to confirm
@@ -73,7 +85,7 @@
 
 type Tier = "common" | "rare" | "legendary" | "coach";
 
-const CATALOG_SIZE: Record<Tier, number> = { common: 208, rare: 208, legendary: 22, coach: 20 };
+const CATALOG_SIZE: Record<Tier, number> = { common: 208, rare: 208, legendary: 40, coach: 20 };
 // Common/rare pointsCost, for duplicate sell-back math — mirrors
 // scripts/expand-collectibles.ts. Legendary and coach duplicates never sell
 // (see sellValueFor's comment in routes/packs.ts — both catalogs' pointsCost
@@ -98,7 +110,7 @@ const SEASON_DAYS = 210; // ~Oct-Apr EuroLeague season, matches the pacing assum
 // without them (e.g. to compare against before this pass).
 const GREAT_ROUND_BONUS = process.env.SIM_GREAT_ROUND !== "0";
 const GREAT_ROUND_THRESHOLD = 8; // out of GAMES_PER_ROUND, excludes literally-perfect (that already gets the legendary)
-const LEGENDARY_MILESTONE = Number(process.env.SIM_LEGENDARY_MILESTONE ?? 60); // 0 = off
+const LEGENDARY_MILESTONE = Number(process.env.SIM_LEGENDARY_MILESTONE ?? 25); // 0 = off; matches services/cards.ts's real LEGENDARY_MILESTONE_INTERVAL (2026-09-22 legendary-pool-doubling retune)
 // services/cards.ts's COACH_MILESTONE_INTERVAL, added in the same
 // 2026-09-04 "reconsider legendary/coach chances" pass as the Elite-pack
 // odds/pity changes below — coach previously had zero non-wheel
@@ -135,13 +147,20 @@ const TOP_SCORER_ACC_RATIO = Number(process.env.SIM_TOPSCORER_ACC_RATIO ?? 0.4);
 // services/cards.ts), since Fantasy's round carry-forward means a squad
 // drafted once keeps scoring with zero further weekly effort, structurally
 // closer to "did you keep an active squad" than "were you skilled." Shipped
-// as services/cards.ts's real FANTASY_MILESTONE_INTERVAL (6) — this default
-// mirrors that constant so a plain `economy:simulate` run reflects reality;
+// as services/cards.ts's real FANTASY_MILESTONE_INTERVAL (3, retuned from 6
+// in the 2026-09-22 legendary-pool-doubling pass) — this default mirrors
+// that constant so a plain `economy:simulate` run reflects reality;
 // override with SIM_FANTASY_MILESTONE (0 = off) to compare against it.
-const FANTASY_MILESTONE_INTERVAL = Number(process.env.SIM_FANTASY_MILESTONE ?? 6);
+const FANTASY_MILESTONE_INTERVAL = Number(process.env.SIM_FANTASY_MILESTONE ?? 3);
 
-// routes/spin.ts SPIN_ODDS, verbatim.
-const SPIN_ODDS: Record<Tier, number> = { common: 0.58, rare: 0.2, legendary: 0.14, coach: 0.08 };
+// routes/spin.ts SPIN_ODDS, verbatim — 58/20/14/8 -> 58/20/20/2 (2026-09-22
+// legendary-pool-doubling retune, see that constant's own comment for the
+// full context: the catalog doubled from 20 to 40 legendaries, and this
+// bump — taken entirely out of coach's share, a free lever since coach
+// isn't in the album — restored 50%-engagement completion to
+// 37/72/89/96/99/100%, matching or exceeding the original numbers, with
+// zero cost to common/rare supply).
+const SPIN_ODDS: Record<Tier, number> = { common: 0.58, rare: 0.2, legendary: 0.2, coach: 0.02 };
 
 interface PackSlot {
   odds: Partial<Record<Tier, number>>;
@@ -188,7 +207,10 @@ const PACKS: PackDef[] = [
       { odds: { rare: 1 } },
       { odds: { rare: 1 } },
       { odds: { rare: 1 } },
-      { odds: { rare: 0.7, legendary: 0.17, coach: 0.13 } },
+      // services/packs.ts's elite big slot, verbatim — 17%/13% legendary/
+      // coach -> 24%/6% (2026-09-22, same legendary-pool-doubling retune as
+      // SPIN_ODDS above), taken entirely out of coach's share.
+      { odds: { rare: 0.7, legendary: 0.24, coach: 0.06 } },
     ],
   },
 ];
@@ -518,7 +540,7 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
       ` (median day ${String(percentile(fullDays, 0.5)).padStart(3)}/${SEASON_DAYS})` +
       ` | commons+rares only: ${pctPurchasable.toFixed(0).padStart(3)}%` +
       ` (median day ${String(percentile(purchasableDays, 0.5)).padStart(3)})` +
-      ` | avg legendaries: ${avgLegendaryAtEnd.toFixed(1).padStart(4)}/22` +
+      ` | avg legendaries: ${avgLegendaryAtEnd.toFixed(1).padStart(4)}/${CATALOG_SIZE.legendary}` +
       ` | avg coaches: ${avgCoachAtEnd.toFixed(1).padStart(4)}/20 (not in album)` +
       ` | avg perfect rounds: ${avgPerfectRounds.toFixed(2)}` +
       (GREAT_ROUND_BONUS ? ` | avg great rounds: ${avgGreatRounds.toFixed(2)}` : "") +
