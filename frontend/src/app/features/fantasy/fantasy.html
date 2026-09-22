@@ -223,6 +223,9 @@
                 >
                 <span class="flex items-center justify-center gap-1 bg-white text-[#14161A] text-[9px] font-mono font-bold px-1 py-px border-t border-black/10">
                   <span [ngClass]="row.injury ? injuryAccentClass(row.injury.status) : ''">{{ row.price | number: '1.1-1' }}{{ i18n.t('fantasy.creditsAbbrev') }}</span>
+                  @if (priceTrendGlyph(row.priceTrend); as glyph) {
+                    <span [ngClass]="priceTrendClass(row.priceTrend)" [attr.title]="i18n.t('fantasy.priceTrendHint')">{{ glyph }}</span>
+                  }
                   @if (gameForTeam().get(row.team.id); as game) {
                     <span class="text-black/30">&middot;</span>
                     @if (game.status === 'scheduled') {
@@ -773,7 +776,12 @@
                           }
                         </div>
                         <span class="text-[10px] font-semibold text-center truncate max-w-[80px]">{{ coach.headCoach ?? coach.team.name }}</span>
-                        <span class="font-mono text-[11px] font-bold text-team-primary">{{ coach.price | number: '1.1-1' }} {{ i18n.t('fantasy.creditsAbbrev') }}</span>
+                        <span class="font-mono text-[11px] font-bold text-team-primary">
+                          {{ coach.price | number: '1.1-1' }} {{ i18n.t('fantasy.creditsAbbrev') }}
+                          @if (priceTrendGlyph(coach.priceTrend); as glyph) {
+                            <span [ngClass]="priceTrendClass(coach.priceTrend)" [attr.title]="i18n.t('fantasy.priceTrendHint')">{{ glyph }}</span>
+                          }
+                        </span>
                       } @else {
                         <div class="flex flex-col items-center gap-1 rounded-2xl bg-gradient-to-b from-page/85 to-page/65 backdrop-blur-lg backdrop-saturate-150 shadow-card border border-white/20 px-2.5 py-2">
                           <div class="rounded-full border-2 border-dashed border-ink flex items-center justify-center text-muted text-xl w-[48px] h-[48px] hover:border-team-primary hover:text-team-primary transition-colors">+</div>
@@ -936,6 +944,9 @@
                     class="shrink-0 font-mono text-[13px] font-bold text-team-primary border border-team-primary/30 rounded-lg px-2.5 py-1.5 min-w-[46px] text-center hover:bg-team-primary hover:text-team-secondary transition-colors disabled:hover:bg-transparent disabled:hover:text-team-primary disabled:cursor-not-allowed cursor-pointer"
                   >
                     {{ row.price | number: '1.1-1' }} <span class="text-[9px]">{{ i18n.t('fantasy.creditsAbbrev') }}</span>
+                    @if (priceTrendGlyph(row.priceTrend); as glyph) {
+                      <span [ngClass]="priceTrendClass(row.priceTrend)" [attr.title]="i18n.t('fantasy.priceTrendHint')">{{ glyph }}</span>
+                    }
                   </button>
                 </div>
               } @empty {

@@ -1414,6 +1414,22 @@ export class FantasyComponent implements OnInit {
     }
   }
 
+  // Price-trend indicator (2026-09-22) — the pool/court/coach slot's price
+  // already reflects fantasyDailyReprice.ts's latest move, but nothing
+  // showed *which way* it just moved (real fantasy apps surface this
+  // prominently, since it's the "sell before they drop further" signal).
+  // Glyph-only, no magnitude — the exact delta already shows up in the
+  // round-complete recap's creditsChange total; this is just direction.
+  priceTrendGlyph(trend: number | null): string {
+    if (trend === null || trend === 0) return "";
+    return trend > 0 ? "▲" : "▼";
+  }
+
+  priceTrendClass(trend: number | null): string {
+    if (trend === null || trend === 0) return "";
+    return trend > 0 ? "text-emerald-500" : "text-red-500";
+  }
+
   // Info popup's injury pill — the one Fantasy context with room for the
   // full text pill (status + note), same styling roster.html/injury-
   // report.html already use. Every other spot (court slot, pool rows,

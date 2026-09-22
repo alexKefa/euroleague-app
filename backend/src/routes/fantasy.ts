@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import {
   players,
@@ -14,6 +14,8 @@ import {
   users,
   playerInjuries,
   collectibles,
+  fantasyPriceChangeLog,
+  fantasyCoachPriceChangeLog,
 } from "../db/schema.js";
 import { requireAuth } from "../auth/middleware.js";
 import { getCurrentSeason } from "../services/season.js";
@@ -87,12 +89,28 @@ fantasyRouter.get("/players", async (req, res) => {
       .leftJoin(playerInjuries, eq(playerInjuries.playerId, players.id))
       .where(eq(players.active, true));
 
+    // Most recent daily reprice delta per player (2026-09-22) — surfaces the
+    // same fantasyDailyReprice.ts move the pool/court never showed before,
+    // via the standard Postgres DISTINCT ON "latest row per group" idiom
+    // (same pattern scripts/reprice-fantasy-players.ts already uses). Scoped
+    // to this season's games so a carried-over row from a prior season never
+    // gets picked up as "today's" move.
+    const trendRows = await db.execute<{ player_id: string; delta: number }>(sql`
+      select distinct on (${fantasyPriceChangeLog.playerId}) ${fantasyPriceChangeLog.playerId} as player_id, ${fantasyPriceChangeLog.delta} as delta
+      from ${fantasyPriceChangeLog}
+      join ${games} on ${games.id} = ${fantasyPriceChangeLog.gameId}
+      where ${games.season} = ${season}
+      order by ${fantasyPriceChangeLog.playerId}, ${fantasyPriceChangeLog.appliedAt} desc
+    `);
+    const trendByPlayerId = new Map(trendRows.map((r) => [r.player_id, r.delta]));
+
     res.json({
       season,
       rows: rows.map((r) => ({
         player: { id: r.player.id, name: r.player.name, position: r.player.position, photoUrl: r.player.photoUrl },
         team: { id: r.team.id, code: r.team.code, name: r.team.name, primaryColor: r.team.primaryColor, logoUrl: r.team.logoUrl },
         price: r.price ?? FANTASY_MIN_PRICE,
+        priceTrend: trendByPlayerId.get(r.player.id) ?? null,
         pointsPerGame: r.stats?.pointsPerGame ?? null,
         valuation: r.stats?.valuation ?? null,
         gamesPlayed: r.stats?.gamesPlayed ?? null,
@@ -124,6 +142,17 @@ fantasyRouter.get("/coaches", async (req, res) => {
       .leftJoin(collectibles, and(eq(collectibles.teamId, teams.id), eq(collectibles.tier, "coach")))
       .where(eq(coachFantasyPrices.season, season));
 
+    // Same latest-delta trend as /players above, keyed on team instead of
+    // player (a coach's daily move comes from fantasyCoachPriceChangeLog).
+    const trendRows = await db.execute<{ team_id: string; delta: number }>(sql`
+      select distinct on (${fantasyCoachPriceChangeLog.teamId}) ${fantasyCoachPriceChangeLog.teamId} as team_id, ${fantasyCoachPriceChangeLog.delta} as delta
+      from ${fantasyCoachPriceChangeLog}
+      join ${games} on ${games.id} = ${fantasyCoachPriceChangeLog.gameId}
+      where ${games.season} = ${season}
+      order by ${fantasyCoachPriceChangeLog.teamId}, ${fantasyCoachPriceChangeLog.appliedAt} desc
+    `);
+    const trendByTeamId = new Map(trendRows.map((r) => [r.team_id, r.delta]));
+
     res.json({
       season,
       rows: rows.map((r) => ({
@@ -131,6 +160,7 @@ fantasyRouter.get("/coaches", async (req, res) => {
         headCoach: r.team.headCoach,
         imageUrl: r.imageUrl,
         price: r.price ?? COACH_MIN_PRICE,
+        priceTrend: trendByTeamId.get(r.team.id) ?? null,
       })),
     });
   } catch (err) {

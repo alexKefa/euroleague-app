@@ -133,6 +133,10 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   // screen previously surfaced "how much do I actually have left to
   // spend" at the moment it matters most.
   "fantasy.creditsAvailable": { en: "available", el: "διαθέσιμα" },
+  // Tooltip on the ▲/▼ next to a price (2026-09-22) — the daily reprice job
+  // already moves prices every round, this just surfaces which way the last
+  // move went.
+  "fantasy.priceTrendHint": { en: "Price rose/fell in the last daily update", el: "Η τιμή ανέβηκε/έπεσε στην τελευταία ημερήσια ενημέρωση" },
   "fantasy.transfersLabel": { en: "Transfers", el: "Μεταγραφές" },
   "fantasy.roundCompleteTitle": { en: "Round complete!", el: "Η αγωνιστική ολοκληρώθηκε!" },
   // Shown in the round-complete modal when this round also earned Clutch

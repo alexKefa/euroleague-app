@@ -809,6 +809,12 @@ export interface FantasyPlayerRow {
   player: { id: string; name: string; position: string | null; photoUrl: string | null };
   team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
   price: number;
+  // The most recent daily reprice delta applied to this player (2026-09-22,
+  // fantasyDailyReprice.ts) — null if no daily move has ever been applied
+  // yet this season. Positive = price rose last time it moved, negative =
+  // fell; the roster builder renders this as a ▲/▼ trend indicator next to
+  // the price, not the delta's exact magnitude.
+  priceTrend: number | null;
   pointsPerGame: number | null;
   valuation: number | null;
   gamesPlayed: number | null;
@@ -835,6 +841,9 @@ export interface FantasyCoachRow {
   // when null.
   imageUrl: string | null;
   price: number;
+  // Same latest-daily-move trend as FantasyPlayerRow.priceTrend, keyed on
+  // the team's coach price instead.
+  priceTrend: number | null;
 }
 
 export interface FantasyCoaches {
