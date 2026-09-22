@@ -137,6 +137,7 @@
                   [stackCount]="bundle.cards.length"
                   [jerseyNumber]="frontCard(bundle).jerseyNumber ?? null"
                   [pointsPerGame]="frontCard(bundle).pointsPerGame ?? null"
+                  [showTierBadge]="!tierFilter()"
                 ></app-card-stack>
               </button>
 

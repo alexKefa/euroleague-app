@@ -24,9 +24,10 @@
     [finish]="finish"
     [jerseyNumber]="jerseyNumber"
     [pointsPerGame]="pointsPerGame"
+    [showTierBadge]="showTierBadge"
   ></app-collectible-card>
 
-  @if (stackCount > 1) {
+  @if (stackCount > 1 && showTierBadge) {
     <span
       class="absolute -top-2 -right-2 z-10 w-6 h-6 rounded-full bg-card border-2 border-line flex items-center justify-center font-mono text-[11px] font-extrabold"
       >{{ stackCount }}</span

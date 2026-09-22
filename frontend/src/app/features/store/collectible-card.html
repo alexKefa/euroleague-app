@@ -99,17 +99,20 @@
         ></div>
       }
 
-      <div
-        class="absolute top-2 right-2 flex items-center gap-1 rounded-full z-10"
-        style="padding: 3px 8px 3px 6px"
-        [style.background]="style.badgeBackground"
-      >
-        <span class="text-[10px] font-extrabold tracking-wider" [style.color]="style.badgeTextColor">
-          @if (isFoil) {
-            <span aria-hidden="true">&#10022;&nbsp;</span>
-          }{{ i18n.t(style.badgeLabel) }}</span
+      @if (showTierBadge) {
+        <div
+          class="absolute top-2 right-2 flex items-center gap-1 rounded-full z-10"
+          style="padding: 3px 8px 3px 6px; transform-origin: top right"
+          [style.transform]="'scale(' + badgeScale + ')'"
+          [style.background]="style.badgeBackground"
         >
-      </div>
+          <span class="text-[10px] font-extrabold tracking-wider" [style.color]="style.badgeTextColor">
+            @if (isFoil) {
+              <span aria-hidden="true">&#10022;&nbsp;</span>
+            }{{ i18n.t(style.badgeLabel) }}</span
+          >
+        </div>
+      }
 
       <!-- print numbering — mirrors the tier badge on the opposite corner -->
       @if (showSerial) {

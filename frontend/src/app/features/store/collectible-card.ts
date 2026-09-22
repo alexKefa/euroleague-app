@@ -76,9 +76,29 @@ export class CollectibleCardComponent implements OnChanges {
   // hides the badge entirely rather than rendering a placeholder — a coach
   // card or a player with no synced stats just shows the team code alone.
   @Input() pointsPerGame: number | null = null;
+  // The corner tier badge (COMMON/RARE/LEGENDARY/COACH) is redundant once a
+  // grid is already filtered down to a single rarity — every visible card
+  // would show the identical label. Callers filtering by tier pass false
+  // while a filter is active; defaults true everywhere else.
+  @Input() showTierBadge = true;
 
   get hasJerseyNumber(): boolean {
     return this.jerseyNumber !== null && this.jerseyNumber !== undefined;
+  }
+
+  // The corner tier badge is fixed-px (font, padding, inset) — calibrated
+  // to look right at the 342px card-preview size. At a small grid tile
+  // (Inventory's 150px, Album's 130px) that same fixed footprint eats a
+  // real chunk of the top-right of the photo, which for an object-top
+  // headshot crop is right where a player's face sits — reported live as
+  // "the left eye always looks white" (the badge's pale pill background
+  // sitting directly over it). Scaling the whole badge as a unit, anchored
+  // to its own top-right corner (see the template's transform-origin), keeps
+  // it pinned to the corner while shrinking its footprint into the photo,
+  // rather than resizing every individual font-size/padding value by hand.
+  // Floored so it never becomes illegible on a very small render.
+  get badgeScale(): number {
+    return Math.max(0.6, Math.min(1, this.maxWidth / 220));
   }
 
   // Scales with the card's own size (maxWidth) rather than a fixed px value,

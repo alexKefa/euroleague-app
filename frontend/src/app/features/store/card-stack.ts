@@ -28,4 +28,5 @@ export class CardStackComponent {
   @Input() finish: CollectibleFinish = "standard";
   @Input() jerseyNumber: number | null = null;
   @Input() pointsPerGame: number | null = null;
+  @Input() showTierBadge = true;
 }
