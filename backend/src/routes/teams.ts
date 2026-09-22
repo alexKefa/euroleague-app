@@ -4,6 +4,7 @@ import { alias } from "drizzle-orm/pg-core";
 import { db } from "../db/client.js";
 import { teams, players, playerSeasonStats, games, playerInjuries } from "../db/schema.js";
 import { getCurrentSeason } from "../services/season.js";
+import { getBaselinePPGForPlayers } from "../services/topScorerPoints.js";
 
 function emptyStats(playerId: string, teamId: string, season: string) {
   return {
@@ -109,10 +110,26 @@ teamsRouter.get("/:id/roster", async (req, res) => {
       .where(and(eq(players.teamId, teamId), eq(players.active, true)))
       .orderBy(desc(playerSeasonStats.pointsPerGame));
 
+    // baselinePpg (2026-09-22, "sort by ppg") — a separate, additive field
+    // alongside stats.pointsPerGame, not a replacement for it: this
+    // roster's own table correctly shows "—" for a player with no *this
+    // season* row yet (2026-27 has zero played games as of this pass, so
+    // every stats.pointsPerGame here is null), and that's the right call
+    // for a "this season" column — overwriting it with a career number
+    // would silently relabel last season's stats as this season's, the
+    // exact mislabeling CLAUDE.md already reasoned through for
+    // /players/leaders vs /players/:id. This field exists purely for
+    // callers that want *some* real number to sort/inform a decision by
+    // (the top-scorer picker, shared/top-scorer-picker.ts) even before the
+    // season has real games — same season-then-career fallback the
+    // top-scorer points formula itself already uses to price a pick.
+    const baselinePpgByPlayerId = await getBaselinePPGForPlayers(rows.map((r) => r.player.id), season);
+
     const withStats = rows.map((r) => ({
       player: r.player,
       stats: r.stats ?? emptyStats(r.player.id, teamId, season),
       injury: r.injury,
+      baselinePpg: baselinePpgByPlayerId.get(r.player.id) ?? null,
     }));
 
     res.json(withStats);

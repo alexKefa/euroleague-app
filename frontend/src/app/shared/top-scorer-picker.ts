@@ -43,10 +43,15 @@ export class TopScorerPickerComponent implements OnInit {
   readonly savingId = signal<string | null>(null);
   readonly error = signal<string | null>(null);
 
+  // stats.pointsPerGame first (real "this season" data once games start),
+  // baselinePpg second (2026-09-22, "sort by ppg" — live-tested to find
+  // every 2026-27 player tied at null/0 this early, making the sort below
+  // a no-op in practice; baselinePpg carries the same season-then-career
+  // fallback the top-scorer scoring formula itself already uses).
   private static candidatesFor(roster: RosterEntry[]): TopScorerCandidate[] {
     return roster
       .filter((r) => r.player.active)
-      .map((r) => ({ player: r.player, pointsPerGame: r.stats?.pointsPerGame ?? null }))
+      .map((r) => ({ player: r.player, pointsPerGame: r.stats?.pointsPerGame ?? r.baselinePpg ?? null }))
       .sort((a, b) => (b.pointsPerGame ?? 0) - (a.pointsPerGame ?? 0));
   }
 

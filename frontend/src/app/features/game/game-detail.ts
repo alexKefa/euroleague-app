@@ -201,6 +201,12 @@ export class GameDetailComponent implements OnInit {
     return g.status === "live" && g.quarter !== null && g.quarter !== undefined && g.quarter >= 4;
   });
 
+  // stats.pointsPerGame first, baselinePpg second (2026-09-22, "sort by
+  // ppg" — same gap as top-scorer-picker.ts's own candidatesFor: this
+  // early in a season with zero played games, every stats.pointsPerGame
+  // here is null, so sortedCandidates below had nothing real to sort by.
+  // baselinePpg carries the same season-then-career fallback the
+  // top-scorer scoring formula itself already uses.
   private candidatesFor(roster: RosterEntry[], side: "home" | "away"): TopScorerCandidate[] {
     const box = this.detail()?.boxscore;
     const liveLines = side === "home" ? box?.home : box?.away;
@@ -208,7 +214,7 @@ export class GameDetailComponent implements OnInit {
       .filter((r) => r.player.active)
       .map((r) => ({
         player: r.player,
-        pointsPerGame: r.stats?.pointsPerGame ?? null,
+        pointsPerGame: r.stats?.pointsPerGame ?? r.baselinePpg ?? null,
         livePoints: liveLines?.find((l) => l.player.id === r.player.id)?.points ?? null,
         side,
       }));

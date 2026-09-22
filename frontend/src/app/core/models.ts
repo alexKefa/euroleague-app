@@ -109,6 +109,14 @@ export interface RosterEntry {
   player: Player;
   stats: PlayerSeasonStats;
   injury: PlayerInjury | null;
+  // Season PPG falling back to games-played-weighted career PPG when this
+  // player has no row for the current season yet (2026-09-22) — separate
+  // from stats.pointsPerGame, which stays a correct "—" for a genuine
+  // "this season" display (the Roster page's own table) rather than
+  // silently relabeling a career number as this season's. Only meant for a
+  // caller that wants some real number to sort/inform by regardless (the
+  // top-scorer picker, shared/top-scorer-picker.ts).
+  baselinePpg: number | null;
 }
 
 // GET /api/players/advanced-stats — full playerSeasonStats row per player,

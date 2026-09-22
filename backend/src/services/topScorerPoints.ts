@@ -109,6 +109,36 @@ export async function getTopScorerBaselinePPG(playerId: string, season: string):
 }
 
 /**
+ * Batched sibling of getTopScorerBaselinePPG (2026-09-22, "sort by ppg" —
+ * live-testing GET /teams/:id/roster's season-only pointsPerGame found
+ * every 2026-27 player at exactly 0 non-null rows: the season genuinely
+ * hasn't started, so the top-scorer picker's "sort by PPG" had nothing
+ * real to sort by, and every candidate tied at 0). One query for a whole
+ * roster (up to ~18 players) instead of looping the single-player version
+ * — same "fewer round trips" reasoning as everywhere else in this app's
+ * economy. Exact same season-then-career fallback math, just grouped by
+ * player_id instead of scoped to one.
+ */
+export async function getBaselinePPGForPlayers(playerIds: string[], season: string): Promise<Map<string, number>> {
+  if (playerIds.length === 0) return new Map();
+  const rows = await db.execute<{ player_id: string; season_ppg: number | null; career_ppg: number | null }>(sql`
+    select
+      player_id,
+      (array_agg(points_per_game) filter (where season = ${season}))[1] as season_ppg,
+      sum(points_per_game * games_played) / nullif(sum(games_played), 0) as career_ppg
+    from ${playerSeasonStats}
+    where player_id in ${playerIds}
+    group by player_id
+  `);
+  const map = new Map<string, number>();
+  for (const row of rows) {
+    const ppg = row.season_ppg ?? row.career_ppg;
+    if (ppg != null) map.set(row.player_id, ppg);
+  }
+  return map;
+}
+
+/**
  * Locks at the start of the 4th quarter (2026-09-08), not at `final` like
  * the rest of this file's comments originally described — a pick left open
  * all the way to the final buzzer degenerates into just reading the box
