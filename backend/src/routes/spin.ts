@@ -35,7 +35,24 @@ export const COOLDOWN_MS = 24 * 60 * 60 * 1000;
 // (63->58, 23->20) — both tiers already reliably hit 100% completion well
 // before season end regardless (see the "commons+rares only" column below),
 // so a few points off their wheel share costs comparatively little.
-export const SPIN_ODDS = { common: 0.58, rare: 0.2, legendary: 0.14, coach: 0.08 } as const;
+//
+// 58/20/14/8 -> 58/20/20/2 (2026-09-22): the legendary catalog doubled from
+// 20 to 40 cards (replace-legendary-catalog.ts — 2 "brand name" players per
+// team by real season PIR instead of 1) with no other change, which
+// collapsed 50%-engagement full-album completion back to 0-4% across every
+// accuracy — the same bottleneck this file's history already describes,
+// just worse. Legendary's share went 14->20, taken entirely out of coach's
+// share (8->2) rather than common's or rare's — coach isn't in the album,
+// so this is a free lever, unlike every previous odds change here which had
+// to trade off against commons/rares. Combined with the same-pass milestone
+// retune (services/cards.ts's LEGENDARY_MILESTONE_INTERVAL/
+// FANTASY_MILESTONE_INTERVAL, see that file's comments for the full before/
+// after numbers) and a matching Elite-pack-odds bump (services/packs.ts),
+// restored 50%-engagement completion to 37/72/89/96/99/100% — matching or
+// exceeding the original 22-card numbers — with commons/rares completely
+// unaffected. Coach supply dropped moderately as the one real tradeoff
+// (not album-tracked). Re-run economy:simulate after any future change.
+export const SPIN_ODDS = { common: 0.58, rare: 0.2, legendary: 0.2, coach: 0.02 } as const;
 export const LEGENDARY_CHANCE = SPIN_ODDS.legendary;
 export const COACH_CHANCE = SPIN_ODDS.coach;
 

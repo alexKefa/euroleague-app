@@ -688,6 +688,39 @@ export const coachMilestones = pgTable(
   })
 );
 
+// A third milestone track — "fix everything" album-completability pass,
+// 2026-09-21 (see season-simulation.ts's own doc comment and CLAUDE.md).
+// Same exact structural mirror as legendaryMilestones/coachMilestones, but
+// keyed off completed Fantasy Five rounds (a count of this user's own
+// fantasy_round_points rows, services/fantasyScoring.ts) rather than
+// correct predictions — Fantasy's round carry-forward means a squad
+// drafted once keeps scoring every subsequent round with zero further
+// weekly effort, so this is deliberately engagement-based rather than
+// skill-based, same "participation is the dominant lever" philosophy the
+// wheel's own milestone already established. Simulated before building:
+// at 50% wheel engagement (a realistic, not-fully-engaged player), this
+// alone raised full-album completion from 5/13/23/31/43/68% to
+// 38/69/84/93/98/99% across 50-80% win/loss accuracy — see
+// FANTASY_MILESTONE_INTERVAL in services/cards.ts for the exact interval
+// and simulation numbers.
+export const fantasyMilestones = pgTable(
+  "fantasy_milestones",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    milestoneNumber: integer("milestone_number").notNull(),
+    ownedPackId: uuid("owned_pack_id").references(() => ownedPacks.id),
+    grantedAt: timestamp("granted_at", { withTimezone: true }).defaultNow().notNull(),
+    seenAt: timestamp("seen_at", { withTimezone: true }),
+  },
+  (table) => ({
+    userMilestoneUnique: uniqueIndex("user_fantasy_milestone_unique").on(
+      table.userId,
+      table.milestoneNumber
+    ),
+  })
+);
+
 // Direct trade offers between two users, scoped to legendary collectibles
 // only (the only tier that's ever "yours" without being purchasable — see
 // collectibles.ts's redeem guard). Accepting one re-points the two
@@ -1065,6 +1098,10 @@ export const roundRewardsRelations = relations(roundRewards, ({ one }) => ({
 export const legendaryMilestonesRelations = relations(legendaryMilestones, ({ one }) => ({
   user: one(users, { fields: [legendaryMilestones.userId], references: [users.id] }),
   collectible: one(collectibles, { fields: [legendaryMilestones.collectibleId], references: [collectibles.id] }),
+}));
+
+export const fantasyMilestonesRelations = relations(fantasyMilestones, ({ one }) => ({
+  user: one(users, { fields: [fantasyMilestones.userId], references: [users.id] }),
 }));
 
 export const packOpeningsRelations = relations(packOpenings, ({ one, many }) => ({

@@ -1,27 +1,76 @@
 import { eq, and, isNull, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { games, predictions, roundRewards, legendaryMilestones, coachMilestones, ownedPacks } from "../db/schema.js";
+import {
+  games,
+  predictions,
+  roundRewards,
+  legendaryMilestones,
+  coachMilestones,
+  fantasyMilestones,
+  ownedPacks,
+  topScorerPredictions,
+  playerGameStats,
+  fantasyRoundPoints,
+} from "../db/schema.js";
 
 // A round with this many correct picks (out of GAMES_PER_ROUND, but short of
 // literally perfect) grants a bonus rare — see the branch in
 // checkAndGrantRoundRewards below.
 const GREAT_ROUND_THRESHOLD = 8;
 
-// Every this-many cumulative correct predictions (career-wide, not
-// per-round) grants a guaranteed-new legendary — see
-// checkAndGrantLegendaryMilestones. Picked via scripts/season-simulation.ts:
-// at a realistic (85%, i.e. misses ~1 day in 7) daily wheel engagement rate,
-// legendary was the tightest bottleneck on finishing the album regardless of
-// prediction accuracy (commons/rares already finish reliably from the wheel
-// alone) — 60 pushes full-album completion from ~78% up to ~91-99% across
-// the 50-80% accuracy range, while still scaling meaningfully with accuracy
-// (a 70%-accuracy predictor earns roughly 4x as many milestones over a
-// season as a 50%-accuracy one), unlike raw points-per-correct scaling
-// (tested up to 2.5x with barely any effect — the wheel's sheer daily
-// volume dwarfs anything points can buy by ~30-40x, so a linear points bump
-// alone can't make prediction skill matter more without inflating the point
-// scale into something disproportionate to the rest of the economy).
-export const LEGENDARY_MILESTONE_INTERVAL = 60;
+// Every this-many cumulative correct picks (career-wide, not per-round)
+// grants a guaranteed-new legendary — see checkAndGrantLegendaryMilestones.
+// Picked via scripts/season-simulation.ts: at a realistic (85%, i.e. misses
+// ~1 day in 7) daily wheel engagement rate, legendary was the tightest
+// bottleneck on finishing the album regardless of prediction accuracy
+// (commons/rares already finish reliably from the wheel alone) — 60 pushes
+// full-album completion from ~78% up to ~91-99% across the 50-80% accuracy
+// range, while still scaling meaningfully with accuracy (a 70%-accuracy
+// predictor earns roughly 4x as many milestones over a season as a
+// 50%-accuracy one), unlike raw points-per-correct scaling (tested up to
+// 2.5x with barely any effect — the wheel's sheer daily volume dwarfs
+// anything points can buy by ~30-40x, so a linear points bump alone can't
+// make prediction skill matter more without inflating the point scale into
+// something disproportionate to the rest of the economy).
+//
+// "Fix everything" pass (2026-09-21): "cumulative correct picks" now counts
+// correct top-scorer predictions too, not just win/loss — see
+// topScorerCorrectCountSql below. Previously a strong top-scorer predictor
+// got zero milestone credit for that skill despite it being a real,
+// separate pick feeding the same points pool (flagged directly: "make sure
+// this works, take into account points from predicting either games or top
+// scorers, fantasy..."). Re-simulated at 50% wheel engagement (a realistic,
+// not-fully-engaged player) alongside the new FANTASY_MILESTONE_INTERVAL
+// below: full-album completion rose from 5/13/23/31/43/68% to
+// 38/69/84/93/98/99% across 50-80% win/loss accuracy, with no regression at
+// 85%/100% engagement (still ~100% everywhere) or the cheapest-first
+// spending policy.
+//
+// Retuned again the same week, 2026-09-22, alongside the legendary catalog
+// doubling from 20 to 40 (see replace-legendary-catalog.ts — "replace our
+// legendary cards with the brand name players of each team," 2 per team
+// instead of 1). Doubling the pool with no other change collapsed 50%-
+// engagement completion right back to 0-4% across every accuracy — the
+// same bottleneck as before this file's history describes, just worse.
+// 60 -> 25 (roughly proportional to the pool doubling, then a small extra
+// nudge down after checking the numbers), combined with
+// FANTASY_MILESTONE_INTERVAL 6 -> 3 and a legendary-odds bump on the wheel/
+// Elite pack (routes/spin.ts, services/packs.ts — both took the increase
+// out of coach's share specifically, since coach isn't in the album and so
+// is a free lever that doesn't cost any commons/rares/legendary supply),
+// restored 50%-engagement completion to 37/72/89/96/99/100% — matching or
+// exceeding the original 22-card numbers at every accuracy level, with
+// commons/rares completion completely unaffected (the odds increase never
+// touched common's/rare's share) and 85%/100%/cheapest-first still ~100%
+// everywhere. The 0%-engagement floor (never touches the wheel) also
+// improved in relative terms: legendary count there is now 22-33/40 (55-
+// 81%) vs the original 2.9-8.9/22 (13-40%) — the tighter, career-wide
+// milestones don't depend on wheel engagement at all, so tightening them
+// helps this floor specifically. Coach supply dropped moderately as the
+// tradeoff (not album-tracked, so this was an acceptable one-way cost).
+// Re-run economy:simulate after any future change to either interval or
+// either odds table.
+export const LEGENDARY_MILESTONE_INTERVAL = 25;
 
 // An unopened pack awarded by a round/milestone reward — same concept as a
 // wheel win (routes/spin.ts): it sits in ownedPacks until the user opens it
@@ -152,8 +201,43 @@ export async function markRoundRewardsSeen(userId: string): Promise<void> {
 }
 
 /**
+ * A scalar count of this user's correct top-scorer picks — mirrors
+ * services/topScorerPoints.ts's topScorerTotalsCte's per_game_max/
+ * per_game_leader derivation (same "which player was this game's top
+ * scorer, with the exact tie-null rule" logic) but as a plain count instead
+ * of a summed-points CTE, and as nested subqueries rather than a top-level
+ * WITH clause so it can be interpolated directly into the scalar-subquery
+ * "correct" expression both milestone functions below already use — same
+ * "one round trip via scalar subqueries" shape as the win/loss count
+ * sitting right next to it. "Fix everything" pass, 2026-09-21.
+ */
+function topScorerCorrectCountSql(userId: string) {
+  return sql`(
+    select count(*)::int
+    from ${topScorerPredictions} tsp
+    join ${games} g on g.id = tsp.game_id
+    join (
+      select pgm.game_id,
+        case when count(*) = 1 then (array_agg(pgs.player_id))[1] else null end as top_scorer_player_id
+      from (
+        select game_id, max(points) as max_points
+        from ${playerGameStats}
+        where points is not null
+        group by game_id
+      ) pgm
+      join ${playerGameStats} pgs on pgs.game_id = pgm.game_id and pgs.points = pgm.max_points
+      group by pgm.game_id
+    ) pgl on pgl.game_id = tsp.game_id
+    where g.status = 'final'
+      and pgl.top_scorer_player_id = tsp.predicted_player_id
+      and tsp.user_id = ${userId}
+  )`;
+}
+
+/**
  * Grants a guaranteed-new legendary for every LEGENDARY_MILESTONE_INTERVAL
- * cumulative correct predictions a user has ever made — a career counter,
+ * cumulative correct picks (win/loss + top-scorer) a user has ever made —
+ * a career counter,
  * not scoped to a round or season. milestoneNumber (1st, 2nd, ...) is the
  * claim key: legendary_milestones' unique (userId, milestoneNumber) index is
  * used as a mutex via onConflictDoNothing exactly like roundRewards, so two
@@ -175,16 +259,19 @@ export async function checkAndGrantLegendaryMilestones(userId: string): Promise<
   const [{ correct, claimed_count }] = await db.execute<{ correct: number; claimed_count: number }>(sql`
     select
       (
-        select count(*)::int
-        from ${predictions} p
-        join ${games} g on p.game_id = g.id
-        where p.user_id = ${userId}
-          and g.status = 'final'
-          and g.home_score is not null
-          and g.away_score is not null
-          and g.home_score <> g.away_score
-          and p.predicted_winner_team_id = case when g.home_score > g.away_score then g.home_team_id else g.away_team_id end
-      ) as correct,
+        (
+          select count(*)::int
+          from ${predictions} p
+          join ${games} g on p.game_id = g.id
+          where p.user_id = ${userId}
+            and g.status = 'final'
+            and g.home_score is not null
+            and g.away_score is not null
+            and g.home_score <> g.away_score
+            and p.predicted_winner_team_id = case when g.home_score > g.away_score then g.home_team_id else g.away_team_id end
+        )
+        + ${topScorerCorrectCountSql(userId)}
+      )::int as correct,
       (select count(*)::int from ${legendaryMilestones} where user_id = ${userId}) as claimed_count
   `);
   const eligibleMilestones = Math.floor(correct / LEGENDARY_MILESTONE_INTERVAL);
@@ -227,7 +314,9 @@ export async function markLegendaryMilestonesSeen(userId: string): Promise<void>
 }
 
 // Career-wide grant of a guaranteed-new coach, every this-many cumulative
-// correct predictions — see coachMilestones' doc comment in schema.ts.
+// correct picks (win/loss + top-scorer, since 2026-09-21 — see
+// LEGENDARY_MILESTONE_INTERVAL's comment) — see coachMilestones' doc
+// comment in schema.ts.
 // Added 2026-09-04 alongside the Elite-pack big-slot odds/pity changes
 // (services/packs.ts): before this, coach had NO acquisition path outside
 // the wheel except Elite's single-slot chance, and season-simulation.ts
@@ -250,16 +339,19 @@ export async function checkAndGrantCoachMilestones(userId: string): Promise<Owne
   const [{ correct, claimed_count }] = await db.execute<{ correct: number; claimed_count: number }>(sql`
     select
       (
-        select count(*)::int
-        from ${predictions} p
-        join ${games} g on p.game_id = g.id
-        where p.user_id = ${userId}
-          and g.status = 'final'
-          and g.home_score is not null
-          and g.away_score is not null
-          and g.home_score <> g.away_score
-          and p.predicted_winner_team_id = case when g.home_score > g.away_score then g.home_team_id else g.away_team_id end
-      ) as correct,
+        (
+          select count(*)::int
+          from ${predictions} p
+          join ${games} g on p.game_id = g.id
+          where p.user_id = ${userId}
+            and g.status = 'final'
+            and g.home_score is not null
+            and g.away_score is not null
+            and g.home_score <> g.away_score
+            and p.predicted_winner_team_id = case when g.home_score > g.away_score then g.home_team_id else g.away_team_id end
+        )
+        + ${topScorerCorrectCountSql(userId)}
+      )::int as correct,
       (select count(*)::int from ${coachMilestones} where user_id = ${userId}) as claimed_count
   `);
   const eligibleMilestones = Math.floor(correct / COACH_MILESTONE_INTERVAL);
@@ -297,4 +389,73 @@ export async function markCoachMilestonesSeen(userId: string): Promise<void> {
     .update(coachMilestones)
     .set({ seenAt: new Date() })
     .where(and(eq(coachMilestones.userId, userId), isNull(coachMilestones.seenAt)));
+}
+
+// A third milestone track — "fix everything" album-completability pass,
+// 2026-09-21 (see fantasyMilestones' doc comment in schema.ts and
+// season-simulation.ts). Deliberately engagement-based, not skill-based:
+// counts completed Fantasy Five rounds (a fantasy_round_points row exists
+// for that round — see services/fantasyScoring.ts's
+// checkAndGrantFantasyRoundPoints, which only inserts one once a round is
+// locked/complete and scored above zero), not prediction accuracy. Picked
+// via scripts/season-simulation.ts alongside the top-scorer milestone
+// change above: at 50% wheel engagement, 6 pushed full-album completion
+// from 5/13/23/31/43/68% to 38/69/84/93/98/99% across 50-80% win/loss
+// accuracy, with no regression at 85%/100% engagement.
+//
+// Retuned to 3, 2026-09-22, in the same legendary-catalog-doubling pass
+// LEGENDARY_MILESTONE_INTERVAL's own comment describes — see that comment
+// for the full before/after numbers (both intervals were retuned together
+// against the same simulation runs).
+export const FANTASY_MILESTONE_INTERVAL = 3;
+
+/**
+ * Exact structural mirror of checkAndGrantLegendaryMilestones/
+ * checkAndGrantCoachMilestones — see checkAndGrantLegendaryMilestones's doc
+ * comment for the concurrency-safe claim pattern and the "return every
+ * unseen grant" shape. Counts distinct completed rounds
+ * (fantasyRoundPoints rows) instead of correct picks, and grants an
+ * unopened wheelLegendary pack, same as the win/loss+top-scorer track.
+ */
+export async function checkAndGrantFantasyMilestones(userId: string): Promise<OwnedPackReward[]> {
+  const [{ completed_rounds, claimed_count }] = await db.execute<{ completed_rounds: number; claimed_count: number }>(sql`
+    select
+      (select count(*)::int from ${fantasyRoundPoints} where user_id = ${userId}) as completed_rounds,
+      (select count(*)::int from ${fantasyMilestones} where user_id = ${userId}) as claimed_count
+  `);
+  const eligibleMilestones = Math.floor(completed_rounds / FANTASY_MILESTONE_INTERVAL);
+
+  if (eligibleMilestones > claimed_count) {
+    for (let milestoneNumber = claimed_count + 1; milestoneNumber <= eligibleMilestones; milestoneNumber++) {
+      const [claim] = await db
+        .insert(fantasyMilestones)
+        .values({ userId, milestoneNumber })
+        .onConflictDoNothing({ target: [fantasyMilestones.userId, fantasyMilestones.milestoneNumber] })
+        .returning();
+      if (!claim) continue; // a concurrent request already claimed this one
+
+      const [pack] = await db.insert(ownedPacks).values({ userId, packType: "wheelLegendary" }).returning();
+      await db.update(fantasyMilestones).set({ ownedPackId: pack.id }).where(eq(fantasyMilestones.id, claim.id));
+    }
+  }
+
+  const unseen = await db
+    .select({ pack: ownedPacks })
+    .from(fantasyMilestones)
+    .innerJoin(ownedPacks, eq(fantasyMilestones.ownedPackId, ownedPacks.id))
+    .where(and(eq(fantasyMilestones.userId, userId), isNull(fantasyMilestones.seenAt)));
+
+  return unseen.map(({ pack }) => ({
+    id: pack.id,
+    packType: "wheelLegendary" as const,
+    tier: "legendary" as const,
+  }));
+}
+
+/** Marks every currently-unseen fantasy milestone this user has as seen — called once its banner has actually been shown. */
+export async function markFantasyMilestonesSeen(userId: string): Promise<void> {
+  await db
+    .update(fantasyMilestones)
+    .set({ seenAt: new Date() })
+    .where(and(eq(fantasyMilestones.userId, userId), isNull(fantasyMilestones.seenAt)));
 }

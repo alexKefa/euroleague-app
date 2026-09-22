@@ -26,21 +26,54 @@
  * engagement roll like the wheel) — Fantasy Five's round carry-forward
  * (getBaselineSquad) means a squad drafted once keeps scoring every
  * subsequent round with zero further action required, structurally unlike
- * the wheel's daily opt-in spin. Still NOT modeled here: the odds-weighted
- * prediction-points bonus (services/points.ts's pointsForCorrectPick can
- * pay up to 40/correct pick, not the flat POINTS_PER_CORRECT this file
- * uses) and top-scorer prediction points (a second, separate per-game pick
- * feeding the same pool) — both real income streams, left out for the same
- * reason odds was already flagged as a known gap: no real odds-probability
- * distribution to sample from without live ODDS_API_KEY data, so any
- * assumed multiplier would be an invented number, not a measured one.
- * SIM_FANTASY=0 disables the addition below entirely, for an apples-to-
- * apples comparison against the pre-2026-09-21 numbers this file's own
- * history documents.
+ * the wheel's daily opt-in spin. SIM_FANTASY=0 disables the addition below
+ * entirely, for an apples-to-apples comparison against the pre-2026-09-21
+ * numbers this file's own history documents.
+ *
+ * Top-scorer prediction points (services/topScorerPoints.ts) added the same
+ * day, 2026-09-21 — a second, separate per-game pick (one per game, same
+ * GAMES_PER_ROUND cadence as win/loss) feeding the same points pool.
+ * TOP_SCORER_POINTS_PER_CORRECT (10) mirrors the real formula's own floor/
+ * "typical pre-tipoff pick" value exactly, not invented. What IS an
+ * invented assumption, flagged clearly here: how often a user actually
+ * picks the real top scorer. Unlike win/loss (an ~binary outcome between
+ * two teams), a top-scorer pick is one guess among ~20+ players who played
+ * that game, so real accuracy is structurally much lower than win/loss
+ * accuracy — modeled as TOP_SCORER_ACC_RATIO (default 0.4) of the user's
+ * own win/loss accuracy, on the reasoning that a sharper predictor
+ * plausibly also reads scorers better, but there's no real historical
+ * top-scorer-pick accuracy to calibrate this against (same "no real
+ * distribution to sample from" reasoning below excludes the odds-weighted
+ * win/loss bonus) — treat this block's numbers as more speculative than
+ * the rest of the file for that reason. SIM_TOPSCORER=0 disables it;
+ * SIM_TOPSCORER_ACC_RATIO overrides the ratio.
+ *
+ * Still NOT modeled here: the odds-weighted prediction-points bonus
+ * (services/points.ts's pointsForCorrectPick can pay up to 40/correct
+ * pick, not the flat POINTS_PER_CORRECT this file uses) — no real odds-
+ * probability distribution to sample from without live ODDS_API_KEY data,
+ * so any assumed multiplier would be an invented number, not a measured
+ * one. Also not modeled: one-off/opportunistic grants that aren't a real
+ * per-season income stream for a typical player — promo codes
+ * (services/promoCodes.ts, campaign-dependent) and the referral bonus
+ * (services/referrals.ts, 400pts once, only if you refer someone who then
+ * gets a correct pick).
+ *
+ * Legendary catalog doubled 20 -> 40, 2026-09-22 ("replace our legendary
+ * cards with the brand name players of each team" — see
+ * replace-legendary-catalog.ts for the one-off migration, 2 per team by
+ * real season PIR instead of 1). This alone collapsed 50%-engagement
+ * full-album completion to 0-4% across every accuracy — re-tuning
+ * SPIN_ODDS (routes/spin.ts), the Elite pack's big slot (services/
+ * packs.ts), and both milestone intervals (services/cards.ts) restored it
+ * to 37/72/89/96/99/100%, matching or exceeding the original 22-card
+ * numbers — see LEGENDARY_MILESTONE_INTERVAL's comment in services/cards.ts
+ * for the full before/after breakdown. CATALOG_SIZE.legendary below is now
+ * 40, matching the real catalog.
  *
  * Answers: can a realistic player (a given prediction accuracy, not a
  * perfect one) actually finish the album (own every collectible: 208
- * common + 208 rare + 22 legendary) across a season, and how does that
+ * common + 208 rare + 40 legendary) across a season, and how does that
  * scale with accuracy and spending habits? Coach cards (20, tracked
  * separately below) are deliberately NOT part of "album complete" — see
  * CLAUDE.md's "Coach cards" section — they're modeled here only to confirm
@@ -52,7 +85,7 @@
 
 type Tier = "common" | "rare" | "legendary" | "coach";
 
-const CATALOG_SIZE: Record<Tier, number> = { common: 208, rare: 208, legendary: 22, coach: 20 };
+const CATALOG_SIZE: Record<Tier, number> = { common: 208, rare: 208, legendary: 40, coach: 20 };
 // Common/rare pointsCost, for duplicate sell-back math — mirrors
 // scripts/expand-collectibles.ts. Legendary and coach duplicates never sell
 // (see sellValueFor's comment in routes/packs.ts — both catalogs' pointsCost
@@ -77,7 +110,7 @@ const SEASON_DAYS = 210; // ~Oct-Apr EuroLeague season, matches the pacing assum
 // without them (e.g. to compare against before this pass).
 const GREAT_ROUND_BONUS = process.env.SIM_GREAT_ROUND !== "0";
 const GREAT_ROUND_THRESHOLD = 8; // out of GAMES_PER_ROUND, excludes literally-perfect (that already gets the legendary)
-const LEGENDARY_MILESTONE = Number(process.env.SIM_LEGENDARY_MILESTONE ?? 60); // 0 = off
+const LEGENDARY_MILESTONE = Number(process.env.SIM_LEGENDARY_MILESTONE ?? 25); // 0 = off; matches services/cards.ts's real LEGENDARY_MILESTONE_INTERVAL (2026-09-22 legendary-pool-doubling retune)
 // services/cards.ts's COACH_MILESTONE_INTERVAL, added in the same
 // 2026-09-04 "reconsider legendary/coach chances" pass as the Elite-pack
 // odds/pity changes below — coach previously had zero non-wheel
@@ -97,8 +130,37 @@ const FANTASY_ROUND_AVG_POINTS = Number(process.env.SIM_FANTASY_ROUND_POINTS ?? 
 const FANTASY_ENABLED = process.env.SIM_FANTASY !== "0";
 const FANTASY_CLUTCH_PER_ROUND = Math.floor(FANTASY_ROUND_AVG_POINTS * FANTASY_POINTS_CONVERSION_RATE);
 
-// routes/spin.ts SPIN_ODDS, verbatim.
-const SPIN_ODDS: Record<Tier, number> = { common: 0.58, rare: 0.2, legendary: 0.14, coach: 0.08 };
+// services/topScorerPoints.ts TOP_SCORER_POINTS_PER_CORRECT, verbatim — see
+// this file's header comment for TOP_SCORER_ACC_RATIO's reasoning.
+const TOP_SCORER_ENABLED = process.env.SIM_TOPSCORER !== "0";
+const TOP_SCORER_POINTS_PER_CORRECT = 10;
+const TOP_SCORER_ACC_RATIO = Number(process.env.SIM_TOPSCORER_ACC_RATIO ?? 0.4);
+
+// A new Fantasy Five milestone — "fix everything" pass, 2026-09-21: Fantasy
+// Five's ~1900pts/season (full participation) previously fed only spending
+// power, never the legendary/coach bottleneck itself, unlike win/loss and
+// top-scorer picks (now both counted via registerCorrectPick above).
+// Deliberately engagement-based, not skill-based (every completed round
+// counts, regardless of that round's real score) — same "participation is
+// the dominant lever" philosophy the wheel's own milestone already
+// established (see LEGENDARY_MILESTONE_INTERVAL's doc comment in
+// services/cards.ts), since Fantasy's round carry-forward means a squad
+// drafted once keeps scoring with zero further weekly effort, structurally
+// closer to "did you keep an active squad" than "were you skilled." Shipped
+// as services/cards.ts's real FANTASY_MILESTONE_INTERVAL (3, retuned from 6
+// in the 2026-09-22 legendary-pool-doubling pass) — this default mirrors
+// that constant so a plain `economy:simulate` run reflects reality;
+// override with SIM_FANTASY_MILESTONE (0 = off) to compare against it.
+const FANTASY_MILESTONE_INTERVAL = Number(process.env.SIM_FANTASY_MILESTONE ?? 3);
+
+// routes/spin.ts SPIN_ODDS, verbatim — 58/20/14/8 -> 58/20/20/2 (2026-09-22
+// legendary-pool-doubling retune, see that constant's own comment for the
+// full context: the catalog doubled from 20 to 40 legendaries, and this
+// bump — taken entirely out of coach's share, a free lever since coach
+// isn't in the album — restored 50%-engagement completion to
+// 37/72/89/96/99/100%, matching or exceeding the original numbers, with
+// zero cost to common/rare supply).
+const SPIN_ODDS: Record<Tier, number> = { common: 0.58, rare: 0.2, legendary: 0.2, coach: 0.02 };
 
 interface PackSlot {
   odds: Partial<Record<Tier, number>>;
@@ -145,7 +207,10 @@ const PACKS: PackDef[] = [
       { odds: { rare: 1 } },
       { odds: { rare: 1 } },
       { odds: { rare: 1 } },
-      { odds: { rare: 0.7, legendary: 0.17, coach: 0.13 } },
+      // services/packs.ts's elite big slot, verbatim — 17%/13% legendary/
+      // coach -> 24%/6% (2026-09-22, same legendary-pool-doubling retune as
+      // SPIN_ODDS above), taken entirely out of coach's share.
+      { odds: { rare: 0.7, legendary: 0.24, coach: 0.06 } },
     ],
   },
 ];
@@ -286,6 +351,8 @@ interface SimResult {
   milestoneLegendaries: number;
   milestoneCoaches: number;
   fantasyPointsEarned: number;
+  topScorerPointsEarned: number;
+  fantasyMilestones: number;
 }
 
 // Spreads the season's 38 rounds evenly across SEASON_DAYS, e.g. round 1 on
@@ -305,6 +372,9 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
   let milestoneLegendaries = 0;
   let milestoneCoaches = 0;
   let fantasyPointsEarned = 0;
+  let topScorerPointsEarned = 0;
+  let fantasyRoundsPlayed = 0;
+  let fantasyMilestones = 0;
   let cumulativeCorrect = 0;
   let purchasableCompleteDay: number | null = null;
   let fullCompleteDay: number | null = null;
@@ -313,6 +383,35 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
   const isPurchasableComplete = () => state.owned.common.size === CATALOG_SIZE.common && state.owned.rare.size === CATALOG_SIZE.rare;
   const isFullComplete = () => isPurchasableComplete() && state.owned.legendary.size === CATALOG_SIZE.legendary;
 
+  // Registers one correct pick (win/loss OR top-scorer — "fix everything"
+  // pass, 2026-09-21, see this file's header comment) toward the shared
+  // legendary/coach milestone counter. Previously only win/loss picks
+  // advanced this counter, so a strong top-scorer predictor got zero
+  // milestone credit for it despite it being a real, separate skill
+  // feeding the same points pool. A game where both picks land correct
+  // registers twice, same as two separate correct picks would.
+  function registerCorrectPick(): void {
+    cumulativeCorrect++;
+    // services/cards.ts's checkAndGrantLegendaryMilestones: an unopened
+    // wheelLegendary pack (a guaranteed-new legendary once opened) every
+    // LEGENDARY_MILESTONE cumulative correct picks, career-wide (not
+    // per-round) — targets the tier that's actually the bottleneck at
+    // realistic (<100%) wheel engagement, and unlike the wheel, only
+    // accrues from picks actually gotten right.
+    if (LEGENDARY_MILESTONE > 0 && cumulativeCorrect % LEGENDARY_MILESTONE === 0) {
+      milestoneLegendaries++;
+      grantGuaranteedNewOfTier(state, "legendary");
+    }
+    // services/cards.ts's checkAndGrantCoachMilestones — same concept,
+    // independent counter/interval, added 2026-09-04 since coach otherwise
+    // had no non-wheel acquisition path at all besides Elite's thin
+    // single-slot chance.
+    if (COACH_MILESTONE > 0 && cumulativeCorrect % COACH_MILESTONE === 0) {
+      milestoneCoaches++;
+      grantGuaranteedNewOfTier(state, "coach");
+    }
+  }
+
   for (let day = 1; day <= SEASON_DAYS; day++) {
     if (nextRound < ROUNDS && ROUND_DAY[nextRound] === day) {
       let correctThisRound = 0;
@@ -320,28 +419,19 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
         if (Math.random() < accuracy) {
           correctThisRound++;
           state.points += POINTS_PER_CORRECT;
-          cumulativeCorrect++;
-          // services/cards.ts's checkAndGrantLegendaryMilestones: an
-          // unopened wheelLegendary pack (a guaranteed-new legendary once
-          // opened) every LEGENDARY_MILESTONE cumulative correct picks,
-          // career-wide (not per-round) — targets the tier that's actually
-          // the bottleneck at realistic (<100%) wheel engagement, and
-          // unlike the wheel, only accrues from picks actually gotten
-          // right. Modeled the same as grantGuaranteedNewOfTier below since
-          // wheelLegendary's single slot always lands on an unowned card —
-          // opening it is behaviorally identical to a direct grant.
-          if (LEGENDARY_MILESTONE > 0 && cumulativeCorrect % LEGENDARY_MILESTONE === 0) {
-            milestoneLegendaries++;
-            grantGuaranteedNewOfTier(state, "legendary");
-          }
-          // services/cards.ts's checkAndGrantCoachMilestones — same concept,
-          // independent counter/interval, added 2026-09-04 since coach
-          // otherwise had no non-wheel acquisition path at all besides
-          // Elite's thin single-slot chance.
-          if (COACH_MILESTONE > 0 && cumulativeCorrect % COACH_MILESTONE === 0) {
-            milestoneCoaches++;
-            grantGuaranteedNewOfTier(state, "coach");
-          }
+          registerCorrectPick();
+        }
+        // Top-scorer pick for the same game — a separate RNG draw at a
+        // lower assumed accuracy (see the file-header comment), since
+        // getting a win/loss pick right doesn't imply also having called
+        // the correct top scorer. Doesn't feed the great/perfect-round
+        // bonuses below (Century/round-completion tracking is explicitly
+        // win/loss-only, see routes/predictions.ts) — points AND milestone
+        // credit, same treatment as a win/loss pick.
+        if (TOP_SCORER_ENABLED && Math.random() < accuracy * TOP_SCORER_ACC_RATIO) {
+          state.points += TOP_SCORER_POINTS_PER_CORRECT;
+          topScorerPointsEarned += TOP_SCORER_POINTS_PER_CORRECT;
+          registerCorrectPick();
         }
       }
       if (correctThisRound === GAMES_PER_ROUND) {
@@ -367,6 +457,11 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
       if (FANTASY_ENABLED) {
         state.points += FANTASY_CLUTCH_PER_ROUND;
         fantasyPointsEarned += FANTASY_CLUTCH_PER_ROUND;
+        fantasyRoundsPlayed++;
+        if (FANTASY_MILESTONE_INTERVAL > 0 && fantasyRoundsPlayed % FANTASY_MILESTONE_INTERVAL === 0) {
+          fantasyMilestones++;
+          grantGuaranteedNewOfTier(state, "legendary");
+        }
       }
       nextRound++;
       spendLoop(state, policy);
@@ -407,6 +502,8 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
     milestoneLegendaries,
     milestoneCoaches,
     fantasyPointsEarned,
+    topScorerPointsEarned,
+    fantasyMilestones,
   };
 }
 
@@ -434,6 +531,8 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
   const avgMilestoneLegendaries = results.reduce((s, r) => s + r.milestoneLegendaries, 0) / n;
   const avgMilestoneCoaches = results.reduce((s, r) => s + r.milestoneCoaches, 0) / n;
   const avgFantasyPoints = results.reduce((s, r) => s + r.fantasyPointsEarned, 0) / n;
+  const avgTopScorerPoints = results.reduce((s, r) => s + r.topScorerPointsEarned, 0) / n;
+  const avgFantasyMilestones = results.reduce((s, r) => s + r.fantasyMilestones, 0) / n;
 
   console.log(
     `accuracy ${(accuracy * 100).toFixed(0).padStart(3)}%  spin engagement ${(spinEngagement * 100).toFixed(0).padStart(3)}%  (${policy})` +
@@ -441,41 +540,59 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
       ` (median day ${String(percentile(fullDays, 0.5)).padStart(3)}/${SEASON_DAYS})` +
       ` | commons+rares only: ${pctPurchasable.toFixed(0).padStart(3)}%` +
       ` (median day ${String(percentile(purchasableDays, 0.5)).padStart(3)})` +
-      ` | avg legendaries: ${avgLegendaryAtEnd.toFixed(1).padStart(4)}/22` +
+      ` | avg legendaries: ${avgLegendaryAtEnd.toFixed(1).padStart(4)}/${CATALOG_SIZE.legendary}` +
       ` | avg coaches: ${avgCoachAtEnd.toFixed(1).padStart(4)}/20 (not in album)` +
       ` | avg perfect rounds: ${avgPerfectRounds.toFixed(2)}` +
       (GREAT_ROUND_BONUS ? ` | avg great rounds: ${avgGreatRounds.toFixed(2)}` : "") +
       (LEGENDARY_MILESTONE > 0 ? ` | avg milestone legendaries: ${avgMilestoneLegendaries.toFixed(2)}` : "") +
       (COACH_MILESTONE > 0 ? ` | avg milestone coaches: ${avgMilestoneCoaches.toFixed(2)}` : "") +
       (FANTASY_ENABLED ? ` | avg fantasy pts earned: ${avgFantasyPoints.toFixed(0)}` : "") +
+      (TOP_SCORER_ENABLED ? ` | avg top-scorer pts earned: ${avgTopScorerPoints.toFixed(0)}` : "") +
+      (FANTASY_MILESTONE_INTERVAL > 0 ? ` | avg fantasy milestones: ${avgFantasyMilestones.toFixed(2)}` : "") +
       ` | avg idle pts: ${avgEndPoints.toFixed(0)}`
   );
 }
 
 const N = Number(process.env.SIM_N ?? 3000);
 const ACCURACIES = process.env.SIM_QUICK ? [0.75] : [0.5, 0.6, 0.65, 0.7, 0.75, 0.8];
+// Restricts the blocks below to just the one matching this engagement
+// percentage (e.g. SIM_ENGAGEMENT_ONLY=50 runs only the 50%-engagement
+// block) — for a focused run without the other scenarios' noise. Omit for
+// the full default suite.
+const ENGAGEMENT_ONLY = process.env.SIM_ENGAGEMENT_ONLY ? Number(process.env.SIM_ENGAGEMENT_ONLY) : null;
+const shouldRun = (pct: number) => ENGAGEMENT_ONLY === null || ENGAGEMENT_ONLY === pct;
 
 console.log(
   `=== Season simulation: ${N} simulated users, ${ROUNDS} rounds x ${GAMES_PER_ROUND} games over ${SEASON_DAYS} days, ${POINTS_PER_CORRECT}pts/correct` +
+    (TOP_SCORER_ENABLED ? `, top-scorer ${TOP_SCORER_POINTS_PER_CORRECT}pts/correct @ ${(TOP_SCORER_ACC_RATIO * 100).toFixed(0)}% of win/loss accuracy` : ", top-scorer picks disabled (SIM_TOPSCORER=0)") +
     (FANTASY_ENABLED ? `, Fantasy Five ~${FANTASY_ROUND_AVG_POINTS}pts/round -> ${FANTASY_CLUTCH_PER_ROUND} Clutch pts/round (full season)` : ", Fantasy Five disabled (SIM_FANTASY=0)") +
     " ===\n"
 );
 
-console.log("--- Daily wheel spin, 100% engagement (spins every single day), highest-affordable pack spending ---");
-for (const acc of ACCURACIES) runScenario(acc, 1.0, "highest-affordable", N);
+if (shouldRun(100)) {
+  console.log("--- Daily wheel spin, 100% engagement (spins every single day), highest-affordable pack spending ---");
+  for (const acc of ACCURACIES) runScenario(acc, 1.0, "highest-affordable", N);
+}
 
-console.log("\n--- Daily wheel spin, 85% engagement (misses ~1 in 7 days), highest-affordable pack spending ---");
-for (const acc of ACCURACIES) runScenario(acc, 0.85, "highest-affordable", N);
+if (shouldRun(85)) {
+  console.log("\n--- Daily wheel spin, 85% engagement (misses ~1 in 7 days), highest-affordable pack spending ---");
+  for (const acc of ACCURACIES) runScenario(acc, 0.85, "highest-affordable", N);
+}
 
 // Added 2026-09-21, direct request — the middle ground between the 85%
 // "misses ~1 in 7 days" and 0% floor scenarios: a real but inconsistent
 // player who only spins about half the time, now also carrying a season
-// of Fantasy Five points on top (see the file-header comment).
-console.log("\n--- Daily wheel spin, 50% engagement (misses about half the days), highest-affordable pack spending ---");
-for (const acc of ACCURACIES) runScenario(acc, 0.5, "highest-affordable", N);
+// of Fantasy Five points and top-scorer picks on top (see the file-header
+// comment).
+if (shouldRun(50)) {
+  console.log("\n--- Daily wheel spin, 50% engagement (misses about half the days), highest-affordable pack spending ---");
+  for (const acc of ACCURACIES) runScenario(acc, 0.5, "highest-affordable", N);
+}
 
-console.log("\n--- Daily wheel spin, 100% engagement, cheapest-first pack spending (spends impulsively, never saves for Elite) ---");
-for (const acc of ACCURACIES) runScenario(acc, 1.0, "cheapest-first", N);
+if (ENGAGEMENT_ONLY === null) {
+  console.log("\n--- Daily wheel spin, 100% engagement, cheapest-first pack spending (spends impulsively, never saves for Elite) ---");
+  for (const acc of ACCURACIES) runScenario(acc, 1.0, "cheapest-first", N);
+}
 
 // Added 2026-09-04, "reconsider legendary/coach chances" pass — a real user
 // report that the wheel (Jump Ball) shouldn't be treated as this app's main
@@ -485,5 +602,7 @@ for (const acc of ACCURACIES) runScenario(acc, 1.0, "cheapest-first", N);
 // player would spin at least occasionally), but it's the honest test of
 // "does the purchasable economy alone work" — see CLAUDE.md for the before/
 // after numbers this pass was built against.
-console.log("\n--- Zero wheel engagement (never spins), highest-affordable pack spending ---");
-for (const acc of ACCURACIES) runScenario(acc, 0.0, "highest-affordable", N);
+if (shouldRun(0)) {
+  console.log("\n--- Zero wheel engagement (never spins), highest-affordable pack spending ---");
+  for (const acc of ACCURACIES) runScenario(acc, 0.0, "highest-affordable", N);
+}

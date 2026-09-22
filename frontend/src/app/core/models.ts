@@ -897,6 +897,12 @@ export interface FantasyLineup {
   // POST /fantasy/round-points/ack, same one-shot-banner shape as
   // predictions' newRoundRewards.
   newFantasyRoundPoints: { id: string; round: number; points: number } | null;
+  // Unseen grants from the completed-rounds milestone track (2026-09-21,
+  // services/cards.ts's checkAndGrantFantasyMilestones — every
+  // FANTASY_MILESTONE_INTERVAL completed Fantasy Five rounds grants an
+  // unopened wheelLegendary pack). Not scoped to the currently-viewed
+  // round — see the backend doc comment on this field.
+  newFantasyMilestoneRewards: RewardPack[];
 }
 
 // GET /api/fantasy/leaderboard and /api/leagues/:id/fantasy-leaderboard —

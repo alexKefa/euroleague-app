@@ -22,29 +22,61 @@ import {
 } from "./fantasyScoring.js";
 
 /**
- * Real EuroLeague Fantasy moves every player's (and coach's) price a
- * little every day, based on that day's real performance weighed against
- * their *current* price — a cheap player's price moves further for the
- * same performance than an expensive one's does (their own docs example:
- * a 20.5cr player gains +1.5cr from one big game). Modeled here as
- * `delta = gamePoints / (currentPrice * DAILY_PRICE_SENSITIVITY_DIVISOR)`,
- * clamped to +-DAILY_PRICE_MAX_DELTA so one game can't swing a price
- * wildly. Neither constant is sourced from a real published number (their
- * exact formula isn't public) — picked to land in the same ballpark as
- * their own worked example and tunable from here if real play shows it
- * moving too fast or too slow.
+ * Real EuroLeague Fantasy's own published price-variation formulas
+ * (2026-09-21, sourced directly — two separate EuroLeague Fantasist/
+ * @ELFantasist graphics, not a guess). Players and coaches use genuinely
+ * different formulas, not just different constants plugged into one shape:
  *
- * Deliberately separate from computeFantasyPrice/the periodic
- * `fantasy:reprice` script, which still sets a player's *baseline* price
- * off season-long form — this only ever nudges that baseline day to day,
- * it never recomputes from scratch. An over-budget squad from a price
- * increase is never invalidated retroactively (explicit decision,
- * 2026-09-16) — POST /lineup/batch's budget check only blocks a *new*
- * submission from exceeding the cap, same as budgetCap itself already
- * only ever moves up without breaking an existing squad.
+ * - **Player**: `X = (N - P*1.1) / 25` — a player needs to outscore ~110%
+ *   of their own price in fantasy points just to hold steady; anything
+ *   short of that costs credits, anything past it gains them.
+ * - **Coach**: `X = (N - P) / 40` — no breakeven multiplier at all (merely
+ *   matching your own price holds steady), and a wider /40 divisor, so a
+ *   coach's price moves more gently per round for a same-sized miss than a
+ *   player's does.
+ *
+ * X is always the credit gain/loss, N the entity's real fantasy points that
+ * round (`computeFantasyGamePoints`/`pointsForCoachResult`), P their price
+ * *before* the round. Both replace this file's original launch-day formula
+ * (`gamePoints / (currentPrice * 10)`, applied identically to both), which
+ * was never sourced — picked only to land in the rough ballpark of
+ * EuroLeague Fantasy's own public worked example (a 20.5cr player gaining
+ * +1.5cr from one big game) because neither real formula was known yet at
+ * the time. Both still clamped to +-DAILY_PRICE_MAX_DELTA as a safety net
+ * against one outlier stat line — not part of either sourced formula
+ * itself, but the natural range each produces already sits close to this
+ * bound in practice (e.g. a 40-point game from a 4cr player:
+ * (40-4.4)/25 ≈ 1.42), so this only ever clips genuine extremes.
+ *
+ * Deliberately separate from computeFantasyPrice/computeCoachPrice and the
+ * periodic `fantasy:reprice` script, which still set each entity's
+ * *baseline* price off season-long form/standings — this only ever nudges
+ * that baseline day to day, it never recomputes from scratch. An
+ * over-budget squad from a price increase is never invalidated
+ * retroactively (explicit decision, 2026-09-16) — POST /lineup/batch's
+ * budget check only blocks a *new* submission from exceeding the cap, same
+ * as budgetCap itself already only ever moves up without breaking an
+ * existing squad.
  */
-export const DAILY_PRICE_SENSITIVITY_DIVISOR = 10;
+export const FANTASY_PRICE_VARIATION_MULTIPLIER = 1.1;
+export const FANTASY_PRICE_VARIATION_DIVISOR = 25;
 export const DAILY_PRICE_MAX_DELTA = 1.0;
+
+// Coaches have their own, genuinely different published formula (same
+// source, a second EuroLeague Fantasist/@ELFantasist graphic, 2026-09-21):
+// `X = (N - P) / 40` — no 1.1 breakeven multiplier on price at all (a coach
+// needs to merely match their own price in fantasy points to hold steady,
+// not out-earn 110% of it), and a wider /40 divisor than a player's /25, so
+// a coach's price moves more gently per round for the same-sized miss.
+export const COACH_PRICE_VARIATION_DIVISOR = 40;
+
+function priceVariationDelta(gamePoints: number, currentPrice: number): number {
+  return clampDelta((gamePoints - currentPrice * FANTASY_PRICE_VARIATION_MULTIPLIER) / FANTASY_PRICE_VARIATION_DIVISOR);
+}
+
+function coachPriceVariationDelta(gamePoints: number, currentPrice: number): number {
+  return clampDelta((gamePoints - currentPrice) / COACH_PRICE_VARIATION_DIVISOR);
+}
 
 function clampDelta(delta: number): number {
   return Math.max(-DAILY_PRICE_MAX_DELTA, Math.min(DAILY_PRICE_MAX_DELTA, delta));
@@ -157,7 +189,7 @@ async function applyPlayerPriceChanges(season: string): Promise<number> {
       },
       teamWon
     );
-    const delta = clampDelta(gamePoints / (currentPrice * DAILY_PRICE_SENSITIVITY_DIVISOR));
+    const delta = priceVariationDelta(gamePoints, currentPrice);
     const newPrice = round1(Math.min(FANTASY_MAX_PRICE, Math.max(FANTASY_MIN_PRICE, currentPrice + delta)));
     priceByPlayerId.set(row.player_id, newPrice); // so a player with 2 games "today" (shouldn't normally happen) compounds correctly
     priceUpdates.push({ playerId: row.player_id, newPrice });
@@ -214,7 +246,7 @@ async function applyCoachPriceChanges(season: string): Promise<number> {
     const scoreFor = row.team_id === row.home_team_id ? row.home_score ?? 0 : row.away_score ?? 0;
     const scoreAgainst = row.team_id === row.home_team_id ? row.away_score ?? 0 : row.home_score ?? 0;
     const gamePoints = pointsForCoachResult(scoreFor, scoreAgainst);
-    const delta = clampDelta(gamePoints / (currentPrice * DAILY_PRICE_SENSITIVITY_DIVISOR));
+    const delta = coachPriceVariationDelta(gamePoints, currentPrice);
     const newPrice = round1(Math.min(COACH_MAX_PRICE, Math.max(COACH_MIN_PRICE, currentPrice + delta)));
     priceByTeamId.set(row.team_id, newPrice);
     priceUpdates.push({ teamId: row.team_id, newPrice });

@@ -619,6 +619,137 @@ If you need to apply a schema change without an interactive terminal
   was safe. Re-run `economy:simulate` (now including its own permanent
   zero-wheel-engagement scenario, not just the 100%/85%/cheapest-first
   ones) after any future odds/interval change.
+- **"Fix everything" album-completability pass (2026-09-21)** — direct
+  request, after `economy:simulate` (extended the same session to model
+  top-scorer prediction points and Fantasy Five, see that script's own doc
+  comment) showed a real gap at 50% wheel engagement (a realistic, not-
+  fully-engaged player, in between the already-documented 85%/0% floors):
+  full-album completion was only 5/13/23/31/43/68% across 50-80% win/loss
+  accuracy — legendary was still the bottleneck, and the two milestone
+  tracks above (the single biggest non-wheel lever, per
+  `LEGENDARY_MILESTONE_INTERVAL`'s own doc comment) only ever counted
+  win/loss picks, giving zero credit for a real, separate skill (top-scorer
+  picking) or for Fantasy Five's steady ~1900pts/season (which fed only
+  spending power, never the bottleneck tier directly). Two additive
+  changes, both in `services/cards.ts`:
+  1. **`checkAndGrantLegendaryMilestones`/`checkAndGrantCoachMilestones` now
+     count correct top-scorer picks too**, not just win/loss —
+     `topScorerCorrectCountSql()` mirrors `topScorerPoints.ts`'s
+     `topScorerTotalsCte()`'s per-game-leader derivation (same tie-null
+     rule) as a scalar count instead of a summed-points CTE, added directly
+     into the existing "correct" scalar subquery so both milestone
+     functions stay a single round trip.
+  2. **A new third milestone track, Fantasy Five-based**: `fantasyMilestones`
+     (schema.ts, exact structural mirror of `legendaryMilestones`/
+     `coachMilestones`) + `checkAndGrantFantasyMilestones`
+     (`FANTASY_MILESTONE_INTERVAL = 6`) grants an unopened `wheelLegendary`
+     pack every 6 completed Fantasy Five rounds — counted from this user's
+     own `fantasy_round_points` rows (services/fantasyScoring.ts), not
+     prediction accuracy at all. Deliberately engagement-based, not
+     skill-based, on purpose — Fantasy's round carry-forward means a squad
+     drafted once keeps scoring every subsequent round with zero further
+     weekly effort, so this rewards "did you keep an active squad" the same
+     way the wheel's own milestone already rewards daily spin habit,
+     structurally different from the pick-based track above. Wired into
+     `routes/fantasy.ts`'s `GET /lineup` (unconditionally, not gated on the
+     currently-viewed round's own completeness, since the underlying count
+     is career-wide — same "return every unseen grant" shape as
+     `checkAndGrantFantasyRoundPoints`), with a new
+     `POST /fantasy/milestone-rewards/ack` and a "Fantasy milestone!" banner
+     on the Fantasy Five page (`shownFantasyMilestoneRewards`, same
+     merge-by-id/immediate-ack pattern as Predictions' own milestone
+     banners).
+  - **Re-simulated before building** (interval picked by trial against
+    `economy:simulate`, not from independent design rationale — flagged
+    directly): at 50% wheel engagement, both changes together raised full-
+    album completion from 5/13/23/31/43/68% to 38/69/84/93/98/99% across
+    50-80% accuracy, with zero regression at 85%/100% engagement (still
+    ~100% everywhere) or the cheapest-first spending policy. The 0%-
+    engagement floor (never touches the wheel) stays at 0% full completion
+    — commons/rares still depend on wheel volume, a separate bottleneck
+    this pass didn't touch — but legendary count nearly tripled at low
+    accuracy (2.9→10.0 at 50%, up to 8.9→16.7 at 80%), a real improvement
+    to "does skill/engagement alone give a shot at the exciting tier" even
+    short of full completion. `season-simulation.ts`'s
+    `SIM_FANTASY_MILESTONE` default was updated from 0 (off) to 6 to match
+    the shipped constant, so a plain `economy:simulate` run now reflects
+    reality; `SIM_TOPSCORER_ACC_RATIO` (default 0.4, an assumed fraction of
+    win/loss accuracy) remains the one genuinely speculative input in this
+    whole model — no real top-scorer-pick accuracy data exists to calibrate
+    it against.
+  - **Verified against the real service functions, not just the
+    simulator**: a throwaway test user on the `dev` Neon branch was given
+    60 fabricated correct top-scorer picks (games + `player_game_stats` +
+    `top_scorer_predictions` rows) and 6 fabricated `fantasy_round_points`
+    rows, then `checkAndGrantLegendaryMilestones`/
+    `checkAndGrantFantasyMilestones` were called directly — both granted
+    exactly one milestone, a second call each stayed idempotent (no double
+    grant), and everything fabricated (including the test user) was deleted
+    afterward. Schema change (`CREATE TABLE fantasy_milestones`) applied
+    directly against both the `dev` and production databases per the
+    Schema-changes workflow above, ahead of the code deploy — safe since
+    the table is new and unreferenced by any pre-pass code.
+- **Legendary catalog replaced with each team's real "brand name" players
+  (2026-09-22)** — direct request: "replace our legendary cards with the
+  brand name players of each team." Explicit decisions confirmed with the
+  user first, since this touches real production collectible ownership:
+  2 legendaries per team (not 1), picked by real synced season PIR
+  (`playerSeasonStats.valuation`, not a hand-curated fame list), old rows
+  removed outright with no compensation. That last part was verified safe
+  *before* running anything destructive — a direct production query found
+  **zero** real `userCollectibles` rows for any of the 20 old legendaries
+  and zero pending trades referencing one (only 6 historical
+  `packOpeningResults` log rows, not live ownership), so nobody actually
+  lost an owned card.
+  - `backend/src/scripts/replace-legendary-catalog.ts` (one-off, kept for
+    history — not safe to re-run once real legendary ownership exists,
+    since it force-deletes every row referencing the old catalog in one
+    transaction: `tradeOfferItems`/`tradeOffers`, `userCollectibles`,
+    `packOpeningResults`, `wheelSpins`/`roundRewards`/`legendaryMilestones`/
+    `coachMilestones`'s legacy `collectibleId` columns, then the old
+    `collectibles` rows themselves, before inserting the new 40). Season
+    PIR uses the same per-player current-season-else-most-recent-prior-
+    season fallback as `reprice-fantasy-players.ts`, needed since 2026-27
+    has zero played games league-wide as of this pass — every real pick
+    this run actually came from each player's 2025-26 form. Run against
+    `dev` first and verified (40 rows, exactly 2/team) before running
+    against production. Top picks: Sasha Vezenkov (PIR 22.1), Mike
+    James/Mathias Lessort (19.1-19.6), matching this file's own existing
+    Fantasy-pricing calibration reference points.
+  - `expand-collectibles.ts`'s ongoing legendary-generation logic was
+    modernized to match: was "1 per team, skip any team that already has
+    one" (so a re-run after this migration would never notice the new
+    2-per-team model existed), now "top up to `LEGENDARIES_PER_TEAM` (2),
+    filling only what's missing" — also replaced its hardcoded
+    `SEASON = "2025-26"` with the same dynamic current-season-with-fallback
+    query the migration script uses, since a hardcoded season string goes
+    stale every transition. Verified idempotent on both `dev` and
+    production immediately after (re-run inserted 0 new legendaries on
+    both, as expected with the catalog already at exactly 2/team).
+  - **Doubling the pool (20 -> 40) required re-tuning the whole economy** —
+    without any other change, `economy:simulate` showed 50%-engagement
+    full-album completion collapsing to 0-4% across every accuracy (down
+    from the "fix everything" pass's own 5-99% just above). Retuned in the
+    same pass: `LEGENDARY_MILESTONE_INTERVAL` 60->25, `FANTASY_MILESTONE_
+    INTERVAL` 6->3 (`services/cards.ts`), `SPIN_ODDS` 58/20/14/8 ->
+    58/20/20/2 (`routes/spin.ts`), Elite pack big slot 17%/13% -> 24%/6%
+    legendary/coach (`services/packs.ts`) — both odds bumps taken entirely
+    out of **coach's** share, not common's/rare's, since coach isn't
+    album-tracked and so is a genuinely free lever (a lesson directly
+    reused from the 2026-09-03 coach-cards pass's own odds tuning).
+    Result: 50%-engagement completion restored to 37/72/89/96/99/100%
+    across accuracy 50-80% — matching or exceeding the original 22-card
+    numbers at every level — with zero regression to commons/rares (never
+    touched) or the 85%/100%/cheapest-first scenarios (still ~100%
+    everywhere). The 0%-engagement floor even improved in relative terms:
+    22-33/40 legendaries (55-81%) vs the original 2.9-8.9/22 (13-40%),
+    since the career-wide milestones (now tighter) don't depend on wheel
+    engagement at all. Coach supply dropped moderately as the one real
+    tradeoff — acceptable since coach was never part of "album complete."
+    `season-simulation.ts`'s own `CATALOG_SIZE.legendary` and milestone/
+    odds defaults were updated to match so a plain `economy:simulate` run
+    reflects the new reality; re-run it after any future change to either
+    interval or either odds table.
 - **Referrals** (`services/referrals.ts`, `users.referralCode`/
   `referredByUserId`/`referralRewardGranted` in `schema.ts`). Every user
   gets a unique code at registration (`createUniqueReferralCode`), shared as
@@ -702,6 +833,37 @@ If you need to apply a schema change without an interactive terminal
     real data (caught 2026-09-06 — a team having *a* position value isn't
     proof it means anything yet; falls back to last season's final standings
     until real games are played).
+  - **Daily/round price variation — real, entity-specific formulas
+    (2026-09-21)**: `services/fantasyDailyReprice.ts` (added 2026-09-16, run
+    on a background interval in `index.ts`, `[fantasy daily reprice]` in the
+    logs) nudges every player's/coach's price after each of their *final*
+    games — separate from `computeFantasyPrice`/`computeCoachPrice`/the
+    manual `fantasy:reprice` script above, which only ever set the
+    season-long *baseline* this daily job nudges day to day, never
+    recomputing from scratch. Originally used one unsourced guessed formula
+    applied identically to both (`gamePoints / (currentPrice * 10)`, picked
+    only to loosely match EuroLeague Fantasy's own public worked example)
+    since neither real formula was known at launch. Replaced with
+    EuroLeague Fantasy's actual published formulas once sourced (two
+    separate EuroLeague Fantasist/@ELFantasist graphics) — **players and
+    coaches are genuinely different formulas, not shared constants**:
+    player `X = (N - P*1.1) / 25`, coach `X = (N - P) / 40` (no breakeven
+    multiplier at all, and a wider /40 divisor than a player's /25 — a
+    coach's price moves more gently per round for a same-sized miss). `X`
+    is always the credit gain/loss, `N` that round's real fantasy points
+    (`computeFantasyGamePoints`/`pointsForCoachResult`), `P` the price
+    *before* the round. A player's `P*1.1` is a breakeven bar scaled to
+    their own price (score below ~110% of your price, lose credits; above,
+    gain), which is what gives a cheap player's price more room to swing
+    than an expensive one's for the same performance — a coach only needs
+    to match their own price to hold steady. Both still clamped to
+    `+-DAILY_PRICE_MAX_DELTA` (1.0) as a safety net against one outlier
+    stat line — not part of either sourced formula, just close to the
+    natural range each already produces. Each (player/coach, game) pair is
+    applied at most once (claim-first via `fantasy_price_change_log`/
+    `fantasy_coach_price_change_log`, same idempotency shape as the other
+    interval sync jobs), so swapping either formula only changes *future*
+    deltas — no backfill/replay of already-applied rows.
   - **Locking — whole-round, not per-player**: a per-player mid-round
     "Turns" substitution model (matching real rules' day-1/day-2 game
     blocks) was built and then deliberately reverted the same day (2026-09-07)
