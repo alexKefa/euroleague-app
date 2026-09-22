@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, ElementRef, viewChild, effect, inject, si
 import { CommonModule } from "@angular/common";
 import { Router, RouterLink } from "@angular/router";
 import { FormsModule } from "@angular/forms";
+import { forkJoin } from "rxjs";
 import { AuthService } from "../../core/auth.service";
 import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
@@ -12,6 +13,7 @@ import { ButtonDirective } from "../../shared/button.directive";
 import { ChipDirective } from "../../shared/chip.directive";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
+import { SkeletonComponent } from "../../shared/skeleton";
 import { TeamPickDialogComponent } from "../../shared/team-pick-dialog";
 import { TeamCodePipe } from "../../shared/team-display-code";
 import { NavIconComponent } from "../../shared/nav-icon";
@@ -36,6 +38,7 @@ const PAGE_SIZE = 20;
     ChipDirective,
     CollectibleCardComponent,
     LogoSpinnerComponent,
+    SkeletonComponent,
     TeamPickDialogComponent,
     TeamCodePipe,
     NavIconComponent,
@@ -130,6 +133,17 @@ export class ProfileComponent implements OnInit, OnDestroy {
   finishFor(card: { id: string }): CollectibleFinish {
     return this.finishByCollectibleId().get(card.id) ?? "standard";
   }
+
+  // True until both requests behind myOwnedCollectibles resolve (2026-09-22,
+  // "cards i own come as async... it loads with the container and page goes
+  // up or down") — the showcase card was gated on
+  // `myOwnedCollectibles().length > 0`, which is also false while still
+  // loading (both source signals start empty), so nothing at all reserved
+  // the space this section eventually takes. The section popping in fully
+  // formed once the fetch resolved is what shifted the rest of the page up
+  // or down under the reader's scroll position. profile.html now renders a
+  // same-shaped skeleton while this is true instead of rendering nothing.
+  readonly ownedCollectiblesLoading = signal(true);
   readonly myOwnedCollectibles = computed(() =>
     this.allCollectibles().filter((c) => this.ownedCollectibleIds().has(c.id))
   );
@@ -194,15 +208,21 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.api.getTeams().subscribe({ next: (rows) => this.teams.set(rows), error: () => {} });
 
     if (this.auth.isAuthenticated()) {
-      this.api.getCollectibles().subscribe({ next: (rows) => this.allCollectibles.set(rows), error: () => {} });
-      this.api.getMyCollectibles().subscribe({
-        next: (rows) => {
-          this.ownedCollectibleIds.set(new Set(rows.map((r) => r.collectibleId)));
-          this.finishByCollectibleId.set(new Map(rows.map((r) => [r.collectibleId, r.finish])));
+      forkJoin({
+        collectibles: this.api.getCollectibles(),
+        mine: this.api.getMyCollectibles(),
+      }).subscribe({
+        next: ({ collectibles, mine }) => {
+          this.allCollectibles.set(collectibles);
+          this.ownedCollectibleIds.set(new Set(mine.map((r) => r.collectibleId)));
+          this.finishByCollectibleId.set(new Map(mine.map((r) => [r.collectibleId, r.finish])));
+          this.ownedCollectiblesLoading.set(false);
         },
-        error: () => {},
+        error: () => this.ownedCollectiblesLoading.set(false),
       });
       this.showcaseSelected.set(new Set(this.auth.currentUser()?.showcaseCollectibleIds ?? []));
+    } else {
+      this.ownedCollectiblesLoading.set(false);
     }
   }
 

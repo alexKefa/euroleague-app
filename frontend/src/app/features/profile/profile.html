@@ -66,7 +66,31 @@
       </div>
     }
 
-    @if (myOwnedCollectibles().length > 0) {
+    <!-- Skeleton (2026-09-22, "cards i own come as async... it loads with
+         the container and page goes up or down") — this section used to be
+         entirely absent (no reserved space at all) until both requests
+         behind myOwnedCollectibles resolved, so it popping in fully formed
+         shifted everything below it under the reader's scroll position.
+         Same wrapper/title/hint/grid/button shape as the real section below
+         so the page's height doesn't jump once the real content swaps in —
+         title/hint text itself isn't skeletoned since it's static copy, not
+         data-dependent; only the card grid and Save button are. Card count
+         (8) is arbitrary (the real count varies per user) but the grid's
+         own max-h-80 overflow-y-auto caps the container at the same height
+         either way once there's enough to fill it, which covers most real
+         accounts. -->
+    @if (ownedCollectiblesLoading()) {
+      <div class="bg-card rounded-lg shadow-card p-4 mb-5">
+        <p class="font-mono text-[12px] text-muted font-bold mb-1">{{ i18n.t('profile.showcaseTitle') }}</p>
+        <p class="text-xs text-muted mb-3">{{ i18n.t('profile.showcaseHint') }}</p>
+        <div class="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-3 max-h-80 overflow-y-auto p-1">
+          @for (i of [1, 2, 3, 4, 5, 6, 7, 8]; track i) {
+            <app-skeleton class="rounded-2xl" style="aspect-ratio: 2.5 / 3.5" [iconSize]="20" />
+          }
+        </div>
+        <app-skeleton class="rounded-xl inline-block h-9 w-32" [icon]="false" />
+      </div>
+    } @else if (myOwnedCollectibles().length > 0) {
       <div class="bg-card rounded-lg shadow-card p-4 mb-5">
         <p class="font-mono text-[12px] text-muted font-bold mb-1">{{ i18n.t('profile.showcaseTitle') }}</p>
         <p class="text-xs text-muted mb-3">{{ i18n.t('profile.showcaseHint') }}</p>
