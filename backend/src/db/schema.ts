@@ -921,6 +921,40 @@ export const leagueMembers = pgTable(
   })
 );
 
+// PvP card battles, v3 (2026-09-22 — a same-day third rework; v1 was a
+// turn-based ATK/DEF/HP fight, v2 tied the outcome to a real EuroLeague
+// round's results, both replaced after direct feedback — see CLAUDE.md's
+// "Card Battles" section for the full history). v3: a single card each,
+// resolved instantly as a weighted-random duel (services/battles.ts's
+// computeCardPower/resolveDuel) the moment the opponent accepts — no
+// waiting on a real round, no squad to manage, distinct from Fantasy Five
+// on purpose. Still league-scoped (opponentUserId must be a fellow member)
+// and still explicitly no-risk — a card is only ever a pick here, never
+// lost or transferred, the winner gets a point_adjustments grant into the
+// shared points pool. status: pending (awaiting the opponent's card) |
+// declined | cancelled | finished (resolved the instant the opponent
+// accepted — there's no "active/waiting" state at all in this version).
+export const battles = pgTable("battles", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  leagueId: uuid("league_id").notNull().references(() => leagues.id),
+  challengerUserId: uuid("challenger_user_id").notNull().references(() => users.id),
+  opponentUserId: uuid("opponent_user_id").notNull().references(() => users.id),
+  challengerCollectibleId: uuid("challenger_collectible_id").notNull().references(() => collectibles.id),
+  // Null until accepted — the opponent doesn't pick until then, unlike v2's
+  // battle_picks table this needs no separate rows: it's always exactly one
+  // card per side, so two nullable FK columns replace a whole child table.
+  opponentCollectibleId: uuid("opponent_collectible_id").references(() => collectibles.id),
+  status: varchar("status", { length: 20 }).default("pending").notNull(),
+  winnerUserId: uuid("winner_user_id").references(() => users.id),
+  // The real points amount transferred loser->winner, frozen at resolution
+  // (2026-09-23 fix) — variable, not the old flat 25, see
+  // services/battles.ts's computeStakeForWinProb. Null until accepted.
+  stakePoints: integer("stake_points"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  respondedAt: timestamp("responded_at", { withTimezone: true }),
+  finishedAt: timestamp("finished_at", { withTimezone: true }),
+});
+
 // A user's saved custom stat table — which players and which
 // playerSeasonStats columns to show, plus how to sort it. Free (not
 // points-gated — considered and deliberately dropped), capped at 5 per
@@ -1192,6 +1226,26 @@ export const leaguesRelations = relations(leagues, ({ one, many }) => ({
 export const leagueMembersRelations = relations(leagueMembers, ({ one }) => ({
   league: one(leagues, { fields: [leagueMembers.leagueId], references: [leagues.id] }),
   user: one(users, { fields: [leagueMembers.userId], references: [users.id] }),
+}));
+
+export const battlesRelations = relations(battles, ({ one }) => ({
+  league: one(leagues, { fields: [battles.leagueId], references: [leagues.id] }),
+  challenger: one(users, {
+    fields: [battles.challengerUserId],
+    references: [users.id],
+    relationName: "battlesChallenger",
+  }),
+  opponent: one(users, { fields: [battles.opponentUserId], references: [users.id], relationName: "battlesOpponent" }),
+  challengerCollectible: one(collectibles, {
+    fields: [battles.challengerCollectibleId],
+    references: [collectibles.id],
+    relationName: "battlesChallengerCard",
+  }),
+  opponentCollectible: one(collectibles, {
+    fields: [battles.opponentCollectibleId],
+    references: [collectibles.id],
+    relationName: "battlesOpponentCard",
+  }),
 }));
 
 export const legendaryPollsRelations = relations(legendaryPolls, ({ one, many }) => ({

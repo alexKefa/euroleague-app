@@ -1780,6 +1780,219 @@ at the same Neon instance as local dev — there's no separate prod database.
     without it, a shorter step's pane would shrink, carrying the prev/next
     arrow buttons out from under the cursor on a fast double-click.
 
+## Card Battles (2026-09-22)
+
+- **Shipped as a single-card instant duel, after four rejected directions
+  the same day** — worth reading in full if this ever needs another pass,
+  since the history is what actually explains why it's shaped this way.
+  Original pitch: a literal "3D battle" (rejected immediately for build
+  cost — no game engine, no P2P netcode). v1: a turn-based ATK/DEF/HP fight
+  over 5 cards. v2, after "I don't like how it works": 3v3, tier/foil
+  damage multipliers, a Pokemon-style active-card duel with lunge/shake
+  animations. v2 still didn't land — "I still don't like the style...
+  confusing to actually play... doesn't feel like a real card battle" —
+  the signal the whole *mechanic* was the mismatch, not its skin: a
+  fabricated combat formula on a stats app reads as arbitrary next to real
+  basketball. v3: tied the outcome to a real EuroLeague round's results
+  instead (3-card squads, summed real PIR) — but the very next reaction was
+  "it's almost the same with fantasy but with 3 players", a fair call:
+  mechanically it *was* just a smaller Fantasy Five. Asked for another PvP
+  angle entirely; landed on **v4 (shipped)**: one card each, resolved
+  *instantly* as a weighted-random duel, no squad, no waiting on a real
+  round — genuinely distinct from Fantasy Five, and simple enough to make
+  the one dramatic reveal moment worth animating well. Every prior
+  version's code/schema was deleted outright each time, never kept behind
+  a flag — nothing in production ever depended on any of it.
+  - **Mechanic** (`services/battles.ts`): `battles` (schema.ts) holds both
+    sides directly as two nullable collectible FK columns
+    (`challengerCollectibleId` set at creation, `opponentCollectibleId` set
+    at accept) — no child table at all, since it's always exactly one card
+    per side; v2's `battlePicks` table was dropped along with everything
+    else. `computeCardPowers` gives each card a power score — tier sets a
+    floor (common 20 / rare 35 / legendary 55), real current-season-or-
+    career PIR (same fallback chain used everywhere else this app derives
+    a card stat from player data) adds on top. `resolveDuel` is a
+    proportional weighted coin flip (`P(challenger wins) = powerA /
+    (powerA + powerB)`) — a much stronger card is heavily favored but never
+    guaranteed, confirmed live at ~83% (25/30) for a legendary vs. a common
+    in a real trial run. Coach cards still excluded (no `players` row, so
+    no real PIR to weigh).
+  - **Resolution is synchronous, not read-driven** — a real behavioral
+    simplification from v2/v3, not just a smaller schema: `POST
+    /battles/:id/accept` (routes/battles.ts) computes both powers and rolls
+    the duel *immediately*, inside one transaction (`for("update")` lock so
+    a double-accept can't roll twice), sets `status: "finished"` and
+    `winnerUserId` right there, and grants the winner `BATTLE_WIN_POINTS`
+    (25) via the same `point_adjustments` self-attributed-grant shape
+    `packs.ts` already uses. `GET /battles/:id` is a pure read with zero
+    side effects as a result — a real, deliberate contrast with v2/v3's
+    "resolve as a side effect of a GET" pattern, since there's no longer
+    anything to wait on.
+  - **More interaction + "show card of player" (same-day follow-up,
+    direct ask)**: the opponent now sees the challenger's already-picked
+    card *before* choosing their own (`battle-detail.html`, the `pending &&
+    iAmOpponent()` branch) — `GET /:id` already returned
+    `challengerCard` regardless of status, so this needed no backend
+    change, only surfacing data the route already sent. Turns picking into
+    a real reaction (go bigger, or risk a weaker card anyway) instead of
+    two blind simultaneous picks.
+  - **3D reveal** (`features/battles/battle-detail.css`, no library) — the
+    duel is already decided server-side by the time this plays; it's pure
+    presentation. `revealStage` (`battle-detail.ts`) steps through
+    idle → approaching → clashed → revealed on a fixed timer
+    (`setTimeout` chain matching the CSS transition durations) the moment a
+    finished battle loads. `perspective` + `rotateY` slide both cards in
+    from off-screen, "clash" in the middle with a brightness flash, then
+    the loser rotates face-away, grayscales, and shrinks while the winner
+    scales up slightly — a real 3D transform, not a 2D fake, but plain CSS
+    (`transform-style: preserve-3d`), the same "no engine needed for a
+    single contained moment" reasoning that scoped down the original 3D
+    pitch. **Basketball effect** (direct ask, same follow-up): reuses
+    `NavIconComponent`'s existing `"ball"` icon (no new asset) between the
+    two cards — dribble-bounces while the cards close in, spins on
+    impact, then swishes away (fades + drops) once the result shows, with
+    the plain "vs" label crossfading in behind it at rest.
+  - **Verified live against the `dev` Neon database** (not production), one
+    end-to-end script driving the real HTTP routes: every validation path
+    (unowned card, self-challenge, wrong acceptor, wrong decliner, double-
+    accept), the full challenge → accept → instant-resolve flow, exactly
+    one reward row landing on the actual computed winner, and a 30-trial
+    statistical run confirming the power-weighted odds behave as designed
+    (favored, not guaranteed) — all passed. Not verified in a live browser
+    — the Claude in Chrome extension wasn't connected this session.
+  - **Schema applied to `dev` only, not production** — the current
+    single-table `battles` shape (schema.ts) exists on the `dev` Neon
+    branch only; apply the same `CREATE TABLE` to production's
+    `DATABASE_URL` before this code deploys there, per the Schema-changes
+    workflow above. (Note: this table has been dropped and recreated three
+    times on `dev` alone across today's four versions — always the
+    dev-only branch, production was never touched mid-iteration.)
+  - **Real infra incident during the v2 verification pass, worth
+    remembering regardless of the mechanic**: the first attempt to point
+    the local backend at `dev` silently failed — a stale `tsx watch`
+    process from an old, unrelated session (this machine had 8 of them
+    accumulated, dated across two weeks, none ever cleanly killed at
+    session end) was still squatting on port 4000 with the default `.env`
+    (production) `DATABASE_URL`. Two throwaway test accounts briefly leaked
+    into production before this was caught and cleaned up (confirmed
+    nothing else was affected). Fixed by killing every stale process on the
+    machine and, critically, **verifying which database a freshly started
+    local server actually landed in by registering a throwaway user and
+    checking for its id on both databases directly** — an HTTP 200 or a
+    clean startup log looked identical regardless of which DB was actually
+    wired up. Do this trace-check every time before trusting a "pointed at
+    dev" local server for anything beyond a `GET`.
+- **Real bug caught live, same day, worth remembering as a general Angular
+  signals footgun**: "everything is laggy, like animating without ending".
+  `BattleDetailComponent`'s constructor `effect()` (watching
+  `EventsService.lastBattleUpdate()`) read `this.battle()` directly as
+  `current` — but that same effect's body calls `refresh()`, which writes
+  `this.battle`. Since `battle` was a tracked dependency of the very effect
+  that writes it, every write re-triggered the effect, which could call
+  `refresh()` again, forever — a silent infinite fetch loop present in
+  *every* version of this component since the very first one, only made
+  visible once the basketball's `infinite` CSS bounce gave it something to
+  visibly keep restarting. Fixed with `untracked(() => this.battle())` so
+  only a genuinely new `lastBattleUpdate()` push re-runs the effect; also
+  added a `hasPlayedReveal` guard so the reveal animation itself only ever
+  plays once per battle regardless. Checked for the same read-what-you-
+  write pattern elsewhere (`trades.ts`'s equivalent effect) — clean, this
+  was specific to battle-detail.ts, not a systemic issue.
+- **Same-day follow-ups, all direct asks**:
+  - **Real-time challenge toast** (`shared/battle-challenge-toast.ts`,
+    mounted globally in `app.component.html` next to `install-banner.ts`)
+    — "immediately notify a user... without having to reach my leagues".
+    Leagues has no nav icon of its own (see Frontend architecture's nav
+    bullet), so there was nowhere to hang a persistent badge; the app-wide
+    SSE connection already exists regardless, so a toast that pops up over
+    whatever page you're on was the natural fit instead. Fires on a
+    `battle-update` push with `reason: "challenged"`, fetches the
+    challenger's name, shows a dismissible "X challenged you to a duel!"
+    with a one-tap "View challenge", auto-hides after 10s. Only fires while
+    this tab has a live connection — a challenge sent while the app is
+    fully closed still only surfaces via the league's Battles tab later,
+    same limitation every SSE-pushed feature in this app already has (real
+    push notifications to a closed app/device would be a much bigger,
+    separate feature).
+  - **Card photo now shown in the Battles list** (`GET /battles/mine`,
+    `league-detail.html`) — that list was text-only (name + status), no
+    visual at all. Carries the challenger's card (name/tier/image/team) on
+    each row now, rendered via the existing `PlayerPhotoComponent` (same
+    circular-photo-with-jersey-fallback component roster/game pages already
+    use) rather than a full `CollectibleCardComponent`, which reads too
+    heavy for a compact list row.
+  - **Card power made visible, not just invisible math** — "stats should
+    also count for the coin flip" was already true (`computeCardPowers`
+    factors real PIR in alongside tier), this surfaces it instead of it
+    only mattering silently server-side. New `POST /battles/card-powers`
+    (one request covers every candidate card in the picker, not a round
+    trip per tap) shows a power number under each of your own cards while
+    picking; `GET /battles/:id` now also returns `challengerPower`, so once
+    you can see the challenger's card (the same-day reveal above) you also
+    see a live win-% for whichever of your own cards is currently picked —
+    turns picking into an actually informed decision instead of a blind
+    guess, tying the "stats should count" and "more interaction" asks
+    together in one change.
+  - **Discussed but not built, offered as follow-ups**: a rematch/best-of-N
+    flow, a per-league duel win/loss record, and a post-duel reaction/emoji.
+    None built yet — flagged for whichever the user actually wants next.
+- **Real infinite-farming exploit caught live, fixed same day** — "thats by
+  the way infinite farming glitch. users should risk something." The
+  original win reward (`BATTLE_WIN_POINTS`) was a flat `point_adjustments`
+  grant minted from nothing on every resolution, with zero cost to
+  challenge. Since a duel is a coin flip, not a skill contest, two players
+  (colluding or not) could just duel back and forth forever, each netting
+  free points roughly half the time, for free — exactly the kind of
+  "infinite money" exploit this app's economy has been careful to avoid
+  everywhere else (see e.g. `forceNewLegendary`, legendary duplicates never
+  selling for points). Explicitly **not** fixed by wagering the card
+  itself (discussed and rejected earlier the same day, same reasoning as
+  above) — fixed by making the points genuinely zero-sum instead:
+  `BATTLE_STAKE_POINTS` (renamed from `BATTLE_WIN_POINTS`, still 25) is now
+  a real stake taken from the loser's own balance via two
+  `point_adjustments` rows at resolution (+25 winner, -25 loser, both
+  `countsTowardRanking: true` — a duel result is a competitive outcome, not
+  a redemption spend like a pack purchase, so it should move the
+  leaderboard). Both `POST /battles` and `POST /battles/:id/accept` check
+  `getUserPoints()` first (same "check affordability before the spend"
+  pattern `packs.ts` already uses) — the *opponent's* balance at either
+  call, and the *challenger's* balance again at accept time specifically
+  (`CHALLENGER_INSUFFICIENT_POINTS`), since time may have passed since they
+  sent the challenge and they could have since spent the points elsewhere.
+  Frontend (`battle-detail.ts`) fetches the same `PredictionSummary.points`
+  Store/Packs already use to show/gate on the current balance, with a
+  stake/balance readout in the card picker and both buttons disabled below
+  the stake. **Verified live against `dev`**: a 0-point account is rejected
+  outright; after granting both sides 100 points, a resolved duel showed
+  the combined total unchanged before vs. after (200 → 200, genuinely
+  zero-sum) with exactly one +25/-25 pair of rows on the right two users;
+  draining the challenger's balance after they'd already sent a challenge
+  correctly blocked the opponent's accept with `CHALLENGER_INSUFFICIENT_POINTS`.
+- **Stake made variable, same day** — two direct asks together: "when user
+  accepting the challenge he should be informed with the points he loses"
+  and "probably lower tier cards should get more points when competing
+  against higher ones". The flat 25pt stake became `computeStakeForWinProb`
+  (`services/battles.ts`, `BATTLE_STAKE_BASE` 25 / `BATTLE_STAKE_CAP` 100) —
+  deliberately reusing the *exact* shape of `points.ts`'s own
+  `pointsForCorrectPick` (predictions): the **winning** side's own pre-duel
+  win probability sets the payout, `min(CAP, max(BASE, round(BASE /
+  winProb)))` — a heavy favorite winning pays close to BASE, a real
+  underdog pulling off the upset pays up to CAP. Both win-scenario stakes
+  are computable the moment both cards are known (accept time, before the
+  roll), so `POST /:id/accept` checks each side can cover *their own*
+  potential loss precisely (not the old flat 25) before rolling, and
+  freezes the actual transferred amount on a new `battles.stake_points`
+  column (schema change applied directly to `dev`) so the reveal screen can
+  show the real number instead of a hardcoded "+25". Frontend
+  (`battle-detail.ts`) duplicates the same pure formula client-side (no new
+  round trip) to show a live "+N pts if you win / -M pts if you lose"
+  readout as the accepting player tries different cards — answers both
+  asks in one change, same as the earlier photo/power-visibility pass did.
+  **Verified live**: ran real duels until both a favorite-win and an
+  underdog-win were observed, confirmed the underdog's win stake (88) was
+  genuinely larger than the favorite's win stake (35) for the same
+  legendary-vs-common matchup.
+
 ## Other known gaps
 
 - A traded player's season-long stat averages (across both teams) are

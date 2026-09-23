@@ -44,6 +44,8 @@ import {
   League,
   LeagueDetail,
   LeagueLeaderboardEntry,
+  BattleSummary,
+  BattleDetail,
   InjuryReportEntry,
   InjuryStatus,
   FantasyPlayers,
@@ -481,6 +483,49 @@ export class ApiService {
 
   getLeagueLeaderboard(id: string): Observable<LeagueLeaderboardEntry[]> {
     return this.http.get<LeagueLeaderboardEntry[]>(`${API_BASE_URL}/leagues/${id}/leaderboard`);
+  }
+
+  // Card battles — instant single-card PvP duel within a league. Omit
+  // leagueId to get every battle across every league the user is in.
+  getMyBattles(leagueId?: string): Observable<BattleSummary[]> {
+    return this.http.get<BattleSummary[]>(`${API_BASE_URL}/battles/mine`, {
+      params: leagueId ? { leagueId } : {},
+    });
+  }
+
+  getBattle(id: string): Observable<BattleDetail> {
+    return this.http.get<BattleDetail>(`${API_BASE_URL}/battles/${id}`);
+  }
+
+  challengeToBattle(leagueId: string, opponentUserId: string, collectibleId: string): Observable<{ id: string; status: string }> {
+    return this.http.post<{ id: string; status: string }>(`${API_BASE_URL}/battles`, {
+      leagueId,
+      opponentUserId,
+      collectibleId,
+    });
+  }
+
+  // Resolves the duel immediately server-side — the response just confirms
+  // it finished; GET getBattle(id) afterward returns the actual winner.
+  acceptBattle(id: string, collectibleId: string): Observable<unknown> {
+    return this.http.post(`${API_BASE_URL}/battles/${id}/accept`, { collectibleId });
+  }
+
+  declineBattle(id: string): Observable<unknown> {
+    return this.http.post(`${API_BASE_URL}/battles/${id}/decline`, {});
+  }
+
+  cancelBattle(id: string): Observable<unknown> {
+    return this.http.post(`${API_BASE_URL}/battles/${id}/cancel`, {});
+  }
+
+  // A power score per card (services/battles.ts's computeCardPowers) — lets
+  // the picker show how each of your cards actually stacks up instead of
+  // that only happening invisibly server-side at accept time.
+  getCardPowers(collectibleIds: string[]): Observable<{ powers: { collectibleId: string; power: number }[] }> {
+    return this.http.post<{ powers: { collectibleId: string; power: number }[] }>(`${API_BASE_URL}/battles/card-powers`, {
+      collectibleIds,
+    });
   }
 
   // Fantasy Five — the whole draftable player pool + price for the roster

@@ -5,14 +5,16 @@ import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { NavHistoryService } from "../../core/nav-history.service";
-import { LeagueDetail, LeagueLeaderboardEntry, FantasyLeaderboardEntry } from "../../core/models";
+import { LeagueDetail, LeagueLeaderboardEntry, FantasyLeaderboardEntry, BattleSummary } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
+import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { NavIconComponent, NavIconName } from "../../shared/nav-icon";
 import { ButtonDirective } from "../../shared/button.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { ConfirmDialogComponent } from "../../shared/confirm-dialog";
 import { FantasyLeaderboardListComponent } from "../../shared/fantasy-leaderboard-list";
 import { rankBadgeClasses, rankRowClasses } from "../../shared/rank-badge";
+import { BattlesInfoComponent } from "../battles/battles-info";
 
 // Same badge-id -> icon map as predictions.ts — keep both in sync if a
 // badge is ever added there (backend/src/services/leaderboard.ts's BADGES).
@@ -31,11 +33,13 @@ const BADGE_ICONS: Record<string, NavIconName> = {
     CommonModule,
     RouterLink,
     CollectibleCardComponent,
+    PlayerPhotoComponent,
     NavIconComponent,
     ButtonDirective,
     SkeletonComponent,
     ConfirmDialogComponent,
     FantasyLeaderboardListComponent,
+    BattlesInfoComponent,
   ],
   templateUrl: "./league-detail.html",
 })
@@ -57,14 +61,39 @@ export class LeagueDetailComponent implements OnInit {
   // eagerly on init rather than on first tab switch — a league is a small,
   // known group of friends, so the extra round trip is cheap and avoids a
   // second loading flicker the first time someone taps "Fantasy".
-  readonly tab = signal<"points" | "fantasy">("points");
+  readonly tab = signal<"points" | "fantasy" | "battles">("points");
   readonly fantasyLeaderboard = signal<FantasyLeaderboardEntry[]>([]);
   readonly fantasyLoading = signal(true);
   protected readonly rankBadgeClasses = rankBadgeClasses;
   protected readonly rankRowClasses = rankRowClasses;
 
-  setTab(tab: "points" | "fantasy"): void {
+  // Battles tab (card battles, league-scoped — see CLAUDE.md's "Card
+  // Battles" section) — loaded lazily on first switch to this tab rather
+  // than eagerly like points/fantasy above, since most visits to a league
+  // won't touch it.
+  readonly battles = signal<BattleSummary[]>([]);
+  readonly battlesLoading = signal(false);
+  private battlesLoaded = false;
+
+  setTab(tab: "points" | "fantasy" | "battles"): void {
     this.tab.set(tab);
+    if (tab === "battles" && !this.battlesLoaded) {
+      this.battlesLoaded = true;
+      this.battlesLoading.set(true);
+      this.api.getMyBattles(this.leagueId).subscribe({
+        next: (rows) => {
+          this.battles.set(rows);
+          this.battlesLoading.set(false);
+        },
+        error: () => this.battlesLoading.set(false),
+      });
+    }
+  }
+
+  challenge(member: { userId: string; displayName: string }): void {
+    this.router.navigate(["/battles", "new"], {
+      queryParams: { leagueId: this.leagueId, opponentUserId: member.userId, opponentName: member.displayName },
+    });
   }
 
   readonly copied = signal(false);

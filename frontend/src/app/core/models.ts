@@ -796,6 +796,61 @@ export interface LeagueDetail {
 export type LeagueShowcaseCard = ShowcaseCard;
 export type LeagueLeaderboardEntry = LeaderboardEntry;
 
+// Card battles, v3 (2026-09-22 — a same-day third rework; see CLAUDE.md's
+// "Card Battles" section for the full history of what v1/v2 tried and why
+// they were replaced). A single card each, resolved instantly as a
+// weighted-random duel the moment the opponent accepts — no squad, no
+// waiting on a real round. No-risk by design: a card is only ever a pick
+// here, never lost or transferred; the winner gets a points reward instead.
+export type BattleStatus = "pending" | "declined" | "cancelled" | "finished";
+
+export interface BattleCardRef {
+  id: string;
+  name: string;
+  tier: CollectibleTier;
+  imageUrl: string | null;
+  team: { id: string; code: string; primaryColor: string | null };
+}
+
+// GET /api/battles/mine — one row per challenge (pending/finished) the
+// current user is part of, optionally scoped to one league. Carries the
+// challenger's card (2026-09-22) so the list previews the matchup, not
+// just names.
+export interface BattleSummary {
+  id: string;
+  leagueId: string;
+  status: BattleStatus;
+  direction: "incoming" | "outgoing";
+  counterpartyName: string;
+  winnerUserId: string | null;
+  createdAt: string;
+  challengerCard: BattleCardRef;
+}
+
+// GET /api/battles/:id — full duel state. opponentCard is null until the
+// opponent accepts (at which point the duel is already resolved — there's
+// no separate "locked in, waiting" state in this version). challengerPower
+// is the same power score computeCardPowers would use to decide the duel —
+// shown so a card's real stats visibly affect the odds, not just invisibly
+// server-side.
+export interface BattleDetail {
+  id: string;
+  leagueId: string;
+  status: BattleStatus;
+  challengerUserId: string;
+  challengerName: string;
+  opponentUserId: string;
+  opponentName: string;
+  winnerUserId: string | null;
+  // The real points amount transferred loser->winner (2026-09-23 —
+  // variable now, scaled by how big an underdog the winner was; see
+  // services/battles.ts's computeStakeForWinProb). Null until accepted.
+  stakePoints: number | null;
+  challengerPower: number;
+  challengerCard: BattleCardRef;
+  opponentCard: BattleCardRef | null;
+}
+
 export interface StandingsRow {
   team: Team;
   stats: TeamSeasonStats;

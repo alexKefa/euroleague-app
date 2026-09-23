@@ -19,6 +19,7 @@ import { teamsTranslations } from "./teams";
 import { standingsTranslations } from "./standings";
 import { analyticsBuilderTranslations } from "./analytics-builder";
 import { leaguesTranslations } from "./leagues";
+import { battlesTranslations } from "./battles";
 import { injuriesTranslations } from "./injuries";
 import { fantasyTranslations } from "./fantasy";
 import { landingTranslations } from "./landing";
@@ -55,6 +56,7 @@ export const translations: Record<string, Record<Lang, string>> = {
   ...standingsTranslations,
   ...analyticsBuilderTranslations,
   ...leaguesTranslations,
+  ...battlesTranslations,
   ...injuriesTranslations,
   ...fantasyTranslations,
   ...landingTranslations,

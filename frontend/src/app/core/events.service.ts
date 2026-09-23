@@ -18,6 +18,11 @@ export interface TradeUpdate {
   reason: "offered" | "accepted" | "declined" | "cancelled";
 }
 
+export interface BattleUpdate {
+  battleId: string;
+  reason: "challenged" | "accepted" | "declined" | "cancelled" | "move" | "finished";
+}
+
 /**
  * One shared SSE connection to /api/events for the whole app. Live scores
  * are public, so this connects whether or not the user is logged in; it
@@ -42,6 +47,12 @@ export class EventsService {
   // payload directly — it only carries enough to know *that* something
   // changed, not what.
   readonly lastTradeUpdate = signal<TradeUpdate | null>(null);
+
+  // A card battle involving the logged-in user just changed state (see
+  // routes/battles.ts's notifyBattleUpdate) — same per-user sendToUser
+  // delivery and "payload only says *that* something changed, re-fetch via
+  // REST" convention as lastTradeUpdate above.
+  readonly lastBattleUpdate = signal<BattleUpdate | null>(null);
 
   // Game ids currently live. Seeded once from a REST fetch on boot, so a
   // visitor who opens the app mid-game sees it immediately rather than
@@ -122,6 +133,9 @@ export class EventsService {
     });
     source.addEventListener("trade-update", (event) => {
       this.lastTradeUpdate.set(JSON.parse((event as MessageEvent).data));
+    });
+    source.addEventListener("battle-update", (event) => {
+      this.lastBattleUpdate.set(JSON.parse((event as MessageEvent).data));
     });
     this.source = source;
   }
