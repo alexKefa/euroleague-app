@@ -1,4 +1,4 @@
-import { Component, OnDestroy, effect, inject, signal } from "@angular/core";
+import { Component, effect, inject, signal } from "@angular/core";
 import { Router } from "@angular/router";
 import { EventsService } from "../core/events.service";
 import { AuthService } from "../core/auth.service";
@@ -6,8 +6,6 @@ import { ApiService } from "../core/api.service";
 import { I18nService } from "../core/i18n.service";
 import { NavIconComponent } from "./nav-icon";
 import { ButtonDirective } from "./button.directive";
-
-const AUTO_DISMISS_MS = 10000;
 
 interface ToastState {
   battleId: string;
@@ -33,7 +31,7 @@ interface ToastState {
   templateUrl: "./battle-challenge-toast.html",
   styleUrl: "./battle-challenge-toast.css",
 })
-export class BattleChallengeToastComponent implements OnDestroy {
+export class BattleChallengeToastComponent {
   private events = inject(EventsService);
   private auth = inject(AuthService);
   private api = inject(ApiService);
@@ -41,7 +39,6 @@ export class BattleChallengeToastComponent implements OnDestroy {
   private router = inject(Router);
 
   readonly toast = signal<ToastState | null>(null);
-  private dismissTimer: ReturnType<typeof setTimeout> | null = null;
   private lastSeenBattleId: string | null = null;
 
   constructor() {
@@ -66,8 +63,6 @@ export class BattleChallengeToastComponent implements OnDestroy {
 
   private show(state: ToastState): void {
     this.toast.set(state);
-    if (this.dismissTimer) clearTimeout(this.dismissTimer);
-    this.dismissTimer = setTimeout(() => this.toast.set(null), AUTO_DISMISS_MS);
   }
 
   view(): void {
@@ -79,13 +74,5 @@ export class BattleChallengeToastComponent implements OnDestroy {
 
   dismiss(): void {
     this.toast.set(null);
-    if (this.dismissTimer) {
-      clearTimeout(this.dismissTimer);
-      this.dismissTimer = null;
-    }
-  }
-
-  ngOnDestroy(): void {
-    if (this.dismissTimer) clearTimeout(this.dismissTimer);
   }
 }

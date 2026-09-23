@@ -316,4 +316,13 @@ export class BattleDetailComponent implements OnInit {
     const leagueId = this.isNew() ? this.newLeagueId : this.battle()?.leagueId;
     return leagueId ? `/leagues/${leagueId}` : "/leagues";
   }
+
+  // Once a duel is finished there's nothing more to do on this page — send
+  // the player straight to the league's Battles tab (not just "back", which
+  // could land on whatever unrelated page they arrived from) so they can
+  // start or check another one.
+  goToBattles(): void {
+    const leagueId = this.battle()?.leagueId;
+    this.router.navigate(leagueId ? ["/leagues", leagueId] : ["/leagues"], { queryParams: leagueId ? { tab: "battles" } : {} });
+  }
 }

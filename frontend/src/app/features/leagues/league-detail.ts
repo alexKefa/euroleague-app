@@ -112,6 +112,13 @@ export class LeagueDetailComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Lets battle-detail's post-duel "Go to Battles" button land straight on
+    // this tab instead of the default Points one (?tab=battles).
+    const requestedTab = this.route.snapshot.queryParamMap.get("tab");
+    if (requestedTab === "battles" || requestedTab === "fantasy" || requestedTab === "points") {
+      this.setTab(requestedTab);
+    }
+
     this.api.getLeague(this.leagueId).subscribe({
       next: (league) => {
         this.league.set(league);

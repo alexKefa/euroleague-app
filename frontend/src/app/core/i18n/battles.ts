@@ -15,6 +15,7 @@ export const battlesTranslations: Record<string, Record<Lang, string>> = {
   "battles.wonBadge": { en: "Won", el: "Νίκη" },
   "battles.lostBadge": { en: "Lost", el: "Ήττα" },
   "battles.backToLeague": { en: "Back", el: "Πίσω" },
+  "battles.goToBattles": { en: "Go to Battles", el: "Μετάβαση στις Μάχες" },
   "battles.notFound": { en: "Battle not found, or it's not yours to see.", el: "Η μάχη δεν βρέθηκε, ή δεν έχεις πρόσβαση." },
 
   // Card picker — shared by the "challenge" composer and accepting an

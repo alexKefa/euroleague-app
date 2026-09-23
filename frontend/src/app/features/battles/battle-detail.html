@@ -1,9 +1,11 @@
 <div class="max-w-3xl mx-auto p-4 sm:p-6">
-  <a
-    [routerLink]="navHistory.previousUrl() ?? backFallback()"
-    class="text-[12px] text-accent2 font-bold uppercase tracking-wider hover:opacity-80 transition-opacity block mb-3"
-    >&larr; {{ i18n.t('battles.backToLeague') }}</a
-  >
+  @if (!battle() || battle()!.status !== 'finished') {
+    <a
+      [routerLink]="navHistory.previousUrl() ?? backFallback()"
+      class="text-[12px] text-accent2 font-bold uppercase tracking-wider hover:opacity-80 transition-opacity block mb-3"
+      >&larr; {{ i18n.t('battles.backToLeague') }}</a
+    >
+  }
 
   @if (loading()) {
     <app-skeleton class="h-40 rounded-2xl" />
@@ -150,6 +152,9 @@
                 {{ didIWin() ? '+' : '-' }}{{ b.stakePoints }} {{ i18n.t('battles.ptsSuffix') }}
               </p>
             }
+            <button type="button" (click)="goToBattles()" appButton appButtonSize="sm" class="mt-4">
+              {{ i18n.t('battles.goToBattles') }}
+            </button>
           </div>
         }
       </div>
