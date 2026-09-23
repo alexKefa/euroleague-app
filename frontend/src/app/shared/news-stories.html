@@ -3,11 +3,11 @@
     @for (article of articles; track article.id; let i = $index) {
       <button
         type="button"
-        (click)="openAt(i, $event)"
+        (click)="openAt(i)"
         class="flex flex-col items-center gap-1 shrink-0 w-28 focus:outline-none"
         [attr.aria-label]="i18n.t('news.previewAriaPrefix') + ' ' + article.title"
       >
-        <span class="story-ring" [class.story-ring--seen]="isViewed(article)" (pointerdown)="spawnRipple($event)">
+        <span class="story-ring" [class.story-ring--seen]="isViewed(article)">
           <span class="story-ring-inner">
             @if (article.imageUrl) {
               <img [src]="article.imageUrl" [alt]="article.title" loading="lazy" decoding="async" appRetryImg class="w-full h-full object-cover rounded-full" />
@@ -39,7 +39,6 @@
     <button
       type="button"
       (click)="scrollRail(-1)"
-      (pointerdown)="spawnRipple($event)"
       class="hidden sm:flex rail-arrow rail-arrow--left text-team-primary bg-team-primary/10 border-2 border-team-primary hover:bg-team-primary/20 transition-colors"
       [attr.aria-label]="i18n.t('news.scrollStoriesLeft')"
     >
@@ -53,7 +52,6 @@
     <button
       type="button"
       (click)="scrollRail(1)"
-      (pointerdown)="spawnRipple($event)"
       class="hidden sm:flex rail-arrow rail-arrow--right text-team-primary bg-team-primary/10 border-2 border-team-primary hover:bg-team-primary/20 transition-colors"
       [attr.aria-label]="i18n.t('news.scrollStoriesRight')"
     >
@@ -66,8 +64,7 @@
 
 @if (currentArticle(); as article) {
   <div
-    #viewerEl
-    class="fixed inset-0 z-50 bg-black flex flex-col"
+    class="story-viewer-enter fixed inset-0 z-50 bg-black flex flex-col"
     [class.story-drag-transition]="!isDragging()"
     [style.transform]="'translateY(' + dragOffsetY() + 'px)'"
     [style.opacity]="dragOpacity()"
@@ -88,7 +85,6 @@
       <button
         type="button"
         (click)="close()"
-        (pointerdown)="spawnRipple($event)"
         class="story-close-btn text-white/80 hover:text-white text-3xl leading-none font-bold"
         [attr.aria-label]="i18n.t('news.closePreview')"
       >
@@ -111,7 +107,7 @@
            screen behind the caption, with the text centered below it in
            normal flow rather than a white-on-photo gradient caption pinned
            to the bottom. -->
-      <div #contentEl class="flex flex-col h-full min-h-0">
+      <div class="flex flex-col h-full min-h-0">
         @if (article.imageUrl) {
           <div class="relative w-full h-[46%] shrink-0">
             <img
@@ -161,7 +157,6 @@
       <button
         type="button"
         (click)="prev()"
-        (pointerdown)="spawnRipple($event)"
         class="hidden sm:flex story-nav-arrow story-nav-arrow--left"
         [attr.aria-label]="i18n.t('news.previousStory')"
       >
@@ -172,7 +167,6 @@
       <button
         type="button"
         (click)="next()"
-        (pointerdown)="spawnRipple($event)"
         class="hidden sm:flex story-nav-arrow story-nav-arrow--right"
         [attr.aria-label]="i18n.t('news.nextStory')"
       >

@@ -190,31 +190,38 @@
   background: linear-gradient(to left, var(--color-card, #151516), transparent);
 }
 
-/* Material ripple (2026-09-24, "more like Flutter") — spawned/removed
-   imperatively by news-stories.ts's spawnRipple(), one per tap. Every
-   button it's attached to needs position: relative + overflow: hidden
-   (added below, per control) so the expanding circle clips to that
-   control's own shape instead of spilling over its neighbors. */
-.story-ripple {
-  position: absolute;
-  border-radius: 9999px;
-  background: currentColor;
-  opacity: 0.32;
-  transform: scale(0);
-  pointer-events: none;
-  animation: story-ripple-expand 480ms cubic-bezier(0.2, 0, 0, 1);
-}
-@keyframes story-ripple-expand {
-  to {
-    transform: scale(1);
+/* Full-screen viewer entrance (2026-09-24, replaces a reverted "Hero"
+   shared-element morph — see the doc comment in news-stories.ts for why: a
+   runtime DOMRect-based version caused a real open delay and a visible
+   flash/jump). Plain CSS keyframes, no JS, no rect math — a browser plays
+   an element's `animation` automatically the moment it's inserted, so this
+   can never desync from layout or add input latency the way the reverted
+   version did. Opacity+scale only (no translate) so it can't fight the
+   drag gesture's own inline `[style.transform]` binding on this same
+   element — at open time dragOffsetY is always 0, so there's nothing for
+   this keyframe's scale-only transform to actually override. */
+@keyframes story-viewer-in {
+  from {
     opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.story-viewer-enter {
+  animation: story-viewer-in 220ms cubic-bezier(0.2, 0, 0, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .story-viewer-enter {
+    animation: none;
   }
 }
 
 /* Circular icon-button shape for the full-screen close control (2026-09-24)
    — was just padding + oversized glyph before, not an actual Material
-   IconButton shape. Also the ripple/press-scale host now, same pattern as
-   .story-ring above. */
+   IconButton shape. */
 .story-close-btn {
   position: relative;
   overflow: hidden;
