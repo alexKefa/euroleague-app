@@ -8,7 +8,7 @@ import { I18nService } from "../../core/i18n.service";
 import { EventsService } from "../../core/events.service";
 import { NavHistoryService } from "../../core/nav-history.service";
 import { BattlesNotificationService } from "../../core/battles-notification.service";
-import { BattleDetail, Collectible } from "../../core/models";
+import { BattleDetail, CardPowerBreakdown, Collectible } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { ButtonDirective } from "../../shared/button.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
@@ -79,13 +79,20 @@ export class BattleDetailComponent implements OnInit {
   // collectibleId so the picker can show a number per card, and (once the
   // opponent's power is known — composing blind never has one) a live
   // win-chance for whichever card is currently picked.
-  readonly myCardPowers = signal<Map<string, number>>(new Map());
+  // Full breakdown now, not just the total (2026-09-24, "show the cards used
+  // with stats") — the picker/waiting screen shows tier vs. real PIR
+  // separately, not just an opaque number.
+  readonly myCardPowers = signal<Map<string, CardPowerBreakdown & { power: number }>>(new Map());
   readonly pickedId = signal<string | null>(null);
   readonly submitting = signal(false);
   readonly errorKey = signal<string | null>(null);
 
   readonly revealStage = signal<RevealStage>("idle");
   private hasPlayedReveal = false;
+  // Fixed-length array purely so the template can @for 12 confetti pieces —
+  // the actual per-piece look (color/position/delay) is deterministic CSS
+  // via :nth-child in battle-detail.css, not randomized in JS.
+  readonly confettiPieces = Array.from({ length: 12 });
 
   private get myUserId(): string | null {
     return this.auth.currentUser()?.id ?? null;
@@ -114,9 +121,48 @@ export class BattleDetailComponent implements OnInit {
   // power shown; accepting an existing challenge already knows the
   // challenger's power (battle().challengerPower), so picking there gets a
   // live win-%/stake-preview readout instead.
-  readonly pickedCardPower = computed(() => {
+  readonly pickedCardBreakdown = computed(() => {
     const id = this.pickedId();
     return id ? (this.myCardPowers().get(id) ?? null) : null;
+  });
+  readonly pickedCardPower = computed(() => this.pickedCardBreakdown()?.power ?? null);
+
+  // The challenger's own card breakdown, for the "waiting for opponent" and
+  // post-reveal stats panels — mirrors pickedCardBreakdown's shape so both
+  // can feed the same stat-chip template.
+  readonly challengerBreakdown = computed<(CardPowerBreakdown & { power: number }) | null>(() => {
+    const b = this.battle();
+    return b ? { power: b.challengerPower, ...b.challengerPowerBreakdown } : null;
+  });
+  readonly opponentBreakdown = computed<(CardPowerBreakdown & { power: number }) | null>(() => {
+    const b = this.battle();
+    if (!b || b.opponentPower == null || !b.opponentPowerBreakdown) return null;
+    return { power: b.opponentPower, ...b.opponentPowerBreakdown };
+  });
+  // Whichever side of the finished duel is "mine"/"theirs" — myCard/theirCard
+  // above already do this split for the card refs, this does it for the
+  // matching power breakdown.
+  readonly myCardBreakdown = computed(() => {
+    const b = this.battle();
+    if (!b) return null;
+    return b.challengerUserId === this.myUserId ? this.challengerBreakdown() : this.opponentBreakdown();
+  });
+  readonly theirCardBreakdown = computed(() => {
+    const b = this.battle();
+    if (!b) return null;
+    return b.challengerUserId === this.myUserId ? this.opponentBreakdown() : this.challengerBreakdown();
+  });
+  // My own win probability going into a *finished* duel — reads the
+  // backend's preDuelChallengerWinProb, flipped if I was the opponent, so
+  // it reads consistently with the live picker's own myWinProb below.
+  readonly myPreDuelWinProb = computed(() => {
+    const b = this.battle();
+    if (!b || b.preDuelChallengerWinProb == null) return null;
+    return b.challengerUserId === this.myUserId ? b.preDuelChallengerWinProb : 1 - b.preDuelChallengerWinProb;
+  });
+  readonly myPreDuelWinPct = computed(() => {
+    const p = this.myPreDuelWinProb();
+    return p == null ? null : Math.round(p * 100);
   });
   readonly myWinProb = computed(() => {
     const myPower = this.pickedCardPower();
@@ -247,7 +293,10 @@ export class BattleDetailComponent implements OnInit {
             this.myCards.set(owned);
             if (owned.length > 0) {
               this.api.getCardPowers(owned.map((c) => c.id)).subscribe({
-                next: (res) => this.myCardPowers.set(new Map(res.powers.map((p) => [p.collectibleId, p.power]))),
+                next: (res) =>
+                  this.myCardPowers.set(
+                    new Map(res.powers.map((p) => [p.collectibleId, { power: p.power, tierBase: p.tierBase, pir: p.pir }]))
+                  ),
                 error: () => {}, // non-critical — the picker still works, just without the power/win% readout
               });
             }

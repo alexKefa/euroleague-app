@@ -26,7 +26,7 @@ import { I18nService } from "../../core/i18n.service";
       </svg>
     </button>
     @if (open()) {
-      <div class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm" (click)="open.set(false)">
+      <div class="info-backdrop fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm" (click)="open.set(false)">
         <button
           type="button"
           (click)="open.set(false)"
@@ -35,7 +35,7 @@ import { I18nService } from "../../core/i18n.service";
         >
           &times;
         </button>
-        <div class="w-full max-w-sm bg-card rounded-2xl border border-line shadow-pop p-5" (click)="$event.stopPropagation()">
+        <div class="info-panel w-full max-w-sm bg-card rounded-2xl border border-line shadow-pop p-5" (click)="$event.stopPropagation()">
           <p class="font-display text-lg tracking-wide mb-4">{{ i18n.t('battles.howItWorksTitle') }}</p>
           <div class="space-y-3 text-sm text-muted">
             <p>{{ i18n.t('battles.howItWorksStep1') }}</p>
@@ -47,6 +47,34 @@ import { I18nService } from "../../core/i18n.service";
       </div>
     }
   `,
+  styles: [
+    `
+      .info-backdrop {
+        animation: info-fade-in 200ms ease;
+      }
+      .info-panel {
+        animation: info-pop-in 280ms cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      @keyframes info-fade-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes info-pop-in {
+        from {
+          opacity: 0;
+          transform: scale(0.9) translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+        }
+      }
+    `,
+  ],
 })
 export class BattlesInfoComponent {
   protected i18n = inject(I18nService);

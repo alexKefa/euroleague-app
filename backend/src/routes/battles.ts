@@ -5,7 +5,7 @@ import { db } from "../db/client.js";
 import { battles, collectibles, userCollectibles, users, leagueMembers, pointAdjustments, teams } from "../db/schema.js";
 import { requireAuth } from "../auth/middleware.js";
 import { sendToUser } from "../realtime/hub.js";
-import { BATTLE_STAKE_BASE, computeCardPowers, computeStakeForWinProb, resolveDuel } from "../services/battles.js";
+import { BATTLE_STAKE_BASE, computeCardPowerDetails, computeCardPowers, computeStakeForWinProb, resolveDuel } from "../services/battles.js";
 import { getUserPoints } from "../services/points.js";
 
 export const battlesRouter = Router();
@@ -344,8 +344,15 @@ battlesRouter.post("/card-powers", requireAuth, async (req, res) => {
       .where(and(eq(userCollectibles.userId, req.userId!), inArray(userCollectibles.collectibleId, collectibleIds)));
 
     const nonCoach = rows.filter((r) => r.tier !== "coach");
-    const powers = await computeCardPowers(nonCoach);
-    res.json({ powers: nonCoach.map((r, i) => ({ collectibleId: r.collectibleId, power: powers[i] })) });
+    const details = await computeCardPowerDetails(nonCoach);
+    res.json({
+      powers: nonCoach.map((r, i) => ({
+        collectibleId: r.collectibleId,
+        power: details[i].power,
+        tierBase: details[i].tierBase,
+        pir: details[i].pir,
+      })),
+    });
   } catch (err) {
     console.error("POST /api/battles/card-powers failed:", err);
     res.status(500).json({ error: "Failed to compute card powers", code: "FAILED_TO_COMPUTE_POWERS" });
@@ -389,8 +396,21 @@ battlesRouter.get("/:id", requireAuth, async (req, res) => {
 
     // Same power score used to actually decide the duel at accept time —
     // shown here too (2026-09-22) so the opponent can see how their own
-    // card choice stacks up against it, not just its name/photo.
-    const [challengerPower] = await computeCardPowers([row.challengerCard]);
+    // card choice stacks up against it, not just its name/photo. Extended
+    // 2026-09-24 ("show the cards used with stats and the real-time
+    // chances") to also compute the opponent's own breakdown once their
+    // card is known (accepted/finished) and a derived pre-duel win% for
+    // the finished-duel stats panel — recomputed live from each card's
+    // current tier+PIR rather than a stored snapshot, same "no frozen
+    // power value at resolution time" tradeoff challengerPower's own doc
+    // comment already accepted (PIR can drift slightly after the duel
+    // resolved; the actual winner/stake are the frozen ground truth,
+    // stored on the row — this is just a display aid).
+    const [challengerDetail] = await computeCardPowerDetails([row.challengerCard]);
+    const opponentDetail = row.opponentCard ? (await computeCardPowerDetails([row.opponentCard]))[0] : null;
+    const preDuelChallengerWinProb = opponentDetail
+      ? challengerDetail.power / (challengerDetail.power + opponentDetail.power)
+      : null;
 
     res.json({
       id: battle.id,
@@ -402,7 +422,11 @@ battlesRouter.get("/:id", requireAuth, async (req, res) => {
       opponentName,
       winnerUserId: battle.winnerUserId,
       stakePoints: battle.stakePoints,
-      challengerPower,
+      challengerPower: challengerDetail.power,
+      challengerPowerBreakdown: { tierBase: challengerDetail.tierBase, pir: challengerDetail.pir },
+      opponentPower: opponentDetail?.power ?? null,
+      opponentPowerBreakdown: opponentDetail ? { tierBase: opponentDetail.tierBase, pir: opponentDetail.pir } : null,
+      preDuelChallengerWinProb,
       challengerCard: {
         id: row.challengerCard.id,
         name: row.challengerCard.name,

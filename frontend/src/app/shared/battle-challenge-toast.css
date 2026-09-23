@@ -1,14 +1,45 @@
+/* Bouncier entrance (2026-09-24 visual pass) — an elastic overshoot instead
+   of a plain fade/slide, so an incoming challenge reads as an "arrival"
+   rather than just another UI panel appearing. */
 .toast-pop {
-  animation: battle-toast-in 300ms ease;
+  animation: battle-toast-in 480ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @keyframes battle-toast-in {
-  from {
+  0% {
     opacity: 0;
-    transform: translateY(-12px);
+    transform: translateY(-24px) scale(0.9);
   }
-  to {
+  60% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(4px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* A pulsing ring around the ball icon so the toast keeps drawing the eye
+   for as long as it sits there (it no longer auto-dismisses). */
+.toast-icon {
+  position: relative;
+}
+.toast-icon::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  border: 2px solid color-mix(in srgb, var(--accent-primary, #e8792c) 70%, transparent);
+  animation: toast-ring 1.8s ease-out infinite;
+}
+@keyframes toast-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
   }
 }

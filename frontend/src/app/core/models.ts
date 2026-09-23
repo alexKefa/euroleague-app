@@ -812,6 +812,14 @@ export interface BattleCardRef {
   team: { id: string; code: string; primaryColor: string | null };
 }
 
+// What a card's power score is actually made of (2026-09-24, "show the
+// cards used with stats") — tierBase from rarity, pir from the real
+// player's current-or-recent-season PIR. tierBase + pir (rounded) == power.
+export interface CardPowerBreakdown {
+  tierBase: number;
+  pir: number;
+}
+
 // GET /api/battles/mine — one row per challenge (pending/finished) the
 // current user is part of, optionally scoped to one league. Carries the
 // challenger's card (2026-09-22) so the list previews the matchup, not
@@ -847,6 +855,16 @@ export interface BattleDetail {
   // services/battles.ts's computeStakeForWinProb). Null until accepted.
   stakePoints: number | null;
   challengerPower: number;
+  challengerPowerBreakdown: CardPowerBreakdown;
+  // Both null until the opponent's card is known (accepted/finished) — see
+  // routes/battles.ts's GET /:id doc comment for why these are recomputed
+  // live rather than a frozen snapshot from resolution time.
+  opponentPower: number | null;
+  opponentPowerBreakdown: CardPowerBreakdown | null;
+  // The challenger's own win probability going into the duel, once both
+  // cards are known — shown post-reveal so "you had a 62% chance" reads
+  // consistently with the live picker's own winChancePct.
+  preDuelChallengerWinProb: number | null;
   challengerCard: BattleCardRef;
   opponentCard: BattleCardRef | null;
 }

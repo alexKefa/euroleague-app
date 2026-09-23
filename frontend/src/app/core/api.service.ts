@@ -522,10 +522,13 @@ export class ApiService {
   // A power score per card (services/battles.ts's computeCardPowers) — lets
   // the picker show how each of your cards actually stacks up instead of
   // that only happening invisibly server-side at accept time.
-  getCardPowers(collectibleIds: string[]): Observable<{ powers: { collectibleId: string; power: number }[] }> {
-    return this.http.post<{ powers: { collectibleId: string; power: number }[] }>(`${API_BASE_URL}/battles/card-powers`, {
-      collectibleIds,
-    });
+  getCardPowers(
+    collectibleIds: string[]
+  ): Observable<{ powers: { collectibleId: string; power: number; tierBase: number; pir: number }[] }> {
+    return this.http.post<{ powers: { collectibleId: string; power: number; tierBase: number; pir: number }[] }>(
+      `${API_BASE_URL}/battles/card-powers`,
+      { collectibleIds }
+    );
   }
 
   // Fantasy Five — the whole draftable player pool + price for the roster

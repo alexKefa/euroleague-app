@@ -17,6 +17,16 @@ export const battlesTranslations: Record<string, Record<Lang, string>> = {
   "battles.backToLeague": { en: "Back", el: "Πίσω" },
   "battles.goToBattles": { en: "Go to Battles", el: "Μετάβαση στις Μάχες" },
   "battles.pendingChallenges": { en: "Pending battle challenges", el: "Εκκρεμείς προκλήσεις μάχης" },
+
+  // Stat breakdown + real-time matchup panel (2026-09-24, "show the cards
+  // used with stats and what the chances in real-time are").
+  "battles.yourCardLabel": { en: "Your card", el: "Η κάρτα σου" },
+  "battles.tierLabel": { en: "Tier", el: "Κατηγορία" },
+  "battles.formLabel": { en: "Form (PIR)", el: "Φόρμα (PIR)" },
+  "battles.matchupTitle": { en: "Matchup", el: "Αναμέτρηση" },
+  "battles.statsTitle": { en: "Battle stats", el: "Στατιστικά μάχης" },
+  "battles.yourChanceWas": { en: "Your win chance was", el: "Η πιθανότητα νίκης σου ήταν" },
+  "battles.waitingOnYourCard": { en: "Your card in this duel", el: "Η κάρτα σου σε αυτή τη μονομαχία" },
   "battles.notFound": { en: "Battle not found, or it's not yours to see.", el: "Η μάχη δεν βρέθηκε, ή δεν έχεις πρόσβαση." },
 
   // Card picker — shared by the "challenge" composer and accepting an

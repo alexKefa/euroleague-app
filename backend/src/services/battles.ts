@@ -69,15 +69,32 @@ async function buildPirLookup(): Promise<Map<string, number>> {
   return map;
 }
 
+// Breakdown behind a card's power (2026-09-24, "show the cards used with
+// stats") — tierBase and pir surfaced separately so the UI can show *why*
+// a card is favored (rarity vs. real current form) instead of just an
+// opaque total. pir is rounded to one decimal for display; power itself is
+// still the same whole-number total computeCardPowers always returned.
+export interface CardPowerDetail {
+  power: number;
+  tierBase: number;
+  pir: number;
+}
+
+export async function computeCardPowerDetails(
+  cards: { teamId: string; name: string; tier: string }[]
+): Promise<CardPowerDetail[]> {
+  const lookup = await buildPirLookup();
+  return cards.map((c) => {
+    const tierBase = TIER_BASE[c.tier] ?? TIER_BASE.common;
+    const pir = lookup.get(`${c.teamId}|${normalizePlayerName(c.name)}`) ?? 0;
+    return { power: Math.max(1, Math.round(tierBase + pir)), tierBase, pir: Math.round(pir * 10) / 10 };
+  });
+}
+
 export async function computeCardPowers(
   cards: { teamId: string; name: string; tier: string }[]
 ): Promise<number[]> {
-  const lookup = await buildPirLookup();
-  return cards.map((c) => {
-    const base = TIER_BASE[c.tier] ?? TIER_BASE.common;
-    const pir = lookup.get(`${c.teamId}|${normalizePlayerName(c.name)}`) ?? 0;
-    return Math.max(1, Math.round(base + pir));
-  });
+  return (await computeCardPowerDetails(cards)).map((d) => d.power);
 }
 
 // Proportional win probability (powerA / (powerA + powerB)), same shape as

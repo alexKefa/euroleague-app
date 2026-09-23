@@ -100,3 +100,345 @@
     transform: rotate(360deg) scale(1.35);
   }
 }
+
+/* Visual pass (2026-09-24, direct ask: "too plain... add some animation,
+   maybe take visual advice from other apps") — borrows a few conventions
+   from mobile card-battle games (Clash Royale's clash flash/shake, a
+   Marvel Snap-style winner glow) and sports-betting apps (an animated
+   probability meter instead of a bare percentage), all in plain CSS —
+   still no animation library, consistent with the rest of this file. */
+
+/* Arena glow behind the duel stage — a soft pulsing radial wash in the
+   viewer's own reskinned team color (var(--accent-primary)), so the stage
+   doesn't read as a flat white/dark card on every team's theme. */
+.duel-arena {
+  position: relative;
+  overflow: hidden;
+}
+.duel-arena::before {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent-primary, #e8792c) 22%, transparent) 0%, transparent 65%);
+  animation: arena-pulse 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes arena-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+/* A quick white flash + a screen-shake right at the moment the cards
+   collide — the "impact" beat every reference app's duel/pack-opening
+   reveal has and this one was missing entirely. */
+.duel-stage {
+  position: relative;
+}
+.duel-stage.shake {
+  animation: duel-shake 320ms ease-in-out;
+}
+@keyframes duel-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px) rotate(-0.5deg);
+  }
+  40% {
+    transform: translateX(5px) rotate(0.5deg);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+.screen-flash {
+  position: absolute;
+  inset: 0;
+  background: white;
+  opacity: 0;
+  pointer-events: none;
+  border-radius: inherit;
+}
+.screen-flash.flash-active {
+  animation: flash-burst 380ms ease-out;
+}
+@keyframes flash-burst {
+  0% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Winner gets a pulsing glow ring + gentle idle float; the loser's existing
+   flip/greyscale (above) now also gets a slight downward settle so the two
+   reveals feel like opposite outcomes, not just a color change. */
+.duel-card.is-winner {
+  position: relative;
+  animation: winner-float 2.4s ease-in-out infinite 500ms;
+}
+.duel-card.is-winner::after {
+  content: "";
+  position: absolute;
+  inset: -10px;
+  border-radius: 1.5rem;
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-primary, #e8792c) 55%, transparent);
+  animation: winner-ring 1.6s ease-out infinite 550ms;
+  pointer-events: none;
+}
+@keyframes winner-float {
+  0%,
+  100% {
+    transform: scale(1.06) translateY(0);
+  }
+  50% {
+    transform: scale(1.06) translateY(-6px);
+  }
+}
+@keyframes winner-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-primary, #e8792c) 55%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 18px color-mix(in srgb, var(--accent-primary, #e8792c) 0%, transparent);
+  }
+}
+.duel-card.stage-revealed.is-loser {
+  transform: rotateY(110deg) scale(0.78) translateY(6px);
+}
+
+/* Stake readout pop — a small elastic bounce so the +/-N points number
+   lands with some weight instead of just appearing. */
+.stake-pop {
+  animation: stake-pop 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes stake-pop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Confetti — 12 fixed pieces (deterministic via nth-child, no JS
+   randomness needed) that fall from above the duel stage on a win only. */
+.confetti-piece {
+  position: absolute;
+  top: -10px;
+  width: 7px;
+  height: 12px;
+  opacity: 0;
+  background: var(--accent-primary, #e8792c);
+  animation: confetti-fall 1400ms ease-in both;
+}
+@keyframes confetti-fall {
+  0% {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(160px) rotate(540deg);
+  }
+}
+.confetti-piece:nth-child(1) {
+  left: 8%;
+  background: var(--accent-primary, #e8792c);
+  animation-delay: 0ms;
+}
+.confetti-piece:nth-child(2) {
+  left: 18%;
+  background: var(--accent-secondary, #0b1220);
+  animation-delay: 60ms;
+}
+.confetti-piece:nth-child(3) {
+  left: 28%;
+  background: #f5c518;
+  animation-delay: 120ms;
+}
+.confetti-piece:nth-child(4) {
+  left: 38%;
+  background: var(--accent-primary, #e8792c);
+  animation-delay: 40ms;
+}
+.confetti-piece:nth-child(5) {
+  left: 48%;
+  background: #f5c518;
+  animation-delay: 180ms;
+}
+.confetti-piece:nth-child(6) {
+  left: 58%;
+  background: var(--accent-secondary, #0b1220);
+  animation-delay: 100ms;
+}
+.confetti-piece:nth-child(7) {
+  left: 68%;
+  background: var(--accent-primary, #e8792c);
+  animation-delay: 20ms;
+}
+.confetti-piece:nth-child(8) {
+  left: 78%;
+  background: #f5c518;
+  animation-delay: 150ms;
+}
+.confetti-piece:nth-child(9) {
+  left: 88%;
+  background: var(--accent-secondary, #0b1220);
+  animation-delay: 80ms;
+}
+.confetti-piece:nth-child(10) {
+  left: 14%;
+  background: #f5c518;
+  animation-delay: 220ms;
+}
+.confetti-piece:nth-child(11) {
+  left: 63%;
+  background: var(--accent-primary, #e8792c);
+  animation-delay: 200ms;
+}
+.confetti-piece:nth-child(12) {
+  left: 93%;
+  background: var(--accent-secondary, #0b1220);
+  animation-delay: 240ms;
+}
+
+/* Win-chance meter — replaces a bare percentage with an animated fill bar
+   (a sports-betting-odds convention) that smoothly re-widens every time a
+   different card is picked, live. */
+.win-meter-track {
+  height: 0.6rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-muted, #6b7280) 22%, transparent);
+  overflow: hidden;
+}
+.win-meter-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent-secondary, #0b1220), var(--accent-primary, #e8792c));
+  transition: width 550ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Card picker entrance — a quick staggered pop-in (delay set per-card from
+   the template's $index) instead of the whole grid just appearing at once. */
+.card-pop-in {
+  animation: card-pop-in 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes card-pop-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.card-pick-slot {
+  transition: transform 150ms ease;
+}
+.card-pick-slot:hover {
+  transform: translateY(-3px);
+}
+.card-pick-slot.is-picked {
+  animation: pick-glow 1.6s ease-in-out infinite;
+}
+@keyframes pick-glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  50% {
+    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--accent-primary, #e8792c) 65%, transparent));
+  }
+}
+
+/* Waiting-for-opponent — a pulsing radar ring around the challenge icon so
+   the screen reads as "live/pending" instead of a static paragraph. */
+.waiting-radar {
+  position: relative;
+  width: 3rem;
+  height: 3rem;
+}
+.waiting-radar::before,
+.waiting-radar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  border: 2px solid var(--accent-primary, #e8792c);
+  animation: radar-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+.waiting-radar::after {
+  animation-delay: 1s;
+}
+@keyframes radar-ping {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+.waiting-dots span {
+  animation: waiting-dot-fade 1.4s ease-in-out infinite;
+}
+.waiting-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.waiting-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes waiting-dot-fade {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+/* Status pill — a small pulsing dot for a still-live/pending state, static
+   for a settled one. */
+.status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+.status-dot.is-live {
+  animation: status-pulse 1.6s ease-in-out infinite;
+}
+@keyframes status-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 60%, transparent);
+  }
+  50% {
+    opacity: 0.6;
+    box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 0%, transparent);
+  }
+}
