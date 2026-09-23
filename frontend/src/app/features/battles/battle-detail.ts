@@ -7,6 +7,7 @@ import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { EventsService } from "../../core/events.service";
 import { NavHistoryService } from "../../core/nav-history.service";
+import { BattlesNotificationService } from "../../core/battles-notification.service";
 import { BattleDetail, Collectible } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { ButtonDirective } from "../../shared/button.directive";
@@ -51,6 +52,7 @@ export class BattleDetailComponent implements OnInit {
   protected i18n = inject(I18nService);
   private events = inject(EventsService);
   protected navHistory = inject(NavHistoryService);
+  private battlesNotif = inject(BattlesNotificationService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 
@@ -292,6 +294,7 @@ export class BattleDetailComponent implements OnInit {
       next: () => {
         this.submitting.set(false);
         this.refresh(b.id);
+        this.battlesNotif.refresh(); // accepting is the opponent's own action — no SSE push comes back to them for it, so the badge needs a manual nudge
       },
       error: (err) => {
         this.submitting.set(false);
@@ -303,7 +306,12 @@ export class BattleDetailComponent implements OnInit {
   declineChallenge(): void {
     const b = this.battle();
     if (!b) return;
-    this.api.declineBattle(b.id).subscribe({ next: () => this.router.navigate(["/leagues", b.leagueId]) });
+    this.api.declineBattle(b.id).subscribe({
+      next: () => {
+        this.battlesNotif.refresh(); // same self-action gap as acceptChallenge above
+        this.router.navigate(["/leagues", b.leagueId]);
+      },
+    });
   }
 
   cancelChallenge(): void {

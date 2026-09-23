@@ -6,6 +6,7 @@ import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { EventsService } from "../../core/events.service";
+import { BattlesNotificationService } from "../../core/battles-notification.service";
 import { Prediction, LeaderboardEntry, PredictionSummary, Game, GameTeamSummary, RewardPack, MyTopScorerPrediction, RareMilestoneReward } from "../../core/models";
 import { TeamBadgeComponent } from "../../shared/team-badge";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
@@ -133,6 +134,7 @@ export class PredictionsComponent implements OnInit, OnDestroy {
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
   private events = inject(EventsService);
+  protected battlesNotif = inject(BattlesNotificationService);
 
   readonly myPredictions = signal<Prediction[]>([]);
   readonly leaderboard = signal<LeaderboardEntry[]>([]);

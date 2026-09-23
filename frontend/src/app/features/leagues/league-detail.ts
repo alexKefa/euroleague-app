@@ -5,6 +5,7 @@ import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { NavHistoryService } from "../../core/nav-history.service";
+import { BattlesNotificationService } from "../../core/battles-notification.service";
 import { LeagueDetail, LeagueLeaderboardEntry, FantasyLeaderboardEntry, BattleSummary } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
@@ -48,6 +49,7 @@ export class LeagueDetailComponent implements OnInit {
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
   protected navHistory = inject(NavHistoryService);
+  protected battlesNotif = inject(BattlesNotificationService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 

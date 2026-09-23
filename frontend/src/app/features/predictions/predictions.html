@@ -621,9 +621,18 @@
           }
         </div>
         <div class="mt-2 flex items-center justify-end gap-4">
-          <a routerLink="/leagues" class="text-[12px] text-accent2 font-bold uppercase tracking-wider hover:opacity-80 transition-opacity"
-            >{{ i18n.t('leagues.navLink') }} &rarr;</a
-          >
+          <a
+            routerLink="/leagues"
+            class="relative text-[12px] text-accent2 font-bold uppercase tracking-wider hover:opacity-80 transition-opacity"
+            >{{ i18n.t('leagues.navLink') }} &rarr;
+            @if (battlesNotif.hasPendingIncoming()) {
+              <span
+                class="absolute -top-2 -right-2.5 min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none"
+                [attr.aria-label]="i18n.t('battles.pendingChallenges')"
+                >{{ battlesNotif.pendingIncomingCount() }}</span
+              >
+            }
+          </a>
           <a routerLink="/fantasy" class="text-[12px] text-accent2 font-bold uppercase tracking-wider hover:opacity-80 transition-opacity"
             >{{ i18n.t('fantasy.navLink') }} &rarr;</a
           >
