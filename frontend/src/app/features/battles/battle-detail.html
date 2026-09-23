@@ -84,15 +84,13 @@
       @if (pickedCardBreakdown(); as mine) {
         <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-2">
           <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-3">{{ i18n.t('battles.matchupTitle') }}</p>
-          <div class="grid grid-cols-2 gap-3 mb-3">
-            <div class="rounded-xl bg-page p-3">
-              <p class="font-mono text-[10px] text-muted uppercase tracking-wide mb-1">{{ i18n.t('battles.yourCardLabel') }}</p>
-              <ng-container *ngTemplateOutlet="statChip; context: { $implicit: mine }"></ng-container>
-            </div>
-            <div class="rounded-xl bg-page p-3">
-              <p class="font-mono text-[10px] text-muted uppercase tracking-wide mb-1">{{ i18n.t('battles.theirCardLabel') }}</p>
-              <ng-container *ngTemplateOutlet="statChip; context: { $implicit: challengerBreakdown() }"></ng-container>
-            </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            <ng-container
+              *ngTemplateOutlet="cardStatBox; context: { $implicit: mine, card: pickedCard(), label: i18n.t('battles.yourCardLabel') }"
+            ></ng-container>
+            <ng-container
+              *ngTemplateOutlet="cardStatBox; context: { $implicit: challengerBreakdown(), card: b.challengerCard, label: i18n.t('battles.theirCardLabel') }"
+            ></ng-container>
           </div>
           @if (winChancePct() !== null) {
             <div class="flex items-center justify-between mb-1.5">
@@ -238,16 +236,14 @@
             @if (myCardBreakdown(); as mineStats) {
               <div class="bg-page rounded-2xl p-4 mt-5 text-left">
                 <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-3 text-center">{{ i18n.t('battles.statsTitle') }}</p>
-                <div class="grid grid-cols-2 gap-3 mb-3">
-                  <div class="rounded-xl bg-card p-3">
-                    <p class="font-mono text-[10px] text-muted uppercase tracking-wide mb-1">{{ i18n.t('battles.yourCardLabel') }}</p>
-                    <ng-container *ngTemplateOutlet="statChip; context: { $implicit: mineStats }"></ng-container>
-                  </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                  <ng-container
+                    *ngTemplateOutlet="cardStatBox; context: { $implicit: mineStats, card: mine, label: i18n.t('battles.yourCardLabel') }"
+                  ></ng-container>
                   @if (theirCardBreakdown(); as theirsStats) {
-                    <div class="rounded-xl bg-card p-3">
-                      <p class="font-mono text-[10px] text-muted uppercase tracking-wide mb-1">{{ i18n.t('battles.theirCardLabel') }}</p>
-                      <ng-container *ngTemplateOutlet="statChip; context: { $implicit: theirsStats }"></ng-container>
-                    </div>
+                    <ng-container
+                      *ngTemplateOutlet="cardStatBox; context: { $implicit: theirsStats, card: theirCard(), label: i18n.t('battles.theirCardLabel') }"
+                    ></ng-container>
                   }
                 </div>
                 @if (myPreDuelWinPct() !== null) {
@@ -271,17 +267,56 @@
     }
   }
 
-  <!-- Small reusable stat chip: Tier base + Form(PIR) = Power, shared by the
-       picker, the "their card"/"your card" previews, the live matchup
-       panel, and the post-reveal stats panel. -->
+  <!-- Small reusable stat chip: Tier base + Form(PIR), then Power called
+       out bigger/bolder on its own line — used next to a card that's
+       already shown full-size alongside it (the "their card"/"waiting"
+       previews). Sized up and given real contrast (2026-09-24, "not
+       visible enough on mobile") — was 11px all-muted before, which read
+       as barely-there on a small screen. flex-wrap so a narrow phone wraps
+       cleanly instead of clipping instead of a fixed single line. -->
   <ng-template #statChip let-b>
     @if (b) {
-      <div class="flex items-center gap-2 font-mono text-[11px] text-muted mt-0.5">
-        <span>{{ i18n.t('battles.tierLabel') }} {{ b.tierBase }}</span>
-        <span>+</span>
-        <span>{{ i18n.t('battles.formLabel') }} {{ b.pir }}</span>
-        <span>=</span>
-        <span class="font-bold text-ink">{{ i18n.t('battles.powerAbbrev') }} {{ b.power }}</span>
+      <div class="mt-1">
+        <div class="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 font-mono text-xs text-muted">
+          <span>{{ i18n.t('battles.tierLabel') }} {{ b.tierBase }}</span>
+          <span>{{ i18n.t('battles.formLabel') }} {{ b.pir }}</span>
+        </div>
+        <p class="font-mono text-base font-bold text-ink">{{ i18n.t('battles.powerAbbrev') }} {{ b.power }}</p>
+      </div>
+    }
+  </ng-template>
+
+  <!-- Card-plus-stats box (2026-09-24, "show the cards, not just icons of
+       the rarity") — used wherever a card wasn't already shown full-size
+       nearby (the live matchup panel, the post-reveal stats panel): a real
+       card thumbnail plus the same tier/form/power readout as statChip
+       above, stacked so it stays legible in a single mobile column
+       (grid-cols-1 below sm:) instead of squeezing two side-by-side boxes
+       into half a phone screen. -->
+  <ng-template #cardStatBox let-b let-card="card" let-label="label">
+    @if (card) {
+      <div class="rounded-xl bg-page p-3 flex items-center gap-3 min-w-0">
+        <app-collectible-card
+          [name]="card.name"
+          [tier]="card.tier"
+          [teamCode]="card.team.code"
+          [teamColor]="card.team.primaryColor"
+          [imageUrl]="card.imageUrl"
+          [unlocked]="true"
+          [maxWidth]="60"
+          class="shrink-0"
+        ></app-collectible-card>
+        <div class="min-w-0 flex-1">
+          <p class="font-mono text-[10px] text-muted uppercase tracking-wide">{{ label }}</p>
+          <p class="text-sm font-semibold truncate">{{ card.name }}</p>
+          @if (b) {
+            <div class="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 font-mono text-[11px] text-muted mt-0.5">
+              <span>{{ i18n.t('battles.tierLabel') }} {{ b.tierBase }}</span>
+              <span>{{ i18n.t('battles.formLabel') }} {{ b.pir }}</span>
+            </div>
+            <p class="font-mono text-base font-bold text-ink">{{ i18n.t('battles.powerAbbrev') }} {{ b.power }}</p>
+          }
+        </div>
       </div>
     }
   </ng-template>
@@ -324,7 +359,7 @@
                 [selected]="pickedId() === card.id"
               ></app-collectible-card>
               @if (myCardPowers().get(card.id); as breakdown) {
-                <span class="font-mono text-[10px] text-muted mt-1">{{ i18n.t('battles.powerAbbrev') }} {{ breakdown.power }}</span>
+                <span class="font-mono text-xs font-bold text-ink mt-1">{{ i18n.t('battles.powerAbbrev') }} {{ breakdown.power }}</span>
               }
             </div>
           }

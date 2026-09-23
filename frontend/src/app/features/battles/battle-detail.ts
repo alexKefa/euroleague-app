@@ -126,6 +126,13 @@ export class BattleDetailComponent implements OnInit {
     return id ? (this.myCardPowers().get(id) ?? null) : null;
   });
   readonly pickedCardPower = computed(() => this.pickedCardBreakdown()?.power ?? null);
+  // The full card object behind pickedId (2026-09-24, "show the cards, not
+  // just icons of the rarity") — the live matchup panel needs the actual
+  // card ref (photo/tier/team) to render a thumbnail, not just its power.
+  readonly pickedCard = computed(() => {
+    const id = this.pickedId();
+    return id ? (this.myCards().find((c) => c.id === id) ?? null) : null;
+  });
 
   // The challenger's own card breakdown, for the "waiting for opponent" and
   // post-reveal stats panels — mirrors pickedCardBreakdown's shape so both
