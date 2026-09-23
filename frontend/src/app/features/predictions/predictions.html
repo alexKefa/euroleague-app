@@ -180,6 +180,60 @@
                     }
                   </button>
                 </div>
+
+                <!-- 3+3 quick-pick recommendations (2026-09-24, direct ask:
+                     "3 + 3 recommended top scorers with just their icons
+                     and ppg... as quick action") — top 3 by PPG per side,
+                     one tap sets the pick with no modal. Sits below the
+                     pill above (which still opens the full roster picker
+                     for anyone not shown here). The picked player's own
+                     icon gets a solid ring so this row also doubles as a
+                     way to see/change a quick pick at a glance. -->
+                @if (topScorerRecommendations(game.homeTeam.id).length > 0 || topScorerRecommendations(game.awayTeam.id).length > 0) {
+                  <div class="flex items-center justify-center gap-3 pt-2">
+                    <div class="flex items-center gap-1.5">
+                      @for (c of topScorerRecommendations(game.homeTeam.id); track c.player.id) {
+                        <button
+                          type="button"
+                          (click)="quickPickTopScorer(game, c.player.id)"
+                          [disabled]="isLocked(game) || quickPickSavingId() === c.player.id"
+                          class="flex flex-col items-center gap-0.5 disabled:opacity-50"
+                          [attr.aria-label]="c.player.name"
+                        >
+                          <app-player-photo
+                            [name]="c.player.name"
+                            [photoUrl]="c.player.photoUrl"
+                            [size]="24"
+                            class="rounded-full block transition-shadow"
+                            [ngClass]="isQuickPicked(game, c.player.id) ? 'ring-2 ring-team-primary' : ''"
+                          />
+                          <span class="font-mono text-[9px] text-muted">{{ c.stats.pointsPerGame | number: '1.1-1' }}</span>
+                        </button>
+                      }
+                    </div>
+                    <span class="text-[9px] text-muted font-bold uppercase">{{ i18n.t('predictions.vs') }}</span>
+                    <div class="flex items-center gap-1.5">
+                      @for (c of topScorerRecommendations(game.awayTeam.id); track c.player.id) {
+                        <button
+                          type="button"
+                          (click)="quickPickTopScorer(game, c.player.id)"
+                          [disabled]="isLocked(game) || quickPickSavingId() === c.player.id"
+                          class="flex flex-col items-center gap-0.5 disabled:opacity-50"
+                          [attr.aria-label]="c.player.name"
+                        >
+                          <app-player-photo
+                            [name]="c.player.name"
+                            [photoUrl]="c.player.photoUrl"
+                            [size]="24"
+                            class="rounded-full block transition-shadow"
+                            [ngClass]="isQuickPicked(game, c.player.id) ? 'ring-2 ring-team-primary' : ''"
+                          />
+                          <span class="font-mono text-[9px] text-muted">{{ c.stats.pointsPerGame | number: '1.1-1' }}</span>
+                        </button>
+                      }
+                    </div>
+                  </div>
+                }
               }
             </div>
           }

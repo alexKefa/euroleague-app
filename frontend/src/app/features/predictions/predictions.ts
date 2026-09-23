@@ -7,7 +7,17 @@ import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { EventsService } from "../../core/events.service";
 import { BattlesNotificationService } from "../../core/battles-notification.service";
-import { Prediction, LeaderboardEntry, PredictionSummary, Game, GameTeamSummary, RewardPack, MyTopScorerPrediction, RareMilestoneReward } from "../../core/models";
+import {
+  Prediction,
+  LeaderboardEntry,
+  PredictionSummary,
+  Game,
+  GameTeamSummary,
+  RewardPack,
+  MyTopScorerPrediction,
+  RareMilestoneReward,
+  PlayerAdvancedStatsRow,
+} from "../../core/models";
 import { TeamBadgeComponent } from "../../shared/team-badge";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { PageHintComponent } from "../../shared/page-hint";
@@ -206,6 +216,58 @@ export class PredictionsComponent implements OnInit, OnDestroy {
 
   openTopScorerPicker(game: Game): void {
     this.topScorerPickerGame.set(game);
+  }
+
+  // 3+3 quick-pick recommendations (2026-09-24, direct ask: "3 + 3
+  // recommended top scorers with just their icons and ppg on the tabs of
+  // each game. as quick action") — lets a likely top scorer be picked with
+  // one tap right on the card, no modal. Reuses the same league-wide
+  // GET /players/advanced-stats payload the /stats page already fetches
+  // once (see advancedStatsRows below), not a per-game roster round trip —
+  // this page can show 10 games at once, so a per-game fetch would mean 20
+  // extra requests. Unlike the roster endpoint's own current-season-only
+  // pointsPerGame (null for a not-yet-started season — see
+  // top-scorer-picker.ts's baselinePpg fallback), /advanced-stats already
+  // resolves server-side to "the latest season with real data", so no
+  // separate fallback is needed here.
+  readonly advancedStatsRows = signal<PlayerAdvancedStatsRow[]>([]);
+
+  // Whether this quick-pick candidate is the currently saved top-scorer
+  // pick for this game — pulled out to a plain method (rather than an
+  // inline optional-chain ternary in the template) since Angular's
+  // template type-checker flagged the chained `?.get(...)?.predictedPlayer.id`
+  // form as possibly-undefined even though it's short-circuit safe.
+  isQuickPicked(game: Game, playerId: string): boolean {
+    return this.topScorerByGameId().get(game.id)?.predictedPlayer.id === playerId;
+  }
+
+  topScorerRecommendations(teamId: string): PlayerAdvancedStatsRow[] {
+    return this.advancedStatsRows()
+      .filter((r) => r.player.teamId === teamId && r.player.active && r.stats.pointsPerGame != null)
+      .sort((a, b) => (b.stats.pointsPerGame ?? 0) - (a.stats.pointsPerGame ?? 0))
+      .slice(0, 3);
+  }
+
+  // Only one quick-pick in flight at a time makes sense (tapping a second
+  // icon before the first resolves would race two writes to the same
+  // pick) — a bare id, not per-game, since a user can only usefully be
+  // tapping one icon on one card at any given moment anyway.
+  readonly quickPickSavingId = signal<string | null>(null);
+
+  quickPickTopScorer(game: Game, playerId: string): void {
+    if (this.quickPickSavingId()) return;
+    this.quickPickSavingId.set(playerId);
+    this.api.submitTopScorerPick(game.id, playerId).subscribe({
+      next: () => {
+        this.quickPickSavingId.set(null);
+        // Refreshes topScorerByGameId so the pill/ring highlight on this
+        // card (and the aggregate My picks -> Top scorer tab) picks up the
+        // new pick immediately, same as closeTopScorerPicker()'s own
+        // refresh after the full modal.
+        this.refreshMyTopScorerPredictions();
+      },
+      error: () => this.quickPickSavingId.set(null),
+    });
   }
 
   closeTopScorerPicker(): void {
@@ -412,6 +474,14 @@ export class PredictionsComponent implements OnInit, OnDestroy {
     this.api.getTeams().subscribe({
       next: (teams) => this.teamLogos.set(new Map(teams.map((t) => [t.id, t.logoUrl]))),
       error: () => {},
+    });
+
+    // Unauthenticated too — quick-pick recommendations are just as useful
+    // as a preview, actually picking still requires auth (see the
+    // *ngIf="auth.isAuthenticated()" wrapper in the template).
+    this.api.getAdvancedStats().subscribe({
+      next: (res) => this.advancedStatsRows.set(res.rows),
+      error: () => {}, // non-critical — the quick-pick row just stays empty
     });
 
     this.refreshLeaderboard();
