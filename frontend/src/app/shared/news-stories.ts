@@ -25,6 +25,14 @@ const TICK_MS = 50;
 // "dismiss", not just an accidental drag mid-tap.
 const SWIPE_CLOSE_THRESHOLD_PX = 100;
 
+// Material's "emphasized" easing (used by Flutter's own Material widgets,
+// e.g. Hero/PageTransition default curves) — a fast start with a long,
+// gentle settle. Used for the open/collapse morph and the ripple, so this
+// component's motion actually reads as Material/Flutter-flavored rather
+// than a generic CSS `ease`.
+const MATERIAL_EMPHASIZED = "cubic-bezier(0.2, 0, 0, 1)";
+const MATERIAL_EMPHASIZED_ACCELERATE = "cubic-bezier(0.3, 0, 0.8, 0.15)";
+
 // Instagram-style "stories" over the news feed we already sync — a circular
 // avatar rail (one ring per article, the article's own image as the
 // thumbnail) that opens a full-screen, auto-advancing viewer on tap. Built
@@ -74,6 +82,48 @@ export class NewsStoriesComponent implements OnChanges, AfterViewInit, OnDestroy
   readonly canScrollLeft = signal(false);
   readonly canScrollRight = signal(false);
 
+  // Hero-style shared-element transition (2026-09-24, "more like Flutter" —
+  // this is Flutter's own signature Hero widget effect: the tapped element
+  // visually morphs into the full-screen view instead of it just appearing).
+  // Plain refs to the two elements the morph/cross-fade animate, driven
+  // imperatively via the Web Animations API rather than the rest of this
+  // component's signal+CSS-transition idiom — a rect-to-rect transform
+  // computed from a runtime DOMRect doesn't fit a declarative CSS binding.
+  private readonly viewerEl = viewChild<ElementRef<HTMLDivElement>>("viewerEl");
+  private readonly contentEl = viewChild<ElementRef<HTMLDivElement>>("contentEl");
+  // The clicked avatar's rect at the moment a story was opened — null when
+  // opened without a real click (keyboard/programmatic), in which case the
+  // hero morph is skipped in favor of a plain fade.
+  private originRect: DOMRect | null = null;
+  // Set once a swipe-dismiss has been released past the threshold, so
+  // dragOpacity below can actually reach 0 (its normal drag-tracking floor
+  // is 0.4, so a story never looked fully gone until this flag lifts it).
+  private readonly flungOffscreen = signal(false);
+
+  private prefersReducedMotion(): boolean {
+    return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+  }
+
+  // Material ripple (2026-09-24) — a small expanding, fading circle from
+  // the exact tap point, the other half of "Flutter-like" alongside the
+  // hero morph. Shared by every tappable control in this component (rail
+  // avatars, rail scroll arrows, viewer close/prev/next) rather than a new
+  // app-wide directive, since this pass is scoped to this component.
+  spawnRipple(event: PointerEvent): void {
+    if (this.prefersReducedMotion()) return;
+    const host = event.currentTarget as HTMLElement;
+    const rect = host.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height) * 1.6;
+    const span = document.createElement("span");
+    span.className = "story-ripple";
+    span.style.width = `${size}px`;
+    span.style.height = `${size}px`;
+    span.style.left = `${event.clientX - rect.left - size / 2}px`;
+    span.style.top = `${event.clientY - rect.top - size / 2}px`;
+    host.appendChild(span);
+    span.addEventListener("animationend", () => span.remove());
+  }
+
   scrollRail(direction: 1 | -1): void {
     const el = this.rail()?.nativeElement;
     if (!el) return;
@@ -108,21 +158,68 @@ export class NewsStoriesComponent implements OnChanges, AfterViewInit, OnDestroy
     return this.progress();
   }
 
-  openAt(index: number): void {
+  // `event` is the originating click on a rail avatar — its rect seeds the
+  // hero-open morph. Omitted (or called while already open, from
+  // next()/prev()) means no morph: either a plain fade-in (first open with
+  // no click, e.g. a future keyboard trigger) or the in-viewer cross-fade
+  // between stories (see playContentTransition below).
+  openAt(index: number, event?: MouseEvent): void {
     if (index < 0 || index >= this.articles.length) return;
+    const wasAlreadyOpen = this.activeIndex() !== null;
+    if (!wasAlreadyOpen) {
+      this.originRect = event ? (event.currentTarget as HTMLElement).getBoundingClientRect() : null;
+    }
     this.activeIndex.set(index);
     this.markViewed(index);
     this.opened.emit(this.articles[index]);
     this.startTimer();
+    // Deferred a tick, same convention as onRailScroll elsewhere in this
+    // file — right after a signal-driven render the target element isn't
+    // necessarily laid out yet, and the hero morph needs its real rect.
+    if (!wasAlreadyOpen) {
+      setTimeout(() => requestAnimationFrame(() => this.playHeroOpen()));
+    } else {
+      setTimeout(() => this.playContentTransition());
+    }
   }
 
   close(): void {
     this.stopTimer();
-    this.activeIndex.set(null);
-    this.dragOffsetY.set(0);
     this.isDragging.set(false);
     this.dragStartX = null;
     this.dragStartY = null;
+
+    const el = this.viewerEl()?.nativeElement;
+    // Only collapse back into the avatar when closing "at rest" (the X
+    // button, Escape, or running off the last story) — a swipe-dismiss
+    // already played its own fling-away animation before calling this (see
+    // onStoryPointerEnd), so dragOffsetY is non-zero there and this would
+    // otherwise fight that motion with a second, contradictory animation.
+    if (el && this.originRect && this.dragOffsetY() === 0 && !this.prefersReducedMotion()) {
+      const origin = this.originRect;
+      const target = el.getBoundingClientRect();
+      const scaleX = origin.width / target.width;
+      const scaleY = origin.height / target.height;
+      const translateX = origin.left + origin.width / 2 - (target.left + target.width / 2);
+      const translateY = origin.top + origin.height / 2 - (target.top + target.height / 2);
+      const anim = el.animate(
+        [
+          { transform: "translate(0, 0) scale(1, 1)", opacity: 1, borderRadius: "0px" },
+          { transform: `translate(${translateX}px, ${translateY}px) scale(${scaleX}, ${scaleY})`, opacity: 0, borderRadius: "50%" },
+        ],
+        { duration: 300, easing: MATERIAL_EMPHASIZED_ACCELERATE, fill: "both" }
+      );
+      anim.onfinish = () => this.finishClose();
+      return;
+    }
+    this.finishClose();
+  }
+
+  private finishClose(): void {
+    this.activeIndex.set(null);
+    this.dragOffsetY.set(0);
+    this.flungOffscreen.set(false);
+    this.originRect = null;
   }
 
   next(): void {
@@ -143,6 +240,45 @@ export class NewsStoriesComponent implements OnChanges, AfterViewInit, OnDestroy
     this.openAt(Math.max(0, idx - 1));
   }
 
+  // The hero morph (2026-09-24) — animates the fixed full-screen viewer
+  // from the clicked avatar's small rect/circle up to the full viewport,
+  // Flutter-Hero-style. `fill: "both"` on both keyframe sets below holds
+  // each animation's end state after it finishes rather than snapping back
+  // to whatever CSS would otherwise say, since neither state is expressed
+  // as a static class.
+  private playHeroOpen(): void {
+    const el = this.viewerEl()?.nativeElement;
+    const origin = this.originRect;
+    if (!el || !origin || this.prefersReducedMotion()) return;
+    const target = el.getBoundingClientRect();
+    const scaleX = origin.width / target.width;
+    const scaleY = origin.height / target.height;
+    const translateX = origin.left + origin.width / 2 - (target.left + target.width / 2);
+    const translateY = origin.top + origin.height / 2 - (target.top + target.height / 2);
+    el.animate(
+      [
+        { transform: `translate(${translateX}px, ${translateY}px) scale(${scaleX}, ${scaleY})`, opacity: 0.5, borderRadius: "50%" },
+        { transform: "translate(0, 0) scale(1, 1)", opacity: 1, borderRadius: "0px" },
+      ],
+      { duration: 380, easing: MATERIAL_EMPHASIZED, fill: "both" }
+    );
+  }
+
+  // A quick cross-fade + settle on the image/caption wrapper when moving
+  // between stories in an already-open viewer — replaces what used to be
+  // an instant hard cut on every next()/prev() tap.
+  private playContentTransition(): void {
+    const el = this.contentEl()?.nativeElement;
+    if (!el || this.prefersReducedMotion()) return;
+    el.animate(
+      [
+        { opacity: 0, transform: "scale(0.97)" },
+        { opacity: 1, transform: "scale(1)" },
+      ],
+      { duration: 220, easing: MATERIAL_EMPHASIZED }
+    );
+  }
+
   // Swipe-down-to-dismiss, like Instagram — the X button still works too,
   // this is additive. dragStartX/Y are plain fields, not signals: they're
   // only ever read synchronously within the same gesture, never rendered.
@@ -160,7 +296,14 @@ export class NewsStoriesComponent implements OnChanges, AfterViewInit, OnDestroy
   readonly isDragging = signal(false);
   // Fades out as the story's dragged down, so releasing mid-drag reads as
   // "this is about to dismiss" rather than the image just silently moving.
-  readonly dragOpacity = computed(() => Math.max(0.4, 1 - this.dragOffsetY() / 400));
+  // Floors at 0.4 while actively tracking a finger (a fully-transparent
+  // story mid-drag reads as "gone" before the gesture is even committed) —
+  // but once flungOffscreen is set (release past the threshold), it's
+  // allowed to actually reach 0 as it glides the rest of the way off.
+  readonly dragOpacity = computed(() => {
+    if (this.flungOffscreen()) return 0;
+    return Math.max(0.4, 1 - this.dragOffsetY() / 400);
+  });
 
   onStoryPointerDown(event: PointerEvent): void {
     this.dragStartX = event.clientX;
@@ -191,8 +334,16 @@ export class NewsStoriesComponent implements OnChanges, AfterViewInit, OnDestroy
     const deltaX = startX === null ? 0 : event.clientX - startX;
 
     if (deltaY > SWIPE_CLOSE_THRESHOLD_PX && Math.abs(deltaY) > Math.abs(deltaX)) {
-      this.dragOffsetY.set(0);
-      this.close();
+      // Continue the fling the rest of the way off-screen instead of the
+      // old behavior (reset dragOffsetY to 0, *then* remove the element),
+      // which snapped the story back to center for one visible frame right
+      // before it vanished. story-drag-transition's CSS transition (active
+      // now that isDragging is false, set above) animates this glide, and
+      // flungOffscreen lets dragOpacity actually reach 0 instead of its
+      // normal 0.4 drag-tracking floor.
+      this.flungOffscreen.set(true);
+      this.dragOffsetY.set(typeof window !== "undefined" ? window.innerHeight : 800);
+      setTimeout(() => this.close(), 300);
       return;
     }
 
