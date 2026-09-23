@@ -13,6 +13,10 @@ export const injuriesTranslations: Record<string, Record<Lang, string>> = {
   "injuries.empty": { en: "No active injury reports.", el: "Καμία ενεργή αναφορά τραυματισμού." },
   "injuries.loadError": { en: "Couldn't load the injury report.", el: "Δεν ήταν δυνατή η φόρτωση της αναφοράς τραυματισμών." },
   "injuries.updated": { en: "Updated", el: "Ενημερώθηκε" },
+  // Detail dialog (2026-09-24) — opened by tapping a player in the report.
+  "injuries.statusLabel": { en: "Status", el: "Κατάσταση" },
+  "injuries.noteLabel": { en: "Note", el: "Σημείωση" },
+  "injuries.viewPlayer": { en: "View player", el: "Προβολή παίκτη" },
   "injuries.statusOut": { en: "Out", el: "Εκτός" },
   "injuries.statusDoubtful": { en: "Doubtful", el: "Αμφίβολος" },
   "injuries.statusQuestionable": { en: "Questionable", el: "Ερωτηματικό" },

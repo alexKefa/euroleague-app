@@ -73,16 +73,25 @@
     <div class="space-y-4">
       @for (group of groups(); track group.teamId) {
         <div class="bg-card rounded-2xl border border-line shadow-card">
+          <!-- min-w-0 + truncate on the name (2026-09-24 mobile fix,
+               live-reported: "gets out of view") — a real team name like
+               "Kosner Baskonia Vitoria-Gasteiz" plus the code chip had
+               nothing here to shrink or wrap, so on a narrow phone the row
+               pushed past the viewport edge with no way to scroll to it
+               (this card isn't inside a horizontal-scroll container, unlike
+               the roster page's stat table). teamCode gets shrink-0 so it's
+               always the name that gives way, never the (short, fixed-width)
+               code. -->
           <a
             [routerLink]="['/teams', group.teamId]"
-            class="flex items-center gap-2.5 px-4 py-3 rounded-t-2xl border-b border-line hover:bg-page transition-colors"
+            class="flex items-center gap-2.5 px-4 py-3 rounded-t-2xl border-b border-line hover:bg-page transition-colors min-w-0"
           >
             <span class="w-1.5 h-6 rounded-full shrink-0" [style.background]="group.teamPrimaryColor"></span>
             @if (group.teamLogoUrl) {
               <img [src]="group.teamLogoUrl" [alt]="group.teamName" loading="lazy" decoding="async" appRetryImg class="w-6 h-6 object-contain shrink-0 team-logo" />
             }
-            <span class="font-display text-sm tracking-wide">{{ group.teamName }}</span>
-            <span class="font-mono text-[11px] text-muted">{{ group.teamCode | teamCode }}</span>
+            <span class="font-display text-sm tracking-wide truncate min-w-0">{{ group.teamName }}</span>
+            <span class="font-mono text-[11px] text-muted shrink-0">{{ group.teamCode | teamCode }}</span>
           </a>
           <div class="divide-y divide-line">
             @for (entry of group.entries; track entry.id; let last = $last) {
@@ -131,7 +140,13 @@
                 </div>
               } @else {
                 <div class="flex items-center gap-3 px-4 py-3 hover:bg-page transition-colors" [class.rounded-b-2xl]="last">
-                  <a [routerLink]="['/players', entry.playerId]" class="flex items-center gap-3 min-w-0 flex-1">
+                  <!-- A button that opens the detail dialog, not a routerLink
+                       straight to the player page (2026-09-24) — the full
+                       injury note/absence info now lives in that dialog,
+                       reachable from anywhere without leaving this list; the
+                       player-page link itself is still one tap away inside
+                       it. -->
+                  <button type="button" (click)="openEntryDetail(entry)" class="flex items-center gap-3 min-w-0 flex-1 text-left">
                     <app-player-photo
                       [photoUrl]="entry.playerPhotoUrl"
                       [name]="entry.playerName"
@@ -153,7 +168,7 @@
                         <span class="block text-xs text-muted mt-0.5 truncate">{{ note }}</span>
                       }
                     </span>
-                  </a>
+                  </button>
                   <span class="shrink-0 text-[11px] text-muted font-mono text-right">
                     {{ entry.updatedAt | date: "MMM d" }}
                   </span>
@@ -181,6 +196,68 @@
           </div>
         </div>
       }
+    </div>
+  }
+
+  <!-- Injury detail dialog (2026-09-24) — same overlay/panel convention as
+       shared/confirm-dialog.ts (bg-black/80 backdrop-blur-sm, click-outside
+       or the X to close). Not that shared component itself since this needs
+       a bespoke player/injury layout, not a plain message + two buttons. -->
+  @if (selectedEntry(); as entry) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm" (click)="closeEntryDetail()">
+      <div class="w-full max-w-sm bg-card rounded-2xl border border-line shadow-pop p-5" (click)="$event.stopPropagation()">
+        <div class="flex items-start justify-between gap-2 mb-4">
+          <div class="flex items-center gap-3 min-w-0">
+            <app-player-photo
+              [photoUrl]="entry.playerPhotoUrl"
+              [name]="entry.playerName"
+              [teamCode]="entry.teamCode"
+              [primaryColor]="entry.teamPrimaryColor"
+              [size]="48"
+            />
+            <span class="min-w-0">
+              <span class="block font-display text-lg tracking-wide truncate">{{ entry.playerName }}</span>
+              <span class="flex items-center gap-1.5 text-xs text-muted">
+                @if (entry.teamLogoUrl) {
+                  <img [src]="entry.teamLogoUrl" [alt]="entry.teamName" appRetryImg class="w-3.5 h-3.5 object-contain shrink-0 team-logo" />
+                }
+                <span class="truncate">{{ entry.teamName }}</span>
+              </span>
+            </span>
+          </div>
+          <button
+            type="button"
+            (click)="closeEntryDetail()"
+            class="shrink-0 text-muted hover:text-ink text-xl leading-none font-bold px-1"
+            [attr.aria-label]="i18n.t('statLegend.close')"
+          >
+            &times;
+          </button>
+        </div>
+
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-[11px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('injuries.statusLabel') }}</span>
+          <span class="px-2 py-0.5 rounded-md border text-[11px] font-bold uppercase tracking-wider" [ngClass]="statusClass(entry.status)">
+            {{ statusLabel(entry.status) }}
+          </span>
+        </div>
+
+        @if (noteFor(entry); as note) {
+          <div class="mb-3">
+            <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-1">{{ i18n.t('injuries.noteLabel') }}</p>
+            <p class="text-sm">{{ note }}</p>
+          </div>
+        }
+
+        <div class="flex items-center justify-between text-xs text-muted mb-4">
+          <span>{{ i18n.t('injuries.updated') }}</span>
+          <span class="font-mono">{{ entry.updatedAt | date: "MMM d, y · HH:mm" }}</span>
+        </div>
+
+        <a [routerLink]="['/players', entry.playerId]" (click)="closeEntryDetail()" appButton appButtonSize="sm" class="w-full block text-center">
+          {{ i18n.t('injuries.viewPlayer') }}
+        </a>
+      </div>
     </div>
   }
 </div>

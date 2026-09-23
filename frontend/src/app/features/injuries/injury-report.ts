@@ -94,6 +94,24 @@ export class InjuryReportComponent implements OnInit {
     return injuryNoteFor(this.i18n, entry.note, entry.noteEl);
   }
 
+  // Detail dialog (2026-09-24, direct ask: "clicking on player should show
+  // more info on his absence and the injury on a dialog view") — a row
+  // used to be a plain routerLink straight to the player's page, which
+  // meant the injury note (already truncated to one line in the list) had
+  // nowhere to be read in full, and clicking always navigated away rather
+  // than just showing more about the absence itself. The player-page link
+  // still exists, just moved inside the dialog as an explicit action
+  // instead of being the row's only behavior.
+  readonly selectedEntry = signal<InjuryReportEntry | null>(null);
+
+  openEntryDetail(entry: InjuryReportEntry): void {
+    this.selectedEntry.set(entry);
+  }
+
+  closeEntryDetail(): void {
+    this.selectedEntry.set(null);
+  }
+
   // --- Admin tools: report a new injury, or edit/remove one inline ---
   // Team picked first, then its roster loads on demand for the player
   // dropdown (same "fetch a team's roster only when needed" spirit as the
