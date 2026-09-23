@@ -108,8 +108,6 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
     en: "This round has already locked — no changes can be made.",
     el: "Αυτή η αγωνιστική έχει ήδη κλειδώσει — δεν μπορούν να γίνουν αλλαγές.",
   },
-  "fantasy.previousRound": { en: "Previous round", el: "Προηγούμενη αγωνιστική" },
-  "fantasy.nextRound": { en: "Next round", el: "Επόμενη αγωνιστική" },
   "fantasy.pastRound": { en: "Past round", el: "Παλιότερη αγωνιστική" },
   // Randomize-squad dice trigger, round 1 only (2026-09-17) — any logged-in
   // user can use this on their own squad, not just admins (see

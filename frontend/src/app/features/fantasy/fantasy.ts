@@ -383,8 +383,8 @@ export class FantasyComponent implements OnInit {
   readonly coaches = signal<FantasyCoachRow[]>([]);
   readonly season = signal<string | null>(null);
   // `round` is whichever round is currently being *viewed* — the round
-  // navigator (viewRound/viewPreviousRound/viewNextRound below) can point
-  // this at any past round, read-only, without disturbing `defaultRound`.
+  // navigator (viewRound/viewNextRound/onRoundChange below) can point this
+  // at any past round, read-only, without disturbing `defaultRound`.
   readonly round = signal<number | null>(null);
   // The season's actual current active round (services/fantasyScoring.ts's
   // getDefaultRound) — 2026-09-07. Editing is only ever allowed while
@@ -1307,14 +1307,37 @@ export class FantasyComponent implements OnInit {
     this.loadLineup(round);
   }
 
-  viewPreviousRound(): void {
-    const r = this.round();
-    if (r !== null) this.viewRound(r - 1);
-  }
-
   viewNextRound(): void {
     const r = this.round();
     if (r !== null) this.viewRound(r + 1);
+  }
+
+  // Prev/next arrows -> a dropdown (2026-09-24, direct ask) — one tap
+  // reaches any past round directly instead of stepping through them one
+  // at a time. Newest first (defaultRound down to 1) since the current
+  // round — already selected by default — is the one most worth surfacing
+  // at the top of the list; a browsed-to past round still sorts by its own
+  // position. app-dropdown's DropdownOption.value is a string (it's built
+  // for team/league pickers elsewhere on this page), so round numbers get
+  // stringified here and parsed back in onRoundChange.
+  readonly roundDropdownOptions = computed<DropdownOption[]>(() => {
+    const max = this.defaultRound();
+    if (max === null) return [];
+    const options: DropdownOption[] = [];
+    for (let r = max; r >= 1; r--) {
+      options.push({ value: String(r), label: `${this.i18n.t("fantasy.round")} ${r}` });
+    }
+    return options;
+  });
+  readonly roundDropdownValue = computed(() => {
+    const r = this.round();
+    return r === null ? null : String(r);
+  });
+
+  onRoundChange(value: string | null): void {
+    if (value === null) return;
+    const r = Number(value);
+    if (!Number.isNaN(r)) this.viewRound(r);
   }
 
   // --- Round-complete celebration (2026-09-07) — fires once per round per

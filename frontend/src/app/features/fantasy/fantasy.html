@@ -276,21 +276,15 @@
       <div data-tour="fantasy-status" class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4">
         <div class="flex items-center justify-between gap-2 mb-3">
           <div class="flex items-center gap-1.5 min-w-0">
-            <button
-              type="button"
-              (click)="viewPreviousRound()"
-              [disabled]="round() === null || round()! <= 1"
-              [attr.aria-label]="i18n.t('fantasy.previousRound')"
-              class="w-6 h-6 rounded-full flex items-center justify-center text-muted hover:text-team-primary disabled:opacity-30 disabled:hover:text-muted transition-colors"
-            >&#8249;</button>
-            <p class="text-sm font-bold">{{ i18n.t('fantasy.round') }} {{ round() }}</p>
-            <button
-              type="button"
-              (click)="viewNextRound()"
-              [disabled]="round() === null || defaultRound() === null || round()! >= defaultRound()!"
-              [attr.aria-label]="i18n.t('fantasy.nextRound')"
-              class="w-6 h-6 rounded-full flex items-center justify-center text-muted hover:text-team-primary disabled:opacity-30 disabled:hover:text-muted transition-colors"
-            >&#8250;</button>
+            <!-- Prev/next arrows -> a dropdown (2026-09-24, direct ask) --
+                 jumps straight to any past round instead of stepping
+                 through one at a time; current round stays the default
+                 selection. -->
+            @if (roundDropdownOptions().length > 0) {
+              <app-dropdown class="w-28" [options]="roundDropdownOptions()" [value]="roundDropdownValue()" (valueChange)="onRoundChange($event)" />
+            } @else {
+              <p class="text-sm font-bold">{{ i18n.t('fantasy.round') }} {{ round() }}</p>
+            }
             @if (!isCurrentRound()) {
               <span class="min-w-0 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-page text-muted truncate" [title]="i18n.t('fantasy.pastRound')">{{ i18n.t('fantasy.pastRound') }}</span>
             }
