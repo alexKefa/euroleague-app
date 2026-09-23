@@ -34,13 +34,14 @@ module.exports = {
         "team-secondary": "var(--accent-secondary, #0B1220)",
       },
       fontFamily: {
-        // Greek-verified trio (see styles.css) — Rajdhani/Barlow/JetBrains
-        // Mono had no Greek glyphs at all. IBM Plex Sans covers all three
-        // roles — IBM Plex Mono was asked for but has no Greek subset at
-        // all per Google Fonts' own metadata; Plex Sans is the only
-        // member of that superfamily that does.
-        sans: ["IBM Plex Sans", "system-ui", "sans-serif"],
-        display: ["IBM Plex Sans", "Arial", "sans-serif"],
+        // TEMPORARY EXPERIMENT (system-ui trial) — default before this was
+        // IBM Plex Sans for all three roles (Greek-verified trio, see
+        // styles.css's font-swap history). Revert by restoring:
+        //   sans: ["IBM Plex Sans", "system-ui", "sans-serif"],
+        //   display: ["IBM Plex Sans", "Arial", "sans-serif"],
+        //   mono: ["IBM Plex Sans", "ui-monospace", "monospace"],
+        sans: ["system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
+        display: ["system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
         mono: ["IBM Plex Sans", "ui-monospace", "monospace"],
       },
       boxShadow: {

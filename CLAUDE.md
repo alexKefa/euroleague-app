@@ -29,6 +29,28 @@ service, not a library like ngx-translate.
 There is no test suite and no lint script configured in either
 `package.json` — don't go looking for one.
 
+Full-stack features typically touch every layer: `schema.ts` (Drizzle, not
+Prisma) → a backend route/service → an Angular component → both i18n
+dictionaries. Whenever a change adds or edits user-facing text, update the
+Greek string in the same pass, not as a follow-up — see Frontend
+architecture's i18n bullet below for how the dictionary files are
+organized.
+
+## Visual Verification
+
+Claude has no reliable browser access in this environment (the Chrome
+extension is frequently disconnected) and creating throwaway accounts to
+poke at the UI has caused real cleanup problems before. Do **not** open
+Chrome, launch a browser session, or create throwaway test accounts just
+to visually verify a styling/UI change. Instead: (1) confirm the dev
+server (or a production build) actually compiles/rebuilds with no errors,
+(2) describe precisely what changed and where, and (3) ask the user for a
+screenshot if real visual confirmation is needed — they can check
+`localhost:4201`/`4200` or the live site far faster than a simulated
+browser session can. Exception: when the user explicitly asks for
+Chrome-driven testing (e.g. "use the browser to check X"), do it — this
+rule is about *not defaulting* to it, not a hard ban.
+
 ## Commands
 
 Backend (`backend/`):
@@ -1464,6 +1486,19 @@ If you need to apply a schema change without an interactive terminal
     flyer's QR and any social-shared landing-page link previously gave a
     Messenger/Instagram visitor no nudge to escape the WebView at all.
 
+## Design Requests
+
+When asked to apply a specific font, color, or style change, apply it
+directly across the app and stop — do not build comparison Artifacts,
+specimen pages, or run research detours unless the user explicitly asks
+to compare options first. A "change the font" request means app-wide,
+across every role the current typeface fills (display/sans/mono, per the
+font-swap history above), not just the one role that happens to be easiest
+to change. This app went through roughly a dozen live font swaps in a
+single day (see the `.font-display` comment above) precisely because
+requests were applied directly and judged live, not staged as design
+proposals — keep doing that, not the reverse.
+
 ## Environment variables (backend `.env`)
 
 Required: `DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`.
@@ -1491,6 +1526,27 @@ reset link needs to point).
 Live on Railway as a single service (project + service both named
 "euroleague-app"): https://getclutchapp.com. `DATABASE_URL` points
 at the same Neon instance as local dev — there's no separate prod database.
+
+**Deploy workflow** — standard end-of-task sequence once a change is
+ready: type-check the backend (`npx tsc -p tsconfig.json --noEmit`),
+build the frontend (`ng build`), commit, push, then `railway up --service
+euroleague-app --environment <dev|production>`. After deploying, verify
+the change is **actually live** — `railway status` has reported a stale
+"Building" state for a deployment that had already finished and moved to
+a different, newer one; the reliable check is `railway logs
+<deployment-id> --deployment` for a real "listening on" line, or diffing
+the served JS bundle's content for a string unique to the change, not
+just trusting the CLI's status output. Check once and report — don't poll
+deploy status in a loop.
+
+**Production data changes** — never run a bulk `UPDATE`/`DELETE` against
+the production database without first showing the exact SQL (or
+equivalent Drizzle/script code), showing a `SELECT` of the rows it would
+affect, and getting explicit confirmation before executing. Always back
+up (or dry-run against the `dev` Neon branch first, when available) before
+a season rollover, a points reset, or any other one-off script that
+mutates real rows — see the Season transition section's own scripts for
+the established pattern.
 
 - **Config-as-code**: `.railway/railway.ts` (Railway's TypeScript
   infra-as-code — `railway config plan` to preview changes, `railway config

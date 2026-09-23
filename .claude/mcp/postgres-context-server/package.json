@@ -1,0 +1,7 @@
+{
+  "name": "local-postgres-context-server-install",
+  "private": true,
+  "dependencies": {
+    "@zeddotdev/postgres-context-server": "0.1.7"
+  }
+}
