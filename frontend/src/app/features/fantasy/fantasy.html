@@ -281,7 +281,12 @@
                  through one at a time; current round stays the default
                  selection. -->
             @if (roundDropdownOptions().length > 0) {
-              <app-dropdown class="w-28" [options]="roundDropdownOptions()" [value]="roundDropdownValue()" (valueChange)="onRoundChange($event)" />
+              <!-- No fixed width (2026-09-24 fix, live-reported: "round
+                   numbers are not visible" — a w-28 box truncated the
+                   Greek label "Αγωνιστική 12" right at the number).
+                   Shrink-wraps to its own content instead, same as the
+                   team-filter app-dropdown elsewhere on this page. -->
+              <app-dropdown class="shrink-0" [options]="roundDropdownOptions()" [value]="roundDropdownValue()" (valueChange)="onRoundChange($event)" />
             } @else {
               <p class="text-sm font-bold">{{ i18n.t('fantasy.round') }} {{ round() }}</p>
             }
