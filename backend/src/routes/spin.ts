@@ -8,6 +8,49 @@ import { PACKS, PackType } from "../services/packs.js";
 export const spinRouter = Router();
 
 export const COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+// Daily reset now means the calendar day, not a rolling 24h-since-last-spin
+// window (2026-09-25, direct request: "should reset at 00:00 of the day,
+// not every 24hr") — a user who spins at 23:50 could spin again at 00:00
+// ten minutes later, not have to wait until 23:50 the next day. Athens is
+// the one timezone this app already treats as canonical for a "day"
+// elsewhere (every game/round/date display already formats in
+// "Europe/Athens" — see game-detail.html, schedule.html, etc.), so this
+// reuses that same convention rather than UTC or a per-user timezone,
+// which this app has no concept of anyway.
+const SPIN_RESET_TIMEZONE = "Europe/Athens";
+
+// Athens' actual UTC offset at a given instant, in minutes — reads it via
+// Intl rather than hardcoding +2/+3, since which one applies flips twice a
+// year (EET/EEST) and Node's tz database already knows the real transition
+// dates.
+function athensOffsetMinutesAt(date: Date): number {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: SPIN_RESET_TIMEZONE, timeZoneName: "shortOffset" }).formatToParts(date);
+  const raw = parts.find((p) => p.type === "timeZoneName")?.value ?? "GMT+2";
+  const match = raw.match(/GMT([+-]\d+)/);
+  return match ? Number(match[1]) * 60 : 120;
+}
+
+// The UTC instant of the next Athens midnight strictly after `after`. Not
+// exact across the 1-2 calendar days/year Greece's clocks actually change
+// (the offset used is read at an approximate guess instant, not the true
+// target — a fixed-point refinement would close that gap, but being off by
+// up to an hour on 2 days a year for a "come back tomorrow" wheel reset
+// isn't worth the extra complexity).
+function nextAthensMidnightUtc(after: Date): Date {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: SPIN_RESET_TIMEZONE, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(
+    after
+  );
+  const y = Number(parts.find((p) => p.type === "year")!.value);
+  const m = Number(parts.find((p) => p.type === "month")!.value);
+  const d = Number(parts.find((p) => p.type === "day")!.value);
+  // "Y-M-(D+1) 00:00", built as if it were UTC — Date.UTC normalizes a
+  // day/month past the end of the month on its own, so this is safe across
+  // a month/year rollover too.
+  const nextDayAsUtc = new Date(Date.UTC(y, m - 1, d + 1, 0, 0, 0));
+  const offsetMinutes = athensOffsetMinutesAt(nextDayAsUtc);
+  return new Date(nextDayAsUtc.getTime() - offsetMinutes * 60_000);
+}
 // Every spin gives *something* — a flat "90% of spins give nothing" felt
 // bad for a once-a-day mechanic and didn't reward showing up. These odds
 // pick which wheel-exclusive pack (services/packs.ts) the spin grants —
@@ -81,7 +124,7 @@ async function getSpinStatus(userId: string) {
 
   if (!last) return { canSpin: true, nextEligibleAt: null };
 
-  const nextEligibleAt = new Date(new Date(last.spunAt).getTime() + COOLDOWN_MS);
+  const nextEligibleAt = nextAthensMidnightUtc(new Date(last.spunAt));
   const canSpin = Date.now() >= nextEligibleAt.getTime();
   return { canSpin, nextEligibleAt: canSpin ? null : nextEligibleAt };
 }
@@ -116,7 +159,7 @@ spinRouter.post("/", requireAuth, async (req, res) => {
       // (GET /api/packs/owned) until they open it themselves from the
       // Packs page via POST /api/packs/owned/:id/open.
       wonPack: { id: wonPack.id, packType, label: PACKS[packType].label, tier: rolledTier },
-      nextEligibleAt: new Date(Date.now() + COOLDOWN_MS),
+      nextEligibleAt: nextAthensMidnightUtc(new Date()),
     });
   } catch (err) {
     console.error("POST /api/spin failed:", err);
