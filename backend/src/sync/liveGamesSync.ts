@@ -60,6 +60,9 @@ interface HeaderResponse {
   ScoreB: string;
   Quarter: string;
   RemainingPartialTime: string;
+  // Total elapsed game clock, "MM:SS" — "40:00" once regulation is fully
+  // played out. Only used by looksActuallyFinished below.
+  GameTime: string;
   // Confirmed numeric (not string) in a real response, and confirmed
   // CUMULATIVE (running total as of that quarter's end), not each
   // quarter's own point total — checked directly against a real Q4 game:
@@ -256,6 +259,31 @@ function parseScore(value: string | undefined, fallback: number | null): number 
   return Number.isFinite(n) ? n : (fallback ?? 0);
 }
 
+// Real bug caught live (2026-09-24, this season's opening night): two real
+// games sat at ScoreQuarter4A === ScoreA (regulation fully played out),
+// GameTime "40:00", RemainingPartialTime "00:00", and a blank Quarter — the
+// exact shape a genuinely completed prior-season game showed (see
+// fetchHeader's own doc comment) — yet `Live` stayed `true` for a real,
+// observed stretch afterward. The feed evidently doesn't flip Live to
+// false promptly once a game ends, so relying on it alone left both games
+// (and every prediction against them) stuck "live" indefinitely.
+// Independently detects "regulation is fully played out and nobody's about
+// to go to overtime" without waiting on Live at all: a tied score at this
+// exact clock reading means OT is about to start (a real, legitimate case
+// this must NOT misfire on), which is exactly why homeScore !== awayScore
+// is part of the check — a genuine tie-into-OT pause never reaches this
+// function returning true.
+function looksActuallyFinished(header: HeaderResponse, homeScore: number, awayScore: number): boolean {
+  return (
+    header.GameTime?.trim() === "40:00" &&
+    header.RemainingPartialTime?.trim() === "00:00" &&
+    (header.Quarter ?? "").trim() === "" &&
+    (header.ScoreExtraTimeA ?? 0) === 0 &&
+    (header.ScoreExtraTimeB ?? 0) === 0 &&
+    homeScore !== awayScore
+  );
+}
+
 // Trims to the quarters actually played so far (per `currentQuarter`) rather
 // than always returning all 4 — Header zeroes out a quarter that hasn't
 // happened yet, and showing "Q3: 0" in the quick-view dialog while a game
@@ -337,7 +365,7 @@ export async function syncLiveGames(): Promise<LiveGamesSyncResult> {
       const quarter = parseQuarter(header.Quarter) ?? game.quarter;
       const gameClockSeconds = parseClock(header.RemainingPartialTime) ?? game.gameClockSeconds;
 
-      if (header.Live) {
+      if (header.Live && !looksActuallyFinished(header, homeScore, awayScore)) {
         const homeScoreByQuarter = parseQuarterScores(header, "A", quarter);
         const awayScoreByQuarter = parseQuarterScores(header, "B", quarter);
         await db
@@ -361,10 +389,15 @@ export async function syncLiveGames(): Promise<LiveGamesSyncResult> {
         continue;
       }
 
-      // Live: false — either "hasn't started yet" (indexed early with
-      // zeroed fields) or "actually over". Only trust the latter once
-      // enough real time has passed that it couldn't legitimately still be
-      // in progress.
+      // Either Live: false (either "hasn't started yet", indexed early with
+      // zeroed fields, or "actually over"), or Live: true but
+      // looksActuallyFinished said the game clearly wrapped up anyway (see
+      // that function's doc comment — observed live 2026-09-24: Live can
+      // lag the real end of a game by a minute or two). Either way, only
+      // trust "final" once enough real time has passed since tipoff that
+      // the game couldn't legitimately still be in progress — a defensive
+      // floor that costs nothing here since a real finished game is always
+      // already well past it.
       const minutesSinceTipoff = (now - new Date(game.tipoffAt).getTime()) / 60_000;
       if (minutesSinceTipoff < MIN_MINUTES_BEFORE_TRUSTING_FINAL) continue;
 
