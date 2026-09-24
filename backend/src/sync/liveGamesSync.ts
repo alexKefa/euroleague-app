@@ -1,6 +1,6 @@
-import { and, gte, inArray, lte, eq } from "drizzle-orm";
+import { and, gte, inArray, lte, eq, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { games } from "../db/schema.js";
+import { games, players, playerGameStats } from "../db/schema.js";
 import { broadcast } from "../realtime/hub.js";
 import { getSimulatedGameId } from "../realtime/liveScoreSimulator.js";
 
@@ -36,6 +36,18 @@ const HEADER_URL = "https://live.euroleague.net/api/Header";
 // `games_sync.py` run rather than polled forever.
 const POLL_AFTER_TIPOFF_MS = 5 * 60 * 60 * 1000; // 5 hours
 
+// Real 2026-09-24 opening-night bug: games_sync.py's schedule pull for one
+// game (HTA vs MUN) recorded a tipoff an hour later than the game actually
+// started — some last-minute EuroLeague schedule changes apparently aren't
+// reflected in the endpoint games_sync.py reads, only in this live feed
+// itself. The old `lte(games.tipoffAt, now)` filter meant this job never
+// even looked at that game until its (wrong, too-late) recorded tipoff
+// arrived — the game sat "scheduled" on the site while genuinely live.
+// Polling a bit before the recorded tipoff is a cheap no-op (fetchHeader
+// returns null, "not indexed yet") whenever the recorded time turns out to
+// be right, so there's no real cost to erring wide here.
+const PRE_TIPOFF_POLL_MS = 2 * 60 * 60 * 1000; // 2 hours
+
 // A real EuroLeague game realistically can't be over before this — guards
 // against ever trusting a premature "Live: false" (a feed hiccup between
 // quarters, or a game indexed early with zeroed fields) as a final result
@@ -48,6 +60,147 @@ interface HeaderResponse {
   ScoreB: string;
   Quarter: string;
   RemainingPartialTime: string;
+}
+
+const BOXSCORE_URL = "https://live.euroleague.net/api/Boxscore";
+
+// Same shape family as Header — live.euroleague.net's own real-time widget
+// API, not euroleague-api's rate-limited stats origin boxscore_sync.py has
+// to pace carefully around (see that script's own doc comment); this is a
+// single lightweight per-game request, same host/pattern as Header above.
+interface BoxscorePlayerStats {
+  Player_ID: string; // "P011212   " — 'P' + zero-padded code + trailing spaces
+  IsStarter: number;
+  Minutes: string; // "MM:SS" or "DNP"
+  Points: number;
+  FieldGoalsMade2: number;
+  FieldGoalsAttempted2: number;
+  FieldGoalsMade3: number;
+  FieldGoalsAttempted3: number;
+  FreeThrowsMade: number;
+  FreeThrowsAttempted: number;
+  OffensiveRebounds: number;
+  DefensiveRebounds: number;
+  TotalRebounds: number;
+  Assistances: number;
+  Steals: number;
+  Turnovers: number;
+  BlocksFavour: number;
+  BlocksAgainst: number;
+  FoulsCommited: number;
+  FoulsReceived: number;
+  Valuation: number;
+  Plusminus: number;
+}
+
+interface BoxscoreResponse {
+  Stats: { PlayersStats: BoxscorePlayerStats[] }[];
+}
+
+async function fetchBoxscore(season: string, gameCode: number): Promise<BoxscoreResponse | null> {
+  const url = `${BOXSCORE_URL}?gamecode=${gameCode}&seasoncode=${seasonCodeFor(season)}`;
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  const text = await res.text();
+  if (!text.trim()) return null;
+  try {
+    return JSON.parse(text) as BoxscoreResponse;
+  } catch {
+    return null;
+  }
+}
+
+// "P011212   " -> "011212", matching players.code's own zero-padded format
+// (confirmed directly: players.code has no 'P' prefix or padding).
+function parsePlayerCode(playerId: string): string {
+  return playerId.trim().replace(/^P/, "");
+}
+
+function parseBoxscoreMinutes(value: string | undefined): number | null {
+  const s = value?.trim();
+  if (!s || s.toUpperCase() === "DNP") return null;
+  const match = s.match(/^(\d+):(\d{2})$/);
+  if (!match) return null;
+  return Number(match[1]) + Number(match[2]) / 60;
+}
+
+// Upserts every player who has appeared in the box score so far (points,
+// minutes, etc. all update in place as the game progresses) — same
+// (playerId, gameId) upsert target the admin-only live-score simulator
+// already uses for this table, just fed real data instead of fabricated.
+// Batched as one multi-row insert (not one upsert per player) per the
+// "fewer round trips against Neon" lesson documented elsewhere in this app.
+async function upsertLiveBoxscore(gameId: string, boxscore: BoxscoreResponse): Promise<void> {
+  const codes = boxscore.Stats.flatMap((team) => team.PlayersStats.map((p) => parsePlayerCode(p.Player_ID)));
+  if (codes.length === 0) return;
+
+  const playerRows = await db.select({ id: players.id, code: players.code }).from(players).where(inArray(players.code, codes));
+  const playerIdByCode = new Map(playerRows.map((p) => [p.code, p.id]));
+
+  const values = boxscore.Stats.flatMap((team) =>
+    team.PlayersStats.flatMap((p) => {
+      const playerId = playerIdByCode.get(parsePlayerCode(p.Player_ID));
+      if (!playerId) return []; // e.g. a coach row, or a player not yet synced into `players`
+      return [
+        {
+          playerId,
+          gameId,
+          isStarter: p.IsStarter === 1,
+          minutes: parseBoxscoreMinutes(p.Minutes),
+          points: p.Points,
+          fieldGoalsMade2: p.FieldGoalsMade2,
+          fieldGoalsAttempted2: p.FieldGoalsAttempted2,
+          fieldGoalsMade3: p.FieldGoalsMade3,
+          fieldGoalsAttempted3: p.FieldGoalsAttempted3,
+          freeThrowsMade: p.FreeThrowsMade,
+          freeThrowsAttempted: p.FreeThrowsAttempted,
+          offensiveRebounds: p.OffensiveRebounds,
+          defensiveRebounds: p.DefensiveRebounds,
+          rebounds: p.TotalRebounds,
+          assists: p.Assistances,
+          steals: p.Steals,
+          turnovers: p.Turnovers,
+          blocksFavour: p.BlocksFavour,
+          blocksAgainst: p.BlocksAgainst,
+          foulsCommitted: p.FoulsCommited,
+          foulsReceived: p.FoulsReceived,
+          valuation: p.Valuation,
+          plusMinus: p.Plusminus,
+        },
+      ];
+    }),
+  );
+  if (values.length === 0) return;
+
+  await db
+    .insert(playerGameStats)
+    .values(values)
+    .onConflictDoUpdate({
+      target: [playerGameStats.playerId, playerGameStats.gameId],
+      set: {
+        isStarter: sql`excluded.is_starter`,
+        minutes: sql`excluded.minutes`,
+        points: sql`excluded.points`,
+        fieldGoalsMade2: sql`excluded.field_goals_made_2`,
+        fieldGoalsAttempted2: sql`excluded.field_goals_attempted_2`,
+        fieldGoalsMade3: sql`excluded.field_goals_made_3`,
+        fieldGoalsAttempted3: sql`excluded.field_goals_attempted_3`,
+        freeThrowsMade: sql`excluded.free_throws_made`,
+        freeThrowsAttempted: sql`excluded.free_throws_attempted`,
+        offensiveRebounds: sql`excluded.offensive_rebounds`,
+        defensiveRebounds: sql`excluded.defensive_rebounds`,
+        rebounds: sql`excluded.rebounds`,
+        assists: sql`excluded.assists`,
+        steals: sql`excluded.steals`,
+        turnovers: sql`excluded.turnovers`,
+        blocksFavour: sql`excluded.blocks_favour`,
+        blocksAgainst: sql`excluded.blocks_against`,
+        foulsCommitted: sql`excluded.fouls_committed`,
+        foulsReceived: sql`excluded.fouls_received`,
+        valuation: sql`excluded.valuation`,
+        plusMinus: sql`excluded.plus_minus`,
+      },
+    });
 }
 
 // "2026-27" -> "E2026" (euroleague-api's own `season: int` is the start year).
@@ -113,11 +266,12 @@ export async function syncLiveGames(): Promise<LiveGamesSyncResult> {
   try {
     const now = Date.now();
     const windowStart = new Date(now - POLL_AFTER_TIPOFF_MS);
+    const windowEnd = new Date(now + PRE_TIPOFF_POLL_MS);
 
     const candidates = await db
       .select()
       .from(games)
-      .where(and(inArray(games.status, ["scheduled", "live"]), gte(games.tipoffAt, windowStart), lte(games.tipoffAt, new Date(now))));
+      .where(and(inArray(games.status, ["scheduled", "live"]), gte(games.tipoffAt, windowStart), lte(games.tipoffAt, windowEnd)));
 
     if (candidates.length === 0) return NO_OP_RESULT;
 
@@ -138,6 +292,10 @@ export async function syncLiveGames(): Promise<LiveGamesSyncResult> {
 
       if (header.Live) {
         await db.update(games).set({ status: "live", homeScore, awayScore, quarter, gameClockSeconds }).where(eq(games.id, game.id));
+
+        const boxscore = await fetchBoxscore(game.season, game.gameCode);
+        if (boxscore) await upsertLiveBoxscore(game.id, boxscore);
+
         broadcast("game-update", {
           gameId: game.id,
           homeScore,
