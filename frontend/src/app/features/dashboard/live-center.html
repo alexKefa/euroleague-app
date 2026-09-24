@@ -86,7 +86,7 @@
 
         @case ('predictions') {
           @if (myUpcomingPredictions().length > 0) {
-            <div class="text-sm space-y-1">
+            <div class="text-sm space-y-1 max-h-80 overflow-y-auto pr-1">
               @for (row of myUpcomingPredictions(); track row.prediction.id) {
                 <a [routerLink]="['/games', row.game.id]" class="block px-2 py-2 rounded-2xl hover:bg-page transition-colors">
                   <span class="flex items-center justify-between gap-2">

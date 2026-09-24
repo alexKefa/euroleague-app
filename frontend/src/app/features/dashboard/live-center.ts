@@ -82,14 +82,18 @@ export class LiveCenterComponent implements OnInit {
       .slice(0, 4)
   );
 
+  // No .slice() cap (dropped 2026-09-24, direct report: real predictions
+  // were going missing off the bottom of a fixed top-5) — the list itself
+  // scrolls now (live-center.html's max-h-80 overflow-y-auto, same pattern
+  // predictions.html's own "My picks" list already uses) rather than
+  // truncating, so every unresolved prediction is reachable here.
   readonly myUpcomingPredictions = computed<MyPredictionRow[]>(() => {
     const byId = this.gameById();
     return this.myPredictions()
       .filter((p) => p.status !== "final")
       .map((p) => ({ prediction: p, game: byId.get(p.gameId) ?? null }))
       .filter((r): r is MyPredictionRow => r.game !== null)
-      .sort((a, b) => new Date(a.game.tipoffAt).getTime() - new Date(b.game.tipoffAt).getTime())
-      .slice(0, 5);
+      .sort((a, b) => new Date(a.game.tipoffAt).getTime() - new Date(b.game.tipoffAt).getTime());
   });
 
   readonly favoriteRows = computed<FavoriteRow[]>(() => {
