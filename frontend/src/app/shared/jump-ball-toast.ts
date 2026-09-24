@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from "@angular/core";
+import { Component, effect, inject, signal } from "@angular/core";
 import { Router } from "@angular/router";
 import { ApiService } from "../core/api.service";
 import { AuthService } from "../core/auth.service";
@@ -36,7 +36,7 @@ function todayAthensDateKey(): string {
   templateUrl: "./jump-ball-toast.html",
   styleUrl: "./jump-ball-toast.css",
 })
-export class JumpBallToastComponent implements OnInit {
+export class JumpBallToastComponent {
   private api = inject(ApiService);
   private auth = inject(AuthService);
   protected i18n = inject(I18nService);
@@ -44,19 +44,37 @@ export class JumpBallToastComponent implements OnInit {
 
   readonly visible = signal(false);
 
-  ngOnInit(): void {
-    if (!this.auth.isAuthenticated()) return;
-    this.api.getSpinStatus().subscribe({
-      next: (status) => {
-        if (!status.canSpin) return;
-        try {
-          if (localStorage.getItem(DISMISS_KEY_PREFIX + todayAthensDateKey()) === "1") return;
-        } catch {
-          // Private browsing / storage disabled — toast just shows every load.
-        }
-        this.visible.set(true);
-      },
-      error: () => {}, // non-critical — the wheel page itself is still the source of truth
+  // Real bug caught live (2026-09-25): a plain ngOnInit checking
+  // auth.isAuthenticated() ran before AuthService.restoreSession() had
+  // resolved the access token off the httpOnly refresh cookie (this
+  // component mounts at the app root, about as early as anything runs) —
+  // same "bootstrap race" CLAUDE.md already documents for the dashboard's
+  // team-hero and game-detail.ts's top-scorer pick fetch. A logged-in user
+  // reloading the app never saw the toast at all, since the one-shot check
+  // gave up before the token was ever set. Fixed by reacting to
+  // accessToken() via effect() instead (same pattern EventsService's own
+  // constructor uses), guarded by checkedThisSession so a later token
+  // refresh doesn't re-fetch/re-show a toast already dismissed this load.
+  private checkedThisSession = false;
+
+  constructor() {
+    effect(() => {
+      const token = this.auth.accessToken();
+      if (!token || this.checkedThisSession) return;
+      this.checkedThisSession = true;
+
+      this.api.getSpinStatus().subscribe({
+        next: (status) => {
+          if (!status.canSpin) return;
+          try {
+            if (localStorage.getItem(DISMISS_KEY_PREFIX + todayAthensDateKey()) === "1") return;
+          } catch {
+            // Private browsing / storage disabled — toast just shows every load.
+          }
+          this.visible.set(true);
+        },
+        error: () => {}, // non-critical — the wheel page itself is still the source of truth
+      });
     });
   }
 
