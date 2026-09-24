@@ -17,6 +17,29 @@
   }
 
   @if (!loading() && detail(); as d) {
+    <!-- Quick access to any other game currently live — real bug report:
+         a user watching a live game had no way to jump to a different
+         live game without leaving to /schedule first. Horizontally
+         scrolling pill row (not a grid) since there's realistically only
+         ever 1-4 concurrent live games, matching the photo-strip's own
+         "scroll instead of overlap/cap" convention further down this
+         page. -->
+    @if (otherLiveGames().length > 0) {
+      <div class="flex gap-2 overflow-x-auto pb-1 mb-4 -mx-1 px-1">
+        @for (game of otherLiveGames(); track game.id) {
+          <a
+            [routerLink]="['/games', game.id]"
+            class="shrink-0 flex items-center gap-1.5 pl-2 pr-3 py-1.5 rounded-full bg-card border border-line shadow-card hover:shadow-pop transition-all"
+          >
+            <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
+            <span class="font-mono text-[11px] font-bold whitespace-nowrap">
+              {{ game.homeTeam.code | teamCode }} {{ game.homeScore }}-{{ game.awayScore }} {{ game.awayTeam.code | teamCode }}
+            </span>
+          </a>
+        }
+      </div>
+    }
+
     <!-- Matchup header -->
     <div class="bg-card rounded-2xl border border-line shadow-card p-5 mt-4 mb-5">
       <p class="text-[11px] text-muted font-bold uppercase tracking-wider text-center mb-3">

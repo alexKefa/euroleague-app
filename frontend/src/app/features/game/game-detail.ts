@@ -7,7 +7,7 @@ import { I18nService } from "../../core/i18n.service";
 import { NavHistoryService } from "../../core/nav-history.service";
 import { EventsService } from "../../core/events.service";
 import { AuthService } from "../../core/auth.service";
-import { GameDetail, GameBoxscoreLine, PlayerDetail, RosterEntry, TopScorerPrediction } from "../../core/models";
+import { Game, GameDetail, GameBoxscoreLine, PlayerDetail, RosterEntry, TopScorerPrediction } from "../../core/models";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { StatLegendComponent, StatLegendEntry } from "../../shared/stat-legend";
@@ -16,6 +16,11 @@ import { LiveCourtComponent } from "../../shared/live-court";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { TeamCodePipe } from "../../shared/team-display-code";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
+
+// Same hardcoded literal schedule.ts/predictions.ts/live-center.ts already
+// use for "the current season" — there's no shared season-lookup service on
+// the frontend yet.
+const SEASON = "2026-27";
 
 interface TopScorerCandidate {
   player: RosterEntry["player"];
@@ -157,6 +162,18 @@ export class GameDetailComponent implements OnInit {
 
   readonly isFinal = computed(() => this.detail()?.game.status === "final");
   readonly isLive = computed(() => this.detail()?.game.status === "live");
+
+  // Current round's full schedule, fetched once so the "other live games"
+  // pill row below the matchup header (game-detail.html) has team/score
+  // info to render, not just the live game ids EventsService already
+  // tracks app-wide. Kept current the same way live-center.ts's own
+  // `games` list is — patched in place off every SSE game-update, not
+  // re-fetched. Public (not gated on auth), like the rest of this page.
+  readonly scheduleGames = signal<Game[]>([]);
+  readonly otherLiveGames = computed(() => {
+    const currentId = this.detail()?.game.id;
+    return this.scheduleGames().filter((g) => g.status === "live" && g.id !== currentId);
+  });
   // Team-level stat line under the box score — summed client-side from the
   // same per-player box score rows rather than a separate backend query,
   // since the box score already has everything needed.
@@ -270,6 +287,17 @@ export class GameDetailComponent implements OnInit {
       const update = this.events.lastGameUpdate();
       if (!update) return;
 
+      // Keeps the "other live games" pill row current regardless of which
+      // game this update is for — same in-place patch live-center.ts's own
+      // effect does for its games list.
+      this.scheduleGames.update((list) =>
+        list.map((g) =>
+          g.id === update.gameId
+            ? { ...g, homeScore: update.homeScore, awayScore: update.awayScore, status: update.status, quarter: update.quarter ?? g.quarter, gameClockSeconds: update.gameClockSeconds ?? g.gameClockSeconds }
+            : g
+        )
+      );
+
       let isThisGame = false;
       this.detail.update((current) => {
         if (!current || update.gameId !== current.game.id) return current;
@@ -333,6 +361,15 @@ export class GameDetailComponent implements OnInit {
     this.api.getTopScorerPick(gameId).subscribe({
       next: (pick) => this.myTopScorerPick.set(pick),
       error: () => {},
+    });
+
+    // No round param — the backend defaults to "the current round" (the
+    // earliest round with any non-final game), which is exactly the scope
+    // "other games active right now" means, regardless of which round the
+    // game actually being viewed belongs to.
+    this.api.getSchedule(SEASON).subscribe({
+      next: (schedule) => this.scheduleGames.set(schedule.games),
+      error: () => {}, // non-critical — the pill row just stays empty
     });
   }
 
