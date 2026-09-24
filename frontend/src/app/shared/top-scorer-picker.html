@@ -51,6 +51,11 @@
                   <app-logo-spinner [size]="18" />
                 </span>
               }
+              @if (injuryFor(c.player.id); as injury) {
+                <span class="absolute -top-1 -right-1">
+                  <app-injury-badge [status]="injury.status" [note]="injury.note" [noteEl]="injury.noteEl" [size]="16" />
+                </span>
+              }
             </span>
             <span class="text-[9px] text-muted font-semibold truncate w-full text-center">{{ c.player.name.split(',')[0] }}</span>
             <!-- White pill, not team-primary text (2026-09-22, "show a ppg
@@ -104,6 +109,11 @@
               @if (savingId() === c.player.id) {
                 <span class="absolute inset-0 flex items-center justify-center rounded-full bg-card/70">
                   <app-logo-spinner [size]="18" />
+                </span>
+              }
+              @if (injuryFor(c.player.id); as injury) {
+                <span class="absolute -top-1 -right-1">
+                  <app-injury-badge [status]="injury.status" [note]="injury.note" [noteEl]="injury.noteEl" [size]="16" />
                 </span>
               }
             </span>

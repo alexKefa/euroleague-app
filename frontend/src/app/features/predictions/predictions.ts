@@ -17,6 +17,7 @@ import {
   MyTopScorerPrediction,
   RareMilestoneReward,
   PlayerAdvancedStatsRow,
+  InjuryReportEntry,
 } from "../../core/models";
 import { TeamBadgeComponent } from "../../shared/team-badge";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
@@ -31,6 +32,7 @@ import { TeamCodePipe } from "../../shared/team-display-code";
 import { TopScorerPickerComponent } from "../../shared/top-scorer-picker";
 import { ConfirmDialogComponent } from "../../shared/confirm-dialog";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
+import { InjuryBadgeComponent } from "../../shared/injury-badge";
 
 // Matches schedule.ts — no season picker here either, and predictions
 // should only ever be open for the round a user could actually be watching.
@@ -136,6 +138,7 @@ interface DisplayedPick {
     TopScorerPickerComponent,
     ConfirmDialogComponent,
     PlayerPhotoComponent,
+    InjuryBadgeComponent,
   ],
   templateUrl: "./predictions.html",
 })
@@ -232,6 +235,21 @@ export class PredictionsComponent implements OnInit, OnDestroy {
   // separate fallback is needed here.
   readonly advancedStatsRows = signal<PlayerAdvancedStatsRow[]>([]);
 
+  // League-wide injury report (2026-09-24, direct ask: "hide injured
+  // players. or just add banner over them" on this quick-pick row) — an
+  // "out" player is dropped from the recommendation slots outright
+  // (recommending someone who can't play is just wrong, so the spot goes
+  // to the next-highest-PPG healthy teammate instead); the lesser statuses
+  // (doubtful/questionable/probable) still show but get
+  // InjuryBadgeComponent's usual corner badge, same "inform, don't hide"
+  // treatment top-scorer-picker.ts's own candidate list now uses too.
+  readonly injuries = signal<InjuryReportEntry[]>([]);
+  readonly injuriesByPlayerId = computed(() => new Map(this.injuries().map((i) => [i.playerId, i])));
+
+  injuryFor(playerId: string): InjuryReportEntry | null {
+    return this.injuriesByPlayerId().get(playerId) ?? null;
+  }
+
   // Whether this quick-pick candidate is the currently saved top-scorer
   // pick for this game — pulled out to a plain method (rather than an
   // inline optional-chain ternary in the template) since Angular's
@@ -242,8 +260,11 @@ export class PredictionsComponent implements OnInit, OnDestroy {
   }
 
   topScorerRecommendations(teamId: string): PlayerAdvancedStatsRow[] {
+    const injured = this.injuriesByPlayerId();
     return this.advancedStatsRows()
-      .filter((r) => r.player.teamId === teamId && r.player.active && r.stats.pointsPerGame != null)
+      .filter(
+        (r) => r.player.teamId === teamId && r.player.active && r.stats.pointsPerGame != null && injured.get(r.player.id)?.status !== "out"
+      )
       .sort((a, b) => (b.stats.pointsPerGame ?? 0) - (a.stats.pointsPerGame ?? 0))
       .slice(0, 3);
   }
@@ -482,6 +503,11 @@ export class PredictionsComponent implements OnInit, OnDestroy {
     this.api.getAdvancedStats().subscribe({
       next: (res) => this.advancedStatsRows.set(res.rows),
       error: () => {}, // non-critical — the quick-pick row just stays empty
+    });
+
+    this.api.getInjuries().subscribe({
+      next: (rows) => this.injuries.set(rows),
+      error: () => {}, // non-critical — quick-pick just stops short of filtering/badging
     });
 
     this.refreshLeaderboard();
