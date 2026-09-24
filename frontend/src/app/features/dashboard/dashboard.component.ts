@@ -142,6 +142,23 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // own fetch of the whole player pool.
   readonly fantasyLineup = signal<FantasyLineup | null>(null);
 
+  // Dismissible "Jump Ball is ready" notification (2026-09-25, direct
+  // request) — true only once GET /api/spin confirms the wheel is
+  // actually spinnable right now, not just "hasn't been dismissed yet"
+  // (see jumpBallHintId below for why dismissing it doesn't hide it
+  // forever the way app-page-hint's own dismiss normally would).
+  readonly jumpBallAvailable = signal(false);
+  // app-page-hint's dismiss is permanent-per-hintId-per-device (see its own
+  // doc comment) — fine for a one-time tip, wrong for a notification that's
+  // supposed to come back once the wheel resets. Scoping the hintId itself
+  // to today's Europe/Athens calendar date (the exact boundary
+  // routes/spin.ts's own nextAthensMidnightUtc now resets on) means a
+  // dismissal only ever suppresses *today's* occurrence — tomorrow's date
+  // is a different hintId, so app-page-hint's storage lookup naturally
+  // misses and shows it again, with zero extra dismiss-tracking logic of
+  // this component's own.
+  readonly jumpBallHintId = `dashboard-jumpball-${new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Athens" }).format(new Date())}`;
+
   // Which tab the merged Performances/Leaders/Predictors/Schedule card is
   // showing. Defaults to the first section that actually has data (see the
   // effect in the constructor) rather than a fixed tab, since e.g. an
@@ -337,6 +354,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
       });
       this.api.getFantasyLineup().subscribe({
         next: (lineup) => this.fantasyLineup.set(lineup),
+        error: () => {}, // non-critical widget
+      });
+      this.api.getSpinStatus().subscribe({
+        next: (status) => this.jumpBallAvailable.set(status.canSpin),
         error: () => {}, // non-critical widget
       });
     }
