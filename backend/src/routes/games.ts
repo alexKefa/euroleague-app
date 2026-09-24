@@ -213,6 +213,8 @@ gamesRouter.get("/:id", async (req, res) => {
         awayScore: games.awayScore,
         quarter: games.quarter,
         gameClockSeconds: games.gameClockSeconds,
+        homeScoreByQuarter: games.homeScoreByQuarter,
+        awayScoreByQuarter: games.awayScoreByQuarter,
         highlightVideoId: games.highlightVideoId,
         homeTeam: {
           id: homeTeam.id,

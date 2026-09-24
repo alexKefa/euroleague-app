@@ -289,6 +289,13 @@ export interface Game {
   // (games.quarter/game_clock_seconds) for where these come from.
   quarter: number | null;
   gameClockSeconds: number | null;
+  // Index 0 = Q1, a trailing 5th entry (if present) is OT — only GET
+  // /games/:id populates these (see backend schema.ts's doc comment on the
+  // column), trimmed to just the quarters actually played so far. Null for
+  // a game this job never saw live (synced before the column existed, or
+  // one that jumped straight to final).
+  homeScoreByQuarter?: number[] | null;
+  awayScoreByQuarter?: number[] | null;
   homeTeam: GameTeamSummary;
   awayTeam: GameTeamSummary;
   highlightVideoId?: string | null;

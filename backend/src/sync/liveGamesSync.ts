@@ -60,6 +60,22 @@ interface HeaderResponse {
   ScoreB: string;
   Quarter: string;
   RemainingPartialTime: string;
+  // Confirmed numeric (not string) in a real response — e.g.
+  // "ScoreQuarter1A":2,"ScoreQuarter2A":0,... — always present for all 4
+  // quarters regardless of how far the game has gotten, zeroed for a
+  // quarter not yet played. ScoreExtraTimeA/B covers a single OT period;
+  // unconfirmed whether a second OT is tracked separately or accumulated
+  // into the same field (no real game has gone to 2OT to check against).
+  ScoreQuarter1A: number;
+  ScoreQuarter2A: number;
+  ScoreQuarter3A: number;
+  ScoreQuarter4A: number;
+  ScoreExtraTimeA: number;
+  ScoreQuarter1B: number;
+  ScoreQuarter2B: number;
+  ScoreQuarter3B: number;
+  ScoreQuarter4B: number;
+  ScoreExtraTimeB: number;
 }
 
 const BOXSCORE_URL = "https://live.euroleague.net/api/Boxscore";
@@ -232,6 +248,23 @@ function parseScore(value: string | undefined, fallback: number | null): number 
   return Number.isFinite(n) ? n : (fallback ?? 0);
 }
 
+// Trims to the quarters actually played so far (per `currentQuarter`) rather
+// than always returning all 4 — Header zeroes out a quarter that hasn't
+// happened yet, and showing "Q3: 0" in the quick-view dialog while a game
+// is still in Q1 would read as a real (very cold) score, not "not played".
+// Appends OT only once it's actually underway (a nonzero ScoreExtraTime).
+function parseQuarterScores(header: HeaderResponse, side: "A" | "B", currentQuarter: number | null): number[] {
+  const raw = [
+    header[`ScoreQuarter1${side}`],
+    header[`ScoreQuarter2${side}`],
+    header[`ScoreQuarter3${side}`],
+    header[`ScoreQuarter4${side}`],
+  ];
+  const extra = header[`ScoreExtraTime${side}`] ?? 0;
+  const played = raw.slice(0, Math.min(currentQuarter ?? raw.length, 4));
+  return extra > 0 ? [...played, extra] : played;
+}
+
 async function fetchHeader(season: string, gameCode: number): Promise<HeaderResponse | null> {
   const url = `${HEADER_URL}?gamecode=${gameCode}&seasoncode=${seasonCodeFor(season)}`;
   const res = await fetch(url);
@@ -291,7 +324,12 @@ export async function syncLiveGames(): Promise<LiveGamesSyncResult> {
       const gameClockSeconds = parseClock(header.RemainingPartialTime) ?? game.gameClockSeconds;
 
       if (header.Live) {
-        await db.update(games).set({ status: "live", homeScore, awayScore, quarter, gameClockSeconds }).where(eq(games.id, game.id));
+        const homeScoreByQuarter = parseQuarterScores(header, "A", quarter);
+        const awayScoreByQuarter = parseQuarterScores(header, "B", quarter);
+        await db
+          .update(games)
+          .set({ status: "live", homeScore, awayScore, quarter, gameClockSeconds, homeScoreByQuarter, awayScoreByQuarter })
+          .where(eq(games.id, game.id));
 
         const boxscore = await fetchBoxscore(game.season, game.gameCode);
         if (boxscore) await upsertLiveBoxscore(game.id, boxscore);

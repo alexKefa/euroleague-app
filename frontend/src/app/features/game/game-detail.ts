@@ -174,6 +174,55 @@ export class GameDetailComponent implements OnInit {
     const currentId = this.detail()?.game.id;
     return this.scheduleGames().filter((g) => g.status === "live" && g.id !== currentId);
   });
+
+  // Quick-view dialog for one of the "other live games" pills — a peek
+  // (top 3 scorers + per-quarter score) without leaving this game's page,
+  // same "stay in context" reasoning as the player preview dialog above.
+  // Reuses GET /games/:id (already fetches the live box score) rather than
+  // a new endpoint — top scorers are derived from it client-side, same as
+  // topScorerStripPlayers does for this page's own game further down.
+  readonly quickViewGameId = signal<string | null>(null);
+  readonly quickViewDetail = signal<GameDetail | null>(null);
+  readonly quickViewLoading = signal(false);
+
+  readonly quickViewTopScorers = computed(() => {
+    const d = this.quickViewDetail();
+    if (!d?.boxscore) return [];
+    return [...d.boxscore.home, ...d.boxscore.away]
+      .filter((l) => l.points !== null)
+      .sort((a, b) => (b.points ?? 0) - (a.points ?? 0))
+      .slice(0, 3)
+      .map((line) => ({ line, team: line.teamId === d.game.homeTeam.id ? d.game.homeTeam : d.game.awayTeam }));
+  });
+
+  // Zips home/away per-quarter scores into rows for the dialog's table —
+  // both arrays are always the same length (see schema.ts's doc comment),
+  // so indexing either one for the length is safe.
+  readonly quickViewQuarterRows = computed(() => {
+    const g = this.quickViewDetail()?.game;
+    const home = g?.homeScoreByQuarter;
+    const away = g?.awayScoreByQuarter;
+    if (!home?.length || !away?.length) return [];
+    return home.map((h, i) => ({ label: i < 4 ? `Q${i + 1}` : "OT", home: h, away: away[i] }));
+  });
+
+  openQuickView(gameId: string): void {
+    this.quickViewGameId.set(gameId);
+    this.quickViewDetail.set(null);
+    this.quickViewLoading.set(true);
+    this.api.getGame(gameId).subscribe({
+      next: (d) => {
+        this.quickViewDetail.set(d);
+        this.quickViewLoading.set(false);
+      },
+      error: () => this.quickViewLoading.set(false),
+    });
+  }
+
+  closeQuickView(): void {
+    this.quickViewGameId.set(null);
+    this.quickViewDetail.set(null);
+  }
   // Team-level stat line under the box score — summed client-side from the
   // same per-player box score rows rather than a separate backend query,
   // since the box score already has everything needed.
@@ -333,40 +382,59 @@ export class GameDetailComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    const gameId = this.route.snapshot.paramMap.get("id");
-    if (!gameId) {
-      this.loading.set(false);
-      this.error.set(this.i18n.t("game.gameNotFound"));
-      return;
-    }
-
-    this.api.getGame(gameId).subscribe({
-      next: (detail) => {
-        this.detail.set(detail);
+    // Subscribed, not just read from the snapshot once (same pattern as
+    // album.ts/battle-detail.ts) — the quick-view dialog's "view full
+    // game" link navigates from one game id to another on this same route
+    // config, which Angular reuses this component instance for rather than
+    // re-running ngOnInit; only a live param subscription picks that
+    // transition up.
+    this.route.paramMap.subscribe((params) => {
+      const gameId = params.get("id");
+      if (!gameId) {
         this.loading.set(false);
-        this.api.getRoster(detail.game.homeTeam.id).subscribe({ next: (r) => this.homeRoster.set(r) });
-        this.api.getRoster(detail.game.awayTeam.id).subscribe({ next: (r) => this.awayRoster.set(r) });
-      },
-      error: (err) => {
-        this.error.set(err?.error?.error ?? this.i18n.t("game.failedToLoad"));
-        this.loading.set(false);
-      },
-    });
+        this.error.set(this.i18n.t("game.gameNotFound"));
+        return;
+      }
 
-    // Not gated on auth.currentUser() — on a fresh page load that signal
-    // isn't populated yet at this point (restoreSession() resolves it
-    // asynchronously off the httpOnly refresh cookie, same "bootstrap
-    // race" documented in CLAUDE.md for the dashboard's team-hero). A
-    // logged-out request just 401s, which is silently ignored here.
-    this.api.getTopScorerPick(gameId).subscribe({
-      next: (pick) => this.myTopScorerPick.set(pick),
-      error: () => {},
+      this.loading.set(true);
+      this.error.set(null);
+      this.detail.set(null);
+      this.homeRoster.set([]);
+      this.awayRoster.set([]);
+      this.myTopScorerPick.set(null);
+      this.onFireIds.set([]);
+      this.closePlayer();
+      this.closeQuickView();
+
+      this.api.getGame(gameId).subscribe({
+        next: (detail) => {
+          this.detail.set(detail);
+          this.loading.set(false);
+          this.api.getRoster(detail.game.homeTeam.id).subscribe({ next: (r) => this.homeRoster.set(r) });
+          this.api.getRoster(detail.game.awayTeam.id).subscribe({ next: (r) => this.awayRoster.set(r) });
+        },
+        error: (err) => {
+          this.error.set(err?.error?.error ?? this.i18n.t("game.failedToLoad"));
+          this.loading.set(false);
+        },
+      });
+
+      // Not gated on auth.currentUser() — on a fresh page load that signal
+      // isn't populated yet at this point (restoreSession() resolves it
+      // asynchronously off the httpOnly refresh cookie, same "bootstrap
+      // race" documented in CLAUDE.md for the dashboard's team-hero). A
+      // logged-out request just 401s, which is silently ignored here.
+      this.api.getTopScorerPick(gameId).subscribe({
+        next: (pick) => this.myTopScorerPick.set(pick),
+        error: () => {},
+      });
     });
 
     // No round param — the backend defaults to "the current round" (the
     // earliest round with any non-final game), which is exactly the scope
     // "other games active right now" means, regardless of which round the
-    // game actually being viewed belongs to.
+    // game actually being viewed belongs to. Fetched once, not per param
+    // change — the current round doesn't depend on which game is open.
     this.api.getSchedule(SEASON).subscribe({
       next: (schedule) => this.scheduleGames.set(schedule.games),
       error: () => {}, // non-critical — the pill row just stays empty
@@ -401,6 +469,7 @@ export class GameDetailComponent implements OnInit {
   @HostListener("document:keydown.escape")
   onEscape(): void {
     this.closePlayer();
+    this.closeQuickView();
   }
 
   fmtPct(value: number | null | undefined): string {

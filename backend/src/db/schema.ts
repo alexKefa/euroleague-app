@@ -181,6 +181,17 @@ export const games = pgTable(
     // simulator yet). gameClockSeconds: seconds left in that quarter.
     quarter: integer("quarter"),
     gameClockSeconds: integer("game_clock_seconds"),
+    // Per-quarter score, index 0 = Q1 (a trailing 5th entry, if present, is
+    // OT) — populated by sync/liveGamesSync.ts from the live feed's own
+    // ScoreQuarterNA/B fields, trimmed to only the quarters actually played
+    // so far (never padded with zeros for a quarter that hasn't happened
+    // yet). Null until a game has gone through at least one live tick under
+    // this sync — an older game synced before this column existed, or one
+    // that went straight from scheduled to final without this job ever
+    // seeing it live, has no per-quarter breakdown. Feeds the "other live
+    // games" quick-view dialog's per-quarter table (game-detail.html).
+    homeScoreByQuarter: jsonb("home_score_by_quarter").$type<number[]>(),
+    awayScoreByQuarter: jsonb("away_score_by_quarter").$type<number[]>(),
     // YouTube video ID (not a full URL) for this game's official highlight
     // reel, e.g. "MDWcq_KCkzY" — admin-set for now (PATCH /api/games/:id/
     // highlight, mirrors collectibles' admin imageUrl pattern) since there's

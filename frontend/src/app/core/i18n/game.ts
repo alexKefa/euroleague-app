@@ -61,4 +61,10 @@ export const gameTranslations: Record<string, Record<Lang, string>> = {
   },
   "game.gameNotFound": { en: "Game not found.", el: "Ο αγώνας δεν βρέθηκε." },
   "game.failedToLoad": { en: "Failed to load this game.", el: "Αποτυχία φόρτωσης του αγώνα." },
+
+  // "Other live games" quick-view dialog (2026-09-24).
+  "game.topScorers": { en: "Top scorers", el: "Κορυφαίοι σκόρερ" },
+  "game.pointsByQuarter": { en: "Points by quarter", el: "Πόντοι ανά περίοδο" },
+  "game.viewFullGame": { en: "View full game", el: "Πλήρης αγώνας" },
+  "game.couldntLoadGame": { en: "Couldn't load this game.", el: "Δεν ήταν δυνατή η φόρτωση του αγώνα." },
 };
