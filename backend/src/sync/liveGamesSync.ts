@@ -60,12 +60,20 @@ interface HeaderResponse {
   ScoreB: string;
   Quarter: string;
   RemainingPartialTime: string;
-  // Confirmed numeric (not string) in a real response — e.g.
-  // "ScoreQuarter1A":2,"ScoreQuarter2A":0,... — always present for all 4
-  // quarters regardless of how far the game has gotten, zeroed for a
-  // quarter not yet played. ScoreExtraTimeA/B covers a single OT period;
-  // unconfirmed whether a second OT is tracked separately or accumulated
-  // into the same field (no real game has gone to 2OT to check against).
+  // Confirmed numeric (not string) in a real response, and confirmed
+  // CUMULATIVE (running total as of that quarter's end), not each
+  // quarter's own point total — checked directly against a real Q4 game:
+  // ScoreQuarter4A === ScoreA (the final total), and 20/38/63/65 only
+  // makes sense as a running total (as per-quarter deltas they'd sum to
+  // 186, far past the real final score of 65). A quarter not yet played
+  // reads 0 (checked directly earlier in Q1, with Quarter2A/3A/4A all
+  // still 0) — parseQuarterScores below converts these cumulative values
+  // into real per-quarter deltas and trims by `currentQuarter` so a
+  // not-yet-played quarter's 0 is dropped rather than shown as "scored 0
+  // this quarter". ScoreExtraTimeA/B presumably continues the same
+  // cumulative pattern through a single OT period; unconfirmed whether a
+  // second OT is tracked separately or accumulated into the same field (no
+  // real game has gone to 2OT yet).
   ScoreQuarter1A: number;
   ScoreQuarter2A: number;
   ScoreQuarter3A: number;
@@ -254,15 +262,21 @@ function parseScore(value: string | undefined, fallback: number | null): number 
 // is still in Q1 would read as a real (very cold) score, not "not played".
 // Appends OT only once it's actually underway (a nonzero ScoreExtraTime).
 function parseQuarterScores(header: HeaderResponse, side: "A" | "B", currentQuarter: number | null): number[] {
-  const raw = [
+  const cumulative = [
     header[`ScoreQuarter1${side}`],
     header[`ScoreQuarter2${side}`],
     header[`ScoreQuarter3${side}`],
     header[`ScoreQuarter4${side}`],
   ];
-  const extra = header[`ScoreExtraTime${side}`] ?? 0;
-  const played = raw.slice(0, Math.min(currentQuarter ?? raw.length, 4));
-  return extra > 0 ? [...played, extra] : played;
+  const extraCumulative = header[`ScoreExtraTime${side}`] ?? 0;
+  const played = cumulative.slice(0, Math.min(currentQuarter ?? cumulative.length, 4));
+  // Each entry is a running total as of that quarter's end — diff against
+  // the previous entry (0 before Q1) to get that quarter's own points.
+  const perQuarter = played.map((total, i) => total - (i === 0 ? 0 : played[i - 1]));
+  if (extraCumulative > 0) {
+    perQuarter.push(extraCumulative - (played[played.length - 1] ?? 0));
+  }
+  return perQuarter;
 }
 
 async function fetchHeader(season: string, gameCode: number): Promise<HeaderResponse | null> {
