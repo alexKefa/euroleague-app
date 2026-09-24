@@ -61,6 +61,9 @@ export const storeTranslations: Record<string, Record<Lang, string>> = {
   "wheel.takeJumpBall": { en: "Take the jump ball", el: "Πήδα για το τζάμπολ" },
   "wheel.spinning": { en: "Jump ball…", el: "Τζάμπολ…" },
   "wheel.nextAvailable": { en: "Next jump ball available", el: "Επόμενο τζάμπολ διαθέσιμο" },
+  // Global "it's ready" toast (2026-09-25, shared/jump-ball-toast.ts).
+  "wheel.toastReady": { en: "Your daily jump ball is ready to spin!", el: "Το καθημερινό σου τζάμπολ είναι έτοιμο!" },
+  "wheel.toastSpin": { en: "Spin now", el: "Παίξε τώρα" },
   "wheel.cheatAdmin": { en: "Cheat jump ball (admin)", el: "Τζάμπολ απάτης (διαχειριστής)" },
   "wheel.cheatFoilAdmin": { en: "Cheat foil legendary (admin)", el: "Θρυλική foil απάτης (διαχειριστής)" },
   "wheel.cheatCoachAdmin": { en: "Cheat coach pack (admin)", el: "Πακέτο προπονητή απάτης (διαχειριστής)" },

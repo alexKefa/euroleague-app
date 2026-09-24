@@ -158,21 +158,6 @@
       <app-prize-banner size="compact" ctaLink="/album" hintId="dashboard-album-prize" />
     </div>
 
-    <!-- Dismissible "Jump Ball is ready" notification (2026-09-25, direct
-         request) — only rendered once GET /api/spin confirms it's
-         actually spinnable right now (jumpBallAvailable, set in
-         loadDashboardData); app-page-hint's dismiss is per-hintId, and
-         jumpBallHintId is scoped to today's Europe/Athens date (see its
-         own doc comment on dashboard.component.ts) so dismissing it only
-         hides today's notification, not every future one. -->
-    @if (jumpBallAvailable()) {
-      <app-page-hint [hintId]="jumpBallHintId" icon="wheel" class="block text-left mb-4">
-        {{ i18n.t('dashboard.jumpBallHintPrefix') }}
-        <a routerLink="/wheel" class="text-team-primary font-semibold">{{ i18n.t('store.jumpBall') }}</a>
-        {{ i18n.t('dashboard.jumpBallHintSuffix') }}
-      </app-page-hint>
-    }
-
     <app-live-center />
 
     <!-- My Leagues + Fantasy Team -->

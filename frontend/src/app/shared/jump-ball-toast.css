@@ -1,0 +1,21 @@
+/* Same entrance battle-challenge-toast.css uses, without its pulsing-ring
+   icon treatment — that urgency cue fits "someone challenged you", not a
+   routine daily reminder. */
+.toast-pop {
+  animation: jump-ball-toast-in 480ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes jump-ball-toast-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-24px) scale(0.9);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(4px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

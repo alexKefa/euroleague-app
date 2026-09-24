@@ -48,12 +48,6 @@ export const dashboardTranslations: Record<string, Record<Lang, string>> = {
   "dashboard.guestHintCta": { en: "create a free account", el: "δημιούργησε δωρεάν λογαριασμό" },
   "dashboard.guestHintSuffix": { en: "to get started — takes a minute.", el: "για να ξεκινήσεις — παίρνει ένα λεπτό." },
 
-  // Dismissible "Jump Ball is ready" notification (2026-09-25) — the CTA
-  // link itself reuses store.jumpBall ("Τζάμπολ" in Greek, not a literal
-  // "Jump Ball" translation) rather than a second, inconsistent key.
-  "dashboard.jumpBallHintPrefix": { en: "Your daily", el: "Το καθημερινό σου" },
-  "dashboard.jumpBallHintSuffix": { en: "is ready to spin.", el: "είναι έτοιμο για περιστροφή." },
-
   "dashboard.topPredictors": { en: "Top Predictors", el: "Κορυφαίοι στις Προβλέψεις" },
 
   "dashboard.sponsorTag": { en: "SPONSOR", el: "ΧΟΡΗΓΟΣ" },

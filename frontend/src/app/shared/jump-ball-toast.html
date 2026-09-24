@@ -1,0 +1,30 @@
+@if (visible()) {
+  <!-- A second, lower fixed slot than battle-challenge-toast.html's own
+       (top-20/4.5rem) — both are simple fixed-position toasts with no
+       shared stacking manager, and unlike a battle challenge (rare), the
+       wheel being ready is common enough that the two could plausibly show
+       at once; stacking avoids them overlapping exactly. -->
+  <div
+    class="toast-pop fixed z-40 inset-x-3 top-[calc(4.5rem+7rem+env(safe-area-inset-top))] sm:inset-x-auto sm:right-4 sm:top-40 sm:w-96 bg-card border-2 border-line rounded-2xl shadow-pop p-4"
+  >
+    <div class="flex items-start gap-3">
+      <div class="w-9 h-9 rounded-full bg-team-primary/10 flex items-center justify-center shrink-0">
+        <app-nav-icon name="wheel" [size]="20" class="text-team-primary" />
+      </div>
+      <div class="min-w-0 flex-1">
+        <p class="text-sm font-semibold">{{ i18n.t('wheel.toastReady') }}</p>
+      </div>
+      <button
+        type="button"
+        (click)="dismiss()"
+        class="text-muted hover:text-ink text-lg leading-none shrink-0"
+        [attr.aria-label]="i18n.t('hint.dismiss')"
+      >
+        &times;
+      </button>
+    </div>
+    <button type="button" (click)="spin()" appButton appButtonSize="sm" class="w-full mt-3">
+      {{ i18n.t('wheel.toastSpin') }}
+    </button>
+  </div>
+}

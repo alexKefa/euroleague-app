@@ -15,6 +15,7 @@ import { TourService } from "./core/tour/tour.service";
 import { InstallBannerComponent } from "./shared/install-banner";
 import { TourFabComponent } from "./shared/tour-fab";
 import { BattleChallengeToastComponent } from "./shared/battle-challenge-toast";
+import { JumpBallToastComponent } from "./shared/jump-ball-toast";
 
 // 2026-09-08: bumped from 1200ms — the old duration was timed to just the
 // splash's own entrance animation (cards fan in, then the C+ball+wordmark
@@ -132,6 +133,7 @@ const MORE_LINKS: NavLink[] = ["/schedule", "/teams", "/standings", "/news"].map
     InstallBannerComponent,
     TourFabComponent,
     BattleChallengeToastComponent,
+    JumpBallToastComponent,
   ],
   templateUrl: "./app.component.html",
 })
