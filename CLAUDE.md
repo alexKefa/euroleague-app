@@ -1071,6 +1071,13 @@ If you need to apply a schema change without an interactive terminal
     `cdkDragStartDelay` for touch: CDK *cancels* the drag if the finger moves
     before the delay elapses, so a normal quick drag on a phone silently did
     nothing (shipped briefly to dev, reported as "does not swap players").
+    Also no drop animation on `.cdk-drag-animating` — a fly-and-fade toward
+    the hidden target placeholder overlapped the landing pop and read as a
+    leftover trace. `reseatStartersForFormation` is stable (starters already
+    in a fitting slot stay put), so a bench player lands where dropped; a
+    swap no formation supports now flashes a "doesn't fit" pill instead of
+    silently snapping back. Every player list shows a position chip plus a
+    T1/T2 match-day chip (`turnByTeamId`, multi-day rounds only).
     The mobile picker sizes
     itself to `window.visualViewport` so the keyboard never covers results,
     and hides its secondary filters while the keyboard is up.

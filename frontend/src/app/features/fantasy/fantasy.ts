@@ -398,6 +398,15 @@ export class FantasyComponent implements OnInit {
   readonly autoFilling = signal(false);
   readonly confirmingAutoFill = signal(false);
   readonly autoFillNotice = signal(false);
+  // Brief "that swap doesn't fit any formation" pill (2026-09-25) — a
+  // drag that onDrop rejects used to just snap back with no explanation.
+  readonly swapRejectedNotice = signal(false);
+  private swapRejectedTimer?: ReturnType<typeof setTimeout>;
+  private flashSwapRejected(): void {
+    this.swapRejectedNotice.set(true);
+    clearTimeout(this.swapRejectedTimer);
+    this.swapRejectedTimer = setTimeout(() => this.swapRejectedNotice.set(false), 2500);
+  }
   // Admin-only "simulate whole round" trigger (2026-09-17) — same
   // POST /events/simulate/round the Schedule page's own button already
   // calls, just reachable from here too so testing Fantasy scoring doesn't
@@ -652,6 +661,27 @@ export class FantasyComponent implements OnInit {
     }
     return { current, total: dateKeys.length };
   });
+
+  // Which match day ("turn") of this round each team plays on — 1 for the
+  // round's first calendar day, 2 for the second (2026-09-25, "show either
+  // he played for T1 (turn1) or t2"). Empty for a single-day round, where
+  // a T1 badge on everyone would say nothing.
+  readonly turnByTeamId = computed(() => {
+    const games = this.fixtureGames();
+    const dateKeys = [...new Set(games.map((g) => this.athensDateKey(g.tipoffAt)))].sort();
+    const map = new Map<string, number>();
+    if (dateKeys.length < 2) return map;
+    for (const g of games) {
+      const turn = dateKeys.indexOf(this.athensDateKey(g.tipoffAt)) + 1;
+      map.set(g.homeTeam.id, turn);
+      map.set(g.awayTeam.id, turn);
+    }
+    return map;
+  });
+
+  turnFor(teamId: string): number | null {
+    return this.turnByTeamId().get(teamId) ?? null;
+  }
 
   readonly daysUntilLock = computed<number | null>(() => {
     const lockAt = this.lockAt();
@@ -1193,17 +1223,28 @@ export class FantasyComponent implements OnInit {
   // adds up to 2-2-1's count vector, but slot 4 is 2-2-1's Center slot and
   // slot 3 (unchanged, still a real Center) is 2-2-1's Forward slot — both
   // wrong until the 5 are re-bucketed by position and re-seated in order.
+  //
+  // Stable (2026-09-25, "cant correctly swap between bench players and
+  // starters"): any starter already sitting in a slot that fits their
+  // position stays put, and only the misfits get re-bucketed into the
+  // remaining slots. The old version re-dealt all 5 in Guards/Forwards/
+  // Centers order every time, so a bench Guard dropped onto the *second*
+  // Guard slot landed in the first and shoved the other Guard over.
   private reseatStartersForFormation(slots: SquadSlot[], formation: Formation): SquadSlot[] {
     const byId = this.rowById();
-    const byPosition: Record<PositionName, string[]> = { Guard: [], Forward: [], Center: [] };
-    for (let i = 0; i < this.starterCount; i++) {
-      const playerId = slots[i].playerId!;
-      byPosition[byId.get(playerId)!.player.position as PositionName].push(playerId);
-    }
     const requiredPositions = FORMATION_POSITIONS[formation];
     const next = [...slots];
+    const misfits: Record<PositionName, string[]> = { Guard: [], Forward: [], Center: [] };
+    const open: number[] = [];
     for (let i = 0; i < this.starterCount; i++) {
-      next[i] = { ...next[i], playerId: byPosition[requiredPositions[i]].shift()! };
+      const playerId = slots[i].playerId!;
+      const position = byId.get(playerId)!.player.position as PositionName;
+      if (position === requiredPositions[i]) continue;
+      misfits[position].push(playerId);
+      open.push(i);
+    }
+    for (const i of open) {
+      next[i] = { ...next[i], playerId: misfits[requiredPositions[i]].shift()! };
     }
     return next;
   }
@@ -2098,9 +2139,13 @@ export class FantasyComponent implements OnInit {
     let formation: Formation | null = null;
     if (crossesActiveBenchLine) {
       const result = this.evaluateSwap(slots, sourceIdx, targetIdx);
-      if (!result.ok) return;
+      if (!result.ok) {
+        this.flashSwapRejected();
+        return;
+      }
       formation = result.formation;
     } else if (!this.slotAcceptsPlayer(targetId, draggedPlayerId) || !this.slotAcceptsPlayer(sourceId, displaced)) {
+      this.flashSwapRejected();
       return;
     }
 

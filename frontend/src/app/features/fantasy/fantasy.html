@@ -1,3 +1,21 @@
+<!-- Position + match-day ("turn") chips shown next to a player wherever
+     they are listed (2026-09-25, "show either he played for T1 (turn1) or
+     t2. and show player position"). Declared at the root so every block
+     below, popups included, can stamp it. The turn chip only appears in a
+     multi-day round, and is greyed once that player has already played. -->
+<ng-template #playerMeta let-row>
+  <span class="inline-flex items-center gap-1 align-middle">
+    <span class="px-1 py-px rounded border border-line bg-page text-ink font-bold leading-none">{{ posAbbrev(row.player.position) }}</span>
+    @if (turnFor(row.team.id); as turn) {
+      <span
+        class="px-1 py-px rounded border font-bold leading-none"
+        [ngClass]="hasPlayed(row.player.id) ? 'border-line text-muted' : 'border-team-primary/40 text-team-primary'"
+        [attr.title]="i18n.t(hasPlayed(row.player.id) ? 'fantasy.turnPlayedHint' : 'fantasy.turnHint') + ' ' + turn"
+        >{{ i18n.t('fantasy.turnAbbrev') }}{{ turn }}</span
+      >
+    }
+  </span>
+</ng-template>
 <!-- App-wide highlight -> team-color pass (2026-09-18, "change everywhere
      on the app the default orange color with the preferred team") — this
      page had the most fixed-brand-orange usages of anywhere in the app
@@ -239,6 +257,9 @@
                   }
                   @if (gameForTeam().get(row.team.id); as game) {
                     <span class="text-black/30">&middot;</span>
+                    @if (turnFor(row.team.id); as turn) {
+                      <span [class.opacity-40]="hasPlayed(row.player.id)">{{ i18n.t('fantasy.turnAbbrev') }}{{ turn }}</span>
+                    }
                     @if (game.status === 'scheduled') {
                       @if (opponentFor(row.team.id); as opp) {
                         <span>{{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }} {{ opp.opponent.code }}</span>
@@ -613,6 +634,11 @@
                     {{ i18n.t('fantasy.autoFillNotice') }}
                   </div>
                 }
+                @if (swapRejectedNotice()) {
+                  <div class="absolute top-2 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-full text-[10px] font-bold bg-red-500 text-white shadow-pop whitespace-nowrap">
+                    {{ i18n.t('fantasy.swapNoFormation') }}
+                  </div>
+                }
               </div>
 
               <!-- Randomize/deadline/simulate row, moved off the court
@@ -962,7 +988,7 @@
                     <div class="min-w-0 flex-1">
                       <p class="text-[10px] font-semibold truncate leading-tight" [ngClass]="row.injury ? injuryAccentClass(row.injury.status) : ''">{{ row.player.name }}</p>
                       <p class="text-[8px] font-mono text-muted truncate leading-tight">
-                        {{ posAbbrev(row.player.position) }}
+                        <ng-container [ngTemplateOutlet]="playerMeta" [ngTemplateOutletContext]="{ $implicit: row }" />
                         @if (opponentFor(row.team.id); as opp) {
                           &middot; {{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }} {{ opp.opponent.code }}
                         }
@@ -1240,7 +1266,7 @@
               <div class="min-w-0 flex-1">
                 <p class="text-[12px] font-semibold truncate leading-tight" [ngClass]="row.injury ? injuryAccentClass(row.injury.status) : ''">{{ row.player.name }}</p>
                 <p class="text-[10px] font-mono text-muted truncate leading-tight">
-                  {{ posAbbrev(row.player.position) }}
+                  <ng-container [ngTemplateOutlet]="playerMeta" [ngTemplateOutletContext]="{ $implicit: row }" />
                   @if (opponentFor(row.team.id); as opp) {
                     &middot; {{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }} {{ opp.opponent.code }}
                   }
@@ -1357,7 +1383,7 @@
               </span>
               <div class="min-w-0 flex-1">
                 <p class="text-[12px] font-semibold truncate leading-tight" [ngClass]="candidate.row.injury ? injuryAccentClass(candidate.row.injury.status) : ''">{{ candidate.row.player.name }}</p>
-                <p class="text-[10px] font-mono text-muted truncate leading-tight">{{ posAbbrev(candidate.row.player.position) }}</p>
+                <p class="text-[10px] font-mono text-muted truncate leading-tight"><ng-container [ngTemplateOutlet]="playerMeta" [ngTemplateOutletContext]="{ $implicit: candidate.row }" /></p>
               </div>
               @if (candidate.formation && candidate.formation !== formation()) {
                 <span class="shrink-0 text-[9px] font-mono font-bold text-team-primary border border-team-primary/30 rounded-md px-1.5 py-1 text-center leading-tight">
@@ -1450,7 +1476,7 @@
                   </span>
                   <div class="min-w-0 flex-1">
                     <p class="text-[12px] font-semibold truncate leading-tight" [ngClass]="row.injury ? injuryAccentClass(row.injury.status) : ''">{{ row.player.name }}</p>
-                    <p class="text-[10px] font-mono text-muted truncate leading-tight">{{ posAbbrev(row.player.position) }}</p>
+                    <p class="text-[10px] font-mono text-muted truncate leading-tight"><ng-container [ngTemplateOutlet]="playerMeta" [ngTemplateOutletContext]="{ $implicit: row }" /></p>
                   </div>
                   @if (captainId() === slot.playerId) {
                     <span class="w-5 h-5 rounded-full bg-team-primary text-team-secondary flex items-center justify-center text-[10px] font-bold shrink-0">C</span>

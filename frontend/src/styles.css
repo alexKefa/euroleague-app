@@ -453,8 +453,10 @@ body {
   animation: fantasy-slot-land 320ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
 }
 
-/* Picked-up card: lifted, tilted, shadowed. On release it settles toward
-   its destination while fading out, handing off to the landing pop. */
+/* Picked-up card: lifted, tilted, shadowed. On release it disappears at
+   once and the landing pop takes over — deliberately NO transition on
+   .cdk-drag-animating: an earlier fly-and-fade toward the (hidden) target
+   placeholder overlapped the pop-in and read as a leftover trace. */
 @keyframes fantasy-pickup {
   from {
     scale: 1;
@@ -468,22 +470,11 @@ body {
   cursor: grabbing;
   animation: fantasy-pickup 160ms ease-out;
 }
-.fantasy-drag-preview.cdk-drag-animating {
-  transition:
-    transform 220ms cubic-bezier(0.2, 0, 0, 1),
-    opacity 220ms ease-in,
-    scale 220ms ease-in,
-    rotate 220ms ease-in;
-  opacity: 0;
-  scale: 0.9;
-  rotate: 0deg;
-}
 
 @media (prefers-reduced-motion: reduce) {
   .fantasy-drop,
   .fantasy-slot-land,
-  .fantasy-drag-preview,
-  .fantasy-drag-preview.cdk-drag-animating {
+  .fantasy-drag-preview {
     animation: none;
     transition: none;
   }
