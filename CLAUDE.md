@@ -1067,7 +1067,11 @@ If you need to apply a schema change without an interactive terminal
     growing the slot and shoving the court around mid-drag. Adds a
     lift/tilt preview, a hovered-slot glow, and a landing pop-in (the
     occupied-slot element is keyed on player id via a one-item `@for` so a
-    newly arrived player gets a fresh element). The mobile picker sizes
+    newly arrived player gets a fresh element). Don't add a
+    `cdkDragStartDelay` for touch: CDK *cancels* the drag if the finger moves
+    before the delay elapses, so a normal quick drag on a phone silently did
+    nothing (shipped briefly to dev, reported as "does not swap players").
+    The mobile picker sizes
     itself to `window.visualViewport` so the keyboard never covers results,
     and hides its secondary filters while the keyboard is up.
   - ~~**Known gap**: `POST /lineup/batch`'s `changedIds` diff is keyed off

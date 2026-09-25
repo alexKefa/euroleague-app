@@ -113,7 +113,6 @@
               cdkDrag
               [cdkDragDisabled]="isPlayerLocked(slot.playerId)"
               [cdkDragData]="slot.playerId"
-              [cdkDragStartDelay]="{ touch: 120, mouse: 0 }"
               cdkDragPreviewClass="fantasy-drag-preview"
               class="fantasy-slot-land flex flex-col items-center gap-1"
               [ngClass]="isPlayerLocked(slot.playerId) ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'"
@@ -918,7 +917,7 @@
               cdkDropListSortingDisabled
               cdkDropListHasAnchor
               (scroll)="onPoolScroll($event)"
-              class="fantasy-drop relative flex-1 min-h-0 flex flex-col gap-1.5 bg-card rounded-2xl border border-line shadow-card p-2 overflow-y-auto"
+              class="fantasy-drop fantasy-pool relative flex-1 min-h-0 flex flex-col gap-1.5 bg-card rounded-2xl border border-line shadow-card p-2 overflow-y-auto"
               style="-webkit-overflow-scrolling: touch;"
             >
               @for (row of visibleRows(); track row.player.id) {

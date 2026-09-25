@@ -390,8 +390,16 @@ body {
    *plus* the placeholder and grew, shoving the layout around mid-drag. Now
    the list you picked up from keeps a faded ghost (placeholder, then the
    anchor clone once you leave it), and in any other list the placeholder is
-   pulled out of flow and hidden. "The list holding the hidden original
-   (.cdk-drag-dragging)" is how the source is told apart from a target.
+   pulled out of flow and hidden.
+
+   Telling source from target: CDK moves the dragged element itself to
+   <body> for the duration (leaving a comment marker), so in the source slot
+   the placeholder is the slot's *only* element child, while in a target
+   slot it sits beside the occupant (or the empty "+" panel). In the pool, a
+   placeholder cloned from a court slot (.fantasy-slot-land) is one arriving
+   from the court. (First cut keyed this on the original .cdk-drag-dragging
+   element still being in the list — it isn't, which collapsed the source
+   slot and reflowed the bench grid mid-drag.)
 
    Motion uses the individual `scale`/`rotate` properties, never `transform`,
    because CDK owns `transform` on the preview to position it. */
@@ -404,7 +412,8 @@ body {
   filter: grayscale(0.6);
   animation: none;
 }
-.fantasy-drop:not(:has(> .cdk-drag-dragging)) > .cdk-drag-placeholder:not(.cdk-drag-anchor) {
+.fantasy-slot > .cdk-drag-placeholder:not(:only-child):not(.cdk-drag-anchor),
+.fantasy-pool > .cdk-drag-placeholder.fantasy-slot-land:not(.cdk-drag-anchor) {
   position: absolute;
   left: 50%;
   top: 0;
@@ -417,11 +426,11 @@ body {
 
 /* The slot you're hovering grows slightly and glows in the team color;
    hovering the pool (to send a player back) outlines it instead. */
-.fantasy-slot.cdk-drop-list-dragging:not(:has(> .cdk-drag-dragging)) {
+.fantasy-slot.cdk-drop-list-dragging:has(> .cdk-drag-placeholder:not(:only-child)) {
   scale: 1.12;
   filter: drop-shadow(0 0 10px var(--accent-primary));
 }
-.fantasy-drop:not(.fantasy-slot).cdk-drop-list-dragging:not(:has(> .cdk-drag-dragging)) {
+.fantasy-pool.cdk-drop-list-dragging:has(> .cdk-drag-placeholder.fantasy-slot-land) {
   box-shadow: inset 0 0 0 2px var(--accent-primary);
 }
 
@@ -478,7 +487,7 @@ body {
     animation: none;
     transition: none;
   }
-  .fantasy-slot.cdk-drop-list-dragging:not(:has(> .cdk-drag-dragging)),
+  .fantasy-slot.cdk-drop-list-dragging:has(> .cdk-drag-placeholder:not(:only-child)),
   .fantasy-drag-preview {
     scale: 1;
     rotate: 0deg;
