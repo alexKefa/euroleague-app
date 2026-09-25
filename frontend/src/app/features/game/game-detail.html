@@ -381,7 +381,7 @@
                 @for (line of side.lines; track line.player.id) {
                   <tr class="border-t border-line">
                     <td class="py-1.5 font-semibold truncate max-w-[9rem]">
-                      <div class="flex items-center gap-1">
+                      <div class="flex items-center">
                         <button type="button" (click)="openPlayer(line.player.id)" class="hover:text-team-primary transition-colors text-left truncate min-w-0">
                           {{ line.player.name }}
                           <!-- "On Fire" zap icon KEPT fixed (2026-09-18,
@@ -395,7 +395,14 @@
                         <!-- Watch Pill pin (2026-09-25) — live games only;
                              pinning a player from a final game has nothing
                              left to watch. Sibling button, not nested inside
-                             the name button above (invalid HTML). -->
+                             the name button above (invalid HTML).
+                             w-7 h-7 touch target (2026-09-25 follow-up,
+                             "the pin button on players should be a bit
+                             bigger on mobile, is too small and casually
+                             redirects to player profile") — the icon
+                             itself was rendering with no padding at all, so
+                             a slightly-off tap missed it and landed on the
+                             adjacent (much bigger) name button instead. -->
                         @if (isLive()) {
                           <button
                             type="button"
@@ -403,10 +410,10 @@
                             [disabled]="!watchlist.isPinned('player', line.player.id) && !watchlist.canPinMore()"
                             [attr.aria-label]="watchlist.isPinned('player', line.player.id) ? i18n.t('watchPill.unpinPlayer') : i18n.t('watchPill.pinPlayer')"
                             [title]="!watchlist.isPinned('player', line.player.id) && !watchlist.canPinMore() ? i18n.t('watchPill.limitReached') : null"
-                            class="shrink-0 transition-colors disabled:opacity-30"
+                            class="shrink-0 w-7 h-7 flex items-center justify-center rounded-full hover:bg-page transition-colors disabled:opacity-30"
                             [ngClass]="watchlist.isPinned('player', line.player.id) ? 'text-team-primary' : 'text-muted hover:text-team-primary'"
                           >
-                            <app-nav-icon name="pin" [size]="12" [active]="watchlist.isPinned('player', line.player.id)" />
+                            <app-nav-icon name="pin" [size]="14" [active]="watchlist.isPinned('player', line.player.id)" />
                           </button>
                         }
                       </div>

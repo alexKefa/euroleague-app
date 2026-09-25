@@ -311,18 +311,16 @@
                     } @else if (slot.role === 'starter' && captainId() === slot.playerId) {
                       <!-- Captain: scored fantasy points (already the
                            captain-doubled value — see playerPointsById's
-                           doc comment), not raw PIR, with an explicit ×2 so
-                           it's clear why this number is bigger than a
-                           teammate's same-tier performance would score
-                           (2026-09-25, "show double points on captain,
-                           since its 2x" — the PIR this card showed before
-                           never reflected the multiplier at all). -->
+                           doc comment), not raw PIR. No explicit ×2 tag
+                           (2026-09-25 follow-up, "remove the 2x, everyone
+                           knows that's on captain") — the number itself is
+                           still the real doubled value, just without the
+                           redundant label. -->
                       <span class="flex items-center gap-1" [ngClass]="game.status === 'live' ? 'text-red-500' : ''">
                         @if (game.status === 'live') {
                           <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
                         }
                         {{ pointsFor(row.player.id) | number: '1.0-1' }} {{ i18n.t('fantasy.pointsAbbrev') }}
-                        <span class="text-team-primary font-bold">&times;2</span>
                       </span>
                     } @else {
                       <span class="flex items-center gap-1" [ngClass]="game.status === 'live' ? 'text-red-500' : ''">

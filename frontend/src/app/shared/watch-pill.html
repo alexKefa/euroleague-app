@@ -35,7 +35,17 @@
             } @else {
               <app-player-photo [name]="w.name" [photoUrl]="w.photoUrl" [teamCode]="w.teamCode" [primaryColor]="w.primaryColor" [size]="20" class="shrink-0" />
               <span class="font-mono text-[11px] font-bold whitespace-nowrap max-w-[80px] truncate">{{ w.name.split(',')[0] }}</span>
-              <span class="font-mono text-[11px] font-bold text-team-primary whitespace-nowrap">{{ w.points }} {{ i18n.t('predictions.pts') }}</span>
+              <!-- Real basketball points scored (the box score's own PTS
+                   stat — see WatchlistService's PlayerWatch.points doc
+                   comment), not PIR and not Fantasy Five points. Labeled
+                   with game.colPTS (the box score's own "PTS" header)
+                   rather than predictions.pts's lowercase "pts" — that key
+                   means prediction/fantasy points elsewhere in this app,
+                   which would be a real, different number here (2026-09-25
+                   follow-up, "what are the points on the pinned pill for,
+                   pir or points" — the ambiguous shared label was the
+                   actual problem, not the number itself). -->
+              <span class="font-mono text-[11px] font-bold text-team-primary whitespace-nowrap">{{ w.points }} {{ i18n.t('game.colPTS') }}</span>
             }
             @if (w.status === 'live') {
               <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
