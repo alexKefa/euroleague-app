@@ -597,15 +597,14 @@ function validateSquadShape(entries: SaveLineupEntry[]): SaveLineupResult | null
  * 2/2 unlock the changes — can change bench players and switch captains").
  * Once a round has tipped off, the squad itself stays frozen — no transfers
  * (exact same 10 players), no coach change, and no new priceAtPick (rows
- * are updated in place, never re-inserted) — but players whose own team's
- * game hasn't tipped off yet can still move between starter / sixth man /
- * bench and take or give up the captaincy. Anyone whose game has already
- * started (a day-1 player) keeps their exact slotRole and captain flag,
- * since scoring is computed on read from the saved rows — moving a
- * finished player would retroactively rescore a game already played. That
- * also means the armband can only move if the current captain hasn't
- * played yet. Closes for good once every game in the round has tipped off.
- * Real EuroLeague Fantasy's own day-2 substitution window works the same way.
+ * are updated in place, never re-inserted) — but all 10 players can move
+ * freely between starter / sixth man / bench (so the formation can change
+ * too), and the captaincy can move to any starter. Originally a player whose
+ * game had already started stayed fixed; loosened the same day by direct
+ * request ("all players should be switchable with each other and change
+ * formation. Not traded with others that dont exist"). Scoring is computed
+ * on read, so moving an already-played player rescores their finished game
+ * at the new role. Closes for good once every game in the round has tipped off.
  */
 async function saveMidRoundSubstitutions(
   userId: string,
@@ -644,21 +643,11 @@ async function saveMidRoundSubstitutions(
     return { error: "Transfers are closed once the round has started — only substitutions are allowed", code: "TRANSFERS_LOCKED" };
   }
 
-  const startedTeamIds = new Set<string>();
-  for (const g of roundGames) {
-    if (!hasStarted(g)) continue;
-    startedTeamIds.add(g.homeTeamId);
-    startedTeamIds.add(g.awayTeamId);
-  }
-
   const changed: { id: string; slotRole: SlotRole; isCaptain: boolean }[] = [];
   for (const e of entries) {
     const existing = existingByPlayerId.get(e.playerId)!;
     const isCaptain = !!e.isCaptain;
     if (existing.slotRole === e.slotRole && existing.isCaptain === isCaptain) continue;
-    if (startedTeamIds.has(existing.teamId)) {
-      return { error: "A player whose game has already started can't be moved", code: "PLAYER_LOCKED", playerId: e.playerId };
-    }
     changed.push({ id: existing.id, slotRole: e.slotRole, isCaptain });
   }
 

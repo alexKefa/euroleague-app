@@ -156,15 +156,18 @@
                 } @else {
                   <!-- Top-right (2026-09-17, "X should be top right") —
                        was bottom-left, which is now the captain badge's
-                       spot instead (see above). -->
-                  <button
-                    type="button"
-                    (click)="$event.stopPropagation(); removeFromSquad(slot.playerId)"
-                    [attr.aria-label]="i18n.t('fantasy.removePlayer')"
-                    class="absolute -top-1 -right-1 w-5 h-5 rounded-full font-bold text-sm leading-none flex items-center justify-center border border-line bg-card text-muted hover:text-red-500 hover:border-red-500/40 transition-colors"
-                  >
-                    &times;
-                  </button>
+                       spot instead (see above). Hidden mid-round, since
+                       removing a player would be a transfer. -->
+                  @if (!roundLocked()) {
+                    <button
+                      type="button"
+                      (click)="$event.stopPropagation(); removeFromSquad(slot.playerId)"
+                      [attr.aria-label]="i18n.t('fantasy.removePlayer')"
+                      class="absolute -top-1 -right-1 w-5 h-5 rounded-full font-bold text-sm leading-none flex items-center justify-center border border-line bg-card text-muted hover:text-red-500 hover:border-red-500/40 transition-colors"
+                    >
+                      &times;
+                    </button>
+                  }
                   <button
                     type="button"
                     (click)="$event.stopPropagation(); openSwapPicker(slot.playerId)"
@@ -409,7 +412,7 @@
             <button
               type="button"
               (click)="showFormationPicker.set(true)"
-              [disabled]="roundLocked()"
+              [disabled]="editLocked()"
               class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-mono font-bold bg-page border border-line text-ink hover:border-team-primary disabled:opacity-40 disabled:hover:border-line disabled:cursor-not-allowed transition-colors"
             >
               {{ formation() }}

@@ -15,8 +15,8 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.locked": { en: "Locked for this round", el: "Κλειδωμένη για αυτή την αγωνιστική" },
   "fantasy.subsOnly": { en: "Subs only", el: "Μόνο αλλαγές" },
   "fantasy.subsWindowOpen": {
-    en: "Round in progress — transfers are closed, but players who haven't played yet can still swap between starters and bench, and the captaincy can move if your captain hasn't played.",
-    el: "Η αγωνιστική είναι σε εξέλιξη — οι μεταγραφές έκλεισαν, αλλά οι παίκτες που δεν έχουν αγωνιστεί ακόμα μπορούν να αλλάξουν θέση μεταξύ βασικών και πάγκου, και ο αρχηγός μπορεί να αλλάξει αν δεν έχει αγωνιστεί.",
+    en: "Round in progress — transfers and coach are closed, but you can still swap any of your players between starters and bench, change formation, and move the captaincy.",
+    el: "Η αγωνιστική είναι σε εξέλιξη — οι μεταγραφές και ο προπονητής έκλεισαν, αλλά μπορείς ακόμα να αλλάξεις θέση σε οποιονδήποτε παίκτη σου μεταξύ βασικών και πάγκου, να αλλάξεις σχηματισμό και αρχηγό.",
   },
   "fantasy.lockCountdown": { en: "Locks at first tipoff:", el: "Κλειδώνει στο πρώτο τζάμπολ:" },
   "fantasy.daysWord": { en: "days", el: "ημέρες" },

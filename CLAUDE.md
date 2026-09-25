@@ -1005,13 +1005,16 @@ If you need to apply a schema change without an interactive terminal
     /lineup/batch` routes to `saveMidRoundSubstitutions`
     (`services/fantasyScoring.ts`) instead of rejecting. Same 10 players and
     coach required (no transfers), rows updated in place (priceAtPick
-    untouched, no budget re-check), and only players whose own game hasn't
-    tipped off may change slotRole/captaincy — a day-1 player stays exactly
-    where they were, since scoring is computed on read and moving them would
-    rescore a finished game. The armband therefore only moves if the current
-    captain hasn't played. Frontend mirrors it via `subsWindowOpen`/
-    `editLocked`/`captainLocked` in `fantasy.ts` (formation picker, pool,
-    and coach stay locked; swaps and the captain picker reopen).
+    untouched, no budget re-check). Any of the 10 may change
+    slotRole/captaincy, and the formation can change — including a player
+    whose game already finished (first shipped restricting that to
+    not-yet-played players; loosened the same day by direct request: "all
+    players should be switchable with each other and change formation").
+    Since scoring is computed on read, moving a played player rescores their
+    finished game at the new role. Frontend mirrors it via `subsWindowOpen`/
+    `editLocked` in `fantasy.ts` (`isPlayerLocked` returns false for
+    everyone inside the window; pool, remove-X, and coach stay locked via
+    `roundLocked()`).
   - **Round carry-forward + transfers** (2026-09-07): a never-touched round
     seeds itself from the previous round's saved squad the first time it's
     read (`getBaselineSquad`, persisted immediately, same "lazy write on

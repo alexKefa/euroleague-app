@@ -567,11 +567,12 @@ export class FantasyComponent implements OnInit {
   // Mid-round substitution window (2026-09-25, "since we are on day 2/2
   // unlock the changes — can change bench players and switch captains").
   // Once the round has tipped off (roundLocked) but some of its games are
-  // still to come, the squad stays frozen for transfers/coach/formation,
-  // yet any player whose own game hasn't started can still swap between
-  // starter/sixth man/bench and take or give up the captaincy — mirrors
-  // the backend's saveMidRoundSubstitutions exactly. Players who already
-  // played (day 1) stay fixed, via isPlayerLocked's per-player check.
+  // still to come, the squad stays frozen for transfers and coach, yet all
+  // 10 players can swap between starter/sixth man/bench, the formation can
+  // change, and the captaincy can move — including players whose own game
+  // already finished (follow-up same day: "all players should be
+  // switchable with each other and change formation"). Mirrors the
+  // backend's saveMidRoundSubstitutions exactly.
   readonly subsWindowOpen = computed(() => {
     if (!this.isCurrentRound() || !this.roundLocked()) return false;
     const now = Date.now();
@@ -1573,7 +1574,7 @@ export class FantasyComponent implements OnInit {
   // squad, not just benched) instead of swapping places with the bench
   // player their old slot's new requirement actually needed.
   setFormation(next: Formation): void {
-    if (this.formation() === next || this.roundLocked()) return;
+    if (this.formation() === next || this.editLocked()) return;
     const newPositions = FORMATION_POSITIONS[next];
     const byId = this.rowById();
     const slots = [...this.squadSlots()];
@@ -1677,6 +1678,10 @@ export class FantasyComponent implements OnInit {
   // to true for every player at once, per the whole-round lock above.
   isPlayerLocked(playerId: string): boolean {
     if (this.editLocked()) return true;
+    // Mid-round window: every squad member is movable regardless of whether
+    // their own game has been played — transfers (pool/picker/remove) and
+    // the coach stay closed via their own roundLocked() guards.
+    if (this.subsWindowOpen()) return false;
     if (this.isLocked(playerId)) return true;
     const teamId = this.rowById().get(playerId)?.team.id;
     const game = teamId ? this.gameForTeam().get(teamId) : undefined;
