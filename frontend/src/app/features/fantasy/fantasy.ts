@@ -581,11 +581,6 @@ export class FantasyComponent implements OnInit {
   // Nothing at all is editable — past round, or current round with every
   // game already tipped off.
   readonly editLocked = computed(() => this.roundLocked() && !this.subsWindowOpen());
-  // The armband can only move while the current captain hasn't played yet.
-  readonly captainLocked = computed(() => {
-    const cap = this.captainId();
-    return cap !== null && this.isPlayerLocked(cap);
-  });
 
   // --- Round "Day X/Y" + transfer-window countdown (2026-09-18) — mirrors
   // the real EuroLeague Fantasy Challenge's own header info (checked live
@@ -1682,10 +1677,23 @@ export class FantasyComponent implements OnInit {
     // their own game has been played — transfers (pool/picker/remove) and
     // the coach stay closed via their own roundLocked() guards.
     if (this.subsWindowOpen()) return false;
+    return this.hasPlayed(playerId);
+  }
+
+  // Whether this player's own game this round has already tipped off.
+  hasPlayed(playerId: string): boolean {
     if (this.isLocked(playerId)) return true;
     const teamId = this.rowById().get(playerId)?.team.id;
     const game = teamId ? this.gameForTeam().get(teamId) : undefined;
     return !!game && (game.status !== "scheduled" || new Date(game.tipoffAt).getTime() <= Date.now());
+  }
+
+  // Mid-round, the armband can leave a player who already played, but can
+  // only be handed to someone whose game is still to come (a day-2 player)
+  // — mirrors saveMidRoundSubstitutions' CAPTAIN_PLAYED check.
+  canTakeCaptaincy(playerId: string): boolean {
+    if (this.isPlayerLocked(playerId)) return false;
+    return !(this.subsWindowOpen() && this.hasPlayed(playerId));
   }
 
   // Blocks adding a *new* player of a position whose quota is already met
@@ -1944,10 +1952,16 @@ export class FantasyComponent implements OnInit {
 
   setCaptain(playerId: string): void {
     const slot = this.squadSlots().find((s) => s.playerId === playerId);
-    if (!slot || slot.role !== "starter" || this.isPlayerLocked(playerId)) return;
+    if (!slot || slot.role !== "starter") return;
     const current = this.captainId();
-    if (current && current !== playerId && this.isPlayerLocked(current)) return;
-    this.captainId.set(this.captainId() === playerId ? null : playerId);
+    if (current === playerId) {
+      // Toggling off is only allowed if they could take it back afterward.
+      if (!this.canTakeCaptaincy(playerId)) return;
+      this.captainId.set(null);
+    } else {
+      if (!this.canTakeCaptaincy(playerId)) return;
+      this.captainId.set(playerId);
+    }
     this.saved.set(false);
   }
 

@@ -599,7 +599,8 @@ function validateSquadShape(entries: SaveLineupEntry[]): SaveLineupResult | null
  * (exact same 10 players), no coach change, and no new priceAtPick (rows
  * are updated in place, never re-inserted) — but all 10 players can move
  * freely between starter / sixth man / bench (so the formation can change
- * too), and the captaincy can move to any starter. Originally a player whose
+ * too), and the captaincy can move — but only *to* a starter whose game
+ * hasn't tipped off yet (it can leave a played captain). Originally a player whose
  * game had already started stayed fixed; loosened the same day by direct
  * request ("all players should be switchable with each other and change
  * formation. Not traded with others that dont exist"). Scoring is computed
@@ -641,6 +642,22 @@ async function saveMidRoundSubstitutions(
   const existingByPlayerId = new Map(existingRows.map((r) => [r.playerId, r]));
   if (existingRows.length !== entries.length || entries.some((e) => !existingByPlayerId.has(e.playerId))) {
     return { error: "Transfers are closed once the round has started — only substitutions are allowed", code: "TRANSFERS_LOCKED" };
+  }
+
+  // The armband can leave a player who already played, but can only be
+  // handed to someone whose game hasn't tipped off yet (a day-2 player).
+  const newCaptain = entries.find((e) => e.isCaptain);
+  const oldCaptain = existingRows.find((r) => r.isCaptain);
+  if (newCaptain && newCaptain.playerId !== oldCaptain?.playerId) {
+    const startedTeamIds = new Set<string>();
+    for (const g of roundGames) {
+      if (!hasStarted(g)) continue;
+      startedTeamIds.add(g.homeTeamId);
+      startedTeamIds.add(g.awayTeamId);
+    }
+    if (startedTeamIds.has(existingByPlayerId.get(newCaptain.playerId)!.teamId)) {
+      return { error: "The captaincy can only move to a player whose game hasn't started yet", code: "CAPTAIN_PLAYED", playerId: newCaptain.playerId };
+    }
   }
 
   const changed: { id: string; slotRole: SlotRole; isCaptain: boolean }[] = [];

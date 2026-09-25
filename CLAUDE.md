@@ -1011,8 +1011,11 @@ If you need to apply a schema change without an interactive terminal
     not-yet-played players; loosened the same day by direct request: "all
     players should be switchable with each other and change formation").
     Since scoring is computed on read, moving a played player rescores their
-    finished game at the new role. Frontend mirrors it via `subsWindowOpen`/
-    `editLocked` in `fantasy.ts` (`isPlayerLocked` returns false for
+    finished game at the new role. The one exception is the captaincy: it
+    can leave a played captain but can only be handed *to* a player whose
+    game hasn't tipped off (`CAPTAIN_PLAYED`; "captain can only switch to a
+    day 2 player"). Frontend mirrors it via `subsWindowOpen`/`editLocked`/
+    `canTakeCaptaincy` in `fantasy.ts` (`isPlayerLocked` returns false for
     everyone inside the window; pool, remove-X, and coach stay locked via
     `roundLocked()`).
   - **Round carry-forward + transfers** (2026-09-07): a never-touched round
