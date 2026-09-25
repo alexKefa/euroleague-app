@@ -568,6 +568,110 @@ export interface SaveLineupEntry {
 
 export type SaveLineupResult = { ok: true } | { error: string; code?: string; [key: string]: unknown };
 
+// Slot-role counts + the one-starter-captain rule — shared by a normal
+// pre-lock save and a mid-round substitution save below.
+function validateSquadShape(entries: SaveLineupEntry[]): SaveLineupResult | null {
+  if (entries.length !== FANTASY_TOTAL_OUTFIELD) {
+    return { error: `Squad must contain exactly ${FANTASY_TOTAL_OUTFIELD} players` };
+  }
+  const seenIds = new Set<string>();
+  for (const e of entries) {
+    if (seenIds.has(e.playerId)) return { error: "Duplicate player in squad" };
+    seenIds.add(e.playerId);
+  }
+  const starters = entries.filter((e) => e.slotRole === "starter");
+  const sixthMen = entries.filter((e) => e.slotRole === "sixth_man");
+  const bench = entries.filter((e) => e.slotRole === "bench");
+  if (starters.length !== FANTASY_STARTER_COUNT || sixthMen.length !== FANTASY_SIXTH_MAN_COUNT || bench.length !== FANTASY_BENCH_COUNT) {
+    return { error: `Need exactly ${FANTASY_STARTER_COUNT} starters, ${FANTASY_SIXTH_MAN_COUNT} sixth man, ${FANTASY_BENCH_COUNT} bench` };
+  }
+  const captains = starters.filter((e) => e.isCaptain);
+  if (captains.length !== 1 || entries.some((e) => e.isCaptain && e.slotRole !== "starter")) {
+    return { error: "Exactly one starter must be captain" };
+  }
+  return null;
+}
+
+/**
+ * Mid-round substitutions (2026-09-25, direct request: "since we are on day
+ * 2/2 unlock the changes — can change bench players and switch captains").
+ * Once a round has tipped off, the squad itself stays frozen — no transfers
+ * (exact same 10 players), no coach change, and no new priceAtPick (rows
+ * are updated in place, never re-inserted) — but players whose own team's
+ * game hasn't tipped off yet can still move between starter / sixth man /
+ * bench and take or give up the captaincy. Anyone whose game has already
+ * started (a day-1 player) keeps their exact slotRole and captain flag,
+ * since scoring is computed on read from the saved rows — moving a
+ * finished player would retroactively rescore a game already played. That
+ * also means the armband can only move if the current captain hasn't
+ * played yet. Closes for good once every game in the round has tipped off.
+ * Real EuroLeague Fantasy's own day-2 substitution window works the same way.
+ */
+async function saveMidRoundSubstitutions(
+  userId: string,
+  season: string,
+  round: number,
+  entries: SaveLineupEntry[],
+  coachTeamId: string
+): Promise<SaveLineupResult> {
+  const [roundGames, existingRows, coachRows] = await Promise.all([
+    db
+      .select({ homeTeamId: games.homeTeamId, awayTeamId: games.awayTeamId, tipoffAt: games.tipoffAt, status: games.status })
+      .from(games)
+      .where(and(eq(games.season, season), eq(games.round, round))),
+    db
+      .select({ id: fantasyLineups.id, playerId: fantasyLineups.playerId, slotRole: fantasyLineups.slotRole, isCaptain: fantasyLineups.isCaptain, teamId: players.teamId })
+      .from(fantasyLineups)
+      .innerJoin(players, eq(players.id, fantasyLineups.playerId))
+      .where(and(eq(fantasyLineups.userId, userId), eq(fantasyLineups.season, season), eq(fantasyLineups.round, round))),
+    db
+      .select({ teamId: fantasyCoachPicks.teamId })
+      .from(fantasyCoachPicks)
+      .where(and(eq(fantasyCoachPicks.userId, userId), eq(fantasyCoachPicks.season, season), eq(fantasyCoachPicks.round, round)))
+      .limit(1),
+  ]);
+
+  const now = Date.now();
+  const hasStarted = (g: (typeof roundGames)[number]) => new Date(g.tipoffAt).getTime() <= now || g.status !== "scheduled";
+  if (existingRows.length === 0 || roundGames.every(hasStarted)) {
+    return { error: "This round has already locked", code: "ROUND_LOCKED" };
+  }
+  if (coachRows[0]?.teamId !== coachTeamId) {
+    return { error: "The coach can't be changed once the round has started", code: "COACH_LOCKED" };
+  }
+  const existingByPlayerId = new Map(existingRows.map((r) => [r.playerId, r]));
+  if (existingRows.length !== entries.length || entries.some((e) => !existingByPlayerId.has(e.playerId))) {
+    return { error: "Transfers are closed once the round has started — only substitutions are allowed", code: "TRANSFERS_LOCKED" };
+  }
+
+  const startedTeamIds = new Set<string>();
+  for (const g of roundGames) {
+    if (!hasStarted(g)) continue;
+    startedTeamIds.add(g.homeTeamId);
+    startedTeamIds.add(g.awayTeamId);
+  }
+
+  const changed: { id: string; slotRole: SlotRole; isCaptain: boolean }[] = [];
+  for (const e of entries) {
+    const existing = existingByPlayerId.get(e.playerId)!;
+    const isCaptain = !!e.isCaptain;
+    if (existing.slotRole === e.slotRole && existing.isCaptain === isCaptain) continue;
+    if (startedTeamIds.has(existing.teamId)) {
+      return { error: "A player whose game has already started can't be moved", code: "PLAYER_LOCKED", playerId: e.playerId };
+    }
+    changed.push({ id: existing.id, slotRole: e.slotRole, isCaptain });
+  }
+
+  if (changed.length > 0) {
+    await db.transaction(async (tx) => {
+      for (const c of changed) {
+        await tx.update(fantasyLineups).set({ slotRole: c.slotRole, isCaptain: c.isCaptain }).where(eq(fantasyLineups.id, c.id));
+      }
+    });
+  }
+  return { ok: true };
+}
+
 /**
  * The actual domain validation + write behind POST /fantasy/lineup/batch —
  * extracted (2026-09-17) so autoFillFantasySquad below can produce a real,
@@ -589,28 +693,10 @@ export async function saveFantasyLineup(
   if (roundLockAt === null) {
     return { error: "Unknown round", code: "ROUND_NOT_FOUND" };
   }
+  const shapeError = validateSquadShape(entries);
+  if (shapeError) return shapeError;
   if (roundLockAt.getTime() <= Date.now()) {
-    return { error: "This round has already locked", code: "ROUND_LOCKED" };
-  }
-  if (entries.length !== FANTASY_TOTAL_OUTFIELD) {
-    return { error: `Squad must contain exactly ${FANTASY_TOTAL_OUTFIELD} players` };
-  }
-
-  const seenIds = new Set<string>();
-  for (const e of entries) {
-    if (seenIds.has(e.playerId)) return { error: "Duplicate player in squad" };
-    seenIds.add(e.playerId);
-  }
-
-  const starters = entries.filter((e) => e.slotRole === "starter");
-  const sixthMen = entries.filter((e) => e.slotRole === "sixth_man");
-  const bench = entries.filter((e) => e.slotRole === "bench");
-  if (starters.length !== FANTASY_STARTER_COUNT || sixthMen.length !== FANTASY_SIXTH_MAN_COUNT || bench.length !== FANTASY_BENCH_COUNT) {
-    return { error: `Need exactly ${FANTASY_STARTER_COUNT} starters, ${FANTASY_SIXTH_MAN_COUNT} sixth man, ${FANTASY_BENCH_COUNT} bench` };
-  }
-  const captains = starters.filter((e) => e.isCaptain);
-  if (captains.length !== 1 || entries.some((e) => e.isCaptain && e.slotRole !== "starter")) {
-    return { error: "Exactly one starter must be captain" };
+    return saveMidRoundSubstitutions(userId, season, round, entries, coachTeamId);
   }
 
   const newIds = entries.map((e) => e.playerId);

@@ -500,6 +500,10 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
 // concept — "has this specific player's own game actually tipped off" —
 // used only for display (e.g. showing live PIR instead of an upcoming
 // opponent), not for gating edits any more.
+// Exception (2026-09-25): once the round has tipped off, a save is still
+// accepted as a *substitution-only* change while any of the round's games
+// is still to come — same 10 players and coach, only not-yet-played
+// players may change slotRole/captaincy. See saveMidRoundSubstitutions.
 fantasyRouter.post("/lineup/batch", requireAuth, async (req, res) => {
   try {
     const { season, round, players: entries, coachTeamId } = req.body ?? {};

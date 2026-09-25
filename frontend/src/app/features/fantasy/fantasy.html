@@ -420,7 +420,7 @@
             <button
               type="button"
               (click)="showCaptainPicker.set(true)"
-              [disabled]="roundLocked()"
+              [disabled]="editLocked() || captainLocked()"
               class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-mono font-bold bg-page border border-line text-ink hover:border-team-primary disabled:opacity-40 disabled:hover:border-line disabled:cursor-not-allowed transition-colors"
             >
               @if (captainRow(); as cap) {
@@ -467,6 +467,9 @@
               }
             </div>
           </div>
+          @if (subsWindowOpen()) {
+            <p class="text-xs text-emerald-600 font-semibold text-center mt-2">{{ i18n.t('fantasy.subsWindowOpen') }}</p>
+          }
           @if (saved() && !hasChanges()) {
             <p class="text-xs text-team-primary font-semibold text-center mt-2">{{ i18n.t('fantasy.saved') }}</p>
           }
@@ -673,10 +676,12 @@
                   @if (lockAt()) {
                     <div
                       class="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-mono font-bold shadow-card"
-                      [ngClass]="roundLocked() ? 'bg-red-500/90 text-white' : 'bg-emerald-500/90 text-white'"
-                      [attr.title]="roundLocked() ? i18n.t('fantasy.locked') : (i18n.t('fantasy.lockCountdown') + ' ' + (lockAt() | date: gameDateTimeFormat():'Europe/Athens':dateLocale()))"
+                      [ngClass]="subsWindowOpen() ? 'bg-amber-500/90 text-white' : roundLocked() ? 'bg-red-500/90 text-white' : 'bg-emerald-500/90 text-white'"
+                      [attr.title]="subsWindowOpen() ? i18n.t('fantasy.subsWindowOpen') : roundLocked() ? i18n.t('fantasy.locked') : (i18n.t('fantasy.lockCountdown') + ' ' + (lockAt() | date: gameDateTimeFormat():'Europe/Athens':dateLocale()))"
                     >
-                      @if (roundLocked()) {
+                      @if (subsWindowOpen()) {
+                        {{ i18n.t('fantasy.subsOnly') }}
+                      } @else if (roundLocked()) {
                         {{ i18n.t('fantasy.locked') }}
                       } @else if (daysUntilLock() === 0) {
                         {{ i18n.t('fantasy.locksToday') }}
@@ -1381,7 +1386,7 @@
                 <button
                   type="button"
                   (click)="chooseCaptain(slot.playerId)"
-                  [disabled]="isPlayerLocked(slot.playerId)"
+                  [disabled]="isPlayerLocked(slot.playerId) || captainLocked()"
                   [attr.aria-label]="i18n.t('fantasy.setCaptain') + ': ' + row.player.name"
                   class="flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   [ngClass]="captainId() === slot.playerId ? 'border-team-primary bg-team-primary/10' : 'border-line bg-page hover:border-team-primary'"

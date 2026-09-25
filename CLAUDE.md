@@ -999,6 +999,19 @@ If you need to apply a schema change without an interactive terminal
     /fantasy/lineup`'s per-player `locked` flag still reports whether that
     specific player's own game has tipped off, but is display-only now (e.g.
     swapping the opponent line for live PIR), never an edit gate.
+    **Mid-round substitutions (2026-09-25)** — partially reopened by
+    request ("since we are on day 2/2 unlock the changes"): once the round
+    has tipped off but some of its games are still to come, `POST
+    /lineup/batch` routes to `saveMidRoundSubstitutions`
+    (`services/fantasyScoring.ts`) instead of rejecting. Same 10 players and
+    coach required (no transfers), rows updated in place (priceAtPick
+    untouched, no budget re-check), and only players whose own game hasn't
+    tipped off may change slotRole/captaincy — a day-1 player stays exactly
+    where they were, since scoring is computed on read and moving them would
+    rescore a finished game. The armband therefore only moves if the current
+    captain hasn't played. Frontend mirrors it via `subsWindowOpen`/
+    `editLocked`/`captainLocked` in `fantasy.ts` (formation picker, pool,
+    and coach stay locked; swaps and the captain picker reopen).
   - **Round carry-forward + transfers** (2026-09-07): a never-touched round
     seeds itself from the previous round's saved squad the first time it's
     read (`getBaselineSquad`, persisted immediately, same "lazy write on

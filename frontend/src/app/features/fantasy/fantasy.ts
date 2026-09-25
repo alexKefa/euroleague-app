@@ -502,12 +502,15 @@ export class FantasyComponent implements OnInit {
     // Checked first — once the round's locked, it's the *only* reason Save
     // is disabled for an otherwise-already-valid, already-saved lineup, so
     // it has to surface here too or the "!" badge simply wouldn't appear.
-    if (this.roundLocked()) list.push(this.i18n.t("fantasy.missingRoundLocked"));
+    if (this.editLocked()) list.push(this.i18n.t("fantasy.missingRoundLocked"));
     if (!this.squadFull()) list.push(this.i18n.t("fantasy.missingSquadFull"));
     if (!this.positionQuotaMet()) list.push(this.i18n.t("fantasy.missingPositionQuota"));
     if (this.captainId() === null) list.push(this.i18n.t("fantasy.missingCaptain"));
     if (this.coachTeamId() === null) list.push(this.i18n.t("fantasy.missingCoach"));
-    if (this.overBudget()) list.push(this.i18n.t("fantasy.overBudget"));
+    // Mid-round substitutions never change who's in the squad, so a squad
+    // that's drifted over budget via repricing since the round started
+    // isn't something the user could (or needs to) fix right now.
+    if (!this.roundLocked() && this.overBudget()) list.push(this.i18n.t("fantasy.overBudget"));
     return list;
   });
 
@@ -559,6 +562,28 @@ export class FantasyComponent implements OnInit {
     this.fixtureGames();
     const lockAt = this.lockAt();
     return lockAt !== null && new Date(lockAt).getTime() <= Date.now();
+  });
+
+  // Mid-round substitution window (2026-09-25, "since we are on day 2/2
+  // unlock the changes — can change bench players and switch captains").
+  // Once the round has tipped off (roundLocked) but some of its games are
+  // still to come, the squad stays frozen for transfers/coach/formation,
+  // yet any player whose own game hasn't started can still swap between
+  // starter/sixth man/bench and take or give up the captaincy — mirrors
+  // the backend's saveMidRoundSubstitutions exactly. Players who already
+  // played (day 1) stay fixed, via isPlayerLocked's per-player check.
+  readonly subsWindowOpen = computed(() => {
+    if (!this.isCurrentRound() || !this.roundLocked()) return false;
+    const now = Date.now();
+    return this.fixtureGames().some((g) => g.status === "scheduled" && new Date(g.tipoffAt).getTime() > now);
+  });
+  // Nothing at all is editable — past round, or current round with every
+  // game already tipped off.
+  readonly editLocked = computed(() => this.roundLocked() && !this.subsWindowOpen());
+  // The armband can only move while the current captain hasn't played yet.
+  readonly captainLocked = computed(() => {
+    const cap = this.captainId();
+    return cap !== null && this.isPlayerLocked(cap);
   });
 
   // --- Round "Day X/Y" + transfer-window countdown (2026-09-18) — mirrors
@@ -949,8 +974,8 @@ export class FantasyComponent implements OnInit {
       this.positionQuotaMet() &&
       this.captainId() !== null &&
       this.coachTeamId() !== null &&
-      !this.overBudget() &&
-      !this.roundLocked()
+      (this.roundLocked() || !this.overBudget()) &&
+      !this.editLocked()
   );
 
   readonly teamDropdownOptions = computed<DropdownOption[]>(() => {
@@ -1651,11 +1676,11 @@ export class FantasyComponent implements OnInit {
   // stale-by-design snapshot caught up. roundLocked() short-circuits this
   // to true for every player at once, per the whole-round lock above.
   isPlayerLocked(playerId: string): boolean {
-    if (this.roundLocked()) return true;
+    if (this.editLocked()) return true;
     if (this.isLocked(playerId)) return true;
     const teamId = this.rowById().get(playerId)?.team.id;
     const game = teamId ? this.gameForTeam().get(teamId) : undefined;
-    return !!game && game.status !== "scheduled";
+    return !!game && (game.status !== "scheduled" || new Date(game.tipoffAt).getTime() <= Date.now());
   }
 
   // Blocks adding a *new* player of a position whose quota is already met
@@ -1760,7 +1785,7 @@ export class FantasyComponent implements OnInit {
   // avatar, now that tapping the avatar itself opens the player page
   // instead of removing them (see addToSquad above).
   removeFromSquad(playerId: string): void {
-    if (this.isPlayerLocked(playerId)) return;
+    if (this.roundLocked() || this.isPlayerLocked(playerId)) return;
     const slots = [...this.squadSlots()];
     const idx = slots.findIndex((s) => s.playerId === playerId);
     if (idx === -1) return;
@@ -1915,6 +1940,8 @@ export class FantasyComponent implements OnInit {
   setCaptain(playerId: string): void {
     const slot = this.squadSlots().find((s) => s.playerId === playerId);
     if (!slot || slot.role !== "starter" || this.isPlayerLocked(playerId)) return;
+    const current = this.captainId();
+    if (current && current !== playerId && this.isPlayerLocked(current)) return;
     this.captainId.set(this.captainId() === playerId ? null : playerId);
     this.saved.set(false);
   }
@@ -1960,6 +1987,7 @@ export class FantasyComponent implements OnInit {
     const sourceIdx = slots.findIndex((s) => s.id === sourceId);
 
     if (targetId === "pool") {
+      if (this.roundLocked()) return; // no transfers once the round has started
       if (sourceIdx !== -1) {
         slots[sourceIdx] = { ...slots[sourceIdx], playerId: null };
         this.squadSlots.set(slots);
@@ -1978,7 +2006,7 @@ export class FantasyComponent implements OnInit {
       // isn't a swap and keeps the original strict same-position gating;
       // the flexible formation logic below only ever applies to trading
       // two squad members' places with each other (see evaluateSwap).
-      if (!this.slotAcceptsPlayer(targetId, draggedPlayerId)) return;
+      if (this.roundLocked() || !this.slotAcceptsPlayer(targetId, draggedPlayerId)) return;
       if (displaced && this.isPlayerLocked(displaced)) return;
       const draggedRow = this.rowById().get(draggedPlayerId);
       if (
