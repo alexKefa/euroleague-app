@@ -728,6 +728,17 @@ export class FantasyComponent implements OnInit {
     return this.playerPointsById().get(playerId) ?? 0;
   }
 
+  // Live stand-in for a captain's points while their game is still `live` —
+  // the backend has no real scored `points` value yet (only a `final` box
+  // score counts, see pointsFor's own doc comment above and routes/
+  // fantasy.ts), so this doubles the same live PIR roundPirByPlayerId
+  // already feeds every teammate's card, giving the captain a live number
+  // that's actually doubled rather than either stuck at 0 or matching a
+  // teammate's un-doubled figure (2026-09-25 fix).
+  liveCaptainPoints(playerId: string): number {
+    return (this.roundPir(playerId) ?? 0) * 2;
+  }
+
   // Keeps fixtureGames' status/score current and refreshes the relevant
   // game's box score whenever the shared SSE stream ticks for a game that
   // belongs to this round — effects run in the injection context a field

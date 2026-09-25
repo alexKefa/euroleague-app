@@ -309,18 +309,36 @@
                         <span>{{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }} {{ opp.opponent.code }}</span>
                       }
                     } @else if (slot.role === 'starter' && captainId() === slot.playerId) {
-                      <!-- Captain: scored fantasy points (already the
-                           captain-doubled value — see playerPointsById's
-                           doc comment), not raw PIR. No explicit ×2 tag
-                           (2026-09-25 follow-up, "remove the 2x, everyone
-                           knows that's on captain") — the number itself is
-                           still the real doubled value, just without the
-                           redundant label. -->
+                      <!-- Captain: always shown doubled, no ×2 tag (2026-09-25
+                           follow-up, "remove the 2x, everyone knows that's on
+                           captain") — just the real number, already 2x'd.
+                           Once the game is `final`, that's `pointsFor()`
+                           straight off the backend's exact scoring formula
+                           (already the captain-doubled value — see
+                           playerPointsById's doc comment). While still
+                           `live`, the backend has nothing to give yet — it
+                           only computes `points` from a *final* box score
+                           (routes/fantasy.ts: "only a final game's real box
+                           score counts") — so this doubles the same live PIR
+                           `roundPir()` feeds every teammate's card (off the
+                           SSE box-score refresh) as a live stand-in, rather
+                           than either showing a stale/zero real points value
+                           (2026-09-25 bug, "captain shows 0 points on live")
+                           or showing the same un-doubled number every
+                           teammate shows (today's original ask: "since he is
+                           captain his points should be doubled"). Swaps over
+                           to the exact backend value the moment the game
+                           actually ends. -->
                       <span class="flex items-center gap-1" [ngClass]="game.status === 'live' ? 'text-red-500' : ''">
                         @if (game.status === 'live') {
                           <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
                         }
-                        {{ pointsFor(row.player.id) | number: '1.0-1' }} {{ i18n.t('fantasy.pointsAbbrev') }}
+                        @if (game.status === 'final') {
+                          {{ pointsFor(row.player.id) | number: '1.0-1' }}
+                        } @else {
+                          {{ liveCaptainPoints(row.player.id) | number: '1.0-1' }}
+                        }
+                        {{ i18n.t('fantasy.pointsAbbrev') }}
                       </span>
                     } @else {
                       <span class="flex items-center gap-1" [ngClass]="game.status === 'live' ? 'text-red-500' : ''">
