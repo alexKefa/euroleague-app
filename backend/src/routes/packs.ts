@@ -103,6 +103,11 @@ packsRouter.post("/:type/open", requireAuth, async (req, res) => {
             points: sellValue!,
             reason: `Sold duplicate: ${slot.collectible.name}`,
             createdByUserId: req.userId!,
+            // A duplicate auto-sell is a consolation refund, not a
+            // competitive result — same reasoning as the purchase
+            // deduction right above. Without this, opening packs could
+            // only ever raise someone's leaderboard Total.
+            countsTowardRanking: false,
           })),
       ];
       await tx.insert(pointAdjustments).values(pointAdjustmentRows);
@@ -246,6 +251,7 @@ packsRouter.post("/owned/:id/open", requireAuth, async (req, res) => {
           points: sellValue!,
           reason: `Sold duplicate: ${slot.collectible.name}`,
           createdByUserId: req.userId!,
+          countsTowardRanking: false,
         }));
 
       if (dupeSaleRows.length > 0) {

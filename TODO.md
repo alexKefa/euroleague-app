@@ -4,28 +4,7 @@ Open follow-ups deliberately deferred mid-session. Kept in the repo (not
 just in one machine's Claude memory) so every session on every machine sees
 them. Remove an entry once it's done.
 
-## 1. Duplicate sell-backs shouldn't count toward leaderboard ranking (deferred 2026-09-25)
-
-- Both `Sold duplicate: …` `point_adjustments` inserts in
-  `backend/src/routes/packs.ts` (purchased-pack open, and owned/wheel-pack
-  open) don't set `countsTowardRanking`, so they default to `true` — while
-  the pack *purchase* deduction is `countsTowardRanking: false`. Net
-  effect: opening packs can only ever raise someone's leaderboard Total.
-- **Fix**: add `countsTowardRanking: false` to both inserts. The points
-  stay spendable.
-- Existing rows: only 1 on production as of 2026-09-25 (Tsef, 25pts) —
-  needs a one-off `UPDATE`. Follow the production-data rule in CLAUDE.md
-  (show SQL + a `SELECT` of affected rows, get confirmation first).
-- **Why**: late-season wheel pulls are mostly duplicates (~290 pts/day from
-  sell-backs vs ~130–150/week from predictions), so the Total board would
-  drift toward rewarding daily spinning over prediction skill.
-- **Decided NOT to raise duplicate sell values.** `SELL_BACK_RATE` 0.5
-  (common 25 / rare 125) is capped by the purchased-pack worst-case-EV
-  guard — a Regular Season pack of all duplicates already refunds ~141 of
-  its 150 cost; commons at 30 would be a break-even exploit. Don't revisit
-  without re-checking the pack EV math.
-
-## 2. Simulator catalog size is stale (deferred 2026-09-25)
+## 1. Simulator catalog size is stale (deferred 2026-09-25)
 
 - `backend/src/scripts/season-simulation.ts`'s `CATALOG_SIZE.common/rare`
   is 289/289; the live catalog is 320/320 (checked on production
@@ -33,7 +12,7 @@ them. Remove an entry once it's done.
 - Update it, then re-run `npm run economy:simulate` to confirm
   album-completion rates still hold.
 
-## 3. Import real Dunkest (EuroLeague Fantasy) prices into Fantasy Five (deferred 2026-09-18)
+## 2. Import real Dunkest (EuroLeague Fantasy) prices into Fantasy Five (deferred 2026-09-18)
 
 User directive: **"trust dunkest prices for now"** — overwrite our computed
 Fantasy Five prices with real EuroLeague Fantasy quotations for every
@@ -75,7 +54,7 @@ Known issues:
 - Nothing from the 2026-09-18 pull was kept (it lived in a session temp
   dir) — re-pull fresh data.
 
-## 4. Validate the round-to-round Fantasy price delta against real data (deferred 2026-09-18, revisit after round 1)
+## 3. Validate the round-to-round Fantasy price delta against real data (deferred 2026-09-18, revisit after round 1)
 
 - Day-one pricing (`computeFantasyPrice`) was calibrated against real
   Dunkest quotations on 2026-09-18 (min 4, Vezenkov anchor 17, new
