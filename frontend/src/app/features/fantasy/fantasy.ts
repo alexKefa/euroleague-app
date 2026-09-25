@@ -493,6 +493,10 @@ export class FantasyComponent implements OnInit {
   // shows that label instead of rendering blank until a real team is picked.
   readonly teamFilter = signal<string | null>("");
   readonly positionFilter = signal<PositionFilter>(null);
+  // Match-day filter for the player list (2026-09-25, "add a filter to filter
+  // with Day 1 and 2 on the players list") — null = every day. Only offered
+  // in a multi-day round (see roundTurns).
+  readonly turnFilter = signal<number | null>(null);
   readonly sortKey = signal<SortKey>("price");
   readonly sortDesc = signal(true);
   readonly visibleCount = signal(PAGE_SIZE);
@@ -681,6 +685,17 @@ export class FantasyComponent implements OnInit {
 
   turnFor(teamId: string): number | null {
     return this.turnByTeamId().get(teamId) ?? null;
+  }
+
+  // The round's match days, e.g. [1, 2] — drives the Day filter chips.
+  // Empty for a single-day round.
+  readonly roundTurns = computed(() => [...new Set(this.turnByTeamId().values())].sort((a, b) => a - b));
+
+  // Whether this player's game this round is already over — their T1/T2
+  // chip is dropped then ("When player has ended with their game do not show
+  // his day game"); it stays, greyed, while the game is live.
+  gameFinished(teamId: string): boolean {
+    return this.gameForTeam().get(teamId)?.status === "final";
   }
 
   readonly daysUntilLock = computed<number | null>(() => {
@@ -1053,6 +1068,7 @@ export class FantasyComponent implements OnInit {
     const query = this.searchQuery().trim().toLowerCase();
     const team = this.teamFilter();
     const position = this.positionFilter();
+    const turn = this.turnFilter();
     const inSquad = this.selectedPlayerIds();
     const key = this.sortKey();
     const desc = this.sortDesc();
@@ -1062,6 +1078,7 @@ export class FantasyComponent implements OnInit {
       if (query && !row.player.name.toLowerCase().includes(query)) return false;
       if (team && row.team.id !== team) return false;
       if (position && row.player.position !== position) return false;
+      if (turn !== null && this.turnFor(row.team.id) !== turn) return false;
       return true;
     });
 
@@ -1718,6 +1735,11 @@ export class FantasyComponent implements OnInit {
 
   setPositionFilter(position: PositionFilter): void {
     this.positionFilter.set(this.positionFilter() === position ? null : position);
+    this.visibleCount.set(PAGE_SIZE);
+  }
+
+  setTurnFilter(turn: number | null): void {
+    this.turnFilter.set(this.turnFilter() === turn ? null : turn);
     this.visibleCount.set(PAGE_SIZE);
   }
 

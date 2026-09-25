@@ -3,10 +3,27 @@
      t2. and show player position"). Declared at the root so every block
      below, popups included, can stamp it. The turn chip only appears in a
      multi-day round, and is greyed once that player has already played. -->
+<!-- Day 1 / Day 2 filter for the player list (2026-09-25) — shared by the
+     desktop pool column and the mobile picker; renders nothing in a
+     single-day round. -->
+<ng-template #turnFilterChips>
+  @if (roundTurns().length > 1) {
+    <div class="flex items-center gap-2">
+      <button type="button" (click)="setTurnFilter(null)" [appChip]="turnFilter() === null" class="min-w-[44px]">
+        {{ i18n.t('fantasy.dayAll') }}
+      </button>
+      @for (t of roundTurns(); track t) {
+        <button type="button" (click)="setTurnFilter(t)" [appChip]="turnFilter() === t" class="min-w-[44px]">
+          {{ i18n.t('fantasy.dayLabel') }} {{ t }}
+        </button>
+      }
+    </div>
+  }
+</ng-template>
 <ng-template #playerMeta let-row>
   <span class="inline-flex items-center gap-1 align-middle">
     <span class="px-1 py-px rounded border border-line bg-page text-ink font-bold leading-none">{{ posAbbrev(row.player.position) }}</span>
-    @if (turnFor(row.team.id); as turn) {
+    @if (!gameFinished(row.team.id) && turnFor(row.team.id); as turn) {
       <span
         class="px-1 py-px rounded border font-bold leading-none"
         [ngClass]="hasPlayed(row.player.id) ? 'border-line text-muted' : 'border-team-primary/40 text-team-primary'"
@@ -257,7 +274,7 @@
                   }
                   @if (gameForTeam().get(row.team.id); as game) {
                     <span class="text-black/30">&middot;</span>
-                    @if (turnFor(row.team.id); as turn) {
+                    @if (!gameFinished(row.team.id) && turnFor(row.team.id); as turn) {
                       <span [class.opacity-40]="hasPlayed(row.player.id)">{{ i18n.t('fantasy.turnAbbrev') }}{{ turn }}</span>
                     }
                     @if (game.status === 'scheduled') {
@@ -910,6 +927,7 @@
                   {{ i18n.t('fantasy.posCenterAbbrev') }}
                 </button>
               </div>
+              <ng-container [ngTemplateOutlet]="turnFilterChips" />
             </div>
 
             <!-- Remaining budget (2026-09-12) — this is the moment a "how
@@ -1223,6 +1241,9 @@
                 {{ i18n.t('fantasy.posCenterAbbrev') }}
               </button>
             </div>
+          }
+          @if (!keyboardOpen()) {
+            <ng-container [ngTemplateOutlet]="turnFilterChips" />
           }
           <div class="flex items-center justify-around bg-page rounded-xl border border-line px-1 py-1.5" [class.hidden]="keyboardOpen()">
             <button type="button" (click)="setSort('price')" class="flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide" [ngClass]="sortKey() === 'price' ? 'text-team-primary' : 'text-muted'">

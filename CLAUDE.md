@@ -1077,7 +1077,9 @@ If you need to apply a schema change without an interactive terminal
     in a fitting slot stay put), so a bench player lands where dropped; a
     swap no formation supports now flashes a "doesn't fit" pill instead of
     silently snapping back. Every player list shows a position chip plus a
-    T1/T2 match-day chip (`turnByTeamId`, multi-day rounds only).
+    T1/T2 match-day chip (`turnByTeamId`, multi-day rounds only), greyed
+    while that game is live and dropped once it's final; the pool and the
+    mobile picker have a matching All/Day 1/Day 2 filter (`turnFilter`).
     The mobile picker sizes
     itself to `window.visualViewport` so the keyboard never covers results,
     and hides its secondary filters while the keyboard is up.

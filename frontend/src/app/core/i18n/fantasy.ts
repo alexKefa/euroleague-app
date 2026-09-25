@@ -133,6 +133,8 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.autoFillNotice": { en: "Squad randomized!", el: "Η ομάδα συμπληρώθηκε τυχαία!" },
   "fantasy.swapNoFormation": { en: "That swap doesn't fit any formation", el: "Αυτή η αλλαγή δεν ταιριάζει σε κανέναν σχηματισμό" },
   "fantasy.turnAbbrev": { en: "T", el: "Η" },
+  "fantasy.dayAll": { en: "All days", el: "Όλες" },
+  "fantasy.dayLabel": { en: "Day", el: "Ημέρα" },
   "fantasy.turnHint": { en: "Plays on day", el: "Αγωνίζεται την ημέρα" },
   "fantasy.turnPlayedHint": { en: "Already played on day", el: "Αγωνίστηκε ήδη την ημέρα" },
   "fantasy.simulateRoundAdmin": { en: "Admin: simulate whole round", el: "Διαχειριστής: προσομοίωση όλου του γύρου" },
