@@ -87,7 +87,18 @@ fantasyRouter.get("/players", async (req, res) => {
       // (see schema.ts's doc comment on playerInjuries) — left join since
       // "healthy" is just "no row", not a status value.
       .leftJoin(playerInjuries, eq(playerInjuries.playerId, players.id))
-      .where(eq(players.active, true));
+      // Only teams actually in this season's competition (2026-09-25, "remove
+      // monaco... should not be there on dropdown of fantasy") — same scoping
+      // GET /teams already applies. A club that dropped out (AS Monaco for
+      // 2026-27) keeps its `teams` row and any still-`active` players (roster
+      // sync never gets a fresh fetch for them to deactivate), so without
+      // this its players stayed pickable and it showed in the team filter.
+      .where(
+        and(
+          eq(players.active, true),
+          sql`exists (select 1 from ${games} where ${games.season} = ${season} and (${games.homeTeamId} = ${teams.id} or ${games.awayTeamId} = ${teams.id}))`
+        )
+      );
 
     // Most recent daily reprice delta per player (2026-09-22) — surfaces the
     // same fantasyDailyReprice.ts move the pool/court never showed before,

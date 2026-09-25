@@ -855,7 +855,13 @@ export async function autoFillFantasySquad(userId: string, season: string, round
       .select({ id: players.id, position: players.position, teamId: players.teamId, price: playerFantasyPrices.price })
       .from(players)
       .leftJoin(playerFantasyPrices, and(eq(playerFantasyPrices.playerId, players.id), eq(playerFantasyPrices.season, season)))
-      .where(eq(players.active, true)),
+      // Same "team is actually in this season" scoping as GET /fantasy/players.
+      .where(
+        and(
+          eq(players.active, true),
+          sql`exists (select 1 from ${games} where ${games.season} = ${season} and (${games.homeTeamId} = ${players.teamId} or ${games.awayTeamId} = ${players.teamId}))`
+        )
+      ),
     db
       .select({ teamId: coachFantasyPrices.teamId, price: coachFantasyPrices.price })
       .from(coachFantasyPrices)
