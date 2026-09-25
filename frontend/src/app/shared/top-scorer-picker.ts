@@ -7,6 +7,7 @@ import { GameTeamSummary, InjuryReportEntry, Player, RosterEntry, TopScorerPredi
 import { PlayerPhotoComponent } from "./player-photo";
 import { LogoSpinnerComponent } from "./logo-spinner";
 import { InjuryBadgeComponent } from "./injury-badge";
+import { NavIconComponent } from "./nav-icon";
 
 interface TopScorerCandidate {
   player: Player;
@@ -26,7 +27,7 @@ interface TopScorerCandidate {
 @Component({
   selector: "app-top-scorer-picker",
   standalone: true,
-  imports: [PlayerPhotoComponent, LogoSpinnerComponent, InjuryBadgeComponent, DecimalPipe],
+  imports: [PlayerPhotoComponent, LogoSpinnerComponent, InjuryBadgeComponent, DecimalPipe, NavIconComponent],
   templateUrl: "./top-scorer-picker.html",
 })
 export class TopScorerPickerComponent implements OnInit {
@@ -42,6 +43,10 @@ export class TopScorerPickerComponent implements OnInit {
   readonly awayRoster = signal<RosterEntry[]>([]);
   readonly myPick = signal<TopScorerPrediction | null>(null);
   readonly savingId = signal<string | null>(null);
+  // Same "saved" confirmation pop as game-detail.ts's topScorerJustSavedId
+  // (2026-09-25, "fix the animation so the user knows they can't leave") —
+  // see that field's doc comment.
+  readonly justSavedId = signal<string | null>(null);
   readonly error = signal<string | null>(null);
 
   // League-wide injury report, fetched alongside the rosters (2026-09-24,
@@ -105,6 +110,10 @@ export class TopScorerPickerComponent implements OnInit {
       next: (pick) => {
         this.myPick.set(pick);
         this.savingId.set(null);
+        this.justSavedId.set(playerId);
+        setTimeout(() => {
+          if (this.justSavedId() === playerId) this.justSavedId.set(null);
+        }, 900);
       },
       error: (err) => {
         this.error.set(err?.error?.error ?? this.i18n.t("topScorer.pickFailed"));

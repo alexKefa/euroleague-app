@@ -296,6 +296,10 @@ export class PredictionsComponent implements OnInit, OnDestroy {
   // pick) — a bare id, not per-game, since a user can only usefully be
   // tapping one icon on one card at any given moment anyway.
   readonly quickPickSavingId = signal<string | null>(null);
+  // Same "saved" confirmation pop as game-detail.ts's topScorerJustSavedId
+  // (2026-09-25, "fix the animation so the user knows they can't leave") —
+  // see that field's doc comment.
+  readonly quickPickJustSavedId = signal<string | null>(null);
 
   quickPickTopScorer(game: Game, playerId: string): void {
     if (this.quickPickSavingId()) return;
@@ -303,6 +307,10 @@ export class PredictionsComponent implements OnInit, OnDestroy {
     this.api.submitTopScorerPick(game.id, playerId).subscribe({
       next: () => {
         this.quickPickSavingId.set(null);
+        this.quickPickJustSavedId.set(playerId);
+        setTimeout(() => {
+          if (this.quickPickJustSavedId() === playerId) this.quickPickJustSavedId.set(null);
+        }, 900);
         // Refreshes topScorerByGameId so the pill/ring highlight on this
         // card (and the aggregate My picks -> Top scorer tab) picks up the
         // new pick immediately, same as closeTopScorerPicker()'s own

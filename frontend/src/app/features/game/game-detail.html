@@ -197,6 +197,12 @@
                         <span class="absolute inset-0 flex items-center justify-center rounded-full bg-card/70">
                           <app-logo-spinner [size]="18" />
                         </span>
+                      } @else if (topScorerJustSavedId() === c.player.id) {
+                        <!-- "Saved" confirmation pop (2026-09-25) — see
+                             styles.css's pick-saved-pop doc comment. -->
+                        <span class="absolute inset-0 flex items-center justify-center rounded-full bg-card/80 pick-saved-pop">
+                          <app-nav-icon name="checkmark-shield" [size]="22" class="text-emerald-500" />
+                        </span>
                       }
                     </span>
                     <span class="text-[9px] text-muted font-semibold truncate w-full text-center">{{ c.player.name.split(',')[0] }}</span>
@@ -224,6 +230,10 @@
                       @if (topScorerPickSavingId() === c.player.id) {
                         <span class="absolute inset-0 flex items-center justify-center rounded-full bg-card/70">
                           <app-logo-spinner [size]="18" />
+                        </span>
+                      } @else if (topScorerJustSavedId() === c.player.id) {
+                        <span class="absolute inset-0 flex items-center justify-center rounded-full bg-card/80 pick-saved-pop">
+                          <app-nav-icon name="checkmark-shield" [size]="22" class="text-emerald-500" />
                         </span>
                       }
                     </span>

@@ -471,10 +471,37 @@ body {
   animation: fantasy-pickup 160ms ease-out;
 }
 
+/* Top-scorer pick "saved" confirmation (2026-09-25) — a brief checkmark
+   pop shown right after a pick's POST resolves, before settling into the
+   normal persistent ring-selected state. Shared across the three places a
+   top-scorer pick can be made (game-detail.ts's photo strip,
+   predictions.ts's quick-pick strip, shared/top-scorer-picker.ts's modal)
+   so a saving spinner that was easy to miss on a phone is followed by an
+   unambiguous "this is done, you can move on" moment instead of just
+   silently swapping to the ring. */
+@keyframes pick-saved-pop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.pick-saved-pop {
+  animation: pick-saved-pop 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fantasy-drop,
   .fantasy-slot-land,
-  .fantasy-drag-preview {
+  .fantasy-drag-preview,
+  .pick-saved-pop {
     animation: none;
     transition: none;
   }

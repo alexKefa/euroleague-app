@@ -217,6 +217,18 @@
                               class="rounded-full block transition-shadow"
                               [ngClass]="isQuickPicked(game, c.player.id) ? 'ring-2 ring-team-primary' : ''"
                             />
+                            @if (quickPickSavingId() === c.player.id) {
+                              <span class="absolute inset-0 flex items-center justify-center rounded-full bg-card/70">
+                                <app-logo-spinner [size]="14" />
+                              </span>
+                            } @else if (quickPickJustSavedId() === c.player.id) {
+                              <!-- "Saved" confirmation pop (2026-09-25) —
+                                   see styles.css's pick-saved-pop doc
+                                   comment. -->
+                              <span class="absolute inset-0 flex items-center justify-center rounded-full bg-card/80 pick-saved-pop">
+                                <app-nav-icon name="checkmark-shield" [size]="16" class="text-emerald-500" />
+                              </span>
+                            }
                             @if (injuryFor(c.player.id); as injury) {
                               <span class="absolute -top-1 -right-1">
                                 <app-injury-badge [status]="injury.status" [note]="injury.note" [noteEl]="injury.noteEl" [size]="14" />
@@ -246,6 +258,15 @@
                               class="rounded-full block transition-shadow"
                               [ngClass]="isQuickPicked(game, c.player.id) ? 'ring-2 ring-team-primary' : ''"
                             />
+                            @if (quickPickSavingId() === c.player.id) {
+                              <span class="absolute inset-0 flex items-center justify-center rounded-full bg-card/70">
+                                <app-logo-spinner [size]="14" />
+                              </span>
+                            } @else if (quickPickJustSavedId() === c.player.id) {
+                              <span class="absolute inset-0 flex items-center justify-center rounded-full bg-card/80 pick-saved-pop">
+                                <app-nav-icon name="checkmark-shield" [size]="16" class="text-emerald-500" />
+                              </span>
+                            }
                             @if (injuryFor(c.player.id); as injury) {
                               <span class="absolute -top-1 -right-1">
                                 <app-injury-badge [status]="injury.status" [note]="injury.note" [noteEl]="injury.noteEl" [size]="14" />

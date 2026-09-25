@@ -300,6 +300,14 @@ export class GameDetailComponent implements OnInit {
   // spinner instead of a single ambiguous loading state for the whole strip.
   readonly topScorerPickSavingId = signal<string | null>(null);
   readonly topScorerPickError = signal<string | null>(null);
+  // Briefly holds the just-saved player's id right after a pick's POST
+  // resolves (2026-09-25, "fix the animation so the user knows they can't
+  // leave") — the spinner above communicates "in flight" but nothing
+  // previously confirmed "done", so a save that completed in ~200ms could
+  // read as if nothing happened. Cleared by its own timeout, not by the
+  // next pick — checked against the specific id in case a second pick
+  // lands before this one's timeout fires.
+  readonly topScorerJustSavedId = signal<string | null>(null);
 
   // Mirrors backend/src/services/topScorerPoints.ts's isTopScorerPickLocked
   // exactly (kept in sync by hand, same "preview only" pattern as the
@@ -367,6 +375,10 @@ export class GameDetailComponent implements OnInit {
       next: (pick) => {
         this.myTopScorerPick.set(pick);
         this.topScorerPickSavingId.set(null);
+        this.topScorerJustSavedId.set(playerId);
+        setTimeout(() => {
+          if (this.topScorerJustSavedId() === playerId) this.topScorerJustSavedId.set(null);
+        }, 900);
       },
       error: (err) => {
         this.topScorerPickError.set(err?.error?.error ?? this.i18n.t("topScorer.pickFailed"));
@@ -462,6 +474,7 @@ export class GameDetailComponent implements OnInit {
       this.homeRoster.set([]);
       this.awayRoster.set([]);
       this.myTopScorerPick.set(null);
+      this.topScorerJustSavedId.set(null);
       this.onFireIds.set([]);
       this.scoringFeed.set([]);
       this.closePlayer();
