@@ -713,6 +713,21 @@ export class FantasyComponent implements OnInit {
   // player id so any squad member's slot can look theirs up directly.
   readonly roundPirByPlayerId = signal<Map<string, number | null>>(new Map());
 
+  // Per-player *scored* fantasy points for this round — straight off
+  // GET /lineup's own FantasyLineupPlayer.points (see its doc comment:
+  // "valuation with the captain-double/bench-half multipliers applied"),
+  // not a second computation. Distinct from roundPirByPlayerId above on
+  // purpose: PIR is the raw stat, never doubled; points is what actually
+  // counts toward totalPoints, and is what the captain's ×2 needs to show
+  // (2026-09-25, "show double points on captain, since its 2x" — the court
+  // card was only ever showing raw PIR, which never reflected the
+  // multiplier at all, captain or not).
+  readonly playerPointsById = signal<Map<string, number>>(new Map());
+
+  pointsFor(playerId: string): number {
+    return this.playerPointsById().get(playerId) ?? 0;
+  }
+
   // Keeps fixtureGames' status/score current and refreshes the relevant
   // game's box score whenever the shared SSE stream ticks for a game that
   // belongs to this round — effects run in the injection context a field
@@ -1298,15 +1313,18 @@ export class FantasyComponent implements OnInit {
 
         const slots = initialSquadSlots();
         const serverMap = new Map<string, FantasySlotRole>();
+        const pointsMap = new Map<string, number>();
         let captain: string | null = null;
         for (const p of lineup.players) {
           serverMap.set(p.playerId, p.slotRole);
+          pointsMap.set(p.playerId, p.points);
           if (p.isCaptain) captain = p.playerId;
           const idx = slots.findIndex((s) => s.role === p.slotRole && s.playerId === null);
           if (idx !== -1) slots[idx] = { ...slots[idx], playerId: p.playerId };
         }
         this.squadSlots.set(slots);
         this.serverSlotByPlayerId.set(serverMap);
+        this.playerPointsById.set(pointsMap);
         this.captainId.set(captain);
         this.serverCaptainId.set(captain);
         this.coachTeamId.set(lineup.coachTeamId);
@@ -1399,6 +1417,12 @@ export class FantasyComponent implements OnInit {
         this.newFantasyRoundPoints.set(lineup.newFantasyRoundPoints);
         this.applyFantasyMilestoneRewards(lineup.newFantasyMilestoneRewards);
         this.maybeCelebrateRoundComplete(lineup.round, lineup.roundComplete);
+        // Read-only server data (never edited locally), same as totalPoints
+        // above — safe to refresh here even though this path deliberately
+        // skips squadSlots/captainId, since this is exactly the "a game in
+        // this round just went final" moment a court card's points display
+        // needs to catch up for.
+        this.playerPointsById.set(new Map(lineup.players.map((p) => [p.playerId, p.points])));
       },
       error: () => {},
     });

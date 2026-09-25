@@ -33,6 +33,18 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
   "hint.dismiss": { en: "Dismiss", el: "Απόρριψη" },
 
   // shared/install-banner.ts — the "add to home screen" nudge.
+  // Watch Pill (2026-09-25) — the global pinned game/player live tracker.
+  // See core/watchlist.service.ts's doc comment for the full design.
+  "watchPill.unpin": { en: "Unpin", el: "Ξεκαρφίτσωμα" },
+  "watchPill.pinGame": { en: "Watch this game", el: "Παρακολούθησε αυτόν τον αγώνα" },
+  "watchPill.unpinGame": { en: "Stop watching this game", el: "Σταμάτα να παρακολουθείς αυτόν τον αγώνα" },
+  "watchPill.pinPlayer": { en: "Watch this player", el: "Παρακολούθησε αυτόν τον παίκτη" },
+  "watchPill.unpinPlayer": { en: "Stop watching this player", el: "Σταμάτα να παρακολουθείς αυτόν τον παίκτη" },
+  "watchPill.limitReached": {
+    en: "You can watch up to 3 at once — unpin one first",
+    el: "Μπορείς να παρακολουθείς έως 3 ταυτόχρονα — ξεκαρφίτσωσε πρώτα ένα",
+  },
+
   "install.title": { en: "Add Clutch to your home screen", el: "Πρόσθεσε το Clutch στην αρχική οθόνη" },
   "install.subtitle": {
     en: "Quicker access, opens full-screen like a real app.",

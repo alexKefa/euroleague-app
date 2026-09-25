@@ -73,7 +73,13 @@ export type NavIconName =
   // reusing the same POST /events/simulate/round the Schedule page's own
   // button already calls) — two stacked play triangles read as
   // "fast-forward" distinctly from "zap" (already the on-fire/CTA icon).
-  | "fast-forward";
+  | "fast-forward"
+  // The Watch Pill's pin/unpin toggle (2026-09-25) — a plain map-pin glyph,
+  // distinct from "star" (the season-long favorite-player toggle
+  // elsewhere in this app): pinning a game/player here is an ephemeral,
+  // per-device "track this live" action, a different concept from a
+  // standing favorite, so it gets its own icon rather than reusing star's.
+  | "pin";
 
 @Component({
   selector: "app-nav-icon",
@@ -583,6 +589,19 @@ export type NavIconName =
         @case ("fast-forward") {
           <path d="M4 5.5v13l9-6.5-9-6.5z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" fill="currentColor" fill-opacity="0.2" />
           <path d="M12.5 5.5v13l9-6.5-9-6.5z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" fill="currentColor" fill-opacity="0.2" />
+        }
+        @case ("pin") {
+          <!-- Map-pin glyph — [active] fills it solid, same duotone
+               convention as star/home/cards, so a pinned game/player reads
+               as "on" at a glance. -->
+          <path
+            d="M12 21s-7-7.1-7-12a7 7 0 0 1 14 0c0 4.9-7 12-7 12z"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linejoin="round"
+            [attr.fill]="active ? 'currentColor' : 'none'"
+          />
+          <circle cx="12" cy="9" r="2.3" [attr.fill]="active ? 'var(--color-card, #151516)' : 'currentColor'" stroke="none" />
         }
       }
     </svg>

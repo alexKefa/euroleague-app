@@ -7,6 +7,7 @@ import { I18nService } from "../../core/i18n.service";
 import { NavHistoryService } from "../../core/nav-history.service";
 import { EventsService, GameScoringEvent } from "../../core/events.service";
 import { AuthService } from "../../core/auth.service";
+import { WatchlistService } from "../../core/watchlist.service";
 import { Game, GameDetail, GameBoxscoreLine, PlayerDetail, RosterEntry, TopScorerPrediction } from "../../core/models";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
@@ -98,6 +99,7 @@ export class GameDetailComponent implements OnInit {
   protected navHistory = inject(NavHistoryService);
   private events = inject(EventsService);
   protected auth = inject(AuthService);
+  protected watchlist = inject(WatchlistService);
   private sanitizer = inject(DomSanitizer);
 
   // Experimental: admin-set YouTube highlight embed. Mirrors store.ts's
@@ -557,5 +559,41 @@ export class GameDetailComponent implements OnInit {
     const home = homeColor ?? "#888888";
     const away = awayColor ?? "#888888";
     return `linear-gradient(135deg, ${home}26 0%, transparent 45%, transparent 55%, ${away}26 100%)`;
+  }
+
+  // Watch Pill pin toggles (2026-09-25) — see WatchlistService's own doc
+  // comment. Both build the pin from data already on this page (no extra
+  // fetch): the game one from `detail()`, the player one from a single
+  // box-score row plus its side's team info (passed in from the template,
+  // since GameBoxscoreLine only carries teamId, not the team's own
+  // code/color — see that interface's comment).
+  toggleGameWatch(): void {
+    const d = this.detail();
+    if (!d) return;
+    this.watchlist.toggleGame({
+      gameId: d.game.id,
+      homeTeam: d.game.homeTeam,
+      awayTeam: d.game.awayTeam,
+      homeScore: d.game.homeScore,
+      awayScore: d.game.awayScore,
+      status: d.game.status,
+      quarter: d.game.quarter ?? null,
+    });
+  }
+
+  togglePlayerWatch(line: GameBoxscoreLine, teamCode: string, primaryColor: string | null): void {
+    const d = this.detail();
+    if (!d) return;
+    this.watchlist.togglePlayer({
+      playerId: line.player.id,
+      gameId: d.game.id,
+      name: line.player.name,
+      photoUrl: null,
+      teamCode,
+      primaryColor,
+      points: line.points ?? 0,
+      status: d.game.status,
+      quarter: d.game.quarter ?? null,
+    });
   }
 }

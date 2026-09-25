@@ -80,9 +80,17 @@
        position only ever depends on which half it's in, never on label
        length in either language. -->
   <div class="relative flex mb-5 bg-page rounded-2xl p-1 overflow-hidden">
+    <!-- Fixed 2026-09-25 (real bug, "gets out of button size on second
+         option"): the two buttons are flush flex-1 siblings with no gap, so
+         button 2 starts exactly one indicator-width to the right of button
+         1 — translateX(100%) (100% of the indicator's OWN width, per the
+         CSS transform spec) lands it exactly on button 2. The previous
+         `calc(100% + 0.5rem)` added an extra offset that didn't correspond
+         to any real gap in this markup, pushing the indicator's right edge
+         past the track's own padding edge whenever "Leaderboard" was active. -->
     <div
       class="absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-xl bg-team-primary shadow-pop transition-transform duration-300 ease-out"
-      [style.transform]="tab() === 'leaderboard' ? 'translateX(calc(100% + 0.5rem))' : 'translateX(0)'"
+      [style.transform]="tab() === 'leaderboard' ? 'translateX(100%)' : 'translateX(0)'"
     ></div>
     <button
       type="button"
@@ -300,6 +308,22 @@
                       @if (opponentFor(row.team.id); as opp) {
                         <span>{{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }} {{ opp.opponent.code }}</span>
                       }
+                    } @else if (slot.role === 'starter' && captainId() === slot.playerId) {
+                      <!-- Captain: scored fantasy points (already the
+                           captain-doubled value — see playerPointsById's
+                           doc comment), not raw PIR, with an explicit ×2 so
+                           it's clear why this number is bigger than a
+                           teammate's same-tier performance would score
+                           (2026-09-25, "show double points on captain,
+                           since its 2x" — the PIR this card showed before
+                           never reflected the multiplier at all). -->
+                      <span class="flex items-center gap-1" [ngClass]="game.status === 'live' ? 'text-red-500' : ''">
+                        @if (game.status === 'live') {
+                          <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
+                        }
+                        {{ pointsFor(row.player.id) | number: '1.0-1' }} {{ i18n.t('fantasy.pointsAbbrev') }}
+                        <span class="text-team-primary font-bold">&times;2</span>
+                      </span>
                     } @else {
                       <span class="flex items-center gap-1" [ngClass]="game.status === 'live' ? 'text-red-500' : ''">
                         @if (game.status === 'live') {

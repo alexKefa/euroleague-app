@@ -1,0 +1,58 @@
+@if (watchlist.watches().length > 0) {
+  <!-- Same fixed-top-offset convention battle-challenge-toast.html already
+       established for "float just below the sticky top nav" — reused here
+       instead of fighting position:sticky stacking with a second sticky
+       sibling (no clean way to do that without measuring the nav's real
+       rendered height, which varies by breakpoint). z-20, same as the
+       predictions save bar: clears plain page content, never outranks the
+       app shell (nav/toasts are z-30/z-40). -->
+  <div class="fixed z-20 inset-x-0 top-[calc(4.5rem+env(safe-area-inset-top))] flex justify-center px-3 pointer-events-none">
+    <div class="flex items-center gap-1.5 pointer-events-auto bg-card border border-line rounded-full shadow-pop px-1.5 py-1.5 max-w-full">
+      @for (w of watchlist.watches(); track watchKey(w)) {
+        <!-- relative wrapper, not the chip <button> itself — a <button>
+             can't validly contain another <button> (the unpin ×), so both
+             are siblings anchored to this shared wrapper instead. -->
+        <div class="relative">
+          <button
+            type="button"
+            (click)="open(w)"
+            class="flex items-center gap-1.5 pl-1 pr-3 py-1 rounded-full hover:bg-page transition-colors"
+          >
+            @if (w.kind === 'game') {
+              @if (w.homeTeam.logoUrl) {
+                <img [src]="w.homeTeam.logoUrl" [alt]="w.homeTeam.code" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
+              } @else {
+                <span class="w-5 h-5 rounded-full shrink-0" [style.background]="w.homeTeam.primaryColor ?? '#888'"></span>
+              }
+              <span class="font-mono text-[11px] font-bold whitespace-nowrap">
+                {{ w.homeTeam.code | teamCode }} {{ w.homeScore ?? 0 }}-{{ w.awayScore ?? 0 }} {{ w.awayTeam.code | teamCode }}
+              </span>
+              @if (w.awayTeam.logoUrl) {
+                <img [src]="w.awayTeam.logoUrl" [alt]="w.awayTeam.code" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
+              } @else {
+                <span class="w-5 h-5 rounded-full shrink-0" [style.background]="w.awayTeam.primaryColor ?? '#888'"></span>
+              }
+            } @else {
+              <app-player-photo [name]="w.name" [photoUrl]="w.photoUrl" [teamCode]="w.teamCode" [primaryColor]="w.primaryColor" [size]="20" class="shrink-0" />
+              <span class="font-mono text-[11px] font-bold whitespace-nowrap max-w-[80px] truncate">{{ w.name.split(',')[0] }}</span>
+              <span class="font-mono text-[11px] font-bold text-team-primary whitespace-nowrap">{{ w.points }} {{ i18n.t('predictions.pts') }}</span>
+            }
+            @if (w.status === 'live') {
+              <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
+            } @else if (w.quarter) {
+              <span class="font-mono text-[9px] font-bold text-muted whitespace-nowrap">Q{{ w.quarter }}</span>
+            }
+          </button>
+          <button
+            type="button"
+            (click)="unpin($event, w)"
+            [attr.aria-label]="i18n.t('watchPill.unpin')"
+            class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-card border border-line flex items-center justify-center text-muted hover:text-red-500 text-[9px] leading-none font-bold"
+          >
+            &times;
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+}

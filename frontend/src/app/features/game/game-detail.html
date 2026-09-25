@@ -54,6 +54,23 @@
       class="relative rounded-2xl border border-line shadow-card p-5 mt-4 mb-5 overflow-hidden bg-card"
       [style.background-image]="headerGradient(d.game.homeTeam.primaryColor, d.game.awayTeam.primaryColor)"
     >
+      <!-- Watch Pill pin (2026-09-25) — pins this whole game to the global
+           pill (see WatchlistService) so its score stays visible while
+           browsing anywhere else in the app, not just this page. Disabled
+           once at the 3-watch cap unless this game is already one of them
+           (so un-pinning always stays available). -->
+      <button
+        type="button"
+        (click)="toggleGameWatch()"
+        [disabled]="!watchlist.isPinned('game', d.game.id) && !watchlist.canPinMore()"
+        [attr.aria-label]="watchlist.isPinned('game', d.game.id) ? i18n.t('watchPill.unpinGame') : i18n.t('watchPill.pinGame')"
+        [title]="!watchlist.isPinned('game', d.game.id) && !watchlist.canPinMore() ? i18n.t('watchPill.limitReached') : (watchlist.isPinned('game', d.game.id) ? i18n.t('watchPill.unpinGame') : i18n.t('watchPill.pinGame'))"
+        class="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-card/80 backdrop-blur border border-line flex items-center justify-center transition-colors disabled:opacity-30"
+        [ngClass]="watchlist.isPinned('game', d.game.id) ? 'text-team-primary' : 'text-muted hover:text-team-primary'"
+      >
+        <app-nav-icon name="pin" [size]="15" [active]="watchlist.isPinned('game', d.game.id)" />
+      </button>
+
       <p class="text-[11px] text-muted font-bold uppercase tracking-wider text-center mb-3">
         {{ i18n.t('game.round') }} {{ d.game.round }}
         @if (isLive()) {
@@ -340,7 +357,13 @@
           <app-stat-legend [entries]="boxScoreLegend()" />
         </p>
 
-        @for (side of [{ label: d.game.homeTeam.name, lines: d.boxscore.home }, { label: d.game.awayTeam.name, lines: d.boxscore.away }]; track side.label) {
+        @for (
+          side of [
+            { label: d.game.homeTeam.name, lines: d.boxscore.home, teamCode: d.game.homeTeam.code, primaryColor: d.game.homeTeam.primaryColor },
+            { label: d.game.awayTeam.name, lines: d.boxscore.away, teamCode: d.game.awayTeam.code, primaryColor: d.game.awayTeam.primaryColor },
+          ];
+          track side.label
+        ) {
           <p class="text-[11px] text-team-primary font-bold uppercase tracking-wider mt-3 mb-1.5">{{ side.label }}</p>
           <div class="overflow-x-auto">
             <table class="w-full text-xs">
@@ -358,16 +381,35 @@
                 @for (line of side.lines; track line.player.id) {
                   <tr class="border-t border-line">
                     <td class="py-1.5 font-semibold truncate max-w-[9rem]">
-                      <button type="button" (click)="openPlayer(line.player.id)" class="hover:text-team-primary transition-colors text-left">
-                        {{ line.player.name }}
-                        <!-- "On Fire" zap icon KEPT fixed (2026-09-18,
-                             see the gameResult() comment near the top of
-                             this file) — a hot-streak signal about any
-                             player, could be the opponent. -->
-                        @if (onFireIds().includes(line.player.id)) {
-                          <app-nav-icon name="zap" [size]="14" [title]="i18n.t('game.onFire')" class="inline-block align-text-bottom text-highlight" />
+                      <div class="flex items-center gap-1">
+                        <button type="button" (click)="openPlayer(line.player.id)" class="hover:text-team-primary transition-colors text-left truncate min-w-0">
+                          {{ line.player.name }}
+                          <!-- "On Fire" zap icon KEPT fixed (2026-09-18,
+                               see the gameResult() comment near the top of
+                               this file) — a hot-streak signal about any
+                               player, could be the opponent. -->
+                          @if (onFireIds().includes(line.player.id)) {
+                            <app-nav-icon name="zap" [size]="14" [title]="i18n.t('game.onFire')" class="inline-block align-text-bottom text-highlight" />
+                          }
+                        </button>
+                        <!-- Watch Pill pin (2026-09-25) — live games only;
+                             pinning a player from a final game has nothing
+                             left to watch. Sibling button, not nested inside
+                             the name button above (invalid HTML). -->
+                        @if (isLive()) {
+                          <button
+                            type="button"
+                            (click)="togglePlayerWatch(line, side.teamCode, side.primaryColor)"
+                            [disabled]="!watchlist.isPinned('player', line.player.id) && !watchlist.canPinMore()"
+                            [attr.aria-label]="watchlist.isPinned('player', line.player.id) ? i18n.t('watchPill.unpinPlayer') : i18n.t('watchPill.pinPlayer')"
+                            [title]="!watchlist.isPinned('player', line.player.id) && !watchlist.canPinMore() ? i18n.t('watchPill.limitReached') : null"
+                            class="shrink-0 transition-colors disabled:opacity-30"
+                            [ngClass]="watchlist.isPinned('player', line.player.id) ? 'text-team-primary' : 'text-muted hover:text-team-primary'"
+                          >
+                            <app-nav-icon name="pin" [size]="12" [active]="watchlist.isPinned('player', line.player.id)" />
+                          </button>
                         }
-                      </button>
+                      </div>
                     </td>
                     <td class="text-right font-mono py-1.5 px-1.5">{{ line.minutes | number: "1.0-0" }}</td>
                     <td class="text-right font-mono py-1.5 px-1.5">{{ line.points }}</td>
