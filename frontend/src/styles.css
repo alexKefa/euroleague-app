@@ -379,3 +379,108 @@ body {
    real DOM attribute mutation, which repaints unambiguously. See
    theme.service.ts's ambientGlowBackground for the color-mix formula
    (unchanged) and the rest of this history. */
+/* Fantasy Five drag & drop (2026-09-25, "can we implement a more smooth drag
+   and drop? its raw. and icons go here and there"). Global rather than in
+   fantasy.css because CDK appends the drag preview to <body> and these rules
+   lean on :has(). Every drop list is cdkDropListSortingDisabled +
+   cdkDropListHasAnchor (fantasy.html).
+
+   Root cause of the jumping: CDK moves its placeholder into whichever list
+   the pointer is over, so a hovered court slot suddenly held its occupant
+   *plus* the placeholder and grew, shoving the layout around mid-drag. Now
+   the list you picked up from keeps a faded ghost (placeholder, then the
+   anchor clone once you leave it), and in any other list the placeholder is
+   pulled out of flow and hidden. "The list holding the hidden original
+   (.cdk-drag-dragging)" is how the source is told apart from a target.
+
+   Motion uses the individual `scale`/`rotate` properties, never `transform`,
+   because CDK owns `transform` on the preview to position it. */
+.fantasy-drop {
+  transition: scale 160ms ease-out, filter 160ms ease-out, box-shadow 160ms ease-out;
+}
+.fantasy-drop .cdk-drag-placeholder,
+.fantasy-drop .cdk-drag-anchor {
+  opacity: 0.3;
+  filter: grayscale(0.6);
+  animation: none;
+}
+.fantasy-drop:not(:has(> .cdk-drag-dragging)) > .cdk-drag-placeholder:not(.cdk-drag-anchor) {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The slot you're hovering grows slightly and glows in the team color;
+   hovering the pool (to send a player back) outlines it instead. */
+.fantasy-slot.cdk-drop-list-dragging:not(:has(> .cdk-drag-dragging)) {
+  scale: 1.12;
+  filter: drop-shadow(0 0 10px var(--accent-primary));
+}
+.fantasy-drop:not(.fantasy-slot).cdk-drop-list-dragging:not(:has(> .cdk-drag-dragging)) {
+  box-shadow: inset 0 0 0 2px var(--accent-primary);
+}
+
+/* A player arriving in a slot (drop, swap, formation reseat, first load)
+   pops in with a small overshoot. */
+@keyframes fantasy-slot-land {
+  0% {
+    scale: 0.6;
+    opacity: 0;
+  }
+  60% {
+    scale: 1.08;
+    opacity: 1;
+  }
+  100% {
+    scale: 1;
+  }
+}
+.fantasy-slot-land {
+  animation: fantasy-slot-land 320ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+/* Picked-up card: lifted, tilted, shadowed. On release it settles toward
+   its destination while fading out, handing off to the landing pop. */
+@keyframes fantasy-pickup {
+  from {
+    scale: 1;
+    rotate: 0deg;
+  }
+}
+.fantasy-drag-preview {
+  scale: 1.1;
+  rotate: -3deg;
+  filter: drop-shadow(0 12px 18px rgb(0 0 0 / 0.35));
+  cursor: grabbing;
+  animation: fantasy-pickup 160ms ease-out;
+}
+.fantasy-drag-preview.cdk-drag-animating {
+  transition:
+    transform 220ms cubic-bezier(0.2, 0, 0, 1),
+    opacity 220ms ease-in,
+    scale 220ms ease-in,
+    rotate 220ms ease-in;
+  opacity: 0;
+  scale: 0.9;
+  rotate: 0deg;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fantasy-drop,
+  .fantasy-slot-land,
+  .fantasy-drag-preview,
+  .fantasy-drag-preview.cdk-drag-animating {
+    animation: none;
+    transition: none;
+  }
+  .fantasy-slot.cdk-drop-list-dragging:not(:has(> .cdk-drag-dragging)),
+  .fantasy-drag-preview {
+    scale: 1;
+    rotate: 0deg;
+  }
+}

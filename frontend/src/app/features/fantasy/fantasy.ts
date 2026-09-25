@@ -1,4 +1,4 @@
-import { Component, HostListener, OnInit, inject, signal, computed, effect, WritableSignal } from "@angular/core";
+import { Component, DestroyRef, HostListener, OnInit, inject, signal, computed, effect, WritableSignal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { DragDropModule, CdkDragDrop } from "@angular/cdk/drag-drop";
@@ -312,6 +312,35 @@ export class FantasyComponent implements OnInit {
   @HostListener("window:resize")
   onWindowResize(): void {
     this.isMobileViewport.set(window.innerWidth < MOBILE_BREAKPOINT_PX);
+  }
+
+  // The part of the screen actually visible above the on-screen keyboard
+  // (2026-09-25, "when searching on players' pool you have to close the
+  // keyboard to see the player since results become less"). A `vh`/`inset-0`
+  // overlay ignores the keyboard on iOS, so the mobile picker sheet used to
+  // sit partly behind it — and shrank as results narrowed, dragging the list
+  // further down under the keys. The picker now sizes itself to this
+  // instead, and hides its secondary filters while the keyboard is up so
+  // the results get the room.
+  readonly visualViewport = signal<{ height: number; top: number } | null>(null);
+  readonly keyboardOpen = computed(() => {
+    const vv = this.visualViewport();
+    return this.isMobileViewport() && vv !== null && vv.height < window.innerHeight - 120;
+  });
+  private readonly syncVisualViewport = () => {
+    const vv = window.visualViewport;
+    if (vv) this.visualViewport.set({ height: vv.height, top: vv.offsetTop });
+  };
+  constructor() {
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener("resize", this.syncVisualViewport);
+      vv.addEventListener("scroll", this.syncVisualViewport);
+      inject(DestroyRef).onDestroy(() => {
+        vv.removeEventListener("resize", this.syncVisualViewport);
+        vv.removeEventListener("scroll", this.syncVisualViewport);
+      });
+    }
   }
   // Bumped again 2026-09-07 (from 46/40/36 mobile, 56/50/44 desktop) by
   // request ("make the slots even bigger") — a bit more of the row-to-row
@@ -1854,6 +1883,7 @@ export class FantasyComponent implements OnInit {
     const idx = this.squadSlots().findIndex((s) => s.id === slotId);
     if (idx !== -1 && idx < this.starterCount) this.positionFilter.set(this.requiredPositionForStarterSlot(idx));
     clearTimeout(this.pickerCloseTimer);
+    this.syncVisualViewport();
     this.pickerSlotId.set(slotId);
     this.showPopup(this.pickerVisible);
   }

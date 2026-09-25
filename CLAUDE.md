@@ -1059,6 +1059,17 @@ If you need to apply a schema change without an interactive terminal
     squad slot) gives a non-drag way to move a player between
     starter/sixth-man/bench. Tapping a player's name/photo anywhere opens an
     info popup with their last 5 games' PIR, rather than navigating away.
+    **Drag & drop polish (2026-09-25)** — every drop list is
+    `cdkDropListSortingDisabled` + `cdkDropListHasAnchor`, and the rules in
+    `styles.css` (global, since the preview lives on `<body>` and they need
+    `:has()`) hide CDK's placeholder out of flow in any list other than the
+    source — CDK otherwise inserts it next to a hovered slot's occupant,
+    growing the slot and shoving the court around mid-drag. Adds a
+    lift/tilt preview, a hovered-slot glow, and a landing pop-in (the
+    occupied-slot element is keyed on player id via a one-item `@for` so a
+    newly arrived player gets a fresh element). The mobile picker sizes
+    itself to `window.visualViewport` so the keyboard never covers results,
+    and hides its secondary filters while the keyboard is up.
   - ~~**Known gap**: `POST /lineup/batch`'s `changedIds` diff is keyed off
     presence/`slotRole` changes only — a captain-only reassignment never
     triggers the per-player lock recheck.~~ Stale, not an active fix

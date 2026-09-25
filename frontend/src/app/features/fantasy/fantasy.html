@@ -91,9 +91,16 @@
           [id]="slot.id"
           [cdkDropListConnectedTo]="dropListIds"
           (cdkDropListDropped)="onDrop($event, slot.id)"
-          class="flex flex-col items-center"
+          cdkDropListSortingDisabled
+          cdkDropListHasAnchor
+          class="fantasy-drop fantasy-slot relative flex flex-col items-center"
         >
           @if (slot.playerId && rowById().get(slot.playerId); as row) {
+            <!-- Keyed on the player id (2026-09-25, smoother drag & drop) so
+                 a player newly landing in this slot gets a fresh element and
+                 plays the fantasy-slot-land pop-in, instead of @if silently
+                 reusing the old occupant's element. -->
+            @for (landedId of [slot.playerId]; track landedId) {
             <!-- No glass panel once a player's actually in the slot
                  (2026-09-17, corrected same day — the glass belongs on the
                  *empty* "+" placeholder only, see the @else branch below;
@@ -106,7 +113,9 @@
               cdkDrag
               [cdkDragDisabled]="isPlayerLocked(slot.playerId)"
               [cdkDragData]="slot.playerId"
-              class="flex flex-col items-center gap-1"
+              [cdkDragStartDelay]="{ touch: 120, mouse: 0 }"
+              cdkDragPreviewClass="fantasy-drag-preview"
+              class="fantasy-slot-land flex flex-col items-center gap-1"
               [ngClass]="isPlayerLocked(slot.playerId) ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'"
             >
               <!-- The opponent/PIR line that used to sit here, above the
@@ -247,6 +256,7 @@
                 </span>
               </button>
             </div>
+            }
           } @else {
             <!-- Same glass panel as an occupied slot (2026-09-17, "add the
                  glass effect when players are not added" — extends it here
@@ -905,8 +915,10 @@
               id="pool"
               [cdkDropListConnectedTo]="dropListIds"
               (cdkDropListDropped)="onDrop($event, 'pool')"
+              cdkDropListSortingDisabled
+              cdkDropListHasAnchor
               (scroll)="onPoolScroll($event)"
-              class="flex-1 min-h-0 flex flex-col gap-1.5 bg-card rounded-2xl border border-line shadow-card p-2 overflow-y-auto"
+              class="fantasy-drop relative flex-1 min-h-0 flex flex-col gap-1.5 bg-card rounded-2xl border border-line shadow-card p-2 overflow-y-auto"
               style="-webkit-overflow-scrolling: touch;"
             >
               @for (row of visibleRows(); track row.player.id) {
@@ -914,9 +926,24 @@
                   cdkDrag
                   [cdkDragData]="row.player.id"
                   [cdkDragDisabled]="poolRowDisabled(row.player.id, row.player.position)"
+                  cdkDragPreviewClass="fantasy-drag-preview"
                   class="fantasy-row-in flex items-center gap-1.5 rounded-lg border border-line bg-page p-1.5 transition-colors"
                   [ngClass]="poolRowDisabled(row.player.id, row.player.position) ? 'opacity-40' : 'cursor-grab active:cursor-grabbing hover:border-team-primary'"
                 >
+                  <!-- Dragging a pool row carries just the player's photo +
+                       name (what lands on the court), not the whole wide
+                       list row. -->
+                  <div *cdkDragPreview class="flex flex-col items-center gap-1">
+                    <app-player-photo
+                      [photoUrl]="row.player.photoUrl"
+                      [name]="row.player.name"
+                      [teamCode]="row.team.code"
+                      [primaryColor]="row.team.primaryColor"
+                      [size]="52"
+                      [centerFace]="true"
+                    />
+                    <span class="text-[10px] font-bold text-ink bg-card/95 border border-line rounded-full px-2 py-0.5 shadow-card whitespace-nowrap">{{ row.player.name }}</span>
+                  </div>
                   <button type="button" (click)="$event.stopPropagation(); openPlayerInfo(row.player.id)" class="flex items-center gap-1.5 min-w-0 flex-1 text-left">
                     <span class="relative shrink-0">
                       <app-player-photo
@@ -1104,9 +1131,20 @@
        positionFilter is pinned to that slot's own required position for
        as long as the picker is open (see openPicker). -->
   @if (pickerSlotId()) {
-    <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm" (click)="closePicker()">
+    <!-- Sized to the *visible* viewport on mobile (visualViewport, see
+         fantasy.ts) so the on-screen keyboard never covers the results, and
+         a fixed sheet height (not max-h) so the list doesn't shrink and
+         slide under the keys as a search narrows it. -->
+    <div
+      class="fixed inset-x-0 top-0 h-[100dvh] z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm"
+      [style.height.px]="isMobileViewport() ? visualViewport()?.height : null"
+      [style.top.px]="isMobileViewport() ? visualViewport()?.top : null"
+      (click)="closePicker()"
+    >
       <div
-        class="bg-card rounded-t-2xl sm:rounded-2xl border border-line shadow-pop w-full sm:max-w-md max-h-[88vh] flex flex-col transition-transform duration-200 motion-reduce:transition-none"
+        class="bg-card rounded-t-2xl sm:rounded-2xl border border-line shadow-pop w-full sm:max-w-md sm:h-auto sm:max-h-[88vh] flex flex-col transition-[transform,height] duration-200 motion-reduce:transition-none"
+        [class.rounded-t-none]="keyboardOpen()"
+        [style.height]="isMobileViewport() ? (keyboardOpen() ? '100%' : '88%') : null"
         [ngClass]="pickerVisible() ? 'translate-y-0' : 'translate-y-full sm:translate-y-8'"
         (click)="$event.stopPropagation()"
       >
@@ -1134,16 +1172,18 @@
               class="flex-1"
               [value]="searchQuery()"
               [placeholder]="i18n.t('fantasy.searchPlaceholder')"
-              (valueChange)="onSearchInput($event)"
+              (valueChange)="onSearchInput($event); pickerList.scrollTop = 0"
             />
-            <app-dropdown
-              class="sm:w-56"
-              [options]="teamDropdownOptions()"
-              [value]="teamFilter()"
-              (valueChange)="setTeamFilter($event)"
-            />
+            @if (!keyboardOpen()) {
+              <app-dropdown
+                class="sm:w-56"
+                [options]="teamDropdownOptions()"
+                [value]="teamFilter()"
+                (valueChange)="setTeamFilter($event)"
+              />
+            }
           </div>
-          @if (!pickerRequiredPosition()) {
+          @if (!pickerRequiredPosition() && !keyboardOpen()) {
             <div class="flex items-center gap-2">
               <button type="button" (click)="setPositionFilter(null)" [appChip]="positionFilter() === null" class="min-w-[44px]">
                 {{ i18n.t('fantasy.posAll') }}
@@ -1159,7 +1199,7 @@
               </button>
             </div>
           }
-          <div class="flex items-center justify-around bg-page rounded-xl border border-line px-1 py-1.5">
+          <div class="flex items-center justify-around bg-page rounded-xl border border-line px-1 py-1.5" [class.hidden]="keyboardOpen()">
             <button type="button" (click)="setSort('price')" class="flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide" [ngClass]="sortKey() === 'price' ? 'text-team-primary' : 'text-muted'">
               {{ i18n.t('fantasy.colPrice') }}
               @if (sortKey() === 'price') { <span class="font-mono">{{ sortDesc() ? '▼' : '▲' }}</span> }
@@ -1175,7 +1215,7 @@
           </div>
         </div>
 
-        <div class="flex-1 min-h-0 overflow-y-auto p-2.5 flex flex-col gap-1.5" (scroll)="onPoolScroll($event)">
+        <div #pickerList class="flex-1 min-h-0 overflow-y-auto overscroll-contain p-2.5 flex flex-col gap-1.5" (scroll)="onPoolScroll($event)">
           @for (row of visibleRows(); track row.player.id) {
             <button
               type="button"
