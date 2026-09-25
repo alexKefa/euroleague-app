@@ -38,6 +38,10 @@ import { InjuryBadgeComponent } from "../../shared/injury-badge";
 // should only ever be open for the round a user could actually be watching.
 const SEASON = "2026-27";
 
+// Widget row caps (2026-09-25 redesign) — see visiblePicks's doc comment.
+const WIDGET_ROW_LIMIT = 4;
+const WIDGET_LEADERBOARD_LIMIT = 5;
+
 // Mirrors backend/src/services/points.ts's POINTS_PER_CORRECT/
 // pointsForCorrectPick exactly — kept as a separate implementation here
 // (not fetched) since it's only used to preview a number the backend will
@@ -151,6 +155,22 @@ export class PredictionsComponent implements OnInit, OnDestroy {
 
   readonly myPredictions = signal<Prediction[]>([]);
   readonly leaderboard = signal<LeaderboardEntry[]>([]);
+  // Widget redesign (2026-09-25) — see visiblePicks's doc comment above for
+  // the full "no internal scrollbox" reasoning; same idea here, just a
+  // slightly looser cap since a rank list reads fine denser than a picks
+  // row does. myLeaderboardRank pins the viewer's own row below the capped
+  // list when they're ranked outside it, same "sticky own row" convention
+  // fantasy leaderboards elsewhere in this app already use — otherwise a
+  // widget capped to WIDGET_LEADERBOARD_LIMIT would tell a real predictor
+  // nothing about their own standing at all once they're not in the top few.
+  readonly visibleLeaderboard = computed(() => this.leaderboard().slice(0, WIDGET_LEADERBOARD_LIMIT));
+  readonly myLeaderboardRank = computed(() => {
+    const uid = this.auth.currentUser()?.id;
+    if (!uid) return null;
+    const idx = this.leaderboard().findIndex((e) => e.userId === uid);
+    if (idx < 0 || idx < WIDGET_LEADERBOARD_LIMIT) return null; // not ranked, or already visible above
+    return { entry: this.leaderboard()[idx], rank: idx + 1 };
+  });
   // Showcase cards open in a modal on tap, same pattern as the league
   // leaderboard (features/leagues/league-detail.ts) — a leaderboard row has
   // no room for name, badges, *and* a handful of cards inline.
@@ -205,6 +225,8 @@ export class PredictionsComponent implements OnInit, OnDestroy {
   readonly picksTab = signal<"winLoss" | "topScorer">("winLoss");
   readonly myTopScorerPredictions = signal<MyTopScorerPrediction[]>([]);
   readonly topScorerPicksLoading = signal(true);
+  readonly visibleTopScorerPicks = computed(() => this.myTopScorerPredictions().slice(0, WIDGET_ROW_LIMIT));
+  readonly hiddenTopScorerPicksCount = computed(() => Math.max(0, this.myTopScorerPredictions().length - WIDGET_ROW_LIMIT));
   // gameId -> that match's top-scorer pick, so the Win/Loss tab's own
   // per-match row can show both picks together instead of only the game
   // outcome — the two pick types used to only ever appear in their own
@@ -396,6 +418,19 @@ export class PredictionsComponent implements OnInit, OnDestroy {
 
     return [...fromServer, ...brandNew].sort((a, b) => new Date(b.tipoffAt).getTime() - new Date(a.tipoffAt).getTime());
   });
+
+  // Widget redesign (2026-09-25, "non scroll, add something like widgets")
+  // — the old My Picks/Leaderboard cards held every row in a fixed-height
+  // internal scrollbox (double-scroll on a phone: the page scrolls, then a
+  // box inside it scrolls again). A bento-style widget instead shows a
+  // capped, glanceable handful of rows with no scroll container at all;
+  // "see everything" is the existing /predictions-history page (already
+  // linked below), not a taller box. WIDGET_ROW_LIMIT applies to both pick
+  // lists; the leaderboard gets its own, slightly larger cap since a rank
+  // list reads fine denser than a stat row does.
+  readonly visiblePicks = computed(() => this.displayedPicks().slice(0, WIDGET_ROW_LIMIT));
+  readonly hiddenPicksCount = computed(() => Math.max(0, this.displayedPicks().length - WIDGET_ROW_LIMIT));
+
   // teamId -> logoUrl — Prediction.predictedTeam doesn't carry a logo (it's
   // a lightweight ref), so it's looked up here for the "My picks" list;
   // upcoming games already have logoUrl on their own team objects.

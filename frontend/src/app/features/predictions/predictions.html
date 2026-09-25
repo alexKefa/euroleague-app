@@ -11,11 +11,20 @@
 <div class="max-w-3xl lg:max-w-5xl mx-auto p-4 sm:p-6">
   <div class="flex items-center justify-between mb-5">
     <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('nav.picks') }}</h1>
+    <!-- Compact icon-chip, not a purple arrow-text link (2026-09-25, "the
+         purple approach with arrow buttons... more compact and
+         professional") — same bg-page/text-muted/hover:text-team-primary
+         pill language as this page's own "What do these mean?" button
+         below, applied here instead of the old accent2 (#7C6CF0) uppercase
+         link so the whole page reads as one consistent, understated system
+         rather than mixing a shouty purple convention into it. -->
     <a
       routerLink="/store"
-      class="text-[12px] text-accent2 font-bold uppercase tracking-wider hover:text-accent2-dim transition-colors"
-      >{{ i18n.t('predictions.spendPoints') }} &rarr;</a
+      class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-page text-[11px] font-bold text-muted hover:text-team-primary transition-colors shrink-0"
     >
+      <app-nav-icon name="store" [size]="13" />
+      {{ i18n.t('predictions.spendPoints') }}
+    </a>
   </div>
 
   <app-page-hint hintId="predictions" icon="picks">{{ i18n.t('predictions.hint') }}</app-page-hint>
@@ -410,21 +419,147 @@
         </div>
       </div>
     } @else {
+    <!-- Points & Badges widget (2026-09-25 redesign, "add something like
+         widgets") — pulled out of the My Picks card into its own standalone,
+         full-width glanceable tile: a big number + badge row + reward
+         banners, not buried as a sub-section above a picks list. Own
+         auth/summaryLoading gate, same reasoning as before (a heavier
+         request than the picks list below it). -->
+    @if (auth.isAuthenticated()) {
+      <div class="bg-card rounded-2xl shadow-card p-4 sm:p-5 mb-5">
+        @if (summaryLoading()) {
+          <div class="animate-pulse">
+            <div class="flex items-center justify-between mb-2.5">
+              <div class="h-7 w-16 bg-line rounded"></div>
+              <div class="h-5 w-24 bg-line rounded"></div>
+            </div>
+            <div class="h-8 w-full bg-line rounded-xl"></div>
+          </div>
+        }
+        @if (mySummary()) {
+          @if (perfectRoundRewards().length > 0) {
+            <div class="flex items-center gap-2 rounded-xl bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3">
+              <app-nav-icon name="trophy" [size]="18" class="shrink-0" />
+              {{ i18n.t('predictions.perfectRoundPrefix') }}
+              {{
+                perfectRoundRewards().length === 1
+                  ? i18n.t('predictions.aLegendaryPack')
+                  : perfectRoundRewards().length + " " + i18n.t('predictions.legendaryPacks')
+              }}
+              {{ i18n.t('predictions.openFromPrefix') }}
+              <a routerLink="/packs" class="underline">{{ i18n.t('predictions.myPacksLink') }}</a>.
+            </div>
+          }
+          @if (greatRoundRewards().length > 0) {
+            <div class="flex items-center gap-2 rounded-xl bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3">
+              <app-nav-icon name="flame" [size]="18" class="shrink-0" />
+              {{ i18n.t('predictions.greatRoundPrefix') }}
+              {{
+                greatRoundRewards().length === 1
+                  ? i18n.t('predictions.aRarePack')
+                  : greatRoundRewards().length + " " + i18n.t('predictions.rarePacks')
+              }}
+              {{ i18n.t('predictions.openFromPrefix') }}
+              <a routerLink="/packs" class="underline">{{ i18n.t('predictions.myPacksLink') }}</a>.
+            </div>
+          }
+          @if (shownMilestoneRewards().length > 0) {
+            <div class="flex items-center gap-2 rounded-xl bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3">
+              <app-nav-icon name="picks" [size]="18" class="shrink-0" />
+              {{ i18n.t('predictions.milestonePrefix') }}
+              {{
+                shownMilestoneRewards().length === 1
+                  ? i18n.t('predictions.aLegendaryPack')
+                  : shownMilestoneRewards().length + " " + i18n.t('predictions.legendaryPacks')
+              }}
+              {{ i18n.t('predictions.openFromPrefix') }}
+              <a routerLink="/packs" class="underline">{{ i18n.t('predictions.myPacksLink') }}</a>.
+            </div>
+          }
+          @if (shownCoachMilestoneRewards().length > 0) {
+            <div class="flex items-center gap-2 rounded-xl bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3">
+              <app-nav-icon name="picks" [size]="18" class="shrink-0" />
+              {{ i18n.t('predictions.coachMilestonePrefix') }}
+              {{
+                shownCoachMilestoneRewards().length === 1
+                  ? i18n.t('predictions.aCoachPack')
+                  : shownCoachMilestoneRewards().length + " " + i18n.t('predictions.coachPacks')
+              }}
+              {{ i18n.t('predictions.openFromPrefix') }}
+              <a routerLink="/packs" class="underline">{{ i18n.t('predictions.myPacksLink') }}</a>.
+            </div>
+          }
+          <!-- Grants the card directly (see RareMilestoneReward's own doc
+               comment, models.ts) — no "open from My Packs" link, since
+               there's nothing left to open. Fires far more often than the
+               pack-based rewards above (every 2 correct picks vs 18/45),
+               so it names the specific card on a single grant rather than
+               just a count, but falls back to a count once several stack
+               up (e.g. after being away for a while). -->
+          @if (shownRareMilestoneRewards().length > 0) {
+            <div class="flex items-center gap-2 rounded-xl bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3">
+              <app-nav-icon name="picks" [size]="18" class="shrink-0" />
+              {{ i18n.t('predictions.rareMilestonePrefix') }}
+              {{
+                shownRareMilestoneRewards().length === 1
+                  ? i18n.t('predictions.aRareCard')
+                  : shownRareMilestoneRewards().length + " " + i18n.t('predictions.rareCards')
+              }}
+              @if (shownRareMilestoneRewards().length === 1) {
+                <span class="truncate">({{ shownRareMilestoneRewards()[0].name }})</span>
+              }
+              {{ i18n.t('predictions.addedToCollection') }}
+            </div>
+          }
+          <div class="flex items-center justify-between">
+            <span class="flex items-baseline gap-1.5">
+              <span class="font-display text-3xl text-team-primary">{{ mySummary()!.points }}</span>
+              <span class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('predictions.pts') }}</span>
+            </span>
+            <div class="flex gap-1.5 items-center">
+              @for (badge of mySummary()!.badges; track badge.id) {
+                <span [title]="badgeLabel(badge.id) + ' — ' + badgeDescription(badge.id)" class="text-team-primary">
+                  <app-nav-icon [name]="badgeIcon(badge.id)" [size]="22" />
+                </span>
+              }
+              @if (mySummary()!.badges.length === 0) {
+                <span class="text-[12px] text-muted">{{ i18n.t('predictions.noBadgesYet') }}</span>
+              }
+            </div>
+          </div>
+
+          <button
+            type="button"
+            (click)="showBadgeLegend.set(true)"
+            class="w-full mt-2.5 flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-page text-muted hover:text-team-primary transition-colors"
+          >
+            <app-nav-icon name="tip" [size]="14" />
+            <span class="text-[11px] font-bold uppercase tracking-wider">{{ i18n.t('predictions.whatDoTheseMean') }}</span>
+          </button>
+        }
+      </div>
+    }
+
     <div class="grid gap-5 sm:grid-cols-2">
       <!-- My picks -->
-      <div class="bg-card rounded-lg shadow-card p-4">
+      <div class="bg-card rounded-2xl shadow-card p-4 sm:p-5">
         <div class="flex items-center justify-between gap-2 mb-3">
-          <p class="text-[13px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('predictions.myPicks') }}</p>
+          <p class="text-[13px] text-muted font-bold uppercase tracking-wider flex items-center gap-1.5">
+            <app-nav-icon name="picks" [size]="14" class="shrink-0" />
+            {{ i18n.t('predictions.myPicks') }}
+          </p>
           @if (auth.isAuthenticated()) {
             <!-- Segmented control (2026-09-12, matching the dashboard's and
                  album's tab switchers) — one joined tonal track instead of
                  two separate appChip pills, so this page's own tab switch
-                 reads consistently with the rest of the app. -->
+                 reads consistently with the rest of the app.
+                 py-1.5 -> py-2 (2026-09-25 mobile pass) — a bigger touch
+                 target for the thumb-reachable tab switch on a phone. -->
             <div class="flex gap-1 shrink-0 bg-page rounded-xl p-1">
               <button
                 type="button"
                 (click)="picksTab.set('winLoss')"
-                class="px-3 py-1.5 rounded-lg font-mono text-[11px] font-bold whitespace-nowrap transition-colors"
+                class="px-3 py-2 rounded-lg font-mono text-[11px] font-bold whitespace-nowrap transition-colors"
                 [ngClass]="picksTab() === 'winLoss' ? 'bg-team-primary text-team-secondary' : 'text-muted hover:text-team-primary'"
               >
                 {{ i18n.t('predictions.tabWinLoss') }}
@@ -432,7 +567,7 @@
               <button
                 type="button"
                 (click)="picksTab.set('topScorer')"
-                class="px-3 py-1.5 rounded-lg font-mono text-[11px] font-bold whitespace-nowrap transition-colors"
+                class="px-3 py-2 rounded-lg font-mono text-[11px] font-bold whitespace-nowrap transition-colors"
                 [ngClass]="picksTab() === 'topScorer' ? 'bg-team-primary text-team-secondary' : 'text-muted hover:text-team-primary'"
               >
                 {{ i18n.t('predictions.tabTopScorer') }}
@@ -449,128 +584,15 @@
         }
 
         @if (auth.isAuthenticated()) {
-          @if (summaryLoading()) {
-            <!-- /me/summary is a meaningfully heavier request than the
-                 picks list below (see summaryLoading's doc comment in
-                 predictions.ts) — a dedicated skeleton here instead of
-                 letting this block pop in late above an already-rendered
-                 picks list. -->
-            <div class="animate-pulse mb-3 pb-3 border-b border-line">
-              <div class="flex items-center justify-between mb-2.5">
-                <div class="h-7 w-16 bg-line rounded"></div>
-                <div class="h-5 w-24 bg-line rounded"></div>
-              </div>
-              <div class="h-8 w-full bg-line rounded-xl"></div>
-            </div>
-          }
-          @if (mySummary()) {
-            @if (perfectRoundRewards().length > 0) {
-              <div class="flex items-center gap-2 rounded-xl bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3">
-                <app-nav-icon name="trophy" [size]="18" class="shrink-0" />
-                {{ i18n.t('predictions.perfectRoundPrefix') }}
-                {{
-                  perfectRoundRewards().length === 1
-                    ? i18n.t('predictions.aLegendaryPack')
-                    : perfectRoundRewards().length + " " + i18n.t('predictions.legendaryPacks')
-                }}
-                {{ i18n.t('predictions.openFromPrefix') }}
-                <a routerLink="/packs" class="underline">{{ i18n.t('predictions.myPacksLink') }}</a>.
-              </div>
-            }
-            @if (greatRoundRewards().length > 0) {
-              <div class="flex items-center gap-2 rounded-xl bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3">
-                <app-nav-icon name="flame" [size]="18" class="shrink-0" />
-                {{ i18n.t('predictions.greatRoundPrefix') }}
-                {{
-                  greatRoundRewards().length === 1
-                    ? i18n.t('predictions.aRarePack')
-                    : greatRoundRewards().length + " " + i18n.t('predictions.rarePacks')
-                }}
-                {{ i18n.t('predictions.openFromPrefix') }}
-                <a routerLink="/packs" class="underline">{{ i18n.t('predictions.myPacksLink') }}</a>.
-              </div>
-            }
-            @if (shownMilestoneRewards().length > 0) {
-              <div class="flex items-center gap-2 rounded-xl bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3">
-                <app-nav-icon name="picks" [size]="18" class="shrink-0" />
-                {{ i18n.t('predictions.milestonePrefix') }}
-                {{
-                  shownMilestoneRewards().length === 1
-                    ? i18n.t('predictions.aLegendaryPack')
-                    : shownMilestoneRewards().length + " " + i18n.t('predictions.legendaryPacks')
-                }}
-                {{ i18n.t('predictions.openFromPrefix') }}
-                <a routerLink="/packs" class="underline">{{ i18n.t('predictions.myPacksLink') }}</a>.
-              </div>
-            }
-            @if (shownCoachMilestoneRewards().length > 0) {
-              <div class="flex items-center gap-2 rounded-xl bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3">
-                <app-nav-icon name="picks" [size]="18" class="shrink-0" />
-                {{ i18n.t('predictions.coachMilestonePrefix') }}
-                {{
-                  shownCoachMilestoneRewards().length === 1
-                    ? i18n.t('predictions.aCoachPack')
-                    : shownCoachMilestoneRewards().length + " " + i18n.t('predictions.coachPacks')
-                }}
-                {{ i18n.t('predictions.openFromPrefix') }}
-                <a routerLink="/packs" class="underline">{{ i18n.t('predictions.myPacksLink') }}</a>.
-              </div>
-            }
-            <!-- Grants the card directly (see RareMilestoneReward's own doc
-                 comment, models.ts) — no "open from My Packs" link, since
-                 there's nothing left to open. Fires far more often than the
-                 pack-based rewards above (every 2 correct picks vs 18/45),
-                 so it names the specific card on a single grant rather than
-                 just a count, but falls back to a count once several stack
-                 up (e.g. after being away for a while). -->
-            @if (shownRareMilestoneRewards().length > 0) {
-              <div class="flex items-center gap-2 rounded-xl bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3">
-                <app-nav-icon name="picks" [size]="18" class="shrink-0" />
-                {{ i18n.t('predictions.rareMilestonePrefix') }}
-                {{
-                  shownRareMilestoneRewards().length === 1
-                    ? i18n.t('predictions.aRareCard')
-                    : shownRareMilestoneRewards().length + " " + i18n.t('predictions.rareCards')
-                }}
-                @if (shownRareMilestoneRewards().length === 1) {
-                  <span class="truncate">({{ shownRareMilestoneRewards()[0].name }})</span>
-                }
-                {{ i18n.t('predictions.addedToCollection') }}
-              </div>
-            }
-            <div class="mb-3 pb-3 border-b border-line">
-              <div class="flex items-center justify-between">
-                <span class="flex items-baseline gap-1.5">
-                  <span class="font-display text-2xl text-team-primary">{{ mySummary()!.points }}</span>
-                  <span class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('predictions.pts') }}</span>
-                </span>
-                <div class="flex gap-1.5 items-center">
-                  @for (badge of mySummary()!.badges; track badge.id) {
-                    <span [title]="badgeLabel(badge.id) + ' — ' + badgeDescription(badge.id)" class="text-team-primary">
-                      <app-nav-icon [name]="badgeIcon(badge.id)" [size]="22" />
-                    </span>
-                  }
-                  @if (mySummary()!.badges.length === 0) {
-                    <span class="text-[12px] text-muted">{{ i18n.t('predictions.noBadgesYet') }}</span>
-                  }
-                </div>
-              </div>
-
-              <button
-                type="button"
-                (click)="showBadgeLegend.set(true)"
-                class="w-full mt-2.5 flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-page text-muted hover:text-team-primary transition-colors"
-              >
-                <app-nav-icon name="tip" [size]="14" />
-                <span class="text-[11px] font-bold uppercase tracking-wider">{{ i18n.t('predictions.whatDoTheseMean') }}</span>
-              </button>
-            </div>
-          }
-
           @if (picksTab() === 'winLoss') {
-            <div class="text-sm space-y-1 max-h-80 overflow-y-auto pr-1">
-              @for (p of displayedPicks(); track p.id) {
-                <div class="px-2 py-2 rounded-xl" [ngClass]="{ 'bg-team-primary/5': p.isPendingSubmit }">
+            <!-- Widget redesign (2026-09-25, "non scroll, add something like
+                 widgets") — capped to WIDGET_ROW_LIMIT rows, no internal
+                 scrollbox at any breakpoint; the full list lives at
+                 /predictions-history (linked below, with a count once
+                 there's more than shown). -->
+            <div class="text-sm space-y-1">
+              @for (p of visiblePicks(); track p.id) {
+                <div class="px-2.5 py-2.5 rounded-xl" [ngClass]="{ 'bg-team-primary/5': p.isPendingSubmit }">
                   <div class="flex justify-between items-center">
                     <div>
                       <p class="font-display text-xs">
@@ -621,9 +643,9 @@
               }
             </div>
           } @else {
-            <div class="text-sm space-y-1 max-h-80 overflow-y-auto pr-1">
-              @for (p of myTopScorerPredictions(); track p.id) {
-                <div class="flex justify-between items-center px-2 py-2 rounded-xl">
+            <div class="text-sm space-y-1">
+              @for (p of visibleTopScorerPicks(); track p.id) {
+                <div class="flex justify-between items-center px-2.5 py-2.5 rounded-xl">
                   <div class="min-w-0">
                     <p class="font-display text-xs truncate">{{ p.predictedPlayer.name }}</p>
                     <p class="font-mono text-muted text-[12px] mt-0.5 flex items-center gap-1 truncate">
@@ -651,21 +673,34 @@
               }
             </div>
           }
-          <a routerLink="/predictions-history" class="mt-2 block text-right text-[12px] text-accent2 font-bold uppercase tracking-wider hover:opacity-80 transition-opacity"
-            >{{ i18n.t('predictions.history.navTitle') }} &rarr;</a
+          <a
+            routerLink="/predictions-history"
+            class="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-page text-muted hover:text-team-primary transition-colors text-[11px] font-bold uppercase tracking-wider"
           >
+            {{ i18n.t('predictions.history.navTitle') }}
+            @if ((picksTab() === 'winLoss' ? hiddenPicksCount() : hiddenTopScorerPicksCount()); as hidden) {
+              (+{{ hidden }})
+            }
+          </a>
         }
       </div>
 
       <!-- Leaderboard -->
-      <div class="bg-card rounded-lg shadow-card p-4">
-        <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-3">{{ i18n.t('predictions.leaderboard') }}</p>
-        <div class="text-sm space-y-1 max-h-80 overflow-y-auto pr-1">
-          @for (entry of leaderboard(); track entry.userId; let i = $index) {
+      <div class="bg-card rounded-2xl shadow-card p-4 sm:p-5">
+        <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-3 flex items-center gap-1.5">
+          <app-nav-icon name="standings" [size]="14" class="shrink-0" />
+          {{ i18n.t('predictions.leaderboard') }}
+        </p>
+        <!-- Widget redesign (2026-09-25) — capped to WIDGET_LEADERBOARD_LIMIT,
+             no internal scrollbox; a viewer ranked below the cap gets their
+             own row pinned underneath instead of being scrolled out of
+             sight (see myLeaderboardRank's doc comment). -->
+        <div class="text-sm space-y-1">
+          @for (entry of visibleLeaderboard(); track entry.userId; let i = $index) {
             <button
               type="button"
               (click)="openMember(entry)"
-              class="w-full flex justify-between items-center px-2 py-2 rounded-xl text-left hover:bg-white/5 transition-colors"
+              class="w-full flex justify-between items-center px-2.5 py-2.5 rounded-xl text-left hover:bg-white/5 transition-colors"
               [ngClass]="{ 'bg-team-primary/10': i === 0 }"
             >
               <span class="font-semibold flex items-center gap-1">
@@ -690,25 +725,69 @@
             <p class="text-sm text-muted">{{ i18n.t('predictions.noResolvedYet') }}</p>
           }
         </div>
-        <div class="mt-2 flex items-center justify-end gap-4">
+        @if (myLeaderboardRank(); as mine) {
+          <button
+            type="button"
+            (click)="openMember(mine.entry)"
+            class="w-full flex justify-between items-center px-2.5 py-2.5 mt-1.5 pt-2.5 border-t border-line rounded-xl text-left hover:bg-white/5 transition-colors"
+          >
+            <span class="font-semibold flex items-center gap-1">
+              <span class="font-mono text-muted w-5 shrink-0">{{ mine.rank }}</span>
+              &nbsp;{{ mine.entry.displayName }}
+              <span class="text-[10px] text-team-primary font-bold uppercase tracking-wide">{{ i18n.t('predictions.you') }}</span>
+            </span>
+            <span class="text-right">
+              <span class="font-mono text-team-primary font-bold">{{ mine.entry.points }} pts</span>
+              <span class="font-mono text-muted text-[12px] block">{{ mine.entry.correct }}/{{ mine.entry.total }}</span>
+            </span>
+          </button>
+        }
+        <!-- Compact icon-chip row, not purple arrow-text links (2026-09-25 —
+             same reasoning as the header's "Spend points" chip above). One
+             small bg-page pill per destination, icon-led, muted/hover:team-
+             primary — reads as a row of quiet secondary actions instead of
+             three shouty purple links competing with the leaderboard above
+             them.
+             Icon-only below sm: (2026-09-25 follow-up, "on mobile it
+             changes line") — three full label+icon chips wrapped unevenly
+             on a phone (2 chips on one row, 1 orphaned onto a second).
+             Same fix fantasy.html's own fixtures button already uses for
+             this exact problem: hide the label below sm:, not stack the
+             row vertically — the icons alone stay unambiguous (leagues
+             bracket / fantasy trophy / analytics sliders) and the row
+             always fits on one line at any phone width, no wrap or scroll. -->
+        <div class="mt-3 flex items-center justify-end gap-1.5">
           <a
             routerLink="/leagues"
-            class="relative text-[12px] text-accent2 font-bold uppercase tracking-wider hover:opacity-80 transition-opacity"
-            >{{ i18n.t('leagues.navLink') }} &rarr;
+            [title]="i18n.t('leagues.navLink')"
+            class="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-page text-[11px] font-bold text-muted hover:text-team-primary transition-colors"
+          >
+            <app-nav-icon name="bracket" [size]="13" />
+            <span class="hidden sm:inline">{{ i18n.t('leagues.navLink') }}</span>
             @if (battlesNotif.hasPendingIncoming()) {
               <span
-                class="absolute -top-2 -right-2.5 min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none"
+                class="absolute -top-1.5 -right-1.5 min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none"
                 [attr.aria-label]="i18n.t('battles.pendingChallenges')"
                 >{{ battlesNotif.pendingIncomingCount() }}</span
               >
             }
           </a>
-          <a routerLink="/fantasy" class="text-[12px] text-accent2 font-bold uppercase tracking-wider hover:opacity-80 transition-opacity"
-            >{{ i18n.t('fantasy.navLink') }} &rarr;</a
+          <a
+            routerLink="/fantasy"
+            [title]="i18n.t('fantasy.navLink')"
+            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-page text-[11px] font-bold text-muted hover:text-team-primary transition-colors"
           >
-          <a routerLink="/predictions-analytics" class="text-[12px] text-accent2 font-bold uppercase tracking-wider hover:opacity-80 transition-opacity"
-            >{{ i18n.t('predictions.analytics.navTitle') }} &rarr;</a
+            <app-nav-icon name="trophy" [size]="13" />
+            <span class="hidden sm:inline">{{ i18n.t('fantasy.navLink') }}</span>
+          </a>
+          <a
+            routerLink="/predictions-analytics"
+            [title]="i18n.t('predictions.analytics.navTitle')"
+            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-page text-[11px] font-bold text-muted hover:text-team-primary transition-colors"
           >
+            <app-nav-icon name="sliders" [size]="13" />
+            <span class="hidden sm:inline">{{ i18n.t('predictions.analytics.navTitle') }}</span>
+          </a>
         </div>
       </div>
 

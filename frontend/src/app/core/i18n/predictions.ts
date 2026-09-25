@@ -65,6 +65,8 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
     el: "Δεν υπάρχουν προβλέψεις κορυφαίου σκόρερ ακόμα — διάλεξε από τη σελίδα ενός αγώνα.",
   },
   "predictions.leaderboard": { en: "Leaderboard", el: "Κατάταξη" },
+  // Pinned "own row" below the capped leaderboard widget (2026-09-25).
+  "predictions.you": { en: "You", el: "Εσύ" },
   "predictions.noResolvedYet": {
     en: "No resolved predictions yet.",
     el: "Δεν υπάρχουν ολοκληρωμένες προβλέψεις ακόμα.",

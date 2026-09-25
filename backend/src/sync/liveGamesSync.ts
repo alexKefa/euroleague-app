@@ -1,7 +1,7 @@
 import { and, gte, inArray, lte, eq, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { games, players, playerGameStats } from "../db/schema.js";
-import { broadcast } from "../realtime/hub.js";
+import { broadcast, ScoringEvent } from "../realtime/hub.js";
 import { getSimulatedGameId } from "../realtime/liveScoreSimulator.js";
 
 // Real EuroLeague live feed, replacing realtime/liveScoreSimulator.ts (a
@@ -151,26 +151,44 @@ function parseBoxscoreMinutes(value: string | undefined): number | null {
   return Number(match[1]) + Number(match[2]) / 60;
 }
 
+// One player's live points, as of the box score this call is upserting —
+// returned so the caller (syncLiveGames) can diff against the previous
+// poll's snapshot and derive ScoringEvents. Nothing about scoring plays
+// (who, when, how many points at once) is in this feed at all — see this
+// file's own header comment — so a ScoringEvent here is always a *derived*
+// "this player's total went up between two polls" fact, not a real
+// captured basket. A player who scores twice between two ~15-20s polls
+// shows as one combined event with the summed delta, not two.
+interface LivePlayerPoints {
+  playerId: string;
+  teamId: string;
+  playerName: string;
+  points: number;
+}
+
 // Upserts every player who has appeared in the box score so far (points,
 // minutes, etc. all update in place as the game progresses) — same
 // (playerId, gameId) upsert target the admin-only live-score simulator
 // already uses for this table, just fed real data instead of fabricated.
 // Batched as one multi-row insert (not one upsert per player) per the
 // "fewer round trips against Neon" lesson documented elsewhere in this app.
-async function upsertLiveBoxscore(gameId: string, boxscore: BoxscoreResponse): Promise<void> {
+async function upsertLiveBoxscore(gameId: string, boxscore: BoxscoreResponse): Promise<LivePlayerPoints[]> {
   const codes = boxscore.Stats.flatMap((team) => team.PlayersStats.map((p) => parsePlayerCode(p.Player_ID)));
-  if (codes.length === 0) return;
+  if (codes.length === 0) return [];
 
-  const playerRows = await db.select({ id: players.id, code: players.code }).from(players).where(inArray(players.code, codes));
-  const playerIdByCode = new Map(playerRows.map((p) => [p.code, p.id]));
+  const playerRows = await db
+    .select({ id: players.id, code: players.code, teamId: players.teamId, name: players.name })
+    .from(players)
+    .where(inArray(players.code, codes));
+  const playerByCode = new Map(playerRows.map((p) => [p.code, p]));
 
   const values = boxscore.Stats.flatMap((team) =>
     team.PlayersStats.flatMap((p) => {
-      const playerId = playerIdByCode.get(parsePlayerCode(p.Player_ID));
-      if (!playerId) return []; // e.g. a coach row, or a player not yet synced into `players`
+      const player = playerByCode.get(parsePlayerCode(p.Player_ID));
+      if (!player) return []; // e.g. a coach row, or a player not yet synced into `players`
       return [
         {
-          playerId,
+          playerId: player.id,
           gameId,
           isStarter: p.IsStarter === 1,
           minutes: parseBoxscoreMinutes(p.Minutes),
@@ -197,7 +215,7 @@ async function upsertLiveBoxscore(gameId: string, boxscore: BoxscoreResponse): P
       ];
     }),
   );
-  if (values.length === 0) return;
+  if (values.length === 0) return [];
 
   await db
     .insert(playerGameStats)
@@ -228,6 +246,11 @@ async function upsertLiveBoxscore(gameId: string, boxscore: BoxscoreResponse): P
         plusMinus: sql`excluded.plus_minus`,
       },
     });
+
+  return values.map((v) => {
+    const player = playerRows.find((p) => p.id === v.playerId)!;
+    return { playerId: v.playerId, teamId: player.teamId, playerName: player.name, points: v.points };
+  });
 }
 
 // "2026-27" -> "E2026" (euroleague-api's own `season: int` is the start year).
@@ -335,6 +358,36 @@ const NO_OP_RESULT: LiveGamesSyncResult = { checked: 0, wentLive: 0, wentFinal: 
 // sequential game event.
 let inFlight = false;
 
+// Each game's points-per-player as of the *previous* successful poll, so a
+// new poll can diff against it to derive ScoringEvents (see
+// LivePlayerPoints's doc comment) — process-local, same "fine for the
+// single Railway instance this runs on" scope as hub.ts's own client
+// registry. Deliberately keyed only on games this job has actually polled
+// at least once *since this process started* — the first poll for a game
+// (server restart, or a game just entering the pre-tipoff window) has
+// nothing to diff against yet, so it seeds the map and emits zero events
+// rather than reporting every player's whole game-so-far total as "just
+// scored". Cleared once a game goes final so this map can't grow for the
+// life of the process.
+const previousPointsByGame = new Map<string, Map<string, number>>();
+
+function deriveScoringEvents(gameId: string, teamSideOf: (teamId: string) => "home" | "away", current: LivePlayerPoints[]): ScoringEvent[] {
+  const previous = previousPointsByGame.get(gameId);
+  const next = new Map(current.map((p) => [p.playerId, p.points]));
+  previousPointsByGame.set(gameId, next);
+  if (!previous) return []; // first poll for this game this process — nothing to diff against
+
+  const events: ScoringEvent[] = [];
+  for (const p of current) {
+    const before = previous.get(p.playerId) ?? p.points; // a player new to the box score this poll didn't "score" their whole total
+    const delta = p.points - before;
+    if (delta > 0) {
+      events.push({ playerId: p.playerId, playerName: p.playerName, teamSide: teamSideOf(p.teamId), points: delta, totalPoints: p.points });
+    }
+  }
+  return events;
+}
+
 export async function syncLiveGames(): Promise<LiveGamesSyncResult> {
   if (inFlight) return NO_OP_RESULT;
   inFlight = true;
@@ -374,7 +427,9 @@ export async function syncLiveGames(): Promise<LiveGamesSyncResult> {
           .where(eq(games.id, game.id));
 
         const boxscore = await fetchBoxscore(game.season, game.gameCode);
-        if (boxscore) await upsertLiveBoxscore(game.id, boxscore);
+        const scoringEvents = boxscore
+          ? deriveScoringEvents(game.id, (teamId) => (teamId === game.homeTeamId ? "home" : "away"), await upsertLiveBoxscore(game.id, boxscore))
+          : [];
 
         broadcast("game-update", {
           gameId: game.id,
@@ -384,6 +439,7 @@ export async function syncLiveGames(): Promise<LiveGamesSyncResult> {
           onFireIds: [], // this endpoint carries no play-by-play detail to compute a heat-check from
           quarter,
           gameClockSeconds,
+          scoringEvents,
         });
         if (game.status !== "live") wentLive++;
         continue;
@@ -402,7 +458,8 @@ export async function syncLiveGames(): Promise<LiveGamesSyncResult> {
       if (minutesSinceTipoff < MIN_MINUTES_BEFORE_TRUSTING_FINAL) continue;
 
       await db.update(games).set({ status: "final", homeScore, awayScore }).where(eq(games.id, game.id));
-      broadcast("game-update", { gameId: game.id, homeScore, awayScore, status: "final", onFireIds: [], quarter: null, gameClockSeconds: null });
+      previousPointsByGame.delete(game.id);
+      broadcast("game-update", { gameId: game.id, homeScore, awayScore, status: "final", onFireIds: [], quarter: null, gameClockSeconds: null, scoringEvents: [] });
       wentFinal++;
     }
 

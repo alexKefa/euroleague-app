@@ -69,21 +69,37 @@
        tabButtonClass comment for the full reasoning) — this one had been
        missed since it's driven by inline ngClass here, not a shared
        function. -->
-  <div class="flex gap-1 mb-5 bg-page rounded-2xl p-1">
+  <!-- Sliding segmented control (2026-09-25, "fix the fantasy menu on top
+       to be a more flutter approach") — the old track swapped the active
+       tab's whole background between two static buttons with a color
+       transition; this one keeps a single pill that physically slides
+       between the two positions (translateX, not a color crossfade), the
+       CupertinoSlidingSegmentedControl/Material-tabs motion this was
+       missing. The indicator is a separate absolutely-positioned layer
+       behind the buttons (not the buttons' own background) so its width/
+       position only ever depends on which half it's in, never on label
+       length in either language. -->
+  <div class="relative flex mb-5 bg-page rounded-2xl p-1 overflow-hidden">
+    <div
+      class="absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-xl bg-team-primary shadow-pop transition-transform duration-300 ease-out"
+      [style.transform]="tab() === 'leaderboard' ? 'translateX(calc(100% + 0.5rem))' : 'translateX(0)'"
+    ></div>
     <button
       type="button"
       (click)="setTab('roster')"
-      class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold transition-colors"
-      [ngClass]="tab() === 'roster' ? 'bg-team-primary text-team-secondary' : 'text-muted hover:text-team-primary'"
+      class="relative z-10 flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl font-mono text-[11px] font-bold transition-colors"
+      [ngClass]="tab() === 'roster' ? 'text-team-secondary' : 'text-muted hover:text-team-primary'"
     >
+      <app-nav-icon name="ball" [size]="14" />
       {{ i18n.t('fantasy.rosterTab') }}
     </button>
     <button
       type="button"
       (click)="setTab('leaderboard')"
-      class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold transition-colors"
-      [ngClass]="tab() === 'leaderboard' ? 'bg-team-primary text-team-secondary' : 'text-muted hover:text-team-primary'"
+      class="relative z-10 flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl font-mono text-[11px] font-bold transition-colors"
+      [ngClass]="tab() === 'leaderboard' ? 'text-team-secondary' : 'text-muted hover:text-team-primary'"
     >
+      <app-nav-icon name="standings" [size]="14" />
       {{ i18n.t('fantasy.leaderboardTab') }}
     </button>
   </div>

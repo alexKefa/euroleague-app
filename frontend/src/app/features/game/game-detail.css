@@ -1,0 +1,18 @@
+/* Live redesign (2026-09-25) — scoring feed rows slide/fade in as they're
+   prepended (newest first), matching the "motion tied to real events"
+   convention live-court.ts's burst/shockwave already uses elsewhere on
+   this page, rather than popping in with no transition. */
+@keyframes scoring-feed-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.scoring-feed-row {
+  animation: scoring-feed-row-in 300ms ease-out;
+}

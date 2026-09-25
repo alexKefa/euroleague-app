@@ -1,5 +1,21 @@
 import { Response } from "express";
 
+// One real basket, produced by whichever tick source is currently driving a
+// live game (the simulator, or the real liveGamesSync.ts poll) and folded
+// into that tick's "game-update" broadcast. Both producers build this
+// independently (the simulator knows the exact scorer; liveGamesSync.ts
+// derives it by diffing consecutive box-score polls — see that file's own
+// comment), but the shape is shared so the frontend's scoring feed /
+// momentum bar don't care which source it came from.
+export interface ScoringEvent {
+  playerId: string;
+  playerName: string;
+  teamSide: "home" | "away";
+  points: number;
+  /** The scorer's own running point total after this basket. */
+  totalPoints: number;
+}
+
 interface Client {
   res: Response;
   userId: string | null;

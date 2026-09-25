@@ -47,12 +47,17 @@
       </div>
     }
 
-    <!-- Matchup header -->
-    <div class="bg-card rounded-2xl border border-line shadow-card p-5 mt-4 mb-5">
+    <!-- Matchup header — team-color gradient wash instead of a flat card
+         (2026-09-25 live-view redesign), so the header itself carries both
+         teams' identity rather than reading as neutral chrome. -->
+    <div
+      class="relative rounded-2xl border border-line shadow-card p-5 mt-4 mb-5 overflow-hidden bg-card"
+      [style.background-image]="headerGradient(d.game.homeTeam.primaryColor, d.game.awayTeam.primaryColor)"
+    >
       <p class="text-[11px] text-muted font-bold uppercase tracking-wider text-center mb-3">
-        {{ i18n.t('game.round') }} {{ d.game.round }} &middot;
+        {{ i18n.t('game.round') }} {{ d.game.round }}
         @if (isLive()) {
-          <span class="inline-flex items-center gap-1 text-red-500 uppercase tracking-wide">
+          <span class="inline-flex items-center gap-1.5 ml-1.5 px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 uppercase tracking-wide align-middle">
             <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
             {{ i18n.t('schedule.live') }}
             @if (d.game.quarter; as q) {
@@ -60,7 +65,7 @@
             }
           </span>
         } @else {
-          {{ isFinal() ? i18n.t('game.final') : (d.game.tipoffAt | date: "EEE, MMM d, HH:mm") }}
+          &middot; {{ isFinal() ? i18n.t('game.final') : (d.game.tipoffAt | date: "EEE, MMM d, HH:mm") }}
         }
       </p>
       <div class="flex items-center justify-between gap-3">
@@ -85,7 +90,7 @@
 
         <div class="shrink-0 text-center px-2">
           @if (isFinal() || isLive()) {
-            <p class="font-display text-3xl tracking-wide">
+            <p class="font-display text-5xl sm:text-6xl tracking-wide leading-none">
               <span [class.text-highlight]="gameResult() === 'home'">{{ d.game.homeScore }}</span>
               <span class="text-muted mx-1">-</span>
               <span [class.text-highlight]="gameResult() === 'away'">{{ d.game.awayScore }}</span>
@@ -106,6 +111,25 @@
           }}</span>
         </a>
       </div>
+
+      <!-- Momentum bar — fills toward whichever team scored more of its
+           last MOMENTUM_WINDOW baskets (see momentumHomePct's doc comment
+           in game-detail.ts). Derived from the same SSE scoringEvents
+           stream as the feed below, so it only has real recent baskets to
+           show once a few ticks have landed — sits at a neutral 50% until
+           then rather than looking broken. -->
+      @if (isLive()) {
+        <div class="mt-4">
+          <p class="text-[10px] text-muted font-bold uppercase tracking-wider text-center mb-1">{{ i18n.t('game.momentum') }}</p>
+          <div class="relative h-1.5 rounded-full overflow-hidden flex" [style.background]="(d.game.awayTeam.primaryColor ?? '#888') + '33'">
+            <div
+              class="h-full rounded-full transition-all duration-700 ease-out"
+              [style.width.%]="momentumHomePct()"
+              [style.background]="d.game.homeTeam.primaryColor ?? '#888'"
+            ></div>
+          </div>
+        </div>
+      }
 
       <!-- Live "top scorer" prop pick — a free, no-stake pick, separate from
            win/loss Predictions. Open pre-tipoff AND while live (unlike
@@ -226,6 +250,36 @@
       }
     </div>
 
+    <!-- Live scoring feed — derived from the SSE scoringEvents stream (see
+         game-detail.ts's constructor effect), not a real play-by-play fetch;
+         see ScoringEvent's doc comment in backend/src/realtime/hub.ts for
+         what it actually represents for the real (non-simulated) feed. -->
+    @if (isLive()) {
+      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
+        <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-3 flex items-center gap-1.5">
+          {{ i18n.t('game.liveFeed') }}
+          <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+        </p>
+        @if (scoringFeed().length === 0) {
+          <p class="text-xs text-muted text-center py-2">{{ i18n.t('game.watchingForNextBasket') }}</p>
+        } @else {
+          <div class="space-y-1.5">
+            @for (entry of scoringFeed(); track entry.id) {
+              <div class="scoring-feed-row flex items-center gap-2 px-2 py-1.5 rounded-xl bg-page">
+                <span
+                  class="w-2 h-2 rounded-full shrink-0"
+                  [style.background]="(entry.teamSide === 'home' ? d.game.homeTeam.primaryColor : d.game.awayTeam.primaryColor) ?? '#888'"
+                ></span>
+                <span class="flex-1 min-w-0 truncate text-sm font-semibold">{{ entry.playerName }}</span>
+                <span class="font-mono text-xs font-bold text-team-primary shrink-0">+{{ entry.points }}</span>
+                <span class="font-mono text-[11px] text-muted shrink-0 w-12 text-right">{{ entry.homeScore }}-{{ entry.awayScore }}</span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
     <!-- Highlights (experimental: admin-set YouTube embed, no sync source yet) -->
     @if (d.game.highlightVideoId || auth.currentUser()?.isAdmin) {
       <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
@@ -339,37 +393,38 @@
             <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
           }
         </p>
-        <div class="text-sm space-y-1.5">
-          <div class="flex justify-between items-center px-2">
-            <span class="font-mono text-xs font-bold w-16 text-right">{{ totals.home.points }}</span>
-            <span class="text-muted text-[11px] uppercase tracking-wide">{{ i18n.t('game.colPTS') }}</span>
-            <span class="font-mono text-xs font-bold w-16">{{ totals.away.points }}</span>
-          </div>
-          <div class="flex justify-between items-center px-2">
-            <span class="font-mono text-xs font-bold w-16 text-right">{{ totals.home.rebounds }}</span>
-            <span class="text-muted text-[11px] uppercase tracking-wide">{{ i18n.t('game.colREB') }}</span>
-            <span class="font-mono text-xs font-bold w-16">{{ totals.away.rebounds }}</span>
-          </div>
-          <div class="flex justify-between items-center px-2">
-            <span class="font-mono text-xs font-bold w-16 text-right">{{ totals.home.assists }}</span>
-            <span class="text-muted text-[11px] uppercase tracking-wide">{{ i18n.t('game.colAST') }}</span>
-            <span class="font-mono text-xs font-bold w-16">{{ totals.away.assists }}</span>
-          </div>
-          <div class="flex justify-between items-center px-2">
-            <span class="font-mono text-xs font-bold w-16 text-right">{{ totals.home.steals }}</span>
-            <span class="text-muted text-[11px] uppercase tracking-wide">{{ i18n.t('player.colStl') }}</span>
-            <span class="font-mono text-xs font-bold w-16">{{ totals.away.steals }}</span>
-          </div>
-          <div class="flex justify-between items-center px-2">
-            <span class="font-mono text-xs font-bold w-16 text-right">{{ totals.home.blocks }}</span>
-            <span class="text-muted text-[11px] uppercase tracking-wide">{{ i18n.t('player.colBlk') }}</span>
-            <span class="font-mono text-xs font-bold w-16">{{ totals.away.blocks }}</span>
-          </div>
-          <div class="flex justify-between items-center px-2">
-            <span class="font-mono text-xs font-bold w-16 text-right">{{ totals.home.turnovers }}</span>
-            <span class="text-muted text-[11px] uppercase tracking-wide">{{ i18n.t('game.colTO') }}</span>
-            <span class="font-mono text-xs font-bold w-16">{{ totals.away.turnovers }}</span>
-          </div>
+        <div class="space-y-3">
+          @for (
+            row of [
+              { label: i18n.t('game.colPTS'), home: totals.home.points, away: totals.away.points },
+              { label: i18n.t('game.colREB'), home: totals.home.rebounds, away: totals.away.rebounds },
+              { label: i18n.t('game.colAST'), home: totals.home.assists, away: totals.away.assists },
+              { label: i18n.t('player.colStl'), home: totals.home.steals, away: totals.away.steals },
+              { label: i18n.t('player.colBlk'), home: totals.home.blocks, away: totals.away.blocks },
+              { label: i18n.t('game.colTO'), home: totals.home.turnovers, away: totals.away.turnovers },
+            ];
+            track row.label
+          ) {
+            <div>
+              <div class="flex justify-between items-center px-1 mb-1">
+                <span class="font-mono text-xs font-bold">{{ row.home }}</span>
+                <span class="text-muted text-[10px] uppercase tracking-wide">{{ row.label }}</span>
+                <span class="font-mono text-xs font-bold">{{ row.away }}</span>
+              </div>
+              <div class="relative h-1.5 rounded-[3px] bg-line overflow-hidden flex">
+                <div
+                  class="h-full transition-all duration-500 ease-out"
+                  [style.width.%]="statBarPct(row.home, row.away, 'home')"
+                  [style.background]="d.game.homeTeam.primaryColor ?? '#888'"
+                ></div>
+                <div
+                  class="h-full ml-auto transition-all duration-500 ease-out"
+                  [style.width.%]="statBarPct(row.home, row.away, 'away')"
+                  [style.background]="d.game.awayTeam.primaryColor ?? '#888'"
+                ></div>
+              </div>
+            </div>
+          }
         </div>
       </div>
     }

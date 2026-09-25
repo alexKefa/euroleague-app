@@ -67,4 +67,13 @@ export const gameTranslations: Record<string, Record<Lang, string>> = {
   "game.pointsByQuarter": { en: "Points by quarter", el: "Πόντοι ανά περίοδο" },
   "game.viewFullGame": { en: "View full game", el: "Πλήρης αγώνας" },
   "game.couldntLoadGame": { en: "Couldn't load this game.", el: "Δεν ήταν δυνατή η φόρτωση του αγώνα." },
+
+  // Live redesign (2026-09-25): momentum bar + scoring feed, both derived
+  // client-side from the SSE scoringEvents stream — see events.service.ts.
+  "game.momentum": { en: "Momentum", el: "Δυναμική" },
+  "game.liveFeed": { en: "Live Feed", el: "Ζωντανή Ροή" },
+  "game.watchingForNextBasket": {
+    en: "Watching for the next basket…",
+    el: "Αναμονή για το επόμενο καλάθι…",
+  },
 };

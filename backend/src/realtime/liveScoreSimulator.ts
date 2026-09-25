@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { games, players, playerGameStats } from "../db/schema.js";
-import { broadcast } from "./hub.js";
+import { broadcast, ScoringEvent } from "./hub.js";
 
 // Originally a stand-in for the real EuroLeague live feed, back when there
 // was nothing to poll until the season actually started. sync/liveGamesSync.ts
@@ -42,6 +42,11 @@ function quarterAndClock(ticksElapsed: number): { quarter: number; gameClockSeco
 interface RosterPlayer {
   id: string;
   teamId: string;
+  // Only populated for the tick-by-tick roster (startSimulation) — needed
+  // to fill a ScoringEvent's playerName. simulateGameInstant's roster never
+  // broadcasts scoring events (it writes an already-final game in one
+  // shot), so it doesn't bother selecting it.
+  name?: string;
 }
 
 interface PlayerLine {
@@ -195,12 +200,20 @@ async function tick(): Promise<void> {
     // and the scoreboard silently disagree. Skip the whole possession
     // rather than crediting a phantom basket.
     let scored = false;
+    let scoringEvent: ScoringEvent | null = null;
 
     if (scoringRoster.length > 0) {
       scored = true;
       const scorer = randomPick(scoringRoster);
       const scorerLine = getLine(sim.lines, scorer.id);
       scorerLine.points += bump;
+      scoringEvent = {
+        playerId: scorer.id,
+        playerName: scorer.name ?? "",
+        teamSide: homeScores ? "home" : "away",
+        points: bump,
+        totalPoints: scorerLine.points,
+      };
       if (bump === 3) {
         scorerLine.fieldGoalsMade3 += 1;
         scorerLine.fieldGoalsAttempted3 += 1;
@@ -278,7 +291,16 @@ async function tick(): Promise<void> {
       .where(and(eq(games.id, sim.gameId), eq(games.status, "live")))
       .returning({ id: games.id });
     if (!updated || running !== sim) return;
-    broadcast("game-update", { gameId: sim.gameId, homeScore, awayScore, status, onFireIds, quarter, gameClockSeconds });
+    broadcast("game-update", {
+      gameId: sim.gameId,
+      homeScore,
+      awayScore,
+      status,
+      onFireIds,
+      quarter,
+      gameClockSeconds,
+      scoringEvents: scored && scoringEvent ? [scoringEvent] : [],
+    });
 
     if (isLastTick) {
       clearInterval(sim.interval);
@@ -306,7 +328,7 @@ export async function startSimulation(gameId?: string): Promise<{ gameId: string
   if (!game) return { error: "No schedulable game found to simulate" };
 
   const roster = await db
-    .select({ id: players.id, teamId: players.teamId })
+    .select({ id: players.id, teamId: players.teamId, name: players.name })
     .from(players)
     .where(and(inArray(players.teamId, [game.homeTeamId, game.awayTeamId]), eq(players.active, true)));
 

@@ -5,7 +5,7 @@ import { ActivatedRoute, RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
 import { NavHistoryService } from "../../core/nav-history.service";
-import { EventsService } from "../../core/events.service";
+import { EventsService, GameScoringEvent } from "../../core/events.service";
 import { AuthService } from "../../core/auth.service";
 import { Game, GameDetail, GameBoxscoreLine, PlayerDetail, RosterEntry, TopScorerPrediction } from "../../core/models";
 import { NavIconComponent } from "../../shared/nav-icon";
@@ -37,6 +37,23 @@ interface TeamTotals {
   blocks: number;
   turnovers: number;
 }
+
+// One row in the live "scoring feed" — a GameScoringEvent (see
+// events.service.ts) plus the running score right after it, so the feed
+// row can show "83-79" without the template re-deriving it. Newest first,
+// capped at SCORING_FEED_LIMIT so the list can't grow unbounded across a
+// long live game.
+interface ScoringFeedEntry extends GameScoringEvent {
+  id: string;
+  homeScore: number;
+  awayScore: number;
+}
+
+const SCORING_FEED_LIMIT = 8;
+// How many of the most recent feed entries the momentum bar weighs — a
+// window, not the whole feed, so momentum reflects "who's on the run right
+// now" rather than the whole game's scoring split.
+const MOMENTUM_WINDOW = 6;
 
 function sumStat(lines: GameBoxscoreLine[], key: keyof GameBoxscoreLine): number {
   return lines.reduce((total, line) => {
@@ -72,6 +89,7 @@ function totalsFor(lines: GameBoxscoreLine[]): TeamTotals {
     LogoSpinnerComponent,
   ],
   templateUrl: "./game-detail.html",
+  styleUrl: "./game-detail.css",
 })
 export class GameDetailComponent implements OnInit {
   private api = inject(ApiService);
@@ -141,6 +159,24 @@ export class GameDetailComponent implements OnInit {
     if (homeHot) return "home";
     if (awayHot) return "away";
     return null;
+  });
+
+  // Live "scoring feed" + momentum bar — both derived from the same SSE
+  // scoringEvents stream (see the constructor's effect below), not a real
+  // play-by-play fetch. Empty until this page has been open long enough to
+  // see at least one basket over SSE — there's no historical backfill (see
+  // GameUpdate.scoringEvents's doc comment), same "starts from now" limit
+  // every other SSE-only feature in this app already has.
+  readonly scoringFeed = signal<ScoringFeedEntry[]>([]);
+
+  // 50% (a dash down the middle) when there's nothing to weigh yet, rather
+  // than snapping hard to one side on the very first basket of the game.
+  readonly momentumHomePct = computed(() => {
+    const recent = this.scoringFeed().slice(0, MOMENTUM_WINDOW);
+    const homePts = recent.filter((e) => e.teamSide === "home").reduce((sum, e) => sum + e.points, 0);
+    const awayPts = recent.filter((e) => e.teamSide === "away").reduce((sum, e) => sum + e.points, 0);
+    const total = homePts + awayPts;
+    return total > 0 ? (homePts / total) * 100 : 50;
   });
 
   // codeKey reuses the box score table's own header translations
@@ -231,6 +267,17 @@ export class GameDetailComponent implements OnInit {
     if (!box) return null;
     return { home: totalsFor(box.home), away: totalsFor(box.away) };
   });
+
+  // Center-anchored divergent bar width, same normalization player-compare.ts's
+  // own barPct uses (share of the two values' combined total) — reused here
+  // instead of a flat left/right number column so "who's ahead on this stat"
+  // reads at a glance rather than requiring two numbers to be compared by eye.
+  statBarPct(home: number, away: number, side: "home" | "away"): number {
+    const total = home + away;
+    if (total === 0) return 50;
+    return ((side === "home" ? home : away) / total) * 100;
+  }
+
   // Whether "players to watch" / team comparison are drawn from a season
   // other than the game's own — happens for games in a season that hasn't
   // been played yet (see the fallback reasoning in backend/src/routes/games.ts).
@@ -366,6 +413,17 @@ export class GameDetailComponent implements OnInit {
       if (!isThisGame) return;
 
       this.onFireIds.set(update.onFireIds ?? []);
+
+      if (update.scoringEvents?.length) {
+        const newEntries: ScoringFeedEntry[] = update.scoringEvents.map((e, i) => ({
+          ...e,
+          id: `${update.gameId}-${Date.now()}-${i}-${e.playerId}`,
+          homeScore: update.homeScore,
+          awayScore: update.awayScore,
+        }));
+        this.scoringFeed.update((feed) => [...newEntries.reverse(), ...feed].slice(0, SCORING_FEED_LIMIT));
+      }
+
       // The score/status patch above is instant; box score / top performers
       // / double-doubles are DB-backed (the simulator writes them alongside
       // the score on every tick — see games.ts), so re-fetch to pick those
@@ -403,6 +461,7 @@ export class GameDetailComponent implements OnInit {
       this.awayRoster.set([]);
       this.myTopScorerPick.set(null);
       this.onFireIds.set([]);
+      this.scoringFeed.set([]);
       this.closePlayer();
       this.closeQuickView();
 
@@ -485,5 +544,18 @@ export class GameDetailComponent implements OnInit {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m}:${s.toString().padStart(2, "0")}`;
+  }
+
+  // Diagonal team-color wash behind the matchup header — home color top-left,
+  // away color bottom-right, faded out through the middle so it reads as a
+  // tint rather than fighting the score/logos for attention. Appending a hex
+  // alpha suffix (`26` ≈ 15%, `00` = transparent) works directly on the
+  // `#RRGGBB` strings teams.primaryColor already stores everywhere else in
+  // this app. Falls back to a flat neutral wash if either team has no color
+  // on file, rather than a gradient with an undefined stop.
+  headerGradient(homeColor: string | null, awayColor: string | null): string {
+    const home = homeColor ?? "#888888";
+    const away = awayColor ?? "#888888";
+    return `linear-gradient(135deg, ${home}26 0%, transparent 45%, transparent 55%, ${away}26 100%)`;
   }
 }

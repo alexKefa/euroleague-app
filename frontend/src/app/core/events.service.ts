@@ -3,6 +3,14 @@ import { HttpClient } from "@angular/common/http";
 import { API_BASE_URL } from "./api-config";
 import { AuthService } from "./auth.service";
 
+export interface GameScoringEvent {
+  playerId: string;
+  playerName: string;
+  teamSide: "home" | "away";
+  points: number;
+  totalPoints: number;
+}
+
 export interface GameUpdate {
   gameId: string;
   homeScore: number;
@@ -11,6 +19,10 @@ export interface GameUpdate {
   onFireIds?: string[];
   quarter?: number;
   gameClockSeconds?: number;
+  // Derived, not a real captured play — see backend/src/realtime/hub.ts's
+  // ScoringEvent doc comment. Empty on a game's first tick after this
+  // client (re)connects, and always empty once status is "final".
+  scoringEvents?: GameScoringEvent[];
 }
 
 export interface TradeUpdate {
