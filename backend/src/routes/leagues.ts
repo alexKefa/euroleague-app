@@ -226,6 +226,7 @@ leaguesRouter.get("/:id/leaderboard", requireAuth, async (req, res) => {
         correct: 0,
         total: 0,
         accuracy: 0,
+        predictionPoints: 0,
         points: 0,
         badges: [] as { id: string; label: string; description: string }[],
         showcase: r.showcaseCollectibleIds

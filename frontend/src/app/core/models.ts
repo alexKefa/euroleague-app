@@ -440,6 +440,10 @@ export interface LeaderboardEntry {
   correct: number;
   total: number;
   accuracy: number;
+  // Win/loss + top-scorer pick points only — see backend's
+  // services/leaderboard.ts for what's excluded (battle stakes, Fantasy
+  // Five's converted round points, welcome/referral bonus, admin grants).
+  predictionPoints: number;
   points: number;
   badges: Badge[];
   showcase: ShowcaseCard[];

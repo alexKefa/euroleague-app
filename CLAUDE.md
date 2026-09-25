@@ -898,6 +898,29 @@ If you need to apply a schema change without an interactive terminal
   top-level nav item — the rail is already at its documented max), same
   visual convention as the existing `/predictions-analytics` link right
   next to it.
+  - **Predictions/Fantasy/Battles/Total leaderboard tabs (2026-09-25)** —
+    League Detail's old 3-way Points/Fantasy/Battles segmented control split
+    into 4: **Predictions** shows win/loss + top-scorer pick points only
+    (`LeaderboardEntry.predictionPoints`, `services/leaderboard.ts` — the
+    same value Century's badge threshold already checked internally, now
+    also returned to the client), **Total** shows the combined `points`
+    total exactly as the old "Points" tab did (correct/top-scorer points +
+    every `countsTowardRanking` `point_adjustments` row — battle stakes,
+    Fantasy's converted round points, welcome/referral bonus, admin
+    grants), and **Battles** is unchanged (still the challenge list, not a
+    ranking). Predictions is a client-side re-sort of the same entries
+    Total already fetched (`league-detail.ts`'s `predictionsRows` computed)
+    — no second API call. **Fantasy's stat pill was relabeled "CP" (Clutch
+    Points)**, with a new info icon (`features/fantasy/fantasy-cp-info.ts`,
+    same modal chrome as `battles-info.ts`) explaining the real mechanic
+    behind it: `services/fantasyScoring.ts`'s existing
+    `FANTASY_POINTS_CONVERSION_RATE` (0.5) already converts half of each
+    completed round's CP into real app Points — this pass didn't add that
+    conversion, only surfaced it, since CP being a PIR-based score on a
+    different scale from Predictions/Total's currency was invisible to a
+    user before. The CP relabel is in the shared
+    `fantasy-leaderboard-list.ts` component, so it also applies to Fantasy
+    Five's own Leaderboard tab, not just League Detail's.
 - **Fantasy Five** (2026-09-05, rebuilt same day to match EuroLeague Fantasy's
   own published Classic Mode rules; `player_fantasy_prices`/`coach_fantasy_prices`/
   `fantasy_lineups`/`fantasy_coach_picks`/`fantasy_pricing_state` in `schema.ts`,

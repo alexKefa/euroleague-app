@@ -72,7 +72,7 @@
         @if (entry.hasTeam) {
           <div class="shrink-0 text-center bg-page rounded-xl px-2.5 py-1.5 min-w-[3rem]">
             <p class="font-mono text-team-primary font-bold text-sm leading-none">{{ entry.fantasyPoints }}</p>
-            <p class="font-mono text-[9px] text-muted uppercase tracking-wide mt-0.5">{{ i18n.t('fantasy.pointsAbbrev') }}</p>
+            <p class="font-mono text-[9px] text-muted uppercase tracking-wide mt-0.5">{{ i18n.t('fantasy.cpAbbrev') }}</p>
           </div>
         }
       </button>
@@ -90,7 +90,7 @@
         <div>
           <p class="font-display text-xl tracking-wide">{{ entry.displayName }}</p>
           @if (entry.hasTeam) {
-            <p class="font-mono text-[12px] text-muted mt-0.5">{{ entry.fantasyPoints }} {{ i18n.t('fantasy.pointsAbbrev') }}</p>
+            <p class="font-mono text-[12px] text-muted mt-0.5">{{ entry.fantasyPoints }} {{ i18n.t('fantasy.cpAbbrev') }}</p>
             <p class="font-mono text-[11px] text-muted mt-0.5"
               >{{ i18n.t('fantasy.roundPirAbbrev') }} {{ entry.roundPir }} &middot; {{ i18n.t('fantasy.totalPirAbbrev') }} {{ entry.totalPir }}</p
             >

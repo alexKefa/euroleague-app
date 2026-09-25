@@ -110,6 +110,13 @@ export interface LeaderboardEntry {
   correct: number;
   total: number;
   accuracy: number;
+  // Win/loss + top-scorer pick points only — excludes point_adjustments
+  // (battle stakes, the welcome/referral bonus, Fantasy Five's converted
+  // round points, admin grants, duplicate sell-back). Same value Century's
+  // threshold already checks (see BadgeContext.predictionPoints above);
+  // surfaced here too so a "Predictions" view can rank by it directly
+  // instead of the combined `points` total below.
+  predictionPoints: number;
   points: number;
   badges: BadgeInfo[];
   showcase: ShowcaseCard[];
@@ -271,6 +278,7 @@ export async function getLeaderboardEntries(
     );
     return {
       ...entry,
+      predictionPoints: correctPoints,
       badges: earnedBadges({
         picks,
         hasAnyPick: entry.total > 0,

@@ -55,18 +55,19 @@
       </div>
     </div>
 
-    <!-- Points/Fantasy tab — same segmented-control pattern as Fantasy
-         Five's own roster/leaderboard tabs (fantasy.html), so the two
-         leaderboard "kinds" this app has (prediction points, Fantasy Five)
-         read the same way wherever a league surfaces them. -->
+    <!-- Predictions/Fantasy/Battles/Total tab — same segmented-control
+         pattern as Fantasy Five's own roster/leaderboard tabs
+         (fantasy.html). Predictions and Total share one row template below,
+         differing only in which of an entry's two point fields is shown
+         (rowValue()) and which pre-sorted array is iterated. -->
     <div class="flex gap-1 mb-4 bg-page rounded-2xl p-1">
       <button
         type="button"
-        (click)="setTab('points')"
+        (click)="setTab('predictions')"
         class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold transition-colors"
-        [ngClass]="tab() === 'points' ? 'bg-team-primary text-team-secondary' : 'text-muted hover:text-team-primary'"
+        [ngClass]="tab() === 'predictions' ? 'bg-team-primary text-team-secondary' : 'text-muted hover:text-team-primary'"
       >
-        {{ i18n.t('leagues.pointsTab') }}
+        {{ i18n.t('leagues.predictionsTab') }}
       </button>
       <button
         type="button"
@@ -90,14 +91,23 @@
           ></span>
         }
       </button>
+      <button
+        type="button"
+        (click)="setTab('total')"
+        class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold transition-colors"
+        [ngClass]="tab() === 'total' ? 'bg-team-primary text-team-secondary' : 'text-muted hover:text-team-primary'"
+      >
+        {{ i18n.t('leagues.totalTab') }}
+      </button>
     </div>
 
-    @if (tab() === 'points') {
-      @if (leaderboard().length === 0) {
+    @if (tab() === 'predictions' || tab() === 'total') {
+      @let rows = tab() === 'predictions' ? predictionsRows() : leaderboard();
+      @if (rows.length === 0) {
         <p class="text-sm text-muted font-semibold">{{ i18n.t('leagues.emptyLeaderboard') }}</p>
       } @else {
         <div class="space-y-2">
-          @for (entry of leaderboard(); track entry.userId; let i = $index) {
+          @for (entry of rows; track entry.userId; let i = $index) {
             <button
               type="button"
               (click)="openMember(entry)"
@@ -120,7 +130,7 @@
                 <p class="font-mono text-[10px] text-muted truncate">{{ entry.correct }}/{{ entry.total }}</p>
               </div>
               <div class="shrink-0 text-center bg-page rounded-xl px-3 py-1.5 min-w-[3.25rem]">
-                <p class="font-mono text-team-primary font-bold text-sm leading-none">{{ entry.points }}</p>
+                <p class="font-mono text-team-primary font-bold text-sm leading-none">{{ rowValue(entry) }}</p>
                 <p class="font-mono text-[9px] text-muted uppercase tracking-wide mt-0.5">{{ i18n.t('fantasy.pointsAbbrev') }}</p>
               </div>
             </button>
@@ -131,6 +141,10 @@
       @if (fantasyLoading()) {
         <app-skeleton class="h-40 rounded-xl" />
       } @else {
+        <div class="flex items-center gap-1.5 mb-2">
+          <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('leagues.fantasyTab') }} &middot; {{ i18n.t('fantasy.cpAbbrev') }}</p>
+          <app-fantasy-cp-info />
+        </div>
         <app-fantasy-leaderboard-list [entries]="fantasyLeaderboard()" [emptyLabel]="i18n.t('fantasy.emptyLeaderboard')" />
       }
     } @else {

@@ -41,6 +41,12 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.globalBoard": { en: "Global", el: "Γενική" },
   "fantasy.myLeagueBoard": { en: "My league", el: "Η λίγκα μου" },
   "fantasy.pointsAbbrev": { en: "pts", el: "π." },
+  "fantasy.cpAbbrev": { en: "CP", el: "CP" },
+  "fantasy.cpInfoTitle": { en: "What are Clutch Points?", el: "Τι είναι τα Clutch Points;" },
+  "fantasy.cpInfoBody": {
+    en: "CP (Clutch Points) reflect your Fantasy Five squad's real performance each round, based on player PIR. They aren't spendable on their own — once a round completes, half of that round's CP (rounded down) is automatically added to your real app Points, which is what counts toward the Predictions and Total rankings.",
+    el: "Τα CP (Clutch Points) δείχνουν την πραγματική απόδοση της ομάδας σου στο Fantasy Five κάθε αγωνιστική, με βάση το PIR των παικτών. Δεν είναι από μόνα τους αξιοποιήσιμα — μόλις ολοκληρωθεί μια αγωνιστική, οι μισοί πόντοι CP (στρογγυλοποιημένοι προς τα κάτω) προστίθενται αυτόματα στους πραγματικούς σου Πόντους, που μετράνε στις κατατάξεις Προβλέψεων και Συνόλου.",
+  },
   "fantasy.noLineupYet": { en: "No lineup saved for this round yet.", el: "Δεν έχει αποθηκευτεί ομάδα για αυτή την αγωνιστική." },
   "fantasy.emptyLeaderboard": { en: "No fantasy points scored yet this season.", el: "Δεν έχουν σημειωθεί ακόμα fantasy πόντοι φέτος." },
   "fantasy.showMore": { en: "Show more", el: "Περισσότερα" },

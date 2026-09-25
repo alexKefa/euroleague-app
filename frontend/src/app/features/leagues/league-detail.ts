@@ -1,4 +1,4 @@
-import { Component, HostListener, OnInit, inject, signal } from "@angular/core";
+import { Component, HostListener, OnInit, computed, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
@@ -16,6 +16,7 @@ import { ConfirmDialogComponent } from "../../shared/confirm-dialog";
 import { FantasyLeaderboardListComponent } from "../../shared/fantasy-leaderboard-list";
 import { rankBadgeClasses, rankRowClasses } from "../../shared/rank-badge";
 import { BattlesInfoComponent } from "../battles/battles-info";
+import { FantasyCpInfoComponent } from "../fantasy/fantasy-cp-info";
 
 // Same badge-id -> icon map as predictions.ts — keep both in sync if a
 // badge is ever added there (backend/src/services/leaderboard.ts's BADGES).
@@ -41,6 +42,7 @@ const BADGE_ICONS: Record<string, NavIconName> = {
     ConfirmDialogComponent,
     FantasyLeaderboardListComponent,
     BattlesInfoComponent,
+    FantasyCpInfoComponent,
   ],
   templateUrl: "./league-detail.html",
 })
@@ -58,16 +60,27 @@ export class LeagueDetailComponent implements OnInit {
   readonly league = signal<LeagueDetail | null>(null);
   readonly leaderboard = signal<LeagueLeaderboardEntry[]>([]);
 
-  // Points/Fantasy tab (2026-09-21) — same segmented-control pattern as
-  // Fantasy Five's own roster/leaderboard tabs. Both boards are fetched
-  // eagerly on init rather than on first tab switch — a league is a small,
-  // known group of friends, so the extra round trip is cheap and avoids a
-  // second loading flicker the first time someone taps "Fantasy".
-  readonly tab = signal<"points" | "fantasy" | "battles">("points");
+  // Predictions/Fantasy/Battles/Total tabs (2026-09-21, split into 4 on
+  // 2026-09-25 — see the doc comment on predictionsRows below for why).
+  // Both boards are fetched eagerly on init rather than on first tab
+  // switch — a league is a small, known group of friends, so the extra
+  // round trip is cheap and avoids a second loading flicker the first time
+  // someone taps "Fantasy".
+  readonly tab = signal<"predictions" | "fantasy" | "battles" | "total">("predictions");
   readonly fantasyLeaderboard = signal<FantasyLeaderboardEntry[]>([]);
   readonly fantasyLoading = signal(true);
   protected readonly rankBadgeClasses = rankBadgeClasses;
   protected readonly rankRowClasses = rankRowClasses;
+
+  // `leaderboard` itself comes back sorted by the combined `points` total
+  // (services/leaderboard.ts) — that ordering is exactly the "Total" tab.
+  // "Predictions" re-ranks the same entries by `predictionPoints` alone
+  // (win/loss + top-scorer picks, excluding battle stakes/Fantasy's
+  // converted round points/bonuses) — a client-side re-sort, not a second
+  // API call, since both numbers are already on every entry.
+  readonly predictionsRows = computed(() =>
+    [...this.leaderboard()].sort((a, b) => b.predictionPoints - a.predictionPoints || b.accuracy - a.accuracy)
+  );
 
   // Battles tab (card battles, league-scoped — see CLAUDE.md's "Card
   // Battles" section) — loaded lazily on first switch to this tab rather
@@ -77,7 +90,7 @@ export class LeagueDetailComponent implements OnInit {
   readonly battlesLoading = signal(false);
   private battlesLoaded = false;
 
-  setTab(tab: "points" | "fantasy" | "battles"): void {
+  setTab(tab: "predictions" | "fantasy" | "battles" | "total"): void {
     this.tab.set(tab);
     if (tab === "battles" && !this.battlesLoaded) {
       this.battlesLoaded = true;
@@ -115,9 +128,9 @@ export class LeagueDetailComponent implements OnInit {
 
   ngOnInit(): void {
     // Lets battle-detail's post-duel "Go to Battles" button land straight on
-    // this tab instead of the default Points one (?tab=battles).
+    // this tab instead of the default Predictions one (?tab=battles).
     const requestedTab = this.route.snapshot.queryParamMap.get("tab");
-    if (requestedTab === "battles" || requestedTab === "fantasy" || requestedTab === "points") {
+    if (requestedTab === "battles" || requestedTab === "fantasy" || requestedTab === "predictions" || requestedTab === "total") {
       this.setTab(requestedTab);
     }
 
@@ -161,6 +174,12 @@ export class LeagueDetailComponent implements OnInit {
 
   badgeDescription(id: string): string {
     return this.i18n.t(`predictions.badge.${id}.description`);
+  }
+
+  // Predictions/Total share one row template (league-detail.html) — this
+  // just picks which of an entry's two point fields that render shows.
+  rowValue(entry: LeagueLeaderboardEntry): number {
+    return this.tab() === "predictions" ? entry.predictionPoints : entry.points;
   }
 
   openMember(entry: LeagueLeaderboardEntry): void {
