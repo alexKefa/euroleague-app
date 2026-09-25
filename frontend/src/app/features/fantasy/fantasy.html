@@ -262,20 +262,23 @@
                 <!-- Recolored solid (not just team-primary) when injured —
                      the small corner dot alone read as too easy to miss
                      (2026-09-19). -->
+                <!-- Price dropped from the court card and both lines made
+                     heavier/bigger (2026-09-25, "remove the cr cost from the
+                     card. they got too long... more intense font weight").
+                     The second line moved off font-mono: Nova Mono ships a
+                     single light weight, so font-bold never thickened it —
+                     IBM Plex Sans at 700 with tabular figures instead. Price
+                     is still in the pool, picker and player popup. -->
                 <span
-                  class="block text-[9px] font-bold uppercase tracking-wide text-center leading-tight line-clamp-2 px-1 py-px"
-                  [ngClass]="row.injury ? injuryNameBarClass(row.injury.status) : 'bg-white text-[#14161A]'"
+                  class="block text-[10px] font-bold uppercase tracking-wide text-center leading-tight line-clamp-2 px-1 py-0.5"
+                  [ngClass]="row.injury ? injuryNameBarClass(row.injury.status) : 'bg-white text-black'"
                   >{{ posAbbrev(row.player.position) }} {{ courtDisplayName(row.player.name) }}</span
                 >
-                <span class="flex items-center justify-center gap-1 bg-white text-[#14161A] text-[9px] font-mono font-bold px-1 py-px border-t border-black/10">
-                  <span [ngClass]="row.injury ? injuryAccentClass(row.injury.status) : ''">{{ row.price | number: '1.1-1' }}{{ i18n.t('fantasy.creditsAbbrev') }}</span>
-                  @if (priceTrendGlyph(row.priceTrend); as glyph) {
-                    <span [ngClass]="priceTrendClass(row.priceTrend)" [attr.title]="i18n.t('fantasy.priceTrendHint')">{{ glyph }}</span>
-                  }
+                <span class="flex items-center justify-center gap-1 bg-white text-black text-[10px] font-sans font-bold tabular-nums px-1 py-0.5 border-t border-black/10">
                   @if (gameForTeam().get(row.team.id); as game) {
-                    <span class="text-black/30">&middot;</span>
                     @if (!gameFinished(row.team.id) && turnFor(row.team.id); as turn) {
                       <span [class.opacity-40]="hasPlayed(row.player.id)">{{ i18n.t('fantasy.turnAbbrev') }}{{ turn }}</span>
+                      <span class="text-black/30">&middot;</span>
                     }
                     @if (game.status === 'scheduled') {
                       @if (opponentFor(row.team.id); as opp) {
