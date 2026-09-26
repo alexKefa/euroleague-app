@@ -10,14 +10,12 @@
   /* v15 (2026-09-26, "try this as logo" — a circular line-art badge: a
      dribbling player + basketball-court dotted texture inside a ring,
      with "Clutch" in cursive sweeping across it) — replaces v14's
-     backboard/hoop icon-above-wordmark design. Unlike every prior mark,
-     this one is self-contained (its own dark court-texture backing fills
-     the circle, not bare line art on transparent) so the same single
-     asset works for both themes — clutch-mark.png and
-     clutch-mark-dark.png are now identical files, not a real light/dark
-     recolor pair. Cropped tight to real content (1240x1128). Two stacked
-     <img>s still share this class for structural parity with the
-     dual-file convention, even though the files match; display is
+     backboard/hoop icon-above-wordmark design. Same "two real exports"
+     precedent as v14 (see styles.css's .brand-mark-light/.brand-mark-dark
+     comment): clutch-mark.png is an orange recolor for light backgrounds,
+     clutch-mark-dark.png a separately-exported white recolor of the exact
+     same crop/composition for dark ones. Cropped tight to real content
+     (1240x1128 for both). Two stacked <img>s share this class; display is
      deliberately NOT set here — styles.css's
      .brand-mark-light/.brand-mark-dark own show/hide, and declaring
      display here would win over that global rule under Angular's
