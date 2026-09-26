@@ -115,6 +115,15 @@ export const storeTranslations: Record<string, Record<Lang, string>> = {
   },
   "packs.openNow": { en: "Open", el: "Άνοιγμα" },
   "packs.opening": { en: "Opening…", el: "Άνοιγμα…" },
+  // Purchase confirmation (2026-09-26, direct request — a tap on the pack
+  // grid used to spend points immediately with no "are you sure?" step).
+  // confirmBuyMessage is composed in packs.ts (packLabel() + pointsCost),
+  // same string-concatenation approach the pack grid's own aria-label
+  // already uses, since I18nService.t() has no interpolation support.
+  "packs.confirmBuyPrefix": { en: "Buy", el: "Αγορά" },
+  "packs.confirmBuyFor": { en: "for", el: "για" },
+  "packs.confirmBuyButton": { en: "Buy pack", el: "Αγορά πακέτου" },
+  "packs.cancel": { en: "Cancel", el: "Ακύρωση" },
   // Backend PACKS labels (services/packs.ts) are English-only internal
   // display strings, not translated — the frontend never renders them
   // directly, it looks up the pack's `type` here instead (packLabel() in

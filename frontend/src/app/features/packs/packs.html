@@ -86,7 +86,7 @@
         @for (pack of packs(); track pack.type) {
           <button
             type="button"
-            (click)="open(pack)"
+            (click)="requestOpen(pack)"
             [disabled]="!canAfford(pack) || opening() !== null || pointsLoading()"
             [attr.aria-label]="packLabel(pack.type) + ' — ' + pack.pointsCost + ' ' + i18n.t('packs.ptsLower')"
             class="pack-visual relative disabled:opacity-40 w-full max-w-[120px] mx-auto sm:max-w-[80%]"
@@ -124,6 +124,17 @@
           </button>
         }
       </div>
+
+      @if (pendingPack(); as pack) {
+        <app-confirm-dialog
+          [message]="confirmBuyMessage(pack)"
+          [confirmLabel]="i18n.t('packs.confirmBuyButton')"
+          [cancelLabel]="i18n.t('packs.cancel')"
+          [danger]="false"
+          (confirmed)="confirmOpen()"
+          (cancelled)="pendingPack.set(null)"
+        />
+      }
 
       <div class="space-y-3 text-left mt-5">
         @for (pack of packs(); track pack.type) {

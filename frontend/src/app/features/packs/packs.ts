@@ -13,6 +13,7 @@ import { ButtonDirective } from "../../shared/button.directive";
 import { PageHintComponent } from "../../shared/page-hint";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { SkeletonComponent } from "../../shared/skeleton";
+import { ConfirmDialogComponent } from "../../shared/confirm-dialog";
 
 // Exit-animation duration for the outgoing card in the reveal sequence —
 // keep in sync with the .card-exit-anim animation-duration in packs.css.
@@ -32,6 +33,7 @@ type PackView = "selecting" | "revealing" | "summary";
     PageHintComponent,
     LogoSpinnerComponent,
     SkeletonComponent,
+    ConfirmDialogComponent,
   ],
   templateUrl: "./packs.html",
   styleUrl: "./packs.css",
@@ -235,6 +237,28 @@ export class PacksComponent implements OnInit {
 
   canAfford(pack: PackDefinition): boolean {
     return !this.pointsLoading() && this.points() >= pack.pointsCost;
+  }
+
+  // Purchase confirmation (2026-09-26, direct request) — a tap on the pack
+  // grid used to spend points immediately with no "are you sure?" step.
+  // The grid button now calls requestOpen(), which just stages the pack
+  // and shows app-confirm-dialog (packs.html); open() itself (the real
+  // spend) only ever runs from confirmOpen(), never directly from a click.
+  readonly pendingPack = signal<PackDefinition | null>(null);
+
+  requestOpen(pack: PackDefinition): void {
+    if (!this.auth.isAuthenticated() || this.opening() || !this.canAfford(pack)) return;
+    this.pendingPack.set(pack);
+  }
+
+  confirmBuyMessage(pack: PackDefinition): string {
+    return `${this.i18n.t("packs.confirmBuyPrefix")} ${this.packLabel(pack.type)} ${this.i18n.t("packs.confirmBuyFor")} ${pack.pointsCost} ${this.i18n.t("packs.ptsLower")}?`;
+  }
+
+  confirmOpen(): void {
+    const pack = this.pendingPack();
+    this.pendingPack.set(null);
+    if (pack) this.open(pack);
   }
 
   open(pack: PackDefinition): void {
