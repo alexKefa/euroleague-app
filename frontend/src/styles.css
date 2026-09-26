@@ -299,15 +299,19 @@
   filter: none;
 }
 
-/* Brand mark (clutch-mark.png / clutch-mark-dark.png, 2026-09-14): the
-   logo's own linework/"Clutch" text is a fixed dark charcoal baked into
-   the raster art, not overridable via currentColor/CSS variables the way
-   .icon-ink-invert's icons are — and a plain brightness/invert filter
-   would also flip the orange ball's hue, so two separate pre-rendered
-   PNGs are swapped by display instead (clutch-mark-dark.png recolors only
-   the near-neutral dark pixels to light, keeping the ball's orange and the
-   backboard's already-light glass untouched). Same dark-unscoped-default/
-   light-explicit-override convention as .icon-ink-invert above. */
+/* Brand mark (clutch-mark.png / clutch-mark-dark.png). v14's rationale for
+   two separate files no longer applies as of v15 (2026-09-26) — that mark's
+   linework/text was a fixed dark charcoal baked into the raster art, not
+   overridable the way .icon-ink-invert's icons are, so a real second
+   Canva export was needed to recolor it for dark mode. v15 is a
+   self-contained circular badge (its own dark court-texture backing fills
+   the circle, orange linework throughout) that reads fine on both
+   backgrounds unmodified, so clutch-mark-dark.png is now just a copy of
+   clutch-mark.png rather than a distinct recolor. The light/dark
+   display-swap plumbing below is kept anyway (still real structure other
+   markup relies on, cheap to leave in place) — same
+   dark-unscoped-default/light-explicit-override convention as
+   .icon-ink-invert above. */
 .brand-mark-light {
   display: none;
 }
