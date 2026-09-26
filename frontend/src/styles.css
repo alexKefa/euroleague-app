@@ -300,15 +300,12 @@
 }
 
 /* Brand mark (clutch-mark.png / clutch-mark-dark.png, v15 2026-09-26): a
-   circular line-art badge with its own dark basketball-court-texture
-   backing filling the ring — replaces v14's backboard/hoop icon. Same
-   "two real exports, not an algorithmic recolor" precedent as v14: the
-   light file's linework/"Clutch" text is orange, the dark file is a
-   separately-exported white recolor (both share the exact same crop/
-   composition) rather than one asset reused unmodified, since the light
-   file's orange-on-near-black-texture reads fine on a light page but the
-   court-texture backing would otherwise fight a dark page's own
-   background. Same dark-unscoped-default/light-explicit-override
+   circular line-art badge with a basketball-court-texture backing filling
+   the ring — replaces v14's backboard/hoop icon. Same "two real exports,
+   not an algorithmic recolor" precedent as v14: clutch-mark.png is a
+   dark-grey recolor for light backgrounds, clutch-mark-dark.png a
+   separately-exported white recolor of the exact same crop/composition
+   for dark ones. Same dark-unscoped-default/light-explicit-override
    convention as .icon-ink-invert above. */
 .brand-mark-light {
   display: none;

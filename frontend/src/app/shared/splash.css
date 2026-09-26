@@ -12,10 +12,11 @@
      with "Clutch" in cursive sweeping across it) — replaces v14's
      backboard/hoop icon-above-wordmark design. Same "two real exports"
      precedent as v14 (see styles.css's .brand-mark-light/.brand-mark-dark
-     comment): clutch-mark.png is an orange recolor for light backgrounds,
-     clutch-mark-dark.png a separately-exported white recolor of the exact
-     same crop/composition for dark ones. Cropped tight to real content
-     (1240x1128 for both). Two stacked <img>s share this class; display is
+     comment): clutch-mark.png is a dark-grey recolor for light
+     backgrounds, clutch-mark-dark.png a separately-exported white recolor
+     of the exact same crop/composition for dark ones. Cropped tight to
+     real content (1240x1128 for both). Two stacked <img>s share this
+     class; display is
      deliberately NOT set here — styles.css's
      .brand-mark-light/.brand-mark-dark own show/hide, and declaring
      display here would win over that global rule under Angular's
