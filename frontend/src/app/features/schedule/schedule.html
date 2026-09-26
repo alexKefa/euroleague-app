@@ -131,7 +131,7 @@
                     <span class="sm:hidden">{{ game.homeTeam.code | teamCode }}</span>
                     <span class="hidden sm:inline">{{ game.homeTeam.name }}</span>
                     @if (game.homeTeamPosition) {
-                      <span class="font-mono font-normal text-muted">({{ game.homeTeamPosition }})</span>
+                      <span class="font-mono font-normal text-muted">&nbsp;({{ game.homeTeamPosition }})</span>
                     }
                   </span>
                   @if (game.homeTeam.logoUrl) {
@@ -206,7 +206,7 @@
                     <span class="sm:hidden">{{ game.awayTeam.code | teamCode }}</span>
                     <span class="hidden sm:inline">{{ game.awayTeam.name }}</span>
                     @if (game.awayTeamPosition) {
-                      <span class="font-mono font-normal text-muted">({{ game.awayTeamPosition }})</span>
+                      <span class="font-mono font-normal text-muted">&nbsp;({{ game.awayTeamPosition }})</span>
                     }
                   </span>
                 </div>

@@ -205,7 +205,7 @@
                         <button
                           type="button"
                           (click)="quickPickTopScorer(game, c.player.id)"
-                          [disabled]="isLocked(game) || quickPickSavingId() === c.player.id"
+                          [disabled]="isLocked(game) || quickPickSavingId() === c.player.id || isOut(c.player.id)"
                           class="flex flex-col items-center gap-0.5 disabled:opacity-50"
                           [attr.aria-label]="c.player.name"
                         >
@@ -246,7 +246,7 @@
                         <button
                           type="button"
                           (click)="quickPickTopScorer(game, c.player.id)"
-                          [disabled]="isLocked(game) || quickPickSavingId() === c.player.id"
+                          [disabled]="isLocked(game) || quickPickSavingId() === c.player.id || isOut(c.player.id)"
                           class="flex flex-col items-center gap-0.5 disabled:opacity-50"
                           [attr.aria-label]="c.player.name"
                         >

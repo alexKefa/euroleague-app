@@ -180,7 +180,8 @@
                   <button
                     type="button"
                     class="shrink-0 flex flex-col items-center gap-1 w-16"
-                    [disabled]="isTopScorerLocked() || !!topScorerPickSavingId()"
+                    [class.cursor-not-allowed]="isOut(c.player.id)"
+                    [disabled]="isTopScorerLocked() || !!topScorerPickSavingId() || isOut(c.player.id)"
                     (click)="pickTopScorer(c.player.id)"
                   >
                     <span
@@ -188,7 +189,7 @@
                       [class.scale-105]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
                       [class.ring-2]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
                       [class.ring-team-primary]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
-                      [class.opacity-40]="(isTopScorerLocked() && myTopScorerPick()?.predictedPlayer?.id !== c.player.id) || (!!topScorerPickSavingId() && topScorerPickSavingId() !== c.player.id)"
+                      [class.opacity-40]="isOut(c.player.id) || (isTopScorerLocked() && myTopScorerPick()?.predictedPlayer?.id !== c.player.id) || (!!topScorerPickSavingId() && topScorerPickSavingId() !== c.player.id)"
                       [style.width.px]="52"
                       [style.height.px]="52"
                     >
@@ -204,6 +205,11 @@
                           <app-nav-icon name="checkmark-shield" [size]="22" class="text-emerald-500" />
                         </span>
                       }
+                      @if (injuryFor(c.player.id); as injury) {
+                        <span class="absolute -top-1 -right-1">
+                          <app-injury-badge [status]="injury.status" [note]="injury.note" [noteEl]="injury.noteEl" [size]="16" />
+                        </span>
+                      }
                     </span>
                     <span class="text-[9px] text-muted font-semibold truncate w-full text-center">{{ c.player.name.split(',')[0] }}</span>
                   </button>
@@ -214,7 +220,8 @@
                   <button
                     type="button"
                     class="shrink-0 flex flex-col items-center gap-1 w-16"
-                    [disabled]="isTopScorerLocked() || !!topScorerPickSavingId()"
+                    [class.cursor-not-allowed]="isOut(c.player.id)"
+                    [disabled]="isTopScorerLocked() || !!topScorerPickSavingId() || isOut(c.player.id)"
                     (click)="pickTopScorer(c.player.id)"
                   >
                     <span
@@ -222,7 +229,7 @@
                       [class.scale-105]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
                       [class.ring-2]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
                       [class.ring-team-primary]="myTopScorerPick()?.predictedPlayer?.id === c.player.id"
-                      [class.opacity-40]="(isTopScorerLocked() && myTopScorerPick()?.predictedPlayer?.id !== c.player.id) || (!!topScorerPickSavingId() && topScorerPickSavingId() !== c.player.id)"
+                      [class.opacity-40]="isOut(c.player.id) || (isTopScorerLocked() && myTopScorerPick()?.predictedPlayer?.id !== c.player.id) || (!!topScorerPickSavingId() && topScorerPickSavingId() !== c.player.id)"
                       [style.width.px]="52"
                       [style.height.px]="52"
                     >
@@ -234,6 +241,11 @@
                       } @else if (topScorerJustSavedId() === c.player.id) {
                         <span class="absolute inset-0 flex items-center justify-center rounded-full bg-card/80 pick-saved-pop">
                           <app-nav-icon name="checkmark-shield" [size]="22" class="text-emerald-500" />
+                        </span>
+                      }
+                      @if (injuryFor(c.player.id); as injury) {
+                        <span class="absolute -top-1 -right-1">
+                          <app-injury-badge [status]="injury.status" [note]="injury.note" [noteEl]="injury.noteEl" [size]="16" />
                         </span>
                       }
                     </span>

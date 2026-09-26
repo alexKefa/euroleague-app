@@ -258,18 +258,24 @@ export class PredictionsComponent implements OnInit, OnDestroy {
   readonly advancedStatsRows = signal<PlayerAdvancedStatsRow[]>([]);
 
   // League-wide injury report (2026-09-24, direct ask: "hide injured
-  // players. or just add banner over them" on this quick-pick row) — an
-  // "out" player is dropped from the recommendation slots outright
-  // (recommending someone who can't play is just wrong, so the spot goes
-  // to the next-highest-PPG healthy teammate instead); the lesser statuses
-  // (doubtful/questionable/probable) still show but get
-  // InjuryBadgeComponent's usual corner badge, same "inform, don't hide"
-  // treatment top-scorer-picker.ts's own candidate list now uses too.
+  // players. or just add banner over them" on this quick-pick row).
+  // Originally an "out" player was dropped from the recommendation slots
+  // outright — reversed 2026-09-26 (same report as top-scorer-picker.ts's
+  // own reversal: a real "out" player, e.g. Zalgiris' Williams-Goss, just
+  // silently didn't appear at all, which read as a bug) in favor of the
+  // same "inform, don't hide" treatment the lesser statuses
+  // (doubtful/questionable/probable) already got: still ranks/shows in the
+  // top-3-by-PPG slots, still carries InjuryBadgeComponent's corner badge,
+  // just not selectable (see isOut()).
   readonly injuries = signal<InjuryReportEntry[]>([]);
   readonly injuriesByPlayerId = computed(() => new Map(this.injuries().map((i) => [i.playerId, i])));
 
   injuryFor(playerId: string): InjuryReportEntry | null {
     return this.injuriesByPlayerId().get(playerId) ?? null;
+  }
+
+  isOut(playerId: string): boolean {
+    return this.injuryFor(playerId)?.status === "out";
   }
 
   // Whether this quick-pick candidate is the currently saved top-scorer
@@ -282,11 +288,8 @@ export class PredictionsComponent implements OnInit, OnDestroy {
   }
 
   topScorerRecommendations(teamId: string): PlayerAdvancedStatsRow[] {
-    const injured = this.injuriesByPlayerId();
     return this.advancedStatsRows()
-      .filter(
-        (r) => r.player.teamId === teamId && r.player.active && r.stats.pointsPerGame != null && injured.get(r.player.id)?.status !== "out"
-      )
+      .filter((r) => r.player.teamId === teamId && r.player.active && r.stats.pointsPerGame != null)
       .sort((a, b) => (b.stats.pointsPerGame ?? 0) - (a.stats.pointsPerGame ?? 0))
       .slice(0, 3);
   }
@@ -302,7 +305,7 @@ export class PredictionsComponent implements OnInit, OnDestroy {
   readonly quickPickJustSavedId = signal<string | null>(null);
 
   quickPickTopScorer(game: Game, playerId: string): void {
-    if (this.quickPickSavingId()) return;
+    if (this.quickPickSavingId() || this.isOut(playerId)) return;
     this.quickPickSavingId.set(playerId);
     this.api.submitTopScorerPick(game.id, playerId).subscribe({
       next: () => {

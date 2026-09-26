@@ -18,11 +18,11 @@ export function newsDateLocale(lang: Lang): string {
 // month name's language for Greek. Reuses newsDateLocale for the pipe's
 // locale argument — same "el" vs "en-US" split.
 export function shortDateFormat(lang: Lang): string {
-  return lang === "el" ? "d MMM" : "MMM d";
+  return lang === "el" ? "EEE, d MMM" : "EEE, MMM d";
 }
 
 export function gameDateTimeFormat(lang: Lang): string {
-  return lang === "el" ? "d MMM, HH:mm" : "MMM d, HH:mm";
+  return lang === "el" ? "EEE, d MMM, HH:mm" : "EEE, MMM d, HH:mm";
 }
 
 export function weekdayDateFormat(lang: Lang): string {

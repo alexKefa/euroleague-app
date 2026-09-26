@@ -51,18 +51,24 @@ export class TopScorerPickerComponent implements OnInit {
 
   // League-wide injury report, fetched alongside the rosters (2026-09-24,
   // direct ask: "hide injured players. or just add banner over them" on
-  // the Predictions page this component is embedded in) — a player who's
-  // definitely "out" is excluded outright (recommending someone who can't
-  // play as a top-scorer candidate is just wrong, not merely risky), while
-  // the other statuses (doubtful/questionable/probable) still show up but
-  // get InjuryBadgeComponent's usual corner badge, same "inform, don't
-  // hide" treatment Fantasy Five's own squad/pool rows already use for
-  // anyone who might still suit up.
+  // the Predictions page this component is embedded in). Originally a
+  // player who's definitely "out" was excluded outright — reversed
+  // 2026-09-26 (direct report: a real injured player, e.g. Zalgiris'
+  // Williams-Goss, just silently didn't appear at all, which read as a
+  // bug rather than "this player can't play") in favor of the same
+  // "inform, don't hide" treatment every other status already got and
+  // Fantasy Five's own squad/pool rows already use: still shown, still
+  // carries InjuryBadgeComponent's corner badge, just not selectable
+  // (see isOut()).
   readonly injuries = signal<InjuryReportEntry[]>([]);
   readonly injuriesByPlayerId = computed(() => new Map(this.injuries().map((i) => [i.playerId, i])));
 
   injuryFor(playerId: string): InjuryReportEntry | null {
     return this.injuriesByPlayerId().get(playerId) ?? null;
+  }
+
+  isOut(playerId: string): boolean {
+    return this.injuryFor(playerId)?.status === "out";
   }
 
   // stats.pointsPerGame first (real "this season" data once games start),
@@ -71,9 +77,8 @@ export class TopScorerPickerComponent implements OnInit {
   // a no-op in practice; baselinePpg carries the same season-then-career
   // fallback the top-scorer scoring formula itself already uses).
   private candidatesFor(roster: RosterEntry[]): TopScorerCandidate[] {
-    const injured = this.injuriesByPlayerId();
     return roster
-      .filter((r) => r.player.active && injured.get(r.player.id)?.status !== "out")
+      .filter((r) => r.player.active)
       .map((r) => ({ player: r.player, pointsPerGame: r.stats?.pointsPerGame ?? r.baselinePpg ?? null }))
       .sort((a, b) => (b.pointsPerGame ?? 0) - (a.pointsPerGame ?? 0));
   }
@@ -103,7 +108,7 @@ export class TopScorerPickerComponent implements OnInit {
   }
 
   pick(playerId: string): void {
-    if (this.savingId()) return;
+    if (this.savingId() || this.isOut(playerId)) return;
     this.savingId.set(playerId);
     this.error.set(null);
     this.api.submitTopScorerPick(this.gameId, playerId).subscribe({

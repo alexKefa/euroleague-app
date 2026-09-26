@@ -8,7 +8,7 @@ import { NavHistoryService } from "../../core/nav-history.service";
 import { EventsService, GameScoringEvent } from "../../core/events.service";
 import { AuthService } from "../../core/auth.service";
 import { WatchlistService } from "../../core/watchlist.service";
-import { Game, GameDetail, GameBoxscoreLine, PlayerDetail, RosterEntry, TopScorerPrediction } from "../../core/models";
+import { Game, GameDetail, GameBoxscoreLine, PlayerDetail, RosterEntry, TopScorerPrediction, InjuryReportEntry } from "../../core/models";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { StatLegendComponent, StatLegendEntry } from "../../shared/stat-legend";
@@ -17,6 +17,7 @@ import { LiveCourtComponent } from "../../shared/live-court";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { TeamCodePipe } from "../../shared/team-display-code";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
+import { InjuryBadgeComponent } from "../../shared/injury-badge";
 
 // Same hardcoded literal schedule.ts/predictions.ts/live-center.ts already
 // use for "the current season" — there's no shared season-lookup service on
@@ -88,6 +89,7 @@ function totalsFor(lines: GameBoxscoreLine[]): TeamTotals {
     PlayerPhotoComponent,
     TeamCodePipe,
     LogoSpinnerComponent,
+    InjuryBadgeComponent,
   ],
   templateUrl: "./game-detail.html",
   styleUrl: "./game-detail.css",
@@ -295,6 +297,13 @@ export class GameDetailComponent implements OnInit {
   readonly homeRoster = signal<RosterEntry[]>([]);
   readonly awayRoster = signal<RosterEntry[]>([]);
   readonly myTopScorerPick = signal<TopScorerPrediction | null>(null);
+  // League-wide injury report, fetched once (not per game — see ngOnInit).
+  // Same "inform, don't hide" treatment as shared/top-scorer-picker.ts's
+  // own strip (2026-09-26): a player who's "out" still appears here, still
+  // gets InjuryBadgeComponent's corner badge, just can't be picked — see
+  // isOut() and pickTopScorer()'s guard.
+  readonly injuries = signal<InjuryReportEntry[]>([]);
+  readonly injuriesByPlayerId = computed(() => new Map(this.injuries().map((i) => [i.playerId, i])));
   // Tracks which player id the in-flight pick request is for (not just a
   // bare boolean) so the photo-strip button being saved can show its own
   // spinner instead of a single ambiguous loading state for the whole strip.
@@ -365,9 +374,17 @@ export class GameDetailComponent implements OnInit {
     return { home: this.sortedCandidates(home), away: this.sortedCandidates(away) };
   });
 
+  injuryFor(playerId: string): InjuryReportEntry | null {
+    return this.injuriesByPlayerId().get(playerId) ?? null;
+  }
+
+  isOut(playerId: string): boolean {
+    return this.injuryFor(playerId)?.status === "out";
+  }
+
   pickTopScorer(playerId: string): void {
     const d = this.detail();
-    if (!d || this.isTopScorerLocked() || this.topScorerPickSavingId()) return;
+    if (!d || this.isTopScorerLocked() || this.topScorerPickSavingId() || this.isOut(playerId)) return;
 
     this.topScorerPickSavingId.set(playerId);
     this.topScorerPickError.set(null);
@@ -454,6 +471,12 @@ export class GameDetailComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // League-wide, not gameId-scoped — fetched once per component
+    // instance rather than inside the paramMap subscribe below (a
+    // quick-view "view full game" navigation reuses this instance across
+    // games, but the injury report doesn't need re-fetching per game).
+    this.api.getInjuries().subscribe({ next: (injuries) => this.injuries.set(injuries) });
+
     // Subscribed, not just read from the snapshot once (same pattern as
     // album.ts/battle-detail.ts) — the quick-view dialog's "view full
     // game" link navigates from one game id to another on this same route
