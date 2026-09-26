@@ -32,6 +32,7 @@ import { syncNews } from "./sync/newsSync.js";
 import { syncOdds } from "./sync/oddsSync.js";
 import { syncLiveGames } from "./sync/liveGamesSync.js";
 import { syncInjuries } from "./sync/injurySync.js";
+import { syncPlayerStats } from "./sync/playerStatsSync.js";
 import { applyDailyFantasyPriceChanges } from "./services/fantasyDailyReprice.js";
 import { getCurrentSeason } from "./services/season.js";
 
@@ -245,4 +246,23 @@ if (process.env.NODE_ENV === "production") {
   };
   runInjurySync();
   setInterval(runInjurySync, INJURY_SYNC_INTERVAL_MS);
+
+  // Daily player season-stats sync (2026-09-26, sync/playerStatsSync.ts —
+  // TS port of sync-py/player_stats_sync.py, run in-process here instead of
+  // the Python script for the same reason the daily jobs above already run
+  // this way: Python isn't in the production Docker image, and this
+  // machine's committed sync-py/venv doesn't run at all (see CLAUDE.md).
+  // Season averages don't need faster-than-daily freshness (unlike live
+  // scores), same cadence as the injury/fantasy-reprice jobs above.
+  const PLAYER_STATS_SYNC_INTERVAL_MS = 24 * 60 * 60 * 1000;
+  const runPlayerStatsSync = () => {
+    syncPlayerStats()
+      .then(({ playersUpserted, statsUpserted, skippedNoTeam }) => {
+        if (statsUpserted === 0) return;
+        console.log(`[player stats sync] ${playersUpserted} player(s), ${statsUpserted} season-stat row(s), skipped ${skippedNoTeam} unrecognized team(s)`);
+      })
+      .catch((err) => console.error("[player stats sync] failed:", err));
+  };
+  runPlayerStatsSync();
+  setInterval(runPlayerStatsSync, PLAYER_STATS_SYNC_INTERVAL_MS);
 }

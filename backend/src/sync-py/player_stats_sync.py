@@ -136,10 +136,25 @@ def sync_usage_percentage(cur, season_: str) -> None:
     )
 
 
+def get_stats_with_rs_fallback(ps: "PlayerStats", endpoint: str, season: int):
+    """The feed's all-phases aggregate (phase_type_code=None) returns zero
+    rows for a season that's still entirely in its regular-season phase
+    (confirmed live, 2026-09-26, season 2026-27, 10 real finals already
+    played) — it only starts returning combined data once a season has
+    moved past a single phase. "RS" alone returns real per-game rows in
+    that window and is equivalent to "the whole season so far" while no
+    other phase exists yet, so fall back to it rather than silently
+    syncing nothing for a season that's genuinely in progress."""
+    df = ps.get_player_stats_single_season(endpoint=endpoint, season=season)
+    if df.empty:
+        df = ps.get_player_stats_single_season(endpoint=endpoint, season=season, phase_type_code="RS")
+    return df
+
+
 def sync_player_stats(season: int) -> Tuple[int, int, int]:
     ps = PlayerStats(competition="E")
-    df = ps.get_player_stats_single_season(endpoint="traditional", season=season)
-    adv_df = ps.get_player_stats_single_season(endpoint="advanced", season=season)
+    df = get_stats_with_rs_fallback(ps, "traditional", season)
+    adv_df = get_stats_with_rs_fallback(ps, "advanced", season)
     adv_by_code = {row["player.code"]: row for _, row in adv_df.iterrows()}
 
     conn = psycopg2.connect(DATABASE_URL)

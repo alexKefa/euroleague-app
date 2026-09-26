@@ -2507,6 +2507,163 @@ the established pattern.
     `dev` Neon branch that production already had. Not a code bug at all;
     dev's schema had simply never caught up.
 
+- **Recent signings missing collectible cards — `collectibles:expand` had
+  drifted behind roster syncs (2026-09-24)** — user report: Tyson Etienne
+  (Paris Basketball) had no card. Checked `players` first: he was there,
+  `active: true`, correctly synced by `roster_sync.py` from EuroLeague's
+  live club-roster feed — the roster sync itself was fine. The actual gap:
+  `expand-collectibles.ts` only creates a card the first time it sees a
+  player and isn't triggered by `roster_sync.py` picking up a new
+  signing — it has to be re-run by hand. Etienne, Alize Johnson, and TJ
+  Warren (all recent Paris additions) had no `common`/`rare` card;
+  Warren additionally had a `legendary` (from the independent, PIR-driven
+  `replace-legendary-catalog.ts` migration) but still no common/rare,
+  confirming the two catalogs go stale independently. 10 other teams had
+  the same gap for their own recent signings (Besiktas, Barcelona, Bayern,
+  Hapoel Tel Aviv, ASVEL, Maccabi Tel Aviv, Olympiacos, Panathinaikos,
+  Partizan, Valencia). Ran `npm run collectibles:expand` live against
+  production — 29 commons + 29 rares inserted, 0 legendaries (every team
+  already had its 2).
+  **Caught and fixed a real duplicate this run created**: Paris' Maozinha
+  Pereira already had cards from 2026-09-16 under the reversed name
+  "Pereira Maozinha" — `displayName()`'s `"SURNAME, First" -> "First
+  Surname"` split produces "Maozinha Pereira" for the raw
+  `"PEREIRA, MAOZINHA"` row, which didn't match the existing
+  (differently-ordered) key, so the script inserted a second common+rare
+  pair instead of recognizing them as the same player. Both old
+  "Pereira Maozinha" rows had zero references in `user_collectibles` or
+  `pack_opening_results` (verified before deleting), so they were removed
+  outright, keeping the correctly-ordered new pair. A full catalog-wide
+  scan afterward (grouping every collectible by team+tier+word-set,
+  independent of word order) found zero other instances — this was the
+  only pre-existing reversed-name row in the whole catalog, not a
+  systemic issue. Catalog: 638 -> 696 -> 694 collectibles after the
+  cleanup. `fantasy:reprice` was flagged as the same-shaped gap (Etienne/
+  Johnson/Warren also have no Fantasy Five price) but not run this
+  pass — not asked for.
+
+- **Follow-up same day: the actual root cause was a stale `players.active`
+  flag, not `collectibles:expand` lagging** — user asked to double-check
+  against EuroLeague directly after Mantzoukas (Panathinaikos) was still
+  missing a card even after the pass above. Fetched
+  `api-live.euroleague.net/v2/competitions/E/seasons/E2026/clubs/PAN/people?type=J`
+  by hand: both Eleftherios Mantzoukas (`008084`) and Dimitris Moraitis
+  (`006544`) are genuinely on Panathinaikos's current live roster, but
+  `players.active` had them `false` — `expand-collectibles.ts` only
+  considers `active` players, so no card was ever generated for either
+  regardless of how many times it's re-run. This machine's committed
+  `sync-py/venv` is still the broken Windows one (see the career-stats
+  backfill note above), so re-ran the real `roster_sync.py` itself — not a
+  TS reimplementation — via a throwaway `python3.11 -m venv` in the
+  scratchpad (same one-off workaround as that earlier pass), pointed at
+  the real `DATABASE_URL`. Both flipped to `active: true` immediately, and
+  0 players were newly deactivated — confirms this wasn't recent, correct
+  churn masquerading as a bug, just a run that had gone stale specifically
+  for these two. Spot-checked the other side too before trusting the
+  "150 inactive league-wide" number that surfaced during this check:
+  fetched Olympiacos's live roster directly and confirmed Kostas
+  Antetokounmpo genuinely isn't on it — that particular inactive flag (and
+  presumably most of the other 149) is correct, current data, not the same
+  staleness bug. Re-ran `collectibles:expand` after the roster fix: 3 more
+  commons+rares (Mantzoukas, Moraitis, and Virtus Bologna's Matteo
+  Baiocchi — a third team with the same latent staleness). Re-scanned the
+  whole catalog for word-order duplicates again (same check as the pass
+  above) — clean. Catalog: 694 -> 700. Moraitis has no `image_url` yet
+  (the live feed hasn't captured a photo for him) — falls back to the
+  jersey-silhouette placeholder, expected and not a bug.
+  **Worth knowing going forward**: `roster_sync.py`'s only documented
+  trigger is running it by hand (see its own doc comment) — there's no
+  cron/interval for it the way `oddsSync`/`injurySync` have one in
+  `index.ts`. A late EuroLeague-list registration (a player added to a
+  club's domestic roster before their EuroLeague paperwork clears) can
+  sync as `active: false` on the day it's first fetched, then never
+  correct itself until someone happens to re-run the sync — this is that
+  scenario, not a fluke specific to these two players.
+
+- **Fantasy Five prices reconciled against real EuroLeague Fantasy
+  quotations (2026-09-24)** — user provided a real export
+  (`players_stats.xlsx`, downloaded from the actual EuroLeague Fantasy
+  site while logged in) with a "Quotation" column per player: real credit
+  prices, not our own `computeFantasyPrice` approximation. Confirmed it's
+  the real thing before trusting it: quotations range exactly 4-17,
+  matching `FANTASY_MIN_PRICE`/`FANTASY_MAX_PRICE` precisely, and
+  Vezenkov sits at exactly 17 — the same real-world anchor point
+  `FANTASY_PIR_CEILING_FLOOR`'s own doc comment already cites. The
+  sheet's numeric "ID" column is EuroLeague's own player code (matches
+  our `players.code` with leading zeros stripped) for anyone the
+  Fantasy site has assigned one; a brand-new signing shows `'-'` there
+  instead (same gap `roster_sync.py`'s own comment documents for the
+  live roster feed) and had to fall back to name+team matching. The
+  sheet's `Team` column is the public-site abbreviation, not our
+  `teams.code` (`frontend/.../team-display-code.ts`'s existing
+  `TEAM_DISPLAY_CODES` map, reversed, made this a non-issue — confirmed
+  all 20 present teams matched cleanly).
+  Matched 330 of 355 sheet rows to real players (compared to our
+  existing `player_fantasy_prices` for season 2026-27: 22 had no row at
+  all — TJ Warren, Etienne, Alize Johnson among them, exactly the gap
+  reported earlier this session — 7 had a stale value worth correcting
+  by more than 0.05cr, e.g. Patrick Baldwin 6.5 -> 10.6, Maozinha Pereira
+  6.5 -> 9.3, the rest matched already), 20 to a team's `head_coach` and
+  written into `coach_fantasy_prices` (all 20 already matched exactly —
+  0 changes needed there). Upserted all 330 player prices directly
+  (`price = sheet quotation`, `on conflict (player_id, season) do
+  update`) — this is real ground-truth data superseding our own
+  approximation, not a merge/average. **5 sheet rows are real,
+  Fantasy-priced players with no matching row in `players` at all**
+  (Nick Smith Jr/Real Madrid, Elias Valtonen/Valencia, Shane Hunter/
+  Maccabi Tel Aviv, Mert Eksioglu/Fenerbahce, Vojin Medarevic/Crvena
+  Zvezda) — checked each team's live roster feed directly before
+  concluding this, not just our own DB: none of the five appear in
+  `api-live.euroleague.net`'s `/clubs/{code}/people` response at all,
+  not even as a non-Player entry, so this isn't `roster_sync.py` missing
+  them — EuroLeague Fantasy's own player pool is evidently ahead of the
+  live roster feed for these five specifically. Nothing to fix on our
+  side until the roster feed itself catches up; re-running
+  `roster_sync.py` periodically is the only lever, same as the
+  Mantzoukas/Moraitis staleness above.
+  **"Import my squad from EuroLeague Fantasy" — investigated same day,
+  dropped as not viable right now**: before any design work, tried it
+  once for real against the user's own logged-in account
+  (`euroleaguefantasy.euroleaguebasketball.net`) to see what a real
+  importer would actually have to do. Found the site is a **Flutter web
+  app rendered to `<canvas>`** (`localStorage` carries
+  `flutter.authToken` + FlutterFire Auth/FCM/Analytics/RemoteConfig
+  keys) — `get_page_text` returns nothing ("canvas-based content, no
+  text found"), and no squad-data XHR/fetch was ever observed on the
+  wire (only jersey images + GA beacons), so the client almost certainly
+  talks to its backend over something other than a plain REST call
+  (Firebase-shaped, given the FlutterFire keys). That rules out both DOM
+  scraping and simple network-request sniffing — the only way the squad
+  could actually be read this session was **visually**: screenshots,
+  zooming in on jersey names/numbers, matching by hand against `players`.
+  That doesn't generalize to a real "click a button" feature for every
+  user of this app — there's no backend equivalent of a Claude session
+  driving a logged-in browser and reading pixels. The only shape that
+  *would* generalize, if this is ever revisited, is "user uploads a
+  screenshot of their squad, a vision model parses it server-side" — no
+  third-party credentials stored, no reverse-engineered Firebase
+  protocol needed, just the same manual read this session did, run by a
+  model instead of by hand. Explicitly **not pursued further** — dropped
+  per direct instruction ("we cant work on this now"), not scheduled.
+  Two more real mismatches surfaced during the one real squad pull tried
+  (kept for whenever this is revisited, since they're substantive, not
+  session-specific): (1) **EuroLeague Fantasy uses its own, looser
+  position-eligibility system that disagrees with the official roster
+  feed** — confirmed directly against the live feed that Kilian Fischer
+  (Bayern) is officially `Center` and DJ Stewart (Baskonia) is
+  officially `Forward` (our sync is correctly reflecting the feed), yet
+  EuroLeague Fantasy's client counted the user's real squad's Fischer as
+  a Forward and Stewart as a Guard — a real squad copied 1:1 by player
+  identity can come out sitting at 3G/4F/3C by our own data, which our
+  `saveFantasyLineup`'s strict `FANTASY_POSITION_QUOTA` check (4G/4F/2C)
+  would reject outright; (2) one of the user's real bench picks, Uros
+  Mijailovic (Partizan, shown at #10 there), **isn't on Partizan's live
+  EuroLeague roster at all** — checked directly, jersey #10 there
+  actually belongs to Tanaskovic — so EuroLeague Fantasy's own player
+  pool is carrying at least one stale entry independent of the live
+  feed, same category as the 5 players missing from our own system in
+  the price-reconciliation pass above.
+
 ## Season transition (2026-27, 2026-09-02)
 
 - `backend/src/services/season.ts`'s `getCurrentSeason()` (latest season
@@ -2811,3 +2968,34 @@ the established pattern.
   player to inactive will reintroduce the same staleness until something
   re-runs this same check (or it becomes a standing sweep instead of a
   one-off script).
+
+- **Card flip showed no "this season" stats even after real 2026-27 games
+  were played (2026-09-26)** — user report. `GET /api/collectibles/:id/stats`
+  (the card-preview tap-to-flip) reads `player_season_stats` for
+  `getCurrentSeason()`, which had zero rows for `2026-27` despite 10 real
+  finals already played (confirmed: 240 `player_game_stats` rows existed
+  for those games, so box scores were fine — this was specifically the
+  season-*aggregate* table, populated only by the separate, hand-run
+  `player_stats_sync.py`, not by anything box-score-related). Running that
+  script (`python player_stats_sync.py 2026`) synced 0 rows — traced to the
+  real feed itself, not the script or the DB: `PlayerStats
+  .get_player_stats_single_season(phase_type_code=None)` ("all phases
+  combined") returns a genuinely empty `{total: 0, players: []}` from
+  `api-live.euroleague.net` for a season that's still entirely inside its
+  first phase (confirmed directly with `requests`, bypassing the wrapper) —
+  it only starts returning combined data once a season has moved past a
+  single phase (e.g. 2025-26, now finished, returns 208 rows combined
+  vs. 222 for `phaseTypeCode=RS` alone — genuinely different aggregations,
+  not interchangeable once playoffs exist). Fixed with
+  `get_stats_with_rs_fallback()` (`player_stats_sync.py`): try the existing
+  no-phase call first (unchanged behavior for every already-completed
+  season), and only fall back to `phase_type_code="RS"` when that comes
+  back empty — safe specifically because "RS" and "all phases" are
+  identical while RS is the only phase that exists yet. Ran live against
+  production with the fix: 226 players / 226 season-stat rows synced for
+  2026-27 (via the same throwaway Python 3.11 venv workaround as the
+  career-stats/roster-photo scripts above — this machine's committed
+  `sync-py/venv` still doesn't run). Same gap will recur for the *next*
+  in-progress season unless this fallback is kept, or `player_stats_sync.py`
+  gains its own cron (it currently has none — same "hand-run only" status
+  as `roster_sync.py`, worth revisiting together).
