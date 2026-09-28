@@ -189,7 +189,12 @@ async function applyPlayerPriceChanges(season: string): Promise<number> {
       teamWon
     );
     const delta = priceVariationDelta(gamePoints, currentPrice);
-    const newPrice = round1(Math.min(FANTASY_MAX_PRICE, Math.max(FANTASY_MIN_PRICE, currentPrice + delta)));
+    // Floor only, no ceiling (2026-09-28, same as coaches below):
+    // FANTASY_MAX_PRICE is the top of computeFantasyPrice's season-start
+    // curve, not a limit on in-season moves — capping here held Vezenkov at
+    // 17.0 after a round-1 game that priced him at 17.6. A price above it
+    // is exactly what bumpCeilingIfNeeded turns into a bigger budget.
+    const newPrice = round1(Math.max(FANTASY_MIN_PRICE, currentPrice + delta));
     priceByPlayerId.set(row.player_id, newPrice); // so a player with 2 games "today" (shouldn't normally happen) compounds correctly
     priceUpdates.push({ playerId: row.player_id, newPrice });
     logRows.push({ playerId: row.player_id, gameId: row.game_id, delta });
