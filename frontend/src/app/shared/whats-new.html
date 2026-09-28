@@ -1,0 +1,30 @@
+@if (announcement(); as a) {
+  <div
+    class="toast-pop fixed z-40 inset-x-3 top-[calc(4.5rem+env(safe-area-inset-top))] sm:inset-x-auto sm:right-4 sm:top-20 sm:w-96 bg-card border-2 border-line rounded-2xl shadow-pop p-4"
+    role="status"
+  >
+    <div class="flex items-start gap-3">
+      <div class="toast-icon w-9 h-9 rounded-full bg-team-primary/10 flex items-center justify-center shrink-0">
+        <app-nav-icon [name]="a.icon" [size]="20" class="text-team-primary" />
+      </div>
+      <div class="min-w-0 flex-1">
+        <p class="text-[10px] font-mono font-bold uppercase tracking-wide text-team-primary">{{ i18n.t('whatsNew.label') }}</p>
+        <p class="text-sm font-semibold">{{ i18n.t(a.titleKey) }}</p>
+        <p class="text-xs text-muted mt-0.5">{{ i18n.t(a.bodyKey) }}</p>
+      </div>
+      <button
+        type="button"
+        (click)="dismiss()"
+        class="text-muted hover:text-ink text-lg leading-none shrink-0"
+        [attr.aria-label]="i18n.t('hint.dismiss')"
+      >
+        &times;
+      </button>
+    </div>
+    @if (a.link && a.ctaKey) {
+      <button type="button" (click)="open()" appButton appButtonSize="sm" class="w-full mt-3">
+        {{ i18n.t(a.ctaKey) }}
+      </button>
+    }
+  </div>
+}

@@ -1552,6 +1552,17 @@ If you need to apply a schema change without an interactive terminal
     flyer's QR and any social-shared landing-page link previously gave a
     Messenger/Instagram visitor no nudge to escape the WebView at all.
 
+- **"What's new" announcements (2026-09-28)** — `shared/whats-new.ts`
+  (`<app-whats-new>`, mounted globally next to the battle/jump-ball
+  toasts) shows logged-in users a one-time toast for a newly shipped
+  feature. **When shipping a user-facing feature, add an entry at the top
+  of its `ANNOUNCEMENTS` list** plus EN/EL strings in
+  `core/i18n/whats-new.ts` (direct ask: "when we have new features inform
+  with a one time toast"). Only the newest unseen entry shows; dismissing
+  or following it marks it and all older ones seen (localStorage, per
+  device), and entries expire 14 days after their date so later signups
+  aren't told old news.
+
 ## Design Requests
 
 When asked to apply a specific font, color, or style change, apply it
