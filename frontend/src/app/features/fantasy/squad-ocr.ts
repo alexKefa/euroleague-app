@@ -124,45 +124,63 @@ function matchScore(lineTokens: string[], lineText: string, surname: string): nu
 const BRIGHT_TEXT_MIN = 170;
 const DARK_TEXT_MAX = 90;
 
-async function prepareImages(file: File): Promise<[HTMLCanvasElement, HTMLCanvasElement]> {
-  const url = URL.createObjectURL(file);
+// Decodes the picked file without a blob: URL — production's CSP allows
+// img-src 'self' data: https: only, so `<img src=blob:...>` is refused
+// there (verified: "unreadable image" on the live site, while localhost,
+// which has no CSP, worked). createImageBitmap reads the File directly and
+// isn't subject to img-src; a data: URL is the fallback for a browser/
+// format it rejects.
+async function decodeImage(file: File): Promise<{ source: CanvasImageSource; width: number; height: number }> {
   try {
+    const bitmap = await createImageBitmap(file);
+    return { source: bitmap, width: bitmap.width, height: bitmap.height };
+  } catch {
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error("unreadable image"));
+      reader.readAsDataURL(file);
+    });
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
       const el = new Image();
       el.onload = () => resolve(el);
       el.onerror = () => reject(new Error("unreadable image"));
-      el.src = url;
+      el.src = dataUrl;
     });
-    // Tesseract reads small UI text best around 1500-2500px on the long edge.
-    const longEdge = Math.max(img.naturalWidth, img.naturalHeight);
-    const scale = longEdge < 1500 ? 1500 / longEdge : Math.min(1, 2500 / longEdge);
-    const width = Math.round(img.naturalWidth * scale);
-    const height = Math.round(img.naturalHeight * scale);
-    const source = document.createElement("canvas");
-    source.width = width;
-    source.height = height;
-    const sctx = source.getContext("2d", { willReadFrequently: true })!;
-    sctx.drawImage(img, 0, 0, width, height);
-    const pixels = sctx.getImageData(0, 0, width, height);
-
-    const make = (isText: (luma: number) => boolean) => {
-      const out = new ImageData(width, height);
-      for (let i = 0; i < pixels.data.length; i += 4) {
-        const luma = 0.299 * pixels.data[i] + 0.587 * pixels.data[i + 1] + 0.114 * pixels.data[i + 2];
-        const v = isText(luma) ? 0 : 255;
-        out.data[i] = out.data[i + 1] = out.data[i + 2] = v;
-        out.data[i + 3] = 255;
-      }
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      canvas.getContext("2d")!.putImageData(out, 0, 0);
-      return canvas;
-    };
-    return [make((l) => l >= BRIGHT_TEXT_MIN), make((l) => l <= DARK_TEXT_MAX)];
-  } finally {
-    URL.revokeObjectURL(url);
+    return { source: img, width: img.naturalWidth, height: img.naturalHeight };
   }
+}
+
+async function prepareImages(file: File): Promise<[HTMLCanvasElement, HTMLCanvasElement]> {
+  const img = await decodeImage(file);
+  // Tesseract reads small UI text best around 1500-2500px on the long edge.
+  const longEdge = Math.max(img.width, img.height);
+  const scale = longEdge < 1500 ? 1500 / longEdge : Math.min(1, 2500 / longEdge);
+  const width = Math.round(img.width * scale);
+  const height = Math.round(img.height * scale);
+  const source = document.createElement("canvas");
+  source.width = width;
+  source.height = height;
+  const sctx = source.getContext("2d", { willReadFrequently: true })!;
+  sctx.drawImage(img.source, 0, 0, width, height);
+  if (img.source instanceof ImageBitmap) img.source.close();
+  const pixels = sctx.getImageData(0, 0, width, height);
+
+  const make = (isText: (luma: number) => boolean) => {
+    const out = new ImageData(width, height);
+    for (let i = 0; i < pixels.data.length; i += 4) {
+      const luma = 0.299 * pixels.data[i] + 0.587 * pixels.data[i + 1] + 0.114 * pixels.data[i + 2];
+      const v = isText(luma) ? 0 : 255;
+      out.data[i] = out.data[i + 1] = out.data[i + 2] = v;
+      out.data[i + 3] = 255;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext("2d")!.putImageData(out, 0, 0);
+    return canvas;
+  };
+  return [make((l) => l >= BRIGHT_TEXT_MIN), make((l) => l <= DARK_TEXT_MAX)];
 }
 
 async function ocrLines(file: File, onProgress: (pct: number) => void): Promise<OcrLine[]> {
