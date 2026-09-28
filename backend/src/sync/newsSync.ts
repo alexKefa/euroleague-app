@@ -1,8 +1,37 @@
 import Parser from "rss-parser";
 import he from "he";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { newsArticles, syncState } from "../db/schema.js";
+
+/**
+ * Eurohoops/SDNA both edit a headline shortly after publishing (typo fix,
+ * a softer rephrase) by re-publishing the article under a new URL slug —
+ * same underlying story, same numeric CMS id embedded in the URL, but a
+ * different `url` column value. Since the sync used to upsert on `url`
+ * alone, an edited republish looked like a brand-new article and inserted
+ * a second row — a real duplicate-news bug, not the deliberate
+ * same-story-different-outlet case services/newsDedupe.ts exists for.
+ * Extracts that stable per-source id so a republish can be recognized and
+ * merged into the existing row instead. Returns null for a source/URL
+ * shape with no known stable id (e.g. Gazzetta, unconfirmed to ever do
+ * this) — those fall back to the plain url-based upsert, unchanged.
+ */
+function extractArticleKey(sourceName: string, url: string): string | null {
+  if (sourceName === "Eurohoops") {
+    // e.g. /el/others-el/2012715/slug/ or /en/euroleague-en/2012715/slug/
+    // — the category segment can change between edits too, only the
+    // numeric id is stable.
+    const m = url.match(/eurohoops\.net\/\w+\/[^/]+\/(\d+)\//);
+    return m ? m[1] : null;
+  }
+  if (sourceName === "SDNA") {
+    // e.g. /mpasket/1470924_slug-here
+    const m = url.match(/sdna\.gr\/mpasket\/(\d+)_/);
+    return m ? m[1] : null;
+  }
+  return null;
+}
 
 /**
  * Feeds we've verified actually exist and return real RSS
@@ -86,6 +115,20 @@ export async function syncNews(): Promise<{ articlesUpserted: number; feedsFaile
       continue;
     }
 
+    // Built once per feed (not per item) — this source's own recent rows,
+    // keyed by the same stable id extractArticleKey() would derive from
+    // their own url, so a republished item can be matched against
+    // whichever row already holds that story.
+    const existingByKey = new Map<string, { id: string }>();
+    const existingRows = await db
+      .select({ id: newsArticles.id, url: newsArticles.url })
+      .from(newsArticles)
+      .where(eq(newsArticles.sourceName, feed.sourceName));
+    for (const row of existingRows) {
+      const key = extractArticleKey(feed.sourceName, row.url);
+      if (key) existingByKey.set(key, { id: row.id });
+    }
+
     for (const item of parsed.items) {
       if (!item.link || !item.title) continue; // skip malformed entries rather than crash the run
       if (feed.filter && !feed.filter(item.link)) continue;
@@ -103,23 +146,40 @@ export async function syncNews(): Promise<{ articlesUpserted: number; feedsFaile
       const title = he.decode(item.title ?? "");
       const summary = he.decode((item.contentSnippet ?? item.content ?? "").slice(0, 400)) || null;
       const imageUrl = item.enclosure?.url ?? item.mediaContent?.$?.url ?? null;
+      const articleKey = extractArticleKey(feed.sourceName, item.link);
+      const existing = articleKey ? existingByKey.get(articleKey) : undefined;
 
-      await db
-        .insert(newsArticles)
-        .values({
-          title,
-          url: item.link,
-          sourceName: feed.sourceName,
-          sourceUrl: feed.sourceUrl,
-          summary,
-          imageUrl,
-          lang: feed.lang,
-          publishedAt,
-        })
-        .onConflictDoUpdate({
-          target: newsArticles.url,
-          set: { title, summary, imageUrl, lang: feed.lang },
-        });
+      if (existing) {
+        // Same story, edited-and-republished under a new url — update the
+        // original row in place (including its url) rather than inserting
+        // a second one for the same article.
+        await db
+          .update(newsArticles)
+          .set({ title, url: item.link, summary, imageUrl, lang: feed.lang, publishedAt })
+          .where(eq(newsArticles.id, existing.id));
+      } else {
+        const [inserted] = await db
+          .insert(newsArticles)
+          .values({
+            title,
+            url: item.link,
+            sourceName: feed.sourceName,
+            sourceUrl: feed.sourceUrl,
+            summary,
+            imageUrl,
+            lang: feed.lang,
+            publishedAt,
+          })
+          .onConflictDoUpdate({
+            target: newsArticles.url,
+            set: { title, summary, imageUrl, lang: feed.lang },
+          })
+          .returning({ id: newsArticles.id });
+        // Registered immediately so a second republish of the same story
+        // later in this same feed's item list (rare, but the RSS window
+        // can overlap an edit) matches this row too, not just future runs.
+        if (articleKey && inserted) existingByKey.set(articleKey, { id: inserted.id });
+      }
 
       articlesUpserted++;
     }
