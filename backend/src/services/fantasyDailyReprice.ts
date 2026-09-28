@@ -17,7 +17,6 @@ import {
   FANTASY_MIN_PRICE,
   FANTASY_MAX_PRICE,
   COACH_MIN_PRICE,
-  COACH_MAX_PRICE,
   FANTASY_PIR_CEILING_FLOOR,
 } from "./fantasyScoring.js";
 
@@ -247,7 +246,11 @@ async function applyCoachPriceChanges(season: string): Promise<number> {
     const scoreAgainst = row.team_id === row.home_team_id ? row.away_score ?? 0 : row.home_score ?? 0;
     const gamePoints = pointsForCoachResult(scoreFor, scoreAgainst);
     const delta = coachPriceVariationDelta(gamePoints, currentPrice);
-    const newPrice = round1(Math.min(COACH_MAX_PRICE, Math.max(COACH_MIN_PRICE, currentPrice + delta)));
+    // Floor only, no ceiling (2026-09-28): COACH_MAX_PRICE is the top of the
+    // season-start range computeCoachPrice maps standings onto, not a limit
+    // on in-season moves — capping here held Obradovic/Bartzokas at 10.0
+    // after a round-1 win the real game priced at 10.3.
+    const newPrice = round1(Math.max(COACH_MIN_PRICE, currentPrice + delta));
     priceByTeamId.set(row.team_id, newPrice);
     priceUpdates.push({ teamId: row.team_id, newPrice });
     logRows.push({ teamId: row.team_id, gameId: row.game_id, delta });
