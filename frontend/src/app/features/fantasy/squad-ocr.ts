@@ -134,19 +134,23 @@ function matchAt(tokens: string[], surname: string): { score: number; at: number
 // Squad screens put names over the court, jerseys and coloured panels —
 // Tesseract treats a mid-tone background region as picture, not text, and
 // skips it entirely (verified: names drawn on a court-coloured area were
-// never read until binarized). So every screenshot is read twice, each
-// pass thresholded to pure black-on-white: once keeping only *bright*
-// pixels as text (white names on dark/coloured UI), once keeping only
-// *dark* pixels (dark names on light panels). The two passes' lines merge.
+// never read until binarized). So each screenshot is binarized to pure
+// black-on-white four ways and every pass's lines are merged:
+// - global cutoffs: bright pixels as text (white names on dark UI), then
+//   dark pixels as text (dark names on light panels) — these are what pick
+//   up the small captain badge;
+// - adaptive (local) cutoffs: a pixel is text when it's clearly brighter /
+//   darker than its own surroundings. Needed because EL Fantasy's name
+//   labels aren't pure white and sit over a court gradient — verified on a
+//   real squad screenshot: Maledon's label was missed by both global passes
+//   but read by the adaptive one.
 const BRIGHT_TEXT_MIN = 170;
 const DARK_TEXT_MAX = 90;
+const ADAPTIVE_CONTRAST = 15;
+// Local window radius as a fraction of the long edge — about one line of
+// label text at the 1500-2500px working size.
+const ADAPTIVE_RADIUS_DIVISOR = 170;
 
-// Decodes the picked file without a blob: URL — production's CSP allows
-// img-src 'self' data: https: only, so `<img src=blob:...>` is refused
-// there (verified: "unreadable image" on the live site, while localhost,
-// which has no CSP, worked). createImageBitmap reads the File directly and
-// isn't subject to img-src; a data: URL is the fallback for a browser/
-// format it rejects.
 async function decodeImage(file: File): Promise<{ source: CanvasImageSource; width: number; height: number }> {
   try {
     const bitmap = await createImageBitmap(file);
@@ -168,7 +172,7 @@ async function decodeImage(file: File): Promise<{ source: CanvasImageSource; wid
   }
 }
 
-async function prepareImages(file: File): Promise<[HTMLCanvasElement, HTMLCanvasElement]> {
+async function prepareImages(file: File): Promise<HTMLCanvasElement[]> {
   const img = await decodeImage(file);
   // Tesseract reads small UI text best around 1500-2500px on the long edge.
   const longEdge = Math.max(img.width, img.height);
@@ -183,11 +187,17 @@ async function prepareImages(file: File): Promise<[HTMLCanvasElement, HTMLCanvas
   if (img.source instanceof ImageBitmap) img.source.close();
   const pixels = sctx.getImageData(0, 0, width, height);
 
-  const make = (isText: (luma: number) => boolean) => {
+  const luma = new Float32Array(width * height);
+  for (let i = 0, p = 0; p < luma.length; i += 4, p++) {
+    luma[p] = 0.299 * pixels.data[i] + 0.587 * pixels.data[i + 1] + 0.114 * pixels.data[i + 2];
+  }
+  const localMean = boxMean(luma, width, height, Math.max(8, Math.round(Math.max(width, height) / ADAPTIVE_RADIUS_DIVISOR)));
+
+  const make = (isText: (p: number) => boolean) => {
     const out = new ImageData(width, height);
-    for (let i = 0; i < pixels.data.length; i += 4) {
-      const luma = 0.299 * pixels.data[i] + 0.587 * pixels.data[i + 1] + 0.114 * pixels.data[i + 2];
-      const v = isText(luma) ? 0 : 255;
+    for (let p = 0; p < luma.length; p++) {
+      const v = isText(p) ? 0 : 255;
+      const i = p * 4;
       out.data[i] = out.data[i + 1] = out.data[i + 2] = v;
       out.data[i + 3] = 255;
     }
@@ -197,7 +207,37 @@ async function prepareImages(file: File): Promise<[HTMLCanvasElement, HTMLCanvas
     canvas.getContext("2d")!.putImageData(out, 0, 0);
     return canvas;
   };
-  return [make((l) => l >= BRIGHT_TEXT_MIN), make((l) => l <= DARK_TEXT_MAX)];
+  return [
+    make((p) => luma[p] >= BRIGHT_TEXT_MIN),
+    make((p) => luma[p] <= DARK_TEXT_MAX),
+    make((p) => luma[p] > localMean[p] + ADAPTIVE_CONTRAST),
+    make((p) => luma[p] < localMean[p] - ADAPTIVE_CONTRAST),
+  ];
+}
+
+/** Mean of each pixel's (2r+1)² neighbourhood, via a summed-area table (clamped at the edges). */
+function boxMean(values: Float32Array, width: number, height: number, r: number): Float32Array {
+  // Sums reach width*height*255 (~750M at 2500px) — within Uint32, unlike Float32's exact range.
+  const sat = new Uint32Array((width + 1) * (height + 1));
+  for (let y = 0; y < height; y++) {
+    let rowSum = 0;
+    for (let x = 0; x < width; x++) {
+      rowSum += Math.round(values[y * width + x]);
+      sat[(y + 1) * (width + 1) + x + 1] = sat[y * (width + 1) + x + 1] + rowSum;
+    }
+  }
+  const out = new Float32Array(width * height);
+  for (let y = 0; y < height; y++) {
+    const y0 = Math.max(0, y - r);
+    const y1 = Math.min(height, y + r + 1);
+    for (let x = 0; x < width; x++) {
+      const x0 = Math.max(0, x - r);
+      const x1 = Math.min(width, x + r + 1);
+      const sum = sat[y1 * (width + 1) + x1] - sat[y0 * (width + 1) + x1] - sat[y1 * (width + 1) + x0] + sat[y0 * (width + 1) + x0];
+      out[y * width + x] = sum / ((y1 - y0) * (x1 - x0));
+    }
+  }
+  return out;
 }
 
 async function ocrLines(file: File, onProgress: (pct: number) => void): Promise<OcrLine[]> {
@@ -434,6 +474,10 @@ function findCaptain(badges: OcrWord[], seenAt: Map<string, Sighting>): string |
     let best: { id: string; dist: number } | null = null;
     for (const [id, at] of seenAt) {
       if (!at.h) continue;
+      // EL Fantasy draws the badge on the jersey, which sits above the name
+      // label — a "C" level with or below a label is noise (a stray glyph
+      // near a price box was read as a badge on a real screenshot).
+      if (badge.cy >= at.cy - at.h / 2) continue;
       const dist = Math.hypot(badge.cx - at.cx, badge.cy - at.cy);
       if (dist <= at.h * CAPTAIN_MAX_DISTANCE && (!best || dist < best.dist)) best = { id, dist };
     }
