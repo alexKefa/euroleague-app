@@ -252,6 +252,15 @@ function initialSquadSlots(): SquadSlot[] {
   return slots;
 }
 
+// See describeImportChanges.
+interface ImportChanges {
+  incoming: string[];
+  outgoing: string[];
+  roleChanges: { name: string; from: FantasySlotRole; to: FantasySlotRole }[];
+  captainChange: string | null;
+  coachChange: { from: string | null; to: string } | null;
+}
+
 interface OpponentInfo {
   opponent: GameTeamSummary;
   isHome: boolean;
@@ -404,7 +413,18 @@ export class FantasyComponent implements OnInit {
   // importProgress is Tesseract's own 0-100 recognition progress.
   readonly importing = signal(false);
   readonly importProgress = signal(0);
-  readonly importResult = signal<{ matched: number; coachFound: boolean; captainFound: boolean; ambiguous: string[]; positionsDiffer: boolean } | null>(null);
+  readonly importResult = signal<
+    | ({
+        matched: number;
+        coachFound: boolean;
+        captainFound: boolean;
+        ambiguous: string[];
+        positionsDiffer: boolean;
+        transfersNeeded: number;
+        transfersAllowed: number | null;
+      } & ImportChanges)
+    | null
+  >(null);
   readonly importError = signal<string | null>(null);
   readonly importErrorDetail = signal<string | null>(null);
   readonly autoFillNotice = signal(false);
@@ -1482,10 +1502,36 @@ export class FantasyComponent implements OnInit {
     if (rest.length) place("sixth_man", rest[0]);
     rest.slice(1).forEach((id) => place("bench", id));
 
-    this.squadSlots.set(slots);
     // Only a starter can captain (validateSquadShape); a badge read next to
     // anyone else — or not read at all — leaves it for the user to pick.
     const captain = result.captainId && starterIds.includes(result.captainId) ? result.captainId : null;
+    const changes = this.describeImportChanges(slots, captain, result.coachTeamId);
+
+    // Transfers are counted the same way the save does — new player ids
+    // against the round's carried-over baseline (role/position moves are
+    // free), capped by the round's own allowance: 4 normally, unlimited on
+    // the rounds real EL Fantasy opens up (transfersAllowed() is null there,
+    // and in round 1). Over the limit, nothing is applied at all — a
+    // screenshot that can't be saved shouldn't half-overwrite the squad.
+    const baseline = this.baselinePlayerIds();
+    const allowed = this.transfersAllowed();
+    const transfersNeeded = baseline ? ordered.filter((id) => !baseline.has(id)).length : 0;
+    if (baseline && allowed !== null && transfersNeeded > allowed) {
+      this.importError.set(
+        this.i18n.t("fantasy.importTooManyTransfers").replace("{n}", String(transfersNeeded)).replace("{max}", String(allowed)),
+      );
+      this.importErrorDetail.set(
+        [
+          changes.incoming.length ? `${this.i18n.t("fantasy.importIn")} ${changes.incoming.join(", ")}` : "",
+          changes.outgoing.length ? `${this.i18n.t("fantasy.importOut")} ${changes.outgoing.join(", ")}` : "",
+        ]
+          .filter(Boolean)
+          .join(" · "),
+      );
+      return;
+    }
+
+    this.squadSlots.set(slots);
     this.captainId.set(captain);
     if (result.coachTeamId) this.coachTeamId.set(result.coachTeamId);
     this.reconcileStarterFormation();
@@ -1501,7 +1547,40 @@ export class FantasyComponent implements OnInit {
       captainFound: captain !== null,
       ambiguous: result.ambiguous,
       positionsDiffer,
+      transfersNeeded,
+      transfersAllowed: baseline ? allowed : null,
+      ...changes,
     });
+  }
+
+  // What an import would change against the currently *saved* squad — who
+  // comes in/out, who changes role, and captain/coach swaps — for the
+  // result panel (and the over-limit rejection message).
+  private describeImportChanges(slots: SquadSlot[], captain: string | null, coachTeamId: string | null): ImportChanges {
+    const byId = this.rowById();
+    const nameOf = (id: string) => this.courtDisplayName(byId.get(id)?.player.name ?? "?");
+    const coachName = (teamId: string | null) =>
+      teamId ? this.courtDisplayName(this.coachByTeamId().get(teamId)?.headCoach ?? "?") : null;
+    const saved = this.serverSlotByPlayerId();
+    const imported = new Map(slots.filter((s) => s.playerId).map((s) => [s.playerId!, s.role]));
+
+    const roleChanges: ImportChanges["roleChanges"] = [];
+    for (const [id, role] of imported) {
+      const before = saved.get(id);
+      if (before && before !== role) roleChanges.push({ name: nameOf(id), from: before, to: role });
+    }
+    const savedCoach = this.serverCoachTeamId();
+    return {
+      incoming: [...imported.keys()].filter((id) => !saved.has(id)).map(nameOf),
+      outgoing: saved.size ? [...saved.keys()].filter((id) => !imported.has(id)).map(nameOf) : [],
+      roleChanges,
+      captainChange: captain && captain !== this.serverCaptainId() ? nameOf(captain) : null,
+      coachChange: coachTeamId && coachTeamId !== savedCoach ? { from: coachName(savedCoach), to: coachName(coachTeamId)! } : null,
+    };
+  }
+
+  slotRoleLabel(role: FantasySlotRole): string {
+    return this.i18n.t(role === "starter" ? "fantasy.roleStarter" : role === "sixth_man" ? "fantasy.roleSixthMan" : "fantasy.roleBench");
   }
 
   // Admin-only testing tool (2026-09-17) — plays out every still-scheduled
