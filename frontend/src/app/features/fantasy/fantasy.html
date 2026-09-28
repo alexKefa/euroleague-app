@@ -764,7 +764,10 @@
                         @if (!r.incoming.length && !r.outgoing.length && !r.roleChanges.length && !r.captainChange && !r.coachChange) {
                           <p class="text-muted">{{ i18n.t('fantasy.importNoChanges') }}</p>
                         }
-                        @if (r.matched < 10) {
+                        @if (r.kept.length) {
+                          <p class="text-muted">{{ i18n.t('fantasy.importKept') }} {{ r.kept.join(', ') }}</p>
+                        }
+                        @if (r.matched + r.kept.length < 10) {
                           <p class="text-muted">{{ i18n.t('fantasy.importMissing') }}</p>
                         }
                         @if (!r.coachFound) {

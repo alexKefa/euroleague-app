@@ -161,6 +161,10 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
     en: "Couldn't read that screenshot. Try a clearer one showing the whole squad.",
     el: "Δεν μπορέσαμε να διαβάσουμε το στιγμιότυπο. Δοκίμασε ένα πιο καθαρό με όλη την ομάδα.",
   },
+  "fantasy.importKept": {
+    en: "Not read from the screenshot, kept from your squad:",
+    el: "Δεν διαβάστηκαν από το στιγμιότυπο, κρατήθηκαν από την ομάδα σου:",
+  },
   "fantasy.importIn": { en: "In:", el: "Μέσα:" },
   "fantasy.importOut": { en: "Out:", el: "Έξω:" },
   "fantasy.importCaptain": { en: "Captain:", el: "Αρχηγός:" },

@@ -422,6 +422,7 @@ export class FantasyComponent implements OnInit {
         positionsDiffer: boolean;
         transfersNeeded: number;
         transfersAllowed: number | null;
+        kept: string[];
       } & ImportChanges)
     | null
   >(null);
@@ -1502,6 +1503,28 @@ export class FantasyComponent implements OnInit {
     if (rest.length) place("sixth_man", rest[0]);
     rest.slice(1).forEach((id) => place("bench", id));
 
+    // A name the OCR couldn't read shouldn't cost a player you already own:
+    // when every still-empty slot can be covered by saved-squad players the
+    // screenshot didn't show, keep them in their saved role (else any open
+    // slot) and say so, instead of emptying the slot and listing them "Out"
+    // (reported live: "Maledon out, found 9/10"). Skipped when more saved
+    // players are missing than there are open slots, since then some of
+    // them really were transferred out and we can't tell which.
+    const saved = this.serverSlotByPlayerId();
+    const unread = [...saved.keys()].filter((id) => !ordered.includes(id) && byId.has(id));
+    const openSlots = slots.filter((sl) => sl.playerId === null).length;
+    const kept: string[] = [];
+    if (unread.length > 0 && unread.length <= openSlots) {
+      for (const id of unread) {
+        const role = saved.get(id)!;
+        const idx = slots.findIndex((sl) => sl.role === role && sl.playerId === null);
+        const at = idx !== -1 ? idx : slots.findIndex((sl) => sl.playerId === null);
+        if (at === -1) continue;
+        slots[at] = { ...slots[at], playerId: id };
+        kept.push(id);
+      }
+    }
+
     // Only a starter can captain (validateSquadShape); a badge read next to
     // anyone else — or not read at all — leaves it for the user to pick.
     const captain = result.captainId && starterIds.includes(result.captainId) ? result.captainId : null;
@@ -1515,7 +1538,8 @@ export class FantasyComponent implements OnInit {
     // screenshot that can't be saved shouldn't half-overwrite the squad.
     const baseline = this.baselinePlayerIds();
     const allowed = this.transfersAllowed();
-    const transfersNeeded = baseline ? ordered.filter((id) => !baseline.has(id)).length : 0;
+    const squadIds = slots.flatMap((sl) => (sl.playerId ? [sl.playerId] : []));
+    const transfersNeeded = baseline ? squadIds.filter((id) => !baseline.has(id)).length : 0;
     if (baseline && allowed !== null && transfersNeeded > allowed) {
       this.importError.set(
         this.i18n.t("fantasy.importTooManyTransfers").replace("{n}", String(transfersNeeded)).replace("{max}", String(allowed)),
@@ -1540,7 +1564,7 @@ export class FantasyComponent implements OnInit {
     // EL Fantasy's position eligibility is looser than the official roster
     // feed ours follows (CLAUDE.md, 2026-09-24), so a faithful copy can
     // miss our 4G/4F/2C quota or fit no formation — say so up front.
-    const positionsDiffer = ordered.length === FANTASY_TOTAL_OUTFIELD && (starters === null || !this.positionQuotaMet());
+    const positionsDiffer = squadIds.length === FANTASY_TOTAL_OUTFIELD && (starters === null || !this.positionQuotaMet());
     this.importResult.set({
       matched: ordered.length,
       coachFound: result.coachTeamId !== null,
@@ -1549,6 +1573,7 @@ export class FantasyComponent implements OnInit {
       positionsDiffer,
       transfersNeeded,
       transfersAllowed: baseline ? allowed : null,
+      kept: kept.map((id) => this.courtDisplayName(byId.get(id)!.player.name)),
       ...changes,
     });
   }
