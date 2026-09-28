@@ -69,8 +69,8 @@ export const tourTranslations: Record<string, Record<Lang, string>> = {
 
   "tour.step.profile.title": { en: "Invite friends", el: "Κάλεσε φίλους" },
   "tour.step.profile.body": {
-    en: "Share your referral link from Profile — once someone you invite lands a correct prediction, you get a 400-point bonus.",
-    el: "Μοιράσου τον σύνδεσμο παραπομπής σου από το Προφίλ — μόλις κάποιος που κάλεσες πετύχει μια σωστή πρόβλεψη, κερδίζεις μπόνους 400 πόντων.",
+    en: "Share your referral link from Profile — once someone you invite lands a correct prediction, you get 3 bonus packs.",
+    el: "Μοιράσου τον σύνδεσμο παραπομπής σου από το Προφίλ — μόλις κάποιος που κάλεσες πετύχει μια σωστή πρόβλεψη, κερδίζεις 3 μπόνους πακέτα.",
   },
 
   "tour.step.guestCta.title": { en: "There's more once you're in", el: "Υπάρχουν πολλά περισσότερα μόλις συνδεθείς" },

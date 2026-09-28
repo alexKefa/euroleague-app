@@ -26,4 +26,7 @@ export const PACK_VISUAL_CLASSES: Record<PackType, string> = {
   // Same reasoning as qrBonus above — a free Elite-shaped one-off grant,
   // not a recurring pack type, so it reuses the Elite art too.
   welcomeBonus: "pack-visual-elite",
+  // Referral reward (2026-09-28 hotfix, packs not points) — same Elite-
+  // shaped one-off grant as qrBonus/welcomeBonus above, reuses their art.
+  referralBonus: "pack-visual-elite",
 };

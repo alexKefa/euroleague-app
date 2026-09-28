@@ -112,8 +112,8 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
 
   "profile.referralTitle": { en: "Refer a friend", el: "Προσκάλεσε έναν φίλο" },
   "profile.referralHint": {
-    en: "When they sign up and make their first correct prediction, you get a 400-point bonus.",
-    el: "Όταν εγγραφούν και κάνουν τη πρώτη σωστή πρόβλεψή τους, κερδίζεις 400 πόντους.",
+    en: "When they sign up and make their first correct prediction, you get 3 bonus packs.",
+    el: "Όταν εγγραφούν και κάνουν τη πρώτη σωστή πρόβλεψή τους, κερδίζεις 3 μπόνους πακέτα.",
   },
   "profile.referralCopy": { en: "Copy link", el: "Αντιγραφή συνδέσμου" },
   "profile.referralCopied": { en: "Copied!", el: "Αντιγράφηκε!" },

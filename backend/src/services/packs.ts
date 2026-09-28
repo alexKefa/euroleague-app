@@ -12,7 +12,8 @@ export type PackType =
   | "wheelLegendary"
   | "wheelCoach"
   | "qrBonus"
-  | "welcomeBonus";
+  | "welcomeBonus"
+  | "referralBonus";
 
 export interface CollectibleRow {
   collectible: typeof collectibles.$inferSelect;
@@ -257,6 +258,31 @@ export const PACKS: Record<PackType, PackDefinition> = {
   welcomeBonus: {
     type: "welcomeBonus",
     label: "Welcome Pack",
+    pointsCost: 0,
+    purchasable: false,
+    slots: [
+      { odds: { common: 1 } },
+      { odds: { rare: 1 } },
+      { odds: { rare: 1 } },
+      { odds: { rare: 1 } },
+      { odds: { rare: 0.9, legendary: 0.06, coach: 0.04 } },
+    ],
+  },
+
+  // Referral reward, hotfixed 2026-09-28 from a flat 400-point grant to
+  // packs directly — same "packs, not points" direction the welcome bonus
+  // already took on 2026-09-21 (services/referrals.ts's own doc comment).
+  // Same Elite-shaped odds as qrBonus/welcomeBonus (3 guaranteed rares + a
+  // legendary/coach-capable 5th slot); own distinct type/label rather than
+  // reusing either, same "don't mislabel the source" reasoning welcomeBonus
+  // already established. pointsCost 0 / not purchasable, and — like
+  // qrBonus/welcomeBonus — this is a one-off-per-referred-friend grant
+  // (users.referralRewardGranted), not a recurring supply channel like the
+  // wheel, so it doesn't need season-simulation retuning the way a
+  // wheel/pack-odds change would.
+  referralBonus: {
+    type: "referralBonus",
+    label: "Referral Bonus Pack",
     pointsCost: 0,
     purchasable: false,
     slots: [

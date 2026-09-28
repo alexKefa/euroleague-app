@@ -1,6 +1,6 @@
 import { eq, and, isNotNull } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { users, predictions, games, pointAdjustments } from "../db/schema.js";
+import { users, predictions, games, ownedPacks } from "../db/schema.js";
 import { computeWinnerTeamId } from "./points.js";
 
 // Excludes 0/O and 1/I/L — a code meant to be read aloud or typed by hand
@@ -26,20 +26,23 @@ export async function createUniqueReferralCode(): Promise<string> {
   throw new Error("Could not generate a unique referral code");
 }
 
-// Matches a "Playoffs Pack" (services/packs.ts's "pro" tier) — bigger than
-// the flat 100-point registration bonus on purpose: this one takes a real
-// referred friend actually engaging (see the trigger check below), not
-// just an email address.
-const REFERRAL_REWARD_POINTS = 400;
+// Packs, not points, as of 2026-09-28 (hotfix — same "packs, not points"
+// direction the welcome bonus already took on 2026-09-21, see
+// routes/auth.ts's WELCOME_PACK_QUANTITY). 3 referralBonus packs
+// (services/packs.ts) — more than the effort-free welcome bonus (2), less
+// than a live-event QR scan (5), since this one takes a real referred
+// friend actually engaging (see the trigger check below), not just an
+// email address.
+const REFERRAL_REWARD_PACK_QUANTITY = 3;
 
 /**
  * Call with the *referred* user's id (i.e. from whatever request is already
  * in that user's own session — same opportunistic-check pattern as
  * checkAndGrantRoundRewards). If they were referred, haven't already
  * triggered their referrer's reward, and have at least one resolved
- * correct prediction, grants the referrer REFERRAL_REWARD_POINTS and
- * flips referralRewardGranted so it can never fire twice for the same
- * referred user.
+ * correct prediction, grants the referrer REFERRAL_REWARD_PACK_QUANTITY
+ * unopened referralBonus packs and flips referralRewardGranted so it can
+ * never fire twice for the same referred user.
  */
 export async function checkAndGrantReferralReward(referredUserId: string): Promise<void> {
   const [referred] = await db
@@ -73,10 +76,11 @@ export async function checkAndGrantReferralReward(referredUserId: string): Promi
     .returning({ id: users.id });
   if (!claimed) return;
 
-  await db.insert(pointAdjustments).values({
-    userId: referred.referredByUserId,
-    points: REFERRAL_REWARD_POINTS,
-    reason: "Referral bonus",
-    createdByUserId: referredUserId,
-  });
+  await db.insert(ownedPacks).values(
+    Array.from({ length: REFERRAL_REWARD_PACK_QUANTITY }, () => ({
+      userId: referred.referredByUserId!,
+      packType: "referralBonus" as const,
+      openedAt: null,
+    }))
+  );
 }

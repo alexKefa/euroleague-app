@@ -137,6 +137,7 @@ export const storeTranslations: Record<string, Record<Lang, string>> = {
   "packs.label.wheelCoach": { en: "Jump Ball — Coach Pull", el: "Τζάμπολ — Κλήρωση Προπονητή" },
   "packs.label.qrBonus": { en: "QR Bonus Pack", el: "Πακέτο Μπόνους QR" },
   "packs.label.welcomeBonus": { en: "Welcome Pack", el: "Πακέτο Καλωσορίσματος" },
+  "packs.label.referralBonus": { en: "Referral Bonus Pack", el: "Πακέτο Μπόνους Παραπομπής" },
   "packs.tagline.starter": { en: "Where every run starts", el: "Εκεί ξεκινά κάθε προσπάθεια" },
   "packs.tagline.pro": { en: "Win or go home", el: "Νίκη ή τίποτα" },
   "packs.tagline.elite": { en: "The biggest stage in EuroLeague", el: "Η μεγαλύτερη σκηνή της EuroLeague" },
