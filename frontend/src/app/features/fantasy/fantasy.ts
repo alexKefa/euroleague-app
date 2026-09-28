@@ -406,6 +406,7 @@ export class FantasyComponent implements OnInit {
   readonly importProgress = signal(0);
   readonly importResult = signal<{ matched: number; coachFound: boolean; captainFound: boolean; ambiguous: string[]; positionsDiffer: boolean } | null>(null);
   readonly importError = signal<string | null>(null);
+  readonly importErrorDetail = signal<string | null>(null);
   readonly autoFillNotice = signal(false);
   // Brief "that swap doesn't fit any formation" pill (2026-09-25) — a
   // drag that onDrop rejects used to just snap back with no explanation.
@@ -1411,6 +1412,14 @@ export class FantasyComponent implements OnInit {
     const file = input.files?.[0];
     input.value = "";
     if (!file || this.roundLocked()) return;
+    this.importErrorDetail.set(null);
+    // The OCR engine is WebAssembly — absent under iOS Lockdown Mode and
+    // some locked-down browsers, which would otherwise fail opaquely.
+    if (typeof WebAssembly === "undefined") {
+      this.importResult.set(null);
+      this.importError.set(this.i18n.t("fantasy.importNoWasm"));
+      return;
+    }
     this.importing.set(true);
     this.importProgress.set(0);
     this.importError.set(null);
@@ -1424,6 +1433,9 @@ export class FantasyComponent implements OnInit {
         console.error("[fantasy import] OCR failed:", err);
         this.importing.set(false);
         this.importError.set(this.i18n.t("fantasy.importFailed"));
+        // Shown under the message — there's no console on a phone, and the
+        // underlying error is what tells a load/memory/image failure apart.
+        this.importErrorDetail.set(String(err instanceof Error ? `${err.name}: ${err.message}` : err).slice(0, 200));
       });
   }
 

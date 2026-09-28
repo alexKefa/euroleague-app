@@ -161,6 +161,10 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
     en: "Couldn't read that screenshot. Try a clearer one showing the whole squad.",
     el: "Δεν μπορέσαμε να διαβάσουμε το στιγμιότυπο. Δοκίμασε ένα πιο καθαρό με όλη την ομάδα.",
   },
+  "fantasy.importNoWasm": {
+    en: "Your browser blocks the scanner (e.g. iOS Lockdown Mode). Try another browser or turn it off for this site.",
+    el: "Ο browser σου μπλοκάρει τη σάρωση (π.χ. Λειτουργία Αποκλεισμού στο iOS). Δοκίμασε άλλον browser ή απενεργοποίησέ τη για αυτό το site.",
+  },
   "fantasy.importNothingFound": {
     en: "No players were recognized in that screenshot.",
     el: "Δεν αναγνωρίστηκε κανένας παίκτης στο στιγμιότυπο.",
