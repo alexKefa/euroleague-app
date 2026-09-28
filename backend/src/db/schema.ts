@@ -1404,6 +1404,11 @@ export const fantasyPriceChangeLog = pgTable(
     playerId: uuid("player_id").notNull().references(() => players.id),
     gameId: uuid("game_id").notNull().references(() => games.id),
     delta: real("delta").notNull(),
+    // The price change actually applied (new - old, after tenth rounding and
+    // the floor clamp) — what each owner's budget moves by (getUserBudget).
+    // `delta` is the raw formula output. Null only on rows from before this
+    // column existed and couldn't be reconstructed.
+    appliedDelta: real("applied_delta"),
     appliedAt: timestamp("applied_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => ({
@@ -1421,6 +1426,11 @@ export const fantasyCoachPriceChangeLog = pgTable(
     teamId: uuid("team_id").notNull().references(() => teams.id),
     gameId: uuid("game_id").notNull().references(() => games.id),
     delta: real("delta").notNull(),
+    // The price change actually applied (new - old, after tenth rounding and
+    // the floor clamp) — what each owner's budget moves by (getUserBudget).
+    // `delta` is the raw formula output. Null only on rows from before this
+    // column existed and couldn't be reconstructed.
+    appliedDelta: real("applied_delta"),
     appliedAt: timestamp("applied_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => ({

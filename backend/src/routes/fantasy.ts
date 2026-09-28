@@ -24,7 +24,8 @@ import {
   getDefaultRound,
   getBaselineSquad,
   getFantasyLeaderboardEntries,
-  getBudgetCap,
+  getUserBudget,
+  getOwnedPriceMoves,
   saveFantasyLineup,
   autoFillFantasySquad,
   SLOT_ROLES,
@@ -238,13 +239,12 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
       .where(and(eq(fantasyLineups.userId, req.userId!), eq(fantasyLineups.season, season), eq(fantasyLineups.round, round)));
     const coachPickRow = (
       await db
-        .select({ teamId: fantasyCoachPicks.teamId, priceAtPick: fantasyCoachPicks.priceAtPick })
+        .select({ teamId: fantasyCoachPicks.teamId })
         .from(fantasyCoachPicks)
         .where(and(eq(fantasyCoachPicks.userId, req.userId!), eq(fantasyCoachPicks.season, season), eq(fantasyCoachPicks.round, round)))
         .limit(1)
     )[0];
     let coachTeamId: string | null = coachPickRow?.teamId ?? null;
-    let coachPriceAtPick: number | null = coachPickRow?.priceAtPick ?? null;
 
     // Carry-forward (2026-09-07) — a round nobody has touched yet, but only
     // the current active round, never a future one someone poked at via a
@@ -303,12 +303,11 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
       });
       lineupRows = baseline.rows.map((r) => ({ ...r, priceAtPick: freshPriceByPlayerId.get(r.playerId) ?? FANTASY_MIN_PRICE }));
       coachTeamId = baseline.coachTeamId;
-      coachPriceAtPick = baseline.coachTeamId ? freshCoachPrice : null;
     }
 
     const playerIds = lineupRows.map((r) => r.playerId);
 
-    const [lockAt, playerTeamRows, roundGames, budgetCap, currentPriceRows, currentCoachPriceRows] = await Promise.all([
+    const [lockAt, playerTeamRows, roundGames, budgetCap, creditsChange] = await Promise.all([
       getRoundLockTime(season, round),
       playerIds.length
         ? db.select({ id: players.id, teamId: players.teamId }).from(players).where(inArray(players.id, playerIds))
@@ -325,22 +324,11 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
         })
         .from(games)
         .where(and(eq(games.season, season), eq(games.round, round))),
-      getBudgetCap(season),
-      // Current prices, to diff against each row's frozen priceAtPick for
-      // the "cr gained/lost this round" recap total below.
-      playerIds.length
-        ? db
-            .select({ playerId: playerFantasyPrices.playerId, price: playerFantasyPrices.price })
-            .from(playerFantasyPrices)
-            .where(and(eq(playerFantasyPrices.season, season), inArray(playerFantasyPrices.playerId, playerIds)))
-        : Promise.resolve([] as { playerId: string; price: number }[]),
-      coachTeamId
-        ? db
-            .select({ price: coachFantasyPrices.price })
-            .from(coachFantasyPrices)
-            .where(and(eq(coachFantasyPrices.teamId, coachTeamId), eq(coachFantasyPrices.season, season)))
-            .limit(1)
-        : Promise.resolve([] as { price: number }[]),
+      getUserBudget(req.userId!, season, round),
+      // "cr gained/lost this round" — the same game-driven price moves the
+      // budget is built from, so the two can never disagree (was current
+      // price minus priceAtPick, which also counted the 2026-09-24 re-pricing).
+      getOwnedPriceMoves(req.userId!, season, { round }),
     ]);
 
     const teamIdByPlayer = new Map(playerTeamRows.map((p) => [p.id, p.teamId]));
@@ -446,21 +434,6 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
     // unseen grant" shape as checkAndGrantFantasyRoundPoints's own return.
     const newFantasyMilestoneRewards = await checkAndGrantFantasyMilestones(req.userId!);
 
-    // "cr gained/lost this round" (2026-09-10) — each row's current price
-    // minus its own frozen priceAtPick snapshot, summed across the squad +
-    // coach. A row written before priceAtPick existed (null) is skipped
-    // rather than guessed at, same "missing data isn't a scoring
-    // dependency" convention as everywhere else in this economy.
-    const currentPriceByPlayerId = new Map(currentPriceRows.map((r) => [r.playerId, r.price]));
-    let creditsChange = 0;
-    for (const r of lineupRows) {
-      if (r.priceAtPick == null) continue;
-      creditsChange += (currentPriceByPlayerId.get(r.playerId) ?? FANTASY_MIN_PRICE) - r.priceAtPick;
-    }
-    if (coachTeamId && coachPriceAtPick != null) {
-      creditsChange += (currentCoachPriceRows[0]?.price ?? COACH_MIN_PRICE) - coachPriceAtPick;
-    }
-    creditsChange = Math.round(creditsChange * 10) / 10;
 
     res.json({
       season,

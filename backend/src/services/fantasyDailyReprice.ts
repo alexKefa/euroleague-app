@@ -161,7 +161,7 @@ async function applyPlayerPriceChanges(season: string): Promise<number> {
 
   let highestPrice = 0;
   const priceUpdates: { playerId: string; newPrice: number }[] = [];
-  const logRows: { playerId: string; gameId: string; delta: number }[] = [];
+  const logRows: { playerId: string; gameId: string; delta: number; appliedDelta: number }[] = [];
 
   for (const row of pending) {
     const currentPrice = priceByPlayerId.get(row.player_id) ?? FANTASY_MIN_PRICE;
@@ -197,7 +197,7 @@ async function applyPlayerPriceChanges(season: string): Promise<number> {
     const newPrice = round1(Math.max(FANTASY_MIN_PRICE, currentPrice + delta));
     priceByPlayerId.set(row.player_id, newPrice); // so a player with 2 games "today" (shouldn't normally happen) compounds correctly
     priceUpdates.push({ playerId: row.player_id, newPrice });
-    logRows.push({ playerId: row.player_id, gameId: row.game_id, delta });
+    logRows.push({ playerId: row.player_id, gameId: row.game_id, delta, appliedDelta: round1(newPrice - currentPrice) });
     highestPrice = Math.max(highestPrice, newPrice);
   }
 
@@ -243,7 +243,7 @@ async function applyCoachPriceChanges(season: string): Promise<number> {
   const priceByTeamId = new Map(priceRows.map((r) => [r.teamId, r.price]));
 
   const priceUpdates: { teamId: string; newPrice: number }[] = [];
-  const logRows: { teamId: string; gameId: string; delta: number }[] = [];
+  const logRows: { teamId: string; gameId: string; delta: number; appliedDelta: number }[] = [];
 
   for (const row of pending) {
     const currentPrice = priceByTeamId.get(row.team_id) ?? COACH_MIN_PRICE;
@@ -258,7 +258,7 @@ async function applyCoachPriceChanges(season: string): Promise<number> {
     const newPrice = round1(Math.max(COACH_MIN_PRICE, currentPrice + delta));
     priceByTeamId.set(row.team_id, newPrice);
     priceUpdates.push({ teamId: row.team_id, newPrice });
-    logRows.push({ teamId: row.team_id, gameId: row.game_id, delta });
+    logRows.push({ teamId: row.team_id, gameId: row.game_id, delta, appliedDelta: round1(newPrice - currentPrice) });
   }
 
   const values = priceUpdates.map((u) => sql`(${u.teamId}::uuid, ${u.newPrice}::real)`);

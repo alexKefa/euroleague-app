@@ -261,20 +261,53 @@ export function computeFantasyPrice(input: FantasyPriceInput, ceiling: number = 
 }
 
 /**
- * The budget cap for a season — always the flat FANTASY_BUDGET_CAP for
- * every user (2026-09-17, reverted the same day it was reported: a fresh
- * account was showing 100.5cr instead of a plain 100). This used to scale
- * with fantasy_pricing_state.ceiling (the same dynamic ceiling
- * computeFantasyPrice's own price scaling still uses), on the reasoning
- * that rising prices should grow the budget to match — but that meant
- * *every* user's cap silently drifted off 100 the moment the ceiling
- * moved at all, including a brand-new account that had never played a
- * game, which read as a bug rather than a feature. Kept as an async
- * function (not a bare constant) so routes/fantasy.ts's existing
- * `await getBudgetCap(season)` call sites don't need to change.
+ * Net credits a user's squad gained or lost from real games: every applied
+ * price move (fantasy_price_change_log / fantasy_coach_price_change_log
+ * `applied_delta`) for a player or coach they owned in the round that game
+ * belonged to. `round` scopes it to one round; `beforeRound` to every round
+ * before it. Deliberately game moves only, not "current price minus
+ * priceAtPick": prices were also re-set wholesale (the 2026-09-24 real-
+ * quotation import), and that re-pricing must not count as anyone's gain or
+ * loss — measuring from priceAtPick charged one account -12.4cr for it.
+ * One round trip.
  */
-export async function getBudgetCap(_season: string): Promise<number> {
-  return FANTASY_BUDGET_CAP;
+export async function getOwnedPriceMoves(
+  userId: string,
+  season: string,
+  scope: { round: number } | { beforeRound: number }
+): Promise<number> {
+  const roundFilter = "round" in scope ? sql`g.round = ${scope.round}` : sql`g.round < ${scope.beforeRound}`;
+  const [row] = await db.execute<{ change: number | null }>(sql`
+    select sum(x) as change from (
+      select l.applied_delta as x
+      from fantasy_price_change_log l
+      join games g on g.id = l.game_id
+      join fantasy_lineups fl on fl.player_id = l.player_id and fl.season = g.season and fl.round = g.round
+      where fl.user_id = ${userId} and g.season = ${season} and ${roundFilter}
+      union all
+      select l.applied_delta
+      from fantasy_coach_price_change_log l
+      join games g on g.id = l.game_id
+      join fantasy_coach_picks c on c.team_id = l.team_id and c.season = g.season and c.round = g.round
+      where c.user_id = ${userId} and g.season = ${season} and ${roundFilter}
+    ) moves
+  `);
+  return Math.round(Number(row?.change ?? 0) * 10) / 10;
+}
+
+/**
+ * A user's own budget for a round (2026-09-28, direct report: "my budget
+ * is still 100 even though I lost 1.3 credits on the first round") — real
+ * EuroLeague Fantasy's rule: everyone starts at FANTASY_BUDGET_CAP (100),
+ * then gains or loses whatever their squads' players and coaches gained or
+ * lost in real games in every earlier round (getOwnedPriceMoves). A rising
+ * squad lets its owner spend more, a falling one less, and a fresh account
+ * still starts at exactly 100 — unlike the earlier *global* scaling
+ * reverted 2026-09-17, where every account drifted off 100 together.
+ */
+export async function getUserBudget(userId: string, season: string, round: number): Promise<number> {
+  const moves = await getOwnedPriceMoves(userId, season, { beforeRound: round });
+  return Math.round((FANTASY_BUDGET_CAP + moves) * 10) / 10;
 }
 
 // --- Live per-game player scoring (2026-09-16) ---
@@ -763,7 +796,7 @@ export async function saveFantasyLineup(
   const playersCost = newIds.reduce((sum, id) => sum + (priceByPlayerId.get(id) ?? FANTASY_MIN_PRICE), 0);
   const coachCost = coachPriceRows[0]?.price ?? COACH_MIN_PRICE;
   const totalCost = Math.round((playersCost + coachCost) * 10) / 10;
-  const budgetCap = await getBudgetCap(season);
+  const budgetCap = await getUserBudget(userId, season, round);
   if (totalCost > budgetCap) {
     return { error: `Squad costs ${totalCost}, over the ${budgetCap}-credit budget`, code: "OVER_BUDGET" };
   }
@@ -847,7 +880,7 @@ const TARGET_SPEND_CANDIDATE_BAND = 3;
  * special-cased shortcut — it passes the exact same rules a real save does.
  */
 export async function autoFillFantasySquad(userId: string, season: string, round: number): Promise<SaveLineupResult> {
-  const budgetCap = await getBudgetCap(season);
+  const budgetCap = await getUserBudget(userId, season, round);
   const playerBudget = Math.max(0, budgetCap - COACH_MIN_PRICE);
 
   const [playerRows, coachRows, baseline] = await Promise.all([

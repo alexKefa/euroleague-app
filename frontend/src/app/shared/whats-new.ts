@@ -30,6 +30,15 @@ interface Announcement {
  */
 const ANNOUNCEMENTS: Announcement[] = [
   {
+    id: "2026-09-28-fantasy-growing-budget",
+    date: "2026-09-28",
+    icon: "trophy",
+    titleKey: "whatsNew.growingBudget.title",
+    bodyKey: "whatsNew.growingBudget.body",
+    link: "/fantasy",
+    ctaKey: "whatsNew.growingBudget.cta",
+  },
+  {
     id: "2026-09-28-fantasy-screenshot-import",
     date: "2026-09-28",
     icon: "share",

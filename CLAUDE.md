@@ -2188,7 +2188,21 @@ the established pattern.
   number yet; the mechanism will move the ceiling for real once someone's
   actual in-season form does.
 
-  **Follow-up, same day: `FANTASY_BUDGET_CAP` now scales with that same
+  **Superseded twice — current state (2026-09-28): per-user budgets.** The
+  global ceiling-scaled cap described next was reverted to a flat 100 for
+  everyone on 2026-09-17 (a fresh account showed 100.5), and on 2026-09-28
+  replaced by a real per-user budget (`getUserBudget`,
+  `services/fantasyScoring.ts`): 100 + every applied game-driven price move
+  (`fantasy_price_change_log`/`fantasy_coach_price_change_log.applied_delta`,
+  new column, backfilled) of players/coach you owned in each earlier round.
+  The page's round "credits change" uses the same query
+  (`getOwnedPriceMoves`). Deliberately *not* current price minus
+  priceAtPick: the 2026-09-24 real-quotation import re-priced everyone,
+  which that approach would have counted as users' gains/losses (one
+  account came out -12.4). The daily reprice also no longer caps moves at
+  FANTASY_MAX_PRICE/COACH_MAX_PRICE (floor kept) — those are the top of the
+  season-start curves only.
+  **Follow-up, same day (historical): `FANTASY_BUDGET_CAP` now scales with that same
   ceiling movement** — explicit ask ("budget should improve if current
   players increased their cr"): if real price inflation makes an
   otherwise-unchanged squad cost more, the 100cr cap should grow to match,
