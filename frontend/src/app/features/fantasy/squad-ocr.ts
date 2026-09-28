@@ -95,23 +95,40 @@ function maxEditsFor(surname: string): number {
 const MIN_TRUNCATED_PREFIX = 6;
 
 /**
- * How well `surname` appears in an OCR line: 2 = exact whole-word match,
- * 1 = a near miss (a few OCR slips scaled to the surname's length, a long
- * name truncated with an ellipsis by the EL Fantasy UI, or one word the
- * OCR split in two), 0 = not there.
+ * Where and how well `surname` appears among a line's tokens: score 2 =
+ * exact, 1 = a near miss (a few OCR slips scaled to the surname's length,
+ * a long name truncated with an ellipsis by the EL Fantasy UI, or one word
+ * the OCR split in two); `at` is the index of the (first) matched token.
+ * Returns null when it isn't there.
  */
-function matchScore(lineTokens: string[], lineText: string, surname: string): number {
-  if (surname.length < 3) return 0;
-  if (surname.includes(" ")) return ` ${lineText} `.includes(` ${surname} `) ? 2 : 0;
-  if (lineTokens.includes(surname)) return 2;
+function matchAt(tokens: string[], surname: string): { score: number; at: number; len: number } | null {
+  // Two-letter surnames ("LO") only count exactly and right after a single
+  // letter — a position prefix or initial ("G Lo", "M. Lo") — since a bare
+  // two-letter token is far too common in OCR noise.
+  if (surname.length === 2) {
+    const at = tokens.findIndex((t, i) => t === surname && i > 0 && tokens[i - 1].length === 1);
+    return at === -1 ? null : { score: 2, at, len: 1 };
+  }
+  if (surname.length < 2) return null;
+  if (surname.includes(" ")) {
+    const words = surname.split(" ");
+    for (let i = 0; i + words.length <= tokens.length; i++) {
+      if (words.every((w, k) => tokens[i + k] === w)) return { score: 2, at: i, len: words.length };
+    }
+    return null;
+  }
+  const exact = tokens.indexOf(surname);
+  if (exact !== -1) return { score: 2, at: exact, len: 1 };
   const maxEdits = maxEditsFor(surname);
   // Adjacent token pairs cover a long surname the OCR broke in two.
-  const joined = lineTokens.slice(0, -1).map((t, i) => t + lineTokens[i + 1]);
-  for (const t of [...lineTokens, ...joined]) {
-    if (maxEdits > 0 && t.length >= 5 && levenshtein(t, surname, maxEdits) <= maxEdits) return 1;
-    if (t.length >= MIN_TRUNCATED_PREFIX && t.length < surname.length && surname.startsWith(t)) return 1;
+  for (let i = 0; i < tokens.length; i++) {
+    const options = i + 1 < tokens.length ? [{ t: tokens[i], len: 1 }, { t: tokens[i] + tokens[i + 1], len: 2 }] : [{ t: tokens[i], len: 1 }];
+    for (const { t, len } of options) {
+      if (maxEdits > 0 && t.length >= 5 && levenshtein(t, surname, maxEdits) <= maxEdits) return { score: 1, at: i, len };
+      if (t.length >= MIN_TRUNCATED_PREFIX && t.length < surname.length && surname.startsWith(t)) return { score: 1, at: i, len };
+    }
   }
-  return 0;
+  return null;
 }
 
 // Squad screens put names over the court, jerseys and coloured panels —
@@ -250,56 +267,95 @@ export function matchSquadLines(
     id: r.player.id,
     surname: surnameOf(r.player.name),
     initial: firstInitialOf(r.player.name),
+    firstName: firstNameOf(r.player.name),
+    positionLetter: r.player.position ? r.player.position[0].toUpperCase() : null,
     teamTokens: new Set([normalize(r.team.code), ...normalize(r.team.name).split(" ")]),
   }));
   const coachCandidates = coaches
     .filter((c) => c.headCoach)
-    .map((c) => ({ teamId: c.team.id, surname: surnameOf(c.headCoach!), initial: firstInitialOf(c.headCoach!) }));
+    .map((c) => ({ teamId: c.team.id, surname: surnameOf(c.headCoach!) }));
 
   // First sighting position per player — both OCR passes see the same
   // layout, so the earliest (top-most, then left-most) sighting wins.
-  const seenAt = new Map<string, { y: number; x: number; cx: number; cy: number; h: number }>();
+  const seenAt = new Map<string, Sighting>();
   const ambiguous = new Set<string>();
+  const badges: OcrWord[] = [];
   let coachTeamId: string | null = null;
 
   for (const line of lines) {
-    const text = normalize(line.text);
-    if (!text) continue;
-    const tokens = text.split(" ");
+    const tokens = tokenize(line);
+    if (tokens.length === 0) continue;
+    const texts = tokens.map((t) => t.text);
 
-    let best = 0;
-    let hits: typeof candidates = [];
+    // One line can hold several different players — EL Fantasy puts two
+    // labels on the same row ("G Spagnolo  G Maledon") and sparse-mode OCR
+    // often reads that as one line. Group candidates by *where* in the line
+    // they matched, so only players competing for the same word are
+    // treated as a tie (the old one-player-per-line logic dropped both).
+    const byPosition = new Map<number, { c: (typeof candidates)[number]; score: number; len: number }[]>();
     for (const c of candidates) {
-      const score = matchScore(tokens, text, c.surname);
-      if (score === 0 || score < best) continue;
-      if (score > best) {
-        best = score;
-        hits = [];
+      const m = matchAt(texts, c.surname);
+      if (!m) continue;
+      const group = byPosition.get(m.at) ?? [];
+      group.push({ c, score: m.score, len: m.len });
+      byPosition.set(m.at, group);
+    }
+
+    // Exact matches first, then longer ones, so a confirmed surname claims
+    // the words it covers ("ALVES DE SOUZA" must not also yield "Souza")
+    // and the first name/initial/position letter in front of it ("JOSEP
+    // Puerto" must not also yield "Joseph") before anything else can match.
+    const claimed = new Set<number>();
+    const rank = (g: { score: number; len: number }[]) => Math.max(...g.map((x) => x.score * 10 + x.len));
+    const groups = [...byPosition.entries()].sort(([, a], [, b]) => rank(b) - rank(a));
+    for (const [at, group] of groups) {
+      if (claimed.has(at)) continue;
+      const best = rank(group);
+      const bestLen = group.find((g) => g.score * 10 + g.len === best)!.len;
+      let hits = group.filter((g) => g.score * 10 + g.len === best).map((g) => g.c);
+      // Several players share a surname — narrow by what precedes it: EL
+      // Fantasy's position letter ("G Thompson"), a first initial or full
+      // first name ("D. Thompson", "Darius Thompson"), then a club
+      // name/code anywhere on the line, before giving up.
+      const before = texts.slice(Math.max(0, at - 2), at);
+      for (const narrow of [
+        (c: (typeof hits)[number]) => c.positionLetter !== null && before.includes(c.positionLetter),
+        (c: (typeof hits)[number]) => (c.initial !== null && before.includes(c.initial)) || (c.firstName !== null && before.includes(c.firstName)),
+        (c: (typeof hits)[number]) => texts.some((t) => t.length >= 3 && c.teamTokens.has(t)),
+      ]) {
+        if (hits.length <= 1) break;
+        const narrowed = hits.filter(narrow);
+        if (narrowed.length >= 1) hits = narrowed;
       }
-      hits.push(c);
-    }
-    // Several players share a surname — narrow by a first initial ("M. JAMES")
-    // or a club name/code on the same line before giving up.
-    if (hits.length > 1) {
-      const byInitial = hits.filter((c) => c.initial && tokens.includes(c.initial));
-      if (byInitial.length >= 1) hits = byInitial;
-    }
-    if (hits.length > 1) {
-      const byTeam = hits.filter((c) => tokens.some((t) => t.length >= 3 && c.teamTokens.has(t)));
-      if (byTeam.length >= 1) hits = byTeam;
-    }
-    if (hits.length === 1) {
-      const prev = seenAt.get(hits[0].id);
-      if (!prev || line.y < prev.y) {
-        seenAt.set(hits[0].id, { y: line.y, x: line.x, cx: line.cx ?? line.x, cy: line.cy ?? line.y, h: line.h ?? 0 });
+      if (hits.length === 1) {
+        const hit = hits[0];
+        for (let i = at + 1; i < at + bestLen; i++) claimed.add(i);
+        for (const i of [at - 1, at - 2]) {
+          const t = texts[i];
+          if (t && (t === hit.firstName || t === hit.initial || t === hit.positionLetter)) claimed.add(i);
+        }
+        const tok = tokens[at];
+        const prev = seenAt.get(hits[0].id);
+        if (!prev || tok.cy < prev.cy) seenAt.set(hits[0].id, { cx: tok.cx, cy: tok.cy, h: line.h ?? 0 });
+      } else {
+        ambiguous.add(hits[0].surname);
       }
-    } else if (hits.length > 1) {
-      ambiguous.add(hits[0].surname);
     }
 
     if (!coachTeamId) {
-      const coachHits = coachCandidates.filter((c) => matchScore(tokens, text, c.surname) === 2);
+      const coachHits = coachCandidates.filter((c) => matchAt(texts, c.surname)?.score === 2);
       if (coachHits.length === 1) coachTeamId = coachHits[0].teamId;
+    }
+
+    // Captain badge candidates: a lone "C" that isn't a position prefix,
+    // i.e. not directly followed on the same line by a name-like word
+    // ("C Wright" is Wright's position — Center — not a captaincy).
+    for (const w of line.words ?? []) {
+      if (!CAPTAIN_BADGE.test(w.text.trim())) continue;
+      const idx = (line.words ?? []).indexOf(w);
+      const next = (line.words ?? [])[idx + 1];
+      if (next && normalize(next.text).replace(/ /g, "").length >= 3) continue;
+      badges.push(w);
     }
   }
 
@@ -311,12 +367,49 @@ export function matchSquadLines(
 
   // Reading order with a row tolerance, so names on the same visual row
   // (a court's front line) sort left-to-right rather than by pixel jitter.
-  const ROW_TOLERANCE = 40;
+  const rowTolerance = Math.max(20, ...[...seenAt.values()].map((s) => s.h * 1.5));
   const playerIds = [...seenAt.entries()]
-    .sort(([, a], [, b]) => (Math.abs(a.y - b.y) <= ROW_TOLERANCE ? a.x - b.x : a.y - b.y))
+    .sort(([, a], [, b]) => (Math.abs(a.cy - b.cy) <= rowTolerance ? a.cx - b.cx : a.cy - b.cy))
     .map(([id]) => id);
 
-  return { playerIds, coachTeamId, ambiguous: [...ambiguous], captainId: findCaptain(lines, seenAt) };
+  return { playerIds, coachTeamId, ambiguous: [...ambiguous], captainId: findCaptain(badges, seenAt) };
+}
+
+interface Sighting {
+  cx: number;
+  cy: number;
+  h: number;
+}
+
+interface Token {
+  text: string;
+  cx: number;
+  cy: number;
+}
+
+/**
+ * Normalized tokens with a screen position each — taken per OCR word when
+ * word boxes exist (so two players on one line get their own positions),
+ * else split from the line text at the line's own position.
+ */
+function tokenize(line: OcrLine): Token[] {
+  const lineCx = line.cx ?? line.x;
+  const lineCy = line.cy ?? line.y;
+  const source = line.words?.length ? line.words : [{ text: line.text, cx: lineCx, cy: lineCy }];
+  const out: Token[] = [];
+  for (const w of source) {
+    for (const t of normalize(w.text).split(" ")) {
+      if (t) out.push({ text: t, cx: w.cx, cy: w.cy });
+    }
+  }
+  return out;
+}
+
+function firstNameOf(name: string): string | null {
+  const comma = name.indexOf(",");
+  if (comma === -1) return null;
+  const first = normalize(name.slice(comma + 1)).split(" ")[0];
+  return first && first.length >= 2 ? first : null;
 }
 
 // A standalone "C" is the captain badge. The badge's circle outline tends
@@ -324,7 +417,6 @@ export function matchSquadLines(
 // a dark C in a yellow circle read as "Lc]"), so allow one such character
 // on each side; "©" is the whole badge read as a single glyph.
 const CAPTAIN_BADGE = /^[([{|lLI1]?[C©][)\]}|lI1]?$/i;
-const POSITION_LETTER = /^[GF]$/i;
 // How far (in multiples of the name label's own height) a badge may sit
 // from a name and still count as that player's — the badge is drawn on the
 // jersey/card corner, a few text-heights away from the name label.
@@ -332,15 +424,11 @@ const CAPTAIN_MAX_DISTANCE = 6;
 
 /**
  * Best-effort captain detection: the matched player nearest a lone "C"
- * badge. Deliberately conservative — returns null (user picks, as before)
- * when no badge is read, when badges point at more than one player, or
- * when lone "G"/"F" words also appear, since that means single letters on
- * this screen are position labels and a lone "C" is just as likely "Center".
+ * badge (position-letter prefixes are already excluded by the caller).
+ * Conservative — null (user picks) when no badge was read or badges point
+ * at more than one player.
  */
-function findCaptain(lines: OcrLine[], seenAt: Map<string, { cx: number; cy: number; h: number }>): string | null {
-  const words = lines.flatMap((l) => l.words ?? []);
-  if (words.some((w) => POSITION_LETTER.test(w.text.trim()))) return null;
-  const badges = words.filter((w) => CAPTAIN_BADGE.test(w.text.trim()));
+function findCaptain(badges: OcrWord[], seenAt: Map<string, Sighting>): string | null {
   const captains = new Set<string>();
   for (const badge of badges) {
     let best: { id: string; dist: number } | null = null;
