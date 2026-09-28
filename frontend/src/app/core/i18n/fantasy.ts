@@ -130,6 +130,41 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   },
   "fantasy.autoFillConfirmButton": { en: "Randomize", el: "Τυχαία συμπλήρωση" },
   "fantasy.cancel": { en: "Cancel", el: "Ακύρωση" },
+  // Import from EuroLeague Fantasy screenshot (2026-09-28, in-browser OCR).
+  "fantasy.importButton": { en: "Import", el: "Εισαγωγή" },
+  "fantasy.importScreenshot": { en: "Import squad from EuroLeague Fantasy", el: "Εισαγωγή ομάδας από το EuroLeague Fantasy" },
+  "fantasy.importScreenshotHint": {
+    en: "Upload a screenshot of your EuroLeague Fantasy squad to copy it here",
+    el: "Ανέβασε ένα στιγμιότυπο της ομάδας σου στο EuroLeague Fantasy για να την αντιγράψεις εδώ",
+  },
+  "fantasy.importReading": { en: "Reading your screenshot…", el: "Διαβάζουμε το στιγμιότυπο…" },
+  "fantasy.importDone": { en: "Found {n}/10 players.", el: "Βρέθηκαν {n}/10 παίκτες." },
+  "fantasy.importMissing": {
+    en: "Add the missing players from the list.",
+    el: "Πρόσθεσε τους παίκτες που λείπουν από τη λίστα.",
+  },
+  "fantasy.importNoCoach": { en: "Coach not found — pick one.", el: "Ο προπονητής δεν βρέθηκε — διάλεξε έναν." },
+  "fantasy.importAmbiguous": { en: "Couldn't tell apart:", el: "Δεν ξεχωρίσαμε:" },
+  "fantasy.importCheckRoles": {
+    en: "Check starters/bench, choose your captain, then tap Save.",
+    el: "Έλεγξε βασικούς/πάγκο, διάλεξε αρχηγό και πάτα Αποθήκευση.",
+  },
+  "fantasy.importCheckRolesCaptainFound": {
+    en: "Captain detected. Check starters/bench, then tap Save.",
+    el: "Βρέθηκε ο αρχηγός. Έλεγξε βασικούς/πάγκο και πάτα Αποθήκευση.",
+  },
+  "fantasy.importPositionsDiffer": {
+    en: "Some positions differ from EuroLeague Fantasy's — adjust to 4 guards, 4 forwards and 2 centers before saving.",
+    el: "Κάποιες θέσεις διαφέρουν από το EuroLeague Fantasy — προσάρμοσε σε 4 γκαρντ, 4 φόργουορντ και 2 σέντερ πριν την αποθήκευση.",
+  },
+  "fantasy.importFailed": {
+    en: "Couldn't read that screenshot. Try a clearer one showing the whole squad.",
+    el: "Δεν μπορέσαμε να διαβάσουμε το στιγμιότυπο. Δοκίμασε ένα πιο καθαρό με όλη την ομάδα.",
+  },
+  "fantasy.importNothingFound": {
+    en: "No players were recognized in that screenshot.",
+    el: "Δεν αναγνωρίστηκε κανένας παίκτης στο στιγμιότυπο.",
+  },
   "fantasy.autoFillNotice": { en: "Squad randomized!", el: "Η ομάδα συμπληρώθηκε τυχαία!" },
   "fantasy.swapNoFormation": { en: "That swap doesn't fit any formation", el: "Αυτή η αλλαγή δεν ταιριάζει σε κανέναν σχηματισμό" },
   "fantasy.turnAbbrev": { en: "T", el: "Η" },

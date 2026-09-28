@@ -80,7 +80,10 @@ app.use(
         "img-src": ["'self'", "data:", "https:"],
         "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         "font-src": ["'self'", "https://fonts.gstatic.com"],
-        "script-src": ["'self'", "'unsafe-inline'"],
+        // 'wasm-unsafe-eval' lets the Fantasy Five screenshot import run
+        // Tesseract's self-hosted WebAssembly OCR core (/tesseract/core) —
+        // it permits compiling wasm only, not JS eval().
+        "script-src": ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'"],
         "script-src-attr": ["'unsafe-inline'"],
       },
     },

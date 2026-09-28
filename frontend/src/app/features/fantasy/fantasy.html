@@ -724,6 +724,39 @@
                    below instead, in normal flow rather than absolutely
                    positioned. Order left to right matches how they were
                    asked for: randomize, deadline, simulate. -->
+              @if (importing() || importResult() || importError()) {
+                <div class="mt-2 rounded-lg border px-3 py-2 text-[11px] leading-snug"
+                     [class]="importError() ? 'border-red-500/40 bg-red-500/10 text-red-500' : 'border-line bg-card text-ink'">
+                  @if (importing()) {
+                    {{ i18n.t('fantasy.importReading') }} {{ importProgress() }}%
+                  } @else if (importError()) {
+                    <div class="flex items-start justify-between gap-2">
+                      <span>{{ importError() }}</span>
+                      <button type="button" class="font-bold" (click)="importError.set(null)" [attr.aria-label]="i18n.t('fantasy.close')">&times;</button>
+                    </div>
+                  } @else if (importResult(); as r) {
+                    <div class="flex items-start justify-between gap-2">
+                      <div class="space-y-1">
+                        <p class="font-bold">{{ i18n.t('fantasy.importDone').replace('{n}', '' + r.matched) }}</p>
+                        @if (r.matched < 10) {
+                          <p class="text-muted">{{ i18n.t('fantasy.importMissing') }}</p>
+                        }
+                        @if (!r.coachFound) {
+                          <p class="text-muted">{{ i18n.t('fantasy.importNoCoach') }}</p>
+                        }
+                        @if (r.ambiguous.length) {
+                          <p class="text-muted">{{ i18n.t('fantasy.importAmbiguous') }} {{ r.ambiguous.join(', ') }}</p>
+                        }
+                        @if (r.positionsDiffer) {
+                          <p class="text-amber-500">{{ i18n.t('fantasy.importPositionsDiffer') }}</p>
+                        }
+                        <p class="text-muted">{{ i18n.t(r.captainFound ? 'fantasy.importCheckRolesCaptainFound' : 'fantasy.importCheckRoles') }}</p>
+                      </div>
+                      <button type="button" class="font-bold text-muted" (click)="importResult.set(null)" [attr.aria-label]="i18n.t('fantasy.close')">&times;</button>
+                    </div>
+                  }
+                </div>
+              }
               @if (isCurrentRound()) {
                 <div class="mt-2 flex items-center justify-center gap-2">
                   <!-- Round 1 only — every later round already carries a
@@ -769,6 +802,29 @@
                         <app-nav-icon name="dice" [size]="16" />
                       }
                       {{ i18n.t('fantasy.autoFillConfirmButton') }}
+                    </button>
+                  }
+                  <!-- Import from EuroLeague Fantasy (2026-09-28) — pick a
+                       screenshot of the real EL Fantasy squad; it's OCR'd
+                       in the browser and loaded into the builder unsaved
+                       (see importScreenshot in fantasy.ts). Any round, but
+                       only before lock, since it's a full rebuild. -->
+                  @if (!roundLocked()) {
+                    <input #importInput type="file" accept="image/*" class="hidden" (change)="importScreenshot($event)" />
+                    <button
+                      type="button"
+                      (click)="importInput.click()"
+                      [disabled]="importing()"
+                      [attr.aria-label]="i18n.t('fantasy.importScreenshot')"
+                      [title]="i18n.t('fantasy.importScreenshotHint')"
+                      class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[10px] font-mono font-bold bg-page text-highlight border border-line shadow-card hover:text-highlight-dim hover:border-highlight transition-colors disabled:opacity-40"
+                    >
+                      @if (importing()) {
+                        <app-logo-spinner [size]="16" />
+                      } @else {
+                        <app-nav-icon name="share" [size]="16" />
+                      }
+                      {{ i18n.t('fantasy.importButton') }}
                     </button>
                   }
                   <!-- Round-lock "buzzer" (2026-09-10, days-countdown text +

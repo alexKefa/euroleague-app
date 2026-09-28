@@ -2645,6 +2645,9 @@ the established pattern.
   protocol needed, just the same manual read this session did, run by a
   model instead of by hand. Explicitly **not pursued further** — dropped
   per direct instruction ("we cant work on this now"), not scheduled.
+  **Built 2026-09-28 as free in-browser OCR instead** — see "Import from
+  EuroLeague Fantasy" right below (a Claude-vision version was built and
+  reverted the same day: per-import API cost wasn't wanted).
   Two more real mismatches surfaced during the one real squad pull tried
   (kept for whenever this is revisited, since they're substantive, not
   session-specific): (1) **EuroLeague Fantasy uses its own, looser
@@ -2663,6 +2666,32 @@ the established pattern.
   pool is carrying at least one stale entry independent of the live
   feed, same category as the 5 players missing from our own system in
   the price-reconciliation pass above.
+
+- **Import from EuroLeague Fantasy (2026-09-28)** — an "Import" button
+  next to Randomize on the Fantasy Five court (any round, before lock)
+  takes a screenshot and reads it **entirely in the user's browser** with
+  Tesseract.js (`features/fantasy/squad-ocr.ts`) — free, no API, nothing
+  uploaded, no backend route. All Tesseract assets (worker, LSTM wasm
+  cores, `eng` `4.0.0_best_int` data) are self-hosted under `/tesseract/`
+  via `angular.json` asset globs from `node_modules` (nothing checked in),
+  and `tesseract.js` itself is dynamically imported so it's not in the
+  initial bundle. The library's default jsDelivr URLs would be blocked by
+  the backend's CSP, which also needed `'wasm-unsafe-eval'` added to
+  `script-src` (`index.ts`). The screenshot is read in two passes, each
+  thresholded to pure black-on-white (bright pixels as text, then dark
+  pixels as text) — **verified necessary**: without binarizing, Tesseract
+  skipped names drawn over a court-coloured area entirely. Matching
+  (`matchSquadLines`, pure, testable in Node) is by surname — exact, or
+  one-letter OCR slip for 6+ letter single-word surnames — with duplicate
+  surnames narrowed by first initial ("D. Thompson") then club code/name on
+  the same line, else reported as ambiguous. OCR can't see roles or the
+  captain badge, so `applyImportedSquad` (`fantasy.ts`) picks the starting
+  five as the formation fillable by players seen earliest on screen, then
+  sixth man, then bench, leaves captain empty, and loads it **unsaved** —
+  the user adjusts and saves via the normal `POST /lineup/batch`, so every
+  rule still applies there. Tested in Node against a synthetic dark-theme
+  squad image built from real pool names (10/10 + coach, correct order);
+  **not yet tested against a real EL Fantasy screenshot**.
 
 ## Season transition (2026-27, 2026-09-02)
 

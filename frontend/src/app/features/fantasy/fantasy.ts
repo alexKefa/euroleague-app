@@ -32,6 +32,7 @@ import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { newsDateLocale, gameDateTimeFormat as gameDateTimeFormatFn } from "../../shared/news-date-format";
 import { InjuryBadgeComponent } from "../../shared/injury-badge";
 import { FantasyLeaderboardListComponent } from "../../shared/fantasy-leaderboard-list";
+import { readSquadFromScreenshot, OcrSquadResult } from "./squad-ocr";
 import {
   injuryStatusLabel,
   injuryStatusClass,
@@ -46,6 +47,7 @@ import {
 export const FANTASY_STARTER_COUNT = 5;
 export const FANTASY_SIXTH_MAN_COUNT = 1;
 export const FANTASY_BENCH_COUNT = 4;
+const FANTASY_TOTAL_OUTFIELD = FANTASY_STARTER_COUNT + FANTASY_SIXTH_MAN_COUNT + FANTASY_BENCH_COUNT;
 export const FANTASY_BUDGET_CAP = 100;
 export const FANTASY_POSITION_QUOTA: Record<"Guard" | "Forward" | "Center", number> = {
   Guard: 4,
@@ -397,6 +399,13 @@ export class FantasyComponent implements OnInit {
   // service, so each transient confirmation owns its own timer like that.
   readonly autoFilling = signal(false);
   readonly confirmingAutoFill = signal(false);
+
+  // "Import from EuroLeague Fantasy" (2026-09-28) — see importScreenshot.
+  // importProgress is Tesseract's own 0-100 recognition progress.
+  readonly importing = signal(false);
+  readonly importProgress = signal(0);
+  readonly importResult = signal<{ matched: number; coachFound: boolean; captainFound: boolean; ambiguous: string[]; positionsDiffer: boolean } | null>(null);
+  readonly importError = signal<string | null>(null);
   readonly autoFillNotice = signal(false);
   // Brief "that swap doesn't fit any formation" pill (2026-09-25) — a
   // drag that onDrop rejects used to just snap back with no explanation.
@@ -1388,6 +1397,98 @@ export class FantasyComponent implements OnInit {
         });
       },
       error: () => this.autoFilling.set(false),
+    });
+  }
+
+  // "Import from EuroLeague Fantasy" (2026-09-28): the user picks a
+  // screenshot of their real EL Fantasy squad, it's OCR'd in their own
+  // browser (squad-ocr.ts — free, nothing uploaded), and the matched
+  // players load into the builder as *unsaved* local state. The user
+  // reviews, picks a captain, and taps Save as usual, so quota / club
+  // limit / budget / transfers are all checked by the normal save path.
+  importScreenshot(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file || this.roundLocked()) return;
+    this.importing.set(true);
+    this.importProgress.set(0);
+    this.importError.set(null);
+    this.importResult.set(null);
+    readSquadFromScreenshot(file, this.allRows(), this.coaches(), (pct) => this.importProgress.set(pct))
+      .then((result) => {
+        this.importing.set(false);
+        this.applyImportedSquad(result);
+      })
+      .catch((err) => {
+        console.error("[fantasy import] OCR failed:", err);
+        this.importing.set(false);
+        this.importError.set(this.i18n.t("fantasy.importFailed"));
+      });
+  }
+
+  private applyImportedSquad(result: OcrSquadResult): void {
+    const byId = this.rowById();
+    const ordered = result.playerIds.filter((id) => byId.has(id)).slice(0, FANTASY_TOTAL_OUTFIELD);
+    if (ordered.length === 0) {
+      this.importError.set(this.i18n.t("fantasy.importNothingFound"));
+      return;
+    }
+
+    // OCR can't see roles, so pick the starting five: the formation whose
+    // required positions can be filled by players seen earliest on screen
+    // (EL Fantasy draws the court above the bench). Falls back to plain
+    // reading order when no formation fits.
+    const positionOf = (id: string) => byId.get(id)!.player.position as PositionName;
+    let starters: string[] | null = null;
+    let bestScore = Infinity;
+    for (const formation of FORMATION_OPTIONS) {
+      const pickedIdx: number[] = [];
+      const need = [...FORMATION_POSITIONS[formation]];
+      ordered.forEach((id, idx) => {
+        const at = need.indexOf(positionOf(id));
+        if (at === -1) return;
+        need.splice(at, 1);
+        pickedIdx.push(idx);
+      });
+      if (need.length > 0) continue;
+      const score = pickedIdx.reduce((a, b) => a + b, 0);
+      if (score < bestScore) {
+        bestScore = score;
+        starters = pickedIdx.map((i) => ordered[i]);
+      }
+    }
+    const starterIds = starters ?? ordered.slice(0, this.starterCount);
+    const rest = ordered.filter((id) => !starterIds.includes(id));
+
+    const slots = initialSquadSlots();
+    const place = (role: FantasySlotRole, id: string) => {
+      const idx = slots.findIndex((s) => s.role === role && s.playerId === null);
+      if (idx !== -1) slots[idx] = { ...slots[idx], playerId: id };
+    };
+    starterIds.forEach((id) => place("starter", id));
+    if (rest.length) place("sixth_man", rest[0]);
+    rest.slice(1).forEach((id) => place("bench", id));
+
+    this.squadSlots.set(slots);
+    // Only a starter can captain (validateSquadShape); a badge read next to
+    // anyone else — or not read at all — leaves it for the user to pick.
+    const captain = result.captainId && starterIds.includes(result.captainId) ? result.captainId : null;
+    this.captainId.set(captain);
+    if (result.coachTeamId) this.coachTeamId.set(result.coachTeamId);
+    this.reconcileStarterFormation();
+    this.saved.set(false);
+
+    // EL Fantasy's position eligibility is looser than the official roster
+    // feed ours follows (CLAUDE.md, 2026-09-24), so a faithful copy can
+    // miss our 4G/4F/2C quota or fit no formation — say so up front.
+    const positionsDiffer = ordered.length === FANTASY_TOTAL_OUTFIELD && (starters === null || !this.positionQuotaMet());
+    this.importResult.set({
+      matched: ordered.length,
+      coachFound: result.coachTeamId !== null,
+      captainFound: captain !== null,
+      ambiguous: result.ambiguous,
+      positionsDiffer,
     });
   }
 

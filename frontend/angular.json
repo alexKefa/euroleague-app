@@ -18,8 +18,15 @@
             "browser": "src/main.ts",
             "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
-            "assets": ["src/assets", { "glob": "**/*", "input": "public" }],
+            "assets": [
+              "src/assets",
+              { "glob": "**/*", "input": "public" },
+              { "glob": "worker.min.js", "input": "node_modules/tesseract.js/dist", "output": "tesseract" },
+              { "glob": "tesseract-core*-lstm.wasm.js", "input": "node_modules/tesseract.js-core", "output": "tesseract/core" },
+              { "glob": "eng.traineddata.gz", "input": "node_modules/@tesseract.js-data/eng/4.0.0_best_int", "output": "tesseract/lang" }
+            ],
             "styles": ["src/styles.css"],
+            "allowedCommonJsDependencies": ["tesseract.js", "regenerator-runtime/runtime"],
             "scripts": []
           },
           "configurations": {
