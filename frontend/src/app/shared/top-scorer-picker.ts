@@ -24,10 +24,12 @@ interface TopScorerCandidate {
 // games on screen, so a lock check isn't needed either — a stale open
 // modal that outlives tipoff just gets a normal error back from the
 // backend's own isTopScorerPickLocked check on submit.
+import { SwishLoaderComponent } from "./swish-loader";
+
 @Component({
   selector: "app-top-scorer-picker",
   standalone: true,
-  imports: [PlayerPhotoComponent, LogoSpinnerComponent, InjuryBadgeComponent, DecimalPipe, NavIconComponent],
+  imports: [SwishLoaderComponent, PlayerPhotoComponent, LogoSpinnerComponent, InjuryBadgeComponent, DecimalPipe, NavIconComponent],
   templateUrl: "./top-scorer-picker.html",
 })
 export class TopScorerPickerComponent implements OnInit {

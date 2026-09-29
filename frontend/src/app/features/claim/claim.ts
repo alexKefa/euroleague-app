@@ -5,7 +5,6 @@ import { AuthService } from "../../core/auth.service";
 import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
 import { ButtonDirective } from "../../shared/button.directive";
-import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { stashPendingPromoClaim, consumePendingPromoClaim } from "../../shared/pending-promo-claim";
 
 type ClaimState = "loading" | "granted" | "already_claimed" | "invalid" | "error" | "no_code";
@@ -24,10 +23,12 @@ type ClaimState = "loading" | "granted" | "already_claimed" | "invalid" | "error
  * exactly like a wheel win or a round reward — this page never rolls a
  * card itself.
  */
+import { SwishLoaderComponent } from "../../shared/swish-loader";
+
 @Component({
   selector: "app-claim",
   standalone: true,
-  imports: [CommonModule, RouterLink, ButtonDirective, LogoSpinnerComponent],
+  imports: [SwishLoaderComponent, CommonModule, RouterLink, ButtonDirective],
   templateUrl: "./claim.html",
 })
 export class ClaimComponent implements OnInit {

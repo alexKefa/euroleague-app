@@ -4,7 +4,6 @@ import { Collectible, CollectibleStatsResponse } from "../../core/models";
 import { CollectibleCardComponent } from "./collectible-card";
 import { I18nService } from "../../core/i18n.service";
 import { ApiService } from "../../core/api.service";
-import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { TeamCodePipe } from "../../shared/team-display-code";
 import { ChipDirective } from "../../shared/chip.directive";
 
@@ -20,10 +19,12 @@ import { ChipDirective } from "../../shared/chip.directive";
  * pointer actually moved between down and up. No separate tap target
  * needed, matches how a physical card would react to either gesture.
  */
+import { SwishLoaderComponent } from "../../shared/swish-loader";
+
 @Component({
   selector: "app-card-preview",
   standalone: true,
-  imports: [CommonModule, CollectibleCardComponent, LogoSpinnerComponent, TeamCodePipe, ChipDirective],
+  imports: [SwishLoaderComponent, CommonModule, CollectibleCardComponent, TeamCodePipe, ChipDirective],
   templateUrl: "./card-preview.html",
 })
 export class CardPreviewComponent implements OnChanges {

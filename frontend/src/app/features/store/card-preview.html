@@ -69,7 +69,7 @@
 
           @if (statsLoading()) {
             <div class="flex-1 flex items-center justify-center">
-              <app-logo-spinner [size]="26" />
+              <app-swish-loader [size]="56" />
             </div>
           } @else if (!stats() || !stats()!.matched) {
             <div class="flex-1 flex items-center justify-center text-center px-2">
