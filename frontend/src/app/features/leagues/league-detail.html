@@ -37,11 +37,13 @@
         </button>
       </div>
       <p class="relative text-[12px] text-muted mt-3 mb-2">{{ i18n.t('leagues.inviteHint') }}</p>
-      <div class="relative flex items-center gap-2">
-        <span class="status-tile flex-1 min-w-0 h-11 px-3 flex items-center rounded-xl border-2 border-dashed border-team-primary/50 font-mono text-lg font-bold tracking-[0.3em] truncate">
+      <!-- Phones: code on its own full-width row (never clipped), Copy below;
+           side by side from sm: up. -->
+      <div class="relative flex flex-col sm:flex-row sm:items-center gap-2">
+        <span class="status-tile w-full sm:flex-1 min-w-0 h-12 px-3 flex items-center justify-center rounded-xl border-2 border-dashed border-team-primary/50 font-mono text-lg font-bold tracking-[0.2em] whitespace-nowrap select-all">
           {{ league.code }}
         </span>
-        <button type="button" (click)="copyCode()" appButton class="shrink-0 !h-11 !rounded-xl">
+        <button type="button" (click)="copyCode()" appButton class="w-full sm:w-auto shrink-0 !h-11 !rounded-xl">
           {{ copied() ? i18n.t('leagues.copied') : i18n.t('leagues.copyCode') }}
         </button>
       </div>
