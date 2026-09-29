@@ -6,32 +6,35 @@
 
   <app-page-hint hintId="schedule" icon="schedule">{{ i18n.t('schedule.hint') }}</app-page-hint>
 
-  <div class="flex items-center justify-between gap-2 mb-4">
-    <button
-      type="button"
-      (click)="prevRound()"
-      [disabled]="!hasPrevRound()"
-      class="tap-target relative w-9 h-9 shrink-0 rounded-full bg-card border border-line flex items-center justify-center text-muted hover:text-ink disabled:opacity-30 transition-colors"
-      [attr.aria-label]="i18n.t('schedule.prevRound')"
-    >
-      &larr;
-    </button>
-
-    <div class="flex-1 max-w-[10rem]">
-      <app-dropdown [options]="roundOptions()" [value]="currentRoundStr()" (valueChange)="selectRound(+($event ?? 0))" />
+  <!-- Round + team filter card (2026-09-29 restyle): round stepper on one
+       row, team filter full-width below, instead of four controls squeezed
+       into one line on a phone. -->
+  <div class="relative overflow-hidden rounded-3xl p-3 mb-5 bg-card border border-line shadow-card">
+    <div class="pointer-events-none absolute inset-0" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 22%, transparent) 0%, color-mix(in srgb, var(--accent-primary) 5%, transparent) 60%, transparent 100%)" aria-hidden="true"></div>
+    <div class="relative flex items-center gap-2">
+      <button
+        type="button"
+        (click)="prevRound()"
+        [disabled]="!hasPrevRound()"
+        class="status-tile w-10 h-10 shrink-0 rounded-xl border border-line flex items-center justify-center text-ink text-lg hover:border-team-primary disabled:opacity-30 transition-colors"
+        [attr.aria-label]="i18n.t('schedule.prevRound')"
+      >
+        &larr;
+      </button>
+      <div class="flex-1 min-w-0">
+        <app-dropdown [options]="roundOptions()" [value]="currentRoundStr()" (valueChange)="selectRound(+($event ?? 0))" />
+      </div>
+      <button
+        type="button"
+        (click)="nextRound()"
+        [disabled]="!hasNextRound()"
+        class="status-tile w-10 h-10 shrink-0 rounded-xl border border-line flex items-center justify-center text-ink text-lg hover:border-team-primary disabled:opacity-30 transition-colors"
+        [attr.aria-label]="i18n.t('schedule.nextRound')"
+      >
+        &rarr;
+      </button>
     </div>
-
-    <button
-      type="button"
-      (click)="nextRound()"
-      [disabled]="!hasNextRound()"
-      class="tap-target relative w-9 h-9 shrink-0 rounded-full bg-card border border-line flex items-center justify-center text-muted hover:text-ink disabled:opacity-30 transition-colors"
-      [attr.aria-label]="i18n.t('schedule.nextRound')"
-    >
-      &rarr;
-    </button>
-
-    <div class="flex-1">
+    <div class="relative mt-2">
       <app-dropdown
         [options]="teamDropdownOptions()"
         [value]="teamFilter() ?? ''"
@@ -39,7 +42,6 @@
       />
     </div>
   </div>
-
   @if (auth.currentUser()?.isAdmin) {
     <div class="space-y-2 mb-4">
       <!-- Simulation tools: start one/all games and fast-forward whatever's running. -->
@@ -103,15 +105,22 @@
     <div class="space-y-5">
       @for (group of gamesByDate(); track group.date) {
         <div>
-          <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-2">
-            {{ group.date | date: weekdayDateFormat():"Europe/Athens":dateLocale() }}
-          </p>
+          <div class="flex items-center gap-2 mb-2.5">
+            <span class="h-7 px-3 inline-flex items-center rounded-full bg-team-primary/15 text-team-primary text-[12px] font-bold uppercase tracking-wide whitespace-nowrap">
+              {{ group.date | date: weekdayDateFormat():"Europe/Athens":dateLocale() }}
+            </span>
+            <span class="flex-1 h-px bg-line"></span>
+            <span class="text-[11px] font-bold text-muted tabular-nums">{{ group.games.length }}</span>
+          </div>
           <div class="space-y-2">
             @for (game of group.games; track game.id) {
               <a
                 [routerLink]="['/games', game.id]"
-                class="flex items-center justify-between gap-3 px-4 py-4 sm:py-3 rounded-2xl shadow-card hover:shadow-pop transition-all"
-                [ngClass]="isFavoriteTeamGame(game) ? 'bg-team-primary/10 border border-team-primary/30' : 'bg-card border border-line'"
+                class="flex items-center justify-between gap-3 px-4 py-4 sm:py-3 rounded-2xl shadow-card hover:shadow-pop active:scale-[0.99] transition-all border"
+                [ngClass]="[
+                  isFavoriteTeamGame(game) ? 'bg-team-primary/10' : 'bg-card',
+                  game.status === 'live' ? 'border-red-500/50' : isFavoriteTeamGame(game) ? 'border-team-primary/40' : 'border-line'
+                ]"
               >
                 <!-- Mobile: logo on top, name+rank centered below it (flex-col-reverse
                      so the logo — second in DOM, closest to center on desktop —
@@ -135,16 +144,16 @@
                     }
                   </span>
                   @if (game.homeTeam.logoUrl) {
-                    <img [src]="game.homeTeam.logoUrl" [alt]="game.homeTeam.name" loading="lazy" decoding="async" appRetryImg class="w-7 h-7 object-contain shrink-0 team-logo" />
+                    <img [src]="game.homeTeam.logoUrl" [alt]="game.homeTeam.name" loading="lazy" decoding="async" appRetryImg class="w-10 h-10 object-contain shrink-0 team-logo" />
                   } @else {
                     <span
-                      class="w-7 h-7 rounded-full shrink-0"
+                      class="w-10 h-10 rounded-full shrink-0"
                       [style.background]="game.homeTeam.primaryColor"
                     ></span>
                   }
                 </div>
 
-                <div class="shrink-0 w-20 text-center">
+                <div class="shrink-0 w-24 text-center">
                   @if (game.status === "live") {
                     <span class="flex items-center justify-center gap-1 mb-0.5">
                       <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
@@ -160,15 +169,15 @@
                     </span>
                   }
                   @if (game.status === "final" || game.status === "live") {
-                    <span class="font-mono font-bold" [class.text-highlight]="gameResult(game) === 'home'">{{
+                    <span class="font-display text-xl tabular-nums" [class.text-highlight]="gameResult(game) === 'home'">{{
                       game.homeScore
                     }}</span>
                     <span class="font-mono text-muted mx-0.5">-</span>
-                    <span class="font-mono font-bold" [class.text-highlight]="gameResult(game) === 'away'">{{
+                    <span class="font-display text-xl tabular-nums" [class.text-highlight]="gameResult(game) === 'away'">{{
                       game.awayScore
                     }}</span>
                   } @else {
-                    <span class="font-mono text-xs text-muted">{{ game.tipoffAt | date: "HH:mm":"Europe/Athens" }}</span>
+                    <span class="status-tile inline-flex items-center h-7 px-2.5 rounded-full border border-line font-mono text-[13px] font-bold text-ink">{{ game.tipoffAt | date: "HH:mm":"Europe/Athens" }}</span>
                   }
                   @if (game.venueName) {
                     <p class="text-[10px] text-muted truncate mt-0.5" [title]="game.venueName">{{ game.venueName }}</p>
@@ -192,10 +201,10 @@
                      Desktop: back to the original horizontal, left-aligned row. -->
                 <div class="flex flex-col items-center gap-1 sm:flex-row sm:items-center sm:gap-2 flex-1 min-w-0">
                   @if (game.awayTeam.logoUrl) {
-                    <img [src]="game.awayTeam.logoUrl" [alt]="game.awayTeam.name" loading="lazy" decoding="async" appRetryImg class="w-7 h-7 object-contain shrink-0 team-logo" />
+                    <img [src]="game.awayTeam.logoUrl" [alt]="game.awayTeam.name" loading="lazy" decoding="async" appRetryImg class="w-10 h-10 object-contain shrink-0 team-logo" />
                   } @else {
                     <span
-                      class="w-7 h-7 rounded-full shrink-0"
+                      class="w-10 h-10 rounded-full shrink-0"
                       [style.background]="game.awayTeam.primaryColor"
                     ></span>
                   }
