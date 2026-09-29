@@ -37,9 +37,12 @@
      left of the crop) appears to lead the reveal into the hoop and then
      the "Clutch" text below it, rather than the whole mark fading in at
      once or opening from center. */
-  clip-path: inset(0 100% 100% 0);
-  animation: logo-draw-reveal 0.85s cubic-bezier(0.65, 0, 0.35, 1) forwards;
-  animation-delay: 0.85s;
+  /* 2026-09-29: the clip-path draw reveal (which also waited 0.85s on a
+     blank screen first) is replaced by a ball-drop with squash — see
+     logo-drop below. */
+  animation: logo-drop 0.95s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+  position: relative;
+  z-index: 1;
 }
 
 /* Mobile-only size reduction (2026-09-14, direct request) — narrow
@@ -71,7 +74,7 @@
   animation: wordmark-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   /* Starts partway through the logo's own draw-reveal above (0.85s-1.7s),
      not only after it finishes — settles at roughly the same moment. */
-  animation-delay: 1.3s;
+  animation-delay: 0.75s;
   font-family: "IBM Plex Sans", system-ui, sans-serif;
   font-weight: 700;
   font-size: 12px;
@@ -80,7 +83,7 @@
   color: var(--color-muted);
 }
 .tagline-flat-brand {
-  color: #ff6b35;
+  color: var(--accent-primary, #ff6b35);
 }
 
 @keyframes wordmark-in {
@@ -88,4 +91,98 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* --- 2026-09-29 splash rework --------------------------------------------- */
+
+@keyframes logo-drop {
+  0% { opacity: 0; transform: translateY(-70px) scale(0.72); filter: blur(6px); }
+  45% { opacity: 1; filter: blur(0); }
+  58% { transform: translateY(8px) scale(1.05, 0.93); }
+  76% { transform: translateY(-5px) scale(0.98, 1.02); }
+  100% { opacity: 1; transform: none; }
+}
+
+/* Team-colour glow behind everything. */
+.splash-glow {
+  top: 50%;
+  left: 50%;
+  width: 90vmin;
+  height: 90vmin;
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent-primary, #ff6b35) 32%, transparent) 0%, transparent 62%);
+  animation: splash-glow 2.6s ease-in-out both;
+}
+@keyframes splash-glow {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  35% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  70% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.05); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* Shockwave rings on landing (~0.6s into the drop). */
+.splash-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 70%;
+  aspect-ratio: 1;
+  border-radius: 9999px;
+  border: 3px solid var(--accent-primary, #ff6b35);
+  transform: translate(-50%, -50%) scale(0.3);
+  opacity: 0;
+  pointer-events: none;
+  animation: splash-ring 1s cubic-bezier(0.2, 0.7, 0.3, 1) 0.62s both;
+}
+.splash-ring--late {
+  border-width: 2px;
+  animation-delay: 0.78s;
+}
+@keyframes splash-ring {
+  0% { opacity: 0.85; transform: translate(-50%, -50%) scale(0.3); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.9); }
+}
+
+/* Thin loading bar near the bottom. */
+.splash-bar {
+  width: 9rem;
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--color-line);
+  overflow: hidden;
+  opacity: 0;
+  animation: splash-fade 0.4s ease-out 0.4s forwards;
+}
+@keyframes splash-fade {
+  to { opacity: 1; }
+}
+.splash-bar-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: 9999px;
+  background: var(--accent-primary, #ff6b35);
+  transform-origin: left;
+  transform: scaleX(0);
+  animation: splash-bar 2.2s cubic-bezier(0.4, 0, 0.2, 1) 0.4s forwards;
+}
+@keyframes splash-bar {
+  to { transform: scaleX(1); }
+}
+
+/* Exit: the logo zooms slightly while the whole screen fades. */
+.logo-scan-wrap {
+  transition: transform 0.45s ease-in;
+}
+.is-hiding .logo-scan-wrap {
+  transform: scale(1.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-mark { animation: wordmark-in 0.3s ease-out both; }
+  .splash-ring, .splash-glow { animation: none; opacity: 0; }
+  .splash-glow { opacity: 0.6; }
+  .splash-bar-fill { animation-duration: 0.01s; }
+  .is-hiding .logo-scan-wrap { transform: none; }
 }

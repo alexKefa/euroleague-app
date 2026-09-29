@@ -1,13 +1,21 @@
 <div
   class="splash-root fixed inset-0 z-[100] flex flex-col items-center justify-center gap-3 bg-page transition-opacity duration-[400ms] overflow-hidden"
   [class.opacity-0]="hiding"
+  [class.is-hiding]="hiding"
 >
+  <!-- Rework (2026-09-29, "fix the animation of the splash"): no dead
+       second up front — team glow first, the logo drops in like a ball
+       with a squash, shockwave rings on landing, tagline slides up, a thin
+       loading bar fills, and the logo zooms gently on exit. -->
+  <div class="splash-glow absolute pointer-events-none" aria-hidden="true"></div>
   <!-- v14 (2026-09-14) — a new user-supplied "C"-swoosh basketball/hoop
        mark with a baked-in serif "Clutch" wordmark, replacing v9/v10's
        backboard/net illustration. See app.component.html's comment for
        the fuller history/dark-theme-variant rationale. -->
   <div class="relative px-6 max-w-[92vw]" aria-label="Clutch" role="img">
     <div class="logo-scan-wrap">
+      <span class="splash-ring" aria-hidden="true"></span>
+      <span class="splash-ring splash-ring--late" aria-hidden="true"></span>
       <img src="/clutch-mark.png" alt="" class="logo-mark brand-mark-light" />
       <img src="/clutch-mark-dark.png" alt="" class="logo-mark brand-mark-dark" />
     </div>
@@ -21,4 +29,7 @@
   <p class="tagline-flat" [attr.aria-label]="'Clutch' + i18n.t('splash.taglineSuffix')">
     <span class="tagline-flat-brand">Clutch</span>{{ i18n.t('splash.taglineSuffix') }}
   </p>
+  <div class="splash-bar absolute left-1/2 -translate-x-1/2 bottom-[calc(3rem+env(safe-area-inset-bottom))]" aria-hidden="true">
+    <span class="splash-bar-fill"></span>
+  </div>
 </div>
