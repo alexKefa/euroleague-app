@@ -74,7 +74,7 @@
               <th
                 scope="col"
                 (click)="setSort('position')"
-                class="sticky left-0 top-0 z-20 bg-card border-b border-line w-1/4 min-w-[7rem] px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
+                class="sticky left-0 top-0 z-20 bg-card border-b border-line w-1/4 min-w-[9.5rem] px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
                 [class.text-team-primary]="sortKey() === 'position'"
               >
                 {{ i18n.t('standings.colTeam') }}
@@ -116,8 +116,8 @@
                 [style.border-bottom-width.px]="row.position === 6 || row.position === 10 ? 2 : null"
                 [style.border-bottom-style]="row.position === 6 ? 'dashed' : row.position === 10 ? 'solid' : null"
               >
-                <td class="sticky left-0 z-10 bg-card w-1/4 min-w-[7rem] px-3 py-3 font-bold whitespace-nowrap">
-                  <span class="flex items-center gap-2">
+                <td class="sticky left-0 z-10 bg-card w-1/4 min-w-[9.5rem] px-3 py-3 font-bold whitespace-nowrap">
+                  <span class="flex items-center gap-1.5">
                     <span
                       class="w-6 h-6 rounded-lg shrink-0 flex items-center justify-center font-mono text-[12px] font-bold"
                       [ngClass]="row.position <= 6 ? 'bg-emerald-500/15 text-emerald-500' : row.position <= 10 ? 'bg-amber-500/15 text-amber-500' : 'text-muted'"
@@ -127,7 +127,7 @@
                     } @else {
                       <span class="w-5 h-5 rounded-full shrink-0" [style.background]="row.team.primaryColor"></span>
                     }
-                    <span class="truncate sm:hidden">{{ row.team.code | teamCode }}</span>
+                    <span class="sm:hidden">{{ row.team.code | teamCode }}</span>
                     <span class="truncate hidden sm:inline">{{ row.team.name }}</span>
                   </span>
                 </td>
