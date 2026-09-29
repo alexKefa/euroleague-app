@@ -94,6 +94,10 @@ on dev usually means drift, not a code bug.
   rename it. Display abbreviations come from `frontend/.../shared/team-display-code.ts`.
 - `collectibles.teamId` and `image_url` are one-time snapshots taken at insert and
   go stale after transfers or photo backfills.
+- Fantasy budgets are per-user (`getUserBudget`, `services/fantasyScoring.ts`):
+  100 plus every applied game-driven price move (`applied_delta` in the price
+  change logs) of players/coach owned in earlier rounds. The daily reprice
+  (`services/fantasyDailyReprice.ts`) keeps the price floor but no longer caps at max.
 - In production the backend also serves the built Angular app (SPA fallback).
 
 ## Frontend architecture
@@ -107,6 +111,9 @@ on dev usually means drift, not a code bug.
 - Forms use Reactive Forms, not `ngModel`.
 - Buttons use `[appButton]` (`primary`/`outline`/`secondary`, `appButtonSize="sm"`).
 - Back-links use `navHistory.previousUrl() ?? '<fallback>'`.
+- **Shipping a user-facing feature**: add an entry at the top of `ANNOUNCEMENTS`
+  in `shared/whats-new.ts` plus EN/EL strings in `core/i18n/whats-new.ts` (one-time
+  "What's new" toast; entries expire after 14 days).
 - Font: IBM Plex Sans for all roles (Google Fonts import in `styles.css`). It must
   have Greek glyph coverage.
 - Signals footgun: never read a signal inside an `effect()` that also writes it.
