@@ -41,7 +41,33 @@
          roster.html has the identical two-axis structure and hit the same
          original wall — not touched in this pass since only Standings was
          reported, but it's a candidate for the same fix later. -->
-    <div class="overflow-auto max-h-[65vh] rounded-2xl border border-line shadow-card">
+    <!-- Podium (2026-09-29 restyle): top 3 as cards tinted in each club's own
+         colour, leader slightly taller. -->
+    @if (podium().length === 3) {
+      <div class="grid grid-cols-3 gap-2 mb-4 items-end">
+        @for (row of [podium()[1], podium()[0], podium()[2]]; track row.team.id) {
+          <a
+            [routerLink]="['/teams', row.team.id]"
+            class="relative overflow-hidden flex flex-col items-center text-center gap-1.5 min-w-0 rounded-3xl border border-line bg-card shadow-card px-2 active:scale-[0.98] transition-transform"
+            [ngClass]="row.position === 1 ? 'pt-5 pb-4' : 'pt-3 pb-3'"
+          >
+            <div class="pointer-events-none absolute inset-0" [style.background]="'linear-gradient(180deg, color-mix(in srgb, ' + (row.team.primaryColor || '#888') + ' 30%, transparent) 0%, transparent 85%)'" aria-hidden="true"></div>
+            <span
+              class="relative w-7 h-7 rounded-full flex items-center justify-center font-display text-sm"
+              [ngClass]="row.position === 1 ? 'bg-team-primary text-team-secondary' : 'bg-card border border-line text-ink'"
+            >{{ row.position }}</span>
+            @if (row.team.logoUrl) {
+              <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" class="relative object-contain team-logo" [ngClass]="row.position === 1 ? 'w-14 h-14' : 'w-11 h-11'" />
+            } @else {
+              <span class="relative rounded-full" [ngClass]="row.position === 1 ? 'w-14 h-14' : 'w-11 h-11'" [style.background]="row.team.primaryColor"></span>
+            }
+            <span class="relative font-display text-sm leading-tight truncate max-w-full">{{ row.team.code | teamCode }}</span>
+            <span class="relative font-mono text-[12px] font-bold text-muted tabular-nums">{{ row.stats.wins }}-{{ row.stats.losses }}</span>
+          </a>
+        }
+      </div>
+    }
+    <div class="overflow-auto max-h-[65vh] rounded-3xl border border-line shadow-card bg-card">
         <table class="w-full text-sm min-w-[480px] border-collapse">
           <thead>
             <tr class="bg-card">
@@ -90,11 +116,14 @@
                 [style.border-bottom-width.px]="row.position === 6 || row.position === 10 ? 2 : null"
                 [style.border-bottom-style]="row.position === 6 ? 'dashed' : row.position === 10 ? 'solid' : null"
               >
-                <td class="sticky left-0 z-10 bg-card w-1/4 min-w-[7rem] px-3 py-2 font-bold whitespace-nowrap">
+                <td class="sticky left-0 z-10 bg-card w-1/4 min-w-[7rem] px-3 py-3 font-bold whitespace-nowrap">
                   <span class="flex items-center gap-2">
-                    <span class="font-mono font-normal w-4 shrink-0 text-right" [class.text-team-primary]="sortKey() === 'position'">{{ row.position }}</span>
+                    <span
+                      class="w-6 h-6 rounded-lg shrink-0 flex items-center justify-center font-mono text-[12px] font-bold"
+                      [ngClass]="row.position <= 6 ? 'bg-emerald-500/15 text-emerald-500' : row.position <= 10 ? 'bg-amber-500/15 text-amber-500' : 'text-muted'"
+                    >{{ row.position }}</span>
                     @if (row.team.logoUrl) {
-                      <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" class="w-5 h-5 object-contain shrink-0 team-logo" />
+                      <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" class="w-6 h-6 object-contain shrink-0 team-logo" />
                     } @else {
                       <span class="w-5 h-5 rounded-full shrink-0" [style.background]="row.team.primaryColor"></span>
                     }
@@ -103,7 +132,7 @@
                   </span>
                 </td>
                 @for (col of columns.slice(1); track col.key) {
-                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-team-primary]="sortKey() === col.key">
+                  <td class="px-3 py-3 font-mono text-right whitespace-nowrap" [class.text-team-primary]="sortKey() === col.key">
                     {{ col.format(row) }}
                   </td>
                 }
@@ -111,6 +140,11 @@
             }
           </tbody>
         </table>
+    </div>
+    <!-- Zone key for the coloured position chips. -->
+    <div class="flex flex-wrap items-center gap-3 mt-3 text-[12px] text-muted font-semibold">
+      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-emerald-500/60"></span>{{ i18n.t('standings.zonePlayoffs') }}</span>
+      <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-amber-500/60"></span>{{ i18n.t('standings.zonePlayIn') }}</span>
     </div>
   }
 </div>

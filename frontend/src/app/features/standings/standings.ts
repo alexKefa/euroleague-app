@@ -113,6 +113,10 @@ export class StandingsComponent implements OnInit {
   readonly sortKey = signal("position");
   readonly sortDesc = signal(false);
 
+  // Top 3 by league position, for the podium above the table (2026-09-29
+  // restyle) — independent of whatever column the table is sorted by.
+  readonly podium = computed(() => [...this.allRows()].sort((a, b) => a.position - b.position).slice(0, 3));
+
   readonly rows = computed(() => {
     const col = COLUMNS.find((c) => c.key === this.sortKey()) ?? COLUMNS[0];
     const desc = this.sortDesc();

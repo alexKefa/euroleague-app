@@ -46,5 +46,8 @@ export const standingsTranslations: Record<string, Record<Lang, string>> = {
     en: "100 minus opponents' effective field goal % — higher means a tougher defense",
     el: "100 μείον το effective field goal % των αντιπάλων — όσο μεγαλύτερο, τόσο πιο σκληρή άμυνα",
   },
+  // Zone key under the table (2026-09-29 restyle).
+  "standings.zonePlayoffs": { en: "Playoffs (1-6)", el: "Playoffs (1-6)" },
+  "standings.zonePlayIn": { en: "Play-in (7-10)", el: "Play-in (7-10)" },
   "standings.legendL10": { en: "Record over the last 10 games", el: "Ρεκόρ στους τελευταίους 10 αγώνες" },
 };
