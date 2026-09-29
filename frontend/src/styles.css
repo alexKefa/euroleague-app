@@ -592,3 +592,9 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .sheet-rise { animation: none; }
 }
+
+/* Translucent card-colored tile that lets a tinted parent show through.
+   Needed because Tailwind's `bg-card/70`-style opacity modifiers don't
+   generate for the CSS-variable theme colors (no <alpha-value> in
+   tailwind.config.js), so they silently do nothing. */
+.status-tile { background: color-mix(in srgb, var(--color-card) 72%, transparent); }

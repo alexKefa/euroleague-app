@@ -199,6 +199,8 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   // Same "stays English in both locales" precedent as posGuard/homeAbbrev
   // above — a currency-style abbreviation, not a translatable word.
   "fantasy.creditsAbbrev": { en: "CR", el: "CR" },
+  // Under the status card's budget ring: "12.4 CR left" (2026-09-29).
+  "fantasy.creditsLeft": { en: "left", el: "απομένουν" },
   // Shown next to a player/coach's price while picking (2026-09-12) — the
   // budget line in the status bar shows spent/cap, but neither picker
   // screen previously surfaced "how much do I actually have left to

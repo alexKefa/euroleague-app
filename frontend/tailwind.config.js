@@ -1,3 +1,16 @@
+// Theme colors are CSS variables holding hex values, which Tailwind can't
+// apply an opacity modifier to on its own — so `bg-team-primary/10`,
+// `bg-card/80`, `border-line/60` etc. used to generate no CSS at all and
+// silently rendered nothing (found 2026-09-29: 180 such usages app-wide).
+// A color function lets Tailwind build them with color-mix() instead.
+const themeVar = (name, fallback) => ({ opacityValue }) =>
+  // Plain `bg-card` passes Tailwind's own `var(--tw-bg-opacity, 1)` here —
+  // keep that a plain var() so a browser without color-mix() still gets
+  // every solid color; only an explicit `/NN` modifier uses color-mix().
+  opacityValue === undefined || opacityValue === "1" || String(opacityValue).startsWith("var(")
+    ? `var(${name}, ${fallback})`
+    : `color-mix(in srgb, var(${name}, ${fallback}) calc(${opacityValue} * 100%), transparent)`;
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ["./src/**/*.{html,ts}"],
@@ -10,11 +23,11 @@ module.exports = {
         // app repaints for the theme toggle with zero template changes.
         // highlight stays a fixed brand color on purpose — it shouldn't
         // shift between themes.
-        page: "var(--color-page, #0A0A0B)",
-        card: "var(--color-card, #151516)",
-        line: "var(--color-line, #232324)",
-        muted: "var(--color-muted, #8A8A86)",
-        ink: "var(--color-ink, #F0F0EC)",
+        page: themeVar("--color-page", "#0A0A0B"),
+        card: themeVar("--color-card", "#151516"),
+        line: themeVar("--color-line", "#232324"),
+        muted: themeVar("--color-muted", "#8A8A86"),
+        ink: themeVar("--color-ink", "#F0F0EC"),
         highlight: {
           DEFAULT: "#FF6B35",
           dim: "#C94A24",
@@ -30,8 +43,8 @@ module.exports = {
         // DEFAULT_PRIMARY (the "no favorite team yet" brand orange) — kept
         // in sync even though --accent-primary is always defined there in
         // practice, so this var() fallback never actually triggers.
-        "team-primary": "var(--accent-primary, #FF6B35)",
-        "team-secondary": "var(--accent-secondary, #0B1220)",
+        "team-primary": themeVar("--accent-primary", "#FF6B35"),
+        "team-secondary": themeVar("--accent-secondary", "#0B1220"),
       },
       fontFamily: {
         // TEMPORARY EXPERIMENT (system-ui trial) — default before this was
