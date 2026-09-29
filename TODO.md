@@ -62,3 +62,40 @@ Known issues:
   real stat lines. No pre-round snapshot survived, so compare against a
   before/after pair across round 2 if needed (grab a snapshot right before
   round 2 tips off).
+
+## 3. Live quarter predictions mini-game (deferred 2026-09-29, user deciding)
+
+Idea: more daily interaction than the once-a-day Jump Ball, tied to real
+games. During a live game, pick **who wins the next quarter** (home/away).
+
+- **Only the next quarter is open**: pre-game Q1, during Q1 pick Q2, etc.
+  A quarter locks the moment it starts. No OT picks.
+- **Scoring**: correct = 5pts, wrong = 0, tied quarter = push (0). Points
+  are spendable only and **don't count toward the leaderboard**. Worked
+  out on read from `games.home/away_score_by_quarter` (no payout job):
+  one more subquery in `getUserPoints`'s existing statement.
+- **Economy**: roughly 50/50 picks, so ~2.5pts expected each. About 30pts a
+  round for someone following 3 games, ~100 if they pick all 40 quarters.
+  Points only, so players who never buy are unaffected. Add a quarter-picks
+  option to `season-simulation.ts` and re-run before shipping.
+- **Build**: new `quarter_predictions` table (user, game, quarter 1-4,
+  pick, created_at; one pick per user+game+quarter), applied to prod
+  **and** dev. `GET/POST /api/quarter-picks` with server-side
+  open-quarter checks. A "Next quarter" panel on the live game page plus a
+  compact version on Live Center cards (no new tab). The existing
+  live-game updates already carry quarter changes for lock/result UI.
+  EN + EL strings.
+- **Risk accepted for v1**: the feed is ~20-40s behind TV, so the first
+  seconds of a quarter can leak. Small edge, small unranked reward.
+  **Must include**: lock all picks for a game whenever its live data is
+  more than ~60s old ("picks paused"), so a stalled feed can't leave a
+  quarter open for minutes.
+- **v2 ideas**: over/under on quarter points (needs a per-matchup line;
+  not enough season data yet), a streak bonus, a quarter-picks board.
+- **Bug to fix first (worth doing on its own)**: when a game goes final,
+  `liveGamesSync.ts` updates the score but not the quarter breakdown, so
+  late points go missing. On prod, 2/10 round-1 games are short: PAN-PRS
+  (away 70 vs final 72), BAR-IST (home 88 vs 89). Write the quarter scores
+  in the final update, then backfill (show SQL and affected rows first).
+  The per-quarter table in the "other live games" popup on the game page
+  already shows these wrong.
