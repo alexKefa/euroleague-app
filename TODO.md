@@ -92,10 +92,6 @@ games. During a live game, pick **who wins the next quarter** (home/away).
   quarter open for minutes.
 - **v2 ideas**: over/under on quarter points (needs a per-matchup line;
   not enough season data yet), a streak bonus, a quarter-picks board.
-- **Bug to fix first (worth doing on its own)**: when a game goes final,
-  `liveGamesSync.ts` updates the score but not the quarter breakdown, so
-  late points go missing. On prod, 2/10 round-1 games are short: PAN-PRS
-  (away 70 vs final 72), BAR-IST (home 88 vs 89). Write the quarter scores
-  in the final update, then backfill (show SQL and affected rows first).
-  The per-quarter table in the "other live games" popup on the game page
-  already shows these wrong.
+- **Prerequisite done 2026-09-29**: final quarter scores are now stored
+  when a game goes final (the 2 short round-1 games were backfilled), so
+  `home/away_score_by_quarter` is safe to score against.
