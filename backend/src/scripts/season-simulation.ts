@@ -72,8 +72,8 @@
  * 40, matching the real catalog.
  *
  * Answers: can a realistic player (a given prediction accuracy, not a
- * perfect one) actually finish the album (own every collectible: 289
- * common + 289 rare + 40 legendary) across a season, and how does that
+ * perfect one) actually finish the album (own every collectible: 320
+ * common + 320 rare + 40 legendary) across a season, and how does that
  * scale with accuracy and spending habits? Coach cards (20, tracked
  * separately below) are deliberately NOT part of "album complete" — see
  * CLAUDE.md's "Coach cards" section — they're modeled here only to confirm
@@ -85,11 +85,10 @@
 
 type Tier = "common" | "rare" | "legendary" | "coach";
 
-// common/rare bumped 208 -> 289 (2026-09-22) to match the live catalog,
-// which has grown from ongoing roster syncs since 208/208 was first
-// measured — this constant had drifted stale (CLAUDE.md still says 208 too,
-// worth correcting there too next time that file's touched).
-const CATALOG_SIZE: Record<Tier, number> = { common: 289, rare: 289, legendary: 40, coach: 20 };
+// common/rare 289 -> 320 (2026-09-29) to match the live catalog, checked
+// against production. It grows with roster syncs, so re-check it with
+// `select tier, count(*) from collectibles group by tier` before trusting a run.
+const CATALOG_SIZE: Record<Tier, number> = { common: 320, rare: 320, legendary: 40, coach: 20 };
 // Common/rare pointsCost, for duplicate sell-back math — mirrors
 // scripts/expand-collectibles.ts. Legendary and coach duplicates never sell
 // (see sellValueFor's comment in routes/packs.ts — both catalogs' pointsCost
@@ -101,7 +100,10 @@ const TIER_COST: Record<"common" | "rare", number> = { common: 50, rare: 250 };
 const SELL_RATE = 0.5;
 
 const POINTS_PER_CORRECT = Number(process.env.SIM_PPC ?? 10);
-const REGISTRATION_BONUS = 150; // routes/auth.ts WELCOME_BONUS_POINTS
+// routes/auth.ts: since 2026-09-21 a new account gets WELCOME_PACK_QUANTITY
+// unopened welcomeBonus packs instead of the old flat 150 points.
+const REGISTRATION_BONUS = 0;
+const WELCOME_PACK_QUANTITY = 2;
 const PITY_THRESHOLD: Record<"common" | "rare", number> = { common: 4, rare: 2 }; // services/packs.ts
 // services/cards.ts's RARE_MILESTONE_INTERVAL, added 2026-09-22 ("explore
 // retuning" pass — see that constant's own comment for the full context and
@@ -249,6 +251,22 @@ const WHEEL_PACKS: Record<"common" | "rare", PackDef> = {
   },
 };
 
+// services/packs.ts welcomeBonus, verbatim. Its last slot carries both
+// legendary and coach, so it counts as a big slot (same structural check as
+// the real rollPackForUser).
+const WELCOME_PACK: PackDef = {
+  type: "welcomeBonus",
+  cost: 0,
+  purchasable: false,
+  slots: [
+    { odds: { common: 1 } },
+    { odds: { rare: 1 } },
+    { odds: { rare: 1 } },
+    { odds: { rare: 1 } },
+    { odds: { rare: 0.9, legendary: 0.06, coach: 0.04 } },
+  ],
+};
+
 interface UserState {
   owned: Record<Tier, Set<number>>;
   pity: Record<"common" | "rare", number>;
@@ -353,9 +371,15 @@ function grantGuaranteedNewOfTier(state: UserState, tier: Tier): void {
 // reaches Elite's 1200 cost — avg packs bought at 75% zero-wheel accuracy
 // was 56.8 Starter / 4.7 Pro / *zero* Elite. This policy holds everything
 // until it can afford Elite specifically, ignoring Starter/Pro entirely.
-type SpendPolicy = "highest-affordable" | "cheapest-first" | "save-for-elite";
+// "never-buys" (2026-09-29): what real users actually do so far. After round
+// 1, the non-admin collectors had bought about 25 packs between them (3
+// users), no Starter packs at all, and sat on ~100-370 unspent points.
+// Collects only from free sources: welcome packs, the wheel, milestones,
+// great/perfect rounds.
+type SpendPolicy = "highest-affordable" | "cheapest-first" | "save-for-elite" | "never-buys";
 
 function spendLoop(state: UserState, policy: SpendPolicy): void {
+  if (policy === "never-buys") return;
   if (policy === "save-for-elite") {
     const elite = PACKS.find((p) => p.type === "elite")!;
     while (state.points >= elite.cost) {
@@ -379,6 +403,8 @@ function spendLoop(state: UserState, policy: SpendPolicy): void {
 interface SimResult {
   purchasableCompleteDay: number | null;
   fullCompleteDay: number | null;
+  albumCountAtDay7: number;
+  albumCountAtEnd: number;
   commonCountAtEnd: number;
   rareCountAtEnd: number;
   legendaryCountAtEnd: number;
@@ -421,6 +447,10 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
   let purchasableCompleteDay: number | null = null;
   let fullCompleteDay: number | null = null;
   let nextRound = 0;
+  let albumCountAtDay7 = 0;
+  const albumCount = () => state.owned.common.size + state.owned.rare.size + state.owned.legendary.size;
+
+  for (let i = 0; i < WELCOME_PACK_QUANTITY; i++) state.points += openPack(state, WELCOME_PACK);
 
   const isPurchasableComplete = () => state.owned.common.size === CATALOG_SIZE.common && state.owned.rare.size === CATALOG_SIZE.rare;
   const isFullComplete = () => isPurchasableComplete() && state.owned.legendary.size === CATALOG_SIZE.legendary;
@@ -537,11 +567,14 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
 
     if (purchasableCompleteDay === null && isPurchasableComplete()) purchasableCompleteDay = day;
     if (fullCompleteDay === null && isFullComplete()) fullCompleteDay = day;
+    if (day === 7) albumCountAtDay7 = albumCount();
   }
 
   return {
     purchasableCompleteDay,
     fullCompleteDay,
+    albumCountAtDay7,
+    albumCountAtEnd: albumCount(),
     commonCountAtEnd: state.owned.common.size,
     rareCountAtEnd: state.owned.rare.size,
     legendaryCountAtEnd: state.owned.legendary.size,
@@ -575,6 +608,9 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
   const fullDays = results.map((r) => r.fullCompleteDay).filter((d): d is number => d !== null).sort((a, b) => a - b);
   const pctPurchasable = (purchasableDays.length / n) * 100;
   const pctFull = (fullDays.length / n) * 100;
+  const avgAlbumDay7 = results.reduce((s, r) => s + r.albumCountAtDay7, 0) / n;
+  const avgAlbumEnd = results.reduce((s, r) => s + r.albumCountAtEnd, 0) / n;
+  const albumSize = CATALOG_SIZE.common + CATALOG_SIZE.rare + CATALOG_SIZE.legendary;
   const avgCommonAtEnd = results.reduce((s, r) => s + r.commonCountAtEnd, 0) / n;
   const avgRareAtEnd = results.reduce((s, r) => s + r.rareCountAtEnd, 0) / n;
   const avgLegendaryAtEnd = results.reduce((s, r) => s + r.legendaryCountAtEnd, 0) / n;
@@ -604,6 +640,7 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
       ` (median day ${String(percentile(fullDays, 0.5)).padStart(3)}/${SEASON_DAYS})` +
       ` | commons+rares only: ${pctPurchasable.toFixed(0).padStart(3)}%` +
       ` (median day ${String(percentile(purchasableDays, 0.5)).padStart(3)})` +
+      ` | album cards day 7: ${avgAlbumDay7.toFixed(0)}, end: ${avgAlbumEnd.toFixed(0)}/${albumSize}` +
       ` | avg commons: ${avgCommonAtEnd.toFixed(0).padStart(3)}/${CATALOG_SIZE.common}` +
       ` | avg rares: ${avgRareAtEnd.toFixed(0).padStart(3)}/${CATALOG_SIZE.rare}` +
       ` | avg legendaries: ${avgLegendaryAtEnd.toFixed(1).padStart(4)}/${CATALOG_SIZE.legendary}` +
@@ -616,7 +653,7 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
       (FANTASY_ENABLED ? ` | avg fantasy pts earned: ${avgFantasyPoints.toFixed(0)}` : "") +
       (TOP_SCORER_ENABLED ? ` | avg top-scorer pts earned: ${avgTopScorerPoints.toFixed(0)}` : "") +
       (FANTASY_MILESTONE_INTERVAL > 0 ? ` | avg fantasy milestones: ${avgFantasyMilestones.toFixed(2)}` : "") +
-      (packsSummary ? ` | avg packs bought: ${packsSummary}` : "") +
+      (packsSummary ? ` | avg packs bought (incl. re-spent dupe refunds): ${packsSummary}` : "") +
       ` | avg idle pts: ${avgEndPoints.toFixed(0)}`
   );
 }
@@ -637,8 +674,21 @@ console.log(
     " ===\n"
 );
 
+// Added 2026-09-29: the free-sources-only floor, matching how real users
+// behave after round 1 (see "never-buys" above). Compare "album cards day 7"
+// against production: engaged non-admin users held ~35-48 album cards after
+// their first week.
 if (shouldRun(100)) {
-  console.log("--- Daily wheel spin, 100% engagement (spins every single day), highest-affordable pack spending ---");
+  console.log("--- Daily wheel spin, 100% engagement, never buys packs (real behavior so far) ---");
+  for (const acc of ACCURACIES) runScenario(acc, 1.0, "never-buys", N);
+}
+if (shouldRun(50)) {
+  console.log("\n--- Daily wheel spin, 50% engagement, never buys packs ---");
+  for (const acc of ACCURACIES) runScenario(acc, 0.5, "never-buys", N);
+}
+
+if (shouldRun(100)) {
+  console.log("\n--- Daily wheel spin, 100% engagement (spins every single day), highest-affordable pack spending ---");
   for (const acc of ACCURACIES) runScenario(acc, 1.0, "highest-affordable", N);
 }
 
