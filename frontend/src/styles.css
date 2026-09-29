@@ -570,3 +570,25 @@ body {
   height: max(100%, 44px);
   transform: translate(-50%, -50%);
 }
+
+/* Same idea, 40px — for tightly packed controls (Fantasy court slot corner
+   buttons) where two 44px areas would crowd the photo between them. */
+.tap-target-40::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100%, 40px);
+  height: max(100%, 40px);
+  transform: translate(-50%, -50%);
+}
+
+/* Entrance for small floating bars (e.g. Fantasy's phone save bar). */
+.sheet-rise { animation: sheet-rise 0.2s ease-out; }
+@keyframes sheet-rise {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet-rise { animation: none; }
+}

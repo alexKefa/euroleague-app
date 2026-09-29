@@ -97,17 +97,17 @@
                   class="relative flex flex-col items-center justify-center gap-1 pt-8 pb-3 px-2 overflow-hidden transition-colors cursor-pointer disabled:cursor-not-allowed"
                 >
                   <span
-                    class="relative z-10 w-9 h-9 rounded-full flex items-center justify-center border-2 overflow-hidden transition-colors bg-card"
+                    class="relative z-10 w-11 h-11 rounded-full flex items-center justify-center border-2 overflow-hidden transition-colors bg-card"
                     [ngClass]="myPickFor(game) === game.homeTeam.id ? 'border-team-primary' : 'border-line'"
                   >
                     @if (game.homeTeam.logoUrl) {
-                      <img [src]="game.homeTeam.logoUrl" [alt]="game.homeTeam.code | teamCode" loading="lazy" decoding="async" appRetryImg class="w-6 h-6 object-contain team-logo" />
+                      <img [src]="game.homeTeam.logoUrl" [alt]="game.homeTeam.code | teamCode" loading="lazy" decoding="async" appRetryImg class="w-7 h-7 object-contain team-logo" />
                     } @else {
                       <span class="w-full h-full" [style.background]="teamColor(game.homeTeam)"></span>
                     }
                   </span>
                   <span
-                    class="relative z-10 text-[11px] font-semibold text-center leading-tight"
+                    class="relative z-10 text-[12px] font-semibold text-center leading-tight"
                     [ngClass]="myPickFor(game) === game.homeTeam.id ? 'text-team-primary' : 'text-ink'"
                     >{{ game.homeTeam.name }}</span
                   >
@@ -129,17 +129,17 @@
                   class="relative flex flex-col items-center justify-center gap-1 pt-8 pb-3 px-2 overflow-hidden transition-colors cursor-pointer disabled:cursor-not-allowed"
                 >
                   <span
-                    class="relative z-10 w-9 h-9 rounded-full flex items-center justify-center border-2 overflow-hidden transition-colors bg-card"
+                    class="relative z-10 w-11 h-11 rounded-full flex items-center justify-center border-2 overflow-hidden transition-colors bg-card"
                     [ngClass]="myPickFor(game) === game.awayTeam.id ? 'border-team-primary' : 'border-line'"
                   >
                     @if (game.awayTeam.logoUrl) {
-                      <img [src]="game.awayTeam.logoUrl" [alt]="game.awayTeam.code | teamCode" loading="lazy" decoding="async" appRetryImg class="w-6 h-6 object-contain team-logo" />
+                      <img [src]="game.awayTeam.logoUrl" [alt]="game.awayTeam.code | teamCode" loading="lazy" decoding="async" appRetryImg class="w-7 h-7 object-contain team-logo" />
                     } @else {
                       <span class="w-full h-full" [style.background]="teamColor(game.awayTeam)"></span>
                     }
                   </span>
                   <span
-                    class="relative z-10 text-[11px] font-semibold text-center leading-tight"
+                    class="relative z-10 text-[12px] font-semibold text-center leading-tight"
                     [ngClass]="myPickFor(game) === game.awayTeam.id ? 'text-team-primary' : 'text-ink'"
                     >{{ game.awayTeam.name }}</span
                   >

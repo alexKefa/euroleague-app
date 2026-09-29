@@ -71,11 +71,15 @@
         <table class="w-full text-sm border-collapse">
           <thead>
             <tr class="bg-card">
-              @for (col of columns; track col.key) {
+              @for (col of columns; track col.key; let first = $first) {
+                <!-- Player column pinned on both axes (2026-09-29 mobile-first
+                     pass), same as standings.html's team column, so a name
+                     stays visible while swiping across ~20 stat columns. -->
                 <th
                   scope="col"
                   (click)="setSort(col.key)"
-                  class="sticky top-0 z-10 bg-card px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
+                  [ngClass]="first ? 'left-0 z-20' : 'z-10'"
+                  class="sticky top-0 bg-card px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
                   [class.text-team-primary]="sortKey() === col.key"
                 >
                   {{ i18n.t(col.labelKey) }}
@@ -104,14 +108,14 @@
                 [style.background]="isFavoriteTeam(row.team.id) ? 'color-mix(in srgb, var(--accent-primary) 10%, transparent)' : null"
                 [style.box-shadow]="isFavoriteTeam(row.team.id) ? 'inset 3px 0 0 var(--accent-primary)' : null"
               >
-                <td class="px-3 py-2 font-bold whitespace-nowrap">
-                  <span class="flex items-center gap-2">
+                <td class="sticky left-0 z-10 bg-card px-3 py-2 font-bold whitespace-nowrap">
+                  <span class="flex items-center gap-2 min-w-0">
                     @if (row.team.logoUrl) {
                       <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0 team-logo" />
                     } @else {
                       <span class="w-4 h-4 rounded-full shrink-0" [style.background]="row.team.primaryColor"></span>
                     }
-                    <span class="truncate">{{ row.player.name }}</span>
+                    <span class="truncate max-w-[7.5rem] sm:max-w-none">{{ row.player.name }}</span>
                   </span>
                 </td>
                 @for (col of columns.slice(1); track col.key) {
