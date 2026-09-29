@@ -396,6 +396,7 @@
                   <th class="text-right font-bold py-1 px-1.5">{{ i18n.t('game.colPTS') }}</th>
                   <th class="text-right font-bold py-1 px-1.5">{{ i18n.t('game.colREB') }}</th>
                   <th class="text-right font-bold py-1 px-1.5">{{ i18n.t('game.colAST') }}</th>
+                  <th class="text-right font-bold py-1 px-1.5 whitespace-nowrap">{{ i18n.t('game.colFTMA') }}</th>
                   <th class="text-right font-bold py-1 px-1.5">{{ i18n.t('game.colPIR') }}</th>
                 </tr>
               </thead>
@@ -444,6 +445,7 @@
                     <td class="text-right font-mono py-1.5 px-1.5">{{ line.points }}</td>
                     <td class="text-right font-mono py-1.5 px-1.5">{{ line.rebounds }}</td>
                     <td class="text-right font-mono py-1.5 px-1.5">{{ line.assists }}</td>
+                    <td class="text-right font-mono py-1.5 px-1.5 whitespace-nowrap">{{ line.freeThrowsMade ?? 0 }}/{{ line.freeThrowsAttempted ?? 0 }}</td>
                     <td class="text-right font-mono font-bold py-1.5 px-1.5 text-team-primary">{{ line.valuation }}</td>
                   </tr>
                 }
@@ -473,14 +475,21 @@
               { label: i18n.t('player.colStl'), home: totals.home.steals, away: totals.away.steals },
               { label: i18n.t('player.colBlk'), home: totals.home.blocks, away: totals.away.blocks },
               { label: i18n.t('game.colTO'), home: totals.home.turnovers, away: totals.away.turnovers },
+              {
+                label: i18n.t('game.colFTMA'),
+                home: totals.home.freeThrowsMade,
+                away: totals.away.freeThrowsMade,
+                homeText: totals.home.freeThrowsMade + '/' + totals.home.freeThrowsAttempted,
+                awayText: totals.away.freeThrowsMade + '/' + totals.away.freeThrowsAttempted,
+              },
             ];
             track row.label
           ) {
             <div>
               <div class="flex justify-between items-center px-1 mb-1">
-                <span class="font-mono text-xs font-bold">{{ row.home }}</span>
+                <span class="font-mono text-xs font-bold">{{ $any(row).homeText ?? row.home }}</span>
                 <span class="text-muted text-[10px] uppercase tracking-wide">{{ row.label }}</span>
-                <span class="font-mono text-xs font-bold">{{ row.away }}</span>
+                <span class="font-mono text-xs font-bold">{{ $any(row).awayText ?? row.away }}</span>
               </div>
               <div class="relative h-1.5 rounded-[3px] bg-line overflow-hidden flex">
                 <div

@@ -38,6 +38,8 @@ interface TeamTotals {
   steals: number;
   blocks: number;
   turnovers: number;
+  freeThrowsMade: number;
+  freeThrowsAttempted: number;
 }
 
 // One row in the live "scoring feed" — a GameScoringEvent (see
@@ -72,6 +74,8 @@ function totalsFor(lines: GameBoxscoreLine[]): TeamTotals {
     steals: sumStat(lines, "steals"),
     blocks: sumStat(lines, "blocks"),
     turnovers: sumStat(lines, "turnovers"),
+    freeThrowsMade: sumStat(lines, "freeThrowsMade"),
+    freeThrowsAttempted: sumStat(lines, "freeThrowsAttempted"),
   };
 }
 
@@ -193,6 +197,7 @@ export class GameDetailComponent implements OnInit {
     { codeKey: "game.colPTS", key: "game.legendPTS" },
     { codeKey: "game.colREB", key: "game.legendREB" },
     { codeKey: "game.colAST", key: "game.legendAST" },
+    { codeKey: "game.colFTMA", key: "game.legendFTMA" },
     { codeKey: "game.colPIR", key: "game.legendPIR" },
   ];
 

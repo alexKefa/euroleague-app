@@ -356,6 +356,8 @@ export interface GameBoxscoreLine {
   steals: number | null;
   blocks: number | null;
   turnovers: number | null;
+  freeThrowsMade: number | null;
+  freeThrowsAttempted: number | null;
   valuation: number | null;
 }
 

@@ -186,6 +186,8 @@ interface GameBoxscoreLine {
   steals: number | null;
   blocks: number | null;
   turnovers: number | null;
+  freeThrowsMade: number | null;
+  freeThrowsAttempted: number | null;
   valuation: number | null;
 }
 
@@ -312,6 +314,8 @@ gamesRouter.get("/:id", async (req, res) => {
         steals: r.stat.steals,
         blocks: r.stat.blocksFavour,
         turnovers: r.stat.turnovers,
+        freeThrowsMade: r.stat.freeThrowsMade,
+        freeThrowsAttempted: r.stat.freeThrowsAttempted,
         valuation: r.stat.valuation,
         teamId: r.player.teamId,
       });

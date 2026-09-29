@@ -39,12 +39,15 @@ export const gameTranslations: Record<string, Record<Lang, string>> = {
   // convention as roster.ts's TS%/eFG%/TOV%/USG% columns.
   "game.colFG": { en: "FG%", el: "FG%" },
   "game.colFT": { en: "FT%", el: "FT%" },
+  // Free throws made/attempted, e.g. "5/7" (2026-09-29).
+  "game.colFTMA": { en: "FT", el: "ΒΟΛ" },
 
   // Glossary entries for shared/stat-legend.ts, box-score columns.
   "game.legendMIN": { en: "Minutes played", el: "Λεπτά συμμετοχής" },
   "game.legendPTS": { en: "Points", el: "Πόντοι" },
   "game.legendREB": { en: "Rebounds", el: "Ριμπάουντ" },
   "game.legendAST": { en: "Assists", el: "Ασίστ" },
+  "game.legendFTMA": { en: "Free throws made/attempted", el: "Εύστοχες/συνολικές βολές" },
   "game.legendPIR": {
     en: "Performance Index Rating — EuroLeague's overall efficiency stat",
     el: "Performance Index Rating — ο συνολικός δείκτης απόδοσης της EuroLeague",
