@@ -57,7 +57,7 @@ Known issues:
   formulas (player `(N − P×1.1)/25`, coach `(N − P)/40`), but those have
   still never been checked against real observed price movement.
 - **How**: once round 1 is final (first tipoff was 2026-09-24), pull real
-  Dunkest quotations (same token/endpoint as #3), compare the real
+  Dunkest quotations (same token/endpoint as #1), compare the real
   per-player price change against what our formula produces for the same
   real stat lines. No pre-round snapshot survived, so compare against a
   before/after pair across round 2 if needed (grab a snapshot right before
