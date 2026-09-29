@@ -648,10 +648,21 @@ export class FantasyComponent implements OnInit {
   // already finished (follow-up same day: "all players should be
   // switchable with each other and change formation"). Mirrors the
   // backend's saveMidRoundSubstitutions exactly.
+  // Tightened 2026-09-29 ("since the game is live ... not be able to change
+  // anything. Only when day 1 has ended (the next morning)"): also closed
+  // while any game is live, and until the Athens date is past the round's
+  // first match day with every earlier day's games final — mirrors the
+  // backend's midRoundWindowOpen.
   readonly subsWindowOpen = computed(() => {
     if (!this.isCurrentRound() || !this.roundLocked()) return false;
     const now = Date.now();
-    return this.fixtureGames().some((g) => g.status === "scheduled" && new Date(g.tipoffAt).getTime() > now);
+    const games = this.fixtureGames();
+    if (!games.some((g) => g.status === "scheduled" && new Date(g.tipoffAt).getTime() > now)) return false;
+    if (games.some((g) => g.status === "live")) return false;
+    const today = this.athensDateKey(new Date(now).toISOString());
+    const firstDay = games.map((g) => this.athensDateKey(g.tipoffAt)).sort()[0];
+    if (today <= firstDay) return false;
+    return games.every((g) => this.athensDateKey(g.tipoffAt) >= today || g.status === "final");
   });
   // Nothing at all is editable — past round, or current round with every
   // game already tipped off.

@@ -633,6 +633,30 @@ function validateSquadShape(entries: SaveLineupEntry[]): SaveLineupResult | null
   return null;
 }
 
+function athensDateKey(d: Date): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Athens", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+}
+
+/**
+ * Whether mid-round substitutions are open right now (2026-09-29, direct
+ * request: "since the game is live ... not be able to change the players
+ * between bench and starters or anything. Only when day 1 has ended (the
+ * next morning)"). Open only once it's a later Athens calendar day than the
+ * round's first match day, every game from an earlier day is final, and no
+ * game is live at this moment. Mirrored by fantasy.ts's subsWindowOpen.
+ */
+export function midRoundWindowOpen(
+  roundGames: { tipoffAt: Date | string; status: string }[],
+  now: number
+): boolean {
+  if (roundGames.length === 0) return false;
+  const today = athensDateKey(new Date(now));
+  const firstDay = roundGames.map((g) => athensDateKey(new Date(g.tipoffAt))).sort()[0];
+  if (today <= firstDay) return false;
+  if (roundGames.some((g) => g.status === "live")) return false;
+  return roundGames.every((g) => athensDateKey(new Date(g.tipoffAt)) >= today || g.status === "final");
+}
+
 /**
  * Mid-round substitutions (2026-09-25, direct request: "since we are on day
  * 2/2 unlock the changes — can change bench players and switch captains").
@@ -676,6 +700,9 @@ async function saveMidRoundSubstitutions(
   const hasStarted = (g: (typeof roundGames)[number]) => new Date(g.tipoffAt).getTime() <= now || g.status !== "scheduled";
   if (existingRows.length === 0 || roundGames.every(hasStarted)) {
     return { error: "This round has already locked", code: "ROUND_LOCKED" };
+  }
+  if (!midRoundWindowOpen(roundGames, now)) {
+    return { error: "Changes reopen the morning after a match day, once its games are final", code: "SUBS_NOT_OPEN_YET" };
   }
   if (coachRows[0]?.teamId !== coachTeamId) {
     return { error: "The coach can't be changed once the round has started", code: "COACH_LOCKED" };
