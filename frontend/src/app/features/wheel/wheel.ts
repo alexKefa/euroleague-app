@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from "@angular/core";
+import { Component, OnDestroy, OnInit, computed, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
@@ -16,7 +16,14 @@ import { newsDateLocale, gameDateTimeFormat as gameDateTimeFormatFn } from "../.
 // Matches the CSS transition-duration on the wheel graphic — the reveal is
 // deliberately held back until the spin animation actually finishes, even
 // if the API responds sooner, so the animation never gets cut short.
-const SPIN_ANIMATION_MS = 1800;
+// Spin rework (2026-09-29): a longer main spin that overshoots the target a
+// few degrees, a short settle back, then the landed wedge glows briefly
+// before the prize shows.
+const SPIN_ANIMATION_MS = 3000;
+const SETTLE_MS = 380;
+const LANDED_HOLD_MS = 650;
+const OVERSHOOT_DEG = 5;
+const COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 @Component({
   selector: "app-wheel",
@@ -25,7 +32,7 @@ const SPIN_ANIMATION_MS = 1800;
   templateUrl: "./wheel.html",
   styleUrl: "./wheel.css",
 })
-export class WheelComponent implements OnInit {
+export class WheelComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
@@ -39,6 +46,28 @@ export class WheelComponent implements OnInit {
   readonly spinError = signal<string | null>(null);
   readonly lastWonPack = signal<SpinResult["wonPack"] | undefined>(undefined); // undefined = no spin yet this visit
   readonly wheelRotation = signal(0);
+  // Transition applied to the disc for the current move (main spin vs.
+  // settle), bound in wheel.html.
+  readonly discTransition = signal("none");
+  // Pointer "tick" speed while the wheel passes wedges.
+  readonly pointerTick = signal<"" | "fast" | "slow">("");
+  // Tier of the wedge just landed on, while its glow shows.
+  readonly landedTier = signal<CollectibleTier | null>(null);
+
+  // Cooldown ring: re-evaluated every 30s.
+  private readonly now = signal(Date.now());
+  private clock?: ReturnType<typeof setInterval>;
+  readonly cooldownLeftMs = computed(() => {
+    const next = this.nextEligibleAt();
+    return next ? Math.max(0, new Date(next).getTime() - this.now()) : 0;
+  });
+  readonly cooldownPct = computed(() => Math.min(100, Math.max(0, 100 - (this.cooldownLeftMs() / COOLDOWN_MS) * 100)));
+  readonly cooldownLabel = computed(() => {
+    const mins = Math.ceil(this.cooldownLeftMs() / 60000);
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return h > 0 ? `${h}h ${m.toString().padStart(2, "0")}m` : `${m}m`;
+  });
   readonly visualClasses = PACK_VISUAL_CLASSES;
 
   // Angles for the win-burst starburst rays, evenly spaced around the card.
@@ -107,7 +136,16 @@ export class WheelComponent implements OnInit {
     packType: WheelComponent.WEDGE_PACK_TYPE[tier],
   }));
 
+  ngOnDestroy(): void {
+    if (this.clock) clearInterval(this.clock);
+  }
+
   ngOnInit(): void {
+    this.clock = setInterval(() => {
+      this.now.set(Date.now());
+      // Cooldown ran out while the page was open: allow a spin again.
+      if (!this.canSpin() && this.nextEligibleAt() && this.cooldownLeftMs() === 0) this.canSpin.set(true);
+    }, 30000);
     if (!this.auth.isAuthenticated()) {
       this.loading.set(false);
       return;
@@ -175,11 +213,22 @@ export class WheelComponent implements OnInit {
   }
 
   private animateToResult(result: SpinResult, apply: () => void): void {
-    this.spinToWedge(result.wonPack.tier);
+    this.landedTier.set(null);
+    const target = this.spinToWedge(result.wonPack.tier);
+    this.pointerTick.set("fast");
+    setTimeout(() => this.pointerTick.set("slow"), SPIN_ANIMATION_MS * 0.45);
+    setTimeout(() => {
+      // Settle back from the overshoot.
+      this.pointerTick.set("");
+      this.discTransition.set(`transform ${SETTLE_MS}ms cubic-bezier(0.34, 1.4, 0.64, 1)`);
+      this.wheelRotation.set(target);
+    }, SPIN_ANIMATION_MS);
+    setTimeout(() => this.landedTier.set(result.wonPack.tier), SPIN_ANIMATION_MS + SETTLE_MS);
     setTimeout(() => {
       this.spinning.set(false);
+      this.landedTier.set(null);
       apply();
-    }, SPIN_ANIMATION_MS);
+    }, SPIN_ANIMATION_MS + SETTLE_MS + LANDED_HOLD_MS);
   }
 
   /**
@@ -187,7 +236,7 @@ export class WheelComponent implements OnInit {
    * the tier that was actually decided server-side. See the conic-gradient
    * in wheel.html for the wedge layout this mirrors.
    */
-  private spinToWedge(tier: CollectibleTier): void {
+  private spinToWedge(tier: CollectibleTier): number {
     const wedgeStarts = WheelComponent.WEDGE_TIERS.reduce<number[]>((starts, t, i) => {
       if (t === tier) starts.push(i * 30);
       return starts;
@@ -205,8 +254,12 @@ export class WheelComponent implements OnInit {
     let delta = targetMod - currentMod;
     if (delta <= 0) delta += 360;
 
-    const extraSpins = 4 + Math.floor(Math.random() * 3);
-    this.wheelRotation.set(current + extraSpins * 360 + delta);
+    const extraSpins = 5 + Math.floor(Math.random() * 3);
+    const target = current + extraSpins * 360 + delta;
+    // Main spin runs slightly past the target; animateToResult settles it back.
+    this.discTransition.set(`transform ${SPIN_ANIMATION_MS}ms cubic-bezier(0.15, 0.7, 0.1, 1)`);
+    this.wheelRotation.set(target + OVERSHOOT_DEG);
+    return target;
   }
 
   private applyResult(result: SpinResult): void {

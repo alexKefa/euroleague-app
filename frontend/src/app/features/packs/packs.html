@@ -159,9 +159,14 @@
 
     @if (view() === "revealing") {
       <div class="mt-2">
-        <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-3">
-          {{ i18n.t('packs.card') }} {{ revealIndex() + 1 }} {{ i18n.t('packs.of') }} {{ outcome()?.results?.length }}
-        </p>
+        <div class="flex items-center justify-between gap-2 mb-3">
+          <p class="text-[12px] text-muted font-bold uppercase tracking-wider">
+            {{ i18n.t('packs.card') }} {{ revealIndex() + 1 }} {{ i18n.t('packs.of') }} {{ outcome()?.results?.length }}
+          </p>
+          <button type="button" (click)="revealAll()" class="status-tile h-10 px-4 rounded-xl border border-line text-sm font-semibold text-ink hover:border-team-primary transition-colors">
+            {{ i18n.t('packs.revealAll') }}
+          </button>
+        </div>
 
         <div
           class="relative isolate mx-auto card-stack cursor-pointer"
@@ -347,7 +352,7 @@
         @if (currentCard(); as card) {
           @if (card.wasDuplicate) {
             <p class="text-[12px] font-bold uppercase tracking-wide text-muted mt-5">{{ i18n.t('packs.duplicate') }}</p>
-            <p class="text-[12px] font-bold uppercase tracking-wide text-emerald-500 mt-1">
+            <p class="pts-float inline-block text-[13px] font-bold uppercase tracking-wide text-emerald-500 bg-emerald-500/15 rounded-full px-3 py-1 mt-1.5">
               {{ i18n.t('packs.soldForPrefix') }} {{ card.sellValue }} {{ i18n.t('packs.ptsLower') }}
             </p>
           } @else if (card.collectible.tier === "legendary") {
@@ -390,8 +395,8 @@
              content, not the buttons" fix as profile.html's owned-cards
              picker (max-h + overflow-y-auto there too). -->
         <div class="grid grid-cols-3 gap-2 mb-5 max-h-[45vh] overflow-y-auto p-1">
-          @for (card of outcome()?.results; track card.resultId) {
-            <div class="relative">
+          @for (card of outcome()?.results; track card.resultId; let i = $index) {
+            <div class="relative summary-in" [style.animation-delay.ms]="i * 80">
               <!-- Only the card face dims for a duplicate — the SOLD banner
                    below is a sibling, not a child, so it stays fully opaque
                    and legible instead of fading into a gray smudge along
@@ -407,6 +412,9 @@
                 [maxWidth]="summaryCardSize()"
                 [finish]="card.collectible.finish ?? 'standard'"
               ></app-collectible-card>
+              @if (!card.wasDuplicate) {
+                <span class="absolute top-1.5 left-1.5 z-10 px-1.5 py-0.5 rounded-md bg-team-primary text-team-secondary text-[10px] font-bold uppercase tracking-wide shadow-sm">{{ i18n.t('packs.newRibbon') }}</span>
+              }
               @if (card.wasDuplicate) {
                 <span
                   class="absolute inset-x-0 bottom-0 py-1.5 rounded-b-2xl bg-emerald-600 text-center font-display font-bold text-[11px] uppercase tracking-wider text-white shadow-md"
@@ -420,7 +428,7 @@
           <button type="button" (click)="openAnother()" appButton class="flex-1">
             {{ i18n.t('packs.openAnother') }}
           </button>
-          <a routerLink="/inventory" appButton="secondary" class="flex-1">{{ i18n.t('packs.myCards') }}</a>
+          <a routerLink="/album" appButton="secondary" class="flex-1">{{ i18n.t('packs.seeInAlbum') }}</a>
         </div>
       </div>
     }

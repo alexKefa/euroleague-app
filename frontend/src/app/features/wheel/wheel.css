@@ -367,3 +367,45 @@
   background: linear-gradient(135deg, #150c33 0%, #603FEF 22%, #EDE9FF 40%, #4526B0 58%, #DAD3FF 76%, #0D0824 100%);
   color: #140B36;
 }
+
+/* --- Spin rework (2026-09-29) --------------------------------------------- */
+
+/* Pointer flicks as wedges pass: fast early in the spin, slower near the end. */
+.wheel-pointer {
+  transform-origin: 50% 0;
+}
+.wheel-pointer--fast {
+  animation: pointer-tick 0.11s ease-in-out infinite;
+}
+.wheel-pointer--slow {
+  animation: pointer-tick 0.32s ease-in-out infinite;
+}
+@keyframes pointer-tick {
+  0%, 100% { transform: translateX(-50%) rotate(0deg); }
+  50% { transform: translateX(-50%) rotate(-14deg); }
+}
+
+/* Glow over the wedge under the pointer (top of the disc, 30deg wide). */
+.wheel-landed {
+  left: 50%;
+  top: 0;
+  width: 50%;
+  height: 50%;
+  transform: translateX(-50%);
+  clip-path: polygon(50% 100%, 23% 0%, 77% 0%);
+  animation: wheel-landed 0.65s ease-out both;
+}
+.wheel-landed--common { background: radial-gradient(circle at 50% 100%, transparent 20%, rgba(255, 255, 255, 0.55) 90%); }
+.wheel-landed--rare { background: radial-gradient(circle at 50% 100%, transparent 20%, rgba(170, 210, 245, 0.85) 90%); }
+.wheel-landed--legendary { background: radial-gradient(circle at 50% 100%, transparent 20%, rgba(255, 205, 90, 0.95) 90%); }
+.wheel-landed--coach { background: radial-gradient(circle at 50% 100%, transparent 20%, rgba(63, 217, 164, 0.9) 90%); }
+@keyframes wheel-landed {
+  0% { opacity: 0; }
+  30% { opacity: 1; }
+  60% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wheel-pointer--fast, .wheel-pointer--slow, .wheel-landed { animation: none; }
+}

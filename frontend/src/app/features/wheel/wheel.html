@@ -29,11 +29,18 @@
     @if (spinning() || lastWonPack() === undefined) {
       <div data-tour="wheel-spin" class="wheel-scale-wrap relative w-[14.4rem] h-[14.4rem] mx-auto mt-4 mb-6 sm:mt-10">
         <div
-          class="absolute -top-1 left-1/2 -translate-x-1/2 z-10 w-0 h-0 border-l-[11px] border-l-transparent border-r-[11px] border-r-transparent border-t-[18px] border-t-highlight"
+          class="wheel-pointer absolute -top-1 left-1/2 -translate-x-1/2 z-10 w-0 h-0 border-l-[11px] border-l-transparent border-r-[11px] border-r-transparent border-t-[18px] border-t-highlight"
+          [ngClass]="pointerTick() ? 'wheel-pointer--' + pointerTick() : ''"
         ></div>
+        <!-- Landed-wedge glow (2026-09-29): lights up the wedge under the
+             pointer, in its tier colour, before the prize shows. -->
+        @if (landedTier(); as tier) {
+          <div class="wheel-landed absolute z-[5] pointer-events-none" [class]="'wheel-landed--' + tier"></div>
+        }
         <div
           class="wheel-disc w-full h-full rounded-full border-4 border-line shadow-pop flex items-center justify-center relative"
           [style.transform]="'rotate(' + wheelRotation() + 'deg)'"
+          [style.transition]="discTransition()"
           style="background: conic-gradient(
             #5b6169 0deg 30deg,
             #5b6169 30deg 60deg,
@@ -170,18 +177,36 @@
             </div>
           </div>
 
-          <p class="text-[13px] text-muted mt-3">{{ i18n.t('wheel.openInPacks') }}</p>
-          <a routerLink="/packs" appButton="outline" appButtonSize="sm" class="inline-block mt-3">
-            {{ i18n.t('wheel.goToPacks') }}
-          </a>
+          <!-- "Open now" (2026-09-29): straight into this pack's reveal on
+               the Packs page instead of just pointing at My Packs. -->
+          <div class="flex flex-col items-center gap-2 mt-5">
+            <a routerLink="/packs" [queryParams]="{ open: won.id }" appButton class="w-full max-w-[16rem] !h-12 !rounded-2xl text-base">
+              {{ i18n.t('wheel.openNow') }}
+            </a>
+            <a routerLink="/packs" class="text-[12px] font-semibold text-muted hover:text-ink transition-colors">
+              {{ i18n.t('wheel.openLater') }}
+            </a>
+          </div>
         }
       </div>
     }
 
-    @if (!canSpin()) {
-      <p class="text-[12px] text-muted font-bold">
-        {{ i18n.t('wheel.nextAvailable') }} {{ nextEligibleAt() | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}
-      </p>
+    @if (!canSpin() && !spinning()) {
+      <!-- Cooldown ring (2026-09-29) instead of a plain line of text. -->
+      <div class="flex items-center justify-center gap-3 mt-2">
+        <div class="relative w-14 h-14 shrink-0">
+          <svg viewBox="0 0 100 100" class="w-full h-full -rotate-90" aria-hidden="true">
+            <circle cx="50" cy="50" r="42" fill="none" stroke-width="10" class="stroke-line" />
+            <circle cx="50" cy="50" r="42" fill="none" stroke-width="10" stroke-linecap="round" pathLength="100" [attr.stroke-dasharray]="cooldownPct() + ' 100'" class="stroke-team-primary transition-[stroke-dasharray] duration-700" />
+          </svg>
+          <app-nav-icon name="ball" [size]="18" class="absolute inset-0 m-auto text-muted" />
+        </div>
+        <div class="text-left">
+          <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('wheel.nextSpinIn') }}</p>
+          <p class="font-display text-xl tabular-nums leading-tight">{{ cooldownLabel() }}</p>
+          <p class="text-[11px] text-muted">{{ nextEligibleAt() | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}</p>
+        </div>
+      </div>
     }
 
     @if (auth.currentUser()?.isAdmin) {

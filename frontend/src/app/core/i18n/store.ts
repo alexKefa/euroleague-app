@@ -73,6 +73,10 @@ export const storeTranslations: Record<string, Record<Lang, string>> = {
   "wheel.coachPackWon": { en: "Coach pack!", el: "Πακέτο προπονητή!" },
   "wheel.openInPacks": { en: "Open it anytime from the Packs page.", el: "Άνοιξέ το όποτε θες από τη σελίδα Πακέτα." },
   "wheel.goToPacks": { en: "Go to Packs", el: "Πήγαινε στα Πακέτα" },
+  // Jump Ball result + cooldown (2026-09-29).
+  "wheel.openNow": { en: "Open now", el: "Άνοιξέ το τώρα" },
+  "wheel.openLater": { en: "Keep it for later", el: "Κράτα το για αργότερα" },
+  "wheel.nextSpinIn": { en: "Next spin in", el: "Επόμενη περιστροφή σε" },
   "wheel.hint": {
     en: "Your tier is locked in the moment you spin, but the pack stays unopened — head to Packs afterward, under \"My Packs\", to reveal what's inside.",
     el: "Το επίπεδο κλειδώνει τη στιγμή του τζάμπολ, αλλά το πακέτο μένει κλειστό — πήγαινε μετά στα Πακέτα, στην ενότητα \"Τα Πακέτα μου\", για να δεις τι κρύβει.",
@@ -92,6 +96,10 @@ export const storeTranslations: Record<string, Record<Lang, string>> = {
   "packs.card": { en: "Card", el: "Κάρτα" },
   "packs.of": { en: "of", el: "από" },
   "packs.tapToContinue": { en: "Tap for the next card", el: "Πάτησε για την επόμενη κάρτα" },
+  // Reveal rework (2026-09-29).
+  "packs.revealAll": { en: "Reveal all", el: "Όλες μαζί" },
+  "packs.newRibbon": { en: "New", el: "Νέα" },
+  "packs.seeInAlbum": { en: "See in Album", el: "Δες στο Άλμπουμ" },
   "packs.tapToFinish": { en: "Tap to see your pack", el: "Πάτησε για να δεις το πακέτο σου" },
   "packs.duplicate": { en: "Duplicate", el: "Διπλή" },
   "packs.sold": { en: "Sold", el: "Πουλήθηκε" },

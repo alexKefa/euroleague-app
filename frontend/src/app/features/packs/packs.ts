@@ -1,6 +1,6 @@
 import { Component, OnInit, HostListener, inject, signal, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { RouterLink } from "@angular/router";
+import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
@@ -169,10 +169,33 @@ export class PacksComponent implements OnInit {
     this.api.getOwnedPacks().subscribe({
       next: (rows) => {
         this.ownedPacks.set(rows);
+        this.maybeAutoOpen(rows);
         this.ownedPacksLoading.set(false);
       },
       error: () => this.ownedPacksLoading.set(false),
     });
+  }
+
+  // Jump Ball's "Open now" (2026-09-29) lands here as /packs?open=<id> —
+  // open that owned pack straight into the reveal, once, then drop the
+  // param so a refresh doesn't try again.
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private autoOpenHandled = false;
+
+  private maybeAutoOpen(rows: OwnedPack[]): void {
+    if (this.autoOpenHandled) return;
+    const id = this.route.snapshot.queryParamMap.get("open");
+    if (!id) return;
+    this.autoOpenHandled = true;
+    this.router.navigate([], { queryParams: { open: null }, queryParamsHandling: "merge", replaceUrl: true });
+    const pack = rows.find((r) => r.id === id);
+    if (pack) this.openOwned(pack);
+  }
+
+  // Skip the rest of the one-by-one reveal (2026-09-29).
+  revealAll(): void {
+    this.view.set("summary");
   }
 
   openOwned(pack: OwnedPack): void {
