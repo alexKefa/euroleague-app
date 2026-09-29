@@ -253,6 +253,22 @@ async function upsertLiveBoxscore(gameId: string, boxscore: BoxscoreResponse): P
   });
 }
 
+/**
+ * Re-fetches a finished game's box score and upserts it. The live loop stops
+ * fetching the box score the moment a game goes final, so without this the
+ * stored stats are whatever the last live poll saw — missing the final
+ * seconds and any official stat corrections made afterward (2026-09-29: e.g.
+ * a player priced off 11 fantasy points that the official sheet has as 16).
+ * Called when a game goes final and again right before it's priced
+ * (services/fantasyDailyReprice.ts). Returns false if the feed had nothing.
+ */
+export async function refreshFinalBoxscore(gameId: string, season: string, gameCode: number): Promise<boolean> {
+  const boxscore = await fetchBoxscore(season, gameCode);
+  if (!boxscore) return false;
+  await upsertLiveBoxscore(gameId, boxscore);
+  return true;
+}
+
 // "2026-27" -> "E2026" (euroleague-api's own `season: int` is the start year).
 function seasonCodeFor(season: string): string {
   return `E${season.slice(0, 4)}`;
@@ -458,6 +474,7 @@ export async function syncLiveGames(): Promise<LiveGamesSyncResult> {
       if (minutesSinceTipoff < MIN_MINUTES_BEFORE_TRUSTING_FINAL) continue;
 
       await db.update(games).set({ status: "final", homeScore, awayScore }).where(eq(games.id, game.id));
+      await refreshFinalBoxscore(game.id, game.season, game.gameCode).catch(() => false);
       previousPointsByGame.delete(game.id);
       broadcast("game-update", { gameId: game.id, homeScore, awayScore, status: "final", onFireIds: [], quarter: null, gameClockSeconds: null, scoringEvents: [] });
       wentFinal++;

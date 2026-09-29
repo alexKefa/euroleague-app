@@ -2,10 +2,6 @@ import "dotenv/config";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import {
-  games,
-  players,
-  playerGameStats,
-  playerFantasyPrices,
   coachFantasyPrices,
   fantasyPriceChangeLog,
   fantasyCoachPriceChangeLog,
@@ -19,6 +15,7 @@ import {
   COACH_MIN_PRICE,
   FANTASY_PIR_CEILING_FLOOR,
 } from "./fantasyScoring.js";
+import { refreshFinalBoxscore } from "../sync/liveGamesSync.js";
 
 /**
  * Real EuroLeague Fantasy's own published price-variation formulas
@@ -69,12 +66,24 @@ export const DAILY_PRICE_MAX_DELTA = 1.0;
 // a coach's price moves more gently per round for the same-sized miss.
 export const COACH_PRICE_VARIATION_DIVISOR = 40;
 
+/**
+ * Rounding, as matched against every round-1 move in the real game
+ * (2026-09-29, Dunkest quotations: 225/225 players who played, 20/20
+ * coaches): the raw X is rounded to 2 decimals first, then to 1 (half up),
+ * e.g. -0.252 -> -0.25 -> -0.2 and 0.149 -> 0.15 -> 0.2. Rounding straight to
+ * 1 decimal got about 1 in 3 moves wrong by 0.1.
+ */
+function roundMove(x: number): number {
+  const hundredths = Math.round(x * 100);
+  return Math.round(hundredths / 10) / 10;
+}
+
 function priceVariationDelta(gamePoints: number, currentPrice: number): number {
-  return clampDelta((gamePoints - currentPrice * FANTASY_PRICE_VARIATION_MULTIPLIER) / FANTASY_PRICE_VARIATION_DIVISOR);
+  return roundMove(clampDelta((gamePoints - currentPrice * FANTASY_PRICE_VARIATION_MULTIPLIER) / FANTASY_PRICE_VARIATION_DIVISOR));
 }
 
 function coachPriceVariationDelta(gamePoints: number, currentPrice: number): number {
-  return clampDelta((gamePoints - currentPrice) / COACH_PRICE_VARIATION_DIVISOR);
+  return roundMove(clampDelta((gamePoints - currentPrice) / COACH_PRICE_VARIATION_DIVISOR));
 }
 
 function clampDelta(delta: number): number {
@@ -84,6 +93,27 @@ function clampDelta(delta: number): number {
 function round1(n: number): number {
   return Math.round(n * 10) / 10;
 }
+
+/**
+ * A rostered player who didn't get on the floor loses a flat 0.1 in the real
+ * game, not the formula's (0 - P*1.1)/25 (which would be -0.2 to -0.6):
+ * 73 of 89 such round-1 players above the floor moved exactly -0.1. The
+ * other 16 held, probably players left out of the game-day squad, which our
+ * box score can't tell apart from a DNP, so this can be 0.1 off for them.
+ */
+export const DNP_PRICE_DELTA = -0.1;
+
+// Coaches aren't floored at COACH_MIN_PRICE in the real game (four 5.0
+// coaches dropped to 4.6-4.8 after round 1); that constant is only the
+// bottom of the season-start curve. This is just a sanity floor.
+const COACH_PRICE_FLOOR = 1;
+
+/**
+ * A game is priced only this long after tipoff, and its box score is
+ * re-fetched right before, so the move uses the official final sheet, not
+ * whatever the last live poll happened to store (see refreshFinalBoxscore).
+ */
+export const PRICE_SETTLE_MS = 12 * 60 * 60 * 1000;
 
 async function bumpCeilingIfNeeded(season: string, highestPrice: number): Promise<void> {
   const [existing] = await db.select().from(fantasyPricingState).where(eq(fantasyPricingState.season, season));
@@ -99,111 +129,144 @@ async function bumpCeilingIfNeeded(season: string, highestPrice: number): Promis
 }
 
 /**
- * Applies one day's worth of pending price moves for both players and
- * coaches — safe to call on any interval, any number of times: each run
- * only processes (player/coach, game) pairs with no fantasy_price_change_log
- * row yet, so restarts or an irregular schedule can't double-apply or
- * silently skip a game the way a timestamp watermark could.
+ * Applies every pending price move for both players and coaches. Safe to
+ * call on any interval, any number of times: each run only processes
+ * (player/coach, game) pairs with no change-log row yet, so restarts or an
+ * irregular schedule can't double-apply or silently skip a game.
  */
 export async function applyDailyFantasyPriceChanges(season: string): Promise<{ playersUpdated: number; coachesUpdated: number }> {
-  const playersUpdated = await applyPlayerPriceChanges(season);
-  const coachesUpdated = await applyCoachPriceChanges(season);
+  const settledBefore = new Date(Date.now() - PRICE_SETTLE_MS).toISOString();
+  // Games about to be priced for the first time (no coach move logged yet;
+  // both teams' coach rows are always written together) get their official
+  // box score re-fetched first.
+  const unpriced = await db.execute<{ id: string; game_code: number }>(sql`
+    select g.id, g.game_code from games g
+    where g.season = ${season} and g.status = 'final' and g.tipoff_at < ${settledBefore}::timestamptz
+      and not exists (select 1 from fantasy_coach_price_change_log l where l.game_id = g.id)
+  `);
+  for (const g of unpriced) {
+    await refreshFinalBoxscore(g.id, season, g.game_code).catch((err) =>
+      console.error(`[fantasy daily reprice] box score refresh failed for ${g.id}:`, err)
+    );
+  }
+  const playersUpdated = await applyPlayerPriceChanges(season, settledBefore);
+  const coachesUpdated = await applyCoachPriceChanges(season, settledBefore);
   return { playersUpdated, coachesUpdated };
 }
 
-async function applyPlayerPriceChanges(season: string): Promise<number> {
-  const pending = await db.execute<{
-    player_id: string;
-    game_id: string;
-    team_id: string;
-    home_team_id: string;
-    away_team_id: string;
-    home_score: number | null;
-    away_score: number | null;
-    points: number | null;
-    rebounds: number | null;
-    assists: number | null;
-    steals: number | null;
-    turnovers: number | null;
-    blocks_favour: number | null;
-    blocks_against: number | null;
-    fouls_committed: number | null;
-    fouls_received: number | null;
-    field_goals_made_2: number | null;
-    field_goals_attempted_2: number | null;
-    field_goals_made_3: number | null;
-    field_goals_attempted_3: number | null;
-    free_throws_made: number | null;
-    free_throws_attempted: number | null;
-  }>(sql`
-    select pgs.player_id, pgs.game_id, p.team_id,
+type PlayerMoveRow = {
+  player_id: string;
+  game_id: string;
+  team_id: string;
+  price: number;
+  home_team_id: string;
+  away_team_id: string;
+  home_score: number | null;
+  away_score: number | null;
+  has_row: boolean;
+  minutes: number | null;
+  points: number | null;
+  rebounds: number | null;
+  assists: number | null;
+  steals: number | null;
+  turnovers: number | null;
+  blocks_favour: number | null;
+  blocks_against: number | null;
+  fouls_committed: number | null;
+  fouls_received: number | null;
+  field_goals_made_2: number | null;
+  field_goals_attempted_2: number | null;
+  field_goals_made_3: number | null;
+  field_goals_attempted_3: number | null;
+  free_throws_made: number | null;
+  free_throws_attempted: number | null;
+};
+
+function didPlay(r: PlayerMoveRow): boolean {
+  if (!r.has_row) return false;
+  if ((r.minutes ?? 0) > 0) return true;
+  return [
+    r.points, r.rebounds, r.assists, r.steals, r.turnovers, r.blocks_favour, r.blocks_against,
+    r.fouls_committed, r.fouls_received, r.field_goals_attempted_2, r.field_goals_attempted_3, r.free_throws_attempted,
+  ].some((v) => (v ?? 0) !== 0);
+}
+
+async function applyPlayerPriceChanges(season: string, settledBefore: string): Promise<number> {
+  // Every priced player who either has a box-score row for the game, or is
+  // on one of its two teams' active rosters (so a DNP still moves).
+  const pending = (await db.execute<PlayerMoveRow>(sql`
+    select p.id as player_id, g.id as game_id, p.team_id, pfp.price,
       g.home_team_id, g.away_team_id, g.home_score, g.away_score,
+      pgs.player_id is not null as has_row, pgs.minutes,
       pgs.points, pgs.rebounds, pgs.assists, pgs.steals, pgs.turnovers,
       pgs.blocks_favour, pgs.blocks_against, pgs.fouls_committed, pgs.fouls_received,
       pgs.field_goals_made_2, pgs.field_goals_attempted_2,
       pgs.field_goals_made_3, pgs.field_goals_attempted_3,
       pgs.free_throws_made, pgs.free_throws_attempted
-    from player_game_stats pgs
-    join games g on g.id = pgs.game_id and g.status = 'final' and g.season = ${season}
-    join players p on p.id = pgs.player_id
-    where not exists (
-      select 1 from fantasy_price_change_log l where l.player_id = pgs.player_id and l.game_id = pgs.game_id
-    )
-  `);
+    from games g
+    join player_fantasy_prices pfp on pfp.season = g.season
+    join players p on p.id = pfp.player_id
+    left join player_game_stats pgs on pgs.game_id = g.id and pgs.player_id = p.id
+    where g.season = ${season} and g.status = 'final' and g.tipoff_at < ${settledBefore}::timestamptz
+      and (pgs.player_id is not null or (p.active and p.team_id in (g.home_team_id, g.away_team_id)))
+      and not exists (
+        select 1 from fantasy_price_change_log l where l.player_id = p.id and l.game_id = g.id
+      )
+    order by g.tipoff_at
+  `)) as PlayerMoveRow[];
   if (pending.length === 0) return 0;
 
-  const playerIds = [...new Set(pending.map((r) => r.player_id))];
-  const priceRows = await db
-    .select({ playerId: playerFantasyPrices.playerId, price: playerFantasyPrices.price })
-    .from(playerFantasyPrices)
-    .where(and(eq(playerFantasyPrices.season, season), inArray(playerFantasyPrices.playerId, playerIds)));
-  const priceByPlayerId = new Map(priceRows.map((r) => [r.playerId, r.price]));
-
+  const priceByPlayerId = new Map<string, number>();
   let highestPrice = 0;
-  const priceUpdates: { playerId: string; newPrice: number }[] = [];
   const logRows: { playerId: string; gameId: string; delta: number; appliedDelta: number }[] = [];
 
   for (const row of pending) {
-    const currentPrice = priceByPlayerId.get(row.player_id) ?? FANTASY_MIN_PRICE;
-    const teamWon =
-      (row.team_id === row.home_team_id && (row.home_score ?? 0) > (row.away_score ?? 0)) ||
-      (row.team_id === row.away_team_id && (row.away_score ?? 0) > (row.home_score ?? 0));
-    const gamePoints = computeFantasyGamePoints(
-      {
-        points: row.points,
-        rebounds: row.rebounds,
-        assists: row.assists,
-        steals: row.steals,
-        turnovers: row.turnovers,
-        blocksFavour: row.blocks_favour,
-        blocksAgainst: row.blocks_against,
-        foulsCommitted: row.fouls_committed,
-        foulsReceived: row.fouls_received,
-        fieldGoalsMade2: row.field_goals_made_2,
-        fieldGoalsAttempted2: row.field_goals_attempted_2,
-        fieldGoalsMade3: row.field_goals_made_3,
-        fieldGoalsAttempted3: row.field_goals_attempted_3,
-        freeThrowsMade: row.free_throws_made,
-        freeThrowsAttempted: row.free_throws_attempted,
-      },
-      teamWon
-    );
-    const delta = priceVariationDelta(gamePoints, currentPrice);
-    // Floor only, no ceiling (2026-09-28, same as coaches below):
-    // FANTASY_MAX_PRICE is the top of computeFantasyPrice's season-start
-    // curve, not a limit on in-season moves — capping here held Vezenkov at
-    // 17.0 after a round-1 game that priced him at 17.6. A price above it
-    // is exactly what bumpCeilingIfNeeded turns into a bigger budget.
+    const currentPrice = priceByPlayerId.get(row.player_id) ?? Number(row.price);
+    let rawDelta: number;
+    let delta: number;
+    if (didPlay(row)) {
+      const teamWon =
+        (row.team_id === row.home_team_id && (row.home_score ?? 0) > (row.away_score ?? 0)) ||
+        (row.team_id === row.away_team_id && (row.away_score ?? 0) > (row.home_score ?? 0));
+      const gamePoints = computeFantasyGamePoints(
+        {
+          points: row.points,
+          rebounds: row.rebounds,
+          assists: row.assists,
+          steals: row.steals,
+          turnovers: row.turnovers,
+          blocksFavour: row.blocks_favour,
+          blocksAgainst: row.blocks_against,
+          foulsCommitted: row.fouls_committed,
+          foulsReceived: row.fouls_received,
+          fieldGoalsMade2: row.field_goals_made_2,
+          fieldGoalsAttempted2: row.field_goals_attempted_2,
+          fieldGoalsMade3: row.field_goals_made_3,
+          fieldGoalsAttempted3: row.field_goals_attempted_3,
+          freeThrowsMade: row.free_throws_made,
+          freeThrowsAttempted: row.free_throws_attempted,
+        },
+        teamWon
+      );
+      rawDelta = (gamePoints - currentPrice * FANTASY_PRICE_VARIATION_MULTIPLIER) / FANTASY_PRICE_VARIATION_DIVISOR;
+      delta = priceVariationDelta(gamePoints, currentPrice);
+    } else {
+      rawDelta = DNP_PRICE_DELTA;
+      delta = DNP_PRICE_DELTA;
+    }
+    // Floor only, no ceiling (2026-09-28): FANTASY_MAX_PRICE is the top of
+    // computeFantasyPrice's season-start curve, not a limit on in-season
+    // moves. A price above it is what bumpCeilingIfNeeded turns into a
+    // bigger budget.
     const newPrice = round1(Math.max(FANTASY_MIN_PRICE, currentPrice + delta));
-    priceByPlayerId.set(row.player_id, newPrice); // so a player with 2 games "today" (shouldn't normally happen) compounds correctly
-    priceUpdates.push({ playerId: row.player_id, newPrice });
-    logRows.push({ playerId: row.player_id, gameId: row.game_id, delta, appliedDelta: round1(newPrice - currentPrice) });
+    priceByPlayerId.set(row.player_id, newPrice);
+    logRows.push({ playerId: row.player_id, gameId: row.game_id, delta: rawDelta, appliedDelta: round1(newPrice - currentPrice) });
     highestPrice = Math.max(highestPrice, newPrice);
   }
 
   // One batched UPDATE...FROM (VALUES ...) rather than one round trip per
-  // player — same lever CLAUDE.md documents elsewhere for this DB.
-  const values = priceUpdates.map((u) => sql`(${u.playerId}::uuid, ${u.newPrice}::real)`);
+  // player, same lever CLAUDE.md documents elsewhere for this DB.
+  const values = [...priceByPlayerId].map(([playerId, price]) => sql`(${playerId}::uuid, ${price}::real)`);
   await db.execute(sql`
     update player_fantasy_prices
     set price = v.price, updated_at = now()
@@ -213,10 +276,10 @@ async function applyPlayerPriceChanges(season: string): Promise<number> {
   await db.insert(fantasyPriceChangeLog).values(logRows).onConflictDoNothing();
 
   if (highestPrice > 0) await bumpCeilingIfNeeded(season, highestPrice);
-  return priceUpdates.length;
+  return priceByPlayerId.size;
 }
 
-async function applyCoachPriceChanges(season: string): Promise<number> {
+async function applyCoachPriceChanges(season: string, settledBefore: string): Promise<number> {
   const pending = await db.execute<{
     team_id: string;
     game_id: string;
@@ -228,10 +291,11 @@ async function applyCoachPriceChanges(season: string): Promise<number> {
     select g.id as game_id, g.home_team_id, g.away_team_id, g.home_score, g.away_score, t.id as team_id
     from games g
     join teams t on t.id = g.home_team_id or t.id = g.away_team_id
-    where g.status = 'final' and g.season = ${season}
+    where g.status = 'final' and g.season = ${season} and g.tipoff_at < ${settledBefore}::timestamptz
       and not exists (
         select 1 from fantasy_coach_price_change_log l where l.team_id = t.id and l.game_id = g.id
       )
+    order by g.tipoff_at
   `);
   if (pending.length === 0) return 0;
 
@@ -251,14 +315,15 @@ async function applyCoachPriceChanges(season: string): Promise<number> {
     const scoreAgainst = row.team_id === row.home_team_id ? row.away_score ?? 0 : row.home_score ?? 0;
     const gamePoints = pointsForCoachResult(scoreFor, scoreAgainst);
     const delta = coachPriceVariationDelta(gamePoints, currentPrice);
-    // Floor only, no ceiling (2026-09-28): COACH_MAX_PRICE is the top of the
-    // season-start range computeCoachPrice maps standings onto, not a limit
-    // on in-season moves — capping here held Obradovic/Bartzokas at 10.0
-    // after a round-1 win the real game priced at 10.3.
-    const newPrice = round1(Math.max(COACH_MIN_PRICE, currentPrice + delta));
+    const newPrice = round1(Math.max(COACH_PRICE_FLOOR, currentPrice + delta));
     priceByTeamId.set(row.team_id, newPrice);
     priceUpdates.push({ teamId: row.team_id, newPrice });
-    logRows.push({ teamId: row.team_id, gameId: row.game_id, delta, appliedDelta: round1(newPrice - currentPrice) });
+    logRows.push({
+      teamId: row.team_id,
+      gameId: row.game_id,
+      delta: (gamePoints - currentPrice) / COACH_PRICE_VARIATION_DIVISOR,
+      appliedDelta: round1(newPrice - currentPrice),
+    });
   }
 
   const values = priceUpdates.map((u) => sql`(${u.teamId}::uuid, ${u.newPrice}::real)`);

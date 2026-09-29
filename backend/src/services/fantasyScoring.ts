@@ -359,7 +359,10 @@ export function computeFantasyGamePoints(stats: FantasyGameBoxScore, teamWon: bo
     n(stats.foulsCommitted) -
     missedFieldGoals -
     missedFreeThrows;
-  return teamWon ? base * (1 + FANTASY_TEAM_WIN_BONUS) : base;
+  // The bonus is 10% of the line's size, always added — a -1 on a winning
+  // team scores -0.9, not -1.1 (checked 2026-09-29 against every round-1
+  // player's real EuroLeague Fantasy total). Mirrored in the SQL below.
+  return teamWon ? base + Math.abs(base) * FANTASY_TEAM_WIN_BONUS : base;
 }
 
 // --- Coach pricing + scoring ---
@@ -1179,7 +1182,18 @@ export async function getFantasyLeaderboardEntries(
       -- (a traded player's old games), same simplification already made
       -- elsewhere in this app (e.g. usage% — see CLAUDE.md).
       select pgs.player_id, g.season, g.round,
-        (
+        -- Win bonus = 10% of the line's size, always added (-1 -> -0.9).
+        b.base + (case
+          when (p.team_id = g.home_team_id and g.home_score > g.away_score)
+            or (p.team_id = g.away_team_id and g.away_score > g.home_score)
+          then abs(b.base) * ${FANTASY_TEAM_WIN_BONUS}::numeric
+          else 0::numeric
+        end) as fantasy_points,
+        coalesce(pgs.valuation, 0) as pir
+      from player_game_stats pgs
+      join games g on g.id = pgs.game_id
+      join players p on p.id = pgs.player_id
+      cross join lateral (select (
           coalesce(pgs.points, 0) + coalesce(pgs.rebounds, 0) + coalesce(pgs.assists, 0)
           + coalesce(pgs.steals, 0) - coalesce(pgs.turnovers, 0)
           + coalesce(pgs.blocks_favour, 0) - coalesce(pgs.blocks_against, 0)
@@ -1187,15 +1201,7 @@ export async function getFantasyLeaderboardEntries(
           - (coalesce(pgs.field_goals_attempted_2, 0) - coalesce(pgs.field_goals_made_2, 0))
           - (coalesce(pgs.field_goals_attempted_3, 0) - coalesce(pgs.field_goals_made_3, 0))
           - (coalesce(pgs.free_throws_attempted, 0) - coalesce(pgs.free_throws_made, 0))
-        ) * (case
-          when p.team_id = g.home_team_id and g.home_score > g.away_score then ${1 + FANTASY_TEAM_WIN_BONUS}::numeric
-          when p.team_id = g.away_team_id and g.away_score > g.home_score then ${1 + FANTASY_TEAM_WIN_BONUS}::numeric
-          else 1::numeric
-        end) as fantasy_points,
-        coalesce(pgs.valuation, 0) as pir
-      from player_game_stats pgs
-      join games g on g.id = pgs.game_id
-      join players p on p.id = pgs.player_id
+        )::numeric as base) b
       where g.status = 'final'
     ),
     player_pir_round_totals as (

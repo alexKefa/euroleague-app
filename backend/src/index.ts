@@ -214,8 +214,10 @@ if (process.env.NODE_ENV === "production") {
   // fantasy_price_change_log row yet, so this is safe on a fixed interval
   // regardless of exact timing or a mid-day restart — same idempotency
   // shape as the odds/news jobs above, not a fragile "once per calendar
-  // day" scheduler. A day with no games played is a cheap no-op.
-  const FANTASY_REPRICE_INTERVAL_MS = 24 * 60 * 60 * 1000;
+  // day" scheduler. A day with no games played is a cheap no-op. Hourly
+  // (was daily) since a game only becomes priceable PRICE_SETTLE_MS after
+  // tipoff — this keeps the move landing within an hour of that.
+  const FANTASY_REPRICE_INTERVAL_MS = 60 * 60 * 1000;
   const runFantasyReprice = () => {
     getCurrentSeason()
       .then((season) => (season ? applyDailyFantasyPriceChanges(season) : Promise.resolve(null)))
