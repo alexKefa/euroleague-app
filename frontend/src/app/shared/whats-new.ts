@@ -5,7 +5,6 @@ import { AuthService } from "../core/auth.service";
 import { I18nService } from "../core/i18n.service";
 import { Announcement } from "../core/models";
 import { NavIconComponent, NavIconName } from "./nav-icon";
-import { ButtonDirective } from "./button.directive";
 
 const SEEN_KEY = "clutch-whats-new-seen";
 
@@ -40,7 +39,7 @@ function writeSeen(ids: Set<string>): void {
 @Component({
   selector: "app-whats-new",
   standalone: true,
-  imports: [NavIconComponent, ButtonDirective],
+  imports: [NavIconComponent],
   templateUrl: "./whats-new.html",
   styleUrl: "./battle-challenge-toast.css",
 })
@@ -52,6 +51,11 @@ export class WhatsNewComponent {
 
   private fetched = false;
   readonly pending = signal<Announcement[]>([]);
+  // Which announcement (if any) is expanded to show its body.
+  readonly expandedId = signal<string | null>(null);
+  toggle(id: string): void {
+    this.expandedId.update((cur) => (cur === id ? null : id));
+  }
 
   constructor() {
     // Waits on the access token rather than checking once at init — this

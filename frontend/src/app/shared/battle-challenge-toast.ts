@@ -5,7 +5,6 @@ import { AuthService } from "../core/auth.service";
 import { ApiService } from "../core/api.service";
 import { I18nService } from "../core/i18n.service";
 import { NavIconComponent } from "./nav-icon";
-import { ButtonDirective } from "./button.directive";
 
 interface ToastState {
   battleId: string;
@@ -27,7 +26,7 @@ interface ToastState {
 @Component({
   selector: "app-battle-challenge-toast",
   standalone: true,
-  imports: [NavIconComponent, ButtonDirective],
+  imports: [NavIconComponent],
   templateUrl: "./battle-challenge-toast.html",
   styleUrl: "./battle-challenge-toast.css",
 })

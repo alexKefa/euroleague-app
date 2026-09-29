@@ -28,32 +28,50 @@
   @if (!loading() && auth.isAuthenticated()) {
     @if (spinning() || lastWonPack() === undefined) {
       <div data-tour="wheel-spin" class="wheel-scale-wrap relative w-[14.4rem] h-[14.4rem] mx-auto mt-4 mb-6 sm:mt-10">
+        <!-- Game-show dressing (2026-09-29, "something more fancy"): team-colour
+             glow behind, a metallic rim with 24 bulbs (twinkle when a spin is
+             ready, chase while spinning), and a teardrop pointer. -->
+        <div class="wheel-glow absolute pointer-events-none"></div>
         <div
-          class="wheel-pointer absolute -top-1 left-1/2 -translate-x-1/2 z-10 w-0 h-0 border-l-[11px] border-l-transparent border-r-[11px] border-r-transparent border-t-[18px] border-t-highlight"
+          class="wheel-rim absolute pointer-events-none"
+          [class.wheel-rim--spinning]="spinning()"
+          [class.wheel-rim--ready]="canSpin() && !spinning()"
+        >
+          @for (b of bulbs; track b) {
+            <span class="wheel-bulb" [class.wheel-bulb--odd]="b % 2 === 1" [style.transform]="'translate(-50%, -50%) rotate(' + b * 15 + 'deg) translateY(-7.62rem)'"></span>
+          }
+        </div>
+        <div
+          class="wheel-pointer absolute -top-4 left-1/2 -translate-x-1/2 z-10"
           [ngClass]="pointerTick() ? 'wheel-pointer--' + pointerTick() : ''"
-        ></div>
+        >
+          <svg width="28" height="36" viewBox="0 0 28 36" aria-hidden="true">
+            <path d="M14 35 L3 15 A11.5 11.5 0 1 1 25 15 Z" fill="var(--accent-primary)" stroke="var(--color-card)" stroke-width="2.5" stroke-linejoin="round" />
+            <circle cx="14" cy="12.5" r="4.2" fill="#fff" fill-opacity="0.95" />
+          </svg>
+        </div>
         <!-- Landed-wedge glow (2026-09-29): lights up the wedge under the
              pointer, in its tier colour, before the prize shows. -->
         @if (landedTier(); as tier) {
           <div class="wheel-landed absolute z-[5] pointer-events-none" [class]="'wheel-landed--' + tier"></div>
         }
         <div
-          class="wheel-disc w-full h-full rounded-full border-4 border-line shadow-pop flex items-center justify-center relative"
+          class="wheel-disc w-full h-full rounded-full flex items-center justify-center relative"
           [style.transform]="'rotate(' + wheelRotation() + 'deg)'"
           [style.transition]="discTransition()"
           style="background: conic-gradient(
-            #5b6169 0deg 30deg,
-            #5b6169 30deg 60deg,
-            #c9d3da 60deg 90deg,
-            #5b6169 90deg 120deg,
-            #e8b23c 120deg 150deg,
-            #5b6169 150deg 180deg,
-            #c9d3da 180deg 210deg,
-            #5b6169 210deg 240deg,
-            #3fd9a4 240deg 270deg,
-            #5b6169 270deg 300deg,
-            #c9d3da 300deg 330deg,
-            #5b6169 330deg 360deg
+            #343c4a 0deg 30deg,
+            #343c4a 30deg 60deg,
+            #6fb1ea 60deg 90deg,
+            #343c4a 90deg 120deg,
+            #f3b62f 120deg 150deg,
+            #343c4a 150deg 180deg,
+            #6fb1ea 180deg 210deg,
+            #343c4a 210deg 240deg,
+            #27c793 240deg 270deg,
+            #343c4a 270deg 300deg,
+            #6fb1ea 300deg 330deg,
+            #343c4a 330deg 360deg
           )"
         >
           @for (angle of wedgeBoundaries; track angle) {
@@ -79,11 +97,12 @@
             [disabled]="!canSpin() || spinning()"
             [class.wheel-hub--ready]="canSpin() && !spinning()"
             [attr.aria-label]="i18n.t('wheel.takeJumpBall')"
-            class="wheel-hub w-[4.8rem] h-[4.8rem] rounded-full bg-page border-4 border-card flex items-center justify-center disabled:cursor-default"
+            class="wheel-hub w-[4.8rem] h-[4.8rem] rounded-full flex items-center justify-center disabled:cursor-default"
           >
-            <app-nav-icon name="ball" [size]="34" class="text-highlight" />
+            <app-nav-icon name="ball" [size]="34" class="text-team-secondary relative" />
           </button>
         </div>
+        <div class="wheel-gloss absolute inset-0 rounded-full pointer-events-none"></div>
       </div>
 
       @if (spinning()) {

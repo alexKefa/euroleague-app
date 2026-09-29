@@ -1,28 +1,21 @@
-<!-- Positioned by the shared toast stack in app.component.html. -->
+<!-- Positioned by the shared toast stack in app.component.html.
+     Compact pill (2026-09-29, "too much info"): title only; tapping it
+     follows the link, or expands the body when there's no link. -->
 @for (a of pending(); track a.id) {
-  <div class="toast-pop pointer-events-auto mb-3 bg-card border-2 border-line rounded-2xl shadow-pop p-4" role="status">
-    <div class="flex items-start gap-3">
-      <div class="toast-icon w-9 h-9 rounded-full bg-team-primary/10 flex items-center justify-center shrink-0">
-        <app-nav-icon [name]="icon(a)" [size]="20" class="text-team-primary" />
-      </div>
-      <div class="min-w-0 flex-1 break-words">
-        <p class="text-[11px] font-mono font-bold uppercase tracking-wide text-team-primary">{{ i18n.t('whatsNew.label') }}</p>
-        <p class="text-sm font-semibold">{{ title(a) }}</p>
-        <p class="text-xs text-muted mt-0.5">{{ body(a) }}</p>
-      </div>
-      <button
-        type="button"
-        (click)="dismiss(a)"
-        class="text-muted hover:text-ink text-lg leading-none shrink-0"
-        [attr.aria-label]="i18n.t('hint.dismiss')"
-      >
-        &times;
+  <div class="toast-pop toast-pill pointer-events-auto mb-2" role="status">
+    <div class="flex items-center gap-2.5">
+      <span class="toast-pill-icon"><app-nav-icon [name]="icon(a)" [size]="18" /></span>
+      <button type="button" class="min-w-0 flex-1 text-left" (click)="a.link ? open(a) : toggle(a.id)">
+        <span class="block text-[10px] font-bold uppercase tracking-wider text-team-primary leading-none mb-0.5">{{ i18n.t('whatsNew.label') }}</span>
+        <span class="block text-[13px] font-semibold leading-snug" [class.truncate]="expandedId() !== a.id">{{ title(a) }}</span>
       </button>
+      @if (a.link && cta(a)) {
+        <button type="button" (click)="open(a)" class="toast-action">{{ cta(a) }}</button>
+      }
+      <button type="button" (click)="dismiss(a)" class="toast-x" [attr.aria-label]="i18n.t('hint.dismiss')">&times;</button>
     </div>
-    @if (a.link && cta(a)) {
-      <button type="button" (click)="open(a)" appButton appButtonSize="sm" class="w-full mt-3">
-        {{ cta(a) }}
-      </button>
+    @if (expandedId() === a.id) {
+      <p class="text-[12px] text-muted leading-relaxed mt-2 px-1">{{ body(a) }}</p>
     }
   </div>
 }

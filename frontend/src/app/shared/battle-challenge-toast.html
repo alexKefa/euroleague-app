@@ -1,25 +1,15 @@
 @if (toast(); as t) {
-  <!-- Positioned by the shared toast stack in app.component.html. -->
-  <div class="toast-pop pointer-events-auto mb-3 bg-card border-2 border-line rounded-2xl shadow-pop p-4">
-    <div class="flex items-start gap-3">
-      <div class="toast-icon w-9 h-9 rounded-full bg-team-primary/10 flex items-center justify-center shrink-0">
-        <app-nav-icon name="ball" [size]="20" class="text-team-primary" />
-      </div>
-      <div class="min-w-0 flex-1">
-        <p class="text-sm font-semibold truncate">{{ t.challengerName }}</p>
-        <p class="text-xs text-muted">{{ i18n.t('battles.toastChallenged') }}</p>
-      </div>
-      <button
-        type="button"
-        (click)="dismiss()"
-        class="text-muted hover:text-ink text-lg leading-none shrink-0"
-        [attr.aria-label]="i18n.t('hint.dismiss')"
-      >
-        &times;
-      </button>
+  <!-- Positioned by the shared toast stack in app.component.html.
+       Compact pill (2026-09-29): who challenged you + View. -->
+  <div class="toast-pop toast-pill pointer-events-auto mb-2" role="status">
+    <div class="flex items-center gap-2.5">
+      <span class="toast-pill-icon font-display text-base uppercase">{{ t.challengerName.charAt(0) }}</span>
+      <p class="min-w-0 flex-1 text-[13px] leading-snug">
+        <span class="font-semibold block truncate">{{ t.challengerName }}</span>
+        <span class="text-muted text-[12px] block truncate">{{ i18n.t('battles.toastChallenged') }}</span>
+      </p>
+      <button type="button" (click)="view()" class="toast-action">{{ i18n.t('battles.toastView') }}</button>
+      <button type="button" (click)="dismiss()" class="toast-x" [attr.aria-label]="i18n.t('hint.dismiss')">&times;</button>
     </div>
-    <button type="button" (click)="view()" appButton appButtonSize="sm" class="w-full mt-3">
-      {{ i18n.t('battles.toastView') }}
-    </button>
   </div>
 }

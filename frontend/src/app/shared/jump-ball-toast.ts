@@ -4,7 +4,6 @@ import { ApiService } from "../core/api.service";
 import { AuthService } from "../core/auth.service";
 import { I18nService } from "../core/i18n.service";
 import { NavIconComponent } from "./nav-icon";
-import { ButtonDirective } from "./button.directive";
 
 const DISMISS_KEY_PREFIX = "clutch-jumpball-toast-dismissed-";
 
@@ -32,7 +31,7 @@ function todayAthensDateKey(): string {
 @Component({
   selector: "app-jump-ball-toast",
   standalone: true,
-  imports: [NavIconComponent, ButtonDirective],
+  imports: [NavIconComponent],
   templateUrl: "./jump-ball-toast.html",
   styleUrl: "./jump-ball-toast.css",
 })

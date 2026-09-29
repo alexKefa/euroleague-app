@@ -409,3 +409,123 @@
 @media (prefers-reduced-motion: reduce) {
   .wheel-pointer--fast, .wheel-pointer--slow, .wheel-landed { animation: none; }
 }
+
+/* --- Game-show wheel (2026-09-29) ------------------------------------------ */
+
+/* Team-colour glow behind the wheel. */
+.wheel-glow {
+  inset: -2.5rem;
+  border-radius: 9999px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent-primary) 38%, transparent) 0%, transparent 65%);
+  filter: blur(8px);
+}
+
+/* Metallic rim around the disc (disc radius 7.2rem, rim adds ~0.85rem). */
+.wheel-rim {
+  inset: -0.85rem;
+  border-radius: 9999px;
+  background: conic-gradient(
+    from 200deg,
+    color-mix(in srgb, var(--accent-primary) 85%, #000),
+    color-mix(in srgb, var(--accent-primary) 55%, #fff),
+    color-mix(in srgb, var(--accent-primary) 90%, #000),
+    color-mix(in srgb, var(--accent-primary) 60%, #fff),
+    color-mix(in srgb, var(--accent-primary) 85%, #000)
+  );
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.45),
+    inset 0 2px 3px rgba(255, 255, 255, 0.35),
+    inset 0 -3px 5px rgba(0, 0, 0, 0.35);
+}
+
+.wheel-bulb {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: #fff6d9;
+  opacity: 0.45;
+  box-shadow: 0 0 4px rgba(255, 240, 190, 0.6);
+}
+.wheel-rim--ready .wheel-bulb {
+  animation: bulb-twinkle 1.6s ease-in-out infinite;
+}
+.wheel-rim--ready .wheel-bulb--odd {
+  animation-delay: 0.8s;
+}
+.wheel-rim--spinning .wheel-bulb {
+  animation: bulb-chase 0.24s steps(1) infinite;
+}
+.wheel-rim--spinning .wheel-bulb--odd {
+  animation-delay: 0.12s;
+}
+@keyframes bulb-twinkle {
+  0%, 100% { opacity: 0.35; box-shadow: 0 0 3px rgba(255, 240, 190, 0.4); }
+  50% { opacity: 1; box-shadow: 0 0 10px rgba(255, 236, 170, 0.95); }
+}
+@keyframes bulb-chase {
+  0% { opacity: 1; box-shadow: 0 0 10px rgba(255, 236, 170, 0.95); }
+  50% { opacity: 0.25; box-shadow: none; }
+}
+
+/* Depth on the wedges: centre and edge falloff (rotates with the disc) ... */
+.wheel-disc::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.35) 0%, transparent 38%, transparent 70%, rgba(0, 0, 0, 0.28) 100%);
+  pointer-events: none;
+}
+/* ... and a fixed glossy highlight on top that stays put while it turns. */
+.wheel-gloss {
+  background:
+    radial-gradient(120% 70% at 30% 8%, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0) 45%),
+    radial-gradient(circle, transparent 60%, rgba(0, 0, 0, 0.18) 100%);
+  z-index: 4;
+}
+
+/* Glossy team-colour hub. */
+.wheel-hub {
+  position: relative;
+  z-index: 6;
+  background: radial-gradient(
+    circle at 35% 30%,
+    color-mix(in srgb, var(--accent-primary) 55%, #fff) 0%,
+    var(--accent-primary) 45%,
+    color-mix(in srgb, var(--accent-primary) 70%, #000) 100%
+  );
+  box-shadow:
+    0 0 0 4px var(--color-card),
+    0 0 0 6px color-mix(in srgb, var(--accent-primary) 50%, transparent),
+    0 8px 18px rgba(0, 0, 0, 0.45);
+}
+.wheel-hub--ready {
+  animation: wheel-hub-glow 1.8s ease-in-out infinite;
+}
+@keyframes wheel-hub-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 4px var(--color-card), 0 0 0 6px color-mix(in srgb, var(--accent-primary) 50%, transparent), 0 8px 18px rgba(0, 0, 0, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 4px var(--color-card), 0 0 0 6px color-mix(in srgb, var(--accent-primary) 50%, transparent), 0 8px 18px rgba(0, 0, 0, 0.45), 0 0 28px color-mix(in srgb, var(--accent-primary) 75%, transparent);
+  }
+}
+
+.wheel-pointer svg {
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.45));
+}
+
+.wheel-divider {
+  background: rgba(10, 12, 16, 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wheel-rim--ready .wheel-bulb,
+  .wheel-rim--spinning .wheel-bulb,
+  .wheel-hub--ready {
+    animation: none;
+  }
+}

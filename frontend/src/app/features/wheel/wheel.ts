@@ -81,6 +81,8 @@ export class WheelComponent implements OnInit, OnDestroy {
   // coach cards added) — 8 slices can't cleanly fit a 4th tier at anything
   // close to its real odds share; 12 does (see WEDGE_TIERS below).
   readonly wedgeBoundaries = Array.from({ length: 12 }, (_, i) => i * 30);
+  // 24 rim bulbs, one every 15deg (wheel.html / .wheel-bulb).
+  readonly bulbs = Array.from({ length: 24 }, (_, i) => i);
 
   // Scattered twinkle positions for the legendary reveal — fixed, not
   // random, so the effect is identical on every pull. Same set as the pack
