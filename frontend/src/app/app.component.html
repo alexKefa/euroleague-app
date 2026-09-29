@@ -12,9 +12,15 @@
 ></div>
 
 @if (!hideChrome()) {
+<!-- Top bar restyle (2026-09-29, "change the top bar on mobile"): glass
+     bar with a team-colour accent line, 40px controls, the profile button as
+     a letter avatar, and the top safe area respected (index.html sets
+     viewport-fit=cover, so in the installed app on a notched iPhone the bar
+     used to sit under the status bar). -->
 <nav
-  class="sticky top-0 z-30 flex justify-between items-center gap-3 px-4 sm:px-6 py-4 bg-card border-b border-line"
+  class="sticky top-0 z-30 flex justify-between items-center gap-3 px-4 sm:px-6 pb-2.5 pt-[calc(0.625rem+env(safe-area-inset-top))] sm:py-4 bg-card/85 backdrop-blur-xl border-b border-line"
 >
+  <div class="pointer-events-none absolute inset-x-0 bottom-0 h-px opacity-70" style="background: linear-gradient(90deg, transparent, var(--accent-primary), transparent)" aria-hidden="true"></div>
   <!-- The logo — v14 (2026-09-14, see CLAUDE.md's Branding section): a new
        user-supplied "C"-swoosh basketball/hoop mark with its own baked-in
        serif "Clutch" wordmark below it, replacing v9/v10's backboard/net
@@ -37,8 +43,8 @@
        text next to it — see styles.css's comment for why it's a Google
        Fonts lookalike rather than the logo's actual (non-free) typeface. -->
   <a routerLink="/" class="flex items-center gap-2 shrink-0">
-    <img src="/clutch-icon.png" alt="" height="34" class="brand-mark-light" style="height: 34px; width: auto;" />
-    <img src="/clutch-icon-dark.png" alt="" height="34" class="brand-mark-dark" style="height: 34px; width: auto;" />
+    <img src="/clutch-icon.png" alt="" height="34" class="brand-mark-light h-[30px] sm:h-[34px] w-auto" />
+    <img src="/clutch-icon-dark.png" alt="" height="34" class="brand-mark-dark h-[30px] sm:h-[34px] w-auto" />
     <span class="brand-wordmark text-ink text-xl tracking-wide">Clutch</span>
   </a>
 
@@ -60,7 +66,7 @@
     <button
       type="button"
       (click)="tour.start()"
-      class="tap-target relative shrink-0 w-8 h-8 rounded-xl border-2 border-line flex items-center justify-center text-muted hover:text-team-primary hover:bg-page transition-colors"
+      class="tap-target status-tile relative shrink-0 w-10 h-10 sm:w-8 sm:h-8 rounded-xl border border-line flex items-center justify-center text-muted hover:text-team-primary transition-colors"
       [attr.aria-label]="i18n.t('tour.takeTour')"
       [title]="i18n.t('tour.takeTour')"
     >
@@ -94,11 +100,11 @@
       </div>
       <a
         routerLink="/profile"
-        [class]="isProfileActive() ? 'bg-team-primary/15 border-team-primary/30 text-team-primary' : 'border-line text-muted hover:text-ink hover:bg-page'"
-        class="sm:hidden shrink-0 w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-colors"
+        class="sm:hidden shrink-0 w-10 h-10 rounded-xl bg-team-primary text-team-secondary flex items-center justify-center font-display text-lg uppercase shadow-card transition-shadow"
+        [style.box-shadow]="isProfileActive() ? '0 0 0 2px var(--color-card), 0 0 0 4px var(--accent-primary)' : null"
         [attr.aria-label]="i18n.t('nav.profile')"
       >
-        <app-nav-icon name="user" [active]="isProfileActive()" [size]="18" />
+        {{ (auth.currentUser()?.username || auth.currentUser()?.email || '?').charAt(0) }}
       </a>
     } @else {
       <div class="hidden sm:flex items-center gap-3 sm:gap-4 shrink-0">
@@ -117,7 +123,7 @@
            ("Don't have an account?"), so dropping this one doesn't strand
            anyone. Icon+visible label, not just an icon+aria-label — an
            icon-only button here read as unclear on its own. -->
-      <a routerLink="/login" appButton="secondary" appButtonSize="sm" class="sm:hidden shrink-0">
+      <a routerLink="/login" appButton="secondary" appButtonSize="sm" class="sm:hidden shrink-0 !h-10 !rounded-xl">
         <app-nav-icon name="user" [size]="14" class="text-team-primary" />
         {{ i18n.t('nav.login') }}
       </a>
