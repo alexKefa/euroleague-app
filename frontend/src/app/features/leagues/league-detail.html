@@ -18,20 +18,34 @@
       <p class="text-sm text-muted font-semibold">{{ i18n.t('leagues.notFound') }}</p>
     </div>
   } @else if (league(); as league) {
-    <div class="flex items-center justify-between mb-5 gap-2">
-      <h1 class="font-display text-2xl tracking-wide truncate">{{ league.name }}</h1>
-      <button
-        type="button"
-        (click)="confirmingLeave.set(true)"
-        [disabled]="leaving()"
-        appButton="danger"
-        appButtonSize="sm"
-        class="shrink-0"
-      >
-        {{ leaving() ? i18n.t('leagues.leaving') : i18n.t('leagues.leaveButton') }}
-      </button>
+    <!-- League hero (2026-09-29 restyle): name, members, invite code, leave. -->
+    <div class="relative overflow-hidden bg-card rounded-3xl border border-line shadow-card p-4 mb-5">
+      <div class="pointer-events-none absolute inset-0" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 26%, transparent) 0%, color-mix(in srgb, var(--accent-primary) 6%, transparent) 55%, transparent 100%)" aria-hidden="true"></div>
+        <div class="pointer-events-none absolute -right-16 -top-16 w-48 h-48 rounded-full border-[14px]" style="border-color: color-mix(in srgb, var(--accent-primary) 12%, transparent)" aria-hidden="true"></div>
+      <div class="relative flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ league.members.length }} {{ i18n.t('leagues.membersLabel') }}</p>
+          <h1 class="font-display text-2xl leading-tight tracking-wide truncate">{{ league.name }}</h1>
+        </div>
+        <button
+          type="button"
+          (click)="confirmingLeave.set(true)"
+          [disabled]="leaving()"
+          class="status-tile shrink-0 h-9 px-3 rounded-xl border border-line text-[12px] font-bold text-muted hover:text-red-500 hover:border-red-500/40 transition-colors"
+        >
+          {{ leaving() ? i18n.t('leagues.leaving') : i18n.t('leagues.leaveButton') }}
+        </button>
+      </div>
+      <p class="relative text-[12px] text-muted mt-3 mb-2">{{ i18n.t('leagues.inviteHint') }}</p>
+      <div class="relative flex items-center gap-2">
+        <span class="status-tile flex-1 min-w-0 h-11 px-3 flex items-center rounded-xl border-2 border-dashed border-team-primary/50 font-mono text-lg font-bold tracking-[0.3em] truncate">
+          {{ league.code }}
+        </span>
+        <button type="button" (click)="copyCode()" appButton class="shrink-0 !h-11 !rounded-xl">
+          {{ copied() ? i18n.t('leagues.copied') : i18n.t('leagues.copyCode') }}
+        </button>
+      </div>
     </div>
-
     @if (confirmingLeave()) {
       <app-confirm-dialog
         [message]="i18n.t('leagues.leaveConfirm')"
@@ -41,47 +55,33 @@
         (cancelled)="confirmingLeave.set(false)"
       />
     }
-
-    <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-      <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-1">{{ i18n.t('leagues.inviteTitle') }}</p>
-      <p class="text-xs text-muted mb-3">{{ i18n.t('leagues.inviteHint') }}</p>
-      <div class="flex items-center gap-2">
-        <span class="flex-1 min-w-0 px-3 py-2 rounded-xl bg-page border-2 border-line font-mono text-sm font-bold tracking-widest">
-          {{ league.code }}
-        </span>
-        <button type="button" (click)="copyCode()" appButton appButtonSize="sm" class="shrink-0">
-          {{ copied() ? i18n.t('leagues.copied') : i18n.t('leagues.copyCode') }}
-        </button>
-      </div>
-    </div>
-
     <!-- Predictions/Fantasy/Battles/Total tab — same segmented-control
          pattern as Fantasy Five's own roster/leaderboard tabs
          (fantasy.html). Predictions and Total share one row template below,
          differing only in which of an entry's two point fields is shown
          (rowValue()) and which pre-sorted array is iterated. -->
-    <div class="flex gap-1 mb-4 bg-page rounded-2xl p-1">
+    <div class="status-tile flex gap-1 mb-4 h-11 p-1 rounded-2xl border border-line overflow-x-auto no-scrollbar">
       <button
         type="button"
         (click)="setTab('predictions')"
-        class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold transition-colors"
-        [ngClass]="tab() === 'predictions' ? 'bg-team-primary text-team-secondary' : 'text-muted hover:text-team-primary'"
+        class="flex-1 shrink-0 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors"
+        [ngClass]="tab() === 'predictions' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
       >
         {{ i18n.t('leagues.predictionsTab') }}
       </button>
       <button
         type="button"
         (click)="setTab('fantasy')"
-        class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold transition-colors"
-        [ngClass]="tab() === 'fantasy' ? 'bg-team-primary text-team-secondary' : 'text-muted hover:text-team-primary'"
+        class="flex-1 shrink-0 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors"
+        [ngClass]="tab() === 'fantasy' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
       >
         {{ i18n.t('leagues.fantasyTab') }}
       </button>
       <button
         type="button"
         (click)="setTab('battles')"
-        class="relative flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold transition-colors"
-        [ngClass]="tab() === 'battles' ? 'bg-team-primary text-team-secondary' : 'text-muted hover:text-team-primary'"
+        class="relative flex-1 shrink-0 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors"
+        [ngClass]="tab() === 'battles' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
       >
         {{ i18n.t('battles.tab') }}
         @if (battlesNotif.countForLeague(league.id) > 0) {
@@ -94,8 +94,8 @@
       <button
         type="button"
         (click)="setTab('total')"
-        class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold transition-colors"
-        [ngClass]="tab() === 'total' ? 'bg-team-primary text-team-secondary' : 'text-muted hover:text-team-primary'"
+        class="flex-1 shrink-0 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors"
+        [ngClass]="tab() === 'total' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
       >
         {{ i18n.t('leagues.totalTab') }}
       </button>

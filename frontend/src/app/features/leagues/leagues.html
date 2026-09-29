@@ -12,16 +12,22 @@
     <app-page-hint hintId="leagues-hub" icon="bracket">{{ i18n.t('leagues.hint') }}</app-page-hint>
 
     <div data-tour="leagues-hub" class="grid gap-4 sm:grid-cols-2 mb-5">
-      <div class="bg-card rounded-lg shadow-card p-4">
-        <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-3">{{ i18n.t('leagues.createTitle') }}</p>
-        <form [formGroup]="createForm" (ngSubmit)="create()" class="flex gap-2">
+      <!-- Restyled 2026-09-29: create as a team-colour hero, join as a card. -->
+      <div class="relative overflow-hidden bg-card rounded-3xl border border-line shadow-card p-4">
+        <div class="pointer-events-none absolute inset-0" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 26%, transparent) 0%, color-mix(in srgb, var(--accent-primary) 6%, transparent) 55%, transparent 100%)" aria-hidden="true"></div>
+        <div class="pointer-events-none absolute -right-16 -top-16 w-48 h-48 rounded-full border-[14px]" style="border-color: color-mix(in srgb, var(--accent-primary) 12%, transparent)" aria-hidden="true"></div>
+        <div class="relative flex items-center gap-2.5 mb-3">
+          <span class="w-10 h-10 rounded-xl bg-team-primary text-team-secondary flex items-center justify-center shrink-0"><app-nav-icon name="bracket" [size]="20" /></span>
+          <p class="font-display text-base">{{ i18n.t('leagues.createTitle') }}</p>
+        </div>
+        <form [formGroup]="createForm" (ngSubmit)="create()" class="relative flex gap-2">
           <input
             type="text"
             formControlName="name"
             [placeholder]="i18n.t('leagues.namePlaceholder')"
-            class="flex-1 min-w-0 px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
+            class="flex-1 min-w-0 h-11 px-3 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
           />
-          <button type="submit" [disabled]="createForm.invalid || creating()" appButton appButtonSize="sm" class="shrink-0">
+          <button type="submit" [disabled]="createForm.invalid || creating()" appButton class="shrink-0 !h-11 !rounded-xl">
             {{ creating() ? i18n.t('leagues.creating') : i18n.t('leagues.createButton') }}
           </button>
         </form>
@@ -30,16 +36,19 @@
         }
       </div>
 
-      <div class="bg-card rounded-lg shadow-card p-4">
-        <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-3">{{ i18n.t('leagues.joinTitle') }}</p>
+      <div class="bg-card rounded-3xl border border-line shadow-card p-4">
+        <div class="flex items-center gap-2.5 mb-3">
+          <span class="w-10 h-10 rounded-xl bg-team-primary/15 text-team-primary flex items-center justify-center shrink-0"><app-nav-icon name="trade" [size]="20" /></span>
+          <p class="font-display text-base">{{ i18n.t('leagues.joinTitle') }}</p>
+        </div>
         <form [formGroup]="joinForm" (ngSubmit)="join()" class="flex gap-2">
           <input
             type="text"
             formControlName="code"
             [placeholder]="i18n.t('leagues.codePlaceholder')"
-            class="flex-1 min-w-0 px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
+            class="flex-1 min-w-0 h-11 px-3 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
           />
-          <button type="submit" [disabled]="joinForm.invalid || joining()" appButton appButtonSize="sm" class="shrink-0">
+          <button type="submit" [disabled]="joinForm.invalid || joining()" appButton class="shrink-0 !h-11 !rounded-xl">
             {{ joining() ? i18n.t('leagues.joining') : i18n.t('leagues.joinButton') }}
           </button>
         </form>
@@ -66,10 +75,12 @@
         @for (league of myLeagues(); track league.id) {
           <a
             [routerLink]="['/leagues', league.id]"
-            class="flex items-center justify-between gap-2 bg-card rounded-xl border border-line shadow-card px-4 py-3 hover:border-[#3a3a3b] hover:shadow-pop transition-all"
+            class="flex items-center gap-3 bg-card rounded-2xl border border-line shadow-card px-3 py-3 hover:border-team-primary/50 active:scale-[0.99] transition-all"
           >
-            <span class="font-display font-bold">{{ league.name }}</span>
-            <span class="font-mono text-[12px] text-muted">{{ league.memberCount }} {{ memberCountLabel(league) }}</span>
+            <span class="w-11 h-11 rounded-xl bg-team-primary/15 text-team-primary flex items-center justify-center shrink-0 font-display text-lg uppercase">{{ league.name.charAt(0) }}</span>
+            <span class="font-display font-bold flex-1 min-w-0 truncate">{{ league.name }}</span>
+            <span class="status-tile shrink-0 h-7 px-2.5 inline-flex items-center rounded-full border border-line font-mono text-[12px] font-bold text-muted">{{ league.memberCount }} {{ memberCountLabel(league) }}</span>
+            <span class="text-muted text-lg font-bold shrink-0">&rsaquo;</span>
           </a>
         }
       </div>

@@ -21,6 +21,7 @@ export const leaguesTranslations: Record<string, Record<Lang, string>> = {
   "leagues.memberCountSingular": { en: "member", el: "μέλος" },
   "leagues.memberCountPlural": { en: "members", el: "μέλη" },
   "leagues.backToLeagues": { en: "My leagues", el: "Οι λίγκες μου" },
+  "leagues.membersLabel": { en: "members", el: "μέλη" },
   "leagues.inviteTitle": { en: "Invite friends", el: "Πρόσκληση φίλων" },
   "leagues.inviteHint": { en: "Share this code with friends — they can paste it into \"Join a league\".", el: "Μοιράσου αυτόν τον κωδικό με φίλους — μπορούν να τον επικολλήσουν στο \"Συμμετοχή σε λίγκα\"." },
   "leagues.copyCode": { en: "Copy code", el: "Αντιγραφή κωδικού" },
