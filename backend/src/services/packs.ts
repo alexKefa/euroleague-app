@@ -179,19 +179,43 @@ export const PACKS: Record<PackType, PackDefinition> = {
   // instead of just better odds at one. Only wheelLegendary stays
   // single-slot, since it's a guaranteed legendary rather than a normal
   // pack roll.
+  //
+  // 2026-09-29: extra common slots added (3c+2r -> 6c+2r, 1c+4r -> 2c+4r)
+  // without removing any rares. Real users barely buy packs, and at the old
+  // mix a daily spinner who never buys ended the season on ~240/320 commons
+  // (rares and legendaries were already complete). Now ~100% of those
+  // players finish around day 180/210. Swapping rare slots for commons
+  // instead would have slowed spenders, since rare duplicates refund 125pts
+  // toward their packs. See season-simulation.ts's "never-buys" scenario.
   wheelStarter: {
     type: "wheelStarter",
     label: "Jump Ball — Common Pull",
     pointsCost: 0,
     purchasable: false,
-    slots: [{ odds: { common: 1 } }, { odds: { common: 1 } }, { odds: { common: 1 } }, { odds: { rare: 1 } }, { odds: { rare: 1 } }],
+    slots: [
+      { odds: { common: 1 } },
+      { odds: { common: 1 } },
+      { odds: { common: 1 } },
+      { odds: { common: 1 } },
+      { odds: { common: 1 } },
+      { odds: { common: 1 } },
+      { odds: { rare: 1 } },
+      { odds: { rare: 1 } },
+    ],
   },
   wheelPro: {
     type: "wheelPro",
     label: "Jump Ball — Rare Pull",
     pointsCost: 0,
     purchasable: false,
-    slots: [{ odds: { common: 1 } }, { odds: { rare: 1 } }, { odds: { rare: 1 } }, { odds: { rare: 1 } }, { odds: { rare: 1 } }],
+    slots: [
+      { odds: { common: 1 } },
+      { odds: { common: 1 } },
+      { odds: { rare: 1 } },
+      { odds: { rare: 1 } },
+      { odds: { rare: 1 } },
+      { odds: { rare: 1 } },
+    ],
   },
   wheelLegendary: {
     type: "wheelLegendary",

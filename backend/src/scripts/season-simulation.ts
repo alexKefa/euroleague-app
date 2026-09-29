@@ -236,19 +236,24 @@ const PACKS: PackDef[] = [
 function isBigSlot(slot: PackSlot): boolean {
   return slot.odds.legendary !== undefined && slot.odds.coach !== undefined;
 }
+// Wheel pack of guaranteed-common then guaranteed-rare slots. The
+// SIM_WHEEL_{STARTER,PRO}_{COMMONS,RARES} env vars override the defaults
+// (which mirror services/packs.ts) to test a retune.
+function wheelPack(type: string, commons: number, rares: number): PackDef {
+  return {
+    type,
+    cost: 0,
+    purchasable: false,
+    slots: Array.from({ length: commons + rares }, (_, i) => ({ odds: i < commons ? { common: 1 } : { rare: 1 } })),
+  };
+}
 const WHEEL_PACKS: Record<"common" | "rare", PackDef> = {
-  common: {
-    type: "wheelStarter",
-    cost: 0,
-    purchasable: false,
-    slots: [{ odds: { common: 1 } }, { odds: { common: 1 } }, { odds: { common: 1 } }, { odds: { rare: 1 } }, { odds: { rare: 1 } }],
-  },
-  rare: {
-    type: "wheelPro",
-    cost: 0,
-    purchasable: false,
-    slots: [{ odds: { common: 1 } }, { odds: { rare: 1 } }, { odds: { rare: 1 } }, { odds: { rare: 1 } }, { odds: { rare: 1 } }],
-  },
+  common: wheelPack(
+    "wheelStarter",
+    Number(process.env.SIM_WHEEL_STARTER_COMMONS ?? 6),
+    Number(process.env.SIM_WHEEL_STARTER_RARES ?? 2)
+  ),
+  rare: wheelPack("wheelPro", Number(process.env.SIM_WHEEL_PRO_COMMONS ?? 2), Number(process.env.SIM_WHEEL_PRO_RARES ?? 4)),
 };
 
 // services/packs.ts welcomeBonus, verbatim. Its last slot carries both
