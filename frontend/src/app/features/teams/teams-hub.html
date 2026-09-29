@@ -20,44 +20,71 @@
        present but unrelated to the app's actual team-reskin. border-b uses
        team-primary at reduced opacity for the "lip" shade rather than a
        dedicated dim token, same reasoning as inventory.html's own tiles. -->
+  <!-- Destination cards (2026-09-29, same approach as the Cards hub):
+       replaces five identical solid team-colour buttons. Standings is
+       featured full-width on phones so the odd count doesn't leave a gap. -->
   <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-5">
     <a
       routerLink="/standings"
-      class="relative inline-flex flex-col items-center justify-center gap-1 rounded-xl font-display font-bold text-xs text-team-secondary text-center px-2 py-2 bg-team-primary border-b-[3px] border-b-team-primary/60 transition-all duration-150 active:duration-100 hover:brightness-110 active:brightness-95 active:translate-y-[3px] active:border-b-0"
+      class="flex flex-col gap-2.5 min-w-0 rounded-2xl p-3 bg-card border border-line shadow-card hover:border-team-primary/50 active:scale-[0.98] transition-all col-span-2 sm:col-span-1"
     >
-      <app-nav-icon name="standings" [size]="16" class="text-team-secondary" />
-      {{ i18n.t('standings.title') }}
+      <span class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-team-primary/15 text-team-primary">
+        <app-nav-icon name="standings" [size]="20" />
+      </span>
+      <span class="min-w-0">
+        <span class="block font-display text-sm leading-tight truncate">{{ i18n.t('standings.title') }}</span>
+        <span class="block text-[12px] text-muted leading-snug line-clamp-2 mt-0.5">{{ i18n.t('teams.hubStandingsSub') }}</span>
+      </span>
     </a>
     <a
       routerLink="/compare"
-      class="relative inline-flex flex-col items-center justify-center gap-1 rounded-xl font-display font-bold text-xs text-team-secondary text-center px-2 py-2 bg-team-primary border-b-[3px] border-b-team-primary/60 transition-all duration-150 active:duration-100 hover:brightness-110 active:brightness-95 active:translate-y-[3px] active:border-b-0"
+      class="flex flex-col gap-2.5 min-w-0 rounded-2xl p-3 bg-card border border-line shadow-card hover:border-team-primary/50 active:scale-[0.98] transition-all"
     >
-      <app-nav-icon name="teams" [size]="16" class="text-team-secondary" />
-      {{ i18n.t('stats.compare.navTitle') }}
+      <span class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-team-primary/15 text-team-primary">
+        <app-nav-icon name="teams" [size]="20" />
+      </span>
+      <span class="min-w-0">
+        <span class="block font-display text-sm leading-tight truncate">{{ i18n.t('stats.compare.navTitle') }}</span>
+        <span class="block text-[12px] text-muted leading-snug line-clamp-2 mt-0.5">{{ i18n.t('teams.hubCompareSub') }}</span>
+      </span>
     </a>
     <a
       routerLink="/stats"
-      class="relative inline-flex flex-col items-center justify-center gap-1 rounded-xl font-display font-bold text-xs text-team-secondary text-center px-2 py-2 bg-team-primary border-b-[3px] border-b-team-primary/60 transition-all duration-150 active:duration-100 hover:brightness-110 active:brightness-95 active:translate-y-[3px] active:border-b-0"
+      class="flex flex-col gap-2.5 min-w-0 rounded-2xl p-3 bg-card border border-line shadow-card hover:border-team-primary/50 active:scale-[0.98] transition-all"
     >
-      <app-nav-icon name="table" [size]="16" class="text-team-secondary" />
-      {{ i18n.t('stats.title') }}
+      <span class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-team-primary/15 text-team-primary">
+        <app-nav-icon name="table" [size]="20" />
+      </span>
+      <span class="min-w-0">
+        <span class="block font-display text-sm leading-tight truncate">{{ i18n.t('stats.title') }}</span>
+        <span class="block text-[12px] text-muted leading-snug line-clamp-2 mt-0.5">{{ i18n.t('teams.hubStatsSub') }}</span>
+      </span>
     </a>
     <a
       routerLink="/analytics-builder"
-      class="relative inline-flex flex-col items-center justify-center gap-1 rounded-xl font-display font-bold text-xs text-team-secondary text-center px-2 py-2 bg-team-primary border-b-[3px] border-b-team-primary/60 transition-all duration-150 active:duration-100 hover:brightness-110 active:brightness-95 active:translate-y-[3px] active:border-b-0"
+      class="flex flex-col gap-2.5 min-w-0 rounded-2xl p-3 bg-card border border-line shadow-card hover:border-team-primary/50 active:scale-[0.98] transition-all"
     >
-      <app-nav-icon name="sliders" [size]="16" class="text-team-secondary" />
-      {{ i18n.t('builder.navTitle') }}
+      <span class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-team-primary/15 text-team-primary">
+        <app-nav-icon name="sliders" [size]="20" />
+      </span>
+      <span class="min-w-0">
+        <span class="block font-display text-sm leading-tight truncate">{{ i18n.t('builder.navTitle') }}</span>
+        <span class="block text-[12px] text-muted leading-snug line-clamp-2 mt-0.5">{{ i18n.t('teams.hubBuilderSub') }}</span>
+      </span>
     </a>
     <a
       routerLink="/injuries"
-      class="relative inline-flex flex-col items-center justify-center gap-1 rounded-xl font-display font-bold text-xs text-team-secondary text-center px-2 py-2 bg-team-primary border-b-[3px] border-b-team-primary/60 transition-all duration-150 active:duration-100 hover:brightness-110 active:brightness-95 active:translate-y-[3px] active:border-b-0 col-span-2 sm:col-span-1"
+      class="flex flex-col gap-2.5 min-w-0 rounded-2xl p-3 bg-card border border-line shadow-card hover:border-team-primary/50 active:scale-[0.98] transition-all"
     >
-      <app-nav-icon name="injury" [size]="16" class="text-team-secondary" />
-      {{ i18n.t('injuries.title') }}
+      <span class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-team-primary/15 text-team-primary">
+        <app-nav-icon name="injury" [size]="20" />
+      </span>
+      <span class="min-w-0">
+        <span class="block font-display text-sm leading-tight truncate">{{ i18n.t('injuries.title') }}</span>
+        <span class="block text-[12px] text-muted leading-snug line-clamp-2 mt-0.5">{{ i18n.t('teams.hubInjuriesSub') }}</span>
+      </span>
     </a>
   </div>
-
   @if (loading()) {
     <div class="animate-pulse h-10 rounded-xl bg-line mb-4"></div>
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -76,25 +103,31 @@
     @if (teams().length === 0) {
       <p class="text-sm text-muted text-center py-10">{{ i18n.t('teams.empty') }}</p>
     } @else {
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         @for (team of teams(); track team.id) {
+          <!-- Team card tinted in the club's own colour (2026-09-29 restyle). -->
           <a
             [routerLink]="['/teams', team.id]"
-            class="flex items-center gap-3 p-3 rounded-2xl bg-card border-2 border-line hover:border-team-primary/50 shadow-card transition-colors"
+            class="relative overflow-hidden flex items-center gap-3 p-3 rounded-2xl bg-card border border-line shadow-card hover:border-team-primary/50 active:scale-[0.99] transition-all"
           >
-            <span class="w-1.5 h-10 rounded-full shrink-0" [style.background]="team.primaryColor"></span>
-            @if (team.logoUrl) {
-              <img [src]="team.logoUrl" [alt]="team.name" loading="lazy" decoding="async" appRetryImg class="w-9 h-9 object-contain shrink-0 team-logo" />
-            } @else {
-              <span class="w-9 h-9 rounded-full flex items-center justify-center font-display text-xs bg-page shrink-0">{{ team.code | teamCode }}</span>
-            }
-            <span class="min-w-0">
-              <span class="block text-sm font-bold truncate">{{ team.name }}</span>
-              <span class="block text-[11px] text-muted font-mono">{{ team.code | teamCode }}</span>
-              @if (team.headCoach) {
-                <span class="block text-[11px] text-muted truncate">{{ i18n.t('teams.coach') }}: {{ team.headCoach }}</span>
+            <div class="pointer-events-none absolute inset-0" [style.background]="'linear-gradient(110deg, color-mix(in srgb, ' + (team.primaryColor || '#888') + ' 24%, transparent) 0%, transparent 70%)'" aria-hidden="true"></div>
+            <span class="relative w-12 h-12 rounded-xl bg-card flex items-center justify-center shrink-0 shadow-card" [style.border]="'2px solid ' + (team.primaryColor || 'var(--color-line)')">
+              @if (team.logoUrl) {
+                <img [src]="team.logoUrl" [alt]="team.name" loading="lazy" decoding="async" appRetryImg class="w-8 h-8 object-contain team-logo" />
+              } @else {
+                <span class="font-display text-xs">{{ team.code | teamCode }}</span>
               }
             </span>
+            <span class="relative min-w-0 flex-1">
+              <span class="flex items-center gap-1.5 min-w-0">
+                <span class="font-display text-[15px] leading-tight truncate">{{ team.name }}</span>
+                <span class="shrink-0 h-5 px-1.5 inline-flex items-center rounded-md bg-card/80 border border-line font-mono text-[10px] font-bold text-muted">{{ team.code | teamCode }}</span>
+              </span>
+              @if (team.headCoach) {
+                <span class="block text-[12px] text-muted truncate mt-0.5">{{ i18n.t('teams.coach') }}: {{ team.headCoach }}</span>
+              }
+            </span>
+            <span class="relative text-muted text-lg font-bold shrink-0">&rsaquo;</span>
           </a>
         }
       </div>

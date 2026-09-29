@@ -7,7 +7,7 @@ import { I18nService } from "../../core/i18n.service";
 import { NavHistoryService } from "../../core/nav-history.service";
 import { Team, RosterEntry, Game, GameTeamSummary, StandingsRow, InjuryStatus, Player } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
-import { ChipDirective } from "../../shared/chip.directive";
+import { TeamCodePipe } from "../../shared/team-display-code";
 import { StatLegendComponent, StatLegendEntry } from "../../shared/stat-legend";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { newsDateLocale, gameDateTimeFormat } from "../../shared/news-date-format";
@@ -38,7 +38,7 @@ type ComparisonAxis = (typeof COMPARISON_AXES)[number];
     CommonModule,
     RouterLink,
     RetryImgDirective,
-    ChipDirective,
+    TeamCodePipe,
     StatLegendComponent,
     SkeletonComponent,
     NavIconComponent,

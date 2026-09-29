@@ -11,7 +11,6 @@ import { CardStackComponent } from "../store/card-stack";
 import { CardPreviewComponent } from "../store/card-preview";
 import { NavIconComponent, NavIconName } from "../../shared/nav-icon";
 import { PageHintComponent } from "../../shared/page-hint";
-import { ChipDirective } from "../../shared/chip.directive";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { ButtonDirective } from "../../shared/button.directive";
@@ -32,6 +31,8 @@ const PAGE_SIZE = 20;
 // fix that actually gives the fixed-size text room to breathe.
 const CARD_RENDER_WIDTH = 150;
 
+import { CollectibleCardComponent } from "../store/collectible-card";
+
 @Component({
   selector: "app-inventory",
   standalone: true,
@@ -40,9 +41,9 @@ const CARD_RENDER_WIDTH = 150;
     RouterLink,
     CardStackComponent,
     CardPreviewComponent,
+    CollectibleCardComponent,
     NavIconComponent,
     PageHintComponent,
-    ChipDirective,
     DropdownComponent,
     SkeletonComponent,
     ButtonDirective,
@@ -229,6 +230,43 @@ export class InventoryComponent implements OnInit, OnDestroy {
     }
     return { totals, owned };
   });
+  // --- 2026-09-29 browse-section additions ---------------------------------
+
+  // Owned-card counts per rarity, shown on the filter pills.
+  readonly tierCounts = computed(() => {
+    const owned = this.myCollectibleIds();
+    const counts: Record<string, number> = { all: 0, common: 0, rare: 0, legendary: 0, coach: 0 };
+    for (const c of this.allCollectibles()) {
+      if (!owned.has(c.id)) continue;
+      counts["all"]++;
+      counts[c.tier] = (counts[c.tier] ?? 0) + 1;
+    }
+    return counts;
+  });
+  tierCount(value: CollectibleTier | null): number {
+    return this.tierCounts()[value ?? "all"] ?? 0;
+  }
+
+  // Most recently acquired cards, newest first, for the "Recent pulls" strip.
+  readonly recentPulls = computed(() => {
+    const ownedAt = this.ownedAt();
+    return this.allCollectibles()
+      .filter((c) => ownedAt.has(c.id))
+      .sort((a, b) => new Date(ownedAt.get(b.id)!).getTime() - new Date(ownedAt.get(a.id)!).getTime())
+      .slice(0, 8);
+  });
+  readonly filtersActive = computed(() => !!(this.searchQuery().trim() || this.teamFilter() || this.tierFilter()));
+
+  openPreviewForCard(card: Collectible): void {
+    const bundle = this.allBundles().find((b) => b.team.id === card.team.id && b.name === card.name);
+    if (bundle) this.openPreview(bundle);
+  }
+
+  teamComplete(teamId: string): boolean {
+    const total = this.teamTotalCount(teamId);
+    return total > 0 && this.teamOwnedCount(teamId) === total;
+  }
+
   teamOwnedCount(teamId: string): number {
     return this.teamCompletion().owned.get(teamId) ?? 0;
   }

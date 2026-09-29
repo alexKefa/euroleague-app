@@ -159,6 +159,30 @@
       <span class="relative status-tile w-9 h-9 rounded-xl border border-line flex items-center justify-center text-muted text-lg font-bold group-hover:translate-x-0.5 transition-transform shrink-0">&rsaquo;</span>
     </a>
 
+    <!-- Recent pulls (2026-09-29): newest acquisitions first, hidden while
+         any filter is active. Tapping one opens its card preview. -->
+    @if (!filtersActive() && recentPulls().length > 0) {
+      <div class="flex items-center justify-between mb-2">
+        <p class="font-display text-base">{{ i18n.t('inventory.recentPulls') }}</p>
+      </div>
+      <div class="flex gap-2.5 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 mb-5">
+        @for (card of recentPulls(); track card.id; let i = $index) {
+          <button type="button" (click)="openPreviewForCard(card)" class="recent-pull shrink-0 w-[84px] focus:outline-none" [style.animation-delay.ms]="i * 50">
+            <app-collectible-card
+              class="block w-full"
+              [name]="card.name"
+              [tier]="card.tier"
+              [teamCode]="card.team.code"
+              [teamColor]="card.team.primaryColor"
+              [imageUrl]="card.imageUrl"
+              [unlocked]="true"
+              [maxWidth]="84"
+              [finish]="finishFor(card)"
+            ></app-collectible-card>
+          </button>
+        }
+      </div>
+    }
     <div class="flex flex-wrap gap-2 mb-4">
       <app-search-input
         class="flex-1 min-w-[10rem]"
@@ -180,20 +204,21 @@
          was added) don't fit a narrow screen without cramming or wrapping
          — a dropdown stands in below sm:, same chip row as before at sm:
          and up. -->
-    <app-dropdown
-      class="sm:hidden mb-4"
-      [options]="tierDropdownOptions()"
-      [value]="tierFilter() ?? ''"
-      (valueChange)="setTierFilterFromDropdown($event)"
-    />
-    <div class="hidden sm:inline-flex bg-card border-2 border-line rounded-2xl p-1 gap-1 mb-4">
+    <!-- Rarity pills with owned counts (2026-09-29), same on every width;
+         scroll sideways inside their own row rather than wrapping. -->
+    <div class="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 mb-5">
       @for (opt of tierOptions; track opt.labelKey) {
-        <button type="button" (click)="setTierFilter(opt.value)" [appChip]="tierFilter() === opt.value">
+        <button
+          type="button"
+          (click)="setTierFilter(opt.value)"
+          class="shrink-0 h-9 px-3.5 rounded-full border text-[13px] font-semibold whitespace-nowrap transition-colors"
+          [ngClass]="tierFilter() === opt.value ? 'bg-team-primary text-team-secondary border-transparent shadow-sm' : 'status-tile border-line text-ink hover:border-team-primary'"
+        >
           {{ i18n.t(opt.labelKey) }}
+          <span class="ml-1 text-[11px] font-bold tabular-nums opacity-70">{{ tierCount(opt.value) }}</span>
         </button>
       }
     </div>
-
     <!-- Grouped by team (2026-09-12 redesign, replacing one flat grid of
          every owned bundle) — a header (crest, name, "owned/total for this
          team" progress bar) followed by that team's own bundles in a
@@ -201,26 +226,31 @@
          their cards ("what do I have from this club") than one
          undifferentiated wall. -->
     @for (group of teamGroups(); track group.team.id) {
-      <div class="flex items-center gap-2.5 mb-2">
+      <!-- Team section header (2026-09-29 restyle). -->
+      <div class="flex items-center gap-3 mb-3">
         <span
-          class="w-8 h-8 rounded-full bg-card flex items-center justify-center shrink-0"
-          [style.border]="'2px solid ' + group.team.primaryColor"
+          class="w-11 h-11 rounded-xl bg-card flex items-center justify-center shrink-0 shadow-card"
+          [style.border]="'2px solid ' + (group.team.primaryColor || 'var(--color-line)')"
         >
           @if (group.team.logoUrl) {
-            <img [src]="group.team.logoUrl" [alt]="group.team.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain team-logo" />
+            <img [src]="group.team.logoUrl" [alt]="group.team.name" loading="lazy" decoding="async" appRetryImg class="w-7 h-7 object-contain team-logo" />
           } @else {
-            <span class="font-display text-[10px]">{{ group.team.code | teamCode }}</span>
+            <span class="font-display text-[11px]">{{ group.team.code | teamCode }}</span>
           }
         </span>
         <div class="flex-1 min-w-0">
-          <p class="text-[12.5px] font-bold truncate">{{ group.team.name }}</p>
-          <div class="h-[3px] rounded-full bg-line mt-1 overflow-hidden">
-            <div class="h-full rounded-full" [style.width.%]="(teamOwnedCount(group.team.id) / teamTotalCount(group.team.id)) * 100" [style.background]="group.team.primaryColor"></div>
+          <div class="flex items-center gap-2 min-w-0">
+            <p class="font-display text-base leading-tight truncate">{{ group.team.name }}</p>
+            @if (teamComplete(group.team.id)) {
+              <span class="shrink-0 inline-flex items-center gap-1 h-6 px-2 rounded-full bg-emerald-500/15 text-emerald-500 text-[11px] font-bold">&#10003; {{ i18n.t('inventory.teamComplete') }}</span>
+            }
+          </div>
+          <div class="h-1.5 rounded-full bg-line mt-1.5 overflow-hidden">
+            <div class="h-full rounded-full transition-[width] duration-500" [style.width.%]="(teamOwnedCount(group.team.id) / teamTotalCount(group.team.id)) * 100" [style.background]="group.team.primaryColor"></div>
           </div>
         </div>
-        <span class="font-mono text-[11px] text-muted shrink-0">{{ teamOwnedCount(group.team.id) }}/{{ teamTotalCount(group.team.id) }}</span>
+        <span class="status-tile shrink-0 h-7 px-2.5 inline-flex items-center rounded-full border border-line font-mono text-[12px] font-bold tabular-nums">{{ teamOwnedCount(group.team.id) }}/{{ teamTotalCount(group.team.id) }}</span>
       </div>
-
       <div class="flex gap-3 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1 mb-5">
         @for (bundle of group.bundles; track bundleKey(bundle)) {
           <div class="flex flex-col items-center gap-1.5 shrink-0" [style.width.px]="cardRenderWidth">
@@ -246,13 +276,18 @@
               ></app-card-stack>
             </button>
 
-            @if (unlockedCount(bundle) === bundle.cards.length) {
-              <span class="text-[11px] font-bold text-emerald-500">{{ i18n.t('store.unlocked') }}</span>
-            } @else {
-              <span class="text-[11px] font-bold text-muted"
-                >{{ unlockedCount(bundle) }}/{{ bundle.cards.length }} {{ i18n.t('store.unlocked') }}</span
-              >
-            }
+            <!-- Tier dots (2026-09-29): one per version, filled in its tier
+                 colour when owned — shows which versions are missing. -->
+            <span class="flex items-center gap-1.5 h-4" [attr.aria-label]="unlockedCount(bundle) + '/' + bundle.cards.length + ' ' + i18n.t('store.unlocked')">
+              @for (card of bundle.cards; track card.id) {
+                <span
+                  class="tier-dot"
+                  [class]="'tier-dot--' + card.tier"
+                  [class.tier-dot--owned]="isUnlocked(card)"
+                  [title]="tierLabel(card.tier)"
+                ></span>
+              }
+            </span>
           </div>
         }
       </div>

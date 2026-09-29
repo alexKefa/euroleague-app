@@ -18,73 +18,73 @@
 
   @if (!loading() && !error()) {
     @if (team(); as t) {
-      <div
-        class="rounded-lg p-5 mt-4 mb-5 text-white"
-        [style.background]="
-          'linear-gradient(155deg, ' + t.primaryColor + ' 0%, ' + t.secondaryColor + ' 70%, #000 130%)'
-        "
-      >
-        <div class="flex items-center gap-3">
-          @if (t.logoUrl) {
-            <img [src]="t.logoUrl" [alt]="t.name" loading="lazy" decoding="async" appRetryImg class="w-10 h-10 object-contain shrink-0 team-logo" />
-          } @else {
-            <span
-              class="w-10 h-10 rounded-lg flex items-center justify-center font-display text-sm bg-white/15 shrink-0"
-            >
-              {{ t.code }}
-            </span>
-          }
+      <!-- Team hero (2026-09-29 restyle): the app's card with a wash of the
+           club's own colour, instead of a solid gradient with white text
+           (unreadable for white/light kits such as Real Madrid's). -->
+      <div class="relative overflow-hidden rounded-3xl border border-line bg-card shadow-card p-4 mt-4 mb-5">
+        <div class="pointer-events-none absolute inset-0" [style.background]="'linear-gradient(135deg, color-mix(in srgb, ' + (t.primaryColor || '#888') + ' 38%, transparent) 0%, color-mix(in srgb, ' + (t.secondaryColor || t.primaryColor || '#888') + ' 12%, transparent) 60%, transparent 100%)'" aria-hidden="true"></div>
+        <div class="relative flex items-center gap-3">
+          <span class="w-16 h-16 rounded-2xl bg-card flex items-center justify-center shrink-0 shadow-card" [style.border]="'2px solid ' + (t.primaryColor || 'var(--color-line)')">
+            @if (t.logoUrl) {
+              <img [src]="t.logoUrl" [alt]="t.name" loading="lazy" decoding="async" appRetryImg class="w-11 h-11 object-contain team-logo" />
+            } @else {
+              <span class="font-display text-sm">{{ t.code }}</span>
+            }
+          </span>
           <span class="min-w-0">
-            <h1 class="font-display text-2xl tracking-wide">{{ t.name }}</h1>
+            <h1 class="font-display text-2xl leading-tight tracking-wide">{{ t.name }}</h1>
             @if (t.headCoach) {
               <button
                 type="button"
                 (click)="coachInfoOpen.set(!coachInfoOpen())"
-                class="text-xs text-white/70 mt-0.5 hover:text-white hover:underline transition-colors"
+                class="status-tile mt-1.5 inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full border border-line text-[12px] font-semibold max-w-full hover:border-team-primary transition-colors"
               >
-                {{ i18n.t('roster.headCoach') }}: {{ t.headCoach }}
+                <span class="text-muted">{{ i18n.t('roster.headCoach') }}</span>
+                <span class="truncate">{{ t.headCoach }}</span>
               </button>
             }
           </span>
         </div>
-
+        @if (teamStandingsRow(); as row) {
+          <div class="relative grid grid-cols-3 gap-2 mt-4">
+            <div class="status-tile rounded-2xl border border-line px-2 py-2 text-center min-w-0">
+              <p class="text-[11px] font-bold text-muted uppercase tracking-wider truncate">{{ i18n.t('roster.coachRecord') }}</p>
+              <p class="font-display text-xl leading-tight tabular-nums">{{ row.stats.wins }}-{{ row.stats.losses }}</p>
+            </div>
+            <div class="status-tile rounded-2xl border border-line px-2 py-2 text-center min-w-0">
+              <p class="text-[11px] font-bold text-muted uppercase tracking-wider truncate">{{ i18n.t('roster.coachRank') }}</p>
+              <p class="font-display text-xl leading-tight tabular-nums">#{{ row.position }}</p>
+            </div>
+            <div class="status-tile rounded-2xl border border-line px-2 py-2 text-center min-w-0">
+              <p class="text-[11px] font-bold text-muted uppercase tracking-wider truncate">PPG</p>
+              <p class="font-display text-xl leading-tight tabular-nums">{{ row.stats.ppg !== null ? (row.stats.ppg | number: "1.1-1") : "—" }}</p>
+            </div>
+          </div>
+        }
         @if (coachInfoOpen() && t.headCoach) {
-          <div class="mt-4 pt-4 border-t border-white/20 flex items-center gap-4">
-            <span
-              class="w-11 h-11 rounded-full flex items-center justify-center shrink-0 bg-white/15 font-display text-lg"
-              [attr.title]="i18n.t('roster.coachNoPhoto')"
-            >
+          <div class="relative mt-4 pt-4 border-t border-line flex items-center gap-3">
+            <span class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-team-primary/15 text-team-primary font-display text-lg" [attr.title]="i18n.t('roster.coachNoPhoto')">
               {{ t.headCoach.charAt(0) }}
             </span>
-            <div class="text-sm">
-              @if (teamStandingsRow(); as row) {
-                <p>
-                  <span class="text-white/70">{{ i18n.t('roster.coachRecord') }}:</span>
-                  <span class="font-bold">
-                    {{ row.stats.wins }}-{{ row.stats.losses }}
-                  </span>
-                  <span class="text-white/70 ml-2">{{ i18n.t('roster.coachRank') }}:</span>
-                  <span class="font-bold">#{{ row.position }}</span>
-                </p>
-              }
-              <p class="text-[11px] text-white/50 mt-1">{{ i18n.t('roster.coachNoPhoto') }}</p>
+            <div class="min-w-0">
+              <p class="font-display text-base truncate">{{ t.headCoach }}</p>
+              <p class="text-[12px] text-muted">{{ i18n.t('roster.coachNoPhoto') }}</p>
             </div>
           </div>
         }
       </div>
     }
-
-    <div class="bg-card rounded-2xl border border-line shadow-card overflow-hidden mb-5">
-      <div class="flex justify-between items-center px-4 pt-4">
+    <div class="bg-card rounded-3xl border border-line shadow-card overflow-hidden mb-5">
+      <div class="flex flex-wrap justify-between items-center gap-2 px-4 pt-4">
         <span class="flex items-center gap-1.5">
-          <p class="text-[13px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('roster.title') }}</p>
+          <p class="font-display text-base">{{ i18n.t('roster.title') }}</p>
           <app-stat-legend [entries]="statLegendEntries()" />
         </span>
-        <div class="flex gap-1">
-          <button type="button" (click)="statsView.set('traditional')" [appChip]="statsView() === 'traditional'">
+        <div class="status-tile inline-flex items-center h-10 p-1 gap-1 rounded-xl border border-line">
+          <button type="button" (click)="statsView.set('traditional')" class="h-full px-3 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors" [ngClass]="statsView() === 'traditional' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">
             {{ i18n.t('roster.traditional') }}
           </button>
-          <button type="button" (click)="statsView.set('advanced')" [appChip]="statsView() === 'advanced'">
+          <button type="button" (click)="statsView.set('advanced')" class="h-full px-3 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors" [ngClass]="statsView() === 'advanced' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">
             {{ i18n.t('roster.advanced') }}
           </button>
         </div>
@@ -273,29 +273,30 @@
     </div>
 
     @if (recentGames().length > 0) {
-      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
-        <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-3">{{ i18n.t('roster.recentResults') }}</p>
+      <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-5">
+        <p class="font-display text-base mb-3">{{ i18n.t('roster.recentResults') }}</p>
         <div class="text-sm space-y-1">
           @for (game of recentGames(); track game.id) {
             <a
               [routerLink]="['/games', game.id]"
-              class="flex justify-between items-center px-2 py-2 rounded-xl hover:bg-page transition-colors"
+              class="flex justify-between items-center gap-2 px-2 py-2 rounded-xl hover:bg-page transition-colors"
             >
               <span class="flex items-center gap-2">
                 <span class="font-display text-xs">{{ isHomeGame(game) ? "vs" : "@" }}</span>
                 @if (opponentTeam(game).logoUrl) {
-                  <img [src]="opponentTeam(game).logoUrl" [alt]="opponentTeam(game).name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
+                  <img [src]="opponentTeam(game).logoUrl" [alt]="opponentTeam(game).name" loading="lazy" decoding="async" appRetryImg class="w-7 h-7 object-contain shrink-0 team-logo" />
                 } @else {
-                  <span class="w-5 h-5 rounded-full shrink-0" [style.background]="opponentTeam(game).primaryColor"></span>
+                  <span class="w-7 h-7 rounded-full shrink-0" [style.background]="opponentTeam(game).primaryColor"></span>
                 }
-                <span class="font-display text-xs">{{ opponentTeam(game).code }}</span>
+                <span class="font-display text-sm">{{ opponentTeam(game).code | teamCode }}</span>
               </span>
-              <span
-                class="font-mono font-bold"
-                [class.text-emerald-500]="isWin(game)"
-                [class.text-red-500]="!isWin(game)"
-              >
-                {{ teamScore(game) }}-{{ opponentScore(game) }}
+              <span class="flex items-center gap-2">
+                <span class="font-mono font-bold tabular-nums">{{ teamScore(game) }}-{{ opponentScore(game) }}</span>
+                <span
+                  class="w-7 h-7 rounded-lg flex items-center justify-center font-mono text-[12px] font-bold text-white"
+                  [ngClass]="isWin(game) ? 'bg-emerald-600' : 'bg-red-500/80'"
+                  >{{ isWin(game) ? 'W' : 'L' }}</span
+                >
               </span>
             </a>
           }
@@ -304,24 +305,24 @@
     }
 
     @if (upcomingGames().length > 0) {
-      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
-        <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-3">{{ i18n.t('roster.upcomingGames') }}</p>
+      <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-5">
+        <p class="font-display text-base mb-3">{{ i18n.t('roster.upcomingGames') }}</p>
         <div class="text-sm space-y-1">
           @for (game of upcomingGames(); track game.id) {
             <a
               [routerLink]="['/games', game.id]"
-              class="flex justify-between items-center px-2 py-2 rounded-xl hover:bg-page transition-colors"
+              class="flex justify-between items-center gap-2 px-2 py-2 rounded-xl hover:bg-page transition-colors"
             >
               <span class="flex items-center gap-2">
                 <span class="font-display text-xs">{{ isHomeGame(game) ? "vs" : "@" }}</span>
                 @if (opponentTeam(game).logoUrl) {
-                  <img [src]="opponentTeam(game).logoUrl" [alt]="opponentTeam(game).name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
+                  <img [src]="opponentTeam(game).logoUrl" [alt]="opponentTeam(game).name" loading="lazy" decoding="async" appRetryImg class="w-7 h-7 object-contain shrink-0 team-logo" />
                 } @else {
-                  <span class="w-5 h-5 rounded-full shrink-0" [style.background]="opponentTeam(game).primaryColor"></span>
+                  <span class="w-7 h-7 rounded-full shrink-0" [style.background]="opponentTeam(game).primaryColor"></span>
                 }
-                <span class="font-display text-xs">{{ opponentTeam(game).code }}</span>
+                <span class="font-display text-sm">{{ opponentTeam(game).code | teamCode }}</span>
               </span>
-              <span class="font-mono text-muted text-[12px]">{{ game.tipoffAt | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}</span>
+              <span class="status-tile h-7 px-2.5 inline-flex items-center rounded-full border border-line font-mono text-[12px] font-bold">{{ game.tipoffAt | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}</span>
             </a>
           }
         </div>
