@@ -14,6 +14,29 @@ import { SearchInputComponent } from "../../shared/search-input";
 import { UserSearchComponent, UserSearchResult } from "../../shared/user-search";
 import { TeamCodePipe, displayTeamCode } from "../../shared/team-display-code";
 import { AdminAnnouncementsComponent } from "./admin-announcements";
+import { DialogComponent } from "../../shared/dialog";
+import { NavIconName } from "../../shared/nav-icon";
+
+type ToolId = "announcements" | "sync" | "points" | "card" | "add";
+
+interface ToolDef {
+  id: ToolId;
+  icon: NavIconName;
+  titleKey: string;
+  descKey: string;
+}
+
+// Every tool renders as the same box on the page and opens its form in the
+// shared app-dialog (2026-09-29, "fix view for mobile... follow same pattern
+// on all of our features") — so a tool's inputs never have to fit inline on
+// a phone. Adding a tool = an entry here + an @case block in the template.
+const TOOLS: ToolDef[] = [
+  { id: "announcements", icon: "bell", titleKey: "admin.announceTitle", descKey: "admin.toolAnnounceDesc" },
+  { id: "points", icon: "trophy", titleKey: "profile.grantPointsTitle", descKey: "admin.toolPointsDesc" },
+  { id: "card", icon: "cards", titleKey: "profile.grantCardTitle", descKey: "admin.toolCardDesc" },
+  { id: "add", icon: "packs", titleKey: "profile.addCollectibleTitle", descKey: "admin.toolAddDesc" },
+  { id: "sync", icon: "zap", titleKey: "admin.syncImages", descKey: "admin.toolSyncDesc" },
+];
 
 // Admin-only "Tools" page (2026-09-18, "before pushing on tools of admin
 // add an icon and inside split into an admin-tools component which has
@@ -47,6 +70,7 @@ import { AdminAnnouncementsComponent } from "./admin-announcements";
     UserSearchComponent,
     TeamCodePipe,
     AdminAnnouncementsComponent,
+    DialogComponent,
   ],
   templateUrl: "./admin-tools.html",
 })
@@ -56,6 +80,10 @@ export class AdminToolsComponent {
   protected i18n = inject(I18nService);
   protected navHistory = inject(NavHistoryService);
   private fb = inject(FormBuilder);
+
+  readonly tools = TOOLS;
+  readonly openTool = signal<ToolId | null>(null);
+  readonly openToolDef = computed(() => TOOLS.find((t) => t.id === this.openTool()) ?? null);
 
   // "Sync images" — pulls new real player/coach photos from EuroLeague's
   // live feed, then pushes any that changed into their matching

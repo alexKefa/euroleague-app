@@ -15,198 +15,194 @@
     </div>
     <p class="text-sm text-muted mb-5">{{ i18n.t('admin.toolsSubtitle') }}</p>
 
-    <app-admin-announcements />
-
-    <!-- One card per tool — see admin-tools.ts's own doc comment on why
-         this is a plain copy-paste-able block per tool rather than a
-         data-driven list. -->
-    <div class="bg-card rounded-2xl border border-line shadow-card p-4 mt-3">
-      <div class="flex flex-wrap items-start justify-between gap-3">
-        <div class="min-w-0">
-          <p class="font-mono text-[12px] font-bold">{{ i18n.t('admin.syncImages') }}</p>
-          <p class="text-[12px] text-muted mt-1 max-w-md">{{ i18n.t('admin.syncImagesDescription') }}</p>
-        </div>
-        <div class="shrink-0 text-right">
-          <button type="button" (click)="syncImages()" [disabled]="syncing()" appButton="outline" appButtonSize="sm">
-            @if (syncing()) {
-              <app-logo-spinner [size]="14" />
-              {{ i18n.t('admin.syncImagesRunning') }}
-            } @else {
-              {{ i18n.t('admin.syncImages') }}
-            }
-          </button>
-          @if (syncError()) {
-            <p class="text-[11px] text-red-500 font-semibold mt-1.5 max-w-[16rem]">{{ i18n.t('admin.syncImagesError') }}</p>
-          } @else if (syncResult(); as result) {
-            <p class="text-[11px] text-muted font-semibold mt-1.5 max-w-[16rem]">
-              @if (result.playersUpdated === 0 && result.coachCardsUpdated === 0 && result.collectiblesUpdated === 0) {
-                {{ i18n.t('admin.syncImagesResultEmpty') }}
-              } @else {
-                @if (result.playersUpdated > 0) {
-                  <span class="block text-team-primary">{{ result.playersUpdated }} {{ i18n.t('admin.syncImagesPlayers') }}</span>
-                }
-                @if (result.coachCardsUpdated > 0) {
-                  <span class="block text-team-primary">{{ result.coachCardsUpdated }} {{ i18n.t('admin.syncImagesCoaches') }}</span>
-                }
-                @if (result.collectiblesUpdated > 0) {
-                  <span class="block text-team-primary">{{ result.collectiblesUpdated }} {{ i18n.t('admin.syncImagesCollectibles') }}</span>
-                }
-              }
-            </p>
-          }
-        </div>
-      </div>
-    </div>
-
-    <!-- Grant points / grant card / add collectible (moved from Profile,
-         2026-09-18) — app-user-search (shared/user-search.ts) replaces a
-         plain email input, server-searching username/email so an admin
-         doesn't need to already know someone's exact address. Neither it
-         nor the card search below are real ControlValueAccessors, so
-         they're not wired via formControlName the way points/reason still
-         are — they just patchValue userId/collectibleId directly on
-         selection, which pointsForm.invalid/cardForm.invalid still
-         correctly reflect either way. -->
-    <div class="bg-card rounded-2xl border border-line shadow-card p-4 mt-3">
-      <p class="font-mono text-[12px] font-bold mb-3">{{ i18n.t('profile.grantPointsTitle') }}</p>
-
-      <form [formGroup]="pointsForm" (ngSubmit)="submitPointsGrant()" class="flex flex-wrap gap-2">
-        <app-user-search
-          #pointsUserSearch
-          class="flex-1 min-w-[10rem]"
-          [placeholder]="i18n.t('profile.userSearchPlaceholder')"
-          (userSelected)="onPointsUserSelected($event)"
-        />
-        <input
-          type="number"
-          formControlName="points"
-          [placeholder]="i18n.t('profile.pointsPlaceholder')"
-          class="w-24 px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
-        />
-        <input
-          type="text"
-          formControlName="reason"
-          [placeholder]="i18n.t('profile.reasonPlaceholder')"
-          class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
-        />
-        <button type="submit" [disabled]="pointsForm.invalid || pointsSubmitting()" appButton appButtonSize="sm">
-          {{ pointsSubmitting() ? i18n.t('profile.granting') : i18n.t('profile.grant') }}
+    <!-- Every tool is the same box; its form opens in the shared app-dialog
+         (bottom sheet on phones), so no tool's inputs have to fit inline on
+         a narrow screen. To add a tool: an entry in TOOLS (admin-tools.ts)
+         plus an @case block below. -->
+    <div class="grid gap-3 sm:grid-cols-2">
+      @for (tool of tools; track tool.id) {
+        <button
+          type="button"
+          (click)="openTool.set(tool.id)"
+          class="text-left bg-card rounded-2xl border border-line shadow-card p-4 flex items-start gap-3 hover:border-team-primary transition-colors min-w-0"
+        >
+          <div class="w-10 h-10 rounded-xl bg-team-primary/10 flex items-center justify-center shrink-0">
+            <app-nav-icon [name]="tool.icon" [size]="20" class="text-team-primary" />
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="font-semibold text-sm break-words">{{ i18n.t(tool.titleKey) }}</p>
+            <p class="text-[12px] text-muted mt-0.5 break-words">{{ i18n.t(tool.descKey) }}</p>
+          </div>
+          <span class="text-muted text-lg leading-none shrink-0 self-center">&rsaquo;</span>
         </button>
-      </form>
-
-      @if (pointsError()) {
-        <p class="text-red-500 text-xs font-semibold mt-2">{{ pointsError() }}</p>
-      }
-      @if (pointsSuccess()) {
-        <p class="text-emerald-500 text-xs font-semibold mt-2">{{ pointsSuccess() }}</p>
       }
     </div>
 
-    <div class="bg-card rounded-2xl border border-line shadow-card p-4 mt-3">
-      <p class="font-mono text-[12px] font-bold mb-3">{{ i18n.t('profile.grantCardTitle') }}</p>
-
-      <form [formGroup]="cardForm" (ngSubmit)="submitCardGrant()" class="flex flex-wrap gap-2 items-start">
-        <app-user-search
-          #cardUserSearch
-          class="flex-1 min-w-[10rem]"
-          [placeholder]="i18n.t('profile.userSearchPlaceholder')"
-          (userSelected)="onCardUserSelected($event)"
-        />
-
-        <!-- Search-to-pick card (see cardSearchQuery/filteredCollectibles/
-             selectCard in admin-tools.ts) instead of a dropdown over the
-             whole catalog. -->
-        <div class="relative flex-1 min-w-[12rem]">
-          <app-search-input
-            [value]="cardSearchQuery()"
-            (valueChange)="onCardSearchInput($event)"
-            [placeholder]="i18n.t('profile.collectiblePlaceholder')"
-          />
-          @if (cardResultsOpen() && filteredCollectibles().length > 0) {
-            <div class="absolute z-30 mt-1 w-full bg-card border-2 border-line rounded-xl shadow-pop overflow-hidden max-h-56 overflow-y-auto">
-              @for (c of filteredCollectibles(); track c.id) {
-                <button
-                  type="button"
-                  (click)="selectCard(c)"
-                  class="w-full text-left px-3 py-2 hover:bg-page transition-colors"
-                >
-                  <span class="block text-sm font-semibold truncate">{{ c.name }}</span>
-                  <span class="block text-[11px] text-muted font-mono truncate">{{ c.team.code | teamCode }} &middot; {{ c.tier }}</span>
-                </button>
-              }
-            </div>
+    @if (openToolDef(); as tool) {
+      <app-dialog [title]="i18n.t(tool.titleKey)" [icon]="tool.icon" [closeLabel]="i18n.t('admin.close')" (closed)="openTool.set(null)">
+        @switch (tool.id) {
+          @case ('announcements') {
+            <app-admin-announcements />
           }
-        </div>
 
-        @if (selectedCard(); as card) {
-          @if (card.tier === 'legendary') {
-            <label class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-page border-2 border-line text-xs font-bold cursor-pointer shrink-0">
-              <input
-                type="checkbox"
-                [checked]="cardForm.value.finish === 'foil'"
-                (change)="cardForm.patchValue({ finish: $any($event.target).checked ? 'foil' : 'standard' })"
+          @case ('sync') {
+            <p class="text-sm text-muted mb-4">{{ i18n.t('admin.syncImagesDescription') }}</p>
+            <button type="button" (click)="syncImages()" [disabled]="syncing()" appButton class="w-full">
+              @if (syncing()) {
+                <app-logo-spinner [size]="14" />
+                {{ i18n.t('admin.syncImagesRunning') }}
+              } @else {
+                {{ i18n.t('admin.syncImages') }}
+              }
+            </button>
+            @if (syncError()) {
+              <p class="text-red-500 text-xs font-semibold mt-3">{{ i18n.t('admin.syncImagesError') }}</p>
+            } @else if (syncResult(); as result) {
+              <p class="text-xs text-muted font-semibold mt-3">
+                @if (result.playersUpdated === 0 && result.coachCardsUpdated === 0 && result.collectiblesUpdated === 0) {
+                  {{ i18n.t('admin.syncImagesResultEmpty') }}
+                } @else {
+                  @if (result.playersUpdated > 0) {
+                    <span class="block text-team-primary">{{ result.playersUpdated }} {{ i18n.t('admin.syncImagesPlayers') }}</span>
+                  }
+                  @if (result.coachCardsUpdated > 0) {
+                    <span class="block text-team-primary">{{ result.coachCardsUpdated }} {{ i18n.t('admin.syncImagesCoaches') }}</span>
+                  }
+                  @if (result.collectiblesUpdated > 0) {
+                    <span class="block text-team-primary">{{ result.collectiblesUpdated }} {{ i18n.t('admin.syncImagesCollectibles') }}</span>
+                  }
+                }
+              </p>
+            }
+          }
+
+          <!-- app-user-search / the card search aren't ControlValueAccessors,
+               so they patchValue userId/collectibleId directly on selection
+               (pointsForm.invalid/cardForm.invalid still reflect it). -->
+          @case ('points') {
+            <form [formGroup]="pointsForm" (ngSubmit)="submitPointsGrant()" class="flex flex-col gap-3">
+              <app-user-search
+                #pointsUserSearch
+                class="w-full"
+                [placeholder]="i18n.t('profile.userSearchPlaceholder')"
+                (userSelected)="onPointsUserSelected($event)"
               />
-              {{ i18n.t('profile.foilFinish') }}
-            </label>
+              <input
+                type="number"
+                formControlName="points"
+                [placeholder]="i18n.t('profile.pointsPlaceholder')"
+                class="w-full px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
+              />
+              <input
+                type="text"
+                formControlName="reason"
+                [placeholder]="i18n.t('profile.reasonPlaceholder')"
+                class="w-full px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
+              />
+              <button type="submit" [disabled]="pointsForm.invalid || pointsSubmitting()" appButton class="w-full">
+                {{ pointsSubmitting() ? i18n.t('profile.granting') : i18n.t('profile.grant') }}
+              </button>
+            </form>
+            @if (pointsError()) {
+              <p class="text-red-500 text-xs font-semibold mt-3">{{ pointsError() }}</p>
+            }
+            @if (pointsSuccess()) {
+              <p class="text-emerald-500 text-xs font-semibold mt-3">{{ pointsSuccess() }}</p>
+            }
+          }
+
+          @case ('card') {
+            <form [formGroup]="cardForm" (ngSubmit)="submitCardGrant()" class="flex flex-col gap-3">
+              <app-user-search
+                #cardUserSearch
+                class="w-full"
+                [placeholder]="i18n.t('profile.userSearchPlaceholder')"
+                (userSelected)="onCardUserSelected($event)"
+              />
+              <div class="relative w-full">
+                <app-search-input
+                  [value]="cardSearchQuery()"
+                  (valueChange)="onCardSearchInput($event)"
+                  [placeholder]="i18n.t('profile.collectiblePlaceholder')"
+                />
+                @if (cardResultsOpen() && filteredCollectibles().length > 0) {
+                  <div class="absolute z-30 mt-1 w-full bg-card border-2 border-line rounded-xl shadow-pop overflow-hidden max-h-56 overflow-y-auto">
+                    @for (c of filteredCollectibles(); track c.id) {
+                      <button type="button" (click)="selectCard(c)" class="w-full text-left px-3 py-2 hover:bg-page transition-colors">
+                        <span class="block text-sm font-semibold truncate">{{ c.name }}</span>
+                        <span class="block text-[11px] text-muted font-mono truncate">{{ c.team.code | teamCode }} &middot; {{ c.tier }}</span>
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+              @if (selectedCard(); as card) {
+                @if (card.tier === 'legendary') {
+                  <label class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-page border-2 border-line text-xs font-bold cursor-pointer">
+                    <input
+                      type="checkbox"
+                      [checked]="cardForm.value.finish === 'foil'"
+                      (change)="cardForm.patchValue({ finish: $any($event.target).checked ? 'foil' : 'standard' })"
+                    />
+                    {{ i18n.t('profile.foilFinish') }}
+                  </label>
+                }
+              }
+              <button type="submit" [disabled]="cardForm.invalid || cardSubmitting()" appButton class="w-full">
+                {{ cardSubmitting() ? i18n.t('profile.grantingCard') : i18n.t('profile.grantCardButton') }}
+              </button>
+            </form>
+            @if (cardError()) {
+              <p class="text-red-500 text-xs font-semibold mt-3">{{ cardError() }}</p>
+            }
+            @if (cardSuccess()) {
+              <p class="text-emerald-500 text-xs font-semibold mt-3">{{ cardSuccess() }}</p>
+            }
+          }
+
+          @case ('add') {
+            <form [formGroup]="addForm" (ngSubmit)="submitAddCollectible()" class="flex flex-col gap-3">
+              <input
+                type="text"
+                formControlName="name"
+                [placeholder]="i18n.t('store.namePlaceholder')"
+                class="w-full px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
+              />
+              <div class="grid grid-cols-2 gap-3">
+                <app-dropdown
+                  [options]="teamDropdownOptions()"
+                  [value]="addForm.value.teamId ?? ''"
+                  [placeholder]="i18n.t('store.teamPlaceholder')"
+                  (valueChange)="addForm.patchValue({ teamId: $event ?? '' })"
+                />
+                <app-dropdown
+                  [options]="tierDropdownOptions()"
+                  [value]="addForm.value.tier ?? 'common'"
+                  (valueChange)="addForm.patchValue({ tier: $event ?? 'common' })"
+                />
+              </div>
+              <input
+                type="number"
+                formControlName="pointsCost"
+                [placeholder]="i18n.t('store.pointsPlaceholder')"
+                class="w-full px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
+              />
+              <input
+                type="text"
+                formControlName="imageUrl"
+                [placeholder]="i18n.t('store.imageUrlPlaceholder')"
+                class="w-full px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
+              />
+              <button type="submit" [disabled]="addForm.invalid || addSubmitting()" appButton class="w-full">
+                {{ addSubmitting() ? i18n.t('store.adding') : i18n.t('store.add') }}
+              </button>
+            </form>
+            @if (addError()) {
+              <p class="text-red-500 text-xs font-semibold mt-3">{{ addError() }}</p>
+            }
           }
         }
-
-        <button type="submit" [disabled]="cardForm.invalid || cardSubmitting()" appButton appButtonSize="sm">
-          {{ cardSubmitting() ? i18n.t('profile.grantingCard') : i18n.t('profile.grantCardButton') }}
-        </button>
-      </form>
-
-      @if (cardError()) {
-        <p class="text-red-500 text-xs font-semibold mt-2">{{ cardError() }}</p>
-      }
-      @if (cardSuccess()) {
-        <p class="text-emerald-500 text-xs font-semibold mt-2">{{ cardSuccess() }}</p>
-      }
-    </div>
-
-    <div class="bg-card rounded-2xl border border-line shadow-card p-4 mt-3">
-      <p class="font-mono text-[12px] font-bold mb-3">{{ i18n.t('profile.addCollectibleTitle') }}</p>
-
-      <form [formGroup]="addForm" (ngSubmit)="submitAddCollectible()" class="flex flex-wrap gap-2">
-        <input
-          type="text"
-          formControlName="name"
-          [placeholder]="i18n.t('store.namePlaceholder')"
-          class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
-        />
-        <app-dropdown
-          class="w-28"
-          [options]="teamDropdownOptions()"
-          [value]="addForm.value.teamId ?? ''"
-          [placeholder]="i18n.t('store.teamPlaceholder')"
-          (valueChange)="addForm.patchValue({ teamId: $event ?? '' })"
-        />
-        <app-dropdown
-          class="w-32"
-          [options]="tierDropdownOptions()"
-          [value]="addForm.value.tier ?? 'common'"
-          (valueChange)="addForm.patchValue({ tier: $event ?? 'common' })"
-        />
-        <input
-          type="number"
-          formControlName="pointsCost"
-          [placeholder]="i18n.t('store.pointsPlaceholder')"
-          class="w-24 px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
-        />
-        <input
-          type="text"
-          formControlName="imageUrl"
-          [placeholder]="i18n.t('store.imageUrlPlaceholder')"
-          class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
-        />
-        <button type="submit" [disabled]="addForm.invalid || addSubmitting()" appButton appButtonSize="sm">
-          {{ addSubmitting() ? i18n.t('store.adding') : i18n.t('store.add') }}
-        </button>
-      </form>
-
-      @if (addError()) {
-        <p class="text-red-500 text-xs font-semibold mt-2">{{ addError() }}</p>
-      }
-    </div>
+      </app-dialog>
+    }
   }
 </div>

@@ -66,6 +66,18 @@ export const adminTranslations: Record<string, Record<Lang, string>> = {
   "admin.syncImagesCoaches": { en: "coach card(s) updated", el: "κάρτα(-ες) προπονητή ενημερώθηκαν" },
   "admin.syncImagesCollectibles": { en: "collectible(s) updated", el: "συλλεκτικό(-ά) αντικείμενο(-α) ενημερώθηκαν" },
 
+  // Tools page boxes (admin-tools.ts's TOOLS) — one short line each; the
+  // full form opens in a dialog.
+  "admin.close": { en: "Close", el: "Κλείσιμο" },
+  "admin.toolAnnounceDesc": {
+    en: "Write a one-time \"What's new\" message for all users.",
+    el: "Γράψε ένα μήνυμα «Τι νέο υπάρχει» που βλέπουν μία φορά όλοι οι χρήστες.",
+  },
+  "admin.toolPointsDesc": { en: "Give or take points from a user.", el: "Δώσε ή αφαίρεσε πόντους από έναν χρήστη." },
+  "admin.toolCardDesc": { en: "Give a specific card to a user.", el: "Δώσε μια συγκεκριμένη κάρτα σε έναν χρήστη." },
+  "admin.toolAddDesc": { en: "Add a new card to the catalog.", el: "Πρόσθεσε μια νέα κάρτα στον κατάλογο." },
+  "admin.toolSyncDesc": { en: "Pull new player and coach photos.", el: "Φέρε νέες φωτογραφίες παικτών και προπονητών." },
+
   // "What's new" announcements editor (features/admin/admin-announcements.ts).
   "admin.announceTitle": { en: "Announcements", el: "Ανακοινώσεις" },
   "admin.announceDescription": {
