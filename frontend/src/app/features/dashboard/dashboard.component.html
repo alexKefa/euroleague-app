@@ -48,70 +48,61 @@
       <!-- Identity widget — compact, tappable, just team + rank context.
            Record/PPG/form/next-game each get their own small widget below
            instead of being crammed into one big hero card. -->
-      <a [routerLink]="['/teams', row.team.id]" class="flex items-center gap-3 rounded-3xl p-4 mb-4 bg-card border border-line shadow-card group">
-        <span
-          class="w-12 h-12 rounded-full flex items-center justify-center shrink-0 bg-page"
-          [style.border]="'2px solid var(--accent-primary)'"
-          [style.box-shadow]="'0 0 0 4px color-mix(in srgb, var(--accent-primary) 14%, transparent)'"
-        >
-          @if (row.team.logoUrl) {
-            <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-7 h-7 object-contain team-logo" />
-          } @else {
-            <span class="font-display text-sm">{{ row.team.code | teamCode }}</span>
-          }
-        </span>
-        <span class="min-w-0 flex-1">
-          <span class="block font-mono text-[11px] font-bold text-muted">{{ i18n.t('dashboard.yourTeam') }}</span>
-          <span class="block font-display text-base tracking-wide truncate">{{ row.team.name }}</span>
-        </span>
-        <span class="text-muted text-sm font-bold group-hover:translate-x-0.5 transition-transform shrink-0">&rsaquo;</span>
-      </a>
-
-      <!-- Record / rank / PPG / form — one tile (2026-09-13), matching the
-           rounded-3xl bg-card border shadow-card shape every other dashboard
-           tile (My Leagues, Fantasy, News, Standings, tabbed card) uses,
-           replacing the earlier free-floating chip row. Next game stays out
-           as its own featured card below — it carries a CTA (tap through to
-           the game), a different shape than this stat tile. Each stat stays
-           conditional exactly like the old chips did (PPG only when known,
-           form only once there are recent games). -->
-      <div class="rounded-3xl p-4 mb-4 bg-card border border-line shadow-card">
-        <div class="flex items-center justify-between gap-4 flex-wrap">
-          <div class="flex items-center gap-5">
-            <div>
-              <p class="font-mono text-[10px] font-bold text-muted uppercase tracking-wider mb-0.5">{{ i18n.t('dashboard.record') }}</p>
-              <p class="font-display text-base font-bold">{{ row.stats.wins }}-{{ row.stats.losses }}</p>
-            </div>
-            <div>
-              <p class="font-mono text-[10px] font-bold text-team-primary uppercase tracking-wider mb-0.5">{{ i18n.t('dashboard.rank') }}</p>
-              <p class="font-display text-base font-bold text-team-primary">#{{ row.position }}</p>
-            </div>
-            @if (row.stats.ppg !== null) {
-              <div>
-                <p class="font-mono text-[10px] font-bold text-muted uppercase tracking-wider mb-0.5">PPG</p>
-                <p class="font-display text-base font-bold">{{ row.stats.ppg | number: "1.1-1" }}</p>
-              </div>
+      <!-- Team hero (2026-09-29 restyle, "vanilla"): the old identity strip
+           and record/rank/PPG/form tile merged into one team-color card, same
+           visual language as the Fantasy/Predictions hero cards. -->
+      <a [routerLink]="['/teams', row.team.id]" class="relative block overflow-hidden rounded-3xl p-4 mb-4 bg-card border border-line shadow-card group">
+        <div class="pointer-events-none absolute inset-0" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 26%, transparent) 0%, color-mix(in srgb, var(--accent-primary) 6%, transparent) 55%, transparent 100%)" aria-hidden="true"></div>
+        <div class="pointer-events-none absolute -right-16 -top-16 w-48 h-48 rounded-full border-[14px]" style="border-color: color-mix(in srgb, var(--accent-primary) 12%, transparent)" aria-hidden="true"></div>
+        <div class="relative flex items-center gap-3">
+          <span
+            class="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 bg-card"
+            [style.border]="'2px solid var(--accent-primary)'"
+            [style.box-shadow]="'0 0 0 4px color-mix(in srgb, var(--accent-primary) 14%, transparent)'"
+          >
+            @if (row.team.logoUrl) {
+              <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-9 h-9 object-contain team-logo" />
+            } @else {
+              <span class="font-display text-sm">{{ row.team.code | teamCode }}</span>
             }
-          </div>
-          @if (recentGames().length > 0) {
-            <div>
-              <p class="font-mono text-[10px] font-bold text-muted uppercase tracking-wider mb-1.5 text-right">{{ i18n.t('dashboard.form') }}</p>
-              <div class="flex gap-1.5">
-                @for (g of recentGames(); track g.id) {
-                  @if (teamResult(g); as result) {
-                    <span
-                      class="w-6 h-6 rounded-full flex items-center justify-center font-mono text-[11px] font-bold text-white"
-                      [class]="result === 'W' ? 'bg-emerald-600' : 'bg-red-500/75'"
-                      >{{ resultLabel(result) }}</span
-                    >
-                  }
-                }
-              </div>
-            </div>
-          }
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="block text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('dashboard.yourTeam') }}</span>
+            <span class="block font-display text-xl leading-tight truncate">{{ row.team.name }}</span>
+          </span>
+          <span class="status-tile w-9 h-9 rounded-xl border border-line flex items-center justify-center text-muted text-lg font-bold group-hover:translate-x-0.5 transition-transform shrink-0">&rsaquo;</span>
         </div>
-      </div>
-
+        <div class="relative grid grid-cols-3 gap-2 mt-4">
+          <div class="status-tile rounded-2xl border border-line px-2 py-2 text-center min-w-0">
+            <p class="text-[11px] font-bold text-muted uppercase tracking-wider truncate">{{ i18n.t('dashboard.record') }}</p>
+            <p class="font-display text-xl leading-tight tabular-nums">{{ row.stats.wins }}-{{ row.stats.losses }}</p>
+          </div>
+          <div class="status-tile rounded-2xl border border-line px-2 py-2 text-center min-w-0">
+            <p class="text-[11px] font-bold text-muted uppercase tracking-wider truncate">{{ i18n.t('dashboard.rank') }}</p>
+            <p class="font-display text-xl leading-tight tabular-nums text-team-primary">#{{ row.position }}</p>
+          </div>
+          <div class="status-tile rounded-2xl border border-line px-2 py-2 text-center min-w-0">
+            <p class="text-[11px] font-bold text-muted uppercase tracking-wider truncate">PPG</p>
+            <p class="font-display text-xl leading-tight tabular-nums">{{ row.stats.ppg !== null ? (row.stats.ppg | number: "1.1-1") : "—" }}</p>
+          </div>
+        </div>
+        @if (recentGames().length > 0) {
+          <div class="relative flex items-center justify-between gap-2 mt-3">
+            <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('dashboard.form') }}</p>
+            <div class="flex gap-1.5">
+              @for (g of recentGames(); track g.id) {
+                @if (teamResult(g); as result) {
+                  <span
+                    class="w-7 h-7 rounded-lg flex items-center justify-center font-mono text-[12px] font-bold text-white"
+                    [class]="result === 'W' ? 'bg-emerald-600' : 'bg-red-500/75'"
+                    >{{ resultLabel(result) }}</span
+                  >
+                }
+              }
+            </div>
+          </div>
+        }
+      </a>
       <!-- Next game — featured card, tonal (team-color-tinted) background,
            tapping through to the game itself instead of just displaying it. -->
       @if (nextGame(); as game) {
@@ -120,21 +111,21 @@
           class="relative block rounded-3xl p-4 mb-4 border border-line shadow-card overflow-hidden group"
           [style.background]="'radial-gradient(120% 140% at 15% 0%, color-mix(in srgb, var(--accent-primary) 20%, transparent) 0%, var(--color-card) 65%)'"
         >
-          <p class="font-mono text-[10.5px] font-bold text-muted uppercase tracking-wider mb-3">
+          <p class="status-tile inline-flex items-center h-8 px-3 rounded-full border border-line font-mono text-[11px] font-bold text-muted uppercase tracking-wider mb-3">
             {{ i18n.t('dashboard.next') }} &middot; {{ game.tipoffAt | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}
           </p>
           <div class="flex items-center justify-center gap-4">
-            <span class="w-11 h-11 rounded-full flex items-center justify-center bg-page shrink-0" [style.border]="'2px solid var(--accent-primary)'">
+            <span class="w-14 h-14 rounded-2xl flex items-center justify-center bg-card shrink-0" [style.border]="'2px solid var(--accent-primary)'">
               @if (row.team.logoUrl) {
-                <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-6 h-6 object-contain team-logo" />
+                <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-9 h-9 object-contain team-logo" />
               } @else {
                 <span class="font-display text-[11px]">{{ row.team.code | teamCode }}</span>
               }
             </span>
-            <span class="font-display text-xs font-bold text-muted">{{ isHomeGame(game) ? "vs" : "@" }}</span>
-            <span class="w-11 h-11 rounded-full flex items-center justify-center bg-page shrink-0" [style.border]="'2px solid ' + opponentTeam(game).primaryColor">
+            <span class="font-display text-sm font-bold text-muted">{{ isHomeGame(game) ? "vs" : "@" }}</span>
+            <span class="w-14 h-14 rounded-2xl flex items-center justify-center bg-card shrink-0" [style.border]="'2px solid ' + opponentTeam(game).primaryColor">
               @if (opponentTeam(game).logoUrl) {
-                <img [src]="opponentTeam(game).logoUrl" [alt]="opponentTeam(game).name" loading="lazy" decoding="async" appRetryImg class="w-6 h-6 object-contain team-logo" />
+                <img [src]="opponentTeam(game).logoUrl" [alt]="opponentTeam(game).name" loading="lazy" decoding="async" appRetryImg class="w-9 h-9 object-contain team-logo" />
               } @else {
                 <span class="font-display text-[11px]">{{ opponentCode(game) | teamCode }}</span>
               }
@@ -375,24 +366,24 @@
                track instead of separate floating pill buttons; flex-1 on
                each segment splits the track evenly across however many tabs
                actually have data today (same conditional set as before). -->
-          <div class="flex gap-1 mb-3 overflow-x-auto no-scrollbar bg-page rounded-2xl p-1">
+          <div class="status-tile flex gap-1 mb-3 h-11 overflow-x-auto no-scrollbar rounded-2xl border border-line p-1">
             @if (hasPerformances()) {
-              <button type="button" (click)="setTab('performances')" [ngClass]="tabButtonClass('performances')" class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold whitespace-nowrap transition-colors shrink-0">
+              <button type="button" (click)="setTab('performances')" [ngClass]="tabButtonClass('performances')" class="flex-1 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors shrink-0">
                 {{ i18n.t('dashboard.topPerformances') }}
               </button>
             }
             @if (hasLeaders()) {
-              <button type="button" (click)="setTab('leaders')" [ngClass]="tabButtonClass('leaders')" class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold whitespace-nowrap transition-colors shrink-0">
+              <button type="button" (click)="setTab('leaders')" [ngClass]="tabButtonClass('leaders')" class="flex-1 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors shrink-0">
                 {{ i18n.t('dashboard.leaders') }}
               </button>
             }
             @if (hasPredictors()) {
-              <button type="button" (click)="setTab('predictors')" [ngClass]="tabButtonClass('predictors')" class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold whitespace-nowrap transition-colors shrink-0">
+              <button type="button" (click)="setTab('predictors')" [ngClass]="tabButtonClass('predictors')" class="flex-1 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors shrink-0">
                 {{ i18n.t('dashboard.topPredictors') }}
               </button>
             }
             @if (hasSchedule()) {
-              <button type="button" (click)="setTab('schedule')" [ngClass]="tabButtonClass('schedule')" class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold whitespace-nowrap transition-colors shrink-0">
+              <button type="button" (click)="setTab('schedule')" [ngClass]="tabButtonClass('schedule')" class="flex-1 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors shrink-0">
                 {{ i18n.t('dashboard.yourTeamSchedule') }}
               </button>
             }

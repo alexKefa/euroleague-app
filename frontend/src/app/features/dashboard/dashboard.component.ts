@@ -254,7 +254,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // generally chosen to read against that team's own primary already.
   tabButtonClass(tab: DashboardTab): Record<string, boolean> {
     const active = this.activeTab() === tab;
-    return { "bg-team-primary text-team-secondary": active, "text-muted hover:text-team-primary": !active };
+    return { "bg-team-primary text-team-secondary shadow-sm": active, "text-muted hover:text-ink": !active };
   }
 
   ngOnInit(): void {
