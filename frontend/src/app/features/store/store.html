@@ -12,19 +12,24 @@
     >{{ navHistory.previousUrl() ? i18n.t('nav.back') : i18n.t('store.myCards') }}</a
   >
 
-  <div class="flex items-center justify-between mt-4 mb-5">
-    <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('store.title') }}</h1>
-    @if (auth.isAuthenticated()) {
-      @if (pointsLoading()) {
-        <span class="animate-pulse inline-block w-16 h-6 rounded-full bg-line"></span>
-      } @else {
-        <span
-          class="font-mono text-xs font-bold text-team-primary bg-card border-2 border-line rounded-xl px-3 py-1"
-          >{{ points() }} {{ i18n.t('store.pointsBadge') }}</span
-        >
-      }
-    }
-  </div>
+  <h1 class="font-display text-2xl tracking-wide mt-4 mb-4">{{ i18n.t('store.title') }}</h1>
+  <!-- Balance hero (2026-09-29 restyle, same look as the Cards hub). -->
+  @if (auth.isAuthenticated()) {
+    <div class="relative overflow-hidden flex items-center justify-between gap-3 rounded-3xl p-4 mb-5 bg-card border border-line shadow-card">
+      <div class="pointer-events-none absolute inset-0" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 26%, transparent) 0%, color-mix(in srgb, var(--accent-primary) 6%, transparent) 55%, transparent 100%)" aria-hidden="true"></div>
+      <div class="pointer-events-none absolute -right-16 -top-16 w-48 h-48 rounded-full border-[14px]" style="border-color: color-mix(in srgb, var(--accent-primary) 12%, transparent)" aria-hidden="true"></div>
+      <div class="relative min-w-0">
+        <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('store.balanceLabel') }}</p>
+        @if (pointsLoading()) {
+          <app-skeleton class="h-10 w-28 rounded-lg mt-1" [icon]="false" />
+        } @else {
+          <p class="font-display text-4xl leading-none tabular-nums mt-1">{{ points() }} <span class="text-lg text-muted">{{ i18n.t('store.pointsBadge') }}</span></p>
+        }
+        <p class="text-[12px] text-muted mt-1.5">{{ i18n.t('store.balanceHint') }}</p>
+      </div>
+      <a routerLink="/packs" class="go-link relative shrink-0">{{ i18n.t('store.packs') }}</a>
+    </div>
+  }
 
   @if (!auth.isAuthenticated()) {
     <div class="mb-5">
@@ -74,15 +79,16 @@
            tier was added) don't fit a narrow screen without cramming or
            wrapping — a dropdown stands in below sm:, same chip row as
            before at sm: and up. -->
-      <app-dropdown
-        class="sm:hidden mb-4"
-        [options]="tierDropdownOptions()"
-        [value]="tierFilter() ?? ''"
-        (valueChange)="setTierFilterFromDropdown($event)"
-      />
-      <div class="hidden sm:inline-flex bg-card border-2 border-line rounded-2xl p-1 gap-1 mb-4">
+      <!-- Rarity pills (2026-09-29), same on every width, scrolling inside
+           their own row — matches the Cards page. -->
+      <div class="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 mb-5">
         @for (opt of tierOptions; track opt.value) {
-          <button type="button" (click)="setTierFilter(opt.value)" [appChip]="tierFilter() === opt.value">
+          <button
+            type="button"
+            (click)="setTierFilter(opt.value)"
+            class="shrink-0 h-9 px-3.5 rounded-full border text-[13px] font-semibold whitespace-nowrap transition-colors"
+            [ngClass]="tierFilter() === opt.value ? 'bg-team-primary text-team-secondary border-transparent shadow-sm' : 'status-tile border-line text-ink hover:border-team-primary'"
+          >
             {{ i18n.t(opt.key) }}
           </button>
         }
@@ -107,15 +113,16 @@
            the comment on bundleGroups in store.ts) rather than a client
            re-sort. -->
       @for (group of bundleGroups(); track group.team.id) {
-        <div class="flex items-center gap-2 mb-3 mt-5 first:mt-0">
-          <span class="w-7 h-7 rounded-full bg-card flex items-center justify-center shrink-0" [style.border]="'2px solid ' + group.team.primaryColor">
+        <div class="flex items-center gap-3 mb-3 mt-6 first:mt-0">
+          <span class="w-11 h-11 rounded-xl bg-card flex items-center justify-center shrink-0 shadow-card" [style.border]="'2px solid ' + (group.team.primaryColor || 'var(--color-line)')">
             @if (group.team.logoUrl) {
-              <img [src]="group.team.logoUrl" [alt]="group.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain team-logo" />
+              <img [src]="group.team.logoUrl" [alt]="group.team.name" loading="lazy" decoding="async" appRetryImg class="w-7 h-7 object-contain team-logo" />
             } @else {
-              <span class="font-display text-[10px]">{{ group.team.code | teamCode }}</span>
+              <span class="font-display text-[11px]">{{ group.team.code | teamCode }}</span>
             }
           </span>
-          <p class="text-[13px] font-bold truncate">{{ group.team.name }}</p>
+          <p class="font-display text-base leading-tight truncate flex-1 min-w-0">{{ group.team.name }}</p>
+          <span class="status-tile shrink-0 h-7 px-2.5 inline-flex items-center rounded-full border border-line font-mono text-[12px] font-bold tabular-nums">{{ group.bundles.length }}</span>
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -141,15 +148,13 @@
                 ></app-card-stack>
               </button>
 
-              @if (unlockedCount(bundle) === bundle.cards.length) {
-                <span class="text-[12px] font-bold text-emerald-500">{{ i18n.t('store.unlocked') }}</span>
-              } @else if (unlockedCount(bundle) > 0) {
-                <span class="text-[12px] font-bold text-muted"
-                  >{{ unlockedCount(bundle) }}/{{ bundle.cards.length }} {{ i18n.t('store.unlocked') }}</span
-                >
-              } @else {
-                <span class="text-[12px] font-bold text-muted uppercase tracking-wide">{{ i18n.t('store.tapToView') }}</span>
-              }
+              <!-- Tier dots (2026-09-29), same as the Cards page: one per
+                   version, filled when you own it. -->
+              <span class="flex items-center gap-1.5 h-4" [attr.aria-label]="unlockedCount(bundle) + '/' + bundle.cards.length + ' ' + i18n.t('store.unlocked')">
+                @for (card of bundle.cards; track card.id) {
+                  <span class="tier-dot" [class]="'tier-dot--' + card.tier" [class.tier-dot--owned]="isUnlocked(card)"></span>
+                }
+              </span>
             </div>
           }
         </div>

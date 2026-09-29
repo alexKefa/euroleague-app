@@ -4,6 +4,9 @@ import { Lang } from "./lang";
 // collectibles economy pages.
 export const storeTranslations: Record<string, Record<Lang, string>> = {
   "store.title": { en: "Store", el: "Κατάστημα" },
+  // Store balance hero (2026-09-29).
+  "store.balanceLabel": { en: "Your balance", el: "Το υπόλοιπό σου" },
+  "store.balanceHint": { en: "Buy any card directly with points", el: "Αγόρασε όποια κάρτα θες με πόντους" },
   "store.pointsBadge": { en: "PTS", el: "ΠΟΝ" },
   "store.loginToCollect": {
     en: "to collect cards from packs and the wheel.",

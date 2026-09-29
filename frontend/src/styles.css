@@ -748,3 +748,24 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .toast-pill-icon--spin :first-child { animation: none; }
 }
+
+/* Shared by the Cards page and the Store (moved from inventory.css). */
+/* Tier dots under each bundle (2026-09-29): hollow = missing, filled = owned. */
+.tier-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 9999px;
+  border: 2px solid var(--dot);
+  background: transparent;
+  opacity: 0.55;
+}
+.tier-dot--owned {
+  background: var(--dot);
+  opacity: 1;
+  box-shadow: 0 0 6px color-mix(in srgb, var(--dot) 55%, transparent);
+}
+.tier-dot--common { --dot: #9aa3ad; }
+.tier-dot--rare { --dot: #8ec5ff; }
+.tier-dot--legendary { --dot: #f5c043; }
+.tier-dot--coach { --dot: #3fd9a4; }
+

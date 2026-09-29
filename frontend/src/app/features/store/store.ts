@@ -8,7 +8,6 @@ import { NavHistoryService } from "../../core/nav-history.service";
 import { Collectible, CollectibleBundle, CollectibleBundleCard, CollectibleTier, CollectibleTeamFilter } from "../../core/models";
 import { CardStackComponent } from "./card-stack";
 import { CardPreviewComponent } from "./card-preview";
-import { ChipDirective } from "../../shared/chip.directive";
 import { ButtonDirective } from "../../shared/button.directive";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
@@ -27,7 +26,6 @@ const SEARCH_DEBOUNCE_MS = 300;
     RouterLink,
     CardStackComponent,
     CardPreviewComponent,
-    ChipDirective,
     ButtonDirective,
     LogoSpinnerComponent,
     DropdownComponent,
