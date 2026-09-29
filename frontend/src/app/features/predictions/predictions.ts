@@ -164,6 +164,16 @@ export class PredictionsComponent implements OnInit, OnDestroy {
   // widget capped to WIDGET_LEADERBOARD_LIMIT would tell a real predictor
   // nothing about their own standing at all once they're not in the top few.
   readonly visibleLeaderboard = computed(() => this.leaderboard().slice(0, WIDGET_LEADERBOARD_LIMIT));
+  // Viewer's own global rank + correct/total, for the points hero card
+  // (2026-09-29 restyle). Null when they aren't on the leaderboard yet.
+  readonly myStanding = computed(() => {
+    const uid = this.auth.currentUser()?.id;
+    if (!uid) return null;
+    const idx = this.leaderboard().findIndex((e) => e.userId === uid);
+    if (idx < 0) return null;
+    const e = this.leaderboard()[idx];
+    return { rank: idx + 1, correct: e.correct, total: e.total };
+  });
   readonly myLeaderboardRank = computed(() => {
     const uid = this.auth.currentUser()?.id;
     if (!uid) return null;

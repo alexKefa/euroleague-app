@@ -8,6 +8,10 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
     en: "Tap to pick, tap again to clear, then complete predictions to save.",
     el: "Πάτησε για να διαλέξεις, ξανά για να αφαιρέσεις, μετά ολοκλήρωσε τις προβλέψεις σου.",
   },
+  // Points hero card (2026-09-29 restyle).
+  "predictions.yourPoints": { en: "Your points", el: "Οι πόντοι σου" },
+  "predictions.rankLabel": { en: "Rank", el: "Θέση" },
+  "predictions.correctLabel": { en: "Correct", el: "Σωστές" },
   "predictions.completePredictions": { en: "Complete predictions", el: "Ολοκλήρωση προβλέψεων" },
   "predictions.clearAll": { en: "Clear all", el: "Καθαρισμός όλων" },
   "predictions.clearAllConfirm": {

@@ -57,7 +57,7 @@
       </div>
     </div>
   } @else if (upcomingGames().length > 0) {
-      <div data-tour="predictions-picks" class="bg-card rounded-2xl border border-line shadow-card p-3 sm:p-4 mb-5">
+      <div data-tour="predictions-picks" class="bg-card rounded-3xl border border-line shadow-card p-3 sm:p-4 mb-5">
         <div class="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1 mb-3">
           <p class="text-[13px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('predictions.upcomingGames') }}</p>
           @if (auth.isAuthenticated()) {
@@ -66,12 +66,12 @@
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
           @for (game of upcomingGames(); track game.id) {
-            <div class="relative rounded-2xl border border-line shadow-card overflow-hidden bg-page">
+            <div class="relative rounded-2xl border shadow-card overflow-hidden bg-page transition-colors" [ngClass]="myPickFor(game) ? 'border-team-primary/50' : 'border-line'">
               <!-- Tipoff/live ribbon floats over the split below rather than
                    its own row — the two-team split is the whole point of this
                    layout, so date/time/live-score share space with it instead
                    of pushing it down. -->
-              <span class="absolute top-1.5 left-1/2 -translate-x-1/2 z-20 font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-card border border-line text-muted whitespace-nowrap">
+              <span class="absolute top-2 left-1/2 -translate-x-1/2 z-20 font-mono text-[11px] font-bold px-2.5 py-1 rounded-full bg-card border border-line text-muted whitespace-nowrap shadow-sm">
                 @if (game.status === "live") {
                   <span class="flex items-center gap-1.5">
                     <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
@@ -84,7 +84,7 @@
               </span>
 
               <div class="grid grid-cols-2 relative divide-x divide-line">
-                <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-6 h-6 rounded-full bg-card border border-line shadow-pop flex items-center justify-center font-display text-[10px] text-muted">
+                <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-card border border-line shadow-pop flex items-center justify-center font-display text-[11px] text-muted">
                   {{ i18n.t('predictions.vs') }}
                 </span>
 
@@ -93,7 +93,7 @@
                   (click)="togglePick(game, game.homeTeam.id)"
                   [disabled]="isLocked(game) || !auth.isAuthenticated()"
                   [attr.aria-label]="game.homeTeam.name"
-                  [ngClass]="[isLocked(game) ? 'opacity-50' : '', myPickFor(game) === game.homeTeam.id ? 'bg-team-primary/10' : 'hover:bg-line/30']"
+                  [ngClass]="[isLocked(game) ? 'opacity-50' : '', myPickFor(game) === game.homeTeam.id ? 'bg-team-primary/15 shadow-[inset_0_0_0_2px_var(--accent-primary)]' : 'hover:bg-line/30']"
                   class="relative flex flex-col items-center justify-center gap-1 pt-8 pb-3 px-2 overflow-hidden transition-colors cursor-pointer disabled:cursor-not-allowed"
                 >
                   <span
@@ -106,6 +106,11 @@
                       <span class="w-full h-full" [style.background]="teamColor(game.homeTeam)"></span>
                     }
                   </span>
+                  @if (myPickFor(game) === game.homeTeam.id) {
+                    <span class="absolute top-2 right-2 z-10 w-5 h-5 rounded-full bg-team-primary text-team-secondary flex items-center justify-center shadow-sm">
+                      <svg class="w-3 h-3" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    </span>
+                  }
                   <span
                     class="relative z-10 text-[12px] font-semibold text-center leading-tight"
                     [ngClass]="myPickFor(game) === game.homeTeam.id ? 'text-team-primary' : 'text-ink'"
@@ -125,7 +130,7 @@
                   (click)="togglePick(game, game.awayTeam.id)"
                   [disabled]="isLocked(game) || !auth.isAuthenticated()"
                   [attr.aria-label]="game.awayTeam.name"
-                  [ngClass]="[isLocked(game) ? 'opacity-50' : '', myPickFor(game) === game.awayTeam.id ? 'bg-team-primary/10' : 'hover:bg-line/30']"
+                  [ngClass]="[isLocked(game) ? 'opacity-50' : '', myPickFor(game) === game.awayTeam.id ? 'bg-team-primary/15 shadow-[inset_0_0_0_2px_var(--accent-primary)]' : 'hover:bg-line/30']"
                   class="relative flex flex-col items-center justify-center gap-1 pt-8 pb-3 px-2 overflow-hidden transition-colors cursor-pointer disabled:cursor-not-allowed"
                 >
                   <span
@@ -138,6 +143,11 @@
                       <span class="w-full h-full" [style.background]="teamColor(game.awayTeam)"></span>
                     }
                   </span>
+                  @if (myPickFor(game) === game.awayTeam.id) {
+                    <span class="absolute top-2 right-2 z-10 w-5 h-5 rounded-full bg-team-primary text-team-secondary flex items-center justify-center shadow-sm">
+                      <svg class="w-3 h-3" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    </span>
+                  }
                   <span
                     class="relative z-10 text-[12px] font-semibold text-center leading-tight"
                     [ngClass]="myPickFor(game) === game.awayTeam.id ? 'text-team-primary' : 'text-ink'"
@@ -355,11 +365,11 @@
          separates it from that card instead of sitting flush against it —
          matches the mb-5 gap every other card on this page already uses. -->
     <div class="sticky z-20 bottom-[calc(2rem+env(safe-area-inset-bottom))] sm:bottom-4 pt-3 pb-5 flex justify-center pointer-events-none">
-      <div class="w-full max-w-sm pointer-events-auto bg-card border border-line rounded-2xl shadow-pop p-3">
+      <div class="w-full max-w-sm pointer-events-auto bg-card border border-line rounded-3xl shadow-pop p-3">
         @if (potentialPoints() > 0) {
           <div class="flex items-center justify-between mb-2">
             <span class="text-[11px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('predictions.potentialPoints') }}</span>
-            <span class="font-mono text-team-primary font-bold text-sm">+{{ potentialPoints() }} {{ i18n.t('predictions.pts') }}</span>
+            <span class="font-mono font-bold text-sm px-2.5 py-1 rounded-full bg-team-primary/15 text-team-primary">+{{ potentialPoints() }} {{ i18n.t('predictions.pts') }}</span>
           </div>
         }
         <!-- Grouped pair (2026-09-17, direct request: "next to complete
@@ -380,8 +390,7 @@
             (click)="requestClearAll()"
             [disabled]="submitting() || clearingAll() || roundActionsLocked()"
             appButton="secondary"
-            appButtonSize="sm"
-            [ngClass]="hasPendingChanges() ? 'shrink-0' : 'flex-1'"
+            [ngClass]="hasPendingChanges() ? 'shrink-0 !h-11 !rounded-2xl' : 'flex-1 !h-11 !rounded-2xl'"
           >
             @if (clearingAll()) {
               <app-logo-spinner [size]="14" />
@@ -395,8 +404,7 @@
               (click)="submitPredictions()"
               [disabled]="submitting() || roundActionsLocked()"
               appButton
-              appButtonSize="sm"
-              class="flex-1"
+              class="flex-1 !h-11 !rounded-2xl"
             >
               @if (submitting()) {
                 <app-logo-spinner [size]="14" />
@@ -447,7 +455,12 @@
          auth/summaryLoading gate, same reasoning as before (a heavier
          request than the picks list below it). -->
     @if (auth.isAuthenticated()) {
-      <div class="bg-card rounded-2xl shadow-card p-4 sm:p-5 mb-5">
+      <!-- Restyled 2026-09-29 ("vanilla"): team-color hero, same language as
+           Fantasy's status card. -->
+      <div class="relative overflow-hidden bg-card rounded-3xl border border-line shadow-card p-4 sm:p-5 mb-5">
+        <div class="pointer-events-none absolute inset-0" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 26%, transparent) 0%, color-mix(in srgb, var(--accent-primary) 6%, transparent) 55%, transparent 100%)" aria-hidden="true"></div>
+        <div class="pointer-events-none absolute -right-16 -top-16 w-48 h-48 rounded-full border-[14px]" style="border-color: color-mix(in srgb, var(--accent-primary) 12%, transparent)" aria-hidden="true"></div>
+        <div class="relative">
         @if (summaryLoading()) {
           <div class="animate-pulse">
             <div class="flex items-center justify-between mb-2.5">
@@ -532,38 +545,54 @@
               {{ i18n.t('predictions.addedToCollection') }}
             </div>
           }
-          <div class="flex items-center justify-between">
-            <span class="flex items-baseline gap-1.5">
-              <span class="font-display text-3xl text-team-primary">{{ mySummary()!.points }}</span>
-              <span class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('predictions.pts') }}</span>
-            </span>
-            <div class="flex gap-1.5 items-center">
-              @for (badge of mySummary()!.badges; track badge.id) {
-                <span [title]="badgeLabel(badge.id) + ' — ' + badgeDescription(badge.id)" class="text-team-primary">
-                  <app-nav-icon [name]="badgeIcon(badge.id)" [size]="22" />
-                </span>
-              }
-              @if (mySummary()!.badges.length === 0) {
-                <span class="text-[12px] text-muted">{{ i18n.t('predictions.noBadgesYet') }}</span>
-              }
+          <div class="flex items-end justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('predictions.yourPoints') }}</p>
+              <p class="font-display text-5xl leading-none tabular-nums text-ink mt-1">{{ mySummary()!.points }}</p>
             </div>
+            @if (myStanding(); as st) {
+              <div class="flex gap-2 shrink-0">
+                <div class="status-tile rounded-2xl border border-line px-3 py-2 text-center min-w-[64px]">
+                  <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('predictions.rankLabel') }}</p>
+                  <p class="font-display text-xl leading-tight tabular-nums text-team-primary">#{{ st.rank }}</p>
+                </div>
+                <div class="status-tile rounded-2xl border border-line px-3 py-2 text-center min-w-[64px]">
+                  <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('predictions.correctLabel') }}</p>
+                  <p class="font-display text-xl leading-tight tabular-nums">{{ st.correct }}/{{ st.total }}</p>
+                </div>
+              </div>
+            }
           </div>
-
-          <button
-            type="button"
-            (click)="showBadgeLegend.set(true)"
-            class="w-full mt-2.5 flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-page text-muted hover:text-team-primary transition-colors"
-          >
-            <app-nav-icon name="tip" [size]="14" />
-            <span class="text-[11px] font-bold uppercase tracking-wider">{{ i18n.t('predictions.whatDoTheseMean') }}</span>
-          </button>
+          <!-- Badges as tiles; the legend button sits at the end of the row. -->
+          <div class="flex items-center gap-2 mt-4 flex-wrap">
+            @for (badge of mySummary()!.badges; track badge.id) {
+              <span
+                [title]="badgeLabel(badge.id) + ' — ' + badgeDescription(badge.id)"
+                class="status-tile w-11 h-11 rounded-2xl border border-line flex items-center justify-center text-team-primary"
+              >
+                <app-nav-icon [name]="badgeIcon(badge.id)" [size]="22" />
+              </span>
+            }
+            @if (mySummary()!.badges.length === 0) {
+              <span class="text-[12px] text-muted">{{ i18n.t('predictions.noBadgesYet') }}</span>
+            }
+            <button
+              type="button"
+              (click)="showBadgeLegend.set(true)"
+              class="status-tile ml-auto h-11 flex items-center gap-1.5 px-3 rounded-2xl border border-line text-muted hover:text-team-primary transition-colors"
+            >
+              <app-nav-icon name="tip" [size]="16" />
+              <span class="text-[12px] font-bold">{{ i18n.t('predictions.whatDoTheseMean') }}</span>
+            </button>
+          </div>
         }
+        </div>
       </div>
     }
 
     <div class="grid gap-5 sm:grid-cols-2">
       <!-- My picks -->
-      <div class="bg-card rounded-2xl shadow-card p-4 sm:p-5">
+      <div class="bg-card rounded-3xl border border-line shadow-card p-4 sm:p-5">
         <div class="flex items-center justify-between gap-2 mb-3">
           <p class="text-[13px] text-muted font-bold uppercase tracking-wider flex items-center gap-1.5">
             <app-nav-icon name="picks" [size]="14" class="shrink-0" />
@@ -576,20 +605,20 @@
                  reads consistently with the rest of the app.
                  py-1.5 -> py-2 (2026-09-25 mobile pass) — a bigger touch
                  target for the thumb-reachable tab switch on a phone. -->
-            <div class="flex gap-1 shrink-0 bg-page rounded-xl p-1">
+            <div class="status-tile flex gap-1 shrink-0 h-10 p-1 rounded-xl border border-line">
               <button
                 type="button"
                 (click)="picksTab.set('winLoss')"
-                class="px-3 py-2 rounded-lg font-mono text-[11px] font-bold whitespace-nowrap transition-colors"
-                [ngClass]="picksTab() === 'winLoss' ? 'bg-team-primary text-team-secondary' : 'text-muted hover:text-team-primary'"
+                class="h-full px-3 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors"
+                [ngClass]="picksTab() === 'winLoss' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
               >
                 {{ i18n.t('predictions.tabWinLoss') }}
               </button>
               <button
                 type="button"
                 (click)="picksTab.set('topScorer')"
-                class="px-3 py-2 rounded-lg font-mono text-[11px] font-bold whitespace-nowrap transition-colors"
-                [ngClass]="picksTab() === 'topScorer' ? 'bg-team-primary text-team-secondary' : 'text-muted hover:text-team-primary'"
+                class="h-full px-3 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors"
+                [ngClass]="picksTab() === 'topScorer' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
               >
                 {{ i18n.t('predictions.tabTopScorer') }}
               </button>
@@ -707,7 +736,7 @@
       </div>
 
       <!-- Leaderboard -->
-      <div class="bg-card rounded-2xl shadow-card p-4 sm:p-5">
+      <div class="bg-card rounded-3xl border border-line shadow-card p-4 sm:p-5">
         <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-3 flex items-center gap-1.5">
           <app-nav-icon name="standings" [size]="14" class="shrink-0" />
           {{ i18n.t('predictions.leaderboard') }}
@@ -725,10 +754,13 @@
               [ngClass]="{ 'bg-team-primary/10': i === 0 }"
             >
               <span class="font-semibold flex items-center gap-1">
-                @if (i === 0) {
-                  <span class="font-mono text-[11px] font-bold w-5 h-5 rounded-full bg-team-primary text-team-secondary flex items-center justify-center shrink-0">1</span>
+                @if (i < 3) {
+                  <span
+                    class="font-mono text-[12px] font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+                    [ngClass]="i === 0 ? 'bg-team-primary text-team-secondary' : 'bg-team-primary/15 text-team-primary'"
+                  >{{ i + 1 }}</span>
                 } @else {
-                  <span class="font-mono text-muted w-5 shrink-0">{{ i + 1 }}</span>
+                  <span class="font-mono text-muted w-7 text-center shrink-0">{{ i + 1 }}</span>
                 }
                 &nbsp;{{ entry.displayName }}
                 @for (badge of entry.badges; track badge.id) {
