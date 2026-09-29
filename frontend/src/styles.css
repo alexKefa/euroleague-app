@@ -511,3 +511,62 @@ body {
     rotate: 0deg;
   }
 }
+
+/* --- Mobile-first foundations (2026-09-29) ---------------------------------
+   Bottom sheets: add `sheet-backdrop` to a popup's full-screen overlay and
+   `sheet-panel` to its panel. Below `sm:` the panel docks to the bottom edge,
+   full width, rounded only on top, scrolls inside, and clears the home
+   indicator; from `sm:` up nothing changes (still a centered window).
+   !important because these deliberately override the Tailwind utilities
+   already on each element (items-center, p-*, max-w-*, rounded-2xl). */
+@media (max-width: 639.98px) {
+  .sheet-backdrop {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+  .sheet-panel {
+    width: 100% !important;
+    max-width: none !important;
+    max-height: 90dvh !important;
+    overflow-y: auto !important;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    border-bottom-width: 0 !important;
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom)) !important;
+  }
+  /* Slide up on open — skipped for panels that already run their own
+     entrance animation/transition. */
+  .sheet-panel:not(.info-panel):not([class*="translate-y"]) {
+    animation: sheet-up 0.22s ease-out;
+  }
+  /* A small grab handle, purely a visual "this is a sheet" cue. */
+  .sheet-panel::before {
+    content: "";
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 9999px;
+    background: var(--color-line);
+    margin: -0.5rem auto 0.75rem;
+  }
+}
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet-panel { animation: none !important; }
+}
+
+/* Touch targets: `tap-target` gives a small icon button an invisible 44x44px
+   hit area without changing how it looks. The element needs to be
+   positioned (relative/absolute) — see the codemod note in git history. */
+.tap-target::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
+}

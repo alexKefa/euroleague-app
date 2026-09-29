@@ -112,7 +112,7 @@
             @if (group.team.logoUrl) {
               <img [src]="group.team.logoUrl" [alt]="group.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain team-logo" />
             } @else {
-              <span class="font-display text-[8px]">{{ group.team.code | teamCode }}</span>
+              <span class="font-display text-[10px]">{{ group.team.code | teamCode }}</span>
             }
           </span>
           <p class="text-[13px] font-bold truncate">{{ group.team.name }}</p>

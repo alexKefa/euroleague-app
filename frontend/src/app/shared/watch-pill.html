@@ -50,14 +50,14 @@
             @if (w.status === 'live') {
               <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
             } @else if (w.quarter) {
-              <span class="font-mono text-[9px] font-bold text-muted whitespace-nowrap">Q{{ w.quarter }}</span>
+              <span class="font-mono text-[10px] font-bold text-muted whitespace-nowrap">Q{{ w.quarter }}</span>
             }
           </button>
           <button
             type="button"
             (click)="unpin($event, w)"
             [attr.aria-label]="i18n.t('watchPill.unpin')"
-            class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-card border border-line flex items-center justify-center text-muted hover:text-red-500 text-[9px] leading-none font-bold"
+            class="tap-target absolute -top-1 -right-1 w-4 h-4 rounded-full bg-card border border-line flex items-center justify-center text-muted hover:text-red-500 text-[10px] leading-none font-bold"
           >
             &times;
           </button>

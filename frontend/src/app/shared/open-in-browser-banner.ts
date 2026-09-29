@@ -36,7 +36,7 @@ const SEEN_KEY = "clutch-open-in-browser-banner-seen";
         <button
           type="button"
           (click)="dismiss()"
-          class="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-team-primary/10 transition-colors"
+          class="tap-target absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-team-primary/10 transition-colors"
           [attr.aria-label]="i18n.t('hint.dismiss')"
         >
           &times;

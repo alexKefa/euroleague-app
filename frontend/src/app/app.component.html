@@ -60,7 +60,7 @@
     <button
       type="button"
       (click)="tour.start()"
-      class="shrink-0 w-8 h-8 rounded-xl border-2 border-line flex items-center justify-center text-muted hover:text-team-primary hover:bg-page transition-colors"
+      class="tap-target relative shrink-0 w-8 h-8 rounded-xl border-2 border-line flex items-center justify-center text-muted hover:text-team-primary hover:bg-page transition-colors"
       [attr.aria-label]="i18n.t('tour.takeTour')"
       [title]="i18n.t('tour.takeTour')"
     >
@@ -86,7 +86,7 @@
         <button
           type="button"
           (click)="logout()"
-          class="shrink-0 w-8 h-8 rounded-xl border-2 border-line flex items-center justify-center text-muted hover:text-team-primary hover:bg-page transition-colors"
+          class="tap-target relative shrink-0 w-8 h-8 rounded-xl border-2 border-line flex items-center justify-center text-muted hover:text-team-primary hover:bg-page transition-colors"
           [attr.aria-label]="i18n.t('nav.logout')"
         >
           <app-nav-icon name="logout" [size]="18" />

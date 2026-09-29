@@ -16,7 +16,7 @@ import { I18nService } from "../../core/i18n.service";
     <button
       type="button"
       (click)="open.set(true)"
-      class="w-5 h-5 rounded-full flex items-center justify-center text-muted hover:text-team-primary hover:bg-team-primary/10 transition-colors shrink-0"
+      class="tap-target relative w-5 h-5 rounded-full flex items-center justify-center text-muted hover:text-team-primary hover:bg-team-primary/10 transition-colors shrink-0"
       [attr.aria-label]="i18n.t('battles.howItWorksTitle')"
     >
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -26,7 +26,7 @@ import { I18nService } from "../../core/i18n.service";
       </svg>
     </button>
     @if (open()) {
-      <div class="info-backdrop fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm" (click)="open.set(false)">
+      <div class="info-backdrop sheet-backdrop fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm" (click)="open.set(false)">
         <button
           type="button"
           (click)="open.set(false)"
@@ -35,7 +35,7 @@ import { I18nService } from "../../core/i18n.service";
         >
           &times;
         </button>
-        <div class="info-panel w-full max-w-sm bg-card rounded-2xl border border-line shadow-pop p-5" (click)="$event.stopPropagation()">
+        <div class="sheet-panel info-panel w-full max-w-sm bg-card rounded-2xl border border-line shadow-pop p-5" (click)="$event.stopPropagation()">
           <p class="font-display text-lg tracking-wide mb-4">{{ i18n.t('battles.howItWorksTitle') }}</p>
           <div class="space-y-3 text-sm text-muted">
             <p>{{ i18n.t('battles.howItWorksStep1') }}</p>

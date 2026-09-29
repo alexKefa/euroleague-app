@@ -33,7 +33,7 @@ import { NavIconComponent, NavIconName } from "./nav-icon";
           <button
             type="button"
             (click)="closed.emit()"
-            class="text-muted hover:text-ink text-2xl leading-none shrink-0 w-8 h-8 flex items-center justify-center"
+            class="tap-target relative text-muted hover:text-ink text-2xl leading-none shrink-0 w-8 h-8 flex items-center justify-center"
             [attr.aria-label]="closeLabel"
           >
             &times;

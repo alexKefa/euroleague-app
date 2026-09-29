@@ -1243,9 +1243,9 @@
        away from the roster builder, so an in-progress squad is never lost
        just to check a player's recent form. -->
   @if (infoPlayerId(); as pid) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="closePlayerInfo()">
+    <div class="sheet-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="closePlayerInfo()">
       <div
-        class="bg-card rounded-2xl border border-line shadow-pop p-5 max-w-sm w-full max-h-[85vh] overflow-y-auto transition-transform duration-200 motion-reduce:transition-none"
+        class="sheet-panel bg-card rounded-2xl border border-line shadow-pop p-5 max-w-sm w-full max-h-[85vh] overflow-y-auto transition-transform duration-200 motion-reduce:transition-none"
         [ngClass]="infoVisible() ? 'translate-y-0' : 'translate-y-8'"
         (click)="$event.stopPropagation()"
       >
@@ -1582,9 +1582,9 @@
   }
 
   @if (showFormationPicker()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="showFormationPicker.set(false)">
+    <div class="sheet-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="showFormationPicker.set(false)">
       <div
-        class="bg-card rounded-2xl border border-line shadow-pop p-5 max-w-xs w-full"
+        class="sheet-panel bg-card rounded-2xl border border-line shadow-pop p-5 max-w-xs w-full"
         (click)="$event.stopPropagation()"
       >
         <div class="flex items-center justify-between gap-2 mb-4">
@@ -1618,9 +1618,9 @@
        started can't newly become (or stop being) captain, same "Turns"
        guard setCaptain already enforced. -->
   @if (showCaptainPicker()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="showCaptainPicker.set(false)">
+    <div class="sheet-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="showCaptainPicker.set(false)">
       <div
-        class="bg-card rounded-2xl border border-line shadow-pop p-5 max-w-xs w-full"
+        class="sheet-panel bg-card rounded-2xl border border-line shadow-pop p-5 max-w-xs w-full"
         (click)="$event.stopPropagation()"
       >
         <div class="flex items-center justify-between gap-2 mb-4">
@@ -1675,9 +1675,9 @@
   <!-- "What's missing" dialog — opened from the small "!" badge next to
        Save (only rendered once missingRequirements() is non-empty). -->
   @if (showMissingInfo()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="showMissingInfo.set(false)">
+    <div class="sheet-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="showMissingInfo.set(false)">
       <div
-        class="bg-card rounded-2xl border border-line shadow-pop p-5 max-w-xs w-full"
+        class="sheet-panel bg-card rounded-2xl border border-line shadow-pop p-5 max-w-xs w-full"
         (click)="$event.stopPropagation()"
       >
         <div class="flex items-center justify-between gap-2 mb-4">
@@ -1697,9 +1697,9 @@
   }
 
   @if (showFixtures()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="showFixtures.set(false)">
+    <div class="sheet-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="showFixtures.set(false)">
       <div
-        class="bg-card rounded-2xl border border-line shadow-pop p-5 max-w-sm w-full max-h-[85vh] overflow-y-auto"
+        class="sheet-panel bg-card rounded-2xl border border-line shadow-pop p-5 max-w-sm w-full max-h-[85vh] overflow-y-auto"
         (click)="$event.stopPropagation()"
       >
         <div class="flex items-center justify-between gap-2 mb-4">
@@ -1742,9 +1742,9 @@
   <!-- Rules reference — static content, no per-round data, so a plain
        boolean modal (same shell as the Fixtures popup above) is enough. -->
   @if (showRules()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="showRules.set(false)">
+    <div class="sheet-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="showRules.set(false)">
       <div
-        class="bg-card rounded-2xl border border-line shadow-pop p-5 max-w-sm w-full max-h-[85vh] overflow-y-auto"
+        class="sheet-panel bg-card rounded-2xl border border-line shadow-pop p-5 max-w-sm w-full max-h-[85vh] overflow-y-auto"
         (click)="$event.stopPropagation()"
       >
         <div class="flex items-center justify-between gap-2 mb-4">

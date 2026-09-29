@@ -204,8 +204,8 @@
        or the X to close). Not that shared component itself since this needs
        a bespoke player/injury layout, not a plain message + two buttons. -->
   @if (selectedEntry(); as entry) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm" (click)="closeEntryDetail()">
-      <div class="w-full max-w-sm bg-card rounded-2xl border border-line shadow-pop p-5" (click)="$event.stopPropagation()">
+    <div class="sheet-backdrop fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm" (click)="closeEntryDetail()">
+      <div class="sheet-panel w-full max-w-sm bg-card rounded-2xl border border-line shadow-pop p-5" (click)="$event.stopPropagation()">
         <div class="flex items-start justify-between gap-2 mb-4">
           <div class="flex items-center gap-3 min-w-0">
             <app-player-photo

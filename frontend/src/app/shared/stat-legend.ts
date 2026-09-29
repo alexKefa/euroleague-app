@@ -20,7 +20,7 @@ export interface StatLegendEntry {
     <button
       type="button"
       (click)="open.set(true)"
-      class="w-5 h-5 rounded-full flex items-center justify-center text-muted hover:text-team-primary hover:bg-team-primary/10 transition-colors shrink-0"
+      class="tap-target relative w-5 h-5 rounded-full flex items-center justify-center text-muted hover:text-team-primary hover:bg-team-primary/10 transition-colors shrink-0"
       [attr.aria-label]="i18n.t('statLegend.title')"
     >
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -31,7 +31,7 @@ export interface StatLegendEntry {
     </button>
     @if (open()) {
       <div
-        class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm"
+        class="sheet-backdrop fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm"
         (click)="open.set(false)"
       >
         <button
@@ -42,7 +42,7 @@ export interface StatLegendEntry {
         >
           &times;
         </button>
-        <div class="w-full max-w-sm bg-card rounded-2xl border border-line shadow-pop p-5" (click)="$event.stopPropagation()">
+        <div class="sheet-panel w-full max-w-sm bg-card rounded-2xl border border-line shadow-pop p-5" (click)="$event.stopPropagation()">
           <p class="font-display text-lg tracking-wide mb-4">{{ i18n.t('statLegend.title') }}</p>
           <div class="space-y-2.5 text-sm">
             @for (entry of entries; track entry.code) {

@@ -55,7 +55,7 @@
                     <span class="flex items-center justify-end gap-1">
                       <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
                       @if (game.quarter) {
-                        <span class="text-[9px] font-bold font-mono text-red-500 whitespace-nowrap">Q{{ game.quarter }} {{ formatClock(game.gameClockSeconds) }}</span>
+                        <span class="text-[10px] font-bold font-mono text-red-500 whitespace-nowrap">Q{{ game.quarter }} {{ formatClock(game.gameClockSeconds) }}</span>
                       }
                     </span>
                     <span class="font-mono font-bold text-sm">{{ game.homeScore }}-{{ game.awayScore }}</span>
@@ -103,7 +103,7 @@
                            so it's personalization-appropriate the same way
                            the dashboard's "your team" W/L schedule color is;
                            translucent wash, no contrast risk. -->
-                      <span class="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-team-primary/10 text-team-primary whitespace-nowrap">
+                      <span class="font-mono text-[11px] font-bold px-2 py-0.5 rounded-full bg-team-primary/10 text-team-primary whitespace-nowrap">
                         {{ i18n.t('liveCenter.picked') }} {{ row.prediction.predictedTeam.code | teamCode }}
                       </span>
                       @if (row.game.status === 'live') {
@@ -149,7 +149,7 @@
                   @if (row.photoUrl) {
                     <img [src]="row.photoUrl" [alt]="row.name" loading="lazy" decoding="async" appRetryImg class="w-9 h-9 rounded-full object-cover shrink-0" />
                   } @else {
-                    <span class="w-9 h-9 rounded-full bg-page border border-line shrink-0 flex items-center justify-center font-mono text-[10px] text-muted">{{ row.teamCode }}</span>
+                    <span class="w-9 h-9 rounded-full bg-page border border-line shrink-0 flex items-center justify-center font-mono text-[11px] text-muted">{{ row.teamCode }}</span>
                   }
 
                   <span class="min-w-0 flex-1">
@@ -165,18 +165,18 @@
                           <span class="font-mono text-[11px] text-muted shrink-0">{{ game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}</span>
                         }
                       } @else {
-                        <span class="font-mono text-[10px] text-muted shrink-0">{{ i18n.t('liveCenter.noGameThisRound') }}</span>
+                        <span class="font-mono text-[11px] text-muted shrink-0">{{ i18n.t('liveCenter.noGameThisRound') }}</span>
                       }
                     </span>
                     <span class="flex items-center gap-2.5 mt-0.5">
-                      <span class="font-mono text-[10px] text-muted">{{ row.teamCode }}</span>
+                      <span class="font-mono text-[11px] text-muted">{{ row.teamCode }}</span>
                       @if (row.pointsPerGame !== null && row.pointsPerGame !== undefined) {
-                        <span class="font-mono text-[10px] text-muted">{{ row.pointsPerGame | number: '1.1-1' }} {{ i18n.t('liveCenter.ppg') }}</span>
-                        <span class="font-mono text-[10px] text-muted">{{ row.reboundsPerGame | number: '1.1-1' }} {{ i18n.t('liveCenter.rpg') }}</span>
-                        <span class="font-mono text-[10px] text-muted">{{ row.assistsPerGame | number: '1.1-1' }} {{ i18n.t('liveCenter.apg') }}</span>
-                        <span class="font-mono text-[10px] font-bold text-team-primary">{{ row.valuation | number: '1.1-1' }} {{ i18n.t('liveCenter.pir') }}</span>
+                        <span class="font-mono text-[11px] text-muted">{{ row.pointsPerGame | number: '1.1-1' }} {{ i18n.t('liveCenter.ppg') }}</span>
+                        <span class="font-mono text-[11px] text-muted">{{ row.reboundsPerGame | number: '1.1-1' }} {{ i18n.t('liveCenter.rpg') }}</span>
+                        <span class="font-mono text-[11px] text-muted">{{ row.assistsPerGame | number: '1.1-1' }} {{ i18n.t('liveCenter.apg') }}</span>
+                        <span class="font-mono text-[11px] font-bold text-team-primary">{{ row.valuation | number: '1.1-1' }} {{ i18n.t('liveCenter.pir') }}</span>
                       } @else {
-                        <span class="font-mono text-[10px] text-muted">{{ i18n.t('liveCenter.noStatsYet') }}</span>
+                        <span class="font-mono text-[11px] text-muted">{{ i18n.t('liveCenter.noStatsYet') }}</span>
                       }
                     </span>
                   </span>
@@ -208,7 +208,7 @@
                       <span class="block text-[11px] text-muted truncate">{{ leader.name }} &middot; {{ leadingPercent(poll) }}%</span>
                     }
                   </span>
-                  <span class="font-mono text-[10px] font-bold text-muted shrink-0">{{ poll.totalVotes }} {{ i18n.t('legendaryVote.votes') }}</span>
+                  <span class="font-mono text-[11px] font-bold text-muted shrink-0">{{ poll.totalVotes }} {{ i18n.t('legendaryVote.votes') }}</span>
                 </a>
               }
             </div>

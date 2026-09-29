@@ -205,6 +205,10 @@ export class GameDetailComponent implements OnInit {
     this.boxScoreLegendKeys.map((k) => ({ code: this.i18n.t(k.codeKey), label: this.i18n.t(k.key) }))
   );
 
+  // Which team's box score shows on phones (Home/Away toggle); desktop
+  // always shows both.
+  readonly boxSide = signal<"home" | "away">("home");
+
   readonly isFinal = computed(() => this.detail()?.game.status === "final");
   readonly isLive = computed(() => this.detail()?.game.status === "live");
 

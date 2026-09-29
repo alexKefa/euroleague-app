@@ -12,8 +12,8 @@ import { ButtonDirective } from "./button.directive";
   standalone: true,
   imports: [ButtonDirective],
   template: `
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm" (click)="cancelled.emit()">
-      <div class="bg-card rounded-2xl border border-line shadow-pop p-5 max-w-sm w-full" (click)="$event.stopPropagation()">
+    <div class="sheet-backdrop fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm" (click)="cancelled.emit()">
+      <div class="sheet-panel bg-card rounded-2xl border border-line shadow-pop p-5 max-w-sm w-full" (click)="$event.stopPropagation()">
         <p class="text-sm font-semibold mb-4">{{ message }}</p>
         <div class="flex gap-2">
           <button type="button" (click)="cancelled.emit()" appButton="outline" appButtonSize="sm" class="flex-1">

@@ -38,7 +38,7 @@
           </div>
         } @else {
           @if (currentTeamId) {
-            <p class="font-mono text-[10px] text-muted font-bold text-center mb-3">{{ i18n.t('profile.clearHint') }}</p>
+            <p class="font-mono text-[11px] text-muted font-bold text-center mb-3">{{ i18n.t('profile.clearHint') }}</p>
           }
           <div class="grid grid-cols-4 gap-2.5">
             @for (team of teams(); track team.id; let i = $index) {
@@ -59,7 +59,7 @@
                 } @else {
                   <span class="w-7 h-7 rounded-full" [style.background]="team.primaryColor ?? '#8a8a86'"></span>
                 }
-                <span class="font-mono text-[9px] font-bold text-muted">{{ team.code | teamCode }}</span>
+                <span class="font-mono text-[10px] font-bold text-muted">{{ team.code | teamCode }}</span>
               </button>
             }
           </div>

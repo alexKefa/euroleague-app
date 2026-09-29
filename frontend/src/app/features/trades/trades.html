@@ -197,7 +197,7 @@
                   </span>
                   <span class="text-xs text-muted font-semibold" [class.opacity-40]="alreadyOwned(card)">{{ card.ownerName }}</span>
                   @if (card.wishlist.length > 0) {
-                    <span class="text-[10px] text-muted text-center leading-tight px-1" [class.opacity-40]="alreadyOwned(card)">
+                    <span class="text-[11px] text-muted text-center leading-tight px-1" [class.opacity-40]="alreadyOwned(card)">
                       {{ i18n.t('trades.wishlistWantsPrefix') }} {{ wishlistNames(card) }}
                     </span>
                   }
@@ -259,7 +259,7 @@
                 ></app-collectible-card>
                 @if (selectedListingWishlistIds().has(card.id)) {
                   <span
-                    class="absolute top-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-wide z-10"
+                    class="absolute top-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[11px] font-bold uppercase tracking-wide z-10"
                   >
                     {{ i18n.t('trades.wishlistWantedBadge') }}
                   </span>

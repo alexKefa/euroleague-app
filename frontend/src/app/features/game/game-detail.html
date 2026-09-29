@@ -40,7 +40,7 @@
               <img [src]="game.awayTeam.logoUrl" [alt]="game.awayTeam.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
             }
             @if (game.quarter) {
-              <span class="text-[9px] font-bold font-mono text-red-500 whitespace-nowrap shrink-0">Q{{ game.quarter }}</span>
+              <span class="text-[10px] font-bold font-mono text-red-500 whitespace-nowrap shrink-0">Q{{ game.quarter }}</span>
             }
           </button>
         }
@@ -65,7 +65,7 @@
         [disabled]="!watchlist.isPinned('game', d.game.id) && !watchlist.canPinMore()"
         [attr.aria-label]="watchlist.isPinned('game', d.game.id) ? i18n.t('watchPill.unpinGame') : i18n.t('watchPill.pinGame')"
         [title]="!watchlist.isPinned('game', d.game.id) && !watchlist.canPinMore() ? i18n.t('watchPill.limitReached') : (watchlist.isPinned('game', d.game.id) ? i18n.t('watchPill.unpinGame') : i18n.t('watchPill.pinGame'))"
-        class="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-card/80 backdrop-blur border border-line flex items-center justify-center transition-colors disabled:opacity-30"
+        class="tap-target absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-card/80 backdrop-blur border border-line flex items-center justify-center transition-colors disabled:opacity-30"
         [ngClass]="watchlist.isPinned('game', d.game.id) ? 'text-team-primary' : 'text-muted hover:text-team-primary'"
       >
         <app-nav-icon name="pin" [size]="15" [active]="watchlist.isPinned('game', d.game.id)" />
@@ -137,7 +137,7 @@
            then rather than looking broken. -->
       @if (isLive()) {
         <div class="mt-4">
-          <p class="text-[10px] text-muted font-bold uppercase tracking-wider text-center mb-1">{{ i18n.t('game.momentum') }}</p>
+          <p class="text-[11px] text-muted font-bold uppercase tracking-wider text-center mb-1">{{ i18n.t('game.momentum') }}</p>
           <div class="relative h-1.5 rounded-full overflow-hidden flex" [style.background]="(d.game.awayTeam.primaryColor ?? '#888') + '33'">
             <div
               class="h-full rounded-full transition-all duration-700 ease-out"
@@ -211,7 +211,7 @@
                         </span>
                       }
                     </span>
-                    <span class="text-[9px] text-muted font-semibold truncate w-full text-center">{{ c.player.name.split(',')[0] }}</span>
+                    <span class="text-[10px] text-muted font-semibold truncate w-full text-center">{{ c.player.name.split(',')[0] }}</span>
                   </button>
                 }
               </div>
@@ -249,7 +249,7 @@
                         </span>
                       }
                     </span>
-                    <span class="text-[9px] text-muted font-semibold truncate w-full text-center">{{ c.player.name.split(',')[0] }}</span>
+                    <span class="text-[10px] text-muted font-semibold truncate w-full text-center">{{ c.player.name.split(',')[0] }}</span>
                   </button>
                 }
               </div>
@@ -379,15 +379,71 @@
           <app-stat-legend [entries]="boxScoreLegend()" />
         </p>
 
+        <!-- Phones (2026-09-29 mobile-first pass): one team at a time via a
+             Home/Away toggle, and each player as a compact row instead of a
+             sideways-scrolling table. From sm: up both teams' full tables
+             show as before. -->
+        <div class="sm:hidden grid grid-cols-2 gap-1 p-1 rounded-xl bg-page border border-line mb-1">
+          @for (opt of [{ key: 'home', team: d.game.homeTeam }, { key: 'away', team: d.game.awayTeam }]; track opt.key) {
+            <button
+              type="button"
+              (click)="boxSide.set($any(opt.key))"
+              class="flex items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-semibold transition-colors min-w-0"
+              [ngClass]="boxSide() === opt.key ? 'bg-card shadow-card text-ink' : 'text-muted'"
+            >
+              <span class="w-2.5 h-2.5 rounded-full shrink-0" [style.background]="opt.team.primaryColor ?? '#888'"></span>
+              <span class="truncate">{{ opt.team.code | teamCode }}</span>
+            </button>
+          }
+        </div>
+
         @for (
           side of [
-            { label: d.game.homeTeam.name, lines: d.boxscore.home, teamCode: d.game.homeTeam.code, primaryColor: d.game.homeTeam.primaryColor },
-            { label: d.game.awayTeam.name, lines: d.boxscore.away, teamCode: d.game.awayTeam.code, primaryColor: d.game.awayTeam.primaryColor },
+            { key: 'home', label: d.game.homeTeam.name, lines: d.boxscore.home, teamCode: d.game.homeTeam.code, primaryColor: d.game.homeTeam.primaryColor },
+            { key: 'away', label: d.game.awayTeam.name, lines: d.boxscore.away, teamCode: d.game.awayTeam.code, primaryColor: d.game.awayTeam.primaryColor },
           ];
           track side.label
         ) {
-          <p class="text-[11px] text-team-primary font-bold uppercase tracking-wider mt-3 mb-1.5">{{ side.label }}</p>
-          <div class="overflow-x-auto">
+          <div [ngClass]="boxSide() === side.key ? '' : 'hidden sm:block'">
+          <p class="hidden sm:block text-[11px] text-team-primary font-bold uppercase tracking-wider mt-3 mb-1.5">{{ side.label }}</p>
+          <ul class="sm:hidden">
+            @for (line of side.lines; track line.player.id) {
+              <li class="flex items-center gap-2 py-2.5 border-t border-line first:border-t-0">
+                <div class="flex-1 min-w-0">
+                  <button type="button" (click)="openPlayer(line.player.id)" class="text-sm font-semibold truncate max-w-full text-left block">
+                    {{ line.player.name }}
+                    @if (onFireIds().includes(line.player.id)) {
+                      <app-nav-icon name="zap" [size]="14" [title]="i18n.t('game.onFire')" class="inline-block align-text-bottom text-highlight" />
+                    }
+                  </button>
+                  <p class="text-[12px] text-muted font-mono mt-0.5 truncate">
+                    {{ line.minutes | number: "1.0-0" }}' &middot;
+                    <span class="text-ink font-semibold">{{ line.points ?? 0 }}</span> {{ i18n.t('game.colPTS') }} &middot;
+                    {{ line.rebounds ?? 0 }} {{ i18n.t('game.colREB') }} &middot;
+                    {{ line.assists ?? 0 }} {{ i18n.t('game.colAST') }} &middot;
+                    {{ i18n.t('game.colFTMA') }} {{ line.freeThrowsMade ?? 0 }}/{{ line.freeThrowsAttempted ?? 0 }}
+                  </p>
+                </div>
+                @if (isLive()) {
+                  <button
+                    type="button"
+                    (click)="togglePlayerWatch(line, side.teamCode, side.primaryColor)"
+                    [disabled]="!watchlist.isPinned('player', line.player.id) && !watchlist.canPinMore()"
+                    [attr.aria-label]="watchlist.isPinned('player', line.player.id) ? i18n.t('watchPill.unpinPlayer') : i18n.t('watchPill.pinPlayer')"
+                    class="shrink-0 w-10 h-10 flex items-center justify-center rounded-full disabled:opacity-30"
+                    [ngClass]="watchlist.isPinned('player', line.player.id) ? 'text-team-primary' : 'text-muted'"
+                  >
+                    <app-nav-icon name="pin" [size]="16" [active]="watchlist.isPinned('player', line.player.id)" />
+                  </button>
+                }
+                <div class="shrink-0 w-11 text-right">
+                  <p class="font-display text-lg leading-none text-team-primary tabular-nums">{{ line.valuation ?? 0 }}</p>
+                  <p class="text-[10px] text-muted uppercase tracking-wide mt-0.5">{{ i18n.t('game.colPIR') }}</p>
+                </div>
+              </li>
+            }
+          </ul>
+          <div class="hidden sm:block overflow-x-auto">
             <table class="w-full text-xs">
               <thead>
                 <tr class="text-muted uppercase tracking-wide">
@@ -433,7 +489,7 @@
                             [disabled]="!watchlist.isPinned('player', line.player.id) && !watchlist.canPinMore()"
                             [attr.aria-label]="watchlist.isPinned('player', line.player.id) ? i18n.t('watchPill.unpinPlayer') : i18n.t('watchPill.pinPlayer')"
                             [title]="!watchlist.isPinned('player', line.player.id) && !watchlist.canPinMore() ? i18n.t('watchPill.limitReached') : null"
-                            class="shrink-0 w-7 h-7 flex items-center justify-center rounded-full hover:bg-page transition-colors disabled:opacity-30"
+                            class="tap-target relative shrink-0 w-7 h-7 flex items-center justify-center rounded-full hover:bg-page transition-colors disabled:opacity-30"
                             [ngClass]="watchlist.isPinned('player', line.player.id) ? 'text-team-primary' : 'text-muted hover:text-team-primary'"
                           >
                             <app-nav-icon name="pin" [size]="14" [active]="watchlist.isPinned('player', line.player.id)" />
@@ -451,6 +507,7 @@
                 }
               </tbody>
             </table>
+          </div>
           </div>
         }
       </div>
@@ -488,7 +545,7 @@
             <div>
               <div class="flex justify-between items-center px-1 mb-1">
                 <span class="font-mono text-xs font-bold">{{ $any(row).homeText ?? row.home }}</span>
-                <span class="text-muted text-[10px] uppercase tracking-wide">{{ row.label }}</span>
+                <span class="text-muted text-[11px] uppercase tracking-wide">{{ row.label }}</span>
                 <span class="font-mono text-xs font-bold">{{ $any(row).awayText ?? row.away }}</span>
               </div>
               <div class="relative h-1.5 rounded-[3px] bg-line overflow-hidden flex">
@@ -656,7 +713,7 @@
 
 @if (selectedPlayerId(); as playerId) {
   <div
-    class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm"
+    class="sheet-backdrop fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm"
     (click)="closePlayer()"
   >
     <button
@@ -668,7 +725,7 @@
       &times;
     </button>
 
-    <div class="w-full max-w-sm bg-card rounded-2xl border border-line shadow-pop p-5" (click)="$event.stopPropagation()">
+    <div class="sheet-panel w-full max-w-sm bg-card rounded-2xl border border-line shadow-pop p-5" (click)="$event.stopPropagation()">
       @if (playerPreviewLoading()) {
         <div class="animate-pulse space-y-3">
           <app-skeleton class="w-24 h-24 rounded-full mx-auto" [iconSize]="22" />
@@ -699,29 +756,29 @@
           <div class="grid grid-cols-3 gap-2 mt-5 text-center">
             <div>
               <p class="font-display text-xl text-team-primary">{{ fmtNum(s.pointsPerGame) }}</p>
-              <p class="text-[10px] text-muted uppercase tracking-wide">{{ i18n.t('roster.colPPG') }}</p>
+              <p class="text-[11px] text-muted uppercase tracking-wide">{{ i18n.t('roster.colPPG') }}</p>
             </div>
             <div>
               <p class="font-display text-xl">{{ fmtNum(s.reboundsPerGame) }}</p>
-              <p class="text-[10px] text-muted uppercase tracking-wide">{{ i18n.t('roster.colRPG') }}</p>
+              <p class="text-[11px] text-muted uppercase tracking-wide">{{ i18n.t('roster.colRPG') }}</p>
             </div>
             <div>
               <p class="font-display text-xl">{{ fmtNum(s.assistsPerGame) }}</p>
-              <p class="text-[10px] text-muted uppercase tracking-wide">{{ i18n.t('roster.colAPG') }}</p>
+              <p class="text-[11px] text-muted uppercase tracking-wide">{{ i18n.t('roster.colAPG') }}</p>
             </div>
           </div>
           <div class="grid grid-cols-3 gap-2 mt-3 text-center">
             <div>
               <p class="font-mono font-bold text-team-primary">{{ fmtNum(s.valuation) }}</p>
-              <p class="text-[10px] text-muted uppercase tracking-wide">{{ i18n.t('roster.colPIR') }}</p>
+              <p class="text-[11px] text-muted uppercase tracking-wide">{{ i18n.t('roster.colPIR') }}</p>
             </div>
             <div>
               <p class="font-mono font-bold">{{ fmtPct(s.fieldGoalPct) }}</p>
-              <p class="text-[10px] text-muted uppercase tracking-wide">{{ i18n.t('game.colFG') }}</p>
+              <p class="text-[11px] text-muted uppercase tracking-wide">{{ i18n.t('game.colFG') }}</p>
             </div>
             <div>
               <p class="font-mono font-bold">{{ fmtPct(s.freeThrowPct) }}</p>
-              <p class="text-[10px] text-muted uppercase tracking-wide">{{ i18n.t('game.colFT') }}</p>
+              <p class="text-[11px] text-muted uppercase tracking-wide">{{ i18n.t('game.colFT') }}</p>
             </div>
           </div>
         } @else {
@@ -741,7 +798,7 @@
 }
 
 @if (quickViewGameId(); as qvId) {
-  <div class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm" (click)="closeQuickView()">
+  <div class="sheet-backdrop fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm" (click)="closeQuickView()">
     <button
       type="button"
       (click)="closeQuickView()"
@@ -751,7 +808,7 @@
       &times;
     </button>
 
-    <div class="w-full max-w-sm bg-card rounded-2xl border border-line shadow-pop p-5" (click)="$event.stopPropagation()">
+    <div class="sheet-panel w-full max-w-sm bg-card rounded-2xl border border-line shadow-pop p-5" (click)="$event.stopPropagation()">
       @if (quickViewLoading()) {
         <div class="animate-pulse space-y-3">
           <div class="h-6 bg-line rounded w-2/3 mx-auto"></div>
@@ -771,7 +828,7 @@
               <span class="flex items-center justify-center gap-1">
                 <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
                 @if (qd.game.quarter) {
-                  <span class="text-[9px] font-bold font-mono text-red-500 whitespace-nowrap">Q{{ qd.game.quarter }} {{ formatClock(qd.game.gameClockSeconds) }}</span>
+                  <span class="text-[10px] font-bold font-mono text-red-500 whitespace-nowrap">Q{{ qd.game.quarter }} {{ formatClock(qd.game.gameClockSeconds) }}</span>
                 }
               </span>
             }
@@ -790,7 +847,7 @@
             <div class="space-y-1.5">
               @for (scorer of quickViewTopScorers(); track scorer.line.player.id) {
                 <div class="flex items-center justify-between gap-2 text-sm">
-                  <span class="truncate">{{ scorer.line.player.name }} <span class="font-mono text-[10px] text-muted">{{ scorer.team.code | teamCode }}</span></span>
+                  <span class="truncate">{{ scorer.line.player.name }} <span class="font-mono text-[11px] text-muted">{{ scorer.team.code | teamCode }}</span></span>
                   <span class="font-mono font-bold shrink-0">{{ scorer.line.points }}</span>
                 </div>
               }

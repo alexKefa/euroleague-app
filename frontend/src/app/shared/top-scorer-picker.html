@@ -64,7 +64,7 @@
                 </span>
               }
             </span>
-            <span class="text-[9px] text-muted font-semibold truncate w-full text-center">{{ c.player.name.split(',')[0] }}</span>
+            <span class="text-[10px] text-muted font-semibold truncate w-full text-center">{{ c.player.name.split(',')[0] }}</span>
             <!-- White pill, not team-primary text (2026-09-22, "show a ppg
                  below them... on a white container" — a follow-up on the
                  first PPG pass, which used plain team-primary text with no
@@ -76,7 +76,7 @@
                  team is Real Madrid or Dubai Basketball (both have a
                  white/near-white primary color) would get invisible text. -->
             @if (c.pointsPerGame != null) {
-              <span class="font-mono text-[9px] font-bold text-[#14161A] bg-white border border-black/10 rounded-full px-1.5 py-px shadow-sm"
+              <span class="font-mono text-[10px] font-bold text-[#14161A] bg-white border border-black/10 rounded-full px-1.5 py-px shadow-sm"
                 >{{ c.pointsPerGame | number: '1.1-1' }} {{ i18n.t('topScorer.ppgAbbrev') }}</span
               >
             }
@@ -131,7 +131,7 @@
                 </span>
               }
             </span>
-            <span class="text-[9px] text-muted font-semibold truncate w-full text-center">{{ c.player.name.split(',')[0] }}</span>
+            <span class="text-[10px] text-muted font-semibold truncate w-full text-center">{{ c.player.name.split(',')[0] }}</span>
             <!-- White pill, not team-primary text (2026-09-22, "show a ppg
                  below them... on a white container" — a follow-up on the
                  first PPG pass, which used plain team-primary text with no
@@ -143,7 +143,7 @@
                  team is Real Madrid or Dubai Basketball (both have a
                  white/near-white primary color) would get invisible text. -->
             @if (c.pointsPerGame != null) {
-              <span class="font-mono text-[9px] font-bold text-[#14161A] bg-white border border-black/10 rounded-full px-1.5 py-px shadow-sm"
+              <span class="font-mono text-[10px] font-bold text-[#14161A] bg-white border border-black/10 rounded-full px-1.5 py-px shadow-sm"
                 >{{ c.pointsPerGame | number: '1.1-1' }} {{ i18n.t('topScorer.ppgAbbrev') }}</span
               >
             }

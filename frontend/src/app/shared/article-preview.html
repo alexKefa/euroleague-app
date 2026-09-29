@@ -1,4 +1,4 @@
-<div class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm" (click)="close()">
+<div class="sheet-backdrop fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm" (click)="close()">
   <button
     type="button"
     (click)="close()"
@@ -9,7 +9,7 @@
   </button>
 
   <div
-    class="w-full flex flex-col bg-card rounded-2xl border border-line shadow-pop overflow-hidden"
+    class="sheet-panel w-full flex flex-col bg-card rounded-2xl border border-line shadow-pop overflow-hidden"
     style="max-width: min(92vw, 480px); max-height: 88vh"
     (click)="$event.stopPropagation()"
   >
