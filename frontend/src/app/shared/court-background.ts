@@ -1,5 +1,10 @@
 import { Component, computed, input } from "@angular/core";
 
+// NOTE (2026-09-29): the floor is no longer hardwood — see the "tactics
+// board" comment in the template. The long history comments below about
+// the wood gradient, plank seams, emboss filter and line lighting describe
+// the previous design and are kept only as history.
+
 // Bare decorative half-court backdrop for the Fantasy Five lineup builder —
 // same hand-rolled-SVG approach and geometry as shot-chart.ts (1 unit = 5cm,
 // FIBA-approximate key/arc/restricted-area), just without the shot markers,
@@ -125,127 +130,51 @@ import { Component, computed, input } from "@angular/core";
          room (the wrapper's own gradient shows through) rather than a
          glaring empty band. -->
     <svg [attr.viewBox]="'0 ' + viewBoxTop() + ' 320 ' + viewBoxHeight()" class="w-full h-full pointer-events-none" preserveAspectRatio="xMidYMid meet">
+      <!-- "Tactics board" restyle (2026-09-29, "too vanilla, doesn't match
+           our whole concept"): the realistic orange hardwood (wood grain,
+           embossed cream lines, warm spotlight) is replaced by the app's own
+           language — theme page colour for the floor, a wash of the viewer's
+           team colour toward the basket, a faint dot grid, thin ink lines and
+           a team-colour paint + rim glow. Built from CSS variables, so it
+           follows both the light/dark theme and the favourite team. All
+           geometry (key, arcs, flip, viewBox) is unchanged. -->
       <defs>
-        <linearGradient id="courtFloorGradient" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#f0b46a" stop-opacity="0.96" />
-          <stop offset="50%" stop-color="#d68a3e" stop-opacity="0.94" />
-          <stop offset="100%" stop-color="#96551f" stop-opacity="0.96" />
+        <!-- Pre-flip y grows toward the basket (displayed at the top after
+             the flip below), so the team wash strengthens toward offset 1. -->
+        <linearGradient id="courtTeamWash" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="var(--accent-primary)" stop-opacity="0.04" />
+          <stop offset="65%" stop-color="var(--accent-primary)" stop-opacity="0.14" />
+          <stop offset="100%" stop-color="var(--accent-primary)" stop-opacity="0.32" />
         </linearGradient>
-        <linearGradient id="courtSheenGradient" x1="0" y1="0" x2="1" y2="0.4">
-          <stop offset="0%" stop-color="#ffffff" stop-opacity="0" />
-          <stop offset="45%" stop-color="#ffffff" stop-opacity="0.22" />
-          <stop offset="55%" stop-color="#ffffff" stop-opacity="0" />
-        </linearGradient>
-        <radialGradient id="courtVignette" cx="0.5" cy="0.45" r="0.75">
-          <stop offset="55%" stop-color="#000000" stop-opacity="0" />
-          <stop offset="100%" stop-color="#000000" stop-opacity="0.3" />
+        <radialGradient id="courtRimGlow" cx="0.5" cy="0.82" r="0.42">
+          <stop offset="0%" stop-color="var(--accent-primary)" stop-opacity="0.45" />
+          <stop offset="100%" stop-color="var(--accent-primary)" stop-opacity="0" />
         </radialGradient>
-        <!-- Overhead arena-light glow, centered over the key/paint — a soft
-             warm highlight the floor gradient/vignette alone don't give, so
-             the court reads as lit from above rather than a flat color
-             fill. This rect lives INSIDE the flip group below, so cy is
-             chosen in that group's own pre-flip local space: cy=0.76 of
-             the floor rect's own y=-84..210 span lands at local y=140
-             (between freeThrowLineY=96 and basketY=185, i.e. over the
-             paint) — after the group's translate(0,120) scale(1,-1),
-             that's displayed near the top of the court, where the flip
-             comment above already moved the key/basket to. (A first pass
-             at cy=0.32 skipped this local/pre-flip math entirely and
-             ended up glowing over the open floor near mid-screen instead
-             — caught rereading the flip transform, not live-verified.) -->
-        <radialGradient id="courtSpotlight" cx="0.5" cy="0.76" r="0.5">
-          <stop offset="0%" stop-color="#fff3d8" stop-opacity="0.55" />
-          <stop offset="60%" stop-color="#fff3d8" stop-opacity="0.14" />
-          <stop offset="100%" stop-color="#fff3d8" stop-opacity="0" />
-        </radialGradient>
-        <!-- Plank seams — thin darker verticals every 16 units (~20 across
-             the 308-wide floor), just enough to read as real wood grain
-             rather than a flat color fill, at low enough opacity to stay
-             behind the court lines and player avatars. -->
-        <pattern id="courtWoodGrain" width="16" [attr.height]="floorHeight()" patternUnits="userSpaceOnUse" [attr.patternTransform]="'translate(6, ' + floorTop() + ')'">
-          <line x1="16" y1="0" x2="16" [attr.y2]="floorHeight()" stroke="#5a3512" stroke-opacity="0.14" stroke-width="1" />
+        <pattern id="courtDotGrid" width="12" height="12" patternUnits="userSpaceOnUse">
+          <circle cx="6" cy="6" r="0.8" fill="var(--color-ink)" fill-opacity="0.13" />
         </pattern>
-        <!-- Carved/raised look for the court lines and key — a drop shadow
-             just below-right of each line, not applied to the floor itself
-             (wrapped around its own <g> below), so the paint/markings lift
-             off the wood rather than the whole court tilting. -->
-        <filter id="lineEmboss" x="-30%" y="-30%" width="160%" height="160%">
-          <feDropShadow dx="0" dy="1.4" stdDeviation="0.8" flood-color="#3a2004" flood-opacity="0.55" />
-        </filter>
-        <!-- The lines themselves pick up the same top-lit direction as
-             courtSpotlight above, instead of a flat cream stroke — bright
-             near the key/baseline (pre-flip y=210, displayed at the top
-             post-flip, same place courtSpotlight is brightest) fading to a
-             slightly dimmer cream toward the far edge (pre-flip y=-84,
-             displayed at the bottom). userSpaceOnUse + the same basketX/
-             baselineY constants the paths below are drawn with, so this
-             stays correct if that geometry is ever recalibrated.
-             Real bug caught after this first shipped: the dim stop
-             originally went all the way to a khaki/tan (#cdb689) — close
-             enough to the amber courtFloorGradient underneath that the
-             long sidelines (mostly in that dim half of the gradient, since
-             they run the court's full length) visually disappeared into
-             the wood ("i dont see side lines"). Every stop below now
-             stays in the bright cream/white family so contrast against the
-             floor never collapses, at the cost of a subtler light-to-dark
-             swing than first attempted. -->
-        <linearGradient id="lineLightGradient" gradientUnits="userSpaceOnUse" x1="160" y1="210" x2="160" y2="-84">
-          <stop offset="0%" stop-color="#ffffff" />
-          <stop offset="50%" stop-color="#fdf3e2" />
-          <stop offset="100%" stop-color="#f0e4c8" />
-        </linearGradient>
       </defs>
-      <!-- Flipped vertically (2026-09-17, "switch sides — go to the other
-           side (top)" ask) — the key/basket end used to render at the
-           bottom of this box (baselineY=210, the viewBox's own bottom
-           edge) with open floor up top, matching fantasy.ts's old
-           ROW_TOP (Center near the bottom at 80%). A reference EuroLeague
-           Fantasy screenshot instead puts the key/basket at the TOP with
-           the Center standing right at it, guards toward open floor at
-           the bottom — the more common "looking downcourt" convention.
-           translate(0,120) scale(1,-1) mirrors every y-coordinate as
-           newY = 120 - oldY around the viewBox's own vertical midpoint
-           (-90 and 210 average to 60; the extra +60 lands the flip axis
-           at 120 in the group's local pre-translate space) — cheaper and
-           safer than hand-recalculating every path/rect's y-coordinate
-           individually, and doesn't touch a single one of the calibrated
-           geometry constants below (basketY, freeThrowLineY, etc.) — they
-           stay exactly as calibrated, just rendered through this one
-           transform. fantasy.ts's ROW_TOP was flipped to match
-           (100 - old value each), same flip-around-center math. -->
       <g [attr.transform]="'translate(0, ' + flipConstant() + ') scale(1, -1)'">
-        <rect x="6" [attr.y]="floorTop()" width="308" [attr.height]="floorHeight()" rx="4" fill="url(#courtFloorGradient)" />
-        <rect x="6" [attr.y]="floorTop()" width="308" [attr.height]="floorHeight()" rx="4" fill="url(#courtWoodGrain)" />
-        <rect x="6" [attr.y]="floorTop()" width="308" [attr.height]="floorHeight()" rx="4" fill="url(#courtSpotlight)" />
-        <rect x="6" [attr.y]="floorTop()" width="308" [attr.height]="floorHeight()" rx="4" fill="url(#courtSheenGradient)" />
-        <rect x="6" [attr.y]="floorTop()" width="308" [attr.height]="floorHeight()" rx="4" fill="url(#courtVignette)" />
-        <g filter="url(#lineEmboss)">
-          <!-- Full rectangle, flat bright stroke (2026-09-18 redo) — the
-             mobile trapezoid clip on the whole component (fantasy.html)
-             that used to sit over this court is gone now (it clipped away
-             most of each sideline's length, causing "i dont see side
-             lines"); the outer div's own rounded-2xl overflow-hidden is
-             the only clip left. courtOutlinePath now closes into a real 4-
-             sided rectangle (it used to deliberately skip the near
-             baseline) since there's no longer a reason to leave one side
-             open. Kept on a flat stroke rather than lineLightGradient —
-             a plain, always-visible boundary. -->
-          <path [attr.d]="courtOutlinePath()" fill="none" stroke="#fdf3e2" stroke-width="2.2" opacity="0.95" />
-          <rect
-            [attr.x]="keyLeftX"
-            [attr.y]="freeThrowLineY"
-            [attr.width]="keyWidth"
-            [attr.height]="keyHeight"
-            fill="var(--accent-primary)"
-            fill-opacity="0.28"
-            stroke="url(#lineLightGradient)"
-            stroke-width="2.2"
-            stroke-opacity="0.95"
-          />
-          <circle [attr.cx]="basketX" [attr.cy]="freeThrowLineY" [attr.r]="freeThrowCircleRadius" fill="none" stroke="url(#lineLightGradient)" stroke-width="2.2" opacity="0.95" />
-          <path [attr.d]="restrictedAreaPath" fill="none" stroke="url(#lineLightGradient)" stroke-width="1.7" opacity="0.95" />
-          <path [attr.d]="threePointArcPath" fill="none" stroke="url(#lineLightGradient)" stroke-width="2.2" opacity="0.95" />
-        </g>
+        <rect x="6" [attr.y]="floorTop()" width="308" [attr.height]="floorHeight()" rx="10" fill="var(--color-page)" />
+        <rect x="6" [attr.y]="floorTop()" width="308" [attr.height]="floorHeight()" rx="10" fill="url(#courtTeamWash)" />
+        <rect x="6" [attr.y]="floorTop()" width="308" [attr.height]="floorHeight()" rx="10" fill="url(#courtDotGrid)" />
+        <rect x="6" [attr.y]="floorTop()" width="308" [attr.height]="floorHeight()" rx="10" fill="url(#courtRimGlow)" />
+        <path [attr.d]="courtOutlinePath()" fill="none" stroke="var(--color-ink)" stroke-opacity="0.28" stroke-width="1.6" />
+        <rect
+          [attr.x]="keyLeftX"
+          [attr.y]="freeThrowLineY"
+          [attr.width]="keyWidth"
+          [attr.height]="keyHeight"
+          rx="2"
+          fill="var(--accent-primary)"
+          fill-opacity="0.2"
+          stroke="var(--accent-primary)"
+          stroke-opacity="0.85"
+          stroke-width="1.8"
+        />
+        <circle [attr.cx]="basketX" [attr.cy]="freeThrowLineY" [attr.r]="freeThrowCircleRadius" fill="none" stroke="var(--accent-primary)" stroke-opacity="0.7" stroke-width="1.6" />
+        <path [attr.d]="restrictedAreaPath" fill="none" stroke="var(--color-ink)" stroke-opacity="0.35" stroke-width="1.4" />
+        <path [attr.d]="threePointArcPath" fill="none" stroke="var(--color-ink)" stroke-opacity="0.38" stroke-width="1.8" />
       </g>
       <!-- Center-court logo decal (2026-09-16) — now the real current app
            mark (clutch-icon-dark.png, the icon-only crop of the live logo,
@@ -276,7 +205,7 @@ import { Component, computed, input } from "@angular/core";
            flip(freeThrowLineY)=flip(96)=24, is now visually the top of
            open floor via the sibling group's flip — y=50 leaves 26 units
            of clearance below it, unlike the tighter first pass at y=40). -->
-      <image href="/clutch-icon-dark.png" x="102" [attr.y]="logoY()" width="120" height="88" opacity="0.2" preserveAspectRatio="xMidYMid meet" />
+      <image href="/clutch-icon-dark.png" x="102" [attr.y]="logoY()" width="120" height="88" opacity="0.1" preserveAspectRatio="xMidYMid meet" />
     </svg>
   `,
 })

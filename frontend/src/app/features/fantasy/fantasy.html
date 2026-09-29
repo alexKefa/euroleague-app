@@ -91,7 +91,7 @@
        behind the buttons (not the buttons' own background) so its width/
        position only ever depends on which half it's in, never on label
        length in either language. -->
-  <div class="relative flex mb-5 bg-page rounded-2xl p-1 overflow-hidden">
+  <div class="status-tile relative flex mb-5 h-12 rounded-2xl p-1 border border-line overflow-hidden">
     <!-- Fixed 2026-09-25 (real bug, "gets out of button size on second
          option"): the two buttons are flush flex-1 siblings with no gap, so
          button 2 starts exactly one indicator-width to the right of button
@@ -101,25 +101,25 @@
          to any real gap in this markup, pushing the indicator's right edge
          past the track's own padding edge whenever "Leaderboard" was active. -->
     <div
-      class="absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-xl bg-team-primary shadow-pop transition-transform duration-300 ease-out"
+      class="absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-xl bg-team-primary shadow-card transition-transform duration-300 ease-out"
       [style.transform]="tab() === 'leaderboard' ? 'translateX(100%)' : 'translateX(0)'"
     ></div>
     <button
       type="button"
       (click)="setTab('roster')"
-      class="relative z-10 flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl font-mono text-[11px] font-bold transition-colors"
-      [ngClass]="tab() === 'roster' ? 'text-team-secondary' : 'text-muted hover:text-team-primary'"
+      class="relative z-10 flex-1 flex items-center justify-center gap-1.5 px-3 h-full rounded-xl text-sm font-semibold transition-colors"
+      [ngClass]="tab() === 'roster' ? 'text-team-secondary' : 'text-muted hover:text-ink'"
     >
-      <app-nav-icon name="ball" [size]="14" />
+      <app-nav-icon name="ball" [size]="16" />
       {{ i18n.t('fantasy.rosterTab') }}
     </button>
     <button
       type="button"
       (click)="setTab('leaderboard')"
-      class="relative z-10 flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl font-mono text-[11px] font-bold transition-colors"
-      [ngClass]="tab() === 'leaderboard' ? 'text-team-secondary' : 'text-muted hover:text-team-primary'"
+      class="relative z-10 flex-1 flex items-center justify-center gap-1.5 px-3 h-full rounded-xl text-sm font-semibold transition-colors"
+      [ngClass]="tab() === 'leaderboard' ? 'text-team-secondary' : 'text-muted hover:text-ink'"
     >
-      <app-nav-icon name="standings" [size]="14" />
+      <app-nav-icon name="standings" [size]="16" />
       {{ i18n.t('fantasy.leaderboardTab') }}
     </button>
   </div>
@@ -202,7 +202,12 @@
                      rather than swapping to a lighter theme-reactive one —
                      the glass panel behind the whole slot already gives the
                      avatar a defined edge to sit against in both themes. -->
-                <button type="button" (click)="$event.stopPropagation(); openPlayerInfo(slot.playerId)" class="block rounded-full">
+                <button
+                  type="button"
+                  (click)="$event.stopPropagation(); openPlayerInfo(slot.playerId)"
+                  class="block rounded-full"
+                  [style.box-shadow]="'0 0 0 2px var(--color-card), 0 0 0 4px ' + (row.team.primaryColor || 'var(--color-line)') + ', 0 6px 16px rgba(0,0,0,0.35)'"
+                >
                   <app-player-photo
                     [photoUrl]="row.player.photoUrl"
                     [name]="row.player.name"
@@ -294,7 +299,7 @@
                    padding trimmed to match the smaller box; line-clamp-2 on
                    the name row still caps height the same way regardless of
                    how long a name is. -->
-              <button type="button" (click)="openPlayerInfo(slot.playerId)" [title]="row.player.name" class="block w-[92px] rounded-lg overflow-hidden shadow-sm border border-black/10 hover:opacity-90 transition-opacity">
+              <button type="button" (click)="openPlayerInfo(slot.playerId)" [title]="row.player.name" class="block w-[92px] rounded-xl overflow-hidden shadow-card border border-line bg-card/90 backdrop-blur-md hover:border-team-primary/60 transition-colors">
                 <!-- Recolored solid (not just team-primary) when injured —
                      the small corner dot alone read as too easy to miss
                      (2026-09-19). -->
@@ -306,15 +311,15 @@
                      IBM Plex Sans at 700 with tabular figures instead. Price
                      is still in the pool, picker and player popup. -->
                 <span
-                  class="block text-[10px] font-bold uppercase tracking-wide text-center leading-tight line-clamp-2 px-1 py-0.5"
-                  [ngClass]="row.injury ? injuryNameBarClass(row.injury.status) : 'bg-white text-black'"
+                  class="block font-display text-[10px] font-bold uppercase tracking-wide text-center leading-tight line-clamp-2 px-1 pt-1 pb-0.5"
+                  [ngClass]="row.injury ? injuryNameBarClass(row.injury.status) : 'text-ink'"
                   >{{ posAbbrev(row.player.position) }} {{ courtDisplayName(row.player.name) }}</span
                 >
-                <span class="flex items-center justify-center gap-1 bg-white text-black text-[10px] font-sans font-bold tabular-nums px-1 py-0.5 border-t border-black/10">
+                <span class="flex items-center justify-center gap-1 bg-page/60 text-team-primary text-[10px] font-sans font-bold tabular-nums px-1 py-0.5 border-t border-line">
                   @if (gameForTeam().get(row.team.id); as game) {
                     @if (!gameFinished(row.team.id) && turnFor(row.team.id); as turn) {
                       <span [class.opacity-40]="hasPlayed(row.player.id)">{{ i18n.t('fantasy.turnAbbrev') }}{{ turn }}</span>
-                      <span class="text-black/30">&middot;</span>
+                      <span class="text-muted">&middot;</span>
                     }
                     @if (game.status === 'scheduled') {
                       @if (opponentFor(row.team.id); as opp) {
@@ -388,12 +393,12 @@
                  too for visual consistency), but the content inside stays
                  exactly what it was — just the dashed "+" and the position
                  label, nothing extra added ("stick with the image"). -->
-            <div class="flex flex-col items-center gap-1.5 rounded-2xl bg-gradient-to-b from-page/85 to-page/65 backdrop-blur-lg backdrop-saturate-150 shadow-card border border-white/20 px-2.5 py-2">
+            <div class="flex flex-col items-center gap-1.5 rounded-2xl bg-card/85 backdrop-blur-lg shadow-card border border-line px-2.5 py-2">
               <button
                 type="button"
                 (click)="openPicker(slot.id)"
                 [disabled]="roundLocked()"
-                class="rounded-full border-2 border-dashed border-ink flex items-center justify-center text-muted text-xl hover:border-team-primary hover:text-team-primary disabled:opacity-40 disabled:hover:border-ink disabled:hover:text-muted disabled:cursor-not-allowed transition-colors"
+                class="rounded-full border-2 border-dashed border-team-primary/60 bg-team-primary/10 flex items-center justify-center text-team-primary text-xl hover:border-team-primary hover:bg-team-primary/20 disabled:opacity-40 disabled:hover:border-team-primary/60 disabled:hover:bg-team-primary/10 disabled:cursor-not-allowed transition-colors"
                 [style.width.px]="size"
                 [style.height.px]="size"
               >+</button>
