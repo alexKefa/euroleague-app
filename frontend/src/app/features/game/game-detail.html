@@ -1,8 +1,8 @@
 <div class="max-w-3xl mx-auto p-4 sm:p-6">
   <a
     [routerLink]="navHistory.previousUrl() ?? '/schedule'"
-    class="text-[12px] text-muted font-bold uppercase tracking-wider hover:text-ink transition-colors"
-    >&larr; {{ navHistory.previousUrl() ? i18n.t('nav.back') : i18n.t('nav.schedule') }}</a
+    class="back-link"
+    >{{ navHistory.previousUrl() ? i18n.t('nav.back') : i18n.t('nav.schedule') }}</a
   >
 
   @if (loading()) {
@@ -611,8 +611,8 @@
           </div>
         }
 
-        <a routerLink="/stats" class="mt-3 block text-right text-[12px] text-accent2 font-bold uppercase tracking-wider hover:opacity-80 transition-opacity"
-          >{{ i18n.t('stats.viewFull') }} &rarr;</a
+        <a routerLink="/stats" class="go-link mt-3 ml-auto !flex w-fit"
+          >{{ i18n.t('stats.viewFull') }} </a
         >
       </div>
     }
@@ -787,8 +787,8 @@
 
         <a
           [routerLink]="['/players', pd.player.id]"
-          class="block text-center mt-5 text-[11px] text-muted uppercase tracking-wider hover:text-accent2 transition-colors"
-          >{{ i18n.t('game.fullPlayerPage') }} &rarr;</a
+          class="go-link mt-5 mx-auto !flex w-fit"
+          >{{ i18n.t('game.fullPlayerPage') }} </a
         >
       } @else {
         <p class="text-sm text-muted text-center">{{ i18n.t('game.couldntLoadPlayer') }}</p>
@@ -888,8 +888,8 @@
         <a
           [routerLink]="['/games', qvId]"
           (click)="closeQuickView()"
-          class="block text-center mt-5 text-[11px] text-muted uppercase tracking-wider hover:text-accent2 transition-colors"
-          >{{ i18n.t('game.viewFullGame') }} &rarr;</a
+          class="go-link mt-5 mx-auto !flex w-fit"
+          >{{ i18n.t('game.viewFullGame') }} </a
         >
       } @else {
         <p class="text-sm text-muted text-center">{{ i18n.t('game.couldntLoadGame') }}</p>

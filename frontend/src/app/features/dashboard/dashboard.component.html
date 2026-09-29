@@ -231,7 +231,7 @@
       <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
         <div class="flex justify-between items-center mb-3">
           <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('dashboard.latest') }}</p>
-          <a routerLink="/news" class="text-[12px] text-accent2 font-bold uppercase tracking-wider">{{ i18n.t('dashboard.viewAll') }} &rarr;</a>
+          <a routerLink="/news" class="go-link">{{ i18n.t('dashboard.viewAll') }} </a>
         </div>
         <app-news-stories [articles]="news()" />
       </div>
@@ -313,7 +313,7 @@
       <div class="lg:flex-1 lg:min-w-0 bg-card rounded-3xl border border-line shadow-card p-4">
         <div class="flex justify-between items-center mb-3">
           <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('dashboard.standings') }}</p>
-          <a routerLink="/standings" class="text-[12px] text-accent2 font-bold uppercase tracking-wider">{{ i18n.t('standings.viewFull') }} &rarr;</a>
+          <a routerLink="/standings" class="go-link">{{ i18n.t('standings.viewFull') }} </a>
         </div>
         <div class="text-sm space-y-1">
           @for (row of miniStandings(); track row.team.id) {
@@ -447,8 +447,8 @@
                   </a>
                 }
               </div>
-              <a routerLink="/stats" class="mt-2 block text-right text-[12px] text-accent2 font-bold uppercase tracking-wider"
-                >{{ i18n.t('stats.viewFull') }} &rarr;</a
+              <a routerLink="/stats" class="go-link mt-2 ml-auto !flex w-fit"
+                >{{ i18n.t('stats.viewFull') }} </a
               >
             }
             @case ('predictors') {
@@ -472,8 +472,8 @@
                   </button>
                 }
               </div>
-              <a routerLink="/predictions" class="mt-2 block text-right text-[12px] text-accent2 font-bold uppercase tracking-wider"
-                >{{ i18n.t('dashboard.viewAll') }} &rarr;</a
+              <a routerLink="/predictions" class="go-link mt-2 ml-auto !flex w-fit"
+                >{{ i18n.t('dashboard.viewAll') }} </a
               >
             }
             @case ('schedule') {

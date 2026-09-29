@@ -608,3 +608,80 @@ html,
 body {
   overflow-x: clip;
 }
+
+/* --- Navigation links (2026-09-29, "back buttons and arrow links feel
+   vanilla") ------------------------------------------------------------------
+   .back-link: every drill-down page's "back" — a 36px pill with a
+   team-colour chevron, always left-aligned (flex + fit-content, so it stays
+   left even on text-center pages like Jump Ball).
+   .go-link: "View all / Full standings / My leagues ..." forward links — a
+   small team-tinted pill with a trailing chevron. Chevrons are masks, so
+   they take the link's own colour. */
+.back-link {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 0.25rem;
+  height: 2.25rem;
+  padding: 0 0.875rem 0 0.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-line);
+  background: color-mix(in srgb, var(--color-card) 72%, transparent);
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 600;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.back-link::before {
+  content: "";
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+  background-color: var(--accent-primary);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 5l-7 7 7 7'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 5l-7 7 7 7'/%3E%3C/svg%3E") center / contain no-repeat;
+  transition: transform 0.15s ease;
+}
+.back-link:hover {
+  border-color: var(--accent-primary);
+}
+.back-link:hover::before {
+  transform: translateX(-2px);
+}
+.back-link:active {
+  transform: scale(0.97);
+}
+
+.go-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  height: 2rem;
+  padding: 0 0.5rem 0 0.75rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
+  color: var(--accent-primary);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+.go-link::after {
+  content: "";
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 5l7 7-7 7'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 5l7 7-7 7'/%3E%3C/svg%3E") center / contain no-repeat;
+  transition: transform 0.15s ease;
+}
+.go-link:hover {
+  background: color-mix(in srgb, var(--accent-primary) 22%, transparent);
+}
+.go-link:hover::after {
+  transform: translateX(2px);
+}
+.go-link:active {
+  transform: scale(0.97);
+}

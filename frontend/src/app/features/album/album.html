@@ -10,8 +10,8 @@
 <div class="max-w-3xl lg:max-w-5xl mx-auto p-4 sm:p-6">
   <a
     [routerLink]="navHistory.previousUrl() ?? '/inventory'"
-    class="text-[12px] text-muted font-bold uppercase tracking-wider hover:text-ink transition-colors"
-    >&larr; {{ navHistory.previousUrl() ? i18n.t('nav.back') : i18n.t('store.myCards') }}</a
+    class="back-link"
+    >{{ navHistory.previousUrl() ? i18n.t('nav.back') : i18n.t('store.myCards') }}</a
   >
 
   <div class="flex items-center justify-between mt-4 mb-2">
@@ -81,8 +81,8 @@
            leaderboard views link to (/leagues) — without this, a visitor
            with zero leagues had no way to discover how to get one from
            here, only ever seeing the always-on Global board. -->
-      <a routerLink="/leagues" class="text-[12px] text-accent2 font-bold uppercase tracking-wider hover:opacity-80 transition-opacity shrink-0"
-        >{{ i18n.t('leagues.navLink') }} &rarr;</a
+      <a routerLink="/leagues" class="go-link shrink-0"
+        >{{ i18n.t('leagues.navLink') }} </a
       >
     </div>
 

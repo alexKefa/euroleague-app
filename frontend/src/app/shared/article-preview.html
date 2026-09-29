@@ -37,9 +37,8 @@
         <p class="text-sm text-muted leading-relaxed mb-5">{{ article.summary }}</p>
       }
 
-      <a [href]="article.url" target="_blank" rel="noopener noreferrer" class="text-accent2 font-semibold text-sm">
-        {{ i18n.t('news.readFullArticle') }} &rarr;
-      </a>
+      <a [href]="article.url" target="_blank" rel="noopener noreferrer" class="go-link">
+        {{ i18n.t('news.readFullArticle') }} </a>
     </div>
   </div>
 </div>

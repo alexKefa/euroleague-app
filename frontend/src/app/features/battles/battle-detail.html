@@ -2,8 +2,8 @@
   @if (!battle() || battle()!.status !== 'finished') {
     <a
       [routerLink]="navHistory.previousUrl() ?? backFallback()"
-      class="text-[12px] text-accent2 font-bold uppercase tracking-wider hover:opacity-80 transition-opacity block mb-3"
-      >&larr; {{ i18n.t('battles.backToLeague') }}</a
+      class="back-link mb-3"
+      >{{ i18n.t('battles.backToLeague') }}</a
     >
   }
 

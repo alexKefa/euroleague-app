@@ -2,14 +2,14 @@
   @if (detail(); as d) {
     <a
       [routerLink]="navHistory.previousUrl() ?? ['/teams', d.team.id]"
-      class="font-mono text-[12px] text-muted font-bold hover:text-ink transition-colors"
-      >&larr; {{ navHistory.previousUrl() ? i18n.t('nav.back') : d.team.name }}</a
+      class="back-link"
+      >{{ navHistory.previousUrl() ? i18n.t('nav.back') : d.team.name }}</a
     >
   } @else {
     <a
       [routerLink]="navHistory.previousUrl() ?? '/'"
-      class="font-mono text-[12px] text-muted font-bold hover:text-ink transition-colors"
-      >&larr; {{ navHistory.previousUrl() ? i18n.t('nav.back') : i18n.t('profile.backToDashboard') }}</a
+      class="back-link"
+      >{{ navHistory.previousUrl() ? i18n.t('nav.back') : i18n.t('profile.backToDashboard') }}</a
     >
   }
 
@@ -168,8 +168,8 @@
           <a [routerLink]="['/compare']" [queryParams]="{ a: d.player.id }" class="text-[12px] text-accent2 font-bold uppercase tracking-wider hover:opacity-80 transition-opacity"
             >{{ i18n.t('stats.compare.navTitle') }}</a
           >
-          <a routerLink="/stats" class="text-[12px] text-accent2 font-bold uppercase tracking-wider hover:opacity-80 transition-opacity"
-            >{{ i18n.t('stats.viewFull') }} &rarr;</a
+          <a routerLink="/stats" class="go-link"
+            >{{ i18n.t('stats.viewFull') }} </a
           >
         </div>
       </div>
