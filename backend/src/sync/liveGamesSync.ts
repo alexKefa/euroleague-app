@@ -54,7 +54,7 @@ const PRE_TIPOFF_POLL_MS = 2 * 60 * 60 * 1000; // 2 hours
 // just because tipoff has technically passed.
 const MIN_MINUTES_BEFORE_TRUSTING_FINAL = 75;
 
-interface HeaderResponse {
+export interface HeaderResponse {
   Live: boolean;
   ScoreA: string;
   ScoreB: string;
@@ -346,7 +346,28 @@ function parseQuarterScores(header: HeaderResponse, side: "A" | "B", currentQuar
   return perQuarter;
 }
 
-async function fetchHeader(season: string, gameCode: number): Promise<HeaderResponse | null> {
+// Quarter breakdown to store when a game goes final. The live branch stops
+// writing it once the game ends, so the last live poll could miss the final
+// seconds' points (2026-09-29: PAN-PRS and BAR-IST in round 1 were 1-2
+// points short). Uses the feed's full breakdown when it adds up to the final
+// score; otherwise tops up Q4/OT by the difference, but only when every
+// regulation quarter was already recorded.
+export function finalQuarterScores(
+  header: HeaderResponse,
+  side: "A" | "B",
+  finalScore: number,
+  lastKnown: number[] | null
+): number[] | null {
+  const sum = (arr: number[]) => arr.reduce((s, n) => s + n, 0);
+  const fromHeader = parseQuarterScores(header, side, null);
+  if (fromHeader.length >= 4 && sum(fromHeader) === finalScore) return fromHeader;
+  if (!lastKnown || lastKnown.length < 4) return lastKnown;
+  const fixed = [...lastKnown];
+  fixed[fixed.length - 1] += finalScore - sum(lastKnown);
+  return fixed;
+}
+
+export async function fetchHeader(season: string, gameCode: number): Promise<HeaderResponse | null> {
   const url = `${HEADER_URL}?gamecode=${gameCode}&seasoncode=${seasonCodeFor(season)}`;
   const res = await fetch(url);
   if (!res.ok) return null;
@@ -490,7 +511,16 @@ export async function syncLiveGames(): Promise<LiveGamesSyncResult> {
       const minutesSinceTipoff = (now - new Date(game.tipoffAt).getTime()) / 60_000;
       if (minutesSinceTipoff < MIN_MINUTES_BEFORE_TRUSTING_FINAL) continue;
 
-      await db.update(games).set({ status: "final", homeScore, awayScore }).where(eq(games.id, game.id));
+      await db
+        .update(games)
+        .set({
+          status: "final",
+          homeScore,
+          awayScore,
+          homeScoreByQuarter: finalQuarterScores(header, "A", homeScore, game.homeScoreByQuarter),
+          awayScoreByQuarter: finalQuarterScores(header, "B", awayScore, game.awayScoreByQuarter),
+        })
+        .where(eq(games.id, game.id));
       await refreshFinalBoxscore(game.id, game.season, game.gameCode).catch(() => false);
       previousPointsByGame.delete(game.id);
       broadcast("game-update", { gameId: game.id, homeScore, awayScore, status: "final", onFireIds: [], quarter: null, gameClockSeconds: null, scoringEvents: [] });
