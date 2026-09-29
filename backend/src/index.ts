@@ -157,9 +157,14 @@ app.listen(port, () => {
 // which restarts on every file save under tsx watch — running this there
 // too would re-hit both RSS feeds on every save while actively editing).
 // Both feeds are plain public RSS, no auth/rate-limit concerns at this
-// cadence — 10 minutes is a normal polling interval for a feed reader.
-if (process.env.NODE_ENV === "production") {
-  const NEWS_SYNC_INTERVAL_MS = 10 * 60 * 1000;
+// cadence. Hourly rather than every 10 minutes: each run wakes Neon's
+// compute for its ~5min idle-suspend window, so a 10min cadence alone kept
+// it running about half the time.
+// DISABLE_BACKGROUND_JOBS=1 (set on the Railway dev environment, which also
+// runs with NODE_ENV=production via the Dockerfile) keeps dev from polling
+// its Neon branch around the clock.
+if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS !== "1") {
+  const NEWS_SYNC_INTERVAL_MS = 60 * 60 * 1000;
   const runNewsSync = () => {
     syncNews()
       .then(({ articlesUpserted, feedsFailed }) => {

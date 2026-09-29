@@ -159,4 +159,6 @@ suffix on any icon change, because query-string cache-busting doesn't work for f
 Required: `DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`.
 Optional: `PORT`, `JWT_*_EXPIRES_IN`, `NODE_ENV`, `ODDS_API_KEY` (unset = flat
 scoring), `ODDS_API_SPORT_KEY`, `RESEND_API_KEY` (unset = reset links logged to
-the console), `RESEND_FROM_EMAIL`, `APP_BASE_URL` (frontend origin for emailed links).
+the console), `RESEND_FROM_EMAIL`, `APP_BASE_URL` (frontend origin for emailed links),
+`DISABLE_BACKGROUND_JOBS=1` (set on Railway dev: stops the sync intervals so the
+dev Neon compute can auto-suspend).

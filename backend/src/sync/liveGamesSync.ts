@@ -374,6 +374,14 @@ const NO_OP_RESULT: LiveGamesSyncResult = { checked: 0, wentLive: 0, wentFinal: 
 // sequential game event.
 let inFlight = false;
 
+// Between rounds, skip the DB entirely until the next game's polling window
+// opens. Querying every 20s kept Neon's compute from ever auto-suspending
+// (~5min idle), which meant paying for it 24/7. Re-checks at least hourly so a
+// rescheduled tipoff (games_sync.py) is picked up well within the 2h
+// pre-tipoff window.
+const MAX_IDLE_SKIP_MS = 60 * 60 * 1000;
+let skipDbUntil = 0;
+
 // Each game's points-per-player as of the *previous* successful poll, so a
 // new poll can diff against it to derive ScoringEvents (see
 // LivePlayerPoints's doc comment) — process-local, same "fine for the
@@ -406,6 +414,7 @@ function deriveScoringEvents(gameId: string, teamSideOf: (teamId: string) => "ho
 
 export async function syncLiveGames(): Promise<LiveGamesSyncResult> {
   if (inFlight) return NO_OP_RESULT;
+  if (Date.now() < skipDbUntil) return NO_OP_RESULT;
   inFlight = true;
   try {
     const now = Date.now();
@@ -417,7 +426,15 @@ export async function syncLiveGames(): Promise<LiveGamesSyncResult> {
       .from(games)
       .where(and(inArray(games.status, ["scheduled", "live"]), gte(games.tipoffAt, windowStart), lte(games.tipoffAt, windowEnd)));
 
-    if (candidates.length === 0) return NO_OP_RESULT;
+    if (candidates.length === 0) {
+      const [next] = await db
+        .select({ tipoffAt: sql<Date>`min(${games.tipoffAt})` })
+        .from(games)
+        .where(and(eq(games.status, "scheduled"), gte(games.tipoffAt, windowEnd)));
+      const nextWindowOpensAt = next?.tipoffAt ? new Date(next.tipoffAt).getTime() - PRE_TIPOFF_POLL_MS : Infinity;
+      skipDbUntil = Math.min(nextWindowOpensAt, now + MAX_IDLE_SKIP_MS);
+      return NO_OP_RESULT;
+    }
 
     const simulatedGameId = getSimulatedGameId();
     let wentLive = 0;
