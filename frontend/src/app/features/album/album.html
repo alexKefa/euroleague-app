@@ -16,11 +16,7 @@
 
   <div class="flex items-center justify-between mt-4 mb-2">
     <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('album.title') }}</h1>
-    @if (!loading() && tab() === 'album') {
-      <span class="font-mono text-xs font-bold text-team-primary bg-card border-2 border-line rounded-xl px-3 py-1"
-        >{{ overallOwnedCount() }} / {{ overallTotalCount() }} {{ i18n.t('album.collected') }}</span
-      >
-    }
+
   </div>
 
   <!-- €100 prize banner (2026-09-20, upgraded same day to the shared
@@ -41,39 +37,39 @@
        dashboard.component.ts's own segmented control, and bg-ink ->
        bg-team-primary/text-team-secondary (see dashboard.component.ts's
        tabButtonClass comment for the full color reasoning). -->
-  <div class="flex gap-1 mb-4 bg-page rounded-2xl p-1">
+  <div class="status-tile flex gap-1 mb-4 h-11 p-1 rounded-2xl border border-line">
     <button
       type="button"
       (click)="setTab('album')"
-      class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold transition-colors"
-      [ngClass]="tab() === 'album' ? 'bg-team-primary text-team-secondary' : 'text-muted hover:text-team-primary'"
+      class="flex-1 h-full px-3 rounded-xl text-sm font-semibold transition-colors"
+      [ngClass]="tab() === 'album' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
     >
       {{ i18n.t('album.albumTab') }}
     </button>
     <button
       type="button"
       (click)="setTab('leaderboard')"
-      class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold transition-colors"
-      [ngClass]="tab() === 'leaderboard' ? 'bg-team-primary text-team-secondary' : 'text-muted hover:text-team-primary'"
+      class="flex-1 h-full px-3 rounded-xl text-sm font-semibold transition-colors"
+      [ngClass]="tab() === 'leaderboard' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
     >
       {{ i18n.t('album.leaderboardTab') }}
     </button>
   </div>
 
   @if (tab() === 'leaderboard') {
-    <div class="flex items-center justify-between gap-2 mb-3">
-      <div class="flex items-center gap-2">
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+      <div class="flex items-center gap-2 min-w-0">
         <button
           type="button"
           (click)="selectLeague(null)"
-          class="px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors"
-          [ngClass]="!selectedLeagueId() ? 'bg-team-primary/10 border-team-primary/30 text-team-primary' : 'bg-card border-line text-muted'"
+          class="h-10 px-4 rounded-xl text-sm font-semibold border transition-colors whitespace-nowrap"
+          [ngClass]="!selectedLeagueId() ? 'bg-team-primary text-team-secondary border-transparent' : 'status-tile border-line text-muted'"
         >
           {{ i18n.t('album.globalBoard') }}
         </button>
         @if (myLeagues().length > 0) {
           <app-dropdown
-            class="w-56"
+            class="w-44 sm:w-56 min-w-0"
             [options]="leagueDropdownOptions()"
             [value]="selectedLeagueId()"
             [placeholder]="i18n.t('album.myLeagueBoard')"
@@ -90,7 +86,7 @@
       >
     </div>
 
-    <div class="bg-card rounded-lg shadow-card p-4">
+    <div class="bg-card rounded-3xl border border-line shadow-card p-4">
       @if (leaderboardLoading()) {
         <app-skeleton class="h-40 rounded-xl" />
       } @else if (activeLeaderboard().length === 0) {
@@ -105,10 +101,13 @@
               [ngClass]="{ 'bg-team-primary/10': i === 0 }"
             >
               <div class="flex items-center gap-2 min-w-0">
-                @if (i === 0) {
-                  <span class="font-mono text-[11px] font-bold w-5 h-5 rounded-full bg-team-primary text-team-secondary flex items-center justify-center shrink-0">1</span>
+                @if (i < 3) {
+                  <span
+                    class="font-mono text-[12px] font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+                    [ngClass]="i === 0 ? 'bg-team-primary text-team-secondary' : 'bg-team-primary/15 text-team-primary'"
+                  >{{ i + 1 }}</span>
                 } @else {
-                  <span class="font-mono text-muted w-5 shrink-0">{{ i + 1 }}</span>
+                  <span class="font-mono text-muted w-7 text-center shrink-0">{{ i + 1 }}</span>
                 }
                 <span class="font-semibold truncate">{{ entry.displayName }}</span>
               </div>
@@ -180,18 +179,34 @@
     </div>
     <app-skeleton class="rounded-2xl h-[420px]" [iconSize]="28" />
   } @else {
+    <!-- Collection hero (2026-09-29 restyle), same look as the Cards hub's. -->
+    <div class="relative flex items-center gap-4 overflow-hidden rounded-3xl p-4 mb-4 bg-card border border-line shadow-card">
+      <div class="pointer-events-none absolute inset-0" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 26%, transparent) 0%, color-mix(in srgb, var(--accent-primary) 6%, transparent) 55%, transparent 100%)" aria-hidden="true"></div>
+      <div class="pointer-events-none absolute -right-16 -top-16 w-48 h-48 rounded-full border-[14px]" style="border-color: color-mix(in srgb, var(--accent-primary) 12%, transparent)" aria-hidden="true"></div>
+      <div class="relative w-[80px] h-[80px] shrink-0">
+        <svg viewBox="0 0 100 100" class="w-full h-full -rotate-90" aria-hidden="true">
+          <circle cx="50" cy="50" r="42" fill="none" stroke-width="9" class="stroke-line" />
+          <circle cx="50" cy="50" r="42" fill="none" stroke-width="9" stroke-linecap="round" pathLength="100" [attr.stroke-dasharray]="overallPct() + ' 100'" class="stroke-team-primary transition-[stroke-dasharray] duration-500" />
+        </svg>
+        <span class="absolute inset-0 flex items-center justify-center font-display text-base tabular-nums">{{ overallPct() }}%</span>
+      </div>
+      <div class="relative min-w-0">
+        <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('album.collected') }}</p>
+        <p class="font-display text-4xl leading-none tabular-nums mt-1">{{ overallOwnedCount() }}<span class="text-muted text-lg"> / {{ overallTotalCount() }}</span></p>
+      </div>
+    </div>
     <!-- team strip — every team shown, even at 0%, so gaps in the whole
          catalog are visible, not just teams the player has already started. -->
     <div class="flex gap-2 overflow-x-auto pb-2 mb-4">
       @for (team of sortedTeams(); track team.id) {
         <a
           [routerLink]="['/album', team.id]"
-          class="flex flex-col items-center gap-1 shrink-0 w-[72px] px-2 py-2.5 rounded-2xl border-2 transition-colors"
+          class="flex flex-col items-center gap-1 shrink-0 w-[76px] px-2 py-2.5 rounded-2xl border-2 transition-colors"
           [class.border-line]="team.id !== selectedTeamId()"
           [class.bg-card]="team.id !== selectedTeamId()"
-          [class.opacity-70]="team.id !== selectedTeamId()"
+          [class.opacity-80]="team.id !== selectedTeamId()"
           [style.border-color]="team.id === selectedTeamId() ? (team.primaryColor ?? '#FF6B35') : null"
-          [style.background]="team.id === selectedTeamId() ? 'var(--color-card)' : null"
+          [style.background]="team.id === selectedTeamId() ? 'linear-gradient(180deg, color-mix(in srgb, ' + (team.primaryColor ?? '#FF6B35') + ' 28%, var(--color-card)) 0%, var(--color-card) 100%)' : null"
         >
           @if (team.logoUrl) {
             <img [src]="team.logoUrl" [alt]="team.name" appRetryImg class="w-9 h-9 object-contain team-logo" />
@@ -214,11 +229,14 @@
                  completion count for an arbitrary browsed team as if it
                  were "your team's" color. -->
             <span
-              class="text-[10px] font-mono"
-              [class.text-highlight]="team.id === selectedTeamId()"
+              class="text-[11px] font-mono font-bold"
+              [class.text-ink]="team.id === selectedTeamId()"
               [class.text-muted]="team.id !== selectedTeamId()"
               >{{ counts.owned }}/{{ counts.total }}</span
             >
+            <span class="w-full h-1 rounded-full bg-line overflow-hidden">
+              <span class="block h-full rounded-full" [style.width.%]="counts.total ? (counts.owned / counts.total) * 100 : 0" [style.background]="team.primaryColor ?? '#FF6B35'"></span>
+            </span>
           }
         </a>
       }
@@ -232,20 +250,20 @@
       <div class="flex items-center justify-between mb-3">
         <a
           [routerLink]="['/album', adjacentTeamIds().prev]"
-          class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-card border-2 border-line hover:border-[#3a3a3b] flex items-center justify-center shrink-0 transition-colors"
+          class="status-tile w-10 h-10 rounded-xl border border-line hover:border-team-primary flex items-center justify-center shrink-0 transition-colors"
           [attr.aria-label]="i18n.t('album.prevTeam')"
         >
-          <svg class="w-2.5 h-2.5 rotate-90 text-muted" viewBox="0 0 12 12" fill="none">
+          <svg class="w-3 h-3 rotate-90 text-ink" viewBox="0 0 12 12" fill="none">
             <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </a>
-        <span class="font-display text-sm tracking-wide text-muted truncate px-2">{{ team.name }}</span>
+        <span class="font-display text-base tracking-wide truncate px-2">{{ team.name }}</span>
         <a
           [routerLink]="['/album', adjacentTeamIds().next]"
-          class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-card border-2 border-line hover:border-[#3a3a3b] flex items-center justify-center shrink-0 transition-colors"
+          class="status-tile w-10 h-10 rounded-xl border border-line hover:border-team-primary flex items-center justify-center shrink-0 transition-colors"
           [attr.aria-label]="i18n.t('album.nextTeam')"
         >
-          <svg class="w-2.5 h-2.5 -rotate-90 text-muted" viewBox="0 0 12 12" fill="none">
+          <svg class="w-3 h-3 -rotate-90 text-ink" viewBox="0 0 12 12" fill="none">
             <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </a>
@@ -290,7 +308,7 @@
         <div class="flex-1 [perspective:1400px] min-w-0">
         @for (leafTeam of [team]; track leafTeam.id) {
           <div
-            class="leaflet-flip relative flex flex-col sm:flex-row bg-card border border-line rounded-2xl shadow-card overflow-hidden [touch-action:pan-y]"
+            class="leaflet-flip relative flex flex-col sm:flex-row bg-card border border-line rounded-3xl shadow-card overflow-hidden [touch-action:pan-y]"
             (pointerdown)="onLeafletPointerDown($event)"
             (pointerup)="onLeafletPointerUp($event)"
             (pointercancel)="onLeafletPointerCancel($event)"
@@ -301,7 +319,7 @@
               style="background: linear-gradient(135deg, transparent 50%, var(--color-line) 50%); border-bottom-left-radius: 5px"
             ></div>
 
-          <div class="sm:w-64 shrink-0 border-b sm:border-b-0 border-line p-6 flex flex-col items-center text-center gap-4">
+          <div class="sm:w-64 shrink-0 border-b sm:border-b-0 border-line p-6 flex flex-col items-center text-center gap-4" [style.background]="'linear-gradient(180deg, color-mix(in srgb, ' + (team.primaryColor ?? '#FF6B35') + ' 22%, transparent) 0%, transparent 80%)'">
             @if (team.logoUrl) {
               <img [src]="team.logoUrl" [alt]="team.name" appRetryImg class="w-16 h-16 object-contain team-logo" />
             } @else {

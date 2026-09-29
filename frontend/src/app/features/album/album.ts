@@ -169,6 +169,10 @@ export class AlbumComponent implements OnInit {
 
   readonly overallOwnedCount = computed(() => this.ownedIds().size);
   readonly overallTotalCount = computed(() => this.catalog().length);
+  readonly overallPct = computed(() => {
+    const total = this.overallTotalCount();
+    return total > 0 ? Math.round((this.overallOwnedCount() / total) * 100) : 0;
+  });
 
   // owned/total per team, so every crest in the strip can show its own
   // completion — not just the currently-open team.

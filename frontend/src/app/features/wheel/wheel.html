@@ -199,7 +199,7 @@
             <circle cx="50" cy="50" r="42" fill="none" stroke-width="10" class="stroke-line" />
             <circle cx="50" cy="50" r="42" fill="none" stroke-width="10" stroke-linecap="round" pathLength="100" [attr.stroke-dasharray]="cooldownPct() + ' 100'" class="stroke-team-primary transition-[stroke-dasharray] duration-700" />
           </svg>
-          <app-nav-icon name="ball" [size]="18" class="absolute inset-0 m-auto text-muted" />
+          <span class="absolute inset-0 flex items-center justify-center text-muted"><app-nav-icon name="ball" [size]="18" /></span>
         </div>
         <div class="text-left">
           <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('wheel.nextSpinIn') }}</p>
