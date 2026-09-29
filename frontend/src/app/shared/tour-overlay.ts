@@ -49,6 +49,20 @@ function currentViewportSize(): { width: number; height: number } {
   selector: "app-tour-overlay",
   standalone: true,
   imports: [ButtonDirective],
+  styles: [
+    `
+      .tour-ring {
+        animation: tour-ring-pulse 1.8s ease-in-out infinite;
+      }
+      @keyframes tour-ring-pulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(255, 107, 53, 0.55); }
+        50% { box-shadow: 0 0 0 7px rgba(255, 107, 53, 0); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .tour-ring { animation: none; }
+      }
+    `,
+  ],
   template: `
     <!-- Invisible sentinel used only to read env(safe-area-inset-bottom) as
          a real pixel number in JS (there's no other way to get at a CSS
@@ -89,7 +103,7 @@ function currentViewportSize(): { width: number; height: number } {
                already team-colored element would lose contrast right where
                the tour most needs to draw the eye. -->
           <div
-            class="absolute rounded-xl border-2 border-highlight pointer-events-none transition-all duration-300 ease-out"
+            class="tour-ring absolute rounded-xl border-2 border-highlight pointer-events-none transition-all duration-300 ease-out"
             [style.top.px]="box.top"
             [style.left.px]="box.left"
             [style.width.px]="box.width"
@@ -99,50 +113,60 @@ function currentViewportSize(): { width: number; height: number } {
           <div class="absolute inset-0 bg-black/72"></div>
         }
 
+        <!-- Card restyle (2026-09-29, "fix the tour guide"): tour chip + step
+             count + close in the header, a team-colour progress bar, the
+             team-wash card used across the app, and a full-width Next with
+             a compact Back. -->
         <div
           #card
-          class="absolute w-[calc(100vw-2rem)] max-w-[340px] overflow-y-auto bg-card rounded-2xl shadow-pop p-4 transition-[top,left] duration-300 ease-out"
+          class="absolute w-[calc(100vw-2rem)] max-w-[340px] overflow-y-auto bg-card rounded-3xl border border-line shadow-pop transition-[top,left] duration-300 ease-out"
           [style.top.px]="cardTop()"
           [style.left.px]="cardLeft()"
           [style.max-height.px]="maxCardHeight()"
         >
-          <p class="font-mono text-[11px] text-muted font-bold mb-1">
-            {{ i18n.t('tour.stepLabel') }} {{ tour.visibleStepNumber() }}/{{ tour.visibleSteps().length }}
-          </p>
-          <p class="font-display text-base tracking-wide mb-1.5">{{ i18n.t(tour.currentStep()?.titleKey ?? '') }}</p>
-          <p class="text-sm text-muted leading-relaxed mb-4">{{ i18n.t(tour.currentStep()?.bodyKey ?? '') }}</p>
-
-          @if (tour.currentStep()?.ctaRoute; as ctaRoute) {
-            <button
-              type="button"
-              (click)="onCta(ctaRoute)"
-              appButton
-              appButtonSize="sm"
-              class="w-full mb-3"
-            >
-              {{ i18n.t(tour.currentStep()!.ctaLabelKey ?? '') }}
-            </button>
-          }
-
-          <div class="flex items-center justify-between gap-2">
-            <button
-              type="button"
-              (click)="tour.end()"
-              class="font-mono text-[12px] text-muted hover:text-ink transition-colors"
-            >
-              {{ i18n.t('tour.skip') }}
-            </button>
-            <div class="flex gap-2">
+          <div class="pointer-events-none absolute inset-0 rounded-3xl" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 20%, transparent) 0%, transparent 60%)" aria-hidden="true"></div>
+          <div class="relative p-4">
+            <div class="flex items-center justify-between gap-2 mb-3">
+              <span class="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-team-primary/15 text-team-primary text-[12px] font-bold">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>
+                {{ i18n.t('tour.stepLabel') }} {{ tour.visibleStepNumber() }} / {{ tour.visibleSteps().length }}
+              </span>
+              <button
+                type="button"
+                (click)="tour.end()"
+                class="tap-target relative w-8 h-8 rounded-xl border border-line flex items-center justify-center text-muted hover:text-ink transition-colors text-lg leading-none"
+                [attr.aria-label]="i18n.t('tour.skip')"
+                [title]="i18n.t('tour.skip')"
+              >
+                &times;
+              </button>
+            </div>
+            <div class="h-1 rounded-full bg-line overflow-hidden mb-4">
+              <div class="h-full rounded-full bg-team-primary transition-[width] duration-300" [style.width.%]="progressPct()"></div>
+            </div>
+            <p class="font-display text-lg leading-tight mb-1.5">{{ i18n.t(tour.currentStep()?.titleKey ?? '') }}</p>
+            <p class="text-[14px] text-muted leading-relaxed mb-4">{{ i18n.t(tour.currentStep()?.bodyKey ?? '') }}</p>
+            @if (tour.currentStep()?.ctaRoute; as ctaRoute) {
+              <button type="button" (click)="onCta(ctaRoute)" appButton class="w-full mb-2 !h-11 !rounded-xl">
+                {{ i18n.t(tour.currentStep()!.ctaLabelKey ?? '') }}
+              </button>
+            }
+            <div class="flex items-center gap-2">
               @if (tour.stepIndex() > 0) {
-                <button type="button" (click)="tour.back()" appButton="secondary" appButtonSize="sm">
-                  {{ i18n.t('tour.back') }}
+                <button
+                  type="button"
+                  (click)="tour.back()"
+                  class="shrink-0 w-11 h-11 rounded-xl border border-line flex items-center justify-center text-ink hover:border-team-primary transition-colors"
+                  [attr.aria-label]="i18n.t('tour.back')"
+                >
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
                 </button>
               }
               <button
                 type="button"
                 (click)="tour.next()"
                 [appButton]="tour.currentStep()?.ctaRoute ? 'secondary' : ''"
-                appButtonSize="sm"
+                class="flex-1 !h-11 !rounded-xl"
               >
                 {{ tour.stepIndex() === tour.steps.length - 1 ? i18n.t('tour.finish') : i18n.t('tour.next') }}
               </button>
@@ -155,6 +179,11 @@ function currentViewportSize(): { width: number; height: number } {
 })
 export class TourOverlayComponent implements AfterViewInit, OnDestroy {
   protected tour = inject(TourService);
+
+  protected readonly progressPct = computed(() => {
+    const total = this.tour.visibleSteps().length;
+    return total > 0 ? (this.tour.visibleStepNumber() / total) * 100 : 0;
+  });
   protected i18n = inject(I18nService);
   private router = inject(Router);
 
