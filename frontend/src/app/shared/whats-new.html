@@ -7,7 +7,7 @@
       <span class="toast-pill-icon"><app-nav-icon [name]="icon(a)" [size]="18" /></span>
       <button type="button" class="min-w-0 flex-1 text-left" (click)="a.link ? open(a) : toggle(a.id)">
         <span class="block text-[10px] font-bold uppercase tracking-wider text-team-primary leading-none mb-0.5">{{ i18n.t('whatsNew.label') }}</span>
-        <span class="block text-[13px] font-semibold leading-snug" [class.truncate]="expandedId() !== a.id">{{ title(a) }}</span>
+        <span class="block text-[13px] font-semibold leading-snug" [class.line-clamp-2]="expandedId() !== a.id">{{ title(a) }}</span>
       </button>
       @if (a.link && cta(a)) {
         <button type="button" (click)="open(a)" class="toast-action">{{ cta(a) }}</button>

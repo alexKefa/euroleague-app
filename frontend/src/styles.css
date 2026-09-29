@@ -717,6 +717,11 @@ body {
 }
 .toast-action {
   flex-shrink: 0;
+  /* Never let a long (e.g. Greek) label squeeze the message: capped width,
+     the text wraps to two lines instead (2026-09-29 fix). */
+  max-width: 7.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
   height: 2.25rem;
   padding: 0 0.875rem;
   border-radius: 0.75rem;

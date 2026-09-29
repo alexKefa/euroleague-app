@@ -6,7 +6,7 @@
       <span class="toast-pill-icon font-display text-base uppercase">{{ t.challengerName.charAt(0) }}</span>
       <p class="min-w-0 flex-1 text-[13px] leading-snug">
         <span class="font-semibold block truncate">{{ t.challengerName }}</span>
-        <span class="text-muted text-[12px] block truncate">{{ i18n.t('battles.toastChallenged') }}</span>
+        <span class="text-muted text-[12px] block leading-snug line-clamp-2">{{ i18n.t('battles.toastChallenged') }}</span>
       </p>
       <button type="button" (click)="view()" class="toast-action">{{ i18n.t('battles.toastView') }}</button>
       <button type="button" (click)="dismiss()" class="toast-x" [attr.aria-label]="i18n.t('hint.dismiss')">&times;</button>
