@@ -81,8 +81,8 @@ export const adminTranslations: Record<string, Record<Lang, string>> = {
   // "What's new" announcements editor (features/admin/admin-announcements.ts).
   "admin.announceTitle": { en: "Announcements", el: "Ανακοινώσεις" },
   "admin.announceDescription": {
-    en: "Shown once to every logged-in user as a \"What's new\" toast — only the newest live one they haven't seen yet.",
-    el: "Εμφανίζεται μία φορά σε κάθε συνδεδεμένο χρήστη ως ειδοποίηση «Τι νέο υπάρχει» — μόνο η πιο πρόσφατη ενεργή που δεν έχει δει ακόμα.",
+    en: "Shown once to every logged-in user as a \"What's new\" toast. Every live announcement they haven't seen yet appears, each as its own toast.",
+    el: "Εμφανίζεται μία φορά σε κάθε συνδεδεμένο χρήστη ως ειδοποίηση «Τι νέο υπάρχει». Κάθε ενεργή ανακοίνωση που δεν έχει δει ακόμα εμφανίζεται, η καθεμία σε δική της ειδοποίηση.",
   },
   "admin.announceEditing": { en: "Editing announcement", el: "Επεξεργασία ανακοίνωσης" },
   "admin.announceTitlePlaceholder": { en: "Title", el: "Τίτλος" },

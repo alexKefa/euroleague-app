@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal } from "@angular/core";
+import { Component, effect, inject, signal } from "@angular/core";
 import { Router } from "@angular/router";
 import { ApiService } from "../core/api.service";
 import { AuthService } from "../core/auth.service";
@@ -28,13 +28,14 @@ function writeSeen(ids: Set<string>): void {
 }
 
 /**
- * One-time "what's new" toast, mounted globally in app.component.html next
- * to the battle-challenge/jump-ball toasts. Announcements are written from
- * the admin Tools page (2026-09-29; backend routes/announcements.ts) — the
- * API only returns live ones (active, published, not expired), newest first.
- * Each logged-in user sees the newest one they haven't seen, once;
- * dismissing or following it marks it and everything older as seen, so
- * nobody gets a backlog of toasts. Seen state is per device (localStorage).
+ * One-time "what's new" toasts, rendered inside the shared toast stack in
+ * app.component.html. Announcements are written from the admin Tools page
+ * (backend routes/announcements.ts); the API only returns live ones
+ * (active, published, not expired), newest first. Every live one this
+ * device hasn't seen shows as its own toast (2026-09-29, "when 2 or more
+ * announcements are active we should show all of them"), and each is
+ * marked seen on its own when dismissed or followed. Seen state is per
+ * device (localStorage).
  */
 @Component({
   selector: "app-whats-new",
@@ -49,15 +50,8 @@ export class WhatsNewComponent {
   protected i18n = inject(I18nService);
   private router = inject(Router);
 
-  private live: Announcement[] = [];
   private fetched = false;
-  private readonly current = signal<Announcement | null>(null);
-  readonly announcement = this.current.asReadonly();
-
-  readonly title = computed(() => this.pick(this.current(), "title"));
-  readonly body = computed(() => this.pick(this.current(), "body"));
-  readonly cta = computed(() => this.pick(this.current(), "cta"));
-  readonly icon = computed(() => (this.current()?.icon ?? "bell") as NavIconName);
+  readonly pending = signal<Announcement[]>([]);
 
   constructor() {
     // Waits on the access token rather than checking once at init — this
@@ -68,38 +62,39 @@ export class WhatsNewComponent {
       this.fetched = true;
       this.api.getAnnouncements().subscribe({
         next: (rows) => {
-          this.live = rows;
           const seen = readSeen();
-          this.current.set(rows.find((a) => !seen.has(a.id)) ?? null);
+          this.pending.set(rows.filter((a) => !seen.has(a.id)));
         },
         error: () => {},
       });
     });
   }
 
-  private pick(a: Announcement | null, field: "title" | "body" | "cta"): string {
-    if (!a) return "";
-    const el = this.i18n.lang() === "el";
-    if (field === "title") return el ? a.titleEl : a.titleEn;
-    if (field === "body") return el ? a.bodyEl : a.bodyEn;
-    return (el ? a.ctaEl : a.ctaEn) ?? "";
+  title(a: Announcement): string {
+    return this.i18n.lang() === "el" ? a.titleEl : a.titleEn;
   }
 
-  open(): void {
-    const a = this.current();
-    this.dismiss();
-    if (a?.link) this.router.navigateByUrl(a.link);
+  body(a: Announcement): string {
+    return this.i18n.lang() === "el" ? a.bodyEl : a.bodyEn;
   }
 
-  dismiss(): void {
-    const a = this.current();
-    if (!a) return;
-    // Marks this one and everything older seen, so a returning user only
-    // ever gets the latest news, never a queue of stale toasts.
+  cta(a: Announcement): string {
+    return (this.i18n.lang() === "el" ? a.ctaEl : a.ctaEn) ?? "";
+  }
+
+  icon(a: Announcement): NavIconName {
+    return a.icon as NavIconName;
+  }
+
+  open(a: Announcement): void {
+    this.dismiss(a);
+    if (a.link) this.router.navigateByUrl(a.link);
+  }
+
+  dismiss(a: Announcement): void {
     const seen = readSeen();
-    for (const other of this.live) if (other.publishAt <= a.publishAt) seen.add(other.id);
     seen.add(a.id);
     writeSeen(seen);
-    this.current.set(null);
+    this.pending.update((list) => list.filter((x) => x.id !== a.id));
   }
 }

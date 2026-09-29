@@ -327,6 +327,15 @@
 <app-tour-fab></app-tour-fab>
 <app-watch-pill></app-watch-pill>
 }
-<app-battle-challenge-toast></app-battle-challenge-toast>
-<app-jump-ball-toast></app-jump-ball-toast>
-<app-whats-new></app-whats-new>
+<!-- One shared stack for every top-of-screen toast (2026-09-29) — each used
+     to position itself with its own fixed offset, so two at once overlapped.
+     They flow in order here and push each other down; the stack scrolls if
+     it ever gets taller than the screen. Each toast card carries its own
+     bottom margin (not a flex gap), so a hidden toast takes no space. -->
+<div
+  class="fixed z-40 inset-x-3 top-[calc(4.5rem+env(safe-area-inset-top))] sm:inset-x-auto sm:right-4 sm:top-20 sm:w-96 max-h-[calc(100dvh-6rem-env(safe-area-inset-top))] overflow-y-auto pointer-events-none"
+>
+  <app-battle-challenge-toast></app-battle-challenge-toast>
+  <app-jump-ball-toast></app-jump-ball-toast>
+  <app-whats-new></app-whats-new>
+</div>

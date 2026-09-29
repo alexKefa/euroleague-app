@@ -111,9 +111,12 @@ on dev usually means drift, not a code bug.
 - Forms use Reactive Forms, not `ngModel`.
 - Buttons use `[appButton]` (`primary`/`outline`/`secondary`, `appButtonSize="sm"`).
 - Back-links use `navHistory.previousUrl() ?? '<fallback>'`.
-- **Shipping a user-facing feature**: add an entry at the top of `ANNOUNCEMENTS`
-  in `shared/whats-new.ts` plus EN/EL strings in `core/i18n/whats-new.ts` (one-time
-  "What's new" toast; entries expire after 14 days).
+- **Shipping a user-facing feature**: suggest a "What's new" announcement. Admins
+  write them (EN + EL) on `/admin/tools`; they're stored in the `announcements`
+  table, not in code. Every live, unseen one shows once as a toast.
+- Top-of-screen toasts live in one shared stack in `app.component.html`. A new
+  toast renders inside it with `pointer-events-auto mb-3`, never its own `fixed`
+  position. Admin tools use the shared `app-dialog` (`shared/dialog.ts`).
 - Font: IBM Plex Sans for all roles (Google Fonts import in `styles.css`). It must
   have Greek glyph coverage.
 - Signals footgun: never read a signal inside an `effect()` that also writes it.
