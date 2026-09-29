@@ -78,14 +78,22 @@ export class InventoryComponent implements OnInit, OnDestroy {
   // `classes` field: every tile now shares one identical color, so the
   // template applies it directly instead of concatenating a per-tile
   // string.
-  protected readonly hubTiles: { path: string; icon: NavIconName; labelKey: string }[] = [
-    { path: "/store", icon: "store", labelKey: "store.title" },
-    { path: "/wheel", icon: "wheel", labelKey: "store.jumpBall" },
-    { path: "/packs", icon: "packs", labelKey: "store.packs" },
-    { path: "/trades", icon: "trade", labelKey: "store.trades" },
-    { path: "/album", icon: "album", labelKey: "album.hubTile" },
-    { path: "/legendary-vote", icon: "vote", labelKey: "legendaryVote.hubTile" },
+  // subKey: a one-line "what's this for" under each hub card (2026-09-29
+  // restyle, replacing the solid button grid).
+  protected readonly hubTiles: { path: string; icon: NavIconName; labelKey: string; subKey: string }[] = [
+    { path: "/store", icon: "store", labelKey: "store.title", subKey: "inventory.hubStoreSub" },
+    { path: "/wheel", icon: "wheel", labelKey: "store.jumpBall", subKey: "inventory.hubWheelSub" },
+    { path: "/packs", icon: "packs", labelKey: "store.packs", subKey: "inventory.hubPacksSub" },
+    { path: "/trades", icon: "trade", labelKey: "store.trades", subKey: "inventory.hubTradesSub" },
+    { path: "/album", icon: "album", labelKey: "album.hubTile", subKey: "inventory.hubAlbumSub" },
+    { path: "/legendary-vote", icon: "vote", labelKey: "legendaryVote.hubTile", subKey: "inventory.hubVoteSub" },
   ];
+
+  // Album completion %, for the collection hero's ring.
+  readonly collectedPct = computed(() => {
+    const total = this.totalCatalog();
+    return total > 0 ? Math.round((this.totalOwned() / total) * 100) : 0;
+  });
 
   readonly loading = signal(true);
   readonly points = signal(0);

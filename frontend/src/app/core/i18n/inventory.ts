@@ -2,6 +2,15 @@ import { Lang } from "./lang";
 
 export const inventoryTranslations: Record<string, Record<Lang, string>> = {
   "inventory.title": { en: "My Cards", el: "Οι Κάρτες μου" },
+  // Cards hub destination cards (2026-09-29 restyle).
+  "inventory.hubStoreSub": { en: "Buy the cards you want", el: "Αγόρασε όποια κάρτα θέλεις" },
+  "inventory.hubWheelSub": { en: "Free spin every day", el: "Δωρεάν περιστροφή κάθε μέρα" },
+  "inventory.hubPacksSub": { en: "Open and buy packs", el: "Άνοιξε και αγόρασε πακέτα" },
+  "inventory.hubTradesSub": { en: "Swap legendaries with others", el: "Ανταλλαγές θρυλικών καρτών" },
+  "inventory.hubAlbumSub": { en: "Track your full collection", el: "Όλη η συλλογή σου" },
+  "inventory.hubVoteSub": { en: "Vote on the next legendary", el: "Ψήφισε τον επόμενο θρύλο" },
+  "inventory.hubToOpen": { en: "to open", el: "για άνοιγμα" },
+  "inventory.hubPending": { en: "pending", el: "σε αναμονή" },
   "inventory.unopenedPacks": { en: "Unopened packs", el: "Αφύλαχτα πακέτα" },
   "inventory.logInLinkText": { en: "Log in", el: "Σύνδεση" },
   "inventory.loginToSeeSuffix": { en: "to see your collection.", el: "για να δεις τη συλλογή σου." },
