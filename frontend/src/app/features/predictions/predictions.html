@@ -209,14 +209,18 @@
                      icon gets a solid ring so this row also doubles as a
                      way to see/change a quick pick at a glance. -->
                 @if (topScorerRecommendations(game.homeTeam.id).length > 0 || topScorerRecommendations(game.awayTeam.id).length > 0) {
-                  <div class="flex items-center justify-center gap-3 pt-2">
-                    <div class="flex items-center gap-1.5">
+                  <!-- Grid, not a centered flex row (2026-09-29 fix): 3+3 players
+                       plus "vs" used to overflow a phone-width card once the name
+                       text grew; now each side shares its space evenly and names
+                       truncate to fit. -->
+                  <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2 pt-2">
+                    <div class="grid grid-cols-3 gap-1 min-w-0">
                       @for (c of topScorerRecommendations(game.homeTeam.id); track c.player.id) {
                         <button
                           type="button"
                           (click)="quickPickTopScorer(game, c.player.id)"
                           [disabled]="isLocked(game) || quickPickSavingId() === c.player.id || isOut(c.player.id)"
-                          class="flex flex-col items-center gap-0.5 disabled:opacity-50"
+                          class="flex flex-col items-center gap-0.5 min-w-0 disabled:opacity-50"
                           [attr.aria-label]="c.player.name"
                         >
                           <span class="relative inline-block">
@@ -245,19 +249,19 @@
                               </span>
                             }
                           </span>
-                          <span class="font-mono text-[10px] font-semibold text-ink leading-tight truncate max-w-[42px]">{{ c.player.name.split(',')[0] }}</span>
+                          <span class="font-mono text-[10px] font-semibold text-ink leading-tight truncate max-w-full">{{ c.player.name.split(',')[0] }}</span>
                           <span class="font-mono text-[10px] text-muted">{{ c.stats.pointsPerGame | number: '1.1-1' }}</span>
                         </button>
                       }
                     </div>
                     <span class="text-[10px] text-muted font-bold uppercase">{{ i18n.t('predictions.vs') }}</span>
-                    <div class="flex items-center gap-1.5">
+                    <div class="grid grid-cols-3 gap-1 min-w-0">
                       @for (c of topScorerRecommendations(game.awayTeam.id); track c.player.id) {
                         <button
                           type="button"
                           (click)="quickPickTopScorer(game, c.player.id)"
                           [disabled]="isLocked(game) || quickPickSavingId() === c.player.id || isOut(c.player.id)"
-                          class="flex flex-col items-center gap-0.5 disabled:opacity-50"
+                          class="flex flex-col items-center gap-0.5 min-w-0 disabled:opacity-50"
                           [attr.aria-label]="c.player.name"
                         >
                           <span class="relative inline-block">
@@ -283,7 +287,7 @@
                               </span>
                             }
                           </span>
-                          <span class="font-mono text-[10px] font-semibold text-ink leading-tight truncate max-w-[42px]">{{ c.player.name.split(',')[0] }}</span>
+                          <span class="font-mono text-[10px] font-semibold text-ink leading-tight truncate max-w-full">{{ c.player.name.split(',')[0] }}</span>
                           <span class="font-mono text-[10px] text-muted">{{ c.stats.pointsPerGame | number: '1.1-1' }}</span>
                         </button>
                       }

@@ -598,3 +598,13 @@ body {
    generate for the CSS-variable theme colors (no <alpha-value> in
    tailwind.config.js), so they silently do nothing. */
 .status-tile { background: color-mix(in srgb, var(--color-card) 72%, transparent); }
+
+/* Page-level guard (2026-09-29): nothing may make the whole page scroll
+   sideways on a phone (a too-wide row, or a 44px tap-target area poking past
+   the screen edge). `clip`, not `hidden`, so it creates no scroll container
+   and every position: sticky element keeps working. Real horizontal
+   scrollers (tables in overflow-x-auto boxes) are unaffected. */
+html,
+body {
+  overflow-x: clip;
+}
