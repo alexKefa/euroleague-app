@@ -20,6 +20,7 @@ export class LoginComponent {
   protected i18n = inject(I18nService);
 
   readonly submitting = signal(false);
+  readonly showPassword = signal(false);
   readonly error = signal<string | null>(null);
 
   readonly form = this.fb.nonNullable.group({

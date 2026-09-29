@@ -11,6 +11,12 @@ export const authTranslations: Record<string, Record<Lang, string>> = {
   },
   "auth.passwordTooShort": { en: "At least 8 characters.", el: "Τουλάχιστον 8 χαρακτήρες." },
   "auth.loggingIn": { en: "Logging in…", el: "Σύνδεση…" },
+  // Login/register restyle (2026-09-29).
+  "auth.welcomeBack": { en: "Welcome back", el: "Καλώς ήρθες ξανά" },
+  "auth.loginSubtitle": { en: "Log in to your picks, cards and leagues.", el: "Συνδέσου στις προβλέψεις, τις κάρτες και τις λίγκες σου." },
+  "auth.registerSubtitle": { en: "Free, and it takes under a minute.", el: "Δωρεάν, σε λιγότερο από ένα λεπτό." },
+  "auth.showPassword": { en: "Show password", el: "Εμφάνιση κωδικού" },
+  "auth.hidePassword": { en: "Hide password", el: "Απόκρυψη κωδικού" },
   "auth.noAccount": { en: "No account?", el: "Δεν έχεις λογαριασμό;" },
 
   "auth.usernamePlaceholder": { en: "Username (optional)", el: "Όνομα χρήστη (προαιρετικό)" },

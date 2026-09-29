@@ -11,9 +11,9 @@
   } @else {
     <app-page-hint hintId="leagues-hub" icon="bracket">{{ i18n.t('leagues.hint') }}</app-page-hint>
 
-    <div data-tour="leagues-hub" class="grid gap-4 sm:grid-cols-2 mb-5">
+    <div data-tour="leagues-hub" class="grid grid-cols-1 gap-4 sm:grid-cols-2 mb-5">
       <!-- Restyled 2026-09-29: create as a team-colour hero, join as a card. -->
-      <div class="relative overflow-hidden bg-card rounded-3xl border border-line shadow-card p-4">
+      <div class="relative overflow-hidden min-w-0 bg-card rounded-3xl border border-line shadow-card p-4">
         <div class="pointer-events-none absolute inset-0" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 26%, transparent) 0%, color-mix(in srgb, var(--accent-primary) 6%, transparent) 55%, transparent 100%)" aria-hidden="true"></div>
         <div class="pointer-events-none absolute -right-16 -top-16 w-48 h-48 rounded-full border-[14px]" style="border-color: color-mix(in srgb, var(--accent-primary) 12%, transparent)" aria-hidden="true"></div>
         <div class="relative flex items-center gap-2.5 mb-3">
@@ -25,7 +25,7 @@
             type="text"
             formControlName="name"
             [placeholder]="i18n.t('leagues.namePlaceholder')"
-            class="flex-1 min-w-0 h-11 px-3 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
+            class="flex-1 w-0 min-w-0 h-11 px-3 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
           />
           <button type="submit" [disabled]="createForm.invalid || creating()" appButton class="shrink-0 !h-11 !rounded-xl">
             {{ creating() ? i18n.t('leagues.creating') : i18n.t('leagues.createButton') }}
@@ -36,7 +36,7 @@
         }
       </div>
 
-      <div class="bg-card rounded-3xl border border-line shadow-card p-4">
+      <div class="min-w-0 bg-card rounded-3xl border border-line shadow-card p-4">
         <div class="flex items-center gap-2.5 mb-3">
           <span class="w-10 h-10 rounded-xl bg-team-primary/15 text-team-primary flex items-center justify-center shrink-0"><app-nav-icon name="trade" [size]="20" /></span>
           <p class="font-display text-base">{{ i18n.t('leagues.joinTitle') }}</p>
@@ -46,7 +46,7 @@
             type="text"
             formControlName="code"
             [placeholder]="i18n.t('leagues.codePlaceholder')"
-            class="flex-1 min-w-0 h-11 px-3 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
+            class="flex-1 w-0 min-w-0 h-11 px-3 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
           />
           <button type="submit" [disabled]="joinForm.invalid || joining()" appButton class="shrink-0 !h-11 !rounded-xl">
             {{ joining() ? i18n.t('leagues.joining') : i18n.t('leagues.joinButton') }}

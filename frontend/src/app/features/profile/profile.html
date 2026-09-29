@@ -2,70 +2,87 @@
   <h1 class="font-display text-2xl tracking-wide mb-5">{{ i18n.t('profile.title') }}</h1>
 
   @if (auth.currentUser(); as user) {
-    <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-      <p class="font-mono text-[12px] text-muted font-bold mb-1">{{ i18n.t('profile.username') }}</p>
-
+    <!-- Profile hero (2026-09-29 restyle, "feels way off"): avatar, username
+         (edited in place), email and favourite team in one team-colour card. -->
+    <div class="relative overflow-hidden bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+      <div class="pointer-events-none absolute inset-0" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 26%, transparent) 0%, color-mix(in srgb, var(--accent-primary) 6%, transparent) 55%, transparent 100%)" aria-hidden="true"></div>
+      <div class="pointer-events-none absolute -right-16 -top-16 w-48 h-48 rounded-full border-[14px]" style="border-color: color-mix(in srgb, var(--accent-primary) 12%, transparent)" aria-hidden="true"></div>
+      <div class="relative flex items-center gap-3">
+        <span class="w-16 h-16 rounded-2xl bg-team-primary text-team-secondary flex items-center justify-center font-display text-3xl uppercase shrink-0 shadow-card">{{ (user.username || user.email).charAt(0) }}</span>
+        <div class="min-w-0 flex-1">
+          <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('profile.username') }}</p>
+          @if (!editingUsername()) {
+            <div class="flex items-center gap-2 min-w-0">
+              <p class="font-display text-2xl leading-tight truncate">{{ user.username }}</p>
+              <button type="button" (click)="startEditingUsername()" class="tap-target relative shrink-0 w-8 h-8 rounded-lg status-tile border border-line flex items-center justify-center text-muted hover:text-team-primary transition-colors" [attr.aria-label]="i18n.t('profile.usernameEdit')">&#9998;</button>
+            </div>
+          }
+          <p class="text-[13px] text-muted truncate">{{ user.email }}</p>
+        </div>
+      </div>
       @if (editingUsername()) {
-        <form (ngSubmit)="saveUsername()" class="flex flex-wrap gap-2 mt-1">
+        <form (ngSubmit)="saveUsername()" class="relative flex gap-2 mt-4">
           <input
             type="text"
             [ngModel]="usernameInput()"
             (ngModelChange)="usernameInput.set($event)"
             name="username"
             maxlength="20"
-            class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
+            class="flex-1 w-0 min-w-0 h-11 px-3 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
           />
-          <button type="submit" [disabled]="usernameSaving()" appButton appButtonSize="sm">
+          <button type="submit" [disabled]="usernameSaving()" appButton class="shrink-0 !h-11 !rounded-xl">
             {{ usernameSaving() ? i18n.t('profile.usernameSaving') : i18n.t('profile.usernameSave') }}
           </button>
-          <button
-            type="button"
-            (click)="cancelEditingUsername()"
-            [disabled]="usernameSaving()"
-            appButton="outline"
-            appButtonSize="sm"
-          >
-            {{ i18n.t('profile.usernameCancel') }}
+          <button type="button" (click)="cancelEditingUsername()" [disabled]="usernameSaving()" class="status-tile shrink-0 h-11 px-3 rounded-xl border border-line text-sm font-semibold text-muted">
+            &times;
           </button>
         </form>
-        @if (usernameError()) {
-          <p class="text-red-500 text-xs font-semibold mt-2">{{ usernameError() }}</p>
-        }
-      } @else {
-        <div class="flex items-center gap-2">
-          <p class="font-semibold text-sm">{{ user.username }}</p>
-          <button type="button" (click)="startEditingUsername()" class="text-xs font-semibold text-team-primary">
-            {{ i18n.t('profile.usernameEdit') }}
-          </button>
-        </div>
+        <p class="relative text-[12px] text-muted mt-2">{{ i18n.t('profile.usernameHint') }}</p>
       }
-
-      <p class="text-xs text-muted mt-1">{{ i18n.t('profile.usernameHint') }}</p>
+      @if (usernameError()) {
+        <p class="relative text-red-500 text-xs font-semibold mt-2">{{ usernameError() }}</p>
+      }
+      <button
+        type="button"
+        (click)="showTeamDialog.set(true)"
+        class="status-tile relative w-full flex items-center gap-3 mt-4 px-3 h-14 rounded-2xl border border-line hover:border-team-primary transition-colors"
+      >
+        @if (currentFavoriteTeam(); as team) {
+          @if (team.logoUrl) {
+            <img [src]="team.logoUrl" [alt]="team.name" loading="lazy" decoding="async" appRetryImg class="w-8 h-8 object-contain shrink-0 team-logo" />
+          } @else {
+            <span class="w-8 h-8 rounded-full shrink-0" [style.background]="team.primaryColor"></span>
+          }
+          <span class="min-w-0 text-left">
+            <span class="block text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('profile.favoriteTeam') }}</span>
+            <span class="block font-display text-sm truncate">{{ team.name }}</span>
+          </span>
+        } @else {
+          <span class="font-display text-sm text-muted">{{ i18n.t('profile.noFavoriteTeam') }}</span>
+        }
+        <span class="ml-auto text-[12px] font-bold text-team-primary shrink-0">{{ i18n.t('profile.changeTeam') }}</span>
+      </button>
     </div>
-
-    <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-      <p class="font-mono text-[12px] text-muted font-bold mb-1">{{ i18n.t('profile.email') }}</p>
-      <p class="font-semibold text-sm">{{ user.email }}</p>
-    </div>
-
     @if (referralLink(); as link) {
-      <div data-tour="profile-referral" class="bg-card rounded-lg shadow-card p-4 mb-5">
-        <p class="font-mono text-[12px] text-muted font-bold mb-1">{{ i18n.t('profile.referralTitle') }}</p>
-        <p class="text-xs text-muted mb-3">{{ i18n.t('profile.referralHint') }}</p>
-        <div class="flex flex-col sm:flex-row gap-2">
+      <div data-tour="profile-referral" class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+        <div class="flex items-center gap-2.5 mb-1">
+          <span class="w-10 h-10 rounded-xl bg-team-primary/15 text-team-primary flex items-center justify-center shrink-0"><app-nav-icon name="bracket" [size]="20" /></span>
+          <p class="font-display text-base">{{ i18n.t('profile.referralTitle') }}</p>
+        </div>
+        <p class="text-[12px] text-muted mb-3">{{ i18n.t('profile.referralHint') }}</p>
+        <div class="flex gap-2">
           <input
             type="text"
             readonly
             [value]="link"
-            class="flex-1 min-w-0 px-3 py-2 rounded-xl bg-page border-2 border-line text-xs font-mono text-muted"
+            class="status-tile flex-1 w-0 min-w-0 h-11 px-3 rounded-xl border-2 border-dashed border-team-primary/50 text-xs font-mono text-ink truncate"
           />
-          <button type="button" (click)="copyReferralLink()" appButton appButtonSize="sm" class="w-full sm:w-auto shrink-0">
+          <button type="button" (click)="copyReferralLink()" appButton class="shrink-0 !h-11 !rounded-xl">
             {{ referralCopied() ? i18n.t('profile.referralCopied') : i18n.t('profile.referralCopy') }}
           </button>
         </div>
       </div>
     }
-
     <!-- Skeleton (2026-09-22, "cards i own come as async... it loads with
          the container and page goes up or down") — this section used to be
          entirely absent (no reserved space at all) until both requests
@@ -80,8 +97,11 @@
          either way once there's enough to fill it, which covers most real
          accounts. -->
     @if (ownedCollectiblesLoading()) {
-      <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-        <p class="font-mono text-[12px] text-muted font-bold mb-1">{{ i18n.t('profile.showcaseTitle') }}</p>
+      <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+        <div class="flex items-center gap-2.5 mb-1">
+          <span class="w-10 h-10 rounded-xl bg-team-primary/15 text-team-primary flex items-center justify-center shrink-0"><app-nav-icon name="cards" [size]="20" /></span>
+          <p class="font-display text-base">{{ i18n.t('profile.showcaseTitle') }}</p>
+        </div>
         <p class="text-xs text-muted mb-3">{{ i18n.t('profile.showcaseHint') }}</p>
         <div class="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-3 max-h-80 overflow-y-auto p-1">
           @for (i of [1, 2, 3, 4, 5, 6, 7, 8]; track i) {
@@ -91,8 +111,11 @@
         <app-skeleton class="rounded-xl inline-block h-9 w-32" [icon]="false" />
       </div>
     } @else if (myOwnedCollectibles().length > 0) {
-      <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-        <p class="font-mono text-[12px] text-muted font-bold mb-1">{{ i18n.t('profile.showcaseTitle') }}</p>
+      <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+        <div class="flex items-center gap-2.5 mb-1">
+          <span class="w-10 h-10 rounded-xl bg-team-primary/15 text-team-primary flex items-center justify-center shrink-0"><app-nav-icon name="cards" [size]="20" /></span>
+          <p class="font-display text-base">{{ i18n.t('profile.showcaseTitle') }}</p>
+        </div>
         <p class="text-xs text-muted mb-3">{{ i18n.t('profile.showcaseHint') }}</p>
         <div #ownedScrollContainer class="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-3 max-h-80 overflow-y-auto p-1">
           @for (card of visibleOwnedCollectibles(); track card.id) {
@@ -137,63 +160,42 @@
       </div>
     }
 
-    <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-      <p class="font-mono text-[12px] text-muted font-bold mb-3">{{ i18n.t('profile.language') }}</p>
-      <div class="inline-flex bg-page border-2 border-line rounded-2xl p-1 gap-1">
-        <button type="button" (click)="i18n.setLang('en')" [appChip]="i18n.lang() === 'en'">
-          {{ i18n.t('profile.languageEnglish') }}
-        </button>
-        <button type="button" (click)="i18n.setLang('el')" [appChip]="i18n.lang() === 'el'">
-          {{ i18n.t('profile.languageGreek') }}
-        </button>
+    <!-- Settings: one card, label left / segmented switch right. -->
+    <div class="bg-card rounded-3xl border border-line shadow-card px-4 py-1 divide-y divide-line">
+      <div class="flex flex-wrap items-center justify-between gap-2 py-3">
+        <p class="text-sm font-semibold">{{ i18n.t('profile.language') }}</p>
+        <div class="status-tile inline-flex items-center h-10 p-1 gap-1 rounded-xl border border-line shrink-0">
+          <button type="button" (click)="i18n.setLang('en')" class="h-full px-3 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors" [ngClass]="i18n.lang() === 'en' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">
+            {{ i18n.t('profile.languageEnglish') }}
+          </button>
+          <button type="button" (click)="i18n.setLang('el')" class="h-full px-3 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors" [ngClass]="i18n.lang() === 'el' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">
+            {{ i18n.t('profile.languageGreek') }}
+          </button>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center justify-between gap-2 py-3">
+        <p class="text-sm font-semibold">{{ i18n.t('profile.theme') }}</p>
+        <div class="status-tile inline-flex items-center h-10 p-1 gap-1 rounded-xl border border-line shrink-0">
+          <button type="button" (click)="theme.setColorScheme('light')" class="h-full px-3 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors" [ngClass]="theme.colorScheme() === 'light' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">
+            {{ i18n.t('profile.themeLight') }}
+          </button>
+          <button type="button" (click)="theme.setColorScheme('dark')" class="h-full px-3 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors" [ngClass]="theme.colorScheme() === 'dark' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">
+            {{ i18n.t('profile.themeDark') }}
+          </button>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center justify-between gap-2 py-3">
+        <p class="text-sm font-semibold">{{ i18n.t('profile.pinchZoom') }}</p>
+        <div class="status-tile inline-flex items-center h-10 p-1 gap-1 rounded-xl border border-line shrink-0">
+          <button type="button" (click)="theme.setPinchZoomEnabled(false)" class="h-full px-3 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors" [ngClass]="!theme.pinchZoomEnabled() ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">
+            {{ i18n.t('profile.pinchZoomOff') }}
+          </button>
+          <button type="button" (click)="theme.setPinchZoomEnabled(true)" class="h-full px-3 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors" [ngClass]="theme.pinchZoomEnabled() ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">
+            {{ i18n.t('profile.pinchZoomOn') }}
+          </button>
+        </div>
       </div>
     </div>
-
-    <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-      <p class="font-mono text-[12px] text-muted font-bold mb-3">{{ i18n.t('profile.theme') }}</p>
-      <div class="inline-flex bg-page border-2 border-line rounded-2xl p-1 gap-1">
-        <button type="button" (click)="theme.setColorScheme('light')" [appChip]="theme.colorScheme() === 'light'">
-          {{ i18n.t('profile.themeLight') }}
-        </button>
-        <button type="button" (click)="theme.setColorScheme('dark')" [appChip]="theme.colorScheme() === 'dark'">
-          {{ i18n.t('profile.themeDark') }}
-        </button>
-      </div>
-    </div>
-
-    <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-      <p class="font-mono text-[12px] text-muted font-bold mb-3">{{ i18n.t('profile.pinchZoom') }}</p>
-      <div class="inline-flex bg-page border-2 border-line rounded-2xl p-1 gap-1">
-        <button type="button" (click)="theme.setPinchZoomEnabled(false)" [appChip]="!theme.pinchZoomEnabled()">
-          {{ i18n.t('profile.pinchZoomOff') }}
-        </button>
-        <button type="button" (click)="theme.setPinchZoomEnabled(true)" [appChip]="theme.pinchZoomEnabled()">
-          {{ i18n.t('profile.pinchZoomOn') }}
-        </button>
-      </div>
-    </div>
-
-    <div class="bg-card rounded-lg shadow-card p-4">
-      <p class="font-mono text-[12px] text-muted font-bold mb-3">{{ i18n.t('profile.favoriteTeam') }}</p>
-      <button
-        type="button"
-        (click)="showTeamDialog.set(true)"
-        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-page border-2 border-line hover:border-[#3a3a3b] transition-colors"
-      >
-        @if (currentFavoriteTeam(); as team) {
-          @if (team.logoUrl) {
-            <img [src]="team.logoUrl" [alt]="team.name" loading="lazy" decoding="async" appRetryImg class="w-8 h-8 object-contain shrink-0 team-logo" />
-          } @else {
-            <span class="w-8 h-8 rounded-full shrink-0" [style.background]="team.primaryColor"></span>
-          }
-          <span class="font-display font-bold text-sm">{{ team.name }}</span>
-        } @else {
-          <span class="font-display font-bold text-sm text-muted">{{ i18n.t('profile.noFavoriteTeam') }}</span>
-        }
-        <span class="ml-auto text-xs font-bold text-team-primary shrink-0">{{ i18n.t('profile.changeTeam') }}</span>
-      </button>
-    </div>
-
     @if (showTeamDialog()) {
       <app-team-pick-dialog
         [currentTeamId]="user.favoriteTeamId"

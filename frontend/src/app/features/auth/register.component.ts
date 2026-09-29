@@ -23,6 +23,7 @@ export class RegisterComponent implements OnInit {
   protected i18n = inject(I18nService);
 
   readonly submitting = signal(false);
+  readonly showPassword = signal(false);
   readonly error = signal<string | null>(null);
 
   // Team picking moved out of this form entirely (2026-09-15, "Direction C"

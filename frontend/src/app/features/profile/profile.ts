@@ -10,7 +10,6 @@ import { ThemeService } from "../../core/theme.service";
 import { Team, Collectible, CollectibleFinish } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ButtonDirective } from "../../shared/button.directive";
-import { ChipDirective } from "../../shared/chip.directive";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { SkeletonComponent } from "../../shared/skeleton";
@@ -35,7 +34,6 @@ const PAGE_SIZE = 20;
     FormsModule,
     RetryImgDirective,
     ButtonDirective,
-    ChipDirective,
     CollectibleCardComponent,
     LogoSpinnerComponent,
     SkeletonComponent,
