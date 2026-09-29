@@ -386,7 +386,9 @@ export class FantasyComponent implements OnInit {
   // Center row. sixthMan/bench have no such constraint and were bumped
   // more generously.
   readonly starterAvatarSize = computed(() => (this.isMobileViewport() ? 64 : 82));
-  readonly sixthManAvatarSize = computed(() => (this.isMobileViewport() ? 62 : 74));
+  // Same size as the bench at every breakpoint (2026-09-29, "make the 6th
+  // player same size as bench") — reads benchAvatarSize() below directly.
+  readonly sixthManAvatarSize = computed(() => this.benchAvatarSize());
   // Bumped mobile 50->64 (2026-09-17, "make the bench bigger" ask) — same
   // "no clipping risk" freedom the 2026-09-16 pass already documented:
   // bench sits in normal document flow below the court card, not inside
