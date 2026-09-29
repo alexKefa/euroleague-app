@@ -1159,6 +1159,9 @@ export async function getFantasyLeaderboardEntries(
     // doc comment on `squad` for why this is the caller's call, not this
     // function's.
     revealSquads?: boolean;
+    // The fantasy round-points sweep (services/fantasyRoundSweep.ts) pays
+    // admins too; the displayed boards keep excluding them.
+    includeAdmins?: boolean;
   }
 ): Promise<FantasyLeaderboardEntry[]> {
   const roundFilterFl = options.round !== undefined ? sql`and fl.round = ${options.round}` : sql``;
@@ -1272,7 +1275,7 @@ export async function getFantasyLeaderboardEntries(
     left join player_pir_round_totals prt on prt.user_id = coalesce(pt.user_id, ct.user_id)
     left join player_pir_season_totals pst on pst.user_id = coalesce(pt.user_id, ct.user_id)
     join ${users} u on u.id = coalesce(pt.user_id, ct.user_id)
-    where u.is_admin = false
+    where ${options.includeAdmins ? sql`true` : sql`u.is_admin = false`}
   `);
 
   const allowedIds = options.userIds ? new Set(options.userIds) : null;

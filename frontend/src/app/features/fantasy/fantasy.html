@@ -1772,17 +1772,17 @@
        session (see maybeCelebrateRoundComplete in fantasy.ts), the first
        time a round is seen to be fully complete: every one of its games
        final, both EuroLeague match-days, not just the first. -->
-  @if (showRoundComplete()) {
+  @if (showRoundComplete() && recap(); as rc) {
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="closeRoundComplete()">
       <div
         class="fantasy-round-complete bg-card rounded-2xl border border-team-primary/40 shadow-pop p-6 max-w-xs w-full text-center"
         (click)="$event.stopPropagation()"
       >
         <p class="text-[11px] font-bold uppercase tracking-widest text-team-primary mb-1">{{ i18n.t('fantasy.roundCompleteTitle') }}</p>
-        <p class="font-display text-2xl tracking-wide mb-5">{{ i18n.t('fantasy.round') }} {{ round() }}</p>
+        <p class="font-display text-2xl tracking-wide mb-5">{{ i18n.t('fantasy.round') }} {{ rc.round }}</p>
         <div class="flex items-center justify-center gap-5 mb-6">
           <div>
-            <p class="font-mono text-3xl font-bold text-team-primary">{{ totalPoints() | number: '1.0-1' }}</p>
+            <p class="font-mono text-3xl font-bold text-team-primary">{{ rc.fantasyPoints | number: '1.0-1' }}</p>
             <p class="text-[10px] text-muted uppercase tracking-wide mt-1">{{ i18n.t('fantasy.pointsLabel') }}</p>
           </div>
           <!-- Credit value gained/lost this round (2026-09-10) — each squad/
@@ -1792,16 +1792,16 @@
           <div>
             <p
               class="font-mono text-3xl font-bold"
-              [ngClass]="creditsChange() > 0 ? 'text-team-primary' : creditsChange() < 0 ? 'text-red-500' : 'text-ink'"
+              [ngClass]="rc.creditsChange > 0 ? 'text-team-primary' : rc.creditsChange < 0 ? 'text-red-500' : 'text-ink'"
             >
-              {{ creditsChange() > 0 ? "+" : "" }}{{ creditsChange() | number: "1.1-1" }}
+              {{ rc.creditsChange > 0 ? "+" : "" }}{{ rc.creditsChange | number: "1.1-1" }}
             </p>
             <p class="text-[10px] text-muted uppercase tracking-wide mt-1">{{ i18n.t('fantasy.creditsChangeLabel') }}</p>
           </div>
         </div>
-        @if (newFantasyRoundPoints(); as grant) {
+        @if (rc.points > 0) {
           <p class="text-sm font-bold text-emerald-500 mb-5">
-            +{{ grant.points }} {{ i18n.t('fantasy.economyPointsEarned') }}
+            +{{ rc.points }} {{ i18n.t('fantasy.economyPointsEarned') }}
           </p>
         }
         <button type="button" (click)="closeRoundComplete()" appButton appButtonSize="sm">{{ i18n.t('fantasy.close') }}</button>

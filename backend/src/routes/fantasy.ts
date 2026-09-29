@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import {
   players,
@@ -16,6 +16,7 @@ import {
   collectibles,
   fantasyPriceChangeLog,
   fantasyCoachPriceChangeLog,
+  fantasyRoundPoints,
 } from "../db/schema.js";
 import { requireAuth } from "../auth/middleware.js";
 import { getCurrentSeason } from "../services/season.js";
@@ -201,6 +202,7 @@ function emptyLineupResponse(season: string | null, defaultRound: number | null,
     baselinePlayerIds: null,
     budgetCap,
     newFantasyRoundPoints: null,
+    roundRecap: null,
     newFantasyMilestoneRewards: [],
   };
 }
@@ -434,6 +436,33 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
     // unseen grant" shape as checkAndGrantFantasyRoundPoints's own return.
     const newFantasyMilestoneRewards = await checkAndGrantFantasyMilestones(req.userId!);
 
+    // One-time recap of the latest finished round the user hasn't seen yet
+    // (2026-09-29), whichever round this request is viewing. Grants now land
+    // server-side (services/fantasyRoundSweep.ts), so the first visit after
+    // a round ends is usually on the *next* round; this is what shows it.
+    let roundRecap: { round: number; points: number; fantasyPoints: number; creditsChange: number } | null = null;
+    if (newFantasyRoundPoints) {
+      roundRecap = { round, points: newFantasyRoundPoints.points, fantasyPoints: totalPoints, creditsChange };
+    } else {
+      const [unseen] = await db
+        .select({ round: fantasyRoundPoints.round, points: fantasyRoundPoints.points })
+        .from(fantasyRoundPoints)
+        .where(and(eq(fantasyRoundPoints.userId, req.userId!), eq(fantasyRoundPoints.season, season), isNull(fantasyRoundPoints.seenAt)))
+        .orderBy(desc(fantasyRoundPoints.round))
+        .limit(1);
+      if (unseen) {
+        const [entries, recapCredits] = await Promise.all([
+          getFantasyLeaderboardEntries({ season, round: unseen.round, userIds: [req.userId!], includeAdmins: true }),
+          getOwnedPriceMoves(req.userId!, season, { round: unseen.round }),
+        ]);
+        roundRecap = {
+          round: unseen.round,
+          points: unseen.points,
+          fantasyPoints: entries[0]?.fantasyPoints ?? unseen.points * 2,
+          creditsChange: recapCredits,
+        };
+      }
+    }
 
     res.json({
       season,
@@ -453,6 +482,7 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
       transfersAllowed: baseline && !isUnlimitedTransferRound(round) ? FANTASY_TRANSFERS_PER_ROUND : null,
       budgetCap,
       newFantasyRoundPoints,
+      roundRecap,
       newFantasyMilestoneRewards: newFantasyMilestoneRewards.map((p) => ({ id: p.id, packType: p.packType, tier: p.tier })),
       // The client-side mirror of the transfer-limit check above — lets the
       // roster builder disable adding a *new* (non-baseline) player once

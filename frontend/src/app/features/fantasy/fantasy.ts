@@ -17,6 +17,8 @@ import {
   PlayerGameLogEntry,
   InjuryStatus,
   RewardPack,
+  FantasyLineup,
+  FantasyRoundRecap,
 } from "../../core/models";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { TeamBadgeComponent } from "../../shared/team-badge";
@@ -1376,7 +1378,7 @@ export class FantasyComponent implements OnInit {
         if (lineup.season && lineup.round !== null) {
           this.loadFixtures(lineup.season, lineup.round);
         }
-        this.maybeCelebrateRoundComplete(lineup.round, lineup.roundComplete);
+        this.maybeShowRoundRecap(lineup);
         this.lineupReady = true;
         this.maybeFinishLoading();
         onDone?.();
@@ -1644,7 +1646,7 @@ export class FantasyComponent implements OnInit {
         this.coachPoints.set(lineup.coachPoints);
         this.newFantasyRoundPoints.set(lineup.newFantasyRoundPoints);
         this.applyFantasyMilestoneRewards(lineup.newFantasyMilestoneRewards);
-        this.maybeCelebrateRoundComplete(lineup.round, lineup.roundComplete);
+        this.maybeShowRoundRecap(lineup);
         // Read-only server data (never edited locally), same as totalPoints
         // above — safe to refresh here even though this path deliberately
         // skips squadSlots/captainId, since this is exactly the "a game in
@@ -1709,18 +1711,46 @@ export class FantasyComponent implements OnInit {
   private readonly celebratedRounds = new Set<number>();
   readonly showRoundComplete = signal(false);
 
-  private maybeCelebrateRoundComplete(round: number | null, complete: boolean): void {
-    if (!complete || round === null || this.celebratedRounds.has(round)) return;
+  // What the modal shows. Either the server's unseen recap (2026-09-29: the
+  // latest finished round's points + credits, shown once on the first visit
+  // after it's paid, whichever round is being viewed) or, failing that, the
+  // viewed round itself once it's complete.
+  readonly recap = signal<FantasyRoundRecap | null>(null);
+  private recapFromServer = false;
+
+  private maybeShowRoundRecap(lineup: FantasyLineup): void {
+    const unseen = lineup.roundRecap;
+    if (unseen && !this.celebratedRounds.has(unseen.round)) {
+      this.celebratedRounds.add(unseen.round);
+      this.recap.set(unseen);
+      this.recapFromServer = true;
+      this.showRoundComplete.set(true);
+      return;
+    }
+    const round = lineup.round;
+    if (!lineup.roundComplete || round === null || this.celebratedRounds.has(round)) return;
     this.celebratedRounds.add(round);
+    this.recap.set({
+      round,
+      points: lineup.newFantasyRoundPoints?.points ?? 0,
+      fantasyPoints: lineup.totalPoints,
+      creditsChange: lineup.creditsChange,
+    });
+    this.recapFromServer = false;
     this.showRoundComplete.set(true);
   }
 
   closeRoundComplete(): void {
     this.showRoundComplete.set(false);
-    if (this.newFantasyRoundPoints()) {
+    const recapRound = this.recap()?.round ?? null;
+    if (this.recapFromServer || this.newFantasyRoundPoints()) {
+      this.recapFromServer = false;
       this.newFantasyRoundPoints.set(null);
       this.api.ackFantasyRoundPoints().subscribe({ error: () => {} });
     }
+    // A recap of an earlier round shown while viewing the current one
+    // shouldn't move the view anywhere.
+    if (recapRound !== this.round()) return;
     // Closing the "round complete" recap moves the view on to the next
     // round (2026-09-17) — viewNextRound() already clamps to defaultRound,
     // which this same round-completing load just returned freshly advanced

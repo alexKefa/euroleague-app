@@ -961,6 +961,14 @@ export interface FantasyLineupPlayer {
 // for a round (any round, not just the current one — see `defaultRound`).
 // `locked` (round-level) gates every edit now, not just the coach pick —
 // see routes/fantasy.ts's POST /lineup/batch doc comment.
+export interface FantasyRoundRecap {
+  round: number;
+  // Clutch points granted for the round (fantasyPoints × 0.5, floored).
+  points: number;
+  fantasyPoints: number;
+  creditsChange: number;
+}
+
 export interface FantasyLineup {
   season: string | null;
   round: number | null;
@@ -1015,6 +1023,9 @@ export interface FantasyLineup {
   // POST /fantasy/round-points/ack, same one-shot-banner shape as
   // predictions' newRoundRewards.
   newFantasyRoundPoints: { id: string; round: number; points: number } | null;
+  // The latest finished round's unseen payout (2026-09-29), whichever round
+  // this response is for — shown once, then acked like newFantasyRoundPoints.
+  roundRecap: FantasyRoundRecap | null;
   // Unseen grants from the completed-rounds milestone track (2026-09-21,
   // services/cards.ts's checkAndGrantFantasyMilestones — every
   // FANTASY_MILESTONE_INTERVAL completed Fantasy Five rounds grants an

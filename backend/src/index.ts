@@ -35,6 +35,7 @@ import { syncLiveGames } from "./sync/liveGamesSync.js";
 import { syncInjuries } from "./sync/injurySync.js";
 import { syncPlayerStats } from "./sync/playerStatsSync.js";
 import { applyDailyFantasyPriceChanges } from "./services/fantasyDailyReprice.js";
+import { runFantasyRoundSweep } from "./services/fantasyRoundSweep.js";
 import { getCurrentSeason } from "./services/season.js";
 
 const app = express();
@@ -202,6 +203,18 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
   // but each run is a cheap no-op (one lightweight DB query, zero fetches)
   // whenever nothing is within its tipoff window, so polling this often
   // costs nothing between rounds.
+  // Fantasy Five carry-forward + round-points grants (services/
+  // fantasyRoundSweep.ts), so nobody's points depend on opening the page.
+  // Runs after every hourly reprice and whenever a game goes final.
+  const runFantasyRoundSweepLogged = () => {
+    runFantasyRoundSweep()
+      .then(({ seededUsers, grants }) => {
+        if (seededUsers === 0 && grants === 0) return;
+        console.log(`[fantasy round sweep] carried forward ${seededUsers} squad(s), granted ${grants} round payout(s)`);
+      })
+      .catch((err) => console.error("[fantasy round sweep] failed:", err));
+  };
+
   const LIVE_GAMES_SYNC_INTERVAL_MS = 20 * 1000;
   const runLiveGamesSync = () => {
     syncLiveGames()
@@ -209,6 +222,9 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
         if (checked === 0) return; // nothing in-window right now, not worth a log line
         if (wentLive === 0 && wentFinal === 0) return; // checked in-progress games, nothing changed
         console.log(`[live games sync] checked ${checked}, ${wentLive} went live, ${wentFinal} went final`);
+        // A final can complete a round: pay its Fantasy Five points now
+        // rather than waiting for the hourly sweep below.
+        if (wentFinal > 0) runFantasyRoundSweepLogged();
       })
       .catch((err) => console.error("[live games sync] failed:", err));
   };
@@ -232,7 +248,8 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
         if (!result || (result.playersUpdated === 0 && result.coachesUpdated === 0)) return;
         console.log(`[fantasy daily reprice] ${result.playersUpdated} player(s), ${result.coachesUpdated} coach(es)`);
       })
-      .catch((err) => console.error("[fantasy daily reprice] failed:", err));
+      .catch((err) => console.error("[fantasy daily reprice] failed:", err))
+      .finally(runFantasyRoundSweepLogged);
   };
   runFantasyReprice();
   setInterval(runFantasyReprice, FANTASY_REPRICE_INTERVAL_MS);
