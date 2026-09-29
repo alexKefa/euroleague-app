@@ -340,6 +340,23 @@
                         }
                         {{ i18n.t('fantasy.pointsAbbrev') }}
                       </span>
+                    } @else if (slot.role === 'bench') {
+                      <!-- Bench: shown halved (2026-09-29, "show half points
+                           when live and after game since it's 50%") — same
+                           shape as the captain branch above: the backend's
+                           exact (already-halved) points once final, live PIR
+                           x BENCH_SCORE_MULTIPLIER as a stand-in while live. -->
+                      <span class="flex items-center gap-1" [ngClass]="game.status === 'live' ? 'text-red-500' : ''">
+                        @if (game.status === 'live') {
+                          <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
+                        }
+                        @if (game.status === 'final') {
+                          {{ pointsFor(row.player.id) | number: '1.0-1' }}
+                        } @else {
+                          {{ liveBenchPoints(row.player.id) | number: '1.0-1' }}
+                        }
+                        {{ i18n.t('fantasy.pointsAbbrev') }}
+                      </span>
                     } @else {
                       <span class="flex items-center gap-1" [ngClass]="game.status === 'live' ? 'text-red-500' : ''">
                         @if (game.status === 'live') {

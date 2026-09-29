@@ -772,6 +772,13 @@ export class FantasyComponent implements OnInit {
     return (this.roundPir(playerId) ?? 0) * 2;
   }
 
+  // Bench counterpart of liveCaptainPoints: bench scores 50%
+  // (BENCH_SCORE_MULTIPLIER in services/fantasyScoring.ts), so a live bench
+  // card shows half its live PIR instead of the raw figure.
+  liveBenchPoints(playerId: string): number {
+    return (this.roundPir(playerId) ?? 0) * 0.5;
+  }
+
   // Keeps fixtureGames' status/score current and refreshes the relevant
   // game's box score whenever the shared SSE stream ticks for a game that
   // belongs to this round — effects run in the injection context a field
