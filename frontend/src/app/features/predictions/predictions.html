@@ -594,10 +594,11 @@
       </div>
     }
 
-    <div class="grid gap-5 sm:grid-cols-2">
-      <!-- My picks -->
-      <div class="bg-card rounded-3xl border border-line shadow-card p-4 sm:p-5">
-        <div class="flex items-center justify-between gap-2 mb-3">
+    <div class="grid gap-5 grid-cols-1 sm:grid-cols-2">
+      <!-- My picks — min-w-0 so a wide header can't stretch the grid column
+           (and the Leaderboard card with it) past a phone's screen. -->
+      <div class="min-w-0 bg-card rounded-3xl border border-line shadow-card p-4 sm:p-5">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
           <p class="text-[13px] text-muted font-bold uppercase tracking-wider flex items-center gap-1.5">
             <app-nav-icon name="picks" [size]="14" class="shrink-0" />
             {{ i18n.t('predictions.myPicks') }}
@@ -609,11 +610,11 @@
                  reads consistently with the rest of the app.
                  py-1.5 -> py-2 (2026-09-25 mobile pass) — a bigger touch
                  target for the thumb-reachable tab switch on a phone. -->
-            <div class="status-tile flex gap-1 shrink-0 h-10 p-1 rounded-xl border border-line">
+            <div class="status-tile flex gap-1 h-10 p-1 rounded-xl border border-line max-w-full">
               <button
                 type="button"
                 (click)="picksTab.set('winLoss')"
-                class="h-full px-3 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors"
+                class="h-full px-3 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors"
                 [ngClass]="picksTab() === 'winLoss' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
               >
                 {{ i18n.t('predictions.tabWinLoss') }}
@@ -621,7 +622,7 @@
               <button
                 type="button"
                 (click)="picksTab.set('topScorer')"
-                class="h-full px-3 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors"
+                class="h-full px-3 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors"
                 [ngClass]="picksTab() === 'topScorer' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
               >
                 {{ i18n.t('predictions.tabTopScorer') }}
@@ -740,7 +741,7 @@
       </div>
 
       <!-- Leaderboard -->
-      <div class="bg-card rounded-3xl border border-line shadow-card p-4 sm:p-5">
+      <div class="min-w-0 bg-card rounded-3xl border border-line shadow-card p-4 sm:p-5">
         <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-3 flex items-center gap-1.5">
           <app-nav-icon name="standings" [size]="14" class="shrink-0" />
           {{ i18n.t('predictions.leaderboard') }}
