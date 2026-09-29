@@ -1159,6 +1159,24 @@ export interface AdminUserRow {
   referralsCount: number;
 }
 
+/** "What's new" toast entry (backend routes/announcements.ts). */
+export interface Announcement {
+  id: string;
+  titleEn: string;
+  titleEl: string;
+  bodyEn: string;
+  bodyEl: string;
+  link: string | null;
+  ctaEn: string | null;
+  ctaEl: string | null;
+  icon: string;
+  publishAt: string;
+  expiresAt: string;
+  active: boolean;
+}
+
+export type AnnouncementInput = Omit<Announcement, "id">;
+
 export interface AdminUsersResponse {
   users: AdminUserRow[];
   signupsByDay: { date: string; count: number }[];

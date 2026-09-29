@@ -1,57 +1,12 @@
-import { Component, effect, inject, signal } from "@angular/core";
+import { Component, computed, effect, inject, signal } from "@angular/core";
 import { Router } from "@angular/router";
+import { ApiService } from "../core/api.service";
 import { AuthService } from "../core/auth.service";
 import { I18nService } from "../core/i18n.service";
+import { Announcement } from "../core/models";
 import { NavIconComponent, NavIconName } from "./nav-icon";
 import { ButtonDirective } from "./button.directive";
 
-interface Announcement {
-  /** Stable, unique — it's what "seen" is keyed on. Convention: `<date>-<slug>`. */
-  id: string;
-  /** Release day (YYYY-MM-DD); the toast stops showing ANNOUNCEMENT_TTL_DAYS after it. */
-  date: string;
-  icon: NavIconName;
-  /** i18n keys (core/i18n/whats-new.ts) — EN and EL both required. */
-  titleKey: string;
-  bodyKey: string;
-  /** Optional in-app destination for the call-to-action button. */
-  link?: string;
-  ctaKey?: string;
-}
-
-/**
- * "What's new" announcements (2026-09-28, direct ask: "when we have new
- * features inform with a one time toast notifications users of what's
- * changed"). To announce a feature: add an entry at the TOP of this list
- * plus its title/body (and CTA) strings in core/i18n/whats-new.ts. Each
- * logged-in user sees the newest unseen, unexpired entry once; dismissing
- * or following it marks it and everything older as seen, so nobody gets a
- * backlog of toasts after a few releases.
- */
-const ANNOUNCEMENTS: Announcement[] = [
-  {
-    id: "2026-09-28-fantasy-growing-budget",
-    date: "2026-09-28",
-    icon: "trophy",
-    titleKey: "whatsNew.growingBudget.title",
-    bodyKey: "whatsNew.growingBudget.body",
-    link: "/fantasy",
-    ctaKey: "whatsNew.growingBudget.cta",
-  },
-  {
-    id: "2026-09-28-fantasy-screenshot-import",
-    date: "2026-09-28",
-    icon: "share",
-    titleKey: "whatsNew.fantasyImport.title",
-    bodyKey: "whatsNew.fantasyImport.body",
-    link: "/fantasy",
-    ctaKey: "whatsNew.fantasyImport.cta",
-  },
-];
-
-// Long enough for an occasional user to still catch it, short enough that
-// someone signing up weeks later isn't told old news is "new".
-const ANNOUNCEMENT_TTL_DAYS = 14;
 const SEEN_KEY = "clutch-whats-new-seen";
 
 function readSeen(): Set<string> {
@@ -72,17 +27,14 @@ function writeSeen(ids: Set<string>): void {
   }
 }
 
-function isExpired(a: Announcement, now: number): boolean {
-  return now > Date.parse(`${a.date}T00:00:00Z`) + ANNOUNCEMENT_TTL_DAYS * 24 * 60 * 60 * 1000;
-}
-
 /**
  * One-time "what's new" toast, mounted globally in app.component.html next
- * to the battle-challenge/jump-ball toasts. Shares the battle toast's top
- * slot (that one only fires on a live challenge, so the two rarely meet);
- * jump-ball's own slot sits lower. Seen state is per device (localStorage)
- * — a user on two devices sees an announcement once on each, which is fine
- * for a one-off nudge and needs no server state.
+ * to the battle-challenge/jump-ball toasts. Announcements are written from
+ * the admin Tools page (2026-09-29; backend routes/announcements.ts) — the
+ * API only returns live ones (active, published, not expired), newest first.
+ * Each logged-in user sees the newest one they haven't seen, once;
+ * dismissing or following it marks it and everything older as seen, so
+ * nobody gets a backlog of toasts. Seen state is per device (localStorage).
  */
 @Component({
   selector: "app-whats-new",
@@ -92,24 +44,45 @@ function isExpired(a: Announcement, now: number): boolean {
   styleUrl: "./battle-challenge-toast.css",
 })
 export class WhatsNewComponent {
+  private api = inject(ApiService);
   private auth = inject(AuthService);
   protected i18n = inject(I18nService);
   private router = inject(Router);
 
+  private live: Announcement[] = [];
+  private fetched = false;
   private readonly current = signal<Announcement | null>(null);
   readonly announcement = this.current.asReadonly();
+
+  readonly title = computed(() => this.pick(this.current(), "title"));
+  readonly body = computed(() => this.pick(this.current(), "body"));
+  readonly cta = computed(() => this.pick(this.current(), "cta"));
+  readonly icon = computed(() => (this.current()?.icon ?? "bell") as NavIconName);
 
   constructor() {
     // Waits on the access token rather than checking once at init — this
     // mounts at the app root, before restoreSession() has resolved (same
     // bootstrap race jump-ball-toast.ts documents).
     effect(() => {
-      if (!this.auth.accessToken() || this.current()) return;
-      const seen = readSeen();
-      const now = Date.now();
-      const next = ANNOUNCEMENTS.find((a) => !seen.has(a.id) && !isExpired(a, now));
-      if (next) this.current.set(next);
+      if (!this.auth.accessToken() || this.fetched) return;
+      this.fetched = true;
+      this.api.getAnnouncements().subscribe({
+        next: (rows) => {
+          this.live = rows;
+          const seen = readSeen();
+          this.current.set(rows.find((a) => !seen.has(a.id)) ?? null);
+        },
+        error: () => {},
+      });
     });
+  }
+
+  private pick(a: Announcement | null, field: "title" | "body" | "cta"): string {
+    if (!a) return "";
+    const el = this.i18n.lang() === "el";
+    if (field === "title") return el ? a.titleEl : a.titleEn;
+    if (field === "body") return el ? a.bodyEl : a.bodyEn;
+    return (el ? a.ctaEl : a.ctaEn) ?? "";
   }
 
   open(): void {
@@ -124,8 +97,8 @@ export class WhatsNewComponent {
     // Marks this one and everything older seen, so a returning user only
     // ever gets the latest news, never a queue of stale toasts.
     const seen = readSeen();
-    const idx = ANNOUNCEMENTS.indexOf(a);
-    for (const older of ANNOUNCEMENTS.slice(idx)) seen.add(older.id);
+    for (const other of this.live) if (other.publishAt <= a.publishAt) seen.add(other.id);
+    seen.add(a.id);
     writeSeen(seen);
     this.current.set(null);
   }

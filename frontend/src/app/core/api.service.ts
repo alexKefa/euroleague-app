@@ -59,6 +59,8 @@ import {
   FavoritePlayer,
   PromoRedemptionResponse,
   AdminUsersResponse,
+  Announcement,
+  AnnouncementInput,
 } from "./models";
 
 /**
@@ -652,5 +654,27 @@ export class ApiService {
       `${API_BASE_URL}/admin/sync-images`,
       {}
     );
+  }
+
+  // "What's new" announcements — live ones for the toast, everything for the
+  // admin Tools page.
+  getAnnouncements(): Observable<Announcement[]> {
+    return this.http.get<Announcement[]>(`${API_BASE_URL}/announcements`);
+  }
+
+  getAllAnnouncements(): Observable<Announcement[]> {
+    return this.http.get<Announcement[]>(`${API_BASE_URL}/announcements/all`);
+  }
+
+  createAnnouncement(input: AnnouncementInput): Observable<Announcement> {
+    return this.http.post<Announcement>(`${API_BASE_URL}/announcements`, input);
+  }
+
+  updateAnnouncement(id: string, input: AnnouncementInput): Observable<Announcement> {
+    return this.http.put<Announcement>(`${API_BASE_URL}/announcements/${encodeURIComponent(id)}`, input);
+  }
+
+  deleteAnnouncement(id: string): Observable<{ ok: true }> {
+    return this.http.delete<{ ok: true }>(`${API_BASE_URL}/announcements/${encodeURIComponent(id)}`);
   }
 }

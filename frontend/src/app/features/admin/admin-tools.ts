@@ -13,6 +13,7 @@ import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { SearchInputComponent } from "../../shared/search-input";
 import { UserSearchComponent, UserSearchResult } from "../../shared/user-search";
 import { TeamCodePipe, displayTeamCode } from "../../shared/team-display-code";
+import { AdminAnnouncementsComponent } from "./admin-announcements";
 
 // Admin-only "Tools" page (2026-09-18, "before pushing on tools of admin
 // add an icon and inside split into an admin-tools component which has
@@ -45,6 +46,7 @@ import { TeamCodePipe, displayTeamCode } from "../../shared/team-display-code";
     SearchInputComponent,
     UserSearchComponent,
     TeamCodePipe,
+    AdminAnnouncementsComponent,
   ],
   templateUrl: "./admin-tools.html",
 })

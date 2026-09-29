@@ -2,6 +2,14 @@
   "worktree": {
     "bgIsolation": "none"
   },
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(npx ng build:*)",
+      "PowerShell(npx tsc:*)",
+      "PowerShell(npx ng build:*)"
+    ]
+  },
   "hooks": {
     "PostToolUse": [
       {

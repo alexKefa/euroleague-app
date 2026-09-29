@@ -1553,3 +1553,29 @@ export const fantasyCoachPicksRelations = relations(fantasyCoachPicks, ({ one })
   user: one(users, { fields: [fantasyCoachPicks.userId], references: [users.id] }),
   team: one(teams, { fields: [fantasyCoachPicks.teamId], references: [teams.id] }),
 }));
+
+// "What's new" announcements (2026-09-29), written from the admin Tools page
+// instead of hardcoded in shared/whats-new.ts. Each logged-in user sees the
+// newest live one they haven't seen, once. `id` is text, not a uuid, so the
+// two announcements that predate this table keep their original ids —
+// "seen" state lives in each device's localStorage keyed on it, and a new id
+// would re-show them to everyone who'd already dismissed them.
+export const announcements = pgTable("announcements", {
+  id: text("id").primaryKey(),
+  titleEn: text("title_en").notNull(),
+  titleEl: text("title_el").notNull(),
+  bodyEn: text("body_en").notNull(),
+  bodyEl: text("body_el").notNull(),
+  // Optional call-to-action button: an in-app path plus its label in both
+  // languages (all three or none).
+  link: text("link"),
+  ctaEn: text("cta_en"),
+  ctaEl: text("cta_el"),
+  icon: varchar("icon", { length: 40 }).notNull(),
+  publishAt: timestamp("publish_at", { withTimezone: true }).defaultNow().notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  active: boolean("active").default(true).notNull(),
+  createdByUserId: uuid("created_by_user_id").references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});

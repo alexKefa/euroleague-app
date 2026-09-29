@@ -1,0 +1,201 @@
+<div class="bg-card rounded-2xl border border-line shadow-card p-4">
+  <div class="flex items-center gap-2 mb-1">
+    <app-nav-icon name="bell" [size]="16" class="text-team-primary" />
+    <p class="font-mono text-[12px] font-bold">{{ i18n.t('admin.announceTitle') }}</p>
+  </div>
+  <p class="text-[12px] text-muted mb-4 max-w-xl">{{ i18n.t('admin.announceDescription') }}</p>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3">
+    @if (editingId()) {
+      <p class="text-[11px] font-bold uppercase tracking-wide text-team-primary">{{ i18n.t('admin.announceEditing') }}</p>
+    }
+
+    <!-- Text, both languages side by side -->
+    <div class="grid gap-3 sm:grid-cols-2">
+      @for (lang of ['En', 'El']; track lang) {
+        <div class="space-y-2">
+          <p class="text-[11px] font-mono font-bold text-muted">{{ lang === 'En' ? 'English' : 'Ελληνικά' }}</p>
+          <input
+            type="text"
+            [formControlName]="'title' + lang"
+            [placeholder]="i18n.t('admin.announceTitlePlaceholder')"
+            maxlength="400"
+            class="w-full px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
+          />
+          <textarea
+            [formControlName]="'body' + lang"
+            [placeholder]="i18n.t('admin.announceBodyPlaceholder')"
+            maxlength="400"
+            rows="3"
+            class="w-full px-3 py-2 rounded-xl bg-page border-2 border-line text-sm focus:border-team-primary outline-none resize-y"
+          ></textarea>
+          <input
+            type="text"
+            [formControlName]="'cta' + lang"
+            [placeholder]="i18n.t('admin.announceCtaPlaceholder')"
+            class="w-full px-3 py-2 rounded-xl bg-page border-2 border-line text-sm focus:border-team-primary outline-none"
+          />
+        </div>
+      }
+    </div>
+
+    <input
+      type="text"
+      formControlName="link"
+      [placeholder]="i18n.t('admin.announceLinkPlaceholder')"
+      class="w-full px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-mono focus:border-team-primary outline-none"
+    />
+
+    <!-- Icon -->
+    <div>
+      <p class="text-[11px] font-mono font-bold text-muted mb-1.5">{{ i18n.t('admin.announceIcon') }}</p>
+      <div class="flex flex-wrap gap-1.5">
+        @for (ic of icons; track ic) {
+          <button
+            type="button"
+            (click)="form.patchValue({ icon: ic })"
+            [class]="
+              'w-9 h-9 rounded-xl border-2 flex items-center justify-center transition-colors ' +
+              (draft().icon === ic ? 'border-team-primary bg-team-primary/10 text-team-primary' : 'border-line text-muted hover:text-ink')
+            "
+            [attr.aria-label]="ic"
+            [attr.aria-pressed]="draft().icon === ic"
+          >
+            <app-nav-icon [name]="ic" [size]="18" />
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Schedule -->
+    <div class="flex flex-wrap gap-3 items-end">
+      <label class="text-[11px] font-mono font-bold text-muted">
+        {{ i18n.t('admin.announcePublish') }}
+        <input
+          type="datetime-local"
+          formControlName="publishAt"
+          class="block mt-1 px-3 py-2 rounded-xl bg-page border-2 border-line text-sm text-ink focus:border-team-primary outline-none"
+        />
+      </label>
+      <label class="text-[11px] font-mono font-bold text-muted">
+        {{ i18n.t('admin.announceExpires') }}
+        <input
+          type="datetime-local"
+          formControlName="expiresAt"
+          class="block mt-1 px-3 py-2 rounded-xl bg-page border-2 border-line text-sm text-ink focus:border-team-primary outline-none"
+        />
+      </label>
+      <label class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-page border-2 border-line text-xs font-bold cursor-pointer">
+        <input type="checkbox" formControlName="active" />
+        {{ i18n.t('admin.announceActive') }}
+      </label>
+    </div>
+
+    <!-- Preview: the toast as users will see it -->
+    <div>
+      <div class="flex items-center gap-2 mb-1.5">
+        <p class="text-[11px] font-mono font-bold text-muted">{{ i18n.t('admin.announcePreview') }}</p>
+        @for (l of ['en', 'el']; track l) {
+          <button
+            type="button"
+            (click)="previewLang.set($any(l))"
+            [class]="
+              'px-2 py-0.5 rounded-lg text-[11px] font-bold border ' +
+              (previewLang() === l ? 'border-team-primary text-team-primary' : 'border-line text-muted')
+            "
+          >
+            {{ l.toUpperCase() }}
+          </button>
+        }
+      </div>
+      @let d = draft();
+      @let pTitle = previewLang() === 'en' ? d.titleEn : d.titleEl;
+      @let pBody = previewLang() === 'en' ? d.bodyEn : d.bodyEl;
+      @let pCta = previewLang() === 'en' ? d.ctaEn : d.ctaEl;
+      <div class="max-w-sm bg-card border-2 border-line rounded-2xl shadow-pop p-4">
+        <div class="flex items-start gap-3">
+          <div class="w-9 h-9 rounded-full bg-team-primary/10 flex items-center justify-center shrink-0">
+            <app-nav-icon [name]="$any(d.icon)" [size]="20" class="text-team-primary" />
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="text-[10px] font-mono font-bold uppercase tracking-wide text-team-primary">
+              {{ previewLang() === 'en' ? "What's new" : 'Τι νέο υπάρχει' }}
+            </p>
+            <p class="text-sm font-semibold">{{ pTitle || '—' }}</p>
+            <p class="text-xs text-muted mt-0.5">{{ pBody || '—' }}</p>
+          </div>
+          <span class="text-muted text-lg leading-none shrink-0">&times;</span>
+        </div>
+        @if (d.link && pCta) {
+          <div appButton appButtonSize="sm" class="w-full mt-3 pointer-events-none">{{ pCta }}</div>
+        }
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2">
+      <button type="submit" [disabled]="form.invalid || saving()" appButton appButtonSize="sm">
+        @if (saving()) {
+          <app-logo-spinner [size]="14" />
+        }
+        {{ editingId() ? i18n.t('admin.announceSave') : i18n.t('admin.announcePublishBtn') }}
+      </button>
+      @if (editingId()) {
+        <button type="button" (click)="resetForm()" appButton="outline" appButtonSize="sm">{{ i18n.t('admin.announceCancel') }}</button>
+      }
+      @if (error()) {
+        <p class="text-red-500 text-xs font-semibold">{{ error() }}</p>
+      } @else if (saved()) {
+        <p class="text-emerald-500 text-xs font-semibold">{{ i18n.t('admin.announceSaved') }}</p>
+      }
+    </div>
+  </form>
+
+  <!-- Existing announcements -->
+  <div class="mt-5 border-t border-line pt-4">
+    <p class="text-[11px] font-mono font-bold text-muted mb-2">{{ i18n.t('admin.announceList') }}</p>
+    @if (loading()) {
+      <app-logo-spinner [size]="18" />
+    } @else if (list().length === 0) {
+      <p class="text-xs text-muted">{{ i18n.t('admin.announceEmpty') }}</p>
+    } @else {
+      <ul class="space-y-2">
+        @for (a of list(); track a.id) {
+          @let s = status(a);
+          <li class="flex flex-wrap items-center gap-3 rounded-xl border border-line bg-page px-3 py-2">
+            <app-nav-icon [name]="$any(a.icon)" [size]="18" class="text-team-primary shrink-0" />
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-semibold truncate">{{ i18n.lang() === 'el' ? a.titleEl : a.titleEn }}</p>
+              <p class="text-[11px] text-muted font-mono">
+                <span [class]="'inline-block px-1.5 rounded font-bold uppercase ' + statusClass(s)">{{ i18n.t('admin.announceStatus.' + s) }}</span>
+                {{ formatDate(a.publishAt) }} → {{ formatDate(a.expiresAt) }}
+              </p>
+            </div>
+            <div class="flex gap-1.5 shrink-0">
+              <button type="button" (click)="edit(a)" appButton="outline" appButtonSize="sm">{{ i18n.t('admin.announceEdit') }}</button>
+              <button type="button" (click)="toggleActive(a)" appButton="outline" appButtonSize="sm">
+                {{ a.active ? i18n.t('admin.announceTurnOff') : i18n.t('admin.announceTurnOn') }}
+              </button>
+              <button
+                type="button"
+                (click)="confirmingDelete.set(a)"
+                class="px-2.5 py-1 rounded-lg text-xs font-bold text-muted hover:text-red-500 transition-colors"
+              >
+                {{ i18n.t('admin.announceDelete') }}
+              </button>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+
+  @if (confirmingDelete(); as a) {
+    <app-confirm-dialog
+      [message]="i18n.t('admin.announceDeleteConfirm')"
+      [confirmLabel]="i18n.t('admin.announceDelete')"
+      [cancelLabel]="i18n.t('admin.announceCancel')"
+      (confirmed)="confirmDelete()"
+      (cancelled)="confirmingDelete.set(null)"
+    />
+  }
+</div>

@@ -5,12 +5,12 @@
   >
     <div class="flex items-start gap-3">
       <div class="toast-icon w-9 h-9 rounded-full bg-team-primary/10 flex items-center justify-center shrink-0">
-        <app-nav-icon [name]="a.icon" [size]="20" class="text-team-primary" />
+        <app-nav-icon [name]="icon()" [size]="20" class="text-team-primary" />
       </div>
       <div class="min-w-0 flex-1">
         <p class="text-[10px] font-mono font-bold uppercase tracking-wide text-team-primary">{{ i18n.t('whatsNew.label') }}</p>
-        <p class="text-sm font-semibold">{{ i18n.t(a.titleKey) }}</p>
-        <p class="text-xs text-muted mt-0.5">{{ i18n.t(a.bodyKey) }}</p>
+        <p class="text-sm font-semibold">{{ title() }}</p>
+        <p class="text-xs text-muted mt-0.5">{{ body() }}</p>
       </div>
       <button
         type="button"
@@ -21,9 +21,9 @@
         &times;
       </button>
     </div>
-    @if (a.link && a.ctaKey) {
+    @if (a.link && cta()) {
       <button type="button" (click)="open()" appButton appButtonSize="sm" class="w-full mt-3">
-        {{ i18n.t(a.ctaKey) }}
+        {{ cta() }}
       </button>
     }
   </div>
