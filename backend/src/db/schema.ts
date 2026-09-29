@@ -1485,6 +1485,22 @@ export const fantasyPricingState = pgTable("fantasy_pricing_state", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+// Manual, admin-granted Fantasy Five budget corrections (2026-09-29). Summed
+// into getUserBudget (services/fantasyScoring.ts) for every round >= fromRound,
+// so a correction carries forward instead of expiring after one round. First
+// used for a user whose saved round-2 squad ended up 0.3cr over budget once
+// the per-user budget shipped mid-round — our mistake, so her squad was kept
+// and her budget raised to match rather than forcing her to sell.
+export const fantasyBudgetAdjustments = pgTable("fantasy_budget_adjustments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  season: varchar("season", { length: 9 }).notNull(),
+  fromRound: integer("from_round").notNull(),
+  delta: real("delta").notNull(),
+  reason: text("reason"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 // Fantasy Five wired into the shared points economy (2026-09-16) — until
 // now a round's fantasy score only fed the fantasy-specific leaderboard,
 // completely separate from the points predictions/top-scorer picks earn

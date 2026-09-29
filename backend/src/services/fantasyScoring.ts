@@ -307,7 +307,12 @@ export async function getOwnedPriceMoves(
  */
 export async function getUserBudget(userId: string, season: string, round: number): Promise<number> {
   const moves = await getOwnedPriceMoves(userId, season, { beforeRound: round });
-  return Math.round((FANTASY_BUDGET_CAP + moves) * 10) / 10;
+  // Plus any manual corrections (fantasy_budget_adjustments) in effect by this round.
+  const [adj] = await db.execute<{ total: number | null }>(sql`
+    select sum(delta) as total from fantasy_budget_adjustments
+    where user_id = ${userId} and season = ${season} and from_round <= ${round}
+  `);
+  return Math.round((FANTASY_BUDGET_CAP + moves + Number(adj?.total ?? 0)) * 10) / 10;
 }
 
 // --- Live per-game player scoring (2026-09-16) ---
