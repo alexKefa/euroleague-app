@@ -7,6 +7,10 @@ export const liveCenterTranslations: Record<string, Record<Lang, string>> = {
   "liveCenter.polls": { en: "Polls", el: "Ψηφοφορίες" },
   "liveCenter.noGames": { en: "No games right now.", el: "Δεν υπάρχουν αγώνες αυτή τη στιγμή." },
   "liveCenter.picked": { en: "Picked", el: "Επέλεξες" },
+  // Pick cards (2026-09-30 redesign).
+  "liveCenter.yourPick": { en: "Your pick", el: "Η επιλογή σου" },
+  "liveCenter.topScorerPick": { en: "Top scorer", el: "Πρώτος σκόρερ" },
+  "liveCenter.live": { en: "Live", el: "Live" },
   "liveCenter.noPredictionsPrefix": { en: "No open picks — head to", el: "Δεν έχεις ανοιχτές επιλογές — πήγαινε στις" },
   "liveCenter.noPredictionsSuffix": { en: "to make one.", el: "για να κάνεις μία." },
   "liveCenter.noFavorites": {

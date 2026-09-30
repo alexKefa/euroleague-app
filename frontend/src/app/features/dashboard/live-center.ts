@@ -8,7 +8,6 @@ import { EventsService } from "../../core/events.service";
 import { FavoritePlayersService } from "../../core/favorite-players.service";
 import { Game, Prediction, LegendaryPoll, FavoritePlayer, MyTopScorerPrediction } from "../../core/models";
 import { TeamCodePipe } from "../../shared/team-display-code";
-import { TeamBadgeComponent } from "../../shared/team-badge";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
@@ -43,7 +42,7 @@ interface FavoriteRow extends FavoritePlayer {
 @Component({
   selector: "app-live-center",
   standalone: true,
-  imports: [CommonModule, RouterLink, TeamCodePipe, TeamBadgeComponent, PlayerPhotoComponent, RetryImgDirective, SkeletonComponent],
+  imports: [CommonModule, RouterLink, TeamCodePipe, PlayerPhotoComponent, RetryImgDirective, SkeletonComponent],
   templateUrl: "./live-center.html",
 })
 export class LiveCenterComponent implements OnInit {
