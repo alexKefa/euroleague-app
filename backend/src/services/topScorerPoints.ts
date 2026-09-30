@@ -280,3 +280,179 @@ export async function getUserTopScorerPoints(userId: string): Promise<number> {
   `);
   return row.points;
 }
+
+// --- Live pricing by win probability (2026-09-30) --------------------------
+// The projection formula above only compares a player against a fixed
+// 19-point "typical top scorer" and floors at 10, so near the end of Q3 a
+// player leading 15-7 was still worth the full 10 — nearly free points (user
+// report: "if a player has 15 points and all others have 7 at the highest
+// you can predict the one that already has 15"). Live picks are now priced
+// by each player's chance of actually finishing as this game's top scorer,
+// against everyone else in it:
+//
+//   livePoints = preGamePoints × P(top scorer | pre-game) / P(top scorer | now)
+//
+// At tipoff the two probabilities match, so a live pick costs exactly what
+// the same pick did pre-game; a player pulling ahead gets cheaper (down to
+// LIVE_TOP_SCORER_POINTS_MIN), one falling behind pays more (up to the
+// usual cap). Pre-game prices are untouched. The probabilities come from a
+// small seeded Monte Carlo over each player's projected final total, so the
+// same game state always gives the same price.
+
+export const LIVE_TOP_SCORER_POINTS_MIN = 1;
+const SIMULATIONS = 5000;
+// Per-game scoring spread as a share of a player's average (a 15 PPG player
+// lands within roughly ±7 most nights); shrinks with √(time remaining).
+const SCORING_SD_RATIO = 0.45;
+// Averages for a player with no stats on file at all.
+const UNKNOWN_BASELINE_PPG = 4;
+// Mid-game, a player with no box-score line yet has likely not played, so
+// only this share of their average is expected over the time left.
+const NO_LINE_LIVE_SHARE = 0.3;
+
+interface QuoteCandidate {
+  playerId: string;
+  // As stored (null = no stats on file) — the pre-game formula has its own
+  // fallback for null, kept so pre-game prices don't change.
+  storedBaselinePPG: number | null;
+  baselinePPG: number;
+  pointsSoFar: number;
+  hasLine: boolean;
+}
+
+// mulberry32 — tiny deterministic PRNG so a quote is stable between requests.
+function seededRandom(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** P(each candidate finishes as the game's outright top scorer). */
+function topScorerProbabilities(
+  candidates: { mean: number; sd: number }[],
+): number[] {
+  const rand = seededRandom(20260930);
+  const wins = new Array(candidates.length).fill(0);
+  for (let s = 0; s < SIMULATIONS; s++) {
+    let best = -Infinity;
+    let bestIdx = -1;
+    let tied = false;
+    for (let i = 0; i < candidates.length; i++) {
+      const { mean, sd } = candidates[i];
+      let x = mean;
+      if (sd > 0) {
+        // Box-Muller
+        const u = 1 - rand();
+        const v = rand();
+        x += sd * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+      }
+      // Real scores are whole points, and a tie resolves no pick.
+      const score = Math.max(0, Math.round(x));
+      if (score > best) {
+        best = score;
+        bestIdx = i;
+        tied = false;
+      } else if (score === best) {
+        tied = true;
+      }
+    }
+    if (!tied && bestIdx >= 0) wins[bestIdx]++;
+  }
+  return wins.map((w) => w / SIMULATIONS);
+}
+
+export function priceCandidates(candidates: QuoteCandidate[], remaining: number, isLive: boolean): Map<string, number> {
+  const pre = topScorerProbabilities(
+    candidates.map((c) => ({ mean: c.baselinePPG, sd: SCORING_SD_RATIO * c.baselinePPG })),
+  );
+  const live = isLive
+    ? topScorerProbabilities(
+        candidates.map((c) => {
+          const expectedRest = c.baselinePPG * remaining * (c.hasLine ? 1 : NO_LINE_LIVE_SHARE);
+          return {
+            mean: c.pointsSoFar + expectedRest,
+            sd: SCORING_SD_RATIO * c.baselinePPG * Math.sqrt(remaining),
+          };
+        }),
+      )
+    : pre;
+
+  const floor = 1 / SIMULATIONS;
+  const quotes = new Map<string, number>();
+  candidates.forEach((c, i) => {
+    const preGamePoints = pointsForCorrectTopScorerPick({
+      baselinePPG: c.storedBaselinePPG,
+      pointsSoFar: 0,
+      quarter: null,
+      gameClockSeconds: null,
+    });
+    if (!isLive) {
+      quotes.set(c.playerId, preGamePoints);
+      return;
+    }
+    const raw = (preGamePoints * Math.max(pre[i], floor)) / Math.max(live[i], floor);
+    quotes.set(c.playerId, Math.min(TOP_SCORER_POINTS_CAP, Math.max(LIVE_TOP_SCORER_POINTS_MIN, Math.round(raw))));
+  });
+  return quotes;
+}
+
+/**
+ * What a correct top-scorer pick on each player in this game is worth if
+ * picked right now: the pre-game formula before tipoff, the
+ * probability-based live price once the game is under way. One query for
+ * every candidate's baseline, live points and injury status.
+ */
+export async function getTopScorerQuotes(game: typeof games.$inferSelect): Promise<Map<string, number>> {
+  const rows = await db.execute<{
+    player_id: string;
+    live_points: number | null;
+    has_line: boolean;
+    season_ppg: number | null;
+    career_ppg: number | null;
+    is_out: boolean;
+  }>(sql`
+    select
+      p.id as player_id,
+      pgs.points as live_points,
+      (pgs.id is not null) as has_line,
+      (select s.points_per_game from player_season_stats s where s.player_id = p.id and s.season = ${game.season} limit 1) as season_ppg,
+      (select sum(s.points_per_game * s.games_played) / nullif(sum(s.games_played), 0) from player_season_stats s where s.player_id = p.id) as career_ppg,
+      exists (select 1 from player_injuries i where i.player_id = p.id and i.status = 'out') as is_out
+    from players p
+    left join player_game_stats pgs on pgs.player_id = p.id and pgs.game_id = ${game.id}
+    where (p.active and p.team_id in (${game.homeTeamId}, ${game.awayTeamId})) or pgs.id is not null
+  `);
+
+  const isLive = game.status === "live" && game.quarter !== null;
+  const candidates: QuoteCandidate[] = [];
+  const ruledOut: QuoteCandidate[] = [];
+  for (const r of rows) {
+    const stored = r.season_ppg ?? r.career_ppg;
+    const storedBaselinePPG = stored == null ? null : Number(stored);
+    const candidate: QuoteCandidate = {
+      playerId: r.player_id,
+      storedBaselinePPG,
+      baselinePPG: storedBaselinePPG || UNKNOWN_BASELINE_PPG,
+      pointsSoFar: r.live_points ?? 0,
+      hasLine: r.has_line,
+    };
+    // Ruled out and not on the box score: not a contender in the
+    // simulation, but still quoted at the pre-game price (the picker
+    // disables them anyway).
+    (r.is_out && !r.has_line ? ruledOut : candidates).push(candidate);
+  }
+  const remaining = remainingGameFraction(game.quarter, game.gameClockSeconds);
+  const quotes = priceCandidates(candidates, remaining, isLive);
+  for (const c of ruledOut) {
+    quotes.set(
+      c.playerId,
+      pointsForCorrectTopScorerPick({ baselinePPG: c.storedBaselinePPG, pointsSoFar: 0, quarter: null, gameClockSeconds: null }),
+    );
+  }
+  return quotes;
+}

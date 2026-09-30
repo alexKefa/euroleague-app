@@ -327,6 +327,28 @@ export class GameDetailComponent implements OnInit {
   // lands before this one's timeout fires.
   readonly topScorerJustSavedId = signal<string | null>(null);
 
+  // Current price of a correct pick per player (2026-09-30, live pricing):
+  // shown under every photo so the user sees what a pick is worth before
+  // tapping. Refreshed on each live tick for this game while picks are open.
+  readonly topScorerQuotes = signal<Record<string, number>>({});
+  private quotesInFlight = false;
+
+  quoteFor(playerId: string): number | null {
+    return this.topScorerQuotes()[playerId] ?? null;
+  }
+
+  private loadTopScorerQuotes(gameId: string): void {
+    if (this.quotesInFlight) return;
+    this.quotesInFlight = true;
+    this.api.getTopScorerQuotes(gameId).subscribe({
+      next: ({ quotes }) => {
+        this.quotesInFlight = false;
+        if (this.detail()?.game.id === gameId) this.topScorerQuotes.set(quotes);
+      },
+      error: () => (this.quotesInFlight = false),
+    });
+  }
+
   // Mirrors backend/src/services/topScorerPoints.ts's isTopScorerPickLocked
   // exactly (kept in sync by hand, same "preview only" pattern as the
   // points-formula mirror above) — locks at the start of the 4th quarter,
@@ -470,6 +492,7 @@ export class GameDetailComponent implements OnInit {
       // up too. This subscribe callback runs outside the effect's tracked
       // scope, so setting `detail` here again doesn't re-trigger this effect.
       this.api.getGame(update.gameId).subscribe({ next: (d) => this.detail.set(d) });
+      if (update.status === "live" && (update.quarter ?? 0) < 4) this.loadTopScorerQuotes(update.gameId);
 
       // Re-fetch the top scorer pick once the game goes final so isCorrect
       // resolves — nothing about the pick itself arrives over SSE.
@@ -507,6 +530,7 @@ export class GameDetailComponent implements OnInit {
       this.awayRoster.set([]);
       this.myTopScorerPick.set(null);
       this.topScorerJustSavedId.set(null);
+      this.topScorerQuotes.set({});
       this.onFireIds.set([]);
       this.scoringFeed.set([]);
       this.closePlayer();
@@ -516,6 +540,7 @@ export class GameDetailComponent implements OnInit {
         next: (detail) => {
           this.detail.set(detail);
           this.loading.set(false);
+          if (detail.game.status !== "final") this.loadTopScorerQuotes(detail.game.id);
           this.api.getRoster(detail.game.homeTeam.id).subscribe({ next: (r) => this.homeRoster.set(r) });
           this.api.getRoster(detail.game.awayTeam.id).subscribe({ next: (r) => this.awayRoster.set(r) });
         },

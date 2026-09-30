@@ -8,6 +8,7 @@ import {
   computeTopScorerPlayerId,
   computeTopScorerPlayerIdsForGames,
   getTopScorerBaselinePPG,
+  getTopScorerQuotes,
   isTopScorerPickLocked,
   pointsForCorrectTopScorerPick,
   TOP_SCORER_POINTS_PER_CORRECT,
@@ -57,18 +58,29 @@ topScorerPredictionsRouter.post("/", requireAuth, async (req, res) => {
     // worth, full stop — see schema.ts's doc comment on pointsAtPick and
     // topScorerPoints.ts's 2026-09-10 file comment for why re-picking
     // mid-game now prices differently than a pre-tipoff pick would have.
-    const baselinePPG = await getTopScorerBaselinePPG(playerId, game.season);
-    const [liveLine] = await db
-      .select({ points: playerGameStats.points })
-      .from(playerGameStats)
-      .where(and(eq(playerGameStats.gameId, gameId), eq(playerGameStats.playerId, playerId)))
-      .limit(1);
-    const pointsAtPick = pointsForCorrectTopScorerPick({
-      baselinePPG,
-      pointsSoFar: liveLine?.points ?? 0,
-      quarter: game.quarter,
-      gameClockSeconds: game.gameClockSeconds,
-    });
+    //
+    // Live picks (2026-09-30) are priced by getTopScorerQuotes' win-
+    // probability model instead — the same number GET /:gameId/quotes
+    // showed the user before they tapped. Pre-game keeps the PPG formula.
+    let pointsAtPick: number;
+    const liveQuote =
+      game.status === "live" && game.quarter !== null ? (await getTopScorerQuotes(game)).get(playerId) : undefined;
+    if (liveQuote !== undefined) {
+      pointsAtPick = liveQuote;
+    } else {
+      const baselinePPG = await getTopScorerBaselinePPG(playerId, game.season);
+      const [liveLine] = await db
+        .select({ points: playerGameStats.points })
+        .from(playerGameStats)
+        .where(and(eq(playerGameStats.gameId, gameId), eq(playerGameStats.playerId, playerId)))
+        .limit(1);
+      pointsAtPick = pointsForCorrectTopScorerPick({
+        baselinePPG,
+        pointsSoFar: liveLine?.points ?? 0,
+        quarter: game.quarter,
+        gameClockSeconds: game.gameClockSeconds,
+      });
+    }
 
     const [prediction] = await db
       .insert(topScorerPredictions)
@@ -89,6 +101,24 @@ topScorerPredictionsRouter.post("/", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("POST /api/top-scorer-predictions failed:", err);
     res.status(500).json({ error: "Failed to save top scorer pick" });
+  }
+});
+
+// What a correct pick on each player in this game is worth right now,
+// { [playerId]: points } — shown under every player in the pickers so the
+// price is visible before tapping. Public: prices aren't per-user.
+topScorerPredictionsRouter.get("/:gameId/quotes", async (req, res) => {
+  try {
+    const [game] = await db.select().from(games).where(eq(games.id, req.params.gameId)).limit(1);
+    if (!game) {
+      res.status(404).json({ error: "Game not found" });
+      return;
+    }
+    const quotes = await getTopScorerQuotes(game);
+    res.json({ locked: isTopScorerPickLocked(game), quotes: Object.fromEntries(quotes) });
+  } catch (err) {
+    console.error("GET /api/top-scorer-predictions/:gameId/quotes failed:", err);
+    res.status(500).json({ error: "Failed to load top scorer prices" });
   }
 });
 

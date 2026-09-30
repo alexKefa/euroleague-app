@@ -87,6 +87,9 @@
                 >{{ c.pointsPerGame | number: '1.1-1' }} {{ i18n.t('topScorer.ppgAbbrev') }}</span
               >
             }
+            @if (quoteFor(c.player.id); as q) {
+              <span class="font-mono text-[10px] font-bold rounded-full px-1.5 py-px bg-team-primary text-team-secondary leading-tight">+{{ q }} {{ i18n.t('predictions.pts') }}</span>
+            }
           </button>
         }
       </div>
@@ -160,6 +163,9 @@
               <span class="font-mono text-[10px] font-bold text-[#14161A] bg-white border border-black/10 rounded-full px-1.5 py-px shadow-sm"
                 >{{ c.pointsPerGame | number: '1.1-1' }} {{ i18n.t('topScorer.ppgAbbrev') }}</span
               >
+            }
+            @if (quoteFor(c.player.id); as q) {
+              <span class="font-mono text-[10px] font-bold rounded-full px-1.5 py-px bg-team-primary text-team-secondary leading-tight">+{{ q }} {{ i18n.t('predictions.pts') }}</span>
             }
           </button>
         }

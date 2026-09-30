@@ -1,6 +1,6 @@
 import { Component, Input, OnInit, computed, inject, signal } from "@angular/core";
 import { DecimalPipe } from "@angular/common";
-import { forkJoin } from "rxjs";
+import { catchError, forkJoin, of } from "rxjs";
 import { ApiService } from "../core/api.service";
 import { I18nService } from "../core/i18n.service";
 import { GameTeamSummary, InjuryReportEntry, Player, RosterEntry, TopScorerPrediction } from "../core/models";
@@ -50,6 +50,13 @@ export class TopScorerPickerComponent implements OnInit {
   // see that field's doc comment.
   readonly justSavedId = signal<string | null>(null);
   readonly error = signal<string | null>(null);
+  // What a correct pick on each player pays (2026-09-30), from
+  // GET /top-scorer-predictions/:gameId/quotes.
+  readonly quotes = signal<Record<string, number>>({});
+
+  quoteFor(playerId: string): number | null {
+    return this.quotes()[playerId] ?? null;
+  }
 
   // League-wide injury report, fetched alongside the rosters (2026-09-24,
   // direct ask: "hide injured players. or just add banner over them" on
@@ -94,8 +101,10 @@ export class TopScorerPickerComponent implements OnInit {
       away: this.api.getRoster(this.awayTeam.id),
       pick: this.api.getTopScorerPick(this.gameId),
       injuries: this.api.getInjuries(),
+      quotes: this.api.getTopScorerQuotes(this.gameId).pipe(catchError(() => of({ locked: false, quotes: {} }))),
     }).subscribe({
-      next: ({ home, away, pick, injuries }) => {
+      next: ({ home, away, pick, injuries, quotes }) => {
+        this.quotes.set(quotes.quotes);
         this.homeRoster.set(home);
         this.awayRoster.set(away);
         this.myPick.set(pick);

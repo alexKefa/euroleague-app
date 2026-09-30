@@ -160,6 +160,7 @@
           <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-1">{{ i18n.t('topScorer.pickTitle') }}</p>
           @if (!isTopScorerLocked()) {
             <p class="text-xs text-muted mb-1">{{ i18n.t('topScorer.hint') }}</p>
+            <p class="text-xs text-muted mb-1">{{ i18n.t(d.game.status === 'live' ? 'topScorer.livePriceHint' : 'topScorer.priceHint') }}</p>
           } @else if (!isFinal()) {
             <p class="text-xs text-muted mb-1">{{ i18n.t('topScorer.locked') }}</p>
           }
@@ -212,6 +213,14 @@
                       }
                     </span>
                     <span class="text-[10px] text-muted font-semibold truncate w-full text-center">{{ c.player.name.split(',')[0] }}</span>
+                    <!-- Live points so far + what a correct pick pays right
+                         now (2026-09-30 live pricing). -->
+                    @if (c.livePoints != null) {
+                      <span class="font-mono text-[10px] font-bold text-ink leading-none">{{ c.livePoints }} {{ i18n.t('topScorer.ptsScored') }}</span>
+                    }
+                    @if (quoteFor(c.player.id); as q) {
+                      <span class="font-mono text-[10px] font-bold rounded-full px-1.5 py-px bg-team-primary text-team-secondary leading-tight">+{{ q }}</span>
+                    }
                   </button>
                 }
               </div>
@@ -250,6 +259,14 @@
                       }
                     </span>
                     <span class="text-[10px] text-muted font-semibold truncate w-full text-center">{{ c.player.name.split(',')[0] }}</span>
+                    <!-- Live points so far + what a correct pick pays right
+                         now (2026-09-30 live pricing). -->
+                    @if (c.livePoints != null) {
+                      <span class="font-mono text-[10px] font-bold text-ink leading-none">{{ c.livePoints }} {{ i18n.t('topScorer.ptsScored') }}</span>
+                    }
+                    @if (quoteFor(c.player.id); as q) {
+                      <span class="font-mono text-[10px] font-bold rounded-full px-1.5 py-px bg-team-primary text-team-secondary leading-tight">+{{ q }}</span>
+                    }
                   </button>
                 }
               </div>

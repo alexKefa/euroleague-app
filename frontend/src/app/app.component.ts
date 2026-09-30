@@ -173,13 +173,45 @@ export class AppComponent implements OnInit {
   // recompute the nav's position fresh against the current real viewport.
   @ViewChild("bottomNav") private bottomNavRef?: ElementRef<HTMLElement>;
 
-  private readonly resnapBottomNav = () => {
+  //
+  // Still stuck "sometimes" in the installed PWA (2026-09-30 report), for
+  // two reasons: iOS fires the resize before its ~300ms keyboard-close
+  // animation finishes, so a one-frame resnap measured a viewport that was
+  // still changing; and returning to the app from the background
+  // (visibilitychange/pageshow) or blurring a field without a resize never
+  // triggered a resnap at all. Now it resnaps immediately and once more
+  // after things settle, on all of those events. The no-op scrollTo nudges
+  // iOS into recomputing the layout viewport itself.
+  private resnapTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private readonly snapBottomNavOnce = () => {
     const el = this.bottomNavRef?.nativeElement;
     if (!el) return;
     el.style.display = "none";
     requestAnimationFrame(() => {
       el.style.display = "";
     });
+  };
+
+  private readonly resnapBottomNav = () => {
+    this.snapBottomNavOnce();
+    if (this.resnapTimer) clearTimeout(this.resnapTimer);
+    this.resnapTimer = setTimeout(() => {
+      this.resnapTimer = null;
+      window.scrollTo(window.scrollX, window.scrollY);
+      this.snapBottomNavOnce();
+    }, 400);
+  };
+
+  // Only text fields raise the keyboard; resnapping on every button blur
+  // would blink the nav on ordinary taps.
+  private readonly resnapAfterFieldBlur = (e: FocusEvent) => {
+    const t = e.target as HTMLElement | null;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) this.resnapBottomNav();
+  };
+
+  private readonly resnapWhenVisible = () => {
+    if (document.visibilityState === "visible") this.resnapBottomNav();
   };
 
   protected readonly currentUrl = toSignal(
@@ -204,6 +236,11 @@ export class AppComponent implements OnInit {
 
     window.visualViewport?.addEventListener("resize", this.resnapBottomNav);
     window.addEventListener("orientationchange", this.resnapBottomNav);
+    window.addEventListener("pageshow", this.resnapBottomNav);
+    document.addEventListener("visibilitychange", this.resnapWhenVisible);
+    // Keyboard dismissal: a field losing focus, captured so it catches
+    // every input on every page.
+    document.addEventListener("focusout", this.resnapAfterFieldBlur, true);
   }
 
   logout(): void {

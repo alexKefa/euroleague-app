@@ -30,7 +30,18 @@ export const topScorerPredictionsTranslations: Record<string, Record<Lang, strin
   "topScorer.whoScoresMost": { en: "Top scorer", el: "Κορυφαίος σκόρερ" },
   "topScorer.seeAllPlayers": { en: "All players", el: "Όλοι οι παίκτες" },
   "topScorer.pickerHowTo": {
-    en: "Tap the player you think will score the most. Lower scorers are worth more points. Tap them again to remove. You can change it until the 4th quarter starts.",
-    el: "Πάτησε τον παίκτη που πιστεύεις ότι θα σκοράρει περισσότερο. Όσοι έχουν χαμηλότερο μέσο όρο δίνουν περισσότερους πόντους. Πάτησε ξανά για αφαίρεση. Μπορείς να την αλλάξεις μέχρι να ξεκινήσει το 4ο δεκάλεπτο.",
+    en: "Tap the player you think will score the most. The +points under each player is what a correct pick pays. Tap them again to remove. You can change it until the 4th quarter starts.",
+    el: "Πάτησε τον παίκτη που πιστεύεις ότι θα σκοράρει περισσότερο. Οι +πόντοι κάτω από κάθε παίκτη είναι όσα κερδίζεις αν βγει σωστή. Πάτησε ξανά για αφαίρεση. Μπορείς να την αλλάξεις μέχρι να ξεκινήσει το 4ο δεκάλεπτο.",
+  },
+
+  // Live pricing (2026-09-30).
+  "topScorer.ptsScored": { en: "PTS", el: "ΠΟΝ" },
+  "topScorer.priceHint": {
+    en: "The number under each player is what a correct pick pays. Lower scorers pay more.",
+    el: "Ο αριθμός κάτω από κάθε παίκτη είναι όσα κερδίζεις αν βγει σωστή. Όσοι σκοράρουν λιγότερο δίνουν περισσότερα.",
+  },
+  "topScorer.livePriceHint": {
+    en: "Live prices: a player already ahead pays less, one behind pays more. The price is fixed the moment you pick.",
+    el: "Live τιμές: όποιος προηγείται ήδη δίνει λιγότερα, όποιος υστερεί περισσότερα. Η τιμή κλειδώνει τη στιγμή που διαλέγεις.",
   },
 };

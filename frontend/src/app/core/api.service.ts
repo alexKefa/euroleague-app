@@ -258,6 +258,12 @@ export class ApiService {
     return this.http.delete<void>(`${API_BASE_URL}/top-scorer-predictions/${gameId}`);
   }
 
+  // What a correct pick on each player is worth right now, { playerId: points }
+  // — pre-game PPG price before tipoff, win-probability price once live.
+  getTopScorerQuotes(gameId: string): Observable<{ locked: boolean; quotes: Record<string, number> }> {
+    return this.http.get<{ locked: boolean; quotes: Record<string, number> }>(`${API_BASE_URL}/top-scorer-predictions/${gameId}/quotes`);
+  }
+
   getTopScorerPick(gameId: string): Observable<TopScorerPrediction | null> {
     return this.http.get<TopScorerPrediction | null>(`${API_BASE_URL}/top-scorer-predictions/${gameId}`);
   }
