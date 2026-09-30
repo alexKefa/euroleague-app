@@ -743,43 +743,38 @@
                  scrollbox at any breakpoint; the full list lives at
                  /predictions-history (linked below, with a count once
                  there's more than shown). -->
-            <div class="text-sm space-y-1">
+            <!-- Rows restyled (2026-09-30, "make less vanilla"): the app's
+                 list-row tiles with the picked team's logo, a tinted result
+                 chip, and the same match's top-scorer pick with its photo. -->
+            <div class="text-sm space-y-2">
               @for (p of visiblePicks(); track p.id) {
-                <div class="px-2.5 py-2.5 rounded-xl" [ngClass]="{ 'bg-team-primary/5': p.isPendingSubmit }">
-                  <div class="flex justify-between items-center">
-                    <div>
-                      <p class="font-display text-xs">
-                        <app-team-badge [code]="p.predictedTeam.code" [logoUrl]="teamLogo(p.predictedTeam.id)"></app-team-badge>
-                      </p>
-                      <p class="font-mono text-muted text-[12px] mt-0.5">{{ p.tipoffAt | date: pickDateFormat():"Europe/Athens":dateLocale() }}</p>
-                    </div>
-                    @if (p.isPendingSubmit) {
-                      <span class="text-[12px] font-bold text-team-primary">{{ i18n.t('predictions.unsaved') }}</span>
-                    } @else if (p.isCorrect === null) {
-                      <span class="text-[12px] font-bold text-muted">{{ i18n.t('predictions.pending') }}</span>
-                    } @else if (p.isCorrect === true) {
-                      <span class="text-[12px] font-bold text-emerald-500">{{ i18n.t('predictions.correct') }}</span>
-                    } @else {
-                      <span class="text-[12px] font-bold text-red-500">{{ i18n.t('predictions.wrong') }}</span>
-                    }
-                  </div>
-                  <!-- The same match's top-scorer pick (game-detail.ts's photo-strip
-                       picker), shown inline rather than only in the separate "Top
-                       scorer" tab above, so this row reads as "everything picked
-                       for this match" rather than just the win/loss half of it. -->
-                  @if (topScorerByGameId().get(p.gameId); as tsPick) {
-                    <div class="flex justify-between items-center gap-2 mt-1.5 pt-1.5 border-t border-line/60">
-                      <span class="flex items-center gap-1.5 min-w-0">
-                        <app-nav-icon name="picks" [size]="12" class="text-muted shrink-0" />
-                        <span class="font-mono text-[11px] text-muted truncate">{{ tsPick.predictedPlayer.name }}</span>
-                      </span>
-                      @if (tsPick.isCorrect === null) {
-                        <span class="text-[11px] font-bold text-muted shrink-0">{{ i18n.t('predictions.pending') }}</span>
-                      } @else if (tsPick.isCorrect === true) {
-                        <span class="text-[11px] font-bold text-emerald-500 shrink-0">+{{ tsPick.pointsAtPick }} {{ i18n.t('predictions.pts') }}</span>
+                @let tsPick = topScorerByGameId().get(p.gameId);
+                <div
+                  class="list-row !block"
+                  [ngClass]="p.isPendingSubmit ? 'is-mine' : p.isCorrect === true ? '!border-emerald-500/40' : p.isCorrect === false ? '!border-red-500/30' : ''"
+                >
+                  <div class="flex items-center gap-3">
+                    <span class="w-10 h-10 rounded-xl bg-card border border-line flex items-center justify-center shrink-0">
+                      @if (teamLogo(p.predictedTeam.id); as logo) {
+                        <img [src]="logo" [alt]="p.predictedTeam.code | teamCode" loading="lazy" decoding="async" appRetryImg class="w-7 h-7 object-contain team-logo" />
                       } @else {
-                        <span class="text-[11px] font-bold text-red-500 shrink-0">{{ i18n.t('predictions.wrong') }}</span>
+                        <span class="font-display text-[11px]">{{ p.predictedTeam.code | teamCode }}</span>
                       }
+                    </span>
+                    <div class="min-w-0 flex-1">
+                      <p class="font-semibold text-[13px] leading-tight truncate">{{ p.predictedTeam.name }}</p>
+                      <p class="font-mono text-muted text-[11px] mt-0.5">{{ p.tipoffAt | date: pickDateFormat():"Europe/Athens":dateLocale() }}</p>
+                    </div>
+                    <ng-container *ngTemplateOutlet="pickResultChip; context: { pending: p.isPendingSubmit, correct: p.isCorrect, points: null }"></ng-container>
+                  </div>
+                  @if (tsPick) {
+                    <div class="flex items-center gap-2 mt-2 pt-2 border-t border-line/60">
+                      <app-player-photo [name]="tsPick.predictedPlayer.name" [photoUrl]="tsPick.predictedPlayer.photoUrl" [size]="22" class="rounded-full block shrink-0" />
+                      <span class="text-[11px] text-muted truncate flex-1 min-w-0">
+                        <span class="font-bold uppercase tracking-wider text-[9px] mr-1">{{ i18n.t('topScorer.yourTopScorer') }}</span>
+                        <span class="text-ink font-semibold">{{ tsPick.predictedPlayer.name.split(',')[0] }}</span>
+                      </span>
+                      <ng-container *ngTemplateOutlet="pickResultChip; context: { pending: false, correct: tsPick.isCorrect, points: tsPick.pointsAtPick, small: true }"></ng-container>
                     </div>
                   }
                 </div>
@@ -796,28 +791,25 @@
               }
             </div>
           } @else {
-            <div class="text-sm space-y-1">
+            <div class="text-sm space-y-2">
               @for (p of visibleTopScorerPicks(); track p.id) {
-                <div class="flex justify-between items-center px-2.5 py-2.5 rounded-xl">
-                  <div class="min-w-0">
-                    <p class="font-display text-xs truncate">{{ p.predictedPlayer.name }}</p>
-                    <p class="font-mono text-muted text-[12px] mt-0.5 flex items-center gap-1 truncate">
+                <div
+                  class="list-row"
+                  [ngClass]="p.isCorrect === true ? '!border-emerald-500/40' : p.isCorrect === false ? '!border-red-500/30' : ''"
+                >
+                  <span class="shrink-0 rounded-full ring-2 ring-team-primary/40">
+                    <app-player-photo [name]="p.predictedPlayer.name" [photoUrl]="p.predictedPlayer.photoUrl" [size]="40" class="rounded-full block" />
+                  </span>
+                  <div class="min-w-0 flex-1">
+                    <p class="font-semibold text-[13px] leading-tight truncate">{{ p.predictedPlayer.name.split(',')[0] }}</p>
+                    <p class="font-mono text-muted text-[11px] mt-0.5 flex items-center gap-1 min-w-0">
                       <app-team-badge [code]="p.homeTeam.code" [logoUrl]="teamLogo(p.homeTeam.id)" [size]="14"></app-team-badge>
                       <span>&ndash;</span>
                       <app-team-badge [code]="p.awayTeam.code" [logoUrl]="teamLogo(p.awayTeam.id)" [size]="14"></app-team-badge>
                       <span class="truncate">&middot; {{ p.tipoffAt | date: pickDateFormat():"Europe/Athens":dateLocale() }}</span>
                     </p>
                   </div>
-                  <div class="text-right shrink-0 ml-2">
-                    <span class="font-mono text-team-primary text-[11px] font-bold block">+{{ p.pointsAtPick }} {{ i18n.t('predictions.pts') }}</span>
-                    @if (p.isCorrect === null) {
-                      <span class="text-[12px] font-bold text-muted">{{ i18n.t('predictions.pending') }}</span>
-                    } @else if (p.isCorrect === true) {
-                      <span class="text-[12px] font-bold text-emerald-500">{{ i18n.t('predictions.correct') }}</span>
-                    } @else {
-                      <span class="text-[12px] font-bold text-red-500">{{ i18n.t('predictions.wrong') }}</span>
-                    }
-                  </div>
+                  <ng-container *ngTemplateOutlet="pickResultChip; context: { pending: false, correct: p.isCorrect, points: p.pointsAtPick }"></ng-container>
                 </div>
               } @empty {
                 <p class="text-sm text-muted">
@@ -1084,3 +1076,29 @@
     (cancelled)="confirmingClearAll.set(false)"
   />
 }
+<!-- Result chip for a My picks row: tinted green/red once resolved, team
+     color while unsaved, muted while pending. `points` (top-scorer picks)
+     shows what the pick is worth / earned instead of the plain word. -->
+<ng-template #pickResultChip let-pending="pending" let-correct="correct" let-points="points" let-small="small">
+  <span
+    class="shrink-0 inline-flex items-center gap-1 rounded-full font-bold whitespace-nowrap"
+    [ngClass]="[
+      small ? 'text-[10px] px-2 py-0.5' : 'text-[11px] px-2.5 py-1',
+      pending ? 'bg-team-primary/15 text-team-primary'
+        : correct === true ? 'bg-emerald-500/15 text-emerald-500'
+        : correct === false ? 'bg-red-500/15 text-red-500 line-through decoration-2'
+        : 'bg-card border border-line text-muted'
+    ]"
+  >
+    @if (pending) {
+      {{ i18n.t('predictions.unsaved') }}
+    } @else if (correct === true) {
+      <svg class="w-3 h-3" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+      {{ points !== null ? '+' + points + ' ' + i18n.t('predictions.pts') : i18n.t('predictions.correct') }}
+    } @else if (correct === false) {
+      {{ points !== null ? '+' + points + ' ' + i18n.t('predictions.pts') : i18n.t('predictions.wrong') }}
+    } @else {
+      {{ points !== null ? '+' + points + ' ' + i18n.t('predictions.pts') : i18n.t('predictions.pending') }}
+    }
+  </span>
+</ng-template>

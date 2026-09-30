@@ -9,6 +9,7 @@ import { PackDefinition, OwnedPack, PackOpenOutcome, PackOpenResultCard, PackTyp
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { PackIconComponent } from "../../shared/pack-icon";
 import { PACK_VISUAL_CLASSES } from "../../shared/pack-visual";
+import { PackArtComponent } from "../../shared/pack-art";
 import { packSourceText } from "../../shared/pack-source";
 import { PackRewardsService } from "../../core/pack-rewards.service";
 import { ButtonDirective } from "../../shared/button.directive";
@@ -28,6 +29,7 @@ type PackView = "selecting" | "revealing" | "summary";
   standalone: true,
   imports: [
     CommonModule,
+    PackArtComponent,
     RouterLink,
     CollectibleCardComponent,
     PackIconComponent,
@@ -226,20 +228,6 @@ export class PacksComponent implements OnInit {
     });
   }
 
-  // Trading-card-style set-code micro-print on the pack art, standing in for
-  // repeating the pack's full name on the card (the list below the grid
-  // already spells that out). Only the three purchasable tiers ever render
-  // in that grid, so wheel-exclusive types are never looked up here.
-  private static readonly SET_CODES: Partial<Record<PackType, string>> = {
-    starter: "RS",
-    pro: "PO",
-    elite: "F4",
-  };
-
-  setCode(type: PackType): string {
-    return `EL 26–27 · ${PacksComponent.SET_CODES[type] ?? "—"}`;
-  }
-
   // Backend's PackDefinition.label (services/packs.ts) is an internal,
   // English-only display string — see the packs.label.* comment in
   // i18n/store.ts for why the frontend never renders it directly.
@@ -268,6 +256,33 @@ export class PacksComponent implements OnInit {
   // rules in packs.css.
   isFoilCard(card: PackOpenResultCard): boolean {
     return !card.wasDuplicate && card.collectible.tier === "legendary" && card.collectible.finish === "foil";
+  }
+
+  // One pip per slot for the pack tile's slot strip: a guaranteed tier is a
+  // solid pip; a mixed slot shows its likeliest tier with the upside tier as
+  // a corner accent. The title spells out the exact odds.
+  slotPips(pack: PackDefinition): { base: string; upside: string | null; title: string }[] {
+    const tierName: Record<string, string> = {
+      common: this.i18n.t("inventory.tierCommon"),
+      rare: this.i18n.t("inventory.tierRare"),
+      legendary: this.i18n.t("inventory.tierLegendary"),
+      coach: this.i18n.t("inventory.tierCoach"),
+    };
+    return (pack.slotOdds ?? []).map((odds) => {
+      const entries = Object.entries(odds)
+        .filter(([, p]) => (p ?? 0) > 0)
+        .sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0)) as [string, number][];
+      const base = entries[0]?.[0] ?? "common";
+      // Rarest non-base tier is the "upside" (legendary beats coach beats rare).
+      const rank = ["common", "rare", "coach", "legendary"];
+      const upside = entries.slice(1).sort((a, b) => rank.indexOf(b[0]) - rank.indexOf(a[0]))[0]?.[0] ?? null;
+      const title = entries.map(([t, p]) => `${Math.round(p * 100)}% ${tierName[t] ?? t}`).join(" · ");
+      return { base, upside, title };
+    });
+  }
+
+  pointsShort(pack: PackDefinition): number {
+    return Math.max(0, pack.pointsCost - this.points());
   }
 
   canAfford(pack: PackDefinition): boolean {

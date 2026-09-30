@@ -175,25 +175,9 @@
                 ></div>
               </div>
             }
-            <!-- Same pack art as the Packs page's buy tiles (packs.css) — foil
-                 stripe, single embossed mark, gloss — rather than the old
-                 plain "C" wordmark. No set-code/price corner tags here: this
-                 is a static win reveal, not a priced button, and the tier is
-                 already named by the heading above. -->
-            <div
-              class="pack-visual relative shadow-pop"
-              [class]="visualClasses[won.packType]"
-              [class.legendary-shake]="won.tier === 'legendary'"
-              style="width: 140px"
-            >
-              <span class="pack-dots absolute inset-0 pointer-events-none"></span>
-              <span class="pack-foil-stripe absolute pointer-events-none"></span>
-              <span class="pack-mark absolute flex items-center justify-center pointer-events-none">
-                <img src="/clutch-icon.png" alt="" class="brand-mark-light" />
-                <img src="/clutch-icon-dark.png" alt="" class="brand-mark-dark" />
-              </span>
-              <span class="pack-gloss absolute inset-0 pointer-events-none"></span>
-            </div>
+            <!-- Same shared pack art as the Packs page's buy tiles
+                 (shared/pack-art.ts). -->
+            <app-pack-art [type]="won.packType" [class.legendary-shake]="won.tier === 'legendary'" style="width: 140px" />
           </div>
 
           <!-- "Open now" (2026-09-29): straight into this pack's reveal on

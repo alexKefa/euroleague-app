@@ -41,7 +41,31 @@
          six solid team-color buttons became destination cards — tinted icon
          tile, name, and a one-line purpose that switches to a live count
          (packs to open, pending trades) when something's waiting. -->
-    <div data-tour="cards-hub" class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-5">
+    <!-- Phones get a one-row shortcut strip instead (2026-09-30, "too many
+         buttons on the top, no cards visible"): 8 hub cards in 2 columns
+         took ~400px, pushing the collection below the fold. Round icon
+         shortcuts with labels scroll sideways; the same waiting-count badges
+         ride on the icon. The card grid below is sm: and up only. -->
+    <div data-tour="cards-hub">
+    <div class="sm:hidden flex gap-1 overflow-x-auto no-scrollbar -mx-4 px-3 pb-1 mb-4">
+      @for (tile of hubTiles; track tile.path) {
+        @let badge = tile.path === '/packs' ? unopenedPackCount() : tile.path === '/battles' ? battlesNotif.pendingIncomingCount() : tile.path === '/trades' ? trades.pendingIncomingCount() : 0;
+        <a [routerLink]="tile.path" class="shrink-0 w-[4.5rem] flex flex-col items-center gap-1.5 py-1 active:scale-95 transition-transform">
+          <span class="relative w-12 h-12 rounded-2xl flex items-center justify-center bg-card border border-line shadow-card text-team-primary">
+            <app-nav-icon [name]="tile.icon" [size]="22" />
+            @if (badge > 0) {
+              <span
+                class="absolute -top-1.5 -right-1.5 min-w-[1.25rem] h-5 px-1 rounded-full text-[11px] font-bold flex items-center justify-center leading-none ring-2 ring-page"
+                [ngClass]="tile.path === '/packs' ? 'bg-team-primary text-team-secondary' : 'bg-red-500 text-white'"
+                >{{ badge }}</span
+              >
+            }
+          </span>
+          <span class="w-full text-center text-[11px] font-semibold leading-tight line-clamp-2 break-words">{{ i18n.t(tile.labelKey) }}</span>
+        </a>
+      }
+    </div>
+    <div class="hidden sm:grid grid-cols-3 gap-2 mb-5">
       @for (tile of hubTiles; track tile.path) {
         <a
           [routerLink]="tile.path"
@@ -85,6 +109,7 @@
           }
         </a>
       }
+    </div>
     </div>
   }
   @if (!auth.isAuthenticated()) {

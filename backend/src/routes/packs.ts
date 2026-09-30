@@ -28,7 +28,7 @@ packsRouter.get("/", (_req, res) => {
   res.json(
     Object.values(PACKS)
       .filter((p) => p.purchasable !== false)
-      .map((p) => ({ type: p.type, label: p.label, pointsCost: p.pointsCost, slots: p.slots.length }))
+      .map((p) => ({ type: p.type, label: p.label, pointsCost: p.pointsCost, slots: p.slots.length, slotOdds: p.slots.map((s) => s.odds) }))
   );
 });
 

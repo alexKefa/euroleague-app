@@ -511,7 +511,11 @@
             </p>
           </div>
           @if (isCurrentRound()) {
-            <div class="relative w-[92px] h-[92px] shrink-0">
+            <!-- "left" caption sits under the ring, not inside it: the Greek
+                 "CR ΑΠΟΜΕΝΟΥΝ" was wider than the ring's hole and ran over
+                 the stroke. -->
+            <div class="flex flex-col items-center shrink-0">
+            <div class="relative w-[92px] h-[92px]">
               <svg viewBox="0 0 100 100" class="w-full h-full -rotate-90" aria-hidden="true">
                 <circle cx="50" cy="50" r="42" fill="none" stroke-width="9" class="stroke-line" />
                 <circle
@@ -524,8 +528,10 @@
               </svg>
               <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
                 <span class="font-display text-xl leading-none tabular-nums" [ngClass]="overBudget() ? 'text-red-500' : 'text-ink'">{{ remainingBudget() | number: '1.1-1' }}</span>
-                <span class="text-[10px] font-bold text-muted uppercase tracking-wide mt-0.5">{{ i18n.t('fantasy.creditsAbbrev') }} {{ i18n.t('fantasy.creditsLeft') }}</span>
+                <span class="text-[10px] font-bold text-muted uppercase tracking-wide mt-0.5">{{ i18n.t('fantasy.creditsAbbrev') }}</span>
               </div>
+            </div>
+            <span class="text-[10px] font-bold text-muted uppercase tracking-wide mt-1">{{ i18n.t('fantasy.creditsLeft') }}</span>
             </div>
           }
         </div>

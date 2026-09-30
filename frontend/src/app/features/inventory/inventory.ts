@@ -86,13 +86,13 @@ export class InventoryComponent implements OnInit, OnDestroy {
   // subKey: a one-line "what's this for" under each hub card (2026-09-29
   // restyle, replacing the solid button grid).
   protected readonly hubTiles: { path: string; icon: NavIconName; labelKey: string; subKey: string }[] = [
-    { path: "/battles", icon: "ball", labelKey: "battles.tab", subKey: "battles.hubSub" },
-    { path: "/achievements", icon: "medal", labelKey: "achievements.navLink", subKey: "achievements.hubSub" },
-    { path: "/store", icon: "store", labelKey: "store.title", subKey: "inventory.hubStoreSub" },
     { path: "/wheel", icon: "wheel", labelKey: "store.jumpBall", subKey: "inventory.hubWheelSub" },
     { path: "/packs", icon: "packs", labelKey: "store.packs", subKey: "inventory.hubPacksSub" },
-    { path: "/trades", icon: "trade", labelKey: "store.trades", subKey: "inventory.hubTradesSub" },
+    { path: "/store", icon: "store", labelKey: "store.title", subKey: "inventory.hubStoreSub" },
     { path: "/album", icon: "album", labelKey: "album.hubTile", subKey: "inventory.hubAlbumSub" },
+    { path: "/trades", icon: "trade", labelKey: "store.trades", subKey: "inventory.hubTradesSub" },
+    { path: "/battles", icon: "ball", labelKey: "battles.tab", subKey: "battles.hubSub" },
+    { path: "/achievements", icon: "medal", labelKey: "achievements.navLink", subKey: "achievements.hubSub" },
     { path: "/legendary-vote", icon: "vote", labelKey: "legendaryVote.hubTile", subKey: "inventory.hubVoteSub" },
   ];
 

@@ -11,7 +11,7 @@
       @if (pointsLoading()) {
         <span class="animate-pulse inline-block w-16 h-6 rounded-full bg-line"></span>
       } @else {
-        <span class="font-mono text-xs font-bold text-team-primary bg-card border-2 border-line rounded-xl px-3 py-1"
+        <span class="font-mono text-sm font-bold text-team-primary bg-team-primary/15 rounded-full px-3.5 py-1.5"
           >{{ points() }} {{ i18n.t('packs.pointsBadge') }}</span
         >
       }
@@ -41,22 +41,29 @@
   @if (!loading() && auth.isAuthenticated()) {
     @if (view() === "selecting") {
       @if (!ownedPacksLoading() && ownedPacksGrouped().length > 0) {
-        <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5 text-left">
-          <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-0.5">{{ i18n.t('packs.myPacksTitle') }}</p>
+        <!-- Restyled (2026-09-30) to the app's list-row tiles, with the
+             waiting count up top so opening them reads as the first job. -->
+        <div class="bg-card rounded-3xl border border-team-primary/40 shadow-card p-4 mb-5 text-left">
+          <div class="flex items-center justify-between gap-2 mb-0.5">
+            <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('packs.myPacksTitle') }}</p>
+            <span class="shrink-0 min-w-[1.5rem] h-6 px-2 rounded-full bg-team-primary text-team-secondary text-[12px] font-bold flex items-center justify-center">{{ ownedPacks().length }}</span>
+          </div>
           <p class="text-xs text-muted mb-3">{{ i18n.t('packs.myPacksSubtitle') }}</p>
           <div class="space-y-2">
             @for (group of ownedPacksGrouped(); track group.packType) {
-              <div class="flex items-center gap-2.5 bg-page rounded-xl px-3 py-2">
+              <div class="list-row">
                 <span class="pack-visual-mini relative" [class]="visualClasses[group.packType]">
                   <span class="pack-dots absolute inset-0 pointer-events-none"></span>
                 </span>
                 <div class="min-w-0 flex-1">
-                  <p class="text-[12px] font-bold truncate">{{ packLabel(group.packType) }}</p>
+                  <p class="text-[13px] font-semibold truncate">
+                    {{ packLabel(group.packType) }}
+                    @if (group.items.length > 1) {
+                      <span class="text-team-primary font-bold">×{{ group.items.length }}</span>
+                    }
+                  </p>
                   @if (groupReasons(group.items); as reasons) {
-                    <p class="text-[11px] text-team-primary font-semibold line-clamp-2">{{ reasons }}</p>
-                  }
-                  @if (group.items.length > 1) {
-                    <p class="text-[11px] text-muted">{{ group.items.length }}×</p>
+                    <p class="text-[11px] text-muted line-clamp-2">{{ reasons }}</p>
                   }
                 </div>
                 <button
@@ -85,46 +92,62 @@
         </div>
       }
 
-      <div data-tour="packs-grid" class="grid grid-cols-3 gap-3">
+      <!-- Pack tiles (2026-09-30, "description too vanilla"): the art grid
+           and the separate text list below it merged into one tile per
+           pack — art, name + tagline, a 5-pip slot strip (colored by tier,
+           from the API's real slot odds; a corner accent marks a slot's
+           upside, hover/long-press shows exact odds), and a buy button that
+           says how many points are missing instead of just dimming. -->
+      <div data-tour="packs-grid" class="space-y-3 text-left">
         @for (pack of packs(); track pack.type) {
-          <button
-            type="button"
-            (click)="requestOpen(pack)"
-            [disabled]="!canAfford(pack) || opening() !== null || pointsLoading()"
-            [attr.aria-label]="packLabel(pack.type) + ' — ' + pack.pointsCost + ' ' + i18n.t('packs.ptsLower')"
-            class="pack-visual relative disabled:opacity-40 w-full max-w-[120px] mx-auto sm:max-w-[80%]"
-            [class]="visualClasses[pack.type]"
-          >
-            <span class="pack-dots absolute inset-0 pointer-events-none"></span>
-            <!-- One diagonal foil band standing in for a physical parallel/
-                 refractor stripe, instead of a rail of repeated icons. -->
-            <span class="pack-foil-stripe absolute pointer-events-none"></span>
-            <!-- Brand mark printed onto the pack face, same light/dark PNG
-                 pair used everywhere else the logo appears in the app. -->
-            <span class="pack-mark absolute flex items-center justify-center pointer-events-none">
-              <img src="/clutch-icon.png" alt="" class="brand-mark-light" />
-              <img src="/clutch-icon-dark.png" alt="" class="brand-mark-dark" />
-            </span>
-            <span class="pack-gloss absolute inset-0 pointer-events-none"></span>
-            <!-- A slight periodic shine passing over the whole card, on top
-                 of the static foil stripe/gloss above. -->
-            <span class="pack-shine absolute pointer-events-none"></span>
+          @let affordable = canAfford(pack);
+          <div class="relative flex items-center gap-4 rounded-3xl p-3 pr-4 bg-card border border-line shadow-card overflow-hidden">
+            <div class="pack-tile-glow pointer-events-none absolute inset-0" [class]="'pack-tile-glow--' + pack.type" aria-hidden="true"></div>
+            <button
+              type="button"
+              (click)="requestOpen(pack)"
+              [disabled]="!affordable || opening() !== null || pointsLoading()"
+              [attr.aria-label]="packLabel(pack.type) + ' — ' + pack.pointsCost + ' ' + i18n.t('packs.ptsLower')"
+              class="relative shrink-0 w-[96px] sm:w-[112px] disabled:opacity-60"
+            >
+              <app-pack-art [type]="pack.type" [interactive]="affordable" />
+            </button>
 
-            <!-- Set-code micro-print takes the pack name's place on the card
-                 itself — the list below the grid already spells the name out,
-                 same abbreviation convention real trading-card parallels use
-                 for a series/print run. -->
-            <span class="pack-set-code absolute pointer-events-none" aria-hidden="true">{{ setCode(pack.type) }}</span>
-            <span class="pack-price-tag absolute font-mono" aria-hidden="true">
-              @if (opening() === pack.type) {
-                <app-logo-spinner [size]="12" />
-              } @else if (pointsLoading()) {
-                <span class="inline-block w-6 h-2 rounded-full bg-white/25 animate-pulse"></span>
-              } @else {
-                {{ pack.pointsCost }} {{ i18n.t('packs.ptsLower') }}
-              }
-            </span>
-          </button>
+            <div class="relative min-w-0 flex-1">
+              <p class="font-display text-base leading-tight">{{ packLabel(pack.type) }}</p>
+              <p class="text-[11px] text-muted italic leading-snug mt-0.5">{{ tagline(pack.type) }}</p>
+
+              <div class="flex items-end gap-1.5 mt-2.5" role="img" [attr.aria-label]="blurb(pack.type)">
+                @for (pip of slotPips(pack); track $index) {
+                  <span class="slot-pip" [class]="'slot-pip--' + pip.base" [title]="pip.title">
+                    @if (pip.upside) {
+                      <span class="slot-pip__upside" [class]="'slot-pip--' + pip.upside"></span>
+                    }
+                  </span>
+                }
+              </div>
+              <p class="text-[11px] text-muted leading-snug mt-2">{{ blurb(pack.type) }}</p>
+
+              <div class="mt-3">
+                @if (pointsLoading()) {
+                  <span class="inline-block w-24 h-8 rounded-xl bg-line animate-pulse"></span>
+                } @else if (affordable) {
+                  <button type="button" appButton appButtonSize="sm" (click)="requestOpen(pack)" [disabled]="opening() !== null">
+                    @if (opening() === pack.type) {
+                      <app-logo-spinner [size]="12" />
+                    } @else {
+                      {{ i18n.t('packs.buyFor') }} &middot; <span class="font-mono">{{ pack.pointsCost }}</span>
+                    }
+                  </button>
+                } @else {
+                  <span class="inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[12px]">
+                    <span class="font-mono font-bold text-muted line-through decoration-1">{{ pack.pointsCost }} {{ i18n.t('packs.ptsLower') }}</span>
+                    <span class="font-semibold text-team-primary">{{ i18n.t('packs.needPrefix') }} {{ pointsShort(pack) }} {{ i18n.t('packs.needSuffix') }}</span>
+                  </span>
+                }
+              </div>
+            </div>
+          </div>
         }
       </div>
 
@@ -138,22 +161,6 @@
           (cancelled)="pendingPack.set(null)"
         />
       }
-
-      <div class="space-y-3 text-left mt-5">
-        @for (pack of packs(); track pack.type) {
-          <div class="flex items-start gap-2.5">
-            <span class="pack-visual-mini relative mt-0.5" [class]="visualClasses[pack.type]">
-              <span class="pack-dots absolute inset-0 pointer-events-none"></span>
-            </span>
-            <div class="min-w-0">
-              <p class="text-[11px] font-bold">
-                {{ packLabel(pack.type) }} <span class="text-muted font-normal">— {{ tagline(pack.type) }}</span>
-              </p>
-              <p class="text-xs text-muted mt-0.5 leading-snug">{{ blurb(pack.type) }}</p>
-            </div>
-          </div>
-        }
-      </div>
 
       @if (openError()) {
         <p class="text-red-500 text-xs font-semibold mt-4">{{ openError() }}</p>

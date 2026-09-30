@@ -4,17 +4,19 @@
   >
 
   <!-- Header (2026-09-30 restyle): icon tile + title + legend, with Compare
-       as a real button beside it instead of a stray outline link. -->
-  <div class="mt-4 mb-5 flex items-start gap-3">
+       as a real button beside it instead of a stray outline link. On phones
+       the button wraps under the subtitle (ml-14 = icon + gap) so the title
+       gets the full width instead of being squeezed into a narrow column. -->
+  <div class="mt-4 mb-5 flex flex-wrap sm:flex-nowrap items-start gap-x-3 gap-y-3">
     <span class="card-head-icon !w-11 !h-11 !rounded-2xl"><app-nav-icon name="table" [size]="22" /></span>
-    <div class="min-w-0 flex-1">
+    <div class="min-w-0 flex-1 basis-[calc(100%-3.5rem)] sm:basis-0">
       <span class="flex items-center gap-1.5">
         <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('stats.title') }}</h1>
         <app-stat-legend [entries]="legendEntries()" />
       </span>
       <p class="text-sm text-muted mt-0.5">{{ i18n.t('stats.subtitle') }}</p>
     </div>
-    <a routerLink="/compare" appButton appButtonSize="sm" class="shrink-0">{{ i18n.t('stats.compare.navTitle') }}</a>
+    <a routerLink="/compare" appButton appButtonSize="sm" class="shrink-0 ml-14 sm:ml-0">{{ i18n.t('stats.compare.navTitle') }}</a>
   </div>
 
   @if (loading()) {

@@ -8,6 +8,7 @@ import { NavHistoryService } from "../../core/nav-history.service";
 import { CollectibleTier, PackType, SpinResult } from "../../core/models";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { PACK_VISUAL_CLASSES } from "../../shared/pack-visual";
+import { PackArtComponent } from "../../shared/pack-art";
 import { ButtonDirective } from "../../shared/button.directive";
 import { PageHintComponent } from "../../shared/page-hint";
 import { SkeletonComponent } from "../../shared/skeleton";
@@ -28,7 +29,7 @@ const COOLDOWN_MS = 24 * 60 * 60 * 1000;
 @Component({
   selector: "app-wheel",
   standalone: true,
-  imports: [CommonModule, RouterLink, NavIconComponent, ButtonDirective, PageHintComponent, SkeletonComponent],
+  imports: [CommonModule, RouterLink, NavIconComponent, ButtonDirective, PageHintComponent, SkeletonComponent, PackArtComponent],
   templateUrl: "./wheel.html",
   styleUrl: "./wheel.css",
 })
@@ -66,7 +67,9 @@ export class WheelComponent implements OnInit, OnDestroy {
     const mins = Math.ceil(this.cooldownLeftMs() / 60000);
     const h = Math.floor(mins / 60);
     const m = mins % 60;
-    return h > 0 ? `${h}h ${m.toString().padStart(2, "0")}m` : `${m}m`;
+    const hs = this.i18n.t("wheel.hoursShort");
+    const ms = this.i18n.t("wheel.minutesShort");
+    return h > 0 ? `${h}${hs} ${m.toString().padStart(2, "0")}${ms}` : `${m}${ms}`;
   });
   readonly visualClasses = PACK_VISUAL_CLASSES;
 

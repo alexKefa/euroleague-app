@@ -707,6 +707,9 @@ export interface PackDefinition {
   label: string;
   pointsCost: number;
   slots: number;
+  // Per-slot tier odds (sum to 1), straight from services/packs.ts's PACKS —
+  // drives the Packs page's slot strip.
+  slotOdds: Partial<Record<"common" | "rare" | "legendary" | "coach", number>>[];
 }
 
 // An unopened pack sitting in the user's inventory — currently only ever
