@@ -16,6 +16,8 @@ import { InstallBannerComponent } from "./shared/install-banner";
 import { TourFabComponent } from "./shared/tour-fab";
 import { BattleChallengeToastComponent } from "./shared/battle-challenge-toast";
 import { JumpBallToastComponent } from "./shared/jump-ball-toast";
+import { PackRewardToastComponent } from "./shared/pack-reward-toast";
+import { PackRewardsService } from "./core/pack-rewards.service";
 import { WhatsNewComponent } from "./shared/whats-new";
 import { WatchPillComponent } from "./shared/watch-pill";
 
@@ -136,6 +138,7 @@ const MORE_LINKS: NavLink[] = ["/schedule", "/teams", "/standings", "/news"].map
     TourFabComponent,
     BattleChallengeToastComponent,
     JumpBallToastComponent,
+    PackRewardToastComponent,
     WhatsNewComponent,
     WatchPillComponent,
   ],
@@ -151,6 +154,7 @@ export class AppComponent implements OnInit {
   protected i18n = inject(I18nService);
   protected events = inject(EventsService);
   protected trades = inject(TradesNotificationService);
+  protected packRewards = inject(PackRewardsService);
   protected tour = inject(TourService);
   private router = inject(Router);
   protected readonly navLinks = NAV_LINKS;

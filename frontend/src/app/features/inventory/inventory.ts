@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, inject, signal, computed, effect, viewChi
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
+import { PackRewardsService } from "../../core/pack-rewards.service";
 import { AuthService } from "../../core/auth.service";
 import { EventsService } from "../../core/events.service";
 import { I18nService } from "../../core/i18n.service";
@@ -56,6 +57,7 @@ import { CollectibleCardComponent } from "../store/collectible-card";
 })
 export class InventoryComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
+  private packRewards = inject(PackRewardsService);
   protected auth = inject(AuthService);
   private events = inject(EventsService);
   protected i18n = inject(I18nService);
@@ -521,7 +523,10 @@ export class InventoryComponent implements OnInit, OnDestroy {
     });
 
     this.api.getOwnedPacks().subscribe({
-      next: (packs) => this.unopenedPackCount.set(packs.length),
+      next: (packs) => {
+        this.unopenedPackCount.set(packs.length);
+        this.packRewards.syncUnopenedCount(packs.length);
+      },
       error: () => {},
     });
   }

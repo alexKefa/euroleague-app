@@ -166,10 +166,10 @@
                 [attr.aria-label]="i18n.t('nav.liveGame')"
               ></span>
             }
-            @if (link.path === '/inventory' && auth.isAuthenticated() && trades.hasPendingIncoming()) {
+            @if (link.path === '/inventory' && auth.isAuthenticated() && (trades.hasPendingIncoming() || packRewards.hasUnopened())) {
               <span
                 class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 animate-pulse"
-                [attr.aria-label]="i18n.t('nav.pendingTrades')"
+                [attr.aria-label]="i18n.t(trades.hasPendingIncoming() ? 'nav.pendingTrades' : 'nav.unopenedPacks')"
               ></span>
             }
           </span>
@@ -258,10 +258,10 @@
             [attr.aria-label]="i18n.t('nav.liveGame')"
           ></span>
         }
-        @if (link.path === '/inventory' && auth.isAuthenticated() && trades.hasPendingIncoming()) {
+        @if (link.path === '/inventory' && auth.isAuthenticated() && (trades.hasPendingIncoming() || packRewards.hasUnopened())) {
           <span
             class="absolute top-0.5 right-1 w-2 h-2 rounded-full bg-red-500 animate-pulse"
-            [attr.aria-label]="i18n.t('nav.pendingTrades')"
+            [attr.aria-label]="i18n.t(trades.hasPendingIncoming() ? 'nav.pendingTrades' : 'nav.unopenedPacks')"
           ></span>
         }
       </span>
@@ -342,6 +342,7 @@
   class="fixed z-40 inset-x-3 top-[calc(4.5rem+env(safe-area-inset-top))] sm:inset-x-auto sm:right-4 sm:top-20 sm:w-96 max-h-[calc(100dvh-6rem-env(safe-area-inset-top))] overflow-y-auto pointer-events-none"
 >
   <app-battle-challenge-toast></app-battle-challenge-toast>
+  <app-pack-reward-toast></app-pack-reward-toast>
   <app-jump-ball-toast></app-jump-ball-toast>
   <app-whats-new></app-whats-new>
 </div>

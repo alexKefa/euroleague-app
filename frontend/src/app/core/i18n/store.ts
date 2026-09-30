@@ -121,9 +121,25 @@ export const storeTranslations: Record<string, Record<Lang, string>> = {
   "packs.myCards": { en: "My cards", el: "Οι κάρτες μου" },
   "packs.myPacksTitle": { en: "My Packs", el: "Τα Πακέτα μου" },
   "packs.myPacksSubtitle": {
-    en: "Won from the wheel — open whenever you want.",
-    el: "Κερδισμένα από τον τροχό — άνοιξέ τα όποτε θες.",
+    en: "Rewards and Jump Ball wins — open whenever you want.",
+    el: "Επιβραβεύσεις και κέρδη από το Τζάμπολ — άνοιξέ τα όποτε θες.",
   },
+  // Why a pack was granted (2026-09-30) — shared/pack-source.ts. {n} is a
+  // round number or a milestone count.
+  "packs.source.perfectRound": { en: "Perfect round {n}", el: "Τέλειος γύρος {n}" },
+  "packs.source.greatRound": { en: "Great round {n}", el: "Εξαιρετικός γύρος {n}" },
+  "packs.source.pickMilestone": { en: "{n} correct picks milestone", el: "Ορόσημο {n} σωστών προβλέψεων" },
+  "packs.source.coachMilestone": { en: "{n} correct picks coach milestone", el: "Ορόσημο προπονητή: {n} σωστές προβλέψεις" },
+  "packs.source.fantasyMilestone": { en: "Fantasy Five: {n} rounds played", el: "Fantasy Five: {n} γύροι" },
+  "packs.source.wheel": { en: "Jump Ball win", el: "Κέρδος από το Τζάμπολ" },
+  "packs.source.welcome": { en: "Welcome gift", el: "Δώρο καλωσορίσματος" },
+  "packs.source.referral": { en: "Friend referral", el: "Πρόσκληση φίλου" },
+  "packs.source.promo": { en: "Promo code", el: "Κωδικός προσφοράς" },
+  // App-wide reward toast (shared/pack-reward-toast.ts).
+  "packs.rewardToastOne": { en: "You earned a pack: {reason}!", el: "Κέρδισες ένα πακέτο: {reason}!" },
+  "packs.rewardToastMany": { en: "You earned {n} new packs!", el: "Κέρδισες {n} νέα πακέτα!" },
+  "packs.rewardToastOpen": { en: "Open", el: "Άνοιγμα" },
+  "nav.unopenedPacks": { en: "You have unopened packs", el: "Έχεις πακέτα που δεν έχεις ανοίξει" },
   "packs.openNow": { en: "Open", el: "Άνοιγμα" },
   "packs.opening": { en: "Opening…", el: "Άνοιγμα…" },
   // Purchase confirmation (2026-09-26, direct request — a tap on the pack

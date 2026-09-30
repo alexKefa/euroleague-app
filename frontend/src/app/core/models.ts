@@ -715,6 +715,21 @@ export interface OwnedPack {
   packType: PackType;
   label: string;
   acquiredAt: string;
+  // Why this pack was granted — derived server-side (services/packSources.ts).
+  // Null for packs with no known source (e.g. admin test grants).
+  source: PackSource | null;
+}
+
+export type PackSource =
+  | { kind: "perfectRound" | "greatRound"; round: number }
+  | { kind: "pickMilestone" | "coachMilestone" | "fantasyMilestone"; count: number }
+  | { kind: "wheel" | "welcome" | "referral" | "promo" };
+
+// GET /packs/rewards/unseen — reward packs not yet announced to the user,
+// plus the unopened-pack count behind the Cards nav dot.
+export interface UnseenPackRewards {
+  rewards: OwnedPack[];
+  unopenedCount: number;
 }
 
 export interface PackOpenResultCard {

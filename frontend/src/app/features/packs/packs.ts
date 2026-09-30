@@ -9,6 +9,8 @@ import { PackDefinition, OwnedPack, PackOpenOutcome, PackOpenResultCard, PackTyp
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { PackIconComponent } from "../../shared/pack-icon";
 import { PACK_VISUAL_CLASSES } from "../../shared/pack-visual";
+import { packSourceText } from "../../shared/pack-source";
+import { PackRewardsService } from "../../core/pack-rewards.service";
 import { ButtonDirective } from "../../shared/button.directive";
 import { PageHintComponent } from "../../shared/page-hint";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
@@ -43,6 +45,7 @@ export class PacksComponent implements OnInit {
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
   protected navHistory = inject(NavHistoryService);
+  private packRewards = inject(PackRewardsService);
 
   readonly loading = signal(true);
   readonly packs = signal<PackDefinition[]>([]);
@@ -169,6 +172,7 @@ export class PacksComponent implements OnInit {
     this.api.getOwnedPacks().subscribe({
       next: (rows) => {
         this.ownedPacks.set(rows);
+        this.packRewards.syncUnopenedCount(rows.length);
         this.maybeAutoOpen(rows);
         this.ownedPacksLoading.set(false);
       },
@@ -206,6 +210,7 @@ export class PacksComponent implements OnInit {
     this.api.openOwnedPack(pack.id).subscribe({
       next: (outcome) => {
         this.ownedPacks.update((rows) => rows.filter((r) => r.id !== pack.id));
+        this.packRewards.packOpened(pack.id);
         this.outcome.set(outcome);
         this.revealIndex.set(0);
         this.transitionOutCard.set(null);
@@ -240,6 +245,13 @@ export class PacksComponent implements OnInit {
   // i18n/store.ts for why the frontend never renders it directly.
   packLabel(type: PackType): string {
     return this.i18n.t(`packs.label.${type}`);
+  }
+
+  // Why these packs were granted (2026-09-30), one caption per distinct
+  // reason in the group, e.g. "18 correct picks milestone · Jump Ball win".
+  groupReasons(items: OwnedPack[]): string {
+    const reasons = items.map((p) => packSourceText(this.i18n, p.source)).filter((r): r is string => r !== null);
+    return [...new Set(reasons)].join(" · ");
   }
 
   tagline(type: PackType): string {

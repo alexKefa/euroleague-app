@@ -38,6 +38,7 @@ import {
   PackOpenOutcome,
   PackType,
   OwnedPack,
+  UnseenPackRewards,
   RoundsInfo,
   Schedule,
   GameDetail,
@@ -417,6 +418,14 @@ export class ApiService {
 
   getOwnedPacks(): Observable<OwnedPack[]> {
     return this.http.get<OwnedPack[]>(`${API_BASE_URL}/packs/owned`);
+  }
+
+  getUnseenPackRewards(): Observable<UnseenPackRewards> {
+    return this.http.get<UnseenPackRewards>(`${API_BASE_URL}/packs/rewards/unseen`);
+  }
+
+  ackPackRewards(): Observable<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`${API_BASE_URL}/packs/rewards/ack`, {});
   }
 
   openOwnedPack(id: string): Observable<PackOpenOutcome> {

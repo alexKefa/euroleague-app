@@ -5,6 +5,17 @@ import { userCollectibles, pointAdjustments, packOpenings, packOpeningResults, o
 import { requireAuth } from "../auth/middleware.js";
 import { getUserPoints } from "../services/points.js";
 import { PACKS, PackType, RolledSlot, PityState, rollPackForUser } from "../services/packs.js";
+import { getUnopenedPacksWithSource } from "../services/packSources.js";
+import {
+  checkAndGrantRoundRewards,
+  checkAndGrantLegendaryMilestones,
+  checkAndGrantCoachMilestones,
+  checkAndGrantFantasyMilestones,
+  markRoundRewardsSeen,
+  markLegendaryMilestonesSeen,
+  markCoachMilestonesSeen,
+  markFantasyMilestonesSeen,
+} from "../services/cards.js";
 
 export const packsRouter = Router();
 
@@ -173,23 +184,56 @@ packsRouter.post("/:type/open", requireAuth, async (req, res) => {
 // do, they still open immediately via POST /:type/open above.
 packsRouter.get("/owned", requireAuth, async (req, res) => {
   try {
-    const rows = await db
-      .select()
-      .from(ownedPacks)
-      .where(and(eq(ownedPacks.userId, req.userId!), isNull(ownedPacks.openedAt)))
-      .orderBy(desc(ownedPacks.acquiredAt));
-
-    res.json(
-      rows.map((r) => ({
-        id: r.id,
-        packType: r.packType,
-        label: PACKS[r.packType as PackType]?.label ?? r.packType,
-        acquiredAt: r.acquiredAt,
-      }))
-    );
+    const rows = await getUnopenedPacksWithSource(req.userId!);
+    res.json(rows.map((r) => ({ ...r, label: PACKS[r.packType as PackType]?.label ?? r.packType })));
   } catch (err) {
     console.error("GET /api/packs/owned failed:", err);
     res.status(500).json({ error: "Failed to load your packs" });
+  }
+});
+
+// App-wide reward toast (2026-09-30). Reward packs used to be announced only
+// by banners on the Predictions/Fantasy pages, and only granted when one of
+// those pages loaded, so one could land and be marked seen without the user
+// noticing. The app shell calls this on load: it runs the same pack-granting
+// checks those pages do, then returns every still-unseen reward pack that's
+// still unopened, with its source, plus the unopened count for the nav dot.
+// The page banners stay in place; whichever surface shows a reward first
+// acks it, so each one is announced exactly once.
+packsRouter.get("/rewards/unseen", requireAuth, async (req, res) => {
+  const userId = req.userId!;
+  try {
+    const granted = [
+      ...(await checkAndGrantRoundRewards(userId)),
+      ...(await checkAndGrantLegendaryMilestones(userId)),
+      ...(await checkAndGrantCoachMilestones(userId)),
+      ...(await checkAndGrantFantasyMilestones(userId)),
+    ];
+    const unseenIds = new Set(granted.map((p) => p.id));
+    const unopened = await getUnopenedPacksWithSource(userId);
+    res.json({
+      rewards: unopened
+        .filter((p) => unseenIds.has(p.id))
+        .map((p) => ({ ...p, label: PACKS[p.packType as PackType]?.label ?? p.packType })),
+      unopenedCount: unopened.length,
+    });
+  } catch (err) {
+    console.error("GET /api/packs/rewards/unseen failed:", err);
+    res.status(500).json({ error: "Failed to load new rewards" });
+  }
+});
+
+packsRouter.post("/rewards/ack", requireAuth, async (req, res) => {
+  const userId = req.userId!;
+  try {
+    await markRoundRewardsSeen(userId);
+    await markLegendaryMilestonesSeen(userId);
+    await markCoachMilestonesSeen(userId);
+    await markFantasyMilestonesSeen(userId);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("POST /api/packs/rewards/ack failed:", err);
+    res.status(500).json({ error: "Failed to acknowledge rewards" });
   }
 });
 

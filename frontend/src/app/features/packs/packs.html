@@ -52,6 +52,9 @@
                 </span>
                 <div class="min-w-0 flex-1">
                   <p class="text-[12px] font-bold truncate">{{ packLabel(group.packType) }}</p>
+                  @if (groupReasons(group.items); as reasons) {
+                    <p class="text-[11px] text-team-primary font-semibold line-clamp-2">{{ reasons }}</p>
+                  }
                   @if (group.items.length > 1) {
                     <p class="text-[11px] text-muted">{{ group.items.length }}×</p>
                   }
