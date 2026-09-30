@@ -138,6 +138,12 @@ export const routes: Routes = [
   // leagues, one-tap challenges and invites, reached from the Cards hub and
   // a league's Battles tab. "battles/new" (the challenge composer) is
   // handled by BattleDetailComponent itself under ":id".
+  // Every reward and badge with progress (2026-09-30). Reached from
+  // Profile, the Cards hub and the Predictions "next reward" strip.
+  {
+    path: "achievements",
+    loadComponent: () => import("./features/achievements/achievements").then((m) => m.AchievementsComponent),
+  },
   {
     path: "battles",
     loadComponent: () => import("./features/battles/battles-hub").then((m) => m.BattlesHubComponent),

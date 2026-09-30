@@ -1,0 +1,182 @@
+<div class="max-w-3xl mx-auto p-4 sm:p-6">
+  <a [routerLink]="navHistory.previousUrl() ?? '/profile'" class="back-link mb-3">{{ i18n.t('nav.back') }}</a>
+  <h1 class="font-display text-3xl tracking-wide mb-1">{{ i18n.t('achievements.title') }}</h1>
+  <p class="text-sm text-muted mb-5">{{ i18n.t('achievements.subtitle') }}</p>
+
+  @if (loading()) {
+    <div class="space-y-3">
+      @for (i of [1, 2, 3, 4]; track i) {
+        <app-skeleton class="h-20 rounded-2xl" />
+      }
+    </div>
+  } @else if (!auth.isAuthenticated()) {
+    <div class="bg-card rounded-2xl border border-line shadow-card p-6 text-center">
+      <p class="text-sm text-muted mb-4">{{ i18n.t('achievements.loginPrompt') }}</p>
+      <a routerLink="/login" appButton appButtonSize="sm">{{ i18n.t('nav.login') }}</a>
+    </div>
+  } @else if (data(); as d) {
+    <!-- Summary strip. -->
+    <div class="grid grid-cols-3 gap-2 mb-6">
+      <div class="bg-card rounded-2xl border border-line p-3 text-center">
+        <p class="font-display text-2xl tabular-nums">{{ d.correctPicks }}</p>
+        <p class="text-[11px] text-muted font-semibold leading-tight">{{ i18n.t('achievements.statCorrect') }}</p>
+      </div>
+      <div class="bg-card rounded-2xl border border-line p-3 text-center">
+        <p class="font-display text-2xl tabular-nums">{{ totalRewardsEarned() }}</p>
+        <p class="text-[11px] text-muted font-semibold leading-tight">{{ i18n.t('achievements.statRewards') }}</p>
+      </div>
+      <div class="bg-card rounded-2xl border border-line p-3 text-center">
+        <p class="font-display text-2xl tabular-nums">{{ earnedBadgeCount() }}/{{ d.badges.length }}</p>
+        <p class="text-[11px] text-muted font-semibold leading-tight">{{ i18n.t('achievements.statBadges') }}</p>
+      </div>
+    </div>
+
+    <!-- Next rewards, closest first. -->
+    <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('achievements.nextRewards') }}</p>
+    <div class="space-y-2 mb-6">
+      @for (m of nextRewards(); track m.id) {
+        <a [routerLink]="milestoneLink(m)" class="block bg-card rounded-2xl border border-line shadow-card p-3.5 hover:border-team-primary/50 transition-colors">
+          <div class="flex items-center gap-3">
+            <span class="w-11 h-11 rounded-xl bg-team-primary/15 text-team-primary flex items-center justify-center shrink-0">
+              <app-nav-icon [name]="milestoneIcon(m)" [size]="20" />
+            </span>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-baseline justify-between gap-2">
+                <p class="font-semibold truncate">{{ i18n.t('achievements.milestone.' + m.id) }}</p>
+                <p class="font-mono text-xs font-bold tabular-nums shrink-0">{{ m.progress }}/{{ m.every }}</p>
+              </div>
+              <p class="text-[12px] text-muted truncate">{{ i18n.t('achievements.milestoneHow.' + m.id) }}</p>
+              <div class="h-2 rounded-full bg-page overflow-hidden mt-2">
+                <div class="h-full rounded-full bg-team-primary transition-all duration-700" [style.width.%]="pct(m.progress, m.every)"></div>
+              </div>
+              <div class="flex items-center justify-between mt-1 text-[11px]">
+                <span class="font-semibold text-team-primary">{{ toGo(m) }}</span>
+                @if (m.earned > 0) {
+                  <span class="text-muted">{{ i18n.t('achievements.earnedSoFar') }} {{ m.earned }}×</span>
+                }
+              </div>
+            </div>
+          </div>
+        </a>
+      }
+    </div>
+
+    <!-- This round's bonus. -->
+    @if (round(); as r) {
+      <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('achievements.thisRound') }} {{ r.round }}</p>
+      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-6">
+        <div class="flex items-baseline justify-between mb-2">
+          <p class="font-semibold">{{ i18n.t('achievements.roundCorrect') }}</p>
+          <p class="font-mono text-sm font-bold tabular-nums">{{ r.correct }}/{{ r.totalGames }}</p>
+        </div>
+        <!-- One segment per game: correct, still to play, or missed/unpicked. -->
+        <div class="flex gap-1 mb-3">
+          @for (i of roundSegments(); track $index) {
+            <span
+              class="flex-1 h-2.5 rounded-full"
+              [ngClass]="$index < r.correct ? 'bg-team-primary' : $index < r.correct + roundRemaining() ? 'bg-team-primary/25' : 'bg-page'"
+            ></span>
+          }
+        </div>
+        <div class="space-y-1.5 text-[13px]">
+          <div class="flex items-center justify-between gap-2">
+            <span><app-nav-icon name="flame" [size]="14" class="inline-block align-[-2px] text-team-primary" /> {{ r.greatThreshold }}+ {{ i18n.t('achievements.correctArrow') }} {{ i18n.t('packs.label.wheelPro') }}</span>
+            <span class="text-[11px] font-bold shrink-0" [ngClass]="r.correct >= r.greatThreshold ? 'text-emerald-500' : greatReachable() ? 'text-team-primary' : 'text-muted'">
+              {{ r.correct >= r.greatThreshold ? i18n.t('achievements.done') : greatReachable() ? i18n.t('achievements.stillPossible') : i18n.t('achievements.outOfReach') }}
+            </span>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <span><app-nav-icon name="trophy" [size]="14" class="inline-block align-[-2px] text-team-primary" /> {{ i18n.t('achievements.allCorrect') }} {{ i18n.t('packs.label.wheelLegendary') }}</span>
+            <span class="text-[11px] font-bold shrink-0" [ngClass]="perfectReachable() ? 'text-team-primary' : 'text-muted'">
+              {{ perfectReachable() ? (roundRemaining() === 0 ? i18n.t('achievements.done') : i18n.t('achievements.stillPossible')) : i18n.t('achievements.outOfReach') }}
+            </span>
+          </div>
+        </div>
+        @if (r.picked < r.totalGames && roundRemaining() > 0) {
+          <a routerLink="/predictions" appButton appButtonSize="sm" class="mt-3">{{ i18n.t('achievements.makePicks') }} ({{ r.totalGames - r.picked }})</a>
+        }
+      </div>
+    }
+
+    <!-- Badges. -->
+    <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('achievements.badges') }}</p>
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-6">
+      @for (b of d.badges; track b.id) {
+        <div class="bg-card rounded-2xl border p-3" [ngClass]="b.earned ? 'border-team-primary/50' : 'border-line'">
+          <span
+            class="w-10 h-10 rounded-xl flex items-center justify-center mb-2"
+            [ngClass]="b.earned ? 'bg-team-primary text-team-secondary' : 'bg-page text-muted'"
+          >
+            <app-nav-icon [name]="badgeIcon(b.id)" [size]="20" />
+          </span>
+          <p class="font-semibold text-sm leading-tight" [class.text-muted]="!b.earned">{{ i18n.t('predictions.badge.' + b.id + '.label') }}</p>
+          <p class="text-[11px] text-muted leading-snug mt-0.5">{{ i18n.t('predictions.badge.' + b.id + '.description') }}</p>
+          @if (b.earned) {
+            <p class="text-[11px] font-bold text-emerald-500 mt-1.5">✓ {{ i18n.t('achievements.earned') }}</p>
+          } @else {
+            <div class="h-1.5 rounded-full bg-page overflow-hidden mt-2">
+              <div class="h-full rounded-full bg-team-primary/70" [style.width.%]="pct(b.progress, b.target)"></div>
+            </div>
+            <p class="font-mono text-[10px] text-muted mt-1">
+              {{ b.progress }}/{{ b.target }}
+              @if (b.id === 'sharpshooter' && b.accuracy !== undefined) {
+                · {{ b.accuracy }}% ({{ i18n.t('achievements.need75') }})
+              }
+            </p>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Other ways to earn. -->
+    <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('achievements.moreWays') }}</p>
+    <div class="space-y-2">
+      <a routerLink="/wheel" class="flex items-center gap-3 bg-card rounded-2xl border border-line p-3.5 hover:border-team-primary/50 transition-colors">
+        <span class="w-11 h-11 rounded-xl bg-team-primary/15 text-team-primary flex items-center justify-center shrink-0"><app-nav-icon name="wheel" [size]="20" /></span>
+        <div class="min-w-0 flex-1">
+          <p class="font-semibold">{{ i18n.t('store.jumpBall') }}</p>
+          <p class="text-[12px] text-muted">{{ i18n.t('achievements.wheelHow') }}</p>
+        </div>
+        @if (spin(); as s) {
+          <span class="text-[11px] font-bold shrink-0" [ngClass]="s.canSpin ? 'text-team-primary' : 'text-muted'">
+            {{ s.canSpin ? i18n.t('achievements.spinReady') : spinCountdown() }}
+          </span>
+        }
+      </a>
+
+      <div class="flex items-center gap-3 bg-card rounded-2xl border border-line p-3.5">
+        <span class="w-11 h-11 rounded-xl bg-team-primary/15 text-team-primary flex items-center justify-center shrink-0"><app-nav-icon name="share" [size]="20" /></span>
+        <div class="min-w-0 flex-1">
+          <p class="font-semibold">{{ i18n.t('achievements.inviteTitle') }}</p>
+          <p class="text-[12px] text-muted">
+            {{ d.referral.packsPerFriend }} {{ i18n.t('achievements.inviteHow') }}
+            @if (d.referral.invited > 0) {
+              · {{ d.referral.invited }} {{ i18n.t('achievements.invited') }}, {{ d.referral.rewarded }} {{ i18n.t('achievements.rewarded') }}
+            }
+          </p>
+        </div>
+        @if (inviteUrl()) {
+          <button type="button" (click)="shareInvite()" appButton appButtonSize="sm" class="shrink-0">
+            {{ linkCopied() ? i18n.t('achievements.copied') : i18n.t('achievements.invite') }}
+          </button>
+        }
+      </div>
+
+      <a routerLink="/battles" class="flex items-center gap-3 bg-card rounded-2xl border border-line p-3.5 hover:border-team-primary/50 transition-colors">
+        <span class="w-11 h-11 rounded-xl bg-team-primary/15 text-team-primary flex items-center justify-center shrink-0"><app-nav-icon name="ball" [size]="20" /></span>
+        <div class="min-w-0 flex-1">
+          <p class="font-semibold">{{ i18n.t('battles.tab') }}</p>
+          <p class="text-[12px] text-muted">{{ i18n.t('achievements.battlesHow') }}</p>
+        </div>
+      </a>
+
+      <div class="flex items-center gap-3 bg-card rounded-2xl border border-line p-3.5">
+        <span class="w-11 h-11 rounded-xl bg-team-primary/15 text-team-primary flex items-center justify-center shrink-0"><app-nav-icon name="packs" [size]="20" /></span>
+        <div class="min-w-0 flex-1">
+          <p class="font-semibold">{{ i18n.t('achievements.promoTitle') }}</p>
+          <p class="text-[12px] text-muted">{{ i18n.t('achievements.promoHow') }}</p>
+        </div>
+      </div>
+    </div>
+  }
+</div>

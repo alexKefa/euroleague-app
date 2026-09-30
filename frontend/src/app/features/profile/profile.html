@@ -63,6 +63,14 @@
         <span class="ml-auto text-[12px] font-bold text-team-primary shrink-0">{{ i18n.t('profile.changeTeam') }}</span>
       </button>
     </div>
+    <a routerLink="/achievements" class="flex items-center gap-3 bg-card rounded-3xl border border-line shadow-card p-4 mb-4 hover:border-team-primary/50 transition-colors">
+      <span class="w-10 h-10 rounded-xl bg-team-primary/15 text-team-primary flex items-center justify-center shrink-0"><app-nav-icon name="medal" [size]="20" /></span>
+      <span class="min-w-0 flex-1">
+        <span class="block font-display text-base">{{ i18n.t('achievements.title') }}</span>
+        <span class="block text-[12px] text-muted truncate">{{ i18n.t('achievements.hubSub') }}</span>
+      </span>
+      <span class="text-team-primary font-bold shrink-0">&rarr;</span>
+    </a>
     @if (referralLink(); as link) {
       <div data-tour="profile-referral" class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
         <div class="flex items-center gap-2.5 mb-1">

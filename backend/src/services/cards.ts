@@ -20,7 +20,7 @@ import {
 // A round with this many correct picks (out of GAMES_PER_ROUND, but short of
 // literally perfect) grants a bonus rare — see the branch in
 // checkAndGrantRoundRewards below.
-const GREAT_ROUND_THRESHOLD = 8;
+export const GREAT_ROUND_THRESHOLD = 8;
 
 // Every this-many cumulative correct picks (career-wide, not per-round)
 // grants a guaranteed-new legendary — see checkAndGrantLegendaryMilestones.
@@ -223,7 +223,7 @@ export async function markRoundRewardsSeen(userId: string): Promise<void> {
  * "one round trip via scalar subqueries" shape as the win/loss count
  * sitting right next to it. "Fix everything" pass, 2026-09-21.
  */
-function topScorerCorrectCountSql(userId: string) {
+export function topScorerCorrectCountSql(userId: string) {
   return sql`(
     select count(*)::int
     from ${topScorerPredictions} tsp

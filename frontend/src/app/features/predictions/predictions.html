@@ -671,6 +671,22 @@
               <span class="text-[12px] font-bold">{{ i18n.t('predictions.whatDoTheseMean') }}</span>
             </button>
           </div>
+          <!-- Closest reward (2026-09-30) — links to the Achievements page. -->
+          @if (nextReward(); as m) {
+            <a routerLink="/achievements" class="status-tile flex items-center gap-3 mt-3 rounded-2xl border border-line px-3 py-2.5 hover:border-team-primary/50 transition-colors">
+              <app-nav-icon name="medal" [size]="18" class="text-team-primary shrink-0" />
+              <span class="min-w-0 flex-1">
+                <span class="flex items-baseline justify-between gap-2 text-[12px]">
+                  <span class="font-bold truncate">{{ i18n.t('achievements.nextRewardStrip') }}: {{ i18n.t('achievements.milestone.' + m.id) }}</span>
+                  <span class="font-mono font-bold tabular-nums shrink-0">{{ m.progress }}/{{ m.every }}</span>
+                </span>
+                <span class="block h-1.5 rounded-full bg-page overflow-hidden mt-1.5">
+                  <span class="block h-full rounded-full bg-team-primary" [style.width.%]="(m.progress / m.every) * 100"></span>
+                </span>
+              </span>
+              <span class="text-team-primary font-bold shrink-0">&rarr;</span>
+            </a>
+          }
         }
         </div>
       </div>

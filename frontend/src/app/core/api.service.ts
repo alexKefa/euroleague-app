@@ -48,6 +48,7 @@ import {
   BattleSummary,
   BattleDetail,
   BattleOpponent,
+  Achievements,
   CardStatLine,
   CollectibleFinish,
   DuelStat,
@@ -547,6 +548,10 @@ export class ApiService {
       `${API_BASE_URL}/battles/card-stats`,
       { collectibleIds }
     );
+  }
+
+  getAchievements(): Observable<Achievements> {
+    return this.http.get<Achievements>(`${API_BASE_URL}/users/me/achievements`);
   }
 
   getBattleOpponents(): Observable<BattleOpponent[]> {

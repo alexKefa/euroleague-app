@@ -16,6 +16,7 @@ import {
   RewardPack,
   MyTopScorerPrediction,
   RareMilestoneReward,
+  AchievementMilestone,
   PlayerAdvancedStatsRow,
   InjuryReportEntry,
 } from "../../core/models";
@@ -528,6 +529,24 @@ export class PredictionsComponent implements OnInit, OnDestroy {
   readonly shownCoachMilestoneRewards = signal<RewardPack[]>([]);
   readonly shownRareMilestoneRewards = signal<RareMilestoneReward[]>([]);
 
+  // Closest pack milestone for the "next reward" strip (2026-09-30). Fetched
+  // once per visit, after the summary (whose grants it reflects); the
+  // every-2-picks rare card is left out since it's always 0 or 1 away.
+  readonly nextReward = signal<AchievementMilestone | null>(null);
+  private nextRewardLoaded = false;
+  private loadNextReward(): void {
+    if (this.nextRewardLoaded) return;
+    this.nextRewardLoaded = true;
+    this.api.getAchievements().subscribe({
+      next: (a) => {
+        const packs = a.milestones.filter((m) => m.id !== "rareCard");
+        packs.sort((x, y) => (x.every - x.progress) / x.every - (y.every - y.progress) / y.every);
+        this.nextReward.set(packs[0] ?? null);
+      },
+      error: () => {},
+    });
+  }
+
   // How many points this round's picks are worth if every one of them hits —
   // every game listed in upcomingGames is still "scheduled" by construction
   // (see ngOnInit's filter below), so any of them with a pick is necessarily
@@ -681,6 +700,7 @@ export class PredictionsComponent implements OnInit, OnDestroy {
     this.api.getMyPredictionSummary().subscribe({
       next: (summary) => {
         this.mySummary.set(summary);
+        this.loadNextReward();
         // Merge (by id, keep first-seen) rather than replace — see
         // shownRoundRewards' doc comment for why a later, emptier fetch
         // must not clear what's already being shown.

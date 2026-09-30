@@ -4,8 +4,20 @@ import { db } from "../db/client.js";
 import { users, userCollectibles } from "../db/schema.js";
 import { requireAuth } from "../auth/middleware.js";
 import { isValidUsername } from "../services/username.js";
+import { getAchievements } from "../services/achievements.js";
 
 export const usersRouter = Router();
+
+// Achievements page (2026-09-30): progress toward every milestone, badge
+// and per-round reward in one read. See services/achievements.ts.
+usersRouter.get("/me/achievements", requireAuth, async (req, res) => {
+  try {
+    res.json(await getAchievements(req.userId!));
+  } catch (err) {
+    console.error("GET /api/users/me/achievements failed:", err);
+    res.status(500).json({ error: "Failed to load achievements", code: "FAILED_TO_LOAD_ACHIEVEMENTS" });
+  }
+});
 
 // Shown next to a user's name on a league leaderboard (routes/leagues.ts) —
 // see users.showcaseCollectibleIds's schema comment.

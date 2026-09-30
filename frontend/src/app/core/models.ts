@@ -1236,3 +1236,34 @@ export interface AdminUsersResponse {
   users: AdminUserRow[];
   signupsByDay: { date: string; count: number }[];
 }
+// GET /users/me/achievements (2026-09-30) — progress toward every
+// milestone, badge and per-round reward (backend services/achievements.ts).
+export interface AchievementMilestone {
+  id: "rareCard" | "legendaryPack" | "coachPack" | "fantasyPack";
+  every: number;
+  progress: number;
+  earned: number;
+}
+
+export interface AchievementBadge {
+  id: string;
+  earned: boolean;
+  progress: number;
+  target: number;
+  accuracy?: number;
+}
+
+export interface Achievements {
+  correctPicks: number;
+  milestones: AchievementMilestone[];
+  currentRound: {
+    round: number;
+    totalGames: number;
+    finalGames: number;
+    picked: number;
+    correct: number;
+    greatThreshold: number;
+  } | null;
+  badges: AchievementBadge[];
+  referral: { code: string | null; invited: number; rewarded: number; packsPerFriend: number };
+}

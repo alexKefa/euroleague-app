@@ -87,6 +87,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   // restyle, replacing the solid button grid).
   protected readonly hubTiles: { path: string; icon: NavIconName; labelKey: string; subKey: string }[] = [
     { path: "/battles", icon: "ball", labelKey: "battles.tab", subKey: "battles.hubSub" },
+    { path: "/achievements", icon: "medal", labelKey: "achievements.navLink", subKey: "achievements.hubSub" },
     { path: "/store", icon: "store", labelKey: "store.title", subKey: "inventory.hubStoreSub" },
     { path: "/wheel", icon: "wheel", labelKey: "store.jumpBall", subKey: "inventory.hubWheelSub" },
     { path: "/packs", icon: "packs", labelKey: "store.packs", subKey: "inventory.hubPacksSub" },
