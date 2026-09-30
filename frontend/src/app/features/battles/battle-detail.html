@@ -51,8 +51,11 @@
             [maxWidth]="96"
           ></app-collectible-card>
           <div class="min-w-0 flex-1">
-            <p class="font-semibold truncate mb-2">{{ b.challengerCard.name }}</p>
+            <p class="font-semibold truncate">{{ b.challengerCard.name }}</p>
             @if (b.challengerStats; as line) {
+              <div class="flex flex-wrap gap-1 mt-1 mb-2">
+                <ng-container *ngTemplateOutlet="condition; context: { $implicit: line }"></ng-container>
+              </div>
               <div class="grid grid-cols-3 gap-1.5">
                 @for (s of stats; track s) {
                   <div class="rounded-lg bg-page px-2 py-1.5 text-center">
@@ -118,6 +121,18 @@
     }
   }
 
+  <!-- Hot/cold form and injury badges for a card's stat line. -->
+  <ng-template #condition let-line>
+    @if (line.form === 'hot') {
+      <span class="cond-chip cond-chip--hot">🔥 {{ i18n.t('battles.formHot') }}</span>
+    } @else if (line.form === 'cold') {
+      <span class="cond-chip cond-chip--cold">❄️ {{ i18n.t('battles.formCold') }}</span>
+    }
+    @if (line.injury && line.injury !== 'probable') {
+      <span class="cond-chip cond-chip--injury">🩹 {{ i18n.t('injuries.status' + (line.injury.charAt(0).toUpperCase() + line.injury.slice(1))) }}</span>
+    }
+  </ng-template>
+
   <!-- Card + category picker, shared by composing and accepting. -->
   <ng-template #picker>
     <section class="mb-4">
@@ -179,6 +194,11 @@
                   {{ statShort(best) }} {{ myCardStats().get(card.id)?.boosted?.[best] }}
                 </span>
               }
+              @if (myCardStats().get(card.id); as line) {
+                <span class="mt-0.5 flex flex-wrap justify-center gap-1">
+                  <ng-container *ngTemplateOutlet="condition; context: { $implicit: line }"></ng-container>
+                </span>
+              }
             </button>
           }
         </div>
@@ -216,11 +236,19 @@
             </button>
           }
         </div>
-        @if (mine.multiplier > 1) {
-          <p class="text-[11px] text-muted mt-2">
-            {{ i18n.t('battles.boostNote') }} +{{ ((mine.multiplier - 1) * 100).toFixed(0) }}%
-          </p>
-        }
+        <!-- What's behind the numbers: rarity boost, recent form, injury. -->
+        <div class="flex flex-wrap items-center gap-1.5 mt-2 text-[11px]">
+          @if (rarityPct(mine) > 0) {
+            <span class="cond-chip">{{ i18n.t('battles.rarityBoost') }} +{{ rarityPct(mine) }}%</span>
+          }
+          @if (mine.recentGames > 0) {
+            <span class="cond-chip">{{ i18n.t('battles.formBlend') }} {{ mine.recentGames }}</span>
+          }
+          <ng-container *ngTemplateOutlet="condition; context: { $implicit: mine }"></ng-container>
+          @if (mine.injury && injuryPct(mine) > 0) {
+            <span class="text-red-500 font-semibold">−{{ injuryPct(mine) }}% {{ i18n.t('battles.onEveryStat') }}</span>
+          }
+        </div>
       </section>
     }
   </ng-template>

@@ -466,3 +466,30 @@
     box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 0%, transparent);
   }
 }
+
+/* Card condition badges (2026-09-30): recent form and injury status. */
+.cond-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.5;
+  background: color-mix(in srgb, var(--color-muted, #6b7280) 14%, transparent);
+  color: var(--color-muted, #6b7280);
+  white-space: nowrap;
+}
+.cond-chip--hot {
+  background: color-mix(in srgb, #f97316 16%, transparent);
+  color: #ea580c;
+}
+.cond-chip--cold {
+  background: color-mix(in srgb, #38bdf8 16%, transparent);
+  color: #0284c7;
+}
+.cond-chip--injury {
+  background: color-mix(in srgb, #ef4444 14%, transparent);
+  color: #dc2626;
+}

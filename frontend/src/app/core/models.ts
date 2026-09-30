@@ -857,6 +857,12 @@ export interface CardStatLine {
   raw: StatLine;
   multiplier: number;
   boosted: StatLine;
+  // Current condition (2026-09-30): games in the recent-form blend, a
+  // hot/cold label from recent vs season PIR, and injury-report status
+  // (already folded into multiplier).
+  recentGames: number;
+  form: "hot" | "cold" | null;
+  injury: "out" | "doubtful" | "questionable" | "probable" | null;
 }
 
 export interface DuelRound {

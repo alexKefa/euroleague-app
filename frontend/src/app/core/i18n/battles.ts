@@ -97,7 +97,11 @@ export const battlesTranslations: Record<string, Record<Lang, string>> = {
     el: "Με πράσινο όπου η κάρτα σου είναι καλύτερη. Διάλεξαν κι αυτοί μία κατηγορία, αλλά δεν ξέρεις ποια.",
   },
   "battles.vsShort": { en: "vs", el: "vs" },
-  "battles.boostNote": { en: "Rarity boost on every stat:", el: "Μπόνους σπανιότητας σε κάθε στατιστικό:" },
+  "battles.rarityBoost": { en: "Rarity", el: "Σπανιότητα" },
+  "battles.formBlend": { en: "Recent games counted:", el: "Πρόσφατοι αγώνες:" },
+  "battles.onEveryStat": { en: "on every stat (injury)", el: "σε κάθε στατιστικό (τραυματισμός)" },
+  "battles.formHot": { en: "Hot", el: "Σε φόρμα" },
+  "battles.formCold": { en: "Cold", el: "Εκτός φόρμας" },
   "battles.pickPrompt": { en: "Pick a card and a stat", el: "Διάλεξε κάρτα και στατιστικό" },
   "battles.estChance": { en: "Win chance ~", el: "Πιθανότητα ~" },
   "battles.yourCategory": { en: "Your stat", el: "Το στατιστικό σου" },
@@ -148,8 +152,8 @@ export const battlesTranslations: Record<string, Record<Lang, string>> = {
     el: "Κάθε πλευρά διαλέγει μια κάρτα και ένα στατιστικό: πόντους, ριμπάουντ, ασίστ, κλεψίματα, κοψίματα ή PIR. Το στατιστικό του προκαλούντος μένει κρυφό μέχρι τη μονομαχία.",
   },
   "battles.howItWorksStep2": {
-    en: "Three categories are compared: both picks plus one random one. The card with the better real per-game stats in 2 of the 3 wins. Rare cards get +5%, legendaries +10% and foil legendaries +15% on every stat.",
-    el: "Συγκρίνονται τρεις κατηγορίες: οι δύο επιλογές και μία τυχαία. Κερδίζει η κάρτα με τα καλύτερα πραγματικά στατιστικά ανά αγώνα στις 2 από τις 3. Οι σπάνιες κάρτες παίρνουν +5%, οι θρυλικές +10% και οι foil θρυλικές +15% σε κάθε στατιστικό.",
+    en: "Three categories are compared: both picks plus one random one. The card with the better real per-game stats in 2 of the 3 wins. Stats mix the season average with the player's last 5 games, so hot players 🔥 hit harder and cold ones ❄️ less. Rare cards get +5%, legendaries +10%, foil legendaries +15%. Injured players lose up to 25% (out −25%, doubtful −15%, questionable −10%).",
+    el: "Συγκρίνονται τρεις κατηγορίες: οι δύο επιλογές και μία τυχαία. Κερδίζει η κάρτα με τα καλύτερα πραγματικά στατιστικά ανά αγώνα στις 2 από τις 3. Τα στατιστικά συνδυάζουν τον μέσο όρο της σεζόν με τους 5 τελευταίους αγώνες του παίκτη, οπότε όσοι είναι σε φόρμα 🔥 είναι πιο δυνατοί και όσοι όχι ❄️ πιο αδύναμοι. Οι σπάνιες κάρτες παίρνουν +5%, οι θρυλικές +10%, οι foil θρυλικές +15%. Οι τραυματίες χάνουν έως 25% (εκτός −25%, αμφίβολος −15%, ερωτηματικό −10%).",
   },
   "battles.howItWorksStep3": {
     en: "The winner takes points from the loser: 25 for an expected win, up to 100 for an upset, never more than the loser has.",

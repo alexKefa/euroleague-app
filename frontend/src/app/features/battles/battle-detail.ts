@@ -298,7 +298,7 @@ export class BattleDetailComponent implements OnInit, OnDestroy {
             }
             this.api.getCardStats(owned.map((c) => c.id)).subscribe({
               next: (res) => {
-                const stats = new Map(res.stats.map((s) => [s.collectibleId, { raw: s.raw, boosted: s.boosted, multiplier: s.multiplier }]));
+                const stats = new Map<string, CardStatLine>(res.stats.map(({ collectibleId, finish, ...line }) => [collectibleId, line]));
                 this.myCardStats.set(stats);
                 // Strongest cards first (sum of boosted stats relative to
                 // typical values), so the best picks are at the top.
@@ -344,6 +344,17 @@ export class BattleDetailComponent implements OnInit, OnDestroy {
 
   statLabel(stat: DuelStat | null): string {
     return stat ? this.i18n.t(`battles.stat.${stat}`) : "";
+  }
+
+  // Rarity boost and injury penalty, shown separately under the stat grid.
+  // The rarity part is the multiplier with the injury factor divided back out.
+  private static readonly INJURY_FACTOR: Record<string, number> = { out: 0.75, doubtful: 0.85, questionable: 0.9, probable: 1 };
+  rarityPct(line: CardStatLine): number {
+    const injury = line.injury ? BattleDetailComponent.INJURY_FACTOR[line.injury] : 1;
+    return Math.round((line.multiplier / injury - 1) * 100);
+  }
+  injuryPct(line: CardStatLine): number {
+    return line.injury ? Math.round((1 - BattleDetailComponent.INJURY_FACTOR[line.injury]) * 100) : 0;
   }
 
   statShort(stat: DuelStat): string {
