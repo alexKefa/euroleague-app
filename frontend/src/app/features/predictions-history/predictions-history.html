@@ -43,7 +43,7 @@
                       <span class="text-muted text-xs">&ndash;</span>
                       <app-team-badge [code]="pick.awayTeam.code" [logoUrl]="pick.awayTeam.logoUrl" [size]="16"></app-team-badge>
                     </span>
-                    <span class="font-mono text-[11px] text-muted shrink-0">{{ pick.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}</span>
+                    <span class="font-mono text-[11px] text-muted shrink-0">{{ pick.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}{{ pick.tipoffAt | todayTag: i18n.lang() }}</span>
                   </div>
 
                   @if (pick.predictedTeam) {

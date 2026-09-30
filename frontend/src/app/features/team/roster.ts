@@ -14,6 +14,7 @@ import { newsDateLocale, gameDateTimeFormat } from "../../shared/news-date-forma
 import { injuryStatusLabel, injuryStatusClass } from "../../shared/injury-status";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { FavoritePlayersService } from "../../core/favorite-players.service";
+import { TodayTagPipe } from "../../shared/today-tag.pipe";
 
 // Plain box-score terms instead of advanced-stat proxies (eFG%-based
 // "offRating"/"defRating", assist ratio for "playmaking") — those didn't
@@ -35,6 +36,7 @@ type ComparisonAxis = (typeof COMPARISON_AXES)[number];
   selector: "app-team-roster",
   standalone: true,
   imports: [
+    TodayTagPipe,
     CommonModule,
     RouterLink,
     RetryImgDirective,

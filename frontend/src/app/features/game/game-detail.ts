@@ -19,6 +19,7 @@ import { formatPlayerName } from "../../shared/player-name";
 import { TeamCodePipe } from "../../shared/team-display-code";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { InjuryBadgeComponent } from "../../shared/injury-badge";
+import { TodayTagPipe } from "../../shared/today-tag.pipe";
 
 // Same hardcoded literal schedule.ts/predictions.ts/live-center.ts already
 // use for "the current season" — there's no shared season-lookup service on
@@ -84,6 +85,7 @@ function totalsFor(lines: GameBoxscoreLine[]): TeamTotals {
   selector: "app-game-detail",
   standalone: true,
   imports: [
+    TodayTagPipe,
     CommonModule,
     RouterLink,
     NavIconComponent,

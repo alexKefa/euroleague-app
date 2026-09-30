@@ -105,7 +105,7 @@
                     <span class="text-ink font-bold">{{ game.homeScore }}-{{ game.awayScore }}</span>
                   </span>
                 } @else {
-                  {{ game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }} &middot; {{ game.tipoffAt | date: "HH:mm":"Europe/Athens" }}
+                  {{ game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}{{ game.tipoffAt | todayTag: i18n.lang() }} &middot; {{ game.tipoffAt | date: "HH:mm":"Europe/Athens" }}
                 }
               </span>
 
@@ -763,7 +763,7 @@
                     </span>
                     <div class="min-w-0 flex-1">
                       <p class="font-semibold text-[13px] leading-tight truncate">{{ p.predictedTeam.name }}</p>
-                      <p class="font-mono text-muted text-[11px] mt-0.5">{{ p.tipoffAt | date: pickDateFormat():"Europe/Athens":dateLocale() }}</p>
+                      <p class="font-mono text-muted text-[11px] mt-0.5">{{ p.tipoffAt | date: pickDateFormat():"Europe/Athens":dateLocale() }}{{ p.tipoffAt | todayTag: i18n.lang() }}</p>
                     </div>
                     <ng-container *ngTemplateOutlet="pickResultChip; context: { pending: p.isPendingSubmit, correct: p.isCorrect, points: null }"></ng-container>
                   </div>
@@ -806,7 +806,7 @@
                       <app-team-badge [code]="p.homeTeam.code" [logoUrl]="teamLogo(p.homeTeam.id)" [size]="14"></app-team-badge>
                       <span>&ndash;</span>
                       <app-team-badge [code]="p.awayTeam.code" [logoUrl]="teamLogo(p.awayTeam.id)" [size]="14"></app-team-badge>
-                      <span class="truncate">&middot; {{ p.tipoffAt | date: pickDateFormat():"Europe/Athens":dateLocale() }}</span>
+                      <span class="truncate">&middot; {{ p.tipoffAt | date: pickDateFormat():"Europe/Athens":dateLocale() }}{{ p.tipoffAt | todayTag: i18n.lang() }}</span>
                     </p>
                   </div>
                   <ng-container *ngTemplateOutlet="pickResultChip; context: { pending: false, correct: p.isCorrect, points: p.pointsAtPick }"></ng-container>

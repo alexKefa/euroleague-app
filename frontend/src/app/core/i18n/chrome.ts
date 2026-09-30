@@ -28,6 +28,7 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
   // previous page to return to, since that page isn't necessarily "X"
   // anymore once a drill-down page is reachable from several places.
   "nav.back": { en: "Back", el: "Πίσω" },
+  "common.today": { en: "Today", el: "Σήμερα" },
 
   // shared/page-hint.ts — dismiss button, reused across every page hint.
   "hint.dismiss": { en: "Dismiss", el: "Απόρριψη" },

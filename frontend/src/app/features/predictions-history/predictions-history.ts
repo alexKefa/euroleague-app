@@ -9,6 +9,7 @@ import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { newsDateLocale, shortDateFormat } from "../../shared/news-date-format";
 import { NavHistoryService } from "../../core/nav-history.service";
+import { TodayTagPipe } from "../../shared/today-tag.pipe";
 
 // The full round-by-round log behind /predictions' own compact "My picks"
 // card — every match with a pick (win/loss and/or top-scorer), grouped by
@@ -20,7 +21,7 @@ import { NavHistoryService } from "../../core/nav-history.service";
 @Component({
   selector: "app-predictions-history",
   standalone: true,
-  imports: [CommonModule, RouterLink, TeamBadgeComponent, PlayerPhotoComponent, SkeletonComponent],
+  imports: [CommonModule, RouterLink, TeamBadgeComponent, PlayerPhotoComponent, SkeletonComponent, TodayTagPipe],
   templateUrl: "./predictions-history.html",
 })
 export class PredictionsHistoryComponent implements OnInit {

@@ -31,6 +31,7 @@ import {
 } from "../../shared/news-date-format";
 import { TeamCodePipe } from "../../shared/team-display-code";
 import { rankBadgeClasses } from "../../shared/rank-badge";
+import { TodayTagPipe } from "../../shared/today-tag.pipe";
 
 const LEADER_CATEGORIES = [
   { value: "points", label: "PTS" },
@@ -54,6 +55,7 @@ type DashboardTab = "performances" | "leaders" | "predictors" | "schedule";
   selector: "app-dashboard",
   standalone: true,
   imports: [
+    TodayTagPipe,
     CommonModule,
     RouterLink,
     PageHintComponent,

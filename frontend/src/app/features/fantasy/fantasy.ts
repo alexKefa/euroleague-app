@@ -42,6 +42,7 @@ import {
   injuryAccentTextClass,
   injuryNoteFor,
 } from "../../shared/injury-status";
+import { TodayTagPipe } from "../../shared/today-tag.pipe";
 
 // Squad shape — mirrors backend/src/services/fantasyScoring.ts's constants
 // exactly (kept in sync by hand, same as e.g. analytics-builder.ts keeping
@@ -283,6 +284,7 @@ interface SwapCandidate {
   selector: "app-fantasy",
   standalone: true,
   imports: [
+    TodayTagPipe,
     CommonModule,
     RouterLink,
     DragDropModule,

@@ -322,7 +322,7 @@
                 }
                 <span class="font-display text-sm">{{ opponentTeam(game).code | teamCode }}</span>
               </span>
-              <span class="status-tile h-7 px-2.5 inline-flex items-center rounded-full border border-line font-mono text-[12px] font-bold">{{ game.tipoffAt | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}</span>
+              <span class="status-tile h-7 px-2.5 inline-flex items-center rounded-full border border-line font-mono text-[12px] font-bold">{{ game.tipoffAt | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}{{ game.tipoffAt | todayTag: i18n.lang() }}</span>
             </a>
           }
         </div>

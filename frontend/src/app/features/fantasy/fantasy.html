@@ -1774,7 +1774,7 @@
                 } @else if (game.status === 'final') {
                   <span class="text-[11px] font-bold uppercase tracking-wide text-muted shrink-0">{{ i18n.t('fantasy.gameFinal') }}</span>
                 } @else {
-                  <span class="text-[11px] font-mono text-muted shrink-0">{{ game.tipoffAt | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}</span>
+                  <span class="text-[11px] font-mono text-muted shrink-0">{{ game.tipoffAt | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}{{ game.tipoffAt | todayTag: i18n.lang() }}</span>
                 }
               </div>
             }

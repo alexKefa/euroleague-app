@@ -112,7 +112,7 @@
           [style.background]="'radial-gradient(120% 140% at 15% 0%, color-mix(in srgb, var(--accent-primary) 20%, transparent) 0%, var(--color-card) 65%)'"
         >
           <p class="status-tile inline-flex items-center h-8 px-3 rounded-full border border-line font-mono text-[11px] font-bold text-muted uppercase tracking-wider mb-3">
-            {{ i18n.t('dashboard.next') }} &middot; {{ game.tipoffAt | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}
+            {{ i18n.t('dashboard.next') }} &middot; {{ game.tipoffAt | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}{{ game.tipoffAt | todayTag: i18n.lang() }}
           </p>
           <div class="flex items-center justify-center gap-4">
             <span class="w-14 h-14 rounded-2xl flex items-center justify-center bg-card shrink-0" [style.border]="'2px solid var(--accent-primary)'">
@@ -477,7 +477,7 @@
                       }
                       <span class="font-semibold truncate">{{ isHomeGame(game) ? "vs" : "@" }} {{ opponentCode(game) | teamCode }}</span>
                     </span>
-                    <span class="value-chip value-chip--muted">{{ game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}</span>
+                    <span class="value-chip value-chip--muted">{{ game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}{{ game.tipoffAt | todayTag: i18n.lang() }}</span>
                   </a>
                 }
               </div>

@@ -82,7 +82,7 @@
             }
           </span>
         } @else {
-          &middot; {{ isFinal() ? i18n.t('game.final') : (d.game.tipoffAt | date: "EEE, MMM d, HH:mm") }}
+          &middot; {{ isFinal() ? i18n.t('game.final') : ((d.game.tipoffAt | date: "EEE, MMM d, HH:mm") + (d.game.tipoffAt | todayTag: i18n.lang())) }}
         }
       </p>
       <div class="flex items-center justify-between gap-3">

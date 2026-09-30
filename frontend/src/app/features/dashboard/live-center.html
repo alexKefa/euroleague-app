@@ -75,7 +75,7 @@
                       <img [src]="game.awayTeam.logoUrl" [alt]="game.awayTeam.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
                     }
                   </span>
-                  <span class="font-mono text-xs text-muted shrink-0">{{ game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}</span>
+                  <span class="font-mono text-xs text-muted shrink-0">{{ game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}{{ game.tipoffAt | todayTag: i18n.lang() }}</span>
                 </a>
               }
             </div>
@@ -109,7 +109,7 @@
                         <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>{{ i18n.t('liveCenter.live') }}
                       </span>
                     } @else {
-                      <span class="font-mono text-[10px] font-bold text-muted leading-tight">{{ row.game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}</span>
+                      <span class="font-mono text-[10px] font-bold text-muted leading-tight">{{ row.game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}{{ row.game.tipoffAt | todayTag: i18n.lang() }}</span>
                     }
                     <ng-container *ngTemplateOutlet="pickSideMini; context: { team: row.game.homeTeam, picked: pickedHome, alignEnd: true }"></ng-container>
                     <span class="text-center min-w-[2.5rem]">
@@ -202,7 +202,7 @@
                             <span class="font-mono font-bold text-xs">{{ game.homeScore }}-{{ game.awayScore }}</span>
                           </span>
                         } @else {
-                          <span class="font-mono text-[11px] text-muted shrink-0">{{ game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}</span>
+                          <span class="font-mono text-[11px] text-muted shrink-0">{{ game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}{{ game.tipoffAt | todayTag: i18n.lang() }}</span>
                         }
                       } @else {
                         <span class="font-mono text-[11px] text-muted shrink-0">{{ i18n.t('liveCenter.noGameThisRound') }}</span>
