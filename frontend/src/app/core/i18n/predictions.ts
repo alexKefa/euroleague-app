@@ -4,9 +4,23 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
   "predictions.spendPoints": { en: "Spend points", el: "Ξόδεψε πόντους" },
   "predictions.upcomingGames": { en: "Upcoming games", el: "Επερχόμενοι αγώνες" },
   "predictions.vs": { en: "vs", el: "vs" },
-  "predictions.tapToClearHint": {
-    en: "Tap to pick, tap again to clear, then complete predictions to save.",
-    el: "Πάτησε για να διαλέξεις, ξανά για να αφαιρέσεις, μετά ολοκλήρωσε τις προβλέψεις σου.",
+  // "How to play" steps on the Upcoming games card (2026-09-30).
+  "predictions.howTo.title": { en: "How to play", el: "Πώς παίζεται" },
+  "predictions.howTo.hide": { en: "Hide guide", el: "Απόκρυψη οδηγού" },
+  "predictions.howTo.step1Title": { en: "Pick the winner", el: "Διάλεξε νικητή" },
+  "predictions.howTo.step1Body": {
+    en: "Tap the team you think wins. Underdogs pay more. Tap again to undo.",
+    el: "Πάτησε την ομάδα που θα κερδίσει. Τα αουτσάιντερ δίνουν περισσότερα. Ξανά για αναίρεση.",
+  },
+  "predictions.howTo.step2Title": { en: "Pick a top scorer", el: "Διάλεξε κορυφαίο σκόρερ" },
+  "predictions.howTo.step2Body": {
+    en: "Optional. Tap a player under the game. Saves instantly; tap again or × to remove.",
+    el: "Προαιρετικό. Πάτησε παίκτη κάτω από τον αγώνα. Αποθηκεύεται αμέσως· ξανά ή × για αφαίρεση.",
+  },
+  "predictions.howTo.step3Title": { en: "Save your winners", el: "Αποθήκευσε τους νικητές" },
+  "predictions.howTo.step3Body": {
+    en: "Tap Complete predictions. Winners lock at tip-off.",
+    el: "Πάτησε «Ολοκλήρωση προβλέψεων». Κλειδώνουν στο τζάμπολ.",
   },
   // Points hero card (2026-09-29 restyle).
   "predictions.yourPoints": { en: "Your points", el: "Οι πόντοι σου" },
@@ -77,8 +91,8 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
   },
 
   "predictions.hint": {
-    en: "Pick a winner before tip-off. Each correct call earns 10 points, a great round (8+/10) wins a bonus rare pack, a perfect round wins a legendary pack, and every 60 correct picks overall wins another legendary pack.",
-    el: "Διάλεξε νικητή πριν το τζάμπολ. Με κάθε σωστή πρόβλεψη κερδίζεις 10 πόντους, ένας σπουδαίος γύρος (8+/10) σου δίνει ένα σπάνιο πακέτο, ένας τέλειος γύρος ένα θρυλικό πακέτο, και κάθε 60 συνολικές σωστές προβλέψεις ξεκλειδώνουν άλλο ένα θρυλικό πακέτο.",
+    en: "Pick a winner before tip-off. Correct calls earn points (underdogs pay more), a great round (8+/10) wins a bonus rare pack, a perfect round wins a legendary pack, and every 60 correct picks overall wins another legendary pack.",
+    el: "Διάλεξε νικητή πριν το τζάμπολ. Με κάθε σωστή πρόβλεψη κερδίζεις πόντους (τα αουτσάιντερ δίνουν περισσότερους), ένας σπουδαίος γύρος (8+/10) σου δίνει ένα σπάνιο πακέτο, ένας τέλειος γύρος ένα θρυλικό πακέτο, και κάθε 60 συνολικές σωστές προβλέψεις ξεκλειδώνουν άλλο ένα θρυλικό πακέτο.",
   },
 
   // Badge legend — a tap-to-open key explaining every badge glyph (locked

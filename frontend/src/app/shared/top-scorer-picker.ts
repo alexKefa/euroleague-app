@@ -109,8 +109,44 @@ export class TopScorerPickerComponent implements OnInit {
     });
   }
 
+  isPicked(playerId: string): boolean {
+    return this.myPick()?.predictedPlayer.id === playerId;
+  }
+
+  // TopScorerPrediction carries no photo, so look it up from the rosters
+  // already on screen.
+  readonly pickedPhotoUrl = computed(() => {
+    const id = this.myPick()?.predictedPlayer.id;
+    if (!id) return null;
+    return [...this.homeRoster(), ...this.awayRoster()].find((r) => r.player.id === id)?.player.photoUrl ?? null;
+  });
+
+  readonly clearing = signal(false);
+
+  // Removes this game's pick (2026-09-30, "how to reset") — also reached by
+  // tapping the picked player again, like the win/loss team buttons.
+  clear(): void {
+    if (this.clearing() || !this.myPick()) return;
+    this.clearing.set(true);
+    this.error.set(null);
+    this.api.clearTopScorerPick(this.gameId).subscribe({
+      next: () => {
+        this.myPick.set(null);
+        this.clearing.set(false);
+      },
+      error: (err) => {
+        this.error.set(err?.error?.error ?? this.i18n.t("topScorer.pickFailed"));
+        this.clearing.set(false);
+      },
+    });
+  }
+
   pick(playerId: string): void {
-    if (this.savingId() || this.isOut(playerId)) return;
+    if (this.savingId() || this.clearing() || this.isOut(playerId)) return;
+    if (this.isPicked(playerId)) {
+      this.clear();
+      return;
+    }
     this.savingId.set(playerId);
     this.error.set(null);
     this.api.submitTopScorerPick(this.gameId, playerId).subscribe({

@@ -41,6 +41,7 @@ const SEASON = "2026-27";
 // Widget row caps (2026-09-25 redesign) — see visiblePicks's doc comment.
 const WIDGET_ROW_LIMIT = 4;
 const WIDGET_LEADERBOARD_LIMIT = 5;
+const HOW_TO_STORAGE_KEY = "clutch-predictions-howto-collapsed";
 
 // Mirrors backend/src/services/points.ts's POINTS_PER_CORRECT/
 // pointsForCorrectPick exactly — kept as a separate implementation here
@@ -316,6 +317,12 @@ export class PredictionsComponent implements OnInit, OnDestroy {
 
   quickPickTopScorer(game: Game, playerId: string): void {
     if (this.quickPickSavingId() || this.isOut(playerId)) return;
+    // Tapping the already-picked player again clears it, same "tap again to
+    // clear" rule the win/loss team buttons follow.
+    if (this.isQuickPicked(game, playerId)) {
+      this.clearTopScorer(game);
+      return;
+    }
     this.quickPickSavingId.set(playerId);
     this.api.submitTopScorerPick(game.id, playerId).subscribe({
       next: () => {
@@ -332,6 +339,50 @@ export class PredictionsComponent implements OnInit, OnDestroy {
       },
       error: () => this.quickPickSavingId.set(null),
     });
+  }
+
+  // Per-game top-scorer reset (2026-09-30, "how to reset") — previously the
+  // only way to drop a top-scorer pick was the round-wide Clear all.
+  readonly clearingTopScorerGameId = signal<string | null>(null);
+
+  clearTopScorer(game: Game): void {
+    if (this.clearingTopScorerGameId()) return;
+    this.clearingTopScorerGameId.set(game.id);
+    this.api.clearTopScorerPick(game.id).subscribe({
+      next: () => {
+        this.myTopScorerPredictions.update((rows) => rows.filter((p) => p.gameId !== game.id));
+        this.clearingTopScorerGameId.set(null);
+      },
+      error: () => this.clearingTopScorerGameId.set(null),
+    });
+  }
+
+  // "How to play" steps above the upcoming games (2026-09-30, "make it
+  // easier to understand how to predict"). Open until the visitor collapses
+  // it once; remembered per browser like PageHintComponent.
+  readonly showHowTo = signal(true);
+  readonly howToSteps = [
+    { n: 1, title: "predictions.howTo.step1Title", body: "predictions.howTo.step1Body" },
+    { n: 2, title: "predictions.howTo.step2Title", body: "predictions.howTo.step2Body" },
+    { n: 3, title: "predictions.howTo.step3Title", body: "predictions.howTo.step3Body" },
+  ];
+
+  private initHowTo(): void {
+    try {
+      this.showHowTo.set(localStorage.getItem(HOW_TO_STORAGE_KEY) !== "1");
+    } catch {
+      // Storage unavailable — stays open.
+    }
+  }
+
+  toggleHowTo(): void {
+    const next = !this.showHowTo();
+    this.showHowTo.set(next);
+    try {
+      localStorage.setItem(HOW_TO_STORAGE_KEY, next ? "0" : "1");
+    } catch {
+      // Storage unavailable — only this visit remembers it.
+    }
   }
 
   closeTopScorerPicker(): void {
@@ -548,6 +599,7 @@ export class PredictionsComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.initHowTo();
     this.api.getTeams().subscribe({
       next: (teams) => this.teamLogos.set(new Map(teams.map((t) => [t.id, t.logoUrl]))),
       error: () => {},
