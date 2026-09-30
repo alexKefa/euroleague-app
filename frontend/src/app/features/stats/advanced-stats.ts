@@ -112,7 +112,10 @@ const COLUMNS: ColumnDef[] = [
   },
 ];
 
-const DEFAULT_MIN_GAMES = 5;
+// Minimum-games filter (2026-09-30, direct request): 0 until 5 rounds are in,
+// then 5, so early-season tables aren't empty. Rounds played is read off the
+// data itself (the most games any player has this season).
+const MIN_GAMES_ONCE_ESTABLISHED = 5;
 const DEFAULT_MIN_MINUTES = 0;
 
 // Whole league (~200 rows) is fetched and filtered/sorted client-side (see
@@ -184,7 +187,12 @@ export class AdvancedStatsComponent implements OnInit, OnDestroy {
 
   readonly searchQuery = signal("");
   readonly teamFilter = signal<string | null>(null);
-  readonly minGames = signal(DEFAULT_MIN_GAMES);
+  readonly minGames = signal(0);
+  private minGamesTouched = false;
+  readonly defaultMinGames = computed(() => {
+    const roundsPlayed = this.allRows().reduce((max, r) => Math.max(max, r.stats.gamesPlayed ?? 0), 0);
+    return roundsPlayed >= MIN_GAMES_ONCE_ESTABLISHED ? MIN_GAMES_ONCE_ESTABLISHED : 0;
+  });
   readonly minMinutes = signal(DEFAULT_MIN_MINUTES);
   readonly sortKey = signal("valuation");
   readonly sortDesc = signal(true);
@@ -193,7 +201,7 @@ export class AdvancedStatsComponent implements OnInit, OnDestroy {
     () =>
       this.searchQuery().trim().length > 0 ||
       this.teamFilter() !== null ||
-      this.minGames() !== DEFAULT_MIN_GAMES ||
+      this.minGames() !== this.defaultMinGames() ||
       this.minMinutes() !== DEFAULT_MIN_MINUTES
   );
 
@@ -284,6 +292,7 @@ export class AdvancedStatsComponent implements OnInit, OnDestroy {
       next: (res) => {
         this.season.set(res.season);
         this.allRows.set(res.rows);
+        if (!this.minGamesTouched) this.minGames.set(this.defaultMinGames());
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
@@ -311,6 +320,7 @@ export class AdvancedStatsComponent implements OnInit, OnDestroy {
 
   setMinGames(value: string): void {
     const n = Number(value);
+    this.minGamesTouched = true;
     this.minGames.set(Number.isFinite(n) && n >= 0 ? n : 0);
     this.visibleCount.set(PAGE_SIZE);
   }
@@ -345,7 +355,7 @@ export class AdvancedStatsComponent implements OnInit, OnDestroy {
   clearFilters(): void {
     this.searchQuery.set("");
     this.teamFilter.set(null);
-    this.minGames.set(DEFAULT_MIN_GAMES);
+    this.minGames.set(this.defaultMinGames());
     this.minMinutes.set(DEFAULT_MIN_MINUTES);
     this.visibleCount.set(PAGE_SIZE);
   }

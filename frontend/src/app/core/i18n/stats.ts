@@ -6,8 +6,8 @@ export const statsTranslations: Record<string, Record<Lang, string>> = {
   "stats.viewFull": { en: "Full stats table", el: "Πλήρης πίνακας" },
   "stats.title": { en: "Advanced Stats", el: "Προχωρημένα Στατιστικά" },
   "stats.subtitle": {
-    en: "Every player, sorted and filtered your way — shooting efficiency, rebound/assist/turnover rates, and pace.",
-    el: "Κάθε παίκτης, ταξινομημένος και φιλτραρισμένος όπως θέλεις — απόδοση σουτ, ρυθμοί ριμπάουντ/ασίστ/λαθών, και ρυθμός παιχνιδιού.",
+    en: "Season stats for every EuroLeague player. Tap a column to sort, or a player for details.",
+    el: "Τα στατιστικά της σεζόν για κάθε παίκτη της EuroLeague. Πάτα μια στήλη για ταξινόμηση ή έναν παίκτη για λεπτομέρειες.",
   },
   "stats.searchPlaceholder": { en: "Search players…", el: "Αναζήτηση παικτών…" },
   "stats.allTeams": { en: "All teams", el: "Όλες οι ομάδες" },
