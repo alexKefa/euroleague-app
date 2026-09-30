@@ -1,30 +1,27 @@
-@if (visible()) {
+@if (visible() && !hiddenHere()) {
   <div class="fixed z-40 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 sm:bottom-6 sm:right-6">
-    <!-- Pulsing halo behind the pill — sized to match it via inset-0 on a
-         wrapper with no explicit width/height of its own (shrink-to-fit
-         around the button), same "ring behind the real element" trick as
-         the mobile nav's old (since-removed) active-tab treatments. -->
-    <!-- bg-highlight -> bg-team-primary (2026-09-18, "change everywhere on
-         the app the default orange color with the preferred team") —
-         text-white -> text-team-secondary on the solid-fill button is a
-         contrast fix, not cosmetic: a near-white team color (Real Madrid,
-         Dubai Basketball) would make white text unreadable on a solid
-         team-primary fill. The pulsing ring (bg-highlight/60) is a
-         translucent wash, not a fill, so it just swaps color directly. -->
-    <span class="absolute inset-0 rounded-full bg-team-primary/60 animate-ping motion-reduce:hidden"></span>
+    <!-- Solid team-color pill (text-team-secondary, not white, so near-white
+         team colors stay readable). Glows 3 times then stops; collapses to
+         the compass icon after a few seconds, hover expands it again. -->
     <button
       type="button"
       (click)="start()"
-      class="relative flex items-center gap-2 pl-3 pr-4 py-2.5 rounded-full bg-team-primary text-team-secondary font-display text-sm font-bold shadow-pop hover:brightness-110 active:brightness-95 transition-[filter]"
+      (mouseenter)="hovered.set(true)"
+      (mouseleave)="hovered.set(false)"
+      (focus)="hovered.set(true)"
+      (blur)="hovered.set(false)"
+      [attr.aria-label]="i18n.t('tour.takeTour')"
+      class="tour-fab-glow relative flex items-center h-11 rounded-full bg-team-primary text-team-secondary font-display text-sm font-bold shadow-pop hover:brightness-110 active:brightness-95 transition-[filter,padding] duration-300"
+      [class]="showLabel() ? 'pl-3 pr-4 gap-2' : 'px-3 gap-0'"
     >
-      <app-nav-icon name="compass" [size]="18" class="text-team-secondary" />
-      {{ i18n.t('tour.takeTour') }}
+      <app-nav-icon name="compass" [size]="20" class="text-team-secondary shrink-0" />
+      <span class="tour-fab-label" [class.is-collapsed]="!showLabel()">{{ i18n.t('tour.takeTour') }}</span>
     </button>
     <button
       type="button"
       (click)="dismiss()"
       [attr.aria-label]="i18n.t('tour.skip')"
-      class="tap-target absolute -top-2 -left-2 w-6 h-6 rounded-full bg-card border border-line shadow-card flex items-center justify-center text-muted hover:text-ink transition-colors text-sm leading-none"
+      class="tap-target absolute -top-2.5 -left-2.5 w-7 h-7 rounded-full bg-card border border-line shadow-card flex items-center justify-center text-muted hover:text-ink transition-colors text-base leading-none"
     >
       &times;
     </button>
