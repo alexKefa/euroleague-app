@@ -48,6 +48,13 @@ function normalizePlayerName(name: string): string {
 // player with no synced stats at all.
 const TIER_BASE: Record<string, number> = { common: 20, rare: 35, legendary: 55 };
 
+// A foil legendary hits harder in a duel (2026-09-30, direct request: "when a
+// foil legendary is drawn on battle it should have a bigger power"). Foil
+// was cosmetic-only until now (see user_collectibles.finish in schema.ts);
+// this is its one gameplay effect. Finish is per owner, so callers pass the
+// battling user's own finish for the card.
+export const FOIL_POWER_BONUS = 10;
+
 async function buildPirLookup(): Promise<Map<string, number>> {
   const season = (await getCurrentSeason()) ?? "__none__";
   const rows = await db.execute<{ team_id: string; name: string; pir: number | null }>(sql`
@@ -78,21 +85,23 @@ export interface CardPowerDetail {
   power: number;
   tierBase: number;
   pir: number;
+  foilBonus: number;
 }
 
 export async function computeCardPowerDetails(
-  cards: { teamId: string; name: string; tier: string }[]
+  cards: { teamId: string; name: string; tier: string; finish?: string | null }[]
 ): Promise<CardPowerDetail[]> {
   const lookup = await buildPirLookup();
   return cards.map((c) => {
     const tierBase = TIER_BASE[c.tier] ?? TIER_BASE.common;
     const pir = lookup.get(`${c.teamId}|${normalizePlayerName(c.name)}`) ?? 0;
-    return { power: Math.max(1, Math.round(tierBase + pir)), tierBase, pir: Math.round(pir * 10) / 10 };
+    const foilBonus = c.finish === "foil" ? FOIL_POWER_BONUS : 0;
+    return { power: Math.max(1, Math.round(tierBase + pir + foilBonus)), tierBase, pir: Math.round(pir * 10) / 10, foilBonus };
   });
 }
 
 export async function computeCardPowers(
-  cards: { teamId: string; name: string; tier: string }[]
+  cards: { teamId: string; name: string; tier: string; finish?: string | null }[]
 ): Promise<number[]> {
   return (await computeCardPowerDetails(cards)).map((d) => d.power);
 }

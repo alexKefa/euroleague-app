@@ -541,8 +541,8 @@ export class ApiService {
   // that only happening invisibly server-side at accept time.
   getCardPowers(
     collectibleIds: string[]
-  ): Observable<{ powers: { collectibleId: string; power: number; tierBase: number; pir: number }[] }> {
-    return this.http.post<{ powers: { collectibleId: string; power: number; tierBase: number; pir: number }[] }>(
+  ): Observable<{ powers: { collectibleId: string; power: number; tierBase: number; pir: number; foilBonus: number }[] }> {
+    return this.http.post<{ powers: { collectibleId: string; power: number; tierBase: number; pir: number; foilBonus: number }[] }>(
       `${API_BASE_URL}/battles/card-powers`,
       { collectibleIds }
     );

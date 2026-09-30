@@ -8,6 +8,7 @@ import { getLeaderboardEntries } from "../services/leaderboard.js";
 import { getFantasyLeaderboardEntries, getDefaultRound, getRoundLockTime } from "../services/fantasyScoring.js";
 import { getAlbumLeaderboardEntries, getCollectibleCatalogTotal } from "../services/albumLeaderboard.js";
 import { getCurrentSeason } from "../services/season.js";
+import { loadShowcaseCards, showcaseFor } from "../services/showcase.js";
 
 export const leaguesRouter = Router();
 
@@ -198,26 +199,7 @@ leaguesRouter.get("/:id/leaderboard", requireAuth, async (req, res) => {
     const presentIds = new Set(entries.map((e) => e.userId));
     const zeroMembers = memberRows.filter((r) => !presentIds.has(r.userId));
 
-    const allShowcaseIds = [...new Set(zeroMembers.flatMap((r) => r.showcaseCollectibleIds))];
-    const cardRows = allShowcaseIds.length
-      ? await db
-          .select({ collectible: collectibles, team: teams })
-          .from(collectibles)
-          .innerJoin(teams, eq(collectibles.teamId, teams.id))
-          .where(inArray(collectibles.id, allShowcaseIds))
-      : [];
-    const cardById = new Map(
-      cardRows.map(({ collectible, team }) => [
-        collectible.id,
-        {
-          id: collectible.id,
-          name: collectible.name,
-          tier: collectible.tier,
-          imageUrl: collectible.imageUrl,
-          team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor, logoUrl: team.logoUrl },
-        },
-      ])
-    );
+    const cardById = await loadShowcaseCards(zeroMembers.flatMap((r) => r.showcaseCollectibleIds));
 
     const zeroEntries = zeroMembers
       .map((r) => ({
@@ -229,9 +211,7 @@ leaguesRouter.get("/:id/leaderboard", requireAuth, async (req, res) => {
         predictionPoints: 0,
         points: 0,
         badges: [] as { id: string; label: string; description: string }[],
-        showcase: r.showcaseCollectibleIds
-          .map((cid) => cardById.get(cid))
-          .filter((c): c is NonNullable<typeof c> => !!c),
+        showcase: showcaseFor(r.showcaseCollectibleIds, cardById, r.userId),
       }))
       .sort((a, b) => a.displayName.localeCompare(b.displayName));
 
@@ -334,26 +314,7 @@ leaguesRouter.get("/:id/album-leaderboard", requireAuth, async (req, res) => {
     const presentIds = new Set(entries.map((e) => e.userId));
     const zeroMembers = memberRows.filter((r) => !presentIds.has(r.userId));
 
-    const allShowcaseIds = [...new Set(zeroMembers.flatMap((r) => r.showcaseCollectibleIds))];
-    const cardRows = allShowcaseIds.length
-      ? await db
-          .select({ collectible: collectibles, team: teams })
-          .from(collectibles)
-          .innerJoin(teams, eq(collectibles.teamId, teams.id))
-          .where(inArray(collectibles.id, allShowcaseIds))
-      : [];
-    const cardById = new Map(
-      cardRows.map(({ collectible, team }) => [
-        collectible.id,
-        {
-          id: collectible.id,
-          name: collectible.name,
-          tier: collectible.tier,
-          imageUrl: collectible.imageUrl,
-          team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor, logoUrl: team.logoUrl },
-        },
-      ])
-    );
+    const cardById = await loadShowcaseCards(zeroMembers.flatMap((r) => r.showcaseCollectibleIds));
 
     const zeroEntries = zeroMembers
       .map((r) => ({
@@ -362,9 +323,7 @@ leaguesRouter.get("/:id/album-leaderboard", requireAuth, async (req, res) => {
         ownedCount: 0,
         totalCount,
         completion: 0,
-        showcase: r.showcaseCollectibleIds
-          .map((cid) => cardById.get(cid))
-          .filter((c): c is NonNullable<typeof c> => !!c),
+        showcase: showcaseFor(r.showcaseCollectibleIds, cardById, r.userId),
       }))
       .sort((a, b) => a.displayName.localeCompare(b.displayName));
 

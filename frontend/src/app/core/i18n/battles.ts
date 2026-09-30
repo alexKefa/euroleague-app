@@ -23,6 +23,7 @@ export const battlesTranslations: Record<string, Record<Lang, string>> = {
   "battles.yourCardLabel": { en: "Your card", el: "Η κάρτα σου" },
   "battles.tierLabel": { en: "Tier", el: "Κατηγορία" },
   "battles.formLabel": { en: "Form (PIR)", el: "Φόρμα (PIR)" },
+  "battles.foilLabel": { en: "Foil", el: "Foil" },
   "battles.matchupTitle": { en: "Matchup", el: "Αναμέτρηση" },
   "battles.statsTitle": { en: "Battle stats", el: "Στατιστικά μάχης" },
   "battles.yourChanceWas": { en: "Your win chance was", el: "Η πιθανότητα νίκης σου ήταν" },
@@ -84,8 +85,8 @@ export const battlesTranslations: Record<string, Record<Lang, string>> = {
   // computeCardPowers/resolveDuel/computeStakeForWinProb).
   "battles.howItWorksTitle": { en: "How duels work", el: "Πώς λειτουργούν οι μονομαχίες" },
   "battles.howItWorksStep1": {
-    en: "Each card's strength comes from its rarity plus the real player's current form (their actual PIR this season) — a legendary with a rough season and a common on a hot streak can be closer than you'd think.",
-    el: "Η δύναμη κάθε κάρτας προέρχεται από τη σπανιότητά της και την πραγματική φόρμα του παίκτη (το πραγματικό του PIR φέτος) — μια θρυλική κάρτα σε κακή σεζόν και μια κοινή σε φόρμα μπορεί να είναι πιο κοντά απ' όσο νομίζεις.",
+    en: "Each card's strength comes from its rarity plus the real player's current form (their actual PIR this season), and a foil legendary gets +10 on top — a legendary with a rough season and a common on a hot streak can be closer than you'd think.",
+    el: "Η δύναμη κάθε κάρτας προέρχεται από τη σπανιότητά της και την πραγματική φόρμα του παίκτη (το πραγματικό του PIR φέτος), και μια foil θρυλική κάρτα παίρνει επιπλέον +10 — μια θρυλική κάρτα σε κακή σεζόν και μια κοινή σε φόρμα μπορεί να είναι πιο κοντά απ' όσο νομίζεις.",
   },
   "battles.howItWorksStep2": {
     en: "The stronger card is favored to win, but it's a weighted coin flip, not a sure thing — an underdog can always pull off the upset.",

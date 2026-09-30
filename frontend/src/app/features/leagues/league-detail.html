@@ -253,6 +253,7 @@
                 <app-collectible-card
                   class="block w-full"
                   [name]="card.name"
+                  [finish]="card.finish ?? 'standard'"
                   [tier]="card.tier"
                   [teamCode]="card.team.code"
                   [teamColor]="card.team.primaryColor"

@@ -34,7 +34,7 @@ async function validateCard(
   userId: string,
   collectibleId: unknown
 ): Promise<
-  | { ok: true; row: { collectibleId: string; teamId: string; name: string; tier: string } }
+  | { ok: true; row: { collectibleId: string; teamId: string; name: string; tier: string; finish: string } }
   | { ok: false; status: number; error: string; code: string }
 > {
   if (typeof collectibleId !== "string") {
@@ -47,6 +47,7 @@ async function validateCard(
       teamId: collectibles.teamId,
       name: collectibles.name,
       tier: collectibles.tier,
+      finish: userCollectibles.finish,
     })
     .from(userCollectibles)
     .innerJoin(collectibles, eq(userCollectibles.collectibleId, collectibles.id))
@@ -131,9 +132,15 @@ battlesRouter.post("/:id/accept", requireAuth, async (req, res) => {
         return { status: 400, error: "This challenge is no longer pending", code: "BATTLE_NOT_PENDING" } as const;
       }
 
+      // The challenger's own finish (foil adds power), read from their
+      // current ownership row — null if they've since traded the card away.
       const [challengerCard] = await tx
-        .select({ teamId: collectibles.teamId, name: collectibles.name, tier: collectibles.tier })
+        .select({ teamId: collectibles.teamId, name: collectibles.name, tier: collectibles.tier, finish: userCollectibles.finish })
         .from(collectibles)
+        .leftJoin(
+          userCollectibles,
+          and(eq(userCollectibles.collectibleId, collectibles.id), eq(userCollectibles.userId, battle.challengerUserId))
+        )
         .where(eq(collectibles.id, battle.challengerCollectibleId))
         .limit(1);
 
@@ -271,6 +278,15 @@ const challengerCard = alias(collectibles, "challenger_card");
 const opponentCard = alias(collectibles, "opponent_card");
 const challengerTeam = alias(teams, "challenger_team");
 const opponentTeam = alias(teams, "opponent_team");
+// Each side's own ownership row, for its finish (foil). Current ownership,
+// so a card traded away after the duel reads as standard.
+const challengerOwn = alias(userCollectibles, "challenger_own");
+const opponentOwn = alias(userCollectibles, "opponent_own");
+const challengerOwnJoin = and(
+  eq(challengerOwn.userId, battles.challengerUserId),
+  eq(challengerOwn.collectibleId, battles.challengerCollectibleId)
+);
+const opponentOwnJoin = and(eq(opponentOwn.userId, battles.opponentUserId), eq(opponentOwn.collectibleId, battles.opponentCollectibleId));
 
 // Every battle the current user is part of, most recent first — the
 // challenge inbox/history list, optionally scoped to one league (the
@@ -290,18 +306,20 @@ battlesRouter.get("/mine", requireAuth, async (req, res) => {
         opponentName: opponentUser.username,
         challengerCard,
         challengerTeam,
+        challengerFinish: challengerOwn.finish,
       })
       .from(battles)
       .innerJoin(challengerUser, eq(battles.challengerUserId, challengerUser.id))
       .innerJoin(opponentUser, eq(battles.opponentUserId, opponentUser.id))
       .innerJoin(challengerCard, eq(battles.challengerCollectibleId, challengerCard.id))
       .innerJoin(challengerTeam, eq(challengerCard.teamId, challengerTeam.id))
+      .leftJoin(challengerOwn, challengerOwnJoin)
       .where(and(...conditions))
       .orderBy(desc(battles.createdAt))
       .limit(40);
 
     res.json(
-      rows.map(({ battle, challengerName, opponentName, challengerCard: card, challengerTeam: team }) => ({
+      rows.map(({ battle, challengerName, opponentName, challengerCard: card, challengerTeam: team, challengerFinish }) => ({
         id: battle.id,
         leagueId: battle.leagueId,
         status: battle.status,
@@ -309,7 +327,14 @@ battlesRouter.get("/mine", requireAuth, async (req, res) => {
         counterpartyName: battle.challengerUserId === req.userId ? opponentName : challengerName,
         winnerUserId: battle.winnerUserId,
         createdAt: battle.createdAt,
-        challengerCard: { id: card.id, name: card.name, tier: card.tier, imageUrl: card.imageUrl, team: { id: team.id, code: team.code, primaryColor: team.primaryColor } },
+        challengerCard: {
+          id: card.id,
+          name: card.name,
+          tier: card.tier,
+          imageUrl: card.imageUrl,
+          finish: challengerFinish ?? "standard",
+          team: { id: team.id, code: team.code, primaryColor: team.primaryColor },
+        },
       }))
     );
   } catch (err) {
@@ -338,6 +363,7 @@ battlesRouter.post("/card-powers", requireAuth, async (req, res) => {
         teamId: collectibles.teamId,
         name: collectibles.name,
         tier: collectibles.tier,
+        finish: userCollectibles.finish,
       })
       .from(userCollectibles)
       .innerJoin(collectibles, eq(userCollectibles.collectibleId, collectibles.id))
@@ -351,6 +377,8 @@ battlesRouter.post("/card-powers", requireAuth, async (req, res) => {
         power: details[i].power,
         tierBase: details[i].tierBase,
         pir: details[i].pir,
+        foilBonus: details[i].foilBonus,
+        finish: r.finish,
       })),
     });
   } catch (err) {
@@ -374,6 +402,8 @@ battlesRouter.get("/:id", requireAuth, async (req, res) => {
         challengerTeam,
         opponentCard,
         opponentTeam,
+        challengerFinish: challengerOwn.finish,
+        opponentFinish: opponentOwn.finish,
       })
       .from(battles)
       .innerJoin(challengerUser, eq(battles.challengerUserId, challengerUser.id))
@@ -382,6 +412,8 @@ battlesRouter.get("/:id", requireAuth, async (req, res) => {
       .innerJoin(challengerTeam, eq(challengerCard.teamId, challengerTeam.id))
       .leftJoin(opponentCard, eq(battles.opponentCollectibleId, opponentCard.id))
       .leftJoin(opponentTeam, eq(opponentCard.teamId, opponentTeam.id))
+      .leftJoin(challengerOwn, challengerOwnJoin)
+      .leftJoin(opponentOwn, opponentOwnJoin)
       .where(eq(battles.id, id))
       .limit(1);
     if (!row) {
@@ -406,11 +438,16 @@ battlesRouter.get("/:id", requireAuth, async (req, res) => {
     // comment already accepted (PIR can drift slightly after the duel
     // resolved; the actual winner/stake are the frozen ground truth,
     // stored on the row — this is just a display aid).
-    const [challengerDetail] = await computeCardPowerDetails([row.challengerCard]);
-    const opponentDetail = row.opponentCard ? (await computeCardPowerDetails([row.opponentCard]))[0] : null;
+    const challengerFinish = row.challengerFinish ?? "standard";
+    const opponentFinish = row.opponentFinish ?? "standard";
+    const [challengerDetail, opponentDetail = null] = await computeCardPowerDetails([
+      { ...row.challengerCard, finish: challengerFinish },
+      ...(row.opponentCard ? [{ ...row.opponentCard, finish: opponentFinish }] : []),
+    ]);
     const preDuelChallengerWinProb = opponentDetail
       ? challengerDetail.power / (challengerDetail.power + opponentDetail.power)
       : null;
+    const breakdown = (d: typeof challengerDetail) => ({ tierBase: d.tierBase, pir: d.pir, foilBonus: d.foilBonus });
 
     res.json({
       id: battle.id,
@@ -423,15 +460,16 @@ battlesRouter.get("/:id", requireAuth, async (req, res) => {
       winnerUserId: battle.winnerUserId,
       stakePoints: battle.stakePoints,
       challengerPower: challengerDetail.power,
-      challengerPowerBreakdown: { tierBase: challengerDetail.tierBase, pir: challengerDetail.pir },
+      challengerPowerBreakdown: breakdown(challengerDetail),
       opponentPower: opponentDetail?.power ?? null,
-      opponentPowerBreakdown: opponentDetail ? { tierBase: opponentDetail.tierBase, pir: opponentDetail.pir } : null,
+      opponentPowerBreakdown: opponentDetail ? breakdown(opponentDetail) : null,
       preDuelChallengerWinProb,
       challengerCard: {
         id: row.challengerCard.id,
         name: row.challengerCard.name,
         tier: row.challengerCard.tier,
         imageUrl: row.challengerCard.imageUrl,
+        finish: challengerFinish,
         team: { id: row.challengerTeam!.id, code: row.challengerTeam!.code, primaryColor: row.challengerTeam!.primaryColor },
       },
       opponentCard: row.opponentCard
@@ -440,6 +478,7 @@ battlesRouter.get("/:id", requireAuth, async (req, res) => {
             name: row.opponentCard.name,
             tier: row.opponentCard.tier,
             imageUrl: row.opponentCard.imageUrl,
+            finish: opponentFinish,
             team: { id: row.opponentTeam!.id, code: row.opponentTeam!.code, primaryColor: row.opponentTeam!.primaryColor },
           }
         : null,

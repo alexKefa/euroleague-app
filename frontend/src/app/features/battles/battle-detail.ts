@@ -295,14 +295,16 @@ export class BattleDetailComponent implements OnInit {
       next: (catalog) => {
         this.api.getMyCollectibles().subscribe({
           next: (mine) => {
-            const ownedIds = new Set(mine.map((m) => m.collectibleId));
-            const owned = catalog.filter((c) => c.tier !== "coach" && ownedIds.has(c.id));
+            const finishById = new Map(mine.map((m) => [m.collectibleId, m.finish]));
+            const owned = catalog
+              .filter((c) => c.tier !== "coach" && finishById.has(c.id))
+              .map((c) => ({ ...c, finish: finishById.get(c.id) }));
             this.myCards.set(owned);
             if (owned.length > 0) {
               this.api.getCardPowers(owned.map((c) => c.id)).subscribe({
                 next: (res) =>
                   this.myCardPowers.set(
-                    new Map(res.powers.map((p) => [p.collectibleId, { power: p.power, tierBase: p.tierBase, pir: p.pir }]))
+                    new Map(res.powers.map((p) => [p.collectibleId, { power: p.power, tierBase: p.tierBase, pir: p.pir, foilBonus: p.foilBonus }]))
                   ),
                 error: () => {}, // non-critical — the picker still works, just without the power/win% readout
               });

@@ -65,6 +65,7 @@
           [teamCode]="b.challengerCard.team.code"
           [teamColor]="b.challengerCard.team.primaryColor"
           [imageUrl]="b.challengerCard.imageUrl"
+          [finish]="b.challengerCard.finish ?? 'standard'"
           [unlocked]="true"
           [maxWidth]="80"
         ></app-collectible-card>
@@ -147,6 +148,7 @@
             [teamCode]="b.challengerCard.team.code"
             [teamColor]="b.challengerCard.team.primaryColor"
             [imageUrl]="b.challengerCard.imageUrl"
+            [finish]="b.challengerCard.finish ?? 'standard'"
             [unlocked]="true"
             [maxWidth]="72"
           ></app-collectible-card>
@@ -187,6 +189,7 @@
                 [teamCode]="mine.team.code"
                 [teamColor]="mine.team.primaryColor"
                 [imageUrl]="mine.imageUrl"
+                [finish]="mine.finish ?? 'standard'"
                 [unlocked]="true"
                 [maxWidth]="140"
               ></app-collectible-card>
@@ -212,6 +215,7 @@
                   [teamCode]="theirs.team.code"
                   [teamColor]="theirs.team.primaryColor"
                   [imageUrl]="theirs.imageUrl"
+                  [finish]="theirs.finish ?? 'standard'"
                   [unlocked]="true"
                   [maxWidth]="140"
                 ></app-collectible-card>
@@ -280,6 +284,9 @@
         <div class="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 font-mono text-xs text-muted">
           <span>{{ i18n.t('battles.tierLabel') }} {{ b.tierBase }}</span>
           <span>{{ i18n.t('battles.formLabel') }} {{ b.pir }}</span>
+          @if (b.foilBonus) {
+            <span class="font-bold text-team-primary">{{ i18n.t('battles.foilLabel') }} +{{ b.foilBonus }}</span>
+          }
         </div>
         <p class="font-mono text-base font-bold text-ink">{{ i18n.t('battles.powerAbbrev') }} {{ b.power }}</p>
       </div>
@@ -302,6 +309,7 @@
           [teamCode]="card.team.code"
           [teamColor]="card.team.primaryColor"
           [imageUrl]="card.imageUrl"
+          [finish]="card.finish ?? 'standard'"
           [unlocked]="true"
           [maxWidth]="60"
           class="shrink-0"
@@ -313,6 +321,9 @@
             <div class="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 font-mono text-[11px] text-muted mt-0.5">
               <span>{{ i18n.t('battles.tierLabel') }} {{ b.tierBase }}</span>
               <span>{{ i18n.t('battles.formLabel') }} {{ b.pir }}</span>
+              @if (b.foilBonus) {
+                <span class="font-bold text-team-primary">{{ i18n.t('battles.foilLabel') }} +{{ b.foilBonus }}</span>
+              }
             </div>
             <p class="font-mono text-base font-bold text-ink">{{ i18n.t('battles.powerAbbrev') }} {{ b.power }}</p>
           }
@@ -354,6 +365,7 @@
                 [teamCode]="card.team.code"
                 [teamColor]="card.team.primaryColor"
                 [imageUrl]="card.imageUrl"
+                [finish]="card.finish ?? 'standard'"
                 [unlocked]="true"
                 [maxWidth]="110"
                 [selected]="pickedId() === card.id"

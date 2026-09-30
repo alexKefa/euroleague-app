@@ -159,7 +159,7 @@ export const storeTranslations: Record<string, Record<Lang, string>> = {
   "packs.label.pro": { en: "Playoffs Pack", el: "Πακέτο Play-Off" },
   "packs.label.elite": { en: "Final Four Pack", el: "Πακέτο Final Four" },
   "packs.label.wheelStarter": { en: "Jump Ball — Common Pull", el: "Τζάμπολ — Κοινή Κλήρωση" },
-  "packs.label.wheelPro": { en: "Jump Ball — Rare Pull", el: "Τζάμπολ — Σπάνια Κλήρωση" },
+  "packs.label.wheelPro": { en: "Rare Pack", el: "Σπάνιο Πακέτο" },
   "packs.label.wheelLegendary": { en: "Legendary Pack", el: "Θρυλικό Πακέτο" },
   "packs.label.wheelCoach": { en: "Jump Ball — Coach Pull", el: "Τζάμπολ — Κλήρωση Προπονητή" },
   "packs.label.qrBonus": { en: "QR Bonus Pack", el: "Πακέτο Μπόνους QR" },

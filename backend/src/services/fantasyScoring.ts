@@ -1,5 +1,6 @@
 import { and, asc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
+import { loadShowcaseCards, showcaseFor, type ShowcaseCard } from "./showcase.js";
 import {
   games,
   users,
@@ -1155,13 +1156,7 @@ export interface FantasyLeaderboardEntry {
   // can tell "never set up a team" apart from "has a team, scored zero so
   // far" instead of both reading as an identical "0 pts" row.
   hasTeam: boolean;
-  showcase: {
-    id: string;
-    name: string;
-    tier: string;
-    imageUrl: string | null;
-    team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
-  }[];
+  showcase: ShowcaseCard[];
 }
 
 /**
@@ -1328,26 +1323,7 @@ export async function getFantasyLeaderboardEntries(
     }))
     .sort((a, b) => b.fantasyPoints - a.fantasyPoints);
 
-  const allShowcaseIds = [...new Set(ranked.flatMap((r) => r.showcaseIds))];
-  const cardRows = allShowcaseIds.length
-    ? await db
-        .select({ collectible: collectibles, team: teams })
-        .from(collectibles)
-        .innerJoin(teams, eq(collectibles.teamId, teams.id))
-        .where(inArray(collectibles.id, allShowcaseIds))
-    : [];
-  const cardById = new Map(
-    cardRows.map(({ collectible, team }) => [
-      collectible.id,
-      {
-        id: collectible.id,
-        name: collectible.name,
-        tier: collectible.tier,
-        imageUrl: collectible.imageUrl,
-        team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor, logoUrl: team.logoUrl },
-      },
-    ])
-  );
+  const cardById = await loadShowcaseCards(ranked.flatMap((r) => r.showcaseIds));
 
   const squadByUserId = new Map<string, FantasySquadPreviewPlayer[]>();
   const coachByUserId = new Map<string, FantasySquadPreviewCoach>();
@@ -1449,6 +1425,6 @@ export async function getFantasyLeaderboardEntries(
     squad: squadsRevealed ? squadByUserId.get(entry.userId) ?? [] : null,
     coach: squadsRevealed ? coachByUserId.get(entry.userId) ?? null : null,
     hasTeam: true,
-    showcase: showcaseIds.map((cid) => cardById.get(cid)).filter((c): c is NonNullable<typeof c> => !!c),
+    showcase: showcaseFor(showcaseIds, cardById, entry.userId),
   }));
 }

@@ -1,14 +1,9 @@
 import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { userCollectibles, users, collectibles, teams } from "../db/schema.js";
+import { loadShowcaseCards, showcaseFor, type ShowcaseCard } from "./showcase.js";
 
-export interface AlbumShowcaseCard {
-  id: string;
-  name: string;
-  tier: string;
-  imageUrl: string | null;
-  team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
-}
+export type AlbumShowcaseCard = ShowcaseCard;
 
 export interface AlbumLeaderboardEntry {
   userId: string;
@@ -83,29 +78,10 @@ export async function getAlbumLeaderboardEntries(
 
   if (options.limit) ranked = ranked.slice(0, options.limit);
 
-  const allShowcaseIds = [...new Set(ranked.flatMap((r) => r.showcaseIds))];
-  const cardRows = allShowcaseIds.length
-    ? await db
-        .select({ collectible: collectibles, team: teams })
-        .from(collectibles)
-        .innerJoin(teams, eq(collectibles.teamId, teams.id))
-        .where(inArray(collectibles.id, allShowcaseIds))
-    : [];
-  const cardById = new Map<string, AlbumShowcaseCard>(
-    cardRows.map(({ collectible, team }) => [
-      collectible.id,
-      {
-        id: collectible.id,
-        name: collectible.name,
-        tier: collectible.tier,
-        imageUrl: collectible.imageUrl,
-        team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor, logoUrl: team.logoUrl },
-      },
-    ])
-  );
+  const cardById = await loadShowcaseCards(ranked.flatMap((r) => r.showcaseIds));
 
   return ranked.map(({ showcaseIds, ...entry }) => ({
     ...entry,
-    showcase: showcaseIds.map((cid) => cardById.get(cid)).filter((c): c is AlbumShowcaseCard => !!c),
+    showcase: showcaseFor(showcaseIds, cardById, entry.userId),
   }));
 }

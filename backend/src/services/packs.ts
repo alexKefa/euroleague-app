@@ -205,7 +205,7 @@ export const PACKS: Record<PackType, PackDefinition> = {
   },
   wheelPro: {
     type: "wheelPro",
-    label: "Jump Ball — Rare Pull",
+    label: "Rare Pack",
     pointsCost: 0,
     purchasable: false,
     slots: [

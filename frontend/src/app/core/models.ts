@@ -429,6 +429,8 @@ export interface Badge {
 // the full Collectible shape (no pointsCost/buyPrice/serial, not relevant
 // here). Shared by the global and league leaderboards alike.
 export interface ShowcaseCard {
+  // The owner's own finish for this card (foil is per user, legendary-only).
+  finish?: CollectibleFinish;
   id: string;
   name: string;
   tier: CollectibleTier;
@@ -838,6 +840,8 @@ export interface BattleCardRef {
   name: string;
   tier: CollectibleTier;
   imageUrl: string | null;
+  // The owning player's own finish — foil also adds FOIL_POWER_BONUS.
+  finish?: CollectibleFinish;
   team: { id: string; code: string; primaryColor: string | null };
 }
 
@@ -847,6 +851,8 @@ export interface BattleCardRef {
 export interface CardPowerBreakdown {
   tierBase: number;
   pir: number;
+  // Extra power from a foil legendary (2026-09-30); 0 otherwise.
+  foilBonus?: number;
 }
 
 // GET /api/battles/mine — one row per challenge (pending/finished) the
