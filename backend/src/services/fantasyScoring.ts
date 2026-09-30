@@ -736,6 +736,10 @@ async function saveMidRoundSubstitutions(
     changed.push({ id: existing.id, slotRole: e.slotRole, isCaptain });
   }
 
+  // Take the armband off before handing it on: the fantasy_lineup_one_captain
+  // partial unique index is checked per statement, so setting the new
+  // captain while the old row is still is_captain=true fails with 23505.
+  changed.sort((a, b) => Number(a.isCaptain) - Number(b.isCaptain));
   if (changed.length > 0) {
     await db.transaction(async (tx) => {
       for (const c of changed) {
