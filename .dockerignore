@@ -22,3 +22,13 @@ backend/public
 
 .DS_Store
 npm-debug.log*
+
+# Not used by the Docker build (2026-09-30): the Windows-only Python venv
+# for the local sync scripts (~169MB / ~7k files, copied in by
+# `COPY backend/ ./` for nothing) and local production DB backups (~75MB,
+# real user data that should never leave this machine). Both were being
+# uploaded, indexed and unpacked on every `railway up`, a large part of the
+# long "Initializing" step.
+backend/src/sync-py/venv
+backend/src/sync-py/__pycache__
+backups
