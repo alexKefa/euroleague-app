@@ -11,6 +11,9 @@ export const liveCenterTranslations: Record<string, Record<Lang, string>> = {
   "liveCenter.yourPick": { en: "Your pick", el: "Η επιλογή σου" },
   "liveCenter.topScorerPick": { en: "Top scorer", el: "Πρώτος σκόρερ" },
   "liveCenter.live": { en: "Live", el: "Live" },
+  "liveCenter.openGame": { en: "Open game", el: "Άνοιγμα αγώνα" },
+  "liveCenter.showAll": { en: "Show all", el: "Εμφάνιση όλων" },
+  "liveCenter.showLess": { en: "Show less", el: "Λιγότερα" },
   "liveCenter.noPredictionsPrefix": { en: "No open picks — head to", el: "Δεν έχεις ανοιχτές επιλογές — πήγαινε στις" },
   "liveCenter.noPredictionsSuffix": { en: "to make one.", el: "για να κάνεις μία." },
   "liveCenter.noFavorites": {

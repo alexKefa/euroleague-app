@@ -85,64 +85,91 @@
         }
 
         @case ('predictions') {
-          <!-- Pick cards (2026-09-30 redesign — "You predicted X feels
-               vanilla", uneven team-vs-team spacing). One card per game: a
-               status line, then a three-column matchup (equal team columns,
-               score or VS in the middle, so both sides always line up), your
-               picked team ringed and labelled, the other one dimmed, and the
-               top-scorer pick in its own strip underneath. -->
+          <!-- My picks (2026-09-30): compact one-line rows so the dashboard
+               stays short; tapping a row only expands it (no navigation, so
+               a stray tap can't jump pages). The expanded card has the full
+               matchup, the top-scorer pick, and an explicit "Open game"
+               button. First 3 picks shown, the rest behind "Show all". -->
           @if (myUpcomingPredictions().length > 0) {
-            <div class="space-y-2.5 max-h-[26rem] overflow-y-auto pr-1">
-              @for (row of myUpcomingPredictions(); track row.prediction.id) {
+            <div class="space-y-2">
+              @for (row of visiblePicks(); track row.prediction.id) {
                 @let isLive = row.game.status === 'live';
                 @let pickedHome = row.prediction.predictedTeam.id === row.game.homeTeam.id;
-                <a [routerLink]="['/games', row.game.id]" class="list-row !block !p-3">
-                  <div class="flex items-center justify-between gap-2 mb-2.5">
+                @let expanded = expandedPickId() === row.prediction.id;
+                @let tsPick = topScorerByGameId().get(row.game.id);
+                <div class="list-row !block !p-0 overflow-hidden" [class.is-mine]="expanded">
+                  <button
+                    type="button"
+                    (click)="togglePick(row.prediction.id)"
+                    class="w-full grid grid-cols-[3.25rem_1fr_auto_1fr_1.25rem] items-center gap-2 px-3 py-2.5 text-left"
+                    [attr.aria-expanded]="expanded"
+                  >
                     @if (isLive) {
-                      <span class="inline-flex items-center gap-1.5 h-6 px-2 rounded-full bg-red-500/12 text-red-500 text-[11px] font-bold uppercase tracking-wide">
-                        <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-                        {{ i18n.t('liveCenter.live') }}
-                        @if (row.game.quarter) {
-                          <span class="font-mono normal-case">· Q{{ row.game.quarter }} {{ formatClock(row.game.gameClockSeconds) }}</span>
-                        }
+                      <span class="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-red-500">
+                        <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>{{ i18n.t('liveCenter.live') }}
                       </span>
                     } @else {
-                      <span class="status-tile inline-flex items-center h-6 px-2 rounded-full border border-line font-mono text-[11px] font-bold text-muted">
-                        {{ row.game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}
-                      </span>
+                      <span class="font-mono text-[10px] font-bold text-muted leading-tight">{{ row.game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}</span>
                     }
-                    <span class="text-muted text-sm font-bold">&rsaquo;</span>
-                  </div>
-
-                  <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                    <ng-container *ngTemplateOutlet="pickTeam; context: { team: row.game.homeTeam, picked: pickedHome }"></ng-container>
-                    <div class="flex flex-col items-center justify-center min-w-[3.5rem]">
+                    <ng-container *ngTemplateOutlet="pickSideMini; context: { team: row.game.homeTeam, picked: pickedHome, alignEnd: true }"></ng-container>
+                    <span class="text-center min-w-[2.5rem]">
                       @if (isLive) {
-                        <span class="font-display text-xl tabular-nums leading-none">{{ row.game.homeScore }}<span class="text-muted mx-0.5">-</span>{{ row.game.awayScore }}</span>
+                        <span class="font-display text-sm tabular-nums">{{ row.game.homeScore }}-{{ row.game.awayScore }}</span>
                       } @else {
-                        <span class="font-display text-sm font-bold text-muted tracking-widest">VS</span>
-                      }
-                    </div>
-                    <ng-container *ngTemplateOutlet="pickTeam; context: { team: row.game.awayTeam, picked: !pickedHome }"></ng-container>
-                  </div>
-
-                  @if (topScorerByGameId().get(row.game.id); as tsPick) {
-                    <span class="flex items-center gap-2.5 mt-3 rounded-xl bg-card border border-line px-2.5 py-2">
-                      <app-player-photo [name]="tsPick.predictedPlayer.name" [photoUrl]="tsPick.predictedPlayer.photoUrl" [size]="28" class="rounded-full shrink-0" />
-                      <span class="min-w-0 flex-1">
-                        <span class="block text-[10px] font-bold uppercase tracking-wider text-muted">{{ i18n.t('liveCenter.topScorerPick') }}</span>
-                        <span class="block text-[13px] font-semibold truncate">{{ tsPick.predictedPlayer.name }}</span>
-                      </span>
-                      @if (tsPick.isCorrect === null) {
-                        <span class="value-chip value-chip--muted">{{ i18n.t('predictions.pending') }}</span>
-                      } @else if (tsPick.isCorrect === true) {
-                        <span class="value-chip !text-emerald-500">+{{ tsPick.pointsAtPick }} {{ i18n.t('predictions.pts') }}</span>
-                      } @else {
-                        <span class="value-chip !text-red-500">{{ i18n.t('predictions.wrong') }}</span>
+                        <span class="font-display text-[11px] font-bold text-muted tracking-widest">VS</span>
                       }
                     </span>
+                    <ng-container *ngTemplateOutlet="pickSideMini; context: { team: row.game.awayTeam, picked: !pickedHome, alignEnd: false }"></ng-container>
+                    <span class="text-muted text-base font-bold leading-none transition-transform duration-200 justify-self-end" [class.rotate-90]="expanded">&rsaquo;</span>
+                  </button>
+
+                  @if (expanded) {
+                    <div class="pick-expand px-3 pb-3 pt-1 border-t border-line/60">
+                      <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2 mt-2">
+                        <ng-container *ngTemplateOutlet="pickTeam; context: { team: row.game.homeTeam, picked: pickedHome }"></ng-container>
+                        <div class="flex flex-col items-center justify-center min-w-[3.5rem]">
+                          @if (isLive) {
+                            <span class="font-display text-xl tabular-nums leading-none">{{ row.game.homeScore }}<span class="text-muted mx-0.5">-</span>{{ row.game.awayScore }}</span>
+                            @if (row.game.quarter) {
+                              <span class="font-mono text-[10px] font-bold text-red-500 mt-1">Q{{ row.game.quarter }} {{ formatClock(row.game.gameClockSeconds) }}</span>
+                            }
+                          } @else {
+                            <span class="font-display text-sm font-bold text-muted tracking-widest">VS</span>
+                          }
+                        </div>
+                        <ng-container *ngTemplateOutlet="pickTeam; context: { team: row.game.awayTeam, picked: !pickedHome }"></ng-container>
+                      </div>
+
+                      @if (tsPick) {
+                        <span class="flex items-center gap-2.5 mt-3 rounded-xl bg-card border border-line px-2.5 py-2">
+                          <app-player-photo [name]="tsPick.predictedPlayer.name" [photoUrl]="tsPick.predictedPlayer.photoUrl" [size]="28" class="rounded-full shrink-0" />
+                          <span class="min-w-0 flex-1">
+                            <span class="block text-[10px] font-bold uppercase tracking-wider text-muted">{{ i18n.t('liveCenter.topScorerPick') }}</span>
+                            <span class="block text-[13px] font-semibold truncate">{{ tsPick.predictedPlayer.name }}</span>
+                          </span>
+                          @if (tsPick.isCorrect === null) {
+                            <span class="value-chip value-chip--muted">{{ i18n.t('predictions.pending') }}</span>
+                          } @else if (tsPick.isCorrect === true) {
+                            <span class="value-chip !text-emerald-500">+{{ tsPick.pointsAtPick }} {{ i18n.t('predictions.pts') }}</span>
+                          } @else {
+                            <span class="value-chip !text-red-500">{{ i18n.t('predictions.wrong') }}</span>
+                          }
+                        </span>
+                      }
+
+                      <a [routerLink]="['/games', row.game.id]" class="go-link mt-3 ml-auto !flex w-fit">{{ i18n.t('liveCenter.openGame') }} </a>
+                    </div>
                   }
-                </a>
+                </div>
+              }
+              @if (hiddenPickCount() > 0) {
+                <button
+                  type="button"
+                  (click)="showAllPicks.set(!showAllPicks())"
+                  class="w-full h-9 rounded-xl text-[12px] font-bold text-team-primary hover:bg-team-primary/10 transition-colors"
+                >
+                  {{ showAllPicks() ? i18n.t('liveCenter.showLess') : i18n.t('liveCenter.showAll') + ' (' + myUpcomingPredictions().length + ')' }}
+                </button>
               }
             </div>
           } @else {
@@ -153,7 +180,6 @@
             </p>
           }
         }
-
 
         @case ('favorites') {
           @if (favoriteRows().length > 0) {
@@ -262,4 +288,22 @@
       <span class="h-5"></span>
     }
   </div>
+</ng-template>
+
+<!-- One side of a collapsed pick row: small logo + code. The picked side
+     is team-colored and ringed, the other muted. -->
+<ng-template #pickSideMini let-team="team" let-picked="picked" let-alignEnd="alignEnd">
+  <span class="flex items-center gap-1.5 min-w-0" [class.justify-end]="alignEnd" [class.flex-row-reverse]="!alignEnd">
+    <span class="font-display text-[13px] truncate" [ngClass]="picked ? 'text-team-primary font-bold' : 'text-muted'">{{ team.code | teamCode }}</span>
+    <span
+      class="w-7 h-7 rounded-lg bg-card flex items-center justify-center shrink-0"
+      [ngClass]="picked ? 'border-2 border-team-primary' : 'border border-line opacity-60'"
+    >
+      @if (team.logoUrl) {
+        <img [src]="team.logoUrl" [alt]="team.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain team-logo" />
+      } @else {
+        <span class="font-display text-[9px]">{{ team.code | teamCode }}</span>
+      }
+    </span>
+  </span>
 </ng-template>

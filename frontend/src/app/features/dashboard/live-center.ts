@@ -107,6 +107,22 @@ export class LiveCenterComponent implements OnInit {
   readonly hasFavorites = computed(() => this.favoriteRows().length > 0);
   readonly hasPolls = computed(() => this.openPollsList().length > 0);
 
+  // My picks (2026-09-30, "reserves much space and can be easily touched
+  // without we want to"): each pick is a compact row that expands on tap,
+  // and only the expanded card's explicit button navigates to the game.
+  // The list shows the first PICKS_PREVIEW until "Show all".
+  static readonly PICKS_PREVIEW = 3;
+  readonly expandedPickId = signal<string | null>(null);
+  readonly showAllPicks = signal(false);
+  readonly visiblePicks = computed(() =>
+    this.showAllPicks() ? this.myUpcomingPredictions() : this.myUpcomingPredictions().slice(0, LiveCenterComponent.PICKS_PREVIEW)
+  );
+  readonly hiddenPickCount = computed(() => Math.max(0, this.myUpcomingPredictions().length - LiveCenterComponent.PICKS_PREVIEW));
+
+  togglePick(id: string): void {
+    this.expandedPickId.set(this.expandedPickId() === id ? null : id);
+  }
+
   readonly activeTab = signal<LiveCenterTab>("games");
   private userPickedTab = false;
 
