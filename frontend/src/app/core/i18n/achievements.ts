@@ -20,9 +20,21 @@ export const achievementsTranslations: Record<string, Record<Lang, string>> = {
   "achievements.milestone.legendaryPack": { en: "Legendary Pack", el: "Θρυλικό Πακέτο" },
   "achievements.milestone.coachPack": { en: "Coach Pack", el: "Πακέτο Προπονητή" },
   "achievements.milestone.fantasyPack": { en: "Fantasy Legendary Pack", el: "Θρυλικό Πακέτο Fantasy" },
-  "achievements.milestoneHow.rareCard": { en: "Every 2 correct picks", el: "Κάθε 2 σωστές προβλέψεις" },
-  "achievements.milestoneHow.legendaryPack": { en: "Every 18 correct picks", el: "Κάθε 18 σωστές προβλέψεις" },
-  "achievements.milestoneHow.coachPack": { en: "Every 45 correct picks", el: "Κάθε 45 σωστές προβλέψεις" },
+  // Winner and top-scorer picks both count (services/cards.ts's
+  // topScorerCorrectCountSql), so the text says so.
+  "achievements.milestoneHow.rareCard": {
+    en: "Every 2 correct picks (winners + top scorers)",
+    el: "Κάθε 2 σωστές προβλέψεις (νικητές + πρώτοι σκόρερ)",
+  },
+  "achievements.milestoneHow.legendaryPack": {
+    en: "Every 18 correct picks (winners + top scorers)",
+    el: "Κάθε 18 σωστές προβλέψεις (νικητές + πρώτοι σκόρερ)",
+  },
+  "achievements.milestoneHow.coachPack": {
+    en: "Every 45 correct picks (winners + top scorers)",
+    el: "Κάθε 45 σωστές προβλέψεις (νικητές + πρώτοι σκόρερ)",
+  },
+  "achievements.statCorrectHint": { en: "winners + top scorers", el: "νικητές + πρώτοι σκόρερ" },
   "achievements.milestoneHow.fantasyPack": { en: "Every 3 Fantasy Five rounds played", el: "Κάθε 3 γύρους Fantasy Five" },
   "achievements.pickLeft": { en: "correct pick to go", el: "σωστή πρόβλεψη ακόμα" },
   "achievements.picksLeft": { en: "correct picks to go", el: "σωστές προβλέψεις ακόμα" },

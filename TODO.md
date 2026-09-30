@@ -95,3 +95,25 @@ games. During a live game, pick **who wins the next quarter** (home/away).
 - **Prerequisite done 2026-09-29**: final quarter scores are now stored
   when a game goes final (the 2 short round-1 games were backfilled), so
   `home/away_score_by_quarter` is safe to score against.
+
+## 4. Recheck milestone intervals against real top-scorer accuracy (deferred 2026-09-30, revisit after ~round 5)
+
+Milestones (a rare card every 2, a Legendary Pack every 18, a Coach pack
+every 45 correct picks) count correct winner **and** top-scorer picks
+(`services/cards.ts`'s `topScorerCorrectCountSql`). The intervals were tuned
+with `scripts/season-simulation.ts` assuming top-scorer accuracy is 0.4x
+winner accuracy (`SIM_TOPSCORER_ACC_RATIO`). Real production data on
+2026-09-30 (small sample): winner picks 137/223 = 61%, top-scorer picks
+23/74 = 31%, a ratio of **0.51**, so players earn slightly more milestone
+credit than modeled.
+
+Decision (user, 2026-09-30): keep counting top-scorer picks, keep 18 for now.
+
+Steps once there are a few hundred resolved top-scorer picks:
+1. Recompute the real ratio (read-only query on production: resolved
+   `top_scorer_predictions` vs `predictions` accuracy).
+2. Run `SIM_TOPSCORER_ACC_RATIO=<real ratio> npm run economy:simulate`.
+3. If legendary completion is clearly faster than intended, move
+   `LEGENDARY_MILESTONE_INTERVAL` 18 -> ~20 (and re-simulate). Update the
+   Achievements texts (`i18n/achievements.ts`, the `milestoneHow.*` keys)
+   if any interval changes.
