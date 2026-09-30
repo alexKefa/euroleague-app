@@ -1,7 +1,7 @@
 @if (auth.isAuthenticated()) {
   <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
     @if (loading()) {
-      <app-skeleton class="h-9 rounded-2xl mb-3" [icon]="false" />
+      <app-skeleton class="h-11 rounded-2xl mb-3" [icon]="false" />
       <div class="space-y-2">
         @for (i of [1, 2, 3]; track i) {
           <app-skeleton class="h-12 rounded-2xl" [icon]="false" />
@@ -12,23 +12,23 @@
            state) — Predictions and Polls only earn a tab when there's
            actually something live/open in them, so the bar doesn't
            advertise empty sections. -->
-      <div class="flex gap-1 mb-3 overflow-x-auto no-scrollbar bg-page rounded-2xl p-1">
-        <button type="button" (click)="setTab('games')" [ngClass]="tabButtonClass('games')" class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold whitespace-nowrap transition-colors shrink-0 flex items-center justify-center gap-1.5">
+      <div class="status-tile flex gap-1 mb-3 h-11 p-1 rounded-2xl border border-line overflow-x-auto no-scrollbar">
+        <button type="button" (click)="setTab('games')" [ngClass]="tabButtonClass('games')" class="flex-1 shrink-0 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors flex items-center justify-center gap-1.5">
           {{ i18n.t('liveCenter.games') }}
           @if (hasLive()) {
             <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
           }
         </button>
         @if (hasPredictions()) {
-          <button type="button" (click)="setTab('predictions')" [ngClass]="tabButtonClass('predictions')" class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold whitespace-nowrap transition-colors shrink-0">
+          <button type="button" (click)="setTab('predictions')" [ngClass]="tabButtonClass('predictions')" class="flex-1 shrink-0 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors">
             {{ i18n.t('liveCenter.predictions') }}
           </button>
         }
-        <button type="button" (click)="setTab('favorites')" [ngClass]="tabButtonClass('favorites')" class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold whitespace-nowrap transition-colors shrink-0">
+        <button type="button" (click)="setTab('favorites')" [ngClass]="tabButtonClass('favorites')" class="flex-1 shrink-0 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors">
           {{ i18n.t('liveCenter.favorites') }}
         </button>
         @if (hasPolls()) {
-          <button type="button" (click)="setTab('polls')" [ngClass]="tabButtonClass('polls')" class="flex-1 px-3 py-2 rounded-xl font-mono text-[11px] font-bold whitespace-nowrap transition-colors shrink-0">
+          <button type="button" (click)="setTab('polls')" [ngClass]="tabButtonClass('polls')" class="flex-1 shrink-0 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors">
             {{ i18n.t('liveCenter.polls') }}
           </button>
         }
@@ -37,9 +37,9 @@
       @switch (activeTab()) {
         @case ('games') {
           @if (liveGames().length > 0 || upcomingGames().length > 0) {
-            <div class="text-sm space-y-1">
+            <div class="text-sm space-y-2">
               @for (game of liveGames(); track game.id) {
-                <a [routerLink]="['/games', game.id]" class="flex items-center justify-between gap-2 px-2 py-2 rounded-2xl hover:bg-page transition-colors">
+                <a [routerLink]="['/games', game.id]" class="list-row justify-between">
                   <span class="flex items-center gap-2 min-w-0 flex-1">
                     @if (game.homeTeam.logoUrl) {
                       <img [src]="game.homeTeam.logoUrl" [alt]="game.homeTeam.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
@@ -63,7 +63,7 @@
                 </a>
               }
               @for (game of upcomingGames(); track game.id) {
-                <a [routerLink]="['/games', game.id]" class="flex items-center justify-between gap-2 px-2 py-2 rounded-2xl hover:bg-page transition-colors">
+                <a [routerLink]="['/games', game.id]" class="list-row justify-between">
                   <span class="flex items-center gap-2 min-w-0 flex-1">
                     @if (game.homeTeam.logoUrl) {
                       <img [src]="game.homeTeam.logoUrl" [alt]="game.homeTeam.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
@@ -86,9 +86,9 @@
 
         @case ('predictions') {
           @if (myUpcomingPredictions().length > 0) {
-            <div class="text-sm space-y-1 max-h-80 overflow-y-auto pr-1">
+            <div class="text-sm space-y-2 max-h-80 overflow-y-auto pr-1">
               @for (row of myUpcomingPredictions(); track row.prediction.id) {
-                <a [routerLink]="['/games', row.game.id]" class="block px-2 py-2 rounded-2xl hover:bg-page transition-colors">
+                <a [routerLink]="['/games', row.game.id]" class="list-row !block">
                   <span class="flex items-center justify-between gap-2">
                     <span class="flex items-center gap-1.5 min-w-0 flex-1">
                       <app-team-badge [code]="row.game.homeTeam.code" [logoUrl]="row.game.homeTeam.logoUrl" [size]="16"></app-team-badge>
@@ -143,9 +143,9 @@
 
         @case ('favorites') {
           @if (favoriteRows().length > 0) {
-            <div class="text-sm space-y-1.5">
+            <div class="text-sm space-y-2">
               @for (row of favoriteRows(); track row.id) {
-                <a [routerLink]="['/players', row.id]" class="flex items-center gap-3 px-2 py-2 rounded-2xl hover:bg-page transition-colors">
+                <a [routerLink]="['/players', row.id]" class="list-row gap-3">
                   @if (row.photoUrl) {
                     <img [src]="row.photoUrl" [alt]="row.name" loading="lazy" decoding="async" appRetryImg class="w-9 h-9 rounded-full object-cover shrink-0" />
                   } @else {
@@ -199,9 +199,9 @@
 
         @case ('polls') {
           @if (openPollsList().length > 0) {
-            <div class="text-sm space-y-1">
+            <div class="text-sm space-y-2">
               @for (poll of openPollsList(); track poll.id) {
-                <a routerLink="/legendary-vote" class="flex items-center justify-between gap-2 px-2 py-2 rounded-2xl hover:bg-page transition-colors">
+                <a routerLink="/legendary-vote" class="list-row justify-between">
                   <span class="min-w-0 flex-1">
                     <span class="block font-semibold truncate">{{ poll.title }}</span>
                     @if (leadingCandidate(poll); as leader) {

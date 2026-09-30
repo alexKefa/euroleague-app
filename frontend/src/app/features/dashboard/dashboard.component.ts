@@ -30,6 +30,7 @@ import {
   gameDateTimeFormat as gameDateTimeFormatFn,
 } from "../../shared/news-date-format";
 import { TeamCodePipe } from "../../shared/team-display-code";
+import { rankBadgeClasses } from "../../shared/rank-badge";
 
 const LEADER_CATEGORIES = [
   { value: "points", label: "PTS" },
@@ -252,6 +253,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // different way: secondary is each team's own chosen trim/contrast color
   // (see CLAUDE.md's team-colors note), not a fixed white, so it's
   // generally chosen to read against that team's own primary already.
+  // Gold/silver/bronze rank badges, same as the league leaderboards.
+  readonly rankBadgeClasses = rankBadgeClasses;
+
   tabButtonClass(tab: DashboardTab): Record<string, boolean> {
     const active = this.activeTab() === tab;
     return { "bg-team-primary text-team-secondary shadow-sm": active, "text-muted hover:text-ink": !active };

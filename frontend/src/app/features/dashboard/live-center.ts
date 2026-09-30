@@ -159,7 +159,7 @@ export class LiveCenterComponent implements OnInit {
   // text-team-secondary fill, by explicit instruction.
   tabButtonClass(tab: LiveCenterTab): Record<string, boolean> {
     const active = this.activeTab() === tab;
-    return { "bg-team-primary text-team-secondary": active, "text-muted hover:text-team-primary": !active };
+    return { "bg-team-primary text-team-secondary shadow-sm": active, "text-muted hover:text-ink": !active };
   }
 
   ngOnInit(): void {

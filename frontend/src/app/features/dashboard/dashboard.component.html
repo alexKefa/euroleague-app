@@ -195,13 +195,13 @@
 
         <a
           routerLink="/fantasy"
-          class="flex flex-col gap-2 rounded-3xl p-4 bg-accent2/10 border border-accent2/25 group"
+          class="flex flex-col gap-2 rounded-3xl p-4 bg-card border border-line shadow-card hover:border-team-primary/50 transition-colors group"
         >
           <div class="flex items-center justify-between">
-            <span class="shrink-0 w-9 h-9 rounded-full bg-accent2/15 flex items-center justify-center">
-              <app-nav-icon name="trophy" [size]="18" class="text-accent2" />
+            <span class="shrink-0 w-9 h-9 rounded-xl bg-team-primary/15 text-team-primary flex items-center justify-center">
+              <app-nav-icon name="trophy" [size]="18" />
             </span>
-            <span class="text-accent2/70 text-sm font-bold group-hover:translate-x-0.5 transition-transform">&rarr;</span>
+            <span class="text-team-primary/70 text-sm font-bold group-hover:translate-x-0.5 transition-transform">&rarr;</span>
           </div>
           <div class="min-w-0">
             <p class="font-display text-sm tracking-wide">{{ i18n.t('fantasy.navLink') }}</p>
@@ -229,8 +229,9 @@
       <app-skeleton class="rounded-3xl h-[190px] mb-4" [iconSize]="20" />
     } @else if (news().length > 0) {
       <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
-        <div class="flex justify-between items-center mb-3">
-          <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('dashboard.latest') }}</p>
+        <div class="card-head">
+          <span class="card-head-icon"><app-nav-icon name="news" [size]="18" /></span>
+          <p class="font-display text-base flex-1 min-w-0 truncate">{{ i18n.t('dashboard.latest') }}</p>
           <a routerLink="/news" class="go-link">{{ i18n.t('dashboard.viewAll') }} </a>
         </div>
         <app-news-stories [articles]="news()" />
@@ -311,41 +312,27 @@
          dead space the way it used to at 3 rows. -->
     <div class="flex flex-col lg:flex-row gap-4 mt-4">
       <div class="lg:flex-1 lg:min-w-0 bg-card rounded-3xl border border-line shadow-card p-4">
-        <div class="flex justify-between items-center mb-3">
-          <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('dashboard.standings') }}</p>
+        <div class="card-head">
+          <span class="card-head-icon"><app-nav-icon name="standings" [size]="18" /></span>
+          <p class="font-display text-base flex-1 min-w-0 truncate">{{ i18n.t('dashboard.standings') }}</p>
           <a routerLink="/standings" class="go-link">{{ i18n.t('standings.viewFull') }} </a>
         </div>
-        <div class="text-sm space-y-1">
+        <div class="text-sm space-y-2">
           @for (row of miniStandings(); track row.team.id) {
-            <!-- "#1" rank badges (this one and its two siblings further down
-                 this file, standings/advanced-stats/predictions leader
-                 lists): bg-highlight text-page -> bg-team-primary
-                 text-team-secondary (2026-09-18, same pass as the My
-                 Leagues tile above) — solid fill + hardcoded page/white
-                 text was the same near-white-team contrast risk. -->
             <a
               [routerLink]="['/teams', row.team.id]"
-              class="flex justify-between items-center gap-2 px-2 py-2 rounded-2xl hover:bg-page transition-colors"
-              [class.bg-page]="row.team.id === selectedTeamId()"
-              [ngClass]="{ 'bg-team-primary/10': row.position === 1 }"
+              class="list-row"
+              [class.list-row--lead]="row.position === 1"
+              [class.is-mine]="row.team.id === selectedTeamId()"
             >
-              <span class="flex items-center gap-2 min-w-0">
-                @if (row.position === 1) {
-                  <span class="font-mono text-[11px] font-bold w-5 h-5 shrink-0 rounded-full bg-team-primary text-team-secondary flex items-center justify-center">1</span>
-                } @else {
-                  <span class="font-mono text-muted w-5 shrink-0 text-right">{{ row.position }}</span>
-                }
-                @if (row.team.logoUrl) {
-                  <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
-                } @else {
-                  <span
-                    class="w-5 h-5 rounded-full shrink-0"
-                    [style.background]="row.team.primaryColor"
-                  ></span>
-                }
-                <span class="font-semibold truncate">{{ row.team.name }}</span>
-              </span>
-              <span class="font-mono text-muted text-xs shrink-0">{{ row.stats.wins }}-{{ row.stats.losses }}</span>
+              <span class="w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0" [class]="rankBadgeClasses(row.position - 1)">{{ row.position }}</span>
+              @if (row.team.logoUrl) {
+                <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-6 h-6 object-contain shrink-0 team-logo" />
+              } @else {
+                <span class="w-6 h-6 rounded-full shrink-0" [style.background]="row.team.primaryColor"></span>
+              }
+              <span class="font-semibold truncate flex-1 min-w-0">{{ row.team.name }}</span>
+              <span class="value-chip value-chip--muted">{{ row.stats.wins }}-{{ row.stats.losses }}</span>
             </a>
           }
         </div>
@@ -366,7 +353,7 @@
                track instead of separate floating pill buttons; flex-1 on
                each segment splits the track evenly across however many tabs
                actually have data today (same conditional set as before). -->
-          <div class="status-tile flex gap-1 mb-3 h-11 overflow-x-auto no-scrollbar rounded-2xl border border-line p-1">
+          <div class="status-tile flex gap-1 mb-3 h-11 p-1 rounded-2xl border border-line overflow-x-auto no-scrollbar">
             @if (hasPerformances()) {
               <button type="button" (click)="setTab('performances')" [ngClass]="tabButtonClass('performances')" class="flex-1 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors shrink-0">
                 {{ i18n.t('dashboard.topPerformances') }}
@@ -392,23 +379,18 @@
           @switch (activeTab()) {
             @case ('performances') {
               @if (roundMvp()?.leaders?.length) {
-                <p class="font-mono text-[11px] text-muted font-bold mb-2">{{ i18n.t('dashboard.round') }} {{ roundMvp()?.round }}</p>
-                <div class="text-sm space-y-1">
+                <p class="status-tile inline-flex items-center h-7 px-2.5 rounded-full border border-line font-mono text-[11px] font-bold text-muted uppercase tracking-wider mb-2">{{ i18n.t('dashboard.round') }} {{ roundMvp()?.round }}</p>
+                <div class="text-sm space-y-2">
                   @for (entry of roundMvp()?.leaders; track entry.player.id; let i = $index) {
-                    <a
-                      [routerLink]="['/players', entry.player.id]"
-                      class="flex justify-between items-center px-2 py-2 rounded-2xl hover:bg-page transition-colors"
-                    >
-                      <span class="font-bold flex items-center gap-1.5 min-w-0">
-                        <span class="font-mono text-muted shrink-0">{{ i + 1 }}</span>
-                        <span class="truncate">{{ entry.player.name }}</span>
-                        @if (entry.team.logoUrl) {
-                          <img [src]="entry.team.logoUrl" [alt]="entry.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0 team-logo" />
-                        } @else {
-                          <span class="w-4 h-4 rounded-full shrink-0" [style.background]="entry.team.primaryColor"></span>
-                        }
-                      </span>
-                      <span class="font-mono text-team-primary font-bold">{{ entry.valuation }} PIR</span>
+                    <a [routerLink]="['/players', entry.player.id]" class="list-row" [class.list-row--lead]="i === 0">
+                      <span class="w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0" [class]="rankBadgeClasses(i)">{{ i + 1 }}</span>
+                      <span class="font-semibold truncate flex-1 min-w-0">{{ entry.player.name }}</span>
+                      @if (entry.team.logoUrl) {
+                        <img [src]="entry.team.logoUrl" [alt]="entry.team.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
+                      } @else {
+                        <span class="w-5 h-5 rounded-full shrink-0" [style.background]="entry.team.primaryColor"></span>
+                      }
+                      <span class="value-chip">{{ entry.valuation }} PIR</span>
                     </a>
                   }
                 </div>
@@ -423,27 +405,17 @@
                   (valueChange)="onLeaderCategoryChange($event)"
                 />
               </div>
-              <div class="text-sm space-y-1">
+              <div class="text-sm space-y-2">
                 @for (entry of leaders(); track entry.player.id; let i = $index) {
-                  <a
-                    [routerLink]="['/players', entry.player.id]"
-                    class="flex justify-between items-center px-2 py-2 rounded-2xl hover:bg-page transition-colors"
-                    [ngClass]="{ 'bg-team-primary/10': i === 0 }"
-                  >
-                    <span class="font-bold flex items-center gap-1.5 min-w-0">
-                      @if (i === 0) {
-                        <span class="font-mono text-[11px] font-bold w-5 h-5 shrink-0 rounded-full bg-team-primary text-team-secondary flex items-center justify-center">1</span>
-                      } @else {
-                        <span class="font-mono text-muted w-5 shrink-0 text-center">{{ i + 1 }}</span>
-                      }
-                      <span class="truncate">{{ entry.player.name }}</span>
-                      @if (entry.team.logoUrl) {
-                        <img [src]="entry.team.logoUrl" [alt]="entry.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0 team-logo" />
-                      } @else {
-                        <span class="w-4 h-4 rounded-full shrink-0" [style.background]="entry.team.primaryColor"></span>
-                      }
-                    </span>
-                    <span class="font-mono text-team-primary font-bold">{{ entry.value | number: "1.1-1" }}</span>
+                  <a [routerLink]="['/players', entry.player.id]" class="list-row" [class.list-row--lead]="i === 0">
+                    <span class="w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0" [class]="rankBadgeClasses(i)">{{ i + 1 }}</span>
+                    <span class="font-semibold truncate flex-1 min-w-0">{{ entry.player.name }}</span>
+                    @if (entry.team.logoUrl) {
+                      <img [src]="entry.team.logoUrl" [alt]="entry.team.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
+                    } @else {
+                      <span class="w-5 h-5 rounded-full shrink-0" [style.background]="entry.team.primaryColor"></span>
+                    }
+                    <span class="value-chip">{{ entry.value | number: "1.1-1" }}</span>
                   </a>
                 }
               </div>
@@ -452,23 +424,21 @@
               >
             }
             @case ('predictors') {
-              <div class="text-sm space-y-1">
+              <div class="text-sm space-y-2">
                 @for (entry of leaderboard(); track entry.userId; let i = $index) {
                   <button
                     type="button"
                     (click)="openMember(entry)"
-                    class="w-full flex justify-between items-center px-2 py-2 rounded-2xl text-left hover:bg-white/5 transition-colors"
-                    [ngClass]="{ 'bg-team-primary/10': i === 0 }"
+                    class="list-row w-full text-left"
+                    [class.list-row--lead]="i === 0"
+                    [class.is-mine]="entry.userId === auth.currentUser()?.id"
                   >
-                    <span class="font-bold flex items-center gap-1.5 min-w-0">
-                      @if (i === 0) {
-                        <span class="font-mono text-[11px] font-bold w-5 h-5 shrink-0 rounded-full bg-team-primary text-team-secondary flex items-center justify-center">1</span>
-                      } @else {
-                        <span class="font-mono text-muted w-5 shrink-0 text-center">{{ i + 1 }}</span>
-                      }
-                      <span class="truncate">{{ entry.displayName }}</span>
+                    <span class="w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0" [class]="rankBadgeClasses(i)">{{ i + 1 }}</span>
+                    <span class="min-w-0 flex-1">
+                      <span class="block font-semibold truncate">{{ entry.displayName }}</span>
+                      <span class="block font-mono text-[11px] text-muted">{{ entry.correct }}/{{ entry.total }}</span>
                     </span>
-                    <span class="font-mono text-team-primary font-bold">{{ entry.points }} pts</span>
+                    <span class="value-chip">{{ entry.points }} {{ i18n.t('predictions.pts') }}</span>
                   </button>
                 }
               </div>
@@ -477,14 +447,13 @@
               >
             }
             @case ('schedule') {
-              <div class="text-sm space-y-1">
+              <div class="text-sm space-y-2">
                 @for (game of recentGames(); track game.id) {
-                  <a [routerLink]="['/games', game.id]" class="flex justify-between items-center px-2 py-2 rounded-2xl hover:bg-page transition-colors">
+                  <a [routerLink]="['/games', game.id]" class="list-row justify-between">
                     <span class="flex items-center gap-2 min-w-0">
                       <span
-                        class="font-mono font-bold w-4 shrink-0"
-                        [class.text-team-primary]="teamResult(game) === 'W'"
-                        [class.text-muted]="teamResult(game) === 'L'"
+                        class="w-7 h-7 rounded-lg flex items-center justify-center font-mono text-[12px] font-bold text-white shrink-0"
+                        [class]="teamResult(game) === 'W' ? 'bg-emerald-600' : 'bg-red-500/75'"
                         >{{ resultLabel(teamResult(game)) }}</span
                       >
                       @if (opponentTeam(game).logoUrl) {
@@ -494,13 +463,13 @@
                       }
                       <span class="font-semibold truncate">{{ isHomeGame(game) ? "vs" : "@" }} {{ opponentCode(game) | teamCode }}</span>
                     </span>
-                    <span class="font-mono text-muted text-xs shrink-0">{{ game.homeScore }}-{{ game.awayScore }}</span>
+                    <span class="value-chip value-chip--muted">{{ game.homeScore }}-{{ game.awayScore }}</span>
                   </a>
                 }
                 @for (game of upcomingGames(); track game.id) {
-                  <a [routerLink]="['/games', game.id]" class="flex justify-between items-center px-2 py-2 rounded-2xl hover:bg-page transition-colors">
+                  <a [routerLink]="['/games', game.id]" class="list-row justify-between">
                     <span class="flex items-center gap-2 min-w-0">
-                      <span class="font-mono text-muted w-4 shrink-0">&middot;</span>
+                      <span class="w-7 h-7 rounded-lg flex items-center justify-center font-mono text-[12px] font-bold text-muted bg-card border border-line shrink-0">&middot;</span>
                       @if (opponentTeam(game).logoUrl) {
                         <img [src]="opponentTeam(game).logoUrl" [alt]="opponentTeam(game).name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
                       } @else {
@@ -508,7 +477,7 @@
                       }
                       <span class="font-semibold truncate">{{ isHomeGame(game) ? "vs" : "@" }} {{ opponentCode(game) | teamCode }}</span>
                     </span>
-                    <span class="font-mono text-muted text-xs shrink-0">{{ game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}</span>
+                    <span class="value-chip value-chip--muted">{{ game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}</span>
                   </a>
                 }
               </div>

@@ -779,3 +779,72 @@ body {
 .tier-dot--legendary { --dot: #f5c043; }
 .tier-dot--coach { --dot: #3fd9a4; }
 
+
+/* Tappable list row inside a card (2026-09-30, dashboard restyle — "match
+   the whole application"): the same inset-row look as the league
+   leaderboards and My Packs, with a small lift on hover. `.list-row--lead`
+   is the 1st-place row (same podium-gold glow as shared/rank-badge.ts's
+   rankRowClasses). `.value-chip` is the right-hand number (points, PIR,
+   record). */
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 1rem;
+  border: 1px solid var(--color-line);
+  background: color-mix(in srgb, var(--color-page) 60%, transparent);
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    border-color 150ms ease;
+}
+.list-row:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent-primary) 40%, transparent);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+.list-row.is-mine {
+  border-color: color-mix(in srgb, var(--accent-primary) 45%, transparent);
+  background: color-mix(in srgb, var(--accent-primary) 8%, var(--color-card));
+}
+.list-row--lead {
+  border-color: rgba(240, 165, 0, 0.4);
+  box-shadow: 0 6px 20px -8px rgba(240, 165, 0, 0.4);
+}
+.value-chip {
+  flex-shrink: 0;
+  font-family: "IBM Plex Sans", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.75rem;
+  background: var(--color-card);
+  color: var(--accent-primary);
+  white-space: nowrap;
+}
+.value-chip--muted {
+  color: var(--color-muted);
+}
+
+/* Card header: icon tile + display-font title + optional forward link —
+   the same header the Profile/Achievements/Battles cards use. */
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-bottom: 0.75rem;
+}
+.card-head-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--accent-primary) 15%, transparent);
+  color: var(--accent-primary);
+}
