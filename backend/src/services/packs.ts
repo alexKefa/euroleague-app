@@ -219,7 +219,7 @@ export const PACKS: Record<PackType, PackDefinition> = {
   },
   wheelLegendary: {
     type: "wheelLegendary",
-    label: "Jump Ball — Legendary Pull",
+    label: "Legendary Pack",
     pointsCost: 0,
     purchasable: false,
     slots: [{ odds: { legendary: 1 } }],
