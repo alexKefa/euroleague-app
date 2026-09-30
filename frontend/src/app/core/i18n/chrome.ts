@@ -31,6 +31,9 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
 
   // shared/page-hint.ts — dismiss button, reused across every page hint.
   "hint.dismiss": { en: "Dismiss", el: "Απόρριψη" },
+  // Page hint restyle (2026-09-30, shared/page-hint.ts).
+  "hint.label": { en: "How it works", el: "Πώς λειτουργεί" },
+  "hint.gotIt": { en: "Got it", el: "Κατάλαβα" },
 
   // shared/install-banner.ts — the "add to home screen" nudge.
   // Watch Pill (2026-09-25) — the global pinned game/player live tracker.
