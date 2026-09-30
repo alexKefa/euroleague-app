@@ -1275,3 +1275,36 @@ export interface Achievements {
   badges: AchievementBadge[];
   referral: { code: string | null; invited: number; rewarded: number; packsPerFriend: number };
 }
+
+// GET /fantasy/players/:id/card (2026-10-01) — the Fantasy player popup,
+// modelled on EuroLeague Fantasy's player sheet. See backend
+// services/fantasyPlayerCard.ts.
+export interface FantasyPlayerCardGame {
+  gameId: string;
+  round: number | null;
+  tipoffAt: string;
+  isHome: boolean;
+  opponent: { code: string; logoUrl: string | null };
+  teamScore: number | null;
+  opponentScore: number | null;
+  played: boolean;
+  priceBefore: number;
+  // null = the game's round hasn't been priced yet.
+  priceChange: number | null;
+  fantasyPoints: number | null;
+  minutes: number | null;
+  isStarter: boolean | null;
+  stats: Record<string, number | null> | null;
+}
+
+export interface FantasyPlayerCard {
+  player: { id: string; name: string; position: string | null; photoUrl: string | null };
+  team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null } | null;
+  price: number;
+  seasonCreditChange: number;
+  fantasyPointsAverage: number | null;
+  ownedPct: number | null;
+  nextGames: { tipoffAt: string; isHome: boolean; opponent: { code: string; logoUrl: string | null } }[];
+  // Newest first.
+  games: FantasyPlayerCardGame[];
+}

@@ -14,7 +14,7 @@ import {
   League,
   Game,
   GameTeamSummary,
-  PlayerGameLogEntry,
+  FantasyPlayerCard,
   InjuryStatus,
   RewardPack,
   FantasyLineup,
@@ -43,6 +43,9 @@ import {
   injuryNoteFor,
 } from "../../shared/injury-status";
 import { TodayTagPipe } from "../../shared/today-tag.pipe";
+import { formatPlayerName } from "../../shared/player-name";
+import { TeamCodePipe } from "../../shared/team-display-code";
+import { RetryImgDirective } from "../../shared/retry-img.directive";
 
 // Squad shape — mirrors backend/src/services/fantasyScoring.ts's constants
 // exactly (kept in sync by hand, same as e.g. analytics-builder.ts keeping
@@ -284,6 +287,8 @@ interface SwapCandidate {
   selector: "app-fantasy",
   standalone: true,
   imports: [
+    TeamCodePipe,
+    RetryImgDirective,
     TodayTagPipe,
     CommonModule,
     RouterLink,
@@ -868,7 +873,23 @@ export class FantasyComponent implements OnInit {
   readonly infoPlayerId = signal<string | null>(null);
   readonly infoVisible = signal(false);
   readonly infoLoading = signal(false);
-  readonly infoGameLog = signal<PlayerGameLogEntry[]>([]);
+  readonly infoCard = signal<FantasyPlayerCard | null>(null);
+  readonly infoTab = signal<"performance" | "lastGame">("performance");
+
+  // Trend block: average fantasy points over the last 5 / 10 games played,
+  // and the bars (oldest -> newest, last 10 games incl. DNPs as empty).
+  readonly infoAvg = computed(() => {
+    const played = (this.infoCard()?.games ?? []).filter((g) => g.fantasyPoints !== null).map((g) => g.fantasyPoints!);
+    const avg = (xs: number[]) => (xs.length ? Math.round((xs.reduce((a, b) => a + b, 0) / xs.length) * 10) / 10 : null);
+    return { last5: avg(played.slice(0, 5)), last10: avg(played.slice(0, 10)) };
+  });
+  readonly infoBars = computed(() => {
+    const games = (this.infoCard()?.games ?? []).slice(0, 10).reverse();
+    const max = Math.max(1, ...games.map((g) => g.fantasyPoints ?? 0));
+    return games.map((g) => ({ game: g, pct: g.fantasyPoints === null ? 0 : Math.max(2, (Math.max(0, g.fantasyPoints) / max) * 100) }));
+  });
+  // "Last game" tab: the most recent game the player has a box score for.
+  readonly infoLastGame = computed(() => (this.infoCard()?.games ?? []).find((g) => g.stats !== null) ?? null);
   private infoCloseTimer?: ReturnType<typeof setTimeout>;
 
   readonly infoPlayerRow = computed(() => {
@@ -1816,17 +1837,6 @@ export class FantasyComponent implements OnInit {
     return this.opponentByTeamId().get(teamId) ?? null;
   }
 
-  // Which side of a past game log entry was the opponent, from the
-  // currently-open info popup's own player's team — mirrors opponentFor's
-  // isHome/opponent shape but reads it off a specific finished game
-  // instead of this round's upcoming fixture list.
-  opponentForLogEntry(entry: PlayerGameLogEntry): OpponentInfo {
-    const myTeamId = this.infoPlayerRow()?.team.id;
-    return entry.game.homeTeam.id === myTeamId
-      ? { opponent: entry.game.awayTeam, isHome: true }
-      : { opponent: entry.game.homeTeam, isHome: false };
-  }
-
   slotByRoleIndex(role: FantasySlotRole, index: number): SquadSlot {
     return this.squadSlots().filter((s) => s.role === role)[index];
   }
@@ -1865,6 +1875,45 @@ export class FantasyComponent implements OnInit {
   // prominently, since it's the "sell before they drop further" signal).
   // Glyph-only, no magnitude — the exact delta already shows up in the
   // round-complete recap's creditsChange total; this is just direction.
+  protected readonly playerName = formatPlayerName;
+
+  // mm:ss from the box score's decimal minutes.
+  formatMinutes(minutes: number | null): string {
+    if (minutes === null) return "–";
+    const total = Math.round(minutes * 60);
+    return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+  }
+
+  protected readonly sortOptions: { key: SortKey; labelKey: string }[] = [
+    { key: "price", labelKey: "fantasy.colPrice" },
+    { key: "pointsPerGame", labelKey: "fantasy.colPpg" },
+    { key: "valuation", labelKey: "fantasy.colPir" },
+  ];
+
+  // The stat shown on each list row: whatever the list is sorted by, or
+  // PIR while sorting by price (the price is already on the row).
+  rowStat(row: FantasyPlayerRow): number | null {
+    return this.sortKey() === "pointsPerGame" ? row.pointsPerGame : row.valuation;
+  }
+
+  rowStatLabel(): string {
+    return this.i18n.t(this.sortKey() === "pointsPerGame" ? "fantasy.colPpg" : "fantasy.colPir");
+  }
+
+  // Position chip tint: one hue per position, same in every list.
+  posChipClass(position: string | null): string {
+    switch (position) {
+      case "Guard":
+        return "bg-sky-500/15 text-sky-500";
+      case "Forward":
+        return "bg-emerald-500/15 text-emerald-500";
+      case "Center":
+        return "bg-amber-500/15 text-amber-500";
+      default:
+        return "bg-page text-muted";
+    }
+  }
+
   priceTrendGlyph(trend: number | null): string {
     if (trend === null || trend === 0) return "";
     return trend > 0 ? "▲" : "▼";
@@ -2232,12 +2281,14 @@ export class FantasyComponent implements OnInit {
   openPlayerInfo(playerId: string): void {
     clearTimeout(this.infoCloseTimer);
     this.infoPlayerId.set(playerId);
-    this.infoGameLog.set([]);
+    this.infoCard.set(null);
+    this.infoTab.set("performance");
     this.infoLoading.set(true);
     this.showPopup(this.infoVisible);
-    this.api.getPlayerGames(playerId).subscribe({
-      next: (log) => {
-        this.infoGameLog.set(log.rows.slice(0, 5));
+    this.api.getFantasyPlayerCard(playerId).subscribe({
+      next: (card) => {
+        if (this.infoPlayerId() !== playerId) return;
+        this.infoCard.set(card);
         this.infoLoading.set(false);
       },
       error: () => this.infoLoading.set(false),

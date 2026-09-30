@@ -66,8 +66,7 @@ import {
   PromoRedemptionResponse,
   AdminUsersResponse,
   Announcement,
-  AnnouncementInput,
-} from "./models";
+  AnnouncementInput, FantasyPlayerCard } from "./models";
 
 /**
  * Wraps HttpClient calls to the backend's /api routes.
@@ -563,6 +562,10 @@ export class ApiService {
   // getAdvancedStats().
   getFantasyPlayers(): Observable<FantasyPlayers> {
     return this.http.get<FantasyPlayers>(`${API_BASE_URL}/fantasy/players`);
+  }
+
+  getFantasyPlayerCard(playerId: string): Observable<FantasyPlayerCard> {
+    return this.http.get<FantasyPlayerCard>(`${API_BASE_URL}/fantasy/players/${playerId}/card`);
   }
 
   getFantasyCoaches(): Observable<FantasyCoaches> {

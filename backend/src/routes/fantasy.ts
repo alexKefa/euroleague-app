@@ -44,6 +44,7 @@ import {
   markFantasyRoundPointsSeen,
   computeFantasyGamePoints,
 } from "../services/fantasyScoring.js";
+import { getFantasyPlayerCard } from "../services/fantasyPlayerCard.js";
 import { checkAndGrantFantasyMilestones, markFantasyMilestonesSeen } from "../services/cards.js";
 
 export const fantasyRouter = Router();
@@ -61,6 +62,27 @@ async function resolveSeason(seasonParam: unknown): Promise<string | null> {
 // GET /players/advanced-stats. Left-joins player_fantasy_prices (rather
 // than requiring it) so this still works before fantasy:reprice has ever
 // been run — an unpriced player just floors at FANTASY_MIN_PRICE.
+// Player card for the roster builder's player popup (2026-10-01) — see
+// services/fantasyPlayerCard.ts.
+fantasyRouter.get("/players/:id/card", async (req, res) => {
+  try {
+    const season = await resolveSeason(req.query.season);
+    if (!season || !uuidPattern.test(req.params.id)) {
+      res.status(404).json({ error: "Player not found" });
+      return;
+    }
+    const card = await getFantasyPlayerCard(req.params.id, season);
+    if (!card) {
+      res.status(404).json({ error: "Player not found" });
+      return;
+    }
+    res.json(card);
+  } catch (err) {
+    console.error("GET /api/fantasy/players/:id/card failed:", err);
+    res.status(500).json({ error: "Failed to load player card" });
+  }
+});
+
 fantasyRouter.get("/players", async (req, res) => {
   try {
     const season = await resolveSeason(req.query.season);

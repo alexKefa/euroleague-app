@@ -34,7 +34,7 @@
 </ng-template>
 <ng-template #playerMeta let-row>
   <span class="inline-flex items-center gap-1 align-middle">
-    <span class="px-1 py-px rounded border border-line bg-page text-ink font-bold leading-none">{{ posAbbrev(row.player.position) }}</span>
+    <span class="px-1.5 py-0.5 rounded-md font-bold leading-none" [ngClass]="posChipClass(row.player.position)">{{ posAbbrev(row.player.position) }}</span>
     @if (!gameFinished(row.team.id) && turnFor(row.team.id); as turn) {
       <span
         class="px-1 py-px rounded border font-bold leading-none"
@@ -44,6 +44,71 @@
       >
     }
   </span>
+</ng-template>
+<!-- Player-list row body (2026-10-01 restyle, "not vanilla"), shared by the
+     desktop pool and the mobile picker: photo with the team crest, full
+     name, position/turn/opponent line, and the stat the list is sorted by. -->
+<ng-template #poolRowBody let-row let-size="size">
+  <span class="relative shrink-0">
+    <app-player-photo
+      [photoUrl]="row.player.photoUrl"
+      [name]="row.player.name"
+      [teamCode]="row.team.code"
+      [primaryColor]="row.team.primaryColor"
+      [size]="size"
+      [centerFace]="true"
+    />
+    @if (row.team.logoUrl) {
+      <img [src]="row.team.logoUrl" alt="" loading="lazy" decoding="async" appRetryImg class="team-logo absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-card p-px object-contain ring-1 ring-line" />
+    }
+    @if (row.injury; as injury) {
+      <span class="absolute -top-0.5 -right-0.5">
+        <app-injury-badge [status]="injury.status" [note]="injury.note" [noteEl]="injury.noteEl" [size]="12" />
+      </span>
+    }
+  </span>
+  <span class="min-w-0 flex-1">
+    <span class="block text-[13px] font-semibold truncate leading-tight" [ngClass]="row.injury ? injuryAccentClass(row.injury.status) : ''">{{ playerName(row.player.name) }}</span>
+    <span class="flex items-center gap-1.5 mt-1 text-[10px] font-mono text-muted min-w-0">
+      <ng-container [ngTemplateOutlet]="playerMeta" [ngTemplateOutletContext]="{ $implicit: row }" />
+      @if (opponentFor(row.team.id); as opp) {
+        <span class="truncate">{{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }} {{ opp.opponent.code | teamCode }}</span>
+      }
+    </span>
+  </span>
+  <span class="shrink-0 w-9 text-right leading-none">
+    <span class="block font-mono text-[13px] font-bold tabular-nums text-ink">{{ rowStat(row) === null ? '–' : (rowStat(row) | number: '1.1-1') }}</span>
+    <span class="block text-[9px] font-bold text-muted uppercase tracking-wide mt-1">{{ rowStatLabel() }}</span>
+  </span>
+</ng-template>
+<!-- Price chip for a list row: the app's value-chip, with the last move's
+     trend arrow. -->
+<ng-template #poolPrice let-row>
+  <span class="inline-flex items-center gap-1">
+    <span class="tabular-nums">{{ row.price | number: '1.1-1' }}</span>
+    <span class="text-[9px] font-bold opacity-70">{{ i18n.t('fantasy.creditsAbbrev') }}</span>
+    @if (priceTrendGlyph(row.priceTrend); as glyph) {
+      <span class="text-[9px]" [ngClass]="priceTrendClass(row.priceTrend)" [attr.title]="i18n.t('fantasy.priceTrendHint')">{{ glyph }}</span>
+    }
+  </span>
+</ng-template>
+<!-- Sort switcher: the app's segmented control instead of bare text. -->
+<ng-template #sortControl>
+  <div class="status-tile flex gap-1 p-1 rounded-xl border border-line">
+    @for (opt of sortOptions; track opt.key) {
+      <button
+        type="button"
+        (click)="setSort(opt.key)"
+        class="flex-1 h-8 rounded-lg flex items-center justify-center gap-1 text-[11px] font-bold uppercase tracking-wide transition-colors"
+        [ngClass]="sortKey() === opt.key ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
+      >
+        {{ i18n.t(opt.labelKey) }}
+        @if (sortKey() === opt.key) {
+          <span class="text-[8px]">{{ sortDesc() ? '▼' : '▲' }}</span>
+        }
+      </button>
+    }
+  </div>
 </ng-template>
 <!-- App-wide highlight -> team-color pass (2026-09-18, "change everywhere
      on the app the default orange color with the preferred team") — this
@@ -572,59 +637,59 @@
         }
 
         @if (isCurrentRound()) {
-          <!-- Formation/captain/save — one bordered action row, divided
-               from the stats above by a border-t so it reads as "the
-               thing you do" vs. "the things you're told". -->
-          <div class="flex flex-wrap items-center gap-2 pt-3 border-t border-line/60">
-            <button
-              type="button"
-              (click)="showFormationPicker.set(true)"
-              [disabled]="editLocked()"
-              class="flex items-center gap-1 px-3 h-10 rounded-xl text-[12px] font-mono font-bold status-tile border border-line text-ink hover:border-team-primary disabled:opacity-40 disabled:hover:border-line disabled:cursor-not-allowed transition-colors"
-            >
-              {{ formation() }}
-              <span class="text-muted text-[10px]">&#9662;</span>
-            </button>
-            <!-- Captain — a dialog next to formation, replacing the old
-                 per-avatar tappable "C" badge (see squadSlot above). -->
-            <button
-              type="button"
-              (click)="showCaptainPicker.set(true)"
-              [disabled]="editLocked()"
-              class="flex items-center gap-1 px-3 h-10 rounded-xl text-[12px] font-mono font-bold status-tile border border-line text-ink hover:border-team-primary disabled:opacity-40 disabled:hover:border-line disabled:cursor-not-allowed transition-colors"
-            >
-              @if (captainRow(); as cap) {
-                <span class="w-4 h-4 rounded-full bg-team-primary text-team-secondary flex items-center justify-center text-[10px] font-bold shrink-0">C</span>
-                <span class="max-w-[64px] truncate">{{ cap.player.name }}</span>
-              } @else {
-                <span class="w-4 h-4 rounded-full border border-dashed border-ink flex items-center justify-center text-[10px] shrink-0 text-muted">C</span>
-                {{ i18n.t('fantasy.captainLabel') }}
-              }
-              <span class="text-muted text-[10px]">&#9662;</span>
-            </button>
-            <!-- Unsaved-changes indicator (2026-09-10) — hasChanges() already
-                 existed to gate canSubmit()/the "Saved" message below, but
-                 nothing surfaced the in-between state (an edit made, not yet
-                 saved). A small pill rather than a silent Save button, so a
-                 change is never mistaken for already-saved. -->
-            @if (hasChanges() && !submitting()) {
-              <span
-                class="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-mono font-bold bg-amber-500/15 text-amber-600"
-                [attr.title]="i18n.t('fantasy.unsavedChanges')"
+          <!-- Formation/captain/save (2026-10-01 restyle, "not grouped"): one
+               aligned row, all 52px tall. Formation and captain share one
+               segmented track, each a labelled half; Save sits beside it.
+               Unsaved edits show as an amber dot on Save, the missing-
+               requirements "!" stays on its other corner. -->
+          <div class="flex items-stretch gap-2 pt-3 border-t border-line/60">
+            <div class="status-tile flex-1 min-w-0 grid grid-cols-[auto_1fr] gap-1 p-1 rounded-2xl border border-line">
+              <button
+                type="button"
+                (click)="showFormationPicker.set(true)"
+                [disabled]="editLocked()"
+                class="h-11 min-w-[4.75rem] px-3 rounded-xl flex flex-col items-start justify-center hover:bg-team-primary/10 disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors"
               >
-                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                {{ i18n.t('fantasy.unsavedChanges') }}
-              </span>
-            }
-            <div class="relative flex items-center ml-auto">
+                <span class="text-[9px] font-bold text-muted uppercase tracking-wider leading-none">{{ i18n.t('fantasy.formationLabel') }}</span>
+                <span class="flex items-center gap-1 font-mono text-[13px] font-bold text-ink leading-none mt-1">
+                  {{ formation() }}
+                  <span class="text-muted text-[9px]">&#9662;</span>
+                </span>
+              </button>
+              <!-- Captain — a dialog next to formation, replacing the old
+                   per-avatar tappable "C" badge (see squadSlot above). -->
+              <button
+                type="button"
+                (click)="showCaptainPicker.set(true)"
+                [disabled]="editLocked()"
+                class="h-11 min-w-0 px-3 rounded-xl flex flex-col items-start justify-center hover:bg-team-primary/10 disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors"
+              >
+                <span class="text-[9px] font-bold text-muted uppercase tracking-wider leading-none">{{ i18n.t('fantasy.captainLabel') }}</span>
+                <span class="flex items-center gap-1.5 text-[13px] font-bold text-ink leading-none mt-1 min-w-0 w-full">
+                  @if (captainRow(); as cap) {
+                    <span class="w-4 h-4 rounded-full bg-team-primary text-team-secondary flex items-center justify-center text-[9px] font-bold shrink-0">C</span>
+                    <span class="truncate">{{ playerName(cap.player.name) }}</span>
+                  } @else {
+                    <span class="w-4 h-4 rounded-full border border-dashed border-muted flex items-center justify-center text-[9px] shrink-0 text-muted">C</span>
+                    <span class="truncate text-muted">{{ i18n.t('fantasy.captainPick') }}</span>
+                  }
+                  <span class="text-muted text-[9px] shrink-0">&#9662;</span>
+                </span>
+              </button>
+            </div>
+            <div class="relative shrink-0 flex">
               <button
                 type="button"
                 (click)="submit()"
                 [disabled]="!canSubmit() || submitting()"
-                class="px-5 h-10 rounded-xl text-sm font-bold bg-team-primary text-team-secondary shadow-card disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+                [attr.title]="hasChanges() && !submitting() ? i18n.t('fantasy.unsavedChanges') : null"
+                class="h-full min-h-[3.25rem] px-5 rounded-2xl text-sm font-bold bg-team-primary text-team-secondary shadow-card disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
               >
                 {{ submitting() ? i18n.t('fantasy.submitting') : i18n.t('fantasy.saveShort') }}
               </button>
+              @if (hasChanges() && !submitting()) {
+                <span class="absolute -top-1 -left-1 w-3 h-3 rounded-full bg-amber-500 ring-2 ring-card animate-pulse" aria-hidden="true"></span>
+              }
               @if (missingRequirements().length > 0) {
                 <button
                   type="button"
@@ -637,6 +702,9 @@
               }
             </div>
           </div>
+          @if (hasChanges() && !submitting()) {
+            <p class="text-[11px] text-amber-500 font-semibold text-center mt-2">{{ i18n.t('fantasy.unsavedChanges') }}</p>
+          }
           @if (subsWindowOpen()) {
             <p class="text-xs text-emerald-600 font-semibold text-center mt-2">{{ i18n.t('fantasy.subsWindowOpen') }}</p>
           }
@@ -1144,20 +1212,7 @@
               <span class="text-[11px] font-bold text-muted uppercase tracking-wide">{{ i18n.t('fantasy.creditsAvailable') }}</span>
             </div>
 
-            <div class="flex items-center justify-around bg-card rounded-xl border border-line px-1 py-1">
-              <button type="button" (click)="setSort('price')" class="flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide" [ngClass]="sortKey() === 'price' ? 'text-team-primary' : 'text-muted'">
-                {{ i18n.t('fantasy.colPrice') }}
-                @if (sortKey() === 'price') { <span class="font-mono">{{ sortDesc() ? '▼' : '▲' }}</span> }
-              </button>
-              <button type="button" (click)="setSort('pointsPerGame')" class="flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide" [ngClass]="sortKey() === 'pointsPerGame' ? 'text-team-primary' : 'text-muted'">
-                {{ i18n.t('fantasy.colPpg') }}
-                @if (sortKey() === 'pointsPerGame') { <span class="font-mono">{{ sortDesc() ? '▼' : '▲' }}</span> }
-              </button>
-              <button type="button" (click)="setSort('valuation')" class="flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide" [ngClass]="sortKey() === 'valuation' ? 'text-team-primary' : 'text-muted'">
-                {{ i18n.t('fantasy.colPir') }}
-                @if (sortKey() === 'valuation') { <span class="font-mono">{{ sortDesc() ? '▼' : '▲' }}</span> }
-              </button>
-            </div>
+            <ng-container [ngTemplateOutlet]="sortControl" />
 
             <div
               cdkDropList
@@ -1176,8 +1231,8 @@
                   [cdkDragData]="row.player.id"
                   [cdkDragDisabled]="poolRowDisabled(row.player.id, row.player.position)"
                   cdkDragPreviewClass="fantasy-drag-preview"
-                  class="fantasy-row-in flex items-center gap-1.5 rounded-lg border border-line bg-page p-1.5 transition-colors"
-                  [ngClass]="poolRowDisabled(row.player.id, row.player.position) ? 'opacity-40' : 'cursor-grab active:cursor-grabbing hover:border-team-primary'"
+                  class="fantasy-row-in list-row !gap-2 !p-1.5 !pl-2"
+                  [ngClass]="poolRowDisabled(row.player.id, row.player.position) ? 'opacity-40' : 'cursor-grab active:cursor-grabbing'"
                 >
                   <!-- Dragging a pool row carries just the player's photo +
                        name (what lands on the court), not the whole wide
@@ -1193,43 +1248,17 @@
                     />
                     <span class="text-[11px] font-bold text-ink bg-card/95 border border-line rounded-full px-2 py-0.5 shadow-card whitespace-nowrap">{{ row.player.name }}</span>
                   </div>
-                  <button type="button" (click)="$event.stopPropagation(); openPlayerInfo(row.player.id)" class="flex items-center gap-1.5 min-w-0 flex-1 text-left">
-                    <span class="relative shrink-0">
-                      <app-player-photo
-                        [photoUrl]="row.player.photoUrl"
-                        [name]="row.player.name"
-                        [teamCode]="row.team.code"
-                        [primaryColor]="row.team.primaryColor"
-                        [size]="26"
-                        [centerFace]="true"
-                      />
-                      @if (row.injury; as injury) {
-                        <span class="absolute -top-0.5 -right-0.5">
-                          <app-injury-badge [status]="injury.status" [note]="injury.note" [noteEl]="injury.noteEl" [size]="11" />
-                        </span>
-                      }
-                    </span>
-                    <div class="min-w-0 flex-1">
-                      <p class="text-[11px] font-semibold truncate leading-tight" [ngClass]="row.injury ? injuryAccentClass(row.injury.status) : ''">{{ row.player.name }}</p>
-                      <p class="text-[10px] font-mono text-muted truncate leading-tight">
-                        <ng-container [ngTemplateOutlet]="playerMeta" [ngTemplateOutletContext]="{ $implicit: row }" />
-                        @if (opponentFor(row.team.id); as opp) {
-                          &middot; {{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }} {{ opp.opponent.code }}
-                        }
-                      </p>
-                    </div>
+                  <button type="button" (click)="$event.stopPropagation(); openPlayerInfo(row.player.id)" class="flex items-center gap-2 min-w-0 flex-1 text-left">
+                    <ng-container [ngTemplateOutlet]="poolRowBody" [ngTemplateOutletContext]="{ $implicit: row, size: 30 }" />
                   </button>
                   <button
                     type="button"
                     (click)="$event.stopPropagation(); addToSquad(row.player.id)"
                     [disabled]="poolRowDisabled(row.player.id, row.player.position)"
                     [attr.aria-label]="i18n.t('fantasy.selectPlayer') + ': ' + row.player.name"
-                    class="shrink-0 font-mono text-[13px] font-bold text-team-primary border border-team-primary/30 rounded-lg px-2.5 py-1.5 min-w-[46px] text-center hover:bg-team-primary hover:text-team-secondary transition-colors disabled:hover:bg-transparent disabled:hover:text-team-primary disabled:cursor-not-allowed cursor-pointer"
+                    class="value-chip border border-team-primary/30 hover:bg-team-primary hover:text-team-secondary transition-colors disabled:hover:bg-card disabled:hover:text-team-primary disabled:cursor-not-allowed cursor-pointer"
                   >
-                    {{ row.price | number: '1.1-1' }} <span class="text-[10px]">{{ i18n.t('fantasy.creditsAbbrev') }}</span>
-                    @if (priceTrendGlyph(row.priceTrend); as glyph) {
-                      <span [ngClass]="priceTrendClass(row.priceTrend)" [attr.title]="i18n.t('fantasy.priceTrendHint')">{{ glyph }}</span>
-                    }
+                    <ng-container [ngTemplateOutlet]="poolPrice" [ngTemplateOutletContext]="{ $implicit: row }" />
                   </button>
                 </div>
               } @empty {
@@ -1283,90 +1312,247 @@
     }
   }
 
-  <!-- Player-info popup — last 5 games' PIR + opponent, tapped from either
-       the pool or a placed squad slot (openPlayerInfo). Never navigates
-       away from the roster builder, so an in-progress squad is never lost
-       just to check a player's recent form. -->
+  <!-- Player card (2026-10-01, modelled on EuroLeague Fantasy's player
+       sheet): header with price / FP average / season credit change /
+       ownership, then two tabs — Performance (next 5, trend, per-game log)
+       and Last game (full box score). Tapped from the pool or a squad slot;
+       never navigates away, so an in-progress squad is never lost. -->
   @if (infoPlayerId(); as pid) {
-    <div class="sheet-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="closePlayerInfo()">
+    <div class="sheet-backdrop fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm" (click)="closePlayerInfo()">
       <div
-        class="sheet-panel bg-card rounded-2xl border border-line shadow-pop p-5 max-w-sm w-full max-h-[85vh] overflow-y-auto transition-transform duration-200 motion-reduce:transition-none"
+        class="sheet-panel bg-card rounded-t-3xl sm:rounded-3xl border border-line shadow-pop w-full sm:max-w-md max-h-[90vh] flex flex-col overflow-hidden transition-transform duration-200 motion-reduce:transition-none"
         [ngClass]="infoVisible() ? 'translate-y-0' : 'translate-y-8'"
         (click)="$event.stopPropagation()"
       >
-        <div class="flex items-start justify-between gap-2 mb-4">
-          @if (infoPlayerRow(); as row) {
-            <div class="flex items-center gap-3 min-w-0">
-              <app-player-photo
-                [photoUrl]="row.player.photoUrl"
-                [name]="row.player.name"
-                [teamCode]="row.team.code"
-                [primaryColor]="row.team.primaryColor"
-                [size]="48"
-                [centerFace]="true"
-              />
-              <div class="min-w-0">
-                <p class="font-display text-lg tracking-wide truncate">{{ row.player.name }}</p>
-                <p class="text-xs text-muted">{{ posAbbrev(row.player.position) }} &middot; {{ row.team.name }}</p>
+        <!-- Header: team-color hero. -->
+        <div class="relative shrink-0 p-4 pb-3 overflow-hidden">
+          <div class="pointer-events-none absolute inset-0" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 26%, transparent) 0%, color-mix(in srgb, var(--accent-primary) 6%, transparent) 60%, transparent 100%)" aria-hidden="true"></div>
+          <div class="relative flex items-start gap-3">
+            @if (infoPlayerRow(); as row) {
+              <span class="relative shrink-0">
+                <app-player-photo [photoUrl]="row.player.photoUrl" [name]="row.player.name" [teamCode]="row.team.code" [primaryColor]="row.team.primaryColor" [size]="60" [centerFace]="true" />
+                @if (row.team.logoUrl) {
+                  <img [src]="row.team.logoUrl" alt="" appRetryImg class="team-logo absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-card p-0.5 object-contain ring-1 ring-line" />
+                }
+              </span>
+              <div class="min-w-0 flex-1">
+                <p class="font-display text-lg leading-tight truncate">{{ playerName(row.player.name) }}</p>
+                <p class="flex items-center gap-1.5 mt-1 text-[11px] text-muted min-w-0">
+                  <span class="px-1.5 py-0.5 rounded-md font-bold leading-none font-mono text-[10px]" [ngClass]="posChipClass(row.player.position)">{{ posAbbrev(row.player.position) }}</span>
+                  <span class="truncate">{{ row.team.name }}</span>
+                </p>
                 @if (row.injury; as injury) {
-                  <!-- Full text pill (status + note) — the one Fantasy
-                       spot roomy enough for it, same styling as roster.html/
-                       injury-report.html's own pill. -->
                   <span
-                    class="inline-block mt-1 text-[11px] font-bold uppercase tracking-wide rounded-full border px-2 py-0.5"
+                    class="inline-block mt-1.5 text-[11px] font-bold uppercase tracking-wide rounded-full border px-2 py-0.5"
                     [ngClass]="injuryClass(injury.status)"
                     >{{ injuryLabel(injury.status) }}@if (injuryNote(injury); as note) { — {{ note }} }</span
                   >
                 }
               </div>
-            </div>
-          }
-          <button type="button" (click)="closePlayerInfo()" class="text-muted hover:text-ink text-2xl leading-none font-bold shrink-0">&times;</button>
-        </div>
+            }
+            <button type="button" (click)="closePlayerInfo()" class="text-muted hover:text-ink text-2xl leading-none font-bold shrink-0" [attr.aria-label]="i18n.t('fantasy.close')">&times;</button>
+          </div>
 
-        <!-- Season average — already in allRows()/rowById() (each
-             FantasyPlayerRow carries pointsPerGame/valuation/gamesPlayed
-             straight from player_season_stats), so no extra API call
-             needed alongside the last-5-games log fetch below. -->
-        @if (infoPlayerRow(); as row) {
-          <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('fantasy.seasonAverageTitle') }}</p>
-          <div class="grid grid-cols-3 gap-2 mb-4">
-            <div class="bg-page rounded-xl px-3 py-2 text-center">
-              <p class="text-[10px] text-muted font-bold uppercase tracking-wide">{{ i18n.t('fantasy.colPpg') }}</p>
-              <p class="font-mono text-sm font-bold text-team-primary">{{ row.pointsPerGame !== null ? (row.pointsPerGame | number: "1.1-1") : "—" }}</p>
+          <!-- Price / FP average / season credit change / owned. -->
+          <div class="relative grid grid-cols-4 gap-1.5 mt-3">
+            <div class="rounded-xl bg-card/80 border border-line px-2 py-2 text-center">
+              <p class="font-mono text-[15px] font-bold tabular-nums text-team-primary leading-none">{{ (infoCard()?.price ?? infoPlayerRow()?.price) | number: '1.1-1' }}</p>
+              <p class="text-[9px] font-bold text-muted uppercase tracking-wide mt-1">{{ i18n.t('fantasy.creditsAbbrev') }}</p>
             </div>
-            <div class="bg-page rounded-xl px-3 py-2 text-center">
-              <p class="text-[10px] text-muted font-bold uppercase tracking-wide">{{ i18n.t('fantasy.colPir') }}</p>
-              <p class="font-mono text-sm font-bold text-team-primary">{{ row.valuation !== null ? (row.valuation | number: "1.1-1") : "—" }}</p>
+            <div class="rounded-xl bg-card/80 border border-line px-2 py-2 text-center">
+              <p class="font-mono text-[15px] font-bold tabular-nums text-ink leading-none">{{ infoCard()?.fantasyPointsAverage === null || !infoCard() ? '–' : (infoCard()!.fantasyPointsAverage | number: '1.1-1') }}</p>
+              <p class="text-[9px] font-bold text-muted uppercase tracking-wide mt-1">{{ i18n.t('fantasy.card.fpa') }}</p>
             </div>
-            <div class="bg-page rounded-xl px-3 py-2 text-center">
-              <p class="text-[10px] text-muted font-bold uppercase tracking-wide">{{ i18n.t('stats.colGp') }}</p>
-              <p class="font-mono text-sm font-bold text-ink">{{ row.gamesPlayed ?? "—" }}</p>
+            <div class="rounded-xl bg-card/80 border border-line px-2 py-2 text-center">
+              @if (infoCard(); as card) {
+                <p class="font-mono text-[15px] font-bold tabular-nums leading-none" [ngClass]="card.seasonCreditChange > 0 ? 'text-emerald-500' : card.seasonCreditChange < 0 ? 'text-red-500' : 'text-ink'">
+                  {{ card.seasonCreditChange > 0 ? '+' : '' }}{{ card.seasonCreditChange | number: '1.1-1' }}
+                </p>
+              } @else {
+                <p class="font-mono text-[15px] font-bold leading-none text-muted">–</p>
+              }
+              <p class="text-[9px] font-bold text-muted uppercase tracking-wide mt-1">{{ i18n.t('fantasy.card.seasonCr') }}</p>
+            </div>
+            <div class="rounded-xl bg-card/80 border border-line px-2 py-2 text-center">
+              <p class="font-mono text-[15px] font-bold tabular-nums text-ink leading-none">{{ infoCard()?.ownedPct === null || !infoCard() ? '–' : infoCard()!.ownedPct + '%' }}</p>
+              <p class="text-[9px] font-bold text-muted uppercase tracking-wide mt-1">{{ i18n.t('fantasy.card.owned') }}</p>
             </div>
           </div>
-        }
 
-        <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('fantasy.last5GamesTitle') }}</p>
-        @if (infoLoading()) {
-          <app-skeleton class="h-32 rounded-xl" />
-        } @else if (infoGameLog().length === 0) {
-          <p class="text-sm text-muted">{{ i18n.t('fantasy.noRecentGames') }}</p>
-        } @else {
-          <div class="space-y-1.5">
-            @for (entry of infoGameLog(); track entry.game.id) {
-              <div class="flex items-center justify-between gap-2 bg-page rounded-xl px-3 py-2">
-                @if (opponentForLogEntry(entry); as opp) {
-                  <div class="flex items-center gap-1.5 min-w-0 text-xs">
-                    <span class="font-mono text-muted shrink-0">{{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }}</span>
-                    <app-team-badge [code]="opp.opponent.code" [logoUrl]="opp.opponent.logoUrl" [size]="18" />
-                    <span class="font-semibold truncate">{{ opp.opponent.code }}</span>
-                  </div>
-                }
-                <span class="font-mono text-team-primary font-bold shrink-0">{{ entry.stats.valuation ?? '—' }} {{ i18n.t('fantasy.colPir') }}</span>
-              </div>
+          <!-- Tabs. -->
+          <div class="relative status-tile flex gap-1 p-1 mt-3 rounded-xl border border-line">
+            @for (t of [{ key: 'performance', label: 'fantasy.card.tabPerformance' }, { key: 'lastGame', label: 'fantasy.card.tabLastGame' }]; track t.key) {
+              <button
+                type="button"
+                (click)="infoTab.set($any(t.key))"
+                class="flex-1 h-9 rounded-lg text-[13px] font-semibold transition-colors"
+                [ngClass]="infoTab() === t.key ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
+              >
+                {{ i18n.t(t.label) }}
+              </button>
             }
           </div>
-        }
+        </div>
+
+        <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pb-5">
+          @if (infoLoading()) {
+            <app-skeleton class="h-24 rounded-2xl mb-3" [icon]="false" />
+            <app-skeleton class="h-40 rounded-2xl" />
+          } @else if (infoCard(); as card) {
+            @if (infoTab() === 'performance') {
+              <!-- Next 5 -->
+              @if (card.nextGames.length > 0) {
+                <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-2 mt-1">{{ i18n.t('fantasy.card.next5') }}</p>
+                <div class="grid grid-cols-5 gap-1.5 mb-4">
+                  @for (g of card.nextGames; track g.tipoffAt) {
+                    <div class="list-row !flex-col !gap-1 !px-1 !py-2 text-center">
+                      <span class="font-mono text-[12px] font-bold leading-none">{{ g.tipoffAt | date: 'd/M':'Europe/Athens' }}</span>
+                      <span class="font-mono text-[10px] text-muted leading-none">{{ g.tipoffAt | date: 'HH:mm':'Europe/Athens' }}</span>
+                      <span class="text-[10px] font-bold text-muted leading-none mt-0.5">{{ g.isHome ? 'VS' : '@' }}</span>
+                      @if (g.opponent.logoUrl) {
+                        <img [src]="g.opponent.logoUrl" [alt]="g.opponent.code | teamCode" appRetryImg class="team-logo w-7 h-7 object-contain" />
+                      } @else {
+                        <span class="font-display text-[11px]">{{ g.opponent.code | teamCode }}</span>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- Trend: last 5 / 10 averages + fantasy points per game. -->
+              <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('fantasy.card.trend') }}</p>
+              <div class="rounded-2xl border border-line bg-page/60 p-3 mb-4">
+                <div class="grid grid-cols-2 gap-2">
+                  <div class="rounded-xl bg-team-primary/10 px-2 py-2 text-center">
+                    <p class="text-[10px] font-bold text-muted uppercase tracking-wide">{{ i18n.t('fantasy.card.avgLast5') }}</p>
+                    <p class="font-mono text-lg font-bold tabular-nums text-team-primary leading-tight">{{ infoAvg().last5 === null ? '–' : (infoAvg().last5 | number: '1.1-1') }}</p>
+                  </div>
+                  <div class="rounded-xl bg-team-primary/10 px-2 py-2 text-center">
+                    <p class="text-[10px] font-bold text-muted uppercase tracking-wide">{{ i18n.t('fantasy.card.avgLast10') }}</p>
+                    <p class="font-mono text-lg font-bold tabular-nums text-team-primary leading-tight">{{ infoAvg().last10 === null ? '–' : (infoAvg().last10 | number: '1.1-1') }}</p>
+                  </div>
+                </div>
+                @if (infoBars().length > 0) {
+                  <!-- One team-color bar per game (oldest -> newest), value
+                       above, round below; a DNP is an empty slot. -->
+                  <div class="flex items-end justify-end gap-1.5 h-32 mt-3 pt-4" role="img" [attr.aria-label]="i18n.t('fantasy.card.trend')">
+                    @for (b of infoBars(); track b.game.gameId) {
+                      <div class="flex-1 max-w-[2.25rem] h-full flex flex-col items-center justify-end" [title]="(b.game.isHome ? 'VS ' : '@ ') + b.game.opponent.code + ' · ' + (b.game.fantasyPoints ?? i18n.t('fantasy.card.dnp'))">
+                        <span class="font-mono text-[10px] font-bold tabular-nums text-ink mb-1 leading-none">{{ b.game.fantasyPoints === null ? '–' : (b.game.fantasyPoints | number: '1.0-1') }}</span>
+                        <div class="w-full rounded-t bg-team-primary transition-[height] duration-500" [style.height.%]="b.pct"></div>
+                      </div>
+                    }
+                  </div>
+                  <div class="flex justify-end gap-1.5 mt-1 border-t border-line pt-1">
+                    @for (b of infoBars(); track b.game.gameId) {
+                      <span class="flex-1 max-w-[2.25rem] text-center font-mono text-[10px] text-muted">{{ i18n.t('fantasy.card.roundShort') }}{{ b.game.round }}</span>
+                    }
+                  </div>
+                }
+              </div>
+
+              <!-- Per-game log. -->
+              <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('fantasy.card.stats') }}</p>
+              @if (card.games.length === 0) {
+                <p class="text-sm text-muted">{{ i18n.t('fantasy.noRecentGames') }}</p>
+              } @else {
+                <div class="rounded-2xl border border-line overflow-x-auto">
+                  <table class="w-full text-[12px] font-mono tabular-nums">
+                    <thead>
+                      <tr class="text-[10px] text-muted uppercase tracking-wide border-b border-line">
+                        <th class="px-2 py-2 text-left font-bold">{{ i18n.t('fantasy.card.roundShort') }}</th>
+                        <th class="px-2 py-2 text-left font-bold">VS</th>
+                        <th class="px-2 py-2 text-right font-bold">CR</th>
+                        <th class="px-2 py-2 text-right font-bold">+/-</th>
+                        <th class="px-2 py-2 text-right font-bold">FPT</th>
+                        <th class="px-2 py-2 text-right font-bold">MIN</th>
+                        <th class="px-2 py-2 text-center font-bold">ST</th>
+                        <th class="px-2 py-2 text-right font-bold">PTS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (g of card.games; track g.gameId) {
+                        <tr class="border-b border-line/60 last:border-0">
+                          <td class="px-2 py-2 text-muted">{{ g.round }}</td>
+                          <td class="px-2 py-2 whitespace-nowrap">{{ g.isHome ? '' : '@' }}{{ g.opponent.code | teamCode }}</td>
+                          <td class="px-2 py-2 text-right">{{ g.priceBefore | number: '1.1-1' }}</td>
+                          <td class="px-2 py-2 text-right font-bold" [ngClass]="g.priceChange === null ? 'text-muted' : g.priceChange > 0 ? 'text-emerald-500' : g.priceChange < 0 ? 'text-red-500' : 'text-ink'">
+                            {{ g.priceChange === null ? '…' : (g.priceChange > 0 ? '+' : '') + (g.priceChange | number: '1.1-1') }}
+                          </td>
+                          <td class="px-2 py-2 text-right font-bold text-team-primary">{{ g.fantasyPoints === null ? i18n.t('fantasy.card.dnp') : (g.fantasyPoints | number: '1.0-1') }}</td>
+                          <td class="px-2 py-2 text-right">{{ g.played ? formatMinutes(g.minutes) : '–' }}</td>
+                          <td class="px-2 py-2 text-center">{{ g.isStarter ? '✓' : '' }}</td>
+                          <td class="px-2 py-2 text-right">{{ g.stats?.['points'] ?? '–' }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            } @else {
+              <!-- Last game: full box score. -->
+              @if (infoLastGame(); as g) {
+                <div class="list-row !gap-3 mt-1 mb-3">
+                  @if (g.opponent.logoUrl) {
+                    <img [src]="g.opponent.logoUrl" alt="" appRetryImg class="team-logo w-9 h-9 object-contain shrink-0" />
+                  }
+                  <div class="min-w-0 flex-1">
+                    <p class="text-[13px] font-semibold leading-tight">{{ g.isHome ? 'VS' : '@' }} {{ g.opponent.code | teamCode }}</p>
+                    <p class="font-mono text-[11px] text-muted mt-0.5">{{ i18n.t('fantasy.card.roundShort') }}{{ g.round }} · {{ g.tipoffAt | date: 'd/M':'Europe/Athens' }}</p>
+                  </div>
+                  @if (g.teamScore !== null && g.opponentScore !== null) {
+                    <span class="value-chip" [ngClass]="g.teamScore > g.opponentScore ? '!text-emerald-500' : '!text-red-500'">
+                      {{ g.teamScore > g.opponentScore ? 'W' : 'L' }} {{ g.teamScore }}-{{ g.opponentScore }}
+                    </span>
+                  }
+                </div>
+                <div class="grid grid-cols-3 gap-1.5 mb-3">
+                  <div class="rounded-xl bg-team-primary/10 px-2 py-2.5 text-center">
+                    <p class="font-mono text-2xl font-bold tabular-nums text-team-primary leading-none">{{ g.fantasyPoints === null ? '–' : (g.fantasyPoints | number: '1.0-1') }}</p>
+                    <p class="text-[9px] font-bold text-muted uppercase tracking-wide mt-1">FPT</p>
+                  </div>
+                  <div class="rounded-xl bg-page border border-line px-2 py-2.5 text-center">
+                    <p class="font-mono text-2xl font-bold tabular-nums leading-none">{{ formatMinutes(g.minutes) }}</p>
+                    <p class="text-[9px] font-bold text-muted uppercase tracking-wide mt-1">MIN</p>
+                  </div>
+                  <div class="rounded-xl bg-page border border-line px-2 py-2.5 text-center">
+                    <p class="font-mono text-2xl font-bold tabular-nums leading-none" [ngClass]="g.priceChange === null ? 'text-muted' : g.priceChange > 0 ? 'text-emerald-500' : g.priceChange < 0 ? 'text-red-500' : ''">
+                      {{ g.priceChange === null ? '…' : (g.priceChange > 0 ? '+' : '') + (g.priceChange | number: '1.1-1') }}
+                    </p>
+                    <p class="text-[9px] font-bold text-muted uppercase tracking-wide mt-1">CR</p>
+                  </div>
+                </div>
+                @if (g.stats; as st) {
+                  <div class="grid grid-cols-4 gap-1.5">
+                    @for (cell of [
+                      { l: 'PTS', v: st['points'] },
+                      { l: 'REB', v: st['rebounds'] },
+                      { l: 'AST', v: st['assists'] },
+                      { l: 'PIR', v: st['valuation'] },
+                      { l: 'STL', v: st['steals'] },
+                      { l: 'BLK', v: st['blocksFavour'] },
+                      { l: 'TO', v: st['turnovers'] },
+                      { l: 'PF', v: st['foulsCommitted'] },
+                      { l: '2P', v: (st['fieldGoalsMade2'] ?? 0) + '/' + (st['fieldGoalsAttempted2'] ?? 0) },
+                      { l: '3P', v: (st['fieldGoalsMade3'] ?? 0) + '/' + (st['fieldGoalsAttempted3'] ?? 0) },
+                      { l: 'FT', v: (st['freeThrowsMade'] ?? 0) + '/' + (st['freeThrowsAttempted'] ?? 0) },
+                      { l: '+/-', v: st['plusMinus'] }
+                    ]; track cell.l) {
+                      <div class="rounded-xl bg-page border border-line px-1 py-2 text-center">
+                        <p class="font-mono text-[15px] font-bold tabular-nums leading-none">{{ cell.v ?? '–' }}</p>
+                        <p class="text-[9px] font-bold text-muted uppercase tracking-wide mt-1">{{ cell.l }}</p>
+                      </div>
+                    }
+                  </div>
+                }
+              } @else {
+                <p class="text-sm text-muted mt-2">{{ i18n.t('fantasy.noRecentGames') }}</p>
+              }
+            }
+          } @else {
+            <p class="text-sm text-muted mt-2">{{ i18n.t('fantasy.noRecentGames') }}</p>
+          }
+        </div>
       </div>
     </div>
   }
@@ -1451,20 +1637,9 @@
           @if (!keyboardOpen()) {
             <ng-container [ngTemplateOutlet]="turnFilterChips" />
           }
-          <div class="flex items-center justify-around bg-page rounded-xl border border-line px-1 py-1.5" [class.hidden]="keyboardOpen()">
-            <button type="button" (click)="setSort('price')" class="flex items-center gap-0.5 text-[11px] font-bold uppercase tracking-wide" [ngClass]="sortKey() === 'price' ? 'text-team-primary' : 'text-muted'">
-              {{ i18n.t('fantasy.colPrice') }}
-              @if (sortKey() === 'price') { <span class="font-mono">{{ sortDesc() ? '▼' : '▲' }}</span> }
-            </button>
-            <button type="button" (click)="setSort('pointsPerGame')" class="flex items-center gap-0.5 text-[11px] font-bold uppercase tracking-wide" [ngClass]="sortKey() === 'pointsPerGame' ? 'text-team-primary' : 'text-muted'">
-              {{ i18n.t('fantasy.colPpg') }}
-              @if (sortKey() === 'pointsPerGame') { <span class="font-mono">{{ sortDesc() ? '▼' : '▲' }}</span> }
-            </button>
-            <button type="button" (click)="setSort('valuation')" class="flex items-center gap-0.5 text-[11px] font-bold uppercase tracking-wide" [ngClass]="sortKey() === 'valuation' ? 'text-team-primary' : 'text-muted'">
-              {{ i18n.t('fantasy.colPir') }}
-              @if (sortKey() === 'valuation') { <span class="font-mono">{{ sortDesc() ? '▼' : '▲' }}</span> }
-            </button>
-          </div>
+          @if (!keyboardOpen()) {
+            <ng-container [ngTemplateOutlet]="sortControl" />
+          }
         </div>
 
         <div #pickerList class="flex-1 min-h-0 overflow-y-auto overscroll-contain p-2.5 flex flex-col gap-1.5" (scroll)="onPoolScroll($event)">
@@ -1473,37 +1648,11 @@
               type="button"
               (click)="pickPlayerForSlot(row.player.id)"
               [disabled]="poolRowDisabled(row.player.id, row.player.position)"
-              class="fantasy-row-in w-full flex items-center gap-2 rounded-lg border border-line bg-page p-2 hover:border-team-primary transition-colors text-left disabled:opacity-40 disabled:hover:border-line disabled:cursor-not-allowed"
+              class="fantasy-row-in list-row w-full !gap-2.5 text-left disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <span class="relative shrink-0">
-                <app-player-photo
-                  [photoUrl]="row.player.photoUrl"
-                  [name]="row.player.name"
-                  [teamCode]="row.team.code"
-                  [primaryColor]="row.team.primaryColor"
-                  [size]="30"
-                  [centerFace]="true"
-                />
-                @if (row.injury; as injury) {
-                  <span class="absolute -top-0.5 -right-0.5">
-                    <app-injury-badge [status]="injury.status" [note]="injury.note" [noteEl]="injury.noteEl" [size]="12" />
-                  </span>
-                }
-              </span>
-              <div class="min-w-0 flex-1">
-                <p class="text-[12px] font-semibold truncate leading-tight" [ngClass]="row.injury ? injuryAccentClass(row.injury.status) : ''">{{ row.player.name }}</p>
-                <p class="text-[11px] font-mono text-muted truncate leading-tight">
-                  <ng-container [ngTemplateOutlet]="playerMeta" [ngTemplateOutletContext]="{ $implicit: row }" />
-                  @if (opponentFor(row.team.id); as opp) {
-                    &middot; {{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }} {{ opp.opponent.code }}
-                  }
-                </p>
-              </div>
-              <span
-                class="shrink-0 font-mono text-[13px] font-bold rounded-lg px-2.5 py-1.5 min-w-[46px] text-center border"
-                [ngClass]="row.injury ? injuryAccentClass(row.injury.status) + ' border-current' : 'text-team-primary border-team-primary/30'"
-              >
-                {{ row.price | number: '1.1-1' }} <span class="text-[10px]">{{ i18n.t('fantasy.creditsAbbrev') }}</span>
+              <ng-container [ngTemplateOutlet]="poolRowBody" [ngTemplateOutletContext]="{ $implicit: row, size: 36 }" />
+              <span class="value-chip border" [ngClass]="row.injury ? injuryAccentClass(row.injury.status) + ' border-current' : 'border-team-primary/30'">
+                <ng-container [ngTemplateOutlet]="poolPrice" [ngTemplateOutletContext]="{ $implicit: row }" />
               </span>
             </button>
           } @empty {
