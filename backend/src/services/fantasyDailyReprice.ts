@@ -140,20 +140,6 @@ function roundSettled(settledBefore: string) {
     )`;
 }
 
-/**
- * Whether a round's price moves have landed yet. A round is priced in one
- * run (roundSettled), so any coach move logged against it means all of it.
- */
-export async function isRoundPriced(season: string, round: number): Promise<boolean> {
-  const [row] = await db.execute<{ priced: boolean }>(sql`
-    select exists (
-      select 1 from fantasy_coach_price_change_log l join games g on g.id = l.game_id
-      where g.season = ${season} and g.round = ${round}
-    ) as priced
-  `);
-  return !!row?.priced;
-}
-
 async function bumpCeilingIfNeeded(season: string, highestPrice: number): Promise<void> {
   const [existing] = await db.select().from(fantasyPricingState).where(eq(fantasyPricingState.season, season));
   const impliedCeiling = FANTASY_PIR_CEILING_FLOOR * ((highestPrice - FANTASY_MIN_PRICE) / (FANTASY_MAX_PRICE - FANTASY_MIN_PRICE) || 0);

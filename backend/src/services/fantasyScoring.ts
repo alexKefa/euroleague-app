@@ -546,19 +546,50 @@ export async function getRoundLockTime(season: string, round: number): Promise<D
  */
 export async function getDefaultRound(season: string): Promise<number | null> {
   const rows = await db
-    .select({ round: games.round, status: games.status })
+    .select({ round: games.round, status: games.status, tipoffAt: games.tipoffAt })
     .from(games)
     .where(and(eq(games.season, season), isNotNull(games.round)));
 
-  const byRound = new Map<number, string[]>();
+  const byRound = new Map<number, { status: string; tipoffAt: Date }[]>();
   for (const r of rows) {
     const arr = byRound.get(r.round!) ?? [];
-    arr.push(r.status);
+    arr.push({ status: r.status, tipoffAt: r.tipoffAt });
     byRound.set(r.round!, arr);
   }
   const sortedRounds = [...byRound.keys()].sort((a, b) => a - b);
   if (sortedRounds.length === 0) return null;
-  return sortedRounds.find((rnd) => byRound.get(rnd)!.some((s) => s !== "final")) ?? sortedRounds[sortedRounds.length - 1];
+  const firstOpen = sortedRounds.find((rnd) => byRound.get(rnd)!.some((g) => g.status !== "final")) ?? sortedRounds[sortedRounds.length - 1];
+
+  // The next round opens only once the previous round's credits have landed
+  // (2026-10-01, direct ask: "round 3 should not be visible" until round 2's
+  // credits are in, ~12h after its last game — fantasyDailyReprice.ts).
+  // Budgets for a round depend on the previous round's price moves, so
+  // picking before then would use the wrong budget. Safety net: it opens
+  // anyway NEXT_ROUND_FORCE_OPEN_MS before its first tipoff, so late
+  // pricing can never lock everyone out of setting a squad.
+  const prev = firstOpen - 1;
+  if (byRound.has(prev) && byRound.get(firstOpen)!.some((g) => g.status !== "final")) {
+    const firstTip = Math.min(...byRound.get(firstOpen)!.map((g) => new Date(g.tipoffAt).getTime()));
+    if (firstTip - Date.now() > NEXT_ROUND_FORCE_OPEN_MS && !(await isRoundPriced(season, prev))) return prev;
+  }
+  return firstOpen;
+}
+
+const NEXT_ROUND_FORCE_OPEN_MS = 6 * 60 * 60 * 1000;
+
+/**
+ * Whether a round's price moves have landed yet. A round is priced in one
+ * run (fantasyDailyReprice.ts's roundSettled), so any coach move logged
+ * against it means all of it.
+ */
+export async function isRoundPriced(season: string, round: number): Promise<boolean> {
+  const [row] = await db.execute<{ priced: boolean }>(sql`
+    select exists (
+      select 1 from fantasy_coach_price_change_log l join games g on g.id = l.game_id
+      where g.season = ${season} and g.round = ${round}
+    ) as priced
+  `);
+  return !!row?.priced;
 }
 
 export interface FantasyBaselineSquad {

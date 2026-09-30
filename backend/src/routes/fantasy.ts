@@ -23,6 +23,7 @@ import { getCurrentSeason } from "../services/season.js";
 import {
   getRoundLockTime,
   getDefaultRound,
+  isRoundPriced,
   getBaselineSquad,
   getFantasyLeaderboardEntries,
   getUserBudget,
@@ -44,7 +45,6 @@ import {
   computeFantasyGamePoints,
 } from "../services/fantasyScoring.js";
 import { checkAndGrantFantasyMilestones, markFantasyMilestonesSeen } from "../services/cards.js";
-import { isRoundPriced } from "../services/fantasyDailyReprice.js";
 
 export const fantasyRouter = Router();
 
@@ -224,7 +224,10 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
       return;
     }
     const defaultRound = await getDefaultRound(season);
-    const round = req.query.round ? Number(req.query.round) : defaultRound;
+    // Never past the open round: the next one stays hidden until the
+    // previous round's credits land (getDefaultRound).
+    const requested = req.query.round ? Number(req.query.round) : defaultRound;
+    const round = requested !== null && defaultRound !== null && requested > defaultRound ? defaultRound : requested;
     if (round === null || Number.isNaN(round)) {
       res.json(emptyLineupResponse(season, defaultRound));
       return;
@@ -532,6 +535,11 @@ fantasyRouter.post("/lineup/batch", requireAuth, async (req, res) => {
     const { season, round, players: entries, coachTeamId } = req.body ?? {};
     if (typeof season !== "string" || typeof round !== "number" || !Number.isInteger(round)) {
       res.status(400).json({ error: "season and round are required" });
+      return;
+    }
+    const openRound = await getDefaultRound(season);
+    if (openRound !== null && round > openRound) {
+      res.status(400).json({ error: "This round isn't open yet", code: "ROUND_NOT_OPEN" });
       return;
     }
     if (typeof coachTeamId !== "string" || !uuidPattern.test(coachTeamId)) {

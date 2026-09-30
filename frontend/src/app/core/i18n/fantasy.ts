@@ -196,11 +196,6 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.simulateRoundAdmin": { en: "Admin: simulate whole round", el: "Διαχειριστής: προσομοίωση όλου του γύρου" },
   "fantasy.pointsLabel": { en: "Points", el: "Πόντοι" },
   "fantasy.creditsChangeLabel": { en: "Credits (CR)", el: "Credits (CR)" },
-  "fantasy.creditsPending": { en: "Pending", el: "Εκκρεμεί" },
-  "fantasy.creditsPendingNote": {
-    en: "Credits update once per round, about 12 hours after its last game.",
-    el: "Τα credits ενημερώνονται μία φορά ανά αγωνιστική, περίπου 12 ώρες μετά τον τελευταίο αγώνα.",
-  },
   // Same "stays English in both locales" precedent as posGuard/homeAbbrev
   // above — a currency-style abbreviation, not a translatable word.
   "fantasy.creditsAbbrev": { en: "CR", el: "CR" },

@@ -402,6 +402,10 @@ export class FantasyComponent implements OnInit {
 
   // --- Roster builder state ---
   readonly loading = signal(true);
+  // True while the round navigator is fetching another round (2026-10-01,
+  // direct ask) — shows the same skeleton as the first load instead of the
+  // old round's squad lingering until the new one arrives.
+  readonly switchingRound = signal(false);
   // "Randomize squad" dice trigger (round 1 only, any user — see
   // autoFillSquad below and fantasy.html's doc comment on the button for
   // why this isn't admin-gated). confirmingAutoFill gates the "are you
@@ -1688,7 +1692,8 @@ export class FantasyComponent implements OnInit {
     const max = this.defaultRound();
     if (round < 1 || (max !== null && round > max) || round === this.round()) return;
     this.closeAllPopups();
-    this.loadLineup(round);
+    this.switchingRound.set(true);
+    this.loadLineup(round, () => this.switchingRound.set(false));
   }
 
   viewNextRound(): void {
@@ -1742,6 +1747,10 @@ export class FantasyComponent implements OnInit {
 
   private maybeShowRoundRecap(lineup: FantasyLineup): void {
     const unseen = lineup.roundRecap;
+    // Held until the round's credits land (2026-10-01, direct ask): the
+    // recap then shows real points and credits together, alongside the
+    // next round opening. Not marked celebrated, so a later load shows it.
+    if (unseen && !unseen.creditsSettled) return;
     if (unseen && !this.celebratedRounds.has(unseen.round)) {
       this.celebratedRounds.add(unseen.round);
       this.recap.set(unseen);
@@ -1750,7 +1759,7 @@ export class FantasyComponent implements OnInit {
       return;
     }
     const round = lineup.round;
-    if (!lineup.roundComplete || round === null || this.celebratedRounds.has(round)) return;
+    if (!lineup.roundComplete || !lineup.creditsSettled || round === null || this.celebratedRounds.has(round)) return;
     this.celebratedRounds.add(round);
     this.recap.set({
       round,

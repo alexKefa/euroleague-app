@@ -130,8 +130,8 @@
         <p class="text-sm text-muted font-semibold mb-3">{{ i18n.t('fantasy.loginToUse') }}</p>
         <a routerLink="/login" appButton appButtonSize="sm">{{ i18n.t('nav.login') }}</a>
       </div>
-    } @else if (loading()) {
-      <!-- Mirrors the real roster-builder layout below (status bar, court,
+    } @else if (loading() || switchingRound()) {
+      <!-- Also shown while switching rounds. Mirrors the real roster-builder layout below (status bar, court,
            bench/coach, pool) piece-by-piece instead of one generic box, so
            the page's actual shape is visible before any data has loaded. -->
       <app-skeleton class="h-24 rounded-2xl mb-4" />
@@ -1852,23 +1852,15 @@
                locked in, from repricing since (services/fantasyScoring.ts's
                priceAtPick). Zero reads as neutral, not a loss. -->
           <div>
-            @if (rc.creditsSettled) {
-              <p
-                class="font-mono text-3xl font-bold"
-                [ngClass]="rc.creditsChange > 0 ? 'text-team-primary' : rc.creditsChange < 0 ? 'text-red-500' : 'text-ink'"
-              >
-                {{ rc.creditsChange > 0 ? "+" : "" }}{{ rc.creditsChange | number: "1.1-1" }}
-              </p>
-            } @else {
-              <!-- Credits move once per round, ~12h after its last game. -->
-              <p class="font-display text-xl font-bold text-muted leading-9">{{ i18n.t('fantasy.creditsPending') }}</p>
-            }
+            <p
+              class="font-mono text-3xl font-bold"
+              [ngClass]="rc.creditsChange > 0 ? 'text-team-primary' : rc.creditsChange < 0 ? 'text-red-500' : 'text-ink'"
+            >
+              {{ rc.creditsChange > 0 ? "+" : "" }}{{ rc.creditsChange | number: "1.1-1" }}
+            </p>
             <p class="text-[11px] text-muted uppercase tracking-wide mt-1">{{ i18n.t('fantasy.creditsChangeLabel') }}</p>
           </div>
         </div>
-        @if (!rc.creditsSettled) {
-          <p class="text-[11px] text-muted -mt-2 mb-4">{{ i18n.t('fantasy.creditsPendingNote') }}</p>
-        }
         @if (rc.points > 0) {
           <p class="text-sm font-bold text-emerald-500 mb-5">
             +{{ rc.points }} {{ i18n.t('fantasy.economyPointsEarned') }}
