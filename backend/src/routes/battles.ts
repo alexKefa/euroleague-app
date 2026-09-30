@@ -1,11 +1,12 @@
 import { Router } from "express";
-import { and, desc, eq, inArray, or } from "drizzle-orm";
+import { and, desc, eq, inArray, ne, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "../db/client.js";
-import { battles, collectibles, userCollectibles, users, leagueMembers, pointAdjustments, teams } from "../db/schema.js";
+import { battles, collectibles, userCollectibles, users, leagues, leagueMembers, pointAdjustments, teams } from "../db/schema.js";
 import { requireAuth } from "../auth/middleware.js";
 import { sendToUser } from "../realtime/hub.js";
-import { BATTLE_STAKE_BASE, computeCardPowerDetails, computeCardPowers, computeStakeForWinProb, resolveDuel } from "../services/battles.js";
+import { BATTLE_STAKE_BASE, computeCardPowerDetails, computeStakeForWinProb } from "../services/battles.js";
+import { DUEL_STATS, DuelStat, getCardStatLines, isDuelStat, resolveStatDuel } from "../services/statDuel.js";
 import { getUserPoints } from "../services/points.js";
 
 export const battlesRouter = Router();
@@ -65,9 +66,13 @@ async function validateCard(
 
 battlesRouter.post("/", requireAuth, async (req, res) => {
   try {
-    const { leagueId, opponentUserId, collectibleId } = req.body ?? {};
+    const { leagueId, opponentUserId, collectibleId, stat } = req.body ?? {};
     if (typeof leagueId !== "string" || typeof opponentUserId !== "string") {
       res.status(400).json({ error: "leagueId and opponentUserId are required", code: "INVALID_REQUEST_BODY" });
+      return;
+    }
+    if (!isDuelStat(stat)) {
+      res.status(400).json({ error: `stat must be one of ${DUEL_STATS.join(", ")}`, code: "INVALID_STAT" });
       return;
     }
     if (opponentUserId === req.userId) {
@@ -85,10 +90,9 @@ battlesRouter.post("/", requireAuth, async (req, res) => {
       return;
     }
 
-    // Just a basic sanity gate here — the exact stake depends on the
-    // matchup, which isn't known until the opponent picks their own card,
-    // so the precise afford-your-potential-loss check happens at accept
-    // time instead (below).
+    // The exact stake isn't known until the duel resolves (it depends on
+    // both cards and both hidden categories), and it's capped at whatever
+    // the loser has at that point — so entry only needs the base stake.
     if ((await getUserPoints(req.userId!)) < BATTLE_STAKE_BASE) {
       res.status(400).json({ error: `You need at least ${BATTLE_STAKE_BASE} points to challenge someone`, code: "INSUFFICIENT_POINTS" });
       return;
@@ -96,7 +100,7 @@ battlesRouter.post("/", requireAuth, async (req, res) => {
 
     const [battle] = await db
       .insert(battles)
-      .values({ leagueId, challengerUserId: req.userId!, opponentUserId, challengerCollectibleId: card.row.collectibleId })
+      .values({ leagueId, challengerUserId: req.userId!, opponentUserId, challengerCollectibleId: card.row.collectibleId, challengerStat: stat })
       .returning();
 
     notifyBattleUpdate([opponentUserId], battle.id, "challenged");
@@ -107,18 +111,28 @@ battlesRouter.post("/", requireAuth, async (req, res) => {
   }
 });
 
-// Accepting resolves the duel immediately — there's no waiting state in
-// this version. Both cards' powers (and from them, the real variable
-// stake — see computeStakeForWinProb) are computed right now, not frozen
-// earlier, then a single weighted-random roll decides it, all inside one
-// transaction with the battle row locked so a double-accept can't roll
-// twice or transfer the stake twice.
+// Accepting resolves the stat duel immediately (services/statDuel.ts), all
+// inside one transaction with the battle row locked so a double-accept
+// can't resolve twice or transfer the stake twice. The stake is the same
+// upset-scaled formula as before (computeStakeForWinProb on the winner's
+// exact pre-draw win chance), capped at what the loser actually has — the
+// challenger's category is hidden, so neither side can know its exact
+// exposure up front the way the coin flip's visible powers allowed.
 battlesRouter.post("/:id/accept", requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
+    const stat = req.body?.stat;
+    if (!isDuelStat(stat)) {
+      res.status(400).json({ error: `stat must be one of ${DUEL_STATS.join(", ")}`, code: "INVALID_STAT" });
+      return;
+    }
     const card = await validateCard(req.userId!, req.body?.collectibleId);
     if (!card.ok) {
       res.status(card.status).json({ error: card.error, code: card.code });
+      return;
+    }
+    if ((await getUserPoints(req.userId!)) < BATTLE_STAKE_BASE) {
+      res.status(400).json({ error: `You need at least ${BATTLE_STAKE_BASE} points to battle`, code: "INSUFFICIENT_POINTS" });
       return;
     }
 
@@ -132,9 +146,9 @@ battlesRouter.post("/:id/accept", requireAuth, async (req, res) => {
         return { status: 400, error: "This challenge is no longer pending", code: "BATTLE_NOT_PENDING" } as const;
       }
 
-      // The challenger's own finish (foil adds power), read from their
-      // current ownership row — null if they've since traded the card away.
-      const [challengerCard] = await tx
+      // The challenger's own finish, from their current ownership row —
+      // null (standard) if they've since traded the card away.
+      const [challengerCardRow] = await tx
         .select({ teamId: collectibles.teamId, name: collectibles.name, tier: collectibles.tier, finish: userCollectibles.finish })
         .from(collectibles)
         .leftJoin(
@@ -144,39 +158,24 @@ battlesRouter.post("/:id/accept", requireAuth, async (req, res) => {
         .where(eq(collectibles.id, battle.challengerCollectibleId))
         .limit(1);
 
-      const [challengerPower, opponentPower] = await computeCardPowers([challengerCard, card.row]);
-      const challengerWinProb = challengerPower / (challengerPower + opponentPower);
-      const opponentWinProb = 1 - challengerWinProb;
-      // What each side would owe if they lose — known now, before the roll,
-      // since both cards (and so both win probabilities) are already fixed.
-      const stakeIfChallengerWins = computeStakeForWinProb(challengerWinProb); // what the opponent would owe
-      const stakeIfOpponentWins = computeStakeForWinProb(opponentWinProb); // what the challenger would owe
+      const [challengerLine, opponentLine] = await getCardStatLines([challengerCardRow, card.row]);
+      // A challenge sent under the v3 coin flip has no category; PIR is the
+      // closest thing to the old overall power.
+      const challengerStat: DuelStat = isDuelStat(battle.challengerStat) ? battle.challengerStat : "pir";
+      const duel = resolveStatDuel(challengerStat, stat, challengerLine.boosted, opponentLine.boosted);
 
-      // Re-check the challenger can still cover *their* potential loss too
-      // — time may have passed since they sent the challenge (spent points
-      // on a pack, lost another duel, etc.), same "re-verify at accept
-      // time" caution trades.ts's own accept handler already applies to
-      // card ownership.
-      if ((await getUserPoints(battle.challengerUserId)) < stakeIfOpponentWins) {
-        return { status: 400, error: "The challenger no longer has enough points to cover this duel", code: "CHALLENGER_INSUFFICIENT_POINTS" } as const;
-      }
-      if ((await getUserPoints(req.userId!)) < stakeIfChallengerWins) {
-        return {
-          status: 400,
-          error: `You need at least ${stakeIfChallengerWins} points to risk against this card`,
-          code: "INSUFFICIENT_POINTS",
-        } as const;
-      }
-
-      const winnerSide = resolveDuel(challengerPower, opponentPower);
-      const winnerUserId = winnerSide === "challenger" ? battle.challengerUserId : battle.opponentUserId;
-      const loserUserId = winnerSide === "challenger" ? battle.opponentUserId : battle.challengerUserId;
-      const stake = winnerSide === "challenger" ? stakeIfChallengerWins : stakeIfOpponentWins;
+      const winnerUserId = duel.winner === "challenger" ? battle.challengerUserId : battle.opponentUserId;
+      const loserUserId = duel.winner === "challenger" ? battle.opponentUserId : battle.challengerUserId;
+      const winnerProb = duel.winner === "challenger" ? duel.challengerWinProb : 1 - duel.challengerWinProb;
+      const stake = Math.min(computeStakeForWinProb(winnerProb), Math.max(0, await getUserPoints(loserUserId)));
 
       await tx
         .update(battles)
         .set({
           opponentCollectibleId: card.row.collectibleId,
+          challengerStat,
+          opponentStat: stat,
+          duelRounds: duel.rounds,
           status: "finished",
           winnerUserId,
           stakePoints: stake,
@@ -186,14 +185,13 @@ battlesRouter.post("/:id/accept", requireAuth, async (req, res) => {
         .where(eq(battles.id, id));
 
       // A real stake, not a minted reward — see services/battles.ts's doc
-      // comment for the farming exploit this closes. Both rows count
-      // toward ranking (the default): a duel result is a competitive
-      // outcome, not a redemption spend, so it should move the leaderboard
-      // like everything else that isn't a store purchase.
-      await tx.insert(pointAdjustments).values([
-        { userId: winnerUserId, points: stake, reason: "Card battle win", createdByUserId: winnerUserId },
-        { userId: loserUserId, points: -stake, reason: "Card battle loss", createdByUserId: winnerUserId },
-      ]);
+      // comment for the farming exploit this closes.
+      if (stake > 0) {
+        await tx.insert(pointAdjustments).values([
+          { userId: winnerUserId, points: stake, reason: "Card battle win", createdByUserId: winnerUserId },
+          { userId: loserUserId, points: -stake, reason: "Card battle loss", createdByUserId: winnerUserId },
+        ]);
+      }
 
       return { status: 200, challengerUserId: battle.challengerUserId } as const;
     });
@@ -296,7 +294,12 @@ const opponentOwnJoin = and(eq(opponentOwn.userId, battles.opponentUserId), eq(o
 battlesRouter.get("/mine", requireAuth, async (req, res) => {
   try {
     const { leagueId } = req.query;
-    const conditions = [or(eq(battles.challengerUserId, req.userId!), eq(battles.opponentUserId, req.userId!))!];
+    // Cancelled challenges never happened as far as the other side is
+    // concerned, so they're left out of the list (2026-09-30).
+    const conditions = [
+      or(eq(battles.challengerUserId, req.userId!), eq(battles.opponentUserId, req.userId!))!,
+      ne(battles.status, "cancelled"),
+    ];
     if (typeof leagueId === "string") conditions.push(eq(battles.leagueId, leagueId));
 
     const rows = await db
@@ -325,7 +328,9 @@ battlesRouter.get("/mine", requireAuth, async (req, res) => {
         status: battle.status,
         direction: battle.challengerUserId === req.userId ? "outgoing" : "incoming",
         counterpartyName: battle.challengerUserId === req.userId ? opponentName : challengerName,
+        counterpartyUserId: battle.challengerUserId === req.userId ? battle.opponentUserId : battle.challengerUserId,
         winnerUserId: battle.winnerUserId,
+        stakePoints: battle.stakePoints,
         createdAt: battle.createdAt,
         challengerCard: {
           id: card.id,
@@ -343,13 +348,10 @@ battlesRouter.get("/mine", requireAuth, async (req, res) => {
   }
 });
 
-// A lightweight power-score preview for cards you own (2026-09-22, direct
-// ask: "stats should also count for the coin flip" — they already did
-// (services/battles.ts's computeCardPowers factors real PIR in alongside
-// tier), this just surfaces that visibly instead of it only happening
-// invisibly server-side at accept time. One request covers every candidate
-// card in the picker at once, not a round trip per tap.
-battlesRouter.post("/card-powers", requireAuth, async (req, res) => {
+// Stat lines for cards you own (v4 stat duel) — one request covers every
+// candidate card in the picker. Each line carries the real per-game numbers
+// and the rarity/foil-boosted ones the duel actually compares.
+battlesRouter.post("/card-stats", requireAuth, async (req, res) => {
   try {
     const { collectibleIds } = req.body ?? {};
     if (!Array.isArray(collectibleIds) || collectibleIds.length === 0 || !collectibleIds.every((id) => typeof id === "string")) {
@@ -370,20 +372,37 @@ battlesRouter.post("/card-powers", requireAuth, async (req, res) => {
       .where(and(eq(userCollectibles.userId, req.userId!), inArray(userCollectibles.collectibleId, collectibleIds)));
 
     const nonCoach = rows.filter((r) => r.tier !== "coach");
-    const details = await computeCardPowerDetails(nonCoach);
-    res.json({
-      powers: nonCoach.map((r, i) => ({
-        collectibleId: r.collectibleId,
-        power: details[i].power,
-        tierBase: details[i].tierBase,
-        pir: details[i].pir,
-        foilBonus: details[i].foilBonus,
-        finish: r.finish,
-      })),
-    });
+    const lines = await getCardStatLines(nonCoach);
+    res.json({ stats: nonCoach.map((r, i) => ({ collectibleId: r.collectibleId, finish: r.finish, ...lines[i] })) });
   } catch (err) {
-    console.error("POST /api/battles/card-powers failed:", err);
-    res.status(500).json({ error: "Failed to compute card powers", code: "FAILED_TO_COMPUTE_POWERS" });
+    console.error("POST /api/battles/card-stats failed:", err);
+    res.status(500).json({ error: "Failed to load card stats", code: "FAILED_TO_LOAD_CARD_STATS" });
+  }
+});
+
+// Everyone you can challenge (2026-09-30, "easy to access battle buttons"):
+// each distinct member of any league you're in, with the league to battle
+// them in (their most recently joined shared league), so the Battles page
+// can offer a one-tap challenge list instead of going through a league.
+battlesRouter.get("/opponents", requireAuth, async (req, res) => {
+  try {
+    const rows = await db.execute<{ user_id: string; username: string; league_id: string; league_name: string }>(sql`
+      select distinct on (other.user_id) other.user_id, u.username, l.id as league_id, l.name as league_name
+      from ${leagueMembers} mine
+      join ${leagueMembers} other on other.league_id = mine.league_id and other.user_id <> mine.user_id
+      join ${users} u on u.id = other.user_id
+      join ${leagues} l on l.id = mine.league_id
+      where mine.user_id = ${req.userId!}
+      order by other.user_id, other.joined_at desc
+    `);
+    res.json(
+      rows
+        .map((r) => ({ userId: r.user_id, displayName: r.username, leagueId: r.league_id, leagueName: r.league_name }))
+        .sort((a, b) => a.displayName.localeCompare(b.displayName))
+    );
+  } catch (err) {
+    console.error("GET /api/battles/opponents failed:", err);
+    res.status(500).json({ error: "Failed to load opponents", code: "FAILED_TO_LOAD_OPPONENTS" });
   }
 });
 
@@ -426,62 +445,63 @@ battlesRouter.get("/:id", requireAuth, async (req, res) => {
       return;
     }
 
-    // Same power score used to actually decide the duel at accept time —
-    // shown here too (2026-09-22) so the opponent can see how their own
-    // card choice stacks up against it, not just its name/photo. Extended
-    // 2026-09-24 ("show the cards used with stats and the real-time
-    // chances") to also compute the opponent's own breakdown once their
-    // card is known (accepted/finished) and a derived pre-duel win% for
-    // the finished-duel stats panel — recomputed live from each card's
-    // current tier+PIR rather than a stored snapshot, same "no frozen
-    // power value at resolution time" tradeoff challengerPower's own doc
-    // comment already accepted (PIR can drift slightly after the duel
-    // resolved; the actual winner/stake are the frozen ground truth,
-    // stored on the row — this is just a display aid).
     const challengerFinish = row.challengerFinish ?? "standard";
     const opponentFinish = row.opponentFinish ?? "standard";
-    const [challengerDetail, opponentDetail = null] = await computeCardPowerDetails([
-      { ...row.challengerCard, finish: challengerFinish },
-      ...(row.opponentCard ? [{ ...row.opponentCard, finish: opponentFinish }] : []),
-    ]);
-    const preDuelChallengerWinProb = opponentDetail
-      ? challengerDetail.power / (challengerDetail.power + opponentDetail.power)
+    const finished = battle.status === "finished";
+    const iAmChallenger = battle.challengerUserId === req.userId;
+
+    // v3 coin-flip battles resolved before the stat duel existed carry no
+    // rounds; they still show their old power breakdown.
+    const legacy = finished && !battle.duelRounds;
+    const legacyPower = legacy
+      ? await computeCardPowerDetails([
+          { ...row.challengerCard, finish: challengerFinish },
+          ...(row.opponentCard ? [{ ...row.opponentCard, finish: opponentFinish }] : []),
+        ])
       : null;
-    const breakdown = (d: typeof challengerDetail) => ({ tierBase: d.tierBase, pir: d.pir, foilBonus: d.foilBonus });
+
+    // Stat lines are public card info, so the opponent sees the
+    // challenger's card stats while picking — only the chosen category is
+    // hidden. Live rather than frozen: the rounds below are the frozen
+    // ground truth for a finished duel.
+    const [challengerStats, opponentStats = null] = legacy
+      ? [null, null]
+      : await getCardStatLines([
+          { ...row.challengerCard, finish: challengerFinish },
+          ...(row.opponentCard ? [{ ...row.opponentCard, finish: opponentFinish }] : []),
+        ]);
+
+    const cardRef = (card: NonNullable<typeof row.opponentCard>, team: NonNullable<typeof row.opponentTeam>, finish: string) => ({
+      id: card.id,
+      name: card.name,
+      tier: card.tier,
+      imageUrl: card.imageUrl,
+      finish,
+      team: { id: team.id, code: team.code, primaryColor: team.primaryColor },
+    });
 
     res.json({
       id: battle.id,
       leagueId: battle.leagueId,
       status: battle.status,
+      mode: legacy ? "coinFlip" : "statDuel",
       challengerUserId: battle.challengerUserId,
       challengerName,
       opponentUserId: battle.opponentUserId,
       opponentName,
       winnerUserId: battle.winnerUserId,
       stakePoints: battle.stakePoints,
-      challengerPower: challengerDetail.power,
-      challengerPowerBreakdown: breakdown(challengerDetail),
-      opponentPower: opponentDetail?.power ?? null,
-      opponentPowerBreakdown: opponentDetail ? breakdown(opponentDetail) : null,
-      preDuelChallengerWinProb,
-      challengerCard: {
-        id: row.challengerCard.id,
-        name: row.challengerCard.name,
-        tier: row.challengerCard.tier,
-        imageUrl: row.challengerCard.imageUrl,
-        finish: challengerFinish,
-        team: { id: row.challengerTeam!.id, code: row.challengerTeam!.code, primaryColor: row.challengerTeam!.primaryColor },
-      },
-      opponentCard: row.opponentCard
-        ? {
-            id: row.opponentCard.id,
-            name: row.opponentCard.name,
-            tier: row.opponentCard.tier,
-            imageUrl: row.opponentCard.imageUrl,
-            finish: opponentFinish,
-            team: { id: row.opponentTeam!.id, code: row.opponentTeam!.code, primaryColor: row.opponentTeam!.primaryColor },
-          }
+      // Hidden from the opponent until the duel resolves.
+      challengerStat: finished || iAmChallenger ? battle.challengerStat : null,
+      opponentStat: battle.opponentStat,
+      duelRounds: battle.duelRounds,
+      challengerStats,
+      opponentStats,
+      legacyPower: legacyPower
+        ? { challenger: legacyPower[0].power, opponent: legacyPower[1]?.power ?? null }
         : null,
+      challengerCard: cardRef(row.challengerCard, row.challengerTeam!, challengerFinish),
+      opponentCard: row.opponentCard && row.opponentTeam ? cardRef(row.opponentCard, row.opponentTeam, opponentFinish) : null,
     });
   } catch (err) {
     console.error("GET /api/battles/:id failed:", err);

@@ -8,6 +8,7 @@ import { EventsService } from "../../core/events.service";
 import { I18nService } from "../../core/i18n.service";
 import { Collectible, CollectibleFinish, CollectibleTier, CollectibleBundle, CollectibleBundleCard } from "../../core/models";
 import { TradesNotificationService } from "../../core/trades-notification.service";
+import { BattlesNotificationService } from "../../core/battles-notification.service";
 import { CardStackComponent } from "../store/card-stack";
 import { CardPreviewComponent } from "../store/card-preview";
 import { NavIconComponent, NavIconName } from "../../shared/nav-icon";
@@ -62,6 +63,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   private events = inject(EventsService);
   protected i18n = inject(I18nService);
   protected trades = inject(TradesNotificationService);
+  protected battlesNotif = inject(BattlesNotificationService);
 
   protected readonly cardRenderWidth = CARD_RENDER_WIDTH;
 
@@ -84,6 +86,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   // subKey: a one-line "what's this for" under each hub card (2026-09-29
   // restyle, replacing the solid button grid).
   protected readonly hubTiles: { path: string; icon: NavIconName; labelKey: string; subKey: string }[] = [
+    { path: "/battles", icon: "ball", labelKey: "battles.tab", subKey: "battles.hubSub" },
     { path: "/store", icon: "store", labelKey: "store.title", subKey: "inventory.hubStoreSub" },
     { path: "/wheel", icon: "wheel", labelKey: "store.jumpBall", subKey: "inventory.hubWheelSub" },
     { path: "/packs", icon: "packs", labelKey: "store.packs", subKey: "inventory.hubPacksSub" },

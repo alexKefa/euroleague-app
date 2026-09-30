@@ -1,11 +1,5 @@
-<div class="max-w-3xl mx-auto p-4 sm:p-6">
-  @if (!battle() || battle()!.status !== 'finished') {
-    <a
-      [routerLink]="navHistory.previousUrl() ?? backFallback()"
-      class="back-link mb-3"
-      >{{ i18n.t('battles.backToLeague') }}</a
-    >
-  }
+<div class="max-w-3xl mx-auto p-4 sm:p-6 pb-28 sm:pb-6">
+  <a [routerLink]="navHistory.previousUrl() ?? '/battles'" class="back-link mb-3">{{ i18n.t('battles.backToLeague') }}</a>
 
   @if (loading()) {
     <app-skeleton class="h-40 rounded-2xl" />
@@ -14,126 +8,74 @@
       <p class="text-sm text-muted font-semibold">{{ i18n.t('battles.notFound') }}</p>
     </div>
   } @else if (isNew()) {
-    <div class="flex items-center gap-2 mb-1">
-      <app-nav-icon name="ball" [size]="22" class="text-team-primary" />
-      <h1 class="font-display text-2xl tracking-wide truncate">{{ i18n.t('battles.challengeButton') }}</h1>
-    </div>
-    <p class="text-sm text-muted mb-5">{{ newOpponentName() }}</p>
-
-    <ng-container *ngTemplateOutlet="cardPicker"></ng-container>
-
-    @if (errorKey()) {
-      <p class="text-xs text-red-500 font-semibold mt-3">{{ i18n.t(errorKey()!) }}</p>
-    }
-
-    <button
-      type="button"
-      (click)="sendChallenge()"
-      [disabled]="!pickedId() || submitting() || !canAffordStake()"
-      appButton
-      class="w-full mt-4 disabled:opacity-50"
-    >
-      {{ submitting() ? i18n.t('battles.sending') : i18n.t('battles.confirmChallenge') }}
-    </button>
-  } @else if (battle(); as b) {
-    <div class="flex items-center justify-between mb-5 gap-2">
+    <!-- Composing a challenge: card, then category, then send. -->
+    <div class="flex items-center justify-between gap-2 mb-4">
       <div class="min-w-0">
-        <h1 class="font-display text-2xl tracking-wide truncate">{{ i18n.t('battles.vsLabel') }} {{ opponentDisplayName() }}</h1>
-        <p class="font-mono text-[11px] text-muted uppercase tracking-wide mt-0.5 flex items-center gap-1.5">
+        <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('battles.newChallengeTitle') }}</p>
+        <h1 class="font-display text-2xl tracking-wide truncate">{{ i18n.t('battles.vsLabel') }} {{ newOpponentName() }}</h1>
+      </div>
+      <app-battles-info />
+    </div>
+
+    <ng-container *ngTemplateOutlet="picker"></ng-container>
+    <ng-container *ngTemplateOutlet="actionBar; context: { accept: false }"></ng-container>
+  } @else if (battle(); as b) {
+    <div class="flex items-center justify-between gap-2 mb-4">
+      <div class="min-w-0">
+        <p class="font-mono text-[11px] text-muted uppercase tracking-wide flex items-center gap-1.5">
           <span class="status-dot" [class.is-live]="b.status === 'pending'"></span>
           {{ i18n.t('battles.status.' + b.status) }}
         </p>
+        <h1 class="font-display text-2xl tracking-wide truncate">{{ i18n.t('battles.vsLabel') }} {{ opponentDisplayName() }}</h1>
       </div>
-      @if (b.status === 'finished' && revealStage() === 'revealed') {
-        <span
-          class="shrink-0 font-mono text-xs font-bold uppercase tracking-wide px-3 py-1.5 rounded-xl"
-          [ngClass]="didIWin() ? 'bg-team-primary text-team-secondary' : 'bg-page text-muted'"
-        >
-          {{ didIWin() ? i18n.t('battles.wonBadge') : i18n.t('battles.lostBadge') }}
-        </span>
-      }
+      <app-battles-info />
     </div>
 
     @if (b.status === 'pending' && iAmOpponent()) {
-      <!-- Showing the challenger's card before you pick yours (2026-09-22)
-           — lets you react to it (go for a bigger card, or risk a weaker
-           one anyway) instead of picking blind. -->
-      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4 flex items-center gap-3">
-        <app-collectible-card
-          [name]="b.challengerCard.name"
-          [tier]="b.challengerCard.tier"
-          [teamCode]="b.challengerCard.team.code"
-          [teamColor]="b.challengerCard.team.primaryColor"
-          [imageUrl]="b.challengerCard.imageUrl"
-          [finish]="b.challengerCard.finish ?? 'standard'"
-          [unlocked]="true"
-          [maxWidth]="80"
-        ></app-collectible-card>
-        <div class="min-w-0 flex-1">
-          <p class="font-mono text-[11px] text-muted uppercase tracking-wide">{{ i18n.t('battles.theirCardLabel') }}</p>
-          <p class="font-semibold truncate">{{ b.challengerCard.name }}</p>
-          <ng-container *ngTemplateOutlet="statChip; context: { $implicit: challengerBreakdown() }"></ng-container>
-        </div>
-      </div>
-
-      <ng-container *ngTemplateOutlet="cardPicker"></ng-container>
-
-      <!-- Live matchup panel (2026-09-24) — both cards' stat breakdowns
-           side-by-side plus the win-meter, updating instantly as a
-           different card is tapped (no debounce needed, this is all
-           already signal-reactive). -->
-      @if (pickedCardBreakdown(); as mine) {
-        <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-2">
-          <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-3">{{ i18n.t('battles.matchupTitle') }}</p>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-            <ng-container
-              *ngTemplateOutlet="cardStatBox; context: { $implicit: mine, card: pickedCard(), label: i18n.t('battles.yourCardLabel') }"
-            ></ng-container>
-            <ng-container
-              *ngTemplateOutlet="cardStatBox; context: { $implicit: challengerBreakdown(), card: b.challengerCard, label: i18n.t('battles.theirCardLabel') }"
-            ></ng-container>
+      <!-- Accepting: their card and its full stat line up top (only their
+           category is hidden), then your own picker below. -->
+      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4">
+        <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-3">
+          {{ b.challengerName }} {{ i18n.t('battles.challengedWith') }}
+        </p>
+        <div class="flex gap-4">
+          <app-collectible-card
+            class="shrink-0"
+            [name]="b.challengerCard.name"
+            [tier]="b.challengerCard.tier"
+            [teamCode]="b.challengerCard.team.code"
+            [teamColor]="b.challengerCard.team.primaryColor"
+            [imageUrl]="b.challengerCard.imageUrl"
+            [finish]="b.challengerCard.finish ?? 'standard'"
+            [unlocked]="true"
+            [maxWidth]="96"
+          ></app-collectible-card>
+          <div class="min-w-0 flex-1">
+            <p class="font-semibold truncate mb-2">{{ b.challengerCard.name }}</p>
+            @if (b.challengerStats; as line) {
+              <div class="grid grid-cols-3 gap-1.5">
+                @for (s of stats; track s) {
+                  <div class="rounded-lg bg-page px-2 py-1.5 text-center">
+                    <p class="font-mono text-[10px] text-muted uppercase">{{ statShort(s) }}</p>
+                    <p class="font-mono text-sm font-bold tabular-nums">{{ line.boosted[s] }}</p>
+                  </div>
+                }
+              </div>
+            }
+            <p class="mt-2 inline-flex items-center gap-1.5 text-[12px] font-semibold text-muted">
+              <span class="hidden-pick">?</span>
+              {{ i18n.t('battles.theirPickHidden') }}
+            </p>
           </div>
-          @if (winChancePct() !== null) {
-            <div class="flex items-center justify-between mb-1.5">
-              <span class="text-xs font-semibold text-muted">{{ i18n.t('battles.winChanceLabel') }}</span>
-              <span class="font-mono text-lg font-bold text-team-primary">{{ winChancePct() }}%</span>
-            </div>
-            <div class="win-meter-track mb-3">
-              <div class="win-meter-fill" [style.width.%]="winChancePct()"></div>
-            </div>
-            <div class="flex items-center justify-between font-mono text-[11px]">
-              <span class="text-team-primary">+{{ potentialStakeIfIWin() }} {{ i18n.t('battles.ptsIfWin') }}</span>
-              <span class="text-red-500">-{{ potentialStakeIfILose() }} {{ i18n.t('battles.ptsIfLose') }}</span>
-            </div>
-          }
         </div>
-      }
-
-      @if (errorKey()) {
-        <p class="text-xs text-red-500 font-semibold mt-3">{{ i18n.t(errorKey()!) }}</p>
-      }
-
-      <div class="flex gap-2 mt-4">
-        <button
-          type="button"
-          (click)="acceptChallenge()"
-          [disabled]="!pickedId() || submitting() || !canAffordStake()"
-          appButton
-          class="flex-1 disabled:opacity-50"
-        >
-          {{ submitting() ? i18n.t('battles.accepting') : i18n.t('battles.acceptButton') }}
-        </button>
-        <button type="button" (click)="declineChallenge()" appButton="danger">
-          {{ i18n.t('battles.declineButton') }}
-        </button>
       </div>
+
+      <ng-container *ngTemplateOutlet="picker"></ng-container>
+      <ng-container *ngTemplateOutlet="actionBar; context: { accept: true }"></ng-container>
     } @else if (b.status === 'pending') {
-      <!-- Waiting for the opponent (2026-09-24) — used to be a bare
-           paragraph with no sense of your own pick; now shows the actual
-           card you challenged with, its stat breakdown, and a live "still
-           pending" radar-pulse motif instead of static text. -->
-      <div class="bg-card rounded-2xl border border-line shadow-card p-5 mb-4">
-        <div class="flex items-center justify-center mb-4">
+      <!-- Waiting on the opponent. -->
+      <div class="bg-card rounded-2xl border border-line shadow-card p-5">
+        <div class="flex items-center justify-center mb-3">
           <div class="waiting-radar flex items-center justify-center">
             <app-nav-icon name="ball" [size]="20" class="text-team-primary" />
           </div>
@@ -155,211 +97,73 @@
           <div class="min-w-0 flex-1">
             <p class="font-mono text-[11px] text-muted uppercase tracking-wide">{{ i18n.t('battles.waitingOnYourCard') }}</p>
             <p class="font-semibold truncate">{{ b.challengerCard.name }}</p>
-            <ng-container *ngTemplateOutlet="statChip; context: { $implicit: challengerBreakdown() }"></ng-container>
+            @if (b.challengerStat) {
+              <p class="text-[12px] font-semibold text-team-primary mt-0.5">
+                {{ i18n.t('battles.yourCategory') }}: {{ statLabel(b.challengerStat) }}
+              </p>
+              <p class="text-[11px] text-muted">{{ i18n.t('battles.hiddenFromThem') }}</p>
+            }
           </div>
         </div>
         <div class="flex justify-center">
-          <button type="button" (click)="cancelChallenge()" appButton="danger" appButtonSize="sm">
-            {{ i18n.t('battles.cancelButton') }}
-          </button>
+          <button type="button" (click)="cancelChallenge()" appButton="danger" appButtonSize="sm">{{ i18n.t('battles.cancelButton') }}</button>
         </div>
       </div>
-    }
-
-    @if (b.status === 'finished' && myCard(); as mine) {
-      <div class="bg-card rounded-2xl border border-line shadow-card p-4 sm:p-6">
-        <div class="duel-arena rounded-2xl">
-          <div class="duel-stage relative flex items-center justify-center gap-6 sm:gap-10 py-4" [class.shake]="revealStage() === 'clashed'">
-            <div class="screen-flash" [class.flash-active]="revealStage() === 'clashed'"></div>
-            @if (revealStage() === 'revealed' && didIWin()) {
-              <div class="absolute inset-x-0 top-0 h-0 pointer-events-none">
-                @for (piece of confettiPieces; track $index) {
-                  <span class="confetti-piece"></span>
-                }
-              </div>
-            }
-            <div
-              [class]="'duel-card duel-left stage-' + revealStage()"
-              [class.is-winner]="revealStage() === 'revealed' && didIWin()"
-              [class.is-loser]="revealStage() === 'revealed' && !didIWin()"
-            >
-              <app-collectible-card
-                [name]="mine.name"
-                [tier]="mine.tier"
-                [teamCode]="mine.team.code"
-                [teamColor]="mine.team.primaryColor"
-                [imageUrl]="mine.imageUrl"
-                [finish]="mine.finish ?? 'standard'"
-                [unlocked]="true"
-                [maxWidth]="140"
-              ></app-collectible-card>
-            </div>
-            <div class="relative flex flex-col items-center justify-center w-10 shrink-0">
-              <app-nav-icon name="ball" [size]="32" [class]="'duel-ball stage-' + revealStage()" />
-              <p
-                class="font-display text-lg tracking-widest text-muted absolute transition-opacity duration-300"
-                [class.opacity-0]="revealStage() === 'approaching' || revealStage() === 'clashed'"
-              >
-                {{ i18n.t('battles.vsLabel') }}
-              </p>
-            </div>
-            @if (theirCard(); as theirs) {
-              <div
-                [class]="'duel-card duel-right stage-' + revealStage()"
-                [class.is-winner]="revealStage() === 'revealed' && !didIWin()"
-                [class.is-loser]="revealStage() === 'revealed' && didIWin()"
-              >
-                <app-collectible-card
-                  [name]="theirs.name"
-                  [tier]="theirs.tier"
-                  [teamCode]="theirs.team.code"
-                  [teamColor]="theirs.team.primaryColor"
-                  [imageUrl]="theirs.imageUrl"
-                  [finish]="theirs.finish ?? 'standard'"
-                  [unlocked]="true"
-                  [maxWidth]="140"
-                ></app-collectible-card>
-              </div>
-            }
-          </div>
-        </div>
-
-        @if (revealStage() === 'revealed') {
-          <div class="text-center mt-4">
-            <p class="font-display text-xl tracking-wide">{{ didIWin() ? i18n.t('battles.youWon') : i18n.t('battles.youLost') }}</p>
-            @if (b.stakePoints !== null) {
-              <p class="font-mono text-sm font-bold mt-1 stake-pop" [ngClass]="didIWin() ? 'text-team-primary' : 'text-red-500'">
-                {{ didIWin() ? '+' : '-' }}{{ b.stakePoints }} {{ i18n.t('battles.ptsSuffix') }}
-              </p>
-            }
-
-            <!-- Post-reveal stats panel (2026-09-24) — both cards' tier/PIR
-                 breakdown plus the pre-duel win% this actually resolved
-                 against, so the result reads as "here's why", not just a
-                 coin flip. -->
-            @if (myCardBreakdown(); as mineStats) {
-              <div class="bg-page rounded-2xl p-4 mt-5 text-left">
-                <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-3 text-center">{{ i18n.t('battles.statsTitle') }}</p>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                  <ng-container
-                    *ngTemplateOutlet="cardStatBox; context: { $implicit: mineStats, card: mine, label: i18n.t('battles.yourCardLabel') }"
-                  ></ng-container>
-                  @if (theirCardBreakdown(); as theirsStats) {
-                    <ng-container
-                      *ngTemplateOutlet="cardStatBox; context: { $implicit: theirsStats, card: theirCard(), label: i18n.t('battles.theirCardLabel') }"
-                    ></ng-container>
-                  }
-                </div>
-                @if (myPreDuelWinPct() !== null) {
-                  <div class="flex items-center justify-between mb-1.5">
-                    <span class="text-xs font-semibold text-muted">{{ i18n.t('battles.yourChanceWas') }}</span>
-                    <span class="font-mono text-sm font-bold text-team-primary">{{ myPreDuelWinPct() }}%</span>
-                  </div>
-                  <div class="win-meter-track">
-                    <div class="win-meter-fill" [style.width.%]="myPreDuelWinPct()"></div>
-                  </div>
-                }
-              </div>
-            }
-
-            <button type="button" (click)="goToBattles()" appButton appButtonSize="sm" class="mt-5">
-              {{ i18n.t('battles.goToBattles') }}
-            </button>
-          </div>
-        }
+    } @else if (b.status === 'finished') {
+      <ng-container *ngTemplateOutlet="reveal; context: { $implicit: b }"></ng-container>
+    } @else {
+      <div class="bg-card rounded-2xl border border-line shadow-card p-6 text-center">
+        <p class="text-sm text-muted font-semibold">{{ i18n.t('battles.status.' + b.status) }}</p>
       </div>
     }
   }
 
-  <!-- Small reusable stat chip: Tier base + Form(PIR), then Power called
-       out bigger/bolder on its own line — used next to a card that's
-       already shown full-size alongside it (the "their card"/"waiting"
-       previews). Sized up and given real contrast (2026-09-24, "not
-       visible enough on mobile") — was 11px all-muted before, which read
-       as barely-there on a small screen. flex-wrap so a narrow phone wraps
-       cleanly instead of clipping instead of a fixed single line. -->
-  <ng-template #statChip let-b>
-    @if (b) {
-      <div class="mt-1">
-        <div class="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 font-mono text-xs text-muted">
-          <span>{{ i18n.t('battles.tierLabel') }} {{ b.tierBase }}</span>
-          <span>{{ i18n.t('battles.formLabel') }} {{ b.pir }}</span>
-          @if (b.foilBonus) {
-            <span class="font-bold text-team-primary">{{ i18n.t('battles.foilLabel') }} +{{ b.foilBonus }}</span>
+  <!-- Card + category picker, shared by composing and accepting. -->
+  <ng-template #picker>
+    <section class="mb-4">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="step-badge">1</span>
+        <p class="font-display text-base">{{ i18n.t('battles.stepPickCard') }}</p>
+      </div>
+      @if (myCardsLoading()) {
+        <div class="flex gap-2 overflow-hidden">
+          @for (i of [1, 2, 3, 4]; track i) {
+            <app-skeleton class="shrink-0 w-24 rounded-xl" style="aspect-ratio: 2.5 / 3.5" [iconSize]="16" />
           }
         </div>
-        <p class="font-mono text-base font-bold text-ink">{{ i18n.t('battles.powerAbbrev') }} {{ b.power }}</p>
-      </div>
-    }
-  </ng-template>
-
-  <!-- Card-plus-stats box (2026-09-24, "show the cards, not just icons of
-       the rarity") — used wherever a card wasn't already shown full-size
-       nearby (the live matchup panel, the post-reveal stats panel): a real
-       card thumbnail plus the same tier/form/power readout as statChip
-       above, stacked so it stays legible in a single mobile column
-       (grid-cols-1 below sm:) instead of squeezing two side-by-side boxes
-       into half a phone screen. -->
-  <ng-template #cardStatBox let-b let-card="card" let-label="label">
-    @if (card) {
-      <div class="rounded-xl bg-page p-3 flex items-center gap-3 min-w-0">
-        <app-collectible-card
-          [name]="card.name"
-          [tier]="card.tier"
-          [teamCode]="card.team.code"
-          [teamColor]="card.team.primaryColor"
-          [imageUrl]="card.imageUrl"
-          [finish]="card.finish ?? 'standard'"
-          [unlocked]="true"
-          [maxWidth]="60"
-          class="shrink-0"
-        ></app-collectible-card>
-        <div class="min-w-0 flex-1">
-          <p class="font-mono text-[11px] text-muted uppercase tracking-wide">{{ label }}</p>
-          <p class="text-sm font-semibold truncate">{{ card.name }}</p>
-          @if (b) {
-            <div class="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 font-mono text-[11px] text-muted mt-0.5">
-              <span>{{ i18n.t('battles.tierLabel') }} {{ b.tierBase }}</span>
-              <span>{{ i18n.t('battles.formLabel') }} {{ b.pir }}</span>
-              @if (b.foilBonus) {
-                <span class="font-bold text-team-primary">{{ i18n.t('battles.foilLabel') }} +{{ b.foilBonus }}</span>
-              }
-            </div>
-            <p class="font-mono text-base font-bold text-ink">{{ i18n.t('battles.powerAbbrev') }} {{ b.power }}</p>
-          }
+      } @else if (myCards().length === 0) {
+        <div class="bg-card rounded-2xl border border-line p-4 text-center">
+          <p class="text-sm text-muted mb-3">{{ i18n.t('battles.deckPickerEmpty') }}</p>
+          <a routerLink="/packs" appButton appButtonSize="sm">{{ i18n.t('store.packs') }}</a>
         </div>
-      </div>
-    }
-  </ng-template>
-
-  <ng-template #cardPicker>
-    <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-2">
-      <div class="flex items-center gap-1.5 mb-1">
-        <p class="text-[13px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('battles.deckPickerTitle') }}</p>
-        <app-battles-info />
-      </div>
-      <p class="text-xs text-muted mb-3">{{ i18n.t('battles.deckPickerHint') }}</p>
-
-      <div class="flex items-center justify-between mb-3 font-mono text-xs">
-        <span class="text-muted">
-          {{ i18n.t('battles.stakeLabel') }}: <span class="font-bold text-ink">{{ stakeBase }}&ndash;{{ stakeCap }}</span>
-        </span>
-        @if (myPoints() !== null) {
-          <span [ngClass]="canAffordStake() ? 'text-muted' : 'text-red-500 font-bold'">
-            {{ i18n.t('battles.yourPointsLabel') }}: {{ myPoints() }}
-          </span>
-        }
-      </div>
-
-      @if (myCards().length === 0) {
-        <p class="text-xs text-muted">{{ i18n.t('battles.deckPickerEmpty') }}</p>
       } @else {
-        <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
-          @for (card of myCards(); track card.id; let i = $index) {
-            <div class="flex flex-col items-center card-pick-slot card-pop-in" [class.is-picked]="pickedId() === card.id" [style.animation-delay.ms]="i * 35">
+        @if (tierOptions().length > 2) {
+          <div class="flex gap-1.5 overflow-x-auto mb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
+            @for (t of tierOptions(); track t) {
+              <button
+                type="button"
+                (click)="tierFilter.set(t)"
+                class="shrink-0 rounded-full px-3 py-1 text-[12px] font-bold border transition-colors"
+                [ngClass]="tierFilter() === t ? 'bg-team-primary text-team-secondary border-transparent' : 'bg-card text-muted border-line'"
+              >
+                {{ i18n.t('battles.tierFilter.' + t) }} · {{ tierCounts()[t] }}
+              </button>
+            }
+          </div>
+        }
+        <!-- Horizontal rail on phones, wrapping grid on wider screens. -->
+        <div class="card-rail -mx-4 px-4 sm:mx-0 sm:px-0">
+          @for (card of visibleCards(); track card.id; let i = $index) {
+            <button
+              type="button"
+              (click)="pickCard(card.id)"
+              class="card-pick-slot card-pop-in shrink-0 w-24 sm:w-auto flex flex-col items-center text-left"
+              [class.is-picked]="pickedId() === card.id"
+              [style.animation-delay.ms]="i * 30"
+              [attr.aria-pressed]="pickedId() === card.id"
+            >
               <app-collectible-card
-                class="block w-full cursor-pointer"
-                (click)="pickCard(card.id)"
+                class="block w-full"
                 [name]="card.name"
                 [tier]="card.tier"
                 [teamCode]="card.team.code"
@@ -370,11 +174,211 @@
                 [maxWidth]="110"
                 [selected]="pickedId() === card.id"
               ></app-collectible-card>
-              @if (myCardPowers().get(card.id); as breakdown) {
-                <span class="font-mono text-xs font-bold text-ink mt-1">{{ i18n.t('battles.powerAbbrev') }} {{ breakdown.power }}</span>
+              @if (bestStatByCard().get(card.id); as best) {
+                <span class="mt-1 font-mono text-[10px] font-bold uppercase text-muted">
+                  {{ statShort(best) }} {{ myCardStats().get(card.id)?.boosted?.[best] }}
+                </span>
               }
-            </div>
+            </button>
           }
+        </div>
+      }
+    </section>
+
+    @if (pickedLine(); as mine) {
+      <section class="mb-4">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="step-badge">2</span>
+          <p class="font-display text-base">{{ i18n.t('battles.stepPickStat') }}</p>
+        </div>
+        <p class="text-xs text-muted mb-2">
+          {{ theirLine() ? i18n.t('battles.stepPickStatHintAccept') : i18n.t('battles.stepPickStatHint') }}
+        </p>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          @for (s of stats; track s) {
+            @let theirs = theirLine()?.boosted?.[s];
+            <button
+              type="button"
+              (click)="pickStat(s)"
+              class="stat-chip"
+              [class.is-picked]="pickedStat() === s"
+              [class.is-ahead]="theirs !== undefined && mine.boosted[s] > theirs"
+              [class.is-behind]="theirs !== undefined && mine.boosted[s] < theirs"
+              [attr.aria-pressed]="pickedStat() === s"
+            >
+              <span class="text-[12px] font-bold">{{ statLabel(s) }}</span>
+              <span class="flex items-baseline gap-1.5">
+                <span class="font-mono text-lg font-bold tabular-nums">{{ mine.boosted[s] }}</span>
+                @if (theirs !== undefined) {
+                  <span class="font-mono text-[11px] text-muted tabular-nums">{{ i18n.t('battles.vsShort') }} {{ theirs }}</span>
+                }
+              </span>
+            </button>
+          }
+        </div>
+        @if (mine.multiplier > 1) {
+          <p class="text-[11px] text-muted mt-2">
+            {{ i18n.t('battles.boostNote') }} +{{ ((mine.multiplier - 1) * 100).toFixed(0) }}%
+          </p>
+        }
+      </section>
+    }
+  </ng-template>
+
+  <!-- Sticky on phones so the main action is always one thumb away. -->
+  <ng-template #actionBar let-accept="accept">
+    <div class="action-bar">
+      <div class="max-w-3xl mx-auto">
+        @if (errorKey()) {
+          <p class="text-xs text-red-500 font-semibold mb-2">{{ i18n.t(errorKey()!) }}</p>
+        }
+        <div class="flex items-center justify-between gap-2 mb-2 text-[12px]">
+          <span class="text-muted truncate">
+            @if (pickedCard(); as c) {
+              <span class="font-semibold text-ink">{{ c.name }}</span>
+              @if (pickedStat()) { · {{ statLabel(pickedStat()) }} }
+            } @else {
+              {{ i18n.t('battles.pickPrompt') }}
+            }
+          </span>
+          @if (accept && acceptWinPct() !== null) {
+            <span class="shrink-0 font-mono font-bold text-team-primary">{{ i18n.t('battles.estChance') }} {{ acceptWinPct() }}%</span>
+          } @else {
+            <span class="shrink-0 font-mono text-muted">{{ i18n.t('battles.stakeLabel') }} {{ stakeBase }}–{{ stakeCap }}</span>
+          }
+        </div>
+        @if (myPoints() !== null && !canAffordStake()) {
+          <p class="text-xs text-red-500 font-semibold mb-2">{{ i18n.t('battles.insufficientPoints') }}</p>
+        }
+        <div class="flex gap-2">
+          <button
+            type="button"
+            (click)="accept ? acceptChallenge() : sendChallenge()"
+            [disabled]="!canSubmit()"
+            appButton
+            class="flex-1 disabled:opacity-50"
+          >
+            @if (submitting()) {
+              {{ accept ? i18n.t('battles.accepting') : i18n.t('battles.sending') }}
+            } @else {
+              {{ accept ? i18n.t('battles.acceptButton') : i18n.t('battles.confirmChallenge') }}
+            }
+          </button>
+          @if (accept) {
+            <button type="button" (click)="declineChallenge()" appButton="outline">{{ i18n.t('battles.declineButton') }}</button>
+          }
+        </div>
+      </div>
+    </div>
+  </ng-template>
+
+  <!-- Finished duel: cards face off, then the three rounds land one by one
+       with a running score, then the result. -->
+  <ng-template #reveal let-b>
+    <div class="duel-arena bg-card rounded-2xl border border-line shadow-card p-4 sm:p-6 relative">
+      @if (revealDone() && didIWin()) {
+        <div class="absolute inset-x-0 top-0 h-0 pointer-events-none">
+          @for (piece of confettiPieces; track $index) {
+            <span class="confetti-piece"></span>
+          }
+        </div>
+      }
+
+      <div class="relative flex items-start justify-center gap-3 sm:gap-8">
+        @if (myCard(); as mine) {
+          <div class="face-off face-off--left flex flex-col items-center min-w-0" [class.is-winner]="revealDone() && didIWin()" [class.is-loser]="revealDone() && !didIWin()">
+            <app-collectible-card
+              [name]="mine.name"
+              [tier]="mine.tier"
+              [teamCode]="mine.team.code"
+              [teamColor]="mine.team.primaryColor"
+              [imageUrl]="mine.imageUrl"
+              [finish]="mine.finish ?? 'standard'"
+              [unlocked]="true"
+              [maxWidth]="120"
+            ></app-collectible-card>
+            <p class="text-[11px] font-bold text-muted uppercase tracking-wide mt-1.5">{{ i18n.t('battles.you') }}</p>
+          </div>
+        }
+        <div class="flex flex-col items-center justify-center pt-10 shrink-0">
+          @if (b.mode === 'statDuel') {
+            <p class="scoreboard font-display tabular-nums">
+              <span [class.text-team-primary]="myScore() > theirScore()">{{ myScore() }}</span>
+              <span class="text-muted mx-1">–</span>
+              <span>{{ theirScore() }}</span>
+            </p>
+          } @else {
+            <p class="font-display text-lg tracking-widest text-muted">{{ i18n.t('battles.vsLabel') }}</p>
+          }
+        </div>
+        @if (theirCard(); as theirs) {
+          <div class="face-off face-off--right flex flex-col items-center min-w-0" [class.is-winner]="revealDone() && !didIWin()" [class.is-loser]="revealDone() && didIWin()">
+            <app-collectible-card
+              [name]="theirs.name"
+              [tier]="theirs.tier"
+              [teamCode]="theirs.team.code"
+              [teamColor]="theirs.team.primaryColor"
+              [imageUrl]="theirs.imageUrl"
+              [finish]="theirs.finish ?? 'standard'"
+              [unlocked]="true"
+              [maxWidth]="120"
+            ></app-collectible-card>
+            <p class="text-[11px] font-bold text-muted uppercase tracking-wide mt-1.5 truncate max-w-[120px]">{{ opponentDisplayName() }}</p>
+          </div>
+        }
+      </div>
+
+      @if (b.mode === 'statDuel') {
+        <div class="mt-5 space-y-2">
+          @for (r of rounds(); track $index; let i = $index) {
+            @if (i < revealedRounds()) {
+              <div class="round-row" [class.is-won]="iWonRound(r)" [class.is-lost]="!iWonRound(r)">
+                <div class="flex items-center justify-between mb-1.5">
+                  <p class="text-[13px] font-bold">{{ statLabel(r.stat) }}</p>
+                  <span class="round-source">{{ i18n.t(roundSourceKey(r)) }}</span>
+                </div>
+                <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                  <div class="flex items-center justify-end gap-2">
+                    <span class="font-mono text-sm font-bold tabular-nums">{{ mineOf(r) }}</span>
+                    <div class="round-bar round-bar--mine"><span [style.width.%]="barPct(mineOf(r), theirsOf(r))"></span></div>
+                  </div>
+                  <span class="round-verdict">{{ iWonRound(r) ? '◀' : '▶' }}</span>
+                  <div class="flex items-center gap-2">
+                    <div class="round-bar round-bar--theirs"><span [style.width.%]="barPct(theirsOf(r), mineOf(r))"></span></div>
+                    <span class="font-mono text-sm font-bold tabular-nums">{{ theirsOf(r) }}</span>
+                  </div>
+                </div>
+              </div>
+            } @else {
+              <div class="round-row round-row--pending">
+                <p class="text-[13px] font-bold text-muted">{{ i18n.t('battles.roundLabel') }} {{ i + 1 }}</p>
+              </div>
+            }
+          }
+        </div>
+      } @else if (b.legacyPower) {
+        <p class="text-center text-xs text-muted mt-4">
+          {{ i18n.t('battles.legacyNote') }} · {{ i18n.t('battles.powerAbbrev') }}
+          {{ iAmChallenger() ? b.legacyPower.challenger : b.legacyPower.opponent }} – {{ iAmChallenger() ? b.legacyPower.opponent : b.legacyPower.challenger }}
+        </p>
+      }
+
+      @if (revealDone()) {
+        <div class="text-center mt-5 result-in">
+          <p class="font-display text-2xl tracking-wide">{{ didIWin() ? i18n.t('battles.youWon') : i18n.t('battles.youLost') }}</p>
+          @if (b.stakePoints !== null) {
+            <p class="font-mono text-base font-bold mt-1 stake-pop" [ngClass]="didIWin() ? 'text-team-primary' : 'text-red-500'">
+              {{ didIWin() ? '+' : '−' }}{{ b.stakePoints }} {{ i18n.t('battles.ptsSuffix') }}
+            </p>
+          }
+          <div class="flex flex-wrap justify-center gap-2 mt-4">
+            <button type="button" (click)="rematch()" appButton appButtonSize="sm">{{ i18n.t('battles.rematch') }}</button>
+            <a routerLink="/battles" appButton="outline" appButtonSize="sm">{{ i18n.t('battles.goToBattles') }}</a>
+          </div>
+        </div>
+      } @else {
+        <div class="flex justify-center mt-4">
+          <button type="button" (click)="skipReveal()" class="text-xs font-semibold text-muted underline">{{ i18n.t('battles.skip') }}</button>
         </div>
       }
     </div>

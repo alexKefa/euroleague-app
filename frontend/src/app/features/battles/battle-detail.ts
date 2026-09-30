@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, effect, inject, signal, untracked } from "@angular/core";
+import { Component, OnDestroy, OnInit, computed, effect, inject, signal, untracked } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { HttpErrorResponse } from "@angular/common/http";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
@@ -8,37 +8,55 @@ import { I18nService } from "../../core/i18n.service";
 import { EventsService } from "../../core/events.service";
 import { NavHistoryService } from "../../core/nav-history.service";
 import { BattlesNotificationService } from "../../core/battles-notification.service";
-import { BattleDetail, CardPowerBreakdown, Collectible } from "../../core/models";
+import { BattleDetail, CardStatLine, Collectible, DUEL_STATS, DuelRound, DuelStat, StatLine } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { ButtonDirective } from "../../shared/button.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { BattlesInfoComponent } from "./battles-info";
 
-// Reveal animation stages, driven purely by CSS classes in
-// battle-detail.css — the duel itself is already decided server-side by
-// the time this plays; the sequence is pure presentation.
-type RevealStage = "idle" | "approaching" | "clashed" | "revealed";
-
-// Matches the backend's BATTLE_STAKE_BASE/CAP and computeStakeForWinProb
-// (services/battles.ts) exactly — a real stake taken from the loser's own
-// points, not a minted reward (2026-09-22 fix for a live-caught infinite-
-// farming exploit), scaled by how big an underdog the winner was
-// (2026-09-23 — same odds-weighted shape as predictions' own
-// pointsForCorrectPick). Duplicated client-side, not fetched, so the
-// picker can preview it live per candidate card with zero extra round
-// trips — same "small self-contained duplication is fine" convention this
-// app already uses for normalizePlayerName.
+// Mirrors the backend's BATTLE_STAKE_BASE/CAP (services/battles.ts) for the
+// stake range shown before committing.
 const STAKE_BASE = 25;
 const STAKE_CAP = 100;
-function computeStakeForWinProb(winProb: number): number {
-  return Math.min(STAKE_CAP, Math.max(STAKE_BASE, Math.round(STAKE_BASE / winProb)));
+
+// Reveal pacing (stat duel): cards slide in, then one round every
+// ROUND_MS, then the result. Skippable, and instant under reduced motion.
+const INTRO_MS = 600;
+const ROUND_MS = 1100;
+
+type Side = "challenger" | "opponent";
+
+// Same rules as the backend's resolveStatDuel (services/statDuel.ts), used
+// only to preview a win chance while accepting. The duel itself is always
+// resolved server-side.
+function roundWinner(stat: DuelStat, c: StatLine, o: StatLine): Side {
+  if (c[stat] !== o[stat]) return c[stat] > o[stat] ? "challenger" : "opponent";
+  if (c.pir !== o.pir) return c.pir > o.pir ? "challenger" : "opponent";
+  return "challenger";
 }
 
-// Handles three shapes under one component/route: composing a new challenge
-// (route id "new", ?leagueId=&opponentUserId=&opponentName=), viewing/
-// responding to a pending one, and the finished duel's 3D reveal — the
-// card-picker UI is shared by the first two.
+function opponentWinProb(challengerStat: DuelStat, opponentStat: DuelStat, c: StatLine, o: StatLine): number {
+  const picked = challengerStat === opponentStat ? [challengerStat] : [challengerStat, opponentStat];
+  const remaining = DUEL_STATS.filter((s) => !picked.includes(s));
+  const draws: DuelStat[][] =
+    picked.length === 2
+      ? remaining.map((s) => [s])
+      : remaining.flatMap((a, i) => remaining.slice(i + 1).map((b) => [a, b]));
+  const wins = draws.filter((draw) => {
+    const opponentRounds = [...picked, ...draw].filter((s) => roundWinner(s, c, o) === "opponent").length;
+    return opponentRounds >= 2;
+  }).length;
+  return wins / draws.length;
+}
+
+/**
+ * One route for every battle state: composing a challenge ("new"),
+ * accepting or waiting on a pending one, and the finished duel's reveal.
+ * Stat duel (v4, 2026-09-30): pick a card, then a category; best of three
+ * categories wins. Finished v3 coin-flip battles still render (mode
+ * "coinFlip"), without rounds.
+ */
 @Component({
   selector: "app-battle-detail",
   standalone: true,
@@ -46,7 +64,7 @@ function computeStakeForWinProb(winProb: number): number {
   templateUrl: "./battle-detail.html",
   styleUrl: "./battle-detail.css",
 })
-export class BattleDetailComponent implements OnInit {
+export class BattleDetailComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
@@ -55,6 +73,10 @@ export class BattleDetailComponent implements OnInit {
   private battlesNotif = inject(BattlesNotificationService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+
+  readonly stats = DUEL_STATS;
+  readonly stakeBase = STAKE_BASE;
+  readonly stakeCap = STAKE_CAP;
 
   readonly loading = signal(true);
   readonly notFound = signal(false);
@@ -65,191 +87,139 @@ export class BattleDetailComponent implements OnInit {
   private newOpponentUserId = "";
   readonly newOpponentName = signal("");
 
-  readonly stakeBase = STAKE_BASE;
-  readonly stakeCap = STAKE_CAP;
-  // Fetched the same way Store/Packs already read the spendable balance
-  // (PredictionSummary.points) — null while loading, so canAffordStake
-  // defaults to false rather than optimistically true.
   readonly myPoints = signal<number | null>(null);
-
   readonly myCards = signal<Collectible[]>([]);
-  // Power score per own card (services/battles.ts's computeCardPowers,
-  // 2026-09-22 — direct ask: "stats should also count for the coin flip",
-  // which they already did, just invisibly; this surfaces it) — keyed by
-  // collectibleId so the picker can show a number per card, and (once the
-  // opponent's power is known — composing blind never has one) a live
-  // win-chance for whichever card is currently picked.
-  // Full breakdown now, not just the total (2026-09-24, "show the cards used
-  // with stats") — the picker/waiting screen shows tier vs. real PIR
-  // separately, not just an opaque number.
-  readonly myCardPowers = signal<Map<string, CardPowerBreakdown & { power: number }>>(new Map());
+  readonly myCardsLoading = signal(false);
+  readonly myCardStats = signal<Map<string, CardStatLine>>(new Map());
   readonly pickedId = signal<string | null>(null);
+  readonly pickedStat = signal<DuelStat | null>(null);
   readonly submitting = signal(false);
   readonly errorKey = signal<string | null>(null);
 
-  readonly revealStage = signal<RevealStage>("idle");
+  // Reveal: -1 = intro (cards sliding in), 0..n = rounds shown so far,
+  // `done` once the result is on screen.
+  readonly revealedRounds = signal(0);
+  readonly revealDone = signal(false);
+  private revealTimers: ReturnType<typeof setTimeout>[] = [];
   private hasPlayedReveal = false;
-  // Fixed-length array purely so the template can @for 12 confetti pieces —
-  // the actual per-piece look (color/position/delay) is deterministic CSS
-  // via :nth-child in battle-detail.css, not randomized in JS.
   readonly confettiPieces = Array.from({ length: 12 });
 
   private get myUserId(): string | null {
     return this.auth.currentUser()?.id ?? null;
   }
 
+  readonly iAmChallenger = computed(() => !!this.battle() && this.battle()!.challengerUserId === this.myUserId);
+  readonly iAmOpponent = computed(() => !!this.battle() && this.battle()!.opponentUserId === this.myUserId);
+  readonly mySide = computed<Side>(() => (this.iAmChallenger() ? "challenger" : "opponent"));
+  readonly didIWin = computed(() => !!this.battle() && this.battle()!.winnerUserId === this.myUserId);
+  readonly opponentDisplayName = computed(() => {
+    const b = this.battle();
+    if (!b) return this.newOpponentName();
+    return this.iAmChallenger() ? b.opponentName : b.challengerName;
+  });
   readonly myCard = computed(() => {
     const b = this.battle();
     if (!b) return null;
-    return b.challengerUserId === this.myUserId ? b.challengerCard : b.opponentCard;
+    return this.iAmChallenger() ? b.challengerCard : b.opponentCard;
   });
   readonly theirCard = computed(() => {
     const b = this.battle();
     if (!b) return null;
-    return b.challengerUserId === this.myUserId ? b.opponentCard : b.challengerCard;
-  });
-  readonly didIWin = computed(() => !!this.battle() && this.battle()!.winnerUserId === this.myUserId);
-  readonly iAmOpponent = computed(() => !!this.battle() && this.battle()!.opponentUserId === this.myUserId);
-  readonly opponentDisplayName = computed(() => {
-    const b = this.battle();
-    if (!b) return "";
-    return b.challengerUserId === this.myUserId ? b.opponentName : b.challengerName;
+    return this.iAmChallenger() ? b.opponentCard : b.challengerCard;
   });
 
-  // Only meaningful once an opponent power is actually known — the
-  // composer (a brand-new challenge) picks blind, with only each card's own
-  // power shown; accepting an existing challenge already knows the
-  // challenger's power (battle().challengerPower), so picking there gets a
-  // live win-%/stake-preview readout instead.
-  readonly pickedCardBreakdown = computed(() => {
-    const id = this.pickedId();
-    return id ? (this.myCardPowers().get(id) ?? null) : null;
+  // Rarity filter for the card rail — collections get long, and a filter
+  // is the quickest way to "show me my legendaries".
+  readonly tierFilter = signal<"all" | "legendary" | "rare" | "common">("all");
+  readonly tierCounts = computed(() => {
+    const counts = { all: 0, legendary: 0, rare: 0, common: 0 } as Record<"all" | "legendary" | "rare" | "common", number>;
+    for (const c of this.myCards()) {
+      counts.all++;
+      if (c.tier === "legendary" || c.tier === "rare" || c.tier === "common") counts[c.tier]++;
+    }
+    return counts;
   });
-  readonly pickedCardPower = computed(() => this.pickedCardBreakdown()?.power ?? null);
-  // The full card object behind pickedId (2026-09-24, "show the cards, not
-  // just icons of the rarity") — the live matchup panel needs the actual
-  // card ref (photo/tier/team) to render a thumbnail, not just its power.
+  readonly tierOptions = computed(() =>
+    (["all", "legendary", "rare", "common"] as const).filter((t) => t === "all" || this.tierCounts()[t] > 0)
+  );
+  readonly visibleCards = computed(() => {
+    const f = this.tierFilter();
+    return f === "all" ? this.myCards() : this.myCards().filter((c) => c.tier === f);
+  });
+
+  // Picker state.
   readonly pickedCard = computed(() => {
     const id = this.pickedId();
     return id ? (this.myCards().find((c) => c.id === id) ?? null) : null;
   });
+  readonly pickedLine = computed(() => {
+    const id = this.pickedId();
+    return id ? (this.myCardStats().get(id) ?? null) : null;
+  });
+  // The challenger's card line, known while accepting (only their category is hidden).
+  readonly theirLine = computed(() => this.battle()?.challengerStats ?? null);
+  // Best category for each card in the grid, so the picker hints at a
+  // card's strength before you tap it.
+  readonly bestStatByCard = computed(() => {
+    const map = new Map<string, DuelStat>();
+    for (const [id, line] of this.myCardStats()) {
+      map.set(id, [...DUEL_STATS].sort((a, b) => this.relativeStrength(line.raw, b) - this.relativeStrength(line.raw, a))[0]);
+    }
+    return map;
+  });
 
-  // The challenger's own card breakdown, for the "waiting for opponent" and
-  // post-reveal stats panels — mirrors pickedCardBreakdown's shape so both
-  // can feed the same stat-chip template.
-  readonly challengerBreakdown = computed<(CardPowerBreakdown & { power: number }) | null>(() => {
-    const b = this.battle();
-    return b ? { power: b.challengerPower, ...b.challengerPowerBreakdown } : null;
+  // Accepting: my chance averaged over whatever the challenger might have
+  // picked (their category is hidden), given my current card + category.
+  readonly acceptWinPct = computed(() => {
+    const mine = this.pickedLine();
+    const theirs = this.theirLine();
+    const stat = this.pickedStat();
+    if (!mine || !theirs || !stat) return null;
+    const avg = DUEL_STATS.reduce((sum, c) => sum + opponentWinProb(c, stat, theirs.boosted, mine.boosted), 0) / DUEL_STATS.length;
+    return Math.round(avg * 100);
   });
-  readonly opponentBreakdown = computed<(CardPowerBreakdown & { power: number }) | null>(() => {
-    const b = this.battle();
-    if (!b || b.opponentPower == null || !b.opponentPowerBreakdown) return null;
-    return { power: b.opponentPower, ...b.opponentPowerBreakdown };
-  });
-  // Whichever side of the finished duel is "mine"/"theirs" — myCard/theirCard
-  // above already do this split for the card refs, this does it for the
-  // matching power breakdown.
-  readonly myCardBreakdown = computed(() => {
-    const b = this.battle();
-    if (!b) return null;
-    return b.challengerUserId === this.myUserId ? this.challengerBreakdown() : this.opponentBreakdown();
-  });
-  readonly theirCardBreakdown = computed(() => {
-    const b = this.battle();
-    if (!b) return null;
-    return b.challengerUserId === this.myUserId ? this.opponentBreakdown() : this.challengerBreakdown();
-  });
-  // My own win probability going into a *finished* duel — reads the
-  // backend's preDuelChallengerWinProb, flipped if I was the opponent, so
-  // it reads consistently with the live picker's own myWinProb below.
-  readonly myPreDuelWinProb = computed(() => {
-    const b = this.battle();
-    if (!b || b.preDuelChallengerWinProb == null) return null;
-    return b.challengerUserId === this.myUserId ? b.preDuelChallengerWinProb : 1 - b.preDuelChallengerWinProb;
-  });
-  readonly myPreDuelWinPct = computed(() => {
-    const p = this.myPreDuelWinProb();
-    return p == null ? null : Math.round(p * 100);
-  });
-  readonly myWinProb = computed(() => {
-    const myPower = this.pickedCardPower();
-    const theirPower = this.battle()?.challengerPower;
-    if (myPower == null || theirPower == null) return null;
-    return myPower / (myPower + theirPower);
-  });
-  readonly winChancePct = computed(() => {
-    const p = this.myWinProb();
-    return p == null ? null : Math.round(p * 100);
-  });
-  // "informed of points he loses" (2026-09-23, direct ask) — shown live as
-  // the accepting player picks different cards, not just a flat number:
-  // the underdog's card pays out more if it pulls off the upset, and costs
-  // more for the favorite to lose with, same odds-weighted shape as
-  // predictions' own points formula.
-  readonly potentialStakeIfIWin = computed(() => {
-    const p = this.myWinProb();
-    return p == null ? null : computeStakeForWinProb(p);
-  });
-  readonly potentialStakeIfILose = computed(() => {
-    const p = this.myWinProb();
-    return p == null ? null : computeStakeForWinProb(1 - p);
-  });
-  // What accepting/challenging actually requires you to be able to afford
-  // right now — the precise potential loss once a matchup is known
-  // (accepting), or just the base rate while still composing blind (no
-  // opponent card to weigh against yet), matching the backend's own
-  // creation-time gate exactly.
-  readonly requiredStake = computed(() => this.potentialStakeIfILose() ?? STAKE_BASE);
-  readonly canAffordStake = computed(() => this.myPoints() !== null && this.myPoints()! >= this.requiredStake());
+
+  readonly canAffordStake = computed(() => this.myPoints() !== null && this.myPoints()! >= STAKE_BASE);
+  readonly canSubmit = computed(() => !!this.pickedId() && !!this.pickedStat() && !this.submitting() && this.canAffordStake());
+
+  // Finished stat duel.
+  readonly rounds = computed<DuelRound[]>(() => this.battle()?.duelRounds ?? []);
+  readonly myScore = computed(() => this.rounds().slice(0, this.revealedRounds()).filter((r) => r.winner === this.mySide()).length);
+  readonly theirScore = computed(() => this.rounds().slice(0, this.revealedRounds()).filter((r) => r.winner !== this.mySide()).length);
 
   constructor() {
-    // The opponent's browser pushes battle-update via sendToUser on
-    // challenge/decline/cancel, and — since accepting resolves the duel
-    // immediately server-side — on the finished result too. Re-fetch on
-    // receipt rather than trusting the payload, same convention as trades.
-    //
-    // Real bug caught live (2026-09-22): `current` was read as
-    // `this.battle()` directly, which makes `battle` a tracked dependency
-    // of this same effect — but refresh() (called from inside this very
-    // effect) is what writes `battle`. Every write re-triggered the effect,
-    // which (while lastBattleUpdate() still matched) called refresh()
-    // again, forever — an infinite fetch loop that also kept restarting
-    // the reveal animation, which is what actually made it visible ("laggy,
-    // animating without ending"). `untracked()` reads the current value
-    // without subscribing to it, so only a genuinely new lastBattleUpdate()
-    // push re-runs this effect.
+    // Re-fetch on a live battle-update push for this battle (the opponent
+    // accepting resolves the duel). untracked() so writing `battle` from
+    // refresh() can't re-trigger this effect.
     effect(() => {
       const update = this.events.lastBattleUpdate();
       const current = untracked(() => this.battle());
-      if (update && current && update.battleId === current.id) {
-        this.refresh(current.id);
-      }
+      if (update && current && update.battleId === current.id) this.refresh(current.id);
     });
   }
 
   ngOnInit(): void {
-    // Subscribed, not just read from the snapshot (same pattern as
-    // album.ts) — sendChallenge() navigates from "new" to the real battle
-    // id on the same route config, which Angular reuses the component
-    // instance for rather than re-running ngOnInit; only a live param
-    // subscription picks that transition up.
+    // Subscribed, not a snapshot: sending a challenge navigates from "new"
+    // to the real id on the same component instance.
     this.route.paramMap.subscribe((params) => {
       const id = params.get("id")!;
+      this.clearRevealTimers();
       this.loading.set(true);
       this.notFound.set(false);
       this.battle.set(null);
-      this.myCards.set([]);
-      this.myPoints.set(null);
       this.pickedId.set(null);
+      this.pickedStat.set(null);
       this.errorKey.set(null);
-      this.revealStage.set("idle");
+      this.revealedRounds.set(0);
+      this.revealDone.set(false);
       this.hasPlayedReveal = false;
 
       if (id === "new") {
         this.isNew.set(true);
-        this.newLeagueId = this.route.snapshot.queryParamMap.get("leagueId") ?? "";
-        this.newOpponentUserId = this.route.snapshot.queryParamMap.get("opponentUserId") ?? "";
-        this.newOpponentName.set(this.route.snapshot.queryParamMap.get("opponentName") ?? "");
+        const q = this.route.snapshot.queryParamMap;
+        this.newLeagueId = q.get("leagueId") ?? "";
+        this.newOpponentUserId = q.get("opponentUserId") ?? "";
+        this.newOpponentName.set(q.get("opponentName") ?? "");
         this.loadMyCards();
         this.loading.set(false);
         return;
@@ -259,17 +229,19 @@ export class BattleDetailComponent implements OnInit {
     });
   }
 
+  ngOnDestroy(): void {
+    this.clearRevealTimers();
+  }
+
   private refresh(id: string): void {
     this.api.getBattle(id).subscribe({
       next: (b) => {
         this.battle.set(b);
         this.loading.set(false);
-        if (b.status === "pending" && b.opponentUserId === this.myUserId && this.myCards().length === 0) {
-          this.loadMyCards();
-        }
+        if (b.status === "pending" && b.opponentUserId === this.myUserId && this.myCards().length === 0) this.loadMyCards();
         if (b.status === "finished" && !this.hasPlayedReveal) {
           this.hasPlayedReveal = true;
-          this.playReveal();
+          this.playReveal(b);
         }
       },
       error: () => {
@@ -279,17 +251,37 @@ export class BattleDetailComponent implements OnInit {
     });
   }
 
-  private playReveal(): void {
-    this.revealStage.set("idle");
-    setTimeout(() => this.revealStage.set("approaching"), 50);
-    setTimeout(() => this.revealStage.set("clashed"), 750);
-    setTimeout(() => this.revealStage.set("revealed"), 1150);
+  private playReveal(b: BattleDetail): void {
+    const total = b.duelRounds?.length ?? 0;
+    const reduced = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (reduced || total === 0) {
+      this.skipReveal();
+      return;
+    }
+    this.revealedRounds.set(0);
+    this.revealDone.set(false);
+    for (let i = 1; i <= total; i++) {
+      this.revealTimers.push(setTimeout(() => this.revealedRounds.set(i), INTRO_MS + (i - 1) * ROUND_MS));
+    }
+    this.revealTimers.push(setTimeout(() => this.revealDone.set(true), INTRO_MS + total * ROUND_MS));
+  }
+
+  skipReveal(): void {
+    this.clearRevealTimers();
+    this.revealedRounds.set(this.battle()?.duelRounds?.length ?? 0);
+    this.revealDone.set(true);
+  }
+
+  private clearRevealTimers(): void {
+    this.revealTimers.forEach(clearTimeout);
+    this.revealTimers = [];
   }
 
   private loadMyCards(): void {
+    this.myCardsLoading.set(true);
     this.api.getMyPredictionSummary().subscribe({
       next: (summary) => this.myPoints.set(summary.points),
-      error: () => {}, // non-critical — canAffordStake just stays false, the button disables rather than mis-firing
+      error: () => {},
     });
     this.api.getCollectibles().subscribe({
       next: (catalog) => {
@@ -299,42 +291,104 @@ export class BattleDetailComponent implements OnInit {
             const owned = catalog
               .filter((c) => c.tier !== "coach" && finishById.has(c.id))
               .map((c) => ({ ...c, finish: finishById.get(c.id) }));
-            this.myCards.set(owned);
-            if (owned.length > 0) {
-              this.api.getCardPowers(owned.map((c) => c.id)).subscribe({
-                next: (res) =>
-                  this.myCardPowers.set(
-                    new Map(res.powers.map((p) => [p.collectibleId, { power: p.power, tierBase: p.tierBase, pir: p.pir, foilBonus: p.foilBonus }]))
-                  ),
-                error: () => {}, // non-critical — the picker still works, just without the power/win% readout
-              });
+            if (owned.length === 0) {
+              this.myCards.set([]);
+              this.myCardsLoading.set(false);
+              return;
             }
+            this.api.getCardStats(owned.map((c) => c.id)).subscribe({
+              next: (res) => {
+                const stats = new Map(res.stats.map((s) => [s.collectibleId, { raw: s.raw, boosted: s.boosted, multiplier: s.multiplier }]));
+                this.myCardStats.set(stats);
+                // Strongest cards first (sum of boosted stats relative to
+                // typical values), so the best picks are at the top.
+                this.myCards.set(
+                  [...owned].sort((a, b) => this.overall(stats.get(b.id)) - this.overall(stats.get(a.id)))
+                );
+                this.myCardsLoading.set(false);
+              },
+              error: () => {
+                this.myCards.set(owned);
+                this.myCardsLoading.set(false);
+              },
+            });
           },
+          error: () => this.myCardsLoading.set(false),
         });
       },
+      error: () => this.myCardsLoading.set(false),
     });
   }
 
-  pickCard(id: string): void {
-    this.pickedId.set(this.pickedId() === id ? null : id);
+  // Rough per-stat scale so "strongest category" compares like with like
+  // (5 rebounds is a lot more than 5 points). Display-only.
+  private static readonly TYPICAL: StatLine = { points: 10, rebounds: 4, assists: 2.5, steals: 0.8, blocks: 0.4, pir: 10 };
+  private relativeStrength(line: StatLine, stat: DuelStat): number {
+    return line[stat] / BattleDetailComponent.TYPICAL[stat];
+  }
+  private overall(line: CardStatLine | undefined): number {
+    if (!line) return 0;
+    return DUEL_STATS.reduce((sum, s) => sum + line.boosted[s] / BattleDetailComponent.TYPICAL[s], 0);
   }
 
-  // Maps a backend error code to its i18n key where a more specific message
-  // exists; falls back to the generic action-failed key otherwise.
+  pickCard(id: string): void {
+    if (this.pickedId() === id) return;
+    this.pickedId.set(id);
+    // Preselect the card's best category, still one tap to change.
+    this.pickedStat.set(this.bestStatByCard().get(id) ?? null);
+  }
+
+  pickStat(stat: DuelStat): void {
+    this.pickedStat.set(stat);
+  }
+
+  statLabel(stat: DuelStat | null): string {
+    return stat ? this.i18n.t(`battles.stat.${stat}`) : "";
+  }
+
+  statShort(stat: DuelStat): string {
+    return this.i18n.t(`battles.statShort.${stat}`);
+  }
+
+  // Bar width for a round's comparison, relative to the larger value.
+  barPct(value: number, other: number): number {
+    const max = Math.max(value, other);
+    return max > 0 ? Math.max(6, Math.round((value / max) * 100)) : 6;
+  }
+
+  mineOf(round: DuelRound): number {
+    return this.mySide() === "challenger" ? round.challengerValue : round.opponentValue;
+  }
+  theirsOf(round: DuelRound): number {
+    return this.mySide() === "challenger" ? round.opponentValue : round.challengerValue;
+  }
+  iWonRound(round: DuelRound): boolean {
+    return round.winner === this.mySide();
+  }
+  roundSourceKey(round: DuelRound): string {
+    if (round.source === "random") return "battles.roundRandom";
+    if (round.source === "both") return "battles.roundBoth";
+    return round.source === this.mySide() ? "battles.roundYourPick" : "battles.roundTheirPick";
+  }
+
   private errorKeyFor(err: unknown, fallback: string): string {
     const code = err instanceof HttpErrorResponse ? err.error?.code : null;
     if (code === "INSUFFICIENT_POINTS") return "battles.insufficientPoints";
-    if (code === "CHALLENGER_INSUFFICIENT_POINTS") return "battles.challengerInsufficientPoints";
+    if (code === "BATTLE_NOT_PENDING") return "battles.notPending";
     return fallback;
   }
 
   sendChallenge(): void {
     const cardId = this.pickedId();
-    if (!cardId || this.submitting() || !this.canAffordStake()) return;
+    const stat = this.pickedStat();
+    if (!cardId || !stat || !this.canSubmit()) return;
     this.submitting.set(true);
     this.errorKey.set(null);
-    this.api.challengeToBattle(this.newLeagueId, this.newOpponentUserId, cardId).subscribe({
-      next: (res) => this.router.navigate(["/battles", res.id]),
+    this.api.challengeToBattle(this.newLeagueId, this.newOpponentUserId, cardId, stat).subscribe({
+      next: (res) => {
+        this.submitting.set(false);
+        this.router.navigate(["/battles", res.id], { replaceUrl: true });
+      },
       error: (err) => {
         this.submitting.set(false);
         this.errorKey.set(this.errorKeyFor(err, "battles.challengeFailed"));
@@ -345,14 +399,15 @@ export class BattleDetailComponent implements OnInit {
   acceptChallenge(): void {
     const b = this.battle();
     const cardId = this.pickedId();
-    if (!b || !cardId || this.submitting() || !this.canAffordStake()) return;
+    const stat = this.pickedStat();
+    if (!b || !cardId || !stat || !this.canSubmit()) return;
     this.submitting.set(true);
     this.errorKey.set(null);
-    this.api.acceptBattle(b.id, cardId).subscribe({
+    this.api.acceptBattle(b.id, cardId, stat).subscribe({
       next: () => {
         this.submitting.set(false);
         this.refresh(b.id);
-        this.battlesNotif.refresh(); // accepting is the opponent's own action — no SSE push comes back to them for it, so the badge needs a manual nudge
+        this.battlesNotif.refresh(); // no SSE push comes back for your own accept
       },
       error: (err) => {
         this.submitting.set(false);
@@ -366,8 +421,8 @@ export class BattleDetailComponent implements OnInit {
     if (!b) return;
     this.api.declineBattle(b.id).subscribe({
       next: () => {
-        this.battlesNotif.refresh(); // same self-action gap as acceptChallenge above
-        this.router.navigate(["/leagues", b.leagueId]);
+        this.battlesNotif.refresh();
+        this.router.navigate(["/battles"]);
       },
     });
   }
@@ -375,20 +430,15 @@ export class BattleDetailComponent implements OnInit {
   cancelChallenge(): void {
     const b = this.battle();
     if (!b) return;
-    this.api.cancelBattle(b.id).subscribe({ next: () => this.router.navigate(["/leagues", b.leagueId]) });
+    this.api.cancelBattle(b.id).subscribe({ next: () => this.router.navigate(["/battles"]) });
   }
 
-  backFallback(): string {
-    const leagueId = this.isNew() ? this.newLeagueId : this.battle()?.leagueId;
-    return leagueId ? `/leagues/${leagueId}` : "/leagues";
-  }
-
-  // Once a duel is finished there's nothing more to do on this page — send
-  // the player straight to the league's Battles tab (not just "back", which
-  // could land on whatever unrelated page they arrived from) so they can
-  // start or check another one.
-  goToBattles(): void {
-    const leagueId = this.battle()?.leagueId;
-    this.router.navigate(leagueId ? ["/leagues", leagueId] : ["/leagues"], { queryParams: leagueId ? { tab: "battles" } : {} });
+  rematch(): void {
+    const b = this.battle();
+    if (!b) return;
+    const opponentUserId = this.iAmChallenger() ? b.opponentUserId : b.challengerUserId;
+    this.router.navigate(["/battles", "new"], {
+      queryParams: { leagueId: b.leagueId, opponentUserId, opponentName: this.opponentDisplayName() },
+    });
   }
 }

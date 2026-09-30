@@ -33,7 +33,7 @@ export function computeStakeForWinProb(winProb: number): number {
 // own small copy rather than importing a helper out of a routes file into a
 // service, same "small self-contained duplication is fine" convention
 // analytics-builder.ts's own column-list copy already sets in this app.
-function normalizePlayerName(name: string): string {
+export function normalizePlayerName(name: string): string {
   const commaIdx = name.indexOf(",");
   const reordered = commaIdx === -1 ? name : `${name.slice(commaIdx + 1)} ${name.slice(0, commaIdx)}`;
   return reordered.toLowerCase().replace(/\s+/g, " ").trim();

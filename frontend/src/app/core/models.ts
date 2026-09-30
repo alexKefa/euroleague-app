@@ -845,14 +845,34 @@ export interface BattleCardRef {
   team: { id: string; code: string; primaryColor: string | null };
 }
 
-// What a card's power score is actually made of (2026-09-24, "show the
-// cards used with stats") — tierBase from rarity, pir from the real
-// player's current-or-recent-season PIR. tierBase + pir (rounded) == power.
-export interface CardPowerBreakdown {
-  tierBase: number;
-  pir: number;
-  // Extra power from a foil legendary (2026-09-30); 0 otherwise.
-  foilBonus?: number;
+// Stat duel (battles v4, 2026-09-30 — backend services/statDuel.ts). Each
+// side picks a card and a category; best of three categories wins.
+export type DuelStat = "points" | "rebounds" | "assists" | "steals" | "blocks" | "pir";
+export const DUEL_STATS: DuelStat[] = ["points", "rebounds", "assists", "steals", "blocks", "pir"];
+export type StatLine = Record<DuelStat, number>;
+
+// A card's per-game numbers (raw) and the rarity/foil-boosted ones the
+// duel compares (boosted = raw * multiplier).
+export interface CardStatLine {
+  raw: StatLine;
+  multiplier: number;
+  boosted: StatLine;
+}
+
+export interface DuelRound {
+  stat: DuelStat;
+  source: "challenger" | "opponent" | "both" | "random";
+  challengerValue: number;
+  opponentValue: number;
+  winner: "challenger" | "opponent";
+}
+
+// GET /battles/opponents — everyone you share a league with.
+export interface BattleOpponent {
+  userId: string;
+  displayName: string;
+  leagueId: string;
+  leagueName: string;
 }
 
 // GET /api/battles/mine — one row per challenge (pending/finished) the
@@ -865,41 +885,36 @@ export interface BattleSummary {
   status: BattleStatus;
   direction: "incoming" | "outgoing";
   counterpartyName: string;
+  counterpartyUserId: string;
   winnerUserId: string | null;
+  stakePoints: number | null;
   createdAt: string;
   challengerCard: BattleCardRef;
 }
 
 // GET /api/battles/:id — full duel state. opponentCard is null until the
-// opponent accepts (at which point the duel is already resolved — there's
-// no separate "locked in, waiting" state in this version). challengerPower
-// is the same power score computeCardPowers would use to decide the duel —
-// shown so a card's real stats visibly affect the odds, not just invisibly
-// server-side.
+// opponent accepts, which resolves the duel on the spot. mode "coinFlip" is
+// a battle finished under the old v3 weighted coin flip: no rounds, just
+// the two powers in legacyPower.
 export interface BattleDetail {
   id: string;
   leagueId: string;
   status: BattleStatus;
+  mode: "statDuel" | "coinFlip";
   challengerUserId: string;
   challengerName: string;
   opponentUserId: string;
   opponentName: string;
   winnerUserId: string | null;
-  // The real points amount transferred loser->winner (2026-09-23 —
-  // variable now, scaled by how big an underdog the winner was; see
-  // services/battles.ts's computeStakeForWinProb). Null until accepted.
+  // Points moved loser -> winner, capped at what the loser had. Null until accepted.
   stakePoints: number | null;
-  challengerPower: number;
-  challengerPowerBreakdown: CardPowerBreakdown;
-  // Both null until the opponent's card is known (accepted/finished) — see
-  // routes/battles.ts's GET /:id doc comment for why these are recomputed
-  // live rather than a frozen snapshot from resolution time.
-  opponentPower: number | null;
-  opponentPowerBreakdown: CardPowerBreakdown | null;
-  // The challenger's own win probability going into the duel, once both
-  // cards are known — shown post-reveal so "you had a 62% chance" reads
-  // consistently with the live picker's own winChancePct.
-  preDuelChallengerWinProb: number | null;
+  // Hidden (null) for the opponent until the duel resolves.
+  challengerStat: DuelStat | null;
+  opponentStat: DuelStat | null;
+  duelRounds: DuelRound[] | null;
+  challengerStats: CardStatLine | null;
+  opponentStats: CardStatLine | null;
+  legacyPower: { challenger: number; opponent: number | null } | null;
   challengerCard: BattleCardRef;
   opponentCard: BattleCardRef | null;
 }

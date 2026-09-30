@@ -6,6 +6,7 @@ import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { ButtonDirective } from "../../shared/button.directive";
 import { consumePendingPromoClaim } from "../../shared/pending-promo-claim";
+import { pendingLeagueJoinUrl } from "../../shared/pending-league-join";
 
 @Component({
   selector: "app-login",
@@ -41,7 +42,7 @@ export class LoginComponent {
         // now that they're actually signed in, instead of just landing on
         // the dashboard with the code forgotten.
         const pendingPromo = consumePendingPromoClaim();
-        this.router.navigateByUrl(pendingPromo ? `/claim?promo=${encodeURIComponent(pendingPromo)}` : "/");
+        this.router.navigateByUrl(pendingPromo ? `/claim?promo=${encodeURIComponent(pendingPromo)}` : (pendingLeagueJoinUrl() ?? "/"));
       },
       error: () => {
         this.error.set(this.i18n.t("auth.invalidCredentials"));

@@ -105,6 +105,22 @@ export class LeagueDetailComponent implements OnInit {
     }
   }
 
+  readonly cancellingBattleId = signal<string | null>(null);
+
+  // Cancelled battles aren't listed (GET /battles/mine skips them), so a
+  // successful cancel just drops the row.
+  cancelBattle(id: string): void {
+    if (this.cancellingBattleId()) return;
+    this.cancellingBattleId.set(id);
+    this.api.cancelBattle(id).subscribe({
+      next: () => {
+        this.battles.update((rows) => rows.filter((b) => b.id !== id));
+        this.cancellingBattleId.set(null);
+      },
+      error: () => this.cancellingBattleId.set(null),
+    });
+  }
+
   challenge(member: { userId: string; displayName: string }): void {
     this.router.navigate(["/battles", "new"], {
       queryParams: { leagueId: this.leagueId, opponentUserId: member.userId, opponentName: member.displayName },

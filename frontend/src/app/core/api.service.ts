@@ -47,6 +47,10 @@ import {
   LeagueLeaderboardEntry,
   BattleSummary,
   BattleDetail,
+  BattleOpponent,
+  CardStatLine,
+  CollectibleFinish,
+  DuelStat,
   InjuryReportEntry,
   InjuryStatus,
   FantasyPlayers,
@@ -514,18 +518,19 @@ export class ApiService {
     return this.http.get<BattleDetail>(`${API_BASE_URL}/battles/${id}`);
   }
 
-  challengeToBattle(leagueId: string, opponentUserId: string, collectibleId: string): Observable<{ id: string; status: string }> {
+  challengeToBattle(leagueId: string, opponentUserId: string, collectibleId: string, stat: DuelStat): Observable<{ id: string; status: string }> {
     return this.http.post<{ id: string; status: string }>(`${API_BASE_URL}/battles`, {
       leagueId,
       opponentUserId,
       collectibleId,
+      stat,
     });
   }
 
-  // Resolves the duel immediately server-side — the response just confirms
-  // it finished; GET getBattle(id) afterward returns the actual winner.
-  acceptBattle(id: string, collectibleId: string): Observable<unknown> {
-    return this.http.post(`${API_BASE_URL}/battles/${id}/accept`, { collectibleId });
+  // Resolves the stat duel immediately server-side — the response just
+  // confirms it finished; getBattle(id) afterward returns the rounds.
+  acceptBattle(id: string, collectibleId: string, stat: DuelStat): Observable<unknown> {
+    return this.http.post(`${API_BASE_URL}/battles/${id}/accept`, { collectibleId, stat });
   }
 
   declineBattle(id: string): Observable<unknown> {
@@ -536,16 +541,16 @@ export class ApiService {
     return this.http.post(`${API_BASE_URL}/battles/${id}/cancel`, {});
   }
 
-  // A power score per card (services/battles.ts's computeCardPowers) — lets
-  // the picker show how each of your cards actually stacks up instead of
-  // that only happening invisibly server-side at accept time.
-  getCardPowers(
-    collectibleIds: string[]
-  ): Observable<{ powers: { collectibleId: string; power: number; tierBase: number; pir: number; foilBonus: number }[] }> {
-    return this.http.post<{ powers: { collectibleId: string; power: number; tierBase: number; pir: number; foilBonus: number }[] }>(
-      `${API_BASE_URL}/battles/card-powers`,
+  // Stat line per owned card for the battle picker (backend statDuel.ts).
+  getCardStats(collectibleIds: string[]): Observable<{ stats: ({ collectibleId: string; finish: CollectibleFinish } & CardStatLine)[] }> {
+    return this.http.post<{ stats: ({ collectibleId: string; finish: CollectibleFinish } & CardStatLine)[] }>(
+      `${API_BASE_URL}/battles/card-stats`,
       { collectibleIds }
     );
+  }
+
+  getBattleOpponents(): Observable<BattleOpponent[]> {
+    return this.http.get<BattleOpponent[]>(`${API_BASE_URL}/battles/opponents`);
   }
 
   // Fantasy Five — the whole draftable player pool + price for the roster

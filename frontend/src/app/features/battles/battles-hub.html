@@ -1,0 +1,198 @@
+<div class="max-w-3xl mx-auto p-4 sm:p-6">
+  <div class="flex items-center justify-between gap-2 mb-4">
+    <h1 class="font-display text-3xl tracking-wide">{{ i18n.t('battles.tab') }}</h1>
+    <app-battles-info />
+  </div>
+
+  @if (!auth.isAuthenticated()) {
+    <div class="bg-card rounded-2xl border border-line shadow-card p-6 text-center">
+      <p class="text-sm text-muted mb-4">{{ i18n.t('battles.loginToBattle') }}</p>
+      <a routerLink="/login" appButton appButtonSize="sm">{{ i18n.t('nav.login') }}</a>
+    </div>
+  } @else {
+    <!-- Hero: the two main actions, always at the top. -->
+    <div class="relative overflow-hidden rounded-3xl p-5 mb-5 bg-team-primary text-team-secondary shadow-card">
+      <app-nav-icon name="ball" [size]="120" class="absolute -right-6 -bottom-8 opacity-15 pointer-events-none" />
+      <p class="font-display text-xl tracking-wide leading-tight">{{ i18n.t('battles.heroTitle') }}</p>
+      <p class="text-sm opacity-85 mt-1 mb-4 max-w-sm">{{ i18n.t('battles.heroSub') }}</p>
+      <div class="flex flex-wrap gap-2 relative">
+        <button
+          type="button"
+          (click)="openPicker()"
+          class="rounded-xl px-4 py-2.5 font-bold text-sm bg-team-secondary text-team-primary active:scale-[0.97] transition-transform"
+        >
+          {{ i18n.t('battles.newBattle') }}
+        </button>
+        <button
+          type="button"
+          (click)="invite()"
+          class="rounded-xl px-4 py-2.5 font-bold text-sm border-2 border-current active:scale-[0.97] transition-transform"
+        >
+          {{ inviteCopied() ? i18n.t('battles.inviteCopied') : i18n.t('battles.inviteFriends') }}
+        </button>
+      </div>
+      @if (wins() + losses() > 0) {
+        <p class="relative font-mono text-xs font-bold mt-4 opacity-90">
+          {{ i18n.t('battles.record') }}: {{ wins() }}{{ i18n.t('battles.winShort') }} – {{ losses() }}{{ i18n.t('battles.lossShort') }}
+        </p>
+      }
+    </div>
+
+    @if (loading()) {
+      <div class="space-y-2">
+        @for (i of [1, 2, 3]; track i) {
+          <app-skeleton class="h-16 rounded-2xl" />
+        }
+      </div>
+    } @else {
+      @if (yourMove().length > 0) {
+        <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('battles.yourMove') }}</p>
+        <div class="space-y-2 mb-5">
+          @for (b of yourMove(); track b.id) {
+            <div class="flex items-center gap-3 rounded-2xl border-2 border-team-primary/50 bg-card px-3 py-2.5 shadow-card">
+              <app-player-photo
+                [photoUrl]="b.challengerCard.imageUrl"
+                [name]="b.challengerCard.name"
+                [teamCode]="b.challengerCard.team.code"
+                [primaryColor]="b.challengerCard.team.primaryColor"
+                [size]="40"
+              />
+              <div class="min-w-0 flex-1">
+                <p class="font-semibold truncate">{{ b.counterpartyName }}</p>
+                <p class="text-[12px] text-muted truncate">{{ i18n.t('battles.challengedYouWith') }} {{ b.challengerCard.name }}</p>
+              </div>
+              <a [routerLink]="['/battles', b.id]" appButton appButtonSize="sm" class="shrink-0">{{ i18n.t('battles.play') }}</a>
+            </div>
+          }
+        </div>
+      }
+
+      @if (waiting().length > 0) {
+        <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('battles.waitingTitle') }}</p>
+        <div class="space-y-2 mb-5">
+          @for (b of waiting(); track b.id) {
+            <div class="flex items-center gap-3 rounded-2xl border border-line bg-card pl-3 pr-2 py-2.5">
+              <a [routerLink]="['/battles', b.id]" class="flex items-center gap-3 min-w-0 flex-1">
+                <app-player-photo
+                  [photoUrl]="b.challengerCard.imageUrl"
+                  [name]="b.challengerCard.name"
+                  [teamCode]="b.challengerCard.team.code"
+                  [primaryColor]="b.challengerCard.team.primaryColor"
+                  [size]="40"
+                />
+                <div class="min-w-0">
+                  <p class="font-semibold truncate">{{ b.counterpartyName }}</p>
+                  <p class="text-[12px] text-muted truncate">{{ i18n.t('battles.waitingForOpponent') }}</p>
+                </div>
+              </a>
+              <button
+                type="button"
+                (click)="cancel(b)"
+                [disabled]="cancellingId() === b.id"
+                class="shrink-0 rounded-lg px-2.5 py-1.5 text-[12px] font-bold text-red-500 hover:bg-red-500/10 disabled:opacity-50"
+              >
+                {{ i18n.t('battles.cancelShort') }}
+              </button>
+            </div>
+          }
+        </div>
+      }
+
+      <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('battles.recentTitle') }}</p>
+      @if (recent().length === 0) {
+        <div class="bg-card rounded-2xl border border-line p-5 text-center">
+          <p class="text-sm text-muted">{{ i18n.t('battles.noBattlesYet') }}</p>
+        </div>
+      } @else {
+        <div class="space-y-2">
+          @for (b of recent(); track b.id) {
+            <div class="flex items-center gap-3 rounded-2xl border border-line bg-card pl-3 pr-2 py-2.5">
+              <a [routerLink]="['/battles', b.id]" class="flex items-center gap-3 min-w-0 flex-1">
+                <span
+                  class="w-9 h-9 rounded-xl flex items-center justify-center font-display text-sm shrink-0"
+                  [ngClass]="didIWin(b) ? 'bg-team-primary text-team-secondary' : 'bg-page text-muted'"
+                  >{{ didIWin(b) ? i18n.t('battles.winShort') : i18n.t('battles.lossShort') }}</span
+                >
+                <div class="min-w-0">
+                  <p class="font-semibold truncate">{{ b.counterpartyName }}</p>
+                  @if (b.stakePoints !== null) {
+                    <p class="font-mono text-[12px] font-bold" [ngClass]="didIWin(b) ? 'text-team-primary' : 'text-red-500'">
+                      {{ didIWin(b) ? '+' : '−' }}{{ b.stakePoints }} {{ i18n.t('battles.ptsSuffix') }}
+                    </p>
+                  }
+                </div>
+              </a>
+              <button type="button" (click)="rematch(b)" class="shrink-0 rounded-lg px-2.5 py-1.5 text-[12px] font-bold text-team-primary hover:bg-team-primary/10">
+                {{ i18n.t('battles.rematch') }}
+              </button>
+            </div>
+          }
+        </div>
+      }
+    }
+  }
+
+  <!-- Opponent picker: everyone you share a league with. -->
+  @if (pickerOpen()) {
+    <div class="sheet-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" (click)="pickerOpen.set(false)">
+      <div class="sheet-panel bg-card rounded-2xl border border-line shadow-pop p-4 max-w-sm w-full max-h-[80vh] flex flex-col" (click)="$event.stopPropagation()">
+        <div class="flex items-center justify-between mb-3">
+          <p class="font-display text-lg">{{ i18n.t('battles.pickOpponent') }}</p>
+          <button type="button" (click)="pickerOpen.set(false)" class="text-muted hover:text-ink text-2xl leading-none font-bold" [attr.aria-label]="i18n.t('hint.dismiss')">&times;</button>
+        </div>
+        @if (opponents().length === 0) {
+          <p class="text-sm text-muted mb-4">{{ i18n.t('battles.noOpponents') }}</p>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" (click)="pickerOpen.set(false); invite()" appButton appButtonSize="sm">{{ i18n.t('battles.inviteFriends') }}</button>
+            <a routerLink="/leagues" appButton="outline" appButtonSize="sm">{{ i18n.t('leagues.navLink') }}</a>
+          </div>
+        } @else {
+          @if (opponents().length > 6) {
+            <input
+              type="search"
+              (input)="onSearch($event)"
+              [placeholder]="i18n.t('battles.searchPlayers')"
+              class="w-full rounded-xl border border-line bg-page px-3 py-2 text-sm mb-3"
+            />
+          }
+          <div class="overflow-y-auto -mx-1 px-1 space-y-1.5">
+            @for (o of filteredOpponents(); track o.userId) {
+              <button
+                type="button"
+                (click)="challenge(o)"
+                class="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 bg-page hover:bg-team-primary/10 text-left transition-colors"
+              >
+                <span class="w-9 h-9 rounded-full bg-team-primary/15 text-team-primary flex items-center justify-center font-bold shrink-0">
+                  {{ o.displayName.charAt(0).toUpperCase() }}
+                </span>
+                <span class="min-w-0 flex-1">
+                  <span class="block font-semibold truncate">{{ o.displayName }}</span>
+                  <span class="block text-[11px] text-muted truncate">{{ o.leagueName }}</span>
+                </span>
+                <span class="text-[12px] font-bold text-team-primary shrink-0">{{ i18n.t('battles.challengeButton') }}</span>
+              </button>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Invite: which league's link to share, when you're in several. -->
+  @if (invitePickerOpen()) {
+    <div class="sheet-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" (click)="invitePickerOpen.set(false)">
+      <div class="sheet-panel bg-card rounded-2xl border border-line shadow-pop p-4 max-w-sm w-full" (click)="$event.stopPropagation()">
+        <p class="font-display text-lg mb-1">{{ i18n.t('battles.inviteToWhich') }}</p>
+        <p class="text-xs text-muted mb-3">{{ i18n.t('battles.inviteHint') }}</p>
+        <div class="space-y-1.5">
+          @for (l of leagues(); track l.id) {
+            <button type="button" (click)="shareLeague(l)" class="w-full flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 bg-page hover:bg-team-primary/10 text-left">
+              <span class="font-semibold truncate">{{ l.name }}</span>
+              <span class="text-[11px] text-muted shrink-0">{{ l.memberCount }} {{ i18n.t('battles.members') }}</span>
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

@@ -8,6 +8,7 @@ import { ButtonDirective } from "../../shared/button.directive";
 import { OpenInBrowserBannerComponent } from "../../shared/open-in-browser-banner";
 import { TeamPickDialogComponent } from "../../shared/team-pick-dialog";
 import { peekPendingPromoClaim, consumePendingPromoClaim } from "../../shared/pending-promo-claim";
+import { pendingLeagueJoinUrl } from "../../shared/pending-league-join";
 
 @Component({
   selector: "app-register",
@@ -103,6 +104,6 @@ export class RegisterComponent implements OnInit {
   }
 
   onTeamDialogClosed(): void {
-    this.router.navigateByUrl("/");
+    this.router.navigateByUrl(pendingLeagueJoinUrl() ?? "/");
   }
 }

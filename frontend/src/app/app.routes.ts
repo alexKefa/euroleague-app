@@ -134,11 +134,14 @@ export const routes: Routes = [
     path: "leagues/:id",
     loadComponent: () => import("./features/leagues/league-detail").then((m) => m.LeagueDetailComponent),
   },
-  // Card battles — reached from a League's "Battles" tab, not a top-level
-  // nav item (same "route exists, reached contextually" precedent /leagues
-  // itself sets). ":id" must come after every other literal battles/* path
-  // below it would otherwise swallow, but "new" (the challenge composer) is
-  // the only other one, and BattleDetailComponent itself checks for it.
+  // Card battles. /battles is the hub (2026-09-30): every battle across
+  // leagues, one-tap challenges and invites, reached from the Cards hub and
+  // a league's Battles tab. "battles/new" (the challenge composer) is
+  // handled by BattleDetailComponent itself under ":id".
+  {
+    path: "battles",
+    loadComponent: () => import("./features/battles/battles-hub").then((m) => m.BattlesHubComponent),
+  },
   {
     path: "battles/:id",
     loadComponent: () => import("./features/battles/battle-detail").then((m) => m.BattleDetailComponent),

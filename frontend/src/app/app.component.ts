@@ -18,6 +18,7 @@ import { BattleChallengeToastComponent } from "./shared/battle-challenge-toast";
 import { JumpBallToastComponent } from "./shared/jump-ball-toast";
 import { PackRewardToastComponent } from "./shared/pack-reward-toast";
 import { PackRewardsService } from "./core/pack-rewards.service";
+import { BattlesNotificationService } from "./core/battles-notification.service";
 import { WhatsNewComponent } from "./shared/whats-new";
 import { WatchPillComponent } from "./shared/watch-pill";
 
@@ -91,7 +92,7 @@ const NAV_LINKS: NavLink[] = [
     path: "/inventory",
     label: "nav.cards",
     icon: "cards",
-    activePrefixes: ["/store", "/wheel", "/trades", "/packs", "/album", "/legendary-vote"],
+    activePrefixes: ["/store", "/wheel", "/trades", "/packs", "/album", "/legendary-vote", "/battles"],
   },
   { path: "/fantasy", label: "fantasy.navLink", icon: "trophy" },
   { path: "/schedule", label: "nav.schedule", icon: "schedule" },
@@ -155,6 +156,7 @@ export class AppComponent implements OnInit {
   protected events = inject(EventsService);
   protected trades = inject(TradesNotificationService);
   protected packRewards = inject(PackRewardsService);
+  protected battlesNotif = inject(BattlesNotificationService);
   protected tour = inject(TourService);
   private router = inject(Router);
   protected readonly navLinks = NAV_LINKS;

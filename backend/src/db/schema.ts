@@ -961,6 +961,17 @@ export const battles = pgTable("battles", {
   // (2026-09-23 fix) — variable, not the old flat 25, see
   // services/battles.ts's computeStakeForWinProb. Null until accepted.
   stakePoints: integer("stake_points"),
+  // Stat duel (v4, 2026-09-30 — services/statDuel.ts). Each side's chosen
+  // category (points/rebounds/assists/steals/blocks/pir); the challenger's
+  // stays hidden from the opponent until the duel resolves. Null on v3
+  // coin-flip battles, which is how the UI tells the two apart.
+  challengerStat: varchar("challenger_stat", { length: 20 }),
+  opponentStat: varchar("opponent_stat", { length: 20 }),
+  // The resolved best-of-three, frozen at accept time (DuelRound[]): each
+  // category, who put it in play, both boosted values, and its winner.
+  duelRounds: jsonb("duel_rounds").$type<
+    { stat: string; source: string; challengerValue: number; opponentValue: number; winner: "challenger" | "opponent" }[]
+  >(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   respondedAt: timestamp("responded_at", { withTimezone: true }),
   finishedAt: timestamp("finished_at", { withTimezone: true }),

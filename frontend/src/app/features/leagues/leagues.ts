@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { RouterLink } from "@angular/router";
+import { ActivatedRoute, Router, RouterLink } from "@angular/router";
+import { stashPendingLeagueJoin } from "../../shared/pending-league-join";
 import { ReactiveFormsModule, FormBuilder, Validators } from "@angular/forms";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
@@ -22,6 +23,8 @@ export class LeaguesComponent implements OnInit {
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
   private fb = inject(FormBuilder);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
 
   readonly loading = signal(true);
   readonly myLeagues = signal<League[]>([]);
@@ -35,12 +38,43 @@ export class LeaguesComponent implements OnInit {
   readonly joinError = signal<string | null>(null);
 
   ngOnInit(): void {
+    // Invite link (/leagues?join=CODE, shared from the Battles page).
+    // Waits for the session restore first: an invite opened in a fresh tab
+    // would otherwise see "logged out" before the refresh cookie resolves.
+    const inviteCode = this.route.snapshot.queryParamMap.get("join")?.trim();
+    if (inviteCode) {
+      this.auth.restoreSession().subscribe((loggedIn) => {
+        if (loggedIn || this.auth.isAuthenticated()) {
+          this.joinByInvite(inviteCode);
+        } else {
+          stashPendingLeagueJoin(inviteCode);
+          this.router.navigateByUrl("/welcome");
+        }
+      });
+      return;
+    }
     if (!this.auth.isAuthenticated()) {
       this.loading.set(false);
       return;
     }
 
     this.refresh();
+  }
+
+  // Joining is idempotent server-side, so opening your own invite link (or
+  // one for a league you're already in) just lands you on that league.
+  private joinByInvite(code: string): void {
+    this.joining.set(true);
+    this.api.joinLeague(code).subscribe({
+      next: (league) => this.router.navigate(["/leagues", league.id], { replaceUrl: true }),
+      error: (err) => {
+        this.joining.set(false);
+        this.joinForm.patchValue({ code });
+        this.joinError.set(this.errorMessage(err, "leagues.joinFailed"));
+        this.router.navigate([], { queryParams: { join: null }, replaceUrl: true });
+        this.refresh();
+      },
+    });
   }
 
   private refresh(): void {

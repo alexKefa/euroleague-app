@@ -166,10 +166,10 @@
                 [attr.aria-label]="i18n.t('nav.liveGame')"
               ></span>
             }
-            @if (link.path === '/inventory' && auth.isAuthenticated() && (trades.hasPendingIncoming() || packRewards.hasUnopened())) {
+            @if (link.path === '/inventory' && auth.isAuthenticated() && (trades.hasPendingIncoming() || battlesNotif.hasPendingIncoming() || packRewards.hasUnopened())) {
               <span
                 class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 animate-pulse"
-                [attr.aria-label]="i18n.t(trades.hasPendingIncoming() ? 'nav.pendingTrades' : 'nav.unopenedPacks')"
+                [attr.aria-label]="i18n.t(trades.hasPendingIncoming() ? 'nav.pendingTrades' : battlesNotif.hasPendingIncoming() ? 'battles.pendingChallenges' : 'nav.unopenedPacks')"
               ></span>
             }
           </span>
@@ -258,10 +258,10 @@
             [attr.aria-label]="i18n.t('nav.liveGame')"
           ></span>
         }
-        @if (link.path === '/inventory' && auth.isAuthenticated() && (trades.hasPendingIncoming() || packRewards.hasUnopened())) {
+        @if (link.path === '/inventory' && auth.isAuthenticated() && (trades.hasPendingIncoming() || battlesNotif.hasPendingIncoming() || packRewards.hasUnopened())) {
           <span
             class="absolute top-0.5 right-1 w-2 h-2 rounded-full bg-red-500 animate-pulse"
-            [attr.aria-label]="i18n.t(trades.hasPendingIncoming() ? 'nav.pendingTrades' : 'nav.unopenedPacks')"
+            [attr.aria-label]="i18n.t(trades.hasPendingIncoming() ? 'nav.pendingTrades' : battlesNotif.hasPendingIncoming() ? 'battles.pendingChallenges' : 'nav.unopenedPacks')"
           ></span>
         }
       </span>

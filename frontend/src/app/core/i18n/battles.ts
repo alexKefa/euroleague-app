@@ -4,6 +4,7 @@ export const battlesTranslations: Record<string, Record<Lang, string>> = {
   "battles.tab": { en: "Battles", el: "Μάχες" },
   "battles.challengeButton": { en: "Challenge", el: "Πρόκληση" },
   "battles.myBattlesTitle": { en: "Battles in this league", el: "Μάχες σε αυτή τη λίγκα" },
+  "battles.allBattles": { en: "All battles", el: "Όλες οι μάχες" },
   "battles.emptyBattles": {
     en: "No battles yet — challenge a member above.",
     el: "Δεν υπάρχουν ακόμα μάχες — προκάλεσε ένα μέλος παραπάνω.",
@@ -15,28 +16,101 @@ export const battlesTranslations: Record<string, Record<Lang, string>> = {
   "battles.wonBadge": { en: "Won", el: "Νίκη" },
   "battles.lostBadge": { en: "Lost", el: "Ήττα" },
   "battles.backToLeague": { en: "Back", el: "Πίσω" },
-  "battles.goToBattles": { en: "Go to Battles", el: "Μετάβαση στις Μάχες" },
+  "battles.goToBattles": { en: "All battles", el: "Όλες οι μάχες" },
   "battles.pendingChallenges": { en: "Pending battle challenges", el: "Εκκρεμείς προκλήσεις μάχης" },
-
-  // Stat breakdown + real-time matchup panel (2026-09-24, "show the cards
-  // used with stats and what the chances in real-time are").
-  "battles.yourCardLabel": { en: "Your card", el: "Η κάρτα σου" },
-  "battles.tierLabel": { en: "Tier", el: "Κατηγορία" },
-  "battles.formLabel": { en: "Form (PIR)", el: "Φόρμα (PIR)" },
-  "battles.foilLabel": { en: "Foil", el: "Foil" },
-  "battles.matchupTitle": { en: "Matchup", el: "Αναμέτρηση" },
-  "battles.statsTitle": { en: "Battle stats", el: "Στατιστικά μάχης" },
-  "battles.yourChanceWas": { en: "Your win chance was", el: "Η πιθανότητα νίκης σου ήταν" },
-  "battles.waitingOnYourCard": { en: "Your card in this duel", el: "Η κάρτα σου σε αυτή τη μονομαχία" },
   "battles.notFound": { en: "Battle not found, or it's not yours to see.", el: "Η μάχη δεν βρέθηκε, ή δεν έχεις πρόσβαση." },
 
-  // Card picker — shared by the "challenge" composer and accepting an
-  // incoming challenge. A single card each (2026-09-22 v3).
-  "battles.deckPickerTitle": { en: "Pick your card", el: "Διάλεξε την κάρτα σου" },
-  "battles.deckPickerHint": {
-    en: "One card each, resolved instantly — the stronger card is favored but never a sure thing. No risk: you keep your card no matter who wins. Coach cards can't be picked.",
-    el: "Μία κάρτα ο καθένας, με άμεσο αποτέλεσμα — η πιο δυνατή κάρτα ευνοείται αλλά ποτέ δεν είναι σίγουρη. Καμία απώλεια: κρατάς την κάρτα σου ανεξαρτήτως αποτελέσματος. Οι κάρτες προπονητή δεν μπορούν να επιλεγούν.",
+  // Battles page (2026-09-30, features/battles/battles-hub).
+  "battles.hubSub": { en: "Stat duels with your leagues", el: "Μονομαχίες στατιστικών με τις λίγκες σου" },
+  "battles.hubYourMove": { en: "waiting on you", el: "σε περιμένουν" },
+  "battles.loginToBattle": { en: "Log in to battle your friends.", el: "Συνδέσου για να παίξεις με τους φίλους σου." },
+  "battles.heroTitle": { en: "Challenge a friend", el: "Προκάλεσε έναν φίλο" },
+  "battles.heroSub": {
+    en: "Pick a card and a stat. Best of three categories wins the points.",
+    el: "Διάλεξε κάρτα και στατιστικό. Όποιος κερδίσει 2 από τις 3 κατηγορίες παίρνει τους πόντους.",
   },
+  "battles.newBattle": { en: "New battle", el: "Νέα μάχη" },
+  "battles.inviteFriends": { en: "Invite friends", el: "Κάλεσε φίλους" },
+  "battles.inviteCopied": { en: "Link copied!", el: "Ο σύνδεσμος αντιγράφηκε!" },
+  "battles.inviteText": {
+    en: "Join my league \"{league}\" on Clutch and battle me with your EuroLeague cards!",
+    el: "Μπες στη λίγκα μου \"{league}\" στο Clutch και παίξε μαζί μου με τις κάρτες σου της EuroLeague!",
+  },
+  "battles.inviteToWhich": { en: "Invite to which league?", el: "Σε ποια λίγκα να τους καλέσεις;" },
+  "battles.inviteHint": {
+    en: "Battles happen between league members, so the invite is a league link.",
+    el: "Οι μάχες γίνονται μεταξύ μελών μιας λίγκας, οπότε η πρόσκληση είναι σύνδεσμος λίγκας.",
+  },
+  "battles.members": { en: "members", el: "μέλη" },
+  "battles.record": { en: "Your record", el: "Το ρεκόρ σου" },
+  "battles.winShort": { en: "W", el: "Ν" },
+  "battles.lossShort": { en: "L", el: "Η" },
+  "battles.yourMove": { en: "Your move", el: "Σειρά σου" },
+  "battles.challengedYouWith": { en: "challenged you with", el: "σε προκάλεσε με" },
+  "battles.play": { en: "Play", el: "Παίξε" },
+  "battles.waitingTitle": { en: "Waiting on them", el: "Αναμονή αντιπάλου" },
+  "battles.cancelShort": { en: "Cancel", el: "Ακύρωση" },
+  "battles.recentTitle": { en: "Recent battles", el: "Πρόσφατες μάχες" },
+  "battles.noBattlesYet": {
+    en: "No battles yet. Tap New battle to challenge someone from your leagues.",
+    el: "Δεν έχεις παίξει ακόμα. Πάτα Νέα μάχη για να προκαλέσεις κάποιον από τις λίγκες σου.",
+  },
+  "battles.rematch": { en: "Rematch", el: "Ρεβάνς" },
+  "battles.pickOpponent": { en: "Who do you want to battle?", el: "Ποιον θέλεις να προκαλέσεις;" },
+  "battles.searchPlayers": { en: "Search players", el: "Αναζήτηση παικτών" },
+  "battles.noOpponents": {
+    en: "Nobody to battle yet. Battles are between league members, so invite a friend to one of your leagues.",
+    el: "Δεν υπάρχει ακόμα αντίπαλος. Οι μάχες γίνονται μεταξύ μελών λίγκας, οπότε κάλεσε έναν φίλο σε μία από τις λίγκες σου.",
+  },
+
+  // Stat duel (battles v4, 2026-09-30).
+  "battles.stat.points": { en: "Points", el: "Πόντοι" },
+  "battles.stat.rebounds": { en: "Rebounds", el: "Ριμπάουντ" },
+  "battles.stat.assists": { en: "Assists", el: "Ασίστ" },
+  "battles.stat.steals": { en: "Steals", el: "Κλεψίματα" },
+  "battles.stat.blocks": { en: "Blocks", el: "Κοψίματα" },
+  "battles.stat.pir": { en: "PIR", el: "PIR" },
+  "battles.statShort.points": { en: "PTS", el: "ΠΟΝ" },
+  "battles.statShort.rebounds": { en: "REB", el: "ΡΙΜ" },
+  "battles.statShort.assists": { en: "AST", el: "ΑΣΤ" },
+  "battles.statShort.steals": { en: "STL", el: "ΚΛΕ" },
+  "battles.statShort.blocks": { en: "BLK", el: "ΚΟΨ" },
+  "battles.statShort.pir": { en: "PIR", el: "PIR" },
+  "battles.newChallengeTitle": { en: "New challenge", el: "Νέα πρόκληση" },
+  "battles.challengedWith": { en: "challenged you with", el: "σε προκάλεσε με" },
+  "battles.theirPickHidden": {
+    en: "Their stat pick stays hidden until the duel",
+    el: "Το στατιστικό που διάλεξαν μένει κρυφό μέχρι τη μονομαχία",
+  },
+  "battles.stepPickCard": { en: "Pick your card", el: "Διάλεξε κάρτα" },
+  "battles.tierFilter.all": { en: "All", el: "Όλες" },
+  "battles.tierFilter.legendary": { en: "Legendary", el: "Θρυλικές" },
+  "battles.tierFilter.rare": { en: "Rare", el: "Σπάνιες" },
+  "battles.tierFilter.common": { en: "Common", el: "Κοινές" },
+  "battles.stepPickStat": { en: "Pick your stat", el: "Διάλεξε στατιστικό" },
+  "battles.stepPickStatHint": {
+    en: "Go for your card's strongest category. Your pick stays hidden from them.",
+    el: "Διάλεξε την πιο δυνατή κατηγορία της κάρτας σου. Η επιλογή σου μένει κρυφή.",
+  },
+  "battles.stepPickStatHintAccept": {
+    en: "Green is where your card beats theirs. They picked one category too, but you can't see which.",
+    el: "Με πράσινο όπου η κάρτα σου είναι καλύτερη. Διάλεξαν κι αυτοί μία κατηγορία, αλλά δεν ξέρεις ποια.",
+  },
+  "battles.vsShort": { en: "vs", el: "vs" },
+  "battles.boostNote": { en: "Rarity boost on every stat:", el: "Μπόνους σπανιότητας σε κάθε στατιστικό:" },
+  "battles.pickPrompt": { en: "Pick a card and a stat", el: "Διάλεξε κάρτα και στατιστικό" },
+  "battles.estChance": { en: "Win chance ~", el: "Πιθανότητα ~" },
+  "battles.yourCategory": { en: "Your stat", el: "Το στατιστικό σου" },
+  "battles.hiddenFromThem": { en: "Hidden from them until they play", el: "Κρυφό από τον αντίπαλο μέχρι να παίξει" },
+  "battles.you": { en: "You", el: "Εσύ" },
+  "battles.roundLabel": { en: "Round", el: "Γύρος" },
+  "battles.roundYourPick": { en: "Your pick", el: "Δική σου επιλογή" },
+  "battles.roundTheirPick": { en: "Their pick", el: "Δική τους επιλογή" },
+  "battles.roundBoth": { en: "Both picked", el: "Κοινή επιλογή" },
+  "battles.roundRandom": { en: "Random", el: "Τυχαία" },
+  "battles.skip": { en: "Skip", el: "Παράλειψη" },
+  "battles.legacyNote": { en: "Played as a coin flip", el: "Παίχτηκε ως στρίψιμο νομίσματος" },
+  "battles.powerAbbrev": { en: "PWR", el: "ΙΣΧ" },
   "battles.deckPickerEmpty": {
     en: "You need at least 1 non-coach card to battle. Open some packs first!",
     el: "Χρειάζεσαι τουλάχιστον 1 κάρτα (εκτός προπονητή) για να παίξεις. Άνοιξε μερικά πακέτα πρώτα!",
@@ -45,64 +119,48 @@ export const battlesTranslations: Record<string, Record<Lang, string>> = {
   "battles.sending": { en: "Sending…", el: "Αποστολή…" },
   "battles.acceptButton": { en: "Accept & duel", el: "Αποδοχή & μονομαχία" },
   "battles.accepting": { en: "Dueling…", el: "Μονομαχία…" },
-  "battles.theirCardLabel": { en: "Their card", el: "Η κάρτα τους" },
-  "battles.powerAbbrev": { en: "PWR", el: "ΙΣΧ" },
-  "battles.winChanceLabel": { en: "Your win chance", el: "Πιθανότητα νίκης" },
-  "battles.ptsIfWin": { en: "pts if you win", el: "πόντοι αν κερδίσεις" },
-  "battles.ptsIfLose": { en: "pts if you lose", el: "πόντοι αν χάσεις" },
   "battles.declineButton": { en: "Decline", el: "Απόρριψη" },
   "battles.cancelButton": { en: "Cancel challenge", el: "Ακύρωση πρόκλησης" },
-  "battles.waitingForOpponent": { en: "Waiting for them to accept…", el: "Αναμονή αποδοχής…" },
+  "battles.waitingForOpponent": { en: "Waiting for them to accept", el: "Αναμονή αποδοχής" },
+  "battles.waitingOnYourCard": { en: "Your card in this duel", el: "Η κάρτα σου σε αυτή τη μονομαχία" },
   "battles.challengeFailed": { en: "Failed to send challenge.", el: "Η αποστολή της πρόκλησης απέτυχε." },
   "battles.acceptFailed": { en: "Failed to accept battle.", el: "Η αποδοχή της μάχης απέτυχε." },
+  "battles.notPending": { en: "This challenge is no longer open.", el: "Αυτή η πρόκληση δεν είναι πλέον ανοιχτή." },
 
-  // Stake (2026-09-22 fix — the win reward used to be minted from nothing,
-  // a real infinite-farming exploit; now it's a genuine points transfer
-  // from the loser, so both sides need to actually be able to cover it —
-  // and 2026-09-23: variable, not flat, scaled by how big an underdog the
-  // winner was, same odds-weighted shape as predictions' own points).
+  // Stake: a real points transfer from the loser, scaled by how big an
+  // upset the win was, capped at what the loser has.
   "battles.stakeLabel": { en: "Stake", el: "Στοίχημα" },
-  "battles.yourPointsLabel": { en: "Your points", el: "Οι πόντοι σου" },
   "battles.insufficientPoints": {
-    en: "You need more points to duel — win some predictions or open fewer packs first.",
-    el: "Χρειάζεσαι περισσότερους πόντους για μονομαχία — κέρδισε μερικές προβλέψεις ή άνοιξε λιγότερα πακέτα πρώτα.",
-  },
-  "battles.challengerInsufficientPoints": {
-    en: "The challenger no longer has enough points to cover this duel.",
-    el: "Ο προκαλών δεν έχει πλέον αρκετούς πόντους για αυτή τη μονομαχία.",
+    en: "You need at least 25 points to battle — win some predictions first.",
+    el: "Χρειάζεσαι τουλάχιστον 25 πόντους για μονομαχία — κέρδισε μερικές προβλέψεις πρώτα.",
   },
 
-  // 3D reveal (2026-09-22 v3) — cards fly in and clash, the loser flips
-  // face-down, the winner is highlighted. Plain CSS 3D transforms, no
-  // library.
+  // Result.
   "battles.vsLabel": { en: "vs", el: "εναντίον" },
   "battles.youWon": { en: "You won the duel!", el: "Κέρδισες τη μονομαχία!" },
   "battles.youLost": { en: "You lost the duel.", el: "Έχασες τη μονομαχία." },
   "battles.ptsSuffix": { en: "pts", el: "πόντοι" },
 
-  // "How duels work" info popup (2026-09-23, features/battles/battles-info.ts)
-  // — plain-language version of the mechanic (services/battles.ts's
-  // computeCardPowers/resolveDuel/computeStakeForWinProb).
+  // "How duels work" popup (features/battles/battles-info.ts).
   "battles.howItWorksTitle": { en: "How duels work", el: "Πώς λειτουργούν οι μονομαχίες" },
   "battles.howItWorksStep1": {
-    en: "Each card's strength comes from its rarity plus the real player's current form (their actual PIR this season), and a foil legendary gets +10 on top — a legendary with a rough season and a common on a hot streak can be closer than you'd think.",
-    el: "Η δύναμη κάθε κάρτας προέρχεται από τη σπανιότητά της και την πραγματική φόρμα του παίκτη (το πραγματικό του PIR φέτος), και μια foil θρυλική κάρτα παίρνει επιπλέον +10 — μια θρυλική κάρτα σε κακή σεζόν και μια κοινή σε φόρμα μπορεί να είναι πιο κοντά απ' όσο νομίζεις.",
+    en: "Each side picks a card and one stat: points, rebounds, assists, steals, blocks or PIR. The challenger's stat stays hidden until the duel.",
+    el: "Κάθε πλευρά διαλέγει μια κάρτα και ένα στατιστικό: πόντους, ριμπάουντ, ασίστ, κλεψίματα, κοψίματα ή PIR. Το στατιστικό του προκαλούντος μένει κρυφό μέχρι τη μονομαχία.",
   },
   "battles.howItWorksStep2": {
-    en: "The stronger card is favored to win, but it's a weighted coin flip, not a sure thing — an underdog can always pull off the upset.",
-    el: "Η πιο δυνατή κάρτα ευνοείται να κερδίσει, αλλά είναι ζυγισμένο στρίψιμο νομίσματος, όχι σίγουρο πράγμα — το φαβορί μπορεί πάντα να ηττηθεί.",
+    en: "Three categories are compared: both picks plus one random one. The card with the better real per-game stats in 2 of the 3 wins. Rare cards get +5%, legendaries +10% and foil legendaries +15% on every stat.",
+    el: "Συγκρίνονται τρεις κατηγορίες: οι δύο επιλογές και μία τυχαία. Κερδίζει η κάρτα με τα καλύτερα πραγματικά στατιστικά ανά αγώνα στις 2 από τις 3. Οι σπάνιες κάρτες παίρνουν +5%, οι θρυλικές +10% και οι foil θρυλικές +15% σε κάθε στατιστικό.",
   },
   "battles.howItWorksStep3": {
-    en: "The reward scales with the upset: winning as the favorite pays close to the base stake, winning as the underdog pays much more.",
-    el: "Η ανταμοιβή κλιμακώνεται με την έκπληξη: η νίκη ως φαβορί πληρώνει κοντά στο βασικό στοίχημα, η νίκη ως αουτσάιντερ πληρώνει πολύ περισσότερο.",
+    en: "The winner takes points from the loser: 25 for an expected win, up to 100 for an upset, never more than the loser has.",
+    el: "Ο νικητής παίρνει πόντους από τον ηττημένο: 25 για αναμενόμενη νίκη, έως 100 για έκπληξη, ποτέ περισσότερους από όσους έχει ο ηττημένος.",
   },
   "battles.howItWorksStep4": {
-    en: "No risk to your card — only points change hands. You need enough points to cover what you could lose before you can challenge or accept.",
-    el: "Καμία απώλεια για την κάρτα σου — μόνο πόντοι αλλάζουν χέρια. Χρειάζεσαι αρκετούς πόντους για να καλύψεις ό,τι μπορεί να χάσεις πριν προκαλέσεις ή αποδεχτείς.",
+    en: "No risk to your cards, only points change hands. You need at least 25 points to play.",
+    el: "Καμία απώλεια για τις κάρτες σου, μόνο πόντοι αλλάζουν χέρια. Χρειάζεσαι τουλάχιστον 25 πόντους για να παίξεις.",
   },
 
-  // Global real-time challenge toast (2026-09-22) — app.component.html,
-  // pops up over whatever page you're on the instant a challenge arrives.
+  // Global real-time challenge toast (2026-09-22) — app.component.html.
   "battles.toastChallenged": { en: "challenged you to a duel!", el: "σε προκάλεσε σε μονομαχία!" },
   "battles.toastView": { en: "View challenge", el: "Προβολή πρόκλησης" },
 };
