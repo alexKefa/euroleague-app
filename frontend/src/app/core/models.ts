@@ -335,7 +335,7 @@ export interface GameTeamStats {
 }
 
 export interface PlayerToWatch {
-  player: { id: string; code: string; name: string };
+  player: { id: string; code: string; name: string; photoUrl?: string | null; position?: string | null; jerseyNumber?: number | null };
   pointsPerGame: number | null;
   reboundsPerGame: number | null;
   assistsPerGame: number | null;

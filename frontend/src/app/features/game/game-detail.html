@@ -634,48 +634,71 @@
       </div>
     }
 
-    <!-- Players to watch -->
-    <div class="bg-card rounded-lg shadow-card p-4 mb-5">
-      <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-3">
-        {{ isFinal() ? i18n.t('game.playersWhoStoodOut') : i18n.t('game.playersToWatch') }}
-      </p>
-      <div class="grid grid-cols-2 gap-4">
-        <div class="space-y-1 min-w-0">
-          <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-1 truncate">{{ d.game.homeTeam.code | teamCode }}</p>
-          @for (p of d.playersToWatch.home; track p.player.id) {
-            <button
-              type="button"
-              (click)="openPlayer(p.player.id)"
-              class="w-full block px-2 py-1.5 rounded-xl hover:bg-page transition-colors text-left"
-            >
-              <span class="font-semibold text-sm block truncate">{{ p.player.name }}</span>
-              <span class="font-mono text-[11px] text-muted"
-                >{{ p.pointsPerGame | number: "1.1-1" }}p / {{ p.reboundsPerGame | number: "1.1-1" }}r /
-                {{ p.assistsPerGame | number: "1.1-1" }}a</span
-              >
-            </button>
-          } @empty {
-            <p class="text-xs text-muted px-2">{{ i18n.t('game.noStatsYet') }}</p>
-          }
-        </div>
-        <div class="space-y-1 min-w-0">
-          <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-1 truncate">{{ d.game.awayTeam.code | teamCode }}</p>
-          @for (p of d.playersToWatch.away; track p.player.id) {
-            <button
-              type="button"
-              (click)="openPlayer(p.player.id)"
-              class="w-full block px-2 py-1.5 rounded-xl hover:bg-page transition-colors text-left"
-            >
-              <span class="font-semibold text-sm block truncate">{{ p.player.name }}</span>
-              <span class="font-mono text-[11px] text-muted"
-                >{{ p.pointsPerGame | number: "1.1-1" }}p / {{ p.reboundsPerGame | number: "1.1-1" }}r /
-                {{ p.assistsPerGame | number: "1.1-1" }}a</span
-              >
-            </button>
-          } @empty {
-            <p class="text-xs text-muted px-2">{{ i18n.t('game.noStatsYet') }}</p>
-          }
-        </div>
+    <!-- Players to watch (2026-09-30 restyle — "too vanilla and no cards
+         there"): each team's top 3 by PIR as vertical player cards in the
+         team's color (photo, jersey/position, name, PIR, pts/reb/ast),
+         the team's top one marked as the key player. Tapping opens the
+         player sheet, same as before. -->
+    <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-5">
+      <div class="card-head">
+        <span class="card-head-icon"><app-nav-icon name="flame" [size]="18" /></span>
+        <p class="font-display text-base flex-1 min-w-0 truncate">
+          {{ isFinal() ? i18n.t('game.playersWhoStoodOut') : i18n.t('game.playersToWatch') }}
+        </p>
+      </div>
+      <div class="space-y-4">
+        @for (side of [{ team: d.game.homeTeam, players: d.playersToWatch.home }, { team: d.game.awayTeam, players: d.playersToWatch.away }]; track side.team.id) {
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              @if (side.team.logoUrl) {
+                <img [src]="side.team.logoUrl" [alt]="side.team.name" loading="lazy" decoding="async" class="w-5 h-5 object-contain team-logo" />
+              }
+              <p class="text-[12px] font-bold uppercase tracking-wider text-muted truncate">{{ side.team.name }}</p>
+            </div>
+            @if (side.players.length > 0) {
+              <div class="grid grid-cols-3 gap-2">
+                @for (p of side.players; track p.player.id; let i = $index) {
+                  @let color = side.team.primaryColor || 'var(--accent-primary)';
+                  <button
+                    type="button"
+                    (click)="openPlayer(p.player.id)"
+                    class="relative flex flex-col items-center text-center rounded-2xl border overflow-hidden px-1.5 pt-2 pb-2.5 transition-transform duration-150 hover:-translate-y-0.5 active:scale-[0.98] min-w-0"
+                    [style.border-color]="'color-mix(in srgb, ' + color + ' 45%, var(--color-line))'"
+                    [style.background]="'linear-gradient(180deg, color-mix(in srgb, ' + color + ' 30%, var(--color-card)) 0%, var(--color-card) 58%)'"
+                  >
+                    <span class="absolute top-1.5 left-1.5 font-mono text-[10px] font-bold text-ink/80">
+                      @if (i === 0) { <span [style.color]="color" [attr.title]="i18n.t('game.keyPlayer')">&#9733;</span> }@if (p.player.jerseyNumber !== null && p.player.jerseyNumber !== undefined) { #{{ p.player.jerseyNumber }} }
+                    </span>
+                    @if (positionAbbrev(p.player.position); as pos) {
+                      <span class="absolute top-1.5 right-1.5 h-4 px-1 rounded bg-card/80 border border-line font-mono text-[9px] font-bold leading-4">{{ pos }}</span>
+                    }
+                    <app-player-photo
+                      [name]="p.player.name"
+                      [photoUrl]="p.player.photoUrl ?? null"
+                      [teamCode]="side.team.code"
+                      [primaryColor]="side.team.primaryColor"
+                      [size]="60"
+                      class="mt-2"
+                    />
+                    <span class="mt-1.5 text-[12px] font-bold leading-tight line-clamp-2 min-h-[2rem] w-full">{{ displayName(p.player.name) }}</span>
+                    <span class="mt-1 value-chip !text-[12px] !py-1">{{ p.valuation !== null ? (p.valuation | number: "1.1-1") : "—" }} PIR</span>
+                    <span class="mt-1.5 font-mono text-[10px] text-muted leading-tight">
+                      {{ p.pointsPerGame | number: "1.0-1" }}p · {{ p.reboundsPerGame | number: "1.0-1" }}r · {{ p.assistsPerGame | number: "1.0-1" }}a
+                    </span>
+                    @if (i === 0) {
+                      <span
+                        class="absolute bottom-0 inset-x-0 h-0.5"
+                        [style.background]="color"
+                      ></span>
+                    }
+                  </button>
+                }
+              </div>
+            } @else {
+              <p class="text-xs text-muted px-1">{{ i18n.t('game.noStatsYet') }}</p>
+            }
+          </div>
+        }
       </div>
     </div>
 

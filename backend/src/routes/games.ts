@@ -283,7 +283,15 @@ gamesRouter.get("/:id", async (req, res) => {
         .sort((a, b) => (b.stat.valuation ?? -Infinity) - (a.stat.valuation ?? -Infinity))
         .slice(0, 3)
         .map((r) => ({
-          player: { id: r.player.id, code: r.player.code, name: r.player.name },
+          // photo/position/jersey for the player cards (2026-09-30 restyle).
+          player: {
+            id: r.player.id,
+            code: r.player.code,
+            name: r.player.name,
+            photoUrl: r.player.photoUrl,
+            position: r.player.position,
+            jerseyNumber: r.player.jerseyNumber,
+          },
           pointsPerGame: r.stat.pointsPerGame,
           reboundsPerGame: r.stat.reboundsPerGame,
           assistsPerGame: r.stat.assistsPerGame,

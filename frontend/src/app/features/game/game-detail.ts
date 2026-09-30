@@ -578,6 +578,21 @@ export class GameDetailComponent implements OnInit {
     return g.homeScore! > g.awayScore! ? "home" : "away";
   }
 
+  // Player cards (players to watch): "WRIGHT, MOSES" -> "Moses Wright".
+  displayName(name: string): string {
+    const comma = name.indexOf(",");
+    const ordered = comma === -1 ? name : `${name.slice(comma + 1).trim()} ${name.slice(0, comma).trim()}`;
+    return ordered.toLowerCase().replace(/(^|[\s\-'])(\p{L})/gu, (_m, sep: string, ch: string) => sep + ch.toUpperCase());
+  }
+
+  // "Guard" -> "G", same abbreviations as Fantasy (fantasy.pos*Abbrev).
+  positionAbbrev(position: string | null | undefined): string | null {
+    if (position === "Guard") return this.i18n.t("fantasy.posGuardAbbrev");
+    if (position === "Forward") return this.i18n.t("fantasy.posForwardAbbrev");
+    if (position === "Center") return this.i18n.t("fantasy.posCenterAbbrev");
+    return null;
+  }
+
   openPlayer(playerId: string): void {
     this.selectedPlayerId.set(playerId);
     this.playerPreview.set(null);
