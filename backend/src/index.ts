@@ -238,8 +238,8 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
   // regardless of exact timing or a mid-day restart — same idempotency
   // shape as the odds/news jobs above, not a fragile "once per calendar
   // day" scheduler. A day with no games played is a cheap no-op. Hourly
-  // (was daily) since a game only becomes priceable PRICE_SETTLE_MS after
-  // tipoff — this keeps the move landing within an hour of that.
+  // (was daily) since a round only becomes priceable PRICE_SETTLE_MS after
+  // its last tipoff — this keeps the move landing within an hour of that.
   const FANTASY_REPRICE_INTERVAL_MS = 60 * 60 * 1000;
   const runFantasyReprice = () => {
     getCurrentSeason()

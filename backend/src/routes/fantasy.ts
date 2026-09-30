@@ -44,6 +44,7 @@ import {
   computeFantasyGamePoints,
 } from "../services/fantasyScoring.js";
 import { checkAndGrantFantasyMilestones, markFantasyMilestonesSeen } from "../services/cards.js";
+import { isRoundPriced } from "../services/fantasyDailyReprice.js";
 
 export const fantasyRouter = Router();
 
@@ -197,6 +198,7 @@ function emptyLineupResponse(season: string | null, defaultRound: number | null,
     totalPoints: 0,
     totalPir: 0,
     creditsChange: 0,
+    creditsSettled: false,
     transfersUsed: 0,
     transfersAllowed: null,
     baselinePlayerIds: null,
@@ -309,7 +311,7 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
 
     const playerIds = lineupRows.map((r) => r.playerId);
 
-    const [lockAt, playerTeamRows, roundGames, budgetCap, creditsChange] = await Promise.all([
+    const [lockAt, playerTeamRows, roundGames, budgetCap, creditsChange, creditsSettled] = await Promise.all([
       getRoundLockTime(season, round),
       playerIds.length
         ? db.select({ id: players.id, teamId: players.teamId }).from(players).where(inArray(players.id, playerIds))
@@ -331,6 +333,10 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
       // budget is built from, so the two can never disagree (was current
       // price minus priceAtPick, which also counted the 2026-09-24 re-pricing).
       getOwnedPriceMoves(req.userId!, season, { round }),
+      // Credits move once per round, ~12h after its last game (see
+      // fantasyDailyReprice.ts's PRICE_SETTLE_MS); until then the UI says
+      // "pending" instead of a misleading 0.
+      isRoundPriced(season, round),
     ]);
 
     const teamIdByPlayer = new Map(playerTeamRows.map((p) => [p.id, p.teamId]));
@@ -440,9 +446,9 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
     // (2026-09-29), whichever round this request is viewing. Grants now land
     // server-side (services/fantasyRoundSweep.ts), so the first visit after
     // a round ends is usually on the *next* round; this is what shows it.
-    let roundRecap: { round: number; points: number; fantasyPoints: number; creditsChange: number } | null = null;
+    let roundRecap: { round: number; points: number; fantasyPoints: number; creditsChange: number; creditsSettled: boolean } | null = null;
     if (newFantasyRoundPoints) {
-      roundRecap = { round, points: newFantasyRoundPoints.points, fantasyPoints: totalPoints, creditsChange };
+      roundRecap = { round, points: newFantasyRoundPoints.points, fantasyPoints: totalPoints, creditsChange, creditsSettled };
     } else {
       const [unseen] = await db
         .select({ round: fantasyRoundPoints.round, points: fantasyRoundPoints.points })
@@ -451,15 +457,17 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
         .orderBy(desc(fantasyRoundPoints.round))
         .limit(1);
       if (unseen) {
-        const [entries, recapCredits] = await Promise.all([
+        const [entries, recapCredits, recapSettled] = await Promise.all([
           getFantasyLeaderboardEntries({ season, round: unseen.round, userIds: [req.userId!], includeAdmins: true }),
           getOwnedPriceMoves(req.userId!, season, { round: unseen.round }),
+          isRoundPriced(season, unseen.round),
         ]);
         roundRecap = {
           round: unseen.round,
           points: unseen.points,
           fantasyPoints: entries[0]?.fantasyPoints ?? unseen.points * 2,
           creditsChange: recapCredits,
+          creditsSettled: recapSettled,
         };
       }
     }
@@ -478,6 +486,7 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
       totalPoints,
       totalPir,
       creditsChange,
+      creditsSettled,
       transfersUsed,
       transfersAllowed: baseline && !isUnlimitedTransferRound(round) ? FANTASY_TRANSFERS_PER_ROUND : null,
       budgetCap,

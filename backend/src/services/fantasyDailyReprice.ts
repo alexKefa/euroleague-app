@@ -109,11 +109,50 @@ export const DNP_PRICE_DELTA = -0.1;
 const COACH_PRICE_FLOOR = 1;
 
 /**
- * A game is priced only this long after tipoff, and its box score is
- * re-fetched right before, so the move uses the official final sheet, not
- * whatever the last live poll happened to store (see refreshFinalBoxscore).
+ * Prices move once per *round*, not per game (2026-09-30, direct report: a
+ * double-day round 2 had its Tuesday games priced before Wednesday's were
+ * played, so budgets showed a half-round loss). That's the real game's rule
+ * too: "The credit value assigned to each player increases or decreases
+ * after each Round" (Dunkest's EuroLeague Fantasy rules). A round is priced
+ * only once every game in it is final and its last tipoff is this old; box
+ * scores are re-fetched right before, so the move uses the official final
+ * sheet, not whatever the last live poll stored (see refreshFinalBoxscore).
  */
 export const PRICE_SETTLE_MS = 12 * 60 * 60 * 1000;
+
+// An unfinished game only holds its round back if it was due within this
+// long of the round's last finished game. There's no "postponed" status, so
+// without this a game moved weeks later would freeze everyone's credits;
+// it's priced on its own once it's actually played.
+const ROUND_STRAGGLER_WINDOW = "2 days";
+
+/**
+ * SQL condition on a games row aliased `g`: its whole round is settled
+ * (see PRICE_SETTLE_MS).
+ */
+function roundSettled(settledBefore: string) {
+  const lastFinal = sql`(select max(f.tipoff_at) from games f where f.season = g.season and f.round = g.round and f.status = 'final')`;
+  return sql`${lastFinal} < ${settledBefore}::timestamptz
+    and not exists (
+      select 1 from games r
+      where r.season = g.season and r.round = g.round and r.status <> 'final'
+        and r.tipoff_at < ${lastFinal} + ${ROUND_STRAGGLER_WINDOW}::interval
+    )`;
+}
+
+/**
+ * Whether a round's price moves have landed yet. A round is priced in one
+ * run (roundSettled), so any coach move logged against it means all of it.
+ */
+export async function isRoundPriced(season: string, round: number): Promise<boolean> {
+  const [row] = await db.execute<{ priced: boolean }>(sql`
+    select exists (
+      select 1 from fantasy_coach_price_change_log l join games g on g.id = l.game_id
+      where g.season = ${season} and g.round = ${round}
+    ) as priced
+  `);
+  return !!row?.priced;
+}
 
 async function bumpCeilingIfNeeded(season: string, highestPrice: number): Promise<void> {
   const [existing] = await db.select().from(fantasyPricingState).where(eq(fantasyPricingState.season, season));
@@ -141,7 +180,7 @@ export async function applyDailyFantasyPriceChanges(season: string): Promise<{ p
   // box score re-fetched first.
   const unpriced = await db.execute<{ id: string; game_code: number }>(sql`
     select g.id, g.game_code from games g
-    where g.season = ${season} and g.status = 'final' and g.tipoff_at < ${settledBefore}::timestamptz
+    where g.season = ${season} and g.status = 'final' and ${roundSettled(settledBefore)}
       and not exists (select 1 from fantasy_coach_price_change_log l where l.game_id = g.id)
   `);
   for (const g of unpriced) {
@@ -207,7 +246,7 @@ async function applyPlayerPriceChanges(season: string, settledBefore: string): P
     join player_fantasy_prices pfp on pfp.season = g.season
     join players p on p.id = pfp.player_id
     left join player_game_stats pgs on pgs.game_id = g.id and pgs.player_id = p.id
-    where g.season = ${season} and g.status = 'final' and g.tipoff_at < ${settledBefore}::timestamptz
+    where g.season = ${season} and g.status = 'final' and ${roundSettled(settledBefore)}
       and (pgs.player_id is not null or (p.active and p.team_id in (g.home_team_id, g.away_team_id)))
       and not exists (
         select 1 from fantasy_price_change_log l where l.player_id = p.id and l.game_id = g.id
@@ -291,7 +330,7 @@ async function applyCoachPriceChanges(season: string, settledBefore: string): Pr
     select g.id as game_id, g.home_team_id, g.away_team_id, g.home_score, g.away_score, t.id as team_id
     from games g
     join teams t on t.id = g.home_team_id or t.id = g.away_team_id
-    where g.status = 'final' and g.season = ${season} and g.tipoff_at < ${settledBefore}::timestamptz
+    where g.status = 'final' and g.season = ${season} and ${roundSettled(settledBefore)}
       and not exists (
         select 1 from fantasy_coach_price_change_log l where l.team_id = t.id and l.game_id = g.id
       )

@@ -1757,6 +1757,7 @@ export class FantasyComponent implements OnInit {
       points: lineup.newFantasyRoundPoints?.points ?? 0,
       fantasyPoints: lineup.totalPoints,
       creditsChange: lineup.creditsChange,
+      creditsSettled: lineup.creditsSettled,
     });
     this.recapFromServer = false;
     this.showRoundComplete.set(true);

@@ -1014,6 +1014,8 @@ export interface FantasyRoundRecap {
   points: number;
   fantasyPoints: number;
   creditsChange: number;
+  // False until the round's credit moves land (~12h after its last game).
+  creditsSettled: boolean;
 }
 
 export interface FantasyLineup {
@@ -1064,6 +1066,9 @@ export interface FantasyLineup {
   // that's happened since (2026-09-10). Rows written before priceAtPick
   // existed don't contribute, so this can under-count for old rounds.
   creditsChange: number;
+  // False until this round's credit moves land (once per round, ~12h after
+  // its last game — backend fantasyDailyReprice.ts).
+  creditsSettled: boolean;
   // Set once this round is complete and its shared-economy points grant
   // (services/fantasyScoring.ts's checkAndGrantFantasyRoundPoints,
   // 2026-09-16) hasn't been acknowledged yet — null once acked via
