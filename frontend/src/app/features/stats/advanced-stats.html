@@ -3,24 +3,26 @@
     >{{ navHistory.previousUrl() ? i18n.t('nav.back') : i18n.t('nav.home') }}</a
   >
 
-  <div class="mt-4 mb-5">
-    <span class="flex items-center gap-1.5">
-      <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('stats.title') }}</h1>
-      <app-stat-legend [entries]="legendEntries()" />
-    </span>
-    <p class="text-sm text-muted mt-1">{{ i18n.t('stats.subtitle') }}</p>
-    <a routerLink="/compare" appButton="outline" appButtonSize="sm" class="inline-block mt-3">{{ i18n.t('stats.compare.navTitle') }}</a>
+  <!-- Header (2026-09-30 restyle): icon tile + title + legend, with Compare
+       as a real button beside it instead of a stray outline link. -->
+  <div class="mt-4 mb-5 flex items-start gap-3">
+    <span class="card-head-icon !w-11 !h-11 !rounded-2xl"><app-nav-icon name="table" [size]="22" /></span>
+    <div class="min-w-0 flex-1">
+      <span class="flex items-center gap-1.5">
+        <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('stats.title') }}</h1>
+        <app-stat-legend [entries]="legendEntries()" />
+      </span>
+      <p class="text-sm text-muted mt-0.5">{{ i18n.t('stats.subtitle') }}</p>
+    </div>
+    <a routerLink="/compare" appButton appButtonSize="sm" class="shrink-0">{{ i18n.t('stats.compare.navTitle') }}</a>
   </div>
 
   @if (loading()) {
-    <div class="flex flex-wrap gap-2 mb-4">
-      <div class="animate-pulse flex-1 min-w-[10rem] h-10 rounded-xl bg-line"></div>
-      <div class="animate-pulse w-28 h-10 rounded-xl bg-line"></div>
-      <div class="animate-pulse w-28 h-10 rounded-xl bg-line"></div>
-    </div>
-    <app-skeleton class="rounded-2xl h-96" [iconSize]="28" />
+    <app-skeleton class="rounded-3xl h-28 mb-4" [icon]="false" />
+    <app-skeleton class="rounded-3xl h-96" [iconSize]="28" />
   } @else {
-    <div class="flex flex-col gap-2 mb-4">
+    <!-- Filters card. -->
+    <div class="bg-card rounded-3xl border border-line shadow-card p-3 sm:p-4 mb-4">
       <div class="flex flex-col sm:flex-row gap-2">
         <app-search-input
           class="flex-1 min-w-[10rem]"
@@ -35,29 +37,30 @@
           (valueChange)="setTeamFilter($event)"
         />
       </div>
-      <div class="flex flex-wrap items-end gap-3">
-        <div class="flex flex-col gap-1">
-          <span class="font-mono text-[11px] font-bold uppercase tracking-wider text-muted">{{ i18n.t('stats.minGamesLabel') }}</span>
+      <div class="flex flex-wrap items-center gap-2 mt-3">
+        <label class="status-tile flex items-center gap-2 h-10 pl-3 pr-1 rounded-xl border border-line">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-muted whitespace-nowrap">{{ i18n.t('stats.minGamesLabel') }}</span>
           <input
             type="number"
             min="0"
             [value]="minGames()"
             (input)="setMinGames($any($event.target).value)"
-            class="w-20 px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold text-ink focus:border-team-primary outline-none"
+            class="w-14 h-8 px-2 rounded-lg bg-card border border-line text-sm font-bold text-ink text-center focus:border-team-primary outline-none"
           />
-        </div>
-        <div class="flex flex-col gap-1">
-          <span class="font-mono text-[11px] font-bold uppercase tracking-wider text-muted">{{ i18n.t('stats.minMinutesLabel') }}</span>
+        </label>
+        <label class="status-tile flex items-center gap-2 h-10 pl-3 pr-1 rounded-xl border border-line">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-muted whitespace-nowrap">{{ i18n.t('stats.minMinutesLabel') }}</span>
           <input
             type="number"
             min="0"
             [value]="minMinutes()"
             (input)="setMinMinutes($any($event.target).value)"
-            class="w-20 px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold text-ink focus:border-team-primary outline-none"
+            class="w-14 h-8 px-2 rounded-lg bg-card border border-line text-sm font-bold text-ink text-center focus:border-team-primary outline-none"
           />
-        </div>
+        </label>
+        <span class="font-mono text-[11px] text-muted ml-auto">{{ rows().length }} {{ i18n.t('stats.playersCount') }}</span>
         @if (hasActiveFilters()) {
-          <button type="button" (click)="clearFilters()" appButton="outline" appButtonSize="sm" class="ml-auto">
+          <button type="button" (click)="clearFilters()" appButton="outline" appButtonSize="sm">
             {{ i18n.t('stats.clearFilters') }}
           </button>
         }
@@ -65,62 +68,99 @@
     </div>
 
     @if (rows().length === 0) {
-      <p class="text-sm text-muted text-center py-10">{{ i18n.t('stats.empty') }}</p>
+      <div class="bg-card rounded-3xl border border-line shadow-card p-8 text-center">
+        <p class="text-sm text-muted font-semibold">{{ i18n.t('stats.empty') }}</p>
+      </div>
     } @else {
-      <div #scrollContainer class="overflow-auto max-h-[65vh] rounded-2xl border border-line shadow-card">
+      <!-- Leaders in the sorted column. -->
+      @if (podium().length === 3 && sortedColumn(); as col) {
+        <div class="grid grid-cols-3 gap-2 mb-4">
+          @for (row of podium(); track row.player.id; let i = $index) {
+            <a
+              [routerLink]="['/players', row.player.id]"
+              class="relative flex flex-col items-center text-center rounded-2xl border border-line shadow-card px-2 pt-3 pb-2.5 min-w-0 hover:-translate-y-0.5 transition-transform"
+              [style.background]="'linear-gradient(180deg, color-mix(in srgb, ' + (row.team.primaryColor || 'var(--accent-primary)') + ' 22%, var(--color-card)) 0%, var(--color-card) 60%)'"
+            >
+              <span class="absolute top-2 left-2 w-6 h-6 rounded-full flex items-center justify-center font-mono text-[11px] font-bold" [class]="rankBadgeClasses(i)">{{ i + 1 }}</span>
+              <app-player-photo
+                [photoUrl]="row.player.photoUrl ?? null"
+                [name]="row.player.name"
+                [teamCode]="row.team.code"
+                [primaryColor]="row.team.primaryColor"
+                [size]="52"
+              />
+              <span class="mt-1.5 text-[12px] font-bold leading-tight line-clamp-2 min-h-[2rem] w-full">{{ displayName(row.player.name) }}</span>
+              <span class="mt-1 value-chip">{{ cellValue(col, row) }}</span>
+              <span class="mt-1 text-[10px] font-bold uppercase tracking-wider text-muted">{{ i18n.t(col.labelKey) }}</span>
+            </a>
+          }
+        </div>
+      }
+
+      <div #scrollContainer class="overflow-auto max-h-[65vh] rounded-3xl border border-line shadow-card bg-card">
         <table class="w-full text-sm border-collapse">
           <thead>
-            <tr class="bg-card">
+            <tr>
               @for (col of columns; track col.key; let first = $first) {
                 <!-- Player column pinned on both axes (2026-09-29 mobile-first
-                     pass), same as standings.html's team column, so a name
-                     stays visible while swiping across ~20 stat columns. -->
+                     pass) so a name stays visible while swiping across ~20
+                     stat columns. -->
                 <th
                   scope="col"
                   (click)="setSort(col.key)"
                   [ngClass]="first ? 'left-0 z-20' : 'z-10'"
-                  class="sticky top-0 bg-card px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
-                  [class.text-team-primary]="sortKey() === col.key"
+                  class="sticky top-0 bg-card border-b border-line px-3 py-3 text-left font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
+                  [class.!text-team-primary]="sortKey() === col.key"
                 >
-                  {{ i18n.t(col.labelKey) }}
-                  @if (sortKey() === col.key) {
-                    <span class="inline-block">{{ sortDesc() ? '↓' : '↑' }}</span>
-                  }
+                  <span
+                    class="inline-flex items-center gap-1 rounded-lg"
+                    [ngClass]="sortKey() === col.key ? 'bg-team-primary/12 px-1.5 py-0.5 -mx-1.5' : ''"
+                  >
+                    {{ i18n.t(col.labelKey) }}
+                    @if (sortKey() === col.key) {
+                      <span>{{ sortDesc() ? '↓' : '↑' }}</span>
+                    }
+                  </span>
                 </th>
               }
             </tr>
           </thead>
           <tbody>
             @for (row of visibleRows(); track row.player.id; let i = $index) {
-              <!-- bg-highlight/5 KEPT fixed (2026-09-18, "change
-                   everywhere on the app the default orange color with
-                   the preferred team") — this marks the league leader in
-                   the currently-sorted column, already explicitly
-                   excluding the viewer's own favorite team (which gets
-                   its own always-on --accent-primary tint two lines
-                   below instead) — swapping this to team color too would
-                   collide with that existing, separate favorite-team
-                   treatment. -->
               <tr
                 [routerLink]="['/players', row.player.id]"
-                class="border-t border-line hover:bg-page transition-colors cursor-pointer"
-                [ngClass]="{ 'bg-highlight/5': i === 0 && sortKey() === 'valuation' && !isFavoriteTeam(row.team.id) }"
+                class="border-t border-line/60 hover:bg-page transition-colors cursor-pointer"
                 [style.background]="isFavoriteTeam(row.team.id) ? 'color-mix(in srgb, var(--accent-primary) 10%, transparent)' : null"
                 [style.box-shadow]="isFavoriteTeam(row.team.id) ? 'inset 3px 0 0 var(--accent-primary)' : null"
               >
-                <td class="sticky left-0 z-10 bg-card px-3 py-2 font-bold whitespace-nowrap">
+                <td class="sticky left-0 z-10 bg-card px-3 py-2 whitespace-nowrap">
                   <span class="flex items-center gap-2 min-w-0">
-                    @if (row.team.logoUrl) {
-                      <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0 team-logo" />
-                    } @else {
-                      <span class="w-4 h-4 rounded-full shrink-0" [style.background]="row.team.primaryColor"></span>
-                    }
-                    <span class="truncate max-w-[7.5rem] sm:max-w-none">{{ row.player.name }}</span>
+                    <span class="w-6 h-6 rounded-full flex items-center justify-center font-mono text-[10px] font-bold shrink-0" [class]="rankBadgeClasses(i)">{{ i + 1 }}</span>
+                    <app-player-photo
+                      [photoUrl]="row.player.photoUrl ?? null"
+                      [name]="row.player.name"
+                      [teamCode]="row.team.code"
+                      [primaryColor]="row.team.primaryColor"
+                      [size]="28"
+                      class="shrink-0"
+                    />
+                    <span class="min-w-0">
+                      <span class="block font-semibold truncate max-w-[7rem] sm:max-w-[12rem]">{{ displayName(row.player.name) }}</span>
+                      <span class="flex items-center gap-1 text-[10px] text-muted">
+                        @if (row.team.logoUrl) {
+                          <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-3 h-3 object-contain shrink-0 team-logo" />
+                        }
+                        <span class="truncate">{{ row.team.code | teamCode }}</span>
+                      </span>
+                    </span>
                   </span>
                 </td>
                 @for (col of columns.slice(1); track col.key) {
-                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-team-primary]="sortKey() === col.key">
-                    {{ col.format ? col.format(row) : (col.get(row) ?? '—') }}
+                  <td
+                    class="px-3 py-2 font-mono text-right whitespace-nowrap"
+                    [ngClass]="sortKey() === col.key ? 'text-team-primary font-bold bg-team-primary/[0.06]' : ''"
+                  >
+                    {{ cellValue(col, row) }}
                   </td>
                 }
               </tr>

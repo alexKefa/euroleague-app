@@ -13,6 +13,11 @@ import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { StatLegendComponent, StatLegendEntry } from "../../shared/stat-legend";
 import { SearchInputComponent } from "../../shared/search-input";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
+import { PlayerPhotoComponent } from "../../shared/player-photo";
+import { NavIconComponent } from "../../shared/nav-icon";
+import { rankBadgeClasses } from "../../shared/rank-badge";
+import { formatPlayerName } from "../../shared/player-name";
+import { TeamCodePipe } from "../../shared/team-display-code";
 
 // One column = one sortable stat. `get` pulls the raw number/string out of a
 // row (undefined/null sorts last regardless of direction, see sortedRows);
@@ -155,6 +160,9 @@ const LEGEND_KEYS: { codeKey: string; key: string }[] = [
     StatLegendComponent,
     SearchInputComponent,
     LogoSpinnerComponent,
+    PlayerPhotoComponent,
+    NavIconComponent,
+    TeamCodePipe,
   ],
   templateUrl: "./advanced-stats.html",
 })
@@ -311,6 +319,23 @@ export class AdvancedStatsComponent implements OnInit, OnDestroy {
     const n = Number(value);
     this.minMinutes.set(Number.isFinite(n) && n >= 0 ? n : 0);
     this.visibleCount.set(PAGE_SIZE);
+  }
+
+  // Top-3 podium for whichever column is sorted (2026-09-30 restyle), so
+  // the table opens with the leaders called out, not just a wall of numbers.
+  readonly sortedColumn = computed(() => COLUMNS.find((c) => c.key === this.sortKey()) ?? null);
+  readonly podium = computed(() => {
+    const col = this.sortedColumn();
+    return col && col.numeric && this.sortDesc() && !this.searchQuery().trim() ? this.rows().slice(0, 3) : [];
+  });
+  readonly rankBadgeClasses = rankBadgeClasses;
+
+  cellValue(col: ColumnDef, row: PlayerAdvancedStatsRow): string {
+    return col.format ? col.format(row) : String(col.get(row) ?? "—");
+  }
+
+  displayName(name: string): string {
+    return formatPlayerName(name);
   }
 
   isFavoriteTeam(teamId: string): boolean {

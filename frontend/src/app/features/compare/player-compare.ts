@@ -9,6 +9,9 @@ import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { SearchInputComponent } from "../../shared/search-input";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
+import { NavIconComponent } from "../../shared/nav-icon";
+import { formatPlayerName } from "../../shared/player-name";
+import { TeamCodePipe } from "../../shared/team-display-code";
 
 type Side = "a" | "b";
 
@@ -42,7 +45,7 @@ const MAX_SUGGESTIONS = 8;
 @Component({
   selector: "app-player-compare",
   standalone: true,
-  imports: [CommonModule, RouterLink, RetryImgDirective, SkeletonComponent, SearchInputComponent, PlayerPhotoComponent],
+  imports: [CommonModule, RouterLink, RetryImgDirective, SkeletonComponent, SearchInputComponent, PlayerPhotoComponent, NavIconComponent, TeamCodePipe],
   templateUrl: "./player-compare.html",
   styles: [
     `
@@ -171,6 +174,26 @@ export class PlayerCompareComponent implements OnInit {
     if (total === 0) return 50;
     const share = side === "a" ? Math.abs(va) : Math.abs(vb);
     return (share / total) * 100;
+  }
+
+  // Each side is drawn in its own player's team color (2026-09-30 restyle —
+  // the fixed brand orange didn't say whose win it was). If both teams share
+  // a color (or it's missing), side B falls back to its secondary color,
+  // then to a neutral blue, so the two sides never look alike.
+  readonly colorA = computed(() => this.rowA()?.team.primaryColor || "#ff6b35");
+  readonly colorB = computed(() => {
+    const b = this.rowB();
+    const primary = b?.team.primaryColor || "#3b82f6";
+    if (primary.toLowerCase() !== this.colorA().toLowerCase()) return primary;
+    const secondary = b?.team.secondaryColor;
+    return secondary && secondary.toLowerCase() !== this.colorA().toLowerCase() ? secondary : "#3b82f6";
+  });
+  colorFor(side: Side): string {
+    return side === "a" ? this.colorA() : this.colorB();
+  }
+
+  displayName(name: string): string {
+    return formatPlayerName(name);
   }
 
   formatValue(cat: CompareCategory, side: Side): string {

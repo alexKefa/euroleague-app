@@ -3,23 +3,35 @@
     >{{ navHistory.previousUrl() ? i18n.t('nav.back') : i18n.t('stats.title') }}</a
   >
 
-  <div class="mt-4 mb-5">
-    <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('stats.compare.title') }}</h1>
-    <p class="text-sm text-muted mt-1">{{ i18n.t('stats.compare.subtitle') }}</p>
+  <div class="mt-4 mb-5 flex items-start gap-3">
+    <span class="card-head-icon !w-11 !h-11 !rounded-2xl"><app-nav-icon name="sliders" [size]="22" /></span>
+    <div class="min-w-0">
+      <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('stats.compare.title') }}</h1>
+      <p class="text-sm text-muted mt-0.5">{{ i18n.t('stats.compare.subtitle') }}</p>
+    </div>
   </div>
 
   @if (loading()) {
     <div class="grid grid-cols-2 gap-3 mb-5">
-      <app-skeleton class="rounded-2xl h-12" [iconSize]="18" />
-      <app-skeleton class="rounded-2xl h-12" [iconSize]="18" />
+      <app-skeleton class="rounded-3xl h-40" [iconSize]="22" />
+      <app-skeleton class="rounded-3xl h-40" [iconSize]="22" />
     </div>
   } @else {
-    <!-- Pickers -->
-    <div class="grid grid-cols-2 gap-3 mb-6">
+    <!-- Two player slots (2026-09-30 restyle): a filled slot is a player
+         card in that player's team color; an empty one is a dashed "pick a
+         player" slot with the search inside it. Each side keeps its own
+         color through the whole comparison below. -->
+    <div class="relative grid grid-cols-2 gap-3 mb-5">
       @for (side of ['a', 'b']; track side) {
-        <div class="relative">
-          @if (side === 'a' ? rowA() : rowB(); as row) {
-            <div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-card border-2 border-line">
+        @let row = side === 'a' ? rowA() : rowB();
+        @let color = colorFor($any(side));
+        <div class="relative min-w-0">
+          @if (row) {
+            <div
+              class="compare-rise relative rounded-3xl border overflow-hidden p-3 sm:p-4 flex flex-col items-center text-center"
+              [style.border-color]="'color-mix(in srgb, ' + color + ' 50%, var(--color-line))'"
+              [style.background]="'linear-gradient(180deg, color-mix(in srgb, ' + color + ' 30%, var(--color-card)) 0%, var(--color-card) 70%)'"
+            >
               <app-player-photo
                 [photoUrl]="row.player.photoUrl"
                 [name]="row.player.name"
@@ -27,35 +39,50 @@
                 [teamCode]="row.team.code"
                 [primaryColor]="row.team.primaryColor"
                 [secondaryColor]="row.team.secondaryColor"
-                [size]="32"
-                class="shrink-0"
+                [size]="72"
               />
-              <span class="min-w-0 flex-1">
-                <span class="block text-sm font-bold truncate">{{ row.player.name }}</span>
-                <span class="block text-[11px] text-muted truncate">{{ row.team.name }}</span>
-              </span>
-              <button type="button" (click)="clear($any(side))" class="text-[11px] font-bold text-accent2 uppercase tracking-wide shrink-0 hover:opacity-80 transition-opacity">
+              <p class="font-display text-base leading-tight mt-2 line-clamp-2 min-h-[2.5rem] w-full">{{ displayName(row.player.name) }}</p>
+              <p class="flex items-center justify-center gap-1 text-[11px] text-muted mt-0.5 w-full">
+                @if (row.team.logoUrl) {
+                  <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-3.5 h-3.5 object-contain shrink-0 team-logo" />
+                }
+                <span class="truncate">{{ row.team.code | teamCode }}</span>
+              </p>
+              <div class="flex flex-wrap justify-center gap-1 mt-2">
+                <span class="value-chip !text-[11px] !py-1" [style.color]="color">{{ row.stats.pointsPerGame ?? '—' }} {{ i18n.t('liveCenter.ppg') }}</span>
+                <span class="value-chip !text-[11px] !py-1" [style.color]="color">{{ row.stats.valuation ?? '—' }} PIR</span>
+              </div>
+              <button
+                type="button"
+                (click)="clear($any(side))"
+                class="mt-2.5 h-7 px-3 rounded-lg text-[11px] font-bold uppercase tracking-wide bg-card border border-line text-muted hover:text-ink transition-colors"
+              >
                 {{ i18n.t('stats.compare.change') }}
               </button>
             </div>
           } @else {
-            <app-search-input
-              class="w-full"
-              [value]="side === 'a' ? queryA() : queryB()"
-              (valueChange)="side === 'a' ? queryA.set($event) : queryB.set($event)"
-              [placeholder]="i18n.t('stats.compare.searchPlaceholder')"
-            />
+            <div class="rounded-3xl border-2 border-dashed border-line p-3 min-h-[12rem] flex flex-col">
+              <span class="card-head-icon mx-auto my-3 !w-12 !h-12 !rounded-full" [style.color]="color" [style.background]="'color-mix(in srgb, ' + color + ' 14%, transparent)'">
+                <app-nav-icon name="user" [size]="22" />
+              </span>
+              <app-search-input
+                class="w-full"
+                [value]="side === 'a' ? queryA() : queryB()"
+                (valueChange)="side === 'a' ? queryA.set($event) : queryB.set($event)"
+                [placeholder]="i18n.t('stats.compare.searchPlaceholder')"
+              />
+            </div>
             @if ((side === 'a' ? suggestionsA() : suggestionsB()).length > 0) {
-              <ul class="absolute z-20 left-0 right-0 mt-1 max-h-56 overflow-y-auto rounded-xl bg-card border-2 border-line shadow-pop py-1">
-                @for (row of (side === 'a' ? suggestionsA() : suggestionsB()); track row.player.id) {
-                  <li
-                    (click)="pick($any(side), row)"
-                    class="flex items-center gap-2 px-3 py-2 text-sm font-semibold cursor-pointer hover:bg-page transition-colors truncate"
-                  >
-                    @if (row.team.logoUrl) {
-                      <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0 team-logo" />
-                    }
-                    <span class="truncate">{{ row.player.name }}</span>
+              <ul class="absolute z-20 left-0 right-0 mt-1 max-h-64 overflow-y-auto rounded-2xl bg-card border border-line shadow-pop p-1.5 space-y-1">
+                @for (s of (side === 'a' ? suggestionsA() : suggestionsB()); track s.player.id) {
+                  <li>
+                    <button type="button" (click)="pick($any(side), s)" class="w-full flex items-center gap-2 px-2 py-1.5 rounded-xl text-left hover:bg-page transition-colors">
+                      <app-player-photo [photoUrl]="s.player.photoUrl" [name]="s.player.name" [teamCode]="s.team.code" [primaryColor]="s.team.primaryColor" [size]="28" class="shrink-0" />
+                      <span class="min-w-0 flex-1">
+                        <span class="block text-[13px] font-semibold truncate">{{ displayName(s.player.name) }}</span>
+                        <span class="block text-[10px] text-muted truncate">{{ s.team.code | teamCode }}</span>
+                      </span>
+                    </button>
                   </li>
                 }
               </ul>
@@ -63,107 +90,92 @@
           }
         </div>
       }
+      @if (rowA() && rowB()) {
+        <span
+          class="absolute top-16 left-1/2 -translate-x-1/2 w-11 h-11 rounded-full bg-card border-2 border-line flex items-center justify-center font-display text-xs shadow-pop z-10"
+        >
+          {{ i18n.t('stats.compare.vs') }}
+        </span>
+      }
     </div>
 
     @if (rowA(); as a) {
       @if (rowB(); as b) {
-        <!-- VS hero -->
-        <div class="relative grid grid-cols-2 gap-3 mb-6 compare-rise">
-          <div
-            class="rounded-2xl p-4 text-white overflow-hidden"
-            [style.background]="'linear-gradient(155deg, ' + a.team.primaryColor + ' 0%, #000 130%)'"
-          >
-            <app-player-photo
-              [photoUrl]="a.player.photoUrl"
-              [name]="a.player.name"
-              [jerseyNumber]="a.player.jerseyNumber"
-              [teamCode]="a.team.code"
-              [primaryColor]="a.team.primaryColor"
-              [secondaryColor]="a.team.secondaryColor"
-              [size]="56"
-              class="mb-2"
-            />
-            <p class="font-display text-lg leading-tight truncate">{{ a.player.name }}</p>
-            <p class="font-mono text-[11px] opacity-70 truncate">{{ a.team.name }}</p>
-          </div>
-          <div
-            class="rounded-2xl p-4 text-white overflow-hidden text-right"
-            [style.background]="'linear-gradient(205deg, ' + b.team.primaryColor + ' 0%, #000 130%)'"
-          >
-            <app-player-photo
-              [photoUrl]="b.player.photoUrl"
-              [name]="b.player.name"
-              [jerseyNumber]="b.player.jerseyNumber"
-              [teamCode]="b.team.code"
-              [primaryColor]="b.team.primaryColor"
-              [secondaryColor]="b.team.secondaryColor"
-              [size]="56"
-              class="mb-2 ml-auto"
-            />
-            <p class="font-display text-lg leading-tight truncate">{{ b.player.name }}</p>
-            <p class="font-mono text-[11px] opacity-70 truncate">{{ b.team.name }}</p>
-          </div>
-          <span
-            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-page border-2 border-line flex items-center justify-center font-display text-xs shadow-pop"
-          >
-            {{ i18n.t('stats.compare.vs') }}
-          </span>
-        </div>
-
-        <!-- Category score. Every text-highlight/bg-highlight below KEPT
-             fixed (2026-09-18, "change everywhere on the app the default
-             orange color with the preferred team") — this whole section
-             marks which of two arbitrary, possibly-team-unrelated players
-             is "winning" a given stat category. Swapping it to the
-             viewer's team color would misleadingly imply the color means
-             "my team", when it actually means "this specific player". -->
-        <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5 compare-rise">
+        <!-- Category score: each side's wins in its own team color, and a
+             two-color split bar. -->
+        <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4 compare-rise">
           <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2 text-center">{{ i18n.t('stats.compare.categoryScore') }}</p>
-          <div class="flex items-center justify-between mb-2">
-            <span class="font-display text-2xl" [class.text-highlight]="tally().winsA > tally().winsB">{{ tally().winsA }}</span>
-            <span class="font-display text-2xl" [class.text-highlight]="tally().winsB > tally().winsA">{{ tally().winsB }}</span>
+          <div class="flex items-center justify-between mb-2.5">
+            <span class="font-display text-4xl tabular-nums" [style.color]="tally().winsA >= tally().winsB ? colorA() : null" [class.text-muted]="tally().winsA < tally().winsB">{{ tally().winsA }}</span>
+            <span class="text-[12px] font-bold text-muted text-center px-2 truncate">
+              @if (tally().winsA !== tally().winsB) {
+                {{ displayName((tally().winsA > tally().winsB ? a : b).player.name) }} {{ i18n.t('stats.compare.leads') }}
+              } @else {
+                {{ i18n.t('stats.compare.even') }}
+              }
+            </span>
+            <span class="font-display text-4xl tabular-nums" [style.color]="tally().winsB >= tally().winsA ? colorB() : null" [class.text-muted]="tally().winsB < tally().winsA">{{ tally().winsB }}</span>
           </div>
-          <div class="relative h-2 rounded-[3px] bg-line overflow-hidden flex">
+          <div class="h-2.5 rounded-full bg-line overflow-hidden flex">
             <div
-              class="h-full bg-highlight transition-all duration-500 ease-out"
+              class="h-full transition-all duration-500 ease-out"
+              [style.background]="colorA()"
               [style.width.%]="tally().winsA + tally().winsB > 0 ? (tally().winsA / (tally().winsA + tally().winsB)) * 100 : 50"
             ></div>
+            <div class="h-full flex-1 transition-all duration-500 ease-out" [style.background]="colorB()"></div>
           </div>
         </div>
 
-        <!-- Per-category breakdown -->
-        <div class="bg-card rounded-2xl border border-line shadow-card p-4 space-y-4">
+        <!-- Per-category rows: values either side, diverging bars from the
+             middle, the winner's value and bar in its team color. -->
+        <div class="bg-card rounded-3xl border border-line shadow-card p-3 space-y-2">
           @for (cat of categories; track cat.key; let i = $index) {
-            <div class="compare-rise" [style.animation-delay.ms]="i * 40">
-              <p class="text-[11px] text-muted font-bold uppercase tracking-wide text-center mb-1">{{ i18n.t(cat.labelKey) }}</p>
-              <div class="flex items-center justify-between mb-1">
-                <span class="font-mono text-sm font-bold" [class.text-highlight]="isWinner(cat, 'a')" [class.text-muted]="!isWinner(cat, 'a')">
+            <div class="compare-rise rounded-2xl bg-page/60 border border-line px-3 py-2.5" [style.animation-delay.ms]="i * 40">
+              <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2 mb-1.5">
+                <span
+                  class="justify-self-start font-mono text-sm font-bold px-2 py-0.5 rounded-lg"
+                  [style.color]="isWinner(cat, 'a') ? colorA() : null"
+                  [style.background]="isWinner(cat, 'a') ? 'color-mix(in srgb, ' + colorA() + ' 14%, transparent)' : null"
+                  [class.text-muted]="!isWinner(cat, 'a')"
+                >
                   {{ formatValue(cat, 'a') }}
                 </span>
-                <span class="font-mono text-sm font-bold" [class.text-highlight]="isWinner(cat, 'b')" [class.text-muted]="!isWinner(cat, 'b')">
+                <span class="text-[11px] text-muted font-bold uppercase tracking-wide text-center">{{ i18n.t(cat.labelKey) }}</span>
+                <span
+                  class="justify-self-end font-mono text-sm font-bold px-2 py-0.5 rounded-lg"
+                  [style.color]="isWinner(cat, 'b') ? colorB() : null"
+                  [style.background]="isWinner(cat, 'b') ? 'color-mix(in srgb, ' + colorB() + ' 14%, transparent)' : null"
+                  [class.text-muted]="!isWinner(cat, 'b')"
+                >
                   {{ formatValue(cat, 'b') }}
                 </span>
               </div>
-              <div class="relative h-1.5 rounded-[3px] bg-line overflow-hidden flex">
-                <div
-                  class="h-full transition-all duration-500 ease-out"
-                  [class.bg-highlight]="isWinner(cat, 'a')"
-                  [class.bg-line]="!isWinner(cat, 'a')"
-                  [style.width.%]="barPct(cat, 'a')"
-                ></div>
-                <div
-                  class="h-full ml-auto transition-all duration-500 ease-out"
-                  [class.bg-highlight]="isWinner(cat, 'b')"
-                  [class.bg-line]="!isWinner(cat, 'b')"
-                  [style.width.%]="barPct(cat, 'b')"
-                ></div>
+              <div class="grid grid-cols-2 gap-1">
+                <div class="h-1.5 rounded-full bg-line overflow-hidden flex justify-end">
+                  <div
+                    class="h-full rounded-full transition-all duration-500 ease-out"
+                    [style.background]="isWinner(cat, 'a') ? colorA() : 'var(--color-muted)'"
+                    [style.opacity]="isWinner(cat, 'a') ? 1 : 0.45"
+                    [style.width.%]="barPct(cat, 'a')"
+                  ></div>
+                </div>
+                <div class="h-1.5 rounded-full bg-line overflow-hidden flex">
+                  <div
+                    class="h-full rounded-full transition-all duration-500 ease-out"
+                    [style.background]="isWinner(cat, 'b') ? colorB() : 'var(--color-muted)'"
+                    [style.opacity]="isWinner(cat, 'b') ? 1 : 0.45"
+                    [style.width.%]="barPct(cat, 'b')"
+                  ></div>
+                </div>
               </div>
             </div>
           }
         </div>
       }
     } @else {
-      <p class="text-sm text-muted text-center py-10">{{ i18n.t('stats.compare.pickPrompt') }}</p>
+      <div class="bg-card rounded-3xl border border-line shadow-card p-6 text-center">
+        <p class="text-sm text-muted font-semibold">{{ i18n.t('stats.compare.pickPrompt') }}</p>
+      </div>
     }
   }
 </div>

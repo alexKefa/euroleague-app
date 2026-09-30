@@ -9,8 +9,11 @@
   </div>
 
   @if (auth.currentUser()?.isAdmin) {
-    <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
-      <p class="font-mono text-[12px] text-muted font-bold mb-3">{{ i18n.t('injuries.adminReportTitle') }}</p>
+    <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-5">
+      <div class="card-head">
+        <span class="card-head-icon"><app-nav-icon name="zap" [size]="18" /></span>
+        <p class="font-display text-base">{{ i18n.t('injuries.adminReportTitle') }}</p>
+      </div>
 
       <form [formGroup]="adminForm" (ngSubmit)="submitReport()" class="flex flex-wrap gap-2">
         <app-dropdown
@@ -60,43 +63,68 @@
   }
 
   @if (loading()) {
+    <app-skeleton class="rounded-2xl h-11 mb-4" [icon]="false" />
     <div class="space-y-3">
       @for (i of [1, 2, 3]; track i) {
-        <app-skeleton class="rounded-2xl h-24" [iconSize]="20" />
+        <app-skeleton class="rounded-3xl h-32" [iconSize]="20" />
       }
     </div>
   } @else if (error()) {
     <p class="text-red-500 text-sm font-semibold">{{ i18n.t('injuries.loadError') }}</p>
   } @else if (groups().length === 0) {
-    <p class="text-sm text-muted text-center py-10">{{ i18n.t('injuries.empty') }}</p>
+    <div class="bg-card rounded-3xl border border-line shadow-card p-8 text-center">
+      <span class="card-head-icon mx-auto mb-3 !w-12 !h-12"><app-nav-icon name="checkmark-shield" [size]="24" /></span>
+      <p class="text-sm text-muted font-semibold">{{ i18n.t('injuries.empty') }}</p>
+    </div>
   } @else {
+    <!-- Status filter with counts (2026-09-30 restyle), the app's standard
+         segmented control. Only statuses that appear get a tab. -->
+    <div class="status-tile flex gap-1 mb-4 h-11 p-1 rounded-2xl border border-line overflow-x-auto no-scrollbar">
+      @for (s of filterOptions(); track s) {
+        <button
+          type="button"
+          (click)="statusFilter.set(s)"
+          class="flex-1 shrink-0 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors flex items-center justify-center gap-1.5"
+          [ngClass]="statusFilter() === s ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
+        >
+          {{ filterLabel(s) }}
+          <span class="font-mono text-[11px] opacity-80">{{ statusCounts()[s] }}</span>
+        </button>
+      }
+    </div>
+
     <div class="space-y-4">
-      @for (group of groups(); track group.teamId) {
-        <div class="bg-card rounded-2xl border border-line shadow-card">
-          <!-- min-w-0 + truncate on the name (2026-09-24 mobile fix,
-               live-reported: "gets out of view") — a real team name like
-               "Kosner Baskonia Vitoria-Gasteiz" plus the code chip had
-               nothing here to shrink or wrap, so on a narrow phone the row
-               pushed past the viewport edge with no way to scroll to it
-               (this card isn't inside a horizontal-scroll container, unlike
-               the roster page's stat table). teamCode gets shrink-0 so it's
-               always the name that gives way, never the (short, fixed-width)
-               code. -->
+      @for (group of visibleGroups(); track group.teamId) {
+        <div class="bg-card rounded-3xl border border-line shadow-card overflow-hidden">
+          <!-- Team header in the team's own color. min-w-0 + truncate so a
+               long name ("Kosner Baskonia Vitoria-Gasteiz") gives way
+               instead of pushing past the screen (2026-09-24 mobile fix). -->
           <a
             [routerLink]="['/teams', group.teamId]"
-            class="flex items-center gap-2.5 px-4 py-3 rounded-t-2xl border-b border-line hover:bg-page transition-colors min-w-0"
+            class="relative flex items-center gap-3 px-4 py-3 min-w-0 group"
+            [style.background]="'linear-gradient(135deg, color-mix(in srgb, ' + (group.teamPrimaryColor || 'var(--accent-primary)') + ' 22%, var(--color-card)) 0%, var(--color-card) 75%)'"
           >
-            <span class="w-1.5 h-6 rounded-full shrink-0" [style.background]="group.teamPrimaryColor"></span>
-            @if (group.teamLogoUrl) {
-              <img [src]="group.teamLogoUrl" [alt]="group.teamName" loading="lazy" decoding="async" appRetryImg class="w-6 h-6 object-contain shrink-0 team-logo" />
-            }
-            <span class="font-display text-sm tracking-wide truncate min-w-0">{{ group.teamName }}</span>
-            <span class="font-mono text-[11px] text-muted shrink-0">{{ group.teamCode | teamCode }}</span>
+            <span
+              class="w-10 h-10 rounded-xl bg-card flex items-center justify-center shrink-0"
+              [style.border]="'2px solid ' + (group.teamPrimaryColor || 'var(--accent-primary)')"
+            >
+              @if (group.teamLogoUrl) {
+                <img [src]="group.teamLogoUrl" [alt]="group.teamName" loading="lazy" decoding="async" appRetryImg class="w-6 h-6 object-contain team-logo" />
+              } @else {
+                <span class="font-display text-[11px]">{{ group.teamCode | teamCode }}</span>
+              }
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="block font-display text-base leading-tight truncate">{{ group.teamName }}</span>
+              <span class="block font-mono text-[11px] text-muted">{{ group.entries.length }} {{ i18n.t('injuries.playersOut') }}</span>
+            </span>
+            <span class="text-muted text-lg font-bold shrink-0 group-hover:translate-x-0.5 transition-transform">&rsaquo;</span>
           </a>
-          <div class="divide-y divide-line">
-            @for (entry of group.entries; track entry.id; let last = $last) {
+
+          <div class="p-3 pt-1 space-y-2">
+            @for (entry of group.entries; track entry.id) {
               @if (editingPlayerId() === entry.playerId) {
-                <div [formGroup]="editForm" class="flex flex-wrap items-center gap-2 px-4 py-3 bg-page" [class.rounded-b-2xl]="last">
+                <div [formGroup]="editForm" class="flex flex-wrap items-center gap-2 p-3 rounded-2xl bg-page border border-line">
                   <span class="flex items-center gap-2 mr-auto">
                     <app-player-photo
                       [photoUrl]="entry.playerPhotoUrl"
@@ -105,7 +133,7 @@
                       [primaryColor]="group.teamPrimaryColor"
                       [size]="32"
                     />
-                    <span class="font-semibold text-sm">{{ entry.playerName }}</span>
+                    <span class="font-semibold text-sm">{{ displayName(entry.playerName) }}</span>
                   </span>
                   <app-dropdown
                     class="w-36"
@@ -125,13 +153,7 @@
                     [placeholder]="i18n.t('injuries.adminNoteElPlaceholder')"
                     class="flex-1 min-w-[8rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
                   />
-                  <button
-                    type="button"
-                    (click)="saveEdit(entry)"
-                    [disabled]="editSaving()"
-                    appButton
-                    appButtonSize="sm"
-                  >
+                  <button type="button" (click)="saveEdit(entry)" [disabled]="editSaving()" appButton appButtonSize="sm">
                     {{ i18n.t('injuries.adminSave') }}
                   </button>
                   <button type="button" (click)="cancelEdit()" appButton="outline" appButtonSize="sm">
@@ -139,53 +161,36 @@
                   </button>
                 </div>
               } @else {
-                <div class="flex items-center gap-3 px-4 py-3 hover:bg-page transition-colors" [class.rounded-b-2xl]="last">
-                  <!-- A button that opens the detail dialog, not a routerLink
-                       straight to the player page (2026-09-24) — the full
-                       injury note/absence info now lives in that dialog,
-                       reachable from anywhere without leaving this list; the
-                       player-page link itself is still one tap away inside
-                       it. -->
+                <div class="list-row">
+                  <!-- Opens the detail dialog (full note, player link), not the
+                       player page directly (2026-09-24). -->
                   <button type="button" (click)="openEntryDetail(entry)" class="flex items-center gap-3 min-w-0 flex-1 text-left">
                     <app-player-photo
                       [photoUrl]="entry.playerPhotoUrl"
                       [name]="entry.playerName"
                       [teamCode]="group.teamCode"
                       [primaryColor]="group.teamPrimaryColor"
-                      [size]="36"
+                      [size]="40"
                     />
                     <span class="min-w-0 flex-1">
-                      <span class="flex items-center gap-2">
-                        <span class="font-semibold text-sm truncate">{{ entry.playerName }}</span>
-                        <span
-                          class="shrink-0 px-2 py-0.5 rounded-md border text-[11px] font-bold uppercase tracking-wider"
-                          [ngClass]="statusClass(entry.status)"
-                        >
-                          {{ statusLabel(entry.status) }}
-                        </span>
-                      </span>
+                      <span class="block font-semibold text-sm truncate">{{ displayName(entry.playerName) }}</span>
                       @if (noteFor(entry); as note) {
                         <span class="block text-xs text-muted mt-0.5 truncate">{{ note }}</span>
                       }
                     </span>
                   </button>
-                  <span class="shrink-0 text-[11px] text-muted font-mono text-right">
-                    {{ entry.updatedAt | date: "MMM d" }}
+                  <span class="shrink-0 flex flex-col items-end gap-1">
+                    <span class="px-2 py-0.5 rounded-lg border text-[11px] font-bold uppercase tracking-wider" [ngClass]="statusClass(entry.status)">
+                      {{ statusLabel(entry.status) }}
+                    </span>
+                    <span class="text-[10px] text-muted font-mono">{{ entry.updatedAt | date: "MMM d" }}</span>
                   </span>
                   @if (auth.currentUser()?.isAdmin) {
-                    <span class="shrink-0 flex items-center gap-2 ml-1">
-                      <button
-                        type="button"
-                        (click)="startEdit(entry)"
-                        class="text-[11px] text-muted hover:text-team-primary font-bold uppercase tracking-wider transition-colors"
-                      >
+                    <span class="shrink-0 flex flex-col items-end gap-1 ml-1">
+                      <button type="button" (click)="startEdit(entry)" class="text-[10px] text-muted hover:text-team-primary font-bold uppercase tracking-wider transition-colors">
                         {{ i18n.t('injuries.adminEdit') }}
                       </button>
-                      <button
-                        type="button"
-                        (click)="removeReport(entry)"
-                        class="text-[11px] text-muted hover:text-red-500 font-bold uppercase tracking-wider transition-colors"
-                      >
+                      <button type="button" (click)="removeReport(entry)" class="text-[10px] text-muted hover:text-red-500 font-bold uppercase tracking-wider transition-colors">
                         {{ i18n.t('injuries.adminRemove') }}
                       </button>
                     </span>
@@ -205,7 +210,7 @@
        a bespoke player/injury layout, not a plain message + two buttons. -->
   @if (selectedEntry(); as entry) {
     <div class="sheet-backdrop fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm" (click)="closeEntryDetail()">
-      <div class="sheet-panel w-full max-w-sm bg-card rounded-2xl border border-line shadow-pop p-5" (click)="$event.stopPropagation()">
+      <div class="sheet-panel w-full max-w-sm bg-card rounded-3xl border border-line shadow-pop p-5" (click)="$event.stopPropagation()">
         <div class="flex items-start justify-between gap-2 mb-4">
           <div class="flex items-center gap-3 min-w-0">
             <app-player-photo
@@ -216,7 +221,7 @@
               [size]="48"
             />
             <span class="min-w-0">
-              <span class="block font-display text-lg tracking-wide truncate">{{ entry.playerName }}</span>
+              <span class="block font-display text-lg tracking-wide truncate">{{ displayName(entry.playerName) }}</span>
               <span class="flex items-center gap-1.5 text-xs text-muted">
                 @if (entry.teamLogoUrl) {
                   <img [src]="entry.teamLogoUrl" [alt]="entry.teamName" appRetryImg class="w-3.5 h-3.5 object-contain shrink-0 team-logo" />

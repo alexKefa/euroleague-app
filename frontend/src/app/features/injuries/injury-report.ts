@@ -12,6 +12,8 @@ import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { TeamCodePipe, displayTeamCode } from "../../shared/team-display-code";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { ButtonDirective } from "../../shared/button.directive";
+import { NavIconComponent } from "../../shared/nav-icon";
+import { formatPlayerName } from "../../shared/player-name";
 import { injuryStatusLabel, injuryStatusClass, injuryNoteFor } from "../../shared/injury-status";
 import { NavHistoryService } from "../../core/nav-history.service";
 
@@ -40,6 +42,7 @@ const STATUSES: InjuryStatus[] = ["out", "doubtful", "questionable", "probable"]
     TeamCodePipe,
     DropdownComponent,
     ButtonDirective,
+    NavIconComponent,
   ],
   templateUrl: "./injury-report.html",
 })
@@ -81,6 +84,33 @@ export class InjuryReportComponent implements OnInit {
     }
     return [...byTeam.values()].sort((a, b) => a.teamName.localeCompare(b.teamName));
   });
+
+  // Status filter + counts for the segmented control (2026-09-30 restyle).
+  readonly statusFilter = signal<InjuryStatus | "all">("all");
+  readonly statusCounts = computed(() => {
+    const counts: Record<InjuryStatus | "all", number> = { all: 0, out: 0, doubtful: 0, questionable: 0, probable: 0 };
+    for (const e of this.entries()) {
+      counts.all++;
+      counts[e.status]++;
+    }
+    return counts;
+  });
+  // Only statuses that actually appear, so the control doesn't show empty tabs.
+  readonly filterOptions = computed(() => (["all", ...STATUSES] as const).filter((s) => s === "all" || this.statusCounts()[s] > 0));
+  readonly visibleGroups = computed<TeamGroup[]>(() => {
+    const f = this.statusFilter();
+    if (f === "all") return this.groups();
+    return this.groups()
+      .map((g) => ({ ...g, entries: g.entries.filter((e) => e.status === f) }))
+      .filter((g) => g.entries.length > 0);
+  });
+  displayName(name: string): string {
+    return formatPlayerName(name);
+  }
+
+  filterLabel(s: InjuryStatus | "all"): string {
+    return s === "all" ? this.i18n.t("injuries.filterAll") : this.statusLabel(s);
+  }
 
   statusLabel(status: InjuryStatus): string {
     return injuryStatusLabel(this.i18n, status);

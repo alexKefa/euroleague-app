@@ -15,6 +15,7 @@ import { StatLegendComponent, StatLegendEntry } from "../../shared/stat-legend";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { LiveCourtComponent } from "../../shared/live-court";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
+import { formatPlayerName } from "../../shared/player-name";
 import { TeamCodePipe } from "../../shared/team-display-code";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { InjuryBadgeComponent } from "../../shared/injury-badge";
@@ -580,9 +581,7 @@ export class GameDetailComponent implements OnInit {
 
   // Player cards (players to watch): "WRIGHT, MOSES" -> "Moses Wright".
   displayName(name: string): string {
-    const comma = name.indexOf(",");
-    const ordered = comma === -1 ? name : `${name.slice(comma + 1).trim()} ${name.slice(0, comma).trim()}`;
-    return ordered.toLowerCase().replace(/(^|[\s\-'])(\p{L})/gu, (_m, sep: string, ch: string) => sep + ch.toUpperCase());
+    return formatPlayerName(name);
   }
 
   // "Guard" -> "G", same abbreviations as Fantasy (fantasy.pos*Abbrev).
