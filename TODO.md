@@ -117,3 +117,45 @@ Steps once there are a few hundred resolved top-scorer picks:
    `LEGENDARY_MILESTONE_INTERVAL` 18 -> ~20 (and re-simulate). Update the
    Achievements texts (`i18n/achievements.ts`, the `milestoneHow.*` keys)
    if any interval changes.
+
+## 5. Rethink the cards economy (deferred 2026-10-01, user: "I don't think this will work")
+
+A first attempt is parked on branch **`economy-rework`** (commit `1417387`,
+pushed, never deployed). Don't merge it as is.
+
+What it does:
+- Jump Ball slices give the store packs (Regular Season / Playoffs / Final
+  Four, 5 cards each) or a coach card, instead of the special 8/6/1-card
+  wheel packs. Odds 58/20/20/2 -> 58/28/11/3.
+- Legendary milestone every 18 -> 9 correct picks; the Fantasy "legendary
+  pack every 3 rounds" milestone is retired.
+- New Fantasy tracks: every 4 rounds your coach wins -> that coach's card;
+  every 3 rounds your captain scores -> his rare card
+  (`services/fantasyCardTracks.ts`, tables `fantasy_coach_cards` /
+  `fantasy_captain_cards`, which exist on the **dev** Neon branch only).
+- Simulated (65% accuracy): daily spinner who never buys finishes the album
+  ~day 202/210, buyers ~day 188, 16-19/20 coaches.
+
+User's objections to resolve before shipping anything:
+1. **Legendary every 9 correct picks is too much.** It moves the legendary
+   supply onto predictions, so it becomes routine for active predictors.
+2. **~3% legendary per spin is way too low.** The wheel stops feeling like
+   a shot at something big (it was 20% a spin).
+3. **Foils get rarer.** A foil only rolls on a newly pulled legendary from a
+   pack (`FOIL_CHANCE` 12%, `services/packs.ts`), so fewer pack legendaries
+   means fewer foils. Milestone legendaries still open as packs and can foil.
+
+Still agreed (from the same discussion):
+- Wheel packs should match the store packs (the free 8-card pack was better
+  than the paid 5-card one), and pack art must show the real card count.
+  **The art currently says "5 cards" on every pack in production**,
+  including 8-, 6- and 1-card wheel packs; this branch fixes it.
+- Achievements should hand out more coaches than legendaries; the Fantasy
+  coach/captain card tracks were the user's idea.
+
+Next steps: agree on targets first (legendary chance per spin, how many
+legendaries come from picks vs. wheel vs. packs, foils per season), then
+retune with `npm run economy:simulate` (`SIM_SPIN_*`,
+`SIM_LEGENDARY_MILESTONE`, `SIM_FANTASY_COACH_TRACK`,
+`SIM_FANTASY_CAPTAIN_TRACK` on that branch). Shipping needs the two tables
+on production too (SQL is in the branch's `schema.ts`).
