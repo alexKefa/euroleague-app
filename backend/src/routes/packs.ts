@@ -16,6 +16,7 @@ import {
   markCoachMilestonesSeen,
   markFantasyMilestonesSeen,
 } from "../services/cards.js";
+import { checkAndGrantFantasyCardTracks, markFantasyCardTracksSeen } from "../services/fantasyCardTracks.js";
 
 export const packsRouter = Router();
 
@@ -210,11 +211,13 @@ packsRouter.get("/rewards/unseen", requireAuth, async (req, res) => {
       ...(await checkAndGrantFantasyMilestones(userId)),
     ];
     const unseenIds = new Set(granted.map((p) => p.id));
-    const unopened = await getUnopenedPacksWithSource(userId);
+    const [unopened, cardRewards] = await Promise.all([getUnopenedPacksWithSource(userId), checkAndGrantFantasyCardTracks(userId)]);
     res.json({
       rewards: unopened
         .filter((p) => unseenIds.has(p.id))
         .map((p) => ({ ...p, label: PACKS[p.packType as PackType]?.label ?? p.packType })),
+      // Fantasy coach/captain card tracks grant cards, not packs.
+      cardRewards,
       unopenedCount: unopened.length,
     });
   } catch (err) {
@@ -230,6 +233,7 @@ packsRouter.post("/rewards/ack", requireAuth, async (req, res) => {
     await markLegendaryMilestonesSeen(userId);
     await markCoachMilestonesSeen(userId);
     await markFantasyMilestonesSeen(userId);
+    await markFantasyCardTracksSeen(userId);
     res.json({ ok: true });
   } catch (err) {
     console.error("POST /api/packs/rewards/ack failed:", err);

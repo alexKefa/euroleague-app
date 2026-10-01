@@ -60,6 +60,23 @@ interface PackDefinition {
 // 50% prediction accuracy, since the free wheel (not predicted points) now
 // carries most of the load. Predicting well still buys packs faster, it's
 // just no longer the only way to finish the album.
+// Shared by the store packs and their reward-pack twins (wheelStarter /
+// wheelPro), so a pack of a given kind always has the same contents.
+const STARTER_SLOTS: PackSlot[] = [
+  { odds: { common: 1 } },
+  { odds: { common: 1 } },
+  { odds: { common: 1 } },
+  { odds: { common: 0.92, rare: 0.08 } },
+  { odds: { common: 0.92, rare: 0.08 } },
+];
+const PRO_SLOTS: PackSlot[] = [
+  { odds: { common: 1 } },
+  { odds: { rare: 1 } },
+  { odds: { rare: 1 } },
+  { odds: { common: 0.7, rare: 0.3 } },
+  { odds: { common: 0.7, rare: 0.3 } },
+];
+
 export const PACKS: Record<PackType, PackDefinition> = {
   // Labels lean on real EuroLeague competition stages — regular season into
   // playoffs into the Final Four — so rising rarity reads as rising stakes
@@ -79,13 +96,7 @@ export const PACKS: Record<PackType, PackDefinition> = {
     // rate comment in the git history) — 92/8 on the two new slots keeps
     // worst-case EV (3*25 + 2*(25*.92 + 125*.08) = 75 + 2*33 = 141) under
     // the 150pt cost, a similar margin to the original 90-under-100.
-    slots: [
-      { odds: { common: 1 } },
-      { odds: { common: 1 } },
-      { odds: { common: 1 } },
-      { odds: { common: 0.92, rare: 0.08 } },
-      { odds: { common: 0.92, rare: 0.08 } },
-    ],
+    slots: STARTER_SLOTS,
   },
   pro: {
     type: "pro",
@@ -98,13 +109,7 @@ export const PACKS: Record<PackType, PackDefinition> = {
     // wasn't the exploit-sensitive slot pro's original 50/50 3rd slot was
     // never flagged the way starter's was, since pro's guaranteed-rare 2nd
     // slot already ate most of its margin).
-    slots: [
-      { odds: { common: 1 } },
-      { odds: { rare: 1 } },
-      { odds: { rare: 1 } },
-      { odds: { common: 0.7, rare: 0.3 } },
-      { odds: { common: 0.7, rare: 0.3 } },
-    ],
+    slots: PRO_SLOTS,
   },
   elite: {
     type: "elite",
@@ -192,30 +197,20 @@ export const PACKS: Record<PackType, PackDefinition> = {
     label: "Jump Ball — Common Pull",
     pointsCost: 0,
     purchasable: false,
-    slots: [
-      { odds: { common: 1 } },
-      { odds: { common: 1 } },
-      { odds: { common: 1 } },
-      { odds: { common: 1 } },
-      { odds: { common: 1 } },
-      { odds: { common: 1 } },
-      { odds: { rare: 1 } },
-      { odds: { rare: 1 } },
-    ],
+    // Same contents as the Regular Season pack (2026-10-01, was 6 commons +
+    // 2 rares — better than the pack you pay for). The wheel itself now
+    // grants "starter"; this type survives for packs already sitting
+    // unopened in inventories.
+    slots: STARTER_SLOTS,
   },
   wheelPro: {
     type: "wheelPro",
     label: "Rare Pack",
     pointsCost: 0,
     purchasable: false,
-    slots: [
-      { odds: { common: 1 } },
-      { odds: { common: 1 } },
-      { odds: { rare: 1 } },
-      { odds: { rare: 1 } },
-      { odds: { rare: 1 } },
-      { odds: { rare: 1 } },
-    ],
+    // Same contents as the Playoffs pack (2026-10-01, was 2 commons + 4
+    // rares). Still granted by great rounds (checkAndGrantRoundRewards).
+    slots: PRO_SLOTS,
   },
   wheelLegendary: {
     type: "wheelLegendary",

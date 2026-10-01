@@ -95,14 +95,22 @@ function nextAthensMidnightUtc(after: Date): Date {
 // exceeding the original 22-card numbers — with commons/rares completely
 // unaffected. Coach supply dropped moderately as the one real tradeoff
 // (not album-tracked). Re-run economy:simulate after any future change.
-export const SPIN_ODDS = { common: 0.58, rare: 0.2, legendary: 0.2, coach: 0.02 } as const;
+//
+// 58/20/20/2 -> 58/28/11/3, and each tier now awards the matching store
+// pack (2026-10-01, "why don't we make them match?"): common -> Regular
+// Season, rare -> Playoffs, legendary -> Final Four (24% legendary in its
+// last slot, ~2.6% per spin instead of a guaranteed legendary on 20% of
+// spins), coach -> a coach card. The old 8/6-card wheel packs were better
+// than the paid ones. Tuned with economy:simulate together with
+// LEGENDARY_MILESTONE_INTERVAL 18 -> 9 and the Fantasy card tracks.
+export const SPIN_ODDS = { common: 0.58, rare: 0.28, legendary: 0.11, coach: 0.03 } as const;
 export const LEGENDARY_CHANCE = SPIN_ODDS.legendary;
 export const COACH_CHANCE = SPIN_ODDS.coach;
 
 const WHEEL_PACK_BY_TIER: Record<keyof typeof SPIN_ODDS, PackType> = {
-  common: "wheelStarter",
-  rare: "wheelPro",
-  legendary: "wheelLegendary",
+  common: "starter",
+  rare: "pro",
+  legendary: "elite",
   coach: "wheelCoach",
 };
 

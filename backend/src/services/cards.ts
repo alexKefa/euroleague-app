@@ -82,7 +82,14 @@ export const GREAT_ROUND_THRESHOLD = 8;
 // choice to tighten this back in step rather than let legendary lag
 // behind. See RARE_MILESTONE_INTERVAL's own comment for the combined
 // re-simulated numbers with both changes together.
-export const LEGENDARY_MILESTONE_INTERVAL = 18;
+// 18 -> 9 (2026-10-01): the wheel no longer hands out a legendary card on
+// 20% of spins (it awards a Final Four pack on 11%, ~2.6% legendary), and
+// the fantasy legendary track became the coach/captain card tracks
+// (services/fantasyCardTracks.ts), so correct picks carry more of the
+// legendary supply. economy:simulate: an engaged free player (daily spin,
+// 65% accuracy, never buys) finishes the album in 77% of seasons, median
+// day 203/210; buyers ~day 188-199.
+export const LEGENDARY_MILESTONE_INTERVAL = 9;
 
 // An unopened pack awarded by a round/milestone reward — same concept as a
 // wheel win (routes/spin.ts): it sits in ownedPacks until the user opens it
@@ -565,38 +572,20 @@ export async function markRareMilestonesSeen(userId: string): Promise<void> {
 // LEGENDARY_MILESTONE_INTERVAL's own comment describes — see that comment
 // for the full before/after numbers (both intervals were retuned together
 // against the same simulation runs).
+// Retired 2026-10-01 (see checkAndGrantFantasyMilestones); still used to
+// describe already-granted packs (services/packSources.ts).
 export const FANTASY_MILESTONE_INTERVAL = 3;
 
 /**
- * Exact structural mirror of checkAndGrantLegendaryMilestones/
- * checkAndGrantCoachMilestones — see checkAndGrantLegendaryMilestones's doc
- * comment for the concurrency-safe claim pattern and the "return every
- * unseen grant" shape. Counts distinct completed rounds
- * (fantasyRoundPoints rows) instead of correct picks, and grants an
- * unopened wheelLegendary pack, same as the win/loss+top-scorer track.
+ * Formerly granted an unopened wheelLegendary pack every
+ * FANTASY_MILESTONE_INTERVAL completed rounds. Retired 2026-10-01 for the
+ * Fantasy coach/captain card tracks (services/fantasyCardTracks.ts); now
+ * only returns already-granted, still-unseen packs so their toast fires.
  */
 export async function checkAndGrantFantasyMilestones(userId: string): Promise<OwnedPackReward[]> {
-  const [{ completed_rounds, claimed_count }] = await db.execute<{ completed_rounds: number; claimed_count: number }>(sql`
-    select
-      (select count(*)::int from ${fantasyRoundPoints} where user_id = ${userId}) as completed_rounds,
-      (select count(*)::int from ${fantasyMilestones} where user_id = ${userId}) as claimed_count
-  `);
-  const eligibleMilestones = Math.floor(completed_rounds / FANTASY_MILESTONE_INTERVAL);
-
-  if (eligibleMilestones > claimed_count) {
-    for (let milestoneNumber = claimed_count + 1; milestoneNumber <= eligibleMilestones; milestoneNumber++) {
-      const [claim] = await db
-        .insert(fantasyMilestones)
-        .values({ userId, milestoneNumber })
-        .onConflictDoNothing({ target: [fantasyMilestones.userId, fantasyMilestones.milestoneNumber] })
-        .returning();
-      if (!claim) continue; // a concurrent request already claimed this one
-
-      const [pack] = await db.insert(ownedPacks).values({ userId, packType: "wheelLegendary" }).returning();
-      await db.update(fantasyMilestones).set({ ownedPackId: pack.id }).where(eq(fantasyMilestones.id, claim.id));
-    }
-  }
-
+  // Retired 2026-10-01: no new legendary packs from completed rounds (the
+  // coach/captain card tracks in services/fantasyCardTracks.ts replace it).
+  // Already-granted, unseen ones are still returned.
   const unseen = await db
     .select({ pack: ownedPacks })
     .from(fantasyMilestones)

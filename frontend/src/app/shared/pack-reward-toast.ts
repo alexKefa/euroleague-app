@@ -24,6 +24,27 @@ export class PackRewardToastComponent {
   protected i18n = inject(I18nService);
   private router = inject(Router);
 
+  // A Fantasy card reward toast shows once the pack toast is out of the way.
+  readonly showCards = computed(() => this.rewards.newRewards().length === 0 && this.rewards.newCardRewards().length > 0);
+
+  readonly cardMessage = computed(() => {
+    const list = this.rewards.newCardRewards();
+    if (list.length === 1) {
+      const key = list[0].kind === "coachCard" ? "packs.cardToastCoach" : "packs.cardToastCaptain";
+      return this.i18n.t(key).replace("{name}", list[0].name);
+    }
+    return this.i18n.t("packs.cardToastMany").replace("{n}", String(list.length));
+  });
+
+  viewCards(): void {
+    this.rewards.dismissCards();
+    this.router.navigate(["/inventory"]);
+  }
+
+  dismissCards(): void {
+    this.rewards.dismissCards();
+  }
+
   readonly message = computed(() => {
     const list = this.rewards.newRewards();
     if (list.length === 1) {
