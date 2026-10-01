@@ -12,6 +12,7 @@ import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { formatPlayerName } from "../../shared/player-name";
 import { TeamCodePipe } from "../../shared/team-display-code";
+import { PageHeaderComponent } from "../../shared/page-header";
 
 type Side = "a" | "b";
 
@@ -45,7 +46,7 @@ const MAX_SUGGESTIONS = 8;
 @Component({
   selector: "app-player-compare",
   standalone: true,
-  imports: [CommonModule, RouterLink, RetryImgDirective, SkeletonComponent, SearchInputComponent, PlayerPhotoComponent, NavIconComponent, TeamCodePipe],
+  imports: [PageHeaderComponent, CommonModule, RouterLink, RetryImgDirective, SkeletonComponent, SearchInputComponent, PlayerPhotoComponent, NavIconComponent, TeamCodePipe],
   templateUrl: "./player-compare.html",
   styles: [
     `

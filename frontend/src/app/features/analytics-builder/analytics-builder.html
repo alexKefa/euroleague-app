@@ -3,10 +3,7 @@
     >{{ navHistory.previousUrl() ? i18n.t('nav.back') : i18n.t('teams.title') }}</a
   >
 
-  <div class="mt-4 mb-5">
-    <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('builder.title') }}</h1>
-    <p class="text-sm text-muted mt-1">{{ i18n.t('builder.subtitle') }}</p>
-  </div>
+  <app-page-header [title]="i18n.t('builder.title')" [subtitle]="i18n.t('builder.subtitle')" [eyebrow]="i18n.t('section.stats')" icon="sliders" class="mt-4" />
 
   @if (!auth.isAuthenticated()) {
     <div class="mb-5">

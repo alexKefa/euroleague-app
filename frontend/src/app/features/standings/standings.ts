@@ -7,6 +7,7 @@ import { NavHistoryService } from "../../core/nav-history.service";
 import { StandingsRow } from "../../core/models";
 import { StatLegendComponent, StatLegendEntry } from "../../shared/stat-legend";
 import { TeamCodePipe } from "../../shared/team-display-code";
+import { PageHeaderComponent } from "../../shared/page-header";
 
 interface ColumnDef {
   key: string;
@@ -92,7 +93,7 @@ const LEGEND_KEYS: { codeKey: string; key: string }[] = [
 @Component({
   selector: "app-standings",
   standalone: true,
-  imports: [CommonModule, RouterLink, StatLegendComponent, TeamCodePipe],
+  imports: [PageHeaderComponent, CommonModule, RouterLink, StatLegendComponent, TeamCodePipe],
   templateUrl: "./standings.html",
 })
 export class StandingsComponent implements OnInit {

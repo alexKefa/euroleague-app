@@ -14,6 +14,7 @@ import { SkeletonComponent } from "../../shared/skeleton";
 import { ConfirmDialogComponent } from "../../shared/confirm-dialog";
 import { StatLegendComponent, StatLegendEntry } from "../../shared/stat-legend";
 import { SearchInputComponent } from "../../shared/search-input";
+import { PageHeaderComponent } from "../../shared/page-header";
 
 interface ColumnDef {
   key: string;
@@ -127,7 +128,7 @@ type ViewerDisplay = "table" | "chart";
 @Component({
   selector: "app-analytics-builder",
   standalone: true,
-  imports: [CommonModule, RouterLink, RetryImgDirective, ButtonDirective, ChipDirective, SkeletonComponent, ConfirmDialogComponent, StatLegendComponent, SearchInputComponent],
+  imports: [PageHeaderComponent, CommonModule, RouterLink, RetryImgDirective, ButtonDirective, ChipDirective, SkeletonComponent, ConfirmDialogComponent, StatLegendComponent, SearchInputComponent],
   templateUrl: "./analytics-builder.html",
 })
 export class AnalyticsBuilderComponent implements OnInit {

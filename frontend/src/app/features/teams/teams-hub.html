@@ -3,10 +3,7 @@
     >{{ navHistory.previousUrl() ? i18n.t('nav.back') : i18n.t('nav.home') }}</a
   >
 
-  <div class="mt-4 mb-5">
-    <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('teams.title') }}</h1>
-    <p class="text-sm text-muted mt-1">{{ i18n.t('teams.subtitle') }}</p>
-  </div>
+  <app-page-header [title]="i18n.t('teams.title')" [subtitle]="i18n.t('teams.subtitle')" [eyebrow]="i18n.t('section.stats')" icon="teams" class="mt-4" />
 
   <!-- "Scoreboard" tiles, same pattern as the Cards hub (inventory.html) —
        solid fill + chunky bottom-border "lip" that collapses on press —

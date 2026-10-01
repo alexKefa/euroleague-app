@@ -7,13 +7,14 @@ import { NavHistoryService } from "../../core/nav-history.service";
 import { PredictionAnalytics } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { TeamCodePipe } from "../../shared/team-display-code";
+import { PageHeaderComponent } from "../../shared/page-header";
 
 type SortKey = "timesPicked" | "accuracy";
 
 @Component({
   selector: "app-predictions-analytics",
   standalone: true,
-  imports: [CommonModule, RouterLink, RetryImgDirective, TeamCodePipe],
+  imports: [PageHeaderComponent, CommonModule, RouterLink, RetryImgDirective, TeamCodePipe],
   templateUrl: "./predictions-analytics.html",
 })
 export class PredictionsAnalyticsComponent implements OnInit {

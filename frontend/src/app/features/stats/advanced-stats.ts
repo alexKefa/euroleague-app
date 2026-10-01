@@ -14,10 +14,10 @@ import { StatLegendComponent, StatLegendEntry } from "../../shared/stat-legend";
 import { SearchInputComponent } from "../../shared/search-input";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
-import { NavIconComponent } from "../../shared/nav-icon";
 import { rankBadgeClasses } from "../../shared/rank-badge";
 import { formatPlayerName } from "../../shared/player-name";
 import { TeamCodePipe } from "../../shared/team-display-code";
+import { PageHeaderComponent } from "../../shared/page-header";
 
 // One column = one sortable stat. `get` pulls the raw number/string out of a
 // row (undefined/null sorts last regardless of direction, see sortedRows);
@@ -153,7 +153,7 @@ const LEGEND_KEYS: { codeKey: string; key: string }[] = [
 @Component({
   selector: "app-advanced-stats",
   standalone: true,
-  imports: [
+  imports: [PageHeaderComponent, 
     CommonModule,
     RouterLink,
     DropdownComponent,
@@ -164,7 +164,6 @@ const LEGEND_KEYS: { codeKey: string; key: string }[] = [
     SearchInputComponent,
     LogoSpinnerComponent,
     PlayerPhotoComponent,
-    NavIconComponent,
     TeamCodePipe,
   ],
   templateUrl: "./advanced-stats.html",

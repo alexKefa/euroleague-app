@@ -14,11 +14,12 @@ import { ButtonDirective } from "../../shared/button.directive";
 import { ChipDirective } from "../../shared/chip.directive";
 import { PageHintComponent } from "../../shared/page-hint";
 import { SkeletonComponent } from "../../shared/skeleton";
+import { PageHeaderComponent } from "../../shared/page-header";
 
 @Component({
   selector: "app-trades",
   standalone: true,
-  imports: [
+  imports: [PageHeaderComponent, 
     CommonModule,
     RouterLink,
     CollectibleCardComponent,

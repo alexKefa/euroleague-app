@@ -9,11 +9,12 @@ import { ButtonDirective } from "../../shared/button.directive";
 import { PageHintComponent } from "../../shared/page-hint";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { ConfirmDialogComponent } from "../../shared/confirm-dialog";
+import { PageHeaderComponent } from "../../shared/page-header";
 
 @Component({
   selector: "app-legendary-vote",
   standalone: true,
-  imports: [CommonModule, FormsModule, ButtonDirective, PageHintComponent, SkeletonComponent, ConfirmDialogComponent],
+  imports: [PageHeaderComponent, CommonModule, FormsModule, ButtonDirective, PageHintComponent, SkeletonComponent, ConfirmDialogComponent],
   templateUrl: "./legendary-vote.html",
 })
 export class LegendaryVoteComponent implements OnInit {

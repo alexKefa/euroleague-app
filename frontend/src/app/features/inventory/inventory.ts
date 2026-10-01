@@ -34,11 +34,12 @@ const PAGE_SIZE = 20;
 const CARD_RENDER_WIDTH = 150;
 
 import { CollectibleCardComponent } from "../store/collectible-card";
+import { PageHeaderComponent } from "../../shared/page-header";
 
 @Component({
   selector: "app-inventory",
   standalone: true,
-  imports: [
+  imports: [PageHeaderComponent, 
     CommonModule,
     RouterLink,
     CardStackComponent,

@@ -9,11 +9,12 @@ import { newsDateFormat, newsDateLocale } from "../../shared/news-date-format";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { NavIconComponent } from "../../shared/nav-icon";
+import { PageHeaderComponent } from "../../shared/page-header";
 
 @Component({
   selector: "app-news",
   standalone: true,
-  imports: [CommonModule, RetryImgDirective, ArticlePreviewComponent, SkeletonComponent, DropdownComponent, NavIconComponent],
+  imports: [PageHeaderComponent, CommonModule, RetryImgDirective, ArticlePreviewComponent, SkeletonComponent, DropdownComponent, NavIconComponent],
   templateUrl: "./news.html",
 })
 export class NewsComponent implements OnInit {

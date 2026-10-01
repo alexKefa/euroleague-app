@@ -5,10 +5,7 @@
     >{{ navHistory.previousUrl() ? i18n.t('nav.back') : i18n.t('store.myCards') }}</a
   >
 
-  <h1 class="font-display text-2xl tracking-wide mt-4 mb-1">{{ i18n.t('wheel.title') }}</h1>
-  <p class="text-sm text-muted mb-6">
-    {{ i18n.t('wheel.subtitle') }}
-  </p>
+  <app-page-header [title]="i18n.t('wheel.title')" [subtitle]="i18n.t('wheel.subtitle')" [eyebrow]="i18n.t('section.cards')" icon="wheel" class="mt-4 text-left" />
 
   <app-page-hint hintId="wheel" icon="wheel" class="block text-left">{{ i18n.t('wheel.hint') }}</app-page-hint>
 

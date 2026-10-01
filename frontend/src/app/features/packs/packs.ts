@@ -17,6 +17,7 @@ import { PageHintComponent } from "../../shared/page-hint";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { ConfirmDialogComponent } from "../../shared/confirm-dialog";
+import { PageHeaderComponent } from "../../shared/page-header";
 
 // Opening timings — keep in sync with packs.css (.pack-stage.is-tearing,
 // .flip-card, .walkout).
@@ -42,7 +43,7 @@ type PackView = "selecting" | "pack" | "deck" | "summary";
 @Component({
   selector: "app-packs",
   standalone: true,
-  imports: [
+  imports: [PageHeaderComponent, 
     CommonModule,
     PackArtComponent,
     RouterLink,

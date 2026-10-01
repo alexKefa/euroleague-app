@@ -2,6 +2,13 @@ import { Lang } from "./lang";
 
 // App shell: top bar, side/bottom nav, profile page.
 export const chromeTranslations: Record<string, Record<Lang, string>> = {
+  // Page header eyebrows (shared/page-header.ts, 2026-10-01): which part of
+  // the app a page belongs to.
+  "section.play": { en: "Play", el: "Παιχνίδι" },
+  "section.cards": { en: "Cards", el: "Κάρτες" },
+  "section.season": { en: "Season", el: "Σεζόν" },
+  "section.stats": { en: "Stats", el: "Στατιστικά" },
+  "section.you": { en: "You", el: "Εσύ" },
   // shared/splash.ts — the brief brand moment shown on app load. Just the
   // part after the literal "Clutch" (rendered separately, in brand orange,
   // by splash.html) — concatenating "Clutch" + this reconstructs the

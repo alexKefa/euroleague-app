@@ -3,10 +3,7 @@
     >{{ navHistory.previousUrl() ? i18n.t('nav.back') : i18n.t('teams.title') }}</a
   >
 
-  <div class="mt-4 mb-5">
-    <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('injuries.title') }}</h1>
-    <p class="text-sm text-muted mt-1">{{ i18n.t('injuries.subtitle') }}</p>
-  </div>
+  <app-page-header [title]="i18n.t('injuries.title')" [subtitle]="i18n.t('injuries.subtitle')" [eyebrow]="i18n.t('section.season')" icon="injury" class="mt-4" />
 
   @if (auth.currentUser()?.isAdmin) {
     <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-5">

@@ -13,6 +13,7 @@ import { ButtonDirective } from "../../shared/button.directive";
 import { PageHintComponent } from "../../shared/page-hint";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { newsDateLocale, gameDateTimeFormat as gameDateTimeFormatFn } from "../../shared/news-date-format";
+import { PageHeaderComponent } from "../../shared/page-header";
 
 // Matches the CSS transition-duration on the wheel graphic — the reveal is
 // deliberately held back until the spin animation actually finishes, even
@@ -29,7 +30,7 @@ const COOLDOWN_MS = 24 * 60 * 60 * 1000;
 @Component({
   selector: "app-wheel",
   standalone: true,
-  imports: [CommonModule, RouterLink, NavIconComponent, ButtonDirective, PageHintComponent, SkeletonComponent, PackArtComponent],
+  imports: [PageHeaderComponent, CommonModule, RouterLink, NavIconComponent, ButtonDirective, PageHintComponent, SkeletonComponent, PackArtComponent],
   templateUrl: "./wheel.html",
   styleUrl: "./wheel.css",
 })

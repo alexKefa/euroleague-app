@@ -14,6 +14,7 @@ import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { SearchInputComponent } from "../../shared/search-input";
 import { TeamCodePipe } from "../../shared/team-display-code";
+import { PageHeaderComponent } from "../../shared/page-header";
 
 const PAGE_SIZE = 20;
 const SEARCH_DEBOUNCE_MS = 300;
@@ -21,7 +22,7 @@ const SEARCH_DEBOUNCE_MS = 300;
 @Component({
   selector: "app-store",
   standalone: true,
-  imports: [
+  imports: [PageHeaderComponent, 
     CommonModule,
     RouterLink,
     CardStackComponent,

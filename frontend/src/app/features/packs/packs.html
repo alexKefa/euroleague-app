@@ -5,19 +5,15 @@
     >{{ navHistory.previousUrl() ? i18n.t('nav.back') : i18n.t('store.myCards') }}</a
   >
 
-  <div class="flex items-center justify-between mt-4 mb-1">
-    <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('packs.title') }}</h1>
+  <app-page-header [title]="i18n.t('packs.title')" [subtitle]="i18n.t('packs.subtitle')" [eyebrow]="i18n.t('section.cards')" icon="packs" class="mt-4 text-left">
     @if (auth.isAuthenticated()) {
       @if (pointsLoading()) {
-        <span class="animate-pulse inline-block w-16 h-6 rounded-full bg-line"></span>
+        <span headAside class="animate-pulse inline-block w-16 h-6 rounded-full bg-line"></span>
       } @else {
-        <span class="font-mono text-sm font-bold text-team-primary bg-team-primary/15 rounded-full px-3.5 py-1.5"
-          >{{ points() }} {{ i18n.t('packs.pointsBadge') }}</span
-        >
+        <span headAside class="font-mono text-sm font-bold text-team-primary bg-team-primary/15 rounded-full px-3.5 py-1.5">{{ points() }} {{ i18n.t('packs.pointsBadge') }}</span>
       }
     }
-  </div>
-  <p class="text-sm text-muted mb-6">{{ i18n.t('packs.subtitle') }}</p>
+  </app-page-header>
 
   <app-page-hint hintId="packs" icon="packs" class="block text-left">{{ i18n.t('packs.hint') }}</app-page-hint>
 

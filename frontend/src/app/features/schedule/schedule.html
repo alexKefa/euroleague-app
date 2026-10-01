@@ -1,8 +1,7 @@
 <div class="max-w-3xl mx-auto p-4 sm:p-6">
-  <div class="flex items-center justify-between mb-5">
-    <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('schedule.title') }}</h1>
-    <span class="text-[11px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('schedule.seasonLabel') }}</span>
-  </div>
+  <app-page-header [title]="i18n.t('schedule.title')" [eyebrow]="i18n.t('section.season')" icon="schedule">
+    <span headAside class="text-[11px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('schedule.seasonLabel') }}</span>
+  </app-page-header>
 
   <app-page-hint hintId="schedule" icon="schedule">{{ i18n.t('schedule.hint') }}</app-page-hint>
 

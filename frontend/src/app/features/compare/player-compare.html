@@ -3,13 +3,7 @@
     >{{ navHistory.previousUrl() ? i18n.t('nav.back') : i18n.t('stats.title') }}</a
   >
 
-  <div class="mt-4 mb-5 flex items-start gap-3">
-    <span class="card-head-icon !w-11 !h-11 !rounded-2xl"><app-nav-icon name="sliders" [size]="22" /></span>
-    <div class="min-w-0">
-      <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('stats.compare.title') }}</h1>
-      <p class="text-sm text-muted mt-0.5">{{ i18n.t('stats.compare.subtitle') }}</p>
-    </div>
-  </div>
+  <app-page-header [title]="i18n.t('stats.compare.title')" [subtitle]="i18n.t('stats.compare.subtitle')" [eyebrow]="i18n.t('section.stats')" icon="sliders" class="mt-4" />
 
   @if (loading()) {
     <div class="grid grid-cols-2 gap-3 mb-5">
