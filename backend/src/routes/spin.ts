@@ -96,23 +96,25 @@ function nextAthensMidnightUtc(after: Date): Date {
 // unaffected. Coach supply dropped moderately as the one real tradeoff
 // (not album-tracked). Re-run economy:simulate after any future change.
 //
-// 58/20/20/2 -> 58/28/11/3, and each tier now awards the matching store
-// pack (2026-10-01, "why don't we make them match?"): common -> Regular
-// Season, rare -> Playoffs, legendary -> Final Four (24% legendary in its
-// last slot, ~2.6% per spin instead of a guaranteed legendary on 20% of
-// spins), coach -> a coach card. The old 8/6-card wheel packs were better
-// than the paid ones. Tuned with economy:simulate together with
-// LEGENDARY_MILESTONE_INTERVAL 18 -> 9 and the Fantasy card tracks.
-export const SPIN_ODDS = { common: 0.58, rare: 0.28, legendary: 0.11, coach: 0.03 } as const;
+// 58/20/20/2 -> 58/28/12/2 (2026-10-01): common/rare award TWO of the
+// small Regular Season / Playoffs store packs (4 cards each, see
+// services/packs.ts), so a spin still gives ~8 cards and a free pack is never
+// better than a paid one; legendary is still a guaranteed new legendary card.
+// 20% made legendaries routine; 12% is roughly one every 8 days and, with
+// LEGENDARY_MILESTONE_INTERVAL 18, still completes the 40 legendaries at
+// real accuracy (economy:simulate at 60-65%: never-buyer finishes the album
+// in 75-86% of seasons, median day ~188-192; 10% left them 2-3 short).
+export const SPIN_ODDS = { common: 0.58, rare: 0.28, legendary: 0.12, coach: 0.02 } as const;
 export const LEGENDARY_CHANCE = SPIN_ODDS.legendary;
 export const COACH_CHANCE = SPIN_ODDS.coach;
 
 const WHEEL_PACK_BY_TIER: Record<keyof typeof SPIN_ODDS, PackType> = {
   common: "starter",
   rare: "pro",
-  legendary: "elite",
+  legendary: "wheelLegendary",
   coach: "wheelCoach",
 };
+const WHEEL_PACK_COUNT: Record<keyof typeof SPIN_ODDS, number> = { common: 2, rare: 2, legendary: 1, coach: 1 };
 
 function rollSpinTier(): "common" | "rare" | "legendary" | "coach" {
   const roll = Math.random();
@@ -157,16 +159,20 @@ spinRouter.post("/", requireAuth, async (req, res) => {
     const rolledTier = rollSpinTier();
     const packType = WHEEL_PACK_BY_TIER[rolledTier];
 
+    const count = WHEEL_PACK_COUNT[rolledTier];
     const [wonPack] = await db.transaction(async (tx) => {
       await tx.insert(wheelSpins).values({ userId: req.userId! });
-      return tx.insert(ownedPacks).values({ userId: req.userId!, packType }).returning();
+      return tx
+        .insert(ownedPacks)
+        .values(Array.from({ length: count }, () => ({ userId: req.userId!, packType })))
+        .returning();
     });
 
     res.status(201).json({
       // No card yet — the pack sits unopened in the user's inventory
       // (GET /api/packs/owned) until they open it themselves from the
       // Packs page via POST /api/packs/owned/:id/open.
-      wonPack: { id: wonPack.id, packType, label: PACKS[packType].label, tier: rolledTier },
+      wonPack: { id: wonPack.id, packType, label: PACKS[packType].label, tier: rolledTier, count },
       nextEligibleAt: nextAthensMidnightUtc(new Date()),
     });
   } catch (err) {

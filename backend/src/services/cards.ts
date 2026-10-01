@@ -82,14 +82,12 @@ export const GREAT_ROUND_THRESHOLD = 8;
 // choice to tighten this back in step rather than let legendary lag
 // behind. See RARE_MILESTONE_INTERVAL's own comment for the combined
 // re-simulated numbers with both changes together.
-// 18 -> 9 (2026-10-01): the wheel no longer hands out a legendary card on
-// 20% of spins (it awards a Final Four pack on 11%, ~2.6% legendary), and
-// the fantasy legendary track became the coach/captain card tracks
-// (services/fantasyCardTracks.ts), so correct picks carry more of the
-// legendary supply. economy:simulate: an engaged free player (daily spin,
-// 65% accuracy, never buys) finishes the album in 77% of seasons, median
-// day 203/210; buyers ~day 188-199.
-export const LEGENDARY_MILESTONE_INTERVAL = 9;
+// Kept at 18 (2026-10-01 economy rework): every 9 made legendaries routine
+// for active predictors. The wheel's legendary slice went 20% -> 12% and the
+// fantasy legendary track became the coach/captain card tracks
+// (services/fantasyCardTracks.ts); see SPIN_ODDS in routes/spin.ts for the
+// re-simulated numbers.
+export const LEGENDARY_MILESTONE_INTERVAL = 18;
 
 // An unopened pack awarded by a round/milestone reward — same concept as a
 // wheel win (routes/spin.ts): it sits in ownedPacks until the user opens it

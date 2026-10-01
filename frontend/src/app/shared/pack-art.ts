@@ -31,11 +31,11 @@ const SET_CODE: Record<PackArtTier, string> = { starter: "RS", pro: "PO", elite:
 
 // Cards per pack (mirrors backend services/packs.ts's slot counts).
 const CARD_COUNT: Record<PackType, number> = {
-  starter: 5,
-  pro: 5,
+  starter: 4,
+  pro: 4,
   elite: 5,
-  wheelStarter: 5,
-  wheelPro: 5,
+  wheelStarter: 8,
+  wheelPro: 6,
   wheelLegendary: 1,
   wheelCoach: 1,
   qrBonus: 5,

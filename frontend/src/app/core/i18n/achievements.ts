@@ -28,8 +28,8 @@ export const achievementsTranslations: Record<string, Record<Lang, string>> = {
     el: "Κάθε 2 σωστές προβλέψεις (νικητές + πρώτοι σκόρερ)",
   },
   "achievements.milestoneHow.legendaryPack": {
-    en: "Every 9 correct picks (winners + top scorers)",
-    el: "Κάθε 9 σωστές προβλέψεις (νικητές + πρώτοι σκόρερ)",
+    en: "Every 18 correct picks (winners + top scorers)",
+    el: "Κάθε 18 σωστές προβλέψεις (νικητές + πρώτοι σκόρερ)",
   },
   "achievements.milestoneHow.coachPack": {
     en: "Every 45 correct picks (winners + top scorers)",

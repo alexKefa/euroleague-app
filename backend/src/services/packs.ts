@@ -62,19 +62,21 @@ interface PackDefinition {
 // just no longer the only way to finish the album.
 // Shared by the store packs and their reward-pack twins (wheelStarter /
 // wheelPro), so a pack of a given kind always has the same contents.
+// 2026-10-01 ("it's a mini game"): small, cheap packs, and the Jump Ball
+// awards two of them per common/rare spin (routes/spin.ts), so free players
+// keep the old ~8 cards a spin while a store pack stays an easy 100pt buy.
+// Duplicates sell back at 30% (routes/packs.ts SELL_BACK_RATE).
 const STARTER_SLOTS: PackSlot[] = [
   { odds: { common: 1 } },
   { odds: { common: 1 } },
   { odds: { common: 1 } },
-  { odds: { common: 0.92, rare: 0.08 } },
-  { odds: { common: 0.92, rare: 0.08 } },
+  { odds: { common: 0.7, rare: 0.3 } },
 ];
 const PRO_SLOTS: PackSlot[] = [
   { odds: { common: 1 } },
+  { odds: { common: 1 } },
   { odds: { rare: 1 } },
   { odds: { rare: 1 } },
-  { odds: { common: 0.7, rare: 0.3 } },
-  { odds: { common: 0.7, rare: 0.3 } },
 ];
 
 export const PACKS: Record<PackType, PackDefinition> = {
@@ -91,81 +93,36 @@ export const PACKS: Record<PackType, PackDefinition> = {
     // commons alone sell back 5*25=125pts, already over the old cost. 150
     // keeps a real (if thin) margin: worst-case EV below is 141pts against
     // this 150pt cost.
-    pointsCost: 150,
-    // Original 3rd-slot exploit reasoning still applies (see the sell-back-
-    // rate comment in the git history) — 92/8 on the two new slots keeps
-    // worst-case EV (3*25 + 2*(25*.92 + 125*.08) = 75 + 2*33 = 141) under
-    // the 150pt cost, a similar margin to the original 90-under-100.
+    // 150 -> 100 (2026-10-01) with 5 -> 4 cards: an all-duplicate pack
+    // returns 3*15 + (0.7*15 + 0.3*75) = 78 at the 30% sell-back.
+    pointsCost: 100,
     slots: STARTER_SLOTS,
   },
   pro: {
     type: "pro",
     label: "Playoffs Pack",
-    pointsCost: 400,
-    // 2 -> 5 slots, price unchanged — pro had a lot of EV headroom already
-    // (worst-case was 225 against a 400 cost even at 3 slots), enough to
-    // add 2 more rare-leaning slots and land at 385/400, still safely under
-    // cost. 3rd slot moved from 50/50 to a guaranteed rare (it already
-    // wasn't the exploit-sensitive slot pro's original 50/50 3rd slot was
-    // never flagged the way starter's was, since pro's guaranteed-rare 2nd
-    // slot already ate most of its margin).
+    // 400 -> 250 (2026-10-01) with 5 -> 4 cards (2 commons + 2 rares): an
+    // all-duplicate pack returns 2*15 + 2*75 = 180.
+    pointsCost: 250,
     slots: PRO_SLOTS,
   },
   elite: {
     type: "elite",
     label: "Final Four Pack",
-    pointsCost: 1200,
-    // 2 -> 4 guaranteed-rare slots (plus the legendary-chance slot), price
-    // unchanged — elite had enormous EV headroom (267.5 worst-case against
-    // 1200 even at 3 slots, since legendary duplicates no longer sell for
-    // anything — see sellValueFor in routes/packs.ts), so the extra rare
-    // slots cost nothing in exploit risk (worst-case is still only 517.5).
-    // 6% legendary + 5% coach -> 17% legendary + 13% coach (2026-09-04,
-    // "reconsider legendary/coach chances" pass): a user report + re-run
-    // simulation (see season-simulation.ts's zero-wheel-engagement
-    // scenario) found that WITHOUT the wheel — this app's daily spin was
-    // never meant to be the mandatory path — a season of buying nothing
-    // but Elite packs at 80% accuracy averaged only 8.8/22 legendaries and
-    // essentially 0/20 coaches all season, and a real 15-pack, 0-legendary
-    // streak (a ~40% chance event at the old 6%) felt exactly as bad as
-    // that math predicts. Tripling+ this slot's big-hit share, combined
-    // with ELITE_BIG_SLOT_PITY_THRESHOLD below and coach's own milestone
-    // track (services/cards.ts), is what actually moves the needle — see
-    // that file's re-simulated numbers. Legendary/coach never sell for
-    // points even as a "duplicate" (sellValueFor returns null for both),
-    // so shifting share away from rare here only ever LOWERS this slot's
-    // points-worst-case EV, not raises it — no new exploit risk, unlike a
-    // common/rare odds change would be.
-    // 17%/13% legendary/coach -> 24%/6% (2026-09-22, same legendary-
-    // catalog-doubling pass as SPIN_ODDS in routes/spin.ts — see that
-    // constant's comment for the full context/numbers). Taken entirely out
-    // of coach's share (13 -> 6), same "coach isn't in the album, free
-    // lever" reasoning as the wheel change, rather than rare's — rare
-    // already reliably completes regardless of this slot's exact split.
-    //
-    // 1st slot common -> rare (2026-09-22, "explore retuning" a points-only
-    // path to a finished album — direct user report: bought a mix of
-    // Elite/Pro packs with real points and got 1 legendary + a handful of
-    // rares). Re-simulating the zero-wheel-engagement scenario (services/
-    // packs.ts's own diagnostic, season-simulation.ts) found legendary was
-    // NOT actually the bottleneck it looked like (32.5/40 average at 80%
-    // accuracy, mostly from the milestone track) — rares were: only 95/289
-    // owned on average at that same best-case accuracy, since every
-    // purchasable pack was common-heavy by design and duplicate saturation
-    // makes the last third of 289 rares exponentially harder without real
-    // volume. This slot had the most EV headroom of anywhere to fix that
-    // (worst-case was 487.5 against this 1200 cost, a 712.5pt margin) — 4
-    // guaranteed rares instead of 3+1 common raises worst-case to 587.5,
-    // still a comfortable 612.5pt margin under cost, so no new sell-back
-    // exploit. Big slot's own legendary/coach split is untouched — that
-    // wasn't the actual problem, and cutting it would have undone the
-    // 2026-09-22 legendary-doubling retune for no reason.
+    // Reworked 2026-10-01 ("1200 and nothing really special"): 1200 -> 600,
+    // and the pack now always holds a legendary you don't own yet (a 24%
+    // chance before), plus 3 rares and a coach shot. The one way to buy a
+    // legendary outright; foils still roll 12% on it like on any new
+    // legendary. All-duplicate sell-back: 3*75 + 0.8*75 = 285.
+    // (History: was 4 rares + a 70/24/6 rare/legendary/coach slot at 1200,
+    // see git log for the 2026-09 retunes.)
+    pointsCost: 600,
     slots: [
       { odds: { rare: 1 } },
       { odds: { rare: 1 } },
       { odds: { rare: 1 } },
-      { odds: { rare: 1 } },
-      { odds: { rare: 0.7, legendary: 0.24, coach: 0.06 } },
+      { odds: { rare: 0.8, coach: 0.2 } },
+      { odds: { legendary: 1 } },
     ],
   },
 
@@ -197,20 +154,19 @@ export const PACKS: Record<PackType, PackDefinition> = {
     label: "Jump Ball — Common Pull",
     pointsCost: 0,
     purchasable: false,
-    // Same contents as the Regular Season pack (2026-10-01, was 6 commons +
-    // 2 rares — better than the pack you pay for). The wheel itself now
-    // grants "starter"; this type survives for packs already sitting
-    // unopened in inventories.
-    slots: STARTER_SLOTS,
+    // The wheel grants "starter" since 2026-10-01; this type keeps its
+    // original 6 commons + 2 rares so packs already sitting unopened in
+    // inventories open as promised.
+    slots: [...Array.from({ length: 6 }, () => ({ odds: { common: 1 } })), { odds: { rare: 1 } }, { odds: { rare: 1 } }],
   },
   wheelPro: {
     type: "wheelPro",
     label: "Rare Pack",
     pointsCost: 0,
     purchasable: false,
-    // Same contents as the Playoffs pack (2026-10-01, was 2 commons + 4
-    // rares). Still granted by great rounds (checkAndGrantRoundRewards).
-    slots: PRO_SLOTS,
+    // 2 commons + 4 rares, unchanged: still the great-round reward
+    // (checkAndGrantRoundRewards) and already in some inventories.
+    slots: [{ odds: { common: 1 } }, { odds: { common: 1 } }, ...Array.from({ length: 4 }, () => ({ odds: { rare: 1 } }))],
   },
   wheelLegendary: {
     type: "wheelLegendary",

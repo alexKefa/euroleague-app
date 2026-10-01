@@ -678,7 +678,8 @@ export interface SpinResult {
   // pack straight into the inventory (GET /api/packs/owned), opened later
   // via POST /api/packs/owned/:id/open, same PackOpenOutcome shape a
   // purchase gets. Every spin wins something, so this is never null.
-  wonPack: { id: string; packType: PackType; label: string; tier: CollectibleTier };
+  // count: packs granted (2 for common/rare spins); absent on admin cheats.
+  wonPack: { id: string; packType: PackType; label: string; tier: CollectibleTier; count?: number };
   nextEligibleAt: string;
 }
 
