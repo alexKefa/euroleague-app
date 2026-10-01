@@ -200,79 +200,201 @@
       </div>
     }
 
-    <!-- The table (2026-10-01): every card lands face down right after the
-         tear, its back already showing the rarity. Tap a card to turn it
-         over; best card last. -->
-    @if (view() === "summary") {
-      <div>
-        <div class="flex items-center justify-between gap-2 mb-3 min-h-10">
-          <p class="font-display text-lg tracking-wide">{{ i18n.t('packs.packOpened') }}</p>
-          @if (!allFlipped()) {
-            <button type="button" (click)="flipAll()" class="status-tile h-10 px-4 rounded-xl border border-line text-sm font-semibold text-ink hover:border-team-primary transition-colors">
-              {{ i18n.t('packs.revealAll') }}
-            </button>
-          }
+    <!-- The deck (2026-10-01): after the tear the cards sit face down in one
+         compact stack, each card's rarity showing on its edge. Every tap
+         turns over the top card; a new legendary/foil/coach gets a walkout
+         first. Best card last. -->
+    @if (view() === "deck") {
+      <div class="mt-2">
+        <div class="flex items-center justify-between gap-2 mb-3">
+          <p class="text-[12px] text-muted font-bold uppercase tracking-wider">
+            {{ i18n.t('packs.card') }} {{ deckIndex() === 0 ? 1 : deckIndex() }} {{ i18n.t('packs.of') }} {{ deckOrder().length }}
+          </p>
+          <button type="button" (click)="revealAll()" class="status-tile h-10 px-4 rounded-xl border border-line text-sm font-semibold text-ink hover:border-team-primary transition-colors">
+            {{ i18n.t('packs.revealAll') }}
+          </button>
         </div>
 
-        <div class="relative">
-          @if (bang(); as b) {
-            <p class="bang-float absolute inset-x-0 -top-1 z-30 text-center font-display uppercase tracking-wide pointer-events-none" [ngClass]="b.cls">{{ b.text }}</p>
+        <div
+          class="deck-stage relative isolate mx-auto cursor-pointer select-none"
+          [style.width.px]="cardSize()"
+          [style.height.px]="cardSize() * 1.4 + 44"
+          role="button"
+          tabindex="0"
+          [attr.aria-label]="i18n.t('packs.tapToFlip')"
+          (click)="tapDeck()"
+          (keydown.enter)="tapDeck()"
+          (keydown.space)="$event.preventDefault(); tapDeck()"
+        >
+          <!-- Face-down cards still to come; the deeper ones peek out below
+               the top one so their rarity edges show. -->
+          @for (c of deckRemaining(); track c.resultId; let k = $index) {
+            @if (k < 5) {
+              <span
+                class="deck-card flip-face flip-back"
+                [ngClass]="'flip-back--' + backTier(c)"
+                [style.--tier]="tierColor(c)"
+                [style.height.px]="cardSize() * 1.4"
+                [style.transform]="'translateY(' + (k + (activeCard() ? 1 : 0)) * 9 + 'px) scale(' + (1 - (k + (activeCard() ? 1 : 0)) * 0.035) + ')'"
+                [style.z-index]="20 - k"
+              >
+                <img src="/clutch-icon-dark.png" alt="" class="flip-back__logo" />
+              </span>
+            }
           }
-          <div class="flex flex-wrap justify-center gap-3 mb-5 max-h-[62vh] overflow-y-auto p-2 pt-4">
-            @for (card of tableOrder(); track card.resultId; let i = $index) {
-              <div class="deal-in" [style.animation-delay.ms]="i * 90" [style.width.px]="tableCardSize()" [style.height.px]="tableCardSize() * 1.4">
-                <button
-                  type="button"
-                  class="flip-card"
-                  [class.is-flipped]="isFlipped(card)"
-                  [class.flip-card--big]="isBigPull(card)"
-                  [style.--tier]="tierColor(card)"
-                  [disabled]="isFlipped(card)"
-                  [attr.aria-label]="i18n.t('packs.tapToFlip')"
-                  (click)="flip(card)"
+
+          <!-- Burst behind a big pull once it's face up. -->
+          @if (activeCard(); as card) {
+            @if (isBigPull(card) && !walkout()) {
+              <div class="absolute inset-0 flex items-center justify-center pointer-events-none" style="z-index: 25">
+                @if (isFoilCard(card)) {
+                  <div class="burst-glow burst-glow--foil absolute w-96 h-96 rounded-full"></div>
+                  <div class="burst-ring burst-ring--foil-a absolute w-56 h-56 rounded-full"></div>
+                  @for (angle of burstRays; track angle; let i = $index) {
+                    <div class="burst-ray burst-ray-foil" [style.--ray-angle.deg]="angle" [style.--ray-hue]="i * 30"></div>
+                  }
+                } @else {
+                  <div class="burst-glow absolute w-96 h-96 rounded-full" [style.background]="'radial-gradient(circle, ' + tierColor(card) + 'cc 0%, transparent 70%)'"></div>
+                  <div class="burst-ring absolute w-56 h-56 rounded-full border-[3px]" [style.border-color]="tierColor(card)"></div>
+                  <div class="burst-ring burst-ring-delay absolute w-56 h-56 rounded-full border-2" [style.border-color]="tierColor(card)"></div>
+                  @for (angle of burstRays; track angle) {
+                    <div class="burst-ray burst-ray-gold" [style.background]="'linear-gradient(' + tierColor(card) + ', transparent)'" [style.--ray-angle.deg]="angle"></div>
+                  }
+                }
+              </div>
+            }
+
+            <!-- The turned card: mounts showing its back and flips over. -->
+            @for (c of [card]; track deckIndex()) {
+              <div class="absolute inset-x-0 top-0" style="z-index: 30" [class.legendary-shake--late]="isBigPull(c) && c.collectible.tier === 'legendary'">
+                <div
+                  class="flip-card is-flipped"
+                  [class.flip-card--big]="isBigPull(c)"
+                  [style.--tier]="tierColor(c)"
+                  [style.height.px]="cardSize() * 1.4"
                 >
-                  <span class="flip-face flip-back" [ngClass]="'flip-back--' + backTier(card)">
+                  <span class="flip-face flip-back" [ngClass]="'flip-back--' + backTier(c)">
                     <img src="/clutch-icon-dark.png" alt="" class="flip-back__logo" />
                   </span>
                   <span class="flip-face flip-front">
                     <app-collectible-card
-                      [class.opacity-50]="card.wasDuplicate"
-                      [name]="card.collectible.name"
-                      [tier]="card.collectible.tier"
-                      [teamCode]="card.collectible.team.code"
-                      [teamColor]="card.collectible.team.primaryColor"
-                      [imageUrl]="card.collectible.imageUrl"
+                      class="block mx-auto"
+                      [name]="c.collectible.name"
+                      [tier]="c.collectible.tier"
+                      [teamCode]="c.collectible.team.code"
+                      [teamColor]="c.collectible.team.primaryColor"
+                      [imageUrl]="c.collectible.imageUrl"
                       [unlocked]="true"
-                      [maxWidth]="tableCardSize()"
-                      [finish]="card.collectible.finish ?? 'standard'"
+                      [maxWidth]="cardSize()"
+                      [finish]="c.collectible.finish ?? 'standard'"
                     ></app-collectible-card>
-                    @if (!card.wasDuplicate) {
-                      <span class="absolute top-1.5 left-1.5 z-10 px-1.5 py-0.5 rounded-md bg-team-primary text-team-secondary text-[10px] font-bold uppercase tracking-wide shadow-sm">{{ i18n.t('packs.newRibbon') }}</span>
-                    } @else {
-                      <span class="absolute inset-x-0 bottom-0 py-1.5 rounded-b-2xl bg-emerald-600 text-center font-display font-bold text-[11px] uppercase tracking-wider text-white shadow-md">
-                        {{ i18n.t('packs.sold') }}{{ card.sellValue !== null ? " +" + card.sellValue + " " + i18n.t('store.pointsBadge') : "" }}
-                      </span>
-                    }
-                    @if (isBigPull(card) && isFlipped(card)) {
-                      <span class="flip-flash" [class.flip-flash--foil]="isFoilCard(card)"></span>
+                    @if (isBigPull(c)) {
+                      <span class="flip-flash" [class.flip-flash--foil]="isFoilCard(c)"></span>
                     }
                   </span>
-                </button>
+                </div>
+              </div>
+            }
+          }
+
+          <!-- Walkout: the stage goes dark, light sweeps up in the tier
+               colour, team and tier first, then the card turns. -->
+          @if (walkout(); as w) {
+            <div class="walkout absolute rounded-3xl overflow-hidden flex flex-col items-center justify-center" [class.walkout--foil]="isFoilCard(w)" [style.--tier]="tierColor(w)" style="z-index: 40">
+              <div class="walkout__beams absolute inset-0"></div>
+              @if (w.collectible.team.logoUrl) {
+                <img class="walkout__badge relative" [src]="w.collectible.team.logoUrl" [alt]="w.collectible.team.name" />
+              } @else {
+                <p class="walkout__team relative font-display leading-none" [style.color]="w.collectible.team.primaryColor || '#fff'">{{ teamDisplayCode(w.collectible.team.code) }}</p>
+              }
+              <p class="walkout__tier relative font-display uppercase mt-3">{{ walkoutTierLabel(w) }}</p>
+            </div>
+          }
+        </div>
+
+        <div class="min-h-[4.5rem] text-center">
+          @if (activeCard(); as card) {
+            @if (!walkout()) {
+              @if (card.wasDuplicate) {
+                <p class="text-[12px] font-bold uppercase tracking-wide text-muted mt-2">{{ i18n.t('packs.duplicate') }}</p>
+                <p class="pts-float inline-block text-[13px] font-bold uppercase tracking-wide text-emerald-500 bg-emerald-500/15 rounded-full px-3 py-1 mt-1.5">
+                  {{ i18n.t('packs.soldForPrefix') }} {{ card.sellValue }} {{ i18n.t('packs.ptsLower') }}
+                </p>
+              } @else if (card.collectible.tier === "legendary") {
+                <p class="legendary-label font-display text-2xl uppercase tracking-wide mt-2">{{ i18n.t('packs.legendaryBang') }}</p>
+                @if (isFoilCard(card)) {
+                  <p class="foil-label font-display text-lg uppercase tracking-wide mt-1">{{ i18n.t('packs.foilBang') }}</p>
+                }
+              } @else if (card.collectible.tier === "coach") {
+                <p class="coach-label font-display text-lg uppercase tracking-wide mt-2">{{ i18n.t('packs.coachBang') }}</p>
+              } @else if (card.collectible.tier === "rare") {
+                <p class="rare-label font-display text-lg uppercase tracking-wide mt-2">{{ i18n.t('packs.rareBang') }}</p>
+              } @else {
+                <p class="text-[12px] font-bold uppercase tracking-wide text-highlight mt-3">{{ i18n.t('packs.newBang') }}</p>
+              }
+            }
+          }
+          <p class="mt-2 text-[11px] text-muted animate-pulse">
+            {{ deckIndex() >= deckOrder().length ? i18n.t('packs.tapToFinish') : i18n.t('packs.tapToFlip') }}
+          </p>
+        </div>
+
+        <!-- Cards already pulled, small, in order. -->
+        @if (deckPulled().length > 0) {
+          <div class="flex justify-center gap-1.5 mt-1">
+            @for (c of deckPulled(); track c.resultId) {
+              <div class="pulled-in" [style.width.px]="48">
+                <app-collectible-card
+                  [class.opacity-50]="c.wasDuplicate"
+                  [name]="c.collectible.name"
+                  [tier]="c.collectible.tier"
+                  [teamCode]="c.collectible.team.code"
+                  [teamColor]="c.collectible.team.primaryColor"
+                  [imageUrl]="c.collectible.imageUrl"
+                  [unlocked]="true"
+                  [maxWidth]="48"
+                  [finish]="c.collectible.finish ?? 'standard'"
+                ></app-collectible-card>
               </div>
             }
           </div>
-        </div>
-
-        @if (allFlipped()) {
-          <div class="flex gap-2 reveal-pop">
-            <button type="button" (click)="openAnother()" appButton class="flex-1">
-              {{ i18n.t('packs.openAnother') }}
-            </button>
-            <a routerLink="/album" appButton="secondary" class="flex-1">{{ i18n.t('packs.seeInAlbum') }}</a>
-          </div>
-        } @else {
-          <p class="text-center text-[11px] text-muted animate-pulse">{{ i18n.t('packs.tapToFlip') }}</p>
         }
+      </div>
+    }
+
+    @if (view() === "summary") {
+      <div class="reveal-pop">
+        <p class="font-display text-lg tracking-wide mb-3">{{ i18n.t('packs.packOpened') }}</p>
+        <div class="grid grid-cols-3 gap-2 mb-5 max-h-[45vh] overflow-y-auto p-1">
+          @for (card of deckOrder(); track card.resultId; let i = $index) {
+            <div class="relative summary-in" [style.animation-delay.ms]="i * 80">
+              <app-collectible-card
+                [class.opacity-50]="card.wasDuplicate"
+                [name]="card.collectible.name"
+                [tier]="card.collectible.tier"
+                [teamCode]="card.collectible.team.code"
+                [teamColor]="card.collectible.team.primaryColor"
+                [imageUrl]="card.collectible.imageUrl"
+                [unlocked]="true"
+                [maxWidth]="summaryCardSize()"
+                [finish]="card.collectible.finish ?? 'standard'"
+              ></app-collectible-card>
+              @if (!card.wasDuplicate) {
+                <span class="absolute top-1.5 left-1.5 z-10 px-1.5 py-0.5 rounded-md bg-team-primary text-team-secondary text-[10px] font-bold uppercase tracking-wide shadow-sm">{{ i18n.t('packs.newRibbon') }}</span>
+              } @else {
+                <span class="absolute inset-x-0 bottom-0 py-1.5 rounded-b-2xl bg-emerald-600 text-center font-display font-bold text-[11px] uppercase tracking-wider text-white shadow-md">
+                  {{ i18n.t('packs.sold') }}{{ card.sellValue !== null ? " +" + card.sellValue + " " + i18n.t('store.pointsBadge') : "" }}
+                </span>
+              }
+            </div>
+          }
+        </div>
+        <div class="flex gap-2">
+          <button type="button" (click)="openAnother()" appButton class="flex-1">
+            {{ i18n.t('packs.openAnother') }}
+          </button>
+          <a routerLink="/album" appButton="secondary" class="flex-1">{{ i18n.t('packs.seeInAlbum') }}</a>
+        </div>
       </div>
     }
   }

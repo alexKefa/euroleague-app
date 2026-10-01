@@ -10,6 +10,7 @@ import { CollectibleCardComponent } from "../store/collectible-card";
 import { PACK_VISUAL_CLASSES } from "../../shared/pack-visual";
 import { PackArtComponent } from "../../shared/pack-art";
 import { packSourceText } from "../../shared/pack-source";
+import { displayTeamCode } from "../../shared/team-display-code";
 import { PackRewardsService } from "../../core/pack-rewards.service";
 import { ButtonDirective } from "../../shared/button.directive";
 import { PageHintComponent } from "../../shared/page-hint";
@@ -18,10 +19,12 @@ import { SkeletonComponent } from "../../shared/skeleton";
 import { ConfirmDialogComponent } from "../../shared/confirm-dialog";
 
 // Opening timings — keep in sync with packs.css (.pack-stage.is-tearing,
-// .flip-card animation).
+// .flip-card, .walkout).
 const PACK_TEAR_MS = 950;
-const FLIP_ALL_STEP_MS = 180;
-const BANG_MS = 1800;
+const FLIP_MS = 750;
+const BIG_FLIP_MS = 1100;
+// Walkout before a new legendary/foil (coach gets a shorter one).
+const WALKOUT_MS = { legendary: 1400, coach: 800 } as const;
 
 // Card rank for the table order (best card last). Duplicates sit just
 // below a new card of the same tier.
@@ -34,7 +37,7 @@ function revealRank(card: PackOpenResultCard): number {
 // Same tier colours as the slot pips (packs.css .slot-pip--*).
 const TIER_COLOR: Record<string, string> = { common: "#9aa3ad", rare: "#8ec5ff", coach: "#3fd9a4", legendary: "#f5c043" };
 
-type PackView = "selecting" | "pack" | "summary";
+type PackView = "selecting" | "pack" | "deck" | "summary";
 
 @Component({
   selector: "app-packs",
@@ -135,22 +138,22 @@ export class PacksComponent implements OnInit {
   // The pack being opened, shown sealed in the "pack" view.
   readonly openedPackType = signal<PackType | null>(null);
   readonly tearing = signal(false);
-  // Cards turned face up on the table, by result id.
-  readonly flipped = signal<ReadonlySet<string>>(new Set());
-  private flipTimers: ReturnType<typeof setTimeout>[] = [];
-  // Floating "LEGENDARY!" etc. over the table after a big pull flips.
-  readonly bang = signal<{ text: string; cls: string } | null>(null);
-  private bangTimer: ReturnType<typeof setTimeout> | null = null;
+  // Cards turned over so far; the last one is face up on top of the deck.
+  readonly deckIndex = signal(0);
+  // The big pull whose walkout is playing, before its flip.
+  readonly walkout = signal<PackOpenResultCard | null>(null);
+  private deckBusy = false;
+  private deckTimers: ReturnType<typeof setTimeout>[] = [];
 
-  // Best card last, so the table builds up to it.
-  readonly tableOrder = computed<PackOpenResultCard[]>(() =>
+  // Best card last, so the deck builds up to it.
+  readonly deckOrder = computed<PackOpenResultCard[]>(() =>
     [...(this.outcome()?.results ?? [])].sort((a, b) => revealRank(a) - revealRank(b))
   );
-  readonly allFlipped = computed(() => this.tableOrder().every((c) => this.flipped().has(c.resultId)));
-  // 4 cards sit 2x2 on a phone, 5 as 3 + 2.
-  readonly tableCardSize = computed(() => (this.isDesktop() ? 170 : this.tableOrder().length <= 4 ? 150 : 112));
+  readonly activeCard = computed(() => (this.deckIndex() > 0 ? this.deckOrder()[this.deckIndex() - 1] : null));
+  readonly deckRemaining = computed(() => this.deckOrder().slice(this.deckIndex()));
+  readonly deckPulled = computed(() => this.deckOrder().slice(0, Math.max(0, this.deckIndex() - 1)));
   // The beam colour when the pack tears: the best card inside.
-  private readonly bestCard = computed(() => this.tableOrder()[this.tableOrder().length - 1] ?? null);
+  private readonly bestCard = computed(() => this.deckOrder()[this.deckOrder().length - 1] ?? null);
   readonly bestTierColor = computed(() => {
     const best = this.bestCard();
     return best && !best.wasDuplicate ? TIER_COLOR[best.collectible.tier] ?? TIER_COLOR["common"] : TIER_COLOR["common"];
@@ -173,36 +176,44 @@ export class PacksComponent implements OnInit {
     return !card.wasDuplicate && (card.collectible.tier === "legendary" || card.collectible.tier === "coach");
   }
 
-  isFlipped(card: PackOpenResultCard): boolean {
-    return this.flipped().has(card.resultId);
+  teamDisplayCode(code: string): string {
+    return displayTeamCode(code);
   }
 
-  flip(card: PackOpenResultCard): void {
-    if (this.isFlipped(card)) return;
-    this.flipped.update((s) => new Set(s).add(card.resultId));
-    if (this.isBigPull(card)) {
-      const foil = this.isFoilCard(card);
-      const legendary = card.collectible.tier === "legendary";
-      this.bang.set({
-        text: this.i18n.t(foil ? "packs.foilBang" : legendary ? "packs.legendaryBang" : "packs.coachBang"),
-        cls: foil ? "foil-label text-2xl" : legendary ? "legendary-label text-2xl" : "coach-label text-xl",
-      });
-      if (this.bangTimer) clearTimeout(this.bangTimer);
-      this.bangTimer = setTimeout(() => this.bang.set(null), BANG_MS);
+  walkoutTierLabel(card: PackOpenResultCard): string {
+    if (this.isFoilCard(card)) return this.i18n.t("packs.foilBang");
+    return this.i18n.t(card.collectible.tier === "coach" ? "inventory.tierCoach" : "inventory.tierLegendary");
+  }
+
+  // Each tap turns over the next card (the face-up one joins the pulled
+  // strip). A new legendary/foil/coach gets its walkout first. After the
+  // last card, a tap shows the summary.
+  tapDeck(): void {
+    if (this.deckBusy || this.walkout()) return;
+    const next = this.deckOrder()[this.deckIndex()];
+    if (!next) {
+      this.view.set("summary");
+      return;
+    }
+    this.deckBusy = true;
+    const flipIt = () => {
+      this.walkout.set(null);
+      this.deckIndex.update((i) => i + 1);
+      this.deckTimers.push(setTimeout(() => (this.deckBusy = false), this.isBigPull(next) ? BIG_FLIP_MS : FLIP_MS));
+    };
+    if (this.isBigPull(next)) {
+      this.walkout.set(next);
+      this.deckTimers.push(setTimeout(flipIt, WALKOUT_MS[next.collectible.tier as keyof typeof WALKOUT_MS] ?? 800));
+    } else {
+      flipIt();
     }
   }
 
-  // Turns the rest over one after another, in table order.
-  flipAll(): void {
-    this.clearFlipTimers();
-    this.tableOrder()
-      .filter((c) => !this.isFlipped(c))
-      .forEach((c, i) => this.flipTimers.push(setTimeout(() => this.flip(c), i * FLIP_ALL_STEP_MS)));
-  }
-
-  private clearFlipTimers(): void {
-    this.flipTimers.forEach(clearTimeout);
-    this.flipTimers = [];
+  private clearDeckTimers(): void {
+    this.deckTimers.forEach(clearTimeout);
+    this.deckTimers = [];
+    this.deckBusy = false;
+    this.walkout.set(null);
   }
 
   ngOnInit(): void {
@@ -267,8 +278,8 @@ export class PacksComponent implements OnInit {
 
   // Skip the rest of the one-by-one reveal (2026-09-29).
   revealAll(): void {
+    this.clearDeckTimers();
     this.view.set("summary");
-    this.flipAll();
   }
 
   openOwned(pack: OwnedPack): void {
@@ -396,9 +407,8 @@ export class PacksComponent implements OnInit {
     this.outcome.set(outcome);
     this.openedPackType.set(packType);
     this.tearing.set(false);
-    this.clearFlipTimers();
-    this.flipped.set(new Set());
-    this.bang.set(null);
+    this.clearDeckTimers();
+    this.deckIndex.set(0);
     this.view.set("pack");
   }
 
@@ -410,7 +420,7 @@ export class PacksComponent implements OnInit {
     setTimeout(() => {
       if (this.view() !== "pack") return; // "Reveal all" was tapped meanwhile
       this.tearing.set(false);
-      this.view.set("summary");
+      this.view.set("deck");
     }, PACK_TEAR_MS);
   }
 

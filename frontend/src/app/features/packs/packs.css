@@ -566,19 +566,85 @@
   100% { opacity: 0; }
 }
 
-/* "LEGENDARY!" floating over the table. */
-.bang-float {
-  animation: bang-float 1.8s ease-out both;
+/* The deck: face-down cards stacked, deeper ones peeking out below. */
+.deck-card {
+  transform-origin: 50% 100%;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
-@keyframes bang-float {
-  0% { opacity: 0; transform: translateY(10px) scale(0.8); }
-  15% { opacity: 1; transform: none; }
-  80% { opacity: 1; }
-  100% { opacity: 0; transform: translateY(-12px); }
+/* Pulled cards drop into the strip below. */
+.pulled-in {
+  animation: pulled-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes pulled-in {
+  from { opacity: 0; transform: translateY(-30px) scale(1.4); }
+  to { opacity: 1; transform: none; }
+}
+
+/* The legendary jolt, landing as the slow flip finishes. */
+.legendary-shake--late {
+  animation: legendary-shake 0.5s ease-out 0.95s both;
+}
+
+/* Walkout before a big pull: the stage goes dark, beams of tier-coloured
+   light sweep up, the team code and tier punch in. */
+.walkout {
+  --tier: #f5c043;
+  inset: -14px -18px;
+  background: radial-gradient(ellipse at 50% 120%, color-mix(in srgb, var(--tier) 35%, #0b0b0d) 0%, #060607 70%);
+  animation: walkout-in 0.25s ease-out both;
+}
+@keyframes walkout-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.walkout__beams {
+  background:
+    linear-gradient(to top, color-mix(in srgb, var(--tier) 70%, transparent), transparent 70%) 50% 100% / 18% 100% no-repeat,
+    linear-gradient(to top, color-mix(in srgb, var(--tier) 45%, transparent), transparent 60%) 22% 100% / 10% 90% no-repeat,
+    linear-gradient(to top, color-mix(in srgb, var(--tier) 45%, transparent), transparent 60%) 78% 100% / 10% 90% no-repeat;
+  filter: blur(8px);
+  transform-origin: 50% 100%;
+  animation: walkout-beams 1.4s ease-out both;
+}
+.walkout--foil .walkout__beams {
+  background: conic-gradient(from 180deg at 50% 100%, transparent 25%, #ff5aa088, #ffd25a88, #7dffb088, #5ab4ff88, #c878ff88, transparent 75%);
+}
+@keyframes walkout-beams {
+  0% { opacity: 0; transform: scaleY(0.1); }
+  40% { opacity: 1; transform: scaleY(1); }
+  100% { opacity: 0.85; transform: scaleY(1.05); }
+}
+.walkout__team {
+  font-size: 4.25rem;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 28px color-mix(in srgb, var(--tier) 70%, transparent);
+  animation: walkout-text 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+}
+.walkout__tier {
+  font-size: 0.95rem;
+  letter-spacing: 0.35em;
+  color: var(--tier);
+  animation: walkout-text 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.6s both;
+}
+@keyframes walkout-text {
+  from { opacity: 0; transform: scale(1.6); filter: blur(6px); }
+  to { opacity: 1; transform: none; filter: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .pack-wrap, .pack-stage.is-tearing .pack-wrap, .pack-stage.is-tearing .pack-beam,
-  .deal-in, .flip-back--legendary, .flip-back::after, .flip-flash, .bang-float { animation: none; }
+  .pulled-in, .legendary-shake--late, .walkout, .walkout__beams, .walkout__team, .walkout__tier, .flip-back--legendary, .flip-back::after, .flip-flash { animation: none; }
   .flip-card.is-flipped { animation: none; transform: rotateY(180deg); }
+}
+/* Walkout: the team's badge punches in (same motion as the code fallback). */
+.walkout__badge {
+  width: 46%;
+  max-width: 120px;
+  aspect-ratio: 1;
+  object-fit: contain;
+  filter: drop-shadow(0 0 22px color-mix(in srgb, var(--tier) 75%, transparent));
+  animation: walkout-text 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .walkout__badge { animation: none; }
 }
