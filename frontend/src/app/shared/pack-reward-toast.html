@@ -10,3 +10,15 @@
     </div>
   </div>
 }
+@if (showCards()) {
+  <!-- Fantasy coach/captain card rewards (2026-10-01) — a card, not a pack,
+       so "View" goes to the collection. -->
+  <div class="toast-pop toast-pill pointer-events-auto mb-2" role="status">
+    <div class="flex items-center gap-2.5">
+      <span class="toast-pill-icon"><app-nav-icon name="cards" [size]="18" /></span>
+      <p class="min-w-0 flex-1 text-[13px] font-semibold leading-snug line-clamp-2">{{ cardMessage() }}</p>
+      <button type="button" (click)="viewCards()" class="toast-action">{{ i18n.t('packs.cardToastView') }}</button>
+      <button type="button" (click)="dismissCards()" class="toast-x" [attr.aria-label]="i18n.t('hint.dismiss')">&times;</button>
+    </div>
+  </div>
+}

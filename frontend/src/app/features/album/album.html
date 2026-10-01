@@ -14,10 +14,7 @@
     >{{ navHistory.previousUrl() ? i18n.t('nav.back') : i18n.t('store.myCards') }}</a
   >
 
-  <div class="flex items-center justify-between mt-4 mb-2">
-    <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('album.title') }}</h1>
-
-  </div>
+  <app-page-header [title]="i18n.t('album.title')" [eyebrow]="i18n.t('section.cards')" icon="album" class="mt-4" />
 
   <!-- €100 prize banner (2026-09-20, upgraded same day to the shared
        animated app-prize-banner — see shared/prize-banner.ts) — this is the

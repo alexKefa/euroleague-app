@@ -16,6 +16,7 @@ import { NavIconComponent } from "../../shared/nav-icon";
 import { formatPlayerName } from "../../shared/player-name";
 import { injuryStatusLabel, injuryStatusClass, injuryNoteFor } from "../../shared/injury-status";
 import { NavHistoryService } from "../../core/nav-history.service";
+import { PageHeaderComponent } from "../../shared/page-header";
 
 interface TeamGroup {
   teamId: string;
@@ -32,7 +33,7 @@ const STATUSES: InjuryStatus[] = ["out", "doubtful", "questionable", "probable"]
 @Component({
   selector: "app-injury-report",
   standalone: true,
-  imports: [
+  imports: [PageHeaderComponent, 
     CommonModule,
     RouterLink,
     ReactiveFormsModule,

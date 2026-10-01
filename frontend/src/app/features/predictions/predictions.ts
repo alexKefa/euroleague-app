@@ -35,6 +35,7 @@ import { ConfirmDialogComponent } from "../../shared/confirm-dialog";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { InjuryBadgeComponent } from "../../shared/injury-badge";
 import { TodayTagPipe } from "../../shared/today-tag.pipe";
+import { PageHeaderComponent } from "../../shared/page-header";
 
 // Matches schedule.ts — no season picker here either, and predictions
 // should only ever be open for the round a user could actually be watching.
@@ -130,7 +131,7 @@ interface DisplayedPick {
 @Component({
   selector: "app-predictions",
   standalone: true,
-  imports: [
+  imports: [PageHeaderComponent, 
     TodayTagPipe,
     CommonModule,
     RouterLink,

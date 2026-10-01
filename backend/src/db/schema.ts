@@ -491,6 +491,25 @@ export const topScorerPredictions = pgTable(
   })
 );
 
+// Live quarter picks (2026-10-01): who wins the next quarter of a game. Only
+// the next quarter is ever open (services/quarterPicks.ts). Scored on read
+// from games.home/away_score_by_quarter, spendable only, never on the
+// leaderboard.
+export const quarterPredictions = pgTable(
+  "quarter_predictions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    gameId: uuid("game_id").notNull().references(() => games.id),
+    quarter: integer("quarter").notNull(), // 1-4, no overtime
+    pickedTeamId: uuid("picked_team_id").notNull().references(() => teams.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    userGameQuarterUnique: uniqueIndex("user_game_quarter_prediction_unique").on(table.userId, table.gameId, table.quarter),
+  })
+);
+
 // Manual point grants/deductions — layered on top of the picks-derived
 // points at read time rather than mutating a stored balance, since there
 // is no stored balance (see predictions.ts). Points may be negative.
@@ -766,6 +785,45 @@ export const fantasyMilestones = pgTable(
       table.userId,
       table.milestoneNumber
     ),
+  })
+);
+
+// Fantasy card tracks (2026-10-01, replacing fantasy_milestones' legendary
+// pack every few rounds — see services/fantasyCardTracks.ts). Coach: every
+// FANTASY_COACH_TRACK_INTERVAL completed rounds in which the user's coach
+// won, the card of the coach picked most in that streak (or a missing one
+// if already owned). Captain: every FANTASY_CAPTAIN_TRACK_INTERVAL rounds
+// with a positive-scoring captain, a rare card of one of those captains.
+// collectible_id is null when every eligible card was already owned.
+export const fantasyCoachCards = pgTable(
+  "fantasy_coach_cards",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    milestoneNumber: integer("milestone_number").notNull(),
+    teamId: uuid("team_id").references(() => teams.id),
+    collectibleId: uuid("collectible_id").references(() => collectibles.id),
+    grantedAt: timestamp("granted_at", { withTimezone: true }).defaultNow().notNull(),
+    seenAt: timestamp("seen_at", { withTimezone: true }),
+  },
+  (table) => ({
+    userMilestoneUnique: uniqueIndex("user_fantasy_coach_card_unique").on(table.userId, table.milestoneNumber),
+  })
+);
+
+export const fantasyCaptainCards = pgTable(
+  "fantasy_captain_cards",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    milestoneNumber: integer("milestone_number").notNull(),
+    playerId: uuid("player_id").references(() => players.id),
+    collectibleId: uuid("collectible_id").references(() => collectibles.id),
+    grantedAt: timestamp("granted_at", { withTimezone: true }).defaultNow().notNull(),
+    seenAt: timestamp("seen_at", { withTimezone: true }),
+  },
+  (table) => ({
+    userMilestoneUnique: uniqueIndex("user_fantasy_captain_card_unique").on(table.userId, table.milestoneNumber),
   })
 );
 

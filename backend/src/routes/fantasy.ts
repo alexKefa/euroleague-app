@@ -24,6 +24,7 @@ import {
   getRoundLockTime,
   getDefaultRound,
   isRoundPriced,
+  getRoundPricedState,
   getBaselineSquad,
   getFantasyLeaderboardEntries,
   getUserBudget,
@@ -221,6 +222,7 @@ function emptyLineupResponse(season: string | null, defaultRound: number | null,
     totalPir: 0,
     creditsChange: 0,
     creditsSettled: false,
+    budgetPending: false,
     transfersUsed: 0,
     transfersAllowed: null,
     baselinePlayerIds: null,
@@ -336,7 +338,7 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
 
     const playerIds = lineupRows.map((r) => r.playerId);
 
-    const [lockAt, playerTeamRows, roundGames, budgetCap, creditsChange, creditsSettled] = await Promise.all([
+    const [lockAt, playerTeamRows, roundGames, budgetCap, creditsChange, pricedState] = await Promise.all([
       getRoundLockTime(season, round),
       playerIds.length
         ? db.select({ id: players.id, teamId: players.teamId }).from(players).where(inArray(players.id, playerIds))
@@ -358,11 +360,14 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
       // budget is built from, so the two can never disagree (was current
       // price minus priceAtPick, which also counted the 2026-09-24 re-pricing).
       getOwnedPriceMoves(req.userId!, season, { round }),
-      // Credits move once per round, ~12h after its last game (see
+      // Credits move once per round, ~3h after its last game (see
       // fantasyDailyReprice.ts's PRICE_SETTLE_MS); until then the UI says
-      // "pending" instead of a misleading 0.
-      isRoundPriced(season, round),
+      // "pending" instead of a misleading 0. The previous round's state
+      // marks budgetCap as provisional until its moves land.
+      getRoundPricedState(season, round),
     ]);
+    const creditsSettled = pricedState.priced;
+    const budgetPending = !pricedState.previousPriced;
 
     const teamIdByPlayer = new Map(playerTeamRows.map((p) => [p.id, p.teamId]));
     const gameByTeamId = new Map<string, (typeof roundGames)[number]>();
@@ -512,6 +517,7 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
       totalPir,
       creditsChange,
       creditsSettled,
+      budgetPending,
       transfersUsed,
       transfersAllowed: baseline && !isUnlimitedTransferRound(round) ? FANTASY_TRANSFERS_PER_ROUND : null,
       budgetCap,

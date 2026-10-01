@@ -9,6 +9,7 @@ import { AchievementMilestone, Achievements, SpinStatus } from "../../core/model
 import { ButtonDirective } from "../../shared/button.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { NavIconComponent, NavIconName } from "../../shared/nav-icon";
+import { PageHeaderComponent } from "../../shared/page-header";
 
 // Same glyphs as the predictions badge legend (predictions.ts's BADGE_ICONS).
 const BADGE_ICONS: Record<string, NavIconName> = {
@@ -23,7 +24,8 @@ const MILESTONE_ICONS: Record<AchievementMilestone["id"], NavIconName> = {
   rareCard: "cards",
   legendaryPack: "packs",
   coachPack: "packs",
-  fantasyPack: "trophy",
+  fantasyCoachCard: "trophy",
+  fantasyCaptainCard: "cards",
 };
 
 // Where to go to make progress on each milestone.
@@ -31,7 +33,8 @@ const MILESTONE_LINKS: Record<AchievementMilestone["id"], string> = {
   rareCard: "/predictions",
   legendaryPack: "/predictions",
   coachPack: "/predictions",
-  fantasyPack: "/fantasy",
+  fantasyCoachCard: "/fantasy",
+  fantasyCaptainCard: "/fantasy",
 };
 
 /**
@@ -44,7 +47,7 @@ const MILESTONE_LINKS: Record<AchievementMilestone["id"], string> = {
 @Component({
   selector: "app-achievements",
   standalone: true,
-  imports: [CommonModule, RouterLink, ButtonDirective, SkeletonComponent, NavIconComponent],
+  imports: [PageHeaderComponent, CommonModule, RouterLink, ButtonDirective, SkeletonComponent, NavIconComponent],
   templateUrl: "./achievements.html",
 })
 export class AchievementsComponent implements OnInit {
@@ -120,7 +123,7 @@ export class AchievementsComponent implements OnInit {
   // "2 correct picks to go" / "1 round to go".
   toGo(m: AchievementMilestone): string {
     const left = m.every - m.progress;
-    const unit = m.id === "fantasyPack" ? (left === 1 ? "achievements.roundLeft" : "achievements.roundsLeft") : left === 1 ? "achievements.pickLeft" : "achievements.picksLeft";
+    const unit = m.id === "fantasyCoachCard" || m.id === "fantasyCaptainCard" ? (left === 1 ? "achievements.roundLeft" : "achievements.roundsLeft") : left === 1 ? "achievements.pickLeft" : "achievements.picksLeft";
     return `${left} ${this.i18n.t(unit)}`;
   }
 

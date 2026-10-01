@@ -12,10 +12,11 @@ import { PageHintComponent } from "../../shared/page-hint";
 import { SkeletonComponent } from "../../shared/skeleton";
 
 import { NavIconComponent } from "../../shared/nav-icon";
+import { PageHeaderComponent } from "../../shared/page-header";
 @Component({
   selector: "app-leagues",
   standalone: true,
-  imports: [NavIconComponent, CommonModule, RouterLink, ReactiveFormsModule, ButtonDirective, PageHintComponent, SkeletonComponent],
+  imports: [PageHeaderComponent, NavIconComponent, CommonModule, RouterLink, ReactiveFormsModule, ButtonDirective, PageHintComponent, SkeletonComponent],
   templateUrl: "./leagues.html",
 })
 export class LeaguesComponent implements OnInit {

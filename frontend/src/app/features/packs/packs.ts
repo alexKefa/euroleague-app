@@ -7,32 +7,47 @@ import { I18nService } from "../../core/i18n.service";
 import { NavHistoryService } from "../../core/nav-history.service";
 import { PackDefinition, OwnedPack, PackOpenOutcome, PackOpenResultCard, PackType } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
-import { PackIconComponent } from "../../shared/pack-icon";
 import { PACK_VISUAL_CLASSES } from "../../shared/pack-visual";
 import { PackArtComponent } from "../../shared/pack-art";
 import { packSourceText } from "../../shared/pack-source";
+import { displayTeamCode } from "../../shared/team-display-code";
 import { PackRewardsService } from "../../core/pack-rewards.service";
 import { ButtonDirective } from "../../shared/button.directive";
 import { PageHintComponent } from "../../shared/page-hint";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { ConfirmDialogComponent } from "../../shared/confirm-dialog";
+import { PageHeaderComponent } from "../../shared/page-header";
 
-// Exit-animation duration for the outgoing card in the reveal sequence —
-// keep in sync with the .card-exit-anim animation-duration in packs.css.
-const CARD_EXIT_MS = 320;
+// Opening timings — keep in sync with packs.css (.pack-stage.is-tearing,
+// .flip-card, .walkout).
+const PACK_TEAR_MS = 950;
+const FLIP_MS = 750;
+const BIG_FLIP_MS = 1100;
+// Walkout before a new legendary/foil (coach gets a shorter one).
+const WALKOUT_MS = { legendary: 1400, coach: 800 } as const;
 
-type PackView = "selecting" | "revealing" | "summary";
+// Card rank for the table order (best card last). Duplicates sit just
+// below a new card of the same tier.
+const TIER_RANK: Record<string, number> = { common: 0, rare: 1, coach: 2, legendary: 3 };
+function revealRank(card: PackOpenResultCard): number {
+  const foil = !card.wasDuplicate && card.collectible.tier === "legendary" && card.collectible.finish === "foil";
+  return (TIER_RANK[card.collectible.tier] ?? 0) * 2 + (card.wasDuplicate ? 0 : 1) + (foil ? 2 : 0);
+}
+
+// Same tier colours as the slot pips (packs.css .slot-pip--*).
+const TIER_COLOR: Record<string, string> = { common: "#9aa3ad", rare: "#8ec5ff", coach: "#3fd9a4", legendary: "#f5c043" };
+
+type PackView = "selecting" | "pack" | "deck" | "summary";
 
 @Component({
   selector: "app-packs",
   standalone: true,
-  imports: [
+  imports: [PageHeaderComponent, 
     CommonModule,
     PackArtComponent,
     RouterLink,
     CollectibleCardComponent,
-    PackIconComponent,
     ButtonDirective,
     PageHintComponent,
     LogoSpinnerComponent,
@@ -103,7 +118,6 @@ export class PacksComponent implements OnInit {
   // Same aspect ratio as the card (2.5:3.5) plus headroom for the stack's
   // diagonal peek — scales with cardSize so the peek stays proportional.
   readonly cardStackHeight = computed(() => Math.round(this.cardSize() * 1.4) + 32);
-  readonly stackOffsetScale = computed(() => this.cardSize() / 220);
 
   @HostListener("window:resize")
   onResize(): void {
@@ -119,25 +133,89 @@ export class PacksComponent implements OnInit {
 
   readonly view = signal<PackView>("selecting");
   readonly outcome = signal<PackOpenOutcome | null>(null);
-  readonly revealIndex = signal(0);
 
   readonly visualClasses = PACK_VISUAL_CLASSES;
 
-  readonly transitionOutCard = signal<PackOpenResultCard | null>(null);
-  readonly isTransitioning = signal(false);
+  // The pack being opened, shown sealed in the "pack" view.
+  readonly openedPackType = signal<PackType | null>(null);
+  readonly tearing = signal(false);
+  // Cards turned over so far; the last one is face up on top of the deck.
+  readonly deckIndex = signal(0);
+  // The big pull whose walkout is playing, before its flip.
+  readonly walkout = signal<PackOpenResultCard | null>(null);
+  private deckBusy = false;
+  private deckTimers: ReturnType<typeof setTimeout>[] = [];
 
-  readonly currentCard = computed<PackOpenResultCard | null>(
-    () => this.outcome()?.results[this.revealIndex()] ?? null
+  // Best card last, so the deck builds up to it.
+  readonly deckOrder = computed<PackOpenResultCard[]>(() =>
+    [...(this.outcome()?.results ?? [])].sort((a, b) => revealRank(a) - revealRank(b))
   );
-  readonly isLastCard = computed(() => {
-    const o = this.outcome();
-    return o ? this.revealIndex() === o.results.length - 1 : false;
+  readonly activeCard = computed(() => (this.deckIndex() > 0 ? this.deckOrder()[this.deckIndex() - 1] : null));
+  readonly deckRemaining = computed(() => this.deckOrder().slice(this.deckIndex()));
+  readonly deckPulled = computed(() => this.deckOrder().slice(0, Math.max(0, this.deckIndex() - 1)));
+  // The beam colour when the pack tears: the best card inside.
+  private readonly bestCard = computed(() => this.deckOrder()[this.deckOrder().length - 1] ?? null);
+  readonly bestTierColor = computed(() => {
+    const best = this.bestCard();
+    return best && !best.wasDuplicate ? TIER_COLOR[best.collectible.tier] ?? TIER_COLOR["common"] : TIER_COLOR["common"];
   });
-  // Not-yet-revealed cards, soonest-first — rendered as anonymous peeking
-  // edges behind the current card so you can see how many are left.
-  readonly remainingCards = computed<PackOpenResultCard[]>(
-    () => this.outcome()?.results.slice(this.revealIndex() + 1) ?? []
-  );
+  readonly bestIsFoil = computed(() => {
+    const best = this.bestCard();
+    return !!best && this.isFoilCard(best);
+  });
+
+  tierColor(card: PackOpenResultCard): string {
+    return TIER_COLOR[card.collectible.tier] ?? TIER_COLOR["common"];
+  }
+
+  // The face-down back previews the rarity (foil gets its own).
+  backTier(card: PackOpenResultCard): string {
+    return this.isFoilCard(card) ? "foil" : card.collectible.tier;
+  }
+
+  isBigPull(card: PackOpenResultCard): boolean {
+    return !card.wasDuplicate && (card.collectible.tier === "legendary" || card.collectible.tier === "coach");
+  }
+
+  teamDisplayCode(code: string): string {
+    return displayTeamCode(code);
+  }
+
+  walkoutTierLabel(card: PackOpenResultCard): string {
+    if (this.isFoilCard(card)) return this.i18n.t("packs.foilBang");
+    return this.i18n.t(card.collectible.tier === "coach" ? "inventory.tierCoach" : "inventory.tierLegendary");
+  }
+
+  // Each tap turns over the next card (the face-up one joins the pulled
+  // strip). A new legendary/foil/coach gets its walkout first. After the
+  // last card, a tap shows the summary.
+  tapDeck(): void {
+    if (this.deckBusy || this.walkout()) return;
+    const next = this.deckOrder()[this.deckIndex()];
+    if (!next) {
+      this.view.set("summary");
+      return;
+    }
+    this.deckBusy = true;
+    const flipIt = () => {
+      this.walkout.set(null);
+      this.deckIndex.update((i) => i + 1);
+      this.deckTimers.push(setTimeout(() => (this.deckBusy = false), this.isBigPull(next) ? BIG_FLIP_MS : FLIP_MS));
+    };
+    if (this.isBigPull(next)) {
+      this.walkout.set(next);
+      this.deckTimers.push(setTimeout(flipIt, WALKOUT_MS[next.collectible.tier as keyof typeof WALKOUT_MS] ?? 800));
+    } else {
+      flipIt();
+    }
+  }
+
+  private clearDeckTimers(): void {
+    this.deckTimers.forEach(clearTimeout);
+    this.deckTimers = [];
+    this.deckBusy = false;
+    this.walkout.set(null);
+  }
 
   ngOnInit(): void {
     this.api.getPacks().subscribe({
@@ -201,6 +279,7 @@ export class PacksComponent implements OnInit {
 
   // Skip the rest of the one-by-one reveal (2026-09-29).
   revealAll(): void {
+    this.clearDeckTimers();
     this.view.set("summary");
   }
 
@@ -213,13 +292,9 @@ export class PacksComponent implements OnInit {
       next: (outcome) => {
         this.ownedPacks.update((rows) => rows.filter((r) => r.id !== pack.id));
         this.packRewards.packOpened(pack.id);
-        this.outcome.set(outcome);
-        this.revealIndex.set(0);
-        this.transitionOutCard.set(null);
-        this.isTransitioning.set(false);
         this.points.update((p) => p + this.duplicateGain(outcome));
         this.openingOwnedId.set(null);
-        this.view.set("revealing");
+        this.startReveal(outcome, pack.packType);
       },
       error: (err) => {
         this.openingOwnedId.set(null);
@@ -318,13 +393,9 @@ export class PacksComponent implements OnInit {
 
     this.api.openPack(pack.type).subscribe({
       next: (outcome) => {
-        this.outcome.set(outcome);
-        this.revealIndex.set(0);
-        this.transitionOutCard.set(null);
-        this.isTransitioning.set(false);
         this.points.set(this.points() - pack.pointsCost + this.duplicateGain(outcome));
         this.opening.set(null);
-        this.view.set("revealing");
+        this.startReveal(outcome, pack.type);
       },
       error: (err) => {
         this.opening.set(null);
@@ -333,24 +404,25 @@ export class PacksComponent implements OnInit {
     });
   }
 
-  nextCard(): void {
-    if (this.isTransitioning()) return;
-    if (this.isLastCard()) {
-      this.view.set("summary");
-      return;
-    }
+  private startReveal(outcome: PackOpenOutcome, packType: PackType): void {
+    this.outcome.set(outcome);
+    this.openedPackType.set(packType);
+    this.tearing.set(false);
+    this.clearDeckTimers();
+    this.deckIndex.set(0);
+    this.view.set("pack");
+  }
 
-    // Two-phase transition: play the outgoing card's exit animation first,
-    // then swap the index (triggering the next card's entrance animation)
-    // once it's actually finished — otherwise the swap is instant and the
-    // "animation" is just a fade-in on the new card with nothing in between.
-    this.transitionOutCard.set(this.currentCard());
-    this.isTransitioning.set(true);
+  // Tap the sealed pack: it shakes, tears and lights up in the best card's
+  // colour, then every card lands face down on the table.
+  tearPack(): void {
+    if (this.tearing()) return;
+    this.tearing.set(true);
     setTimeout(() => {
-      this.revealIndex.update((i) => i + 1);
-      this.transitionOutCard.set(null);
-      this.isTransitioning.set(false);
-    }, CARD_EXIT_MS);
+      if (this.view() !== "pack") return; // "Reveal all" was tapped meanwhile
+      this.tearing.set(false);
+      this.view.set("deck");
+    }, PACK_TEAR_MS);
   }
 
   openAnother(): void {

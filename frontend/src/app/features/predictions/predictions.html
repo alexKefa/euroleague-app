@@ -9,8 +9,7 @@
      team contrast fix as earlier passes this session; everything else was
      text/border/translucent-wash with no contrast risk. -->
 <div class="max-w-3xl lg:max-w-5xl mx-auto p-4 sm:p-6">
-  <div class="flex items-center justify-between mb-5">
-    <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('nav.picks') }}</h1>
+  <app-page-header [title]="i18n.t('nav.picks')" [eyebrow]="i18n.t('section.play')" icon="picks">
     <!-- Compact icon-chip, not a purple arrow-text link (2026-09-25, "the
          purple approach with arrow buttons... more compact and
          professional") — same bg-page/text-muted/hover:text-team-primary
@@ -19,13 +18,14 @@
          link so the whole page reads as one consistent, understated system
          rather than mixing a shouty purple convention into it. -->
     <a
+      headAside
       routerLink="/store"
       class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-page text-[11px] font-bold text-muted hover:text-team-primary transition-colors shrink-0"
     >
       <app-nav-icon name="store" [size]="13" />
       {{ i18n.t('predictions.spendPoints') }}
     </a>
-  </div>
+  </app-page-header>
 
   <app-page-hint hintId="predictions" icon="picks">{{ i18n.t('predictions.hint') }}</app-page-hint>
 

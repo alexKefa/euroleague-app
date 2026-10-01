@@ -46,6 +46,7 @@ import { TodayTagPipe } from "../../shared/today-tag.pipe";
 import { formatPlayerName } from "../../shared/player-name";
 import { TeamCodePipe } from "../../shared/team-display-code";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
+import { PageHeaderComponent } from "../../shared/page-header";
 
 // Squad shape — mirrors backend/src/services/fantasyScoring.ts's constants
 // exactly (kept in sync by hand, same as e.g. analytics-builder.ts keeping
@@ -286,7 +287,7 @@ interface SwapCandidate {
 @Component({
   selector: "app-fantasy",
   standalone: true,
-  imports: [
+  imports: [PageHeaderComponent, 
     TeamCodePipe,
     RetryImgDirective,
     TodayTagPipe,
@@ -323,6 +324,9 @@ export class FantasyComponent implements OnInit {
   // Defaults to the flat FANTASY_BUDGET_CAP until loadLineup's first
   // response sets the real value.
   readonly budgetCap = signal(FANTASY_BUDGET_CAP);
+  // The previous round's credit moves haven't landed yet, so budgetCap()
+  // is provisional (models.ts's FantasyLineup.budgetPending).
+  readonly budgetPending = signal(false);
   readonly positionQuota = FANTASY_POSITION_QUOTA;
   readonly formationOptions = FORMATION_OPTIONS;
   readonly formation = signal<Formation>("2-2-1");
@@ -1401,6 +1405,7 @@ export class FantasyComponent implements OnInit {
         this.transfersAllowed.set(lineup.transfersAllowed);
         this.baselinePlayerIds.set(lineup.baselinePlayerIds ? new Set(lineup.baselinePlayerIds) : null);
         this.budgetCap.set(lineup.budgetCap);
+        this.budgetPending.set(lineup.budgetPending);
 
         const slots = initialSquadSlots();
         const serverMap = new Map<string, FantasySlotRole>();

@@ -106,14 +106,6 @@
   animation: legendary-shake 0.5s ease-out both;
 }
 
-/* Same jolt as .legendary-shake, delayed to land once the (much slower)
-   foil card has actually arrived instead of firing while it's still
-   mid-flight. */
-.legendary-shake--foil {
-  animation: legendary-shake 0.5s ease-out both;
-  animation-delay: 1.1s;
-}
-
 @keyframes legendary-label-pop {
   0% {
     opacity: 0;
@@ -139,10 +131,6 @@
   animation-delay: 0.15s;
 }
 
-.card-stack {
-  perspective: 1000px;
-}
-
 .card-back {
   background: linear-gradient(160deg, #232324 0%, #151516 100%);
   color: rgba(255, 255, 255, 0.5);
@@ -152,116 +140,6 @@
     opacity 0.35s ease,
     box-shadow 0.35s ease;
   overflow: hidden;
-}
-
-/* Rarity tease — the tier is already known client-side (the whole pack's
-   contents come back from the open call at once), so a still-face-down card
-   further back in the stack can hint at what it is without fully spoiling
-   it, the way a FIFA pack lets a special card's glow show through before
-   the flip. Common stays plain on purpose, so the glow actually means
-   something when it shows up. */
-.card-back-rare {
-  color: rgba(186, 214, 235, 0.85);
-  border-color: rgba(160, 200, 230, 0.45);
-  animation: card-back-glow-rare 2.4s ease-in-out infinite;
-}
-
-.card-back-legendary {
-  color: rgba(255, 224, 160, 0.9);
-  border-color: rgba(255, 205, 110, 0.55);
-  animation: card-back-glow-legendary 1.7s ease-in-out infinite;
-}
-
-@keyframes card-back-glow-rare {
-  0%,
-  100% {
-    box-shadow: 0 0 10px rgba(150, 190, 220, 0.25);
-  }
-  50% {
-    box-shadow: 0 0 22px rgba(150, 190, 220, 0.55);
-  }
-}
-
-@keyframes card-back-glow-legendary {
-  0%,
-  100% {
-    box-shadow: 0 0 14px rgba(255, 195, 80, 0.35);
-  }
-  50% {
-    box-shadow: 0 0 30px rgba(255, 195, 80, 0.8);
-  }
-}
-
-/* The next card slides up from behind the stack with a slight 3D tilt,
-   rather than just fading/popping in place — pairs with .card-back so the
-   reveal reads as "pulling the top card off the stack". */
-@keyframes card-reveal {
-  0% {
-    opacity: 0;
-    transform: translateY(30px) scale(0.86) rotateY(20deg);
-  }
-  55% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1) rotateY(0deg);
-  }
-}
-
-.card-reveal-anim {
-  animation: card-reveal 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
-  transform-style: preserve-3d;
-}
-
-/* Outgoing card in the reveal sequence — plays before the index advances,
-   so there's a visible "leave" before the next card's "arrive". */
-@keyframes card-exit {
-  0% {
-    opacity: 1;
-    transform: translateY(0) scale(1) rotateY(0deg);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-26px) scale(0.88) rotateY(-18deg);
-  }
-}
-
-.card-exit-anim {
-  animation: card-exit 0.32s cubic-bezier(0.4, 0, 1, 1) both;
-  transform-style: preserve-3d;
-}
-
-/* Foil legendary reveal — a distinct, more dramatic version of
-   .card-reveal-anim above (further away, an extra spin, a brief
-   over-bright flash as it settles) plus every burst color below swapped
-   from gold to a spinning rainbow. Exists purely because a foil carries
-   zero gameplay weight over a plain legendary (see the finish column's
-   comment in schema.ts) — the reveal is the one place it gets to earn
-   feeling rarer. */
-@keyframes card-reveal-foil {
-  0% {
-    opacity: 0;
-    transform: translateY(70px) scale(0.4) rotateY(200deg) rotateZ(-10deg);
-    filter: brightness(1.8) saturate(1.4);
-  }
-  50% {
-    opacity: 1;
-  }
-  75% {
-    transform: translateY(-8px) scale(1.05) rotateY(-8deg) rotateZ(2deg);
-    filter: brightness(1.25) saturate(1.15);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1) rotateY(0deg) rotateZ(0deg);
-    filter: brightness(1) saturate(1);
-  }
-}
-
-.card-reveal-anim--foil {
-  animation: card-reveal-foil 1.6s cubic-bezier(0.22, 1, 0.36, 1) both;
-  transform-style: preserve-3d;
 }
 
 @keyframes burst-glow-foil {
@@ -505,3 +383,268 @@
 .slot-pip--rare { --pip: #8ec5ff; }
 .slot-pip--legendary { --pip: #f5c043; }
 .slot-pip--coach { --pip: #3fd9a4; }
+
+/* --- Pack opening (2026-10-01, FIFA-style): sealed pack -> tear + light
+   beam in the best card's colour -> one face-down card at a time. Timings
+   mirror PACK_TEAR_MS / FLIP_MS / ANTICIPATE_MS in packs.ts. --- */
+.pack-stage {
+  width: 100%;
+  --beam: #9aa3ad;
+}
+.pack-beam {
+  left: 50%;
+  bottom: 50%;
+  width: 46%;
+  height: 120%;
+  transform: translateX(-50%) scaleY(0);
+  transform-origin: 50% 100%;
+  background: linear-gradient(to top, var(--beam), transparent 85%);
+  filter: blur(14px);
+  opacity: 0;
+}
+.pack-stage--foil .pack-beam {
+  background: linear-gradient(to top, #ff5aa0, #ffd25a 25%, #7dffb0 45%, #5ab4ff 65%, transparent 90%);
+}
+.pack-wrap {
+  animation: pack-idle 2.6s ease-in-out infinite;
+}
+.pack-stage.is-tearing .pack-wrap {
+  animation: pack-tear 0.95s cubic-bezier(0.5, 0, 0.75, 0) both;
+}
+.pack-stage.is-tearing .pack-beam {
+  animation: pack-beam 0.95s ease-out both;
+}
+@keyframes pack-idle {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-6px) rotate(1deg); }
+}
+@keyframes pack-tear {
+  0% { transform: none; filter: none; }
+  8% { transform: translateX(-4px) rotate(-2deg); }
+  16% { transform: translateX(4px) rotate(2deg); }
+  24% { transform: translateX(-3px) rotate(-1deg); }
+  32% { transform: translateX(3px) rotate(1deg); }
+  45% { transform: scale(1.04); filter: brightness(1.3); }
+  100% { transform: translateY(40px) scale(0.9); filter: brightness(2.2); opacity: 0; }
+}
+@keyframes pack-beam {
+  0%, 35% { opacity: 0; transform: translateX(-50%) scaleY(0); }
+  60% { opacity: 0.95; transform: translateX(-50%) scaleY(1); }
+  100% { opacity: 0; transform: translateX(-50%) scaleY(1.1); }
+}
+
+/* The table: cards land face down right after the tear. */
+.deal-in {
+  animation: deal-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes deal-in {
+  from { opacity: 0; transform: translateY(-40px) scale(0.9) rotate(-4deg); }
+  to { opacity: 1; transform: none; }
+}
+
+/* One button, two faces back to back. The flip is a keyframe so the card
+   lifts a little mid-turn instead of rotating flat. */
+.flip-card {
+  --tier: #9aa3ad;
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  transition: transform 0.25s ease;
+}
+.flip-card:not(.is-flipped):hover {
+  transform: translateY(-4px);
+}
+.flip-card:not(.is-flipped):active {
+  transform: scale(0.97);
+}
+.flip-card.is-flipped {
+  cursor: default;
+  animation: card-flip 0.75s cubic-bezier(0.45, 0.05, 0.25, 1) forwards;
+}
+.flip-card--big.is-flipped {
+  animation-duration: 1.1s;
+}
+@keyframes card-flip {
+  0% { transform: perspective(900px) rotateY(0deg) scale(1); }
+  45% { transform: perspective(900px) translateY(-10px) rotateY(95deg) scale(1.08); }
+  100% { transform: perspective(900px) rotateY(180deg) scale(1); }
+}
+.flip-face {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: 1rem;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.flip-front {
+  transform: rotateY(180deg);
+}
+
+/* Card back: dark, with the rarity showing through as edge colour + glow. */
+.flip-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse at 50% 35%, color-mix(in srgb, var(--tier) 22%, transparent) 0%, transparent 65%),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.025) 0 6px, transparent 6px 12px),
+    linear-gradient(160deg, #26262a 0%, #121214 100%);
+  border: 2px solid color-mix(in srgb, var(--tier) 70%, transparent);
+  box-shadow: inset 0 0 0 4px #121214, inset 0 0 0 5px color-mix(in srgb, var(--tier) 35%, transparent);
+  overflow: hidden;
+}
+.flip-back__logo {
+  width: 38%;
+  opacity: 0.35;
+  filter: grayscale(1) brightness(1.6);
+}
+.flip-back--common {
+  border-color: rgba(154, 163, 173, 0.35);
+}
+.flip-back--rare {
+  box-shadow: inset 0 0 0 4px #121214, inset 0 0 0 5px rgba(142, 197, 255, 0.4), 0 0 16px rgba(142, 197, 255, 0.35);
+}
+.flip-back--coach {
+  box-shadow: inset 0 0 0 4px #121214, inset 0 0 0 5px rgba(63, 217, 164, 0.4), 0 0 18px rgba(63, 217, 164, 0.4);
+}
+.flip-back--legendary {
+  animation: back-glow 1.6s ease-in-out infinite alternate;
+}
+.flip-back--legendary .flip-back__logo {
+  opacity: 0.6;
+  filter: sepia(1) saturate(3) brightness(1.2);
+}
+@keyframes back-glow {
+  from { box-shadow: inset 0 0 0 4px #121214, inset 0 0 0 5px rgba(245, 192, 67, 0.4), 0 0 14px rgba(245, 192, 67, 0.35); }
+  to { box-shadow: inset 0 0 0 4px #121214, inset 0 0 0 5px rgba(245, 192, 67, 0.7), 0 0 30px rgba(245, 192, 67, 0.75); }
+}
+/* A light sweep across rare-or-better backs, so they look worth turning. */
+.flip-back--rare::after,
+.flip-back--coach::after,
+.flip-back--legendary::after,
+.flip-back--foil::after {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.18) 50%, transparent 60%);
+  animation: back-sweep 2.8s ease-in-out infinite;
+}
+@keyframes back-sweep {
+  from { transform: translateX(-60%); }
+  to { transform: translateX(60%); }
+}
+.flip-back--foil {
+  border: 2px solid transparent;
+  background:
+    linear-gradient(160deg, #26262a 0%, #121214 100%) padding-box,
+    conic-gradient(from 0deg, #ff5aa0, #ffd25a, #7dffb0, #5ab4ff, #c878ff, #ff5aa0) border-box;
+  box-shadow: 0 0 24px rgba(200, 160, 255, 0.55);
+}
+
+/* Big pull: a flash over the card as it lands face up. */
+.flip-flash {
+  position: absolute;
+  inset: 0;
+  border-radius: 1rem;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 244, 214, 0.95) 0%, rgba(245, 192, 67, 0.4) 45%, transparent 75%);
+  animation: flip-flash 0.9s ease-out 0.55s both;
+}
+.flip-flash--foil {
+  background: conic-gradient(from 0deg, #ff5aa0aa, #ffd25aaa, #7dffb0aa, #5ab4ffaa, #c878ffaa, #ff5aa0aa);
+}
+@keyframes flip-flash {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* The deck: face-down cards stacked, deeper ones peeking out below. */
+.deck-card {
+  transform-origin: 50% 100%;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* Pulled cards drop into the strip below. */
+.pulled-in {
+  animation: pulled-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes pulled-in {
+  from { opacity: 0; transform: translateY(-30px) scale(1.4); }
+  to { opacity: 1; transform: none; }
+}
+
+/* The legendary jolt, landing as the slow flip finishes. */
+.legendary-shake--late {
+  animation: legendary-shake 0.5s ease-out 0.95s both;
+}
+
+/* Walkout before a big pull: the stage goes dark, beams of tier-coloured
+   light sweep up, the team code and tier punch in. */
+.walkout {
+  --tier: #f5c043;
+  inset: -14px -18px;
+  background: radial-gradient(ellipse at 50% 120%, color-mix(in srgb, var(--tier) 35%, #0b0b0d) 0%, #060607 70%);
+  animation: walkout-in 0.25s ease-out both;
+}
+@keyframes walkout-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.walkout__beams {
+  background:
+    linear-gradient(to top, color-mix(in srgb, var(--tier) 70%, transparent), transparent 70%) 50% 100% / 18% 100% no-repeat,
+    linear-gradient(to top, color-mix(in srgb, var(--tier) 45%, transparent), transparent 60%) 22% 100% / 10% 90% no-repeat,
+    linear-gradient(to top, color-mix(in srgb, var(--tier) 45%, transparent), transparent 60%) 78% 100% / 10% 90% no-repeat;
+  filter: blur(8px);
+  transform-origin: 50% 100%;
+  animation: walkout-beams 1.4s ease-out both;
+}
+.walkout--foil .walkout__beams {
+  background: conic-gradient(from 180deg at 50% 100%, transparent 25%, #ff5aa088, #ffd25a88, #7dffb088, #5ab4ff88, #c878ff88, transparent 75%);
+}
+@keyframes walkout-beams {
+  0% { opacity: 0; transform: scaleY(0.1); }
+  40% { opacity: 1; transform: scaleY(1); }
+  100% { opacity: 0.85; transform: scaleY(1.05); }
+}
+.walkout__team {
+  font-size: 4.25rem;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 28px color-mix(in srgb, var(--tier) 70%, transparent);
+  animation: walkout-text 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+}
+.walkout__tier {
+  font-size: 0.95rem;
+  letter-spacing: 0.35em;
+  color: var(--tier);
+  animation: walkout-text 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.6s both;
+}
+@keyframes walkout-text {
+  from { opacity: 0; transform: scale(1.6); filter: blur(6px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pack-wrap, .pack-stage.is-tearing .pack-wrap, .pack-stage.is-tearing .pack-beam,
+  .pulled-in, .legendary-shake--late, .walkout, .walkout__beams, .walkout__team, .walkout__tier, .flip-back--legendary, .flip-back::after, .flip-flash { animation: none; }
+  .flip-card.is-flipped { animation: none; transform: rotateY(180deg); }
+}
+/* Walkout: the team's badge punches in (same motion as the code fallback). */
+.walkout__badge {
+  width: 46%;
+  max-width: 120px;
+  aspect-ratio: 1;
+  object-fit: contain;
+  filter: drop-shadow(0 0 22px color-mix(in srgb, var(--tier) 75%, transparent));
+  animation: walkout-text 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .walkout__badge { animation: none; }
+}

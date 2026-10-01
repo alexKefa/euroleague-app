@@ -108,13 +108,13 @@ function titleCase(word: string): string {
   return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
 }
 
-function displayName(rawName: string): string {
+export function displayName(rawName: string): string {
   const [last, first] = rawName.split(",").map((s) => s.trim());
   const toTitle = (s: string) => s.split(/\s+/).map(titleCase).join(" ");
   return `${toTitle(first)} ${toTitle(last)}`;
 }
 
-function normalize(name: string): string {
+export function normalize(name: string): string {
   return name.trim().toLowerCase().replace(/\s+/g, " ");
 }
 

@@ -12,7 +12,7 @@
     >{{ navHistory.previousUrl() ? i18n.t('nav.back') : i18n.t('store.myCards') }}</a
   >
 
-  <h1 class="font-display text-2xl tracking-wide mt-4 mb-4">{{ i18n.t('store.title') }}</h1>
+  <app-page-header [title]="i18n.t('store.title')" [eyebrow]="i18n.t('section.cards')" icon="store" class="mt-4" />
   <!-- Balance hero (2026-09-29 restyle, same look as the Cards hub). -->
   @if (auth.isAuthenticated()) {
     <div class="relative overflow-hidden flex items-center justify-between gap-3 rounded-3xl p-4 mb-5 bg-card border border-line shadow-card">

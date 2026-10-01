@@ -117,8 +117,11 @@ const COACH_PRICE_FLOOR = 1;
  * only once every game in it is final and its last tipoff is this old; box
  * scores are re-fetched right before, so the move uses the official final
  * sheet, not whatever the last live poll stored (see refreshFinalBoxscore).
+ * 12h -> 3h (2026-10-01): EuroLeague Fantasy moves prices overnight, so a
+ * 12h wait left budgets a round behind the real game every morning. The
+ * box-score re-fetch above already covers late stat corrections.
  */
-export const PRICE_SETTLE_MS = 12 * 60 * 60 * 1000;
+export const PRICE_SETTLE_MS = 3 * 60 * 60 * 1000;
 
 // An unfinished game only holds its round back if it was due within this
 // long of the round's last finished game. There's no "postponed" status, so

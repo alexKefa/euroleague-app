@@ -678,7 +678,8 @@ export interface SpinResult {
   // pack straight into the inventory (GET /api/packs/owned), opened later
   // via POST /api/packs/owned/:id/open, same PackOpenOutcome shape a
   // purchase gets. Every spin wins something, so this is never null.
-  wonPack: { id: string; packType: PackType; label: string; tier: CollectibleTier };
+  // count: packs granted (2 for common/rare spins); absent on admin cheats.
+  wonPack: { id: string; packType: PackType; label: string; tier: CollectibleTier; count?: number };
   nextEligibleAt: string;
 }
 
@@ -734,7 +735,20 @@ export type PackSource =
 // plus the unopened-pack count behind the Cards nav dot.
 export interface UnseenPackRewards {
   rewards: OwnedPack[];
+  // Fantasy coach/captain card tracks grant a card directly (2026-10-01,
+  // backend services/fantasyCardTracks.ts).
+  cardRewards?: FantasyCardReward[];
   unopenedCount: number;
+}
+
+export interface FantasyCardReward {
+  id: string;
+  kind: "coachCard" | "captainCard";
+  collectibleId: string;
+  name: string;
+  tier: string;
+  imageUrl: string | null;
+  teamCode: string;
 }
 
 export interface PackOpenResultCard {
@@ -1066,9 +1080,12 @@ export interface FantasyLineup {
   // that's happened since (2026-09-10). Rows written before priceAtPick
   // existed don't contribute, so this can under-count for old rounds.
   creditsChange: number;
-  // False until this round's credit moves land (once per round, ~12h after
+  // False until this round's credit moves land (once per round, ~3h after
   // its last game — backend fantasyDailyReprice.ts).
   creditsSettled: boolean;
+  // True while the previous round's credit moves haven't landed, so
+  // budgetCap doesn't include them yet.
+  budgetPending: boolean;
   // Set once this round is complete and its shared-economy points grant
   // (services/fantasyScoring.ts's checkAndGrantFantasyRoundPoints,
   // 2026-09-16) hasn't been acknowledged yet — null once acked via
@@ -1247,7 +1264,7 @@ export interface AdminUsersResponse {
 // GET /users/me/achievements (2026-09-30) — progress toward every
 // milestone, badge and per-round reward (backend services/achievements.ts).
 export interface AchievementMilestone {
-  id: "rareCard" | "legendaryPack" | "coachPack" | "fantasyPack";
+  id: "rareCard" | "legendaryPack" | "coachPack" | "fantasyCoachCard" | "fantasyCaptainCard";
   every: number;
   progress: number;
   earned: number;
@@ -1352,4 +1369,27 @@ export interface ScoutingReport {
     team: { code: string | null; logoUrl: string | null };
     similarity: number;
   }[];
+}
+
+// Live quarter picks (backend routes/quarterPicks.ts). Only the next quarter
+// is ever open; reason says why nothing is.
+export interface QuarterPick {
+  quarter: number;
+  pickedTeamId: string;
+  result: "won" | "lost" | "push" | null;
+}
+export interface QuarterPickState {
+  gameId: string;
+  status: string;
+  quarter: number | null;
+  openQuarter: number | null;
+  reason: "final" | "lastQuarter" | "stale" | null;
+  pointsPerCorrect: number;
+  picks: QuarterPick[];
+}
+
+// In-app "before it locks" reminders (backend routes/reminders.ts).
+export interface Reminders {
+  fantasy: { round: number; lockAt: string } | null;
+  picks: { unpicked: number; upcoming: number; firstTipoff: string } | null;
 }

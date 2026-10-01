@@ -63,39 +63,6 @@ Known issues:
   before/after pair across round 2 if needed (grab a snapshot right before
   round 2 tips off).
 
-## 3. Live quarter predictions mini-game (deferred 2026-09-29, user deciding)
-
-Idea: more daily interaction than the once-a-day Jump Ball, tied to real
-games. During a live game, pick **who wins the next quarter** (home/away).
-
-- **Only the next quarter is open**: pre-game Q1, during Q1 pick Q2, etc.
-  A quarter locks the moment it starts. No OT picks.
-- **Scoring**: correct = 5pts, wrong = 0, tied quarter = push (0). Points
-  are spendable only and **don't count toward the leaderboard**. Worked
-  out on read from `games.home/away_score_by_quarter` (no payout job):
-  one more subquery in `getUserPoints`'s existing statement.
-- **Economy**: roughly 50/50 picks, so ~2.5pts expected each. About 30pts a
-  round for someone following 3 games, ~100 if they pick all 40 quarters.
-  Points only, so players who never buy are unaffected. Add a quarter-picks
-  option to `season-simulation.ts` and re-run before shipping.
-- **Build**: new `quarter_predictions` table (user, game, quarter 1-4,
-  pick, created_at; one pick per user+game+quarter), applied to prod
-  **and** dev. `GET/POST /api/quarter-picks` with server-side
-  open-quarter checks. A "Next quarter" panel on the live game page plus a
-  compact version on Live Center cards (no new tab). The existing
-  live-game updates already carry quarter changes for lock/result UI.
-  EN + EL strings.
-- **Risk accepted for v1**: the feed is ~20-40s behind TV, so the first
-  seconds of a quarter can leak. Small edge, small unranked reward.
-  **Must include**: lock all picks for a game whenever its live data is
-  more than ~60s old ("picks paused"), so a stalled feed can't leave a
-  quarter open for minutes.
-- **v2 ideas**: over/under on quarter points (needs a per-matchup line;
-  not enough season data yet), a streak bonus, a quarter-picks board.
-- **Prerequisite done 2026-09-29**: final quarter scores are now stored
-  when a game goes final (the 2 short round-1 games were backfilled), so
-  `home/away_score_by_quarter` is safe to score against.
-
 ## 4. Recheck milestone intervals against real top-scorer accuracy (deferred 2026-09-30, revisit after ~round 5)
 
 Milestones (a rare card every 2, a Legendary Pack every 18, a Coach pack

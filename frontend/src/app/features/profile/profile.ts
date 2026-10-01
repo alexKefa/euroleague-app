@@ -16,6 +16,7 @@ import { SkeletonComponent } from "../../shared/skeleton";
 import { TeamPickDialogComponent } from "../../shared/team-pick-dialog";
 import { TeamCodePipe } from "../../shared/team-display-code";
 import { NavIconComponent } from "../../shared/nav-icon";
+import { PageHeaderComponent } from "../../shared/page-header";
 
 const MAX_SHOWCASE_CARDS = 3;
 // Matches inventory.ts's own PAGE_SIZE — same "reveal a page at a time"
@@ -28,7 +29,7 @@ const PAGE_SIZE = 20;
 @Component({
   selector: "app-profile",
   standalone: true,
-  imports: [
+  imports: [PageHeaderComponent, 
     CommonModule,
     RouterLink,
     FormsModule,

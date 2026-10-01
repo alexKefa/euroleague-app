@@ -11,6 +11,7 @@ import { SkeletonComponent } from "../../shared/skeleton";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { BattlesInfoComponent } from "./battles-info";
+import { PageHeaderComponent } from "../../shared/page-header";
 
 /**
  * Battles home (2026-09-30, direct request: "good UI and easy to access
@@ -23,7 +24,7 @@ import { BattlesInfoComponent } from "./battles-info";
 @Component({
   selector: "app-battles-hub",
   standalone: true,
-  imports: [CommonModule, RouterLink, ButtonDirective, SkeletonComponent, NavIconComponent, PlayerPhotoComponent, BattlesInfoComponent],
+  imports: [PageHeaderComponent, CommonModule, RouterLink, ButtonDirective, SkeletonComponent, NavIconComponent, PlayerPhotoComponent, BattlesInfoComponent],
   templateUrl: "./battles-hub.html",
 })
 export class BattlesHubComponent implements OnInit {

@@ -66,7 +66,7 @@ import {
   PromoRedemptionResponse,
   AdminUsersResponse,
   Announcement,
-  AnnouncementInput, FantasyPlayerCard, ScoutingReport } from "./models";
+  AnnouncementInput, FantasyPlayerCard, ScoutingReport, QuarterPickState, Reminders } from "./models";
 
 /**
  * Wraps HttpClient calls to the backend's /api routes.
@@ -428,6 +428,17 @@ export class ApiService {
     return this.http.get<OwnedPack[]>(`${API_BASE_URL}/packs/owned`);
   }
 
+  getQuarterPicks(gameIds: string[]): Observable<{ games: QuarterPickState[] }> {
+    return this.http.get<{ games: QuarterPickState[] }>(`${API_BASE_URL}/quarter-picks`, { params: { gameIds: gameIds.join(",") } });
+  }
+
+  saveQuarterPick(gameId: string, quarter: number, pickedTeamId: string): Observable<QuarterPickState> {
+    return this.http.post<QuarterPickState>(`${API_BASE_URL}/quarter-picks`, { gameId, quarter, pickedTeamId });
+  }
+
+  getReminders(): Observable<Reminders> {
+    return this.http.get<Reminders>(`${API_BASE_URL}/reminders`);
+  }
   getUnseenPackRewards(): Observable<UnseenPackRewards> {
     return this.http.get<UnseenPackRewards>(`${API_BASE_URL}/packs/rewards/unseen`);
   }

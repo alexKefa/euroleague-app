@@ -124,13 +124,11 @@
      passes this session — everything else was a plain text/border/
      translucent-wash swap with no contrast risk. -->
 <div class="max-w-4xl mx-auto p-4 sm:p-6">
-  <h1 class="font-display text-2xl tracking-wide mb-1">{{ i18n.t('fantasy.title') }}</h1>
-  <div class="flex flex-wrap items-center justify-between gap-2 mb-5">
-    <p class="text-sm text-muted">{{ i18n.t('fantasy.hint') }}</p>
-    <button type="button" (click)="showRules.set(true)" class="text-xs font-bold text-team-primary hover:underline shrink-0">
+  <app-page-header [title]="i18n.t('fantasy.title')" [subtitle]="i18n.t('fantasy.hint')" [eyebrow]="i18n.t('section.play')" icon="trophy">
+    <button headBelow type="button" (click)="showRules.set(true)" class="mt-2.5 inline-flex items-center h-8 px-3.5 rounded-xl text-[13px] font-bold bg-team-primary/15 text-team-primary hover:bg-team-primary/25 transition-colors">
       {{ i18n.t('fantasy.rulesButton') }}
     </button>
-  </div>
+  </app-page-header>
 
   <!-- Segmented control (2026-09-12, matching the dashboard's/album's/
        predictions' tab switchers) — one joined tonal track instead of two
@@ -606,6 +604,9 @@
           <p class="text-[11px] font-bold text-muted uppercase tracking-wider mb-2">
             {{ i18n.t('fantasy.budgetLabel') }}
             <span class="font-mono normal-case tracking-normal ml-1" [ngClass]="overBudget() ? 'text-red-500' : 'text-ink'">{{ totalCost() | number: '1.1-1' }} / {{ budgetCap() | number: '1.1-1' }}</span>
+            @if (budgetPending() && round() !== null) {
+              <span class="block normal-case tracking-normal font-semibold text-amber-500 mt-0.5">{{ i18n.t('fantasy.budgetPending').replace('{n}', '' + (round()! - 1)) }}</span>
+            }
           </p>
           <!-- Position quota tiles (G/F/C fill green once met) + transfers. -->
           <div class="grid grid-cols-4 gap-2 mb-3">

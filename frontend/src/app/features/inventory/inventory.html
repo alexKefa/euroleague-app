@@ -1,17 +1,13 @@
 <div class="max-w-3xl lg:max-w-5xl mx-auto p-4 sm:p-6">
-  <div class="flex items-center justify-between mb-5">
-    <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('inventory.title') }}</h1>
+  <app-page-header [title]="i18n.t('inventory.title')" [eyebrow]="i18n.t('section.cards')" icon="cards">
     @if (auth.isAuthenticated()) {
       @if (pointsLoading()) {
-        <span class="animate-pulse inline-block w-16 h-6 rounded-full bg-line"></span>
+        <span headAside class="animate-pulse inline-block w-16 h-6 rounded-full bg-line"></span>
       } @else {
-        <span
-          class="font-mono text-sm font-bold text-team-primary bg-team-primary/15 rounded-full px-3.5 py-1.5"
-          >{{ points() }} {{ i18n.t('store.pointsBadge') }}</span
-        >
+        <span headAside class="font-mono text-sm font-bold text-team-primary bg-team-primary/15 rounded-full px-3.5 py-1.5">{{ points() }} {{ i18n.t('store.pointsBadge') }}</span>
       }
     }
-  </div>
+  </app-page-header>
 
   @if (auth.isAuthenticated()) {
     <app-page-hint hintId="cards-hub" icon="cards">

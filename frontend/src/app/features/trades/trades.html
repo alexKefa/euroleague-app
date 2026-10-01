@@ -5,7 +5,7 @@
     >{{ navHistory.previousUrl() ? i18n.t('nav.back') : i18n.t('trades.backToCards') }}</a
   >
 
-  <h1 class="font-display text-2xl tracking-wide mt-4 mb-5">{{ i18n.t('trades.title') }}</h1>
+  <app-page-header [title]="i18n.t('trades.title')" [eyebrow]="i18n.t('section.cards')" icon="trade" class="mt-4" />
 
   <app-page-hint hintId="trades" icon="trade">{{ i18n.t('trades.hint') }}</app-page-hint>
 

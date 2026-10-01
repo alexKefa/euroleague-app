@@ -15,6 +15,7 @@ import { SkeletonComponent } from "../../shared/skeleton";
 import { ButtonDirective } from "../../shared/button.directive";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { TeamCodePipe } from "../../shared/team-display-code";
+import { PageHeaderComponent } from "../../shared/page-header";
 
 interface TierBreakdown {
   tier: CollectibleTier;
@@ -30,7 +31,7 @@ const TIER_ORDER: CollectibleTier[] = ["common", "rare", "legendary"];
 @Component({
   selector: "app-album",
   standalone: true,
-  imports: [
+  imports: [PageHeaderComponent, 
     CommonModule,
     RouterLink,
     CollectibleCardComponent,

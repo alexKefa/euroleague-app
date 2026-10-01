@@ -416,6 +416,17 @@ let skipDbUntil = 0;
 // life of the process.
 const previousPointsByGame = new Map<string, Map<string, number>>();
 
+// When each game's feed last answered (process-local, like the map above).
+// Quarter picks pause when this is too old, so a stalled feed can't leave a
+// quarter open after it has really started (services/quarterPicks.ts).
+const lastFeedAt = new Map<string, number>();
+
+/** Milliseconds since this game's live feed last answered, or null if never this process. */
+export function getLiveFeedAgeMs(gameId: string): number | null {
+  const at = lastFeedAt.get(gameId);
+  return at === undefined ? null : Date.now() - at;
+}
+
 function deriveScoringEvents(gameId: string, teamSideOf: (teamId: string) => "home" | "away", current: LivePlayerPoints[]): ScoringEvent[] {
   const previous = previousPointsByGame.get(gameId);
   const next = new Map(current.map((p) => [p.playerId, p.points]));
@@ -466,6 +477,7 @@ export async function syncLiveGames(): Promise<LiveGamesSyncResult> {
 
       const header = await fetchHeader(game.season, game.gameCode);
       if (!header) continue; // not indexed by the feed yet
+      lastFeedAt.set(game.id, Date.now());
 
       const homeScore = parseScore(header.ScoreA, game.homeScore);
       const awayScore = parseScore(header.ScoreB, game.awayScore);
@@ -523,6 +535,7 @@ export async function syncLiveGames(): Promise<LiveGamesSyncResult> {
         .where(eq(games.id, game.id));
       await refreshFinalBoxscore(game.id, game.season, game.gameCode).catch(() => false);
       previousPointsByGame.delete(game.id);
+      lastFeedAt.delete(game.id);
       broadcast("game-update", { gameId: game.id, homeScore, awayScore, status: "final", onFireIds: [], quarter: null, gameClockSeconds: null, scoringEvents: [] });
       wentFinal++;
     }

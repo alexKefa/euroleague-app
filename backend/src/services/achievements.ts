@@ -3,7 +3,6 @@ import { db } from "../db/client.js";
 import { gameOdds, games, predictions } from "../db/schema.js";
 import {
   COACH_MILESTONE_INTERVAL,
-  FANTASY_MILESTONE_INTERVAL,
   GREAT_ROUND_THRESHOLD,
   LEGENDARY_MILESTONE_INTERVAL,
   RARE_MILESTONE_INTERVAL,
@@ -13,12 +12,13 @@ import { earnedBadges, ResolvedPick } from "./leaderboard.js";
 import { computeWinnerTeamId, pointsForCorrectPick } from "./points.js";
 import { getUserTopScorerPoints } from "./topScorerPoints.js";
 import { getCurrentSeason } from "./season.js";
+import { getFantasyCardTrackProgress } from "./fantasyCardTracks.js";
 
 // Mirrors services/referrals.ts's REFERRAL_REWARD_PACK_QUANTITY.
 const REFERRAL_PACKS_PER_FRIEND = 3;
 
 export interface MilestoneProgress {
-  id: "rareCard" | "legendaryPack" | "coachPack" | "fantasyPack";
+  id: "rareCard" | "legendaryPack" | "coachPack" | "fantasyCoachCard" | "fantasyCaptainCard";
   every: number;
   // Toward the next reward: count % every.
   progress: number;
@@ -51,7 +51,6 @@ export interface Achievements {
 
 type CountsRow = {
   correct: number;
-  fantasy_rounds: number;
   round: number | null;
   total_games: number;
   final_games: number;
@@ -76,7 +75,7 @@ const correctPickSql = sql`g.status = 'final' and g.home_score is not null and g
 export async function getAchievements(userId: string): Promise<Achievements> {
   const season = (await getCurrentSeason()) ?? "__none__";
 
-  const [countsRows, pickRows, topScorerPoints] = await Promise.all([
+  const [countsRows, pickRows, topScorerPoints, cardTracks] = await Promise.all([
     db.execute<CountsRow>(sql`
       with cur as (
         select coalesce(
@@ -89,7 +88,6 @@ export async function getAchievements(userId: string): Promise<Achievements> {
           (select count(*)::int from predictions p join games g on g.id = p.game_id where p.user_id = ${userId} and ${correctPickSql})
           + ${topScorerCorrectCountSql(userId)}
         )::int as correct,
-        (select count(*)::int from fantasy_round_points where user_id = ${userId}) as fantasy_rounds,
         cur.round,
         (select count(*)::int from games g where g.season = ${season} and g.round = cur.round) as total_games,
         (select count(*)::int from games g where g.season = ${season} and g.round = cur.round and g.status = 'final') as final_games,
@@ -109,6 +107,7 @@ export async function getAchievements(userId: string): Promise<Achievements> {
       .leftJoin(gameOdds, eq(gameOdds.gameId, games.id))
       .where(eq(predictions.userId, userId)),
     getUserTopScorerPoints(userId),
+    getFantasyCardTrackProgress(userId),
   ]);
   const c = countsRows[0];
 
@@ -119,7 +118,6 @@ export async function getAchievements(userId: string): Promise<Achievements> {
     earned: Math.floor(count / every),
   });
   const correct = Number(c?.correct ?? 0);
-  const fantasyRounds = Number(c?.fantasy_rounds ?? 0);
 
   // Badges: the same resolved-pick context the predictions summary builds,
   // so "earned" matches the badges shown on leaderboards exactly.
@@ -161,7 +159,8 @@ export async function getAchievements(userId: string): Promise<Achievements> {
       milestone("rareCard", RARE_MILESTONE_INTERVAL, correct),
       milestone("legendaryPack", LEGENDARY_MILESTONE_INTERVAL, correct),
       milestone("coachPack", COACH_MILESTONE_INTERVAL, correct),
-      milestone("fantasyPack", FANTASY_MILESTONE_INTERVAL, fantasyRounds),
+      milestone("fantasyCoachCard", cardTracks.coach.every, cardTracks.coach.positiveRounds),
+      milestone("fantasyCaptainCard", cardTracks.captain.every, cardTracks.captain.positiveRounds),
     ],
     currentRound:
       c?.round != null
