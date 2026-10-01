@@ -5,6 +5,7 @@ import { db } from "../db/client.js";
 import { players, playerSeasonStats, playerGameStats, games, teams, shotEvents, favoritePlayers } from "../db/schema.js";
 import { getCurrentSeason } from "../services/season.js";
 import { requireAuth } from "../auth/middleware.js";
+import { getScoutingReport } from "../services/scouting.js";
 
 export const playersRouter = Router();
 
@@ -268,6 +269,25 @@ playersRouter.get("/:id/shots", async (req, res) => {
 // simulator upserts player_game_stats every tick (see realtime/
 // liveScoreSimulator.ts), so a live row is a transient in-progress line, not
 // a finished result a "log" should list.
+// Scouting report (2026-10-01) — see services/scouting.ts.
+playersRouter.get("/:id/scouting", async (req, res) => {
+  try {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.id)) {
+      res.status(404).json({ error: "Player not found" });
+      return;
+    }
+    const report = await getScoutingReport(req.params.id);
+    if (!report) {
+      res.status(404).json({ error: "No games for this player yet" });
+      return;
+    }
+    res.json(report);
+  } catch (err) {
+    console.error("GET /api/players/:id/scouting failed:", err);
+    res.status(500).json({ error: "Failed to load scouting report" });
+  }
+});
+
 playersRouter.get("/:id/games", async (req, res) => {
   try {
     const playerId = req.params.id;

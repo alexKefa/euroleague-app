@@ -1308,3 +1308,48 @@ export interface FantasyPlayerCard {
   // Newest first.
   games: FantasyPlayerCardGame[];
 }
+
+// GET /players/:id/scouting (2026-10-01) — see backend services/scouting.ts.
+export type ScoutingMetricKey =
+  | "scoring"
+  | "efficiency"
+  | "threes"
+  | "rebounding"
+  | "playmaking"
+  | "ballSecurity"
+  | "defense"
+  | "foulDrawing"
+  | "impact";
+
+export interface ScoutingLine {
+  points: number;
+  rebounds: number;
+  assists: number;
+  pir: number;
+}
+
+export interface ScoutingReport {
+  season: string;
+  seasonGames: number;
+  position: string | null;
+  poolSize: number;
+  qualified: boolean;
+  metrics: { key: ScoutingMetricKey; value: number; percentile: number }[];
+  form: { games: number; last5: ScoutingLine | null; season: ScoutingLine | null };
+  splits: {
+    key: "home" | "away" | "wins" | "losses" | "starter" | "bench";
+    games: number;
+    points: number | null;
+    rebounds: number | null;
+    assists: number | null;
+    pir: number | null;
+  }[];
+  similar: {
+    id: string;
+    name: string;
+    position: string | null;
+    photoUrl: string | null;
+    team: { code: string | null; logoUrl: string | null };
+    similarity: number;
+  }[];
+}

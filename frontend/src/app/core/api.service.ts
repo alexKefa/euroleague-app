@@ -66,7 +66,7 @@ import {
   PromoRedemptionResponse,
   AdminUsersResponse,
   Announcement,
-  AnnouncementInput, FantasyPlayerCard } from "./models";
+  AnnouncementInput, FantasyPlayerCard, ScoutingReport } from "./models";
 
 /**
  * Wraps HttpClient calls to the backend's /api routes.
@@ -95,6 +95,10 @@ export class ApiService {
     return this.http.get<PlayerShotChart>(`${API_BASE_URL}/players/${playerId}/shots`, {
       params: season ? { season } : {},
     });
+  }
+
+  getPlayerScouting(playerId: string): Observable<ScoutingReport> {
+    return this.http.get<ScoutingReport>(`${API_BASE_URL}/players/${playerId}/scouting`);
   }
 
   getPlayerGames(playerId: string, season?: string): Observable<PlayerGameLog> {
