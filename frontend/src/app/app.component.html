@@ -37,15 +37,12 @@
        app's actual dark-theme page background (also in that CLAUDE.md
        entry) — the raster has no vector source to recolor via
        var(--color-ink) the way the old wordmark SVG could. The "Clutch"
-       <span> itself (2026-09-14) switched fonts from font-sans to
-       .brand-wordmark (Bigshot One, styles.css) to echo the logo's own
-       bold vintage-serif "Clutch" wordmark instead of reading as plain UI
-       text next to it — see styles.css's comment for why it's a Google
-       Fonts lookalike rather than the logo's actual (non-free) typeface. -->
+       <span> is styled by styles.css's .brand-wordmark (bold Plex Sans plus a
+       team-colour dot since 2026-10-01; Bigshot One before that). -->
   <a routerLink="/" class="flex items-center gap-2 shrink-0">
     <img src="/clutch-icon.png" alt="" height="34" class="brand-mark-light h-[30px] sm:h-[34px] w-auto" />
     <img src="/clutch-icon-dark.png" alt="" height="34" class="brand-mark-dark h-[30px] sm:h-[34px] w-auto" />
-    <span class="brand-wordmark text-ink text-xl tracking-wide">Clutch</span>
+    <span class="brand-wordmark text-ink text-[1.35rem]">Clutch<span class="brand-wordmark-dot" aria-hidden="true"></span></span>
   </a>
 
   <div class="flex items-center gap-2 min-w-0">
@@ -141,45 +138,42 @@
        gap the popover did, just never reported until that fix surfaced it:
        the fixed orange instead of the mobile nav's already-correct
        text-team-primary. -->
+  <!-- Rail restyle (2026-10-01, "the vanilla side menu on desktop is
+       ugly"): glass panel matching the top bar, rounded tiles with an
+       always-visible label under each icon (replaces the hover-to-expand
+       pill), a team-colour edge bar on the active tile, and a divider
+       between mobile's four direct tabs and its "More" destinations. -->
   <nav
-    class="hidden sm:flex flex-col items-center shrink-0 w-16 border-r border-line bg-card py-4 gap-2 sticky top-16 h-[calc(100vh-4rem)] z-40"
+    class="desktop-rail hidden sm:flex flex-col items-center shrink-0 w-[88px] border-r border-line bg-card/85 backdrop-blur-xl py-4 gap-1 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto z-40"
   >
-    @for (link of navLinks; track link.path) {
-      <!-- Fixed w-11/h-11 anchor box keeps this item's footprint constant in
-           the flex column (so items-center doesn't re-center it as it
-           grows) — the actual expanding pill inside is absolutely
-           positioned to its top-left corner, so growth always extends
-           rightward from the icon's resting spot instead of symmetrically
-           from the center. -->
-      <div class="relative w-11 h-11 shrink-0">
-        <a
-          [routerLink]="link.path"
-          [attr.aria-label]="i18n.t(link.label)"
-          [class]="isActive(link) ? 'bg-team-primary/15 text-team-primary' : 'text-muted hover:text-ink hover:bg-page'"
-          class="group absolute left-0 top-0 flex items-center h-11 w-11 hover:w-44 focus-visible:w-44 rounded-full overflow-hidden transition-all duration-200 z-20"
-        >
-          <span class="relative flex items-center justify-center w-11 h-11 shrink-0">
-            <app-nav-icon [name]="link.icon" [active]="isActive(link)" [size]="22" />
-            @if (link.path === '/predictions' && auth.isAuthenticated() && events.hasLiveGame()) {
-              <span
-                class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 animate-pulse"
-                [attr.aria-label]="i18n.t('nav.liveGame')"
-              ></span>
-            }
-            @if (link.path === '/inventory' && auth.isAuthenticated() && (trades.hasPendingIncoming() || battlesNotif.hasPendingIncoming() || packRewards.hasUnopened())) {
-              <span
-                class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 animate-pulse"
-                [attr.aria-label]="i18n.t(trades.hasPendingIncoming() ? 'nav.pendingTrades' : battlesNotif.hasPendingIncoming() ? 'battles.pendingChallenges' : 'nav.unopenedPacks')"
-              ></span>
-            }
-          </span>
-          <span
-            class="whitespace-nowrap text-sm font-semibold pr-4 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-150 delay-100"
-          >
-            {{ i18n.t(link.label) }}
-          </span>
-        </a>
-      </div>
+    @for (link of navLinks; track link.path; let i = $index) {
+      @if (i === 4) {
+        <span class="w-8 h-px bg-line my-2 shrink-0" aria-hidden="true"></span>
+      }
+      <a
+        [routerLink]="link.path"
+        [attr.aria-current]="isActive(link) ? 'page' : null"
+        [class.rail-active]="isActive(link)"
+        class="rail-item group relative flex flex-col items-center justify-center gap-1 w-[72px] shrink-0 rounded-2xl px-1 py-2 transition-colors duration-150"
+      >
+        <span class="rail-bar" aria-hidden="true"></span>
+        <span class="rail-icon relative flex items-center justify-center w-10 h-8 rounded-xl transition-all duration-200">
+          <app-nav-icon [name]="link.icon" [active]="isActive(link)" [size]="22" />
+          @if (link.path === '/predictions' && auth.isAuthenticated() && events.hasLiveGame()) {
+            <span
+              class="absolute top-0 right-1 w-2 h-2 rounded-full bg-red-500 ring-2 ring-card animate-pulse"
+              [attr.aria-label]="i18n.t('nav.liveGame')"
+            ></span>
+          }
+          @if (link.path === '/inventory' && auth.isAuthenticated() && (trades.hasPendingIncoming() || battlesNotif.hasPendingIncoming() || packRewards.hasUnopened())) {
+            <span
+              class="absolute top-0 right-1 w-2 h-2 rounded-full bg-red-500 ring-2 ring-card animate-pulse"
+              [attr.aria-label]="i18n.t(trades.hasPendingIncoming() ? 'nav.pendingTrades' : battlesNotif.hasPendingIncoming() ? 'battles.pendingChallenges' : 'nav.unopenedPacks')"
+            ></span>
+          }
+        </span>
+        <span class="rail-label w-full text-center text-[10.5px] font-semibold leading-tight">{{ i18n.t(link.label) }}</span>
+      </a>
     }
   </nav>
   }

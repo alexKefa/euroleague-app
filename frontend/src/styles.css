@@ -9,19 +9,6 @@
    glyph coverage that still reads as distinctly blocky/digital. */
 @import url("https://fonts.googleapis.com/css2?family=Nova+Mono&display=swap");
 
-/* Bigshot One — scoped only to the nav bar's "Clutch" text
-   (app.component.html's `.brand-wordmark`), matching the logo's own bold,
-   high-contrast vintage-serif "Clutch" wordmark more closely than the
-   regular font-sans stack did. The logo's actual typeface ("Kabal") isn't
-   genuinely free to use (checked directly — its official source sells it;
-   only unlicensed mirror copies claim otherwise), so this is a free
-   Google Fonts lookalike, picked via a side-by-side comparison, not the
-   exact same face. No Greek-coverage requirement here unlike the rest of
-   this app's type (CLAUDE.md's Branding section already exempts the
-   literal, untranslated word "Clutch" from that rule for the same
-   reason). */
-@import url("https://fonts.googleapis.com/css2?family=Bigshot+One&display=swap");
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -234,12 +221,22 @@
   font-weight: 700;
 }
 
-/* Nav bar's "Clutch" <span> only (app.component.html) — see the Bigshot
-   One @import comment above for why. Bigshot One ships one weight (400,
-   already visually heavy/display-weight by design), so no font-weight
-   override here the way .font-display needs one. */
+/* Nav bar's "Clutch" wordmark (app.component.html). Was Bigshot One, a
+   vintage serif echoing the logo art; swapped 2026-10-01 ("I don't like
+   it") for a tight bold Plex Sans with a team-colour dot. */
 .brand-wordmark {
-  font-family: "Bigshot One", serif;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+.brand-wordmark-dot {
+  display: inline-block;
+  width: 0.22em;
+  height: 0.22em;
+  margin-left: 0.08em;
+  border-radius: 999px;
+  background: var(--accent-primary);
 }
 
 :root {
@@ -866,5 +863,55 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .pick-expand {
     animation: none;
+  }
+}
+
+/* Desktop nav rail (app.component.html, 2026-10-01 restyle). */
+.desktop-rail {
+  scrollbar-width: none;
+}
+.rail-item {
+  color: var(--color-muted);
+}
+.rail-item:hover {
+  color: var(--color-ink);
+  background: color-mix(in srgb, var(--color-ink) 5%, transparent);
+}
+.rail-item:hover .rail-icon {
+  transform: translateY(-1px);
+}
+.rail-item:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+.rail-item.rail-active {
+  color: var(--accent-primary);
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+}
+.rail-item.rail-active .rail-icon {
+  background: color-mix(in srgb, var(--accent-primary) 18%, transparent);
+  box-shadow: 0 4px 14px -6px var(--accent-primary);
+}
+.rail-item.rail-active .rail-label {
+  font-weight: 700;
+}
+.rail-bar {
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  width: 4px;
+  height: 0;
+  border-radius: 0 4px 4px 0;
+  background: var(--accent-primary);
+  transform: translateY(-50%);
+  transition: height 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.rail-item.rail-active .rail-bar {
+  height: 28px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rail-item .rail-icon,
+  .rail-bar {
+    transition: none;
   }
 }
