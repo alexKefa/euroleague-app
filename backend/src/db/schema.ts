@@ -491,25 +491,6 @@ export const topScorerPredictions = pgTable(
   })
 );
 
-// Live quarter picks (2026-10-01): who wins the next quarter of a game. Only
-// the next quarter is ever open (services/quarterPicks.ts). Scored on read
-// from games.home/away_score_by_quarter, spendable only, never on the
-// leaderboard.
-export const quarterPredictions = pgTable(
-  "quarter_predictions",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    userId: uuid("user_id").notNull().references(() => users.id),
-    gameId: uuid("game_id").notNull().references(() => games.id),
-    quarter: integer("quarter").notNull(), // 1-4, no overtime
-    pickedTeamId: uuid("picked_team_id").notNull().references(() => teams.id),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  },
-  (table) => ({
-    userGameQuarterUnique: uniqueIndex("user_game_quarter_prediction_unique").on(table.userId, table.gameId, table.quarter),
-  })
-);
-
 // Manual point grants/deductions — layered on top of the picks-derived
 // points at read time rather than mutating a stored balance, since there
 // is no stored balance (see predictions.ts). Points may be negative.

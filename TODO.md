@@ -63,6 +63,14 @@ Known issues:
   before/after pair across round 2 if needed (grab a snapshot right before
   round 2 tips off).
 
+## 3. Quarter picks dropped (2026-10-01): clean up the leftover table
+
+Live "who wins the next quarter" picks shipped to dev only (1e37ad8) and were
+removed the same day after user feedback: picking every quarter is tedious and
+pulls people away from watching the game. Don't rebuild in-game per-quarter
+picks. The `quarter_predictions` table still exists on prod and on the dev Neon
+branch, but no code uses it. Drop it on both once the removal is confirmed.
+
 ## 4. Recheck milestone intervals against real top-scorer accuracy (deferred 2026-09-30, revisit after ~round 5)
 
 Milestones (a rare card every 2, a Legendary Pack every 18, a Coach pack

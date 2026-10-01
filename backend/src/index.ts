@@ -29,7 +29,6 @@ import { promoCodesRouter } from "./routes/promoCodes.js";
 import { adminRouter } from "./routes/admin.js";
 import { announcementsRouter } from "./routes/announcements.js";
 import { battlesRouter } from "./routes/battles.js";
-import { quarterPicksRouter } from "./routes/quarterPicks.js";
 import { remindersRouter } from "./routes/reminders.js";
 import { syncNews } from "./sync/newsSync.js";
 import { syncOdds } from "./sync/oddsSync.js";
@@ -138,7 +137,6 @@ app.use("/api/legendary-polls", legendaryPollsRouter);
 app.use("/api/promo-codes", promoCodesRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/battles", battlesRouter);
-app.use("/api/quarter-picks", quarterPicksRouter);
 app.use("/api/reminders", remindersRouter);
 app.use("/api/announcements", announcementsRouter);
 

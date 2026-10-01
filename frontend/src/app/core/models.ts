@@ -1371,23 +1371,6 @@ export interface ScoutingReport {
   }[];
 }
 
-// Live quarter picks (backend routes/quarterPicks.ts). Only the next quarter
-// is ever open; reason says why nothing is.
-export interface QuarterPick {
-  quarter: number;
-  pickedTeamId: string;
-  result: "won" | "lost" | "push" | null;
-}
-export interface QuarterPickState {
-  gameId: string;
-  status: string;
-  quarter: number | null;
-  openQuarter: number | null;
-  reason: "final" | "lastQuarter" | "stale" | null;
-  pointsPerCorrect: number;
-  picks: QuarterPick[];
-}
-
 // In-app "before it locks" reminders (backend routes/reminders.ts).
 export interface Reminders {
   fantasy: { round: number; lockAt: string } | null;

@@ -143,10 +143,6 @@ const FANTASY_POINTS_CONVERSION_RATE = 0.5;
 // mid-pack, no-standout-week squad); override with SIM_FANTASY_ROUND_POINTS
 // to test a stronger/weaker assumed squad.
 const FANTASY_ROUND_AVG_POINTS = Number(process.env.SIM_FANTASY_ROUND_POINTS ?? 100);
-// Live quarter picks (services/quarterPicks.ts's QUARTER_PICK_POINTS): games
-// a player follows live per round. SIM_QUARTER_PICK_GAMES=0 turns it off.
-const QUARTER_PICK_POINTS = 5;
-const QUARTER_PICK_GAMES = Number(process.env.SIM_QUARTER_PICK_GAMES ?? 3);
 const FANTASY_ENABLED = process.env.SIM_FANTASY !== "0";
 const FANTASY_CLUTCH_PER_ROUND = Math.floor(FANTASY_ROUND_AVG_POINTS * FANTASY_POINTS_CONVERSION_RATE);
 
@@ -529,11 +525,6 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
         // margins.
         greatRounds++;
         state.points += openPack(state, WHEEL_PACKS.rare);
-      }
-      // Live quarter picks (services/quarterPicks.ts): QUARTER_PICK_GAMES
-      // followed per round, 4 quarters each, ~50% right (pushes ignored).
-      for (let q = 0; q < QUARTER_PICK_GAMES * 4; q++) {
-        if (Math.random() < 0.5) state.points += QUARTER_PICK_POINTS;
       }
       // Fantasy Five round points (checkAndGrantFantasyRoundPoints) — a
       // completely separate mechanic from win/loss predictions above, so

@@ -1,8 +1,7 @@
 import { sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { predictions, games, gameOdds, pointAdjustments } from "../db/schema.js";
-import { getUserTopScorerPoints } from "./topScorerPoints.js";
-import { quarterPickPointsSql } from "./quarterPicks.js";
+import { getUserTopScorerPoints } from "./topScorerPoints.js";
 
 export const POINTS_PER_CORRECT = 10;
 
@@ -14,9 +13,9 @@ export function computeWinnerTeamId(game: typeof games.$inferSelect): string | n
 }
 
 // Odds-weighted scoring (2026-08-31 floor-not-penalty redesign; 2026-09-01
-// replaced entirely with a single direct-odds-multiple formula β€” see
+// replaced entirely with a single direct-odds-multiple formula — see
 // below). Every correct pick is worth POINTS_PER_CORRECT times the picked
-// team's own fair odds (1/fairProb) β€” "pay roughly what the market itself
+// team's own fair odds (1/fairProb) — "pay roughly what the market itself
 // would," not a curve built around an arbitrary boost constant. There's no
 // favorite/underdog branch at all: a heavy favorite's fair odds sit close
 // to 1.0 so it scores close to the flat rate, a real underdog's fair odds
@@ -30,15 +29,15 @@ export function computeWinnerTeamId(game: typeof games.$inferSelect): string | n
 // (tried first as `fairOdds / 2`, still anchored to flat-10-for-favorites),
 // real numbers made clear that halving compressed real underdogs too much
 // (a ~39%-implied pick was only netting ~13, not the ~25 a direct multiply
-// gives) β€” and keeping favorites pinned at flat 10 while steepening the
+// gives) — and keeping favorites pinned at flat 10 while steepening the
 // underdog side to match would require a hard jump right at the coin-flip
 // line (a 51% favorite scoring 10 while a 49% underdog on the same game
 // scores 20), a real cliff that rewards picking whichever side is marked
 // ever-so-slightly the underdog. Dropping the favorite floor entirely
 // avoids that cliff, at the cost of favorites no longer being exactly flat
-// β€” a correct pick on a 55% favorite now scores ~18, not 10. Since most
+// — a correct pick on a 55% favorite now scores ~18, not 10. Since most
 // correct picks land on favorites, this raises the *average* payout per
-// correct pick more than the old underdog-only bonus did β€”
+// correct pick more than the old underdog-only bonus did —
 // season-simulation.ts doesn't model any odds bonus yet (only flat
 // POINTS_PER_CORRECT), so there's no simulated number confirming this
 // against pack-cost/badge-threshold pacing; re-run it (after teaching it to
@@ -51,7 +50,7 @@ const MIN_FAIR_PROB = 0.05;
 
 /**
  * Points for a single correct pick. `fairProb` is the picked team's
- * de-vigged implied win probability from game_odds (see schema.ts) β€”
+ * de-vigged implied win probability from game_odds (see schema.ts) —
  * null when no odds snapshot exists for that game (API down, quota
  * exhausted, game outside the sync window, or the feature not configured
  * at all via ODDS_API_KEY), in which case this degrades to the original
@@ -66,27 +65,27 @@ export function pointsForCorrectPick(fairProb: number | null): number {
 
 // Same formula, inlined as a raw-SQL expression for the aggregate queries
 // in getUserPoints() below and services/leaderboard.ts's
-// getLeaderboardEntries() β€” those score potentially hundreds of picks at
+// getLeaderboardEntries() — those score potentially hundreds of picks at
 // once via a single grouped query rather than pulling every row into JS
 // (see this file's/leaderboard.ts's existing "fewer round trips" reasoning),
 // so the formula has to live in SQL there too. `pickedFairProb` is a raw
 // SQL fragment resolving to the *picked* team's home/away fair prob (or
-// NULL if no game_odds row) for that specific prediction row β€” see the two
+// NULL if no game_odds row) for that specific prediction row — see the two
 // call sites for how it's built from a join.
 //
-// Every bare numeric literal here is explicitly ::float8-cast β€” without at
+// Every bare numeric literal here is explicitly ::float8-cast — without at
 // least one typed operand nearby, Postgres can't resolve two "unknown"-
 // typed parameters multiplied/added together on their own ("operator is
 // not unique: unknown * unknown"), which bit the very first version of
 // this function. The whole expression is cast to ::numeric before round()
-// (not left as float8) β€” Postgres's single-argument round(double
+// (not left as float8) — Postgres's single-argument round(double
 // precision) rounds half-to-even (and is exposed to float rounding noise
 // right at a x.5 boundary), which silently disagreed with JS's
 // Math.round's round-half-up at an exact clamp boundary until this was
 // caught by testing both paths against the same input.
 export function pointsSqlExpr(pickedFairProb: ReturnType<typeof sql>) {
   // No game_odds row (coalesce to 1) degrades to the flat rate exactly like
-  // pointsForCorrectPick's `fairProb === null` branch does β€” POINTS_PER_CORRECT
+  // pointsForCorrectPick's `fairProb === null` branch does — POINTS_PER_CORRECT
   // / 1 = POINTS_PER_CORRECT. Clamped to [MIN_FAIR_PROB, 1] otherwise.
   const clampedP = sql`least(1::float8, greatest(${MIN_FAIR_PROB}::float8, coalesce(${pickedFairProb}, 1::float8)))`;
   const raw = sql`${POINTS_PER_CORRECT}::float8 / (${clampedP})`;
@@ -95,31 +94,31 @@ export function pointsSqlExpr(pickedFairProb: ReturnType<typeof sql>) {
 
 /**
  * A user's current spendable points: resolved correct picks (win/loss
- * Predictions + top-scorer prop picks, see getUserTopScorerPoints β€” the
+ * Predictions + top-scorer prop picks, see getUserTopScorerPoints — the
  * two were explicitly decided to share one pool, 2026-09-09) plus any
  * manual adjustments (grants from an admin, or negative rows recorded when
- * redeeming a store item). Recomputed on every call β€” see predictions.ts
+ * redeeming a store item). Recomputed on every call — see predictions.ts
  * for why points aren't stored as a balance.
  *
- * Two round trips, not one β€” the win/loss aggregate stays a single query
+ * Two round trips, not one — the win/loss aggregate stays a single query
  * (see the "fewer round trips" reasoning below), but the top-scorer total
  * is a genuinely separate table/formula living in topScorerPoints.ts (kept
- * as a sibling file on purpose, not merged into this one's SQL β€” see that
+ * as a sibling file on purpose, not merged into this one's SQL — see that
  * file's own doc comment), so it's a second call rather than folding its
  * CTEs into this query too. Each round trip to this (remote) DB costs
  * real, mostly-fixed latency regardless of whether queries are awaited
  * sequentially or fired via Promise.all (measured directly: 4 queries via
- * Promise.all took as long as 4 sequential ones β€” this driver/pool doesn't
+ * Promise.all took as long as 4 sequential ones — this driver/pool doesn't
  * give genuine concurrency across separate calls), so there's no
  * Promise.all win available here either way. The correct-pick condition in
  * the first query mirrors computeWinnerTeamId() exactly (final, both
- * scores present, no tie) β€” keep the two in sync if that logic ever
+ * scores present, no tie) — keep the two in sync if that logic ever
  * changes.
  */
 export async function getUserPoints(userId: string): Promise<number> {
   const pickedFairProb = sql`case when p.predicted_winner_team_id = g.home_team_id then go.home_fair_prob else go.away_fair_prob end`;
 
-  const [row] = await db.execute<{ correct_points: number; bonus: number; quarter_points: number }>(sql`
+  const [row] = await db.execute<{ correct_points: number; bonus: number }>(sql`
     select
       coalesce((
         select sum(${pointsSqlExpr(pickedFairProb)}) from ${predictions} p
@@ -132,11 +131,9 @@ export async function getUserPoints(userId: string): Promise<number> {
           and g.home_score <> g.away_score
           and p.predicted_winner_team_id = case when g.home_score > g.away_score then g.home_team_id else g.away_team_id end
       ), 0)::int as correct_points,
-      coalesce((select sum(points) from ${pointAdjustments} where user_id = ${userId}), 0)::int as bonus,
-      -- Live quarter picks: spendable, never on the leaderboard.
-      ${quarterPickPointsSql(userId)}::int as quarter_points
+      coalesce((select sum(points) from ${pointAdjustments} where user_id = ${userId}), 0)::int as bonus
   `);
   const topScorerPoints = await getUserTopScorerPoints(userId);
 
-  return row.correct_points + row.bonus + row.quarter_points + topScorerPoints;
+  return row.correct_points + row.bonus + topScorerPoints;
 }

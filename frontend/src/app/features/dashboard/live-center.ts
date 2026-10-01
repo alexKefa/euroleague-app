@@ -12,8 +12,7 @@ import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { newsDateLocale, shortDateFormat } from "../../shared/news-date-format";
-import { TodayTagPipe } from "../../shared/today-tag.pipe";
-import { QuarterPicksComponent } from "../../shared/quarter-picks";
+import { TodayTagPipe } from "../../shared/today-tag.pipe";
 
 const SEASON = "2026-27";
 
@@ -44,7 +43,7 @@ interface FavoriteRow extends FavoritePlayer {
 @Component({
   selector: "app-live-center",
   standalone: true,
-  imports: [QuarterPicksComponent, CommonModule, RouterLink, TeamCodePipe, PlayerPhotoComponent, RetryImgDirective, SkeletonComponent, TodayTagPipe],
+  imports: [CommonModule, RouterLink, TeamCodePipe, PlayerPhotoComponent, RetryImgDirective, SkeletonComponent, TodayTagPipe],
   templateUrl: "./live-center.html",
 })
 export class LiveCenterComponent implements OnInit {

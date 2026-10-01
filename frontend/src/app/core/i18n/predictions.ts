@@ -1,18 +1,6 @@
 import { Lang } from "./lang";
 
 export const predictionsTranslations: Record<string, Record<Lang, string>> = {
-  // Live quarter picks (shared/quarter-picks.ts, 2026-10-01). Greek uses
-  // "δεκάλεπτο", the usual word for a basketball quarter.
-  "quarterPicks.title": { en: "Next quarter", el: "Επόμενο δεκάλεπτο" },
-  "quarterPicks.whoWins": { en: "Who wins Q{n}?", el: "Ποιος κερδίζει το {n}ο δεκάλεπτο;" },
-  "quarterPicks.locks": { en: "Locks when Q{n} starts", el: "Κλειδώνει με την έναρξη του {n}ου δεκαλέπτου" },
-  "quarterPicks.pts": { en: "+{n} pts if right", el: "+{n} πόντοι αν πετύχεις" },
-  "quarterPicks.notRanked": { en: "spendable points, not on the leaderboard", el: "πόντοι για αγορές, όχι για την κατάταξη" },
-  "quarterPicks.paused": { en: "Picks paused while live data catches up", el: "Οι επιλογές σε παύση μέχρι να ενημερωθούν τα live δεδομένα" },
-  "quarterPicks.locked": { en: "That quarter has already started", el: "Το δεκάλεπτο έχει ήδη ξεκινήσει" },
-  "quarterPicks.push": { en: "tie", el: "ισοπαλία" },
-  "quarterPicks.qShort": { en: "Q{n}", el: "{n}ο δεκ." },
-
   // In-app reminders banner (shared/reminders-banner.ts, 2026-10-01).
   "reminders.fantasy": { en: "No Fantasy squad for round {round} yet. It locks in {time}.", el: "Δεν έχεις ομάδα Fantasy για τον γύρο {round}. Κλειδώνει σε {time}." },
   "reminders.fantasyCta": { en: "Build squad", el: "Φτιάξε ομάδα" },
