@@ -12,7 +12,13 @@
     >{{ navHistory.previousUrl() ? i18n.t('nav.back') : i18n.t('store.myCards') }}</a
   >
 
-  <app-page-header [title]="i18n.t('store.title')" [eyebrow]="i18n.t('section.cards')" icon="store" class="mt-4" />
+  <app-page-header [title]="i18n.t('store.title')" [eyebrow]="i18n.t('section.cards')" icon="store" class="mt-4">
+    @if (auth.isAuthenticated() && pointsLoading()) {
+      <span headAside class="animate-pulse inline-block w-16 h-6 rounded-full bg-line"></span>
+    } @else if (auth.isAuthenticated()) {
+      <span headAside class="font-mono text-sm font-bold text-team-primary bg-team-primary/15 rounded-full px-3.5 py-1.5">{{ points() }} {{ i18n.t('store.pointsBadge') }}</span>
+    }
+  </app-page-header>
   <!-- Balance hero (2026-09-29 restyle, same look as the Cards hub). -->
   @if (auth.isAuthenticated()) {
     <div class="relative overflow-hidden flex items-center justify-between gap-3 rounded-3xl p-4 mb-5 bg-card border border-line shadow-card">
