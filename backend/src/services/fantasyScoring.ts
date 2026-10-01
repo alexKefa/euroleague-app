@@ -518,22 +518,37 @@ export async function markFantasyRoundPointsSeen(userId: string): Promise<void> 
     .where(and(eq(fantasyRoundPoints.userId, userId), isNull(fantasyRoundPoints.seenAt)));
 }
 
+// How long before the round's first recorded tipoff the whole round locks
+// (2026-10-01, direct ask: "always lock fantasy 3 minutes before the first
+// tip off").
+export const FANTASY_LOCK_LEAD_MS = 3 * 60 * 1000;
+
 /**
- * A round locks the moment its first game tips off — the whole round, not
- * per-game, same "whole gameweek locks at the first game" rule real fantasy
- * apps use. Governs the coach pick (real rules don't give the coach its own
- * per-player turn window) and is the lineup builder's default "which round
- * am I drafting for" boundary. Null if the round doesn't exist (no games)
- * for that season.
+ * A round locks FANTASY_LOCK_LEAD_MS before its first game tips off — the
+ * whole round, not per-game, same "whole gameweek locks at the first game"
+ * rule real fantasy apps use. Governs the coach pick (real rules don't give
+ * the coach its own per-player turn window) and is the lineup builder's
+ * default "which round am I drafting for" boundary. Null if the round
+ * doesn't exist (no games) for that season.
+ *
+ * Also locked the moment any of its games is live or final, whatever the
+ * recorded tipoff says: the schedule feed sometimes records a tipoff an
+ * hour late (liveGamesSync.ts's PRE_TIPOFF_POLL_MS comment), and on
+ * 2026-10-01 round 3 stayed open with its first game already live.
  */
 export async function getRoundLockTime(season: string, round: number): Promise<Date | null> {
   const [row] = await db
-    .select({ tipoffAt: games.tipoffAt })
+    .select({
+      firstTipoff: sql<string | null>`min(${games.tipoffAt})`,
+      anyStarted: sql<boolean | null>`bool_or(${games.status} <> 'scheduled')`,
+    })
     .from(games)
-    .where(and(eq(games.season, season), eq(games.round, round)))
-    .orderBy(asc(games.tipoffAt))
-    .limit(1);
-  return row ? new Date(row.tipoffAt) : null;
+    .where(and(eq(games.season, season), eq(games.round, round)));
+  if (!row?.firstTipoff) return null;
+  const lockAt = new Date(new Date(row.firstTipoff).getTime() - FANTASY_LOCK_LEAD_MS);
+  // Backdated a minute, not "now": callers compare against a `now` they
+  // read before this query ran, and must still see the round as locked.
+  return row.anyStarted && lockAt.getTime() > Date.now() ? new Date(Date.now() - 60_000) : lockAt;
 }
 
 
