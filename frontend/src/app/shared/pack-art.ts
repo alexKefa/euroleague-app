@@ -29,6 +29,20 @@ const NAME_KEY_BY_TYPE: Partial<Record<PackType, string>> = {
 
 const SET_CODE: Record<PackArtTier, string> = { starter: "RS", pro: "PO", elite: "F4", coach: "HC" };
 
+// Cards per pack (mirrors backend services/packs.ts's slot counts).
+const CARD_COUNT: Record<PackType, number> = {
+  starter: 4,
+  pro: 4,
+  elite: 5,
+  wheelStarter: 8,
+  wheelPro: 6,
+  wheelLegendary: 1,
+  wheelCoach: 1,
+  qrBonus: 5,
+  welcomeBonus: 5,
+  referralBonus: 5,
+};
+
 /**
  * Foil booster-pack art (2026-09-30 redesign, "packs too plain"): a dark
  * tier-tinted body with crimped heat seals top and bottom, faint half-court
@@ -65,7 +79,7 @@ const SET_CODE: Record<PackArtTier, string> = { starter: "RS", pro: "PO", elite:
           <img src="/clutch-icon-dark.png" alt="" />
         </div>
         <div class="pa-name">{{ name() }}</div>
-        <div class="pa-count">{{ i18n.t('packs.artCards') }}</div>
+        <div class="pa-count">{{ cardCount() }} {{ i18n.t(cardCount() === 1 ? 'packs.artCard' : 'packs.artCards') }}</div>
 
         @if (tier() === 'elite' || tier() === 'coach') {
           <span class="pa-spark" style="top: 20%; left: 14%"></span>
@@ -300,5 +314,6 @@ export class PackArtComponent {
 
   readonly tier = computed(() => TIER_BY_TYPE[this.type()] ?? "elite");
   readonly setCode = computed(() => SET_CODE[this.tier()]);
+  readonly cardCount = computed(() => CARD_COUNT[this.type()] ?? 5);
   readonly name = computed(() => this.i18n.t(NAME_KEY_BY_TYPE[this.type()] ?? `packs.artName.${this.tier()}`));
 }

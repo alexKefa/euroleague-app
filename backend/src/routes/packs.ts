@@ -16,13 +16,17 @@ import {
   markCoachMilestonesSeen,
   markFantasyMilestonesSeen,
 } from "../services/cards.js";
+import { checkAndGrantFantasyCardTracks, markFantasyCardTracksSeen } from "../services/fantasyCardTracks.js";
 
 export const packsRouter = Router();
 
 // Cards you already own can still drop from a pack (unlike direct redeem or
 // the wheel, which both exclude owned cards) — a duplicate can be cashed in
 // immediately for points instead. See packOpeningResults in schema.ts.
-const SELL_BACK_RATE = 0.5;
+// 0.5 -> 0.3 (2026-10-01) so the 8/6-card Regular Season / Playoffs packs
+// can stay cheap (250/400) without an all-duplicate pack selling back for
+// more than it costs (see PACKS in services/packs.ts).
+const SELL_BACK_RATE = 0.3;
 
 packsRouter.get("/", (_req, res) => {
   res.json(
@@ -210,11 +214,21 @@ packsRouter.get("/rewards/unseen", requireAuth, async (req, res) => {
       ...(await checkAndGrantFantasyMilestones(userId)),
     ];
     const unseenIds = new Set(granted.map((p) => p.id));
-    const unopened = await getUnopenedPacksWithSource(userId);
+    const [unopened, cardRewards] = await Promise.all([
+      getUnopenedPacksWithSource(userId),
+      // A failure here (e.g. its tables missing on a drifted DB) must not
+      // hide every other reward toast.
+      checkAndGrantFantasyCardTracks(userId).catch((err) => {
+        console.error("fantasy card tracks failed:", err);
+        return [];
+      }),
+    ]);
     res.json({
       rewards: unopened
         .filter((p) => unseenIds.has(p.id))
         .map((p) => ({ ...p, label: PACKS[p.packType as PackType]?.label ?? p.packType })),
+      // Fantasy coach/captain card tracks grant cards, not packs.
+      cardRewards,
       unopenedCount: unopened.length,
     });
   } catch (err) {
@@ -230,6 +244,7 @@ packsRouter.post("/rewards/ack", requireAuth, async (req, res) => {
     await markLegendaryMilestonesSeen(userId);
     await markCoachMilestonesSeen(userId);
     await markFantasyMilestonesSeen(userId);
+    await markFantasyCardTracksSeen(userId).catch((err) => console.error("fantasy card tracks ack failed:", err));
     res.json({ ok: true });
   } catch (err) {
     console.error("POST /api/packs/rewards/ack failed:", err);

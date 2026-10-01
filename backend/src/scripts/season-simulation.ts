@@ -97,14 +97,18 @@ const CATALOG_SIZE: Record<Tier, number> = { common: 320, rare: 320, legendary: 
 // (rollPackForUser's forceNewLegendary/forceNewCoach) — modeled directly
 // below rather than via TIER_COST.
 const TIER_COST: Record<"common" | "rare", number> = { common: 50, rare: 250 };
-const SELL_RATE = 0.5;
+const SELL_RATE = Number(process.env.SIM_SELL_RATE ?? 0.3); // routes/packs.ts SELL_BACK_RATE
 
 const POINTS_PER_CORRECT = Number(process.env.SIM_PPC ?? 10);
 // routes/auth.ts: since 2026-09-21 a new account gets WELCOME_PACK_QUANTITY
 // unopened welcomeBonus packs instead of the old flat 150 points.
 const REGISTRATION_BONUS = 0;
 const WELCOME_PACK_QUANTITY = 2;
-const PITY_THRESHOLD: Record<"common" | "rare", number> = { common: 4, rare: 2 }; // services/packs.ts
+// services/packs.ts; SIM_PITY_{COMMON,RARE} override to test a retune.
+const PITY_THRESHOLD: Record<"common" | "rare", number> = {
+  common: Number(process.env.SIM_PITY_COMMON ?? 4),
+  rare: Number(process.env.SIM_PITY_RARE ?? 2),
+};
 // services/cards.ts's RARE_MILESTONE_INTERVAL, added 2026-09-22 ("explore
 // retuning" pass — see that constant's own comment for the full context and
 // re-simulated numbers). 0 = off.
@@ -163,16 +167,33 @@ const TOP_SCORER_ACC_RATIO = Number(process.env.SIM_TOPSCORER_ACC_RATIO ?? 0.4);
 // in the 2026-09-22 legendary-pool-doubling pass) — this default mirrors
 // that constant so a plain `economy:simulate` run reflects reality;
 // override with SIM_FANTASY_MILESTONE (0 = off) to compare against it.
-const FANTASY_MILESTONE_INTERVAL = Number(process.env.SIM_FANTASY_MILESTONE ?? 3);
+const FANTASY_MILESTONE_INTERVAL = Number(process.env.SIM_FANTASY_MILESTONE ?? 0);
 
-// routes/spin.ts SPIN_ODDS, verbatim — 58/20/14/8 -> 58/20/20/2 (2026-09-22
+// Fantasy coach / captain tracks (2026-10-01, replacing the legendary
+// FANTASY_MILESTONE above): every N rounds in which the user's coach (his
+// team won) / captain (positive fantasy points) scored, a coach card / a
+// rare card. Both are "missing one if possible", modelled as a
+// guaranteed-new grant.
+const FANTASY_COACH_TRACK = Number(process.env.SIM_FANTASY_COACH_TRACK ?? 4); // 0 = off
+const FANTASY_CAPTAIN_TRACK = Number(process.env.SIM_FANTASY_CAPTAIN_TRACK ?? 3); // 0 = off
+const COACH_WIN_RATE = Number(process.env.SIM_COACH_WIN_RATE ?? 0.6);
+const CAPTAIN_POSITIVE_RATE = Number(process.env.SIM_CAPTAIN_POSITIVE_RATE ?? 0.95);
+
+// routes/spin.ts SPIN_ODDS, verbatim (58/28/11/3 since 2026-10-01) — 58/20/14/8 -> 58/20/20/2 (2026-09-22
 // legendary-pool-doubling retune, see that constant's own comment for the
 // full context: the catalog doubled from 20 to 40 legendaries, and this
 // bump — taken entirely out of coach's share, a free lever since coach
 // isn't in the album — restored 50%-engagement completion to
 // 37/72/89/96/99/100%, matching or exceeding the original numbers, with
 // zero cost to common/rare supply).
-const SPIN_ODDS: Record<Tier, number> = { common: 0.58, rare: 0.2, legendary: 0.2, coach: 0.02 };
+// 2026-10-01: common -> Regular Season pack, rare -> Playoffs pack,
+// legendary -> one legendary card, coach -> one coach card; SIM_SPIN_{COMMON,RARE,LEGENDARY,COACH} override to test a retune.
+const SPIN_ODDS: Record<Tier, number> = {
+  common: Number(process.env.SIM_SPIN_COMMON ?? 0.58),
+  rare: Number(process.env.SIM_SPIN_RARE ?? 0.28),
+  legendary: Number(process.env.SIM_SPIN_LEGENDARY ?? 0.12),
+  coach: Number(process.env.SIM_SPIN_COACH ?? 0.02),
+};
 
 interface PackSlot {
   odds: Partial<Record<Tier, number>>;
@@ -184,76 +205,39 @@ interface PackDef {
   slots: PackSlot[];
 }
 
-// --- services/packs.ts PACKS, verbatim (2026-08-25 pass) ---
+// Guaranteed-common then guaranteed-rare slots.
+function fixedSlots(commons: number, rares: number): PackSlot[] {
+  return Array.from({ length: commons + rares }, (_, i) => ({ odds: i < commons ? { common: 1 } : { rare: 1 } }));
+}
+
+// --- services/packs.ts PACKS, verbatim (2026-10-01: small cheap packs, the
+// wheel gives two; Final Four = guaranteed new legendary at 600) ---
 const PACKS: PackDef[] = [
   {
     type: "starter",
-    cost: 150,
+    cost: Number(process.env.SIM_STARTER_COST ?? 100),
     purchasable: true,
-    slots: [
-      { odds: { common: 1 } },
-      { odds: { common: 1 } },
-      { odds: { common: 1 } },
-      { odds: { common: 0.92, rare: 0.08 } },
-      { odds: { common: 0.92, rare: 0.08 } },
-    ],
+    slots: [...fixedSlots(3, 0), { odds: { common: 0.7, rare: 0.3 } }],
   },
-  {
-    type: "pro",
-    cost: 400,
-    purchasable: true,
-    slots: [
-      { odds: { common: 1 } },
-      { odds: { rare: 1 } },
-      { odds: { rare: 1 } },
-      { odds: { common: 0.7, rare: 0.3 } },
-      { odds: { common: 0.7, rare: 0.3 } },
-    ],
-  },
+  { type: "pro", cost: Number(process.env.SIM_PRO_COST ?? 250), purchasable: true, slots: fixedSlots(2, 2) },
   {
     type: "elite",
-    cost: 1200,
+    cost: Number(process.env.SIM_ELITE_COST ?? 600),
     purchasable: true,
-    // services/packs.ts's elite pack, verbatim — 1st slot common -> rare
-    // (2026-09-22, "explore retuning" pass): 4 guaranteed rares instead of
-    // 3+1 common, worst-case EV 487.5 -> 587.5 against the 1200 cost, still
-    // a safe 612.5pt margin. See that file's own comment for the full
-    // "rares, not legendary, were the real points-only bottleneck" finding
-    // this pass was built on.
-    slots: [
-      { odds: { rare: 1 } },
-      { odds: { rare: 1 } },
-      { odds: { rare: 1 } },
-      { odds: { rare: 1 } },
-      // services/packs.ts's elite big slot, verbatim — 17%/13% legendary/
-      // coach -> 24%/6% (2026-09-22, same legendary-pool-doubling retune as
-      // SPIN_ODDS above), taken entirely out of coach's share.
-      { odds: { rare: 0.7, legendary: 0.24, coach: 0.06 } },
-    ],
+    slots: [...fixedSlots(0, 3), { odds: { rare: 0.8, coach: 0.2 } }, { odds: { legendary: 1 } }],
   },
 ];
 
 function isBigSlot(slot: PackSlot): boolean {
   return slot.odds.legendary !== undefined && slot.odds.coach !== undefined;
 }
-// Wheel pack of guaranteed-common then guaranteed-rare slots. The
-// SIM_WHEEL_{STARTER,PRO}_{COMMONS,RARES} env vars override the defaults
-// (which mirror services/packs.ts) to test a retune.
-function wheelPack(type: string, commons: number, rares: number): PackDef {
-  return {
-    type,
-    cost: 0,
-    purchasable: false,
-    slots: Array.from({ length: commons + rares }, (_, i) => ({ odds: i < commons ? { common: 1 } : { rare: 1 } })),
-  };
-}
+// The wheel's common/rare tiers award the Regular Season / Playoffs store
+// packs (2026-10-01); a great round's reward pack (wheelPro) has the same
+// contents as Playoffs.
+const WHEEL_PACK_COUNT = Number(process.env.SIM_WHEEL_PACK_COUNT ?? 2);
 const WHEEL_PACKS: Record<"common" | "rare", PackDef> = {
-  common: wheelPack(
-    "wheelStarter",
-    Number(process.env.SIM_WHEEL_STARTER_COMMONS ?? 6),
-    Number(process.env.SIM_WHEEL_STARTER_RARES ?? 2)
-  ),
-  rare: wheelPack("wheelPro", Number(process.env.SIM_WHEEL_PRO_COMMONS ?? 2), Number(process.env.SIM_WHEEL_PRO_RARES ?? 4)),
+  common: { ...PACKS.find((p) => p.type === "starter")!, cost: 0, purchasable: false },
+  rare: { ...PACKS.find((p) => p.type === "pro")!, cost: 0, purchasable: false },
 };
 
 // services/packs.ts welcomeBonus, verbatim. Its last slot carries both
@@ -423,6 +407,8 @@ interface SimResult {
   fantasyPointsEarned: number;
   topScorerPointsEarned: number;
   fantasyMilestones: number;
+  fantasyCoachCards: number;
+  fantasyCaptainCards: number;
   packsOpenedByType: Record<string, number>;
 }
 
@@ -448,6 +434,10 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
   let topScorerPointsEarned = 0;
   let fantasyRoundsPlayed = 0;
   let fantasyMilestones = 0;
+  let coachPositiveRounds = 0;
+  let captainPositiveRounds = 0;
+  let fantasyCoachCards = 0;
+  let fantasyCaptainCards = 0;
   let cumulativeCorrect = 0;
   let purchasableCompleteDay: number | null = null;
   let fullCompleteDay: number | null = null;
@@ -547,6 +537,14 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
           fantasyMilestones++;
           grantGuaranteedNewOfTier(state, "legendary");
         }
+        if (FANTASY_COACH_TRACK > 0 && Math.random() < COACH_WIN_RATE && ++coachPositiveRounds % FANTASY_COACH_TRACK === 0) {
+          fantasyCoachCards++;
+          grantGuaranteedNewOfTier(state, "coach");
+        }
+        if (FANTASY_CAPTAIN_TRACK > 0 && Math.random() < CAPTAIN_POSITIVE_RATE && ++captainPositiveRounds % FANTASY_CAPTAIN_TRACK === 0) {
+          fantasyCaptainCards++;
+          grantGuaranteedNewOfTier(state, "rare");
+        }
       }
       nextRound++;
       spendLoop(state, policy);
@@ -562,10 +560,11 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
             : roll < SPIN_ODDS.coach + SPIN_ODDS.legendary + SPIN_ODDS.rare
               ? "rare"
               : "common";
-      if (tier === "legendary" || tier === "coach") {
+      if (tier === "coach" || tier === "legendary") {
         grantGuaranteedNewOfTier(state, tier); // same "always new" grant, different trigger — wheelLegendary/wheelCoach's single slot always forces new anyway
       } else {
-        state.points += openPack(state, WHEEL_PACKS[tier]);
+        // Two packs per common/rare spin (routes/spin.ts WHEEL_PACK_COUNT).
+        for (let i = 0; i < WHEEL_PACK_COUNT; i++) state.points += openPack(state, WHEEL_PACKS[tier]);
       }
       spendLoop(state, policy);
     }
@@ -593,6 +592,8 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
     fantasyPointsEarned,
     topScorerPointsEarned,
     fantasyMilestones,
+    fantasyCoachCards,
+    fantasyCaptainCards,
     packsOpenedByType: state.packsOpenedByType,
   };
 }
@@ -629,6 +630,8 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
   const avgFantasyPoints = results.reduce((s, r) => s + r.fantasyPointsEarned, 0) / n;
   const avgTopScorerPoints = results.reduce((s, r) => s + r.topScorerPointsEarned, 0) / n;
   const avgFantasyMilestones = results.reduce((s, r) => s + r.fantasyMilestones, 0) / n;
+  const avgFantasyCoachCards = results.reduce((s, r) => s + r.fantasyCoachCards, 0) / n;
+  const avgFantasyCaptainCards = results.reduce((s, r) => s + r.fantasyCaptainCards, 0) / n;
   const avgPacksByType: Record<string, number> = {};
   for (const r of results) {
     for (const [type, count] of Object.entries(r.packsOpenedByType)) {
@@ -658,13 +661,20 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
       (FANTASY_ENABLED ? ` | avg fantasy pts earned: ${avgFantasyPoints.toFixed(0)}` : "") +
       (TOP_SCORER_ENABLED ? ` | avg top-scorer pts earned: ${avgTopScorerPoints.toFixed(0)}` : "") +
       (FANTASY_MILESTONE_INTERVAL > 0 ? ` | avg fantasy milestones: ${avgFantasyMilestones.toFixed(2)}` : "") +
+      (FANTASY_COACH_TRACK > 0 ? ` | fantasy coach cards: ${avgFantasyCoachCards.toFixed(1)}` : "") +
+      (FANTASY_CAPTAIN_TRACK > 0 ? ` | fantasy captain rares: ${avgFantasyCaptainCards.toFixed(1)}` : "") +
       (packsSummary ? ` | avg packs bought (incl. re-spent dupe refunds): ${packsSummary}` : "") +
       ` | avg idle pts: ${avgEndPoints.toFixed(0)}`
   );
 }
 
 const N = Number(process.env.SIM_N ?? 3000);
-const ACCURACIES = process.env.SIM_QUICK ? [0.75] : [0.5, 0.6, 0.65, 0.7, 0.75, 0.8];
+// SIM_ACC=0.6,0.65 picks the accuracies to run (overrides SIM_QUICK's 75%).
+const ACCURACIES = process.env.SIM_ACC
+  ? process.env.SIM_ACC.split(",").map(Number)
+  : process.env.SIM_QUICK
+    ? [0.75]
+    : [0.5, 0.6, 0.65, 0.7, 0.75, 0.8];
 // Restricts the blocks below to just the one matching this engagement
 // percentage (e.g. SIM_ENGAGEMENT_ONLY=50 runs only the 50%-engagement
 // block) — for a focused run without the other scenarios' noise. Omit for

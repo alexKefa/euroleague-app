@@ -178,6 +178,10 @@
             <!-- Same shared pack art as the Packs page's buy tiles
                  (shared/pack-art.ts). -->
             <app-pack-art [type]="won.packType" [class.legendary-shake]="won.tier === 'legendary'" style="width: 140px" />
+            @if ((won.count ?? 1) > 1) {
+              <!-- Common/rare spins award two packs (backend WHEEL_PACK_COUNT). -->
+              <span class="absolute bottom-3 right-6 rounded-full bg-ink text-surface font-display text-lg leading-none px-2.5 py-1.5 shadow-lg tabular-nums">&times;{{ won.count }}</span>
+            }
           </div>
 
           <!-- "Open now" (2026-09-29): straight into this pack's reveal on

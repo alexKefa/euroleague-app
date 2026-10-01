@@ -769,6 +769,45 @@ export const fantasyMilestones = pgTable(
   })
 );
 
+// Fantasy card tracks (2026-10-01, replacing fantasy_milestones' legendary
+// pack every few rounds — see services/fantasyCardTracks.ts). Coach: every
+// FANTASY_COACH_TRACK_INTERVAL completed rounds in which the user's coach
+// won, the card of the coach picked most in that streak (or a missing one
+// if already owned). Captain: every FANTASY_CAPTAIN_TRACK_INTERVAL rounds
+// with a positive-scoring captain, a rare card of one of those captains.
+// collectible_id is null when every eligible card was already owned.
+export const fantasyCoachCards = pgTable(
+  "fantasy_coach_cards",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    milestoneNumber: integer("milestone_number").notNull(),
+    teamId: uuid("team_id").references(() => teams.id),
+    collectibleId: uuid("collectible_id").references(() => collectibles.id),
+    grantedAt: timestamp("granted_at", { withTimezone: true }).defaultNow().notNull(),
+    seenAt: timestamp("seen_at", { withTimezone: true }),
+  },
+  (table) => ({
+    userMilestoneUnique: uniqueIndex("user_fantasy_coach_card_unique").on(table.userId, table.milestoneNumber),
+  })
+);
+
+export const fantasyCaptainCards = pgTable(
+  "fantasy_captain_cards",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    milestoneNumber: integer("milestone_number").notNull(),
+    playerId: uuid("player_id").references(() => players.id),
+    collectibleId: uuid("collectible_id").references(() => collectibles.id),
+    grantedAt: timestamp("granted_at", { withTimezone: true }).defaultNow().notNull(),
+    seenAt: timestamp("seen_at", { withTimezone: true }),
+  },
+  (table) => ({
+    userMilestoneUnique: uniqueIndex("user_fantasy_captain_card_unique").on(table.userId, table.milestoneNumber),
+  })
+);
+
 // Direct trade offers between two users, scoped to legendary collectibles
 // only (the only tier that's ever "yours" without being purchasable — see
 // collectibles.ts's redeem guard). Accepting one re-points the two

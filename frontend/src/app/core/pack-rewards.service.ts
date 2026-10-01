@@ -3,7 +3,7 @@ import { NavigationEnd, Router } from "@angular/router";
 import { filter } from "rxjs";
 import { ApiService } from "./api.service";
 import { AuthService } from "./auth.service";
-import { OwnedPack } from "./models";
+import { FantasyCardReward, OwnedPack } from "./models";
 
 // Re-check at most this often while navigating, so a reward earned mid-
 // session (e.g. a game going final) still surfaces without a reload. Each
@@ -24,6 +24,7 @@ export class PackRewardsService {
   private router = inject(Router);
 
   readonly newRewards = signal<OwnedPack[]>([]);
+  readonly newCardRewards = signal<FantasyCardReward[]>([]);
   readonly unopenedCount = signal(0);
   readonly hasUnopened = computed(() => this.unopenedCount() > 0);
 
@@ -35,6 +36,7 @@ export class PackRewardsService {
         this.check();
       } else {
         this.newRewards.set([]);
+        this.newCardRewards.set([]);
         this.unopenedCount.set(0);
         this.lastCheck = 0;
       }
@@ -48,10 +50,11 @@ export class PackRewardsService {
   check(): void {
     this.lastCheck = Date.now();
     this.api.getUnseenPackRewards().subscribe({
-      next: ({ rewards, unopenedCount }) => {
+      next: ({ rewards, cardRewards = [], unopenedCount }) => {
         this.unopenedCount.set(unopenedCount);
-        if (rewards.length === 0) return;
+        if (rewards.length === 0 && cardRewards.length === 0) return;
         this.newRewards.update((existing) => [...existing, ...rewards.filter((r) => !existing.some((e) => e.id === r.id))]);
+        this.newCardRewards.update((existing) => [...existing, ...cardRewards.filter((r) => !existing.some((e) => e.id === r.id))]);
         // Marked seen as soon as it's on screen, same as the page banners.
         this.api.ackPackRewards().subscribe({ error: () => {} });
       },
@@ -61,6 +64,10 @@ export class PackRewardsService {
 
   dismiss(): void {
     this.newRewards.set([]);
+  }
+
+  dismissCards(): void {
+    this.newCardRewards.set([]);
   }
 
   /** Pages that load My Packs themselves pass the fresh count along. */

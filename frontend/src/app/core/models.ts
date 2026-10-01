@@ -678,7 +678,8 @@ export interface SpinResult {
   // pack straight into the inventory (GET /api/packs/owned), opened later
   // via POST /api/packs/owned/:id/open, same PackOpenOutcome shape a
   // purchase gets. Every spin wins something, so this is never null.
-  wonPack: { id: string; packType: PackType; label: string; tier: CollectibleTier };
+  // count: packs granted (2 for common/rare spins); absent on admin cheats.
+  wonPack: { id: string; packType: PackType; label: string; tier: CollectibleTier; count?: number };
   nextEligibleAt: string;
 }
 
@@ -734,7 +735,20 @@ export type PackSource =
 // plus the unopened-pack count behind the Cards nav dot.
 export interface UnseenPackRewards {
   rewards: OwnedPack[];
+  // Fantasy coach/captain card tracks grant a card directly (2026-10-01,
+  // backend services/fantasyCardTracks.ts).
+  cardRewards?: FantasyCardReward[];
   unopenedCount: number;
+}
+
+export interface FantasyCardReward {
+  id: string;
+  kind: "coachCard" | "captainCard";
+  collectibleId: string;
+  name: string;
+  tier: string;
+  imageUrl: string | null;
+  teamCode: string;
 }
 
 export interface PackOpenResultCard {
@@ -1250,7 +1264,7 @@ export interface AdminUsersResponse {
 // GET /users/me/achievements (2026-09-30) — progress toward every
 // milestone, badge and per-round reward (backend services/achievements.ts).
 export interface AchievementMilestone {
-  id: "rareCard" | "legendaryPack" | "coachPack" | "fantasyPack";
+  id: "rareCard" | "legendaryPack" | "coachPack" | "fantasyCoachCard" | "fantasyCaptainCard";
   every: number;
   progress: number;
   earned: number;

@@ -91,8 +91,8 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
   },
 
   "predictions.hint": {
-    en: "Pick a winner before tip-off. Correct calls earn points (underdogs pay more), a great round (8+/10) wins a bonus rare pack, a perfect round wins a legendary pack, and every 60 correct picks overall wins another legendary pack.",
-    el: "Διάλεξε νικητή πριν το τζάμπολ. Με κάθε σωστή πρόβλεψη κερδίζεις πόντους (τα αουτσάιντερ δίνουν περισσότερους), ένας σπουδαίος γύρος (8+/10) σου δίνει ένα σπάνιο πακέτο, ένας τέλειος γύρος ένα θρυλικό πακέτο, και κάθε 60 συνολικές σωστές προβλέψεις ξεκλειδώνουν άλλο ένα θρυλικό πακέτο.",
+    en: "Pick a winner before tip-off. Correct calls earn points (underdogs pay more), a great round (8+/10) wins a bonus rare pack, a perfect round wins a legendary pack, and every 18 correct picks overall (winners + top scorers) wins another legendary pack.",
+    el: "Διάλεξε νικητή πριν το τζάμπολ. Με κάθε σωστή πρόβλεψη κερδίζεις πόντους (τα αουτσάιντερ δίνουν περισσότερους), ένας σπουδαίος γύρος (8+/10) σου δίνει ένα σπάνιο πακέτο, ένας τέλειος γύρος ένα θρυλικό πακέτο, και κάθε 18 συνολικές σωστές προβλέψεις (νικητές + πρώτοι σκόρερ) ξεκλειδώνουν άλλο ένα θρυλικό πακέτο.",
   },
 
   // Badge legend — a tap-to-open key explaining every badge glyph (locked

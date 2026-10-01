@@ -18,11 +18,24 @@ import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { ConfirmDialogComponent } from "../../shared/confirm-dialog";
 
-// Exit-animation duration for the outgoing card in the reveal sequence —
-// keep in sync with the .card-exit-anim animation-duration in packs.css.
-const CARD_EXIT_MS = 320;
+// Reveal timings — keep in sync with packs.css (.pack-stage.is-tearing,
+// .flip-card transition, .is-anticipating).
+const PACK_TEAR_MS = 950;
+const FLIP_MS = 600;
+const ANTICIPATE_MS = { rare: 450, coach: 450, legendary: 900 } as const;
 
-type PackView = "selecting" | "revealing" | "summary";
+// Reveal order: best card last, like a FIFA pack. Duplicates sit just
+// below a new card of the same tier.
+const TIER_RANK: Record<string, number> = { common: 0, rare: 1, coach: 2, legendary: 3 };
+function revealRank(card: PackOpenResultCard): number {
+  const foil = !card.wasDuplicate && card.collectible.tier === "legendary" && card.collectible.finish === "foil";
+  return (TIER_RANK[card.collectible.tier] ?? 0) * 2 + (card.wasDuplicate ? 0 : 1) + (foil ? 2 : 0);
+}
+
+// Same tier colours as the slot pips (packs.css .slot-pip--*).
+const TIER_COLOR: Record<string, string> = { common: "#9aa3ad", rare: "#8ec5ff", coach: "#3fd9a4", legendary: "#f5c043" };
+
+type PackView = "selecting" | "pack" | "revealing" | "summary";
 
 @Component({
   selector: "app-packs",
@@ -103,7 +116,6 @@ export class PacksComponent implements OnInit {
   // Same aspect ratio as the card (2.5:3.5) plus headroom for the stack's
   // diagonal peek — scales with cardSize so the peek stays proportional.
   readonly cardStackHeight = computed(() => Math.round(this.cardSize() * 1.4) + 32);
-  readonly stackOffsetScale = computed(() => this.cardSize() / 220);
 
   @HostListener("window:resize")
   onResize(): void {
@@ -123,21 +135,33 @@ export class PacksComponent implements OnInit {
 
   readonly visualClasses = PACK_VISUAL_CLASSES;
 
-  readonly transitionOutCard = signal<PackOpenResultCard | null>(null);
-  readonly isTransitioning = signal(false);
+  // The pack being opened, shown sealed in the "pack" view.
+  readonly openedPackType = signal<PackType | null>(null);
+  readonly tearing = signal(false);
+  // The current card is face up / glowing just before its flip.
+  readonly faceUp = signal(false);
+  readonly anticipating = signal(false);
+  private flipBusy = false;
 
-  readonly currentCard = computed<PackOpenResultCard | null>(
-    () => this.outcome()?.results[this.revealIndex()] ?? null
+  readonly revealOrder = computed<PackOpenResultCard[]>(() =>
+    [...(this.outcome()?.results ?? [])].sort((a, b) => revealRank(a) - revealRank(b))
   );
-  readonly isLastCard = computed(() => {
-    const o = this.outcome();
-    return o ? this.revealIndex() === o.results.length - 1 : false;
+  readonly currentCard = computed<PackOpenResultCard | null>(() => this.revealOrder()[this.revealIndex()] ?? null);
+  readonly isLastCard = computed(() => this.revealIndex() === this.revealOrder().length - 1);
+  // The beam colour when the pack tears: the best card inside.
+  private readonly bestCard = computed(() => this.revealOrder()[this.revealOrder().length - 1] ?? null);
+  readonly bestTierColor = computed(() => {
+    const best = this.bestCard();
+    return best && !best.wasDuplicate ? TIER_COLOR[best.collectible.tier] ?? TIER_COLOR["common"] : TIER_COLOR["common"];
   });
-  // Not-yet-revealed cards, soonest-first — rendered as anonymous peeking
-  // edges behind the current card so you can see how many are left.
-  readonly remainingCards = computed<PackOpenResultCard[]>(
-    () => this.outcome()?.results.slice(this.revealIndex() + 1) ?? []
-  );
+  readonly bestIsFoil = computed(() => {
+    const best = this.bestCard();
+    return !!best && this.isFoilCard(best);
+  });
+
+  tierColor(card: PackOpenResultCard): string {
+    return TIER_COLOR[card.collectible.tier] ?? TIER_COLOR["common"];
+  }
 
   ngOnInit(): void {
     this.api.getPacks().subscribe({
@@ -213,13 +237,9 @@ export class PacksComponent implements OnInit {
       next: (outcome) => {
         this.ownedPacks.update((rows) => rows.filter((r) => r.id !== pack.id));
         this.packRewards.packOpened(pack.id);
-        this.outcome.set(outcome);
-        this.revealIndex.set(0);
-        this.transitionOutCard.set(null);
-        this.isTransitioning.set(false);
         this.points.update((p) => p + this.duplicateGain(outcome));
         this.openingOwnedId.set(null);
-        this.view.set("revealing");
+        this.startReveal(outcome, pack.packType);
       },
       error: (err) => {
         this.openingOwnedId.set(null);
@@ -318,13 +338,9 @@ export class PacksComponent implements OnInit {
 
     this.api.openPack(pack.type).subscribe({
       next: (outcome) => {
-        this.outcome.set(outcome);
-        this.revealIndex.set(0);
-        this.transitionOutCard.set(null);
-        this.isTransitioning.set(false);
         this.points.set(this.points() - pack.pointsCost + this.duplicateGain(outcome));
         this.opening.set(null);
-        this.view.set("revealing");
+        this.startReveal(outcome, pack.type);
       },
       error: (err) => {
         this.opening.set(null);
@@ -333,24 +349,52 @@ export class PacksComponent implements OnInit {
     });
   }
 
-  nextCard(): void {
-    if (this.isTransitioning()) return;
-    if (this.isLastCard()) {
-      this.view.set("summary");
+  private startReveal(outcome: PackOpenOutcome, packType: PackType): void {
+    this.outcome.set(outcome);
+    this.openedPackType.set(packType);
+    this.revealIndex.set(0);
+    this.faceUp.set(false);
+    this.anticipating.set(false);
+    this.tearing.set(false);
+    this.flipBusy = false;
+    this.view.set("pack");
+  }
+
+  // Tap the sealed pack: it shakes, tears and lights up in the best card's
+  // colour, then the first card deals in face down.
+  tearPack(): void {
+    if (this.tearing()) return;
+    this.tearing.set(true);
+    setTimeout(() => {
+      if (this.view() !== "pack") return; // "Reveal all" was tapped meanwhile
+      this.tearing.set(false);
+      this.view.set("revealing");
+    }, PACK_TEAR_MS);
+  }
+
+  // One tap flips the current card; the next deals the next card (or shows
+  // the summary after the last). A rare or better glows in its tier colour
+  // for a beat before it flips.
+  advance(): void {
+    const card = this.currentCard();
+    if (!card || this.flipBusy) return;
+    if (this.faceUp()) {
+      if (this.isLastCard()) {
+        this.view.set("summary");
+      } else {
+        this.faceUp.set(false);
+        this.revealIndex.update((i) => i + 1);
+      }
       return;
     }
-
-    // Two-phase transition: play the outgoing card's exit animation first,
-    // then swap the index (triggering the next card's entrance animation)
-    // once it's actually finished — otherwise the swap is instant and the
-    // "animation" is just a fade-in on the new card with nothing in between.
-    this.transitionOutCard.set(this.currentCard());
-    this.isTransitioning.set(true);
+    this.flipBusy = true;
+    const wait = ANTICIPATE_MS[card.collectible.tier as keyof typeof ANTICIPATE_MS] ?? 0;
+    this.anticipating.set(wait > 0);
     setTimeout(() => {
-      this.revealIndex.update((i) => i + 1);
-      this.transitionOutCard.set(null);
-      this.isTransitioning.set(false);
-    }, CARD_EXIT_MS);
+      this.anticipating.set(false);
+      this.faceUp.set(true);
+      setTimeout(() => (this.flipBusy = false), FLIP_MS);
+    }, wait);
   }
 
   openAnother(): void {

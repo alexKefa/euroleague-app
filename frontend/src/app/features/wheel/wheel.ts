@@ -123,12 +123,11 @@ export class WheelComponent implements OnInit, OnDestroy {
   ];
 
   // Which unopened pack a wedge actually grants (mirrors the backend's
-  // SPIN_ODDS tiers -> wheelStarter/wheelPro/wheelLegendary/wheelCoach
-  // mapping) — used to render the real pack art (PACK_VISUAL_CLASSES) on
+  // SPIN_ODDS tiers -> starter/pro/wheelLegendary/wheelCoach mapping) — used to render the real pack art (PACK_VISUAL_CLASSES) on
   // each wedge instead of a plain glyph.
   private static readonly WEDGE_PACK_TYPE: Record<CollectibleTier, PackType> = {
-    common: "wheelStarter",
-    rare: "wheelPro",
+    common: "starter",
+    rare: "pro",
     legendary: "wheelLegendary",
     coach: "wheelCoach",
   };
