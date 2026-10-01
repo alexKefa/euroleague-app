@@ -606,6 +606,9 @@
           <p class="text-[11px] font-bold text-muted uppercase tracking-wider mb-2">
             {{ i18n.t('fantasy.budgetLabel') }}
             <span class="font-mono normal-case tracking-normal ml-1" [ngClass]="overBudget() ? 'text-red-500' : 'text-ink'">{{ totalCost() | number: '1.1-1' }} / {{ budgetCap() | number: '1.1-1' }}</span>
+            @if (budgetPending() && round() !== null) {
+              <span class="block normal-case tracking-normal font-semibold text-amber-500 mt-0.5">{{ i18n.t('fantasy.budgetPending').replace('{n}', '' + (round()! - 1)) }}</span>
+            }
           </p>
           <!-- Position quota tiles (G/F/C fill green once met) + transfers. -->
           <div class="grid grid-cols-4 gap-2 mb-3">

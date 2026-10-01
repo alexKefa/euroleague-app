@@ -323,6 +323,9 @@ export class FantasyComponent implements OnInit {
   // Defaults to the flat FANTASY_BUDGET_CAP until loadLineup's first
   // response sets the real value.
   readonly budgetCap = signal(FANTASY_BUDGET_CAP);
+  // The previous round's credit moves haven't landed yet, so budgetCap()
+  // is provisional (models.ts's FantasyLineup.budgetPending).
+  readonly budgetPending = signal(false);
   readonly positionQuota = FANTASY_POSITION_QUOTA;
   readonly formationOptions = FORMATION_OPTIONS;
   readonly formation = signal<Formation>("2-2-1");
@@ -1401,6 +1404,7 @@ export class FantasyComponent implements OnInit {
         this.transfersAllowed.set(lineup.transfersAllowed);
         this.baselinePlayerIds.set(lineup.baselinePlayerIds ? new Set(lineup.baselinePlayerIds) : null);
         this.budgetCap.set(lineup.budgetCap);
+        this.budgetPending.set(lineup.budgetPending);
 
         const slots = initialSquadSlots();
         const serverMap = new Map<string, FantasySlotRole>();

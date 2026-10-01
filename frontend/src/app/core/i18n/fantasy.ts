@@ -213,6 +213,11 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.creditsAbbrev": { en: "CR", el: "CR" },
   // Under the status card's budget ring: "12.4 CR left" (2026-09-29).
   "fantasy.creditsLeft": { en: "left", el: "απομένουν" },
+  // Under the budget line while the previous round isn't priced yet (2026-10-01).
+  "fantasy.budgetPending": {
+    en: "Round {n} credits still pending — budget will update ~3h after its last game",
+    el: "Τα credits του γύρου {n} εκκρεμούν — ο προϋπολογισμός ενημερώνεται ~3 ώρες μετά τον τελευταίο αγώνα",
+  },
   // Shown next to a player/coach's price while picking (2026-09-12) — the
   // budget line in the status bar shows spent/cap, but neither picker
   // screen previously surfaced "how much do I actually have left to

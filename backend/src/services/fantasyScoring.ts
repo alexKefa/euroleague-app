@@ -562,7 +562,7 @@ export async function getDefaultRound(season: string): Promise<number | null> {
 
   // The next round opens only once the previous round's credits have landed
   // (2026-10-01, direct ask: "round 3 should not be visible" until round 2's
-  // credits are in, ~12h after its last game — fantasyDailyReprice.ts).
+  // credits are in, ~3h after its last game — fantasyDailyReprice.ts).
   // Budgets for a round depend on the previous round's price moves, so
   // picking before then would use the wrong budget. Safety net: it opens
   // anyway NEXT_ROUND_FORCE_OPEN_MS before its first tipoff, so late
@@ -590,6 +590,23 @@ export async function isRoundPriced(season: string, round: number): Promise<bool
     ) as priced
   `);
   return !!row?.priced;
+}
+
+/**
+ * isRoundPriced for a round and the one before it, in one round trip. The
+ * previous round matters for the budget: getUserBudget only includes moves
+ * from rounds that have been priced, so until round N-1 lands, round N's
+ * budget is provisional ("pending" in the UI).
+ */
+export async function getRoundPricedState(season: string, round: number): Promise<{ priced: boolean; previousPriced: boolean }> {
+  const [row] = await db.execute<{ priced: boolean; previous_priced: boolean }>(sql`
+    select
+      exists (select 1 from fantasy_coach_price_change_log l join games g on g.id = l.game_id
+              where g.season = ${season} and g.round = ${round}) as priced,
+      exists (select 1 from fantasy_coach_price_change_log l join games g on g.id = l.game_id
+              where g.season = ${season} and g.round = ${round - 1}) as previous_priced
+  `);
+  return { priced: !!row?.priced, previousPriced: round <= 1 || !!row?.previous_priced };
 }
 
 export interface FantasyBaselineSquad {
