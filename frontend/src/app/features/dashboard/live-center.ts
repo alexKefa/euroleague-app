@@ -11,7 +11,7 @@ import { TeamCodePipe } from "../../shared/team-display-code";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
-import { newsDateLocale, shortDateFormat } from "../../shared/news-date-format";
+import { gameDateTimeFormat, newsDateLocale, shortDateFormat } from "../../shared/news-date-format";
 import { TodayTagPipe } from "../../shared/today-tag.pipe";
 
 const SEASON = "2026-27";
@@ -234,5 +234,10 @@ export class LiveCenterComponent implements OnInit {
 
   shortDateFormat(): string {
     return shortDateFormat(this.i18n.lang());
+  }
+
+  // Games tab's upcoming rows show the tipoff time too, not just the day.
+  gameDateTimeFormat(): string {
+    return gameDateTimeFormat(this.i18n.lang());
   }
 }
