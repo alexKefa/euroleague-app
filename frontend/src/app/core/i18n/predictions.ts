@@ -1,6 +1,26 @@
 import { Lang } from "./lang";
 
 export const predictionsTranslations: Record<string, Record<Lang, string>> = {
+  // Live quarter picks (shared/quarter-picks.ts, 2026-10-01). Greek uses
+  // "δεκάλεπτο", the usual word for a basketball quarter.
+  "quarterPicks.title": { en: "Next quarter", el: "Επόμενο δεκάλεπτο" },
+  "quarterPicks.whoWins": { en: "Who wins Q{n}?", el: "Ποιος κερδίζει το {n}ο δεκάλεπτο;" },
+  "quarterPicks.locks": { en: "Locks when Q{n} starts", el: "Κλειδώνει με την έναρξη του {n}ου δεκαλέπτου" },
+  "quarterPicks.pts": { en: "+{n} pts if right", el: "+{n} πόντοι αν πετύχεις" },
+  "quarterPicks.notRanked": { en: "spendable points, not on the leaderboard", el: "πόντοι για αγορές, όχι για την κατάταξη" },
+  "quarterPicks.paused": { en: "Picks paused while live data catches up", el: "Οι επιλογές σε παύση μέχρι να ενημερωθούν τα live δεδομένα" },
+  "quarterPicks.locked": { en: "That quarter has already started", el: "Το δεκάλεπτο έχει ήδη ξεκινήσει" },
+  "quarterPicks.push": { en: "tie", el: "ισοπαλία" },
+  "quarterPicks.qShort": { en: "Q{n}", el: "{n}ο δεκ." },
+
+  // In-app reminders banner (shared/reminders-banner.ts, 2026-10-01).
+  "reminders.fantasy": { en: "No Fantasy squad for round {round} yet. It locks in {time}.", el: "Δεν έχεις ομάδα Fantasy για τον γύρο {round}. Κλειδώνει σε {time}." },
+  "reminders.fantasyCta": { en: "Build squad", el: "Φτιάξε ομάδα" },
+  "reminders.picksOne": { en: "1 game soon has no pick from you. First tip-off in {time}.", el: "1 αγώνας σύντομα χωρίς δική σου πρόβλεψη. Το πρώτο τζάμπολ σε {time}." },
+  "reminders.picksMany": { en: "{n} games soon have no pick from you. First tip-off in {time}.", el: "{n} αγώνες σύντομα χωρίς δική σου πρόβλεψη. Το πρώτο τζάμπολ σε {time}." },
+  "reminders.picksCta": { en: "Pick now", el: "Πρόβλεψε" },
+  "reminders.hours": { en: "{n}h", el: "{n} ώρες" },
+  "reminders.minutes": { en: "{n} min", el: "{n} λεπτά" },
   "predictions.spendPoints": { en: "Spend points", el: "Ξόδεψε πόντους" },
   "predictions.upcomingGames": { en: "Upcoming games", el: "Επερχόμενοι αγώνες" },
   "predictions.vs": { en: "vs", el: "vs" },

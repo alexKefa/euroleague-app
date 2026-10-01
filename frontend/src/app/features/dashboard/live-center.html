@@ -39,28 +39,32 @@
           @if (liveGames().length > 0 || upcomingGames().length > 0) {
             <div class="text-sm space-y-2">
               @for (game of liveGames(); track game.id) {
-                <a [routerLink]="['/games', game.id]" class="list-row justify-between">
-                  <span class="flex items-center gap-2 min-w-0 flex-1">
-                    @if (game.homeTeam.logoUrl) {
-                      <img [src]="game.homeTeam.logoUrl" [alt]="game.homeTeam.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
-                    }
-                    <span class="font-semibold truncate">{{ game.homeTeam.code | teamCode }}</span>
-                    <span class="text-muted text-xs">vs</span>
-                    <span class="font-semibold truncate">{{ game.awayTeam.code | teamCode }}</span>
-                    @if (game.awayTeam.logoUrl) {
-                      <img [src]="game.awayTeam.logoUrl" [alt]="game.awayTeam.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
-                    }
-                  </span>
-                  <span class="shrink-0 text-right">
-                    <span class="flex items-center justify-end gap-1">
-                      <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
-                      @if (game.quarter) {
-                        <span class="text-[10px] font-bold font-mono text-red-500 whitespace-nowrap">Q{{ game.quarter }} {{ formatClock(game.gameClockSeconds) }}</span>
+                <div>
+                  <a [routerLink]="['/games', game.id]" class="list-row justify-between">
+                    <span class="flex items-center gap-2 min-w-0 flex-1">
+                      @if (game.homeTeam.logoUrl) {
+                        <img [src]="game.homeTeam.logoUrl" [alt]="game.homeTeam.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
+                      }
+                      <span class="font-semibold truncate">{{ game.homeTeam.code | teamCode }}</span>
+                      <span class="text-muted text-xs">vs</span>
+                      <span class="font-semibold truncate">{{ game.awayTeam.code | teamCode }}</span>
+                      @if (game.awayTeam.logoUrl) {
+                        <img [src]="game.awayTeam.logoUrl" [alt]="game.awayTeam.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
                       }
                     </span>
-                    <span class="font-mono font-bold text-sm">{{ game.homeScore }}-{{ game.awayScore }}</span>
-                  </span>
-                </a>
+                    <span class="shrink-0 text-right">
+                      <span class="flex items-center justify-end gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
+                        @if (game.quarter) {
+                          <span class="text-[10px] font-bold font-mono text-red-500 whitespace-nowrap">Q{{ game.quarter }} {{ formatClock(game.gameClockSeconds) }}</span>
+                        }
+                      </span>
+                      <span class="font-mono font-bold text-sm">{{ game.homeScore }}-{{ game.awayScore }}</span>
+                    </span>
+                  </a>
+                  <!-- Quick quarter pick (2026-10-01), outside the link. -->
+                  <app-quarter-picks compact class="block px-3 pt-1.5" [gameId]="game.id" [homeTeam]="game.homeTeam" [awayTeam]="game.awayTeam" />
+                </div>
               }
               @for (game of upcomingGames(); track game.id) {
                 <a [routerLink]="['/games', game.id]" class="list-row justify-between">
