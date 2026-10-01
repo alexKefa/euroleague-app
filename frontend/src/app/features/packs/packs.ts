@@ -7,7 +7,6 @@ import { I18nService } from "../../core/i18n.service";
 import { NavHistoryService } from "../../core/nav-history.service";
 import { PackDefinition, OwnedPack, PackOpenOutcome, PackOpenResultCard, PackType } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
-import { PackIconComponent } from "../../shared/pack-icon";
 import { PACK_VISUAL_CLASSES } from "../../shared/pack-visual";
 import { PackArtComponent } from "../../shared/pack-art";
 import { packSourceText } from "../../shared/pack-source";
@@ -18,13 +17,13 @@ import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { ConfirmDialogComponent } from "../../shared/confirm-dialog";
 
-// Reveal timings — keep in sync with packs.css (.pack-stage.is-tearing,
-// .flip-card transition, .is-anticipating).
+// Opening timings — keep in sync with packs.css (.pack-stage.is-tearing,
+// .flip-card animation).
 const PACK_TEAR_MS = 950;
-const FLIP_MS = 600;
-const ANTICIPATE_MS = { rare: 450, coach: 450, legendary: 900 } as const;
+const FLIP_ALL_STEP_MS = 180;
+const BANG_MS = 1800;
 
-// Reveal order: best card last, like a FIFA pack. Duplicates sit just
+// Card rank for the table order (best card last). Duplicates sit just
 // below a new card of the same tier.
 const TIER_RANK: Record<string, number> = { common: 0, rare: 1, coach: 2, legendary: 3 };
 function revealRank(card: PackOpenResultCard): number {
@@ -35,7 +34,7 @@ function revealRank(card: PackOpenResultCard): number {
 // Same tier colours as the slot pips (packs.css .slot-pip--*).
 const TIER_COLOR: Record<string, string> = { common: "#9aa3ad", rare: "#8ec5ff", coach: "#3fd9a4", legendary: "#f5c043" };
 
-type PackView = "selecting" | "pack" | "revealing" | "summary";
+type PackView = "selecting" | "pack" | "summary";
 
 @Component({
   selector: "app-packs",
@@ -45,7 +44,6 @@ type PackView = "selecting" | "pack" | "revealing" | "summary";
     PackArtComponent,
     RouterLink,
     CollectibleCardComponent,
-    PackIconComponent,
     ButtonDirective,
     PageHintComponent,
     LogoSpinnerComponent,
@@ -131,25 +129,28 @@ export class PacksComponent implements OnInit {
 
   readonly view = signal<PackView>("selecting");
   readonly outcome = signal<PackOpenOutcome | null>(null);
-  readonly revealIndex = signal(0);
 
   readonly visualClasses = PACK_VISUAL_CLASSES;
 
   // The pack being opened, shown sealed in the "pack" view.
   readonly openedPackType = signal<PackType | null>(null);
   readonly tearing = signal(false);
-  // The current card is face up / glowing just before its flip.
-  readonly faceUp = signal(false);
-  readonly anticipating = signal(false);
-  private flipBusy = false;
+  // Cards turned face up on the table, by result id.
+  readonly flipped = signal<ReadonlySet<string>>(new Set());
+  private flipTimers: ReturnType<typeof setTimeout>[] = [];
+  // Floating "LEGENDARY!" etc. over the table after a big pull flips.
+  readonly bang = signal<{ text: string; cls: string } | null>(null);
+  private bangTimer: ReturnType<typeof setTimeout> | null = null;
 
-  readonly revealOrder = computed<PackOpenResultCard[]>(() =>
+  // Best card last, so the table builds up to it.
+  readonly tableOrder = computed<PackOpenResultCard[]>(() =>
     [...(this.outcome()?.results ?? [])].sort((a, b) => revealRank(a) - revealRank(b))
   );
-  readonly currentCard = computed<PackOpenResultCard | null>(() => this.revealOrder()[this.revealIndex()] ?? null);
-  readonly isLastCard = computed(() => this.revealIndex() === this.revealOrder().length - 1);
+  readonly allFlipped = computed(() => this.tableOrder().every((c) => this.flipped().has(c.resultId)));
+  // 4 cards sit 2x2 on a phone, 5 as 3 + 2.
+  readonly tableCardSize = computed(() => (this.isDesktop() ? 170 : this.tableOrder().length <= 4 ? 150 : 112));
   // The beam colour when the pack tears: the best card inside.
-  private readonly bestCard = computed(() => this.revealOrder()[this.revealOrder().length - 1] ?? null);
+  private readonly bestCard = computed(() => this.tableOrder()[this.tableOrder().length - 1] ?? null);
   readonly bestTierColor = computed(() => {
     const best = this.bestCard();
     return best && !best.wasDuplicate ? TIER_COLOR[best.collectible.tier] ?? TIER_COLOR["common"] : TIER_COLOR["common"];
@@ -161,6 +162,47 @@ export class PacksComponent implements OnInit {
 
   tierColor(card: PackOpenResultCard): string {
     return TIER_COLOR[card.collectible.tier] ?? TIER_COLOR["common"];
+  }
+
+  // The face-down back previews the rarity (foil gets its own).
+  backTier(card: PackOpenResultCard): string {
+    return this.isFoilCard(card) ? "foil" : card.collectible.tier;
+  }
+
+  isBigPull(card: PackOpenResultCard): boolean {
+    return !card.wasDuplicate && (card.collectible.tier === "legendary" || card.collectible.tier === "coach");
+  }
+
+  isFlipped(card: PackOpenResultCard): boolean {
+    return this.flipped().has(card.resultId);
+  }
+
+  flip(card: PackOpenResultCard): void {
+    if (this.isFlipped(card)) return;
+    this.flipped.update((s) => new Set(s).add(card.resultId));
+    if (this.isBigPull(card)) {
+      const foil = this.isFoilCard(card);
+      const legendary = card.collectible.tier === "legendary";
+      this.bang.set({
+        text: this.i18n.t(foil ? "packs.foilBang" : legendary ? "packs.legendaryBang" : "packs.coachBang"),
+        cls: foil ? "foil-label text-2xl" : legendary ? "legendary-label text-2xl" : "coach-label text-xl",
+      });
+      if (this.bangTimer) clearTimeout(this.bangTimer);
+      this.bangTimer = setTimeout(() => this.bang.set(null), BANG_MS);
+    }
+  }
+
+  // Turns the rest over one after another, in table order.
+  flipAll(): void {
+    this.clearFlipTimers();
+    this.tableOrder()
+      .filter((c) => !this.isFlipped(c))
+      .forEach((c, i) => this.flipTimers.push(setTimeout(() => this.flip(c), i * FLIP_ALL_STEP_MS)));
+  }
+
+  private clearFlipTimers(): void {
+    this.flipTimers.forEach(clearTimeout);
+    this.flipTimers = [];
   }
 
   ngOnInit(): void {
@@ -226,6 +268,7 @@ export class PacksComponent implements OnInit {
   // Skip the rest of the one-by-one reveal (2026-09-29).
   revealAll(): void {
     this.view.set("summary");
+    this.flipAll();
   }
 
   openOwned(pack: OwnedPack): void {
@@ -352,49 +395,23 @@ export class PacksComponent implements OnInit {
   private startReveal(outcome: PackOpenOutcome, packType: PackType): void {
     this.outcome.set(outcome);
     this.openedPackType.set(packType);
-    this.revealIndex.set(0);
-    this.faceUp.set(false);
-    this.anticipating.set(false);
     this.tearing.set(false);
-    this.flipBusy = false;
+    this.clearFlipTimers();
+    this.flipped.set(new Set());
+    this.bang.set(null);
     this.view.set("pack");
   }
 
   // Tap the sealed pack: it shakes, tears and lights up in the best card's
-  // colour, then the first card deals in face down.
+  // colour, then every card lands face down on the table.
   tearPack(): void {
     if (this.tearing()) return;
     this.tearing.set(true);
     setTimeout(() => {
       if (this.view() !== "pack") return; // "Reveal all" was tapped meanwhile
       this.tearing.set(false);
-      this.view.set("revealing");
+      this.view.set("summary");
     }, PACK_TEAR_MS);
-  }
-
-  // One tap flips the current card; the next deals the next card (or shows
-  // the summary after the last). A rare or better glows in its tier colour
-  // for a beat before it flips.
-  advance(): void {
-    const card = this.currentCard();
-    if (!card || this.flipBusy) return;
-    if (this.faceUp()) {
-      if (this.isLastCard()) {
-        this.view.set("summary");
-      } else {
-        this.faceUp.set(false);
-        this.revealIndex.update((i) => i + 1);
-      }
-      return;
-    }
-    this.flipBusy = true;
-    const wait = ANTICIPATE_MS[card.collectible.tier as keyof typeof ANTICIPATE_MS] ?? 0;
-    this.anticipating.set(wait > 0);
-    setTimeout(() => {
-      this.anticipating.set(false);
-      this.faceUp.set(true);
-      setTimeout(() => (this.flipBusy = false), FLIP_MS);
-    }, wait);
   }
 
   openAnother(): void {

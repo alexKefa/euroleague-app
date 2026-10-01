@@ -103,7 +103,7 @@ export const storeTranslations: Record<string, Record<Lang, string>> = {
   "packs.tapToContinue": { en: "Tap for the next card", el: "Πάτησε για την επόμενη κάρτα" },
   // Reveal rework (2026-09-29).
   "packs.tapToOpen": { en: "Tap to open the pack", el: "Πάτησε για να ανοίξεις το πακέτο" },
-  "packs.tapToFlip": { en: "Tap to reveal", el: "Πάτησε για αποκάλυψη" },
+  "packs.tapToFlip": { en: "Tap a card to reveal it", el: "Πάτησε μια κάρτα για να την αποκαλύψεις" },
   "packs.revealAll": { en: "Reveal all", el: "Όλες μαζί" },
   "packs.newRibbon": { en: "New", el: "Νέα" },
   "packs.seeInAlbum": { en: "See in Album", el: "Δες στο Άλμπουμ" },

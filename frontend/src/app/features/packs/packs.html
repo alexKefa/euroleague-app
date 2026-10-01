@@ -200,190 +200,79 @@
       </div>
     }
 
-    @if (view() === "revealing") {
-      <div class="mt-2">
-        <div class="flex items-center justify-between gap-2 mb-3">
-          <p class="text-[12px] text-muted font-bold uppercase tracking-wider">
-            {{ i18n.t('packs.card') }} {{ revealIndex() + 1 }} {{ i18n.t('packs.of') }} {{ revealOrder().length }}
-          </p>
-          <button type="button" (click)="revealAll()" class="status-tile h-10 px-4 rounded-xl border border-line text-sm font-semibold text-ink hover:border-team-primary transition-colors">
-            {{ i18n.t('packs.revealAll') }}
-          </button>
-        </div>
-
-        @if (currentCard(); as card) {
-          <div
-            class="relative isolate mx-auto cursor-pointer select-none"
-            [style.width.px]="cardSize()"
-            [style.height.px]="cardStackHeight()"
-            role="button"
-            tabindex="0"
-            [attr.aria-label]="!faceUp() ? i18n.t('packs.tapToFlip') : isLastCard() ? i18n.t('packs.tapToFinish') : i18n.t('packs.tapToContinue')"
-            (click)="advance()"
-            (keydown.enter)="advance()"
-            (keydown.space)="$event.preventDefault(); advance()"
-          >
-            <!-- Tier effects fire behind the card once it's face up. -->
-            @if (faceUp()) {
-              @if (isFoilCard(card)) {
-                <div class="legendary-flash legendary-flash--foil absolute inset-0 rounded-2xl pointer-events-none z-0"></div>
-                <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-                  <div class="burst-glow burst-glow--foil absolute w-96 h-96 rounded-full"></div>
-                  <div class="burst-ring burst-ring--foil-a absolute w-56 h-56 rounded-full"></div>
-                  <div class="burst-ring burst-ring-delay burst-ring--foil-b absolute w-56 h-56 rounded-full"></div>
-                  @for (angle of burstRays; track angle; let i = $index) {
-                    <div class="burst-ray burst-ray-foil" [style.--ray-angle.deg]="angle" [style.--ray-hue]="i * 30"></div>
-                  }
-                </div>
-              } @else if (!card.wasDuplicate && card.collectible.tier === "legendary") {
-                <div class="legendary-flash absolute inset-0 rounded-2xl pointer-events-none z-0"></div>
-                <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-                  <div
-                    class="burst-glow absolute w-96 h-96 rounded-full"
-                    style="background: radial-gradient(circle, rgba(255,205,90,0.8) 0%, rgba(255,205,90,0) 70%)"
-                  ></div>
-                  <div class="burst-ring absolute w-56 h-56 rounded-full border-[3px] border-amber-300/80"></div>
-                  @for (angle of burstRays; track angle) {
-                    <div
-                      class="burst-ray burst-ray-gold"
-                      style="background: linear-gradient(rgba(255,230,160,1), rgba(255,230,160,0))"
-                      [style.--ray-angle.deg]="angle"
-                    ></div>
-                  }
-                </div>
-              } @else if (!card.wasDuplicate && card.collectible.tier !== "common") {
-                <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-                  <div class="burst-glow absolute w-72 h-72 rounded-full" [style.background]="'radial-gradient(circle, ' + tierColor(card) + '88 0%, transparent 70%)'"></div>
-                  <div class="burst-ring absolute w-48 h-48 rounded-full border-2" [style.border-color]="tierColor(card)"></div>
-                </div>
-              }
-            }
-
-            <!-- track by index: each card gets a fresh element, so it deals in
-                 face down instead of flipping back over. -->
-            @for (c of [card]; track revealIndex()) {
-              <!-- Three layers, each owning one transform: deal-in, the
-                   legendary jolt, and the flip itself. -->
-              <div class="deal-in absolute inset-x-0 top-0 z-10">
-              <div [class.legendary-shake--late]="faceUp() && !card.wasDuplicate && card.collectible.tier === 'legendary'">
-              <div
-                class="flip-card"
-                [style.height.px]="cardSize() * 1.4"
-                [style.--tier]="tierColor(card)"
-                [class.is-flipped]="faceUp()"
-                [class.is-anticipating]="anticipating()"
-              >
-                <div class="flip-face flip-back card-back rounded-2xl flex items-center justify-center">
-                  <app-pack-icon [size]="34" />
-                </div>
-                <div class="flip-face flip-front">
-                  <app-collectible-card
-                    class="block mx-auto"
-                    [name]="c.collectible.name"
-                    [tier]="c.collectible.tier"
-                    [teamCode]="c.collectible.team.code"
-                    [teamColor]="c.collectible.team.primaryColor"
-                    [imageUrl]="c.collectible.imageUrl"
-                    [unlocked]="true"
-                    [maxWidth]="cardSize()"
-                    [finish]="c.collectible.finish ?? 'standard'"
-                  ></app-collectible-card>
-                </div>
-              </div>
-              </div>
-              </div>
-            }
-          </div>
-
-          <div class="min-h-[4.5rem] text-center">
-            @if (faceUp()) {
-              @if (card.wasDuplicate) {
-                <p class="text-[12px] font-bold uppercase tracking-wide text-muted mt-3">{{ i18n.t('packs.duplicate') }}</p>
-                <p class="pts-float inline-block text-[13px] font-bold uppercase tracking-wide text-emerald-500 bg-emerald-500/15 rounded-full px-3 py-1 mt-1.5">
-                  {{ i18n.t('packs.soldForPrefix') }} {{ card.sellValue }} {{ i18n.t('packs.ptsLower') }}
-                </p>
-              } @else if (card.collectible.tier === "legendary") {
-                <p class="legendary-label font-display text-2xl uppercase tracking-wide mt-3">{{ i18n.t('packs.legendaryBang') }}</p>
-                @if (card.collectible.finish === 'foil') {
-                  <p class="foil-label font-display text-lg uppercase tracking-wide mt-1">{{ i18n.t('packs.foilBang') }}</p>
-                }
-              } @else if (card.collectible.tier === "coach") {
-                <p class="coach-label font-display text-lg uppercase tracking-wide mt-3">{{ i18n.t('packs.coachBang') }}</p>
-              } @else if (card.collectible.tier === "rare") {
-                <p class="rare-label font-display text-lg uppercase tracking-wide mt-3">{{ i18n.t('packs.rareBang') }}</p>
-              } @else {
-                <p class="text-[12px] font-bold uppercase tracking-wide text-highlight mt-3">{{ i18n.t('packs.newBang') }}</p>
-              }
-            }
-            <p class="mt-2 text-[11px] text-muted animate-pulse">
-              {{ !faceUp() ? i18n.t('packs.tapToFlip') : isLastCard() ? i18n.t('packs.tapToFinish') : i18n.t('packs.tapToContinue') }}
-            </p>
-          </div>
-
-          <!-- Progress tray: one slot per card, filled in as it's revealed. -->
-          <div class="flex justify-center gap-1.5 mt-2" aria-hidden="true">
-            @for (c of revealOrder(); track c.resultId; let i = $index) {
-              @let shown = i < revealIndex() || (i === revealIndex() && faceUp());
-              <span
-                class="tray-slot"
-                [class.tray-slot--current]="i === revealIndex()"
-                [class.tray-slot--shown]="shown"
-                [style.--tier]="shown ? tierColor(c) : null"
-              >{{ shown ? c.collectible.team.code : '' }}</span>
-            }
-          </div>
-        }
-      </div>
-    }
-
+    <!-- The table (2026-10-01): every card lands face down right after the
+         tear, its back already showing the rarity. Tap a card to turn it
+         over; best card last. -->
     @if (view() === "summary") {
-      <div class="reveal-pop">
-        <p class="font-display text-lg tracking-wide mb-3">{{ i18n.t('packs.packOpened') }}</p>
-        <!-- Capped + internally scrollable rather than growing the page —
-             on a short viewport (e.g. a 13" MacBook's browser window) a
-             full 5-card grid at summaryCardSize() plus this page's own
-             header/hint chrome above it pushed the action buttons below
-             the fold, needing a full-page scroll to reach them. Bounding
-             the grid to a fraction of the viewport keeps "Open another"/
-             "My cards" always visible right below it, same "scroll the
-             content, not the buttons" fix as profile.html's owned-cards
-             picker (max-h + overflow-y-auto there too). -->
-        <div class="grid grid-cols-3 gap-2 mb-5 max-h-[45vh] overflow-y-auto p-1">
-          @for (card of revealOrder(); track card.resultId; let i = $index) {
-            <div class="relative summary-in" [style.animation-delay.ms]="i * 80">
-              <!-- Only the card face dims for a duplicate — the SOLD banner
-                   below is a sibling, not a child, so it stays fully opaque
-                   and legible instead of fading into a gray smudge along
-                   with the dimmed card underneath it. -->
-              <app-collectible-card
-                [class.opacity-50]="card.wasDuplicate"
-                [name]="card.collectible.name"
-                [tier]="card.collectible.tier"
-                [teamCode]="card.collectible.team.code"
-                [teamColor]="card.collectible.team.primaryColor"
-                [imageUrl]="card.collectible.imageUrl"
-                [unlocked]="true"
-                [maxWidth]="summaryCardSize()"
-                [finish]="card.collectible.finish ?? 'standard'"
-              ></app-collectible-card>
-              @if (!card.wasDuplicate) {
-                <span class="absolute top-1.5 left-1.5 z-10 px-1.5 py-0.5 rounded-md bg-team-primary text-team-secondary text-[10px] font-bold uppercase tracking-wide shadow-sm">{{ i18n.t('packs.newRibbon') }}</span>
-              }
-              @if (card.wasDuplicate) {
-                <span
-                  class="absolute inset-x-0 bottom-0 py-1.5 rounded-b-2xl bg-emerald-600 text-center font-display font-bold text-[11px] uppercase tracking-wider text-white shadow-md"
-                  >{{ i18n.t('packs.sold') }}{{ card.sellValue !== null ? " +" + card.sellValue + " " + i18n.t('store.pointsBadge') : "" }}</span
-                >
-              }
-            </div>
+      <div>
+        <div class="flex items-center justify-between gap-2 mb-3 min-h-10">
+          <p class="font-display text-lg tracking-wide">{{ i18n.t('packs.packOpened') }}</p>
+          @if (!allFlipped()) {
+            <button type="button" (click)="flipAll()" class="status-tile h-10 px-4 rounded-xl border border-line text-sm font-semibold text-ink hover:border-team-primary transition-colors">
+              {{ i18n.t('packs.revealAll') }}
+            </button>
           }
         </div>
-        <div class="flex gap-2">
-          <button type="button" (click)="openAnother()" appButton class="flex-1">
-            {{ i18n.t('packs.openAnother') }}
-          </button>
-          <a routerLink="/album" appButton="secondary" class="flex-1">{{ i18n.t('packs.seeInAlbum') }}</a>
+
+        <div class="relative">
+          @if (bang(); as b) {
+            <p class="bang-float absolute inset-x-0 -top-1 z-30 text-center font-display uppercase tracking-wide pointer-events-none" [ngClass]="b.cls">{{ b.text }}</p>
+          }
+          <div class="flex flex-wrap justify-center gap-3 mb-5 max-h-[62vh] overflow-y-auto p-2 pt-4">
+            @for (card of tableOrder(); track card.resultId; let i = $index) {
+              <div class="deal-in" [style.animation-delay.ms]="i * 90" [style.width.px]="tableCardSize()" [style.height.px]="tableCardSize() * 1.4">
+                <button
+                  type="button"
+                  class="flip-card"
+                  [class.is-flipped]="isFlipped(card)"
+                  [class.flip-card--big]="isBigPull(card)"
+                  [style.--tier]="tierColor(card)"
+                  [disabled]="isFlipped(card)"
+                  [attr.aria-label]="i18n.t('packs.tapToFlip')"
+                  (click)="flip(card)"
+                >
+                  <span class="flip-face flip-back" [ngClass]="'flip-back--' + backTier(card)">
+                    <img src="/clutch-icon-dark.png" alt="" class="flip-back__logo" />
+                  </span>
+                  <span class="flip-face flip-front">
+                    <app-collectible-card
+                      [class.opacity-50]="card.wasDuplicate"
+                      [name]="card.collectible.name"
+                      [tier]="card.collectible.tier"
+                      [teamCode]="card.collectible.team.code"
+                      [teamColor]="card.collectible.team.primaryColor"
+                      [imageUrl]="card.collectible.imageUrl"
+                      [unlocked]="true"
+                      [maxWidth]="tableCardSize()"
+                      [finish]="card.collectible.finish ?? 'standard'"
+                    ></app-collectible-card>
+                    @if (!card.wasDuplicate) {
+                      <span class="absolute top-1.5 left-1.5 z-10 px-1.5 py-0.5 rounded-md bg-team-primary text-team-secondary text-[10px] font-bold uppercase tracking-wide shadow-sm">{{ i18n.t('packs.newRibbon') }}</span>
+                    } @else {
+                      <span class="absolute inset-x-0 bottom-0 py-1.5 rounded-b-2xl bg-emerald-600 text-center font-display font-bold text-[11px] uppercase tracking-wider text-white shadow-md">
+                        {{ i18n.t('packs.sold') }}{{ card.sellValue !== null ? " +" + card.sellValue + " " + i18n.t('store.pointsBadge') : "" }}
+                      </span>
+                    }
+                    @if (isBigPull(card) && isFlipped(card)) {
+                      <span class="flip-flash" [class.flip-flash--foil]="isFoilCard(card)"></span>
+                    }
+                  </span>
+                </button>
+              </div>
+            }
+          </div>
         </div>
+
+        @if (allFlipped()) {
+          <div class="flex gap-2 reveal-pop">
+            <button type="button" (click)="openAnother()" appButton class="flex-1">
+              {{ i18n.t('packs.openAnother') }}
+            </button>
+            <a routerLink="/album" appButton="secondary" class="flex-1">{{ i18n.t('packs.seeInAlbum') }}</a>
+          </div>
+        } @else {
+          <p class="text-center text-[11px] text-muted animate-pulse">{{ i18n.t('packs.tapToFlip') }}</p>
+        }
       </div>
     }
   }
