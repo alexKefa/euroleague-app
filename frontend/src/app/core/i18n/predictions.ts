@@ -1,6 +1,34 @@
 import { Lang } from "./lang";
 
 export const predictionsTranslations: Record<string, Record<Lang, string>> = {
+  // Leaderboard page (features/leaderboard, 2026-10-02).
+  "leaderboard.title": { en: "Leaderboard", el: "Κατάταξη" },
+  "leaderboard.subtitle": { en: "Who's calling the games best, overall, by round, and in your leagues.", el: "Ποιος προβλέπει καλύτερα, συνολικά, ανά γύρο και στις λίγκες σου." },
+  "leaderboard.overall": { en: "Overall", el: "Συνολικά" },
+  "leaderboard.round": { en: "Round", el: "Γύρος" },
+  "leaderboard.leagues": { en: "My leagues", el: "Οι λίγκες μου" },
+  "leaderboard.empty": { en: "No results yet.", el: "Δεν υπάρχουν αποτελέσματα ακόμα." },
+  "leaderboard.noLeaguesTitle": { en: "You're not in a league yet", el: "Δεν είσαι ακόμα σε λίγκα" },
+  "leaderboard.noLeaguesBody": { en: "Create one or join with a code to compete with friends.", el: "Φτιάξε μία ή μπες με κωδικό για να παίξεις με φίλους." },
+  "leaderboard.you": { en: "Your position", el: "Η θέση σου" },
+  "leaderboard.showMe": { en: "Show me", el: "Δείξε με" },
+
+  // Round recap (features/dashboard/round-recap.ts, 2026-10-02).
+  "recap.title": { en: "Round {round} recap", el: "Απολογισμός γύρου {round}" },
+  "recap.points": { en: "Points this round", el: "Πόντοι στον γύρο" },
+  "recap.roundRank": { en: "#{rank} of {n} this round", el: "#{rank} από {n} στον γύρο" },
+  "recap.overall": { en: "Overall", el: "Συνολικά" },
+  "recap.up": { en: "Up {n}", el: "Άνοδος {n}" },
+  "recap.down": { en: "Down {n}", el: "Πτώση {n}" },
+  "recap.same": { en: "Held your spot", el: "Ίδια θέση" },
+  "recap.correct": { en: "Correct picks", el: "Σωστές προβλέψεις" },
+  "recap.best": { en: "Best pick", el: "Καλύτερη πρόβλεψη" },
+  "recap.bestWinner": { en: "{team} to win", el: "Νίκη {team}" },
+  "recap.bestTopScorer": { en: "{player} top scorer", el: "{player} πρώτος σκόρερ" },
+  "recap.leagues": { en: "Your leagues", el: "Οι λίγκες σου" },
+  "recap.leagueRank": { en: "#{rank} of {n}", el: "#{rank} από {n}" },
+  "recap.cta": { en: "See the leaderboard", el: "Δες την κατάταξη" },
+
   // Pick-result toast (shared/pick-result-toast.ts, 2026-10-02).
   "pickResult.won": { en: "{team} won. Your pick was right!", el: "Νίκη για {team}. Η πρόβλεψή σου βγήκε!" },
   "pickResult.missed": { en: "{team} won. Your pick missed.", el: "Νίκη για {team}. Η πρόβλεψή σου δεν βγήκε." },

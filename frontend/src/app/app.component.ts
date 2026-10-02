@@ -18,6 +18,7 @@ import { BattleChallengeToastComponent } from "./shared/battle-challenge-toast";
 import { JumpBallToastComponent } from "./shared/jump-ball-toast";
 import { RemindersBannerComponent } from "./shared/reminders-banner";
 import { PickResultToastComponent } from "./shared/pick-result-toast";
+import { PullToRefreshComponent } from "./shared/pull-to-refresh";
 import { PackRewardToastComponent } from "./shared/pack-reward-toast";
 import { PackRewardsService } from "./core/pack-rewards.service";
 import { BattlesNotificationService } from "./core/battles-notification.service";
@@ -97,6 +98,7 @@ const NAV_LINKS: NavLink[] = [
     activePrefixes: ["/store", "/wheel", "/trades", "/packs", "/album", "/legendary-vote", "/battles", "/achievements"],
   },
   { path: "/fantasy", label: "fantasy.navLink", icon: "trophy" },
+  { path: "/leaderboard", label: "nav.leaderboard", icon: "medal" },
   { path: "/schedule", label: "nav.schedule", icon: "schedule" },
   { path: "/teams", label: "nav.teams", icon: "teams" },
   { path: "/standings", label: "nav.standings", icon: "standings" },
@@ -112,7 +114,7 @@ const NAV_LINKS: NavLink[] = [
 // order should be Home, Predictions, Cards, Fantasy"), landing Cards
 // before Fantasy here even though the desktop rail keeps Fantasy before
 // Cards; this list is intentionally independent of that one.
-const MOBILE_OVERFLOW_PATHS = new Set(["/schedule", "/teams", "/standings", "/news"]);
+const MOBILE_OVERFLOW_PATHS = new Set(["/leaderboard", "/schedule", "/teams", "/standings", "/news"]);
 function findNavLink(path: string): NavLink {
   const link = NAV_LINKS.find((l) => l.path === path);
   if (!link) throw new Error(`app.component.ts: no NAV_LINKS entry for "${path}"`);
@@ -125,7 +127,8 @@ const MOBILE_NAV_LINKS: NavLink[] = ["/", "/predictions", "/inventory", "/fantas
 // Teams/Standings keep their existing order; News moved here and placed
 // last (2026-09-19, explicit ask), not first, since it's the newest
 // addition to this list rather than one of its established members.
-const MORE_LINKS: NavLink[] = ["/schedule", "/teams", "/standings", "/news"].map(findNavLink);
+// Leaderboard (2026-10-02) leads it: checked between rounds, not every session.
+const MORE_LINKS: NavLink[] = ["/leaderboard", "/schedule", "/teams", "/standings", "/news"].map(findNavLink);
 
 @Component({
   selector: "app-root",
@@ -143,6 +146,7 @@ const MORE_LINKS: NavLink[] = ["/schedule", "/teams", "/standings", "/news"].map
     JumpBallToastComponent,
     RemindersBannerComponent,
     PickResultToastComponent,
+    PullToRefreshComponent,
     PackRewardToastComponent,
     WhatsNewComponent,
     WatchPillComponent,

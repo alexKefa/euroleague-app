@@ -488,7 +488,7 @@
                   </button>
                 }
               </div>
-              <a routerLink="/predictions" fragment="leaderboard" class="go-link mt-2 ml-auto !flex w-fit"
+              <a routerLink="/leaderboard" class="go-link mt-2 ml-auto !flex w-fit"
                 >{{ i18n.t('dashboard.viewAll') }} </a
               >
             }
@@ -584,5 +584,10 @@
         }
       </div>
     </div>
+  }
+
+  <!-- One-time recap of the last finished round (round-recap.ts). -->
+  @if (auth.isAuthenticated()) {
+    <app-round-recap />
   }
 </div>

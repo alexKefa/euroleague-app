@@ -62,5 +62,11 @@ export const dashboardTranslations: Record<string, Record<Lang, string>> = {
   "roundStrip.behind": { en: "{n} pts to #{rank}", el: "{n} πόντοι για #{rank}" },
   "roundStrip.tied": { en: "Level with #{rank}", el: "Ίδιοι πόντοι με #{rank}" },
   "roundStrip.top": { en: "Top of the board", el: "Στην κορυφή της κατάταξης" },
+  "roundStrip.firstTitle": { en: "Make your first picks", el: "Κάνε τις πρώτες σου προβλέψεις" },
+  "roundStrip.firstBody": {
+    en: "Pick the winner of each game. Right calls earn points for packs and cards, and put you on the leaderboard.",
+    el: "Διάλεξε τον νικητή κάθε αγώνα. Οι σωστές προβλέψεις φέρνουν πόντους για πακέτα και κάρτες, και σε βάζουν στην κατάταξη.",
+  },
+  "roundStrip.firstCta": { en: "Start picking", el: "Ξεκίνα τις προβλέψεις" },
   "roundStrip.allIn": { en: "All your picks are in", el: "Έκανες όλες τις προβλέψεις" },
 };

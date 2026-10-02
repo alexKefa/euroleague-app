@@ -25,6 +25,7 @@ import { SkeletonComponent } from "../../shared/skeleton";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { LiveCenterComponent } from "./live-center";
 import { RoundStripComponent } from "./round-strip";
+import { RoundRecapComponent } from "./round-recap";
 import {
   newsDateLocale,
   shortDateFormat as gameShortDateFormat,
@@ -70,6 +71,7 @@ type DashboardTab = "performances" | "leaders" | "predictors" | "schedule";
     TeamCodePipe,
     LiveCenterComponent,
     RoundStripComponent,
+    RoundRecapComponent,
   ],
   templateUrl: "./dashboard.component.html",
   styleUrl: "./dashboard.component.css",
@@ -379,7 +381,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       });
     }
 
-    this.api.getLeaderboard().subscribe({
+    this.api.getLeaderboard(true).subscribe({
       next: (rows) => {
         this.fullLeaderboard.set(rows);
         this.predictorsLoading.set(false);

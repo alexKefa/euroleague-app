@@ -7,6 +7,8 @@ import { requireAuth, requireAdmin } from "../auth/middleware.js";
 import { computeWinnerTeamId, getUserPoints, pointsForCorrectPick } from "../services/points.js";
 import { getUserTopScorerPoints, computeTopScorerPlayerIdsForGames, TOP_SCORER_POINTS_PER_CORRECT } from "../services/topScorerPoints.js";
 import { earnedBadges, getLeaderboardEntries, ResolvedPick } from "../services/leaderboard.js";
+import { getRoundStandings, getPlayedRounds, getRoundRecap } from "../services/roundStandings.js";
+import { getCurrentSeason } from "../services/season.js";
 import {
   checkAndGrantRoundRewards,
   markRoundRewardsSeen,
@@ -362,12 +364,57 @@ predictionsRouter.get("/history", requireAuth, async (req, res) => {
 // scoped leaderboard (routes/leagues.ts) — see that function's doc comment
 // for why this is computed live in two phases rather than pulling every
 // prediction into JS.
-predictionsRouter.get("/leaderboard", async (_req, res) => {
+// ?all=1 returns the whole board (the Leaderboard page, and the dashboard's
+// own-rank/gap, which are wrong for anyone below a capped top 20).
+predictionsRouter.get("/leaderboard", async (req, res) => {
   try {
-    res.json(await getLeaderboardEntries({ limit: 20 }));
+    res.json(await getLeaderboardEntries(req.query.all === "1" ? {} : { limit: 20 }));
   } catch (err) {
     console.error("GET /api/predictions/leaderboard failed:", err);
     res.status(500).json({ error: "Failed to load leaderboard" });
+  }
+});
+
+// Leaderboard page's Round tab (2026-10-02): rounds with any final game.
+predictionsRouter.get("/leaderboard/rounds", async (_req, res) => {
+  try {
+    const season = await getCurrentSeason();
+    if (!season) {
+      res.json({ season: null, rounds: [], lastComplete: null });
+      return;
+    }
+    const { rounds, lastComplete } = await getPlayedRounds(season);
+    res.json({ season, rounds, lastComplete });
+  } catch (err) {
+    console.error("GET /api/predictions/leaderboard/rounds failed:", err);
+    res.status(500).json({ error: "Failed to load rounds" });
+  }
+});
+
+predictionsRouter.get("/leaderboard/round/:round", async (req, res) => {
+  const round = Number(req.params.round);
+  if (!Number.isInteger(round) || round < 1) {
+    res.status(400).json({ error: "round must be a positive integer" });
+    return;
+  }
+  try {
+    const season = await getCurrentSeason();
+    res.json(season ? await getRoundStandings(season, round) : []);
+  } catch (err) {
+    console.error("GET /api/predictions/leaderboard/round/:round failed:", err);
+    res.status(500).json({ error: "Failed to load round leaderboard" });
+  }
+});
+
+// Round recap (2026-10-02): the latest fully final round for the caller —
+// points, rank movement, league positions. Null when there's nothing to recap.
+predictionsRouter.get("/round-recap", requireAuth, async (req, res) => {
+  try {
+    const season = await getCurrentSeason();
+    res.json(season ? await getRoundRecap(req.userId!, season) : null);
+  } catch (err) {
+    console.error("GET /api/predictions/round-recap failed:", err);
+    res.status(500).json({ error: "Failed to load round recap" });
   }
 });
 

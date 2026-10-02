@@ -1243,6 +1243,34 @@ export interface AdminUserRow {
   referralsCount: number;
 }
 
+// GET /predictions/leaderboard/round/:round — one round's points (2026-10-02).
+export interface RoundStandingEntry {
+  userId: string;
+  displayName: string;
+  correct: number;
+  total: number;
+  points: number;
+}
+
+export interface PlayedRounds {
+  season: string | null;
+  rounds: number[];
+  lastComplete: number | null;
+}
+
+// GET /predictions/round-recap — latest fully final round for the caller.
+export interface RoundRecap {
+  season: string;
+  round: number;
+  finishedAt: string;
+  roundPoints: number;
+  roundRank: number | null;
+  roundPlayers: number;
+  rank: number | null;
+  rankBefore: number | null;
+  leagues: { id: string; name: string; rank: number; members: number }[];
+}
+
 // GET /admin/leagues — every league, for the admin "Add to league" picker.
 export interface AdminLeague {
   id: string;

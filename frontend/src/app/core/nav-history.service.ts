@@ -24,6 +24,9 @@ export class NavHistoryService {
   constructor() {
     this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd)).subscribe((e) => {
       this.stack.update((s) => {
+        // Pull-to-refresh's hop (shared/pull-to-refresh.ts) goes to
+        // /__refresh and back to the same URL; neither is a real step.
+        if (e.urlAfterRedirects === "/__refresh" || s[s.length - 1] === e.urlAfterRedirects) return s;
         const next = [...s, e.urlAfterRedirects];
         return next.length > MAX_STACK ? next.slice(next.length - MAX_STACK) : next;
       });

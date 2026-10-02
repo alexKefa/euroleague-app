@@ -1,0 +1,116 @@
+<div class="max-w-3xl mx-auto p-4 sm:p-6 pb-28">
+  <app-page-header [title]="i18n.t('leaderboard.title')" [eyebrow]="i18n.t('nav.picks')" [subtitle]="i18n.t('leaderboard.subtitle')" icon="medal" />
+
+  <!-- Board switcher -->
+  <div class="status-tile flex gap-1 mb-3 h-11 p-1 rounded-2xl border border-line">
+    <button type="button" (click)="setTab('overall')" [ngClass]="tabClass('overall')" class="flex-1 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors">
+      {{ i18n.t('leaderboard.overall') }}
+    </button>
+    <button type="button" (click)="setTab('round')" [ngClass]="tabClass('round')" class="flex-1 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors">
+      {{ i18n.t('leaderboard.round') }}
+    </button>
+    @if (auth.isAuthenticated()) {
+      <button type="button" (click)="setTab('league')" [ngClass]="tabClass('league')" class="flex-1 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors">
+        {{ i18n.t('leaderboard.leagues') }}
+      </button>
+    }
+  </div>
+
+  @if (tab() === 'round' && roundOptions().length > 0) {
+    <app-dropdown class="mb-4" [options]="roundOptions()" [value]="round() !== null ? '' + round() : null" (valueChange)="setRound($event)" />
+  }
+  @if (tab() === 'league') {
+    @if (leagueOptions().length > 0) {
+      <app-dropdown class="mb-4" [options]="leagueOptions()" [value]="leagueId()" (valueChange)="setLeague($event)" />
+    } @else {
+      <div class="rounded-3xl border border-line bg-card shadow-card p-6 text-center mb-4">
+        <p class="font-display text-lg">{{ i18n.t('leaderboard.noLeaguesTitle') }}</p>
+        <p class="text-sm text-muted mt-1 mb-4">{{ i18n.t('leaderboard.noLeaguesBody') }}</p>
+        <a routerLink="/leagues" class="inline-flex items-center gap-2 h-10 px-5 rounded-2xl bg-team-primary text-team-secondary text-sm font-bold">
+          <app-nav-icon name="bracket" [size]="16" /> {{ i18n.t('dashboard.myLeagues') }}
+        </a>
+      </div>
+    }
+  }
+
+  @if (loading()) {
+    <div class="grid grid-cols-3 gap-3 items-end mb-4">
+      <app-skeleton class="rounded-3xl h-[150px]" />
+      <app-skeleton class="rounded-3xl h-[178px]" />
+      <app-skeleton class="rounded-3xl h-[134px]" />
+    </div>
+    @for (i of [0, 1, 2, 3, 4, 5]; track i) {
+      <app-skeleton class="rounded-2xl h-14 mb-2" />
+    }
+  } @else if (rows().length === 0) {
+    @if (!(tab() === 'league' && leagueOptions().length === 0)) {
+      <div class="rounded-3xl border border-line bg-card shadow-card p-6 text-center">
+        <app-nav-icon name="medal" [size]="28" class="text-muted" />
+        <p class="text-sm text-muted mt-2">{{ i18n.t('leaderboard.empty') }}</p>
+      </div>
+    }
+  } @else {
+    <!-- Podium: 2nd · 1st · 3rd, the winner's column tallest. -->
+    @if (podiumSlots().length === 3) {
+      <div class="grid grid-cols-3 gap-2 sm:gap-3 items-end mb-4">
+        @for (slot of podiumSlots(); track slot.row.userId) {
+          <div
+            [id]="'lb-' + slot.row.userId"
+            class="relative overflow-hidden rounded-3xl border border-line bg-card shadow-card px-2 pt-4 text-center flex flex-col items-center"
+            [class.ring-2]="slot.row.userId === auth.currentUser()?.id"
+            [class.ring-team-primary]="slot.row.userId === auth.currentUser()?.id"
+            [ngClass]="slot.place === 1 ? 'pb-6' : slot.place === 2 ? 'pb-4' : 'pb-2'"
+          >
+            @if (slot.place === 1) {
+              <div class="pointer-events-none absolute inset-0" style="background: linear-gradient(180deg, color-mix(in srgb, var(--accent-primary) 22%, transparent) 0%, transparent 70%)" aria-hidden="true"></div>
+            }
+            <span class="relative w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold mb-2" [class]="rankBadgeClasses(slot.place - 1)">{{ slot.place }}</span>
+            <span
+              class="relative rounded-full flex items-center justify-center font-display bg-page border-2"
+              [ngClass]="slot.place === 1 ? 'w-14 h-14 text-xl border-team-primary' : 'w-11 h-11 text-base border-line'"
+              >{{ initial(slot.row.name) }}</span
+            >
+            <p class="relative font-semibold text-[13px] truncate w-full mt-2">{{ slot.row.name }}</p>
+            <p class="relative font-display text-lg leading-tight tabular-nums" [class.text-team-primary]="slot.place === 1">{{ slot.row.points }}</p>
+            <p class="relative font-mono text-[10px] text-muted">{{ slot.row.correct }}/{{ slot.row.total }}</p>
+          </div>
+        }
+      </div>
+    }
+
+    <div class="rounded-3xl border border-line bg-card shadow-card p-2 space-y-1">
+      @for (row of listRows(); track row.userId; let i = $index) {
+        <div
+          [id]="'lb-' + row.userId"
+          class="list-row"
+          [class.is-mine]="row.userId === auth.currentUser()?.id"
+        >
+          <span class="w-8 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0" [class]="rankBadgeClasses(i + podium().length)">{{ i + podium().length + 1 }}</span>
+          <span class="min-w-0 flex-1">
+            <span class="block font-semibold truncate">{{ row.name }}</span>
+            <span class="block font-mono text-[11px] text-muted">{{ row.correct }}/{{ row.total }}</span>
+          </span>
+          <span class="value-chip">{{ row.points }} {{ i18n.t('predictions.pts') }}</span>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- Your position, pinned above the mobile tab bar / page bottom. -->
+@if (!loading() && me(); as m) {
+  <div class="fixed inset-x-3 sm:inset-x-auto sm:right-6 sm:w-96 z-30 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] sm:bottom-6">
+    <button
+      type="button"
+      (click)="scrollToMe()"
+      class="toast-pop w-full flex items-center gap-3 rounded-2xl border border-line bg-card shadow-pop px-4 py-2.5 text-left"
+    >
+      <span class="font-display text-xl tabular-nums text-team-primary">#{{ m.rank }}</span>
+      <span class="min-w-0 flex-1">
+        <span class="block text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('leaderboard.you') }}</span>
+        <span class="block text-sm font-semibold truncate">{{ m.row.points }} {{ i18n.t('predictions.pts') }} · {{ m.row.correct }}/{{ m.row.total }}</span>
+      </span>
+      <span class="text-[12px] font-semibold text-team-primary">{{ i18n.t('leaderboard.showMe') }}</span>
+    </button>
+  </div>
+}

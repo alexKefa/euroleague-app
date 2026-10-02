@@ -67,6 +67,9 @@ import {
   AdminUsersResponse,
   AdminLeague,
   AdminUserLeague,
+  PlayedRounds,
+  RoundStandingEntry,
+  RoundRecap,
   Announcement,
   AnnouncementInput, FantasyPlayerCard, ScoutingReport, Reminders } from "./models";
 
@@ -214,8 +217,23 @@ export class ApiService {
     return this.http.get<PredictionHistoryRound[]>(`${API_BASE_URL}/predictions/history`);
   }
 
-  getLeaderboard(): Observable<LeaderboardEntry[]> {
-    return this.http.get<LeaderboardEntry[]>(`${API_BASE_URL}/predictions/leaderboard`);
+  // all=true: the whole board, not the default top 20.
+  getLeaderboard(all = false): Observable<LeaderboardEntry[]> {
+    return this.http.get<LeaderboardEntry[]>(`${API_BASE_URL}/predictions/leaderboard`, {
+      params: all ? { all: "1" } : {},
+    });
+  }
+
+  getLeaderboardRounds(): Observable<PlayedRounds> {
+    return this.http.get<PlayedRounds>(`${API_BASE_URL}/predictions/leaderboard/rounds`);
+  }
+
+  getRoundLeaderboard(round: number): Observable<RoundStandingEntry[]> {
+    return this.http.get<RoundStandingEntry[]>(`${API_BASE_URL}/predictions/leaderboard/round/${round}`);
+  }
+
+  getRoundRecap(): Observable<RoundRecap | null> {
+    return this.http.get<RoundRecap | null>(`${API_BASE_URL}/predictions/round-recap`);
   }
 
   getPredictionAnalytics(): Observable<PredictionAnalytics> {

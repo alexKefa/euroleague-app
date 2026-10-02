@@ -1,3 +1,4 @@
+import { BlankComponent } from "./shared/pull-to-refresh";
 import { Routes } from "@angular/router";
 import { firstVisitGuard } from "./core/first-visit.guard";
 
@@ -38,6 +39,12 @@ export const routes: Routes = [
     path: "predictions",
     loadComponent: () =>
       import("./features/predictions/predictions").then((m) => m.PredictionsComponent),
+  },
+  // Pull-to-refresh's round trip target (shared/pull-to-refresh.ts).
+  { path: "__refresh", component: BlankComponent },
+  {
+    path: "leaderboard",
+    loadComponent: () => import("./features/leaderboard/leaderboard").then((m) => m.LeaderboardComponent),
   },
   {
     path: "predictions-analytics",

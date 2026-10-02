@@ -35,6 +35,21 @@ const SEASON = "2026-27";
         </div>
         <app-skeleton class="mt-3 h-10 rounded-2xl" />
       </div>
+    } @else if (firstRun() && schedule(); as s) {
+      <!-- First run: no pick ever, so 0/9 · 0 · — says nothing. Explain the
+           loop and point at the one thing to do. -->
+      <a routerLink="/predictions" class="relative block overflow-hidden rounded-3xl p-5 mb-4 bg-card border border-line shadow-card group">
+        <div class="pointer-events-none absolute inset-0" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 24%, transparent) 0%, transparent 70%)" aria-hidden="true"></div>
+        <p class="relative text-[11px] font-bold text-muted uppercase tracking-wider">
+          {{ i18n.t("roundStrip.title").replace("{round}", String(s.round)) }}
+        </p>
+        <p class="relative font-display text-xl leading-tight mt-1">{{ i18n.t("roundStrip.firstTitle") }}</p>
+        <p class="relative text-[13px] text-muted mt-1.5 leading-snug">{{ i18n.t("roundStrip.firstBody") }}</p>
+        <span class="relative mt-4 flex items-center justify-center gap-2 h-11 rounded-2xl bg-team-primary text-team-secondary text-sm font-bold">
+          <app-nav-icon name="picks" [size]="16" />
+          {{ i18n.t("roundStrip.firstCta") }}
+        </span>
+      </a>
     } @else if (schedule(); as s) {
       <div class="rounded-3xl p-4 mb-4 bg-card border border-line shadow-card">
         <a routerLink="/predictions" class="flex items-center justify-between gap-2 mb-3 group">
@@ -62,7 +77,7 @@ const SEASON = "2026-27";
               </p>
             }
           </a>
-          <a routerLink="/predictions" fragment="leaderboard" class="status-tile rounded-2xl border border-line px-2 py-2 text-center min-w-0 hover:border-team-primary/50 transition-colors">
+          <a routerLink="/leaderboard" class="status-tile rounded-2xl border border-line px-2 py-2 text-center min-w-0 hover:border-team-primary/50 transition-colors">
             <p class="text-[11px] font-bold text-muted uppercase tracking-wider truncate">{{ i18n.t("roundStrip.rank") }}</p>
             @if (rankLoading()) {
               <app-skeleton class="h-5 w-10 mx-auto mt-1 rounded-md" />
@@ -141,6 +156,12 @@ export class RoundStripComponent {
       (g) => g.status === "scheduled" && new Date(g.tipoffAt).getTime() > now && !picked.has(g.id)
     ).length;
   });
+
+  // Never made a pick, anywhere: history (all rounds) and this session's
+  // picks both empty, once both have loaded.
+  readonly firstRun = computed(
+    () => !this.historyLoading() && this.history().length === 0 && this.picksLoaded() && this.events.predictedGameIds().size === 0
+  );
 
   readonly roundPoints = computed(() => {
     const round = this.schedule()?.round;
