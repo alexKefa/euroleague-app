@@ -4,7 +4,11 @@ import {
   EventEmitter,
   HostBinding,
   HostListener,
+  Injector,
   Input,
+  OnDestroy,
+  afterNextRender,
+  effect,
   Output,
   inject,
   signal,
@@ -101,10 +105,10 @@ export interface DropdownOption {
     @if (open()) {
       <!-- Phones: a dimmed backdrop, and the list docks to the bottom as a
            sheet (see .dd-panel below). Tapping the backdrop closes it. -->
-      <div class="sm:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm dd-fade" (click)="open.set(false)"></div>
+      <div class="sm:hidden fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm dd-fade" (click)="open.set(false)"></div>
       <ul
         role="listbox"
-        class="dd-panel absolute z-50 left-0 right-0 mt-2 min-w-[10rem] max-h-72 overflow-y-auto rounded-2xl bg-card border border-line shadow-pop p-1.5 space-y-0.5"
+        class="dd-panel absolute z-[60] left-0 right-0 mt-2 min-w-[10rem] max-h-72 overflow-y-auto rounded-2xl bg-card border border-line shadow-pop p-1.5 space-y-0.5"
       >
         @for (opt of options; track opt.value; let i = $index) {
           <li
@@ -130,7 +134,7 @@ export interface DropdownOption {
     }
   `,
 })
-export class DropdownComponent {
+export class DropdownComponent implements OnDestroy {
   @Input({ required: true }) options: DropdownOption[] = [];
   @Input() value: string | null = null;
   @Input() placeholder = "";
@@ -145,6 +149,9 @@ export class DropdownComponent {
   protected readonly highlightedIndex = signal(-1);
 
   private elementRef = inject(ElementRef);
+  private injector = inject(Injector);
+  private panelEl: HTMLElement | null = null;
+  private backdropEl: HTMLElement | null = null;
 
   protected selected(): DropdownOption | null {
     return this.options.find((o) => o.value === this.value) ?? null;
@@ -163,7 +170,82 @@ export class DropdownComponent {
     if (next) {
       const idx = this.options.findIndex((o) => o.value === this.value);
       this.highlightedIndex.set(idx >= 0 ? idx : 0);
+      afterNextRender(() => this.attachToBody(), { injector: this.injector });
     }
+  }
+
+  // The panel is moved to <body> once it renders (2026-10-02): rendered in
+  // place, any ancestor with overflow hidden/auto (a scrolling list panel,
+  // a dialog body) clipped it, so a dropdown near the bottom of one opened
+  // out of view. From <body> nothing clips it. On desktop it's then placed
+  // against the trigger with fixed coordinates, flipping above when there's
+  // more room there; phones keep the CSS bottom sheet. Angular still owns
+  // the nodes and removes them when the @if closes.
+  private attachToBody(): void {
+    const host = this.elementRef.nativeElement as HTMLElement;
+    const panel = host.querySelector<HTMLElement>("ul[role=listbox]");
+    const backdrop = host.querySelector<HTMLElement>("div.dd-fade");
+    if (!panel || !this.open()) return;
+    this.panelEl = panel;
+    this.backdropEl = backdrop;
+    if (backdrop) document.body.appendChild(backdrop);
+    document.body.appendChild(panel);
+    this.position();
+  }
+
+  private isPhone(): boolean {
+    return window.matchMedia("(max-width: 639.98px)").matches;
+  }
+
+  private position(): void {
+    const panel = this.panelEl;
+    if (!panel || this.isPhone()) return;
+    const rect = (this.elementRef.nativeElement as HTMLElement).getBoundingClientRect();
+    const gap = 8;
+    const margin = 12;
+    const below = window.innerHeight - rect.bottom - gap - margin;
+    const above = rect.top - gap - margin;
+    const openUp = below < 200 && above > below;
+    Object.assign(panel.style, {
+      position: "fixed",
+      margin: "0",
+      left: `${rect.left}px`,
+      right: "auto",
+      width: `${Math.max(rect.width, 160)}px`,
+      maxHeight: `${Math.min(288, Math.max(openUp ? above : below, 120))}px`,
+      top: openUp ? "auto" : `${rect.bottom + gap}px`,
+      bottom: openUp ? `${window.innerHeight - rect.top + gap}px` : "auto",
+      transformOrigin: openUp ? "bottom" : "top",
+    });
+  }
+
+  // Fixed coordinates go stale once the page scrolls or resizes, so close
+  // rather than chase the trigger. Scrolling inside the panel itself is fine.
+  @HostListener("window:resize")
+  onResize(): void {
+    if (this.open() && !this.isPhone()) this.open.set(false);
+  }
+
+  // Capture phase, so scrolling any container (not just the page) counts.
+  private readonly onAnyScroll = (event: Event): void => {
+    if (!this.open() || this.isPhone()) return;
+    if (this.panelEl && event.target instanceof Node && this.panelEl.contains(event.target)) return;
+    this.open.set(false);
+  };
+
+  constructor() {
+    effect(() => {
+      if (this.open()) window.addEventListener("scroll", this.onAnyScroll, true);
+      else window.removeEventListener("scroll", this.onAnyScroll, true);
+    });
+  }
+
+  ngOnDestroy(): void {
+    window.removeEventListener("scroll", this.onAnyScroll, true);
+    // Normally Angular removes these with the @if; this covers a host torn
+    // down while open.
+    this.panelEl?.remove();
+    this.backdropEl?.remove();
   }
 
   select(opt: DropdownOption): void {
@@ -174,7 +256,10 @@ export class DropdownComponent {
 
   @HostListener("document:click", ["$event"])
   onDocumentClick(event: MouseEvent): void {
-    if (this.open() && !this.elementRef.nativeElement.contains(event.target)) {
+    const target = event.target as Node;
+    const inside =
+      this.elementRef.nativeElement.contains(target) || !!this.panelEl?.contains(target) || !!this.backdropEl?.contains(target);
+    if (this.open() && !inside) {
       this.open.set(false);
     }
   }

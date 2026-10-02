@@ -65,6 +65,8 @@ import {
   FavoritePlayer,
   PromoRedemptionResponse,
   AdminUsersResponse,
+  AdminLeague,
+  AdminUserLeague,
   Announcement,
   AnnouncementInput, FantasyPlayerCard, ScoutingReport, Reminders } from "./models";
 
@@ -680,6 +682,23 @@ export class ApiService {
   // Admin only (enforced server-side).
   getAdminUsers(): Observable<AdminUsersResponse> {
     return this.http.get<AdminUsersResponse>(`${API_BASE_URL}/admin/users`);
+  }
+
+  // Admin league membership (2026-10-02) — see routes/admin.ts.
+  getAdminLeagues(): Observable<AdminLeague[]> {
+    return this.http.get<AdminLeague[]>(`${API_BASE_URL}/admin/leagues`);
+  }
+
+  getAdminUserLeagues(userId: string): Observable<AdminUserLeague[]> {
+    return this.http.get<AdminUserLeague[]>(`${API_BASE_URL}/admin/users/${userId}/leagues`);
+  }
+
+  addLeagueMembers(leagueId: string, userIds: string[]): Observable<{ added: number }> {
+    return this.http.post<{ added: number }>(`${API_BASE_URL}/admin/leagues/${leagueId}/members`, { userIds });
+  }
+
+  removeLeagueMember(leagueId: string, userId: string): Observable<{ removed: number }> {
+    return this.http.delete<{ removed: number }>(`${API_BASE_URL}/admin/leagues/${leagueId}/members/${userId}`);
   }
 
   // Admin only — "Sync images" button (2026-09-18), see routes/admin.ts's

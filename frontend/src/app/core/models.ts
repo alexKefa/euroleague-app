@@ -1231,12 +1231,32 @@ export interface AdminUserRow {
   email: string;
   username: string;
   createdAt: string;
+  // Last time the app was open (users.last_seen_at); null = not seen since tracking began (2026-10-02).
+  lastSeenAt: string | null;
+  // Has the app open right now.
+  online: boolean;
   isAdmin: boolean;
-  favoriteTeam: { id: string; code: string; name: string } | null;
+  favoriteTeam: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null } | null;
   totalPoints: number;
   cardsOwned: number;
   predictionsMade: number;
   referralsCount: number;
+}
+
+// GET /admin/leagues — every league, for the admin "Add to league" picker.
+export interface AdminLeague {
+  id: string;
+  name: string;
+  code: string;
+  memberCount: number;
+}
+
+// GET /admin/users/:id/leagues
+export interface AdminUserLeague {
+  id: string;
+  name: string;
+  code: string;
+  joinedAt: string;
 }
 
 /** "What's new" toast entry (backend routes/announcements.ts). */

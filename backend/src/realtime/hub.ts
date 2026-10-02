@@ -33,6 +33,13 @@ export function registerClient(res: Response, userId: string | null): () => void
   return () => clients.delete(client);
 }
 
+/** Users with at least one open stream right now, i.e. the app is open. */
+export function onlineUserIds(): Set<string> {
+  const ids = new Set<string>();
+  for (const client of clients) if (client.userId) ids.add(client.userId);
+  return ids;
+}
+
 function frame(event: string, data: unknown): string {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 }

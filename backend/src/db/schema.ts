@@ -61,6 +61,10 @@ export const users = pgTable("users", {
   // No signup flow grants this — flip it by hand (e.g. via `db:studio`) for the first admin.
   isAdmin: boolean("is_admin").default(false).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  // Admin Users page's "last seen" (2026-10-02). Stamped when the user's
+  // live-updates stream (GET /api/events) opens and again when it closes,
+  // which an open app tab holds the whole time. Null = never seen since then.
+  lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
 
   // Referrals — every user gets a code (generated at registration,
   // routes/auth.ts) whether or not they used someone else's; shared as

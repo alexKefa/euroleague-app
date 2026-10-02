@@ -3,8 +3,20 @@ import { registerClient } from "../realtime/hub.js";
 import { startSimulation, completeSimulation, isSimulationRunning, simulateRound } from "../realtime/liveScoreSimulator.js";
 import { verifyAccessToken } from "../auth/tokens.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
+import { eq } from "drizzle-orm";
+import { db } from "../db/client.js";
+import { users } from "../db/schema.js";
 
 export const eventsRouter = Router();
+
+// users.last_seen_at for the admin Users page. Fire-and-forget: a failed
+// stamp must never break the live stream.
+function stampLastSeen(userId: string): void {
+  db.update(users)
+    .set({ lastSeenAt: new Date() })
+    .where(eq(users.id, userId))
+    .catch((err) => console.error("last_seen_at update failed:", err));
+}
 
 // The live-score stream is public (same data a logged-out visitor sees on
 // /schedule), so this endpoint doesn't require auth. It still resolves a
@@ -34,10 +46,13 @@ eventsRouter.get("/", (req, res) => {
 
   const unregister = registerClient(res, userId);
   const heartbeat = setInterval(() => res.write(": ping\n\n"), 25000);
+  if (userId) stampLastSeen(userId);
 
   req.on("close", () => {
     clearInterval(heartbeat);
     unregister();
+    // The stream closing is the last moment the app was open.
+    if (userId) stampLastSeen(userId);
   });
 });
 

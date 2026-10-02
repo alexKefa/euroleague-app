@@ -9,167 +9,286 @@
       <p class="text-sm text-muted mt-1">{{ i18n.t('admin.accessDeniedBody') }}</p>
     </div>
   } @else {
-    <div class="mt-4 mb-5">
-      <h1 class="font-display text-2xl tracking-wide">{{ i18n.t('admin.title') }}</h1>
-      <p class="text-sm text-muted mt-1">{{ i18n.t('admin.subtitle') }}</p>
-    </div>
+    <app-page-header [title]="i18n.t('admin.title')" [eyebrow]="i18n.t('admin.eyebrow')" [subtitle]="i18n.t('admin.subtitle')" icon="user" class="mt-4" />
 
-    <!-- Most text-highlight/bg-highlight below -> team-primary equivalents
-         (2026-09-18, "change everywhere on the app the default orange
-         color with the preferred team") — KPI stat, chart bars, sort
-         indicators. The per-row ADMIN badge stays fixed highlight though
-         (see its own comment below) — first swapped, then reverted the same
-         pass on a second look: it marks a DIFFERENT user's role in this
-         table, not the viewer's own team, same "role chrome" reasoning the
-         top-bar's own ADMIN badge was already kept fixed for. -->
     @if (loading()) {
-      <div class="animate-pulse h-96 rounded-2xl bg-line"></div>
+      <div class="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-3 mb-4">
+        <app-skeleton class="rounded-3xl h-[180px]" />
+        <div class="grid grid-cols-2 gap-3">
+          @for (i of [0, 1, 2, 3]; track i) {
+            <app-skeleton class="rounded-2xl h-[84px]" />
+          }
+        </div>
+      </div>
+      <app-skeleton class="rounded-3xl h-[60vh]" />
     } @else if (error()) {
       <p class="text-red-500 text-sm font-semibold">{{ i18n.t('admin.loadError') }}</p>
     } @else {
-      <!-- KPI tiles -->
-      <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
-        <div class="rounded-xl border border-line bg-card p-3">
-          <p class="text-[11px] font-bold uppercase tracking-wider text-muted break-words">{{ i18n.t('admin.kpiTotal') }}</p>
-          <p class="font-display text-2xl mt-1">{{ kpis().total }}</p>
+      <!-- KPI hero: total + the 30-day signup chart in one team-tinted card,
+           the four smaller counts beside it. -->
+      <div class="grid lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-3 mb-4">
+        <div class="relative overflow-hidden rounded-3xl p-4 bg-card border border-line shadow-card">
+          <div class="pointer-events-none absolute inset-0" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 24%, transparent) 0%, color-mix(in srgb, var(--accent-primary) 5%, transparent) 60%, transparent 100%)" aria-hidden="true"></div>
+          <div class="relative flex items-end justify-between gap-3 mb-3">
+            <div>
+              <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('admin.kpiTotal') }}</p>
+              <p class="font-display text-4xl leading-none tabular-nums mt-1">{{ kpis().total }}</p>
+            </div>
+            <p class="text-[11px] text-muted font-bold uppercase tracking-wider text-right">{{ i18n.t('admin.chartTitle') }} · {{ i18n.t('admin.chartSubtitle') }}</p>
+          </div>
+          @if (kpis().total === 0) {
+            <p class="relative text-sm text-muted">{{ i18n.t('admin.chartEmpty') }}</p>
+          } @else {
+            <div class="relative flex items-end gap-[3px] h-24">
+              @for (d of chartDays(); track d.date) {
+                <div
+                  class="flex-1 rounded-t-[3px] bg-team-primary/60 hover:bg-team-primary transition-colors min-h-[3px]"
+                  [style.height.%]="(d.count / chartMax()) * 100"
+                  [title]="formatChartDate(d.date) + ': ' + d.count"
+                ></div>
+              }
+            </div>
+          }
         </div>
-        <div class="rounded-xl border border-line bg-card p-3">
-          <p class="text-[11px] font-bold uppercase tracking-wider text-muted break-words">{{ i18n.t('admin.kpiToday') }}</p>
-          <p class="font-display text-2xl mt-1 text-team-primary">{{ kpis().today }}</p>
-        </div>
-        <div class="rounded-xl border border-line bg-card p-3">
-          <p class="text-[11px] font-bold uppercase tracking-wider text-muted break-words">{{ i18n.t('admin.kpiWeek') }}</p>
-          <p class="font-display text-2xl mt-1">{{ kpis().last7 }}</p>
-        </div>
-        <div class="rounded-xl border border-line bg-card p-3">
-          <p class="text-[11px] font-bold uppercase tracking-wider text-muted break-words">{{ i18n.t('admin.kpiMonth') }}</p>
-          <p class="font-display text-2xl mt-1">{{ kpis().last30 }}</p>
-        </div>
-        <div class="rounded-xl border border-line bg-card p-3">
-          <p class="text-[11px] font-bold uppercase tracking-wider text-muted break-words">{{ i18n.t('admin.kpiAdmins') }}</p>
-          <p class="font-display text-2xl mt-1">{{ kpis().admins }}</p>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="rounded-2xl border border-line bg-card shadow-card p-3 flex flex-col justify-between">
+            <p class="text-[11px] font-bold uppercase tracking-wider text-muted flex items-center gap-1.5">
+              <span class="relative flex w-2 h-2">
+                @if (kpis().online > 0) {
+                  <span class="absolute inset-0 rounded-full bg-emerald-500 animate-ping opacity-60"></span>
+                }
+                <span class="relative w-2 h-2 rounded-full" [class]="kpis().online > 0 ? 'bg-emerald-500' : 'bg-line'"></span>
+              </span>
+              {{ i18n.t('admin.kpiOnline') }}
+            </p>
+            <p class="font-display text-3xl leading-none tabular-nums text-emerald-500 mt-2">{{ kpis().online }}</p>
+          </div>
+          <div class="rounded-2xl border border-line bg-card shadow-card p-3 flex flex-col justify-between">
+            <p class="text-[11px] font-bold uppercase tracking-wider text-muted">{{ i18n.t('admin.kpiActiveToday') }}</p>
+            <p class="font-display text-3xl leading-none tabular-nums mt-2">{{ kpis().activeToday }}</p>
+          </div>
+          <div class="rounded-2xl border border-line bg-card shadow-card p-3 flex flex-col justify-between">
+            <p class="text-[11px] font-bold uppercase tracking-wider text-muted">{{ i18n.t('admin.kpiToday') }}</p>
+            <p class="font-display text-3xl leading-none tabular-nums text-team-primary mt-2">{{ kpis().today }}</p>
+          </div>
+          <div class="rounded-2xl border border-line bg-card shadow-card p-3 flex flex-col justify-between">
+            <p class="text-[11px] font-bold uppercase tracking-wider text-muted">{{ i18n.t('admin.kpiWeek') }}</p>
+            <p class="font-display text-3xl leading-none tabular-nums mt-2">{{ kpis().last7 }}</p>
+          </div>
         </div>
       </div>
 
-      <!-- Signups per day -->
-      <div class="rounded-2xl border border-line bg-card p-4 mb-5">
-        <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 mb-3">
-          <p class="font-display text-sm">{{ i18n.t('admin.chartTitle') }}</p>
-          <p class="text-[11px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('admin.chartSubtitle') }}</p>
-        </div>
-        @if (kpis().total === 0) {
-          <p class="text-sm text-muted">{{ i18n.t('admin.chartEmpty') }}</p>
-        } @else {
-          <div class="flex items-end gap-[3px] h-28">
-            @for (d of chartDays(); track d.date) {
-              <div
-                class="flex-1 rounded-t-[2px] bg-team-primary/70 hover:bg-team-primary transition-colors min-h-[2px]"
-                [style.height.%]="(d.count / chartMax()) * 100"
-                [title]="formatChartDate(d.date) + ': ' + d.count"
-              ></div>
+      @if (flash(); as msg) {
+        <p class="toast-pop mb-3 rounded-2xl border border-line bg-card shadow-card px-4 py-2.5 text-[13px] font-semibold" role="status">{{ msg }}</p>
+      }
+
+      <!-- User list — scrolls inside its own panel (toolbar pinned on top,
+           bulk bar pinned at the bottom) instead of stretching the page. -->
+      <div class="rounded-3xl border border-line bg-card shadow-card overflow-hidden flex flex-col h-[70vh] min-h-[420px]">
+        <div class="shrink-0 p-3 border-b border-line space-y-2.5">
+          <div class="flex items-center gap-2">
+            <label class="relative flex-1 min-w-0">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+              </span>
+              <input
+                type="text"
+                [value]="search()"
+                (input)="search.set($any($event.target).value)"
+                [placeholder]="i18n.t('admin.searchPlaceholder')"
+                class="w-full h-10 pl-9 pr-3 rounded-xl bg-page border border-line text-sm font-semibold focus:border-team-primary outline-none"
+              />
+            </label>
+            <span class="shrink-0 text-[11px] text-muted font-bold uppercase tracking-wider tabular-nums">
+              {{ filteredUsers().length }}/{{ allUsers().length }}
+            </span>
+          </div>
+          <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            <button
+              type="button"
+              (click)="toggleAllVisible()"
+              class="shrink-0 h-8 px-2.5 rounded-full border text-[12px] font-semibold flex items-center gap-1.5 transition-colors"
+              [class]="allVisibleSelected() ? 'bg-team-primary text-team-secondary border-transparent' : 'border-line text-muted hover:text-ink'"
+            >
+              <span class="w-3.5 h-3.5 rounded border-2 border-current flex items-center justify-center text-[9px] leading-none">{{ allVisibleSelected() ? '✓' : '' }}</span>
+              {{ i18n.t('admin.selectAll') }}
+            </button>
+            <span class="shrink-0 w-px h-5 bg-line mx-1" aria-hidden="true"></span>
+            @for (s of sorts; track s.key) {
+              <button
+                type="button"
+                (click)="setSort(s.key)"
+                class="shrink-0 h-8 px-3 rounded-full text-[12px] font-semibold transition-colors whitespace-nowrap"
+                [class]="sortKey() === s.key ? 'bg-team-primary/15 text-team-primary' : 'text-muted hover:text-ink'"
+              >
+                {{ i18n.t(s.labelKey) }}
+                @if (sortKey() === s.key) {
+                  <span>{{ sortDesc() ? '↓' : '↑' }}</span>
+                }
+              </button>
             }
+          </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto overscroll-contain">
+          @for (row of filteredUsers(); track row.id) {
+            <div
+              role="button"
+              tabindex="0"
+              (click)="openSheet(row)"
+              (keydown.enter)="openSheet(row)"
+              class="flex items-center gap-3 px-3 py-2.5 border-b border-line/60 cursor-pointer hover:bg-page transition-colors"
+              [ngClass]="{ 'bg-team-primary/5': selectedIds().has(row.id) }"
+            >
+              <button
+                type="button"
+                (click)="toggleSelected(row.id, $event)"
+                class="shrink-0 w-5 h-5 rounded-md border-2 flex items-center justify-center text-[11px] font-bold transition-colors"
+                [class]="selectedIds().has(row.id) ? 'bg-team-primary border-team-primary text-team-secondary' : 'border-line text-transparent hover:border-muted'"
+                [attr.aria-pressed]="selectedIds().has(row.id)"
+                [attr.aria-label]="row.username"
+              >✓</button>
+              <span
+                class="relative shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-display text-base bg-page"
+                [style.box-shadow]="'0 0 0 2px ' + (row.favoriteTeam?.primaryColor ?? 'var(--color-line)')"
+              >
+                @if (row.favoriteTeam?.logoUrl) {
+                  <img [src]="row.favoriteTeam!.logoUrl" [alt]="row.favoriteTeam!.name" loading="lazy" class="w-6 h-6 object-contain team-logo" />
+                } @else {
+                  {{ initial(row) }}
+                }
+                @if (row.online) {
+                  <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-card" [attr.aria-label]="i18n.t('admin.online')"></span>
+                }
+              </span>
+              <span class="min-w-0 flex-1">
+                <span class="flex items-center gap-1.5 min-w-0">
+                  <span class="font-semibold truncate">{{ row.username }}</span>
+                  @if (row.isAdmin) {
+                    <!-- Fixed highlight, not team-primary: it marks another
+                         user's role, not the viewer's team. -->
+                    <span class="text-[9px] font-bold uppercase tracking-wider bg-highlight/15 text-highlight rounded px-1.5 py-0.5 shrink-0">ADMIN</span>
+                  }
+                </span>
+                <span class="block text-[12px] text-muted truncate">{{ row.email }}</span>
+              </span>
+              <span class="hidden sm:flex items-center gap-1.5 shrink-0">
+                <span class="value-chip" [class.!text-team-primary]="sortKey() === 'points'">{{ row.totalPoints }} {{ i18n.t('predictions.pts') }}</span>
+                <span class="font-mono text-[11px] text-muted w-14 flex items-center justify-end gap-1" [class.!text-team-primary]="sortKey() === 'cards'" [title]="i18n.t('admin.colCards')">{{ row.cardsOwned }} <app-nav-icon name="cards" [size]="13" /></span>
+                <span class="font-mono text-[11px] text-muted w-14 flex items-center justify-end gap-1" [class.!text-team-primary]="sortKey() === 'predictions'" [title]="i18n.t('admin.colPredictions')">{{ row.predictionsMade }} <app-nav-icon name="picks" [size]="13" /></span>
+              </span>
+              <span class="shrink-0 text-right w-24 sm:w-32">
+                <span class="block text-[12px] font-semibold truncate" [ngClass]="row.online ? 'text-emerald-500' : sortKey() === 'lastSeen' ? 'text-team-primary' : 'text-ink'">{{ lastSeenLabel(row) }}</span>
+                <span class="hidden sm:block font-mono text-[11px] text-muted truncate" [class.!text-team-primary]="sortKey() === 'createdAt'">{{ i18n.t('admin.joinedShort') }} {{ formatDate(row.createdAt) }}</span>
+                <span class="block sm:hidden font-mono text-[11px] font-bold" [class.text-team-primary]="sortKey() === 'points'">{{ row.totalPoints }} {{ i18n.t('predictions.pts') }}</span>
+              </span>
+            </div>
+          } @empty {
+            <p class="p-6 text-center text-sm text-muted">{{ i18n.t('admin.noMatches') }}</p>
+          }
+        </div>
+
+        @if (selectedIds().size > 0) {
+          <div class="shrink-0 border-t border-line p-3 flex flex-wrap items-center gap-2 bg-page">
+            <span class="text-[13px] font-bold">{{ i18n.t('admin.selectedCount').replace('{n}', '' + selectedIds().size) }}</span>
+            <app-dropdown
+              class="flex-1 min-w-[12rem]"
+              [options]="leagueOptions()"
+              [value]="bulkLeagueId()"
+              [placeholder]="i18n.t('admin.pickLeague')"
+              (valueChange)="bulkLeagueId.set($event)"
+            />
+            <button type="button" appButton appButtonSize="sm" [disabled]="!bulkLeagueId() || bulkBusy()" (click)="bulkAdd()">
+              {{ i18n.t('admin.addToLeague') }}
+            </button>
+            <button type="button" appButton="outline" appButtonSize="sm" (click)="clearSelection()">{{ i18n.t('admin.clear') }}</button>
           </div>
         }
       </div>
+    }
+  }
 
-      <!-- Search -->
-      <input
-        type="text"
-        [value]="search()"
-        (input)="search.set($any($event.target).value)"
-        [placeholder]="i18n.t('admin.searchPlaceholder')"
-        class="w-full mb-3 px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
-      />
-      <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-2">
-        {{ filteredUsers().length }} / {{ allUsers().length }} {{ i18n.t('admin.usersLabel') }}
-      </p>
-
-      <div class="rounded-2xl border border-line shadow-card overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm min-w-[720px] border-collapse">
-            <thead>
-              <tr class="bg-card">
-                <th
-                  scope="col"
-                  (click)="setSort('username')"
-                  class="sticky left-0 z-10 bg-card border-b border-line min-w-[10rem] px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
-                  [class.text-team-primary]="sortKey() === 'username'"
-                >
-                  {{ i18n.t('admin.colUser') }}
-                  @if (sortKey() === 'username') {
-                    <span class="inline-block">{{ sortDesc() ? '↓' : '↑' }}</span>
-                  }
-                </th>
-                @for (col of columns.slice(1); track col.key) {
-                  <th
-                    scope="col"
-                    (click)="setSort(col.key)"
-                    class="bg-card border-b border-line px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
-                    [class.text-team-primary]="sortKey() === col.key"
-                  >
-                    {{ i18n.t(col.labelKey) }}
-                    @if (sortKey() === col.key) {
-                      <span class="inline-block">{{ sortDesc() ? '↓' : '↑' }}</span>
-                    }
-                  </th>
-                }
-                <th
-                  scope="col"
-                  class="bg-card border-b border-line px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap"
-                >
-                  {{ i18n.t('admin.colTeam') }}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (row of filteredUsers(); track row.id) {
-                <tr class="border-t border-line hover:bg-page transition-colors">
-                  <td class="sticky left-0 z-10 bg-card min-w-[10rem] px-3 py-2 font-bold whitespace-nowrap">
-                    <span class="flex items-center gap-1.5">
-                      <span class="truncate">{{ row.username }}</span>
-                      @if (row.isAdmin) {
-                        <!-- Reverted to fixed highlight (2026-09-18, second
-                             look right after the swap above) — on
-                             reflection this is the same "role chrome, not
-                             personalization" case as the top-bar's own
-                             ADMIN badge: it marks a DIFFERENT user's role in
-                             this management table, so team-primary here
-                             would just always show the viewer's own team
-                             color next to every admin row regardless of
-                             who's listed — coincidental, not meaningful. -->
-                        <span class="text-[10px] font-bold uppercase tracking-wider bg-highlight/15 text-highlight rounded px-1.5 py-0.5 shrink-0">
-                          {{ i18n.t('admin.kpiAdmins') }}
-                        </span>
-                      }
-                    </span>
-                  </td>
-                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap text-muted" [class.text-team-primary]="sortKey() === 'email'">
-                    {{ row.email }}
-                  </td>
-                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-team-primary]="sortKey() === 'createdAt'">
-                    {{ formatDate(row.createdAt) }}
-                  </td>
-                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-team-primary]="sortKey() === 'points'">
-                    {{ row.totalPoints }}
-                  </td>
-                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-team-primary]="sortKey() === 'cards'">
-                    {{ row.cardsOwned }}
-                  </td>
-                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-team-primary]="sortKey() === 'predictions'">
-                    {{ row.predictionsMade }}
-                  </td>
-                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-team-primary]="sortKey() === 'referrals'">
-                    {{ row.referralsCount }}
-                  </td>
-                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap text-muted">
-                    {{ row.favoriteTeam ? (row.favoriteTeam.code | teamCode) : i18n.t('admin.noTeam') }}
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
+  @if (openUser(); as user) {
+    <app-dialog [title]="user.username" icon="user" [closeLabel]="i18n.t('hint.dismiss')" (closed)="closeSheet()">
+      <div class="flex items-center gap-3 mb-4">
+        <span
+          class="shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center font-display text-xl bg-page"
+          [style.box-shadow]="'0 0 0 2px ' + (user.favoriteTeam?.primaryColor ?? 'var(--color-line)')"
+        >
+          @if (user.favoriteTeam?.logoUrl) {
+            <img [src]="user.favoriteTeam!.logoUrl" [alt]="user.favoriteTeam!.name" class="w-9 h-9 object-contain team-logo" />
+          } @else {
+            {{ initial(user) }}
+          }
+        </span>
+        <div class="min-w-0">
+          <p class="text-sm font-semibold truncate">{{ user.email }}</p>
+          <p class="text-[12px] text-muted">
+            <span [class.text-emerald-500]="user.online" class="font-semibold">{{ i18n.t('admin.colLastSeen') }}: {{ lastSeenLabel(user) }}</span> ·
+            {{ i18n.t('admin.colJoined') }} {{ formatDate(user.createdAt) }} ·
+            {{ user.favoriteTeam ? user.favoriteTeam.name : i18n.t('admin.noTeam') }}
+          </p>
         </div>
       </div>
-    }
+
+      <div class="grid grid-cols-4 gap-2 mb-5">
+        <div class="status-tile rounded-2xl border border-line px-1 py-2 text-center">
+          <p class="text-[10px] font-bold text-muted uppercase tracking-wider truncate">{{ i18n.t('admin.colPoints') }}</p>
+          <p class="font-display text-lg tabular-nums">{{ user.totalPoints }}</p>
+        </div>
+        <div class="status-tile rounded-2xl border border-line px-1 py-2 text-center">
+          <p class="text-[10px] font-bold text-muted uppercase tracking-wider truncate">{{ i18n.t('admin.colCards') }}</p>
+          <p class="font-display text-lg tabular-nums">{{ user.cardsOwned }}</p>
+        </div>
+        <div class="status-tile rounded-2xl border border-line px-1 py-2 text-center">
+          <p class="text-[10px] font-bold text-muted uppercase tracking-wider truncate">{{ i18n.t('admin.colPredictions') }}</p>
+          <p class="font-display text-lg tabular-nums">{{ user.predictionsMade }}</p>
+        </div>
+        <div class="status-tile rounded-2xl border border-line px-1 py-2 text-center">
+          <p class="text-[10px] font-bold text-muted uppercase tracking-wider truncate">{{ i18n.t('admin.colReferrals') }}</p>
+          <p class="font-display text-lg tabular-nums">{{ user.referralsCount }}</p>
+        </div>
+      </div>
+
+      <p class="text-[11px] font-bold text-muted uppercase tracking-wider mb-2">{{ i18n.t('admin.leaguesTitle') }}</p>
+      @if (userLeaguesLoading()) {
+        <app-skeleton class="rounded-xl h-11 mb-2" />
+        <app-skeleton class="rounded-xl h-11 mb-2" />
+      } @else {
+        @for (league of userLeagues(); track league.id) {
+          <div class="flex items-center gap-2 rounded-xl border border-line px-3 py-2 mb-2">
+            <app-nav-icon name="bracket" [size]="16" class="text-team-primary shrink-0" />
+            <span class="min-w-0 flex-1">
+              <span class="block text-sm font-semibold truncate">{{ league.name }}</span>
+              <span class="block font-mono text-[11px] text-muted">{{ league.code }}</span>
+            </span>
+            <button
+              type="button"
+              (click)="sheetRemove(league)"
+              [disabled]="sheetBusy()"
+              class="shrink-0 h-8 px-3 rounded-full text-[12px] font-semibold transition-colors"
+              [class]="armedRemoveId() === league.id ? 'bg-red-500 text-white' : 'text-muted hover:text-red-500 border border-line'"
+            >
+              {{ armedRemoveId() === league.id ? i18n.t('admin.confirmRemove') : i18n.t('admin.remove') }}
+            </button>
+          </div>
+        } @empty {
+          <p class="text-sm text-muted mb-2">{{ i18n.t('admin.noLeagues') }}</p>
+        }
+      }
+
+      <div class="flex items-center gap-2 mt-3">
+        <app-dropdown
+          class="flex-1 min-w-0"
+          [options]="sheetLeagueOptions()"
+          [value]="sheetLeagueId()"
+          [placeholder]="i18n.t('admin.pickLeague')"
+          (valueChange)="sheetLeagueId.set($event)"
+        />
+        <button type="button" appButton appButtonSize="sm" [disabled]="!sheetLeagueId() || sheetBusy()" (click)="sheetAdd()">
+          {{ i18n.t('admin.add') }}
+        </button>
+      </div>
+    </app-dialog>
   }
 </div>

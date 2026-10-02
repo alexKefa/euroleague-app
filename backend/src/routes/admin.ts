@@ -1,11 +1,12 @@
 import { Router } from "express";
-import { sql, or, ilike } from "drizzle-orm";
+import { sql, or, ilike, and, eq } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { users } from "../db/schema.js";
+import { users, leagues, leagueMembers } from "../db/schema.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
 import { pointsSqlExpr } from "../services/points.js";
 import { topScorerTotalsCte } from "../services/topScorerPoints.js";
 import { syncRosterPhotos, syncCollectibleImages } from "../services/imageSync.js";
+import { onlineUserIds } from "../realtime/hub.js";
 
 export const adminRouter = Router();
 
@@ -53,10 +54,13 @@ adminRouter.get("/users", requireAuth, requireAdmin, async (_req, res) => {
     email: string;
     username: string;
     created_at: string;
+    last_seen_at: string | null;
     is_admin: boolean;
     favorite_team_id: string | null;
     team_code: string | null;
     team_name: string | null;
+    team_color: string | null;
+    team_logo: string | null;
     predictions_made: number;
     correct_points: number;
     top_scorer_points: number;
@@ -97,8 +101,8 @@ adminRouter.get("/users", requireAuth, requireAdmin, async (_req, res) => {
       group by referred_by_user_id
     )
     select
-      u.id, u.email, u.username, u.created_at, u.is_admin, u.favorite_team_id,
-      t.code as team_code, t.name as team_name,
+      u.id, u.email, u.username, u.created_at, u.last_seen_at, u.is_admin, u.favorite_team_id,
+      t.code as team_code, t.name as team_name, t.primary_color as team_color, t.logo_url as team_logo,
       coalesce(pc.cnt, 0) as predictions_made,
       coalesce(ct.correct_points, 0) as correct_points,
       coalesce(tst.points, 0) as top_scorer_points,
@@ -123,15 +127,19 @@ adminRouter.get("/users", requireAuth, requireAdmin, async (_req, res) => {
     order by 1 asc
   `);
 
+  const online = onlineUserIds();
   res.json({
     users: rows.map((r) => ({
       id: r.id,
       email: r.email,
       username: r.username,
       createdAt: r.created_at,
+      lastSeenAt: r.last_seen_at,
+      // An open live-updates stream right now (realtime/hub.ts).
+      online: online.has(r.id),
       isAdmin: r.is_admin,
       favoriteTeam: r.favorite_team_id
-        ? { id: r.favorite_team_id, code: r.team_code, name: r.team_name }
+        ? { id: r.favorite_team_id, code: r.team_code, name: r.team_name, primaryColor: r.team_color, logoUrl: r.team_logo }
         : null,
       totalPoints: r.correct_points + r.top_scorer_points + r.bonus_points,
       cardsOwned: r.cards_owned,
@@ -161,4 +169,70 @@ adminRouter.post("/sync-images", requireAuth, requireAdmin, async (_req, res) =>
     coachCardsUpdated: roster.coachCardUpdates.length,
     collectiblesUpdated: cards.collectibleUpdates.length,
   });
+});
+
+// Admin league membership (2026-10-02, "make users join leagues without
+// them doing it"): every league with its member count, for the Users page's
+// "Add to league" picker. Not just the admin's own leagues (/leagues/mine).
+adminRouter.get("/leagues", requireAuth, requireAdmin, async (_req, res) => {
+  const rows = await db.execute<{ id: string; name: string; code: string; member_count: number }>(sql`
+    select l.id, l.name, l.code, count(m.id)::int as member_count
+    from ${leagues} l
+    left join ${leagueMembers} m on m.league_id = l.id
+    group by l.id
+    order by l.name asc
+  `);
+  res.json(rows.map((r) => ({ id: r.id, name: r.name, code: r.code, memberCount: r.member_count })));
+});
+
+// One user's leagues, for the user detail sheet.
+adminRouter.get("/users/:id/leagues", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const rows = await db
+      .select({ id: leagues.id, name: leagues.name, code: leagues.code, joinedAt: leagueMembers.joinedAt })
+      .from(leagueMembers)
+      .innerJoin(leagues, eq(leagues.id, leagueMembers.leagueId))
+      .where(eq(leagueMembers.userId, req.params.id))
+      .orderBy(leagues.name);
+    res.json(rows);
+  } catch (err) {
+    console.error("GET /api/admin/users/:id/leagues failed:", err);
+    res.status(400).json({ error: "Failed to load leagues" });
+  }
+});
+
+// Adds one or more users to a league, same membership row a code join
+// (POST /leagues/join) creates. One multi-row insert; existing members are
+// skipped, and `added` counts only the new ones.
+adminRouter.post("/leagues/:id/members", requireAuth, requireAdmin, async (req, res) => {
+  const userIds: unknown = req.body?.userIds;
+  if (!Array.isArray(userIds) || userIds.length === 0 || !userIds.every((id) => typeof id === "string")) {
+    res.status(400).json({ error: "userIds must be a non-empty array of ids" });
+    return;
+  }
+  try {
+    const inserted = await db
+      .insert(leagueMembers)
+      .values((userIds as string[]).map((userId) => ({ leagueId: req.params.id, userId })))
+      .onConflictDoNothing()
+      .returning({ id: leagueMembers.id });
+    res.json({ added: inserted.length });
+  } catch (err) {
+    // A bad league or user id fails the foreign key.
+    console.error("POST /api/admin/leagues/:id/members failed:", err);
+    res.status(400).json({ error: "Failed to add members" });
+  }
+});
+
+adminRouter.delete("/leagues/:id/members/:userId", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const removed = await db
+      .delete(leagueMembers)
+      .where(and(eq(leagueMembers.leagueId, req.params.id), eq(leagueMembers.userId, req.params.userId)))
+      .returning({ id: leagueMembers.id });
+    res.json({ removed: removed.length });
+  } catch (err) {
+    console.error("DELETE /api/admin/leagues/:id/members/:userId failed:", err);
+    res.status(400).json({ error: "Failed to remove member" });
+  }
 });
