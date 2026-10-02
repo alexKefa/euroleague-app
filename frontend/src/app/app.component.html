@@ -18,7 +18,8 @@
      viewport-fit=cover, so in the installed app on a notched iPhone the bar
      used to sit under the status bar). -->
 <nav
-  class="sticky top-0 z-30 flex justify-between items-center gap-3 px-4 sm:px-6 pb-2.5 pt-[calc(0.625rem+env(safe-area-inset-top))] sm:py-4 bg-card/85 backdrop-blur-xl border-b border-line"
+  class="sticky top-0 z-30 flex justify-between items-center gap-3 px-4 sm:px-6 pb-2.5 pt-[calc(0.625rem+env(safe-area-inset-top))] sm:py-4 bg-card/85 backdrop-blur-xl border-b border-line transition-transform duration-200 ease-out"
+  [class.-translate-y-full]="ptr.active()"
 >
   <div class="pointer-events-none absolute inset-x-0 bottom-0 h-px opacity-70" style="background: linear-gradient(90deg, transparent, var(--accent-primary), transparent)" aria-hidden="true"></div>
   <!-- The logo — v14 (2026-09-14, see CLAUDE.md's Branding section): a new

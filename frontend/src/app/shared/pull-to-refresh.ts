@@ -1,4 +1,4 @@
-import { Component, DestroyRef, NgZone, inject, signal } from "@angular/core";
+import { Component, DestroyRef, Injectable, NgZone, computed, inject, signal } from "@angular/core";
 import { Router } from "@angular/router";
 import { NavIconComponent } from "./nav-icon";
 
@@ -6,6 +6,18 @@ import { NavIconComponent } from "./nav-icon";
 // indicator travels.
 const THRESHOLD = 64;
 const MAX_PULL = 96;
+
+/**
+ * Shared pull state, so the app shell can slide its top bar away while a
+ * pull or refresh is in progress (the bar and this component live in
+ * separate @if blocks of app.component.html, out of each other's reach).
+ */
+@Injectable({ providedIn: "root" })
+export class PullToRefreshState {
+  readonly pull = signal(0);
+  readonly refreshing = signal(false);
+  readonly active = computed(() => this.pull() > 0 || this.refreshing());
+}
 
 /** Target for the soft refresh's round trip (see PullToRefreshComponent.refresh). */
 @Component({ selector: "app-blank", standalone: true, template: "" })
@@ -24,21 +36,31 @@ export class BlankComponent {}
   selector: "app-pull-to-refresh",
   standalone: true,
   imports: [NavIconComponent],
+  // The ball spins with the pull and shifts from grey to the team colour as
+  // it nears the threshold; past it, it fills solid and pops slightly, so
+  // "let go now" is visible. Refreshing keeps it filled and spinning.
   template: `
     @if (pull() > 0 || refreshing()) {
       <div
         class="fixed left-1/2 z-[70] pointer-events-none top-[env(safe-area-inset-top)]"
-        [style.transform]="'translate(-50%, ' + (refreshing() ? 56 : pull() - 8) + 'px)'"
+        [style.transform]="'translate(-50%, ' + (refreshing() ? 24 : pull() - 24) + 'px)'"
         [style.transition]="dragging ? 'none' : 'transform 200ms ease-out'"
         aria-hidden="true"
       >
         <span
-          class="w-10 h-10 rounded-full bg-card border border-line shadow-pop flex items-center justify-center text-team-primary"
+          class="w-11 h-11 rounded-full border shadow-pop flex items-center justify-center transition-[background-color,border-color,color,scale] duration-150"
           [class.animate-spin]="refreshing()"
-          [style.transform]="refreshing() ? null : 'rotate(' + pull() * 3 + 'deg)'"
-          [style.opacity]="refreshing() ? 1 : Math.min(1, pull() / THRESHOLD)"
+          [style.transform]="refreshing() ? null : 'rotate(' + pull() * 6 + 'deg)'"
+          [style.scale]="ready() || refreshing() ? 1.12 : 0.7 + 0.3 * progress()"
+          [style.background-color]="ready() || refreshing() ? 'var(--accent-primary)' : 'var(--color-card)'"
+          [style.border-color]="ready() || refreshing() ? 'var(--accent-primary)' : 'var(--color-line)'"
+          [style.color]="
+            ready() || refreshing()
+              ? 'var(--accent-secondary)'
+              : 'color-mix(in srgb, var(--accent-primary) ' + Math.round(progress() * 100) + '%, var(--color-muted))'
+          "
         >
-          <app-nav-icon name="ball" [size]="20" />
+          <app-nav-icon name="ball" [size]="22" />
         </span>
       </div>
     }
@@ -50,8 +72,12 @@ export class PullToRefreshComponent {
   protected readonly Math = Math;
   protected readonly THRESHOLD = THRESHOLD;
 
-  readonly pull = signal(0);
-  readonly refreshing = signal(false);
+  private state = inject(PullToRefreshState);
+  readonly pull = this.state.pull;
+  readonly refreshing = this.state.refreshing;
+  // 0..1 toward the threshold, and whether letting go now refreshes.
+  readonly progress = computed(() => Math.min(1, this.pull() / THRESHOLD));
+  readonly ready = computed(() => this.pull() >= THRESHOLD);
   protected dragging = false;
   private startY: number | null = null;
 

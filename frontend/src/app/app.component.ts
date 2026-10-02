@@ -18,7 +18,7 @@ import { BattleChallengeToastComponent } from "./shared/battle-challenge-toast";
 import { JumpBallToastComponent } from "./shared/jump-ball-toast";
 import { RemindersBannerComponent } from "./shared/reminders-banner";
 import { PickResultToastComponent } from "./shared/pick-result-toast";
-import { PullToRefreshComponent } from "./shared/pull-to-refresh";
+import { PullToRefreshComponent, PullToRefreshState } from "./shared/pull-to-refresh";
 import { PackRewardToastComponent } from "./shared/pack-reward-toast";
 import { PackRewardsService } from "./core/pack-rewards.service";
 import { BattlesNotificationService } from "./core/battles-notification.service";
@@ -162,6 +162,8 @@ export class AppComponent implements OnInit {
   protected theme = inject(ThemeService);
   protected i18n = inject(I18nService);
   protected events = inject(EventsService);
+  // Slides the top bar away during a pull-to-refresh (see the <nav> below).
+  protected ptr = inject(PullToRefreshState);
   protected trades = inject(TradesNotificationService);
   protected packRewards = inject(PackRewardsService);
   protected battlesNotif = inject(BattlesNotificationService);
