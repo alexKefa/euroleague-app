@@ -1279,6 +1279,18 @@ export interface AdminLeague {
   memberCount: number;
 }
 
+// GET /admin/users/:id/activity — one row of the admin activity timeline.
+export interface AdminActivityEvent {
+  kind: "pick" | "top_scorer" | "adjustment" | "spin" | "trade";
+  at: string;
+  title: string | null;
+  detail: string | null;
+  // Pick points once decided; an adjustment's signed amount; else null.
+  points: number | null;
+  // Picks: scheduled/live/won/lost/tie. Trades: pending/accepted/declined/cancelled.
+  status: string | null;
+}
+
 // GET /admin/users/:id/leagues
 export interface AdminUserLeague {
   id: string;

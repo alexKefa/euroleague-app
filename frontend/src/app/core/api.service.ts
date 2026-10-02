@@ -67,6 +67,7 @@ import {
   AdminUsersResponse,
   AdminLeague,
   AdminUserLeague,
+  AdminActivityEvent,
   PlayedRounds,
   RoundStandingEntry,
   RoundRecap,
@@ -709,6 +710,10 @@ export class ApiService {
 
   getAdminUserLeagues(userId: string): Observable<AdminUserLeague[]> {
     return this.http.get<AdminUserLeague[]>(`${API_BASE_URL}/admin/users/${userId}/leagues`);
+  }
+
+  getAdminUserActivity(userId: string): Observable<AdminActivityEvent[]> {
+    return this.http.get<AdminActivityEvent[]>(`${API_BASE_URL}/admin/users/${userId}/activity`);
   }
 
   addLeagueMembers(leagueId: string, userIds: string[]): Observable<{ added: number }> {

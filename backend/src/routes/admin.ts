@@ -4,7 +4,7 @@ import { db } from "../db/client.js";
 import { users, leagues, leagueMembers } from "../db/schema.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
 import { pointsSqlExpr } from "../services/points.js";
-import { topScorerTotalsCte } from "../services/topScorerPoints.js";
+import { topScorerTotalsCte, TOP_SCORER_POINTS_PER_CORRECT } from "../services/topScorerPoints.js";
 import { syncRosterPhotos, syncCollectibleImages } from "../services/imageSync.js";
 import { onlineUserIds } from "../realtime/hub.js";
 
@@ -198,6 +198,99 @@ adminRouter.get("/users/:id/leagues", requireAuth, requireAdmin, async (req, res
   } catch (err) {
     console.error("GET /api/admin/users/:id/leagues failed:", err);
     res.status(400).json({ error: "Failed to load leagues" });
+  }
+});
+
+// One user's recent activity for the admin user sheet (2026-10-02) — the
+// "where did my points go?" view: winner and top-scorer picks with their
+// outcome and points, every point adjustment (pack opens, duplicate sales,
+// purchases, battles, promo codes, admin grants — spending is recorded
+// there as negative rows), wheel spins and trades. One UNION ALL statement,
+// newest first. Points use the same scoring as the leaderboard.
+adminRouter.get("/users/:id/activity", requireAuth, requireAdmin, async (req, res) => {
+  const userId = req.params.id;
+  const pickedFairProb = sql`case when p.predicted_winner_team_id = g.home_team_id then go.home_fair_prob else go.away_fair_prob end`;
+  const pickCorrect = sql`p.predicted_winner_team_id = case when g.home_score > g.away_score then g.home_team_id else g.away_team_id end`;
+  try {
+    const rows = await db.execute<{
+      kind: string;
+      occurred_at: string;
+      title: string | null;
+      detail: string | null;
+      points: number | null;
+      status: string | null;
+    }>(sql`
+      with ${topScorerTotalsCte()},
+      events as (
+        select 'pick' as kind, p.created_at as occurred_at, pt.name as title,
+          ht.name || ' – ' || awt.name as detail,
+          case when g.status = 'final' and g.home_score is not null and g.away_score is not null and g.home_score <> g.away_score
+            then (case when ${pickCorrect} then ${pointsSqlExpr(pickedFairProb)} else 0 end)::int end as points,
+          case when g.status <> 'final' then g.status when ${pickCorrect} then 'won' else 'lost' end as status
+        from predictions p
+        join games g on g.id = p.game_id
+        join teams pt on pt.id = p.predicted_winner_team_id
+        join teams ht on ht.id = g.home_team_id
+        join teams awt on awt.id = g.away_team_id
+        left join game_odds go on go.game_id = g.id
+        where p.user_id = ${userId}
+
+        union all
+        select 'top_scorer', tsp.created_at, pl.name, ht.name || ' – ' || awt.name,
+          case when g.status = 'final' and pgl.top_scorer_player_id is not null
+            then (case when pgl.top_scorer_player_id = tsp.predicted_player_id
+              then coalesce(tsp.points_at_pick, ${TOP_SCORER_POINTS_PER_CORRECT}) else 0 end)::int end,
+          case when g.status <> 'final' then g.status
+            when pgl.top_scorer_player_id is null then 'tie'
+            when pgl.top_scorer_player_id = tsp.predicted_player_id then 'won' else 'lost' end
+        from top_scorer_predictions tsp
+        join games g on g.id = tsp.game_id
+        join players pl on pl.id = tsp.predicted_player_id
+        join teams ht on ht.id = g.home_team_id
+        join teams awt on awt.id = g.away_team_id
+        left join per_game_leader pgl on pgl.game_id = tsp.game_id
+        where tsp.user_id = ${userId}
+
+        union all
+        -- detail = the admin who made it, for grants by someone else.
+        select 'adjustment', pa.created_at, pa.reason,
+          case when pa.created_by_user_id <> pa.user_id then cu.username end,
+          pa.points, null
+        from point_adjustments pa
+        left join users cu on cu.id = pa.created_by_user_id
+        where pa.user_id = ${userId}
+
+        union all
+        select 'spin', ws.spun_at, c.name, null, null, null
+        from wheel_spins ws
+        left join collectibles c on c.id = ws.collectible_id
+        where ws.user_id = ${userId}
+
+        union all
+        select 'trade', coalesce(t.responded_at, t.created_at), c.name,
+          case when t.from_user_id = ${userId} then '→ ' || tu.username else '← ' || fu.username end,
+          null, t.status
+        from trade_offers t
+        join collectibles c on c.id = t.requested_collectible_id
+        join users fu on fu.id = t.from_user_id
+        join users tu on tu.id = t.to_user_id
+        where t.from_user_id = ${userId} or t.to_user_id = ${userId}
+      )
+      select * from events order by occurred_at desc limit 80
+    `);
+    res.json(
+      rows.map((r) => ({
+        kind: r.kind,
+        at: new Date(r.occurred_at).toISOString(),
+        title: r.title,
+        detail: r.detail,
+        points: r.points,
+        status: r.status,
+      }))
+    );
+  } catch (err) {
+    console.error("GET /api/admin/users/:id/activity failed:", err);
+    res.status(400).json({ error: "Failed to load activity" });
   }
 });
 

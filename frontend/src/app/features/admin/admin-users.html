@@ -231,6 +231,13 @@
         </div>
       </div>
 
+      <!-- Overview (stats, leagues, actions) / Activity timeline. -->
+      <div class="status-tile flex gap-1 mb-4 h-10 p-1 rounded-2xl border border-line">
+        <button type="button" (click)="setSheetTab('overview')" class="flex-1 h-full rounded-xl text-[13px] font-semibold transition-colors" [ngClass]="sheetTab() === 'overview' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">{{ i18n.t('admin.tabOverview') }}</button>
+        <button type="button" (click)="setSheetTab('activity')" class="flex-1 h-full rounded-xl text-[13px] font-semibold transition-colors" [ngClass]="sheetTab() === 'activity' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">{{ i18n.t('admin.tabActivity') }}</button>
+      </div>
+
+      @if (sheetTab() === 'overview') {
       <div class="grid grid-cols-4 gap-2 mb-5">
         <div class="status-tile rounded-2xl border border-line px-1 py-2 text-center">
           <p class="text-[10px] font-bold text-muted uppercase tracking-wider truncate">{{ i18n.t('admin.colPoints') }}</p>
@@ -289,6 +296,95 @@
           {{ i18n.t('admin.add') }}
         </button>
       </div>
+
+      <!-- Actions: the /admin/tools grants, already scoped to this user. -->
+      <p class="text-[11px] font-bold text-muted uppercase tracking-wider mt-6 mb-2">{{ i18n.t('admin.actionsTitle') }}</p>
+      @if (sheetMsg(); as msg) {
+        <p class="toast-pop mb-3 rounded-xl border border-line bg-page px-3 py-2 text-[13px] font-semibold" role="status">{{ msg }}</p>
+      }
+
+      <form [formGroup]="pointsForm" (ngSubmit)="grantPoints()" class="rounded-2xl border border-line p-3 mb-3">
+        <p class="text-[13px] font-bold mb-2 flex items-center gap-1.5"><app-nav-icon name="star" [size]="14" class="text-team-primary" /> {{ i18n.t('admin.grantPointsTitle') }}</p>
+        <div class="flex gap-2">
+          <input type="number" formControlName="points" [placeholder]="i18n.t('admin.pointsPlaceholder')" class="w-24 h-10 px-3 rounded-xl bg-page border border-line text-sm font-semibold focus:border-team-primary outline-none" />
+          <input type="text" formControlName="reason" [placeholder]="i18n.t('admin.reasonPlaceholder')" class="flex-1 min-w-0 h-10 px-3 rounded-xl bg-page border border-line text-sm focus:border-team-primary outline-none" />
+        </div>
+        <button type="submit" appButton appButtonSize="sm" class="w-full mt-2" [disabled]="pointsForm.invalid || sheetBusy()">{{ i18n.t('admin.grant') }}</button>
+      </form>
+
+      <div class="rounded-2xl border border-line p-3 mb-3">
+        <p class="text-[13px] font-bold mb-2 flex items-center gap-1.5"><app-nav-icon name="cards" [size]="14" class="text-team-primary" /> {{ i18n.t('admin.grantCardTitle') }}</p>
+        <input
+          type="text"
+          [value]="cardQuery()"
+          (input)="onCardQuery($any($event.target).value)"
+          [placeholder]="i18n.t('admin.cardSearchPlaceholder')"
+          class="w-full h-10 px-3 rounded-xl bg-page border border-line text-sm focus:border-team-primary outline-none"
+        />
+        @if (cardMatches().length > 0) {
+          <div class="mt-1.5 rounded-xl border border-line overflow-hidden">
+            @for (c of cardMatches(); track c.id) {
+              <button type="button" (click)="pickGrantCard(c)" class="w-full flex items-center gap-2 px-3 py-2 text-left text-sm hover:bg-page border-b border-line/60 last:border-b-0">
+                <span class="min-w-0 flex-1 truncate font-semibold">{{ c.name }}</span>
+                <span class="font-mono text-[11px] text-muted">{{ c.team.code }}</span>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-muted">{{ c.tier }}</span>
+              </button>
+            }
+          </div>
+        }
+        @if (grantCardPick(); as card) {
+          @if (card.tier === 'legendary') {
+            <label class="flex items-center gap-2 mt-2 text-[13px] font-semibold cursor-pointer">
+              <input type="checkbox" [checked]="grantFoil()" (change)="grantFoil.set($any($event.target).checked)" class="accent-current" />
+              {{ i18n.t('admin.foil') }}
+            </label>
+          }
+        }
+        <button type="button" appButton appButtonSize="sm" class="w-full mt-2" [disabled]="!grantCardPick() || sheetBusy()" (click)="grantCard()">{{ i18n.t('admin.grant') }}</button>
+      </div>
+
+      <button
+        type="button"
+        (click)="sendReset()"
+        [disabled]="sheetBusy()"
+        class="w-full h-10 rounded-2xl text-[13px] font-semibold transition-colors flex items-center justify-center gap-2"
+        [ngClass]="armedReset() ? 'bg-red-500 text-white' : 'border border-line text-muted hover:text-ink'"
+      >
+        <app-nav-icon name="logout" [size]="15" />
+        {{ armedReset() ? i18n.t('admin.resetConfirm').replace('{email}', user.email) : i18n.t('admin.resetSend') }}
+      </button>
+      } @else {
+        @if (activityLoading()) {
+          @for (i of [0, 1, 2, 3, 4, 5]; track i) {
+            <app-skeleton class="rounded-xl h-12 mb-2" />
+          }
+        } @else {
+          @for (e of activity() ?? []; track $index) {
+            <div class="flex items-start gap-2.5 py-2 border-b border-line/60 last:border-b-0">
+              <span class="w-8 h-8 rounded-xl bg-page flex items-center justify-center shrink-0 text-muted mt-0.5">
+                <app-nav-icon [name]="activityIcon(e)" [size]="15" />
+              </span>
+              <span class="min-w-0 flex-1">
+                <span class="block text-[13px] font-semibold leading-snug">{{ activityTitle(e) }}</span>
+                @if (activityDetail(e); as d) {
+                  <span class="block text-[11px] text-muted truncate">{{ d }}</span>
+                }
+                <span class="block font-mono text-[10px] text-muted mt-0.5">{{ formatDateTime(e.at) }}</span>
+              </span>
+              <span class="shrink-0 flex flex-col items-end gap-1">
+                @if (e.points !== null) {
+                  <span class="font-mono text-[13px] font-bold tabular-nums" [ngClass]="e.points > 0 ? 'text-emerald-500' : e.points < 0 ? 'text-red-500' : 'text-muted'">{{ e.points > 0 ? '+' : '' }}{{ e.points }}</span>
+                }
+                @if (activityStatus(e); as st) {
+                  <span class="text-[10px] font-bold uppercase tracking-wider rounded px-1.5 py-0.5" [ngClass]="st.cls">{{ st.text }}</span>
+                }
+              </span>
+            </div>
+          } @empty {
+            <p class="text-sm text-muted text-center py-6">{{ i18n.t('admin.noActivity') }}</p>
+          }
+        }
+      }
     </app-dialog>
   }
 </div>
