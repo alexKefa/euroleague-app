@@ -1,5 +1,6 @@
 import { Component, DestroyRef, Injectable, NgZone, computed, inject, signal } from "@angular/core";
-import { Router } from "@angular/router";
+import { NavigationEnd, Router } from "@angular/router";
+import { filter } from "rxjs";
 import { NavIconComponent } from "./nav-icon";
 
 // Damped pull distance (px) that triggers a refresh, and the most the
@@ -16,7 +17,15 @@ const MAX_PULL = 96;
 export class PullToRefreshState {
   readonly pull = signal(0);
   readonly refreshing = signal(false);
-  readonly active = computed(() => this.pull() > 0 || this.refreshing());
+  // A few px of pull (a scroll that starts at the very top) shouldn't
+  // flick the top bar away.
+  readonly active = computed(() => this.pull() > 12 || this.refreshing());
+
+  /** Back to idle: no pull, not refreshing. */
+  reset(): void {
+    this.pull.set(0);
+    this.refreshing.set(false);
+  }
 }
 
 /** Target for the soft refresh's round trip (see PullToRefreshComponent.refresh). */
@@ -95,13 +104,31 @@ export class PullToRefreshComponent {
       window.addEventListener("touchend", this.onEnd, { passive: true });
       window.addEventListener("touchcancel", this.onEnd, { passive: true });
     });
+    // Leaving or returning to the app ends any gesture in progress, and a
+    // finished navigation (other than mid-pull) leaves nothing pulled.
+    document.addEventListener("visibilitychange", this.cancelGesture);
+    const navSub = this.router.events
+      .pipe(filter((e) => e instanceof NavigationEnd))
+      .subscribe(() => {
+        if (this.startY === null && !this.refreshing() && this.pull() !== 0) this.pull.set(0);
+      });
     inject(DestroyRef).onDestroy(() => {
       window.removeEventListener("touchstart", this.onStart);
       window.removeEventListener("touchmove", this.onMove);
       window.removeEventListener("touchend", this.onEnd);
       window.removeEventListener("touchcancel", this.onEnd);
+      document.removeEventListener("visibilitychange", this.cancelGesture);
+      navSub.unsubscribe();
     });
   }
+
+  private readonly cancelGesture = (): void => {
+    if (this.idleTimer) clearTimeout(this.idleTimer);
+    this.idleTimer = null;
+    this.startY = null;
+    this.dragging = false;
+    if (!this.refreshing()) this.zone.run(() => this.pull.set(0));
+  };
 
   private readonly onStart = (e: TouchEvent): void => {
     if (this.refreshing() || e.touches.length !== 1 || window.scrollY > 0) return;
@@ -120,9 +147,31 @@ export class PullToRefreshComponent {
     // Damped, so the indicator lags the finger like a native pull.
     const damped = Math.min(MAX_PULL, dy * 0.5);
     this.zone.run(() => this.pull.set(damped));
+    this.armIdleCancel();
   };
 
+  // A touchend can go missing: if the element under the finger is removed
+  // mid-gesture, the browser dispatches the end event to that detached
+  // node and it never reaches window. The pull state then stuck at > 0,
+  // which kept the top bar hidden after a refresh. No movement for a
+  // while = the gesture is over; cancel it (no refresh).
+  private idleTimer: ReturnType<typeof setTimeout> | null = null;
+  private armIdleCancel(): void {
+    if (this.idleTimer) clearTimeout(this.idleTimer);
+    this.idleTimer = setTimeout(() => {
+      this.idleTimer = null;
+      if (this.startY === null) return;
+      this.startY = null;
+      this.dragging = false;
+      this.zone.run(() => this.pull.set(0));
+    }, 1200);
+  }
+
   private readonly onEnd = (): void => {
+    if (this.idleTimer) {
+      clearTimeout(this.idleTimer);
+      this.idleTimer = null;
+    }
     if (this.startY === null) return;
     this.startY = null;
     this.dragging = false;
@@ -149,9 +198,16 @@ export class PullToRefreshComponent {
   private refresh(): void {
     this.refreshing.set(true);
     const url = this.router.url;
+    // Clears when the page is back; the cap covers a hop that's superseded
+    // or stalls, so the spinner (and the hidden top bar) can't stick.
+    const done = () => this.refreshing.set(false);
+    const cap = setTimeout(done, 3000);
     this.router
       .navigateByUrl("/__refresh", { skipLocationChange: true })
       .then(() => this.router.navigateByUrl(url))
-      .finally(() => setTimeout(() => this.refreshing.set(false), 400));
+      .finally(() => {
+        clearTimeout(cap);
+        setTimeout(done, 250);
+      });
   }
 }

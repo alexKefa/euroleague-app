@@ -99,6 +99,7 @@ const NAV_LINKS: NavLink[] = [
   },
   { path: "/fantasy", label: "fantasy.navLink", icon: "trophy" },
   { path: "/leaderboard", label: "nav.leaderboard", icon: "medal" },
+  { path: "/fans", label: "nav.fanMap", icon: "teams" },
   { path: "/schedule", label: "nav.schedule", icon: "schedule" },
   { path: "/teams", label: "nav.teams", icon: "teams" },
   { path: "/standings", label: "nav.standings", icon: "standings" },
@@ -114,7 +115,7 @@ const NAV_LINKS: NavLink[] = [
 // order should be Home, Predictions, Cards, Fantasy"), landing Cards
 // before Fantasy here even though the desktop rail keeps Fantasy before
 // Cards; this list is intentionally independent of that one.
-const MOBILE_OVERFLOW_PATHS = new Set(["/leaderboard", "/schedule", "/teams", "/standings", "/news"]);
+const MOBILE_OVERFLOW_PATHS = new Set(["/leaderboard", "/fans", "/schedule", "/teams", "/standings", "/news"]);
 function findNavLink(path: string): NavLink {
   const link = NAV_LINKS.find((l) => l.path === path);
   if (!link) throw new Error(`app.component.ts: no NAV_LINKS entry for "${path}"`);
@@ -128,7 +129,7 @@ const MOBILE_NAV_LINKS: NavLink[] = ["/", "/predictions", "/inventory", "/fantas
 // last (2026-09-19, explicit ask), not first, since it's the newest
 // addition to this list rather than one of its established members.
 // Leaderboard (2026-10-02) leads it: checked between rounds, not every session.
-const MORE_LINKS: NavLink[] = ["/leaderboard", "/schedule", "/teams", "/standings", "/news"].map(findNavLink);
+const MORE_LINKS: NavLink[] = ["/leaderboard", "/fans", "/schedule", "/teams", "/standings", "/news"].map(findNavLink);
 
 @Component({
   selector: "app-root",
@@ -200,13 +201,47 @@ export class AppComponent implements OnInit {
   // iOS into recomputing the layout viewport itself.
   private resnapTimer: ReturnType<typeof setTimeout> | null = null;
 
+  //
+  // 2026-10-02: the resnap itself was eating taps. Returning to the app
+  // fired it immediately and again 400ms later, and each one hid the nav
+  // for a frame. A tab tapped right after coming back ("sometimes the
+  // first redirect doesn't work") could land in that frame: the touched
+  // element vanished mid-touch, so the browser never dispatched the click.
+  // Now the nav is only hidden when it's actually out of place, and never
+  // while a finger is down (that snap waits for the touch to end).
+  private touchActive = false;
+  private snapPendingTouch = false;
+
   private readonly snapBottomNavOnce = () => {
     const el = this.bottomNavRef?.nativeElement;
     if (!el) return;
+    // Where it should sit: its own resolved `bottom` offset above the
+    // layout viewport's bottom edge (origin-bottom, so the shrink-scale
+    // doesn't move that edge).
+    const expectedBottom = window.innerHeight - parseFloat(getComputedStyle(el).bottom || "0");
+    if (Math.abs(el.getBoundingClientRect().bottom - expectedBottom) <= 3) return;
+    if (this.touchActive) {
+      this.snapPendingTouch = true;
+      return;
+    }
     el.style.display = "none";
     requestAnimationFrame(() => {
       el.style.display = "";
     });
+  };
+
+  private readonly onTouchStart = () => {
+    this.touchActive = true;
+  };
+
+  private readonly onTouchEnd = (e: TouchEvent) => {
+    if (e.touches.length > 0) return;
+    this.touchActive = false;
+    if (this.snapPendingTouch) {
+      this.snapPendingTouch = false;
+      // After this touch's click has been dispatched.
+      setTimeout(this.snapBottomNavOnce, 50);
+    }
   };
 
   private readonly resnapBottomNav = () => {
@@ -254,6 +289,11 @@ export class AppComponent implements OnInit {
     window.addEventListener("orientationchange", this.resnapBottomNav);
     window.addEventListener("pageshow", this.resnapBottomNav);
     document.addEventListener("visibilitychange", this.resnapWhenVisible);
+    // Touch tracking for the resnap (never hide the nav under a finger).
+    // Passive, so it can't delay scrolling or taps.
+    window.addEventListener("touchstart", this.onTouchStart, { passive: true, capture: true });
+    window.addEventListener("touchend", this.onTouchEnd, { passive: true, capture: true });
+    window.addEventListener("touchcancel", this.onTouchEnd, { passive: true, capture: true });
     // Keyboard dismissal: a field losing focus, captured so it catches
     // every input on every page.
     document.addEventListener("focusout", this.resnapAfterFieldBlur, true);
