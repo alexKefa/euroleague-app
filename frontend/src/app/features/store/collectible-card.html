@@ -22,9 +22,11 @@
     >
       <!-- Full-bleed photo -->
       <div class="absolute inset-0" [style.background]="style.photoTint">
-        @if (imageUrl) {
+        @if (photo; as p) {
           <img
-            [src]="imageUrl"
+            [src]="p.src"
+            [attr.srcset]="p.srcset"
+            [attr.sizes]="p.sizes"
             [alt]="name"
             loading="lazy"
             decoding="async"

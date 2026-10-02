@@ -20,7 +20,10 @@ export class RetryImgDirective {
 
   @HostListener("error")
   onError(): void {
-    if (this.originalSrc === null) this.originalSrc = this.el.src;
+    // currentSrc is the candidate a srcset actually picked; retry that one
+    // and drop the srcset, which would otherwise win over the new src.
+    if (this.originalSrc === null) this.originalSrc = this.el.currentSrc || this.el.src;
+    this.el.removeAttribute("srcset");
     this.attempts++;
 
     if (this.attempts > this.maxAttempts) {

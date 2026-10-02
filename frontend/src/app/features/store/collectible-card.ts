@@ -165,6 +165,25 @@ export class CollectibleCardComponent implements OnChanges {
       this.imageLoaded.set(false);
     }
     this.style = this.computeStyle();
+    this.photo = this.computePhoto();
+  }
+
+  // Card photos are 750x1000 originals shown ~70-340px wide. Left to the
+  // browser, that big one-pass downscale smears small dark details — light
+  // eyes came out as white blobs on small cards (reported 2026-10-02) while
+  // the large preview looked clean. The photo CDN resizes on request
+  // (?width=), so ask for close to the rendered size and let srcset pick a
+  // sharper one on high-DPI screens. Also a 4-15x smaller download.
+  photo: { src: string; srcset: string | null; sizes: string | null } | null = null;
+  private static readonly PHOTO_WIDTHS = [160, 240, 320, 480];
+
+  private computePhoto(): { src: string; srcset: string | null; sizes: string | null } | null {
+    const url = this.imageUrl;
+    if (!url) return null;
+    if (!url.startsWith("https://media-cdn.cortextech.io/")) return { src: url, srcset: null, sizes: null };
+    const sized = (w: number) => `${url}${url.includes("?") ? "&" : "?"}width=${w}`;
+    const srcset = [...CollectibleCardComponent.PHOTO_WIDTHS.map((w) => `${sized(w)} ${w}w`), `${url} 750w`].join(", ");
+    return { src: sized(320), srcset, sizes: `${this.maxWidth}px` };
   }
   // "042/208" print numbering — only rare/legendary get the corner badge
   // (mirrors the tier badge on the opposite corner); common cards stay as
