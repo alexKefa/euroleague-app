@@ -34,4 +34,16 @@ export class NavHistoryService {
     const s = this.stack();
     return s.length >= 2 ? s[s.length - 2] : null;
   });
+
+  // The most recent URL outside a page family, for pages that navigate
+  // within themselves (e.g. the album flipping /album/:teamId, or a bare
+  // /album redirecting to one) — where `previousUrl()` would just point back
+  // at the same page.
+  previousUrlOutside(prefix: string): string | null {
+    const s = this.stack();
+    for (let i = s.length - 1; i >= 0; i--) {
+      if (!s[i].startsWith(prefix)) return s[i];
+    }
+    return null;
+  }
 }

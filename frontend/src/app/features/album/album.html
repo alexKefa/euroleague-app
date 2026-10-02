@@ -9,9 +9,9 @@
      count span further down. -->
 <div class="max-w-3xl lg:max-w-5xl mx-auto p-4 sm:p-6">
   <a
-    [routerLink]="navHistory.previousUrl() ?? '/inventory'"
+    [routerLink]="navHistory.previousUrlOutside('/album') ?? '/inventory'"
     class="back-link"
-    >{{ navHistory.previousUrl() ? i18n.t('nav.back') : i18n.t('store.myCards') }}</a
+    >{{ navHistory.previousUrlOutside('/album') ? i18n.t('nav.back') : i18n.t('store.myCards') }}</a
   >
 
   <app-page-header [title]="i18n.t('album.title')" [eyebrow]="i18n.t('section.cards')" icon="album" class="mt-4" />
