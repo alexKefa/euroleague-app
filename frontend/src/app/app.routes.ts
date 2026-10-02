@@ -43,6 +43,10 @@ export const routes: Routes = [
   // Pull-to-refresh's round trip target (shared/pull-to-refresh.ts).
   { path: "__refresh", component: BlankComponent },
   {
+    path: "fans",
+    loadComponent: () => import("./features/fan-map/fan-map").then((m) => m.FanMapComponent),
+  },
+  {
     path: "leaderboard",
     loadComponent: () => import("./features/leaderboard/leaderboard").then((m) => m.LeaderboardComponent),
   },

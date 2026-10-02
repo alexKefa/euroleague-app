@@ -18,6 +18,7 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
   "nav.home": { en: "Home", el: "Αρχική" },
   "nav.news": { en: "News", el: "Νέα" },
   "nav.leaderboard": { en: "Leaderboard", el: "Κατάταξη" },
+  "nav.fanMap": { en: "Fan map", el: "Χάρτης" },
   "nav.schedule": { en: "Schedule", el: "Πρόγραμμα" },
   "nav.picks": { en: "Picks", el: "Προβλέψεις" },
   "nav.liveGame": { en: "A game is live now", el: "Ένας αγώνας είναι ζωντανά τώρα" },

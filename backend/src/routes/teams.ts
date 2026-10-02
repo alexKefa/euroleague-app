@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { eq, and, or, asc, desc } from "drizzle-orm";
+import { eq, and, or, asc, desc, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "../db/client.js";
-import { teams, players, playerSeasonStats, games, playerInjuries } from "../db/schema.js";
+import { teams, players, playerSeasonStats, games, playerInjuries, users } from "../db/schema.js";
 import { getCurrentSeason } from "../services/season.js";
 import { getBaselinePPGForPlayers } from "../services/topScorerPoints.js";
 
@@ -69,6 +69,49 @@ teamsRouter.get("/", async (_req, res) => {
   } catch (err) {
     console.error("GET /api/teams failed:", err);
     res.status(500).json({ error: "Failed to load teams" });
+  }
+});
+
+// Fan map (2026-10-02): every team with how many users picked it as their
+// favourite. One grouped statement; teams with no fans included at 0.
+teamsRouter.get("/fans", async (_req, res) => {
+  try {
+    const rows = await db
+      .select({
+        id: teams.id,
+        code: teams.code,
+        name: teams.name,
+        city: teams.city,
+        primaryColor: teams.primaryColor,
+        secondaryColor: teams.secondaryColor,
+        logoUrl: teams.logoUrl,
+        fans: sql<number>`count(${users.id})::int`,
+      })
+      .from(teams)
+      .leftJoin(users, eq(users.favoriteTeamId, teams.id))
+      .groupBy(teams.id)
+      .orderBy(desc(sql`count(${users.id})`), asc(teams.name));
+    res.json(rows);
+  } catch (err) {
+    console.error("GET /api/teams/fans failed:", err);
+    res.status(500).json({ error: "Failed to load fan counts" });
+  }
+});
+
+// One team's fans for the fan map's city sheet: usernames only, the same
+// names already public on the leaderboards. Newest fans first, capped.
+teamsRouter.get("/:id/fans", async (req, res) => {
+  try {
+    const rows = await db
+      .select({ id: users.id, username: users.username, joinedAt: users.createdAt })
+      .from(users)
+      .where(eq(users.favoriteTeamId, req.params.id))
+      .orderBy(desc(users.createdAt))
+      .limit(200);
+    res.json(rows);
+  } catch (err) {
+    console.error("GET /api/teams/:id/fans failed:", err);
+    res.status(400).json({ error: "Failed to load fans" });
   }
 });
 

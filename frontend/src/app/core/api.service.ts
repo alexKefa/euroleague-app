@@ -70,6 +70,8 @@ import {
   AdminActivityEvent,
   PlayedRounds,
   RoundStandingEntry,
+  TeamFanCount,
+  TeamFan,
   RoundRecap,
   Announcement,
   AnnouncementInput, FantasyPlayerCard, ScoutingReport, Reminders } from "./models";
@@ -223,6 +225,15 @@ export class ApiService {
     return this.http.get<LeaderboardEntry[]>(`${API_BASE_URL}/predictions/leaderboard`, {
       params: all ? { all: "1" } : {},
     });
+  }
+
+  // Fan map (2026-10-02).
+  getTeamFanCounts(): Observable<TeamFanCount[]> {
+    return this.http.get<TeamFanCount[]>(`${API_BASE_URL}/teams/fans`);
+  }
+
+  getTeamFans(teamId: string): Observable<TeamFan[]> {
+    return this.http.get<TeamFan[]>(`${API_BASE_URL}/teams/${teamId}/fans`);
   }
 
   getLeaderboardRounds(): Observable<PlayedRounds> {

@@ -4,6 +4,19 @@ import { Lang } from "./lang";
 // EuroLeague team, plus entry points into the global stats/compare tools.
 export const teamsTranslations: Record<string, Record<Lang, string>> = {
   "teams.title": { en: "Teams", el: "Ομάδες" },
+  // Fan map (features/fan-map, 2026-10-02).
+  "fanMap.title": { en: "Fan map", el: "Χάρτης φιλάθλων" },
+  "fanMap.eyebrow": { en: "Community", el: "Κοινότητα" },
+  "fanMap.subtitle": { en: "Every club's fan base on Clutch. The taller the block, the bigger the crowd.", el: "Οι φίλαθλοι κάθε ομάδας στο Clutch. Όσο πιο ψηλό το τουβλάκι, τόσο μεγαλύτερη η κερκίδα." },
+  "fanMap.total": { en: "{n} fans", el: "{n} φίλαθλοι" },
+  "fanMap.yourTeam": { en: "Your team", el: "Η ομάδα σου" },
+  "fanMap.yourRank": { en: "{team}: #{rank} of {n} fan bases", el: "{team}: #{rank} από {n} κερκίδες" },
+  "fanMap.fansOne": { en: "1 fan", el: "1 φίλαθλος" },
+  "fanMap.fansMany": { en: "{n} fans", el: "{n} φίλαθλοι" },
+  "fanMap.ranking": { en: "Biggest fan bases", el: "Οι μεγαλύτερες κερκίδες" },
+  "fanMap.noFans": { en: "No fans yet. Be the first!", el: "Δεν υπάρχουν φίλαθλοι ακόμα." },
+  "fanMap.you": { en: "You", el: "Εσύ" },
+  "fanMap.teamPage": { en: "Team page", el: "Σελίδα ομάδας" },
   // Teams hub destination cards (2026-09-29).
   "teams.hubStandingsSub": { en: "The full league table", el: "Η πλήρης βαθμολογία" },
   "teams.hubCompareSub": { en: "Players head-to-head", el: "Παίκτες κόντρα-κόντρα" },

@@ -1243,6 +1243,25 @@ export interface AdminUserRow {
   referralsCount: number;
 }
 
+// GET /teams/fans — fan map (2026-10-02): favourite-team counts per team.
+export interface TeamFanCount {
+  id: string;
+  code: string;
+  name: string;
+  city: string | null;
+  primaryColor: string | null;
+  secondaryColor: string | null;
+  logoUrl: string | null;
+  fans: number;
+}
+
+// GET /teams/:id/fans
+export interface TeamFan {
+  id: string;
+  username: string;
+  joinedAt: string;
+}
+
 // GET /predictions/leaderboard/round/:round — one round's points (2026-10-02).
 export interface RoundStandingEntry {
   userId: string;
