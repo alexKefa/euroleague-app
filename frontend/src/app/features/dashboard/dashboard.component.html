@@ -12,23 +12,32 @@
        state of its own (My Leagues/Fantasy render immediately either way;
        the sponsor ticker and economy hint are static). -->
   @if (loading()) {
-    <div>
-      <app-skeleton class="rounded-3xl h-[76px] mb-4" [iconSize]="24" />
-      <app-skeleton class="rounded-3xl h-[72px] mb-4" [iconSize]="18" />
-      <app-skeleton class="rounded-3xl h-[100px] mb-4" [iconSize]="20" />
-      <!-- Live Center placeholder — roughly its tab-bar + 3-row loaded
-           height, so the page doesn't visibly grow once it mounts. -->
-      <app-skeleton class="rounded-3xl h-[190px] mb-4" [iconSize]="22" />
-      <div class="grid grid-cols-2 gap-3 mb-4">
-        <app-skeleton class="rounded-3xl h-[92px]" [iconSize]="18" />
-        <app-skeleton class="rounded-3xl h-[92px]" [iconSize]="18" />
+    <!-- Same two-column split as the loaded page below (lg+), same
+         display:contents + order-N trick for the mobile order. -->
+    <div class="flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_21rem] lg:gap-x-6 lg:items-start">
+      <div class="contents lg:block lg:col-start-2 lg:row-start-1">
+        <app-skeleton class="order-1 rounded-3xl h-[76px] mb-4" [iconSize]="24" />
+        <app-skeleton class="order-1 rounded-3xl h-[72px] mb-4" [iconSize]="18" />
+        @if (auth.isAuthenticated()) {
+          <app-skeleton class="order-2 rounded-3xl h-[178px] mb-4" />
+        }
+        <div class="order-5 grid grid-cols-2 gap-3 mb-4">
+          <app-skeleton class="rounded-3xl h-[92px]" [iconSize]="18" />
+          <app-skeleton class="rounded-3xl h-[92px]" [iconSize]="18" />
+        </div>
+        <app-skeleton class="order-3 rounded-3xl h-[100px] mb-4" [iconSize]="20" />
+        <app-skeleton class="order-7 rounded-3xl h-[52px] mb-4" [icon]="false" />
+        <app-skeleton class="order-8 rounded-2xl h-[56px] mb-4" [icon]="false" />
       </div>
-      <app-skeleton class="rounded-3xl h-[190px] mb-4" [iconSize]="20" />
-      <app-skeleton class="rounded-3xl h-[52px] mb-4" [icon]="false" />
-      <app-skeleton class="rounded-2xl h-[56px] mb-4" [icon]="false" />
-      <div class="flex flex-col lg:flex-row gap-4">
-        <app-skeleton class="rounded-3xl h-64 flex-1" [iconSize]="20" />
-        <app-skeleton class="rounded-3xl h-64 flex-1" [iconSize]="20" />
+      <div class="contents lg:block lg:col-start-1 lg:row-start-1 lg:min-w-0">
+        <!-- Live Center placeholder — roughly its tab-bar + 3-row loaded
+             height, so the page doesn't visibly grow once it mounts. -->
+        <app-skeleton class="order-4 rounded-3xl h-[190px] mb-4" [iconSize]="22" />
+        <app-skeleton class="order-6 rounded-3xl h-[190px] mb-4" [iconSize]="20" />
+        <div class="order-9 flex flex-col gap-4">
+          <app-skeleton class="rounded-3xl h-64" [iconSize]="20" />
+          <app-skeleton class="rounded-3xl h-64" [iconSize]="20" />
+        </div>
       </div>
     </div>
   }
@@ -44,6 +53,15 @@
          team hero/next-game content a returning visitor actually opens
          this page for. See app.component.html for the new home. -->
 
+    <!-- Desktop (lg+): two columns — league-wide content (live, news,
+         standings/stats) on the left, personal content (your team, next
+         game, this round, leagues/fantasy) in a sidebar on the right
+         (2026-10-02). Below lg both wrappers are display:contents, so their
+         children flow as one column and order-N keeps the original mobile
+         order (hero, next game, round strip, prize, live, leagues, news,
+         sponsor, hint, standings). -->
+    <div class="flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_21rem] lg:gap-x-6 lg:items-start">
+    <div class="contents lg:block lg:col-start-2 lg:row-start-1">
     @if (selectedRow(); as row) {
       <!-- Identity widget — compact, tappable, just team + rank context.
            Record/PPG/form/next-game each get their own small widget below
@@ -51,7 +69,7 @@
       <!-- Team hero (2026-09-29 restyle, "vanilla"): the old identity strip
            and record/rank/PPG/form tile merged into one team-color card, same
            visual language as the Fantasy/Predictions hero cards. -->
-      <a [routerLink]="['/teams', row.team.id]" class="relative block overflow-hidden rounded-3xl p-4 mb-4 bg-card border border-line shadow-card group">
+      <a [routerLink]="['/teams', row.team.id]" class="order-1 relative block overflow-hidden rounded-3xl p-4 mb-4 bg-card border border-line shadow-card group">
         <div class="pointer-events-none absolute inset-0" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 26%, transparent) 0%, color-mix(in srgb, var(--accent-primary) 6%, transparent) 55%, transparent 100%)" aria-hidden="true"></div>
         <div class="pointer-events-none absolute -right-16 -top-16 w-48 h-48 rounded-full border-[14px]" style="border-color: color-mix(in srgb, var(--accent-primary) 12%, transparent)" aria-hidden="true"></div>
         <div class="relative flex items-center gap-3">
@@ -86,7 +104,12 @@
             <p class="font-display text-xl leading-tight tabular-nums">{{ row.stats.ppg !== null ? (row.stats.ppg | number: "1.1-1") : "—" }}</p>
           </div>
         </div>
-        @if (recentGames().length > 0) {
+        @if (scheduleLoading()) {
+          <div class="relative flex items-center justify-between gap-2 mt-3">
+            <app-skeleton class="h-3 w-12 rounded-md" />
+            <app-skeleton class="h-7 w-[9.5rem] rounded-lg" />
+          </div>
+        } @else if (recentGames().length > 0) {
           <div class="relative flex items-center justify-between gap-2 mt-3">
             <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('dashboard.form') }}</p>
             <div class="flex gap-1.5">
@@ -105,10 +128,12 @@
       </a>
       <!-- Next game — featured card, tonal (team-color-tinted) background,
            tapping through to the game itself instead of just displaying it. -->
-      @if (nextGame(); as game) {
+      @if (scheduleLoading()) {
+        <app-skeleton class="order-1 rounded-3xl h-[134px] mb-4" />
+      } @else if (nextGame(); as game) {
         <a
           [routerLink]="['/games', game.id]"
-          class="relative block rounded-3xl p-4 mb-4 border border-line shadow-card overflow-hidden group"
+          class="order-1 relative block rounded-3xl p-4 mb-4 border border-line shadow-card overflow-hidden group"
           [style.background]="'radial-gradient(120% 140% at 15% 0%, color-mix(in srgb, var(--accent-primary) 20%, transparent) 0%, var(--color-card) 65%)'"
         >
           <p class="status-tile inline-flex items-center h-8 px-3 rounded-full border border-line font-mono text-[11px] font-bold text-muted uppercase tracking-wider mb-3">
@@ -136,24 +161,13 @@
       }
     }
 
-    <!-- €100 "first to complete the album" prize banner (2026-09-20,
-         upgraded same day from a plain app-page-hint to the real animated
-         podium graphic — see shared/prize-banner.ts) — placed right after
-         the team-hero/next-game block, ahead of Live Center, for visibility
-         without pushing it above the identity content a returning visitor
-         opens this page for. Dismissible (own hintId, separate from the
-         economy/guest hints below) since an engaged daily visitor doesn't
-         need this re-shown forever — it stays permanently visible on the
-         Album page itself regardless. -->
-    <div class="mb-4">
-      <app-prize-banner size="compact" ctaLink="/album" hintId="dashboard-album-prize" />
-    </div>
-
-    <app-live-center />
+    @if (auth.isAuthenticated()) {
+      <app-round-strip class="order-2" [rank]="myRank()" [behindBy]="pointsBehindNext()" [rankLoading]="predictorsLoading()" />
+    }
 
     <!-- My Leagues + Fantasy Team -->
     @if (auth.isAuthenticated()) {
-      <div class="grid grid-cols-2 gap-3 mb-4">
+      <div class="order-5 grid grid-cols-2 gap-3 mb-4">
         <!-- from-highlight/text-white -> from-team-primary/text-team-secondary
              (2026-09-18, "change everywhere on the app the default orange
              color with the preferred team") — this was a solid gradient
@@ -178,7 +192,9 @@
           </div>
           <div class="relative min-w-0">
             <p class="font-display text-sm tracking-wide text-team-secondary">{{ i18n.t('dashboard.myLeagues') }}</p>
-            @if (myLeagues().length > 0) {
+            @if (myLeaguesLoading()) {
+              <app-skeleton class="h-3 w-3/4 rounded-md mt-1 !bg-white/20" />
+            } @else if (myLeagues().length > 0) {
               <p class="text-xs text-team-secondary/80 truncate">
                 @for (league of myLeagues().slice(0, 3); track league.id; let last = $last) {
                   {{ league.name }}{{ last ? "" : ", " }}
@@ -205,7 +221,9 @@
           </div>
           <div class="min-w-0">
             <p class="font-display text-sm tracking-wide">{{ i18n.t('fantasy.navLink') }}</p>
-            @if (fantasyLineup(); as lineup) {
+            @if (fantasyLoading()) {
+              <app-skeleton class="h-3 w-3/4 rounded-md mt-1" />
+            } @else if (fantasyLineup(); as lineup) {
               @if (lineup.locked) {
                 <p class="text-xs text-muted truncate">{{ i18n.t('fantasy.round') }} {{ lineup.round }} &middot; {{ i18n.t('fantasy.locked') }}</p>
               } @else if (lineup.lockAt) {
@@ -219,24 +237,18 @@
       </div>
     }
 
-    <!-- News stories — its own skeleton while newsLoading() (2026-09-17):
-         this card used to just not exist at all until the news fetch
-         resolved, which pops in later and shoves the sponsor ticker/
-         economy hint/standings card down once it finally arrives, often
-         well after loading() (standings-only) had already revealed
-         everything below it. -->
-    @if (newsLoading()) {
-      <app-skeleton class="rounded-3xl h-[190px] mb-4" [iconSize]="20" />
-    } @else if (news().length > 0) {
-      <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
-        <div class="card-head">
-          <span class="card-head-icon"><app-nav-icon name="news" [size]="18" /></span>
-          <p class="font-display text-base flex-1 min-w-0 truncate">{{ i18n.t('dashboard.latest') }}</p>
-          <a routerLink="/news" class="go-link">{{ i18n.t('dashboard.viewAll') }} </a>
-        </div>
-        <app-news-stories [articles]="news()" />
-      </div>
-    }
+    <!-- €100 "first to complete the album" prize banner (2026-09-20,
+         upgraded same day from a plain app-page-hint to the real animated
+         podium graphic — see shared/prize-banner.ts) — placed right after
+         the team-hero/next-game block, ahead of Live Center, for visibility
+         without pushing it above the identity content a returning visitor
+         opens this page for. Dismissible (own hintId, separate from the
+         economy/guest hints below) since an engaged daily visitor doesn't
+         need this re-shown forever — it stays permanently visible on the
+         Album page itself regardless. -->
+    <div class="mb-4 order-3">
+      <app-prize-banner size="compact" ctaLink="/album" hintId="dashboard-album-prize" />
+    </div>
 
     <!-- Sponsor ticker (2026-09-13) — a stadium-style scrolling LED-board
          placement for a paid sponsor (first real one: Υγειοσωματική, a
@@ -258,7 +270,7 @@
       [href]="sponsorLink"
       target="_blank"
       rel="noopener noreferrer"
-      class="sponsor-ticker rounded-3xl mb-4 flex items-center gap-3 px-4 py-3"
+      class="order-7 sponsor-ticker rounded-3xl mb-4 flex items-center gap-3 px-4 py-3"
     >
       <span class="sponsor-tag shrink-0">{{ i18n.t('dashboard.sponsorTag') }}</span>
       <div class="sponsor-ticker-viewport">
@@ -286,7 +298,7 @@
            about "Welcome Packs", not a point amount, so it doesn't need
            re-touching the next time that quantity changes the way the
            100->150 point swap above once did. -->
-      <app-page-hint hintId="dashboard-economy" icon="ball">
+      <app-page-hint class="order-8" hintId="dashboard-economy" icon="ball">
         {{ i18n.t('dashboard.economyHintPrefix') }}
         <a routerLink="/predictions" class="text-team-primary font-semibold">{{ i18n.t('nav.picks') }}</a>
         {{ i18n.t('dashboard.economyHintMiddle1') }}
@@ -298,11 +310,34 @@
         {{ i18n.t('dashboard.economyHintSuffix') }}
       </app-page-hint>
     } @else {
-      <app-page-hint hintId="dashboard-guest-cta" icon="trophy">
+      <app-page-hint class="order-8" hintId="dashboard-guest-cta" icon="trophy">
         {{ i18n.t('dashboard.guestHintPrefix') }}
         <a routerLink="/register" class="text-team-primary font-semibold">{{ i18n.t('dashboard.guestHintCta') }}</a>
         {{ i18n.t('dashboard.guestHintSuffix') }}
       </app-page-hint>
+    }
+    </div>
+
+    <div class="contents lg:block lg:col-start-1 lg:row-start-1 lg:min-w-0">
+    <app-live-center class="order-4" />
+
+    <!-- News stories — its own skeleton while newsLoading() (2026-09-17):
+         this card used to just not exist at all until the news fetch
+         resolved, which pops in later and shoves the sponsor ticker/
+         economy hint/standings card down once it finally arrives, often
+         well after loading() (standings-only) had already revealed
+         everything below it. -->
+    @if (newsLoading()) {
+      <app-skeleton class="order-6 rounded-3xl h-[190px] mb-4" [iconSize]="20" />
+    } @else if (news().length > 0) {
+      <div class="order-6 bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+        <div class="card-head">
+          <span class="card-head-icon"><app-nav-icon name="news" [size]="18" /></span>
+          <p class="font-display text-base flex-1 min-w-0 truncate">{{ i18n.t('dashboard.latest') }}</p>
+          <a routerLink="/news" class="go-link">{{ i18n.t('dashboard.viewAll') }} </a>
+        </div>
+        <app-news-stories [articles]="news()" />
+      </div>
     }
 
     <!-- Mini standings + tabbed card — items-stretch (the flex default) so
@@ -310,7 +345,7 @@
          + your team) instead of the old 3-4, close enough to the tabbed
          card's own height that stretching no longer reads as padded-out
          dead space the way it used to at 3 rows. -->
-    <div class="flex flex-col lg:flex-row gap-4 mt-4">
+    <div class="order-9 flex flex-col gap-4 mt-4 lg:mt-0">
       <div class="lg:flex-1 lg:min-w-0 bg-card rounded-3xl border border-line shadow-card p-4">
         <div class="card-head">
           <span class="card-head-icon"><app-nav-icon name="standings" [size]="18" /></span>
@@ -441,8 +476,19 @@
                     <span class="value-chip">{{ entry.points }} {{ i18n.t('predictions.pts') }}</span>
                   </button>
                 }
+                @if (myBoardRow(); as mine) {
+                  <p class="text-center text-muted text-xs leading-none select-none" aria-hidden="true">&middot;&middot;&middot;</p>
+                  <button type="button" (click)="openMember(mine.entry)" class="list-row is-mine w-full text-left">
+                    <span class="w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0 bg-line">{{ mine.rank }}</span>
+                    <span class="min-w-0 flex-1">
+                      <span class="block font-semibold truncate">{{ mine.entry.displayName }}</span>
+                      <span class="block font-mono text-[11px] text-muted">{{ mine.entry.correct }}/{{ mine.entry.total }}</span>
+                    </span>
+                    <span class="value-chip">{{ mine.entry.points }} {{ i18n.t('predictions.pts') }}</span>
+                  </button>
+                }
               </div>
-              <a routerLink="/predictions" class="go-link mt-2 ml-auto !flex w-fit"
+              <a routerLink="/predictions" fragment="leaderboard" class="go-link mt-2 ml-auto !flex w-fit"
                 >{{ i18n.t('dashboard.viewAll') }} </a
               >
             }
@@ -485,6 +531,8 @@
           }
         </div>
       }
+    </div>
+    </div>
     </div>
 
     <!-- No dashboard FAB for predictions (tried, then dropped 2026-09-13 on

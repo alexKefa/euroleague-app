@@ -17,6 +17,7 @@ import { TourFabComponent } from "./shared/tour-fab";
 import { BattleChallengeToastComponent } from "./shared/battle-challenge-toast";
 import { JumpBallToastComponent } from "./shared/jump-ball-toast";
 import { RemindersBannerComponent } from "./shared/reminders-banner";
+import { PickResultToastComponent } from "./shared/pick-result-toast";
 import { PackRewardToastComponent } from "./shared/pack-reward-toast";
 import { PackRewardsService } from "./core/pack-rewards.service";
 import { BattlesNotificationService } from "./core/battles-notification.service";
@@ -141,6 +142,7 @@ const MORE_LINKS: NavLink[] = ["/schedule", "/teams", "/standings", "/news"].map
     BattleChallengeToastComponent,
     JumpBallToastComponent,
     RemindersBannerComponent,
+    PickResultToastComponent,
     PackRewardToastComponent,
     WhatsNewComponent,
     WatchPillComponent,

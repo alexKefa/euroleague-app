@@ -78,6 +78,9 @@ export class EventsService {
   // predictedGameIds below), so the nav badge only fires for a live game
   // the user actually has a stake in, not every live game league-wide.
   readonly predictedGameIds = signal<Set<string>>(new Set());
+  // False until the first /predictions/me fetch for this login settles, so
+  // a pick count can show a skeleton instead of a misleading 0.
+  readonly predictedGameIdsLoaded = signal(false);
 
   readonly hasLiveGame = computed(() => {
     const mine = this.predictedGameIds();
@@ -95,6 +98,7 @@ export class EventsService {
         this.refreshPredictedGames();
       } else {
         this.predictedGameIds.set(new Set());
+        this.predictedGameIdsLoaded.set(false);
       }
     });
 
@@ -108,8 +112,11 @@ export class EventsService {
 
   private refreshPredictedGames(): void {
     this.http.get<{ gameId: string }[]>(`${API_BASE_URL}/predictions/me`).subscribe({
-      next: (rows) => this.predictedGameIds.set(new Set(rows.map((r) => r.gameId))),
-      error: () => {}, // non-critical — badge just stays off until the next successful fetch
+      next: (rows) => {
+        this.predictedGameIds.set(new Set(rows.map((r) => r.gameId)));
+        this.predictedGameIdsLoaded.set(true);
+      },
+      error: () => this.predictedGameIdsLoaded.set(true), // non-critical — badge just stays off until the next successful fetch
     });
   }
 

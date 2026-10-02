@@ -51,4 +51,16 @@ export const dashboardTranslations: Record<string, Record<Lang, string>> = {
   "dashboard.topPredictors": { en: "Top Predictors", el: "Κορυφαίοι στις Προβλέψεις" },
 
   "dashboard.sponsorTag": { en: "SPONSOR", el: "ΧΟΡΗΓΟΣ" },
+
+  // "This round" strip (features/dashboard/round-strip.ts, 2026-10-02).
+  "roundStrip.title": { en: "Round {round} · Your picks", el: "Γύρος {round} · Οι προβλέψεις σου" },
+  "roundStrip.picks": { en: "Picks", el: "Προβλέψεις" },
+  "roundStrip.points": { en: "Points", el: "Πόντοι" },
+  "roundStrip.rank": { en: "Rank", el: "Θέση" },
+  "roundStrip.leftOne": { en: "1 game left to pick", el: "1 αγώνας χωρίς πρόβλεψη" },
+  "roundStrip.leftMany": { en: "{n} games left to pick", el: "{n} αγώνες χωρίς πρόβλεψη" },
+  "roundStrip.behind": { en: "{n} pts to #{rank}", el: "{n} πόντοι για #{rank}" },
+  "roundStrip.tied": { en: "Level with #{rank}", el: "Ίδιοι πόντοι με #{rank}" },
+  "roundStrip.top": { en: "Top of the board", el: "Στην κορυφή της κατάταξης" },
+  "roundStrip.allIn": { en: "All your picks are in", el: "Έκανες όλες τις προβλέψεις" },
 };

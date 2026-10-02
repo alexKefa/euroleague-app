@@ -24,6 +24,7 @@ import { NewsStoriesComponent } from "../../shared/news-stories";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { LiveCenterComponent } from "./live-center";
+import { RoundStripComponent } from "./round-strip";
 import {
   newsDateLocale,
   shortDateFormat as gameShortDateFormat,
@@ -68,6 +69,7 @@ type DashboardTab = "performances" | "leaders" | "predictors" | "schedule";
     CollectibleCardComponent,
     TeamCodePipe,
     LiveCenterComponent,
+    RoundStripComponent,
   ],
   templateUrl: "./dashboard.component.html",
   styleUrl: "./dashboard.component.css",
@@ -124,7 +126,29 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // board with badges lives on /predictions). Public endpoint, so this
   // renders for guests too: social proof for the points economy the
   // guest-only hint below is pitching.
-  readonly leaderboard = signal<LeaderboardEntry[]>([]);
+  // The whole board; the Predictors tab shows the top 5 (leaderboard) plus
+  // the viewer's own row pinned below when they're outside it (myBoardRow),
+  // same as the mini standings does for your team.
+  private readonly fullLeaderboard = signal<LeaderboardEntry[]>([]);
+  readonly leaderboard = computed(() => this.fullLeaderboard().slice(0, 5));
+  private readonly myBoardIndex = computed(() => {
+    const uid = this.auth.currentUser()?.id;
+    return uid ? this.fullLeaderboard().findIndex((r) => r.userId === uid) : -1;
+  });
+  readonly myBoardRow = computed(() => {
+    const i = this.myBoardIndex();
+    return i >= 5 ? { entry: this.fullLeaderboard()[i], rank: i + 1 } : null;
+  });
+  // For the "This round" strip's Rank tile (round-strip.ts).
+  readonly myRank = computed(() => (this.myBoardIndex() === -1 ? null : this.myBoardIndex() + 1));
+  // Points between the viewer and the rank directly above (0 = level on
+  // points, behind on accuracy, the board's tiebreak). Null at #1 or unranked.
+  readonly pointsBehindNext = computed(() => {
+    const i = this.myBoardIndex();
+    if (i <= 0) return null;
+    const rows = this.fullLeaderboard();
+    return rows[i - 1].points - rows[i].points;
+  });
   // Showcase cards open in a modal on tap — same pattern as the full
   // leaderboard (features/predictions/predictions.ts) and the league
   // leaderboard (features/leagues/league-detail.ts), minus badges: this
@@ -139,11 +163,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // joined as a guest), so gated behind auth like the favorite-team hero,
   // not shown to guests the way the public leaderboard teaser is.
   readonly myLeagues = signal<League[]>([]);
+  readonly myLeaguesLoading = signal(true);
   // Fantasy Five teaser, same "requires an account, gated like myLeagues"
   // reasoning — surfaces the current round's lock status so this card is
   // never just a static ad, without duplicating the roster-builder page's
   // own fetch of the whole player pool.
   readonly fantasyLineup = signal<FantasyLineup | null>(null);
+  readonly fantasyLoading = signal(true);
 
   // Which tab the merged Performances/Leaders/Predictors/Schedule card is
   // showing. Defaults to the first section that actually has data (see the
@@ -338,18 +364,24 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     if (this.auth.isAuthenticated()) {
       this.api.getMyLeagues().subscribe({
-        next: (rows) => this.myLeagues.set(rows),
-        error: () => {}, // non-critical widget
+        next: (rows) => {
+          this.myLeagues.set(rows);
+          this.myLeaguesLoading.set(false);
+        },
+        error: () => this.myLeaguesLoading.set(false), // non-critical widget
       });
       this.api.getFantasyLineup().subscribe({
-        next: (lineup) => this.fantasyLineup.set(lineup),
-        error: () => {}, // non-critical widget
+        next: (lineup) => {
+          this.fantasyLineup.set(lineup);
+          this.fantasyLoading.set(false);
+        },
+        error: () => this.fantasyLoading.set(false), // non-critical widget
       });
     }
 
     this.api.getLeaderboard().subscribe({
       next: (rows) => {
-        this.leaderboard.set(rows.slice(0, 5));
+        this.fullLeaderboard.set(rows);
         this.predictorsLoading.set(false);
       },
       error: () => this.predictorsLoading.set(false), // non-critical widget

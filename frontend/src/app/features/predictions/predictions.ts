@@ -1,7 +1,7 @@
-import { Component, OnInit, OnDestroy, HostListener, computed, effect, inject, signal } from "@angular/core";
+import { Component, OnInit, OnDestroy, HostListener, computed, effect, inject, signal, untracked } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { forkJoin, of } from "rxjs";
-import { RouterLink } from "@angular/router";
+import { ActivatedRoute, RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
@@ -586,6 +586,20 @@ export class PredictionsComponent implements OnInit, OnDestroy {
   }
 
   constructor() {
+    // /predictions#leaderboard (the dashboard's Rank tile): the widget only
+    // renders once loading() clears, after the router's own anchor scroll
+    // already ran and found nothing — so scroll here instead, once.
+    const route = inject(ActivatedRoute);
+    let scrolledToFragment = false;
+    effect(() => {
+      if (this.loading() || scrolledToFragment) return;
+      untracked(() => {
+        if (route.snapshot.fragment !== "leaderboard") return;
+        scrolledToFragment = true;
+        setTimeout(() => document.getElementById("leaderboard")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+      });
+    });
+
     // Live score push, same pattern as schedule.ts: patch the matching
     // game's status/scores in place instead of refetching. This is what
     // actually locks a pick — the moment a game flips off "scheduled" here,

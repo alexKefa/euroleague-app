@@ -1,6 +1,14 @@
 import { Lang } from "./lang";
 
 export const predictionsTranslations: Record<string, Record<Lang, string>> = {
+  // Pick-result toast (shared/pick-result-toast.ts, 2026-10-02).
+  "pickResult.won": { en: "{team} won. Your pick was right!", el: "Νίκη για {team}. Η πρόβλεψή σου βγήκε!" },
+  "pickResult.missed": { en: "{team} won. Your pick missed.", el: "Νίκη για {team}. Η πρόβλεψή σου δεν βγήκε." },
+  "pickResult.many": { en: "{n} picks decided: {correct} right", el: "{n} προβλέψεις κρίθηκαν: {correct} σωστές" },
+  "pickResult.topScorerHit": { en: "Top scorer {player}: right!", el: "Πρώτος σκόρερ {player}: σωστό!" },
+  "pickResult.topScorerMiss": { en: "Top scorer {player}: missed", el: "Πρώτος σκόρερ {player}: λάθος" },
+  "pickResult.cta": { en: "See", el: "Δες" },
+
   // In-app reminders banner (shared/reminders-banner.ts, 2026-10-01).
   "reminders.fantasy": { en: "No Fantasy squad for round {round} yet. It locks in {time}.", el: "Δεν έχεις ομάδα Fantasy για τον γύρο {round}. Κλειδώνει σε {time}." },
   "reminders.fantasyCta": { en: "Build squad", el: "Φτιάξε ομάδα" },
