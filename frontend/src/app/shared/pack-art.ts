@@ -76,7 +76,7 @@ const CARD_COUNT: Record<PackType, number> = {
           <span>{{ setCode() }}</span>
         </div>
         <div class="pa-medal">
-          <img src="/clutch-icon-dark.png" alt="" />
+          <img src="/brand/clutch-icon-dark.svg" alt="" />
         </div>
         <div class="pa-name">{{ name() }}</div>
         <div class="pa-count">{{ cardCount() }} {{ i18n.t(cardCount() === 1 ? 'packs.artCard' : 'packs.artCards') }}</div>

@@ -13,11 +13,15 @@
        backboard/net illustration. See app.component.html's comment for
        the fuller history/dark-theme-variant rationale. -->
   <div class="relative px-6 max-w-[92vw]" aria-label="Clutch" role="img">
+    <!-- Neon draw (2026-10-02): splash.ts injects the drawable SVG here;
+         the static images are only the fallback if that fetch fails. -->
     <div class="logo-scan-wrap">
-      <span class="splash-ring" aria-hidden="true"></span>
-      <span class="splash-ring splash-ring--late" aria-hidden="true"></span>
-      <img src="/clutch-mark.png" alt="" class="logo-mark brand-mark-light" />
-      <img src="/clutch-mark-dark.png" alt="" class="logo-mark brand-mark-dark" />
+      @if (fallback()) {
+        <img src="/brand/clutch-mark.svg" alt="" class="logo-mark brand-mark-light" />
+        <img src="/brand/clutch-mark-dark.svg" alt="" class="logo-mark brand-mark-dark" />
+      } @else {
+        <div #drawHost class="draw-host" aria-hidden="true"></div>
+      }
     </div>
   </div>
 

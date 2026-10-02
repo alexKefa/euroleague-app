@@ -177,7 +177,7 @@ import { Component, computed, input } from "@angular/core";
         <path [attr.d]="threePointArcPath" fill="none" stroke="var(--color-ink)" stroke-opacity="0.38" stroke-width="1.8" />
       </g>
       <!-- Center-court logo decal (2026-09-16) — now the real current app
-           mark (clutch-icon-dark.png, the icon-only crop of the live logo,
+           mark (brand/clutch-icon-dark.svg, the icon-only crop of the live logo,
            see CLAUDE.md's Branding section), not the extracted Archivo
            Black "C" glyph this used to be. That vector "C" was kept here
            specifically because it had no raster dependency and this decal
@@ -205,7 +205,7 @@ import { Component, computed, input } from "@angular/core";
            flip(freeThrowLineY)=flip(96)=24, is now visually the top of
            open floor via the sibling group's flip — y=50 leaves 26 units
            of clearance below it, unlike the tighter first pass at y=40). -->
-      <image href="/clutch-icon-dark.png" x="102" [attr.y]="logoY()" width="120" height="88" opacity="0.1" preserveAspectRatio="xMidYMid meet" />
+      <image href="/brand/clutch-icon-dark.svg" x="102" [attr.y]="logoY()" width="120" height="88" opacity="0.1" preserveAspectRatio="xMidYMid meet" />
     </svg>
   `,
 })

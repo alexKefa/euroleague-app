@@ -22,7 +22,11 @@
   [class.-translate-y-full]="ptr.active()"
 >
   <div class="pointer-events-none absolute inset-x-0 bottom-0 h-px opacity-70" style="background: linear-gradient(90deg, transparent, var(--accent-primary), transparent)" aria-hidden="true"></div>
-  <!-- The logo — v14 (2026-09-14, see CLAUDE.md's Branding section): a new
+  <!-- 2026-10-02: now vector (public/brand/*.svg, traced from the v14 PNGs).
+       The nav uses clutch-compact: the C-swoosh and ball only, since the
+       backboard and net blurred to mush at 30-34px. clutch-icon is the full
+       graphic, clutch-mark the graphic plus the "Clutch" wordmark.
+       The logo — v14 (2026-09-14, see CLAUDE.md's Branding section): a new
        user-supplied "C"-swoosh basketball/hoop mark with its own baked-in
        serif "Clutch" wordmark below it, replacing v9/v10's backboard/net
        illustration. Same nav-specific problem as the mark it replaces: the
@@ -41,8 +45,8 @@
        <span> is styled by styles.css's .brand-wordmark (bold Plex Sans plus a
        team-colour dot since 2026-10-01; Bigshot One before that). -->
   <a routerLink="/" class="flex items-center gap-2 shrink-0">
-    <img src="/clutch-icon.png" alt="" height="34" class="brand-mark-light h-[30px] sm:h-[34px] w-auto" />
-    <img src="/clutch-icon-dark.png" alt="" height="34" class="brand-mark-dark h-[30px] sm:h-[34px] w-auto" />
+    <img src="/brand/clutch-compact.svg" alt="" height="34" class="brand-mark-light h-[30px] sm:h-[34px] w-auto" />
+    <img src="/brand/clutch-compact-dark.svg" alt="" height="34" class="brand-mark-dark h-[30px] sm:h-[34px] w-auto" />
     <span class="brand-wordmark text-ink text-[1.35rem]">Clutch<span class="brand-wordmark-dot" aria-hidden="true"></span></span>
   </a>
 

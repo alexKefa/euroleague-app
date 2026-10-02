@@ -296,12 +296,12 @@
   filter: none;
 }
 
-/* Brand mark (clutch-mark.png / clutch-mark-dark.png, 2026-09-14): the
+/* Brand mark (brand/clutch-mark.svg / brand/clutch-mark-dark.svg, 2026-09-14): the
    logo's own linework/"Clutch" text is a fixed dark charcoal baked into
    the raster art, not overridable via currentColor/CSS variables the way
    .icon-ink-invert's icons are — and a plain brightness/invert filter
    would also flip the orange ball's hue, so two separate pre-rendered
-   PNGs are swapped by display instead (clutch-mark-dark.png recolors only
+   PNGs are swapped by display instead (brand/clutch-mark-dark.svg recolors only
    the near-neutral dark pixels to light, keeping the ball's orange and the
    backboard's already-light glass untouched). Same dark-unscoped-default/
    light-explicit-override convention as .icon-ink-invert above. */

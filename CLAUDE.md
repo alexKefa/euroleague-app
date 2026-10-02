@@ -151,7 +151,7 @@ Deploys are manual and not triggered on push. Verify the change is live with
 `railway logs <id> --deployment` or by checking the served bundle; don't trust
 `railway status`. Check once and don't poll.
 
-Icon files are versioned (`favicon-v14.png`, `icons/icon-v14-*.png`). Bump the
+Icon files are versioned (`favicon-v15.png`, `icons/icon-v15-*.png`). Bump the
 suffix on any icon change, because query-string cache-busting doesn't work for favicons.
 
 ## Environment variables (backend `.env`)

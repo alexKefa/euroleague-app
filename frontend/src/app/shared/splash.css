@@ -7,7 +7,7 @@
 }
 
 .logo-mark {
-  /* v14 (2026-09-14) — clutch-mark.png/clutch-mark-dark.png are now two
+  /* v14 (2026-09-14) — brand/clutch-mark.svg/brand/clutch-mark-dark.svg are now two
      genuinely separate, purpose-designed exports (a real Canva dark-theme
      recolor with proper contrast, not an algorithmic invert — see
      CLAUDE.md's v11->v14 entries for the full story of why that was
@@ -185,4 +185,91 @@
   .splash-glow { opacity: 0.6; }
   .splash-bar-fill { animation-duration: 0.01s; }
   .is-hiding .logo-scan-wrap { transform: none; }
+}
+
+/* ── Neon draw (2026-10-02) ────────────────────────────────────────────
+   The injected SVG (splash.ts) has .draw-fills (the real logo colours) and
+   .draw-strokes (one pathLength="1" outline per shape). Timeline:
+   0.15–1.35s every outline traces in the team colour with a neon glow,
+   1.1–1.7s the fills fade in underneath, then the outline settles to a
+   soft halo that holds until exit. Injected markup has no Angular
+   encapsulation attributes, hence ::ng-deep. */
+.draw-host {
+  height: clamp(128px, 40vmin, 256px);
+  aspect-ratio: 2222 / 2102;
+}
+@media (max-width: 639px) {
+  .draw-host {
+    height: clamp(120px, 38vmin, 220px);
+  }
+}
+:host ::ng-deep .draw-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+:host ::ng-deep .draw-strokes {
+  /* Two shadows: a tight bright core and a wide soft bloom. */
+  filter: drop-shadow(0 0 3px var(--accent-primary, #ff6b35))
+    drop-shadow(0 0 10px color-mix(in srgb, var(--accent-primary, #ff6b35) 70%, transparent));
+  animation: neon-settle 0.7s ease-out 1.45s forwards;
+}
+:host ::ng-deep .draw-strokes path {
+  stroke: var(--accent-primary, #ff6b35);
+  stroke-width: 14;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: neon-draw 1.2s cubic-bezier(0.65, 0, 0.35, 1) 0.15s forwards;
+}
+/* A slight stagger so the outlines don't all move in lockstep. */
+:host ::ng-deep .draw-strokes path:nth-child(3n + 1) {
+  animation-delay: 0.25s;
+}
+:host ::ng-deep .draw-strokes path:nth-child(3n + 2) {
+  animation-delay: 0.35s;
+}
+:host ::ng-deep .draw-fills {
+  opacity: 0;
+  animation: fill-in 0.6s ease-out 1.1s forwards;
+}
+:host ::ng-deep .f-ink {
+  fill: var(--color-ink);
+}
+:host ::ng-deep .f-panel {
+  fill: color-mix(in srgb, var(--color-ink) 16%, transparent);
+}
+:host ::ng-deep .f-orange {
+  fill: #f0761c;
+}
+:host ::ng-deep .f-shade {
+  fill: #e84e28;
+}
+
+@keyframes neon-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes fill-in {
+  to {
+    opacity: 1;
+  }
+}
+/* Once the fills are in, the outline steps back to a halo around them. */
+@keyframes neon-settle {
+  to {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host ::ng-deep .draw-strokes {
+    display: none;
+  }
+  :host ::ng-deep .draw-fills {
+    animation: fill-in 0.3s ease-out both;
+  }
 }
