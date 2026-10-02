@@ -1,6 +1,7 @@
 import { Component, computed, effect, input, signal } from "@angular/core";
 import { RetryImgDirective } from "./retry-img.directive";
 import { displayTeamCode } from "./team-display-code";
+import { cdnImage } from "./cdn-image";
 
 // Standalone jersey-silhouette placeholder for a player headshot — same
 // "fall back instead of a broken image" spirit as TeamBadgeComponent, used
@@ -31,9 +32,11 @@ import { displayTeamCode } from "./team-display-code";
       [style.width.px]="size()"
       [style.height.px]="size()"
     >
-      @if (photoUrl() && !failed()) {
+      @if (img() && !failed()) {
         <img
-          [src]="photoUrl()"
+          [src]="img()!.src"
+          [attr.srcset]="img()!.srcset"
+          [attr.sizes]="img()!.sizes"
           [alt]="name()"
           loading="lazy"
           decoding="async"
@@ -99,6 +102,11 @@ export class PlayerPhotoComponent {
   readonly primaryColor = input<string | null>(null);
   readonly secondaryColor = input<string | null>(null);
   readonly size = input(48);
+  // Sized CDN variant close to `size` — see cdn-image.ts.
+  protected readonly img = computed(() => {
+    const url = this.photoUrl();
+    return url ? cdnImage(url, this.size()) : null;
+  });
   // Real EuroLeague roster photos (media-cdn.cortextech.io, 750x1000,
   // confirmed directly against several samples) are standardized waist-up
   // studio shots with the face occupying only roughly the top ~5%-30% of

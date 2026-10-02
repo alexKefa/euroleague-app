@@ -187,7 +187,7 @@
               @for (row of favoriteRows(); track row.id) {
                 <a [routerLink]="['/players', row.id]" class="list-row gap-3">
                   @if (row.photoUrl) {
-                    <img [src]="row.photoUrl" [alt]="row.name" loading="lazy" decoding="async" appRetryImg class="w-9 h-9 rounded-full object-cover shrink-0" />
+                    <img [src]="row.photoUrl | cdnSized: 36" [alt]="row.name" loading="lazy" decoding="async" appRetryImg class="w-9 h-9 rounded-full object-cover shrink-0" />
                   } @else {
                     <span class="w-9 h-9 rounded-full bg-page border border-line shrink-0 flex items-center justify-center font-mono text-[11px] text-muted">{{ row.teamCode }}</span>
                   }

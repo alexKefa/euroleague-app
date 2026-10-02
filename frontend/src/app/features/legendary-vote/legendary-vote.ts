@@ -10,11 +10,12 @@ import { PageHintComponent } from "../../shared/page-hint";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { ConfirmDialogComponent } from "../../shared/confirm-dialog";
 import { PageHeaderComponent } from "../../shared/page-header";
+import { CdnSizedPipe } from "../../shared/cdn-image";
 
 @Component({
   selector: "app-legendary-vote",
   standalone: true,
-  imports: [PageHeaderComponent, CommonModule, FormsModule, ButtonDirective, PageHintComponent, SkeletonComponent, ConfirmDialogComponent],
+  imports: [PageHeaderComponent, CommonModule, FormsModule, ButtonDirective, PageHintComponent, SkeletonComponent, ConfirmDialogComponent, CdnSizedPipe],
   templateUrl: "./legendary-vote.html",
 })
 export class LegendaryVoteComponent implements OnInit {

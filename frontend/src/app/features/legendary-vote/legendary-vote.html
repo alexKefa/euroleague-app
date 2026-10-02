@@ -125,7 +125,7 @@
                     <div class="relative flex items-center justify-between gap-2 px-3 py-2">
                       <div class="flex items-center gap-2 min-w-0">
                         @if (candidate.photoUrl) {
-                          <img [src]="candidate.photoUrl" [alt]="candidate.name" class="w-8 h-8 rounded-full object-cover shrink-0" />
+                          <img [src]="candidate.photoUrl | cdnSized: 32" [alt]="candidate.name" class="w-8 h-8 rounded-full object-cover shrink-0" />
                         }
                         <div class="min-w-0">
                           <p class="text-sm font-bold truncate">{{ candidate.name }}</p>
