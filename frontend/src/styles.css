@@ -229,6 +229,9 @@
   font-weight: 700;
   letter-spacing: -0.035em;
   line-height: 1;
+  /* The dot is its own inline element, so a tight mobile top bar could
+     wrap it onto a second line under "Clutch". */
+  white-space: nowrap;
 }
 .brand-wordmark-dot {
   display: inline-block;
