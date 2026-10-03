@@ -64,7 +64,7 @@ several `scripts/*.ts` exist as TS/fetch equivalents for that reason.
 No migrations are checked in. The workflow is `db:push`, which always prompts
 (`strict: true`). In a non-interactive session, write the equivalent SQL by hand
 against `DATABASE_URL`. **Apply every schema change to both the production DB and
-the `dev` Neon branch.** Dev silently drifts otherwise, and "relation does not exist"
+the dev DB (Neon project `EuroleagueDev`).** Dev silently drifts otherwise, and "relation does not exist"
 on dev usually means drift, not a code bug.
 
 ## Backend architecture
@@ -143,7 +143,10 @@ on dev usually means drift, not a code bug.
 Railway project/service `euroleague-app`, Dockerfile builder (config in
 `.railway/railway.ts`). Two environments: `production` (`main` branch,
 getclutchapp.com) and `dev` (`dev` branch, euroleague-app-dev.up.railway.app,
-Neon branch `dev`; use `neonctl ... --org-id org-dark-hat-10818944`).
+Neon project `EuroleagueDev` / `misty-night-49318785` in eu-central-1, separate
+from production's `EuroleagueProj` / `round-truth-86080193` in us-east-2 so dev
+doesn't share production's Free-plan compute hours; use
+`neonctl ... --org-id org-dark-hat-10818944`).
 
 Deploy: `npx tsc -p tsconfig.json --noEmit` (backend), `ng build` (frontend),
 commit, push, then `railway up --service euroleague-app --environment <dev|production>`.
