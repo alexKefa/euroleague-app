@@ -143,9 +143,9 @@ on dev usually means drift, not a code bug.
 Railway project/service `euroleague-app`, Dockerfile builder (config in
 `.railway/railway.ts`). Two environments: `production` (`main` branch,
 getclutchapp.com) and `dev` (`dev` branch, euroleague-app-dev.up.railway.app,
-Neon project `EuroleagueDev` / `misty-night-49318785` in eu-central-1, separate
-from production's `EuroleagueProj` / `round-truth-86080193` in us-east-2 so dev
-doesn't share production's Free-plan compute hours; use
+Neon project `EuroleagueDev` / `misty-night-49318785`, separate from production's
+`EuroleagueProd` / `shy-frost-51618412` so dev doesn't share production's
+Free-plan compute hours. Both are in eu-central-1, next to Railway's EU region. Use
 `neonctl ... --org-id org-dark-hat-10818944`).
 
 Deploy: `npx tsc -p tsconfig.json --noEmit` (backend), `ng build` (frontend),
