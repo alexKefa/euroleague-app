@@ -399,8 +399,11 @@ let inFlight = false;
 // opens. Querying every 20s kept Neon's compute from ever auto-suspending
 // (~5min idle), which meant paying for it 24/7. Re-checks at least hourly so a
 // rescheduled tipoff (games_sync.py) is picked up well within the 2h
-// pre-tipoff window.
+// pre-tipoff window. The re-check lands on the next top of the hour, the
+// same moment index.ts runs its other hourly jobs, so it shares their wake
+// instead of drifting into one of its own.
 const MAX_IDLE_SKIP_MS = 60 * 60 * 1000;
+const nextTopOfHour = (now: number) => Math.floor(now / MAX_IDLE_SKIP_MS) * MAX_IDLE_SKIP_MS + MAX_IDLE_SKIP_MS;
 let skipDbUntil = 0;
 
 // Each game's points-per-player as of the *previous* successful poll, so a
@@ -453,7 +456,7 @@ export async function syncLiveGames(): Promise<LiveGamesSyncResult> {
         .from(games)
         .where(and(eq(games.status, "scheduled"), gte(games.tipoffAt, windowEnd)));
       const nextWindowOpensAt = next?.tipoffAt ? new Date(next.tipoffAt).getTime() - PRE_TIPOFF_POLL_MS : Infinity;
-      skipDbUntil = Math.min(nextWindowOpensAt, now + MAX_IDLE_SKIP_MS);
+      skipDbUntil = Math.min(nextWindowOpensAt, nextTopOfHour(now));
       return NO_OP_RESULT;
     }
 

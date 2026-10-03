@@ -167,7 +167,6 @@ app.listen(port, () => {
 // runs with NODE_ENV=production via the Dockerfile) keeps dev from polling
 // its Neon branch around the clock.
 if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS !== "1") {
-  const NEWS_SYNC_INTERVAL_MS = 60 * 60 * 1000;
   const runNewsSync = () => {
     syncNews()
       .then(({ articlesUpserted, feedsFailed }) => {
@@ -176,7 +175,6 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
       .catch((err) => console.error("[news sync] failed:", err));
   };
   runNewsSync();
-  setInterval(runNewsSync, NEWS_SYNC_INTERVAL_MS);
 
   // Odds-weighted prediction scoring (services/points.ts's
   // pointsForCorrectPick) — a no-op every run until ODDS_API_KEY is set
@@ -196,7 +194,6 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
       .catch((err) => console.error("[odds sync] failed:", err));
   };
   runOddsSync();
-  setInterval(runOddsSync, ODDS_SYNC_INTERVAL_MS);
 
   // Real live scores (sync/liveGamesSync.ts, replacing the admin-only
   // realtime/liveScoreSimulator.ts test tool now that there's a confirmed
@@ -242,7 +239,6 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
   // day" scheduler. A day with no games played is a cheap no-op. Hourly
   // (was daily) since a round only becomes priceable PRICE_SETTLE_MS after
   // its last tipoff — this keeps the move landing within an hour of that.
-  const FANTASY_REPRICE_INTERVAL_MS = 60 * 60 * 1000;
   const runFantasyReprice = () => {
     getCurrentSeason()
       .then((season) => (season ? applyDailyFantasyPriceChanges(season) : Promise.resolve(null)))
@@ -254,7 +250,6 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
       .finally(runFantasyRoundSweepLogged);
   };
   runFantasyReprice();
-  setInterval(runFantasyReprice, FANTASY_REPRICE_INTERVAL_MS);
 
   // Daily EuroLeague injury report (2026-09-19, sync/injurySync.ts) —
   // basketnews.com is the only source for this at all (see schema.ts's
@@ -264,7 +259,6 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
   // reconcile step (clears a 'sync' row for a player no longer listed,
   // never touches an admin's own manual entry) — safe on a fixed interval
   // regardless of exact timing or a mid-day restart.
-  const INJURY_SYNC_INTERVAL_MS = 24 * 60 * 60 * 1000;
   const runInjurySync = () => {
     syncInjuries()
       .then(({ matched, cleared, unmatched, unmatchedTeamSlugs, unmappedStatuses }) => {
@@ -276,7 +270,6 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
       .catch((err) => console.error("[injury sync] failed:", err));
   };
   runInjurySync();
-  setInterval(runInjurySync, INJURY_SYNC_INTERVAL_MS);
 
   // Daily player season-stats sync (2026-09-26, sync/playerStatsSync.ts —
   // TS port of sync-py/player_stats_sync.py, run in-process here instead of
@@ -285,7 +278,6 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
   // machine's committed sync-py/venv doesn't run at all (see CLAUDE.md).
   // Season averages don't need faster-than-daily freshness (unlike live
   // scores), same cadence as the injury/fantasy-reprice jobs above.
-  const PLAYER_STATS_SYNC_INTERVAL_MS = 24 * 60 * 60 * 1000;
   const runPlayerStatsSync = () => {
     syncPlayerStats()
       .then(({ playersUpserted, statsUpserted, skippedNoTeam }) => {
@@ -295,5 +287,27 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
       .catch((err) => console.error("[player stats sync] failed:", err));
   };
   runPlayerStatsSync();
-  setInterval(runPlayerStatsSync, PLAYER_STATS_SYNC_INTERVAL_MS);
+
+  // Every periodic job above runs on one shared top-of-the-hour tick
+  // (2026-10-03) instead of its own setInterval. Separate timers started at
+  // slightly different moments and drifted apart, so each could wake Neon's
+  // compute for its own ~5min idle window. Lined up, the database wakes once
+  // an hour. liveGamesSync's idle skip also ends on the hour (see
+  // MAX_IDLE_SKIP's comment there), so its between-rounds check joins the
+  // same wake.
+  const HOUR_MS = 60 * 60 * 1000;
+  const runHourlyJobs = () => {
+    const hour = new Date().getUTCHours();
+    runNewsSync();
+    runFantasyReprice();
+    if (hour % (ODDS_SYNC_INTERVAL_MS / HOUR_MS) === 0) runOddsSync();
+    if (hour === 4) {
+      runInjurySync();
+      runPlayerStatsSync();
+    }
+  };
+  setTimeout(() => {
+    runHourlyJobs();
+    setInterval(runHourlyJobs, HOUR_MS);
+  }, HOUR_MS - (Date.now() % HOUR_MS));
 }

@@ -106,12 +106,29 @@ export class RemindersBannerComponent {
         return;
       }
       this.load();
-      timer = setInterval(() => this.load(), RECHECK_MS);
+      timer = setInterval(() => this.loadIfVisible(), RECHECK_MS);
     });
-    inject(DestroyRef).onDestroy(() => timer && clearInterval(timer));
+    // A background tab polling every 10 minutes keeps Neon's compute from
+    // ever auto-suspending, so hidden tabs skip the poll and catch up on
+    // return instead.
+    const onVisible = () => {
+      if (!document.hidden && this.auth.accessToken() && Date.now() - this.lastLoadAt >= RECHECK_MS) this.load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    inject(DestroyRef).onDestroy(() => {
+      if (timer) clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    });
+  }
+
+  private lastLoadAt = 0;
+
+  private loadIfVisible(): void {
+    if (!document.hidden) this.load();
   }
 
   private load(): void {
+    this.lastLoadAt = Date.now();
     this.api.getReminders().subscribe({ next: (r) => this.data.set(r), error: () => {} });
   }
 
