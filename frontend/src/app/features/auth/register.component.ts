@@ -8,6 +8,7 @@ import { ButtonDirective } from "../../shared/button.directive";
 import { OpenInBrowserBannerComponent } from "../../shared/open-in-browser-banner";
 import { TeamPickDialogComponent } from "../../shared/team-pick-dialog";
 import { peekPendingPromoClaim, consumePendingPromoClaim } from "../../shared/pending-promo-claim";
+import { clearPendingReferral, peekPendingReferral, stashPendingReferral } from "../../shared/pending-referral";
 import { pendingLeagueJoinUrl } from "../../shared/pending-league-join";
 
 @Component({
@@ -56,7 +57,9 @@ export class RegisterComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.referralCode.set(this.route.snapshot.queryParamMap.get("ref"));
+    const ref = this.route.snapshot.queryParamMap.get("ref");
+    if (ref) stashPendingReferral(ref);
+    this.referralCode.set(ref ?? peekPendingReferral());
     // A promo QR link (features/claim/claim.ts) may have sent the visitor
     // here via /welcome instead of straight to /register?promo=CODE — fall
     // back to the code it stashed so it still applies either way.
@@ -77,6 +80,7 @@ export class RegisterComponent implements OnInit {
           // (routes/auth.ts) — clear the stash so a later /claim visit
           // doesn't try the same code again.
           consumePendingPromoClaim();
+          clearPendingReferral();
           if (!promo) {
             this.showTeamDialog.set(true);
             return;
