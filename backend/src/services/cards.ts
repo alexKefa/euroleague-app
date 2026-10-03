@@ -60,7 +60,8 @@ export const GREAT_ROUND_THRESHOLD = 8;
 // nudge down after checking the numbers), combined with
 // FANTASY_MILESTONE_INTERVAL 6 -> 3 and a legendary-odds bump on the wheel/
 // Elite pack (routes/spin.ts, services/packs.ts — both took the increase
-// out of coach's share specifically, since coach isn't in the album and so
+// out of coach's share specifically, since coach isn't in the album (wrong:
+// it is, see SPIN_ODDS's 2026-10-03 note in routes/spin.ts) and so
 // is a free lever that doesn't cost any commons/rares/legendary supply),
 // restored 50%-engagement completion to 37/72/89/96/99/100% — matching or
 // exceeding the original 22-card numbers at every accuracy level, with

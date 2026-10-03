@@ -85,7 +85,7 @@ function nextAthensMidnightUtc(after: Date): Date {
 // collapsed 50%-engagement full-album completion back to 0-4% across every
 // accuracy — the same bottleneck this file's history already describes,
 // just worse. Legendary's share went 14->20, taken entirely out of coach's
-// share (8->2) rather than common's or rare's — coach isn't in the album,
+// share (8->2) rather than common's or rare's — coach isn't in the album (wrong, see 2026-10-03 below),
 // so this is a free lever, unlike every previous odds change here which had
 // to trade off against commons/rares. Combined with the same-pass milestone
 // retune (services/cards.ts's LEGENDARY_MILESTONE_INTERVAL/
@@ -104,7 +104,16 @@ function nextAthensMidnightUtc(after: Date): Date {
 // LEGENDARY_MILESTONE_INTERVAL 18, still completes the 40 legendaries at
 // real accuracy (economy:simulate at 60-65%: never-buyer finishes the album
 // in 75-86% of seasons, median day ~188-192; 10% left them 2-3 short).
-export const SPIN_ODDS = { common: 0.58, rare: 0.28, legendary: 0.12, coach: 0.02 } as const;
+//
+// 58/28/12/2 -> 54/28/12/6 (2026-10-03): the 2026-09-22 note above treated
+// coach as outside the album, but the album's overall progress has always
+// counted all 700 cards, coaches included. economy:simulate now counts
+// coaches toward "full album" too: at 2%, coaches were the bottleneck
+// (85% engagement, 55-75% accuracy: 15-17/20 coaches at season end, 0-13%
+// finish the album). At 6%: 19.5-19.9/20 coaches, 25-83% finish, median
+// day 188-202, commons+rares finish within ~3 days of before. Taken from
+// common, the tier that finishes first; legendary is the trailing tier now.
+export const SPIN_ODDS = { common: 0.54, rare: 0.28, legendary: 0.12, coach: 0.06 } as const;
 export const LEGENDARY_CHANCE = SPIN_ODDS.legendary;
 export const COACH_CHANCE = SPIN_ODDS.coach;
 

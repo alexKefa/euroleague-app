@@ -102,7 +102,7 @@ export class WheelComponent implements OnInit, OnDestroy {
   ];
 
   // The disc's 12 wedges, one tier per 30° slice — roughly mirrors the real
-  // server-side odds (60/21/11/8 common/rare/legendary/coach, see
+  // server-side odds (54/28/12/6 common/rare/legendary/coach, see
   // routes/spin.ts's SPIN_ODDS) without needing exact fractional wedges:
   // 7 common, 3 rare, 1 legendary, 1 coach. See the conic-gradient in
   // wheel.html, which colors each slice to match. Legendary and coach sit
@@ -205,7 +205,7 @@ export class WheelComponent implements OnInit, OnDestroy {
   }
 
   /** Same as cheatSpin(), for the coach pool instead — otherwise verifying
-   * the violet reveal means waiting on an 8% real spin chance. */
+   * the violet reveal means waiting on a 6% real spin chance. */
   cheatSpinCoach(): void {
     if (this.spinning()) return;
     this.spinning.set(true);

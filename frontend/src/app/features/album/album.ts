@@ -25,8 +25,11 @@ interface TierBreakdown {
 
 // There's no stored "sticker slot number" anywhere in the catalog — this is
 // purely a display order so a team's page looks the same across visits:
-// commons first, then rares, then legendaries, alphabetical within a tier.
-const TIER_ORDER: CollectibleTier[] = ["common", "rare", "legendary"];
+// commons first, then rares, legendaries and the coach, alphabetical within
+// a tier. Coach was missing here until 2026-10-03: the card still showed in
+// the grid (sorted first, indexOf -1) but had no row in the tier breakdown,
+// although it has always counted toward the album's overall progress.
+const TIER_ORDER: CollectibleTier[] = ["common", "rare", "legendary", "coach"];
 
 @Component({
   selector: "app-album",
@@ -285,12 +288,14 @@ export class AlbumComponent implements OnInit {
   tierDotClass(tier: CollectibleTier): string {
     if (tier === "rare") return "bg-gradient-to-br from-[#eef1f3] to-[#9aa3ab]";
     if (tier === "legendary") return "bg-gradient-to-br from-[#f7dd85] to-[#9c7415]";
+    if (tier === "coach") return "bg-gradient-to-br from-[#8ff0cb] to-[#1f9c74]";
     return "bg-[#c7ccd1]";
   }
 
   tierLabelKey(tier: CollectibleTier): string {
     if (tier === "rare") return "inventory.tierRare";
     if (tier === "legendary") return "inventory.tierLegendary";
+    if (tier === "coach") return "inventory.tierCoach";
     return "inventory.tierCommon";
   }
 

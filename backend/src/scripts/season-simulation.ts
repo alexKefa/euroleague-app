@@ -73,11 +73,11 @@
  *
  * Answers: can a realistic player (a given prediction accuracy, not a
  * perfect one) actually finish the album (own every collectible: 320
- * common + 320 rare + 40 legendary) across a season, and how does that
- * scale with accuracy and spending habits? Coach cards (20, tracked
- * separately below) are deliberately NOT part of "album complete" — see
- * CLAUDE.md's "Coach cards" section — they're modeled here only to confirm
- * their new odds share didn't quietly wreck legendary's own pacing.
+ * common + 320 rare + 40 legendary + 20 coach) across a season, and how
+ * does that scale with accuracy and spending habits? Coaches count toward
+ * "album complete" since 2026-10-03: the real album's overall progress has
+ * always counted all 700 cards, and leaving them out here is how the
+ * wheel's coach share drifted down to 2% unnoticed.
  *
  * Usage: npm run economy:simulate  (or: npx tsx src/scripts/season-simulation.ts)
  * Env overrides for quick iteration: SIM_N=500 SIM_QUICK=1 npm run economy:simulate
@@ -189,10 +189,10 @@ const CAPTAIN_POSITIVE_RATE = Number(process.env.SIM_CAPTAIN_POSITIVE_RATE ?? 0.
 // 2026-10-01: common -> Regular Season pack, rare -> Playoffs pack,
 // legendary -> one legendary card, coach -> one coach card; SIM_SPIN_{COMMON,RARE,LEGENDARY,COACH} override to test a retune.
 const SPIN_ODDS: Record<Tier, number> = {
-  common: Number(process.env.SIM_SPIN_COMMON ?? 0.58),
+  common: Number(process.env.SIM_SPIN_COMMON ?? 0.54),
   rare: Number(process.env.SIM_SPIN_RARE ?? 0.28),
   legendary: Number(process.env.SIM_SPIN_LEGENDARY ?? 0.12),
-  coach: Number(process.env.SIM_SPIN_COACH ?? 0.02),
+  coach: Number(process.env.SIM_SPIN_COACH ?? 0.06),
 };
 
 interface PackSlot {
@@ -443,12 +443,13 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
   let fullCompleteDay: number | null = null;
   let nextRound = 0;
   let albumCountAtDay7 = 0;
-  const albumCount = () => state.owned.common.size + state.owned.rare.size + state.owned.legendary.size;
+  const albumCount = () => state.owned.common.size + state.owned.rare.size + state.owned.legendary.size + state.owned.coach.size;
 
   for (let i = 0; i < WELCOME_PACK_QUANTITY; i++) state.points += openPack(state, WELCOME_PACK);
 
   const isPurchasableComplete = () => state.owned.common.size === CATALOG_SIZE.common && state.owned.rare.size === CATALOG_SIZE.rare;
-  const isFullComplete = () => isPurchasableComplete() && state.owned.legendary.size === CATALOG_SIZE.legendary;
+  const isFullComplete = () =>
+    isPurchasableComplete() && state.owned.legendary.size === CATALOG_SIZE.legendary && state.owned.coach.size === CATALOG_SIZE.coach;
 
   // Registers one correct pick (win/loss OR top-scorer — "fix everything"
   // pass, 2026-09-21, see this file's header comment) toward the shared
@@ -616,7 +617,7 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
   const pctFull = (fullDays.length / n) * 100;
   const avgAlbumDay7 = results.reduce((s, r) => s + r.albumCountAtDay7, 0) / n;
   const avgAlbumEnd = results.reduce((s, r) => s + r.albumCountAtEnd, 0) / n;
-  const albumSize = CATALOG_SIZE.common + CATALOG_SIZE.rare + CATALOG_SIZE.legendary;
+  const albumSize = CATALOG_SIZE.common + CATALOG_SIZE.rare + CATALOG_SIZE.legendary + CATALOG_SIZE.coach;
   const avgCommonAtEnd = results.reduce((s, r) => s + r.commonCountAtEnd, 0) / n;
   const avgRareAtEnd = results.reduce((s, r) => s + r.rareCountAtEnd, 0) / n;
   const avgLegendaryAtEnd = results.reduce((s, r) => s + r.legendaryCountAtEnd, 0) / n;
@@ -652,7 +653,7 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
       ` | avg commons: ${avgCommonAtEnd.toFixed(0).padStart(3)}/${CATALOG_SIZE.common}` +
       ` | avg rares: ${avgRareAtEnd.toFixed(0).padStart(3)}/${CATALOG_SIZE.rare}` +
       ` | avg legendaries: ${avgLegendaryAtEnd.toFixed(1).padStart(4)}/${CATALOG_SIZE.legendary}` +
-      ` | avg coaches: ${avgCoachAtEnd.toFixed(1).padStart(4)}/20 (not in album)` +
+      ` | avg coaches: ${avgCoachAtEnd.toFixed(1).padStart(4)}/${CATALOG_SIZE.coach}` +
       ` | avg perfect rounds: ${avgPerfectRounds.toFixed(2)}` +
       (GREAT_ROUND_BONUS ? ` | avg great rounds: ${avgGreatRounds.toFixed(2)}` : "") +
       (LEGENDARY_MILESTONE > 0 ? ` | avg milestone legendaries: ${avgMilestoneLegendaries.toFixed(2)}` : "") +
