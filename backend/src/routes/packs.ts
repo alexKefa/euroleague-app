@@ -23,8 +23,8 @@ export const packsRouter = Router();
 // Cards you already own can still drop from a pack (unlike direct redeem or
 // the wheel, which both exclude owned cards) — a duplicate can be cashed in
 // immediately for points instead. See packOpeningResults in schema.ts.
-// 0.5 -> 0.3 (2026-10-01) so the 8/6-card Regular Season / Playoffs packs
-// can stay cheap (250/400) without an all-duplicate pack selling back for
+// 0.5 -> 0.3 (2026-10-01) so the 4-card Regular Season / Playoffs packs
+// can stay cheap (100/250) without an all-duplicate pack selling back for
 // more than it costs (see PACKS in services/packs.ts).
 const SELL_BACK_RATE = 0.3;
 
