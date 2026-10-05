@@ -362,89 +362,63 @@
                    padding trimmed to match the smaller box; line-clamp-2 on
                    the name row still caps height the same way regardless of
                    how long a name is. -->
+              <!-- Info card (2026-10-05, modelled on EuroLeague Fantasy's court card):
+                   name bar with a team-colour underline, then two cells. Left:
+                   CR cost before the game (what a transfer between rounds
+                   costs), points once it tips off. Right: day (T1/T2) over the
+                   opponent. Fixed light card on purpose, see the 2026-09-22
+                   note in git history: team colours never colour the text,
+                   only the underline, so white-kit teams stay readable. -->
               <button type="button" (click)="openPlayerInfo(slot.playerId)" [title]="row.player.name" class="block w-[92px] rounded-xl overflow-hidden shadow-card border border-line bg-card/90 backdrop-blur-md hover:border-team-primary/60 transition-colors">
-                <!-- Recolored solid (not just team-primary) when injured —
-                     the small corner dot alone read as too easy to miss
-                     (2026-09-19). -->
-                <!-- Price dropped from the court card and both lines made
-                     heavier/bigger (2026-09-25, "remove the cr cost from the
-                     card. they got too long... more intense font weight").
-                     The second line moved off font-mono: Nova Mono ships a
-                     single light weight, so font-bold never thickened it —
-                     IBM Plex Sans at 700 with tabular figures instead. Price
-                     is still in the pool, picker and player popup. -->
                 <span
-                  class="block font-display text-[10px] font-bold uppercase tracking-wide text-center leading-tight line-clamp-2 px-1 pt-1 pb-0.5"
+                  class="block font-display text-[10px] font-bold uppercase tracking-wide text-center leading-tight line-clamp-2 px-1 pt-1 pb-0.5 border-b-2"
+                  [style.border-bottom-color]="row.team.primaryColor || 'var(--color-line)'"
                   [ngClass]="row.injury ? injuryNameBarClass(row.injury.status) : 'text-ink'"
                   >{{ posAbbrev(row.player.position) }} {{ courtDisplayName(row.player.name) }}</span
                 >
-                <span class="flex items-center justify-center gap-1 bg-page/60 text-team-primary text-[10px] font-sans font-bold tabular-nums px-1 py-0.5 border-t border-line">
-                  @if (gameForTeam().get(row.team.id); as game) {
-                    @if (!gameFinished(row.team.id) && turnFor(row.team.id); as turn) {
-                      <span [class.opacity-40]="hasPlayed(row.player.id)">{{ i18n.t('fantasy.turnAbbrev') }}{{ turn }}</span>
-                      <span class="text-muted">&middot;</span>
-                    }
-                    @if (game.status === 'scheduled') {
-                      @if (opponentFor(row.team.id); as opp) {
-                        <span>{{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }} {{ opp.opponent.code }}</span>
-                      }
-                    } @else if (slot.role === 'starter' && captainId() === slot.playerId) {
-                      <!-- Captain: always shown doubled, no ×2 tag (2026-09-25
-                           follow-up, "remove the 2x, everyone knows that's on
-                           captain") — just the real number, already 2x'd.
-                           Once the game is `final`, that's `pointsFor()`
-                           straight off the backend's exact scoring formula
-                           (already the captain-doubled value — see
-                           playerPointsById's doc comment). While still
-                           `live`, the backend has nothing to give yet — it
-                           only computes `points` from a *final* box score
-                           (routes/fantasy.ts: "only a final game's real box
-                           score counts") — so this doubles the same live PIR
-                           `roundPir()` feeds every teammate's card (off the
-                           SSE box-score refresh) as a live stand-in, rather
-                           than either showing a stale/zero real points value
-                           (2026-09-25 bug, "captain shows 0 points on live")
-                           or showing the same un-doubled number every
-                           teammate shows (today's original ask: "since he is
-                           captain his points should be doubled"). Swaps over
-                           to the exact backend value the moment the game
-                           actually ends. -->
-                      <span class="flex items-center gap-1" [ngClass]="game.status === 'live' ? 'text-red-500' : ''">
-                        @if (game.status === 'live') {
-                          <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
-                        }
-                        @if (game.status === 'final') {
-                          {{ pointsFor(row.player.id) | number: '1.0-1' }}
-                        } @else {
-                          {{ liveCaptainPoints(row.player.id) | number: '1.0-1' }}
-                        }
-                        {{ i18n.t('fantasy.pointsAbbrev') }}
-                      </span>
-                    } @else if (slot.role === 'bench') {
-                      <!-- Bench: shown halved (2026-09-29, "show half points
-                           when live and after game since it's 50%") — same
-                           shape as the captain branch above: the backend's
-                           exact (already-halved) points once final, live PIR
-                           x BENCH_SCORE_MULTIPLIER as a stand-in while live. -->
-                      <span class="flex items-center gap-1" [ngClass]="game.status === 'live' ? 'text-red-500' : ''">
-                        @if (game.status === 'live') {
-                          <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
-                        }
-                        @if (game.status === 'final') {
-                          {{ pointsFor(row.player.id) | number: '1.0-1' }}
-                        } @else {
-                          {{ liveBenchPoints(row.player.id) | number: '1.0-1' }}
-                        }
-                        {{ i18n.t('fantasy.pointsAbbrev') }}
-                      </span>
+                @let game = gameForTeam().get(row.team.id);
+                @let opp = opponentFor(row.team.id);
+                @let turn = !gameFinished(row.team.id) ? turnFor(row.team.id) : null;
+                <span class="grid grid-flow-col auto-cols-fr divide-x divide-line bg-page/60 text-center font-sans tabular-nums">
+                  <span class="flex flex-col items-center justify-center px-0.5 py-0.5 min-w-0">
+                    @if (!game || game.status === 'scheduled') {
+                      <span class="text-[11px] font-bold leading-none text-ink">{{ row.price | number: '1.1-1' }}</span>
+                      <span class="text-[8px] font-bold uppercase text-muted leading-none mt-0.5">{{ i18n.t('fantasy.creditsAbbrev') }}</span>
                     } @else {
-                      <span class="flex items-center gap-1" [ngClass]="game.status === 'live' ? 'text-red-500' : ''">
+                      <span class="flex items-center gap-0.5 text-[11px] font-bold leading-none" [ngClass]="game.status === 'live' ? 'text-red-500' : 'text-team-primary'">
                         @if (game.status === 'live') {
                           <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
                         }
-                        {{ roundPir(row.player.id) ?? '—' }} {{ i18n.t('fantasy.colPir') }}
+                        <!-- Captain and bench show their real scored points
+                             (doubled / halved); a live game uses live PIR
+                             times the same multiplier until the backend has
+                             the final box score. -->
+                        @if (slot.role === 'starter' && captainId() === slot.playerId) {
+                          {{ (game.status === 'final' ? pointsFor(row.player.id) : liveCaptainPoints(row.player.id)) | number: '1.0-1' }}
+                        } @else if (slot.role === 'bench') {
+                          {{ (game.status === 'final' ? pointsFor(row.player.id) : liveBenchPoints(row.player.id)) | number: '1.0-1' }}
+                        } @else {
+                          {{ roundPir(row.player.id) ?? '—' }}
+                        }
+                      </span>
+                      <span class="text-[8px] font-bold uppercase text-muted leading-none mt-0.5">
+                        {{ (slot.role === 'bench' || (slot.role === 'starter' && captainId() === slot.playerId)) ? i18n.t('fantasy.pointsAbbrev') : i18n.t('fantasy.colPir') }}
                       </span>
                     }
+                  </span>
+                  @if (turn || opp) {
+                    <span class="flex flex-col items-center justify-center px-0.5 py-0.5 min-w-0">
+                      @if (turn) {
+                        <span class="text-[11px] font-bold leading-none text-ink" [class.opacity-40]="hasPlayed(row.player.id)">{{ i18n.t('fantasy.turnAbbrev') }}{{ turn }}</span>
+                      } @else if (opp) {
+                        <span class="text-[11px] font-bold leading-none text-ink">{{ opp.opponent.code | teamCode }}</span>
+                      }
+                      @if (opp) {
+                        <span class="text-[8px] font-bold uppercase text-muted leading-none mt-0.5 whitespace-nowrap">
+                          {{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }}@if (turn) { {{ opp.opponent.code | teamCode }}}
+                        </span>
+                      }
+                    </span>
                   }
                 </span>
               </button>

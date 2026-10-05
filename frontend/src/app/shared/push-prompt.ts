@@ -4,9 +4,10 @@ import { I18nService } from "../core/i18n.service";
 import { PushService, isStandalone } from "../core/push.service";
 import { TourService } from "../core/tour/tour.service";
 import { ButtonDirective } from "./button.directive";
-import { DialogComponent } from "./dialog";
+import { NavIconComponent } from "./nav-icon";
 
-const DISMISS_KEY = "clutch-push-prompt-dismissed";
+// v2: the first version was an easy-to-miss toast; everyone gets the modal once.
+const DISMISS_KEY = "clutch-push-prompt-dismissed-v2";
 // Let the splash screen (app.component.ts, ~3s) finish first.
 const SHOW_DELAY_MS = 3500;
 
@@ -28,16 +29,29 @@ function storedDismiss(): boolean {
 @Component({
   selector: "app-push-prompt",
   standalone: true,
-  imports: [DialogComponent, ButtonDirective],
+  imports: [NavIconComponent, ButtonDirective],
   template: `
     @if (shown()) {
-      <app-dialog [title]="i18n.t('pushPrompt.title')" icon="bell" [closeLabel]="i18n.t('hint.dismiss')" (closed)="dismiss()">
-        <p class="text-sm text-muted mb-4">{{ i18n.t('pushPrompt.text') }}</p>
-        <div class="flex flex-col sm:flex-row-reverse gap-2">
-          <button type="button" appButton class="w-full sm:w-auto" (click)="enable()" [disabled]="push.busy()">{{ i18n.t('pushPrompt.cta') }}</button>
-          <button type="button" appButton="outline" class="w-full sm:w-auto" (click)="dismiss()">{{ i18n.t('pushPrompt.later') }}</button>
+      <!-- Centred modal, not a bottom sheet or toast, so it can't be missed.
+           No backdrop-tap or Escape close: the user picks one of the two. -->
+      <div class="sheet-backdrop fixed inset-0 z-[60] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
+        <div
+          role="dialog"
+          aria-modal="true"
+          [attr.aria-label]="i18n.t('pushPrompt.title')"
+          class="sheet-panel bg-card rounded-3xl border border-line shadow-pop p-6 max-w-sm w-full text-center"
+        >
+          <span class="mx-auto mb-4 w-16 h-16 rounded-2xl bg-team-primary text-team-secondary flex items-center justify-center shadow-card">
+            <app-nav-icon name="bell" [size]="32" />
+          </span>
+          <p class="font-display text-xl mb-2">{{ i18n.t('pushPrompt.title') }}</p>
+          <p class="text-sm text-muted mb-5">{{ i18n.t('pushPrompt.text') }}</p>
+          <div class="flex flex-col gap-2">
+            <button type="button" appButton class="w-full" (click)="enable()" [disabled]="push.busy()">{{ i18n.t('pushPrompt.cta') }}</button>
+            <button type="button" appButton="outline" class="w-full" (click)="dismiss()" [disabled]="push.busy()">{{ i18n.t('pushPrompt.later') }}</button>
+          </div>
         </div>
-      </app-dialog>
+      </div>
     }
   `,
 })
