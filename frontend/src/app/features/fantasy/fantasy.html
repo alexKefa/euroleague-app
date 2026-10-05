@@ -268,7 +268,7 @@
                 <button
                   type="button"
                   (click)="$event.stopPropagation(); openPlayerInfo(slot.playerId)"
-                  class="block rounded-full"
+                  class="flex rounded-full"
                   [style.box-shadow]="'0 0 0 2px var(--color-card), 0 0 0 4px ' + (row.team.primaryColor || 'var(--color-line)') + ', 0 6px 16px rgba(0,0,0,0.35)'"
                 >
                   <app-player-photo
