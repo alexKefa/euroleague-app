@@ -83,6 +83,29 @@ export class CollectibleCardComponent implements OnChanges {
   // while a filter is active; defaults true everywhere else.
   @Input() showTierBadge = true;
 
+  // Small renders (2026-10-05, "no name is shown, rarity almost hides
+  // everything"): the fixed-px banner/badge/frame were sized for 150px+
+  // tiles. "mini" (pack-opening pulled row, ~48px) is just the photo in its
+  // tier frame; "compact" (Recent pulls, ~84px) keeps a slim surname banner
+  // and swaps the badge for a tier-coloured dot. Both still show tier via
+  // the frame itself.
+  get sizeMode(): "mini" | "compact" | "full" {
+    if (this.maxWidth < 64) return "mini";
+    if (this.maxWidth < 130) return "compact";
+    return "full";
+  }
+
+  get framePadding(): number {
+    return this.sizeMode === "mini" ? 2 : this.sizeMode === "compact" ? 4 : 7;
+  }
+
+  /** Surname only on compact cards, so it fits instead of truncating to "Ty…". */
+  get displayName(): string {
+    if (this.sizeMode !== "compact") return this.name;
+    const parts = this.name.trim().split(/s+/);
+    return parts.length > 1 ? parts[parts.length - 1] : this.name;
+  }
+
   get hasJerseyNumber(): boolean {
     return this.jerseyNumber !== null && this.jerseyNumber !== undefined;
   }

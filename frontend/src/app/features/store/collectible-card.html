@@ -3,21 +3,27 @@
      generic "this card is selected" ring (trades/showcase pickers etc.),
      not tied to the card's own tier styling, so it's fair game. -->
 <div
-  class="relative w-full mx-auto rounded-2xl"
+  class="relative w-full mx-auto"
+  [class.rounded-2xl]="sizeMode !== 'mini'"
+  [class.rounded-lg]="sizeMode === 'mini'"
   [class.ring-4]="selected"
   [class.ring-team-primary]="selected"
   [style.max-width.px]="maxWidth"
   style="aspect-ratio: 2.5 / 3.5"
 >
   <div
-    class="w-full h-full rounded-2xl transition-[filter] duration-300"
-    [style.padding.px]="7"
+    class="w-full h-full transition-[filter] duration-300"
+    [class.rounded-2xl]="sizeMode !== 'mini'"
+    [class.rounded-lg]="sizeMode === 'mini'"
+    [style.padding.px]="framePadding"
     [style.background]="style.frameBackground"
     [style.box-shadow]="style.frameShadow"
     [style.filter]="unlocked ? 'none' : 'grayscale(0.75) brightness(0.55)'"
   >
     <div
-      class="relative w-full h-full rounded-xl overflow-hidden"
+      class="relative w-full h-full overflow-hidden"
+      [class.rounded-xl]="sizeMode !== 'mini'"
+      [class.rounded-md]="sizeMode === 'mini'"
       [style.background]="style.faceBackground"
     >
       <!-- Full-bleed photo -->
@@ -101,7 +107,14 @@
         ></div>
       }
 
-      @if (showTierBadge) {
+      @if (showTierBadge && sizeMode === 'compact') {
+        <span
+          class="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full z-10 ring-1 ring-black/20"
+          [style.background]="style.badgeBackground"
+          [attr.title]="i18n.t(style.badgeLabel)"
+        ></span>
+      }
+      @if (showTierBadge && sizeMode === 'full') {
         <div
           class="absolute top-2 right-2 flex items-center gap-1 rounded-full z-10"
           style="padding: 3px 8px 3px 6px; transform-origin: top right"
@@ -117,7 +130,7 @@
       }
 
       <!-- print numbering — mirrors the tier badge on the opposite corner -->
-      @if (showSerial) {
+      @if (showSerial && sizeMode === 'full') {
         <div
           class="absolute top-2 left-2 rounded-full z-10 backdrop-blur-sm"
           style="padding: 3px 7px"
@@ -130,6 +143,13 @@
       }
 
       <!-- Frosted-glass info banner, floating over the bottom of the photo -->
+      @if (sizeMode === 'compact') {
+        <div class="absolute inset-x-0 bottom-0 px-1.5 py-1 backdrop-blur-md z-10" [style.background]="style.bannerBackground">
+          <div class="text-[11px] font-extrabold leading-tight truncate" [style.color]="style.nameColor">{{ displayName }}</div>
+          <div class="text-[8.5px] font-bold tracking-wide leading-tight" [style.color]="style.metaColor">{{ displayTeamCode }}</div>
+        </div>
+      }
+      @if (sizeMode === 'full') {
       <div
         class="absolute inset-x-0 bottom-0 px-3 py-2.5 backdrop-blur-md z-10"
         [style.background]="style.bannerBackground"
@@ -144,6 +164,7 @@
           }
         </div>
       </div>
+      }
     </div>
   </div>
 
