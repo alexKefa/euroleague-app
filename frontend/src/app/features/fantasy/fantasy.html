@@ -688,15 +688,20 @@
           <!-- Undo / reset (2026-10-05). Both only change the unsaved squad;
                Save still applies it. -->
           @if (canUndo() || canResetToRoundStart()) {
-            <div class="flex flex-wrap justify-center gap-2 mt-2">
+            <!-- Restyled 2026-10-05 ("not that vanilla"): real buttons with a
+                 coloured icon tile, amber for undo (matches the unsaved dot),
+                 team colour for reset. Side by side when both show. -->
+            <div class="grid gap-2 mt-2" [class.grid-cols-2]="canUndo() && canResetToRoundStart()">
               @if (canUndo()) {
-                <button type="button" (click)="undoChanges()" class="status-tile h-8 px-3 rounded-xl border border-line text-[12px] font-semibold text-muted hover:text-ink inline-flex items-center gap-1.5 transition-colors">
-                  <span aria-hidden="true">&#8630;</span>{{ i18n.t('fantasy.undoChanges') }}
+                <button type="button" (click)="undoChanges()" class="group h-12 min-w-0 rounded-2xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 shadow-card flex items-center gap-2.5 px-2.5 transition-colors">
+                  <span class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center text-lg font-bold shrink-0 shadow-sm group-hover:-rotate-12 transition-transform" aria-hidden="true">&#8630;</span>
+                  <span class="text-[13px] font-bold text-ink text-left leading-tight min-w-0">{{ i18n.t('fantasy.undoChanges') }}</span>
                 </button>
               }
               @if (canResetToRoundStart()) {
-                <button type="button" (click)="confirmingReset.set(true)" class="status-tile h-8 px-3 rounded-xl border border-line text-[12px] font-semibold text-muted hover:text-ink inline-flex items-center gap-1.5 transition-colors">
-                  <span aria-hidden="true">&#8634;</span>{{ i18n.t('fantasy.resetRound') }}
+                <button type="button" (click)="confirmingReset.set(true)" class="group h-12 min-w-0 rounded-2xl border border-team-primary/40 bg-team-primary/10 hover:bg-team-primary/20 shadow-card flex items-center gap-2.5 px-2.5 transition-colors">
+                  <span class="w-8 h-8 rounded-xl bg-team-primary text-team-secondary flex items-center justify-center text-lg font-bold shrink-0 shadow-sm group-hover:rotate-[-180deg] transition-transform duration-300" aria-hidden="true">&#8634;</span>
+                  <span class="text-[13px] font-bold text-ink text-left leading-tight min-w-0">{{ i18n.t('fantasy.resetRound') }}</span>
                 </button>
               }
             </div>
