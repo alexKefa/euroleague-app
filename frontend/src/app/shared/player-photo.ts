@@ -31,6 +31,7 @@ import { cdnImage } from "./cdn-image";
       class="inline-flex items-center justify-center rounded-full overflow-hidden shrink-0 relative bg-line"
       [style.width.px]="size()"
       [style.height.px]="size()"
+      [style.background]="fill() && img() && !failed() ? FILL_BACKDROP : null"
     >
       @if (img() && !failed()) {
         <img
@@ -44,6 +45,8 @@ import { cdnImage } from "./cdn-image";
           (error)="failed.set(true)"
           class="w-full h-full object-cover"
           [style.object-position]="centerFace() ? '50% 15%' : null"
+          [style.transform]="fill() ? 'scale(' + FILL_SCALE + ')' : null"
+          [style.transform-origin]="fill() ? '50% 12%' : null"
         />
       } @else {
         <span class="absolute inset-0" [style.background]="backdrop()"></span>
@@ -141,6 +144,19 @@ export class PlayerPhotoComponent {
   // waist-up studio photos, so there's no real case where the default
   // center-crop would ever be preferable.
   readonly centerFace = input(true);
+
+  // Fantasy court (2026-10-05, "make image match whole background circle"):
+  // the roster photos are cut-outs on a transparent background, so the
+  // player only covers the middle of the frame and the grey frame showed
+  // around and below them. `fill` zooms in from the top (face stays in
+  // view, torso reaches the bottom edge) and puts a light studio-grey
+  // backdrop behind the transparent parts. Not the team colour: Milan,
+  // Real, Paris etc. have near-black or white primaries, and the corners
+  // beside the torso read as a dark/empty margin. Opt-in: other pages keep
+  // the full photo.
+  readonly fill = input(false);
+  protected readonly FILL_SCALE = 1.4;
+  protected readonly FILL_BACKDROP = "radial-gradient(circle at 50% 35%, #ffffff 0%, #e4e7eb 55%, #c3c9d1 100%)";
 
   protected failed = signal(false);
 

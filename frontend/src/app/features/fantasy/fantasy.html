@@ -265,6 +265,10 @@
                      rather than swapping to a lighter theme-reactive one —
                      the glass panel behind the whole slot already gives the
                      avatar a defined edge to sit against in both themes. -->
+                <!-- flex on both the button and the photo's host element: either
+                     one left inline puts the circle on a text baseline, and the
+                     descender space below it showed as a dark strip inside the
+                     ring (2026-10-05). -->
                 <button
                   type="button"
                   (click)="$event.stopPropagation(); openPlayerInfo(slot.playerId)"
@@ -278,6 +282,8 @@
                     [primaryColor]="row.team.primaryColor"
                     [size]="size"
                     [centerFace]="true"
+                    [fill]="true"
+                    class="flex"
                   />
                 </button>
                 @if (row.injury; as injury) {
@@ -1059,7 +1065,7 @@
                     <button type="button" (click)="openCoachPicker()" [disabled]="roundLocked()" class="flex flex-col items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed">
                       @if (selectedCoach(); as coach) {
                         <div class="relative">
-                          <app-player-photo [photoUrl]="coach.imageUrl" [name]="coach.headCoach ?? coach.team.name" [teamCode]="coach.team.code" [primaryColor]="coach.team.primaryColor" [size]="48" [centerFace]="true" />
+                          <app-player-photo [photoUrl]="coach.imageUrl" [name]="coach.headCoach ?? coach.team.name" [teamCode]="coach.team.code" [primaryColor]="coach.team.primaryColor" [size]="48" [centerFace]="true" [fill]="true" class="flex" />
                           @if (roundLocked()) {
                             <span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-card border border-line flex items-center justify-center text-[10px]">&#128274;</span>
                           } @else {
