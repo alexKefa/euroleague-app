@@ -226,6 +226,7 @@ function emptyLineupResponse(season: string | null, defaultRound: number | null,
     transfersUsed: 0,
     transfersAllowed: null,
     baselinePlayerIds: null,
+    baselineSquad: null,
     budgetCap,
     newFantasyRoundPoints: null,
     roundRecap: null,
@@ -530,6 +531,9 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
       // position quota already uses, rather than only discovering the
       // violation from a rejected save.
       baselinePlayerIds: baseline ? [...baseline.playerIds] : null,
+      // The squad as the round started (last round's), for the roster
+      // builder's "Reset to round start" (2026-10-05).
+      baselineSquad: baseline ? { players: baseline.rows, coachTeamId: baseline.coachTeamId } : null,
     });
   } catch (err) {
     console.error("GET /api/fantasy/lineup failed:", err);

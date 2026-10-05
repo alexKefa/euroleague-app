@@ -1068,6 +1068,12 @@ export interface FantasyLineup {
   // gating pattern the position quota already uses) — null exactly when
   // transfersAllowed is null.
   baselinePlayerIds: string[] | null;
+  // The squad the round started with (last round's), for "Reset to round
+  // start" (2026-10-05). Null in round 1 or with no previous squad.
+  baselineSquad: {
+    players: { playerId: string; slotRole: FantasySlotRole; isCaptain: boolean }[];
+    coachTeamId: string | null;
+  } | null;
   // The season's effective budget cap (2026-09-09) — FANTASY_BUDGET_CAP
   // scaled by how far the dynamic price ceiling has moved off its floor
   // (services/fantasyScoring.ts's computeBudgetCap), so real price

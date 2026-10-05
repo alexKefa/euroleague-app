@@ -142,6 +142,16 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   },
   "fantasy.autoFillConfirmButton": { en: "Randomize", el: "Τυχαία συμπλήρωση" },
   "fantasy.cancel": { en: "Cancel", el: "Ακύρωση" },
+  // Undo / reset + pool block reasons (2026-10-05).
+  "fantasy.undoChanges": { en: "Undo changes", el: "Αναίρεση αλλαγών" },
+  "fantasy.resetRound": { en: "Reset to round start", el: "Επαναφορά στην αρχή του γύρου" },
+  "fantasy.resetRoundConfirm": {
+    en: "Go back to the squad you started this round with? Every transfer and change this round is undone. Press Save afterwards to keep it.",
+    el: "Επιστροφή στην πεντάδα με την οποία ξεκίνησες τον γύρο; Αναιρούνται όλες οι μεταγραφές και αλλαγές του γύρου. Πάτα Αποθήκευση μετά για να κρατηθεί.",
+  },
+  "fantasy.overBudgetBy": { en: "{n} CR over budget", el: "{n} CR πάνω από τον προϋπολογισμό" },
+  "fantasy.noTransfersLeft": { en: "No transfers left", el: "Δεν έχεις άλλες μεταγραφές" },
+  "fantasy.positionFull": { en: "Position full", el: "Η θέση είναι γεμάτη" },
   // Import from EuroLeague Fantasy screenshot (2026-09-28, in-browser OCR).
   "fantasy.importButton": { en: "Import", el: "Εισαγωγή" },
   "fantasy.importScreenshot": { en: "Import squad from EuroLeague Fantasy", el: "Εισαγωγή ομάδας από το EuroLeague Fantasy" },

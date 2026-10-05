@@ -516,6 +516,9 @@ export class FantasyComponent implements OnInit {
   readonly transfersUsed = signal(0);
   readonly transfersAllowed = signal<number | null>(null);
   readonly baselinePlayerIds = signal<Set<string> | null>(null);
+  // The squad the round started with (2026-10-05), for "Reset to round start".
+  readonly baselineSquad = signal<FantasyLineup["baselineSquad"]>(null);
+  readonly confirmingReset = signal(false);
 
   readonly isCurrentRound = computed(
     () => this.round() !== null && this.defaultRound() !== null && this.round() === this.defaultRound()
@@ -1147,6 +1150,50 @@ export class FantasyComponent implements OnInit {
     return false;
   });
 
+  // --- Undo / reset (2026-10-05). Both only change the local, unsaved squad;
+  // the user still presses Save, which runs every normal check.
+
+  /** Places players into fresh slots by role, same as a lineup load. */
+  private placeSquad(players: { playerId: string; slotRole: FantasySlotRole; isCaptain: boolean }[], coachTeamId: string | null): void {
+    const slots = initialSquadSlots();
+    let captain: string | null = null;
+    for (const p of players) {
+      if (p.isCaptain) captain = p.playerId;
+      const idx = slots.findIndex((s) => s.role === p.slotRole && s.playerId === null);
+      if (idx !== -1) slots[idx] = { ...slots[idx], playerId: p.playerId };
+    }
+    this.squadSlots.set(slots);
+    this.captainId.set(captain);
+    this.coachTeamId.set(coachTeamId);
+    this.reconcileStarterFormation();
+  }
+
+  /** Back to the last saved squad. */
+  undoChanges(): void {
+    const captain = this.serverCaptainId();
+    const players = [...this.serverSlotByPlayerId()].map(([playerId, slotRole]) => ({ playerId, slotRole, isCaptain: playerId === captain }));
+    this.placeSquad(players, this.serverCoachTeamId());
+  }
+
+  /** Back to the squad the round started with: undoes every transfer. */
+  resetToRoundStart(): void {
+    const base = this.baselineSquad();
+    this.confirmingReset.set(false);
+    if (!base || this.roundLocked()) return;
+    this.placeSquad(base.players, base.coachTeamId);
+  }
+
+  readonly canUndo = computed(() => this.hasChanges() && !this.editLocked());
+  readonly canResetToRoundStart = computed(() => {
+    const base = this.baselineSquad();
+    if (!base || this.roundLocked()) return false;
+    const current = new Map(this.squadSlots().filter((s) => s.playerId).map((s) => [s.playerId!, s.role]));
+    if (current.size !== base.players.length) return true;
+    if (base.players.some((p) => current.get(p.playerId) !== p.slotRole)) return true;
+    const baseCaptain = base.players.find((p) => p.isCaptain)?.playerId ?? null;
+    return this.captainId() !== baseCaptain || this.coachTeamId() !== base.coachTeamId;
+  });
+
   readonly canSubmit = computed(
     () =>
       this.hasChanges() &&
@@ -1404,6 +1451,7 @@ export class FantasyComponent implements OnInit {
         this.transfersUsed.set(lineup.transfersUsed);
         this.transfersAllowed.set(lineup.transfersAllowed);
         this.baselinePlayerIds.set(lineup.baselinePlayerIds ? new Set(lineup.baselinePlayerIds) : null);
+        this.baselineSquad.set(lineup.baselineSquad ?? null);
         this.budgetCap.set(lineup.budgetCap);
         this.budgetPending.set(lineup.budgetPending);
 
@@ -2215,6 +2263,20 @@ export class FantasyComponent implements OnInit {
   // tap-to-open-picker flow), so it needs its own roundLocked() check here
   // rather than relying on that method never having been callable in the
   // first place.
+  // Why a pool row can't be added (2026-10-05), shown on the row instead of
+  // just fading it. Budget wins when several apply, since it's the one
+  // users most often can't see.
+  poolBlockReason(playerId: string, position: string | null | undefined): string | null {
+    if (this.roundLocked()) return null;
+    const price = this.rowById().get(playerId)?.price ?? 0;
+    if (!this.canAfford(price)) {
+      return this.i18n.t("fantasy.overBudgetBy").replace("{n}", (price - this.remainingBudget()).toFixed(1));
+    }
+    if (!this.canUseTransfer(playerId)) return this.i18n.t("fantasy.noTransfersLeft");
+    if (!this.canAddPosition(position)) return this.i18n.t("fantasy.positionFull");
+    return null;
+  }
+
   poolRowDisabled(playerId: string, position: string | null | undefined): boolean {
     const price = this.rowById().get(playerId)?.price ?? 0;
     return this.roundLocked() || !this.canAddPosition(position) || !this.canUseTransfer(playerId) || !this.canAfford(price);

@@ -71,7 +71,9 @@
     <span class="block text-[13px] font-semibold truncate leading-tight" [ngClass]="row.injury ? injuryAccentClass(row.injury.status) : ''">{{ playerName(row.player.name) }}</span>
     <span class="flex items-center gap-1.5 mt-1 text-[10px] font-mono text-muted min-w-0">
       <ng-container [ngTemplateOutlet]="playerMeta" [ngTemplateOutletContext]="{ $implicit: row }" />
-      @if (opponentFor(row.team.id); as opp) {
+      @if (poolBlockReason(row.player.id, row.player.position); as reason) {
+        <span class="truncate font-sans font-bold text-red-500">{{ reason }}</span>
+      } @else if (opponentFor(row.team.id); as opp) {
         <span class="truncate">{{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }} {{ opp.opponent.code | teamCode }}</span>
       }
     </span>
@@ -683,6 +685,22 @@
               }
             </div>
           </div>
+          <!-- Undo / reset (2026-10-05). Both only change the unsaved squad;
+               Save still applies it. -->
+          @if (canUndo() || canResetToRoundStart()) {
+            <div class="flex flex-wrap justify-center gap-2 mt-2">
+              @if (canUndo()) {
+                <button type="button" (click)="undoChanges()" class="status-tile h-8 px-3 rounded-xl border border-line text-[12px] font-semibold text-muted hover:text-ink inline-flex items-center gap-1.5 transition-colors">
+                  <span aria-hidden="true">&#8630;</span>{{ i18n.t('fantasy.undoChanges') }}
+                </button>
+              }
+              @if (canResetToRoundStart()) {
+                <button type="button" (click)="confirmingReset.set(true)" class="status-tile h-8 px-3 rounded-xl border border-line text-[12px] font-semibold text-muted hover:text-ink inline-flex items-center gap-1.5 transition-colors">
+                  <span aria-hidden="true">&#8634;</span>{{ i18n.t('fantasy.resetRound') }}
+                </button>
+              }
+            </div>
+          }
           @if (hasChanges() && !submitting()) {
             <p class="text-[11px] text-amber-500 font-semibold text-center mt-2">{{ i18n.t('fantasy.unsavedChanges') }}</p>
           }
@@ -1213,7 +1231,7 @@
                   [cdkDragDisabled]="poolRowDisabled(row.player.id, row.player.position)"
                   cdkDragPreviewClass="fantasy-drag-preview"
                   class="fantasy-row-in list-row !gap-2 !p-1.5 !pl-2"
-                  [ngClass]="poolRowDisabled(row.player.id, row.player.position) ? 'opacity-40' : 'cursor-grab active:cursor-grabbing'"
+                  [ngClass]="poolRowDisabled(row.player.id, row.player.position) ? 'opacity-60' : 'cursor-grab active:cursor-grabbing'"
                 >
                   <!-- Dragging a pool row carries just the player's photo +
                        name (what lands on the court), not the whole wide
@@ -1629,7 +1647,7 @@
               type="button"
               (click)="pickPlayerForSlot(row.player.id)"
               [disabled]="poolRowDisabled(row.player.id, row.player.position)"
-              class="fantasy-row-in list-row w-full !gap-2.5 text-left disabled:opacity-40 disabled:cursor-not-allowed"
+              class="fantasy-row-in list-row w-full !gap-2.5 text-left disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <ng-container [ngTemplateOutlet]="poolRowBody" [ngTemplateOutletContext]="{ $implicit: row, size: 36 }" />
               <span class="value-chip border" [ngClass]="row.injury ? injuryAccentClass(row.injury.status) + ' border-current' : 'border-team-primary/30'">
@@ -2001,6 +2019,16 @@
     </div>
   }
 
+  @if (confirmingReset()) {
+    <app-confirm-dialog
+      [message]="i18n.t('fantasy.resetRoundConfirm')"
+      [confirmLabel]="i18n.t('fantasy.resetRound')"
+      [cancelLabel]="i18n.t('fantasy.cancel')"
+      [danger]="false"
+      (confirmed)="resetToRoundStart()"
+      (cancelled)="confirmingReset.set(false)"
+    />
+  }
   @if (confirmingAutoFill()) {
     <app-confirm-dialog
       [message]="i18n.t('fantasy.autoFillConfirm')"
