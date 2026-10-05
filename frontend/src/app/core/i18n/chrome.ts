@@ -133,12 +133,14 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
     en: "Notifications are blocked. Allow them for Clutch in your phone or browser settings.",
     el: "Οι ειδοποιήσεις είναι μπλοκαρισμένες. Επίτρεψέ τες για το Clutch από τις ρυθμίσεις του κινητού ή του browser.",
   },
-  // shared/push-prompt.ts: one-time nudge in the installed app.
+  // shared/push-prompt.ts: one-time pop-up in the installed app.
+  "pushPrompt.title": { en: "Turn on notifications?", el: "Ενεργοποίηση ειδοποιήσεων;" },
   "pushPrompt.text": {
-    en: "Get a heads-up before picks lock and when results are in?",
-    el: "Θες ειδοποίηση πριν κλειδώσουν οι προβλέψεις και όταν βγουν τα αποτελέσματα;",
+    en: "Get a heads-up before your picks and Fantasy squad lock, when round results are in, and when someone sends you a trade offer. You can change this anytime in Profile.",
+    el: "Μάθε πριν κλειδώσουν οι προβλέψεις και η Fantasy πεντάδα σου, όταν βγουν τα αποτελέσματα της αγωνιστικής και όταν σου στείλουν πρόταση ανταλλαγής. Μπορείς να το αλλάξεις όποτε θες από το Προφίλ.",
   },
   "pushPrompt.cta": { en: "Turn on", el: "Ενεργοποίηση" },
+  "pushPrompt.later": { en: "Not now", el: "Όχι τώρα" },
   "profile.logout": { en: "Log out", el: "Αποσύνδεση" },
   "profile.saveTeamFailed": {
     en: "Couldn't update your favorite team — try again.",
