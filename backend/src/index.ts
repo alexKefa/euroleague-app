@@ -30,6 +30,7 @@ import { adminRouter } from "./routes/admin.js";
 import { announcementsRouter } from "./routes/announcements.js";
 import { battlesRouter } from "./routes/battles.js";
 import { remindersRouter } from "./routes/reminders.js";
+import { pushRouter } from "./routes/push.js";
 import { syncNews } from "./sync/newsSync.js";
 import { syncOdds } from "./sync/oddsSync.js";
 import { syncLiveGames } from "./sync/liveGamesSync.js";
@@ -38,6 +39,7 @@ import { syncPlayerStats } from "./sync/playerStatsSync.js";
 import { applyDailyFantasyPriceChanges } from "./services/fantasyDailyReprice.js";
 import { runFantasyRoundSweep } from "./services/fantasyRoundSweep.js";
 import { getCurrentSeason } from "./services/season.js";
+import { runLockReminderPushes, runRoundResultPushes } from "./services/pushJobs.js";
 
 const app = express();
 // Railway sits in front of the app as a single reverse-proxy hop, adding
@@ -139,6 +141,7 @@ app.use("/api/admin", adminRouter);
 app.use("/api/battles", battlesRouter);
 app.use("/api/reminders", remindersRouter);
 app.use("/api/announcements", announcementsRouter);
+app.use("/api/push", pushRouter);
 
 // Serves the built Angular app (see ./Dockerfile) — absent in local dev,
 // where the frontend runs separately via `ng serve` on its own port.
@@ -214,6 +217,23 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
       .catch((err) => console.error("[fantasy round sweep] failed:", err));
   };
 
+  // Push notifications (services/pushJobs.ts). Deduped per (kind, key), so
+  // calling these from both the hourly tick and a game going final is safe.
+  const runRoundResultPushesLogged = () => {
+    runRoundResultPushes()
+      .then((sent) => {
+        if (sent > 0) console.log(`[push] round results sent to ${sent} device(s)`);
+      })
+      .catch((err) => console.error("[push] round results failed:", err));
+  };
+  const runLockReminderPushesLogged = () => {
+    runLockReminderPushes()
+      .then((sent) => {
+        if (sent > 0) console.log(`[push] lock reminders sent to ${sent} device(s)`);
+      })
+      .catch((err) => console.error("[push] lock reminders failed:", err));
+  };
+
   const LIVE_GAMES_SYNC_INTERVAL_MS = 20 * 1000;
   const runLiveGamesSync = () => {
     syncLiveGames()
@@ -223,7 +243,10 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
         console.log(`[live games sync] checked ${checked}, ${wentLive} went live, ${wentFinal} went final`);
         // A final can complete a round: pay its Fantasy Five points now
         // rather than waiting for the hourly sweep below.
-        if (wentFinal > 0) runFantasyRoundSweepLogged();
+        if (wentFinal > 0) {
+          runFantasyRoundSweepLogged();
+          runRoundResultPushesLogged();
+        }
       })
       .catch((err) => console.error("[live games sync] failed:", err));
   };
@@ -300,6 +323,8 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
     const hour = new Date().getUTCHours();
     runNewsSync();
     runFantasyReprice();
+    runLockReminderPushesLogged();
+    runRoundResultPushesLogged();
     if (hour % (ODDS_SYNC_INTERVAL_MS / HOUR_MS) === 0) runOddsSync();
     if (hour === 4) {
       runInjurySync();

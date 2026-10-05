@@ -119,6 +119,9 @@ on dev usually means drift, not a code bug.
   position. Admin tools use the shared `app-dialog` (`shared/dialog.ts`).
 - Font: IBM Plex Sans for all roles (Google Fonts import in `styles.css`). It must
   have Greek glyph coverage.
+- Push notifications: `public/push-sw.js` is a push-only service worker with **no fetch
+  handler and no caching** (the old caching worker caused production 504s). Keep it that way.
+  Senders live in `services/push.ts` / `services/pushJobs.ts`.
 - Signals footgun: never read a signal inside an `effect()` that also writes it.
   Use `untracked()`.
 
@@ -163,5 +166,7 @@ Required: `DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`.
 Optional: `PORT`, `JWT_*_EXPIRES_IN`, `NODE_ENV`, `ODDS_API_KEY` (unset = flat
 scoring), `ODDS_API_SPORT_KEY`, `RESEND_API_KEY` (unset = reset links logged to
 the console), `RESEND_FROM_EMAIL`, `APP_BASE_URL` (frontend origin for emailed links),
+`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` (web push; unset = notifications
+off, generate with `npx web-push generate-vapid-keys`),
 `DISABLE_BACKGROUND_JOBS=1` (set on Railway dev: stops the sync intervals so the
 dev Neon compute can auto-suspend).

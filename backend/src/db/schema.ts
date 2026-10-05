@@ -1649,3 +1649,35 @@ export const announcements = pgTable("announcements", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
+// Web push (2026-10-05): one row per browser/device that turned
+// notifications on. `endpoint` identifies the device's push channel, so a
+// second login on the same device takes the row over instead of adding one.
+// `lang` is that device's UI language at subscribe time; notifications are
+// written in it. Rows the push service reports gone (404/410) are deleted on
+// send.
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  lang: varchar("lang", { length: 2 }).default("el").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Claim-first dedupe for scheduled notifications (lock reminders, round
+// results): a row is inserted before sending, so an hourly job that runs
+// twice, or a restart mid-run, never notifies anyone twice for the same
+// (kind, key), e.g. ("round-results", "2026-27:5").
+export const pushLog = pgTable(
+  "push_log",
+  {
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    kind: varchar("kind", { length: 40 }).notNull(),
+    key: text("key").notNull(),
+    sentAt: timestamp("sent_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.userId, table.kind, table.key] }),
+  })
+);

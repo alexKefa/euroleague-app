@@ -117,6 +117,28 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
   "profile.pinchZoom": { en: "Pinch zoom", el: "Ζουμ με τσίμπημα" },
   "profile.pinchZoomOff": { en: "Off", el: "Ανενεργό" },
   "profile.pinchZoomOn": { en: "On", el: "Ενεργό" },
+  // Push notifications (core/push.service.ts, 2026-10-05).
+  "profile.notifications": { en: "Notifications", el: "Ειδοποιήσεις" },
+  "profile.notificationsOff": { en: "Off", el: "Ανενεργές" },
+  "profile.notificationsOn": { en: "On", el: "Ενεργές" },
+  "profile.notificationsHint": {
+    en: "Pick and Fantasy reminders before they lock, round results, and trade offers.",
+    el: "Υπενθυμίσεις για προβλέψεις και Fantasy πριν κλειδώσουν, αποτελέσματα αγωνιστικής και προτάσεις ανταλλαγής.",
+  },
+  "profile.notificationsNeedsInstall": {
+    en: "On iPhone, add Clutch to your Home Screen and open it from there to turn on notifications.",
+    el: "Στο iPhone, πρόσθεσε το Clutch στην οθόνη αφετηρίας και άνοιξέ το από εκεί για να ενεργοποιήσεις τις ειδοποιήσεις.",
+  },
+  "profile.notificationsDenied": {
+    en: "Notifications are blocked. Allow them for Clutch in your phone or browser settings.",
+    el: "Οι ειδοποιήσεις είναι μπλοκαρισμένες. Επίτρεψέ τες για το Clutch από τις ρυθμίσεις του κινητού ή του browser.",
+  },
+  // shared/push-prompt.ts: one-time nudge in the installed app.
+  "pushPrompt.text": {
+    en: "Get a heads-up before picks lock and when results are in?",
+    el: "Θες ειδοποίηση πριν κλειδώσουν οι προβλέψεις και όταν βγουν τα αποτελέσματα;",
+  },
+  "pushPrompt.cta": { en: "Turn on", el: "Ενεργοποίηση" },
   "profile.logout": { en: "Log out", el: "Αποσύνδεση" },
   "profile.saveTeamFailed": {
     en: "Couldn't update your favorite team — try again.",

@@ -45,6 +45,10 @@
             <app-admin-announcements />
           }
 
+          @case ('push') {
+            <app-admin-push />
+          }
+
           @case ('sync') {
             <p class="text-sm text-muted mb-4">{{ i18n.t('admin.syncImagesDescription') }}</p>
             <button type="button" (click)="syncImages()" [disabled]="syncing()" appButton class="w-full">

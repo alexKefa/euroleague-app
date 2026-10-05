@@ -1,8 +1,9 @@
 import { Injectable, inject, signal, computed } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { Observable, tap, catchError, of, map, switchMap, finalize, shareReplay } from "rxjs";
+import { Observable, tap, catchError, of, map, switchMap, finalize, shareReplay, from } from "rxjs";
 import { API_BASE_URL } from "./api-config";
 import { PublicUser } from "./models";
+import { getPushSubscription } from "./push-subscription";
 
 interface AuthResponse {
   user: PublicUser;
@@ -69,12 +70,30 @@ export class AuthService {
   }
 
   logout(): Observable<void> {
-    return this.http.post<void>(`${API_BASE_URL}/auth/logout`, {}, { withCredentials: true }).pipe(
+    // Turn off this device's push notifications first, while the access
+    // token still works, so the next account on this device doesn't get the
+    // previous one's (core/push.service.ts).
+    return from(this.dropPushSubscription()).pipe(
+      switchMap(() => this.http.post<void>(`${API_BASE_URL}/auth/logout`, {}, { withCredentials: true })),
       tap(() => {
         this.accessToken.set(null);
         this.currentUser.set(null);
       })
     );
+  }
+
+  // Never throws: logging out must work even if this fails.
+  private async dropPushSubscription(): Promise<void> {
+    try {
+      const sub = await getPushSubscription();
+      if (!sub) return;
+      await new Promise<void>((resolve) =>
+        this.http.post(`${API_BASE_URL}/push/unsubscribe`, { endpoint: sub.endpoint }).subscribe({ complete: resolve, error: () => resolve() })
+      );
+      await sub.unsubscribe();
+    } catch {
+      // Best effort.
+    }
   }
 
   // Cached so concurrent callers (AppComponent's own boot-time call, plus

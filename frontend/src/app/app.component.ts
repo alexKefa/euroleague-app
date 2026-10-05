@@ -2,6 +2,9 @@ import { Component, ElementRef, HostListener, OnInit, ViewChild, computed, injec
 import { toSignal } from "@angular/core/rxjs-interop";
 import { NavigationEnd, Router, RouterOutlet, RouterLink } from "@angular/router";
 import { filter, map } from "rxjs";
+import { PUSH_SW_URL } from "./core/push-subscription";
+import { PushService } from "./core/push.service";
+import { PushPromptComponent } from "./shared/push-prompt";
 import { AuthService } from "./core/auth.service";
 import { ThemeService } from "./core/theme.service";
 import { I18nService } from "./core/i18n.service";
@@ -49,12 +52,20 @@ const SPLASH_FADE_MS = 450;
 // retroactively affect a visitor whose browser already installed the old
 // service worker from a previous visit; it stays active until explicitly
 // unregistered. This cleans that up for anyone still carrying it, and is
-// cheap to leave in permanently as a safety net.
+// cheap to leave in permanently as a safety net. The one exception is the
+// push-only worker (public/push-sw.js, 2026-10-05), which has no fetch
+// handler and caches nothing; unregistering it would silently turn off the
+// user's notifications.
 function unregisterStaleServiceWorker(): void {
   if (!("serviceWorker" in navigator)) return;
   navigator.serviceWorker
     .getRegistrations()
-    .then((regs) => regs.forEach((reg) => reg.unregister()))
+    .then((regs) =>
+      regs.forEach((reg) => {
+        const scriptUrl = (reg.active ?? reg.waiting ?? reg.installing)?.scriptURL ?? "";
+        if (new URL(scriptUrl || "/", location.href).pathname !== PUSH_SW_URL) reg.unregister();
+      })
+    )
     .catch(() => {});
   if ("caches" in window) {
     caches
@@ -146,6 +157,7 @@ const MORE_LINKS: NavLink[] = ["/leaderboard", "/fans", "/schedule", "/teams", "
     BattleChallengeToastComponent,
     JumpBallToastComponent,
     RemindersBannerComponent,
+    PushPromptComponent,
     PickResultToastComponent,
     PullToRefreshComponent,
     PackRewardToastComponent,
@@ -169,6 +181,9 @@ export class AppComponent implements OnInit {
   protected packRewards = inject(PackRewardsService);
   protected battlesNotif = inject(BattlesNotificationService);
   protected tour = inject(TourService);
+  // Injected at startup so it re-syncs this device's push subscription as
+  // soon as the session is restored.
+  private push = inject(PushService);
   private router = inject(Router);
   protected readonly navLinks = NAV_LINKS;
   protected readonly mobileNavLinks = MOBILE_NAV_LINKS;

@@ -170,6 +170,29 @@
 
     <!-- Settings: one card, label left / segmented switch right. -->
     <div class="bg-card rounded-3xl border border-line shadow-card px-4 py-1 divide-y divide-line">
+      <!-- Push notifications (core/push.service.ts). Hidden when the server
+           has no VAPID keys or the browser can't do push at all. -->
+      @if (push.status() === 'on' || push.status() === 'off') {
+        <div class="py-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="text-sm font-semibold">{{ i18n.t('profile.notifications') }}</p>
+            <div class="status-tile inline-flex items-center h-10 p-1 gap-1 rounded-xl border border-line shrink-0">
+              <button type="button" (click)="push.disable()" [disabled]="push.busy()" class="h-full px-3 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors" [ngClass]="push.status() === 'off' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">
+                {{ i18n.t('profile.notificationsOff') }}
+              </button>
+              <button type="button" (click)="push.enable()" [disabled]="push.busy()" class="h-full px-3 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors" [ngClass]="push.status() === 'on' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">
+                {{ i18n.t('profile.notificationsOn') }}
+              </button>
+            </div>
+          </div>
+          <p class="text-[12px] text-muted mt-1">{{ i18n.t('profile.notificationsHint') }}</p>
+        </div>
+      } @else if (push.status() === 'needs-install' || push.status() === 'denied') {
+        <div class="py-3">
+          <p class="text-sm font-semibold">{{ i18n.t('profile.notifications') }}</p>
+          <p class="text-[12px] text-muted mt-0.5">{{ i18n.t(push.status() === 'denied' ? 'profile.notificationsDenied' : 'profile.notificationsNeedsInstall') }}</p>
+        </div>
+      }
       <div class="flex flex-wrap items-center justify-between gap-2 py-3">
         <p class="text-sm font-semibold">{{ i18n.t('profile.language') }}</p>
         <div class="status-tile inline-flex items-center h-10 p-1 gap-1 rounded-xl border border-line shrink-0">

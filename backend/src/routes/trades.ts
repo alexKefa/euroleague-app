@@ -5,6 +5,7 @@ import { db } from "../db/client.js";
 import { tradeOffers, tradeOfferItems, userCollectibles, collectibles, teams, users } from "../db/schema.js";
 import { requireAuth } from "../auth/middleware.js";
 import { sendToUser } from "../realtime/hub.js";
+import { sendPushInBackground } from "../services/push.js";
 
 export const tradesRouter = Router();
 
@@ -19,6 +20,18 @@ function notifyTradeUpdate(userIds: string[], reason: "offered" | "accepted" | "
   for (const userId of new Set(userIds)) {
     sendToUser(userId, "trade-update", { offerId, reason });
   }
+}
+
+// Push notification (services/push.ts) to the one person who didn't act:
+// the recipient of a new offer, or the sender of an accepted/declined one.
+// Withdrawn offers don't notify.
+function pushTradeUpdate(userId: string, reason: "offered" | "accepted" | "declined"): void {
+  const text = {
+    offered: { en: ["New trade offer", "Someone wants one of your cards."], el: ["Νέα πρόταση ανταλλαγής", "Κάποιος θέλει μία από τις κάρτες σου."] },
+    accepted: { en: ["Trade accepted", "Your trade offer was accepted. The card is in your collection."], el: ["Η ανταλλαγή έγινε δεκτή", "Η πρότασή σου έγινε δεκτή. Η κάρτα είναι στη συλλογή σου."] },
+    declined: { en: ["Trade declined", "Your trade offer was declined."], el: ["Η ανταλλαγή απορρίφθηκε", "Η πρόταση ανταλλαγής σου απορρίφθηκε."] },
+  }[reason];
+  sendPushInBackground([userId], (lang) => ({ title: text[lang][0], body: text[lang][1], url: "/trades", tag: `trade-${reason}` }));
 }
 
 // Your own legendary collection, each flagged with whether it's currently
@@ -301,6 +314,7 @@ tradesRouter.post("/", requireAuth, async (req, res) => {
     });
 
     notifyTradeUpdate([listing.ownerId], "offered", offer.id);
+    pushTradeUpdate(listing.ownerId, "offered");
     res.status(201).json({ ...offer, offeredCollectibleIds });
   } catch (err) {
     console.error("POST /api/trades failed:", err);
@@ -489,8 +503,10 @@ tradesRouter.post("/:id/accept", requireAuth, async (req, res) => {
       return;
     }
     notifyTradeUpdate([outcome.fromUserId, outcome.toUserId], "accepted", id);
+    pushTradeUpdate(outcome.fromUserId, "accepted");
     for (const declined of outcome.autoDeclined) {
       notifyTradeUpdate([declined.fromUserId], "declined", declined.id);
+      pushTradeUpdate(declined.fromUserId, "declined");
     }
     res.json({ status: "accepted" });
   } catch (err) {
@@ -527,6 +543,7 @@ tradesRouter.post("/:id/decline", requireAuth, async (req, res) => {
     }
 
     notifyTradeUpdate([declined.fromUserId], "declined", declined.id);
+    pushTradeUpdate(declined.fromUserId, "declined");
     res.json({ status: "declined" });
   } catch (err) {
     console.error("POST /api/trades/:id/decline failed:", err);

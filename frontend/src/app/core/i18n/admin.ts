@@ -80,6 +80,21 @@ export const adminTranslations: Record<string, Record<Lang, string>> = {
 
   // "What's new" announcements editor (features/admin/admin-announcements.ts).
   "admin.announceTitle": { en: "Announcements", el: "Ανακοινώσεις" },
+  // Push broadcast (admin-push.ts, 2026-10-05).
+  "admin.pushTitle": { en: "Push notification", el: "Ειδοποίηση push" },
+  "admin.toolPushDesc": { en: "Send a notification to everyone who turned them on", el: "Στείλε ειδοποίηση σε όσους τις έχουν ενεργοποιήσει" },
+  "admin.pushDescription": {
+    en: "Goes to every device with notifications on, in the language its app is set to. Send it to yourself first to check how it looks.",
+    el: "Πηγαίνει σε κάθε συσκευή με ενεργές ειδοποιήσεις, στη γλώσσα της εφαρμογής της. Στείλ' το πρώτα στον εαυτό σου για να δεις πώς φαίνεται.",
+  },
+  "admin.pushStats": { en: "{devices} device(s), {users} user(s) subscribed", el: "{devices} συσκευή(-ές), {users} χρήστης(-ες) εγγεγραμμένοι" },
+  "admin.pushDisabled": { en: "Push isn't configured on this server (VAPID keys missing).", el: "Το push δεν έχει ρυθμιστεί σε αυτόν τον server (λείπουν τα VAPID keys)." },
+  "admin.pushLinkPlaceholder": { en: "Opens on tap, e.g. /fantasy (default: home)", el: "Ανοίγει με το πάτημα, π.χ. /fantasy (προεπιλογή: αρχική)" },
+  "admin.pushSendTest": { en: "Send to me", el: "Στείλε σε μένα" },
+  "admin.pushSendAll": { en: "Send to everyone", el: "Αποστολή σε όλους" },
+  "admin.pushConfirm": { en: "Send this notification to {devices} device(s)? This can't be undone.", el: "Αποστολή αυτής της ειδοποίησης σε {devices} συσκευή(-ές); Δεν αναιρείται." },
+  "admin.pushSent": { en: "Sent to {n} device(s).", el: "Στάλθηκε σε {n} συσκευή(-ές)." },
+  "admin.pushFailed": { en: "Couldn't send the notification.", el: "Η αποστολή απέτυχε." },
   "admin.announceDescription": {
     en: "Shown once to every logged-in user as a \"What's new\" toast. Every live announcement they haven't seen yet appears, each as its own toast.",
     el: "Εμφανίζεται μία φορά σε κάθε συνδεδεμένο χρήστη ως ειδοποίηση «Τι νέο υπάρχει». Κάθε ενεργή ανακοίνωση που δεν έχει δει ακόμα εμφανίζεται, η καθεμία σε δική της ειδοποίηση.",

@@ -7,6 +7,7 @@ import { AuthService } from "../../core/auth.service";
 import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
 import { ThemeService } from "../../core/theme.service";
+import { PushService } from "../../core/push.service";
 import { Team, Collectible, CollectibleFinish } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ButtonDirective } from "../../shared/button.directive";
@@ -48,6 +49,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
   protected theme = inject(ThemeService);
+  protected push = inject(PushService);
   private api = inject(ApiService);
   private router = inject(Router);
 
