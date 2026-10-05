@@ -36,6 +36,8 @@ import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { InjuryBadgeComponent } from "../../shared/injury-badge";
 import { TodayTagPipe } from "../../shared/today-tag.pipe";
 import { PageHeaderComponent } from "../../shared/page-header";
+import { FirstPicksCardComponent } from "../../shared/first-picks-card";
+import { FirstPicksService } from "../../core/first-picks.service";
 
 // Matches schedule.ts — no season picker here either, and predictions
 // should only ever be open for the round a user could actually be watching.
@@ -131,7 +133,7 @@ interface DisplayedPick {
 @Component({
   selector: "app-predictions",
   standalone: true,
-  imports: [PageHeaderComponent, 
+  imports: [PageHeaderComponent, FirstPicksCardComponent, 
     TodayTagPipe,
     CommonModule,
     RouterLink,
@@ -153,6 +155,7 @@ interface DisplayedPick {
 })
 export class PredictionsComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
+  private firstPicks = inject(FirstPicksService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
   private events = inject(EventsService);
@@ -955,6 +958,7 @@ export class PredictionsComponent implements OnInit, OnDestroy {
         }
         this.myPicks.set(saved);
         this.pendingPicks.set(remainingPending);
+        this.firstPicks.refresh();
         if (res.errors && Object.keys(res.errors).length > 0) {
           this.submitError.set(Object.values(res.errors)[0]);
         }

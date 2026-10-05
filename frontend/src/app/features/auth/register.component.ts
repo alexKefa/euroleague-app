@@ -107,7 +107,9 @@ export class RegisterComponent implements OnInit {
       });
   }
 
+  // Straight to Predictions (2026-10-05): 44% of signups never made a pick
+  // when they landed on Home. The first-picks card there offers a free pack.
   onTeamDialogClosed(): void {
-    this.router.navigateByUrl(pendingLeagueJoinUrl() ?? "/");
+    this.router.navigateByUrl(pendingLeagueJoinUrl() ?? "/predictions");
   }
 }

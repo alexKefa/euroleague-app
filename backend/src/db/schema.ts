@@ -97,6 +97,11 @@ export const users = pgTable("users", {
   // expires just overwrites both columns rather than needing a separate table.
   passwordResetTokenHash: text("password_reset_token_hash"),
   passwordResetTokenExpiresAt: timestamp("password_reset_token_expires_at", { withTimezone: true }),
+  // First-pick onboarding reward (services/firstPicks.ts, 2026-10-05): set
+  // when the free pack for saving the first 3 picks is granted. Users who
+  // already had 3+ picks at launch were backfilled to their signup time, so
+  // the reward only goes to people who hadn't really started yet.
+  firstPicksRewardAt: timestamp("first_picks_reward_at", { withTimezone: true }),
 });
 
 export const players = pgTable("players", {

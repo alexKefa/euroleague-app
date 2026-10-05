@@ -139,6 +139,7 @@ export const storeTranslations: Record<string, Record<Lang, string>> = {
   "packs.source.welcome": { en: "Welcome gift", el: "Δώρο καλωσορίσματος" },
   "packs.source.referral": { en: "Friend referral", el: "Πρόσκληση φίλου" },
   "packs.source.promo": { en: "Promo code", el: "Κωδικός προσφοράς" },
+  "packs.source.firstPicks": { en: "Your first 3 picks", el: "Οι 3 πρώτες σου προβλέψεις" },
   // App-wide reward toast (shared/pack-reward-toast.ts).
   "packs.rewardToastOne": { en: "You earned a pack: {reason}!", el: "Κέρδισες ένα πακέτο: {reason}!" },
   "packs.rewardToastMany": { en: "You earned {n} new packs!", el: "Κέρδισες {n} νέα πακέτα!" },
@@ -172,6 +173,7 @@ export const storeTranslations: Record<string, Record<Lang, string>> = {
   "packs.label.wheelCoach": { en: "Jump Ball — Coach Pull", el: "Τζάμπολ — Κλήρωση Προπονητή" },
   "packs.label.qrBonus": { en: "QR Bonus Pack", el: "Πακέτο Μπόνους QR" },
   "packs.label.welcomeBonus": { en: "Welcome Pack", el: "Πακέτο Καλωσορίσματος" },
+  "packs.label.firstPicks": { en: "First Picks Pack", el: "Πακέτο Πρώτων Προβλέψεων" },
   "packs.label.referralBonus": { en: "Referral Bonus Pack", el: "Πακέτο Μπόνους Παραπομπής" },
   "packs.tagline.starter": { en: "Where every run starts", el: "Εκεί ξεκινά κάθε προσπάθεια" },
   "packs.tagline.pro": { en: "Win or go home", el: "Νίκη ή τίποτα" },

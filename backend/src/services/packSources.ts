@@ -20,7 +20,7 @@ import { COACH_MILESTONE_INTERVAL, FANTASY_MILESTONE_INTERVAL, LEGENDARY_MILESTO
 export type PackSource =
   | { kind: "perfectRound" | "greatRound"; round: number }
   | { kind: "pickMilestone" | "coachMilestone" | "fantasyMilestone"; count: number }
-  | { kind: "wheel" | "welcome" | "referral" | "promo" };
+  | { kind: "wheel" | "welcome" | "referral" | "promo" | "firstPicks" };
 
 export interface UnopenedPackWithSource {
   id: string;
@@ -51,6 +51,7 @@ function sourceFor(r: Row): PackSource | null {
   if (r.from_wheel) return { kind: "wheel" };
   if (r.pack_type === "welcomeBonus") return { kind: "welcome" };
   if (r.pack_type === "referralBonus") return { kind: "referral" };
+  if (r.pack_type === "firstPicks") return { kind: "firstPicks" };
   if (r.pack_type === "qrBonus" || r.from_promo) return { kind: "promo" };
   return null;
 }

@@ -22,4 +22,6 @@ export const PACK_VISUAL_CLASSES: Record<PackType, string> = {
   // Referral reward (2026-09-28 hotfix, packs not points) — same Elite-
   // shaped one-off grant as qrBonus/welcomeBonus above, reuses their art.
   referralBonus: "pack-visual-elite",
+  // First-pick onboarding reward (2026-10-05): same one-off Elite shape.
+  firstPicks: "pack-visual-elite",
 };

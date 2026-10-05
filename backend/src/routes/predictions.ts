@@ -20,6 +20,7 @@ import {
   markRareMilestonesSeen,
 } from "../services/cards.js";
 import { checkAndGrantReferralReward } from "../services/referrals.js";
+import { getFirstPicksStatus } from "../services/firstPicks.js";
 
 export const predictionsRouter = Router();
 
@@ -614,6 +615,17 @@ predictionsRouter.get("/me/summary", requireAuth, async (req, res) => {
 // round!" banner for whatever checkAndGrantRoundRewards returned — not by
 // inventory/store/packs, which only read `points` off this same summary
 // and have no UI for it. See the doc comment on checkAndGrantRoundRewards.
+// First-pick onboarding progress (services/firstPicks.ts). The reward
+// itself is granted by GET /packs/rewards/unseen, which shows the toast.
+predictionsRouter.get("/first-picks", requireAuth, async (req, res) => {
+  try {
+    res.json(await getFirstPicksStatus(req.userId!));
+  } catch (err) {
+    console.error("GET /api/predictions/first-picks failed:", err);
+    res.status(500).json({ error: "Failed to load first picks" });
+  }
+});
+
 predictionsRouter.post("/round-rewards/ack", requireAuth, async (req, res) => {
   try {
     await markRoundRewardsSeen(req.userId!);

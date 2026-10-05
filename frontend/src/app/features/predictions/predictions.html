@@ -29,6 +29,9 @@
 
   <app-page-hint hintId="predictions" icon="picks">{{ i18n.t('predictions.hint') }}</app-page-hint>
 
+  <!-- First-pick onboarding (2026-10-05): hidden once the pack is claimed. -->
+  <app-first-picks-card class="block mb-4" [onPicksPage]="true" />
+
   <!-- Sticky-bar containing block (2026-09-22, "when scrolling down and we
        reach above the my predictions box... make this button stick there")
        — wraps the Upcoming games card AND the floating save bar together

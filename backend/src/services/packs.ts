@@ -13,7 +13,8 @@ export type PackType =
   | "wheelCoach"
   | "qrBonus"
   | "welcomeBonus"
-  | "referralBonus";
+  | "referralBonus"
+  | "firstPicks";
 
 export interface CollectibleRow {
   collectible: typeof collectibles.$inferSelect;
@@ -258,6 +259,24 @@ export const PACKS: Record<PackType, PackDefinition> = {
   referralBonus: {
     type: "referralBonus",
     label: "Referral Bonus Pack",
+    pointsCost: 0,
+    purchasable: false,
+    slots: [
+      { odds: { common: 1 } },
+      { odds: { rare: 1 } },
+      { odds: { rare: 1 } },
+      { odds: { rare: 1 } },
+      { odds: { rare: 0.9, legendary: 0.06, coach: 0.04 } },
+    ],
+  },
+
+  // First-pick onboarding reward (services/firstPicks.ts, 2026-10-05): one
+  // per user, for saving their first 3 picks. Same Elite shape as the other
+  // one-off grants (welcomeBonus/referralBonus), own type so its source
+  // caption is right.
+  firstPicks: {
+    type: "firstPicks",
+    label: "First Picks Pack",
     pointsCost: 0,
     purchasable: false,
     slots: [

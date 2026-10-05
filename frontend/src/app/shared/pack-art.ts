@@ -15,6 +15,7 @@ const TIER_BY_TYPE: Record<PackType, PackArtTier> = {
   qrBonus: "elite",
   welcomeBonus: "elite",
   referralBonus: "elite",
+  firstPicks: "elite",
 };
 
 // Printed name on the pack face. The stage name (Regular Season / Playoffs /
@@ -24,6 +25,7 @@ const NAME_KEY_BY_TYPE: Partial<Record<PackType, string>> = {
   wheelCoach: "packs.artName.coach",
   qrBonus: "packs.artName.bonus",
   referralBonus: "packs.artName.bonus",
+  firstPicks: "packs.artName.bonus",
   welcomeBonus: "packs.artName.welcome",
 };
 
@@ -41,6 +43,7 @@ const CARD_COUNT: Record<PackType, number> = {
   qrBonus: 5,
   welcomeBonus: 5,
   referralBonus: 5,
+  firstPicks: 5,
 };
 
 /**

@@ -134,6 +134,15 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
     el: "Δεν υπάρχουν ολοκληρωμένες προβλέψεις ακόμα.",
   },
 
+  // First-pick onboarding card (shared/first-picks-card.ts, 2026-10-05).
+  "firstPicks.title": { en: "Pick {n} games, get a free pack", el: "Κάνε {n} προβλέψεις, πάρε δωρεάν πακέτο" },
+  "firstPicks.leftOne": { en: "1 more pick to go.", el: "Μένει 1 πρόβλεψη ακόμα." },
+  "firstPicks.leftMany": { en: "{n} more picks to go.", el: "Μένουν {n} προβλέψεις ακόμα." },
+  "firstPicks.howTo": {
+    en: "Tap the team you think wins on each game, then press \"Complete predictions\".",
+    el: "Πάτα την ομάδα που πιστεύεις ότι κερδίζει σε κάθε αγώνα και μετά \"Ολοκλήρωση προβλέψεων\".",
+  },
+  "firstPicks.cta": { en: "Make my picks", el: "Κάνε προβλέψεις" },
   "predictions.hint": {
     en: "Pick a winner before tip-off. Correct calls earn points (underdogs pay more), a great round (8+/10) wins a bonus rare pack, a perfect round wins a legendary pack, and every 18 correct picks overall (winners + top scorers) wins another legendary pack.",
     el: "Διάλεξε νικητή πριν το τζάμπολ. Με κάθε σωστή πρόβλεψη κερδίζεις πόντους (τα αουτσάιντερ δίνουν περισσότερους), ένας σπουδαίος γύρος (8+/10) σου δίνει ένα σπάνιο πακέτο, ένας τέλειος γύρος ένα θρυλικό πακέτο, και κάθε 18 συνολικές σωστές προβλέψεις (νικητές + πρώτοι σκόρερ) ξεκλειδώνουν άλλο ένα θρυλικό πακέτο.",

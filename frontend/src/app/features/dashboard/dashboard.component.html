@@ -60,6 +60,8 @@
          children flow as one column and order-N keeps the original mobile
          order (hero, next game, round strip, prize, live, leagues, news,
          sponsor, hint, standings). -->
+    <!-- First-pick onboarding (2026-10-05): above everything until claimed. -->
+    <app-first-picks-card class="block mb-4" />
     <div class="flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_21rem] lg:gap-x-6 lg:items-start">
     <div class="contents lg:block lg:col-start-2 lg:row-start-1">
     @if (selectedRow(); as row) {

@@ -22,6 +22,8 @@ export function packSourceIcon(source: PackSource | null): NavIconName {
       return "picks";
     case "wheel":
       return "wheel";
+    case "firstPicks":
+      return "picks";
     default:
       return "packs";
   }

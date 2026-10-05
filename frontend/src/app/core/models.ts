@@ -693,7 +693,8 @@ export type PackType =
   | "wheelCoach"
   | "qrBonus"
   | "welcomeBonus"
-  | "referralBonus";
+  | "referralBonus"
+  | "firstPicks";
 
 // A promo code (registered at signup, or via POST /api/promo-codes/redeem
 // for an already-logged-in user — see features/claim/claim.ts) resolves to
@@ -729,7 +730,7 @@ export interface OwnedPack {
 export type PackSource =
   | { kind: "perfectRound" | "greatRound"; round: number }
   | { kind: "pickMilestone" | "coachMilestone" | "fantasyMilestone"; count: number }
-  | { kind: "wheel" | "welcome" | "referral" | "promo" };
+  | { kind: "wheel" | "welcome" | "referral" | "promo" | "firstPicks" };
 
 // GET /packs/rewards/unseen — reward packs not yet announced to the user,
 // plus the unopened-pack count behind the Cards nav dot.

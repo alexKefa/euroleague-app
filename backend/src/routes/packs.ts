@@ -6,6 +6,7 @@ import { requireAuth } from "../auth/middleware.js";
 import { getUserPoints } from "../services/points.js";
 import { PACKS, PackType, RolledSlot, PityState, rollPackForUser } from "../services/packs.js";
 import { getUnopenedPacksWithSource } from "../services/packSources.js";
+import { checkAndGrantFirstPicksReward } from "../services/firstPicks.js";
 import {
   checkAndGrantRoundRewards,
   checkAndGrantLegendaryMilestones,
@@ -214,6 +215,9 @@ packsRouter.get("/rewards/unseen", requireAuth, async (req, res) => {
       ...(await checkAndGrantFantasyMilestones(userId)),
     ];
     const unseenIds = new Set(granted.map((p) => p.id));
+    // Granted (and so announced) only by the call that claims it.
+    const firstPicksPackId = await checkAndGrantFirstPicksReward(userId);
+    if (firstPicksPackId) unseenIds.add(firstPicksPackId);
     const [unopened, cardRewards] = await Promise.all([
       getUnopenedPacksWithSource(userId),
       // A failure here (e.g. its tables missing on a drifted DB) must not
