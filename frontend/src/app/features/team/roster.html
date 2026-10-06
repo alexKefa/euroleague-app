@@ -365,5 +365,10 @@
         </div>
       </div>
     }
+
+    <!-- Shot profile, lineups, on/off, clutch (2026-10-06). -->
+    @if (team(); as t) {
+      <app-team-analytics [teamId]="t.id" />
+    }
   }
 </div>

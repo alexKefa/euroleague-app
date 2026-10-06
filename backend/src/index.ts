@@ -36,6 +36,7 @@ import { syncOdds } from "./sync/oddsSync.js";
 import { syncLiveGames } from "./sync/liveGamesSync.js";
 import { syncInjuries } from "./sync/injurySync.js";
 import { syncPlayerStats } from "./sync/playerStatsSync.js";
+import { syncMissingGameExtras } from "./sync/gameExtrasSync.js";
 import { applyDailyFantasyPriceChanges } from "./services/fantasyDailyReprice.js";
 import { runFantasyRoundSweep } from "./services/fantasyRoundSweep.js";
 import { getCurrentSeason } from "./services/season.js";
@@ -311,6 +312,22 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
   };
   runPlayerStatsSync();
 
+  // Shots + play-by-play + lineup stints (2026-10-06, sync/gameExtrasSync.ts)
+  // for final games still missing them. liveGamesSync already syncs each
+  // game the moment it goes final; this catches anything that missed that
+  // (feed not ready yet, restart mid-game) and backfills a fresh deploy,
+  // a few games per run so it never hogs the hourly wake.
+  const GAME_EXTRAS_PER_RUN = 12;
+  const runGameExtrasSync = () => {
+    getCurrentSeason()
+      .then((season) => (season ? syncMissingGameExtras(season, GAME_EXTRAS_PER_RUN) : null))
+      .then((r) => {
+        if (r && r.synced + r.empty + r.failed > 0) console.log(`[game extras sync] synced ${r.synced}, feed empty for ${r.empty}, failed ${r.failed}`);
+      })
+      .catch((err) => console.error("[game extras sync] failed:", err));
+  };
+  runGameExtrasSync();
+
   // Every periodic job above runs on one shared top-of-the-hour tick
   // (2026-10-03) instead of its own setInterval. Separate timers started at
   // slightly different moments and drifted apart, so each could wake Neon's
@@ -325,6 +342,7 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
     runFantasyReprice();
     runLockReminderPushesLogged();
     runRoundResultPushesLogged();
+    runGameExtrasSync();
     if (hour % (ODDS_SYNC_INTERVAL_MS / HOUR_MS) === 0) runOddsSync();
     if (hour === 4) {
       runInjurySync();

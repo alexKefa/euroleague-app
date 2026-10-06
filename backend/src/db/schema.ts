@@ -10,6 +10,7 @@ import {
   timestamp,
   primaryKey,
   uniqueIndex,
+  index,
   jsonb,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
@@ -336,6 +337,64 @@ export const shotEvents = pgTable(
   },
   (table) => ({
     gameEventUnique: uniqueIndex("shot_events_game_event_unique").on(table.gameId, table.numAnot),
+  })
+);
+
+// Every play of a game (2026-10-06), from live.euroleague.net/api/PlayByPlay
+// via sync/gameExtrasSync.ts. Ordered by game clock within each period (see
+// sync/playByPlay.ts's parseEvents for why not by `seq`). The score columns
+// are the running score *before* the play, which is what "was the game
+// within 5" (clutch) needs. Rewritten per game on every sync.
+export const pbpEvents = pgTable(
+  "pbp_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    gameId: uuid("game_id").notNull().references(() => games.id),
+    season: varchar("season", { length: 9 }).notNull(),
+    seq: integer("seq").notNull(), // the feed's NUMBEROFPLAY
+    orderIdx: integer("order_idx").notNull(), // position after clock ordering
+    period: integer("period").notNull(), // 1-4, 5+ = overtimes
+    clockSeconds: integer("clock_seconds").notNull(), // remaining in the period
+    teamId: uuid("team_id").references(() => teams.id),
+    playerCode: varchar("player_code", { length: 20 }), // players.code; kept as a code so unmatched players still count
+    playType: varchar("play_type", { length: 12 }).notNull(), // feed's PLAYTYPE: 2FGM, 3FGA, FTM, AS, TO, IN, OUT, ...
+    points: integer("points").notNull().default(0),
+    homeScoreBefore: integer("home_score_before").notNull(),
+    awayScoreBefore: integer("away_score_before").notNull(),
+  },
+  (table) => ({
+    gameSeqUnique: uniqueIndex("pbp_events_game_seq_unique").on(table.gameId, table.seq),
+    seasonClutchIdx: index("pbp_events_season_clutch_idx").on(table.season, table.period, table.clockSeconds),
+  })
+);
+
+// One row per stretch a team's five on court didn't change (2026-10-06),
+// derived from pbp_events by sync/playByPlay.ts's buildStints. Powers the
+// team page's lineups and on/off numbers: possessions are estimated per
+// side as FGA - OREB + TO + 0.44·FTA. Rewritten per game on every sync.
+export const lineupStints = pgTable(
+  "lineup_stints",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    gameId: uuid("game_id").notNull().references(() => games.id),
+    season: varchar("season", { length: 9 }).notNull(),
+    teamId: uuid("team_id").notNull().references(() => teams.id),
+    playerCodes: text("player_codes").array().notNull(), // sorted players.code x5
+    seconds: integer("seconds").notNull(),
+    ptsFor: integer("pts_for").notNull(),
+    ptsAgainst: integer("pts_against").notNull(),
+    fgaFor: integer("fga_for").notNull(),
+    ftaFor: integer("fta_for").notNull(),
+    orebFor: integer("oreb_for").notNull(),
+    tovFor: integer("tov_for").notNull(),
+    fgaAgainst: integer("fga_against").notNull(),
+    ftaAgainst: integer("fta_against").notNull(),
+    orebAgainst: integer("oreb_against").notNull(),
+    tovAgainst: integer("tov_against").notNull(),
+  },
+  (table) => ({
+    teamSeasonIdx: index("lineup_stints_team_season_idx").on(table.teamId, table.season),
+    gameIdx: index("lineup_stints_game_idx").on(table.gameId),
   })
 );
 

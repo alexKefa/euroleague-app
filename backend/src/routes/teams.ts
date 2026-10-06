@@ -5,6 +5,7 @@ import { db } from "../db/client.js";
 import { teams, players, playerSeasonStats, games, playerInjuries, users } from "../db/schema.js";
 import { getCurrentSeason } from "../services/season.js";
 import { getBaselinePPGForPlayers } from "../services/topScorerPoints.js";
+import { getTeamAnalytics } from "../services/teamAnalytics.js";
 
 function emptyStats(playerId: string, teamId: string, season: string) {
   return {
@@ -179,6 +180,19 @@ teamsRouter.get("/:id/roster", async (req, res) => {
   } catch (err) {
     console.error("GET /api/teams/:id/roster failed:", err);
     res.status(500).json({ error: "Failed to load roster" });
+  }
+});
+
+// Shot profile, lineups, on/off and clutch (2026-10-06), see
+// services/teamAnalytics.ts. Current season unless ?season= is given.
+teamsRouter.get("/:id/analytics", async (req, res) => {
+  try {
+    const season = typeof req.query.season === "string" ? req.query.season : await getCurrentSeason();
+    if (!season) return res.status(404).json({ error: "No season" });
+    res.json(await getTeamAnalytics(req.params.id, season));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to load team analytics" });
   }
 });
 

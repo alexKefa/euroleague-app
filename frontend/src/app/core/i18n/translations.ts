@@ -30,6 +30,7 @@ import { adminTranslations } from "./admin";
 import { contestTranslations } from "./contest";
 import { whatsNewTranslations } from "./whats-new";
 import { achievementsTranslations } from "./achievements";
+import { teamAnalyticsTranslations } from "./team-analytics";
 
 export type { Lang };
 
@@ -69,4 +70,5 @@ export const translations: Record<string, Record<Lang, string>> = {
   ...contestTranslations,
   ...whatsNewTranslations,
   ...achievementsTranslations,
+  ...teamAnalyticsTranslations,
 };

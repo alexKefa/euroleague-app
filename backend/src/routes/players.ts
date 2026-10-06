@@ -6,6 +6,7 @@ import { players, playerSeasonStats, playerGameStats, games, teams, shotEvents, 
 import { getCurrentSeason } from "../services/season.js";
 import { requireAuth } from "../auth/middleware.js";
 import { getScoutingReport } from "../services/scouting.js";
+import { getClutchLeaders } from "../services/teamAnalytics.js";
 
 export const playersRouter = Router();
 
@@ -208,6 +209,18 @@ playersRouter.get("/advanced-stats", async (req, res) => {
   } catch (err) {
     console.error("GET /api/players/advanced-stats failed:", err);
     res.status(500).json({ error: "Failed to load advanced stats" });
+  }
+});
+
+// League-wide clutch scorers (2026-10-06), see services/teamAnalytics.ts.
+playersRouter.get("/clutch-leaders", async (req, res) => {
+  try {
+    const season = typeof req.query.season === "string" ? req.query.season : await getCurrentSeason();
+    if (!season) return res.json({ season: null, leaders: [] });
+    res.json({ season, leaders: await getClutchLeaders(season) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to load clutch leaders" });
   }
 });
 

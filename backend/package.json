@@ -13,6 +13,7 @@
     "db:studio": "drizzle-kit studio --config=drizzle.config.ts",
     "sync:standings": "tsx src/sync/runSync.ts",
     "sync:news": "tsx src/sync/runNewsSync.ts",
+    "sync:game-extras": "tsx src/scripts/sync-game-extras.ts",
     "sync:odds": "tsx src/sync/runOddsSync.ts",
     "sync:live": "tsx src/sync/runLiveGamesSync.ts",
     "sync:injuries": "tsx src/sync/runInjurySync.ts",

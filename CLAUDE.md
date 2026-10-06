@@ -39,6 +39,7 @@ npm run build            # tsc
 npm run db:push          # push schema.ts to Postgres (interactive, see below)
 npm run db:studio
 npm run sync:standings | sync:news | sync:injuries | sync:odds
+npm run sync:game-extras  # shots + play-by-play + lineup stints for final games (prod runs this hourly)
 npm run economy:simulate # Monte Carlo album-completion simulator — re-run after any odds/interval change
 npm run economy:report
 npm run collectibles:expand       # regenerate card catalog

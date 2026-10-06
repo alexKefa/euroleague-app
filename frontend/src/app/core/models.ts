@@ -1470,3 +1470,84 @@ export interface Reminders {
   fantasy: { round: number; lockAt: string } | null;
   picks: { unpicked: number; upcoming: number; firstTipoff: string } | null;
 }
+
+// Team page analytics (2026-10-06) — GET /teams/:id/analytics, see
+// backend/src/services/teamAnalytics.ts for the definitions.
+export type ShotZone = "rim" | "paint" | "mid" | "corner3" | "above3";
+
+export interface ShotZoneStat {
+  zone: ShotZone;
+  fga: number;
+  fgm: number;
+  leagueFga: number;
+  leagueFgm: number;
+}
+
+export interface AnalyticsPlayer {
+  id: string | null;
+  code: string;
+  name: string | null;
+}
+
+export interface LineupStat {
+  players: AnalyticsPlayer[];
+  seconds: number;
+  games: number;
+  ptsFor: number;
+  ptsAgainst: number;
+  possFor: number;
+  possAgainst: number;
+}
+
+export interface OnOffStat {
+  player: AnalyticsPlayer;
+  secondsOn: number;
+  ptsForOn: number;
+  ptsAgainstOn: number;
+  possForOn: number;
+  possAgainstOn: number;
+  secondsOff: number;
+  ptsForOff: number;
+  ptsAgainstOff: number;
+  possForOff: number;
+  possAgainstOff: number;
+}
+
+export interface ClutchPlayerStat {
+  player: AnalyticsPlayer;
+  games: number;
+  pts: number;
+  fgm: number;
+  fga: number;
+  tpm: number;
+  tpa: number;
+  ftm: number;
+  fta: number;
+  ast: number;
+  tov: number;
+}
+
+export interface TeamAnalytics {
+  season: string;
+  gamesWithData: number;
+  shotZones: ShotZoneStat[];
+  lineups: LineupStat[];
+  onOff: OnOffStat[];
+  clutch: {
+    games: number;
+    wins: number;
+    losses: number;
+    ptsFor: number;
+    ptsAgainst: number;
+    players: ClutchPlayerStat[];
+  };
+}
+
+export interface ClutchLeader extends ClutchPlayerStat {
+  team: { id: string; code: string; primaryColor: string | null } | null;
+}
+
+export interface ClutchLeaders {
+  season: string | null;
+  leaders: ClutchLeader[];
+}

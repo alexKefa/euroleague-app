@@ -1,0 +1,197 @@
+<section class="mb-5">
+  <div class="flex items-baseline justify-between gap-3 mb-3 px-1">
+    <h2 class="font-display text-lg">{{ i18n.t('ta.title') }}</h2>
+    @if (data(); as d) {
+      @if (d.gamesWithData > 0) {
+        <span class="text-[12px] text-muted text-right">{{ basedOnText() }}</span>
+      }
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="bg-card rounded-3xl border border-line shadow-card p-6 text-center text-sm text-muted">…</div>
+  } @else if (error()) {
+    <div class="bg-card rounded-3xl border border-line shadow-card p-6 text-center text-sm text-muted">{{ i18n.t('ta.failed') }}</div>
+  } @else if (data(); as d) {
+    @if (d.gamesWithData === 0 && zones().length === 0) {
+      <div class="bg-card rounded-3xl border border-line shadow-card p-6 text-center text-sm text-muted">{{ i18n.t('ta.empty') }}</div>
+    } @else {
+      @if (smallSample()) {
+        <p class="text-[12px] text-muted px-1 mb-3">{{ i18n.t('ta.smallSample') }}</p>
+      }
+
+      <!-- Shot profile: share of the team's shots per zone and FG% there,
+           each against the league. Same green/red-vs-average bar as the
+           Team vs League card above. -->
+      @if (zones().length > 0) {
+        <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+          <p class="font-display text-base">{{ i18n.t('ta.shotProfile') }}</p>
+          <p class="text-[12px] text-muted mb-4">{{ i18n.t('ta.shotProfileHint') }}</p>
+          <div class="space-y-4">
+            @for (z of zones(); track z.zone) {
+              <div>
+                <div class="flex items-baseline justify-between gap-2 mb-1">
+                  <span class="text-[12px] font-bold uppercase tracking-wide">{{ i18n.t('ta.zone.' + z.zone) }}</span>
+                  <span class="font-mono text-xs shrink-0">
+                    <span class="font-bold" [ngClass]="z.above ? 'text-emerald-500' : 'text-red-500'">{{ pct(z.fgPct) }}</span>
+                    <span class="text-muted"> {{ i18n.t('ta.avg') }} {{ pct(z.leagueFgPct) }}</span>
+                  </span>
+                </div>
+                <div class="relative h-2 rounded-[3px] bg-line overflow-hidden">
+                  <div
+                    class="absolute inset-y-0 left-0 rounded-[3px] transition-all"
+                    [ngClass]="z.above ? 'bg-emerald-500' : 'bg-red-500'"
+                    [style.width.%]="z.fgPct ?? 0"
+                  ></div>
+                  <div class="absolute inset-y-0 w-[2px] bg-ink/50" [style.left.%]="z.leagueFgPct ?? 0"></div>
+                </div>
+                <p class="text-[11px] text-muted font-mono mt-1">
+                  {{ z.fgm }}/{{ z.fga }} &middot; {{ pct(z.share) }} {{ i18n.t('ta.ofShots') }} ({{ i18n.t('ta.avg') }} {{ pct(z.leagueShare) }})
+                </p>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Most-used lineups. -->
+      <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+        <p class="font-display text-base">{{ i18n.t('ta.lineups') }}</p>
+        <p class="text-[12px] text-muted mb-3">{{ i18n.t('ta.lineupsHint') }}</p>
+        @if (lineups().length === 0) {
+          <p class="text-sm text-muted">{{ i18n.t('ta.noLineups') }}</p>
+        } @else {
+          <ul>
+            @for (l of lineups(); track l.key) {
+              <li class="flex items-center gap-3 py-2.5 border-t border-line first:border-t-0">
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-semibold leading-snug">
+                    @for (p of l.players; track p.code; let last = $last) {
+                      @if (p.id) {
+                        <a [routerLink]="['/players', p.id]" class="hover:text-team-primary transition-colors">{{ surname(p) }}</a>
+                      } @else {
+                        <span>{{ surname(p) }}</span>
+                      }
+                      @if (!last) {
+                        <span class="text-muted"> &middot; </span>
+                      }
+                    }
+                  </p>
+                  <p class="text-[12px] text-muted font-mono mt-0.5">
+                    {{ minutes(l.seconds) }} {{ i18n.t('ta.min') }} &middot; {{ l.games }} {{ i18n.t('ta.gp') }} &middot; {{ l.ptsFor }}-{{ l.ptsAgainst }}
+                  </p>
+                </div>
+                <div class="shrink-0 text-right">
+                  <p class="font-display text-lg leading-none tabular-nums" [ngClass]="signClass(l.plusMinus)">{{ signed(l.plusMinus, 0) }}</p>
+                  <p class="text-[11px] text-muted font-mono mt-1">{{ i18n.t('ta.net') }} {{ signed(l.net) }}</p>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+
+      <!-- On/off. -->
+      @if (onOff().length > 0) {
+        <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+          <p class="font-display text-base">{{ i18n.t('ta.onOff') }}</p>
+          <p class="text-[12px] text-muted mb-3">{{ i18n.t('ta.onOffHint') }}</p>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs">
+              <thead>
+                <tr class="text-muted uppercase tracking-wide">
+                  <th class="text-left font-bold py-1.5">{{ i18n.t('ta.player') }}</th>
+                  <th class="text-right font-bold py-1.5 px-1.5">{{ i18n.t('ta.min') }}</th>
+                  <th class="text-right font-bold py-1.5 px-1.5">{{ i18n.t('ta.on') }}</th>
+                  <th class="text-right font-bold py-1.5 px-1.5">{{ i18n.t('ta.off') }}</th>
+                  <th class="text-right font-bold py-1.5 pl-1.5">{{ i18n.t('ta.diff') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (o of onOff(); track o.player.code) {
+                  <tr class="border-t border-line">
+                    <td class="py-2 font-semibold truncate max-w-[9rem]">
+                      @if (o.player.id) {
+                        <a [routerLink]="['/players', o.player.id]" class="hover:text-team-primary transition-colors">{{ fullName(o.player) }}</a>
+                      } @else {
+                        {{ fullName(o.player) }}
+                      }
+                    </td>
+                    <td class="text-right font-mono py-2 px-1.5">{{ minutes(o.secondsOn) }}</td>
+                    <td class="text-right font-mono py-2 px-1.5" [ngClass]="signClass(o.on)">{{ signed(o.on) }}</td>
+                    <td class="text-right font-mono py-2 px-1.5" [ngClass]="signClass(o.off)">{{ signed(o.off) }}</td>
+                    <td class="text-right font-mono font-bold py-2 pl-1.5" [ngClass]="signClass(o.diff)">{{ signed(o.diff) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- Clutch. -->
+      @if (clutch(); as c) {
+        <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+          <p class="font-display text-base">{{ i18n.t('ta.clutch') }}</p>
+          <p class="text-[12px] text-muted mb-3">{{ i18n.t('ta.clutchHint') }}</p>
+          @if (c.games === 0) {
+            <p class="text-sm text-muted">{{ i18n.t('ta.noClutch') }}</p>
+          } @else {
+            <div class="grid grid-cols-3 gap-2 mb-4">
+              <div class="status-tile rounded-xl border border-line p-2.5 text-center">
+                <p class="font-display text-xl leading-tight tabular-nums">{{ c.games }}</p>
+                <p class="text-[10px] text-muted uppercase tracking-wide">{{ i18n.t('ta.clutchGames') }}</p>
+              </div>
+              <div class="status-tile rounded-xl border border-line p-2.5 text-center">
+                <p class="font-display text-xl leading-tight tabular-nums">{{ c.wins }}-{{ c.losses }}</p>
+                <p class="text-[10px] text-muted uppercase tracking-wide">{{ i18n.t('ta.clutchRecord') }}</p>
+              </div>
+              <div class="status-tile rounded-xl border border-line p-2.5 text-center">
+                <p class="font-display text-xl leading-tight tabular-nums" [ngClass]="signClass(c.ptsFor - c.ptsAgainst)">
+                  {{ signed(c.ptsFor - c.ptsAgainst, 0) }}
+                </p>
+                <p class="text-[10px] text-muted uppercase tracking-wide">{{ i18n.t('ta.clutchPoints') }}</p>
+              </div>
+            </div>
+            @if (c.players.length > 0) {
+              <div class="overflow-x-auto">
+                <table class="w-full text-xs">
+                  <thead>
+                    <tr class="text-muted uppercase tracking-wide">
+                      <th class="text-left font-bold py-1.5">{{ i18n.t('ta.player') }}</th>
+                      <th class="text-right font-bold py-1.5 px-1.5">{{ i18n.t('ta.colPTS') }}</th>
+                      <th class="text-right font-bold py-1.5 px-1.5">{{ i18n.t('ta.colFG') }}</th>
+                      <th class="text-right font-bold py-1.5 px-1.5">{{ i18n.t('ta.col3P') }}</th>
+                      <th class="text-right font-bold py-1.5 px-1.5">{{ i18n.t('ta.colFT') }}</th>
+                      <th class="text-right font-bold py-1.5 px-1.5">{{ i18n.t('ta.colAST') }}</th>
+                      <th class="text-right font-bold py-1.5 pl-1.5">{{ i18n.t('ta.colTO') }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (p of c.players; track p.player.code) {
+                      <tr class="border-t border-line">
+                        <td class="py-2 font-semibold truncate max-w-[9rem]">
+                          @if (p.player.id) {
+                            <a [routerLink]="['/players', p.player.id]" class="hover:text-team-primary transition-colors">{{ fullName(p.player) }}</a>
+                          } @else {
+                            {{ fullName(p.player) }}
+                          }
+                        </td>
+                        <td class="text-right font-mono font-bold py-2 px-1.5 text-team-primary">{{ p.pts }}</td>
+                        <td class="text-right font-mono py-2 px-1.5 whitespace-nowrap">{{ p.fgm }}/{{ p.fga }}</td>
+                        <td class="text-right font-mono py-2 px-1.5 whitespace-nowrap">{{ p.tpm }}/{{ p.tpa }}</td>
+                        <td class="text-right font-mono py-2 px-1.5 whitespace-nowrap">{{ p.ftm }}/{{ p.fta }}</td>
+                        <td class="text-right font-mono py-2 px-1.5">{{ p.ast }}</td>
+                        <td class="text-right font-mono py-2 pl-1.5">{{ p.tov }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          }
+        </div>
+      }
+    }
+  }
+</section>

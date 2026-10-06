@@ -18,6 +18,7 @@ import { rankBadgeClasses } from "../../shared/rank-badge";
 import { formatPlayerName } from "../../shared/player-name";
 import { TeamCodePipe } from "../../shared/team-display-code";
 import { PageHeaderComponent } from "../../shared/page-header";
+import { ClutchLeadersComponent } from "./clutch-leaders";
 
 // One column = one sortable stat. `get` pulls the raw number/string out of a
 // row (undefined/null sorts last regardless of direction, see sortedRows);
@@ -153,7 +154,7 @@ const LEGEND_KEYS: { codeKey: string; key: string }[] = [
 @Component({
   selector: "app-advanced-stats",
   standalone: true,
-  imports: [PageHeaderComponent, 
+  imports: [PageHeaderComponent, ClutchLeadersComponent,
     CommonModule,
     RouterLink,
     DropdownComponent,
