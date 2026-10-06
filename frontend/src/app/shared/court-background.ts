@@ -150,6 +150,13 @@ import { Component, computed, input } from "@angular/core";
           <stop offset="0%" stop-color="var(--accent-primary)" stop-opacity="0.45" />
           <stop offset="100%" stop-color="var(--accent-primary)" stop-opacity="0" />
         </radialGradient>
+        <!-- Floor planks + a clip for the centre circle (2026-10-06 court pass). -->
+        <pattern id="courtPlanks" width="20" height="20" patternUnits="userSpaceOnUse">
+          <rect x="19.4" y="0" width="0.6" height="20" fill="var(--color-ink)" fill-opacity="0.05" />
+        </pattern>
+        <clipPath id="courtFloorClip">
+          <rect x="6" [attr.y]="floorTop()" width="308" [attr.height]="floorHeight()" rx="10" />
+        </clipPath>
         <pattern id="courtDotGrid" width="12" height="12" patternUnits="userSpaceOnUse">
           <circle cx="6" cy="6" r="0.8" fill="var(--color-ink)" fill-opacity="0.13" />
         </pattern>
@@ -157,7 +164,16 @@ import { Component, computed, input } from "@angular/core";
       <g [attr.transform]="'translate(0, ' + flipConstant() + ') scale(1, -1)'">
         <rect x="6" [attr.y]="floorTop()" width="308" [attr.height]="floorHeight()" rx="10" fill="var(--color-page)" />
         <rect x="6" [attr.y]="floorTop()" width="308" [attr.height]="floorHeight()" rx="10" fill="url(#courtTeamWash)" />
+        <rect x="6" [attr.y]="floorTop()" width="308" [attr.height]="floorHeight()" rx="10" fill="url(#courtPlanks)" />
         <rect x="6" [attr.y]="floorTop()" width="308" [attr.height]="floorHeight()" rx="10" fill="url(#courtDotGrid)" />
+        <!-- Half-court line + team-colour centre circle at the far end
+             (the bottom of the displayed court), which used to be bare floor
+             on the tall mobile court (2026-10-06 court pass). -->
+        <g clip-path="url(#courtFloorClip)">
+          <line x1="6" x2="314" [attr.y1]="floorTop() + 1" [attr.y2]="floorTop() + 1" stroke="var(--accent-primary)" stroke-opacity="0.55" stroke-width="2" />
+          <circle cx="160" [attr.cy]="floorTop()" r="40" fill="var(--accent-primary)" fill-opacity="0.16" stroke="var(--accent-primary)" stroke-opacity="0.7" stroke-width="1.8" />
+          <circle cx="160" [attr.cy]="floorTop()" r="14" fill="none" stroke="var(--accent-primary)" stroke-opacity="0.5" stroke-width="1.4" />
+        </g>
         <rect x="6" [attr.y]="floorTop()" width="308" [attr.height]="floorHeight()" rx="10" fill="url(#courtRimGlow)" />
         <path [attr.d]="courtOutlinePath()" fill="none" stroke="var(--color-ink)" stroke-opacity="0.28" stroke-width="1.6" />
         <rect

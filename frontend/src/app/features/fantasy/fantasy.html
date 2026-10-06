@@ -221,7 +221,7 @@
            this — a cdkDropList holding 0 or 1 player, a lock badge once
            that player's own team has tipped off this round per real
            EuroLeague Fantasy's "Turns" rule, not the whole round at once). -->
-      <ng-template #squadSlot let-slot let-size="size" let-positionLabel="positionLabel">
+      <ng-template #squadSlot let-slot let-size="size" let-positionLabel="positionLabel" let-requiredPos="requiredPos">
         <div
           cdkDropList
           [id]="slot.id"
@@ -253,29 +253,28 @@
               class="fantasy-slot-land flex flex-col items-center gap-1"
               [ngClass]="isPlayerLocked(slot.playerId) ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'"
             >
-              <!-- The opponent/PIR line that used to sit here, above the
-                   avatar, moved into the info box below (2026-09-17, "add
-                   the cost of each player next to their name... add boxes
-                   for info, include them all in there" — consolidating
-                   everything into one card like the reference screenshot,
-                   rather than splitting it above/below the avatar). -->
+              <!-- Court pass (2026-10-06): only the captain "C", the sixth-man
+                   "6th" and the injury badge stay on the photo — swap/remove
+                   moved into the tap action sheet (openSlotMenu), the lock
+                   badge into the live/finished treatment below. A player
+                   whose game is live gets a pulsing red ring; one whose game
+                   is over is dimmed. -->
+              @let slotGame = gameForTeam().get(row.team.id);
+              @let isLive = slotGame?.status === 'live';
+              @let isDone = slotGame?.status === 'final';
               <div class="relative">
-                <!-- No border ring (2026-09-17, "remove the white border
-                     circle" — a reference EuroLeague Fantasy screenshot
-                     shows the jersey sitting directly on the court with no
-                     outline at all). Dropped border-2 border-ink outright
-                     rather than swapping to a lighter theme-reactive one —
-                     the glass panel behind the whole slot already gives the
-                     avatar a defined edge to sit against in both themes. -->
+                @if (isLive) {
+                  <span class="pointer-events-none absolute -inset-1.5 rounded-full border-2 border-red-500 animate-ping opacity-60" aria-hidden="true"></span>
+                }
                 <!-- flex on both the button and the photo's host element: either
-                     one left inline puts the circle on a text baseline, and the
-                     descender space below it showed as a dark strip inside the
-                     ring (2026-10-05). -->
+                     one left inline puts the circle on a text baseline (2026-10-05). -->
                 <button
                   type="button"
-                  (click)="$event.stopPropagation(); openPlayerInfo(slot.playerId)"
-                  class="flex rounded-full"
-                  [style.box-shadow]="'0 0 0 2px var(--color-card), 0 0 0 4px ' + (row.team.primaryColor || 'var(--color-line)') + ', 0 6px 16px rgba(0,0,0,0.35)'"
+                  (click)="$event.stopPropagation(); openSlotMenu(slot.playerId)"
+                  [attr.aria-label]="row.player.name"
+                  class="flex rounded-full transition"
+                  [ngClass]="isDone ? 'opacity-70 grayscale-[60%]' : ''"
+                  [style.box-shadow]="'0 0 0 2px var(--color-card), 0 0 0 4px ' + (isLive ? '#ef4444' : (row.team.primaryColor || 'var(--color-line)')) + ', 0 6px 16px rgba(0,0,0,0.35)'"
                 >
                   <app-player-photo
                     [photoUrl]="row.player.photoUrl"
@@ -289,118 +288,48 @@
                   />
                 </button>
                 @if (row.injury; as injury) {
-                  <!-- Top-center — the only corner this slot's avatar has
-                       free (captain/lock bottom-left/-right, remove/swap
-                       top-right/-left, see below). -->
                   <span class="absolute -top-1.5 left-1/2 -translate-x-1/2">
                     <app-injury-badge [status]="injury.status" [note]="injury.note" [noteEl]="injury.noteEl" [size]="14" />
                   </span>
                 }
                 @if (slot.role === 'starter' && captainId() === slot.playerId) {
-                  <!-- Purely informational now — picking/changing the captain
-                       moved to a dialog next to the formation button (see
-                       showCaptainPicker), so this is a static badge, not a
-                       button, on whichever starter currently holds it.
-                       Moved to bottom-left (2026-09-17) — top-right is now
-                       the remove button (see below), freed up by moving
-                       this out of its way. -->
-                  <span class="absolute -bottom-1 -left-1 w-5 h-5 rounded-full font-mono text-[10px] font-bold flex items-center justify-center border border-line bg-team-primary text-team-secondary">C</span>
+                  <span class="absolute -bottom-1 -left-1 w-5 h-5 rounded-full font-mono text-[10px] font-bold flex items-center justify-center ring-2 ring-card bg-team-primary text-team-secondary">C</span>
                 }
-                @if (isPlayerLocked(slot.playerId)) {
-                  <span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-card border border-line flex items-center justify-center text-[9px]">&#128274;</span>
-                } @else {
-                  <!-- Top-right (2026-09-17, "X should be top right") —
-                       was bottom-left, which is now the captain badge's
-                       spot instead (see above). Hidden mid-round, since
-                       removing a player would be a transfer. -->
-                  @if (!roundLocked()) {
-                    <button
-                      type="button"
-                      (click)="$event.stopPropagation(); removeFromSquad(slot.playerId)"
-                      [attr.aria-label]="i18n.t('fantasy.removePlayer')"
-                      class="tap-target-40 absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full font-bold text-base leading-none flex items-center justify-center border border-line bg-card text-muted hover:text-red-500 hover:border-red-500/40 transition-colors"
-                    >
-                      &times;
-                    </button>
-                  }
-                  <button
-                    type="button"
-                    (click)="$event.stopPropagation(); openSwapPicker(slot.playerId)"
-                    [attr.aria-label]="i18n.t('fantasy.swapPlayer')"
-                    class="tap-target-40 absolute -top-1.5 -left-1.5 w-6 h-6 rounded-full text-[12px] leading-none flex items-center justify-center border border-line bg-card text-muted hover:text-team-primary hover:border-team-primary transition-colors"
-                  >
-                    &#8645;
-                  </button>
+                @if (slot.role === 'sixth_man') {
+                  <span class="absolute -top-1 -left-1.5 h-5 px-1.5 rounded-full text-[9px] font-bold flex items-center justify-center ring-2 ring-card bg-team-primary text-team-secondary">{{ i18n.t('fantasy.sixthBadge') }}</span>
                 }
               </div>
-              <!-- Consolidated info box (2026-09-17, reworked from an
-                   earlier two-tier version after "add boxes for info,
-                   include them all in there" — a reference EuroLeague
-                   Fantasy screenshot's player card puts position+name,
-                   price, AND next-opponent/live-PIR all in one stacked
-                   card, not split between above and below the avatar the
-                   way this app's own 2026-09-09 pass had them).
-
-                   Shrunk + switched to a fixed white card (2026-09-22,
-                   "make boxes below players smaller. and white
-                   backgrounded") — replaces the old fixed-dark two-tone
-                   rows (team-primary bar + near-black bar). Still a fixed
-                   (not theme-reactive bg-page/bg-card) color rather than
-                   theme-aware, same reasoning as before: this sits directly
-                   on the court/team-photo behind it, so it needs to read
-                   the same regardless of light/dark mode — white just
-                   reads cleaner here than the old dark pairing, and
-                   incidentally matches a real EuroLeague Fantasy Challenge
-                   player card's own look. Price/PIR/opponent text is a
-                   fixed dark neutral rather than team-primary now, on
-                   purpose — a team whose real kit primary color is white or
-                   near-white (Real Madrid, Dubai Basketball, see
-                   fix-team-colors.ts) would otherwise render invisible text
-                   on this same white background, the exact failure class
-                   documented elsewhere in this app for team-color-on-light
-                   surfaces. Injury rows keep their own solid status color
-                   (red/orange/yellow/emerald) over this white base — those
-                   are curated app-wide, not team-derived, so they don't
-                   carry that same risk.
-
-                   116px -> 92px width (bonus fix for the 3-1-1 Guard row's
-                   own reported clipping, see rowXPositions' comment in
-                   fantasy.ts — a narrower box leaves real room even at
-                   [20, 50, 80]'s tighter spacing). Font 10px -> 9px and
-                   padding trimmed to match the smaller box; line-clamp-2 on
-                   the name row still caps height the same way regardless of
-                   how long a name is. -->
-              <!-- Info card (2026-10-05, modelled on EuroLeague Fantasy's court card):
-                   name bar with a team-colour underline, then two cells. Left:
-                   CR cost before the game (what a transfer between rounds
-                   costs), points once it tips off. Right: day (T1/T2) over the
-                   opponent. Fixed light card on purpose, see the 2026-09-22
-                   note in git history: team colours never colour the text,
+              <!-- Info card (2026-10-06 court pass): one name line with the
+                   team-colour underline, then one row — the number that
+                   matters now (price before the game, points/PIR once it
+                   tips off) and the opponent's logo with H/A or the day.
+                   Fixed light card: team colours never colour the text,
                    only the underline, so white-kit teams stay readable. -->
-              <button type="button" (click)="openPlayerInfo(slot.playerId)" [title]="row.player.name" class="block w-[92px] rounded-xl overflow-hidden shadow-card border border-line bg-card/90 backdrop-blur-md hover:border-team-primary/60 transition-colors">
+              @let game = gameForTeam().get(row.team.id);
+              @let opp = opponentFor(row.team.id);
+              @let turn = !gameFinished(row.team.id) ? turnFor(row.team.id) : null;
+              <button type="button" (click)="openPlayerInfo(slot.playerId)" [title]="row.player.name" class="block w-[96px] rounded-xl overflow-hidden shadow-card border border-line bg-card/90 backdrop-blur-md hover:border-team-primary/60 transition-colors">
                 <span
-                  class="block font-display text-[10px] font-bold uppercase tracking-wide text-center leading-tight line-clamp-2 px-1 pt-1 pb-0.5 border-b-2"
+                  class="block text-[11px] font-bold text-center leading-tight truncate px-1.5 pt-1 pb-0.5 border-b-2"
                   [style.border-bottom-color]="row.team.primaryColor || 'var(--color-line)'"
                   [ngClass]="row.injury ? injuryNameBarClass(row.injury.status) : 'text-ink'"
-                  >{{ posAbbrev(row.player.position) }} {{ courtDisplayName(row.player.name) }}</span
+                  ><span class="opacity-50 text-[9px] mr-0.5">{{ posAbbrev(row.player.position) }}</span>{{ courtDisplayName(row.player.name) }}</span
                 >
-                @let game = gameForTeam().get(row.team.id);
-                @let opp = opponentFor(row.team.id);
-                @let turn = !gameFinished(row.team.id) ? turnFor(row.team.id) : null;
-                <span class="grid grid-flow-col auto-cols-fr divide-x divide-line bg-page/60 text-center font-sans tabular-nums">
-                  <span class="flex flex-col items-center justify-center px-0.5 py-0.5 min-w-0">
-                    @if (!game || game.status === 'scheduled') {
-                      <span class="text-[11px] font-bold leading-none text-ink">{{ row.price | number: '1.1-1' }}</span>
-                      <span class="text-[8px] font-bold uppercase text-muted leading-none mt-0.5">{{ i18n.t('fantasy.creditsAbbrev') }}</span>
-                    } @else {
-                      <span class="flex items-center gap-0.5 text-[11px] font-bold leading-none" [ngClass]="game.status === 'live' ? 'text-red-500' : 'text-team-primary'">
+                <span class="flex items-center justify-between gap-1 px-1.5 py-1 bg-page/60 tabular-nums">
+                  @if (!game || game.status === 'scheduled') {
+                    <span class="flex items-baseline gap-0.5 min-w-0">
+                      <span class="text-[13px] font-bold leading-none text-ink">{{ row.price | number: '1.1-1' }}</span>
+                      <span class="text-[8px] font-bold uppercase text-muted leading-none">{{ i18n.t('fantasy.creditsAbbrev') }}</span>
+                    </span>
+                  } @else {
+                    <span class="flex items-baseline gap-0.5 min-w-0">
+                      <span class="flex items-center gap-0.5 text-[13px] font-bold leading-none" [ngClass]="game.status === 'live' ? 'text-red-500' : 'text-ink'">
                         @if (game.status === 'live') {
-                          <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
+                          <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0 self-center"></span>
                         }
                         <!-- Captain and bench show their real scored points
                              (doubled / halved); a live game uses live PIR
-                             times the same multiplier until the backend has
-                             the final box score. -->
+                             times the same multiplier until the final box score. -->
                         @if (slot.role === 'starter' && captainId() === slot.playerId) {
                           {{ (game.status === 'final' ? pointsFor(row.player.id) : liveCaptainPoints(row.player.id)) | number: '1.0-1' }}
                         } @else if (slot.role === 'bench') {
@@ -409,23 +338,19 @@
                           {{ roundPir(row.player.id) ?? '—' }}
                         }
                       </span>
-                      <span class="text-[8px] font-bold uppercase text-muted leading-none mt-0.5">
+                      <span class="text-[8px] font-bold uppercase text-muted leading-none">
                         {{ (slot.role === 'bench' || (slot.role === 'starter' && captainId() === slot.playerId)) ? i18n.t('fantasy.pointsAbbrev') : i18n.t('fantasy.colPir') }}
                       </span>
-                    }
-                  </span>
-                  @if (turn || opp) {
-                    <span class="flex flex-col items-center justify-center px-0.5 py-0.5 min-w-0">
-                      @if (turn) {
-                        <span class="text-[11px] font-bold leading-none text-ink" [class.opacity-40]="hasPlayed(row.player.id)">{{ i18n.t('fantasy.turnAbbrev') }}{{ turn }}</span>
-                      } @else if (opp) {
-                        <span class="text-[11px] font-bold leading-none text-ink">{{ opp.opponent.code | teamCode }}</span>
+                    </span>
+                  }
+                  @if (opp) {
+                    <span class="flex items-center gap-0.5 shrink-0 text-[9px] font-bold text-muted leading-none" [title]="(opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev')) + ' ' + (opp.opponent.code | teamCode)">
+                      @if (opp.opponent.logoUrl) {
+                        <img [src]="opp.opponent.logoUrl" alt="" class="w-3.5 h-3.5 object-contain team-logo" />
+                      } @else {
+                        {{ opp.opponent.code | teamCode }}
                       }
-                      @if (opp) {
-                        <span class="text-[8px] font-bold uppercase text-muted leading-none mt-0.5 whitespace-nowrap">
-                          {{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }}@if (turn) { {{ opp.opponent.code | teamCode }}}
-                        </span>
-                      }
+                      <span [class.opacity-40]="turn && hasPlayed(row.player.id)">{{ turn ? i18n.t('fantasy.turnAbbrev') + turn : (opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev')) }}</span>
                     </span>
                   }
                 </span>
@@ -433,22 +358,28 @@
             </div>
             }
           } @else {
-            <!-- Same glass panel as an occupied slot (2026-09-17, "add the
-                 glass effect when players are not added" — extends it here
-                 too for visual consistency), but the content inside stays
-                 exactly what it was — just the dashed "+" and the position
-                 label, nothing extra added ("stick with the image"). -->
-            <div class="flex flex-col items-center gap-1.5 rounded-2xl bg-card/85 backdrop-blur-lg shadow-card border border-line px-2.5 py-2">
+            <!-- Empty slot (2026-10-06 court pass): the slot's position letter
+                 as a faint placeholder with a "+" badge, and the cheapest
+                 player still available for it ("from 4.5", red if even that
+                 doesn't fit the remaining budget). -->
+            <div class="flex flex-col items-center gap-1 rounded-2xl bg-card/85 backdrop-blur-lg shadow-card border border-line px-2 py-1.5">
               <button
                 type="button"
                 (click)="openPicker(slot.id)"
                 [disabled]="roundLocked()"
-                class="rounded-full border-2 border-dashed border-team-primary/60 bg-team-primary/10 flex items-center justify-center text-team-primary text-xl hover:border-team-primary hover:bg-team-primary/20 disabled:opacity-40 disabled:hover:border-team-primary/60 disabled:hover:bg-team-primary/10 disabled:cursor-not-allowed transition-colors"
+                [attr.aria-label]="i18n.t('fantasy.addPlayer') + (positionLabel ? ' · ' + positionLabel : '')"
+                class="relative rounded-full border-2 border-dashed border-team-primary/60 bg-team-primary/10 flex items-center justify-center text-team-primary hover:border-team-primary hover:bg-team-primary/20 disabled:opacity-40 disabled:hover:border-team-primary/60 disabled:hover:bg-team-primary/10 disabled:cursor-not-allowed transition-colors"
                 [style.width.px]="size"
                 [style.height.px]="size"
-              >+</button>
-              @if (positionLabel) {
-                <span class="text-[10px] font-bold uppercase tracking-wide text-muted">{{ positionLabel }}</span>
+              >
+                <span class="font-display text-2xl leading-none opacity-40">{{ requiredPos ? posAbbrev(requiredPos) : '+' }}</span>
+                @if (requiredPos) {
+                  <span class="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-team-primary text-team-secondary text-sm font-bold leading-none flex items-center justify-center shadow-sm">+</span>
+                }
+              </button>
+              <span class="text-[10px] font-bold uppercase tracking-wide text-ink leading-none">{{ positionLabel || i18n.t('fantasy.addPlayer') }}</span>
+              @if (!roundLocked() && cheapestFor(requiredPos); as from) {
+                <span class="font-mono text-[9px] font-bold leading-none" [ngClass]="canAfford(from) ? 'text-muted' : 'text-red-500'">{{ i18n.t('fantasy.fromPrice').replace('{p}', (from | number: '1.1-1') ?? '') }}</span>
               }
             </div>
           }
@@ -833,7 +764,7 @@
                    trade for the space. Not verified live this pass —
                    if the letterbox band now reads as too much empty
                    space rather than breathing room, dial back toward 380. -->
-              <div class="relative w-full rounded-2xl overflow-hidden bg-gradient-to-b from-team-primary/25 via-card to-card border border-line shadow-card aspect-[320/430] sm:aspect-[320/300]">
+              <div class="relative w-full rounded-t-2xl overflow-hidden bg-gradient-to-b from-team-primary/25 via-card to-card border border-line aspect-[320/430] sm:aspect-[320/300]">
                 <!-- Trapezoid clip removed (2026-09-18) — it was a
                      narrower-top/wider-bottom perspective cue (2026-09-17),
                      but it clipped away most of each sideline's length (see
@@ -853,7 +784,7 @@
                 <app-court-background class="absolute inset-0 w-full h-full" [viewBoxTop]="isMobileViewport() ? -220 : -90" />
                 @for (pos of starterSlotPositions(); track $index; let i = $index) {
                   <div class="absolute -translate-x-1/2 -translate-y-1/2" [style.left.%]="pos.left" [style.top.%]="pos.top">
-                    <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: starterSlots()[i], size: starterAvatarSize(), positionLabel: posLabel(requiredPositionForStarterSlot(i)) }" />
+                    <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: starterSlots()[i], size: starterAvatarSize(), positionLabel: posLabel(requiredPositionForStarterSlot(i)), requiredPos: requiredPositionForStarterSlot(i) }" />
                   </div>
                 }
                 <!-- Self-clearing "randomize completed" notice (2026-09-17)
@@ -871,167 +802,51 @@
                     {{ i18n.t('fantasy.swapNoFormation') }}
                   </div>
                 }
-              </div>
-
-              <!-- Randomize/deadline/simulate row, moved off the court
-                   itself (2026-09-17, direct report: floating them over the
-                   court ate into the court's own space) — this row sits in
-                   the gap between the court and the sixth-man/bench section
-                   below instead, in normal flow rather than absolutely
-                   positioned. Order left to right matches how they were
-                   asked for: randomize, deadline, simulate. -->
-              @if (importing() || importResult() || importError()) {
-                <div class="mt-2 rounded-lg border px-3 py-2 text-[11px] leading-snug"
-                     [class]="importError() ? 'border-red-500/40 bg-red-500/10 text-red-500' : 'border-line bg-card text-ink'">
-                  @if (importing()) {
-                    {{ i18n.t('fantasy.importReading') }} {{ importProgress() }}%
-                  } @else if (importError()) {
-                    <div class="flex items-start justify-between gap-2">
-                      <span>
-                        {{ importError() }}
-                        @if (importErrorDetail()) {
-                          <span class="block mt-1 font-mono text-[10px] opacity-70 break-all">{{ importErrorDetail() }}</span>
+                <!-- "⋯" court menu (2026-10-06 court pass) — Randomize /
+                     Import / admin Simulate, which used to be a button row
+                     between the court and the bench. -->
+                @if (isCurrentRound() && ((!roundLocked() && round() === 1) || !roundLocked() || auth.currentUser()?.isAdmin)) {
+                  <div class="absolute top-2 right-2 z-30">
+                    <button
+                      type="button"
+                      (click)="courtMenuOpen.set(!courtMenuOpen())"
+                      [attr.aria-label]="i18n.t('fantasy.moreActions')"
+                      [attr.aria-expanded]="courtMenuOpen()"
+                      class="w-9 h-9 rounded-full bg-card/85 backdrop-blur-md border border-line shadow-card flex items-center justify-center text-ink hover:border-team-primary transition-colors"
+                    >
+                      @if (autoFilling() || importing() || simulatingRound()) {
+                        <app-logo-spinner [size]="16" />
+                      } @else {
+                        <app-nav-icon name="dots-vertical" [size]="18" />
+                      }
+                    </button>
+                    @if (courtMenuOpen()) {
+                      <div class="fixed inset-0" (click)="courtMenuOpen.set(false)"></div>
+                      <div class="absolute right-0 mt-2 w-56 rounded-2xl bg-card border border-line shadow-pop p-1.5 space-y-0.5">
+                        @if (!roundLocked() && round() === 1) {
+                          <button type="button" (click)="courtMenuOpen.set(false); requestAutoFillSquad()" [disabled]="autoFilling()" class="w-full flex items-center gap-2.5 px-3 h-10 rounded-xl text-[13px] font-semibold text-ink hover:bg-team-primary/10 disabled:opacity-40 transition-colors">
+                            <app-nav-icon name="dice" [size]="16" class="text-team-primary" />
+                            {{ i18n.t('fantasy.autoFillSquad') }}
+                          </button>
                         }
-                      </span>
-                      <button type="button" class="font-bold" (click)="importError.set(null)" [attr.aria-label]="i18n.t('fantasy.close')">&times;</button>
-                    </div>
-                  } @else if (importResult(); as r) {
-                    <div class="flex items-start justify-between gap-2">
-                      <div class="space-y-1">
-                        <p class="font-bold">{{ i18n.t('fantasy.importDone').replace('{n}', '' + r.matched) }}</p>
-                        @if (r.incoming.length) {
-                          <p><span class="font-bold text-emerald-500">{{ i18n.t('fantasy.importIn') }}</span> {{ r.incoming.join(', ') }}</p>
+                        @if (!roundLocked()) {
+                          <button type="button" (click)="courtMenuOpen.set(false); importInput.click()" [disabled]="importing()" [title]="i18n.t('fantasy.importScreenshotHint')" class="w-full flex items-center gap-2.5 px-3 h-10 rounded-xl text-[13px] font-semibold text-ink hover:bg-team-primary/10 disabled:opacity-40 transition-colors">
+                            <app-nav-icon name="share" [size]="16" class="text-team-primary" />
+                            {{ i18n.t('fantasy.importScreenshot') }}
+                          </button>
                         }
-                        @if (r.outgoing.length) {
-                          <p><span class="font-bold text-red-500">{{ i18n.t('fantasy.importOut') }}</span> {{ r.outgoing.join(', ') }}</p>
+                        @if (auth.currentUser()?.isAdmin) {
+                          <button type="button" (click)="courtMenuOpen.set(false); simulateWholeRound()" [disabled]="simulatingRound()" class="w-full flex items-center gap-2.5 px-3 h-10 rounded-xl text-[13px] font-semibold text-ink hover:bg-team-primary/10 disabled:opacity-40 transition-colors">
+                            <app-nav-icon name="fast-forward" [size]="16" class="text-team-primary" />
+                            {{ i18n.t('fantasy.simulateRoundAdmin') }}
+                          </button>
                         }
-                        @if (r.transfersAllowed !== null && r.transfersNeeded > 0) {
-                          <p class="text-muted">{{ i18n.t('fantasy.importTransfersUsed').replace('{n}', '' + r.transfersNeeded).replace('{max}', '' + r.transfersAllowed) }}</p>
-                        }
-                        @for (c of r.roleChanges; track c.name) {
-                          <p class="text-muted">{{ c.name }}: {{ slotRoleLabel(c.from) }} → {{ slotRoleLabel(c.to) }}</p>
-                        }
-                        @if (r.captainChange) {
-                          <p class="text-muted">{{ i18n.t('fantasy.importCaptain') }} {{ r.captainChange }}</p>
-                        }
-                        @if (r.coachChange) {
-                          <p class="text-muted">{{ i18n.t('fantasy.importCoach') }} {{ r.coachChange.from ? r.coachChange.from + ' → ' : '' }}{{ r.coachChange.to }}</p>
-                        }
-                        @if (!r.incoming.length && !r.outgoing.length && !r.roleChanges.length && !r.captainChange && !r.coachChange) {
-                          <p class="text-muted">{{ i18n.t('fantasy.importNoChanges') }}</p>
-                        }
-                        @if (r.kept.length) {
-                          <p class="text-muted">{{ i18n.t('fantasy.importKept') }} {{ r.kept.join(', ') }}</p>
-                        }
-                        @if (r.matched + r.kept.length < 10) {
-                          <p class="text-muted">{{ i18n.t('fantasy.importMissing') }}</p>
-                        }
-                        @if (!r.coachFound) {
-                          <p class="text-muted">{{ i18n.t('fantasy.importNoCoach') }}</p>
-                        }
-                        @if (r.ambiguous.length) {
-                          <p class="text-muted">{{ i18n.t('fantasy.importAmbiguous') }} {{ r.ambiguous.join(', ') }}</p>
-                        }
-                        @if (r.positionsDiffer) {
-                          <p class="text-amber-500">{{ i18n.t('fantasy.importPositionsDiffer') }}</p>
-                        }
-                        <p class="text-muted">{{ i18n.t(r.captainFound ? 'fantasy.importCheckRolesCaptainFound' : 'fantasy.importCheckRoles') }}</p>
                       </div>
-                      <button type="button" class="font-bold text-muted" (click)="importResult.set(null)" [attr.aria-label]="i18n.t('fantasy.close')">&times;</button>
-                    </div>
-                  }
-                </div>
-              }
-              @if (isCurrentRound()) {
-                <div class="mt-2 flex items-center justify-center gap-2">
-                  <!-- Round 1 only — every later round already carries a
-                       squad forward (getBaselineSquad), so a randomize
-                       there is a rebuild-from-scratch within a 4-transfer
-                       budget rather than the "draft a fresh test squad"
-                       use case this button exists for; round 1 (no
-                       baseline at all) is the only round where it's
-                       actually unconstrained. Not admin-gated (unlike the
-                       simulate-round button below) — this only ever
-                       touches the current viewer's own squad, and gating
-                       it on isAdmin defeated the whole point of helping a
-                       brand-new account get started (reported live
-                       2026-09-17: "brand new account can't use the
-                       randomize squad"). See routes/fantasy.ts's
-                       POST /admin/auto-fill for the matching backend fix —
-                       admin is only required there when targeting someone
-                       else's squad. -->
-                  @if (!roundLocked() && round() === 1) {
-                    <!-- Swaps to a spinner while the request is in flight
-                         (2026-09-17, direct report: "it takes some time"
-                         with no feedback at all before this) —
-                         autoFilling() was already tracked for [disabled],
-                         just never rendered anywhere. -->
-                    <!-- Visible "Randomize" label (2026-09-21), not just an
-                         icon-only circle — the dice glyph alone gave no clue
-                         what tapping it does before you tried it or hovered
-                         the title. aria-label/title keep the fuller
-                         "Randomize squad" phrasing for accessibility; the
-                         inline text uses the shorter autoFillConfirmButton
-                         string since "squad" is redundant next to the icon. -->
-                    <button
-                      type="button"
-                      (click)="requestAutoFillSquad()"
-                      [disabled]="autoFilling()"
-                      [attr.aria-label]="i18n.t('fantasy.autoFillSquad')"
-                      [title]="i18n.t('fantasy.autoFillSquad')"
-                      class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-mono font-bold bg-page text-highlight border border-line shadow-card hover:text-highlight-dim hover:border-highlight transition-colors disabled:opacity-40"
-                    >
-                      @if (autoFilling()) {
-                        <app-logo-spinner [size]="16" />
-                      } @else {
-                        <app-nav-icon name="dice" [size]="16" />
-                      }
-                      {{ i18n.t('fantasy.autoFillConfirmButton') }}
-                    </button>
-                  }
-                  <!-- Import from EuroLeague Fantasy (2026-09-28) — pick a
-                       screenshot of the real EL Fantasy squad; it's OCR'd
-                       in the browser and loaded into the builder unsaved
-                       (see importScreenshot in fantasy.ts). Any round, but
-                       only before lock, since it's a full rebuild. -->
-                  @if (!roundLocked()) {
-                    <input #importInput type="file" accept="image/*" class="hidden" (change)="importScreenshot($event)" />
-                    <button
-                      type="button"
-                      (click)="importInput.click()"
-                      [disabled]="importing()"
-                      [attr.aria-label]="i18n.t('fantasy.importScreenshot')"
-                      [title]="i18n.t('fantasy.importScreenshotHint')"
-                      class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-mono font-bold bg-page text-highlight border border-line shadow-card hover:text-highlight-dim hover:border-highlight transition-colors disabled:opacity-40"
-                    >
-                      @if (importing()) {
-                        <app-logo-spinner [size]="16" />
-                      } @else {
-                        <app-nav-icon name="share" [size]="16" />
-                      }
-                      {{ i18n.t('fantasy.importButton') }}
-                    </button>
-                  }
-                  <!-- Admin-only "simulate whole round" trigger
-                       (2026-09-17) — reuses the same simulator the
-                       Schedule page's own button drives; no confirm
-                       dialog since it only advances state, same
-                       precedent Schedule's simulate button already
-                       set (unlike the reset buttons there). -->
-                  @if (auth.currentUser()?.isAdmin) {
-                    <button
-                      type="button"
-                      (click)="simulateWholeRound()"
-                      [disabled]="simulatingRound()"
-                      [attr.aria-label]="i18n.t('fantasy.simulateRoundAdmin')"
-                      [title]="i18n.t('fantasy.simulateRoundAdmin')"
-                      class="flex items-center justify-center w-6 h-6 rounded-full bg-page text-ink border border-line shadow-card hover:text-team-primary hover:border-team-primary transition-colors disabled:opacity-40"
-                    >
-                      <app-nav-icon name="fast-forward" [size]="13" />
-                    </button>
-                  }
-                </div>
-              }
+                    }
+                  </div>
+                }
+                <input #importInput type="file" accept="image/*" class="hidden" (change)="importScreenshot($event)" />
+              </div>
 
               <!-- Sixth man + coach stacked on the left, bench 2x2 on the
                    right, one divider between (2026-09-17) — coach used to
@@ -1043,7 +858,11 @@
                    2x2 bench grid on the right. items-center on the row
                    (not items-stretch) so the divider's own h-full only
                    stretches to the taller side's actual content height. -->
-              <div class="mt-3 pt-3 border-t border-line/60 flex items-center justify-center gap-4">
+              <!-- Bench strip (2026-10-06 court pass): continues straight off
+                   the court as a darker band with a team-colour edge, instead
+                   of a separate bordered section. -->
+              <div class="relative rounded-b-2xl border border-t-0 border-line bg-page/80 shadow-[inset_0_10px_14px_-10px_rgba(0,0,0,0.55)] px-3 pt-4 pb-3 flex items-center justify-center gap-4">
+                <span class="absolute inset-x-0 top-0 h-[3px] bg-team-primary/70" aria-hidden="true"></span>
                 <div class="flex flex-col items-center gap-3">
                   <div class="flex flex-col items-center">
                     <p class="text-[11px] text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.sixthManLabel') }}</p>
@@ -1116,6 +935,68 @@
                 </div>
               </div>
 
+              @if (importing() || importResult() || importError()) {
+                <div class="mt-2 rounded-lg border px-3 py-2 text-[11px] leading-snug"
+                     [class]="importError() ? 'border-red-500/40 bg-red-500/10 text-red-500' : 'border-line bg-card text-ink'">
+                  @if (importing()) {
+                    {{ i18n.t('fantasy.importReading') }} {{ importProgress() }}%
+                  } @else if (importError()) {
+                    <div class="flex items-start justify-between gap-2">
+                      <span>
+                        {{ importError() }}
+                        @if (importErrorDetail()) {
+                          <span class="block mt-1 font-mono text-[10px] opacity-70 break-all">{{ importErrorDetail() }}</span>
+                        }
+                      </span>
+                      <button type="button" class="font-bold" (click)="importError.set(null)" [attr.aria-label]="i18n.t('fantasy.close')">&times;</button>
+                    </div>
+                  } @else if (importResult(); as r) {
+                    <div class="flex items-start justify-between gap-2">
+                      <div class="space-y-1">
+                        <p class="font-bold">{{ i18n.t('fantasy.importDone').replace('{n}', '' + r.matched) }}</p>
+                        @if (r.incoming.length) {
+                          <p><span class="font-bold text-emerald-500">{{ i18n.t('fantasy.importIn') }}</span> {{ r.incoming.join(', ') }}</p>
+                        }
+                        @if (r.outgoing.length) {
+                          <p><span class="font-bold text-red-500">{{ i18n.t('fantasy.importOut') }}</span> {{ r.outgoing.join(', ') }}</p>
+                        }
+                        @if (r.transfersAllowed !== null && r.transfersNeeded > 0) {
+                          <p class="text-muted">{{ i18n.t('fantasy.importTransfersUsed').replace('{n}', '' + r.transfersNeeded).replace('{max}', '' + r.transfersAllowed) }}</p>
+                        }
+                        @for (c of r.roleChanges; track c.name) {
+                          <p class="text-muted">{{ c.name }}: {{ slotRoleLabel(c.from) }} → {{ slotRoleLabel(c.to) }}</p>
+                        }
+                        @if (r.captainChange) {
+                          <p class="text-muted">{{ i18n.t('fantasy.importCaptain') }} {{ r.captainChange }}</p>
+                        }
+                        @if (r.coachChange) {
+                          <p class="text-muted">{{ i18n.t('fantasy.importCoach') }} {{ r.coachChange.from ? r.coachChange.from + ' → ' : '' }}{{ r.coachChange.to }}</p>
+                        }
+                        @if (!r.incoming.length && !r.outgoing.length && !r.roleChanges.length && !r.captainChange && !r.coachChange) {
+                          <p class="text-muted">{{ i18n.t('fantasy.importNoChanges') }}</p>
+                        }
+                        @if (r.kept.length) {
+                          <p class="text-muted">{{ i18n.t('fantasy.importKept') }} {{ r.kept.join(', ') }}</p>
+                        }
+                        @if (r.matched + r.kept.length < 10) {
+                          <p class="text-muted">{{ i18n.t('fantasy.importMissing') }}</p>
+                        }
+                        @if (!r.coachFound) {
+                          <p class="text-muted">{{ i18n.t('fantasy.importNoCoach') }}</p>
+                        }
+                        @if (r.ambiguous.length) {
+                          <p class="text-muted">{{ i18n.t('fantasy.importAmbiguous') }} {{ r.ambiguous.join(', ') }}</p>
+                        }
+                        @if (r.positionsDiffer) {
+                          <p class="text-amber-500">{{ i18n.t('fantasy.importPositionsDiffer') }}</p>
+                        }
+                        <p class="text-muted">{{ i18n.t(r.captainFound ? 'fantasy.importCheckRolesCaptainFound' : 'fantasy.importCheckRoles') }}</p>
+                      </div>
+                      <button type="button" class="font-bold text-muted" (click)="importResult.set(null)" [attr.aria-label]="i18n.t('fantasy.close')">&times;</button>
+                    </div>
+                  }
+                </div>
+              }
               @if (isCurrentRound()) {
                 <p class="text-center text-[11px] text-muted mt-3 pt-3 border-t border-line/60">
                   @if (squadFull()) {
@@ -2051,5 +1932,42 @@
     >
       {{ submitting() ? i18n.t('fantasy.submitting') : i18n.t('fantasy.saveShort') }}
     </button>
+  </div>
+}
+
+<!-- Court player action sheet (2026-10-06 court pass) — see openSlotMenu(). -->
+@if (slotMenuRow(); as row) {
+  @let acts = slotMenuActions(row.player.id);
+  <div class="sheet-backdrop fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/70 backdrop-blur-sm" (click)="slotMenuPlayerId.set(null)">
+    <div class="sheet-panel w-full max-w-sm bg-card rounded-3xl border border-line shadow-pop p-4" (click)="$event.stopPropagation()">
+      <div class="flex items-center gap-3 mb-3">
+        <app-player-photo [photoUrl]="row.player.photoUrl" [name]="row.player.name" [teamCode]="row.team.code" [primaryColor]="row.team.primaryColor" [size]="48" [fill]="true" class="flex" />
+        <div class="min-w-0 flex-1">
+          <p class="font-bold text-ink truncate">{{ row.player.name }}</p>
+          <p class="text-xs text-muted truncate">{{ posLabel($any(row.player.position)) }} · {{ row.team.name }} · {{ row.price | number: '1.1-1' }} {{ i18n.t('fantasy.creditsAbbrev') }}</p>
+        </div>
+        <button type="button" (click)="slotMenuPlayerId.set(null)" class="text-muted hover:text-ink text-2xl leading-none font-bold shrink-0" [attr.aria-label]="i18n.t('fantasy.close')">&times;</button>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <button type="button" (click)="slotMenuDo('info')" class="h-12 rounded-2xl border border-line bg-page hover:border-team-primary flex items-center justify-center gap-2 text-[13px] font-bold text-ink transition-colors">
+          <span class="text-team-primary text-base leading-none" aria-hidden="true">&#9432;</span>{{ i18n.t('fantasy.actionInfo') }}
+        </button>
+        @if (acts.swap) {
+          <button type="button" (click)="slotMenuDo('swap')" class="h-12 rounded-2xl border border-line bg-page hover:border-team-primary flex items-center justify-center gap-2 text-[13px] font-bold text-ink transition-colors">
+            <span class="text-team-primary text-base leading-none" aria-hidden="true">&#8645;</span>{{ i18n.t('fantasy.swapPlayer') }}
+          </button>
+        }
+        @if (acts.captain) {
+          <button type="button" (click)="slotMenuDo('captain')" class="h-12 rounded-2xl border border-line bg-page hover:border-team-primary flex items-center justify-center gap-2 text-[13px] font-bold text-ink transition-colors">
+            <span class="w-5 h-5 rounded-full bg-team-primary text-team-secondary text-[10px] font-bold flex items-center justify-center" aria-hidden="true">C</span>{{ i18n.t('fantasy.makeCaptain') }}
+          </button>
+        }
+        @if (acts.remove) {
+          <button type="button" (click)="slotMenuDo('remove')" class="h-12 rounded-2xl border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 flex items-center justify-center gap-2 text-[13px] font-bold text-red-500 transition-colors">
+            <span class="text-base leading-none" aria-hidden="true">&times;</span>{{ i18n.t('fantasy.removePlayer') }}
+          </button>
+        }
+      </div>
+    </div>
   </div>
 }

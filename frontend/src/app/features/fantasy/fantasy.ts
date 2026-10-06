@@ -2277,6 +2277,65 @@ export class FantasyComponent implements OnInit {
     return price <= this.remainingBudget();
   }
 
+  // Cheapest player not already in the squad, per position and overall —
+  // the "from 4.5" hint on an empty court slot (2026-10-06 court pass).
+  readonly cheapestPrice = computed(() => {
+    const taken = this.selectedPlayerIds();
+    const best: Record<PositionName | "any", number | null> = { Guard: null, Forward: null, Center: null, any: null };
+    for (const r of this.allRows()) {
+      if (taken.has(r.player.id)) continue;
+      const pos = r.player.position as PositionName | null;
+      if (pos && pos in best && (best[pos] === null || r.price < best[pos]!)) best[pos] = r.price;
+      if (best.any === null || r.price < best.any) best.any = r.price;
+    }
+    return best;
+  });
+
+  cheapestFor(pos: PositionName | null | undefined): number | null {
+    return this.cheapestPrice()[pos ?? "any"];
+  }
+
+  // Tapping a court player opens this action sheet (2026-10-06, replacing
+  // the swap/remove/lock corner badges): Info, Swap, Make captain, Remove —
+  // whichever apply right now. With only Info available it opens directly.
+  readonly slotMenuPlayerId = signal<string | null>(null);
+  readonly slotMenuRow = computed(() => {
+    const id = this.slotMenuPlayerId();
+    return id ? this.rowById().get(id) ?? null : null;
+  });
+
+  slotMenuActions(playerId: string): { swap: boolean; captain: boolean; remove: boolean } {
+    const slot = this.squadSlots().find((s) => s.playerId === playerId);
+    return {
+      swap: !this.isPlayerLocked(playerId),
+      captain: slot?.role === "starter" && this.captainId() !== playerId && this.canTakeCaptaincy(playerId),
+      remove: !this.roundLocked(),
+    };
+  }
+
+  openSlotMenu(playerId: string): void {
+    const a = this.slotMenuActions(playerId);
+    if (!a.swap && !a.captain && !a.remove) {
+      this.openPlayerInfo(playerId);
+      return;
+    }
+    this.slotMenuPlayerId.set(playerId);
+  }
+
+  slotMenuDo(action: "info" | "swap" | "captain" | "remove"): void {
+    const id = this.slotMenuPlayerId();
+    this.slotMenuPlayerId.set(null);
+    if (!id) return;
+    if (action === "info") this.openPlayerInfo(id);
+    else if (action === "swap") this.openSwapPicker(id);
+    else if (action === "captain") this.setCaptain(id);
+    else this.removeFromSquad(id);
+  }
+
+  // "⋯" menu on the court (Randomize / Import / admin Simulate), replacing
+  // the button row that sat between the court and the bench.
+  readonly courtMenuOpen = signal(false);
+
   // Coach variant (2026-09-12) — unlike the player pool, the coach picker's
   // rows include the CURRENTLY selected coach (selectCoach toggles it off
   // on a second tap), and switching coaches frees the old one's price back

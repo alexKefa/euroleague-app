@@ -149,6 +149,13 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.creditsCell": { en: "CR left", el: "Υπόλοιπο" },
   "fantasy.lockedShort": { en: "Locked", el: "Κλειδωμένη" },
   "fantasy.daysShort": { en: "d", el: "ημ" },
+  // Court pass (2026-10-06): player action sheet, empty-slot hint, ⋯ menu.
+  "fantasy.actionInfo": { en: "Info", el: "Πληροφορίες" },
+  "fantasy.makeCaptain": { en: "Make captain", el: "Αρχηγός" },
+  "fantasy.sixthBadge": { en: "6th", el: "6ος" },
+  "fantasy.addPlayer": { en: "Add player", el: "Προσθήκη" },
+  "fantasy.fromPrice": { en: "from {p}", el: "από {p}" },
+  "fantasy.moreActions": { en: "More actions", el: "Περισσότερα" },
   "fantasy.undoShort": { en: "Undo", el: "Αναίρεση" },
   "fantasy.resetShort": { en: "Reset", el: "Επαναφορά" },
   "fantasy.lineupComplete": { en: "Lineup complete", el: "Πλήρης ομάδα" },
