@@ -385,6 +385,36 @@
       </p>
     }
 
+    <!-- "Where the game was won" (2026-10-06, after Buzzer Lab's roundup) —
+         the winner's (or live leader's) most decisive team-stat edges,
+         ranked in game-detail.ts's gameEdges(). Hidden on a tie or when no
+         edge is big enough to mean anything. -->
+    @if ((isFinal() || isLive()) && gameEdges().length > 0 && edgeTeam(); as side) {
+      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
+        <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+          {{ isLive() ? i18n.t('game.whereBeingWon') : i18n.t('game.whereWon') }}
+          @if (isLive()) {
+            <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+          }
+        </p>
+        <p class="text-sm font-semibold mb-2">{{ edgeCaption() }}</p>
+        @for (e of gameEdges(); track e.key) {
+          <div class="flex items-center justify-between gap-3 py-2 border-t border-line">
+            <span class="text-sm text-muted">{{ e.label }}</span>
+            <span class="font-mono text-sm tabular-nums whitespace-nowrap flex items-center gap-1.5">
+              <span
+                class="w-2 h-2 rounded-full shrink-0"
+                [style.background]="(side === 'home' ? d.game.homeTeam.primaryColor : d.game.awayTeam.primaryColor) ?? '#888'"
+              ></span>
+              <span class="font-bold text-ink">{{ formatEdgeValue(e.winner, e.pct) }}</span>
+              <span class="text-muted text-xs">{{ i18n.t('game.vs') }}</span>
+              <span class="text-muted">{{ formatEdgeValue(e.loser, e.pct) }}</span>
+            </span>
+          </div>
+        }
+      </div>
+    }
+
     <!-- Full box score (final or live games) -->
     @if ((isFinal() || isLive()) && d.boxscore) {
       <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
@@ -394,6 +424,20 @@
             <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
           }
           <app-stat-legend [entries]="boxScoreLegend()" />
+          <!-- Basic / Full toggle (2026-10-06) — same control as the roster
+               page's Traditional / Advanced toggle. -->
+          <span class="ml-auto status-tile inline-flex items-center h-8 p-0.5 gap-0.5 rounded-lg border border-line normal-case tracking-normal">
+            @for (v of ['basic', 'full']; track v) {
+              <button
+                type="button"
+                (click)="boxView.set($any(v))"
+                class="h-full px-2.5 rounded-md text-[12px] font-semibold whitespace-nowrap transition-colors"
+                [ngClass]="boxView() === v ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
+              >
+                {{ i18n.t(v === 'basic' ? 'game.boxBasic' : 'game.boxFull') }}
+              </button>
+            }
+          </span>
         </p>
 
         <!-- Phones (2026-09-29 mobile-first pass): one team at a time via a
@@ -440,6 +484,21 @@
                     {{ line.assists ?? 0 }} {{ i18n.t('game.colAST') }} &middot;
                     {{ i18n.t('game.colFTMA') }} {{ line.freeThrowsMade ?? 0 }}/{{ line.freeThrowsAttempted ?? 0 }}
                   </p>
+                  <!-- Full view on phones: a second wrapped line instead of
+                       sideways-scrolling columns. -->
+                  @if (boxView() === 'full') {
+                    <p class="text-[12px] text-muted font-mono mt-0.5 leading-snug">
+                      {{ i18n.t('game.col2P') }} {{ line.twoPointersMade ?? 0 }}/{{ line.twoPointersAttempted ?? 0 }} &middot;
+                      {{ i18n.t('game.col3P') }} {{ line.threePointersMade ?? 0 }}/{{ line.threePointersAttempted ?? 0 }} &middot;
+                      {{ i18n.t('game.colOR') }} {{ line.offensiveRebounds ?? 0 }} &middot;
+                      {{ i18n.t('game.colDR') }} {{ line.defensiveRebounds ?? 0 }} &middot;
+                      {{ i18n.t('player.colStl') }} {{ line.steals ?? 0 }} &middot;
+                      {{ i18n.t('player.colBlk') }} {{ line.blocks ?? 0 }} &middot;
+                      {{ i18n.t('game.colTO') }} {{ line.turnovers ?? 0 }} &middot;
+                      {{ i18n.t('game.colPF') }} {{ line.fouls ?? 0 }} &middot;
+                      {{ i18n.t('game.colPM') }} {{ formatPlusMinus(line.plusMinus) }}
+                    </p>
+                  }
                 </div>
                 @if (isLive()) {
                   <button
@@ -467,9 +526,24 @@
                   <th class="text-left font-bold py-1">{{ i18n.t('game.playerColumn') }}</th>
                   <th class="text-right font-bold py-1 px-1.5">{{ i18n.t('game.colMIN') }}</th>
                   <th class="text-right font-bold py-1 px-1.5">{{ i18n.t('game.colPTS') }}</th>
+                  @if (boxView() === 'full') {
+                    <th class="text-right font-bold py-1 px-1.5">{{ i18n.t('game.col2P') }}</th>
+                    <th class="text-right font-bold py-1 px-1.5">{{ i18n.t('game.col3P') }}</th>
+                    <th class="text-right font-bold py-1 px-1.5 whitespace-nowrap">{{ i18n.t('game.colFTMA') }}</th>
+                    <th class="text-right font-bold py-1 px-1.5">{{ i18n.t('game.colOR') }}</th>
+                    <th class="text-right font-bold py-1 px-1.5">{{ i18n.t('game.colDR') }}</th>
+                  }
                   <th class="text-right font-bold py-1 px-1.5">{{ i18n.t('game.colREB') }}</th>
                   <th class="text-right font-bold py-1 px-1.5">{{ i18n.t('game.colAST') }}</th>
-                  <th class="text-right font-bold py-1 px-1.5 whitespace-nowrap">{{ i18n.t('game.colFTMA') }}</th>
+                  @if (boxView() === 'full') {
+                    <th class="text-right font-bold py-1 px-1.5">{{ i18n.t('player.colStl') }}</th>
+                    <th class="text-right font-bold py-1 px-1.5">{{ i18n.t('player.colBlk') }}</th>
+                    <th class="text-right font-bold py-1 px-1.5">{{ i18n.t('game.colTO') }}</th>
+                    <th class="text-right font-bold py-1 px-1.5">{{ i18n.t('game.colPF') }}</th>
+                    <th class="text-right font-bold py-1 px-1.5">{{ i18n.t('game.colPM') }}</th>
+                  } @else {
+                    <th class="text-right font-bold py-1 px-1.5 whitespace-nowrap">{{ i18n.t('game.colFTMA') }}</th>
+                  }
                   <th class="text-right font-bold py-1 px-1.5">{{ i18n.t('game.colPIR') }}</th>
                 </tr>
               </thead>
@@ -516,9 +590,24 @@
                     </td>
                     <td class="text-right font-mono py-1.5 px-1.5">{{ line.minutes | number: "1.0-0" }}</td>
                     <td class="text-right font-mono py-1.5 px-1.5">{{ line.points }}</td>
+                    @if (boxView() === 'full') {
+                      <td class="text-right font-mono py-1.5 px-1.5 whitespace-nowrap">{{ line.twoPointersMade ?? 0 }}/{{ line.twoPointersAttempted ?? 0 }}</td>
+                      <td class="text-right font-mono py-1.5 px-1.5 whitespace-nowrap">{{ line.threePointersMade ?? 0 }}/{{ line.threePointersAttempted ?? 0 }}</td>
+                      <td class="text-right font-mono py-1.5 px-1.5 whitespace-nowrap">{{ line.freeThrowsMade ?? 0 }}/{{ line.freeThrowsAttempted ?? 0 }}</td>
+                      <td class="text-right font-mono py-1.5 px-1.5">{{ line.offensiveRebounds ?? 0 }}</td>
+                      <td class="text-right font-mono py-1.5 px-1.5">{{ line.defensiveRebounds ?? 0 }}</td>
+                    }
                     <td class="text-right font-mono py-1.5 px-1.5">{{ line.rebounds }}</td>
                     <td class="text-right font-mono py-1.5 px-1.5">{{ line.assists }}</td>
-                    <td class="text-right font-mono py-1.5 px-1.5 whitespace-nowrap">{{ line.freeThrowsMade ?? 0 }}/{{ line.freeThrowsAttempted ?? 0 }}</td>
+                    @if (boxView() === 'full') {
+                      <td class="text-right font-mono py-1.5 px-1.5">{{ line.steals ?? 0 }}</td>
+                      <td class="text-right font-mono py-1.5 px-1.5">{{ line.blocks ?? 0 }}</td>
+                      <td class="text-right font-mono py-1.5 px-1.5">{{ line.turnovers ?? 0 }}</td>
+                      <td class="text-right font-mono py-1.5 px-1.5">{{ line.fouls ?? 0 }}</td>
+                      <td class="text-right font-mono py-1.5 px-1.5">{{ formatPlusMinus(line.plusMinus) }}</td>
+                    } @else {
+                      <td class="text-right font-mono py-1.5 px-1.5 whitespace-nowrap">{{ line.freeThrowsMade ?? 0 }}/{{ line.freeThrowsAttempted ?? 0 }}</td>
+                    }
                     <td class="text-right font-mono font-bold py-1.5 px-1.5 text-team-primary">{{ line.valuation }}</td>
                   </tr>
                 }
@@ -532,7 +621,7 @@
 
     <!-- Team stats (final or live games) — summed from the box score above,
          not a separate fetch. -->
-    @if ((isFinal() || isLive()) && teamTotals(); as totals) {
+    @if ((isFinal() || isLive()) && teamTotals()) {
       <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
         <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-3 flex items-center gap-1.5">
           {{ i18n.t('game.teamStats') }}
@@ -540,46 +629,44 @@
             <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
           }
         </p>
-        <div class="space-y-3">
-          @for (
-            row of [
-              { label: i18n.t('game.colPTS'), home: totals.home.points, away: totals.away.points },
-              { label: i18n.t('game.colREB'), home: totals.home.rebounds, away: totals.away.rebounds },
-              { label: i18n.t('game.colAST'), home: totals.home.assists, away: totals.away.assists },
-              { label: i18n.t('player.colStl'), home: totals.home.steals, away: totals.away.steals },
-              { label: i18n.t('player.colBlk'), home: totals.home.blocks, away: totals.away.blocks },
-              { label: i18n.t('game.colTO'), home: totals.home.turnovers, away: totals.away.turnovers },
-              {
-                label: i18n.t('game.colFTMA'),
-                home: totals.home.freeThrowsMade,
-                away: totals.away.freeThrowsMade,
-                homeText: totals.home.freeThrowsMade + '/' + totals.home.freeThrowsAttempted,
-                awayText: totals.away.freeThrowsMade + '/' + totals.away.freeThrowsAttempted,
-              },
-            ];
-            track row.label
-          ) {
-            <div>
-              <div class="flex justify-between items-center px-1 mb-1">
-                <span class="font-mono text-xs font-bold">{{ $any(row).homeText ?? row.home }}</span>
-                <span class="text-muted text-[11px] uppercase tracking-wide">{{ row.label }}</span>
-                <span class="font-mono text-xs font-bold">{{ $any(row).awayText ?? row.away }}</span>
-              </div>
-              <div class="relative h-1.5 rounded-[3px] bg-line overflow-hidden flex">
-                <div
-                  class="h-full transition-all duration-500 ease-out"
-                  [style.width.%]="statBarPct(row.home, row.away, 'home')"
-                  [style.background]="d.game.homeTeam.primaryColor ?? '#888'"
-                ></div>
-                <div
-                  class="h-full ml-auto transition-all duration-500 ease-out"
-                  [style.width.%]="statBarPct(row.home, row.away, 'away')"
-                  [style.background]="d.game.awayTeam.primaryColor ?? '#888'"
-                ></div>
-              </div>
-            </div>
-          }
+        <!-- Grouped Shooting / Rebounding / Ball & defense (2026-10-06),
+             rows built in game-detail.ts's teamStatGroups(). The side ahead
+             on each row gets the bold number; turnovers and fouls count
+             lower as ahead. -->
+        <div class="flex justify-between items-center px-1 mb-1 text-[11px] font-bold uppercase tracking-wider">
+          <span class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full" [style.background]="d.game.homeTeam.primaryColor ?? '#888'"></span>{{ d.game.homeTeam.code | teamCode }}
+          </span>
+          <span class="flex items-center gap-1.5">
+            {{ d.game.awayTeam.code | teamCode }}<span class="w-2 h-2 rounded-full" [style.background]="d.game.awayTeam.primaryColor ?? '#888'"></span>
+          </span>
         </div>
+        @for (group of teamStatGroups(); track group.title) {
+          <p class="text-[11px] text-team-primary font-bold uppercase tracking-wider mt-4 mb-2">{{ group.title }}</p>
+          <div class="space-y-3">
+            @for (row of group.rows; track row.label) {
+              <div>
+                <div class="flex justify-between items-center gap-2 px-1 mb-1">
+                  <span class="font-mono text-xs whitespace-nowrap" [ngClass]="rowLeader(row) === 'home' ? 'font-bold text-ink' : 'text-muted'">{{ row.homeText ?? row.home }}</span>
+                  <span class="text-muted text-[11px] uppercase tracking-wide text-center">{{ row.label }}</span>
+                  <span class="font-mono text-xs whitespace-nowrap" [ngClass]="rowLeader(row) === 'away' ? 'font-bold text-ink' : 'text-muted'">{{ row.awayText ?? row.away }}</span>
+                </div>
+                <div class="relative h-1.5 rounded-[3px] bg-line overflow-hidden flex">
+                  <div
+                    class="h-full transition-all duration-500 ease-out"
+                    [style.width.%]="statBarPct(row.home, row.away, 'home')"
+                    [style.background]="d.game.homeTeam.primaryColor ?? '#888'"
+                  ></div>
+                  <div
+                    class="h-full ml-auto transition-all duration-500 ease-out"
+                    [style.width.%]="statBarPct(row.home, row.away, 'away')"
+                    [style.background]="d.game.awayTeam.primaryColor ?? '#888'"
+                  ></div>
+                </div>
+              </div>
+            }
+          </div>
+        }
       </div>
     }
 

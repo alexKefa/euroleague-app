@@ -358,6 +358,14 @@ export interface GameBoxscoreLine {
   turnovers: number | null;
   freeThrowsMade: number | null;
   freeThrowsAttempted: number | null;
+  twoPointersMade: number | null;
+  twoPointersAttempted: number | null;
+  threePointersMade: number | null;
+  threePointersAttempted: number | null;
+  offensiveRebounds: number | null;
+  defensiveRebounds: number | null;
+  fouls: number | null;
+  plusMinus: number | null;
   valuation: number | null;
 }
 

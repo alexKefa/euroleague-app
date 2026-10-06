@@ -188,6 +188,17 @@ interface GameBoxscoreLine {
   turnovers: number | null;
   freeThrowsMade: number | null;
   freeThrowsAttempted: number | null;
+  // Shooting splits, offensive/defensive boards, fouls and +/- (2026-10-06)
+  // for the game page's "Where the game was won" card, grouped team stats
+  // and the box score's Full view.
+  twoPointersMade: number | null;
+  twoPointersAttempted: number | null;
+  threePointersMade: number | null;
+  threePointersAttempted: number | null;
+  offensiveRebounds: number | null;
+  defensiveRebounds: number | null;
+  fouls: number | null;
+  plusMinus: number | null;
   valuation: number | null;
 }
 
@@ -324,6 +335,14 @@ gamesRouter.get("/:id", async (req, res) => {
         turnovers: r.stat.turnovers,
         freeThrowsMade: r.stat.freeThrowsMade,
         freeThrowsAttempted: r.stat.freeThrowsAttempted,
+        twoPointersMade: r.stat.fieldGoalsMade2,
+        twoPointersAttempted: r.stat.fieldGoalsAttempted2,
+        threePointersMade: r.stat.fieldGoalsMade3,
+        threePointersAttempted: r.stat.fieldGoalsAttempted3,
+        offensiveRebounds: r.stat.offensiveRebounds,
+        defensiveRebounds: r.stat.defensiveRebounds,
+        fouls: r.stat.foulsCommitted,
+        plusMinus: r.stat.plusMinus,
         valuation: r.stat.valuation,
         teamId: r.player.teamId,
       });

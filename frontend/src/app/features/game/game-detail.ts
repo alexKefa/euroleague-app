@@ -16,7 +16,7 @@ import { SkeletonComponent } from "../../shared/skeleton";
 import { LiveCourtComponent } from "../../shared/live-court";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { formatPlayerName } from "../../shared/player-name";
-import { TeamCodePipe } from "../../shared/team-display-code";
+import { TeamCodePipe, displayTeamCode } from "../../shared/team-display-code";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { InjuryBadgeComponent } from "../../shared/injury-badge";
 import { TodayTagPipe } from "../../shared/today-tag.pipe";
@@ -42,6 +42,90 @@ interface TeamTotals {
   turnovers: number;
   freeThrowsMade: number;
   freeThrowsAttempted: number;
+  twoPointersMade: number;
+  twoPointersAttempted: number;
+  threePointersMade: number;
+  threePointersAttempted: number;
+  offensiveRebounds: number;
+  defensiveRebounds: number;
+  fouls: number;
+}
+
+// One row of the grouped Team Stats card (2026-10-06, modelled on Buzzer
+// Lab's roundup). `home`/`away` drive the bar and decide which side is
+// ahead; `homeText`/`awayText` override the printed value (e.g. "18/35").
+// lowerIsBetter flips who gets the bold "ahead" number (turnovers, fouls).
+interface TeamStatRow {
+  label: string;
+  home: number;
+  away: number;
+  homeText?: string;
+  awayText?: string;
+  lowerIsBetter?: boolean;
+}
+
+interface TeamStatGroup {
+  title: string;
+  rows: TeamStatRow[];
+}
+
+// "Where the game was won" candidates. `scale` is roughly one typical
+// game-to-game spread of that stat's team differential, so dividing the
+// winner's edge by it ranks a +4 offensive-rebound edge against a +9pt 3P%
+// edge on the same footing. `group` keeps two views of the same story
+// (3PM and 3P%, REB and OREB) from both making the list.
+interface EdgeCandidate {
+  key: string;
+  group: string;
+  scale: number;
+  lowerIsBetter?: boolean;
+  pct?: boolean;
+  value: (t: TeamTotals) => number | null;
+}
+
+const EDGE_CANDIDATES: EdgeCandidate[] = [
+  { key: "turnovers", group: "to", scale: 4, lowerIsBetter: true, value: (t) => t.turnovers },
+  { key: "steals", group: "stl", scale: 3, value: (t) => t.steals },
+  { key: "offReb", group: "reb", scale: 4, value: (t) => t.offensiveRebounds },
+  { key: "reb", group: "reb", scale: 6, value: (t) => t.rebounds },
+  { key: "assists", group: "ast", scale: 5, value: (t) => t.assists },
+  { key: "blocks", group: "blk", scale: 2.5, value: (t) => t.blocks },
+  { key: "threeMade", group: "three", scale: 3.5, value: (t) => t.threePointersMade },
+  { key: "threePct", group: "three", scale: 10, pct: true, value: (t) => pct(t.threePointersMade, t.threePointersAttempted) },
+  { key: "twoPct", group: "two", scale: 8, pct: true, value: (t) => pct(t.twoPointersMade, t.twoPointersAttempted) },
+  { key: "ftMade", group: "ft", scale: 5, value: (t) => t.freeThrowsMade },
+];
+
+// An edge needs to be at least this many "typical spreads" in the
+// winner's favour to count as decisive; below that it's noise.
+const EDGE_THRESHOLD = 0.75;
+const EDGE_LIMIT = 4;
+
+export interface GameEdge {
+  key: string;
+  label: string;
+  winner: number;
+  loser: number;
+  pct: boolean;
+}
+
+function pct(made: number, attempted: number): number | null {
+  return attempted > 0 ? (made / attempted) * 100 : null;
+}
+
+function fmtPct(value: number | null): string {
+  return value == null ? "–" : `${Math.round(value)}%`;
+}
+
+// eFG% = (FGM + 0.5·3PM) / FGA; TS% = PTS / (2·(FGA + 0.44·FTA)).
+function efgPct(t: TeamTotals): number | null {
+  const fga = t.twoPointersAttempted + t.threePointersAttempted;
+  return fga > 0 ? ((t.twoPointersMade + t.threePointersMade + 0.5 * t.threePointersMade) / fga) * 100 : null;
+}
+
+function tsPct(t: TeamTotals): number | null {
+  const denom = 2 * (t.twoPointersAttempted + t.threePointersAttempted + 0.44 * t.freeThrowsAttempted);
+  return denom > 0 ? (t.points / denom) * 100 : null;
 }
 
 // One row in the live "scoring feed" — a GameScoringEvent (see
@@ -78,6 +162,13 @@ function totalsFor(lines: GameBoxscoreLine[]): TeamTotals {
     turnovers: sumStat(lines, "turnovers"),
     freeThrowsMade: sumStat(lines, "freeThrowsMade"),
     freeThrowsAttempted: sumStat(lines, "freeThrowsAttempted"),
+    twoPointersMade: sumStat(lines, "twoPointersMade"),
+    twoPointersAttempted: sumStat(lines, "twoPointersAttempted"),
+    threePointersMade: sumStat(lines, "threePointersMade"),
+    threePointersAttempted: sumStat(lines, "threePointersAttempted"),
+    offensiveRebounds: sumStat(lines, "offensiveRebounds"),
+    defensiveRebounds: sumStat(lines, "defensiveRebounds"),
+    fouls: sumStat(lines, "fouls"),
   };
 }
 
@@ -204,8 +295,26 @@ export class GameDetailComponent implements OnInit {
     { codeKey: "game.colPIR", key: "game.legendPIR" },
   ];
 
+  private readonly fullBoxScoreLegendKeys: { codeKey: string; key: string }[] = [
+    { codeKey: "game.colMIN", key: "game.legendMIN" },
+    { codeKey: "game.colPTS", key: "game.legendPTS" },
+    { codeKey: "game.col2P", key: "game.legend2P" },
+    { codeKey: "game.col3P", key: "game.legend3P" },
+    { codeKey: "game.colFTMA", key: "game.legendFTMA" },
+    { codeKey: "game.colOR", key: "game.legendOR" },
+    { codeKey: "game.colDR", key: "game.legendDR" },
+    { codeKey: "game.colREB", key: "game.legendREB" },
+    { codeKey: "game.colAST", key: "game.legendAST" },
+    { codeKey: "player.colStl", key: "game.legendSTL" },
+    { codeKey: "player.colBlk", key: "game.legendBLK" },
+    { codeKey: "game.colTO", key: "game.legendTO" },
+    { codeKey: "game.colPF", key: "game.legendPF" },
+    { codeKey: "game.colPM", key: "game.legendPM" },
+    { codeKey: "game.colPIR", key: "game.legendPIR" },
+  ];
+
   readonly boxScoreLegend = computed<StatLegendEntry[]>(() =>
-    this.boxScoreLegendKeys.map((k) => ({ code: this.i18n.t(k.codeKey), label: this.i18n.t(k.key) }))
+    (this.boxView() === "full" ? this.fullBoxScoreLegendKeys : this.boxScoreLegendKeys).map((k) => ({ code: this.i18n.t(k.codeKey), label: this.i18n.t(k.key) }))
   );
 
   // Which team's box score shows on phones (Home/Away toggle); desktop
@@ -283,6 +392,128 @@ export class GameDetailComponent implements OnInit {
     if (!box) return null;
     return { home: totalsFor(box.home), away: totalsFor(box.away) };
   });
+
+  readonly teamStatGroups = computed<TeamStatGroup[]>(() => {
+    const totals = this.teamTotals();
+    if (!totals) return [];
+    const { home: h, away: a } = totals;
+    const t = (k: string) => this.i18n.t(k);
+    const shootingRow = (label: string, hm: number, ha: number, am: number, aa: number): TeamStatRow => ({
+      label,
+      home: pct(hm, ha) ?? 0,
+      away: pct(am, aa) ?? 0,
+      homeText: `${hm}/${ha} · ${fmtPct(pct(hm, ha))}`,
+      awayText: `${fmtPct(pct(am, aa))} · ${am}/${aa}`,
+    });
+    const rateRow = (label: string, hv: number | null, av: number | null): TeamStatRow => ({
+      label,
+      home: hv ?? 0,
+      away: av ?? 0,
+      homeText: fmtPct(hv),
+      awayText: fmtPct(av),
+    });
+    return [
+      {
+        title: t("game.groupShooting"),
+        rows: [
+          { label: t("game.colPTS"), home: h.points, away: a.points },
+          shootingRow(t("game.col2P"), h.twoPointersMade, h.twoPointersAttempted, a.twoPointersMade, a.twoPointersAttempted),
+          shootingRow(t("game.col3P"), h.threePointersMade, h.threePointersAttempted, a.threePointersMade, a.threePointersAttempted),
+          shootingRow(t("game.colFTMA"), h.freeThrowsMade, h.freeThrowsAttempted, a.freeThrowsMade, a.freeThrowsAttempted),
+          rateRow(t("game.colEFG"), efgPct(h), efgPct(a)),
+          rateRow(t("game.colTS"), tsPct(h), tsPct(a)),
+        ],
+      },
+      {
+        title: t("game.groupRebounding"),
+        rows: [
+          { label: t("game.colREB"), home: h.rebounds, away: a.rebounds },
+          { label: t("game.colOR"), home: h.offensiveRebounds, away: a.offensiveRebounds },
+          { label: t("game.colDR"), home: h.defensiveRebounds, away: a.defensiveRebounds },
+        ],
+      },
+      {
+        title: t("game.groupBallDefense"),
+        rows: [
+          { label: t("game.colAST"), home: h.assists, away: a.assists },
+          { label: t("player.colStl"), home: h.steals, away: a.steals },
+          { label: t("player.colBlk"), home: h.blocks, away: a.blocks },
+          { label: t("game.colTO"), home: h.turnovers, away: a.turnovers, lowerIsBetter: true },
+          { label: t("game.colPF"), home: h.fouls, away: a.fouls, lowerIsBetter: true },
+        ],
+      },
+    ];
+  });
+
+  // Which side is ahead on a Team Stats row, for bolding its number; null
+  // on a tie.
+  rowLeader(row: TeamStatRow): "home" | "away" | null {
+    if (row.home === row.away) return null;
+    const homeAhead = row.lowerIsBetter ? row.home < row.away : row.home > row.away;
+    return homeAhead ? "home" : "away";
+  }
+
+  // The team the "Where the game was won" card is about: the winner of a
+  // final game, or whoever leads a live one. Null on a tie.
+  readonly edgeTeam = computed<"home" | "away" | null>(() => {
+    const g = this.detail()?.game;
+    if (!g || g.homeScore == null || g.awayScore == null || g.homeScore === g.awayScore) return null;
+    return g.homeScore > g.awayScore ? "home" : "away";
+  });
+
+  // The winner's biggest edges, ranked by how unusual each margin is (see
+  // EDGE_CANDIDATES), at most one per group.
+  readonly gameEdges = computed<GameEdge[]>(() => {
+    const totals = this.teamTotals();
+    const side = this.edgeTeam();
+    if (!totals || !side) return [];
+    const winner = totals[side];
+    const loser = totals[side === "home" ? "away" : "home"];
+    const scored = EDGE_CANDIDATES.flatMap((c) => {
+      const w = c.value(winner);
+      const l = c.value(loser);
+      if (w == null || l == null) return [];
+      const edge = (c.lowerIsBetter ? l - w : w - l) / c.scale;
+      return edge >= EDGE_THRESHOLD ? [{ c, w, l, edge }] : [];
+    }).sort((x, y) => y.edge - x.edge);
+    const seenGroups = new Set<string>();
+    const edges: GameEdge[] = [];
+    for (const s of scored) {
+      if (seenGroups.has(s.c.group)) continue;
+      seenGroups.add(s.c.group);
+      edges.push({ key: s.c.key, label: this.i18n.t(`game.edge.${s.c.key}`), winner: s.w, loser: s.l, pct: !!s.c.pct });
+      if (edges.length === EDGE_LIMIT) break;
+    }
+    return edges;
+  });
+
+  // One-sentence summary built from the top edge, e.g.
+  // "CZV: fewer turnovers, 13 vs 17".
+  readonly edgeCaption = computed(() => {
+    const top = this.gameEdges()[0];
+    const side = this.edgeTeam();
+    const g = this.detail()?.game;
+    if (!top || !side || !g) return "";
+    const team = side === "home" ? g.homeTeam : g.awayTeam;
+    return this.i18n
+      .t(`game.edgeCaption.${top.key}`)
+      .replace("{team}", displayTeamCode(team.code))
+      .replace("{w}", this.formatEdgeValue(top.winner, top.pct))
+      .replace("{l}", this.formatEdgeValue(top.loser, top.pct));
+  });
+
+  formatPlusMinus(value: number | null): string {
+    if (value == null) return "–";
+    return value > 0 ? `+${value}` : String(value);
+  }
+
+  formatEdgeValue(value: number, isPct: boolean): string {
+    return isPct ? fmtPct(value) : String(value);
+  }
+
+  // Box score Basic / Full toggle (2026-10-06). Basic is the original
+  // compact view; Full adds shooting splits, OR/DR, STL/BLK/TO, fouls, +/-.
+  readonly boxView = signal<"basic" | "full">("basic");
 
   // Center-anchored divergent bar width, same normalization player-compare.ts's
   // own barPct uses (share of the two values' combined total) — reused here
