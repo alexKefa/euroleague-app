@@ -467,8 +467,10 @@
         <div class="pointer-events-none absolute inset-0" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 26%, transparent) 0%, color-mix(in srgb, var(--accent-primary) 6%, transparent) 55%, transparent 100%)" aria-hidden="true"></div>
         <div class="pointer-events-none absolute -right-16 -top-16 w-48 h-48 rounded-full border-[14px]" style="border-color: color-mix(in srgb, var(--accent-primary) 12%, transparent)" aria-hidden="true"></div>
         <div class="relative">
-        <div class="flex items-center justify-between gap-2 mb-3">
-          <div class="flex items-center gap-1.5 shrink-0">
+        <div class="flex items-center gap-2 mb-3">
+          <!-- Round dropdown grows to meet the fixtures button (2026-10-06,
+               "make it flex with the program icon. do not leave gaps"). -->
+          <div class="flex flex-1 items-center gap-1.5 min-w-0">
             <!-- Prev/next arrows -> a dropdown (2026-09-24, direct ask) --
                  jumps straight to any past round instead of stepping
                  through one at a time; current round stays the default
@@ -479,7 +481,7 @@
                    Greek label "Αγωνιστική 12" right at the number).
                    Shrink-wraps to its own content instead, same as the
                    team-filter app-dropdown elsewhere on this page. -->
-              <app-dropdown class="shrink-0" [options]="roundDropdownOptions()" [value]="roundDropdownValue()" (valueChange)="onRoundChange($event)" />
+              <app-dropdown class="block flex-1 min-w-[9rem]" [options]="roundDropdownOptions()" [value]="roundDropdownValue()" (valueChange)="onRoundChange($event)" />
             } @else {
               <p class="text-sm font-bold">{{ i18n.t('fantasy.round') }} {{ round() }}</p>
             }
