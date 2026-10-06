@@ -1105,6 +1105,24 @@ export class FantasyComponent implements OnInit {
     return counts as Record<"Guard" | "Forward" | "Center", number>;
   });
 
+  // Status card's one-line quota readout (2026-10-06 scoreboard pass): one
+  // dot per required player per position, filled as the squad fills it.
+  readonly quotaDots = computed(() => {
+    const counts = this.positionCounts();
+    const labels = { Guard: "fantasy.posGuardAbbrev", Forward: "fantasy.posForwardAbbrev", Center: "fantasy.posCenterAbbrev" } as const;
+    return (Object.keys(this.positionQuota) as (keyof typeof FANTASY_POSITION_QUOTA)[]).map((pos) => {
+      const quota = this.positionQuota[pos];
+      const count = counts[pos];
+      return {
+        key: pos,
+        label: this.i18n.t(labels[pos]),
+        met: count >= quota,
+        over: count > quota,
+        dots: Array.from({ length: Math.max(quota, count) }, (_, i) => i < count),
+      };
+    });
+  });
+
   readonly positionQuotaMet = computed(() => {
     const counts = this.positionCounts();
     return (Object.keys(this.positionQuota) as (keyof typeof FANTASY_POSITION_QUOTA)[]).every(

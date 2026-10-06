@@ -145,6 +145,13 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   // Undo / reset + pool block reasons (2026-10-05).
   "fantasy.undoChanges": { en: "Undo changes", el: "Αναίρεση αλλαγών" },
   "fantasy.resetRound": { en: "Reset to round start", el: "Επαναφορά στην αρχή του γύρου" },
+  // Status card scoreboard (2026-10-06): short chip labels + readiness line.
+  "fantasy.creditsCell": { en: "CR left", el: "Υπόλοιπο" },
+  "fantasy.todayShort": { en: "Today", el: "Σήμερα" },
+  "fantasy.undoShort": { en: "Undo", el: "Αναίρεση" },
+  "fantasy.resetShort": { en: "Reset", el: "Επαναφορά" },
+  "fantasy.lineupComplete": { en: "Lineup complete", el: "Πλήρης ομάδα" },
+  "fantasy.nToFix": { en: "{n} to fix", el: "{n} εκκρεμότητες" },
   "fantasy.resetRoundConfirm": {
     en: "Go back to the squad you started this round with? Every transfer and change this round is undone. Press Save afterwards to keep it.",
     el: "Επιστροφή στην πεντάδα με την οποία ξεκίνησες τον γύρο; Αναιρούνται όλες οι μεταγραφές και αλλαγές του γύρου. Πάτα Αποθήκευση μετά για να κρατηθεί.",

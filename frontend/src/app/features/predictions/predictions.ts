@@ -25,7 +25,6 @@ import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { PageHintComponent } from "../../shared/page-hint";
 import { NavIconComponent, NavIconName } from "../../shared/nav-icon";
 import { SkeletonComponent } from "../../shared/skeleton";
-import { ButtonDirective } from "../../shared/button.directive";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { newsDateLocale, shortDateFormat as gameShortDateFormat, gameDateTimeFormat } from "../../shared/news-date-format";
@@ -142,7 +141,6 @@ interface DisplayedPick {
     PageHintComponent,
     NavIconComponent,
     SkeletonComponent,
-    ButtonDirective,
     LogoSpinnerComponent,
     CollectibleCardComponent,
     TeamCodePipe,
