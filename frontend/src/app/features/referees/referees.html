@@ -54,7 +54,7 @@
                   [class.bg-team-primary/10]="r.id === highlightId()"
                 >
                   <td class="sticky left-0 z-10 px-3 py-2 font-semibold whitespace-nowrap" [ngClass]="r.id === highlightId() ? 'bg-card text-team-primary' : 'bg-card'">
-                    {{ name(r) }}
+                    <a [routerLink]="['/referees', r.id]" class="hover:text-team-primary transition-colors">{{ name(r) }}</a>
                   </td>
                   @for (c of columns; track c.key) {
                     <td class="text-right font-mono px-2 py-2" [ngClass]="unusual(c.key, r[c.key]) ? 'font-bold text-ink' : 'text-muted'">

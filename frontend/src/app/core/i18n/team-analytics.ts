@@ -126,4 +126,30 @@ export const teamAnalyticsTranslations: Record<string, Record<Lang, string>> = {
   "ref.empty": { en: "No referee data yet.", el: "Δεν υπάρχουν ακόμα δεδομένα διαιτητών." },
   "ref.failed": { en: "Couldn't load referee stats.", el: "Δεν ήταν δυνατή η φόρτωση των στατιστικών διαιτητών." },
   "ref.crew": { en: "Referees", el: "Διαιτητές" },
+
+  // Referee x team (2026-10-06)
+  "ref.byTeam": { en: "By team", el: "Ανά ομάδα" },
+  "ref.byTeamHint": {
+    en: "Each team's record and fouls in games this referee worked. A referee works one team only a few times a season, so read these as small samples.",
+    el: "Ρεκόρ και φάουλ κάθε ομάδας στους αγώνες που σφύριξε ο διαιτητής. Κάθε διαιτητής σφυρίζει μια ομάδα λίγες φορές τη σεζόν, οπότε τα δείγματα είναι μικρά.",
+  },
+  "ref.gamesN": { en: "{n} games", el: "{n} αγώνες" },
+  "ref.gamesOne": { en: "1 game", el: "1 αγώνας" },
+  "ref.since": { en: "Since {s}", el: "Από τη σεζόν {s}" },
+  "ref.barLegend": {
+    en: "Top bar: wins (green) and losses. Bottom bar: fouls per game called on the team (left, team colour) vs on its opponents (right).",
+    el: "Πάνω μπάρα: νίκες (πράσινο) και ήττες. Κάτω μπάρα: φάουλ ανά αγώνα κατά της ομάδας (αριστερά, χρώμα ομάδας) και κατά των αντιπάλων (δεξιά).",
+  },
+  "ref.ftaLine": { en: "FTA {a} vs {b}", el: "Βολές {a} έναντι {b}" },
+  "ref.notFound": { en: "Referee not found.", el: "Ο διαιτητής δεν βρέθηκε." },
+  "ref.allReferees": { en: "All referees", el: "Όλοι οι διαιτητές" },
+  "ref.vsAvg": { en: "avg {v}", el: "μ.ό. {v}" },
+  "ref.teamCard": { en: "Referees", el: "Διαιτητές" },
+  "ref.teamCardHint": {
+    en: "This team's record and fouls with each referee on the crew. Since {s}. Referees with 2+ games.",
+    el: "Ρεκόρ και φάουλ της ομάδας με κάθε διαιτητή. Από τη σεζόν {s}. Διαιτητές με 2+ αγώνες.",
+  },
+  "ref.teamOverall": { en: "All games", el: "Όλοι οι αγώνες" },
+  "ref.showAll": { en: "Show all", el: "Εμφάνιση όλων" },
+  "ref.showLess": { en: "Show less", el: "Λιγότερα" },
 };

@@ -74,7 +74,7 @@ import {
   TeamFan,
   RoundRecap,
   Announcement,
-  AnnouncementInput, FantasyPlayerCard, ScoutingReport, Reminders, TeamAnalytics, ClutchLeaders, TeamRestSplits, PlayerRestSplits, RefereeStats } from "./models";
+  AnnouncementInput, FantasyPlayerCard, ScoutingReport, Reminders, TeamAnalytics, ClutchLeaders, TeamRestSplits, PlayerRestSplits, RefereeStats, RefereeDetail, TeamReferees } from "./models";
 
 /**
  * Wraps HttpClient calls to the backend's /api routes.
@@ -105,6 +105,14 @@ export class ApiService {
 
   getPlayerRestSplits(playerId: string): Observable<PlayerRestSplits> {
     return this.http.get<PlayerRestSplits>(`${API_BASE_URL}/players/${playerId}/rest-splits`);
+  }
+
+  getRefereeDetail(refereeId: string): Observable<RefereeDetail> {
+    return this.http.get<RefereeDetail>(`${API_BASE_URL}/referees/${refereeId}`);
+  }
+
+  getTeamReferees(teamId: string): Observable<TeamReferees> {
+    return this.http.get<TeamReferees>(`${API_BASE_URL}/teams/${teamId}/referees`);
   }
 
   getRefereeStats(): Observable<RefereeStats> {

@@ -1608,3 +1608,26 @@ export interface RefereeStats {
   league: Omit<RefereeRow, "id" | "name">;
   referees: RefereeRow[];
 }
+
+// Referee x team (2026-10-06) — see backend/src/services/refereeStats.ts.
+export interface RefereeTeamRow {
+  games: number;
+  wins: number;
+  pf: number; // fouls called on the team, per game
+  oppPf: number; // fouls called on its opponents, per game
+  fta: number;
+  oppFta: number;
+}
+
+export interface RefereeDetail {
+  seasons: string[];
+  referee: RefereeRow | null;
+  league: RefereeStats["league"];
+  teams: (RefereeTeamRow & { team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null } })[];
+}
+
+export interface TeamReferees {
+  seasons: string[];
+  overall: RefereeTeamRow | null;
+  referees: (RefereeTeamRow & { referee: { id: string; name: string } })[];
+}

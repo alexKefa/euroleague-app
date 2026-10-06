@@ -195,6 +195,68 @@
     }
   }
 
+  <!-- Referees (2026-10-06): this team's record and foul split with each
+       referee, the team's own all-games line first as the baseline. Same
+       two bars as the referee page. -->
+  @if (referees(); as rf) {
+    @if (refRows().length > 0) {
+      <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+        <p class="font-display text-base">{{ i18n.t('ref.teamCard') }}</p>
+        <p class="text-[12px] text-muted mb-1">{{ i18n.t('ref.teamCardHint').replace('{s}', refSince()) }}</p>
+        <p class="text-[11px] text-muted mb-3">{{ i18n.t('ref.barLegend') }}</p>
+        <ul>
+          @if (rf.overall; as o) {
+            <li class="py-3 bg-page -mx-4 px-4 border-y border-line">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-sm font-semibold">{{ i18n.t('ref.teamOverall') }}</span>
+                <span class="ml-auto text-[12px] text-muted font-mono">{{ o.games }} {{ i18n.t('ta.gp') }}</span>
+              </div>
+              <div class="flex items-center gap-2 mb-1.5">
+                <span class="w-12 shrink-0 font-mono text-xs font-bold">{{ o.wins }}-{{ o.games - o.wins }}</span>
+                <div class="flex-1 h-2 rounded-[3px] bg-red-500/70 overflow-hidden">
+                  <div class="h-full bg-emerald-500" [style.width.%]="winShare(o.wins, o.games)"></div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="w-12 shrink-0 font-mono text-xs">{{ o.pf | number: '1.1-1' }}</span>
+                <div class="flex-1 h-2 rounded-[3px] bg-line overflow-hidden flex">
+                  <div class="h-full bg-team-primary" [style.width.%]="foulShare(o.pf, o.oppPf)"></div>
+                </div>
+                <span class="w-10 shrink-0 font-mono text-xs text-muted text-right">{{ o.oppPf | number: '1.1-1' }}</span>
+              </div>
+            </li>
+          }
+          @for (r of visibleRefRows(); track r.referee.id) {
+            <li class="py-3 border-b border-line last:border-b-0">
+              <div class="flex items-center gap-2 mb-2">
+                <a [routerLink]="['/referees', r.referee.id]" class="text-sm font-semibold truncate hover:text-team-primary transition-colors">{{ refName(r.referee.name) }}</a>
+                <span class="ml-auto text-[12px] text-muted font-mono shrink-0">{{ r.games }} {{ i18n.t('ta.gp') }}</span>
+              </div>
+              <div class="flex items-center gap-2 mb-1.5">
+                <span class="w-12 shrink-0 font-mono text-xs font-bold">{{ r.wins }}-{{ r.games - r.wins }}</span>
+                <div class="flex-1 h-2 rounded-[3px] bg-red-500/70 overflow-hidden">
+                  <div class="h-full bg-emerald-500" [style.width.%]="winShare(r.wins, r.games)"></div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="w-12 shrink-0 font-mono text-xs">{{ r.pf | number: '1.1-1' }}</span>
+                <div class="flex-1 h-2 rounded-[3px] bg-line overflow-hidden flex">
+                  <div class="h-full bg-team-primary" [style.width.%]="foulShare(r.pf, r.oppPf)"></div>
+                </div>
+                <span class="w-10 shrink-0 font-mono text-xs text-muted text-right">{{ r.oppPf | number: '1.1-1' }}</span>
+              </div>
+            </li>
+          }
+        </ul>
+        @if (refRows().length > 6) {
+          <button type="button" (click)="refsExpanded.set(!refsExpanded())" class="mt-2 text-[12px] font-semibold text-team-primary">
+            {{ refsExpanded() ? i18n.t('ref.showLess') : i18n.t('ref.showAll') }}
+          </button>
+        }
+      </div>
+    }
+  }
+
   <!-- Short-rest splits (2026-10-06). Outside the block above on purpose:
        it covers last season too, so it has data before this season does. -->
   @if (rest(); as r) {

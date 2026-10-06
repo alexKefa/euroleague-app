@@ -84,6 +84,11 @@ export const routes: Routes = [
       import("./features/referees/referees").then((m) => m.RefereesComponent),
   },
   {
+    path: "referees/:id",
+    loadComponent: () =>
+      import("./features/referees/referee-detail").then((m) => m.RefereeDetailComponent),
+  },
+  {
     path: "standings",
     loadComponent: () =>
       import("./features/standings/standings").then((m) => m.StandingsComponent),

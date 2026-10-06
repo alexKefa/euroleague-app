@@ -7,6 +7,7 @@ import { getCurrentSeason } from "../services/season.js";
 import { getBaselinePPGForPlayers } from "../services/topScorerPoints.js";
 import { getTeamAnalytics } from "../services/teamAnalytics.js";
 import { getTeamRestSplits } from "../services/restSplits.js";
+import { getTeamReferees } from "../services/refereeStats.js";
 
 function emptyStats(playerId: string, teamId: string, season: string) {
   return {
@@ -194,6 +195,16 @@ teamsRouter.get("/:id/analytics", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to load team analytics" });
+  }
+});
+
+// This team's record and fouls with each referee (2026-10-06), see services/refereeStats.ts.
+teamsRouter.get("/:id/referees", async (req, res) => {
+  try {
+    res.json(await getTeamReferees(req.params.id));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to load team referees" });
   }
 });
 

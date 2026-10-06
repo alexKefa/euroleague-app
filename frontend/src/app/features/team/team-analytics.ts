@@ -3,7 +3,7 @@ import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
-import { AnalyticsPlayer, PlayerRestLine, ShotZone, TeamAnalytics, TeamRestRow, TeamRestSplits } from "../../core/models";
+import { AnalyticsPlayer, PlayerRestLine, ShotZone, TeamAnalytics, TeamRestRow, TeamRestSplits, TeamReferees } from "../../core/models";
 import { formatPlayerName } from "../../shared/player-name";
 
 // Team page analytics (2026-10-06): shot profile vs league, most-used
@@ -53,6 +53,8 @@ export class TeamAnalyticsComponent {
     // Rest splits are their own request: a separate, optional card.
     this.rest.set(null);
     this.api.getTeamRestSplits(teamId).subscribe({ next: (r) => this.rest.set(r), error: () => {} });
+    this.referees.set(null);
+    this.api.getTeamReferees(teamId).subscribe({ next: (r) => this.referees.set(r), error: () => {} });
     this.loading.set(true);
     this.error.set(false);
     this.api.getTeamAnalytics(teamId).subscribe({
@@ -117,6 +119,29 @@ export class TeamAnalyticsComponent {
   );
 
   readonly clutch = computed(() => this.data()?.clutch ?? null);
+
+  // This team with each referee (2026-10-06), see backend/src/services/refereeStats.ts.
+  // Pairings with a single game are left out; they say nothing.
+  readonly referees = signal<TeamReferees | null>(null);
+  readonly refsExpanded = signal(false);
+  readonly refRows = computed(() => (this.referees()?.referees ?? []).filter((r) => r.games >= 2));
+  readonly visibleRefRows = computed(() => (this.refsExpanded() ? this.refRows() : this.refRows().slice(0, 6)));
+  readonly refSince = computed(() => {
+    const seasons = this.referees()?.seasons ?? [];
+    return seasons[seasons.length - 1] ?? "";
+  });
+
+  refName(name: string): string {
+    return formatPlayerName(name);
+  }
+
+  winShare(wins: number, games: number): number {
+    return games > 0 ? (wins / games) * 100 : 0;
+  }
+
+  foulShare(pf: number, oppPf: number): number {
+    return pf + oppPf > 0 ? (pf / (pf + oppPf)) * 100 : 50;
+  }
 
   // Short-rest splits (2026-10-06), see backend/src/services/restSplits.ts.
   readonly rest = signal<TeamRestSplits | null>(null);

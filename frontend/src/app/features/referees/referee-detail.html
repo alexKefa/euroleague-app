@@ -1,0 +1,74 @@
+<div class="max-w-3xl mx-auto p-4 sm:p-6">
+  <a [routerLink]="navHistory.previousUrl() ?? '/referees'" class="back-link"
+    >{{ navHistory.previousUrl() ? i18n.t('nav.back') : i18n.t('ref.allReferees') }}</a
+  >
+
+  @if (loading()) {
+    <div class="bg-card rounded-3xl border border-line shadow-card p-6 mt-4 text-center text-sm text-muted">…</div>
+  } @else if (error() || !data()?.referee) {
+    <div class="bg-card rounded-3xl border border-line shadow-card p-6 mt-4 text-center text-sm text-muted">
+      {{ error() ? i18n.t('ref.failed') : i18n.t('ref.notFound') }}
+    </div>
+  } @else if (data(); as d) {
+    <!-- Header: name, games, and the four headline numbers vs the
+         all-games average. -->
+    <div class="bg-card rounded-3xl border border-line shadow-card p-4 mt-4 mb-4">
+      <p class="text-[11px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('ref.title') }}</p>
+      <h1 class="font-display text-2xl leading-tight">{{ name() }}</h1>
+      <p class="text-[12px] text-muted mt-0.5">{{ gamesText(d.referee!.games) }} &middot; {{ i18n.t('ref.since').replace('{s}', sinceText()) }}</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
+        @for (t of tiles(); track t.labelKey) {
+          <div class="status-tile rounded-xl border border-line p-2.5 text-center">
+            <p class="font-display text-xl leading-tight tabular-nums">{{ t.value }}</p>
+            <p class="text-[10px] text-muted uppercase tracking-wide">{{ i18n.t(t.labelKey) }}</p>
+            <p class="text-[10px] text-muted font-mono">{{ i18n.t('ref.vsAvg').replace('{v}', t.avg) }}</p>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Every team this referee has worked: record bar + foul split bar. -->
+    <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-6">
+      <p class="font-display text-base">{{ i18n.t('ref.byTeam') }}</p>
+      <p class="text-[12px] text-muted mb-2">{{ i18n.t('ref.byTeamHint') }}</p>
+      <p class="text-[11px] text-muted mb-3">{{ i18n.t('ref.barLegend') }}</p>
+      <ul>
+        @for (row of d.teams; track row.team.id) {
+          <li class="py-3 border-t border-line first:border-t-0">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="w-6 h-6 rounded-md bg-card flex items-center justify-center shrink-0 border border-line overflow-hidden">
+                @if (row.team.logoUrl) {
+                  <img [src]="row.team.logoUrl" alt="" class="w-5 h-5 object-contain" />
+                } @else {
+                  <span class="w-2 h-2 rounded-full" [style.background]="row.team.primaryColor ?? '#888'"></span>
+                }
+              </span>
+              <a [routerLink]="['/teams', row.team.id]" class="text-sm font-semibold truncate hover:text-team-primary transition-colors">{{ row.team.name }}</a>
+              <span class="ml-auto text-[12px] text-muted font-mono shrink-0">{{ gamesText(row.games) }}</span>
+            </div>
+
+            <!-- W-L -->
+            <div class="flex items-center gap-2 mb-1.5">
+              <span class="w-12 shrink-0 font-mono text-xs font-bold">{{ row.wins }}-{{ row.games - row.wins }}</span>
+              <div class="flex-1 h-2 rounded-[3px] bg-red-500/70 overflow-hidden">
+                <div class="h-full bg-emerald-500" [style.width.%]="winPct(row.wins, row.games)"></div>
+              </div>
+            </div>
+
+            <!-- Fouls on the team (team colour) vs on its opponents (grey). -->
+            <div class="flex items-center gap-2">
+              <span class="w-12 shrink-0 font-mono text-xs">{{ row.pf | number: '1.1-1' }}</span>
+              <div class="flex-1 h-2 rounded-[3px] bg-line overflow-hidden flex">
+                <div class="h-full" [style.width.%]="foulShare(row.pf, row.oppPf)" [style.background]="row.team.primaryColor ?? '#888'"></div>
+              </div>
+              <span class="w-10 shrink-0 font-mono text-xs text-muted text-right">{{ row.oppPf | number: '1.1-1' }}</span>
+            </div>
+            <p class="text-[11px] text-muted mt-1">
+              {{ ftaLine(row.fta, row.oppFta) }}
+            </p>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+</div>
