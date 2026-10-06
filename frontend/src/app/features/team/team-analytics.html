@@ -194,4 +194,93 @@
       }
     }
   }
+
+  <!-- Short-rest splits (2026-10-06). Outside the block above on purpose:
+       it covers last season too, so it has data before this season does. -->
+  @if (rest(); as r) {
+    @if (restBuckets().length > 0) {
+      <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+        <p class="font-display text-base">{{ i18n.t('rest.title') }}</p>
+        <p class="text-[12px] text-muted">{{ i18n.t('rest.hint').replace('{s}', restSince()) }}</p>
+        <p class="text-[12px] text-muted mb-3">{{ i18n.t('rest.smallSample') }}</p>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs">
+            <thead>
+              <tr class="text-muted uppercase tracking-wide">
+                <th class="text-left font-bold py-1.5"></th>
+                <th class="text-right font-bold py-1.5 px-1.5">{{ i18n.t('ta.gp') }}</th>
+                <th class="text-right font-bold py-1.5 px-1.5">{{ i18n.t('rest.record') }}</th>
+                <th class="text-right font-bold py-1.5 px-1.5">{{ i18n.t('rest.ppg') }}</th>
+                <th class="text-right font-bold py-1.5 px-1.5">{{ i18n.t('rest.opp') }}</th>
+                <th class="text-right font-bold py-1.5 pl-1.5">{{ i18n.t('rest.margin') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (b of restBuckets(); track b.key) {
+                <tr class="border-t border-line">
+                  <td class="py-2 font-semibold">{{ i18n.t('rest.' + b.key) }}</td>
+                  <td class="text-right font-mono py-2 px-1.5 text-muted">{{ b.row!.games }}</td>
+                  <td class="text-right font-mono py-2 px-1.5">{{ b.row!.wins }}-{{ b.row!.games - b.row!.wins }}</td>
+                  <td class="text-right font-mono py-2 px-1.5">{{ b.row!.ptsFor | number: '1.1-1' }}</td>
+                  <td class="text-right font-mono py-2 px-1.5">{{ b.row!.ptsAgainst | number: '1.1-1' }}</td>
+                  <td class="text-right font-mono font-bold py-2 pl-1.5" [ngClass]="signClass(restMargin(b.row!))">{{ signed(restMargin(b.row!)) }}</td>
+                </tr>
+              }
+              @if (restMatchups().length > 0) {
+                <tr>
+                  <td colspan="6" class="pt-3 pb-1 text-[11px] text-team-primary font-bold uppercase tracking-wider">{{ i18n.t('rest.byMatchup') }}</td>
+                </tr>
+                @for (m of restMatchups(); track m.key) {
+                  <tr class="border-t border-line">
+                    <td class="py-2 font-semibold">{{ i18n.t('rest.' + m.key) }}</td>
+                    <td class="text-right font-mono py-2 px-1.5 text-muted">{{ m.row!.games }}</td>
+                    <td class="text-right font-mono py-2 px-1.5">{{ m.row!.wins }}-{{ m.row!.games - m.row!.wins }}</td>
+                    <td class="text-right font-mono py-2 px-1.5">{{ m.row!.ptsFor | number: '1.1-1' }}</td>
+                    <td class="text-right font-mono py-2 px-1.5">{{ m.row!.ptsAgainst | number: '1.1-1' }}</td>
+                    <td class="text-right font-mono font-bold py-2 pl-1.5" [ngClass]="signClass(restMargin(m.row!))">{{ signed(restMargin(m.row!)) }}</td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+
+        @if (restPlayers().length > 0) {
+          <p class="text-[11px] text-team-primary font-bold uppercase tracking-wider mt-4 mb-1">{{ i18n.t('rest.players') }}</p>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs">
+              <thead>
+                <tr class="text-muted uppercase tracking-wide">
+                  <th class="text-left font-bold py-1.5">{{ i18n.t('ta.player') }}</th>
+                  <th class="text-right font-bold py-1.5 px-1.5 whitespace-nowrap">{{ i18n.t('rest.colShortGp') }}</th>
+                  <th class="text-right font-bold py-1.5 px-1.5">{{ i18n.t('rest.colPts') }}</th>
+                  <th class="text-right font-bold py-1.5 pl-1.5">{{ i18n.t('rest.colPir') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (p of restPlayers(); track p.player.id) {
+                  <tr class="border-t border-line">
+                    <td class="py-2 font-semibold truncate max-w-[9rem]">
+                      <a [routerLink]="['/players', p.player.id]" class="hover:text-team-primary transition-colors">{{ restLineName(p.player) }}</a>
+                    </td>
+                    <td class="text-right font-mono py-2 px-1.5 text-muted">{{ p.short!.games }}</td>
+                    <!-- short vs normal, then the difference -->
+                    <td class="text-right font-mono py-2 px-1.5 whitespace-nowrap">
+                      {{ p.short!.pts | number: '1.1-1' }} <span class="text-muted">/ {{ p.normal!.pts | number: '1.1-1' }}</span>
+                      <span class="font-bold" [ngClass]="signClass(p.ptsDiff)"> {{ signed(p.ptsDiff) }}</span>
+                    </td>
+                    <td class="text-right font-mono py-2 pl-1.5 whitespace-nowrap">
+                      {{ p.short!.pir | number: '1.1-1' }} <span class="text-muted">/ {{ p.normal!.pir | number: '1.1-1' }}</span>
+                      <span class="font-bold" [ngClass]="signClass(p.pirDiff)"> {{ signed(p.pirDiff) }}</span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    }
+  }
 </section>

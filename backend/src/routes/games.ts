@@ -15,6 +15,7 @@ import {
 } from "../db/schema.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
 import { getCurrentSeason } from "../services/season.js";
+import { getGameReferees } from "../services/refereeStats.js";
 
 export const gamesRouter = Router();
 
@@ -360,6 +361,10 @@ gamesRouter.get("/:id", async (req, res) => {
       );
     }
 
+    // Referee crew (2026-10-06), stored once a game is final
+    // (sync/refereeSync.ts), so live ticks skip the lookup.
+    const referees = game.status === "final" ? await getGameReferees(gameId) : [];
+
     res.json({
       game,
       statsSeason,
@@ -368,6 +373,7 @@ gamesRouter.get("/:id", async (req, res) => {
       boxscore,
       topPerformers,
       doubleDoubles,
+      referees,
     });
   } catch (err) {
     console.error("GET /api/games/:id failed:", err);

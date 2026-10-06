@@ -3,7 +3,7 @@ import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
-import { AnalyticsPlayer, ShotZone, TeamAnalytics } from "../../core/models";
+import { AnalyticsPlayer, PlayerRestLine, ShotZone, TeamAnalytics, TeamRestRow, TeamRestSplits } from "../../core/models";
 import { formatPlayerName } from "../../shared/player-name";
 
 // Team page analytics (2026-10-06): shot profile vs league, most-used
@@ -50,6 +50,9 @@ export class TeamAnalyticsComponent {
   }
 
   private load(teamId: string): void {
+    // Rest splits are their own request: a separate, optional card.
+    this.rest.set(null);
+    this.api.getTeamRestSplits(teamId).subscribe({ next: (r) => this.rest.set(r), error: () => {} });
     this.loading.set(true);
     this.error.set(false);
     this.api.getTeamAnalytics(teamId).subscribe({
@@ -114,6 +117,37 @@ export class TeamAnalyticsComponent {
   );
 
   readonly clutch = computed(() => this.data()?.clutch ?? null);
+
+  // Short-rest splits (2026-10-06), see backend/src/services/restSplits.ts.
+  readonly rest = signal<TeamRestSplits | null>(null);
+  readonly restSince = computed(() => {
+    const seasons = this.rest()?.seasons ?? [];
+    return seasons[seasons.length - 1] ?? "";
+  });
+  private restRow(key: TeamRestRow["key"]): TeamRestRow | null {
+    return this.rest()?.rows.find((r) => r.key === key) ?? null;
+  }
+  readonly restBuckets = computed(() => (["short", "normal"] as const).map((k) => ({ key: k, row: this.restRow(k) })).filter((r) => r.row));
+  readonly restMatchups = computed(() =>
+    (["edge", "disadvantage", "bothShort"] as const).map((k) => ({ key: k, row: this.restRow(k) })).filter((r) => r.row)
+  );
+  readonly restPlayers = computed(() =>
+    (this.rest()?.players ?? [])
+      .filter((p) => p.short && p.normal)
+      .map((p) => ({ ...p, ptsDiff: p.short!.pts - p.normal!.pts, pirDiff: p.short!.pir - p.normal!.pir }))
+  );
+
+  restMargin(r: TeamRestRow): number {
+    return r.ptsFor - r.ptsAgainst;
+  }
+
+  restLineName(p: { name: string }): string {
+    return formatPlayerName(p.name);
+  }
+
+  restFgPct(l: PlayerRestLine): string {
+    return l.fga > 0 ? `${Math.round((l.fgm / l.fga) * 100)}%` : "–";
+  }
 
   surname(p: AnalyticsPlayer): string {
     if (!p.name) return p.code;

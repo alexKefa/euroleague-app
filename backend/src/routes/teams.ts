@@ -6,6 +6,7 @@ import { teams, players, playerSeasonStats, games, playerInjuries, users } from 
 import { getCurrentSeason } from "../services/season.js";
 import { getBaselinePPGForPlayers } from "../services/topScorerPoints.js";
 import { getTeamAnalytics } from "../services/teamAnalytics.js";
+import { getTeamRestSplits } from "../services/restSplits.js";
 
 function emptyStats(playerId: string, teamId: string, season: string) {
   return {
@@ -193,6 +194,16 @@ teamsRouter.get("/:id/analytics", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to load team analytics" });
+  }
+});
+
+// Short-rest splits (2026-10-06), see services/restSplits.ts.
+teamsRouter.get("/:id/rest-splits", async (req, res) => {
+  try {
+    res.json(await getTeamRestSplits(req.params.id));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to load rest splits" });
   }
 });
 

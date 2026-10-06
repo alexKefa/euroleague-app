@@ -377,6 +377,8 @@ export interface GameDetail {
   boxscore: { home: GameBoxscoreLine[]; away: GameBoxscoreLine[] } | null;
   topPerformers: GameBoxscoreLine[];
   doubleDoubles: GameBoxscoreLine[];
+  // Final games only, crew chief first (2026-10-06).
+  referees?: { id: string; name: string }[];
 }
 
 export interface Schedule {
@@ -1550,4 +1552,59 @@ export interface ClutchLeader extends ClutchPlayerStat {
 export interface ClutchLeaders {
   season: string | null;
   leaders: ClutchLeader[];
+}
+
+// Short-rest splits (2026-10-06) — see backend/src/services/restSplits.ts.
+// Rest = days since the team's previous game; short = 2 or fewer.
+export type RestBucket = "short" | "normal";
+export type RestMatchup = "edge" | "disadvantage" | "bothShort" | "bothNormal";
+
+export interface TeamRestRow {
+  key: RestBucket | RestMatchup;
+  games: number;
+  wins: number;
+  ptsFor: number;
+  ptsAgainst: number;
+}
+
+export interface PlayerRestLine {
+  bucket: RestBucket;
+  games: number;
+  minutes: number | null;
+  pts: number;
+  reb: number;
+  ast: number;
+  pir: number;
+  fgm: number;
+  fga: number;
+}
+
+export interface TeamRestSplits {
+  seasons: string[];
+  rows: TeamRestRow[];
+  players: { player: { id: string; name: string }; short: PlayerRestLine | null; normal: PlayerRestLine | null }[];
+}
+
+export interface PlayerRestSplits {
+  seasons: string[];
+  short: PlayerRestLine | null;
+  normal: PlayerRestLine | null;
+}
+
+// Referee tracker (2026-10-06) — see backend/src/services/refereeStats.ts.
+export interface RefereeRow {
+  id: string;
+  name: string;
+  games: number;
+  fouls: number;
+  fta: number;
+  homeWinPct: number;
+  foulDiff: number;
+  ftaDiff: number;
+}
+
+export interface RefereeStats {
+  seasons: string[];
+  league: Omit<RefereeRow, "id" | "name">;
+  referees: RefereeRow[];
 }

@@ -7,6 +7,7 @@ import { getCurrentSeason } from "../services/season.js";
 import { requireAuth } from "../auth/middleware.js";
 import { getScoutingReport } from "../services/scouting.js";
 import { getClutchLeaders } from "../services/teamAnalytics.js";
+import { getPlayerRestSplits } from "../services/restSplits.js";
 
 export const playersRouter = Router();
 
@@ -209,6 +210,16 @@ playersRouter.get("/advanced-stats", async (req, res) => {
   } catch (err) {
     console.error("GET /api/players/advanced-stats failed:", err);
     res.status(500).json({ error: "Failed to load advanced stats" });
+  }
+});
+
+// Short-rest splits for one player (2026-10-06), see services/restSplits.ts.
+playersRouter.get("/:id/rest-splits", async (req, res) => {
+  try {
+    res.json(await getPlayerRestSplits(req.params.id));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to load rest splits" });
   }
 });
 

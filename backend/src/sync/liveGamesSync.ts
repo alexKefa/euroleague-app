@@ -2,6 +2,7 @@ import { and, gte, inArray, lte, eq, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { games, players, playerGameStats } from "../db/schema.js";
 import { syncGameExtras } from "./gameExtrasSync.js";
+import { syncGameReferees } from "./refereeSync.js";
 import { broadcast, ScoringEvent } from "../realtime/hub.js";
 import { getSimulatedGameId } from "../realtime/liveScoreSimulator.js";
 
@@ -529,6 +530,7 @@ export async function syncLiveGames(): Promise<LiveGamesSyncResult> {
       // Shots, play-by-play and lineups (gameExtrasSync.ts). The hourly
       // catch-up in index.ts retries if the feed isn't complete yet.
       await syncGameExtras(game.id).catch((err) => console.error(`[game extras] ${game.id} failed:`, err));
+      await syncGameReferees(game.id).catch((err) => console.error(`[referees] ${game.id} failed:`, err));
       previousPointsByGame.delete(game.id);
       broadcast("game-update", { gameId: game.id, homeScore, awayScore, status: "final", onFireIds: [], quarter: null, gameClockSeconds: null, scoringEvents: [] });
       wentFinal++;

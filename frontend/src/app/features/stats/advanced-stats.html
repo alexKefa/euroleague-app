@@ -9,7 +9,10 @@
        gets the full width instead of being squeezed into a narrow column. -->
   <app-page-header [title]="i18n.t('stats.title')" [subtitle]="i18n.t('stats.subtitle')" [eyebrow]="i18n.t('section.stats')" icon="table" class="mt-4">
     <app-stat-legend headTitleExtra [entries]="legendEntries()" />
-    <a headAside routerLink="/compare" appButton appButtonSize="sm">{{ i18n.t('stats.compare.navTitle') }}</a>
+    <span headAside class="flex gap-2">
+      <a routerLink="/compare" appButton appButtonSize="sm">{{ i18n.t('stats.compare.navTitle') }}</a>
+      <a routerLink="/referees" appButton="outline" appButtonSize="sm">{{ i18n.t('ref.title') }}</a>
+    </span>
   </app-page-header>
 
   @if (loading()) {

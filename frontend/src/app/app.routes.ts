@@ -79,6 +79,11 @@ export const routes: Routes = [
       import("./features/compare/player-compare").then((m) => m.PlayerCompareComponent),
   },
   {
+    path: "referees",
+    loadComponent: () =>
+      import("./features/referees/referees").then((m) => m.RefereesComponent),
+  },
+  {
     path: "standings",
     loadComponent: () =>
       import("./features/standings/standings").then((m) => m.StandingsComponent),

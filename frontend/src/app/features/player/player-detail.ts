@@ -4,7 +4,7 @@ import { CommonModule } from "@angular/common";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
-import { PlayerDetail, PlayerShotChart, PlayerGameLogEntry, ScoutingReport, ScoutingMetricKey } from "../../core/models";
+import { PlayerDetail, PlayerShotChart, PlayerGameLogEntry, ScoutingReport, ScoutingMetricKey, PlayerRestSplits, PlayerRestLine } from "../../core/models";
 import { formatPlayerName } from "../../shared/player-name";
 import { TeamCodePipe } from "../../shared/team-display-code";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
@@ -55,6 +55,20 @@ export class PlayerDetailComponent implements OnInit {
   readonly scouting = signal<ScoutingReport | null>(null);
   readonly scoutingLoading = signal(false);
   readonly scoutingError = signal(false);
+  readonly restSplits = signal<PlayerRestSplits | null>(null);
+  readonly restRows = computed(() => {
+    const r = this.restSplits();
+    if (!r?.short || !r.normal) return [];
+    return [r.short, r.normal];
+  });
+  readonly restSince = computed(() => {
+    const seasons = this.restSplits()?.seasons ?? [];
+    return seasons[seasons.length - 1] ?? "";
+  });
+
+  restFgPct(l: PlayerRestLine): string {
+    return l.fga > 0 ? `${Math.round((l.fgm / l.fga) * 100)}%` : "–";
+  }
   private playerId: string | null = null;
   protected readonly playerName = formatPlayerName;
 
@@ -127,6 +141,9 @@ export class PlayerDetailComponent implements OnInit {
     this.scouting.set(null);
     this.scoutingLoading.set(true);
     this.scoutingError.set(false);
+    // Rest splits (2026-10-06) ride along with the scouting tab; optional.
+    this.restSplits.set(null);
+    this.api.getPlayerRestSplits(id).subscribe({ next: (r) => this.scoutingFor === id && this.restSplits.set(r), error: () => {} });
     this.api.getPlayerScouting(id).subscribe({
       next: (r) => {
         if (this.scoutingFor !== id) return;

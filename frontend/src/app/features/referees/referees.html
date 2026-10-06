@@ -1,0 +1,72 @@
+<div class="max-w-5xl mx-auto p-4 sm:p-6">
+  <a [routerLink]="navHistory.previousUrl() ?? '/stats'" class="back-link"
+    >{{ navHistory.previousUrl() ? i18n.t('nav.back') : i18n.t('stats.title') }}</a
+  >
+
+  <app-page-header [title]="i18n.t('ref.title')" [subtitle]="i18n.t('ref.subtitle')" [eyebrow]="i18n.t('section.stats')" icon="table" class="mt-4" />
+
+  @if (loading()) {
+    <div class="bg-card rounded-3xl border border-line shadow-card p-6 text-center text-sm text-muted">…</div>
+  } @else if (error()) {
+    <div class="bg-card rounded-3xl border border-line shadow-card p-6 text-center text-sm text-muted">{{ i18n.t('ref.failed') }}</div>
+  } @else if (data(); as d) {
+    @if (d.referees.length === 0) {
+      <div class="bg-card rounded-3xl border border-line shadow-card p-6 text-center text-sm text-muted">{{ i18n.t('ref.empty') }}</div>
+    } @else {
+      <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+        <p class="text-[12px] text-muted">{{ i18n.t('ref.hint').replace('{s}', sinceText()) }}</p>
+        <p class="text-[12px] text-muted mt-1">{{ i18n.t('ref.noBias') }}</p>
+        <div class="flex gap-2 mt-3">
+          <button type="button" [appChip]="onlyRegulars()" (click)="onlyRegulars.set(true)">{{ i18n.t('ref.minGames') }}</button>
+          <button type="button" [appChip]="!onlyRegulars()" (click)="onlyRegulars.set(false)">{{ i18n.t('ref.all') }}</button>
+        </div>
+      </div>
+
+      <!-- Wide table: sideways scroll on phones with the name column pinned,
+           same pattern as the Stats page table. -->
+      <div class="bg-card rounded-3xl border border-line shadow-card overflow-hidden mb-6">
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs">
+            <thead>
+              <tr class="text-muted uppercase tracking-wide border-b border-line">
+                <th class="sticky left-0 z-10 bg-card text-left font-bold px-3 py-2.5">{{ i18n.t('ref.colRef') }}</th>
+                @for (c of columns; track c.key) {
+                  <th class="text-right font-bold px-2 py-2.5 whitespace-nowrap">
+                    <button type="button" (click)="sortBy(c.key)" class="uppercase tracking-wide hover:text-ink" [class.text-team-primary]="sortKey() === c.key">
+                      {{ i18n.t(c.labelKey) }}{{ sortKey() === c.key ? (sortDesc() ? ' ↓' : ' ↑') : '' }}
+                    </button>
+                  </th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              <!-- All-games average, the baseline every row is read against. -->
+              <tr class="bg-page border-b border-line font-semibold">
+                <td class="sticky left-0 z-10 bg-page px-3 py-2">{{ i18n.t('ref.league') }}</td>
+                @for (c of columns; track c.key) {
+                  <td class="text-right font-mono px-2 py-2">{{ value(c.key, d.league[c.key]) }}</td>
+                }
+              </tr>
+              @for (r of rows(); track r.id) {
+                <tr
+                  [id]="'ref-' + r.id"
+                  class="border-b border-line last:border-0"
+                  [class.bg-team-primary/10]="r.id === highlightId()"
+                >
+                  <td class="sticky left-0 z-10 px-3 py-2 font-semibold whitespace-nowrap" [ngClass]="r.id === highlightId() ? 'bg-card text-team-primary' : 'bg-card'">
+                    {{ name(r) }}
+                  </td>
+                  @for (c of columns; track c.key) {
+                    <td class="text-right font-mono px-2 py-2" [ngClass]="unusual(c.key, r[c.key]) ? 'font-bold text-ink' : 'text-muted'">
+                      {{ value(c.key, r[c.key]) }}
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+  }
+</div>

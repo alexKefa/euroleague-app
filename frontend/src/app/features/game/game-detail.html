@@ -670,6 +670,20 @@
       </div>
     }
 
+    <!-- Referee crew (2026-10-06), final games only; each name opens the
+         /referees tracker with that referee highlighted. -->
+    @if (isFinal() && d.referees?.length) {
+      <div class="bg-card rounded-2xl border border-line shadow-card px-4 py-3 mb-5 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <span class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('ref.crew') }}</span>
+        @for (r of d.referees!; track r.id; let last = $last) {
+          <a [routerLink]="['/referees']" [queryParams]="{ ref: r.id }" class="text-sm font-semibold hover:text-team-primary transition-colors">{{ refereeName(r.name) }}</a>
+          @if (!last) {
+            <span class="text-muted">&middot;</span>
+          }
+        }
+      </div>
+    }
+
     <!-- Top performers (final or live games) -->
     @if ((isFinal() || isLive()) && d.topPerformers.length > 0) {
       <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">

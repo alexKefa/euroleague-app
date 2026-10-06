@@ -398,6 +398,26 @@ export const lineupStints = pgTable(
   })
 );
 
+// Referees (2026-10-06), from the Header feed's Referee1-3, for the
+// /referees page. `name` is the feed's own "SURNAME, FIRST" spelling,
+// which is the only identity the feed gives them.
+export const referees = pgTable("referees", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 120 }).notNull().unique(),
+});
+
+export const gameReferees = pgTable(
+  "game_referees",
+  {
+    gameId: uuid("game_id").notNull().references(() => games.id),
+    refereeId: uuid("referee_id").notNull().references(() => referees.id),
+    position: integer("position").notNull(), // 1-3, the feed's Referee1/2/3 (crew chief first)
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.gameId, table.refereeId] }),
+  })
+);
+
 export const playerSeasonStats = pgTable(
   "player_season_stats",
   {

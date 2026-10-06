@@ -7,6 +7,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import { teamsRouter } from "./routes/teams.js";
+import { refereesRouter } from "./routes/referees.js";
 import { standingsRouter } from "./routes/standings.js";
 import { authRouter } from "./routes/auth.js";
 import { usersRouter } from "./routes/users.js";
@@ -37,6 +38,7 @@ import { syncLiveGames } from "./sync/liveGamesSync.js";
 import { syncInjuries } from "./sync/injurySync.js";
 import { syncPlayerStats } from "./sync/playerStatsSync.js";
 import { syncMissingGameExtras } from "./sync/gameExtrasSync.js";
+import { syncMissingReferees } from "./sync/refereeSync.js";
 import { applyDailyFantasyPriceChanges } from "./services/fantasyDailyReprice.js";
 import { runFantasyRoundSweep } from "./services/fantasyRoundSweep.js";
 import { getCurrentSeason } from "./services/season.js";
@@ -143,6 +145,7 @@ app.use("/api/battles", battlesRouter);
 app.use("/api/reminders", remindersRouter);
 app.use("/api/announcements", announcementsRouter);
 app.use("/api/push", pushRouter);
+app.use("/api/referees", refereesRouter);
 
 // Serves the built Angular app (see ./Dockerfile) — absent in local dev,
 // where the frontend runs separately via `ng serve` on its own port.
@@ -320,9 +323,13 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
   const GAME_EXTRAS_PER_RUN = 12;
   const runGameExtrasSync = () => {
     getCurrentSeason()
-      .then((season) => (season ? syncMissingGameExtras(season, GAME_EXTRAS_PER_RUN) : null))
-      .then((r) => {
-        if (r && r.synced + r.empty + r.failed > 0) console.log(`[game extras sync] synced ${r.synced}, feed empty for ${r.empty}, failed ${r.failed}`);
+      .then(async (season) => {
+        if (!season) return;
+        const r = await syncMissingGameExtras(season, GAME_EXTRAS_PER_RUN);
+        if (r.synced + r.empty + r.failed > 0) console.log(`[game extras sync] synced ${r.synced}, feed empty for ${r.empty}, failed ${r.failed}`);
+        // Referee crews for the /referees page (sync/refereeSync.ts).
+        const refs = await syncMissingReferees(season, GAME_EXTRAS_PER_RUN);
+        if (refs.synced + refs.empty + refs.failed > 0) console.log(`[referee sync] synced ${refs.synced}, feed empty for ${refs.empty}, failed ${refs.failed}`);
       })
       .catch((err) => console.error("[game extras sync] failed:", err));
   };

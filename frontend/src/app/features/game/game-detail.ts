@@ -502,6 +502,11 @@ export class GameDetailComponent implements OnInit {
       .replace("{l}", this.formatEdgeValue(top.loser, top.pct));
   });
 
+  // "PERUGA, CARLOS" -> "Carlos Peruga", same formatting as player names.
+  refereeName(name: string): string {
+    return formatPlayerName(name);
+  }
+
   formatPlusMinus(value: number | null): string {
     if (value == null) return "–";
     return value > 0 ? `+${value}` : String(value);

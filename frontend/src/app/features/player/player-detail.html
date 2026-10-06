@@ -384,6 +384,40 @@
               </tbody>
             </table>
           </div>
+
+          <!-- Short vs normal rest (2026-10-06). Covers the last two seasons,
+               unlike the rows above, so it gets its own labelled block. -->
+          @if (restRows().length > 0) {
+            <p class="text-[11px] text-team-primary font-bold uppercase tracking-wider mt-4 mb-1">
+              {{ i18n.t('rest.playerTitle').replace('{s}', restSince()) }}
+            </p>
+            <div class="overflow-x-auto -mx-1">
+              <table class="w-full text-[12px] font-mono tabular-nums">
+                <thead>
+                  <tr class="text-[10px] text-muted uppercase tracking-wide border-b border-line">
+                    <th class="px-1 py-2 text-left font-bold"></th>
+                    <th class="px-1 py-2 text-right font-bold">GP</th>
+                    <th class="px-1 py-2 text-right font-bold">MIN</th>
+                    <th class="px-1 py-2 text-right font-bold">PTS</th>
+                    <th class="px-1 py-2 text-right font-bold">{{ i18n.t('rest.fgPct') }}</th>
+                    <th class="px-1 py-2 text-right font-bold">PIR</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (rl of restRows(); track rl.bucket) {
+                    <tr class="border-b border-line/60 last:border-0">
+                      <td class="px-1 py-2 font-sans font-semibold">{{ i18n.t('rest.' + rl.bucket) }}</td>
+                      <td class="px-1 py-2 text-right text-muted">{{ rl.games }}</td>
+                      <td class="px-1 py-2 text-right">{{ rl.minutes === null ? '–' : (rl.minutes | number: '1.1-1') }}</td>
+                      <td class="px-1 py-2 text-right">{{ rl.pts | number: '1.1-1' }}</td>
+                      <td class="px-1 py-2 text-right">{{ restFgPct(rl) }}</td>
+                      <td class="px-1 py-2 text-right font-bold text-team-primary">{{ rl.pir | number: '1.1-1' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
         </div>
 
         <!-- Similar players. -->
