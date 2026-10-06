@@ -95,6 +95,19 @@ export class TopScorerPickerComponent implements OnInit {
   readonly homeCandidates = computed(() => this.candidatesFor(this.homeRoster()));
   readonly awayCandidates = computed(() => this.candidatesFor(this.awayRoster()));
 
+  // Which team's list is showing (2026-10-06, "don't like how players are
+  // aligned" — the two side-scrolling photo strips became a team toggle
+  // over one ranked, row-aligned list). Opens on the picked player's team.
+  readonly side = signal<"home" | "away">("home");
+  readonly activeTeam = computed(() => (this.side() === "home" ? this.homeTeam : this.awayTeam));
+  readonly activeCandidates = computed(() => (this.side() === "home" ? this.homeCandidates() : this.awayCandidates()));
+
+  pickedOn(side: "home" | "away"): boolean {
+    const id = this.myPick()?.predictedPlayer.id;
+    if (!id) return false;
+    return (side === "home" ? this.homeRoster() : this.awayRoster()).some((r) => r.player.id === id);
+  }
+
   ngOnInit(): void {
     forkJoin({
       home: this.api.getRoster(this.homeTeam.id),
@@ -108,6 +121,7 @@ export class TopScorerPickerComponent implements OnInit {
         this.homeRoster.set(home);
         this.awayRoster.set(away);
         this.myPick.set(pick);
+        if (this.pickedOn("away")) this.side.set("away");
         this.injuries.set(injuries);
         this.loading.set(false);
       },

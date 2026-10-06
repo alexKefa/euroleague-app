@@ -653,6 +653,7 @@ export class PredictionsComponent implements OnInit, OnDestroy {
       next: (schedule) => {
         this.upcomingGames.set(schedule.games.filter((g) => g.status === "scheduled"));
         this.upcomingGamesLoading.set(false);
+        if (this.auth.isAuthenticated()) this.loadTopScorerQuotes();
       },
       error: () => this.upcomingGamesLoading.set(false), // non-critical
     });
@@ -690,6 +691,33 @@ export class PredictionsComponent implements OnInit, OnDestroy {
       },
       error: () => onDone?.(),
     });
+  }
+
+  // Per-game top-scorer prices for the quick-pick faces (2026-10-06, "combine
+  // how many points does user get from predicting there"). One small request
+  // per upcoming game, same GET /quotes the full picker already makes.
+  readonly topScorerQuotes = signal<Map<string, Record<string, number>>>(new Map());
+
+  private loadTopScorerQuotes(): void {
+    for (const g of this.upcomingGames()) {
+      this.api.getTopScorerQuotes(g.id).subscribe({
+        next: (res) => this.topScorerQuotes.update((m) => new Map(m).set(g.id, res.quotes)),
+        error: () => {}, // non-critical — the face just shows no price
+      });
+    }
+  }
+
+  quickPickQuote(game: Game, playerId: string): number | null {
+    return this.topScorerQuotes().get(game.id)?.[playerId] ?? null;
+  }
+
+  // What this one game's picks pay if both come in: the winner pick (saved
+  // or still unsaved) plus the top-scorer pick.
+  gamePickPoints(game: Game): { winLoss: number | null; topScorer: number | null; total: number } {
+    const teamId = this.effectivePicks().get(game.id);
+    const winLoss = teamId ? this.pointsForPick(game, teamId) : null;
+    const topScorer = this.topScorerByGameId().get(game.id)?.pointsAtPick ?? null;
+    return { winLoss, topScorer, total: (winLoss ?? 0) + (topScorer ?? 0) };
   }
 
   private refreshMyTopScorerPredictions(): void {

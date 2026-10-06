@@ -14,164 +14,115 @@
     <p class="text-red-500 text-xs font-semibold mb-2">{{ error() }}</p>
   }
 
-  <div class="space-y-4">
-    <div>
-      <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5">{{ homeTeam.name }}</p>
-      <!-- pt-2 on the scroll row clears the picked player's ring/scale-105
-           top edge — overflow-x-auto forces overflow-y to auto too, which
-           clips it with no padding (same fix as game-detail.html's strip). -->
-      <div class="flex gap-3 overflow-x-auto pt-2 pb-1">
-        @for (c of homeCandidates(); track c.player.id) {
-          <button
-            type="button"
-            class="shrink-0 flex flex-col items-center gap-1 w-16"
-            [class.cursor-not-allowed]="isOut(c.player.id)"
-            [disabled]="!!savingId() || isOut(c.player.id)"
-            (click)="pick(c.player.id)"
-          >
-            <span
-              class="relative inline-flex rounded-full ring-offset-2 ring-offset-card transition-transform"
-              [class.scale-110]="isPicked(c.player.id)"
-              [class.ring-2]="isPicked(c.player.id)"
-              [class.shadow-pop]="isPicked(c.player.id)"
-              [class.ring-team-primary]="isPicked(c.player.id)"
-              [class.opacity-40]="isOut(c.player.id) || (!!savingId() && savingId() !== c.player.id)"
-              [class.opacity-60]="!!myPick() && !isPicked(c.player.id) && !isOut(c.player.id) && !savingId()"
-              [style.width.px]="52"
-              [style.height.px]="52"
-            >
-              <app-player-photo
-                [name]="c.player.name"
-                [photoUrl]="c.player.photoUrl"
-                [jerseyNumber]="c.player.jerseyNumber"
-                [teamCode]="homeTeam.code"
-                [primaryColor]="homeTeam.primaryColor"
-                [size]="52"
-                class="rounded-full block shadow"
-              />
-              @if (savingId() === c.player.id) {
-                <span class="absolute inset-0 flex items-center justify-center rounded-full bg-card/70">
-                  <app-logo-spinner [size]="18" />
-                </span>
-              } @else if (justSavedId() === c.player.id) {
-                <!-- "Saved" confirmation pop (2026-09-25) — see
-                     styles.css's pick-saved-pop doc comment. -->
-                <span class="absolute inset-0 flex items-center justify-center rounded-full bg-card/80 pick-saved-pop">
-                  <app-nav-icon name="checkmark-shield" [size]="22" class="text-emerald-500" />
-                </span>
-              }
-              @if (isPicked(c.player.id) && savingId() !== c.player.id && justSavedId() !== c.player.id) {
-                <span class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-team-primary text-team-secondary flex items-center justify-center shadow-sm ring-2 ring-card">
-                  <svg class="w-3 h-3" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
-                </span>
-              }
-              @if (injuryFor(c.player.id); as injury) {
-                <span class="absolute -top-1 -right-1">
-                  <app-injury-badge [status]="injury.status" [note]="injury.note" [noteEl]="injury.noteEl" [size]="16" />
-                </span>
-              }
-            </span>
-            <span class="text-[10px] font-semibold truncate w-full text-center" [class.text-team-primary]="isPicked(c.player.id)" [class.font-bold]="isPicked(c.player.id)" [class.text-muted]="!isPicked(c.player.id)">{{ c.player.name.split(',')[0] }}</span>
-            <!-- White pill, not team-primary text (2026-09-22, "show a ppg
-                 below them... on a white container" — a follow-up on the
-                 first PPG pass, which used plain team-primary text with no
-                 real visual weight). Fixed dark text rather than
-                 team-primary on this white background, on purpose — the
-                 same trap documented for the Fantasy squad card (2026-09-22
-                 pass, fantasy.html): text-team-primary here is the
-                 *viewer's own* favorite-team accent, and a viewer whose
-                 team is Real Madrid or Dubai Basketball (both have a
-                 white/near-white primary color) would get invisible text. -->
-            @if (c.pointsPerGame != null) {
-              <span class="font-mono text-[10px] font-bold text-[#14161A] bg-white border border-black/10 rounded-full px-1.5 py-px shadow-sm"
-                >{{ c.pointsPerGame | number: '1.1-1' }} {{ i18n.t('topScorer.ppgAbbrev') }}</span
-              >
-            }
-            @if (quoteFor(c.player.id); as q) {
-              <span class="font-mono text-[10px] font-bold rounded-full px-1.5 py-px bg-team-primary text-team-secondary leading-tight">+{{ q }} {{ i18n.t('predictions.pts') }}</span>
-            }
-          </button>
+  <!-- Team toggle + one ranked list (2026-10-06, "i dont like how players
+       are aligned when predicting them") — replaced two side-scrolling photo
+       strips whose name/PPG/quote pills stacked at uneven heights under each
+       photo. Every row now shares the same columns: rank, photo, name + PPG,
+       payout pill. -->
+  <div class="grid grid-cols-2 gap-1 p-1 rounded-xl bg-page border border-line mb-3">
+    @for (s of ['home', 'away']; track s) {
+      @let team = s === 'home' ? homeTeam : awayTeam;
+      <button
+        type="button"
+        (click)="side.set($any(s))"
+        class="relative flex items-center justify-center gap-1.5 min-w-0 px-2 py-1.5 rounded-lg text-[12px] font-bold transition-colors"
+        [class.bg-card]="side() === s"
+        [class.shadow-sm]="side() === s"
+        [class.text-ink]="side() === s"
+        [class.text-muted]="side() !== s"
+      >
+        @if (team.logoUrl) {
+          <img [src]="team.logoUrl" alt="" class="w-5 h-5 object-contain team-logo shrink-0" />
         }
-      </div>
-    </div>
-
-    <div>
-      <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5">{{ awayTeam.name }}</p>
-      <div class="flex gap-3 overflow-x-auto pt-2 pb-1">
-        @for (c of awayCandidates(); track c.player.id) {
-          <button
-            type="button"
-            class="shrink-0 flex flex-col items-center gap-1 w-16"
-            [class.cursor-not-allowed]="isOut(c.player.id)"
-            [disabled]="!!savingId() || isOut(c.player.id)"
-            (click)="pick(c.player.id)"
-          >
-            <span
-              class="relative inline-flex rounded-full ring-offset-2 ring-offset-card transition-transform"
-              [class.scale-110]="isPicked(c.player.id)"
-              [class.ring-2]="isPicked(c.player.id)"
-              [class.shadow-pop]="isPicked(c.player.id)"
-              [class.ring-team-primary]="isPicked(c.player.id)"
-              [class.opacity-40]="isOut(c.player.id) || (!!savingId() && savingId() !== c.player.id)"
-              [class.opacity-60]="!!myPick() && !isPicked(c.player.id) && !isOut(c.player.id) && !savingId()"
-              [style.width.px]="52"
-              [style.height.px]="52"
-            >
-              <app-player-photo
-                [name]="c.player.name"
-                [photoUrl]="c.player.photoUrl"
-                [jerseyNumber]="c.player.jerseyNumber"
-                [teamCode]="awayTeam.code"
-                [primaryColor]="awayTeam.primaryColor"
-                [size]="52"
-                class="rounded-full block shadow"
-              />
-              @if (savingId() === c.player.id) {
-                <span class="absolute inset-0 flex items-center justify-center rounded-full bg-card/70">
-                  <app-logo-spinner [size]="18" />
-                </span>
-              } @else if (justSavedId() === c.player.id) {
-                <!-- "Saved" confirmation pop (2026-09-25) — see
-                     styles.css's pick-saved-pop doc comment. -->
-                <span class="absolute inset-0 flex items-center justify-center rounded-full bg-card/80 pick-saved-pop">
-                  <app-nav-icon name="checkmark-shield" [size]="22" class="text-emerald-500" />
-                </span>
-              }
-              @if (isPicked(c.player.id) && savingId() !== c.player.id && justSavedId() !== c.player.id) {
-                <span class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-team-primary text-team-secondary flex items-center justify-center shadow-sm ring-2 ring-card">
-                  <svg class="w-3 h-3" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
-                </span>
-              }
-              @if (injuryFor(c.player.id); as injury) {
-                <span class="absolute -top-1 -right-1">
-                  <app-injury-badge [status]="injury.status" [note]="injury.note" [noteEl]="injury.noteEl" [size]="16" />
-                </span>
-              }
-            </span>
-            <span class="text-[10px] font-semibold truncate w-full text-center" [class.text-team-primary]="isPicked(c.player.id)" [class.font-bold]="isPicked(c.player.id)" [class.text-muted]="!isPicked(c.player.id)">{{ c.player.name.split(',')[0] }}</span>
-            <!-- White pill, not team-primary text (2026-09-22, "show a ppg
-                 below them... on a white container" — a follow-up on the
-                 first PPG pass, which used plain team-primary text with no
-                 real visual weight). Fixed dark text rather than
-                 team-primary on this white background, on purpose — the
-                 same trap documented for the Fantasy squad card (2026-09-22
-                 pass, fantasy.html): text-team-primary here is the
-                 *viewer's own* favorite-team accent, and a viewer whose
-                 team is Real Madrid or Dubai Basketball (both have a
-                 white/near-white primary color) would get invisible text. -->
-            @if (c.pointsPerGame != null) {
-              <span class="font-mono text-[10px] font-bold text-[#14161A] bg-white border border-black/10 rounded-full px-1.5 py-px shadow-sm"
-                >{{ c.pointsPerGame | number: '1.1-1' }} {{ i18n.t('topScorer.ppgAbbrev') }}</span
-              >
-            }
-            @if (quoteFor(c.player.id); as q) {
-              <span class="font-mono text-[10px] font-bold rounded-full px-1.5 py-px bg-team-primary text-team-secondary leading-tight">+{{ q }} {{ i18n.t('predictions.pts') }}</span>
-            }
-          </button>
+        <span class="truncate">{{ team.name }}</span>
+        @if (pickedOn($any(s))) {
+          <span class="shrink-0 w-1.5 h-1.5 rounded-full bg-team-primary"></span>
         }
-      </div>
-    </div>
+      </button>
+    }
   </div>
+
+  <ul class="rounded-xl border border-line overflow-hidden divide-y divide-line">
+    @for (c of activeCandidates(); track c.player.id; let i = $index) {
+      <li>
+        <button
+          type="button"
+          class="relative w-full flex items-center gap-3 pl-2 pr-2.5 py-2 text-left transition-colors hover:bg-page disabled:hover:bg-transparent"
+          [class.cursor-not-allowed]="isOut(c.player.id)"
+          [class.opacity-40]="isOut(c.player.id) || (!!savingId() && savingId() !== c.player.id)"
+          [disabled]="!!savingId() || isOut(c.player.id)"
+          (click)="pick(c.player.id)"
+        >
+          @if (isPicked(c.player.id)) {
+            <span class="absolute inset-0 bg-team-primary opacity-10 pointer-events-none"></span>
+            <span class="absolute left-0 inset-y-0 w-1 bg-team-primary"></span>
+          }
+          <span class="w-4 shrink-0 text-center font-mono text-[11px] font-bold text-muted">{{ i + 1 }}</span>
+          <span class="relative shrink-0 w-10 h-10">
+            <app-player-photo
+              [name]="c.player.name"
+              [photoUrl]="c.player.photoUrl"
+              [jerseyNumber]="c.player.jerseyNumber"
+              [teamCode]="activeTeam().code"
+              [primaryColor]="activeTeam().primaryColor"
+              [size]="40"
+              [fill]="true"
+              class="rounded-full block"
+            />
+            @if (savingId() === c.player.id) {
+              <span class="absolute inset-0 flex items-center justify-center rounded-full bg-card/70">
+                <app-logo-spinner [size]="16" />
+              </span>
+            } @else if (justSavedId() === c.player.id) {
+              <!-- "Saved" confirmation pop (2026-09-25) — see
+                   styles.css's pick-saved-pop doc comment. -->
+              <span class="absolute inset-0 flex items-center justify-center rounded-full bg-card/80 pick-saved-pop">
+                <app-nav-icon name="checkmark-shield" [size]="20" class="text-emerald-500" />
+              </span>
+            }
+            @if (injuryFor(c.player.id); as injury) {
+              <span class="absolute -top-1 -right-1">
+                <app-injury-badge [status]="injury.status" [note]="injury.note" [noteEl]="injury.noteEl" [size]="14" />
+              </span>
+            }
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="block text-[13px] font-bold truncate leading-tight" [class.text-team-primary]="isPicked(c.player.id)">{{ c.player.name.split(',')[0] }}</span>
+            <span class="block font-mono text-[11px] text-muted leading-tight mt-0.5">
+              @if (c.pointsPerGame != null) {
+                {{ c.pointsPerGame | number: '1.1-1' }} {{ i18n.t('topScorer.ppgAbbrev') }}
+              } @else {
+                &ndash;
+              }
+            </span>
+          </span>
+          @if (quoteFor(c.player.id); as q) {
+            <span
+              class="shrink-0 min-w-[4.25rem] text-center font-mono text-[11px] font-bold rounded-full px-2 py-1 transition-colors"
+              [class.bg-team-primary]="isPicked(c.player.id)"
+              [class.text-team-secondary]="isPicked(c.player.id)"
+              [class.bg-page]="!isPicked(c.player.id)"
+              [class.border]="!isPicked(c.player.id)"
+              [class.border-line]="!isPicked(c.player.id)"
+              >+{{ q }} {{ i18n.t('predictions.pts') }}</span
+            >
+          }
+          <span
+            class="shrink-0 w-5 h-5 rounded-full flex items-center justify-center border-2 transition-colors"
+            [class.border-line]="!isPicked(c.player.id)"
+            [class.bg-team-primary]="isPicked(c.player.id)"
+            [class.border-team-primary]="isPicked(c.player.id)"
+            [class.text-team-secondary]="isPicked(c.player.id)"
+          >
+            @if (isPicked(c.player.id)) {
+              <svg class="w-3 h-3" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            }
+          </span>
+        </button>
+      </li>
+    }
+  </ul>
+
 
   <!-- Picked footer (2026-09-30, "less vanilla when selected and how to
        reset"): team-color strip with the player's photo, points, and a
@@ -179,7 +130,7 @@
   @if (myPick(); as pick) {
     <div class="mt-4 relative flex items-center gap-2.5 rounded-2xl p-1.5 bg-gradient-to-r from-team-primary to-team-primary/75 text-team-secondary shadow-pop overflow-hidden">
       <span class="relative shrink-0 rounded-full ring-2 ring-team-secondary/70">
-        <app-player-photo [name]="pick.predictedPlayer.name" [photoUrl]="pickedPhotoUrl()" [size]="36" class="rounded-full block" />
+        <app-player-photo [name]="pick.predictedPlayer.name" [photoUrl]="pickedPhotoUrl()" [size]="36" [fill]="true" class="rounded-full block" />
       </span>
       <div class="relative min-w-0 flex-1">
         <p class="text-[9px] font-bold uppercase tracking-wider opacity-80 leading-none truncate">{{ i18n.t('topScorer.yourTopScorer') }}</p>

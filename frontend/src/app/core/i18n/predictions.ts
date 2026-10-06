@@ -108,6 +108,7 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
   "predictions.rareCards": { en: "Rare cards", el: "Σπάνιες κάρτες" },
   "predictions.addedToCollection": { en: "— added to your collection.", el: "— προστέθηκε στη συλλογή σου." },
   "predictions.pts": { en: "pts", el: "πόντοι" },
+  "predictions.gameTotal": { en: "This game", el: "Αυτός ο αγώνας" },
   "predictions.noBadgesYet": { en: "No badges yet", el: "Δεν υπάρχουν μετάλλια ακόμα" },
   "predictions.pending": { en: "Pending", el: "Εκκρεμεί" },
   // Distinct from "Pending" above — that means "game not resolved yet" for

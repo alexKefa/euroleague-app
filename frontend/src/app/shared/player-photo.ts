@@ -28,7 +28,7 @@ import { cdnImage } from "./cdn-image";
   imports: [RetryImgDirective],
   template: `
     <span
-      class="inline-flex items-center justify-center rounded-full overflow-hidden shrink-0 relative bg-line"
+      class="inline-flex align-top items-center justify-center rounded-full overflow-hidden shrink-0 relative bg-line"
       [style.width.px]="size()"
       [style.height.px]="size()"
       [style.background]="fill() && img() && !failed() ? FILL_BACKDROP : null"

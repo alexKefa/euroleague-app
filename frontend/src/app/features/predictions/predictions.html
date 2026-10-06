@@ -232,7 +232,7 @@
                         [attr.aria-label]="i18n.t('topScorer.change')"
                       >
                         <span class="shrink-0 rounded-full ring-2 ring-team-secondary/70">
-                          <app-player-photo [name]="tsPick.predictedPlayer.name" [photoUrl]="tsPick.predictedPlayer.photoUrl" [size]="32" class="rounded-full block" />
+                          <app-player-photo [name]="tsPick.predictedPlayer.name" [photoUrl]="tsPick.predictedPlayer.photoUrl" [size]="32" [fill]="true" class="rounded-full block" />
                         </span>
                         <span class="min-w-0 flex-1">
                           <span class="block text-[9px] font-bold uppercase tracking-wider opacity-80 leading-none truncate">{{ i18n.t('topScorer.yourTopScorer') }}</span>
@@ -288,21 +288,22 @@
                        plus "vs" used to overflow a phone-width card once the name
                        text grew; now each side shares its space evenly and names
                        truncate to fit. -->
-                  <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2 pt-3 pb-2.5 px-1">
+                  <div class="grid grid-cols-[1fr_auto_1fr] items-start gap-1.5 pt-3 pb-2.5 px-1">
                     <div class="grid grid-cols-3 gap-1 min-w-0">
                       @for (c of topScorerRecommendations(game.homeTeam.id); track c.player.id) {
                         <button
                           type="button"
                           (click)="quickPickTopScorer(game, c.player.id)"
                           [disabled]="isLocked(game) || quickPickSavingId() === c.player.id || isOut(c.player.id)"
-                          class="flex flex-col items-center gap-0.5 min-w-0 disabled:opacity-50"
+                          class="flex flex-col items-center gap-1 min-w-0 disabled:opacity-50"
                           [attr.aria-label]="c.player.name"
                         >
                           <span class="relative inline-block">
                             <app-player-photo
                               [name]="c.player.name"
                               [photoUrl]="c.player.photoUrl"
-                              [size]="32"
+                              [size]="44"
+                              [fill]="true"
                               class="rounded-full block transition-all"
                               [ngClass]="isQuickPicked(game, c.player.id) ? 'ring-2 ring-team-primary' : topScorerByGameId().has(game.id) ? 'opacity-50 grayscale-[40%]' : ''"
                             />
@@ -313,7 +314,7 @@
                             }
                             @if (quickPickSavingId() === c.player.id) {
                               <span class="absolute inset-0 flex items-center justify-center rounded-full bg-card/70">
-                                <app-logo-spinner [size]="14" />
+                                <app-logo-spinner [size]="16" />
                               </span>
                             } @else if (quickPickJustSavedId() === c.player.id) {
                               <!-- "Saved" confirmation pop (2026-09-25) —
@@ -330,25 +331,33 @@
                             }
                           </span>
                           <span class="font-mono text-[10px] font-semibold leading-tight truncate max-w-full" [ngClass]="isQuickPicked(game, c.player.id) ? 'text-team-primary font-bold' : 'text-ink'">{{ c.player.name.split(',')[0] }}</span>
-                          <span class="font-mono text-[10px] text-muted">{{ c.stats.pointsPerGame | number: '1.1-1' }}</span>
+                          <span class="font-mono text-[9px] text-muted leading-none">{{ c.stats.pointsPerGame | number: '1.1-1' }} {{ i18n.t('topScorer.ppgAbbrev') }}</span>
+                          @if (quickPickQuote(game, c.player.id); as q) {
+                            <span
+                              class="mt-0.5 font-mono text-[10px] font-bold leading-none px-1.5 py-0.5 rounded-full transition-colors"
+                              [ngClass]="isQuickPicked(game, c.player.id) ? 'bg-team-primary text-team-secondary' : 'bg-line/60 text-ink'"
+                              >+{{ q }}</span
+                            >
+                          }
                         </button>
                       }
                     </div>
-                    <span class="text-[10px] text-muted font-bold uppercase">{{ i18n.t('predictions.vs') }}</span>
+                    <span class="self-start mt-3.5 text-[10px] text-muted font-bold uppercase">{{ i18n.t('predictions.vs') }}</span>
                     <div class="grid grid-cols-3 gap-1 min-w-0">
                       @for (c of topScorerRecommendations(game.awayTeam.id); track c.player.id) {
                         <button
                           type="button"
                           (click)="quickPickTopScorer(game, c.player.id)"
                           [disabled]="isLocked(game) || quickPickSavingId() === c.player.id || isOut(c.player.id)"
-                          class="flex flex-col items-center gap-0.5 min-w-0 disabled:opacity-50"
+                          class="flex flex-col items-center gap-1 min-w-0 disabled:opacity-50"
                           [attr.aria-label]="c.player.name"
                         >
                           <span class="relative inline-block">
                             <app-player-photo
                               [name]="c.player.name"
                               [photoUrl]="c.player.photoUrl"
-                              [size]="32"
+                              [size]="44"
+                              [fill]="true"
                               class="rounded-full block transition-all"
                               [ngClass]="isQuickPicked(game, c.player.id) ? 'ring-2 ring-team-primary' : topScorerByGameId().has(game.id) ? 'opacity-50 grayscale-[40%]' : ''"
                             />
@@ -359,7 +368,7 @@
                             }
                             @if (quickPickSavingId() === c.player.id) {
                               <span class="absolute inset-0 flex items-center justify-center rounded-full bg-card/70">
-                                <app-logo-spinner [size]="14" />
+                                <app-logo-spinner [size]="16" />
                               </span>
                             } @else if (quickPickJustSavedId() === c.player.id) {
                               <span class="absolute inset-0 flex items-center justify-center rounded-full bg-card/80 pick-saved-pop">
@@ -373,11 +382,39 @@
                             }
                           </span>
                           <span class="font-mono text-[10px] font-semibold leading-tight truncate max-w-full" [ngClass]="isQuickPicked(game, c.player.id) ? 'text-team-primary font-bold' : 'text-ink'">{{ c.player.name.split(',')[0] }}</span>
-                          <span class="font-mono text-[10px] text-muted">{{ c.stats.pointsPerGame | number: '1.1-1' }}</span>
+                          <span class="font-mono text-[9px] text-muted leading-none">{{ c.stats.pointsPerGame | number: '1.1-1' }} {{ i18n.t('topScorer.ppgAbbrev') }}</span>
+                          @if (quickPickQuote(game, c.player.id); as q) {
+                            <span
+                              class="mt-0.5 font-mono text-[10px] font-bold leading-none px-1.5 py-0.5 rounded-full transition-colors"
+                              [ngClass]="isQuickPicked(game, c.player.id) ? 'bg-team-primary text-team-secondary' : 'bg-line/60 text-ink'"
+                              >+{{ q }}</span
+                            >
+                          }
                         </button>
                       }
                     </div>
                   </div>
+                }
+                <!-- This game's combined payout (2026-10-06, "combine how many
+                     points does user get from predicting there"): winner pick +
+                     top-scorer pick, shown once either is made. -->
+                @if (gamePickPoints(game); as gp) {
+                  @if (gp.winLoss != null || gp.topScorer != null) {
+                    <div class="mx-2.5 mb-2.5 flex items-center gap-2 rounded-xl border border-line bg-page px-2.5 py-1.5">
+                      <span class="min-w-0 text-[10px] font-bold uppercase tracking-wider text-muted truncate">{{ i18n.t('predictions.gameTotal') }}</span>
+                      <span class="ml-auto flex items-center gap-1 font-mono text-[11px] text-muted whitespace-nowrap">
+                        <span class="inline-flex items-center gap-0.5" [class.text-ink]="gp.winLoss != null" [class.opacity-60]="gp.winLoss == null">
+                          <app-nav-icon name="trophy" [size]="11" />{{ gp.winLoss != null ? '+' + gp.winLoss : '–' }}
+                        </span>
+                        <span>+</span>
+                        <span class="inline-flex items-center gap-0.5" [class.text-ink]="gp.topScorer != null" [class.opacity-60]="gp.topScorer == null">
+                          <app-nav-icon name="ball" [size]="11" />{{ gp.topScorer != null ? '+' + gp.topScorer : '–' }}
+                        </span>
+                        <span>=</span>
+                      </span>
+                      <span class="shrink-0 font-mono text-[12px] font-bold px-2 py-0.5 rounded-full bg-team-primary text-team-secondary">+{{ gp.total }} {{ i18n.t('predictions.pts') }}</span>
+                    </div>
+                  }
                 }
               }
             </div>
@@ -473,17 +510,23 @@
              actions stop being available) — a single pick tap is still
              gated per-game by isLocked() above, unaffected by this earlier,
              round-wide buffer. -->
-        <div class="flex gap-2">
+        <!-- One joined control (2026-10-06, "make them grouped. I dont
+             like this approach being separate"): a single pill split by a
+             divider, instead of two separately-rounded buttons with a gap.
+             Clear all stays the narrow, quiet end; Complete fills the rest. -->
+        <div class="flex h-11 rounded-2xl overflow-hidden border border-line bg-page">
           <button
             type="button"
             (click)="requestClearAll()"
             [disabled]="submitting() || clearingAll() || roundActionsLocked()"
-            appButton="secondary"
-            [ngClass]="hasPendingChanges() ? 'shrink-0 !h-11 !rounded-2xl' : 'flex-1 !h-11 !rounded-2xl'"
+            class="flex items-center justify-center gap-1.5 px-4 text-[13px] font-bold text-muted hover:text-red-500 hover:bg-line/40 transition-colors disabled:opacity-50 disabled:pointer-events-none"
+            [class.flex-1]="!hasPendingChanges()"
+            [class.shrink-0]="hasPendingChanges()"
           >
             @if (clearingAll()) {
               <app-logo-spinner [size]="14" />
             } @else {
+              <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4h6v3" /></svg>
               {{ i18n.t('predictions.clearAll') }}
             }
           </button>
@@ -492,13 +535,13 @@
               type="button"
               (click)="submitPredictions()"
               [disabled]="submitting() || roundActionsLocked()"
-              appButton
-              class="flex-1 !h-11 !rounded-2xl"
+              class="flex-1 flex items-center justify-center gap-1.5 border-l border-line bg-team-primary text-team-secondary text-[14px] font-bold hover:brightness-110 transition disabled:opacity-50 disabled:pointer-events-none"
             >
               @if (submitting()) {
                 <app-logo-spinner [size]="14" />
               } @else {
                 {{ i18n.t('predictions.completePredictions') }}
+                <svg class="w-4 h-4 shrink-0" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
               }
             </button>
           }
@@ -772,7 +815,7 @@
                   </div>
                   @if (tsPick) {
                     <div class="flex items-center gap-2 mt-2 pt-2 border-t border-line/60">
-                      <app-player-photo [name]="tsPick.predictedPlayer.name" [photoUrl]="tsPick.predictedPlayer.photoUrl" [size]="22" class="rounded-full block shrink-0" />
+                      <app-player-photo [name]="tsPick.predictedPlayer.name" [photoUrl]="tsPick.predictedPlayer.photoUrl" [size]="22" [fill]="true" class="rounded-full block shrink-0" />
                       <span class="text-[11px] text-muted truncate flex-1 min-w-0">
                         <span class="font-bold uppercase tracking-wider text-[9px] mr-1">{{ i18n.t('topScorer.yourTopScorer') }}</span>
                         <span class="text-ink font-semibold">{{ tsPick.predictedPlayer.name.split(',')[0] }}</span>
