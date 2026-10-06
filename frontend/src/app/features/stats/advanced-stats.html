@@ -4,12 +4,17 @@
   >
 
   <!-- Header (2026-09-30 restyle): icon tile + title + legend, with Compare
-       as a real button beside it instead of a stray outline link. On phones
-       the button wraps under the subtitle (ml-14 = icon + gap) so the title
-       gets the full width instead of being squeezed into a narrow column. -->
+       and Referees as real buttons. page-header's aside slot never shrinks,
+       so two buttons beside the title squeezed it into a narrow, badly
+       wrapping column on phones (2026-10-06). Phones get the buttons on
+       their own row under the subtitle; sm and up keep them on the right. -->
   <app-page-header [title]="i18n.t('stats.title')" [subtitle]="i18n.t('stats.subtitle')" [eyebrow]="i18n.t('section.stats')" icon="table" class="mt-4">
     <app-stat-legend headTitleExtra [entries]="legendEntries()" />
-    <span headAside class="flex gap-2">
+    <span headAside class="hidden sm:flex gap-2">
+      <a routerLink="/compare" appButton appButtonSize="sm">{{ i18n.t('stats.compare.navTitle') }}</a>
+      <a routerLink="/referees" appButton="outline" appButtonSize="sm">{{ i18n.t('ref.title') }}</a>
+    </span>
+    <span headBelow class="flex sm:hidden gap-2 mt-3">
       <a routerLink="/compare" appButton appButtonSize="sm">{{ i18n.t('stats.compare.navTitle') }}</a>
       <a routerLink="/referees" appButton="outline" appButtonSize="sm">{{ i18n.t('ref.title') }}</a>
     </span>
