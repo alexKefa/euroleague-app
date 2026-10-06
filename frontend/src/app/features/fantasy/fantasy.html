@@ -468,7 +468,7 @@
         <div class="pointer-events-none absolute -right-16 -top-16 w-48 h-48 rounded-full border-[14px]" style="border-color: color-mix(in srgb, var(--accent-primary) 12%, transparent)" aria-hidden="true"></div>
         <div class="relative">
         <div class="flex items-center justify-between gap-2 mb-3">
-          <div class="flex items-center gap-1.5 min-w-0">
+          <div class="flex items-center gap-1.5 shrink-0">
             <!-- Prev/next arrows -> a dropdown (2026-09-24, direct ask) --
                  jumps straight to any past round instead of stepping
                  through one at a time; current round stays the default
@@ -513,41 +513,8 @@
                hiding the label below sm: is what actually saves the space
                that matters, rather than fighting the left side for room. -->
           <div class="flex items-center gap-1.5 shrink-0">
-            <!-- Deadline pill, moved up from under the court (2026-10-06
-                 scoreboard pass) — it decides whether anything below can
-                 still be edited, so it sits next to the round. Same states
-                 and colours as before; mobile shows just the day count. -->
             @if (isCurrentRound() && lockAt()) {
-              <div
-                class="h-10 flex items-center gap-1 px-2.5 rounded-xl text-[11px] font-mono font-bold whitespace-nowrap shadow-card"
-                [ngClass]="subsWindowOpen() ? 'bg-amber-500/90 text-white' : roundLocked() ? 'bg-red-500/90 text-white' : 'bg-emerald-500/90 text-white'"
-                [attr.aria-label]="subsWindowOpen() ? i18n.t('fantasy.subsOnly') : roundLocked() ? i18n.t('fantasy.locked') : null"
-                [attr.title]="subsWindowOpen() ? i18n.t('fantasy.subsWindowOpen') : roundLocked() ? i18n.t('fantasy.locked') : (i18n.t('fantasy.lockCountdown') + ' ' + (lockAt() | date: gameDateTimeFormat():'Europe/Athens':dateLocale()))"
-              >
-                @if (roundDayInfo(); as day) {
-                  <span class="whitespace-nowrap"><span class="hidden sm:inline">{{ i18n.t('fantasy.dayAbbrev') }} </span>{{ day.current }}/{{ day.total }}</span>
-                  <span class="w-px h-4 bg-white/40 mx-1" aria-hidden="true"></span>
-                }
-                <!-- Icon-first below sm: (2026-10-06 phone screenshot) — the
-                     Greek "Κλειδωμένη για αυτή την αγωνιστική" ran under the
-                     round dropdown. Full text on sm+ and in the tooltip. -->
-                @if (subsWindowOpen()) {
-                  <span class="text-sm leading-none" aria-hidden="true">&#8646;</span>
-                  <span class="hidden sm:inline">{{ i18n.t('fantasy.subsOnly') }}</span>
-                } @else if (roundLocked()) {
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
-                  <span class="hidden sm:inline">{{ i18n.t('fantasy.locked') }}</span>
-                } @else if (daysUntilLock() === 0) {
-                  <span class="sm:hidden">{{ i18n.t('fantasy.todayShort') }}</span>
-                  <span class="hidden sm:inline">{{ i18n.t('fantasy.locksToday') }}</span>
-                } @else {
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" class="shrink-0" [attr.aria-label]="i18n.t('fantasy.transferWindowIcon')" role="img">
-                    <path d="M18 8.5a6 6 0 0 0-12 0c0 6.5-2.5 8.5-2.5 8.5h17s-2.5-2-2.5-8.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                    <path d="M13.7 21a2 2 0 0 1-3.4 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                  </svg>
-                  <span class="hidden sm:inline">{{ i18n.t('fantasy.transfersOpen') }}&nbsp;&middot;&nbsp;</span>{{ daysUntilLock() }} {{ i18n.t('fantasy.daysWord') }}
-                }
-              </div>
+              <span class="hidden sm:flex"><ng-container *ngTemplateOutlet="deadlinePill" /></span>
             }
             @if (hasLiveGameThisRound()) {
               <button
@@ -574,6 +541,40 @@
             }
           </div>
         </div>
+
+        <!-- Deadline pill (2026-10-06): its own full-width row on phones —
+             in the header it overlapped the round dropdown — and inline in
+             the header from sm: up. Live h:m:s countdown while transfers are
+             open; the round's Day X/Y rides along on its left. -->
+        @if (isCurrentRound() && lockAt()) {
+          <div class="sm:hidden -mt-1 mb-3"><ng-container *ngTemplateOutlet="deadlinePill" /></div>
+        }
+        <ng-template #deadlinePill>
+          <div
+            class="h-10 w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 rounded-xl text-[12px] font-mono font-bold whitespace-nowrap shadow-card"
+            [ngClass]="subsWindowOpen() ? 'bg-amber-500/90 text-white' : roundLocked() ? 'bg-red-500/90 text-white' : 'bg-emerald-500/90 text-white'"
+            [attr.title]="subsWindowOpen() ? i18n.t('fantasy.subsWindowOpen') : roundLocked() ? i18n.t('fantasy.locked') : (i18n.t('fantasy.lockCountdown') + ' ' + (lockAt() | date: gameDateTimeFormat():'Europe/Athens':dateLocale()))"
+          >
+            @if (roundDayInfo(); as day) {
+              <span>{{ i18n.t('fantasy.dayAbbrev') }} {{ day.current }}/{{ day.total }}</span>
+              <span class="w-px h-4 bg-white/40" aria-hidden="true"></span>
+            }
+            @if (subsWindowOpen()) {
+              <span class="text-sm leading-none" aria-hidden="true">&#8646;</span>
+              <span>{{ i18n.t('fantasy.subsOnly') }}</span>
+            } @else if (lockCountdown(); as left) {
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" class="shrink-0" [attr.aria-label]="i18n.t('fantasy.transferWindowIcon')" role="img">
+                <path d="M18 8.5a6 6 0 0 0-12 0c0 6.5-2.5 8.5-2.5 8.5h17s-2.5-2-2.5-8.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M13.7 21a2 2 0 0 1-3.4 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              </svg>
+              <span class="font-sans hidden min-[400px]:inline">{{ i18n.t('fantasy.transfersOpen') }}</span>
+              <span class="tabular-nums">{{ left }}</span>
+            } @else {
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+              <span class="font-sans truncate">{{ i18n.t('fantasy.lockedShort') }}</span>
+            }
+          </div>
+        </ng-template>
 
         @if (shownFantasyMilestoneRewards().length > 0) {
           <div class="flex items-center gap-2 rounded-xl bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3">

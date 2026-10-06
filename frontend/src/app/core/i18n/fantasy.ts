@@ -147,7 +147,8 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.resetRound": { en: "Reset to round start", el: "Επαναφορά στην αρχή του γύρου" },
   // Status card scoreboard (2026-10-06): short chip labels + readiness line.
   "fantasy.creditsCell": { en: "CR left", el: "Υπόλοιπο" },
-  "fantasy.todayShort": { en: "Today", el: "Σήμερα" },
+  "fantasy.lockedShort": { en: "Locked", el: "Κλειδωμένη" },
+  "fantasy.daysShort": { en: "d", el: "ημ" },
   "fantasy.undoShort": { en: "Undo", el: "Αναίρεση" },
   "fantasy.resetShort": { en: "Reset", el: "Επαναφορά" },
   "fantasy.lineupComplete": { en: "Lineup complete", el: "Πλήρης ομάδα" },

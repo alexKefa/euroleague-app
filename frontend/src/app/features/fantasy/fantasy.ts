@@ -355,7 +355,14 @@ export class FantasyComponent implements OnInit {
     const vv = window.visualViewport;
     if (vv) this.visualViewport.set({ height: vv.height, top: vv.offsetTop });
   };
+  // 1s clock for the deadline countdown (2026-10-06, "the bell should be
+  // hours and minutes and seconds"). roundLocked() reads it too, so the
+  // page flips to locked the second the deadline passes.
+  readonly nowMs = signal(Date.now());
+
   constructor() {
+    const clock = setInterval(() => this.nowMs.set(Date.now()), 1000);
+    inject(DestroyRef).onDestroy(() => clearInterval(clock));
     const vv = window.visualViewport;
     if (vv) {
       vv.addEventListener("resize", this.syncVisualViewport);
@@ -656,7 +663,19 @@ export class FantasyComponent implements OnInit {
     if (!this.isCurrentRound()) return true;
     this.fixtureGames();
     const lockAt = this.lockAt();
-    return lockAt !== null && new Date(lockAt).getTime() <= Date.now();
+    return lockAt !== null && new Date(lockAt).getTime() <= this.nowMs();
+  });
+
+  // "2d 04:12:33" / "04:12:33" until lock; null once locked.
+  readonly lockCountdown = computed<string | null>(() => {
+    const lockAt = this.lockAt();
+    if (lockAt === null) return null;
+    const total = Math.floor((new Date(lockAt).getTime() - this.nowMs()) / 1000);
+    if (total <= 0) return null;
+    const d = Math.floor(total / 86400);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const hms = `${pad(Math.floor((total % 86400) / 3600))}:${pad(Math.floor((total % 3600) / 60))}:${pad(total % 60)}`;
+    return d > 0 ? `${d}${this.i18n.t("fantasy.daysShort")} ${hms}` : hms;
   });
 
   // Mid-round substitution window (2026-09-25, "since we are on day 2/2
