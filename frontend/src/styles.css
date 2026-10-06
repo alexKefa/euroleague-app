@@ -539,6 +539,23 @@ body {
   .sheet-panel:not(.info-panel):not([class*="translate-y"]) {
     animation: sheet-up 0.22s ease-out;
   }
+  /* Same handle on the older bottom sheets marked data-sheet (Fantasy
+     pickers, admin dialog) — they have no top padding, so no pull-up. */
+  [data-sheet]::before {
+    content: "";
+    display: block;
+    flex-shrink: 0;
+    width: 36px;
+    height: 4px;
+    border-radius: 9999px;
+    background: var(--color-line);
+    margin: 0.5rem auto 0;
+  }
+  /* Swipe-down-to-dismiss (core/sheet-drag.service.ts): the handle now
+     does something, and the sheet shouldn't rubber-band the page. */
+  .sheet-panel, .dd-panel, [data-sheet] {
+    overscroll-behavior-y: contain;
+  }
   /* A small grab handle, purely a visual "this is a sheet" cue. */
   .sheet-panel::before {
     content: "";

@@ -27,6 +27,7 @@ import { PackRewardsService } from "./core/pack-rewards.service";
 import { BattlesNotificationService } from "./core/battles-notification.service";
 import { WhatsNewComponent } from "./shared/whats-new";
 import { WatchPillComponent } from "./shared/watch-pill";
+import { SheetDragService } from "./core/sheet-drag.service";
 
 // 2026-09-08: bumped from 1200ms — the old duration was timed to just the
 // splash's own entrance animation (cards fan in, then the C+ball+wordmark
@@ -293,7 +294,11 @@ export class AppComponent implements OnInit {
   // app shell's top bar, desktop rail, or mobile tab bar around it.
   protected readonly hideChrome = computed(() => this.currentUrl() === "/welcome");
 
+  // Swipe-down-to-dismiss for every phone bottom sheet (see the service).
+  private sheetDrag = inject(SheetDragService);
+
   ngOnInit(): void {
+    this.sheetDrag.init();
     this.auth.restoreSession().subscribe();
     unregisterStaleServiceWorker();
 

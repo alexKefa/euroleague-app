@@ -34,7 +34,7 @@ function storedDismiss(): boolean {
     @if (shown()) {
       <!-- Centred modal, not a bottom sheet or toast, so it can't be missed.
            No backdrop-tap or Escape close: the user picks one of the two. -->
-      <div class="sheet-backdrop fixed inset-0 z-[60] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
+      <div data-sheet-static class="sheet-backdrop fixed inset-0 z-[60] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
         <div
           role="dialog"
           aria-modal="true"

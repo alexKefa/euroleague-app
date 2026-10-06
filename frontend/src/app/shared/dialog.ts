@@ -22,6 +22,7 @@ import { NavIconComponent, NavIconName } from "./nav-icon";
         role="dialog"
         aria-modal="true"
         [attr.aria-label]="title"
+        data-sheet
         class="bg-card w-full sm:max-w-lg max-h-[90dvh] flex flex-col rounded-t-2xl sm:rounded-2xl border border-line shadow-pop"
         (click)="$event.stopPropagation()"
       >

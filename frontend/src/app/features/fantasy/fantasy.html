@@ -1442,6 +1442,7 @@
         class="bg-card rounded-t-2xl sm:rounded-2xl border border-line shadow-pop w-full sm:max-w-md sm:h-auto sm:max-h-[88vh] flex flex-col transition-[transform,height] duration-200 motion-reduce:transition-none"
         [class.rounded-t-none]="keyboardOpen()"
         [style.height]="isMobileViewport() ? (keyboardOpen() ? '100%' : '88%') : null"
+        data-sheet
         [ngClass]="pickerVisible() ? 'translate-y-0' : 'translate-y-full sm:translate-y-8'"
         (click)="$event.stopPropagation()"
       >
@@ -1536,6 +1537,7 @@
     <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm" (click)="closeCoachPicker()">
       <div
         class="bg-card rounded-t-2xl sm:rounded-2xl border border-line shadow-pop w-full sm:max-w-md max-h-[80vh] flex flex-col transition-transform duration-200 motion-reduce:transition-none"
+        data-sheet
         [ngClass]="coachPickerVisible() ? 'translate-y-0' : 'translate-y-full sm:translate-y-8'"
         (click)="$event.stopPropagation()"
       >
@@ -1585,6 +1587,7 @@
     <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm" (click)="closeSwapPicker()">
       <div
         class="bg-card rounded-t-2xl sm:rounded-2xl border border-line shadow-pop w-full sm:max-w-md max-h-[80vh] flex flex-col transition-transform duration-200 motion-reduce:transition-none"
+        data-sheet
         [ngClass]="swapVisible() ? 'translate-y-0' : 'translate-y-full sm:translate-y-8'"
         (click)="$event.stopPropagation()"
       >
