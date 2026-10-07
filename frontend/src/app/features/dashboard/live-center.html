@@ -59,6 +59,13 @@
                       }
                     </span>
                     <span class="font-mono font-bold text-sm">{{ game.homeScore }}-{{ game.awayScore }}</span>
+                    @if (liveWinProb()[game.id]; as wp) {
+                      <!-- Live win chance (2026-10-07), in the leading team's colour. -->
+                      <span
+                        class="block text-[10px] font-bold tabular-nums mt-0.5"
+                        [style.color]="(wp >= 0.5 ? game.homeTeam.primaryColor : game.awayTeam.primaryColor) || 'var(--color-muted)'"
+                      >{{ wp >= 0.5 ? game.homeTeam.code : game.awayTeam.code }} {{ (wp >= 0.5 ? wp : 1 - wp) * 100 | number: '1.0-0' }}%</span>
+                    }
                   </span>
                 </a>
               }

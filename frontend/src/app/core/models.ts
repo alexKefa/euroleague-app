@@ -369,6 +369,39 @@ export interface GameBoxscoreLine {
   valuation: number | null;
 }
 
+// Win probability (2026-10-07, backend services/winProb/).
+export interface WinProbPreGame {
+  homeProb: number;
+  source: "odds" | "elo";
+}
+
+export interface WinProbPoint {
+  period: number;
+  clock: number;
+  s: number;
+  homeScore: number;
+  awayScore: number;
+  homeProb: number;
+}
+
+export interface WinProbSwing {
+  period: number;
+  clock: number;
+  homeProbBefore: number;
+  homeProbAfter: number;
+  teamId: string | null;
+  playerName: string | null;
+  playType: string;
+}
+
+export interface GameWinProb {
+  status: string;
+  pre: WinProbPreGame | null;
+  points: WinProbPoint[];
+  swings: WinProbSwing[];
+  fromPlayByPlay: boolean;
+}
+
 export interface GameDetail {
   game: Game & { season: string };
   statsSeason: string;

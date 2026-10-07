@@ -32,6 +32,7 @@ import { whatsNewTranslations } from "./whats-new";
 import { achievementsTranslations } from "./achievements";
 import { teamAnalyticsTranslations } from "./team-analytics";
 import { shareCardTranslations } from "./share-card";
+import { winProbTranslations } from "./win-prob";
 
 export type { Lang };
 
@@ -73,4 +74,5 @@ export const translations: Record<string, Record<Lang, string>> = {
   ...achievementsTranslations,
   ...teamAnalyticsTranslations,
   ...shareCardTranslations,
+  ...winProbTranslations,
 };

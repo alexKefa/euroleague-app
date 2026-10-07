@@ -52,6 +52,7 @@ export class LiveCenterComponent implements OnInit {
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
   private events = inject(EventsService);
+  readonly liveWinProb = signal<Record<string, number>>({});
   // The current round's schedule comes from the dashboard's shared
   // RoundStatusService (2026-10-07) instead of a second fetch.
   private roundStatus = inject(RoundStatusService);
@@ -157,6 +158,11 @@ export class LiveCenterComponent implements OnInit {
     effect(() => {
       const update = this.events.lastGameUpdate();
       if (!update) return;
+      // Live win chance chip (2026-10-07): only re-render when it moves by a point or more.
+      const wp = update.homeWinProb;
+      if (wp !== undefined && update.status === "live") {
+        this.liveWinProb.update((m) => (m[update.gameId] !== undefined && Math.abs(m[update.gameId] - wp) < 0.01 ? m : { ...m, [update.gameId]: wp }));
+      }
       this.games.update((list) =>
         list.map((g) =>
           g.id === update.gameId

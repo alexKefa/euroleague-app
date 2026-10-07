@@ -1,3 +1,4 @@
+import { WinProbCardComponent } from "./win-prob-card";
 import { Component, OnInit, HostListener, inject, signal, computed, effect } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
@@ -176,6 +177,7 @@ function totalsFor(lines: GameBoxscoreLine[]): TeamTotals {
   selector: "app-game-detail",
   standalone: true,
   imports: [
+    WinProbCardComponent,
     TodayTagPipe,
     CommonModule,
     RouterLink,

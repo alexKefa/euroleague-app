@@ -1,3 +1,4 @@
+import type { WinProbPreGame } from "../../core/models";
 import { Component, OnInit, OnDestroy, HostListener, computed, effect, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { forkJoin, of } from "rxjs";
@@ -193,6 +194,8 @@ export class PredictionsComponent implements OnInit, OnDestroy {
   readonly selectedEntry = signal<LeaderboardEntry | null>(null);
   readonly mySummary = signal<PredictionSummary | null>(null);
   readonly upcomingGames = signal<Game[]>([]);
+  // Win-probability model's pre-game chance per game (2026-10-07), display only.
+  readonly modelProbs = signal<Record<string, WinProbPreGame>>({});
   readonly loading = signal(true);
   // Separate from `loading` on purpose — the schedule fetch that populates
   // upcomingGames runs independently of the predictions fetch that gates
@@ -650,6 +653,10 @@ export class PredictionsComponent implements OnInit, OnDestroy {
     this.api.getSchedule(SEASON).subscribe({
       next: (schedule) => {
         this.upcomingGames.set(schedule.games.filter((g) => g.status === "scheduled"));
+        this.api.getPreGameWinProbs(schedule.season, schedule.round).subscribe({
+          next: (probs) => this.modelProbs.set(probs),
+          error: () => {}, // optional line
+        });
         this.upcomingGamesLoading.set(false);
         if (this.auth.isAuthenticated()) this.loadTopScorerQuotes();
       },

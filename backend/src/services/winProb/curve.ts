@@ -58,6 +58,12 @@ async function curveFromPlayByPlay(gameId: string, homeTeamId: string, p0: numbe
   if (!rows.length) return null;
 
   const curve = buildCurve(rows, homeTeamId, p0, sigma);
+  // Close the curve at the final buzzer (the feed's last event can sit a few seconds before it).
+  const last = curve[curve.length - 1];
+  if (last.s > 0) {
+    const margin = last.homeScore - last.awayScore;
+    curve.push({ ...last, clock: 0, s: 0, homeProb: margin > 0 ? 1 : margin < 0 ? 0 : 0.5, event: null });
+  }
   const top = biggestSwings(curve, 3);
   const codes = [...new Set(top.map((s) => s.event?.playerCode).filter((c): c is string => !!c))];
   const names = codes.length

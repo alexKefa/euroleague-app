@@ -19,6 +19,8 @@ export interface GameUpdate {
   onFireIds?: string[];
   quarter?: number;
   gameClockSeconds?: number;
+  // Home win chance from the backend's win-probability model (2026-10-07).
+  homeWinProb?: number;
   // Derived, not a real captured play — see backend/src/realtime/hub.ts's
   // ScoringEvent doc comment. Empty on a game's first tick after this
   // client (re)connects, and always empty once status is "final".

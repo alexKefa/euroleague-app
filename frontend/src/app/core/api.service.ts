@@ -42,6 +42,8 @@ import {
   RoundsInfo,
   Schedule,
   GameDetail,
+  GameWinProb,
+  WinProbPreGame,
   League,
   LeagueDetail,
   LeagueLeaderboardEntry,
@@ -217,6 +219,14 @@ export class ApiService {
 
   getGame(id: string): Observable<GameDetail> {
     return this.http.get<GameDetail>(`${API_BASE_URL}/games/${id}`);
+  }
+
+  getWinProb(gameId: string): Observable<GameWinProb> {
+    return this.http.get<GameWinProb>(`${API_BASE_URL}/games/${gameId}/win-prob`);
+  }
+
+  getPreGameWinProbs(season: string, round: number): Observable<Record<string, WinProbPreGame>> {
+    return this.http.get<Record<string, WinProbPreGame>>(`${API_BASE_URL}/games/win-prob/pregame`, { params: { season, round } });
   }
 
   simulateLiveGame(gameId?: string): Observable<{ gameId: string }> {
