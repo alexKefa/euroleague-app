@@ -1,3 +1,4 @@
+import { enrichGameUpdate } from "../services/winProb/live.js";
 import { Response } from "express";
 
 // One real basket, produced by whichever tick source is currently driving a
@@ -46,6 +47,8 @@ function frame(event: string, data: unknown): string {
 
 /** Push to every connected client, e.g. live game score updates. */
 export function broadcast(event: string, data: unknown): void {
+  // Every live score update also carries the home win chance (services/winProb/live.ts).
+  if (event === "game-update" && data && typeof data === "object") enrichGameUpdate(data as Record<string, unknown>);
   const payload = frame(event, data);
   for (const client of clients) client.res.write(payload);
 }

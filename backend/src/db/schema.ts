@@ -256,6 +256,32 @@ export const gameOdds = pgTable("game_odds", {
   capturedAt: timestamp("captured_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+// Win probability (2026-10-07, services/winProb/). Versioned model constants,
+// so re-fitting (scripts/fit-win-prob.ts) needs no deploy; exactly one row is
+// active. sigma = spread of final margins around expectation (points);
+// eloK / eloHome = Elo step size and home edge (rating points).
+export const wpModel = pgTable("wp_model", {
+  version: integer("version").primaryKey(),
+  sigma: doublePrecision("sigma").notNull(),
+  eloK: doublePrecision("elo_k").notNull(),
+  eloHome: doublePrecision("elo_home").notNull(),
+  active: boolean("active").default(false).notNull(),
+  note: text("note"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// The pre-game home win chance, frozen at tip-off (first live tick) so it
+// never changes afterwards, same rule as the odds snapshots.
+export const gameWinProb = pgTable("game_win_prob", {
+  gameId: uuid("game_id")
+    .primaryKey()
+    .references(() => games.id),
+  preHomeProb: doublePrecision("pre_home_prob").notNull(),
+  source: varchar("source", { length: 8 }).notNull(), // "odds" | "elo"
+  modelVersion: integer("model_version").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const teamSeasonStats = pgTable(
   "team_season_stats",
   {

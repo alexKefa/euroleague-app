@@ -16,6 +16,8 @@ import {
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
 import { getCurrentSeason } from "../services/season.js";
 import { getGameReferees } from "../services/refereeStats.js";
+import { gameWinProb } from "../services/winProb/curve.js";
+import { activeModel, preGameProbs } from "../services/winProb/pregame.js";
 
 export const gamesRouter = Router();
 
@@ -211,6 +213,44 @@ const byValuationDesc = (a: { valuation: number | null }, b: { valuation: number
 // something to show too, not just a blank page waiting for tipoff.
 // Registered after the literal /rounds and /schedule routes above so this
 // param route doesn't shadow them.
+// Win probability (2026-10-07, services/winProb/): pre-game chances for a
+// whole round in one call (Predictions page)...
+gamesRouter.get("/win-prob/pregame", async (req, res) => {
+  try {
+    const season = typeof req.query.season === "string" ? req.query.season : await getCurrentSeason();
+    const round = Number(req.query.round);
+    const model = await activeModel();
+    if (!season || !Number.isInteger(round) || !model) {
+      res.json({});
+      return;
+    }
+    const list = await db
+      .select({ id: games.id, season: games.season, homeTeamId: games.homeTeamId, awayTeamId: games.awayTeamId })
+      .from(games)
+      .where(and(eq(games.season, season), eq(games.round, round)));
+    const probs = await preGameProbs(list, model);
+    res.json(Object.fromEntries(probs));
+  } catch (err) {
+    console.error("GET /api/games/win-prob/pregame failed:", err);
+    res.status(500).json({ error: "Failed to load win probabilities" });
+  }
+});
+
+// ...and one game's full chart (pre-game chance, curve, biggest swings).
+gamesRouter.get("/:id/win-prob", async (req, res) => {
+  try {
+    const result = await gameWinProb(req.params.id);
+    if (!result) {
+      res.status(404).json({ error: "Game not found" });
+      return;
+    }
+    res.json(result);
+  } catch (err) {
+    console.error("GET /api/games/:id/win-prob failed:", err);
+    res.status(500).json({ error: "Failed to load win probability" });
+  }
+});
+
 gamesRouter.get("/:id", async (req, res) => {
   try {
     const gameId = req.params.id;
