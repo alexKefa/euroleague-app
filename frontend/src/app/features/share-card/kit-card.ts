@@ -60,7 +60,7 @@ function rgba(hex: string, alpha: number): string {
           @if (a().first) {
             <span style="font-size: 48px; font-weight: 600; opacity: 0.85;">{{ a().first }}</span>
           }
-          <span style="font-family: 'Sofia Sans Condensed', sans-serif; font-weight: 900; font-size: 140px; line-height: 0.85; text-transform: uppercase; overflow-wrap: anywhere;">{{ a().last }}</span>
+          <span [style.fontSize.px]="nameSize(a().last, 1240, 140)" style="font-family: 'Sofia Sans Condensed', sans-serif; font-weight: 900; line-height: 0.85; text-transform: uppercase; overflow-wrap: anywhere;">{{ a().last }}</span>
           <span [style.background]="tint(a().secondary, 0.16)" style="margin-top: 22px; align-self: flex-start; font-size: 36px; font-weight: 600; border-radius: 999px; padding: 9px 28px;">{{ periodLabel() }}</span>
         </div>
         <div
@@ -87,12 +87,12 @@ function rgba(hex: string, alpha: number): string {
 
         <div [style.top.px]="story() ? 150 : 65" style="position: absolute; left: 54px; right: 54px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 22px;">
           <div [style.color]="a().secondary">
-            <div style="font-family: 'Sofia Sans Condensed', sans-serif; font-weight: 850; font-size: 80px; line-height: 0.95; overflow-wrap: anywhere;">{{ a().last }}</div>
+            <div [style.fontSize.px]="nameSize(a().last, 760, 80)" style="font-family: 'Sofia Sans Condensed', sans-serif; font-weight: 850; line-height: 0.95; overflow-wrap: anywhere;">{{ a().last }}</div>
             <div style="font-size: 35px; font-weight: 600; opacity: 0.8; margin-top: 6px;">{{ a().teamCode }}</div>
           </div>
           <div style="font-family: 'Sofia Sans Condensed', sans-serif; font-weight: 900; font-size: 54px; color: #fff; background: rgba(0,0,0,0.45); border-radius: 999px; padding: 10px 24px;">VS</div>
           <div [style.color]="b().secondary" style="text-align: right;">
-            <div style="font-family: 'Sofia Sans Condensed', sans-serif; font-weight: 850; font-size: 80px; line-height: 0.95; overflow-wrap: anywhere;">{{ b().last }}</div>
+            <div [style.fontSize.px]="nameSize(b().last, 760, 80)" style="font-family: 'Sofia Sans Condensed', sans-serif; font-weight: 850; line-height: 0.95; overflow-wrap: anywhere;">{{ b().last }}</div>
             <div style="font-size: 35px; font-weight: 600; opacity: 0.8; margin-top: 6px;">{{ b().teamCode }}</div>
           </div>
         </div>
@@ -142,6 +142,12 @@ export class KitCardComponent {
 
   protected markFailed(i: number): void {
     this.photoFailed.update((f) => f.map((v, j) => (j === i ? true : v)));
+  }
+
+  // Long surnames (Papanikolaou, Antetokounmpo) shrink to fit on one line
+  // instead of breaking mid-word: a condensed capital is about half an em wide.
+  protected nameSize(name: string, budget: number, max: number): number {
+    return Math.min(max, Math.floor(budget / Math.max(name.length, 1)));
   }
 
   protected tint(hex: string, alpha: number): string {

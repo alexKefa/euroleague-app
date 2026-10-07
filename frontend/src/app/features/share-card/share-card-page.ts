@@ -9,7 +9,7 @@ import { ButtonDirective } from "../../shared/button.directive";
 import { PageHeaderComponent } from "../../shared/page-header";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { KitCardComponent, KitPlayer } from "./kit-card";
-import { exportCard } from "./share-export";
+import { renderCard, shareFile } from "./share-export";
 import {
   DEFAULT_STATS,
   Period,
@@ -18,6 +18,7 @@ import {
   StatKey,
   computeLine,
   gamesForPeriod,
+  opponentInGame,
   opponentsFaced,
   splitName,
 } from "./share-card.logic";
@@ -99,8 +100,8 @@ type PeriodKind = Period["kind"];
           <div>
             <p class="text-sm font-semibold mb-2">{{ i18n.t('shareCard.size') }}</p>
             <div class="flex gap-2">
-              <button type="button" (click)="size.set('post')" [class]="chipClass(size() === 'post')">{{ i18n.t('shareCard.post') }} · 4:5</button>
-              <button type="button" (click)="size.set('story')" [class]="chipClass(size() === 'story')">{{ i18n.t('shareCard.story') }} · 9:16</button>
+              <button type="button" (click)="setSize('post')" [class]="chipClass(size() === 'post')">{{ i18n.t('shareCard.post') }} · 4:5</button>
+              <button type="button" (click)="setSize('story')" [class]="chipClass(size() === 'story')">{{ i18n.t('shareCard.story') }} · 9:16</button>
             </div>
           </div>
 
@@ -108,13 +109,17 @@ type PeriodKind = Period["kind"];
             <button type="button" appButton class="w-full !h-12" (click)="share()" [disabled]="busy() || !currentHasGames()">
               {{ busy() ? i18n.t('shareCard.creating') : i18n.t('shareCard.share') }}
             </button>
+            @if (status() === 'needsTap') {
+              <!-- Phones only allow sharing right after a tap; rendering can outlast that, so the ready image gets its own tap. -->
+              <button type="button" appButton="outline" class="w-full !h-12" (click)="shareNow()">{{ i18n.t('shareCard.tapToShare') }}</button>
+            }
             @if (status() === 'downloaded') {
               <p class="text-xs text-muted text-center">{{ i18n.t('shareCard.downloaded') }}</p>
             }
             @if (status() === 'error') {
               <p class="text-xs text-red-500 text-center font-semibold">
                 {{ i18n.t('shareCard.error') }}
-                <button type="button" class="underline ml-1" (click)="share()">{{ i18n.t('shareCard.retry') }}</button>
+                <button type="button" class="underline ml-1 disabled:opacity-40" [disabled]="!currentHasGames()" (click)="share()">{{ i18n.t('shareCard.retry') }}</button>
               </p>
             }
           </div>
@@ -149,7 +154,9 @@ export class ShareCardPageComponent implements OnInit, AfterViewInit {
   protected readonly stats = signal<StatKey[]>([...DEFAULT_STATS]);
   protected readonly size = signal<"post" | "story">("post");
   protected readonly busy = signal(false);
-  protected readonly status = signal<"idle" | "downloaded" | "error">("idle");
+  protected readonly status = signal<"idle" | "downloaded" | "error" | "needsTap">("idle");
+  // The last rendered image, kept when the browser refused share() so a second tap can share it.
+  private readonly pendingFile = signal<File | null>(null);
   private readonly boxWidth = signal(360);
 
   protected readonly mode = computed(() => (this.loaded().length > 1 ? "h2h" : "player"));
@@ -209,13 +216,15 @@ export class ShareCardPageComponent implements OnInit, AfterViewInit {
     switch (p.kind) {
       case "season":
         return fill("shareCard.labelSeason", { season: first.log.season ?? "" });
-      case "last5":
-        return games.length < 5 && !h2h ? fill("shareCard.labelLastN", { n: games.length }) : this.i18n.t("shareCard.labelLast5");
+      case "last5": {
+        // In a head-to-head the label follows whoever has fewer games.
+        const n = Math.min(...this.loaded().map((l) => gamesForPeriod(l.log.rows, p, l.detail.team.id).length));
+        return n < 5 ? fill("shareCard.labelLastN", { n }) : this.i18n.t("shareCard.labelLast5");
+      }
       case "lastGame": {
-        const g = games[0]?.game;
-        if (!g || h2h) return this.i18n.t("shareCard.labelLastGame");
-        const opp = g.homeTeam.id === first.detail.team.id ? g.awayTeam : g.homeTeam;
-        return fill("shareCard.labelLastGameVs", { team: opp.name });
+        const row = games[0];
+        if (!row || h2h) return this.i18n.t("shareCard.labelLastGame");
+        return fill("shareCard.labelLastGameVs", { team: opponentInGame(first.log.rows, row, first.detail.team.id).name });
       }
       case "vsTeam": {
         const team = this.opponents().find((t) => t.id === p.teamId)?.name ?? "";
@@ -233,6 +242,19 @@ export class ShareCardPageComponent implements OnInit, AfterViewInit {
     }
     forkJoin(ids.map((id) => forkJoin({ detail: this.api.getPlayer(id), log: this.api.getPlayerGames(id) }))).subscribe({
       next: (rows) => {
+        // A head-to-head compares the same season: if B's latest season
+        // differs from A's, reload B's games for A's season.
+        const [a, b] = rows;
+        if (b && a.log.season && b.log.season !== a.log.season) {
+          this.api.getPlayerGames(b.detail.player.id, a.log.season).subscribe({
+            next: (log) => {
+              this.loaded.set([a, { ...b, log }]);
+              setTimeout(() => this.observeWidth());
+            },
+            error: () => this.loadError.set(true),
+          });
+          return;
+        }
         this.loaded.set(rows);
         // The preview box only exists once the loaded branch has rendered.
         setTimeout(() => this.observeWidth());
@@ -255,7 +277,18 @@ export class ShareCardPageComponent implements OnInit, AfterViewInit {
     this.destroyRef.onDestroy(() => this.observer?.disconnect());
   }
 
+  protected setSize(size: "post" | "story"): void {
+    this.size.set(size);
+    this.resetShare();
+  }
+
+  private resetShare(): void {
+    this.pendingFile.set(null);
+    this.status.set("idle");
+  }
+
   protected pickPeriod(kind: PeriodKind): void {
+    this.resetShare();
     if (kind === "vsTeam") {
       const first = this.opponents()[0];
       if (first) this.period.set({ kind: "vsTeam", teamId: first.id });
@@ -265,6 +298,7 @@ export class ShareCardPageComponent implements OnInit, AfterViewInit {
   }
 
   protected pickTeam(teamId: string): void {
+    this.resetShare();
     this.period.set({ kind: "vsTeam", teamId });
   }
 
@@ -275,12 +309,25 @@ export class ShareCardPageComponent implements OnInit, AfterViewInit {
 
   protected toggleStat(key: StatKey): void {
     if (this.statDisabled(key)) return;
+    this.resetShare();
     this.stats.update((list) => (list.includes(key) ? list.filter((k) => k !== key) : STAT_KEYS.filter((k) => list.includes(k) || k === key)));
   }
 
   protected chipClass(active: boolean): string {
     const base = "h-9 px-3.5 rounded-full text-sm font-semibold border transition-colors disabled:opacity-40 disabled:cursor-not-allowed";
     return active ? `${base} bg-team-primary text-team-secondary border-team-primary` : `${base} bg-card text-ink border-line hover:border-team-primary/50`;
+  }
+
+  protected async shareNow(): Promise<void> {
+    const file = this.pendingFile();
+    if (!file) return;
+    try {
+      const result = await shareFile(file);
+      if (result === "shared" || result === "cancelled") this.resetShare();
+      else if (result === "downloaded") this.status.set("downloaded");
+    } catch {
+      this.status.set("error");
+    }
   }
 
   protected async share(): Promise<void> {
@@ -291,8 +338,10 @@ export class ShareCardPageComponent implements OnInit, AfterViewInit {
     const slug = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     const names = this.kitPlayers().map((p) => slug(p.last)).join("-vs-");
     try {
-      const result = await exportCard(el, `clutch-${names}-${this.period().kind}.png`);
-      if (result === "downloaded") this.status.set("downloaded");
+      const file = await renderCard(el, `clutch-${names}-${this.period().kind}.png`);
+      const result = await shareFile(file);
+      if (result === "needsTap") this.pendingFile.set(file);
+      if (result === "downloaded" || result === "needsTap") this.status.set(result);
     } catch {
       this.status.set("error");
     } finally {

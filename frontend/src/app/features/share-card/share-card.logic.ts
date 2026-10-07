@@ -34,8 +34,23 @@ export function playedGames(rows: PlayerGameLogEntry[]): PlayerGameLogEntry[] {
     .sort((a, b) => Date.parse(b.game.tipoffAt) - Date.parse(a.game.tipoffAt));
 }
 
-function opponentOf(row: PlayerGameLogEntry, playerTeamId: string) {
-  return row.game.homeTeam.id === playerTeamId ? row.game.awayTeam : row.game.homeTeam;
+// The game log has no per-row team, and the player's *current* team is wrong
+// for last season's games or after a transfer. The player's own club shows up
+// in nearly every row, each opponent only once or twice, so the more frequent
+// side of each game is the player's. The current team only breaks ties.
+function sideCounts(rows: PlayerGameLogEntry[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const r of rows) {
+    for (const id of [r.game.homeTeam.id, r.game.awayTeam.id]) counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+  return counts;
+}
+
+function opponentOf(row: PlayerGameLogEntry, counts: Map<string, number>, playerTeamId: string) {
+  const home = counts.get(row.game.homeTeam.id) ?? 0;
+  const away = counts.get(row.game.awayTeam.id) ?? 0;
+  const playerIsHome = home !== away ? home > away : row.game.homeTeam.id === playerTeamId;
+  return playerIsHome ? row.game.awayTeam : row.game.homeTeam;
 }
 
 export function gamesForPeriod(rows: PlayerGameLogEntry[], period: Period, playerTeamId: string): PlayerGameLogEntry[] {
@@ -47,15 +62,24 @@ export function gamesForPeriod(rows: PlayerGameLogEntry[], period: Period, playe
       return played.slice(0, 5);
     case "lastGame":
       return played.slice(0, 1);
-    case "vsTeam":
-      return played.filter((r) => opponentOf(r, playerTeamId).id === period.teamId);
+    case "vsTeam": {
+      const counts = sideCounts(played);
+      return played.filter((r) => opponentOf(r, counts, playerTeamId).id === period.teamId);
+    }
   }
+}
+
+/** The opponent in one game of this log (for labels like "Last game · vs X"). */
+export function opponentInGame(rows: PlayerGameLogEntry[], row: PlayerGameLogEntry, playerTeamId: string) {
+  return opponentOf(row, sideCounts(playedGames(rows)), playerTeamId);
 }
 
 export function opponentsFaced(rows: PlayerGameLogEntry[], playerTeamId: string): { id: string; code: string; name: string }[] {
   const byId = new Map<string, { id: string; code: string; name: string }>();
-  for (const r of playedGames(rows)) {
-    const o = opponentOf(r, playerTeamId);
+  const played = playedGames(rows);
+  const counts = sideCounts(played);
+  for (const r of played) {
+    const o = opponentOf(r, counts, playerTeamId);
     byId.set(o.id, { id: o.id, code: o.code, name: o.name });
   }
   return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));

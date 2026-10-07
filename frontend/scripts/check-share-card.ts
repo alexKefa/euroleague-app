@@ -83,6 +83,20 @@ check("opponents faced: unique, sorted, played games only", () => {
   assert.deepEqual(o.map((t) => t.id), ["bar", "fen", "mon", "oly", "rma"]);
 });
 
+check("transferred player: own side inferred per row, not from the current team", () => {
+  // Last season's log at the old club (oly), while the current team is pao.
+  const old = (opp: string, day: number, home: boolean): PlayerGameLogEntry => {
+    const r = row({ day, opp });
+    r.game.homeTeam = team(home ? "oly" : opp);
+    r.game.awayTeam = team(home ? opp : "oly");
+    return r;
+  };
+  const log = [old("rma", 1, true), old("fen", 2, false), old("bar", 3, true), old("pao", 4, false)];
+  assert.deepEqual(opponentsFaced(log, PAO).map((t) => t.id), ["bar", "fen", "pao", "rma"]);
+  assert.equal(gamesForPeriod(log, { kind: "vsTeam", teamId: "pao" }, PAO).length, 1);
+  assert.equal(gamesForPeriod(log, { kind: "vsTeam", teamId: "oly" }, PAO).length, 0);
+});
+
 check("percentages from totals", () => {
   const g = [row({ day: 20, m3: 1, a3: 1 }), row({ day: 21, m3: 0, a3: 3 })];
   const line = computeLine(g, false);

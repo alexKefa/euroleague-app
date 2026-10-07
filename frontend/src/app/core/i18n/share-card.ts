@@ -18,6 +18,7 @@ export const shareCardTranslations: Record<string, Record<Lang, string>> = {
   "shareCard.story": { en: "Story", el: "Story" },
   "shareCard.share": { en: "Share image", el: "Κοινοποίηση εικόνας" },
   "shareCard.creating": { en: "Creating image…", el: "Δημιουργία εικόνας…" },
+  "shareCard.tapToShare": { en: "Image ready · tap to share", el: "Η εικόνα είναι έτοιμη · πάτα για κοινοποίηση" },
   "shareCard.downloaded": { en: "Saved to your downloads", el: "Αποθηκεύτηκε στις λήψεις" },
   "shareCard.error": { en: "Couldn't create the image.", el: "Δεν δημιουργήθηκε η εικόνα." },
   "shareCard.retry": { en: "Try again", el: "Ξανά" },
