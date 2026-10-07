@@ -11,6 +11,7 @@ import {
   coachFantasyPrices,
   fantasyLineups,
   fantasyCoachPicks,
+  fantasyChips,
   fantasyRoundPoints,
   pointAdjustments,
   playerGameStats,
@@ -88,6 +89,21 @@ export const FANTASY_TRANSFERS_PER_ROUND = 4;
 const FANTASY_UNLIMITED_TRANSFER_TRIGGER_ROUNDS = [6, 13, 18, 23, 28, 34];
 export function isUnlimitedTransferRound(round: number): boolean {
   return FANTASY_UNLIMITED_TRANSFER_TRIGGER_ROUNDS.some((r) => round === r + 1) || round > 34;
+}
+
+// Full Timeout chip (2026-10-07): once a season, a user can lift the transfer
+// cap for one round of their choice (F1 Fantasy's "Wildcard"). Stored in
+// fantasy_chips; see routes/fantasy.ts's /chips/full-timeout endpoints.
+export const FULL_TIMEOUT_CHIP = "full_timeout";
+
+/** The round this user played Full Timeout on this season, or null if it's unused. */
+export async function getFullTimeoutRound(userId: string, season: string): Promise<number | null> {
+  const [row] = await db
+    .select({ round: fantasyChips.round })
+    .from(fantasyChips)
+    .where(and(eq(fantasyChips.userId, userId), eq(fantasyChips.season, season), eq(fantasyChips.chip, FULL_TIMEOUT_CHIP)))
+    .limit(1);
+  return row?.round ?? null;
 }
 
 export const FANTASY_BUDGET_CAP = 100;
@@ -872,7 +888,7 @@ export async function saveFantasyLineup(
   }
 
   const baseline = await getBaselineSquad(userId, season, round);
-  if (baseline && !isUnlimitedTransferRound(round)) {
+  if (baseline && !isUnlimitedTransferRound(round) && (await getFullTimeoutRound(userId, season)) !== round) {
     const transfersUsed = newIds.filter((id) => !baseline.playerIds.has(id)).length;
     if (transfersUsed > FANTASY_TRANSFERS_PER_ROUND) {
       return {
@@ -1024,7 +1040,7 @@ export async function autoFillFantasySquad(userId: string, season: string, round
   // round 2 carried round 1's squad forward, and a from-scratch auto-fill
   // tried to change all 10 players against a 4-player cap. Keeps a random
   // subset of the baseline squad up to that cap and only redrafts the rest.
-  const unlimitedTransfers = isUnlimitedTransferRound(round);
+  const unlimitedTransfers = isUnlimitedTransferRound(round) || (await getFullTimeoutRound(userId, season)) === round;
   const maxNewPlayers = !baseline || unlimitedTransfers ? FANTASY_TOTAL_OUTFIELD : FANTASY_TRANSFERS_PER_ROUND;
   const keepCount = Math.max(0, FANTASY_TOTAL_OUTFIELD - maxNewPlayers);
 

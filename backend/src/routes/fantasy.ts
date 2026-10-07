@@ -17,6 +17,7 @@ import {
   fantasyPriceChangeLog,
   fantasyCoachPriceChangeLog,
   fantasyRoundPoints,
+  fantasyChips,
 } from "../db/schema.js";
 import { requireAuth } from "../auth/middleware.js";
 import { getCurrentSeason } from "../services/season.js";
@@ -41,6 +42,8 @@ import {
   pointsForCoachResult,
   isUnlimitedTransferRound,
   FANTASY_TRANSFERS_PER_ROUND,
+  FULL_TIMEOUT_CHIP,
+  getFullTimeoutRound,
   checkAndGrantFantasyRoundPoints,
   markFantasyRoundPointsSeen,
   computeFantasyGamePoints,
@@ -227,6 +230,8 @@ function emptyLineupResponse(season: string | null, defaultRound: number | null,
     transfersAllowed: null,
     baselinePlayerIds: null,
     baselineSquad: null,
+    fullTimeoutRound: null,
+    fullTimeoutAvailable: false,
     budgetCap,
     newFantasyRoundPoints: null,
     roundRecap: null,
@@ -259,6 +264,8 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
     }
 
     const baseline = await getBaselineSquad(req.userId!, season, round);
+    const fullTimeoutRound = await getFullTimeoutRound(req.userId!, season);
+    const unlimitedTransfers = isUnlimitedTransferRound(round) || fullTimeoutRound === round;
 
     let lineupRows: { playerId: string; slotRole: string; isCaptain: boolean; priceAtPick: number | null }[] = await db
       .select({
@@ -520,7 +527,12 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
       creditsSettled,
       budgetPending,
       transfersUsed,
-      transfersAllowed: baseline && !isUnlimitedTransferRound(round) ? FANTASY_TRANSFERS_PER_ROUND : null,
+      transfersAllowed: baseline && !unlimitedTransfers ? FANTASY_TRANSFERS_PER_ROUND : null,
+      // Full Timeout chip: the round it was played on this season (null =
+      // unused), and whether it can be played on this round right now —
+      // the open round, before lock, with a capped transfer window to lift.
+      fullTimeoutRound,
+      fullTimeoutAvailable: fullTimeoutRound === null && !!baseline && !unlimitedTransfers && round === defaultRound && !coachLocked,
       budgetCap,
       newFantasyRoundPoints,
       roundRecap,
@@ -603,6 +615,99 @@ fantasyRouter.post("/lineup/batch", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("POST /api/fantasy/lineup/batch failed:", err);
     res.status(500).json({ error: "Failed to save lineup" });
+  }
+});
+
+// Full Timeout chip (2026-10-07): once a season, lift the transfer cap for
+// the open round. Cancellable until the round locks, as long as the saved
+// squad is back within FANTASY_TRANSFERS_PER_ROUND changes of the baseline
+// (otherwise cancelling would leave an illegal saved squad behind).
+async function fullTimeoutRoundCheck(season: unknown, round: unknown): Promise<{ season: string; round: number } | { error: string; code?: string }> {
+  if (typeof season !== "string" || typeof round !== "number" || !Number.isInteger(round)) {
+    return { error: "season and round are required" };
+  }
+  if (round !== (await getDefaultRound(season))) {
+    return { error: "Full Timeout can only be used on the open round", code: "ROUND_NOT_OPEN" };
+  }
+  const lockAt = await getRoundLockTime(season, round);
+  if (lockAt === null || lockAt.getTime() <= Date.now()) {
+    return { error: "This round has already locked", code: "ROUND_LOCKED" };
+  }
+  return { season, round };
+}
+
+fantasyRouter.post("/chips/full-timeout", requireAuth, async (req, res) => {
+  try {
+    const check = await fullTimeoutRoundCheck(req.body?.season, req.body?.round);
+    if ("error" in check) {
+      res.status(400).json(check);
+      return;
+    }
+    const { season, round } = check;
+    if (isUnlimitedTransferRound(round) || !(await getBaselineSquad(req.userId!, season, round))) {
+      res.status(400).json({ error: "Transfers are already unlimited this round", code: "ALREADY_UNLIMITED" });
+      return;
+    }
+    const inserted = await db
+      .insert(fantasyChips)
+      .values({ userId: req.userId!, season, chip: FULL_TIMEOUT_CHIP, round })
+      .onConflictDoNothing()
+      .returning({ id: fantasyChips.id });
+    if (inserted.length === 0) {
+      res.status(409).json({ error: "Full Timeout has already been used this season", code: "CHIP_USED" });
+      return;
+    }
+    res.json({ ok: true, fullTimeoutRound: round });
+  } catch (err) {
+    console.error("POST /api/fantasy/chips/full-timeout failed:", err);
+    res.status(500).json({ error: "Failed to use Full Timeout" });
+  }
+});
+
+fantasyRouter.post("/chips/full-timeout/cancel", requireAuth, async (req, res) => {
+  try {
+    const check = await fullTimeoutRoundCheck(req.body?.season, req.body?.round);
+    if ("error" in check) {
+      res.status(400).json(check);
+      return;
+    }
+    const { season, round } = check;
+    const [baseline, savedRows] = await Promise.all([
+      getBaselineSquad(req.userId!, season, round),
+      db
+        .select({ playerId: fantasyLineups.playerId })
+        .from(fantasyLineups)
+        .where(and(eq(fantasyLineups.userId, req.userId!), eq(fantasyLineups.season, season), eq(fantasyLineups.round, round))),
+    ]);
+    const transfersUsed = baseline ? savedRows.filter((r) => !baseline.playerIds.has(r.playerId)).length : 0;
+    if (transfersUsed > FANTASY_TRANSFERS_PER_ROUND) {
+      res.status(400).json({
+        error: `Your saved squad has ${transfersUsed} changes — get it back to ${FANTASY_TRANSFERS_PER_ROUND} or fewer before cancelling`,
+        code: "CHIP_CANCEL_TOO_MANY",
+        transfersUsed,
+        transfersAllowed: FANTASY_TRANSFERS_PER_ROUND,
+      });
+      return;
+    }
+    const deleted = await db
+      .delete(fantasyChips)
+      .where(
+        and(
+          eq(fantasyChips.userId, req.userId!),
+          eq(fantasyChips.season, season),
+          eq(fantasyChips.chip, FULL_TIMEOUT_CHIP),
+          eq(fantasyChips.round, round)
+        )
+      )
+      .returning({ id: fantasyChips.id });
+    if (deleted.length === 0) {
+      res.status(400).json({ error: "Full Timeout isn't active this round", code: "CHIP_NOT_ACTIVE" });
+      return;
+    }
+    res.json({ ok: true, fullTimeoutRound: null });
+  } catch (err) {
+    console.error("POST /api/fantasy/chips/full-timeout/cancel failed:", err);
+    res.status(500).json({ error: "Failed to cancel Full Timeout" });
   }
 });
 

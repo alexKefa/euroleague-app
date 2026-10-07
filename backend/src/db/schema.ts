@@ -1604,6 +1604,26 @@ export const fantasyCoachPicks = pgTable(
   })
 );
 
+// Once-a-season Fantasy Five chips (2026-10-07). One row = the chip is
+// played for `round`; the unique key on (user, season, chip) is what makes
+// it once-a-season. "full_timeout" lifts the transfer cap for that round
+// (isUnlimitedTransferRound's free-for-all, for one user). Cancelling
+// before the round locks deletes the row, giving the chip back.
+export const fantasyChips = pgTable(
+  "fantasy_chips",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    season: varchar("season", { length: 9 }).notNull(),
+    chip: varchar("chip", { length: 32 }).notNull(),
+    round: integer("round").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    fantasyChipUnique: uniqueIndex("fantasy_chips_user_id_season_chip_key").on(table.userId, table.season, table.chip),
+  })
+);
+
 // The dynamic price-ceiling re-anchor point actually used the last time
 // scripts/reprice-fantasy-players.ts ran for a season (2026-09-09 — see
 // services/fantasyScoring.ts's FANTASY_PIR_CEILING_FLOOR doc comment for

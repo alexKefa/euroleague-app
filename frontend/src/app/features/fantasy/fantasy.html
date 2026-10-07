@@ -556,11 +556,56 @@
               @if (transfersAllowed(); as allowed) {
                 <p class="font-display text-2xl leading-none tabular-nums mt-1.5" [ngClass]="localTransfersUsed() >= allowed ? 'text-red-500' : 'text-ink'">{{ localTransfersUsed() }}<span class="text-muted text-base">/{{ allowed }}</span></p>
               } @else {
-                <p class="font-display text-2xl leading-none mt-1.5 text-muted">&infin;</p>
+                <p class="font-display text-2xl leading-none mt-1.5" [ngClass]="fullTimeoutActive() ? 'text-amber-500' : 'text-muted'">&infin;</p>
               }
             </div>
           }
         </div>
+
+        <!-- Full Timeout chip (2026-10-07): once-a-season unlimited-transfer round. -->
+        @if (isCurrentRound()) {
+          @if (fullTimeoutActive()) {
+            <div class="relative mb-3 rounded-2xl border border-amber-500/50 bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent px-3.5 py-3 flex items-center gap-3 overflow-hidden">
+              <span class="relative shrink-0 w-10 h-10 rounded-full bg-amber-500 text-neutral-950 flex items-center justify-center shadow-lg">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5" stroke="currentColor" stroke-width="2.2" /><path d="M12 13.5V9.5M9.5 2.5h5M19 6l1.5-1.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>
+                <span class="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-amber-300 ring-2 ring-card animate-pulse"></span>
+              </span>
+              <div class="min-w-0 flex-1">
+                <p class="text-[11px] font-bold uppercase tracking-wider text-amber-500">{{ i18n.t('fantasy.fullTimeoutActive') }}</p>
+                <p class="text-xs text-muted leading-snug mt-0.5">{{ i18n.t('fantasy.fullTimeoutActiveDesc') }}</p>
+              </div>
+              @if (!roundLocked()) {
+                <button type="button" (click)="cancelFullTimeout()" [disabled]="fullTimeoutBusy()" class="shrink-0 text-[11px] font-bold text-muted hover:text-ink underline underline-offset-2 disabled:opacity-40">
+                  {{ i18n.t('fantasy.fullTimeoutUndo') }}
+                </button>
+              }
+            </div>
+          } @else if (fullTimeoutAvailable() && !roundLocked()) {
+            <div class="mb-3 rounded-2xl border border-team-primary/30 bg-gradient-to-r from-team-primary/15 via-team-primary/5 to-transparent px-3.5 py-3 flex items-center gap-3">
+              <span class="shrink-0 w-10 h-10 rounded-full border-2 border-team-primary/60 text-team-primary flex items-center justify-center">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5" stroke="currentColor" stroke-width="2.2" /><path d="M12 13.5V9.5M9.5 2.5h5M19 6l1.5-1.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>
+              </span>
+              <div class="min-w-0 flex-1">
+                <p class="flex items-center gap-2 flex-wrap">
+                  <span class="text-[11px] font-bold uppercase tracking-wider text-ink">{{ i18n.t('fantasy.fullTimeout') }}</span>
+                  <span class="text-[9px] font-bold uppercase tracking-wide text-team-primary bg-team-primary/10 rounded-full px-1.5 py-0.5">{{ i18n.t('fantasy.fullTimeoutOnce') }}</span>
+                </p>
+                <p class="text-xs text-muted leading-snug mt-0.5">{{ i18n.t('fantasy.fullTimeoutDesc') }}</p>
+              </div>
+              <button type="button" (click)="confirmingFullTimeout.set(true)" [disabled]="fullTimeoutBusy()" appButton appButtonSize="sm" class="shrink-0">
+                {{ i18n.t('fantasy.fullTimeoutCall') }}
+              </button>
+            </div>
+          } @else if (fullTimeoutRound() !== null) {
+            <p class="flex items-center gap-1.5 px-1 -mt-1 mb-2 text-[11px] text-muted">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5" stroke="currentColor" stroke-width="2.2" /><path d="M12 13.5V9.5M9.5 2.5h5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>
+              {{ i18n.t('fantasy.fullTimeoutUsed').replace('{n}', '' + fullTimeoutRound()) }}
+            </p>
+          }
+          @if (fullTimeoutError(); as err) {
+            <p class="text-[11px] font-semibold text-red-500 px-1 -mt-1 mb-2">{{ err }}</p>
+          }
+        }
 
         @if (isCurrentRound()) {
           @if (budgetPending() && round() !== null) {
@@ -1893,6 +1938,16 @@
       [danger]="false"
       (confirmed)="resetToRoundStart()"
       (cancelled)="confirmingReset.set(false)"
+    />
+  }
+  @if (confirmingFullTimeout()) {
+    <app-confirm-dialog
+      [message]="i18n.t('fantasy.fullTimeoutConfirm')"
+      [confirmLabel]="i18n.t('fantasy.fullTimeoutCall')"
+      [cancelLabel]="i18n.t('fantasy.cancel')"
+      [danger]="false"
+      (confirmed)="playFullTimeout()"
+      (cancelled)="confirmingFullTimeout.set(false)"
     />
   }
   @if (confirmingAutoFill()) {

@@ -1084,6 +1084,10 @@ export interface FantasyLineup {
     players: { playerId: string; slotRole: FantasySlotRole; isCaptain: boolean }[];
     coachTeamId: string | null;
   } | null;
+  // Full Timeout chip (2026-10-07): the round it was played on this season
+  // (null = unused), and whether it can be played on this round right now.
+  fullTimeoutRound: number | null;
+  fullTimeoutAvailable: boolean;
   // The season's effective budget cap (2026-09-09) — FANTASY_BUDGET_CAP
   // scaled by how far the dynamic price ceiling has moved off its floor
   // (services/fantasyScoring.ts's computeBudgetCap), so real price

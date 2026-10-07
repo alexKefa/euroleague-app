@@ -660,6 +660,15 @@ export class ApiService {
     });
   }
 
+  // Full Timeout chip: once a season, unlimited transfers for the open round.
+  useFullTimeout(season: string, round: number): Observable<{ ok: boolean; fullTimeoutRound: number }> {
+    return this.http.post<{ ok: boolean; fullTimeoutRound: number }>(`${API_BASE_URL}/fantasy/chips/full-timeout`, { season, round });
+  }
+
+  cancelFullTimeout(season: string, round: number): Observable<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`${API_BASE_URL}/fantasy/chips/full-timeout/cancel`, { season, round });
+  }
+
   // Only the Fantasy page should call this, once it's actually shown the
   // "+N points" banner for whatever newFantasyRoundPoints it got back —
   // same pattern as ackRoundRewards above.

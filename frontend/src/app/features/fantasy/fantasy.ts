@@ -61,7 +61,7 @@ export const FANTASY_POSITION_QUOTA: Record<"Guard" | "Forward" | "Center", numb
   Forward: 4,
   Center: 2,
 };
-export const FANTASY_TRANSFERS_PER_ROUND = 3;
+export const FANTASY_TRANSFERS_PER_ROUND = 4;
 
 const PAGE_SIZE = 40;
 
@@ -526,6 +526,14 @@ export class FantasyComponent implements OnInit {
   // The squad the round started with (2026-10-05), for "Reset to round start".
   readonly baselineSquad = signal<FantasyLineup["baselineSquad"]>(null);
   readonly confirmingReset = signal(false);
+  // Full Timeout chip (2026-10-07): once a season, unlimited transfers for
+  // one round. Cancellable until lock while within the normal transfer cap.
+  readonly fullTimeoutRound = signal<number | null>(null);
+  readonly fullTimeoutAvailable = signal(false);
+  readonly fullTimeoutActive = computed(() => this.fullTimeoutRound() !== null && this.fullTimeoutRound() === this.round());
+  readonly confirmingFullTimeout = signal(false);
+  readonly fullTimeoutBusy = signal(false);
+  readonly fullTimeoutError = signal<string | null>(null);
 
   readonly isCurrentRound = computed(
     () => this.round() !== null && this.defaultRound() !== null && this.round() === this.defaultRound()
@@ -1220,6 +1228,57 @@ export class FantasyComponent implements OnInit {
     this.placeSquad(base.players, base.coachTeamId);
   }
 
+  playFullTimeout(): void {
+    const season = this.season();
+    const round = this.round();
+    this.confirmingFullTimeout.set(false);
+    if (!season || round === null || this.fullTimeoutBusy()) return;
+    this.fullTimeoutBusy.set(true);
+    this.fullTimeoutError.set(null);
+    this.api.useFullTimeout(season, round).subscribe({
+      next: () => {
+        this.fullTimeoutRound.set(round);
+        this.fullTimeoutAvailable.set(false);
+        this.transfersAllowed.set(null);
+        this.fullTimeoutBusy.set(false);
+      },
+      error: () => {
+        this.fullTimeoutError.set(this.i18n.t("fantasy.fullTimeoutFailed"));
+        this.fullTimeoutBusy.set(false);
+      },
+    });
+  }
+
+  cancelFullTimeout(): void {
+    const season = this.season();
+    const round = this.round();
+    if (!season || round === null || this.fullTimeoutBusy()) return;
+    // The in-progress squad has to fit the normal cap again first,
+    // otherwise cancelling would strand it over the limit.
+    if (this.localTransfersUsed() > FANTASY_TRANSFERS_PER_ROUND) {
+      this.fullTimeoutError.set(this.i18n.t("fantasy.fullTimeoutCancelTooMany").replace("{max}", "" + FANTASY_TRANSFERS_PER_ROUND));
+      return;
+    }
+    this.fullTimeoutBusy.set(true);
+    this.fullTimeoutError.set(null);
+    this.api.cancelFullTimeout(season, round).subscribe({
+      next: () => {
+        this.fullTimeoutRound.set(null);
+        this.fullTimeoutAvailable.set(true);
+        this.transfersAllowed.set(FANTASY_TRANSFERS_PER_ROUND);
+        this.fullTimeoutBusy.set(false);
+      },
+      error: (err) => {
+        this.fullTimeoutError.set(
+          err?.error?.code === "CHIP_CANCEL_TOO_MANY"
+            ? this.i18n.t("fantasy.fullTimeoutCancelSaved").replace("{max}", "" + FANTASY_TRANSFERS_PER_ROUND)
+            : this.i18n.t("fantasy.fullTimeoutFailed")
+        );
+        this.fullTimeoutBusy.set(false);
+      },
+    });
+  }
+
   readonly canUndo = computed(() => this.hasChanges() && !this.editLocked());
   readonly canResetToRoundStart = computed(() => {
     const base = this.baselineSquad();
@@ -1489,6 +1548,9 @@ export class FantasyComponent implements OnInit {
         this.transfersAllowed.set(lineup.transfersAllowed);
         this.baselinePlayerIds.set(lineup.baselinePlayerIds ? new Set(lineup.baselinePlayerIds) : null);
         this.baselineSquad.set(lineup.baselineSquad ?? null);
+        this.fullTimeoutRound.set(lineup.fullTimeoutRound ?? null);
+        this.fullTimeoutAvailable.set(!!lineup.fullTimeoutAvailable);
+        this.fullTimeoutError.set(null);
         this.budgetCap.set(lineup.budgetCap);
         this.budgetPending.set(lineup.budgetPending);
 

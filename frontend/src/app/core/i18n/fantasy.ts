@@ -158,6 +158,33 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.moreActions": { en: "More actions", el: "Περισσότερα" },
   "fantasy.undoShort": { en: "Undo", el: "Αναίρεση" },
   "fantasy.resetShort": { en: "Reset", el: "Επαναφορά" },
+  "fantasy.fullTimeout": { en: "Full Timeout", el: "Τάιμ άουτ" },
+  "fantasy.fullTimeoutOnce": { en: "Once a season", el: "Μία φορά τη σεζόν" },
+  "fantasy.fullTimeoutDesc": {
+    en: "Went the wrong way? Rebuild your whole squad: unlimited transfers for this round.",
+    el: "Πήρες λάθος δρόμο; Ξαναφτιάξε όλη την ομάδα: απεριόριστες μεταγραφές για αυτή την αγωνιστική.",
+  },
+  "fantasy.fullTimeoutCall": { en: "Call timeout", el: "Κάλεσε τάιμ άουτ" },
+  "fantasy.fullTimeoutActive": { en: "Timeout called", el: "Τάιμ άουτ σε εξέλιξη" },
+  "fantasy.fullTimeoutActiveDesc": {
+    en: "Unlimited transfers until this round locks. Budget rules still apply.",
+    el: "Απεριόριστες μεταγραφές μέχρι να κλειδώσει η αγωνιστική. Το μπάτζετ ισχύει κανονικά.",
+  },
+  "fantasy.fullTimeoutUndo": { en: "Cancel", el: "Ακύρωση" },
+  "fantasy.fullTimeoutUsed": { en: "Full Timeout used in round {n}", el: "Το τάιμ άουτ χρησιμοποιήθηκε στην αγωνιστική {n}" },
+  "fantasy.fullTimeoutConfirm": {
+    en: "Call your Full Timeout? You get unlimited transfers for this round, but only once this season. You can cancel it until the round locks.",
+    el: "Να καλέσεις το τάιμ άουτ σου; Παίρνεις απεριόριστες μεταγραφές για αυτή την αγωνιστική, αλλά μόνο μία φορά τη σεζόν. Μπορείς να το ακυρώσεις μέχρι να κλειδώσει η αγωνιστική.",
+  },
+  "fantasy.fullTimeoutFailed": { en: "Couldn't update Full Timeout. Try again.", el: "Δεν ήταν δυνατή η αλλαγή στο τάιμ άουτ. Δοκίμασε ξανά." },
+  "fantasy.fullTimeoutCancelTooMany": {
+    en: "To cancel, get back to {max} changes or fewer first.",
+    el: "Για ακύρωση, γύρνα πρώτα σε {max} αλλαγές ή λιγότερες.",
+  },
+  "fantasy.fullTimeoutCancelSaved": {
+    en: "Your saved squad has more than {max} changes. Save one with {max} or fewer, then cancel.",
+    el: "Η αποθηκευμένη ομάδα σου έχει πάνω από {max} αλλαγές. Αποθήκευσε μία με {max} ή λιγότερες και μετά ακύρωσε.",
+  },
   "fantasy.lineupComplete": { en: "Lineup complete", el: "Πλήρης ομάδα" },
   "fantasy.nToFix": { en: "{n} to fix", el: "{n} εκκρεμότητες" },
   "fantasy.resetRoundConfirm": {
