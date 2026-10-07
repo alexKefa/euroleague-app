@@ -313,19 +313,19 @@
                   <span class="absolute -top-1 -left-1.5 h-5 px-1.5 rounded-full text-[9px] font-bold flex items-center justify-center ring-2 ring-card bg-team-primary text-team-secondary">{{ i18n.t('fantasy.sixthBadge') }}</span>
                 }
               </div>
-              <!-- Info card (2026-10-06 court pass): one name line with the
-                   team-colour underline, then one row — the number that
+              <!-- Info card (2026-10-06 court pass): one name line over a
+                   neutral divider (not the team colour: red/green kits read
+                   as unavailable/available), then one row — the number that
                    matters now (price before the game, points/PIR once it
                    tips off) and the opponent's logo with H/A or the day.
                    Fixed light card: team colours never colour the text,
-                   only the underline, so white-kit teams stay readable. -->
+                   so white-kit teams stay readable. -->
               @let game = gameForTeam().get(row.team.id);
               @let opp = opponentFor(row.team.id);
               @let turn = !gameFinished(row.team.id) ? turnFor(row.team.id) : null;
               <button type="button" (click)="openPlayerInfo(slot.playerId)" [title]="row.player.name" class="block w-[96px] rounded-xl overflow-hidden shadow-card border border-line bg-card/90 backdrop-blur-md hover:border-team-primary/60 transition-colors">
                 <span
-                  class="block text-[11px] font-bold text-center leading-tight truncate px-1.5 pt-1 pb-0.5 border-b-2"
-                  [style.border-bottom-color]="row.team.primaryColor || 'var(--color-line)'"
+                  class="block text-[11px] font-bold text-center leading-tight truncate px-1.5 pt-1 pb-0.5 border-b border-line"
                   [ngClass]="row.injury ? injuryNameBarClass(row.injury.status) : 'text-ink'"
                   ><span class="opacity-50 text-[9px] mr-0.5">{{ posAbbrev(row.player.position) }}</span>{{ courtDisplayName(row.player.name) }}</span
                 >
