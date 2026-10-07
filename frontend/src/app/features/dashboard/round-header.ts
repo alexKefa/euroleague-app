@@ -51,10 +51,16 @@ import { RoundStatusService } from "./round-status.service";
           @if (countdown(); as c) {
             <div class="text-right shrink-0">
               <p class="text-xs font-semibold opacity-80">{{ c.label }}</p>
+              <!-- Soon/urgent use a pill with its own fill: tinted text alone
+                   disappears on a near-white team colour (Real Madrid). -->
               <p
-                class="font-display text-3xl leading-none mt-1 tabular-nums"
-                [class.text-amber-300]="c.tone === 'soon'"
-                [class.text-red-300]="c.tone === 'urgent'"
+                class="font-display text-3xl leading-none mt-1 tabular-nums inline-block rounded-xl"
+                [class.px-2]="c.tone !== 'normal'"
+                [class.py-0.5]="c.tone !== 'normal'"
+                [class.bg-amber-400]="c.tone === 'soon'"
+                [class.text-neutral-950]="c.tone === 'soon'"
+                [class.bg-red-600]="c.tone === 'urgent'"
+                [class.text-white]="c.tone === 'urgent'"
                 [class.animate-pulse]="c.tone === 'urgent'"
                 [class.motion-reduce:animate-none]="c.tone === 'urgent'"
               >{{ c.text }}</p>

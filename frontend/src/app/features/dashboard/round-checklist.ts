@@ -3,6 +3,7 @@ import { RouterLink } from "@angular/router";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { ButtonDirective } from "../../shared/button.directive";
+import { SkeletonComponent } from "../../shared/skeleton";
 import { ChecklistRow, formatCountdown } from "./round-status.logic";
 import { RoundStatusService } from "./round-status.service";
 
@@ -22,7 +23,7 @@ interface RowView {
 @Component({
   selector: "app-round-checklist",
   standalone: true,
-  imports: [RouterLink, ButtonDirective],
+  imports: [RouterLink, ButtonDirective, SkeletonComponent],
   template: `
     @if (!auth.isAuthenticated()) {
       @if (!rs.loading()) {
@@ -38,6 +39,9 @@ interface RowView {
           <a routerLink="/register" appButton appButtonSize="sm" class="mt-4 w-full">{{ i18n.t("dashboard.checklist.guestCta") }}</a>
         </section>
       }
+    } @else if (rs.loading()) {
+      <!-- Same height as three rows, so nothing below shifts when it lands. -->
+      <app-skeleton class="block rounded-3xl h-[188px] mb-4" />
     } @else if (status(); as s) {
       @if (s.phase !== "between" && views().length) {
         <section class="rounded-3xl px-4 py-1 mb-4 bg-card border border-line shadow-card">

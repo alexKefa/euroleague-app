@@ -85,7 +85,10 @@ export function buildRoundStatus(input: RoundStatusInput, now: number): RoundSta
   }
 
   const f = input.fantasy;
-  if (f && f.round !== null && f.round === schedule.round) {
+  // No squad and the round already locked: nothing left to do this round,
+  // so the row is missed (hidden), not an open job with a past deadline.
+  const fantasyMissed = !!f && !f.hasSquad && !!f.lockAt && Date.parse(f.lockAt) <= now;
+  if (f && f.round !== null && f.round === schedule.round && !fantasyMissed) {
     rows.push({
       id: "fantasy",
       done: f.hasSquad,

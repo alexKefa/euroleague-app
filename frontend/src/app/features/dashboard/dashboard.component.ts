@@ -5,7 +5,7 @@ import { ApiService } from "../../core/api.service";
 import { ThemeService } from "../../core/theme.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
-import { StandingsRow, NewsArticle, Game, LeaderboardEntry, League, FantasyLineup } from "../../core/models";
+import { StandingsRow, NewsArticle, Game, LeaderboardEntry, League } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { SkeletonComponent } from "../../shared/skeleton";
@@ -84,8 +84,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   readonly myLeagues = signal<League[]>([]);
   readonly myLeaguesLoading = signal(true);
-  readonly fantasyLineup = signal<FantasyLineup | null>(null);
-  readonly fantasyLoading = signal(true);
+  // The fantasy row reads RoundStatusService's lineup (one fetch, not two).
+  readonly fantasyLineup = this.roundStatus.lineup;
+  readonly fantasyLoading = this.roundStatus.lineupLoading;
 
   readonly selectedRow = computed(() => this.standings().find((r) => r.team.id === this.selectedTeamId()) ?? null);
 
@@ -151,13 +152,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
           this.myLeaguesLoading.set(false);
         },
         error: () => this.myLeaguesLoading.set(false),
-      });
-      this.api.getFantasyLineup().subscribe({
-        next: (lineup) => {
-          this.fantasyLineup.set(lineup);
-          this.fantasyLoading.set(false);
-        },
-        error: () => this.fantasyLoading.set(false),
       });
       this.api.getLeaderboard(true).subscribe({
         next: (rows) => this.fullLeaderboard.set(rows),

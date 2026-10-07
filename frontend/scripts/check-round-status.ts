@@ -82,6 +82,12 @@ check("fantasy open sorts first by deadline", () => {
   assert.equal(s.nextDeadline?.kind, "fantasy");
 });
 
+check("fantasy row hidden once the round has locked without a squad", () => {
+  const s = buildRoundStatus(base({ schedule: sched(ten), fantasy: fantasy({ hasSquad: false, lockAt: "2026-10-09T14:00:00Z" }) }), now);
+  assert.equal(s.rows.some((r) => r.id === "fantasy"), false);
+  assert.equal(s.nextDeadline?.kind, "picks");
+});
+
 check("null sources hide their rows", () => {
   const s = buildRoundStatus(base({ schedule: sched(ten) }), now);
   assert.deepEqual(s.rows.map((r) => r.id), ["picks"]);

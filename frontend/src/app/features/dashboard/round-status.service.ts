@@ -2,7 +2,7 @@ import { Injectable, computed, effect, inject, signal, untracked } from "@angula
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { EventsService } from "../../core/events.service";
-import { PredictionHistoryRound, Schedule, SpinStatus } from "../../core/models";
+import { FantasyLineup, PredictionHistoryRound, Schedule, SpinStatus } from "../../core/models";
 import { FantasyInput, RoundStatus, buildRoundStatus } from "./round-status.logic";
 
 const SEASON = "2026-27";
@@ -31,7 +31,24 @@ export class RoundStatusService {
   readonly loading = this.loadingSig.asReadonly();
 
   private readonly topScorerGameIds = signal<Set<string> | null>(null);
-  private readonly fantasy = signal<FantasyInput | null>(null);
+  // The dashboard's slim fantasy row reads this too, so the lineup is
+  // fetched once per load instead of twice.
+  private readonly lineupSig = signal<FantasyLineup | null>(null);
+  readonly lineup = this.lineupSig.asReadonly();
+  private readonly lineupLoadingSig = signal(true);
+  readonly lineupLoading = this.lineupLoadingSig.asReadonly();
+  private readonly fantasy = computed<FantasyInput | null>(() => {
+    const lineup = this.lineupSig();
+    return lineup
+      ? {
+          round: lineup.round,
+          hasSquad: lineup.players.length > 0,
+          lockAt: lineup.lockAt,
+          fullTimeoutAvailable: !!lineup.fullTimeoutAvailable,
+          carriedOver: lineup.baselinePlayerIds !== null && lineup.transfersUsed === 0,
+        }
+      : null;
+  });
   private readonly spin = signal<SpinStatus | null>(null);
   private readonly history = signal<PredictionHistoryRound[] | null>(null);
 
@@ -67,7 +84,27 @@ export class RoundStatusService {
     if (document.visibilityState === "visible") this.refresh();
   };
 
+  private lastUserId: string | null | undefined = undefined;
+
   constructor() {
+    // Root-provided, so it outlives a logout: drop the previous user's
+    // personal data the moment a different user (or a guest) takes over,
+    // instead of showing it until the new responses land.
+    effect(() => {
+      const userId = this.auth.currentUser()?.id ?? null;
+      if (this.lastUserId !== undefined && userId !== this.lastUserId) {
+        untracked(() => {
+          this.topScorerGameIds.set(null);
+          this.lineupSig.set(null);
+          this.lineupLoadingSig.set(true);
+          this.spin.set(null);
+          this.history.set(null);
+          if (this.timer !== null) this.refresh();
+        });
+      }
+      this.lastUserId = userId;
+    });
+
     // A game going final can settle points and roll the round over.
     effect(() => {
       const update = this.events.lastGameUpdate();
@@ -109,15 +146,14 @@ export class RoundStatusService {
       error: () => this.topScorerGameIds.set(null),
     });
     this.api.getFantasyLineup().subscribe({
-      next: (lineup) =>
-        this.fantasy.set({
-          round: lineup.round,
-          hasSquad: lineup.players.length > 0,
-          lockAt: lineup.lockAt,
-          fullTimeoutAvailable: !!lineup.fullTimeoutAvailable,
-          carriedOver: lineup.baselinePlayerIds !== null && lineup.transfersUsed === 0,
-        }),
-      error: () => this.fantasy.set(null),
+      next: (lineup) => {
+        this.lineupSig.set(lineup);
+        this.lineupLoadingSig.set(false);
+      },
+      error: () => {
+        this.lineupSig.set(null);
+        this.lineupLoadingSig.set(false);
+      },
     });
     this.api.getSpinStatus().subscribe({
       next: (s) => this.spin.set(s),
