@@ -206,7 +206,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, o: KitCardOptions, photo: HTM
   ctx.fillText("getclutchapp.com", W - 65, H - 52);
 }
 
-function drawH2H(ctx: CanvasRenderingContext2D, o: KitCardOptions): void {
+function drawH2H(ctx: CanvasRenderingContext2D, o: KitCardOptions, photos: (HTMLImageElement | null)[]): void {
   const [a, b] = o.players;
   const story = o.size === "story";
   const H = cardHeight(o.size);
@@ -215,11 +215,18 @@ function drawH2H(ctx: CanvasRenderingContext2D, o: KitCardOptions): void {
   ctx.fillRect(0, 0, W / 2, H);
   ctx.fillStyle = b.primary;
   ctx.fillRect(W / 2, 0, W / 2, H);
+  // Names, VS.
+  const top = story ? 150 : 65;
+
+  // Each player's photo in their own half, under the name, fading into the stat lines.
+  const photoY = top + 150;
+  const photoH = story ? 640 : 420;
+  const photoW = story ? 480 : 400;
+  if (photos[0]) drawPhoto(ctx, photos[0], W / 4 - photoW / 2, photoY, photoW, photoH);
+  if (photos[1]) drawPhoto(ctx, photos[1], (3 * W) / 4 - photoW / 2, photoY, photoW, photoH);
   ctx.fillStyle = "rgba(255,255,255,0.35)";
   ctx.fillRect(W / 2 - 2, 0, 4, H);
 
-  // Names, VS.
-  const top = story ? 150 : 65;
   const nameW = 360;
   const aPx = fitSize(ctx, a.last, 850, COND, 80, 40, nameW);
   const bPx = fitSize(ctx, b.last, 850, COND, 80, 40, nameW);
@@ -248,11 +255,11 @@ function drawH2H(ctx: CanvasRenderingContext2D, o: KitCardOptions): void {
   ctx.textBaseline = "middle";
   ctx.fillText("VS", W / 2, top + 60);
 
-  // Stat lines, spread evenly.
-  const regionTop = story ? 520 : 330;
-  const regionBottom = H - (story ? 260 : 170);
+  // Stat lines, spread evenly below the photos (slightly smaller with 5 stats).
+  const regionTop = photoY + photoH * 0.8;
+  const regionBottom = H - (story ? 260 : 150);
   const n = o.stats.length;
-  const lineH = 108;
+  const lineH = n > 4 && !story ? 92 : 108;
   const gap = (regionBottom - regionTop - n * lineH) / (n + 1);
   o.stats.forEach((key, i) => {
     const y = regionTop + gap * (i + 1) + lineH * i;
@@ -261,28 +268,28 @@ function drawH2H(ctx: CanvasRenderingContext2D, o: KitCardOptions): void {
     const bv = formatValue(key, b.line.values[key], b.line.single);
     ctx.textBaseline = "top";
 
-    ctx.font = font(850, 108, COND);
+    ctx.font = font(850, lineH, COND);
     ctx.fillStyle = a.secondary;
     ctx.textAlign = "left";
     ctx.fillText(av, 54, y);
-    if (win === "a") ctx.fillRect(54, y + 108, ctx.measureText(av).width * 0.6, 10);
+    if (win === "a") ctx.fillRect(54, y + lineH, ctx.measureText(av).width * 0.6, 10);
 
     ctx.fillStyle = b.secondary;
     ctx.textAlign = "right";
     ctx.fillText(bv, W - 54, y);
     if (win === "b") {
       const bw = ctx.measureText(bv).width * 0.6;
-      ctx.fillRect(W - 54 - bw, y + 108, bw, 10);
+      ctx.fillRect(W - 54 - bw, y + lineH, bw, 10);
     }
 
     ctx.font = font(600, 34, BODY);
     const label = STAT_LABELS[key];
     const lw = ctx.measureText(label).width + 36;
-    pill(ctx, W / 2 - lw / 2, y + 26, lw, 54, "rgba(0,0,0,0.45)");
+    pill(ctx, W / 2 - lw / 2, y + lineH / 2 - 27, lw, 54, "rgba(0,0,0,0.45)");
     ctx.fillStyle = "#fff";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(label, W / 2, y + 54);
+    ctx.fillText(label, W / 2, y + lineH / 2);
   });
 
   // Footer.
@@ -301,11 +308,14 @@ function drawH2H(ctx: CanvasRenderingContext2D, o: KitCardOptions): void {
  */
 export async function drawKitCard(canvas: HTMLCanvasElement, o: KitCardOptions, withPhoto = true): Promise<void> {
   const texts = [o.periodLabel, ...o.players.flatMap((p) => [p.first, p.last, p.last.toUpperCase(), p.teamCode])];
-  const [, photo] = await Promise.all([loadFonts(texts), withPhoto && o.mode === "player" ? loadPhoto(o.players[0]?.photoUrl ?? null) : Promise.resolve(null)]);
+  const [, ...photos] = await Promise.all([
+    loadFonts(texts),
+    ...o.players.slice(0, o.mode === "h2h" ? 2 : 1).map((p) => (withPhoto ? loadPhoto(p.photoUrl) : Promise.resolve(null))),
+  ]);
   canvas.width = W;
   canvas.height = cardHeight(o.size);
   const ctx = canvas.getContext("2d")!;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  if (o.mode === "h2h" && o.players.length > 1) drawH2H(ctx, o);
-  else drawPlayer(ctx, o, photo);
+  if (o.mode === "h2h" && o.players.length > 1) drawH2H(ctx, o, photos);
+  else drawPlayer(ctx, o, photos[0] ?? null);
 }
