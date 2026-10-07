@@ -51,6 +51,14 @@ check("DNP rows excluded and newest first", () => {
   assert.equal(p[0].stats.points, 16);
 });
 
+check("unknown minutes (null) still count as played when the line has stats", () => {
+  const noMin = [row({ day: 1, min: null, pts: 15 }), row({ day: 2, min: null, pts: 9 })];
+  assert.equal(playedGames(noMin).length, 2);
+  const line = computeLine(gamesForPeriod(noMin, { kind: "season" }, PAO), false);
+  assert.equal(line.values.pts, 12);
+  assert.equal(line.values.min, null); // no minutes recorded -> "–", not 0.0
+});
+
 check("season average", () => {
   const line = computeLine(gamesForPeriod(rows, { kind: "season" }, PAO), false);
   assert.equal(line.games, 6);

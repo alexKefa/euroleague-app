@@ -27,10 +27,21 @@ export interface StatLine {
 
 const PCT_KEYS = new Set<StatKey>(["twoPct", "threePct", "ftPct"]);
 
-/** Games the player actually played in (minutes > 0), newest first. */
+// Some synced box scores have no minutes at all (null). Null means unknown,
+// not "didn't play": such a row counts when it has any stat in it. Only an
+// explicit 0, or an empty null-minutes line, is a did-not-play row.
+function played(r: PlayerGameLogEntry): boolean {
+  const s = r.stats;
+  if (s.minutes !== null) return s.minutes > 0;
+  return [s.points, s.rebounds, s.assists, s.steals, s.blocksFavour, s.turnovers, s.valuation, s.fieldGoalsAttempted2, s.fieldGoalsAttempted3, s.freeThrowsAttempted].some(
+    (v) => v !== null && v !== 0
+  );
+}
+
+/** Games the player actually played in, newest first. */
 export function playedGames(rows: PlayerGameLogEntry[]): PlayerGameLogEntry[] {
   return rows
-    .filter((r) => (r.stats.minutes ?? 0) > 0)
+    .filter(played)
     .sort((a, b) => Date.parse(b.game.tipoffAt) - Date.parse(a.game.tipoffAt));
 }
 
@@ -105,7 +116,11 @@ export function computeLine(games: PlayerGameLogEntry[], single: boolean): StatL
       blk: avg((s) => s.blocksFavour),
       tov: avg((s) => s.turnovers),
       pir: avg((s) => s.valuation),
-      min: avg((s) => s.minutes),
+      // Averaged only over games that recorded minutes; null when none did.
+      min: (() => {
+        const withMin = games.filter((g) => g.stats.minutes !== null);
+        return withMin.length ? withMin.reduce((t, g) => t + (g.stats.minutes ?? 0), 0) / withMin.length : null;
+      })(),
       twoPct: pct((s) => s.fieldGoalsMade2, (s) => s.fieldGoalsAttempted2),
       threePct: pct((s) => s.fieldGoalsMade3, (s) => s.fieldGoalsAttempted3),
       ftPct: pct((s) => s.freeThrowsMade, (s) => s.freeThrowsAttempted),
