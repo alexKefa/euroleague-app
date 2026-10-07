@@ -5,7 +5,7 @@ import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { NavHistoryService } from "../../core/nav-history.service";
-import { Team, RosterEntry, Game, GameTeamSummary, StandingsRow, InjuryStatus, Player } from "../../core/models";
+import { Team, RosterEntry, Game, GameTeamSummary, StandingsRow, InjuryStatus, Player, TeamBudget } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { TeamCodePipe } from "../../shared/team-display-code";
 import { TeamAnalyticsComponent } from "./team-analytics";
@@ -60,6 +60,8 @@ export class TeamRosterComponent implements OnInit {
   protected readonly comparisonAxes = COMPARISON_AXES;
 
   readonly team = signal<Team | null>(null);
+  // Reported payroll / budget (null for clubs that never disclosed one).
+  readonly budget = signal<TeamBudget | null>(null);
   readonly roster = signal<RosterEntry[]>([]);
   readonly upcomingGames = signal<Game[]>([]);
   readonly recentGames = signal<Game[]>([]);
@@ -149,6 +151,10 @@ export class TeamRosterComponent implements OnInit {
         const team = teams.find((t) => t.id === teamId) ?? null;
         this.team.set(team);
       },
+    });
+
+    this.api.getTeamBudget(teamId).subscribe({
+      next: (budget) => this.budget.set(budget),
     });
 
     this.api.getTeamGames(teamId).subscribe({
@@ -272,6 +278,14 @@ export class TeamRosterComponent implements OnInit {
 
   fmtNum(value: number | null): string {
     return value !== null ? value.toFixed(1) : "—";
+  }
+
+  // "€34M", "€9–10M", "€7.88M" (EN) or "34 εκ. €" (EL); null if there's no figure.
+  formatEuroMillions(min: number | null, max: number | null): string | null {
+    if (min === null) return null;
+    const m = (n: number) => (n / 1_000_000).toLocaleString(this.i18n.lang() === "el" ? "el-GR" : "en-US", { maximumFractionDigits: 2 });
+    const amount = max !== null && max !== min ? `${m(min)}–${m(max)}` : m(min);
+    return this.i18n.t("roster.euroMillions").replace("{n}", amount);
   }
 
   isHomeGame(game: Game): boolean {

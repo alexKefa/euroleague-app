@@ -2,7 +2,7 @@ import { Router } from "express";
 import { eq, and, or, asc, desc, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "../db/client.js";
-import { teams, players, playerSeasonStats, games, playerInjuries, users } from "../db/schema.js";
+import { teams, players, playerSeasonStats, games, playerInjuries, users, teamBudgets } from "../db/schema.js";
 import { getCurrentSeason } from "../services/season.js";
 import { getBaselinePPGForPlayers } from "../services/topScorerPoints.js";
 import { getTeamAnalytics } from "../services/teamAnalytics.js";
@@ -205,6 +205,23 @@ teamsRouter.get("/:id/referees", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to load team referees" });
+  }
+});
+
+// Reported payroll / budget (2026-10-07): this team's most recent
+// team_budgets row, or null if it has never disclosed one.
+teamsRouter.get("/:id/budget", async (req, res) => {
+  try {
+    const [row] = await db
+      .select()
+      .from(teamBudgets)
+      .where(eq(teamBudgets.teamId, req.params.id))
+      .orderBy(desc(teamBudgets.season))
+      .limit(1);
+    res.json(row ?? null);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to load team budget" });
   }
 });
 

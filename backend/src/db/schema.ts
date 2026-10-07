@@ -1811,3 +1811,32 @@ export const pushLog = pgTable(
     pk: primaryKey({ columns: [table.userId, table.kind, table.key] }),
   })
 );
+
+// Club budgets (2026-10-07): payroll and total budget reported per team and
+// season, entered by hand from press reports (the first batch is BasketNews'
+// 2026-27 round-up, see scripts/import-team-budgets.ts). Amounts are whole
+// euros. A range like "€55–60M" is stored as min/max; a single figure leaves
+// max null. Reports mix net payroll, gross payroll and total budget and rarely
+// give all three, so any figure can be null. Clubs that never disclosed
+// anything have no row.
+export const teamBudgets = pgTable(
+  "team_budgets",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    teamId: uuid("team_id")
+      .references(() => teams.id)
+      .notNull(),
+    season: varchar("season", { length: 9 }).notNull(), // "2026-27"
+    netPayrollMin: integer("net_payroll_min"),
+    netPayrollMax: integer("net_payroll_max"),
+    grossPayroll: integer("gross_payroll"),
+    totalBudgetMin: integer("total_budget_min"),
+    totalBudgetMax: integer("total_budget_max"),
+    source: text("source").notNull(), // "BasketNews (official announcement)"
+    sourceUrl: text("source_url"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    teamSeasonUnique: uniqueIndex("team_budgets_team_season_unique").on(table.teamId, table.season),
+  })
+);

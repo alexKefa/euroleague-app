@@ -247,6 +247,19 @@ export interface Team {
   headCoach: string | null;
 }
 
+// Reported payroll / budget for one season (whole euros). A null max means a
+// single figure; any figure may be missing. See team_budgets in schema.ts.
+export interface TeamBudget {
+  season: string;
+  netPayrollMin: number | null;
+  netPayrollMax: number | null;
+  grossPayroll: number | null;
+  totalBudgetMin: number | null;
+  totalBudgetMax: number | null;
+  source: string;
+  sourceUrl: string | null;
+}
+
 export interface TeamSeasonStats {
   teamId: string;
   season: string;

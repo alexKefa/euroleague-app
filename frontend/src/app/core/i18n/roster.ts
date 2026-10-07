@@ -44,6 +44,9 @@ export const rosterTranslations: Record<string, Record<Lang, string>> = {
   "roster.axisRebounding": { en: "Rebounding", el: "Ριμπάουντ" },
   "roster.coachRecord": { en: "This season", el: "Φέτος" },
   "roster.coachRank": { en: "Standing", el: "Θέση" },
+  "roster.netPayroll": { en: "Net payroll", el: "Καθαρό μισθολόγιο" },
+  "roster.totalBudget": { en: "Budget", el: "Προϋπολογισμός" },
+  "roster.euroMillions": { en: "€{n}M", el: "{n} εκ. €" },
   "roster.coachNoPhoto": {
     en: "No official photo available yet",
     el: "Δεν υπάρχει ακόμα επίσημη φωτογραφία",

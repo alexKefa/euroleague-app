@@ -61,6 +61,26 @@
             </div>
           </div>
         }
+        @if (budget(); as b) {
+          <!-- Reported payroll / budget (team_budgets). Many clubs disclose
+               only one of the two figures; this shows whichever exist. -->
+          <div class="relative mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px]">
+            @if (formatEuroMillions(b.netPayrollMin, b.netPayrollMax); as net) {
+              <span><span class="text-muted">{{ i18n.t('roster.netPayroll') }}</span> <span class="font-semibold tabular-nums">{{ net }}</span></span>
+            }
+            @if (formatEuroMillions(b.totalBudgetMin, b.totalBudgetMax); as total) {
+              <span><span class="text-muted">{{ i18n.t('roster.totalBudget') }}</span> <span class="font-semibold tabular-nums">{{ total }}</span></span>
+            }
+            <span class="text-muted text-[11px]">
+              {{ b.season }} ·
+              @if (b.sourceUrl) {
+                <a [href]="b.sourceUrl" target="_blank" rel="noopener" class="underline hover:text-ink">{{ b.source }}</a>
+              } @else {
+                {{ b.source }}
+              }
+            </span>
+          </div>
+        }
         @if (coachInfoOpen() && t.headCoach) {
           <div class="relative mt-4 pt-4 border-t border-line flex items-center gap-3">
             <span class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-team-primary/15 text-team-primary font-display text-lg" [attr.title]="i18n.t('roster.coachNoPhoto')">
