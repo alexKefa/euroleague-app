@@ -653,6 +653,16 @@ body {
   .slot-remove:hover, .slot-remove:active { transform: none; }
 }
 
+/* Dashboard checklist (2026-10-07): the tick popping in when a row completes. */
+.tick-pop { animation: tick-pop 220ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes tick-pop {
+  from { transform: scale(0.6); }
+  to { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tick-pop { animation: none; }
+}
+
 /* Entrance for small floating bars (e.g. Fantasy's phone save bar). */
 .sheet-rise { animation: sheet-rise 0.2s ease-out; }
 @keyframes sheet-rise {
