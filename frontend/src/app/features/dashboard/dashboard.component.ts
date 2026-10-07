@@ -55,10 +55,12 @@ type DashboardTab = "performances" | "leaders" | "predictors" | "schedule";
 
 import { FirstPicksCardComponent } from "../../shared/first-picks-card";
 import { RoundStatusService } from "./round-status.service";
+import { RoundHeaderComponent } from "./round-header";
 @Component({
   selector: "app-dashboard",
   standalone: true,
   imports: [
+    RoundHeaderComponent,
     FirstPicksCardComponent,
     TodayTagPipe,
     CommonModule,
