@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, DestroyRef, ElementRef, OnInit, ViewChild, computed, inject, signal } from "@angular/core";
+import { Component, ElementRef, OnInit, computed, effect, inject, signal, viewChild } from "@angular/core";
 import { ActivatedRoute, RouterLink } from "@angular/router";
 import { forkJoin } from "rxjs";
 import { ApiService } from "../../core/api.service";
@@ -8,7 +8,7 @@ import { PlayerDetail, PlayerGameLog } from "../../core/models";
 import { ButtonDirective } from "../../shared/button.directive";
 import { PageHeaderComponent } from "../../shared/page-header";
 import { SkeletonComponent } from "../../shared/skeleton";
-import { KitCardComponent, KitPlayer } from "./kit-card";
+import { KitCardOptions, KitPlayer, cardHeight, drawKitCard } from "./kit-canvas";
 import { renderCard, shareFile } from "./share-export";
 import {
   DEFAULT_STATS,
@@ -38,7 +38,7 @@ type PeriodKind = Period["kind"];
 @Component({
   selector: "app-share-card-page",
   standalone: true,
-  imports: [RouterLink, ButtonDirective, PageHeaderComponent, SkeletonComponent, KitCardComponent],
+  imports: [RouterLink, ButtonDirective, PageHeaderComponent, SkeletonComponent],
   template: `
     <div class="max-w-xl mx-auto p-4 sm:p-6">
       <a [routerLink]="navHistory.previousUrl() ?? '/stats'" class="back-link">{{ i18n.t('nav.back') }}</a>
@@ -49,14 +49,15 @@ type PeriodKind = Period["kind"];
       } @else if (!loaded().length) {
         <app-skeleton class="block mt-6 rounded-2xl" [style.aspect-ratio]="'4 / 5'" />
       } @else {
-        <!-- Preview: the real 1080px card, scaled to the column. -->
-        <div #previewBox class="mt-6 w-full">
-          <div class="relative overflow-hidden rounded-2xl shadow-card" [style.height.px]="previewHeight()">
-            <div class="origin-top-left absolute top-0 left-0" [style.transform]="'scale(' + scale() + ')'">
-              <app-kit-card #kit [size]="size()" [mode]="mode()" [players]="kitPlayers()" [stats]="stats()" [periodLabel]="periodLabel()" />
-            </div>
-          </div>
-        </div>
+        <!-- Preview: the same canvas drawing that becomes the shared image, shown at column width. -->
+        <canvas
+          #preview
+          class="mt-6 block w-full h-auto rounded-2xl shadow-card"
+          [attr.width]="1080"
+          [attr.height]="previewHeight()"
+          [attr.aria-label]="i18n.t('shareCard.title')"
+          role="img"
+        ></canvas>
 
         <section class="mt-6 grid gap-5">
           <div>
@@ -128,15 +129,13 @@ type PeriodKind = Period["kind"];
     </div>
   `,
 })
-export class ShareCardPageComponent implements OnInit, AfterViewInit {
+export class ShareCardPageComponent implements OnInit {
   private api = inject(ApiService);
   private route = inject(ActivatedRoute);
-  private destroyRef = inject(DestroyRef);
   protected i18n = inject(I18nService);
   protected navHistory = inject(NavHistoryService);
 
-  @ViewChild("kit") kit?: KitCardComponent;
-  @ViewChild("previewBox") previewBox?: ElementRef<HTMLDivElement>;
+  private readonly preview = viewChild<ElementRef<HTMLCanvasElement>>("preview");
 
   protected readonly statKeys = STAT_KEYS;
   protected readonly statLabels = STAT_LABELS;
@@ -157,11 +156,9 @@ export class ShareCardPageComponent implements OnInit, AfterViewInit {
   protected readonly status = signal<"idle" | "downloaded" | "error" | "needsTap">("idle");
   // The last rendered image, kept when the browser refused share() so a second tap can share it.
   private readonly pendingFile = signal<File | null>(null);
-  private readonly boxWidth = signal(360);
 
   protected readonly mode = computed(() => (this.loaded().length > 1 ? "h2h" : "player"));
-  protected readonly scale = computed(() => this.boxWidth() / 1080);
-  protected readonly previewHeight = computed(() => (this.size() === "story" ? 1920 : 1350) * this.scale());
+  protected readonly previewHeight = computed(() => cardHeight(this.size()));
   protected readonly vsTeamId = computed(() => {
     const p = this.period();
     return p.kind === "vsTeam" ? p.teamId : null;
@@ -247,34 +244,41 @@ export class ShareCardPageComponent implements OnInit, AfterViewInit {
         const [a, b] = rows;
         if (b && a.log.season && b.log.season !== a.log.season) {
           this.api.getPlayerGames(b.detail.player.id, a.log.season).subscribe({
-            next: (log) => {
-              this.loaded.set([a, { ...b, log }]);
-              setTimeout(() => this.observeWidth());
-            },
+            next: (log) => this.loaded.set([a, { ...b, log }]),
             error: () => this.loadError.set(true),
           });
           return;
         }
         this.loaded.set(rows);
-        // The preview box only exists once the loaded branch has rendered.
-        setTimeout(() => this.observeWidth());
       },
       error: () => this.loadError.set(true),
     });
   }
 
-  ngAfterViewInit(): void {
-    this.observeWidth();
-  }
+  // Everything the card drawing needs; the preview and the export both use it.
+  protected readonly cardOptions = computed<KitCardOptions | null>(() =>
+    this.loaded().length
+      ? { size: this.size(), mode: this.mode(), players: this.kitPlayers(), stats: this.stats(), periodLabel: this.periodLabel() }
+      : null
+  );
 
-  private observer: ResizeObserver | null = null;
-  private observeWidth(): void {
-    const el = this.previewBox?.nativeElement;
-    if (!el || this.observer) return;
-    this.observer = new ResizeObserver(([entry]) => this.boxWidth.set(entry.contentRect.width));
-    this.observer.observe(el);
-    this.boxWidth.set(el.clientWidth);
-    this.destroyRef.onDestroy(() => this.observer?.disconnect());
+  constructor() {
+    // Redraw the preview whenever the card changes. Drawing is async (fonts,
+    // photo); a newer draw supersedes an older one still in flight.
+    let drawId = 0;
+    effect(() => {
+      const canvas = this.preview()?.nativeElement;
+      const options = this.cardOptions();
+      if (!canvas || !options) return;
+      const id = ++drawId;
+      const target = document.createElement("canvas");
+      drawKitCard(target, options).then(() => {
+        if (id !== drawId) return;
+        canvas.width = target.width;
+        canvas.height = target.height;
+        canvas.getContext("2d")?.drawImage(target, 0, 0);
+      });
+    });
   }
 
   protected setSize(size: "post" | "story"): void {
@@ -331,14 +335,14 @@ export class ShareCardPageComponent implements OnInit, AfterViewInit {
   }
 
   protected async share(): Promise<void> {
-    const el = this.kit?.cardEl.nativeElement;
-    if (!el || this.busy()) return;
+    const options = this.cardOptions();
+    if (!options || this.busy()) return;
     this.busy.set(true);
     this.status.set("idle");
     const slug = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     const names = this.kitPlayers().map((p) => slug(p.last)).join("-vs-");
     try {
-      const file = await renderCard(el, `clutch-${names}-${this.period().kind}.png`);
+      const file = await renderCard(options, `clutch-${names}-${this.period().kind}.png`);
       const result = await shareFile(file);
       if (result === "needsTap") this.pendingFile.set(file);
       if (result === "downloaded" || result === "needsTap") this.status.set(result);
