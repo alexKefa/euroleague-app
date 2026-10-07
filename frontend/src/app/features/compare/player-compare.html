@@ -95,6 +95,15 @@
 
     @if (rowA(); as a) {
       @if (rowB(); as b) {
+        <!-- Share card maker for this pair (2026-10-07, features/share-card). -->
+        <a
+          routerLink="/share"
+          [queryParams]="{ a: a.player.id, b: b.player.id }"
+          class="mb-4 flex items-center justify-center gap-2 h-11 rounded-2xl border border-team-primary/40 bg-team-primary/10 hover:bg-team-primary/20 text-sm font-semibold text-ink transition-colors"
+        >
+          <app-nav-icon name="share" [size]="16" class="text-team-primary" />
+          {{ i18n.t('shareCard.shareComparison') }}
+        </a>
         <!-- Category score: each side's wins in its own team color, and a
              two-color split bar. -->
         <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4 compare-rise">

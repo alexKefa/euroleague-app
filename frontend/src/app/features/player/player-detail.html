@@ -62,6 +62,15 @@
             }
             &middot; {{ d.team.name }}
           </p>
+          <!-- Share card maker (2026-10-07, features/share-card). -->
+          <a
+            routerLink="/share"
+            [queryParams]="{ player: d.player.id }"
+            class="mt-2 inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-black/25 hover:bg-black/40 text-xs font-semibold transition-colors"
+          >
+            <app-nav-icon name="share" [size]="14" />
+            {{ i18n.t('shareCard.makeCard') }}
+          </a>
         </div>
       </div>
     </div>

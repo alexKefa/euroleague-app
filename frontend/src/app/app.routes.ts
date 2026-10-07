@@ -74,6 +74,11 @@ export const routes: Routes = [
       import("./features/stats/advanced-stats").then((m) => m.AdvancedStatsComponent),
   },
   {
+    path: "share",
+    loadComponent: () =>
+      import("./features/share-card/share-card-page").then((m) => m.ShareCardPageComponent),
+  },
+  {
     path: "compare",
     loadComponent: () =>
       import("./features/compare/player-compare").then((m) => m.PlayerCompareComponent),
