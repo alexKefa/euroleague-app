@@ -4,18 +4,8 @@ import { Lang } from "./lang";
 // PTS/REB/AST/STL/BLK) are left untranslated — they're internationally
 // recognized short-codes, same treatment as team codes.
 export const dashboardTranslations: Record<string, Record<Lang, string>> = {
-  "dashboard.yourTeam": { en: "Your team", el: "Η ομάδα σου" },
-  "dashboard.record": { en: "Record", el: "Ρεκόρ" },
-  "dashboard.rank": { en: "Rank", el: "Θέση" },
   "dashboard.next": { en: "Next", el: "Επόμενο" },
-  "dashboard.form": { en: "Form", el: "Φόρμα" },
-  "dashboard.latest": { en: "Latest", el: "Τελευταία" },
   "dashboard.viewAll": { en: "ALL", el: "ΟΛΑ" },
-  "dashboard.round": { en: "Round", el: "Αγωνιστική" },
-  "dashboard.topPerformances": { en: "Top Performances", el: "Κορυφαίες Εμφανίσεις" },
-  "dashboard.leaders": { en: "Leaders", el: "Κορυφαίοι" },
-  "dashboard.yourTeamSchedule": { en: "Your Team's Schedule", el: "Πρόγραμμα Ομάδας" },
-  "dashboard.standings": { en: "Standings", el: "Βαθμολογία" },
   "dashboard.myLeagues": { en: "My Leagues", el: "Οι Λίγκες μου" },
   "dashboard.leaguesEmptyHint": {
     en: "Create a private league and compete with friends.",
@@ -29,46 +19,11 @@ export const dashboardTranslations: Record<string, Record<Lang, string>> = {
   // process: the old welcome-bonus copy said "100-point", stale since the
   // 2026-08-25 repricing pass bumped it to 150 (backend/src/routes/
   // auth.ts's WELCOME_BONUS_POINTS) — never updated here.
-  "dashboard.economyHintPrefix": { en: "Predict games on", el: "Πρόβλεψε αγώνες στις" },
-  "dashboard.economyHintMiddle1": { en: "to earn points, then spend them on", el: ", και μετά εξαργύρωσέ τους σε" },
-  "dashboard.economyHintMiddle2": {
-    en: "or the free daily",
-    el: "ή στο δωρεάν καθημερινό",
-  },
-  "dashboard.economyHintMiddle3": {
-    en: "for a shot at rare and legendary cards. New accounts also start with free Welcome Packs — open yours in",
-    el: "για μια ευκαιρία σε σπάνιες και θρυλικές κάρτες. Οι νέοι λογαριασμοί ξεκινούν επιπλέον με δωρεάν Πακέτα Καλωσορίσματος — άνοιξέ τα στις",
-  },
-  "dashboard.economyHintSuffix": { en: ".", el: "." },
 
-  "dashboard.guestHintPrefix": {
-    en: "Predict games, earn points, and collect cards —",
-    el: "Πρόβλεψε αγώνες, κέρδισε πόντους και σύλλεξε κάρτες —",
-  },
-  "dashboard.guestHintCta": { en: "create a free account", el: "δημιούργησε δωρεάν λογαριασμό" },
-  "dashboard.guestHintSuffix": { en: "to get started — takes a minute.", el: "για να ξεκινήσεις — παίρνει ένα λεπτό." },
 
-  "dashboard.topPredictors": { en: "Top Predictors", el: "Κορυφαίοι στις Προβλέψεις" },
 
   "dashboard.sponsorTag": { en: "SPONSOR", el: "ΧΟΡΗΓΟΣ" },
 
-  // "This round" strip (features/dashboard/round-strip.ts, 2026-10-02).
-  "roundStrip.title": { en: "Round {round} · Your picks", el: "Γύρος {round} · Οι προβλέψεις σου" },
-  "roundStrip.picks": { en: "Picks", el: "Προβλέψεις" },
-  "roundStrip.points": { en: "Points", el: "Πόντοι" },
-  "roundStrip.rank": { en: "Rank", el: "Θέση" },
-  "roundStrip.leftOne": { en: "1 game left to pick", el: "1 αγώνας χωρίς πρόβλεψη" },
-  "roundStrip.leftMany": { en: "{n} games left to pick", el: "{n} αγώνες χωρίς πρόβλεψη" },
-  "roundStrip.behind": { en: "{n} pts to #{rank}", el: "{n} πόντοι για #{rank}" },
-  "roundStrip.tied": { en: "Level with #{rank}", el: "Ίδιοι πόντοι με #{rank}" },
-  "roundStrip.top": { en: "Top of the board", el: "Στην κορυφή της κατάταξης" },
-  "roundStrip.firstTitle": { en: "Make your first picks", el: "Κάνε τις πρώτες σου προβλέψεις" },
-  "roundStrip.firstBody": {
-    en: "Pick the winner of each game. Right calls earn points for packs and cards, and put you on the leaderboard.",
-    el: "Διάλεξε τον νικητή κάθε αγώνα. Οι σωστές προβλέψεις φέρνουν πόντους για πακέτα και κάρτες, και σε βάζουν στην κατάταξη.",
-  },
-  "roundStrip.firstCta": { en: "Start picking", el: "Ξεκίνα τις προβλέψεις" },
-  "roundStrip.allIn": { en: "All your picks are in", el: "Έκανες όλες τις προβλέψεις" },
   // Round header (2026-10-07 dashboard redesign, round-header.ts).
   "dashboard.roundHeader.round": { en: "Round {n}", el: "Αγωνιστική {n}" },
   "dashboard.roundHeader.progress": { en: "{done} of {total} done", el: "{done} από {total} έτοιμα" },

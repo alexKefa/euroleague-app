@@ -92,3 +92,11 @@ Steps once there are a few hundred resolved top-scorer picks:
    `LEGENDARY_MILESTONE_INTERVAL` 18 -> ~20 (and re-simulate). Update the
    Achievements texts (`i18n/achievements.ts`, the `milestoneHow.*` keys)
    if any interval changes.
+
+## 5. Dashboard checklist: fantasy warnings (2026-10-07)
+
+The round checklist marks the fantasy row done once a squad exists. Add
+warnings for injured players and players with no game this round. Needs
+injury data on `GET /fantasy/lineup` (today it only returns ids, roles
+and points), then a warning line on the fantasy row in
+`features/dashboard/round-checklist.ts`.

@@ -1,43 +1,18 @@
 <div class="max-w-3xl lg:max-w-6xl mx-auto p-4 sm:p-6">
-  <!-- Rewritten (2026-09-17) to actually mirror the real post-load order —
-       the old version stopped at 4 sections (a leftover 4-tile record/rank/
-       PPG/form grid from before that got consolidated into one tile on
-       2026-09-13, never updated here) and was a fraction of the real
-       page's height, so `loading()` flipping false used to reveal the
-       whole rest of the dashboard (My Leagues/Fantasy, News, sponsor
-       ticker, economy hint, standings + tabbed card) all at once in a
-       single jarring jump. News and the tabbed card below now carry their
-       own skeletons (newsLoading()/statsCardLoading()) for the same
-       reason — this one only needs to roughly cover what has NO loading
-       state of its own (My Leagues/Fantasy render immediately either way;
-       the sponsor ticker and economy hint are static). -->
+  <!-- Skeleton mirrors the loaded layout (2026-10-07 redesign): same two
+       columns on lg+, same order on phones, so nothing jumps on load. -->
   @if (loading()) {
-    <!-- Same two-column split as the loaded page below (lg+), same
-         display:contents + order-N trick for the mobile order. -->
     <div class="flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_21rem] lg:gap-x-6 lg:items-start">
-      <div class="contents lg:block lg:col-start-2 lg:row-start-1">
-        <app-skeleton class="order-1 rounded-3xl h-[76px] mb-4" [iconSize]="24" />
-        <app-skeleton class="order-1 rounded-3xl h-[72px] mb-4" [iconSize]="18" />
-        @if (auth.isAuthenticated()) {
-          <app-skeleton class="order-2 rounded-3xl h-[178px] mb-4" />
-        }
-        <div class="order-5 grid grid-cols-2 gap-3 mb-4">
-          <app-skeleton class="rounded-3xl h-[92px]" [iconSize]="18" />
-          <app-skeleton class="rounded-3xl h-[92px]" [iconSize]="18" />
-        </div>
-        <app-skeleton class="order-3 rounded-3xl h-[100px] mb-4" [iconSize]="20" />
-        <app-skeleton class="order-7 rounded-3xl h-[52px] mb-4" [icon]="false" />
-        <app-skeleton class="order-8 rounded-2xl h-[56px] mb-4" [icon]="false" />
-      </div>
       <div class="contents lg:block lg:col-start-1 lg:row-start-1 lg:min-w-0">
-        <!-- Live Center placeholder — roughly its tab-bar + 3-row loaded
-             height, so the page doesn't visibly grow once it mounts. -->
-        <app-skeleton class="order-4 rounded-3xl h-[190px] mb-4" [iconSize]="22" />
-        <app-skeleton class="order-6 rounded-3xl h-[190px] mb-4" [iconSize]="20" />
-        <div class="order-9 flex flex-col gap-4">
-          <app-skeleton class="rounded-3xl h-64" [iconSize]="20" />
-          <app-skeleton class="rounded-3xl h-64" [iconSize]="20" />
-        </div>
+        <app-skeleton class="order-1 rounded-3xl h-[124px] mb-4" [iconSize]="22" />
+        @if (auth.isAuthenticated()) {
+          <app-skeleton class="order-2 rounded-3xl h-[188px] mb-4" [iconSize]="20" />
+        }
+        <app-skeleton class="order-3 rounded-3xl h-[110px] mb-4" [iconSize]="20" />
+      </div>
+      <div class="contents lg:block lg:col-start-2 lg:row-start-1">
+        <app-skeleton class="order-5 rounded-3xl h-[52px] mb-4" [icon]="false" />
+        <app-skeleton class="order-6 rounded-3xl h-[220px] mb-4" [iconSize]="20" />
       </div>
     </div>
   }
@@ -47,543 +22,119 @@
   }
 
   @if (!loading() && !error()) {
-    <!-- Tour entry point moved to the app-wide top bar (2026-09-12) — it's a
-         cross-page walkthrough, not a dashboard-specific one, and having its
-         own full-width row here gave it more visual priority than the
-         team hero/next-game content a returning visitor actually opens
-         this page for. See app.component.html for the new home. -->
-
-    <!-- Desktop (lg+): two columns — league-wide content (live, news,
-         standings/stats) on the left, personal content (your team, next
-         game, this round, leagues/fantasy) in a sidebar on the right
-         (2026-10-02). Below lg both wrappers are display:contents, so their
-         children flow as one column and order-N keeps the original mobile
-         order (hero, next game, round strip, prize, live, leagues, news,
-         sponsor, hint, standings). -->
     <!-- First-pick onboarding (2026-10-05): above everything until claimed. -->
     <app-first-picks-card class="block mb-4" />
+
+    <!-- lg+: personal column (header, checklist, next game, leagues/fantasy)
+         on the left, league column (live, sponsor, league block) on the
+         right. Below lg both wrappers are display:contents and order-N sets
+         the phone order. -->
     <div class="flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_21rem] lg:gap-x-6 lg:items-start">
-    <div class="contents lg:block lg:col-start-2 lg:row-start-1">
-    @if (selectedRow(); as row) {
-      <!-- Identity widget — compact, tappable, just team + rank context.
-           Record/PPG/form/next-game each get their own small widget below
-           instead of being crammed into one big hero card. -->
-      <!-- Team hero (2026-09-29 restyle, "vanilla"): the old identity strip
-           and record/rank/PPG/form tile merged into one team-color card, same
-           visual language as the Fantasy/Predictions hero cards. -->
-      <a [routerLink]="['/teams', row.team.id]" class="order-1 relative block overflow-hidden rounded-3xl p-4 mb-4 bg-card border border-line shadow-card group">
-        <div class="pointer-events-none absolute inset-0" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 26%, transparent) 0%, color-mix(in srgb, var(--accent-primary) 6%, transparent) 55%, transparent 100%)" aria-hidden="true"></div>
-        <div class="pointer-events-none absolute -right-16 -top-16 w-48 h-48 rounded-full border-[14px]" style="border-color: color-mix(in srgb, var(--accent-primary) 12%, transparent)" aria-hidden="true"></div>
-        <div class="relative flex items-center gap-3">
-          <span
-            class="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 bg-card"
-            [style.border]="'2px solid var(--accent-primary)'"
-            [style.box-shadow]="'0 0 0 4px color-mix(in srgb, var(--accent-primary) 14%, transparent)'"
-          >
-            @if (row.team.logoUrl) {
-              <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-9 h-9 object-contain team-logo" />
-            } @else {
-              <span class="font-display text-sm">{{ row.team.code | teamCode }}</span>
-            }
-          </span>
-          <span class="min-w-0 flex-1">
-            <span class="block text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('dashboard.yourTeam') }}</span>
-            <span class="block font-display text-xl leading-tight truncate">{{ row.team.name }}</span>
-          </span>
-          <span class="status-tile w-9 h-9 rounded-xl border border-line flex items-center justify-center text-muted text-lg font-bold group-hover:translate-x-0.5 transition-transform shrink-0">&rsaquo;</span>
-        </div>
-        <div class="relative grid grid-cols-3 gap-2 mt-4">
-          <div class="status-tile rounded-2xl border border-line px-2 py-2 text-center min-w-0">
-            <p class="text-[11px] font-bold text-muted uppercase tracking-wider truncate">{{ i18n.t('dashboard.record') }}</p>
-            <p class="font-display text-xl leading-tight tabular-nums">{{ row.stats.wins }}-{{ row.stats.losses }}</p>
-          </div>
-          <div class="status-tile rounded-2xl border border-line px-2 py-2 text-center min-w-0">
-            <p class="text-[11px] font-bold text-muted uppercase tracking-wider truncate">{{ i18n.t('dashboard.rank') }}</p>
-            <p class="font-display text-xl leading-tight tabular-nums text-team-primary">#{{ row.position }}</p>
-          </div>
-          <div class="status-tile rounded-2xl border border-line px-2 py-2 text-center min-w-0">
-            <p class="text-[11px] font-bold text-muted uppercase tracking-wider truncate">PPG</p>
-            <p class="font-display text-xl leading-tight tabular-nums">{{ row.stats.ppg !== null ? (row.stats.ppg | number: "1.1-1") : "—" }}</p>
-          </div>
-        </div>
-        @if (scheduleLoading()) {
-          <div class="relative flex items-center justify-between gap-2 mt-3">
-            <app-skeleton class="h-3 w-12 rounded-md" />
-            <app-skeleton class="h-7 w-[9.5rem] rounded-lg" />
-          </div>
-        } @else if (recentGames().length > 0) {
-          <div class="relative flex items-center justify-between gap-2 mt-3">
-            <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('dashboard.form') }}</p>
-            <div class="flex gap-1.5">
-              @for (g of recentGames(); track g.id) {
-                @if (teamResult(g); as result) {
-                  <span
-                    class="w-7 h-7 rounded-lg flex items-center justify-center font-mono text-[12px] font-bold text-white"
-                    [class]="result === 'W' ? 'bg-emerald-600' : 'bg-red-500/75'"
-                    >{{ resultLabel(result) }}</span
-                  >
-                }
-              }
-            </div>
-          </div>
-        }
-      </a>
-      <!-- Next game — featured card, tonal (team-color-tinted) background,
-           tapping through to the game itself instead of just displaying it. -->
-      @if (scheduleLoading()) {
-        <app-skeleton class="order-1 rounded-3xl h-[134px] mb-4" />
-      } @else if (nextGame(); as game) {
-        <a
-          [routerLink]="['/games', game.id]"
-          class="order-1 relative block rounded-3xl p-4 mb-4 border border-line shadow-card overflow-hidden group"
-          [style.background]="'radial-gradient(120% 140% at 15% 0%, color-mix(in srgb, var(--accent-primary) 20%, transparent) 0%, var(--color-card) 65%)'"
-        >
-          <p class="status-tile inline-flex items-center h-8 px-3 rounded-full border border-line font-mono text-[11px] font-bold text-muted uppercase tracking-wider mb-3">
-            {{ i18n.t('dashboard.next') }} &middot; {{ game.tipoffAt | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}{{ game.tipoffAt | todayTag: i18n.lang() }}
-          </p>
-          <div class="flex items-center justify-center gap-4">
-            <span class="w-14 h-14 rounded-2xl flex items-center justify-center bg-card shrink-0" [style.border]="'2px solid var(--accent-primary)'">
-              @if (row.team.logoUrl) {
-                <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-9 h-9 object-contain team-logo" />
-              } @else {
-                <span class="font-display text-[11px]">{{ row.team.code | teamCode }}</span>
-              }
-            </span>
-            <span class="font-display text-sm font-bold text-muted">{{ isHomeGame(game) ? "vs" : "@" }}</span>
-            <span class="w-14 h-14 rounded-2xl flex items-center justify-center bg-card shrink-0" [style.border]="'2px solid ' + opponentTeam(game).primaryColor">
-              @if (opponentTeam(game).logoUrl) {
-                <img [src]="opponentTeam(game).logoUrl" [alt]="opponentTeam(game).name" loading="lazy" decoding="async" appRetryImg class="w-9 h-9 object-contain team-logo" />
-              } @else {
-                <span class="font-display text-[11px]">{{ opponentCode(game) | teamCode }}</span>
-              }
-            </span>
-          </div>
-          <span class="absolute right-4 top-4 text-muted text-sm font-bold group-hover:translate-x-0.5 transition-transform">&rsaquo;</span>
-        </a>
-      }
-    }
+      <div class="contents lg:block lg:col-start-1 lg:row-start-1 lg:min-w-0">
+        <app-round-header class="order-1 block" [rank]="myRank()" />
+        <app-round-checklist class="order-2 block" />
 
-    @if (auth.isAuthenticated()) {
-      <app-round-strip class="order-2" [rank]="myRank()" [behindBy]="pointsBehindNext()" [rankLoading]="predictorsLoading()" />
-    }
-
-    <!-- My Leagues + Fantasy Team -->
-    @if (auth.isAuthenticated()) {
-      <div class="order-5 grid grid-cols-2 gap-3 mb-4">
-        <!-- from-highlight/text-white -> from-team-primary/text-team-secondary
-             (2026-09-18, "change everywhere on the app the default orange
-             color with the preferred team") — this was a solid gradient
-             fill with hardcoded white text, the exact contrast risk a
-             near-white team color (Real Madrid, Dubai Basketball) breaks:
-             text-team-secondary instead of text-white fixes it the same
-             way the earlier tab-group/hub-tile passes this session did. No
-             team-primary-dim token exists for the gradient's second stop,
-             so it fades to a translucent team-primary instead (same "dim
-             via opacity" trick used for the Scoreboard tiles' border-b
-             lip). -->
-        <a
-          routerLink="/leagues"
-          class="relative flex flex-col gap-2 rounded-3xl p-4 bg-gradient-to-br from-team-primary to-team-primary/70 shadow-pop overflow-hidden group"
-        >
-          <div class="absolute -bottom-8 -right-10 w-28 h-28 rounded-full bg-white/10 pointer-events-none"></div>
-          <div class="relative flex items-center justify-between">
-            <span class="shrink-0 w-9 h-9 rounded-full bg-card shadow-pop flex items-center justify-center">
-              <app-nav-icon name="bracket" [size]="18" class="text-ink" />
-            </span>
-            <span class="relative text-team-secondary/70 text-sm font-bold group-hover:translate-x-0.5 transition-transform">&rarr;</span>
-          </div>
-          <div class="relative min-w-0">
-            <p class="font-display text-sm tracking-wide text-team-secondary">{{ i18n.t('dashboard.myLeagues') }}</p>
-            @if (myLeaguesLoading()) {
-              <app-skeleton class="h-3 w-3/4 rounded-md mt-1 !bg-white/20" />
-            } @else if (myLeagues().length > 0) {
-              <p class="text-xs text-team-secondary/80 truncate">
-                @for (league of myLeagues().slice(0, 3); track league.id; let last = $last) {
-                  {{ league.name }}{{ last ? "" : ", " }}
-                }
-                @if (myLeagues().length > 3) {
-                  &hellip;
-                }
-              </p>
-            } @else {
-              <p class="text-xs text-team-secondary/80 truncate">{{ i18n.t('dashboard.leaguesEmptyHint') }}</p>
-            }
-          </div>
-        </a>
-
-        <a
-          routerLink="/fantasy"
-          class="flex flex-col gap-2 rounded-3xl p-4 bg-card border border-line shadow-card hover:border-team-primary/50 transition-colors group"
-        >
-          <div class="flex items-center justify-between">
-            <span class="shrink-0 w-9 h-9 rounded-xl bg-team-primary/15 text-team-primary flex items-center justify-center">
-              <app-nav-icon name="trophy" [size]="18" />
-            </span>
-            <span class="text-team-primary/70 text-sm font-bold group-hover:translate-x-0.5 transition-transform">&rarr;</span>
-          </div>
-          <div class="min-w-0">
-            <p class="font-display text-sm tracking-wide">{{ i18n.t('fantasy.navLink') }}</p>
-            @if (fantasyLoading()) {
-              <app-skeleton class="h-3 w-3/4 rounded-md mt-1" />
-            } @else if (fantasyLineup(); as lineup) {
-              @if (lineup.locked) {
-                <p class="text-xs text-muted truncate">{{ i18n.t('fantasy.round') }} {{ lineup.round }} &middot; {{ i18n.t('fantasy.locked') }}</p>
-              } @else if (lineup.lockAt) {
-                <p class="text-xs text-muted truncate">{{ i18n.t('fantasy.round') }} {{ lineup.round }} &middot; {{ lineup.lockAt | date: 'short' }}</p>
-              }
-            } @else {
-              <p class="text-xs text-muted truncate">{{ i18n.t('fantasy.hint') }}</p>
-            }
-          </div>
-        </a>
-      </div>
-    }
-
-    <!-- €100 "first to complete the album" prize banner (2026-09-20,
-         upgraded same day from a plain app-page-hint to the real animated
-         podium graphic — see shared/prize-banner.ts) — placed right after
-         the team-hero/next-game block, ahead of Live Center, for visibility
-         without pushing it above the identity content a returning visitor
-         opens this page for. Dismissible (own hintId, separate from the
-         economy/guest hints below) since an engaged daily visitor doesn't
-         need this re-shown forever — it stays permanently visible on the
-         Album page itself regardless. -->
-    <div class="mb-4 order-3">
-      <app-prize-banner size="compact" ctaLink="/album" hintId="dashboard-album-prize" />
-    </div>
-
-    <!-- Sponsor ticker (2026-09-13) — a stadium-style scrolling LED-board
-         placement for a paid sponsor (first real one: Υγειοσωματική, a
-         gym, linking to their Instagram), deliberately styled distinct
-         from every other dashboard tile (flat black, amber "LED" text in
-         Nova Mono — a genuinely blocky/digital-looking Google Font that,
-         unlike most techy display faces (Orbitron/VT323/Audiowide/etc.),
-         actually has real Greek glyph coverage, checked directly against
-         Google Fonts' own metadata before picking it — with a glow, plus
-         a small "ΧΟΡΗΓΟΣ" label chip) so it reads as external/sponsored
-         content rather than blending in as an app feature. Placed below
-         the news tile, in normal flow like every other dashboard card —
-         two earlier placements (full-bleed above everything, then a
-         floating "jumbotron" overlay, see git history) were both tried
-         and reverted on direct feedback. The whole strip is still one
-         tappable link (target="_blank", same outbound-link convention as
-         everywhere else in this app). -->
-    <a
-      [href]="sponsorLink"
-      target="_blank"
-      rel="noopener noreferrer"
-      class="order-7 sponsor-ticker rounded-3xl mb-4 flex items-center gap-3 px-4 py-3"
-    >
-      <span class="sponsor-tag shrink-0">{{ i18n.t('dashboard.sponsorTag') }}</span>
-      <div class="sponsor-ticker-viewport">
-        <div class="sponsor-ticker-track">
-          <span class="sponsor-ticker-text">{{ sponsorText }}</span>
-          <span class="sponsor-ticker-text" aria-hidden="true">{{ sponsorText }}</span>
-        </div>
-      </div>
-    </a>
-
-    @if (auth.isAuthenticated()) {
-      <!-- Consolidated economy hint (2026-09-13) — was two separate
-           stacked hints (welcome-bonus, then points/economy), which read
-           as clutter right after the next-game card. One hint now covers
-           the whole loop in a single pass: predict -> earn -> spend
-           -> (bonus for new accounts). Also fixes a real bug: the old
-           welcome-bonus copy said "100-point", stale since the
-           2026-08-25 repricing pass bumped it to 150
-           (backend/src/routes/auth.ts's WELCOME_BONUS_POINTS) — this is
-           a new hintId, so anyone who already dismissed the old
-           (wrong-number) hints sees the corrected one once.
-
-           Points-based bonus replaced with a pack grant entirely
-           (2026-09-21, WELCOME_PACK_QUANTITY) — the copy below now talks
-           about "Welcome Packs", not a point amount, so it doesn't need
-           re-touching the next time that quantity changes the way the
-           100->150 point swap above once did. -->
-      <app-page-hint class="order-8" hintId="dashboard-economy" icon="ball">
-        {{ i18n.t('dashboard.economyHintPrefix') }}
-        <a routerLink="/predictions" class="text-team-primary font-semibold">{{ i18n.t('nav.picks') }}</a>
-        {{ i18n.t('dashboard.economyHintMiddle1') }}
-        <a routerLink="/packs" class="text-team-primary font-semibold">{{ i18n.t('store.packs') }}</a>
-        {{ i18n.t('dashboard.economyHintMiddle2') }}
-        <a routerLink="/wheel" class="text-team-primary font-semibold">{{ i18n.t('store.jumpBall') }}</a>
-        {{ i18n.t('dashboard.economyHintMiddle3') }}
-        <a routerLink="/inventory" class="text-team-primary font-semibold">{{ i18n.t('nav.cards') }}</a>
-        {{ i18n.t('dashboard.economyHintSuffix') }}
-      </app-page-hint>
-    } @else {
-      <app-page-hint class="order-8" hintId="dashboard-guest-cta" icon="trophy">
-        {{ i18n.t('dashboard.guestHintPrefix') }}
-        <a routerLink="/register" class="text-team-primary font-semibold">{{ i18n.t('dashboard.guestHintCta') }}</a>
-        {{ i18n.t('dashboard.guestHintSuffix') }}
-      </app-page-hint>
-    }
-    </div>
-
-    <div class="contents lg:block lg:col-start-1 lg:row-start-1 lg:min-w-0">
-    <app-live-center class="order-4" />
-
-    <!-- News stories — its own skeleton while newsLoading() (2026-09-17):
-         this card used to just not exist at all until the news fetch
-         resolved, which pops in later and shoves the sponsor ticker/
-         economy hint/standings card down once it finally arrives, often
-         well after loading() (standings-only) had already revealed
-         everything below it. -->
-    @if (newsLoading()) {
-      <app-skeleton class="order-6 rounded-3xl h-[190px] mb-4" [iconSize]="20" />
-    } @else if (news().length > 0) {
-      <div class="order-6 bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
-        <div class="card-head">
-          <span class="card-head-icon"><app-nav-icon name="news" [size]="18" /></span>
-          <p class="font-display text-base flex-1 min-w-0 truncate">{{ i18n.t('dashboard.latest') }}</p>
-          <a routerLink="/news" class="go-link">{{ i18n.t('dashboard.viewAll') }} </a>
-        </div>
-        <app-news-stories [articles]="news()" />
-      </div>
-    }
-
-    <!-- Mini standings + tabbed card — items-stretch (the flex default) so
-         both cards match height now that standings shows 5-6 rows (top 5
-         + your team) instead of the old 3-4, close enough to the tabbed
-         card's own height that stretching no longer reads as padded-out
-         dead space the way it used to at 3 rows. -->
-    <div class="order-9 flex flex-col gap-4 mt-4 lg:mt-0">
-      <div class="lg:flex-1 lg:min-w-0 bg-card rounded-3xl border border-line shadow-card p-4">
-        <div class="card-head">
-          <span class="card-head-icon"><app-nav-icon name="standings" [size]="18" /></span>
-          <p class="font-display text-base flex-1 min-w-0 truncate">{{ i18n.t('dashboard.standings') }}</p>
-          <a routerLink="/standings" class="go-link">{{ i18n.t('standings.viewFull') }} </a>
-        </div>
-        <div class="text-sm space-y-2">
-          @for (row of miniStandings(); track row.team.id) {
+        <!-- Next game, with the old team hero folded in: your team, rank and record. -->
+        @if (selectedRow(); as row) {
+          @if (scheduleLoading()) {
+            <app-skeleton class="order-3 rounded-3xl h-[110px] mb-4" />
+          } @else {
             <a
-              [routerLink]="['/teams', row.team.id]"
-              class="list-row"
-              [class.list-row--lead]="row.position === 1"
-              [class.is-mine]="row.team.id === selectedTeamId()"
+              [routerLink]="nextGame() ? ['/games', nextGame()!.id] : ['/teams', row.team.id]"
+              class="order-3 block rounded-3xl p-4 mb-4 bg-card border border-line shadow-card hover:border-team-primary/50 transition-colors"
             >
-              <span class="w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0" [class]="rankBadgeClasses(row.position - 1)">{{ row.position }}</span>
-              @if (row.team.logoUrl) {
-                <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-6 h-6 object-contain shrink-0 team-logo" />
-              } @else {
-                <span class="w-6 h-6 rounded-full shrink-0" [style.background]="row.team.primaryColor"></span>
-              }
-              <span class="font-semibold truncate flex-1 min-w-0">{{ row.team.name }}</span>
-              <span class="value-chip value-chip--muted">{{ row.stats.wins }}-{{ row.stats.losses }}</span>
+              <div class="flex items-center gap-3">
+                @if (row.team.logoUrl) {
+                  <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-10 h-10 object-contain team-logo shrink-0" />
+                } @else {
+                  <span class="w-10 h-10 rounded-full flex items-center justify-center bg-team-primary text-team-secondary text-xs font-bold shrink-0">{{ row.team.code | teamCode }}</span>
+                }
+                <div class="min-w-0 flex-1">
+                  <p class="font-semibold truncate">{{ row.team.name }}</p>
+                  <p class="text-xs text-muted tabular-nums">#{{ row.position }} · {{ row.stats.wins }}–{{ row.stats.losses }}</p>
+                </div>
+                @if (nextGame(); as game) {
+                  <div class="text-right min-w-0">
+                    <p class="text-xs text-muted">{{ i18n.t('dashboard.next') }}</p>
+                    <p class="text-sm font-semibold flex items-center justify-end gap-1.5">
+                      <span class="text-muted">{{ isHomeGame(game) ? "vs" : "@" }}</span>
+                      @if (opponentTeam(game).logoUrl) {
+                        <img [src]="opponentTeam(game).logoUrl" [alt]="opponentTeam(game).name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain team-logo" />
+                      }
+                      {{ opponentCode(game) | teamCode }}
+                    </p>
+                    <p class="text-xs text-muted tabular-nums">{{ game.tipoffAt | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}{{ game.tipoffAt | todayTag: i18n.lang() }}</p>
+                  </div>
+                }
+              </div>
             </a>
           }
-        </div>
+        }
+
+        <!-- My Leagues + Fantasy: one slim row at the bottom. -->
+        @if (auth.isAuthenticated()) {
+          <div class="order-7 grid grid-cols-2 gap-3 mb-4">
+            <a routerLink="/leagues" class="flex items-center gap-2.5 rounded-2xl px-3 py-2.5 bg-card border border-line hover:border-team-primary/50 transition-colors min-w-0">
+              <app-nav-icon name="bracket" [size]="18" class="text-team-primary shrink-0" />
+              <span class="min-w-0">
+                <span class="block text-sm font-semibold">{{ i18n.t('dashboard.myLeagues') }}</span>
+                @if (!myLeaguesLoading()) {
+                  <span class="block text-xs text-muted truncate">
+                    @if (myLeagues().length > 0) {
+                      {{ myLeagues()[0].name }}@if (myLeagues().length > 1) { +{{ myLeagues().length - 1 }} }
+                    } @else {
+                      {{ i18n.t('dashboard.leaguesEmptyHint') }}
+                    }
+                  </span>
+                }
+              </span>
+            </a>
+            <a routerLink="/fantasy" class="flex items-center gap-2.5 rounded-2xl px-3 py-2.5 bg-card border border-line hover:border-team-primary/50 transition-colors min-w-0">
+              <app-nav-icon name="trophy" [size]="18" class="text-team-primary shrink-0" />
+              <span class="min-w-0">
+                <span class="block text-sm font-semibold">{{ i18n.t('fantasy.navLink') }}</span>
+                @if (!fantasyLoading()) {
+                  <span class="block text-xs text-muted truncate">
+                    @if (fantasyLineup(); as lineup) {
+                      @if (lineup.round !== null) {
+                        {{ i18n.t('fantasy.round') }} {{ lineup.round }}@if (lineup.locked) { · {{ i18n.t('fantasy.locked') }} }
+                      } @else {
+                        {{ i18n.t('fantasy.hint') }}
+                      }
+                    } @else {
+                      {{ i18n.t('fantasy.hint') }}
+                    }
+                  </span>
+                }
+              </span>
+            </a>
+          </div>
+        }
       </div>
 
-      <!-- Own skeleton while statsCardLoading() (2026-09-17) — this card
-           used to just not exist at all until every one of
-           roundMvp/leaders/leaderboard/teamGames had resolved (whichever
-           made hasPerformances()/hasLeaders()/hasPredictors()/
-           hasSchedule() first go true), popping in later next to the
-           standings card on its left, which had already rendered as soon
-           as loading() (standings-only) flipped. -->
-      @if (statsCardLoading()) {
-        <app-skeleton class="lg:flex-1 rounded-3xl h-64" [iconSize]="20" />
-      } @else if (hasPerformances() || hasLeaders() || hasPredictors() || hasSchedule()) {
-        <div class="lg:flex-1 lg:min-w-0 bg-card rounded-3xl border border-line shadow-card p-4 flex flex-col">
-          <!-- Segmented control (2026-09-12 redesign) — one joined tonal
-               track instead of separate floating pill buttons; flex-1 on
-               each segment splits the track evenly across however many tabs
-               actually have data today (same conditional set as before). -->
-          <div class="status-tile flex gap-1 mb-3 h-11 p-1 rounded-2xl border border-line overflow-x-auto no-scrollbar">
-            @if (hasPerformances()) {
-              <button type="button" (click)="setTab('performances')" [ngClass]="tabButtonClass('performances')" class="flex-1 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors shrink-0">
-                {{ i18n.t('dashboard.topPerformances') }}
-              </button>
-            }
-            @if (hasLeaders()) {
-              <button type="button" (click)="setTab('leaders')" [ngClass]="tabButtonClass('leaders')" class="flex-1 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors shrink-0">
-                {{ i18n.t('dashboard.leaders') }}
-              </button>
-            }
-            @if (hasPredictors()) {
-              <button type="button" (click)="setTab('predictors')" [ngClass]="tabButtonClass('predictors')" class="flex-1 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors shrink-0">
-                {{ i18n.t('dashboard.topPredictors') }}
-              </button>
-            }
-            @if (hasSchedule()) {
-              <button type="button" (click)="setTab('schedule')" [ngClass]="tabButtonClass('schedule')" class="flex-1 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors shrink-0">
-                {{ i18n.t('dashboard.yourTeamSchedule') }}
-              </button>
-            }
-          </div>
-
-          @switch (activeTab()) {
-            @case ('performances') {
-              @if (roundMvp()?.leaders?.length) {
-                <p class="status-tile inline-flex items-center h-7 px-2.5 rounded-full border border-line font-mono text-[11px] font-bold text-muted uppercase tracking-wider mb-2">{{ i18n.t('dashboard.round') }} {{ roundMvp()?.round }}</p>
-                <div class="text-sm space-y-2">
-                  @for (entry of roundMvp()?.leaders; track entry.player.id; let i = $index) {
-                    <a [routerLink]="['/players', entry.player.id]" class="list-row" [class.list-row--lead]="i === 0">
-                      <span class="w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0" [class]="rankBadgeClasses(i)">{{ i + 1 }}</span>
-                      <span class="font-semibold truncate flex-1 min-w-0">{{ entry.player.name }}</span>
-                      @if (entry.team.logoUrl) {
-                        <img [src]="entry.team.logoUrl" [alt]="entry.team.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
-                      } @else {
-                        <span class="w-5 h-5 rounded-full shrink-0" [style.background]="entry.team.primaryColor"></span>
-                      }
-                      <span class="value-chip">{{ entry.valuation }} PIR</span>
-                    </a>
-                  }
-                </div>
-              }
-            }
-            @case ('leaders') {
-              <div class="flex justify-end mb-2">
-                <app-dropdown
-                  class="w-24"
-                  [options]="leaderDropdownOptions"
-                  [value]="leaderCategory()"
-                  (valueChange)="onLeaderCategoryChange($event)"
-                />
-              </div>
-              <div class="text-sm space-y-2">
-                @for (entry of leaders(); track entry.player.id; let i = $index) {
-                  <a [routerLink]="['/players', entry.player.id]" class="list-row" [class.list-row--lead]="i === 0">
-                    <span class="w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0" [class]="rankBadgeClasses(i)">{{ i + 1 }}</span>
-                    <span class="font-semibold truncate flex-1 min-w-0">{{ entry.player.name }}</span>
-                    @if (entry.team.logoUrl) {
-                      <img [src]="entry.team.logoUrl" [alt]="entry.team.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
-                    } @else {
-                      <span class="w-5 h-5 rounded-full shrink-0" [style.background]="entry.team.primaryColor"></span>
-                    }
-                    <span class="value-chip">{{ entry.value | number: "1.1-1" }}</span>
-                  </a>
-                }
-              </div>
-              <a routerLink="/stats" class="go-link mt-2 ml-auto !flex w-fit"
-                >{{ i18n.t('stats.viewFull') }} </a
-              >
-            }
-            @case ('predictors') {
-              <div class="text-sm space-y-2">
-                @for (entry of leaderboard(); track entry.userId; let i = $index) {
-                  <button
-                    type="button"
-                    (click)="openMember(entry)"
-                    class="list-row w-full text-left"
-                    [class.list-row--lead]="i === 0"
-                    [class.is-mine]="entry.userId === auth.currentUser()?.id"
-                  >
-                    <span class="w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0" [class]="rankBadgeClasses(i)">{{ i + 1 }}</span>
-                    <span class="min-w-0 flex-1">
-                      <span class="block font-semibold truncate">{{ entry.displayName }}</span>
-                      <span class="block font-mono text-[11px] text-muted">{{ entry.correct }}/{{ entry.total }}</span>
-                    </span>
-                    <span class="value-chip">{{ entry.points }} {{ i18n.t('predictions.pts') }}</span>
-                  </button>
-                }
-                @if (myBoardRow(); as mine) {
-                  <p class="text-center text-muted text-xs leading-none select-none" aria-hidden="true">&middot;&middot;&middot;</p>
-                  <button type="button" (click)="openMember(mine.entry)" class="list-row is-mine w-full text-left">
-                    <span class="w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0 bg-line">{{ mine.rank }}</span>
-                    <span class="min-w-0 flex-1">
-                      <span class="block font-semibold truncate">{{ mine.entry.displayName }}</span>
-                      <span class="block font-mono text-[11px] text-muted">{{ mine.entry.correct }}/{{ mine.entry.total }}</span>
-                    </span>
-                    <span class="value-chip">{{ mine.entry.points }} {{ i18n.t('predictions.pts') }}</span>
-                  </button>
-                }
-              </div>
-              <a routerLink="/leaderboard" class="go-link mt-2 ml-auto !flex w-fit"
-                >{{ i18n.t('dashboard.viewAll') }} </a
-              >
-            }
-            @case ('schedule') {
-              <div class="text-sm space-y-2">
-                @for (game of recentGames(); track game.id) {
-                  <a [routerLink]="['/games', game.id]" class="list-row justify-between">
-                    <span class="flex items-center gap-2 min-w-0">
-                      <span
-                        class="w-7 h-7 rounded-lg flex items-center justify-center font-mono text-[12px] font-bold text-white shrink-0"
-                        [class]="teamResult(game) === 'W' ? 'bg-emerald-600' : 'bg-red-500/75'"
-                        >{{ resultLabel(teamResult(game)) }}</span
-                      >
-                      @if (opponentTeam(game).logoUrl) {
-                        <img [src]="opponentTeam(game).logoUrl" [alt]="opponentTeam(game).name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
-                      } @else {
-                        <span class="w-5 h-5 rounded-full shrink-0" [style.background]="opponentTeam(game).primaryColor"></span>
-                      }
-                      <span class="font-semibold truncate">{{ isHomeGame(game) ? "vs" : "@" }} {{ opponentCode(game) | teamCode }}</span>
-                    </span>
-                    <span class="value-chip value-chip--muted">{{ game.homeScore }}-{{ game.awayScore }}</span>
-                  </a>
-                }
-                @for (game of upcomingGames(); track game.id) {
-                  <a [routerLink]="['/games', game.id]" class="list-row justify-between">
-                    <span class="flex items-center gap-2 min-w-0">
-                      <span class="w-7 h-7 rounded-lg flex items-center justify-center font-mono text-[12px] font-bold text-muted bg-card border border-line shrink-0">&middot;</span>
-                      @if (opponentTeam(game).logoUrl) {
-                        <img [src]="opponentTeam(game).logoUrl" [alt]="opponentTeam(game).name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
-                      } @else {
-                        <span class="w-5 h-5 rounded-full shrink-0" [style.background]="opponentTeam(game).primaryColor"></span>
-                      }
-                      <span class="font-semibold truncate">{{ isHomeGame(game) ? "vs" : "@" }} {{ opponentCode(game) | teamCode }}</span>
-                    </span>
-                    <span class="value-chip value-chip--muted">{{ game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}{{ game.tipoffAt | todayTag: i18n.lang() }}</span>
-                  </a>
-                }
-              </div>
-            }
-          }
-        </div>
-      }
-    </div>
-    </div>
-    </div>
-
-    <!-- No dashboard FAB for predictions (tried, then dropped 2026-09-13 on
-         direct feedback — "I don't like the fab") — /predictions is already
-         a permanent mobile bottom-nav tab (see MOBILE_OVERFLOW_PATHS in
-         app.component.ts) and a permanent desktop rail item, so the nudge
-         lives there rather than as a second floating control. -->
-  }
-
-  @if (selectedEntry(); as entry) {
-    <div class="sheet-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" (click)="closeMember()">
-      <div
-        class="sheet-panel bg-card rounded-3xl border border-line shadow-pop p-5 max-w-sm w-full max-h-[85vh] overflow-y-auto"
-        (click)="$event.stopPropagation()"
-      >
-        <div class="flex items-start justify-between gap-2 mb-4">
-          <div>
-            <p class="font-display text-xl tracking-wide">{{ entry.displayName }}</p>
-            <p class="font-mono text-[12px] text-muted mt-0.5">{{ entry.correct }}/{{ entry.total }} &middot; {{ entry.points }} pts</p>
-          </div>
-          <button
-            type="button"
-            (click)="closeMember()"
-            class="text-muted hover:text-ink text-2xl leading-none font-bold shrink-0"
-            [attr.aria-label]="i18n.t('leagues.cancel')"
-          >
-            &times;
-          </button>
-        </div>
-
-        <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('leagues.cardsTitle') }}</p>
-        @if (entry.showcase.length > 0) {
-          <div class="grid grid-cols-3 gap-3">
-            @for (card of entry.showcase; track card.id) {
-              <app-collectible-card
-                class="block w-full"
-                [name]="card.name"
-                [finish]="card.finish ?? 'standard'"
-                [tier]="card.tier"
-                [teamCode]="card.team.code"
-                [teamColor]="card.team.primaryColor"
-                [imageUrl]="card.imageUrl"
-                [unlocked]="true"
-              ></app-collectible-card>
-            }
-          </div>
-        } @else {
-          <p class="text-xs text-muted">{{ i18n.t('leagues.noCards') }}</p>
+      <div class="contents lg:block lg:col-start-2 lg:row-start-1">
+        @if (showLiveCenter()) {
+          <app-live-center class="order-4" />
         }
+
+        <!-- Sponsor ticker (2026-09-13): a paid placement styled as a flat
+             black LED board so it reads as sponsored, not an app feature. -->
+        <a
+          [href]="sponsorLink"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="order-5 sponsor-ticker rounded-3xl mb-4 flex items-center gap-3 px-4 py-3"
+        >
+          <span class="sponsor-tag shrink-0">{{ i18n.t('dashboard.sponsorTag') }}</span>
+          <div class="sponsor-ticker-viewport">
+            <div class="sponsor-ticker-track">
+              <span class="sponsor-ticker-text">{{ sponsorText }}</span>
+              <span class="sponsor-ticker-text" aria-hidden="true">{{ sponsorText }}</span>
+            </div>
+          </div>
+        </a>
+
+        <app-league-block class="order-6 block" [news]="news()" [standings]="standings()" [myTeamId]="selectedTeamId()" />
       </div>
     </div>
   }

@@ -11,8 +11,8 @@ import { RoundStatusService } from "./round-status.service";
  * Round header (2026-10-07 dashboard redesign): the one bold, team-colour
  * element on the home screen. Round number, "N of M done" + progress, and a
  * countdown to the next deadline; per-phase variants for guests, all done
- * and between rounds. Projected content (the round recap) shows under it
- * between rounds.
+ * and between rounds. The round recap stays a one-time popup owned by the
+ * dashboard, so it isn't projected here.
  */
 @Component({
   selector: "app-round-header",
@@ -73,9 +73,6 @@ import { RoundStatusService } from "./round-status.service";
           </a>
         }
       </section>
-      @if (auth.isAuthenticated() && s.phase === "between") {
-        <ng-content />
-      }
     }
   `,
 })
