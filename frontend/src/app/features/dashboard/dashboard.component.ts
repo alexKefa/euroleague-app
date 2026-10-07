@@ -54,6 +54,7 @@ type LeaderCategory = (typeof LEADER_CATEGORIES)[number]["value"];
 type DashboardTab = "performances" | "leaders" | "predictors" | "schedule";
 
 import { FirstPicksCardComponent } from "../../shared/first-picks-card";
+import { RoundStatusService } from "./round-status.service";
 @Component({
   selector: "app-dashboard",
   standalone: true,
@@ -80,6 +81,7 @@ import { FirstPicksCardComponent } from "../../shared/first-picks-card";
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
+  protected roundStatus = inject(RoundStatusService);
   private theme = inject(ThemeService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
@@ -296,6 +298,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.selectLeaderCategory("points");
     this.loadDashboardData();
+    this.roundStatus.start();
 
     // Standalone home-screen PWAs (iOS especially) have no browser chrome
     // at all — no pull-to-refresh, no reload button — and the page gets
@@ -311,6 +314,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     document.removeEventListener("visibilitychange", this.onVisibilityChange);
+    this.roundStatus.stop();
   }
 
   openMember(entry: LeaderboardEntry): void {

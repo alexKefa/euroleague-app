@@ -14,8 +14,8 @@ import { SkeletonComponent } from "../../shared/skeleton";
 import { gameDateTimeFormat, newsDateLocale, shortDateFormat } from "../../shared/news-date-format";
 import { TodayTagPipe } from "../../shared/today-tag.pipe";
 import { CdnSizedPipe } from "../../shared/cdn-image";
+import { RoundStatusService } from "./round-status.service";
 
-const SEASON = "2026-27";
 
 type LiveCenterTab = "games" | "predictions" | "favorites" | "polls";
 
@@ -52,6 +52,9 @@ export class LiveCenterComponent implements OnInit {
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
   private events = inject(EventsService);
+  // The current round's schedule comes from the dashboard's shared
+  // RoundStatusService (2026-10-07) instead of a second fetch.
+  private roundStatus = inject(RoundStatusService);
   protected favoritePlayers = inject(FavoritePlayersService);
 
   readonly loading = signal(true);
@@ -140,6 +143,14 @@ export class LiveCenterComponent implements OnInit {
       else this.activeTab.set("games");
     });
 
+    // Seed (and re-seed on refresh) the games list from the shared schedule.
+    effect(() => {
+      const schedule = this.roundStatus.schedule();
+      const loading = this.roundStatus.loading();
+      if (schedule) this.games.set(schedule.games);
+      if (!loading) this.loading.set(false);
+    });
+
     // Live score push: patch the matching game in place, same pattern as
     // schedule.ts — keeps the games/predictions/favorites tabs current
     // without a manual refresh while a game is live.
@@ -185,13 +196,6 @@ export class LiveCenterComponent implements OnInit {
       return;
     }
 
-    this.api.getSchedule(SEASON).subscribe({
-      next: (schedule) => {
-        this.games.set(schedule.games);
-        this.loading.set(false);
-      },
-      error: () => this.loading.set(false),
-    });
     this.api.getMyPredictions().subscribe({
       next: (rows) => this.myPredictions.set(rows),
       error: () => {}, // non-critical widget
