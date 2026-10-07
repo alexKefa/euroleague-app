@@ -47,15 +47,20 @@ module.exports = {
         "team-secondary": themeVar("--accent-secondary", "#0B1220"),
       },
       fontFamily: {
-        // TEMPORARY EXPERIMENT (system-ui trial) — default before this was
-        // IBM Plex Sans for all three roles (Greek-verified trio, see
-        // styles.css's font-swap history). Revert by restoring:
-        //   sans: ["IBM Plex Sans", "system-ui", "sans-serif"],
-        //   display: ["IBM Plex Sans", "Arial", "sans-serif"],
-        //   mono: ["IBM Plex Sans", "ui-monospace", "monospace"],
-        sans: ["system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
-        display: ["system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
-        mono: ["IBM Plex Sans", "ui-monospace", "monospace"],
+        // 2026-10-07: Sofia Sans for text, Sofia Sans Condensed for display
+        // (headings, scores). "mono" is the small data/meta-label role: same
+        // text face, with tabular numbers (styles.css .font-mono).
+        sans: ["Sofia Sans", "system-ui", "sans-serif"],
+        display: ["Sofia Sans Condensed", "Sofia Sans", "system-ui", "sans-serif"],
+        mono: ["Sofia Sans", "system-ui", "sans-serif"],
+      },
+      // Weight system (2026-10-07): 400 body, 600 labels/buttons, 800 display
+      // (.font-display). font-bold was on ~790 elements, so everything read
+      // heavy; mapping it to 600 fixes that without touching every template.
+      // Use font-extrabold (800) for the rare non-display element that
+      // genuinely needs to shout.
+      fontWeight: {
+        bold: "600",
       },
       boxShadow: {
         // Real elevation instead of a near-flat 1px line — was previously

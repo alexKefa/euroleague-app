@@ -75,8 +75,8 @@
   /* Starts partway through the logo's own draw-reveal above (0.85s-1.7s),
      not only after it finishes — settles at roughly the same moment. */
   animation-delay: 0.75s;
-  font-family: "IBM Plex Sans", system-ui, sans-serif;
-  font-weight: 700;
+  font-family: "Sofia Sans", system-ui, sans-serif;
+  font-weight: 600;
   font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;

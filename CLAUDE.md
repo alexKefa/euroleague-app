@@ -118,8 +118,10 @@ on dev usually means drift, not a code bug.
 - Top-of-screen toasts live in one shared stack in `app.component.html`. A new
   toast renders inside it with `pointer-events-auto mb-3`, never its own `fixed`
   position. Admin tools use the shared `app-dialog` (`shared/dialog.ts`).
-- Font: IBM Plex Sans for all roles (Google Fonts import in `styles.css`). It must
-  have Greek glyph coverage.
+- Font: Sofia Sans for text, Sofia Sans Condensed for `font-display` (headings,
+  scores, wordmark). Google Fonts import in `styles.css`. Any font must have Greek
+  glyph coverage. Weights: 400 body, 600 labels/buttons (`font-bold` is mapped to
+  600 in `tailwind.config.js`), 800 only via `.font-display`.
 - Push notifications: `public/push-sw.js` is a push-only service worker with **no fetch
   handler and no caching** (the old caching worker caused production 504s). Keep it that way.
   Senders live in `services/push.ts` / `services/pushJobs.ts`.

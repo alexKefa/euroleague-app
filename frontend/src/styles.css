@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Sofia+Sans:wght@300..900&family=Sofia+Sans+Condensed:wght@400..900&display=swap");
 /* Nova Mono — scoped only to the dashboard's sponsor ticker
    (dashboard.component.css), not part of the regular font stack above.
    Picked specifically because most "digital/LED display" Google Fonts
@@ -217,17 +217,27 @@
    font saga (Syne -> IBM Plex Sans, 2026-08-26) and rejected then for
    reading "generic dev-tool/AI-product" — worth knowing if it gets
    reconsidered again down the line. */
+/* 2026-10-07: Sofia Sans (text) + Sofia Sans Condensed (display: headings,
+   scores, the wordmark), both Greek-verified against Google Fonts metadata.
+   Picked from a side-by-side comparison; replaces the unfinished system-ui
+   experiment that had body text in each device's own font while font-mono
+   still loaded IBM Plex Sans. Weight system: 400 body, 600 labels/buttons
+   (Tailwind's font-bold is mapped to 600 in tailwind.config.js), 800 only
+   for .font-display. */
 .font-display {
-  font-weight: 700;
+  font-weight: 800;
+}
+.font-mono {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Nav bar's "Clutch" wordmark (app.component.html). Was Bigshot One, a
    vintage serif echoing the logo art; swapped 2026-10-01 ("I don't like
    it") for a tight bold Plex Sans with a team-colour dot. */
 .brand-wordmark {
-  font-family: "IBM Plex Sans", system-ui, sans-serif;
-  font-weight: 700;
-  letter-spacing: -0.035em;
+  font-family: "Sofia Sans Condensed", "Sofia Sans", system-ui, sans-serif;
+  font-weight: 850;
+  letter-spacing: -0.015em;
   line-height: 1;
   /* The dot is its own inline element, so a tight mobile top bar could
      wrap it onto a second line under "Clutch". */
@@ -683,7 +693,7 @@ body {
   background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
   color: var(--accent-primary);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.3;
   white-space: normal;
   transition: background-color 0.15s ease, transform 0.15s ease;
@@ -750,7 +760,7 @@ body {
   background: color-mix(in srgb, var(--accent-primary) 16%, transparent);
   color: var(--accent-primary);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
   transition: background-color 0.15s ease;
 }
@@ -831,10 +841,10 @@ body {
 }
 .value-chip {
   flex-shrink: 0;
-  font-family: "IBM Plex Sans", ui-monospace, monospace;
+  font-family: "Sofia Sans Condensed", "Sofia Sans", sans-serif;
   font-variant-numeric: tabular-nums;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 800;
   line-height: 1;
   padding: 0.4rem 0.6rem;
   border-radius: 0.75rem;
