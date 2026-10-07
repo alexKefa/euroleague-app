@@ -575,13 +575,13 @@
                 <p class="text-xs text-muted leading-snug mt-0.5">{{ i18n.t('fantasy.fullTimeoutActiveDesc') }}</p>
               </div>
               @if (!roundLocked()) {
-                <button type="button" (click)="cancelFullTimeout()" [disabled]="fullTimeoutBusy()" class="shrink-0 text-[11px] font-bold text-muted hover:text-ink underline underline-offset-2 disabled:opacity-40">
+                <button type="button" (click)="cancelFullTimeout()" [disabled]="fullTimeoutBusy()" class="shrink-0 whitespace-nowrap text-[11px] font-bold text-muted hover:text-ink underline underline-offset-2 disabled:opacity-40">
                   {{ i18n.t('fantasy.fullTimeoutUndo') }}
                 </button>
               }
             </div>
           } @else if (fullTimeoutAvailable() && !roundLocked()) {
-            <div class="mb-3 rounded-2xl border border-team-primary/30 bg-gradient-to-r from-team-primary/15 via-team-primary/5 to-transparent px-3.5 py-3 flex items-center gap-3">
+            <div class="mb-3 rounded-2xl border border-team-primary/30 bg-gradient-to-r from-team-primary/15 via-team-primary/5 to-transparent px-3.5 py-3 flex flex-wrap sm:flex-nowrap items-center gap-3">
               <span class="shrink-0 w-10 h-10 rounded-full border-2 border-team-primary/60 text-team-primary flex items-center justify-center">
                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5" stroke="currentColor" stroke-width="2.2" /><path d="M12 13.5V9.5M9.5 2.5h5M19 6l1.5-1.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>
               </span>
@@ -592,7 +592,7 @@
                 </p>
                 <p class="text-xs text-muted leading-snug mt-0.5">{{ i18n.t('fantasy.fullTimeoutDesc') }}</p>
               </div>
-              <button type="button" (click)="confirmingFullTimeout.set(true)" [disabled]="fullTimeoutBusy()" appButton appButtonSize="sm" class="shrink-0">
+              <button type="button" (click)="confirmingFullTimeout.set(true)" [disabled]="fullTimeoutBusy()" appButton appButtonSize="sm" class="w-full sm:w-auto shrink-0 whitespace-nowrap">
                 {{ i18n.t('fantasy.fullTimeoutCall') }}
               </button>
             </div>
