@@ -193,8 +193,13 @@
               </div>
               <!-- Win-probability model's pre-game chance (2026-10-07); scoring is unchanged. -->
               @if (modelProbs()[game.id]; as wp) {
-                <p class="text-[11px] text-muted text-center py-1.5 border-t border-line tabular-nums">
-                  {{ i18n.t('winProb.model') }}: {{ wp.homeProb >= 0.5 ? (game.homeTeam.code | teamCode) : (game.awayTeam.code | teamCode) }}
+                @let fav = wp.homeProb >= 0.5 ? game.homeTeam : game.awayTeam;
+                <p class="flex items-center justify-center gap-1.5 text-[11px] text-muted py-1.5 border-t border-line tabular-nums">
+                  {{ i18n.t('winProb.clutchPredicts') }}:
+                  @if (fav.logoUrl) {
+                    <img [src]="fav.logoUrl" [alt]="fav.code | teamCode" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain team-logo" />
+                  }
+                  <span class="font-semibold text-ink">{{ fav.name }}</span>
                   {{ (wp.homeProb >= 0.5 ? wp.homeProb : 1 - wp.homeProb) * 100 | number: '1.0-0' }}%
                 </p>
               }

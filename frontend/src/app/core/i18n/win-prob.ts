@@ -8,6 +8,7 @@ export const winProbTranslations: Record<string, Record<Lang, string>> = {
   "winProb.fromOdds": { en: "from betting odds", el: "από τις αποδόσεις" },
   "winProb.fromElo": { en: "from team ratings", el: "από τη βαθμολογία ομάδων" },
   "winProb.model": { en: "Model", el: "Μοντέλο" },
+  "winProb.clutchPredicts": { en: "Clutch predicts", el: "Το Clutch προβλέπει" },
   "winProb.biggestSwings": { en: "Biggest swings", el: "Οι μεγαλύτερες ανατροπές" },
   "winProb.peak": { en: "{team} peaked at {p}% ({time})", el: "{team}: κορυφή στο {p}% ({time})" },
   "winProb.pending": {
