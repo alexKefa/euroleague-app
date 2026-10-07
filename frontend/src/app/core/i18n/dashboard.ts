@@ -111,4 +111,9 @@ export const dashboardTranslations: Record<string, Record<Lang, string>> = {
   "dashboard.checklist.guestStep2": { en: "Earn points: riskier picks pay more", el: "Κέρδισε πόντους: οι πιο ρισκαδόρικες επιλογές δίνουν περισσότερους" },
   "dashboard.checklist.guestStep3": { en: "Spend them on card packs and climb the leaderboard", el: "Ξόδεψέ τους σε πακέτα καρτών και ανέβα στην κατάταξη" },
   "dashboard.checklist.guestCta": { en: "Create free account", el: "Δημιούργησε δωρεάν λογαριασμό" },
+  // League block (2026-10-07 dashboard redesign, league-block.ts).
+  "dashboard.league.title": { en: "League", el: "Λίγκα" },
+  "dashboard.league.news": { en: "News", el: "Ειδήσεις" },
+  "dashboard.league.standings": { en: "Standings", el: "Βαθμολογία" },
+  "dashboard.league.stats": { en: "Stats", el: "Στατιστικά" },
 };

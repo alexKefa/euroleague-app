@@ -57,12 +57,14 @@ import { FirstPicksCardComponent } from "../../shared/first-picks-card";
 import { RoundStatusService } from "./round-status.service";
 import { RoundHeaderComponent } from "./round-header";
 import { RoundChecklistComponent } from "./round-checklist";
+import { LeagueBlockComponent } from "./league-block";
 @Component({
   selector: "app-dashboard",
   standalone: true,
   imports: [
     RoundHeaderComponent,
     RoundChecklistComponent,
+    LeagueBlockComponent,
     FirstPicksCardComponent,
     TodayTagPipe,
     CommonModule,
