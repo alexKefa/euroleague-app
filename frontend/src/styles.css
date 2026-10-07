@@ -610,6 +610,49 @@ body {
   transform: translate(-50%, -50%);
 }
 
+/* Fantasy court quick-remove (2026-10-07): one-tap X on a placed player's
+   photo (and the coach's), top-right, the one corner no other badge uses.
+   A dark disc that reads on every team colour and photo, cut out from the
+   court by a card-coloured ring; turns red on hover/press. Pair with
+   .tap-target-40 for a finger-sized hit area. */
+.slot-remove {
+  position: absolute;
+  top: -0.3rem;
+  right: -0.3rem;
+  width: 1.375rem;
+  height: 1.375rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(12, 12, 14, 0.82);
+  color: #fff;
+  box-shadow: 0 0 0 2px var(--color-card), 0 3px 8px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(4px);
+  transition: background-color 0.15s ease, transform 0.15s ease;
+  z-index: 2;
+}
+.slot-remove svg {
+  width: 0.625rem;
+  height: 0.625rem;
+}
+.slot-remove:hover {
+  background: #ef4444;
+  transform: scale(1.08);
+}
+.slot-remove:active {
+  background: #dc2626;
+  transform: scale(0.9);
+}
+.slot-remove:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .slot-remove { transition: none; }
+  .slot-remove:hover, .slot-remove:active { transform: none; }
+}
+
 /* Entrance for small floating bars (e.g. Fantasy's phone save bar). */
 .sheet-rise { animation: sheet-rise 0.2s ease-out; }
 @keyframes sheet-rise {

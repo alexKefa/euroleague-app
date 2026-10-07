@@ -287,6 +287,20 @@
                     class="flex"
                   />
                 </button>
+                <!-- Quick remove (2026-10-07, "instead of tapping and then
+                     remove, it requires time"): one tap, no action sheet.
+                     The sheet keeps its Remove too. -->
+                @if (!roundLocked() && !isPlayerLocked(slot.playerId)) {
+                  <button
+                    type="button"
+                    (click)="$event.stopPropagation(); removeFromSquad(slot.playerId)"
+                    (mousedown)="$event.stopPropagation()"
+                    (touchstart)="$event.stopPropagation()"
+                    [attr.aria-label]="i18n.t('fantasy.removePlayer') + ': ' + row.player.name"
+                    [title]="i18n.t('fantasy.removePlayer')"
+                    class="slot-remove tap-target-40"
+                  ><svg viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg></button>
+                }
                 @if (row.injury; as injury) {
                   <span class="absolute -top-1.5 left-1/2 -translate-x-1/2">
                     <app-injury-badge [status]="injury.status" [note]="injury.note" [noteEl]="injury.noteEl" [size]="14" />
@@ -947,10 +961,8 @@
                               type="button"
                               (click)="$event.stopPropagation(); removeCoach()"
                               [attr.aria-label]="i18n.t('fantasy.removePlayer')"
-                              class="tap-target-40 absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full font-bold text-base leading-none flex items-center justify-center border border-line bg-card text-muted hover:text-red-500 hover:border-red-500/40 transition-colors"
-                            >
-                              &times;
-                            </button>
+                              class="slot-remove tap-target-40"
+                            ><svg viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg></button>
                           }
                         </div>
                         <span class="text-[11px] font-semibold text-center truncate max-w-[80px]">{{ coach.headCoach ?? coach.team.name }}</span>
