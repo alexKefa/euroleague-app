@@ -107,13 +107,6 @@ Dev (EuroleagueDev) has 2025-26 play-by-play for 108 games (backfill stopped
 there on purpose; production has none, to keep its DB small). Run
 `npx tsx src/scripts/fit-win-prob.ts 2025-26` against dev to get the in-game
 reliability table. Spot check suggests the formula is overconfident in the
-last seconds (late-tie/OT winners dipped below 1
-## 6. Win probability: re-fit on the dev backfill (deferred 2026-10-07)
-
-Dev (EuroleagueDev) has 2025-26 play-by-play for 108 games (backfill stopped
-there on purpose; production has none, to keep its DB small). Run
-`npx tsx src/scripts/fit-win-prob.ts 2025-26` against dev to get the in-game
-reliability table. Spot check suggests the formula is overconfident in the
 last seconds (late-tie/OT winners dipped below 1%); consider a possession /
 end-game term. Copy only the new `wp_model` constants to production. Do this
 before building part 2 (Clutch Index), which depends on accurate swings.
