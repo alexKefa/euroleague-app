@@ -8,7 +8,8 @@ import { Component, ElementRef, OnDestroy, effect, inject, input, untracked } fr
 @Component({
   selector: "app-count-up",
   standalone: true,
-  host: { class: "tabular-nums" },
+  // inline-block so a pop's scale transform applies to the number.
+  host: { class: "tabular-nums inline-block" },
   template: "0",
 })
 export class CountUpComponent implements OnDestroy {
@@ -20,11 +21,15 @@ export class CountUpComponent implements OnDestroy {
   // Starting value for the first roll (default 0). Ranks start above the
   // target so they count *down* to it — climbing to #12, not up from #0.
   readonly from = input(0);
+  // Pop (scale up, settle) on every change after the first — for small
+  // jumps like a +2 basket, where the roll alone is only a frame or two.
+  readonly pop = input(false);
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private shown = 0;
   private first = true;
   private tween?: { kill(): void };
+  private popTween?: { kill(): void };
 
   private readonly animate = effect(() => {
     const target = this.value();
@@ -55,6 +60,19 @@ export class CountUpComponent implements OnDestroy {
           el.textContent = String(this.shown);
         },
       });
+      if (this.pop()) {
+        this.popTween?.kill();
+        gsap.set(el, { clearProps: "transform,color" });
+        // GSAP can't tween a CSS variable, so resolve the team colour and
+        // the number's resting colour to real values first.
+        const accent = getComputedStyle(document.documentElement).getPropertyValue("--accent-primary").trim();
+        const rest = getComputedStyle(el).color;
+        this.popTween = gsap.fromTo(
+          el,
+          { scale: 1.4, color: accent || rest },
+          { scale: 1, color: rest, duration: 0.6, ease: "back.out(3)", clearProps: "transform,color" },
+        );
+      }
     } catch {
       this.shown = target;
       el.textContent = String(target);
@@ -63,5 +81,6 @@ export class CountUpComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.tween?.kill();
+    this.popTween?.kill();
   }
 }

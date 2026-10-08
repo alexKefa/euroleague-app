@@ -58,7 +58,7 @@
                         <span class="text-[10px] font-bold font-mono text-red-500 whitespace-nowrap">Q{{ game.quarter }} {{ formatClock(game.gameClockSeconds) }}</span>
                       }
                     </span>
-                    <span class="font-mono font-bold text-sm"><app-count-up [value]="game.homeScore ?? 0" [fromZero]="false" [duration]="0.6" />-<app-count-up [value]="game.awayScore ?? 0" [fromZero]="false" [duration]="0.6" /></span>
+                    <span class="font-mono font-bold text-sm"><app-count-up [value]="game.homeScore ?? 0" [fromZero]="false" [duration]="0.6" [pop]="true" />-<app-count-up [value]="game.awayScore ?? 0" [fromZero]="false" [duration]="0.6" [pop]="true" /></span>
                     @if (liveWinProb()[game.id]; as wp) {
                       <!-- Live win chance (2026-10-07), in the leading team's colour. -->
                       <span
@@ -121,7 +121,7 @@
                     <ng-container *ngTemplateOutlet="pickSideMini; context: { team: row.game.homeTeam, picked: pickedHome, alignEnd: true }"></ng-container>
                     <span class="text-center min-w-[2.5rem]">
                       @if (isLive) {
-                        <span class="font-display text-sm tabular-nums"><app-count-up [value]="row.game.homeScore ?? 0" [fromZero]="false" [duration]="0.6" />-<app-count-up [value]="row.game.awayScore ?? 0" [fromZero]="false" [duration]="0.6" /></span>
+                        <span class="font-display text-sm tabular-nums"><app-count-up [value]="row.game.homeScore ?? 0" [fromZero]="false" [duration]="0.6" [pop]="true" />-<app-count-up [value]="row.game.awayScore ?? 0" [fromZero]="false" [duration]="0.6" [pop]="true" /></span>
                       } @else {
                         <span class="font-display text-[11px] font-bold text-muted tracking-widest">VS</span>
                       }
@@ -136,7 +136,7 @@
                         <ng-container *ngTemplateOutlet="pickTeam; context: { team: row.game.homeTeam, picked: pickedHome }"></ng-container>
                         <div class="flex flex-col items-center justify-center min-w-[3.5rem]">
                           @if (isLive) {
-                            <span class="font-display text-xl tabular-nums leading-none"><app-count-up [value]="row.game.homeScore ?? 0" [fromZero]="false" [duration]="0.6" /><span class="text-muted mx-0.5">-</span><app-count-up [value]="row.game.awayScore ?? 0" [fromZero]="false" [duration]="0.6" /></span>
+                            <span class="font-display text-xl tabular-nums leading-none"><app-count-up [value]="row.game.homeScore ?? 0" [fromZero]="false" [duration]="0.6" [pop]="true" /><span class="text-muted mx-0.5">-</span><app-count-up [value]="row.game.awayScore ?? 0" [fromZero]="false" [duration]="0.6" [pop]="true" /></span>
                             @if (row.game.quarter) {
                               <span class="font-mono text-[10px] font-bold text-red-500 mt-1">Q{{ row.game.quarter }} {{ formatClock(row.game.gameClockSeconds) }}</span>
                             }
@@ -206,7 +206,7 @@
                         @if (game.status === 'live') {
                           <span class="flex items-center gap-1 shrink-0">
                             <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
-                            <span class="font-mono font-bold text-xs"><app-count-up [value]="game.homeScore ?? 0" [fromZero]="false" [duration]="0.6" />-<app-count-up [value]="game.awayScore ?? 0" [fromZero]="false" [duration]="0.6" /></span>
+                            <span class="font-mono font-bold text-xs"><app-count-up [value]="game.homeScore ?? 0" [fromZero]="false" [duration]="0.6" [pop]="true" />-<app-count-up [value]="game.awayScore ?? 0" [fromZero]="false" [duration]="0.6" [pop]="true" /></span>
                           </span>
                         } @else {
                           <span class="font-mono text-[11px] text-muted shrink-0">{{ game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}{{ game.tipoffAt | todayTag: i18n.lang() }}</span>
