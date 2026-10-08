@@ -286,12 +286,12 @@ export class InventoryComponent implements OnInit, OnDestroy {
   // most-recently-acquired ordering — so the team you pulled from most
   // recently still leads, same spirit as myBundles()'s own ordering, just
   // one level up. A team's bundles are consolidated into one group even if
-  // they don't happen to sit contiguously in visibleBundles() (mirrors the
+  // they don't happen to sit contiguously in filteredBundles() (mirrors the
   // byKey-Map-plus-order-array pattern allBundles() above already uses).
-  readonly teamGroups = computed(() => {
+  private readonly allTeamGroups = computed(() => {
     const byTeam = new Map<string, { team: CollectibleBundle["team"]; bundles: CollectibleBundle[] }>();
     const order: string[] = [];
-    for (const bundle of this.visibleBundles()) {
+    for (const bundle of this.filteredBundles()) {
       let group = byTeam.get(bundle.team.id);
       if (!group) {
         group = { team: bundle.team, bundles: [] };
@@ -350,8 +350,20 @@ export class InventoryComponent implements OnInit, OnDestroy {
   // initial fetch itself.
   readonly visibleCount = signal(PAGE_SIZE);
   readonly loadingMore = signal(false);
-  readonly visibleBundles = computed(() => this.filteredBundles().slice(0, this.visibleCount()));
-  readonly hasMore = computed(() => this.visibleCount() < this.filteredBundles().length);
+  // Windowed by whole teams (2026-10-08): slicing bundles first and grouping
+  // after showed a partial row ("10/33 on Virtus but 4 cards") whenever a
+  // team's bundles straddled the page cut, with the rest appended to rows
+  // above as you scrolled. Now teams are revealed until ~visibleCount
+  // bundles are on screen; a team row is always complete.
+  readonly teamGroups = computed(() => {
+    const groups = this.allTeamGroups();
+    const budget = this.visibleCount();
+    let shown = 0;
+    let end = 0;
+    while (end < groups.length && shown < budget) shown += groups[end++].bundles.length;
+    return groups.slice(0, end);
+  });
+  readonly hasMore = computed(() => this.teamGroups().length < this.allTeamGroups().length);
 
   private readonly sentinel = viewChild<ElementRef<HTMLDivElement>>("scrollSentinel");
   private observer?: IntersectionObserver;

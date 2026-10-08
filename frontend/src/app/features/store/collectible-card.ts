@@ -102,7 +102,7 @@ export class CollectibleCardComponent implements OnChanges {
   /** Surname only on compact cards, so it fits instead of truncating to "Ty…". */
   get displayName(): string {
     if (this.sizeMode !== "compact") return this.name;
-    const parts = this.name.trim().split(/s+/);
+    const parts = this.name.trim().split(/\s+/);
     return parts.length > 1 ? parts[parts.length - 1] : this.name;
   }
 
