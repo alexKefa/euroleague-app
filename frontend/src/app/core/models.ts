@@ -1060,6 +1060,9 @@ export interface FantasyLineupPlayer {
   playerId: string;
   slotRole: FantasySlotRole;
   isCaptain: boolean;
+  // Played this round as captain and has since handed the armband on —
+  // it can come back to them until the next match day tips off.
+  playedAsCaptain: boolean;
   // True once this specific player's own team has tipped off this round —
   // informational only now (see FantasyLineup.locked's comment) — kept for
   // display (e.g. the squad-slot lock badge) even though edits are gated

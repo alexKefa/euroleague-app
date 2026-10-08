@@ -267,11 +267,12 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
     const fullTimeoutRound = await getFullTimeoutRound(req.userId!, season);
     const unlimitedTransfers = isUnlimitedTransferRound(round) || fullTimeoutRound === round;
 
-    let lineupRows: { playerId: string; slotRole: string; isCaptain: boolean; priceAtPick: number | null }[] = await db
+    let lineupRows: { playerId: string; slotRole: string; isCaptain: boolean; playedAsCaptain: boolean; priceAtPick: number | null }[] = await db
       .select({
         playerId: fantasyLineups.playerId,
         slotRole: fantasyLineups.slotRole,
         isCaptain: fantasyLineups.isCaptain,
+        playedAsCaptain: fantasyLineups.playedAsCaptain,
         priceAtPick: fantasyLineups.priceAtPick,
       })
       .from(fantasyLineups)
@@ -340,7 +341,7 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
           });
         }
       });
-      lineupRows = baseline.rows.map((r) => ({ ...r, priceAtPick: freshPriceByPlayerId.get(r.playerId) ?? FANTASY_MIN_PRICE }));
+      lineupRows = baseline.rows.map((r) => ({ ...r, playedAsCaptain: false, priceAtPick: freshPriceByPlayerId.get(r.playerId) ?? FANTASY_MIN_PRICE }));
       coachTeamId = baseline.coachTeamId;
     }
 
@@ -443,6 +444,7 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
         playerId: r.playerId,
         slotRole: r.slotRole,
         isCaptain: r.isCaptain,
+        playedAsCaptain: r.playedAsCaptain,
         locked: tipoff ? tipoff.getTime() <= now : false,
         valuation,
         points,

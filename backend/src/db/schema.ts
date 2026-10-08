@@ -1495,6 +1495,11 @@ export const fantasyLineups = pgTable(
     round: integer("round").notNull(),
     playerId: uuid("player_id").notNull().references(() => players.id),
     isCaptain: boolean("is_captain").default(false).notNull(),
+    // Set when the armband leaves this player mid-round after their game
+    // already tipped off — i.e. they played as captain (2026-10-08). Lets
+    // the armband come back to them until the next match day starts; no
+    // other already-played player can take it (saveMidRoundSubstitutions).
+    playedAsCaptain: boolean("played_as_captain").default(false).notNull(),
     // "starter" | "sixth_man" | "bench" — added 2026-09-05 alongside the
     // real-rules rebuild (see CLAUDE.md's Fantasy Five section): starters
     // and the sixth man score 100% of a locked round's points, bench scores

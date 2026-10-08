@@ -300,8 +300,8 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   },
   "fantasy.rulesCaptainTitle": { en: "Captain", el: "Αρχηγός" },
   "fantasy.rulesCaptainBody": {
-    en: "Pick one of your 5 starters as captain — their points for the round are doubled.",
-    el: "Όρισε έναν από τους 5 βασικούς σου ως αρχηγό — οι πόντοι του διπλασιάζονται για την αγωνιστική.",
+    en: "Pick one of your 5 starters as captain — their points for the round are doubled. Between match days the armband can move to a player who hasn't played yet, and can return to the player who played as captain until the next day tips off.",
+    el: "Όρισε έναν από τους 5 βασικούς σου ως αρχηγό — οι πόντοι του διπλασιάζονται για την αγωνιστική. Ανάμεσα στις αγωνιστικές μέρες το περιβραχιόνιο μπορεί να πάει σε παίκτη που δεν έχει αγωνιστεί ακόμα, και να επιστρέψει στον παίκτη που αγωνίστηκε ως αρχηγός μέχρι να ξεκινήσει η επόμενη μέρα.",
   },
   "fantasy.rulesCoachTitle": { en: "Coach", el: "Προπονητής" },
   "fantasy.rulesCoachBody": {

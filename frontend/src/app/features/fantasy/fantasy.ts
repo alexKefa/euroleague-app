@@ -492,6 +492,9 @@ export class FantasyComponent implements OnInit {
   readonly lockAt = signal<string | null>(null);
   readonly coachLocked = signal(false);
   readonly lockedPlayerIds = signal<Set<string>>(new Set());
+  // Players who wore the armband when their game was played (see
+  // canTakeCaptaincy).
+  readonly playedAsCaptainIds = signal<Set<string>>(new Set());
 
   // --- Round review — points/PIR/completion for whichever round is being
   // viewed (2026-09-07). Sourced from GET /fantasy/lineup's own per-round
@@ -1538,6 +1541,7 @@ export class FantasyComponent implements OnInit {
         this.lockAt.set(lineup.lockAt);
         this.coachLocked.set(lineup.coachLocked);
         this.lockedPlayerIds.set(new Set(lineup.players.filter((p) => p.locked).map((p) => p.playerId)));
+        this.playedAsCaptainIds.set(new Set(lineup.players.filter((p) => p.playedAsCaptain).map((p) => p.playerId)));
         this.roundComplete.set(lineup.roundComplete);
         this.totalPoints.set(lineup.totalPoints);
         this.creditsChange.set(lineup.creditsChange);
@@ -2297,10 +2301,27 @@ export class FantasyComponent implements OnInit {
 
   // Mid-round, the armband can leave a player who already played, but can
   // only be handed to someone whose game is still to come (a day-2 player)
-  // — mirrors saveMidRoundSubstitutions' CAPTAIN_PLAYED check.
+  // — or back to whoever played as captain on the latest match day, until
+  // the next day tips off (2026-10-08). Mirrors saveMidRoundSubstitutions'
+  // CAPTAIN_PLAYED check.
   canTakeCaptaincy(playerId: string): boolean {
     if (this.isPlayerLocked(playerId)) return false;
-    return !(this.subsWindowOpen() && this.hasPlayed(playerId));
+    if (!this.subsWindowOpen() || !this.hasPlayed(playerId)) return true;
+    const playedAsCaptain = this.playedAsCaptainIds().has(playerId) || this.serverCaptainId() === playerId;
+    return playedAsCaptain && !this.playedOnEarlierDay(playerId);
+  }
+
+  // Whether this player's team tipped off on a match day before the latest
+  // one that has started.
+  private playedOnEarlierDay(playerId: string): boolean {
+    const teamId = this.rowById().get(playerId)?.team.id;
+    if (!teamId) return false;
+    const now = Date.now();
+    const started = this.fixtureGames()
+      .filter((g) => g.status !== "scheduled" || new Date(g.tipoffAt).getTime() <= now)
+      .map((g) => ({ g, day: this.athensDateKey(g.tipoffAt) }));
+    const latestDay = started.reduce((max, s) => (s.day > max ? s.day : max), "");
+    return started.some((s) => s.day < latestDay && (s.g.homeTeam.id === teamId || s.g.awayTeam.id === teamId));
   }
 
   // Blocks adding a *new* player of a position whose quota is already met
@@ -2799,6 +2820,12 @@ export class FantasyComponent implements OnInit {
     this.api.submitFantasyLineupBatch(season, round, players, coachTeamId).subscribe({
       next: () => {
         this.serverSlotByPlayerId.set(new Map(players.map((p) => [p.playerId, p.slotRole])));
+        // Same rule the backend just applied: an armband leaving a player
+        // who already played marks them as having played as captain.
+        const prevCaptain = this.serverCaptainId();
+        if (prevCaptain && prevCaptain !== captainPlayerId && this.hasPlayed(prevCaptain)) {
+          this.playedAsCaptainIds.update((s) => new Set(s).add(prevCaptain));
+        }
         this.serverCaptainId.set(captainPlayerId);
         this.serverCoachTeamId.set(coachTeamId);
         this.submitting.set(false);

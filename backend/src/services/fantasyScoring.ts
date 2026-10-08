@@ -765,7 +765,14 @@ async function saveMidRoundSubstitutions(
       .from(games)
       .where(and(eq(games.season, season), eq(games.round, round))),
     db
-      .select({ id: fantasyLineups.id, playerId: fantasyLineups.playerId, slotRole: fantasyLineups.slotRole, isCaptain: fantasyLineups.isCaptain, teamId: players.teamId })
+      .select({
+        id: fantasyLineups.id,
+        playerId: fantasyLineups.playerId,
+        slotRole: fantasyLineups.slotRole,
+        isCaptain: fantasyLineups.isCaptain,
+        playedAsCaptain: fantasyLineups.playedAsCaptain,
+        teamId: players.teamId,
+      })
       .from(fantasyLineups)
       .innerJoin(players, eq(players.id, fantasyLineups.playerId))
       .where(and(eq(fantasyLineups.userId, userId), eq(fantasyLineups.season, season), eq(fantasyLineups.round, round))),
@@ -793,27 +800,42 @@ async function saveMidRoundSubstitutions(
   }
 
   // The armband can leave a player who already played, but can only be
-  // handed to someone whose game hasn't tipped off yet (a day-2 player).
+  // handed to someone whose game hasn't tipped off yet (a day-2 player) —
+  // or back to the player who played as captain on the latest match day so
+  // far, until the next day tips off (2026-10-08, direct request: "the
+  // captain that was set in day 1 (or day 2) can be set as captain until
+  // next day starts. Only him").
+  const startedTeamIds = new Set<string>();
+  const pastDayTeamIds = new Set<string>();
+  const started = roundGames.filter(hasStarted).map((g) => ({ ...g, day: athensDateKey(new Date(g.tipoffAt)) }));
+  const latestDay = started.reduce((max, g) => (g.day > max ? g.day : max), "");
+  for (const g of started) {
+    startedTeamIds.add(g.homeTeamId);
+    startedTeamIds.add(g.awayTeamId);
+    if (g.day < latestDay) {
+      pastDayTeamIds.add(g.homeTeamId);
+      pastDayTeamIds.add(g.awayTeamId);
+    }
+  }
   const newCaptain = entries.find((e) => e.isCaptain);
   const oldCaptain = existingRows.find((r) => r.isCaptain);
   if (newCaptain && newCaptain.playerId !== oldCaptain?.playerId) {
-    const startedTeamIds = new Set<string>();
-    for (const g of roundGames) {
-      if (!hasStarted(g)) continue;
-      startedTeamIds.add(g.homeTeamId);
-      startedTeamIds.add(g.awayTeamId);
-    }
-    if (startedTeamIds.has(existingByPlayerId.get(newCaptain.playerId)!.teamId)) {
+    const target = existingByPlayerId.get(newCaptain.playerId)!;
+    const returning = target.playedAsCaptain && !pastDayTeamIds.has(target.teamId);
+    if (startedTeamIds.has(target.teamId) && !returning) {
       return { error: "The captaincy can only move to a player whose game hasn't started yet", code: "CAPTAIN_PLAYED", playerId: newCaptain.playerId };
     }
   }
 
-  const changed: { id: string; slotRole: SlotRole; isCaptain: boolean }[] = [];
+  const changed: { id: string; slotRole: SlotRole; isCaptain: boolean; playedAsCaptain: boolean }[] = [];
   for (const e of entries) {
     const existing = existingByPlayerId.get(e.playerId)!;
     const isCaptain = !!e.isCaptain;
-    if (existing.slotRole === e.slotRole && existing.isCaptain === isCaptain) continue;
-    changed.push({ id: existing.id, slotRole: e.slotRole, isCaptain });
+    // Armband leaving someone who already played: remember they played as
+    // captain so it can be handed back to them.
+    const playedAsCaptain = existing.playedAsCaptain || (existing.isCaptain && !isCaptain && startedTeamIds.has(existing.teamId));
+    if (existing.slotRole === e.slotRole && existing.isCaptain === isCaptain && existing.playedAsCaptain === playedAsCaptain) continue;
+    changed.push({ id: existing.id, slotRole: e.slotRole, isCaptain, playedAsCaptain });
   }
 
   // Take the armband off before handing it on: the fantasy_lineup_one_captain
@@ -823,7 +845,10 @@ async function saveMidRoundSubstitutions(
   if (changed.length > 0) {
     await db.transaction(async (tx) => {
       for (const c of changed) {
-        await tx.update(fantasyLineups).set({ slotRole: c.slotRole, isCaptain: c.isCaptain }).where(eq(fantasyLineups.id, c.id));
+        await tx
+          .update(fantasyLineups)
+          .set({ slotRole: c.slotRole, isCaptain: c.isCaptain, playedAsCaptain: c.playedAsCaptain })
+          .where(eq(fantasyLineups.id, c.id));
       }
     });
   }
