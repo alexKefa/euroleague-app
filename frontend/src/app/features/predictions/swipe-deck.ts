@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ElementRef, HostListener, computed, inject, input, output, signal, viewChild } from "@angular/core";
+import { AfterViewInit, Component, ElementRef, HostListener, computed, effect, inject, input, output, signal, viewChild } from "@angular/core";
 import { DecimalPipe } from "@angular/common";
 import type { Game, PlayerAdvancedStatsRow, WinProbPreGame } from "../../core/models";
 import { I18nService } from "../../core/i18n.service";
@@ -6,8 +6,10 @@ import { ButtonDirective } from "../../shared/button.directive";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { TeamCodePipe } from "../../shared/team-display-code";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
+import { cdnImage } from "../../shared/cdn-image";
 
 const SWIPE_PX = 90;
+const PLAYER_PHOTO_PX = 52;
 const HINT_KEY = "clutch.deckHintSeen";
 
 /**
@@ -69,8 +71,8 @@ const HINT_KEY = "clutch.deckHintSeen";
               <div class="grid grid-cols-3 gap-2">
                 @for (r of scorerOptions(); track r.player.id) {
                   <button type="button" (click)="chooseScorer(r.player.id)" (pointerdown)="$event.stopPropagation()"
-                    class="flex flex-col items-center gap-1 rounded-2xl p-2 hover:bg-team-primary/10 active:scale-95 transition">
-                    <app-player-photo [name]="r.player.name" [photoUrl]="r.player.photoUrl" [size]="52" />
+                    class="deck-player flex flex-col items-center gap-1 rounded-2xl p-2 hover:bg-team-primary/10 transition-colors">
+                    <app-player-photo [name]="r.player.name" [photoUrl]="r.player.photoUrl" [size]="playerPhotoPx" />
                     <span class="text-[11px] font-semibold leading-tight truncate max-w-full">{{ r.player.name.split(",")[0] }}</span>
                     <span class="font-mono text-[10px] text-muted">
                       @if (quote()(g, r.player.id); as q) { +{{ q }} {{ i18n.t("predictions.pts") }} } @else { {{ r.stats.pointsPerGame | number: "1.1-1" }} PPG }
@@ -123,6 +125,7 @@ export class SwipeDeckComponent implements AfterViewInit {
   readonly closed = output<void>();
 
   private readonly card = viewChild<ElementRef<HTMLElement>>("card");
+  protected readonly playerPhotoPx = PLAYER_PHOTO_PX;
   protected readonly index = signal(0);
   protected readonly phase = signal<"winner" | "scorer">("winner");
   protected readonly winners = signal(0);
@@ -252,7 +255,63 @@ export class SwipeDeckComponent implements AfterViewInit {
     this.pickedTeamId.set(null);
     this.index.update((i) => i + 1);
     this.busy = false;
+    this.afterRender(() => this.enterCard());
   }
+
+  // Runs once Angular has painted the new content (two frames).
+  private afterRender(fn: () => void): void {
+    requestAnimationFrame(() => requestAnimationFrame(fn));
+  }
+
+  // Next card rises and settles in instead of popping (2026-10-08).
+  private async enterCard(): Promise<void> {
+    const el = this.card()?.nativeElement;
+    if (!el || this.reduceMotion()) return;
+    try {
+      const { gsap } = await import("gsap");
+      gsap.fromTo(el, { opacity: 0, y: 28, scale: 0.94 }, { opacity: 1, y: 0, scale: 1, duration: 0.34, ease: "back.out(1.5)", clearProps: "opacity,transform" });
+    } catch {
+      // no entrance without GSAP
+    }
+  }
+
+  // Top-scorer faces fade up one after another once the flip lands.
+  private async staggerPlayers(): Promise<void> {
+    const el = this.card()?.nativeElement;
+    if (!el || this.reduceMotion()) return;
+    try {
+      const { gsap } = await import("gsap");
+      gsap.fromTo(el.querySelectorAll(".deck-player"), { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.26, ease: "power2.out", stagger: 0.045, clearProps: "opacity,transform" });
+    } catch {
+      // players simply appear
+    }
+  }
+
+  // Warm the browser cache so photos and crests are ready before they show:
+  // this game's top-scorer candidates, and the next game's crests.
+  private readonly preloaded = new Set<string>();
+  private readonly preload = effect(() => {
+    const g = this.current();
+    if (!g) return;
+    const nextGame = this.games()[this.index() + 1];
+    const rec = this.recommendations();
+    // Players go through the same cdnImage(url, 52) as app-player-photo, so
+    // the browser picks the same srcset candidate it will render.
+    const players = [...rec(g.homeTeam.id), ...rec(g.awayTeam.id)].map((r) => r.player.photoUrl);
+    const images = [
+      ...players.filter((u): u is string => !!u).map((u) => cdnImage(u, PLAYER_PHOTO_PX)),
+      ...[nextGame?.homeTeam.logoUrl, nextGame?.awayTeam.logoUrl].filter((u): u is string => !!u).map((u) => ({ src: u, srcset: null, sizes: null })),
+    ];
+    for (const im of images) {
+      if (this.preloaded.has(im.src)) continue;
+      this.preloaded.add(im.src);
+      const img = new Image();
+      img.decoding = "async";
+      if (im.sizes) img.sizes = im.sizes;
+      if (im.srcset) img.srcset = im.srcset;
+      img.src = im.src;
+    }
+  });
 
   private reduceMotion(): boolean {
     return typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -273,6 +332,8 @@ export class SwipeDeckComponent implements AfterViewInit {
       this.dx.set(0);
       this.dy.set(0);
       this.phase.set(phase);
+      // Players start hidden while the card turns back, then fade up in turn.
+      this.afterRender(() => this.staggerPlayers());
       await gsap.fromTo(el, { rotationY: -90 }, { rotationY: 0, duration: 0.22, ease: "power2.out", clearProps: "transform" });
     } catch {
       this.phase.set(phase);
