@@ -39,6 +39,7 @@ import { syncInjuries } from "./sync/injurySync.js";
 import { syncPlayerStats } from "./sync/playerStatsSync.js";
 import { syncMissingGameExtras } from "./sync/gameExtrasSync.js";
 import { syncMissingReferees } from "./sync/refereeSync.js";
+import { syncScheduleTimes } from "./sync/scheduleSync.js";
 import { applyDailyFantasyPriceChanges } from "./services/fantasyDailyReprice.js";
 import { runFantasyRoundSweep } from "./services/fantasyRoundSweep.js";
 import { getCurrentSeason } from "./services/season.js";
@@ -335,6 +336,19 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
   };
   runGameExtrasSync();
 
+  // Tipoff times (2026-10-08, sync/scheduleSync.ts): EuroLeague reschedules
+  // after the season's schedule is imported, and nothing else picks that up.
+  const runScheduleSync = () => {
+    getCurrentSeason()
+      .then(async (season) => {
+        if (!season) return;
+        const { changed } = await syncScheduleTimes(season);
+        if (changed.length > 0) console.log(`[schedule sync] corrected ${changed.length} tipoff(s): ${changed.map((c) => `${c.gameCode} ${c.home}-${c.away}->${c.tipoffAt}`).join(", ")}`);
+      })
+      .catch((err) => console.error("[schedule sync] failed:", err));
+  };
+  runScheduleSync();
+
   // Every periodic job above runs on one shared top-of-the-hour tick
   // (2026-10-03) instead of its own setInterval. Separate timers started at
   // slightly different moments and drifted apart, so each could wake Neon's
@@ -350,6 +364,7 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
     runLockReminderPushesLogged();
     runRoundResultPushesLogged();
     runGameExtrasSync();
+    runScheduleSync();
     if (hour % (ODDS_SYNC_INTERVAL_MS / HOUR_MS) === 0) runOddsSync();
     if (hour === 4) {
       runInjurySync();
