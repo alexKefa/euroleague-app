@@ -1203,7 +1203,19 @@
 </div>
 
 @if (deckGames(); as dg) {
-  <app-swipe-deck [games]="dg" [points]="deckPoints" [probs]="modelProbs()" (pick)="onDeckPick($event)" (save)="onDeckSave()" (closed)="deckGames.set(null)" />
+  <app-swipe-deck
+    [games]="dg"
+    [points]="deckPoints"
+    [probs]="modelProbs()"
+    [recommendations]="deckRecommendations"
+    [quote]="deckQuote"
+    [hasTopScorer]="deckHasTopScorer"
+    [isOut]="deckIsOut"
+    (pick)="onDeckPick($event)"
+    (topScorer)="onDeckTopScorer($event)"
+    (save)="onDeckSave()"
+    (closed)="deckGames.set(null)"
+  />
 }
 
 @if (topScorerPickerGame(); as game) {

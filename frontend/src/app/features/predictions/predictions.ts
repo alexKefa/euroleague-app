@@ -733,6 +733,13 @@ export class PredictionsComponent implements OnInit, OnDestroy {
   // and its Save is the page's own submitPredictions().
   readonly deckGames = signal<Game[] | null>(null);
   protected readonly deckPoints = (game: Game, teamId: string) => this.pointsForPick(game, teamId);
+  protected readonly deckRecommendations = (teamId: string) => this.topScorerRecommendations(teamId);
+  protected readonly deckQuote = (game: Game, playerId: string) => this.quickPickQuote(game, playerId);
+  protected readonly deckHasTopScorer = (game: Game) => this.topScorerByGameId().has(game.id);
+  protected readonly deckIsOut = (playerId: string) => this.isOut(playerId);
+  onDeckTopScorer(e: { game: Game; playerId: string }): void {
+    if (!this.isQuickPicked(e.game, e.playerId)) this.quickPickTopScorer(e.game, e.playerId);
+  }
   openDeck(): void {
     const games = this.upcomingGames().filter((g) => this.myPickFor(g) === null);
     if (games.length > 0) this.deckGames.set(games);
