@@ -1,9 +1,11 @@
+import { ButtonDirective } from "../../shared/button.directive";
+import { SwipeDeckComponent } from "./swipe-deck";
 import { CountUpComponent } from "../../shared/count-up";
 import type { WinProbPreGame } from "../../core/models";
 import { Component, OnInit, OnDestroy, HostListener, computed, effect, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { forkJoin, of } from "rxjs";
-import { RouterLink } from "@angular/router";
+import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
@@ -134,7 +136,7 @@ interface DisplayedPick {
 @Component({
   selector: "app-predictions",
   standalone: true,
-  imports: [PageHeaderComponent, CountUpComponent, FirstPicksCardComponent, 
+  imports: [PageHeaderComponent, CountUpComponent, FirstPicksCardComponent, ButtonDirective, SwipeDeckComponent, 
     TodayTagPipe,
     CommonModule,
     RouterLink,
@@ -155,6 +157,8 @@ interface DisplayedPick {
 })
 export class PredictionsComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private firstPicks = inject(FirstPicksService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
@@ -666,6 +670,7 @@ export class PredictionsComponent implements OnInit, OnDestroy {
       next: (schedule) => {
         this.roundGames.set(schedule.games);
         this.scheduleRound.set(schedule.round);
+        if (!this.tabFromUrl && !schedule.games.some((g) => g.status === "scheduled")) this.mobileTab.set("mine");
         this.api.getPreGameWinProbs(schedule.season, schedule.round).subscribe({
           next: (probs) => this.modelProbs.set(probs),
           error: () => {}, // optional line
@@ -693,6 +698,51 @@ export class PredictionsComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.nowTimer) clearInterval(this.nowTimer);
     if (this.highlightTimer) clearTimeout(this.highlightTimer);
+    this.tabFromQuery.unsubscribe();
+  }
+
+  // --- Phone tabs (2026-10-08): Pick / My picks / Leaderboard, one section
+  // at a time below sm:. Desktop keeps the full page (sections only get
+  // max-sm:hidden). The tab lives in ?tab= so links and Back work; with no
+  // ?tab=, the page opens on Pick while games are open, else My picks.
+  readonly mobileTab = signal<"pick" | "mine" | "board">("pick");
+  protected readonly mobileTabs = [
+    { id: "pick" as const, labelKey: "predictions.tab.pick" },
+    { id: "mine" as const, labelKey: "predictions.tab.mine" },
+    { id: "board" as const, labelKey: "predictions.tab.board" },
+  ];
+  private tabFromUrl = false;
+  private readonly tabFromQuery = this.route.queryParamMap.subscribe((q) => {
+    const t = q.get("tab");
+    if (t === "pick" || t === "mine" || t === "board") {
+      this.tabFromUrl = true;
+      this.mobileTab.set(t);
+    }
+  });
+
+  setMobileTab(tab: "pick" | "mine" | "board"): void {
+    if (this.mobileTab() === tab) return;
+    this.mobileTab.set(tab);
+    this.tabFromUrl = true;
+    this.router.navigate([], { relativeTo: this.route, queryParams: { tab }, queryParamsHandling: "merge", replaceUrl: true });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // --- Quick-pick swipe deck (2026-10-08, swipe-deck.ts): a snapshot of the
+  // unpicked games at open; its picks land in pendingPicks via togglePick,
+  // and its Save is the page's own submitPredictions().
+  readonly deckGames = signal<Game[] | null>(null);
+  protected readonly deckPoints = (game: Game, teamId: string) => this.pointsForPick(game, teamId);
+  openDeck(): void {
+    const games = this.upcomingGames().filter((g) => this.myPickFor(g) === null);
+    if (games.length > 0) this.deckGames.set(games);
+  }
+  onDeckPick(e: { game: Game; teamId: string }): void {
+    if (this.myPickFor(e.game) === null) this.togglePick(e.game, e.teamId);
+  }
+  onDeckSave(): void {
+    this.deckGames.set(null);
+    this.submitPredictions();
   }
 
   // --- Round progress strip (2026-10-08) — built from data already loaded.
