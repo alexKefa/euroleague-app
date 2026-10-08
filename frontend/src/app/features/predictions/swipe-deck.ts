@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ElementRef, HostListener, computed, effect, inject, input, output, signal, viewChild } from "@angular/core";
+import { AfterViewInit, Component, ElementRef, HostListener, NgZone, computed, effect, inject, input, output, signal, viewChild } from "@angular/core";
 import { DecimalPipe } from "@angular/common";
 import type { Game, PlayerAdvancedStatsRow, WinProbPreGame } from "../../core/models";
 import { I18nService } from "../../core/i18n.service";
@@ -12,6 +12,8 @@ const SWIPE_PX = 90;
 const PLAYER_PHOTO_PX = 52;
 const HINT_KEY = "clutch.deckHintSeen";
 
+type Gsap = typeof import("gsap").gsap;
+
 /**
  * Quick-pick deck (2026-10-08): the round's unpicked games one card at a
  * time. Gestures only, no buttons: swipe left = home, right = away, up =
@@ -20,6 +22,12 @@ const HINT_KEY = "clutch.deckHintSeen";
  * recommendations: tap one (saved at once, same as the page's quick pick)
  * or swipe up to skip. Winner picks go out through `pick` into the page's
  * unsaved picks; its Save is the only write path for them.
+ *
+ * Motion: GSAP alone owns the card's transform/opacity (no Angular style
+ * binding), and pointer events run outside the zone, so dragging never
+ * runs change detection over the 1,200-line page behind the deck. A thrown
+ * card stays hidden while the next game swaps in, then enterCard() brings
+ * it in — no reset-to-centre frame between cards.
  */
 @Component({
   selector: "app-swipe-deck",
@@ -35,15 +43,7 @@ const HINT_KEY = "clutch.deckHintSeen";
 
         @if (current(); as g) {
           <p class="text-white/60 text-[12px] font-semibold mb-2 tabular-nums">{{ index() + 1 }} / {{ games().length }}</p>
-          <div
-            #card
-            class="w-full rounded-3xl bg-card border border-line shadow-pop p-5 select-none touch-none"
-            [style.transform]="'translate(' + dx() + 'px,' + dy() + 'px) rotate(' + dx() / 18 + 'deg)'"
-            (pointerdown)="onDown($event)"
-            (pointermove)="onMove($event)"
-            (pointerup)="onUp()"
-            (pointercancel)="onUp()"
-          >
+          <div #card class="w-full rounded-3xl bg-card border border-line shadow-pop p-5 select-none touch-none will-change-transform">
             @if (phase() === "winner") {
               <div class="grid grid-cols-2 gap-3">
                 @for (side of [g.homeTeam, g.awayTeam]; track side.id; let first = $first) {
@@ -70,7 +70,7 @@ const HINT_KEY = "clutch.deckHintSeen";
               <p class="font-display text-lg text-center mb-3">{{ i18n.t("predictions.deck.topScorerQ") }}</p>
               <div class="grid grid-cols-3 gap-2">
                 @for (r of scorerOptions(); track r.player.id) {
-                  <button type="button" (click)="chooseScorer(r.player.id)" (pointerdown)="$event.stopPropagation()"
+                  <button type="button" (click)="chooseScorer(r.player.id)"
                     class="deck-player flex flex-col items-center gap-1 rounded-2xl p-2 hover:bg-team-primary/10 transition-colors">
                     <app-player-photo [name]="r.player.name" [photoUrl]="r.player.photoUrl" [size]="playerPhotoPx" />
                     <span class="text-[11px] font-semibold leading-tight truncate max-w-full">{{ r.player.name.split(",")[0] }}</span>
@@ -110,6 +110,7 @@ const HINT_KEY = "clutch.deckHintSeen";
 })
 export class SwipeDeckComponent implements AfterViewInit {
   protected i18n = inject(I18nService);
+  private readonly zone = inject(NgZone);
 
   readonly games = input.required<Game[]>();
   readonly points = input.required<(game: Game, teamId: string) => number>();
@@ -132,11 +133,14 @@ export class SwipeDeckComponent implements AfterViewInit {
   protected readonly scorers = signal(0);
   private readonly pickedTeamId = signal<string | null>(null);
   protected readonly current = computed(() => this.games()[this.index()] ?? null);
-  protected readonly dx = signal(0);
-  protected readonly dy = signal(0);
-  protected readonly lean = computed(() => (this.dx() < -30 ? "home" : this.dx() > 30 ? "away" : null));
+  // Only the side highlight is a signal; it changes when the drag crosses ±30px.
+  protected readonly lean = signal<"home" | "away" | null>(null);
+
+  private x = 0;
+  private y = 0;
   private start: { x: number; y: number } | null = null;
   private busy = false;
+  private gsap: Gsap | null = null;
 
   // Picked team's players first, then the other side; injured-out dropped.
   protected readonly scorerOptions = computed(() => {
@@ -149,6 +153,7 @@ export class SwipeDeckComponent implements AfterViewInit {
   });
 
   ngAfterViewInit(): void {
+    import("gsap").then(({ gsap }) => (this.gsap = gsap)).catch(() => {});
     let seen = true;
     try {
       seen = localStorage.getItem(HINT_KEY) === "1";
@@ -159,18 +164,88 @@ export class SwipeDeckComponent implements AfterViewInit {
     if (!seen) setTimeout(() => this.demoNudge(), 400);
   }
 
+  // Pointer listeners on the card, attached outside the zone; re-attached
+  // if the card element is replaced (e.g. after the end screen).
+  private readonly bindPointer = effect((onCleanup) => {
+    const el = this.card()?.nativeElement;
+    if (!el) return;
+    const down = (e: PointerEvent) => {
+      if (this.busy || (e.target as HTMLElement).closest(".deck-player")) return;
+      this.start = { x: e.clientX, y: e.clientY };
+    };
+    const move = (e: PointerEvent) => {
+      if (!this.start) return;
+      // On the top-scorer face only the upward skip drags.
+      const x = this.phase() === "winner" ? e.clientX - this.start.x : 0;
+      this.setDrag(x, Math.min(0, e.clientY - this.start.y));
+    };
+    const up = () => this.release();
+    this.zone.runOutsideAngular(() => {
+      el.addEventListener("pointerdown", down);
+      el.addEventListener("pointermove", move);
+      el.addEventListener("pointerup", up);
+      el.addEventListener("pointercancel", up);
+    });
+    onCleanup(() => {
+      el.removeEventListener("pointerdown", down);
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerup", up);
+      el.removeEventListener("pointercancel", up);
+    });
+  });
+
+  private setDrag(x: number, y: number): void {
+    this.x = x;
+    this.y = y;
+    const el = this.card()?.nativeElement;
+    if (el) {
+      if (this.gsap) this.gsap.set(el, { x, y, rotation: x / 18 });
+      else el.style.transform = `translate(${x}px, ${y}px) rotate(${x / 18}deg)`;
+    }
+    const lean = x < -30 ? "home" : x > 30 ? "away" : null;
+    if (lean !== this.lean()) this.zone.run(() => this.lean.set(lean));
+  }
+
+  private release(): void {
+    if (!this.start) return;
+    this.start = null;
+    const { x, y } = this;
+    this.zone.run(() => {
+      if (y <= -SWIPE_PX && Math.abs(y) > Math.abs(x)) this.decide("skip");
+      else if (x <= -SWIPE_PX) this.decide("home");
+      else if (x >= SWIPE_PX) this.decide("away");
+      else this.snapBack();
+    });
+  }
+
+  // Under the threshold: spring back to centre.
+  private snapBack(): void {
+    if (!this.gsap || this.reduceMotion()) {
+      this.setDrag(0, 0);
+      return;
+    }
+    const gsap = this.gsap;
+    const proxy = { x: this.x, y: this.y };
+    this.zone.runOutsideAngular(() =>
+      gsap.to(proxy, { x: 0, y: 0, duration: 0.3, ease: "back.out(2)", onUpdate: () => this.setDrag(proxy.x, proxy.y) })
+    );
+  }
+
   // One-time demo: nudge left (home lights up), right (away), settle.
   private async demoNudge(): Promise<void> {
     if (this.reduceMotion() || this.busy) return;
     try {
       const { gsap } = await import("gsap");
+      this.gsap = gsap;
       const proxy = { x: 0 };
-      const set = () => this.dx.set(proxy.x);
-      await gsap
-        .timeline()
-        .to(proxy, { x: -60, duration: 0.45, ease: "power2.out", onUpdate: set })
-        .to(proxy, { x: 60, duration: 0.6, ease: "power2.inOut", onUpdate: set, delay: 0.25 })
-        .to(proxy, { x: 0, duration: 0.45, ease: "power2.in", onUpdate: set, delay: 0.25 });
+      const set = () => this.setDrag(proxy.x, 0);
+      this.zone.runOutsideAngular(() =>
+        gsap
+          .timeline()
+          .to(proxy, { x: -60, duration: 0.45, ease: "power2.out", onUpdate: set })
+          .to(proxy, { x: 60, duration: 0.6, ease: "power2.inOut", onUpdate: set, delay: 0.25 })
+          .to(proxy, { x: 0, duration: 0.45, ease: "power2.in", onUpdate: set, delay: 0.25 })
+      );
     } catch {
       // no demo without GSAP
     }
@@ -184,43 +259,11 @@ export class SwipeDeckComponent implements AfterViewInit {
     else if (e.key === "Escape") this.closed.emit();
   }
 
-  onDown(e: PointerEvent): void {
-    if (this.busy) return;
-    this.start = { x: e.clientX, y: e.clientY };
-  }
-
-  onMove(e: PointerEvent): void {
-    if (!this.start) return;
-    // On the top-scorer face only the upward skip drags.
-    if (this.phase() === "winner") this.dx.set(e.clientX - this.start.x);
-    this.dy.set(Math.min(0, e.clientY - this.start.y));
-  }
-
-  onUp(): void {
-    if (!this.start) return;
-    this.start = null;
-    const x = this.dx();
-    const y = this.dy();
-    if (y <= -SWIPE_PX && Math.abs(y) > Math.abs(x)) this.decide("skip");
-    else if (x <= -SWIPE_PX) this.decide("home");
-    else if (x >= SWIPE_PX) this.decide("away");
-    else {
-      this.dx.set(0);
-      this.dy.set(0);
-    }
-  }
-
   async decide(choice: "home" | "away" | "skip"): Promise<void> {
     const game = this.current();
     if (!game || this.busy) return;
     this.busy = true;
-    if (this.phase() === "scorer") {
-      // Only "skip" reaches here on the top-scorer face.
-      await this.throwCard("skip");
-      this.next();
-      return;
-    }
-    if (choice === "skip") {
+    if (this.phase() === "scorer" || choice === "skip") {
       await this.throwCard("skip");
       this.next();
       return;
@@ -248,9 +291,12 @@ export class SwipeDeckComponent implements AfterViewInit {
     this.next();
   }
 
+  // The thrown card is still hidden here; the next game's content swaps in
+  // underneath, then enterCard() brings it in.
   private next(): void {
-    this.dx.set(0);
-    this.dy.set(0);
+    this.x = 0;
+    this.y = 0;
+    this.lean.set(null);
     this.phase.set("winner");
     this.pickedTeamId.set(null);
     this.index.update((i) => i + 1);
@@ -260,31 +306,33 @@ export class SwipeDeckComponent implements AfterViewInit {
 
   // Runs once Angular has painted the new content (two frames).
   private afterRender(fn: () => void): void {
-    requestAnimationFrame(() => requestAnimationFrame(fn));
+    this.zone.runOutsideAngular(() => requestAnimationFrame(() => requestAnimationFrame(fn)));
   }
 
-  // Next card rises and settles in instead of popping (2026-10-08).
-  private async enterCard(): Promise<void> {
+  private enterCard(): void {
     const el = this.card()?.nativeElement;
-    if (!el || this.reduceMotion()) return;
-    try {
-      const { gsap } = await import("gsap");
-      gsap.fromTo(el, { opacity: 0, y: 28, scale: 0.94 }, { opacity: 1, y: 0, scale: 1, duration: 0.34, ease: "back.out(1.5)", clearProps: "opacity,transform" });
-    } catch {
-      // no entrance without GSAP
+    if (!el) return;
+    if (!this.gsap || this.reduceMotion()) {
+      el.style.removeProperty("opacity");
+      el.style.removeProperty("transform");
+      return;
     }
+    this.gsap.fromTo(
+      el,
+      { x: 0, y: 28, rotation: 0, rotationY: 0, scale: 0.94, opacity: 0 },
+      { y: 0, scale: 1, opacity: 1, duration: 0.34, ease: "back.out(1.5)", clearProps: "transform,opacity" }
+    );
   }
 
   // Top-scorer faces fade up one after another once the flip lands.
-  private async staggerPlayers(): Promise<void> {
+  private staggerPlayers(): void {
     const el = this.card()?.nativeElement;
-    if (!el || this.reduceMotion()) return;
-    try {
-      const { gsap } = await import("gsap");
-      gsap.fromTo(el.querySelectorAll(".deck-player"), { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.26, ease: "power2.out", stagger: 0.045, clearProps: "opacity,transform" });
-    } catch {
-      // players simply appear
-    }
+    if (!el || !this.gsap || this.reduceMotion()) return;
+    this.gsap.fromTo(
+      el.querySelectorAll(".deck-player"),
+      { opacity: 0, y: 14 },
+      { opacity: 1, y: 0, duration: 0.26, ease: "power2.out", stagger: 0.045, clearProps: "opacity,transform" }
+    );
   }
 
   // Warm the browser cache so photos and crests are ready before they show:
@@ -320,40 +368,31 @@ export class SwipeDeckComponent implements AfterViewInit {
   // Card turns edge-on, swaps to the top-scorer face, turns back.
   private async flipTo(phase: "scorer"): Promise<void> {
     const el = this.card()?.nativeElement;
-    if (!el || this.reduceMotion()) {
-      this.dx.set(0);
-      this.dy.set(0);
+    this.lean.set(null);
+    if (!el || !this.gsap || this.reduceMotion()) {
+      this.setDrag(0, 0);
       this.phase.set(phase);
       return;
     }
-    try {
-      const { gsap } = await import("gsap");
-      await gsap.to(el, { rotationY: 90, duration: 0.18, ease: "power2.in" });
-      this.dx.set(0);
-      this.dy.set(0);
-      this.phase.set(phase);
-      // Players start hidden while the card turns back, then fade up in turn.
-      this.afterRender(() => this.staggerPlayers());
-      await gsap.fromTo(el, { rotationY: -90 }, { rotationY: 0, duration: 0.22, ease: "power2.out", clearProps: "transform" });
-    } catch {
-      this.phase.set(phase);
-    }
+    const gsap = this.gsap;
+    await this.zone.runOutsideAngular(() => gsap.to(el, { x: 0, y: 0, rotation: 0, rotationY: 90, duration: 0.18, ease: "power2.in" }));
+    this.x = 0;
+    this.y = 0;
+    this.zone.run(() => this.phase.set(phase));
+    this.afterRender(() => this.staggerPlayers());
+    await this.zone.runOutsideAngular(() => gsap.fromTo(el, { rotationY: -90 }, { rotationY: 0, duration: 0.22, ease: "power2.out", clearProps: "transform" }));
   }
 
+  // Throws from wherever the drag left it; the card stays hidden afterwards.
   private async throwCard(choice: "home" | "away" | "skip"): Promise<void> {
     const el = this.card()?.nativeElement;
-    if (!el || this.reduceMotion()) return;
-    try {
-      const { gsap } = await import("gsap");
-      const w = window.innerWidth;
-      const to =
-        choice === "skip"
-          ? { x: this.dx(), y: -window.innerHeight, rotation: 0 }
-          : { x: choice === "home" ? -w : w, y: this.dy(), rotation: choice === "home" ? -24 : 24 };
-      await gsap.fromTo(el, { opacity: 1 }, { ...to, opacity: 0, duration: 0.3, ease: "power2.in", clearProps: "opacity" });
-      gsap.set(el, { clearProps: "transform" });
-    } catch {
-      // GSAP failed to load — just move on.
-    }
+    if (!el || !this.gsap || this.reduceMotion()) return;
+    const w = window.innerWidth;
+    const to =
+      choice === "skip"
+        ? { x: this.x, y: -window.innerHeight, rotation: this.x / 18 }
+        : { x: choice === "home" ? -w : w, y: this.y, rotation: choice === "home" ? -24 : 24 };
+    const gsap = this.gsap;
+    await this.zone.runOutsideAngular(() => gsap.to(el, { ...to, opacity: 0, duration: 0.3, ease: "power2.in" }));
   }
 }

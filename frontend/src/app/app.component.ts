@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, OnInit, ViewChild, computed, inject, signal } from "@angular/core";
+import { Component, ElementRef, HostListener, NgZone, OnInit, ViewChild, computed, effect, inject, signal, viewChild } from "@angular/core";
 import { toSignal } from "@angular/core/rxjs-interop";
 import { NavigationEnd, Router, RouterOutlet, RouterLink } from "@angular/router";
 import { filter, map } from "rxjs";
@@ -376,6 +376,124 @@ export class AppComponent implements OnInit {
   // it's always full size regardless of direction, so the first scroll of
   // a session never starts shrunk.
   protected readonly bottomNavShrunk = signal(false);
+
+  // --- Bottom nav motion (2026-10-08) ---
+  // One bubble slides to the active tab (index over tabs + "More"); -1 hides it.
+  protected readonly navTabCount = MOBILE_NAV_LINKS.length + 1;
+  protected readonly activeNavIndex = computed(() => {
+    const i = this.mobileNavLinks.findIndex((l) => this.isActive(l));
+    if (i !== -1) return i;
+    return this.isMoreActive() || this.moreOpen() ? this.mobileNavLinks.length : -1;
+  });
+
+  // Dock magnification: press and slide along the bar; icons near the
+  // finger grow, a label shows the tab under it, release navigates there.
+  // Runs outside the zone and writes transforms directly, so the drag
+  // never runs change detection; a plain tap still works as before.
+  private readonly zone = inject(NgZone);
+  private readonly bottomNav = viewChild<ElementRef<HTMLElement>>("bottomNav");
+  protected readonly dockLabel = signal<{ text: string; x: number } | null>(null);
+  private readonly bindDock = effect((onCleanup) => {
+    const nav = this.bottomNav()?.nativeElement;
+    if (!nav) return;
+    const reduce = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let startX: number | null = null;
+    let dragging = false;
+    let suppressClick = false;
+    const wraps = () => Array.from(nav.querySelectorAll<HTMLElement>("[data-nav-tab] .icon-wrap"));
+    const nearest = (clientX: number) => {
+      const tabs = Array.from(nav.querySelectorAll<HTMLElement>("[data-nav-tab]"));
+      let best = 0;
+      let bestD = Infinity;
+      tabs.forEach((t, i) => {
+        const r = t.getBoundingClientRect();
+        const d = Math.abs(clientX - (r.left + r.width / 2));
+        if (d < bestD) [best, bestD] = [i, d];
+      });
+      return { index: best, tab: tabs[best] };
+    };
+    const magnify = (clientX: number) => {
+      for (const w of wraps()) {
+        const r = w.getBoundingClientRect();
+        const d = Math.abs(clientX - (r.left + r.width / 2));
+        const s = 1 + 0.42 * Math.max(0, 1 - d / 95);
+        w.style.transition = "none";
+        w.style.transform = `translateY(${-(s - 1) * 22}px) scale(${s})`;
+      }
+      const { index, tab } = nearest(clientX);
+      const r = tab.getBoundingClientRect();
+      const navR = nav.getBoundingClientRect();
+      const text = this.i18n.t(index < this.mobileNavLinks.length ? this.mobileNavLinks[index].label : "nav.more");
+      const x = r.left + r.width / 2 - navR.left;
+      const cur = this.dockLabel();
+      if (!cur || cur.text !== text || Math.abs(cur.x - x) > 0.5) this.zone.run(() => this.dockLabel.set({ text, x }));
+    };
+    const settle = () => {
+      for (const w of wraps()) {
+        w.style.transition = "transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1)";
+        w.style.transform = "";
+        setTimeout(() => w.style.removeProperty("transition"), 340);
+      }
+      this.zone.run(() => this.dockLabel.set(null));
+    };
+    const down = (e: PointerEvent) => {
+      if (e.pointerType === "mouse" || reduce()) return;
+      startX = e.clientX;
+      dragging = false;
+    };
+    const move = (e: PointerEvent) => {
+      if (startX === null) return;
+      if (!dragging && Math.abs(e.clientX - startX) < 8) return;
+      dragging = true;
+      magnify(e.clientX);
+    };
+    const up = (e: PointerEvent) => {
+      if (startX === null) return;
+      startX = null;
+      if (!dragging) return;
+      dragging = false;
+      suppressClick = true;
+      setTimeout(() => (suppressClick = false), 400);
+      const { index } = nearest(e.clientX);
+      settle();
+      this.zone.run(() => {
+        if (index < this.mobileNavLinks.length) {
+          this.closeMore();
+          this.router.navigateByUrl(this.mobileNavLinks[index].path);
+        } else {
+          this.toggleMore();
+        }
+      });
+    };
+    const cancel = () => {
+      if (dragging) settle();
+      startX = null;
+      dragging = false;
+    };
+    // The release after a dock drag must not also fire the tab's own click.
+    const click = (e: Event) => {
+      if (suppressClick) {
+        e.preventDefault();
+        e.stopPropagation();
+        suppressClick = false;
+      }
+    };
+    this.zone.runOutsideAngular(() => {
+      nav.addEventListener("pointerdown", down);
+      nav.addEventListener("pointermove", move);
+      nav.addEventListener("pointerup", up);
+      nav.addEventListener("pointercancel", cancel);
+      nav.addEventListener("click", click, true);
+    });
+    onCleanup(() => {
+      nav.removeEventListener("pointerdown", down);
+      nav.removeEventListener("pointermove", move);
+      nav.removeEventListener("pointerup", up);
+      nav.removeEventListener("pointercancel", cancel);
+      nav.removeEventListener("click", click, true);
+    });
+  });
+
   private lastScrollY = 0;
   private scrollRaf: number | null = null;
 

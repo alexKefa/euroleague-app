@@ -998,3 +998,12 @@ body {
     transition: none;
   }
 }
+
+/* Mobile bottom nav bubble (2026-10-08, app.component.html .nav-bubble):
+   one highlight that springs to the active tab. */
+.nav-bubble {
+  transition: transform 420ms cubic-bezier(0.34, 1.3, 0.64, 1), opacity 200ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-bubble { transition: none; }
+}
