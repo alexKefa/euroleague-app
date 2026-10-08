@@ -40,6 +40,7 @@ import { syncPlayerStats } from "./sync/playerStatsSync.js";
 import { syncMissingGameExtras } from "./sync/gameExtrasSync.js";
 import { syncMissingReferees } from "./sync/refereeSync.js";
 import { syncScheduleTimes } from "./sync/scheduleSync.js";
+import { syncStandings } from "./sync/syncStandings.js";
 import { applyDailyFantasyPriceChanges } from "./services/fantasyDailyReprice.js";
 import { runFantasyRoundSweep } from "./services/fantasyRoundSweep.js";
 import { getCurrentSeason } from "./services/season.js";
@@ -349,6 +350,20 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
   };
   runScheduleSync();
 
+  // Standings (2026-10-08, sync/syncStandings.ts): was manual-only and its
+  // old endpoint 404'd, so W-L sat at round 1. Hourly keeps it within an
+  // hour of each final.
+  const runStandingsSync = () => {
+    getCurrentSeason()
+      .then(async (season) => {
+        if (!season) return;
+        const r = await syncStandings(season);
+        if (r.unknownCodes.length) console.warn(`[standings sync] unknown club codes: ${r.unknownCodes.join(", ")}`);
+      })
+      .catch((err) => console.error("[standings sync] failed:", err));
+  };
+  runStandingsSync();
+
   // Every periodic job above runs on one shared top-of-the-hour tick
   // (2026-10-03) instead of its own setInterval. Separate timers started at
   // slightly different moments and drifted apart, so each could wake Neon's
@@ -365,6 +380,7 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
     runRoundResultPushesLogged();
     runGameExtrasSync();
     runScheduleSync();
+    runStandingsSync();
     if (hour % (ODDS_SYNC_INTERVAL_MS / HOUR_MS) === 0) runOddsSync();
     if (hour === 4) {
       runInjurySync();
