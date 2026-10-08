@@ -10,6 +10,7 @@ export const inventoryTranslations: Record<string, Record<Lang, string>> = {
   "inventory.hubAlbumSub": { en: "Track your full collection", el: "Όλη η συλλογή σου" },
   "inventory.hubVoteSub": { en: "Vote on the next legendary", el: "Ψήφισε τον επόμενο θρύλο" },
   "inventory.recentPulls": { en: "Recent pulls", el: "Πρόσφατες κάρτες" },
+  "inventory.missing": { en: "missing", el: "λείπουν" },
   "inventory.teamComplete": { en: "Complete", el: "Πλήρης" },
   "inventory.hubToOpen": { en: "to open", el: "για άνοιγμα" },
   "inventory.hubPending": { en: "pending", el: "σε αναμονή" },

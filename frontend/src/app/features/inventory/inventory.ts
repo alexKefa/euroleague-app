@@ -1,5 +1,5 @@
 import { CountUpComponent } from "../../shared/count-up";
-import { Component, OnInit, OnDestroy, inject, signal, computed, effect, viewChild, ElementRef } from "@angular/core";
+import { Component, OnInit, OnDestroy, inject, signal, computed, effect, untracked, viewChild, ElementRef } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
@@ -102,6 +102,14 @@ export class InventoryComponent implements OnInit, OnDestroy {
   readonly collectedPct = computed(() => {
     const total = this.totalCatalog();
     return total > 0 ? Math.round((this.totalOwned() / total) * 100) : 0;
+  });
+  // The ring renders already at its value, so its CSS transition never
+  // played; it starts at 0 and takes the real % a frame later so it fills
+  // alongside the count-up (2026-10-08).
+  private readonly ringArmed = signal(false);
+  readonly ringPct = computed(() => (this.ringArmed() ? this.collectedPct() : 0));
+  private readonly armRing = effect(() => {
+    if (this.totalCatalog() > 0 && !untracked(this.ringArmed)) requestAnimationFrame(() => requestAnimationFrame(() => this.ringArmed.set(true)));
   });
 
   readonly loading = signal(true);
@@ -301,8 +309,21 @@ export class InventoryComponent implements OnInit, OnDestroy {
       }
       group.bundles.push(bundle);
     }
+    // Favourite team's row always leads (2026-10-08); the rest keep recency.
+    const fav = this.auth.currentUser()?.favoriteTeamId;
+    const favIdx = fav ? order.indexOf(fav) : -1;
+    if (favIdx > 0) order.unshift(...order.splice(favIdx, 1));
     return order.map((id) => byTeam.get(id)!);
   });
+
+  // "+N missing" tile at the end of a team row (2026-10-08) — reads the
+  // same per-team totals the row header uses (one Map lookup each), and only
+  // when no search/rarity filter narrows the row. A team filter alone still
+  // shows the whole team, so it keeps the tile.
+  teamMissingCount(teamId: string): number {
+    if (this.searchQuery().trim() || this.tierFilter()) return 0;
+    return this.teamTotalCount(teamId) - this.teamOwnedCount(teamId);
+  }
 
   // Only teams you actually own a card from — no point offering a filter
   // option that would always come back empty.

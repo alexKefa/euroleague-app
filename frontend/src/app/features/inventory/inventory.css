@@ -20,3 +20,15 @@
 @media (prefers-reduced-motion: reduce) {
   .recent-pull { animation: none; }
 }
+
+/* "+N missing" tile (2026-10-08): card-shaped, sits at the top of the row
+   like the stacks beside it (their tier dots hang below). */
+.missing-tile {
+  aspect-ratio: 2.5 / 3.5;
+  align-self: flex-start;
+  background: color-mix(in srgb, var(--accent-primary) 5%, transparent);
+  transition: background-color 0.15s ease;
+}
+.missing-tile:hover {
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+}

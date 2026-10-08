@@ -178,13 +178,13 @@
       <div class="relative w-[88px] h-[88px] shrink-0">
         <svg viewBox="0 0 100 100" class="w-full h-full -rotate-90" aria-hidden="true">
           <circle cx="50" cy="50" r="42" fill="none" stroke-width="9" class="stroke-line" />
-          <circle cx="50" cy="50" r="42" fill="none" stroke-width="9" stroke-linecap="round" pathLength="100" [attr.stroke-dasharray]="collectedPct() + ' 100'" class="stroke-team-primary transition-[stroke-dasharray] duration-500" />
+          <circle cx="50" cy="50" r="42" fill="none" stroke-width="9" stroke-linecap="round" pathLength="100" [attr.stroke-dasharray]="ringPct() + ' 100'" class="stroke-team-primary transition-[stroke-dasharray] duration-[900ms] ease-out" />
         </svg>
-        <span class="absolute inset-0 flex items-center justify-center font-display text-lg tabular-nums">{{ collectedPct() }}%</span>
+        <span class="absolute inset-0 flex items-center justify-center font-display text-lg tabular-nums"><app-count-up [value]="collectedPct()" />%</span>
       </div>
       <div class="relative min-w-0 flex-1">
         <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('album.collected') }}</p>
-        <p class="font-display text-4xl leading-none tabular-nums mt-1">{{ totalOwned() }}<span class="text-muted text-lg"> / {{ totalCatalog() }}</span></p>
+        <p class="font-display text-4xl leading-none tabular-nums mt-1"><app-count-up [value]="totalOwned()" /><span class="text-muted text-lg"> / {{ totalCatalog() }}</span></p>
       </div>
       <span class="relative status-tile w-9 h-9 rounded-xl border border-line flex items-center justify-center text-muted text-lg font-bold group-hover:translate-x-0.5 transition-transform shrink-0">&rsaquo;</span>
     </a>
@@ -319,6 +319,21 @@
               }
             </span>
           </div>
+        }
+        <!-- "+N missing" tile (2026-10-08): the row only shows owned cards,
+             so this turns the header's 10/33 into a way to the rest. -->
+        @if (teamMissingCount(group.team.id); as missing) {
+          <a
+            [routerLink]="['/album', group.team.id]"
+            class="missing-tile shrink-0 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-1 text-center"
+            [style.width.px]="cardRenderWidth"
+            [style.border-color]="group.team.primaryColor || 'var(--color-line)'"
+            [attr.aria-label]="missing + ' ' + i18n.t('inventory.missing') + ' · ' + i18n.t('album.hubTile')"
+          >
+            <span class="font-display text-3xl leading-none tabular-nums" [style.color]="group.team.primaryColor">+{{ missing }}</span>
+            <span class="text-[11px] font-semibold text-muted">{{ i18n.t('inventory.missing') }}</span>
+            <span class="text-[11px] font-semibold text-team-primary">{{ i18n.t('album.hubTile') }} &rarr;</span>
+          </a>
         }
       </div>
     } @empty {
