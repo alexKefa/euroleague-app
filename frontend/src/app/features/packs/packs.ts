@@ -1,3 +1,4 @@
+import { CountUpComponent } from "../../shared/count-up";
 import { Component, OnInit, HostListener, inject, signal, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
@@ -43,7 +44,7 @@ type PackView = "selecting" | "pack" | "deck" | "summary";
 @Component({
   selector: "app-packs",
   standalone: true,
-  imports: [PageHeaderComponent, 
+  imports: [PageHeaderComponent, CountUpComponent, 
     CommonModule,
     PackArtComponent,
     RouterLink,

@@ -16,7 +16,7 @@
     @if (auth.isAuthenticated() && pointsLoading()) {
       <span headAside class="animate-pulse inline-block w-16 h-6 rounded-full bg-line"></span>
     } @else if (auth.isAuthenticated()) {
-      <span headAside class="font-mono text-sm font-bold text-team-primary bg-team-primary/15 rounded-full px-3.5 py-1.5">{{ points() }} {{ i18n.t('store.pointsBadge') }}</span>
+      <span headAside class="font-mono text-sm font-bold text-team-primary bg-team-primary/15 rounded-full px-3.5 py-1.5"><app-count-up [value]="points()" /> {{ i18n.t('store.pointsBadge') }}</span>
     }
   </app-page-header>
   <!-- Balance hero (2026-09-29 restyle, same look as the Cards hub). -->
@@ -29,7 +29,7 @@
         @if (pointsLoading()) {
           <app-skeleton class="h-10 w-28 rounded-lg mt-1" [icon]="false" />
         } @else {
-          <p class="font-display text-4xl leading-none tabular-nums mt-1">{{ points() }} <span class="text-lg text-muted">{{ i18n.t('store.pointsBadge') }}</span></p>
+          <p class="font-display text-4xl leading-none tabular-nums mt-1"><app-count-up [value]="points()" /> <span class="text-lg text-muted">{{ i18n.t('store.pointsBadge') }}</span></p>
         }
         <p class="text-[12px] text-muted mt-1.5">{{ i18n.t('store.balanceHint') }}</p>
       </div>

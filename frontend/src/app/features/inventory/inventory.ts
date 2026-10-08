@@ -1,3 +1,4 @@
+import { CountUpComponent } from "../../shared/count-up";
 import { Component, OnInit, OnDestroy, inject, signal, computed, effect, viewChild, ElementRef } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
@@ -39,7 +40,7 @@ import { PageHeaderComponent } from "../../shared/page-header";
 @Component({
   selector: "app-inventory",
   standalone: true,
-  imports: [PageHeaderComponent, 
+  imports: [PageHeaderComponent, CountUpComponent, 
     CommonModule,
     RouterLink,
     CardStackComponent,
