@@ -6,6 +6,7 @@ import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { PredictionHistoryPick, RoundRecap } from "../../core/models";
 import { DialogComponent } from "../../shared/dialog";
+import { CountUpComponent } from "../../shared/count-up";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { ButtonDirective } from "../../shared/button.directive";
 import { formatPlayerName } from "../../shared/player-name";
@@ -30,7 +31,7 @@ interface BestPick {
 @Component({
   selector: "app-round-recap",
   standalone: true,
-  imports: [DialogComponent, NavIconComponent, ButtonDirective],
+  imports: [DialogComponent, NavIconComponent, ButtonDirective, CountUpComponent],
   template: `
     @if (recap(); as r) {
       <app-dialog [title]="i18n.t('recap.title').replace('{round}', '' + r.round)" icon="medal" [closeLabel]="i18n.t('hint.dismiss')" (closed)="close()">
@@ -38,7 +39,7 @@ interface BestPick {
           <div class="pointer-events-none absolute inset-0" style="background: radial-gradient(120% 120% at 50% 0%, color-mix(in srgb, var(--accent-primary) 26%, transparent) 0%, transparent 70%)" aria-hidden="true"></div>
           <p class="relative text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('recap.points') }}</p>
           <p class="relative font-display text-5xl leading-none tabular-nums mt-2" [class.text-emerald-500]="r.roundPoints > 0">
-            {{ r.roundPoints > 0 ? '+' + r.roundPoints : 0 }}
+            @if (r.roundPoints > 0) {+}<app-count-up [value]="r.roundPoints > 0 ? r.roundPoints : 0" [duration]="1.2" />
           </p>
           @if (r.roundRank) {
             <p class="relative text-[13px] font-semibold text-muted mt-2">
@@ -50,14 +51,14 @@ interface BestPick {
         <div class="grid grid-cols-2 gap-2 mb-4">
           <div class="status-tile rounded-2xl border border-line px-3 py-3 text-center">
             <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('recap.overall') }}</p>
-            <p class="font-display text-2xl tabular-nums text-team-primary">{{ r.rank ? '#' + r.rank : '—' }}</p>
+            <p class="font-display text-2xl tabular-nums text-team-primary">@if (r.rank) {#<app-count-up [value]="r.rank" [from]="r.rank + 20" />} @else {—}</p>
             @if (movement(); as m) {
               <p class="text-[12px] font-bold mt-0.5" [class]="m.cls">{{ m.text }}</p>
             }
           </div>
           <div class="status-tile rounded-2xl border border-line px-3 py-3 text-center">
             <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('recap.correct') }}</p>
-            <p class="font-display text-2xl tabular-nums">{{ correct().right }}/{{ correct().of }}</p>
+            <p class="font-display text-2xl tabular-nums"><app-count-up [value]="correct().right" />/{{ correct().of }}</p>
           </div>
         </div>
 

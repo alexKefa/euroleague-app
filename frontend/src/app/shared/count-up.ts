@@ -14,9 +14,16 @@ import { Component, ElementRef, OnDestroy, effect, inject, input, untracked } fr
 export class CountUpComponent implements OnDestroy {
   readonly value = input.required<number>();
   readonly duration = input(0.9);
+  // false: the first value appears as-is and only later changes roll (live
+  // scores — replaying 0→78 on every dashboard visit would be noise).
+  readonly fromZero = input(true);
+  // Starting value for the first roll (default 0). Ranks start above the
+  // target so they count *down* to it — climbing to #12, not up from #0.
+  readonly from = input(0);
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private shown = 0;
+  private first = true;
   private tween?: { kill(): void };
 
   private readonly animate = effect(() => {
@@ -28,7 +35,10 @@ export class CountUpComponent implements OnDestroy {
   private async run(el: HTMLElement, target: number): Promise<void> {
     this.tween?.kill();
     const reduce = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce || target === this.shown) {
+    const skipFirst = this.first && !this.fromZero();
+    if (this.first) this.shown = this.from();
+    this.first = false;
+    if (reduce || skipFirst || target === this.shown) {
       this.shown = target;
       el.textContent = String(target);
       return;

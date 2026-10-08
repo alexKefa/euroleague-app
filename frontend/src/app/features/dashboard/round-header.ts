@@ -4,6 +4,7 @@ import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { ButtonDirective } from "../../shared/button.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
+import { CountUpComponent } from "../../shared/count-up";
 import { countdownTone, formatCountdown } from "./round-status.logic";
 import { RoundStatusService } from "./round-status.service";
 
@@ -17,7 +18,7 @@ import { RoundStatusService } from "./round-status.service";
 @Component({
   selector: "app-round-header",
   standalone: true,
-  imports: [RouterLink, ButtonDirective, SkeletonComponent],
+  imports: [RouterLink, ButtonDirective, SkeletonComponent, CountUpComponent],
   template: `
     @if (rs.loading()) {
       <app-skeleton class="block rounded-3xl h-[124px] mb-4" />
@@ -41,11 +42,22 @@ import { RoundStatusService } from "./round-status.service";
               } @else if (s.phase === "allDone") {
                 {{ fill("dashboard.roundHeader.ready", { n: s.round }) }} ✓
               } @else {
-                {{ fill("dashboard.roundHeader.progress", { done: s.doneCount, total: s.rows.length }) }}
+                @let prog = around("dashboard.roundHeader.progress", "done", { total: s.rows.length });
+                {{ prog[0] }}<app-count-up [value]="s.doneCount" [duration]="0.5" />{{ prog[1] }}
               }
             </p>
             @if (auth.isAuthenticated() && s.phase !== "open" && scoreLine(); as line) {
-              <p class="text-sm font-semibold mt-1.5 opacity-90 tabular-nums">{{ line }}</p>
+              <p class="text-sm font-semibold mt-1.5 opacity-90 tabular-nums">
+                @if (line.points !== null) {
+                  {{ line.pointsText[0] }}<app-count-up [value]="line.points" />{{ line.pointsText[1] }}
+                }
+                @if (line.points !== null && line.rank !== null) {
+                  ·
+                }
+                @if (line.rank !== null) {
+                  #<app-count-up [value]="line.rank" [from]="line.rank + 20" />
+                }
+              </p>
             }
           </div>
           @if (countdown(); as c) {
@@ -96,17 +108,23 @@ export class RoundHeaderComponent {
     return s ? this.fill("dashboard.roundHeader.round", { n: s.round }) : "";
   });
 
+  // Points + rank, with the text around each number split out so the
+  // numbers themselves can roll (app-count-up, 2026-10-08).
   protected readonly scoreLine = computed(() => {
     const s = this.status();
     const points = this.rs.roundPoints();
     const rank = this.rank();
-    const parts: string[] = [];
-    if (points !== null) {
-      parts.push(this.fill(s?.phase === "allDone" ? "dashboard.roundHeader.pointsSoFar" : "dashboard.roundHeader.points", { n: points }));
-    }
-    if (rank !== null) parts.push(`#${rank}`);
-    return parts.join(" · ");
+    if (points === null && rank === null) return null;
+    const pointsKey = s?.phase === "allDone" ? "dashboard.roundHeader.pointsSoFar" : "dashboard.roundHeader.points";
+    return { points, pointsText: this.around(pointsKey, "n", {}), rank };
   });
+
+  // [before, after] the {slot} placeholder of a translated string.
+  protected around(key: string, slot: string, values: Record<string, string | number>): [string, string] {
+    const text = this.fill(key, values);
+    const i = text.indexOf(`{${slot}}`);
+    return i === -1 ? [text, ""] : [text.slice(0, i), text.slice(i + slot.length + 2)];
+  }
 
   protected readonly countdown = computed(() => {
     const s = this.status();

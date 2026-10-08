@@ -1,3 +1,4 @@
+import { CountUpComponent } from "../../shared/count-up";
 import { Component, OnInit, computed, effect, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
@@ -44,7 +45,7 @@ interface FavoriteRow extends FavoritePlayer {
 @Component({
   selector: "app-live-center",
   standalone: true,
-  imports: [CommonModule, RouterLink, TeamCodePipe, PlayerPhotoComponent, RetryImgDirective, SkeletonComponent, TodayTagPipe, CdnSizedPipe],
+  imports: [CommonModule, RouterLink, CountUpComponent, TeamCodePipe, PlayerPhotoComponent, RetryImgDirective, SkeletonComponent, TodayTagPipe, CdnSizedPipe],
   templateUrl: "./live-center.html",
 })
 export class LiveCenterComponent implements OnInit {
