@@ -193,7 +193,18 @@ export class PredictionsComponent implements OnInit, OnDestroy {
   // no room for name, badges, *and* a handful of cards inline.
   readonly selectedEntry = signal<LeaderboardEntry | null>(null);
   readonly mySummary = signal<PredictionSummary | null>(null);
-  readonly upcomingGames = signal<Game[]>([]);
+  // Every game of the current round (2026-10-08, "show locked games with the
+  // prediction we made"). upcomingGames is the still-open ones (the pick
+  // cards, and all the round actions touch); lockedGames is the rest, shown
+  // as read-only rows with the picks made, live ones first.
+  readonly roundGames = signal<Game[]>([]);
+  readonly upcomingGames = computed(() => this.roundGames().filter((g) => g.status === "scheduled"));
+  readonly lockedGames = computed(() =>
+    this.roundGames()
+      .filter((g) => g.status !== "scheduled")
+      .sort((a, b) => Number(b.status === "live") - Number(a.status === "live") || new Date(a.tipoffAt).getTime() - new Date(b.tipoffAt).getTime())
+  );
+  readonly predictionByGameId = computed(() => new Map(this.myPredictions().map((p) => [p.gameId, p])));
   // Win-probability model's pre-game chance per game (2026-10-07), display only.
   readonly modelProbs = signal<Record<string, WinProbPreGame>>({});
   readonly loading = signal(true);
@@ -555,8 +566,8 @@ export class PredictionsComponent implements OnInit, OnDestroy {
   }
 
   // How many points this round's picks are worth if every one of them hits —
-  // every game listed in upcomingGames is still "scheduled" by construction
-  // (see ngOnInit's filter below), so any of them with a pick is necessarily
+  // every game in upcomingGames is still "scheduled" by construction
+  // (it filters roundGames), so any of them with a pick is necessarily
   // still unresolved. Reads effectivePicks (not myPicks) so this updates
   // the instant a pick is tapped, before it's even been submitted — no
   // extra round trip, no waiting for the backend to confirm. Sums each
@@ -598,7 +609,7 @@ export class PredictionsComponent implements OnInit, OnDestroy {
     effect(() => {
       const update = this.events.lastGameUpdate();
       if (!update) return;
-      this.upcomingGames.update((list) =>
+      this.roundGames.update((list) =>
         list.map((g) =>
           g.id === update.gameId
             ? { ...g, homeScore: update.homeScore, awayScore: update.awayScore, status: update.status }
@@ -652,7 +663,7 @@ export class PredictionsComponent implements OnInit, OnDestroy {
     // opened yet, or the list could run out mid-round.
     this.api.getSchedule(SEASON).subscribe({
       next: (schedule) => {
-        this.upcomingGames.set(schedule.games.filter((g) => g.status === "scheduled"));
+        this.roundGames.set(schedule.games);
         this.api.getPreGameWinProbs(schedule.season, schedule.round).subscribe({
           next: (probs) => this.modelProbs.set(probs),
           error: () => {}, // optional line

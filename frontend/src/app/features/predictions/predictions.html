@@ -59,8 +59,9 @@
         }
       </div>
     </div>
-  } @else if (upcomingGames().length > 0) {
+  } @else if (roundGames().length > 0) {
       <div data-tour="predictions-picks" class="bg-card rounded-3xl border border-line shadow-card p-3 sm:p-4 mb-5">
+        @if (upcomingGames().length > 0) {
         <div class="flex items-center justify-between gap-2 mb-3">
           <p class="text-[13px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('predictions.upcomingGames') }}</p>
           @if (auth.isAuthenticated()) {
@@ -432,6 +433,73 @@
             </div>
           }
         </div>
+        }
+
+        <!-- Started games (2026-10-08, "show locked games with the prediction
+             we made... divide them by completed or not... it looks like you
+             can still predict"): their own section of compact read-only rows,
+             no team buttons, so nothing here looks tappable. Live first. -->
+        @if (lockedGames().length > 0) {
+          <p class="flex items-center gap-1.5 text-[13px] text-muted font-bold uppercase tracking-wider mb-2" [class.mt-4]="upcomingGames().length > 0">
+            <ng-container [ngTemplateOutlet]="lockGlyph" />
+            {{ i18n.t('predictions.lockedGames') }}
+          </p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            @for (game of lockedGames(); track game.id) {
+              @let pick = predictionByGameId().get(game.id);
+              @let tsPick = topScorerByGameId().get(game.id);
+              <div class="rounded-2xl border border-line bg-page/60 px-3 py-2.5">
+                <div class="flex items-center gap-2">
+                  <span class="shrink-0 flex items-center gap-1 font-mono text-[10px] font-bold uppercase tracking-wide" [ngClass]="game.status === 'live' ? 'text-red-500' : 'text-muted'">
+                    @if (game.status === 'live') {
+                      <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>{{ i18n.t('schedule.live') }}
+                    } @else if (game.status === 'final') {
+                      {{ i18n.t('predictions.final') }}
+                    } @else {
+                      {{ i18n.t('predictions.locked') }}
+                    }
+                  </span>
+                  <span class="flex-1 min-w-0 flex items-center justify-center gap-2">
+                    @for (side of [game.homeTeam, game.awayTeam]; track side.id; let first = $first) {
+                      @if (!first) {
+                        <span class="font-display text-[15px] text-ink tabular-nums whitespace-nowrap">{{ game.homeScore ?? '–' }}–{{ game.awayScore ?? '–' }}</span>
+                      }
+                      <span class="flex items-center gap-1 min-w-0" [ngClass]="first ? '' : 'flex-row-reverse'">
+                        <span class="shrink-0 w-6 h-6 rounded-full bg-card flex items-center justify-center" [ngClass]="pick?.predictedTeam?.id === side.id ? 'ring-2 ring-team-primary' : 'ring-1 ring-line'">
+                          @if (side.logoUrl) {
+                            <img [src]="side.logoUrl" [alt]="side.code | teamCode" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain team-logo" />
+                          }
+                        </span>
+                        <span class="text-[11px] font-bold truncate" [ngClass]="pick?.predictedTeam?.id === side.id ? 'text-team-primary' : 'text-muted'">{{ side.code | teamCode }}</span>
+                      </span>
+                    }
+                  </span>
+                </div>
+                @if (auth.isAuthenticated()) {
+                  <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-2 pt-2 border-t border-line/60 text-[11px]">
+                    @if (!pick && !tsPick) {
+                      <span class="text-muted">{{ i18n.t('predictions.noPick') }}</span>
+                    }
+                    @if (pick) {
+                      <span class="flex items-center gap-1.5 min-w-0">
+                        <app-nav-icon name="trophy" [size]="11" class="shrink-0 text-muted" />
+                        <span class="font-semibold text-ink truncate">{{ pick.predictedTeam.name }}</span>
+                        <ng-container *ngTemplateOutlet="pickResultChip; context: { pending: false, correct: pick.isCorrect, points: pointsForPick(game, pick.predictedTeam.id), small: true }"></ng-container>
+                      </span>
+                    }
+                    @if (tsPick) {
+                      <span class="flex items-center gap-1.5 min-w-0">
+                        <app-player-photo [name]="tsPick.predictedPlayer.name" [photoUrl]="tsPick.predictedPlayer.photoUrl" [size]="20" [fill]="true" class="rounded-full block shrink-0" />
+                        <span class="font-semibold text-ink truncate">{{ tsPick.predictedPlayer.name.split(',')[0] }}</span>
+                        <ng-container *ngTemplateOutlet="pickResultChip; context: { pending: false, correct: tsPick.isCorrect, points: tsPick.pointsAtPick, small: true }"></ng-container>
+                      </span>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
       </div>
     }
 
@@ -1160,4 +1228,8 @@
       {{ points !== null ? '+' + points + ' ' + i18n.t('predictions.pts') : i18n.t('predictions.pending') }}
     }
   </span>
+</ng-template>
+<!-- Padlock for the started-games heading (2026-10-08). -->
+<ng-template #lockGlyph>
+  <svg class="w-3 h-3 shrink-0" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5" fill="currentColor" /><path d="M5.5 7V5a2.5 2.5 0 015 0v2" stroke="currentColor" stroke-width="1.6" /></svg>
 </ng-template>

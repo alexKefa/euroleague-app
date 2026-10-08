@@ -48,6 +48,10 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
   "predictions.spendPoints": { en: "Spend points", el: "Ξόδεψε πόντους" },
   "predictions.upcomingGames": { en: "Upcoming games", el: "Επερχόμενοι αγώνες" },
   "predictions.vs": { en: "vs", el: "vs" },
+  "predictions.locked": { en: "Locked", el: "Κλειδωμένο" },
+  "predictions.lockedGames": { en: "Started · picks locked", el: "Ξεκίνησαν · κλειδωμένες προβλέψεις" },
+  "predictions.noPick": { en: "No pick", el: "Χωρίς πρόβλεψη" },
+  "predictions.final": { en: "Final", el: "Τελικό" },
   // "How to play" steps on the Upcoming games card (2026-09-30).
   "predictions.howTo.title": { en: "How to play", el: "Πώς παίζεται" },
   "predictions.howTo.hide": { en: "Hide guide", el: "Απόκρυψη οδηγού" },
