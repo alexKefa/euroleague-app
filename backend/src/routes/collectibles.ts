@@ -1,3 +1,4 @@
+import { cached, CACHE_KEYS, invalidateOnWrite } from "../services/responseCache.js";
 import { Router } from "express";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
@@ -122,6 +123,8 @@ async function buildPpgLookup(): Promise<Map<string, number>> {
 }
 
 export const collectiblesRouter = Router();
+// Admin catalog edits clear the cached catalog (services/responseCache.ts).
+collectiblesRouter.use(invalidateOnWrite(CACHE_KEYS.collectibles));
 
 const TIERS = ["common", "rare", "legendary", "coach"] as const;
 
@@ -141,6 +144,16 @@ const DIRECT_BUY_PRICE: Partial<Record<(typeof TIERS)[number], number>> = {
 
 collectiblesRouter.get("/", async (_req, res) => {
   try {
+    // Cached (services/responseCache.ts): same for every caller, ~360 KB.
+    res.json(await cached(CACHE_KEYS.collectibles, 10 * 60_000, buildCatalogPayload));
+  } catch (err) {
+    console.error("GET /api/collectibles failed:", err);
+    res.status(500).json({ error: "Failed to load collectibles" });
+  }
+});
+
+async function buildCatalogPayload() {
+  {
     const rows = await db
       .select({ collectible: collectibles, team: teams })
       .from(collectibles)
@@ -180,12 +193,9 @@ collectiblesRouter.get("/", async (_req, res) => {
       team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor, logoUrl: team.logoUrl },
     }));
 
-    res.json(payload);
-  } catch (err) {
-    console.error("GET /api/collectibles failed:", err);
-    res.status(500).json({ error: "Failed to load collectibles" });
+    return payload;
   }
-});
+}
 
 // Paginated, filtered, bundled card list for the Store page — every tier a
 // given player has (common/rare/legendary share the exact same `name` +

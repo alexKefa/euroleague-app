@@ -1,3 +1,4 @@
+import { CACHE_KEYS, invalidate } from "../services/responseCache.js";
 import { Router } from "express";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
@@ -357,6 +358,7 @@ legendaryPollsRouter.post("/:id/close", requireAuth, requireAdmin, async (req, r
             })
             .returning();
           winnerCollectibleId = created.id;
+          invalidate(CACHE_KEYS.collectibles); // new legendary joins the cached catalog
         }
       }
     }

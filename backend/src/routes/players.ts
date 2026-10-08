@@ -1,3 +1,4 @@
+import { cached, CACHE_KEYS } from "../services/responseCache.js";
 import { Router } from "express";
 import { eq, desc, and, isNotNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
@@ -183,30 +184,34 @@ playersRouter.get("/advanced-stats", async (req, res) => {
     // GET /players/:id's "latest known numbers for this player", where
     // showing last season's real stats until this season has its own is
     // the useful behavior, not a bug.
-    const latest = await db
-      .select({ season: playerSeasonStats.season })
-      .from(playerSeasonStats)
-      .orderBy(desc(playerSeasonStats.season))
-      .limit(1);
+    // Cached (services/responseCache.ts): same for every caller, ~320 KB,
+    // and the landing page loads it for every visitor.
+    res.json(
+      await cached(CACHE_KEYS.advancedStats, 10 * 60_000, async () => {
+        const latest = await db
+          .select({ season: playerSeasonStats.season })
+          .from(playerSeasonStats)
+          .orderBy(desc(playerSeasonStats.season))
+          .limit(1);
 
-    if (latest.length === 0) {
-      return res.json({ season: null, rows: [] });
-    }
-    const season = latest[0].season;
+        if (latest.length === 0) return { season: null, rows: [] };
+        const season = latest[0].season;
 
-    const rows = await db
-      .select({ player: players, team: teams, stats: playerSeasonStats })
-      .from(playerSeasonStats)
-      .innerJoin(players, eq(playerSeasonStats.playerId, players.id))
-      // players.teamId (current roster team), not playerSeasonStats.teamId
-      // (a snapshot of whatever team the player was on *that season*) — a
-      // transferred player should show their current team here even while
-      // showing last season's stats, same "latest known numbers, current
-      // team" intent as GET /players/:id.
-      .innerJoin(teams, eq(players.teamId, teams.id))
-      .where(eq(playerSeasonStats.season, season));
+        const rows = await db
+          .select({ player: players, team: teams, stats: playerSeasonStats })
+          .from(playerSeasonStats)
+          .innerJoin(players, eq(playerSeasonStats.playerId, players.id))
+          // players.teamId (current roster team), not playerSeasonStats.teamId
+          // (a snapshot of whatever team the player was on *that season*) — a
+          // transferred player should show their current team here even while
+          // showing last season's stats, same "latest known numbers, current
+          // team" intent as GET /players/:id.
+          .innerJoin(teams, eq(players.teamId, teams.id))
+          .where(eq(playerSeasonStats.season, season));
 
-    res.json({ season, rows });
+        return { season, rows };
+      })
+    );
   } catch (err) {
     console.error("GET /api/players/advanced-stats failed:", err);
     res.status(500).json({ error: "Failed to load advanced stats" });

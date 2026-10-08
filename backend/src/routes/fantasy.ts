@@ -1,3 +1,4 @@
+import { cached, CACHE_KEYS } from "../services/responseCache.js";
 import { Router } from "express";
 import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
@@ -95,68 +96,75 @@ fantasyRouter.get("/players", async (req, res) => {
       return;
     }
 
-    const rows = await db
-      .select({
-        player: players,
-        team: teams,
-        price: playerFantasyPrices.price,
-        stats: playerSeasonStats,
-        injuryStatus: playerInjuries.status,
-        injuryNote: playerInjuries.note,
-        injuryNoteEl: playerInjuries.noteEl,
+    // Cached per season (services/responseCache.ts): same for every caller,
+    // ~175 KB. Short TTL since it carries admin-edited injury status; the
+    // reprice and injury jobs also clear it.
+    res.json(
+      await cached(CACHE_KEYS.fantasyPlayers + season, 5 * 60_000, async () => {
+        const rows = await db
+          .select({
+            player: players,
+            team: teams,
+            price: playerFantasyPrices.price,
+            stats: playerSeasonStats,
+            injuryStatus: playerInjuries.status,
+            injuryNote: playerInjuries.note,
+            injuryNoteEl: playerInjuries.noteEl,
+          })
+          .from(players)
+          .innerJoin(teams, eq(players.teamId, teams.id))
+          .leftJoin(
+            playerFantasyPrices,
+            and(eq(playerFantasyPrices.playerId, players.id), eq(playerFantasyPrices.season, season))
+          )
+          .leftJoin(playerSeasonStats, and(eq(playerSeasonStats.playerId, players.id), eq(playerSeasonStats.season, season)))
+          // Same admin-entered table the Injury Report page/roster badge read
+          // (see schema.ts's doc comment on playerInjuries) — left join since
+          // "healthy" is just "no row", not a status value.
+          .leftJoin(playerInjuries, eq(playerInjuries.playerId, players.id))
+          // Only teams actually in this season's competition (2026-09-25, "remove
+          // monaco... should not be there on dropdown of fantasy") — same scoping
+          // GET /teams already applies. A club that dropped out (AS Monaco for
+          // 2026-27) keeps its `teams` row and any still-`active` players (roster
+          // sync never gets a fresh fetch for them to deactivate), so without
+          // this its players stayed pickable and it showed in the team filter.
+          .where(
+            and(
+              eq(players.active, true),
+              sql`exists (select 1 from ${games} where ${games.season} = ${season} and (${games.homeTeamId} = ${teams.id} or ${games.awayTeamId} = ${teams.id}))`
+            )
+          );
+
+        // Most recent daily reprice delta per player (2026-09-22) — surfaces the
+        // same fantasyDailyReprice.ts move the pool/court never showed before,
+        // via the standard Postgres DISTINCT ON "latest row per group" idiom
+        // (same pattern scripts/reprice-fantasy-players.ts already uses). Scoped
+        // to this season's games so a carried-over row from a prior season never
+        // gets picked up as "today's" move.
+        const trendRows = await db.execute<{ player_id: string; delta: number }>(sql`
+          select distinct on (${fantasyPriceChangeLog.playerId}) ${fantasyPriceChangeLog.playerId} as player_id, ${fantasyPriceChangeLog.delta} as delta
+          from ${fantasyPriceChangeLog}
+          join ${games} on ${games.id} = ${fantasyPriceChangeLog.gameId}
+          where ${games.season} = ${season}
+          order by ${fantasyPriceChangeLog.playerId}, ${fantasyPriceChangeLog.appliedAt} desc
+        `);
+        const trendByPlayerId = new Map(trendRows.map((r) => [r.player_id, r.delta]));
+
+        return {
+          season,
+          rows: rows.map((r) => ({
+            player: { id: r.player.id, name: r.player.name, position: r.player.position, photoUrl: r.player.photoUrl },
+            team: { id: r.team.id, code: r.team.code, name: r.team.name, primaryColor: r.team.primaryColor, logoUrl: r.team.logoUrl },
+            price: r.price ?? FANTASY_MIN_PRICE,
+            priceTrend: trendByPlayerId.get(r.player.id) ?? null,
+            pointsPerGame: r.stats?.pointsPerGame ?? null,
+            valuation: r.stats?.valuation ?? null,
+            gamesPlayed: r.stats?.gamesPlayed ?? null,
+            injury: r.injuryStatus ? { status: r.injuryStatus, note: r.injuryNote, noteEl: r.injuryNoteEl } : null,
+          })),
+        };
       })
-      .from(players)
-      .innerJoin(teams, eq(players.teamId, teams.id))
-      .leftJoin(
-        playerFantasyPrices,
-        and(eq(playerFantasyPrices.playerId, players.id), eq(playerFantasyPrices.season, season))
-      )
-      .leftJoin(playerSeasonStats, and(eq(playerSeasonStats.playerId, players.id), eq(playerSeasonStats.season, season)))
-      // Same admin-entered table the Injury Report page/roster badge read
-      // (see schema.ts's doc comment on playerInjuries) — left join since
-      // "healthy" is just "no row", not a status value.
-      .leftJoin(playerInjuries, eq(playerInjuries.playerId, players.id))
-      // Only teams actually in this season's competition (2026-09-25, "remove
-      // monaco... should not be there on dropdown of fantasy") — same scoping
-      // GET /teams already applies. A club that dropped out (AS Monaco for
-      // 2026-27) keeps its `teams` row and any still-`active` players (roster
-      // sync never gets a fresh fetch for them to deactivate), so without
-      // this its players stayed pickable and it showed in the team filter.
-      .where(
-        and(
-          eq(players.active, true),
-          sql`exists (select 1 from ${games} where ${games.season} = ${season} and (${games.homeTeamId} = ${teams.id} or ${games.awayTeamId} = ${teams.id}))`
-        )
-      );
-
-    // Most recent daily reprice delta per player (2026-09-22) — surfaces the
-    // same fantasyDailyReprice.ts move the pool/court never showed before,
-    // via the standard Postgres DISTINCT ON "latest row per group" idiom
-    // (same pattern scripts/reprice-fantasy-players.ts already uses). Scoped
-    // to this season's games so a carried-over row from a prior season never
-    // gets picked up as "today's" move.
-    const trendRows = await db.execute<{ player_id: string; delta: number }>(sql`
-      select distinct on (${fantasyPriceChangeLog.playerId}) ${fantasyPriceChangeLog.playerId} as player_id, ${fantasyPriceChangeLog.delta} as delta
-      from ${fantasyPriceChangeLog}
-      join ${games} on ${games.id} = ${fantasyPriceChangeLog.gameId}
-      where ${games.season} = ${season}
-      order by ${fantasyPriceChangeLog.playerId}, ${fantasyPriceChangeLog.appliedAt} desc
-    `);
-    const trendByPlayerId = new Map(trendRows.map((r) => [r.player_id, r.delta]));
-
-    res.json({
-      season,
-      rows: rows.map((r) => ({
-        player: { id: r.player.id, name: r.player.name, position: r.player.position, photoUrl: r.player.photoUrl },
-        team: { id: r.team.id, code: r.team.code, name: r.team.name, primaryColor: r.team.primaryColor, logoUrl: r.team.logoUrl },
-        price: r.price ?? FANTASY_MIN_PRICE,
-        priceTrend: trendByPlayerId.get(r.player.id) ?? null,
-        pointsPerGame: r.stats?.pointsPerGame ?? null,
-        valuation: r.stats?.valuation ?? null,
-        gamesPlayed: r.stats?.gamesPlayed ?? null,
-        injury: r.injuryStatus ? { status: r.injuryStatus, note: r.injuryNote, noteEl: r.injuryNoteEl } : null,
-      })),
-    });
+    );
   } catch (err) {
     console.error("GET /api/fantasy/players failed:", err);
     res.status(500).json({ error: "Failed to load fantasy players" });

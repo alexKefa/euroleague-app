@@ -1,3 +1,4 @@
+import { CACHE_KEYS, invalidateOnWrite } from "../services/responseCache.js";
 import { Router } from "express";
 import { eq } from "drizzle-orm";
 import { db } from "../db/client.js";
@@ -5,6 +6,8 @@ import { playerInjuries, players, teams } from "../db/schema.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
 
 export const injuriesRouter = Router();
+// Injury edits show in the cached fantasy player pool (services/responseCache.ts).
+injuriesRouter.use(invalidateOnWrite(CACHE_KEYS.fantasyPlayers));
 
 // Admin-entered only — see the doc comment on playerInjuries in schema.ts
 // for why (EuroLeague's own feed has no injury data to sync at all).

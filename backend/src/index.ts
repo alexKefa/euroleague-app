@@ -1,3 +1,4 @@
+import { CACHE_KEYS, invalidate } from "./services/responseCache.js";
 import "dotenv/config";
 import path from "node:path";
 import fs from "node:fs";
@@ -275,6 +276,7 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
         if (!result || (result.playersUpdated === 0 && result.coachesUpdated === 0)) return;
         console.log(`[fantasy daily reprice] ${result.playersUpdated} player(s), ${result.coachesUpdated} coach(es)`);
       })
+      .finally(() => invalidate(CACHE_KEYS.fantasyPlayers))
       .catch((err) => console.error("[fantasy daily reprice] failed:", err))
       .finally(runFantasyRoundSweepLogged);
   };
@@ -296,6 +298,7 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
         if (unmatchedTeamSlugs.length) console.warn(`[injury sync] unmatched team slugs: ${unmatchedTeamSlugs.join(", ")}`);
         if (unmappedStatuses.length) console.warn(`[injury sync] unmapped statuses: ${unmappedStatuses.join(", ")}`);
       })
+      .finally(() => invalidate(CACHE_KEYS.fantasyPlayers))
       .catch((err) => console.error("[injury sync] failed:", err));
   };
   runInjurySync();
@@ -313,6 +316,7 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
         if (statsUpserted === 0) return;
         console.log(`[player stats sync] ${playersUpserted} player(s), ${statsUpserted} season-stat row(s), skipped ${skippedNoTeam} unrecognized team(s)`);
       })
+      .finally(() => invalidate(CACHE_KEYS.advancedStats, CACHE_KEYS.fantasyPlayers, CACHE_KEYS.collectibles))
       .catch((err) => console.error("[player stats sync] failed:", err));
   };
   runPlayerStatsSync();
