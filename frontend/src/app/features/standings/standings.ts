@@ -1,3 +1,4 @@
+import { AxisLockDirective } from "../../shared/axis-lock.directive";
 import { Component, OnInit, inject, signal, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
@@ -93,7 +94,7 @@ const LEGEND_KEYS: { codeKey: string; key: string }[] = [
 @Component({
   selector: "app-standings",
   standalone: true,
-  imports: [PageHeaderComponent, CommonModule, RouterLink, StatLegendComponent, TeamCodePipe],
+  imports: [AxisLockDirective, PageHeaderComponent, CommonModule, RouterLink, StatLegendComponent, TeamCodePipe],
   templateUrl: "./standings.html",
 })
 export class StandingsComponent implements OnInit {

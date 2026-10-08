@@ -1,3 +1,4 @@
+import { AxisLockDirective } from "../../shared/axis-lock.directive";
 import { Component, OnInit, inject, signal, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ActivatedRoute, RouterLink } from "@angular/router";
@@ -36,7 +37,7 @@ type ComparisonAxis = (typeof COMPARISON_AXES)[number];
 @Component({
   selector: "app-team-roster",
   standalone: true,
-  imports: [
+  imports: [AxisLockDirective,
     TodayTagPipe,
     CommonModule,
     RouterLink,

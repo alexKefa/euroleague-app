@@ -1,3 +1,4 @@
+import { AxisLockDirective } from "../../shared/axis-lock.directive";
 import { Component, OnInit, OnDestroy, inject, signal, computed, effect, viewChild, ElementRef } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
@@ -154,7 +155,7 @@ const LEGEND_KEYS: { codeKey: string; key: string }[] = [
 @Component({
   selector: "app-advanced-stats",
   standalone: true,
-  imports: [PageHeaderComponent, ClutchLeadersComponent,
+  imports: [AxisLockDirective, PageHeaderComponent, ClutchLeadersComponent,
     CommonModule,
     RouterLink,
     DropdownComponent,
