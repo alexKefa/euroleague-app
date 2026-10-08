@@ -82,6 +82,71 @@
             <div class="flex-1 flex items-center justify-center text-center px-2">
               <p class="text-xs text-muted leading-relaxed">{{ i18n.t('store.statsNotLinked') }}</p>
             </div>
+          } @else if (stats()!.coach; as coach) {
+            <!-- Coach back (2026-10-08): the coach's team results. "Last
+                 season" is the team's record, labelled with the team name,
+                 since we don't store who coached it then. -->
+            @if (coach.previous) {
+              <div class="flex items-center justify-center gap-1.5 mb-1">
+                <button type="button" (click)="$event.stopPropagation(); coachView.set('current')" [appChip]="coachView() === 'current'">
+                  {{ i18n.t('store.statsThisSeason') }}
+                </button>
+                <button type="button" (click)="$event.stopPropagation(); coachView.set('previous')" [appChip]="coachView() === 'previous'">
+                  {{ i18n.t('store.coachLastSeason') }}
+                </button>
+              </div>
+            }
+            @if (coachLine(); as line) {
+              <div class="flex-1 flex flex-col justify-center gap-4 text-center">
+                <div>
+                  <div class="font-display text-5xl leading-none tabular-nums">
+                    <span class="text-emerald-500">{{ line.wins }}</span><span class="text-muted mx-1">–</span><span class="text-red-500">{{ line.losses }}</span>
+                  </div>
+                  <div class="text-[10px] uppercase tracking-wide text-muted mt-1">{{ i18n.t('store.coachRecord') }}</div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 border-t border-line pt-3">
+                  <div>
+                    <div class="font-mono text-lg font-bold text-team-primary">{{ winPct(line) }}</div>
+                    <div class="text-[9px] uppercase tracking-wide text-muted mt-0.5">{{ i18n.t('store.coachWinPct') }}</div>
+                  </div>
+                  <div>
+                    <div class="font-mono text-lg font-bold">{{ line.position ? '#' + line.position : '—' }}</div>
+                    <div class="text-[9px] uppercase tracking-wide text-muted mt-0.5">{{ i18n.t('store.coachPosition') }}</div>
+                  </div>
+                  <div>
+                    <div class="font-mono text-lg font-bold">{{ line.wins + line.losses }}</div>
+                    <div class="text-[9px] uppercase tracking-wide text-muted mt-0.5">{{ i18n.t('store.gamesPlayed') }}</div>
+                  </div>
+                </div>
+                @if (line.ppg !== null && line.papg !== null) {
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <div class="font-mono text-sm font-semibold">{{ line.ppg | number: "1.1-1" }}</div>
+                      <div class="text-[8.5px] uppercase tracking-wide text-muted mt-0.5">{{ i18n.t('store.coachScored') }}</div>
+                    </div>
+                    <div>
+                      <div class="font-mono text-sm font-semibold">{{ line.papg | number: "1.1-1" }}</div>
+                      <div class="text-[8.5px] uppercase tracking-wide text-muted mt-0.5">{{ i18n.t('store.coachAllowed') }}</div>
+                    </div>
+                  </div>
+                }
+                @if (coachView() === 'current' && coach.form.length > 0) {
+                  <div>
+                    <div class="flex items-center justify-center gap-1.5">
+                      @for (r of coach.form; track $index) {
+                        <span class="w-6 h-6 rounded-full text-[10px] font-bold flex items-center justify-center text-white" [class.bg-emerald-500]="r === 'W'" [class.bg-red-500]="r === 'L'">{{ r }}</span>
+                      }
+                    </div>
+                    <div class="text-[9px] uppercase tracking-wide text-muted mt-1">{{ i18n.t('store.coachForm') }}</div>
+                  </div>
+                }
+              </div>
+              <p class="text-center text-[10px] text-muted font-mono mt-2">{{ coach.teamName }} &middot; {{ line.season }}</p>
+            } @else {
+              <div class="flex-1 flex items-center justify-center text-center px-2">
+                <p class="text-xs text-muted leading-relaxed">{{ i18n.t('store.noStatsYet') }}</p>
+              </div>
+            }
           } @else if (!stats()!.stats && !stats()!.career) {
             <div class="flex-1 flex items-center justify-center text-center px-2">
               <p class="text-xs text-muted leading-relaxed">{{ i18n.t('store.noStatsYet') }}</p>

@@ -716,6 +716,26 @@ export interface CollectibleStatsResponse {
   player?: { id: string; name: string; position: string | null; jerseyNumber: number | null };
   stats?: PlayerSeasonStats | null;
   career?: CareerStats | null;
+  // Coach cards only (2026-10-08): the coach's team results.
+  coach?: CoachCardStats;
+}
+
+export interface CoachTeamRecord {
+  season: string;
+  wins: number;
+  losses: number;
+  position: number | null;
+  ppg: number | null;
+  papg: number | null;
+}
+
+export interface CoachCardStats {
+  teamId: string;
+  teamName: string;
+  current: CoachTeamRecord | null;
+  // The team's record last season — not necessarily under this coach.
+  previous: CoachTeamRecord | null;
+  form: ("W" | "L")[];
 }
 
 export interface MyCollectible {

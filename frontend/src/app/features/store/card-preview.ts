@@ -64,6 +64,7 @@ export class CardPreviewComponent implements OnChanges {
       this.flipped.set(false);
       this.stats.set(null);
       this.statsView.set("season");
+      this.coachView.set("current");
     }
   }
 
@@ -81,6 +82,19 @@ export class CardPreviewComponent implements OnChanges {
     return this.statsView() === "career" ? s.career ?? null : s.stats ?? null;
   });
 
+  // Coach card back (2026-10-08): this season / the team's last season.
+  // Opens on last season while this one has no games played yet.
+  readonly coachView = signal<"current" | "previous">("current");
+  readonly coachLine = computed(() => {
+    const c = this.stats()?.coach;
+    if (!c) return null;
+    return this.coachView() === "previous" ? c.previous : c.current;
+  });
+  winPct(r: { wins: number; losses: number }): string {
+    const gp = r.wins + r.losses;
+    return gp > 0 ? `${Math.round((r.wins / gp) * 100)}%` : "—";
+  }
+
   close(): void {
     this.dragRotation.set(0);
     this.flipped.set(false);
@@ -94,6 +108,8 @@ export class CardPreviewComponent implements OnChanges {
       this.api.getCollectibleStats(this.item.id).subscribe({
         next: (res) => {
           this.stats.set(res);
+          const cur = res.coach?.current;
+          this.coachView.set((!cur || cur.wins + cur.losses === 0) && res.coach?.previous ? "previous" : "current");
           this.statsLoading.set(false);
         },
         error: () => {

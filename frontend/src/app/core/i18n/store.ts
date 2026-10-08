@@ -50,6 +50,13 @@ export const storeTranslations: Record<string, Record<Lang, string>> = {
   "store.gamesPlayed": { en: "Games played", el: "Αγώνες" },
   "store.statsThisSeason": { en: "This season", el: "Φέτος" },
   "store.statsCareer": { en: "Career", el: "Καριέρα" },
+  "store.coachLastSeason": { en: "Team last season", el: "Ομάδα πέρσι" },
+  "store.coachRecord": { en: "Wins – Losses", el: "Νίκες – Ήττες" },
+  "store.coachWinPct": { en: "Win %", el: "% Νικών" },
+  "store.coachPosition": { en: "Standing", el: "Θέση" },
+  "store.coachScored": { en: "Points for", el: "Πόντοι υπέρ" },
+  "store.coachAllowed": { en: "Points against", el: "Πόντοι κατά" },
+  "store.coachForm": { en: "Last 5", el: "Τελευταία 5" },
   "store.statsSeasons": { en: "seasons", el: "σεζόν" },
 
   "wheel.title": { en: "Daily Jump Ball", el: "Καθημερινό Τζάμπολ" },

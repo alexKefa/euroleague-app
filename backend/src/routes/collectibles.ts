@@ -20,6 +20,60 @@ function normalizePlayerName(name: string): string {
   return reordered.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
+// Coach card back (2026-10-08): the coach's team results. The team is the
+// one whose feed head_coach ("LASO, PABLO") matches the card, so a coach
+// who moved still shows his current team; falls back to the card's
+// snapshot team. "previous" is that team's record last season — we don't
+// store who coached it then, so the UI labels it as the team's record.
+async function coachCardStats(name: string, fallbackTeamId: string) {
+  const season = await getCurrentSeason();
+  const allTeams = await db.select({ id: teams.id, name: teams.name, headCoach: teams.headCoach }).from(teams);
+  const target = normalizePlayerName(name);
+  const team =
+    allTeams.find((t) => t.headCoach && normalizePlayerName(t.headCoach) === target) ??
+    allTeams.find((t) => t.id === fallbackTeamId);
+  if (!team || !season) return { matched: false };
+
+  const startYear = Number(season.slice(0, 4));
+  const prevSeason = `${startYear - 1}-${String(startYear % 100).padStart(2, "0")}`;
+  // One round trip: both seasons' standings rows and the last 5 results.
+  const [row] = await db.execute<{ cur: TeamRecord | null; prev: TeamRecord | null; form: ("W" | "L")[] }>(sql`
+    select
+      (select row_to_json(s) from (select season, wins, losses, position, ppg, papg from team_season_stats
+         where team_id = ${team.id} and season = ${season}) s) as cur,
+      (select row_to_json(s) from (select season, wins, losses, position, ppg, papg from team_season_stats
+         where team_id = ${team.id} and season = ${prevSeason}) s) as prev,
+      (select coalesce(json_agg(g.r order by g.tip desc), '[]'::json) from (
+         select tipoff_at as tip,
+           case when (home_team_id = ${team.id} and home_score > away_score)
+                  or (away_team_id = ${team.id} and away_score > home_score) then 'W' else 'L' end as r
+         from games
+         where season = ${season} and status = 'final' and (home_team_id = ${team.id} or away_team_id = ${team.id})
+         order by tipoff_at desc limit 5) g) as form
+  `);
+  // The games table also holds liveScoreSimulator results, so trust the
+  // official standings' games-played count and trim the form to it.
+  const played = row?.cur ? row.cur.wins + row.cur.losses : 0;
+  return {
+    matched: true,
+    coach: {
+      teamId: team.id,
+      teamName: team.name,
+      current: row?.cur ?? null,
+      previous: row?.prev ?? null,
+      form: (row?.form ?? []).slice(0, Math.min(5, played)),
+    },
+  };
+}
+interface TeamRecord {
+  season: string;
+  wins: number;
+  losses: number;
+  position: number | null;
+  ppg: number | null;
+  papg: number | null;
+}
+
 // Same best-effort name match as normalizePlayerName/`/:id/stats` above, but
 // done once in bulk (one query, then in-memory lookups) rather than a
 // per-card query — used to show a card's real jersey number on its
@@ -328,6 +382,11 @@ collectiblesRouter.get("/:id/stats", async (req, res) => {
     const [collectible] = await db.select().from(collectibles).where(eq(collectibles.id, id)).limit(1);
     if (!collectible) {
       res.status(404).json({ error: "Collectible not found" });
+      return;
+    }
+
+    if (collectible.tier === "coach") {
+      res.json(await coachCardStats(collectible.name, collectible.teamId));
       return;
     }
 
