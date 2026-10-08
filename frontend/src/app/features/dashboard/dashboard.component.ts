@@ -19,6 +19,8 @@ import { RoundStatusService } from "./round-status.service";
 import { RoundHeaderComponent } from "./round-header";
 import { RoundChecklistComponent } from "./round-checklist";
 import { LeagueBlockComponent } from "./league-block";
+import { NewsStoriesComponent } from "../../shared/news-stories";
+import { loadSeenStoryIds } from "../../shared/seen-stories";
 
 function athensDateKey(d: Date): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Athens", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
@@ -49,6 +51,7 @@ function athensDateKey(d: Date): string {
     RoundHeaderComponent,
     RoundChecklistComponent,
     LeagueBlockComponent,
+    NewsStoriesComponent,
   ],
   templateUrl: "./dashboard.component.html",
   styleUrl: "./dashboard.component.css",
@@ -107,10 +110,23 @@ export class DashboardComponent implements OnInit, OnDestroy {
     effect(() => {
       const lang = this.i18n.lang();
       this.api.getNews(10, lang, true).subscribe({
-        next: (articles) => this.news.set(articles),
+        next: (articles) => this.setNews(articles),
         error: () => {}, // non-critical widget
       });
     });
+  }
+
+  // News stories rail (2026-10-08): back on the dashboard, but only when
+  // something is unread on this device — unread first, read ones after,
+  // dimmed. Decided once per fetch, not live, so a story doesn't vanish
+  // from the rail mid-visit just because it was opened.
+  readonly storyArticles = signal<NewsArticle[]>([]);
+
+  private setNews(articles: NewsArticle[]): void {
+    this.news.set(articles);
+    const seen = loadSeenStoryIds();
+    const unread = articles.filter((a) => !seen.has(a.id));
+    this.storyArticles.set(unread.length ? [...unread, ...articles.filter((a) => seen.has(a.id))] : []);
   }
 
   ngOnInit(): void {
@@ -139,7 +155,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (hiddenForMs < DashboardComponent.STALE_AFTER_MS) return;
     this.loadDashboardData();
     this.api.getNews(10, this.i18n.lang(), true).subscribe({
-      next: (articles) => this.news.set(articles),
+      next: (articles) => this.setNews(articles),
       error: () => {},
     });
   };

@@ -18,6 +18,7 @@ import { NewsArticle } from "../core/models";
 import { I18nService } from "../core/i18n.service";
 import { NavIconComponent } from "./nav-icon";
 import { RetryImgDirective } from "./retry-img.directive";
+import { loadSeenStoryIds, saveSeenStoryIds } from "./seen-stories";
 
 const STORY_DURATION_MS = 5000;
 const TICK_MS = 50;
@@ -71,11 +72,10 @@ export class NewsStoriesComponent implements OnChanges, AfterViewInit, OnDestroy
 
   readonly activeIndex = signal<number | null>(null);
   readonly progress = signal(0);
-  // Not persisted (resets on reload) — just enough to dim a ring after
-  // it's been opened this session, same "you've seen this" signal
-  // Instagram's own rail gives, without needing backend/localStorage
-  // plumbing for something this low-stakes.
-  readonly viewedIds = signal<Set<string>>(new Set());
+  // Dims a ring once opened, same "you've seen this" signal Instagram's own
+  // rail gives. Persisted per device (2026-10-08, shared/seen-stories.ts)
+  // so the dashboard can hide the rail once nothing is unread.
+  readonly viewedIds = signal<Set<string>>(loadSeenStoryIds());
 
   readonly currentArticle = computed<NewsArticle | null>(() => {
     const idx = this.activeIndex();
@@ -241,12 +241,11 @@ export class NewsStoriesComponent implements OnChanges, AfterViewInit, OnDestroy
   private markViewed(index: number): void {
     const article = this.articles[index];
     if (!article) return;
-    this.viewedIds.update((ids) => {
-      if (ids.has(article.id)) return ids;
-      const next = new Set(ids);
-      next.add(article.id);
-      return next;
-    });
+    if (this.viewedIds().has(article.id)) return;
+    const next = new Set(this.viewedIds());
+    next.add(article.id);
+    this.viewedIds.set(next);
+    saveSeenStoryIds(next);
   }
 
   private startTimer(fromProgress = 0): void {

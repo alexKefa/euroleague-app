@@ -25,6 +25,20 @@
     <!-- First-pick onboarding (2026-10-05): above everything until claimed. -->
     <app-first-picks-card class="block mb-4" />
 
+    <!-- News stories (2026-10-08): only while something is unread on this
+         device (see storyArticles); full width above both columns. Slides
+         in rather than holding a skeleton, since it's often absent. -->
+    @if (storyArticles().length > 0) {
+      <div class="stories-enter bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+        <div class="card-head">
+          <span class="card-head-icon"><app-nav-icon name="news" [size]="18" /></span>
+          <p class="font-display text-base flex-1 min-w-0 truncate">{{ i18n.t('nav.news') }}</p>
+          <a routerLink="/news" class="go-link">{{ i18n.t('dashboard.viewAll') }} </a>
+        </div>
+        <app-news-stories [articles]="storyArticles()" />
+      </div>
+    }
+
     <!-- lg+: personal column (header, checklist, next game, leagues/fantasy)
          on the left, league column (live, sponsor, league block) on the
          right. Below lg both wrappers are display:contents and order-N sets
