@@ -1,3 +1,4 @@
+import { CountUpComponent } from "../../shared/count-up";
 import type { WinProbPreGame } from "../../core/models";
 import { Component, OnInit, OnDestroy, HostListener, computed, effect, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
@@ -133,7 +134,7 @@ interface DisplayedPick {
 @Component({
   selector: "app-predictions",
   standalone: true,
-  imports: [PageHeaderComponent, FirstPicksCardComponent, 
+  imports: [PageHeaderComponent, CountUpComponent, FirstPicksCardComponent, 
     TodayTagPipe,
     CommonModule,
     RouterLink,
@@ -664,6 +665,7 @@ export class PredictionsComponent implements OnInit, OnDestroy {
     this.api.getSchedule(SEASON).subscribe({
       next: (schedule) => {
         this.roundGames.set(schedule.games);
+        this.scheduleRound.set(schedule.round);
         this.api.getPreGameWinProbs(schedule.season, schedule.round).subscribe({
           next: (probs) => this.modelProbs.set(probs),
           error: () => {}, // optional line
@@ -676,6 +678,7 @@ export class PredictionsComponent implements OnInit, OnDestroy {
 
     if (this.auth.isAuthenticated()) {
       this.refreshMyPredictions(() => this.loading.set(false));
+      this.loadSplits();
       this.refreshMySummary();
       this.refreshMyTopScorerPredictions();
     } else {
@@ -689,6 +692,62 @@ export class PredictionsComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     if (this.nowTimer) clearInterval(this.nowTimer);
+    if (this.highlightTimer) clearTimeout(this.highlightTimer);
+  }
+
+  // --- Round progress strip (2026-10-08) — built from data already loaded.
+  readonly scheduleRound = signal<number | null>(null);
+  readonly roundProgress = computed(() => {
+    const games = this.upcomingGames();
+    if (games.length === 0) return null;
+    const picked = games.filter((g) => this.myPickFor(g) !== null).length;
+    const nextTipoff = Math.min(...games.map((g) => new Date(g.tipoffAt).getTime()));
+    return { picked, total: games.length, pct: (picked / games.length) * 100, locksIn: this.formatLocksIn(nextTipoff - this.now()) };
+  });
+  readonly nextUnpickedGame = computed(() => this.upcomingGames().find((g) => this.myPickFor(g) === null) ?? null);
+  readonly highlightedGameId = signal<string | null>(null);
+  private highlightTimer?: ReturnType<typeof setTimeout>;
+
+  scrollToNextUnpicked(): void {
+    const game = this.nextUnpickedGame();
+    if (!game) return;
+    document.getElementById(`pick-game-${game.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    this.highlightedGameId.set(game.id);
+    if (this.highlightTimer) clearTimeout(this.highlightTimer);
+    this.highlightTimer = setTimeout(() => this.highlightedGameId.set(null), 1600);
+  }
+
+  private formatLocksIn(ms: number): string {
+    if (ms <= 0) return this.i18n.t("predictions.progress.now");
+    const mins = Math.floor(ms / 60_000);
+    const d = Math.floor(mins / 1440);
+    const h = Math.floor((mins % 1440) / 60);
+    const m = mins % 60;
+    if (d > 0) return `${d}${this.i18n.t("predictions.progress.d")} ${h}${this.i18n.t("predictions.progress.h")}`;
+    if (h > 0) return `${h}${this.i18n.t("predictions.progress.h")} ${m}${this.i18n.t("predictions.progress.m")}`;
+    return `${m}${this.i18n.t("predictions.progress.m")}`;
+  }
+
+  // --- Community split (2026-10-08): only for games you've saved a pick on
+  // (the endpoint enforces it too); under 3 picks reads "not enough yet".
+  private readonly splits = signal<Record<string, Record<string, number>>>({});
+  private loadSplits(): void {
+    if (!this.auth.isAuthenticated()) return;
+    this.api.getPredictionSplits().subscribe({
+      next: (s) => this.splits.set(s),
+      error: () => {}, // optional line under the game
+    });
+  }
+  splitFor(game: Game): { homePct: number; awayPct: number; total: number } | null {
+    if (!this.myPicks().has(game.id)) return null;
+    const counts = this.splits()[game.id];
+    if (!counts) return null;
+    const home = counts[game.homeTeam.id] ?? 0;
+    const away = counts[game.awayTeam.id] ?? 0;
+    const total = home + away;
+    if (total === 0) return null;
+    const homePct = Math.round((home / total) * 100);
+    return { homePct, awayPct: 100 - homePct, total };
   }
 
   private refreshLeaderboard(): void {
@@ -1001,6 +1060,7 @@ export class PredictionsComponent implements OnInit, OnDestroy {
           else saved.set(gameId, teamId);
         }
         this.myPicks.set(saved);
+        this.loadSplits();
         this.pendingPicks.set(remainingPending);
         this.firstPicks.refresh();
         if (res.errors && Object.keys(res.errors).length > 0) {

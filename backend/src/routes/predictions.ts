@@ -188,6 +188,28 @@ predictionsRouter.post("/batch", requireAuth, async (req, res) => {
   }
 });
 
+// Community split (2026-10-08): pick counts per team, only for games the
+// caller has already picked and that aren't final, so nobody can peek
+// before choosing. One grouped query. Shape: { [gameId]: { [teamId]: n } }.
+predictionsRouter.get("/splits", requireAuth, async (req, res) => {
+  try {
+    const rows = await db.execute<{ game_id: string; team_id: string; n: number }>(sql`
+      select p.game_id, p.predicted_winner_team_id as team_id, count(*)::int as n
+      from predictions p
+      join games g on g.id = p.game_id
+      where g.status <> 'final'
+        and p.game_id in (select game_id from predictions where user_id = ${req.userId!})
+      group by 1, 2
+    `);
+    const out: Record<string, Record<string, number>> = {};
+    for (const r of rows) (out[r.game_id] ??= {})[r.team_id] = r.n;
+    res.json(out);
+  } catch (err) {
+    console.error("GET /api/predictions/splits failed:", err);
+    res.status(500).json({ error: "Failed to load pick splits" });
+  }
+});
+
 predictionsRouter.get("/me", requireAuth, async (req, res) => {
   try {
     // Capped rather than the user's entire history — this list is a

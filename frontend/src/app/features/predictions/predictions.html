@@ -94,9 +94,40 @@
             }
           </ol>
         }
+        <!-- Round progress (2026-10-08): picked count, the next lock, and a
+             jump to the next game still missing a pick. -->
+        @if (auth.isAuthenticated() && roundProgress(); as rp) {
+          <div class="mb-3 rounded-2xl bg-team-primary/[0.06] border border-team-primary/15 px-3 py-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <p class="text-[13px] font-semibold text-ink min-w-0 truncate">
+                @if (scheduleRound(); as r) {
+                  {{ i18n.t('predictions.progress.round') }} {{ r }} ·
+                }
+                <span class="tabular-nums">{{ rp.picked }}/{{ rp.total }}</span> {{ i18n.t('predictions.progress.picked') }}
+              </p>
+              @if (nextUnpickedGame()) {
+                <button type="button" (click)="scrollToNextUnpicked()" class="shrink-0 text-[12px] font-bold text-team-primary hover:underline">
+                  {{ i18n.t('predictions.progress.nextUnpicked') }} &darr;
+                </button>
+              } @else {
+                <span class="shrink-0 text-[12px] font-bold text-emerald-500">{{ i18n.t('predictions.progress.allPicked') }} ✓</span>
+              }
+            </div>
+            <div class="h-1.5 rounded-full bg-line mt-2 overflow-hidden">
+              <div class="h-full rounded-full bg-team-primary transition-[width] duration-500" [style.width.%]="rp.pct"></div>
+            </div>
+            <p class="text-[11px] text-muted mt-1.5 tabular-nums">{{ i18n.t('predictions.progress.locksIn') }} {{ rp.locksIn }}</p>
+          </div>
+        }
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
           @for (game of upcomingGames(); track game.id) {
-            <div class="relative rounded-2xl border shadow-card overflow-hidden bg-page transition-colors" [ngClass]="myPickFor(game) ? 'border-team-primary/50' : 'border-line'">
+            <div
+              [id]="'pick-game-' + game.id"
+              class="relative rounded-2xl border shadow-card overflow-hidden bg-page transition-[border-color,box-shadow] duration-300"
+              [ngClass]="myPickFor(game) ? 'border-team-primary/50' : 'border-line'"
+              [class.ring-2]="highlightedGameId() === game.id"
+              [class.ring-team-primary]="highlightedGameId() === game.id"
+            >
               <!-- Tipoff/live ribbon floats over the split below rather than
                    its own row — the two-team split is the whole point of this
                    layout, so date/time/live-score share space with it instead
@@ -203,6 +234,24 @@
                   <span class="font-semibold text-ink">{{ fav.name }}</span>
                   {{ (wp.homeProb >= 0.5 ? wp.homeProb : 1 - wp.homeProb) * 100 | number: '1.0-0' }}%
                 </p>
+              }
+              <!-- Community split (2026-10-08): only after you've saved a pick. -->
+              @if (splitFor(game); as sp) {
+                <div class="px-3 py-2 border-t border-line">
+                  @if (sp.total < 3) {
+                    <p class="text-[11px] text-muted text-center">{{ i18n.t('predictions.split.notEnough') }}</p>
+                  } @else {
+                    <div class="flex h-1.5 rounded-full overflow-hidden bg-line">
+                      <div class="h-full" [style.width.%]="sp.homePct" [style.background]="teamColor(game.homeTeam)"></div>
+                      <div class="h-full" [style.width.%]="sp.awayPct" [style.background]="teamColor(game.awayTeam)"></div>
+                    </div>
+                    <p class="flex items-center justify-between gap-2 text-[11px] mt-1 tabular-nums">
+                      <span class="font-semibold text-ink truncate">{{ sp.homePct }}% {{ game.homeTeam.code | teamCode }}</span>
+                      <span class="text-muted shrink-0">{{ sp.total }} {{ i18n.t('predictions.split.picks') }}</span>
+                      <span class="font-semibold text-ink truncate text-right">{{ game.awayTeam.code | teamCode }} {{ sp.awayPct }}%</span>
+                    </p>
+                  }
+                </div>
               }
 
               @if (auth.isAuthenticated()) {
@@ -760,13 +809,13 @@
           <div class="flex items-end justify-between gap-3">
             <div class="min-w-0">
               <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('predictions.yourPoints') }}</p>
-              <p class="font-display text-5xl leading-none tabular-nums text-ink mt-1">{{ mySummary()!.points }}</p>
+              <p class="font-display text-5xl leading-none tabular-nums text-ink mt-1"><app-count-up [value]="mySummary()!.points" /></p>
             </div>
             @if (myStanding(); as st) {
               <div class="flex gap-2 shrink-0">
                 <div class="status-tile rounded-2xl border border-line px-3 py-2 text-center min-w-[64px]">
                   <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('predictions.rankLabel') }}</p>
-                  <p class="font-display text-xl leading-tight tabular-nums text-team-primary">#{{ st.rank }}</p>
+                  <p class="font-display text-xl leading-tight tabular-nums text-team-primary">#<app-count-up [value]="st.rank" [from]="st.rank + 20" /></p>
                 </div>
                 <div class="status-tile rounded-2xl border border-line px-3 py-2 text-center min-w-[64px]">
                   <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('predictions.correctLabel') }}</p>
@@ -991,7 +1040,7 @@
                 }
               </span>
               <span class="text-right">
-                <span class="font-mono text-team-primary font-bold">{{ entry.points }} pts</span>
+                <span class="font-mono text-team-primary font-bold"><app-count-up [value]="entry.points" /> pts</span>
                 <span class="font-mono text-muted text-[12px] block">{{ entry.correct }}/{{ entry.total }}</span>
               </span>
             </button>
@@ -1011,7 +1060,7 @@
               <span class="text-[11px] text-team-primary font-bold uppercase tracking-wide">{{ i18n.t('predictions.you') }}</span>
             </span>
             <span class="text-right">
-              <span class="font-mono text-team-primary font-bold">{{ mine.entry.points }} pts</span>
+              <span class="font-mono text-team-primary font-bold"><app-count-up [value]="mine.entry.points" /> pts</span>
               <span class="font-mono text-muted text-[12px] block">{{ mine.entry.correct }}/{{ mine.entry.total }}</span>
             </span>
           </button>

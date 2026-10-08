@@ -254,6 +254,11 @@ export class ApiService {
     return this.http.post<{ ok: boolean; errors?: Record<string, string> }>(`${API_BASE_URL}/predictions/batch`, { picks });
   }
 
+  /** { gameId: { teamId: pickCount } } for games the caller has picked (2026-10-08). */
+  getPredictionSplits(): Observable<Record<string, Record<string, number>>> {
+    return this.http.get<Record<string, Record<string, number>>>(`${API_BASE_URL}/predictions/splits`);
+  }
+
   getMyPredictions(): Observable<Prediction[]> {
     return this.http.get<Prediction[]>(`${API_BASE_URL}/predictions/me`);
   }
