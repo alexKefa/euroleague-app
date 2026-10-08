@@ -20,6 +20,7 @@ import { RoundHeaderComponent } from "./round-header";
 import { RoundChecklistComponent } from "./round-checklist";
 import { LeagueBlockComponent } from "./league-block";
 import { NewsStoriesComponent } from "../../shared/news-stories";
+import { PacksWaitingComponent } from "./packs-waiting";
 import { loadSeenStoryIds } from "../../shared/seen-stories";
 
 function athensDateKey(d: Date): string {
@@ -52,6 +53,7 @@ function athensDateKey(d: Date): string {
     RoundChecklistComponent,
     LeagueBlockComponent,
     NewsStoriesComponent,
+    PacksWaitingComponent,
   ],
   templateUrl: "./dashboard.component.html",
   styleUrl: "./dashboard.component.css",

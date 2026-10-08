@@ -6,6 +6,11 @@ import { Lang } from "./lang";
 export const dashboardTranslations: Record<string, Record<Lang, string>> = {
   "dashboard.next": { en: "Next", el: "Επόμενο" },
   "dashboard.viewAll": { en: "ALL", el: "ΟΛΑ" },
+  "dashboard.packsWaiting.one": { en: "pack to open", el: "πακέτο για άνοιγμα" },
+  "dashboard.packsWaiting.many": { en: "packs to open", el: "πακέτα για άνοιγμα" },
+  "dashboard.packsWaiting.coach": { en: "Includes a Coach Pack", el: "Περιέχει Πακέτο Προπονητή" },
+  "dashboard.packsWaiting.legendary": { en: "Includes a Legendary", el: "Περιέχει Θρυλική κάρτα" },
+  "dashboard.packsWaiting.open": { en: "Open", el: "Άνοιξε" },
   "dashboard.myLeagues": { en: "My Leagues", el: "Οι Λίγκες μου" },
   "dashboard.leaguesEmptyHint": {
     en: "Create a private league and compete with friends.",

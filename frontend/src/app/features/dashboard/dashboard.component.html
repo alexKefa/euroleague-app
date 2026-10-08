@@ -47,6 +47,7 @@
       <div class="contents lg:block lg:col-start-1 lg:row-start-1 lg:min-w-0">
         <app-round-header class="order-1 block" [rank]="myRank()" />
         <app-round-checklist class="order-2 block" />
+        <app-packs-waiting class="order-2 block" />
 
         <!-- Next game, with the old team hero folded in: your team, rank and record. -->
         @if (selectedRow(); as row) {
