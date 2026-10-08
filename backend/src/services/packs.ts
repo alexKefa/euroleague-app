@@ -73,8 +73,11 @@ const STARTER_SLOTS: PackSlot[] = [
   { odds: { common: 1 } },
   { odds: { common: 0.7, rare: 0.3 } },
 ];
+// 2026-10-08: the first common slot carries a 10% coach chance (always a
+// coach you don't own yet). Also the wheel's rare-spin packs, so it raises
+// free coach supply too; see SPIN_ODDS in routes/spin.ts for the numbers.
 const PRO_SLOTS: PackSlot[] = [
-  { odds: { common: 1 } },
+  { odds: { common: 0.9, coach: 0.1 } },
   { odds: { common: 1 } },
   { odds: { rare: 1 } },
   { odds: { rare: 1 } },
@@ -182,7 +185,9 @@ export const PACKS: Record<PackType, PackDefinition> = {
   // "always a new one until all 20 are owned" guarantee.
   wheelCoach: {
     type: "wheelCoach",
-    label: "Jump Ball — Coach Pull",
+    // Neutral label (2026-10-08): also granted at signup, by fantasy card
+    // tracks and the one-time coach gift, not only by the wheel.
+    label: "Coach Pack",
     pointsCost: 0,
     purchasable: false,
     slots: [{ odds: { coach: 1 } }],

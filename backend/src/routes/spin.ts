@@ -113,7 +113,15 @@ function nextAthensMidnightUtc(after: Date): Date {
 // finish the album). At 6%: 19.5-19.9/20 coaches, 25-83% finish, median
 // day 188-202, commons+rares finish within ~3 days of before. Taken from
 // common, the tier that finishes first; legendary is the trailing tier now.
-export const SPIN_ODDS = { common: 0.54, rare: 0.28, legendary: 0.12, coach: 0.06 } as const;
+//
+// 54/28/12/6 -> 48/28/12/12 (2026-10-08, "that is way off, we have to
+// increase the chances"): only 6 non-admin users owned a coach (~0.3 per
+// card owner) at ~20% real spin engagement. Together with the Playoffs
+// pack's coach slot and a signup coach pack, economy:simulate (60%
+// accuracy, never-buys) puts coaches at day 30 at 2.8 / 4.4 / 7.0 for
+// 20 / 50 / 100% engagement (was 1.1 / 1.6 / 2.5); full album at 100%
+// engagement 69% -> 74%; commons at 20% engagement 164 -> 153 of 320.
+export const SPIN_ODDS = { common: 0.48, rare: 0.28, legendary: 0.12, coach: 0.12 } as const;
 export const LEGENDARY_CHANCE = SPIN_ODDS.legendary;
 export const COACH_CHANCE = SPIN_ODDS.coach;
 

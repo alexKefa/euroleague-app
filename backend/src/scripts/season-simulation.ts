@@ -104,6 +104,7 @@ const POINTS_PER_CORRECT = Number(process.env.SIM_PPC ?? 10);
 // unopened welcomeBonus packs instead of the old flat 150 points.
 const REGISTRATION_BONUS = 0;
 const WELCOME_PACK_QUANTITY = 2;
+const WELCOME_COACH = (process.env.SIM_WELCOME_COACH ?? "1") === "1";
 // services/packs.ts; SIM_PITY_{COMMON,RARE} override to test a retune.
 const PITY_THRESHOLD: Record<"common" | "rare", number> = {
   common: Number(process.env.SIM_PITY_COMMON ?? 4),
@@ -188,11 +189,12 @@ const CAPTAIN_POSITIVE_RATE = Number(process.env.SIM_CAPTAIN_POSITIVE_RATE ?? 0.
 // zero cost to common/rare supply).
 // 2026-10-01: common -> Regular Season pack, rare -> Playoffs pack,
 // legendary -> one legendary card, coach -> one coach card; SIM_SPIN_{COMMON,RARE,LEGENDARY,COACH} override to test a retune.
+const PRO_COACH = Number(process.env.SIM_PRO_COACH ?? 0.1);
 const SPIN_ODDS: Record<Tier, number> = {
-  common: Number(process.env.SIM_SPIN_COMMON ?? 0.54),
+  common: Number(process.env.SIM_SPIN_COMMON ?? 0.48),
   rare: Number(process.env.SIM_SPIN_RARE ?? 0.28),
   legendary: Number(process.env.SIM_SPIN_LEGENDARY ?? 0.12),
-  coach: Number(process.env.SIM_SPIN_COACH ?? 0.06),
+  coach: Number(process.env.SIM_SPIN_COACH ?? 0.12),
 };
 
 interface PackSlot {
@@ -219,7 +221,8 @@ const PACKS: PackDef[] = [
     purchasable: true,
     slots: [...fixedSlots(3, 0), { odds: { common: 0.7, rare: 0.3 } }],
   },
-  { type: "pro", cost: Number(process.env.SIM_PRO_COST ?? 250), purchasable: true, slots: fixedSlots(2, 2) },
+  // 2026-10-08: one common slot carries a coach chance (services/packs.ts PRO_SLOTS).
+  { type: "pro", cost: Number(process.env.SIM_PRO_COST ?? 250), purchasable: true, slots: [{ odds: { common: 1 - PRO_COACH, coach: PRO_COACH } }, ...fixedSlots(1, 2)] },
   {
     type: "elite",
     cost: Number(process.env.SIM_ELITE_COST ?? 600),
@@ -393,6 +396,7 @@ interface SimResult {
   purchasableCompleteDay: number | null;
   fullCompleteDay: number | null;
   albumCountAtDay7: number;
+  coachCountAtDay30: number;
   albumCountAtEnd: number;
   commonCountAtEnd: number;
   rareCountAtEnd: number;
@@ -443,9 +447,12 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
   let fullCompleteDay: number | null = null;
   let nextRound = 0;
   let albumCountAtDay7 = 0;
+  let coachCountAtDay30 = 0;
   const albumCount = () => state.owned.common.size + state.owned.rare.size + state.owned.legendary.size + state.owned.coach.size;
 
   for (let i = 0; i < WELCOME_PACK_QUANTITY; i++) state.points += openPack(state, WELCOME_PACK);
+  // One guaranteed new coach at signup (2026-10-08, routes/auth.ts WELCOME_COACH_PACK).
+  if (WELCOME_COACH) grantGuaranteedNewOfTier(state, "coach");
 
   const isPurchasableComplete = () => state.owned.common.size === CATALOG_SIZE.common && state.owned.rare.size === CATALOG_SIZE.rare;
   const isFullComplete = () =>
@@ -573,12 +580,14 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
     if (purchasableCompleteDay === null && isPurchasableComplete()) purchasableCompleteDay = day;
     if (fullCompleteDay === null && isFullComplete()) fullCompleteDay = day;
     if (day === 7) albumCountAtDay7 = albumCount();
+    if (day === 30) coachCountAtDay30 = state.owned.coach.size;
   }
 
   return {
     purchasableCompleteDay,
     fullCompleteDay,
     albumCountAtDay7,
+    coachCountAtDay30,
     albumCountAtEnd: albumCount(),
     commonCountAtEnd: state.owned.common.size,
     rareCountAtEnd: state.owned.rare.size,
@@ -616,6 +625,7 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
   const pctPurchasable = (purchasableDays.length / n) * 100;
   const pctFull = (fullDays.length / n) * 100;
   const avgAlbumDay7 = results.reduce((s, r) => s + r.albumCountAtDay7, 0) / n;
+  const avgCoachDay30 = results.reduce((s, r) => s + r.coachCountAtDay30, 0) / n;
   const avgAlbumEnd = results.reduce((s, r) => s + r.albumCountAtEnd, 0) / n;
   const albumSize = CATALOG_SIZE.common + CATALOG_SIZE.rare + CATALOG_SIZE.legendary + CATALOG_SIZE.coach;
   const avgCommonAtEnd = results.reduce((s, r) => s + r.commonCountAtEnd, 0) / n;
@@ -653,7 +663,7 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
       ` | avg commons: ${avgCommonAtEnd.toFixed(0).padStart(3)}/${CATALOG_SIZE.common}` +
       ` | avg rares: ${avgRareAtEnd.toFixed(0).padStart(3)}/${CATALOG_SIZE.rare}` +
       ` | avg legendaries: ${avgLegendaryAtEnd.toFixed(1).padStart(4)}/${CATALOG_SIZE.legendary}` +
-      ` | avg coaches: ${avgCoachAtEnd.toFixed(1).padStart(4)}/${CATALOG_SIZE.coach}` +
+      ` | coaches day 30: ${avgCoachDay30.toFixed(1)} | avg coaches: ${avgCoachAtEnd.toFixed(1).padStart(4)}/${CATALOG_SIZE.coach}` +
       ` | avg perfect rounds: ${avgPerfectRounds.toFixed(2)}` +
       (GREAT_ROUND_BONUS ? ` | avg great rounds: ${avgGreatRounds.toFixed(2)}` : "") +
       (LEGENDARY_MILESTONE > 0 ? ` | avg milestone legendaries: ${avgMilestoneLegendaries.toFixed(2)}` : "") +
@@ -697,6 +707,12 @@ console.log(
 if (shouldRun(100)) {
   console.log("--- Daily wheel spin, 100% engagement, never buys packs (real behavior so far) ---");
   for (const acc of ACCURACIES) runScenario(acc, 1.0, "never-buys", N);
+}
+// Added 2026-10-08: production non-admin users averaged ~7 spins in their
+// first ~33 days (~20%); read "coaches day 30" here against the real ~0.4.
+if (shouldRun(20)) {
+  console.log("\n--- Daily wheel spin, 20% engagement (real users so far), never buys packs ---");
+  for (const acc of ACCURACIES) runScenario(acc, 0.2, "never-buys", N);
 }
 if (shouldRun(50)) {
   console.log("\n--- Daily wheel spin, 50% engagement, never buys packs ---");

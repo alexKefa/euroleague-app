@@ -177,11 +177,15 @@ authRouter.post("/register", credentialsLimiter, async (req, res) => {
   // (usually more generous, e.g. QRFLYER's 5) packs above; everyone else
   // gets this smaller default so registering with no code still comes with
   // something to open.
-  if (!promo) {
-    await db.insert(ownedPacks).values(
-      Array.from({ length: WELCOME_PACK_QUANTITY }, () => ({ userId: user.id, packType: "welcomeBonus" as const, openedAt: null }))
-    );
-  }
+  // Every new account also gets one coach pack (2026-10-08, coaches were far
+  // too rare): a guaranteed coach, with or without a promo code. One insert
+  // either way, so registration stays a single round trip here.
+  await db.insert(ownedPacks).values([
+    ...(promo
+      ? []
+      : Array.from({ length: WELCOME_PACK_QUANTITY }, () => ({ userId: user.id, packType: "welcomeBonus" as const, openedAt: null }))),
+    { userId: user.id, packType: "wheelCoach" as const, openedAt: null },
+  ]);
 
   const accessToken = signAccessToken(user.id);
   setRefreshCookie(res, signRefreshToken(user.id));
