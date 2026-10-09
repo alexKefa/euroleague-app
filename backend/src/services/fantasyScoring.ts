@@ -818,13 +818,16 @@ async function saveMidRoundSubstitutions(
       pastDayTeamIds.add(g.awayTeamId);
     }
   }
-  // A player whose game has already been played keeps their starter /
-  // sixth man / bench slot (2026-10-09, direct request: "cant place a bench
-  // player (completed) to main 5 ... only switch with non played") — so
-  // finished points can't be moved into or out of the scoring slots.
+  // A player whose game has already been played can't cross the bench line
+  // (2026-10-09, direct request: "cant place a bench player (completed) to
+  // main 5 ... only switch with non played"): bench scores
+  // BENCH_SCORE_MULTIPLIER while starter and sixth man both score in full,
+  // so only that move would rescore a finished game. Starter <-> sixth man
+  // stays open for them (same score), so an unplayed sixth man can still
+  // come into the five ("I should have 2-2-1 available and 1-2-2").
   const movedPlayed = entries.find((e) => {
     const existing = existingByPlayerId.get(e.playerId)!;
-    return startedTeamIds.has(existing.teamId) && existing.slotRole !== e.slotRole;
+    return startedTeamIds.has(existing.teamId) && (existing.slotRole === "bench") !== (e.slotRole === "bench");
   });
   if (movedPlayed) {
     return { error: "A player whose game has already been played can't change slot", code: "PLAYER_PLAYED", playerId: movedPlayed.playerId };

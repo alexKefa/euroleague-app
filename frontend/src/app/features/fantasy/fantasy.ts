@@ -1036,8 +1036,8 @@ export class FantasyComponent implements OnInit {
     for (let targetIdx = 0; targetIdx < slots.length; targetIdx++) {
       const target = slots[targetIdx];
       if (!target.playerId || target.playerId === id) continue;
-      if (this.isPlayerLocked(target.playerId)) continue;
       if (target.role === sourceRole) continue;
+      if (!this.swapRolesAllowed(slots, sourceIdx, targetIdx)) continue;
       const targetRow = byId.get(target.playerId);
       if (!targetRow) continue;
       const result = this.evaluateSwap(slots, sourceIdx, targetIdx);
@@ -2242,18 +2242,20 @@ export class FantasyComponent implements OnInit {
 
     const keep: Record<PositionName, number> = { Guard: 0, Forward: 0, Center: 0 };
     const outgoing: number[] = [];
-    // Played starters first: they must stay, so they claim their position's quota.
+    // Played starters claim their position's quota first: they can only
+    // leave the five by trading places with the sixth man.
     const starterIdx = [...Array(this.starterCount).keys()].sort(
-      (a, b) => Number(this.isPlayerLocked(slots[b].playerId!)) - Number(this.isPlayerLocked(slots[a].playerId!))
+      (a, b) => Number(this.hasPlayed(slots[b].playerId!)) - Number(this.hasPlayed(slots[a].playerId!))
     );
     for (const i of starterIdx) {
       const id = slots[i].playerId;
       const pos = id ? (byId.get(id)?.player.position as PositionName | undefined) : undefined;
       if (!id || !pos || !(pos in need)) return null;
       if (keep[pos] < need[pos]) keep[pos]++;
-      else if (this.isPlayerLocked(id)) return null;
       else outgoing.push(i);
     }
+    // Played outgoing first, so the sixth man spot goes to whoever needs it.
+    outgoing.sort((a, b) => Number(this.hasPlayed(slots[b].playerId!)) - Number(this.hasPlayed(slots[a].playerId!)));
 
     for (const out of outgoing) {
       const pos = (["Guard", "Forward", "Center"] as PositionName[]).find((p) => keep[p] < need[p])!;
@@ -2261,8 +2263,8 @@ export class FantasyComponent implements OnInit {
         (s, idx) =>
           idx >= this.starterCount &&
           s.playerId !== null &&
-          !this.isPlayerLocked(s.playerId) &&
-          byId.get(s.playerId)?.player.position === pos
+          byId.get(s.playerId)?.player.position === pos &&
+          this.swapRolesAllowed(slots, out, idx)
       );
       if (inIdx === -1) return null;
       const incoming = slots[inIdx].playerId;
@@ -2348,13 +2350,33 @@ export class FantasyComponent implements OnInit {
   // a player's game has actually started, not just once the server's own
   // stale-by-design snapshot caught up. roundLocked() short-circuits this
   // to true for every player at once, per the whole-round lock above.
+  // Mid-round (2026-10-09): a played player can't cross the bench line —
+  // bench scores 50%, starter and sixth man both score in full, so moving
+  // a finished game on or off the bench would rescore it. Between the
+  // starting five and the sixth man spot they can still move (same score),
+  // which is what lets an unplayed sixth man come into the five ("I should
+  // have 2-2-1 available and 1-2-2"). A played bench player can't move at
+  // all. Mirrors saveMidRoundSubstitutions' PLAYER_PLAYED check.
   isPlayerLocked(playerId: string): boolean {
     if (this.editLocked()) return true;
-    // Mid-round window included (2026-10-09, "only switch with non played"):
-    // a player whose game has been played keeps their starter / sixth man /
-    // bench slot, so finished points can't be moved into or out of the
-    // scoring slots. Mirrors saveMidRoundSubstitutions' PLAYER_PLAYED check.
-    return this.hasPlayed(playerId);
+    if (!this.hasPlayed(playerId)) return false;
+    return this.squadSlots().find((s) => s.playerId === playerId)?.role === "bench";
+  }
+
+  // Whether this player may end up in a slot of role `to`.
+  canTakeRole(playerId: string, from: FantasySlotRole, to: FantasySlotRole): boolean {
+    if (this.editLocked()) return false;
+    return !this.hasPlayed(playerId) || (from === "bench") === (to === "bench");
+  }
+
+  // Both sides of a two-slot swap may take each other's role.
+  private swapRolesAllowed(slots: SquadSlot[], a: number, b: number): boolean {
+    const pa = slots[a].playerId;
+    const pb = slots[b].playerId;
+    return (
+      (!pa || this.canTakeRole(pa, slots[a].role, slots[b].role)) &&
+      (!pb || this.canTakeRole(pb, slots[b].role, slots[a].role))
+    );
   }
 
   // Whether this player's own game this round has already tipped off.
@@ -2684,7 +2706,7 @@ export class FantasyComponent implements OnInit {
   // logic, so this only ever acts on an id that's actually in the list.
   performSwap(targetPlayerId: string): void {
     const sourceId = this.swapPlayerId();
-    if (!sourceId || this.isPlayerLocked(sourceId) || this.isPlayerLocked(targetPlayerId)) return;
+    if (!sourceId || this.isPlayerLocked(sourceId)) return;
     const candidate = this.swapCandidates().find((c) => c.row.player.id === targetPlayerId);
     if (!candidate) return;
     let slots = [...this.squadSlots()];
@@ -2816,6 +2838,7 @@ export class FantasyComponent implements OnInit {
       // Moving into an empty slot — not a swap, same strict gating the
       // slot-picker itself uses for filling an empty starter slot.
       if (!this.slotAcceptsPlayer(targetId, draggedPlayerId)) return;
+      if (!this.swapRolesAllowed(slots, sourceIdx, targetIdx)) return;
       slots[sourceIdx] = { ...slots[sourceIdx], playerId: null };
       slots[targetIdx] = { ...slots[targetIdx], playerId: draggedPlayerId };
       this.squadSlots.set(slots);
@@ -2832,7 +2855,10 @@ export class FantasyComponent implements OnInit {
     // bench <-> bench, or a starter dragged straight onto the sixth man)
     // is outside that shape and keeps the original same-required-position
     // rule, unchanged.
-    if (this.isPlayerLocked(displaced)) return;
+    if (!this.swapRolesAllowed(slots, sourceIdx, targetIdx)) {
+      this.flashSwapRejected();
+      return;
+    }
     const sourceSlot = slots[sourceIdx];
     const targetSlot = slots[targetIdx];
     // Any cross-role pair — including sixth man <-> starter (2026-10-09,
