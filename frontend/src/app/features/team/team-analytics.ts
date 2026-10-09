@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, input, signal, untracked } from "@angular/core";
+import { Component, computed, effect, inject, input, signal, untracked, viewChild } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
@@ -6,6 +6,7 @@ import { I18nService } from "../../core/i18n.service";
 import { AnalyticsPlayer, PlayerRestLine, ShotZone, TeamAnalytics, TeamRestRow, TeamRestSplits, TeamReferees } from "../../core/models";
 import { formatPlayerName } from "../../shared/player-name";
 import { netRating } from "./lineup-math";
+import { LineupBuilderComponent } from "./lineup-builder";
 
 // Team page analytics (2026-10-06): shot profile vs league, most-used
 // lineups, on/off, clutch. Data from GET /teams/:id/analytics, built from
@@ -21,7 +22,7 @@ const SMALL_SAMPLE_GAMES = 5;
 @Component({
   selector: "app-team-analytics",
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, LineupBuilderComponent],
   templateUrl: "./team-analytics.html",
 })
 export class TeamAnalyticsComponent {
@@ -99,6 +100,20 @@ export class TeamAnalyticsComponent {
       net: netRating(l.ptsFor, l.possFor, l.ptsAgainst, l.possAgainst),
     }))
   );
+
+  // Lineup builder (2026-10-09): everyone with lineup minutes, most first.
+  readonly builder = viewChild(LineupBuilderComponent);
+  readonly builderPool = computed(() =>
+    [...(this.data()?.onOff ?? [])].sort((a, b) => b.secondsOn - a.secondsOn).map((o) => o.player)
+  );
+
+  openInBuilder(codes: string[]): void {
+    this.builder()?.load(codes);
+  }
+
+  codesOf(players: AnalyticsPlayer[]): string[] {
+    return players.map((p) => p.code);
+  }
 
   readonly onOff = computed(() =>
     (this.data()?.onOff ?? [])

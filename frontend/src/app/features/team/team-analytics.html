@@ -80,6 +80,9 @@
                   <p class="text-[12px] text-muted font-mono mt-0.5">
                     {{ minutes(l.seconds) }} {{ i18n.t('ta.min') }} &middot; {{ l.games }} {{ i18n.t('ta.gp') }} &middot; {{ l.ptsFor }}-{{ l.ptsAgainst }}
                   </p>
+                  <button type="button" (click)="openInBuilder(codesOf(l.players))" class="text-[11px] font-semibold text-team-primary hover:underline mt-1">
+                    {{ i18n.t('ta.openInBuilder') }} ›
+                  </button>
                 </div>
                 <div class="shrink-0 text-right">
                   <p class="font-display text-lg leading-none tabular-nums" [ngClass]="signClass(l.plusMinus)">{{ signed(l.plusMinus, 0) }}</p>
@@ -90,6 +93,11 @@
           </ul>
         }
       </div>
+
+      <!-- Lineup builder (2026-10-09, lineup-builder.ts). -->
+      @if (builderPool().length >= 2) {
+        <app-lineup-builder [teamId]="teamId()" [pool]="builderPool()" />
+      }
 
       <!-- On/off. -->
       @if (onOff().length > 0) {
