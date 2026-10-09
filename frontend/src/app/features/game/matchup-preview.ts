@@ -6,6 +6,7 @@ import { GameTeamSummary, MatchupDuelPlayer, MatchupEdgeRow, MatchupPreview, Mat
 import { NavIconComponent } from "../../shared/nav-icon";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { formatPlayerName } from "../../shared/player-name";
+import { TeamCodePipe, displayTeamCode } from "../../shared/team-display-code";
 import { injuryNoteFor, injuryStatusClass, injuryStatusLabel } from "../../shared/injury-status";
 
 const LOWER_IS_BETTER = new Set(["defRating", "tovPg"]);
@@ -20,7 +21,7 @@ const LOWER_IS_BETTER = new Set(["defRating", "tovPg"]);
 @Component({
   selector: "app-matchup-preview",
   standalone: true,
-  imports: [DatePipe, NavIconComponent, PlayerPhotoComponent],
+  imports: [DatePipe, NavIconComponent, PlayerPhotoComponent, TeamCodePipe],
   template: `
     @if (loading()) {
       <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-5 animate-pulse" aria-hidden="true">
@@ -40,7 +41,7 @@ const LOWER_IS_BETTER = new Set(["defRating", "tovPg"]);
         <div class="space-y-2 mb-3">
           @for (side of sides(); track side.team.id) {
             <div class="flex items-center gap-2 min-w-0">
-              <span class="font-display text-sm w-10 shrink-0" [style.color]="side.color">{{ side.team.code }}</span>
+              <span class="font-display text-sm w-10 shrink-0" [style.color]="side.color">{{ side.team.code | teamCode }}</span>
               @if (side.form.games.length === 0) {
                 <span class="text-xs text-muted">{{ i18n.t('matchup.noGamesYet') }}</span>
               } @else {
@@ -53,10 +54,10 @@ const LOWER_IS_BETTER = new Set(["defRating", "tovPg"]);
                       [class.border-transparent]="g.won"
                       [class.border-line]="!g.won"
                       [class.text-muted]="!g.won"
-                      [attr.title]="(g.isHome ? 'vs ' : '@ ') + g.opponent.code + ' ' + g.teamScore + '-' + g.opponentScore"
+                      [attr.title]="(g.isHome ? 'vs ' : '@ ') + (g.opponent.code | teamCode) + ' ' + g.teamScore + '-' + g.opponentScore"
                     >
                       {{ g.won ? 'W' : 'L' }}
-                      <span class="text-[8px] font-semibold opacity-80 mt-0.5">{{ g.opponent.code }}</span>
+                      <span class="text-[8px] font-semibold opacity-80 mt-0.5">{{ g.opponent.code | teamCode }}</span>
                     </span>
                   }
                 </div>
@@ -205,7 +206,7 @@ export class MatchupPreviewComponent {
     const { homeWins: h, awayWins: a } = p.h2h;
     if (p.h2h.games.length === 0) return this.i18n.t("matchup.firstMeeting");
     if (h === a) return this.fill("matchup.tied", { a: h, b: a });
-    const leader = h > a ? this.home().code : this.away().code;
+    const leader = displayTeamCode(h > a ? this.home().code : this.away().code);
     return this.fill("matchup.leads", { team: leader, a: Math.max(h, a), b: Math.min(h, a) });
   });
 
@@ -218,8 +219,8 @@ export class MatchupPreviewComponent {
     if (!h.shortRest && !a.shortRest) return null;
     const [rested, tired, days] = h.shortRest ? [this.away(), this.home(), h.restDays] : [this.home(), this.away(), a.restDays];
     const played =
-      days === 1 ? this.fill("matchup.playedYesterday", { team: tired.code }) : this.fill("matchup.playedDaysAgo", { team: tired.code, n: days ?? 0 });
-    return `${this.fill("matchup.restEdge", { team: rested.code })} · ${played}`;
+      days === 1 ? this.fill("matchup.playedYesterday", { team: displayTeamCode(tired.code) }) : this.fill("matchup.playedDaysAgo", { team: displayTeamCode(tired.code), n: days ?? 0 });
+    return `${this.fill("matchup.restEdge", { team: displayTeamCode(rested.code) })} · ${played}`;
   });
 
   protected readonly fullStrength = computed(() => {
@@ -251,7 +252,7 @@ export class MatchupPreviewComponent {
   }
 
   protected codeOf(teamId: string): string {
-    return teamId === this.home().id ? this.home().code : teamId === this.away().id ? this.away().code : "";
+    return displayTeamCode(teamId === this.home().id ? this.home().code : teamId === this.away().id ? this.away().code : "");
   }
 
   protected otherTeam(teamId: string): string {

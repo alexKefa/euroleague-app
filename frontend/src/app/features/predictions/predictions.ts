@@ -1,7 +1,8 @@
 import { ButtonDirective } from "../../shared/button.directive";
 import { SwipeDeckComponent } from "./swipe-deck";
+import { MatchupStripComponent } from "../../shared/matchup-strip";
 import { CountUpComponent } from "../../shared/count-up";
-import type { WinProbPreGame } from "../../core/models";
+import type { PreviewStrip, WinProbPreGame } from "../../core/models";
 import { Component, OnInit, OnDestroy, HostListener, computed, effect, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { forkJoin, of } from "rxjs";
@@ -136,7 +137,7 @@ interface DisplayedPick {
 @Component({
   selector: "app-predictions",
   standalone: true,
-  imports: [PageHeaderComponent, CountUpComponent, FirstPicksCardComponent, ButtonDirective, SwipeDeckComponent, 
+  imports: [PageHeaderComponent, MatchupStripComponent, CountUpComponent, FirstPicksCardComponent, ButtonDirective, SwipeDeckComponent, 
     TodayTagPipe,
     CommonModule,
     RouterLink,
@@ -212,6 +213,8 @@ export class PredictionsComponent implements OnInit, OnDestroy {
   readonly predictionByGameId = computed(() => new Map(this.myPredictions().map((p) => [p.gameId, p])));
   // Win-probability model's pre-game chance per game (2026-10-07), display only.
   readonly modelProbs = signal<Record<string, WinProbPreGame>>({});
+  // Matchup preview strips (2026-10-09), one call per round.
+  readonly previewStrips = signal<Record<string, PreviewStrip>>({});
   readonly loading = signal(true);
   // Separate from `loading` on purpose — the schedule fetch that populates
   // upcomingGames runs independently of the predictions fetch that gates
@@ -674,6 +677,10 @@ export class PredictionsComponent implements OnInit, OnDestroy {
         this.api.getPreGameWinProbs(schedule.season, schedule.round).subscribe({
           next: (probs) => this.modelProbs.set(probs),
           error: () => {}, // optional line
+        });
+        this.api.getRoundPreviewStrips(schedule.season, schedule.round).subscribe({
+          next: (strips) => this.previewStrips.set(strips),
+          error: () => {}, // optional strip
         });
         this.upcomingGamesLoading.set(false);
         if (this.auth.isAuthenticated()) this.loadTopScorerQuotes();

@@ -258,6 +258,10 @@
                   {{ (wp.homeProb >= 0.5 ? wp.homeProb : 1 - wp.homeProb) * 100 | number: '1.0-0' }}%
                 </p>
               }
+              <!-- Matchup preview strip (2026-10-09, shared/matchup-strip.ts). -->
+              @if (previewStrips()[game.id]; as strip) {
+                <app-matchup-strip [strip]="strip" [home]="game.homeTeam" [away]="game.awayTeam" [gameId]="game.id" />
+              }
               <!-- Community split (2026-10-08): only after you've saved a pick. -->
               @if (splitFor(game); as sp) {
                 <div class="px-3 py-2 border-t border-line">
@@ -1207,6 +1211,7 @@
     [games]="dg"
     [points]="deckPoints"
     [probs]="modelProbs()"
+    [previews]="previewStrips()"
     [recommendations]="deckRecommendations"
     [quote]="deckQuote"
     [hasTopScorer]="deckHasTopScorer"

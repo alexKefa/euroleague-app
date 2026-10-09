@@ -1,6 +1,7 @@
 import { AfterViewInit, Component, ElementRef, HostListener, NgZone, computed, effect, inject, input, output, signal, viewChild } from "@angular/core";
 import { DecimalPipe } from "@angular/common";
-import type { Game, PlayerAdvancedStatsRow, WinProbPreGame } from "../../core/models";
+import type { Game, PlayerAdvancedStatsRow, PreviewStrip, WinProbPreGame } from "../../core/models";
+import { MatchupStripComponent } from "../../shared/matchup-strip";
 import { I18nService } from "../../core/i18n.service";
 import { ButtonDirective } from "../../shared/button.directive";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
@@ -32,7 +33,7 @@ type Gsap = typeof import("gsap").gsap;
 @Component({
   selector: "app-swipe-deck",
   standalone: true,
-  imports: [DecimalPipe, ButtonDirective, RetryImgDirective, TeamCodePipe, PlayerPhotoComponent],
+  imports: [DecimalPipe, ButtonDirective, RetryImgDirective, TeamCodePipe, PlayerPhotoComponent, MatchupStripComponent],
   template: `
     <div class="sheet-backdrop fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex flex-col items-center justify-center p-4" (click)="closed.emit()">
       <div class="w-full max-w-sm flex flex-col items-center" (click)="$event.stopPropagation()">
@@ -65,6 +66,9 @@ type Gsap = typeof import("gsap").gsap;
                   <span class="font-semibold text-ink">{{ wp.homeProb >= 0.5 ? g.homeTeam.name : g.awayTeam.name }}</span>
                   {{ (wp.homeProb >= 0.5 ? wp.homeProb : 1 - wp.homeProb) * 100 | number: "1.0-0" }}%
                 </p>
+              }
+              @if (previews()[g.id]; as strip) {
+                <app-matchup-strip class="block mt-3" [strip]="strip" [home]="g.homeTeam" [away]="g.awayTeam" [gameId]="g.id" />
               }
             } @else {
               <p class="font-display text-lg text-center mb-3">{{ i18n.t("predictions.deck.topScorerQ") }}</p>
@@ -115,6 +119,7 @@ export class SwipeDeckComponent implements AfterViewInit {
   readonly games = input.required<Game[]>();
   readonly points = input.required<(game: Game, teamId: string) => number>();
   readonly probs = input<Record<string, WinProbPreGame>>({});
+  readonly previews = input<Record<string, PreviewStrip>>({});
   // Top-scorer step: the page's own recommendations, quotes and state.
   readonly recommendations = input.required<(teamId: string) => PlayerAdvancedStatsRow[]>();
   readonly quote = input.required<(game: Game, playerId: string) => number | null>();
