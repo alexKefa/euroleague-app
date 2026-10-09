@@ -5,6 +5,7 @@ import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
 import { AnalyticsPlayer, PlayerRestLine, ShotZone, TeamAnalytics, TeamRestRow, TeamRestSplits, TeamReferees } from "../../core/models";
 import { formatPlayerName } from "../../shared/player-name";
+import { netRating } from "./lineup-math";
 
 // Team page analytics (2026-10-06): shot profile vs league, most-used
 // lineups, on/off, clutch. Data from GET /teams/:id/analytics, built from
@@ -16,15 +17,6 @@ const ON_OFF_MIN_SECONDS = 300;
 // Under this many games every number here swings wildly; say so.
 const SMALL_SAMPLE_GAMES = 5;
 
-function rating(pts: number, poss: number): number | null {
-  return poss > 0 ? (pts / poss) * 100 : null;
-}
-
-function netRating(ptsFor: number, possFor: number, ptsAgainst: number, possAgainst: number): number | null {
-  const o = rating(ptsFor, possFor);
-  const d = rating(ptsAgainst, possAgainst);
-  return o == null || d == null ? null : o - d;
-}
 
 @Component({
   selector: "app-team-analytics",
