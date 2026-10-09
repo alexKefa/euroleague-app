@@ -1,6 +1,7 @@
 import { ButtonDirective } from "../../shared/button.directive";
 import { SwipeDeckComponent } from "./swipe-deck";
 import { MatchupStripComponent } from "../../shared/matchup-strip";
+import { PendingPicksStore } from "./pending-picks.store";
 import { CountUpComponent } from "../../shared/count-up";
 import type { PreviewStrip, WinProbPreGame } from "../../core/models";
 import { Component, OnInit, OnDestroy, HostListener, computed, effect, inject, signal } from "@angular/core";
@@ -245,7 +246,9 @@ export class PredictionsComponent implements OnInit, OnDestroy {
   // the whole diff in one request when the user taps "Complete
   // predictions". Only ever holds genuine differences from myPicks (see
   // togglePick) so hasPendingChanges() is just "is this non-empty".
-  readonly pendingPicks = signal<Map<string, string | null>>(new Map());
+  // Held in PendingPicksStore (2026-10-09) so in-app navigation keeps it.
+  private readonly pendingStore = inject(PendingPicksStore);
+  readonly pendingPicks = this.pendingStore.picks;
   readonly submitting = signal(false);
   readonly submitError = signal<string | null>(null);
   readonly clearingAll = signal(false);
@@ -609,6 +612,7 @@ export class PredictionsComponent implements OnInit, OnDestroy {
   }
 
   constructor() {
+    this.pendingStore.claimFor(this.auth.currentUser()?.id ?? null);
     // Live score push, same pattern as schedule.ts: patch the matching
     // game's status/scores in place instead of refetching. This is what
     // actually locks a pick — the moment a game flips off "scheduled" here,

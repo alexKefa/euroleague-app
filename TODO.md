@@ -110,3 +110,14 @@ reliability table. Spot check suggests the formula is overconfident in the
 last seconds (late-tie/OT winners dipped below 1%); consider a possession /
 end-game term. Copy only the new `wp_model` constants to production. Do this
 before building part 2 (Clutch Index), which depends on accurate swings.
+
+## 7. Live box scores store no minutes (found 2026-10-09)
+
+Every 2026-27 `player_game_stats` row on dev has `minutes = null` (1494/1494).
+`parseBoxscoreMinutes` in `backend/src/sync/liveGamesSync.ts` returns null
+for "DNP" *and* for any value that doesn't match `^(\d+):(\d{2})$`, so the
+feed's real Minutes format probably doesn't match. Check a raw live box
+score, fix the parser, and backfill. Until then the matchup preview counts a
+null-minutes line as played only if it has any stat (see
+`services/matchupPreview/index.ts`, `played` CTE), and anything else keyed on
+minutes (DNP detection, per-minute stats) is unreliable for this season.

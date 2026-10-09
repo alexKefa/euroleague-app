@@ -243,7 +243,8 @@ gamesRouter.get("/previews", async (req, res) => {
   try {
     const season = typeof req.query.season === "string" ? req.query.season : "";
     const round = Number(req.query.round);
-    if (!season || !Number.isInteger(round) || round < 1) {
+    // Strict shape so arbitrary query strings can't each add a cache entry.
+    if (!/^\d{4}-\d{2}$/.test(season) || !Number.isInteger(round) || round < 1 || round > 60) {
       res.status(400).json({ error: "season and a positive round are required" });
       return;
     }

@@ -133,6 +133,14 @@ check("strip", () => {
   assert.deepEqual(toStrip({ home: form, away: form }, { homeWins: 3, awayWins: 1, games: [1] }, { home: 0, away: 0 }).h2h, { homeWins: 3, awayWins: 1 });
 });
 
+check("unscored finals are ignored", () => {
+  const scored = g("A", "B", 1, true);
+  const unscored = { ...g("A", "B", 3, true), homeScore: null, awayScore: null } as unknown as FinalGameRow;
+  assert.equal(buildTeamForm("A", [scored, unscored], teamsById).games.length, 1);
+  assert.equal(buildTeamForm("A", [scored, unscored], teamsById).streak, "W1");
+  assert.equal(buildH2H("A", "B", [scored, unscored]).games.length, 1);
+});
+
 check("upcoming = scheduled and not tipped off", () => {
   const now = Date.parse("2026-10-09T18:00:00Z");
   assert.equal(isUpcoming({ status: "scheduled", tipoffAt: "2026-10-09T18:30:00Z" }, now), true);

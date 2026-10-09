@@ -110,18 +110,30 @@ async function buildFullPreview(season: string, tipoff: Date, home: TeamRef, awa
     with stats_season as (
       select ${usingPriorSeason ? sql`(select max(season) from games where season < ${season} and status = 'final')` : sql`${season}::varchar`} as season
     ),
-    lines as (
-      select s.*, coalesce(pss.team_id, p.team_id) as line_team_id
+    -- A line counts only if the player actually played: liveGamesSync stores
+    -- "DNP" as null minutes, but it also leaves minutes null when the feed's
+    -- format doesn't parse, so null minutes with any stat still counts.
+    played as (
+      select s.*, g.home_team_id, g.away_team_id
       from player_game_stats s
       join games g on g.id = s.game_id and g.status = 'final' and g.season = (select season from stats_season)
-      join players p on p.id = s.player_id
-      left join player_season_stats pss on pss.player_id = s.player_id and pss.season = g.season
+      where s.minutes > 0
+        or (s.minutes is null and (coalesce(s.points, 0) <> 0 or coalesce(s.rebounds, 0) <> 0
+          or coalesce(s.assists, 0) <> 0 or coalesce(s.valuation, 0) <> 0))
+    ),
+    lines as (
+      select pl.*, coalesce(pss.team_id, p.team_id) as line_team_id
+      from played pl
+      join players p on p.id = pl.player_id
+      left join player_season_stats pss on pss.player_id = pl.player_id and pss.season = (select season from stats_season)
     ),
     team_box as (
       select line_team_id as team_id, game_id,
         sum(coalesce(field_goals_made_3, 0)) fg3m, sum(coalesce(field_goals_attempted_3, 0)) fg3a,
         sum(coalesce(rebounds, 0)) reb, sum(coalesce(assists, 0)) ast, sum(coalesce(turnovers, 0)) tov
-      from lines where line_team_id in (${home.id}, ${away.id})
+      -- Only credit a line to a team that played in that game: a traded
+      -- player's season team would otherwise invent games for it.
+      from lines where line_team_id in (${home.id}, ${away.id}) and line_team_id in (home_team_id, away_team_id)
       group by line_team_id, game_id
     )
     select
@@ -137,9 +149,7 @@ async function buildFullPreview(season: string, tipoff: Date, home: TeamRef, awa
           count(*)::int as games, avg(l.points)::float as pts, avg(l.rebounds)::float as reb,
           avg(l.assists)::float as ast, avg(l.valuation)::float as pir
         from lines l join players p on p.id = l.player_id
-        -- minutes is null on every live-synced 2026-27 line, so only an
-        -- explicit 0 counts as a DNP.
-        where p.team_id in (${home.id}, ${away.id}) and p.active and coalesce(l.minutes, 1) > 0
+        where p.team_id in (${home.id}, ${away.id}) and p.active
         group by p.id) pl) as players`);
 
   const statLine = (teamId: string): TeamStatLine => {

@@ -122,7 +122,10 @@ export function isUpcoming(game: { status: string; tipoffAt: Date | string }, no
   return game.status === "scheduled" && new Date(game.tipoffAt).getTime() > now;
 }
 
-const involves = (g: FinalGameRow, teamId: string) => g.homeTeamId === teamId || g.awayTeamId === teamId;
+// A final without both scores (bad sync row) is no result at all — it would
+// otherwise read as an away win.
+const scored = (g: FinalGameRow) => g.homeScore != null && g.awayScore != null;
+const involves = (g: FinalGameRow, teamId: string) => scored(g) && (g.homeTeamId === teamId || g.awayTeamId === teamId);
 const newestFirst = (a: FinalGameRow, b: FinalGameRow) => b.tipoffAt.getTime() - a.tipoffAt.getTime();
 const winnerOf = (g: FinalGameRow) => (g.homeScore > g.awayScore ? g.homeTeamId : g.awayTeamId);
 
