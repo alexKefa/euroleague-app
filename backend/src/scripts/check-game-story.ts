@@ -11,6 +11,7 @@ import {
   pickStory,
 } from "../services/gameStory/angles.js";
 import type { GameFacts, LineFacts, StintFacts } from "../services/gameStory/types.js";
+import { storyText } from "../services/gameStory/copy.js";
 
 function check(name: string, fn: () => void) {
   fn();
@@ -168,6 +169,57 @@ check("missing data skips angles", () => {
   assert.equal(evaluateLineup(baseFacts({ stints: [] })), null);
   assert.equal(evaluateComeback(baseFacts({ margins: [] })), null);
   assert.ok(pickStory(noFlags)); // still a story
+});
+
+// One story per angle, for the copy checks.
+function storiesByAngle() {
+  const five = ["h1", "h2", "h3", "h6", "h7"];
+  const lineupFacts = baseFacts({ stints: [stint(HOME, five, 600, 30, 12), stint(HOME, ["h1", "h2", "h3", "h4", "h5"], 900, 20, 24)] });
+  const close = baseFacts({
+    home: { ...baseFacts().home, score: 72 },
+    overtime: true,
+    clutchPoints: [{ playerName: "Kendrick Nunn", teamId: HOME, points: 7 }],
+    clutchPlays: [{ t: 2690, period: 5, clock: 10, teamId: HOME, playerName: "Kendrick Nunn", playType: "3FGM", homeScore: 72, awayScore: 70 }],
+  });
+  const noFlags = baseFacts({ lines: [line(HOME, "h1", 10, { isStarter: null }), line(AWAY, "a1", 9, { isStarter: null })] });
+  return {
+    bench: evaluateBench(baseFacts())!,
+    lineup: evaluateLineup(lineupFacts)!,
+    explosion: evaluateExplosion(baseFacts({ lines: [line(HOME, "h1", 34, { pir: 30, prevHighPoints: 31 })] }))!,
+    comeback: evaluateComeback(baseFacts({ margins: [{ t: 300, margin: -15 }, { t: 2400, margin: 10 }] }))!,
+    clutch: evaluateClutch(close)!,
+    numbers: pickStory(noFlags),
+    facts: { bench: baseFacts(), lineup: lineupFacts, explosion: baseFacts(), comeback: baseFacts(), clutch: close, numbers: noFlags },
+  };
+}
+
+check("no placeholder left", () => {
+  const all = storiesByAngle();
+  for (const angle of ["bench", "lineup", "explosion", "comeback", "clutch", "numbers"] as const) {
+    assert.ok(all[angle], `${angle} fixture produced no story`);
+    for (const lang of ["en", "el"] as const) {
+      const t = storyText(all[angle], all.facts[angle], lang);
+      const strings = [t.label, t.headline, t.lede, t.takeaway, t.context, t.matchup, t.shareText, ...(t.footnote ? [t.footnote] : []), ...Object.values(t.labels)];
+      for (const s of strings) {
+        assert.ok(s.trim().length > 0, `${angle}/${lang}: empty string`);
+        assert.ok(!/[{}]/.test(s), `${angle}/${lang}: placeholder left in "${s}"`);
+      }
+    }
+  }
+});
+
+check("lede is deterministic", () => {
+  const s = storiesByAngle().bench;
+  const a = storyText(s, baseFacts({ gameId: "game-A" }), "en").lede;
+  assert.equal(storyText(s, baseFacts({ gameId: "game-A" }), "en").lede, a);
+  const ledes = new Set(["g1", "g2", "g3", "g4", "g5", "g6"].map((id) => storyText(s, baseFacts({ gameId: id }), "en").lede));
+  assert.ok(ledes.size > 1, "variants never rotate");
+});
+
+check("share text has link", () => {
+  const t = storyText(storiesByAngle().bench, baseFacts(), "el");
+  assert.ok(t.shareText.includes("getclutchapp.com/games/game-1"));
+  assert.ok(t.shareText.includes("#EuroLeague"));
 });
 
 console.log("all game-story checks passed");
