@@ -5,6 +5,7 @@ import { I18nService } from "../../core/i18n.service";
 import { StorySummary } from "../../core/models";
 import { ButtonDirective } from "../../shared/button.directive";
 import { NavIconComponent } from "../../shared/nav-icon";
+import { SkeletonComponent } from "../../shared/skeleton";
 
 type ShareState = "idle" | "working" | "needsTap" | "downloaded" | "copied" | "error";
 
@@ -17,7 +18,7 @@ type ShareState = "idle" | "working" | "needsTap" | "downloaded" | "copied" | "e
 @Component({
   selector: "app-game-story",
   standalone: true,
-  imports: [ButtonDirective, NavIconComponent],
+  imports: [ButtonDirective, NavIconComponent, SkeletonComponent],
   template: `
     @if (!failed()) {
       <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-5">
@@ -27,7 +28,32 @@ type ShareState = "idle" | "working" | "needsTap" | "downloaded" | "copied" | "e
         </div>
         <div class="relative w-full rounded-2xl overflow-hidden border border-line bg-page" style="aspect-ratio: 1080 / 1350">
           @if (!loaded()) {
-            <div class="absolute inset-0 animate-pulse bg-line/50" aria-hidden="true"></div>
+            <!-- Card-shaped skeleton (2026-10-09): the first render of a card
+                 takes a second or two server-side, so show its outline. -->
+            <div class="absolute inset-0 flex flex-col p-[5%] gap-[2.2%] bg-card" aria-hidden="true">
+              <div class="flex justify-between gap-[4%]">
+                <div class="flex flex-col gap-[10%] w-[52%]">
+                  <div class="flex items-center gap-[6%]">
+                    <app-skeleton class="w-[18%] aspect-square rounded-full" />
+                    <app-skeleton class="h-3 w-[55%] rounded" />
+                  </div>
+                  <app-skeleton class="h-8 sm:h-10 w-full rounded-lg" />
+                </div>
+                <div class="flex flex-col gap-[14%] w-[40%] pt-[2%]">
+                  <app-skeleton class="h-5 w-full rounded" />
+                  <app-skeleton class="h-5 w-[85%] rounded" />
+                </div>
+              </div>
+              <app-skeleton class="h-2.5 w-[70%] rounded" />
+              <div class="h-1 w-full rounded bg-team-primary/40"></div>
+              <app-skeleton class="h-4 w-[80%] rounded" />
+              <div class="flex-1 rounded-xl bg-page p-[4%] flex flex-col gap-[6%]">
+                @for (w of skeletonRows; track $index) {
+                  <app-skeleton class="h-4 rounded" [style.width.%]="w" />
+                }
+              </div>
+              <app-skeleton class="h-3 w-[40%] self-end rounded" />
+            </div>
           }
           @if (imageUrl(); as src) {
           <img
@@ -47,6 +73,9 @@ type ShareState = "idle" | "working" | "needsTap" | "downloaded" | "copied" | "e
           <button type="button" appButton="outline" appButtonSize="sm" [disabled]="!loaded()" (click)="download()">{{ i18n.t('story.download') }}</button>
           <button type="button" appButton="outline" appButtonSize="sm" (click)="copyLink()">{{ i18n.t('story.copyLink') }}</button>
         </div>
+        @if (!loaded()) {
+          <p class="text-xs text-muted text-center mt-2">{{ i18n.t('story.generating') }}</p>
+        }
         @if (note(); as n) {
           <p class="text-xs text-center mt-2" [class.text-red-500]="state() === 'error'" [class.text-muted]="state() !== 'error'">{{ n }}</p>
         }
@@ -63,6 +92,7 @@ export class GameStoryComponent {
   readonly awayCode = input.required<string>();
 
   protected readonly loaded = signal(false);
+  protected readonly skeletonRows = [45, 100, 92, 96, 88, 60, 100, 94];
   protected readonly failed = signal(false);
   protected readonly state = signal<ShareState>("idle");
   protected readonly summary = signal<StorySummary | null>(null);

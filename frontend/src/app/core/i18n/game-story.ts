@@ -11,5 +11,6 @@ export const gameStoryTranslations: Record<string, Record<Lang, string>> = {
   "story.tapAgain": { en: "Ready — tap to share", el: "Έτοιμο — πάτα για κοινοποίηση" },
   "story.downloaded": { en: "Saved to your downloads", el: "Αποθηκεύτηκε στις λήψεις σου" },
   "story.error": { en: "Couldn't share this card. Try again.", el: "Δεν ήταν δυνατή η κοινοποίηση. Δοκίμασε ξανά." },
+  "story.generating": { en: "Building the card…", el: "Δημιουργία κάρτας…" },
   "story.alt": { en: "Story of the game card", el: "Κάρτα με την ιστορία του αγώνα" },
 };
