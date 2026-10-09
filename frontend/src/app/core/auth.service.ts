@@ -47,6 +47,37 @@ export class AuthService {
       );
   }
 
+  // Sign in with Google (2026-10-09): one call for sign-in and sign-up;
+  // `created` tells a brand-new account apart from an existing one.
+  googleSignIn(
+    credential: string,
+    referralCode?: string | null,
+    promoCode?: string | null
+  ): Observable<RegisterResult & { created: boolean }> {
+    return this.http
+      .post<AuthResponse & { created: boolean }>(
+        `${API_BASE_URL}/auth/google`,
+        { credential, referralCode, promoCode },
+        { withCredentials: true }
+      )
+      .pipe(
+        tap((res) => this.setSession(res)),
+        map((res) => ({ user: res.user, promo: res.promo ?? null, created: res.created }))
+      );
+  }
+
+  // Null client id = Google sign-in not configured (button hidden).
+  private authConfig$?: Observable<{ googleClientId: string | null }>;
+  getAuthConfig(): Observable<{ googleClientId: string | null }> {
+    this.authConfig$ ??= this.http
+      .get<{ googleClientId: string | null }>(`${API_BASE_URL}/auth/config`)
+      .pipe(
+        catchError(() => of({ googleClientId: null })),
+        shareReplay(1)
+      );
+    return this.authConfig$;
+  }
+
   login(email: string, password: string): Observable<PublicUser> {
     return this.http
       .post<AuthResponse>(`${API_BASE_URL}/auth/login`, { email, password }, { withCredentials: true })

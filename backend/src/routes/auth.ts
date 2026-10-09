@@ -11,6 +11,7 @@ import { createUniqueUsername, isUsernameTaken, isValidUsername } from "../servi
 import { redeemPromoCode } from "../services/promoCodes.js";
 import { getCurrentSeason } from "../services/season.js";
 import { sendPasswordResetEmail, type EmailLang } from "../services/email.js";
+import { googleClientId, verifyGoogleCredential } from "../services/googleAuth.js";
 
 export const authRouter = Router();
 
@@ -98,6 +99,54 @@ function publicUser(user: typeof users.$inferSelect) {
   };
 }
 
+// Everything a new account gets, shared by email/password register and
+// Google sign-up (2026-10-09) so the two can't drift: generated username
+// and favorite team when not given, referral link, promo redemption, and
+// the welcome packs (a promo replaces the welcome-bonus packs).
+async function createAccount(input: {
+  email: string;
+  passwordHash: string;
+  username: string | null;
+  favoriteTeamId: string | null;
+  referralCode: unknown;
+  promoCode: unknown;
+}) {
+  let referredByUserId: string | null = null;
+  if (typeof input.referralCode === "string" && input.referralCode.length > 0) {
+    const [referrer] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.referralCode, input.referralCode.toUpperCase()))
+      .limit(1);
+    referredByUserId = referrer?.id ?? null;
+  }
+
+  const [user] = await db
+    .insert(users)
+    .values({
+      email: input.email,
+      username: input.username ?? (await createUniqueUsername()),
+      passwordHash: input.passwordHash,
+      favoriteTeamId: input.favoriteTeamId ?? (await randomFavoriteTeamId()),
+      referralCode: await createUniqueReferralCode(),
+      referredByUserId,
+    })
+    .returning();
+
+  let promo = null;
+  if (typeof input.promoCode === "string" && input.promoCode.length > 0) {
+    promo = await redeemPromoCode(input.promoCode, user.id);
+  }
+
+  await db.insert(ownedPacks).values([
+    ...(promo
+      ? []
+      : Array.from({ length: WELCOME_PACK_QUANTITY }, () => ({ userId: user.id, packType: "welcomeBonus" as const, openedAt: null }))),
+    { userId: user.id, packType: "wheelCoach" as const, openedAt: null },
+  ]);
+  return { user, promo };
+}
+
 authRouter.post("/register", credentialsLimiter, async (req, res) => {
   const { email, password, username, favoriteTeamId, referralCode, promoCode } = req.body ?? {};
   if (typeof email !== "string" || typeof password !== "string" || password.length < 8) {
@@ -133,59 +182,14 @@ authRouter.post("/register", credentialsLimiter, async (req, res) => {
   // An unrecognized/malformed code is silently ignored rather than
   // rejecting the whole signup over it — worst case, nobody gets a
   // referral bonus, which isn't worth blocking someone's registration for.
-  let referredByUserId: string | null = null;
-  if (typeof referralCode === "string" && referralCode.length > 0) {
-    const [referrer] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.referralCode, referralCode.toUpperCase()))
-      .limit(1);
-    referredByUserId = referrer?.id ?? null;
-  }
-
-  const passwordHash = await hashPassword(password);
-  const newReferralCode = await createUniqueReferralCode();
-  const newUsername = trimmedUsername.length > 0 ? trimmedUsername : await createUniqueUsername();
-  // A skipped team picker used to leave favoriteTeamId permanently null —
-  // default to a random current-competition team instead, so every account
-  // gets the personalized reskin from day one rather than the generic blue.
-  const resolvedFavoriteTeamId = favoriteTeamId ?? (await randomFavoriteTeamId());
-  const [user] = await db
-    .insert(users)
-    .values({
-      email,
-      username: newUsername,
-      passwordHash,
-      favoriteTeamId: resolvedFavoriteTeamId,
-      referralCode: newReferralCode,
-      referredByUserId,
-    })
-    .returning();
-
-  // Same "silently ignore an invalid code rather than fail the signup"
-  // philosophy as referralCode above — worst case, no promo bonus, which
-  // isn't worth blocking registration over. `promo` in the response lets
-  // the frontend show a confirmation when it *did* apply.
-  let promo = null;
-  if (typeof promoCode === "string" && promoCode.length > 0) {
-    promo = await redeemPromoCode(promoCode, user.id);
-  }
-
-  // Packs, not points, as of 2026-09-21 — WELCOME_BONUS_POINTS (a flat 150
-  // points to go spend on a pack later) replaced with granting the pack
-  // directly. A user who came in on a real promo/QR code already got their
-  // (usually more generous, e.g. QRFLYER's 5) packs above; everyone else
-  // gets this smaller default so registering with no code still comes with
-  // something to open.
-  // Every new account also gets one coach pack (2026-10-08, coaches were far
-  // too rare): a guaranteed coach, with or without a promo code. One insert
-  // either way, so registration stays a single round trip here.
-  await db.insert(ownedPacks).values([
-    ...(promo
-      ? []
-      : Array.from({ length: WELCOME_PACK_QUANTITY }, () => ({ userId: user.id, packType: "welcomeBonus" as const, openedAt: null }))),
-    { userId: user.id, packType: "wheelCoach" as const, openedAt: null },
-  ]);
+  const { user, promo } = await createAccount({
+    email,
+    passwordHash: await hashPassword(password),
+    username: trimmedUsername.length > 0 ? trimmedUsername : null,
+    favoriteTeamId: favoriteTeamId ?? null,
+    referralCode,
+    promoCode,
+  });
 
   const accessToken = signAccessToken(user.id);
   setRefreshCookie(res, signRefreshToken(user.id));
@@ -216,6 +220,63 @@ authRouter.post("/login", credentialsLimiter, async (req, res) => {
   setRefreshCookie(res, signRefreshToken(user.id));
 
   res.json({ user: publicUser(user), accessToken });
+});
+
+// Whether Google sign-in is configured, so the frontend can hide the button.
+authRouter.get("/config", (_req, res) => {
+  res.json({ googleClientId: googleClientId() });
+});
+
+// Sign in with Google (2026-10-09, services/googleAuth.ts): one route for
+// both sign-in and sign-up. An existing account with the Google-verified
+// email logs in (its password keeps working); a new email gets a full
+// account exactly like /register, with an unusable random password that
+// "Forgot password" can replace later.
+authRouter.post("/google", credentialsLimiter, async (req, res) => {
+  const clientId = googleClientId();
+  if (!clientId) {
+    res.status(503).json({ error: "Google sign-in isn't configured", code: "GOOGLE_DISABLED" });
+    return;
+  }
+  const { credential, referralCode, promoCode } = req.body ?? {};
+  if (typeof credential !== "string" || credential.length === 0 || credential.length > 4096) {
+    res.status(400).json({ error: "credential is required", code: "INVALID_REQUEST_BODY" });
+    return;
+  }
+
+  let identity;
+  try {
+    identity = await verifyGoogleCredential(credential, clientId);
+  } catch {
+    res.status(401).json({ error: "Google sign-in failed", code: "GOOGLE_TOKEN_INVALID" });
+    return;
+  }
+  if ("error" in identity) {
+    res.status(401).json({ error: "Your Google account email isn't verified", code: identity.error });
+    return;
+  }
+
+  try {
+    const [existing] = await db.select().from(users).where(sql`lower(${users.email}) = ${identity.email}`).limit(1);
+    let user = existing;
+    let promo = null;
+    if (!user) {
+      ({ user, promo } = await createAccount({
+        email: identity.email,
+        passwordHash: await hashPassword(crypto.randomBytes(32).toString("hex")),
+        username: null,
+        favoriteTeamId: null,
+        referralCode,
+        promoCode,
+      }));
+    }
+    const accessToken = signAccessToken(user.id);
+    setRefreshCookie(res, signRefreshToken(user.id));
+    res.status(existing ? 200 : 201).json({ user: publicUser(user), accessToken, promo, created: !existing });
+  } catch (err) {
+    console.error("POST /api/auth/google failed:", err);
+    res.status(500).json({ error: "Google sign-in failed", code: "GOOGLE_SIGNIN_FAILED" });
+  }
 });
 
 authRouter.post("/refresh", refreshLimiter, async (req, res) => {

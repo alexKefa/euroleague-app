@@ -89,15 +89,23 @@ app.use(
       directives: {
         ...helmet.contentSecurityPolicy.getDefaultDirectives(),
         "img-src": ["'self'", "data:", "https:"],
-        "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://accounts.google.com/gsi/style"],
         "font-src": ["'self'", "https://fonts.gstatic.com"],
         // 'wasm-unsafe-eval' lets the Fantasy Five screenshot import run
         // Tesseract's self-hosted WebAssembly OCR core (/tesseract/core) —
         // it permits compiling wasm only, not JS eval().
-        "script-src": ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'"],
+        // Sign in with Google (2026-10-09): the Google Identity Services
+        // script, its button iframe, its stylesheet and its token calls
+        // all live under accounts.google.com/gsi/.
+        "script-src": ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", "https://accounts.google.com/gsi/client"],
         "script-src-attr": ["'unsafe-inline'"],
+        "frame-src": ["'self'", "https://accounts.google.com/gsi/", "https://www.youtube-nocookie.com"],
+        "connect-src": ["'self'", "https://accounts.google.com/gsi/"],
       },
     },
+    // GIS's popup needs to post the credential back to this page, which
+    // helmet's default "same-origin" opener policy blocks.
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
   })
 );
 app.use(cors({ origin: true, credentials: true }));

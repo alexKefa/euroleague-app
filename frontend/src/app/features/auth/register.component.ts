@@ -9,12 +9,13 @@ import { OpenInBrowserBannerComponent } from "../../shared/open-in-browser-banne
 import { TeamPickDialogComponent } from "../../shared/team-pick-dialog";
 import { peekPendingPromoClaim, consumePendingPromoClaim } from "../../shared/pending-promo-claim";
 import { clearPendingReferral, peekPendingReferral, stashPendingReferral } from "../../shared/pending-referral";
+import { GoogleSignInButtonComponent, type GoogleSignInResult } from "../../shared/google-sign-in-button";
 import { pendingLeagueJoinUrl } from "../../shared/pending-league-join";
 
 @Component({
   selector: "app-register",
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, ButtonDirective, OpenInBrowserBannerComponent, TeamPickDialogComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, ButtonDirective, OpenInBrowserBannerComponent, TeamPickDialogComponent, GoogleSignInButtonComponent],
   templateUrl: "./register.component.html",
 })
 export class RegisterComponent implements OnInit {
@@ -66,6 +67,36 @@ export class RegisterComponent implements OnInit {
     this.promoCode.set(this.route.snapshot.queryParamMap.get("promo") ?? peekPendingPromoClaim());
   }
 
+  // A new account (email/password or Google): team pick, after a pause on
+  // the "promo applied" note if a promo came with the signup.
+  private afterSignUp(promo: GoogleSignInResult["promo"]): void {
+    // Registration itself already redeemed this.promoCode() directly
+    // (routes/auth.ts) — clear the stash so a later /claim visit
+    // doesn't try the same code again.
+    consumePendingPromoClaim();
+    clearPendingReferral();
+    if (!promo) {
+      this.showTeamDialog.set(true);
+      return;
+    }
+    // Brief pause on the "promo applied" note before the team dialog
+    // takes over — otherwise it'd never be visible, immediately
+    // covered by the dialog's own backdrop.
+    this.promoApplied.set(true);
+    setTimeout(() => this.showTeamDialog.set(true), 1400);
+  }
+
+  // Google on the Register page: a new account goes through the same team
+  // pick; an existing one (that email already had an account) just signs in.
+  onGoogleSignUp(res: GoogleSignInResult): void {
+    if (res.created) {
+      this.afterSignUp(res.promo);
+      return;
+    }
+    const pendingPromo = consumePendingPromoClaim();
+    this.router.navigateByUrl(pendingPromo ? `/claim?promo=${encodeURIComponent(pendingPromo)}` : "/");
+  }
+
   submit(): void {
     if (this.form.invalid) return;
     this.submitting.set(true);
@@ -75,22 +106,7 @@ export class RegisterComponent implements OnInit {
     this.auth
       .register(email, password, null, this.referralCode(), this.promoCode(), username.trim() || null)
       .subscribe({
-        next: ({ promo }) => {
-          // Registration itself already redeemed this.promoCode() directly
-          // (routes/auth.ts) — clear the stash so a later /claim visit
-          // doesn't try the same code again.
-          consumePendingPromoClaim();
-          clearPendingReferral();
-          if (!promo) {
-            this.showTeamDialog.set(true);
-            return;
-          }
-          // Brief pause on the "promo applied" note before the team dialog
-          // takes over — otherwise it'd never be visible, immediately
-          // covered by the dialog's own backdrop.
-          this.promoApplied.set(true);
-          setTimeout(() => this.showTeamDialog.set(true), 1400);
-        },
+        next: ({ promo }) => this.afterSignUp(promo),
         error: (err) => {
           const code = err?.error?.code;
           this.error.set(

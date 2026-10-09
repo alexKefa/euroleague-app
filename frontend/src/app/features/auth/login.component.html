@@ -61,6 +61,7 @@
           {{ submitting() ? i18n.t('auth.loggingIn') : i18n.t('nav.login') }}
         </button>
       </form>
+      <app-google-sign-in-button (signedIn)="afterSignIn()" (failed)="error.set(i18n.t($event))" />
 
       <p class="text-[13px] text-center mt-4">
         <a routerLink="/forgot-password" class="text-team-primary font-semibold">{{ i18n.t('auth.forgotPasswordLink') }}</a>

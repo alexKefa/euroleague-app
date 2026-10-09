@@ -90,4 +90,11 @@ export const authTranslations: Record<string, Record<Lang, string>> = {
     el: "Υπάρχει ήδη λογαριασμός με αυτό το email.",
   },
   "auth.genericError": { en: "Something went wrong.", el: "Κάτι πήγε στραβά." },
+  // Sign in with Google (2026-10-09, shared/google-sign-in-button.ts).
+  "auth.orDivider": { en: "or", el: "ή" },
+  "auth.googleFailed": { en: "Google sign-in didn't work. Try again.", el: "Η σύνδεση με Google δεν ολοκληρώθηκε. Δοκίμασε ξανά." },
+  "auth.googleUnverified": {
+    en: "Your Google account's email isn't verified.",
+    el: "Το email του λογαριασμού σου Google δεν είναι επιβεβαιωμένο.",
+  },
 };

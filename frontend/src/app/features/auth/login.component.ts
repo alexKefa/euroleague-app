@@ -7,11 +7,12 @@ import { I18nService } from "../../core/i18n.service";
 import { ButtonDirective } from "../../shared/button.directive";
 import { consumePendingPromoClaim } from "../../shared/pending-promo-claim";
 import { pendingLeagueJoinUrl } from "../../shared/pending-league-join";
+import { GoogleSignInButtonComponent } from "../../shared/google-sign-in-button";
 
 @Component({
   selector: "app-login",
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, ButtonDirective],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, ButtonDirective, GoogleSignInButtonComponent],
   templateUrl: "./login.component.html",
 })
 export class LoginComponent {
@@ -29,6 +30,16 @@ export class LoginComponent {
     password: ["", [Validators.required]],
   });
 
+  // After email/password or Google sign-in.
+  afterSignIn(): void {
+    // A promo QR link (features/claim/claim.ts) stashed a code before
+    // sending a logged-out visitor here via /welcome — pick it back up
+    // now that they're actually signed in, instead of just landing on
+    // the dashboard with the code forgotten.
+    const pendingPromo = consumePendingPromoClaim();
+    this.router.navigateByUrl(pendingPromo ? `/claim?promo=${encodeURIComponent(pendingPromo)}` : (pendingLeagueJoinUrl() ?? "/"));
+  }
+
   submit(): void {
     if (this.form.invalid) return;
     this.submitting.set(true);
@@ -36,14 +47,7 @@ export class LoginComponent {
 
     const { email, password } = this.form.getRawValue();
     this.auth.login(email, password).subscribe({
-      next: () => {
-        // A promo QR link (features/claim/claim.ts) stashed a code before
-        // sending a logged-out visitor here via /welcome — pick it back up
-        // now that they're actually signed in, instead of just landing on
-        // the dashboard with the code forgotten.
-        const pendingPromo = consumePendingPromoClaim();
-        this.router.navigateByUrl(pendingPromo ? `/claim?promo=${encodeURIComponent(pendingPromo)}` : (pendingLeagueJoinUrl() ?? "/"));
-      },
+      next: () => this.afterSignIn(),
       error: () => {
         this.error.set(this.i18n.t("auth.invalidCredentials"));
         this.submitting.set(false);
