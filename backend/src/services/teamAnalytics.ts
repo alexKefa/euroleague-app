@@ -33,6 +33,7 @@ export interface AnalyticsPlayer {
   id: string | null;
   code: string;
   name: string | null;
+  photoUrl: string | null;
 }
 
 export interface LineupStat {
@@ -166,12 +167,12 @@ export async function getTeamAnalytics(teamId: string, season: string): Promise<
       'shotZones', coalesce((select json_agg(json_build_object(
           'zone', zone, 'fga', fga, 'fgm', fgm, 'leagueFga', league_fga, 'leagueFgm', league_fgm)) from zones), '[]'::json),
       'lineups', coalesce((select json_agg(json_build_object(
-          'players', (select json_agg(json_build_object('id', p.id, 'code', c.code, 'name', p.name) order by p.name)
+          'players', (select json_agg(json_build_object('id', p.id, 'code', c.code, 'name', p.name, 'photoUrl', p.photo_url) order by p.name)
                       from unnest(l.player_codes) c(code) left join players p on p.code = c.code),
           'seconds', l.sec, 'games', l.games, 'ptsFor', l.pf, 'ptsAgainst', l.pa,
           'possFor', l.posf, 'possAgainst', l.posa) order by l.sec desc) from lineups l), '[]'::json),
       'onOff', coalesce((select json_agg(json_build_object(
-          'player', json_build_object('id', p.id, 'code', o.code, 'name', p.name),
+          'player', json_build_object('id', p.id, 'code', o.code, 'name', p.name, 'photoUrl', p.photo_url),
           'secondsOn', o.sec, 'ptsForOn', o.pf, 'ptsAgainstOn', o.pa, 'possForOn', o.posf, 'possAgainstOn', o.posa,
           'secondsOff', t.sec - o.sec, 'ptsForOff', t.pf - o.pf, 'ptsAgainstOff', t.pa - o.pa,
           'possForOff', t.posf - o.posf, 'possAgainstOff', t.posa - o.posa) order by o.sec desc)
@@ -183,7 +184,7 @@ export async function getTeamAnalytics(teamId: string, season: string): Promise<
         'ptsFor', (select coalesce(sum(points) filter (where team_id = ${teamId}), 0)::int from clutch_plays),
         'ptsAgainst', (select coalesce(sum(points) filter (where team_id is distinct from ${teamId} and team_id is not null), 0)::int from clutch_plays),
         'players', coalesce((select json_agg(json_build_object(
-            'player', json_build_object('id', p.id, 'code', cp.code, 'name', p.name),
+            'player', json_build_object('id', p.id, 'code', cp.code, 'name', p.name, 'photoUrl', p.photo_url),
             'games', cp.games, 'pts', cp.pts, 'fgm', cp.fgm, 'fga', cp.fga, 'tpm', cp.tpm, 'tpa', cp.tpa,
             'ftm', cp.ftm, 'fta', cp.fta, 'ast', cp.ast, 'tov', cp.tov) order by cp.pts desc, cp.ast desc)
           from clutch_players cp left join players p on p.code = cp.code), '[]'::json)
@@ -226,7 +227,7 @@ export async function getClutchLeaders(season: string): Promise<ClutchLeader[]> 
       limit ${CLUTCH_LEADER_LIMIT}
     )
     select json_agg(json_build_object(
-      'player', json_build_object('id', p.id, 'code', l.code, 'name', p.name),
+      'player', json_build_object('id', p.id, 'code', l.code, 'name', p.name, 'photoUrl', p.photo_url),
       'team', json_build_object('id', t.id, 'code', t.code, 'primaryColor', t.primary_color),
       'games', l.games, 'pts', l.pts, 'fgm', l.fgm, 'fga', l.fga, 'tpm', l.tpm, 'tpa', l.tpa,
       'ftm', l.ftm, 'fta', l.fta, 'ast', l.ast, 'tov', l.tov) order by l.pts desc, l.fgm desc) as result

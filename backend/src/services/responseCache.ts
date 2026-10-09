@@ -44,6 +44,7 @@ export const CACHE_KEYS = {
   advancedStats: "players:advanced-stats",
   fantasyPlayers: "fantasy:players:", // + season
   preview: "preview:", // + "game:<id>" | "round:<season>:<round>"
+  lineup: "lineup:", // + "<teamId>:<season>:<sorted player codes>"
 } as const;
 
 /**

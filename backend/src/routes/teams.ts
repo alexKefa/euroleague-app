@@ -6,6 +6,8 @@ import { teams, players, playerSeasonStats, games, playerInjuries, users, teamBu
 import { getCurrentSeason } from "../services/season.js";
 import { getBaselinePPGForPlayers } from "../services/topScorerPoints.js";
 import { getTeamAnalytics } from "../services/teamAnalytics.js";
+import { getLineupBuilder, normalizePlayerCodes } from "../services/lineupBuilder.js";
+import { CACHE_KEYS, cached } from "../services/responseCache.js";
 import { getTeamRestSplits } from "../services/restSplits.js";
 import { getTeamReferees } from "../services/refereeStats.js";
 
@@ -195,6 +197,27 @@ teamsRouter.get("/:id/analytics", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to load team analytics" });
+  }
+});
+
+// Lineup builder (2026-10-09, services/lineupBuilder.ts): 2-5 players
+// together, the team otherwise, and best partners. Current season unless
+// ?season= is given.
+teamsRouter.get("/:id/lineup", async (req, res) => {
+  try {
+    const codes = normalizePlayerCodes(typeof req.query.players === "string" ? req.query.players : undefined);
+    if (!codes) return res.status(400).json({ error: "Pick 2 to 5 players" });
+    const season = typeof req.query.season === "string" ? req.query.season : await getCurrentSeason();
+    if (!season) return res.status(404).json({ error: "No season" });
+    const teamId = req.params.id;
+    res.json(
+      await cached(`${CACHE_KEYS.lineup}${teamId}:${season}:${codes.join(",")}`, 10 * 60_000, () =>
+        getLineupBuilder(teamId, season, codes)
+      )
+    );
+  } catch (err) {
+    console.error("GET /api/teams/:id/lineup failed:", err);
+    res.status(500).json({ error: "Failed to load lineup" });
   }
 });
 

@@ -248,8 +248,9 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
         if (checked === 0) return; // nothing in-window right now, not worth a log line
         if (wentLive === 0 && wentFinal === 0) return; // checked in-progress games, nothing changed
         console.log(`[live games sync] checked ${checked}, ${wentLive} went live, ${wentFinal} went final`);
-        // Form/H2H/rest in matchup previews change once a game is final.
-        invalidate(CACHE_KEYS.preview);
+        // Form/H2H/rest in matchup previews change once a game is final, and
+        // live sync writes that game's lineup stints at the same moment.
+        invalidate(CACHE_KEYS.preview, CACHE_KEYS.lineup);
         // A final can complete a round: pay its Fantasy Five points now
         // rather than waiting for the hourly sweep below.
         if (wentFinal > 0) {
@@ -335,6 +336,7 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
         if (!season) return;
         const r = await syncMissingGameExtras(season, GAME_EXTRAS_PER_RUN);
         if (r.synced + r.empty + r.failed > 0) console.log(`[game extras sync] synced ${r.synced}, feed empty for ${r.empty}, failed ${r.failed}`);
+        if (r.synced > 0) invalidate(CACHE_KEYS.lineup); // new lineup stints
         // Referee crews for the /referees page (sync/refereeSync.ts).
         const refs = await syncMissingReferees(season, GAME_EXTRAS_PER_RUN);
         if (refs.synced + refs.empty + refs.failed > 0) console.log(`[referee sync] synced ${refs.synced}, feed empty for ${refs.empty}, failed ${refs.failed}`);
