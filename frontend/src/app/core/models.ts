@@ -1644,6 +1644,28 @@ export interface AnalyticsPlayer {
   id: string | null;
   code: string;
   name: string | null;
+  photoUrl?: string | null;
+}
+
+// Lineup builder (2026-10-09) — mirrors backend services/lineupBuilder.ts.
+export interface LineupSums {
+  seconds: number;
+  games: number;
+  ptsFor: number;
+  ptsAgainst: number;
+  possFor: number;
+  possAgainst: number;
+}
+
+export interface LineupPartner extends LineupSums {
+  player: { id: string | null; code: string; name: string | null; photoUrl: string | null };
+}
+
+export interface LineupBuilderResult {
+  season: string;
+  together: LineupSums;
+  otherwise: LineupSums;
+  partners: LineupPartner[];
 }
 
 export interface LineupStat {

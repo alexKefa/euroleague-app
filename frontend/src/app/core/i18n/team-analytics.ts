@@ -152,4 +152,33 @@ export const teamAnalyticsTranslations: Record<string, Record<Lang, string>> = {
   "ref.teamOverall": { en: "All games", el: "Όλοι οι αγώνες" },
   "ref.showAll": { en: "Show all", el: "Εμφάνιση όλων" },
   "ref.showLess": { en: "Show less", el: "Λιγότερα" },
+
+  // Lineup builder (2026-10-09, features/team/lineup-builder.ts).
+  "ta.builderTitle": { en: "Lineup builder", el: "Δημιουργός πεντάδας" },
+  "ta.builderHint": {
+    en: "Pick 2 to 5 players to see how they've done together this season.",
+    el: "Διάλεξε 2 έως 5 παίκτες για να δεις πώς τα πήγαν μαζί φέτος.",
+  },
+  "ta.pickCount": { en: "{n} / 5", el: "{n} / 5" },
+  "ta.pickMore": { en: "Pick at least 2 players", el: "Διάλεξε τουλάχιστον 2 παίκτες" },
+  "ta.clear": { en: "Clear", el: "Καθαρισμός" },
+  "ta.together": { en: "Together", el: "Μαζί" },
+  "ta.otherwise": { en: "otherwise {net}", el: "χωρίς αυτούς {net}" },
+  "ta.ortg": { en: "ORtg", el: "Επιθ." },
+  "ta.drtg": { en: "DRtg", el: "Άμυνα" },
+  "ta.pace": { en: "Pace", el: "Ρυθμός" },
+  "ta.pts": { en: "PTS", el: "ΠΟΝ" },
+  "ta.lineupSmallSample": {
+    en: "Small sample (under 20 min together)",
+    el: "Μικρό δείγμα (κάτω από 20 λεπτά μαζί)",
+  },
+  "ta.neverTogether": { en: "Never on court together", el: "Δεν έχουν αγωνιστεί ποτέ μαζί" },
+  "ta.bestPartners": { en: "Best partners", el: "Καλύτεροι συμπαίκτες" },
+  "ta.noPartners": {
+    en: "No teammate has 10+ minutes with this group",
+    el: "Κανένας συμπαίκτης δεν έχει 10+ λεπτά με αυτό το σχήμα",
+  },
+  "ta.openInBuilder": { en: "Open in builder", el: "Άνοιγμα στον δημιουργό" },
+  "ta.lineupError": { en: "Couldn't load this lineup", el: "Δεν φορτώθηκε αυτή η πεντάδα" },
+  "ta.retry": { en: "Retry", el: "Ξανά" },
 };
