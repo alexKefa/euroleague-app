@@ -388,6 +388,88 @@ export interface WinProbPreGame {
   source: "odds" | "elo";
 }
 
+// Matchup preview (2026-10-09) — mirrors backend services/matchupPreview/core.ts.
+export type MatchupInjuryStatus = "out" | "doubtful" | "questionable" | "probable";
+
+export interface MatchupFormGame {
+  gameId: string;
+  tipoffAt: string;
+  opponent: GameTeamSummary;
+  isHome: boolean;
+  teamScore: number;
+  opponentScore: number;
+  won: boolean;
+}
+
+export interface MatchupTeamForm {
+  games: MatchupFormGame[]; // newest first
+  streak: string | null; // "W3" / "L1"
+}
+
+export interface MatchupH2HGame {
+  gameId: string;
+  tipoffAt: string;
+  homeTeamId: string;
+  homeScore: number;
+  awayScore: number;
+  winnerTeamId: string;
+}
+
+export interface MatchupInjuredPlayer {
+  playerId: string;
+  name: string;
+  photoUrl: string | null;
+  status: MatchupInjuryStatus;
+  note: string | null;
+  noteEl: string | null;
+}
+
+export type MatchupEdgeKey = "offRating" | "defRating" | "threePct" | "rebPg" | "astPg" | "tovPg";
+
+export interface MatchupEdgeRow {
+  key: MatchupEdgeKey;
+  home: number | null;
+  away: number | null;
+  better: "home" | "away" | "even" | null;
+}
+
+export interface MatchupDuelPlayer {
+  playerId: string;
+  name: string;
+  photoUrl: string | null;
+  position: string;
+  games: number;
+  pts: number;
+  reb: number;
+  ast: number;
+  pir: number;
+}
+
+export interface MatchupTeamAvailability {
+  injured: MatchupInjuredPlayer[];
+  restDays: number | null;
+  shortRest: boolean;
+}
+
+export interface MatchupPreview {
+  available: true;
+  statsSeason: string;
+  usingPriorSeason: boolean;
+  form: { home: MatchupTeamForm; away: MatchupTeamForm };
+  h2h: { games: MatchupH2HGame[]; homeWins: number; awayWins: number };
+  availability: { home: MatchupTeamAvailability; away: MatchupTeamAvailability };
+  edges: MatchupEdgeRow[];
+  keyBattle: { position: string; home: MatchupDuelPlayer; away: MatchupDuelPlayer } | null;
+}
+
+export type MatchupPreviewResponse = MatchupPreview | { available: false };
+
+export interface PreviewStrip {
+  home: { form: ("W" | "L")[]; injuries: number };
+  away: { form: ("W" | "L")[]; injuries: number };
+  h2h: { homeWins: number; awayWins: number } | null;
+}
+
 export interface WinProbPoint {
   period: number;
   clock: number;

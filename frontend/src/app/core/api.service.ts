@@ -44,6 +44,8 @@ import {
   GameDetail,
   GameWinProb,
   WinProbPreGame,
+  MatchupPreviewResponse,
+  PreviewStrip,
   League,
   LeagueDetail,
   LeagueLeaderboardEntry,
@@ -231,6 +233,14 @@ export class ApiService {
 
   getPreGameWinProbs(season: string, round: number): Observable<Record<string, WinProbPreGame>> {
     return this.http.get<Record<string, WinProbPreGame>>(`${API_BASE_URL}/games/win-prob/pregame`, { params: { season, round } });
+  }
+
+  getMatchupPreview(gameId: string): Observable<MatchupPreviewResponse> {
+    return this.http.get<MatchupPreviewResponse>(`${API_BASE_URL}/games/${gameId}/preview`);
+  }
+
+  getRoundPreviewStrips(season: string, round: number): Observable<Record<string, PreviewStrip>> {
+    return this.http.get<Record<string, PreviewStrip>>(`${API_BASE_URL}/games/previews`, { params: { season, round } });
   }
 
   simulateLiveGame(gameId?: string): Observable<{ gameId: string }> {
