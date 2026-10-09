@@ -18,6 +18,7 @@ import { getCurrentSeason } from "../services/season.js";
 import { getGameReferees } from "../services/refereeStats.js";
 import { gameWinProb } from "../services/winProb/curve.js";
 import { activeModel, preGameProbs } from "../services/winProb/pregame.js";
+import { getMatchupPreview, getRoundPreviewStrips } from "../services/matchupPreview/index.js";
 
 export const gamesRouter = Router();
 
@@ -233,6 +234,39 @@ gamesRouter.get("/win-prob/pregame", async (req, res) => {
   } catch (err) {
     console.error("GET /api/games/win-prob/pregame failed:", err);
     res.status(500).json({ error: "Failed to load win probabilities" });
+  }
+});
+
+// Matchup preview (2026-10-09, services/matchupPreview/): a compact
+// form/H2H/injury strip for every upcoming game in a round (Predictions)...
+gamesRouter.get("/previews", async (req, res) => {
+  try {
+    const season = typeof req.query.season === "string" ? req.query.season : "";
+    const round = Number(req.query.round);
+    if (!season || !Number.isInteger(round) || round < 1) {
+      res.status(400).json({ error: "season and a positive round are required" });
+      return;
+    }
+    res.json(await getRoundPreviewStrips(season, round));
+  } catch (err) {
+    console.error("GET /api/games/previews failed:", err);
+    res.status(500).json({ error: "Failed to load matchup preview" });
+  }
+});
+
+// ...and one game's full preview (game page, before tipoff only).
+gamesRouter.get("/:id/preview", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const preview = /^[0-9a-f-]{36}$/i.test(id) ? await getMatchupPreview(id) : null;
+    if (!preview) {
+      res.status(404).json({ error: "Game not found" });
+      return;
+    }
+    res.json(preview);
+  } catch (err) {
+    console.error("GET /api/games/:id/preview failed:", err);
+    res.status(500).json({ error: "Failed to load matchup preview" });
   }
 });
 

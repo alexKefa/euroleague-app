@@ -7,7 +7,7 @@ import { requireAuth, requireAdmin } from "../auth/middleware.js";
 
 export const injuriesRouter = Router();
 // Injury edits show in the cached fantasy player pool (services/responseCache.ts).
-injuriesRouter.use(invalidateOnWrite(CACHE_KEYS.fantasyPlayers));
+injuriesRouter.use(invalidateOnWrite(CACHE_KEYS.fantasyPlayers, CACHE_KEYS.preview));
 
 // Admin-entered only — see the doc comment on playerInjuries in schema.ts
 // for why (EuroLeague's own feed has no injury data to sync at all).

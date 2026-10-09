@@ -117,6 +117,11 @@ export interface TeamStatLine {
 
 export type PlayerAvg = DuelPlayer & { teamId: string; injuryStatus: InjuryStatus | null };
 
+/** Not tipped off yet: status still scheduled and tipoff in the future. */
+export function isUpcoming(game: { status: string; tipoffAt: Date | string }, now = Date.now()): boolean {
+  return game.status === "scheduled" && new Date(game.tipoffAt).getTime() > now;
+}
+
 const involves = (g: FinalGameRow, teamId: string) => g.homeTeamId === teamId || g.awayTeamId === teamId;
 const newestFirst = (a: FinalGameRow, b: FinalGameRow) => b.tipoffAt.getTime() - a.tipoffAt.getTime();
 const winnerOf = (g: FinalGameRow) => (g.homeScore > g.awayScore ? g.homeTeamId : g.awayTeamId);

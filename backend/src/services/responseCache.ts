@@ -43,6 +43,7 @@ export const CACHE_KEYS = {
   collectibles: "collectibles:catalog",
   advancedStats: "players:advanced-stats",
   fantasyPlayers: "fantasy:players:", // + season
+  preview: "preview:", // + "game:<id>" | "round:<season>:<round>"
 } as const;
 
 /**

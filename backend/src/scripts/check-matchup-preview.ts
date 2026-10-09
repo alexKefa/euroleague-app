@@ -6,6 +6,7 @@ import {
   buildEdges,
   buildH2H,
   buildTeamForm,
+  isUpcoming,
   pickKeyBattle,
   ratio,
   restDays,
@@ -130,6 +131,14 @@ check("strip", () => {
   assert.equal(strip.home.injuries, 2);
   assert.equal(strip.h2h, null);
   assert.deepEqual(toStrip({ home: form, away: form }, { homeWins: 3, awayWins: 1, games: [1] }, { home: 0, away: 0 }).h2h, { homeWins: 3, awayWins: 1 });
+});
+
+check("upcoming = scheduled and not tipped off", () => {
+  const now = Date.parse("2026-10-09T18:00:00Z");
+  assert.equal(isUpcoming({ status: "scheduled", tipoffAt: "2026-10-09T18:30:00Z" }, now), true);
+  assert.equal(isUpcoming({ status: "scheduled", tipoffAt: "2026-10-09T17:59:00Z" }, now), false); // status lag
+  assert.equal(isUpcoming({ status: "live", tipoffAt: "2026-10-09T18:30:00Z" }, now), false);
+  assert.equal(isUpcoming({ status: "final", tipoffAt: new Date("2026-10-09T18:30:00Z") }, now), false);
 });
 
 console.log("all matchup-preview checks passed");

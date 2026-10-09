@@ -248,6 +248,8 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
         if (checked === 0) return; // nothing in-window right now, not worth a log line
         if (wentLive === 0 && wentFinal === 0) return; // checked in-progress games, nothing changed
         console.log(`[live games sync] checked ${checked}, ${wentLive} went live, ${wentFinal} went final`);
+        // Form/H2H/rest in matchup previews change once a game is final.
+        invalidate(CACHE_KEYS.preview);
         // A final can complete a round: pay its Fantasy Five points now
         // rather than waiting for the hourly sweep below.
         if (wentFinal > 0) {
@@ -298,7 +300,7 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
         if (unmatchedTeamSlugs.length) console.warn(`[injury sync] unmatched team slugs: ${unmatchedTeamSlugs.join(", ")}`);
         if (unmappedStatuses.length) console.warn(`[injury sync] unmapped statuses: ${unmappedStatuses.join(", ")}`);
       })
-      .finally(() => invalidate(CACHE_KEYS.fantasyPlayers))
+      .finally(() => invalidate(CACHE_KEYS.fantasyPlayers, CACHE_KEYS.preview))
       .catch((err) => console.error("[injury sync] failed:", err));
   };
   runInjurySync();
