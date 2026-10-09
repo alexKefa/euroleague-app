@@ -277,7 +277,7 @@ function clockLabel(p: ClutchPlay): string {
 function clutchBody(story: Extract<Story, { angle: "clutch" }>, t: StoryText, accent: string, f: GameFacts) {
   const playLabel = (p: string) => (p === "3FGM" ? "3PT" : p === "2FGM" ? "2PT" : p === "FTM" ? "FT" : p);
   return [
-    sectionTitle(t.labels.keyPlays),
+    sectionTitle(story.data.plays.length > 0 ? t.labels.keyPlays : t.labels.topScorers),
     story.data.plays.length > 0
       ? table(
           ["", t.labels.score],
@@ -285,7 +285,7 @@ function clutchBody(story: Extract<Story, { angle: "clutch" }>, t: StoryText, ac
           null,
           accent
         )
-      : text(`${f.home.name} ${f.home.score}–${f.away.score} ${f.away.name}`, { fontSize: 30, color: INK }),
+      : h("div", { flexDirection: "column" }, topThree(f, t, accent, f.home), topThree(f, t, accent, f.away)),
     story.data.hero
       ? h(
           "div",
@@ -297,10 +297,8 @@ function clutchBody(story: Extract<Story, { angle: "clutch" }>, t: StoryText, ac
   ];
 }
 
-function numbersBody(story: Extract<Story, { angle: "numbers" }>, t: StoryText, accent: string, f: GameFacts) {
-  const d = story.data;
-  // Each team's top three by points, as a small box score.
-  const teamBlock = (team: TeamFacts) => {
+// Each team's top three by points, as a small box score.
+function topThree(f: GameFacts, t: StoryText, accent: string, team: TeamFacts) {
     const top = f.lines.filter((l) => l.teamId === team.id).sort((a, b) => b.points - a.points).slice(0, 3);
     if (top.length === 0) return null;
     return h(
@@ -309,11 +307,14 @@ function numbersBody(story: Extract<Story, { angle: "numbers" }>, t: StoryText, 
       text(upper(team.name), { fontFamily: COND, fontWeight: 800, fontSize: 24, letterSpacing: 1, color: MUTED, marginBottom: 6 }),
       table(["", t.labels.colPts, t.labels.colReb, t.labels.colAst, "PIR"], top.map((l) => [l.name, String(l.points), String(l.rebounds), String(l.assists), String(l.pir)]), null, accent)
     );
-  };
+}
+
+function numbersBody(story: Extract<Story, { angle: "numbers" }>, t: StoryText, accent: string, f: GameFacts) {
+  const d = story.data;
   return [
     sectionTitle(t.labels.topScorers),
-    teamBlock(f.home),
-    teamBlock(f.away),
+    topThree(f, t, accent, f.home),
+    topThree(f, t, accent, f.away),
     d.bestLineup ? h("div", { flexDirection: "column", marginTop: 6 }, sectionTitle(t.labels.bestLineup), text(`${d.bestLineup.names.map((n) => n.split(" ").slice(-1)[0]).join(" · ")}  ${sign(d.bestLineup.plusMinus)}`, { fontFamily: COND, fontWeight: 800, fontSize: 30, color: INK })) : null,
   ];
 }

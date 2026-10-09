@@ -12,6 +12,7 @@ import {
 } from "../services/gameStory/angles.js";
 import { AWAY, HOME, baseFacts, line, stint } from "./game-story-fixtures.js";
 import { storyText } from "../services/gameStory/copy.js";
+import { derivePlays, formatName } from "../services/gameStory/plays.js";
 
 function check(name: string, fn: () => void) {
   fn();
@@ -186,6 +187,35 @@ check("share text has link", () => {
   const t = storyText(storiesByAngle().bench, baseFacts(), "el");
   assert.ok(t.shareText.includes("getclutchapp.com/games/game-1"));
   assert.ok(t.shareText.includes("#EuroLeague"));
+});
+
+check("feed names to First Last", () => {
+  assert.equal(formatName("WRIGHT, MOSES"), "Moses Wright");
+  assert.equal(formatName("HAYES-DAVIS, NIGEL"), "Nigel Hayes-Davis");
+  assert.equal(formatName("O'NEALE, ROYCE"), "Royce O'Neale");
+  assert.equal(formatName("Already Done"), "Already Done");
+});
+
+check("play-by-play derivations", () => {
+  const ev = (period: number, clock: number, team: string, code: string, type: string, points: number, hb: number, ab: number) => ({
+    period, clock, teamId: team, playerCode: code, playType: type, points, homeBefore: hb, awayBefore: ab,
+  });
+  const names = new Map([["h1", "Kendrick Nunn"], ["a1", "Scottie Wilbekin"]]);
+  const events = [
+    ev(1, 590, HOME, "h1", "2FGM", 2, 0, 0), // t=10, margin +2
+    ev(4, 290, AWAY, "a1", "3FGM", 3, 70, 68), // clutch (Q4 <=300, |2|<=5); 70-71 lead change
+    ev(4, 100, HOME, "h1", "2FGM", 2, 70, 71), // clutch, last 2:00, lead change 72-71
+    ev(5, 20, HOME, "h1", "FTM", 1, 76, 76), // OT, breaks tie
+  ];
+  const d = derivePlays(events, names, HOME);
+  assert.deepEqual(d.margins[0], { t: 10, margin: 2 });
+  assert.equal(d.margins.length, 4);
+  assert.equal(d.overtime, true);
+  assert.deepEqual(d.clutchPoints.find((c) => c.playerName === "Kendrick Nunn"), { playerName: "Kendrick Nunn", teamId: HOME, points: 3 });
+  assert.equal(d.clutchPoints.find((c) => c.playerName === "Scottie Wilbekin")!.points, 3);
+  // Lead changes/ties in the last 2:00 of Q4 or any OT only (the 290s play is outside 2:00).
+  assert.deepEqual(d.clutchPlays.map((p) => [p.period, p.clock, p.homeScore, p.awayScore]), [[4, 100, 72, 71], [5, 20, 77, 76]]);
+  assert.equal(derivePlays([], names, HOME).overtime, false);
 });
 
 console.log("all game-story checks passed");

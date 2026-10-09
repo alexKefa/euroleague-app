@@ -19,6 +19,7 @@ import { getGameReferees } from "../services/refereeStats.js";
 import { gameWinProb } from "../services/winProb/curve.js";
 import { activeModel, preGameProbs } from "../services/winProb/pregame.js";
 import { getMatchupPreview, getRoundPreviewStrips } from "../services/matchupPreview/index.js";
+import { getStoryPng, getStorySummary, isLang } from "../services/gameStory/index.js";
 
 export const gamesRouter = Router();
 
@@ -268,6 +269,41 @@ gamesRouter.get("/:id/preview", async (req, res) => {
   } catch (err) {
     console.error("GET /api/games/:id/preview failed:", err);
     res.status(500).json({ error: "Failed to load matchup preview" });
+  }
+});
+
+// Game story cards (2026-10-09, services/gameStory/): the auto-picked
+// "story of the game" for a final game, as a summary and as a shareable
+// 1080x1350 PNG. lang defaults to Greek (the app default).
+const UUID_RE = /^[0-9a-f-]{36}$/i;
+
+gamesRouter.get("/:id/story", async (req, res) => {
+  try {
+    const lang = isLang(req.query.lang) ? req.query.lang : "el";
+    const summary = UUID_RE.test(req.params.id) ? await getStorySummary(req.params.id, lang) : null;
+    if (!summary) {
+      res.status(404).json({ error: "No story for this game" });
+      return;
+    }
+    res.json(summary);
+  } catch (err) {
+    console.error("GET /api/games/:id/story failed:", err);
+    res.status(500).json({ error: "Failed to load the game story" });
+  }
+});
+
+gamesRouter.get("/:id/story.png", async (req, res) => {
+  try {
+    const lang = isLang(req.query.lang) ? req.query.lang : "el";
+    const png = UUID_RE.test(req.params.id) ? await getStoryPng(req.params.id, lang) : null;
+    if (!png) {
+      res.status(404).json({ error: "No story for this game" });
+      return;
+    }
+    res.set({ "Content-Type": "image/png", "Cache-Control": "public, max-age=86400" }).send(png);
+  } catch (err) {
+    console.error("GET /api/games/:id/story.png failed:", err);
+    res.status(500).json({ error: "Failed to render the game story" });
   }
 });
 

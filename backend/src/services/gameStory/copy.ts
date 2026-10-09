@@ -209,7 +209,8 @@ export function storyText(story: Story, f: GameFacts, lang: Lang): StoryText {
     takeaway: fill(variant(TAKEAWAYS[story.angle], f.gameId)[lang], vars),
     context: `EuroLeague ${f.season}${round} · ${date}`,
     matchup,
-    shareText: `${head}: ${matchup} #EuroLeague getclutchapp.com/games/${f.gameId}`,
+    // The numbers headline is the score itself, so don't repeat it.
+    shareText: `${story.angle === "numbers" ? "" : `${head}: `}${matchup} #EuroLeague getclutchapp.com/games/${f.gameId}`,
     footnote: story.angle === "lineup" ? FOOTNOTE[lang] : null,
     labels,
   };

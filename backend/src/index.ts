@@ -1,4 +1,5 @@
 import { CACHE_KEYS, invalidate } from "./services/responseCache.js";
+import { clearStoryCache } from "./services/gameStory/index.js";
 import "dotenv/config";
 import path from "node:path";
 import fs from "node:fs";
@@ -259,6 +260,7 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
         // Form/H2H/rest in matchup previews change once a game is final, and
         // live sync writes that game's lineup stints at the same moment.
         invalidate(CACHE_KEYS.preview, CACHE_KEYS.lineup);
+        clearStoryCache(); // story cards read the box score and stints
         // A final can complete a round: pay its Fantasy Five points now
         // rather than waiting for the hourly sweep below.
         if (wentFinal > 0) {
@@ -344,7 +346,10 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
         if (!season) return;
         const r = await syncMissingGameExtras(season, GAME_EXTRAS_PER_RUN);
         if (r.synced + r.empty + r.failed > 0) console.log(`[game extras sync] synced ${r.synced}, feed empty for ${r.empty}, failed ${r.failed}`);
-        if (r.synced > 0) invalidate(CACHE_KEYS.lineup); // new lineup stints
+        if (r.synced > 0) {
+          invalidate(CACHE_KEYS.lineup); // new lineup stints
+          clearStoryCache();
+        }
         // Referee crews for the /referees page (sync/refereeSync.ts).
         const refs = await syncMissingReferees(season, GAME_EXTRAS_PER_RUN);
         if (refs.synced + refs.empty + refs.failed > 0) console.log(`[referee sync] synced ${refs.synced}, feed empty for ${refs.empty}, failed ${refs.failed}`);
