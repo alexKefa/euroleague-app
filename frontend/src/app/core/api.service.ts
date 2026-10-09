@@ -245,8 +245,8 @@ export class ApiService {
   }
 
   // Same-origin image URL for <img> and the share/download fetch.
-  gameStoryImageUrl(gameId: string, lang: "en" | "el"): string {
-    return `${API_BASE_URL}/games/${gameId}/story.png?lang=${lang}`;
+  gameStoryImageUrl(gameId: string, lang: "en" | "el", version: string): string {
+    return `${API_BASE_URL}/games/${gameId}/story.png?lang=${lang}&v=${encodeURIComponent(version)}`;
   }
 
   getMatchupPreview(gameId: string): Observable<MatchupPreviewResponse> {

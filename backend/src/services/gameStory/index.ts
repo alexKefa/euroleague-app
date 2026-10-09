@@ -1,8 +1,9 @@
 // Game story cards (2026-10-09): the public entry points. A final game's
-// facts, story and PNG are computed on first request and kept in a small
-// bounded cache (the newest 60 entries); clearStoryCache() runs whenever a
+// summary and PNG are computed on first request and kept in a bounded
+// cache (newest 60, never a null); clearStoryCache() runs whenever a
 // game's stats or stints can change (see backend/src/index.ts).
 import { pickStory } from "./angles.js";
+import { BoundedCache, storyVersion } from "./cache.js";
 import { storyText, type Lang } from "./copy.js";
 import { loadGameFacts } from "./facts.js";
 import { renderStoryPng } from "./render.js";
@@ -19,26 +20,12 @@ export interface StorySummary {
   // Link-preview title: headline + matchup (just the matchup when the
   // headline is the score).
   title: string;
+  // Changes whenever the card's content does; the image URL carries it as
+  // ?v= so browsers and link-preview crawlers never keep a stale card.
+  version: string;
 }
 
-const MAX_ENTRIES = 60;
-const cache = new Map<string, Promise<unknown>>();
-
-function remember<T>(key: string, load: () => Promise<T>): Promise<T> {
-  const hit = cache.get(key);
-  if (hit) {
-    // Refresh recency.
-    cache.delete(key);
-    cache.set(key, hit);
-    return hit as Promise<T>;
-  }
-  const p = load();
-  cache.set(key, p);
-  // Failures aren't kept, so the next request retries.
-  p.catch(() => cache.delete(key));
-  while (cache.size > MAX_ENTRIES) cache.delete(cache.keys().next().value!);
-  return p;
-}
+const cache = new BoundedCache(60);
 
 export function clearStoryCache(): void {
   cache.clear();
@@ -49,18 +36,18 @@ export function isLang(v: unknown): v is Lang {
 }
 
 export function getStorySummary(gameId: string, lang: Lang): Promise<StorySummary | null> {
-  return remember(`summary:${gameId}:${lang}`, async () => {
+  return cache.remember(`summary:${gameId}:${lang}`, async () => {
     const facts = await loadGameFacts(gameId);
     if (!facts) return null;
     const story = pickStory(facts);
     const t = storyText(story, facts, lang);
     const title = story.angle === "numbers" ? t.matchup : `${t.headline} · ${t.matchup}`;
-    return { angle: story.angle, label: t.label, headline: t.headline, lede: t.lede, shareText: t.shareText, title };
+    return { angle: story.angle, label: t.label, headline: t.headline, lede: t.lede, shareText: t.shareText, title, version: storyVersion(story) };
   });
 }
 
 export function getStoryPng(gameId: string, lang: Lang): Promise<Buffer | null> {
-  return remember(`png:${gameId}:${lang}`, async () => {
+  return cache.remember(`png:${gameId}:${lang}`, async () => {
     const facts = await loadGameFacts(gameId);
     if (!facts) return null;
     const story = pickStory(facts);

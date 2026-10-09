@@ -472,6 +472,7 @@ export interface StorySummary {
   lede: string;
   shareText: string;
   title: string;
+  version: string;
 }
 
 export interface PreviewStrip {

@@ -20,6 +20,7 @@ import { gameWinProb } from "../services/winProb/curve.js";
 import { activeModel, preGameProbs } from "../services/winProb/pregame.js";
 import { getMatchupPreview, getRoundPreviewStrips } from "../services/matchupPreview/index.js";
 import { getStoryPng, getStorySummary, isLang } from "../services/gameStory/index.js";
+import rateLimit from "express-rate-limit";
 
 export const gamesRouter = Router();
 
@@ -275,7 +276,10 @@ gamesRouter.get("/:id/preview", async (req, res) => {
 // Game story cards (2026-10-09, services/gameStory/): the auto-picked
 // "story of the game" for a final game, as a summary and as a shareable
 // 1080x1350 PNG. lang defaults to Greek (the app default).
-const UUID_RE = /^[0-9a-f-]{36}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// Rendering a card costs ~300 ms of CPU; cached cards are cheap, but a
+// public endpoint shouldn't let one client force endless re-renders.
+const storyImageLimiter = rateLimit({ windowMs: 60_000, limit: 40, standardHeaders: true, legacyHeaders: false, message: { error: "Too many requests" } });
 
 gamesRouter.get("/:id/story", async (req, res) => {
   try {
@@ -292,7 +296,7 @@ gamesRouter.get("/:id/story", async (req, res) => {
   }
 });
 
-gamesRouter.get("/:id/story.png", async (req, res) => {
+gamesRouter.get("/:id/story.png", storyImageLimiter, async (req, res) => {
   try {
     const lang = isLang(req.query.lang) ? req.query.lang : "el";
     const png = UUID_RE.test(req.params.id) ? await getStoryPng(req.params.id, lang) : null;
@@ -300,7 +304,12 @@ gamesRouter.get("/:id/story.png", async (req, res) => {
       res.status(404).json({ error: "No story for this game" });
       return;
     }
-    res.set({ "Content-Type": "image/png", "Cache-Control": "public, max-age=86400" }).send(png);
+    // Long cache only for the current version (?v= from the summary): the
+    // card can still change after the final whistle (late stints/pbp,
+    // stat corrections), and each change gets a new URL.
+    const summary = await getStorySummary(req.params.id, lang);
+    const current = summary !== null && req.query.v === summary.version;
+    res.set({ "Content-Type": "image/png", "Cache-Control": current ? "public, max-age=86400, immutable" : "public, max-age=300" }).send(png);
   } catch (err) {
     console.error("GET /api/games/:id/story.png failed:", err);
     res.status(500).json({ error: "Failed to render the game story" });

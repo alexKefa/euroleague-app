@@ -14,10 +14,14 @@ import { AWAY, HOME, baseFacts, line, stint } from "./game-story-fixtures.js";
 import { storyText } from "../services/gameStory/copy.js";
 import { derivePlays, formatName } from "../services/gameStory/plays.js";
 import { withStoryMeta } from "../services/gameStory/meta.js";
+import { BoundedCache, storyVersion } from "../services/gameStory/cache.js";
+import { accentFor, logoDataUriFromBytes } from "../services/gameStory/logo.js";
 
-function check(name: string, fn: () => void) {
-  fn();
-  console.log("ok", name);
+const pending: Promise<void>[] = [];
+function check(name: string, fn: () => void | Promise<void>) {
+  const r = fn();
+  if (r instanceof Promise) pending.push(r.then(() => console.log("ok", name)));
+  else console.log("ok", name);
 }
 
 check("bench triggers at 35", () => {
@@ -240,4 +244,49 @@ check("link-preview meta replaces the generic tags", () => {
   assert.ok(out.includes(`content="The bench won it &amp; more"`));
 });
 
+check("logo bytes must really be an image", () => {
+  const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
+  const jpg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2]);
+  const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle r="4"/></svg>');
+  assert.ok(logoDataUriFromBytes("image/png", png)?.startsWith("data:image/png;base64,"));
+  assert.ok(logoDataUriFromBytes("image/jpg", jpg)?.startsWith("data:image/jpeg;base64,")); // sniffed, not trusted
+  assert.ok(logoDataUriFromBytes("image/svg+xml", svg)?.startsWith("data:image/svg+xml;base64,"));
+  assert.equal(logoDataUriFromBytes("image/png", Buffer.from("<html>error</html>")), null);
+  assert.equal(logoDataUriFromBytes("image/svg+xml", Buffer.from("<svg><circle/></svg>")), null); // no viewBox
+  assert.equal(logoDataUriFromBytes("image/webp", Buffer.from("RIFF0000WEBP")), null);
+});
+
+check("bounded cache never keeps nulls or stale rejections", async () => {
+  const cache = new BoundedCache(2);
+  assert.equal(await cache.remember("a", async () => null), null);
+  assert.equal(cache.size, 0, "null was cached");
+  await cache.remember("x", async () => 1);
+  await cache.remember("y", async () => 2);
+  await cache.remember("z", async () => 3); // evicts x
+  assert.equal(cache.size, 2);
+  let calls = 0;
+  await cache.remember("x", async () => (calls++, 9));
+  assert.equal(calls, 1, "x should have been evicted");
+  // A late rejection of an evicted promise must not delete the newer entry.
+  let rejectOld!: (e: Error) => void;
+  const old = cache.remember("k", () => new Promise((_, rej) => (rejectOld = rej)));
+  cache.clear();
+  await cache.remember("k", async () => "new");
+  rejectOld(new Error("late"));
+  await old.catch(() => {});
+  assert.equal(await cache.remember("k", async () => "other"), "new");
+});
+
+check("story version changes with the story", () => {
+  const a = storyVersion(storiesByAngle().bench);
+  assert.equal(a, storyVersion(storiesByAngle().bench));
+  assert.notEqual(a, storyVersion(storiesByAngle().lineup));
+  assert.match(a, /^[0-9a-z]{4,12}$/);
+});
+
+check("fallback circle stays visible on white", () => {
+  assert.equal(accentFor({ ...baseFacts().home, primaryColor: "#FFFFFF", secondaryColor: "#00529F" }), "#00529F");
+});
+
+await Promise.all(pending);
 console.log("all game-story checks passed");

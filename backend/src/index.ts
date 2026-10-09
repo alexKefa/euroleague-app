@@ -183,7 +183,7 @@ if (fs.existsSync(indexHtml)) {
             title: summary.title,
             description: summary.lede,
             url: `${base}/games/${id}`,
-            image: `${base}/api/games/${id}/story.png?lang=el`,
+            image: `${base}/api/games/${id}/story.png?lang=el&v=${summary.version}`,
           })
         );
         return;

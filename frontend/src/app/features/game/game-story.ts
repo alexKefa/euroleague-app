@@ -1,4 +1,5 @@
 import { Component, computed, effect, inject, input, signal, untracked } from "@angular/core";
+import { Subscription } from "rxjs";
 import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
 import { StorySummary } from "../../core/models";
@@ -28,14 +29,16 @@ type ShareState = "idle" | "working" | "needsTap" | "downloaded" | "copied" | "e
           @if (!loaded()) {
             <div class="absolute inset-0 animate-pulse bg-line/50" aria-hidden="true"></div>
           }
+          @if (imageUrl(); as src) {
           <img
-            [src]="imageUrl()"
+            [src]="src"
             [alt]="summary()?.headline ?? i18n.t('story.alt')"
             class="w-full h-full object-contain transition-opacity"
             [class.opacity-0]="!loaded()"
             (load)="loaded.set(true)"
             (error)="failed.set(true)"
           />
+          }
         </div>
         <div class="grid grid-cols-2 gap-2 mt-3">
           <button type="button" appButton appButtonSize="sm" class="col-span-2" [disabled]="!loaded() || state() === 'working'" (click)="share()">
@@ -65,9 +68,14 @@ export class GameStoryComponent {
   protected readonly summary = signal<StorySummary | null>(null);
   // A file rendered for a share the browser refused (too long after the tap).
   private pendingFile: File | null = null;
+  private sub?: Subscription;
 
   private readonly lang = computed<"en" | "el">(() => (this.i18n.lang() === "en" ? "en" : "el"));
-  protected readonly imageUrl = computed(() => this.api.gameStoryImageUrl(this.gameId(), this.lang()));
+  // Built from the summary's version so a changed card gets a fresh URL.
+  protected readonly imageUrl = computed(() => {
+    const s = this.summary();
+    return s ? this.api.gameStoryImageUrl(this.gameId(), this.lang(), s.version) : null;
+  });
 
   protected readonly note = computed(() => {
     switch (this.state()) {
@@ -87,7 +95,9 @@ export class GameStoryComponent {
         this.failed.set(false);
         this.state.set("idle");
         this.pendingFile = null;
-        this.api.getGameStory(id, lang).subscribe({ next: (s) => this.summary.set(s), error: () => this.summary.set(null) });
+        this.summary.set(null);
+        this.sub?.unsubscribe();
+        this.sub = this.api.getGameStory(id, lang).subscribe({ next: (s) => this.summary.set(s), error: () => this.failed.set(true) });
       });
     });
   }
@@ -101,7 +111,9 @@ export class GameStoryComponent {
   }
 
   private async fetchFile(): Promise<File> {
-    const res = await fetch(this.imageUrl());
+    const url = this.imageUrl();
+    if (!url) throw new Error("story not loaded");
+    const res = await fetch(url);
     if (!res.ok) throw new Error(`story.png ${res.status}`);
     return new File([await res.blob()], this.fileName(), { type: "image/png" });
   }
@@ -121,7 +133,9 @@ export class GameStoryComponent {
     try {
       const file = this.pendingFile ?? (this.state.set("working"), await this.fetchFile());
       this.pendingFile = null;
-      const text = this.summary()?.shareText ?? this.gameUrl();
+      // The server writes the production link; share this site's instead
+      // (so a dev share links to dev).
+      const text = (this.summary()?.shareText ?? this.gameUrl()).replace(/(https?:\/\/)?getclutchapp\.com\/games\/\S+/, this.gameUrl());
       if (typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({ files: [file], text });

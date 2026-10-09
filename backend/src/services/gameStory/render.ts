@@ -8,6 +8,7 @@ import satori from "satori";
 import { Resvg } from "@resvg/resvg-js";
 import { winnerOf } from "./angles.js";
 import { upper, type StoryText } from "./copy.js";
+import { accentFor, forgetLogo, logoDataUri } from "./logo.js";
 import type { ClutchPlay, GameFacts, LineFacts, LineupTypeRow, MarginPoint, Story, TeamFacts } from "./types.js";
 
 const W = 1080;
@@ -17,7 +18,6 @@ const INK = "#111418";
 const MUTED = "#6B6F76";
 const PANEL = "#F4F4F2";
 const RULE = "#E4E4E0";
-const ORANGE = "#FF6B35";
 const BODY = "Sofia Sans";
 const COND = "Sofia Sans Condensed";
 
@@ -49,45 +49,6 @@ function clutchLogo(): string {
   return logoMark;
 }
 
-// Team logos: fetched once per URL, 3 s timeout; null = draw a colour circle.
-const logoCache = new Map<string, string | null>();
-async function logoDataUri(url: string | null): Promise<string | null> {
-  if (!url) return null;
-  if (logoCache.has(url)) return logoCache.get(url)!;
-  let uri: string | null = null;
-  try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
-    const type = res.headers.get("content-type") ?? "";
-    if (res.ok && /^image\/(png|jpe?g|svg\+xml)/.test(type)) {
-      uri = `data:${type.split(";")[0]};base64,${Buffer.from(await res.arrayBuffer()).toString("base64")}`;
-    }
-  } catch {
-    uri = null;
-  }
-  logoCache.set(url, uri);
-  return uri;
-}
-
-// --- colour -----------------------------------------------------------------
-
-function luma(hex: string | null): number | null {
-  const m = hex ? /^#?([0-9a-f]{6})$/i.exec(hex.trim()) : null;
-  if (!m) return null;
-  const n = parseInt(m[1], 16);
-  return 0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255);
-}
-
-/** The winner's colour, readable on white: too light or too dark falls back. */
-export function accentFor(team: TeamFacts): string {
-  const ok = (c: string | null) => {
-    const l = luma(c);
-    return l !== null && l >= 35 && l <= 200;
-  };
-  if (ok(team.primaryColor)) return team.primaryColor!;
-  if (ok(team.secondaryColor)) return team.secondaryColor!;
-  return ORANGE;
-}
-
 // --- pieces -----------------------------------------------------------------
 
 const sign = (n: number) => `${n > 0 ? "+" : ""}${n}`;
@@ -99,7 +60,7 @@ function teamRow(team: TeamFacts, logo: string | null, won: boolean) {
     { alignItems: "center", gap: 14, width: 400 },
     logo
       ? { type: "img", props: { src: logo, width: 44, height: 44, style: { objectFit: "contain" } } }
-      : h("div", { width: 40, height: 40, borderRadius: 20, backgroundColor: team.primaryColor ?? MUTED }),
+      : h("div", { width: 40, height: 40, borderRadius: 20, backgroundColor: accentFor(team) }),
     text(team.name, {
       flex: 1,
       fontFamily: COND,
@@ -315,6 +276,23 @@ function numbersBody(story: Extract<Story, { angle: "numbers" }>, t: StoryText, 
     sectionTitle(t.labels.topScorers),
     topThree(f, t, accent, f.home),
     topThree(f, t, accent, f.away),
+    // Spec: bench split for both teams, when the game has starter flags.
+    d.bench.home && d.bench.away
+      ? h(
+          "div",
+          { flexDirection: "column", marginTop: 2 },
+          sectionTitle(t.labels.pointsSplit),
+          table(
+            ["", t.labels.bench, t.labels.starters],
+            [
+              [f.home.name, String(d.bench.home.bench), String(d.bench.home.starters)],
+              [f.away.name, String(d.bench.away.bench), String(d.bench.away.starters)],
+            ],
+            null,
+            accent
+          )
+        )
+      : null,
     d.bestLineup ? h("div", { flexDirection: "column", marginTop: 6 }, sectionTitle(t.labels.bestLineup), text(`${d.bestLineup.names.map((n) => n.split(" ").slice(-1)[0]).join(" · ")}  ${sign(d.bestLineup.plusMinus)}`, { fontFamily: COND, fontWeight: 800, fontSize: 30, color: INK })) : null,
   ];
 }
@@ -327,9 +305,21 @@ function headlineParts(headline: string): [string, string] {
 }
 
 export async function renderStoryPng(story: Story, f: GameFacts, t: StoryText): Promise<Buffer> {
+  const [homeLogo, awayLogo] = await Promise.all([logoDataUri(f.home.logoUrl), logoDataUri(f.away.logoUrl)]);
+  try {
+    return await renderWith(story, f, t, homeLogo, awayLogo);
+  } catch (err) {
+    if (!homeLogo && !awayLogo) throw err;
+    // A logo satori can't decode after all: forget both, draw circles.
+    forgetLogo(f.home.logoUrl);
+    forgetLogo(f.away.logoUrl);
+    return renderWith(story, f, t, null, null);
+  }
+}
+
+async function renderWith(story: Story, f: GameFacts, t: StoryText, homeLogo: string | null, awayLogo: string | null): Promise<Buffer> {
   const w = winnerOf(f);
   const accent = accentFor(w);
-  const [homeLogo, awayLogo] = await Promise.all([logoDataUri(f.home.logoUrl), logoDataUri(f.away.logoUrl)]);
   const [num, word] = headlineParts(t.headline);
   const heroSize = Math.max(76, Math.min(140, Math.round(1500 / Math.max(10, t.headline.length))));
 
