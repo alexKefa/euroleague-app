@@ -126,7 +126,7 @@
   - one per angle;
   - plus an OT game with a 30-character name and a bogus logo URL;
   - EN and EL for the bench fixture.
-  It runs `pickStory` → `storyText` → `renderStoryPng` and writes `.superpowers/story-samples/<name>.png`.
+  It runs `pickStory` → `storyText` → `renderStoryPng` and writes `.superpowers/sdd/2026-10-09-game-story-cards/samples/<name>.png (git-ignored)`.
 - [ ] **Step 2:** run it → fails (no `render.js`).
 - [ ] **Step 3: Implement `render.ts`.**
   - Build the satori element tree with plain objects (`{ type, props: { style, children } }`), following the spec's "Card layout" §1–7. Every angle body comes from `story.data`.
