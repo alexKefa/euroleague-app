@@ -7,7 +7,9 @@ import { getCurrentSeason } from "../services/season.js";
 import { getBaselinePPGForPlayers } from "../services/topScorerPoints.js";
 import { getTeamAnalytics } from "../services/teamAnalytics.js";
 import { getLineupBuilder, normalizePlayerCodes } from "../services/lineupBuilder.js";
-import { CACHE_KEYS, cached } from "../services/responseCache.js";
+import { CACHE_KEYS, cached, invalidate } from "../services/responseCache.js";
+
+const LINEUP_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 import { getTeamRestSplits } from "../services/restSplits.js";
 import { getTeamReferees } from "../services/refereeStats.js";
 
@@ -205,16 +207,20 @@ teamsRouter.get("/:id/analytics", async (req, res) => {
 // ?season= is given.
 teamsRouter.get("/:id/lineup", async (req, res) => {
   try {
+    const teamId = req.params.id;
+    if (!LINEUP_UUID_RE.test(teamId)) return res.status(404).json({ error: "Team not found" });
     const codes = normalizePlayerCodes(typeof req.query.players === "string" ? req.query.players : undefined);
     if (!codes) return res.status(400).json({ error: "Pick 2 to 5 players" });
-    const season = typeof req.query.season === "string" ? req.query.season : await getCurrentSeason();
+    const querySeason = typeof req.query.season === "string" ? req.query.season : null;
+    if (querySeason !== null && !/^\d{4}-\d{2}$/.test(querySeason)) return res.status(400).json({ error: "Invalid season" });
+    const season = querySeason ?? (await getCurrentSeason());
     if (!season) return res.status(404).json({ error: "No season" });
-    const teamId = req.params.id;
-    res.json(
-      await cached(`${CACHE_KEYS.lineup}${teamId}:${season}:${codes.join(",")}`, 10 * 60_000, () =>
-        getLineupBuilder(teamId, season, codes)
-      )
-    );
+    const key = `${CACHE_KEYS.lineup}${teamId}:${season}:${codes.join(",")}`;
+    const result = await cached(key, 10 * 60_000, () => getLineupBuilder(teamId, season, codes));
+    // Public endpoint: keep only real groups in the cache, so made-up codes,
+    // teams or never-together pairs can't each add an entry.
+    if (result.together.seconds === 0) invalidate(key);
+    res.json(result);
   } catch (err) {
     console.error("GET /api/teams/:id/lineup failed:", err);
     res.status(500).json({ error: "Failed to load lineup" });

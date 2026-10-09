@@ -1,6 +1,6 @@
 import { Component, ElementRef, computed, inject, input, signal } from "@angular/core";
 import { toObservable, toSignal } from "@angular/core/rxjs-interop";
-import { catchError, map, of, startWith, switchMap } from "rxjs";
+import { catchError, map, of, scan, startWith, switchMap } from "rxjs";
 import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
 import { AnalyticsPlayer, LineupBuilderResult } from "../../core/models";
@@ -13,6 +13,7 @@ const MAX_PICK = 5;
 const SMALL_SAMPLE_SECONDS = 1200;
 
 type LoadState = { status: "idle" } | { status: "loading" } | { status: "error" } | { status: "ok"; result: LineupBuilderResult };
+type ViewState = { status: LoadState["status"]; result: LineupBuilderResult | null };
 
 /**
  * Lineup builder (2026-10-09, docs/superpowers/specs/2026-10-09-lineup-builder-design.md):
@@ -22,6 +23,9 @@ type LoadState = { status: "idle" } | { status: "loading" } | { status: "error" 
 @Component({
   selector: "app-lineup-builder",
   standalone: true,
+  // Block host so "Open in builder" can scroll to it; the margin keeps the
+  // card's title clear of the sticky top bar.
+  host: { class: "block scroll-mt-24" },
   imports: [ButtonDirective, PlayerPhotoComponent],
   template: `
     <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
@@ -103,7 +107,7 @@ type LoadState = { status: "idle" } | { status: "loading" } | { status: "error" 
                         @for (pt of r.partners; track pt.player.code) {
                           @let ptNet = net(pt);
                           <li>
-                            <button type="button" (click)="toggle(pt.player.code)" class="w-full flex items-center gap-2.5 py-2 border-t border-line first:border-t-0 text-left hover:bg-page/60 rounded-lg">
+                            <button type="button" (click)="toggle(pt.player.code)" [disabled]="state().status === 'loading'" class="w-full flex items-center gap-2.5 py-2 border-t border-line first:border-t-0 text-left hover:bg-page/60 rounded-lg disabled:cursor-wait">
                               <app-player-photo [name]="pt.player.name ?? pt.player.code" [photoUrl]="pt.player.photoUrl" [size]="32" class="rounded-full block shrink-0" />
                               <span class="flex-1 min-w-0">
                                 <span class="block text-sm font-semibold truncate">{{ shortName(pt.player) }}</span>
@@ -147,6 +151,8 @@ export class LineupBuilderComponent {
     codes: [...this.selection()].sort(),
     retry: this.retryTick(),
   }));
+  // The last good result rides along while the next one loads (shown
+  // dimmed, partner rows disabled); idle and error clear it.
   protected readonly state = toSignal(
     toObservable(this.request).pipe(
       switchMap(({ teamId, codes }) =>
@@ -157,19 +163,16 @@ export class LineupBuilderComponent {
               catchError(() => of<LoadState>({ status: "error" })),
               startWith<LoadState>({ status: "loading" })
             )
+      ),
+      scan<LoadState, ViewState>(
+        (prev, s) => ({ status: s.status, result: s.status === "ok" ? s.result : s.status === "loading" ? prev.result : null }),
+        { status: "idle", result: null }
       )
     ),
-    { initialValue: { status: "idle" } as LoadState }
+    { initialValue: { status: "idle", result: null } as ViewState }
   );
 
-  // Last good result stays on screen (dimmed) while the next one loads.
-  private lastResult: LineupBuilderResult | null = null;
-  protected readonly shown = computed(() => {
-    const s = this.state();
-    if (s.status === "ok") this.lastResult = s.result;
-    if (s.status === "idle") this.lastResult = null;
-    return s.status === "ok" || s.status === "loading" ? this.lastResult : null;
-  });
+  protected readonly shown = computed(() => this.state().result);
 
   protected readonly together = computed(() => {
     const t = this.shown()?.together;
@@ -188,7 +191,7 @@ export class LineupBuilderComponent {
     return [
       { label: this.i18n.t("ta.min"), value: this.minutes(t.seconds) },
       { label: this.i18n.t("ta.gp"), value: String(t.games) },
-      { label: this.i18n.t("ta.pts"), value: `${t.ptsFor}-${t.ptsAgainst}` },
+      { label: this.i18n.t("ta.pts"), value: `${t.ptsFor}-${t.ptsAgainst} (${this.signedInt(t.ptsFor - t.ptsAgainst)})` },
       { label: this.i18n.t("ta.ortg"), value: fmt(offRating(t.ptsFor, t.possFor)) },
       { label: this.i18n.t("ta.drtg"), value: fmt(defRating(t.ptsAgainst, t.possAgainst)) },
       { label: this.i18n.t("ta.pace"), value: fmt(pace(t.possFor, t.possAgainst, t.seconds)) },
@@ -232,6 +235,10 @@ export class LineupBuilderComponent {
   protected signed(v: number | null): string {
     if (v == null) return "—";
     return `${v > 0 ? "+" : ""}${v.toFixed(1)}`;
+  }
+
+  protected signedInt(v: number): string {
+    return `${v > 0 ? "+" : ""}${v}`;
   }
 
   protected signClass(v: number | null): string {
