@@ -935,6 +935,8 @@ export interface TradeableCard {
   // shown to browsers of the marketplace — purely informational, never
   // enforced. Only meaningful while `tradeable` is true.
   wishlist: string[];
+  // Battle power (2026-10-09), see BattlePower.
+  power?: BattlePower;
 }
 
 export interface MarketplaceCard {
@@ -953,6 +955,8 @@ export interface MarketplaceCard {
   // Resolved to name/image (not just ids) so the marketplace can render
   // "wants: <name>" without a second round trip.
   wishlist: TradeCardRef[];
+  // Battle power (2026-10-09), see BattlePower.
+  power?: BattlePower;
 }
 
 export type TradeOfferStatus = "pending" | "accepted" | "declined" | "cancelled";

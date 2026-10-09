@@ -105,6 +105,16 @@ export class TradesComponent implements OnInit {
 
   readonly canPropose = computed(() => !!this.selectedListingId() && this.selectedMineIds().size > 0);
 
+  // Battle power you give vs get (2026-10-09). A battle uses one card, so
+  // the comparison is against your strongest offered card.
+  readonly offerPowerCompare = computed(() => {
+    const get = this.selectedListing()?.power?.power;
+    const offered = this.myCards().filter((c) => this.selectedMineIds().has(c.id) && c.power);
+    if (get == null || offered.length === 0) return null;
+    const give = Math.max(...offered.map((c) => c.power!.power));
+    return { give, get, diff: Math.round((get - give) * 10) / 10 };
+  });
+
   // Collectible ids the selected listing's owner said they'd want — used to
   // highlight a likely-accepted offer in the composer instead of leaving it
   // a blind pick. Purely a UI hint; the backend still accepts any offer.

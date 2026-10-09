@@ -6,6 +6,7 @@ import { tradeOffers, tradeOfferItems, userCollectibles, collectibles, teams, us
 import { requireAuth } from "../auth/middleware.js";
 import { sendToUser } from "../realtime/hub.js";
 import { sendPushInBackground } from "../services/push.js";
+import { getCardPowers } from "../services/statDuel.js";
 
 export const tradesRouter = Router();
 
@@ -51,8 +52,12 @@ tradesRouter.get("/my-cards", requireAuth, async (req, res) => {
       .innerJoin(teams, eq(collectibles.teamId, teams.id))
       .where(and(eq(userCollectibles.userId, req.userId!), eq(collectibles.tier, "legendary")));
 
+    // Battle power (2026-10-09), so trading has a criterion: battles v5
+    // decide by rarity, then PIR, then form.
+    const powers = await getCardPowers(rows.map((r) => ({ ...r.collectible, finish: r.finish })));
     res.json(
-      rows.map(({ collectible, team, tradeable, finish, wishlist }) => ({
+      rows.map(({ collectible, team, tradeable, finish, wishlist }, i) => ({
+        power: powers[i],
         id: collectible.id,
         name: collectible.name,
         tier: collectible.tier,
@@ -187,8 +192,13 @@ tradesRouter.get("/marketplace", requireAuth, async (req, res) => {
     // it server-side as OWNERSHIP_CONFLICT, this is just surfacing that
     // up front instead of letting them propose an offer that can never
     // be accepted).
+    // Battle power per listing (2026-10-09, with the owner's finish), and
+    // strongest first: that's what makes a legendary worth trading for.
+    const powers = await getCardPowers(rows.map((r) => ({ ...r.collectible, finish: r.finish })));
+    const order = rows.map((_, i) => i).sort((a, b) => powers[b].power - powers[a].power);
     res.json(
-      rows.map(({ listingId, collectible, team, ownerUsername, finish, wishlist }) => ({
+      order.map((i) => ({ ...rows[i], power: powers[i] })).map(({ listingId, collectible, team, ownerUsername, finish, wishlist, power }) => ({
+        power,
         id: listingId,
         collectibleId: collectible.id,
         name: collectible.name,

@@ -37,6 +37,7 @@ export const tradesTranslations: Record<string, Record<Lang, string>> = {
   "trades.wishlistSave": { en: "Save", el: "Αποθήκευση" },
   "trades.wishlistWantsPrefix": { en: "Wants:", el: "Θέλει:" },
   "trades.wishlistWantedBadge": { en: "Wanted", el: "Ζητείται" },
+  "trades.powerCompare": { en: "Battle power, your best → theirs", el: "Δύναμη μάχης, η καλύτερή σου → η δική τους" },
   "trades.err.INVALID_WISHLIST": {
     en: "Wishlist can only contain legendary cards.",
     el: "Η λίστα επιθυμιών μπορεί να περιέχει μόνο θρυλικές κάρτες.",

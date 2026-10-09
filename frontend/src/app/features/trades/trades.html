@@ -73,6 +73,7 @@
                   [unlocked]="true"
                   [finish]="card.finish"
                 ></app-collectible-card>
+                <ng-container *ngTemplateOutlet="powerBadge; context: { $implicit: card.power }"></ng-container>
                 <button
                   type="button"
                   (click)="toggleTradeable(card)"
@@ -187,6 +188,7 @@
                       [selected]="selectedListingId() === card.id"
                       [finish]="card.finish"
                     ></app-collectible-card>
+                    <ng-container *ngTemplateOutlet="powerBadge; context: { $implicit: card.power }"></ng-container>
                     @if (alreadyOwned(card)) {
                       <span class="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <span class="px-2.5 py-1 rounded-full bg-black/70 text-white text-[11px] font-bold uppercase tracking-wide">
@@ -257,6 +259,7 @@
                   [selected]="selectedMineIds().has(card.id)"
                   [finish]="card.finish"
                 ></app-collectible-card>
+                <ng-container *ngTemplateOutlet="powerBadge; context: { $implicit: card.power }"></ng-container>
                 @if (selectedListingWishlistIds().has(card.id)) {
                   <span
                     class="absolute top-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[11px] font-bold uppercase tracking-wide z-10"
@@ -268,6 +271,17 @@
             }
           </div>
 
+          @if (offerPowerCompare(); as cmp) {
+            <p class="text-[12px] text-muted mb-3 tabular-nums">
+              {{ i18n.t('trades.powerCompare') }}:
+              <span class="font-mono font-bold text-ink">⚡ {{ cmp.give }}</span>
+              →
+              <span class="font-mono font-bold text-ink">⚡ {{ cmp.get }}</span>
+              <span class="font-mono font-bold" [class.text-emerald-500]="cmp.diff > 0" [class.text-red-500]="cmp.diff < 0">
+                ({{ cmp.diff > 0 ? '+' : '' }}{{ cmp.diff }})
+              </span>
+            </p>
+          }
           <button type="button" (click)="propose()" [disabled]="!canPropose() || proposing()" appButton>
             {{ proposing() ? i18n.t('trades.sending') : i18n.t('trades.sendOffer') }}
           </button>
@@ -371,3 +385,13 @@
     </div>
   }
 </div>
+
+<!-- Battle power (2026-10-09): rarity, then PIR average, then form. -->
+<ng-template #powerBadge let-p>
+  @if (p) {
+    <span
+      class="block text-center font-mono text-[12px] font-bold tabular-nums text-team-primary"
+      [attr.title]="i18n.t('battles.part.rarity') + ' ' + p.rarity + ' · ' + i18n.t('battles.part.pir') + ' ' + p.pir + ' · ' + i18n.t('battles.part.form') + ' ' + (p.form > 0 ? '+' : '') + p.form"
+    >⚡ {{ p.power }}</span>
+  }
+</ng-template>
