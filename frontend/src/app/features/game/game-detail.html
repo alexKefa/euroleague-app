@@ -388,6 +388,11 @@
     <!-- Win probability (2026-10-07, win-prob-card.ts). -->
     <app-win-prob-card [gameId]="d.game.id" [status]="d.game.status" [home]="d.game.homeTeam" [away]="d.game.awayTeam" />
 
+    <!-- Matchup preview (2026-10-09, matchup-preview.ts) — before tipoff only. -->
+    @if (d.game.status === 'scheduled') {
+      <app-matchup-preview [gameId]="d.game.id" [home]="d.game.homeTeam" [away]="d.game.awayTeam" />
+    }
+
     <!-- "Where the game was won" (2026-10-06, after Buzzer Lab's roundup) —
          the winner's (or live leader's) most decisive team-stat edges,
          ranked in game-detail.ts's gameEdges(). Hidden on a tie or when no
