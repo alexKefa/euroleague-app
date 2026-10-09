@@ -23,6 +23,8 @@ ENV NODE_ENV=production
 COPY backend/package.json backend/package-lock.json ./
 RUN npm ci --omit=dev
 COPY --from=backend-build /app/backend/dist ./dist
+# Fonts + logo for the server-rendered game story cards (services/gameStory).
+COPY backend/assets ./assets
 COPY --from=frontend-build /app/frontend/dist/euroleague-app-frontend/browser ./public
 
 EXPOSE 4000

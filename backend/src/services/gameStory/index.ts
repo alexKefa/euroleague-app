@@ -16,6 +16,9 @@ export interface StorySummary {
   headline: string;
   lede: string;
   shareText: string;
+  // Link-preview title: headline + matchup (just the matchup when the
+  // headline is the score).
+  title: string;
 }
 
 const MAX_ENTRIES = 60;
@@ -51,7 +54,8 @@ export function getStorySummary(gameId: string, lang: Lang): Promise<StorySummar
     if (!facts) return null;
     const story = pickStory(facts);
     const t = storyText(story, facts, lang);
-    return { angle: story.angle, label: t.label, headline: t.headline, lede: t.lede, shareText: t.shareText };
+    const title = story.angle === "numbers" ? t.matchup : `${t.headline} · ${t.matchup}`;
+    return { angle: story.angle, label: t.label, headline: t.headline, lede: t.lede, shareText: t.shareText, title };
   });
 }
 

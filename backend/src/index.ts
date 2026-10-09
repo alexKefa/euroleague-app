@@ -1,5 +1,6 @@
 import { CACHE_KEYS, invalidate } from "./services/responseCache.js";
-import { clearStoryCache } from "./services/gameStory/index.js";
+import { clearStoryCache, getStorySummary } from "./services/gameStory/index.js";
+import { withStoryMeta } from "./services/gameStory/meta.js";
 import "dotenv/config";
 import path from "node:path";
 import fs from "node:fs";
@@ -166,6 +167,32 @@ if (fs.existsSync(indexHtml)) {
   app.use(express.static(staticDir));
   // SPA fallback: any non-API route hands off to Angular's client-side
   // router. /api/* paths that don't match a router above still 404 normally.
+  // Link previews (2026-10-09, services/gameStory/meta.ts): a final game's
+  // /games/:id page carries og:/twitter: tags pointing at its story card,
+  // so a pasted link previews it. Previews are Greek (the app default).
+  // Anything else, or any lookup error, gets the plain page.
+  const indexSource = fs.readFileSync(indexHtml, "utf8");
+  app.get(/^\/games\/([0-9a-f-]{36})\/?$/i, async (req, res) => {
+    try {
+      const id = req.params[0];
+      const summary = await getStorySummary(id, "el");
+      if (summary) {
+        const base = (process.env.APP_BASE_URL?.replace(/\/+$/, "") || `${req.get("x-forwarded-proto") ?? req.protocol}://${req.get("host")}`);
+        res.type("html").send(
+          withStoryMeta(indexSource, {
+            title: summary.title,
+            description: summary.lede,
+            url: `${base}/games/${id}`,
+            image: `${base}/api/games/${id}/story.png?lang=el`,
+          })
+        );
+        return;
+      }
+    } catch (err) {
+      console.error("GET /games/:id link preview failed:", err);
+    }
+    res.sendFile(indexHtml);
+  });
   app.get(/^\/(?!api\/).*/, (_req, res) => {
     res.sendFile(indexHtml);
   });

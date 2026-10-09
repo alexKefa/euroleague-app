@@ -13,6 +13,7 @@ import {
 import { AWAY, HOME, baseFacts, line, stint } from "./game-story-fixtures.js";
 import { storyText } from "../services/gameStory/copy.js";
 import { derivePlays, formatName } from "../services/gameStory/plays.js";
+import { withStoryMeta } from "../services/gameStory/meta.js";
 
 function check(name: string, fn: () => void) {
   fn();
@@ -216,6 +217,27 @@ check("play-by-play derivations", () => {
   // Lead changes/ties in the last 2:00 of Q4 or any OT only (the 290s play is outside 2:00).
   assert.deepEqual(d.clutchPlays.map((p) => [p.period, p.clock, p.homeScore, p.awayScore]), [[4, 100, 72, 71], [5, 20, 77, 76]]);
   assert.equal(derivePlays([], names, HOME).overtime, false);
+});
+
+check("link-preview meta replaces the generic tags", () => {
+  const base = `<html><head><title>Clutch</title>
+<meta property="og:title" content="Clutch"><meta property="og:image" content="https://x/og.png">
+<meta property="og:image:width" content="1200"><meta name="twitter:image" content="https://x/og.png">
+</head><body></body></html>`;
+  const out = withStoryMeta(base, {
+    title: `74 BENCH POINTS · PAN 92–74 "FEN" <b>`,
+    description: "The bench won it & more",
+    url: "https://getclutchapp.com/games/g1",
+    image: "https://getclutchapp.com/api/games/g1/story.png?lang=el",
+  });
+  assert.equal((out.match(/property="og:image"/g) ?? []).length, 1, "og:image duplicated");
+  assert.ok(out.includes(`<meta property="og:image" content="https://getclutchapp.com/api/games/g1/story.png?lang=el">`));
+  assert.ok(out.includes(`<meta property="og:image:width" content="1080">`));
+  assert.ok(out.includes(`<meta property="og:image:height" content="1350">`)); // inserted, was missing
+  assert.ok(out.includes(`<meta name="twitter:image" content="https://getclutchapp.com/api/games/g1/story.png?lang=el">`));
+  assert.ok(out.includes("&quot;FEN&quot; &lt;b&gt;"), "title not escaped");
+  assert.ok(out.includes("<title>74 BENCH POINTS"));
+  assert.ok(out.includes(`content="The bench won it &amp; more"`));
 });
 
 console.log("all game-story checks passed");
