@@ -56,19 +56,10 @@
               <div class="flex flex-wrap gap-1 mt-1 mb-2">
                 <ng-container *ngTemplateOutlet="condition; context: { $implicit: line }"></ng-container>
               </div>
-              <div class="grid grid-cols-3 gap-1.5">
-                @for (s of stats; track s) {
-                  <div class="rounded-lg bg-page px-2 py-1.5 text-center">
-                    <p class="font-mono text-[10px] text-muted uppercase">{{ statShort(s) }}</p>
-                    <p class="font-mono text-sm font-bold tabular-nums">{{ line.boosted[s] }}</p>
-                  </div>
-                }
-              </div>
             }
-            <p class="mt-2 inline-flex items-center gap-1.5 text-[12px] font-semibold text-muted">
-              <span class="hidden-pick">?</span>
-              {{ i18n.t('battles.theirPickHidden') }}
-            </p>
+            @if (theirPower(); as tp) {
+              <ng-container *ngTemplateOutlet="powerBreakdown; context: { $implicit: tp }"></ng-container>
+            }
           </div>
         </div>
       </div>
@@ -189,10 +180,8 @@
                 [maxWidth]="110"
                 [selected]="pickedId() === card.id"
               ></app-collectible-card>
-              @if (bestStatByCard().get(card.id); as best) {
-                <span class="mt-1 font-mono text-[10px] font-bold uppercase text-muted">
-                  {{ statShort(best) }} {{ myCardStats().get(card.id)?.boosted?.[best] }}
-                </span>
+              @if (myCardPower().get(card.id); as cp) {
+                <span class="mt-1 font-mono text-[11px] font-bold tabular-nums text-ink">⚡ {{ cp.power }}</span>
               }
               @if (myCardStats().get(card.id); as line) {
                 <span class="mt-0.5 flex flex-wrap justify-center gap-1">
@@ -205,51 +194,45 @@
       }
     </section>
 
-    @if (pickedLine(); as mine) {
+    @if (pickedPower(); as mine) {
       <section class="mb-4">
-        <div class="flex items-center gap-2 mb-1">
-          <span class="step-badge">2</span>
-          <p class="font-display text-base">{{ i18n.t('battles.stepPickStat') }}</p>
-        </div>
-        <p class="text-xs text-muted mb-2">
-          {{ theirLine() ? i18n.t('battles.stepPickStatHintAccept') : i18n.t('battles.stepPickStatHint') }}
-        </p>
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          @for (s of stats; track s) {
-            @let theirs = theirLine()?.boosted?.[s];
-            <button
-              type="button"
-              (click)="pickStat(s)"
-              class="stat-chip"
-              [class.is-picked]="pickedStat() === s"
-              [class.is-ahead]="theirs !== undefined && mine.boosted[s] > theirs"
-              [class.is-behind]="theirs !== undefined && mine.boosted[s] < theirs"
-              [attr.aria-pressed]="pickedStat() === s"
-            >
-              <span class="text-[12px] font-bold">{{ statLabel(s) }}</span>
-              <span class="flex items-baseline gap-1.5">
-                <span class="font-mono text-lg font-bold tabular-nums">{{ mine.boosted[s] }}</span>
-                @if (theirs !== undefined) {
-                  <span class="font-mono text-[11px] text-muted tabular-nums">{{ i18n.t('battles.vsShort') }} {{ theirs }}</span>
-                }
-              </span>
-            </button>
-          }
-        </div>
-        <!-- What's behind the numbers: rarity boost, recent form, injury. -->
-        <div class="flex flex-wrap items-center gap-1.5 mt-2 text-[11px]">
-          @if (rarityPct(mine) > 0) {
-            <span class="cond-chip">{{ i18n.t('battles.rarityBoost') }} +{{ rarityPct(mine) }}%</span>
-          }
-          @if (mine.recentGames > 0) {
-            <span class="cond-chip">{{ i18n.t('battles.formBlend') }} {{ mine.recentGames }}</span>
-          }
-          <ng-container *ngTemplateOutlet="condition; context: { $implicit: mine }"></ng-container>
-          @if (mine.injury && injuryPct(mine) > 0) {
-            <span class="text-red-500 font-semibold">−{{ injuryPct(mine) }}% {{ i18n.t('battles.onEveryStat') }}</span>
+        <p class="font-display text-base mb-2">{{ i18n.t('battles.cardPowerTitle') }}</p>
+        <div class="bg-card rounded-2xl border border-line p-3">
+          <ng-container *ngTemplateOutlet="powerBreakdown; context: { $implicit: mine }"></ng-container>
+          @if (pickedLine(); as line) {
+            <div class="flex flex-wrap gap-1 mt-2">
+              <ng-container *ngTemplateOutlet="condition; context: { $implicit: line }"></ng-container>
+            </div>
           }
         </div>
       </section>
+    }
+  </ng-template>
+
+  <!-- v5 power breakdown: rarity + PIR avg + form (x injury) = power. -->
+  <ng-template #powerBreakdown let-p>
+    <div class="grid grid-cols-4 gap-1.5 text-center">
+      <div class="rounded-lg bg-page px-1.5 py-1.5">
+        <p class="font-mono text-[10px] text-muted uppercase truncate">{{ i18n.t('battles.part.rarity') }}</p>
+        <p class="font-mono text-sm font-bold tabular-nums">{{ p.rarity }}</p>
+      </div>
+      <div class="rounded-lg bg-page px-1.5 py-1.5">
+        <p class="font-mono text-[10px] text-muted uppercase truncate">{{ i18n.t('battles.part.pir') }}</p>
+        <p class="font-mono text-sm font-bold tabular-nums">{{ p.pir }}</p>
+      </div>
+      <div class="rounded-lg bg-page px-1.5 py-1.5">
+        <p class="font-mono text-[10px] text-muted uppercase truncate">{{ i18n.t('battles.part.form') }}</p>
+        <p class="font-mono text-sm font-bold tabular-nums" [class.text-emerald-500]="p.form > 0" [class.text-red-500]="p.form < 0">{{ part(p.form, 'form') }}</p>
+      </div>
+      <div class="rounded-lg bg-team-primary/10 px-1.5 py-1.5">
+        <p class="font-mono text-[10px] text-muted uppercase truncate">{{ i18n.t('battles.power') }}</p>
+        <p class="font-mono text-sm font-bold tabular-nums text-team-primary">⚡ {{ p.power }}</p>
+      </div>
+    </div>
+    @if (p.injuryFactor < 1) {
+      <p class="text-[11px] text-red-500 font-semibold mt-1.5">
+        {{ i18n.t('battles.part.injury') }} −{{ ((1 - p.injuryFactor) * 100).toFixed(0) }}% {{ i18n.t('battles.part.pir') }} + {{ i18n.t('battles.part.form') }}
+      </p>
     }
   </ng-template>
 
@@ -264,7 +247,7 @@
           <span class="text-muted truncate">
             @if (pickedCard(); as c) {
               <span class="font-semibold text-ink">{{ c.name }}</span>
-              @if (pickedStat()) { · {{ statLabel(pickedStat()) }} }
+              @if (pickedPower(); as pp) { · ⚡ {{ pp.power }} }
             } @else {
               {{ i18n.t('battles.pickPrompt') }}
             }
@@ -335,6 +318,9 @@
               <span class="text-muted mx-1">–</span>
               <span>{{ theirScore() }}</span>
             </p>
+          } @else if (b.mode === 'power' && myWinPct() !== null) {
+            <p class="font-display text-lg tracking-widest text-muted">{{ i18n.t('battles.vsLabel') }}</p>
+            <p class="font-mono text-[11px] text-muted mt-1 text-center">{{ i18n.t('battles.winChance') }}<br /><span class="font-bold text-ink">{{ myWinPct() }}%</span></p>
           } @else {
             <p class="font-display text-lg tracking-widest text-muted">{{ i18n.t('battles.vsLabel') }}</p>
           }
@@ -380,6 +366,32 @@
             } @else {
               <div class="round-row round-row--pending">
                 <p class="text-[13px] font-bold text-muted">{{ i18n.t('battles.roundLabel') }} {{ i + 1 }}</p>
+              </div>
+            }
+          }
+        </div>
+      } @else if (b.mode === 'power') {
+        <!-- v5: rarity, PIR, form, then total power, one row at a time. -->
+        <div class="mt-5 space-y-2">
+          @for (r of powerRows(); track r.key; let i = $index) {
+            @if (i < revealedRounds()) {
+              <div class="round-row" [class.is-won]="r.mine > r.theirs" [class.is-lost]="r.mine < r.theirs">
+                <p class="text-[13px] font-bold mb-1.5">{{ r.key === 'power' ? i18n.t('battles.power') : i18n.t('battles.part.' + r.key) }}</p>
+                <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                  <div class="flex items-center justify-end gap-2">
+                    <span class="font-mono text-sm font-bold tabular-nums">{{ part(r.mine, r.key) }}</span>
+                    <div class="round-bar round-bar--mine"><span [style.width.%]="barPct(r.mine, r.theirs)"></span></div>
+                  </div>
+                  <span class="round-verdict">{{ r.mine === r.theirs ? '=' : r.mine > r.theirs ? '◀' : '▶' }}</span>
+                  <div class="flex items-center gap-2">
+                    <div class="round-bar round-bar--theirs"><span [style.width.%]="barPct(r.theirs, r.mine)"></span></div>
+                    <span class="font-mono text-sm font-bold tabular-nums">{{ part(r.theirs, r.key) }}</span>
+                  </div>
+                </div>
+              </div>
+            } @else {
+              <div class="round-row round-row--pending">
+                <p class="text-[13px] font-bold text-muted">{{ r.key === 'power' ? i18n.t('battles.power') : i18n.t('battles.part.' + r.key) }}</p>
               </div>
             }
           }

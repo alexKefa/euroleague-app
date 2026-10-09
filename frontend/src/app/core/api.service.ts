@@ -618,19 +618,18 @@ export class ApiService {
     return this.http.get<BattleDetail>(`${API_BASE_URL}/battles/${id}`);
   }
 
-  challengeToBattle(leagueId: string, opponentUserId: string, collectibleId: string, stat: DuelStat): Observable<{ id: string; status: string }> {
+  challengeToBattle(leagueId: string, opponentUserId: string, collectibleId: string): Observable<{ id: string; status: string }> {
     return this.http.post<{ id: string; status: string }>(`${API_BASE_URL}/battles`, {
       leagueId,
       opponentUserId,
       collectibleId,
-      stat,
     });
   }
 
   // Resolves the stat duel immediately server-side — the response just
   // confirms it finished; getBattle(id) afterward returns the rounds.
-  acceptBattle(id: string, collectibleId: string, stat: DuelStat): Observable<unknown> {
-    return this.http.post(`${API_BASE_URL}/battles/${id}/accept`, { collectibleId, stat });
+  acceptBattle(id: string, collectibleId: string): Observable<unknown> {
+    return this.http.post(`${API_BASE_URL}/battles/${id}/accept`, { collectibleId });
   }
 
   declineBattle(id: string): Observable<unknown> {

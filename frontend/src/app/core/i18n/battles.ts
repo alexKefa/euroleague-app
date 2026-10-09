@@ -148,12 +148,12 @@ export const battlesTranslations: Record<string, Record<Lang, string>> = {
   // "How duels work" popup (features/battles/battles-info.ts).
   "battles.howItWorksTitle": { en: "How duels work", el: "Πώς λειτουργούν οι μονομαχίες" },
   "battles.howItWorksStep1": {
-    en: "Each side picks a card and one stat: points, rebounds, assists, steals, blocks or PIR. The challenger's stat stays hidden until the duel.",
-    el: "Κάθε πλευρά διαλέγει μια κάρτα και ένα στατιστικό: πόντους, ριμπάουντ, ασίστ, κλεψίματα, κοψίματα ή PIR. Το στατιστικό του προκαλούντος μένει κρυφό μέχρι τη μονομαχία.",
+    en: "Each side picks one card. Its power decides the duel, in this order: rarity first, then the player's PIR average, then current form.",
+    el: "Κάθε πλευρά διαλέγει μία κάρτα. Τη μονομαχία την κρίνει η δύναμή της, με αυτή τη σειρά: πρώτα η σπανιότητα, μετά ο μέσος όρος PIR του παίκτη, μετά η τρέχουσα φόρμα.",
   },
   "battles.howItWorksStep2": {
-    en: "Three categories are compared: both picks plus one random one. The card with the better real per-game stats in 2 of the 3 wins. Stats mix the season average with the player's last 5 games, so hot players 🔥 hit harder and cold ones ❄️ less. Rare cards get +5%, legendaries +10%, foil legendaries +15%. Injured players lose up to 25% (out −25%, doubtful −15%, questionable −10%).",
-    el: "Συγκρίνονται τρεις κατηγορίες: οι δύο επιλογές και μία τυχαία. Κερδίζει η κάρτα με τα καλύτερα πραγματικά στατιστικά ανά αγώνα στις 2 από τις 3. Τα στατιστικά συνδυάζουν τον μέσο όρο της σεζόν με τους 5 τελευταίους αγώνες του παίκτη, οπότε όσοι είναι σε φόρμα 🔥 είναι πιο δυνατοί και όσοι όχι ❄️ πιο αδύναμοι. Οι σπάνιες κάρτες παίρνουν +5%, οι θρυλικές +10%, οι foil θρυλικές +15%. Οι τραυματίες χάνουν έως 25% (εκτός −25%, αμφίβολος −15%, ερωτηματικό −10%).",
+    en: "Power = rarity (common 0, rare 15, legendary 30, foil legendary 40) + season PIR + form (last 5 games vs the season, up to ±4). Injured players lose part of their PIR and form (out −25%, doubtful −15%, questionable −10%), never their rarity. Your win chance is your power out of both cards' total, so a rarer card is a big favorite, but upsets still happen.",
+    el: "Δύναμη = σπανιότητα (κοινή 0, σπάνια 15, θρυλική 30, foil θρυλική 40) + PIR σεζόν + φόρμα (5 τελευταίοι αγώνες σε σχέση με τη σεζόν, έως ±4). Οι τραυματίες χάνουν μέρος από το PIR και τη φόρμα τους (εκτός −25%, αμφίβολος −15%, ερωτηματικό −10%), ποτέ τη σπανιότητα. Η πιθανότητα νίκης σου είναι η δύναμή σου επί το σύνολο των δύο καρτών, οπότε η πιο σπάνια κάρτα είναι μεγάλο φαβορί, αλλά εκπλήξεις γίνονται.",
   },
   "battles.howItWorksStep3": {
     en: "The winner takes points from the loser: 25 for an expected win, up to 100 for an upset, never more than the loser has.",
@@ -165,6 +165,16 @@ export const battlesTranslations: Record<string, Record<Lang, string>> = {
   },
 
   // Global real-time challenge toast (2026-09-22) — app.component.html.
+  // Battles v5 power (2026-10-09, battle-detail).
+  "battles.power": { en: "Power", el: "Δύναμη" },
+  "battles.part.rarity": { en: "Rarity", el: "Σπανιότητα" },
+  "battles.part.pir": { en: "PIR avg", el: "Μ.Ο. PIR" },
+  "battles.part.form": { en: "Form", el: "Φόρμα" },
+  "battles.part.injury": { en: "Injury", el: "Τραυματισμός" },
+  "battles.cardPowerTitle": { en: "Your card's power", el: "Η δύναμη της κάρτας σου" },
+  "battles.winChance": { en: "Win chance", el: "Πιθανότητα νίκης" },
+  "battles.theirPower": { en: "Their power", el: "Η δύναμή τους" },
+
   "battles.toastChallenged": { en: "challenged you to a duel!", el: "σε προκάλεσε σε μονομαχία!" },
   "battles.toastView": { en: "View challenge", el: "Προβολή πρόκλησης" },
 };

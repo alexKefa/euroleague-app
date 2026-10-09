@@ -3,6 +3,7 @@ import { db } from "../db/client.js";
 import { players, playerSeasonStats } from "../db/schema.js";
 import { getCurrentSeason } from "./season.js";
 import { normalizePlayerName } from "./battles.js";
+import { computeBattlePower, type BattlePower } from "./battlePower.js";
 
 // ---------------------------------------------------------------------------
 // Stat duel (battles v4, 2026-09-30, direct request: "should we change
@@ -67,6 +68,9 @@ export interface CardStatLine {
   recentGames: number;
   form: "hot" | "cold" | null;
   injury: InjuryStatus | null;
+  // Unblended PIR inputs for battles v5 (services/battlePower.ts).
+  seasonPir: number;
+  recentPir: number | null;
 }
 
 const EMPTY_LINE: StatLine = { points: 0, rebounds: 0, assists: 0, steals: 0, blocks: 0, pir: 0 };
@@ -90,9 +94,11 @@ interface PlayerCondition {
   recentGames: number;
   form: "hot" | "cold" | null;
   injury: InjuryStatus | null;
+  seasonPir: number;
+  recentPir: number | null;
 }
 
-const NO_CONDITION: PlayerCondition = { raw: EMPTY_LINE, recentGames: 0, form: null, injury: null };
+const NO_CONDITION: PlayerCondition = { raw: EMPTY_LINE, recentGames: 0, form: null, injury: null, seasonPir: 0, recentPir: null };
 
 /**
  * Stat lines for a batch of cards, in input order, in one round trip. Cards
@@ -148,7 +154,11 @@ export async function getCardStatLines(
           select pgs.points, pgs.rebounds, pgs.assists, pgs.steals, pgs.blocks_favour, pgs.valuation
           from player_game_stats pgs
           join games g on g.id = pgs.game_id
-          where pgs.player_id = sl.id and g.status = 'final' and coalesce(pgs.minutes, 0) > 0
+          -- Played: minutes > 0, or null minutes with any stat (live sync
+          -- stores no minutes this season, see TODO.md #7).
+          where pgs.player_id = sl.id and g.status = 'final'
+            and (pgs.minutes > 0 or (pgs.minutes is null and (coalesce(pgs.points, 0) <> 0 or coalesce(pgs.rebounds, 0) <> 0
+              or coalesce(pgs.assists, 0) <> 0 or coalesce(pgs.valuation, 0) <> 0)))
           order by g.tipoff_at desc
           limit ${RECENT_GAMES}
         ) x
@@ -172,14 +182,43 @@ export async function getCardStatLines(
         else if (recentPir <= seasonPir * (1 - FORM_THRESHOLD)) form = "cold";
       }
       const injury = r.injury && r.injury in INJURY_MULTIPLIER ? (r.injury as InjuryStatus) : null;
-      lookup.set(`${r.team_id}|${normalizePlayerName(r.name)}`, { raw, recentGames: n, form, injury });
+      lookup.set(`${r.team_id}|${normalizePlayerName(r.name)}`, { raw, recentGames: n, form, injury, seasonPir, recentPir });
     }
   }
   return cards.map((c) => {
     const cond = lookup.get(`${c.teamId}|${normalizePlayerName(c.name)}`) ?? NO_CONDITION;
     const multiplier = Math.round(multiplierFor(c.tier, c.finish) * (cond.injury ? INJURY_MULTIPLIER[cond.injury] : 1) * 1000) / 1000;
     const boosted = Object.fromEntries(DUEL_STATS.map((s) => [s, round1(cond.raw[s] * multiplier)])) as StatLine;
-    return { raw: cond.raw, multiplier, boosted, recentGames: cond.recentGames, form: cond.form, injury: cond.injury };
+    return {
+      raw: cond.raw,
+      multiplier,
+      boosted,
+      recentGames: cond.recentGames,
+      form: cond.form,
+      injury: cond.injury,
+      seasonPir: cond.seasonPir,
+      recentPir: cond.recentPir,
+    };
+  });
+}
+
+/** Battles v5 power for a batch of cards, in input order, in one round trip. */
+export async function getCardPowers(
+  cards: { teamId: string; name: string; tier: string; finish?: string | null }[]
+): Promise<BattlePower[]> {
+  const lines = await getCardStatLines(cards);
+  return cards.map((c, i) => powerFromLine(c, lines[i]));
+}
+
+/** v5 power from a stat line already loaded by getCardStatLines (no query). */
+export function powerFromLine(card: { tier: string; finish?: string | null }, line: CardStatLine): BattlePower {
+  return computeBattlePower({
+    tier: card.tier,
+    finish: card.finish,
+    seasonPir: line.seasonPir,
+    recentPir: line.recentPir,
+    recentGames: line.recentGames,
+    injury: line.injury,
   });
 }
 

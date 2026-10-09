@@ -1120,10 +1120,18 @@ export const battles = pgTable("battles", {
   // coin-flip battles, which is how the UI tells the two apart.
   challengerStat: varchar("challenger_stat", { length: 20 }),
   opponentStat: varchar("opponent_stat", { length: 20 }),
-  // The resolved best-of-three, frozen at accept time (DuelRound[]): each
-  // category, who put it in play, both boosted values, and its winner.
+  // Frozen at accept time. v4 stat duel: the best-of-three (an array of
+  // rounds). v5 power battle (2026-10-09, services/battlePower.ts): an
+  // object `{ v: 5, ... }` with both power breakdowns and the win chance.
+  // Same column so no migration; Array.isArray tells them apart.
   duelRounds: jsonb("duel_rounds").$type<
-    { stat: string; source: string; challengerValue: number; opponentValue: number; winner: "challenger" | "opponent" }[]
+    | { stat: string; source: string; challengerValue: number; opponentValue: number; winner: "challenger" | "opponent" }[]
+    | {
+        v: 5;
+        challenger: { rarity: number; pir: number; form: number; injuryFactor: number; power: number };
+        opponent: { rarity: number; pir: number; form: number; injuryFactor: number; power: number };
+        challengerWinProb: number;
+      }
   >(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   respondedAt: timestamp("responded_at", { withTimezone: true }),

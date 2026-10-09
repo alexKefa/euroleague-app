@@ -1039,6 +1039,17 @@ export interface CardStatLine {
   recentGames: number;
   form: "hot" | "cold" | null;
   injury: "out" | "doubtful" | "questionable" | "probable" | null;
+  // v5 power (POST /battles/card-stats only).
+  power?: BattlePower;
+}
+
+// Battles v5 (2026-10-09) — mirrors backend services/battlePower.ts.
+export interface BattlePower {
+  rarity: number;
+  pir: number;
+  form: number;
+  injuryFactor: number;
+  power: number;
 }
 
 export interface DuelRound {
@@ -1082,7 +1093,10 @@ export interface BattleDetail {
   id: string;
   leagueId: string;
   status: BattleStatus;
-  mode: "statDuel" | "coinFlip";
+  mode: "power" | "statDuel" | "coinFlip";
+  // v5 power battle (2026-10-09): frozen once finished, live while pending
+  // (opponent null and challengerWinProb null until accepted).
+  power: { challenger: BattlePower; opponent: BattlePower | null; challengerWinProb: number | null } | null;
   challengerUserId: string;
   challengerName: string;
   opponentUserId: string;

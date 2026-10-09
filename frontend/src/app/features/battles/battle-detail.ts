@@ -8,7 +8,7 @@ import { I18nService } from "../../core/i18n.service";
 import { EventsService } from "../../core/events.service";
 import { NavHistoryService } from "../../core/nav-history.service";
 import { BattlesNotificationService } from "../../core/battles-notification.service";
-import { BattleDetail, CardStatLine, Collectible, DUEL_STATS, DuelRound, DuelStat, StatLine } from "../../core/models";
+import { BattleDetail, BattlePower, CardStatLine, Collectible, DuelRound, DuelStat } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { ButtonDirective } from "../../shared/button.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
@@ -27,35 +27,12 @@ const ROUND_MS = 1100;
 
 type Side = "challenger" | "opponent";
 
-// Same rules as the backend's resolveStatDuel (services/statDuel.ts), used
-// only to preview a win chance while accepting. The duel itself is always
-// resolved server-side.
-function roundWinner(stat: DuelStat, c: StatLine, o: StatLine): Side {
-  if (c[stat] !== o[stat]) return c[stat] > o[stat] ? "challenger" : "opponent";
-  if (c.pir !== o.pir) return c.pir > o.pir ? "challenger" : "opponent";
-  return "challenger";
-}
-
-function opponentWinProb(challengerStat: DuelStat, opponentStat: DuelStat, c: StatLine, o: StatLine): number {
-  const picked = challengerStat === opponentStat ? [challengerStat] : [challengerStat, opponentStat];
-  const remaining = DUEL_STATS.filter((s) => !picked.includes(s));
-  const draws: DuelStat[][] =
-    picked.length === 2
-      ? remaining.map((s) => [s])
-      : remaining.flatMap((a, i) => remaining.slice(i + 1).map((b) => [a, b]));
-  const wins = draws.filter((draw) => {
-    const opponentRounds = [...picked, ...draw].filter((s) => roundWinner(s, c, o) === "opponent").length;
-    return opponentRounds >= 2;
-  }).length;
-  return wins / draws.length;
-}
-
 /**
  * One route for every battle state: composing a challenge ("new"),
  * accepting or waiting on a pending one, and the finished duel's reveal.
- * Stat duel (v4, 2026-09-30): pick a card, then a category; best of three
- * categories wins. Finished v3 coin-flip battles still render (mode
- * "coinFlip"), without rounds.
+ * Power battle (v5, 2026-10-09): pick a card; rarity, then PIR average,
+ * then form make its power, and a weighted draw decides. Finished v4 stat
+ * duels (rounds) and v3 coin flips still render in their own modes.
  */
 @Component({
   selector: "app-battle-detail",
@@ -74,7 +51,6 @@ export class BattleDetailComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 
-  readonly stats = DUEL_STATS;
   readonly stakeBase = STAKE_BASE;
   readonly stakeCap = STAKE_CAP;
 
@@ -92,7 +68,6 @@ export class BattleDetailComponent implements OnInit, OnDestroy {
   readonly myCardsLoading = signal(false);
   readonly myCardStats = signal<Map<string, CardStatLine>>(new Map());
   readonly pickedId = signal<string | null>(null);
-  readonly pickedStat = signal<DuelStat | null>(null);
   readonly submitting = signal(false);
   readonly errorKey = signal<string | null>(null);
 
@@ -156,33 +131,45 @@ export class BattleDetailComponent implements OnInit, OnDestroy {
     const id = this.pickedId();
     return id ? (this.myCardStats().get(id) ?? null) : null;
   });
-  // The challenger's card line, known while accepting (only their category is hidden).
-  readonly theirLine = computed(() => this.battle()?.challengerStats ?? null);
-  // Best category for each card in the grid, so the picker hints at a
-  // card's strength before you tap it.
-  readonly bestStatByCard = computed(() => {
-    const map = new Map<string, DuelStat>();
-    for (const [id, line] of this.myCardStats()) {
-      map.set(id, [...DUEL_STATS].sort((a, b) => this.relativeStrength(line.raw, b) - this.relativeStrength(line.raw, a))[0]);
-    }
+  // Power of each of my cards (v5), from POST /battles/card-stats.
+  readonly myCardPower = computed(() => {
+    const map = new Map<string, BattlePower>();
+    for (const [id, line] of this.myCardStats()) if (line.power) map.set(id, line.power);
     return map;
   });
+  readonly pickedPower = computed(() => {
+    const id = this.pickedId();
+    return id ? (this.myCardPower().get(id) ?? null) : null;
+  });
+  // The challenger's power, shown while accepting (cards are public).
+  readonly theirPower = computed(() => this.battle()?.power?.challenger ?? null);
 
-  // Accepting: my chance averaged over whatever the challenger might have
-  // picked (their category is hidden), given my current card + category.
+  // Accepting: my exact chance, my power out of both powers.
   readonly acceptWinPct = computed(() => {
-    const mine = this.pickedLine();
-    const theirs = this.theirLine();
-    const stat = this.pickedStat();
-    if (!mine || !theirs || !stat) return null;
-    const avg = DUEL_STATS.reduce((sum, c) => sum + opponentWinProb(c, stat, theirs.boosted, mine.boosted), 0) / DUEL_STATS.length;
-    return Math.round(avg * 100);
+    const mine = this.pickedPower();
+    const theirs = this.theirPower();
+    if (!mine || !theirs) return null;
+    return Math.round((mine.power / (mine.power + theirs.power)) * 100);
   });
 
   readonly canAffordStake = computed(() => this.myPoints() !== null && this.myPoints()! >= STAKE_BASE);
-  readonly canSubmit = computed(() => !!this.pickedId() && !!this.pickedStat() && !this.submitting() && this.canAffordStake());
+  readonly canSubmit = computed(() => !!this.pickedId() && !this.submitting() && this.canAffordStake());
 
-  // Finished stat duel.
+  // Finished v5 power battle: rows revealed one by one, then the result.
+  readonly powerRows = computed(() => {
+    const p = this.battle()?.power;
+    if (!p || !p.opponent) return [];
+    const mine = this.mySide() === "challenger" ? p.challenger : p.opponent;
+    const theirs = this.mySide() === "challenger" ? p.opponent : p.challenger;
+    return (["rarity", "pir", "form", "power"] as const).map((key) => ({ key, mine: mine[key], theirs: theirs[key] }));
+  });
+  readonly myWinPct = computed(() => {
+    const prob = this.battle()?.power?.challengerWinProb;
+    if (prob == null) return null;
+    return Math.round((this.mySide() === "challenger" ? prob : 1 - prob) * 100);
+  });
+
+  // Finished v4 stat duel.
   readonly rounds = computed<DuelRound[]>(() => this.battle()?.duelRounds ?? []);
   readonly myScore = computed(() => this.rounds().slice(0, this.revealedRounds()).filter((r) => r.winner === this.mySide()).length);
   readonly theirScore = computed(() => this.rounds().slice(0, this.revealedRounds()).filter((r) => r.winner !== this.mySide()).length);
@@ -208,7 +195,6 @@ export class BattleDetailComponent implements OnInit, OnDestroy {
       this.notFound.set(false);
       this.battle.set(null);
       this.pickedId.set(null);
-      this.pickedStat.set(null);
       this.errorKey.set(null);
       this.revealedRounds.set(0);
       this.revealDone.set(false);
@@ -252,7 +238,7 @@ export class BattleDetailComponent implements OnInit, OnDestroy {
   }
 
   private playReveal(b: BattleDetail): void {
-    const total = b.duelRounds?.length ?? 0;
+    const total = this.revealSteps(b);
     const reduced = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (reduced || total === 0) {
       this.skipReveal();
@@ -268,8 +254,16 @@ export class BattleDetailComponent implements OnInit, OnDestroy {
 
   skipReveal(): void {
     this.clearRevealTimers();
-    this.revealedRounds.set(this.battle()?.duelRounds?.length ?? 0);
+    const b = this.battle();
+    this.revealedRounds.set(b ? this.revealSteps(b) : 0);
     this.revealDone.set(true);
+  }
+
+  // v4: one step per round; v5: one per power row; v3: none.
+  private revealSteps(b: BattleDetail): number {
+    if (b.mode === "statDuel") return b.duelRounds?.length ?? 0;
+    if (b.mode === "power") return b.power?.opponent ? 4 : 0;
+    return 0;
   }
 
   private clearRevealTimers(): void {
@@ -300,10 +294,9 @@ export class BattleDetailComponent implements OnInit, OnDestroy {
               next: (res) => {
                 const stats = new Map<string, CardStatLine>(res.stats.map(({ collectibleId, finish, ...line }) => [collectibleId, line]));
                 this.myCardStats.set(stats);
-                // Strongest cards first (sum of boosted stats relative to
-                // typical values), so the best picks are at the top.
+                // Strongest cards first by v5 power.
                 this.myCards.set(
-                  [...owned].sort((a, b) => this.overall(stats.get(b.id)) - this.overall(stats.get(a.id)))
+                  [...owned].sort((a, b) => (stats.get(b.id)?.power?.power ?? 0) - (stats.get(a.id)?.power?.power ?? 0))
                 );
                 this.myCardsLoading.set(false);
               },
@@ -320,41 +313,19 @@ export class BattleDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Rough per-stat scale so "strongest category" compares like with like
-  // (5 rebounds is a lot more than 5 points). Display-only.
-  private static readonly TYPICAL: StatLine = { points: 10, rebounds: 4, assists: 2.5, steals: 0.8, blocks: 0.4, pir: 10 };
-  private relativeStrength(line: StatLine, stat: DuelStat): number {
-    return line[stat] / BattleDetailComponent.TYPICAL[stat];
-  }
-  private overall(line: CardStatLine | undefined): number {
-    if (!line) return 0;
-    return DUEL_STATS.reduce((sum, s) => sum + line.boosted[s] / BattleDetailComponent.TYPICAL[s], 0);
-  }
-
   pickCard(id: string): void {
     if (this.pickedId() === id) return;
     this.pickedId.set(id);
-    // Preselect the card's best category, still one tap to change.
-    this.pickedStat.set(this.bestStatByCard().get(id) ?? null);
-  }
-
-  pickStat(stat: DuelStat): void {
-    this.pickedStat.set(stat);
   }
 
   statLabel(stat: DuelStat | null): string {
     return stat ? this.i18n.t(`battles.stat.${stat}`) : "";
   }
 
-  // Rarity boost and injury penalty, shown separately under the stat grid.
-  // The rarity part is the multiplier with the injury factor divided back out.
-  private static readonly INJURY_FACTOR: Record<string, number> = { out: 0.75, doubtful: 0.85, questionable: 0.9, probable: 1 };
-  rarityPct(line: CardStatLine): number {
-    const injury = line.injury ? BattleDetailComponent.INJURY_FACTOR[line.injury] : 1;
-    return Math.round((line.multiplier / injury - 1) * 100);
-  }
-  injuryPct(line: CardStatLine): number {
-    return line.injury ? Math.round((1 - BattleDetailComponent.INJURY_FACTOR[line.injury]) * 100) : 0;
+  // Signed one-decimal for power parts (form can be negative).
+  part(value: number, key: string): string {
+    if (key === "form") return `${value > 0 ? "+" : ""}${value}`;
+    return String(value);
   }
 
   statShort(stat: DuelStat): string {
@@ -391,11 +362,10 @@ export class BattleDetailComponent implements OnInit, OnDestroy {
 
   sendChallenge(): void {
     const cardId = this.pickedId();
-    const stat = this.pickedStat();
-    if (!cardId || !stat || !this.canSubmit()) return;
+    if (!cardId || !this.canSubmit()) return;
     this.submitting.set(true);
     this.errorKey.set(null);
-    this.api.challengeToBattle(this.newLeagueId, this.newOpponentUserId, cardId, stat).subscribe({
+    this.api.challengeToBattle(this.newLeagueId, this.newOpponentUserId, cardId).subscribe({
       next: (res) => {
         this.submitting.set(false);
         this.router.navigate(["/battles", res.id], { replaceUrl: true });
@@ -410,11 +380,10 @@ export class BattleDetailComponent implements OnInit, OnDestroy {
   acceptChallenge(): void {
     const b = this.battle();
     const cardId = this.pickedId();
-    const stat = this.pickedStat();
-    if (!b || !cardId || !stat || !this.canSubmit()) return;
+    if (!b || !cardId || !this.canSubmit()) return;
     this.submitting.set(true);
     this.errorKey.set(null);
-    this.api.acceptBattle(b.id, cardId, stat).subscribe({
+    this.api.acceptBattle(b.id, cardId).subscribe({
       next: () => {
         this.submitting.set(false);
         this.refresh(b.id);
