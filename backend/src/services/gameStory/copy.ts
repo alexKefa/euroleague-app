@@ -43,6 +43,14 @@ const LABELS = {
   careerHigh: { en: "Career high", el: "Ρεκόρ καριέρας" },
   pts: { en: "pts", el: "πόν." },
   noStarters: { en: "No starters", el: "Χωρίς βασικούς" },
+  reb: { en: "reb", el: "ριμπ." },
+  ast: { en: "ast", el: "ασίστ" },
+  stl: { en: "stl", el: "κλεψ." },
+  blk: { en: "blk", el: "κοψ." },
+  colPts: { en: "PTS", el: "ΠΟΝ" },
+  colReb: { en: "REB", el: "ΡΙΜΠ" },
+  colAst: { en: "AST", el: "ΑΣΙ" },
+  clutchPts: { en: "points in crunch time", el: "πόντοι στο φινάλε" },
 } satisfies Record<string, T>;
 export type LabelKey = keyof typeof LABELS;
 
@@ -57,13 +65,13 @@ const ANGLE_LABEL: Record<Story["angle"], T> = {
 
 const LEDES: Record<Story["angle"], T[]> = {
   bench: [
-    { en: "{team}'s bench won this one.", el: "{team}: ο πάγκος κέρδισε αυτό το ματς." },
+    { en: "The bench won this one for {team}.", el: "{team}: ο πάγκος κέρδισε αυτό το ματς." },
     { en: "{team} got {bench} points from the bench.", el: "{team}: {bench} πόντοι από τον πάγκο." },
     { en: "The second unit carried {team}.", el: "{team}: η δεύτερη πεντάδα σήκωσε το βάρος." },
   ],
   lineup: [
-    { en: "One {team} five changed the game.", el: "{team}: μία πεντάδα άλλαξε το ματς." },
-    { en: "{team}'s best five went {pm} in {min} minutes.", el: "{team}: η καλύτερη πεντάδα έκανε {pm} σε {min} λεπτά." },
+    { en: "One five changed the game for {team}.", el: "{team}: μία πεντάδα άλλαξε το ματς." },
+    { en: "The best {team} five went {pm} in {min} minutes.", el: "{team}: η καλύτερη πεντάδα έκανε {pm} σε {min} λεπτά." },
   ],
   explosion: [
     { en: "{player} took over.", el: "Ο {player} πήρε το ματς πάνω του." },
@@ -78,14 +86,14 @@ const LEDES: Record<Story["angle"], T[]> = {
     { en: "It came down to the last possessions, and {team} made them count.", el: "{team}: κρίθηκε στις τελευταίες κατοχές." },
   ],
   numbers: [
-    { en: "{team} beat {loser}.", el: "{team} – {loser}: η νίκη πήγε στους πρώτους." },
+    { en: "{team} beat {loser}.", el: "{team}: νίκη με διαφορά {final} πόντων." },
     { en: "A {final}-point win for {team}.", el: "{team}: νίκη με {final} πόντους." },
   ],
 };
 
 const TAKEAWAYS: Record<Story["angle"], T[]> = {
   bench: [
-    { en: "The bench scored {pct}% of {team}'s points; the starting five scored {starters}.", el: "{team}: ο πάγκος έβαλε το {pct}% των πόντων· η αρχική πεντάδα έβαλε {starters}." },
+    { en: "The bench scored {pct}% of the points; the starting five scored {starters}.", el: "{team}: ο πάγκος έβαλε το {pct}% των πόντων· η αρχική πεντάδα έβαλε {starters}." },
     { en: "{bench} bench points against {loserScore} for {loser} as a whole team.", el: "{bench} πόντοι από τον πάγκο· η αντίπαλος ομάδα ({loser}) έβαλε {loserScore} συνολικά." },
   ],
   lineup: [
@@ -120,7 +128,9 @@ function variant<V>(list: V[], gameId: string): V {
   return list[h % list.length];
 }
 
-const upper = (s: string, lang: Lang) => s.toLocaleUpperCase(lang === "el" ? "el-GR" : "en-GB").normalize("NFD").replace(/[́̈]/g, "").normalize("NFC");
+/** Upper case; Greek capitals drop the tonos (keep the dialytika). */
+export const upper = (s: string, lang: Lang = "el") =>
+  s.toLocaleUpperCase(lang === "el" ? "el-GR" : "en-GB").normalize("NFD").replace(/́/g, "").normalize("NFC");
 
 function headline(story: Story, lang: Lang, f: GameFacts): string {
   const el = lang === "el";
@@ -200,7 +210,7 @@ export function storyText(story: Story, f: GameFacts, lang: Lang): StoryText {
     context: `EuroLeague ${f.season}${round} · ${date}`,
     matchup,
     shareText: `${head}: ${matchup} #EuroLeague getclutchapp.com/games/${f.gameId}`,
-    footnote: story.angle === "lineup" || story.angle === "bench" || story.angle === "numbers" ? FOOTNOTE[lang] : null,
+    footnote: story.angle === "lineup" ? FOOTNOTE[lang] : null,
     labels,
   };
 }
