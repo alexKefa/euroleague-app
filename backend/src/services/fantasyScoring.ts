@@ -745,12 +745,12 @@ export function midRoundWindowOpen(
  * are updated in place, never re-inserted) — but all 10 players can move
  * freely between starter / sixth man / bench (so the formation can change
  * too), and the captaincy can move — but only *to* a starter whose game
- * hasn't tipped off yet (it can leave a played captain). Originally a player whose
- * game had already started stayed fixed; loosened the same day by direct
- * request ("all players should be switchable with each other and change
- * formation. Not traded with others that dont exist"). Scoring is computed
- * on read, so moving an already-played player rescores their finished game
- * at the new role. Closes for good once every game in the round has tipped off.
+ * hasn't tipped off yet (it can leave a played captain). A player whose game
+ * has already started keeps their slot role: loosened on 2026-09-25 ("all
+ * players should be switchable with each other"), re-tightened 2026-10-09
+ * ("only switch with non played") since scoring is computed on read and
+ * moving a played player would rescore their finished game at the new role.
+ * Closes for good once every game in the round has tipped off.
  */
 async function saveMidRoundSubstitutions(
   userId: string,
@@ -817,6 +817,18 @@ async function saveMidRoundSubstitutions(
       pastDayTeamIds.add(g.awayTeamId);
     }
   }
+  // A player whose game has already been played keeps their starter /
+  // sixth man / bench slot (2026-10-09, direct request: "cant place a bench
+  // player (completed) to main 5 ... only switch with non played") — so
+  // finished points can't be moved into or out of the scoring slots.
+  const movedPlayed = entries.find((e) => {
+    const existing = existingByPlayerId.get(e.playerId)!;
+    return startedTeamIds.has(existing.teamId) && existing.slotRole !== e.slotRole;
+  });
+  if (movedPlayed) {
+    return { error: "A player whose game has already been played can't change slot", code: "PLAYER_PLAYED", playerId: movedPlayed.playerId };
+  }
+
   const newCaptain = entries.find((e) => e.isCaptain);
   const oldCaptain = existingRows.find((r) => r.isCaptain);
   if (newCaptain && newCaptain.playerId !== oldCaptain?.playerId) {

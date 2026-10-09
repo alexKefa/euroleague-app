@@ -693,10 +693,10 @@ export class FantasyComponent implements OnInit {
   // unlock the changes — can change bench players and switch captains").
   // Once the round has tipped off (roundLocked) but some of its games are
   // still to come, the squad stays frozen for transfers and coach, yet all
-  // 10 players can swap between starter/sixth man/bench, the formation can
-  // change, and the captaincy can move — including players whose own game
-  // already finished (follow-up same day: "all players should be
-  // switchable with each other and change formation"). Mirrors the
+  // players whose game is still to come can swap between starter/sixth
+  // man/bench, the formation can change, and the captaincy can move.
+  // Already-played players keep their slot (2026-10-09, reversing the
+  // 2026-09-25 "all players should be switchable" loosening). Mirrors the
   // backend's saveMidRoundSubstitutions exactly.
   // Tightened 2026-09-29 ("since the game is live ... not be able to change
   // anything. Only when day 1 has ended (the next morning)"): also closed
@@ -2284,10 +2284,10 @@ export class FantasyComponent implements OnInit {
   // to true for every player at once, per the whole-round lock above.
   isPlayerLocked(playerId: string): boolean {
     if (this.editLocked()) return true;
-    // Mid-round window: every squad member is movable regardless of whether
-    // their own game has been played — transfers (pool/picker/remove) and
-    // the coach stay closed via their own roundLocked() guards.
-    if (this.subsWindowOpen()) return false;
+    // Mid-round window included (2026-10-09, "only switch with non played"):
+    // a player whose game has been played keeps their starter / sixth man /
+    // bench slot, so finished points can't be moved into or out of the
+    // scoring slots. Mirrors saveMidRoundSubstitutions' PLAYER_PLAYED check.
     return this.hasPlayed(playerId);
   }
 
@@ -2305,8 +2305,9 @@ export class FantasyComponent implements OnInit {
   // the next day tips off (2026-10-08). Mirrors saveMidRoundSubstitutions'
   // CAPTAIN_PLAYED check.
   canTakeCaptaincy(playerId: string): boolean {
-    if (this.isPlayerLocked(playerId)) return false;
-    if (!this.subsWindowOpen() || !this.hasPlayed(playerId)) return true;
+    if (this.editLocked()) return false;
+    if (!this.hasPlayed(playerId)) return true;
+    if (!this.subsWindowOpen()) return false;
     const playedAsCaptain = this.playedAsCaptainIds().has(playerId) || this.serverCaptainId() === playerId;
     return playedAsCaptain && !this.playedOnEarlierDay(playerId);
   }
