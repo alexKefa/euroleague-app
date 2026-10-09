@@ -61,7 +61,7 @@
           {{ submitting() ? i18n.t('auth.loggingIn') : i18n.t('nav.login') }}
         </button>
       </form>
-      <app-google-sign-in-button (signedIn)="afterSignIn()" (failed)="error.set(i18n.t($event))" />
+      <app-google-sign-in-button [referralCode]="pendingReferral" [promoCode]="pendingPromo" (signedIn)="onGoogleSignIn($event)" (failed)="error.set(i18n.t($event))" />
 
       <p class="text-[13px] text-center mt-4">
         <a routerLink="/forgot-password" class="text-team-primary font-semibold">{{ i18n.t('auth.forgotPasswordLink') }}</a>
@@ -77,3 +77,7 @@
 
 
 </div>
+
+@if (showTeamDialog()) {
+  <app-team-pick-dialog (closed)="onTeamDialogClosed()" />
+}

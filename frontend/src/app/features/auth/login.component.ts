@@ -5,14 +5,16 @@ import { Router, RouterLink } from "@angular/router";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { ButtonDirective } from "../../shared/button.directive";
-import { consumePendingPromoClaim } from "../../shared/pending-promo-claim";
+import { consumePendingPromoClaim, peekPendingPromoClaim } from "../../shared/pending-promo-claim";
+import { clearPendingReferral, peekPendingReferral } from "../../shared/pending-referral";
+import { TeamPickDialogComponent } from "../../shared/team-pick-dialog";
 import { pendingLeagueJoinUrl } from "../../shared/pending-league-join";
-import { GoogleSignInButtonComponent } from "../../shared/google-sign-in-button";
+import { GoogleSignInButtonComponent, type GoogleSignInResult } from "../../shared/google-sign-in-button";
 
 @Component({
   selector: "app-login",
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, ButtonDirective, GoogleSignInButtonComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, ButtonDirective, GoogleSignInButtonComponent, TeamPickDialogComponent],
   templateUrl: "./login.component.html",
 })
 export class LoginComponent {
@@ -24,11 +26,35 @@ export class LoginComponent {
   readonly submitting = signal(false);
   readonly showPassword = signal(false);
   readonly error = signal<string | null>(null);
+  // Stashed codes from an earlier referral/promo link, so a brand-new
+  // Google account made from this page still gets them (same as Register).
+  readonly pendingReferral = peekPendingReferral();
+  readonly pendingPromo = peekPendingPromoClaim();
+  readonly showTeamDialog = signal(false);
 
   readonly form = this.fb.nonNullable.group({
     email: ["", [Validators.required, Validators.email]],
     password: ["", [Validators.required]],
   });
+
+  // Google on the Login page (2026-10-09, "on google login we should select
+  // team etc etc. like normal flow"): a new account takes the same path as
+  // Register (team pick, then Predictions); an existing one just signs in.
+  onGoogleSignIn(res: GoogleSignInResult): void {
+    if (!res.created) {
+      this.afterSignIn();
+      return;
+    }
+    // Sign-up already redeemed the stashed codes server-side.
+    consumePendingPromoClaim();
+    clearPendingReferral();
+    this.showTeamDialog.set(true);
+  }
+
+  // Same destination as Register after the team pick.
+  onTeamDialogClosed(): void {
+    this.router.navigateByUrl(pendingLeagueJoinUrl() ?? "/predictions");
+  }
 
   // After email/password or Google sign-in.
   afterSignIn(): void {
