@@ -4,6 +4,7 @@ import { Observable, tap, catchError, of, map, switchMap, finalize, shareReplay,
 import { API_BASE_URL } from "./api-config";
 import { PublicUser } from "./models";
 import { getPushSubscription } from "./push-subscription";
+import { ThemeService } from "./theme.service";
 
 interface AuthResponse {
   user: PublicUser;
@@ -19,6 +20,7 @@ export interface RegisterResult {
 @Injectable({ providedIn: "root" })
 export class AuthService {
   private http = inject(HttpClient);
+  private theme = inject(ThemeService);
 
   // Access token lives in memory only — never localStorage, never a
   // non-httpOnly cookie. It's gone on a hard refresh, which is what
@@ -50,14 +52,14 @@ export class AuthService {
   // Sign in with Google (2026-10-09): one call for sign-in and sign-up;
   // `created` tells a brand-new account apart from an existing one.
   googleSignIn(
-    credential: string,
+    accessToken: string,
     referralCode?: string | null,
     promoCode?: string | null
   ): Observable<RegisterResult & { created: boolean }> {
     return this.http
       .post<AuthResponse & { created: boolean }>(
         `${API_BASE_URL}/auth/google`,
-        { credential, referralCode, promoCode },
+        { accessToken, referralCode, promoCode },
         { withCredentials: true }
       )
       .pipe(
@@ -109,6 +111,9 @@ export class AuthService {
       tap(() => {
         this.accessToken.set(null);
         this.currentUser.set(null);
+        // Back to the app's default colors (2026-10-09, "when logging out
+        // reset app's colors to default ones").
+        this.theme.applyTeam(null);
       })
     );
   }

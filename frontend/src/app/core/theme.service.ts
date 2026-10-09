@@ -144,13 +144,14 @@ export class ThemeService {
     this.accentColors.set({ primary, secondary });
     this.applyThemeColor(team ? primary : null);
 
-    if (team) {
-      try {
-        localStorage.setItem(ACCENT_COLORS_KEY, JSON.stringify({ primary, secondary }));
-      } catch {
-        // Private-browsing/storage-disabled — theming still works for the
-        // current session, it just won't be cached for the next boot.
-      }
+    try {
+      // No team (cleared, or logged out) also drops the cache, so the next
+      // boot doesn't bring the old team's colors back (2026-10-09).
+      if (team) localStorage.setItem(ACCENT_COLORS_KEY, JSON.stringify({ primary, secondary }));
+      else localStorage.removeItem(ACCENT_COLORS_KEY);
+    } catch {
+      // Private-browsing/storage-disabled — theming still works for the
+      // current session, it just won't be cached for the next boot.
     }
   }
 

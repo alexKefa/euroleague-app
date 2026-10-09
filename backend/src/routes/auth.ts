@@ -11,7 +11,7 @@ import { createUniqueUsername, isUsernameTaken, isValidUsername } from "../servi
 import { redeemPromoCode } from "../services/promoCodes.js";
 import { getCurrentSeason } from "../services/season.js";
 import { sendPasswordResetEmail, type EmailLang } from "../services/email.js";
-import { googleClientId, verifyGoogleCredential } from "../services/googleAuth.js";
+import { googleClientId, verifyGoogleAccessToken, verifyGoogleCredential } from "../services/googleAuth.js";
 
 export const authRouter = Router();
 
@@ -238,15 +238,22 @@ authRouter.post("/google", credentialsLimiter, async (req, res) => {
     res.status(503).json({ error: "Google sign-in isn't configured", code: "GOOGLE_DISABLED" });
     return;
   }
-  const { credential, referralCode, promoCode } = req.body ?? {};
-  if (typeof credential !== "string" || credential.length === 0 || credential.length > 4096) {
-    res.status(400).json({ error: "credential is required", code: "INVALID_REQUEST_BODY" });
+  // accessToken: the app's own custom button (OAuth popup). credential:
+  // Google's rendered button (ID token), kept for pages loaded before the
+  // switch.
+  const { credential, accessToken, referralCode, promoCode } = req.body ?? {};
+  const token = typeof accessToken === "string" ? accessToken : typeof credential === "string" ? credential : null;
+  if (!token || token.length > 4096) {
+    res.status(400).json({ error: "accessToken is required", code: "INVALID_REQUEST_BODY" });
     return;
   }
 
   let identity;
   try {
-    identity = await verifyGoogleCredential(credential, clientId);
+    identity =
+      typeof accessToken === "string"
+        ? await verifyGoogleAccessToken(accessToken, clientId)
+        : await verifyGoogleCredential(token, clientId);
   } catch {
     res.status(401).json({ error: "Google sign-in failed", code: "GOOGLE_TOKEN_INVALID" });
     return;
