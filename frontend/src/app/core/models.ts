@@ -464,6 +464,16 @@ export interface MatchupPreview {
 
 export type MatchupPreviewResponse = MatchupPreview | { available: false };
 
+// Game story cards (2026-10-09) — mirrors backend services/gameStory/index.ts.
+export interface StorySummary {
+  angle: "bench" | "lineup" | "explosion" | "comeback" | "clutch" | "numbers";
+  label: string;
+  headline: string;
+  lede: string;
+  shareText: string;
+  title: string;
+}
+
 export interface PreviewStrip {
   home: { form: ("W" | "L")[]; injuries: number };
   away: { form: ("W" | "L")[]; injuries: number };

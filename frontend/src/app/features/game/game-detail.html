@@ -301,6 +301,11 @@
       }
     </div>
 
+    <!-- Story of the game (2026-10-09, game-story.ts) — final games only. -->
+    @if (d.game.status === 'final') {
+      <app-game-story [gameId]="d.game.id" [homeCode]="d.game.homeTeam.code" [awayCode]="d.game.awayTeam.code" />
+    }
+
     <!-- Live scoring feed — derived from the SSE scoringEvents stream (see
          game-detail.ts's constructor effect), not a real play-by-play fetch;
          see ScoringEvent's doc comment in backend/src/realtime/hub.ts for

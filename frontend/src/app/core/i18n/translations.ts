@@ -34,6 +34,7 @@ import { teamAnalyticsTranslations } from "./team-analytics";
 import { shareCardTranslations } from "./share-card";
 import { winProbTranslations } from "./win-prob";
 import { matchupTranslations } from "./matchup";
+import { gameStoryTranslations } from "./game-story";
 
 export type { Lang };
 
@@ -77,4 +78,5 @@ export const translations: Record<string, Record<Lang, string>> = {
   ...shareCardTranslations,
   ...winProbTranslations,
   ...matchupTranslations,
+  ...gameStoryTranslations,
 };

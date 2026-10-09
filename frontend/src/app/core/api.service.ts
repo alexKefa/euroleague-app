@@ -45,6 +45,7 @@ import {
   GameWinProb,
   WinProbPreGame,
   MatchupPreviewResponse,
+  StorySummary,
   PreviewStrip,
   League,
   LeagueDetail,
@@ -237,6 +238,15 @@ export class ApiService {
 
   getPreGameWinProbs(season: string, round: number): Observable<Record<string, WinProbPreGame>> {
     return this.http.get<Record<string, WinProbPreGame>>(`${API_BASE_URL}/games/win-prob/pregame`, { params: { season, round } });
+  }
+
+  getGameStory(gameId: string, lang: "en" | "el"): Observable<StorySummary> {
+    return this.http.get<StorySummary>(`${API_BASE_URL}/games/${gameId}/story`, { params: { lang } });
+  }
+
+  // Same-origin image URL for <img> and the share/download fetch.
+  gameStoryImageUrl(gameId: string, lang: "en" | "el"): string {
+    return `${API_BASE_URL}/games/${gameId}/story.png?lang=${lang}`;
   }
 
   getMatchupPreview(gameId: string): Observable<MatchupPreviewResponse> {
