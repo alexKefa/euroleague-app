@@ -2176,6 +2176,15 @@ export class FantasyComponent implements OnInit {
   // player their old slot's new requirement actually needed.
   setFormation(next: Formation): void {
     if (this.formation() === next || this.editLocked()) return;
+    if (this.roundLocked()) {
+      const planned = this.planMidRoundFormation(next);
+      if (!planned) return;
+      this.formation.set(next);
+      this.squadSlots.set(planned);
+      this.releaseCaptainIfNotStarter(planned);
+      this.saved.set(false);
+      return;
+    }
     const newPositions = FORMATION_POSITIONS[next];
     const byId = this.rowById();
     const slots = [...this.squadSlots()];
@@ -2216,7 +2225,64 @@ export class FantasyComponent implements OnInit {
     this.saved.set(false);
   }
 
+  // Mid-round formation change (2026-10-09, "we have to disable formations
+  // because bench players will participate or roles will change ... check
+  // last formation"): unlike the pre-lock path above, which may leave a
+  // starter slot empty for the pool to fill, mid-round the change has to
+  // come out as a complete starting five built only by swapping players
+  // who haven't played. Every played starter must still fit the new shape
+  // (2-1-2 -> 1-2-2 with two played Guards would bench one of them), and
+  // each opened slot is filled from the unplayed sixth man / bench, with
+  // the benched starters taking their places. Returns null if impossible.
+  private planMidRoundFormation(next: Formation): SquadSlot[] | null {
+    const byId = this.rowById();
+    const need: Record<PositionName, number> = { Guard: 0, Forward: 0, Center: 0 };
+    for (const p of FORMATION_POSITIONS[next]) need[p]++;
+    const slots = [...this.squadSlots()];
+
+    const keep: Record<PositionName, number> = { Guard: 0, Forward: 0, Center: 0 };
+    const outgoing: number[] = [];
+    // Played starters first: they must stay, so they claim their position's quota.
+    const starterIdx = [...Array(this.starterCount).keys()].sort(
+      (a, b) => Number(this.isPlayerLocked(slots[b].playerId!)) - Number(this.isPlayerLocked(slots[a].playerId!))
+    );
+    for (const i of starterIdx) {
+      const id = slots[i].playerId;
+      const pos = id ? (byId.get(id)?.player.position as PositionName | undefined) : undefined;
+      if (!id || !pos || !(pos in need)) return null;
+      if (keep[pos] < need[pos]) keep[pos]++;
+      else if (this.isPlayerLocked(id)) return null;
+      else outgoing.push(i);
+    }
+
+    for (const out of outgoing) {
+      const pos = (["Guard", "Forward", "Center"] as PositionName[]).find((p) => keep[p] < need[p])!;
+      const inIdx = slots.findIndex(
+        (s, idx) =>
+          idx >= this.starterCount &&
+          s.playerId !== null &&
+          !this.isPlayerLocked(s.playerId) &&
+          byId.get(s.playerId)?.player.position === pos
+      );
+      if (inIdx === -1) return null;
+      const incoming = slots[inIdx].playerId;
+      slots[inIdx] = { ...slots[inIdx], playerId: slots[out].playerId };
+      slots[out] = { ...slots[out], playerId: incoming };
+      keep[pos]++;
+    }
+    return this.reseatStartersForFormation(slots, next);
+  }
+
+  // Formation picker gating: mid-round only shapes reachable by moving
+  // unplayed players are offered.
+  canChooseFormation(next: Formation): boolean {
+    if (this.formation() === next) return true;
+    if (this.editLocked()) return false;
+    return !this.roundLocked() || this.planMidRoundFormation(next) !== null;
+  }
+
   chooseFormation(next: Formation): void {
+    if (!this.canChooseFormation(next)) return;
     this.setFormation(next);
     this.showFormationPicker.set(false);
   }
@@ -2769,9 +2835,11 @@ export class FantasyComponent implements OnInit {
     if (this.isPlayerLocked(displaced)) return;
     const sourceSlot = slots[sourceIdx];
     const targetSlot = slots[targetIdx];
-    const crossesActiveBenchLine = (sourceSlot.role === "bench") !== (targetSlot.role === "bench");
+    // Any cross-role pair — including sixth man <-> starter (2026-10-09,
+    // "cant sub 6th to main squad" when dragged onto a different-position
+    // starter) — goes through the same formation-aware check as the popup.
     let formation: Formation | null = null;
-    if (crossesActiveBenchLine) {
+    if (sourceSlot.role !== targetSlot.role) {
       const result = this.evaluateSwap(slots, sourceIdx, targetIdx);
       if (!result.ok) {
         this.flashSwapRejected();
@@ -2832,9 +2900,11 @@ export class FantasyComponent implements OnInit {
         this.submitting.set(false);
         this.saved.set(true);
       },
-      error: () => {
+      error: (err: { error?: { code?: string } }) => {
         this.submitting.set(false);
-        this.submitError.set(this.i18n.t("fantasy.saveFailed"));
+        const code = err.error?.code;
+        const known = ["PLAYER_PLAYED", "CAPTAIN_PLAYED", "INVALID_FORMATION", "SUBS_NOT_OPEN_YET"];
+        this.submitError.set(this.i18n.t(code && known.includes(code) ? `fantasy.saveError.${code}` : "fantasy.saveFailed"));
       },
     });
   }

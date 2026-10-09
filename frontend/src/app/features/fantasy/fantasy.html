@@ -1707,12 +1707,16 @@
           <p class="font-display text-xl tracking-wide">{{ i18n.t('fantasy.formationTitle') }}</p>
           <button type="button" (click)="showFormationPicker.set(false)" class="text-muted hover:text-ink text-2xl leading-none font-bold shrink-0">&times;</button>
         </div>
+        @if (subsWindowOpen()) {
+          <p class="text-[11px] text-muted -mt-2 mb-3">{{ i18n.t('fantasy.formationMidRoundHint') }}</p>
+        }
         <div class="flex flex-col gap-2">
           @for (f of formationOptions; track f) {
             <button
               type="button"
               (click)="chooseFormation(f)"
-              class="flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left transition-colors"
+              [disabled]="!canChooseFormation(f)"
+              class="flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               [ngClass]="formation() === f ? 'border-team-primary bg-team-primary/10' : 'border-line bg-page hover:border-team-primary'"
             >
               <span class="font-mono text-sm font-bold">{{ f }}</span>

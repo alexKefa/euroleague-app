@@ -108,6 +108,26 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.coachLabel": { en: "Coach", el: "Προπονητής" },
   "fantasy.coachLocked": { en: "Coach locked for this round.", el: "Ο προπονητής κλείδωσε για αυτή την αγωνιστική." },
   "fantasy.formationTitle": { en: "Choose a formation", el: "Επιλογή σχηματισμού" },
+  "fantasy.saveError.PLAYER_PLAYED": {
+    en: "A player who already played can't change slot.",
+    el: "Παίκτης που έχει ήδη αγωνιστεί δεν μπορεί να αλλάξει θέση.",
+  },
+  "fantasy.saveError.CAPTAIN_PLAYED": {
+    en: "The captaincy can only go to a player who hasn't played yet.",
+    el: "Το περιβραχιόνιο μπορεί να δοθεί μόνο σε παίκτη που δεν έχει αγωνιστεί ακόμα.",
+  },
+  "fantasy.saveError.INVALID_FORMATION": {
+    en: "Your starting five must match a formation.",
+    el: "Η αρχική πεντάδα πρέπει να ταιριάζει σε έναν σχηματισμό.",
+  },
+  "fantasy.saveError.SUBS_NOT_OPEN_YET": {
+    en: "Changes reopen the morning after a match day, once its games are final.",
+    el: "Οι αλλαγές ανοίγουν ξανά το πρωί μετά από κάθε αγωνιστική μέρα, όταν τελειώσουν τα παιχνίδια της.",
+  },
+  "fantasy.formationMidRoundHint": {
+    en: "Round in progress: only formations you can reach by moving players who haven't played yet.",
+    el: "Η αγωνιστική είναι σε εξέλιξη: μόνο σχηματισμοί που προκύπτουν μετακινώντας παίκτες που δεν έχουν αγωνιστεί ακόμα.",
+  },
   "fantasy.saveShort": { en: "Save", el: "Αποθήκευση" },
   "fantasy.swapPlayer": { en: "Swap", el: "Αλλαγή" },
   "fantasy.swapPickerTitle": { en: "Swap with…", el: "Αλλαγή με…" },

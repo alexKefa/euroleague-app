@@ -772,6 +772,7 @@ async function saveMidRoundSubstitutions(
         isCaptain: fantasyLineups.isCaptain,
         playedAsCaptain: fantasyLineups.playedAsCaptain,
         teamId: players.teamId,
+        position: players.position,
       })
       .from(fantasyLineups)
       .innerJoin(players, eq(players.id, fantasyLineups.playerId))
@@ -827,6 +828,23 @@ async function saveMidRoundSubstitutions(
   });
   if (movedPlayed) {
     return { error: "A player whose game has already been played can't change slot", code: "PLAYER_PLAYED", playerId: movedPlayed.playerId };
+  }
+  // The starting five must still be one of the supported formations
+  // (2026-10-09): mid-round there's no pool to refill a broken shape from.
+  const starterCounts: Record<string, number> = { Guard: 0, Forward: 0, Center: 0 };
+  let startersChanged = false;
+  for (const e of entries) {
+    const existing = existingByPlayerId.get(e.playerId)!;
+    if ((e.slotRole === "starter") !== (existing.slotRole === "starter")) startersChanged = true;
+    if (e.slotRole !== "starter") continue;
+    const position = existing.position ?? "";
+    starterCounts[position] = (starterCounts[position] ?? 0) + 1;
+  }
+  if (
+    startersChanged &&
+    !FANTASY_FORMATION_VECTORS.some((v) => v.Guard === starterCounts.Guard && v.Forward === starterCounts.Forward && v.Center === starterCounts.Center)
+  ) {
+    return { error: "The starting five must match a formation", code: "INVALID_FORMATION" };
   }
 
   const newCaptain = entries.find((e) => e.isCaptain);
