@@ -92,15 +92,10 @@
           } @else {
             <span class="w-14 h-14 rounded-full" [style.background]="d.game.homeTeam.primaryColor"></span>
           }
-          <!-- text-highlight on gameResult() ===  'home'/'away' below KEPT
-               fixed (2026-09-18 pass, "change everywhere on the app the
-               default orange color with the preferred team") — this marks
-               which team WON this specific game, an objective result that
-               could be either team (not necessarily the viewer's
-               favorite), same reasoning as the "On Fire" indicator and
-               player-compare.html's "who's winning this stat" marker
-               further down this file/elsewhere, both also kept fixed. -->
-          <span class="font-bold text-sm text-center truncate w-full" [class.text-highlight]="gameResult() === 'home'">{{
+          <!-- Final score (2026-10-09, "fix the color of the winners"): the
+               winner stays full-strength ink and the loser is muted — the old
+               fixed orange text-highlight clashed with team themes. -->
+          <span class="font-bold text-sm text-center truncate w-full" [class.text-muted]="gameResult() === 'away'">{{
             d.game.homeTeam.name
           }}</span>
         </a>
@@ -108,9 +103,9 @@
         <div class="shrink-0 text-center px-2">
           @if (isFinal() || isLive()) {
             <p class="font-display text-5xl sm:text-6xl tracking-wide leading-none">
-              <span [class.text-highlight]="gameResult() === 'home'">{{ d.game.homeScore }}</span>
+              <span [class.text-muted]="gameResult() === 'away'">{{ d.game.homeScore }}</span>
               <span class="text-muted mx-1">-</span>
-              <span [class.text-highlight]="gameResult() === 'away'">{{ d.game.awayScore }}</span>
+              <span [class.text-muted]="gameResult() === 'home'">{{ d.game.awayScore }}</span>
             </p>
           } @else {
             <p class="font-mono text-xs text-muted font-bold">{{ i18n.t('game.vs') }}</p>
@@ -123,7 +118,7 @@
           } @else {
             <span class="w-14 h-14 rounded-full" [style.background]="d.game.awayTeam.primaryColor"></span>
           }
-          <span class="font-bold text-sm text-center truncate w-full" [class.text-highlight]="gameResult() === 'away'">{{
+          <span class="font-bold text-sm text-center truncate w-full" [class.text-muted]="gameResult() === 'home'">{{
             d.game.awayTeam.name
           }}</span>
         </a>

@@ -126,15 +126,12 @@
                      renders visually first without reordering markup). Desktop:
                      back to the original horizontal, right-aligned row. -->
                 <div class="flex flex-col-reverse items-center gap-1 sm:flex-row sm:items-center sm:justify-end sm:gap-2 flex-1 min-w-0">
-                  <!-- gameResult() text-highlight below KEPT fixed
-                       (2026-09-18, see game-detail.html's own comment on
-                       the identical pattern) — marks which team WON,
-                       could be either side, not necessarily the viewer's
-                       favorite (that's the row tint above instead, which
-                       DID swap to team-primary). -->
+                  <!-- Final result (2026-10-09): winner full-strength ink, loser
+                       muted (was a fixed orange text-highlight). The row tint
+                       above is the viewer's favorite, a separate signal. -->
                   <span
                     class="font-semibold text-sm truncate text-center sm:text-right"
-                    [class.text-highlight]="gameResult(game) === 'home'"
+                    [class.text-muted]="gameResult(game) === 'away'"
                   >
                     <span class="sm:hidden">{{ game.homeTeam.code | teamCode }}</span>
                     <span class="hidden sm:inline">{{ game.homeTeam.name }}</span>
@@ -168,11 +165,11 @@
                     </span>
                   }
                   @if (game.status === "final" || game.status === "live") {
-                    <span class="font-display text-xl tabular-nums" [class.text-highlight]="gameResult(game) === 'home'">{{
+                    <span class="font-display text-xl tabular-nums" [class.text-muted]="gameResult(game) === 'away'">{{
                       game.homeScore
                     }}</span>
                     <span class="font-mono text-muted mx-0.5">-</span>
-                    <span class="font-display text-xl tabular-nums" [class.text-highlight]="gameResult(game) === 'away'">{{
+                    <span class="font-display text-xl tabular-nums" [class.text-muted]="gameResult(game) === 'home'">{{
                       game.awayScore
                     }}</span>
                   } @else {
@@ -209,7 +206,7 @@
                   }
                   <span
                     class="font-semibold text-sm truncate text-center sm:text-left"
-                    [class.text-highlight]="gameResult(game) === 'away'"
+                    [class.text-muted]="gameResult(game) === 'home'"
                   >
                     <span class="sm:hidden">{{ game.awayTeam.code | teamCode }}</span>
                     <span class="hidden sm:inline">{{ game.awayTeam.name }}</span>
