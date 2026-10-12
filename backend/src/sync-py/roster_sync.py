@@ -142,7 +142,10 @@ def extract_roster(people: list[dict]) -> list[dict]:
             "photoUrl": extract_photo_url(entry),
         }
         for entry in people
-        if entry.get("typeName") == "Player" and entry.get("person", {}).get("code")
+        # Only active entries (2026-10-12): a transferred player is listed at
+        # both clubs, inactive at the old one, and the old entry used to win
+        # whenever its club synced later. services/rosterSync.ts does the same.
+        if entry.get("typeName") == "Player" and entry.get("active") is True and entry.get("person", {}).get("code")
     ]
 
 

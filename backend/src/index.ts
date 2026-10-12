@@ -40,6 +40,7 @@ import { syncOdds } from "./sync/oddsSync.js";
 import { syncLiveGames } from "./sync/liveGamesSync.js";
 import { syncInjuries } from "./sync/injurySync.js";
 import { syncPlayerStats } from "./sync/playerStatsSync.js";
+import { syncRosters } from "./services/rosterSync.js";
 import { syncMissingGameExtras } from "./sync/gameExtrasSync.js";
 import { syncMissingReferees } from "./sync/refereeSync.js";
 import { syncScheduleTimes } from "./sync/scheduleSync.js";
@@ -361,6 +362,26 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
   };
   runPlayerStatsSync();
 
+  // Daily roster sync (2026-10-12, services/rosterSync.ts): who plays where,
+  // from the club-roster feed. Rosters only moved when someone ran
+  // roster_sync.py by hand, so off-season transfers (Santos TEL -> BAS) were
+  // never picked up. Runs an hour before the player stats sync.
+  const runRosterSync = () => {
+    syncRosters()
+      .then((r) => {
+        const changes = r.moved.length + r.added.length + r.deactivated.length + r.coachChanges.length;
+        if (changes > 0) {
+          console.log(
+            `[roster sync] moved ${r.moved.map((m) => `${m.name} ${m.from}->${m.to}`).join(", ") || "none"}; added ${r.added.length}; deactivated ${r.deactivated.length}; coaches changed ${r.coachChanges.length}`
+          );
+        }
+        if (r.teamsSkipped.length) console.warn(`[roster sync] feed had no roster for: ${r.teamsSkipped.join(", ")}`);
+      })
+      .finally(() => invalidate(CACHE_KEYS.fantasyPlayers, CACHE_KEYS.preview, CACHE_KEYS.collectibles))
+      .catch((err) => console.error("[roster sync] failed:", err));
+  };
+  runRosterSync();
+
   // Shots + play-by-play + lineup stints (2026-10-06, sync/gameExtrasSync.ts)
   // for final games still missing them. liveGamesSync already syncs each
   // game the moment it goes final; this catches anything that missed that
@@ -430,6 +451,7 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
     runScheduleSync();
     runStandingsSync();
     if (hour % (ODDS_SYNC_INTERVAL_MS / HOUR_MS) === 0) runOddsSync();
+    if (hour === 3) runRosterSync();
     if (hour === 4) {
       runInjurySync();
       runPlayerStatsSync();
