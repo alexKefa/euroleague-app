@@ -83,6 +83,19 @@ export const adminTranslations: Record<string, Record<Lang, string>> = {
   // Push broadcast (admin-push.ts, 2026-10-05).
   "admin.pushTitle": { en: "Push notification", el: "Ειδοποίηση push" },
   "admin.toolPushDesc": { en: "Send a notification to everyone who turned them on", el: "Στείλε ειδοποίηση σε όσους τις έχουν ενεργοποιήσει" },
+  // Production errors (2026-10-12, admin-errors.ts).
+  "admin.errorsTitle": { en: "Errors", el: "Σφάλματα" },
+  "admin.toolErrorsDesc": { en: "What failed on the server, grouped, with stacks", el: "Τι απέτυχε στον server, ομαδοποιημένα, με stack" },
+  "admin.errorsDescription": {
+    en: "Server errors, kept for 30 days across deploys. Repeats are grouped; tap one for where it happened.",
+    el: "Σφάλματα του server, κρατιούνται 30 μέρες ανεξάρτητα από τα deploy. Οι επαναλήψεις ομαδοποιούνται· πάτα ένα για να δεις πού έγινε.",
+  },
+  "admin.errorsDays": { en: "{n}d", el: "{n}μ" },
+  "admin.errorsTest": { en: "Send a test error", el: "Στείλε δοκιμαστικό σφάλμα" },
+  "admin.errorsLoading": { en: "Loading…", el: "Φόρτωση…" },
+  "admin.errorsLoadFailed": { en: "Couldn't load errors", el: "Δεν φορτώθηκαν τα σφάλματα" },
+  "admin.errorsNone": { en: "No errors in this period.", el: "Κανένα σφάλμα σε αυτό το διάστημα." },
+  "admin.errorsFirstSeen": { en: "First seen", el: "Πρώτη φορά" },
   "admin.pushDescription": {
     en: "Goes to every device with notifications on, in the language its app is set to. Send it to yourself first to check how it looks.",
     el: "Πηγαίνει σε κάθε συσκευή με ενεργές ειδοποιήσεις, στη γλώσσα της εφαρμογής της. Στείλ' το πρώτα στον εαυτό σου για να δεις πώς φαίνεται.",

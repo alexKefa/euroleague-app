@@ -49,6 +49,10 @@ import { applyDailyFantasyPriceChanges } from "./services/fantasyDailyReprice.js
 import { runFantasyRoundSweep } from "./services/fantasyRoundSweep.js";
 import { getCurrentSeason } from "./services/season.js";
 import { runLockReminderPushes, runRoundResultPushes } from "./services/pushJobs.js";
+import { errorContext, errorHandler, installErrorCapture, pruneErrorEvents } from "./services/errorReport.js";
+
+// Saves every logged Error to error_events (2026-10-12) before anything can fail.
+installErrorCapture();
 
 const app = express();
 // Railway sits in front of the app as a single reverse-proxy hop, adding
@@ -111,6 +115,7 @@ app.use(
     crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
   })
 );
+app.use(errorContext);
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
@@ -198,6 +203,9 @@ if (fs.existsSync(indexHtml)) {
     res.sendFile(indexHtml);
   });
 }
+
+// Last: anything a route passed to next(err) or threw synchronously.
+app.use(errorHandler);
 
 app.listen(port, () => {
   console.log(`euroleague-app-backend listening on http://localhost:${port}`);
@@ -450,6 +458,7 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
     runGameExtrasSync();
     runScheduleSync();
     runStandingsSync();
+    pruneErrorEvents().catch((err) => console.error("[error report] prune failed:", err));
     if (hour % (ODDS_SYNC_INTERVAL_MS / HOUR_MS) === 0) runOddsSync();
     if (hour === 3) runRosterSync();
     if (hour === 4) {

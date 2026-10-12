@@ -7,6 +7,7 @@ import { pointsSqlExpr } from "../services/points.js";
 import { topScorerTotalsCte, TOP_SCORER_POINTS_PER_CORRECT } from "../services/topScorerPoints.js";
 import { syncRosterPhotos, syncCollectibleImages } from "../services/imageSync.js";
 import { onlineUserIds } from "../realtime/hub.js";
+import { listErrorGroups } from "../services/errorReport.js";
 
 export const adminRouter = Router();
 
@@ -328,4 +329,37 @@ adminRouter.delete("/leagues/:id/members/:userId", requireAuth, requireAdmin, as
     console.error("DELETE /api/admin/leagues/:id/members/:userId failed:", err);
     res.status(400).json({ error: "Failed to remove member" });
   }
+});
+
+// Production errors (2026-10-12, services/errorReport.ts): the last
+// ?days (default 7, max 30) grouped by fingerprint, newest first.
+adminRouter.get("/errors", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const days = Math.min(30, Math.max(1, Number(req.query.days) || 7));
+    const rows = await listErrorGroups(days);
+    res.json(
+      [...rows]
+        .sort((a, b) => new Date(b.last_at).getTime() - new Date(a.last_at).getTime())
+        .map((r) => ({
+          fingerprint: r.fingerprint,
+          count: r.count,
+          lastAt: r.last_at,
+          firstAt: r.first_at,
+          source: r.source,
+          method: r.method,
+          path: r.path,
+          context: r.context,
+          message: r.message,
+          stack: r.stack,
+        }))
+    );
+  } catch (err) {
+    console.error("GET /api/admin/errors failed:", err);
+    res.status(500).json({ error: "Failed to load errors" });
+  }
+});
+
+// Throws on purpose so an admin can check the error log end to end.
+adminRouter.post("/errors/test", requireAuth, requireAdmin, (_req, _res, next) => {
+  next(new Error(`Test error from /admin/tools at ${new Date().toISOString()}`));
 });

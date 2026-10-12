@@ -15,10 +15,11 @@ import { UserSearchComponent, UserSearchResult } from "../../shared/user-search"
 import { TeamCodePipe, displayTeamCode } from "../../shared/team-display-code";
 import { AdminAnnouncementsComponent } from "./admin-announcements";
 import { AdminPushComponent } from "./admin-push";
+import { AdminErrorsComponent } from "./admin-errors";
 import { DialogComponent } from "../../shared/dialog";
 import { NavIconName } from "../../shared/nav-icon";
 
-type ToolId = "announcements" | "push" | "sync" | "points" | "card" | "add";
+type ToolId = "announcements" | "push" | "errors" | "sync" | "points" | "card" | "add";
 
 interface ToolDef {
   id: ToolId;
@@ -34,6 +35,7 @@ interface ToolDef {
 const TOOLS: ToolDef[] = [
   { id: "announcements", icon: "bell", titleKey: "admin.announceTitle", descKey: "admin.toolAnnounceDesc" },
   { id: "push", icon: "zap", titleKey: "admin.pushTitle", descKey: "admin.toolPushDesc" },
+  { id: "errors", icon: "flame", titleKey: "admin.errorsTitle", descKey: "admin.toolErrorsDesc" },
   { id: "points", icon: "trophy", titleKey: "profile.grantPointsTitle", descKey: "admin.toolPointsDesc" },
   { id: "card", icon: "cards", titleKey: "profile.grantCardTitle", descKey: "admin.toolCardDesc" },
   { id: "add", icon: "packs", titleKey: "profile.addCollectibleTitle", descKey: "admin.toolAddDesc" },
@@ -73,6 +75,7 @@ const TOOLS: ToolDef[] = [
     TeamCodePipe,
     AdminAnnouncementsComponent,
     AdminPushComponent,
+    AdminErrorsComponent,
     DialogComponent,
   ],
   templateUrl: "./admin-tools.html",

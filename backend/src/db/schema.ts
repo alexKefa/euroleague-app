@@ -1853,3 +1853,29 @@ export const teamBudgets = pgTable(
     teamSeasonUnique: uniqueIndex("team_budgets_team_season_unique").on(table.teamId, table.season),
   })
 );
+
+// Production errors (2026-10-12, services/errorReport.ts). Railway only keeps
+// the running deployment's logs, so every deploy wiped the error history.
+// Every console.error that carries an Error lands here too (route catch
+// blocks, background jobs, the Express error handler, process crashes),
+// capped at one row per fingerprint per minute. Rows older than 30 days are
+// deleted by the hourly job. Read on /admin/tools.
+export const errorEvents = pgTable(
+  "error_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+    source: varchar("source", { length: 20 }).notNull(), // "route" | "job" | "process"
+    method: varchar("method", { length: 10 }),
+    path: text("path"),
+    context: text("context"), // the console.error message, e.g. "[news sync] failed:"
+    message: text("message").notNull(),
+    stack: text("stack"), // first 2 KB
+    fingerprint: varchar("fingerprint", { length: 16 }).notNull(), // hash of message + first stack frame
+    userId: uuid("user_id"), // no FK: an error must never fail to record
+  },
+  (table) => ({
+    atIdx: index("error_events_at_idx").on(table.at),
+    fingerprintIdx: index("error_events_fingerprint_idx").on(table.fingerprint, table.at),
+  })
+);
