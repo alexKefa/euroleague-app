@@ -49,6 +49,10 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
   // Watch Pill (2026-09-25) — the global pinned game/player live tracker.
   // See core/watchlist.service.ts's doc comment for the full design.
   "watchPill.unpin": { en: "Unpin", el: "Ξεκαρφίτσωμα" },
+  // Floating watch bubble (2026-10-12).
+  "watchPill.open": { en: "Pinned games and players", el: "Καρφιτσωμένοι αγώνες και παίκτες" },
+  "watchPill.title": { en: "Watching", el: "Παρακολουθείς" },
+  "watchPill.final": { en: "Final", el: "Τελικό" },
   "watchPill.pinGame": { en: "Watch this game", el: "Παρακολούθησε αυτόν τον αγώνα" },
   "watchPill.unpinGame": { en: "Stop watching this game", el: "Σταμάτα να παρακολουθείς αυτόν τον αγώνα" },
   "watchPill.pinPlayer": { en: "Watch this player", el: "Παρακολούθησε αυτόν τον παίκτη" },
