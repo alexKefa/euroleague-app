@@ -162,14 +162,14 @@ export function isTopScorerPickLocked(game: typeof games.$inferSelect): boolean 
  * merely "live" even though a pick itself is allowed to be made/changed
  * while live (see routes/topScorerPredictions.ts).
  *
- * Tie policy: if two or more players share the game's max points, this
- * returns null — no winner declared, mirroring computeWinnerTeamId's tie
- * behavior in services/points.ts exactly. Unlike a tied final score
- * ("shouldn't happen in basketball"), a shared game-high point total
- * between two players is a real, expected case — the caller/UI should
- * show this as "no clear top scorer", not treat a null result as a bug.
+ * Tie policy (2026-10-12): every player sharing the game's max points is a
+ * top scorer, so a pick on any of them is correct. It used to be "no
+ * winner" (null), which left every pick on a tied game pending forever
+ * (PAN-ULK, round 4: Hayes-Davis and Lessort both scored 19).
+ * Returns null only while the game can't be resolved: not final, or no
+ * box score yet.
  */
-export async function computeTopScorerPlayerId(gameId: string): Promise<string | null> {
+export async function computeTopScorerPlayerIds(gameId: string): Promise<string[] | null> {
   const [game] = await db.select().from(games).where(eq(games.id, gameId));
   if (!game || game.status !== "final") return null;
 
@@ -181,21 +181,20 @@ export async function computeTopScorerPlayerId(gameId: string): Promise<string |
   if (lines.length === 0) return null;
 
   const maxPoints = Math.max(...lines.map((l) => l.points!));
-  const topScorers = lines.filter((l) => l.points === maxPoints);
-  return topScorers.length === 1 ? topScorers[0].playerId : null;
+  return lines.filter((l) => l.points === maxPoints).map((l) => l.playerId);
 }
 
 /**
- * Batched sibling to computeTopScorerPlayerId, for a list of games at once
+ * Batched sibling to computeTopScorerPlayerIds, for a list of games at once
  * (routes/topScorerPredictions.ts's GET /me) instead of one query per game
  * — same "fewer round trips" reasoning as topScorerTotalsCte. Applies the
  * exact same rules per game: not final -> absent from the returned map
  * (caller should treat a missing key as "not yet resolvable", same as this
  * function's single-game sibling returning null for a non-final game); no
- * box-score rows yet -> absent as well; a tie -> present with value null.
+ * box-score rows yet -> absent as well; a tie -> every tied player listed.
  */
-export async function computeTopScorerPlayerIdsForGames(gameIds: string[]): Promise<Map<string, string | null>> {
-  const result = new Map<string, string | null>();
+export async function computeTopScorerPlayerIdsForGames(gameIds: string[]): Promise<Map<string, string[]>> {
+  const result = new Map<string, string[]>();
   if (gameIds.length === 0) return result;
 
   const finalGames = await db
@@ -219,8 +218,7 @@ export async function computeTopScorerPlayerIdsForGames(gameIds: string[]): Prom
 
   for (const [gameId, ls] of byGame) {
     const maxPoints = Math.max(...ls.map((l) => l.points));
-    const topScorers = ls.filter((l) => l.points === maxPoints);
-    result.set(gameId, topScorers.length === 1 ? topScorers[0].playerId : null);
+    result.set(gameId, ls.filter((l) => l.points === maxPoints).map((l) => l.playerId));
   }
   return result;
 }
@@ -230,8 +228,7 @@ export async function computeTopScorerPlayerIdsForGames(gameIds: string[]): Prom
 // Explicit decision: top-scorer points feed the *same* total as win/loss
 // Predictions (getUserPoints, the leaderboard, the "Century" badge) rather
 // than a separate track — this CTE is the one place the "which player was
-// this game's top scorer, with computeTopScorerPlayerId's exact tie-null
-// rule" logic lives as SQL, shared by services/points.ts's getUserPoints
+// this game's top scorer(s), every tied player counting" logic lives as SQL, shared by services/points.ts's getUserPoints
 // (single user) and services/leaderboard.ts's getLeaderboardEntries (every
 // user at once via one grouped query, same "fewer round trips" reasoning
 // as everywhere else in this app's economy) rather than duplicated in both.
@@ -249,13 +246,8 @@ export function topScorerTotalsCte() {
       group by game_id
     ),
     per_game_leader as (
-      -- array_agg, not max()/min() — Postgres has no default max/min
-      -- aggregate for uuid (confirmed live: "function max(uuid) does not
-      -- exist"), unlike every other id type this app's SQL usually groups
-      -- by. Safe to index [1] only because the surrounding case already
-      -- guarantees exactly one row when count(*) = 1.
-      select pgm.game_id,
-        case when count(*) = 1 then (array_agg(pgs.player_id))[1] else null end as top_scorer_player_id
+      -- Every player on the game-high total (2026-10-12: ties all count).
+      select pgm.game_id, array_agg(pgs.player_id) as top_scorer_ids
       from per_game_max pgm
       join ${playerGameStats} pgs on pgs.game_id = pgm.game_id and pgs.points = pgm.max_points
       group by pgm.game_id
@@ -266,7 +258,7 @@ export function topScorerTotalsCte() {
       from ${topScorerPredictions} tsp
       join ${games} g on g.id = tsp.game_id
       join per_game_leader pgl on pgl.game_id = tsp.game_id
-      where g.status = 'final' and pgl.top_scorer_player_id = tsp.predicted_player_id
+      where g.status = 'final' and tsp.predicted_player_id = any(pgl.top_scorer_ids)
       group by tsp.user_id
     )
   `;

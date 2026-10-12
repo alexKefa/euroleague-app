@@ -333,8 +333,8 @@ predictionsRouter.get("/history", requireAuth, async (req, res) => {
     }
 
     for (const { prediction, game, predictedPlayer, homeTeam: home, awayTeam: away } of topScorerRows) {
-      const topScorerPlayerId = topScorerLeaderByGame.get(game.id);
-      const isCorrect = topScorerPlayerId == null ? null : topScorerPlayerId === prediction.predictedPlayerId;
+      const topScorerIds = topScorerLeaderByGame.get(game.id);
+      const isCorrect = topScorerIds ? topScorerIds.includes(prediction.predictedPlayerId) : null;
       const points = prediction.pointsAtPick ?? TOP_SCORER_POINTS_PER_CORRECT;
       const existing = byGameId.get(game.id);
       if (existing) {

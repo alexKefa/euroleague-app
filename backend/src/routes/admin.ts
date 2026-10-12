@@ -237,12 +237,12 @@ adminRouter.get("/users/:id/activity", requireAuth, requireAdmin, async (req, re
 
         union all
         select 'top_scorer', tsp.created_at, pl.name, ht.name || ' – ' || awt.name,
-          case when g.status = 'final' and pgl.top_scorer_player_id is not null
-            then (case when pgl.top_scorer_player_id = tsp.predicted_player_id
+          case when g.status = 'final' and pgl.top_scorer_ids is not null
+            then (case when tsp.predicted_player_id = any(pgl.top_scorer_ids)
               then coalesce(tsp.points_at_pick, ${TOP_SCORER_POINTS_PER_CORRECT}) else 0 end)::int end,
           case when g.status <> 'final' then g.status
-            when pgl.top_scorer_player_id is null then 'tie'
-            when pgl.top_scorer_player_id = tsp.predicted_player_id then 'won' else 'lost' end
+            when pgl.top_scorer_ids is null then 'pending'
+            when tsp.predicted_player_id = any(pgl.top_scorer_ids) then 'won' else 'lost' end
         from top_scorer_predictions tsp
         join games g on g.id = tsp.game_id
         join players pl on pl.id = tsp.predicted_player_id

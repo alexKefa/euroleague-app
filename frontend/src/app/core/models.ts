@@ -542,7 +542,7 @@ export interface TopScorerPrediction {
   id: string;
   gameId: string;
   predictedPlayer: { id: string; code: string; name: string };
-  isCorrect: boolean | null; // null = game not final yet, or a tie with no clear top scorer
+  isCorrect: boolean | null; // null = game not final yet, or no box score yet (ties count for every tied player)
   // What this pick is worth if correct, priced off the player's season PPG
   // at the exact moment the pick was made (or last changed) — never
   // recomputed afterward, so this stays fixed even while the game is still
@@ -563,7 +563,7 @@ export interface MyTopScorerPrediction {
   homeTeam: { id: string; code: string; name: string };
   awayTeam: { id: string; code: string; name: string };
   predictedPlayer: { id: string; code: string; name: string; photoUrl: string | null };
-  isCorrect: boolean | null; // null = game not final yet, or a tie with no clear top scorer
+  isCorrect: boolean | null; // null = game not final yet, or no box score yet (ties count for every tied player)
   pointsAtPick: number;
 }
 

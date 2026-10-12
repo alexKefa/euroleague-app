@@ -50,7 +50,7 @@ export async function getRoundStandings(
       join ${games} g on g.id = tsp.game_id
       join per_game_leader pgl on pgl.game_id = tsp.game_id
       where g.season = ${season} and g.round = ${round} and g.status = 'final'
-        and pgl.top_scorer_player_id = tsp.predicted_player_id
+        and tsp.predicted_player_id = any(pgl.top_scorer_ids)
       group by tsp.user_id
     )
     select u.id as user_id, u.username, u.is_admin,

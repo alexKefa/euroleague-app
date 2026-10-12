@@ -279,7 +279,7 @@
                 <span class="text-red-500">— {{ i18n.t('topScorer.wrong') }}</span>
               }
               @if (isFinal() && pick.isCorrect === null) {
-                <span class="text-muted">— {{ i18n.t('topScorer.unresolvedTie') }}</span>
+                <span class="text-muted">— {{ i18n.t('topScorer.awaitingBoxScore') }}</span>
               }
             </p>
           }

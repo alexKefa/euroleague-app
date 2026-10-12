@@ -222,7 +222,7 @@ export async function markRoundRewardsSeen(userId: string): Promise<void> {
  * A scalar count of this user's correct top-scorer picks — mirrors
  * services/topScorerPoints.ts's topScorerTotalsCte's per_game_max/
  * per_game_leader derivation (same "which player was this game's top
- * scorer, with the exact tie-null rule" logic) but as a plain count instead
+ * scorer, every tied player counting" logic) but as a plain count instead
  * of a summed-points CTE, and as nested subqueries rather than a top-level
  * WITH clause so it can be interpolated directly into the scalar-subquery
  * "correct" expression both milestone functions below already use — same
@@ -236,7 +236,7 @@ export function topScorerCorrectCountSql(userId: string) {
     join ${games} g on g.id = tsp.game_id
     join (
       select pgm.game_id,
-        case when count(*) = 1 then (array_agg(pgs.player_id))[1] else null end as top_scorer_player_id
+        array_agg(pgs.player_id) as top_scorer_ids
       from (
         select game_id, max(points) as max_points
         from ${playerGameStats}
@@ -247,7 +247,7 @@ export function topScorerCorrectCountSql(userId: string) {
       group by pgm.game_id
     ) pgl on pgl.game_id = tsp.game_id
     where g.status = 'final'
-      and pgl.top_scorer_player_id = tsp.predicted_player_id
+      and tsp.predicted_player_id = any(pgl.top_scorer_ids)
       and tsp.user_id = ${userId}
   )`;
 }

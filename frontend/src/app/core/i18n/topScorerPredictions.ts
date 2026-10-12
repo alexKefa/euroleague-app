@@ -13,9 +13,11 @@ export const topScorerPredictionsTranslations: Record<string, Record<Lang, strin
   "topScorer.myPick": { en: "Your pick", el: "Η επιλογή σου" },
   "topScorer.correct": { en: "Correct!", el: "Σωστό!" },
   "topScorer.wrong": { en: "Not this time", el: "Όχι αυτή τη φορά" },
-  "topScorer.unresolvedTie": {
-    en: "No clear top scorer — two players tied",
-    el: "Δεν υπήρξε ξεκάθαρος κορυφαίος σκόρερ — ισοπαλία",
+  // Final game, box score not in yet (a tie now counts for every tied
+  // player, 2026-10-12, so it no longer leaves a pick unresolved).
+  "topScorer.awaitingBoxScore": {
+    en: "Waiting for the final box score",
+    el: "Αναμονή για τα τελικά στατιστικά",
   },
   "topScorer.pickFailed": { en: "Failed to save your pick", el: "Αποτυχία αποθήκευσης επιλογής" },
   // Shown under each candidate in the picker (2026-09-22, "it's hard to

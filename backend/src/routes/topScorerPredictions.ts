@@ -5,7 +5,7 @@ import { db } from "../db/client.js";
 import { topScorerPredictions, games, players, playerGameStats, teams } from "../db/schema.js";
 import { requireAuth } from "../auth/middleware.js";
 import {
-  computeTopScorerPlayerId,
+  computeTopScorerPlayerIds,
   computeTopScorerPlayerIdsForGames,
   getTopScorerBaselinePPG,
   getTopScorerQuotes,
@@ -172,7 +172,7 @@ topScorerPredictionsRouter.get("/me", requireAuth, async (req, res) => {
       // Map lookup is undefined for a not-yet-final game or a final one with
       // no box score synced yet, and null for a tied game-high — both read
       // as "no result to compare against" the same way.
-      const topScorerPlayerId = leaderByGame.get(game.id);
+      const topScorerIds = leaderByGame.get(game.id);
       return {
         id: prediction.id,
         gameId: game.id,
@@ -186,7 +186,7 @@ topScorerPredictionsRouter.get("/me", requireAuth, async (req, res) => {
           name: predictedPlayer.name,
           photoUrl: predictedPlayer.photoUrl,
         },
-        isCorrect: topScorerPlayerId == null ? null : topScorerPlayerId === prediction.predictedPlayerId,
+        isCorrect: topScorerIds ? topScorerIds.includes(prediction.predictedPlayerId) : null,
         pointsAtPick: prediction.pointsAtPick ?? TOP_SCORER_POINTS_PER_CORRECT,
       };
     });
@@ -216,12 +216,12 @@ topScorerPredictionsRouter.get("/:gameId", requireAuth, async (req, res) => {
       return;
     }
 
-    const topScorerPlayerId = await computeTopScorerPlayerId(gameId);
+    const topScorerIds = await computeTopScorerPlayerIds(gameId);
     res.json({
       id: row.prediction.id,
       gameId: row.prediction.gameId,
       predictedPlayer: { id: row.player.id, code: row.player.code, name: row.player.name },
-      isCorrect: topScorerPlayerId === null ? null : topScorerPlayerId === row.prediction.predictedPlayerId,
+      isCorrect: topScorerIds ? topScorerIds.includes(row.prediction.predictedPlayerId) : null,
       // Read straight from the stored column, never recomputed here — this
       // is "what the pick was worth at the exact moment it was made", not
       // a live re-price off the player's PPG as of right now (see
