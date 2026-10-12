@@ -25,6 +25,7 @@ export type NavIconName =
   | "ball"
   | "tip"
   | "compass"
+  | "search"
   | "logout"
   | "album"
   // install-banner.ts — the "add to home screen" nudge and its per-platform
@@ -413,6 +414,11 @@ export type NavIconName =
           <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2" fill="currentColor" fill-opacity="0.1" />
           <path d="M12 8v5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
           <circle cx="12" cy="16.3" r="1.1" fill="currentColor" />
+        }
+        @case ("search") {
+          <!-- Global search (2026-10-12, shared/search-dialog.ts). -->
+          <circle cx="10.8" cy="10.8" r="6.3" stroke="currentColor" stroke-width="2" />
+          <path d="M15.4 15.4l4.6 4.6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
         }
         @case ("compass") {
           <!-- "Take a tour" button — a compass needle reads as "guide me

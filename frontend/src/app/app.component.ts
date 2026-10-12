@@ -20,6 +20,8 @@ import { TourFabComponent } from "./shared/tour-fab";
 import { BattleChallengeToastComponent } from "./shared/battle-challenge-toast";
 import { JumpBallToastComponent } from "./shared/jump-ball-toast";
 import { AccountDeletedToastComponent } from "./shared/account-deleted-toast";
+import { SearchDialogComponent } from "./shared/search-dialog";
+import { SearchService } from "./core/search.service";
 import { RemindersBannerComponent } from "./shared/reminders-banner";
 import { PickResultToastComponent } from "./shared/pick-result-toast";
 import { PullToRefreshComponent, PullToRefreshState } from "./shared/pull-to-refresh";
@@ -159,6 +161,7 @@ const MORE_LINKS: NavLink[] = ["/leaderboard", "/fans", "/schedule", "/teams", "
     BattleChallengeToastComponent,
     JumpBallToastComponent,
     AccountDeletedToastComponent,
+    SearchDialogComponent,
     RemindersBannerComponent,
     PushPromptComponent,
     PickResultToastComponent,
@@ -184,6 +187,7 @@ export class AppComponent implements OnInit {
   protected packRewards = inject(PackRewardsService);
   protected battlesNotif = inject(BattlesNotificationService);
   protected tour = inject(TourService);
+  protected search = inject(SearchService);
   // Injected at startup so it re-syncs this device's push subscription as
   // soon as the session is restored.
   private push = inject(PushService);
@@ -364,6 +368,17 @@ export class AppComponent implements OnInit {
   @HostListener("document:keydown.escape")
   onEscape(): void {
     this.closeMore();
+  }
+
+  // "/" opens global search on desktop (2026-10-12), unless the user is
+  // typing somewhere (an input, a textarea, an editable element).
+  @HostListener("document:keydown", ["$event"])
+  onSlash(e: KeyboardEvent): void {
+    if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey || this.search.open()) return;
+    const t = e.target as HTMLElement | null;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
+    e.preventDefault();
+    this.search.show();
   }
 
   // Shrinks the floating bottom tab bar 10% while scrolling down (less

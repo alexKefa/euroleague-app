@@ -65,6 +65,18 @@
          everywhere on the app the default orange color with the preferred
          team") — plain hover-tint/icon-tint uses, no contrast risk since
          neither is a solid fill. -->
+    <!-- Global search (2026-10-12, shared/search-dialog.ts): one entry point
+         in the shared top bar, so it is on every page on phones and desktop. -->
+    <button
+      type="button"
+      (click)="search.show()"
+      class="tap-target status-tile relative shrink-0 w-10 h-10 sm:w-8 sm:h-8 rounded-xl border border-line flex items-center justify-center text-muted hover:text-team-primary transition-colors"
+      [attr.aria-label]="i18n.t('search.open')"
+      [title]="i18n.t('search.open')"
+    >
+      <app-nav-icon name="search" [size]="18" />
+    </button>
+
     <button
       type="button"
       (click)="tour.start()"
@@ -339,6 +351,9 @@
 <app-install-banner></app-install-banner>
 <app-tour-fab></app-tour-fab>
 <app-watch-pill></app-watch-pill>
+@if (search.open()) {
+  <app-search-dialog />
+}
 }
 <!-- One shared stack for every top-of-screen toast (2026-09-29) — each used
      to position itself with its own fixed offset, so two at once overlapped.

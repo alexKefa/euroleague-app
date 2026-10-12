@@ -8,6 +8,7 @@ import { predictionsTranslations } from "./predictions";
 import { topScorerPredictionsTranslations } from "./topScorerPredictions";
 import { playerTranslations } from "./player";
 import { gameTranslations } from "./game";
+import { searchTranslations } from "./search";
 import { storeTranslations } from "./store";
 import { tradesTranslations } from "./trades";
 import { inventoryTranslations } from "./inventory";
@@ -52,6 +53,7 @@ export const translations: Record<string, Record<Lang, string>> = {
   ...topScorerPredictionsTranslations,
   ...playerTranslations,
   ...gameTranslations,
+  ...searchTranslations,
   ...storeTranslations,
   ...tradesTranslations,
   ...inventoryTranslations,
