@@ -49,7 +49,7 @@ const GROUP_LABEL: Record<SearchKind, string> = {
             spellcheck="false"
             class="flex-1 min-w-0 bg-transparent outline-none text-base font-semibold placeholder:text-muted placeholder:font-normal"
           />
-          <button type="button" (click)="close()" class="tap-target shrink-0 px-2 h-8 rounded-lg text-muted text-[12px] font-bold hover:text-ink">Esc</button>
+          <button type="button" (click)="close()" class="tap-target relative shrink-0 px-2 h-8 rounded-lg text-muted text-[12px] font-bold hover:text-ink">Esc</button>
         </div>
 
         <div class="flex-1 overflow-y-auto p-2">
