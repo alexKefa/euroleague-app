@@ -485,27 +485,32 @@
                       <app-nav-icon name="zap" [size]="14" [title]="i18n.t('game.onFire')" class="inline-block align-text-bottom text-highlight" />
                     }
                   </button>
-                  <p class="text-[12px] text-muted font-mono mt-0.5 truncate">
-                    {{ line.minutes | number: "1.0-0" }}' &middot;
-                    <span class="text-ink font-semibold">{{ line.points ?? 0 }}</span> {{ i18n.t('game.colPTS') }} &middot;
-                    {{ line.rebounds ?? 0 }} {{ i18n.t('game.colREB') }} &middot;
-                    {{ line.assists ?? 0 }} {{ i18n.t('game.colAST') }} &middot;
-                    {{ i18n.t('game.colFTMA') }} {{ line.freeThrowsMade ?? 0 }}/{{ line.freeThrowsAttempted ?? 0 }}
-                  </p>
-                  <!-- Full view on phones: a second wrapped line instead of
+                  <!-- Stat chips (2026-10-12): minutes, then points (team
+                       colour), rebounds, assists. Free throws live in the
+                       full view and the tables. -->
+                  <div class="flex flex-wrap items-center gap-1 mt-1.5">
+                    @if (line.minutes) {
+                      <span class="stat-chip">{{ line.minutes | number: "1.0-0" }}'</span>
+                    }
+                    <span class="stat-chip stat-chip-hot"><b>{{ line.points ?? 0 }}</b>{{ i18n.t('game.colPTS') }}</span>
+                    <span class="stat-chip"><b>{{ line.rebounds ?? 0 }}</b>{{ i18n.t('game.colREB') }}</span>
+                    <span class="stat-chip"><b>{{ line.assists ?? 0 }}</b>{{ i18n.t('game.colAST') }}</span>
+                  </div>
+                  <!-- Full view on phones: a second row of chips instead of
                        sideways-scrolling columns. -->
                   @if (boxView() === 'full') {
-                    <p class="text-[12px] text-muted font-mono mt-0.5 leading-snug">
-                      {{ i18n.t('game.col2P') }} {{ line.twoPointersMade ?? 0 }}/{{ line.twoPointersAttempted ?? 0 }} &middot;
-                      {{ i18n.t('game.col3P') }} {{ line.threePointersMade ?? 0 }}/{{ line.threePointersAttempted ?? 0 }} &middot;
-                      {{ i18n.t('game.colOR') }} {{ line.offensiveRebounds ?? 0 }} &middot;
-                      {{ i18n.t('game.colDR') }} {{ line.defensiveRebounds ?? 0 }} &middot;
-                      {{ i18n.t('player.colStl') }} {{ line.steals ?? 0 }} &middot;
-                      {{ i18n.t('player.colBlk') }} {{ line.blocks ?? 0 }} &middot;
-                      {{ i18n.t('game.colTO') }} {{ line.turnovers ?? 0 }} &middot;
-                      {{ i18n.t('game.colPF') }} {{ line.fouls ?? 0 }} &middot;
-                      {{ i18n.t('game.colPM') }} {{ formatPlusMinus(line.plusMinus) }}
-                    </p>
+                    <div class="flex flex-wrap items-center gap-1 mt-1">
+                      <span class="stat-chip"><b>{{ line.twoPointersMade ?? 0 }}/{{ line.twoPointersAttempted ?? 0 }}</b>{{ i18n.t('game.col2P') }}</span>
+                      <span class="stat-chip"><b>{{ line.threePointersMade ?? 0 }}/{{ line.threePointersAttempted ?? 0 }}</b>{{ i18n.t('game.col3P') }}</span>
+                      <span class="stat-chip"><b>{{ line.freeThrowsMade ?? 0 }}/{{ line.freeThrowsAttempted ?? 0 }}</b>{{ i18n.t('game.colFTMA') }}</span>
+                      <span class="stat-chip"><b>{{ line.offensiveRebounds ?? 0 }}</b>{{ i18n.t('game.colOR') }}</span>
+                      <span class="stat-chip"><b>{{ line.defensiveRebounds ?? 0 }}</b>{{ i18n.t('game.colDR') }}</span>
+                      <span class="stat-chip"><b>{{ line.steals ?? 0 }}</b>{{ i18n.t('player.colStl') }}</span>
+                      <span class="stat-chip"><b>{{ line.blocks ?? 0 }}</b>{{ i18n.t('player.colBlk') }}</span>
+                      <span class="stat-chip"><b>{{ line.turnovers ?? 0 }}</b>{{ i18n.t('game.colTO') }}</span>
+                      <span class="stat-chip"><b>{{ line.fouls ?? 0 }}</b>{{ i18n.t('game.colPF') }}</span>
+                      <span class="stat-chip"><b>{{ formatPlusMinus(line.plusMinus) }}</b>{{ i18n.t('game.colPM') }}</span>
+                    </div>
                   }
                 </div>
                 @if (isLive()) {
