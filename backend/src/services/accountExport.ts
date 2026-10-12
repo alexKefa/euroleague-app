@@ -9,7 +9,15 @@ import { db } from "../db/client.js";
 
 export interface AccountExport {
   exportedAt: string;
-  profile: { email: string; username: string; createdAt: string; lastSeenAt: string | null; favoriteTeam: string | null; referralCode: string | null };
+  profile: {
+    email: string;
+    username: string;
+    createdAt: string;
+    lastSeenAt: string | null;
+    favoriteTeam: string | null;
+    referralCode: string | null;
+    referredBy: string | null; // the inviter's username
+  };
   predictions: unknown[];
   topScorerPicks: unknown[];
   pointAdjustments: unknown[];
@@ -18,6 +26,18 @@ export interface AccountExport {
   trades: unknown[];
   battles: unknown[];
   fantasy: unknown[];
+  fantasyCoachPicks: unknown[];
+  fantasyChips: unknown[];
+  fantasyRoundPoints: unknown[];
+  favoriteTeams: unknown[];
+  favoritePlayers: unknown[];
+  wheelSpins: unknown[];
+  ownedPacks: unknown[];
+  promoCodes: unknown[];
+  milestones: unknown[];
+  pollVotes: unknown[];
+  savedViews: unknown[];
+  devices: unknown[];
   leagues: unknown[];
   achievements: unknown[];
   pushSubscriptions: { host: string; createdAt: string }[];
@@ -27,12 +47,19 @@ type Raw = Omit<AccountExport, "exportedAt" | "profile"> & { profile: AccountExp
 
 export async function buildAccountExport(userId: string): Promise<AccountExport> {
   const list = (q: ReturnType<typeof sql>) => sql`coalesce((select json_agg(x) from (${q}) x), '[]'::json)`;
+  // Tables holding only this user's own rows: each row as stored, minus its
+  // internal ids (review fix 2026-10-12: the export has to cover everything,
+  // including what deletion then destroys).
+  const own = (table: string, drop: string[] = []) =>
+    sql`coalesce((select json_agg(to_jsonb(t) - 'id' - 'user_id'${sql.raw(drop.map((c) => ` - '${c}'`).join(""))})
+      from ${sql.raw(table)} t where t.user_id = ${userId}), '[]'::json)`;
   const [row] = await db.execute<Raw>(sql`
     select
       (select json_build_object(
           'email', u.email, 'username', u.username, 'createdAt', u.created_at, 'lastSeenAt', u.last_seen_at,
-          'favoriteTeam', t.name, 'referralCode', u.referral_code)
-        from users u left join teams t on t.id = u.favorite_team_id where u.id = ${userId}) as profile,
+          'favoriteTeam', t.name, 'referralCode', u.referral_code, 'referredBy', ru.username)
+        from users u left join teams t on t.id = u.favorite_team_id left join users ru on ru.id = u.referred_by_user_id
+        where u.id = ${userId}) as profile,
       ${list(sql`
         select g.season, g.round, ht.name as home, at.name as away, pt.name as picked, p.created_at as "pickedAt"
         from predictions p join games g on g.id = p.game_id
@@ -83,6 +110,22 @@ export async function buildAccountExport(userId: string): Promise<AccountExport>
         select rr.season, rr.round, c.name as card, rr.granted_at as "grantedAt"
         from round_rewards rr left join collectibles c on c.id = rr.collectible_id
         where rr.user_id = ${userId} order by rr.granted_at`)} as achievements,
+      ${own("fantasy_coach_picks")} as "fantasyCoachPicks",
+      ${own("fantasy_chips")} as "fantasyChips",
+      ${own("fantasy_round_points")} as "fantasyRoundPoints",
+      ${list(sql`select t.name as team, f.created_at as "createdAt" from favorites f join teams t on t.id = f.team_id where f.user_id = ${userId}`)} as "favoriteTeams",
+      ${list(sql`select p.name as player, f.created_at as "createdAt" from favorite_players f join players p on p.id = f.player_id where f.user_id = ${userId}`)} as "favoritePlayers",
+      ${own("wheel_spins")} as "wheelSpins",
+      ${own("owned_packs")} as "ownedPacks",
+      ${own("promo_code_redemptions")} as "promoCodes",
+      ${list(sql`
+        select 'legendary' as kind, to_jsonb(m) - 'id' - 'user_id' as row from legendary_milestones m where m.user_id = ${userId}
+        union all select 'coach', to_jsonb(m) - 'id' - 'user_id' from coach_milestones m where m.user_id = ${userId}
+        union all select 'rare', to_jsonb(m) - 'id' - 'user_id' from rare_milestones m where m.user_id = ${userId}
+        union all select 'fantasy', to_jsonb(m) - 'id' - 'user_id' from fantasy_milestones m where m.user_id = ${userId}`)} as milestones,
+      ${own("legendary_poll_votes")} as "pollVotes",
+      ${own("analytics_views")} as "savedViews",
+      ${own("device_tokens", ["token"])} as devices,
       ${list(sql`
         select substring(ps.endpoint from '^https?://([^/]+)') as host, ps.created_at as "createdAt"
         from push_subscriptions ps where ps.user_id = ${userId}`)} as "pushSubscriptions"

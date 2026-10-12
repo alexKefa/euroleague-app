@@ -1443,7 +1443,7 @@ export async function getFantasyLeaderboardEntries(
     left join player_pir_round_totals prt on prt.user_id = coalesce(pt.user_id, ct.user_id)
     left join player_pir_season_totals pst on pst.user_id = coalesce(pt.user_id, ct.user_id)
     join ${users} u on u.id = coalesce(pt.user_id, ct.user_id)
-    where ${options.includeAdmins ? sql`true` : sql`u.is_admin = false`}
+    where u.deleted_at is null and ${options.includeAdmins ? sql`true` : sql`u.is_admin = false`}
   `);
 
   const allowedIds = options.userIds ? new Set(options.userIds) : null;

@@ -58,7 +58,7 @@ export async function getAlbumLeaderboardEntries(
       count(distinct uc.collectible_id)::int as owned_count
     from ${userCollectibles} uc
     join ${users} u on u.id = uc.user_id
-    where u.is_admin = false
+    where u.is_admin = false and u.deleted_at is null
     group by uc.user_id, u.username, u.showcase_collectible_ids
   `);
 

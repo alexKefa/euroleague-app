@@ -11,6 +11,8 @@ import { deleteAccount } from "../services/accountDeletion.js";
 import { buildAccountExport } from "../services/accountExport.js";
 import { getLeaderboardEntries } from "../services/leaderboard.js";
 import { getRoundStandings } from "../services/roundStandings.js";
+import { getAlbumLeaderboardEntries } from "../services/albumLeaderboard.js";
+import { getFantasyLeaderboardEntries } from "../services/fantasyScoring.js";
 
 // Dev only: the dev Neon endpoint (EuroleagueDev). Anything else is refused.
 if (!(process.env.DATABASE_URL ?? "").includes("ep-sparkling-pond")) throw new Error("refusing to run outside the dev database");
@@ -34,7 +36,13 @@ const game = await one<{ id: string; home_team_id: string; season: string; round
 );
 await db.execute(sql`insert into predictions (user_id, game_id, predicted_winner_team_id) values (${A.id}, ${game.id}, ${game.home_team_id})`);
 const [cardA, cardB] = await db.execute<{ id: string }>(sql`select id from collectibles where tier = 'common' order by id limit 2`);
-await db.execute(sql`insert into user_collectibles (user_id, collectible_id) values (${A.id}, ${cardA.id}), (${B.id}, ${cardB.id})`);
+await db.execute(sql`insert into user_collectibles (user_id, collectible_id, tradeable, wishlist)
+  values (${A.id}, ${cardA.id}, true, ${JSON.stringify([cardB.id])}::jsonb), (${B.id}, ${cardB.id}, false, '[]'::jsonb)`);
+// Review fixes: a fantasy lineup (fantasy board), a favourite team and player (export).
+const player = await one<{ id: string; team_id: string }>(sql`select id, team_id from players where active order by code limit 1`);
+await db.execute(sql`insert into fantasy_lineups (user_id, season, round, player_id) values (${A.id}, ${game.season}, ${game.round}, ${player.id})`);
+await db.execute(sql`insert into favorites (user_id, team_id) values (${A.id}, ${player.team_id})`);
+await db.execute(sql`insert into favorite_players (user_id, player_id) values (${A.id}, ${player.id})`);
 await db.execute(sql`insert into push_subscriptions (user_id, endpoint, p256dh, auth) values (${A.id}, ${`https://push.example.invalid/${ts}`}, 'k', 'a')`);
 const league = await one<{ id: string }>(sql`insert into leagues (name, code, created_by_user_id) values ('check-del', ${`CD${ts}`.slice(0, 10)}, ${B.id}) returning id`);
 await db.execute(sql`insert into league_members (league_id, user_id) values (${league.id}, ${A.id}), (${league.id}, ${B.id})`);
@@ -53,6 +61,14 @@ try {
   assert.equal(parsed.predictions.length, 1);
   assert.equal(parsed.cards.length, 1);
   assert.equal(parsed.trades.length, 1);
+  // Review fix (export completeness): data deletion destroys must be exportable first.
+  assert.equal(parsed.favoriteTeams.length, 1, "favourite teams missing from export");
+  assert.equal(parsed.favoritePlayers.length, 1, "favourite players missing from export");
+  assert.equal(parsed.fantasy.length, 1);
+  for (const key of ["fantasyCoachPicks", "fantasyChips", "wheelSpins", "ownedPacks", "promoCodes", "milestones", "pollVotes", "savedViews", "devices"] as const) {
+    assert.ok(Array.isArray(parsed[key]), `export lacks ${key}`);
+  }
+  assert.ok("referredBy" in parsed.profile, "export lacks referredBy");
   const tradesJson = JSON.stringify(parsed.trades) + JSON.stringify(parsed.battles);
   assert.ok(tradesJson.includes(B.username), "trade should name B by username");
   assert.ok(!tradesJson.includes(B.email), "export leaks B's email");
@@ -98,9 +114,28 @@ try {
   assert.ok(!(await getLeaderboardEntries()).some((e: { userId: string }) => e.userId === A.id), "still on the leaderboard");
   assert.ok(!(await getRoundStandings(game.season, game.round, { includeAdmins: true })).some((e) => e.userId === A.id), "still in round standings");
 
-  // --- other devices: refresh is refused
+  // --- review fixes: no ghost others can see or act on
+  assert.ok(!(await getAlbumLeaderboardEntries({ userIds: [A.id] })).some((e) => e.userId === A.id), "still on the album leaderboard");
+  assert.ok(
+    !(await getFantasyLeaderboardEntries({ season: game.season, userIds: [A.id] })).some((e) => e.userId === A.id),
+    "still on the fantasy leaderboard"
+  );
+  const listed = await one<{ n: number }>(sql`
+    select count(*)::int n from user_collectibles where user_id = ${A.id} and (tradeable or wishlist <> '[]'::jsonb)`);
+  assert.equal(listed.n, 0, "cards still listed for trade");
+
+  // --- other devices: refresh is refused (code proves it's this branch, not "no such user")
   const refresh = await fetch("http://localhost:4000/api/auth/refresh", { method: "POST", headers: { cookie: `refreshToken=${signRefreshToken(A.id)}` } });
   assert.equal(refresh.status, 401, "refresh still works for a deleted user");
+  assert.equal(((await refresh.json()) as { code?: string }).code, "ACCOUNT_DELETED");
+
+  // --- review fix: a DB error in refresh answers instead of hanging
+  const broken = await fetch("http://localhost:4000/api/auth/refresh", {
+    method: "POST",
+    headers: { cookie: `refreshToken=${signRefreshToken("not-a-uuid")}` },
+    signal: AbortSignal.timeout(8000),
+  }).catch((e: Error) => ({ status: `no response (${e.name})` }));
+  assert.ok(typeof broken.status === "number" && broken.status >= 500, `refresh hung on a DB error: ${broken.status}`);
 
   // --- the old email can't be matched by a new Google login
   assert.equal((await one<{ n: number }>(sql`select count(*)::int n from users where lower(email) = ${A.email.toLowerCase()}`)).n, 0);

@@ -303,7 +303,16 @@ authRouter.post("/refresh", refreshLimiter, async (req, res) => {
   // A deleted account's other devices still hold a valid refresh cookie
   // (2026-10-12): refuse it, so they're signed out within one access-token
   // lifetime instead of forever.
-  const [account] = await db.select({ deletedAt: users.deletedAt }).from(users).where(eq(users.id, payload.sub)).limit(1);
+  // Guarded: Express 4 doesn't catch a rejected async handler, so a DB
+  // error here used to leave every refresh hanging with no response.
+  let account: { deletedAt: Date | null } | undefined;
+  try {
+    [account] = await db.select({ deletedAt: users.deletedAt }).from(users).where(eq(users.id, payload.sub)).limit(1);
+  } catch (err) {
+    console.error("POST /api/auth/refresh account lookup failed:", err);
+    res.status(503).json({ error: "Try again in a moment" });
+    return;
+  }
   if (!account || account.deletedAt) {
     res.clearCookie(REFRESH_COOKIE_NAME, { path: "/api/auth" });
     res.status(401).json({ error: "Account deleted", code: "ACCOUNT_DELETED" });

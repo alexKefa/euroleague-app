@@ -47,6 +47,9 @@ export async function deleteAccount(userId: string, confirmUsername: string): Pr
     for (const table of PERSONAL_TABLES) {
       await tx.execute(sql`delete from ${sql.raw(table)} where user_id = ${userId}`);
     }
+    // The cards stay, but off the marketplace: nobody can answer an offer
+    // made to a deleted account (review fix 2026-10-12).
+    await tx.execute(sql`update user_collectibles set tradeable = false, wishlist = '[]'::jsonb where user_id = ${userId}`);
 
     // Close what other people are waiting on.
     const trades = await tx.execute<{ id: string; from_user_id: string; to_user_id: string }>(sql`
