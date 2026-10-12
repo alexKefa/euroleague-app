@@ -164,6 +164,9 @@
               <span class="min-w-0 flex-1">
                 <span class="flex items-center gap-1.5 min-w-0">
                   <span class="font-semibold truncate">{{ row.username }}</span>
+                  @if (row.deletedAt) {
+                    <span class="shrink-0 rounded-full border border-line px-1.5 text-[10px] text-muted">{{ i18n.t('admin.userDeleted') }}</span>
+                  }
                   @if (row.isAdmin) {
                     <!-- Fixed highlight, not team-primary: it marks another
                          user's role, not the viewer's team. -->

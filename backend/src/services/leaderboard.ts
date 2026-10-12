@@ -200,7 +200,7 @@ export async function getLeaderboardEntries(
     left join bonus_totals bt on bt.user_id = a.user_id
     left join top_scorer_totals tst on tst.user_id = a.user_id
     join ${users} u on u.id = a.user_id
-    where u.is_admin = false
+    where u.is_admin = false and u.deleted_at is null
   `);
 
   const allowedIds = options.userIds ? new Set(options.userIds) : null;

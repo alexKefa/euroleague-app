@@ -83,6 +83,8 @@ export const adminTranslations: Record<string, Record<Lang, string>> = {
   // Push broadcast (admin-push.ts, 2026-10-05).
   "admin.pushTitle": { en: "Push notification", el: "Ειδοποίηση push" },
   "admin.toolPushDesc": { en: "Send a notification to everyone who turned them on", el: "Στείλε ειδοποίηση σε όσους τις έχουν ενεργοποιήσει" },
+  // Users panel: account deleted by its owner (2026-10-12).
+  "admin.userDeleted": { en: "Deleted", el: "Διαγραμμένος" },
   // Production errors (2026-10-12, admin-errors.ts).
   "admin.errorsTitle": { en: "Errors", el: "Σφάλματα" },
   "admin.toolErrorsDesc": { en: "What failed on the server, grouped, with stacks", el: "Τι απέτυχε στον server, ομαδοποιημένα, με stack" },

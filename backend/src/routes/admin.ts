@@ -56,6 +56,7 @@ adminRouter.get("/users", requireAuth, requireAdmin, async (_req, res) => {
     username: string;
     created_at: string;
     last_seen_at: string | null;
+    deleted_at: string | null;
     is_admin: boolean;
     favorite_team_id: string | null;
     team_code: string | null;
@@ -102,7 +103,7 @@ adminRouter.get("/users", requireAuth, requireAdmin, async (_req, res) => {
       group by referred_by_user_id
     )
     select
-      u.id, u.email, u.username, u.created_at, u.last_seen_at, u.is_admin, u.favorite_team_id,
+      u.id, u.email, u.username, u.created_at, u.last_seen_at, u.deleted_at, u.is_admin, u.favorite_team_id,
       t.code as team_code, t.name as team_name, t.primary_color as team_color, t.logo_url as team_logo,
       coalesce(pc.cnt, 0) as predictions_made,
       coalesce(ct.correct_points, 0) as correct_points,
@@ -136,6 +137,7 @@ adminRouter.get("/users", requireAuth, requireAdmin, async (_req, res) => {
       username: r.username,
       createdAt: r.created_at,
       lastSeenAt: r.last_seen_at,
+      deletedAt: r.deleted_at,
       // An open live-updates stream right now (realtime/hub.ts).
       online: online.has(r.id),
       isAdmin: r.is_admin,

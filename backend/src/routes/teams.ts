@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, and, or, asc, desc, sql } from "drizzle-orm";
+import { eq, and, or, asc, desc, isNull, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "../db/client.js";
 import { teams, players, playerSeasonStats, games, playerInjuries, users, teamBudgets } from "../db/schema.js";
@@ -95,7 +95,7 @@ teamsRouter.get("/fans", async (_req, res) => {
         fans: sql<number>`count(${users.id})::int`,
       })
       .from(teams)
-      .leftJoin(users, eq(users.favoriteTeamId, teams.id))
+      .leftJoin(users, and(eq(users.favoriteTeamId, teams.id), isNull(users.deletedAt)))
       .groupBy(teams.id)
       .orderBy(desc(sql`count(${users.id})`), asc(teams.name));
     res.json(rows);

@@ -60,7 +60,7 @@ export async function getRoundStandings(
     from ${users} u
     left join round_wl wl on wl.user_id = u.id
     left join round_ts ts on ts.user_id = u.id
-    where wl.user_id is not null or ts.user_id is not null
+    where (wl.user_id is not null or ts.user_id is not null) and u.deleted_at is null
   `);
 
   return rows
@@ -135,7 +135,7 @@ export async function getRoundRecap(userId: string, season: string): Promise<Rou
     from ${leagueMembers} lm
     join ${leagues} l on l.id = lm.league_id
     join ${users} u on u.id = lm.user_id
-    where u.is_admin = false
+    where u.is_admin = false and u.deleted_at is null
       and lm.league_id in (select league_id from ${leagueMembers} where user_id = ${userId})
   `);
   const overallIdx = new Map(overall.map((e, i) => [e.userId, i]));

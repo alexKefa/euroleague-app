@@ -1434,6 +1434,7 @@ export interface AdminUserRow {
   createdAt: string;
   // Last time the app was open (users.last_seen_at); null = not seen since tracking began (2026-10-02).
   lastSeenAt: string | null;
+  deletedAt?: string | null; // set once the user deleted their account (2026-10-12)
   // Has the app open right now.
   online: boolean;
   isAdmin: boolean;

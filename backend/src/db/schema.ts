@@ -103,6 +103,11 @@ export const users = pgTable("users", {
   // already had 3+ picks at launch were backfilled to their signup time, so
   // the reward only goes to people who hadn't really started yet.
   firstPicksRewardAt: timestamp("first_picks_reward_at", { withTimezone: true }),
+  // Account deletion (2026-10-12, services/accountDeletion.ts): set when the
+  // user deleted their account. The row stays as an anonymized tombstone so
+  // shared history keeps its foreign keys; listings filter on null.
+  // Spec: docs/superpowers/specs/2026-10-12-account-deletion-design.md
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 export const players = pgTable("players", {
