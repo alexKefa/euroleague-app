@@ -147,6 +147,21 @@ export function notifyFinal(g: PushGame): Promise<void> {
     .catch((err) => console.error(`[team push] final ${g.id} failed:`, err));
 }
 
+// Alerts already handled by this process. A tip-off window or a close finish
+// lasts many 20 s ticks; without this every tick redid the recipient and
+// push_log queries (push_log stopped duplicate pushes, not the round trips).
+// After a restart push_log is still the guard. Bounded: oldest dropped.
+const handled = new Set<string>();
+const MAX_HANDLED = 2000;
+
+/** True the first time a key is seen in this process, false after. */
+export function claimOnce(key: string): boolean {
+  if (handled.has(key)) return false;
+  handled.add(key);
+  if (handled.size > MAX_HANDLED) handled.delete(handled.values().next().value as string);
+  return true;
+}
+
 /**
  * The live sync's one hook (2026-10-12), called every tick for each game in
  * its polling window with the state before and after the tick: tip-off
@@ -157,9 +172,9 @@ export function notifyFinal(g: PushGame): Promise<void> {
 export function handleGamePushes(prev: PushGame | null, next: PushGame, now: Date = new Date()): Promise<void> {
   const jobs: Promise<void>[] = [];
   try {
-    if (tipoffDue(next, now)) jobs.push(notifyTipoff(next));
-    if (closeAlert(next)) jobs.push(notifyClose(next));
-    if (next.status === "final" && prev?.status !== "final") jobs.push(notifyFinal(next));
+    if (tipoffDue(next, now) && claimOnce(pushKey("team_tipoff", next))) jobs.push(notifyTipoff(next));
+    if (closeAlert(next) && claimOnce(pushKey("team_close", next))) jobs.push(notifyClose(next));
+    if (next.status === "final" && prev?.status !== "final" && claimOnce(pushKey("team_final", next))) jobs.push(notifyFinal(next));
   } catch (err) {
     console.error(`[team push] ${next.id} failed:`, err);
   }

@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { getPushPrefs, setPushPrefs, usersWithPref } from "../services/pushPreferences.js";
-import { closeAlert, handleGamePushes, message, pushKey, recipientsFor, tipoffDue, type PushGame } from "../services/teamPush.js";
+import { claimOnce, closeAlert, handleGamePushes, message, pushKey, recipientsFor, tipoffDue, type PushGame } from "../services/teamPush.js";
 import { pushEnabled } from "../services/push.js";
 
 // Dev only: the dev Neon endpoint (EuroleagueDev). Anything else is refused.
@@ -86,6 +86,11 @@ try {
   }
   assert.ok(message("team_close", base, "en").body.includes("1:50"), "clock label");
   assert.ok(message("team_final", { ...base, status: "final" }, "en", { player: { name: "NUNN, KENDRICK", points: 21 } }).body.includes("Kendrick Nunn: 21 pts"));
+
+  // --- review fix: an alert does its DB work once per process, not every
+  // 20 s tick while the condition holds (push_log still covers restarts).
+  assert.equal(claimOnce(`check-${ts}`), true);
+  assert.equal(claimOnce(`check-${ts}`), false, "second tick must not redo the send");
 
   // --- wiring: the live-sync hook sends one close alert per recipient, even
   // when it fires on two ticks in a row (push_log dedupes). Needs VAPID keys
