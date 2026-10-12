@@ -5,6 +5,7 @@ import { syncGameExtras } from "./gameExtrasSync.js";
 import { syncGameReferees } from "./refereeSync.js";
 import { broadcast, ScoringEvent } from "../realtime/hub.js";
 import { getSimulatedGameId } from "../realtime/liveScoreSimulator.js";
+import { handleGamePushes, pushGameFrom, teamCodes } from "../services/teamPush.js";
 
 // Real EuroLeague live feed, replacing realtime/liveScoreSimulator.ts (a
 // deliberate stand-in — see its own header comment — for exactly this).
@@ -463,11 +464,17 @@ export async function syncLiveGames(): Promise<LiveGamesSyncResult> {
     }
 
     const simulatedGameId = getSimulatedGameId();
+    // Team & pinned-game push (2026-10-12, services/teamPush.ts). Fire and
+    // forget: handleGamePushes never rejects and is never awaited here.
+    const codeById = await teamCodes();
     let wentLive = 0;
     let wentFinal = 0;
 
     for (const game of candidates) {
       if (game.id === simulatedGameId) continue; // an admin test simulation owns this one right now
+      const before = pushGameFrom(game, codeById);
+      // Tip-off alert first: an unindexed game skips the rest of the loop.
+      if (game.status === "scheduled") void handleGamePushes(before, before);
 
       const header = await fetchHeader(game.season, game.gameCode);
       if (!header) continue; // not indexed by the feed yet
@@ -500,6 +507,7 @@ export async function syncLiveGames(): Promise<LiveGamesSyncResult> {
           gameClockSeconds,
           scoringEvents,
         });
+        void handleGamePushes(before, pushGameFrom({ ...game, status: "live", homeScore, awayScore, quarter, gameClockSeconds }, codeById));
         if (game.status !== "live") wentLive++;
         continue;
       }
@@ -533,6 +541,7 @@ export async function syncLiveGames(): Promise<LiveGamesSyncResult> {
       await syncGameReferees(game.id).catch((err) => console.error(`[referees] ${game.id} failed:`, err));
       previousPointsByGame.delete(game.id);
       broadcast("game-update", { gameId: game.id, homeScore, awayScore, status: "final", onFireIds: [], quarter: null, gameClockSeconds: null, scoringEvents: [] });
+      void handleGamePushes(before, pushGameFrom({ ...game, status: "final", homeScore, awayScore }, codeById));
       wentFinal++;
     }
 

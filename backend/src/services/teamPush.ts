@@ -114,24 +114,27 @@ export function message(
   return { title: fill(copy.title[lang], vars), body, url: `/games/${g.id}`, tag: `game-${g.id}` };
 }
 
-function send(kind: TeamPushKind, g: PushGame, build: (lang: PushLang, userId: string) => PushMessage | null): void {
-  recipientsFor(kind, g)
+// Resolves when sent and never rejects (failures are logged), so callers can
+// fire and forget.
+function send(kind: TeamPushKind, g: PushGame, build: (lang: PushLang, userId: string) => PushMessage | null): Promise<void> {
+  return recipientsFor(kind, g)
     .then((ids) => sendPushOnce(kind, pushKey(kind, g), ids, build))
+    .then(() => undefined)
     .catch((err) => console.error(`[team push] ${kind} ${g.id} failed:`, err));
 }
 
-export function notifyTipoff(g: PushGame): void {
-  send("team_tipoff", g, (lang) => message("team_tipoff", g, lang));
+export function notifyTipoff(g: PushGame): Promise<void> {
+  return send("team_tipoff", g, (lang) => message("team_tipoff", g, lang));
 }
 
-export function notifyClose(g: PushGame): void {
+export function notifyClose(g: PushGame): Promise<void> {
   const ot = closeAlert(g) === "ot";
-  send("team_close", g, (lang) => message("team_close", g, lang, { ot }));
+  return send("team_close", g, (lang) => message("team_close", g, lang, { ot }));
 }
 
 /** Adds the user's pinned player's points, when they pinned one in this game. */
-export function notifyFinal(g: PushGame): void {
-  db.execute<{ user_id: string; name: string; points: number | null }>(sql`
+export function notifyFinal(g: PushGame): Promise<void> {
+  return db.execute<{ user_id: string; name: string; points: number | null }>(sql`
     select wp.user_id, p.name, s.points from watch_pins wp
     join players p on p.id = wp.target_id
     left join player_game_stats s on s.player_id = wp.target_id and s.game_id = wp.game_id
@@ -139,7 +142,66 @@ export function notifyFinal(g: PushGame): void {
   `)
     .then((rows) => {
       const pinned = new Map(rows.map((r) => [r.user_id, { name: r.name, points: r.points ?? 0 }]));
-      send("team_final", g, (lang, userId) => message("team_final", g, lang, { player: pinned.get(userId) }));
+      return send("team_final", g, (lang, userId) => message("team_final", g, lang, { player: pinned.get(userId) }));
     })
     .catch((err) => console.error(`[team push] final ${g.id} failed:`, err));
+}
+
+/**
+ * The live sync's one hook (2026-10-12), called every tick for each game in
+ * its polling window with the state before and after the tick: tip-off
+ * soon, a close finish / OT, or the move to final. Resolves when the sends
+ * finish and never rejects; the sync doesn't await it. A tip-off moved
+ * after its alert went out isn't re-sent (one key per game).
+ */
+export function handleGamePushes(prev: PushGame | null, next: PushGame, now: Date = new Date()): Promise<void> {
+  const jobs: Promise<void>[] = [];
+  try {
+    if (tipoffDue(next, now)) jobs.push(notifyTipoff(next));
+    if (closeAlert(next)) jobs.push(notifyClose(next));
+    if (next.status === "final" && prev?.status !== "final") jobs.push(notifyFinal(next));
+  } catch (err) {
+    console.error(`[team push] ${next.id} failed:`, err);
+  }
+  return Promise.all(jobs).then(() => undefined);
+}
+
+// Team codes for the copy, loaded once per process (21 clubs, never change).
+let codes: Map<string, string> | null = null;
+export async function teamCodes(): Promise<Map<string, string>> {
+  if (!codes) {
+    const rows = await db.execute<{ id: string; code: string }>(sql`select id, code from teams`);
+    codes = new Map(rows.map((r) => [r.id, r.code]));
+  }
+  return codes;
+}
+
+/** A games row, as the live sync holds it, as a PushGame. */
+export function pushGameFrom(
+  row: {
+    id: string;
+    status: string;
+    quarter: number | null;
+    gameClockSeconds: number | null;
+    tipoffAt: Date | string;
+    homeScore: number | null;
+    awayScore: number | null;
+    homeTeamId: string;
+    awayTeamId: string;
+  },
+  codeById: Map<string, string>
+): PushGame {
+  return {
+    id: row.id,
+    status: row.status,
+    quarter: row.quarter,
+    gameClockSeconds: row.gameClockSeconds,
+    tipoffAt: new Date(row.tipoffAt).toISOString(),
+    homeScore: row.homeScore ?? 0,
+    awayScore: row.awayScore ?? 0,
+    homeTeamId: row.homeTeamId,
+    awayTeamId: row.awayTeamId,
+    homeCode: codeById.get(row.homeTeamId) ?? "",
+    awayCode: codeById.get(row.awayTeamId) ?? "",
+  };
 }

@@ -5,6 +5,7 @@ import { getDefaultRound, getRoundLockTime } from "./fantasyScoring.js";
 import { getPlayedRounds, getRoundStandings } from "./roundStandings.js";
 import { GREAT_ROUND_THRESHOLD } from "./cards.js";
 import { pushEnabled, sendPushOnce } from "./push.js";
+import { usersWithPref } from "./pushPreferences.js";
 
 // Scheduled push notifications (2026-10-05), run from index.ts's hourly tick
 // (and round results also whenever a game goes final). Each send is deduped
@@ -40,7 +41,7 @@ export async function runLockReminderPushes(): Promise<number> {
   `);
   if (unpicked.length) {
     const counts = new Map(unpicked.map((r) => [r.user_id, r.unpicked]));
-    sent += await sendPushOnce("picks-reminder", athensDateKey(), [...counts.keys()], (lang, userId) => {
+    sent += await sendPushOnce("picks-reminder", athensDateKey(), await usersWithPref([...counts.keys()], "lockReminders"), (lang, userId) => {
       const n = counts.get(userId) ?? 0;
       return {
         title: lang === "el" ? "Οι προβλέψεις κλειδώνουν σύντομα" : "Picks lock soon",
@@ -63,7 +64,7 @@ export async function runLockReminderPushes(): Promise<number> {
       select distinct s.user_id from push_subscriptions s
       where not exists (select 1 from fantasy_lineups l where l.user_id = s.user_id and l.season = ${season} and l.round = ${round})
     `);
-    sent += await sendPushOnce("fantasy-reminder", `${season}:${round}`, noSquad.map((r) => r.user_id), (lang) => ({
+    sent += await sendPushOnce("fantasy-reminder", `${season}:${round}`, await usersWithPref(noSquad.map((r) => r.user_id), "lockReminders"), (lang) => ({
       title: lang === "el" ? `Fantasy Five: Αγωνιστική ${round}` : `Fantasy Five: Round ${round}`,
       body: lang === "el" ? "Δεν έχεις φτιάξει πεντάδα και η αγωνιστική κλειδώνει σύντομα." : "You haven't picked a squad and the round locks soon.",
       url: "/fantasy",
@@ -83,7 +84,7 @@ export async function runRoundResultPushes(): Promise<number> {
 
   const standings = await getRoundStandings(season, lastComplete, { includeAdmins: true });
   const byUser = new Map(standings.map((s) => [s.userId, s]));
-  return sendPushOnce("round-results", `${season}:${lastComplete}`, [...byUser.keys()], (lang, userId) => {
+  return sendPushOnce("round-results", `${season}:${lastComplete}`, await usersWithPref([...byUser.keys()], "roundResults"), (lang, userId) => {
     const s = byUser.get(userId);
     if (!s) return null;
     const great = s.correct >= GREAT_ROUND_THRESHOLD;

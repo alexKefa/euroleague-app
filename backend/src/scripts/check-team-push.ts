@@ -5,7 +5,8 @@ import assert from "node:assert/strict";
 import { sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { getPushPrefs, setPushPrefs, usersWithPref } from "../services/pushPreferences.js";
-import { closeAlert, message, pushKey, recipientsFor, tipoffDue, type PushGame } from "../services/teamPush.js";
+import { closeAlert, handleGamePushes, message, pushKey, recipientsFor, tipoffDue, type PushGame } from "../services/teamPush.js";
+import { pushEnabled } from "../services/push.js";
 
 // Dev only: the dev Neon endpoint (EuroleagueDev). Anything else is refused.
 if (!(process.env.DATABASE_URL ?? "").includes("ep-sparkling-pond")) throw new Error("refusing to run outside the dev database");
@@ -85,6 +86,23 @@ try {
   }
   assert.ok(message("team_close", base, "en").body.includes("1:50"), "clock label");
   assert.ok(message("team_final", { ...base, status: "final" }, "en", { player: { name: "NUNN, KENDRICK", points: 21 } }).body.includes("Kendrick Nunn: 21 pts"));
+
+  // --- wiring: the live-sync hook sends one close alert per recipient, even
+  // when it fires on two ticks in a row (push_log dedupes). Needs VAPID keys
+  // in the environment; any keys work, the fake endpoint just fails.
+  assert.ok(pushEnabled, "run with VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY set (any generated pair)");
+  for (const id of [F, P]) {
+    await db.execute(sql`insert into push_subscriptions (user_id, endpoint, p256dh, auth)
+      values (${id}, ${`https://push.example.invalid/${id}`}, 'BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM', 'tBHItJI5svbpez7KI4CCXg')`);
+  }
+  await db.execute(sql`delete from push_log where key = ${`close:${game.id}`}`);
+  const before: PushGame = { ...base, gameClockSeconds: 150 };
+  await handleGamePushes(before, base);
+  await handleGamePushes(base, { ...base, gameClockSeconds: 95 });
+  const logged = await db.execute<{ user_id: string; n: number }>(sql`
+    select user_id, count(*)::int n from push_log where kind = 'team_close' and key = ${`close:${game.id}`} group by user_id`);
+  assert.deepEqual(logged.map((r) => [r.user_id, r.n]).sort(), [[F, 1], [P, 1]].sort(), "one close alert per subscribed recipient");
+  await db.execute(sql`delete from push_log where key = ${`close:${game.id}`}`);
 
   console.log("all team-push checks passed");
 } catch (err) {
