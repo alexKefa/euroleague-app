@@ -3,7 +3,7 @@ import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { userCollectibles, pointAdjustments, packOpenings, packOpeningResults, ownedPacks, pityCounters } from "../db/schema.js";
 import { requireAuth } from "../auth/middleware.js";
-import { getUserPoints } from "../services/points.js";
+import { getUserPoints, lockUserPoints } from "../services/points.js";
 import { PACKS, PackType, RolledSlot, PityState, rollPackForUser } from "../services/packs.js";
 import { getUnopenedPacksWithSource } from "../services/packSources.js";
 import { checkAndGrantFirstPicksReward } from "../services/firstPicks.js";
@@ -57,6 +57,10 @@ packsRouter.get("/", (_req, res) => {
 // won." A duplicate legendary is just a keepsake now — no refund. Coach
 // duplicates (2026-09-03) get the identical exclusion, same reasoning —
 // coach's own 5,000pt collector-value pointsCost would be the same exploit.
+// rollPackForUser's own failure, kept apart so its message still reaches
+// the client after the transaction rolls back.
+class PackRollError extends Error {}
+
 function sellValueFor(slot: RolledSlot): number | null {
   if (slot.collectible.tier === "legendary" || slot.collectible.tier === "coach") return null;
   return slot.wasDuplicate ? Math.round(slot.collectible.pointsCost * SELL_BACK_RATE) : null;
@@ -75,25 +79,31 @@ packsRouter.post("/:type/open", requireAuth, async (req, res) => {
       return;
     }
 
-    const points = await getUserPoints(req.userId!);
-    if (points < def.pointsCost) {
+    // Fast fail without taking the lock; re-checked under it below.
+    if ((await getUserPoints(req.userId!)) < def.pointsCost) {
       res.status(400).json({ error: "Not enough points" });
       return;
     }
 
-    let slots: RolledSlot[];
-    let pity: PityState;
-    try {
-      ({ slots, pity } = await rollPackForUser(req.userId!, packType));
-    } catch (err) {
-      res.status(500).json({ error: (err as Error).message });
-      return;
-    }
-    const newlyOwnedIds = new Set(slots.filter((s) => !s.wasDuplicate).map((s) => s.collectible.id));
-    const finishByCollectibleId = new Map(slots.filter((s) => !s.wasDuplicate).map((s) => [s.collectible.id, s.finish]));
-    const sellValues = slots.map(sellValueFor);
-
     const outcome = await db.transaction(async (tx) => {
+      // Two opens at once (double tap, two tabs) used to both pass the
+      // balance check and both deduct (2026-10-12). Under the per-user lock
+      // the second waits for the first to commit, then sees the new balance
+      // and the cards the first one added, so it rolls duplicates correctly.
+      await lockUserPoints(tx, req.userId!);
+      if ((await getUserPoints(req.userId!, tx)) < def.pointsCost) return null;
+
+      let slots: RolledSlot[];
+      let pity: PityState;
+      try {
+        ({ slots, pity } = await rollPackForUser(req.userId!, packType));
+      } catch (err) {
+        throw new PackRollError((err as Error).message);
+      }
+      const newlyOwnedIds = new Set(slots.filter((s) => !s.wasDuplicate).map((s) => s.collectible.id));
+      const finishByCollectibleId = new Map(slots.filter((s) => !s.wasDuplicate).map((s) => [s.collectible.id, s.finish]));
+      const sellValues = slots.map(sellValueFor);
+
       const [opening] = await tx
         .insert(packOpenings)
         .values({ userId: req.userId!, packType, pointsCost: def.pointsCost })
@@ -178,8 +188,16 @@ packsRouter.post("/:type/open", requireAuth, async (req, res) => {
       return { openingId: opening.id, packType, results };
     });
 
+    if (!outcome) {
+      res.status(400).json({ error: "Not enough points" });
+      return;
+    }
     res.status(201).json(outcome);
   } catch (err) {
+    if (err instanceof PackRollError) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
     console.error("POST /api/packs/:type/open failed:", err);
     res.status(500).json({ error: "Failed to open pack" });
   }

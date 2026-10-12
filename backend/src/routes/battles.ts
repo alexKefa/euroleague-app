@@ -8,7 +8,7 @@ import { sendToUser } from "../realtime/hub.js";
 import { BATTLE_STAKE_BASE, computeCardPowerDetails, computeStakeForWinProb } from "../services/battles.js";
 import { getCardPowers, getCardStatLines, powerFromLine } from "../services/statDuel.js";
 import { winProbability } from "../services/battlePower.js";
-import { getUserPoints } from "../services/points.js";
+import { getUserPoints, lockUserPoints } from "../services/points.js";
 
 export const battlesRouter = Router();
 
@@ -161,7 +161,10 @@ battlesRouter.post("/:id/accept", requireAuth, async (req, res) => {
       const winnerUserId = challengerWins ? battle.challengerUserId : battle.opponentUserId;
       const loserUserId = challengerWins ? battle.opponentUserId : battle.challengerUserId;
       const winnerProb = challengerWins ? challengerWinProb : 1 - challengerWinProb;
-      const stake = Math.min(computeStakeForWinProb(winnerProb), Math.max(0, await getUserPoints(loserUserId)));
+      // Lock the loser's points (2026-10-12) so a pack or card bought at the
+      // same moment can't spend the balance this stake is clamped to.
+      await lockUserPoints(tx, loserUserId);
+      const stake = Math.min(computeStakeForWinProb(winnerProb), Math.max(0, await getUserPoints(loserUserId, tx)));
 
       await tx
         .update(battles)

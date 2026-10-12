@@ -265,8 +265,8 @@ export function topScorerTotalsCte() {
 }
 
 /** Single-user read of topScorerTotalsCte() — see getUserPoints/predictions.ts's /me/summary. */
-export async function getUserTopScorerPoints(userId: string): Promise<number> {
-  const [row] = await db.execute<{ points: number }>(sql`
+export async function getUserTopScorerPoints(userId: string, exec: Pick<typeof db, "execute"> = db): Promise<number> {
+  const [row] = await exec.execute<{ points: number }>(sql`
     with ${topScorerTotalsCte()}
     select coalesce((select points from top_scorer_totals where user_id = ${userId}), 0)::int as points
   `);

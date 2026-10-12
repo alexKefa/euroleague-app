@@ -115,10 +115,10 @@ export function pointsSqlExpr(pickedFairProb: ReturnType<typeof sql>) {
  * scores present, no tie) — keep the two in sync if that logic ever
  * changes.
  */
-export async function getUserPoints(userId: string): Promise<number> {
+export async function getUserPoints(userId: string, exec: Executor = db): Promise<number> {
   const pickedFairProb = sql`case when p.predicted_winner_team_id = g.home_team_id then go.home_fair_prob else go.away_fair_prob end`;
 
-  const [row] = await db.execute<{ correct_points: number; bonus: number }>(sql`
+  const [row] = await exec.execute<{ correct_points: number; bonus: number }>(sql`
     select
       coalesce((
         select sum(${pointsSqlExpr(pickedFairProb)}) from ${predictions} p
@@ -133,7 +133,26 @@ export async function getUserPoints(userId: string): Promise<number> {
       ), 0)::int as correct_points,
       coalesce((select sum(points) from ${pointAdjustments} where user_id = ${userId}), 0)::int as bonus
   `);
-  const topScorerPoints = await getUserTopScorerPoints(userId);
+  const topScorerPoints = await getUserTopScorerPoints(userId, exec);
 
   return row.correct_points + row.bonus + topScorerPoints;
+}
+
+/** The db or an open transaction: anything that can run a statement. */
+export type Executor = Pick<typeof db, "execute">;
+
+/**
+ * Serialises point spending per user (2026-10-12). The balance is computed
+ * on read, so a check-then-deduct could run twice at once (double tap, two
+ * tabs) and spend the same points twice. Call this first inside the
+ * spending transaction, then read the balance with getUserPoints(id, tx)
+ * and deduct: a second spend for the same user waits here until the first
+ * commits, then sees the lower balance. Released at commit or rollback.
+ * Several users are locked in sorted order so two transactions can't
+ * deadlock.
+ */
+export async function lockUserPoints(tx: Executor, ...userIds: string[]): Promise<void> {
+  for (const id of [...new Set(userIds)].sort()) {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`points:${id}`}, 0))`);
+  }
 }

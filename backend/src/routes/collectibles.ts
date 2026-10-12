@@ -4,7 +4,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { collectibles, userCollectibles, pointAdjustments, teams, users, players, playerSeasonStats } from "../db/schema.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
-import { getUserPoints } from "../services/points.js";
+import { getUserPoints, lockUserPoints } from "../services/points.js";
 import { getCurrentSeason } from "../services/season.js";
 import { getAlbumLeaderboardEntries } from "../services/albumLeaderboard.js";
 
@@ -558,13 +558,24 @@ collectiblesRouter.post("/:id/purchase", requireAuth, async (req, res) => {
       return;
     }
 
-    const points = await getUserPoints(req.userId!);
-    if (points < price) {
+    // Fast fail without taking the lock; re-checked under it below.
+    if ((await getUserPoints(req.userId!)) < price) {
       res.status(400).json({ error: "Not enough points", code: "NOT_ENOUGH_POINTS" });
       return;
     }
 
-    await db.transaction(async (tx) => {
+    const blocked = await db.transaction(async (tx) => {
+      // Per-user lock (2026-10-12): a double tap used to pass both checks and
+      // pay twice. The second buy now waits, then sees the card and balance.
+      await lockUserPoints(tx, req.userId!);
+      const [owned] = await tx
+        .select({ id: userCollectibles.id })
+        .from(userCollectibles)
+        .where(and(eq(userCollectibles.collectibleId, id), eq(userCollectibles.userId, req.userId!)))
+        .limit(1);
+      if (owned) return { status: 409, error: "You already own this card", code: "ALREADY_OWNED" } as const;
+      if ((await getUserPoints(req.userId!, tx)) < price) return { status: 400, error: "Not enough points", code: "NOT_ENOUGH_POINTS" } as const;
+
       await tx.insert(pointAdjustments).values({
         userId: req.userId!,
         points: -price,
@@ -575,7 +586,12 @@ collectiblesRouter.post("/:id/purchase", requireAuth, async (req, res) => {
         countsTowardRanking: false,
       });
       await tx.insert(userCollectibles).values({ userId: req.userId!, collectibleId: id });
+      return null;
     });
+    if (blocked) {
+      res.status(blocked.status).json({ error: blocked.error, code: blocked.code });
+      return;
+    }
 
     res.status(201).json({
       collectible: {
