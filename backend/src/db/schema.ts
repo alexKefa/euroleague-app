@@ -1884,3 +1884,34 @@ export const errorEvents = pgTable(
     fingerprintIdx: index("error_events_fingerprint_idx").on(table.fingerprint, table.at),
   })
 );
+
+// Push preferences per user (2026-10-12, services/pushPreferences.ts). No row
+// means every kind is on. Spec: docs/superpowers/specs/2026-10-12-team-push-design.md
+export const pushPreferences = pgTable("push_preferences", {
+  userId: uuid("user_id").primaryKey().references(() => users.id),
+  lockReminders: boolean("lock_reminders").notNull().default(true),
+  roundResults: boolean("round_results").notNull().default(true),
+  teamTipoff: boolean("team_tipoff").notNull().default(true),
+  teamClose: boolean("team_close").notNull().default(true),
+  teamFinal: boolean("team_final").notNull().default(true),
+  pinned: boolean("pinned").notNull().default(true), // close + final for pinned games/players
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Server copy of the pinned watch (2026-10-12): the browser keeps its own in
+// localStorage; this one lets the server push close/final alerts for pins.
+// At most 3 per user (MAX_WATCHES), enforced by routes/watchPins.ts.
+export const watchPins = pgTable(
+  "watch_pins",
+  {
+    userId: uuid("user_id").notNull().references(() => users.id),
+    kind: varchar("kind", { length: 10 }).notNull(), // "game" | "player"
+    targetId: uuid("target_id").notNull(), // game id or player id
+    gameId: uuid("game_id").notNull().references(() => games.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.userId, table.kind, table.targetId] }),
+    gameIdx: index("watch_pins_game_idx").on(table.gameId),
+  })
+);

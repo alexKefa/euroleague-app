@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
+import { getPushPrefs, setPushPrefs, PUSH_PREF_KEYS, type PushPrefs } from "../services/pushPreferences.js";
 import {
   countSubscriptions,
   deleteSubscription,
@@ -105,5 +106,33 @@ pushRouter.post("/broadcast", requireAuth, requireAdmin, async (req, res) => {
   } catch (err) {
     console.error("POST /api/push/broadcast failed:", err);
     res.status(500).json({ error: "Failed to send" });
+  }
+});
+
+// Per-type preferences (2026-10-12, services/pushPreferences.ts).
+pushRouter.get("/preferences", requireAuth, async (req, res) => {
+  try {
+    res.json(await getPushPrefs(req.userId!));
+  } catch (err) {
+    console.error("GET /api/push/preferences failed:", err);
+    res.status(500).json({ error: "Failed to load preferences" });
+  }
+});
+
+pushRouter.put("/preferences", requireAuth, async (req, res) => {
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  const patch: Partial<PushPrefs> = {};
+  for (const [k, v] of Object.entries(body)) {
+    if (!(PUSH_PREF_KEYS as string[]).includes(k) || typeof v !== "boolean") {
+      res.status(400).json({ error: `Invalid preference: ${k}`, code: "INVALID_PREFERENCE" });
+      return;
+    }
+    patch[k as keyof PushPrefs] = v;
+  }
+  try {
+    res.json(await setPushPrefs(req.userId!, patch));
+  } catch (err) {
+    console.error("PUT /api/push/preferences failed:", err);
+    res.status(500).json({ error: "Failed to save preferences" });
   }
 });

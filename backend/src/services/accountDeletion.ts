@@ -12,7 +12,15 @@ export type DeleteAccountResult =
   | { ok: false; status: 400 | 404 | 409; code: "USERNAME_MISMATCH" | "NOT_FOUND" | "ALREADY_DELETED" };
 
 // Rows that are only about this person, removed outright.
-const PERSONAL_TABLES = ["push_subscriptions", "device_tokens", "league_members", "favorites", "favorite_players"] as const;
+const PERSONAL_TABLES = [
+  "push_subscriptions",
+  "device_tokens",
+  "league_members",
+  "favorites",
+  "favorite_players",
+  "push_preferences",
+  "watch_pins",
+] as const;
 
 /**
  * Deletes (anonymizes) a user who typed their username to confirm. The

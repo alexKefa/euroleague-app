@@ -38,6 +38,8 @@ export interface AccountExport {
   pollVotes: unknown[];
   savedViews: unknown[];
   devices: unknown[];
+  pushPreferences: unknown[];
+  pins: unknown[];
   leagues: unknown[];
   achievements: unknown[];
   pushSubscriptions: { host: string; createdAt: string }[];
@@ -126,6 +128,8 @@ export async function buildAccountExport(userId: string): Promise<AccountExport>
       ${own("legendary_poll_votes")} as "pollVotes",
       ${own("analytics_views")} as "savedViews",
       ${own("device_tokens", ["token"])} as devices,
+      ${own("push_preferences")} as "pushPreferences",
+      ${own("watch_pins")} as pins,
       ${list(sql`
         select substring(ps.endpoint from '^https?://([^/]+)') as host, ps.created_at as "createdAt"
         from push_subscriptions ps where ps.user_id = ${userId}`)} as "pushSubscriptions"
