@@ -1,5 +1,8 @@
-import { Injectable, effect, inject, signal } from "@angular/core";
+import { Injectable, effect, inject, signal, untracked } from "@angular/core";
+import { HttpClient } from "@angular/common/http";
 import { EventsService } from "./events.service";
+import { AuthService } from "./auth.service";
+import { API_BASE_URL } from "./api-config";
 
 // "Watch Pill" (2026-09-25 — "a sharing-like pill component which can be
 // pinned... to either watch a game on the fly or a player"). A small,
@@ -110,6 +113,52 @@ export class WatchlistService {
         // Private browsing / blocked storage — pins just don't survive a reload.
       }
     });
+
+    // Server mirror (2026-10-12, team push): on login, this device's pins
+    // become the server's, so close/final pushes follow what's pinned here.
+    // The server stores ids only, so this device stays the display source.
+    effect(() => {
+      const userId = this.auth.currentUser()?.id;
+      if (!userId || userId === this.syncedFor) return;
+      this.syncedFor = userId;
+      untracked(() => this.mirrorToServer());
+    });
+  }
+
+  private auth = inject(AuthService);
+  private http = inject(HttpClient);
+  private syncedFor: string | null = null;
+
+  private pinKey(w: Watch): { kind: "game" | "player"; targetId: string; gameId: string } {
+    return w.kind === "game" ? { kind: "game", targetId: w.gameId, gameId: w.gameId } : { kind: "player", targetId: w.playerId, gameId: w.gameId };
+  }
+
+  private mirrorToServer(): void {
+    this.http.get<{ kind: "game" | "player"; targetId: string }[]>(`${API_BASE_URL}/watch-pins`).subscribe({
+      next: (server) => {
+        const local = this.watches().map((w) => this.pinKey(w));
+        // Drop server-only pins first so local ones fit under the limit of 3.
+        for (const s of server) {
+          if (!local.some((l) => l.kind === s.kind && l.targetId === s.targetId)) this.deleteRemote(s.kind, s.targetId);
+        }
+        for (const l of local) {
+          if (!server.some((s) => s.kind === l.kind && s.targetId === l.targetId)) this.putRemote(l);
+        }
+      },
+      error: () => {
+        // Offline or logged out mid-way: pushes just won't follow pins yet.
+      },
+    });
+  }
+
+  private putRemote(pin: { kind: "game" | "player"; targetId: string; gameId: string }): void {
+    if (!this.auth.currentUser()) return;
+    this.http.put(`${API_BASE_URL}/watch-pins`, pin).subscribe({ error: () => undefined });
+  }
+
+  private deleteRemote(kind: "game" | "player", targetId: string): void {
+    if (!this.auth.currentUser()) return;
+    this.http.delete(`${API_BASE_URL}/watch-pins/${kind}/${targetId}`).subscribe({ error: () => undefined });
   }
 
   isPinned(kind: "game" | "player", id: string): boolean {
@@ -126,6 +175,7 @@ export class WatchlistService {
     if (this.isPinned("game", game.gameId)) return true;
     if (!this.canPinMore()) return false;
     this.watches.update((list) => [...list, { kind: "game", ...game }]);
+    this.putRemote({ kind: "game", targetId: game.gameId, gameId: game.gameId });
     return true;
   }
 
@@ -133,10 +183,12 @@ export class WatchlistService {
     if (this.isPinned("player", player.playerId)) return true;
     if (!this.canPinMore()) return false;
     this.watches.update((list) => [...list, { kind: "player", ...player }]);
+    this.putRemote({ kind: "player", targetId: player.playerId, gameId: player.gameId });
     return true;
   }
 
   unpin(kind: "game" | "player", id: string): void {
+    this.deleteRemote(kind, id);
     this.watches.update((list) =>
       list.filter((w) => {
         if (w.kind !== kind) return true;

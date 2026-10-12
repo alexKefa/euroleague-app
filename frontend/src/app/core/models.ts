@@ -1,3 +1,7 @@
+// Per-type push toggles (2026-10-12, backend services/pushPreferences.ts).
+export type PushPrefKey = "lockReminders" | "roundResults" | "teamTipoff" | "teamClose" | "teamFinal" | "pinned";
+export type PushPrefs = Record<PushPrefKey, boolean>;
+
 export interface PublicUser {
   id: string;
   email: string;

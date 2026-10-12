@@ -186,6 +186,28 @@
             </div>
           </div>
           <p class="text-[12px] text-muted mt-1">{{ i18n.t('profile.notificationsHint') }}</p>
+          <!-- Per-type toggles (2026-10-12, backend services/pushPreferences.ts):
+               only meaningful while this device has push on. -->
+          @if (pushPrefs(); as prefs) {
+            <p class="text-[11px] font-bold uppercase tracking-wider text-muted mt-3 mb-1">{{ i18n.t('profile.pushTypes') }}</p>
+            <ul class="flex flex-col">
+              @for (p of pushPrefRows; track p.key) {
+                <li>
+                  <label class="flex items-center justify-between gap-3 py-1.5 cursor-pointer" [class.opacity-50]="push.status() !== 'on'">
+                    <span class="text-[13px]">{{ i18n.t(p.label) }}</span>
+                    <input
+                      type="checkbox"
+                      role="switch"
+                      class="w-5 h-5 shrink-0 cursor-pointer" style="accent-color: var(--accent-primary)"
+                      [checked]="prefs[p.key]"
+                      [disabled]="push.status() !== 'on' || prefSaving()"
+                      (change)="togglePushPref(p.key, $any($event.target).checked)"
+                    />
+                  </label>
+                </li>
+              }
+            </ul>
+          }
         </div>
       } @else if (push.status() === 'needs-install' || push.status() === 'denied') {
         <div class="py-3">

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ElementRef, viewChild, effect, inject, signal, computed } from "@angular/core";
+import { Component, OnInit, OnDestroy, ElementRef, viewChild, effect, inject, signal, computed, untracked } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { Router, RouterLink } from "@angular/router";
 import { FormsModule, FormControl, ReactiveFormsModule } from "@angular/forms";
@@ -10,7 +10,7 @@ import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
 import { ThemeService } from "../../core/theme.service";
 import { PushService } from "../../core/push.service";
-import { Team, Collectible, CollectibleFinish } from "../../core/models";
+import { Team, Collectible, CollectibleFinish, PushPrefKey, PushPrefs } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ButtonDirective } from "../../shared/button.directive";
 import { CollectibleCardComponent } from "../store/collectible-card";
@@ -275,6 +275,43 @@ export class ProfileComponent implements OnInit, OnDestroy {
     navigator.clipboard.writeText(link).then(() => {
       this.referralCopied.set(true);
       setTimeout(() => this.referralCopied.set(false), 2000);
+    });
+  }
+
+  // --- Push types (2026-10-12): per-kind toggles under the device switch ----
+
+  readonly pushPrefRows: { key: PushPrefKey; label: string }[] = [
+    { key: "lockReminders", label: "profile.pushLock" },
+    { key: "roundResults", label: "profile.pushRound" },
+    { key: "teamTipoff", label: "profile.pushTipoff" },
+    { key: "teamClose", label: "profile.pushClose" },
+    { key: "teamFinal", label: "profile.pushFinal" },
+    { key: "pinned", label: "profile.pushPinned" },
+  ];
+  readonly pushPrefs = signal<PushPrefs | null>(null);
+  readonly prefSaving = signal(false);
+  private readonly loadPushPrefs = effect(() => {
+    if (this.push.status() !== "on" || !this.auth.currentUser()) return;
+    untracked(() => {
+      if (this.pushPrefs()) return;
+      this.api.getPushPrefs().subscribe({ next: (p) => this.pushPrefs.set(p), error: () => undefined });
+    });
+  });
+
+  togglePushPref(key: PushPrefKey, value: boolean): void {
+    const before = this.pushPrefs();
+    if (!before) return;
+    this.pushPrefs.set({ ...before, [key]: value });
+    this.prefSaving.set(true);
+    this.api.setPushPrefs({ [key]: value }).subscribe({
+      next: (p) => {
+        this.pushPrefs.set(p);
+        this.prefSaving.set(false);
+      },
+      error: () => {
+        this.pushPrefs.set(before); // roll back
+        this.prefSaving.set(false);
+      },
     });
   }
 

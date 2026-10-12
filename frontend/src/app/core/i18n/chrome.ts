@@ -207,6 +207,14 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
     el: "Ο χρήστης κατέχει ήδη αυτή την κάρτα.",
   },
   "profile.adminErr.TEAM_NOT_FOUND": { en: "Team not found.", el: "Η ομάδα δεν βρέθηκε." },
+  // Per-type push toggles (2026-10-12).
+  "profile.pushTypes": { en: "What to notify me about", el: "Για τι να με ειδοποιεί" },
+  "profile.pushLock": { en: "Pick lock reminders", el: "Υπενθυμίσεις πριν κλειδώσουν οι προβλέψεις" },
+  "profile.pushRound": { en: "Round results", el: "Αποτελέσματα αγωνιστικής" },
+  "profile.pushTipoff": { en: "My team: tip-off", el: "Η ομάδα μου: έναρξη αγώνα" },
+  "profile.pushClose": { en: "My team: close finish", el: "Η ομάδα μου: θρίλερ στο φινάλε" },
+  "profile.pushFinal": { en: "My team: final score", el: "Η ομάδα μου: τελικό σκορ" },
+  "profile.pushPinned": { en: "Pinned games and players", el: "Καρφιτσωμένοι αγώνες και παίκτες" },
   // "Your data" card (2026-10-12): data export and account deletion.
   "profile.yourData": { en: "Your data", el: "Τα δεδομένα σου" },
   "profile.downloadData": { en: "Download my data", el: "Λήψη των δεδομένων μου" },

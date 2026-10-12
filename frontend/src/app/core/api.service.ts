@@ -79,7 +79,7 @@ import {
   TeamFan,
   RoundRecap,
   Announcement,
-  AnnouncementInput, FantasyPlayerCard, ScoutingReport, Reminders, TeamAnalytics, LineupBuilderResult, ClutchLeaders, TeamRestSplits, PlayerRestSplits, RefereeStats, RefereeDetail, TeamReferees, TeamBudget } from "./models";
+  AnnouncementInput, FantasyPlayerCard, ScoutingReport, Reminders, TeamAnalytics, LineupBuilderResult, ClutchLeaders, TeamRestSplits, PlayerRestSplits, RefereeStats, RefereeDetail, TeamReferees, TeamBudget, PushPrefs } from "./models";
 
 /**
  * Wraps HttpClient calls to the backend's /api routes.
@@ -816,6 +816,15 @@ export class ApiService {
 
   // Admin only — "Sync images" button (2026-09-18), see routes/admin.ts's
   // own comment for what this actually runs.
+  // Per-type push toggles (2026-10-12, backend routes/push.ts).
+  getPushPrefs(): Observable<PushPrefs> {
+    return this.http.get<PushPrefs>(`${API_BASE_URL}/push/preferences`);
+  }
+
+  setPushPrefs(patch: Partial<PushPrefs>): Observable<PushPrefs> {
+    return this.http.put<PushPrefs>(`${API_BASE_URL}/push/preferences`, patch);
+  }
+
   // Account data export and deletion (2026-10-12, backend routes/users.ts).
   exportMyData(): Observable<HttpResponse<Blob>> {
     return this.http.get(`${API_BASE_URL}/users/me/export`, { responseType: "blob", observe: "response" });
