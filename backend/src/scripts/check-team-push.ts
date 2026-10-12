@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { getPushPrefs, setPushPrefs, usersWithPref } from "../services/pushPreferences.js";
+import { closeAlert, message, pushKey, recipientsFor, tipoffDue, type PushGame } from "../services/teamPush.js";
 
 // Dev only: the dev Neon endpoint (EuroleagueDev). Anything else is refused.
 if (!(process.env.DATABASE_URL ?? "").includes("ep-sparkling-pond")) throw new Error("refusing to run outside the dev database");
@@ -31,6 +32,59 @@ try {
   assert.equal((await getPushPrefs(u)).teamTipoff, true, "other keys keep their default");
   assert.deepEqual(await usersWithPref([u, v, gone], "teamClose"), [v]);
   assert.deepEqual(await usersWithPref([], "teamClose"), []);
+
+  // --- rules: when each alert fires
+  const [game] = await db.execute<{ id: string; home_team_id: string; away_team_id: string; hc: string; ac: string }>(sql`
+    select g.id, g.home_team_id, g.away_team_id, ht.code hc, at.code ac
+    from games g join teams ht on ht.id = g.home_team_id join teams at on at.id = g.away_team_id
+    order by g.tipoff_at desc limit 1`);
+  const now = new Date("2026-10-12T18:00:00Z");
+  const plusMin = (m: number) => new Date(now.getTime() + m * 60_000).toISOString();
+  const base: PushGame = {
+    id: game.id, status: "live", quarter: 4, gameClockSeconds: 110, tipoffAt: plusMin(-100),
+    homeScore: 70, awayScore: 68, homeTeamId: game.home_team_id, awayTeamId: game.away_team_id, homeCode: game.hc, awayCode: game.ac,
+  };
+  assert.equal(closeAlert(base), "close");
+  assert.equal(closeAlert({ ...base, gameClockSeconds: 150 }), null, "more than 2:00 left");
+  assert.equal(closeAlert({ ...base, awayScore: 66 }), null, "margin 4");
+  assert.equal(closeAlert({ ...base, quarter: 3 }), null, "Q3");
+  assert.equal(closeAlert({ ...base, status: "final" }), null, "not live");
+  assert.equal(closeAlert({ ...base, quarter: 5, gameClockSeconds: 280, awayScore: 60 }), "ot", "overtime");
+  assert.equal(pushKey("team_close", base), pushKey("team_close", { ...base, quarter: 5 }), "close and OT share one key");
+  assert.equal(tipoffDue({ ...base, status: "scheduled", tipoffAt: plusMin(15) }, now), true);
+  assert.equal(tipoffDue({ ...base, status: "scheduled", tipoffAt: plusMin(25) }, now), false);
+  assert.equal(tipoffDue({ ...base, status: "scheduled", tipoffAt: plusMin(5) }, now), false);
+  assert.equal(tipoffDue({ ...base, status: "live", tipoffAt: plusMin(15) }, now), false);
+
+  // --- rules: recipients (fans + pinners, unique, minus opted-out and deleted)
+  const F = await mkUser("fan", { favoriteTeamId: game.home_team_id });
+  const P = await mkUser("pinner");
+  const FP = await mkUser("fanpin", { favoriteTeamId: game.away_team_id });
+  const N = await mkUser("nofinal", { favoriteTeamId: game.home_team_id });
+  const D = await mkUser("deletedfan", { favoriteTeamId: game.home_team_id, deleted: true });
+  const PX = await mkUser("pinnerOff");
+  await setPushPrefs(N, { teamFinal: false });
+  await setPushPrefs(PX, { pinned: false });
+  for (const id of [P, FP, PX]) {
+    await db.execute(sql`insert into watch_pins (user_id, kind, target_id, game_id) values (${id}, 'game', ${game.id}, ${game.id})`);
+  }
+  const finalTo = await recipientsFor("team_final", base);
+  for (const id of [F, P, FP]) assert.ok(finalTo.includes(id), `final should reach ${id}`);
+  for (const id of [N, D, PX]) assert.ok(!finalTo.includes(id), `final must skip ${id}`);
+  assert.equal(new Set(finalTo).size, finalTo.length, "recipients must be unique");
+  const tipoffTo = await recipientsFor("team_tipoff", base);
+  assert.ok(tipoffTo.includes(F) && !tipoffTo.includes(P), "tip-off goes to fans only, not pinners");
+
+  // --- rules: copy has no placeholder left
+  for (const k of ["team_tipoff", "team_close", "team_final"] as const) {
+    for (const l of ["en", "el"] as const) {
+      const m = message(k, base, l, { ot: true, player: { name: "NUNN, KENDRICK", points: 21 } });
+      assert.ok(!/[{}]/.test(m.title + m.body), `${k}/${l}: placeholder left: ${m.title} ${m.body}`);
+      assert.equal(m.url, `/games/${game.id}`);
+    }
+  }
+  assert.ok(message("team_close", base, "en").body.includes("1:50"), "clock label");
+  assert.ok(message("team_final", { ...base, status: "final" }, "en", { player: { name: "NUNN, KENDRICK", points: 21 } }).body.includes("Kendrick Nunn: 21 pts"));
 
   console.log("all team-push checks passed");
 } catch (err) {
