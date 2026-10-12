@@ -351,8 +351,12 @@
 <app-install-banner></app-install-banner>
 <app-tour-fab></app-tour-fab>
 <app-watch-pill></app-watch-pill>
+<!-- Global search, loaded on first open (2026-10-12): keeps the dialog and
+     its matcher out of the initial bundle (1 MB budget). -->
 @if (search.open()) {
-  <app-search-dialog />
+  @defer (on immediate) {
+    <app-search-dialog />
+  }
 }
 }
 <!-- One shared stack for every top-of-screen toast (2026-09-29) — each used
