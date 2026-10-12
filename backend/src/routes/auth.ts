@@ -293,8 +293,24 @@ authRouter.post("/refresh", refreshLimiter, async (req, res) => {
     return;
   }
 
+  let payload: ReturnType<typeof verifyRefreshToken>;
   try {
-    const payload = verifyRefreshToken(token);
+    payload = verifyRefreshToken(token);
+  } catch {
+    res.status(401).json({ error: "Invalid or expired refresh token" });
+    return;
+  }
+  // A deleted account's other devices still hold a valid refresh cookie
+  // (2026-10-12): refuse it, so they're signed out within one access-token
+  // lifetime instead of forever.
+  const [account] = await db.select({ deletedAt: users.deletedAt }).from(users).where(eq(users.id, payload.sub)).limit(1);
+  if (!account || account.deletedAt) {
+    res.clearCookie(REFRESH_COOKIE_NAME, { path: "/api/auth" });
+    res.status(401).json({ error: "Account deleted", code: "ACCOUNT_DELETED" });
+    return;
+  }
+
+  try {
     const accessToken = signAccessToken(payload.sub);
     // Rotate the refresh token on each use.
     setRefreshCookie(res, signRefreshToken(payload.sub));

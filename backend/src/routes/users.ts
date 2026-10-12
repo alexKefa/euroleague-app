@@ -5,6 +5,8 @@ import { users, userCollectibles } from "../db/schema.js";
 import { requireAuth } from "../auth/middleware.js";
 import { isValidUsername } from "../services/username.js";
 import { getAchievements } from "../services/achievements.js";
+import { deleteAccount } from "../services/accountDeletion.js";
+import { sendToUser } from "../realtime/hub.js";
 
 export const usersRouter = Router();
 
@@ -140,4 +142,25 @@ usersRouter.patch("/me", requireAuth, async (req, res) => {
   }
 
   res.json(publicUser(user));
+});
+// Account deletion (2026-10-12, services/accountDeletion.ts): anonymizes
+// the account after the user types their username. People with a pending
+// trade or battle against them get the usual live update, so it vanishes
+// from their screen. The refresh cookie is cleared like /auth/logout.
+usersRouter.delete("/me", requireAuth, async (req, res) => {
+  try {
+    const confirmUsername = typeof req.body?.confirmUsername === "string" ? req.body.confirmUsername : "";
+    const result = await deleteAccount(req.userId!, confirmUsername);
+    if (!result.ok) {
+      res.status(result.status).json({ error: "Account not deleted", code: result.code });
+      return;
+    }
+    for (const t of result.cancelledTrades) sendToUser(t.otherUserId, "trade-update", { offerId: t.id, reason: "cancelled" });
+    for (const b of result.cancelledBattles) sendToUser(b.otherUserId, "battle-update", { battleId: b.id, reason: "cancelled" });
+    res.clearCookie("refreshToken", { path: "/api/auth" });
+    res.status(204).send();
+  } catch (err) {
+    console.error("DELETE /api/users/me failed:", err);
+    res.status(500).json({ error: "Failed to delete account" });
+  }
 });
