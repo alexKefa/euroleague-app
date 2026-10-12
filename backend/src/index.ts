@@ -11,6 +11,7 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import { teamsRouter } from "./routes/teams.js";
 import { refereesRouter } from "./routes/referees.js";
+import { searchRouter, SEARCH_INDEX_CACHE_KEY } from "./routes/search.js";
 import { standingsRouter } from "./routes/standings.js";
 import { authRouter } from "./routes/auth.js";
 import { usersRouter } from "./routes/users.js";
@@ -165,6 +166,7 @@ app.use("/api/reminders", remindersRouter);
 app.use("/api/announcements", announcementsRouter);
 app.use("/api/push", pushRouter);
 app.use("/api/referees", refereesRouter);
+app.use("/api/search", searchRouter);
 
 // Serves the built Angular app (see ./Dockerfile) — absent in local dev,
 // where the frontend runs separately via `ng serve` on its own port.
@@ -385,7 +387,7 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
         }
         if (r.teamsSkipped.length) console.warn(`[roster sync] feed had no roster for: ${r.teamsSkipped.join(", ")}`);
       })
-      .finally(() => invalidate(CACHE_KEYS.fantasyPlayers, CACHE_KEYS.preview, CACHE_KEYS.collectibles))
+      .finally(() => invalidate(CACHE_KEYS.fantasyPlayers, CACHE_KEYS.preview, CACHE_KEYS.collectibles, SEARCH_INDEX_CACHE_KEY))
       .catch((err) => console.error("[roster sync] failed:", err));
   };
   runRosterSync();
@@ -421,6 +423,7 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
       .then(async (season) => {
         if (!season) return;
         const { changed } = await syncScheduleTimes(season);
+        if (changed.length > 0) invalidate(SEARCH_INDEX_CACHE_KEY);
         if (changed.length > 0) console.log(`[schedule sync] corrected ${changed.length} tipoff(s): ${changed.map((c) => `${c.gameCode} ${c.home}-${c.away}->${c.tipoffAt}`).join(", ")}`);
       })
       .catch((err) => console.error("[schedule sync] failed:", err));
