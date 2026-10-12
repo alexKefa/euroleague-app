@@ -23,6 +23,7 @@ export interface LineFacts {
   assists: number;
   steals: number;
   blocks: number;
+  turnovers: number;
   pir: number;
   plusMinus: number | null;
   minutes: number | null;
@@ -64,6 +65,14 @@ export interface ClutchPlay {
   awayScore: number;
 }
 
+export interface RunFacts {
+  teamId: string;
+  points: number;
+  period: number; // the period the run started in
+  endHome: number; // score when the run ended
+  endAway: number;
+}
+
 export interface GameFacts {
   gameId: string;
   season: string;
@@ -77,15 +86,33 @@ export interface GameFacts {
   margins: MarginPoint[];
   clutchPoints: { playerName: string; teamId: string; points: number }[];
   clutchPlays: ClutchPlay[];
+  // Points per quarter; index 4 (when present) is all overtime together.
+  quarters: { home: number[]; away: number[] };
+  // Each team's longest unanswered scoring run (empty = no play-by-play).
+  runs: RunFacts[];
 }
 
-export type Angle = "bench" | "lineup" | "explosion" | "comeback" | "clutch" | "numbers";
+export type Angle = "edge" | "lineup" | "explosion" | "comeback" | "clutch" | "numbers";
 
-export interface LineupTypeRow {
-  label: "0-1" | "2-3" | "4-5";
-  seconds: number;
-  ptsFor: number;
-  ptsAgainst: number;
+// "What won it": a team-level edge the winner had over the loser.
+export type EdgeKey = "run" | "quarter" | "threes" | "boards" | "turnovers" | "freeThrows" | "assists" | "shooting";
+
+export interface EdgeData {
+  key: EdgeKey;
+  winner: number; // the winner's value (turnovers: committed; shooting: FG%)
+  loser: number;
+  diff: number; // in the winner's favour, > 0
+  ratio: number; // diff / threshold; >= 1 makes it a story angle
+  period: number | null; // run / quarter only
+}
+
+// One "tale of the tape" row, winner vs loser.
+export interface TapeRow {
+  key: "shooting" | "threes" | "boards" | "assists" | "turnovers" | "freeThrows";
+  winner: string;
+  loser: string;
+  winnerShare: number; // 0..1, the winner's side of the bar (turnovers inverted)
+  winnerBetter: boolean;
 }
 
 export interface LineupSummary {
@@ -98,22 +125,11 @@ export interface LineupSummary {
   plusMinus: number;
   netRating: number | null;
   possessions: number;
-  startersOnCourt: number | null; // null when the game has no starter flags
-}
-
-export interface BenchData {
-  teamId: string;
-  benchPoints: number;
-  starterPoints: number;
-  teamPoints: number;
-  share: number;
-  scorers: LineFacts[]; // bench players, most points first
-  byType: LineupTypeRow[];
 }
 
 export interface LineupData {
   lineup: LineupSummary;
-  byType: LineupTypeRow[];
+  tape: TapeRow[];
 }
 
 export interface ExplosionData {
@@ -140,14 +156,19 @@ export interface ClutchData {
 
 export interface NumbersData {
   topScorers: { home: LineFacts | null; away: LineFacts | null };
-  bench: { home: { bench: number; starters: number } | null; away: { bench: number; starters: number } | null };
-  bestLineup: LineupSummary | null;
+  tape: TapeRow[];
 }
 
-export type Story =
-  | { angle: "bench"; score: number; data: BenchData }
+// The card's "what won it" strip: the winner's biggest edge, or the
+// winner's leader when that edge is already the headline or none stands out.
+export type KeyNote = { kind: "edge"; edge: EdgeData } | { kind: "leader"; line: LineFacts };
+
+export type StoryBody =
+  | { angle: "edge"; score: number; data: EdgeData & { tape: TapeRow[] } }
   | { angle: "lineup"; score: number; data: LineupData }
   | { angle: "explosion"; score: number; data: ExplosionData }
   | { angle: "comeback"; score: number; data: ComebackData }
   | { angle: "clutch"; score: number; data: ClutchData }
   | { angle: "numbers"; score: number; data: NumbersData };
+
+export type Story = StoryBody & { key: KeyNote | null };

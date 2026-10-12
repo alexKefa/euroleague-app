@@ -466,7 +466,7 @@ export type MatchupPreviewResponse = MatchupPreview | { available: false };
 
 // Game story cards (2026-10-09) — mirrors backend services/gameStory/index.ts.
 export interface StorySummary {
-  angle: "bench" | "lineup" | "explosion" | "comeback" | "clutch" | "numbers";
+  angle: "edge" | "lineup" | "explosion" | "comeback" | "clutch" | "numbers";
   label: string;
   headline: string;
   lede: string;

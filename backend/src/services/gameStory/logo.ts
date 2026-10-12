@@ -53,6 +53,36 @@ function luma(hex: string | null): number | null {
   return 0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255);
 }
 
+/** Text on top of a solid team colour: ink on light colours, white on dark ones. */
+export function inkOn(color: string): string {
+  return (luma(color) ?? 0) > 150 ? "#0B0C0F" : "#FFFFFF";
+}
+
+/**
+ * A team colour that stands out on the card's near-black ground (2026-10-12
+ * redesign): the primary, else the secondary, else the primary lifted
+ * towards white, else the app orange. Near-white counts as too plain.
+ */
+export function accentOnDark(team: Pick<TeamFacts, "primaryColor" | "secondaryColor">): string {
+  const ok = (c: string | null) => {
+    const l = luma(c);
+    return l !== null && l >= 70 && l <= 235;
+  };
+  if (ok(team.primaryColor)) return team.primaryColor!;
+  if (ok(team.secondaryColor)) return team.secondaryColor!;
+  const m = team.primaryColor ? /^#?([0-9a-f]{6})$/i.exec(team.primaryColor.trim()) : null;
+  if (m) {
+    const n = parseInt(m[1], 16);
+    const rgb = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    // Only a real hue is worth lifting; greys and black get the orange.
+    if (Math.max(...rgb) - Math.min(...rgb) >= 40) {
+      const lift = rgb.map((v) => Math.round(v + (255 - v) * 0.45));
+      return `#${lift.map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+    }
+  }
+  return ORANGE;
+}
+
 /** A team colour readable on white: too light or too dark falls back. */
 export function accentFor(team: Pick<TeamFacts, "primaryColor" | "secondaryColor">): string {
   const ok = (c: string | null) => {

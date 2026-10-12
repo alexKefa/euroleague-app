@@ -5,7 +5,6 @@ import { I18nService } from "../../core/i18n.service";
 import { StorySummary } from "../../core/models";
 import { ButtonDirective } from "../../shared/button.directive";
 import { NavIconComponent } from "../../shared/nav-icon";
-import { SkeletonComponent } from "../../shared/skeleton";
 
 type ShareState = "idle" | "working" | "needsTap" | "downloaded" | "copied" | "error";
 
@@ -18,7 +17,7 @@ type ShareState = "idle" | "working" | "needsTap" | "downloaded" | "copied" | "e
 @Component({
   selector: "app-game-story",
   standalone: true,
-  imports: [ButtonDirective, NavIconComponent, SkeletonComponent],
+  imports: [ButtonDirective, NavIconComponent],
   template: `
     @if (!failed()) {
       <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-5">
@@ -28,31 +27,39 @@ type ShareState = "idle" | "working" | "needsTap" | "downloaded" | "copied" | "e
         </div>
         <div class="relative w-full rounded-2xl overflow-hidden border border-line bg-page" style="aspect-ratio: 1080 / 1350">
           @if (!loaded()) {
-            <!-- Card-shaped skeleton (2026-10-09): the first render of a card
-                 takes a second or two server-side, so show its outline. -->
-            <div class="absolute inset-0 flex flex-col p-[5%] gap-[2.2%] bg-card" aria-hidden="true">
-              <div class="flex justify-between gap-[4%]">
-                <div class="flex flex-col gap-[10%] w-[52%]">
-                  <div class="flex items-center gap-[6%]">
-                    <app-skeleton class="w-[18%] aspect-square rounded-full" />
-                    <app-skeleton class="h-3 w-[55%] rounded" />
-                  </div>
-                  <app-skeleton class="h-8 sm:h-10 w-full rounded-lg" />
+            <!-- Card-shaped skeleton (2026-10-12 dark card): the first render
+                 takes a second or two server-side, so show the card's outline
+                 on its own near-black ground. -->
+            <div class="absolute inset-0 flex flex-col px-[5.5%] pt-[3.5%] pb-[2.5%] bg-[#0B0C0F] animate-pulse" aria-hidden="true">
+              <div class="flex items-center justify-between">
+                <div class="w-[7%] aspect-square rounded-full bg-white/10"></div>
+                <div class="h-2 w-[52%] rounded bg-white/10"></div>
+                <div class="h-4 w-[10%] rounded-full border border-white/15"></div>
+              </div>
+              <div class="flex items-center justify-between mt-[5%]">
+                <div class="flex flex-col gap-2 w-[22%]">
+                  <div class="w-[38%] aspect-square rounded-full bg-white/10"></div>
+                  <div class="h-2.5 w-full rounded bg-white/10"></div>
                 </div>
-                <div class="flex flex-col gap-[14%] w-[40%] pt-[2%]">
-                  <app-skeleton class="h-5 w-full rounded" />
-                  <app-skeleton class="h-5 w-[85%] rounded" />
+                <div class="flex items-end gap-[6%] w-[36%] justify-center">
+                  <div class="h-12 sm:h-16 w-[40%] rounded-lg bg-white/15"></div>
+                  <div class="h-12 sm:h-16 w-[40%] rounded-lg bg-white/[0.07]"></div>
+                </div>
+                <div class="flex flex-col gap-2 w-[22%] items-end">
+                  <div class="w-[38%] aspect-square rounded-full bg-white/10"></div>
+                  <div class="h-2.5 w-full rounded bg-white/10"></div>
                 </div>
               </div>
-              <app-skeleton class="h-2.5 w-[70%] rounded" />
-              <div class="h-1 w-full rounded bg-team-primary/40"></div>
-              <app-skeleton class="h-4 w-[80%] rounded" />
-              <div class="flex-1 rounded-xl bg-page p-[4%] flex flex-col gap-[6%]">
+              <div class="h-2 w-[24%] rounded bg-team-primary/60 mt-[6%]"></div>
+              <div class="h-8 sm:h-10 w-[60%] rounded-lg bg-white/15 mt-[2.5%]"></div>
+              <div class="h-2.5 w-[75%] rounded bg-white/10 mt-[2.5%]"></div>
+              <div class="flex-1 rounded-2xl border border-white/10 bg-white/[0.04] mt-[4%] p-[4%] flex flex-col gap-[7%]">
                 @for (w of skeletonRows; track $index) {
-                  <app-skeleton class="h-4 rounded" [style.width.%]="w" />
+                  <div class="h-2.5 rounded bg-white/10" [style.width.%]="w"></div>
                 }
               </div>
-              <app-skeleton class="h-3 w-[40%] self-end rounded" />
+              <div class="h-[12%] rounded-2xl bg-team-primary/50 mt-[3%]"></div>
+              <div class="h-2.5 w-[30%] self-end rounded bg-white/10 mt-[3%]"></div>
             </div>
           }
           @if (imageUrl(); as src) {
@@ -92,7 +99,7 @@ export class GameStoryComponent {
   readonly awayCode = input.required<string>();
 
   protected readonly loaded = signal(false);
-  protected readonly skeletonRows = [45, 100, 92, 96, 88, 60, 100, 94];
+  protected readonly skeletonRows = [30, 100, 100, 100, 100, 100];
   protected readonly failed = signal(false);
   protected readonly state = signal<ShareState>("idle");
   protected readonly summary = signal<StorySummary | null>(null);

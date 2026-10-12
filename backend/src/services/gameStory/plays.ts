@@ -1,7 +1,7 @@
 // Game story cards (2026-10-09): pure helpers over one game's scoring
 // plays (from pbp_events) and feed names. Checked by
 // scripts/check-game-story.ts.
-import type { ClutchPlay, MarginPoint } from "./types.js";
+import type { ClutchPlay, MarginPoint, RunFacts } from "./types.js";
 
 /** Feed "WRIGHT, MOSES" -> "Moses Wright" (same rule as the frontend's formatPlayerName). */
 export function formatName(name: string): string {
@@ -39,6 +39,9 @@ export function derivePlays(events: ScoringEvent[], names: Map<string, string>, 
   const clutch = new Map<string, { playerName: string; teamId: string; points: number }>();
   const clutchPlays: ClutchPlay[] = [];
   let overtime = false;
+  // Unanswered runs: consecutive scoring plays by one team.
+  const bestRun = new Map<string, RunFacts>();
+  let run: RunFacts | null = null;
 
   for (const e of sorted) {
     if (e.period > 4) overtime = true;
@@ -46,6 +49,13 @@ export function derivePlays(events: ScoringEvent[], names: Map<string, string>, 
     const homeAfter = e.homeBefore + (e.teamId === homeId ? e.points : 0);
     const awayAfter = e.awayBefore + (e.teamId === homeId ? 0 : e.points);
     const t = elapsed(e.period, e.clock);
+    if (e.teamId) {
+      if (!run || run.teamId !== e.teamId) run = { teamId: e.teamId, points: 0, period: e.period, endHome: 0, endAway: 0 };
+      run.points += e.points;
+      run.endHome = homeAfter;
+      run.endAway = awayAfter;
+      if (run.points > (bestRun.get(run.teamId)?.points ?? 0)) bestRun.set(run.teamId, { ...run });
+    }
     margins.push({ t, margin: homeAfter - awayAfter });
 
     const late = (e.period === 4 && e.clock <= CLUTCH_CLOCK) || e.period > 4;
@@ -60,5 +70,5 @@ export function derivePlays(events: ScoringEvent[], names: Map<string, string>, 
       clutchPlays.push({ t, period: e.period, clock: e.clock, teamId: e.teamId, playerName: name, playType: e.playType, homeScore: homeAfter, awayScore: awayAfter });
     }
   }
-  return { margins, clutchPoints: [...clutch.values()], clutchPlays, overtime };
+  return { margins, clutchPoints: [...clutch.values()], clutchPlays, overtime, runs: [...bestRun.values()] };
 }

@@ -7,12 +7,13 @@ export const AWAY = "away-id";
 export function line(teamId: string, code: string, points: number, extra: Partial<LineFacts> = {}): LineFacts {
   return {
     playerCode: code, name: `Player ${code}`, teamId, isStarter: false, points, rebounds: 3, offRebounds: 1, assists: 2,
-    steals: 1, blocks: 0, pir: Math.round(points * 1.1), plusMinus: 0, minutes: 20, fg2m: 2, fg2a: 4, fg3m: 1, fg3a: 3,
+    steals: 1, blocks: 0, turnovers: 1, pir: Math.round(points * 1.1), plusMinus: 0, minutes: 20, fg2m: 2, fg2a: 4, fg3m: 1, fg3a: 3,
     ftm: 1, fta: 2, prevHighPoints: 40, prevHighPir: 45, last5Points: [8, 9, 10, 11, 12], ...extra,
   };
 }
 
-// Home wins 80-70. 5 starters x 8 = 40, bench 4 x 10 = 40 (share 50%).
+// Home wins 80-70 with 9 players to 7, so its box-score edges (boards +6,
+// assists +4, ...) and quarters (+3) all stay below their thresholds.
 export function baseFacts(over: Partial<GameFacts> = {}): GameFacts {
   const homeStarters = [1, 2, 3, 4, 5].map((i) => line(HOME, `h${i}`, 8, { isStarter: true }));
   const homeBench = [6, 7, 8, 9].map((i) => line(HOME, `h${i}`, 10));
@@ -27,6 +28,8 @@ export function baseFacts(over: Partial<GameFacts> = {}): GameFacts {
     margins: [],
     clutchPoints: [],
     clutchPlays: [],
+    quarters: { home: [20, 20, 20, 20], away: [18, 18, 17, 17] },
+    runs: [],
     ...over,
   };
 }

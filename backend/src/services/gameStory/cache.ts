@@ -41,7 +41,7 @@ export class BoundedCache {
 
 /** Short stamp of a story's content, for cache-busting the image URL. */
 export function storyVersion(story: Story): string {
-  const s = `${story.angle}|${JSON.stringify(story.data)}`;
+  const s = `${story.angle}|${JSON.stringify(story.data)}|${JSON.stringify(story.key)}`;
   let h = 5381;
   for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
   return (h >>> 0).toString(36);

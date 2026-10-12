@@ -1,7 +1,34 @@
 # Game Story Cards — Design
 
 Date: 2026-10-09
-Status: approved in conversation, awaiting spec review
+Status: shipped; revised 2026-10-12 (see below)
+
+## Revision 2026-10-12
+
+The user asked for an original design (not modelled on the Box Out example)
+and for the card to say what won the game rather than talk about the bench:
+
+- **Bench impact is gone** (angle, bench split in Game in numbers, and the
+  plus-minus-by-lineup-type table). In its place is the **What won it** angle
+  (`edge`): the winner's biggest team-level edge over the loser, from the box
+  score, quarter scores and play-by-play. Edges and thresholds (ratio = edge /
+  threshold, ratio >= 1 makes it a candidate): longest unanswered run 12,
+  best quarter margin 12, threes made 5, rebounds 10, turnovers (fewer) 6,
+  free throws made 9, assists 9, FG% 12 points. Headlines like "16–0 RUN",
+  "+15 IN Q3", "+6 FROM THREE". Body: a tale-of-the-tape (winner vs loser
+  split bars, the decisive row lit) and, for run/quarter, the quarter grid.
+- **Every card carries a key note** in a solid strip in the winner's colour:
+  "What won it" = the top edge (ratio >= 0.5), or "Led by" = the winner's
+  best player by PIR when the edge is already the headline or none stands
+  out. It replaces the old "Key takeaway".
+- **New look**: the Clutch promo pieces' near-black ground with a glow in the
+  winner's colour (lifted to stay readable on dark: `accentOnDark`), a
+  scoreboard hero with the game's margin traced behind the score as a step
+  line, a diamond-marked angle tag, one rounded body panel, the key-note
+  strip, and a footer with getclutchapp.com. Logo: `clutch-compact-dark.svg`.
+
+The sections below are the original design; where they mention the bench,
+read the revision above.
 
 ## Goal
 

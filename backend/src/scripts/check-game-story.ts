@@ -2,13 +2,15 @@
 // Run from backend/: npx tsx src/scripts/check-game-story.ts
 import assert from "node:assert/strict";
 import {
-  evaluateBench,
   evaluateClutch,
   evaluateComeback,
+  evaluateEdge,
+  edges,
   evaluateExplosion,
   evaluateLineup,
-  lineupTypeRows,
   pickStory,
+  tape,
+  withKey,
 } from "../services/gameStory/angles.js";
 import { AWAY, HOME, baseFacts, line, stint } from "./game-story-fixtures.js";
 import { storyText } from "../services/gameStory/copy.js";
@@ -24,26 +26,58 @@ function check(name: string, fn: () => void | Promise<void>) {
   else console.log("ok", name);
 }
 
-check("bench triggers at 35", () => {
-  const lowShare = (benchEach: number) =>
-    baseFacts({
-      lines: [
-        ...[1, 2, 3, 4, 5].map((i) => line(HOME, `h${i}`, 20, { isStarter: true })), // starters 100 -> share low
-        ...[6, 7, 8, 9, 10].map((i) => line(HOME, `h${i}`, benchEach)),
-        line(AWAY, "a1", 10, { isStarter: true }),
-      ],
-      home: { ...baseFacts().home, score: 100 + benchEach * 5 },
-    });
-  assert.equal(evaluateBench(lowShare(6.8)), null); // 34 pts, share 34/134 < 45%
-  const s = evaluateBench(lowShare(7)); // 35 pts
+check("edge triggers at its threshold", () => {
+  // Base game: boards +6, assists +4 etc. all below threshold.
+  assert.equal(evaluateEdge(baseFacts()), null);
+  // Turnovers: the loser commits 6 more -> ratio 1.
+  const tov = baseFacts();
+  tov.lines = tov.lines.map((l) => (l.playerCode === "a1" ? { ...l, turnovers: 1 + 6 + 2 } : l)); // away 7+8 = 15 vs home 9
+  const s = evaluateEdge(tov);
   assert.ok(s);
+  assert.equal(s!.angle, "edge");
+  assert.equal((s!.data as { key: string }).key, "turnovers");
   assert.equal(s!.score, 1);
+  const below = baseFacts();
+  below.lines = below.lines.map((l) => (l.playerCode === "a1" ? { ...l, turnovers: 1 + 6 + 1 } : l)); // +5
+  assert.equal(evaluateEdge(below), null);
 });
 
-check("bench share rule", () => {
-  const s = evaluateBench(baseFacts()); // 40 bench of 80 = 50%; points 40 >= 35 too -> max ratio
-  assert.ok(s);
-  assert.equal(Math.round(s!.score * 1000) / 1000, Math.round(Math.max(40 / 35, 0.5 / 0.45) * 1000) / 1000);
+check("edges only count in the winner's favour", () => {
+  const f = baseFacts({ quarters: { home: [10, 30, 20, 20], away: [25, 15, 15, 15] } });
+  const q = edges(f).find((e) => e.key === "quarter")!;
+  assert.deepEqual([q.winner, q.loser, q.diff, q.period], [30, 15, 15, 2]);
+  assert.ok(edges(f).every((e) => e.diff > 0));
+  // Away winner: the loser's longer run doesn't count as an away edge.
+  const away = baseFacts({
+    home: { ...baseFacts().home, score: 70 },
+    away: { ...baseFacts().away, score: 80 },
+    runs: [{ teamId: HOME, points: 20, period: 1, endHome: 20, endAway: 0 }, { teamId: AWAY, points: 14, period: 4, endHome: 60, endAway: 74 }],
+  });
+  const run = edges(away).find((e) => e.key === "run")!;
+  assert.deepEqual([run.winner, run.loser, run.period], [14, 20, 4]);
+});
+
+check("tape inverts turnovers", () => {
+  const f = baseFacts();
+  f.lines = f.lines.map((l) => (l.teamId === AWAY ? { ...l, turnovers: 3 } : l)); // home 9, away 21
+  const row = tape(f).find((r) => r.key === "turnovers")!;
+  assert.equal(row.winnerBetter, true);
+  assert.equal(row.winnerShare, 1 - 9 / 30);
+});
+
+check("key note: top edge, or the leader", () => {
+  const f = baseFacts({ margins: [{ t: 1, margin: -14 }] }); // comeback; boards +6 = ratio 0.6
+  const s = pickStory(f);
+  assert.equal(s.angle, "comeback");
+  assert.equal(s.key?.kind, "edge");
+  assert.equal(s.key?.kind === "edge" && s.key.edge.key, "boards");
+  // When the edge is the headline, the strip names the winner's leader.
+  const tov = baseFacts();
+  tov.lines = tov.lines.map((l) => (l.playerCode === "a1" ? { ...l, turnovers: 20 } : l));
+  const e = pickStory(tov);
+  assert.equal(e.angle, "edge");
+  assert.equal(e.key?.kind, "leader");
+  assert.equal(e.key?.kind === "leader" && e.key.line.teamId, HOME);
 });
 
 check("lineup needs 360s and +10", () => {
@@ -56,22 +90,6 @@ check("lineup needs 360s and +10", () => {
   const t = evaluateLineup(baseFacts({ stints: [stint(HOME, five, 200, 10, 4), stint(HOME, [...five].reverse(), 200, 10, 4)] }));
   assert.ok(t);
   assert.equal(t!.score, 1.2);
-});
-
-check("lineupTypeRows buckets by starters on court", () => {
-  const f = baseFacts({
-    stints: [
-      stint(HOME, ["h6", "h7", "h8", "h9", "h1"], 600, 20, 10), // 1 starter
-      stint(HOME, ["h1", "h2", "h6", "h7", "h8"], 300, 5, 9), // 2 starters
-      stint(HOME, ["h1", "h2", "h3", "h4", "h5"], 900, 15, 14), // 5 starters
-    ],
-  });
-  const rows = lineupTypeRows(f, HOME);
-  assert.deepEqual(rows.map((r) => [r.label, r.seconds, r.ptsFor, r.ptsAgainst]), [
-    ["0-1", 600, 20, 10],
-    ["2-3", 300, 5, 9],
-    ["4-5", 900, 15, 14],
-  ]);
 });
 
 check("explosion uses larger ratio", () => {
@@ -115,16 +133,13 @@ check("clutch margin or OT", () => {
 });
 
 check("highest score wins, ties by table order", () => {
-  // Bench (score ~1.14) vs comeback 14/12 (~1.17) -> comeback.
-  const f = baseFacts({ margins: [{ t: 1, margin: -14 }] });
-  assert.equal(pickStory(f).angle, "comeback");
-  // Equal scores: bench 35/35=1 and comeback 12/12=1 -> bench first in table order.
-  const tie = baseFacts({
-    lines: [...[1, 2, 3, 4, 5].map((i) => line(HOME, `h${i}`, 20, { isStarter: true })), ...[6, 7, 8, 9, 10].map((i) => line(HOME, `h${i}`, 7))],
-    home: { ...baseFacts().home, score: 135 },
-    margins: [{ t: 1, margin: -12 }],
-  });
-  assert.equal(pickStory(tie).angle, "bench");
+  const tov = (n: number) => baseFacts().lines.map((l) => (l.playerCode === "a1" ? { ...l, turnovers: 3 + n } : l)); // away 9 + n vs home 9
+  // Turnover edge 8/6 (~1.33) vs comeback 14/12 (~1.17) -> edge.
+  assert.equal(pickStory(baseFacts({ lines: tov(8), margins: [{ t: 1, margin: -14 }] })).angle, "edge");
+  // Turnover edge 7/6 (~1.17) vs comeback 15/12 (1.25) -> comeback.
+  assert.equal(pickStory(baseFacts({ lines: tov(7), margins: [{ t: 1, margin: -15 }] })).angle, "comeback");
+  // Equal scores: edge 6/6=1 and comeback 12/12=1 -> edge first in table order.
+  assert.equal(pickStory(baseFacts({ lines: tov(6), margins: [{ t: 1, margin: -12 }] })).angle, "edge");
 });
 
 check("fallback when nothing qualifies", () => {
@@ -137,7 +152,7 @@ check("fallback when nothing qualifies", () => {
 check("missing data skips angles", () => {
   const noFlags = baseFacts();
   noFlags.lines = noFlags.lines.map((l) => ({ ...l, isStarter: null }));
-  assert.equal(evaluateBench(noFlags), null);
+  assert.equal(evaluateEdge(baseFacts({ lines: [], quarters: { home: [], away: [] } })), null);
   assert.equal(evaluateLineup(baseFacts({ stints: [] })), null);
   assert.equal(evaluateComeback(baseFacts({ margins: [] })), null);
   assert.ok(pickStory(noFlags)); // still a story
@@ -154,24 +169,26 @@ function storiesByAngle() {
     clutchPlays: [{ t: 2690, period: 5, clock: 10, teamId: HOME, playerName: "Kendrick Nunn", playType: "3FGM", homeScore: 72, awayScore: 70 }],
   });
   const noFlags = baseFacts({ lines: [line(HOME, "h1", 10, { isStarter: null }), line(AWAY, "a1", 9, { isStarter: null })] });
+  const edgeFacts = baseFacts({ runs: [{ teamId: HOME, points: 14, period: 3, endHome: 60, endAway: 50 }] });
   return {
-    bench: evaluateBench(baseFacts())!,
-    lineup: evaluateLineup(lineupFacts)!,
-    explosion: evaluateExplosion(baseFacts({ lines: [line(HOME, "h1", 34, { pir: 30, prevHighPoints: 31 })] }))!,
-    comeback: evaluateComeback(baseFacts({ margins: [{ t: 300, margin: -15 }, { t: 2400, margin: 10 }] }))!,
-    clutch: evaluateClutch(close)!,
+    edge: withKey(edgeFacts, evaluateEdge(edgeFacts))!,
+    lineup: withKey(lineupFacts, evaluateLineup(lineupFacts))!,
+    explosion: withKey(baseFacts(), evaluateExplosion(baseFacts({ lines: [line(HOME, "h1", 34, { pir: 30, prevHighPoints: 31 })] })))!,
+    comeback: withKey(baseFacts(), evaluateComeback(baseFacts({ margins: [{ t: 300, margin: -15 }, { t: 2400, margin: 10 }] })))!,
+    clutch: withKey(close, evaluateClutch(close))!,
     numbers: pickStory(noFlags),
-    facts: { bench: baseFacts(), lineup: lineupFacts, explosion: baseFacts(), comeback: baseFacts(), clutch: close, numbers: noFlags },
+    facts: { edge: edgeFacts, lineup: lineupFacts, explosion: baseFacts(), comeback: baseFacts(), clutch: close, numbers: noFlags },
   };
 }
 
 check("no placeholder left", () => {
   const all = storiesByAngle();
-  for (const angle of ["bench", "lineup", "explosion", "comeback", "clutch", "numbers"] as const) {
+  for (const angle of ["edge", "lineup", "explosion", "comeback", "clutch", "numbers"] as const) {
     assert.ok(all[angle], `${angle} fixture produced no story`);
     for (const lang of ["en", "el"] as const) {
       const t = storyText(all[angle], all.facts[angle], lang);
-      const strings = [t.label, t.headline, t.lede, t.takeaway, t.context, t.matchup, t.shareText, ...(t.footnote ? [t.footnote] : []), ...Object.values(t.labels)];
+      const k = t.key;
+      const strings = [t.label, t.headline, t.lede, ...(k ? [k.label, k.big, k.title, k.sentence] : []), t.context, t.matchup, t.shareText, ...(t.footnote ? [t.footnote] : []), ...Object.values(t.labels)];
       for (const s of strings) {
         assert.ok(s.trim().length > 0, `${angle}/${lang}: empty string`);
         assert.ok(!/[{}]/.test(s), `${angle}/${lang}: placeholder left in "${s}"`);
@@ -181,7 +198,7 @@ check("no placeholder left", () => {
 });
 
 check("lede is deterministic", () => {
-  const s = storiesByAngle().bench;
+  const s = storiesByAngle().comeback;
   const a = storyText(s, baseFacts({ gameId: "game-A" }), "en").lede;
   assert.equal(storyText(s, baseFacts({ gameId: "game-A" }), "en").lede, a);
   const ledes = new Set(["g1", "g2", "g3", "g4", "g5", "g6"].map((id) => storyText(s, baseFacts({ gameId: id }), "en").lede));
@@ -189,7 +206,7 @@ check("lede is deterministic", () => {
 });
 
 check("share text has link", () => {
-  const t = storyText(storiesByAngle().bench, baseFacts(), "el");
+  const t = storyText(storiesByAngle().edge, baseFacts(), "el");
   assert.ok(t.shareText.includes("getclutchapp.com/games/game-1"));
   assert.ok(t.shareText.includes("#EuroLeague"));
 });
@@ -220,6 +237,9 @@ check("play-by-play derivations", () => {
   assert.equal(d.clutchPoints.find((c) => c.playerName === "Scottie Wilbekin")!.points, 3);
   // Lead changes/ties in the last 2:00 of Q4 or any OT only (the 290s play is outside 2:00).
   assert.deepEqual(d.clutchPlays.map((p) => [p.period, p.clock, p.homeScore, p.awayScore]), [[4, 100, 72, 71], [5, 20, 77, 76]]);
+  // Runs: home 2+1 unanswered across Q4/OT counts as one 3-point run from Q4.
+  assert.deepEqual(d.runs.find((r) => r.teamId === HOME), { teamId: HOME, points: 3, period: 4, endHome: 77, endAway: 76 });
+  assert.equal(d.runs.find((r) => r.teamId === AWAY)!.points, 3);
   assert.equal(derivePlays([], names, HOME).overtime, false);
 });
 
@@ -229,8 +249,8 @@ check("link-preview meta replaces the generic tags", () => {
 <meta property="og:image:width" content="1200"><meta name="twitter:image" content="https://x/og.png">
 </head><body></body></html>`;
   const out = withStoryMeta(base, {
-    title: `74 BENCH POINTS · PAN 92–74 "FEN" <b>`,
-    description: "The bench won it & more",
+    title: `14–0 RUN · PAN 92–74 "FEN" <b>`,
+    description: "Ran away with it & more",
     url: "https://getclutchapp.com/games/g1",
     image: "https://getclutchapp.com/api/games/g1/story.png?lang=el",
   });
@@ -240,8 +260,8 @@ check("link-preview meta replaces the generic tags", () => {
   assert.ok(out.includes(`<meta property="og:image:height" content="1350">`)); // inserted, was missing
   assert.ok(out.includes(`<meta name="twitter:image" content="https://getclutchapp.com/api/games/g1/story.png?lang=el">`));
   assert.ok(out.includes("&quot;FEN&quot; &lt;b&gt;"), "title not escaped");
-  assert.ok(out.includes("<title>74 BENCH POINTS"));
-  assert.ok(out.includes(`content="The bench won it &amp; more"`));
+  assert.ok(out.includes("<title>14–0 RUN"));
+  assert.ok(out.includes(`content="Ran away with it &amp; more"`));
 });
 
 check("logo bytes must really be an image", () => {
@@ -278,8 +298,8 @@ check("bounded cache never keeps nulls or stale rejections", async () => {
 });
 
 check("story version changes with the story", () => {
-  const a = storyVersion(storiesByAngle().bench);
-  assert.equal(a, storyVersion(storiesByAngle().bench));
+  const a = storyVersion(storiesByAngle().edge);
+  assert.equal(a, storyVersion(storiesByAngle().edge));
   assert.notEqual(a, storyVersion(storiesByAngle().lineup));
   assert.match(a, /^[0-9a-z]{4,12}$/);
 });

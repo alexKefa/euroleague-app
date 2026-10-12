@@ -2,19 +2,21 @@
 // game. Pure (no database). Each angle is a candidate only past its
 // threshold; its score is value / threshold, the highest wins, ties go in
 // ANGLE_ORDER. "numbers" is the always-available fallback (score 0).
+// Every story also carries a key note: what won the game (2026-10-12).
 // Checked by scripts/check-game-story.ts.
 import type {
-  BenchData,
+  EdgeData,
+  EdgeKey,
   GameFacts,
+  KeyNote,
   LineFacts,
   LineupSummary,
-  LineupTypeRow,
   Story,
+  StoryBody,
+  TapeRow,
   TeamFacts,
 } from "./types.js";
 
-export const BENCH_MIN_POINTS = 35;
-export const BENCH_MIN_SHARE = 0.45;
 export const LINEUP_MIN_PM = 10;
 export const LINEUP_MIN_SECONDS = 360;
 export const EXPLOSION_POINTS = 28;
@@ -22,26 +24,130 @@ export const EXPLOSION_PIR = 32;
 export const COMEBACK_MIN = 12;
 export const CLUTCH_MAX_MARGIN = 3;
 
-const ANGLE_ORDER = ["bench", "lineup", "explosion", "comeback", "clutch"] as const;
+// An edge's threshold: the winner's margin in that stat that makes it the
+// story of the game (ratio 1). Calibrated to EuroLeague box scores, where
+// e.g. a 5-three edge is 15 points and a 12-0 run is rare.
+export const EDGE_THRESHOLD: Record<EdgeKey, number> = {
+  run: 12,
+  quarter: 12,
+  threes: 5,
+  boards: 10,
+  turnovers: 6,
+  freeThrows: 9,
+  assists: 9,
+  shooting: 12, // FG% points
+};
+// Below this ratio an edge is too small to be "what won it"; the strip
+// names the winner's leader instead.
+export const KEY_NOTE_MIN_RATIO = 0.5;
+
+const ANGLE_ORDER = ["edge", "lineup", "explosion", "comeback", "clutch"] as const;
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
 export function winnerOf(f: GameFacts): TeamFacts {
   return f.home.score >= f.away.score ? f.home : f.away;
 }
+export function loserOf(f: GameFacts): TeamFacts {
+  return winnerOf(f).id === f.home.id ? f.away : f.home;
+}
 
 const teamLines = (f: GameFacts, teamId: string) => f.lines.filter((l) => l.teamId === teamId);
-const hasStarterFlags = (lines: LineFacts[]) => lines.length > 0 && lines.every((l) => l.isStarter !== null);
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 
-/** Bench vs starters for one team, or null without starter flags. */
-function benchSplit(f: GameFacts, teamId: string): { bench: number; starters: number } | null {
-  const lines = teamLines(f, teamId);
-  if (!hasStarterFlags(lines)) return null;
+interface Totals {
+  fgm: number;
+  fga: number;
+  fg3m: number;
+  fg3a: number;
+  ftm: number;
+  fta: number;
+  reb: number;
+  ast: number;
+  tov: number;
+}
+
+function totals(f: GameFacts, teamId: string): Totals | null {
+  const ls = teamLines(f, teamId);
+  if (ls.length === 0) return null;
+  const s = (k: keyof LineFacts) => sum(ls.map((l) => Number(l[k]) || 0));
   return {
-    bench: sum(lines.filter((l) => !l.isStarter).map((l) => l.points)),
-    starters: sum(lines.filter((l) => l.isStarter).map((l) => l.points)),
+    fgm: s("fg2m") + s("fg3m"),
+    fga: s("fg2a") + s("fg3a"),
+    fg3m: s("fg3m"),
+    fg3a: s("fg3a"),
+    ftm: s("ftm"),
+    fta: s("fta"),
+    reb: s("rebounds"),
+    ast: s("assists"),
+    tov: s("turnovers"),
   };
+}
+
+const pct = (m: number, a: number) => (a > 0 ? Math.round((100 * m) / a) : 0);
+
+/** Every edge the winner had, biggest ratio first. */
+export function edges(f: GameFacts): EdgeData[] {
+  const w = winnerOf(f);
+  const l = loserOf(f);
+  const out: EdgeData[] = [];
+  const add = (key: EdgeKey, winner: number, loser: number, diff: number, period: number | null = null) => {
+    if (diff > 0) out.push({ key, winner, loser, diff, ratio: diff / EDGE_THRESHOLD[key], period });
+  };
+
+  const run = f.runs.filter((r) => r.teamId === w.id).sort((a, b) => b.points - a.points)[0];
+  if (run) {
+    const theirs = Math.max(0, ...f.runs.filter((r) => r.teamId === l.id).map((r) => r.points));
+    add("run", run.points, theirs, run.points, run.period);
+  }
+
+  const wq = w.id === f.home.id ? f.quarters.home : f.quarters.away;
+  const lq = w.id === f.home.id ? f.quarters.away : f.quarters.home;
+  let best: { i: number; diff: number } | null = null;
+  for (let i = 0; i < Math.min(wq.length, lq.length); i++) {
+    const diff = wq[i] - lq[i];
+    if (!best || diff > best.diff) best = { i, diff };
+  }
+  if (best) add("quarter", wq[best.i], lq[best.i], best.diff, best.i + 1);
+
+  const tw = totals(f, w.id);
+  const tl = totals(f, l.id);
+  if (tw && tl) {
+    add("threes", tw.fg3m, tl.fg3m, tw.fg3m - tl.fg3m);
+    add("boards", tw.reb, tl.reb, tw.reb - tl.reb);
+    add("turnovers", tw.tov, tl.tov, tl.tov - tw.tov);
+    add("freeThrows", tw.ftm, tl.ftm, tw.ftm - tl.ftm);
+    add("assists", tw.ast, tl.ast, tw.ast - tl.ast);
+    const pw = pct(tw.fgm, tw.fga);
+    const pl = pct(tl.fgm, tl.fga);
+    add("shooting", pw, pl, pw - pl);
+  }
+  // Stable: ties keep the order above (runs and quarters first).
+  return out.sort((a, b) => b.ratio - a.ratio);
+}
+
+/** Winner vs loser across the box score, for the comparison bars. */
+export function tape(f: GameFacts): TapeRow[] {
+  const tw = totals(f, winnerOf(f).id);
+  const tl = totals(f, loserOf(f).id);
+  if (!tw || !tl) return [];
+  const row = (key: TapeRow["key"], w: number, l: number, winner: string, loser: string, lowerIsBetter = false): TapeRow => {
+    const share = w + l > 0 ? w / (w + l) : 0.5;
+    return { key, winner, loser, winnerShare: lowerIsBetter ? 1 - share : share, winnerBetter: lowerIsBetter ? w < l : w > l };
+  };
+  return [
+    row("shooting", pct(tw.fgm, tw.fga), pct(tl.fgm, tl.fga), `${pct(tw.fgm, tw.fga)}%`, `${pct(tl.fgm, tl.fga)}%`),
+    row("threes", tw.fg3m, tl.fg3m, `${tw.fg3m}/${tw.fg3a}`, `${tl.fg3m}/${tl.fg3a}`),
+    row("boards", tw.reb, tl.reb, String(tw.reb), String(tl.reb)),
+    row("assists", tw.ast, tl.ast, String(tw.ast), String(tl.ast)),
+    row("turnovers", tw.tov, tl.tov, String(tw.tov), String(tl.tov), true),
+    row("freeThrows", tw.ftm, tl.ftm, `${tw.ftm}/${tw.fta}`, `${tl.ftm}/${tl.fta}`),
+  ];
+}
+
+/** The winner's best player on the night, by PIR then points. */
+export function leaderOf(f: GameFacts): LineFacts | null {
+  return [...teamLines(f, winnerOf(f).id)].sort((a, b) => b.pir - a.pir || b.points - a.points)[0] ?? null;
 }
 
 /** Each distinct five of the game, summed across its stints. */
@@ -70,34 +176,7 @@ function lineups(f: GameFacts): LineupSummary[] {
     plusMinus: a.pf - a.pa,
     netRating: a.possFor > 0 && a.possAgainst > 0 ? round1(100 * (a.pf / a.possFor - a.pa / a.possAgainst)) : null,
     possessions: Math.round((a.possFor + a.possAgainst) / 2),
-    startersOnCourt: startersOn(f, a.teamId, a.codes),
   }));
-}
-
-function startersOn(f: GameFacts, teamId: string, codes: string[]): number | null {
-  const lines = teamLines(f, teamId);
-  if (!hasStarterFlags(lines)) return null;
-  const starters = new Set(lines.filter((l) => l.isStarter).map((l) => l.playerCode));
-  return codes.filter((c) => starters.has(c)).length;
-}
-
-/** Plus-minus by how many of the team's starters were on court. */
-export function lineupTypeRows(f: GameFacts, teamId: string): LineupTypeRow[] {
-  const rows: LineupTypeRow[] = [
-    { label: "0-1", seconds: 0, ptsFor: 0, ptsAgainst: 0 },
-    { label: "2-3", seconds: 0, ptsFor: 0, ptsAgainst: 0 },
-    { label: "4-5", seconds: 0, ptsFor: 0, ptsAgainst: 0 },
-  ];
-  for (const s of f.stints) {
-    if (s.teamId !== teamId) continue;
-    const n = startersOn(f, teamId, s.playerCodes);
-    if (n === null) return [];
-    const row = rows[n <= 1 ? 0 : n <= 3 ? 1 : 2];
-    row.seconds += s.seconds;
-    row.ptsFor += s.ptsFor;
-    row.ptsAgainst += s.ptsAgainst;
-  }
-  return rows.filter((r) => r.seconds > 0);
 }
 
 function bestLineup(f: GameFacts): LineupSummary | null {
@@ -106,34 +185,19 @@ function bestLineup(f: GameFacts): LineupSummary | null {
   return eligible[0] ?? null;
 }
 
-export function evaluateBench(f: GameFacts): Story | null {
-  const w = winnerOf(f);
-  const split = benchSplit(f, w.id);
-  if (!split) return null;
-  const team = split.bench + split.starters;
-  const share = team > 0 ? split.bench / team : 0;
-  if (split.bench < BENCH_MIN_POINTS && share < BENCH_MIN_SHARE) return null;
-  const data: BenchData = {
-    teamId: w.id,
-    benchPoints: split.bench,
-    starterPoints: split.starters,
-    teamPoints: team,
-    share,
-    scorers: teamLines(f, w.id)
-      .filter((l) => !l.isStarter && (l.points > 0 || (l.minutes ?? 1) > 0))
-      .sort((a, b) => b.points - a.points),
-    byType: lineupTypeRows(f, w.id),
-  };
-  return { angle: "bench", score: Math.max(split.bench / BENCH_MIN_POINTS, share / BENCH_MIN_SHARE), data };
+export function evaluateEdge(f: GameFacts): StoryBody | null {
+  const top = edges(f)[0];
+  if (!top || top.ratio < 1) return null;
+  return { angle: "edge", score: top.ratio, data: { ...top, tape: tape(f) } };
 }
 
-export function evaluateLineup(f: GameFacts): Story | null {
+export function evaluateLineup(f: GameFacts): StoryBody | null {
   const best = bestLineup(f);
   if (!best || best.plusMinus < LINEUP_MIN_PM) return null;
-  return { angle: "lineup", score: best.plusMinus / LINEUP_MIN_PM, data: { lineup: best, byType: lineupTypeRows(f, best.teamId) } };
+  return { angle: "lineup", score: best.plusMinus / LINEUP_MIN_PM, data: { lineup: best, tape: tape(f) } };
 }
 
-export function evaluateExplosion(f: GameFacts): Story | null {
+export function evaluateExplosion(f: GameFacts): StoryBody | null {
   let pick: { line: LineFacts; stat: "points" | "pir"; ratio: number } | null = null;
   for (const l of f.lines) {
     const p = l.points / EXPLOSION_POINTS;
@@ -152,7 +216,7 @@ export function evaluateExplosion(f: GameFacts): Story | null {
   };
 }
 
-export function evaluateComeback(f: GameFacts): Story | null {
+export function evaluateComeback(f: GameFacts): StoryBody | null {
   if (f.margins.length === 0) return null;
   const w = winnerOf(f);
   const sign = w.id === f.home.id ? 1 : -1;
@@ -167,7 +231,7 @@ export function evaluateComeback(f: GameFacts): Story | null {
   };
 }
 
-export function evaluateClutch(f: GameFacts): Story | null {
+export function evaluateClutch(f: GameFacts): StoryBody | null {
   const margin = Math.abs(f.home.score - f.away.score);
   if (margin > CLUTCH_MAX_MARGIN && !f.overtime) return null;
   const base = margin <= CLUTCH_MAX_MARGIN ? CLUTCH_MAX_MARGIN / Math.max(margin, 1) : 0;
@@ -179,25 +243,37 @@ export function evaluateClutch(f: GameFacts): Story | null {
   };
 }
 
-function numbers(f: GameFacts): Story {
+function numbers(f: GameFacts): StoryBody {
   const top = (teamId: string) => [...teamLines(f, teamId)].sort((a, b) => b.points - a.points)[0] ?? null;
   return {
     angle: "numbers",
     score: 0,
-    data: {
-      topScorers: { home: top(f.home.id), away: top(f.away.id) },
-      bench: { home: benchSplit(f, f.home.id), away: benchSplit(f, f.away.id) },
-      bestLineup: bestLineup(f),
-    },
+    data: { topScorers: { home: top(f.home.id), away: top(f.away.id) }, tape: tape(f) },
   };
 }
 
+/** What won it: the winner's top edge, unless that is already the headline. */
+export function keyNoteFor(f: GameFacts, body: StoryBody): KeyNote | null {
+  if (body.angle !== "edge") {
+    const top = edges(f)[0];
+    if (top && top.ratio >= KEY_NOTE_MIN_RATIO) return { kind: "edge", edge: top };
+  }
+  const leader = leaderOf(f);
+  return leader ? { kind: "leader", line: leader } : null;
+}
+
 export function pickStory(f: GameFacts): Story {
-  const evaluators = { bench: evaluateBench, lineup: evaluateLineup, explosion: evaluateExplosion, comeback: evaluateComeback, clutch: evaluateClutch };
-  let best: Story | null = null;
+  const evaluators = { edge: evaluateEdge, lineup: evaluateLineup, explosion: evaluateExplosion, comeback: evaluateComeback, clutch: evaluateClutch };
+  let best: StoryBody | null = null;
   for (const angle of ANGLE_ORDER) {
     const s = evaluators[angle](f);
     if (s && (!best || s.score > best.score)) best = s;
   }
-  return best ?? numbers(f);
+  const body = best ?? numbers(f);
+  return { ...body, key: keyNoteFor(f, body) } as Story;
+}
+
+/** One angle's story with its key note (sample renders and checks). */
+export function withKey(f: GameFacts, body: StoryBody | null): Story | null {
+  return body ? ({ ...body, key: keyNoteFor(f, body) } as Story) : null;
 }

@@ -1,7 +1,7 @@
 // Game story cards (2026-10-09): everything about one final game, in three
 // statements (latency here is round trips): the game, teams and box score
-// (with each player's previous highs and last five games); the game's
-// lineup stints; and its scoring plays.
+// (with quarter scores, and each player's previous highs and last five
+// games); the game's lineup stints; and its scoring plays.
 import { sql } from "drizzle-orm";
 import { db } from "../../db/client.js";
 import { derivePlays, formatName, type ScoringEvent } from "./plays.js";
@@ -18,6 +18,8 @@ type GameRow = {
     tipoffAt: string;
     status: string;
     quarters: number | null;
+    homeQuarters: number[] | null;
+    awayQuarters: number[] | null;
     home: TeamFacts;
     away: TeamFacts;
   } | null;
@@ -49,12 +51,13 @@ export async function loadGameFacts(gameId: string): Promise<GameFacts | null> {
       (select json_build_object(
           'id', g.id, 'season', g.season, 'round', g.round, 'tipoffAt', g.tipoff_at, 'status', g.status,
           'quarters', jsonb_array_length(coalesce(g.home_score_by_quarter, '[]'::jsonb)),
+          'homeQuarters', g.home_score_by_quarter, 'awayQuarters', g.away_score_by_quarter,
           'home', ${teamJson("ht", "g.home_score")}, 'away', ${teamJson("at", "g.away_score")})
         from g join teams ht on ht.id = g.home_team_id join teams at on at.id = g.away_team_id) as game,
       (select json_agg(json_build_object(
           'playerCode', l.player_code, 'name', l.player_name, 'teamId', l.line_team_id, 'isStarter', l.is_starter,
           'points', coalesce(l.points, 0), 'rebounds', coalesce(l.rebounds, 0), 'offRebounds', coalesce(l.offensive_rebounds, 0),
-          'assists', coalesce(l.assists, 0), 'steals', coalesce(l.steals, 0), 'blocks', coalesce(l.blocks_favour, 0),
+          'assists', coalesce(l.assists, 0), 'steals', coalesce(l.steals, 0), 'blocks', coalesce(l.blocks_favour, 0), 'turnovers', coalesce(l.turnovers, 0),
           'pir', coalesce(l.valuation, 0), 'plusMinus', l.plus_minus, 'minutes', l.minutes,
           'fg2m', coalesce(l.field_goals_made_2, 0), 'fg2a', coalesce(l.field_goals_attempted_2, 0),
           'fg3m', coalesce(l.field_goals_made_3, 0), 'fg3a', coalesce(l.field_goals_attempted_3, 0),
@@ -101,5 +104,7 @@ export async function loadGameFacts(gameId: string): Promise<GameFacts | null> {
     margins: plays.margins,
     clutchPoints: plays.clutchPoints,
     clutchPlays: plays.clutchPlays,
+    quarters: { home: game.homeQuarters ?? [], away: game.awayQuarters ?? [] },
+    runs: plays.runs,
   };
 }
