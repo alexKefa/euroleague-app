@@ -7,6 +7,8 @@ import { isValidUsername } from "../services/username.js";
 import { getAchievements } from "../services/achievements.js";
 import { deleteAccount } from "../services/accountDeletion.js";
 import { sendToUser } from "../realtime/hub.js";
+import rateLimit from "express-rate-limit";
+import { buildAccountExport } from "../services/accountExport.js";
 
 export const usersRouter = Router();
 
@@ -162,5 +164,29 @@ usersRouter.delete("/me", requireAuth, async (req, res) => {
   } catch (err) {
     console.error("DELETE /api/users/me failed:", err);
     res.status(500).json({ error: "Failed to delete account" });
+  }
+});
+
+// Data export (2026-10-12, services/accountExport.ts): a JSON download of
+// everything kept about this user. 5 an hour per user — it's a heavy read.
+const exportLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 5,
+  keyGenerator: (req) => (req as typeof req & { userId?: string }).userId ?? "anon",
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many exports, try again later", code: "RATE_LIMITED" },
+});
+
+usersRouter.get("/me/export", requireAuth, exportLimiter, async (req, res) => {
+  try {
+    const data = await buildAccountExport(req.userId!);
+    const safeName = data.profile.username.replace(/[^A-Za-z0-9_-]/g, "_");
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="clutch-data-${safeName}.json"`);
+    res.send(JSON.stringify(data, null, 2));
+  } catch (err) {
+    console.error("GET /api/users/me/export failed:", err);
+    res.status(500).json({ error: "Failed to export your data" });
   }
 });

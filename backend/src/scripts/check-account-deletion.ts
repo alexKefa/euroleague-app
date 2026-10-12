@@ -8,6 +8,7 @@ import { sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { signRefreshToken } from "../auth/tokens.js";
 import { deleteAccount } from "../services/accountDeletion.js";
+import { buildAccountExport } from "../services/accountExport.js";
 import { getLeaderboardEntries } from "../services/leaderboard.js";
 import { getRoundStandings } from "../services/roundStandings.js";
 
@@ -44,6 +45,22 @@ const battle = await one<{ id: string }>(sql`
   values (${league.id}, ${B.id}, ${A.id}, ${cardB.id}) returning id`);
 
 try {
+  // --- export, while A still exists
+  const x = await buildAccountExport(A.id);
+  const parsed = JSON.parse(JSON.stringify(x)) as typeof x;
+  assert.equal(parsed.profile.email, A.email);
+  assert.equal(parsed.profile.username, A.username);
+  assert.equal(parsed.predictions.length, 1);
+  assert.equal(parsed.cards.length, 1);
+  assert.equal(parsed.trades.length, 1);
+  const tradesJson = JSON.stringify(parsed.trades) + JSON.stringify(parsed.battles);
+  assert.ok(tradesJson.includes(B.username), "trade should name B by username");
+  assert.ok(!tradesJson.includes(B.email), "export leaks B's email");
+  assert.ok(!tradesJson.includes(B.id), "export leaks B's id");
+  assert.equal(parsed.leagues.length, 1);
+  assert.equal(parsed.pushSubscriptions.length, 1);
+  for (const p of parsed.pushSubscriptions) assert.ok(!p.host.includes("/"), `push endpoint not reduced to host: ${p.host}`);
+
   // --- wrong confirmations
   assert.deepEqual(await deleteAccount(A.id, "wrong"), { ok: false, status: 400, code: "USERNAME_MISMATCH" });
   assert.deepEqual(await deleteAccount(A.id, ` ${A.username.toUpperCase()} `), { ok: false, status: 400, code: "USERNAME_MISMATCH" });
