@@ -203,4 +203,27 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
     el: "Ο χρήστης κατέχει ήδη αυτή την κάρτα.",
   },
   "profile.adminErr.TEAM_NOT_FOUND": { en: "Team not found.", el: "Η ομάδα δεν βρέθηκε." },
+  // "Your data" card (2026-10-12): data export and account deletion.
+  "profile.yourData": { en: "Your data", el: "Τα δεδομένα σου" },
+  "profile.downloadData": { en: "Download my data", el: "Λήψη των δεδομένων μου" },
+  "profile.downloadDataHint": {
+    en: "Everything Clutch keeps about you, as a JSON file.",
+    el: "Ό,τι κρατά το Clutch για σένα, σε αρχείο JSON.",
+  },
+  "profile.deleteAccount": { en: "Delete account", el: "Διαγραφή λογαριασμού" },
+  "profile.deleteAccountHint": {
+    en: "Erases your email, username and sign-in. Your picks and cards stay in the game's history under an anonymous name. This can't be undone.",
+    el: "Διαγράφει το email, το όνομα χρήστη και τη σύνδεσή σου. Οι προβλέψεις και οι κάρτες σου μένουν στο ιστορικό με ανώνυμο όνομα. Δεν αναιρείται.",
+  },
+  "profile.deleteConfirmLabel": {
+    en: "Type your username to confirm: {username}",
+    el: "Γράψε το όνομα χρήστη σου για επιβεβαίωση: {username}",
+  },
+  "profile.deleteConfirmButton": { en: "Delete my account", el: "Διαγραφή του λογαριασμού μου" },
+  "profile.deleteFailed": { en: "Couldn't delete your account. Try again.", el: "Η διαγραφή απέτυχε. Δοκίμασε ξανά." },
+  "profile.exportFailed": {
+    en: "Couldn't prepare your data. Try again later.",
+    el: "Δεν ήταν δυνατή η προετοιμασία των δεδομένων σου. Δοκίμασε αργότερα.",
+  },
+  "toast.accountDeleted": { en: "Your account was deleted.", el: "Ο λογαριασμός σου διαγράφηκε." },
 };

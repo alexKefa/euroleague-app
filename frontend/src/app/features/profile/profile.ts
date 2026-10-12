@@ -1,7 +1,9 @@
 import { Component, OnInit, OnDestroy, ElementRef, viewChild, effect, inject, signal, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { Router, RouterLink } from "@angular/router";
-import { FormsModule } from "@angular/forms";
+import { FormsModule, FormControl, ReactiveFormsModule } from "@angular/forms";
+import { toSignal } from "@angular/core/rxjs-interop";
+import { DialogComponent } from "../../shared/dialog";
 import { forkJoin } from "rxjs";
 import { AuthService } from "../../core/auth.service";
 import { ApiService } from "../../core/api.service";
@@ -34,6 +36,8 @@ const PAGE_SIZE = 20;
     CommonModule,
     RouterLink,
     FormsModule,
+    ReactiveFormsModule,
+    DialogComponent,
     RetryImgDirective,
     ButtonDirective,
     CollectibleCardComponent,
@@ -274,4 +278,65 @@ export class ProfileComponent implements OnInit, OnDestroy {
     });
   }
 
+  // --- "Your data" (2026-10-12): export and account deletion ---------------
+
+  readonly exporting = signal(false);
+  readonly exportError = signal(false);
+  readonly deleteOpen = signal(false);
+  readonly deleting = signal(false);
+  readonly deleteError = signal(false);
+  readonly deleteConfirm = new FormControl("", { nonNullable: true });
+  private readonly deleteConfirmValue = toSignal(this.deleteConfirm.valueChanges, { initialValue: "" });
+  // Enabled only once the typed name matches exactly (spaces trimmed).
+  readonly deleteMatches = computed(() => {
+    const username = this.auth.currentUser()?.username;
+    return !!username && this.deleteConfirmValue().trim() === username;
+  });
+
+  downloadMyData(): void {
+    this.exporting.set(true);
+    this.exportError.set(false);
+    this.api.exportMyData().subscribe({
+      next: (res) => {
+        const name = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? "clutch-data.json";
+        const url = URL.createObjectURL(res.body!);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.exportError.set(true);
+        this.exporting.set(false);
+      },
+    });
+  }
+
+  openDelete(): void {
+    this.deleteConfirm.setValue("");
+    this.deleteError.set(false);
+    this.deleteOpen.set(true);
+  }
+
+  confirmDelete(): void {
+    if (!this.deleteMatches() || this.deleting()) return;
+    this.deleting.set(true);
+    this.deleteError.set(false);
+    this.api.deleteMyAccount(this.deleteConfirm.value.trim()).subscribe({
+      next: () => {
+        this.deleting.set(false);
+        this.deleteOpen.set(false);
+        this.auth.endSessionAfterDeletion();
+        this.router.navigateByUrl("/welcome");
+      },
+      error: () => {
+        this.deleting.set(false);
+        this.deleteError.set(true);
+      },
+    });
+  }
 }

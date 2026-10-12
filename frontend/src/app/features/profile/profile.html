@@ -282,6 +282,55 @@
            Tools page, not bolted onto Profile. See admin-tools.ts/.html. -->
     }
 
+    <!-- Your data (2026-10-12): download everything kept about you, or
+         delete (anonymize) the account. backend services/accountExport.ts
+         and services/accountDeletion.ts. -->
+    <div class="bg-card rounded-2xl border border-line shadow-card p-4 mt-5">
+      <p class="font-display text-base mb-1">{{ i18n.t('profile.yourData') }}</p>
+      <p class="text-[12px] text-muted mb-3">{{ i18n.t('profile.downloadDataHint') }}</p>
+      <div class="grid grid-cols-2 gap-2">
+        <button type="button" appButton="outline" appButtonSize="sm" [disabled]="exporting()" (click)="downloadMyData()">
+          {{ i18n.t('profile.downloadData') }}
+        </button>
+        <button type="button" appButton="outline" appButtonSize="sm" class="!text-red-500 !border-red-500/40" (click)="openDelete()">
+          {{ i18n.t('profile.deleteAccount') }}
+        </button>
+      </div>
+      @if (exportError()) {
+        <p class="text-red-500 text-xs font-semibold mt-2">{{ i18n.t('profile.exportFailed') }}</p>
+      }
+    </div>
+
+    @if (deleteOpen()) {
+      <app-dialog [title]="i18n.t('profile.deleteAccount')" icon="user" [closeLabel]="i18n.t('admin.close')" (closed)="deleteOpen.set(false)">
+        <p class="text-sm mb-4">{{ i18n.t('profile.deleteAccountHint') }}</p>
+        <label class="block text-[12px] text-muted mb-1.5" for="delete-confirm">
+          {{ i18n.t('profile.deleteConfirmLabel').replace('{username}', auth.currentUser()?.username ?? '') }}
+        </label>
+        <input
+          id="delete-confirm"
+          type="text"
+          [formControl]="deleteConfirm"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          class="w-full px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-red-500 outline-none mb-3"
+        />
+        <button
+          type="button"
+          appButton
+          class="w-full !bg-red-600 !border-red-600 !text-white"
+          [disabled]="!deleteMatches() || deleting()"
+          (click)="confirmDelete()"
+        >
+          {{ i18n.t('profile.deleteConfirmButton') }}
+        </button>
+        @if (deleteError()) {
+          <p class="text-red-500 text-xs font-semibold mt-3">{{ i18n.t('profile.deleteFailed') }}</p>
+        }
+      </app-dialog>
+    }
+
     <button type="button" (click)="logout()" appButton="outline" class="w-full mt-5">
       {{ i18n.t('profile.logout') }}
     </button>

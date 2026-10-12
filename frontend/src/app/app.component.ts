@@ -19,6 +19,7 @@ import { InstallBannerComponent } from "./shared/install-banner";
 import { TourFabComponent } from "./shared/tour-fab";
 import { BattleChallengeToastComponent } from "./shared/battle-challenge-toast";
 import { JumpBallToastComponent } from "./shared/jump-ball-toast";
+import { AccountDeletedToastComponent } from "./shared/account-deleted-toast";
 import { RemindersBannerComponent } from "./shared/reminders-banner";
 import { PickResultToastComponent } from "./shared/pick-result-toast";
 import { PullToRefreshComponent, PullToRefreshState } from "./shared/pull-to-refresh";
@@ -157,6 +158,7 @@ const MORE_LINKS: NavLink[] = ["/leaderboard", "/fans", "/schedule", "/teams", "
     TourFabComponent,
     BattleChallengeToastComponent,
     JumpBallToastComponent,
+    AccountDeletedToastComponent,
     RemindersBannerComponent,
     PushPromptComponent,
     PickResultToastComponent,

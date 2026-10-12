@@ -1,5 +1,5 @@
 import { Injectable, inject } from "@angular/core";
-import { HttpClient } from "@angular/common/http";
+import { HttpClient, HttpResponse } from "@angular/common/http";
 import { Observable } from "rxjs";
 import { API_BASE_URL } from "./api-config";
 import {
@@ -816,6 +816,15 @@ export class ApiService {
 
   // Admin only — "Sync images" button (2026-09-18), see routes/admin.ts's
   // own comment for what this actually runs.
+  // Account data export and deletion (2026-10-12, backend routes/users.ts).
+  exportMyData(): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${API_BASE_URL}/users/me/export`, { responseType: "blob", observe: "response" });
+  }
+
+  deleteMyAccount(confirmUsername: string): Observable<void> {
+    return this.http.delete<void>(`${API_BASE_URL}/users/me`, { body: { confirmUsername }, withCredentials: true });
+  }
+
   syncImages(): Observable<{ playersUpdated: number; coachCardsUpdated: number; collectiblesUpdated: number }> {
     return this.http.post<{ playersUpdated: number; coachCardsUpdated: number; collectiblesUpdated: number }>(
       `${API_BASE_URL}/admin/sync-images`,

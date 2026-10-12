@@ -27,6 +27,9 @@ export class AuthService {
   // restoreSession() (backed by the httpOnly refresh cookie) is for.
   readonly accessToken = signal<string | null>(null);
   readonly currentUser = signal<PublicUser | null>(null);
+  // True right after the user deleted their account; the shared toast
+  // stack shows a one-off notice (shared/account-deleted-toast.ts).
+  readonly accountDeleted = signal(false);
   readonly isAuthenticated = computed(() => this.accessToken() !== null);
 
   register(
@@ -100,6 +103,18 @@ export class AuthService {
 
   resetPassword(token: string, password: string): Observable<{ message: string }> {
     return this.http.post<{ message: string }>(`${API_BASE_URL}/auth/reset-password`, { token, password });
+  }
+
+  /**
+   * After DELETE /api/users/me (2026-10-12): the server already removed this
+   * device's push subscription and cleared the refresh cookie, so only the
+   * local session is dropped here.
+   */
+  endSessionAfterDeletion(): void {
+    this.accessToken.set(null);
+    this.currentUser.set(null);
+    this.theme.applyTeam(null);
+    this.accountDeleted.set(true);
   }
 
   logout(): Observable<void> {
