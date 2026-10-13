@@ -1623,6 +1623,39 @@ export interface FantasyMatchup {
   players: { id: string; name: string; injury: InjuryStatus | null }[];
 }
 
+// Daily Question (2026-10-13) — mirrors backend services/dailyQuestion/service.ts.
+export type DailyQuestionStat = "points" | "rebounds" | "assists" | "pir" | "threes";
+export type DailyQuestionTemplate = "last_night" | "last_game" | "last_3";
+export interface DailyQuestionPlayer {
+  id: string;
+  name: string;
+  photoUrl: string | null;
+  teamCode: string;
+}
+export interface DailyQuestionResult {
+  choice: "a" | "b" | null;
+  correct: boolean;
+  valueA: number;
+  valueB: number;
+  points: { streakBonus: number; correctBonus: number; milestone: number; total: number };
+}
+export interface DailyQuestionToday {
+  day: string;
+  template: DailyQuestionTemplate;
+  stat: DailyQuestionStat;
+  playerA: DailyQuestionPlayer;
+  playerB: DailyQuestionPlayer;
+  remainingMs: number | null;
+  result: DailyQuestionResult | null;
+}
+export interface DailyQuestionState {
+  status: "ready" | "in_progress" | "done" | "unavailable";
+  streak: number;
+  nextBonus: number;
+  lockedUntil: string | null;
+  today: DailyQuestionToday | null;
+}
+
 // GET /admin/daily-question/suspicious (2026-10-13).
 export interface DailyQuestionSuspect {
   userId: string;

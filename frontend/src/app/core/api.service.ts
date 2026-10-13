@@ -79,7 +79,7 @@ import {
   TeamFan,
   RoundRecap,
   Announcement,
-  AnnouncementInput, FantasyPlayerCard, FantasyDefenseVsPosition, ScoutingReport, Reminders, TeamAnalytics, LineupBuilderResult, ClutchLeaders, TeamRestSplits, PlayerRestSplits, RefereeStats, RefereeDetail, TeamReferees, TeamBudget, PushPrefs } from "./models";
+  AnnouncementInput, FantasyPlayerCard, FantasyDefenseVsPosition, DailyQuestionState, ScoutingReport, Reminders, TeamAnalytics, LineupBuilderResult, ClutchLeaders, TeamRestSplits, PlayerRestSplits, RefereeStats, RefereeDetail, TeamReferees, TeamBudget, PushPrefs } from "./models";
 
 /**
  * Wraps HttpClient calls to the backend's /api routes.
@@ -671,6 +671,19 @@ export class ApiService {
   // getAdvancedStats().
   getFantasyPlayers(): Observable<FantasyPlayers> {
     return this.http.get<FantasyPlayers>(`${API_BASE_URL}/fantasy/players`);
+  }
+
+  // Daily Question (2026-10-13). Values only come back once answered.
+  getDailyQuestion(): Observable<DailyQuestionState> {
+    return this.http.get<DailyQuestionState>(`${API_BASE_URL}/daily-question`);
+  }
+
+  startDailyQuestion(): Observable<DailyQuestionState> {
+    return this.http.post<DailyQuestionState>(`${API_BASE_URL}/daily-question/start`, {});
+  }
+
+  answerDailyQuestion(choice: "a" | "b"): Observable<DailyQuestionState> {
+    return this.http.post<DailyQuestionState>(`${API_BASE_URL}/daily-question/answer`, { choice });
   }
 
   getFantasyDvp(): Observable<FantasyDefenseVsPosition> {

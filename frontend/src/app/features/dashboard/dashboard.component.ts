@@ -18,6 +18,7 @@ import { RoundRecapComponent } from "./round-recap";
 import { RoundStatusService } from "./round-status.service";
 import { RoundHeaderComponent } from "./round-header";
 import { RoundChecklistComponent } from "./round-checklist";
+import { DailyQuestionCardComponent } from "../daily-question/daily-question-card";
 import { LeagueBlockComponent } from "./league-block";
 import { NewsStoriesComponent } from "../../shared/news-stories";
 import { PacksWaitingComponent } from "./packs-waiting";
@@ -51,6 +52,7 @@ function athensDateKey(d: Date): string {
     RoundRecapComponent,
     RoundHeaderComponent,
     RoundChecklistComponent,
+    DailyQuestionCardComponent,
     LeagueBlockComponent,
     NewsStoriesComponent,
     PacksWaitingComponent,
