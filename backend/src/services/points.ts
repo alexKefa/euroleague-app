@@ -131,7 +131,13 @@ export async function getUserPoints(userId: string, exec: Executor = db): Promis
           and g.home_score <> g.away_score
           and p.predicted_winner_team_id = case when g.home_score > g.away_score then g.home_team_id else g.away_team_id end
       ), 0)::int as correct_points,
-      coalesce((select sum(points) from ${pointAdjustments} where user_id = ${userId}), 0)::int as bonus
+      -- Daily Question points can't be spent during an account's first 7
+      -- days (anti-farming, see services/dailyQuestion); they count again
+      -- automatically on day 7 since this is computed on read.
+      coalesce((select sum(pa.points) from ${pointAdjustments} pa
+        where pa.user_id = ${userId}
+          and not (pa.reason = 'daily_question'
+            and (select u.created_at from users u where u.id = ${userId}) > now() - interval '7 days')), 0)::int as bonus
   `);
   const topScorerPoints = await getUserTopScorerPoints(userId, exec);
 
