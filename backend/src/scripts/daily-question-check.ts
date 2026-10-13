@@ -136,6 +136,18 @@ async function checkFlow(): Promise<void> {
   assert.equal(streakDay.streak, 7);
   assert.equal(streakDay.today!.result!.points.total, 126);
 
+  // The clock starts after generation: a slow generator must not eat the 10 s.
+  await resetUser(u);
+  const slow = async () => {
+    await new Promise((r) => setTimeout(r, 1500));
+    return fixed();
+  };
+  await svc.startDailyQuestion(u, undefined, slow);
+  const returnedAt = Date.now();
+  const [served] = (await db.execute<{ served_at: string }>(sql`select served_at from daily_questions where user_id = ${u}::uuid`)) as { served_at: string }[];
+  const lag = returnedAt - new Date(served.served_at).getTime();
+  assert.ok(lag < 1_000, `clock started ${lag} ms before the question was returned`);
+
   // Not started: answering with no row.
   await resetUser(u);
   const none = await svc.answerDailyQuestion(u, "a");

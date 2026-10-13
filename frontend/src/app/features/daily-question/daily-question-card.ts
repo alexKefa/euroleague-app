@@ -145,16 +145,22 @@ export class DailyQuestionCardComponent implements OnInit {
     return this.i18n.t(`dq.q.${q.template}`).replace("{stat}", this.i18n.t(`dq.stat.${q.stat}`));
   });
 
+  // Client-side end of the 10 s, fixed when each state arrives, so Resume
+  // counts down from the truth rather than a stale remainingMs.
+  private deadline: number | null = null;
   private tick: ReturnType<typeof setInterval> | null = null;
   private poll: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
-    inject(DestroyRef).onDestroy(() => this.stopTimer());
+    inject(DestroyRef).onDestroy(() => {
+      this.stopTick();
+      this.stopPoll();
+    });
   }
 
   ngOnInit(): void {
     if (!this.auth.isAuthenticated()) return;
-    this.api.getDailyQuestion().subscribe({ next: (s) => this.state.set(s), error: () => {} });
+    this.refresh();
   }
 
   protected fill(key: string, n: number): string {
@@ -170,7 +176,7 @@ export class DailyQuestionCardComponent implements OnInit {
     this.api.startDailyQuestion().subscribe({
       next: (s) => {
         this.busy.set(false);
-        this.state.set(s);
+        this.setState(s);
         if (s.today) this.openOverlay();
       },
       error: () => this.busy.set(false),
@@ -179,14 +185,14 @@ export class DailyQuestionCardComponent implements OnInit {
 
   protected openOverlay(): void {
     this.overlayOpen.set(true);
-    const q = this.state()?.today;
-    if (q && !q.result) this.startTimer(q.remainingMs ?? 0);
+    if (this.deadline !== null) this.startTick();
   }
 
-  // Closing never pauses anything: the server's clock keeps running.
+  // Closing never pauses anything: the server's clock keeps running, and so
+  // does the poll that fetches the timeout result.
   protected closeOverlay(): void {
     this.overlayOpen.set(false);
-    this.stopTimer();
+    this.stopTick();
   }
 
   protected answer(choice: "a" | "b"): void {
@@ -195,8 +201,7 @@ export class DailyQuestionCardComponent implements OnInit {
     this.api.answerDailyQuestion(choice).subscribe({
       next: (s) => {
         this.busy.set(false);
-        this.stopTimer();
-        this.state.set(s);
+        this.setState(s);
       },
       error: () => {
         this.busy.set(false);
@@ -205,28 +210,42 @@ export class DailyQuestionCardComponent implements OnInit {
     });
   }
 
-  private startTimer(remainingMs: number): void {
-    this.stopTimer();
-    const deadline = Date.now() + remainingMs;
-    this.remaining.set(Math.max(0, remainingMs));
-    this.tick = setInterval(() => {
-      const left = Math.max(0, deadline - Date.now());
-      this.remaining.set(left);
-      if (left === 0) {
-        this.stopTimer();
-        this.poll = setTimeout(() => this.refresh(), RESULT_POLL_DELAY_MS);
-      }
-    }, 100);
+  private setState(s: DailyQuestionState): void {
+    this.state.set(s);
+    this.stopPoll();
+    const open = s.today && !s.today.result ? s.today.remainingMs ?? 0 : null;
+    this.deadline = open === null ? null : Date.now() + open;
+    if (this.deadline === null) {
+      this.stopTick();
+      return;
+    }
+    this.remaining.set(Math.max(0, this.deadline - Date.now()));
+    this.poll = setTimeout(() => this.refresh(), Math.max(0, this.deadline - Date.now()) + RESULT_POLL_DELAY_MS);
+    if (this.overlayOpen()) this.startTick();
   }
 
-  private stopTimer(): void {
+  private startTick(): void {
+    this.stopTick();
+    const step = () => {
+      const left = this.deadline === null ? 0 : Math.max(0, this.deadline - Date.now());
+      this.remaining.set(left);
+      if (left === 0) this.stopTick();
+    };
+    step();
+    if (this.remaining() > 0) this.tick = setInterval(step, 100);
+  }
+
+  private stopTick(): void {
     if (this.tick) clearInterval(this.tick);
-    if (this.poll) clearTimeout(this.poll);
     this.tick = null;
+  }
+
+  private stopPoll(): void {
+    if (this.poll) clearTimeout(this.poll);
     this.poll = null;
   }
 
   private refresh(): void {
-    this.api.getDailyQuestion().subscribe({ next: (s) => this.state.set(s), error: () => {} });
+    this.api.getDailyQuestion().subscribe({ next: (s) => this.setState(s), error: () => {} });
   }
 }

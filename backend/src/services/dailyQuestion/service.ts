@@ -135,26 +135,30 @@ export async function getDailyQuestionState(userId: string, now: Date = new Date
 
 export async function startDailyQuestion(
   userId: string,
-  now: Date = new Date(),
+  now?: Date,
   generate: (day: string) => Promise<GeneratedQuestion | null> = generateQuestion
 ): Promise<DqState> {
-  const state = await getDailyQuestionState(userId, now);
+  const requestedAt = now ?? new Date();
+  const state = await getDailyQuestionState(userId, requestedAt);
   if (state.status !== "ready") return state;
 
-  const day = athensDay(now);
+  const day = athensDay(requestedAt);
   const q = await generate(day);
   if (!q) return { ...state, status: "unavailable" };
+  // The clock starts once the question exists, so slow generation queries
+  // (a cold DB) don't eat into the player's 10 s.
+  const servedAt = now ?? new Date();
 
   // The streak is read in the insert itself, and a concurrent start loses
   // to the unique (user_id, day) index instead of creating a second row.
   await db.execute(sql`
     insert into daily_questions (user_id, day, template, stat, player_a_id, player_b_id, value_a, value_b, served_at, streak)
     values (${userId}::uuid, ${day}::date, ${q.template}, ${q.stat}, ${q.playerAId}::uuid, ${q.playerBId}::uuid,
-      ${q.valueA}, ${q.valueB}, ${now.toISOString()}::timestamptz,
+      ${q.valueA}, ${q.valueB}, ${servedAt.toISOString()}::timestamptz,
       coalesce((select streak from daily_questions where user_id = ${userId}::uuid and day = ${day}::date - 1), 0) + 1)
     on conflict (user_id, day) do nothing
   `);
-  return readState(userId, day, now);
+  return readState(userId, day, servedAt);
 }
 
 export async function answerDailyQuestion(
