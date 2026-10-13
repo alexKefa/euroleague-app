@@ -79,7 +79,7 @@ import {
   TeamFan,
   RoundRecap,
   Announcement,
-  AnnouncementInput, FantasyPlayerCard, ScoutingReport, Reminders, TeamAnalytics, LineupBuilderResult, ClutchLeaders, TeamRestSplits, PlayerRestSplits, RefereeStats, RefereeDetail, TeamReferees, TeamBudget, PushPrefs } from "./models";
+  AnnouncementInput, FantasyPlayerCard, FantasyDefenseVsPosition, ScoutingReport, Reminders, TeamAnalytics, LineupBuilderResult, ClutchLeaders, TeamRestSplits, PlayerRestSplits, RefereeStats, RefereeDetail, TeamReferees, TeamBudget, PushPrefs } from "./models";
 
 /**
  * Wraps HttpClient calls to the backend's /api routes.
@@ -671,6 +671,10 @@ export class ApiService {
   // getAdvancedStats().
   getFantasyPlayers(): Observable<FantasyPlayers> {
     return this.http.get<FantasyPlayers>(`${API_BASE_URL}/fantasy/players`);
+  }
+
+  getFantasyDvp(): Observable<FantasyDefenseVsPosition> {
+    return this.http.get<FantasyDefenseVsPosition>(`${API_BASE_URL}/fantasy/dvp`);
   }
 
   getFantasyPlayerCard(playerId: string): Observable<FantasyPlayerCard> {

@@ -21,6 +21,7 @@ import {
   fantasyChips,
 } from "../db/schema.js";
 import { requireAuth } from "../auth/middleware.js";
+import { getDefenseVsPosition } from "../services/fantasyMatchups.js";
 import { getCurrentSeason } from "../services/season.js";
 import {
   getRoundLockTime,
@@ -168,6 +169,22 @@ fantasyRouter.get("/players", async (req, res) => {
   } catch (err) {
     console.error("GET /api/fantasy/players failed:", err);
     res.status(500).json({ error: "Failed to load fantasy players" });
+  }
+});
+
+// Defense vs position per team (2026-10-13) — powers the matchup tint on
+// pool rows and court cards. See services/fantasyMatchups.ts.
+fantasyRouter.get("/dvp", async (req, res) => {
+  try {
+    const season = await resolveSeason(req.query.season);
+    if (!season) {
+      res.json({ season: null, teamCount: 0, teams: {} });
+      return;
+    }
+    res.json(await getDefenseVsPosition(season));
+  } catch (err) {
+    console.error("GET /api/fantasy/dvp failed:", err);
+    res.status(500).json({ error: "Failed to load matchups" });
   }
 });
 

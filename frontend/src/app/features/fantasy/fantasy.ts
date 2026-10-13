@@ -15,6 +15,8 @@ import {
   Game,
   GameTeamSummary,
   FantasyPlayerCard,
+  FantasyDefenseVsPosition,
+  FantasyMatchup,
   InjuryStatus,
   RewardPack,
   FantasyLineup,
@@ -267,6 +269,8 @@ interface ImportChanges {
   captainChange: string | null;
   coachChange: { from: string | null; to: string } | null;
 }
+
+type MatchupTier = "easy" | "average" | "tough";
 
 interface OpponentInfo {
   opponent: GameTeamSummary;
@@ -1409,6 +1413,11 @@ export class FantasyComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.api.getFantasyDvp().subscribe({
+      next: (res) => this.dvp.set(res),
+      error: () => {},
+    });
+
     this.api.getFantasyPlayers().subscribe({
       next: (res) => {
         this.season.set(res.season);
@@ -1991,6 +2000,65 @@ export class FantasyComponent implements OnInit {
 
   opponentFor(teamId: string): OpponentInfo | null {
     return this.opponentByTeamId().get(teamId) ?? null;
+  }
+
+  // --- Matchups (2026-10-13): how many fantasy points this round's
+  // opponent concedes to the player's position (GET /fantasy/dvp). The
+  // ~30% of teams conceding least read "tough", the ~30% conceding most
+  // "easy"; the middle stays untinted.
+  readonly dvp = signal<FantasyDefenseVsPosition | null>(null);
+
+  private tierFor(rank: number | null, teamCount: number): MatchupTier | null {
+    if (rank === null || teamCount < 4) return null;
+    const band = Math.round(teamCount * 0.3);
+    if (rank <= band) return "tough";
+    if (rank > teamCount - band) return "easy";
+    return "average";
+  }
+
+  matchupTier(teamId: string, position: string | null): MatchupTier | null {
+    const dvp = this.dvp();
+    const opp = this.opponentFor(teamId);
+    if (!dvp || !opp || (position !== "Guard" && position !== "Forward" && position !== "Center")) return null;
+    return this.tierFor(dvp.teams[opp.opponent.id]?.[position]?.rank ?? null, dvp.teamCount);
+  }
+
+  cardMatchupTier(m: FantasyMatchup): MatchupTier | null {
+    return this.tierFor(m.rank, m.teamCount);
+  }
+
+  matchupTextClass(tier: MatchupTier | null): string {
+    return tier === "easy" ? "text-emerald-500" : tier === "tough" ? "text-red-500" : "";
+  }
+
+  matchupChipClass(tier: MatchupTier | null): string {
+    switch (tier) {
+      case "easy":
+        return "bg-emerald-500/15 text-emerald-500 border-emerald-500/30";
+      case "tough":
+        return "bg-red-500/15 text-red-500 border-red-500/30";
+      default:
+        return "bg-page text-muted border-line";
+    }
+  }
+
+  matchupTierLabel(tier: MatchupTier | null): string {
+    return tier ? this.i18n.t("fantasy.matchup." + tier) : "";
+  }
+
+  matchupPositionPlural(position: string): string {
+    return this.i18n.t("fantasy.matchup.pos" + position + "s");
+  }
+
+  matchupAllowedLine(m: FantasyMatchup): string {
+    return this.i18n
+      .t("fantasy.matchup.allowed")
+      .replace("{n}", m.allowed === null ? "–" : m.allowed.toFixed(1))
+      .replace("{pos}", this.matchupPositionPlural(m.position));
+  }
+
+  matchupRankLine(m: FantasyMatchup): string {
+    return this.i18n.t("fantasy.matchup.rank").replace("{rank}", String(m.rank ?? "–")).replace("{n}", String(m.teamCount));
   }
 
   slotByRoleIndex(role: FantasySlotRole, index: number): SquadSlot {

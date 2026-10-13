@@ -74,7 +74,8 @@
       @if (poolBlockReason(row.player.id, row.player.position); as reason) {
         <span class="truncate font-sans font-bold text-red-500">{{ reason }}</span>
       } @else if (opponentFor(row.team.id); as opp) {
-        <span class="truncate">{{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }} {{ opp.opponent.code | teamCode }}</span>
+        @let tier = matchupTier(row.team.id, row.player.position);
+        <span class="truncate" [ngClass]="matchupTextClass(tier)" [attr.title]="tier ? i18n.t('fantasy.matchup.hint') + ': ' + matchupTierLabel(tier) : null">{{ opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev') }} {{ opp.opponent.code | teamCode }}</span>
       }
     </span>
   </span>
@@ -364,7 +365,7 @@
                       } @else {
                         {{ opp.opponent.code | teamCode }}
                       }
-                      <span [class.opacity-40]="turn && hasPlayed(row.player.id)">{{ turn ? i18n.t('fantasy.turnAbbrev') + turn : (opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev')) }}</span>
+                      <span [class.opacity-40]="turn && hasPlayed(row.player.id)" [ngClass]="!game || game.status === 'scheduled' ? matchupTextClass(matchupTier(row.team.id, row.player.position)) : ''">{{ turn ? i18n.t('fantasy.turnAbbrev') + turn : (opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev')) }}</span>
                     </span>
                   }
                 </span>
@@ -1332,6 +1333,46 @@
                         <img [src]="g.opponent.logoUrl" [alt]="g.opponent.code | teamCode" appRetryImg class="team-logo w-7 h-7 object-contain" />
                       } @else {
                         <span class="font-display text-[11px]">{{ g.opponent.code | teamCode }}</span>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- Next matchup (2026-10-13): what the next opponent concedes
+                   to this position, and its players at that position. -->
+              @if (card.matchup; as m) {
+                @let tier = cardMatchupTier(m);
+                <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('fantasy.matchup.title') }} · {{ matchupPositionPlural(m.position) }}</p>
+                <div class="rounded-2xl border border-line bg-page/60 p-3 mb-4">
+                  <div class="flex items-center gap-2.5">
+                    @if (m.opponent.logoUrl) {
+                      <img [src]="m.opponent.logoUrl" [alt]="m.opponent.code | teamCode" appRetryImg class="team-logo w-9 h-9 object-contain shrink-0" />
+                    }
+                    <div class="min-w-0 flex-1">
+                      <p class="text-[13px] font-semibold truncate leading-tight">{{ m.opponent.name }}</p>
+                      <p class="text-[11px] text-muted leading-tight mt-0.5">{{ matchupAllowedLine(m) }}</p>
+                      @if (m.rank !== null) {
+                        <p class="text-[10px] text-muted leading-tight mt-0.5">{{ matchupRankLine(m) }}</p>
+                      }
+                    </div>
+                    @if (tier) {
+                      <span class="shrink-0 text-[11px] font-bold uppercase tracking-wide rounded-full border px-2 py-0.5" [ngClass]="matchupChipClass(tier)">{{ matchupTierLabel(tier) }}</span>
+                    }
+                  </div>
+
+                  <p class="text-[10px] text-muted font-bold uppercase tracking-wider mt-3 mb-1.5">{{ i18n.t('fantasy.matchup.opposing') }}</p>
+                  @if (m.players.length === 0) {
+                    <p class="text-[12px] text-muted">{{ i18n.t('fantasy.matchup.none') }}</p>
+                  } @else {
+                    <div class="flex flex-wrap gap-1.5">
+                      @for (p of m.players; track p.id) {
+                        <span class="inline-flex items-center gap-1 rounded-full border border-line bg-card px-2 py-0.5 text-[12px] font-semibold" [class.opacity-60]="p.injury === 'out'">
+                          {{ playerName(p.name) }}
+                          @if (p.injury) {
+                            <span class="text-[9px] font-bold uppercase tracking-wide rounded-full border px-1.5 py-px" [ngClass]="injuryClass(p.injury)">{{ injuryLabel(p.injury) }}</span>
+                          }
+                        </span>
                       }
                     </div>
                   }

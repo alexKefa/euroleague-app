@@ -1609,6 +1609,31 @@ export interface FantasyPlayerCard {
   nextGames: { tipoffAt: string; isHome: boolean; opponent: { code: string; logoUrl: string | null } }[];
   // Newest first.
   games: FantasyPlayerCardGame[];
+  matchup: FantasyMatchup | null;
+}
+
+// Next opponent vs the player's position (2026-10-13) — see backend
+// services/fantasyMatchups.ts. rank 1 = fewest fantasy points allowed.
+export interface FantasyMatchup {
+  position: "Guard" | "Forward" | "Center";
+  opponent: { id: string; code: string; name: string; logoUrl: string | null };
+  allowed: number | null;
+  rank: number | null;
+  teamCount: number;
+  players: { id: string; name: string; injury: InjuryStatus | null }[];
+}
+
+export interface FantasyDvpEntry {
+  allowed: number;
+  rank: number;
+  games: number;
+}
+
+// GET /fantasy/dvp — defense vs position, keyed by team id.
+export interface FantasyDefenseVsPosition {
+  season: string | null;
+  teamCount: number;
+  teams: Record<string, Record<"Guard" | "Forward" | "Center", FantasyDvpEntry>>;
 }
 
 // GET /players/:id/scouting (2026-10-01) — see backend services/scouting.ts.

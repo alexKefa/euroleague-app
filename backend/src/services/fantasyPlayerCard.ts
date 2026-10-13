@@ -1,13 +1,14 @@
 import { sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { computeFantasyGamePoints, FANTASY_MIN_PRICE, getDefaultRound } from "./fantasyScoring.js";
+import { FANTASY_POSITIONS, FantasyPosition, getDefenseVsPosition } from "./fantasyMatchups.js";
 
 /**
  * Everything the Fantasy player card shows (2026-10-01, modelled on
  * EuroLeague Fantasy's own player sheet): price, fantasy-points average,
  * season credit change, how many squads own the player, the next 5 games,
  * and a per-game log (price at the time, the move, fantasy points, box
- * score). Four statements; the per-game fantasy points use the same
+ * score), plus the next opponent's matchup. Five statements; the per-game fantasy points use the same
  * computeFantasyGamePoints as scoring and pricing.
  */
 export interface FantasyPlayerCard {
@@ -19,6 +20,20 @@ export interface FantasyPlayerCard {
   ownedPct: number | null;
   nextGames: { tipoffAt: string; isHome: boolean; opponent: { code: string; logoUrl: string | null } }[];
   games: FantasyPlayerCardGame[];
+  // Next game's opponent vs this player's position (2026-10-13, see
+  // services/fantasyMatchups.ts). Null with no upcoming game or position.
+  matchup: FantasyMatchup | null;
+}
+
+export interface FantasyMatchup {
+  position: FantasyPosition;
+  opponent: { id: string; code: string; name: string; logoUrl: string | null };
+  // Fantasy points the opponent allows per game to this position.
+  allowed: number | null;
+  rank: number | null; // 1 = fewest allowed (toughest)
+  teamCount: number;
+  // The opponent's active players at the same position, most minutes first.
+  players: { id: string; name: string; injury: string | null }[];
 }
 
 export interface FantasyPlayerCardGame {
@@ -64,7 +79,9 @@ export async function getFantasyPlayerCard(playerId: string, season: string): Pr
   if (!head) return null;
   const teamId: string | null = head.team_id;
 
-  const [logRows, nextRows] = await Promise.all([
+  const position = FANTASY_POSITIONS.includes(head.position) ? (head.position as FantasyPosition) : null;
+
+  const [logRows, nextRows, opposingRows, dvp] = await Promise.all([
     db.execute<Row>(sql`
       select g.id, g.round, g.tipoff_at, g.home_team_id, g.away_team_id, g.home_score, g.away_score,
         ht.code as home_code, ht.logo_url as home_logo, at.code as away_code, at.logo_url as away_logo,
@@ -85,7 +102,7 @@ export async function getFantasyPlayerCard(playerId: string, season: string): Pr
     `),
     teamId
       ? db.execute<Row>(sql`
-          select g.tipoff_at, g.home_team_id, ht.code as home_code, ht.logo_url as home_logo, at.code as away_code, at.logo_url as away_logo
+          select g.tipoff_at, g.home_team_id, g.away_team_id, ht.name as home_name, at.name as away_name, ht.code as home_code, ht.logo_url as home_logo, at.code as away_code, at.logo_url as away_logo
           from games g
           join teams ht on ht.id = g.home_team_id
           join teams at on at.id = g.away_team_id
@@ -94,6 +111,26 @@ export async function getFantasyPlayerCard(playerId: string, season: string): Pr
           limit 5
         `)
       : Promise.resolve([] as Row[]),
+    // Same-position players on the next opponent, most minutes first.
+    teamId && position
+      ? db.execute<Row>(sql`
+          with nxt as (
+            select case when g.home_team_id = ${teamId}::uuid then g.away_team_id else g.home_team_id end as opp_id
+            from games g
+            where g.season = ${season} and g.status <> 'final' and ${teamId}::uuid in (g.home_team_id, g.away_team_id)
+            order by g.tipoff_at
+            limit 1
+          )
+          select p.id, p.name, i.status as injury
+          from players p
+          join nxt on nxt.opp_id = p.team_id
+          left join player_season_stats s on s.player_id = p.id and s.season = ${season}
+          left join player_injuries i on i.player_id = p.id
+          where p.active and p.position = ${position}
+          order by s.minutes_per_game desc nulls last, p.name
+        `)
+      : Promise.resolve([] as Row[]),
+    position ? getDefenseVsPosition(season) : Promise.resolve(null),
   ]);
 
   const price = head.price === null ? FANTASY_MIN_PRICE : Number(head.price);
@@ -178,6 +215,24 @@ export async function getFantasyPlayerCard(playerId: string, season: string): Pr
   const playedPoints = games.filter((g) => g.fantasyPoints !== null).map((g) => g.fantasyPoints!);
   const squads = Number(head.squads ?? 0);
 
+  const next = (nextRows as Row[])[0];
+  let matchup: FantasyMatchup | null = null;
+  if (next && position && teamId) {
+    const isHome = next.home_team_id === teamId;
+    const oppId: string = isHome ? next.away_team_id : next.home_team_id;
+    const entry = dvp?.teams[oppId]?.[position] ?? null;
+    matchup = {
+      position,
+      opponent: isHome
+        ? { id: oppId, code: next.away_code, name: next.away_name, logoUrl: next.away_logo }
+        : { id: oppId, code: next.home_code, name: next.home_name, logoUrl: next.home_logo },
+      allowed: entry?.allowed ?? null,
+      rank: entry?.rank ?? null,
+      teamCount: dvp?.teamCount ?? 0,
+      players: (opposingRows as Row[]).map((p) => ({ id: p.id, name: p.name, injury: p.injury })),
+    };
+  }
+
   return {
     player: { id: head.id, name: head.name, position: head.position, photoUrl: head.photo_url },
     team: teamId
@@ -196,5 +251,6 @@ export async function getFantasyPlayerCard(playerId: string, season: string): Pr
       };
     }),
     games,
+    matchup,
   };
 }
