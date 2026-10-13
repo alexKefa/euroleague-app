@@ -120,13 +120,17 @@ export function buildRoundStatus(input: RoundStatusInput, now: number): RoundSta
   const done = rows.filter((row) => row.done).sort((a, b) => rank(a) - rank(b));
   const ordered = [...open, ...done];
 
+  // The header counts down to the round's first tip-off only (or an earlier
+  // fantasy lock), and drops it once the round is under way: a later game's
+  // pick lock is not "the" deadline of the round.
+  const roundStart = earliest(games);
   const firstDeadline = open.find((row) => row.deadline);
   let nextDeadline: RoundStatus["nextDeadline"] = null;
-  if (firstDeadline?.deadline) {
-    nextDeadline = { at: firstDeadline.deadline, kind: firstDeadline.id as "picks" | "fantasy" };
-  } else {
-    const first = earliest(notStarted);
-    if (first) nextDeadline = { at: first, kind: "firstGame" };
+  if (roundStart && roundStart.getTime() > now) {
+    nextDeadline =
+      firstDeadline?.deadline && firstDeadline.deadline.getTime() <= roundStart.getTime()
+        ? { at: firstDeadline.deadline, kind: firstDeadline.id as "picks" | "fantasy" }
+        : { at: roundStart, kind: "firstGame" };
   }
 
   return {

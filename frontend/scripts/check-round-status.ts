@@ -132,6 +132,20 @@ check("allDone phase and firstGame deadline", () => {
   assert.equal(s.nextDeadline?.at.toISOString(), "2026-10-09T18:15:00.000Z");
 });
 
+check("no header countdown once the round's first game has started", () => {
+  const games = [g("a", "2026-10-09T14:45:00Z", "live"), g("b", "2026-10-09T18:15:00Z")];
+  const s = buildRoundStatus(base({ schedule: sched(games) }), now);
+  assert.equal(s.phase, "open");
+  assert.equal(s.nextDeadline, null);
+});
+
+check("first game picked: countdown is still to the first game", () => {
+  const games = [g("a", "2026-10-09T16:00:00Z"), g("b", "2026-10-09T18:15:00Z")];
+  const s = buildRoundStatus(base({ schedule: sched(games), predictedGameIds: new Set(["a"]) }), now);
+  assert.equal(s.nextDeadline?.kind, "firstGame");
+  assert.equal(s.nextDeadline?.at.toISOString(), "2026-10-09T16:00:00.000Z");
+});
+
 check("firstRun", () => {
   assert.equal(buildRoundStatus(base({ schedule: sched(ten), everPicked: false }), now).firstRun, true);
   assert.equal(buildRoundStatus(base({ schedule: sched(ten) }), now).firstRun, false);
