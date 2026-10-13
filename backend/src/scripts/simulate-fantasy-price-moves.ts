@@ -24,14 +24,12 @@ import {
   FANTASY_PRICE_VARIATION_MULTIPLIER,
   FANTASY_PRICE_VARIATION_DIVISOR,
   COACH_PRICE_VARIATION_DIVISOR,
-  DAILY_PRICE_MAX_DELTA,
 } from "../services/fantasyDailyReprice.js";
 
 const ROUNDS = Number(process.argv[2] ?? 6);
 const FROM_SEASON = process.argv[3] ?? "2025-26";
 const SEASON = "2026-27";
 
-const clamp = (d: number) => Math.max(-DAILY_PRICE_MAX_DELTA, Math.min(DAILY_PRICE_MAX_DELTA, d));
 const r1 = (n: number) => Math.round(n * 10) / 10;
 const f = (n: number, w = 6) => (n >= 0 ? "+" : "") + n.toFixed(1).padStart(w - 1);
 
@@ -102,7 +100,7 @@ async function main() {
         },
         won
       );
-      const d = clamp((n - sim.price * FANTASY_PRICE_VARIATION_MULTIPLIER) / FANTASY_PRICE_VARIATION_DIVISOR);
+      const d = (n - sim.price * FANTASY_PRICE_VARIATION_MULTIPLIER) / FANTASY_PRICE_VARIATION_DIVISOR;
       const next = r1(Math.max(FANTASY_MIN_PRICE, sim.price + d));
       sim.deltas.push(r1(next - sim.price));
       sim.fp.push(n);
@@ -120,7 +118,7 @@ async function main() {
     for (const g of teamGames.filter((g) => g.home_team_id === c.id || g.away_team_id === c.id).sort((a, b) => a.round - b.round)) {
       const home = g.home_team_id === c.id;
       const n = pointsForCoachResult(home ? g.home_score : g.away_score, home ? g.away_score : g.home_score);
-      const d = clamp((n - sim.price) / COACH_PRICE_VARIATION_DIVISOR);
+      const d = (n - sim.price) / COACH_PRICE_VARIATION_DIVISOR;
       const next = r1(Math.max(COACH_MIN_PRICE, sim.price + d));
       sim.deltas.push(r1(next - sim.price));
       sim.fp.push(n);
@@ -136,7 +134,7 @@ async function main() {
   console.log(`${players.length} priced players, ${played.length} with real games, ${noData} with no ${FROM_SEASON} data (price unchanged)`);
   const allMoves = played.map((s) => r1(s.price - s.start));
   console.log(`Market total move: ${f(r1(total(allMoves)))}cr | gainers ${allMoves.filter((m) => m > 0).length}, flat ${allMoves.filter((m) => m === 0).length}, losers ${allMoves.filter((m) => m < 0).length}`);
-  console.log(`Per game: avg delta ${(total(played.flatMap((s) => s.deltas)) / total(played.map((s) => s.games))).toFixed(3)}cr, clamped at Â±1: ${played.flatMap((s) => s.deltas).filter((d) => Math.abs(d) >= 1).length}/${total(played.map((s) => s.games))}`);
+  console.log(`Per game: avg delta ${(total(played.flatMap((s) => s.deltas)) / total(played.map((s) => s.games))).toFixed(3)}cr, |delta| >= 1: ${played.flatMap((s) => s.deltas).filter((d) => Math.abs(d) >= 1).length}/${total(played.map((s) => s.games))}`);
 
   console.log(`\nBy starting price bracket (players with games):`);
   console.log(`bracket   n   avgFP/g  breakeven  avgMove6r  minMove  maxMove`);

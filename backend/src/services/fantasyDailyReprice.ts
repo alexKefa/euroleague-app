@@ -38,11 +38,9 @@ import { refreshFinalBoxscore } from "../sync/liveGamesSync.js";
  * was never sourced — picked only to land in the rough ballpark of
  * EuroLeague Fantasy's own public worked example (a 20.5cr player gaining
  * +1.5cr from one big game) because neither real formula was known yet at
- * the time. Both still clamped to +-DAILY_PRICE_MAX_DELTA as a safety net
- * against one outlier stat line — not part of either sourced formula
- * itself, but the natural range each produces already sits close to this
- * bound in practice (e.g. a 40-point game from a 4cr player:
- * (40-4.4)/25 ≈ 1.42), so this only ever clips genuine extremes.
+ * the time. Neither is clamped (2026-10-13): an earlier +-1.0 safety clamp
+ * isn't in the real game, which moved Maledon +1.2 in round 3 where the
+ * clamp held us to +1.0.
  *
  * Deliberately separate from computeFantasyPrice/computeCoachPrice and the
  * periodic `fantasy:reprice` script, which still set each entity's
@@ -56,7 +54,6 @@ import { refreshFinalBoxscore } from "../sync/liveGamesSync.js";
  */
 export const FANTASY_PRICE_VARIATION_MULTIPLIER = 1.1;
 export const FANTASY_PRICE_VARIATION_DIVISOR = 25;
-export const DAILY_PRICE_MAX_DELTA = 1.0;
 
 // Coaches have their own, genuinely different published formula (same
 // source, a second EuroLeague Fantasist/@ELFantasist graphic, 2026-09-21):
@@ -79,15 +76,11 @@ function roundMove(x: number): number {
 }
 
 function priceVariationDelta(gamePoints: number, currentPrice: number): number {
-  return roundMove(clampDelta((gamePoints - currentPrice * FANTASY_PRICE_VARIATION_MULTIPLIER) / FANTASY_PRICE_VARIATION_DIVISOR));
+  return roundMove((gamePoints - currentPrice * FANTASY_PRICE_VARIATION_MULTIPLIER) / FANTASY_PRICE_VARIATION_DIVISOR);
 }
 
 function coachPriceVariationDelta(gamePoints: number, currentPrice: number): number {
-  return roundMove(clampDelta((gamePoints - currentPrice) / COACH_PRICE_VARIATION_DIVISOR));
-}
-
-function clampDelta(delta: number): number {
-  return Math.max(-DAILY_PRICE_MAX_DELTA, Math.min(DAILY_PRICE_MAX_DELTA, delta));
+  return roundMove((gamePoints - currentPrice) / COACH_PRICE_VARIATION_DIVISOR);
 }
 
 function round1(n: number): number {
