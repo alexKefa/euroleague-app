@@ -1107,7 +1107,7 @@
                 (valueChange)="onSearchInput($event)"
               />
               <app-dropdown [options]="teamDropdownOptions()" [value]="teamFilter()" (valueChange)="setTeamFilter($event)" />
-              <div class="flex items-center gap-2">
+              <div class="flex flex-wrap items-center gap-2">
                 <button type="button" (click)="setPositionFilter(null)" [appChip]="positionFilter() === null" class="min-w-[44px]">
                   {{ i18n.t('fantasy.posAll') }}
                 </button>
@@ -1119,6 +1119,9 @@
                 </button>
                 <button type="button" (click)="setPositionFilter('Center')" [appChip]="positionFilter() === 'Center'" class="min-w-[44px]">
                   {{ i18n.t('fantasy.posCenterAbbrev') }}
+                </button>
+                <button type="button" (click)="easyMatchupOnly.set(!easyMatchupOnly())" [appChip]="easyMatchupOnly()" [disabled]="!dvp()" class="whitespace-nowrap">
+                  <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 align-middle"></span>{{ i18n.t('fantasy.matchup.easyOnly') }}
                 </button>
               </div>
               <ng-container [ngTemplateOutlet]="turnFilterChips" />
@@ -1325,7 +1328,7 @@
                 <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-2 mt-1">{{ i18n.t('fantasy.card.next5') }}</p>
                 <div class="grid grid-cols-5 gap-1.5 mb-4">
                   @for (g of card.nextGames; track g.tipoffAt) {
-                    <div class="list-row !flex-col !gap-1 !px-1 !py-2 text-center">
+                    <div class="list-row !flex-col !gap-1 !px-1 !py-2 text-center" [ngClass]="nextGameTileClass(opponentShade(g.opponent.id, card.player.position))">
                       <span class="font-mono text-[12px] font-bold leading-none">{{ g.tipoffAt | date: 'd/M':'Europe/Athens' }}</span>
                       <span class="font-mono text-[10px] text-muted leading-none">{{ g.tipoffAt | date: 'HH:mm':'Europe/Athens' }}</span>
                       <span class="text-[10px] font-bold text-muted leading-none mt-0.5">{{ g.isHome ? 'VS' : '@' }}</span>
@@ -1337,6 +1340,9 @@
                     </div>
                   }
                 </div>
+                @if (dvp()) {
+                  <p class="text-[10px] text-muted -mt-2.5 mb-4">{{ i18n.t('fantasy.matchup.legend') }}</p>
+                }
               }
 
               <!-- Next matchup (2026-10-13): what the next opponent concedes
@@ -1579,19 +1585,24 @@
               />
             }
           </div>
-          @if (!pickerRequiredPosition() && !keyboardOpen()) {
-            <div class="flex items-center gap-2">
-              <button type="button" (click)="setPositionFilter(null)" [appChip]="positionFilter() === null" class="min-w-[44px]">
-                {{ i18n.t('fantasy.posAll') }}
-              </button>
-              <button type="button" (click)="setPositionFilter('Guard')" [appChip]="positionFilter() === 'Guard'" class="min-w-[44px]">
-                {{ i18n.t('fantasy.posGuardAbbrev') }}
-              </button>
-              <button type="button" (click)="setPositionFilter('Forward')" [appChip]="positionFilter() === 'Forward'" class="min-w-[44px]">
-                {{ i18n.t('fantasy.posForwardAbbrev') }}
-              </button>
-              <button type="button" (click)="setPositionFilter('Center')" [appChip]="positionFilter() === 'Center'" class="min-w-[44px]">
-                {{ i18n.t('fantasy.posCenterAbbrev') }}
+          @if (!keyboardOpen()) {
+            <div class="flex flex-wrap items-center gap-2">
+              @if (!pickerRequiredPosition()) {
+                <button type="button" (click)="setPositionFilter(null)" [appChip]="positionFilter() === null" class="min-w-[44px]">
+                  {{ i18n.t('fantasy.posAll') }}
+                </button>
+                <button type="button" (click)="setPositionFilter('Guard')" [appChip]="positionFilter() === 'Guard'" class="min-w-[44px]">
+                  {{ i18n.t('fantasy.posGuardAbbrev') }}
+                </button>
+                <button type="button" (click)="setPositionFilter('Forward')" [appChip]="positionFilter() === 'Forward'" class="min-w-[44px]">
+                  {{ i18n.t('fantasy.posForwardAbbrev') }}
+                </button>
+                <button type="button" (click)="setPositionFilter('Center')" [appChip]="positionFilter() === 'Center'" class="min-w-[44px]">
+                  {{ i18n.t('fantasy.posCenterAbbrev') }}
+                </button>
+              }
+              <button type="button" (click)="easyMatchupOnly.set(!easyMatchupOnly())" [appChip]="easyMatchupOnly()" [disabled]="!dvp()" class="whitespace-nowrap">
+                <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 align-middle"></span>{{ i18n.t('fantasy.matchup.easyOnly') }}
               </button>
             </div>
           }

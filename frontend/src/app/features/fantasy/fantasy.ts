@@ -16,6 +16,7 @@ import {
   GameTeamSummary,
   FantasyPlayerCard,
   FantasyDefenseVsPosition,
+  FantasyDvpEntry,
   FantasyMatchup,
   InjuryStatus,
   RewardPack,
@@ -80,7 +81,7 @@ const POPUP_CLOSE_MS = 200;
 // leagueDropdownOptions/onBoardChange below.
 const GLOBAL_BOARD_VALUE = "__global__";
 
-type SortKey = "name" | "price" | "pointsPerGame" | "valuation";
+type SortKey = "name" | "price" | "pointsPerGame" | "valuation" | "matchup";
 type PositionFilter = "Guard" | "Forward" | "Center" | null;
 type PositionName = "Guard" | "Forward" | "Center";
 
@@ -271,6 +272,7 @@ interface ImportChanges {
 }
 
 type MatchupTier = "easy" | "average" | "tough";
+type MatchupShade = 1 | 2 | 3 | 4 | 5;
 
 interface OpponentInfo {
   opponent: GameTeamSummary;
@@ -572,6 +574,8 @@ export class FantasyComponent implements OnInit {
   // with Day 1 and 2 on the players list") — null = every day. Only offered
   // in a multi-day round (see roundTurns).
   readonly turnFilter = signal<number | null>(null);
+  // Only players whose opponent this round is an easy matchup (2026-10-13).
+  readonly easyMatchupOnly = signal(false);
   readonly sortKey = signal<SortKey>("price");
   readonly sortDesc = signal(true);
   readonly visibleCount = signal(PAGE_SIZE);
@@ -1329,6 +1333,7 @@ export class FantasyComponent implements OnInit {
     const team = this.teamFilter();
     const position = this.positionFilter();
     const turn = this.turnFilter();
+    const easyOnly = this.easyMatchupOnly();
     const inSquad = this.selectedPlayerIds();
     const key = this.sortKey();
     const desc = this.sortDesc();
@@ -1339,6 +1344,7 @@ export class FantasyComponent implements OnInit {
       if (team && row.team.id !== team) return false;
       if (position && row.player.position !== position) return false;
       if (turn !== null && this.turnFor(row.team.id) !== turn) return false;
+      if (easyOnly && this.matchupTier(row.team.id, row.player.position) !== "easy") return false;
       return true;
     });
 
@@ -1352,6 +1358,8 @@ export class FantasyComponent implements OnInit {
           return r.pointsPerGame;
         case "valuation":
           return r.valuation;
+        case "matchup":
+          return this.matchupAllowed(r.team.id, r.player.position);
       }
     };
 
@@ -2003,24 +2011,66 @@ export class FantasyComponent implements OnInit {
   }
 
   // --- Matchups (2026-10-13): how many fantasy points this round's
-  // opponent concedes to the player's position (GET /fantasy/dvp). The
-  // ~30% of teams conceding least read "tough", the ~30% conceding most
-  // "easy"; the middle stays untinted.
+  // opponent concedes to the player's position (GET /fantasy/dvp). Ranks
+  // split into five shades (1 = concedes least): dark red, light red, grey,
+  // light green, dark green — 4 teams each in a 20-team league. Lists, the
+  // filter and the card chip use the 3-way tier (both reds = tough, both
+  // greens = easy); the card's Next 5 strip shows all five.
   readonly dvp = signal<FantasyDefenseVsPosition | null>(null);
 
-  private tierFor(rank: number | null, teamCount: number): MatchupTier | null {
-    if (rank === null || teamCount < 4) return null;
-    const band = Math.round(teamCount * 0.3);
-    if (rank <= band) return "tough";
-    if (rank > teamCount - band) return "easy";
-    return "average";
+  // 1 (dark red) .. 5 (dark green).
+  private shadeFor(rank: number | null, teamCount: number): MatchupShade | null {
+    if (rank === null || teamCount < 5) return null;
+    return Math.min(5, Math.ceil((rank / teamCount) * 5)) as MatchupShade;
   }
 
-  matchupTier(teamId: string, position: string | null): MatchupTier | null {
+  private tierFor(rank: number | null, teamCount: number): MatchupTier | null {
+    const shade = this.shadeFor(rank, teamCount);
+    if (shade === null) return null;
+    return shade <= 2 ? "tough" : shade >= 4 ? "easy" : "average";
+  }
+
+  private dvpEntry(opponentId: string, position: string | null): FantasyDvpEntry | null {
     const dvp = this.dvp();
+    if (!dvp || (position !== "Guard" && position !== "Forward" && position !== "Center")) return null;
+    return dvp.teams[opponentId]?.[position] ?? null;
+  }
+
+  // This round's opponent.
+  matchupTier(teamId: string, position: string | null): MatchupTier | null {
     const opp = this.opponentFor(teamId);
-    if (!dvp || !opp || (position !== "Guard" && position !== "Forward" && position !== "Center")) return null;
-    return this.tierFor(dvp.teams[opp.opponent.id]?.[position]?.rank ?? null, dvp.teamCount);
+    return opp ? this.opponentTier(opp.opponent.id, position) : null;
+  }
+
+  // Any given opponent — the player card's Next 5 strip.
+  opponentTier(opponentId: string, position: string | null): MatchupTier | null {
+    return this.tierFor(this.dvpEntry(opponentId, position)?.rank ?? null, this.dvp()?.teamCount ?? 0);
+  }
+
+  // Sort value for "Matchup": points the opponent concedes, so the default
+  // descending sort puts the easiest matchups first.
+  matchupAllowed(teamId: string, position: string | null): number | null {
+    const opp = this.opponentFor(teamId);
+    return opp ? (this.dvpEntry(opp.opponent.id, position)?.allowed ?? null) : null;
+  }
+
+  opponentShade(opponentId: string, position: string | null): MatchupShade | null {
+    return this.shadeFor(this.dvpEntry(opponentId, position)?.rank ?? null, this.dvp()?.teamCount ?? 0);
+  }
+
+  nextGameTileClass(shade: MatchupShade | null): string {
+    switch (shade) {
+      case 1:
+        return "!border-red-500 !bg-red-500/35";
+      case 2:
+        return "!border-red-500/40 !bg-red-500/10";
+      case 4:
+        return "!border-emerald-500/40 !bg-emerald-500/10";
+      case 5:
+        return "!border-emerald-500 !bg-emerald-500/35";
+      default:
+        return "";
+    }
   }
 
   cardMatchupTier(m: FantasyMatchup): MatchupTier | null {
@@ -2112,6 +2162,7 @@ export class FantasyComponent implements OnInit {
     { key: "price", labelKey: "fantasy.colPrice" },
     { key: "pointsPerGame", labelKey: "fantasy.colPpg" },
     { key: "valuation", labelKey: "fantasy.colPir" },
+    { key: "matchup", labelKey: "fantasy.matchup.sort" },
   ];
 
   // The stat shown on each list row: whatever the list is sorted by, or

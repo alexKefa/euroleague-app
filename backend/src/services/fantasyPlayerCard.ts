@@ -18,7 +18,7 @@ export interface FantasyPlayerCard {
   seasonCreditChange: number;
   fantasyPointsAverage: number | null;
   ownedPct: number | null;
-  nextGames: { tipoffAt: string; isHome: boolean; opponent: { code: string; logoUrl: string | null } }[];
+  nextGames: { tipoffAt: string; isHome: boolean; opponent: { id: string; code: string; logoUrl: string | null } }[];
   games: FantasyPlayerCardGame[];
   // Next game's opponent vs this player's position (2026-10-13, see
   // services/fantasyMatchups.ts). Null with no upcoming game or position.
@@ -247,7 +247,9 @@ export async function getFantasyPlayerCard(playerId: string, season: string): Pr
       return {
         tipoffAt: new Date(g.tipoff_at).toISOString(),
         isHome,
-        opponent: isHome ? { code: g.away_code, logoUrl: g.away_logo } : { code: g.home_code, logoUrl: g.home_logo },
+        opponent: isHome
+          ? { id: g.away_team_id, code: g.away_code, logoUrl: g.away_logo }
+          : { id: g.home_team_id, code: g.home_code, logoUrl: g.home_logo },
       };
     }),
     games,

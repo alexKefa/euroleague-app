@@ -1606,7 +1606,7 @@ export interface FantasyPlayerCard {
   seasonCreditChange: number;
   fantasyPointsAverage: number | null;
   ownedPct: number | null;
-  nextGames: { tipoffAt: string; isHome: boolean; opponent: { code: string; logoUrl: string | null } }[];
+  nextGames: { tipoffAt: string; isHome: boolean; opponent: { id: string; code: string; logoUrl: string | null } }[];
   // Newest first.
   games: FantasyPlayerCardGame[];
   matchup: FantasyMatchup | null;
