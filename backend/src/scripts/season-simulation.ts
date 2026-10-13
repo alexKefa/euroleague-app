@@ -83,6 +83,8 @@
  * Env overrides for quick iteration: SIM_N=500 SIM_QUICK=1 npm run economy:simulate
  */
 
+import { pointsFor as dailyQuestionPoints } from "../services/dailyQuestion/logic.js";
+
 type Tier = "common" | "rare" | "legendary" | "coach";
 
 // common/rare 289 -> 320 (2026-09-29) to match the live catalog, checked
@@ -150,6 +152,12 @@ const FANTASY_CLUTCH_PER_ROUND = Math.floor(FANTASY_ROUND_AVG_POINTS * FANTASY_P
 // services/topScorerPoints.ts TOP_SCORER_POINTS_PER_CORRECT, verbatim — see
 // this file's header comment for TOP_SCORER_ACC_RATIO's reasoning.
 const TOP_SCORER_ENABLED = process.env.SIM_TOPSCORER !== "0";
+// Daily Question (2026-10-13): one question per day, played on the same
+// days as the wheel (same attendance roll), paid by the real pointsFor()
+// streak/correct/milestone table. A missed day resets the streak.
+// SIM_DAILY_QUESTION=0 disables it; SIM_DQ_ACCURACY overrides correctness.
+const DAILY_QUESTION_ENABLED = process.env.SIM_DAILY_QUESTION !== "0";
+const DQ_ACCURACY = Number(process.env.SIM_DQ_ACCURACY ?? 0.62);
 const TOP_SCORER_POINTS_PER_CORRECT = 10;
 const TOP_SCORER_ACC_RATIO = Number(process.env.SIM_TOPSCORER_ACC_RATIO ?? 0.4);
 
@@ -410,6 +418,7 @@ interface SimResult {
   milestoneRares: number;
   fantasyPointsEarned: number;
   topScorerPointsEarned: number;
+  dailyQuestionPointsEarned: number;
   fantasyMilestones: number;
   fantasyCoachCards: number;
   fantasyCaptainCards: number;
@@ -436,6 +445,8 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
   let milestoneRares = 0;
   let fantasyPointsEarned = 0;
   let topScorerPointsEarned = 0;
+  let dailyQuestionPointsEarned = 0;
+  let dailyQuestionStreak = 0;
   let fantasyRoundsPlayed = 0;
   let fantasyMilestones = 0;
   let coachPositiveRounds = 0;
@@ -558,7 +569,20 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
       spendLoop(state, policy);
     }
 
-    if (Math.random() < spinEngagement) {
+    const playsToday = Math.random() < spinEngagement;
+    if (DAILY_QUESTION_ENABLED) {
+      if (playsToday) {
+        dailyQuestionStreak++;
+        const earned = dailyQuestionPoints(dailyQuestionStreak, Math.random() < DQ_ACCURACY).total;
+        state.points += earned;
+        dailyQuestionPointsEarned += earned;
+        spendLoop(state, policy);
+      } else {
+        dailyQuestionStreak = 0;
+      }
+    }
+
+    if (playsToday) {
       const roll = Math.random();
       const tier: Tier =
         roll < SPIN_ODDS.coach
@@ -601,6 +625,7 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
     milestoneRares,
     fantasyPointsEarned,
     topScorerPointsEarned,
+    dailyQuestionPointsEarned,
     fantasyMilestones,
     fantasyCoachCards,
     fantasyCaptainCards,
@@ -640,6 +665,7 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
   const avgMilestoneRares = results.reduce((s, r) => s + r.milestoneRares, 0) / n;
   const avgFantasyPoints = results.reduce((s, r) => s + r.fantasyPointsEarned, 0) / n;
   const avgTopScorerPoints = results.reduce((s, r) => s + r.topScorerPointsEarned, 0) / n;
+  const avgDailyQuestionPoints = results.reduce((s, r) => s + r.dailyQuestionPointsEarned, 0) / n;
   const avgFantasyMilestones = results.reduce((s, r) => s + r.fantasyMilestones, 0) / n;
   const avgFantasyCoachCards = results.reduce((s, r) => s + r.fantasyCoachCards, 0) / n;
   const avgFantasyCaptainCards = results.reduce((s, r) => s + r.fantasyCaptainCards, 0) / n;
@@ -670,6 +696,7 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
       (COACH_MILESTONE > 0 ? ` | avg milestone coaches: ${avgMilestoneCoaches.toFixed(2)}` : "") +
       (RARE_MILESTONE > 0 ? ` | avg milestone rares: ${avgMilestoneRares.toFixed(2)}` : "") +
       (FANTASY_ENABLED ? ` | avg fantasy pts earned: ${avgFantasyPoints.toFixed(0)}` : "") +
+      (DAILY_QUESTION_ENABLED ? ` | avg daily question pts: ${avgDailyQuestionPoints.toFixed(0)}` : "") +
       (TOP_SCORER_ENABLED ? ` | avg top-scorer pts earned: ${avgTopScorerPoints.toFixed(0)}` : "") +
       (FANTASY_MILESTONE_INTERVAL > 0 ? ` | avg fantasy milestones: ${avgFantasyMilestones.toFixed(2)}` : "") +
       (FANTASY_COACH_TRACK > 0 ? ` | fantasy coach cards: ${avgFantasyCoachCards.toFixed(1)}` : "") +
