@@ -165,11 +165,39 @@ async function checkLock(): Promise<void> {
   console.log("lock OK");
 }
 
+async function checkSuspects(): Promise<void> {
+  const { db } = await dbModules();
+  const { getDailyQuestionSuspects } = await import("../services/dailyQuestion/service.js");
+  const u = testUser();
+  await resetUser(u);
+  const players = (await db.execute<{ id: string }>(sql`select id from players where active order by id limit 2`)) as { id: string }[];
+  try {
+    // 14 fast, correct answers on 14 past days.
+    await db.execute(sql`
+      insert into daily_questions (user_id, day, template, stat, player_a_id, player_b_id, value_a, value_b, served_at,
+        answered_at, choice, correct, response_ms, streak, points_awarded, resolved_at)
+      select ${u}::uuid, current_date - d, 'last_game', 'points', ${players[0].id}::uuid, ${players[1].id}::uuid, 12, 10,
+        now() - (d || ' days')::interval, now() - (d || ' days')::interval, 'a', true, 800, 1, 0, now() - (d || ' days')::interval
+      from generate_series(1, 14) d
+    `);
+    const rows = await getDailyQuestionSuspects();
+    const me = rows.find((r) => r.userId === u);
+    assert.ok(me, "fast near-perfect user must be listed");
+    assert.equal(me.answers, 14);
+    assert.equal(me.correctPct, 100);
+    assert.equal(me.medianResponseMs, 800);
+  } finally {
+    await resetUser(u);
+  }
+  console.log("suspects OK");
+}
+
 const args = new Set(process.argv.slice(2));
 checkLogic();
 console.log("logic OK");
 if (args.has("--db")) await checkGeneration();
 if (args.has("--flow")) await checkFlow();
 if (args.has("--lock")) await checkLock();
+if (args.has("--suspects")) await checkSuspects();
 console.log("OK");
 process.exit(0);

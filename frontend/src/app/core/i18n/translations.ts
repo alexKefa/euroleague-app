@@ -28,6 +28,7 @@ import { legendaryVoteTranslations } from "./legendary-vote";
 import { liveCenterTranslations } from "./live-center";
 import { claimTranslations } from "./claim";
 import { adminTranslations } from "./admin";
+import { dailyQuestionTranslations } from "./daily-question";
 import { contestTranslations } from "./contest";
 import { whatsNewTranslations } from "./whats-new";
 import { achievementsTranslations } from "./achievements";
@@ -45,6 +46,7 @@ export type { Lang };
 // features from touching the same file.
 export const translations: Record<string, Record<Lang, string>> = {
   ...chromeTranslations,
+  ...dailyQuestionTranslations,
   ...authTranslations,
   ...dashboardTranslations,
   ...newsTranslations,

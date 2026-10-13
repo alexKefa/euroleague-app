@@ -3,6 +3,7 @@ import { sql, or, ilike, and, eq } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { users, leagues, leagueMembers } from "../db/schema.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
+import { getDailyQuestionSuspects } from "../services/dailyQuestion/service.js";
 import { pointsSqlExpr } from "../services/points.js";
 import { topScorerTotalsCte, TOP_SCORER_POINTS_PER_CORRECT } from "../services/topScorerPoints.js";
 import { syncRosterPhotos, syncCollectibleImages } from "../services/imageSync.js";
@@ -177,6 +178,17 @@ adminRouter.post("/sync-images", requireAuth, requireAdmin, async (_req, res) =>
 // Admin league membership (2026-10-02, "make users join leagues without
 // them doing it"): every league with its member count, for the Users page's
 // "Add to league" picker. Not just the admin's own leagues (/leagues/mine).
+// Daily Question accounts that answer near-perfectly and very fast
+// (services/dailyQuestion/service.ts) — flagged for a human, never banned.
+adminRouter.get("/daily-question/suspicious", requireAuth, requireAdmin, async (_req, res) => {
+  try {
+    res.json({ rows: await getDailyQuestionSuspects() });
+  } catch (err) {
+    console.error("GET /api/admin/daily-question/suspicious failed:", err);
+    res.status(500).json({ error: "Failed to load suspicious accounts" });
+  }
+});
+
 adminRouter.get("/leagues", requireAuth, requireAdmin, async (_req, res) => {
   const rows = await db.execute<{ id: string; name: string; code: string; member_count: number }>(sql`
     select l.id, l.name, l.code, count(m.id)::int as member_count

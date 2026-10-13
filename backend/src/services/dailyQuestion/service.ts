@@ -186,3 +186,26 @@ export async function answerDailyQuestion(
   if (!state.today) return { error: "not_started" };
   return state;
 }
+
+export type DqSuspect = { userId: string; username: string; answers: number; correctPct: number; medianResponseMs: number };
+
+/**
+ * Accounts worth a look (spec: "Bots and suspicious accounts"): at least 14
+ * answers in the last 30 days, ≥ 90% correct, median answer under 1.5 s.
+ * Flags only — an admin decides.
+ */
+export async function getDailyQuestionSuspects(): Promise<DqSuspect[]> {
+  const rows = (await db.execute<Row>(sql`
+    select dq.user_id, u.username, count(*)::int as answers,
+      round(100 * avg(dq.correct::int))::int as correct_pct,
+      round(percentile_cont(0.5) within group (order by dq.response_ms))::int as median_ms
+    from daily_questions dq
+    join users u on u.id = dq.user_id
+    where dq.answered_at is not null and dq.day >= current_date - 30
+    group by dq.user_id, u.username
+    having count(*) >= 14 and avg(dq.correct::int) >= 0.9
+      and percentile_cont(0.5) within group (order by dq.response_ms) < 1500
+    order by median_ms
+  `)) as Row[];
+  return rows.map((r) => ({ userId: r.user_id, username: r.username, answers: r.answers, correctPct: r.correct_pct, medianResponseMs: r.median_ms }));
+}

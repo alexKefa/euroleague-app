@@ -1623,6 +1623,15 @@ export interface FantasyMatchup {
   players: { id: string; name: string; injury: InjuryStatus | null }[];
 }
 
+// GET /admin/daily-question/suspicious (2026-10-13).
+export interface DailyQuestionSuspect {
+  userId: string;
+  username: string;
+  answers: number;
+  correctPct: number;
+  medianResponseMs: number;
+}
+
 export interface FantasyDvpEntry {
   allowed: number;
   rank: number;
