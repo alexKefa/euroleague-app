@@ -12,6 +12,7 @@ import {
   uniqueIndex,
   index,
   jsonb,
+  date,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
@@ -631,6 +632,37 @@ export const pointAdjustments = pgTable("point_adjustments", {
   // what you can afford, just not your rank.
   countsTowardRanking: boolean("counts_toward_ranking").default(true).notNull(),
 });
+
+// Daily Question (2026-10-13, docs/superpowers/specs/2026-10-13-daily-question-design.md):
+// one "who had more?" question per user per Europe/Athens day. value_a /
+// value_b are server-only until the row is resolved — never send them with
+// an unanswered question. resolved_at is the claim-first guard for the
+// point_adjustments payout (reason 'daily_question').
+export const dailyQuestions = pgTable(
+  "daily_questions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    day: date("day").notNull(),
+    template: varchar("template", { length: 16 }).notNull(), // last_night | last_game | last_3
+    stat: varchar("stat", { length: 16 }).notNull(), // points | rebounds | assists | pir | threes
+    playerAId: uuid("player_a_id").notNull().references(() => players.id),
+    playerBId: uuid("player_b_id").notNull().references(() => players.id),
+    valueA: integer("value_a").notNull(),
+    valueB: integer("value_b").notNull(),
+    servedAt: timestamp("served_at", { withTimezone: true }).notNull(),
+    answeredAt: timestamp("answered_at", { withTimezone: true }),
+    choice: varchar("choice", { length: 1 }), // a | b; null = timeout
+    correct: boolean("correct"),
+    responseMs: integer("response_ms"),
+    streak: integer("streak").notNull(),
+    pointsAwarded: integer("points_awarded"),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  },
+  (table) => ({
+    userDayUnique: uniqueIndex("daily_questions_user_day_unique").on(table.userId, table.day),
+  })
+);
 
 // Points reward-store catalog. imageUrl is optional — cards fall back to
 // generated placeholder art (tier + team color) when it's null.
