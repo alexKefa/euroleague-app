@@ -24,9 +24,9 @@ export function nextStreak(yesterdayStreak: number | null): number {
   return (yesterdayStreak ?? 0) + 1;
 }
 
-const STREAK_STEP = 3;
-const STREAK_CAP = 30;
-const CORRECT_BONUS = 30;
+export const STREAK_STEP = 3;
+export const STREAK_CAP = 30;
+export const CORRECT_BONUS = 30;
 
 export function pointsFor(
   streak: number,
