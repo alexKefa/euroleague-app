@@ -15,6 +15,7 @@ import { ConfirmDialogComponent } from "../../shared/confirm-dialog";
 import { StatLegendComponent, StatLegendEntry } from "../../shared/stat-legend";
 import { SearchInputComponent } from "../../shared/search-input";
 import { PageHeaderComponent } from "../../shared/page-header";
+import { BuilderStore } from "./builder-store";
 
 interface ColumnDef {
   key: string;
@@ -130,6 +131,7 @@ type ViewerDisplay = "table" | "chart";
   standalone: true,
   imports: [PageHeaderComponent, CommonModule, RouterLink, RetryImgDirective, ButtonDirective, ChipDirective, SkeletonComponent, ConfirmDialogComponent, StatLegendComponent, SearchInputComponent],
   templateUrl: "./analytics-builder.html",
+  providers: [BuilderStore],
 })
 export class AnalyticsBuilderComponent implements OnInit {
   private api = inject(ApiService);
