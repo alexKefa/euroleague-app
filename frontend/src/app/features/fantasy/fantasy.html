@@ -650,14 +650,16 @@
             }
           </div>
 
-          <!-- Formation | captain + Save. -->
-          <div class="flex items-stretch gap-2 pt-3 border-t border-line/60">
-            <div class="status-tile flex-1 min-w-0 grid grid-cols-[auto_1fr] gap-1 p-1 rounded-2xl border border-line">
+          <!-- Formation | captain + Save. On phones the captain tile takes its
+               own full-width row under Formation + Save (2026-10-14: squeezed
+               between them it had ~90px and its name vanished). -->
+          <div class="flex flex-wrap items-stretch gap-2 pt-3 border-t border-line/60">
+            <div class="status-tile flex-1 sm:flex-none min-w-0 flex p-1 rounded-2xl border border-line">
               <button
                 type="button"
                 (click)="showFormationPicker.set(true)"
                 [disabled]="editLocked()"
-                class="h-11 min-w-[4.75rem] px-3 rounded-xl flex flex-col items-start justify-center hover:bg-team-primary/10 disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors"
+                class="h-11 w-full min-w-[4.75rem] px-3 rounded-xl flex flex-col items-start justify-center hover:bg-team-primary/10 disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors"
               >
                 <span class="text-[9px] font-bold text-muted uppercase tracking-wider leading-none">{{ i18n.t('fantasy.formationLabel') }}</span>
                 <span class="flex items-center gap-1 font-mono text-[13px] font-bold text-ink leading-none mt-1">
@@ -665,30 +667,30 @@
                   <span class="text-muted text-[9px]">&#9662;</span>
                 </span>
               </button>
-              <!-- 2026-10-14 ("make captain set button bigger, more
-                   distinct"): team-tinted fill + border and a larger "C"
-                   so it reads as its own control, not a label. -->
-              <button
-                type="button"
-                (click)="showCaptainPicker.set(true)"
-                [disabled]="editLocked()"
-                class="min-h-[3rem] min-w-0 pl-2 pr-3 rounded-xl flex items-center gap-2 border-2 border-team-primary bg-team-primary/15 hover:bg-team-primary/25 active:scale-[0.98] disabled:opacity-40 disabled:hover:bg-team-primary/15 disabled:cursor-not-allowed transition"
-              >
-                @if (captainRow(); as cap) {
-                  <span class="w-8 h-8 rounded-full bg-team-primary text-team-secondary flex items-center justify-center font-display text-base shrink-0 shadow-card">C</span>
-                } @else {
-                  <span class="w-8 h-8 rounded-full border-2 border-dashed border-team-primary text-team-primary flex items-center justify-center font-display text-base shrink-0">C</span>
-                }
-                <span class="flex flex-col items-start min-w-0 flex-1">
-                  <span class="text-[10px] font-bold text-team-primary uppercase tracking-wider leading-none">{{ i18n.t('fantasy.captainLabel') }}</span>
-                  <span class="text-sm font-bold leading-tight mt-0.5 truncate w-full text-left" [ngClass]="captainRow() ? 'text-ink' : 'text-muted'">
-                    {{ captainRow() ? playerName(captainRow()!.player.name) : i18n.t('fantasy.captainPick') }}
-                  </span>
-                </span>
-                <span class="text-team-primary text-xs shrink-0">&#9662;</span>
-              </button>
             </div>
-            <div class="relative shrink-0 flex">
+            <!-- 2026-10-14 ("make captain set button bigger, more
+                 distinct"): team-tinted fill + border and a larger "C"
+                 so it reads as its own control, not a label. -->
+            <button
+              type="button"
+              (click)="showCaptainPicker.set(true)"
+              [disabled]="editLocked()"
+              class="order-3 sm:order-2 basis-full sm:basis-0 sm:flex-1 min-h-[3.25rem] min-w-0 pl-2 pr-3 rounded-2xl flex items-center gap-2 border-2 border-team-primary bg-team-primary/15 hover:bg-team-primary/25 active:scale-[0.98] disabled:opacity-40 disabled:hover:bg-team-primary/15 disabled:cursor-not-allowed transition"
+            >
+              @if (captainRow(); as cap) {
+                <span class="w-8 h-8 rounded-full bg-team-primary text-team-secondary flex items-center justify-center font-display text-base shrink-0 shadow-card">C</span>
+              } @else {
+                <span class="w-8 h-8 rounded-full border-2 border-dashed border-team-primary text-team-primary flex items-center justify-center font-display text-base shrink-0">C</span>
+              }
+              <span class="flex flex-col items-start min-w-0 flex-1">
+                <span class="text-[10px] font-bold text-team-primary uppercase tracking-wider leading-none">{{ i18n.t('fantasy.captainLabel') }}</span>
+                <span class="text-sm font-bold leading-tight mt-0.5 truncate w-full text-left" [ngClass]="captainRow() ? 'text-ink' : 'text-muted'">
+                  {{ captainRow() ? playerName(captainRow()!.player.name) : i18n.t('fantasy.captainPick') }}
+                </span>
+              </span>
+              <span class="text-team-primary text-xs shrink-0">&#9662;</span>
+            </button>
+            <div class="order-2 sm:order-3 relative shrink-0 flex">
               <button
                 type="button"
                 (click)="submit()"
