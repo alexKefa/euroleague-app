@@ -7,6 +7,7 @@ import { AnalyticsView, PlayerAdvancedStatsRow } from "../../core/models";
 import { formatStat, statByKey, type StatKey } from "../../shared/stat-catalog";
 import { FormulaError, compileFormula, evaluateFormula } from "./formula";
 import { percentileOf, selectPool, sortedValues } from "./percentiles";
+import { positionSet, topByPir } from "./quick-sets";
 import {
   ColumnRef,
   DEFAULT_COLUMNS,
@@ -43,7 +44,6 @@ export interface ResolvedColumn {
 
 type LoadState = "loading" | "ready" | "error";
 
-const QUICK_SET_SIZE = 5;
 const FAVORITES_CAP = 10;
 const POSITION_SETS: { id: QuickSetId; position: string; labelKey: string }[] = [
   { id: "guards", position: "Guard", labelKey: "builder.templateGuards" },
@@ -53,8 +53,6 @@ const POSITION_SETS: { id: QuickSetId; position: string; labelKey: string }[] = 
 
 const EMPTY_WORKSPACE: Workspace = { playerIds: [], columns: [], sort: null };
 
-const byPir = (a: PlayerAdvancedStatsRow, b: PlayerAdvancedStatsRow) => (b.stats.valuation ?? -Infinity) - (a.stats.valuation ?? -Infinity);
-const isRegular = (r: PlayerAdvancedStatsRow) => (r.stats.gamesPlayed ?? 0) >= 5 && (r.stats.minutesPerGame ?? 0) >= 10;
 const statsContext = (r: PlayerAdvancedStatsRow) => r.stats as unknown as Record<string, number | null>;
 
 /**
@@ -173,13 +171,12 @@ export class BuilderStore {
       .map((f) => f.id)
       .filter((id) => known.has(id))
       .slice(0, FAVORITES_CAP);
-    const top = (filter: (r: PlayerAdvancedStatsRow) => boolean) => rows.filter(filter).sort(byPir).slice(0, QUICK_SET_SIZE).map((r) => r.player.id);
     const reason = (ok: boolean, key: string) => (!authed ? "builder.quick.loginNeeded" : ok ? null : key);
     return [
-      { id: "myTeam", labelKey: "builder.quick.myTeam", playerIds: teamId ? top((r) => r.team.id === teamId) : [], disabledReasonKey: reason(!!teamId, "builder.quick.noTeam") },
+      { id: "myTeam", labelKey: "builder.quick.myTeam", playerIds: teamId ? topByPir(rows.filter((r) => r.team.id === teamId)) : [], disabledReasonKey: reason(!!teamId, "builder.quick.noTeam") },
       { id: "fantasy", labelKey: "builder.quick.fantasy", playerIds: fantasy, disabledReasonKey: reason(fantasy.length > 0, "builder.quick.noSquad") },
       { id: "favorites", labelKey: "builder.quick.favorites", playerIds: favorites, disabledReasonKey: reason(favorites.length > 0, "builder.quick.noFavorites") },
-      ...POSITION_SETS.map((p) => ({ id: p.id, labelKey: p.labelKey, playerIds: top((r) => r.player.position === p.position && isRegular(r)), disabledReasonKey: null })),
+      ...POSITION_SETS.map((p) => ({ id: p.id, labelKey: p.labelKey, playerIds: positionSet(rows, p.position), disabledReasonKey: null })),
     ];
   });
 

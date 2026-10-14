@@ -1,6 +1,7 @@
 // Pure-logic checks for the Analytics Builder (no test suite in this repo).
 // Run: cd backend && npx tsx ../frontend/scripts/check-builder-logic.ts
 import { compileFormula, evaluateFormula } from "../src/app/features/analytics-builder/formula";
+import { positionSet } from "../src/app/features/analytics-builder/quick-sets";
 import { percentileOf, selectPool, sortedValues, topPercent } from "../src/app/features/analytics-builder/percentiles";
 import { columnId, decodeView, encodeWorkspace, sameWorkspace, type Workspace } from "../src/app/features/analytics-builder/workspace";
 import type { AnalyticsView, PlayerAdvancedStatsRow } from "../src/app/core/models";
@@ -95,6 +96,16 @@ check("fallback pool drops 0-game rows", () => eq(selectPool([...fakeRows([1, 2]
 check("topPercent floor", () => {
   eq(topPercent(100), 1);
   eq(topPercent(92), 8);
+});
+
+// --- Quick sets ---
+function positioned(values: number[], position: string, opts: { gp?: number; min?: number; id?: string } = {}): PlayerAdvancedStatsRow[] {
+  return fakeRows(values, opts).map((r, i) => ({ ...r, player: { ...r.player, id: (opts.id ?? position) + i, position }, stats: { ...r.stats, valuation: values[i] } })) as PlayerAdvancedStatsRow[];
+}
+check("position set early season (no regulars yet)", () => eq(positionSet(positioned([5, 9, 7, 1, 3, 8], "Guard", { gp: 1 }), "Guard").join(), "Guard1,Guard5,Guard2,Guard0,Guard4"));
+check("position set skips 2-game rows once 40+ are regulars", () => {
+  const rows = [...positioned(Array(40).fill(1), "Center", { gp: 6 }), ...positioned([99], "Guard", { gp: 2, id: "bench" }), ...positioned([10], "Guard", { gp: 6, id: "starter" })];
+  eq(positionSet(rows, "Guard").join(), "starter0");
 });
 
 // --- Workspace codec ---
