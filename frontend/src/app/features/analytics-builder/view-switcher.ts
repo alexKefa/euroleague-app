@@ -46,7 +46,7 @@ const NEW_OPTION = "__unsaved__";
           <div class="relative">
             <button
               type="button"
-              class="tap-target h-10 w-10 flex items-center justify-center rounded-xl border border-line bg-card text-lg leading-none"
+              class="tap-target relative h-10 w-10 flex items-center justify-center rounded-xl border border-line bg-card text-lg leading-none"
               [attr.aria-label]="i18n.t('builder.viewActions')"
               [attr.aria-expanded]="menuOpen()"
               (click)="menuOpen.set(!menuOpen())"
