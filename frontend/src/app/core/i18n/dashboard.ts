@@ -27,7 +27,6 @@ export const dashboardTranslations: Record<string, Record<Lang, string>> = {
 
 
 
-  "dashboard.sponsorTag": { en: "SPONSOR", el: "ΧΟΡΗΓΟΣ" },
 
   // Round header (2026-10-07 dashboard redesign, round-header.ts).
   "dashboard.roundHeader.round": { en: "Round {n}", el: "Αγωνιστική {n}" },

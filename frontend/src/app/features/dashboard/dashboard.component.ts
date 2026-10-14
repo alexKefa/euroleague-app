@@ -32,7 +32,7 @@ function athensDateKey(d: Date): string {
  * Home screen. Redesigned 2026-10-07 around "what's open this round"
  * (docs/superpowers/specs/2026-10-07-dashboard-round-checklist-design.md):
  * round header + checklist first, then the next game, Live Center (only on
- * game days), the sponsor ticker, one compact league block and a slim
+ * game days), one compact league block and a slim
  * leagues/fantasy row. The round prize banner, economy hint and the tabbed
  * Performances/Leaders/Predictors/Schedule card were removed.
  */
@@ -66,11 +66,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private theme = inject(ThemeService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
-
-  // Sponsor ticker (2026-09-13): a static paid slot, no sponsor backend yet.
-  // First real sponsor: Υγειοσωματική (a gym), linking to their Instagram.
-  readonly sponsorText = "Υγειοσωματική — Δύναμη για κάθε buzzer-beater. Ακολούθησέ μας στο Instagram.";
-  readonly sponsorLink = "https://www.instagram.com/igiosomatiki/";
 
   readonly standings = signal<StandingsRow[]>([]);
   readonly loading = signal(true);

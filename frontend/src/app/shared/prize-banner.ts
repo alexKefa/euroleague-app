@@ -18,9 +18,7 @@ const PODIUM = [
 // git history) didn't "show what the prize is" or carry any real visual
 // weight, per direct feedback. Deliberately styled as its own fixed
 // gold/amber card rather than following the app's theme-variable colors
-// (--color-card/--color-ink/etc.) — same reasoning as dashboard's sponsor
-// ticker (dashboard.component.html) staying a fixed flat-black strip
-// regardless of light/dark mode: a "real prize" card reads as a distinct,
+// (--color-card/--color-ink/etc.): a "real prize" card reads as a distinct,
 // special object, not another themed content tile, and should look
 // identical to every viewer regardless of their theme or favorite team.
 @Component({

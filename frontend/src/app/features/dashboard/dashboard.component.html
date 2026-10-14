@@ -40,7 +40,7 @@
     }
 
     <!-- lg+: personal column (header, checklist, next game, leagues/fantasy)
-         on the left, league column (live, sponsor, league block) on the
+         on the left, league column (live, league block) on the
          right. Below lg both wrappers are display:contents and order-N sets
          the phone order. -->
     <div class="flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_21rem] lg:gap-x-6 lg:items-start">
@@ -132,23 +132,6 @@
         @if (showLiveCenter()) {
           <app-live-center class="order-4" />
         }
-
-        <!-- Sponsor ticker (2026-09-13): a paid placement styled as a flat
-             black LED board so it reads as sponsored, not an app feature. -->
-        <a
-          [href]="sponsorLink"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="order-5 sponsor-ticker rounded-3xl mb-4 flex items-center gap-3 px-4 py-3"
-        >
-          <span class="sponsor-tag shrink-0">{{ i18n.t('dashboard.sponsorTag') }}</span>
-          <div class="sponsor-ticker-viewport">
-            <div class="sponsor-ticker-track">
-              <span class="sponsor-ticker-text">{{ sponsorText }}</span>
-              <span class="sponsor-ticker-text" aria-hidden="true">{{ sponsorText }}</span>
-            </div>
-          </div>
-        </a>
 
         <app-league-block class="order-6 block" [news]="news()" [standings]="standings()" [myTeamId]="selectedTeamId()" />
       </div>
