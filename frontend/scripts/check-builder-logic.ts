@@ -1,5 +1,6 @@
 // Pure-logic checks for the Analytics Builder (no test suite in this repo).
 // Run: cd backend && npx tsx ../frontend/scripts/check-builder-logic.ts
+import { compileFormula, evaluateFormula } from "../src/app/features/analytics-builder/formula";
 import { STAT_CATALOG, formatStat, statByAlias, statByKey } from "../src/app/shared/stat-catalog";
 
 const failures: string[] = [];
@@ -36,6 +37,33 @@ check("formatStat", () => {
   eq(formatStat("int", 12), "12");
   eq(formatStat("dec1", null), "—");
 });
+
+// --- Formulas ---
+const ctx = { pointsPerGame: 16, reboundsPerGame: 3, assistsPerGame: 6, minutesPerGame: 32, stealsPerGame: 1, blocksPerGame: null };
+const run = (src: string) => {
+  const c = compileFormula(src);
+  if ("error" in c) throw new Error(c.error.code);
+  return evaluateFormula(c.node, ctx);
+};
+check("alias formula", () => eq(run("PTS + REB + AST"), 25));
+check("lowercase alias", () => eq(run("pts / min * 40"), 20));
+check("legacy camelCase still works", () => eq(run("pointsPerGame + assistsPerGame"), 22));
+check("null propagates", () => eq(run("STL + BLK"), null));
+check("divide by zero → null", () => eq(run("PTS / 0"), null));
+const err = (src: string) => {
+  const c = compileFormula(src);
+  return "error" in c ? c.error : null;
+};
+check("unknown field code", () => {
+  const e = err("PTS + FOO");
+  eq(e?.code, "unknownField");
+  eq(e?.params?.text, "FOO");
+});
+check("empty", () => eq(err("  ")?.code, "empty"));
+check("missing paren", () => eq(err("(PTS + REB")?.code, "missingParen"));
+check("ends early", () => eq(err("PTS +")?.code, "endsEarly"));
+check("trailing text", () => eq(err("PTS REB")?.code, "trailingText"));
+check("bad char", () => eq(err("PTS % 2")?.code, "unexpectedChar"));
 
 if (failures.length) {
   for (const f of failures) console.error("FAIL", f);

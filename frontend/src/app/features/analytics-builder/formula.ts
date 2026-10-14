@@ -1,18 +1,60 @@
 // A small, safe arithmetic expression parser/evaluator for the builder's
 // custom columns — deliberately not eval()/Function(): this only ever
 // needs "+ - * / ( )" over named stat fields, and a real parser means a
-// typo produces a specific, quotable error message instead of a silent
-// wrong answer or a thrown SyntaxError with no context. Grammar:
+// typo produces a specific error instead of a silent wrong answer.
+// Grammar:
 //   expr := term (('+' | '-') term)*
 //   term := unary (('*' | '/') unary)*
 //   unary := '-' unary | '+' unary | primary
 //   primary := number | identifier | '(' expr ')'
+//
+// Identifiers are the stat catalog's aliases (PTS, REB, FG_PCT, any case);
+// the legacy camelCase keys (pointsPerGame) still resolve so views saved
+// before 2026-10-14 keep evaluating. Errors are codes, translated by the UI.
+
+import { statByAlias, statByKey, type StatKey } from "../../shared/stat-catalog";
 
 export type FormulaNode =
   | { kind: "num"; value: number }
   | { kind: "var"; name: string }
   | { kind: "neg"; value: FormulaNode }
   | { kind: "bin"; op: "+" | "-" | "*" | "/"; left: FormulaNode; right: FormulaNode };
+
+export type FormulaErrorCode =
+  | "empty"
+  | "endsEarly"
+  | "missingParen"
+  | "unexpectedChar"
+  | "unexpectedToken"
+  | "trailingText"
+  | "badNumber"
+  | "unknownField";
+
+export interface FormulaError {
+  code: FormulaErrorCode;
+  params?: { text: string };
+}
+
+class FormulaParseError extends Error {
+  constructor(readonly detail: FormulaError) {
+    super(detail.code);
+  }
+}
+
+function fail(code: FormulaErrorCode, text?: string): never {
+  throw new FormulaParseError(text === undefined ? { code } : { code, params: { text } });
+}
+
+export type Resolver = (name: string) => StatKey | null;
+
+export const resolveStatName: Resolver = (name) => statByAlias(name)?.key ?? statByKey(name)?.key ?? null;
+
+export const FORMULA_PRESETS: readonly { id: "pra" | "stocks" | "per40"; labelKey: string; expression: string }[] = [
+  { id: "pra", labelKey: "builder.preset.pra", expression: "PTS + REB + AST" },
+  { id: "stocks", labelKey: "builder.preset.stocks", expression: "STL + BLK" },
+  // {X} is replaced with the stat the user picks.
+  { id: "per40", labelKey: "builder.preset.per40", expression: "{X} / MIN * 40" },
+];
 
 type Token = { type: "num"; value: number } | { type: "id"; name: string } | { type: "punct"; value: string };
 
@@ -30,7 +72,7 @@ function tokenize(source: string): Token[] {
       while (j < source.length && /[0-9.]/.test(source[j])) j++;
       const raw = source.slice(i, j);
       const value = Number(raw);
-      if (Number.isNaN(value)) throw new Error(`"${raw}" isn't a valid number`);
+      if (Number.isNaN(value)) fail("badNumber", raw);
       tokens.push({ type: "num", value });
       i = j;
       continue;
@@ -47,7 +89,7 @@ function tokenize(source: string): Token[] {
       i++;
       continue;
     }
-    throw new Error(`Unexpected character "${ch}"`);
+    fail("unexpectedChar", ch);
   }
   return tokens;
 }
@@ -110,51 +152,50 @@ function parseUnary(s: TokenStream): FormulaNode {
 
 function parsePrimary(s: TokenStream): FormulaNode {
   const t = s.next();
-  if (!t) throw new Error("Formula ends too early");
+  if (!t) return fail("endsEarly");
   if (t.type === "num") return { kind: "num", value: t.value };
   if (t.type === "id") return { kind: "var", name: t.name };
   if (isPunct(t, "(")) {
     const node = parseExpr(s);
-    if (!isPunct(s.next(), ")")) throw new Error("Missing closing parenthesis");
+    if (!isPunct(s.next(), ")")) fail("missingParen");
     return node;
   }
-  throw new Error(`Unexpected "${t.type === "punct" ? t.value : ""}"`);
+  return fail("unexpectedToken", t.value);
 }
 
 export function parseFormula(source: string): FormulaNode {
   const trimmed = source.trim();
-  if (!trimmed) throw new Error("Formula can't be empty");
+  if (!trimmed) fail("empty");
   const stream = new TokenStream(tokenize(trimmed));
   const node = parseExpr(stream);
-  if (!stream.atEnd()) throw new Error("Unexpected text after the formula");
+  if (!stream.atEnd()) fail("trailingText");
   return node;
 }
 
-function collectVarNames(node: FormulaNode, out: Set<string>): void {
-  if (node.kind === "var") out.add(node.name);
-  else if (node.kind === "neg") collectVarNames(node.value, out);
-  else if (node.kind === "bin") {
-    collectVarNames(node.left, out);
-    collectVarNames(node.right, out);
+// Rewrites every identifier to the stat key it names, so evaluation reads
+// row stats directly; the first unknown name is the error.
+function resolveVars(node: FormulaNode, resolve: Resolver): FormulaNode {
+  switch (node.kind) {
+    case "num":
+      return node;
+    case "var": {
+      const key = resolve(node.name);
+      return key ? { kind: "var", name: key } : fail("unknownField", node.name);
+    }
+    case "neg":
+      return { kind: "neg", value: resolveVars(node.value, resolve) };
+    case "bin":
+      return { ...node, left: resolveVars(node.left, resolve), right: resolveVars(node.right, resolve) };
   }
 }
 
-// Parses and checks every referenced field is one of knownFields, in one
-// call — the shape editor UI actually needs (a specific error string, or a
-// ready-to-evaluate node).
-export function compileFormula(source: string, knownFields: ReadonlySet<string>): { node: FormulaNode } | { error: string } {
-  let node: FormulaNode;
+export function compileFormula(source: string, resolve: Resolver = resolveStatName): { node: FormulaNode } | { error: FormulaError } {
   try {
-    node = parseFormula(source);
+    return { node: resolveVars(parseFormula(source), resolve) };
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Invalid formula" };
+    if (err instanceof FormulaParseError) return { error: err.detail };
+    throw err;
   }
-  const names = new Set<string>();
-  collectVarNames(node, names);
-  for (const name of names) {
-    if (!knownFields.has(name)) return { error: `Unknown field "${name}"` };
-  }
-  return { node };
 }
 
 export function evaluateFormula(node: FormulaNode, context: Readonly<Record<string, number | null | undefined>>): number | null {

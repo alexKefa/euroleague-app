@@ -115,6 +115,18 @@ export const analyticsBuilderTranslations: Record<string, Record<Lang, string>> 
   "builder.stat.THREE_PA_RATE": { en: "3PAr", el: "3PAr" },
   "builder.stat.FT_RATE": { en: "FTr", el: "FTr" },
 
+  "builder.formulaError.empty": { en: "Write a formula.", el: "Γράψε έναν τύπο." },
+  "builder.formulaError.endsEarly": { en: "The formula ends too early.", el: "Ο τύπος τελειώνει πολύ νωρίς." },
+  "builder.formulaError.missingParen": { en: "A closing parenthesis is missing.", el: "Λείπει μια παρένθεση που κλείνει." },
+  "builder.formulaError.unexpectedChar": { en: "“{text}” can't be used in a formula.", el: "Το «{text}» δεν επιτρέπεται σε τύπο." },
+  "builder.formulaError.unexpectedToken": { en: "Unexpected “{text}”.", el: "Απρόσμενο «{text}»." },
+  "builder.formulaError.trailingText": { en: "Something is left over after the formula — a missing + or *?", el: "Περισσεύει κάτι μετά τον τύπο — λείπει ένα + ή *;" },
+  "builder.formulaError.badNumber": { en: "“{text}” isn't a valid number.", el: "Το «{text}» δεν είναι έγκυρος αριθμός." },
+  "builder.formulaError.unknownField": { en: "Unknown stat “{text}”.", el: "Άγνωστο στατιστικό «{text}»." },
+  "builder.preset.pra": { en: "PRA (PTS+REB+AST)", el: "PRA (ΠΟΝ+ΡΙΜ+ΑΣΙΣ)" },
+  "builder.preset.stocks": { en: "Stocks (STL+BLK)", el: "Κλεψίματα+Τάπες" },
+  "builder.preset.per40": { en: "Per 40 min", el: "Ανά 40'" },
+
   "builder.group.scoring": { en: "Scoring", el: "Σκοράρισμα" },
   "builder.group.shooting": { en: "Shooting", el: "Σουτ" },
   "builder.group.playmaking": { en: "Playmaking", el: "Δημιουργία" },

@@ -197,7 +197,7 @@ export class AnalyticsBuilderComponent implements OnInit {
     const keySet = new Set(view.columns);
     const builtIn = COLUMNS.filter((c) => keySet.has(c.key));
     const custom = view.customColumns.map((cc): ColumnDef => {
-      const compiled = compileFormula(cc.expression, FORMULA_FIELDS);
+      const compiled = compileFormula(cc.expression);
       const node: FormulaNode | null = "node" in compiled ? compiled.node : null;
       const get = (row: PlayerAdvancedStatsRow): number | null => (node ? evaluateFormula(node, contextFromStats(row.stats)) : null);
       return {
@@ -448,8 +448,8 @@ export class AnalyticsBuilderComponent implements OnInit {
     if (!label) return this.i18n.t("builder.customColumnErrorLabel");
     if (label.length > 40) return this.i18n.t("builder.customColumnErrorLabelLength");
     if (!expression) return this.i18n.t("builder.customColumnErrorExpression");
-    const compiled = compileFormula(expression, FORMULA_FIELDS);
-    return "error" in compiled ? compiled.error : null;
+    const compiled = compileFormula(expression);
+    return "error" in compiled ? this.i18n.t("builder.formulaError." + compiled.error.code).replace("{text}", compiled.error.params?.text ?? "") : null;
   }
 
   save(): void {
