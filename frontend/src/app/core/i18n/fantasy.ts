@@ -15,8 +15,8 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.locked": { en: "Locked for this round", el: "Κλειδωμένη για αυτή την αγωνιστική" },
   "fantasy.subsOnly": { en: "Subs only", el: "Μόνο αλλαγές" },
   "fantasy.subsWindowOpen": {
-    en: "Round in progress — transfers and coach are closed. Players who haven't played yet can still move anywhere (formation included) and take the captaincy; players who already played can move to the bench, but a bench player who already played stays on the bench.",
-    el: "Η αγωνιστική είναι σε εξέλιξη — οι μεταγραφές και ο προπονητής έκλεισαν. Οι παίκτες που δεν έχουν αγωνιστεί ακόμα μπορούν να αλλάξουν οποιαδήποτε θέση (και σχηματισμό) και να πάρουν το περιβραχιόνιο· όσοι έχουν ήδη αγωνιστεί μπορούν να πάνε στον πάγκο, αλλά παίκτης του πάγκου που έχει ήδη αγωνιστεί μένει στον πάγκο.",
+    en: "Round in progress — transfers and coach are closed. Players who haven't played yet can still move anywhere (formation included) and take the captaincy; players who already played can only move down (starting five → sixth man → bench), never up.",
+    el: "Η αγωνιστική είναι σε εξέλιξη — οι μεταγραφές και ο προπονητής έκλεισαν. Οι παίκτες που δεν έχουν αγωνιστεί ακόμα μπορούν να αλλάξουν οποιαδήποτε θέση (και σχηματισμό) και να πάρουν το περιβραχιόνιο· όσοι έχουν ήδη αγωνιστεί μπορούν να μετακινηθούν μόνο προς τα κάτω (πεντάδα → έκτος παίκτης → πάγκος), ποτέ προς τα πάνω.",
   },
   "fantasy.lockCountdown": { en: "Locks at first tipoff:", el: "Κλειδώνει στο πρώτο τζάμπολ:" },
   "fantasy.daysWord": { en: "days", el: "ημέρες" },
@@ -124,8 +124,8 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.coachLocked": { en: "Coach locked for this round.", el: "Ο προπονητής κλείδωσε για αυτή την αγωνιστική." },
   "fantasy.formationTitle": { en: "Choose a formation", el: "Επιλογή σχηματισμού" },
   "fantasy.saveError.PLAYER_PLAYED": {
-    en: "A bench player who already played can't move into the starting five or sixth man spot.",
-    el: "Παίκτης του πάγκου που έχει ήδη αγωνιστεί δεν μπορεί να μπει στην αρχική πεντάδα ή ως έκτος παίκτης.",
+    en: "A player who already played can only move down: starting five → sixth man → bench.",
+    el: "Παίκτης που έχει ήδη αγωνιστεί μετακινείται μόνο προς τα κάτω: πεντάδα → έκτος παίκτης → πάγκος.",
   },
   "fantasy.saveError.CAPTAIN_PLAYED": {
     en: "The captaincy can only go to a player who hasn't played yet.",
@@ -140,8 +140,8 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
     el: "Οι αλλαγές ανοίγουν ξανά το πρωί μετά από κάθε αγωνιστική μέρα, όταν τελειώσουν τα παιχνίδια της.",
   },
   "fantasy.formationMidRoundHint": {
-    en: "Round in progress: some formations are unavailable because bench players who already played can't become starters.",
-    el: "Η αγωνιστική είναι σε εξέλιξη: ορισμένοι σχηματισμοί δεν είναι διαθέσιμοι επειδή οι παίκτες του πάγκου που έχουν ήδη αγωνιστεί δεν μπορούν να γίνουν βασικοί.",
+    en: "Round in progress: some formations are unavailable because bench players and the sixth man who already played can't become starters.",
+    el: "Η αγωνιστική είναι σε εξέλιξη: ορισμένοι σχηματισμοί δεν είναι διαθέσιμοι επειδή οι παίκτες του πάγκου και ο έκτος παίκτης που έχουν ήδη αγωνιστεί δεν μπορούν να γίνουν βασικοί.",
   },
   "fantasy.saveShort": { en: "Save", el: "Αποθήκευση" },
   "fantasy.swapPlayer": { en: "Swap", el: "Αλλαγή" },

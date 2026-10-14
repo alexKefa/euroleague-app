@@ -85,6 +85,9 @@ type SortKey = "name" | "price" | "pointsPerGame" | "valuation" | "matchup";
 type PositionFilter = "Guard" | "Forward" | "Center" | null;
 type PositionName = "Guard" | "Forward" | "Center";
 
+// Mid-round, a player who already played may only move down this order.
+const ROLE_RANK: Record<FantasySlotRole, number> = { starter: 0, sixth_man: 1, bench: 2 };
+
 interface SquadSlot {
   id: string;
   role: FantasySlotRole;
@@ -2360,8 +2363,8 @@ export class FantasyComponent implements OnInit {
   // man -> bench, bench player -> five) or a smarter pick of who to bench.
   // It now searches every split of the squad into five / sixth man / bench
   // (at most 252 x 5 for a 10-man squad) under exactly the backend's rule —
-  // a played bench player stays on the bench — and keeps the split that
-  // moves the fewest players.
+  // a played player never moves up (bench -> sixth man -> five) — and
+  // keeps the split that moves the fewest players.
   private planMidRoundFormation(next: Formation): SquadSlot[] | null {
     const byId = this.rowById();
     const need: Record<PositionName, number> = { Guard: 0, Forward: 0, Center: 0 };
@@ -2383,7 +2386,7 @@ export class FantasyComponent implements OnInit {
       let cost = 0;
       for (let i = 0; i < n; i++) {
         const p = players[i];
-        if (p.played && p.role === "bench" && roles[i] !== "bench") return;
+        if (p.played && ROLE_RANK[roles[i]] < ROLE_RANK[p.role]) return;
         if (p.role !== roles[i]) cost++;
       }
       if (cost < bestCost) {
@@ -2514,6 +2517,9 @@ export class FantasyComponent implements OnInit {
   // can't become starters"): a played starter or sixth man may now drop to
   // the bench; only the bench -> five/sixth direction stays closed. Before,
   // a mostly-played five was pinned in place and only one formation fit.
+  // Same day, the sixth man counts as bench for this ("6th player can never
+  // be changed to main squad as soon as his day of playing has [passed]"):
+  // a played player only ever moves down, five -> sixth man -> bench.
   isPlayerLocked(playerId: string): boolean {
     if (this.editLocked()) return true;
     if (!this.hasPlayed(playerId)) return false;
@@ -2523,7 +2529,7 @@ export class FantasyComponent implements OnInit {
   // Whether this player may end up in a slot of role `to`.
   canTakeRole(playerId: string, from: FantasySlotRole, to: FantasySlotRole): boolean {
     if (this.editLocked()) return false;
-    return !this.hasPlayed(playerId) || from !== "bench" || to === "bench";
+    return !this.hasPlayed(playerId) || ROLE_RANK[to] >= ROLE_RANK[from];
   }
 
   // Both sides of a two-slot swap may take each other's role.

@@ -665,23 +665,27 @@
                   <span class="text-muted text-[9px]">&#9662;</span>
                 </span>
               </button>
+              <!-- 2026-10-14 ("make captain set button bigger, more
+                   distinct"): team-tinted fill + border and a larger "C"
+                   so it reads as its own control, not a label. -->
               <button
                 type="button"
                 (click)="showCaptainPicker.set(true)"
                 [disabled]="editLocked()"
-                class="h-11 min-w-0 px-3 rounded-xl flex flex-col items-start justify-center hover:bg-team-primary/10 disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors"
+                class="min-h-[3rem] min-w-0 pl-2 pr-3 rounded-xl flex items-center gap-2 border-2 border-team-primary bg-team-primary/15 hover:bg-team-primary/25 active:scale-[0.98] disabled:opacity-40 disabled:hover:bg-team-primary/15 disabled:cursor-not-allowed transition"
               >
-                <span class="text-[9px] font-bold text-muted uppercase tracking-wider leading-none">{{ i18n.t('fantasy.captainLabel') }}</span>
-                <span class="flex items-center gap-1.5 text-[13px] font-bold text-ink leading-none mt-1 min-w-0 w-full">
-                  @if (captainRow(); as cap) {
-                    <span class="w-4 h-4 rounded-full bg-team-primary text-team-secondary flex items-center justify-center text-[9px] font-bold shrink-0">C</span>
-                    <span class="truncate">{{ playerName(cap.player.name) }}</span>
-                  } @else {
-                    <span class="w-4 h-4 rounded-full border border-dashed border-muted flex items-center justify-center text-[9px] shrink-0 text-muted">C</span>
-                    <span class="truncate text-muted">{{ i18n.t('fantasy.captainPick') }}</span>
-                  }
-                  <span class="text-muted text-[9px] shrink-0">&#9662;</span>
+                @if (captainRow(); as cap) {
+                  <span class="w-8 h-8 rounded-full bg-team-primary text-team-secondary flex items-center justify-center font-display text-base shrink-0 shadow-card">C</span>
+                } @else {
+                  <span class="w-8 h-8 rounded-full border-2 border-dashed border-team-primary text-team-primary flex items-center justify-center font-display text-base shrink-0">C</span>
+                }
+                <span class="flex flex-col items-start min-w-0 flex-1">
+                  <span class="text-[10px] font-bold text-team-primary uppercase tracking-wider leading-none">{{ i18n.t('fantasy.captainLabel') }}</span>
+                  <span class="text-sm font-bold leading-tight mt-0.5 truncate w-full text-left" [ngClass]="captainRow() ? 'text-ink' : 'text-muted'">
+                    {{ captainRow() ? playerName(captainRow()!.player.name) : i18n.t('fantasy.captainPick') }}
+                  </span>
                 </span>
+                <span class="text-team-primary text-xs shrink-0">&#9662;</span>
               </button>
             </div>
             <div class="relative shrink-0 flex">
@@ -2075,19 +2079,17 @@
         <button type="button" (click)="slotMenuPlayerId.set(null)" class="text-muted hover:text-ink text-2xl leading-none font-bold shrink-0" [attr.aria-label]="i18n.t('fantasy.close')">&times;</button>
       </div>
       <div class="grid grid-cols-2 gap-2">
-        <!-- Captain is the headline action (2026-10-14, "make captain set
-             button bigger, more distinct"): full width, solid team fill. -->
-        @if (acts.captain) {
-          <button type="button" (click)="slotMenuDo('captain')" class="col-span-2 h-14 rounded-2xl bg-team-primary text-team-secondary shadow-card hover:brightness-110 active:scale-[0.98] flex items-center justify-center gap-2.5 text-base font-bold transition">
-            <span class="w-7 h-7 rounded-full bg-team-secondary text-team-primary font-display text-sm flex items-center justify-center" aria-hidden="true">C</span>{{ i18n.t('fantasy.makeCaptain') }}
-          </button>
-        }
         <button type="button" (click)="slotMenuDo('info')" class="h-12 rounded-2xl border border-line bg-page hover:border-team-primary flex items-center justify-center gap-2 text-[13px] font-bold text-ink transition-colors">
           <span class="text-team-primary text-base leading-none" aria-hidden="true">&#9432;</span>{{ i18n.t('fantasy.actionInfo') }}
         </button>
         @if (acts.swap) {
           <button type="button" (click)="slotMenuDo('swap')" class="h-12 rounded-2xl border border-line bg-page hover:border-team-primary flex items-center justify-center gap-2 text-[13px] font-bold text-ink transition-colors">
             <span class="text-team-primary text-base leading-none" aria-hidden="true">&#8645;</span>{{ i18n.t('fantasy.swapPlayer') }}
+          </button>
+        }
+        @if (acts.captain) {
+          <button type="button" (click)="slotMenuDo('captain')" class="h-12 rounded-2xl border border-line bg-page hover:border-team-primary flex items-center justify-center gap-2 text-[13px] font-bold text-ink transition-colors">
+            <span class="w-5 h-5 rounded-full bg-team-primary text-team-secondary text-[10px] font-bold flex items-center justify-center" aria-hidden="true">C</span>{{ i18n.t('fantasy.makeCaptain') }}
           </button>
         }
         @if (acts.remove) {

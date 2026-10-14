@@ -48,6 +48,9 @@ export const FANTASY_POSITION_QUOTA: Record<"Guard" | "Forward" | "Center", numb
 // one of these shapes, rather than an arbitrary 5-of-10 split that might
 // match none of them. Keep in sync with the frontend list by hand if a
 // formation is ever added/removed there.
+// Mid-round, a player who already played may only move down this order.
+const SLOT_ROLE_RANK: Record<string, number> = { starter: 0, sixth_man: 1, bench: 2 };
+
 const FANTASY_FORMATION_VECTORS: Record<"Guard" | "Forward" | "Center", number>[] = [
   { Guard: 2, Forward: 2, Center: 1 }, // 2-2-1
   { Guard: 2, Forward: 1, Center: 2 }, // 2-1-2
@@ -828,9 +831,11 @@ async function saveMidRoundSubstitutions(
   // 2026-10-14: matching Dunkest ("bench players who already played can't
   // become starters"), a played starter/sixth man may also drop to the
   // bench (scoring 50% from then on); only bench -> front stays blocked.
+  // Same day, the sixth man joins the bench for this: a played player only
+  // moves down, starter -> sixth man -> bench, never up.
   const movedPlayed = entries.find((e) => {
     const existing = existingByPlayerId.get(e.playerId)!;
-    return startedTeamIds.has(existing.teamId) && existing.slotRole === "bench" && e.slotRole !== "bench";
+    return startedTeamIds.has(existing.teamId) && SLOT_ROLE_RANK[e.slotRole] < SLOT_ROLE_RANK[existing.slotRole];
   });
   if (movedPlayed) {
     return { error: "A player whose game has already been played can't change slot", code: "PLAYER_PLAYED", playerId: movedPlayed.playerId };
