@@ -51,6 +51,8 @@ export class RoundStatusService {
   });
   private readonly spin = signal<SpinStatus | null>(null);
   private readonly history = signal<PredictionHistoryRound[] | null>(null);
+  // The results strip reads this for each finished game's ✓/✗.
+  readonly predictionHistory = this.history.asReadonly();
 
   readonly status = computed<RoundStatus | null>(() => {
     const schedule = this.scheduleSig();

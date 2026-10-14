@@ -46,6 +46,7 @@
     <div class="flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_21rem] lg:gap-x-6 lg:items-start">
       <div class="contents lg:block lg:col-start-1 lg:row-start-1 lg:min-w-0">
         <app-round-header class="order-1 block" [rank]="myRank()" />
+        <app-results-strip class="order-1 block" [myTeamId]="selectedTeamId()" />
         <app-round-checklist class="order-2 block" />
         <app-daily-question-card class="order-2 block" />
         <app-packs-waiting class="order-2 block" />
