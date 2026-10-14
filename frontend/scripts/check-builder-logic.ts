@@ -1,6 +1,8 @@
 // Pure-logic checks for the Analytics Builder (no test suite in this repo).
 // Run: cd backend && npx tsx ../frontend/scripts/check-builder-logic.ts
 import { compileFormula, evaluateFormula } from "../src/app/features/analytics-builder/formula";
+import { percentileOf, selectPool, sortedValues, topPercent } from "../src/app/features/analytics-builder/percentiles";
+import type { PlayerAdvancedStatsRow } from "../src/app/core/models";
 import { STAT_CATALOG, formatStat, statByAlias, statByKey } from "../src/app/shared/stat-catalog";
 
 const failures: string[] = [];
@@ -64,6 +66,35 @@ check("missing paren", () => eq(err("(PTS + REB")?.code, "missingParen"));
 check("ends early", () => eq(err("PTS +")?.code, "endsEarly"));
 check("trailing text", () => eq(err("PTS REB")?.code, "trailingText"));
 check("bad char", () => eq(err("PTS % 2")?.code, "unexpectedChar"));
+
+// --- Percentiles ---
+function fakeRows(values: (number | null)[], opts: { gp?: number; min?: number } = {}): PlayerAdvancedStatsRow[] {
+  return values.map((v, i) => ({
+    player: { id: "p" + i, name: "P" + i },
+    team: { id: "t" },
+    stats: { pointsPerGame: v, gamesPlayed: opts.gp ?? 6, minutesPerGame: opts.min ?? 20 },
+  })) as unknown as PlayerAdvancedStatsRow[];
+}
+check("percentile mid", () => eq(percentileOf([1, 2, 3, 4], 3, false), 63));
+check("percentile max", () => eq(percentileOf([1, 2, 3, 4], 4, false), 88));
+check("lower is better inverts", () => eq(percentileOf([1, 2, 3, 4], 1, true), 88));
+check("value outside pool", () => {
+  eq(percentileOf([1, 2, 3], 10, false), 100);
+  eq(percentileOf([1, 2, 3], 0, false), 0);
+});
+check("null value", () => eq(percentileOf([1, 2], null, false), null));
+check("empty pool", () => eq(percentileOf([], 5, false), null));
+check("sortedValues drops nulls", () => eq(sortedValues(fakeRows([3, null, 1]), (r) => r.stats.pointsPerGame).join(), "1,3"));
+check("pool fallback below 40", () => eq(selectPool(fakeRows(Array(10).fill(10), { gp: 6, min: 20 })).length, 10));
+check("pool filters when 40+ qualify", () => {
+  const rows = [...fakeRows(Array(40).fill(10), { gp: 6, min: 20 }), ...fakeRows([10], { gp: 2, min: 20 })];
+  eq(selectPool(rows).length, 40);
+});
+check("fallback pool drops 0-game rows", () => eq(selectPool([...fakeRows([1, 2]), ...fakeRows([3], { gp: 0 })]).length, 2));
+check("topPercent floor", () => {
+  eq(topPercent(100), 1);
+  eq(topPercent(92), 8);
+});
 
 if (failures.length) {
   for (const f of failures) console.error("FAIL", f);
