@@ -140,6 +140,8 @@ export const analyticsBuilderTranslations: Record<string, Record<Lang, string>> 
   "builder.error.loadStats": { en: "Couldn't load player stats.", el: "Δεν φορτώθηκαν τα στατιστικά των παικτών." },
   "builder.error.loadViews": { en: "Couldn't load your saved views.", el: "Δεν φορτώθηκαν οι αποθηκευμένες προβολές σου." },
 
+  "builder.topPercent": { en: "top {n}%", el: "κορυφαίο {n}%" },
+
   "builder.group.scoring": { en: "Scoring", el: "Σκοράρισμα" },
   "builder.group.shooting": { en: "Shooting", el: "Σουτ" },
   "builder.group.playmaking": { en: "Playmaking", el: "Δημιουργία" },

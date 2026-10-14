@@ -16,6 +16,8 @@ import { StatLegendComponent, StatLegendEntry } from "../../shared/stat-legend";
 import { SearchInputComponent } from "../../shared/search-input";
 import { PageHeaderComponent } from "../../shared/page-header";
 import { BuilderStore } from "./builder-store";
+import { ResultsTableComponent } from "./results-table";
+import { ResultsChartComponent } from "./results-chart";
 
 interface ColumnDef {
   key: string;
@@ -129,7 +131,7 @@ type ViewerDisplay = "table" | "chart";
 @Component({
   selector: "app-analytics-builder",
   standalone: true,
-  imports: [PageHeaderComponent, CommonModule, RouterLink, RetryImgDirective, ButtonDirective, ChipDirective, SkeletonComponent, ConfirmDialogComponent, StatLegendComponent, SearchInputComponent],
+  imports: [PageHeaderComponent, CommonModule, RouterLink, RetryImgDirective, ButtonDirective, ChipDirective, SkeletonComponent, ConfirmDialogComponent, StatLegendComponent, SearchInputComponent, ResultsTableComponent, ResultsChartComponent],
   templateUrl: "./analytics-builder.html",
   providers: [BuilderStore],
 })
