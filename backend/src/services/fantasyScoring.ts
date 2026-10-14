@@ -825,9 +825,12 @@ async function saveMidRoundSubstitutions(
   // so only that move would rescore a finished game. Starter <-> sixth man
   // stays open for them (same score), so an unplayed sixth man can still
   // come into the five ("I should have 2-2-1 available and 1-2-2").
+  // 2026-10-14: matching Dunkest ("bench players who already played can't
+  // become starters"), a played starter/sixth man may also drop to the
+  // bench (scoring 50% from then on); only bench -> front stays blocked.
   const movedPlayed = entries.find((e) => {
     const existing = existingByPlayerId.get(e.playerId)!;
-    return startedTeamIds.has(existing.teamId) && (existing.slotRole === "bench") !== (e.slotRole === "bench");
+    return startedTeamIds.has(existing.teamId) && existing.slotRole === "bench" && e.slotRole !== "bench";
   });
   if (movedPlayed) {
     return { error: "A player whose game has already been played can't change slot", code: "PLAYER_PLAYED", playerId: movedPlayed.playerId };

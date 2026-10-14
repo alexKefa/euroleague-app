@@ -2360,8 +2360,8 @@ export class FantasyComponent implements OnInit {
   // man -> bench, bench player -> five) or a smarter pick of who to bench.
   // It now searches every split of the squad into five / sixth man / bench
   // (at most 252 x 5 for a 10-man squad) under exactly the backend's rule —
-  // a played player stays on its side of the bench line — and keeps the
-  // split that moves the fewest players.
+  // a played bench player stays on the bench — and keeps the split that
+  // moves the fewest players.
   private planMidRoundFormation(next: Formation): SquadSlot[] | null {
     const byId = this.rowById();
     const need: Record<PositionName, number> = { Guard: 0, Forward: 0, Center: 0 };
@@ -2383,7 +2383,7 @@ export class FantasyComponent implements OnInit {
       let cost = 0;
       for (let i = 0; i < n; i++) {
         const p = players[i];
-        if (p.played && (p.role === "bench") !== (roles[i] === "bench")) return;
+        if (p.played && p.role === "bench" && roles[i] !== "bench") return;
         if (p.role !== roles[i]) cost++;
       }
       if (cost < bestCost) {
@@ -2510,6 +2510,10 @@ export class FantasyComponent implements OnInit {
   // which is what lets an unplayed sixth man come into the five ("I should
   // have 2-2-1 available and 1-2-2"). A played bench player can't move at
   // all. Mirrors saveMidRoundSubstitutions' PLAYER_PLAYED check.
+  // 2026-10-14 (Dunkest's own rule: "bench players who already played
+  // can't become starters"): a played starter or sixth man may now drop to
+  // the bench; only the bench -> five/sixth direction stays closed. Before,
+  // a mostly-played five was pinned in place and only one formation fit.
   isPlayerLocked(playerId: string): boolean {
     if (this.editLocked()) return true;
     if (!this.hasPlayed(playerId)) return false;
@@ -2519,7 +2523,7 @@ export class FantasyComponent implements OnInit {
   // Whether this player may end up in a slot of role `to`.
   canTakeRole(playerId: string, from: FantasySlotRole, to: FantasySlotRole): boolean {
     if (this.editLocked()) return false;
-    return !this.hasPlayed(playerId) || (from === "bench") === (to === "bench");
+    return !this.hasPlayed(playerId) || from !== "bench" || to === "bench";
   }
 
   // Both sides of a two-slot swap may take each other's role.
