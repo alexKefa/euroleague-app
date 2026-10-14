@@ -23,8 +23,8 @@ export const analyticsBuilderTranslations: Record<string, Record<Lang, string>> 
   "builder.templateGuards": { en: "Top 5 Guards", el: "Κορυφαίοι 5 Γκαρντ" },
   "builder.templateForwards": { en: "Top 5 Forwards", el: "Κορυφαίοι 5 Φόργουορντ" },
   "builder.templateCenters": { en: "Top 5 Centers", el: "Κορυφαίοι 5 Σέντερ" },
-  "builder.templateHint": { en: "Ranked by PIR — swap players below anytime.", el: "Κατάταξη με βάση το PIR — άλλαξε παίκτες παρακάτω όποτε θες." },
-  "builder.searchPlaceholder": { en: "Search to add a player…", el: "Αναζήτηση για προσθήκη παίκτη…" },
+  "builder.templateHint": { en: "Quick sets replace your current players.", el: "Τα γρήγορα σύνολα αντικαθιστούν τους τρέχοντες παίκτες." },
+  "builder.searchPlaceholder": { en: "Search players…", el: "Αναζήτηση παικτών…" },
   "builder.columnsLabel": { en: "Columns", el: "Στήλες" },
   "builder.customColumnsLabel": { en: "Custom columns", el: "Προσαρμοσμένες στήλες" },
   "builder.customColumnLabelPlaceholder": { en: "Name", el: "Όνομα" },
@@ -141,6 +141,17 @@ export const analyticsBuilderTranslations: Record<string, Record<Lang, string>> 
   "builder.error.loadViews": { en: "Couldn't load your saved views.", el: "Δεν φορτώθηκαν οι αποθηκευμένες προβολές σου." },
 
   "builder.topPercent": { en: "top {n}%", el: "κορυφαίο {n}%" },
+
+  "builder.addPlayers": { en: "Add players", el: "Προσθήκη παικτών" },
+  "builder.addColumns": { en: "Add columns", el: "Προσθήκη στηλών" },
+  "builder.playersMax": { en: "{n}/{max} players", el: "{n}/{max} παίκτες" },
+  "builder.formulaLabel": { en: "Column name", el: "Όνομα στήλης" },
+  "builder.formulaExpression": { en: "e.g. PTS + REB + AST", el: "π.χ. PTS + REB + AST" },
+  "builder.formulaAdd": { en: "Add formula column", el: "Προσθήκη στήλης τύπου" },
+  "builder.formulaUpdate": { en: "Update formula", el: "Ενημέρωση τύπου" },
+  "builder.formulaLimit": { en: "You can have up to {max} formula columns.", el: "Μπορείς να έχεις έως {max} στήλες τύπου." },
+  "builder.per40Pick": { en: "Stat for per-40", el: "Στατιστικό ανά 40'" },
+  "builder.editFormula": { en: "Edit formula", el: "Επεξεργασία τύπου" },
 
   "builder.group.scoring": { en: "Scoring", el: "Σκοράρισμα" },
   "builder.group.shooting": { en: "Shooting", el: "Σουτ" },

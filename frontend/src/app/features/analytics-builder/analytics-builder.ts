@@ -18,6 +18,8 @@ import { PageHeaderComponent } from "../../shared/page-header";
 import { BuilderStore } from "./builder-store";
 import { ResultsTableComponent } from "./results-table";
 import { ResultsChartComponent } from "./results-chart";
+import { PlayerPickerComponent } from "./player-picker";
+import { ColumnPickerComponent } from "./column-picker";
 
 interface ColumnDef {
   key: string;
@@ -131,7 +133,7 @@ type ViewerDisplay = "table" | "chart";
 @Component({
   selector: "app-analytics-builder",
   standalone: true,
-  imports: [PageHeaderComponent, CommonModule, RouterLink, RetryImgDirective, ButtonDirective, ChipDirective, SkeletonComponent, ConfirmDialogComponent, StatLegendComponent, SearchInputComponent, ResultsTableComponent, ResultsChartComponent],
+  imports: [PageHeaderComponent, CommonModule, RouterLink, RetryImgDirective, ButtonDirective, ChipDirective, SkeletonComponent, ConfirmDialogComponent, StatLegendComponent, SearchInputComponent, ResultsTableComponent, ResultsChartComponent, PlayerPickerComponent, ColumnPickerComponent],
   templateUrl: "./analytics-builder.html",
   providers: [BuilderStore],
 })
