@@ -135,3 +135,24 @@ Saved views are private to their owner. A read-only link (public, or limited
 to members of the same league) needs a backend route that serves one view by
 id plus a share flag on `analytics_views`. Out of scope for the 2026-10-14
 workspace redesign.
+
+## 10. Analytics Builder: review minors (deferred 2026-10-14)
+
+From the final review of the workspace redesign; none block shipping.
+- Saved players with no stats row (left the league, new season) are
+  invisible but still count toward the 10-player cap and get re-saved.
+- A save still in flight overwrites edits made while it was pending.
+- Formula expressions have no 200-char cap client-side (server rejects with
+  the generic error).
+- The percentile note says "5+ games, 10+ min" even while the early-season
+  fallback pool is in use.
+- Rename/delete errors render at the bottom of the page, far from the
+  switcher; `VIEW_NOT_FOUND` gets the generic message.
+- ⋯ menu: no outside-click/Escape close, no menu roles.
+- Stat chips lack `aria-pressed`; formula inputs are labelled by placeholder
+  only; formula autocomplete is mouse-only.
+- Removing every column then re-adding one leaves no sort arrow until a
+  header is tapped.
+- Player search doesn't match "Kostas Sloukas" against feed names stored
+  "SLOUKAS, KOSTAS" (global search uses `firstLast()`).
+- Copy: "Quick templates" label vs "Quick sets" hint.
