@@ -2353,45 +2353,79 @@ export class FantasyComponent implements OnInit {
   // (2-1-2 -> 1-2-2 with two played Guards would bench one of them), and
   // each opened slot is filled from the unplayed sixth man / bench, with
   // the benched starters taking their places. Returns null if impossible.
+  //
+  // 2026-10-14 ("you only allow 1 formation. why is that keep happening?"):
+  // this used to be a greedy chain of two-slot swaps, which missed every
+  // shape that needs a three-way move (played starter -> sixth man, sixth
+  // man -> bench, bench player -> five) or a smarter pick of who to bench.
+  // It now searches every split of the squad into five / sixth man / bench
+  // (at most 252 x 5 for a 10-man squad) under exactly the backend's rule —
+  // a played player stays on its side of the bench line — and keeps the
+  // split that moves the fewest players.
   private planMidRoundFormation(next: Formation): SquadSlot[] | null {
     const byId = this.rowById();
     const need: Record<PositionName, number> = { Guard: 0, Forward: 0, Center: 0 };
     for (const p of FORMATION_POSITIONS[next]) need[p]++;
-    const slots = [...this.squadSlots()];
+    const slots = this.squadSlots();
+    if (slots.some((s) => !s.playerId)) return null;
 
-    const keep: Record<PositionName, number> = { Guard: 0, Forward: 0, Center: 0 };
-    const outgoing: number[] = [];
-    // Played starters claim their position's quota first: they can only
-    // leave the five by trading places with the sixth man.
-    const starterIdx = [...Array(this.starterCount).keys()].sort(
-      (a, b) => Number(this.hasPlayed(slots[b].playerId!)) - Number(this.hasPlayed(slots[a].playerId!))
-    );
-    for (const i of starterIdx) {
-      const id = slots[i].playerId;
-      const pos = id ? (byId.get(id)?.player.position as PositionName | undefined) : undefined;
-      if (!id || !pos || !(pos in need)) return null;
-      if (keep[pos] < need[pos]) keep[pos]++;
-      else outgoing.push(i);
-    }
-    // Played outgoing first, so the sixth man spot goes to whoever needs it.
-    outgoing.sort((a, b) => Number(this.hasPlayed(slots[b].playerId!)) - Number(this.hasPlayed(slots[a].playerId!)));
+    const players = slots.map((s) => {
+      const id = s.playerId!;
+      return { id, role: s.role, pos: byId.get(id)?.player.position as PositionName | undefined, played: this.hasPlayed(id) };
+    });
+    const n = players.length;
+    const sixthCount = slots.filter((s) => s.role === "sixth_man").length;
 
-    for (const out of outgoing) {
-      const pos = (["Guard", "Forward", "Center"] as PositionName[]).find((p) => keep[p] < need[p])!;
-      const inIdx = slots.findIndex(
-        (s, idx) =>
-          idx >= this.starterCount &&
-          s.playerId !== null &&
-          byId.get(s.playerId)?.player.position === pos &&
-          this.swapRolesAllowed(slots, out, idx)
-      );
-      if (inIdx === -1) return null;
-      const incoming = slots[inIdx].playerId;
-      slots[inIdx] = { ...slots[inIdx], playerId: slots[out].playerId };
-      slots[out] = { ...slots[out], playerId: incoming };
-      keep[pos]++;
+    let best: FantasySlotRole[] | null = null;
+    let bestCost = Infinity;
+    const roles: FantasySlotRole[] = new Array(n).fill("bench");
+    const tryAssignment = () => {
+      let cost = 0;
+      for (let i = 0; i < n; i++) {
+        const p = players[i];
+        if (p.played && (p.role === "bench") !== (roles[i] === "bench")) return;
+        if (p.role !== roles[i]) cost++;
+      }
+      if (cost < bestCost) {
+        bestCost = cost;
+        best = [...roles];
+      }
+    };
+    const pickSixth = (from: number, left: number) => {
+      if (left === 0) return tryAssignment();
+      for (let i = from; i < n; i++) {
+        if (roles[i] !== "bench") continue;
+        roles[i] = "sixth_man";
+        pickSixth(i + 1, left - 1);
+        roles[i] = "bench";
+      }
+    };
+    const counts: Record<PositionName, number> = { Guard: 0, Forward: 0, Center: 0 };
+    const pickStarters = (from: number, left: number) => {
+      if (left === 0) return pickSixth(0, sixthCount);
+      for (let i = from; i <= n - left; i++) {
+        const pos = players[i].pos;
+        if (!pos || !(pos in need) || counts[pos] >= need[pos]) continue;
+        counts[pos]++;
+        roles[i] = "starter";
+        pickStarters(i + 1, left - 1);
+        roles[i] = "bench";
+        counts[pos]--;
+      }
+    };
+    pickStarters(0, this.starterCount);
+    if (!best) return null;
+    const chosen: FantasySlotRole[] = best;
+
+    // Players keep their slot when their role didn't change; movers fill
+    // the slots of their new role that were vacated.
+    const result = slots.map((s, i) => (chosen[i] === s.role ? s : { ...s, playerId: null }));
+    for (let i = 0; i < n; i++) {
+      if (chosen[i] === slots[i].role) continue;
+      const target = result.findIndex((s) => s.role === chosen[i] && s.playerId === null);
+      result[target] = { ...result[target], playerId: players[i].id };
     }
-    return this.reseatStartersForFormation(slots, next);
+    return this.reseatStartersForFormation(result, next);
   }
 
   // Formation picker gating: mid-round only shapes reachable by moving

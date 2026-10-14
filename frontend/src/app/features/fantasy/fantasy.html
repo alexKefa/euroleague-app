@@ -2075,17 +2075,19 @@
         <button type="button" (click)="slotMenuPlayerId.set(null)" class="text-muted hover:text-ink text-2xl leading-none font-bold shrink-0" [attr.aria-label]="i18n.t('fantasy.close')">&times;</button>
       </div>
       <div class="grid grid-cols-2 gap-2">
+        <!-- Captain is the headline action (2026-10-14, "make captain set
+             button bigger, more distinct"): full width, solid team fill. -->
+        @if (acts.captain) {
+          <button type="button" (click)="slotMenuDo('captain')" class="col-span-2 h-14 rounded-2xl bg-team-primary text-team-secondary shadow-card hover:brightness-110 active:scale-[0.98] flex items-center justify-center gap-2.5 text-base font-bold transition">
+            <span class="w-7 h-7 rounded-full bg-team-secondary text-team-primary font-display text-sm flex items-center justify-center" aria-hidden="true">C</span>{{ i18n.t('fantasy.makeCaptain') }}
+          </button>
+        }
         <button type="button" (click)="slotMenuDo('info')" class="h-12 rounded-2xl border border-line bg-page hover:border-team-primary flex items-center justify-center gap-2 text-[13px] font-bold text-ink transition-colors">
           <span class="text-team-primary text-base leading-none" aria-hidden="true">&#9432;</span>{{ i18n.t('fantasy.actionInfo') }}
         </button>
         @if (acts.swap) {
           <button type="button" (click)="slotMenuDo('swap')" class="h-12 rounded-2xl border border-line bg-page hover:border-team-primary flex items-center justify-center gap-2 text-[13px] font-bold text-ink transition-colors">
             <span class="text-team-primary text-base leading-none" aria-hidden="true">&#8645;</span>{{ i18n.t('fantasy.swapPlayer') }}
-          </button>
-        }
-        @if (acts.captain) {
-          <button type="button" (click)="slotMenuDo('captain')" class="h-12 rounded-2xl border border-line bg-page hover:border-team-primary flex items-center justify-center gap-2 text-[13px] font-bold text-ink transition-colors">
-            <span class="w-5 h-5 rounded-full bg-team-primary text-team-secondary text-[10px] font-bold flex items-center justify-center" aria-hidden="true">C</span>{{ i18n.t('fantasy.makeCaptain') }}
           </button>
         }
         @if (acts.remove) {
