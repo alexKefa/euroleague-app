@@ -1,11 +1,11 @@
-import { Injectable, computed, inject, signal } from "@angular/core";
+import { Injectable, computed, effect, inject, signal } from "@angular/core";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { FavoritePlayersService } from "../../core/favorite-players.service";
 import { I18nService } from "../../core/i18n.service";
 import { AnalyticsView, PlayerAdvancedStatsRow } from "../../core/models";
 import { formatStat, statByKey, type StatKey } from "../../shared/stat-catalog";
-import { FormulaError, compileFormula, evaluateFormula } from "./formula";
+import { FormulaError, compileFormula, evaluateFormula, formulaLowerIsBetter } from "./formula";
 import { percentileOf, selectPool, sortedValues } from "./percentiles";
 import { positionSet, topByPir } from "./quick-sets";
 import {
@@ -18,7 +18,9 @@ import {
   columnId,
   decodeView,
   encodeWorkspace,
+  parseSnapshot,
   sameWorkspace,
+  snapshotWorkspace,
 } from "./workspace";
 
 export type QuickSetId = "myTeam" | "fantasy" | "favorites" | "guards" | "forwards" | "centers";
@@ -50,6 +52,8 @@ const POSITION_SETS: { id: QuickSetId; position: string; labelKey: string }[] = 
   { id: "forwards", position: "Forward", labelKey: "builder.templateForwards" },
   { id: "centers", position: "Center", labelKey: "builder.templateCenters" },
 ];
+
+const SNAPSHOT_KEY = "clutch-builder-workspace";
 
 const EMPTY_WORKSPACE: Workspace = { playerIds: [], columns: [], sort: null };
 
@@ -88,7 +92,21 @@ export class BuilderStore {
   private readonly savingSig = signal(false);
   readonly saving = this.savingSig.asReadonly();
 
-  private initialized = false;
+  private readonly initialized = signal(false);
+
+  constructor() {
+    // Keeps the open workspace for this tab, so a trip to a player page and
+    // back lands on the same view with its unsaved edits.
+    effect(() => {
+      if (!this.initialized()) return;
+      const snapshot = snapshotWorkspace(this.activeViewIdSig(), this.workspaceSig(), this.baselineSig());
+      try {
+        sessionStorage.setItem(SNAPSHOT_KEY, snapshot);
+      } catch {
+        // Storage blocked (private mode): the workspace just isn't kept.
+      }
+    });
+  }
 
   readonly activeView = computed(() => this.viewsSig().find((v) => v.id === this.activeViewIdSig()) ?? null);
 
@@ -124,7 +142,7 @@ export class BuilderStore {
         legend: ref.expression,
         format: (v) => (v == null ? "—" : v.toFixed(2)),
         get: (r) => (node ? evaluateFormula(node, statsContext(r)) : null),
-        lowerIsBetter: false,
+        lowerIsBetter: node ? formulaLowerIsBetter(node) : false,
         percentiled: !!node,
         error: "error" in compiled ? compiled.error : null,
       };
@@ -213,16 +231,21 @@ export class BuilderStore {
       },
       error: () => this.rowsStateSig.set("error"),
     });
-    if (this.initialized) return;
-    if (this.auth.isAuthenticated()) {
-      this.loadViews();
-      this.api.getFantasyLineup().subscribe({
-        next: (lineup) => this.fantasyIds.set(lineup.players.map((p) => p.playerId)),
-        error: () => this.fantasyIds.set([]),
-      });
-    } else {
-      this.viewsStateSig.set("ready");
-    }
+    if (this.initialized()) return;
+    // A reload or deep link lands here before the refresh-cookie session is
+    // restored, so wait for it before treating the visitor as a guest.
+    this.auth.restoreSession().subscribe((loggedIn) => {
+      if (loggedIn) {
+        this.loadViews();
+        this.api.getFantasyLineup().subscribe({
+          next: (lineup) => this.fantasyIds.set(lineup.players.map((p) => p.playerId)),
+          error: () => this.fantasyIds.set([]),
+        });
+      } else {
+        this.viewsStateSig.set("ready");
+        this.maybeInitialize();
+      }
+    });
   }
 
   retryViews(): void {
@@ -244,11 +267,24 @@ export class BuilderStore {
     });
   }
 
-  // Opens the first saved view, or a prefilled workspace, once both the
-  // stats and the views have settled.
+  // Once both the stats and the views have settled: restores this tab's
+  // last workspace, else opens the first saved view or a prefilled one.
   private maybeInitialize(): void {
-    if (this.initialized || this.rowsStateSig() !== "ready" || this.viewsStateSig() === "loading") return;
-    this.initialized = true;
+    if (this.initialized() || this.rowsStateSig() !== "ready" || this.viewsStateSig() === "loading") return;
+    let raw: string | null = null;
+    try {
+      raw = sessionStorage.getItem(SNAPSHOT_KEY);
+    } catch {
+      raw = null;
+    }
+    const snapshot = parseSnapshot(raw, this.viewsSig());
+    this.initialized.set(true);
+    if (snapshot) {
+      this.activeViewIdSig.set(snapshot.activeViewId);
+      this.baselineSig.set(snapshot.baseline);
+      this.workspaceSig.set(snapshot.workspace);
+      return;
+    }
     const first = this.viewsSig()[0];
     if (first) this.openView(first.id);
     else this.newWorkspace();

@@ -23,19 +23,24 @@ import { topPercent } from "./percentiles";
             </th>
             @for (col of store.columns(); track col.id) {
               <th
-                (click)="store.setSort(col.id)"
-                class="px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
-                [class.text-muted]="sortId() !== col.id"
-                [class.text-team-primary]="sortId() === col.id"
+                class="px-1.5 py-1 text-right font-bold uppercase tracking-wider text-[11px] whitespace-nowrap"
                 [attr.aria-sort]="sortId() === col.id ? (store.workspace().sort?.desc ? 'descending' : 'ascending') : null"
               >
-                @if (col.error) {
-                  <span class="inline-block w-1.5 h-1.5 rounded-full bg-red-500 mr-1 align-middle"></span>
-                }
-                {{ col.label }}
-                @if (sortId() === col.id) {
-                  <span class="inline-block">{{ store.workspace().sort?.desc ? "↓" : "↑" }}</span>
-                }
+                <button
+                  type="button"
+                  (click)="store.setSort(col.id)"
+                  class="px-1.5 py-1.5 rounded-lg uppercase tracking-wider select-none hover:text-ink transition-colors"
+                  [class.text-muted]="sortId() !== col.id"
+                  [class.text-team-primary]="sortId() === col.id"
+                >
+                  @if (col.error) {
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-red-500 mr-1 align-middle"></span>
+                  }
+                  {{ col.label }}
+                  @if (sortId() === col.id) {
+                    <span class="inline-block" aria-hidden="true">{{ store.workspace().sort?.desc ? "↓" : "↑" }}</span>
+                  }
+                </button>
               </th>
             }
           </tr>

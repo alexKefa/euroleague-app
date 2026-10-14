@@ -227,3 +227,25 @@ export function evaluateFormula(node: FormulaNode, context: Readonly<Record<stri
     }
   }
 }
+
+// Stats that only scale a formula (per minute, per game, per possession)
+// rather than say anything good or bad on their own.
+const NEUTRAL_KEYS = new Set<string>(["minutesPerGame", "gamesPlayed", "possessionsPerGame"]);
+
+function collectVars(node: FormulaNode, out: Set<string>): void {
+  if (node.kind === "var") out.add(node.name);
+  else if (node.kind === "neg") collectVars(node.value, out);
+  else if (node.kind === "bin") {
+    collectVars(node.left, out);
+    collectVars(node.right, out);
+  }
+}
+
+// A compiled formula built only from lower-is-better stats (plus neutral
+// scalers), e.g. TOV / MIN * 40, is shaded with lower = better too.
+export function formulaLowerIsBetter(node: FormulaNode): boolean {
+  const vars = new Set<string>();
+  collectVars(node, vars);
+  const meaningful = [...vars].filter((k) => !NEUTRAL_KEYS.has(k));
+  return meaningful.length > 0 && meaningful.every((k) => statByKey(k)?.lowerIsBetter === true);
+}

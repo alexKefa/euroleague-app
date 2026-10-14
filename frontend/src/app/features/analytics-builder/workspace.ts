@@ -84,3 +84,43 @@ export function encodeWorkspace(ws: Workspace, name: string): ViewBody {
 export function sameWorkspace(a: Workspace, b: Workspace): boolean {
   return JSON.stringify(encodeWorkspace(a, "")) === JSON.stringify(encodeWorkspace(b, ""));
 }
+
+// Session snapshot of the open workspace, so drilling into a player page
+// and coming back reopens the same view with any unsaved edits intact.
+export interface WorkspaceSnapshot {
+  activeViewId: string | null;
+  workspace: Workspace;
+  baseline: Workspace;
+}
+
+export function snapshotWorkspace(activeViewId: string | null, workspace: Workspace, baseline: Workspace): string {
+  return JSON.stringify({ v: 1, activeViewId, workspace, baseline });
+}
+
+function isWorkspace(value: unknown): value is Workspace {
+  const ws = value as Workspace | null;
+  return (
+    !!ws &&
+    Array.isArray(ws.playerIds) &&
+    ws.playerIds.every((id) => typeof id === "string") &&
+    Array.isArray(ws.columns) &&
+    ws.columns.every((c) => (c?.kind === "stat" && !!statByKey(c.key)) || (c?.kind === "formula" && typeof c.id === "string" && typeof c.label === "string" && typeof c.expression === "string")) &&
+    (ws.sort === null || (typeof ws.sort?.columnId === "string" && typeof ws.sort?.desc === "boolean"))
+  );
+}
+
+// Null for anything unusable, including a snapshot of a view that has
+// since been deleted.
+export function parseSnapshot(raw: string | null, views: readonly AnalyticsView[]): WorkspaceSnapshot | null {
+  if (!raw) return null;
+  let data: { v?: number; activeViewId?: unknown; workspace?: unknown; baseline?: unknown };
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (data?.v !== 1 || !isWorkspace(data.workspace) || !isWorkspace(data.baseline)) return null;
+  const activeViewId = typeof data.activeViewId === "string" ? data.activeViewId : null;
+  if (activeViewId !== null && !views.some((v) => v.id === activeViewId)) return null;
+  return { activeViewId, workspace: data.workspace, baseline: data.baseline };
+}

@@ -1,9 +1,9 @@
 // Pure-logic checks for the Analytics Builder (no test suite in this repo).
 // Run: cd backend && npx tsx ../frontend/scripts/check-builder-logic.ts
-import { compileFormula, evaluateFormula } from "../src/app/features/analytics-builder/formula";
+import { compileFormula, evaluateFormula, formulaLowerIsBetter } from "../src/app/features/analytics-builder/formula";
 import { positionSet } from "../src/app/features/analytics-builder/quick-sets";
 import { percentileOf, selectPool, sortedValues, topPercent } from "../src/app/features/analytics-builder/percentiles";
-import { columnId, decodeView, encodeWorkspace, sameWorkspace, type Workspace } from "../src/app/features/analytics-builder/workspace";
+import { parseSnapshot, snapshotWorkspace, columnId, decodeView, encodeWorkspace, sameWorkspace, type Workspace } from "../src/app/features/analytics-builder/workspace";
 import type { AnalyticsView, PlayerAdvancedStatsRow } from "../src/app/core/models";
 import { STAT_CATALOG, formatStat, statByAlias, statByKey } from "../src/app/shared/stat-catalog";
 
@@ -68,6 +68,17 @@ check("missing paren", () => eq(err("(PTS + REB")?.code, "missingParen"));
 check("ends early", () => eq(err("PTS +")?.code, "endsEarly"));
 check("trailing text", () => eq(err("PTS REB")?.code, "trailingText"));
 check("bad char", () => eq(err("PTS % 2")?.code, "unexpectedChar"));
+
+const node = (src: string) => {
+  const c = compileFormula(src);
+  if ("error" in c) throw new Error(c.error.code);
+  return c.node;
+};
+check("per-40 turnovers is lower-is-better", () => eq(formulaLowerIsBetter(node("TOV / MIN * 40")), true));
+check("turnover ratio alone is lower-is-better", () => eq(formulaLowerIsBetter(node("TOV_RATIO")), true));
+check("per-40 points is not", () => eq(formulaLowerIsBetter(node("PTS / MIN * 40")), false));
+check("mixed formula is not", () => eq(formulaLowerIsBetter(node("PTS - TOV")), false));
+check("pure scaling formula is not", () => eq(formulaLowerIsBetter(node("MIN * 2")), false));
 
 // --- Percentiles ---
 function fakeRows(values: (number | null)[], opts: { gp?: number; min?: number } = {}): PlayerAdvancedStatsRow[] {
@@ -135,6 +146,22 @@ check("untouched view is not dirty", () => ok(sameWorkspace(decodeView(legacy), 
 check("sort change is dirty", () => {
   const ws = decodeView(legacy);
   ok(!sameWorkspace(ws, { ...ws, sort: { columnId: "valuation", desc: true } }));
+});
+
+// --- Session snapshot (drill into a player page and back) ---
+check("snapshot round trip keeps view + edits", () => {
+  const ws = decodeView(legacy);
+  const edited: Workspace = { ...ws, sort: { columnId: "valuation", desc: false } };
+  const snap = parseSnapshot(snapshotWorkspace("v", edited, ws), [legacy]);
+  eq(snap?.activeViewId, "v");
+  ok(snap && sameWorkspace(snap.workspace, edited));
+});
+check("snapshot for a deleted view is ignored", () => eq(parseSnapshot(snapshotWorkspace("gone", decodeView(legacy), decodeView(legacy)), [legacy]), null));
+check("unsaved snapshot survives without views", () => eq(parseSnapshot(snapshotWorkspace(null, decodeView(legacy), decodeView(legacy)), [])?.activeViewId, null));
+check("garbage snapshot is ignored", () => {
+  eq(parseSnapshot("{not json", [legacy]), null);
+  eq(parseSnapshot(null, [legacy]), null);
+  eq(parseSnapshot(JSON.stringify({ v: 1, activeViewId: null, workspace: { playerIds: "x" } }), []), null);
 });
 
 if (failures.length) {
