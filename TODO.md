@@ -121,3 +121,17 @@ score, fix the parser, and backfill. Until then the matchup preview counts a
 null-minutes line as played only if it has any stat (see
 `services/matchupPreview/index.ts`, `played` CTE), and anything else keyed on
 minutes (DNP detection, per-minute stats) is unreliable for this season.
+
+## 8. Advanced stats page: use the shared stat catalog (deferred 2026-10-14)
+
+`features/stats/advanced-stats.ts` still keeps its own hand-written column
+list. Move it onto `shared/stat-catalog.ts` (labels, formats, legend keys) so
+the two pages can't drift, and so the page can offer the 13 stats only the
+Analytics Builder shows today.
+
+## 9. Analytics Builder: shareable view links (deferred 2026-10-14)
+
+Saved views are private to their owner. A read-only link (public, or limited
+to members of the same league) needs a backend route that serves one view by
+id plus a share flag on `analytics_views`. Out of scope for the 2026-10-14
+workspace redesign.

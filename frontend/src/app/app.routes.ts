@@ -1,3 +1,4 @@
+import { unsavedBuilderChanges } from "./features/analytics-builder/unsaved-changes.guard";
 import { BlankComponent } from "./shared/pull-to-refresh";
 import { Routes } from "@angular/router";
 import { firstVisitGuard } from "./core/first-visit.guard";
@@ -102,6 +103,7 @@ export const routes: Routes = [
     path: "analytics-builder",
     loadComponent: () =>
       import("./features/analytics-builder/analytics-builder").then((m) => m.AnalyticsBuilderComponent),
+    canDeactivate: [unsavedBuilderChanges],
   },
   {
     path: "teams",

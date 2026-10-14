@@ -5,318 +5,160 @@
 
   <app-page-header [title]="i18n.t('builder.title')" [subtitle]="i18n.t('builder.subtitle')" [eyebrow]="i18n.t('section.stats')" icon="sliders" class="mt-4" />
 
-  @if (!auth.isAuthenticated()) {
-    <div class="mb-5">
-      <p class="text-sm text-muted mb-2">{{ i18n.t('nav.login') }} {{ i18n.t('builder.loginPrompt') }}</p>
-      <a routerLink="/login" appButton="outline" appButtonSize="sm">{{ i18n.t('nav.login') }}</a>
-    </div>
-  } @else if (loading()) {
+  @if (store.rowsState() === 'loading') {
     <app-skeleton class="rounded-2xl h-64" [iconSize]="24" />
+  } @else if (store.rowsState() === 'error') {
+    <div class="bg-card rounded-2xl border border-line shadow-card p-4 flex items-center justify-between gap-3">
+      <p class="text-sm text-muted">{{ i18n.t('builder.error.loadStats') }}</p>
+      <button type="button" appButton="outline" appButtonSize="sm" (click)="store.load()">{{ i18n.t('builder.retry') }}</button>
+    </div>
   } @else {
-    @if (mode() === 'list') {
-      <div class="flex items-center justify-between mb-4">
-        <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ views().length }}/{{ maxViews }}</p>
-        @if (!atViewLimit()) {
-          <button type="button" (click)="startNewView()" appButton appButtonSize="sm">{{ i18n.t('builder.newView') }}</button>
-        }
-      </div>
+    <app-view-switcher />
 
-      @if (views().length === 0) {
-        <p class="text-sm text-muted text-center py-10">{{ i18n.t('builder.empty') }}</p>
-      } @else {
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          @for (view of views(); track view.id) {
+    <!-- Players -->
+    <div class="mb-3">
+      <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5">{{ i18n.t('builder.playersLabel') }}</p>
+      <div class="flex flex-wrap items-center gap-1.5">
+        @for (row of store.selectedRows(); track row.player.id) {
+          <span class="flex items-center gap-1.5 pl-1 pr-1 py-1 rounded-full bg-card border border-line text-xs font-bold">
+            @if (row.team.logoUrl) {
+              <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0 team-logo" />
+            }
+            {{ row.player.name }}
             <button
               type="button"
-              (click)="openViewer(view)"
-              class="text-left bg-card rounded-2xl border border-line shadow-card p-4 hover:border-team-primary/50 transition-colors"
+              (click)="store.removePlayer(row.player.id)"
+              class="tap-target w-5 h-5 flex items-center justify-center rounded-full text-muted hover:text-red-500 transition-colors leading-none"
+              [attr.aria-label]="i18n.t('builder.remove') + ' ' + row.player.name"
             >
-              <p class="font-bold text-sm truncate">{{ view.name }}</p>
-              <p class="text-[12px] text-muted font-mono mt-1">
-                {{ view.playerIds.length }} {{ i18n.t('builder.playersCount') }} &middot; {{ view.columns.length + view.customColumns.length }}
-                {{ i18n.t('builder.columnsCount') }}
-              </p>
+              &times;
             </button>
-          }
-        </div>
-      }
-    }
-
-    @if (mode() === 'editor') {
-      <div class="bg-card rounded-2xl border border-line shadow-card p-4">
-        <label class="block text-[12px] text-muted font-bold uppercase tracking-wider mb-1">{{ i18n.t('builder.nameLabel') }}</label>
-        <input
-          type="text"
-          [value]="viewName()"
-          (input)="viewName.set($any($event.target).value)"
-          [placeholder]="i18n.t('builder.namePlaceholder')"
-          maxlength="60"
-          class="w-full px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none mb-4"
-        />
-
-        <label class="block text-[12px] text-muted font-bold uppercase tracking-wider mb-1">{{ i18n.t('builder.playersLabel') }}</label>
-
-        <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5">{{ i18n.t('builder.templatesLabel') }}</p>
-        <div class="flex flex-wrap gap-1.5 mb-1.5">
-          @for (tpl of positionTemplates; track tpl.position) {
-            <button type="button" (click)="applyTemplate(tpl.position, tpl.labelKey)" appButton="outline" appButtonSize="sm">
-              {{ i18n.t(tpl.labelKey) }}
-            </button>
-          }
-        </div>
-        <p class="text-[11px] text-muted mb-3">{{ i18n.t('builder.templateHint') }}</p>
-
-        @if (selectedPlayers().length > 0) {
-          <div class="flex flex-wrap gap-1.5 mb-2">
-            @for (row of selectedPlayers(); track row.player.id) {
-              <span class="flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-full bg-page border border-line text-xs font-bold">
-                @if (row.team.logoUrl) {
-                  <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0 team-logo" />
-                }
-                {{ row.player.name }}
-                <button type="button" (click)="removePlayer(row.player.id)" class="text-muted hover:text-red-500 transition-colors leading-none">&times;</button>
-              </span>
-            }
-          </div>
+          </span>
         }
-        <div class="relative mb-4">
-          <app-search-input
-            class="w-full"
-            surface="page"
-            [value]="playerQuery()"
-            (valueChange)="playerQuery.set($event)"
-            [placeholder]="i18n.t('builder.searchPlaceholder')"
-          />
-          @if (playerSuggestions().length > 0) {
-            <ul class="absolute z-20 left-0 right-0 mt-1 max-h-56 overflow-y-auto rounded-xl bg-card border-2 border-line shadow-pop py-1">
-              @for (row of playerSuggestions(); track row.player.id) {
-                <li
-                  (click)="addPlayer(row)"
-                  class="flex items-center gap-2 px-3 py-2 text-sm font-semibold cursor-pointer hover:bg-page transition-colors truncate"
-                >
-                  @if (row.team.logoUrl) {
-                    <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0 team-logo" />
-                  }
-                  <span class="truncate">{{ row.player.name }}</span>
-                </li>
-              }
-            </ul>
-          }
-        </div>
-
-        <label class="block text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('builder.columnsLabel') }}</label>
-        <div class="flex flex-wrap gap-1.5 mb-4">
-          @for (col of columns; track col.key) {
-            <button type="button" (click)="toggleColumn(col.key)" [appChip]="isColumnSelected(col.key)">
-              {{ colLabel(col) }}
-            </button>
-          }
-        </div>
-
-        <label class="block text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('builder.customColumnsLabel') }}</label>
-        <div class="flex flex-col gap-3 mb-2">
-          @for (draft of customColumnDrafts(); track draft.id) {
-            <div class="relative bg-page rounded-xl border border-line p-3">
-              <!-- text-white bg-highlight -> text-team-secondary
-                   bg-team-primary (2026-09-18, "change everywhere on the
-                   app the default orange color with the preferred team")
-                   — a contrast fix, not just cosmetic: a solid team-primary
-                   fill can be near-white for some teams, so white text
-                   would be unreadable. hover:bg-[#FF7D4E] (a hardcoded
-                   lighten) has no team equivalent, replaced with
-                   hover:brightness-110. -->
-              <button
-                type="button"
-                (click)="removeCustomColumn(draft.id)"
-                class="tap-target absolute -top-2.5 -right-2.5 w-7 h-7 flex items-center justify-center rounded-full text-base font-bold leading-none text-team-secondary bg-team-primary hover:brightness-110 active:scale-90 transition-all shadow-pop"
-                [attr.aria-label]="i18n.t('builder.removeCustomColumn')"
-              >
-                &times;
-              </button>
-              <input
-                type="text"
-                [value]="draft.label"
-                (input)="updateCustomColumnLabel(draft.id, $any($event.target).value)"
-                [placeholder]="i18n.t('builder.customColumnLabelPlaceholder')"
-                maxlength="40"
-                class="w-full px-2.5 py-1.5 rounded-lg bg-card border-2 border-line text-xs font-semibold focus:border-team-primary outline-none mb-2"
-              />
-              <div class="relative">
-                <input
-                  type="text"
-                  [id]="'custom-col-expr-' + draft.id"
-                  [value]="draft.expression"
-                  (input)="onExpressionInput(draft.id, $event)"
-                  (blur)="onExpressionBlur()"
-                  [placeholder]="i18n.t('builder.customColumnExpressionPlaceholder')"
-                  autocomplete="off"
-                  class="w-full px-2.5 py-1.5 rounded-lg bg-card border-2 border-line text-xs font-mono focus:border-team-primary outline-none"
-                />
-                @if (formulaSuggestions(); as sugg) {
-                  @if (sugg.draftId === draft.id) {
-                    <ul class="absolute z-20 left-0 right-0 mt-1 max-h-40 overflow-y-auto rounded-lg bg-card border-2 border-line shadow-pop py-1">
-                      @for (field of sugg.options; track field) {
-                        <li
-                          (mousedown)="$event.preventDefault()"
-                          (click)="selectSuggestion(field)"
-                          class="px-2.5 py-1.5 text-xs font-mono cursor-pointer hover:bg-page transition-colors"
-                        >
-                          {{ field }}
-                        </li>
-                      }
-                    </ul>
-                  }
-                }
-              </div>
-              @if (customColumnError(draft); as err) {
-                <p class="text-red-500 text-[11px] font-semibold mt-2">{{ err }}</p>
-              }
-            </div>
-          }
-        </div>
-        @if (!atCustomColumnLimit()) {
-          <button type="button" (click)="addCustomColumn()" appButton="outline" appButtonSize="sm" class="mb-2">
-            {{ i18n.t('builder.addCustomColumn') }}
-          </button>
-        }
-        <p class="text-[11px] text-muted mb-4">
-          {{ i18n.t('builder.customColumnFieldsHint') }}
-          @for (f of formulaFields; track f.key; let last = $last) {
-            <code class="font-mono">{{ f.key }}</code
-            >{{ last ? "" : ", " }}
-          }
-        </p>
-
-        @if (formError()) {
-          <p class="text-red-500 text-xs font-semibold mb-3">{{ formError() }}</p>
-        }
-
-        <div class="flex gap-2">
-          <button type="button" (click)="openList()" appButton="outline" appButtonSize="sm" class="flex-1">{{ i18n.t('builder.cancel') }}</button>
-          <button type="button" (click)="save()" [disabled]="saving()" appButton appButtonSize="sm" class="flex-1">
-            {{ saving() ? '…' : i18n.t('builder.save') }}
-          </button>
-        </div>
-      </div>
-    }
-
-    @if (mode() === 'viewer' && activeView(); as view) {
-      <div class="flex items-center justify-between mb-4">
-        <button type="button" (click)="openList()" class="text-[12px] text-muted font-bold uppercase tracking-wider hover:text-ink transition-colors">
-          &larr; {{ i18n.t('builder.backToViews') }}
+        <button
+          type="button"
+          (click)="playerPickerOpen.set(true)"
+          class="h-7 px-3 rounded-full border border-dashed border-team-primary text-team-primary text-xs font-bold hover:bg-team-primary/10 transition-colors"
+        >
+          + {{ i18n.t('builder.addPlayers') }}
         </button>
-        <div class="flex gap-3">
-          <button type="button" (click)="startEditView(view)" class="text-[12px] text-accent2 font-bold uppercase tracking-wider hover:opacity-80 transition-opacity">
-            {{ i18n.t('builder.edit') }}
-          </button>
-          <button type="button" (click)="confirmingDelete.set(true)" class="text-[12px] text-red-500 font-bold uppercase tracking-wider hover:opacity-80 transition-opacity">
-            {{ i18n.t('builder.delete') }}
-          </button>
-        </div>
       </div>
+    </div>
 
-      @if (confirmingDelete()) {
-        <app-confirm-dialog
-          [message]="i18n.t('builder.deleteConfirmPrompt')"
-          [confirmLabel]="i18n.t('builder.deleteConfirmYes')"
-          [cancelLabel]="i18n.t('builder.cancel')"
-          (confirmed)="confirmDeleteView(view)"
-          (cancelled)="confirmingDelete.set(false)"
-        />
-      }
-      <div class="flex items-center justify-between mb-3 gap-2">
-        <span class="flex items-center gap-1.5 min-w-0">
-          <h2 class="font-display text-xl tracking-wide truncate">{{ view.name }}</h2>
-          <app-stat-legend [entries]="viewerLegendEntries()" />
-        </span>
-        <div class="flex gap-1.5 shrink-0">
-          <button type="button" (click)="viewerDisplay.set('table')" [appChip]="viewerDisplay() === 'table'">
-            {{ i18n.t('builder.viewTable') }}
-          </button>
-          <button type="button" (click)="viewerDisplay.set('chart')" [appChip]="viewerDisplay() === 'chart'">
-            {{ i18n.t('builder.viewChart') }}
-          </button>
-        </div>
-      </div>
-
-      @if (viewerDisplay() === 'chart') {
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          @for (col of viewerColumns(); track col.key) {
-            <div class="bg-card rounded-2xl border border-line shadow-card p-4">
-              <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-3">{{ colLabel(col) }}</p>
-              <div class="space-y-3">
-                @for (item of chartRows(col); track item.row.player.id) {
-                  <div>
-                    <div class="flex items-center justify-between mb-1 gap-2">
-                      <a [routerLink]="['/players', item.row.player.id]" class="flex items-center gap-1.5 text-xs font-bold truncate hover:text-team-primary transition-colors">
-                        @if (item.row.team.logoUrl) {
-                          <img [src]="item.row.team.logoUrl" [alt]="item.row.team.name" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain shrink-0 team-logo" />
-                        } @else {
-                          <span class="w-4 h-4 rounded-full shrink-0" [style.background]="item.row.team.primaryColor"></span>
-                        }
-                        <span class="truncate">{{ item.row.player.name }}</span>
-                      </a>
-                      <span class="font-mono text-xs shrink-0">{{ col.format(item.row) }}</span>
-                    </div>
-                    <div class="relative h-2 rounded-[3px] bg-line overflow-hidden">
-                      <div
-                        class="absolute inset-y-0 left-0 rounded-[3px] transition-all duration-500 ease-out"
-                        [style.width.%]="chartPct(item.value, col)"
-                        [style.background]="item.row.team.primaryColor"
-                      ></div>
-                    </div>
-                  </div>
-                }
-              </div>
-            </div>
-          }
-        </div>
-      } @else {
-      <div class="overflow-x-auto rounded-2xl border border-line shadow-card">
-        <table class="w-full text-sm border-collapse">
-          <thead>
-            <tr class="bg-card">
-              <th class="sticky left-0 z-10 bg-card px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap">
-                {{ i18n.t('stats.colPlayer') }}
-              </th>
-              @for (col of viewerColumns(); track col.key) {
-                <th
-                  (click)="setViewerSort(col.key)"
-                  class="px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
-                  [class.text-team-primary]="viewerSortKey() === col.key"
-                >
-                  {{ colLabel(col) }}
-                  @if (viewerSortKey() === col.key) {
-                    <span class="inline-block">{{ viewerSortDesc() ? '↓' : '↑' }}</span>
-                  }
-                </th>
-              }
-            </tr>
-          </thead>
-          <tbody>
-            @for (row of viewerRows(); track row.player.id) {
-              <tr [routerLink]="['/players', row.player.id]" class="border-t border-line hover:bg-page transition-colors cursor-pointer">
-                <td class="sticky left-0 z-10 bg-card px-3 py-2 font-bold whitespace-nowrap">
-                  <span class="flex items-center gap-2">
-                    @if (row.team.logoUrl) {
-                      <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
-                    } @else {
-                      <span class="w-5 h-5 rounded-full shrink-0" [style.background]="row.team.primaryColor"></span>
-                    }
-                    <span class="truncate">{{ row.player.name }}</span>
-                  </span>
-                </td>
-                @for (col of viewerColumns(); track col.key) {
-                  <td class="px-3 py-2 font-mono text-right whitespace-nowrap" [class.text-team-primary]="viewerSortKey() === col.key">
-                    {{ col.format(row) }}
-                  </td>
-                }
-              </tr>
+    <!-- Columns -->
+    <div class="mb-4">
+      <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5">{{ i18n.t('builder.columnsLabel') }}</p>
+      <div class="flex flex-wrap items-center gap-1.5">
+        @for (col of store.columns(); track col.id) {
+          <button
+            type="button"
+            (click)="columnMenu.set(col)"
+            class="h-7 px-3 rounded-full bg-card border text-xs font-bold transition-colors hover:border-team-primary"
+            [class.border-line]="!col.error"
+            [class.border-red-500]="!!col.error"
+            [attr.title]="col.legend"
+          >
+            @if (col.ref.kind === 'formula') {
+              <span class="text-team-primary italic mr-0.5">ƒ</span>
             }
-          </tbody>
-        </table>
+            {{ col.label }}
+          </button>
+        }
+        <button
+          type="button"
+          (click)="columnPickerOpen.set(true)"
+          class="h-7 px-3 rounded-full border border-dashed border-team-primary text-team-primary text-xs font-bold hover:bg-team-primary/10 transition-colors"
+        >
+          + {{ i18n.t('builder.addColumns') }}
+        </button>
       </div>
+    </div>
+
+    <div class="flex items-center justify-between gap-2 mb-3">
+      <div class="flex gap-1.5">
+        <button type="button" (click)="display.set('table')" [appChip]="display() === 'table'">{{ i18n.t('builder.viewTable') }}</button>
+        <button type="button" (click)="display.set('chart')" [appChip]="display() === 'chart'">{{ i18n.t('builder.viewChart') }}</button>
+      </div>
+      @if (legend().length) {
+        <app-stat-legend [entries]="legend()" />
       }
+    </div>
+
+    @if (store.selectedRows().length === 0 || store.columns().length === 0) {
+      <p class="text-sm text-muted text-center py-10 bg-card rounded-2xl border border-line">{{ i18n.t('builder.emptyWorkspace') }}</p>
+    } @else if (display() === 'chart') {
+      <app-results-chart />
+    } @else {
+      <app-results-table />
     }
+
+    <p class="text-[11px] text-muted mt-2">{{ i18n.t('builder.percentileNote') }}</p>
+
+    <!-- Save -->
+    <div class="mt-4 flex flex-col items-end gap-2">
+      @if (store.actionError(); as err) {
+        <p class="text-red-500 text-xs font-semibold">{{ err }}</p>
+      }
+      @if (!auth.isAuthenticated()) {
+        <a routerLink="/login" appButton="outline" appButtonSize="sm">{{ i18n.t('builder.loginToSave') }}</a>
+      } @else if (store.canSave()) {
+        <button type="button" appButton appButtonSize="sm" [disabled]="store.saving()" (click)="save()">
+          {{ store.saving() ? '…' : i18n.t('builder.save') }}
+        </button>
+      }
+    </div>
+  }
+
+  @if (playerPickerOpen()) {
+    <app-player-picker (closed)="playerPickerOpen.set(false)" />
+  }
+  @if (columnPickerOpen()) {
+    <app-column-picker (closed)="columnPickerOpen.set(false)" />
+  }
+  @if (editingFormulaId(); as formulaId) {
+    <app-column-picker [editFormulaId]="formulaId" (closed)="editingFormulaId.set(null)" />
+  }
+
+  @if (columnMenu(); as col) {
+    <app-dialog [title]="col.label" icon="sliders" [closeLabel]="i18n.t('builder.cancel')" (closed)="columnMenu.set(null)">
+      @if (col.error) {
+        <p class="text-red-500 text-xs font-semibold mb-3">{{ i18n.t('builder.formulaError.' + col.error.code).replace('{text}', col.error.params?.text ?? '') }}</p>
+      }
+      <div class="grid grid-cols-2 gap-2">
+        <button type="button" appButton="outline" appButtonSize="sm" [disabled]="columnIndex(col) === 0" (click)="move(col, -1)">← {{ i18n.t('builder.moveLeft') }}</button>
+        <button type="button" appButton="outline" appButtonSize="sm" [disabled]="columnIndex(col) === store.columns().length - 1" (click)="move(col, 1)">
+          {{ i18n.t('builder.moveRight') }} →
+        </button>
+        @if (col.ref.kind === 'formula') {
+          <button type="button" appButton="outline" appButtonSize="sm" (click)="edit(col)">{{ i18n.t('builder.editFormula') }}</button>
+        }
+        <button type="button" appButton="secondary" appButtonSize="sm" class="text-red-500" (click)="remove(col)">{{ i18n.t('builder.remove') }}</button>
+      </div>
+    </app-dialog>
+  }
+
+  @if (naming()) {
+    <app-dialog [title]="i18n.t('builder.saveTitle')" icon="sliders" [closeLabel]="i18n.t('builder.cancel')" (closed)="naming.set(false)">
+      <input
+        type="text"
+        [value]="nameValue()"
+        (input)="nameValue.set($any($event.target).value)"
+        (keydown.enter)="submitName()"
+        [placeholder]="i18n.t('builder.namePlaceholder')"
+        maxlength="60"
+        class="w-full px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none mb-3"
+      />
+      <button type="button" appButton appButtonSize="sm" class="w-full" [disabled]="!nameValue().trim()" (click)="submitName()">{{ i18n.t('builder.save') }}</button>
+    </app-dialog>
+  }
+
+  @if (store.discardPrompt()) {
+    <app-confirm-dialog
+      [message]="i18n.t('builder.discardPrompt')"
+      [confirmLabel]="i18n.t('builder.discardYes')"
+      [cancelLabel]="i18n.t('builder.cancel')"
+      (confirmed)="store.resolveDiscard(true)"
+      (cancelled)="store.resolveDiscard(false)"
+    />
   }
 </div>

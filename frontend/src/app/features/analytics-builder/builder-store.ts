@@ -183,6 +183,23 @@ export class BuilderStore {
     ];
   });
 
+  // A pending "discard unsaved changes?" question; the page renders the
+  // confirm dialog while this is set (view switcher and route guard share it).
+  private readonly discardPromptSig = signal<((ok: boolean) => void) | null>(null);
+  readonly discardPrompt = computed(() => this.discardPromptSig() !== null);
+
+  confirmDiscardIfDirty(): Promise<boolean> {
+    if (!this.isDirty()) return Promise.resolve(true);
+    this.discardPromptSig()?.(false);
+    return new Promise((resolve) => this.discardPromptSig.set(resolve));
+  }
+
+  resolveDiscard(ok: boolean): void {
+    const resolve = this.discardPromptSig();
+    this.discardPromptSig.set(null);
+    resolve?.(ok);
+  }
+
   percentile(colId: string, row: PlayerAdvancedStatsRow): number | null {
     const sorted = this.percentileTable().get(colId);
     const col = this.columns().find((c) => c.id === colId);
