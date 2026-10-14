@@ -2,7 +2,8 @@
 // Run: cd backend && npx tsx ../frontend/scripts/check-builder-logic.ts
 import { compileFormula, evaluateFormula } from "../src/app/features/analytics-builder/formula";
 import { percentileOf, selectPool, sortedValues, topPercent } from "../src/app/features/analytics-builder/percentiles";
-import type { PlayerAdvancedStatsRow } from "../src/app/core/models";
+import { columnId, decodeView, encodeWorkspace, sameWorkspace, type Workspace } from "../src/app/features/analytics-builder/workspace";
+import type { AnalyticsView, PlayerAdvancedStatsRow } from "../src/app/core/models";
 import { STAT_CATALOG, formatStat, statByAlias, statByKey } from "../src/app/shared/stat-catalog";
 
 const failures: string[] = [];
@@ -94,6 +95,35 @@ check("fallback pool drops 0-game rows", () => eq(selectPool([...fakeRows([1, 2]
 check("topPercent floor", () => {
   eq(topPercent(100), 1);
   eq(topPercent(92), 8);
+});
+
+// --- Workspace codec ---
+const legacy: AnalyticsView = {
+  id: "v", userId: "u", name: "Old", playerIds: ["p1"], columns: ["pointsPerGame", "valuation"],
+  customColumns: [{ id: "c1", label: "Load", expression: "pointsPerGame / possessionsPerGame" }],
+  sortKey: "pointsPerGame", sortDesc: true, createdAt: "",
+};
+check("legacy view: stats then formulas", () => eq(decodeView(legacy).columns.map(columnId).join(), "pointsPerGame,valuation,f:c1"));
+check("legacy sort kept", () => eq(decodeView(legacy).sort?.columnId, "pointsPerGame"));
+check("legacy custom: sortKey maps to f:", () => eq(decodeView({ ...legacy, sortKey: "custom:c1" }).sort?.columnId, "f:c1"));
+check("round trip preserves mixed order", () => {
+  const ws: Workspace = {
+    playerIds: ["p1"],
+    sort: { columnId: "f:c1", desc: false },
+    columns: [{ kind: "formula", id: "c1", label: "PRA", expression: "PTS + REB + AST" }, { kind: "stat", key: "pointsPerGame" }],
+  };
+  const back = decodeView({ ...legacy, ...encodeWorkspace(ws, "x") });
+  ok(sameWorkspace(ws, back));
+  eq(back.columns.map(columnId).join(), "f:c1,pointsPerGame");
+});
+check("formula-only view has non-empty columns", () =>
+  eq(encodeWorkspace({ playerIds: ["p"], sort: null, columns: [{ kind: "formula", id: "a", label: "A", expression: "PTS" }] }, "n").columns.join(), "f:a"));
+check("dangling sortKey falls back", () => eq(decodeView({ ...legacy, sortKey: "nope" }).sort?.columnId, "pointsPerGame"));
+check("unknown column strings dropped", () => eq(decodeView({ ...legacy, columns: ["bogus", "valuation"] }).columns.map(columnId).join(), "valuation,f:c1"));
+check("untouched view is not dirty", () => ok(sameWorkspace(decodeView(legacy), decodeView(structuredClone(legacy)))));
+check("sort change is dirty", () => {
+  const ws = decodeView(legacy);
+  ok(!sameWorkspace(ws, { ...ws, sort: { columnId: "valuation", desc: true } }));
 });
 
 if (failures.length) {
