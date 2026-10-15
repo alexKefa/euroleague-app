@@ -31,16 +31,17 @@ from them measurable through a promo code on the bio link
 
 | # | Time | Scene | Content |
 |---|---|---|---|
-| 1 | 0–2 s | Hook | "78% of Clutch players picked / OLYMPIACOS / THEY LOST 81–87". Glow in the losing team's colour. Face-down card wobbling, "🔒 legendary pull at the end". |
+| 1 | 0–2 s | Hook | "78% of Clutch players said / OLYMPIACOS / THEY LOST 81–87". Glow in the losing team's colour. Face-down card wobbling, "🔒 legendary pull at the end". |
 | 2 | 2–6 s | Results | "Round 6": every final score slams in, one by one, with team logos, in tip-off order. Small face-down card in the corner. |
 | 3 | 6–9 s | Top predictor | "The Oracle of Piraeus · 9/10 · +214 pts". |
-| 4 | 9–12 s | Bold call | "Only 12% saw Fenerbahçe winning in Barcelona coming — The Lone Wolf of Belgrade did". |
+| 4 | 9–12 s | Bold call | "Only 12% said / FENERBAHCE / and they won 90–88", then "The Lone Wolf of Belgrade". |
 | 5 | 12–16 s | Payoff | The card flips with a burst: the legendary pulled this round, player photo, "Golden Hands of Athens". |
 | 6 | 16–18 s | Call to action | "Think you'd do better?", "Round 7 picks are open", getclutchapp.com, "Free · link in bio". Holds still, so the last frame works as a cover. |
 
-Greek copy mirrors English: "Το 78% των παικτών του Clutch διάλεξε /
-ΟΛΥΜΠΙΑΚΟ / ΕΧΑΣΕ", "🔒 legendary κάρτα στο τέλος", "Αγωνιστική 6",
-"Κορυφαίος προβλέπων", "Μόνο το 12% είδε τη νίκη της Φενέρ στη Βαρκελώνη",
+Greek copy mirrors English, phrased so team names stay in the nominative
+(no declension table needed): "Το 78% των παικτών του Clutch είπε /
+ΟΛΥΜΠΙΑΚΟΣ / ΕΧΑΣΕ 81–87", "🔒 legendary κάρτα στο τέλος", "Αγωνιστική 6",
+"Κορυφαίος προβλέπων", "Μόνο το 12% είπε / ΦΕΝΕΡΜΠΑΧΤΣΕ / και κέρδισε 90–88",
 "Την τράβηξε…", "Εσύ θα τα πήγαινες καλύτερα;", "Άνοιξαν οι προβλέψεις ·
 Αγωνιστική 7", "Δωρεάν · link στο bio". Round names come from the existing
 round-label mapping (rounds 39+ are Play-in / Playoffs · Game N / Final
@@ -58,11 +59,13 @@ featured user's favourite team. No favourite team → title alone.
 |---|---|---|
 | Top predictor | The Oracle of Piraeus | Ο Μάντης του Πειραιά |
 | Bold call | The Lone Wolf of Belgrade | Ο Μοναχικός Λύκος του Βελιγραδίου |
-| Payoff | Golden Hands of Athens | Χρυσά Χέρια από την Αθήνα |
+| Payoff | Golden Hands of Athens | Χρυσά Χέρια της Αθήνας |
 
-A lookup table maps each of the 20 clubs (by `teams.code`) to its city in
-English and in the Greek form the title needs (genitive "του Πειραιά" /
-"από την Αθήνα"-style phrase). Kept server-side next to the endpoint.
+A lookup table keyed by `teams.code` (the DB has no Greek names and
+`teams.city` is empty) gives each club a short name in English and Greek
+("Olympiacos" / "Ολυμπιακός") and its city for the alias ("of Piraeus" /
+"του Πειραιά"). Kept server-side next to the endpoint. A club missing from
+the table falls back to `teams.name` and a title-only alias.
 
 ## Data: `GET /api/admin/round-clip?season=&round=`
 
@@ -127,7 +130,8 @@ before the first frame. Text auto-shrinks to fit its box.
 ## Errors and edge cases
 
 - Round not final → 409; the picker only lists finished rounds.
-- Fewer than 3 scenes left → the page warns before export.
+- No hook scene (no upset and no bold call qualified) → the page warns
+  before export that the clip opens without a hook.
 - `MediaRecorder` unavailable → Export disabled: "Use desktop Chrome or
   Safari".
 - Tab hidden during recording (browsers throttle animation) → recording
