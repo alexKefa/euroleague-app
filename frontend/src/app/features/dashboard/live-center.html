@@ -44,9 +44,9 @@
                     @if (game.homeTeam.logoUrl) {
                       <img [src]="game.homeTeam.logoUrl" [alt]="game.homeTeam.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
                     }
-                    <span class="font-semibold truncate">{{ game.homeTeam.code | teamCode }}</span>
+                    <span class="font-semibold shrink-0 whitespace-nowrap">{{ game.homeTeam.code | teamCode }}</span>
                     <span class="text-muted text-xs">vs</span>
-                    <span class="font-semibold truncate">{{ game.awayTeam.code | teamCode }}</span>
+                    <span class="font-semibold shrink-0 whitespace-nowrap">{{ game.awayTeam.code | teamCode }}</span>
                     @if (game.awayTeam.logoUrl) {
                       <img [src]="game.awayTeam.logoUrl" [alt]="game.awayTeam.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
                     }
@@ -75,14 +75,19 @@
                     @if (game.homeTeam.logoUrl) {
                       <img [src]="game.homeTeam.logoUrl" [alt]="game.homeTeam.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
                     }
-                    <span class="font-semibold truncate">{{ game.homeTeam.code | teamCode }}</span>
+                    <span class="font-semibold shrink-0 whitespace-nowrap">{{ game.homeTeam.code | teamCode }}</span>
                     <span class="text-muted text-xs">vs</span>
-                    <span class="font-semibold truncate">{{ game.awayTeam.code | teamCode }}</span>
+                    <span class="font-semibold shrink-0 whitespace-nowrap">{{ game.awayTeam.code | teamCode }}</span>
                     @if (game.awayTeam.logoUrl) {
                       <img [src]="game.awayTeam.logoUrl" [alt]="game.awayTeam.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
                     }
                   </span>
-                  <span class="font-mono text-xs text-muted shrink-0">{{ game.tipoffAt | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}{{ game.tipoffAt | todayTag: i18n.lang() }}</span>
+                  <!-- Date over time, so the long one-line form doesn't
+                       squeeze the team codes to one letter on phones. -->
+                  <span class="font-mono text-[11px] text-muted shrink-0 text-right leading-tight">
+                    <span class="block whitespace-nowrap">{{ game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}{{ game.tipoffAt | todayTag: i18n.lang() }}</span>
+                    <span class="block whitespace-nowrap">{{ game.tipoffAt | date: "HH:mm":"Europe/Athens" }}</span>
+                  </span>
                 </a>
               }
             </div>
@@ -192,49 +197,71 @@
           @if (favoriteRows().length > 0) {
             <div class="text-sm space-y-2">
               @for (row of favoriteRows(); track row.id) {
-                <a [routerLink]="['/players', row.id]" class="list-row gap-3">
+                <!-- Compact row (2026-10-15): name + team over stat chips,
+                     next game (opponent, day + time, or live score) in a
+                     small column on the right. -->
+                <a [routerLink]="['/players', row.id]" class="list-row gap-2.5 !py-2 sm:gap-3">
                   @if (row.photoUrl) {
-                    <img [src]="row.photoUrl | cdnSized: 36" [alt]="row.name" loading="lazy" decoding="async" appRetryImg class="w-9 h-9 rounded-full object-cover shrink-0" />
+                    <img [src]="row.photoUrl | cdnSized: 36" [alt]="row.name" loading="lazy" decoding="async" appRetryImg class="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover shrink-0" />
                   } @else {
-                    <span class="w-9 h-9 rounded-full bg-page border border-line shrink-0 flex items-center justify-center font-mono text-[11px] text-muted">{{ row.teamCode }}</span>
+                    <span class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-page border border-line shrink-0 flex items-center justify-center font-mono text-[10px] text-muted">{{ row.teamCode | teamCode }}</span>
                   }
 
                   <span class="min-w-0 flex-1">
-                    <span class="flex items-center justify-between gap-2">
-                      <span class="font-semibold truncate">{{ row.name }}</span>
-                      @if (row.game; as game) {
-                        @if (game.status === 'live') {
-                          <span class="flex items-center gap-1 shrink-0">
-                            <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
-                            <span class="font-mono font-bold text-xs"><app-count-up [value]="game.homeScore ?? 0" [fromZero]="false" [duration]="0.6" [pop]="true" />-<app-count-up [value]="game.awayScore ?? 0" [fromZero]="false" [duration]="0.6" [pop]="true" /></span>
-                          </span>
-                        } @else {
-                          <span class="font-mono text-[11px] text-muted shrink-0">{{ game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}{{ game.tipoffAt | todayTag: i18n.lang() }}</span>
+                    <span class="flex items-baseline gap-1.5 min-w-0">
+                      <!-- "Moses Wright" via formatPlayerName: the feed's
+                           "WRIGHT, MOSES" lost the first name to truncation. -->
+                      <span class="font-semibold truncate leading-tight">{{ playerName(row.name) }}</span>
+                      <span class="font-mono text-[10px] text-muted shrink-0">{{ row.teamCode | teamCode }}</span>
+                    </span>
+                    @if (row.pointsPerGame !== null && row.pointsPerGame !== undefined) {
+                      <span class="flex flex-wrap items-center gap-1 mt-1">
+                        <ng-container *ngTemplateOutlet="statChip; context: { value: row.pointsPerGame, label: i18n.t('liveCenter.ppg'), hero: false }"></ng-container>
+                        <ng-container *ngTemplateOutlet="statChip; context: { value: row.reboundsPerGame, label: i18n.t('liveCenter.rpg'), hero: false }"></ng-container>
+                        <ng-container *ngTemplateOutlet="statChip; context: { value: row.assistsPerGame, label: i18n.t('liveCenter.apg'), hero: false }"></ng-container>
+                        <ng-container *ngTemplateOutlet="statChip; context: { value: row.valuation, label: i18n.t('liveCenter.pir'), hero: true }"></ng-container>
+                      </span>
+                    } @else {
+                      <span class="block font-mono text-[11px] text-muted mt-0.5">{{ i18n.t('liveCenter.noStatsYet') }}</span>
+                    }
+                  </span>
+
+                  <!-- Next game (2026-10-15): opponent (vs = home, @ = away)
+                       over the tip-off day+time, or the live score. -->
+                  <span class="shrink-0 flex flex-col items-end gap-0.5 font-mono text-[10px] leading-tight text-muted">
+                    @if (row.game; as game) {
+                      @let home = game.homeTeam.id === row.teamId;
+                      @let opp = home ? game.awayTeam : game.homeTeam;
+                      <span class="inline-flex items-center gap-1 font-bold text-ink">
+                        <span class="text-muted font-normal">{{ home ? 'vs' : '@' }}</span>
+                        @if (opp.logoUrl) {
+                          <img [src]="opp.logoUrl" [alt]="opp.name" loading="lazy" decoding="async" appRetryImg class="w-3.5 h-3.5 object-contain team-logo" />
                         }
+                        {{ opp.code | teamCode }}
+                      </span>
+                      @if (game.status === 'live') {
+                        <span class="inline-flex items-center gap-1 text-ink font-bold">
+                          <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
+                          <app-count-up [value]="game.homeScore ?? 0" [fromZero]="false" [duration]="0.6" [pop]="true" />-<app-count-up [value]="game.awayScore ?? 0" [fromZero]="false" [duration]="0.6" [pop]="true" />
+                        </span>
                       } @else {
-                        <span class="font-mono text-[11px] text-muted shrink-0">{{ i18n.t('liveCenter.noGameThisRound') }}</span>
+                        <span class="whitespace-nowrap" [attr.title]="game.tipoffAt | date: shortDateFormat():'Europe/Athens':dateLocale()">{{ gameDay(game.tipoffAt) }} {{ game.tipoffAt | date: 'HH:mm':'Europe/Athens' }}</span>
                       }
-                    </span>
-                    <span class="flex items-center gap-2.5 mt-0.5">
-                      <span class="font-mono text-[11px] text-muted">{{ row.teamCode }}</span>
-                      @if (row.pointsPerGame !== null && row.pointsPerGame !== undefined) {
-                        <span class="font-mono text-[11px] text-muted">{{ row.pointsPerGame | number: '1.1-1' }} {{ i18n.t('liveCenter.ppg') }}</span>
-                        <span class="font-mono text-[11px] text-muted">{{ row.reboundsPerGame | number: '1.1-1' }} {{ i18n.t('liveCenter.rpg') }}</span>
-                        <span class="font-mono text-[11px] text-muted">{{ row.assistsPerGame | number: '1.1-1' }} {{ i18n.t('liveCenter.apg') }}</span>
-                        <span class="font-mono text-[11px] font-bold text-team-primary">{{ row.valuation | number: '1.1-1' }} {{ i18n.t('liveCenter.pir') }}</span>
-                      } @else {
-                        <span class="font-mono text-[11px] text-muted">{{ i18n.t('liveCenter.noStatsYet') }}</span>
-                      }
-                    </span>
+                    } @else {
+                      <span class="text-right max-w-[4.5rem]">{{ i18n.t('liveCenter.noGameThisRound') }}</span>
+                    }
                   </span>
 
                   <button
                     type="button"
                     (click)="removeFavorite(row, $event)"
                     [attr.aria-label]="i18n.t('player.unfavorite')"
-                    class="shrink-0 text-muted hover:text-red-500 transition-colors text-sm leading-none px-1"
+                    [attr.title]="i18n.t('player.unfavorite')"
+                    class="shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-line bg-page text-muted flex items-center justify-center transition-colors hover:text-red-500 hover:border-red-500/50 hover:bg-red-500/10 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-team-primary"
                   >
-                    &times;
+                    <svg viewBox="0 0 24 24" class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" aria-hidden="true">
+                      <path d="M6 6l12 12M18 6L6 18" />
+                    </svg>
                   </button>
                 </a>
               }
@@ -312,5 +339,16 @@
         <span class="font-display text-[9px]">{{ team.code | teamCode }}</span>
       }
     </span>
+  </span>
+</ng-template>
+
+<!-- Favorites tab stat chip: value + label in one small pill. -->
+<ng-template #statChip let-value="value" let-label="label" let-hero="hero">
+  <span
+    class="inline-flex items-baseline gap-0.5 sm:gap-1 h-5 sm:h-6 px-1.5 sm:px-2 rounded-md sm:rounded-lg border whitespace-nowrap leading-5 sm:leading-6"
+    [ngClass]="hero ? 'border-team-primary/40 bg-team-primary/10' : 'border-line bg-card'"
+  >
+    <span class="font-display text-[12px] sm:text-[13px] tabular-nums" [ngClass]="hero ? 'text-team-primary' : 'text-ink'">{{ value | number: '1.1-1' }}</span>
+    <span class="text-[8px] sm:text-[9px] font-bold uppercase tracking-wide" [ngClass]="hero ? 'text-team-primary/80' : 'text-muted'">{{ label }}</span>
   </span>
 </ng-template>

@@ -12,11 +12,13 @@ import { TeamCodePipe } from "../../shared/team-display-code";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
-import { gameDateTimeFormat, newsDateLocale, shortDateFormat } from "../../shared/news-date-format";
+import { newsDateLocale, shortDateFormat } from "../../shared/news-date-format";
 import { TodayTagPipe } from "../../shared/today-tag.pipe";
 import { CdnSizedPipe } from "../../shared/cdn-image";
+import { formatPlayerName } from "../../shared/player-name";
 import { RoundStatusService } from "./round-status.service";
 
+const ATHENS_DAY = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Athens", year: "numeric", month: "2-digit", day: "2-digit" });
 
 type LiveCenterTab = "games" | "predictions" | "favorites" | "polls";
 
@@ -248,8 +250,14 @@ export class LiveCenterComponent implements OnInit {
     return shortDateFormat(this.i18n.lang());
   }
 
-  // Games tab's upcoming rows show the tipoff time too, not just the day.
-  gameDateTimeFormat(): string {
-    return gameDateTimeFormat(this.i18n.lang());
+  playerName(name: string): string {
+    return formatPlayerName(name);
+  }
+
+  // Favorites row: "Today" or the short weekday ("Thu" / "Πέμ"), Athens time.
+  gameDay(tipoffAt: string): string {
+    const d = new Date(tipoffAt);
+    if (ATHENS_DAY.format(d) === ATHENS_DAY.format(new Date())) return this.i18n.t("common.today");
+    return d.toLocaleDateString(newsDateLocale(this.i18n.lang()), { weekday: "short", timeZone: "Europe/Athens" });
   }
 }
