@@ -173,6 +173,13 @@ export const battlesTranslations: Record<string, Record<Lang, string>> = {
   "battles.part.injury": { en: "Injury", el: "Τραυματισμός" },
   "battles.cardPowerTitle": { en: "Your card's power", el: "Η δύναμη της κάρτας σου" },
   "battles.winChance": { en: "Win chance", el: "Πιθανότητα νίκης" },
+  "battles.powerChance": { en: "Power · win chance", el: "Δύναμη · πιθανότητα νίκης" },
+  "battles.drawExplainer": {
+    en: "The winner is drawn at these odds, so the stronger card doesn't always win.",
+    el: "Ο νικητής κληρώνεται με αυτές τις πιθανότητες, οπότε η δυνατότερη κάρτα δεν κερδίζει πάντα.",
+  },
+  "battles.upsetYou": { en: "Upset! You won with a {pct}% chance.", el: "Έκπληξη! Κέρδισες με πιθανότητα {pct}%." },
+  "battles.upsetThem": { en: "Upset: they won with a {pct}% chance.", el: "Έκπληξη: κέρδισαν με πιθανότητα {pct}%." },
   "battles.theirPower": { en: "Their power", el: "Η δύναμή τους" },
 
   "battles.toastChallenged": { en: "challenged you to a duel!", el: "σε προκάλεσε σε μονομαχία!" },

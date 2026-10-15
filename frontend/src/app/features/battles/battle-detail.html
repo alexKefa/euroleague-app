@@ -375,6 +375,26 @@
         <div class="mt-5 space-y-2">
           @for (r of powerRows(); track r.key; let i = $index) {
             @if (i < revealedRounds()) {
+              @if (r.key === 'power' && myWinPct() !== null) {
+                <!-- Total power only sets the odds of the draw, so this row
+                     stays neutral (no won/lost colour) and shows each side's
+                     win chance next to its power. -->
+                <div class="round-row">
+                  <p class="text-[13px] font-bold mb-1.5">{{ i18n.t('battles.powerChance') }}</p>
+                  <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                    <div class="flex items-center justify-end gap-2">
+                      <span class="font-mono text-sm font-bold tabular-nums">{{ r.mine }} · {{ myWinPct() }}%</span>
+                      <div class="round-bar round-bar--mine"><span [style.width.%]="myWinPct()"></span></div>
+                    </div>
+                    <span class="round-verdict">🎲</span>
+                    <div class="flex items-center gap-2">
+                      <div class="round-bar round-bar--theirs"><span [style.width.%]="100 - myWinPct()!"></span></div>
+                      <span class="font-mono text-sm font-bold tabular-nums">{{ r.theirs }} · {{ 100 - myWinPct()! }}%</span>
+                    </div>
+                  </div>
+                  <p class="text-[11px] text-muted mt-1.5 text-center">{{ i18n.t('battles.drawExplainer') }}</p>
+                </div>
+              } @else {
               <div class="round-row" [class.is-won]="r.mine > r.theirs" [class.is-lost]="r.mine < r.theirs">
                 <p class="text-[13px] font-bold mb-1.5">{{ r.key === 'power' ? i18n.t('battles.power') : i18n.t('battles.part.' + r.key) }}</p>
                 <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
@@ -389,6 +409,7 @@
                   </div>
                 </div>
               </div>
+              }
             } @else {
               <div class="round-row round-row--pending">
                 <p class="text-[13px] font-bold text-muted">{{ r.key === 'power' ? i18n.t('battles.power') : i18n.t('battles.part.' + r.key) }}</p>
@@ -406,6 +427,11 @@
       @if (revealDone()) {
         <div class="text-center mt-5 result-in">
           <p class="font-display text-2xl tracking-wide">{{ didIWin() ? i18n.t('battles.youWon') : i18n.t('battles.youLost') }}</p>
+          @if (b.mode === 'power' && upsetPct() !== null) {
+            <p class="text-[13px] font-bold text-muted mt-1">
+              {{ (didIWin() ? i18n.t('battles.upsetYou') : i18n.t('battles.upsetThem')).replace('{pct}', '' + upsetPct()) }}
+            </p>
+          }
           @if (b.stakePoints !== null) {
             <p class="font-mono text-base font-bold mt-1 stake-pop" [ngClass]="didIWin() ? 'text-team-primary' : 'text-red-500'">
               {{ didIWin() ? '+' : '−' }}{{ b.stakePoints }} {{ i18n.t('battles.ptsSuffix') }}

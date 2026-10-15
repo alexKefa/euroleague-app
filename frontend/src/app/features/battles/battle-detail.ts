@@ -168,6 +168,15 @@ export class BattleDetailComponent implements OnInit, OnDestroy {
     if (prob == null) return null;
     return Math.round((this.mySide() === "challenger" ? prob : 1 - prob) * 100);
   });
+  // The winner's pre-draw chance, when under 50% (2026-10-15): power only sets
+  // the odds of a weighted draw, so a lower-power win read as "points went to
+  // the loser" unless the result says it was an upset.
+  readonly upsetPct = computed(() => {
+    const mine = this.myWinPct();
+    if (mine === null) return null;
+    const winnerPct = this.didIWin() ? mine : 100 - mine;
+    return winnerPct < 50 ? winnerPct : null;
+  });
 
   // Finished v4 stat duel.
   readonly rounds = computed<DuelRound[]>(() => this.battle()?.duelRounds ?? []);
