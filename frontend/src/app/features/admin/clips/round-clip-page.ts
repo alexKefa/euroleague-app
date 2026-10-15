@@ -11,6 +11,7 @@ import { NavIconComponent } from "../../../shared/nav-icon";
 import { roundLabel } from "../../../shared/round-label";
 import { SkeletonComponent } from "../../../shared/skeleton";
 import { CLIP_H, CLIP_W, drawClipFrame, ensureClipFonts, loadClipImages, type ClipImages } from "./clip-renderer";
+import { ClipHiddenError, pickRecorderFormat, recordClip } from "./clip-recorder";
 import { buildTimeline, clipDuration, type Scene } from "./clip-timeline";
 import type { ClipLang } from "./clip-text";
 
@@ -41,17 +42,33 @@ import type { ClipLang } from "./clip-text";
         <div class="flex flex-wrap items-end gap-3 mb-4">
           <div class="min-w-[12rem] flex-1">
             <p class="text-[12px] font-semibold text-muted mb-1">{{ i18n.t('admin.clips.round') }}</p>
-            <app-dropdown [options]="roundOptions()" [value]="round() !== null ? '' + round() : null" (valueChange)="selectRound($event)" />
+            <app-dropdown [disabled]="recording() !== null" [options]="roundOptions()" [value]="round() !== null ? '' + round() : null" (valueChange)="selectRound($event)" />
           </div>
           <div>
             <p class="text-[12px] font-semibold text-muted mb-1">{{ i18n.t('admin.clips.lang') }}</p>
             <div class="flex gap-1">
-              <button type="button" [appButton]="lang() === 'en' ? 'primary' : 'outline'" appButtonSize="sm" (click)="lang.set('en')">EN</button>
-              <button type="button" [appButton]="lang() === 'el' ? 'primary' : 'outline'" appButtonSize="sm" (click)="lang.set('el')">ΕΛ</button>
+              <button type="button" [appButton]="lang() === 'en' ? 'primary' : 'outline'" appButtonSize="sm" [disabled]="recording() !== null" (click)="lang.set('en')">EN</button>
+              <button type="button" [appButton]="lang() === 'el' ? 'primary' : 'outline'" appButtonSize="sm" [disabled]="recording() !== null" (click)="lang.set('el')">ΕΛ</button>
             </div>
           </div>
-          <button type="button" appButton [disabled]="true">{{ i18n.t('admin.clips.export') }}</button>
+          <button type="button" appButton [disabled]="!canExport() || !ready() || recording() !== null" (click)="exportClip()">
+            {{ i18n.t('admin.clips.export') }}
+          </button>
         </div>
+
+        @if (!canExport()) {
+          <p class="text-sm text-muted font-semibold mb-3">{{ i18n.t('admin.clips.unsupported') }}</p>
+        } @else if (exportFormat()?.ext === 'webm') {
+          <p class="text-sm text-muted mb-3">{{ i18n.t('admin.clips.webmNote') }}</p>
+        }
+        @if (recording() !== null) {
+          <div class="mb-3">
+            <p class="text-sm font-semibold mb-1">{{ i18n.t('admin.clips.recording') }}</p>
+            <div class="h-2 rounded-full bg-line overflow-hidden">
+              <div class="h-full bg-team-primary" [style.width.%]="recording()! * 100"></div>
+            </div>
+          </div>
+        }
 
         @if (error()) {
           <p class="text-sm text-red-500 font-semibold mb-3">{{ error() }}</p>
@@ -104,6 +121,14 @@ export class RoundClipPageComponent implements OnInit {
     this.rounds().map((r) => ({ value: String(r), label: roundLabel(this.i18n, r) }))
   );
 
+  /** The format this browser records, or null when it can't record at all. */
+  protected readonly exportFormat = signal(
+    typeof MediaRecorder === "undefined" ? null : pickRecorderFormat((m) => MediaRecorder.isTypeSupported(m))
+  );
+  protected readonly canExport = computed(() => this.exportFormat() !== null);
+  /** Recording progress 0..1, or null when not recording. */
+  protected readonly recording = signal<number | null>(null);
+
   private images: ClipImages = new Map();
   private frame = 0;
   private loopStart = 0;
@@ -148,6 +173,31 @@ export class RoundClipPageComponent implements OnInit {
     const ctx = this.canvas()?.nativeElement.getContext("2d");
     const data = this.data();
     if (ctx && data) drawClipFrame(ctx, data, this.timeline(), this.images, time, this.lang());
+  }
+
+  protected async exportClip(): Promise<void> {
+    const canvas = this.canvas()?.nativeElement;
+    const data = this.data();
+    if (!canvas || !data) return;
+    this.paused = true;
+    this.error.set(null);
+    this.recording.set(0);
+    const lang = this.lang();
+    try {
+      const { blob, ext } = await recordClip(canvas, clipDuration(this.timeline()), (t) => this.drawAt(t), (p) => this.recording.set(p));
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `clutch-${data.season}-round-${data.round}-${lang}.${ext}`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    } catch (err) {
+      this.error.set(err instanceof ClipHiddenError ? this.i18n.t("admin.clips.hidden") : String((err as Error)?.message ?? err));
+    } finally {
+      this.recording.set(null);
+      this.paused = false;
+      this.loopStart = performance.now();
+    }
   }
 
   private startPreview(): void {
