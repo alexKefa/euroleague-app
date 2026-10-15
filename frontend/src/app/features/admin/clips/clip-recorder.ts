@@ -22,16 +22,21 @@ export function pickRecorderFormat(isSupported: (mime: string) => boolean): Reco
 /** Browsers slow down animation in a hidden tab, which would ruin the video. */
 export class ClipHiddenError extends Error {}
 
+/** The recording was abandoned (e.g. the admin left the page); no file is produced. */
+export class ClipAbortedError extends Error {}
+
 /**
  * Plays the clip from 0 to `durationSec` (calling `renderAt` every animation
  * frame) while recording the canvas at 30 fps. Rejects with ClipHiddenError
- * if the tab is hidden mid-recording.
+ * if the tab is hidden mid-recording, and with ClipAbortedError when
+ * `signal` aborts.
  */
 export function recordClip(
   canvas: HTMLCanvasElement,
   durationSec: number,
   renderAt: (time: number) => void,
-  onProgress: (fraction: number) => void
+  onProgress: (fraction: number) => void,
+  signal?: AbortSignal
 ): Promise<{ blob: Blob; ext: "mp4" | "webm" }> {
   const format = typeof MediaRecorder === "undefined" ? null : pickRecorderFormat((m) => MediaRecorder.isTypeSupported(m));
   if (!format) return Promise.reject(new Error("Recording is not supported in this browser"));
@@ -47,6 +52,7 @@ export function recordClip(
     const cleanup = () => {
       cancelAnimationFrame(frame);
       document.removeEventListener("visibilitychange", onVisibility);
+      signal?.removeEventListener("abort", onAbort);
       stream.getTracks().forEach((t) => t.stop());
     };
     const onVisibility = () => {
@@ -54,6 +60,11 @@ export function recordClip(
         failed = new ClipHiddenError("The tab was hidden while recording");
         recorder.stop();
       }
+    };
+
+    const onAbort = () => {
+      failed = new ClipAbortedError("Recording abandoned");
+      if (recorder.state === "recording") recorder.stop();
     };
 
     recorder.ondataavailable = (e) => {
@@ -66,9 +77,11 @@ export function recordClip(
     };
 
     document.addEventListener("visibilitychange", onVisibility);
+    signal?.addEventListener("abort", onAbort);
     recorder.start();
     const start = performance.now();
     const tick = (now: number) => {
+      if (failed) return;
       const time = (now - start) / 1000;
       renderAt(Math.min(time, durationSec));
       onProgress(Math.min(1, time / durationSec));

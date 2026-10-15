@@ -11,7 +11,7 @@ import { NavIconComponent } from "../../../shared/nav-icon";
 import { roundLabel } from "../../../shared/round-label";
 import { SkeletonComponent } from "../../../shared/skeleton";
 import { CLIP_H, CLIP_W, drawClipFrame, ensureClipFonts, loadClipImages, type ClipImages } from "./clip-renderer";
-import { ClipHiddenError, pickRecorderFormat, recordClip } from "./clip-recorder";
+import { ClipAbortedError, ClipHiddenError, pickRecorderFormat, recordClip } from "./clip-recorder";
 import { buildTimeline, clipDuration, type Scene } from "./clip-timeline";
 import type { ClipLang } from "./clip-text";
 
@@ -130,13 +130,18 @@ export class RoundClipPageComponent implements OnInit {
   protected readonly recording = signal<number | null>(null);
 
   private images: ClipImages = new Map();
+  /** Aborts a running export when the page closes, so no file downloads after leaving. */
+  private exportAbort: AbortController | null = null;
   private frame = 0;
   private loopStart = 0;
   /** Set while exporting so the preview loop doesn't draw over the recording. */
   protected paused = false;
 
   ngOnInit(): void {
-    this.destroyRef.onDestroy(() => cancelAnimationFrame(this.frame));
+    this.destroyRef.onDestroy(() => {
+      cancelAnimationFrame(this.frame);
+      this.exportAbort?.abort();
+    });
     if (!this.auth.currentUser()?.isAdmin) return;
     this.api.getRoundClipRounds().subscribe({
       next: ({ season, rounds }) => {
@@ -157,14 +162,20 @@ export class RoundClipPageComponent implements OnInit {
     this.error.set(null);
     this.api.getRoundClip(season, round).subscribe({
       next: async (data) => {
-        const [images] = await Promise.all([loadClipImages(data), ensureClipFonts()]);
-        if (this.round() !== round) return; // a newer pick won
-        this.images = images;
-        this.data.set(data);
-        this.ready.set(true);
-        this.startPreview();
+        try {
+          const [images] = await Promise.all([loadClipImages(data), ensureClipFonts()]);
+          if (this.round() !== round) return; // a newer pick won
+          this.images = images;
+          this.data.set(data);
+          this.ready.set(true);
+          this.startPreview();
+        } catch {
+          if (this.round() === round) this.error.set("Failed to prepare the clip (fonts or images)");
+        }
       },
-      error: (err) => this.error.set(err?.error?.error ?? "Failed to load the clip"),
+      error: (err) => {
+        if (this.round() === round) this.error.set(err?.error?.error ?? "Failed to load the clip");
+      },
     });
   }
 
@@ -184,7 +195,14 @@ export class RoundClipPageComponent implements OnInit {
     this.recording.set(0);
     const lang = this.lang();
     try {
-      const { blob, ext } = await recordClip(canvas, clipDuration(this.timeline()), (t) => this.drawAt(t), (p) => this.recording.set(p));
+      this.exportAbort = new AbortController();
+      const { blob, ext } = await recordClip(
+        canvas,
+        clipDuration(this.timeline()),
+        (t) => this.drawAt(t),
+        (p) => this.recording.set(p),
+        this.exportAbort.signal
+      );
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -192,8 +210,10 @@ export class RoundClipPageComponent implements OnInit {
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 10_000);
     } catch (err) {
+      if (err instanceof ClipAbortedError) return;
       this.error.set(err instanceof ClipHiddenError ? this.i18n.t("admin.clips.hidden") : String((err as Error)?.message ?? err));
     } finally {
+      this.exportAbort = null;
       this.recording.set(null);
       this.paused = false;
       this.loopStart = performance.now();

@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { ClipTeam, RoundClipData } from "../../../core/models";
 import { buildTimeline, clipDuration, sceneAt } from "./clip-timeline";
-import { clipText, roundLabelFor } from "./clip-text";
+import { clipCode, clipText, clipUpper, roundLabelFor } from "./clip-text";
 
 const team = (code: string): ClipTeam => ({ code, name: { en: code, el: code }, color: null, logo: null });
 const alias = { en: "The Oracle", el: "Ο Μάντης" };
@@ -63,4 +63,17 @@ test("round names follow the app's postseason naming", () => {
   assert.equal(roundLabelFor(6, "el"), "Αγωνιστική 6");
   assert.equal(roundLabelFor(41, "en"), "Playoffs · Game 1");
   assert.equal(roundLabelFor(47, "el"), "Φάιναλ Φορ · Τελικός");
+});
+
+test("clips show the public club abbreviation, not the feed code", () => {
+  assert.equal(clipCode("ULK"), "FBT");
+  assert.equal(clipCode("PAM"), "VBC");
+  assert.equal(clipCode("XYZ"), "XYZ");
+});
+
+test("Greek capitals drop the tonos but keep the dialytika", () => {
+  assert.equal(clipUpper("Ερυθρός Αστέρας", "el"), "ΕΡΥΘΡΟΣ ΑΣΤΕΡΑΣ");
+  assert.equal(clipUpper("Παναθηναϊκός", "el"), "ΠΑΝΑΘΗΝΑΪΚΟΣ");
+  assert.equal(clipUpper("Αγωνιστική 6", "el"), "ΑΓΩΝΙΣΤΙΚΗ 6");
+  assert.equal(clipUpper("Real Madrid", "en"), "REAL MADRID");
 });

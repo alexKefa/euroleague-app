@@ -1,5 +1,6 @@
 import { chromeTranslations } from "../../../core/i18n/chrome";
 import { roundStage } from "../../../shared/round-stage";
+import { displayTeamCode } from "../../../shared/team-display-codes";
 
 // The round clip's own words (spec: docs/superpowers/specs/2026-10-15-round-clip-design.md).
 // Picked by the page's EN/EL toggle, not the app's language, so a Greek
@@ -38,4 +39,18 @@ export function clipText(key: ClipTextKey, lang: ClipLang, vars: Record<string, 
 export function roundLabelFor(round: number, lang: ClipLang): string {
   const { stage, n } = roundStage(round);
   return chromeTranslations[`round.${stage}`][lang].replace("{n}", String(n));
+}
+
+/** The club's public abbreviation ("FBT"), never the feed's internal code ("ULK"). */
+export function clipCode(code: string): string {
+  return displayTeamCode(code);
+}
+
+/**
+ * Capitals for headline lines. Greek capitals don't carry the tonos
+ * ("ΟΛΥΜΠΙΑΚΟΣ", not "ΟΛΥΜΠΙΑΚΌΣ"), but keep the dialytika ("ΠΑΝΑΘΗΝΑΪΚΟΣ").
+ */
+export function clipUpper(s: string, lang: ClipLang): string {
+  if (lang !== "el") return s.toUpperCase();
+  return s.normalize("NFD").replace(/\u0301/g, "").normalize("NFC").toUpperCase();
 }

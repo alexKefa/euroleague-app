@@ -1,5 +1,5 @@
 import type { ClipTeam, RoundClipData } from "../../../core/models";
-import { clipText, roundLabelFor, type ClipLang } from "./clip-text";
+import { clipCode, clipText, clipUpper, roundLabelFor, type ClipLang } from "./clip-text";
 import { fitFontSize } from "./clip-fit";
 import { easeOutBack, easeOutCubic, progress, sceneAt, type Scene } from "./clip-timeline";
 
@@ -144,7 +144,7 @@ function teamMark(ctx: CanvasRenderingContext2D, team: ClipTeam, images: ClipIma
   ctx.arc(cx, cy, size / 2, 0, Math.PI * 2);
   ctx.fillStyle = team.color ?? "#3a3a3c";
   ctx.fill();
-  text(ctx, team.code, cx, cy + size * 0.12, { font: display, px: Math.round(size * 0.36), maxWidth: size * 0.9 });
+  text(ctx, clipCode(team.code), cx, cy + size * 0.12, { font: display, px: Math.round(size * 0.36), maxWidth: size * 0.9 });
 }
 
 function initials(name: string): string {
@@ -177,13 +177,13 @@ function drawHook(ctx: CanvasRenderingContext2D, data: RoundClipData, scene: Sce
   if (scene.variant === "upset" && data.hook) {
     const h = data.hook;
     const first = h.pickedLoserPct === null ? clipText("hookUpsetNoPct", lang) : clipText("hookSaid", lang, { pct: h.pickedLoserPct });
-    statLines(ctx, local, [first, h.loser.name[lang].toUpperCase(), clipText("hookLost", lang, { score: h.score })], [ORANGE, RED]);
+    statLines(ctx, local, [first, clipUpper(h.loser.name[lang], lang), clipText("hookLost", lang, { score: h.score })], [ORANGE, RED]);
   } else if (data.boldCall) {
     const b = data.boldCall;
     statLines(
       ctx,
       local,
-      [clipText("boldOnly", lang, { pct: b.correctPct }), b.winner.name[lang].toUpperCase(), clipText("boldWon", lang, { score: b.score })],
+      [clipText("boldOnly", lang, { pct: b.correctPct }), clipUpper(b.winner.name[lang], lang), clipText("boldWon", lang, { score: b.score })],
       [GREEN, WHITE]
     );
   }
@@ -192,7 +192,7 @@ function drawHook(ctx: CanvasRenderingContext2D, data: RoundClipData, scene: Sce
 }
 
 function drawResults(ctx: CanvasRenderingContext2D, data: RoundClipData, images: ClipImages, local: number, lang: ClipLang): void {
-  text(ctx, roundLabelFor(data.round, lang).toUpperCase(), CLIP_W / 2, 260, { font: display, px: 70, alpha: progress(local, 0, 0.3) });
+  text(ctx, clipUpper(roundLabelFor(data.round, lang), lang), CLIP_W / 2, 260, { font: display, px: 70, alpha: progress(local, 0, 0.3) });
   data.results.slice(0, 10).forEach((r, i) => {
     const p = easeOutCubic(progress(local, 0.2 + i * 0.25, 0.4));
     if (p <= 0) return;
@@ -202,9 +202,9 @@ function drawResults(ctx: CanvasRenderingContext2D, data: RoundClipData, images:
     ctx.translate((1 - p) * 500, 0);
     const homeWon = r.homeScore > r.awayScore;
     teamMark(ctx, r.home, images, 150, y, 72);
-    text(ctx, r.home.code, 270, y + 18, { font: display, px: 50, maxWidth: 140, color: homeWon ? WHITE : MUTED });
+    text(ctx, clipCode(r.home.code), 270, y + 18, { font: display, px: 50, maxWidth: 140, color: homeWon ? WHITE : MUTED });
     text(ctx, `${r.homeScore}–${r.awayScore}`, CLIP_W / 2, y + 22, { font: display, px: 70, maxWidth: 300 });
-    text(ctx, r.away.code, 810, y + 18, { font: display, px: 50, maxWidth: 140, color: homeWon ? MUTED : WHITE });
+    text(ctx, clipCode(r.away.code), 810, y + 18, { font: display, px: 50, maxWidth: 140, color: homeWon ? MUTED : WHITE });
     teamMark(ctx, r.away, images, 930, y, 72);
     ctx.restore();
   });
@@ -219,7 +219,7 @@ function drawTopPredictor(ctx: CanvasRenderingContext2D, data: RoundClipData, lo
   ctx.scale(0.9 + 0.1 * p, 0.9 + 0.1 * p);
   ctx.translate(-CLIP_W / 2, -CLIP_H / 2);
   text(ctx, clipText("topPredictor", lang), CLIP_W / 2, 700, { font: body(600), px: 44, color: MUTED });
-  text(ctx, t.alias[lang].toUpperCase(), CLIP_W / 2, 820, { font: display, px: 96, color: ORANGE });
+  text(ctx, clipUpper(t.alias[lang], lang), CLIP_W / 2, 820, { font: display, px: 96, color: ORANGE });
   text(ctx, `${t.correct}/${t.total}`, CLIP_W / 2, 1100, { font: display, px: 260 });
   text(ctx, clipText("pts", lang, { n: t.points }), CLIP_W / 2, 1260, { font: body(600), px: 44, color: MUTED });
   ctx.restore();
@@ -230,7 +230,7 @@ function drawBoldCall(ctx: CanvasRenderingContext2D, data: RoundClipData, local:
   statLines(
     ctx,
     local,
-    [clipText("boldOnly", lang, { pct: b.correctPct }), b.winner.name[lang].toUpperCase(), clipText("boldWon", lang, { score: b.score })],
+    [clipText("boldOnly", lang, { pct: b.correctPct }), clipUpper(b.winner.name[lang], lang), clipText("boldWon", lang, { score: b.score })],
     [GREEN, WHITE]
   );
   text(ctx, b.alias[lang], CLIP_W / 2, 1400, { font: display, px: 64, color: ORANGE, alpha: progress(local, 1.3, 0.4) });
@@ -294,7 +294,7 @@ function cardFace(ctx: CanvasRenderingContext2D, data: RoundClipData, images: Cl
 
   const label = pull.foil ? "foil" : pull.tier === "legendary" ? "legendary" : "rare";
   text(ctx, clipText(label, lang), 0, py + ph + 70, { font: body(600), px: 34, color: "#1a0d00", maxWidth: w * 0.85 });
-  text(ctx, pull.name.toUpperCase(), 0, py + ph + 150, { font: display, px: 76, color: "#1a0d00", maxWidth: w * 0.85 });
+  text(ctx, clipUpper(pull.name, lang), 0, py + ph + 150, { font: display, px: 76, color: "#1a0d00", maxWidth: w * 0.85 });
 }
 
 function drawPayoff(ctx: CanvasRenderingContext2D, data: RoundClipData, images: ClipImages, local: number, time: number, lang: ClipLang): void {
