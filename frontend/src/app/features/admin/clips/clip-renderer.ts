@@ -1,5 +1,5 @@
-import type { ClipTeam, RoundClipData } from "../../../core/models";
-import { clipCode, clipText, clipUpper, roundLabelFor, type ClipLang } from "./clip-text";
+import type { ClipPerson, ClipTeam, RoundClipData } from "../../../core/models";
+import { clipCode, clipText, clipUpper, personLines, roundLabelFor, type ClipLang } from "./clip-text";
 import { fitFontSize } from "./clip-fit";
 import { easeOutBack, easeOutCubic, progress, sceneAt, type Scene } from "./clip-timeline";
 
@@ -156,6 +156,16 @@ function initials(name: string): string {
     .join("");
 }
 
+/**
+ * A featured person at baseline y: "@nikos_23" (as typed) with their title in
+ * small capitals underneath, or their alias in capitals when there's no username.
+ */
+function drawPerson(ctx: CanvasRenderingContext2D, p: ClipPerson, y: number, px: number, lang: ClipLang, alpha = 1): void {
+  const { name, title } = personLines(p, lang);
+  text(ctx, title ? name : clipUpper(name, lang), CLIP_W / 2, y, { font: display, px, color: ORANGE, alpha });
+  if (title) text(ctx, clipUpper(title, lang), CLIP_W / 2, y + Math.round(px * 0.62), { font: body(600), px: 34, color: MUTED, alpha });
+}
+
 /** Three stacked lines shared by the upset hook and the bold call. */
 function statLines(ctx: CanvasRenderingContext2D, local: number, lines: [string, string, string], colors: [string, string]): void {
   const a = progress(local, 0, 0.3);
@@ -219,7 +229,7 @@ function drawTopPredictor(ctx: CanvasRenderingContext2D, data: RoundClipData, lo
   ctx.scale(0.9 + 0.1 * p, 0.9 + 0.1 * p);
   ctx.translate(-CLIP_W / 2, -CLIP_H / 2);
   text(ctx, clipText("topPredictor", lang), CLIP_W / 2, 700, { font: body(600), px: 44, color: MUTED });
-  text(ctx, clipUpper(t.alias[lang], lang), CLIP_W / 2, 820, { font: display, px: 96, color: ORANGE });
+  drawPerson(ctx, t.person, 820, 96, lang);
   text(ctx, `${t.correct}/${t.total}`, CLIP_W / 2, 1100, { font: display, px: 260 });
   text(ctx, clipText("pts", lang, { n: t.points }), CLIP_W / 2, 1260, { font: body(600), px: 44, color: MUTED });
   ctx.restore();
@@ -233,7 +243,7 @@ function drawBoldCall(ctx: CanvasRenderingContext2D, data: RoundClipData, local:
     [clipText("boldOnly", lang, { pct: b.correctPct }), clipUpper(b.winner.name[lang], lang), clipText("boldWon", lang, { score: b.score })],
     [GREEN, WHITE]
   );
-  text(ctx, b.alias[lang], CLIP_W / 2, 1400, { font: display, px: 64, color: ORANGE, alpha: progress(local, 1.3, 0.4) });
+  drawPerson(ctx, b.person, 1400, 64, lang, progress(local, 1.3, 0.4));
 }
 
 /** The pulled card's face: photo, tier colours, tier label and name. */
@@ -330,7 +340,7 @@ function drawPayoff(ctx: CanvasRenderingContext2D, data: RoundClipData, images: 
   if (data.pull) {
     const a = progress(local, 0.8, 0.4);
     text(ctx, clipText("pulledBy", lang), CLIP_W / 2, 1420, { font: body(600), px: 40, color: MUTED, alpha: a });
-    text(ctx, data.pull.alias[lang], CLIP_W / 2, 1500, { font: display, px: 72, color: ORANGE, alpha: a });
+    drawPerson(ctx, data.pull.person, 1500, 72, lang, a);
   }
 }
 

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { clipAlias, clipTeamNames } from "./teams.js";
+import { clipAlias, clipTeamNames, clipUsername } from "./teams.js";
 import { pickBoldCall, pickHook, pickPull, type GamePickStats, type PullCandidate } from "./select.js";
 
 const HOME = "home-team";
@@ -84,4 +84,10 @@ test("a tied score is never featured, since it has no winner", () => {
 test("a game most people got right is not a bold call", () => {
   // 7 of 13 correct = 54%
   assert.equal(pickBoldCall([game("a", 13, 6)], null), null);
+});
+
+test("a featured user is shown by username unless they opted out or still have a generated handle", () => {
+  assert.equal(clipUsername("nikos_23", true), "nikos_23");
+  assert.equal(clipUsername("nikos_23", false), null);
+  assert.equal(clipUsername("clutch-user-482913", true), null);
 });

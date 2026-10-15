@@ -2,12 +2,13 @@ import { sql } from "drizzle-orm";
 import { db } from "../../db/client.js";
 import { getRoundStandings } from "../roundStandings.js";
 import { imageToDataUri } from "./images.js";
-import { clipAlias, clipTeamNames, type Alias } from "./teams.js";
+import { clipAlias, clipTeamNames, clipUsername, type Alias, type AliasTitle } from "./teams.js";
 import { pickBoldCall, pickHook, pickPull, type GamePickStats, type PullCandidate } from "./select.js";
 
 // Everything one round clip shows (docs/superpowers/specs/2026-10-15-round-clip-design.md).
-// Admins are left out of every number, and only aliases leave this file:
-// no usernames or user ids.
+// Admins are left out of every number. A featured person is named by
+// username only when they allow it (users.feature_in_clips) and have chosen
+// one; otherwise by alias. User ids never leave this file.
 
 export interface ClipTeam {
   code: string;
@@ -21,15 +22,30 @@ export interface RoundClipData {
   round: number;
   results: { home: ClipTeam; away: ClipTeam; homeScore: number; awayScore: number }[];
   hook: { winner: ClipTeam; loser: ClipTeam; score: string; pickedLoserPct: number | null } | null;
-  topPredictor: { alias: Alias; correct: number; total: number; points: number } | null;
-  boldCall: { winner: ClipTeam; loser: ClipTeam; score: string; correctPct: number; alias: Alias } | null;
-  pull: { name: string; photo: string | null; tier: "legendary" | "rare"; foil: boolean; alias: Alias } | null;
+  topPredictor: { person: ClipPerson; correct: number; total: number; points: number } | null;
+  boldCall: { winner: ClipTeam; loser: ClipTeam; score: string; correctPct: number; person: ClipPerson } | null;
+  pull: { name: string; photo: string | null; tier: "legendary" | "rare"; foil: boolean; person: ClipPerson } | null;
   next: { round: number; picksOpen: boolean } | null;
+}
+
+/** Who a scene features: a title ("The Oracle"), the username when allowed, else the alias. */
+export interface ClipPerson {
+  title: Alias;
+  username: string | null;
+  alias: Alias;
 }
 
 export class RoundNotFinalError extends Error {}
 
 type Row = Record<string, any>;
+
+function person(title: AliasTitle, row: Row): ClipPerson {
+  return {
+    title: clipAlias(title, null),
+    username: clipUsername(row.username, row.feature_in_clips),
+    alias: clipAlias(title, row.fav ?? null),
+  };
+}
 
 /** Rounds of `season` whose games are all final, newest first. */
 export async function listFinishedRounds(season: string): Promise<number[]> {
@@ -106,7 +122,7 @@ export async function buildRoundClip(season: string, round: number): Promise<Rou
   const [standings, pullRows, boldRows] = await Promise.all([
     getRoundStandings(season, round),
     db.execute(sql`
-      select uc.user_id, c.name, c.image_url, c.tier, uc.finish, uc.unlocked_at, ft.code as fav
+      select uc.user_id, c.name, c.image_url, c.tier, uc.finish, uc.unlocked_at, ft.code as fav, u.username, u.feature_in_clips
       from user_collectibles uc
       join collectibles c on c.id = uc.collectible_id
       join users u on u.id = uc.user_id and not u.is_admin
@@ -116,7 +132,7 @@ export async function buildRoundClip(season: string, round: number): Promise<Rou
     `) as unknown as Promise<Row[]>,
     boldPick
       ? (db.execute(sql`
-          select p.user_id, ft.code as fav
+          select p.user_id, ft.code as fav, u.username, u.feature_in_clips
           from predictions p
           join users u on u.id = p.user_id and not u.is_admin
           left join teams ft on ft.id = u.favorite_team_id
@@ -126,17 +142,19 @@ export async function buildRoundClip(season: string, round: number): Promise<Rou
   ]);
 
   const top = standings[0] && standings[0].total > 0 ? standings[0] : null;
-  const topFav = top
+  const topUser = top
     ? (((await db.execute(sql`
-        select ft.code as fav from users u left join teams ft on ft.id = u.favorite_team_id where u.id = ${top.userId}
-      `)) as unknown as Row[])[0]?.fav ?? null)
+        select ft.code as fav, u.username, u.feature_in_clips
+        from users u left join teams ft on ft.id = u.favorite_team_id where u.id = ${top.userId}
+      `)) as unknown as Row[])[0] ?? null)
     : null;
 
   // The bold call's featured picker: the one ranked highest this round.
   const rank = new Map(standings.map((s, i) => [s.userId, i]));
   const boldPicker = [...boldRows].sort((a, b) => (rank.get(a.user_id) ?? Infinity) - (rank.get(b.user_id) ?? Infinity))[0];
 
-  const candidates: (PullCandidate & { fav: string | null })[] = pullRows.map((r) => ({
+  type Candidate = PullCandidate & { fav: string | null; username: string; feature_in_clips: boolean };
+  const candidates: Candidate[] = pullRows.map((r) => ({
     userId: r.user_id,
     name: r.name,
     imageUrl: r.image_url ?? null,
@@ -144,8 +162,10 @@ export async function buildRoundClip(season: string, round: number): Promise<Rou
     finish: r.finish,
     unlockedAt: new Date(r.unlocked_at),
     fav: r.fav ?? null,
+    username: r.username,
+    feature_in_clips: r.feature_in_clips,
   }));
-  const pull = pickPull(candidates) as (PullCandidate & { fav: string | null }) | null;
+  const pull = pickPull(candidates) as Candidate | null;
 
   const nextRound = games[0].next_round === null ? null : Number(games[0].next_round);
   return {
@@ -153,10 +173,10 @@ export async function buildRoundClip(season: string, round: number): Promise<Rou
     round,
     results: games.map((g, i) => ({ home: teams[i].home, away: teams[i].away, homeScore: g.home_score, awayScore: g.away_score })),
     hook: hookPick ? (({ winner, loser, score }) => ({ winner, loser, score, pickedLoserPct: hookPick.pickedLoserPct }))(sides(hookPick.gameId)) : null,
-    topPredictor: top ? { alias: clipAlias("oracle", topFav), correct: top.correct, total: top.total, points: top.points } : null,
+    topPredictor: top && topUser ? { person: person("oracle", topUser), correct: top.correct, total: top.total, points: top.points } : null,
     boldCall:
       boldPick && boldPicker
-        ? (({ winner, loser, score }) => ({ winner, loser, score, correctPct: boldPick.correctPct, alias: clipAlias("loneWolf", boldPicker.fav ?? null) }))(
+        ? (({ winner, loser, score }) => ({ winner, loser, score, correctPct: boldPick.correctPct, person: person("loneWolf", boldPicker) }))(
             sides(boldPick.gameId)
           )
         : null,
@@ -166,7 +186,7 @@ export async function buildRoundClip(season: string, round: number): Promise<Rou
           photo: await imageToDataUri(pull.imageUrl),
           tier: pull.tier === "legendary" ? "legendary" : "rare",
           foil: pull.tier === "legendary" && pull.finish === "foil",
-          alias: clipAlias("goldenHands", pull.fav),
+          person: person("goldenHands", pull),
         }
       : null,
     next: nextRound === null ? null : { round: nextRound, picksOpen: games[0].next_open === true },

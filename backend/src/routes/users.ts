@@ -37,6 +37,7 @@ function publicUser(user: typeof users.$inferSelect) {
     isAdmin: user.isAdmin,
     referralCode: user.referralCode,
     showcaseCollectibleIds: user.showcaseCollectibleIds,
+    featureInClips: user.featureInClips,
   };
 }
 
@@ -91,7 +92,11 @@ usersRouter.put("/me/showcase", requireAuth, async (req, res) => {
 });
 
 usersRouter.patch("/me", requireAuth, async (req, res) => {
-  const { favoriteTeamId, username } = req.body ?? {};
+  const { favoriteTeamId, username, featureInClips } = req.body ?? {};
+  if (featureInClips !== undefined && typeof featureInClips !== "boolean") {
+    res.status(400).json({ error: "featureInClips must be a boolean" });
+    return;
+  }
   if (favoriteTeamId !== undefined && typeof favoriteTeamId !== "string" && favoriteTeamId !== null) {
     res.status(400).json({ error: "favoriteTeamId must be a string or null" });
     return;
@@ -130,6 +135,7 @@ usersRouter.patch("/me", requireAuth, async (req, res) => {
   const updates: Partial<typeof users.$inferInsert> = {};
   if (favoriteTeamId !== undefined) updates.favoriteTeamId = favoriteTeamId ?? null;
   if (trimmedUsername !== undefined) updates.username = trimmedUsername;
+  if (featureInClips !== undefined) updates.featureInClips = featureInClips;
 
   if (Object.keys(updates).length === 0) {
     res.status(400).json({ error: "Nothing to update" });

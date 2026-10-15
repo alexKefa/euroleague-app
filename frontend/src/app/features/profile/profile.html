@@ -248,6 +248,22 @@
           </button>
         </div>
       </div>
+      <!-- Round clips opt-out (2026-10-15): usernames appear in the TikTok/Reels
+           videos made at /admin/clips unless this is off. -->
+      <label class="flex items-center justify-between gap-3 py-3 cursor-pointer">
+        <span class="min-w-0">
+          <span class="block text-sm font-semibold">{{ i18n.t('profile.featureInClips') }}</span>
+          <span class="block text-[12px] text-muted mt-0.5">{{ i18n.t('profile.featureInClipsHint') }}</span>
+        </span>
+        <input
+          type="checkbox"
+          role="switch"
+          class="w-5 h-5 shrink-0 cursor-pointer" style="accent-color: var(--accent-primary)"
+          [checked]="user.featureInClips"
+          [disabled]="clipsSaving()"
+          (change)="toggleFeatureInClips($any($event.target).checked)"
+        />
+      </label>
     </div>
     @if (showTeamDialog()) {
       <app-team-pick-dialog

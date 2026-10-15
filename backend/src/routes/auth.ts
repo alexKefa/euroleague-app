@@ -96,6 +96,7 @@ function publicUser(user: typeof users.$inferSelect) {
     avatarUrl: user.avatarUrl,
     isAdmin: user.isAdmin,
     referralCode: user.referralCode,
+    featureInClips: user.featureInClips,
   };
 }
 

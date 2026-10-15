@@ -2,10 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { ClipTeam, RoundClipData } from "../../../core/models";
 import { buildTimeline, clipDuration, sceneAt } from "./clip-timeline";
-import { clipCode, clipText, clipUpper, roundLabelFor } from "./clip-text";
+import { clipCode, clipText, clipUpper, personLines, roundLabelFor } from "./clip-text";
 
 const team = (code: string): ClipTeam => ({ code, name: { en: code, el: code }, color: null, logo: null });
-const alias = { en: "The Oracle", el: "Ο Μάντης" };
+const person = { title: { en: "The Oracle", el: "Ο Μάντης" }, username: "nikos_23", alias: { en: "The Oracle", el: "Ο Μάντης" } };
 
 function data(overrides: Partial<RoundClipData> = {}): RoundClipData {
   return {
@@ -13,9 +13,9 @@ function data(overrides: Partial<RoundClipData> = {}): RoundClipData {
     round: 6,
     results: [{ home: team("OLY"), away: team("PAM"), homeScore: 81, awayScore: 87 }],
     hook: { winner: team("PAM"), loser: team("OLY"), score: "87–81", pickedLoserPct: 78 },
-    topPredictor: { alias, correct: 9, total: 10, points: 214 },
-    boldCall: { winner: team("ULK"), loser: team("BAR"), score: "90–88", correctPct: 12, alias },
-    pull: { name: "S. Vezenkov", photo: null, tier: "legendary", foil: false, alias },
+    topPredictor: { person, correct: 9, total: 10, points: 214 },
+    boldCall: { winner: team("ULK"), loser: team("BAR"), score: "90–88", correctPct: 12, person },
+    pull: { name: "S. Vezenkov", photo: null, tier: "legendary", foil: false, person },
     next: { round: 7, picksOpen: true },
     ...overrides,
   };
@@ -76,4 +76,11 @@ test("Greek capitals drop the tonos but keep the dialytika", () => {
   assert.equal(clipUpper("Παναθηναϊκός", "el"), "ΠΑΝΑΘΗΝΑΪΚΟΣ");
   assert.equal(clipUpper("Αγωνιστική 6", "el"), "ΑΓΩΝΙΣΤΙΚΗ 6");
   assert.equal(clipUpper("Real Madrid", "en"), "REAL MADRID");
+});
+
+test("a featured person is named by @username with their title, or by alias", () => {
+  const title = { en: "The Oracle", el: "Ο Μάντης" };
+  const aliasOf = { en: "The Oracle of Piraeus", el: "Ο Μάντης του Πειραιά" };
+  assert.deepEqual(personLines({ title, username: "nikos_23", alias: aliasOf }, "el"), { name: "@nikos_23", title: "Ο Μάντης" });
+  assert.deepEqual(personLines({ title, username: null, alias: aliasOf }, "en"), { name: "The Oracle of Piraeus", title: null });
 });

@@ -298,6 +298,16 @@ export class ProfileComponent implements OnInit, OnDestroy {
     });
   });
 
+  // Round clips opt-out (2026-10-15): saved straight to the account.
+  readonly clipsSaving = signal(false);
+  toggleFeatureInClips(on: boolean): void {
+    this.clipsSaving.set(true);
+    this.auth.updateFeatureInClips(on).subscribe({
+      next: () => this.clipsSaving.set(false),
+      error: () => this.clipsSaving.set(false),
+    });
+  }
+
   togglePushPref(key: PushPrefKey, value: boolean): void {
     const before = this.pushPrefs();
     if (!before) return;

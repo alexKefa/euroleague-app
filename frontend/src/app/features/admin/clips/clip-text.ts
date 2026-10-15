@@ -1,4 +1,5 @@
 import { chromeTranslations } from "../../../core/i18n/chrome";
+import type { ClipPerson } from "../../../core/models";
 import { roundStage } from "../../../shared/round-stage";
 import { displayTeamCode } from "../../../shared/team-display-codes";
 
@@ -53,4 +54,9 @@ export function clipCode(code: string): string {
 export function clipUpper(s: string, lang: ClipLang): string {
   if (lang !== "el") return s.toUpperCase();
   return s.normalize("NFD").replace(/\u0301/g, "").normalize("NFC").toUpperCase();
+}
+
+/** The featured person's big line ("@nikos_23", or the alias) and, with a username, their title as a small line. */
+export function personLines(person: ClipPerson, lang: ClipLang): { name: string; title: string | null } {
+  return person.username ? { name: `@${person.username}`, title: person.title[lang] } : { name: person.alias[lang], title: null };
 }

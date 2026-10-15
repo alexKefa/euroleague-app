@@ -24,6 +24,11 @@ from them measurable through a promo code on the bio link
 - Real stats, never invented, but **no usernames**: each featured player
   is shown as a catchy alias built from their real result and their
   favourite team's city.
+- **Revised 2026-10-15:** featured players are shown by **username**
+  ("@nikos_23") with their title in small capitals underneath. The alias
+  is the fallback when the user turned off "Feature me in Clutch videos"
+  (Profile; `users.feature_in_clips`, on by default) or still has an
+  auto-generated `clutch-user-######` handle.
 - Rendered in the browser on an admin page (option 1), exported silent so
   a trending sound can be added inside TikTok/Instagram.
 

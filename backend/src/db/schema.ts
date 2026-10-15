@@ -59,6 +59,10 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   favoriteTeamId: uuid("favorite_team_id").references(() => teams.id),
+  // Round clips (2026-10-15): whether this user's username may appear in the
+  // TikTok/Reels videos made at /admin/clips. On by default; the Profile
+  // switch opts out, and the clip then shows an alias instead.
+  featureInClips: boolean("feature_in_clips").default(true).notNull(),
   avatarUrl: text("avatar_url"),
   // No signup flow grants this — flip it by hand (e.g. via `db:studio`) for the first admin.
   isAdmin: boolean("is_admin").default(false).notNull(),

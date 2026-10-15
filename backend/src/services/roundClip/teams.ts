@@ -51,3 +51,13 @@ export function clipAlias(title: AliasTitle, teamCode: string | null): Alias {
   const team = teamCode ? CLIP_TEAMS[teamCode] : undefined;
   return team ? { en: `${t.en} of ${team.cityEn}`, el: `${t.el} ${team.cityEl}` } : { ...t };
 }
+
+/**
+ * The username a clip may show, or null to fall back to the alias: the user
+ * opted out (users.feature_in_clips), or still has the auto-generated
+ * "clutch-user-######" handle, which would read like a bot on TikTok.
+ */
+export function clipUsername(username: string, featureInClips: boolean): string | null {
+  if (!featureInClips || /^clutch-user-\d+$/.test(username)) return null;
+  return username;
+}

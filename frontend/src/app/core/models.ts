@@ -13,6 +13,9 @@ export interface PublicUser {
   // Up to 3 owned collectible ids shown next to this user's name on a
   // league leaderboard — see PUT /api/users/me/showcase.
   showcaseCollectibleIds: string[];
+  // Whether this user's username may appear in the TikTok/Reels round clips
+  // (/admin/clips); off = an alias is shown instead.
+  featureInClips: boolean;
 }
 
 export interface NewsSyncStatus {
@@ -1915,6 +1918,13 @@ export interface TeamReferees {
 // can be recorded; names are aliases, never usernames.
 export type Alias = { en: string; el: string };
 
+/** Who a clip scene features: username when they allow it, else the alias. */
+export interface ClipPerson {
+  title: Alias;
+  username: string | null;
+  alias: Alias;
+}
+
 export interface ClipTeam {
   code: string;
   name: { en: string; el: string };
@@ -1927,8 +1937,8 @@ export interface RoundClipData {
   round: number;
   results: { home: ClipTeam; away: ClipTeam; homeScore: number; awayScore: number }[];
   hook: { winner: ClipTeam; loser: ClipTeam; score: string; pickedLoserPct: number | null } | null;
-  topPredictor: { alias: Alias; correct: number; total: number; points: number } | null;
-  boldCall: { winner: ClipTeam; loser: ClipTeam; score: string; correctPct: number; alias: Alias } | null;
-  pull: { name: string; photo: string | null; tier: "legendary" | "rare"; foil: boolean; alias: Alias } | null;
+  topPredictor: { person: ClipPerson; correct: number; total: number; points: number } | null;
+  boldCall: { winner: ClipTeam; loser: ClipTeam; score: string; correctPct: number; person: ClipPerson } | null;
+  pull: { name: string; photo: string | null; tier: "legendary" | "rare"; foil: boolean; person: ClipPerson } | null;
   next: { round: number; picksOpen: boolean } | null;
 }

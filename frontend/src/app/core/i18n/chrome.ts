@@ -133,6 +133,11 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
   "profile.pinchZoom": { en: "Pinch zoom", el: "Ζουμ με τσίμπημα" },
   "profile.pinchZoomOff": { en: "Off", el: "Ανενεργό" },
   "profile.pinchZoomOn": { en: "On", el: "Ενεργό" },
+  "profile.featureInClips": { en: "Feature me in Clutch videos", el: "Εμφάνισέ με στα βίντεο του Clutch" },
+  "profile.featureInClipsHint": {
+    en: "Round recap videos are posted publicly on TikTok and Instagram. Off: you appear as a nickname instead of your username.",
+    el: "Τα βίντεο με τα αποτελέσματα κάθε αγωνιστικής δημοσιεύονται στο TikTok και στο Instagram. Αν το κλείσεις, εμφανίζεσαι με ψευδώνυμο αντί για το username σου.",
+  },
   // Push notifications (core/push.service.ts, 2026-10-05).
   "profile.notifications": { en: "Notifications", el: "Ειδοποιήσεις" },
   "profile.notificationsOff": { en: "Off", el: "Ανενεργές" },
