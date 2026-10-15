@@ -114,7 +114,7 @@
                   <span class="block text-xs text-muted truncate">
                     @if (fantasyLineup(); as lineup) {
                       @if (lineup.round !== null) {
-                        {{ i18n.t('fantasy.round') }} {{ lineup.round }}@if (lineup.locked) { · {{ i18n.t('fantasy.locked') }} }
+                        {{ lineup.round | roundLabel: i18n.lang() }}@if (lineup.locked) { · {{ i18n.t('fantasy.locked') }} }
                       } @else {
                         {{ i18n.t('fantasy.hint') }}
                       }

@@ -50,6 +50,7 @@ import { formatPlayerName } from "../../shared/player-name";
 import { TeamCodePipe } from "../../shared/team-display-code";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { PageHeaderComponent } from "../../shared/page-header";
+import { RoundLabelPipe } from "../../shared/round-label";
 
 // Squad shape — mirrors backend/src/services/fantasyScoring.ts's constants
 // exactly (kept in sync by hand, same as e.g. analytics-builder.ts keeping
@@ -296,7 +297,7 @@ interface SwapCandidate {
 @Component({
   selector: "app-fantasy",
   standalone: true,
-  imports: [PageHeaderComponent, 
+  imports: [RoundLabelPipe, PageHeaderComponent, 
     TeamCodePipe,
     RetryImgDirective,
     TodayTagPipe,

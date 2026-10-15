@@ -63,7 +63,7 @@
 
     <!-- This round's bonus. -->
     @if (round(); as r) {
-      <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('achievements.thisRound') }} {{ r.round }}</p>
+      <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ r.round | roundLabel: i18n.lang() }}</p>
       <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-6">
         <div class="flex items-baseline justify-between mb-2">
           <p class="font-semibold">{{ i18n.t('achievements.roundCorrect') }}</p>

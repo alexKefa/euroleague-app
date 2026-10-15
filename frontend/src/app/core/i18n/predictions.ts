@@ -14,7 +14,7 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
   "leaderboard.showMe": { en: "Show me", el: "Δείξε με" },
 
   // Round recap (features/dashboard/round-recap.ts, 2026-10-02).
-  "recap.title": { en: "Round {round} recap", el: "Απολογισμός γύρου {round}" },
+  "recap.title": { en: "{label} recap", el: "Απολογισμός · {label}" },
   "recap.points": { en: "Points this round", el: "Πόντοι στον γύρο" },
   "recap.roundRank": { en: "#{rank} of {n} this round", el: "#{rank} από {n} στον γύρο" },
   "recap.overall": { en: "Overall", el: "Συνολικά" },
@@ -38,7 +38,7 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
   "pickResult.cta": { en: "See", el: "Δες" },
 
   // In-app reminders banner (shared/reminders-banner.ts, 2026-10-01).
-  "reminders.fantasy": { en: "No Fantasy squad for round {round} yet. It locks in {time}.", el: "Δεν έχεις ομάδα Fantasy για τον γύρο {round}. Κλειδώνει σε {time}." },
+  "reminders.fantasy": { en: "No Fantasy squad for {label} yet. It locks in {time}.", el: "Δεν έχεις ομάδα Fantasy για: {label}. Κλειδώνει σε {time}." },
   "reminders.fantasyCta": { en: "Build squad", el: "Φτιάξε ομάδα" },
   "reminders.picksOne": { en: "1 game soon has no pick from you. First tip-off in {time}.", el: "1 αγώνας σύντομα χωρίς δική σου πρόβλεψη. Το πρώτο τζάμπολ σε {time}." },
   "reminders.picksMany": { en: "{n} games soon have no pick from you. First tip-off in {time}.", el: "{n} αγώνες σύντομα χωρίς δική σου πρόβλεψη. Το πρώτο τζάμπολ σε {time}." },
@@ -126,7 +126,6 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
   "predictions.deck.scorers": { en: "top scorers", el: "σκόρερ" },
   "predictions.deck.saveNote": { en: "Top scorers are already saved — save your winner picks to lock them in.", el: "Οι σκόρερ έχουν ήδη αποθηκευτεί — αποθήκευσε τους νικητές για να μετρήσουν." },
   "predictions.deck.scorersSaved": { en: "Top scorer picks are saved.", el: "Οι επιλογές σκόρερ αποθηκεύτηκαν." },
-  "predictions.progress.round": { en: "Round", el: "Αγωνιστική" },
   "predictions.progress.picked": { en: "picked", el: "επιλεγμένα" },
   "predictions.progress.nextUnpicked": { en: "Next unpicked", el: "Επόμενο χωρίς επιλογή" },
   "predictions.progress.allPicked": { en: "All picked", el: "Όλα επιλεγμένα" },
@@ -252,7 +251,6 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
     en: "Every pick you've made, round by round, and what it earned.",
     el: "Κάθε πρόβλεψη που έκανες, ανά αγωνιστική, και τι σου απέφερε.",
   },
-  "predictions.history.roundLabel": { en: "Round", el: "Αγωνιστική" },
   "predictions.history.noHistoryYet": {
     en: "No picks yet — head over to Predictions to make your first one.",
     el: "Καμία πρόβλεψη ακόμα — πήγαινε στις Προβλέψεις για να κάνεις την πρώτη σου.",

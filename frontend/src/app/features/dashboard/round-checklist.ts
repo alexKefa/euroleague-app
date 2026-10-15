@@ -6,6 +6,7 @@ import { ButtonDirective } from "../../shared/button.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { ChecklistRow, formatCountdown } from "./round-status.logic";
 import { RoundStatusService } from "./round-status.service";
+import { roundLabel } from "../../shared/round-label";
 
 interface RowView {
   row: ChecklistRow;
@@ -50,7 +51,7 @@ interface RowView {
               <span class="w-[26px] h-[26px] rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
                 <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
               </span>
-              <span class="flex-1 text-sm font-semibold">{{ fill("dashboard.checklist.allSet", { n: s.round }) }}</span>
+              <span class="flex-1 text-sm font-semibold">{{ fill("dashboard.checklist.allSet", { label: label(s.round) }) }}</span>
               <span class="text-muted" aria-hidden="true">&rsaquo;</span>
             </button>
           } @else {
@@ -139,7 +140,7 @@ export class RoundChecklistComponent {
           detail: !row.done
             ? t("dashboard.checklist.fantasyDetail")
             : row.carriedFromRound
-              ? t("dashboard.checklist.fantasyCarried", { n: row.carriedFromRound })
+              ? t("dashboard.checklist.fantasyCarried", { label: roundLabel(this.i18n, row.carriedFromRound) })
               : null,
           button: t("dashboard.checklist.btnOpen"),
           bonus: false,
@@ -161,5 +162,9 @@ export class RoundChecklistComponent {
 
   protected fill(key: string, values: Record<string, string | number>): string {
     return Object.entries(values).reduce((text, [k, v]) => text.replace(`{${k}}`, String(v)), this.i18n.t(key));
+  }
+
+  protected label(round: number): string {
+    return roundLabel(this.i18n, round);
   }
 }

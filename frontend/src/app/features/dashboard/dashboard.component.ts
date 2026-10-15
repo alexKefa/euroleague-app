@@ -24,6 +24,7 @@ import { LeagueBlockComponent } from "./league-block";
 import { NewsStoriesComponent } from "../../shared/news-stories";
 import { PacksWaitingComponent } from "./packs-waiting";
 import { loadSeenStoryIds } from "../../shared/seen-stories";
+import { RoundLabelPipe } from "../../shared/round-label";
 
 function athensDateKey(d: Date): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Athens", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
@@ -41,6 +42,7 @@ function athensDateKey(d: Date): string {
   selector: "app-dashboard",
   standalone: true,
   imports: [
+    RoundLabelPipe,
     CommonModule,
     RouterLink,
     RetryImgDirective,

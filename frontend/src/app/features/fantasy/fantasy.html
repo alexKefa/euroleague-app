@@ -434,7 +434,7 @@
                    team-filter app-dropdown elsewhere on this page. -->
               <app-dropdown class="block flex-1 min-w-[9rem]" [options]="roundDropdownOptions()" [value]="roundDropdownValue()" (valueChange)="onRoundChange($event)" />
             } @else {
-              <p class="text-sm font-bold">{{ i18n.t('fantasy.round') }} {{ round() }}</p>
+              <p class="text-sm font-bold">{{ round() | roundLabel: i18n.lang() }}</p>
             }
             @if (!isCurrentRound()) {
               <span class="status-tile min-w-0 h-10 flex items-center px-3 rounded-xl border border-line text-[12px] font-bold uppercase tracking-wide text-muted truncate" [title]="i18n.t('fantasy.pastRound')">{{ i18n.t('fantasy.pastRound') }}</span>
@@ -619,7 +619,7 @@
           } @else if (fullTimeoutRound() !== null) {
             <p class="flex items-center gap-1.5 px-1 -mt-1 mb-2 text-[11px] text-muted">
               <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5" stroke="currentColor" stroke-width="2.2" /><path d="M12 13.5V9.5M9.5 2.5h5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>
-              {{ i18n.t('fantasy.fullTimeoutUsed').replace('{n}', '' + fullTimeoutRound()) }}
+              {{ i18n.t('fantasy.fullTimeoutUsed').replace('{label}', fullTimeoutRound() | roundLabel: i18n.lang()) }}
             </p>
           }
           @if (fullTimeoutError(); as err) {
@@ -629,7 +629,7 @@
 
         @if (isCurrentRound()) {
           @if (budgetPending() && round() !== null) {
-            <p class="text-[11px] font-semibold text-amber-500 -mt-1 mb-2">{{ i18n.t('fantasy.budgetPending').replace('{n}', '' + (round()! - 1)) }}</p>
+            <p class="text-[11px] font-semibold text-amber-500 -mt-1 mb-2">{{ i18n.t('fantasy.budgetPending').replace('{label}', round()! - 1 | roundLabel: i18n.lang()) }}</p>
           }
           <!-- Quotas + readiness on one line. -->
           <div class="flex items-center gap-3 px-1 mb-3">
@@ -1422,7 +1422,7 @@
                   </div>
                   <div class="flex justify-end gap-1.5 mt-1 border-t border-line pt-1">
                     @for (b of infoBars(); track b.game.gameId) {
-                      <span class="flex-1 max-w-[2.25rem] text-center font-mono text-[10px] text-muted">{{ i18n.t('fantasy.card.roundShort') }}{{ b.game.round }}</span>
+                      <span class="flex-1 max-w-[2.25rem] text-center font-mono text-[10px] text-muted">{{ b.game.round | roundLabel: i18n.lang() : 'short' }}</span>
                     }
                   </div>
                 }
@@ -1450,7 +1450,7 @@
                     <tbody>
                       @for (g of card.games; track g.gameId) {
                         <tr class="border-b border-line/60 last:border-0">
-                          <td class="px-2 py-2 text-muted">{{ g.round }}</td>
+                          <td class="px-2 py-2 text-muted">{{ g.round | roundLabel: i18n.lang() : 'short' }}</td>
                           <td class="px-2 py-2 whitespace-nowrap">{{ g.isHome ? '' : '@' }}{{ g.opponent.code | teamCode }}</td>
                           <td class="px-2 py-2 text-right">{{ g.priceBefore | number: '1.1-1' }}</td>
                           <td class="px-2 py-2 text-right font-bold" [ngClass]="g.priceChange === null ? 'text-muted' : g.priceChange > 0 ? 'text-emerald-500' : g.priceChange < 0 ? 'text-red-500' : 'text-ink'">
@@ -1475,7 +1475,7 @@
                   }
                   <div class="min-w-0 flex-1">
                     <p class="text-[13px] font-semibold leading-tight">{{ g.isHome ? 'VS' : '@' }} {{ g.opponent.code | teamCode }}</p>
-                    <p class="font-mono text-[11px] text-muted mt-0.5">{{ i18n.t('fantasy.card.roundShort') }}{{ g.round }} · {{ g.tipoffAt | date: 'd/M':'Europe/Athens' }}</p>
+                    <p class="font-mono text-[11px] text-muted mt-0.5">{{ g.round | roundLabel: i18n.lang() : 'short' }} · {{ g.tipoffAt | date: 'd/M':'Europe/Athens' }}</p>
                   </div>
                   @if (g.teamScore !== null && g.opponentScore !== null) {
                     <span class="value-chip" [ngClass]="g.teamScore > g.opponentScore ? '!text-emerald-500' : '!text-red-500'">
@@ -1989,7 +1989,7 @@
         (click)="$event.stopPropagation()"
       >
         <p class="text-[11px] font-bold uppercase tracking-widest text-team-primary mb-1">{{ i18n.t('fantasy.roundCompleteTitle') }}</p>
-        <p class="font-display text-2xl tracking-wide mb-5">{{ i18n.t('fantasy.round') }} {{ rc.round }}</p>
+        <p class="font-display text-2xl tracking-wide mb-5">{{ rc.round | roundLabel: i18n.lang() }}</p>
         <div class="flex items-center justify-center gap-5 mb-6">
           <div>
             <p class="font-mono text-3xl font-bold text-team-primary">{{ rc.fantasyPoints | number: '1.0-1' }}</p>

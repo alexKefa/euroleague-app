@@ -2,6 +2,18 @@ import { Lang } from "./lang";
 
 // App shell: top bar, side/bottom nav, profile page.
 export const chromeTranslations: Record<string, Record<Lang, string>> = {
+  // Round names (shared/round-label.ts, 2026-10-15): regular season by
+  // number, then the postseason by stage.
+  "round.regular": { en: "Round {n}", el: "Αγωνιστική {n}" },
+  "round.playIn": { en: "Play-in", el: "Πλέι-ιν" },
+  "round.playoffs": { en: "Playoffs · Game {n}", el: "Πλέι οφ · Αγώνας {n}" },
+  "round.semifinals": { en: "Final Four · Semifinals", el: "Φάιναλ Φορ · Ημιτελικοί" },
+  "round.final": { en: "Final Four · Final", el: "Φάιναλ Φορ · Τελικός" },
+  "round.short.regular": { en: "R{n}", el: "Γ{n}" },
+  "round.short.playIn": { en: "PI", el: "ΠΙ" },
+  "round.short.playoffs": { en: "G{n}", el: "Α{n}" },
+  "round.short.semifinals": { en: "SF", el: "ΗΜ" },
+  "round.short.final": { en: "F", el: "ΤΕΛ" },
   // Page header eyebrows (shared/page-header.ts, 2026-10-01): which part of
   // the app a page belongs to.
   "section.play": { en: "Play", el: "Παιχνίδι" },

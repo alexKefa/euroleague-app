@@ -10,6 +10,7 @@ import { CountUpComponent } from "../../shared/count-up";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { ButtonDirective } from "../../shared/button.directive";
 import { formatPlayerName } from "../../shared/player-name";
+import { RoundLabelPipe } from "../../shared/round-label";
 
 const SEEN_KEY_PREFIX = "clutch-recap-seen-";
 // Only recap a round that finished recently; a user returning weeks later
@@ -31,10 +32,10 @@ interface BestPick {
 @Component({
   selector: "app-round-recap",
   standalone: true,
-  imports: [DialogComponent, NavIconComponent, ButtonDirective, CountUpComponent],
+  imports: [DialogComponent, NavIconComponent, ButtonDirective, CountUpComponent, RoundLabelPipe],
   template: `
     @if (recap(); as r) {
-      <app-dialog [title]="i18n.t('recap.title').replace('{round}', '' + r.round)" icon="medal" [closeLabel]="i18n.t('hint.dismiss')" (closed)="close()">
+      <app-dialog [title]="i18n.t('recap.title').replace('{label}', r.round | roundLabel: i18n.lang())" icon="medal" [closeLabel]="i18n.t('hint.dismiss')" (closed)="close()">
         <div class="relative overflow-hidden rounded-3xl p-5 mb-4 text-center border border-line">
           <div class="pointer-events-none absolute inset-0" style="background: radial-gradient(120% 120% at 50% 0%, color-mix(in srgb, var(--accent-primary) 26%, transparent) 0%, transparent 70%)" aria-hidden="true"></div>
           <p class="relative text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('recap.points') }}</p>

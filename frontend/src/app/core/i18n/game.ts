@@ -1,7 +1,6 @@
 import { Lang } from "./lang";
 
 export const gameTranslations: Record<string, Record<Lang, string>> = {
-  "game.round": { en: "Round", el: "Γύρος" },
   "game.final": { en: "Final", el: "Τελικό" },
   "game.vs": { en: "vs", el: "vs" },
   "game.topPerformers": { en: "Top Performers", el: "Κορυφαίες Εμφανίσεις" },

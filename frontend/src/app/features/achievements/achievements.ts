@@ -10,6 +10,7 @@ import { ButtonDirective } from "../../shared/button.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { NavIconComponent, NavIconName } from "../../shared/nav-icon";
 import { PageHeaderComponent } from "../../shared/page-header";
+import { RoundLabelPipe } from "../../shared/round-label";
 
 // Same glyphs as the predictions badge legend (predictions.ts's BADGE_ICONS).
 const BADGE_ICONS: Record<string, NavIconName> = {
@@ -47,7 +48,7 @@ const MILESTONE_LINKS: Record<AchievementMilestone["id"], string> = {
 @Component({
   selector: "app-achievements",
   standalone: true,
-  imports: [PageHeaderComponent, CommonModule, RouterLink, ButtonDirective, SkeletonComponent, NavIconComponent],
+  imports: [RoundLabelPipe, PageHeaderComponent, CommonModule, RouterLink, ButtonDirective, SkeletonComponent, NavIconComponent],
   templateUrl: "./achievements.html",
 })
 export class AchievementsComponent implements OnInit {

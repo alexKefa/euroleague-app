@@ -7,6 +7,7 @@ import { AuthService } from "../core/auth.service";
 import { I18nService } from "../core/i18n.service";
 import { Reminders } from "../core/models";
 import { NavIconComponent } from "./nav-icon";
+import { roundLabel } from "./round-label";
 
 const DISMISS_KEY_PREFIX = "clutch-reminder-dismissed-";
 const RECHECK_MS = 10 * 60 * 1000;
@@ -70,7 +71,7 @@ export class RemindersBannerComponent {
           cta: this.i18n.t("reminders.fantasyCta"),
           text: this.i18n
             .t("reminders.fantasy")
-            .replace("{round}", String(d.fantasy.round))
+            .replace("{label}", roundLabel(this.i18n, d.fantasy.round))
             .replace("{time}", this.timeUntil(d.fantasy.lockAt)),
         };
       }

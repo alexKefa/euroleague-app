@@ -7,6 +7,7 @@ import { Game, PredictionHistoryPick, Schedule } from "../../core/models";
 import { TeamCodePipe } from "../../shared/team-display-code";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { RoundStatusService } from "./round-status.service";
+import { roundLabel } from "../../shared/round-label";
 
 const SEASON = "2026-27";
 // The loser had at least this implied win probability before tip-off.
@@ -175,7 +176,7 @@ export class ResultsStripComponent {
     });
   });
 
-  protected readonly title = computed(() => this.fill("dashboard.results.title", { n: this.source()?.round ?? "" }));
+  protected readonly title = computed(() => this.fill("dashboard.results.title", { label: roundLabel(this.i18n, this.source()?.round) }));
 
   protected readonly summary = computed(() => {
     const schedule = this.source();

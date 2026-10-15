@@ -7,6 +7,7 @@ import { SkeletonComponent } from "../../shared/skeleton";
 import { CountUpComponent } from "../../shared/count-up";
 import { countdownTone, formatCountdown } from "./round-status.logic";
 import { RoundStatusService } from "./round-status.service";
+import { roundLabel } from "../../shared/round-label";
 
 /**
  * Round header (2026-10-07 dashboard redesign): the one bold, team-colour
@@ -38,9 +39,9 @@ import { RoundStatusService } from "./round-status.service";
               @if (!auth.isAuthenticated()) {
                 {{ roundLabel() }}
               } @else if (s.phase === "between") {
-                {{ fill("dashboard.roundHeader.complete", { n: s.round }) }}
+                {{ fill("dashboard.roundHeader.complete", { label: roundLabel() }) }}
               } @else if (s.phase === "allDone") {
-                {{ fill("dashboard.roundHeader.ready", { n: s.round }) }} ✓
+                {{ fill("dashboard.roundHeader.ready", { label: roundLabel() }) }} ✓
               } @else {
                 @let prog = around("dashboard.roundHeader.progress", "done", { total: s.rows.length });
                 {{ prog[0] }}<app-count-up [value]="s.doneCount" [duration]="0.5" />{{ prog[1] }}
@@ -105,7 +106,7 @@ export class RoundHeaderComponent {
 
   protected readonly roundLabel = computed(() => {
     const s = this.status();
-    return s ? this.fill("dashboard.roundHeader.round", { n: s.round }) : "";
+    return s ? roundLabel(this.i18n, s.round) : "";
   });
 
   // Points + rank, with the text around each number split out so the

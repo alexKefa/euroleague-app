@@ -10,6 +10,7 @@ import { NavIconComponent } from "../../shared/nav-icon";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { rankBadgeClasses } from "../../shared/rank-badge";
+import { roundLabel } from "../../shared/round-label";
 
 type Tab = "overall" | "round" | "league";
 
@@ -47,7 +48,7 @@ export class LeaderboardComponent implements OnInit {
   readonly rounds = signal<number[]>([]);
   readonly round = signal<number | null>(null);
   readonly roundOptions = computed<DropdownOption[]>(() =>
-    [...this.rounds()].reverse().map((r) => ({ value: String(r), label: `${this.i18n.t("leaderboard.round")} ${r}` }))
+    [...this.rounds()].reverse().map((r) => ({ value: String(r), label: roundLabel(this.i18n, r) }))
   );
 
   readonly leagues = signal<League[]>([]);

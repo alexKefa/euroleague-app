@@ -9,9 +9,13 @@ if (!season) {
 }
 
 syncScheduleTimes(season)
-  .then(({ checked, changed }) => {
-    console.log(`Checked ${checked} upcoming game(s) for ${season}; ${changed.length} game(s) corrected (tipoff or home/away).`);
-    for (const c of changed) console.log(`  game ${c.gameCode} ${c.home}-${c.away} -> ${c.tipoffAt}`);
+  .then(({ checked, changed, added, removed }) => {
+    console.log(
+      `Checked ${checked} feed game(s) for ${season}: ${changed.length} corrected (tipoff or home/away), ${added.length} added, ${removed.length} removed.`
+    );
+    for (const c of changed) console.log(`  corrected ${c.gameCode} ${c.home}-${c.away} -> ${c.tipoffAt}`);
+    for (const g of added) console.log(`  added R${g.round} ${g.gameCode} ${g.home}-${g.away}`);
+    for (const g of removed) console.log(`  removed R${g.round} ${g.gameCode}`);
     process.exit(0);
   })
   .catch((err) => {

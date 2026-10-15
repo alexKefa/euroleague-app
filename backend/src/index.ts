@@ -426,9 +426,11 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
     getCurrentSeason()
       .then(async (season) => {
         if (!season) return;
-        const { changed } = await syncScheduleTimes(season);
-        if (changed.length > 0) invalidate(SEARCH_INDEX_CACHE_KEY);
+        const { changed, added, removed } = await syncScheduleTimes(season);
+        if (changed.length + added.length + removed.length > 0) invalidate(SEARCH_INDEX_CACHE_KEY, CACHE_KEYS.preview);
         if (changed.length > 0) console.log(`[schedule sync] corrected ${changed.length} tipoff(s): ${changed.map((c) => `${c.gameCode} ${c.home}-${c.away}->${c.tipoffAt}`).join(", ")}`);
+        if (added.length > 0) console.log(`[schedule sync] added ${added.length} game(s): ${added.map((g) => `R${g.round} ${g.gameCode} ${g.home}-${g.away}`).join(", ")}`);
+        if (removed.length > 0) console.log(`[schedule sync] removed ${removed.length} game(s) dropped from the feed: ${removed.map((g) => `R${g.round} ${g.gameCode}`).join(", ")}`);
       })
       .catch((err) => console.error("[schedule sync] failed:", err));
   };

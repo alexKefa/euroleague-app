@@ -206,7 +206,7 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
     el: "Απεριόριστες μεταγραφές μέχρι να κλειδώσει η αγωνιστική. Το μπάτζετ ισχύει κανονικά.",
   },
   "fantasy.fullTimeoutUndo": { en: "Cancel", el: "Ακύρωση" },
-  "fantasy.fullTimeoutUsed": { en: "Full Timeout used in round {n}", el: "Το τάιμ άουτ χρησιμοποιήθηκε στην αγωνιστική {n}" },
+  "fantasy.fullTimeoutUsed": { en: "Full Timeout used in {label}", el: "Το τάιμ άουτ χρησιμοποιήθηκε: {label}" },
   "fantasy.fullTimeoutConfirm": {
     en: "Call your Full Timeout? You get unlimited transfers for this round, but only once this season. You can cancel it until the round locks.",
     el: "Να καλέσεις το τάιμ άουτ σου; Παίρνεις απεριόριστες μεταγραφές για αυτή την αγωνιστική, αλλά μόνο μία φορά τη σεζόν. Μπορείς να το ακυρώσεις μέχρι να κλειδώσει η αγωνιστική.",
@@ -302,8 +302,8 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.creditsLeft": { en: "left", el: "απομένουν" },
   // Under the budget line while the previous round isn't priced yet (2026-10-01).
   "fantasy.budgetPending": {
-    en: "Round {n} credits still pending — budget will update ~3h after its last game",
-    el: "Τα credits του γύρου {n} εκκρεμούν — ο προϋπολογισμός ενημερώνεται ~3 ώρες μετά τον τελευταίο αγώνα",
+    en: "{label} credits still pending — budget will update ~3h after its last game",
+    el: "Εκκρεμούν τα credits ({label}) — ο προϋπολογισμός ενημερώνεται ~3 ώρες μετά τον τελευταίο αγώνα",
   },
   // Shown next to a player/coach's price while picking (2026-09-12) — the
   // budget line in the status bar shows spent/cap, but neither picker

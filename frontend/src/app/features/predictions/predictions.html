@@ -119,7 +119,7 @@
             <div class="flex items-center justify-between gap-2">
               <p class="text-[13px] font-semibold text-ink min-w-0 truncate">
                 @if (scheduleRound(); as r) {
-                  {{ i18n.t('predictions.progress.round') }} {{ r }} ·
+                  {{ r | roundLabel: i18n.lang() }} ·
                 }
                 <span class="tabular-nums">{{ rp.picked }}/{{ rp.total }}</span> {{ i18n.t('predictions.progress.picked') }}
               </p>

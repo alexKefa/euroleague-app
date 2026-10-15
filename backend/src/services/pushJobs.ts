@@ -6,6 +6,7 @@ import { getPlayedRounds, getRoundStandings } from "./roundStandings.js";
 import { GREAT_ROUND_THRESHOLD } from "./cards.js";
 import { pushEnabled, sendPushOnce } from "./push.js";
 import { usersWithPref } from "./pushPreferences.js";
+import { roundLabel } from "./roundLabel.js";
 
 // Scheduled push notifications (2026-10-05), run from index.ts's hourly tick
 // (and round results also whenever a game goes final). Each send is deduped
@@ -89,7 +90,7 @@ export async function runRoundResultPushes(): Promise<number> {
     if (!s) return null;
     const great = s.correct >= GREAT_ROUND_THRESHOLD;
     return {
-      title: lang === "el" ? `Αποτελέσματα αγωνιστικής ${lastComplete}` : `Round ${lastComplete} results`,
+      title: lang === "el" ? `Αποτελέσματα · ${roundLabel(lastComplete, "el")}` : `${roundLabel(lastComplete, "en")} results`,
       body:
         lang === "el"
           ? `${s.correct}/${s.total} σωστές, +${s.points} πόντοι.${great ? " Σε περιμένει ανταμοιβή!" : ""}`

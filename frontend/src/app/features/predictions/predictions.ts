@@ -43,6 +43,7 @@ import { TodayTagPipe } from "../../shared/today-tag.pipe";
 import { PageHeaderComponent } from "../../shared/page-header";
 import { FirstPicksCardComponent } from "../../shared/first-picks-card";
 import { FirstPicksService } from "../../core/first-picks.service";
+import { RoundLabelPipe } from "../../shared/round-label";
 
 // Matches schedule.ts — no season picker here either, and predictions
 // should only ever be open for the round a user could actually be watching.
@@ -138,7 +139,7 @@ interface DisplayedPick {
 @Component({
   selector: "app-predictions",
   standalone: true,
-  imports: [PageHeaderComponent, MatchupStripComponent, CountUpComponent, FirstPicksCardComponent, ButtonDirective, SwipeDeckComponent, 
+  imports: [RoundLabelPipe, PageHeaderComponent, MatchupStripComponent, CountUpComponent, FirstPicksCardComponent, ButtonDirective, SwipeDeckComponent, 
     TodayTagPipe,
     CommonModule,
     RouterLink,

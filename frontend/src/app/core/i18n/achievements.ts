@@ -50,7 +50,6 @@ export const achievementsTranslations: Record<string, Record<Lang, string>> = {
   "achievements.roundsLeft": { en: "rounds to go", el: "γύροι ακόμα" },
   "achievements.earnedSoFar": { en: "Earned", el: "Κέρδισες" },
 
-  "achievements.thisRound": { en: "Round", el: "Γύρος" },
   "achievements.roundCorrect": { en: "Correct winners this round", el: "Σωστοί νικητές σε αυτόν τον γύρο" },
   "achievements.correctArrow": { en: "correct →", el: "σωστές →" },
   "achievements.allCorrect": { en: "All correct →", el: "Όλες σωστές →" },
