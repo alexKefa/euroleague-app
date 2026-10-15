@@ -294,6 +294,11 @@ interface SwapCandidate {
   formation: Formation | null;
 }
 
+// Prices are tenths of a credit, but summing them as floats drifts
+// (100.1 - 95.7 = 4.3999999…), which blocked a 4.4 player with "4.4 left".
+// Same rounding as the server's save check (services/fantasyScoring.ts).
+const roundCredits = (n: number): number => Math.round(n * 10) / 10;
+
 @Component({
   selector: "app-fantasy",
   standalone: true,
@@ -1178,7 +1183,7 @@ export class FantasyComponent implements OnInit {
     for (const id of this.selectedPlayerIds()) sum += byId.get(id)?.price ?? 0;
     const coachId = this.coachTeamId();
     if (coachId) sum += this.coachByTeamId().get(coachId)?.price ?? 0;
-    return sum;
+    return roundCredits(sum);
   });
 
   readonly overBudget = computed(() => this.totalCost() > this.budgetCap());
@@ -1187,7 +1192,7 @@ export class FantasyComponent implements OnInit {
   // Negative once overBudget() (a squad can go over via repricing between
   // rounds, not just by picking) — shown as-is rather than floored at 0,
   // same "don't hide the real number" reasoning as overBudget's own red text.
-  readonly remainingBudget = computed(() => this.budgetCap() - this.totalCost());
+  readonly remainingBudget = computed(() => roundCredits(this.budgetCap() - this.totalCost()));
   // Status bar's budget progress-bar fill — Angular templates have no
   // access to a global `Math`, so the clamped percentage is computed here
   // rather than inline.
@@ -2685,7 +2690,7 @@ export class FantasyComponent implements OnInit {
     const currentCoachId = this.coachTeamId();
     if (currentCoachId === teamId) return true;
     const currentCoachPrice = currentCoachId ? this.coachByTeamId().get(currentCoachId)?.price ?? 0 : 0;
-    return price <= this.remainingBudget() + currentCoachPrice;
+    return price <= roundCredits(this.remainingBudget() + currentCoachPrice);
   }
 
   // Combines the round-wide freeze, the position-quota gate, the
