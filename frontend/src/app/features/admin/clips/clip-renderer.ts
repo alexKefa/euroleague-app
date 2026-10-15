@@ -1,5 +1,5 @@
 import type { ClipPerson, ClipTeam, RoundClipData } from "../../../core/models";
-import { clipCode, clipText, clipUpper, personLines, roundLabelFor, type ClipLang } from "./clip-text";
+import { clipCode, clipText, clipUpper, namesLine, personLines, roundLabelFor, type ClipLang } from "./clip-text";
 import { fitFontSize } from "./clip-fit";
 import { easeOutBack, easeOutCubic, progress, sceneAt, type Scene } from "./clip-timeline";
 
@@ -26,7 +26,7 @@ const display = (px: number) => `800 ${px}px "Sofia Sans Condensed", "Sofia Sans
 /** Decodes every data-URI image in the clip; one that fails to decode is just absent (initials are drawn instead). */
 export async function loadClipImages(data: RoundClipData): Promise<ClipImages> {
   const teams = data.results.flatMap((r) => [r.home, r.away]);
-  const uris = new Set([...teams.map((t) => t.logo), data.pull?.photo].filter((u): u is string => !!u));
+  const uris = new Set([...teams.map((t) => t.logo), ...data.pulls.map((p) => p.photo)].filter((u): u is string => !!u));
   const images: ClipImages = new Map();
   await Promise.all(
     [...uris].map(async (uri) => {
@@ -246,11 +246,44 @@ function drawBoldCall(ctx: CanvasRenderingContext2D, data: RoundClipData, local:
   drawPerson(ctx, b.person, 1400, 64, lang, progress(local, 1.3, 0.4));
 }
 
-/** The pulled card's face: photo, tier colours, tier label and name. */
-function cardFace(ctx: CanvasRenderingContext2D, data: RoundClipData, images: ClipImages, w: number, h: number, time: number, lang: ClipLang): void {
-  const pull = data.pull;
+type Pull = RoundClipData["pulls"][number];
+
+/** The app's foil colours (packs.css / collectible-card.css), in order around the wheel. */
+const RAINBOW = ["#ff5aa0", "#ffd25a", "#7dffb0", "#5ab4ff", "#c878ff"];
+
+/** The rainbow prism band that sweeps across a foil card (the app's .holo-sweep--prismatic). */
+function prismSweep(ctx: CanvasRenderingContext2D, w: number, h: number, time: number): void {
+  const x = (((time * 0.5) % 1) * 2 - 1) * w;
+  const g = ctx.createLinearGradient(x - w * 0.6, -h / 2, x + w * 0.6, h / 2);
+  g.addColorStop(0, "rgba(255,255,255,0)");
+  RAINBOW.forEach((c, i) => g.addColorStop(0.3 + i * 0.1, `${c}88`));
+  g.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.save();
+  roundedRect(ctx, -w / 2, -h / 2, w, h, w * 0.06);
+  ctx.clip();
+  ctx.globalCompositeOperation = "screen";
+  ctx.fillStyle = g;
+  ctx.fillRect(-w / 2, -h / 2, w, h);
+  ctx.restore();
+}
+
+/** A horizontal rainbow that drifts over time, for foil text (the app's .foil-label). */
+function rainbowFill(ctx: CanvasRenderingContext2D, width: number, time: number): CanvasGradient {
+  const shift = (time * 0.45) % 1;
+  const g = ctx.createLinearGradient(-width / 2 - shift * width, 0, width * 1.5 - shift * width, 0);
+  const stops = [...RAINBOW, RAINBOW[0], ...RAINBOW, RAINBOW[0]];
+  stops.forEach((c, i) => g.addColorStop(i / (stops.length - 1), c));
+  return g;
+}
+
+/** One pulled card's face, centred on the current origin: photo, tier colours, label, name. */
+function cardFace(ctx: CanvasRenderingContext2D, pull: Pull | null, images: ClipImages, w: number, h: number, time: number, lang: ClipLang): void {
   const g = ctx.createLinearGradient(-w / 2, -h / 2, w / 2, h / 2);
-  if (!pull || pull.tier === "legendary") {
+  if (pull?.foil) {
+    g.addColorStop(0, "#f4f1ff");
+    g.addColorStop(0.45, "#cfc6ff");
+    g.addColorStop(1, "#8b7dd6");
+  } else if (!pull || pull.tier === "legendary") {
     g.addColorStop(0, "#ffd36b");
     g.addColorStop(0.55, ORANGE);
     g.addColorStop(1, "#7a2a00");
@@ -262,22 +295,24 @@ function cardFace(ctx: CanvasRenderingContext2D, data: RoundClipData, images: Cl
   roundedRect(ctx, -w / 2, -h / 2, w, h, w * 0.06);
   ctx.fillStyle = g;
   ctx.fill();
+  const ink = "#1a0d00";
 
   if (!pull) {
-    text(ctx, "CLUTCH", 0, -40, { font: display, px: 140, color: "#1a0d00", maxWidth: w * 0.85 });
-    text(ctx, clipText("packsFree", lang), 0, 60, { font: body(600), px: 40, color: "#1a0d00", maxWidth: w * 0.85 });
+    text(ctx, "CLUTCH", 0, -40, { font: display, px: Math.round(w * 0.23), color: ink, maxWidth: w * 0.85 });
+    text(ctx, clipText("packsFree", lang), 0, 60, { font: body(600), px: Math.round(w * 0.067), color: ink, maxWidth: w * 0.85 });
     return;
   }
 
   // Photo window, cover-fitted.
-  const px = -w / 2 + 30;
-  const py = -h / 2 + 30;
-  const pw = w - 60;
+  const pad = w * 0.05;
+  const px = -w / 2 + pad;
+  const py = -h / 2 + pad;
+  const pw = w - pad * 2;
   const ph = h * 0.68;
   ctx.save();
-  roundedRect(ctx, px, py, pw, ph, 24);
+  roundedRect(ctx, px, py, pw, ph, w * 0.04);
   ctx.clip();
-  ctx.fillStyle = "#1a0d00";
+  ctx.fillStyle = ink;
   ctx.fillRect(px, py, pw, ph);
   const img = pull.photo ? images.get(pull.photo) : undefined;
   if (img) {
@@ -286,62 +321,147 @@ function cardFace(ctx: CanvasRenderingContext2D, data: RoundClipData, images: Cl
     const ih = img.naturalHeight * scale;
     ctx.drawImage(img, px + (pw - iw) / 2, py, iw, ih);
   } else {
-    text(ctx, initials(pull.name), 0, py + ph / 2 + 60, { font: display, px: 180, color: ORANGE });
+    text(ctx, initials(pull.name), 0, py + ph / 2 + w * 0.1, { font: display, px: Math.round(w * 0.3), color: ORANGE });
   }
   ctx.restore();
 
-  if (pull.foil) {
-    // A sheen band sweeping across the card.
-    const x = ((time * 0.8) % 1.6) * w - w;
-    const sheen = ctx.createLinearGradient(x - 120, -h / 2, x + 120, h / 2);
-    sheen.addColorStop(0, "rgba(255,255,255,0)");
-    sheen.addColorStop(0.5, "rgba(255,255,255,0.45)");
-    sheen.addColorStop(1, "rgba(255,255,255,0)");
-    roundedRect(ctx, -w / 2, -h / 2, w, h, w * 0.06);
-    ctx.fillStyle = sheen;
-    ctx.fill();
-  }
+  if (pull.foil) prismSweep(ctx, w, h, time);
 
-  const label = pull.foil ? "foil" : pull.tier === "legendary" ? "legendary" : "rare";
-  text(ctx, clipText(label, lang), 0, py + ph + 70, { font: body(600), px: 34, color: "#1a0d00", maxWidth: w * 0.85 });
-  text(ctx, clipUpper(pull.name, lang), 0, py + ph + 150, { font: display, px: 76, color: "#1a0d00", maxWidth: w * 0.85 });
+  const labelY = py + ph + h * 0.085;
+  const labelPx = Math.round(w * 0.057);
+  if (pull.foil) {
+    // Rainbow label on a dark plate so the colours read on the light card.
+    const label = clipText("foil", lang);
+    ctx.save();
+    ctx.font = body(600)(labelPx);
+    const lw = ctx.measureText(label).width + labelPx * 1.2;
+    roundedRect(ctx, -lw / 2, labelY - labelPx * 1.05, lw, labelPx * 1.5, labelPx * 0.75);
+    ctx.fillStyle = "#14101f";
+    ctx.fill();
+    ctx.textAlign = "center";
+    ctx.fillStyle = rainbowFill(ctx, lw, time);
+    ctx.fillText(label, 0, labelY);
+    ctx.restore();
+  } else {
+    const label = clipText(pull.tier === "legendary" ? "legendary" : "rare", lang);
+    text(ctx, label, 0, labelY, { font: body(600), px: labelPx, color: ink, maxWidth: w * 0.85 });
+  }
+  text(ctx, clipUpper(pull.name, lang), 0, labelY + h * 0.095, { font: display, px: Math.round(w * 0.127), color: ink, maxWidth: w * 0.85 });
 }
 
-function drawPayoff(ctx: CanvasRenderingContext2D, data: RoundClipData, images: ClipImages, local: number, time: number, lang: ClipLang): void {
-  const w = 600;
-  const h = 840;
-  const flip = progress(local, 0, 0.6);
-  const sx = Math.abs(Math.cos(flip * Math.PI));
+/** A rotating rainbow halo behind a foil card (the app's .burst-glow--foil). */
+function foilGlow(ctx: CanvasRenderingContext2D, cx: number, cy: number, radius: number, time: number, alpha: number): void {
+  if (alpha <= 0) return;
+  const g = ctx.createConicGradient(time * 0.9, cx, cy);
+  const stops = [...RAINBOW, RAINBOW[0]];
+  stops.forEach((c, i) => g.addColorStop(i / (stops.length - 1), c));
   ctx.save();
-  ctx.translate(CLIP_W / 2, 860);
-  ctx.scale(Math.max(sx, 0.001), 1);
+  ctx.globalAlpha = alpha * 0.55;
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fill();
+  // Soften the disc into a halo: fade its edge back to the ground colour.
+  const fade = ctx.createRadialGradient(cx, cy, radius * 0.35, cx, cy, radius);
+  fade.addColorStop(0, "rgba(13,13,16,0)");
+  fade.addColorStop(1, "rgba(13,13,16,1)");
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = fade;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius + 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+const HERO = { x: CLIP_W / 2, y: 860, w: 600, h: 840 };
+/** Where the second and third pulls fan out behind the hero card. */
+const SIDES = [
+  { x: 205, y: 950, rot: -0.21, from: -1 },
+  { x: 875, y: 950, rot: 0.21, from: 1 },
+];
+
+function drawPayoff(ctx: CanvasRenderingContext2D, data: RoundClipData, images: ClipImages, local: number, time: number, lang: ClipLang): void {
+  const [hero = null, ...others] = data.pulls;
+  const flip = progress(local, 0, 0.6);
+
+  if (hero?.foil) foilGlow(ctx, HERO.x, HERO.y, 640, time, progress(local, 0.3, 0.5));
+
+  // The other pulls slide in from the sides once the hero has landed, behind it.
+  others.forEach((pull, i) => {
+    const s = SIDES[i];
+    const p = progress(local, 0.9 + i * 0.2, 0.5);
+    if (p <= 0) return;
+    const e = easeOutBack(p);
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, p * 2);
+    ctx.translate(s.x + s.from * (1 - e) * 420, s.y);
+    ctx.rotate(s.rot + s.from * (1 - e) * 0.3);
+    ctx.shadowColor = pull.foil ? "#c8a0ff" : "#ffcc55";
+    ctx.shadowBlur = 40;
+    cardFace(ctx, pull, images, 360, 504, time, lang);
+    ctx.restore();
+  });
+
+  ctx.save();
+  ctx.translate(HERO.x, HERO.y);
+  ctx.scale(Math.max(Math.abs(Math.cos(flip * Math.PI)), 0.001), 1);
   if (flip < 0.5) {
-    faceDownCard(ctx, 0, 0, w, 0);
+    faceDownCard(ctx, 0, 0, HERO.w, 0);
   } else {
-    ctx.shadowColor = data.pull?.tier === "rare" ? "#c9d1db" : "#ffcc55";
+    ctx.shadowColor = hero?.foil ? "#c8a0ff" : hero?.tier === "rare" ? "#c9d1db" : "#ffcc55";
     ctx.shadowBlur = 60;
-    cardFace(ctx, data, images, w, h, time, lang);
+    cardFace(ctx, hero, images, HERO.w, HERO.h, time, lang);
   }
   ctx.restore();
 
-  // Light burst as the card lands face up.
-  const burst = progress(local, 0.6, 0.6);
-  if (burst > 0 && burst < 1) {
+  // Rings as the card lands face up: two rainbow ones for a foil, one gold otherwise.
+  const rings = hero?.foil
+    ? [
+        { color: "rgba(120,220,255,0.85)", delay: 0 },
+        { color: "rgba(255,130,220,0.75)", delay: 0.25 },
+      ]
+    : [{ color: "#ffd36b", delay: 0 }];
+  for (const r of rings) {
+    const burst = progress(local, 0.6 + r.delay, 0.7);
+    if (burst <= 0 || burst >= 1) continue;
     ctx.save();
     ctx.globalAlpha = 1 - burst;
     ctx.lineWidth = 18 * (1 - burst) + 2;
-    ctx.strokeStyle = "#ffd36b";
+    ctx.strokeStyle = r.color;
     ctx.beginPath();
-    ctx.arc(CLIP_W / 2, 860, 300 + burst * 500, 0, Math.PI * 2);
+    ctx.arc(HERO.x, HERO.y, 300 + burst * 520, 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
   }
 
-  if (data.pull) {
-    const a = progress(local, 0.8, 0.4);
+  if (!hero) return;
+  const a = progress(local, 0.8, 0.4);
+  if (others.length === 0) {
     text(ctx, clipText("pulledBy", lang), CLIP_W / 2, 1420, { font: body(600), px: 40, color: MUTED, alpha: a });
-    drawPerson(ctx, data.pull.person, 1500, 72, lang, a);
+    drawPerson(ctx, hero.person, 1500, 72, lang, a);
+    return;
   }
+  // Several pulls: the count, the hero's person, then everyone else on one line.
+  const count = clipText("pullsCount", lang, { n: data.pulls.length });
+  if (data.pulls.some((p) => p.foil)) {
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(CLIP_W / 2, 1400);
+    ctx.font = display(fitFontSize((px) => ((ctx.font = display(px)), ctx.measureText(count).width), 960, 64, 32));
+    ctx.textAlign = "center";
+    ctx.fillStyle = rainbowFill(ctx, 960, time);
+    ctx.fillText(count, 0, 0);
+    ctx.restore();
+  } else {
+    text(ctx, count, CLIP_W / 2, 1400, { font: display, px: 64, color: WHITE, alpha: a });
+  }
+  drawPerson(ctx, hero.person, 1500, 64, lang, a);
+  text(ctx, namesLine(others.map((p) => p.person), lang), CLIP_W / 2, 1650, {
+    font: display,
+    px: 48,
+    color: ORANGE,
+    alpha: progress(local, 1.4, 0.4),
+  });
 }
 
 function drawCta(ctx: CanvasRenderingContext2D, data: RoundClipData, local: number, lang: ClipLang): void {

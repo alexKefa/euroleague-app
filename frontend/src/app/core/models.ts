@@ -1939,6 +1939,7 @@ export interface RoundClipData {
   hook: { winner: ClipTeam; loser: ClipTeam; score: string; pickedLoserPct: number | null } | null;
   topPredictor: { person: ClipPerson; correct: number; total: number; points: number } | null;
   boldCall: { winner: ClipTeam; loser: ClipTeam; score: string; correctPct: number; person: ClipPerson } | null;
-  pull: { name: string; photo: string | null; tier: "legendary" | "rare"; foil: boolean; person: ClipPerson } | null;
+  /** Best first, up to three people (empty: the payoff shows a generic card). */
+  pulls: { name: string; photo: string | null; tier: "legendary" | "rare"; foil: boolean; person: ClipPerson }[];
   next: { round: number; picksOpen: boolean } | null;
 }

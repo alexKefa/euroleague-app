@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { ClipTeam, RoundClipData } from "../../../core/models";
 import { buildTimeline, clipDuration, sceneAt } from "./clip-timeline";
-import { clipCode, clipText, clipUpper, personLines, roundLabelFor } from "./clip-text";
+import { clipCode, clipText, clipUpper, namesLine, personLines, roundLabelFor } from "./clip-text";
 
 const team = (code: string): ClipTeam => ({ code, name: { en: code, el: code }, color: null, logo: null });
 const person = { title: { en: "The Oracle", el: "Ο Μάντης" }, username: "nikos_23", alias: { en: "The Oracle", el: "Ο Μάντης" } };
@@ -15,7 +15,7 @@ function data(overrides: Partial<RoundClipData> = {}): RoundClipData {
     hook: { winner: team("PAM"), loser: team("OLY"), score: "87–81", pickedLoserPct: 78 },
     topPredictor: { person, correct: 9, total: 10, points: 214 },
     boldCall: { winner: team("ULK"), loser: team("BAR"), score: "90–88", correctPct: 12, person },
-    pull: { name: "S. Vezenkov", photo: null, tier: "legendary", foil: false, person },
+    pulls: [{ name: "S. Vezenkov", photo: null, tier: "legendary", foil: false, person }],
     next: { round: 7, picksOpen: true },
     ...overrides,
   };
@@ -83,4 +83,15 @@ test("a featured person is named by @username with their title, or by alias", ()
   const aliasOf = { en: "The Oracle of Piraeus", el: "Ο Μάντης του Πειραιά" };
   assert.deepEqual(personLines({ title, username: "nikos_23", alias: aliasOf }, "el"), { name: "@nikos_23", title: "Ο Μάντης" });
   assert.deepEqual(personLines({ title, username: null, alias: aliasOf }, "en"), { name: "The Oracle of Piraeus", title: null });
+});
+
+test("a multi-pull payoff counts the legendaries and lists the other people", () => {
+  assert.equal(clipText("pullsCount", "en", { n: 3 }), "3 LEGENDARIES THIS ROUND");
+  assert.equal(clipText("pullsCount", "el", { n: 3 }), "3 LEGENDARY ΚΑΡΤΕΣ ΣΤΗΝ ΑΓΩΝΙΣΤΙΚΗ");
+  const alias = { en: "Golden Hands of Athens", el: "Χρυσά Χέρια της Αθήνας" };
+  const title = { en: "Golden Hands", el: "Χρυσά Χέρια" };
+  assert.equal(
+    namesLine([{ title, username: "maria_k", alias }, { title, username: null, alias }], "en"),
+    "@maria_k · Golden Hands of Athens"
+  );
 });

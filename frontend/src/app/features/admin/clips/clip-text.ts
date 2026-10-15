@@ -20,6 +20,7 @@ const TEXT = {
   boldOnly: { en: "Only {pct}% said", el: "Μόνο το {pct}% είπε" },
   boldWon: { en: "and they won {score}", el: "και κέρδισε {score}" },
   pulledBy: { en: "Pulled this round by", el: "Την τράβηξε στην αγωνιστική" },
+  pullsCount: { en: "{n} LEGENDARIES THIS ROUND", el: "{n} LEGENDARY ΚΑΡΤΕΣ ΣΤΗΝ ΑΓΩΝΙΣΤΙΚΗ" },
   packsFree: { en: "Open packs free in Clutch", el: "Άνοιξε πακέτα δωρεάν στο Clutch" },
   ctaQuestion: { en: "THINK YOU'D DO BETTER?", el: "ΕΣΥ ΘΑ ΤΑ ΠΗΓΑΙΝΕΣ ΚΑΛΥΤΕΡΑ;" },
   ctaOpen: { en: "{round} picks are open", el: "Άνοιξαν οι προβλέψεις · {round}" },
@@ -59,4 +60,9 @@ export function clipUpper(s: string, lang: ClipLang): string {
 /** The featured person's big line ("@nikos_23", or the alias) and, with a username, their title as a small line. */
 export function personLines(person: ClipPerson, lang: ClipLang): { name: string; title: string | null } {
   return person.username ? { name: `@${person.username}`, title: person.title[lang] } : { name: person.alias[lang], title: null };
+}
+
+/** "@maria_k · Golden Hands of Athens": the people behind the extra pulls, one line. */
+export function namesLine(people: ClipPerson[], lang: ClipLang): string {
+  return people.map((p) => personLines(p, lang).name).join(" · ");
 }

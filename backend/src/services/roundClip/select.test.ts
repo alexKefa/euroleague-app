@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { clipAlias, clipTeamNames, clipUsername } from "./teams.js";
-import { pickBoldCall, pickHook, pickPull, type GamePickStats, type PullCandidate } from "./select.js";
+import { pickBoldCall, pickHook, pickPull, pickPulls, pullWindow, type GamePickStats, type PullCandidate } from "./select.js";
 
 const HOME = "home-team";
 const AWAY = "away-team";
@@ -90,4 +90,41 @@ test("a featured user is shown by username unless they opted out or still have a
   assert.equal(clipUsername("nikos_23", true), "nikos_23");
   assert.equal(clipUsername("nikos_23", false), null);
   assert.equal(clipUsername("clutch-user-482913", true), null);
+});
+
+function pulled(userId: string, name: string, tier: string, finish: string, at: string): PullCandidate {
+  return { userId, name, imageUrl: null, tier, finish, unlockedAt: new Date(at) };
+}
+
+test("several legendary pullers each feature once, foil first, at most three", () => {
+  const cards = [
+    pulled("a", "A-std", "legendary", "standard", "2026-10-11T10:00:00Z"),
+    pulled("b", "B-foil", "legendary", "foil", "2026-10-12T10:00:00Z"),
+    pulled("a", "A-foil", "legendary", "foil", "2026-10-13T10:00:00Z"),
+    pulled("c", "C-std", "legendary", "standard", "2026-10-10T10:00:00Z"),
+    pulled("d", "D-std", "legendary", "standard", "2026-10-14T10:00:00Z"),
+    pulled("e", "E-rare", "rare", "standard", "2026-10-09T10:00:00Z"),
+  ];
+  assert.deepEqual(pickPulls(cards).map((c) => c.name), ["B-foil", "A-foil", "C-std"]);
+});
+
+test("without a legendary only the single best rare features", () => {
+  const cards = [pulled("a", "A-rare", "rare", "standard", "2026-10-11T10:00:00Z"), pulled("b", "B-rare", "rare", "standard", "2026-10-10T10:00:00Z")];
+  assert.deepEqual(pickPulls(cards).map((c) => c.name), ["B-rare"]);
+  assert.deepEqual(pickPulls([]), []);
+});
+
+test("consecutive rounds' pull windows don't overlap", () => {
+  const r4 = pullWindow(new Date("2026-10-02T20:00:00Z"), new Date("2026-10-07T18:00:00Z"), new Date("2026-10-09T20:00:00Z"));
+  const r5 = pullWindow(new Date("2026-10-09T20:00:00Z"), new Date("2026-10-13T18:00:00Z"), new Date("2026-10-14T20:00:00Z"));
+  assert.equal(r4.end.toISOString(), r5.start.toISOString());
+  const duarte = new Date("2026-10-10T05:39:59Z");
+  const inWindow = (w: { start: Date; end: Date }) => duarte > w.start && duarte <= w.end;
+  assert.equal([r4, r5].filter(inWindow).length, 1);
+});
+
+test("the first round's pull window opens three days before its first game", () => {
+  const w = pullWindow(null, new Date("2026-09-24T16:00:00Z"), new Date("2026-09-25T20:00:00Z"));
+  assert.equal(w.start.toISOString(), "2026-09-21T16:00:00.000Z");
+  assert.equal(w.end.toISOString(), "2026-09-26T20:00:00.000Z");
 });

@@ -3,7 +3,7 @@ import { db } from "../../db/client.js";
 import { getRoundStandings } from "../roundStandings.js";
 import { imageToDataUri } from "./images.js";
 import { clipAlias, clipTeamNames, clipUsername, type Alias, type AliasTitle } from "./teams.js";
-import { pickBoldCall, pickHook, pickPull, type GamePickStats, type PullCandidate } from "./select.js";
+import { pickBoldCall, pickHook, pickPulls, pullWindow, type GamePickStats, type PullCandidate } from "./select.js";
 
 // Everything one round clip shows (docs/superpowers/specs/2026-10-15-round-clip-design.md).
 // Admins are left out of every number. A featured person is named by
@@ -24,7 +24,8 @@ export interface RoundClipData {
   hook: { winner: ClipTeam; loser: ClipTeam; score: string; pickedLoserPct: number | null } | null;
   topPredictor: { person: ClipPerson; correct: number; total: number; points: number } | null;
   boldCall: { winner: ClipTeam; loser: ClipTeam; score: string; correctPct: number; person: ClipPerson } | null;
-  pull: { name: string; photo: string | null; tier: "legendary" | "rare"; foil: boolean; person: ClipPerson } | null;
+  /** Best first, up to three people (empty: the payoff shows a generic card). */
+  pulls: { name: string; photo: string | null; tier: "legendary" | "rare"; foil: boolean; person: ClipPerson }[];
   next: { round: number; picksOpen: boolean } | null;
 }
 
@@ -112,11 +113,11 @@ export async function buildRoundClip(season: string, round: number): Promise<Rou
   const hookPick = pickHook(stats);
   const boldPick = pickBoldCall(stats, hookPick?.gameId ?? null);
 
-  // Pull window: from the previous round's last tip-off (or three days
-  // before this round when it's the first) to a day after this round's last.
-  const lastTipoff = new Date(games[games.length - 1].tipoff_at);
-  const windowStart = games[0].prev_last ? new Date(games[0].prev_last) : new Date(new Date(games[0].tipoff_at).getTime() - 3 * 86_400_000);
-  const windowEnd = new Date(lastTipoff.getTime() + 86_400_000);
+  const { start: windowStart, end: windowEnd } = pullWindow(
+    games[0].prev_last ? new Date(games[0].prev_last) : null,
+    new Date(games[0].tipoff_at),
+    new Date(games[games.length - 1].tipoff_at)
+  );
   const boldWinnerId = boldPick ? sides(boldPick.gameId).winnerTeamId : null;
 
   const [standings, pullRows, boldRows] = await Promise.all([
@@ -165,7 +166,8 @@ export async function buildRoundClip(season: string, round: number): Promise<Rou
     username: r.username,
     feature_in_clips: r.feature_in_clips,
   }));
-  const pull = pickPull(candidates) as Candidate | null;
+  const pulls = pickPulls(candidates) as Candidate[];
+  const pullPhotos = await Promise.all(pulls.map((p) => imageToDataUri(p.imageUrl)));
 
   const nextRound = games[0].next_round === null ? null : Number(games[0].next_round);
   return {
@@ -180,15 +182,13 @@ export async function buildRoundClip(season: string, round: number): Promise<Rou
             sides(boldPick.gameId)
           )
         : null,
-    pull: pull
-      ? {
-          name: pull.name,
-          photo: await imageToDataUri(pull.imageUrl),
-          tier: pull.tier === "legendary" ? "legendary" : "rare",
-          foil: pull.tier === "legendary" && pull.finish === "foil",
-          person: person("goldenHands", pull),
-        }
-      : null,
+    pulls: pulls.map((p, i) => ({
+      name: p.name,
+      photo: pullPhotos[i],
+      tier: p.tier === "legendary" ? "legendary" : "rare",
+      foil: p.tier === "legendary" && p.finish === "foil",
+      person: person("goldenHands", p),
+    })),
     next: nextRound === null ? null : { round: nextRound, picksOpen: games[0].next_open === true },
   };
 }

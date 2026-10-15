@@ -85,3 +85,37 @@ export function pickPull(cards: PullCandidate[]): PullCandidate | null {
   }
   return top;
 }
+
+/**
+ * Who the payoff features (2026-10-15, "show more users"): each person's best
+ * pull, ranked like pickPull, at most `max`. Legendaries only; when nobody
+ * pulled one, just the single best rare.
+ */
+export function pickPulls(cards: PullCandidate[], max = 3): PullCandidate[] {
+  const bestPerUser = new Map<string, PullCandidate>();
+  for (const c of cards) {
+    const current = bestPerUser.get(c.userId);
+    if (pickPull(current ? [current, c] : [c]) === c) bestPerUser.set(c.userId, c);
+  }
+  const ranked: PullCandidate[] = [];
+  const pool = [...bestPerUser.values()];
+  for (let top = pickPull(pool); top; top = pickPull(pool)) {
+    ranked.push(top);
+    pool.splice(pool.indexOf(top), 1);
+  }
+  const legendaries = ranked.filter((c) => c.tier === "legendary");
+  return legendaries.length > 0 ? legendaries.slice(0, max) : ranked.slice(0, 1);
+}
+
+const DAY_MS = 86_400_000;
+
+/**
+ * Which unlocks count as "pulled this round": from a day after the previous
+ * round's last game to a day after this round's last game. Back to back, so
+ * a pull features in exactly one round's clip. The first round opens three
+ * days before its first game.
+ */
+export function pullWindow(prevLastTipoff: Date | null, firstTipoff: Date, lastTipoff: Date): { start: Date; end: Date } {
+  const start = prevLastTipoff ? new Date(prevLastTipoff.getTime() + DAY_MS) : new Date(firstTipoff.getTime() - 3 * DAY_MS);
+  return { start, end: new Date(lastTipoff.getTime() + DAY_MS) };
+}
