@@ -1,5 +1,5 @@
 import type { ClipPerson, ClipTeam, RoundClipData } from "../../../core/models";
-import { clipCode, clipText, clipUpper, namesLine, personLines, roundLabelFor, type ClipLang } from "./clip-text";
+import { clipCode, clipText, clipUpper, personLines, roundLabelFor, type ClipLang } from "./clip-text";
 import { fitFontSize } from "./clip-fit";
 import { easeOutBack, easeOutCubic, progress, sceneAt, type Scene } from "./clip-timeline";
 
@@ -25,7 +25,10 @@ const display = (px: number) => `800 ${px}px "Sofia Sans Condensed", "Sofia Sans
 
 /** Decodes every data-URI image in the clip; one that fails to decode is just absent (initials are drawn instead). */
 export async function loadClipImages(data: RoundClipData): Promise<ClipImages> {
-  const teams = data.results.flatMap((r) => [r.home, r.away]);
+  const teams = [
+    ...data.results.flatMap((r) => [r.home, r.away]),
+    ...[data.hook, data.boldCall].flatMap((g) => (g ? [g.winner, g.loser] : [])),
+  ];
   const uris = new Set([...teams.map((t) => t.logo), ...data.pulls.map((p) => p.photo)].filter((u): u is string => !!u));
   const images: ClipImages = new Map();
   await Promise.all(
@@ -85,6 +88,75 @@ function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   ctx.beginPath();
   ctx.roundRect(x, y, w, h, r);
 }
+
+type Paint = string | CanvasGradient;
+/** A paint, or one built for a chip of width w drawn around the origin (gradients that follow the chip). */
+type ChipPaint = Paint | ((w: number, h: number) => Paint);
+
+interface ChipStyle {
+  font: (px: number) => string;
+  px: number;
+  fill: ChipPaint;
+  ink: ChipPaint;
+  stroke?: ChipPaint;
+  maxWidth?: number;
+}
+
+function chipSize(ctx: CanvasRenderingContext2D, s: string, st: ChipStyle): { w: number; h: number } {
+  ctx.font = st.font(st.px);
+  const padX = st.px * 0.75;
+  const w = Math.min(ctx.measureText(s).width + padX * 2, st.maxWidth ?? 980);
+  return { w, h: st.px * 1.7 };
+}
+
+/** A pill with centred text, centred on (cx, cy). */
+function chip(ctx: CanvasRenderingContext2D, s: string, cx: number, cy: number, st: ChipStyle, alpha = 1): void {
+  if (alpha <= 0) return;
+  const { w, h } = chipSize(ctx, s, st);
+  const paint = (p: ChipPaint) => (typeof p === "function" ? p(w, h) : p);
+  ctx.save();
+  ctx.globalAlpha *= alpha;
+  ctx.translate(cx, cy);
+  roundedRect(ctx, -w / 2, -h / 2, w, h, h / 2);
+  ctx.fillStyle = paint(st.fill);
+  ctx.fill();
+  if (st.stroke) {
+    ctx.lineWidth = Math.max(2, st.px * 0.07);
+    ctx.strokeStyle = paint(st.stroke);
+    ctx.stroke();
+  }
+  ctx.font = st.font(st.px);
+  ctx.fillStyle = paint(st.ink);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(s, 0, st.px * 0.06, w - st.px * 1.5);
+  ctx.restore();
+}
+
+/** Chips laid out in centred rows from cy, wrapping when a row runs out of width. */
+function chipRows(ctx: CanvasRenderingContext2D, labels: string[], cy: number, st: ChipStyle, alphas: number[], gap = 20): void {
+  const sizes = labels.map((s) => chipSize(ctx, s, st));
+  const rows: number[][] = [];
+  let width = Infinity;
+  sizes.forEach((sz, i) => {
+    if (width + gap + sz.w > 980) {
+      rows.push([]);
+      width = -gap;
+    }
+    rows[rows.length - 1].push(i);
+    width += gap + sz.w;
+  });
+  rows.forEach((row, r) => {
+    const total = row.reduce((sum, i) => sum + sizes[i].w, 0) + gap * (row.length - 1);
+    let x = (CLIP_W - total) / 2;
+    for (const i of row) {
+      chip(ctx, labels[i], x + sizes[i].w / 2, cy + r * (sizes[i].h + gap), st, alphas[i] ?? 1);
+      x += sizes[i].w + gap;
+    }
+  });
+}
+
+const PERSON_CHIP = { fill: "rgba(240,118,28,0.16)", stroke: ORANGE, ink: WHITE };
 
 /** A team colour bright enough to glow on the dark ground, else the brand orange. */
 function glowColor(hex: string | null): string {
@@ -157,13 +229,49 @@ function initials(name: string): string {
 }
 
 /**
- * A featured person at baseline y: "@nikos_23" (as typed) with their title in
- * small capitals underneath, or their alias in capitals when there's no username.
+ * A featured person on a chip centred at cy: "@nikos_23" (as typed) with their
+ * title in small capitals underneath, or their alias in capitals when there's no username.
  */
-function drawPerson(ctx: CanvasRenderingContext2D, p: ClipPerson, y: number, px: number, lang: ClipLang, alpha = 1): void {
+function drawPerson(ctx: CanvasRenderingContext2D, p: ClipPerson, cy: number, px: number, lang: ClipLang, alpha = 1): void {
   const { name, title } = personLines(p, lang);
-  text(ctx, title ? name : clipUpper(name, lang), CLIP_W / 2, y, { font: display, px, color: ORANGE, alpha });
-  if (title) text(ctx, clipUpper(title, lang), CLIP_W / 2, y + Math.round(px * 0.62), { font: body(600), px: 34, color: MUTED, alpha });
+  chip(ctx, title ? name : clipUpper(name, lang), CLIP_W / 2, cy, { font: display, px, ...PERSON_CHIP }, alpha);
+  if (title) text(ctx, clipUpper(title, lang), CLIP_W / 2, cy + px * 0.85 + 46, { font: body(600), px: 34, color: MUTED, alpha });
+}
+
+/** The two clubs of the hook's game: badges pop in, and the loser's dims once the result lands. */
+function matchup(ctx: CanvasRenderingContext2D, winner: ClipTeam, loser: ClipTeam, images: ClipImages, local: number, y: number): void {
+  const appear = progress(local, 0.05, 0.25);
+  if (appear <= 0) return;
+  const pop = easeOutBack(progress(local, 0.05, 0.45));
+  const dim = progress(local, 0.9, 0.3);
+  const sides: [ClipTeam, number, number][] = [
+    [winner, 300, 0],
+    [loser, 780, dim],
+  ];
+  for (const [team, x, d] of sides) {
+    const glow = glowColor(team.color);
+    ctx.save();
+    ctx.globalAlpha = appear * (1 - 0.6 * d);
+    ctx.translate(x, y);
+    ctx.scale(pop, pop);
+    const g = ctx.createRadialGradient(0, 0, 60, 0, 0, 160);
+    g.addColorStop(0, `${glow}66`);
+    g.addColorStop(1, `${glow}00`);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(0, 0, 160, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(0, 0, 100, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,0.07)";
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "rgba(255,255,255,0.2)";
+    ctx.stroke();
+    teamMark(ctx, team, images, 0, 0, 128);
+    ctx.restore();
+  }
+  text(ctx, "VS", CLIP_W / 2, y + 20, { font: display, px: 56, color: MUTED, alpha: appear });
 }
 
 /** Three stacked lines shared by the upset hook and the bold call. */
@@ -183,13 +291,23 @@ function statLines(ctx: CanvasRenderingContext2D, local: number, lines: [string,
   }
 }
 
-function drawHook(ctx: CanvasRenderingContext2D, data: RoundClipData, scene: Scene, local: number, time: number, lang: ClipLang): void {
+function drawHook(
+  ctx: CanvasRenderingContext2D,
+  data: RoundClipData,
+  images: ClipImages,
+  scene: Scene,
+  local: number,
+  time: number,
+  lang: ClipLang
+): void {
   if (scene.variant === "upset" && data.hook) {
     const h = data.hook;
+    matchup(ctx, h.winner, h.loser, images, local, 660);
     const first = h.pickedLoserPct === null ? clipText("hookUpsetNoPct", lang) : clipText("hookSaid", lang, { pct: h.pickedLoserPct });
     statLines(ctx, local, [first, clipUpper(h.loser.name[lang], lang), clipText("hookLost", lang, { score: h.score })], [ORANGE, RED]);
   } else if (data.boldCall) {
     const b = data.boldCall;
+    matchup(ctx, b.winner, b.loser, images, local, 660);
     statLines(
       ctx,
       local,
@@ -197,12 +315,12 @@ function drawHook(ctx: CanvasRenderingContext2D, data: RoundClipData, scene: Sce
       [GREEN, WHITE]
     );
   }
-  faceDownCard(ctx, CLIP_W / 2, 420, 180, time);
+  faceDownCard(ctx, CLIP_W / 2, 330, 170, time);
   text(ctx, clipText("teaser", lang), CLIP_W / 2, 1820, { font: body(600), px: 34, color: MUTED });
 }
 
 function drawResults(ctx: CanvasRenderingContext2D, data: RoundClipData, images: ClipImages, local: number, lang: ClipLang): void {
-  text(ctx, clipUpper(roundLabelFor(data.round, lang), lang), CLIP_W / 2, 260, { font: display, px: 70, alpha: progress(local, 0, 0.3) });
+  chip(ctx, clipUpper(roundLabelFor(data.round, lang), lang), CLIP_W / 2, 250, { font: display, px: 60, ...PERSON_CHIP }, progress(local, 0, 0.3));
   data.results.slice(0, 10).forEach((r, i) => {
     const p = easeOutCubic(progress(local, 0.2 + i * 0.25, 0.4));
     if (p <= 0) return;
@@ -211,11 +329,20 @@ function drawResults(ctx: CanvasRenderingContext2D, data: RoundClipData, images:
     ctx.globalAlpha = p;
     ctx.translate((1 - p) * 500, 0);
     const homeWon = r.homeScore > r.awayScore;
-    teamMark(ctx, r.home, images, 150, y, 72);
-    text(ctx, clipCode(r.home.code), 270, y + 18, { font: display, px: 50, maxWidth: 140, color: homeWon ? WHITE : MUTED });
-    text(ctx, `${r.homeScore}–${r.awayScore}`, CLIP_W / 2, y + 22, { font: display, px: 70, maxWidth: 300 });
-    text(ctx, clipCode(r.away.code), 810, y + 18, { font: display, px: 50, maxWidth: 140, color: homeWon ? MUTED : WHITE });
-    teamMark(ctx, r.away, images, 930, y, 72);
+    roundedRect(ctx, 60, y - 52, 960, 104, 30);
+    ctx.fillStyle = "rgba(255,255,255,0.06)";
+    ctx.fill();
+    const side = (team: ClipTeam, won: boolean, markX: number, codeX: number, score: number, scoreX: number) => {
+      ctx.save();
+      ctx.globalAlpha *= won ? 1 : 0.45;
+      teamMark(ctx, team, images, markX, y, 70);
+      ctx.restore();
+      text(ctx, clipCode(team.code), codeX, y + 18, { font: display, px: 50, maxWidth: 140, color: won ? WHITE : MUTED });
+      text(ctx, String(score), scoreX, y + 22, { font: display, px: 66, maxWidth: 130, color: won ? WHITE : MUTED });
+    };
+    side(r.home, homeWon, 130, 255, r.homeScore, 445);
+    side(r.away, !homeWon, 950, 825, r.awayScore, 635);
+    text(ctx, "–", CLIP_W / 2, y + 18, { font: display, px: 56, color: MUTED });
     ctx.restore();
   });
 }
@@ -228,10 +355,10 @@ function drawTopPredictor(ctx: CanvasRenderingContext2D, data: RoundClipData, lo
   ctx.translate(CLIP_W / 2, CLIP_H / 2);
   ctx.scale(0.9 + 0.1 * p, 0.9 + 0.1 * p);
   ctx.translate(-CLIP_W / 2, -CLIP_H / 2);
-  text(ctx, clipText("topPredictor", lang), CLIP_W / 2, 700, { font: body(600), px: 44, color: MUTED });
-  drawPerson(ctx, t.person, 820, 96, lang);
-  text(ctx, `${t.correct}/${t.total}`, CLIP_W / 2, 1100, { font: display, px: 260 });
-  text(ctx, clipText("pts", lang, { n: t.points }), CLIP_W / 2, 1260, { font: body(600), px: 44, color: MUTED });
+  text(ctx, clipText("topPredictor", lang), CLIP_W / 2, 680, { font: body(600), px: 44, color: MUTED });
+  drawPerson(ctx, t.person, 790, 72, lang);
+  text(ctx, `${t.correct}/${t.total}`, CLIP_W / 2, 1150, { font: display, px: 260 });
+  text(ctx, clipText("pts", lang, { n: t.points }), CLIP_W / 2, 1290, { font: body(600), px: 44, color: MUTED });
   ctx.restore();
 }
 
@@ -243,7 +370,7 @@ function drawBoldCall(ctx: CanvasRenderingContext2D, data: RoundClipData, local:
     [clipText("boldOnly", lang, { pct: b.correctPct }), clipUpper(b.winner.name[lang], lang), clipText("boldWon", lang, { score: b.score })],
     [GREEN, WHITE]
   );
-  drawPerson(ctx, b.person, 1400, 64, lang, progress(local, 1.3, 0.4));
+  drawPerson(ctx, b.person, 1410, 56, lang, progress(local, 1.3, 0.4));
 }
 
 type Pull = RoundClipData["pulls"][number];
@@ -251,19 +378,45 @@ type Pull = RoundClipData["pulls"][number];
 /** The app's foil colours (packs.css / collectible-card.css), in order around the wheel. */
 const RAINBOW = ["#ff5aa0", "#ffd25a", "#7dffb0", "#5ab4ff", "#c878ff"];
 
-/** The rainbow prism band that sweeps across a foil card (the app's .holo-sweep--prismatic). */
-function prismSweep(ctx: CanvasRenderingContext2D, w: number, h: number, time: number): void {
-  const x = (((time * 0.5) % 1) * 2 - 1) * w;
-  const g = ctx.createLinearGradient(x - w * 0.6, -h / 2, x + w * 0.6, h / 2);
-  g.addColorStop(0, "rgba(255,255,255,0)");
-  RAINBOW.forEach((c, i) => g.addColorStop(0.3 + i * 0.1, `${c}88`));
-  g.addColorStop(1, "rgba(255,255,255,0)");
+/** The app's tier art (collectible-card.ts computeStyle): metallic frame, dark face, badge, glow. */
+const TIER = {
+  legendary: {
+    frame: ["#7a5b12", "#f4d675", "#fff6d8", "#caa53a", "#fff2c9", "#6e4e10"],
+    face: "#4a3608",
+    badge: ["#9c7415", "#f7dd85", "#fffbe8", "#e0ac36", "#855f10"],
+    badgeInk: "#241804",
+    name: "#FFF7E0",
+    glow: "#ffcc55",
+  },
+  rare: {
+    frame: ["#cfd6dc", "#f5f7f9", "#aab2ba", "#f5f7f9", "#cfd6dc"],
+    face: "#2a343e",
+    badge: ["#b9c1c8", "#eef1f3", "#9aa3ab"],
+    badgeInk: "#1c2226",
+    name: "#F5F7F6",
+    glow: "#c9d1db",
+  },
+} as const;
+
+const tierOf = (pull: Pull | null) => TIER[pull?.tier ?? "legendary"];
+const cardGlow = (pull: Pull | null) => (pull?.foil ? "#c8a0ff" : tierOf(pull).glow);
+
+function withStops<G extends CanvasGradient>(g: G, colors: readonly string[]): G {
+  colors.forEach((c, i) => g.addColorStop(i / (colors.length - 1), c));
+  return g;
+}
+
+/** The diagonal shine that slides across a card face (the app's .holo-sweep; rainbow for a foil). */
+function holoSweep(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, time: number, foil: boolean): void {
+  const s = (((time / (foil ? 1.6 : 2.4)) % 1) * 2 - 1) * w;
+  const cx = x + w / 2 + s;
+  const band = foil
+    ? ["rgba(0,0,0,0)", ...RAINBOW.map((c) => `${c}66`), "rgba(0,0,0,0)"]
+    : ["rgba(0,0,0,0)", "rgba(255,236,180,0.35)", "rgba(0,0,0,0)"];
   ctx.save();
-  roundedRect(ctx, -w / 2, -h / 2, w, h, w * 0.06);
-  ctx.clip();
   ctx.globalCompositeOperation = "screen";
-  ctx.fillStyle = g;
-  ctx.fillRect(-w / 2, -h / 2, w, h);
+  ctx.fillStyle = withStops(ctx.createLinearGradient(cx - w * 0.55, y, cx + w * 0.55, y + h * 0.4), band);
+  ctx.fillRect(x, y, w, h);
   ctx.restore();
 }
 
@@ -271,90 +424,84 @@ function prismSweep(ctx: CanvasRenderingContext2D, w: number, h: number, time: n
 function rainbowFill(ctx: CanvasRenderingContext2D, width: number, time: number): CanvasGradient {
   const shift = (time * 0.45) % 1;
   const g = ctx.createLinearGradient(-width / 2 - shift * width, 0, width * 1.5 - shift * width, 0);
-  const stops = [...RAINBOW, RAINBOW[0], ...RAINBOW, RAINBOW[0]];
-  stops.forEach((c, i) => g.addColorStop(i / (stops.length - 1), c));
-  return g;
+  return withStops(g, [...RAINBOW, RAINBOW[0], ...RAINBOW, RAINBOW[0]]);
 }
 
-/** One pulled card's face, centred on the current origin: photo, tier colours, label, name. */
+/**
+ * One pulled card, centred on the current origin, drawn like the app's
+ * collectible card: metallic frame, full-bleed photo, tier badge in the
+ * corner, the name on a dark banner along the bottom.
+ */
 function cardFace(ctx: CanvasRenderingContext2D, pull: Pull | null, images: ClipImages, w: number, h: number, time: number, lang: ClipLang): void {
-  const g = ctx.createLinearGradient(-w / 2, -h / 2, w / 2, h / 2);
-  if (pull?.foil) {
-    g.addColorStop(0, "#f4f1ff");
-    g.addColorStop(0.45, "#cfc6ff");
-    g.addColorStop(1, "#8b7dd6");
-  } else if (!pull || pull.tier === "legendary") {
-    g.addColorStop(0, "#ffd36b");
-    g.addColorStop(0.55, ORANGE);
-    g.addColorStop(1, "#7a2a00");
-  } else {
-    g.addColorStop(0, "#f2f4f7");
-    g.addColorStop(0.55, "#a9b2bd");
-    g.addColorStop(1, "#4b525b");
-  }
-  roundedRect(ctx, -w / 2, -h / 2, w, h, w * 0.06);
-  ctx.fillStyle = g;
+  const t = tierOf(pull);
+  roundedRect(ctx, -w / 2, -h / 2, w, h, w * 0.07);
+  ctx.fillStyle = withStops(ctx.createLinearGradient(-w / 2, -h / 2, w / 2, h / 2), t.frame);
   ctx.fill();
-  const ink = "#1a0d00";
+  ctx.shadowBlur = 0; // the caller's glow is for the frame only
+
+  const pad = w * 0.035;
+  const fx = -w / 2 + pad;
+  const fy = -h / 2 + pad;
+  const fw = w - pad * 2;
+  const fh = h - pad * 2;
+  ctx.save();
+  roundedRect(ctx, fx, fy, fw, fh, w * 0.05);
+  ctx.clip();
+  ctx.fillStyle = withStops(ctx.createRadialGradient(0, fy, 0, 0, fy, fh), [t.face, "#05070a"]);
+  ctx.fillRect(fx, fy, fw, fh);
 
   if (!pull) {
-    text(ctx, "CLUTCH", 0, -40, { font: display, px: Math.round(w * 0.23), color: ink, maxWidth: w * 0.85 });
-    text(ctx, clipText("packsFree", lang), 0, 60, { font: body(600), px: Math.round(w * 0.067), color: ink, maxWidth: w * 0.85 });
+    text(ctx, "CLUTCH", 0, -20, { font: display, px: Math.round(w * 0.23), color: "#f4d675", maxWidth: fw * 0.85 });
+    text(ctx, clipText("packsFree", lang), 0, 70, { font: body(600), px: Math.round(w * 0.06), color: WHITE, maxWidth: fw * 0.85 });
+    holoSweep(ctx, fx, fy, fw, fh, time, false);
+    ctx.restore();
     return;
   }
 
-  // Photo window, cover-fitted.
-  const pad = w * 0.05;
-  const px = -w / 2 + pad;
-  const py = -h / 2 + pad;
-  const pw = w - pad * 2;
-  const ph = h * 0.68;
-  ctx.save();
-  roundedRect(ctx, px, py, pw, ph, w * 0.04);
-  ctx.clip();
-  ctx.fillStyle = ink;
-  ctx.fillRect(px, py, pw, ph);
   const img = pull.photo ? images.get(pull.photo) : undefined;
   if (img) {
-    const scale = Math.max(pw / img.naturalWidth, ph / img.naturalHeight);
+    const scale = Math.max(fw / img.naturalWidth, fh / img.naturalHeight);
     const iw = img.naturalWidth * scale;
-    const ih = img.naturalHeight * scale;
-    ctx.drawImage(img, px + (pw - iw) / 2, py, iw, ih);
+    ctx.drawImage(img, fx + (fw - iw) / 2, fy, iw, img.naturalHeight * scale);
   } else {
-    text(ctx, initials(pull.name), 0, py + ph / 2 + w * 0.1, { font: display, px: Math.round(w * 0.3), color: ORANGE });
+    text(ctx, initials(pull.name), 0, w * 0.05, { font: display, px: Math.round(w * 0.3), color: t.name, alpha: 0.5 });
   }
+  holoSweep(ctx, fx, fy, fw, fh, time, pull.foil);
+
+  // Bottom banner: a fade into a dark plate, the name on it.
+  const bannerTop = fy + fh * 0.76;
+  const fade = ctx.createLinearGradient(0, bannerTop - fh * 0.12, 0, bannerTop);
+  fade.addColorStop(0, "rgba(5,7,10,0)");
+  fade.addColorStop(1, "rgba(5,7,10,0.82)");
+  ctx.fillStyle = fade;
+  ctx.fillRect(fx, bannerTop - fh * 0.12, fw, fh * 0.12);
+  ctx.fillStyle = "rgba(5,7,10,0.82)";
+  ctx.fillRect(fx, bannerTop, fw, fy + fh - bannerTop);
+  const nameColor = pull.foil ? rainbowFill(ctx, fw, time) : t.name;
+  const namePx = fitFontSize((p) => ((ctx.font = display(p)), ctx.measureText(clipUpper(pull.name, lang)).width), fw * 0.86, Math.round(w * 0.12), Math.round(w * 0.06));
+  ctx.font = display(namePx);
+  ctx.fillStyle = nameColor;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(clipUpper(pull.name, lang), 0, (bannerTop + fy + fh) / 2 + namePx * 0.06);
   ctx.restore();
 
-  if (pull.foil) prismSweep(ctx, w, h, time);
-
-  const labelY = py + ph + h * 0.085;
-  const labelPx = Math.round(w * 0.057);
-  if (pull.foil) {
-    // Rainbow label on a dark plate so the colours read on the light card.
-    const label = clipText("foil", lang);
-    ctx.save();
-    ctx.font = body(600)(labelPx);
-    const lw = ctx.measureText(label).width + labelPx * 1.2;
-    roundedRect(ctx, -lw / 2, labelY - labelPx * 1.05, lw, labelPx * 1.5, labelPx * 0.75);
-    ctx.fillStyle = "#14101f";
-    ctx.fill();
-    ctx.textAlign = "center";
-    ctx.fillStyle = rainbowFill(ctx, lw, time);
-    ctx.fillText(label, 0, labelY);
-    ctx.restore();
-  } else {
-    const label = clipText(pull.tier === "legendary" ? "legendary" : "rare", lang);
-    text(ctx, label, 0, labelY, { font: body(600), px: labelPx, color: ink, maxWidth: w * 0.85 });
-  }
-  text(ctx, clipUpper(pull.name, lang), 0, labelY + h * 0.095, { font: display, px: Math.round(w * 0.127), color: ink, maxWidth: w * 0.85 });
+  // Tier badge, top right, like the app's corner pill ("✦ LEGENDARY" on a foil).
+  const label = clipText(pull.foil ? "foil" : pull.tier === "legendary" ? "legendary" : "rare", lang);
+  const badge: ChipStyle = {
+    font: display,
+    px: Math.round(w * 0.055),
+    fill: (bw, bh) => withStops(ctx.createLinearGradient(-bw / 2, -bh / 2, bw / 2, bh / 2), t.badge),
+    ink: t.badgeInk,
+  };
+  const { w: bw, h: bh } = chipSize(ctx, label, badge);
+  chip(ctx, label, fx + fw - w * 0.035 - bw / 2, fy + w * 0.035 + bh / 2, badge);
 }
 
 /** A rotating rainbow halo behind a foil card (the app's .burst-glow--foil). */
 function foilGlow(ctx: CanvasRenderingContext2D, cx: number, cy: number, radius: number, time: number, alpha: number): void {
   if (alpha <= 0) return;
-  const g = ctx.createConicGradient(time * 0.9, cx, cy);
-  const stops = [...RAINBOW, RAINBOW[0]];
-  stops.forEach((c, i) => g.addColorStop(i / (stops.length - 1), c));
+  const g = withStops(ctx.createConicGradient(time * 0.9, cx, cy), [...RAINBOW, RAINBOW[0]]);
   ctx.save();
   ctx.globalAlpha = alpha * 0.55;
   ctx.fillStyle = g;
@@ -373,11 +520,11 @@ function foilGlow(ctx: CanvasRenderingContext2D, cx: number, cy: number, radius:
   ctx.restore();
 }
 
-const HERO = { x: CLIP_W / 2, y: 860, w: 600, h: 840 };
+const HERO = { x: CLIP_W / 2, y: 820, w: 600, h: 840 };
 /** Where the second and third pulls fan out behind the hero card. */
 const SIDES = [
-  { x: 205, y: 950, rot: -0.21, from: -1 },
-  { x: 875, y: 950, rot: 0.21, from: 1 },
+  { x: 205, y: 910, rot: -0.21, from: -1 },
+  { x: 875, y: 910, rot: 0.21, from: 1 },
 ];
 
 function drawPayoff(ctx: CanvasRenderingContext2D, data: RoundClipData, images: ClipImages, local: number, time: number, lang: ClipLang): void {
@@ -396,7 +543,7 @@ function drawPayoff(ctx: CanvasRenderingContext2D, data: RoundClipData, images: 
     ctx.globalAlpha = Math.min(1, p * 2);
     ctx.translate(s.x + s.from * (1 - e) * 420, s.y);
     ctx.rotate(s.rot + s.from * (1 - e) * 0.3);
-    ctx.shadowColor = pull.foil ? "#c8a0ff" : "#ffcc55";
+    ctx.shadowColor = cardGlow(pull);
     ctx.shadowBlur = 40;
     cardFace(ctx, pull, images, 360, 504, time, lang);
     ctx.restore();
@@ -408,7 +555,7 @@ function drawPayoff(ctx: CanvasRenderingContext2D, data: RoundClipData, images: 
   if (flip < 0.5) {
     faceDownCard(ctx, 0, 0, HERO.w, 0);
   } else {
-    ctx.shadowColor = hero?.foil ? "#c8a0ff" : hero?.tier === "rare" ? "#c9d1db" : "#ffcc55";
+    ctx.shadowColor = cardGlow(hero);
     ctx.shadowBlur = 60;
     cardFace(ctx, hero, images, HERO.w, HERO.h, time, lang);
   }
@@ -437,31 +584,32 @@ function drawPayoff(ctx: CanvasRenderingContext2D, data: RoundClipData, images: 
   if (!hero) return;
   const a = progress(local, 0.8, 0.4);
   if (others.length === 0) {
-    text(ctx, clipText("pulledBy", lang), CLIP_W / 2, 1420, { font: body(600), px: 40, color: MUTED, alpha: a });
-    drawPerson(ctx, hero.person, 1500, 72, lang, a);
+    text(ctx, clipText("pulledBy", lang), CLIP_W / 2, 1390, { font: body(600), px: 38, color: MUTED, alpha: a });
+    drawPerson(ctx, hero.person, 1480, 60, lang, a);
     return;
   }
-  // Several pulls: the count, the hero's person, then everyone else on one line.
-  const count = clipText("pullsCount", lang, { n: data.pulls.length });
-  if (data.pulls.some((p) => p.foil)) {
-    ctx.save();
-    ctx.globalAlpha = a;
-    ctx.translate(CLIP_W / 2, 1400);
-    ctx.font = display(fitFontSize((px) => ((ctx.font = display(px)), ctx.measureText(count).width), 960, 64, 32));
-    ctx.textAlign = "center";
-    ctx.fillStyle = rainbowFill(ctx, 960, time);
-    ctx.fillText(count, 0, 0);
-    ctx.restore();
-  } else {
-    text(ctx, count, CLIP_W / 2, 1400, { font: display, px: 64, color: WHITE, alpha: a });
-  }
-  drawPerson(ctx, hero.person, 1500, 64, lang, a);
-  text(ctx, namesLine(others.map((p) => p.person), lang), CLIP_W / 2, 1650, {
-    font: display,
-    px: 48,
-    color: ORANGE,
-    alpha: progress(local, 1.4, 0.4),
-  });
+  // Several pulls: the count on a chip, the hero's person, then everyone else on chips.
+  const foil = data.pulls.some((p) => p.foil);
+  const rainbow = (w: number) => rainbowFill(ctx, w, time);
+  chip(
+    ctx,
+    clipText("pullsCount", lang, { n: data.pulls.length }),
+    CLIP_W / 2,
+    1380,
+    { font: display, px: 44, fill: "rgba(20,16,31,0.9)", stroke: foil ? rainbow : "#f4d675", ink: foil ? rainbow : "#ffd36b" },
+    a
+  );
+  drawPerson(ctx, hero.person, 1490, 56, lang, a);
+  chipRows(
+    ctx,
+    others.map((p) => {
+      const { name, title } = personLines(p.person, lang);
+      return title ? name : clipUpper(name, lang);
+    }),
+    1680,
+    { font: display, px: 42, fill: "rgba(255,255,255,0.08)", stroke: "rgba(255,255,255,0.28)", ink: WHITE },
+    others.map((_, i) => progress(local, 1.4 + i * 0.15, 0.4))
+  );
 }
 
 function drawCta(ctx: CanvasRenderingContext2D, data: RoundClipData, local: number, lang: ClipLang): void {
@@ -499,7 +647,7 @@ export function drawClipFrame(
   const { scene, local } = at;
   switch (scene.id) {
     case "hook":
-      drawHook(ctx, data, scene, local, time, lang);
+      drawHook(ctx, data, images, scene, local, time, lang);
       return; // the hook draws its own big card
     case "results":
       drawResults(ctx, data, images, local, lang);

@@ -27,7 +27,7 @@ const TEXT = {
   ctaPlay: { en: "Play the next round", el: "Παίξε στην επόμενη αγωνιστική" },
   ctaFree: { en: "Free · link in bio", el: "Δωρεάν · link στο bio" },
   legendary: { en: "LEGENDARY", el: "LEGENDARY" },
-  foil: { en: "FOIL LEGENDARY", el: "FOIL LEGENDARY" },
+  foil: { en: "✦ LEGENDARY", el: "✦ LEGENDARY" },
   rare: { en: "RARE", el: "RARE" },
 } as const;
 
@@ -60,9 +60,4 @@ export function clipUpper(s: string, lang: ClipLang): string {
 /** The featured person's big line ("@nikos_23", or the alias) and, with a username, their title as a small line. */
 export function personLines(person: ClipPerson, lang: ClipLang): { name: string; title: string | null } {
   return person.username ? { name: `@${person.username}`, title: person.title[lang] } : { name: person.alias[lang], title: null };
-}
-
-/** "@maria_k · Golden Hands of Athens": the people behind the extra pulls, one line. */
-export function namesLine(people: ClipPerson[], lang: ClipLang): string {
-  return people.map((p) => personLines(p, lang).name).join(" · ");
 }
