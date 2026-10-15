@@ -1,80 +1,102 @@
-/* Wraps the logo tightly (no padding) so it sits centered without the
-   outer div's wider, padded box throwing off the draw-reveal below. */
-.logo-scan-wrap {
-  position: relative;
-  display: inline-block;
-  line-height: 0;
-}
+/* Boot splash (2026-10-15 rework, see splash.ts). Timeline:
+   0.10–0.65s  mark springs in (scale + fade)
+   0.35–0.80s  wordmark rises in
+   0.55–1.05s  tagline
+   0.95–1.75s  one light sweep across the logo
+   0.40–2.60s  loading bar
+   Everything animates transform/opacity only. */
 
-.logo-mark {
-  /* v14 (2026-09-14) — brand/clutch-mark.svg/brand/clutch-mark-dark.svg are now two
-     genuinely separate, purpose-designed exports (a real Canva dark-theme
-     recolor with proper contrast, not an algorithmic invert — see
-     CLAUDE.md's v11->v14 entries for the full story of why that was
-     needed). Cropped tight to real content (738x698 light, 592x560 dark —
-     coincidentally almost the exact same aspect ratio, so one CSS ratio
-     fits both without a visible jump on theme toggle). Two stacked
-     <img>s share this class; display is deliberately NOT set here —
-     styles.css's .brand-mark-light/.brand-mark-dark own show/hide, and
-     declaring display here would win over that global rule under
-     Angular's component-style encapsulation and show both at once.
-     Base size was clamp(160px, 50vmin, 320px) — cut 20% for desktop
-     (2026-09-18, direct request) to clamp(128px, 40vmin, 256px); the
-     mobile-only override below is untouched. height + aspect-ratio +
-     width:auto scales the whole image proportionally, never crops any
-     of it. */
+.logo-wrap {
+  position: relative;
   height: clamp(128px, 40vmin, 256px);
-  width: auto;
-  aspect-ratio: 738 / 698;
-  /* Draw-on reveal — back from the iris reveal (2026-09-17, direct
-     request: "iris reveal I don't like it, let's try a draw reveal
-     again") after the two had already been compared once in a design
-     canvas alongside Tip-Off Drop/Buzzer Flash and iris was picked then;
-     this reverses that call. The logo is a flattened raster with no
-     stroke-path data to trace literally, so this fakes a "being drawn"
-     feel the way a raster asset actually can: clip-path grows the visible
-     rectangle from the top-left corner outward, so the ball/swoosh (top-
-     left of the crop) appears to lead the reveal into the hoop and then
-     the "Clutch" text below it, rather than the whole mark fading in at
-     once or opening from center. */
-  /* 2026-09-29: the clip-path draw reveal (which also waited 0.85s on a
-     blank screen first) is replaced by a ball-drop with squash — see
-     logo-drop below. */
-  animation: logo-drop 0.95s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
-  position: relative;
-  z-index: 1;
+  aspect-ratio: 2222 / 2102;
 }
-
-/* Mobile-only size reduction (2026-09-14, direct request) — narrow
-   viewports are where the full clamp(...,50vmin,...) above reads as too
-   big relative to everything else on screen; desktop/tablet keep the
-   original size untouched. Still height + aspect-ratio + width:auto, so
-   this scales the whole mark down proportionally rather than cropping
-   it. */
 @media (max-width: 639px) {
-  .logo-mark {
+  .logo-wrap {
     height: clamp(120px, 38vmin, 220px);
   }
 }
 
-@keyframes logo-draw-reveal {
+.logo-part {
+  position: absolute;
+  inset: 0;
+  line-height: 0;
+}
+/* Display is owned by styles.css's .brand-mark-light/.brand-mark-dark;
+   setting it here would beat that rule under encapsulation. */
+.logo-img {
+  width: 100%;
+  height: 100%;
+}
+
+/* The art has an empty band between the mark (ends y≈1459) and the
+   wordmark (starts y≈1522); cut at 71% of the height. */
+.logo-part--mark {
+  clip-path: inset(0 0 29% 0);
+  transform-origin: 50% 36%;
+  animation: mark-in 0.55s cubic-bezier(0.34, 1.4, 0.64, 1) 0.1s both;
+}
+.logo-part--word {
+  clip-path: inset(71% 0 0 0);
+  animation: word-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.35s both;
+}
+
+@keyframes mark-in {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
   to {
-    clip-path: inset(0 0% 0% 0);
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes word-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 
-/* Plain centered tagline (replacing the old curved-text-on-a-circle
-   treatment, which traced the ball watermark's own circle — there's no
-   equivalent screen-centered circle in the court diagram to trace, so a
-   flat line is the honest version of this now rather than an arc with
-   nothing real to justify its curve). */
+/* A single diagonal glint, masked to the logo's own silhouette. */
+.logo-sheen {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask: url(/brand/clutch-mark.svg) center / contain no-repeat;
+  mask: url(/brand/clutch-mark.svg) center / contain no-repeat;
+}
+.logo-sheen::after {
+  content: "";
+  position: absolute;
+  top: -10%;
+  bottom: -10%;
+  left: 0;
+  width: 45%;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 100%
+  );
+  transform: translateX(-120%);
+  animation: sheen 0.8s cubic-bezier(0.45, 0, 0.25, 1) 0.95s forwards;
+}
+@keyframes sheen {
+  to {
+    transform: translateX(250%);
+  }
+}
+
 .tagline-flat {
   opacity: 0;
   transform: translateY(6px);
-  animation: wordmark-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  /* Starts partway through the logo's own draw-reveal above (0.85s-1.7s),
-     not only after it finishes — settles at roughly the same moment. */
-  animation-delay: 0.75s;
+  animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.55s forwards;
   font-family: "Sofia Sans", system-ui, sans-serif;
   font-weight: 600;
   font-size: 12px;
@@ -85,25 +107,14 @@
 .tagline-flat-brand {
   color: var(--accent-primary, #ff6b35);
 }
-
-@keyframes wordmark-in {
+@keyframes fade-up {
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 
-/* --- 2026-09-29 splash rework --------------------------------------------- */
-
-@keyframes logo-drop {
-  0% { opacity: 0; transform: translateY(-70px) scale(0.72); filter: blur(6px); }
-  45% { opacity: 1; filter: blur(0); }
-  58% { transform: translateY(8px) scale(1.05, 0.93); }
-  76% { transform: translateY(-5px) scale(0.98, 1.02); }
-  100% { opacity: 1; transform: none; }
-}
-
-/* Team-colour glow behind everything. */
+/* Faint, static team-colour wash behind the logo. */
 .splash-glow {
   top: 50%;
   left: 50%;
@@ -111,43 +122,19 @@
   height: 90vmin;
   transform: translate(-50%, -50%);
   border-radius: 9999px;
-  background: radial-gradient(circle, color-mix(in srgb, var(--accent-primary, #ff6b35) 32%, transparent) 0%, transparent 62%);
-  animation: splash-glow 2.6s ease-in-out both;
-}
-@keyframes splash-glow {
-  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
-  35% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  70% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.05); }
-  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-}
-
-/* Shockwave rings on landing (~0.6s into the drop). */
-.splash-ring {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 70%;
-  aspect-ratio: 1;
-  border-radius: 9999px;
-  border: 3px solid var(--accent-primary, #ff6b35);
-  transform: translate(-50%, -50%) scale(0.3);
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--accent-primary, #ff6b35) 12%, transparent) 0%,
+    transparent 65%
+  );
   opacity: 0;
-  pointer-events: none;
-  animation: splash-ring 1s cubic-bezier(0.2, 0.7, 0.3, 1) 0.62s both;
-}
-.splash-ring--late {
-  border-width: 2px;
-  animation-delay: 0.78s;
-}
-@keyframes splash-ring {
-  0% { opacity: 0.85; transform: translate(-50%, -50%) scale(0.3); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.9); }
+  animation: splash-fade 0.8s ease-out forwards;
 }
 
 /* Thin loading bar near the bottom. */
 .splash-bar {
   width: 9rem;
-  height: 4px;
+  height: 3px;
   border-radius: 9999px;
   background: var(--color-line);
   overflow: hidden;
@@ -155,7 +142,9 @@
   animation: splash-fade 0.4s ease-out 0.4s forwards;
 }
 @keyframes splash-fade {
-  to { opacity: 1; }
+  to {
+    opacity: 1;
+  }
 }
 .splash-bar-fill {
   display: block;
@@ -168,108 +157,31 @@
   animation: splash-bar 2.2s cubic-bezier(0.4, 0, 0.2, 1) 0.4s forwards;
 }
 @keyframes splash-bar {
-  to { transform: scaleX(1); }
+  to {
+    transform: scaleX(1);
+  }
 }
 
-/* Exit: the logo zooms slightly while the whole screen fades. */
-.logo-scan-wrap {
+/* Exit: a slight push-in while the whole screen fades. */
+.logo-wrap {
   transition: transform 0.45s ease-in;
 }
-.is-hiding .logo-scan-wrap {
-  transform: scale(1.12);
+.is-hiding .logo-wrap {
+  transform: scale(1.06);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .logo-mark { animation: wordmark-in 0.3s ease-out both; }
-  .splash-ring, .splash-glow { animation: none; opacity: 0; }
-  .splash-glow { opacity: 0.6; }
-  .splash-bar-fill { animation-duration: 0.01s; }
-  .is-hiding .logo-scan-wrap { transform: none; }
-}
-
-/* ── Neon draw (2026-10-02) ────────────────────────────────────────────
-   The injected SVG (splash.ts) has .draw-fills (the real logo colours) and
-   .draw-strokes (one pathLength="1" outline per shape). Timeline:
-   0.15–1.35s every outline traces in the team colour with a neon glow,
-   1.1–1.7s the fills fade in underneath, then the outline settles to a
-   soft halo that holds until exit. Injected markup has no Angular
-   encapsulation attributes, hence ::ng-deep. */
-.draw-host {
-  height: clamp(128px, 40vmin, 256px);
-  aspect-ratio: 2222 / 2102;
-}
-@media (max-width: 639px) {
-  .draw-host {
-    height: clamp(120px, 38vmin, 220px);
+  .logo-part--mark,
+  .logo-part--word {
+    animation: splash-fade 0.3s ease-out both;
   }
-}
-:host ::ng-deep .draw-svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-:host ::ng-deep .draw-strokes {
-  /* Two shadows: a tight bright core and a wide soft bloom. */
-  filter: drop-shadow(0 0 3px var(--accent-primary, #ff6b35))
-    drop-shadow(0 0 10px color-mix(in srgb, var(--accent-primary, #ff6b35) 70%, transparent));
-  animation: neon-settle 0.7s ease-out 1.45s forwards;
-}
-:host ::ng-deep .draw-strokes path {
-  stroke: var(--accent-primary, #ff6b35);
-  stroke-width: 14;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  animation: neon-draw 1.2s cubic-bezier(0.65, 0, 0.35, 1) 0.15s forwards;
-}
-/* A slight stagger so the outlines don't all move in lockstep. */
-:host ::ng-deep .draw-strokes path:nth-child(3n + 1) {
-  animation-delay: 0.25s;
-}
-:host ::ng-deep .draw-strokes path:nth-child(3n + 2) {
-  animation-delay: 0.35s;
-}
-:host ::ng-deep .draw-fills {
-  opacity: 0;
-  animation: fill-in 0.6s ease-out 1.1s forwards;
-}
-:host ::ng-deep .f-ink {
-  fill: var(--color-ink);
-}
-:host ::ng-deep .f-panel {
-  fill: color-mix(in srgb, var(--color-ink) 16%, transparent);
-}
-:host ::ng-deep .f-orange {
-  fill: #f0761c;
-}
-:host ::ng-deep .f-shade {
-  fill: #e84e28;
-}
-
-@keyframes neon-draw {
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-@keyframes fill-in {
-  to {
-    opacity: 1;
-  }
-}
-/* Once the fills are in, the outline steps back to a halo around them. */
-@keyframes neon-settle {
-  to {
-    opacity: 0.45;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  :host ::ng-deep .draw-strokes {
+  .logo-sheen {
     display: none;
   }
-  :host ::ng-deep .draw-fills {
-    animation: fill-in 0.3s ease-out both;
+  .splash-bar-fill {
+    animation-duration: 0.01s;
+  }
+  .is-hiding .logo-wrap {
+    transform: none;
   }
 }
