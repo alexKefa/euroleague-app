@@ -1,6 +1,6 @@
 /**
  * Display name for a round number, for push notifications — mirrors the
- * frontend's shared/round-label.ts (see that file for the numbering). The
+ * frontend's shared/round-stage.ts (see that file for the numbering). The
  * feed numbers the postseason as rounds after the 38 regular-season ones.
  */
 export const REGULAR_SEASON_ROUNDS = 38;

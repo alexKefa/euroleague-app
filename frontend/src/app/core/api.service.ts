@@ -3,6 +3,7 @@ import { HttpClient, HttpResponse } from "@angular/common/http";
 import { Observable } from "rxjs";
 import { API_BASE_URL } from "./api-config";
 import {
+  RoundClipData,
   Team,
   StandingsRow,
   RosterEntry,
@@ -878,5 +879,14 @@ export class ApiService {
 
   deleteAnnouncement(id: string): Observable<{ ok: true }> {
     return this.http.delete<{ ok: true }>(`${API_BASE_URL}/announcements/${encodeURIComponent(id)}`);
+  }
+
+  // Round clips (/admin/clips): finished rounds, then one round's clip data.
+  getRoundClipRounds(season?: string): Observable<{ season: string | null; rounds: number[] }> {
+    return this.http.get<{ season: string | null; rounds: number[] }>(`${API_BASE_URL}/admin/round-clip/rounds`, { params: season ? { season } : {} });
+  }
+
+  getRoundClip(season: string, round: number): Observable<RoundClipData> {
+    return this.http.get<RoundClipData>(`${API_BASE_URL}/admin/round-clip`, { params: { season, round } });
   }
 }

@@ -1909,3 +1909,26 @@ export interface TeamReferees {
   overall: RefereeTeamRow | null;
   referees: (RefereeTeamRow & { referee: { id: string; name: string } })[];
 }
+
+// Round clips (/admin/clips, 2026-10-15) — GET /api/admin/round-clip, see
+// backend services/roundClip/data.ts. Images are data URIs so the canvas
+// can be recorded; names are aliases, never usernames.
+export type Alias = { en: string; el: string };
+
+export interface ClipTeam {
+  code: string;
+  name: { en: string; el: string };
+  color: string | null;
+  logo: string | null;
+}
+
+export interface RoundClipData {
+  season: string;
+  round: number;
+  results: { home: ClipTeam; away: ClipTeam; homeScore: number; awayScore: number }[];
+  hook: { winner: ClipTeam; loser: ClipTeam; score: string; pickedLoserPct: number | null } | null;
+  topPredictor: { alias: Alias; correct: number; total: number; points: number } | null;
+  boldCall: { winner: ClipTeam; loser: ClipTeam; score: string; correctPct: number; alias: Alias } | null;
+  pull: { name: string; photo: string | null; tier: "legendary" | "rare"; foil: boolean; alias: Alias } | null;
+  next: { round: number; picksOpen: boolean } | null;
+}
