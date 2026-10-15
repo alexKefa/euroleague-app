@@ -359,13 +359,18 @@
                     </span>
                   }
                   @if (opp) {
-                    <span class="flex items-center gap-0.5 shrink-0 text-[9px] font-bold text-muted leading-none" [title]="(opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev')) + ' ' + (opp.opponent.code | teamCode)">
+                    <!-- "vs"/"@" then the opponent's badge (code only when
+                         there's no logo); a turn number, when set, follows. -->
+                    <span class="flex items-center gap-0.5 shrink-0 text-[9px] font-bold text-muted leading-none" [title]="(opp.isHome ? 'vs ' : '@ ') + (opp.opponent.code | teamCode)">
+                      <span [ngClass]="!game || game.status === 'scheduled' ? matchupTextClass(matchupTier(row.team.id, row.player.position)) : ''">{{ opp.isHome ? 'vs' : '@' }}</span>
                       @if (opp.opponent.logoUrl) {
                         <img [src]="opp.opponent.logoUrl" alt="" class="w-3.5 h-3.5 object-contain team-logo" />
                       } @else {
                         {{ opp.opponent.code | teamCode }}
                       }
-                      <span [class.opacity-40]="turn && hasPlayed(row.player.id)" [ngClass]="!game || game.status === 'scheduled' ? matchupTextClass(matchupTier(row.team.id, row.player.position)) : ''">{{ turn ? i18n.t('fantasy.turnAbbrev') + turn : (opp.isHome ? i18n.t('fantasy.homeAbbrev') : i18n.t('fantasy.awayAbbrev')) }}</span>
+                      @if (turn) {
+                        <span [class.opacity-40]="hasPlayed(row.player.id)">{{ i18n.t('fantasy.turnAbbrev') + turn }}</span>
+                      }
                     </span>
                   }
                 </span>
@@ -1680,7 +1685,17 @@
               <app-player-photo [photoUrl]="row.imageUrl" [name]="row.headCoach ?? row.team.name" [teamCode]="row.team.code" [primaryColor]="row.team.primaryColor" [size]="34" [centerFace]="true" />
               <div class="min-w-0 flex-1">
                 <p class="text-[12px] font-semibold truncate leading-tight">{{ row.headCoach ?? row.team.name }}</p>
-                <p class="text-[11px] font-mono text-muted truncate leading-tight">{{ row.team.name }}</p>
+                <p class="flex items-center gap-1 text-[11px] font-mono text-muted min-w-0 leading-tight">
+                  <span class="truncate">{{ row.team.name }}</span>
+                  <!-- This round's opponent: "vs PAO" / "@ PAO", then its badge. -->
+                  @if (opponentFor(row.team.id); as opp) {
+                    <span class="shrink-0">·</span>
+                    <span class="shrink-0">{{ opp.isHome ? 'vs' : '@' }} {{ opp.opponent.code | teamCode }}</span>
+                    @if (opp.opponent.logoUrl) {
+                      <img [src]="opp.opponent.logoUrl" alt="" class="w-3.5 h-3.5 object-contain team-logo shrink-0" />
+                    }
+                  }
+                </p>
               </div>
               <span class="shrink-0 font-mono text-[13px] font-bold text-team-primary border border-team-primary/30 rounded-lg px-2.5 py-1.5 min-w-[46px] text-center">
                 {{ row.price | number: '1.1-1' }} <span class="text-[10px]">{{ i18n.t('fantasy.creditsAbbrev') }}</span>
