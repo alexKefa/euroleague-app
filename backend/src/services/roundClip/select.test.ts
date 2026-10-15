@@ -74,3 +74,14 @@ test("pull prefers a foil legendary, then a legendary, then a rare", () => {
   assert.equal(pickPull([rare, std])?.name, "Std");
   assert.equal(pickPull([]), null);
 });
+
+test("a tied score is never featured, since it has no winner", () => {
+  const tied = game("tie", 20, 18, { homeScore: 77, awayScore: 77 });
+  assert.equal(pickHook([tied]), null);
+  assert.equal(pickBoldCall([tied], null), null);
+});
+
+test("a game most people got right is not a bold call", () => {
+  // 7 of 13 correct = 54%
+  assert.equal(pickBoldCall([game("a", 13, 6)], null), null);
+});

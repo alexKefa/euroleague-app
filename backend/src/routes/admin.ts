@@ -9,6 +9,8 @@ import { topScorerTotalsCte, TOP_SCORER_POINTS_PER_CORRECT } from "../services/t
 import { syncRosterPhotos, syncCollectibleImages } from "../services/imageSync.js";
 import { onlineUserIds } from "../realtime/hub.js";
 import { listErrorGroups } from "../services/errorReport.js";
+import { getCurrentSeason } from "../services/season.js";
+import { buildRoundClip, listFinishedRounds, RoundNotFinalError } from "../services/roundClip/data.js";
 
 export const adminRouter = Router();
 
@@ -376,4 +378,30 @@ adminRouter.get("/errors", requireAuth, requireAdmin, async (req, res) => {
 // Throws on purpose so an admin can check the error log end to end.
 adminRouter.post("/errors/test", requireAuth, requireAdmin, (_req, _res, next) => {
   next(new Error(`Test error from /admin/tools at ${new Date().toISOString()}`));
+});
+
+// Round clips (2026-10-15, /admin/clips): finished rounds to pick from, and
+// one round's clip data (services/roundClip/data.ts).
+adminRouter.get("/round-clip/rounds", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const season = typeof req.query.season === "string" && req.query.season ? req.query.season : await getCurrentSeason();
+    if (!season) return res.json({ season: null, rounds: [] });
+    res.json({ season, rounds: await listFinishedRounds(season) });
+  } catch (err) {
+    console.error("GET /api/admin/round-clip/rounds failed:", err);
+    res.status(500).json({ error: "Failed to load rounds" });
+  }
+});
+
+adminRouter.get("/round-clip", requireAuth, requireAdmin, async (req, res) => {
+  const season = typeof req.query.season === "string" ? req.query.season : "";
+  const round = Number(req.query.round);
+  if (!season || !Number.isInteger(round) || round < 1) return res.status(400).json({ error: "season and round are required" });
+  try {
+    res.json(await buildRoundClip(season, round));
+  } catch (err) {
+    if (err instanceof RoundNotFinalError) return res.status(409).json({ error: err.message });
+    console.error("GET /api/admin/round-clip failed:", err);
+    res.status(500).json({ error: "Failed to build the round clip" });
+  }
 });

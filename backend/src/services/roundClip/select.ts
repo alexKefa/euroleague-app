@@ -28,6 +28,8 @@ export interface PullCandidate {
 const homeWon = (g: GamePickStats) => g.homeScore > g.awayScore;
 const pickedWinner = (g: GamePickStats) => (homeWon(g) ? g.pickedHome : g.picks - g.pickedHome);
 const pct = (share: number) => Math.round(share * 100);
+// A tie has no winner to feature (it can't happen in a real game, but dev data has one).
+const decided = (games: GamePickStats[]) => games.filter((g) => g.homeScore !== g.awayScore);
 
 /** The highest-scoring game by `score`; equal scores go to the later tip-off (the fresher story). */
 function best<T extends GamePickStats>(games: T[], score: (g: T) => number): T | null {
@@ -43,7 +45,8 @@ function best<T extends GamePickStats>(games: T[], score: (g: T) => number): T |
  * the loser (> 50%) among games with enough picks. When no game has enough
  * picks, the biggest upset by pre-game odds instead, without a percentage.
  */
-export function pickHook(games: GamePickStats[]): { gameId: string; pickedLoserPct: number | null } | null {
+export function pickHook(allGames: GamePickStats[]): { gameId: string; pickedLoserPct: number | null } | null {
+  const games = decided(allGames);
   const eligible = games.filter((g) => g.picks >= MIN_PICKS);
   if (eligible.length > 0) {
     const loserShare = (g: GamePickStats) => (g.picks - pickedWinner(g)) / g.picks;
@@ -56,10 +59,14 @@ export function pickHook(games: GamePickStats[]): { gameId: string; pickedLoserP
   return top ? { gameId: top.gameId, pickedLoserPct: null } : null;
 }
 
-/** The game with the smallest share of correct pickers that at least one person still got right. */
+/**
+ * The game with the smallest share of correct pickers that at least one
+ * person still got right. A minority call only (under half correct): the
+ * scene says "Only N% said…".
+ */
 export function pickBoldCall(games: GamePickStats[], excludeGameId: string | null): { gameId: string; correctPct: number } | null {
   const correctShare = (g: GamePickStats) => pickedWinner(g) / g.picks;
-  const eligible = games.filter((g) => g.gameId !== excludeGameId && g.picks >= MIN_PICKS && pickedWinner(g) >= 1);
+  const eligible = decided(games).filter((g) => g.gameId !== excludeGameId && g.picks >= MIN_PICKS && pickedWinner(g) >= 1 && correctShare(g) < 0.5);
   const top = best(eligible, (g) => -correctShare(g));
   return top ? { gameId: top.gameId, correctPct: pct(correctShare(top)) } : null;
 }
