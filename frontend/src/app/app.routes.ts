@@ -204,6 +204,12 @@ export const routes: Routes = [
     path: "admin/tools",
     loadComponent: () => import("./features/admin/admin-tools").then((m) => m.AdminToolsComponent),
   },
+  // Round clips (2026-10-15): export a finished round as a TikTok/Reels
+  // video. Same auth gating as admin/tools (the page checks isAdmin).
+  {
+    path: "admin/clips",
+    loadComponent: () => import("./features/admin/clips/round-clip-page").then((m) => m.RoundClipPageComponent),
+  },
   {
     path: "login",
     loadComponent: () => import("./features/auth/login.component").then((m) => m.LoginComponent),

@@ -36,6 +36,20 @@
           <span class="text-muted text-lg leading-none shrink-0 self-center">&rsaquo;</span>
         </button>
       }
+      <!-- Round clips has its own page (a canvas preview doesn't fit a dialog). -->
+      <a
+        routerLink="/admin/clips"
+        class="text-left bg-card rounded-2xl border border-line shadow-card p-4 flex items-start gap-3 hover:border-team-primary transition-colors min-w-0"
+      >
+        <div class="w-10 h-10 rounded-xl bg-team-primary/10 flex items-center justify-center shrink-0">
+          <app-nav-icon name="share" [size]="20" class="text-team-primary" />
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="font-semibold text-sm break-words">{{ i18n.t('admin.clips.title') }}</p>
+          <p class="text-[12px] text-muted mt-0.5 break-words">{{ i18n.t('admin.clips.desc') }}</p>
+        </div>
+        <span class="text-muted text-lg leading-none shrink-0 self-center">&rsaquo;</span>
+      </a>
     </div>
 
     @if (openToolDef(); as tool) {

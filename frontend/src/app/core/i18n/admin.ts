@@ -212,4 +212,15 @@ export const adminTranslations: Record<string, Record<Lang, string>> = {
   "admin.status.cancelled": { en: "Cancelled", el: "Ακυρώθηκε" },
   "admin.leagueActionFailed": { en: "Couldn't update the league. Try again.", el: "Η ενημέρωση της λίγκας απέτυχε. Δοκίμασε ξανά." },
   "admin.announceErr.generic": { en: "Couldn't save — try again.", el: "Η αποθήκευση απέτυχε — δοκίμασε ξανά." },
+  // Round clips (features/admin/clips, 2026-10-15).
+  "admin.clips.title": { en: "Round clips", el: "Κλιπ αγωνιστικής" },
+  "admin.clips.desc": { en: "Export a TikTok/Reels clip of a finished round", el: "Εξαγωγή κλιπ για TikTok/Reels από ολοκληρωμένη αγωνιστική" },
+  "admin.clips.round": { en: "Round", el: "Αγωνιστική" },
+  "admin.clips.lang": { en: "Clip language", el: "Γλώσσα κλιπ" },
+  "admin.clips.export": { en: "Export MP4", el: "Εξαγωγή MP4" },
+  "admin.clips.recording": { en: "Recording… keep this tab open", el: "Εγγραφή… κράτα την καρτέλα ανοιχτή" },
+  "admin.clips.noHook": { en: "No upset or bold call this round — the clip opens on the results.", el: "Χωρίς έκπληξη ή τολμηρή πρόβλεψη — το κλιπ ξεκινά με τα αποτελέσματα." },
+  "admin.clips.unsupported": { en: "Use desktop Chrome or Safari to export.", el: "Χρησιμοποίησε Chrome ή Safari σε υπολογιστή για εξαγωγή." },
+  "admin.clips.webmNote": { en: "This browser saves WebM; TikTok prefers MP4 (Chrome/Safari).", el: "Αυτός ο browser αποθηκεύει WebM· το TikTok προτιμά MP4 (Chrome/Safari)." },
+  "admin.clips.hidden": { en: "Recording stopped because the tab was hidden. Export again with this tab in front.", el: "Η εγγραφή σταμάτησε επειδή η καρτέλα κρύφτηκε. Κάνε ξανά εξαγωγή με την καρτέλα μπροστά." },
 };
