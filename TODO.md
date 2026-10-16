@@ -156,3 +156,12 @@ From the final review of the workspace redesign; none block shipping.
 - Player search doesn't match "Kostas Sloukas" against feed names stored
   "SLOUKAS, KOSTAS" (global search uses `firstLast()`).
 - Copy: "Quick templates" label vs "Quick sets" hint.
+
+## 11. Shrink the initial bundle: lazy-load i18n dictionaries (deferred 2026-10-16)
+
+The production build's initial bundle hit the 1 MB error budget (998.8 kB
+before the game bell; its strings pushed it 1.9 kB over and broke the dev
+deploy). The budget was raised to 1.2 MB in `frontend/angular.json` as a
+stopgap. Every feature dictionary is merged in `core/i18n/translations.ts`
+and ships up front; loading each feature's dictionary with its lazy route
+would cut most of it. Then lower the budget back to 1 MB.
