@@ -25,7 +25,8 @@ export class ClipHiddenError extends Error {}
 /** The recording was abandoned (e.g. the admin left the page); no file is produced. */
 export class ClipAbortedError extends Error {}
 
-export const CLIP_FPS = 30;
+/** 60, not 30: at 30 the export looked choppier than the preview, which redraws at the display's rate. */
+export const CLIP_FPS = 60;
 
 /**
  * The frame due at `elapsedSec` of wall time. Frames sit on a fixed 1/CLIP_FPS
@@ -58,7 +59,7 @@ export function recordClip(
   return new Promise((resolve, reject) => {
     const stream = canvas.captureStream(0);
     const track = stream.getVideoTracks()[0] as CanvasCaptureMediaStreamTrack | undefined;
-    const recorder = new MediaRecorder(stream, { mimeType: format.mime, videoBitsPerSecond: 16_000_000 });
+    const recorder = new MediaRecorder(stream, { mimeType: format.mime, videoBitsPerSecond: 20_000_000 });
     const chunks: Blob[] = [];
     let frame = 0;
     let failed: Error | null = null;

@@ -40,11 +40,11 @@ test("aborting mid-recording rejects instead of producing a file", async () => {
   await assert.rejects(recording, ClipAbortedError);
 });
 
-test("frames fall on a fixed 1/30 s grid, skipping rather than bunching after a stall", () => {
+test("frames fall on a fixed 1/60 s grid, skipping rather than bunching after a stall", () => {
   assert.equal(dueFrame(0), 0);
-  assert.equal(dueFrame(0.0334), 1);
-  assert.equal(dueFrame(0.05), 1); // a 60 Hz tick between grid points sends nothing new
-  assert.equal(dueFrame(0.5), 15); // after a stall, jump straight to the frame that's due
+  assert.equal(dueFrame(0.0167), 1);
+  assert.equal(dueFrame(0.025), 1); // a 144 Hz tick between grid points sends nothing new
+  assert.equal(dueFrame(0.5), 30); // after a stall, jump straight to the frame that's due
 });
 
 test("each captured frame is drawn at an exact grid time", async () => {
@@ -52,7 +52,7 @@ test("each captured frame is drawn at an exact grid time", async () => {
   let clock = 0;
   const realNow = performance.now.bind(performance);
   performance.now = () => clock;
-  // A 144 Hz display: ticks every ~6.9 ms, which don't line up with 30 fps.
+  // A 144 Hz display: ticks every ~6.9 ms, which don't line up with 60 fps.
   g.requestAnimationFrame = (cb: (t: number) => void) => setTimeout(() => cb((clock += 1000 / 144)), 0);
   const drawn: number[] = [];
   let lastDraw = NaN;
@@ -67,6 +67,6 @@ test("each captured frame is drawn at an exact grid time", async () => {
   }
   assert.deepEqual(requested, drawn);
   const grid = drawn.filter((t) => t < 0.5);
-  grid.forEach((t, i) => assert.ok(Math.abs(t - i / 30) < 1e-9, `frame ${i} drawn at ${t}`));
-  assert.equal(grid.length, 15);
+  grid.forEach((t, i) => assert.ok(Math.abs(t - i / 60) < 1e-9, `frame ${i} drawn at ${t}`));
+  assert.equal(grid.length, 30);
 });
