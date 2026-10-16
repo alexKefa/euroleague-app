@@ -97,7 +97,11 @@ export function forgetGame(gameId: string): void {
   atQuarterEnd.delete(gameId);
 }
 
-// ---- Words. Plain text, no icons. Team codes are display codes. ----
+// ---- Words. Plain text; game pushes open with a basketball (2026-10-16,
+// user call). Team codes are display codes.
+
+/** Leads every game push's title. */
+export const BALL = "🏀 ";
 
 export interface ScoreLine {
   HOME: string;
@@ -113,11 +117,11 @@ const ORDINAL_EL = ["1ης", "2ης", "3ης"];
 const COPY = {
   start: { en: "The game has started.", el: "Ο αγώνας ξεκίνησε." },
   quarterEnd: {
-    en: (q: number) => (q === 2 ? "Halftime." : `End of Q${q}.`),
-    el: (q: number) => (q === 2 ? "Ημίχρονο." : `Τέλος ${ORDINAL_EL[q - 1]} περιόδου.`),
+    en: (q: number) => (q === 2 ? "Halftime" : `End of Q${q}`),
+    el: (q: number) => (q === 2 ? "Ημίχρονο" : `Τέλος ${ORDINAL_EL[q - 1]} περιόδου`),
   },
   soFar: { en: "So far:", el: "Μέχρι τώρα:" },
-  final: { en: "Final.", el: "Τελικό." },
+  final: { en: "Final", el: "Τελικό" },
   pts: { en: "pts", el: "πόντοι" },
 } as const;
 
@@ -129,21 +133,36 @@ export function scorersLine(scorers: (Scorer | null)[], lang: PushLang): string 
     .join(", ");
 }
 
+/** "🏀 OLY – PAO" */
+export function startTitle(s: ScoreLine): string {
+  return `${BALL}${s.HOME} – ${s.AWAY}`;
+}
+
 export function startBody(lang: PushLang): string {
   return COPY.start[lang];
 }
 
-/**
- * "Halftime. Vezenkov 9 pts, Nunn 7 pts." The running total is the push's
- * title; the quarter's own score isn't shown (2026-10-16, user call).
- */
-export function quarterBody(q: number, leaders: { home: Scorer | null; away: Scorer | null; sinceTipoff: boolean }, lang: PushLang): string {
-  const scorers = scorersLine([leaders.home, leaders.away], lang);
-  return scorers ? `${COPY.quarterEnd[lang](q)} ${leaders.sinceTipoff ? `${COPY.soFar[lang]} ` : ""}${scorers}.` : COPY.quarterEnd[lang](q);
+/** "🏀 Halftime · OLY 45–40 PAO": the title, bold on the phone, carries the running total. */
+export function quarterTitle(q: number, s: ScoreLine, lang: PushLang): string {
+  return `${BALL}${COPY.quarterEnd[lang](q)} · ${scoreTitle(s)}`;
 }
 
-/** "Final. Vezenkov 24 pts, Nunn 21 pts." */
+/**
+ * "Vezenkov 9 pts, Nunn 7 pts." The quarter's own score isn't shown
+ * (2026-10-16, user call). "" when nobody scored.
+ */
+export function quarterBody(leaders: { home: Scorer | null; away: Scorer | null; sinceTipoff: boolean }, lang: PushLang): string {
+  const scorers = scorersLine([leaders.home, leaders.away], lang);
+  return scorers ? `${leaders.sinceTipoff ? `${COPY.soFar[lang]} ` : ""}${scorers}.` : "";
+}
+
+/** "🏀 Final · OLY 81–77 PAO" */
+export function finalTitle(s: ScoreLine, lang: PushLang): string {
+  return `${BALL}${COPY.final[lang]} · ${scoreTitle(s)}`;
+}
+
+/** "Vezenkov 24 pts, Nunn 21 pts.", or "" when nobody scored. */
 export function finalBody(top: { home: Scorer | null; away: Scorer | null }, lang: PushLang): string {
   const scorers = scorersLine([top.home, top.away], lang);
-  return scorers ? `${COPY.final[lang]} ${scorers}.` : COPY.final[lang];
+  return scorers ? `${scorers}.` : "";
 }

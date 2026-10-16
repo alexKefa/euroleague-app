@@ -11,7 +11,7 @@ import { db } from "../db/client.js";
 import { sendPushOnce, type PushLang, type PushMessage } from "./push.js";
 import { usersWithPref, type PushPrefKey } from "./pushPreferences.js";
 import { formatName } from "./gameStory/plays.js";
-import { endedQuarter, finalBody, forgetGame, quarterBody, quarterLeaders, quarterScore, scoreTitle, startBody, surname, type PlayerPoints, type Scorer } from "./gameBell.js";
+import { BALL, endedQuarter, finalBody, finalTitle, forgetGame, quarterBody, quarterLeaders, quarterScore, quarterTitle, startBody, startTitle, surname, type PlayerPoints, type Scorer } from "./gameBell.js";
 
 export type TeamPushKind = "team_tipoff" | "team_close" | "team_final" | "game_start" | "game_quarter";
 
@@ -118,15 +118,15 @@ export interface MessageExtra {
 export function message(kind: "team_tipoff" | "team_close" | "team_final" | "game_start", g: PushGame, lang: PushLang, extra: MessageExtra = {}): PushMessage {
   const base = { url: `/games/${g.id}`, tag: `game-${g.id}` };
   const s = scoreLine(g);
-  if (kind === "game_start") return { title: `${s.HOME} – ${s.AWAY}`, body: startBody(lang), ...base };
+  if (kind === "game_start") return { title: startTitle(s), body: startBody(lang), ...base };
   if (kind === "team_final") {
     let body = finalBody(extra.top ?? { home: null, away: null }, lang);
     if (extra.player) body += fill(COPY.player[lang], { name: formatName(extra.player.name), pts: extra.player.points });
-    return { title: scoreTitle(s), body, ...base };
+    return { title: finalTitle(s, lang), body: body.trim(), ...base };
   }
   const copy = kind === "team_close" && (extra.ot || (g.quarter ?? 0) >= 5) ? COPY.team_ot : COPY[kind];
   const vars = { ...s, clock: clockLabel(g.gameClockSeconds) };
-  return { title: fill(copy.title[lang], vars), body: fill(copy.body[lang], vars), ...base };
+  return { title: BALL + fill(copy.title[lang], vars), body: fill(copy.body[lang], vars), ...base };
 }
 
 /** End of quarter q: the total score once it ended (title) and each side's top scorer of the quarter. */
@@ -138,7 +138,7 @@ export function quarterMessage(
 ): PushMessage {
   const qs = quarterScore(g, q);
   const s = qs ? scoreLine(g, qs.homeTotal, qs.awayTotal) : scoreLine(g);
-  return { title: scoreTitle(s), body: quarterBody(q, leaders, lang), url: `/games/${g.id}`, tag: `game-${g.id}` };
+  return { title: quarterTitle(q, s, lang), body: quarterBody(leaders, lang), url: `/games/${g.id}`, tag: `game-${g.id}` };
 }
 
 // Resolves when sent and never rejects (failures are logged), so callers can

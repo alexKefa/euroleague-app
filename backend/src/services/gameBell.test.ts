@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { endedQuarter, finalBody, forgetGame, quarterBody, quarterLeaders, quarterScore, surname, topScorer, type PlayerPoints } from "./gameBell.js";
+import { endedQuarter, finalBody, finalTitle, forgetGame, quarterBody, quarterLeaders, quarterScore, quarterTitle, startTitle, surname, topScorer, type PlayerPoints } from "./gameBell.js";
 
 const live = (quarter: number, clock: number | null) => ({ status: "live", quarter, gameClockSeconds: clock });
 
@@ -57,15 +57,23 @@ test("quarter leaders build on the previous quarter's snapshot, and fall back to
 
 const leaders = { home: { name: "Vezenkov", points: 9 }, away: { name: "Nunn", points: 7 }, sinceTipoff: false };
 
-test("quarter pushes read as one short line in each language", () => {
-  assert.equal(quarterBody(2, leaders, "en"), "Halftime. Vezenkov 9 pts, Nunn 7 pts.");
-  assert.equal(quarterBody(1, leaders, "en"), "End of Q1. Vezenkov 9 pts, Nunn 7 pts.");
-  assert.equal(quarterBody(3, { ...leaders, sinceTipoff: true }, "en"), "End of Q3. So far: Vezenkov 9 pts, Nunn 7 pts.");
-  assert.equal(quarterBody(1, leaders, "el"), "Τέλος 1ης περιόδου. Vezenkov 9 πόντοι, Nunn 7 πόντοι.");
-  assert.equal(quarterBody(2, { home: null, away: null, sinceTipoff: false }, "el"), "Ημίχρονο.");
+const score = { HOME: "OLY", AWAY: "PAO", hs: 45, as: 40 };
+
+test("quarter pushes: the moment and the total in the title, the quarter's scorers below", () => {
+  assert.equal(quarterTitle(2, score, "en"), "🏀 Halftime · OLY 45–40 PAO");
+  assert.equal(quarterTitle(1, score, "en"), "🏀 End of Q1 · OLY 45–40 PAO");
+  assert.equal(quarterTitle(3, score, "el"), "🏀 Τέλος 3ης περιόδου · OLY 45–40 PAO");
+  assert.equal(quarterTitle(2, score, "el"), "🏀 Ημίχρονο · OLY 45–40 PAO");
+  assert.equal(quarterBody(leaders, "en"), "Vezenkov 9 pts, Nunn 7 pts.");
+  assert.equal(quarterBody({ ...leaders, sinceTipoff: true }, "en"), "So far: Vezenkov 9 pts, Nunn 7 pts.");
+  assert.equal(quarterBody(leaders, "el"), "Vezenkov 9 πόντοι, Nunn 7 πόντοι.");
+  assert.equal(quarterBody({ home: null, away: null, sinceTipoff: false }, "el"), "");
 });
 
-test("the final names each side's top scorer", () => {
-  assert.equal(finalBody({ home: { name: "Vezenkov", points: 24 }, away: { name: "Nunn", points: 21 } }, "en"), "Final. Vezenkov 24 pts, Nunn 21 pts.");
-  assert.equal(finalBody({ home: null, away: null }, "el"), "Τελικό.");
+test("start and final open with the basketball too", () => {
+  assert.equal(startTitle(score), "🏀 OLY – PAO");
+  assert.equal(finalTitle({ ...score, hs: 81, as: 77 }, "en"), "🏀 Final · OLY 81–77 PAO");
+  assert.equal(finalTitle({ ...score, hs: 81, as: 77 }, "el"), "🏀 Τελικό · OLY 81–77 PAO");
+  assert.equal(finalBody({ home: { name: "Vezenkov", points: 24 }, away: { name: "Nunn", points: 21 } }, "en"), "Vezenkov 24 pts, Nunn 21 pts.");
+  assert.equal(finalBody({ home: null, away: null }, "el"), "");
 });

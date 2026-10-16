@@ -126,9 +126,11 @@ try {
   const quarterLogged = await db.execute<{ user_id: string }>(sql`select user_id from push_log where kind = 'game_quarter' and key = ${`q1:${game.id}`}`);
   assert.deepEqual(quarterLogged.map((r) => r.user_id), [P], "end of Q1 reaches the subscribed bell user once, not the fan");
   const qm = quarterMessage(q1, 1, { home: { name: "Vezenkov", points: 9 }, away: { name: "Nunn", points: 7 }, sinceTipoff: false }, "en");
-  const homeShown = qm.title.split(" ")[0]; // the display code, e.g. "OLY"
-  assert.equal(qm.title, `${homeShown} 22–18 ${qm.title.split(" ").pop()}`);
-  assert.equal(qm.body, "End of Q1. Vezenkov 9 pts, Nunn 7 pts.");
+  assert.match(qm.title, /^🏀 End of Q1 · \S+ 22–18 \S+$/u, "the total at the end of Q1, after the basketball");
+  assert.equal(qm.body, "Vezenkov 9 pts, Nunn 7 pts.");
+  for (const k of ["team_tipoff", "team_close", "team_final", "game_start"] as const) {
+    assert.ok(message(k, base, "el").title.startsWith("🏀 "), `${k} opens with the basketball`);
+  }
   await db.execute(sql`delete from push_log where key = ${`q1:${game.id}`}`);
 
   console.log("all team-push checks passed");
