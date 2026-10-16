@@ -16,6 +16,7 @@ function data(overrides: Partial<RoundClipData> = {}): RoundClipData {
     topPredictor: { person, correct: 9, total: 10, points: 214 },
     boldCall: { winner: team("ULK"), loser: team("BAR"), score: "90–88", correctPct: 12, person },
     pulls: [{ name: "S. Vezenkov", photo: null, tier: "legendary", foil: false, person }],
+    legendaryCount: 1,
     next: { round: 7, picksOpen: true },
     ...overrides,
   };

@@ -581,9 +581,12 @@ function foilGlow(ctx: CanvasRenderingContext2D, cx: number, cy: number, radius:
 
 const HERO = { x: CLIP_W / 2, y: 820, w: 600, h: 840 };
 /** Where the second and third pulls fan out behind the hero card. */
+/** Where the other pulls fan out behind the hero: two close in, then two further out and higher. */
 const SIDES = [
-  { x: 205, y: 910, rot: -0.21, from: -1 },
-  { x: 875, y: 910, rot: 0.21, from: 1 },
+  { x: 205, y: 910, rot: -0.21, from: -1, w: 360 },
+  { x: 875, y: 910, rot: 0.21, from: 1, w: 360 },
+  { x: 110, y: 700, rot: -0.4, from: -1, w: 290 },
+  { x: 970, y: 700, rot: 0.4, from: 1, w: 290 },
 ];
 
 function drawPayoff(ctx: CanvasRenderingContext2D, data: RoundClipData, images: ClipImages, local: number, time: number, lang: ClipLang): void {
@@ -592,8 +595,9 @@ function drawPayoff(ctx: CanvasRenderingContext2D, data: RoundClipData, images: 
 
   if (hero?.foil) foilGlow(ctx, HERO.x, HERO.y, 640, time, progress(local, 0.3, 0.5));
 
-  // The other pulls slide in from the sides once the hero has landed, behind it.
-  others.forEach((pull, i) => {
+  // The other pulls slide in from the sides once the hero has landed, behind it
+  // (the outer pair drawn first, so the inner pair overlaps them).
+  others.slice(0, SIDES.length).map((pull, i) => ({ pull, i })).reverse().forEach(({ pull, i }) => {
     const s = SIDES[i];
     const p = progress(local, 0.9 + i * 0.2, 0.5);
     if (p <= 0) return;
@@ -604,7 +608,7 @@ function drawPayoff(ctx: CanvasRenderingContext2D, data: RoundClipData, images: 
     ctx.rotate(s.rot + s.from * (1 - e) * 0.3);
     ctx.shadowColor = cardGlow(pull);
     ctx.shadowBlur = 40;
-    cardFace(ctx, pull, images, 360, 504, time, lang);
+    cardFace(ctx, pull, images, s.w, s.w * 1.4, time, lang);
     ctx.restore();
   });
 
@@ -642,32 +646,35 @@ function drawPayoff(ctx: CanvasRenderingContext2D, data: RoundClipData, images: 
 
   if (!hero) return;
   const a = progress(local, 0.8, 0.4);
-  if (others.length === 0) {
+  const count = Math.max(data.legendaryCount, data.pulls.filter((p) => p.tier === "legendary").length);
+  if (count <= 1) {
     text(ctx, clipText("pulledBy", lang), CLIP_W / 2, 1390, { font: body(600), px: 38, color: MUTED, alpha: a });
     drawPerson(ctx, hero.person, 1480, 60, lang, a);
     return;
   }
-  // Several pulls: the count on a chip, the hero's person, then everyone else on chips.
+  // Several legendaries: the round's total on a chip, the hero's person, then everyone else shown on chips.
   const foil = data.pulls.some((p) => p.foil);
   const rainbow = (w: number) => rainbowFill(ctx, w, time);
   chip(
     ctx,
-    clipText("pullsCount", lang, { n: data.pulls.length }),
+    clipText("pullsCount", lang, { n: count }),
     CLIP_W / 2,
     1380,
     { font: display, px: 44, fill: "rgba(20,16,31,0.9)", stroke: foil ? rainbow : "#f4d675", ink: foil ? rainbow : "#ffd36b" },
     a
   );
   drawPerson(ctx, hero.person, 1490, 56, lang, a);
+  const label = (p: ClipPerson) => {
+    const { name, title } = personLines(p, lang);
+    return title ? name : clipUpper(name, lang);
+  };
+  const names = [...new Set(others.map((p) => label(p.person)))].filter((n) => n !== label(hero.person));
   chipRows(
     ctx,
-    others.map((p) => {
-      const { name, title } = personLines(p.person, lang);
-      return title ? name : clipUpper(name, lang);
-    }),
+    names,
     1680,
     { font: display, px: 42, fill: "rgba(255,255,255,0.08)", stroke: "rgba(255,255,255,0.28)", ink: WHITE },
-    others.map((_, i) => progress(local, 1.4 + i * 0.15, 0.4))
+    names.map((_, i) => progress(local, 1.4 + i * 0.15, 0.4))
   );
 }
 
@@ -687,8 +694,76 @@ function drawCta(ctx: CanvasRenderingContext2D, data: RoundClipData, local: numb
   ctx.restore();
   text(ctx, pill, CLIP_W / 2, 1001, { font: body(600), px: 44, color: "#120c08", maxWidth: pw - 60, alpha: a });
   text(ctx, "getclutchapp.com", CLIP_W / 2, 1180, { font: display, px: 90, color: ORANGE, alpha: a });
-  text(ctx, SOCIAL_HANDLE, CLIP_W / 2, 1320, { font: display, px: 64, alpha: a });
-  text(ctx, clipText("ctaSocials", lang), CLIP_W / 2, 1395, { font: body(600), px: 40, color: MUTED, alpha: a });
+  const icons = easeOutBack(progress(local, 0.3, 0.5));
+  if (icons > 0) {
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(CLIP_W / 2, 1340);
+    ctx.scale(icons, icons);
+    tiktokIcon(ctx, -SOCIAL_ICON * 0.7, 0, SOCIAL_ICON);
+    instagramIcon(ctx, SOCIAL_ICON * 0.7, 0, SOCIAL_ICON);
+    ctx.restore();
+  }
+  text(ctx, SOCIAL_HANDLE, CLIP_W / 2, 1500, { font: display, px: 64, alpha: a });
+}
+
+const SOCIAL_ICON = 112;
+
+/** Simple Icons' TikTok note (24×24 viewBox), built on first use (Path2D is browser-only). */
+let tiktokNote: Path2D | null = null;
+const TIKTOK_NOTE_D =
+  "M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z";
+
+/** TikTok's tile: a black rounded square, the note in white over cyan and red offsets. */
+function tiktokIcon(ctx: CanvasRenderingContext2D, cx: number, cy: number, size: number): void {
+  ctx.save();
+  ctx.translate(cx, cy);
+  roundedRect(ctx, -size / 2, -size / 2, size, size, size * 0.24);
+  ctx.fillStyle = "#000000";
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(255,255,255,0.25)";
+  ctx.stroke();
+  const s = (size * 0.56) / 24;
+  const off = size * 0.022;
+  for (const [dx, dy, color] of [
+    [-off, -off, "#25f4ee"],
+    [off, off, "#fe2c55"],
+    [0, 0, "#ffffff"],
+  ] as const) {
+    ctx.save();
+    ctx.translate(dx - 12 * s, dy - 12 * s);
+    ctx.scale(s, s);
+    ctx.fillStyle = color;
+    ctx.fill((tiktokNote ??= new Path2D(TIKTOK_NOTE_D)));
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+/** Instagram's tile: the warm-to-purple gradient square with the white camera outline. */
+function instagramIcon(ctx: CanvasRenderingContext2D, cx: number, cy: number, size: number): void {
+  ctx.save();
+  ctx.translate(cx, cy);
+  const h = size / 2;
+  const g = ctx.createRadialGradient(-h * 0.6, h * 1.1, 0, -h * 0.6, h * 1.1, size * 1.3);
+  withStops(g, ["#fdf497", "#fd5949", "#d6249f", "#285aeb"]);
+  roundedRect(ctx, -h, -h, size, size, size * 0.24);
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = size * 0.075;
+  const inner = size * 0.62;
+  roundedRect(ctx, -inner / 2, -inner / 2, inner, inner, inner * 0.3);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, 0, size * 0.15, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(inner * 0.3, -inner * 0.3, size * 0.045, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffffff";
+  ctx.fill();
+  ctx.restore();
 }
 
 /** Draws the whole 1080×1920 frame at `time` seconds. */

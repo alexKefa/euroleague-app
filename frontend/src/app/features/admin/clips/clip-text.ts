@@ -23,7 +23,6 @@ const TEXT = {
   ctaQuestion: { en: "THINK YOU'D DO BETTER?", el: "ΕΣΥ ΘΑ ΤΑ ΠΗΓΑΙΝΕΣ ΚΑΛΥΤΕΡΑ;" },
   ctaOpen: { en: "{round} picks are open", el: "Άνοιξαν οι προβλέψεις · {round}" },
   ctaPlay: { en: "Play the next round", el: "Παίξε στην επόμενη αγωνιστική" },
-  ctaSocials: { en: "on TikTok & Instagram", el: "σε TikTok & Instagram" },
   legendary: { en: "LEGENDARY", el: "LEGENDARY" },
   foil: { en: "✦ LEGENDARY", el: "✦ LEGENDARY" },
   rare: { en: "RARE", el: "RARE" },

@@ -88,10 +88,11 @@ export function pickPull(cards: PullCandidate[]): PullCandidate | null {
 
 /**
  * Who the payoff features (2026-10-15, "show more users"): each person's best
- * pull, ranked like pickPull, at most `max`. Legendaries only; when nobody
+ * pull, ranked like pickPull, then (2026-10-16, "show some of them") their
+ * other legendaries, at most `max` cards. Legendaries only; when nobody
  * pulled one, just the single best rare.
  */
-export function pickPulls(cards: PullCandidate[], max = 3): PullCandidate[] {
+export function pickPulls(cards: PullCandidate[], max = 5): PullCandidate[] {
   const bestPerUser = new Map<string, PullCandidate>();
   for (const c of cards) {
     const current = bestPerUser.get(c.userId);
@@ -104,7 +105,14 @@ export function pickPulls(cards: PullCandidate[], max = 3): PullCandidate[] {
     pool.splice(pool.indexOf(top), 1);
   }
   const legendaries = ranked.filter((c) => c.tier === "legendary");
-  return legendaries.length > 0 ? legendaries.slice(0, max) : ranked.slice(0, 1);
+  if (legendaries.length === 0) return ranked.slice(0, 1);
+  // Room left once everyone's best is in: fill it with their other legendaries.
+  const rest = cards.filter((c) => c.tier === "legendary" && !legendaries.includes(c));
+  for (let top = pickPull(rest); top && legendaries.length < max; top = pickPull(rest)) {
+    legendaries.push(top);
+    rest.splice(rest.indexOf(top), 1);
+  }
+  return legendaries.slice(0, max);
 }
 
 const DAY_MS = 86_400_000;

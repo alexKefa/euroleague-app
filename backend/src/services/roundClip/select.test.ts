@@ -96,7 +96,7 @@ function pulled(userId: string, name: string, tier: string, finish: string, at: 
   return { userId, name, imageUrl: null, tier, finish, unlockedAt: new Date(at) };
 }
 
-test("several legendary pullers each feature once, foil first, at most three", () => {
+test("every legendary puller features before anyone's second card, foil first", () => {
   const cards = [
     pulled("a", "A-std", "legendary", "standard", "2026-10-11T10:00:00Z"),
     pulled("b", "B-foil", "legendary", "foil", "2026-10-12T10:00:00Z"),
@@ -105,7 +105,17 @@ test("several legendary pullers each feature once, foil first, at most three", (
     pulled("d", "D-std", "legendary", "standard", "2026-10-14T10:00:00Z"),
     pulled("e", "E-rare", "rare", "standard", "2026-10-09T10:00:00Z"),
   ];
-  assert.deepEqual(pickPulls(cards).map((c) => c.name), ["B-foil", "A-foil", "C-std"]);
+  assert.deepEqual(pickPulls(cards, 3).map((c) => c.name), ["B-foil", "A-foil", "C-std"]);
+  assert.deepEqual(pickPulls(cards).map((c) => c.name), ["B-foil", "A-foil", "C-std", "D-std", "A-std"]);
+});
+
+test("one person's several legendaries all feature", () => {
+  const cards = [
+    pulled("a", "A1", "legendary", "standard", "2026-10-11T10:00:00Z"),
+    pulled("a", "A2", "legendary", "foil", "2026-10-12T10:00:00Z"),
+    pulled("a", "A3", "legendary", "standard", "2026-10-10T10:00:00Z"),
+  ];
+  assert.deepEqual(pickPulls(cards).map((c) => c.name), ["A2", "A3", "A1"]);
 });
 
 test("without a legendary only the single best rare features", () => {
