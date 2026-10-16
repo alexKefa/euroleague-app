@@ -11,6 +11,7 @@ import { SkeletonComponent } from "../../shared/skeleton";
 import { ConfirmDialogComponent } from "../../shared/confirm-dialog";
 import { PageHeaderComponent } from "../../shared/page-header";
 import { CdnSizedPipe } from "../../shared/cdn-image";
+import { newsDateLocale, monthDayTimeFormat as monthDayTimeFormatFn } from "../../shared/news-date-format";
 
 @Component({
   selector: "app-legendary-vote",
@@ -22,6 +23,15 @@ export class LegendaryVoteComponent implements OnInit {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
+
+  // Dates in the app language (2026-10-16, shared/news-date-format.ts).
+  dateLocale(): string {
+    return newsDateLocale(this.i18n.lang());
+  }
+
+  monthDayTimeFormat(): string {
+    return monthDayTimeFormatFn(this.i18n.lang());
+  }
 
   readonly loading = signal(true);
   readonly polls = signal<LegendaryPoll[]>([]);

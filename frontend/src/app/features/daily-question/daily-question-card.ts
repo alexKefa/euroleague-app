@@ -10,6 +10,7 @@ import { NavIconComponent } from "../../shared/nav-icon";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { formatPlayerName } from "../../shared/player-name";
 import { TeamCodePipe } from "../../shared/team-display-code";
+import { newsDateLocale } from "../../shared/news-date-format";
 
 const SHOWN_MS = 10_000;
 // The server accepts answers for 12 s and resolves a timeout after that;
@@ -62,7 +63,7 @@ const RESULT_POLL_DELAY_MS = 2_500;
           <p class="text-[12px] text-muted mt-2">{{ i18n.t('dq.unavailable') }}</p>
         }
         @if (s.lockedUntil) {
-          <p class="text-[11px] text-muted mt-1">{{ i18n.t('dq.locked').replace('{date}', (s.lockedUntil | date: 'd MMM') ?? '') }}</p>
+          <p class="text-[11px] text-muted mt-1">{{ i18n.t('dq.locked').replace('{date}', (s.lockedUntil | date: 'd MMM' : undefined : dateLocale()) ?? '') }}</p>
         }
       </section>
 
@@ -128,6 +129,11 @@ const RESULT_POLL_DELAY_MS = 2_500;
 export class DailyQuestionCardComponent implements OnInit {
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
+
+  // Month names in the app language (2026-10-16).
+  dateLocale(): string {
+    return newsDateLocale(this.i18n.lang());
+  }
   private api = inject(ApiService);
 
   protected readonly SHOWN_MS = SHOWN_MS;

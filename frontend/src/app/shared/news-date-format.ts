@@ -28,3 +28,18 @@ export function gameDateTimeFormat(lang: Lang): string {
 export function weekdayDateFormat(lang: Lang): string {
   return lang === "el" ? "EEEE, d MMM" : "EEEE, MMM d";
 }
+
+// Other dates (2026-10-16): injury updates, poll closing, daily question
+// lock, admin error log. Same 24h clock and day-first Greek order; pair
+// with newsDateLocale for the month names.
+export function monthDayFormat(lang: Lang): string {
+  return lang === "el" ? "d MMM" : "MMM d";
+}
+
+export function monthDayTimeFormat(lang: Lang): string {
+  return lang === "el" ? "d MMM, HH:mm" : "MMM d, HH:mm";
+}
+
+export function fullDateTimeFormat(lang: Lang): string {
+  return lang === "el" ? "d MMM y · HH:mm" : "MMM d, y · HH:mm";
+}

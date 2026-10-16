@@ -4,6 +4,7 @@ import { HttpClient } from "@angular/common/http";
 import { API_BASE_URL } from "../../core/api-config";
 import { I18nService } from "../../core/i18n.service";
 import { ButtonDirective } from "../../shared/button.directive";
+import { newsDateLocale } from "../../shared/news-date-format";
 
 interface ErrorGroup {
   fingerprint: string;
@@ -55,7 +56,7 @@ interface ErrorGroup {
                 <div class="flex items-center gap-2 min-w-0">
                   <span class="shrink-0 rounded-full bg-red-500/15 text-red-500 text-[11px] font-semibold px-2 py-0.5 tabular-nums">×{{ g.count }}</span>
                   <span class="text-[11px] text-muted uppercase tracking-wide shrink-0">{{ g.source }}</span>
-                  <span class="text-[11px] text-muted ml-auto shrink-0">{{ g.lastAt | date: 'd MMM, HH:mm' }}</span>
+                  <span class="text-[11px] text-muted ml-auto shrink-0">{{ g.lastAt | date: 'd MMM, HH:mm' : undefined : dateLocale() }}</span>
                 </div>
                 <p class="text-sm font-semibold mt-1.5 break-words">{{ g.message }}</p>
                 @if (g.path || g.context) {
@@ -67,7 +68,7 @@ interface ErrorGroup {
                   @if (g.context && g.path) {
                     <p class="text-[12px] text-muted mb-1 break-words">{{ g.context }}</p>
                   }
-                  <p class="text-[11px] text-muted mb-1">{{ i18n.t('admin.errorsFirstSeen') }} {{ g.firstAt | date: 'd MMM, HH:mm' }}</p>
+                  <p class="text-[11px] text-muted mb-1">{{ i18n.t('admin.errorsFirstSeen') }} {{ g.firstAt | date: 'd MMM, HH:mm' : undefined : dateLocale() }}</p>
                   <pre class="text-[11px] leading-snug bg-card border border-line rounded-lg p-2 overflow-x-auto whitespace-pre">{{ g.stack ?? '—' }}</pre>
                 </div>
               }
@@ -81,6 +82,11 @@ interface ErrorGroup {
 export class AdminErrorsComponent implements OnInit {
   private http = inject(HttpClient);
   protected i18n = inject(I18nService);
+
+  // Month names in the app language (2026-10-16).
+  dateLocale(): string {
+    return newsDateLocale(this.i18n.lang());
+  }
 
   protected readonly groups = signal<ErrorGroup[]>([]);
   protected readonly days = signal(7);

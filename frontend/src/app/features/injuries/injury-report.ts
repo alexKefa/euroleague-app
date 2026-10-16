@@ -12,6 +12,7 @@ import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { TeamCodePipe, displayTeamCode } from "../../shared/team-display-code";
 import { DropdownComponent, DropdownOption } from "../../shared/dropdown";
 import { ButtonDirective } from "../../shared/button.directive";
+import { newsDateLocale, monthDayFormat as monthDayFormatFn, fullDateTimeFormat as fullDateTimeFormatFn } from "../../shared/news-date-format";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { formatPlayerName } from "../../shared/player-name";
 import { injuryStatusLabel, injuryStatusClass, injuryNoteFor } from "../../shared/injury-status";
@@ -51,6 +52,19 @@ export class InjuryReportComponent implements OnInit {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
+
+  // Dates in the app language (2026-10-16, shared/news-date-format.ts).
+  dateLocale(): string {
+    return newsDateLocale(this.i18n.lang());
+  }
+
+  monthDayFormat(): string {
+    return monthDayFormatFn(this.i18n.lang());
+  }
+
+  fullDateTimeFormat(): string {
+    return fullDateTimeFormatFn(this.i18n.lang());
+  }
   protected navHistory = inject(NavHistoryService);
   private fb = inject(FormBuilder);
 

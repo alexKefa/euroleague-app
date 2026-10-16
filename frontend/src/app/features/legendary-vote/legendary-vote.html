@@ -101,7 +101,7 @@
 
               @if (poll.closesAt) {
                 <p class="text-[11px] text-muted font-semibold mb-3">
-                  {{ i18n.t('legendaryVote.closesOn') }} {{ poll.closesAt | date: 'MMM d, HH:mm' }}
+                  {{ i18n.t('legendaryVote.closesOn') }} {{ poll.closesAt | date: monthDayTimeFormat() : undefined : dateLocale() }}
                 </p>
               }
 

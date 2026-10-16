@@ -180,7 +180,7 @@
                     <span class="px-2 py-0.5 rounded-lg border text-[11px] font-bold uppercase tracking-wider" [ngClass]="statusClass(entry.status)">
                       {{ statusLabel(entry.status) }}
                     </span>
-                    <span class="text-[10px] text-muted font-mono">{{ entry.updatedAt | date: "MMM d" }}</span>
+                    <span class="text-[10px] text-muted font-mono">{{ entry.updatedAt | date: monthDayFormat() : undefined : dateLocale() }}</span>
                   </span>
                   @if (auth.currentUser()?.isAdmin) {
                     <span class="shrink-0 flex flex-col items-end gap-1 ml-1">
@@ -253,7 +253,7 @@
 
         <div class="flex items-center justify-between text-xs text-muted mb-4">
           <span>{{ i18n.t('injuries.updated') }}</span>
-          <span class="font-mono">{{ entry.updatedAt | date: "MMM d, y · HH:mm" }}</span>
+          <span class="font-mono">{{ entry.updatedAt | date: fullDateTimeFormat() : undefined : dateLocale() }}</span>
         </div>
 
         <a [routerLink]="['/players', entry.playerId]" (click)="closeEntryDetail()" appButton appButtonSize="sm" class="w-full block text-center">
