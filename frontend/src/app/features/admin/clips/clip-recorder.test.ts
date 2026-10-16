@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ClipAbortedError, pickRecorderFormat, recordClip } from "./clip-recorder";
+import { ClipAbortedError, dueFrame, pickRecorderFormat, recordClip } from "./clip-recorder";
 
 test("MP4 is preferred when the browser can record it", () => {
   assert.deepEqual(pickRecorderFormat(() => true), { mime: "video/mp4;codecs=avc1", ext: "mp4" });
@@ -32,10 +32,41 @@ test("aborting mid-recording rejects instead of producing a file", async () => {
   g.document = { visibilityState: "visible", addEventListener() {}, removeEventListener() {} };
   g.requestAnimationFrame = (cb: (t: number) => void) => setTimeout(() => cb(performance.now()), 5);
   g.cancelAnimationFrame = (id: ReturnType<typeof setTimeout>) => clearTimeout(id);
-  const canvas = { captureStream: () => ({ getTracks: () => [] }) } as unknown as HTMLCanvasElement;
+  const canvas = { captureStream: () => ({ getTracks: () => [], getVideoTracks: () => [] }) } as unknown as HTMLCanvasElement;
 
   const abort = new AbortController();
   const recording = recordClip(canvas, 10, () => {}, () => {}, abort.signal);
   setTimeout(() => abort.abort(), 30);
   await assert.rejects(recording, ClipAbortedError);
+});
+
+test("frames fall on a fixed 1/30 s grid, skipping rather than bunching after a stall", () => {
+  assert.equal(dueFrame(0), 0);
+  assert.equal(dueFrame(0.0334), 1);
+  assert.equal(dueFrame(0.05), 1); // a 60 Hz tick between grid points sends nothing new
+  assert.equal(dueFrame(0.5), 15); // after a stall, jump straight to the frame that's due
+});
+
+test("each captured frame is drawn at an exact grid time", async () => {
+  const g = globalThis as any;
+  let clock = 0;
+  const realNow = performance.now.bind(performance);
+  performance.now = () => clock;
+  // A 144 Hz display: ticks every ~6.9 ms, which don't line up with 30 fps.
+  g.requestAnimationFrame = (cb: (t: number) => void) => setTimeout(() => cb((clock += 1000 / 144)), 0);
+  const drawn: number[] = [];
+  let lastDraw = NaN;
+  const requested: number[] = [];
+  const track = { requestFrame: () => requested.push(lastDraw), stop() {} };
+  const canvas = { captureStream: (fps: number) => (assert.equal(fps, 0), { getTracks: () => [track], getVideoTracks: () => [track] }) } as unknown as HTMLCanvasElement;
+
+  try {
+    await recordClip(canvas, 0.5, (t) => drawn.push((lastDraw = t)), () => {});
+  } finally {
+    performance.now = realNow;
+  }
+  assert.deepEqual(requested, drawn);
+  const grid = drawn.filter((t) => t < 0.5);
+  grid.forEach((t, i) => assert.ok(Math.abs(t - i / 30) < 1e-9, `frame ${i} drawn at ${t}`));
+  assert.equal(grid.length, 15);
 });

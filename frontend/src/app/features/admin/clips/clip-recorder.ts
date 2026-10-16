@@ -25,9 +25,23 @@ export class ClipHiddenError extends Error {}
 /** The recording was abandoned (e.g. the admin left the page); no file is produced. */
 export class ClipAbortedError extends Error {}
 
+export const CLIP_FPS = 30;
+
 /**
- * Plays the clip from 0 to `durationSec` (calling `renderAt` every animation
- * frame) while recording the canvas at 30 fps. Rejects with ClipHiddenError
+ * The frame due at `elapsedSec` of wall time. Frames sit on a fixed 1/CLIP_FPS
+ * grid; when the browser stalls, late ones are skipped rather than bunched up,
+ * so the clip's content stays in step with the recording's timestamps.
+ */
+export function dueFrame(elapsedSec: number): number {
+  return Math.floor(elapsedSec * CLIP_FPS);
+}
+
+/**
+ * Plays the clip from 0 to `durationSec` while recording the canvas at a
+ * steady CLIP_FPS. The stream doesn't sample on its own (captureStream(0)):
+ * each frame is drawn at exactly frame / CLIP_FPS seconds and handed over with
+ * requestFrame(), so frames are evenly spaced instead of depending on how the
+ * display's refresh rate lines up with the recorder. Rejects with ClipHiddenError
  * if the tab is hidden mid-recording, and with ClipAbortedError when
  * `signal` aborts.
  */
@@ -42,9 +56,9 @@ export function recordClip(
   if (!format) return Promise.reject(new Error("Recording is not supported in this browser"));
 
   return new Promise((resolve, reject) => {
-    renderAt(0); // the first captured frame is the clip's first frame
-    const stream = canvas.captureStream(30);
-    const recorder = new MediaRecorder(stream, { mimeType: format.mime, videoBitsPerSecond: 8_000_000 });
+    const stream = canvas.captureStream(0);
+    const track = stream.getVideoTracks()[0] as CanvasCaptureMediaStreamTrack | undefined;
+    const recorder = new MediaRecorder(stream, { mimeType: format.mime, videoBitsPerSecond: 16_000_000 });
     const chunks: Blob[] = [];
     let frame = 0;
     let failed: Error | null = null;
@@ -79,14 +93,21 @@ export function recordClip(
     document.addEventListener("visibilitychange", onVisibility);
     signal?.addEventListener("abort", onAbort);
     recorder.start();
+    const totalFrames = Math.ceil(durationSec * CLIP_FPS);
+    // A few frames past the end so the held last frame makes it into the file.
+    const lastFrame = totalFrames + Math.round(0.2 * CLIP_FPS);
+    let sent = -1;
     const start = performance.now();
     const tick = (now: number) => {
       if (failed) return;
-      const time = (now - start) / 1000;
-      renderAt(Math.min(time, durationSec));
-      onProgress(Math.min(1, time / durationSec));
-      // A little past the end so the held last frame makes it into the file.
-      if (time >= durationSec + 0.2) {
+      const due = Math.min(dueFrame((now - start) / 1000), lastFrame);
+      if (due > sent) {
+        sent = due;
+        renderAt(Math.min(due / CLIP_FPS, durationSec));
+        track?.requestFrame();
+        onProgress(Math.min(1, due / totalFrames));
+      }
+      if (sent >= lastFrame) {
         if (recorder.state === "recording") recorder.stop();
         return;
       }
