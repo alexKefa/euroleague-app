@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { endedQuarter, finalBody, finalTitle, forgetGame, quarterBody, quarterLeaders, quarterScore, quarterTitle, startTitle, surname, topScorer, type PlayerPoints } from "./gameBell.js";
+import { endedQuarter, finalBody, finalTitle, quarterBody, quarterScore, quarterTitle, startTitle, surname, topScorer, type PlayerPoints } from "./gameBell.js";
 
 const live = (quarter: number, clock: number | null) => ({ status: "live", quarter, gameClockSeconds: clock });
 
@@ -34,28 +34,13 @@ test("names are surnames in title case", () => {
 
 const p = (playerId: string, teamId: string, playerName: string, points: number): PlayerPoints => ({ playerId, teamId, playerName, points });
 
-test("the quarter's top scorer is who gained most since the last quarter ended", () => {
-  const before = new Map([
-    ["v", 10],
-    ["f", 2],
-  ]);
+test("each side's top scorer is by game total so far, not by the quarter", () => {
   const now = [p("v", "OLY", "VEZENKOV, SASHA", 14), p("f", "OLY", "FOURNIER, EVAN", 11), p("n", "PAO", "NUNN, KENDRICK", 0)];
-  assert.deepEqual(topScorer(now, "OLY", before), { name: "Fournier", points: 9 });
-  assert.equal(topScorer(now, "PAO", before), null);
+  assert.deepEqual(topScorer(now, "OLY"), { name: "Vezenkov", points: 14 });
+  assert.equal(topScorer(now, "PAO"), null, "nobody on the team has scored");
 });
 
-test("quarter leaders build on the previous quarter's snapshot, and fall back to the game so far without it", () => {
-  forgetGame("g1");
-  const q1 = [p("v", "OLY", "VEZENKOV, SASHA", 9), p("n", "PAO", "NUNN, KENDRICK", 7)];
-  assert.deepEqual(quarterLeaders("g1", 1, q1, "OLY", "PAO"), { home: { name: "Vezenkov", points: 9 }, away: { name: "Nunn", points: 7 }, sinceTipoff: false });
-  const q2 = [p("v", "OLY", "VEZENKOV, SASHA", 12), p("f", "OLY", "FOURNIER, EVAN", 6), p("n", "PAO", "NUNN, KENDRICK", 15)];
-  assert.deepEqual(quarterLeaders("g1", 2, q2, "OLY", "PAO"), { home: { name: "Fournier", points: 6 }, away: { name: "Nunn", points: 8 }, sinceTipoff: false });
-
-  forgetGame("g2"); // as after a restart mid-game: Q2's start was never seen
-  assert.deepEqual(quarterLeaders("g2", 3, q2, "OLY", "PAO"), { home: { name: "Vezenkov", points: 12 }, away: { name: "Nunn", points: 15 }, sinceTipoff: true });
-});
-
-const leaders = { home: { name: "Vezenkov", points: 9 }, away: { name: "Nunn", points: 7 }, sinceTipoff: false };
+const leaders = { home: { name: "Vezenkov", points: 17 }, away: { name: "Nunn", points: 15 } };
 
 const score = { HOME: "OLY", AWAY: "PAO", hs: 45, as: 40 };
 
@@ -64,10 +49,9 @@ test("quarter pushes: the moment and the total in the title, the quarter's score
   assert.equal(quarterTitle(1, score, "en"), "🏀 End of Q1 · OLY 45–40 PAO");
   assert.equal(quarterTitle(3, score, "el"), "🏀 Τέλος 3ης περιόδου · OLY 45–40 PAO");
   assert.equal(quarterTitle(2, score, "el"), "🏀 Ημίχρονο · OLY 45–40 PAO");
-  assert.equal(quarterBody(leaders, "en"), "Vezenkov 9 pts, Nunn 7 pts.");
-  assert.equal(quarterBody({ ...leaders, sinceTipoff: true }, "en"), "So far: Vezenkov 9 pts, Nunn 7 pts.");
-  assert.equal(quarterBody(leaders, "el"), "Vezenkov 9 πόντοι, Nunn 7 πόντοι.");
-  assert.equal(quarterBody({ home: null, away: null, sinceTipoff: false }, "el"), "");
+  assert.equal(quarterBody(leaders, "en"), "Vezenkov 17 pts, Nunn 15 pts.");
+  assert.equal(quarterBody(leaders, "el"), "Vezenkov 17 πόντοι, Nunn 15 πόντοι.");
+  assert.equal(quarterBody({ home: null, away: null }, "el"), "");
 });
 
 test("start and final open with the basketball too", () => {

@@ -1,7 +1,7 @@
 // Team & game-bell push (2026-10-12): tip-off soon, close finish / OT,
 // and final score, for fans of either team (users.favorite_team_id). The
 // bell on a game (game_alerts, 2026-10-16) gets tip-off, the end of Q1-Q3
-// with each side's top scorer of the quarter, close / OT and the final
+// with each side's top scorer of the game so far, close / OT and the final
 // with each side's top scorer; a pin alone no longer pushes. Called from sync/liveGamesSync.ts through handleGamePushes;
 // never throws into the sync. Each user gets each alert once
 // (sendPushOnce + push_log). Spec: docs/superpowers/specs/2026-10-12-team-push-design.md
@@ -11,7 +11,7 @@ import { db } from "../db/client.js";
 import { sendPushOnce, type PushLang, type PushMessage } from "./push.js";
 import { usersWithPref, type PushPrefKey } from "./pushPreferences.js";
 import { formatName } from "./gameStory/plays.js";
-import { BALL, endedQuarter, finalBody, finalTitle, forgetGame, quarterBody, quarterLeaders, quarterScore, quarterTitle, startBody, startTitle, surname, type PlayerPoints, type Scorer } from "./gameBell.js";
+import { BALL, endedQuarter, finalBody, finalTitle, quarterBody, quarterScore, quarterTitle, startBody, startTitle, surname, topScorer, type PlayerPoints, type Scorer } from "./gameBell.js";
 
 export type TeamPushKind = "team_tipoff" | "team_close" | "team_final" | "game_start" | "game_quarter";
 
@@ -129,11 +129,11 @@ export function message(kind: "team_tipoff" | "team_close" | "team_final" | "gam
   return { title: BALL + fill(copy.title[lang], vars), body: fill(copy.body[lang], vars), ...base };
 }
 
-/** End of quarter q: the total score once it ended (title) and each side's top scorer of the quarter. */
+/** End of quarter q: the total score once it ended (title) and each side's top scorer of the game so far. */
 export function quarterMessage(
   g: PushGame,
   q: number,
-  leaders: { home: Scorer | null; away: Scorer | null; sinceTipoff: boolean },
+  leaders: { home: Scorer | null; away: Scorer | null },
   lang: PushLang
 ): PushMessage {
   const qs = quarterScore(g, q);
@@ -159,7 +159,7 @@ export function notifyStart(g: PushGame): Promise<void> {
 }
 
 export function notifyQuarter(g: PushGame, q: number, players: PlayerPoints[]): Promise<void> {
-  const leaders = quarterLeaders(g.id, q, players, g.homeTeamId, g.awayTeamId);
+  const leaders = { home: topScorer(players, g.homeTeamId), away: topScorer(players, g.awayTeamId) };
   return send("game_quarter", pushKey("game_quarter", g, q), g, (lang) => quarterMessage(g, q, leaders, lang));
 }
 
@@ -170,7 +170,6 @@ export function notifyClose(g: PushGame): Promise<void> {
 
 /** Each side's top scorer from the stored box score, plus the user's pinned player's points when they pinned one. */
 export function notifyFinal(g: PushGame): Promise<void> {
-  forgetGame(g.id);
   return db
     .execute<{ via: "top" | "pin"; user_id: string | null; team_id: string; name: string; points: number | null }>(sql`
       (select distinct on (s.team_id) 'top' as via, null::uuid as user_id, s.team_id, p.name, s.points
@@ -218,7 +217,6 @@ export function claimOnce(key: string): boolean {
  */
 export async function forgetGamePushes(gameId: string): Promise<void> {
   for (const key of [...handled]) if (key.endsWith(`:${gameId}`)) handled.delete(key);
-  forgetGame(gameId);
   await db.execute(sql`
     delete from push_log
     where kind in ('team_tipoff', 'team_close', 'team_final', 'game_start', 'game_quarter') and key like ${`%:${gameId}`}
@@ -230,7 +228,7 @@ export async function forgetGamePushes(gameId: string): Promise<void> {
  * its polling window with the state before and after the tick: tip-off
  * soon, the game starting, a quarter ending (bell, 2026-10-16), a close
  * finish / OT, or the move to final. `players` is the live box score just
- * read, for the quarter's top scorers; a quarter seen without it waits for
+ * read, for the top scorers so far; a quarter seen without it waits for
  * a tick that has it. Resolves when the sends finish and never rejects; the
  * sync doesn't await it. A tip-off moved after its alert went out isn't
  * re-sent (one key per game).

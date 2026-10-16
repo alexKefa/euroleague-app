@@ -55,46 +55,17 @@ export function surname(name: string): string {
   return last.toLowerCase().replace(/(^|[\s\-'])(\p{L})/gu, (_m, sep: string, ch: string) => sep + ch.toUpperCase());
 }
 
-/** The team's top scorer between two snapshots (before = null: from tip-off). Ties go to the higher game total. */
-export function topScorer(players: PlayerPoints[], teamId: string, before: Map<string, number> | null): Scorer | null {
-  let best: { p: PlayerPoints; gained: number } | null = null;
-  for (const p of players) {
-    if (p.teamId !== teamId) continue;
-    const gained = p.points - (before?.get(p.playerId) ?? 0);
-    if (gained <= 0) continue;
-    if (!best || gained > best.gained || (gained === best.gained && p.points > best.p.points)) best = { p, gained };
-  }
-  return best ? { name: surname(best.p.playerName), points: best.gained } : null;
-}
-
-// Everyone's points at the end of each quarter, per game, so the next
-// quarter's leaders are the difference. Process-local like liveGamesSync's
-// own scoring snapshot: after a restart the earlier quarter is missing and
-// the push names the top scorers so far instead (`sinceTipoff`).
-const atQuarterEnd = new Map<string, Map<number, Map<string, number>>>();
-
 /**
- * Each side's top scorer of quarter q, remembering everyone's points now as
- * the end of q. `sinceTipoff` when q's start isn't known (a restart mid-game).
+ * The team's top scorer of the game so far, with their game total (quarter
+ * pushes and the final both show totals, 2026-10-16 user call). Ties go to
+ * whoever the box score lists first.
  */
-export function quarterLeaders(
-  gameId: string,
-  q: number,
-  players: PlayerPoints[],
-  homeTeamId: string,
-  awayTeamId: string
-): { home: Scorer | null; away: Scorer | null; sinceTipoff: boolean } {
-  const ends = atQuarterEnd.get(gameId) ?? new Map<number, Map<string, number>>();
-  atQuarterEnd.set(gameId, ends);
-  if (!ends.has(q)) ends.set(q, new Map(players.map((p) => [p.playerId, p.points])));
-  const before = q === 1 ? null : (ends.get(q - 1) ?? null);
-  const sinceTipoff = q > 1 && before === null;
-  return { home: topScorer(players, homeTeamId, before), away: topScorer(players, awayTeamId, before), sinceTipoff };
-}
-
-/** Drops a finished game's snapshots. */
-export function forgetGame(gameId: string): void {
-  atQuarterEnd.delete(gameId);
+export function topScorer(players: PlayerPoints[], teamId: string): Scorer | null {
+  let best: PlayerPoints | null = null;
+  for (const p of players) {
+    if (p.teamId === teamId && p.points > 0 && (!best || p.points > best.points)) best = p;
+  }
+  return best ? { name: surname(best.playerName), points: best.points } : null;
 }
 
 // ---- Words. Plain text; game pushes open with a basketball (2026-10-16,
@@ -120,7 +91,6 @@ const COPY = {
     en: (q: number) => (q === 2 ? "Halftime" : `End of Q${q}`),
     el: (q: number) => (q === 2 ? "Ημίχρονο" : `Τέλος ${ORDINAL_EL[q - 1]} περιόδου`),
   },
-  soFar: { en: "So far:", el: "Μέχρι τώρα:" },
   final: { en: "Final", el: "Τελικό" },
   pts: { en: "pts", el: "πόντοι" },
 } as const;
@@ -148,12 +118,13 @@ export function quarterTitle(q: number, s: ScoreLine, lang: PushLang): string {
 }
 
 /**
- * "Vezenkov 9 pts, Nunn 7 pts." The quarter's own score isn't shown
- * (2026-10-16, user call). "" when nobody scored.
+ * "Vezenkov 17 pts, Nunn 15 pts.": each side's top scorer of the game so
+ * far, with game totals; no per-quarter numbers (2026-10-16, user call).
+ * "" when nobody has scored.
  */
-export function quarterBody(leaders: { home: Scorer | null; away: Scorer | null; sinceTipoff: boolean }, lang: PushLang): string {
+export function quarterBody(leaders: { home: Scorer | null; away: Scorer | null }, lang: PushLang): string {
   const scorers = scorersLine([leaders.home, leaders.away], lang);
-  return scorers ? `${leaders.sinceTipoff ? `${COPY.soFar[lang]} ` : ""}${scorers}.` : "";
+  return scorers ? `${scorers}.` : "";
 }
 
 /** "🏀 Final · OLY 81–77 PAO" */
