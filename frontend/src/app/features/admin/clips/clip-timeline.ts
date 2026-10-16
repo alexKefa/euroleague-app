@@ -4,26 +4,30 @@ import type { RoundClipData } from "../../../core/models";
 // which scenes run, when, and the easing they share. No drawing and no
 // Angular here, so it runs under `npx tsx --test`.
 
-export type SceneId = "hook" | "results" | "topPredictor" | "boldCall" | "payoff" | "cta";
+export type SceneId = "hook" | "results" | "boldCall" | "payoff" | "cta";
 
 export interface Scene {
   id: SceneId;
   start: number;
   end: number;
-  /** The hook shows the upset, or the bold call when there's no upset. */
-  variant?: "upset" | "boldCall";
+  /**
+   * The hook dares the viewer to beat the top predictor; a round without one
+   * falls back to the upset, or the bold call when there's no upset.
+   */
+  variant?: "challenge" | "upset" | "boldCall";
 }
 
-const DURATION: Record<SceneId, number> = { hook: 2, results: 4, topPredictor: 3, boldCall: 3, payoff: 4, cta: 2 };
+const DURATION: Record<SceneId, number> = { hook: 3.5, results: 4, boldCall: 3, payoff: 4, cta: 2 };
 
 /** The clip's scenes in order; skipped scenes close the gap. */
 export function buildTimeline(data: RoundClipData): Scene[] {
   const plan: Omit<Scene, "start" | "end">[] = [];
-  if (data.hook) plan.push({ id: "hook", variant: "upset" });
+  if (data.topPredictor) plan.push({ id: "hook", variant: "challenge" });
+  else if (data.hook) plan.push({ id: "hook", variant: "upset" });
   else if (data.boldCall) plan.push({ id: "hook", variant: "boldCall" });
   plan.push({ id: "results" });
-  if (data.topPredictor) plan.push({ id: "topPredictor" });
-  if (data.boldCall && data.hook) plan.push({ id: "boldCall" });
+  // The bold call gets its own scene unless the hook already showed it.
+  if (data.boldCall && plan[0].variant !== "boldCall") plan.push({ id: "boldCall" });
   plan.push({ id: "payoff" }, { id: "cta" });
 
   let t = 0;

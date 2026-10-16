@@ -21,22 +21,28 @@ function data(overrides: Partial<RoundClipData> = {}): RoundClipData {
   };
 }
 
-test("a full round plays all six scenes over 18 seconds", () => {
+test("a full round opens on the top predictor's challenge and runs 16.5 seconds", () => {
   const t = buildTimeline(data());
   assert.deepEqual(
     t.map((s) => [s.id, s.start]),
-    [["hook", 0], ["results", 2], ["topPredictor", 6], ["boldCall", 9], ["payoff", 12], ["cta", 16]]
+    [["hook", 0], ["results", 3.5], ["boldCall", 7.5], ["payoff", 10.5], ["cta", 14.5]]
   );
-  assert.equal(t[0].variant, "upset");
-  assert.equal(clipDuration(t), 18);
+  assert.equal(t[0].variant, "challenge");
+  assert.equal(clipDuration(t), 16.5);
 });
 
-test("without an upset the bold call becomes the hook and isn't repeated", () => {
-  const t = buildTimeline(data({ hook: null }));
+test("without a top predictor the upset is the hook", () => {
+  const t = buildTimeline(data({ topPredictor: null }));
+  assert.equal(t[0].variant, "upset");
+  assert.ok(t.some((s) => s.id === "boldCall"));
+});
+
+test("without a top predictor or an upset the bold call becomes the hook and isn't repeated", () => {
+  const t = buildTimeline(data({ topPredictor: null, hook: null }));
   assert.equal(t[0].id, "hook");
   assert.equal(t[0].variant, "boldCall");
   assert.ok(!t.some((s) => s.id === "boldCall"));
-  assert.equal(clipDuration(t), 15);
+  assert.equal(clipDuration(t), 13.5);
 });
 
 test("with nothing to feature the clip is results, payoff and call to action", () => {
@@ -47,10 +53,10 @@ test("with nothing to feature the clip is results, payoff and call to action", (
 
 test("the last scene holds past the end of the clip", () => {
   const t = buildTimeline(data());
-  assert.equal(sceneAt(t, 17.9)?.scene.id, "cta");
+  assert.equal(sceneAt(t, 16.4)?.scene.id, "cta");
   assert.equal(sceneAt(t, 30)?.scene.id, "cta");
-  assert.equal(sceneAt(t, 2.5)?.scene.id, "results");
-  assert.equal(sceneAt(t, 2.5)?.local, 0.5);
+  assert.equal(sceneAt(t, 4)?.scene.id, "results");
+  assert.equal(sceneAt(t, 4)?.local, 0.5);
 });
 
 test("clip copy fills placeholders in the chosen language", () => {

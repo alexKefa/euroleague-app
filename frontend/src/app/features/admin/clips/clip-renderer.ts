@@ -20,6 +20,9 @@ const GREEN = "#3ddc84";
 const WHITE = "#ffffff";
 const MUTED = "rgba(255,255,255,0.72)";
 
+/** Clutch's handle, the same on TikTok and Instagram. */
+const SOCIAL_HANDLE = "@clutch_app_euroleague";
+
 const body = (weight: 400 | 600) => (px: number) => `${weight} ${px}px "Sofia Sans", system-ui, sans-serif`;
 const display = (px: number) => `800 ${px}px "Sofia Sans Condensed", "Sofia Sans", system-ui, sans-serif`;
 
@@ -300,7 +303,9 @@ function drawHook(
   time: number,
   lang: ClipLang
 ): void {
-  if (scene.variant === "upset" && data.hook) {
+  if (scene.variant === "challenge" && data.topPredictor) {
+    drawChallenge(ctx, data, local, time, lang);
+  } else if (scene.variant === "upset" && data.hook) {
     const h = data.hook;
     matchup(ctx, h.winner, h.loser, images, local, 660);
     const first = h.pickedLoserPct === null ? clipText("hookUpsetNoPct", lang) : clipText("hookSaid", lang, { pct: h.pickedLoserPct });
@@ -315,8 +320,6 @@ function drawHook(
       [GREEN, WHITE]
     );
   }
-  faceDownCard(ctx, CLIP_W / 2, 330, 170, time);
-  text(ctx, clipText("teaser", lang), CLIP_W / 2, 1820, { font: body(600), px: 34, color: MUTED });
 }
 
 function drawResults(ctx: CanvasRenderingContext2D, data: RoundClipData, images: ClipImages, local: number, lang: ClipLang): void {
@@ -347,19 +350,76 @@ function drawResults(ctx: CanvasRenderingContext2D, data: RoundClipData, images:
   });
 }
 
-function drawTopPredictor(ctx: CanvasRenderingContext2D, data: RoundClipData, local: number, lang: ClipLang): void {
+/**
+ * The challenge hook: the top predictor's score slams in counting up, with a
+ * shockwave and a jolt as it lands, then their name, then the dare.
+ */
+function drawChallenge(ctx: CanvasRenderingContext2D, data: RoundClipData, local: number, time: number, lang: ClipLang): void {
   const t = data.topPredictor!;
-  const p = easeOutCubic(progress(local, 0, 0.4));
-  ctx.save();
-  ctx.globalAlpha = p;
-  ctx.translate(CLIP_W / 2, CLIP_H / 2);
-  ctx.scale(0.9 + 0.1 * p, 0.9 + 0.1 * p);
-  ctx.translate(-CLIP_W / 2, -CLIP_H / 2);
-  text(ctx, clipText("topPredictor", lang), CLIP_W / 2, 680, { font: body(600), px: 44, color: MUTED });
-  drawPerson(ctx, t.person, 790, 72, lang);
-  text(ctx, `${t.correct}/${t.total}`, CLIP_W / 2, 1150, { font: display, px: 260 });
-  text(ctx, clipText("pts", lang, { n: t.points }), CLIP_W / 2, 1290, { font: body(600), px: 44, color: MUTED });
-  ctx.restore();
+  chip(ctx, clipUpper(roundLabelFor(data.round, lang), lang), CLIP_W / 2, 330, { font: display, px: 60, ...PERSON_CHIP }, progress(local, 0, 0.3));
+
+  const slam = progress(local, 0.15, 0.45);
+  const landed = progress(local, 0.6, 0.5);
+  const cy = 860;
+  if (slam > 0) {
+    // Behind the score: a steady glow, and a ring that bursts out as it lands.
+    const g = ctx.createRadialGradient(CLIP_W / 2, cy - 110, 40, CLIP_W / 2, cy - 110, 460);
+    g.addColorStop(0, `${ORANGE}55`);
+    g.addColorStop(1, `${ORANGE}00`);
+    ctx.save();
+    ctx.globalAlpha = slam;
+    ctx.fillStyle = g;
+    ctx.fillRect(0, cy - 600, CLIP_W, 1000);
+    ctx.restore();
+    if (landed > 0 && landed < 1) {
+      ctx.save();
+      ctx.globalAlpha = 1 - landed;
+      ctx.lineWidth = 14 * (1 - landed) + 2;
+      ctx.strokeStyle = ORANGE;
+      ctx.beginPath();
+      ctx.arc(CLIP_W / 2, cy - 110, 220 + 380 * easeOutCubic(landed), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    const shown = Math.round(t.correct * easeOutCubic(progress(local, 0.15, 0.75)));
+    const shake = landed > 0 && landed < 0.4 ? Math.sin(time * 90) * 14 * (1 - landed / 0.4) : 0;
+    const scale = 2.4 - 1.4 * easeOutBack(slam);
+    ctx.save();
+    // Scaled around the glyphs' middle, not the baseline, so it lands in place.
+    ctx.translate(CLIP_W / 2 + shake, cy - 130);
+    ctx.scale(scale, scale);
+    text(ctx, `${shown}/${t.total}`, 0, 130, { font: display, px: 380, alpha: Math.min(1, slam * 2), maxWidth: 960 / scale });
+    ctx.restore();
+  }
+
+  const who = easeOutCubic(progress(local, 0.85, 0.35));
+  if (who > 0) {
+    ctx.save();
+    ctx.translate(0, (1 - who) * 30);
+    drawPerson(ctx, t.person, 1060, 68, lang, who);
+    ctx.restore();
+  }
+  const called = easeOutCubic(progress(local, 1.1, 0.35));
+  const titled = personLines(t.person, lang).title !== null;
+  text(ctx, clipText("challengeCalled", lang, { n: t.correct, total: t.total }), CLIP_W / 2, titled ? 1260 : 1200, {
+    font: body(600),
+    px: 48,
+    color: MUTED,
+    alpha: called,
+  });
+
+  // The dare lands last and keeps pulsing until the cut.
+  const dare = progress(local, 1.7, 0.35);
+  if (dare > 0) {
+    const pulse = dare >= 1 ? 1 + 0.03 * Math.sin((local - 2.05) * 7) : 1;
+    const scale = (2.2 - 1.2 * easeOutBack(dare)) * pulse;
+    ctx.save();
+    ctx.translate(CLIP_W / 2, 1560);
+    ctx.scale(scale, scale);
+    text(ctx, clipText("challengeBeat", lang), 0, 0, { font: display, px: 128, color: ORANGE, alpha: Math.min(1, dare * 2), maxWidth: 960 / scale });
+    ctx.restore();
+  }
 }
 
 function drawBoldCall(ctx: CanvasRenderingContext2D, data: RoundClipData, local: number, lang: ClipLang): void {
@@ -451,8 +511,7 @@ function cardFace(ctx: CanvasRenderingContext2D, pull: Pull | null, images: Clip
   ctx.fillRect(fx, fy, fw, fh);
 
   if (!pull) {
-    text(ctx, "CLUTCH", 0, -20, { font: display, px: Math.round(w * 0.23), color: "#f4d675", maxWidth: fw * 0.85 });
-    text(ctx, clipText("packsFree", lang), 0, 70, { font: body(600), px: Math.round(w * 0.06), color: WHITE, maxWidth: fw * 0.85 });
+    text(ctx, "CLUTCH", 0, Math.round(w * 0.08), { font: display, px: Math.round(w * 0.23), color: "#f4d675", maxWidth: fw * 0.85 });
     holoSweep(ctx, fx, fy, fw, fh, time, false);
     ctx.restore();
     return;
@@ -628,7 +687,8 @@ function drawCta(ctx: CanvasRenderingContext2D, data: RoundClipData, local: numb
   ctx.restore();
   text(ctx, pill, CLIP_W / 2, 1001, { font: body(600), px: 44, color: "#120c08", maxWidth: pw - 60, alpha: a });
   text(ctx, "getclutchapp.com", CLIP_W / 2, 1180, { font: display, px: 90, color: ORANGE, alpha: a });
-  text(ctx, clipText("ctaFree", lang), CLIP_W / 2, 1280, { font: body(400), px: 40, color: MUTED, alpha: a });
+  text(ctx, SOCIAL_HANDLE, CLIP_W / 2, 1320, { font: display, px: 64, alpha: a });
+  text(ctx, clipText("ctaSocials", lang), CLIP_W / 2, 1395, { font: body(600), px: 40, color: MUTED, alpha: a });
 }
 
 /** Draws the whole 1080×1920 frame at `time` seconds. */
@@ -647,24 +707,14 @@ export function drawClipFrame(
   const { scene, local } = at;
   switch (scene.id) {
     case "hook":
-      drawHook(ctx, data, images, scene, local, time, lang);
-      return; // the hook draws its own big card
+      return drawHook(ctx, data, images, scene, local, time, lang);
     case "results":
-      drawResults(ctx, data, images, local, lang);
-      break;
-    case "topPredictor":
-      drawTopPredictor(ctx, data, local, lang);
-      break;
+      return drawResults(ctx, data, images, local, lang);
     case "boldCall":
-      drawBoldCall(ctx, data, local, lang);
-      break;
+      return drawBoldCall(ctx, data, local, lang);
     case "payoff":
-      drawPayoff(ctx, data, images, local, time, lang);
-      return;
+      return drawPayoff(ctx, data, images, local, time, lang);
     case "cta":
-      drawCta(ctx, data, local, lang);
-      return;
+      return drawCta(ctx, data, local, lang);
   }
-  // Until the payoff, the small face-down card keeps its promise in the corner.
-  faceDownCard(ctx, 930, 1700, 120, time);
 }
