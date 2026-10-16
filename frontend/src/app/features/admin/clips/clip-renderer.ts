@@ -34,8 +34,9 @@ export async function loadClipImages(data: RoundClipData): Promise<ClipImages> {
   ];
   const uris = new Set([...teams.map((t) => t.logo), ...data.pulls.map((p) => p.photo)].filter((u): u is string => !!u));
   const images: ClipImages = new Map();
-  await Promise.all(
-    [...uris].map(async (uri) => {
+  await Promise.all([
+    loadLogo().then((img) => img && images.set(LOGO_KEY, img)),
+    ...[...uris].map(async (uri) => {
       const img = new Image();
       img.src = uri;
       try {
@@ -44,9 +45,33 @@ export async function loadClipImages(data: RoundClipData): Promise<ClipImages> {
       } catch {
         // drawn as a badge instead
       }
-    })
-  );
+    }),
+  ]);
   return images;
+}
+
+/** The images map key for the Clutch logo (not a data URI, so it can't clash with one). */
+const LOGO_KEY = "clutch-logo";
+/** The light-on-dark logo the app's dark theme uses; its viewBox is 1466 × 1179. */
+const LOGO_URL = "/brand/clutch-compact-dark.svg";
+const LOGO_RATIO = 1466 / 1179;
+
+/**
+ * The SVG has a viewBox but no width/height, which canvases draw at a
+ * default 300 × 150 (or not at all), so the size is written in first.
+ * Null if it can't load: the clip then just has no logo.
+ */
+async function loadLogo(): Promise<HTMLImageElement | null> {
+  try {
+    const svg = await (await fetch(LOGO_URL)).text();
+    const sized = svg.replace(/<svg/, '<svg width="1466" height="1179"');
+    const img = new Image();
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(sized)}`;
+    await img.decode();
+    return img;
+  } catch {
+    return null;
+  }
 }
 
 /** Waits for both families (incl. Greek glyphs) so no fallback font gets drawn into a frame. */
@@ -678,8 +703,10 @@ function drawPayoff(ctx: CanvasRenderingContext2D, data: RoundClipData, images: 
   );
 }
 
-function drawCta(ctx: CanvasRenderingContext2D, data: RoundClipData, local: number, lang: ClipLang): void {
+function drawCta(ctx: CanvasRenderingContext2D, data: RoundClipData, images: ClipImages, local: number, lang: ClipLang): void {
   const a = easeOutCubic(progress(local, 0, 0.5));
+  const logoH = 230;
+  drawLogo(ctx, images, (CLIP_W - logoH * LOGO_RATIO) / 2, 380, logoH, a);
   text(ctx, clipText("ctaQuestion", lang), CLIP_W / 2, 760, { font: display, px: 120, alpha: a });
   const pill = data.next?.picksOpen
     ? clipText("ctaOpen", lang, { round: roundLabelFor(data.next.round, lang) })
@@ -766,6 +793,43 @@ function instagramIcon(ctx: CanvasRenderingContext2D, cx: number, cy: number, si
   ctx.restore();
 }
 
+/** The logo, h tall, its top-left at (x, y). */
+function drawLogo(ctx: CanvasRenderingContext2D, images: ClipImages, x: number, y: number, h: number, alpha = 1): number {
+  const img = images.get(LOGO_KEY);
+  if (!img) return 0;
+  ctx.save();
+  ctx.globalAlpha *= alpha;
+  ctx.drawImage(img, x, y, h * LOGO_RATIO, h);
+  ctx.restore();
+  return h * LOGO_RATIO;
+}
+
+/**
+ * The corner bug on every scene but the end card (2026-10-16): logo plus the
+ * "Clutch" wordmark with its dot, like the app's header. Top-left, below
+ * where TikTok / Reels put their own top bar.
+ */
+function watermark(ctx: CanvasRenderingContext2D, images: ClipImages): void {
+  const h = 64;
+  const x = 56;
+  const y = 120;
+  const w = drawLogo(ctx, images, x, y, h, 0.95);
+  ctx.save();
+  ctx.font = display(50);
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = WHITE;
+  ctx.globalAlpha = 0.95;
+  const tx = x + (w ? w + 14 : 0);
+  ctx.fillText("Clutch", tx, y + h / 2 + 2);
+  const tw = ctx.measureText("Clutch").width;
+  ctx.fillStyle = ORANGE;
+  ctx.beginPath();
+  ctx.arc(tx + tw + 10, y + h / 2 + 12, 6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
 /** Draws the whole 1080×1920 frame at `time` seconds. */
 export function drawClipFrame(
   ctx: CanvasRenderingContext2D,
@@ -782,14 +846,20 @@ export function drawClipFrame(
   const { scene, local } = at;
   switch (scene.id) {
     case "hook":
-      return drawHook(ctx, data, images, scene, local, time, lang);
+      drawHook(ctx, data, images, scene, local, time, lang);
+      break;
     case "results":
-      return drawResults(ctx, data, images, local, lang);
+      drawResults(ctx, data, images, local, lang);
+      break;
     case "boldCall":
-      return drawBoldCall(ctx, data, local, lang);
+      drawBoldCall(ctx, data, local, lang);
+      break;
     case "payoff":
-      return drawPayoff(ctx, data, images, local, time, lang);
+      drawPayoff(ctx, data, images, local, time, lang);
+      break;
     case "cta":
-      return drawCta(ctx, data, local, lang);
+      // The end card carries the big logo instead of the corner bug.
+      return drawCta(ctx, data, images, local, lang);
   }
+  watermark(ctx, images);
 }
