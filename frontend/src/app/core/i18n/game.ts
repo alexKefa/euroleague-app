@@ -130,4 +130,23 @@ export const gameTranslations: Record<string, Record<Lang, string>> = {
     en: "Watching for the next basket…",
     el: "Αναμονή για το επόμενο καλάθι…",
   },
+  // The bell (2026-10-16): tip-off, quarter and final pushes for one game.
+  "game.bellTurnOn": { en: "Get notified about this game", el: "Ειδοποιήσεις για αυτόν τον αγώνα" },
+  "game.bellTurnOff": { en: "Stop notifications for this game", el: "Σταμάτα τις ειδοποιήσεις για αυτόν τον αγώνα" },
+  "game.bellOn": {
+    en: "You'll get tip-off, every quarter and the final.",
+    el: "Θα λάβεις το τζάμπολ, κάθε περίοδο και το τελικό.",
+  },
+  "game.bellOff": { en: "Notifications for this game are off.", el: "Οι ειδοποιήσεις για αυτόν τον αγώνα σταμάτησαν." },
+  "game.bellAllow": { en: "Allow notifications to get game updates.", el: "Επίτρεψε τις ειδοποιήσεις για ενημερώσεις του αγώνα." },
+  "game.bellDenied": {
+    en: "Notifications are blocked. Allow them in your browser settings.",
+    el: "Οι ειδοποιήσεις είναι μπλοκαρισμένες. Επίτρεψέ τες στις ρυθμίσεις του browser.",
+  },
+  "game.bellInstall": {
+    en: "Add Clutch to your Home Screen to get notifications.",
+    el: "Πρόσθεσε το Clutch στην αρχική οθόνη για να λαμβάνεις ειδοποιήσεις.",
+  },
+  "game.bellUnsupported": { en: "This browser can't show notifications.", el: "Αυτός ο browser δεν υποστηρίζει ειδοποιήσεις." },
+  "game.bellError": { en: "Couldn't update notifications. Try again.", el: "Δεν ήταν δυνατή η αλλαγή. Δοκίμασε ξανά." },
 };

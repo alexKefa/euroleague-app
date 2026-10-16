@@ -70,6 +70,22 @@
       >
         <app-nav-icon name="pin" [size]="15" [active]="watchlist.isPinned('game', d.game.id)" />
       </button>
+      <!-- The bell (2026-10-16): tip-off, quarter and final pushes for this
+           game, separate from the pin above (Watch Pill only). -->
+      @if (auth.currentUser() && !isFinal()) {
+        <button
+          type="button"
+          (click)="toggleBell()"
+          [disabled]="bellBusy()"
+          [attr.aria-label]="belled() ? i18n.t('game.bellTurnOff') : i18n.t('game.bellTurnOn')"
+          [attr.aria-pressed]="belled()"
+          [title]="belled() ? i18n.t('game.bellTurnOff') : i18n.t('game.bellTurnOn')"
+          class="tap-target absolute top-3 right-12 z-10 w-8 h-8 rounded-full bg-card/80 backdrop-blur border border-line flex items-center justify-center transition-colors disabled:opacity-50"
+          [ngClass]="belled() ? 'text-team-primary' : 'text-muted hover:text-team-primary'"
+        >
+          <app-nav-icon name="bell" [size]="15" [active]="belled()" />
+        </button>
+      }
 
       <p class="text-[11px] text-muted font-bold uppercase tracking-wider text-center mb-3">
         {{ d.game.round | roundLabel: i18n.lang() }}
@@ -85,6 +101,9 @@
           &middot; {{ isFinal() ? i18n.t('game.final') : ((d.game.tipoffAt | date: "EEE, MMM d, HH:mm") + (d.game.tipoffAt | todayTag: i18n.lang())) }}
         }
       </p>
+      @if (bellHint(); as hint) {
+        <p class="text-xs text-center text-muted -mt-1 mb-3" role="status">{{ hint }}</p>
+      }
       <div class="flex items-center justify-between gap-3">
         <a [routerLink]="['/teams', d.game.homeTeam.id]" class="flex flex-col items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition-opacity">
           @if (d.game.homeTeam.logoUrl) {

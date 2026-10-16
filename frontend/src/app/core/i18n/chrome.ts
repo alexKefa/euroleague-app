@@ -231,7 +231,7 @@ export const chromeTranslations: Record<string, Record<Lang, string>> = {
   "profile.pushTipoff": { en: "My team: tip-off", el: "Η ομάδα μου: έναρξη αγώνα" },
   "profile.pushClose": { en: "My team: close finish", el: "Η ομάδα μου: θρίλερ στο φινάλε" },
   "profile.pushFinal": { en: "My team: final score", el: "Η ομάδα μου: τελικό σκορ" },
-  "profile.pushPinned": { en: "Pinned games and players", el: "Καρφιτσωμένοι αγώνες και παίκτες" },
+  "profile.pushPinned": { en: "Games with the bell on", el: "Αγώνες με ενεργό καμπανάκι" },
   // "Your data" card (2026-10-12): data export and account deletion.
   "profile.yourData": { en: "Your data", el: "Τα δεδομένα σου" },
   "profile.downloadData": { en: "Download my data", el: "Λήψη των δεδομένων μου" },

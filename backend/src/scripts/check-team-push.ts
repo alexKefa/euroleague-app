@@ -1,11 +1,11 @@
-// Checks team & pinned-game push (2026-10-12) on the dev DB.
+// Checks team & game-bell push (2026-10-12, bell 2026-10-16) on the dev DB.
 // Spec: docs/superpowers/specs/2026-10-12-team-push-design.md
 // Run from backend/ (dev only): npx tsx src/scripts/check-team-push.ts
 import assert from "node:assert/strict";
 import { sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { getPushPrefs, setPushPrefs, usersWithPref } from "../services/pushPreferences.js";
-import { claimOnce, closeAlert, handleGamePushes, message, pushKey, recipientsFor, tipoffDue, type PushGame } from "../services/teamPush.js";
+import { claimOnce, closeAlert, handleGamePushes, message, pushKey, quarterMessage, recipientsFor, tipoffDue, type PushGame } from "../services/teamPush.js";
 import { pushEnabled } from "../services/push.js";
 
 // Dev only: the dev Neon endpoint (EuroleagueDev). Anything else is refused.
@@ -57,27 +57,31 @@ try {
   assert.equal(tipoffDue({ ...base, status: "scheduled", tipoffAt: plusMin(5) }, now), false);
   assert.equal(tipoffDue({ ...base, status: "live", tipoffAt: plusMin(15) }, now), false);
 
-  // --- rules: recipients (fans + pinners, unique, minus opted-out and deleted)
+  // --- rules: recipients (fans + bell users, unique, minus opted-out and deleted)
   const F = await mkUser("fan", { favoriteTeamId: game.home_team_id });
-  const P = await mkUser("pinner");
-  const FP = await mkUser("fanpin", { favoriteTeamId: game.away_team_id });
+  const P = await mkUser("bell");
+  const FP = await mkUser("fanbell", { favoriteTeamId: game.away_team_id });
+  const PIN = await mkUser("pinOnly");
   const N = await mkUser("nofinal", { favoriteTeamId: game.home_team_id });
   const D = await mkUser("deletedfan", { favoriteTeamId: game.home_team_id, deleted: true });
-  const PX = await mkUser("pinnerOff");
+  const PX = await mkUser("bellOff");
   await setPushPrefs(N, { teamFinal: false });
   await setPushPrefs(PX, { pinned: false });
-  for (const id of [P, FP, PX]) {
-    await db.execute(sql`insert into watch_pins (user_id, kind, target_id, game_id) values (${id}, 'game', ${game.id}, ${game.id})`);
-  }
+  for (const id of [P, FP, PX]) await db.execute(sql`insert into game_alerts (user_id, game_id) values (${id}, ${game.id})`);
+  await db.execute(sql`insert into watch_pins (user_id, kind, target_id, game_id) values (${PIN}, 'game', ${game.id}, ${game.id})`);
   const finalTo = await recipientsFor("team_final", base);
   for (const id of [F, P, FP]) assert.ok(finalTo.includes(id), `final should reach ${id}`);
-  for (const id of [N, D, PX]) assert.ok(!finalTo.includes(id), `final must skip ${id}`);
+  for (const id of [N, D, PX, PIN]) assert.ok(!finalTo.includes(id), `final must skip ${id}`);
   assert.equal(new Set(finalTo).size, finalTo.length, "recipients must be unique");
   const tipoffTo = await recipientsFor("team_tipoff", base);
-  assert.ok(tipoffTo.includes(F) && !tipoffTo.includes(P), "tip-off goes to fans only, not pinners");
+  assert.ok(tipoffTo.includes(F) && !tipoffTo.includes(P), "tip-off soon goes to fans only, not bell users");
+  for (const k of ["game_start", "game_quarter"] as const) {
+    const to = await recipientsFor(k, base);
+    assert.deepEqual([...to].sort(), [P, FP].sort(), `${k} goes to bell users only`);
+  }
 
   // --- rules: copy has no placeholder left
-  for (const k of ["team_tipoff", "team_close", "team_final"] as const) {
+  for (const k of ["team_tipoff", "team_close", "team_final", "game_start"] as const) {
     for (const l of ["en", "el"] as const) {
       const m = message(k, base, l, { ot: true, player: { name: "NUNN, KENDRICK", points: 21 } });
       assert.ok(!/[{}]/.test(m.title + m.body), `${k}/${l}: placeholder left: ${m.title} ${m.body}`);
@@ -109,6 +113,24 @@ try {
   assert.deepEqual(logged.map((r) => [r.user_id, r.n]).sort(), [[F, 1], [P, 1]].sort(), "one close alert per subscribed recipient");
   await db.execute(sql`delete from push_log where key = ${`close:${game.id}`}`);
 
+  // --- wiring: a quarter ending sends one push to bell users only, with the
+  // quarter's score and top scorers (2026-10-16).
+  await db.execute(sql`delete from push_log where key = ${`q1:${game.id}`}`);
+  const q1: PushGame = { ...base, quarter: 1, gameClockSeconds: 0, homeScore: 22, awayScore: 18, homeQuarters: [22], awayQuarters: [18] };
+  const players = [
+    { playerId: "a", teamId: game.home_team_id, playerName: "VEZENKOV, SASHA", points: 9 },
+    { playerId: "b", teamId: game.away_team_id, playerName: "NUNN, KENDRICK", points: 7 },
+  ];
+  await handleGamePushes({ ...q1, gameClockSeconds: 20 }, q1, now, players);
+  await handleGamePushes(q1, { ...q1, quarter: 2, gameClockSeconds: 600 }, now, players);
+  const quarterLogged = await db.execute<{ user_id: string }>(sql`select user_id from push_log where kind = 'game_quarter' and key = ${`q1:${game.id}`}`);
+  assert.deepEqual(quarterLogged.map((r) => r.user_id), [P], "end of Q1 reaches the subscribed bell user once, not the fan");
+  const qm = quarterMessage(q1, 1, { home: { name: "Vezenkov", points: 9 }, away: { name: "Nunn", points: 7 }, sinceTipoff: false }, "en");
+  const homeShown = qm.title.split(" ")[0]; // the display code, e.g. "OLY"
+  assert.equal(qm.title, `${homeShown} 22–18 ${qm.title.split(" ").pop()}`);
+  assert.equal(qm.body, `End of Q1. ${homeShown} won the quarter 22–18. Vezenkov 9 pts, Nunn 7 pts.`);
+  await db.execute(sql`delete from push_log where key = ${`q1:${game.id}`}`);
+
   console.log("all team-push checks passed");
 } catch (err) {
   console.error("team-push check FAILED:", err);
@@ -118,6 +140,7 @@ try {
     await db.execute(sql`delete from push_log where user_id = ${id}`);
     await db.execute(sql`delete from push_subscriptions where user_id = ${id}`);
     await db.execute(sql`delete from watch_pins where user_id = ${id}`);
+    await db.execute(sql`delete from game_alerts where user_id = ${id}`);
     await db.execute(sql`delete from push_preferences where user_id = ${id}`);
     await db.execute(sql`delete from users where id = ${id}`);
   }

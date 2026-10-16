@@ -1,11 +1,13 @@
 import { WinProbCardComponent } from "./win-prob-card";
 import { MatchupPreviewComponent } from "./matchup-preview";
 import { GameStoryComponent } from "./game-story";
-import { Component, OnInit, HostListener, inject, signal, computed, effect } from "@angular/core";
+import { Component, OnInit, HostListener, inject, signal, computed, effect, untracked } from "@angular/core";
+import { firstValueFrom } from "rxjs";
 import { CommonModule } from "@angular/common";
 import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
 import { ActivatedRoute, RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
+import { PushService } from "../../core/push.service";
 import { I18nService } from "../../core/i18n.service";
 import { NavHistoryService } from "../../core/nav-history.service";
 import { EventsService, GameScoringEvent } from "../../core/events.service";
@@ -208,6 +210,7 @@ export class GameDetailComponent implements OnInit {
   private events = inject(EventsService);
   protected auth = inject(AuthService);
   protected watchlist = inject(WatchlistService);
+  private push = inject(PushService);
   private sanitizer = inject(DomSanitizer);
 
   // Experimental: admin-set YouTube highlight embed. Mirrors store.ts's
@@ -241,6 +244,26 @@ export class GameDetailComponent implements OnInit {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly detail = signal<GameDetail | null>(null);
+
+  // The bell (2026-10-16, "can't watch the game"): tip-off, end of each
+  // quarter and final pushes for this game. Separate from the pin, which
+  // only keeps the game in the Watch Pill. Loaded once per game id, after
+  // the session is restored (currentUser is null on a fresh load).
+  readonly belled = signal(false);
+  readonly bellBusy = signal(false);
+  readonly bellHint = signal<string | null>(null);
+  private bellLoadedFor: string | null = null;
+  private bellHintTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly loadBell = effect(() => {
+    const id = this.detail()?.game.id ?? null;
+    const user = this.auth.currentUser();
+    untracked(() => {
+      if (!id || !user || this.bellLoadedFor === id) return;
+      this.bellLoadedFor = id;
+      this.belled.set(false);
+      this.api.getGameAlerts().subscribe({ next: (ids) => this.bellLoadedFor === id && this.belled.set(ids.includes(id)), error: () => undefined });
+    });
+  });
 
   // Player names throughout this page open an in-place preview instead of
   // navigating to the full player page — the point is staying on this
@@ -909,6 +932,43 @@ export class GameDetailComponent implements OnInit {
       status: d.game.status,
       quarter: d.game.quarter ?? null,
     });
+  }
+
+  /** Turns the bell on (asking for notification permission first if needed) or off. */
+  async toggleBell(): Promise<void> {
+    const d = this.detail();
+    if (!d || this.bellBusy()) return;
+    const id = d.game.id;
+    this.bellBusy.set(true);
+    try {
+      if (this.belled()) {
+        await firstValueFrom(this.api.setGameAlert(id, false));
+        this.belled.set(false);
+        this.flashBellHint("game.bellOff");
+        return;
+      }
+      if (this.push.status() !== "on") await this.push.enable();
+      const status = this.push.status();
+      if (status !== "on") {
+        this.flashBellHint(
+          status === "denied" ? "game.bellDenied" : status === "needs-install" ? "game.bellInstall" : status === "off" ? "game.bellAllow" : "game.bellUnsupported"
+        );
+        return;
+      }
+      await firstValueFrom(this.api.setGameAlert(id, true));
+      this.belled.set(true);
+      this.flashBellHint("game.bellOn");
+    } catch {
+      this.flashBellHint("game.bellError");
+    } finally {
+      this.bellBusy.set(false);
+    }
+  }
+
+  private flashBellHint(key: string): void {
+    this.bellHint.set(this.i18n.t(key));
+    if (this.bellHintTimer) clearTimeout(this.bellHintTimer);
+    this.bellHintTimer = setTimeout(() => this.bellHint.set(null), 5000);
   }
 
   togglePlayerWatch(line: GameBoxscoreLine, teamCode: string, primaryColor: string | null): void {

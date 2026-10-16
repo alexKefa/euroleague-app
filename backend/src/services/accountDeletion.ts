@@ -20,6 +20,7 @@ const PERSONAL_TABLES = [
   "favorite_players",
   "push_preferences",
   "watch_pins",
+  "game_alerts",
 ] as const;
 
 /**

@@ -128,6 +128,7 @@ export async function syncScheduleTimes(season: string): Promise<ScheduleSyncRes
     d10 as (delete from shot_events where game_id in (select id from gone)),
     d11 as (delete from pbp_events where game_id in (select id from gone)),
     d12 as (delete from lineup_stints where game_id in (select id from gone)),
+    d13 as (delete from game_alerts where game_id in (select id from gone)),
     removed as (delete from games where id in (select id from gone) returning game_code, round)
     select 'added' as kind, ad.game_code, ad.round, h.code as home, a.code as away
       from added ad join teams h on h.id = ad.home_team_id join teams a on a.id = ad.away_team_id

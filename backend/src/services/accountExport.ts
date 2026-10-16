@@ -130,6 +130,7 @@ export async function buildAccountExport(userId: string): Promise<AccountExport>
       ${own("device_tokens", ["token"])} as devices,
       ${own("push_preferences")} as "pushPreferences",
       ${own("watch_pins")} as pins,
+      ${own("game_alerts")} as "gameAlerts",
       ${list(sql`
         select substring(ps.endpoint from '^https?://([^/]+)') as host, ps.created_at as "createdAt"
         from push_subscriptions ps where ps.user_id = ${userId}`)} as "pushSubscriptions"

@@ -1,5 +1,6 @@
-// Server copy of the pinned watch (2026-10-12): lets the server push
-// close/final alerts for pinned games and players (services/teamPush.ts).
+// Server copy of the pinned watch (2026-10-12). Since the bell (2026-10-16,
+// routes/gameAlerts.ts) pins don't push on their own; a pinned player only
+// adds their points to a belled game's final push (services/teamPush.ts).
 // The browser keeps its own copy in localStorage and syncs on login.
 // Spec: docs/superpowers/specs/2026-10-12-team-push-design.md
 import { Router } from "express";

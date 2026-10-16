@@ -834,6 +834,17 @@ export class ApiService {
 
   // Admin only — "Sync images" button (2026-09-18), see routes/admin.ts's
   // own comment for what this actually runs.
+  // The bell on a game (2026-10-16, backend routes/gameAlerts.ts): ids of the
+  // unfinished games the user gets tip-off, quarter and final pushes for.
+  getGameAlerts(): Observable<string[]> {
+    return this.http.get<string[]>(`${API_BASE_URL}/game-alerts`);
+  }
+
+  setGameAlert(gameId: string, on: boolean): Observable<void> {
+    const url = `${API_BASE_URL}/game-alerts/${gameId}`;
+    return on ? this.http.put<void>(url, {}) : this.http.delete<void>(url);
+  }
+
   // Per-type push toggles (2026-10-12, backend routes/push.ts).
   getPushPrefs(): Observable<PushPrefs> {
     return this.http.get<PushPrefs>(`${API_BASE_URL}/push/preferences`);

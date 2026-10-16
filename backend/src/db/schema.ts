@@ -1930,12 +1930,29 @@ export const pushPreferences = pgTable("push_preferences", {
   teamTipoff: boolean("team_tipoff").notNull().default(true),
   teamClose: boolean("team_close").notNull().default(true),
   teamFinal: boolean("team_final").notNull().default(true),
-  pinned: boolean("pinned").notNull().default(true), // close + final for pinned games/players
+  pinned: boolean("pinned").notNull().default(true), // every push for games with the bell on (game_alerts); was "pinned" before 2026-10-16
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+// The bell on a game (2026-10-16, "can't watch the game"): tip-off, each
+// quarter's end, close finish / OT and the final, pushed to whoever turned it
+// on (services/teamPush.ts). No cap, unlike pins.
+export const gameAlerts = pgTable(
+  "game_alerts",
+  {
+    userId: uuid("user_id").notNull().references(() => users.id),
+    gameId: uuid("game_id").notNull().references(() => games.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.userId, table.gameId] }),
+    gameIdx: index("game_alerts_game_idx").on(table.gameId),
+  })
+);
+
 // Server copy of the pinned watch (2026-10-12): the browser keeps its own in
-// localStorage; this one lets the server push close/final alerts for pins.
+// localStorage. Since the bell (2026-10-16) pins no longer push on their own;
+// a pinned player only adds their points to a belled game's final push.
 // At most 3 per user (MAX_WATCHES), enforced by routes/watchPins.ts.
 export const watchPins = pgTable(
   "watch_pins",

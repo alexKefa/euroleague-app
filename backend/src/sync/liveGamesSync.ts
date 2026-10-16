@@ -464,7 +464,7 @@ export async function syncLiveGames(): Promise<LiveGamesSyncResult> {
     }
 
     const simulatedGameId = getSimulatedGameId();
-    // Team & pinned-game push (2026-10-12, services/teamPush.ts). Fire and
+    // Team & game-bell push (2026-10-12 / 2026-10-16, services/teamPush.ts). Fire and
     // forget: handleGamePushes never rejects and is never awaited here.
     const codeById = await teamCodes();
     let wentLive = 0;
@@ -493,9 +493,8 @@ export async function syncLiveGames(): Promise<LiveGamesSyncResult> {
           .where(eq(games.id, game.id));
 
         const boxscore = await fetchBoxscore(game.season, game.gameCode);
-        const scoringEvents = boxscore
-          ? deriveScoringEvents(game.id, (teamId) => (teamId === game.homeTeamId ? "home" : "away"), await upsertLiveBoxscore(game.id, boxscore))
-          : [];
+        const livePoints = boxscore ? await upsertLiveBoxscore(game.id, boxscore) : null;
+        const scoringEvents = livePoints ? deriveScoringEvents(game.id, (teamId) => (teamId === game.homeTeamId ? "home" : "away"), livePoints) : [];
 
         broadcast("game-update", {
           gameId: game.id,
@@ -507,7 +506,12 @@ export async function syncLiveGames(): Promise<LiveGamesSyncResult> {
           gameClockSeconds,
           scoringEvents,
         });
-        void handleGamePushes(before, pushGameFrom({ ...game, status: "live", homeScore, awayScore, quarter, gameClockSeconds }, codeById));
+        void handleGamePushes(
+          before,
+          pushGameFrom({ ...game, status: "live", homeScore, awayScore, quarter, gameClockSeconds, homeScoreByQuarter, awayScoreByQuarter }, codeById),
+          new Date(),
+          livePoints ?? undefined
+        );
         if (game.status !== "live") wentLive++;
         continue;
       }
