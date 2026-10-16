@@ -70,7 +70,7 @@
               }
             </span>
           } @else {
-            &middot; {{ isFinal() ? i18n.t('game.final') : ((d.game.tipoffAt | date: "EEE, MMM d, HH:mm") + (d.game.tipoffAt | todayTag: i18n.lang())) }}
+            &middot; {{ isFinal() ? i18n.t('game.final') : ((d.game.tipoffAt | date: gameDateTimeFormat() : "Europe/Athens" : dateLocale()) + (d.game.tipoffAt | todayTag: i18n.lang())) }}
           }
         </p>
         <div class="w-[4.5rem] shrink-0 flex justify-end gap-2 -mt-1.5">

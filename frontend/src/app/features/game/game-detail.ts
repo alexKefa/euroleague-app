@@ -26,6 +26,7 @@ import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { InjuryBadgeComponent } from "../../shared/injury-badge";
 import { TodayTagPipe } from "../../shared/today-tag.pipe";
 import { RoundLabelPipe } from "../../shared/round-label";
+import { gameDateTimeFormat as gameDateTimeFormatFn, newsDateLocale } from "../../shared/news-date-format";
 
 // Same hardcoded literal schedule.ts/predictions.ts/live-center.ts already
 // use for "the current season" — there's no shared season-lookup service on
@@ -353,6 +354,16 @@ export class GameDetailComponent implements OnInit {
   readonly boxSide = signal<"home" | "away">("home");
 
   readonly isFinal = computed(() => this.detail()?.game.status === "final");
+
+  // Tip-off time in the header, in the app language (2026-10-16): Greek day
+  // and month names, day-first, Athens time, like every other game date.
+  gameDateTimeFormat(): string {
+    return gameDateTimeFormatFn(this.i18n.lang());
+  }
+
+  dateLocale(): string {
+    return newsDateLocale(this.i18n.lang());
+  }
   readonly isLive = computed(() => this.detail()?.game.status === "live");
 
   // Current round's full schedule, fetched once so the "other live games"
