@@ -165,3 +165,22 @@ deploy). The budget was raised to 1.2 MB in `frontend/angular.json` as a
 stopgap. Every feature dictionary is merged in `core/i18n/translations.ts`
 and ships up front; loading each feature's dictionary with its lazy route
 would cut most of it. Then lower the budget back to 1 MB.
+
+## 12. Growth plan after signup tracking (deferred 2026-10-16)
+
+Diagnosis (production, 2026-10-16): 38 users; 26 signed up in the two
+season-start weeks (Sep 14 / Sep 21), then 4, 1, 1 per week; 19 active in
+the last 7 days; 0 referral signups ever; 16 never made a pick; 7 with push
+on; 34 of 37 are PAO/OLY fans. Retention is fine, acquisition has no
+channel. Signup tracking (Admin → Tools → Signups) shipped first. Next:
+1. Every share carries the user's referral link (`?ref=CODE`): player
+   cards, game story, round clip captions, league invites (check that a
+   league invite opened by a non-user counts as a referral). Reward both
+   sides at signup (e.g. a pack each), not after the first correct pick.
+2. Post a round clip on TikTok/Instagram after every round, plus a "make
+   your picks" post before it, with tagged links (`utm_source`/`utm_campaign`).
+3. First-pick onboarding right after registration ("Pick this round",
+   one tap per game).
+4. Later: English-language reach to other clubs' fans.
+5. Native app only via a Capacitor wrapper, and only if tracking shows the
+   iPhone install/push step is where people drop off.
