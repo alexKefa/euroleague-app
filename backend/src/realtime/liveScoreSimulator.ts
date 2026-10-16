@@ -2,6 +2,8 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { games, players, playerGameStats } from "../db/schema.js";
 import { broadcast, ScoringEvent } from "./hub.js";
+import { forgetGamePushes, handleGamePushes, pushGameFrom, teamCodes } from "../services/teamPush.js";
+import type { PlayerPoints } from "../services/gameBell.js";
 
 // Originally a stand-in for the real EuroLeague live feed, back when there
 // was nothing to poll until the season actually started. sync/liveGamesSync.ts
@@ -76,6 +78,10 @@ interface RunningSim {
   lines: Map<string, PlayerLine>;
   // Last few scorers, most recent last — drives the "on fire" heuristic.
   recentScorers: string[];
+  // Points per quarter so far, written to games.*_score_by_quarter like the
+  // real feed does, so the game page and the bell's quarter pushes see them.
+  homeQuarters: number[];
+  awayQuarters: number[];
 }
 
 let running: RunningSim | null = null;
@@ -278,6 +284,13 @@ async function tick(): Promise<void> {
     const isLastTick = sim.ticksLeft <= 0;
     const status = isLastTick ? "final" : "live";
     const { quarter, gameClockSeconds } = quarterAndClock(MAX_TICKS - sim.ticksLeft);
+    // This tick's basket belongs to the quarter it was played in (the one
+    // before the tick), and every quarter up to the new one gets an entry.
+    if (scored) (homeScores ? sim.homeQuarters : sim.awayQuarters)[(current.quarter ?? 1) - 1] += bump;
+    while (sim.homeQuarters.length < quarter) sim.homeQuarters.push(0);
+    while (sim.awayQuarters.length < quarter) sim.awayQuarters.push(0);
+    const homeScoreByQuarter = [...sim.homeQuarters];
+    const awayScoreByQuarter = [...sim.awayQuarters];
 
     // Conditioned on the row still being "live", not just keyed on id —
     // defense in depth alongside the tickChain serialization above (which
@@ -287,7 +300,7 @@ async function tick(): Promise<void> {
     // makes a stale write a no-op instead of a silent revert to "live".
     const [updated] = await db
       .update(games)
-      .set({ homeScore, awayScore, status, quarter, gameClockSeconds })
+      .set({ homeScore, awayScore, status, quarter, gameClockSeconds, homeScoreByQuarter, awayScoreByQuarter })
       .where(and(eq(games.id, sim.gameId), eq(games.status, "live")))
       .returning({ id: games.id });
     // No longer live: reset ("Reset round" / the game's reset button) or
@@ -312,6 +325,21 @@ async function tick(): Promise<void> {
       gameClockSeconds,
       scoringEvents: scored && scoringEvent ? [scoringEvent] : [],
     });
+
+    // The bell's and fans' pushes (services/teamPush.ts), exactly as the
+    // real feed (sync/liveGamesSync.ts) sends them: quarters, close, final.
+    const codeById = await teamCodes();
+    const rosterById = new Map([...sim.homeRoster, ...sim.awayRoster].map((r) => [r.id, r]));
+    const players: PlayerPoints[] = [...sim.lines.values()].flatMap((l) => {
+      const r = rosterById.get(l.playerId);
+      return r ? [{ playerId: l.playerId, teamId: r.teamId, playerName: r.name ?? "", points: l.points }] : [];
+    });
+    void handleGamePushes(
+      pushGameFrom(current, codeById),
+      pushGameFrom({ ...current, homeScore, awayScore, status, quarter, gameClockSeconds, homeScoreByQuarter, awayScoreByQuarter }, codeById),
+      new Date(),
+      players
+    );
 
     if (isLastTick) {
       clearInterval(sim.interval);
@@ -346,10 +374,20 @@ export async function startSimulation(gameId?: string): Promise<{ gameId: string
   // Clean slate — a repeat test run on the same game shouldn't pile stats
   // on top of a previous run's.
   await db.delete(playerGameStats).where(eq(playerGameStats.gameId, game.id));
-  await db
-    .update(games)
-    .set({ homeScore: 0, awayScore: 0, status: "live", quarter: 1, gameClockSeconds: QUARTER_SECONDS })
-    .where(eq(games.id, game.id));
+  // A replay of the same game sends its pushes again.
+  await forgetGamePushes(game.id);
+  const liveState = {
+    homeScore: 0,
+    awayScore: 0,
+    status: "live",
+    quarter: 1,
+    gameClockSeconds: QUARTER_SECONDS,
+    homeScoreByQuarter: [0],
+    awayScoreByQuarter: [0],
+  };
+  await db.update(games).set(liveState).where(eq(games.id, game.id));
+  const codeById = await teamCodes();
+  void handleGamePushes(pushGameFrom({ ...game, status: "scheduled" }, codeById), pushGameFrom({ ...game, ...liveState }, codeById));
   broadcast("game-update", {
     gameId: game.id,
     homeScore: 0,
@@ -366,6 +404,8 @@ export async function startSimulation(gameId?: string): Promise<{ gameId: string
     awayRoster: roster.filter((p) => p.teamId === game.awayTeamId),
     lines: new Map(),
     recentScorers: [],
+    homeQuarters: [0],
+    awayQuarters: [0],
     ticksLeft: MAX_TICKS,
     interval: setInterval(() => void scheduleTick(), TICK_MS),
   };

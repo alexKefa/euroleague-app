@@ -212,6 +212,20 @@ export function claimOnce(key: string): boolean {
 }
 
 /**
+ * Lets a game's alerts go out again (2026-10-16): the admin live-score
+ * simulator replays games, and without this a replay sent nothing (this
+ * process's claims and push_log both said "already sent").
+ */
+export async function forgetGamePushes(gameId: string): Promise<void> {
+  for (const key of [...handled]) if (key.endsWith(`:${gameId}`)) handled.delete(key);
+  forgetGame(gameId);
+  await db.execute(sql`
+    delete from push_log
+    where kind in ('team_tipoff', 'team_close', 'team_final', 'game_start', 'game_quarter') and key like ${`%:${gameId}`}
+  `);
+}
+
+/**
  * The live sync's one hook (2026-10-12), called every tick for each game in
  * its polling window with the state before and after the tick: tip-off
  * soon, the game starting, a quarter ending (bell, 2026-10-16), a close
