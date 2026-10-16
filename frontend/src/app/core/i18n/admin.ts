@@ -223,4 +223,21 @@ export const adminTranslations: Record<string, Record<Lang, string>> = {
   "admin.clips.unsupported": { en: "Use desktop Chrome or Safari to export.", el: "Χρησιμοποίησε Chrome ή Safari σε υπολογιστή για εξαγωγή." },
   "admin.clips.webmNote": { en: "This browser saves WebM; TikTok prefers MP4 (Chrome/Safari).", el: "Αυτός ο browser αποθηκεύει WebM· το TikTok προτιμά MP4 (Chrome/Safari)." },
   "admin.clips.hidden": { en: "Recording stopped because the tab was hidden. Export again with this tab in front.", el: "Η εγγραφή σταμάτησε επειδή η καρτέλα κρύφτηκε. Κάνε ξανά εξαγωγή με την καρτέλα μπροστά." },
+  // Signup tracking (2026-10-16): visits vs signups by source.
+  "admin.signupsTitle": { en: "Signups", el: "Εγγραφές" },
+  "admin.toolSignupsDesc": { en: "Where visits and new accounts come from", el: "Από πού έρχονται επισκέψεις και νέοι λογαριασμοί" },
+  "admin.signupsDescription": {
+    en: "Last 30 days. Tag the links you post, e.g. getclutchapp.com/?utm_source=tiktok&utm_campaign=round6, to see which posts bring signups.",
+    el: "Τελευταίες 30 ημέρες. Βάλε ετικέτα στα links που δημοσιεύεις, π.χ. getclutchapp.com/?utm_source=tiktok&utm_campaign=round6, για να δεις ποιες αναρτήσεις φέρνουν εγγραφές.",
+  },
+  "admin.signupsVisits": { en: "Visits", el: "Επισκέψεις" },
+  "admin.signupsSignups": { en: "Signups", el: "Εγγραφές" },
+  "admin.signupsConversion": { en: "Conversion", el: "Μετατροπή" },
+  "admin.signupsBySource": { en: "By source", el: "Ανά πηγή" },
+  "admin.signupsSource": { en: "Source", el: "Πηγή" },
+  "admin.signupsUntracked": { en: "before tracking", el: "πριν την καταγραφή" },
+  "admin.signupsWeekly": { en: "Signups per week", el: "Εγγραφές ανά εβδομάδα" },
+  "admin.signupsEmpty": { en: "No visits recorded yet.", el: "Δεν έχουν καταγραφεί επισκέψεις ακόμα." },
+  "admin.signupsLoading": { en: "Loading…", el: "Φόρτωση…" },
+  "admin.signupsFailed": { en: "Couldn't load signup stats.", el: "Δεν φόρτωσαν τα στατιστικά εγγραφών." },
 };

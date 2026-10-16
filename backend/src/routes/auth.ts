@@ -9,6 +9,7 @@ import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../auth/t
 import { createUniqueReferralCode } from "../services/referrals.js";
 import { createUniqueUsername, isUsernameTaken, isValidUsername } from "../services/username.js";
 import { redeemPromoCode } from "../services/promoCodes.js";
+import { normalizeAttribution, sourceLabel } from "../services/attribution.js";
 import { getCurrentSeason } from "../services/season.js";
 import { sendPasswordResetEmail, type EmailLang } from "../services/email.js";
 import { googleClientId, verifyGoogleAccessToken, verifyGoogleCredential } from "../services/googleAuth.js";
@@ -111,7 +112,10 @@ async function createAccount(input: {
   favoriteTeamId: string | null;
   referralCode: unknown;
   promoCode: unknown;
+  /** Where the signup came from (signup tracking, 2026-10-16): the request's `attribution`. */
+  attribution: unknown;
 }) {
+  const attribution = normalizeAttribution(input.attribution);
   let referredByUserId: string | null = null;
   if (typeof input.referralCode === "string" && input.referralCode.length > 0) {
     const [referrer] = await db
@@ -131,6 +135,7 @@ async function createAccount(input: {
       favoriteTeamId: input.favoriteTeamId ?? (await randomFavoriteTeamId()),
       referralCode: await createUniqueReferralCode(),
       referredByUserId,
+      signupSource: { ...(attribution ?? {}), label: sourceLabel(attribution) },
     })
     .returning();
 
@@ -149,7 +154,7 @@ async function createAccount(input: {
 }
 
 authRouter.post("/register", credentialsLimiter, async (req, res) => {
-  const { email, password, username, favoriteTeamId, referralCode, promoCode } = req.body ?? {};
+  const { email, password, username, favoriteTeamId, referralCode, promoCode, attribution } = req.body ?? {};
   if (typeof email !== "string" || typeof password !== "string" || password.length < 8) {
     res.status(400).json({ error: "email and password (min 8 chars) are required" });
     return;
@@ -190,6 +195,7 @@ authRouter.post("/register", credentialsLimiter, async (req, res) => {
     favoriteTeamId: favoriteTeamId ?? null,
     referralCode,
     promoCode,
+    attribution,
   });
 
   const accessToken = signAccessToken(user.id);
@@ -242,7 +248,7 @@ authRouter.post("/google", credentialsLimiter, async (req, res) => {
   // accessToken: the app's own custom button (OAuth popup). credential:
   // Google's rendered button (ID token), kept for pages loaded before the
   // switch.
-  const { credential, accessToken, referralCode, promoCode } = req.body ?? {};
+  const { credential, accessToken, referralCode, promoCode, attribution } = req.body ?? {};
   const token = typeof accessToken === "string" ? accessToken : typeof credential === "string" ? credential : null;
   if (!token || token.length > 4096) {
     res.status(400).json({ error: "accessToken is required", code: "INVALID_REQUEST_BODY" });
@@ -276,6 +282,7 @@ authRouter.post("/google", credentialsLimiter, async (req, res) => {
         favoriteTeamId: null,
         referralCode,
         promoCode,
+        attribution,
       }));
     }
     const accessToken = signAccessToken(user.id);

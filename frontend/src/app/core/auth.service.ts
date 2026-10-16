@@ -1,4 +1,5 @@
 import { Injectable, inject, signal, computed } from "@angular/core";
+import { clearAttribution, peekAttribution } from "./attribution";
 import { HttpClient } from "@angular/common/http";
 import { Observable, tap, catchError, of, map, switchMap, finalize, shareReplay, from } from "rxjs";
 import { API_BASE_URL } from "./api-config";
@@ -43,11 +44,14 @@ export class AuthService {
     return this.http
       .post<AuthResponse>(
         `${API_BASE_URL}/auth/register`,
-        { email, password, username, favoriteTeamId, referralCode, promoCode },
+        { email, password, username, favoriteTeamId, referralCode, promoCode, attribution: peekAttribution() },
         { withCredentials: true }
       )
       .pipe(
-        tap((res) => this.setSession(res)),
+        tap((res) => {
+          this.setSession(res);
+          clearAttribution();
+        }),
         map((res) => ({ user: res.user, promo: res.promo ?? null }))
       );
   }
@@ -62,11 +66,16 @@ export class AuthService {
     return this.http
       .post<AuthResponse & { created: boolean }>(
         `${API_BASE_URL}/auth/google`,
-        { accessToken, referralCode, promoCode },
+        { accessToken, referralCode, promoCode, attribution: peekAttribution() },
         { withCredentials: true }
       )
       .pipe(
-        tap((res) => this.setSession(res)),
+        tap((res) => {
+          this.setSession(res);
+          // Signed in to an existing account or just made one: either way
+          // this browser's source is spent.
+          clearAttribution();
+        }),
         map((res) => ({ user: res.user, promo: res.promo ?? null, created: res.created }))
       );
   }

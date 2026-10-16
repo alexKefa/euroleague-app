@@ -71,6 +71,10 @@ export const users = pgTable("users", {
   // live-updates stream (GET /api/events) opens and again when it closes,
   // which an open app tab holds the whole time. Null = never seen since then.
   lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+  // Where the signup came from (2026-10-16, services/attribution.ts): the
+  // landing link's utm_*, ref/promo codes, referring site, landing page,
+  // plus the derived `label`. Null for accounts made before tracking.
+  signupSource: jsonb("signup_source").$type<Record<string, string | null>>(),
 
   // Referrals — every user gets a code (generated at registration,
   // routes/auth.ts) whether or not they used someone else's; shared as
@@ -1966,5 +1970,28 @@ export const watchPins = pgTable(
   (table) => ({
     pk: primaryKey({ columns: [table.userId, table.kind, table.targetId] }),
     gameIdx: index("watch_pins_game_idx").on(table.gameId),
+  })
+);
+
+// Signup tracking (2026-10-16, routes/visits.ts): one row per visit, sent by
+// the frontend on the first page load of a visit. Anonymous: no IP, no user,
+// no device id, so it counts visits, not people. `sourceLabel` is
+// services/attribution.ts's name for the source ("tiktok", "referral", ...).
+export const siteVisits = pgTable(
+  "site_visits",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    sourceLabel: varchar("source_label", { length: 100 }).notNull(),
+    source: varchar("source", { length: 100 }),
+    medium: varchar("medium", { length: 100 }),
+    campaign: varchar("campaign", { length: 100 }),
+    ref: varchar("ref", { length: 100 }),
+    promo: varchar("promo", { length: 100 }),
+    referrer: varchar("referrer", { length: 100 }),
+    landing: varchar("landing", { length: 100 }),
+  },
+  (table) => ({
+    createdIdx: index("site_visits_created_idx").on(table.createdAt),
   })
 );

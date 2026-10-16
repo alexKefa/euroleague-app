@@ -55,6 +55,10 @@
     @if (openToolDef(); as tool) {
       <app-dialog [title]="i18n.t(tool.titleKey)" [icon]="tool.icon" [closeLabel]="i18n.t('admin.close')" (closed)="openTool.set(null)">
         @switch (tool.id) {
+          @case ('signups') {
+            <app-admin-signups />
+          }
+
           @case ('announcements') {
             <app-admin-announcements />
           }

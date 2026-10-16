@@ -14,6 +14,7 @@ import { refereesRouter } from "./routes/referees.js";
 import { searchRouter, SEARCH_INDEX_CACHE_KEY } from "./routes/search.js";
 import { watchPinsRouter } from "./routes/watchPins.js";
 import { gameAlertsRouter } from "./routes/gameAlerts.js";
+import { visitsRouter } from "./routes/visits.js";
 import { dailyQuestionRouter } from "./routes/dailyQuestion.js";
 import { standingsRouter } from "./routes/standings.js";
 import { authRouter } from "./routes/auth.js";
@@ -172,6 +173,7 @@ app.use("/api/referees", refereesRouter);
 app.use("/api/search", searchRouter);
 app.use("/api/watch-pins", watchPinsRouter);
 app.use("/api/game-alerts", gameAlertsRouter);
+app.use("/api/visits", visitsRouter);
 app.use("/api/daily-question", dailyQuestionRouter);
 
 // Serves the built Angular app (see ./Dockerfile) — absent in local dev,

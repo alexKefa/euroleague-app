@@ -17,10 +17,11 @@ import { AdminAnnouncementsComponent } from "./admin-announcements";
 import { AdminPushComponent } from "./admin-push";
 import { AdminErrorsComponent } from "./admin-errors";
 import { AdminDailyQuestionComponent } from "./admin-daily-question";
+import { AdminSignupsComponent } from "./admin-signups";
 import { DialogComponent } from "../../shared/dialog";
 import { NavIconName } from "../../shared/nav-icon";
 
-type ToolId = "announcements" | "push" | "errors" | "dailyQuestion" | "sync" | "points" | "card" | "add";
+type ToolId = "signups" | "announcements" | "push" | "errors" | "dailyQuestion" | "sync" | "points" | "card" | "add";
 
 interface ToolDef {
   id: ToolId;
@@ -34,6 +35,7 @@ interface ToolDef {
 // on all of our features") — so a tool's inputs never have to fit inline on
 // a phone. Adding a tool = an entry here + an @case block in the template.
 const TOOLS: ToolDef[] = [
+  { id: "signups", icon: "user", titleKey: "admin.signupsTitle", descKey: "admin.toolSignupsDesc" },
   { id: "announcements", icon: "bell", titleKey: "admin.announceTitle", descKey: "admin.toolAnnounceDesc" },
   { id: "push", icon: "zap", titleKey: "admin.pushTitle", descKey: "admin.toolPushDesc" },
   { id: "errors", icon: "flame", titleKey: "admin.errorsTitle", descKey: "admin.toolErrorsDesc" },
@@ -79,6 +81,7 @@ const TOOLS: ToolDef[] = [
     AdminPushComponent,
     AdminErrorsComponent,
     AdminDailyQuestionComponent,
+    AdminSignupsComponent,
     DialogComponent,
   ],
   templateUrl: "./admin-tools.html",

@@ -31,6 +31,7 @@ import { BattlesNotificationService } from "./core/battles-notification.service"
 import { WhatsNewComponent } from "./shared/whats-new";
 import { WatchPillComponent } from "./shared/watch-pill";
 import { SheetDragService } from "./core/sheet-drag.service";
+import { trackVisit } from "./core/attribution";
 
 // 2026-09-08: bumped from 1200ms — the old duration was timed to just the
 // splash's own entrance animation (cards fan in, then the C+ball+wordmark
@@ -305,7 +306,11 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     this.sheetDrag.init();
-    this.auth.restoreSession().subscribe();
+    // Signup tracking (2026-10-16): a logged-out page load counts as a visit
+    // and remembers its source for registration (core/attribution.ts).
+    this.auth.restoreSession().subscribe(() => {
+      if (!this.auth.currentUser()) trackVisit();
+    });
     unregisterStaleServiceWorker();
 
     setTimeout(() => this.splashHiding.set(true), SPLASH_DURATION_MS);
