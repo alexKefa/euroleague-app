@@ -55,15 +55,14 @@ test("quarter leaders build on the previous quarter's snapshot, and fall back to
   assert.deepEqual(quarterLeaders("g2", 3, q2, "OLY", "PAO"), { home: { name: "Vezenkov", points: 12 }, away: { name: "Nunn", points: 15 }, sinceTipoff: true });
 });
 
-const score = { HOME: "OLY", AWAY: "PAO", hs: 45, as: 40 };
 const leaders = { home: { name: "Vezenkov", points: 9 }, away: { name: "Nunn", points: 7 }, sinceTipoff: false };
 
 test("quarter pushes read as one short line in each language", () => {
-  assert.equal(quarterBody(2, score, { home: 23, away: 22 }, leaders, "en"), "Halftime. OLY won Q2 23–22. Vezenkov 9 pts, Nunn 7 pts.");
-  assert.equal(quarterBody(1, score, { home: 18, away: 22 }, leaders, "en"), "End of Q1. PAO won the quarter 22–18. Vezenkov 9 pts, Nunn 7 pts.");
-  assert.equal(quarterBody(3, score, { home: 20, away: 20 }, { ...leaders, sinceTipoff: true }, "en"), "End of Q3. Quarter tied 20–20. So far: Vezenkov 9 pts, Nunn 7 pts.");
-  assert.equal(quarterBody(1, score, { home: 22, away: 18 }, leaders, "el"), "Τέλος 1ης περιόδου. Η περίοδος: OLY 22–18. Vezenkov 9 πόντοι, Nunn 7 πόντοι.");
-  assert.equal(quarterBody(2, score, null, { home: null, away: null, sinceTipoff: false }, "el"), "Ημίχρονο.");
+  assert.equal(quarterBody(2, leaders, "en"), "Halftime. Vezenkov 9 pts, Nunn 7 pts.");
+  assert.equal(quarterBody(1, leaders, "en"), "End of Q1. Vezenkov 9 pts, Nunn 7 pts.");
+  assert.equal(quarterBody(3, { ...leaders, sinceTipoff: true }, "en"), "End of Q3. So far: Vezenkov 9 pts, Nunn 7 pts.");
+  assert.equal(quarterBody(1, leaders, "el"), "Τέλος 1ης περιόδου. Vezenkov 9 πόντοι, Nunn 7 πόντοι.");
+  assert.equal(quarterBody(2, { home: null, away: null, sinceTipoff: false }, "el"), "Ημίχρονο.");
 });
 
 test("the final names each side's top scorer", () => {

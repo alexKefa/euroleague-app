@@ -116,14 +116,6 @@ const COPY = {
     en: (q: number) => (q === 2 ? "Halftime." : `End of Q${q}.`),
     el: (q: number) => (q === 2 ? "Ημίχρονο." : `Τέλος ${ORDINAL_EL[q - 1]} περιόδου.`),
   },
-  won: {
-    en: (team: string, w: number, l: number, q: number) => (q === 2 ? `${team} won Q2 ${w}–${l}.` : `${team} won the quarter ${w}–${l}.`),
-    el: (team: string, w: number, l: number, q: number) => `${q === 2 ? "Η 2η περίοδος" : "Η περίοδος"}: ${team} ${w}–${l}.`,
-  },
-  tied: {
-    en: (n: number, q: number) => (q === 2 ? `Q2 tied ${n}–${n}.` : `Quarter tied ${n}–${n}.`),
-    el: (n: number) => `Ισόπαλη περίοδος ${n}–${n}.`,
-  },
   soFar: { en: "So far:", el: "Μέχρι τώρα:" },
   final: { en: "Final.", el: "Τελικό." },
   pts: { en: "pts", el: "πόντοι" },
@@ -141,25 +133,13 @@ export function startBody(lang: PushLang): string {
   return COPY.start[lang];
 }
 
-/** "Halftime. OLY won Q2 23–22. Vezenkov 9 pts, Nunn 7 pts." */
-export function quarterBody(
-  q: number,
-  s: ScoreLine,
-  quarter: { home: number; away: number } | null,
-  leaders: { home: Scorer | null; away: Scorer | null; sinceTipoff: boolean },
-  lang: PushLang
-): string {
-  const parts: string[] = [COPY.quarterEnd[lang](q)];
-  if (quarter) {
-    if (quarter.home === quarter.away) parts.push(COPY.tied[lang](quarter.home, q));
-    else {
-      const homeWon = quarter.home > quarter.away;
-      parts.push(COPY.won[lang](homeWon ? s.HOME : s.AWAY, Math.max(quarter.home, quarter.away), Math.min(quarter.home, quarter.away), q));
-    }
-  }
+/**
+ * "Halftime. Vezenkov 9 pts, Nunn 7 pts." The running total is the push's
+ * title; the quarter's own score isn't shown (2026-10-16, user call).
+ */
+export function quarterBody(q: number, leaders: { home: Scorer | null; away: Scorer | null; sinceTipoff: boolean }, lang: PushLang): string {
   const scorers = scorersLine([leaders.home, leaders.away], lang);
-  if (scorers) parts.push(`${leaders.sinceTipoff ? `${COPY.soFar[lang]} ` : ""}${scorers}.`);
-  return parts.join(" ");
+  return scorers ? `${COPY.quarterEnd[lang](q)} ${leaders.sinceTipoff ? `${COPY.soFar[lang]} ` : ""}${scorers}.` : COPY.quarterEnd[lang](q);
 }
 
 /** "Final. Vezenkov 24 pts, Nunn 21 pts." */

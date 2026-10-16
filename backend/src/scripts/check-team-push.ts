@@ -128,7 +128,7 @@ try {
   const qm = quarterMessage(q1, 1, { home: { name: "Vezenkov", points: 9 }, away: { name: "Nunn", points: 7 }, sinceTipoff: false }, "en");
   const homeShown = qm.title.split(" ")[0]; // the display code, e.g. "OLY"
   assert.equal(qm.title, `${homeShown} 22–18 ${qm.title.split(" ").pop()}`);
-  assert.equal(qm.body, `End of Q1. ${homeShown} won the quarter 22–18. Vezenkov 9 pts, Nunn 7 pts.`);
+  assert.equal(qm.body, "End of Q1. Vezenkov 9 pts, Nunn 7 pts.");
   await db.execute(sql`delete from push_log where key = ${`q1:${game.id}`}`);
 
   console.log("all team-push checks passed");

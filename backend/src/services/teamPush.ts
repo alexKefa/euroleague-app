@@ -129,7 +129,7 @@ export function message(kind: "team_tipoff" | "team_close" | "team_final" | "gam
   return { title: fill(copy.title[lang], vars), body: fill(copy.body[lang], vars), ...base };
 }
 
-/** End of quarter q: the score once it ended, who won it, and each side's top scorer of it. */
+/** End of quarter q: the total score once it ended (title) and each side's top scorer of the quarter. */
 export function quarterMessage(
   g: PushGame,
   q: number,
@@ -138,7 +138,7 @@ export function quarterMessage(
 ): PushMessage {
   const qs = quarterScore(g, q);
   const s = qs ? scoreLine(g, qs.homeTotal, qs.awayTotal) : scoreLine(g);
-  return { title: scoreTitle(s), body: quarterBody(q, s, qs, leaders, lang), url: `/games/${g.id}`, tag: `game-${g.id}` };
+  return { title: scoreTitle(s), body: quarterBody(q, leaders, lang), url: `/games/${g.id}`, tag: `game-${g.id}` };
 }
 
 // Resolves when sent and never rejects (failures are logged), so callers can
