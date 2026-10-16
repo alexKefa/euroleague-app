@@ -15,7 +15,6 @@ import { searchRouter, SEARCH_INDEX_CACHE_KEY } from "./routes/search.js";
 import { watchPinsRouter } from "./routes/watchPins.js";
 import { gameAlertsRouter } from "./routes/gameAlerts.js";
 import { visitsRouter } from "./routes/visits.js";
-import { shortLinkTarget } from "./services/shortLinks.js";
 import { dailyQuestionRouter } from "./routes/dailyQuestion.js";
 import { standingsRouter } from "./routes/standings.js";
 import { authRouter } from "./routes/auth.js";
@@ -176,14 +175,6 @@ app.use("/api/watch-pins", watchPinsRouter);
 app.use("/api/game-alerts", gameAlertsRouter);
 app.use("/api/visits", visitsRouter);
 app.use("/api/daily-question", dailyQuestionRouter);
-
-// Short links (2026-10-16, services/shortLinks.ts): /tiktok, /insta/round6
-// ... forward home with utm tags. Any other path falls through untouched.
-app.get(/^\/([a-z]+)(?:\/([a-z0-9_-]+))?\/?$/i, (req, res, next) => {
-  const target = shortLinkTarget(req.params[0], req.params[1]);
-  if (target) res.redirect(302, target);
-  else next();
-});
 
 // Serves the built Angular app (see ./Dockerfile) — absent in local dev,
 // where the frontend runs separately via `ng serve` on its own port.
