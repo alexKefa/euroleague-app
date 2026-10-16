@@ -290,7 +290,18 @@ async function tick(): Promise<void> {
       .set({ homeScore, awayScore, status, quarter, gameClockSeconds })
       .where(and(eq(games.id, sim.gameId), eq(games.status, "live")))
       .returning({ id: games.id });
-    if (!updated || running !== sim) return;
+    // No longer live: reset ("Reset round" / the game's reset button) or
+    // finished some other way mid-run. End this run; returning without
+    // clearing `running` left it stuck forever (2026-10-16), refusing every
+    // new simulation with "A simulation is already running".
+    if (!updated) {
+      if (running === sim) {
+        clearInterval(sim.interval);
+        running = null;
+      }
+      return;
+    }
+    if (running !== sim) return;
     broadcast("game-update", {
       gameId: sim.gameId,
       homeScore,
