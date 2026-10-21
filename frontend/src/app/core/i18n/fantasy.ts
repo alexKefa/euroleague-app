@@ -39,6 +39,8 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.overBudget": { en: "Over budget — remove or swap a player.", el: "Υπέρβαση προϋπολογισμού — αφαίρεσε ή άλλαξε παίκτη." },
   "fantasy.saveFailed": { en: "Failed to save your lineup.", el: "Η αποθήκευση της ομάδας απέτυχε." },
   "fantasy.searchPlaceholder": { en: "Search players…", el: "Αναζήτηση παικτών…" },
+  "fantasy.noCoachesFound": { en: "No coaches found.", el: "Δεν βρέθηκαν προπονητές." },
+  "fantasy.coachSearchPlaceholder": { en: "Search coaches or teams…", el: "Αναζήτηση προπονητών ή ομάδων…" },
   "fantasy.allTeams": { en: "All teams", el: "Όλες οι ομάδες" },
   "fantasy.colPlayer": { en: "Player", el: "Παίκτης" },
   "fantasy.colTeam": { en: "Team", el: "Ομάδα" },

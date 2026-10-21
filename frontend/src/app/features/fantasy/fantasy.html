@@ -1650,9 +1650,9 @@
   }
 
   <!-- Coach-picker popup — same smooth open/close + per-row reveal as the
-       slot-picker popup above, for the ~20-team coach list (no search/sort
-       needed at that size, same as the always-visible strip this replaced
-       — see the Coach slot in the court+bench card above). -->
+       slot-picker popup above, for the ~20-team coach list (a search by
+       coach/team name or team code, no sort needed at that size — see the
+       Coach slot in the court+bench card above). -->
   @if (coachPickerOpen()) {
     <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm" (click)="closeCoachPicker()">
       <div
@@ -1673,8 +1673,15 @@
             <button type="button" (click)="closeCoachPicker()" class="text-muted hover:text-ink text-2xl leading-none font-bold">&times;</button>
           </div>
         </div>
-        <div class="flex-1 min-h-0 overflow-y-auto p-2.5 flex flex-col gap-1.5">
-          @for (row of coaches(); track row.team.id) {
+        <div class="p-3 border-b border-line shrink-0">
+          <app-search-input
+            [value]="coachSearchQuery()"
+            [placeholder]="i18n.t('fantasy.coachSearchPlaceholder')"
+            (valueChange)="coachSearchQuery.set($event); coachList.scrollTop = 0"
+          />
+        </div>
+        <div #coachList class="flex-1 min-h-0 overflow-y-auto p-2.5 flex flex-col gap-1.5">
+          @for (row of filteredCoaches(); track row.team.id) {
             <button
               type="button"
               (click)="pickCoach(row.team.id)"
@@ -1701,6 +1708,8 @@
                 {{ row.price | number: '1.1-1' }} <span class="text-[10px]">{{ i18n.t('fantasy.creditsAbbrev') }}</span>
               </span>
             </button>
+          } @empty {
+            <p class="text-center text-xs text-muted py-4">{{ i18n.t('fantasy.noCoachesFound') }}</p>
           }
         </div>
       </div>
