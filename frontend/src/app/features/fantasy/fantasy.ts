@@ -47,7 +47,7 @@ import {
 } from "../../shared/injury-status";
 import { TodayTagPipe } from "../../shared/today-tag.pipe";
 import { formatPlayerName } from "../../shared/player-name";
-import { TeamCodePipe } from "../../shared/team-display-code";
+import { TeamCodePipe, displayTeamCode } from "../../shared/team-display-code";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { PageHeaderComponent } from "../../shared/page-header";
 import { RoundLabelPipe } from "../../shared/round-label";
@@ -987,6 +987,16 @@ export class FantasyComponent implements OnInit {
   readonly coachPickerOpen = signal(false);
   readonly coachPickerVisible = signal(false);
   private coachPickerCloseTimer?: ReturnType<typeof setTimeout>;
+  // Coach-picker search — matches the coach's name, the team's name, or its
+  // display code ("PAO"). Reset every time the picker opens.
+  readonly coachSearchQuery = signal("");
+  readonly filteredCoaches = computed<FantasyCoachRow[]>(() => {
+    const query = this.coachSearchQuery().trim().toLowerCase();
+    if (!query) return this.coaches();
+    return this.coaches().filter((row) =>
+      [row.headCoach ?? "", row.team.name, displayTeamCode(row.team.code)].some((s) => s.toLowerCase().includes(query)),
+    );
+  });
 
   // --- Swap popup — a tap-driven alternative to dragging a squad member
   // between the active group (starter + sixth man, both score 100%) and
@@ -2831,6 +2841,7 @@ export class FantasyComponent implements OnInit {
   openCoachPicker(): void {
     if (this.roundLocked()) return;
     clearTimeout(this.coachPickerCloseTimer);
+    this.coachSearchQuery.set("");
     this.coachPickerOpen.set(true);
     this.showPopup(this.coachPickerVisible);
   }
