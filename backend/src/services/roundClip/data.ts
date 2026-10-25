@@ -177,7 +177,8 @@ export async function buildRoundClip(season: string, round: number): Promise<Rou
     round,
     results: games.map((g, i) => ({ home: teams[i].home, away: teams[i].away, homeScore: g.home_score, awayScore: g.away_score })),
     hook: hookPick ? (({ winner, loser, score }) => ({ winner, loser, score, pickedLoserPct: hookPick.pickedLoserPct }))(sides(hookPick.gameId)) : null,
-    topPredictor: top && topUser ? { person: person("oracle", topUser), correct: top.correct, total: top.total, points: top.points } : null,
+    // Out of the round's games, not the ones they picked: 9/9 read as a 9-game round.
+    topPredictor: top && topUser ? { person: person("oracle", topUser), correct: top.correct, total: games.length, points: top.points } : null,
     boldCall:
       boldPick && boldPicker
         ? (({ winner, loser, score }) => ({ winner, loser, score, correctPct: boldPick.correctPct, person: person("loneWolf", boldPicker) }))(
