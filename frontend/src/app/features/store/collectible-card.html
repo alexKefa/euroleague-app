@@ -11,14 +11,8 @@
   [style.max-width.px]="maxWidth"
   style="aspect-ratio: 2.5 / 3.5"
 >
-  <!-- Album Series 2: an owned MVP moment burns. Flames behind the frame. -->
-  @if (isMvpFire) {
-    <div class="mvp-fire" aria-hidden="true"></div>
-  }
   <div
-    class="relative w-full h-full transition-[filter] duration-300"
-    [class.mvp-pulse]="isMvpFire"
-    [style.z-index]="isMvpFire ? 1 : null"
+    class="w-full h-full transition-[filter] duration-300"
     [class.rounded-2xl]="sizeMode !== 'mini'"
     [class.rounded-lg]="sizeMode === 'mini'"
     [style.padding.px]="framePadding"
@@ -33,7 +27,11 @@
       [style.background]="style.faceBackground"
     >
       <!-- Full-bleed photo -->
-      <div class="absolute inset-0" [style.background]="style.photoTint">
+      <div class="absolute inset-0" [style.background]="isMvpFire ? mvpFireBackdrop : style.photoTint">
+        <!-- Album Series 2: an owned MVP moment burns behind the cut-out player. -->
+        @if (isMvpFire) {
+          <canvas appMvpFire class="mvp-flames" aria-hidden="true"></canvas>
+        }
         @if (photo; as p) {
           <img
             [src]="p.src"
@@ -46,6 +44,7 @@
             (load)="imageLoaded.set(true)"
             class="absolute inset-0 w-full h-full object-cover object-top transition-opacity duration-200"
             [class.opacity-0]="!imageLoaded()"
+            [class.mvp-rim]="isMvpFire"
           />
           @if (!imageLoaded()) {
             <div class="absolute inset-0 flex items-center justify-center">
@@ -162,15 +161,6 @@
             >{{ serialNumber }}/{{ serialTotal }}</span
           >
         </div>
-      }
-
-      @if (isMvpFire) {
-        <div class="mvp-fire-inner" aria-hidden="true"></div>
-        @if (sizeMode === 'full') {
-          <div class="mvp-embers" aria-hidden="true">
-            <span></span><span></span><span></span><span></span><span></span><span></span>
-          </div>
-        }
       }
 
       <!-- Frosted-glass info banner, floating over the bottom of the photo -->

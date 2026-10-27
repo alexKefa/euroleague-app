@@ -6,6 +6,7 @@ import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { displayTeamCode } from "../../shared/team-display-code";
 import { cdnImage, CdnImage } from "../../shared/cdn-image";
 import { I18nService } from "../../core/i18n.service";
+import { MvpFireDirective } from "../../shared/mvp-fire";
 
 type HoloVariant = "gold" | "silver" | "violet" | "ember" | "crimson" | null;
 
@@ -43,7 +44,7 @@ const DEFAULT_TEAM_COLOR = "#3E7CB1";
 @Component({
   selector: "app-collectible-card",
   standalone: true,
-  imports: [CommonModule, RetryImgDirective, LogoSpinnerComponent],
+  imports: [CommonModule, RetryImgDirective, LogoSpinnerComponent, MvpFireDirective],
   templateUrl: "./collectible-card.html",
   styleUrl: "./collectible-card.css",
   // Every input here is a primitive the parent @for loop only ever
@@ -93,10 +94,14 @@ export class CollectibleCardComponent implements OnChanges {
     return this.momentRound !== null && this.momentRound !== undefined;
   }
 
-  /** Owned MVP moments burn (fire behind the frame, embers, pulsing glow); a locked one stays cold. */
+  /** Owned MVP moments burn behind the player (shared/mvp-fire.ts); a locked one stays cold. */
   get isMvpFire(): boolean {
     return this.isMoment && this.tier === "legendary" && this.unlocked && this.sizeMode !== "mini";
   }
+
+  // A darker stage so the fire reads, with a warm glow where the flames start.
+  readonly mvpFireBackdrop =
+    "radial-gradient(90% 60% at 50% 100%, rgba(255,90,30,0.28), transparent 70%), radial-gradient(120% 90% at 50% 10%, #2a0508 0%, #070102 70%)";
 
   /** The tier badge reads MVP / Top performer on a moment; rarity still shows through the badge colours. */
   get badgeLabelKey(): string {
