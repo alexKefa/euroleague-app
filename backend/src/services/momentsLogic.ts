@@ -14,6 +14,18 @@ export function isMomentsLaunched(now: Date): boolean {
   return now.getTime() >= MOMENTS_LAUNCH_AT.getTime();
 }
 
+/** Feed name to card name: "PETERS, ALEC" -> "Alec Peters", same rule the catalog scripts use. */
+export function formatPlayerName(rawName: string): string {
+  const [last, first] = rawName.split(",").map((s) => s.trim());
+  if (!first) return rawName;
+  const toTitle = (s: string) =>
+    s
+      .split(/\s+/)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(" ");
+  return `${toTitle(first)} ${toTitle(last)}`;
+}
+
 export interface PlayerLine {
   playerId: string;
   teamId: string;

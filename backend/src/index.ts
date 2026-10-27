@@ -47,6 +47,7 @@ import { syncInjuries } from "./sync/injurySync.js";
 import { syncPlayerStats } from "./sync/playerStatsSync.js";
 import { syncRosters } from "./services/rosterSync.js";
 import { syncMissingGameExtras } from "./sync/gameExtrasSync.js";
+import { generateMomentsForReadyRounds } from "./services/moments.js";
 import { syncMissingReferees } from "./sync/refereeSync.js";
 import { syncScheduleTimes } from "./sync/scheduleSync.js";
 import { syncStandings } from "./sync/syncStandings.js";
@@ -406,6 +407,17 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
   // (feed not ready yet, restart mid-game) and backfills a fresh deploy,
   // a few games per run so it never hogs the hourly wake.
   const GAME_EXTRAS_PER_RUN = 12;
+  // Album Series 2 "Moments": cards for each finished round's best
+  // performances. A no-op before 2027-01-01 (momentsLogic.ts's
+  // MOMENTS_LAUNCH_AT) and when no round is ready.
+  const runMomentsGeneration = () => {
+    generateMomentsForReadyRounds()
+      .then((r) => {
+        const created = r.reduce((n, x) => n + x.created, 0);
+        if (created > 0) console.log(`[moments] created ${created} cards for rounds ${r.map((x) => x.round).join(", ")}`);
+      })
+      .catch((err) => console.error("[moments] generation failed:", err));
+  };
   const runGameExtrasSync = () => {
     getCurrentSeason()
       .then(async (season) => {
@@ -469,6 +481,7 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
     runLockReminderPushesLogged();
     runRoundResultPushesLogged();
     runGameExtrasSync();
+    runMomentsGeneration();
     runScheduleSync();
     runStandingsSync();
     pruneErrorEvents().catch((err) => console.error("[error report] prune failed:", err));

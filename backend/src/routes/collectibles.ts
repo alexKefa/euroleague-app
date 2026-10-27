@@ -152,7 +152,7 @@ collectiblesRouter.get("/", async (_req, res) => {
   }
 });
 
-async function buildCatalogPayload() {
+export async function buildCatalogPayload() {
   {
     const rows = await db
       .select({ collectible: collectibles, team: teams })

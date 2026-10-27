@@ -6,6 +6,7 @@ import {
   isRoundReady,
   pickSeriesFirst,
   isMomentsLaunched,
+  formatPlayerName,
   MOMENTS_PER_ROUND,
   type PlayerLine,
   type RoundGame,
@@ -115,4 +116,10 @@ test("pickSeriesFirst returns all when none are series 1", () => {
 test("isMomentsLaunched flips at 2027-01-01 00:00 Athens", () => {
   assert.equal(isMomentsLaunched(new Date("2026-12-31T21:59:59Z")), false);
   assert.equal(isMomentsLaunched(new Date("2026-12-31T22:00:00Z")), true);
+});
+
+test("formatPlayerName turns feed names into display names", () => {
+  assert.equal(formatPlayerName("PETERS, ALEC"), "Alec Peters");
+  assert.equal(formatPlayerName("ALSTON JR. , DERRICK"), "Derrick Alston Jr.");
+  assert.equal(formatPlayerName("Nunn"), "Nunn");
 });
