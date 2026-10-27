@@ -13,6 +13,7 @@
 >
   <div
     class="w-full h-full transition-[filter] duration-300"
+    [class.mvp-pulse]="isMvpFire"
     [class.rounded-2xl]="sizeMode !== 'mini'"
     [class.rounded-lg]="sizeMode === 'mini'"
     [style.padding.px]="framePadding"
@@ -28,9 +29,13 @@
     >
       <!-- Full-bleed photo -->
       <div class="absolute inset-0" [style.background]="isMvpFire ? mvpFireBackdrop : style.photoTint">
-        <!-- Album Series 2: an owned MVP moment burns behind the cut-out player. -->
+        <!-- Album Series 2 MVP moments: faint MVP lettering behind the player,
+             and on an owned one a warm glow breathing behind them. -->
+        @if (isMvpMoment && sizeMode !== 'mini') {
+          <div class="mvp-lettering" aria-hidden="true"></div>
+        }
         @if (isMvpFire) {
-          <canvas appMvpFire class="mvp-flames" aria-hidden="true"></canvas>
+          <div class="mvp-glow" aria-hidden="true"></div>
         }
         @if (photo; as p) {
           <img
@@ -101,6 +106,10 @@
           }
         }
       </div>
+
+      @if (isMvpFire && sizeMode === 'full') {
+        <div class="mvp-embers" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      }
 
       @if (style.holoVariant) {
         <div
