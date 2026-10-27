@@ -422,27 +422,37 @@
 
           <div class="flex-1 p-4 sm:p-6">
             <div class="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3">
-              @for (item of filteredTeamSlots(); track item.id) {
-                <button
-                  type="button"
-                  (click)="openPreview(item)"
-                  class="w-full rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-team-primary"
-                  [attr.aria-label]="i18n.t('album.previewAriaPrefix') + ' ' + item.name"
-                >
-                  <app-collectible-card
-                    [name]="item.name"
-                    [tier]="item.tier"
-                    [teamCode]="item.team.code"
-                    [teamColor]="item.team.primaryColor"
-                    [imageUrl]="item.imageUrl"
-                    [unlocked]="isOwned(item)"
-                    [maxWidth]="130"
-                    [serialNumber]="item.serialNumber"
-                    [serialTotal]="item.serialTotal"
-                    [finish]="finishFor(item)"
-                    [showTierBadge]="!tierFilter()"
-                  ></app-collectible-card>
-                </button>
+              <!-- One slot per player (2026-10-27): best owned version or a
+                   faded ghost, with a dot per version underneath. -->
+              @for (slot of playerSlots(); track slot.name) {
+                <div class="flex flex-col gap-1.5 min-w-0">
+                  <button
+                    type="button"
+                    (click)="openPreview(slot.shown)"
+                    class="w-full rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-team-primary"
+                    [attr.aria-label]="i18n.t('album.previewAriaPrefix') + ' ' + slot.name"
+                  >
+                    <app-collectible-card
+                      [name]="slot.shown.name"
+                      [tier]="slot.shown.tier"
+                      [teamCode]="slot.shown.team.code"
+                      [teamColor]="slot.shown.team.primaryColor"
+                      [imageUrl]="slot.shown.imageUrl"
+                      [unlocked]="slot.owned"
+                      [ghost]="!slot.owned"
+                      [maxWidth]="130"
+                      [serialNumber]="slot.shown.serialNumber"
+                      [serialTotal]="slot.shown.serialTotal"
+                      [finish]="finishFor(slot.shown)"
+                      [showTierBadge]="!tierFilter()"
+                    ></app-collectible-card>
+                  </button>
+                  <span class="flex justify-center items-center gap-1.5 h-2.5" [attr.aria-label]="versionsAria(slot.versions)">
+                    @for (v of slot.versions; track v.id) {
+                      <span class="w-2 h-2 rounded-full" [class]="versionDotClass(v)"></span>
+                    }
+                  </span>
+                </div>
               } @empty {
                 <p class="text-sm text-muted col-span-full">{{ i18n.t('album.noCards') }}</p>
               }
@@ -550,5 +560,24 @@
 </div>
 
 @if (previewItem(); as item) {
-  <app-card-preview [item]="item" [unlocked]="isOwned(item)" (closed)="closePreview()"></app-card-preview>
+  <app-card-preview [item]="item" [unlocked]="isOwned(item)" (closed)="closePreview()">
+    <!-- Switch between the player's versions; missing ones are faded. -->
+    @if (previewVersions().length > 1) {
+      <div class="flex flex-wrap justify-center gap-2" role="group" [attr.aria-label]="i18n.t('album.versions')">
+        @for (v of previewVersions(); track v.id) {
+          <button
+            type="button"
+            (click)="openPreview(v)"
+            class="h-8 px-3 rounded-full text-xs font-semibold flex items-center gap-1.5 border transition-colors"
+            [class.opacity-50]="!isOwned(v)"
+            [ngClass]="v.id === item.id ? 'bg-white text-black border-white' : 'text-white border-white/30 hover:border-white/60'"
+            [attr.aria-pressed]="v.id === item.id"
+          >
+            <span class="w-2 h-2 rounded-full" [class]="tierDotClass(v.tier)"></span>
+            {{ i18n.t(tierLabelKey(v.tier)) }}
+          </button>
+        }
+      </div>
+    }
+  </app-card-preview>
 }

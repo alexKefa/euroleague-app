@@ -27,6 +27,9 @@ export const albumTranslations: Record<string, Record<Lang, string>> = {
   "album.series.players": { en: "Players", el: "Παίκτες" },
   "album.series.moments": { en: "Moments", el: "Στιγμές" },
   "album.totalLabel": { en: "Total album", el: "Σύνολο άλμπουμ" },
+  "album.versions": { en: "Versions", el: "Εκδόσεις" },
+  "album.versionOwned": { en: "owned", el: "την έχεις" },
+  "album.versionMissing": { en: "missing", el: "λείπει" },
   "album.series1Badge": { en: "Series 1 complete", el: "Η Σειρά 1 ολοκληρώθηκε" },
   "album.emptyLeaderboard": { en: "No cards collected yet this season.", el: "Δεν έχουν συλλεχθεί ακόμα κάρτες φέτος." },
 };

@@ -182,3 +182,30 @@
     display: none;
   }
 }
+
+/* Album ghost (2026-10-27): a player you own no version of. The tier art is
+   switched off (inline styles, hence !important) and the photo fades, so the
+   slot reads as "still to collect" rather than a dark locked tile. */
+.card-ghost {
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: 1.5px dashed rgba(128, 128, 128, 0.45);
+  outline-offset: -1.5px;
+}
+.card-ghost > div,
+.card-ghost > div > div:first-child {
+  background: rgba(128, 128, 128, 0.08) !important;
+}
+.card-ghost img {
+  opacity: 0.28 !important;
+  filter: grayscale(0.4);
+}
+.card-ghost .backdrop-blur-md {
+  background: transparent !important;
+  backdrop-filter: none;
+}
+.card-ghost .backdrop-blur-md div,
+.card-ghost .backdrop-blur-md span {
+  color: inherit !important;
+  opacity: 0.7;
+}

@@ -182,11 +182,58 @@ export class AlbumComponent implements OnInit, OnDestroy {
   // so re-clicking the active row is the toggle-off gesture instead).
   readonly tierFilter = signal<CollectibleTier | null>(null);
 
-  readonly filteredTeamSlots = computed(() => {
+  /**
+   * One slot per player (2026-10-27): the player's best owned version
+   * (legendary over rare over common), or a ghost when they own none, plus
+   * every version for the dots. With a tier filter on, each player shows
+   * that tier's version instead. Completion counts still count every card.
+   */
+  readonly playerSlots = computed(() => {
+    const owned = this.ownedIds();
     const filter = this.tierFilter();
-    const slots = this.teamSlots();
-    return filter ? slots.filter((c) => c.tier === filter) : slots;
+    const rank: Record<CollectibleTier, number> = { common: 0, rare: 1, legendary: 2, coach: 3 };
+    const byName = new Map<string, Collectible[]>();
+    for (const c of this.teamSlots()) {
+      const list = byName.get(c.name) ?? [];
+      list.push(c);
+      byName.set(c.name, list);
+    }
+    const slots: { name: string; versions: Collectible[]; shown: Collectible; owned: boolean }[] = [];
+    for (const [name, versions] of byName) {
+      versions.sort((a, b) => rank[a.tier] - rank[b.tier]);
+      let shown: Collectible | undefined;
+      if (filter) {
+        shown = versions.find((v) => v.tier === filter);
+        if (!shown) continue;
+      } else {
+        const ownedVersions = versions.filter((v) => owned.has(v.id));
+        shown = ownedVersions[ownedVersions.length - 1] ?? versions[0];
+      }
+      slots.push({ name, versions, shown, owned: owned.has(shown.id) });
+    }
+    const isCoach = (s: { versions: Collectible[] }) => s.versions[0].tier === "coach";
+    return slots.sort((a, b) => Number(isCoach(a)) - Number(isCoach(b)) || a.name.localeCompare(b.name));
   });
+
+  /** The previewed player's versions, for the switcher in the preview (series 1 only). */
+  readonly previewVersions = computed(() => {
+    const item = this.previewItem();
+    if (!item || item.moment) return [];
+    const rank: Record<CollectibleTier, number> = { common: 0, rare: 1, legendary: 2, coach: 3 };
+    return this.teamSlots()
+      .filter((c) => c.name === item.name && c.team.id === item.team.id)
+      .sort((a, b) => rank[a.tier] - rank[b.tier]);
+  });
+
+  versionDotClass(card: Collectible): string {
+    return this.isOwned(card) ? this.tierDotClass(card.tier) : "ring-1 ring-inset ring-muted/60";
+  }
+
+  versionsAria(versions: Collectible[]): string {
+    return versions
+      .map((v) => `${this.i18n.t(this.tierLabelKey(v.tier))}: ${this.i18n.t(this.isOwned(v) ? "album.versionOwned" : "album.versionMissing")}`)
+      .join(", ");
+  }
 
   toggleTierFilter(tier: CollectibleTier): void {
     this.tierFilter.update((current) => (current === tier ? null : tier));

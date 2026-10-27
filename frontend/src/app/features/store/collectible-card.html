@@ -19,7 +19,8 @@
     [style.padding.px]="framePadding"
     [style.background]="style.frameBackground"
     [style.box-shadow]="style.frameShadow"
-    [style.filter]="unlocked ? 'none' : 'grayscale(0.75) brightness(0.55)'"
+    [style.filter]="unlocked || ghost ? 'none' : 'grayscale(0.75) brightness(0.55)'"
+    [class.card-ghost]="ghost"
   >
     <div
       class="relative w-full h-full overflow-hidden"
@@ -111,7 +112,7 @@
         <div class="mvp-embers" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
       }
 
-      @if (style.holoVariant) {
+      @if (style.holoVariant && !ghost) {
         <div
           class="holo-sweep absolute pointer-events-none"
           [class.holo-sweep--gold]="style.holoVariant === 'gold' && !isFoil"
@@ -123,14 +124,14 @@
         ></div>
       }
 
-      @if (showTierBadge && sizeMode === 'compact') {
+      @if (showTierBadge && !ghost && sizeMode === 'compact') {
         <span
           class="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full z-10 ring-1 ring-black/20"
           [style.background]="style.badgeBackground"
           [attr.title]="i18n.t(badgeLabelKey)"
         ></span>
       }
-      @if (showTierBadge && sizeMode === 'full') {
+      @if (showTierBadge && !ghost && sizeMode === 'full') {
         <div
           class="absolute top-2 right-2 flex items-center gap-1 rounded-full z-10"
           style="padding: 3px 8px 3px 6px; transform-origin: top right"
@@ -160,7 +161,7 @@
       }
 
       <!-- print numbering — mirrors the tier badge on the opposite corner -->
-      @if (showSerial && sizeMode === 'full') {
+      @if (showSerial && !ghost && sizeMode === 'full') {
         <div
           class="absolute top-2 left-2 rounded-full z-10 backdrop-blur-sm"
           style="padding: 3px 7px"
@@ -208,7 +209,7 @@
     </div>
   </div>
 
-  @if (!unlocked) {
+  @if (!unlocked && !ghost) {
     <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
         <rect x="5" y="10" width="14" height="10" rx="2" stroke="#F5F7F6" stroke-width="1.8" />

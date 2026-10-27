@@ -82,6 +82,10 @@ export class CollectibleCardComponent implements OnChanges {
   // would show the identical label. Callers filtering by tier pass false
   // while a filter is active; defaults true everywhere else.
   @Input() showTierBadge = true;
+  // Album (2026-10-27): a player you own no version of shows as a faded,
+  // see-through ghost (dashed outline, no padlock) instead of the dark
+  // locked card.
+  @Input() ghost = false;
   // Album Series 2 "Moments" (2026-10-27): set on a moment card. Primitives,
   // like every input here, so OnPush keeps working.
   @Input() momentRound: number | null = null;
