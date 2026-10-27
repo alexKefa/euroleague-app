@@ -14,6 +14,7 @@ import { rollPackForUser } from "../services/packs.js";
 import { grantGuaranteedNewCollectible } from "../services/cards.js";
 import { checkAndGrantMomentBonuses, markMomentBonusesSeen } from "../services/moments.js";
 import { computeTopScorerPlayerIdsForGames } from "../services/topScorerPoints.js";
+import { getAlbumLeaderboardEntries } from "../services/albumLeaderboard.js";
 
 if (!(process.env.DATABASE_URL ?? "").includes("ep-sparkling-pond")) throw new Error("refusing to run outside the dev database");
 
@@ -238,6 +239,35 @@ check("a deleted user never qualifies", async () => {
   await db.execute(sql`update users set deleted_at = now() where id = ${user}`);
   assert.deepEqual(await checkAndGrantMomentBonuses(user), []);
   assert.equal(await count(sql`select count(*)::int n from moment_bonuses where user_id = ${user}`), 0);
+});
+
+// --- Task 6: catalog fields and the Series 1 flag
+check("catalog serves moment details on series 2 cards only", async () => {
+  const catalog = await buildCatalogPayload();
+  const moment = catalog.find((c) => c.series === 2);
+  assert.ok(moment, "no series 2 card in the catalog");
+  assert.equal(typeof moment.moment?.round, "number");
+  assert.ok(moment.moment?.role === "mvp" || moment.moment?.role === "top");
+  assert.equal(typeof moment.moment?.pir, "number");
+  assert.equal(moment.serialNumber, undefined, "moments are numbered by round, not serial");
+  const s1 = catalog.find((c) => c.series === 1)!;
+  assert.equal(s1.moment, null);
+  assert.equal(typeof s1.serialNumber, "number");
+  const s1Rares = catalog.filter((c) => c.series === 1 && c.tier === "rare").length;
+  assert.equal(s1.tier === "rare" ? s1.serialTotal : s1Rares, s1Rares, "series 1 serial totals must not count moments");
+});
+
+check("series1Complete is true only once every Series 1 card is owned", async () => {
+  const user = await mkUser("s1done");
+  for (const tier of ["common", "rare", "legendary", "coach"]) await ownAllBut(user, tier, 1, null);
+  const missing = await one<{ id: string }>(sql`select id from collectibles where series = 1 order by id limit 1`);
+  await db.execute(sql`delete from user_collectibles where user_id = ${user} and collectible_id = ${missing.id}`);
+  let [entry] = await getAlbumLeaderboardEntries({ userIds: [user] });
+  assert.equal(entry.series1Complete, false);
+  await db.execute(sql`insert into user_collectibles (user_id, collectible_id) values (${user}, ${missing.id})`);
+  [entry] = await getAlbumLeaderboardEntries({ userIds: [user] });
+  assert.equal(entry.series1Complete, true);
+  assert.ok(entry.ownedCount < entry.totalCount, "total still includes series 2");
 });
 
 let failed = 0;

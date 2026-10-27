@@ -323,6 +323,7 @@ leaguesRouter.get("/:id/album-leaderboard", requireAuth, async (req, res) => {
         ownedCount: 0,
         totalCount,
         completion: 0,
+        series1Complete: false,
         showcase: showcaseFor(r.showcaseCollectibleIds, cardById, r.userId),
       }))
       .sort((a, b) => a.displayName.localeCompare(b.displayName));

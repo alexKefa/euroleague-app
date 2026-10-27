@@ -11,6 +11,8 @@ export interface AlbumLeaderboardEntry {
   ownedCount: number;
   totalCount: number;
   completion: number;
+  // Album Series 2: owns every Series 1 card (the "Series 1 complete" badge).
+  series1Complete: boolean;
   showcase: AlbumShowcaseCard[];
 }
 
@@ -46,18 +48,23 @@ export async function getCollectibleCatalogTotal(): Promise<number> {
 export async function getAlbumLeaderboardEntries(
   options: { userIds?: string[]; limit?: number } = {}
 ): Promise<AlbumLeaderboardEntry[]> {
-  const totalCount = await getCollectibleCatalogTotal();
+  const [{ total_count: totalCount, series1_count: series1Count }] = await db.execute<{ total_count: number; series1_count: number }>(
+    sql`select count(*)::int as total_count, count(*) filter (where series = 1)::int as series1_count from ${collectibles}`
+  );
 
   const totals = await db.execute<{
     user_id: string;
     username: string;
     showcase_collectible_ids: string[];
     owned_count: number;
+    series1_owned: number;
   }>(sql`
     select uc.user_id, u.username, u.showcase_collectible_ids,
-      count(distinct uc.collectible_id)::int as owned_count
+      count(distinct uc.collectible_id)::int as owned_count,
+      count(distinct uc.collectible_id) filter (where c.series = 1)::int as series1_owned
     from ${userCollectibles} uc
     join ${users} u on u.id = uc.user_id
+    join ${collectibles} c on c.id = uc.collectible_id
     where u.is_admin = false and u.deleted_at is null
     group by uc.user_id, u.username, u.showcase_collectible_ids
   `);
@@ -72,6 +79,7 @@ export async function getAlbumLeaderboardEntries(
       ownedCount: row.owned_count,
       totalCount,
       completion: totalCount > 0 ? row.owned_count / totalCount : 0,
+      series1Complete: series1Count > 0 && row.series1_owned >= series1Count,
       showcaseIds: row.showcase_collectible_ids ?? [],
     }))
     .sort((a, b) => b.ownedCount - a.ownedCount || a.displayName.localeCompare(b.displayName));

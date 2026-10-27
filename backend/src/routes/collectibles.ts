@@ -2,7 +2,8 @@ import { cached, CACHE_KEYS, invalidateOnWrite } from "../services/responseCache
 import { Router } from "express";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { collectibles, userCollectibles, pointAdjustments, teams, users, players, playerSeasonStats } from "../db/schema.js";
+import { collectibles, userCollectibles, pointAdjustments, teams, users, players, playerSeasonStats, collectibleMoments, games } from "../db/schema.js";
+import { alias } from "drizzle-orm/pg-core";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
 import { getUserPoints, lockUserPoints } from "../services/points.js";
 import { getCurrentSeason } from "../services/season.js";
@@ -154,10 +155,20 @@ collectiblesRouter.get("/", async (_req, res) => {
 
 export async function buildCatalogPayload() {
   {
+    // Album Series 2: a moment card also carries its round, stat line and
+    // the game it happened in (opponent = the side that isn't the card's team).
+    const opponent = alias(teams, "opponent");
     const rows = await db
-      .select({ collectible: collectibles, team: teams })
+      .select({ collectible: collectibles, team: teams, moment: collectibleMoments, game: games, opponent })
       .from(collectibles)
-      .innerJoin(teams, eq(collectibles.teamId, teams.id));
+      .innerJoin(teams, eq(collectibles.teamId, teams.id))
+      .leftJoin(collectibleMoments, eq(collectibleMoments.collectibleId, collectibles.id))
+      .leftJoin(games, eq(games.id, collectibleMoments.gameId))
+      .leftJoin(
+        opponent,
+        sql`${opponent.id} = case when ${games.homeTeamId} = ${collectibles.teamId} then ${games.awayTeamId}
+          when ${games.awayTeamId} = ${collectibles.teamId} then ${games.homeTeamId} end`
+      );
     const jerseyNumbers = await buildJerseyNumberLookup();
     const ppgLookup = await buildPpgLookup();
 
@@ -169,6 +180,8 @@ export async function buildCatalogPayload() {
     // caller/session, since it doesn't depend on request-specific state.
     const byTier = new Map<string, typeof rows>();
     for (const row of rows) {
+      // Serial numbers are a Series 1 thing; moments are identified by round.
+      if (row.collectible.series !== 1) continue;
       const group = byTier.get(row.collectible.tier) ?? [];
       group.push(row);
       byTier.set(row.collectible.tier, group);
@@ -179,15 +192,31 @@ export async function buildCatalogPayload() {
       group.forEach((row, i) => serial.set(row.collectible.id, { number: i + 1, total: group.length }));
     }
 
-    const payload = rows.map(({ collectible, team }) => ({
+    const payload = rows.map(({ collectible, team, moment, game, opponent }) => ({
       id: collectible.id,
       name: collectible.name,
       tier: collectible.tier,
       pointsCost: collectible.pointsCost,
       buyPrice: DIRECT_BUY_PRICE[collectible.tier as (typeof TIERS)[number]] ?? null,
       imageUrl: collectible.imageUrl,
-      serialNumber: serial.get(collectible.id)!.number,
-      serialTotal: serial.get(collectible.id)!.total,
+      serialNumber: serial.get(collectible.id)?.number,
+      serialTotal: serial.get(collectible.id)?.total,
+      series: collectible.series,
+      moment: moment
+        ? {
+            round: moment.round,
+            role: moment.role,
+            points: moment.points,
+            pir: moment.pir,
+            rebounds: moment.rebounds,
+            assists: moment.assists,
+            minutes: moment.minutes,
+            gameId: moment.gameId,
+            gameDate: game?.tipoffAt ?? null,
+            score: game ? { home: game.homeScore, away: game.awayScore, isHome: game.homeTeamId === collectible.teamId } : null,
+            opponent: opponent ? { id: opponent.id, code: opponent.code, name: opponent.name } : null,
+          }
+        : null,
       jerseyNumber: jerseyNumbers.get(`${collectible.teamId}|${normalizePlayerName(collectible.name)}`) ?? null,
       pointsPerGame: ppgLookup.get(`${collectible.teamId}|${normalizePlayerName(collectible.name)}`) ?? null,
       team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor, logoUrl: team.logoUrl },
