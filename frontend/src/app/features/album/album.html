@@ -16,15 +16,6 @@
 
   <app-page-header [title]="i18n.t('album.title')" [eyebrow]="i18n.t('section.cards')" icon="album" class="mt-4" />
 
-  <!-- €100 prize banner (2026-09-20, upgraded same day to the shared
-       animated app-prize-banner — see shared/prize-banner.ts) — this is the
-       actual page the contest is about, so unlike the dashboard's
-       dismissible version, no hintId here: it stays up for good rather than
-       being a one-time nudge, regardless of which tab someone's on. -->
-  <div class="mb-4">
-    <app-prize-banner size="compact" />
-  </div>
-
   <!-- Segmented control (2026-09-12, matching the dashboard's tab switcher)
        — one joined tonal track instead of two separate solid pill buttons,
        so this page's own tab switch reads consistently with the rest of
@@ -166,8 +157,6 @@
     </div>
   }
 
-  <app-page-hint hintId="card-album" icon="cards">{{ i18n.t('album.hint') }}</app-page-hint>
-
   @if (error()) {
     <p class="text-sm text-red-500 mb-4">{{ error() }}</p>
   }
@@ -180,22 +169,22 @@
     </div>
     <app-skeleton class="rounded-2xl h-[420px]" [iconSize]="28" />
   } @else {
-    <!-- Collection hero (2026-09-29 restyle), same look as the Cards hub's. -->
-    <div class="relative flex items-center gap-4 overflow-hidden rounded-3xl p-4 mb-4 bg-card border border-line shadow-card">
-      <div class="pointer-events-none absolute inset-0" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 26%, transparent) 0%, color-mix(in srgb, var(--accent-primary) 6%, transparent) 55%, transparent 100%)" aria-hidden="true"></div>
-      <div class="pointer-events-none absolute -right-16 -top-16 w-48 h-48 rounded-full border-[14px]" style="border-color: color-mix(in srgb, var(--accent-primary) 12%, transparent)" aria-hidden="true"></div>
-      <div class="relative w-[80px] h-[80px] shrink-0">
+    <!-- Collection row (slimmed 2026-10-27 so the album opens on the cards). -->
+    <div class="flex items-center gap-3 rounded-2xl px-3 py-2.5 mb-3 bg-card border border-line">
+      <div class="relative w-12 h-12 shrink-0">
         <svg viewBox="0 0 100 100" class="w-full h-full -rotate-90" aria-hidden="true">
-          <circle cx="50" cy="50" r="42" fill="none" stroke-width="9" class="stroke-line" />
-          <circle cx="50" cy="50" r="42" fill="none" stroke-width="9" stroke-linecap="round" pathLength="100" [attr.stroke-dasharray]="overallPct() + ' 100'" class="stroke-team-primary transition-[stroke-dasharray] duration-500" />
+          <circle cx="50" cy="50" r="42" fill="none" stroke-width="10" class="stroke-line" />
+          <circle cx="50" cy="50" r="42" fill="none" stroke-width="10" stroke-linecap="round" pathLength="100" [attr.stroke-dasharray]="overallPct() + ' 100'" class="stroke-team-primary transition-[stroke-dasharray] duration-500" />
         </svg>
-        <span class="absolute inset-0 flex items-center justify-center font-display text-base tabular-nums">{{ overallPct() }}%</span>
+        <span class="absolute inset-0 flex items-center justify-center font-display text-[12px] tabular-nums">{{ overallPct() }}%</span>
       </div>
-      <div class="relative min-w-0">
-        <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('album.collected') }}</p>
-        <p class="font-display text-4xl leading-none tabular-nums mt-1">{{ seriesOwnedCount() }}<span class="text-muted text-lg"> / {{ seriesTotalCount() }}</span></p>
+      <div class="min-w-0 flex-1 flex items-baseline justify-between gap-3 flex-wrap">
+        <p class="font-display text-2xl leading-none tabular-nums">
+          {{ seriesOwnedCount() }}<span class="text-muted text-base"> / {{ seriesTotalCount() }}</span>
+          <span class="text-[11px] font-bold text-muted uppercase tracking-wider align-middle ml-1">{{ i18n.t('album.collected') }}</span>
+        </p>
         @if (hasMoments()) {
-          <p class="text-xs text-muted mt-1.5 tabular-nums">{{ i18n.t('album.totalLabel') }}: {{ overallOwnedCount() }} / {{ overallTotalCount() }}</p>
+          <p class="text-xs text-muted tabular-nums">{{ i18n.t('album.totalLabel') }}: {{ overallOwnedCount() }} / {{ overallTotalCount() }}</p>
         }
       </div>
     </div>
@@ -225,11 +214,16 @@
     @if (series() === 1) {
     <!-- team strip — every team shown, even at 0%, so gaps in the whole
          catalog are visible, not just teams the player has already started. -->
-    <div class="flex gap-2 overflow-x-auto pb-2 mb-4">
+    <!-- Sticky under the app header (2026-10-27) so the team can be changed
+         from anywhere on the page. -->
+    <div id="album-strip" class="sticky z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 mb-3 bg-page/90 backdrop-blur-xl" [style.top.px]="stickyTop()">
+    <div class="flex gap-2 overflow-x-auto no-scrollbar">
       @for (team of sortedTeams(); track team.id) {
         <a
-          [routerLink]="['/album', team.id]"
-          class="flex flex-col items-center gap-1 shrink-0 w-[76px] px-2 py-2.5 rounded-2xl border-2 transition-colors"
+          [attr.href]="'/album/' + team.id"
+          (click)="$event.preventDefault(); selectTeam(team.id)"
+          [attr.aria-current]="team.id === selectedTeamId() ? 'page' : null"
+          class="flex flex-col items-center gap-0.5 shrink-0 w-[60px] px-1.5 py-1.5 rounded-xl border-2 transition-colors"
           [class.border-line]="team.id !== selectedTeamId()"
           [class.bg-card]="team.id !== selectedTeamId()"
           [class.opacity-80]="team.id !== selectedTeamId()"
@@ -237,16 +231,16 @@
           [style.background]="team.id === selectedTeamId() ? 'linear-gradient(180deg, color-mix(in srgb, ' + (team.primaryColor ?? '#FF6B35') + ' 28%, var(--color-card)) 0%, var(--color-card) 100%)' : null"
         >
           @if (team.logoUrl) {
-            <img [src]="team.logoUrl" [alt]="team.name" appRetryImg class="w-9 h-9 object-contain team-logo" />
+            <img [src]="team.logoUrl" [alt]="team.name" appRetryImg class="w-7 h-7 object-contain team-logo" />
           } @else {
             <div
-              class="w-9 h-9 rounded-full flex items-center justify-center font-display text-[11px] text-white"
+              class="w-7 h-7 rounded-full flex items-center justify-center font-display text-[10px] text-white"
               [style.background]="team.primaryColor ?? '#3E7CB1'"
             >
               {{ team.code | teamCode }}
             </div>
           }
-          <span class="text-[10px] font-semibold text-center leading-tight truncate w-full">{{ team.name }}</span>
+          <span class="text-[10px] font-semibold text-center leading-tight truncate w-full" [attr.title]="team.name">{{ team.code | teamCode }}</span>
           @if (teamCompletionCounts().get(team.id); as counts) {
             <!-- Deliberately left on text-highlight, not swapped to
                  text-team-primary like the rest of this page's 2026-09-18
@@ -257,7 +251,7 @@
                  completion count for an arbitrary browsed team as if it
                  were "your team's" color. -->
             <span
-              class="text-[11px] font-mono font-bold"
+              class="text-[10px] font-mono font-bold leading-tight"
               [class.text-ink]="team.id === selectedTeamId()"
               [class.text-muted]="team.id !== selectedTeamId()"
               >{{ counts.owned }}/{{ counts.total }}</span
@@ -269,15 +263,17 @@
         </a>
       }
     </div>
+    </div>
 
     @if (selectedTeam(); as team) {
       <!-- pager: flip to the previous/next team's leaflet page — its own
            row above the leaflet (not flanking it) so it stays put near the
            top instead of drifting into the middle of a tall stacked leaflet
            on mobile, where the left/right "pages" stack vertically. -->
-      <div class="flex items-center justify-between mb-3">
+      <div id="album-leaf" class="flex items-center justify-between mb-3">
         <a
-          [routerLink]="['/album', adjacentTeamIds().prev]"
+          [attr.href]="'/album/' + adjacentTeamIds().prev"
+          (click)="$event.preventDefault(); selectTeam(adjacentTeamIds().prev)"
           class="status-tile w-10 h-10 rounded-xl border border-line hover:border-team-primary flex items-center justify-center shrink-0 transition-colors"
           [attr.aria-label]="i18n.t('album.prevTeam')"
         >
@@ -287,7 +283,8 @@
         </a>
         <span class="font-display text-base tracking-wide truncate px-2">{{ team.name }}</span>
         <a
-          [routerLink]="['/album', adjacentTeamIds().next]"
+          [attr.href]="'/album/' + adjacentTeamIds().next"
+          (click)="$event.preventDefault(); selectTeam(adjacentTeamIds().next)"
           class="status-tile w-10 h-10 rounded-xl border border-line hover:border-team-primary flex items-center justify-center shrink-0 transition-colors"
           [attr.aria-label]="i18n.t('album.nextTeam')"
         >
@@ -305,7 +302,8 @@
            vertically, and the pager row above already covers mobile. -->
       <div class="flex items-stretch gap-3">
         <a
-          [routerLink]="['/album', adjacentTeamIds().prev]"
+          [attr.href]="'/album/' + adjacentTeamIds().prev"
+          (click)="$event.preventDefault(); selectTeam(adjacentTeamIds().prev)"
           class="hidden sm:flex w-20 shrink-0 rounded-2xl border border-line bg-card shadow-card overflow-hidden flex-col items-center justify-center gap-2 p-3 opacity-50 hover:opacity-90 transition-opacity"
           [attr.aria-label]="i18n.t('album.prevTeam') + ': ' + (teamById(adjacentTeamIds().prev)?.name ?? '')"
         >
@@ -455,7 +453,8 @@
         </div>
 
         <a
-          [routerLink]="['/album', adjacentTeamIds().next]"
+          [attr.href]="'/album/' + adjacentTeamIds().next"
+          (click)="$event.preventDefault(); selectTeam(adjacentTeamIds().next)"
           class="hidden sm:flex w-20 shrink-0 rounded-2xl border border-line bg-card shadow-card overflow-hidden flex-col items-center justify-center gap-2 p-3 opacity-50 hover:opacity-90 transition-opacity"
           [attr.aria-label]="i18n.t('album.nextTeam') + ': ' + (teamById(adjacentTeamIds().next)?.name ?? '')"
         >
@@ -540,6 +539,14 @@
     }
   }
   }
+
+  <!-- Moved below the cards (2026-10-27): the album opens on the collection. -->
+  <div class="mt-6 grid gap-3">
+    @if (tab() === 'album') {
+      <app-page-hint hintId="card-album" icon="cards">{{ i18n.t('album.hint') }}</app-page-hint>
+    }
+    <app-prize-banner size="compact" />
+  </div>
 </div>
 
 @if (previewItem(); as item) {

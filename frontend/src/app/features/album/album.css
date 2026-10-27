@@ -27,3 +27,11 @@
   transform-origin: left center;
   backface-visibility: hidden;
 }
+
+/* Sticky team strip (2026-10-27): scrolls sideways without a scrollbar. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

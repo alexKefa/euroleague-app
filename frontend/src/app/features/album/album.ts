@@ -1,5 +1,5 @@
-import { Component, HostListener, OnInit, inject, signal, computed, effect } from "@angular/core";
-import { CommonModule } from "@angular/common";
+import { Component, HostListener, OnDestroy, OnInit, inject, signal, computed, effect } from "@angular/core";
+import { CommonModule, Location } from "@angular/common";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
@@ -50,13 +50,14 @@ const TIER_ORDER: CollectibleTier[] = ["common", "rare", "legendary", "coach"];
   templateUrl: "./album.html",
   styleUrl: "./album.css",
 })
-export class AlbumComponent implements OnInit {
+export class AlbumComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
   protected navHistory = inject(NavHistoryService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private location = inject(Location);
 
   readonly tab = signal<"album" | "leaderboard">("album");
 
@@ -267,7 +268,45 @@ export class AlbumComponent implements OnInit {
     });
   }
 
+  // Album team switching (2026-10-27): changing team swaps the page in place
+  // instead of a router navigation, which scrolled to the top of the page
+  // every time. The URL still follows (replaceState), so links and refresh
+  // work, and the view glides to the team's page under the sticky strip.
+  readonly stickyTop = signal(64);
+  private headerObserver: ResizeObserver | null = null;
+
+  selectTeam(teamId: string | null): void {
+    if (!teamId || teamId === this.routeTeamId()) return;
+    this.routeTeamId.set(teamId);
+    this.tierFilter.set(null);
+    this.location.replaceState(`/album/${teamId}`);
+    requestAnimationFrame(() => this.scrollToLeaf());
+  }
+
+  private scrollToLeaf(): void {
+    const leaf = document.getElementById("album-leaf");
+    if (!leaf) return;
+    const strip = document.getElementById("album-strip")?.getBoundingClientRect().height ?? 0;
+    const y = leaf.getBoundingClientRect().top + window.scrollY - this.stickyTop() - strip - 8;
+    window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+  }
+
+  private watchHeaderHeight(): void {
+    // The app header is sticky too; the team strip sits right under it.
+    const header = document.querySelector("nav");
+    if (!header || typeof ResizeObserver === "undefined") return;
+    const update = () => this.stickyTop.set(Math.round(header.getBoundingClientRect().height));
+    update();
+    this.headerObserver = new ResizeObserver(update);
+    this.headerObserver.observe(header);
+  }
+
+  ngOnDestroy(): void {
+    this.headerObserver?.disconnect();
+  }
+
   ngOnInit(): void {
+    this.watchHeaderHeight();
     this.route.paramMap.subscribe((params) => {
       this.routeTeamId.set(params.get("teamId"));
       // A tier filter from the previous team's page carrying over silently
