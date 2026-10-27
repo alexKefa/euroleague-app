@@ -184,3 +184,12 @@ channel. Signup tracking (Admin → Tools → Signups) shipped first. Next:
 4. Later: English-language reach to other clubs' fans.
 5. Native app only via a Capacitor wrapper, and only if tracking shows the
    iPhone install/push step is where people drop off.
+
+## 13. Legends cards (deferred 2026-10-27)
+
+Past EuroLeague greats (and "epic" past-player cards), kept out of Series 2:
+Moments (`docs/superpowers/specs/2026-10-27-album-series-2-moments-design.md`).
+Best used as a prize, not filler: a hand-picked set of ~10–20 as the reward
+for completing Series 1 (late March for top collectors), or a Final Four
+drop in May. Blocker: the feed only has photos of current roster players, so
+images need sourcing (and a licensing check) before design starts.
