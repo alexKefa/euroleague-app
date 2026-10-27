@@ -120,12 +120,41 @@ export class AlbumComponent implements OnInit {
 
   readonly sortedTeams = computed(() => [...this.teams()].sort((a, b) => a.name.localeCompare(b.name)));
 
+  // Album Series 2 "Moments" (2026-10-27): Players (series 1, the team
+  // pages) and Moments (series 2, one page per round). The switch only
+  // shows once a moment card exists.
+  readonly series = signal<1 | 2>(1);
+  private readonly seriesOne = computed(() => this.catalog().filter((c) => (c.series ?? 1) === 1));
+  private readonly moments = computed(() => this.catalog().filter((c) => c.series === 2 && c.moment));
+  readonly hasMoments = computed(() => this.moments().length > 0);
+
+  /** Moments grouped by round, newest round first: the MVP plus the top performers. */
+  readonly momentRounds = computed(() => {
+    const owned = this.ownedIds();
+    const byRound = new Map<number, { round: number; mvp: Collectible | null; tops: Collectible[]; owned: number; total: number }>();
+    for (const c of this.moments()) {
+      const round = c.moment!.round;
+      const entry = byRound.get(round) ?? { round, mvp: null, tops: [], owned: 0, total: 0 };
+      if (c.moment!.role === "mvp") entry.mvp = c;
+      else entry.tops.push(c);
+      entry.total++;
+      if (owned.has(c.id)) entry.owned++;
+      byRound.set(round, entry);
+    }
+    for (const e of byRound.values()) e.tops.sort((a, b) => (b.moment!.pir ?? -1) - (a.moment!.pir ?? -1));
+    return [...byRound.values()].sort((a, b) => b.round - a.round);
+  });
+
+  setSeries(series: 1 | 2): void {
+    this.series.set(series);
+  }
+
   readonly selectedTeamId = computed(() => this.routeTeamId());
   readonly selectedTeam = computed(() => this.sortedTeams().find((t) => t.id === this.selectedTeamId()) ?? null);
 
   private readonly catalogByTeam = computed(() => {
     const byTeam = new Map<string, Collectible[]>();
-    for (const c of this.catalog()) {
+    for (const c of this.seriesOne()) {
       const list = byTeam.get(c.team.id) ?? [];
       list.push(c);
       byTeam.set(c.team.id, list);
@@ -171,11 +200,21 @@ export class AlbumComponent implements OnInit {
     }).filter((t) => t.total > 0);
   });
 
-  readonly overallOwnedCount = computed(() => this.ownedIds().size);
+  readonly overallOwnedCount = computed(() => {
+    const owned = this.ownedIds();
+    return this.catalog().filter((c) => owned.has(c.id)).length;
+  });
   readonly overallTotalCount = computed(() => this.catalog().length);
+  // The hero counts the series on screen; the whole album sits underneath
+  // once there is more than one series.
+  readonly seriesOwnedCount = computed(() => {
+    const owned = this.ownedIds();
+    return (this.series() === 1 ? this.seriesOne() : this.moments()).filter((c) => owned.has(c.id)).length;
+  });
+  readonly seriesTotalCount = computed(() => (this.series() === 1 ? this.seriesOne() : this.moments()).length);
   readonly overallPct = computed(() => {
-    const total = this.overallTotalCount();
-    return total > 0 ? Math.round((this.overallOwnedCount() / total) * 100) : 0;
+    const total = this.seriesTotalCount();
+    return total > 0 ? Math.round((this.seriesOwnedCount() / total) * 100) : 0;
   });
 
   // owned/total per team, so every crest in the strip can show its own
@@ -200,7 +239,7 @@ export class AlbumComponent implements OnInit {
   });
 
   readonly previewItem = computed(() => {
-    const item = this.teamSlots().find((c) => c.id === this.previewItemId());
+    const item = this.catalog().find((c) => c.id === this.previewItemId());
     return item ? { ...item, finish: this.finishFor(item) } : null;
   });
 

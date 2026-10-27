@@ -190,9 +190,36 @@
       </div>
       <div class="relative min-w-0">
         <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('album.collected') }}</p>
-        <p class="font-display text-4xl leading-none tabular-nums mt-1">{{ overallOwnedCount() }}<span class="text-muted text-lg"> / {{ overallTotalCount() }}</span></p>
+        <p class="font-display text-4xl leading-none tabular-nums mt-1">{{ seriesOwnedCount() }}<span class="text-muted text-lg"> / {{ seriesTotalCount() }}</span></p>
+        @if (hasMoments()) {
+          <p class="text-xs text-muted mt-1.5 tabular-nums">{{ i18n.t('album.totalLabel') }}: {{ overallOwnedCount() }} / {{ overallTotalCount() }}</p>
+        }
       </div>
     </div>
+
+    <!-- Album Series 2: Players (team pages) / Moments (one page per round). -->
+    @if (hasMoments()) {
+      <div class="status-tile flex gap-1 mb-4 h-11 p-1 rounded-2xl border border-line">
+        <button
+          type="button"
+          (click)="setSeries(1)"
+          class="flex-1 h-full px-3 rounded-xl text-sm font-semibold transition-colors"
+          [ngClass]="series() === 1 ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
+        >
+          {{ i18n.t('album.series.players') }}
+        </button>
+        <button
+          type="button"
+          (click)="setSeries(2)"
+          class="flex-1 h-full px-3 rounded-xl text-sm font-semibold transition-colors"
+          [ngClass]="series() === 2 ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
+        >
+          {{ i18n.t('album.series.moments') }}
+        </button>
+      </div>
+    }
+
+    @if (series() === 1) {
     <!-- team strip — every team shown, even at 0%, so gaps in the whole
          catalog are visible, not just teams the player has already started. -->
     <div class="flex gap-2 overflow-x-auto pb-2 mb-4">
@@ -443,6 +470,69 @@
             <span class="text-[10px] font-semibold text-muted text-center leading-tight truncate w-full">{{ nextTeam.name }}</span>
           }
         </a>
+      </div>
+    }
+    } @else {
+      <!-- Moments: newest round first; the MVP on top, the top performers below. -->
+      <div class="space-y-4">
+        @for (r of momentRounds(); track r.round) {
+          <section class="rounded-3xl border border-line bg-card shadow-card p-4 sm:p-5">
+            <div class="flex items-baseline justify-between mb-3">
+              <h3 class="font-display text-xl">{{ i18n.t('album.moments.round') }} {{ r.round }}</h3>
+              <span class="font-mono text-xs text-muted tabular-nums">{{ r.owned }} / {{ r.total }}</span>
+            </div>
+            @if (r.mvp; as item) {
+              <div class="flex justify-center mb-3">
+                <button
+                  type="button"
+                  (click)="openPreview(item)"
+                  class="w-full max-w-[220px] rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-team-primary"
+                  [attr.aria-label]="i18n.t('album.previewAriaPrefix') + ' ' + item.name"
+                >
+                  <app-collectible-card
+                    [name]="item.name"
+                    [tier]="item.tier"
+                    [teamCode]="item.team.code"
+                    [teamColor]="item.team.primaryColor"
+                    [imageUrl]="item.imageUrl"
+                    [unlocked]="isOwned(item)"
+                    [maxWidth]="220"
+                    [finish]="finishFor(item)"
+                    [momentRound]="item.moment!.round"
+                    [momentRole]="item.moment!.role"
+                    [momentPoints]="item.moment!.points"
+                    [momentPir]="item.moment!.pir"
+                  ></app-collectible-card>
+                </button>
+              </div>
+            }
+            <div class="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3">
+              @for (item of r.tops; track item.id) {
+                <button
+                  type="button"
+                  (click)="openPreview(item)"
+                  class="w-full rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-team-primary"
+                  [attr.aria-label]="i18n.t('album.previewAriaPrefix') + ' ' + item.name"
+                >
+                  <app-collectible-card
+                    [name]="item.name"
+                    [tier]="item.tier"
+                    [teamCode]="item.team.code"
+                    [teamColor]="item.team.primaryColor"
+                    [imageUrl]="item.imageUrl"
+                    [unlocked]="isOwned(item)"
+                    [maxWidth]="130"
+                    [finish]="finishFor(item)"
+                    [momentRound]="item.moment!.round"
+                    [momentRole]="item.moment!.role"
+                    [momentPoints]="item.moment!.points"
+                    [momentPir]="item.moment!.pir"
+                  ></app-collectible-card>
+                </button>
+              }
+            </div>
+          </section>
+        }
       </div>
     }
   }

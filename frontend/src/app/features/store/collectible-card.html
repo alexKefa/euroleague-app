@@ -162,8 +162,10 @@
           <div class="text-[11px] font-extrabold leading-tight truncate" [style.color]="style.nameColor">{{ displayName }}</div>
           <div class="text-[8.5px] font-bold tracking-wide leading-tight" [style.color]="style.metaColor">
             @if (isMoment) {
-              {{ i18n.t('album.moment.roundBadge') }}{{ momentRound }} ·
-            }{{ displayTeamCode }}
+              {{ momentPoints ?? '–' }} PTS · {{ momentPir ?? '–' }} PIR
+            } @else {
+              {{ displayTeamCode }}
+            }
           </div>
         </div>
       }

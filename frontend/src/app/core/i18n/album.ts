@@ -24,5 +24,8 @@ export const albumTranslations: Record<string, Record<Lang, string>> = {
   "album.moment.mvp": { en: "MVP", el: "MVP" },
   "album.moment.top": { en: "Top performer", el: "Κορυφαίος" },
   "album.moments.round": { en: "Round", el: "Αγωνιστική" },
+  "album.series.players": { en: "Players", el: "Παίκτες" },
+  "album.series.moments": { en: "Moments", el: "Στιγμές" },
+  "album.totalLabel": { en: "Total album", el: "Σύνολο άλμπουμ" },
   "album.emptyLeaderboard": { en: "No cards collected yet this season.", el: "Δεν έχουν συλλεχθεί ακόμα κάρτες φέτος." },
 };
