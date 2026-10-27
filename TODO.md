@@ -193,3 +193,15 @@ Best used as a prize, not filler: a hand-picked set of ~10–20 as the reward
 for completing Series 1 (late March for top collectors), or a Final Four
 drop in May. Blocker: the feed only has photos of current roster players, so
 images need sourcing (and a licensing check) before design starts.
+
+## 14. Album Series 2 "Moments" launch steps (added 2026-10-27)
+
+Built and shipped inactive (launch gate 2027-01-01 00:00 Athens; spec
+`docs/superpowers/specs/2026-10-27-album-series-2-moments-design.md`).
+1. Mid-December: `npm run moments:generate -- --dry-run` against production
+   (`--env-file=.env.prod`) and review the first-half lineup with the user.
+2. Jan 1: the hourly job creates the backlog on its own. Publish the
+   "What's new" announcement (EN/EL text in the spec) and check once that
+   cards exist and MVP-moment bonuses are being granted.
+3. Follow-up: pack-opening reveal, trades and inventory show moment cards
+   without their round/stat line (their payloads carry no `moment`).

@@ -84,6 +84,7 @@
  */
 
 import { pointsFor as dailyQuestionPoints } from "../services/dailyQuestion/logic.js";
+import { MOMENTS_PER_ROUND } from "../services/momentsLogic.js";
 
 type Tier = "common" | "rare" | "legendary" | "coach";
 
@@ -91,6 +92,16 @@ type Tier = "common" | "rare" | "legendary" | "coach";
 // against production. It grows with roster syncs, so re-check it with
 // `select tier, count(*) from collectibles group by tier` before trusting a run.
 const CATALOG_SIZE: Record<Tier, number> = { common: 320, rare: 320, legendary: 40, coach: 20 };
+// Album Series 2 "Moments" (2026-10-27, docs/superpowers/specs/2026-10-27-album-series-2-moments-design.md).
+// CATALOG_SIZE grows during a simulated season once moments launch: indices
+// below SERIES1_SIZE are Series 1, the rest Series 2. Reset per user.
+const SERIES1_SIZE: Record<Tier, number> = { ...CATALOG_SIZE };
+const MOMENTS_ENABLED = process.env.SIM_MOMENTS !== "0";
+// Day 1 = season start (~Oct 1); 2027-01-01 is ~day 92.
+const MOMENTS_LAUNCH_DAY = Number(process.env.SIM_MOMENTS_LAUNCH_DAY ?? 92);
+// Chance per round of correctly backing the MVP as top scorer (the other
+// bonus path, a great round, comes from the simulated round itself).
+const BACKED_MVP_RATE = Number(process.env.SIM_BACKED_MVP_RATE ?? 0.1);
 // Common/rare pointsCost, for duplicate sell-back math — mirrors
 // scripts/expand-collectibles.ts. Legendary and coach duplicates never sell
 // (see sellValueFor's comment in routes/packs.ts — both catalogs' pointsCost
@@ -269,6 +280,8 @@ const WELCOME_PACK: PackDef = {
 
 interface UserState {
   owned: Record<Tier, Set<number>>;
+  // Series 1 cards owned per tier (owned also holds Series 2 indices).
+  s1Owned: Record<Tier, number>;
   pity: Record<"common" | "rare", number>;
   eliteBigSlotStreak: number;
   points: number;
@@ -329,7 +342,8 @@ function openPack(state: UserState, pack: PackDef): number {
       for (let i = 0; i < total; i++) {
         if (!state.owned[tier].has(i) && !newlyOwnedThisPack.has(`${tier}:${i}`)) missing.push(i);
       }
-      idx = missing.length > 0 ? missing[Math.floor(Math.random() * missing.length)] : Math.floor(Math.random() * total);
+      const pool = seriesFirst(missing, tier);
+      idx = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : Math.floor(Math.random() * total);
     } else {
       idx = Math.floor(Math.random() * total);
     }
@@ -342,7 +356,7 @@ function openPack(state: UserState, pack: PackDef): number {
     if (wasDuplicate) {
       if (tier !== "legendary" && tier !== "coach") pointsFromDupes += TIER_COST[tier] * SELL_RATE;
     } else {
-      state.owned[tier].add(idx);
+      own(state, tier, idx);
       newlyOwnedThisPack.add(key);
     }
   }
@@ -357,7 +371,35 @@ function grantGuaranteedNewOfTier(state: UserState, tier: Tier): void {
   for (let i = 0; i < total; i++) {
     if (!state.owned[tier].has(i)) missing.push(i);
   }
-  state.owned[tier].add(missing[Math.floor(Math.random() * missing.length)]);
+  const pool = seriesFirst(missing, tier);
+  own(state, tier, pool[Math.floor(Math.random() * pool.length)]);
+}
+
+/** Series 1 first (services/momentsLogic.ts's pickSeriesFirst). */
+function seriesFirst(missing: number[], tier: Tier): number[] {
+  const s1 = missing.filter((i) => i < SERIES1_SIZE[tier]);
+  return s1.length > 0 ? s1 : missing;
+}
+
+function own(state: UserState, tier: Tier, idx: number): void {
+  if (state.owned[tier].has(idx)) return;
+  state.owned[tier].add(idx);
+  if (idx < SERIES1_SIZE[tier]) state.s1Owned[tier]++;
+}
+
+/** The MVP-moment bonus: a specific new Series 2 legendary (approximated as any missing one). */
+function grantNewSeries2Legendary(state: UserState): void {
+  for (let i = SERIES1_SIZE.legendary; i < CATALOG_SIZE.legendary; i++) {
+    if (!state.owned.legendary.has(i)) {
+      own(state, "legendary", i);
+      return;
+    }
+  }
+}
+
+function releaseMomentRounds(rounds: number): void {
+  CATALOG_SIZE.legendary += rounds * MOMENTS_PER_ROUND.legendary;
+  CATALOG_SIZE.rare += rounds * MOMENTS_PER_ROUND.rare;
 }
 
 // "save-for-elite" (2026-09-22, "explore retuning" pass) — models a
@@ -403,6 +445,8 @@ function spendLoop(state: UserState, policy: SpendPolicy): void {
 interface SimResult {
   purchasableCompleteDay: number | null;
   fullCompleteDay: number | null;
+  series1CompleteDay: number | null;
+  albumSizeAtEnd: number;
   albumCountAtDay7: number;
   coachCountAtDay30: number;
   albumCountAtEnd: number;
@@ -431,8 +475,10 @@ interface SimResult {
 const ROUND_DAY = Array.from({ length: ROUNDS }, (_, i) => Math.round(((i + 1) * SEASON_DAYS) / ROUNDS));
 
 function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPolicy): SimResult {
+  Object.assign(CATALOG_SIZE, SERIES1_SIZE);
   const state: UserState = {
     owned: { common: new Set(), rare: new Set(), legendary: new Set(), coach: new Set() },
+    s1Owned: { common: 0, rare: 0, legendary: 0, coach: 0 },
     pity: { common: 0, rare: 0 },
     eliteBigSlotStreak: 0,
     points: REGISTRATION_BONUS,
@@ -456,6 +502,9 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
   let cumulativeCorrect = 0;
   let purchasableCompleteDay: number | null = null;
   let fullCompleteDay: number | null = null;
+  let series1CompleteDay: number | null = null;
+  // Moments: bonus eligibility of rounds played before launch, granted at launch.
+  const backlogBonus: boolean[] = [];
   let nextRound = 0;
   let albumCountAtDay7 = 0;
   let coachCountAtDay30 = 0;
@@ -468,6 +517,8 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
   const isPurchasableComplete = () => state.owned.common.size === CATALOG_SIZE.common && state.owned.rare.size === CATALOG_SIZE.rare;
   const isFullComplete = () =>
     isPurchasableComplete() && state.owned.legendary.size === CATALOG_SIZE.legendary && state.owned.coach.size === CATALOG_SIZE.coach;
+  const isSeries1Complete = () =>
+    (Object.keys(SERIES1_SIZE) as Tier[]).every((t) => state.s1Owned[t] >= SERIES1_SIZE[t]);
 
   // Registers one correct pick (win/loss OR top-scorer — "fix everything"
   // pass, 2026-09-21, see this file's header comment) toward the shared
@@ -507,6 +558,11 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
   }
 
   for (let day = 1; day <= SEASON_DAYS; day++) {
+    if (MOMENTS_ENABLED && day === MOMENTS_LAUNCH_DAY) {
+      // Launch: the first half's moments at once, plus their bonuses.
+      releaseMomentRounds(backlogBonus.length);
+      for (const earned of backlogBonus) if (earned) grantNewSeries2Legendary(state);
+    }
     if (nextRound < ROUNDS && ROUND_DAY[nextRound] === day) {
       let correctThisRound = 0;
       for (let g = 0; g < GAMES_PER_ROUND; g++) {
@@ -565,6 +621,15 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
           grantGuaranteedNewOfTier(state, "rare");
         }
       }
+      if (MOMENTS_ENABLED) {
+        const earned = correctThisRound >= GREAT_ROUND_THRESHOLD || Math.random() < BACKED_MVP_RATE;
+        if (day >= MOMENTS_LAUNCH_DAY) {
+          releaseMomentRounds(1);
+          if (earned) grantNewSeries2Legendary(state);
+        } else {
+          backlogBonus.push(earned);
+        }
+      }
       nextRound++;
       spendLoop(state, policy);
     }
@@ -602,7 +667,8 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
     }
 
     if (purchasableCompleteDay === null && isPurchasableComplete()) purchasableCompleteDay = day;
-    if (fullCompleteDay === null && isFullComplete()) fullCompleteDay = day;
+    if (fullCompleteDay === null && isFullComplete() && (!MOMENTS_ENABLED || day >= MOMENTS_LAUNCH_DAY)) fullCompleteDay = day;
+    if (series1CompleteDay === null && isSeries1Complete()) series1CompleteDay = day;
     if (day === 7) albumCountAtDay7 = albumCount();
     if (day === 30) coachCountAtDay30 = state.owned.coach.size;
   }
@@ -610,6 +676,8 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
   return {
     purchasableCompleteDay,
     fullCompleteDay,
+    series1CompleteDay,
+    albumSizeAtEnd: CATALOG_SIZE.common + CATALOG_SIZE.rare + CATALOG_SIZE.legendary + CATALOG_SIZE.coach,
     albumCountAtDay7,
     coachCountAtDay30,
     albumCountAtEnd: albumCount(),
@@ -652,7 +720,9 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
   const avgAlbumDay7 = results.reduce((s, r) => s + r.albumCountAtDay7, 0) / n;
   const avgCoachDay30 = results.reduce((s, r) => s + r.coachCountAtDay30, 0) / n;
   const avgAlbumEnd = results.reduce((s, r) => s + r.albumCountAtEnd, 0) / n;
-  const albumSize = CATALOG_SIZE.common + CATALOG_SIZE.rare + CATALOG_SIZE.legendary + CATALOG_SIZE.coach;
+  const albumSize = results[0]?.albumSizeAtEnd ?? 0;
+  const s1Days = results.map((r) => r.series1CompleteDay).filter((d): d is number => d !== null).sort((a, b) => a - b);
+  const pctSeries1 = (s1Days.length / n) * 100;
   const avgCommonAtEnd = results.reduce((s, r) => s + r.commonCountAtEnd, 0) / n;
   const avgRareAtEnd = results.reduce((s, r) => s + r.rareCountAtEnd, 0) / n;
   const avgLegendaryAtEnd = results.reduce((s, r) => s + r.legendaryCountAtEnd, 0) / n;
@@ -702,7 +772,10 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
       (FANTASY_COACH_TRACK > 0 ? ` | fantasy coach cards: ${avgFantasyCoachCards.toFixed(1)}` : "") +
       (FANTASY_CAPTAIN_TRACK > 0 ? ` | fantasy captain rares: ${avgFantasyCaptainCards.toFixed(1)}` : "") +
       (packsSummary ? ` | avg packs bought (incl. re-spent dupe refunds): ${packsSummary}` : "") +
-      ` | avg idle pts: ${avgEndPoints.toFixed(0)}`
+      ` | avg idle pts: ${avgEndPoints.toFixed(0)}` +
+      (MOMENTS_ENABLED
+        ? ` | Series 1 done: ${pctSeries1.toFixed(0)}%${s1Days.length ? ` (median day ${percentile(s1Days, 0.5)})` : ""} | album size at end: ${albumSize}`
+        : "")
   );
 }
 

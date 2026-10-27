@@ -41,27 +41,18 @@ interface PackDefinition {
   purchasable?: boolean;
 }
 
-// --- "Album completable in a season" pass (2026-08-25) ---
-// The album (frontend/src/app/features/album/) is the full 208-common /
-// 208-rare / 22-legendary catalog. Simulating the real pity mechanics
-// (services/packs.ts's PITY_THRESHOLD) against that catalog size found
-// collecting every rare takes ~381 dedicated rare-tier pulls on average
-// (random-draw-with-pity needs ~1.8x the raw card count, not 1x) — the old
-// odds below only produced ~125 rare pulls across a ~210-day season even
-// from the free wheel alone, common+rare never finished. Two changes fixed
-// it: every purchasable pack gained a 4th and 5th slot (still worth well
-// under its points cost worst-case — see each pack's own comment — so the
-// original common-heavy-exploit concern below still holds), and
-// wheelStarter/wheelPro (routes/spin.ts's free daily pack) stopped
-// mirroring their purchasable counterparts 1:1 and went to *guaranteed*
-// rare slots instead, since a free pack has no worst-case-EV ceiling to
-// protect. Re-simulated result: a 70%-accuracy predictor who also spends
-// their points on Regular Season packs finishes the full album (commons +
-// rares + all 22 legendaries) in ~93% of simulated seasons, averaging day
-// ~178 of a ~210-day season — and the completion rate barely drops even at
-// 50% prediction accuracy, since the free wheel (not predicted points) now
-// carries most of the load. Predicting well still buys packs faster, it's
-// just no longer the only way to finish the album.
+// --- Album pacing (rewritten 2026-10-27) ---
+// The 2026-08-25 "completable in a season" numbers that used to live here
+// described a 438-card album and older pack shapes. Today the album is
+// 320 common / 320 rare / 40 legendary / 20 coach (Series 1), plus Series 2
+// "Moments" from 2027-01-01 (6 cards per round, services/moments.ts), and
+// guaranteed-new pulls fill Series 1 gaps first. Album completion is the
+// main progress track, so pacing is tuned so nobody finishes the full
+// album in a season while Series 1 stays finishable late in the season.
+// Re-run `npm run economy:simulate` after any odds/slot/price change; the
+// rationale and projections are in
+// docs/superpowers/specs/2026-10-27-album-series-2-moments-design.md.
+
 // Shared by the store packs and their reward-pack twins (wheelStarter /
 // wheelPro), so a pack of a given kind always has the same contents.
 // 2026-10-01 ("it's a mini game"): small, cheap packs, and the Jump Ball
