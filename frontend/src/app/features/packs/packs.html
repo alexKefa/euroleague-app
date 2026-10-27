@@ -283,6 +283,10 @@
                       [unlocked]="true"
                       [maxWidth]="cardSize()"
                       [finish]="c.collectible.finish ?? 'standard'"
+                      [momentRound]="c.collectible.moment?.round ?? null"
+                      [momentRole]="c.collectible.moment?.role ?? null"
+                      [momentPoints]="c.collectible.moment?.points ?? null"
+                      [momentPir]="c.collectible.moment?.pir ?? null"
                     ></app-collectible-card>
                     @if (isBigPull(c)) {
                       <span class="flip-flash" [class.flip-flash--foil]="isFoilCard(c)"></span>
@@ -350,6 +354,10 @@
                   [unlocked]="true"
                   [maxWidth]="48"
                   [finish]="c.collectible.finish ?? 'standard'"
+                  [momentRound]="c.collectible.moment?.round ?? null"
+                  [momentRole]="c.collectible.moment?.role ?? null"
+                  [momentPoints]="c.collectible.moment?.points ?? null"
+                  [momentPir]="c.collectible.moment?.pir ?? null"
                 ></app-collectible-card>
               </div>
             }
@@ -374,6 +382,10 @@
                 [unlocked]="true"
                 [maxWidth]="summaryCardSize()"
                 [finish]="card.collectible.finish ?? 'standard'"
+                [momentRound]="card.collectible.moment?.round ?? null"
+                [momentRole]="card.collectible.moment?.role ?? null"
+                [momentPoints]="card.collectible.moment?.points ?? null"
+                [momentPir]="card.collectible.moment?.pir ?? null"
               ></app-collectible-card>
               @if (!card.wasDuplicate) {
                 <span class="absolute top-1.5 left-1.5 z-10 px-1.5 py-0.5 rounded-md bg-team-primary text-team-secondary text-[10px] font-bold uppercase tracking-wide shadow-sm">{{ i18n.t('packs.newRibbon') }}</span>

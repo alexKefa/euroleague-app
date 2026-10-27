@@ -29,4 +29,9 @@ export class CardStackComponent {
   @Input() jerseyNumber: number | null = null;
   @Input() pointsPerGame: number | null = null;
   @Input() showTierBadge = true;
+  // Album Series 2 moments, passed straight to the card.
+  @Input() momentRound: number | null = null;
+  @Input() momentRole: "mvp" | "top" | null = null;
+  @Input() momentPoints: number | null = null;
+  @Input() momentPir: number | null = null;
 }

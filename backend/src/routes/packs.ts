@@ -5,7 +5,7 @@ import { userCollectibles, pointAdjustments, packOpenings, packOpeningResults, o
 import { requireAuth } from "../auth/middleware.js";
 import { getUserPoints, lockUserPoints } from "../services/points.js";
 import { PACKS, PackType, RolledSlot, PityState, rollPackForUser } from "../services/packs.js";
-import { checkAndGrantMomentBonuses } from "../services/moments.js";
+import { checkAndGrantMomentBonuses, momentsFor } from "../services/moments.js";
 import { getUnopenedPacksWithSource } from "../services/packSources.js";
 import { checkAndGrantFirstPicksReward } from "../services/firstPicks.js";
 import {
@@ -171,6 +171,9 @@ packsRouter.post("/:type/open", requireAuth, async (req, res) => {
         )
         .returning();
 
+      // Album Series 2: moment cards show their round + stat line in the reveal.
+      // No query unless the pack actually holds a moment.
+      const moments = await momentsFor(slots.filter((sl) => sl.collectible.series === 2).map((sl) => sl.collectible.id));
       const results = slots.map(({ collectible, team, wasDuplicate, finish }, i) => ({
         resultId: insertedResults[i].id,
         collectible: {
@@ -181,6 +184,7 @@ packsRouter.post("/:type/open", requireAuth, async (req, res) => {
           imageUrl: collectible.imageUrl,
           team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor, logoUrl: team.logoUrl },
           finish,
+          moment: moments.get(collectible.id) ?? null,
         },
         wasDuplicate,
         sellValue: sellValues[i],
@@ -365,6 +369,9 @@ packsRouter.post("/owned/:id/open", requireAuth, async (req, res) => {
         )
         .returning();
 
+      // Album Series 2: moment cards show their round + stat line in the reveal.
+      // No query unless the pack actually holds a moment.
+      const moments = await momentsFor(slots.filter((sl) => sl.collectible.series === 2).map((sl) => sl.collectible.id));
       const results = slots.map(({ collectible, team, wasDuplicate, finish }, i) => ({
         resultId: insertedResults[i].id,
         collectible: {
@@ -375,6 +382,7 @@ packsRouter.post("/owned/:id/open", requireAuth, async (req, res) => {
           imageUrl: collectible.imageUrl,
           team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor, logoUrl: team.logoUrl },
           finish,
+          moment: moments.get(collectible.id) ?? null,
         },
         wasDuplicate,
         sellValue: sellValues[i],

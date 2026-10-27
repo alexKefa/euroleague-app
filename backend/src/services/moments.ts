@@ -290,3 +290,19 @@ export async function momentRoundsFor(ids: string[]): Promise<Map<string, number
 export function momentCardName(name: string, round: number | undefined): string {
   return round === undefined ? name : `${name} · R${round} MVP`;
 }
+
+export interface MomentSummary {
+  round: number;
+  role: MomentRole;
+  points: number | null;
+  pir: number | null;
+}
+
+/** collectibleId -> what the card face needs, for the moment cards among `ids` (pack reveal; one query). */
+export async function momentsFor(ids: string[]): Promise<Map<string, MomentSummary>> {
+  if (ids.length === 0) return new Map();
+  const rows = await db.execute<{ collectible_id: string; round: number; role: MomentRole; points: number | null; pir: number | null }>(sql`
+    select collectible_id, round, role, points, pir from collectible_moments
+    where collectible_id in (${sql.join(ids.map((id) => sql`${id}`), sql`, `)})`);
+  return new Map(rows.map((r) => [r.collectible_id, { round: r.round, role: r.role, points: r.points, pir: r.pir }]));
+}

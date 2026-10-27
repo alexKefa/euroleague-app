@@ -203,5 +203,3 @@ Built and shipped inactive (launch gate 2027-01-01 00:00 Athens; spec
 2. Jan 1: the hourly job creates the backlog on its own. Publish the
    "What's new" announcement (EN/EL text in the spec) and check once that
    cards exist and MVP-moment bonuses are being granted.
-3. Follow-up: pack-opening reveal, trades and inventory show moment cards
-   without their round/stat line (their payloads carry no `moment`).

@@ -12,7 +12,7 @@ import { cached, CACHE_KEYS } from "../services/responseCache.js";
 import { buildCatalogPayload } from "../routes/collectibles.js";
 import { rollPackForUser } from "../services/packs.js";
 import { grantGuaranteedNewCollectible } from "../services/cards.js";
-import { checkAndGrantMomentBonuses, markMomentBonusesSeen, momentRoundsFor, momentCardName } from "../services/moments.js";
+import { checkAndGrantMomentBonuses, markMomentBonusesSeen, momentRoundsFor, momentCardName, momentsFor } from "../services/moments.js";
 import { computeTopScorerPlayerIdsForGames } from "../services/topScorerPoints.js";
 import { getAlbumLeaderboardEntries } from "../services/albumLeaderboard.js";
 import { hasLegendaryCollectible } from "../routes/legendaryPolls.js";
@@ -302,6 +302,16 @@ check("trade cards: an MVP moment is labelled with its round, a Series 1 legenda
   assert.equal(momentCardName("Kendrick Nunn", rounds.get(mvp.id)), `Kendrick Nunn · R${mvp.round} MVP`);
   assert.equal(momentCardName("Kendrick Nunn", rounds.get(s1.id)), "Kendrick Nunn");
   assert.equal((await momentRoundsFor([])).size, 0);
+});
+
+check("pack reveal: momentsFor returns the card's round, role and stat line", async () => {
+  const top = await one<{ id: string; round: number; points: number; pir: number }>(sql`
+    select collectible_id as id, round, points, pir from collectible_moments where role = 'top' order by round limit 1`);
+  const s1 = await one<{ id: string }>(sql`select id from collectibles where series = 1 limit 1`);
+  const got = await momentsFor([top.id, s1.id]);
+  assert.deepEqual(got.get(top.id), { round: top.round, role: "top", points: top.points, pir: top.pir });
+  assert.equal(got.has(s1.id), false);
+  assert.equal((await momentsFor([])).size, 0);
 });
 
 let failed = 0;

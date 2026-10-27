@@ -772,13 +772,15 @@ export interface CollectibleMoment {
   role: MomentRole;
   points: number | null;
   pir: number | null;
-  rebounds: number | null;
-  assists: number | null;
-  minutes: number | null;
-  gameId: string;
-  gameDate: string | null;
-  score: { home: number | null; away: number | null; isHome: boolean } | null;
-  opponent: { id: string; code: string; name: string } | null;
+  // The rest is only on the full catalog (GET /api/collectibles); the pack
+  // reveal sends just round/role/points/pir.
+  rebounds?: number | null;
+  assists?: number | null;
+  minutes?: number | null;
+  gameId?: string;
+  gameDate?: string | null;
+  score?: { home: number | null; away: number | null; isHome: boolean } | null;
+  opponent?: { id: string; code: string; name: string } | null;
 }
 
 // A single tier's card within a bundle — same shape as Collectible minus
@@ -796,6 +798,8 @@ export interface CollectibleBundleCard {
   serialTotal?: number;
   jerseyNumber?: number | null;
   pointsPerGame?: number | null;
+  // Album Series 2: a moment card is its own bundle (see inventory.ts).
+  moment?: CollectibleMoment | null;
 }
 
 // One player's common/rare/legendary cards grouped together — `cards` holds

@@ -169,7 +169,9 @@ export class InventoryComponent implements OnInit, OnDestroy {
     const order: string[] = [];
     const tierRank: Record<CollectibleTier, number> = { common: 0, rare: 1, legendary: 2, coach: 3 };
     for (const c of this.allCollectibles()) {
-      const key = `${c.team.id}|${c.name}`;
+      // A moment shares its player's name, team and tier, so it gets its own
+      // bundle instead of colliding with the player's Series 1 card.
+      const key = c.moment ? `${c.team.id}|${c.name}|R${c.moment.round}` : `${c.team.id}|${c.name}`;
       let bundle = byKey.get(key);
       if (!bundle) {
         bundle = { name: c.name, team: c.team, cards: [] };

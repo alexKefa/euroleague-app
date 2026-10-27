@@ -208,6 +208,10 @@
               [unlocked]="true"
               [maxWidth]="84"
               [finish]="finishFor(card)"
+              [momentRound]="card.moment?.round ?? null"
+              [momentRole]="card.moment?.role ?? null"
+              [momentPoints]="card.moment?.points ?? null"
+              [momentPir]="card.moment?.pir ?? null"
             ></app-collectible-card>
           </button>
         }
@@ -303,6 +307,10 @@
                 [jerseyNumber]="frontCard(bundle).jerseyNumber ?? null"
                 [pointsPerGame]="frontCard(bundle).pointsPerGame ?? null"
                 [showTierBadge]="!tierFilter()"
+                [momentRound]="frontCard(bundle).moment?.round ?? null"
+                [momentRole]="frontCard(bundle).moment?.role ?? null"
+                [momentPoints]="frontCard(bundle).moment?.points ?? null"
+                [momentPir]="frontCard(bundle).moment?.pir ?? null"
               ></app-card-stack>
             </button>
 
