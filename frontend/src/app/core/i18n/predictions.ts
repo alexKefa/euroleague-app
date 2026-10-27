@@ -3,7 +3,9 @@ import { Lang } from "./lang";
 export const predictionsTranslations: Record<string, Record<Lang, string>> = {
   // Leaderboard page (features/leaderboard, 2026-10-02).
   "leaderboard.title": { en: "Leaderboard", el: "Κατάταξη" },
-  "leaderboard.subtitle": { en: "Who's calling the games best, overall, by round, and in your leagues.", el: "Ποιος προβλέπει καλύτερα, συνολικά, ανά γύρο και στις λίγκες σου." },
+  "leaderboard.subtitle": { en: "Who's closest to completing the album, and who's calling the games best.", el: "Ποιος είναι πιο κοντά στο να ολοκληρώσει το άλμπουμ και ποιος προβλέπει καλύτερα." },
+  "leaderboard.album": { en: "Album", el: "Άλμπουμ" },
+  "leaderboard.cards": { en: "cards", el: "κάρτες" },
   "leaderboard.overall": { en: "Overall", el: "Συνολικά" },
   "leaderboard.round": { en: "Round", el: "Γύρος" },
   "leaderboard.leagues": { en: "My leagues", el: "Οι λίγκες μου" },

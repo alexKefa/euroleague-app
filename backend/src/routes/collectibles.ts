@@ -368,9 +368,11 @@ collectiblesRouter.get("/teams", async (_req, res) => {
 // GET /leagues/:id/album-leaderboard (routes/leagues.ts), sharing
 // getAlbumLeaderboardEntries the same way the points/fantasy leaderboards
 // are already shared between their own global/league-scoped routes.
-collectiblesRouter.get("/leaderboard", async (_req, res) => {
+// `?all=1` returns every collector (the Leaderboard page's Album tab, so the
+// viewer's own pinned position works outside the top 20).
+collectiblesRouter.get("/leaderboard", async (req, res) => {
   try {
-    const entries = await getAlbumLeaderboardEntries({ limit: 20 });
+    const entries = await getAlbumLeaderboardEntries(req.query.all === "1" ? {} : { limit: 20 });
     res.json(entries);
   } catch (err) {
     console.error("GET /api/collectibles/leaderboard failed:", err);

@@ -12,22 +12,24 @@ import { SkeletonComponent } from "../../shared/skeleton";
 import { rankBadgeClasses } from "../../shared/rank-badge";
 import { roundLabel } from "../../shared/round-label";
 
-type Tab = "overall" | "round" | "league";
+type Tab = "album" | "overall" | "round" | "league";
 
-// One row shape for all three boards (overall, a round, a league).
+// One row shape for every board. `value` is the headline number (points, or
+// album completion %), `detail` the small line under it (correct/total picks,
+// or owned/total cards).
 interface BoardRow {
   userId: string;
   name: string;
-  correct: number;
-  total: number;
-  points: number;
+  value: string;
+  detail: string;
 }
 
 /**
  * Leaderboard page (2026-10-02). Until now the only board was a capped
  * five-row widget on Predictions. Overall, per-round and per-league boards,
  * a podium for the top three, and the viewer's own position pinned at the
- * bottom with a jump-to-row.
+ * bottom with a jump-to-row. Album completion (2026-10-27) is the first and
+ * default tab: it's the app's main progress track.
  */
 @Component({
   selector: "app-leaderboard",
@@ -41,7 +43,7 @@ export class LeaderboardComponent implements OnInit {
   protected i18n = inject(I18nService);
   protected readonly rankBadgeClasses = rankBadgeClasses;
 
-  readonly tab = signal<Tab>("overall");
+  readonly tab = signal<Tab>("album");
   readonly loading = signal(true);
   readonly rows = signal<BoardRow[]>([]);
 
@@ -104,33 +106,49 @@ export class LeaderboardComponent implements OnInit {
     this.load();
   }
 
+  // Bumped on every load so a slow response from a previous tab can't
+  // overwrite the current one.
+  private loadSeq = 0;
+
   private load(): void {
     this.loading.set(true);
+    const seq = ++this.loadSeq;
     const done = (rows: BoardRow[]) => {
+      if (seq !== this.loadSeq) return;
       this.rows.set(rows);
       this.loading.set(false);
     };
     const fail = () => done([]);
+    const pts = (r: { userId: string; displayName: string; correct: number; total: number; points: number }): BoardRow => ({
+      userId: r.userId,
+      name: r.displayName,
+      value: `${r.points} ${this.i18n.t("predictions.pts")}`,
+      detail: `${r.correct}/${r.total}`,
+    });
     const tab = this.tab();
-    if (tab === "overall") {
-      this.api.getLeaderboard(true).subscribe({
-        next: (rows) => done(rows.map((r) => ({ userId: r.userId, name: r.displayName, correct: r.correct, total: r.total, points: r.points }))),
+    if (tab === "album") {
+      this.api.getAlbumLeaderboard(true).subscribe({
+        next: (rows) =>
+          done(
+            rows.map((r) => ({
+              userId: r.userId,
+              name: r.displayName,
+              value: `${Math.floor(r.completion * 1000) / 10}%`,
+              detail: `${r.ownedCount}/${r.totalCount} ${this.i18n.t("leaderboard.cards")}`,
+            }))
+          ),
         error: fail,
       });
+    } else if (tab === "overall") {
+      this.api.getLeaderboard(true).subscribe({ next: (rows) => done(rows.map(pts)), error: fail });
     } else if (tab === "round") {
       const round = this.round();
       if (round === null) return done([]);
-      this.api.getRoundLeaderboard(round).subscribe({
-        next: (rows) => done(rows.map((r) => ({ userId: r.userId, name: r.displayName, correct: r.correct, total: r.total, points: r.points }))),
-        error: fail,
-      });
+      this.api.getRoundLeaderboard(round).subscribe({ next: (rows) => done(rows.map(pts)), error: fail });
     } else {
       const id = this.leagueId();
       if (!id) return done([]);
-      this.api.getLeagueLeaderboard(id).subscribe({
-        next: (rows) => done(rows.map((r) => ({ userId: r.userId, name: r.displayName, correct: r.correct, total: r.total, points: r.points }))),
-        error: fail,
-      });
+      this.api.getLeagueLeaderboard(id).subscribe({ next: (rows) => done(rows.map(pts)), error: fail });
     }
   }
 

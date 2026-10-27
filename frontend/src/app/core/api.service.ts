@@ -758,8 +758,10 @@ export class ApiService {
     return this.http.get<FantasyLeaderboardEntry[]>(`${API_BASE_URL}/leagues/${leagueId}/fantasy-leaderboard`);
   }
 
-  getAlbumLeaderboard(): Observable<AlbumLeaderboardEntry[]> {
-    return this.http.get<AlbumLeaderboardEntry[]>(`${API_BASE_URL}/collectibles/leaderboard`);
+  getAlbumLeaderboard(all = false): Observable<AlbumLeaderboardEntry[]> {
+    return this.http.get<AlbumLeaderboardEntry[]>(`${API_BASE_URL}/collectibles/leaderboard`, {
+      params: all ? { all: "1" } : {},
+    });
   }
 
   getLeagueAlbumLeaderboard(leagueId: string): Observable<AlbumLeaderboardEntry[]> {

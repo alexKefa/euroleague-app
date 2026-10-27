@@ -3,14 +3,17 @@
 
   <!-- Board switcher -->
   <div class="status-tile flex gap-1 mb-3 h-11 p-1 rounded-2xl border border-line">
-    <button type="button" (click)="setTab('overall')" [ngClass]="tabClass('overall')" class="flex-1 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors">
+    <button type="button" (click)="setTab('album')" [ngClass]="tabClass('album')" class="flex-1 h-full px-2 sm:px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors">
+      {{ i18n.t('leaderboard.album') }}
+    </button>
+    <button type="button" (click)="setTab('overall')" [ngClass]="tabClass('overall')" class="flex-1 h-full px-2 sm:px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors">
       {{ i18n.t('leaderboard.overall') }}
     </button>
-    <button type="button" (click)="setTab('round')" [ngClass]="tabClass('round')" class="flex-1 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors">
+    <button type="button" (click)="setTab('round')" [ngClass]="tabClass('round')" class="flex-1 h-full px-2 sm:px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors">
       {{ i18n.t('leaderboard.round') }}
     </button>
     @if (auth.isAuthenticated()) {
-      <button type="button" (click)="setTab('league')" [ngClass]="tabClass('league')" class="flex-1 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors">
+      <button type="button" (click)="setTab('league')" [ngClass]="tabClass('league')" class="flex-1 h-full px-2 sm:px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors">
         {{ i18n.t('leaderboard.leagues') }}
       </button>
     }
@@ -71,8 +74,8 @@
               >{{ initial(slot.row.name) }}</span
             >
             <p class="relative font-semibold text-[13px] truncate w-full mt-2">{{ slot.row.name }}</p>
-            <p class="relative font-display text-lg leading-tight tabular-nums" [class.text-team-primary]="slot.place === 1">{{ slot.row.points }}</p>
-            <p class="relative font-mono text-[10px] text-muted">{{ slot.row.correct }}/{{ slot.row.total }}</p>
+            <p class="relative font-display text-lg leading-tight tabular-nums" [class.text-team-primary]="slot.place === 1">{{ slot.row.value }}</p>
+            <p class="relative font-mono text-[10px] text-muted">{{ slot.row.detail }}</p>
           </div>
         }
       </div>
@@ -88,9 +91,9 @@
           <span class="w-8 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0" [class]="rankBadgeClasses(i + podium().length)">{{ i + podium().length + 1 }}</span>
           <span class="min-w-0 flex-1">
             <span class="block font-semibold truncate">{{ row.name }}</span>
-            <span class="block font-mono text-[11px] text-muted">{{ row.correct }}/{{ row.total }}</span>
+            <span class="block font-mono text-[11px] text-muted">{{ row.detail }}</span>
           </span>
-          <span class="value-chip">{{ row.points }} {{ i18n.t('predictions.pts') }}</span>
+          <span class="value-chip">{{ row.value }}</span>
         </div>
       }
     </div>
@@ -108,7 +111,7 @@
       <span class="font-display text-xl tabular-nums text-team-primary">#{{ m.rank }}</span>
       <span class="min-w-0 flex-1">
         <span class="block text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('leaderboard.you') }}</span>
-        <span class="block text-sm font-semibold truncate">{{ m.row.points }} {{ i18n.t('predictions.pts') }} · {{ m.row.correct }}/{{ m.row.total }}</span>
+        <span class="block text-sm font-semibold truncate">{{ m.row.value }} · {{ m.row.detail }}</span>
       </span>
       <span class="text-[12px] font-semibold text-team-primary">{{ i18n.t('leaderboard.showMe') }}</span>
     </button>
