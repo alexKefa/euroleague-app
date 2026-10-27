@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { collectibles, teams, userCollectibles, pityCounters } from "../db/schema.js";
+import { pickSeriesFirst } from "./momentsLogic.js";
 
 export type Tier = "common" | "rare" | "legendary" | "coach";
 export type PackType =
@@ -451,7 +452,9 @@ export async function rollPackForUser(
       const missing = pool.filter((c) => !preOwnedIds.has(c.collectible.id) && !newlyOwnedIds.has(c.collectible.id));
       // If the tier is somehow fully owned already, there's nothing left to
       // force — fall back to a normal roll (it'll just read as a dupe).
-      picked = missing.length > 0 ? rollCard(missing) : rollCard(pool);
+      // Series 1 first (album Series 2, 2026-10-27): a guaranteed-new pull
+      // fills Series 1 gaps before landing on a Series 2 moment.
+      picked = missing.length > 0 ? rollCard(pickSeriesFirst(missing, (c) => c.collectible.series)) : rollCard(pool);
     } else {
       picked = rollCard(pool);
     }

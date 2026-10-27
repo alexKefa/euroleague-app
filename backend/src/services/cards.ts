@@ -16,6 +16,7 @@ import {
   userCollectibles,
   teams,
 } from "../db/schema.js";
+import { pickSeriesFirst } from "./momentsLogic.js";
 
 // A round with this many correct picks (out of GAMES_PER_ROUND, but short of
 // literally perfect) grants a bonus rare — see the branch in
@@ -465,15 +466,18 @@ export const RARE_MILESTONE_INTERVAL = 2;
  * rolled here on purpose: finish is a legendary-only flourish (see
  * CollectibleFinish's doc comment), and this never grants a legendary.
  */
-async function grantGuaranteedNewCollectible(userId: string, tier: "rare"): Promise<string> {
+export async function grantGuaranteedNewCollectible(userId: string, tier: "rare"): Promise<string> {
   const rows = await db
-    .select({ id: collectibles.id, ownedCollectibleId: userCollectibles.collectibleId })
+    .select({ id: collectibles.id, series: collectibles.series, ownedCollectibleId: userCollectibles.collectibleId })
     .from(collectibles)
     .leftJoin(userCollectibles, and(eq(userCollectibles.collectibleId, collectibles.id), eq(userCollectibles.userId, userId)))
     .where(eq(collectibles.tier, tier));
 
-  const owned = new Set(rows.filter((r) => r.ownedCollectibleId).map((r) => r.id));
-  const missing = rows.map((r) => r.id).filter((id) => !owned.has(id));
+  // Series 1 first (album Series 2, 2026-10-27), same rule as rollPackForUser's forced pulls.
+  const missing = pickSeriesFirst(
+    rows.filter((r) => !r.ownedCollectibleId),
+    (r) => r.series
+  ).map((r) => r.id);
   const pool = missing.length > 0 ? missing : rows.map((r) => r.id);
   const collectibleId = pool[Math.floor(Math.random() * pool.length)];
 

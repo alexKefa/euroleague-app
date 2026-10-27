@@ -10,6 +10,8 @@ import { db } from "../db/client.js";
 import { generateMomentsForReadyRounds } from "../services/moments.js";
 import { cached, CACHE_KEYS } from "../services/responseCache.js";
 import { buildCatalogPayload } from "../routes/collectibles.js";
+import { rollPackForUser } from "../services/packs.js";
+import { grantGuaranteedNewCollectible } from "../services/cards.js";
 
 if (!(process.env.DATABASE_URL ?? "").includes("ep-sparkling-pond")) throw new Error("refusing to run outside the dev database");
 
@@ -17,7 +19,32 @@ type Row = Record<string, unknown>;
 const one = async <T extends Row>(q: ReturnType<typeof sql>) => (await db.execute<T>(q))[0];
 const count = async (q: ReturnType<typeof sql>) => (await one<{ n: number }>(q)).n;
 
+// Throwaway users, deleted (with everything they own) in cleanup().
+const ts = Date.now();
+const userIds: string[] = [];
+async function mkUser(tag: string): Promise<string> {
+  const u = await one<{ id: string }>(sql`
+    insert into users (email, username, password_hash, referral_code)
+    values (${`check-mom-${tag}-${ts}@dev.invalid`}, ${`check-mom-${tag}-${ts}`}, 'x', ${`m${String(ts).slice(-7)}${userIds.length}`})
+    returning id`);
+  userIds.push(u.id);
+  return u.id;
+}
+/** Gives the user every card of `tier` in `series` except `exceptId`. */
+async function ownAllBut(userId: string, tier: string, series: number, exceptId: string | null) {
+  await db.execute(sql`
+    insert into user_collectibles (user_id, collectible_id)
+    select ${userId}, id from collectibles where tier = ${tier} and series = ${series}
+      and (${exceptId}::uuid is null or id <> ${exceptId}::uuid)
+    on conflict do nothing`);
+}
+
 async function cleanup() {
+  for (const id of userIds) {
+    await db.execute(sql`delete from moment_bonuses where user_id = ${id}`);
+    await db.execute(sql`delete from user_collectibles where user_id = ${id}`);
+    await db.execute(sql`delete from users where id = ${id}`);
+  }
   await db.execute(sql`delete from moment_bonuses where collectible_id in (select id from collectibles where series = 2)`);
   await db.execute(sql`delete from user_collectibles where collectible_id in (select id from collectibles where series = 2)`);
   await db.execute(sql`delete from collectible_moments`);
@@ -68,6 +95,32 @@ check("the MVP is the round's highest PIR line and names are display names", asy
     where m.role = 'mvp' order by m.round limit 1`);
   assert.equal(r.pir, r.best);
   assert.ok(!r.name.includes(","), `raw feed name on card: ${r.name}`);
+});
+
+// --- Task 4: Series 1 first for guaranteed-new pulls
+check("forced legendary pulls fill the last Series 1 gap before any Series 2", async () => {
+  const user = await mkUser("s1first");
+  const missing = await one<{ id: string }>(sql`select id from collectibles where tier = 'legendary' and series = 1 order by id limit 1`);
+  await ownAllBut(user, "legendary", 1, missing.id);
+  for (let i = 0; i < 20; i++) {
+    const { slots } = await rollPackForUser(user, "wheelLegendary");
+    assert.equal(slots[0].collectible.id, missing.id, `pull ${i} landed on ${slots[0].collectible.name} (series ${slots[0].collectible.series})`);
+  }
+  await ownAllBut(user, "legendary", 1, null);
+  const { slots } = await rollPackForUser(user, "wheelLegendary");
+  assert.equal(slots[0].collectible.series, 2, "with Series 1 complete the forced pull should be a new Series 2 legendary");
+  assert.equal(slots[0].wasDuplicate, false);
+});
+
+check("milestone rare grants fill the last Series 1 rare first", async () => {
+  const user = await mkUser("s1rare");
+  const missing = await one<{ id: string }>(sql`select id from collectibles where tier = 'rare' and series = 1 order by id limit 1`);
+  await ownAllBut(user, "rare", 1, missing.id);
+  for (let i = 0; i < 5; i++) {
+    const got = await grantGuaranteedNewCollectible(user, "rare");
+    assert.equal(got, missing.id, `grant ${i} gave a different card`);
+    await db.execute(sql`delete from user_collectibles where user_id = ${user} and collectible_id = ${got}`);
+  }
 });
 
 let failed = 0;
