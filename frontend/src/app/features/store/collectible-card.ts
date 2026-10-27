@@ -7,7 +7,7 @@ import { displayTeamCode } from "../../shared/team-display-code";
 import { cdnImage, CdnImage } from "../../shared/cdn-image";
 import { I18nService } from "../../core/i18n.service";
 
-type HoloVariant = "gold" | "silver" | "violet" | null;
+type HoloVariant = "gold" | "silver" | "violet" | "ember" | "crimson" | null;
 
 interface TierStyle {
   frameBackground: string;
@@ -253,6 +253,49 @@ export class CollectibleCardComponent implements OnChanges {
     const accentDark = this.shade(accent, 0.35);
     const accentDeep = this.shade(accent, 0.16);
     const accentSoft = this.shade(accent, 0.55);
+
+    // Album Series 2 "Moments" (2026-10-27): their own crimson family, so a
+    // moment never reads as a Series 1 card. Rarity still shows inside it:
+    // the MVP (legendary) is red into gold with a strong glow, a top
+    // performer (rare) is crimson with a silvery sheen.
+    if (this.isMoment && this.tier === "legendary") {
+      return {
+        frameBackground:
+          "linear-gradient(135deg, #3a0508 0%, #c8102e 22%, #ffd78a 40%, #8f0b1f 58%, #ffb08a 76%, #2a0306 100%)",
+        frameShadow:
+          "0 0 0 1px rgba(255,205,170,0.5) inset, 0 10px 26px rgba(0,0,0,0.45), 0 0 38px rgba(220,30,50,0.5)",
+        faceBackground: "radial-gradient(120% 90% at 50% 0%, #5c0a14 0%, #0a0204 62%)",
+        badgeBackground: "linear-gradient(135deg, #7a0a17 0%, #e0263c 30%, #ffe3ad 50%, #c8102e 70%, #5c0611 100%)",
+        badgeTextColor: "#2a0306",
+        badgeLabel: "store.tierLegendary",
+        nameColor: "#FFF1EC",
+        metaColor: "rgba(255,241,236,0.78)",
+        photoTint: `radial-gradient(120% 100% at 50% 10%, ${accentSoft} 0%, #1a0306 72%)`,
+        bannerBackground: "rgba(26,3,6,0.6)",
+        holoVariant: "ember",
+        iconColor: "#fff",
+        iconAccent: "#fff",
+      };
+    }
+    if (this.isMoment) {
+      return {
+        frameBackground:
+          "linear-gradient(135deg, #5a0a12 0%, #d7263d 25%, #f6dadd 45%, #9b1426 65%, #ecbcc2 82%, #4a0810 100%)",
+        frameShadow:
+          "0 0 0 1px rgba(255,220,225,0.4) inset, 0 8px 20px rgba(20,4,6,0.35), 0 0 24px rgba(215,38,61,0.28)",
+        faceBackground: "linear-gradient(160deg, #5a0a12 0%, #24050a 55%, #0b0203 100%)",
+        badgeBackground: "linear-gradient(135deg, #b81d33 0%, #f7d6da 50%, #8f1324 100%)",
+        badgeTextColor: "#2a0306",
+        badgeLabel: "store.tierRare",
+        nameColor: "#FDF2F3",
+        metaColor: "rgba(253,242,243,0.75)",
+        photoTint: `linear-gradient(160deg, ${accentSoft} 0%, #24050a 100%)`,
+        bannerBackground: "rgba(20,3,6,0.55)",
+        holoVariant: "crimson",
+        iconColor: "#fff",
+        iconAccent: "#fff",
+      };
+    }
 
     if (this.tier === "rare") {
       return {

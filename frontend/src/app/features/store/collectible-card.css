@@ -37,6 +37,31 @@
   );
 }
 
+/* Album Series 2 "Moments": an ember sweep (red into gold) on the MVP and a
+   crimson one on top performers, the moment family's own hue next to
+   gold/silver/violet. */
+.holo-sweep--ember {
+  background: linear-gradient(
+    115deg,
+    transparent 28%,
+    rgba(255, 120, 90, 0.34) 44%,
+    rgba(255, 225, 150, 0.36) 50%,
+    rgba(230, 30, 60, 0.3) 56%,
+    transparent 72%
+  );
+  animation-duration: 4s;
+}
+
+.holo-sweep--crimson {
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.34) 48%,
+    rgba(235, 70, 90, 0.32) 52%,
+    transparent 70%
+  );
+}
+
 /* Foil finish (cosmetic-only, legendary-only, rolled at first acquisition —
    see CollectibleFinish) — a rainbow sweep instead of gold's single-hue one,
    so a foil copy reads as visually distinct from every other legendary at a
