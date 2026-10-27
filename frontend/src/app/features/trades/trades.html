@@ -65,7 +65,9 @@
               <div class="flex flex-col gap-2">
                 <app-collectible-card
                   class="block w-[90%] sm:w-full mx-auto"
-                  [name]="card.name"
+                  [name]="card.baseName ?? card.name"
+                  [momentRound]="card.momentRound ?? null"
+                  [momentRole]="card.momentRound ? 'mvp' : null"
                   [tier]="card.tier"
                   [teamCode]="card.team.code"
                   [teamColor]="card.team.primaryColor"
@@ -179,7 +181,9 @@
                   <span class="relative block w-[90%] sm:w-full mx-auto" [class.opacity-40]="alreadyOwned(card)" [class.grayscale]="alreadyOwned(card)">
                     <app-collectible-card
                       class="block w-full"
-                      [name]="card.name"
+                      [name]="card.baseName ?? card.name"
+                      [momentRound]="card.momentRound ?? null"
+                      [momentRole]="card.momentRound ? 'mvp' : null"
                       [tier]="card.tier"
                       [teamCode]="card.team.code"
                       [teamColor]="card.team.primaryColor"
@@ -250,7 +254,9 @@
               <button type="button" (click)="toggleMine(card.id)" class="relative w-full focus:outline-none">
                 <app-collectible-card
                   class="block w-[90%] sm:w-full mx-auto"
-                  [name]="card.name"
+                  [name]="card.baseName ?? card.name"
+                  [momentRound]="card.momentRound ?? null"
+                  [momentRole]="card.momentRound ? 'mvp' : null"
                   [tier]="card.tier"
                   [teamCode]="card.team.code"
                   [teamColor]="card.team.primaryColor"

@@ -32,7 +32,7 @@
  * Usage: npx tsx src/scripts/replace-legendary-catalog.ts
  */
 import "dotenv/config";
-import { eq, or, sql, inArray } from "drizzle-orm";
+import { eq, or, sql, inArray, and } from "drizzle-orm";
 import { db } from "../db/client.js";
 import {
   players,
@@ -127,7 +127,11 @@ async function main() {
   console.log(`\npicked ${picks.length} players across ${byTeam.size} teams:`);
   for (const p of picks) console.log(` - ${p.name} (PIR ${p.valuation})`);
 
-  const oldLegendaries = await db.select({ id: collectibles.id }).from(collectibles).where(eq(collectibles.tier, "legendary"));
+  // Series 1 only: never touch album Series 2 MVP moments.
+  const oldLegendaries = await db
+    .select({ id: collectibles.id })
+    .from(collectibles)
+    .where(and(eq(collectibles.tier, "legendary"), eq(collectibles.series, 1)));
   const oldIds = oldLegendaries.map((c) => c.id);
   console.log(`\nremoving ${oldIds.length} old legendary collectibles and every row referencing them...`);
 

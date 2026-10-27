@@ -40,14 +40,14 @@ function normalize(name: string): string {
 }
 
 /** True if this player already has a legendary collectible (any tier-per-team pick already claimed them). */
-async function hasLegendaryCollectible(playerId: string): Promise<boolean> {
+export async function hasLegendaryCollectible(playerId: string): Promise<boolean> {
   const [player] = await db.select().from(players).where(eq(players.id, playerId)).limit(1);
   if (!player) return false;
   const name = normalize(displayName(player.name));
   const rows = await db
     .select({ name: collectibles.name })
     .from(collectibles)
-    .where(and(eq(collectibles.teamId, player.teamId), eq(collectibles.tier, "legendary")));
+    .where(and(eq(collectibles.teamId, player.teamId), eq(collectibles.tier, "legendary"), eq(collectibles.series, 1)));
   return rows.some((r) => normalize(r.name) === name);
 }
 
@@ -157,7 +157,8 @@ legendaryPollsRouter.get("/candidates", requireAuth, requireAdmin, async (req, r
     const existingLegendaries = await db
       .select({ teamId: collectibles.teamId, name: collectibles.name })
       .from(collectibles)
-      .where(eq(collectibles.tier, "legendary"));
+      // Series 1 only: an album Series 2 MVP moment isn't a catalog legendary.
+      .where(and(eq(collectibles.tier, "legendary"), eq(collectibles.series, 1)));
     const legendaryKeys = new Set(existingLegendaries.map((c) => `${c.teamId}::${normalize(c.name)}`));
 
     const rows = await db
@@ -341,7 +342,7 @@ legendaryPollsRouter.post("/:id/close", requireAuth, requireAdmin, async (req, r
         const teamLegendaries = await db
           .select()
           .from(collectibles)
-          .where(and(eq(collectibles.teamId, player.teamId), eq(collectibles.tier, "legendary")));
+          .where(and(eq(collectibles.teamId, player.teamId), eq(collectibles.tier, "legendary"), eq(collectibles.series, 1)));
         const alreadyExists = teamLegendaries.find((c) => normalize(c.name) === name);
 
         if (alreadyExists) {

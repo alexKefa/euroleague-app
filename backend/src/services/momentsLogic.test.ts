@@ -123,3 +123,11 @@ test("formatPlayerName turns feed names into display names", () => {
   assert.equal(formatPlayerName("ALSTON JR. , DERRICK"), "Derrick Alston Jr.");
   assert.equal(formatPlayerName("Nunn"), "Nunn");
 });
+
+test("isRoundReady: a postponed game rescheduled weeks ahead doesn't restart the 7-day clock", () => {
+  const g = games(10, 9);
+  g[9] = { ...g[9], tipoffAt: new Date(lastTip.getTime() + 21 * DAY) }; // rescheduled 3 weeks out
+  const r = isRoundReady(g, new Date(lastTip.getTime() + 7 * DAY + 1));
+  assert.equal(r.ready, true);
+  assert.equal(r.gameIds.length, 9);
+});

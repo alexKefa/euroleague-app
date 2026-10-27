@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { db } from "../db/client.js";
+import { pickSeriesFirst } from "./momentsLogic.js";
 import { computeFantasyGamePoints } from "./fantasyScoring.js";
 import { displayName, normalize } from "./imageSync.js";
 
@@ -140,14 +141,18 @@ export async function checkAndGrantFantasyCardTracks(userId: string): Promise<Fa
   if (coachDue > claimed.coach || captainDue > claimed.captain) {
     // The user's coach and rare ownership, to pick missing cards.
     const cards = (await db.execute<Row>(sql`
-      select c.id, c.tier, c.team_id, c.name, uc.collectible_id is not null as owned
+      select c.id, c.tier, c.team_id, c.name, c.series, uc.collectible_id is not null as owned
       from collectibles c
       left join user_collectibles uc on uc.collectible_id = c.id and uc.user_id = ${userId}
       where c.tier in ('coach', 'rare')
     `)) as Row[];
     const owned = new Set(cards.filter((c) => c.owned).map((c) => c.id));
     const randomMissing = (tier: string) => {
-      const missing = cards.filter((c) => c.tier === tier && !owned.has(c.id));
+      // Series 1 first (album Series 2, 2026-10-27), like every guaranteed-new grant.
+      const missing = pickSeriesFirst(
+        cards.filter((c) => c.tier === tier && !owned.has(c.id)),
+        (c) => Number(c.series)
+      );
       return missing.length > 0 ? missing[Math.floor(Math.random() * missing.length)].id : null;
     };
 
@@ -179,7 +184,13 @@ export async function checkAndGrantFantasyCardTracks(userId: string): Promise<Fa
       // Cards carry no player id: matched on team + display name, the same
       // way expand-collectibles/imageSync tie a card to its player.
       const cardFor = (c: { teamId: string; name: string }) =>
-        cards.find((card) => card.tier === "rare" && card.team_id === c.teamId && normalize(card.name) === normalize(displayName(c.name)));
+        cards.find(
+          (card) =>
+            card.tier === "rare" &&
+            Number(card.series) === 1 && // not the player's Series 2 moment card
+            card.team_id === c.teamId &&
+            normalize(card.name) === normalize(displayName(c.name))
+        );
       const missingCaptain = candidates.map(cardFor).find((card) => card && !owned.has(card.id));
       const granted = await grantCard(userId, missingCaptain?.id ?? randomMissing("rare"));
       if (granted) {

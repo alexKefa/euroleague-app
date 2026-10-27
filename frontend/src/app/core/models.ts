@@ -989,6 +989,11 @@ export interface TradeableCard {
   wishlist: string[];
   // Battle power (2026-10-09), see BattlePower.
   power?: BattlePower;
+  // Album Series 2: set on an MVP moment. `name` then reads "Name · R21 MVP"
+  // (so text lists can't confuse it with the Series 1 legendary); baseName
+  // is the plain name for the card picture, which shows the round itself.
+  momentRound?: number | null;
+  baseName?: string;
 }
 
 export interface MarketplaceCard {
@@ -1009,6 +1014,9 @@ export interface MarketplaceCard {
   wishlist: TradeCardRef[];
   // Battle power (2026-10-09), see BattlePower.
   power?: BattlePower;
+  // Album Series 2: see TradeableCard.momentRound.
+  momentRound?: number | null;
+  baseName?: string;
 }
 
 export type TradeOfferStatus = "pending" | "accepted" | "declined" | "cancelled";

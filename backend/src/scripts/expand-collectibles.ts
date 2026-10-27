@@ -70,7 +70,8 @@ async function main() {
   const allTeams = await db.select().from(teams);
   const teamById = new Map(allTeams.map((t) => [t.id, t]));
 
-  const existing = await db.select().from(collectibles);
+  // Series 1 only: album Series 2 moments share names/teams/tiers with player cards.
+  const existing = (await db.select().from(collectibles)).filter((c) => c.series === 1);
   // Key: `${teamId}::${tier}::${normalizedName}` -> exists
   const existingKeys = new Set(existing.map((c) => `${c.teamId}::${c.tier}::${normalize(c.name)}`));
   const legendaryCountByTeam = new Map<string, number>();

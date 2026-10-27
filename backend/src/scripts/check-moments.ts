@@ -12,9 +12,10 @@ import { cached, CACHE_KEYS } from "../services/responseCache.js";
 import { buildCatalogPayload } from "../routes/collectibles.js";
 import { rollPackForUser } from "../services/packs.js";
 import { grantGuaranteedNewCollectible } from "../services/cards.js";
-import { checkAndGrantMomentBonuses, markMomentBonusesSeen } from "../services/moments.js";
+import { checkAndGrantMomentBonuses, markMomentBonusesSeen, momentRoundsFor, momentCardName } from "../services/moments.js";
 import { computeTopScorerPlayerIdsForGames } from "../services/topScorerPoints.js";
 import { getAlbumLeaderboardEntries } from "../services/albumLeaderboard.js";
+import { hasLegendaryCollectible } from "../routes/legendaryPolls.js";
 
 if (!(process.env.DATABASE_URL ?? "").includes("ep-sparkling-pond")) throw new Error("refusing to run outside the dev database");
 
@@ -170,24 +171,34 @@ check("milestone rare grants fill the last Series 1 rare first", async () => {
 });
 
 // --- Task 5: MVP-moment bonus
+const AFTER_LAUNCH = new Date("2027-01-02T12:00:00Z");
+
+check("before launch the bonus check does nothing (no cost on every app load)", async () => {
+  const user = await mkUser("prelaunch");
+  const m = await mvps();
+  await correctPicks(user, m[0].round, 8);
+  assert.deepEqual(await checkAndGrantMomentBonuses(user, new Date("2026-12-01T00:00:00Z")), []);
+  assert.equal(await count(sql`select count(*)::int n from moment_bonuses where user_id = ${user}`), 0);
+});
+
 check("great round grants the round MVP once, and stays in the reveal until seen", async () => {
   const user = await mkUser("great");
   const m = await mvpWhere(false);
   await correctPicks(user, m.round, 8);
-  const first = await checkAndGrantMomentBonuses(user);
+  const first = await checkAndGrantMomentBonuses(user, AFTER_LAUNCH);
   assert.deepEqual(first.map((b) => [b.round, b.reason]), [[m.round, "great_round"]]);
-  assert.equal((await checkAndGrantMomentBonuses(user)).length, 1, "unseen bonus should still be returned");
+  assert.equal((await checkAndGrantMomentBonuses(user, AFTER_LAUNCH)).length, 1, "unseen bonus should still be returned");
   assert.equal(await count(sql`select count(*)::int n from moment_bonuses where user_id = ${user}`), 1);
   assert.equal(await count(sql`select count(*)::int n from user_collectibles where user_id = ${user} and collectible_id = ${m.collectible_id}`), 1);
   await markMomentBonusesSeen(user);
-  assert.deepEqual(await checkAndGrantMomentBonuses(user), []);
+  assert.deepEqual(await checkAndGrantMomentBonuses(user, AFTER_LAUNCH), []);
 });
 
 check("7 correct picks is not a great round", async () => {
   const user = await mkUser("seven");
   const m = await mvpWhere(false);
   await correctPicks(user, m.round, 7);
-  assert.deepEqual(await checkAndGrantMomentBonuses(user), []);
+  assert.deepEqual(await checkAndGrantMomentBonuses(user, AFTER_LAUNCH), []);
 });
 
 check("backing the MVP qualifies even when tied for top scorer", async () => {
@@ -199,16 +210,16 @@ check("backing the MVP qualifies even when tied for top scorer", async () => {
   restoreStats.set(other.id, other.points);
   await db.execute(sql`update player_game_stats set points = ${mvpNow.points} where id = ${other.id}`);
   await backMvp(user, m);
-  assert.deepEqual((await checkAndGrantMomentBonuses(user)).map((b) => [b.round, b.reason]), [[m.round, "backed_mvp"]]);
+  assert.deepEqual((await checkAndGrantMomentBonuses(user, AFTER_LAUNCH)).map((b) => [b.round, b.reason]), [[m.round, "backed_mvp"]]);
 });
 
 check("backing an MVP who wasn't top scorer gives nothing, a great round still does", async () => {
   const user = await mkUser("nottop");
   const m = await mvpWhere(false);
   await backMvp(user, m);
-  assert.deepEqual(await checkAndGrantMomentBonuses(user), []);
+  assert.deepEqual(await checkAndGrantMomentBonuses(user, AFTER_LAUNCH), []);
   await correctPicks(user, m.round, 8);
-  assert.deepEqual((await checkAndGrantMomentBonuses(user)).map((b) => [b.round, b.reason]), [[m.round, "great_round"]]);
+  assert.deepEqual((await checkAndGrantMomentBonuses(user, AFTER_LAUNCH)).map((b) => [b.round, b.reason]), [[m.round, "great_round"]]);
 });
 
 check("both conditions give one bonus with reason backed_mvp", async () => {
@@ -216,7 +227,7 @@ check("both conditions give one bonus with reason backed_mvp", async () => {
   const m = await mvpWhere(true);
   await correctPicks(user, m.round, 8);
   await backMvp(user, m);
-  const got = await checkAndGrantMomentBonuses(user);
+  const got = await checkAndGrantMomentBonuses(user, AFTER_LAUNCH);
   assert.deepEqual(got.map((b) => [b.round, b.reason]), [[m.round, "backed_mvp"]]);
 });
 
@@ -225,10 +236,10 @@ check("already owning the MVP card records the bonus without a second copy", asy
   const m = await mvpWhere(false);
   await db.execute(sql`insert into user_collectibles (user_id, collectible_id) values (${user}, ${m.collectible_id})`);
   await correctPicks(user, m.round, 8);
-  await checkAndGrantMomentBonuses(user);
+  await checkAndGrantMomentBonuses(user, AFTER_LAUNCH);
   assert.equal(await count(sql`select count(*)::int n from moment_bonuses where user_id = ${user}`), 1);
   assert.equal(await count(sql`select count(*)::int n from user_collectibles where user_id = ${user} and collectible_id = ${m.collectible_id}`), 1);
-  await checkAndGrantMomentBonuses(user);
+  await checkAndGrantMomentBonuses(user, AFTER_LAUNCH);
   assert.equal(await count(sql`select count(*)::int n from moment_bonuses where user_id = ${user}`), 1);
 });
 
@@ -237,7 +248,7 @@ check("a deleted user never qualifies", async () => {
   const m = await mvpWhere(false);
   await correctPicks(user, m.round, 8);
   await db.execute(sql`update users set deleted_at = now() where id = ${user}`);
-  assert.deepEqual(await checkAndGrantMomentBonuses(user), []);
+  assert.deepEqual(await checkAndGrantMomentBonuses(user, AFTER_LAUNCH), []);
   assert.equal(await count(sql`select count(*)::int n from moment_bonuses where user_id = ${user}`), 0);
 });
 
@@ -268,6 +279,29 @@ check("series1Complete is true only once every Series 1 card is owned", async ()
   [entry] = await getAlbumLeaderboardEntries({ userIds: [user] });
   assert.equal(entry.series1Complete, true);
   assert.ok(entry.ownedCount < entry.totalCount, "total still includes series 2");
+});
+
+// --- Final review fixes
+check("legendary polls ignore MVP moment cards", async () => {
+  const m = await one<{ player_id: string }>(sql`
+    select m.player_id from collectible_moments m join collectibles c on c.id = m.collectible_id join players p on p.id = m.player_id
+    where m.role = 'mvp' and not exists (
+      select 1 from collectibles s1 where s1.series = 1 and s1.tier = 'legendary' and s1.team_id = c.team_id and s1.name = c.name)
+    limit 1`);
+  assert.ok(m, "fixture: every MVP already has a Series 1 legendary");
+  assert.equal(await hasLegendaryCollectible(m.player_id), false);
+});
+
+check("trade cards: an MVP moment is labelled with its round, a Series 1 legendary isn't", async () => {
+  const mvp = await one<{ id: string; round: number }>(sql`
+    select m.collectible_id as id, m.round from collectible_moments m where m.role = 'mvp' order by m.round limit 1`);
+  const s1 = await one<{ id: string }>(sql`select id from collectibles where series = 1 and tier = 'legendary' limit 1`);
+  const rounds = await momentRoundsFor([mvp.id, s1.id]);
+  assert.equal(rounds.get(mvp.id), mvp.round);
+  assert.equal(rounds.has(s1.id), false);
+  assert.equal(momentCardName("Kendrick Nunn", rounds.get(mvp.id)), `Kendrick Nunn · R${mvp.round} MVP`);
+  assert.equal(momentCardName("Kendrick Nunn", rounds.get(s1.id)), "Kendrick Nunn");
+  assert.equal((await momentRoundsFor([])).size, 0);
 });
 
 let failed = 0;

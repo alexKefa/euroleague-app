@@ -50,7 +50,12 @@ function normalizePlayerName(name: string): string {
 
 async function main() {
   const allPlayers = await db.select({ name: players.name, active: players.active, teamId: players.teamId }).from(players);
-  const allCollectibles = await db.select({ id: collectibles.id, name: collectibles.name, tier: collectibles.tier, teamId: collectibles.teamId }).from(collectibles);
+  // Series 1 only: album Series 2 moments capture a past performance and stay
+  // valid after a player leaves (and are referenced by collectible_moments).
+  const allCollectibles = await db
+    .select({ id: collectibles.id, name: collectibles.name, tier: collectibles.tier, teamId: collectibles.teamId })
+    .from(collectibles)
+    .where(eq(collectibles.series, 1));
 
   const collByKey = new Map<string, typeof allCollectibles>();
   for (const c of allCollectibles) {

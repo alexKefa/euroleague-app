@@ -7,6 +7,7 @@ import { requireAuth } from "../auth/middleware.js";
 import { sendToUser } from "../realtime/hub.js";
 import { sendPushInBackground } from "../services/push.js";
 import { getCardPowers } from "../services/statDuel.js";
+import { momentRoundsFor, momentCardName } from "../services/moments.js";
 
 export const tradesRouter = Router();
 
@@ -55,11 +56,15 @@ tradesRouter.get("/my-cards", requireAuth, async (req, res) => {
     // Battle power (2026-10-09), so trading has a criterion: battles v5
     // decide by rarity, then PIR, then form.
     const powers = await getCardPowers(rows.map((r) => ({ ...r.collectible, finish: r.finish })));
+    // Album Series 2: an MVP moment must not pass for the player's Series 1 legendary.
+    const momentRounds = await momentRoundsFor(rows.map((r) => r.collectible.id));
     res.json(
       rows.map(({ collectible, team, tradeable, finish, wishlist }, i) => ({
         power: powers[i],
         id: collectible.id,
-        name: collectible.name,
+        name: momentCardName(collectible.name, momentRounds.get(collectible.id)),
+        momentRound: momentRounds.get(collectible.id) ?? null,
+        baseName: collectible.name,
         tier: collectible.tier,
         imageUrl: collectible.imageUrl,
         team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor },
@@ -178,6 +183,7 @@ tradesRouter.get("/marketplace", requireAuth, async (req, res) => {
         ? await db.select().from(collectibles).where(inArray(collectibles.id, wishlistIds))
         : [];
     const wishlistCardById = new Map(wishlistCards.map((c) => [c.id, c]));
+    const momentRounds = await momentRoundsFor([...rows.map((r) => r.collectible.id), ...wishlistIds]);
 
     // `id` here is the listing (userCollectibles.id), not the catalog card
     // (collectible.id) — the same legendary can be listed by more than one
@@ -201,7 +207,9 @@ tradesRouter.get("/marketplace", requireAuth, async (req, res) => {
         power,
         id: listingId,
         collectibleId: collectible.id,
-        name: collectible.name,
+        name: momentCardName(collectible.name, momentRounds.get(collectible.id)),
+        momentRound: momentRounds.get(collectible.id) ?? null,
+        baseName: collectible.name,
         tier: collectible.tier,
         imageUrl: collectible.imageUrl,
         team: { id: team.id, code: team.code, name: team.name, primaryColor: team.primaryColor },
@@ -210,7 +218,7 @@ tradesRouter.get("/marketplace", requireAuth, async (req, res) => {
         wishlist: wishlist
           .map((id) => wishlistCardById.get(id))
           .filter((c): c is typeof collectibles.$inferSelect => !!c)
-          .map((c) => ({ id: c.id, name: c.name, imageUrl: c.imageUrl })),
+          .map((c) => ({ id: c.id, name: momentCardName(c.name, momentRounds.get(c.id)), imageUrl: c.imageUrl })),
       }))
     );
   } catch (err) {
@@ -362,10 +370,14 @@ tradesRouter.get("/me", requireAuth, async (req, res) => {
             .where(inArray(tradeOfferItems.tradeOfferId, offerIds))
         : [];
 
+    const momentRounds = await momentRoundsFor([
+      ...itemRows.map((r) => r.collectible.id),
+      ...rows.map((r) => r.requested.id),
+    ]);
     const offeredByOfferId = new Map<string, { id: string; name: string; imageUrl: string | null }[]>();
     for (const { tradeOfferId, collectible } of itemRows) {
       const list = offeredByOfferId.get(tradeOfferId) ?? [];
-      list.push({ id: collectible.id, name: collectible.name, imageUrl: collectible.imageUrl });
+      list.push({ id: collectible.id, name: momentCardName(collectible.name, momentRounds.get(collectible.id)), imageUrl: collectible.imageUrl });
       offeredByOfferId.set(tradeOfferId, list);
     }
 
@@ -377,7 +389,7 @@ tradesRouter.get("/me", requireAuth, async (req, res) => {
         direction: offer.fromUserId === req.userId ? "outgoing" : "incoming",
         counterpartyName: offer.fromUserId === req.userId ? toUsername : fromUsername,
         offered: offeredByOfferId.get(offer.id) ?? [],
-        requested: { id: requested.id, name: requested.name, imageUrl: requested.imageUrl },
+        requested: { id: requested.id, name: momentCardName(requested.name, momentRounds.get(requested.id)), imageUrl: requested.imageUrl },
       }))
     );
   } catch (err) {

@@ -75,15 +75,19 @@ const MIN_GAMES_AFTER_GRACE = 8;
 
 /**
  * A round is ready once every game is final with box-score stats, or 7 days
- * after its last scheduled tipoff with at least 8 games final with stats (a
+ * after the last finished game's tipoff with at least 8 games final with stats (a
  * postponed game's performances are then left out). `gameIds` are the
  * games whose lines count.
  */
 export function isRoundReady(games: RoundGame[], now: Date): { ready: boolean; gameIds: string[] } {
-  const done = games.filter((g) => g.status === "final" && g.hasStats).map((g) => g.gameId);
+  const finished = games.filter((g) => g.status === "final" && g.hasStats);
+  const done = finished.map((g) => g.gameId);
   if (games.length === 0) return { ready: false, gameIds: [] };
   if (done.length === games.length) return { ready: true, gameIds: done };
-  const lastTipoff = Math.max(...games.map((g) => g.tipoffAt.getTime()));
+  if (finished.length === 0) return { ready: false, gameIds: [] };
+  // Measured from the finished games: a postponed game gets a new tipoff
+  // when it's rescheduled (sync/scheduleSync.ts), which mustn't restart the clock.
+  const lastTipoff = Math.max(...finished.map((g) => g.tipoffAt.getTime()));
   const ready = now.getTime() - lastTipoff >= POSTPONED_GRACE_MS && done.length >= MIN_GAMES_AFTER_GRACE;
   return { ready, gameIds: ready ? done : [] };
 }
