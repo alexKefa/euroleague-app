@@ -342,10 +342,12 @@
                         @if (game.status === 'live') {
                           <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0 self-center"></span>
                         }
-                        <!-- Captain and bench show their real scored points
-                             (doubled / halved); a live game uses live PIR
-                             times the same multiplier until the final box score. -->
-                        @if (slot.role === 'starter' && captainId() === slot.playerId) {
+                        <!-- A final game shows real scored points (win bonus
+                             included; captain doubled, bench halved); a live
+                             game uses live PIR times the same multiplier. -->
+                        @if (game.status === 'final') {
+                          {{ pointsFor(row.player.id) | number: '1.0-1' }}
+                        } @else if (slot.role === 'starter' && captainId() === slot.playerId) {
                           {{ (game.status === 'final' ? pointsFor(row.player.id) : liveCaptainPoints(row.player.id)) | number: '1.0-1' }}
                         } @else if (slot.role === 'bench') {
                           {{ (game.status === 'final' ? pointsFor(row.player.id) : liveBenchPoints(row.player.id)) | number: '1.0-1' }}
@@ -354,7 +356,7 @@
                         }
                       </span>
                       <span class="text-[8px] font-bold uppercase text-muted leading-none">
-                        {{ (slot.role === 'bench' || (slot.role === 'starter' && captainId() === slot.playerId)) ? i18n.t('fantasy.pointsAbbrev') : i18n.t('fantasy.colPir') }}
+                        {{ (game.status === 'final' || slot.role === 'bench' || (slot.role === 'starter' && captainId() === slot.playerId)) ? i18n.t('fantasy.pointsAbbrev') : i18n.t('fantasy.colPir') }}
                       </span>
                     </span>
                   }
