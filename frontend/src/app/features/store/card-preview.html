@@ -59,6 +59,10 @@
             [finish]="item.finish ?? 'standard'"
             [jerseyNumber]="item.jerseyNumber ?? null"
             [pointsPerGame]="item.pointsPerGame ?? null"
+            [momentRound]="item.moment?.round ?? null"
+            [momentRole]="item.moment?.role ?? null"
+            [momentPoints]="item.moment?.points ?? null"
+            [momentPir]="item.moment?.pir ?? null"
           ></app-collectible-card>
         </div>
 
@@ -74,7 +78,50 @@
             <p class="font-mono text-[12px] font-bold text-muted">{{ item.team.code | teamCode }}</p>
           </div>
 
-          @if (statsLoading()) {
+          @if (item.moment; as m) {
+            <!-- Album Series 2: the back of a moment is the game it happened in. -->
+            <div class="flex-1 flex flex-col justify-center gap-4">
+              <div class="text-center">
+                <p class="text-[11px] font-bold uppercase tracking-wider text-muted">
+                  {{ i18n.t('album.moments.round') }} {{ m.round }} · {{ i18n.t(m.role === 'mvp' ? 'album.moment.mvp' : 'album.moment.top') }}
+                </p>
+                <p class="font-display text-xl mt-1">
+                  {{ item.team.code | teamCode }}
+                  @if (m.score; as s) {
+                    <span class="tabular-nums">{{ s.isHome ? s.home : s.away }}–{{ s.isHome ? s.away : s.home }}</span>
+                  }
+                  @if (m.opponent; as o) {
+                    {{ o.code | teamCode }}
+                  }
+                </p>
+                @if (m.gameDate) {
+                  <p class="text-xs text-muted">{{ m.gameDate | date: 'd MMM y' }}</p>
+                }
+              </div>
+              <div class="grid grid-cols-5 gap-2 text-center">
+                <div>
+                  <div class="font-mono text-xl font-bold">{{ m.points ?? '–' }}</div>
+                  <div class="text-[9px] uppercase tracking-wide text-muted mt-0.5">PTS</div>
+                </div>
+                <div>
+                  <div class="font-mono text-xl font-bold">{{ m.rebounds ?? '–' }}</div>
+                  <div class="text-[9px] uppercase tracking-wide text-muted mt-0.5">REB</div>
+                </div>
+                <div>
+                  <div class="font-mono text-xl font-bold">{{ m.assists ?? '–' }}</div>
+                  <div class="text-[9px] uppercase tracking-wide text-muted mt-0.5">AST</div>
+                </div>
+                <div>
+                  <div class="font-mono text-xl font-bold text-team-primary">{{ m.pir ?? '–' }}</div>
+                  <div class="text-[9px] uppercase tracking-wide text-muted mt-0.5">PIR</div>
+                </div>
+                <div>
+                  <div class="font-mono text-xl font-bold">{{ m.minutes !== null ? (m.minutes | number: '1.0-0') : '–' }}</div>
+                  <div class="text-[9px] uppercase tracking-wide text-muted mt-0.5">MIN</div>
+                </div>
+              </div>
+            </div>
+          } @else if (statsLoading()) {
             <div class="flex-1 flex items-center justify-center">
               <app-swish-loader [size]="56" />
             </div>

@@ -19,5 +19,10 @@ export const albumTranslations: Record<string, Record<Lang, string>> = {
   "album.leaderboardTab": { en: "Leaderboard", el: "Κατάταξη" },
   "album.globalBoard": { en: "Global", el: "Γενική" },
   "album.myLeagueBoard": { en: "My league", el: "Η λίγκα μου" },
+  // Album Series 2 "Moments" (2026-10-27).
+  "album.moment.roundBadge": { en: "R", el: "Γ" },
+  "album.moment.mvp": { en: "MVP", el: "MVP" },
+  "album.moment.top": { en: "Top performer", el: "Κορυφαίος" },
+  "album.moments.round": { en: "Round", el: "Αγωνιστική" },
   "album.emptyLeaderboard": { en: "No cards collected yet this season.", el: "Δεν έχουν συλλεχθεί ακόμα κάρτες φέτος." },
 };

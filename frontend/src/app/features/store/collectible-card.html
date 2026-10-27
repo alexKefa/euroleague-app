@@ -111,7 +111,7 @@
         <span
           class="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full z-10 ring-1 ring-black/20"
           [style.background]="style.badgeBackground"
-          [attr.title]="i18n.t(style.badgeLabel)"
+          [attr.title]="i18n.t(badgeLabelKey)"
         ></span>
       }
       @if (showTierBadge && sizeMode === 'full') {
@@ -124,7 +124,21 @@
           <span class="text-[10px] font-extrabold tracking-wider" [style.color]="style.badgeTextColor">
             @if (isFoil) {
               <span aria-hidden="true">&#10022;&nbsp;</span>
-            }{{ i18n.t(style.badgeLabel) }}</span
+            }{{ i18n.t(badgeLabelKey) }}</span
+          >
+        </div>
+      }
+
+      <!-- Moments: the round, where series 1 cards show their print number -->
+      @if (isMoment && sizeMode === 'full') {
+        <div
+          class="absolute top-2 left-2 rounded-full z-10 backdrop-blur-sm"
+          style="padding: 3px 8px; transform-origin: top left"
+          [style.transform]="'scale(' + badgeScale + ')'"
+          [style.background]="style.bannerBackground"
+        >
+          <span class="font-display text-[12px] tracking-wide" [style.color]="style.nameColor"
+            >{{ i18n.t('album.moment.roundBadge') }}{{ momentRound }}</span
           >
         </div>
       }
@@ -146,7 +160,11 @@
       @if (sizeMode === 'compact') {
         <div class="absolute inset-x-0 bottom-0 px-1.5 py-1 backdrop-blur-md z-10" [style.background]="style.bannerBackground">
           <div class="text-[11px] font-extrabold leading-tight truncate" [style.color]="style.nameColor">{{ displayName }}</div>
-          <div class="text-[8.5px] font-bold tracking-wide leading-tight" [style.color]="style.metaColor">{{ displayTeamCode }}</div>
+          <div class="text-[8.5px] font-bold tracking-wide leading-tight" [style.color]="style.metaColor">
+            @if (isMoment) {
+              {{ i18n.t('album.moment.roundBadge') }}{{ momentRound }} ·
+            }{{ displayTeamCode }}
+          </div>
         </div>
       }
       @if (sizeMode === 'full') {
@@ -159,7 +177,11 @@
         </div>
         <div class="flex items-center justify-between gap-1">
           <span class="text-[11px] font-bold tracking-wide" [style.color]="style.metaColor">{{ displayTeamCode }}</span>
-          @if (pointsPerGame != null) {
+          @if (isMoment) {
+            <span class="text-[11px] font-bold tracking-wide" [style.color]="style.nameColor"
+              >{{ momentPoints ?? '–' }} PTS · {{ momentPir ?? '–' }} PIR</span
+            >
+          } @else if (pointsPerGame != null) {
             <span class="text-[11px] font-bold tracking-wide" [style.color]="style.metaColor">{{ pointsPerGame }} PPG</span>
           }
         </div>

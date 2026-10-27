@@ -636,6 +636,17 @@ export interface RareMilestoneReward {
   teamCode: string;
 }
 
+// Album Series 2: a round's MVP moment, granted for a great round or for
+// backing the MVP as top scorer (backend services/moments.ts).
+export interface MomentBonusReward {
+  collectibleId: string;
+  round: number;
+  reason: "great_round" | "backed_mvp";
+  name: string;
+  imageUrl: string | null;
+  teamCode: string;
+}
+
 export interface PredictionSummary {
   points: number;
   badges: Badge[];
@@ -651,6 +662,7 @@ export interface PredictionSummary {
   // more often than legendary/coach (every 2 correct picks vs 18/45), so it
   // grants the card directly rather than an unopened pack.
   newRareMilestoneRewards: RareMilestoneReward[];
+  newMomentBonuses: MomentBonusReward[];
 }
 
 // GET /api/predictions/analytics — community-wide pick accuracy, not
@@ -745,6 +757,28 @@ export interface Collectible {
   // `players`) or a player with no synced stats at all. Optional because
   // leaner shapes elsewhere don't carry it.
   pointsPerGame?: number | null;
+  // Album Series 2 (2026-10-27): 1 = player cards, 2 = Moments. Optional
+  // because leaner card shapes (trades, pack reveal) don't carry it.
+  series?: 1 | 2;
+  // Set on series 2 cards: the performance the card captures.
+  moment?: CollectibleMoment | null;
+}
+
+export type MomentRole = "mvp" | "top";
+
+/** GET /api/collectibles: one standout performance of a round (backend services/moments.ts). */
+export interface CollectibleMoment {
+  round: number;
+  role: MomentRole;
+  points: number | null;
+  pir: number | null;
+  rebounds: number | null;
+  assists: number | null;
+  minutes: number | null;
+  gameId: string;
+  gameDate: string | null;
+  score: { home: number | null; away: number | null; isHome: boolean } | null;
+  opponent: { id: string; code: string; name: string } | null;
 }
 
 // A single tier's card within a bundle — same shape as Collectible minus
@@ -1365,6 +1399,8 @@ export interface AlbumLeaderboardEntry {
   ownedCount: number;
   totalCount: number;
   completion: number;
+  // Owns every Series 1 card (album Series 2 badge).
+  series1Complete: boolean;
   showcase: ShowcaseCard[];
 }
 

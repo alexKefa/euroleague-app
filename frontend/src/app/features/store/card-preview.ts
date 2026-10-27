@@ -103,7 +103,8 @@ export class CardPreviewComponent implements OnChanges {
 
   toggleFlip(): void {
     this.flipped.update((f) => !f);
-    if (this.flipped() && this.stats() === null && !this.statsLoading()) {
+    // A moment card's back is its game line, already in item.moment.
+    if (this.flipped() && !this.item.moment && this.stats() === null && !this.statsLoading()) {
       this.statsLoading.set(true);
       this.api.getCollectibleStats(this.item.id).subscribe({
         next: (res) => {

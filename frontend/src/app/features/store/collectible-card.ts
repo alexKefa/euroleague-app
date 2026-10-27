@@ -82,6 +82,22 @@ export class CollectibleCardComponent implements OnChanges {
   // would show the identical label. Callers filtering by tier pass false
   // while a filter is active; defaults true everywhere else.
   @Input() showTierBadge = true;
+  // Album Series 2 "Moments" (2026-10-27): set on a moment card. Primitives,
+  // like every input here, so OnPush keeps working.
+  @Input() momentRound: number | null = null;
+  @Input() momentRole: "mvp" | "top" | null = null;
+  @Input() momentPoints: number | null = null;
+  @Input() momentPir: number | null = null;
+
+  get isMoment(): boolean {
+    return this.momentRound !== null && this.momentRound !== undefined;
+  }
+
+  /** The tier badge reads MVP / Top performer on a moment; rarity still shows through the badge colours. */
+  get badgeLabelKey(): string {
+    if (!this.isMoment) return this.style.badgeLabel;
+    return this.momentRole === "mvp" ? "album.moment.mvp" : "album.moment.top";
+  }
 
   // Small renders (2026-10-05, "no name is shown, rarity almost hides
   // everything"): the fixed-px banner/badge/frame were sized for 150px+
