@@ -4,6 +4,7 @@ import {
   text,
   varchar,
   integer,
+  smallint,
   real,
   doublePrecision,
   boolean,
@@ -681,6 +682,13 @@ export const collectibles = pgTable("collectibles", {
   tier: varchar("tier", { length: 20 }).notNull(), // "common" | "rare" | "legendary"
   pointsCost: integer("points_cost").notNull(),
   imageUrl: text("image_url"),
+  // Album series (2026-10-27): 1 = the original player/legendary/coach
+  // catalog, 2 = "Moments" (one card per standout performance of a round,
+  // details in collectible_moments). Guaranteed-new pulls fill series 1
+  // gaps first (services/momentsLogic.ts's pickSeriesFirst) so series 2
+  // can never make series 1 unfinishable. See
+  // docs/superpowers/specs/2026-10-27-album-series-2-moments-design.md.
+  series: smallint("series").notNull().default(1),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -718,6 +726,59 @@ export const userCollectibles = pgTable(
   },
   (table) => ({
     userCollectibleUnique: uniqueIndex("user_collectible_unique").on(table.userId, table.collectibleId),
+  })
+);
+
+export type MomentRole = "mvp" | "top";
+export type MomentBonusReason = "great_round" | "backed_mvp";
+
+// Series 2 "Moments" (2026-10-27): the performance behind a series-2
+// collectible. The card itself is an ordinary collectibles row, so
+// ownership, packs, trades, battles and sell-back need nothing new. The
+// stat line is a snapshot taken at creation (services/moments.ts) and is
+// never recomputed, so a later box-score correction can't change a card.
+// One card per player per round; the unique index also makes generation
+// safe to re-run.
+export const collectibleMoments = pgTable(
+  "collectible_moments",
+  {
+    collectibleId: uuid("collectible_id")
+      .primaryKey()
+      .references(() => collectibles.id),
+    playerId: uuid("player_id").notNull().references(() => players.id),
+    gameId: uuid("game_id").notNull().references(() => games.id),
+    season: varchar("season", { length: 9 }).notNull(),
+    round: integer("round").notNull(),
+    role: varchar("role", { length: 10 }).notNull().$type<MomentRole>(), // "mvp" = the round's legendary, "top" = a rare
+    points: integer("points"),
+    pir: integer("pir"),
+    rebounds: integer("rebounds"),
+    assists: integer("assists"),
+    minutes: real("minutes"),
+  },
+  (table) => ({
+    roundPlayerUnique: uniqueIndex("collectible_moments_round_player_unique").on(table.season, table.round, table.playerId),
+  })
+);
+
+// The MVP-moment bonus ledger (services/moments.ts's
+// checkAndGrantMomentBonuses): a round's MVP card for a great round or
+// for correctly backing the MVP as top scorer. Claim-first: the
+// conditional insert here happens before the card is granted, same
+// pattern as round rewards. Separate from round_rewards because that
+// table allows only one row per user per round.
+export const momentBonuses = pgTable(
+  "moment_bonuses",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    collectibleId: uuid("collectible_id").notNull().references(() => collectibles.id),
+    reason: varchar("reason", { length: 20 }).notNull().$type<MomentBonusReason>(),
+    grantedAt: timestamp("granted_at", { withTimezone: true }).defaultNow().notNull(),
+    seenAt: timestamp("seen_at", { withTimezone: true }),
+  },
+  (table) => ({
+    userCollectibleUnique: uniqueIndex("moment_bonuses_user_collectible_unique").on(table.userId, table.collectibleId),
   })
 );
 
