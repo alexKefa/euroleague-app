@@ -275,12 +275,13 @@ export class AlbumComponent implements OnInit, OnDestroy {
   readonly stickyTop = signal(64);
   private headerObserver: ResizeObserver | null = null;
 
-  selectTeam(teamId: string | null): void {
+  /** `scroll: false` keeps the page exactly where it is (swiping the leaflet). */
+  selectTeam(teamId: string | null, opts: { scroll?: boolean } = {}): void {
     if (!teamId || teamId === this.routeTeamId()) return;
     this.routeTeamId.set(teamId);
     this.tierFilter.set(null);
     this.location.replaceState(`/album/${teamId}`);
-    requestAnimationFrame(() => this.scrollToLeaf());
+    if (opts.scroll !== false) requestAnimationFrame(() => this.scrollToLeaf());
   }
 
   private scrollToLeaf(): void {
@@ -406,7 +407,8 @@ export class AlbumComponent implements OnInit, OnDestroy {
     if (Math.abs(deltaX) < AlbumComponent.SWIPE_THRESHOLD_PX || Math.abs(deltaX) < Math.abs(deltaY)) return;
 
     const targetId = deltaX < 0 ? this.adjacentTeamIds().next : this.adjacentTeamIds().prev;
-    if (targetId) this.router.navigate(["/album", targetId]);
+    // In place, without scrolling: a swipe flips the page where you are.
+    this.selectTeam(targetId, { scroll: false });
   }
 
   onLeafletPointerCancel(event: PointerEvent): void {
