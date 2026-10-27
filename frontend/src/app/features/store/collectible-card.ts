@@ -93,6 +93,11 @@ export class CollectibleCardComponent implements OnChanges {
     return this.momentRound !== null && this.momentRound !== undefined;
   }
 
+  /** Owned MVP moments burn (fire behind the frame, embers, pulsing glow); a locked one stays cold. */
+  get isMvpFire(): boolean {
+    return this.isMoment && this.tier === "legendary" && this.unlocked && this.sizeMode !== "mini";
+  }
+
   /** The tier badge reads MVP / Top performer on a moment; rarity still shows through the badge colours. */
   get badgeLabelKey(): string {
     if (!this.isMoment) return this.style.badgeLabel;

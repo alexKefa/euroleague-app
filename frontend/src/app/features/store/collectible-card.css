@@ -88,3 +88,104 @@
     transform: translateX(35%) translateY(12%) rotate(10deg);
   }
 }
+
+/* Album Series 2: owned MVP moments burn. Flames flicker behind the frame
+   and lick up past its edges, a warm glow rises inside the photo, embers
+   float up (full-size cards only) and the frame glow pulses. Transform and
+   opacity only, so a page of cards stays smooth; nothing moves under
+   prefers-reduced-motion. */
+.mvp-fire {
+  position: absolute;
+  left: -9%;
+  right: -9%;
+  bottom: -9%;
+  height: 48%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 62% at 22% 100%, rgba(255, 96, 24, 0.9), transparent 70%),
+    radial-gradient(34% 74% at 52% 100%, rgba(255, 206, 70, 0.85), transparent 70%),
+    radial-gradient(38% 60% at 80% 100%, rgba(232, 32, 44, 0.9), transparent 70%);
+  filter: blur(10px);
+  transform-origin: 50% 100%;
+  animation: mvp-flicker 1.5s ease-in-out infinite alternate;
+}
+
+.mvp-fire-inner {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 42%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(30% 55% at 25% 100%, rgba(255, 110, 30, 0.6), transparent 75%),
+    radial-gradient(28% 70% at 60% 100%, rgba(255, 190, 70, 0.5), transparent 75%),
+    radial-gradient(30% 50% at 88% 100%, rgba(235, 40, 50, 0.55), transparent 75%);
+  transform-origin: 50% 100%;
+  animation: mvp-flicker 1.1s ease-in-out infinite alternate-reverse;
+}
+
+.mvp-embers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.mvp-embers span {
+  position: absolute;
+  bottom: 6%;
+  width: 4px;
+  height: 4px;
+  border-radius: 9999px;
+  background: #ffd27a;
+  box-shadow: 0 0 6px 2px rgba(255, 120, 40, 0.8);
+  opacity: 0;
+  animation: mvp-ember 3.2s ease-in infinite;
+}
+
+.mvp-embers span:nth-child(1) { left: 14%; animation-delay: 0s; }
+.mvp-embers span:nth-child(2) { left: 32%; animation-delay: 1.1s; width: 3px; height: 3px; }
+.mvp-embers span:nth-child(3) { left: 50%; animation-delay: 0.5s; }
+.mvp-embers span:nth-child(4) { left: 66%; animation-delay: 2s; width: 3px; height: 3px; }
+.mvp-embers span:nth-child(5) { left: 80%; animation-delay: 1.5s; }
+.mvp-embers span:nth-child(6) { left: 90%; animation-delay: 2.6s; width: 3px; height: 3px; }
+
+.mvp-pulse {
+  animation: mvp-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes mvp-flicker {
+  0% { transform: scaleY(0.86) scaleX(1); opacity: 0.75; }
+  30% { transform: scaleY(1.06) scaleX(0.97); opacity: 0.95; }
+  65% { transform: scaleY(0.93) scaleX(1.03); opacity: 0.82; }
+  100% { transform: scaleY(1.12) scaleX(0.98); opacity: 1; }
+}
+
+@keyframes mvp-ember {
+  0% { transform: translate(0, 0) scale(1); opacity: 0; }
+  12% { opacity: 1; }
+  100% { transform: translate(-8px, -260%) scale(0.4); opacity: 0; }
+}
+
+@keyframes mvp-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px rgba(255, 205, 170, 0.5) inset, 0 10px 26px rgba(0, 0, 0, 0.45), 0 0 28px rgba(220, 30, 50, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(255, 220, 180, 0.65) inset, 0 10px 26px rgba(0, 0, 0, 0.45), 0 0 54px rgba(255, 96, 30, 0.75);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mvp-fire,
+  .mvp-fire-inner,
+  .mvp-pulse {
+    animation: none;
+  }
+  .mvp-embers {
+    display: none;
+  }
+}
