@@ -5,7 +5,9 @@
 import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { collectibles, collectibleMoments, type MomentRole } from "../db/schema.js";
+import { collectibles, collectibleMoments, type MomentRole, type MomentBonusReason } from "../db/schema.js";
+import { GREAT_ROUND_THRESHOLD } from "./cards.js";
+import { computeTopScorerPlayerIdsForGames } from "./topScorerPoints.js";
 import { getCurrentSeason } from "./season.js";
 import { invalidate, CACHE_KEYS } from "./responseCache.js";
 import {
@@ -170,4 +172,105 @@ export async function generateMomentsForReadyRounds(
   }
   if (results.some((r) => r.created > 0)) invalidate(CACHE_KEYS.collectibles);
   return results;
+}
+
+// --- MVP-moment bonus (spec section 3, "B2")
+
+export interface MomentBonusReward {
+  collectibleId: string;
+  round: number;
+  reason: MomentBonusReason;
+  name: string;
+  imageUrl: string | null;
+  teamCode: string;
+}
+
+/**
+ * Grants each round's MVP moment to a user who had a great round (8+
+ * correct winner picks) or correctly picked the MVP as their game's top
+ * scorer (ties count). Called lazily, next to checkAndGrantRoundRewards.
+ * Claim-first: the moment_bonuses insert is the claim, and a card the user
+ * already owns isn't inserted twice. Returns every unseen bonus (new ones
+ * included), like checkAndGrantRareMilestones, so the reveal survives a
+ * reload until markMomentBonusesSeen.
+ */
+export async function checkAndGrantMomentBonuses(userId: string): Promise<MomentBonusReward[]> {
+  const season = await getCurrentSeason();
+  if (!season) return [];
+
+  // One read: every unclaimed MVP moment with this user's correct-pick
+  // count for that round and whether they picked the MVP as top scorer.
+  const candidates = await db.execute<{
+    collectible_id: string;
+    game_id: string;
+    player_id: string;
+    correct: number;
+    backed: boolean;
+  }>(sql`
+    select m.collectible_id, m.game_id, m.player_id,
+      (select count(*)::int from predictions pr join games g on g.id = pr.game_id
+        where pr.user_id = ${userId} and g.season = m.season and g.round = m.round
+          and g.status = 'final' and g.home_score is not null and g.away_score is not null and g.home_score <> g.away_score
+          and pr.predicted_winner_team_id = case when g.home_score > g.away_score then g.home_team_id else g.away_team_id end
+      ) as correct,
+      exists (select 1 from top_scorer_predictions t
+        where t.user_id = ${userId} and t.game_id = m.game_id and t.predicted_player_id = m.player_id) as backed
+    from collectible_moments m
+    join users u on u.id = ${userId} and u.deleted_at is null
+    where m.season = ${season} and m.role = 'mvp'
+      and not exists (select 1 from moment_bonuses b where b.user_id = ${userId} and b.collectible_id = m.collectible_id)`);
+
+  const backedGames = candidates.filter((c) => c.backed).map((c) => c.game_id);
+  const topScorers = backedGames.length > 0 ? await computeTopScorerPlayerIdsForGames(backedGames) : new Map<string, string[]>();
+  const qualifying: { collectibleId: string; reason: MomentBonusReason }[] = [];
+  for (const c of candidates) {
+    if (c.backed && (topScorers.get(c.game_id) ?? []).includes(c.player_id)) qualifying.push({ collectibleId: c.collectible_id, reason: "backed_mvp" });
+    else if (c.correct >= GREAT_ROUND_THRESHOLD) qualifying.push({ collectibleId: c.collectible_id, reason: "great_round" });
+  }
+
+  const claimValues =
+    qualifying.length > 0
+      ? sql.join(qualifying.map((q) => sql`(${q.collectibleId}::uuid, ${q.reason})`), sql`, `)
+      : null;
+  // One statement: claim, grant the cards not owned yet, and return the
+  // newly claimed plus the earlier unseen bonuses.
+  const rows = await db.execute<{ collectible_id: string; round: number; reason: MomentBonusReason; name: string; image_url: string | null; team_code: string }>(sql`
+    with claimed as (
+      ${
+        claimValues
+          ? sql`insert into moment_bonuses (user_id, collectible_id, reason)
+              select ${userId}, x.collectible_id, x.reason from (values ${claimValues}) as x(collectible_id, reason)
+              on conflict do nothing returning collectible_id, reason`
+          : sql`select null::uuid as collectible_id, null::varchar as reason where false`
+      }
+    ),
+    granted as (
+      insert into user_collectibles (user_id, collectible_id)
+      select ${userId}, collectible_id from claimed
+      on conflict do nothing
+    ),
+    unseen as (
+      select collectible_id, reason from claimed
+      union
+      select collectible_id, reason from moment_bonuses where user_id = ${userId} and seen_at is null
+    )
+    select un.collectible_id, m.round, un.reason, c.name, c.image_url, t.code as team_code
+    from unseen un
+    join collectible_moments m on m.collectible_id = un.collectible_id
+    join collectibles c on c.id = un.collectible_id
+    join teams t on t.id = c.team_id
+    order by m.round`);
+
+  return rows.map((r) => ({
+    collectibleId: r.collectible_id,
+    round: r.round,
+    reason: r.reason,
+    name: r.name,
+    imageUrl: r.image_url,
+    teamCode: r.team_code,
+  }));
+}
+
+export async function markMomentBonusesSeen(userId: string): Promise<void> {
+  await db.execute(sql`update moment_bonuses set seen_at = now() where user_id = ${userId} and seen_at is null`);
 }

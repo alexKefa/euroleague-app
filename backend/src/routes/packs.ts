@@ -5,6 +5,7 @@ import { userCollectibles, pointAdjustments, packOpenings, packOpeningResults, o
 import { requireAuth } from "../auth/middleware.js";
 import { getUserPoints, lockUserPoints } from "../services/points.js";
 import { PACKS, PackType, RolledSlot, PityState, rollPackForUser } from "../services/packs.js";
+import { checkAndGrantMomentBonuses } from "../services/moments.js";
 import { getUnopenedPacksWithSource } from "../services/packSources.js";
 import { checkAndGrantFirstPicksReward } from "../services/firstPicks.js";
 import {
@@ -232,6 +233,9 @@ packsRouter.get("/rewards/unseen", requireAuth, async (req, res) => {
       ...(await checkAndGrantCoachMilestones(userId)),
       ...(await checkAndGrantFantasyMilestones(userId)),
     ];
+    // Album Series 2: grant MVP moments on app load too. They're cards, not
+    // packs, so the reveal lives on the Predictions page (newMomentBonuses).
+    await checkAndGrantMomentBonuses(userId).catch((err) => console.error("moment bonuses failed:", err));
     const unseenIds = new Set(granted.map((p) => p.id));
     // Granted (and so announced) only by the call that claims it.
     const firstPicksPackId = await checkAndGrantFirstPicksReward(userId);

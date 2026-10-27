@@ -20,6 +20,7 @@ import {
   markRareMilestonesSeen,
 } from "../services/cards.js";
 import { checkAndGrantReferralReward } from "../services/referrals.js";
+import { checkAndGrantMomentBonuses, markMomentBonusesSeen } from "../services/moments.js";
 import { getFirstPicksStatus } from "../services/firstPicks.js";
 
 export const predictionsRouter = Router();
@@ -611,12 +612,17 @@ predictionsRouter.get("/me/summary", requireAuth, async (req, res) => {
     // Independent of each other — none of these three affect one another —
     // so run them concurrently instead of adding their round trips to the
     // DB back to back.
-    const [newRoundRewards, newMilestoneRewards, newCoachMilestoneRewards, newRareMilestoneRewards] = await Promise.all([
+    const [newRoundRewards, newMilestoneRewards, newCoachMilestoneRewards, newRareMilestoneRewards, , newMomentBonuses] = await Promise.all([
       checkAndGrantRoundRewards(req.userId!),
       checkAndGrantLegendaryMilestones(req.userId!),
       checkAndGrantCoachMilestones(req.userId!),
       checkAndGrantRareMilestones(req.userId!),
       checkAndGrantReferralReward(req.userId!),
+      // Album Series 2: a failure here must not hide the other rewards.
+      checkAndGrantMomentBonuses(req.userId!).catch((err) => {
+        console.error("moment bonuses failed:", err);
+        return [];
+      }),
     ]);
 
     res.json({
@@ -626,6 +632,7 @@ predictionsRouter.get("/me/summary", requireAuth, async (req, res) => {
       newMilestoneRewards: newMilestoneRewards.map((p) => ({ id: p.id, packType: p.packType, tier: p.tier })),
       newCoachMilestoneRewards: newCoachMilestoneRewards.map((p) => ({ id: p.id, packType: p.packType, tier: p.tier })),
       newRareMilestoneRewards,
+      newMomentBonuses,
     });
   } catch (err) {
     console.error("GET /api/predictions/me/summary failed:", err);
@@ -678,6 +685,17 @@ predictionsRouter.post("/coach-milestone-rewards/ack", requireAuth, async (req, 
   } catch (err) {
     console.error("POST /api/predictions/coach-milestone-rewards/ack failed:", err);
     res.status(500).json({ error: "Failed to acknowledge coach milestone rewards" });
+  }
+});
+
+// Album Series 2: dismissing the MVP-moment reveal (services/moments.ts).
+predictionsRouter.post("/moment-bonuses/ack", requireAuth, async (req, res) => {
+  try {
+    await markMomentBonusesSeen(req.userId!);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("POST /api/predictions/moment-bonuses/ack failed:", err);
+    res.status(500).json({ error: "Failed to acknowledge moment bonuses" });
   }
 });
 
