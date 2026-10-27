@@ -883,6 +883,20 @@ body {
   border-color: rgba(240, 165, 0, 0.4);
   box-shadow: 0 6px 20px -8px rgba(240, 165, 0, 0.4);
 }
+/* Album Series 2: "Series 1 complete" badge next to a name on album boards. */
+.s1-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.02em;
+  color: var(--accent-primary);
+  background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
+}
+
 .value-chip {
   flex-shrink: 0;
   font-family: "Sofia Sans Condensed", "Sofia Sans", sans-serif;

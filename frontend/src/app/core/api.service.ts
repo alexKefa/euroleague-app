@@ -352,6 +352,11 @@ export class ApiService {
     return this.http.post<{ ok: boolean }>(`${API_BASE_URL}/predictions/rare-milestone-rewards/ack`, {});
   }
 
+  // Album Series 2: dismiss the MVP-moment reveal (PredictionSummary.newMomentBonuses).
+  ackMomentBonuses(): Observable<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`${API_BASE_URL}/predictions/moment-bonuses/ack`, {});
+  }
+
   // userId instead of email (2026-09-18, "autofill usernames instead of me
   // typing whole email") — the admin grant forms resolve a target user via
   // app-user-search (shared/user-search.ts) now, which already hands back

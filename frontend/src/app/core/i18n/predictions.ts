@@ -5,6 +5,10 @@ export const predictionsTranslations: Record<string, Record<Lang, string>> = {
   "leaderboard.title": { en: "Leaderboard", el: "Κατάταξη" },
   "leaderboard.subtitle": { en: "Who's closest to completing the album, and who's calling the games best.", el: "Ποιος είναι πιο κοντά στο να ολοκληρώσει το άλμπουμ και ποιος προβλέπει καλύτερα." },
   "leaderboard.album": { en: "Album", el: "Άλμπουμ" },
+  // Album Series 2: MVP-moment reveal on Predictions.
+  "predictions.momentBonus.backedMvp": { en: "You called it: Round {round} MVP", el: "Το είχες προβλέψει: MVP Αγωνιστικής {round}" },
+  "predictions.momentBonus.greatRound": { en: "Great round: Round {round} MVP moment", el: "Μεγάλη αγωνιστική: η στιγμή του MVP της {round}ης" },
+  "predictions.momentBonus.summary": { en: "You already earned {n} MVP moments", el: "Έχεις ήδη κερδίσει {n} στιγμές MVP" },
   "leaderboard.cards": { en: "cards", el: "κάρτες" },
   "leaderboard.overall": { en: "Overall", el: "Συνολικά" },
   "leaderboard.round": { en: "Round", el: "Γύρος" },

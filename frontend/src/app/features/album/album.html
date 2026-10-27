@@ -107,6 +107,9 @@
                   <span class="font-mono text-muted w-7 text-center shrink-0">{{ i + 1 }}</span>
                 }
                 <span class="font-semibold truncate">{{ entry.displayName }}</span>
+                @if (entry.series1Complete) {
+                  <span class="s1-chip shrink-0" [attr.title]="i18n.t('album.series1Badge')">✓ S1</span>
+                }
               </div>
               <span class="font-mono text-team-primary font-bold shrink-0">{{ entry.ownedCount }} / {{ entry.totalCount }}</span>
             </button>

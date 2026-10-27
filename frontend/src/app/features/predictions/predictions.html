@@ -833,6 +833,21 @@
               {{ i18n.t('predictions.addedToCollection') }}
             </div>
           }
+          <!-- Album Series 2: MVP moments (great round / backed the MVP). -->
+          @if (shownMomentBonuses().length > 0) {
+            <a
+              routerLink="/album"
+              class="flex items-center gap-2 rounded-xl bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3"
+            >
+              <app-nav-icon name="medal" [size]="18" class="shrink-0" />
+              <span class="min-w-0 truncate">
+                {{ momentBonusText() }}
+                @if (shownMomentBonuses().length === 1) {
+                  ({{ shownMomentBonuses()[0].name }})
+                }
+              </span>
+            </a>
+          }
           <div class="flex items-end justify-between gap-3">
             <div class="min-w-0">
               <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('predictions.yourPoints') }}</p>

@@ -22,6 +22,8 @@ interface BoardRow {
   name: string;
   value: string;
   detail: string;
+  // Album tab only: owns every Series 1 card.
+  series1Complete?: boolean;
 }
 
 /**
@@ -135,6 +137,7 @@ export class LeaderboardComponent implements OnInit {
               name: r.displayName,
               value: `${Math.floor(r.completion * 1000) / 10}%`,
               detail: `${r.ownedCount}/${r.totalCount} ${this.i18n.t("leaderboard.cards")}`,
+              series1Complete: r.series1Complete,
             }))
           ),
         error: fail,

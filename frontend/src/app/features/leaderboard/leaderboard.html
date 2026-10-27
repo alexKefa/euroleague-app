@@ -74,6 +74,9 @@
               >{{ initial(slot.row.name) }}</span
             >
             <p class="relative font-semibold text-[13px] truncate w-full mt-2">{{ slot.row.name }}</p>
+            @if (slot.row.series1Complete) {
+              <span class="relative s1-chip" [attr.title]="i18n.t('album.series1Badge')">✓ S1</span>
+            }
             <p class="relative font-display text-lg leading-tight tabular-nums" [class.text-team-primary]="slot.place === 1">{{ slot.row.value }}</p>
             <p class="relative font-mono text-[10px] text-muted">{{ slot.row.detail }}</p>
           </div>
@@ -90,7 +93,12 @@
         >
           <span class="w-8 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0" [class]="rankBadgeClasses(i + podium().length)">{{ i + podium().length + 1 }}</span>
           <span class="min-w-0 flex-1">
-            <span class="block font-semibold truncate">{{ row.name }}</span>
+            <span class="flex items-center gap-1.5 min-w-0">
+              <span class="font-semibold truncate">{{ row.name }}</span>
+              @if (row.series1Complete) {
+                <span class="s1-chip shrink-0" [attr.title]="i18n.t('album.series1Badge')">✓ S1</span>
+              }
+            </span>
             <span class="block font-mono text-[11px] text-muted">{{ row.detail }}</span>
           </span>
           <span class="value-chip">{{ row.value }}</span>

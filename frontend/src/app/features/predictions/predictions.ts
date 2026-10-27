@@ -22,6 +22,7 @@ import {
   RewardPack,
   MyTopScorerPrediction,
   RareMilestoneReward,
+  MomentBonusReward,
   AchievementMilestone,
   PlayerAdvancedStatsRow,
   InjuryReportEntry,
@@ -558,6 +559,17 @@ export class PredictionsComponent implements OnInit, OnDestroy {
   readonly shownMilestoneRewards = signal<RewardPack[]>([]);
   readonly shownCoachMilestoneRewards = signal<RewardPack[]>([]);
   readonly shownRareMilestoneRewards = signal<RareMilestoneReward[]>([]);
+  // Album Series 2: MVP moments earned by a great round or by backing the
+  // MVP as top scorer. Shown once, acked on display like the rare milestones.
+  readonly shownMomentBonuses = signal<MomentBonusReward[]>([]);
+  readonly momentBonusText = computed(() => {
+    const bonuses = this.shownMomentBonuses();
+    if (bonuses.length === 0) return "";
+    if (bonuses.length > 1) return this.i18n.t("predictions.momentBonus.summary").replace("{n}", String(bonuses.length));
+    const b = bonuses[0];
+    const key = b.reason === "backed_mvp" ? "predictions.momentBonus.backedMvp" : "predictions.momentBonus.greatRound";
+    return this.i18n.t(key).replace("{round}", String(b.round));
+  });
 
   // Closest pack milestone for the "next reward" strip (2026-09-30). Fetched
   // once per visit, after the summary (whose grants it reflects); the
@@ -897,6 +909,14 @@ export class PredictionsComponent implements OnInit, OnDestroy {
         if (summary.newRareMilestoneRewards.length > 0) {
           this.shownRareMilestoneRewards.update((existing) => mergeByCollectibleId(existing, summary.newRareMilestoneRewards));
           this.api.ackRareMilestoneRewards().subscribe({ error: () => {} });
+        }
+        if (summary.newMomentBonuses?.length > 0) {
+          this.shownMomentBonuses.update((existing) => {
+            const ids = new Set(existing.map((b) => b.collectibleId));
+            const fresh = summary.newMomentBonuses.filter((b) => !ids.has(b.collectibleId));
+            return fresh.length > 0 ? [...existing, ...fresh] : existing;
+          });
+          this.api.ackMomentBonuses().subscribe({ error: () => {} });
         }
         this.summaryLoading.set(false);
       },
