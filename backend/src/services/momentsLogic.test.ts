@@ -7,6 +7,7 @@ import {
   pickSeriesFirst,
   isMomentsLaunched,
   formatPlayerName,
+  isMomentBonusOpen,
   MOMENTS_PER_ROUND,
   type PlayerLine,
   type RoundGame,
@@ -130,4 +131,15 @@ test("isRoundReady: a postponed game rescheduled weeks ahead doesn't restart the
   const r = isRoundReady(g, new Date(lastTip.getTime() + 7 * DAY + 1));
   assert.equal(r.ready, true);
   assert.equal(r.gameIds.length, 9);
+});
+
+test("isMomentBonusOpen: closed before launch unless the dev preview switch is on outside production", () => {
+  const before = new Date("2026-12-01T00:00:00Z");
+  const after = new Date("2027-01-02T00:00:00Z");
+  assert.equal(isMomentBonusOpen(before, {}), false);
+  assert.equal(isMomentBonusOpen(after, {}), true);
+  assert.equal(isMomentBonusOpen(before, { MOMENTS_BONUS_PREVIEW: "1", RAILWAY_ENVIRONMENT_NAME: "dev" }), true);
+  assert.equal(isMomentBonusOpen(before, { MOMENTS_BONUS_PREVIEW: "1" }), true, "local dev has no Railway env name");
+  assert.equal(isMomentBonusOpen(before, { MOMENTS_BONUS_PREVIEW: "1", RAILWAY_ENVIRONMENT_NAME: "production" }), false);
+  assert.equal(isMomentBonusOpen(before, { MOMENTS_BONUS_PREVIEW: "0", RAILWAY_ENVIRONMENT_NAME: "dev" }), false);
 });

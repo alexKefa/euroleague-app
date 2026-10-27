@@ -12,6 +12,7 @@ import { invalidate, CACHE_KEYS } from "./responseCache.js";
 import {
   MOMENTS_PER_ROUND,
   isMomentsLaunched,
+  isMomentBonusOpen,
   isRoundReady,
   pickRoundMoments,
   formatPlayerName,
@@ -196,7 +197,7 @@ export interface MomentBonusReward {
  * reload until markMomentBonusesSeen.
  */
 export async function checkAndGrantMomentBonuses(userId: string, now: Date = new Date()): Promise<MomentBonusReward[]> {
-  if (!isMomentsLaunched(now)) return [];
+  if (!isMomentBonusOpen(now)) return [];
 
   const rows = await db.execute<{
     collectible_id: string;

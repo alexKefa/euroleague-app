@@ -14,6 +14,16 @@ export function isMomentsLaunched(now: Date): boolean {
   return now.getTime() >= MOMENTS_LAUNCH_AT.getTime();
 }
 
+/**
+ * The MVP-moment bonus follows the launch gate, except that
+ * MOMENTS_BONUS_PREVIEW=1 opens it early for testing (set on Railway dev).
+ * Never on production, even if the variable is set there by mistake.
+ */
+export function isMomentBonusOpen(now: Date, env: Record<string, string | undefined> = process.env): boolean {
+  if (isMomentsLaunched(now)) return true;
+  return env.MOMENTS_BONUS_PREVIEW === "1" && env.RAILWAY_ENVIRONMENT_NAME !== "production";
+}
+
 /** Feed name to card name: "PETERS, ALEC" -> "Alec Peters", same rule the catalog scripts use. */
 export function formatPlayerName(rawName: string): string {
   const [last, first] = rawName.split(",").map((s) => s.trim());
