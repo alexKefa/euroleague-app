@@ -1,0 +1,266 @@
+<div class="max-w-3xl mx-auto p-4 sm:p-6 pb-40 sm:pb-6 overflow-x-hidden">
+  <a [routerLink]="navHistory.previousUrl() ?? '/battles'" class="back-link mb-3">{{ i18n.t('duels.game.back') }}</a>
+
+  @if (loading()) {
+    <app-skeleton class="h-48 rounded-2xl" />
+  } @else if (loadFailed() || !view()) {
+    <div class="bg-card rounded-2xl border border-line shadow-card p-6 text-center">
+      <p class="text-sm text-muted font-semibold">{{ i18n.t('duels.game.loadFailed') }}</p>
+    </div>
+  } @else {
+    @let v = view()!;
+
+    <!-- Scoreboard -->
+    <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4">
+      <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0 flex-1 text-center">
+          <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('duels.ladderYou') }}</p>
+          <p class="font-display text-5xl leading-none text-team-primary tabular-nums">{{ v.score.me }}</p>
+        </div>
+        <p class="font-display text-lg text-muted shrink-0">{{ i18n.t('duels.vs') }}</p>
+        <div class="min-w-0 flex-1 text-center">
+          <p class="text-[12px] text-muted font-bold uppercase tracking-wider truncate">
+            {{ v.opponent ? v.opponent.username : i18n.t('duels.openChallenge') }}
+          </p>
+          <p class="font-display text-5xl leading-none tabular-nums">{{ v.score.them }}</p>
+        </div>
+      </div>
+
+      <!-- Q1-Q4 (+ OT) line. -->
+      <div class="grid gap-1 mt-4 text-center" [style.grid-template-columns]="'repeat(' + (v.overtime ? 5 : 4) + ', minmax(0, 1fr))'">
+        @for (q of quarterCols; track q) {
+          @let cell = quarterCell(q);
+          <div
+            class="rounded-lg border px-1 py-1.5"
+            [class.border-team-primary]="isActive() && v.quarter === q"
+            [class.border-line]="!(isActive() && v.quarter === q)"
+          >
+            <p class="font-mono text-[11px] text-muted font-bold">{{ i18n.t('duels.game.quarterN').replace('{n}', '' + q) }}</p>
+            @if (cell.me !== null && cell.them !== null) {
+              <p class="font-mono text-[12px] font-bold tabular-nums">
+                <span [class.text-team-primary]="cell.me > cell.them">{{ cell.me }}</span>
+                <span class="text-muted"> – </span>
+                <span [class.text-team-primary]="cell.them > cell.me">{{ cell.them }}</span>
+              </p>
+            } @else {
+              <p class="font-mono text-[12px] text-muted">–</p>
+            }
+          </div>
+        }
+        @if (v.overtime; as ot) {
+          <div class="rounded-lg border border-line px-1 py-1.5">
+            <p class="font-mono text-[11px] text-muted font-bold">{{ i18n.t('duels.game.ot') }}</p>
+            <p class="font-mono text-[12px] font-bold tabular-nums">
+              <span [class.text-team-primary]="ot.myScore > ot.theirScore">{{ ot.myScore }}</span>
+              <span class="text-muted"> – </span>
+              <span [class.text-team-primary]="ot.theirScore > ot.myScore">{{ ot.theirScore }}</span>
+            </p>
+          </div>
+        }
+      </div>
+
+      @if (isActive()) {
+        <div class="grid grid-cols-2 gap-2 mt-3">
+          <div class="rounded-xl bg-page px-3 py-2 min-w-0">
+            <p class="text-[11px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('duels.game.thisQuarter') }}</p>
+            <p class="font-display text-lg tracking-wide text-team-primary truncate">
+              {{ currentCategory() ? i18n.t('duels.cat.' + currentCategory()) : i18n.t('duels.game.hidden') }}
+            </p>
+          </div>
+          <div class="rounded-xl bg-page px-3 py-2 min-w-0">
+            <p class="text-[11px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('duels.game.next') }}</p>
+            <p class="font-display text-lg tracking-wide truncate">
+              {{ nextCategory() ? i18n.t('duels.cat.' + nextCategory()) : i18n.t('duels.game.hidden') }}
+            </p>
+          </div>
+        </div>
+      }
+      @if (countdown(); as cd) {
+        <p class="font-mono text-[12px] text-muted text-center mt-3">{{ i18n.t('duels.game.deadline').replace('{t}', cd) }}</p>
+      }
+    </div>
+
+    @if (noteKey(); as nk) {
+      <p class="text-sm font-semibold text-muted bg-card border border-line rounded-xl px-3 py-2 mb-4" role="status">{{ i18n.t(nk) }}</p>
+    }
+
+    <!-- Reveal of the newly resolved quarter. -->
+    @if (reveal(); as r) {
+      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4" (click)="dismissReveal()" role="status">
+        <p class="text-[12px] text-muted font-bold uppercase tracking-wider text-center mb-3">{{ r.label }}</p>
+        <div class="grid grid-cols-2 gap-3">
+          @for (side of sides; track side) {
+            @let card = side === 0 ? r.mine : r.theirs;
+            @let mine = side === 0;
+            @let win = mine ? r.myScore > r.theirScore : r.theirScore > r.myScore;
+            @let lose = mine ? r.myScore < r.theirScore : r.theirScore < r.myScore;
+            <div
+              class="face-off text-center min-w-0"
+              [class.face-off--left]="mine"
+              [class.face-off--right]="!mine"
+              [class.is-winner]="win"
+              [class.is-loser]="lose"
+            >
+              @if (card) {
+                <div class="flip-in mx-auto" style="max-width: 110px">
+                  <app-collectible-card
+                    class="block w-full"
+                    [name]="card.name"
+                    [tier]="tier(card)"
+                    [imageUrl]="card.imageUrl"
+                    [finish]="card.isFoil ? 'foil' : 'standard'"
+                    [unlocked]="true"
+                    [maxWidth]="110"
+                  ></app-collectible-card>
+                </div>
+              }
+              <p class="font-display text-3xl tabular-nums mt-1" [class.text-team-primary]="win">{{ mine ? shownMine() : shownTheirs() }}</p>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Pending / open challenge. -->
+    @if (isPending()) {
+      <div class="bg-card rounded-2xl border border-line shadow-card p-5 text-center mb-4">
+        @if (canAccept()) {
+          <p class="font-semibold mb-4">
+            {{ v.opponent ? i18n.t('duels.game.challengedYou').replace('{name}', v.opponent.username) : i18n.t('duels.openChallenge') }}
+          </p>
+          <div class="flex gap-2 justify-center">
+            <a [routerLink]="['/battles', 'duel', v.id, 'accept']" appButton>{{ i18n.t('duels.accept') }}</a>
+            @if (canDecline()) {
+              <button type="button" appButton="outline" (click)="decline()" [disabled]="acting()">{{ i18n.t('duels.game.decline') }}</button>
+            }
+          </div>
+        } @else {
+          <p class="font-semibold mb-4 flex items-center justify-center gap-2">
+            <span class="waiting-dot inline-block w-2 h-2 rounded-full bg-team-primary"></span>
+            {{ v.opponent ? i18n.t('duels.game.pendingFor').replace('{name}', v.opponent.username) : i18n.t('duels.game.openWaiting') }}
+          </p>
+          @if (canCancel()) {
+            <button type="button" appButton="outline" (click)="cancel()" [disabled]="acting()">{{ i18n.t('duels.cancel') }}</button>
+          }
+        }
+      </div>
+    } @else if (v.status === 'cancelled' || v.status === 'declined' || v.status === 'expired') {
+      <div class="bg-card rounded-2xl border border-line shadow-card p-5 text-center mb-4">
+        <p class="text-sm font-semibold text-muted">
+          {{ v.status === 'cancelled' ? i18n.t('duels.game.cancelled') : v.status === 'declined' ? i18n.t('duels.game.declined') : i18n.t('duels.game.expiredNote') }}
+        </p>
+      </div>
+    }
+
+    <!-- Full time. -->
+    @if (isFinished()) {
+      <div class="bg-card rounded-2xl border border-line shadow-card p-5 text-center mb-4">
+        <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('duels.finalScore') }}</p>
+        <p class="font-display text-3xl tracking-wide mt-1" [class.text-team-primary]="v.result === 'win'">
+          {{ v.result === 'win' ? i18n.t('duels.youWon') : v.result === 'loss' ? i18n.t('duels.youLost') : i18n.t('duels.itsADraw') }}
+        </p>
+        @if (reasonKey(); as rk) {
+          <p class="text-[12px] text-muted mt-1">{{ i18n.t(rk) }}</p>
+        }
+        @if (v.ratingDelta !== null) {
+          <p class="font-mono text-sm font-bold mt-3">
+            {{ i18n.t('duels.ratingChange').replace('{n}', (v.ratingDelta > 0 ? '+' : '') + v.ratingDelta) }}
+          </p>
+        }
+        @if (v.result === 'win') {
+          <p class="text-sm font-semibold mt-1" [class.text-team-primary]="v.prizePaid" [class.text-muted]="!v.prizePaid">
+            {{ v.prizePaid ? i18n.t('duels.prizePaid') : i18n.t('duels.prizeLimit') }}
+          </p>
+        }
+        @if (rematchParams(); as rp) {
+          <a [routerLink]="['/battles', 'duel', 'new']" [queryParams]="rp" appButton class="mt-4">{{ i18n.t('duels.rematch') }}</a>
+        }
+      </div>
+    }
+
+    <!-- Hands. -->
+    @if (isActive() || isFinished()) {
+      <div class="bg-card rounded-2xl border border-line shadow-card p-3 mb-4">
+        <div class="flex items-center justify-between gap-2 mb-2">
+          <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('duels.game.yourCards') }}</p>
+          @if (isActive() && v.iCommitted) {
+            <p class="text-[12px] font-bold text-team-primary">{{ i18n.t('duels.game.committed') }}</p>
+          } @else if (isActive()) {
+            <p class="text-[12px] text-muted">{{ i18n.t('duels.game.pickCard') }}</p>
+          }
+        </div>
+        <div class="grid grid-cols-5 gap-1.5">
+          @for (c of v.myLineup; track c.collectibleId; let i = $index) {
+            <button
+              type="button"
+              class="hand-card card-pop-in min-w-0 rounded-lg text-center p-0.5"
+              [class.is-used]="myUsed().has(i)"
+              [class.is-picked]="selected() === i"
+              [style.animation-delay]="i * 50 + 'ms'"
+              [disabled]="!isActive() || v.iCommitted || myUsed().has(i)"
+              [attr.aria-pressed]="selected() === i"
+              [attr.aria-label]="c.name"
+              (click)="pick(i)"
+            >
+              <app-collectible-card
+                class="block w-full"
+                [name]="c.name"
+                [tier]="tier(c)"
+                [imageUrl]="c.imageUrl"
+                [finish]="c.isFoil ? 'foil' : 'standard'"
+                [unlocked]="true"
+                [maxWidth]="80"
+              ></app-collectible-card>
+              @if (myScores()[i] !== null) {
+                <span class="block font-display text-base tabular-nums leading-tight" [class.text-team-primary]="selected() === i">{{ myScores()[i] }}</span>
+              }
+            </button>
+          }
+        </div>
+      </div>
+
+      @if (v.theirLineup; as theirs) {
+        <div class="bg-card rounded-2xl border border-line shadow-card p-3 mb-4">
+          <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2 truncate">
+            {{ i18n.t('duels.game.theirCards').replace('{name}', v.opponent ? v.opponent.username : '') }}
+          </p>
+          <div class="grid grid-cols-5 gap-1.5">
+            @for (c of theirs; track c.collectibleId; let i = $index) {
+              <div class="hand-card min-w-0 text-center p-0.5" [class.is-used]="theirUsed().has(i)" [attr.aria-label]="c.name">
+                <app-collectible-card
+                  class="block w-full"
+                  [name]="c.name"
+                  [tier]="tier(c)"
+                  [imageUrl]="c.imageUrl"
+                  [finish]="c.isFoil ? 'foil' : 'standard'"
+                  [unlocked]="true"
+                  [maxWidth]="80"
+                ></app-collectible-card>
+                @if (theirScores()[i] !== null) {
+                  <span class="block font-display text-base tabular-nums leading-tight text-muted">{{ theirScores()[i] }}</span>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
+    }
+
+    @if (isActive()) {
+      @if (v.iCommitted) {
+        <p class="text-sm text-muted font-semibold text-center flex items-center justify-center gap-2">
+          <span class="waiting-dot inline-block w-2 h-2 rounded-full bg-team-primary"></span>
+          {{ i18n.t('duels.waitingFor').replace('{name}', v.opponent ? v.opponent.username : '') }}
+        </p>
+      } @else {
+        <div
+          class="fixed left-0 right-0 bottom-[calc(4.6rem+env(safe-area-inset-bottom,0px))] z-30 px-4 py-3 bg-card/90 backdrop-blur border-t border-line sm:static sm:p-0 sm:bg-transparent sm:backdrop-blur-none sm:border-0"
+        >
+          <button type="button" appButton class="w-full justify-center disabled:opacity-50" [disabled]="!canCommit()" (click)="commit()">
+            {{ i18n.t('duels.commit') }}
+          </button>
+        </div>
+      }
+    }
+  }
+</div>

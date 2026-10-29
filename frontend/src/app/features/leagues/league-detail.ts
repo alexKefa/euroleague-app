@@ -6,7 +6,7 @@ import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
 import { NavHistoryService } from "../../core/nav-history.service";
 import { BattlesNotificationService } from "../../core/battles-notification.service";
-import { LeagueDetail, LeagueLeaderboardEntry, FantasyLeaderboardEntry, BattleSummary } from "../../core/models";
+import { LeagueDetail, LeagueLeaderboardEntry, FantasyLeaderboardEntry, LadderRow } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { PlayerPhotoComponent } from "../../shared/player-photo";
 import { NavIconComponent, NavIconName } from "../../shared/nav-icon";
@@ -86,7 +86,7 @@ export class LeagueDetailComponent implements OnInit {
   // Battles" section) — loaded lazily on first switch to this tab rather
   // than eagerly like points/fantasy above, since most visits to a league
   // won't touch it.
-  readonly battles = signal<BattleSummary[]>([]);
+  readonly ladder = signal<LadderRow[]>([]);
   readonly battlesLoading = signal(false);
   private battlesLoaded = false;
 
@@ -95,30 +95,14 @@ export class LeagueDetailComponent implements OnInit {
     if (tab === "battles" && !this.battlesLoaded) {
       this.battlesLoaded = true;
       this.battlesLoading.set(true);
-      this.api.getMyBattles(this.leagueId).subscribe({
+      this.api.getDuelLadder(this.leagueId).subscribe({
         next: (rows) => {
-          this.battles.set(rows);
+          this.ladder.set(rows);
           this.battlesLoading.set(false);
         },
         error: () => this.battlesLoading.set(false),
       });
     }
-  }
-
-  readonly cancellingBattleId = signal<string | null>(null);
-
-  // Cancelled battles aren't listed (GET /battles/mine skips them), so a
-  // successful cancel just drops the row.
-  cancelBattle(id: string): void {
-    if (this.cancellingBattleId()) return;
-    this.cancellingBattleId.set(id);
-    this.api.cancelBattle(id).subscribe({
-      next: () => {
-        this.battles.update((rows) => rows.filter((b) => b.id !== id));
-        this.cancellingBattleId.set(null);
-      },
-      error: () => this.cancellingBattleId.set(null),
-    });
   }
 
   challenge(member: { userId: string; displayName: string }): void {

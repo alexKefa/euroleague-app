@@ -1,0 +1,111 @@
+/* Four Quarters game screen. Keyframes copied from battle-detail.css. */
+
+.face-off {
+  animation: face-off-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition:
+    transform 400ms ease,
+    filter 400ms ease,
+    opacity 400ms ease;
+}
+.face-off--left {
+  --from-x: -40px;
+}
+.face-off--right {
+  --from-x: 40px;
+}
+@keyframes face-off-in {
+  from {
+    opacity: 0;
+    transform: translateX(var(--from-x)) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.face-off.is-winner {
+  transform: scale(1.06);
+  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--accent-primary, #e8792c) 55%, transparent));
+}
+.face-off.is-loser {
+  transform: scale(0.94);
+  filter: grayscale(0.9);
+  opacity: 0.6;
+}
+
+/* Card flip on reveal. */
+.flip-in {
+  animation: flip-in 640ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-style: preserve-3d;
+}
+@keyframes flip-in {
+  from {
+    opacity: 0;
+    transform: perspective(600px) rotateY(90deg) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(600px) rotateY(0) scale(1);
+  }
+}
+
+.card-pop-in {
+  animation: card-pop-in 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes card-pop-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.hand-card {
+  transition:
+    transform 150ms ease,
+    opacity 150ms ease,
+    filter 150ms ease;
+}
+.hand-card.is-used {
+  opacity: 0.35;
+  filter: grayscale(0.8);
+}
+.hand-card.is-picked {
+  animation: pick-glow 1.6s ease-in-out infinite;
+  transform: translateY(-3px);
+}
+@keyframes pick-glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  50% {
+    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--accent-primary, #e8792c) 65%, transparent));
+  }
+}
+
+.waiting-dot {
+  animation: waiting-dot-fade 1.2s ease-in-out infinite;
+}
+@keyframes waiting-dot-fade {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .face-off,
+  .flip-in,
+  .card-pop-in,
+  .hand-card.is-picked,
+  .waiting-dot {
+    animation: none;
+  }
+}
