@@ -19,7 +19,7 @@ points-priced packs, album, trades) under a "Cards" hub.
 |---|---|
 | Frontend | Angular 20 (standalone components, signals), TypeScript, Tailwind CSS |
 | Backend | Node.js, Express, TypeScript (ESM, run via `tsx`) |
-| Database | PostgreSQL on Neon (remote, not local) |
+| Database | PostgreSQL: production on Supabase (Free), dev on Neon (Free) |
 | ORM | Drizzle ORM + Drizzle Kit (not Prisma) |
 | Auth | JWT (access token in memory only, httpOnly refresh cookie), bcrypt |
 | Data source | [`euroleague-api`](https://pypi.org/project/euroleague-api/) (Python) + direct `fetch` of `api-live.euroleague.net` |
@@ -148,11 +148,18 @@ on dev usually means drift, not a code bug.
 
 Railway project/service `euroleague-app`, Dockerfile builder (config in
 `.railway/railway.ts`). Two environments: `production` (`main` branch,
-getclutchapp.com) and `dev` (`dev` branch, euroleague-app-dev.up.railway.app,
-Neon project `EuroleagueDev` / `misty-night-49318785`, separate from production's
-`EuroleagueProd` / `shy-frost-51618412` so dev doesn't share production's
-Free-plan compute hours. Both are in eu-central-1, next to Railway's EU region. Use
-`neonctl ... --org-id org-dark-hat-10818944`).
+getclutchapp.com) and `dev` (`dev` branch, euroleague-app-dev.up.railway.app).
+
+Databases, each with its own provider and free quota:
+- **Production: Supabase** project `vjdrmbrishvfqfeniyhz` (Free, eu-north-1/Stockholm),
+  moved from Neon on 2026-10-29. Railway's `DATABASE_URL` uses the **Session
+  pooler** (`aws-0-eu-north-1.pooler.supabase.com:5432`). The direct host is IPv6-only
+  and Railway can't reach it. The Supabase roles `anon`/`authenticated` have had all
+  grants on `public` revoked, so Supabase's Data API can't read app tables
+  (there's no RLS). Keep it that way when creating tables by hand.
+- **Dev: Neon** project `EuroleagueDev` / `misty-night-49318785` (eu-central-1).
+  The old prod Neon project `EuroleagueProd` / `shy-frost-51618412` is a frozen
+  backup as of the 2026-10-29 move. Use `neonctl ... --org-id org-dark-hat-10818944`.
 
 Deploy: `npx tsc -p tsconfig.json --noEmit` (backend), `ng build` (frontend),
 commit, push, then `railway up --service euroleague-app --environment <dev|production>`.
@@ -173,3 +180,26 @@ the console), `RESEND_FROM_EMAIL`, `APP_BASE_URL` (frontend origin for emailed l
 off, generate with `npx web-push generate-vapid-keys`),
 `DISABLE_BACKGROUND_JOBS=1` (set on Railway dev: stops the sync intervals so the
 dev Neon compute can auto-suspend).
+
+## Hosting costs and limits (checked 2026-10-29)
+
+The budget is **$0 beyond Railway Hobby** ($5/mo incl. $5 usage, already ~fully
+used). Don't propose paid DB plans or Railway Postgres as the default fix.
+
+- **Supabase Free (prod)**: 500 MB DB (prod was 41 MB), no compute-hour cap, and
+  **5 GB egress/month**. Egress is the binding limit: Neon showed ~5.5 GB/month
+  from the app re-reading the same data. When over quota, Supabase gives a grace
+  period and then restricts the project. Keep DB→app bytes down with in-memory
+  caching. Before adding a polling job or an uncached hot endpoint, estimate its
+  monthly bytes.
+- **Neon Free (dev)**: 100 CU-hours per project per billing period, 1 GB storage,
+  auto-suspend after 5 min idle. At the cap the compute is suspended until the
+  next period: the site loads, but every DB call hangs. Prod hit this on
+  2026-10-29, which caused the move. Keep `DISABLE_BACKGROUND_JOBS=1` on Railway
+  dev so dev's compute can sleep.
+- **Neon Launch**: $0.106/CU-hour plus $0.35/GB-month, no minimum, and invoices
+  under $0.50 aren't collected. Turning it on for a few minutes to dump a
+  suspended DB is effectively free.
+- **What drives load**: user traffic, live-games sync (every 20s inside a game's
+  window, from 2h before tipoff to 5h after; otherwise hourly), and the hourly
+  jobs in `index.ts`.

@@ -1,6 +1,6 @@
 import Parser from "rss-parser";
 import he from "he";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { newsArticles, syncState } from "../db/schema.js";
 
@@ -115,18 +115,35 @@ export async function syncNews(): Promise<{ articlesUpserted: number; feedsFaile
       continue;
     }
 
-    // Built once per feed (not per item) — this source's own recent rows,
-    // keyed by the same stable id extractArticleKey() would derive from
-    // their own url, so a republished item can be matched against
-    // whichever row already holds that story.
+    // Built once per feed (not per item): rows already holding one of this
+    // feed's stories, keyed by the same stable id extractArticleKey()
+    // derives from their url, so a republished item matches whichever row
+    // holds that story. Only rows whose url contains one of the feed's own
+    // ids are fetched. Reading the source's whole url list (~1.5k rows per
+    // feed, every 10 min) was most of production's DB egress, the limiting
+    // quota on Supabase Free (2026-10-29). The LIKE is a coarse prefilter;
+    // the extractArticleKey() check below is the real match.
     const existingByKey = new Map<string, { id: string }>();
-    const existingRows = await db
-      .select({ id: newsArticles.id, url: newsArticles.url })
-      .from(newsArticles)
-      .where(eq(newsArticles.sourceName, feed.sourceName));
-    for (const row of existingRows) {
-      const key = extractArticleKey(feed.sourceName, row.url);
-      if (key) existingByKey.set(key, { id: row.id });
+    const feedKeys = new Set<string>();
+    for (const item of parsed.items) {
+      const key = item.link ? extractArticleKey(feed.sourceName, item.link) : null;
+      if (key) feedKeys.add(key);
+    }
+    if (feedKeys.size > 0) {
+      const patterns = [...feedKeys].map((k) => sql`${`%/${k}%`}`);
+      const existingRows = await db
+        .select({ id: newsArticles.id, url: newsArticles.url })
+        .from(newsArticles)
+        .where(
+          and(
+            eq(newsArticles.sourceName, feed.sourceName),
+            sql`${newsArticles.url} like any(array[${sql.join(patterns, sql`, `)}]::text[])`,
+          ),
+        );
+      for (const row of existingRows) {
+        const key = extractArticleKey(feed.sourceName, row.url);
+        if (key && feedKeys.has(key)) existingByKey.set(key, { id: row.id });
+      }
     }
 
     for (const item of parsed.items) {
