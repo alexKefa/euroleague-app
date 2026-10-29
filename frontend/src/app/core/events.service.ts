@@ -37,6 +37,12 @@ export interface BattleUpdate {
   reason: "challenged" | "accepted" | "declined" | "cancelled" | "move" | "finished";
 }
 
+export interface DuelUpdate {
+  id: string;
+  status: string;
+  quarter: number;
+}
+
 /**
  * One shared SSE connection to /api/events for the whole app. Live scores
  * are public, so this connects whether or not the user is logged in; it
@@ -67,6 +73,10 @@ export class EventsService {
   // delivery and "payload only says *that* something changed, re-fetch via
   // REST" convention as lastTradeUpdate above.
   readonly lastBattleUpdate = signal<BattleUpdate | null>(null);
+
+  // A Four Quarters duel involving the logged-in user changed (services/duels.ts
+  // sends event "duel"). Same per-user, "re-fetch via REST" convention.
+  readonly lastDuelUpdate = signal<DuelUpdate | null>(null);
 
   // Game ids currently live. Seeded once from a REST fetch on boot, so a
   // visitor who opens the app mid-game sees it immediately rather than
@@ -157,6 +167,9 @@ export class EventsService {
     });
     source.addEventListener("battle-update", (event) => {
       this.lastBattleUpdate.set(JSON.parse((event as MessageEvent).data));
+    });
+    source.addEventListener("duel", (event) => {
+      this.lastDuelUpdate.set(JSON.parse((event as MessageEvent).data));
     });
     this.source = source;
   }

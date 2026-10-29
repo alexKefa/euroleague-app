@@ -54,6 +54,11 @@ import {
   BattleSummary,
   BattleDetail,
   BattleOpponent,
+  DuelView,
+  DuelSummary,
+  OpenDuel,
+  LadderRow,
+  MyRating,
   Achievements,
   CardStatLine,
   CollectibleFinish,
@@ -666,6 +671,47 @@ export class ApiService {
 
   getAchievements(): Observable<Achievements> {
     return this.http.get<Achievements>(`${API_BASE_URL}/users/me/achievements`);
+  }
+
+  // Four Quarters duels (Battles v6).
+  createDuel(body: { lineup: string[]; opponentUserId?: string; leagueId?: string }): Observable<DuelView> {
+    return this.http.post<DuelView>(`${API_BASE_URL}/duels`, body);
+  }
+
+  getOpenDuels(): Observable<OpenDuel[]> {
+    return this.http.get<OpenDuel[]>(`${API_BASE_URL}/duels/open`);
+  }
+
+  getMyDuels(): Observable<DuelSummary[]> {
+    return this.http.get<DuelSummary[]>(`${API_BASE_URL}/duels/mine`);
+  }
+
+  getDuelLadder(leagueId?: string): Observable<LadderRow[]> {
+    return this.http.get<LadderRow[]>(`${API_BASE_URL}/duels/ladder`, { params: leagueId ? { leagueId } : {} });
+  }
+
+  getMyDuelRating(): Observable<MyRating> {
+    return this.http.get<MyRating>(`${API_BASE_URL}/duels/me/rating`);
+  }
+
+  getDuel(id: string): Observable<DuelView> {
+    return this.http.get<DuelView>(`${API_BASE_URL}/duels/${id}`);
+  }
+
+  acceptDuel(id: string, lineup: string[]): Observable<DuelView> {
+    return this.http.post<DuelView>(`${API_BASE_URL}/duels/${id}/accept`, { lineup });
+  }
+
+  declineDuel(id: string): Observable<{ status: string }> {
+    return this.http.post<{ status: string }>(`${API_BASE_URL}/duels/${id}/decline`, {});
+  }
+
+  cancelDuel(id: string): Observable<{ status: string }> {
+    return this.http.post<{ status: string }>(`${API_BASE_URL}/duels/${id}/cancel`, {});
+  }
+
+  commitDuelMove(id: string, quarter: number, slot: number): Observable<DuelView> {
+    return this.http.post<DuelView>(`${API_BASE_URL}/duels/${id}/commit`, { quarter, slot });
   }
 
   getBattleOpponents(): Observable<BattleOpponent[]> {

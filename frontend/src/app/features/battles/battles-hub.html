@@ -5,22 +5,36 @@
 
   @if (!auth.isAuthenticated()) {
     <div class="bg-card rounded-2xl border border-line shadow-card p-6 text-center">
-      <p class="text-sm text-muted mb-4">{{ i18n.t('battles.loginToBattle') }}</p>
+      <p class="text-sm text-muted mb-4">{{ i18n.t('duels.loginToPlay') }}</p>
       <a routerLink="/login" appButton appButtonSize="sm">{{ i18n.t('nav.login') }}</a>
     </div>
   } @else {
-    <!-- Hero: the two main actions, always at the top. -->
-    <div class="relative overflow-hidden rounded-3xl p-5 mb-5 bg-team-primary text-team-secondary shadow-card">
+    <!-- Header strip: rating, division, month record, paid wins left. -->
+    <div class="relative overflow-hidden rounded-3xl p-5 mb-4 bg-team-primary text-team-secondary shadow-card">
       <app-nav-icon name="ball" [size]="120" class="absolute -right-6 -bottom-8 opacity-15 pointer-events-none" />
-      <p class="font-display text-xl tracking-wide leading-tight">{{ i18n.t('battles.heroTitle') }}</p>
-      <p class="text-sm opacity-85 mt-1 mb-4 max-w-sm">{{ i18n.t('battles.heroSub') }}</p>
-      <div class="flex flex-wrap gap-2 relative">
+      @if (rating(); as r) {
+        <div class="relative flex items-end gap-3">
+          <p class="font-display text-5xl leading-none">{{ r.rating }}</p>
+          <div class="pb-0.5">
+            <p class="font-display text-lg tracking-wide leading-tight">{{ i18n.t('duels.div.' + r.division) }}</p>
+            <p class="text-[12px] opacity-85">{{ i18n.t('duels.rating') }}</p>
+          </div>
+        </div>
+        <p class="relative font-mono text-xs font-bold mt-3 opacity-90">
+          {{ i18n.t('duels.monthRecord') }}: {{ r.wins }}{{ i18n.t('duels.winShort') }} – {{ r.losses }}{{ i18n.t('duels.lossShort') }} – {{ r.draws
+          }}{{ i18n.t('duels.drawShort') }}
+        </p>
+        <p class="relative text-[12px] opacity-85 mt-0.5">{{ paidWinsLeft(r.paidWinsLeftToday) }}</p>
+      } @else {
+        <p class="relative font-display text-xl tracking-wide leading-tight">{{ i18n.t('duels.title') }}</p>
+      }
+      <div class="flex flex-wrap gap-2 relative mt-4">
         <button
           type="button"
           (click)="openPicker()"
           class="rounded-xl px-4 py-2.5 font-bold text-sm bg-team-secondary text-team-primary active:scale-[0.97] transition-transform"
         >
-          {{ i18n.t('battles.newBattle') }}
+          {{ i18n.t('duels.newDuel') }}
         </button>
         <button
           type="button"
@@ -30,100 +44,245 @@
           {{ inviteCopied() ? i18n.t('battles.inviteCopied') : i18n.t('battles.inviteFriends') }}
         </button>
       </div>
-      @if (wins() + losses() > 0) {
-        <p class="relative font-mono text-xs font-bold mt-4 opacity-90">
-          {{ i18n.t('battles.record') }}: {{ wins() }}{{ i18n.t('battles.winShort') }} – {{ losses() }}{{ i18n.t('battles.lossShort') }}
-        </p>
-      }
     </div>
 
-    @if (loading()) {
-      <div class="space-y-2">
-        @for (i of [1, 2, 3]; track i) {
-          <app-skeleton class="h-16 rounded-2xl" />
+    <!-- Games / Open / Ladder — same segmented control as league-detail's tabs. -->
+    <div class="status-tile flex gap-1 mb-4 h-11 p-1 rounded-2xl border border-line overflow-x-auto no-scrollbar">
+      <button
+        type="button"
+        (click)="setTab('games')"
+        class="relative flex-1 shrink-0 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors"
+        [ngClass]="tab() === 'games' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
+      >
+        {{ i18n.t('duels.tab.games') }}
+        @if (yourMove().length > 0) {
+          <span class="absolute top-0.5 right-1.5 w-2 h-2 rounded-full bg-red-500" [attr.aria-label]="i18n.t('duels.pendingChallenges')"></span>
         }
-      </div>
-    } @else {
-      @if (yourMove().length > 0) {
-        <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('battles.yourMove') }}</p>
-        <div class="space-y-2 mb-5">
-          @for (b of yourMove(); track b.id) {
-            <div class="flex items-center gap-3 rounded-2xl border-2 border-team-primary/50 bg-card px-3 py-2.5 shadow-card">
-              <app-player-photo
-                [photoUrl]="b.challengerCard.imageUrl"
-                [name]="b.challengerCard.name"
-                [teamCode]="b.challengerCard.team.code"
-                [primaryColor]="b.challengerCard.team.primaryColor"
-                [size]="40"
-              />
-              <div class="min-w-0 flex-1">
-                <p class="font-semibold truncate">{{ b.counterpartyName }}</p>
-                <p class="text-[12px] text-muted truncate">{{ i18n.t('battles.challengedYouWith') }} {{ b.challengerCard.name }}</p>
-              </div>
-              <a [routerLink]="['/battles', b.id]" appButton appButtonSize="sm" class="shrink-0">{{ i18n.t('battles.play') }}</a>
-            </div>
+      </button>
+      <button
+        type="button"
+        (click)="setTab('open')"
+        class="flex-1 shrink-0 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors"
+        [ngClass]="tab() === 'open' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
+      >
+        {{ i18n.t('duels.tab.open') }}
+      </button>
+      <button
+        type="button"
+        (click)="setTab('ladder')"
+        class="flex-1 shrink-0 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors"
+        [ngClass]="tab() === 'ladder' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
+      >
+        {{ i18n.t('duels.tab.ladder') }}
+      </button>
+    </div>
+
+    @if (tab() === 'games') {
+      @if (loading()) {
+        <div class="space-y-2">
+          @for (i of [1, 2, 3]; track i) {
+            <app-skeleton class="h-16 rounded-2xl" />
           }
         </div>
-      }
-
-      @if (waiting().length > 0) {
-        <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('battles.waitingTitle') }}</p>
-        <div class="space-y-2 mb-5">
-          @for (b of waiting(); track b.id) {
-            <div class="flex items-center gap-3 rounded-2xl border border-line bg-card pl-3 pr-2 py-2.5">
-              <a [routerLink]="['/battles', b.id]" class="flex items-center gap-3 min-w-0 flex-1">
-                <app-player-photo
-                  [photoUrl]="b.challengerCard.imageUrl"
-                  [name]="b.challengerCard.name"
-                  [teamCode]="b.challengerCard.team.code"
-                  [primaryColor]="b.challengerCard.team.primaryColor"
-                  [size]="40"
-                />
-                <div class="min-w-0">
-                  <p class="font-semibold truncate">{{ b.counterpartyName }}</p>
-                  <p class="text-[12px] text-muted truncate">{{ i18n.t('battles.waitingForOpponent') }}</p>
+      } @else {
+        @if (yourMove().length > 0) {
+          <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('duels.yourMove') }}</p>
+          <div class="space-y-2 mb-5">
+            @for (d of yourMove(); track d.id) {
+              <div class="flex items-center gap-3 rounded-2xl border-2 border-team-primary/50 bg-card px-3 py-2.5 shadow-card">
+                <span class="w-10 h-10 rounded-full bg-team-primary/15 text-team-primary flex items-center justify-center font-bold shrink-0">
+                  {{ (d.opponent?.username ?? '?').charAt(0).toUpperCase() }}
+                </span>
+                <div class="min-w-0 flex-1">
+                  <p class="font-semibold truncate">{{ d.opponent?.username }}</p>
+                  <p class="text-[12px] text-muted truncate">{{ rowLabel(d) }}</p>
+                  @if (d.deadline) {
+                    <p class="font-mono text-[11px] text-team-primary font-bold">{{ timeLeft(d.deadline) }}</p>
+                  }
                 </div>
+                @if (d.status === 'active') {
+                  <p class="font-display text-lg shrink-0">{{ d.score.me }}–{{ d.score.them }}</p>
+                }
+                <a [routerLink]="['/battles', 'duel', d.id]" appButton appButtonSize="sm" class="shrink-0">{{
+                  d.status === 'pending' ? i18n.t('duels.accept') : i18n.t('duels.play')
+                }}</a>
+              </div>
+            }
+          </div>
+        }
+
+        @if (waiting().length > 0) {
+          <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('duels.waiting') }}</p>
+          <div class="space-y-2 mb-5">
+            @for (d of waiting(); track d.id) {
+              <div class="flex items-center gap-3 rounded-2xl border border-line bg-card pl-3 pr-2 py-2.5">
+                <a [routerLink]="['/battles', 'duel', d.id]" class="flex items-center gap-3 min-w-0 flex-1">
+                  <span class="w-10 h-10 rounded-full bg-page text-muted flex items-center justify-center font-bold shrink-0">
+                    {{ (d.opponent?.username ?? '?').charAt(0).toUpperCase() }}
+                  </span>
+                  <div class="min-w-0 flex-1">
+                    <p class="font-semibold truncate">
+                      {{ d.opponent ? d.opponent.username : i18n.t('duels.openChallenge') }}
+                    </p>
+                    <p class="text-[12px] text-muted truncate">{{ rowLabel(d) }}</p>
+                    @if (d.deadline) {
+                      <p class="font-mono text-[11px] text-muted font-bold">{{ timeLeft(d.deadline) }}</p>
+                    }
+                  </div>
+                  @if (d.status === 'active') {
+                    <p class="font-display text-lg shrink-0">{{ d.score.me }}–{{ d.score.them }}</p>
+                  }
+                </a>
+                @if (canCancel(d)) {
+                  <button
+                    type="button"
+                    (click)="cancel(d)"
+                    [disabled]="cancellingId() === d.id"
+                    class="shrink-0 rounded-lg px-2.5 py-1.5 text-[12px] font-bold text-red-500 hover:bg-red-500/10 disabled:opacity-50"
+                  >
+                    {{ i18n.t('duels.cancel') }}
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('duels.finished') }}</p>
+        @if (finished().length === 0 && legacyFinished().length === 0) {
+          <div class="bg-card rounded-2xl border border-line p-5 text-center">
+            <p class="text-sm text-muted">{{ i18n.t('duels.noGames') }}</p>
+          </div>
+        } @else {
+          <div class="space-y-2">
+            @for (d of finished(); track d.id) {
+              <a [routerLink]="['/battles', 'duel', d.id]" class="flex items-center gap-3 rounded-2xl border border-line bg-card px-3 py-2.5">
+                <span
+                  class="w-9 h-9 rounded-xl flex items-center justify-center font-display text-sm shrink-0"
+                  [ngClass]="d.result === 'win' ? 'bg-team-primary text-team-secondary' : 'bg-page text-muted'"
+                  >{{ resultShort(d.result) }}</span
+                >
+                <div class="min-w-0 flex-1">
+                  <p class="font-semibold truncate">{{ d.opponent?.username }}</p>
+                  <p class="text-[12px] text-muted">{{ resultLabel(d) }}</p>
+                </div>
+                <p class="font-display text-lg shrink-0">{{ d.score.me }}–{{ d.score.them }}</p>
               </a>
-              <button
-                type="button"
-                (click)="cancel(b)"
-                [disabled]="cancellingId() === b.id"
-                class="shrink-0 rounded-lg px-2.5 py-1.5 text-[12px] font-bold text-red-500 hover:bg-red-500/10 disabled:opacity-50"
-              >
-                {{ i18n.t('battles.cancelShort') }}
-              </button>
-            </div>
+            }
+            @for (b of legacyFinished(); track b.id) {
+              <a [routerLink]="['/battles', b.id]" class="flex items-center gap-3 rounded-2xl border border-line bg-card px-3 py-2.5 opacity-80">
+                <span
+                  class="w-9 h-9 rounded-xl flex items-center justify-center font-display text-sm shrink-0"
+                  [ngClass]="didIWinLegacy(b) ? 'bg-team-primary text-team-secondary' : 'bg-page text-muted'"
+                  >{{ didIWinLegacy(b) ? i18n.t('battles.winShort') : i18n.t('battles.lossShort') }}</span
+                >
+                <div class="min-w-0 flex-1">
+                  <p class="font-semibold truncate">{{ b.counterpartyName }}</p>
+                  <p class="text-[12px] text-muted">{{ i18n.t('duels.legacyBattle') }}</p>
+                </div>
+                @if (b.stakePoints !== null) {
+                  <p class="font-mono text-[12px] font-bold shrink-0" [ngClass]="didIWinLegacy(b) ? 'text-team-primary' : 'text-red-500'">
+                    {{ didIWinLegacy(b) ? '+' : '−' }}{{ b.stakePoints }} {{ i18n.t('battles.ptsSuffix') }}
+                  </p>
+                }
+              </a>
+            }
+          </div>
+        }
+      }
+    } @else if (tab() === 'open') {
+      <a [routerLink]="['/battles', 'duel', 'new']" appButton class="w-full justify-center mb-3">{{ i18n.t('duels.postOpen') }}</a>
+      <p class="text-[12px] text-muted mb-3">{{ i18n.t('duels.openHint') }}</p>
+      @if (openLoading() && openDuels().length === 0) {
+        <div class="space-y-2">
+          @for (i of [1, 2]; track i) {
+            <app-skeleton class="h-16 rounded-2xl" />
           }
         </div>
-      }
-
-      <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('battles.recentTitle') }}</p>
-      @if (recent().length === 0) {
+      } @else if (openDuels().length === 0) {
         <div class="bg-card rounded-2xl border border-line p-5 text-center">
-          <p class="text-sm text-muted">{{ i18n.t('battles.noBattlesYet') }}</p>
+          <p class="text-sm text-muted">{{ i18n.t('duels.openEmpty') }}</p>
         </div>
       } @else {
         <div class="space-y-2">
-          @for (b of recent(); track b.id) {
-            <div class="flex items-center gap-3 rounded-2xl border border-line bg-card pl-3 pr-2 py-2.5">
-              <a [routerLink]="['/battles', b.id]" class="flex items-center gap-3 min-w-0 flex-1">
-                <span
-                  class="w-9 h-9 rounded-xl flex items-center justify-center font-display text-sm shrink-0"
-                  [ngClass]="didIWin(b) ? 'bg-team-primary text-team-secondary' : 'bg-page text-muted'"
-                  >{{ didIWin(b) ? i18n.t('battles.winShort') : i18n.t('battles.lossShort') }}</span
-                >
-                <div class="min-w-0">
-                  <p class="font-semibold truncate">{{ b.counterpartyName }}</p>
-                  @if (b.stakePoints !== null) {
-                    <p class="font-mono text-[12px] font-bold" [ngClass]="didIWin(b) ? 'text-team-primary' : 'text-red-500'">
-                      {{ didIWin(b) ? '+' : '−' }}{{ b.stakePoints }} {{ i18n.t('battles.ptsSuffix') }}
-                    </p>
-                  }
-                </div>
-              </a>
-              <button type="button" (click)="rematch(b)" class="shrink-0 rounded-lg px-2.5 py-1.5 text-[12px] font-bold text-team-primary hover:bg-team-primary/10">
-                {{ i18n.t('battles.rematch') }}
-              </button>
+          @for (o of openDuels(); track o.id) {
+            <a
+              [routerLink]="['/battles', 'duel', o.id]"
+              class="flex items-center gap-3 rounded-2xl border border-line bg-card px-3 py-2.5 hover:border-team-primary/50 transition-colors"
+            >
+              <span class="w-10 h-10 rounded-full bg-team-primary/15 text-team-primary flex items-center justify-center font-bold shrink-0">
+                {{ o.challenger.username.charAt(0).toUpperCase() }}
+              </span>
+              <div class="min-w-0 flex-1">
+                <p class="font-semibold truncate">{{ o.challenger.username }}</p>
+                <p class="text-[12px] text-muted truncate">
+                  {{ i18n.t('duels.div.' + o.challenger.division) }} · {{ openRating(o.challenger.rating) }}
+                </p>
+                <p class="font-mono text-[11px] text-muted font-bold">{{ timeLeft(o.expiresAt) }}</p>
+              </div>
+              <span class="text-[12px] font-bold text-team-primary shrink-0">{{ i18n.t('duels.accept') }}</span>
+            </a>
+          }
+        </div>
+      }
+    } @else {
+      <div class="flex gap-1.5 mb-3 overflow-x-auto no-scrollbar">
+        <button
+          type="button"
+          (click)="setLadderScope(null)"
+          class="shrink-0 rounded-full px-3 py-1.5 text-[12px] font-bold border transition-colors"
+          [ngClass]="ladderScope() === null ? 'bg-team-primary text-team-secondary border-team-primary' : 'border-line text-muted hover:text-ink'"
+        >
+          {{ i18n.t('duels.ladderGlobal') }}
+        </button>
+        @for (l of leagues(); track l.id) {
+          <button
+            type="button"
+            (click)="setLadderScope(l.id)"
+            class="shrink-0 max-w-[10rem] truncate rounded-full px-3 py-1.5 text-[12px] font-bold border transition-colors"
+            [ngClass]="ladderScope() === l.id ? 'bg-team-primary text-team-secondary border-team-primary' : 'border-line text-muted hover:text-ink'"
+          >
+            {{ l.name }}
+          </button>
+        }
+      </div>
+
+      @if (myLadderRow(); as me) {
+        <div class="flex items-center gap-3 rounded-2xl border-2 border-team-primary/50 bg-team-primary/10 px-3 py-2.5 mb-3">
+          <span class="w-8 text-center font-display text-lg text-team-primary shrink-0">{{ myRank() }}</span>
+          <div class="min-w-0 flex-1">
+            <p class="font-semibold truncate">{{ i18n.t('duels.ladderYou') }}</p>
+            <p class="text-[12px] text-muted">{{ i18n.t('duels.div.' + me.division) }}</p>
+          </div>
+          <p class="font-mono text-[12px] text-muted shrink-0">{{ me.wins }}{{ i18n.t('duels.winShort') }}-{{ me.losses }}{{ i18n.t('duels.lossShort') }}-{{ me.draws }}{{ i18n.t('duels.drawShort') }}</p>
+          <p class="font-display text-xl shrink-0">{{ me.rating }}</p>
+        </div>
+      }
+
+      @if (ladderLoading() && ladder().length === 0) {
+        <div class="space-y-2">
+          @for (i of [1, 2, 3, 4]; track i) {
+            <app-skeleton class="h-12 rounded-2xl" />
+          }
+        </div>
+      } @else if (ladder().length === 0) {
+        <div class="bg-card rounded-2xl border border-line p-5 text-center">
+          <p class="text-sm text-muted">{{ i18n.t('duels.ladderEmpty') }}</p>
+        </div>
+      } @else {
+        <div class="space-y-1.5">
+          @for (r of ladder(); track r.userId; let i = $index) {
+            <div
+              class="flex items-center gap-3 rounded-xl border bg-card px-3 py-2"
+              [ngClass]="r.userId === auth.currentUser()?.id ? 'border-team-primary/50' : 'border-line'"
+            >
+              <span class="w-8 text-center font-display text-base text-muted shrink-0">{{ i + 1 }}</span>
+              <div class="min-w-0 flex-1">
+                <p class="font-semibold truncate">{{ r.username }}</p>
+                <p class="text-[11px] text-muted">{{ i18n.t('duels.div.' + r.division) }}</p>
+              </div>
+              <p class="font-mono text-[11px] text-muted shrink-0">{{ r.wins }}{{ i18n.t('duels.winShort') }}-{{ r.losses }}{{ i18n.t('duels.lossShort') }}-{{ r.draws }}{{ i18n.t('duels.drawShort') }}</p>
+              <p class="font-display text-lg shrink-0">{{ r.rating }}</p>
             </div>
           }
         </div>

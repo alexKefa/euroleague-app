@@ -148,20 +148,20 @@ export const battlesTranslations: Record<string, Record<Lang, string>> = {
   // "How duels work" popup (features/battles/battles-info.ts).
   "battles.howItWorksTitle": { en: "How duels work", el: "Πώς λειτουργούν οι μονομαχίες" },
   "battles.howItWorksStep1": {
-    en: "Each side picks one card. Its power decides the duel, in this order: rarity first, then the player's PIR average, then current form.",
-    el: "Κάθε πλευρά διαλέγει μία κάρτα. Τη μονομαχία την κρίνει η δύναμή της, με αυτή τη σειρά: πρώτα η σπανιότητα, μετά ο μέσος όρος PIR του παίκτη, μετά η τρέχουσα φόρμα.",
+    en: "Build a lineup of 5 cards you own, no coaches and no player twice. There are four quarters, each with a category like Scoring or Boards. Every quarter you secretly commit one card, and the higher score takes the quarter.",
+    el: "Φτιάξε σύνθεση με 5 κάρτες που έχεις, χωρίς προπονητές και χωρίς τον ίδιο παίκτη δύο φορές. Υπάρχουν τέσσερα δεκάλεπτα, με κατηγορία το καθένα, όπως Σκοράρισμα ή Ριμπάουντ. Σε κάθε δεκάλεπτο παίζεις κρυφά μία κάρτα και το μεγαλύτερο σκορ παίρνει το δεκάλεπτο.",
   },
   "battles.howItWorksStep2": {
-    en: "Power = rarity (common 0, rare 15, legendary 30, foil legendary 40) + season PIR + form (last 5 games vs the season, up to ±4). Injured players lose part of their PIR and form (out −25%, doubtful −15%, questionable −10%), never their rarity. Your win chance is your power out of both cards' total, so a rarer card is a big favorite, but upsets still happen.",
-    el: "Δύναμη = σπανιότητα (κοινή 0, σπάνια 15, θρυλική 30, foil θρυλική 40) + PIR σεζόν + φόρμα (5 τελευταίοι αγώνες σε σχέση με τη σεζόν, έως ±4). Οι τραυματίες χάνουν μέρος από το PIR και τη φόρμα τους (εκτός −25%, αμφίβολος −15%, ερωτηματικό −10%), ποτέ τη σπανιότητα. Η πιθανότητα νίκης σου είναι η δύναμή σου επί το σύνολο των δύο καρτών, οπότε η πιο σπάνια κάρτα είναι μεγάλο φαβορί, αλλά εκπλήξεις γίνονται.",
+    en: "A card scores its per-game stat for the category, times its rarity (common ×1.00 up to MVP Moment ×1.30, foil +0.10), its current form (×0.85 to ×1.15) and any injury. Each card can be played once. The total score over all four quarters wins, and a tie goes to overtime with your two bench cards.",
+    el: "Κάθε κάρτα σκοράρει το στατιστικό της ανά αγώνα για την κατηγορία, επί τη σπανιότητά της (κοινή ×1.00 έως MVP Moment ×1.30, foil +0.10), την τρέχουσα φόρμα της (×0.85 έως ×1.15) και τυχόν τραυματισμό. Κάθε κάρτα παίζει μία φορά. Νικά το συνολικό σκορ και των τεσσάρων δεκαλέπτων, και η ισοπαλία κρίνεται σε παράταση με τις δύο κάρτες του πάγκου.",
   },
   "battles.howItWorksStep3": {
-    en: "The winner takes points from the loser: 25 for an expected win, up to 100 for an upset, never more than the loser has.",
-    el: "Ο νικητής παίρνει πόντους από τον ηττημένο: 25 για αναμενόμενη νίκη, έως 100 για έκπληξη, ποτέ περισσότερους από όσους έχει ο ηττημένος.",
+    en: "You have 24 hours per quarter. Miss it and your weakest card is played for you. Miss two in a row and you forfeit. Wins move your rating up a monthly ladder.",
+    el: "Έχεις 24 ώρες για κάθε δεκάλεπτο. Αν χάσεις την προθεσμία, παίζει για σένα η πιο αδύναμη κάρτα σου. Δύο φορές στη σειρά σημαίνει εγκατάλειψη. Οι νίκες ανεβάζουν τη βαθμολογία σου στη μηνιαία κατάταξη.",
   },
   "battles.howItWorksStep4": {
-    en: "No risk to your cards, only points change hands. You need at least 25 points to play.",
-    el: "Καμία απώλεια για τις κάρτες σου, μόνο πόντοι αλλάζουν χέρια. Χρειάζεσαι τουλάχιστον 25 πόντους για να παίξεις.",
+    en: "Nothing is at risk: losing costs no cards and no points. A win earns +15 points, up to 5 paid wins a day, and only one per opponent a day.",
+    el: "Δεν διακινδυνεύεις τίποτα: η ήττα δεν κοστίζει ούτε κάρτες ούτε πόντους. Η νίκη δίνει +15 πόντους, έως 5 νίκες με έπαθλο τη μέρα και μία το πολύ απέναντι στον ίδιο αντίπαλο.",
   },
 
   // Global real-time challenge toast (2026-09-22) — app.component.html.

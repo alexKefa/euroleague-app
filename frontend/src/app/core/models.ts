@@ -1993,3 +1993,112 @@ export interface RoundClipData {
   legendaryCount: number;
   next: { round: number; picksOpen: boolean } | null;
 }
+
+// ---- Four Quarters duels (Battles v6). Mirrors backend services/duels.ts + duelEngine.ts. ----
+export type DuelCategory = "scoring" | "boards" | "playmaking" | "defense" | "efficiency" | "all_around";
+export const DUEL_CATEGORIES: readonly DuelCategory[] = ["scoring", "boards", "playmaking", "defense", "efficiency", "all_around"];
+/** Multiplier that brings each category's raw per-game value to a comparable score. */
+export const DUEL_CATEGORY_SCALES: Record<DuelCategory, number> = {
+  scoring: 2.82,
+  boards: 8,
+  playmaking: 15.38,
+  defense: 28.57,
+  efficiency: 2.56,
+  all_around: 1.71,
+};
+export type FormBadge = "ice_cold" | "cold" | "steady" | "hot" | "on_fire";
+export type Division = "rookie" | "starter" | "sixth_man" | "all_star" | "mvp";
+
+export interface DuelBaseLine {
+  pts: number;
+  reb: number;
+  ast: number;
+  stl: number;
+  blk: number;
+  pir: number;
+}
+
+export interface DuelCard {
+  collectibleId: string;
+  name: string;
+  teamId: string;
+  imageUrl: string | null;
+  tier: string;
+  isMvp: boolean;
+  isFoil: boolean;
+  base: DuelBaseLine;
+  rarityMult: number;
+  formMult: number;
+  formBadge: FormBadge | null;
+  injury: InjuryStatus | null;
+  injuryMult: number;
+}
+
+export interface DuelView {
+  id: string;
+  status: string;
+  finishReason: string | null;
+  leagueId: string | null;
+  side: "challenger" | "opponent";
+  opponent: { id: string; username: string } | null;
+  quarter: number;
+  quarterDeadline: string | null;
+  expiresAt: string | null;
+  categories: (DuelCategory | null)[];
+  myLineup: DuelCard[];
+  theirLineup: DuelCard[] | null;
+  quarters: {
+    quarter: number;
+    mySlot: number | null;
+    theirSlot: number | null;
+    myScore: number | null;
+    theirScore: number | null;
+    myAuto: boolean;
+    theirAuto: boolean;
+  }[];
+  iCommitted: boolean;
+  theyCommitted: boolean;
+  score: { me: number; them: number };
+  overtime: { mySlot: number; theirSlot: number; myScore: number; theirScore: number } | null;
+  result: "win" | "loss" | "draw" | null;
+  ratingDelta: number | null;
+  prizePaid: boolean;
+}
+
+export interface DuelSummary {
+  id: string;
+  status: string;
+  opponent: { id: string; username: string } | null;
+  score: { me: number; them: number };
+  quarter: number;
+  myMove: boolean;
+  deadline: string | null;
+  result: "win" | "loss" | "draw" | null;
+}
+
+export interface OpenDuel {
+  id: string;
+  challenger: { id: string; username: string; rating: number; division: Division };
+  expiresAt: string;
+}
+
+export interface LadderRow {
+  userId: string;
+  username: string;
+  rating: number;
+  division: Division;
+  wins: number;
+  losses: number;
+  draws: number;
+}
+
+export interface MyRating {
+  rating: number;
+  division: Division;
+  season: string;
+  wins: number;
+  losses: number;
+  draws: number;
+  paidWinsLeftToday: number;
+  seasonBadges: { season: string; kind: "top3" | "all_star" }[];
+}
