@@ -133,6 +133,11 @@ export class DuelGameComponent implements OnInit {
       if (!u || !this.id || u.id !== this.id) return;
       untracked(() => this.load(false));
     });
+    // Back on screen after the stream was closed: catch up on missed moves.
+    effect(() => {
+      if (!this.events.resync() || !this.id) return;
+      untracked(() => this.load(false));
+    });
   }
 
   ngOnInit(): void {

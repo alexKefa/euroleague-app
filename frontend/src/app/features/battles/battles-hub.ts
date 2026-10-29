@@ -80,7 +80,8 @@ export class BattlesHubComponent implements OnInit {
     // untracked so the signals it writes can't re-trigger this effect.
     effect(() => {
       const update = this.events.lastDuelUpdate();
-      if (!update || !this.started) return;
+      const resync = this.events.resync();
+      if (!(update || resync) || !this.started) return;
       untracked(() => this.refreshAll());
     });
   }

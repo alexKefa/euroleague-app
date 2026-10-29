@@ -37,7 +37,8 @@ export class BattlesNotificationService {
 
     effect(() => {
       const update = this.events.lastDuelUpdate();
-      if (update && this.auth.accessToken()) {
+      const resync = this.events.resync();
+      if ((update || resync) && this.auth.accessToken()) {
         untracked(() => this.refresh());
       }
     });

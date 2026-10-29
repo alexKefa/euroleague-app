@@ -2,6 +2,7 @@ import webpush from "web-push";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { pushLog, pushSubscriptions } from "../db/schema.js";
+import { onlineUserIds } from "../realtime/hub.js";
 
 // Web push (2026-10-05). VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY unset = push
 // is off: the frontend hides the toggle (GET /api/push/config says so) and
@@ -58,10 +59,19 @@ async function deliver(rows: SubscriptionRow[], build: (lang: PushLang, userId: 
   return sent;
 }
 
+// No push while the app is on screen: a user with an open event stream is
+// looking at it (the frontend closes the stream ~15s after the page is
+// hidden, see EventsService), and live updates already reach them there.
+function offScreen(userIds: string[]): string[] {
+  const online = onlineUserIds();
+  return [...new Set(userIds)].filter((id) => !online.has(id));
+}
+
 /** Push to every device of these users, no dedupe (event-driven sends like trades). */
 export async function sendPush(userIds: string[], build: PushBuilder): Promise<number> {
-  if (!pushEnabled || userIds.length === 0) return 0;
-  const rows = await db.select().from(pushSubscriptions).where(inArray(pushSubscriptions.userId, [...new Set(userIds)]));
+  const targets = offScreen(userIds);
+  if (!pushEnabled || targets.length === 0) return 0;
+  const rows = await db.select().from(pushSubscriptions).where(inArray(pushSubscriptions.userId, targets));
   return deliver(rows, build);
 }
 
@@ -75,7 +85,9 @@ export function sendPushInBackground(userIds: string[], build: PushBuilder): voi
  * first, one multi-row insert, and only notifies the users whose claim
  * landed, so re-runs never repeat a notification for the same (kind, key).
  * Only users with at least one device are claimed, so someone who turns
- * notifications on later still gets the next one.
+ * notifications on later still gets the next one. Users with the app on
+ * screen are skipped before the claim, so a later send for the same
+ * (kind, key) can still reach them once they've left.
  */
 export async function sendPushOnce(
   kind: string,
@@ -83,8 +95,9 @@ export async function sendPushOnce(
   userIds: string[],
   build: (lang: PushLang, userId: string) => PushMessage | null
 ): Promise<number> {
-  if (!pushEnabled || userIds.length === 0) return 0;
-  const rows = await db.select().from(pushSubscriptions).where(inArray(pushSubscriptions.userId, [...new Set(userIds)]));
+  const targets = offScreen(userIds);
+  if (!pushEnabled || targets.length === 0) return 0;
+  const rows = await db.select().from(pushSubscriptions).where(inArray(pushSubscriptions.userId, targets));
   const withDevice = [...new Set(rows.map((r) => r.userId))];
   if (withDevice.length === 0) return 0;
   const claimed = await db
@@ -99,7 +112,8 @@ export async function sendPushOnce(
 /** Every subscribed device (admin broadcast). */
 export async function sendPushToAll(build: PushBuilder): Promise<{ devices: number; sent: number }> {
   if (!pushEnabled) return { devices: 0, sent: 0 };
-  const rows = await db.select().from(pushSubscriptions);
+  const online = onlineUserIds();
+  const rows = (await db.select().from(pushSubscriptions)).filter((r) => !online.has(r.userId));
   return { devices: rows.length, sent: await deliver(rows, build) };
 }
 

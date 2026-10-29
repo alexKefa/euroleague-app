@@ -399,7 +399,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   // construction always sees its initial null value, which ngOnInit's own
   // load already covers.
   private readonly refreshOnTradeUpdate = effect(() => {
-    if (this.events.lastTradeUpdate() && this.auth.isAuthenticated()) {
+    if ((this.events.lastTradeUpdate() || this.events.resync()) && this.auth.isAuthenticated()) {
       this.loadMyCollectibles();
     }
   });

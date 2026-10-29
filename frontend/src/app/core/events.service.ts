@@ -37,6 +37,9 @@ export interface BattleUpdate {
   reason: "challenged" | "accepted" | "declined" | "cancelled" | "move" | "finished";
 }
 
+// A short tab switch keeps the stream; longer than this and it closes.
+const HIDDEN_GRACE_MS = 15_000;
+
 export interface DuelUpdate {
   id: string;
   status: string;
@@ -78,6 +81,14 @@ export class EventsService {
   // sends event "duel"). Same per-user, "re-fetch via REST" convention.
   readonly lastDuelUpdate = signal<DuelUpdate | null>(null);
 
+  // Bumped each time the stream reopens after the page was hidden. The
+  // stream closes while the app is off screen (see onVisibilityChange), so
+  // per-user listeners refetch on this too, catching up on anything missed.
+  readonly resync = signal(0);
+  private token: string | null = null;
+  private hiddenTimer: ReturnType<typeof setTimeout> | null = null;
+  private paused = false;
+
   // Game ids currently live. Seeded once from a REST fetch on boot, so a
   // visitor who opens the app mid-game sees it immediately rather than
   // waiting for the next SSE tick; kept current after that purely from the
@@ -105,7 +116,8 @@ export class EventsService {
   constructor() {
     effect(() => {
       const token = this.auth.accessToken();
-      this.connect(token);
+      this.token = token;
+      if (!this.paused) this.connect(token);
       if (token) {
         this.refreshPredictedGames();
       } else {
@@ -120,6 +132,34 @@ export class EventsService {
       },
       error: () => {}, // non-critical — the badge just starts empty and catches up via SSE
     });
+
+    document.addEventListener("visibilitychange", () => this.onVisibilityChange());
+  }
+
+  // An open stream is how the backend knows the app is on screen: pushes are
+  // skipped for users with one (services/push.ts). So the stream closes once
+  // the page has been hidden for HIDDEN_GRACE_MS (tab switch, minimised app,
+  // locked phone) and reopens the moment it's visible again.
+  private onVisibilityChange(): void {
+    if (document.visibilityState === "hidden") {
+      if (this.hiddenTimer || this.paused) return;
+      this.hiddenTimer = setTimeout(() => {
+        this.hiddenTimer = null;
+        this.paused = true;
+        this.source?.close();
+        this.source = null;
+      }, HIDDEN_GRACE_MS);
+      return;
+    }
+    if (this.hiddenTimer) {
+      clearTimeout(this.hiddenTimer);
+      this.hiddenTimer = null;
+    }
+    if (this.paused) {
+      this.paused = false;
+      this.connect(this.token);
+      this.resync.update((n) => n + 1);
+    }
   }
 
   private refreshPredictedGames(): void {

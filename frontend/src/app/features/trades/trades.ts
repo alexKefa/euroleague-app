@@ -45,7 +45,7 @@ export class TradesComponent implements OnInit {
   // auth) since this effect's first run at construction always sees the
   // signal's initial null value, which ngOnInit's own load already covers.
   private readonly refreshOnTradeUpdate = effect(() => {
-    if (this.events.lastTradeUpdate() && this.auth.isAuthenticated()) {
+    if ((this.events.lastTradeUpdate() || this.events.resync()) && this.auth.isAuthenticated()) {
       this.loadMyCards();
       this.loadMarketplace();
       this.loadOffers();

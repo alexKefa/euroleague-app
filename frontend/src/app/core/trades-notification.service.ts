@@ -37,7 +37,7 @@ export class TradesNotificationService {
     });
 
     effect(() => {
-      if (this.events.lastTradeUpdate() && this.auth.accessToken()) {
+      if ((this.events.lastTradeUpdate() || this.events.resync()) && this.auth.accessToken()) {
         this.refresh();
       }
     });
