@@ -170,10 +170,13 @@ def sync_player_stats(season: int) -> Tuple[int, int, int]:
 
     try:
         for _, row in df.iterrows():
-            # Players who changed teams mid-season have a compound code
-            # like "OLY;PAR" — the last entry is their most recent team.
+            # Players who changed teams in a season have a compound code
+            # like "BAS;TEL" whose order isn't reliable, so it never moves an
+            # existing player (the roster sync owns that); the first entry
+            # only seeds a new one. Same rule as sync/playerStatsSync.ts.
             raw_team_code = row["player.team.code"]
-            team_code = raw_team_code.split(";")[-1] if ";" in raw_team_code else raw_team_code
+            compound = ";" in raw_team_code
+            team_code = raw_team_code.split(";")[0] if compound else raw_team_code
             team_id = team_ids_by_code.get(team_code)
             if team_id is None:
                 skipped_no_team += 1
@@ -188,12 +191,13 @@ def sync_player_stats(season: int) -> Tuple[int, int, int]:
                 INSERT INTO players (code, team_id, name, photo_url)
                 VALUES (%s, %s, %s, %s)
                 ON CONFLICT (code) DO UPDATE
-                SET team_id = EXCLUDED.team_id, name = EXCLUDED.name, photo_url = EXCLUDED.photo_url
-                RETURNING id
+                SET team_id = CASE WHEN %s THEN players.team_id ELSE EXCLUDED.team_id END,
+                    name = EXCLUDED.name, photo_url = EXCLUDED.photo_url
+                RETURNING id, team_id
                 """,
-                (player_code, team_id, player_name, photo_url),
+                (player_code, team_id, player_name, photo_url, compound),
             )
-            player_id = cur.fetchone()[0]
+            player_id, team_id = cur.fetchone()
             players_upserted += 1
 
             adv = adv_by_code.get(player_code)

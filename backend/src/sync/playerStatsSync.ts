@@ -201,25 +201,35 @@ export async function syncPlayerStats(seasonLabel?: string): Promise<PlayerStats
   let skippedNoTeam = 0;
 
   for (const row of traditional) {
-    // Players who changed teams mid-season have a compound code like
-    // "OLY;PAR" — the last entry is their most recent team.
+    // Players who changed teams in a season have a compound code like
+    // "BAS;TEL". Its order isn't reliable: assuming "last = most recent"
+    // put Marcio Santos back at TEL every hour (2026-10-29), undoing the
+    // daily roster sync's move to BAS. So a compound code never moves an
+    // existing player; the roster sync (services/rosterSync.ts) owns that.
+    // The first entry only seeds a player we've never seen.
     const rawTeamCode = row.player.team.code;
-    const teamCode = rawTeamCode.includes(";") ? rawTeamCode.split(";").pop()! : rawTeamCode;
-    const teamId = teamIdByCode.get(teamCode);
-    if (!teamId) {
+    const compound = rawTeamCode.includes(";");
+    const teamCode = compound ? rawTeamCode.split(";")[0] : rawTeamCode;
+    const feedTeamId = teamIdByCode.get(teamCode);
+    if (!feedTeamId) {
       skippedNoTeam++;
       continue;
     }
 
     const [player] = await db
       .insert(players)
-      .values({ code: row.player.code, teamId, name: row.player.name, photoUrl: row.player.imageUrl ?? null })
+      .values({ code: row.player.code, teamId: feedTeamId, name: row.player.name, photoUrl: row.player.imageUrl ?? null })
       .onConflictDoUpdate({
         target: players.code,
-        set: { teamId, name: row.player.name, photoUrl: row.player.imageUrl ?? null },
+        set: {
+          teamId: compound ? sql`${players.teamId}` : feedTeamId,
+          name: row.player.name,
+          photoUrl: row.player.imageUrl ?? null,
+        },
       })
-      .returning({ id: players.id });
+      .returning({ id: players.id, teamId: players.teamId });
     playersUpserted++;
+    const teamId = player.teamId;
 
     const statsFields = buildStatsFields(row, advByCode.get(row.player.code));
 
