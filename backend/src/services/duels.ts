@@ -594,8 +594,10 @@ export interface MyRating {
   losses: number;
   draws: number;
   paidWinsLeftToday: number;
-  seasonBadges: { season: string; kind: "top3" | "all_star" }[];
+  seasonBadges: SeasonBadge[];
 }
+
+export type SeasonBadge = { season: string; kind: "top3" | "all_star" };
 
 function resultFor(r: { status: string; winnerUserId: string | null }, me: string): "win" | "loss" | "draw" | null {
   if (r.status !== "finished") return null;
@@ -1080,11 +1082,6 @@ export async function getMyRating(userId: string): Promise<MyRating> {
         ) t where t.user_id = ${userId}) as past
     from (select 1) one
     left join duel_ratings cur on cur.user_id = ${userId} and cur.season = ${season}`);
-  const seasonBadges: MyRating["seasonBadges"] = [];
-  for (const p of r.past) {
-    if (p.rk <= 3) seasonBadges.push({ season: p.season, kind: "top3" });
-    if (p.rating >= 1200) seasonBadges.push({ season: p.season, kind: "all_star" });
-  }
   return {
     rating: r.rating,
     division: divisionFor(r.rating),
@@ -1093,6 +1090,40 @@ export async function getMyRating(userId: string): Promise<MyRating> {
     losses: r.losses ?? 0,
     draws: r.draws ?? 0,
     paidWinsLeftToday: Math.max(0, MAX_PAID_WINS_PER_DAY - r.paid_today),
-    seasonBadges,
+    seasonBadges: badgesFrom(r.past),
   };
+}
+
+// Season badges from finished months: top 3 by rating among everyone who
+// played that month, and a month finished at All-Star rating or better.
+function badgesFrom(past: { season: string; rk: number; rating: number }[]): SeasonBadge[] {
+  const badges: SeasonBadge[] = [];
+  for (const p of past) {
+    if (p.rk <= 3) badges.push({ season: p.season, kind: "top3" });
+    if (p.rating >= 1200) badges.push({ season: p.season, kind: "all_star" });
+  }
+  return badges;
+}
+
+/** Season badges for several users (league member sheets), in one query. */
+export async function getSeasonBadges(userIds: string[]): Promise<Map<string, SeasonBadge[]>> {
+  const out = new Map<string, SeasonBadge[]>();
+  if (userIds.length === 0) return out;
+  const ids = sql.join(
+    userIds.map((id) => sql`${id}::uuid`),
+    sql`, `
+  );
+  const rows = await db.execute<{ user_id: string; season: string; rk: number; rating: number }>(sql`
+    select user_id, season, rk, rating from (
+      select user_id, season, rating, rank() over (partition by season order by rating desc)::int as rk
+      from duel_ratings
+      where season < ${seasonKey(new Date())} and season in (select season from duel_ratings where user_id in (${ids}))
+    ) t where t.user_id in (${ids}) order by season`);
+  const byUser = new Map<string, { season: string; rk: number; rating: number }[]>();
+  for (const r of rows) byUser.set(r.user_id, [...(byUser.get(r.user_id) ?? []), r]);
+  for (const [userId, past] of byUser) {
+    const badges = badgesFrom(past);
+    if (badges.length > 0) out.set(userId, badges);
+  }
+  return out;
 }

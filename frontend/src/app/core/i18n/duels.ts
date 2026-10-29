@@ -89,6 +89,8 @@ export const duelsTranslations: Record<string, Record<Lang, string>> = {
   "duels.rematchOpen": { en: "Post open challenge with this lineup", el: "Ανάρτηση ανοιχτής πρόκλησης με αυτή τη σύνθεση" },
   "duels.badge.top3": { en: "Top 3 · {month}", el: "Top 3 · {month}" },
   "duels.badge.all_star": { en: "All-Star season · {month}", el: "Σεζόν All-Star · {month}" },
+  "duels.profileSeasonsTitle": { en: "Duel seasons", el: "Σεζόν μονομαχιών" },
+  "duels.profileSeasonsSub": { en: "Badges from your finished duel months", el: "Διακρίσεις από τους μήνες μονομαχιών που ολοκληρώθηκαν" },
   "duels.overtime": { en: "Overtime", el: "Παράταση" },
   "duels.bench": { en: "Bench", el: "Πάγκος" },
   "duels.finalScore": { en: "Full time", el: "Τελικό σκορ" },

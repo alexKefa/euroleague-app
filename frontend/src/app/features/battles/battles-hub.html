@@ -26,11 +26,7 @@
         </p>
         <p class="relative text-[12px] opacity-85 mt-0.5">{{ paidWinsLeft(r.paidWinsLeftToday) }}</p>
         @if (r.seasonBadges.length) {
-          <div class="relative flex flex-wrap gap-1.5 mt-2">
-            @for (b of r.seasonBadges; track b.season + b.kind) {
-              <span class="rounded-full px-2.5 py-0.5 text-[11px] font-bold bg-team-secondary text-team-primary">{{ badgeLabel(b) }}</span>
-            }
-          </div>
+          <app-season-badges class="relative block mt-2" [badges]="r.seasonBadges" />
         }
       } @else {
         <p class="relative font-display text-xl tracking-wide leading-tight">{{ i18n.t('duels.title') }}</p>

@@ -9,6 +9,7 @@ import { getFantasyLeaderboardEntries, getDefaultRound, getRoundLockTime } from 
 import { getAlbumLeaderboardEntries, getCollectibleCatalogTotal } from "../services/albumLeaderboard.js";
 import { getCurrentSeason } from "../services/season.js";
 import { loadShowcaseCards, showcaseFor } from "../services/showcase.js";
+import { getSeasonBadges } from "../services/duels.js";
 
 export const leaguesRouter = Router();
 
@@ -215,7 +216,9 @@ leaguesRouter.get("/:id/leaderboard", requireAuth, async (req, res) => {
       }))
       .sort((a, b) => a.displayName.localeCompare(b.displayName));
 
-    res.json([...entries, ...zeroEntries]);
+    // Duel season badges ride along for the member sheet (one small query).
+    const seasonBadges = await getSeasonBadges(memberIds);
+    res.json([...entries, ...zeroEntries].map((e) => ({ ...e, seasonBadges: seasonBadges.get(e.userId) ?? [] })));
   } catch (err) {
     console.error("GET /api/leagues/:id/leaderboard failed:", err);
     res.status(500).json({ error: "Failed to load league leaderboard" });

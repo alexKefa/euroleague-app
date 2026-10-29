@@ -1069,7 +1069,8 @@ export interface LeagueDetail {
 // (0 points, ranked last) — see the route's comment. Kept as a distinct
 // alias for readability at call sites, not because the shape differs.
 export type LeagueShowcaseCard = ShowcaseCard;
-export type LeagueLeaderboardEntry = LeaderboardEntry;
+// League boards also carry duel season badges for the member sheet.
+export type LeagueLeaderboardEntry = LeaderboardEntry & { seasonBadges?: SeasonBadge[] };
 
 // Card battles, v3 (2026-09-22 — a same-day third rework; see CLAUDE.md's
 // "Card Battles" section for the full history of what v1/v2 tried and why
@@ -2100,5 +2101,7 @@ export interface MyRating {
   losses: number;
   draws: number;
   paidWinsLeftToday: number;
-  seasonBadges: { season: string; kind: "top3" | "all_star" }[];
+  seasonBadges: SeasonBadge[];
 }
+
+export type SeasonBadge = { season: string; kind: "top3" | "all_star" };

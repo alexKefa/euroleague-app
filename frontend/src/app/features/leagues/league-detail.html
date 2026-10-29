@@ -222,18 +222,23 @@
           </div>
 
           <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('leagues.badgesTitle') }}</p>
-          @if (entry.badges.length > 0) {
-            <div class="grid gap-2 mb-4">
-              @for (badge of entry.badges; track badge.id) {
-                <div class="flex items-center gap-2 bg-page rounded-xl px-3 py-2">
-                  <app-nav-icon [name]="badgeIcon(badge.id)" [size]="16" class="text-team-primary shrink-0" />
-                  <div class="min-w-0">
-                    <p class="text-sm font-semibold">{{ badgeLabel(badge.id) }}</p>
-                    <p class="text-[11px] text-muted">{{ badgeDescription(badge.id) }}</p>
+          @if (entry.badges.length > 0 || entry.seasonBadges?.length) {
+            @if (entry.badges.length > 0) {
+              <div class="grid gap-2 mb-4">
+                @for (badge of entry.badges; track badge.id) {
+                  <div class="flex items-center gap-2 bg-page rounded-xl px-3 py-2">
+                    <app-nav-icon [name]="badgeIcon(badge.id)" [size]="16" class="text-team-primary shrink-0" />
+                    <div class="min-w-0">
+                      <p class="text-sm font-semibold">{{ badgeLabel(badge.id) }}</p>
+                      <p class="text-[11px] text-muted">{{ badgeDescription(badge.id) }}</p>
+                    </div>
                   </div>
-                </div>
-              }
-            </div>
+                }
+              </div>
+            }
+            @if (entry.seasonBadges?.length) {
+              <app-season-badges class="block mb-4" [badges]="entry.seasonBadges!" />
+            }
           } @else {
             <p class="text-xs text-muted mb-4">{{ i18n.t('leagues.noBadgesYet') }}</p>
           }

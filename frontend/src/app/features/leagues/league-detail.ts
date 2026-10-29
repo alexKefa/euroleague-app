@@ -17,6 +17,7 @@ import { FantasyLeaderboardListComponent } from "../../shared/fantasy-leaderboar
 import { rankBadgeClasses, rankRowClasses } from "../../shared/rank-badge";
 import { BattlesInfoComponent } from "../battles/battles-info";
 import { FantasyCpInfoComponent } from "../fantasy/fantasy-cp-info";
+import { SeasonBadgesComponent } from "../../shared/season-badges";
 
 // Same badge-id -> icon map as predictions.ts — keep both in sync if a
 // badge is ever added there (backend/src/services/leaderboard.ts's BADGES).
@@ -43,6 +44,7 @@ const BADGE_ICONS: Record<string, NavIconName> = {
     FantasyLeaderboardListComponent,
     BattlesInfoComponent,
     FantasyCpInfoComponent,
+    SeasonBadgesComponent,
   ],
   templateUrl: "./league-detail.html",
 })

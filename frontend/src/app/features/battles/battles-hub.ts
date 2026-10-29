@@ -12,6 +12,7 @@ import { SkeletonComponent } from "../../shared/skeleton";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { BattlesInfoComponent } from "./battles-info";
 import { PageHeaderComponent } from "../../shared/page-header";
+import { SeasonBadgesComponent } from "../../shared/season-badges";
 
 type HubTab = "games" | "open" | "ladder";
 
@@ -24,7 +25,7 @@ type HubTab = "games" | "open" | "ladder";
 @Component({
   selector: "app-battles-hub",
   standalone: true,
-  imports: [PageHeaderComponent, CommonModule, RouterLink, ButtonDirective, SkeletonComponent, NavIconComponent, BattlesInfoComponent],
+  imports: [PageHeaderComponent, CommonModule, RouterLink, ButtonDirective, SkeletonComponent, NavIconComponent, BattlesInfoComponent, SeasonBadgesComponent],
   templateUrl: "./battles-hub.html",
 })
 export class BattlesHubComponent implements OnInit {
@@ -73,17 +74,6 @@ export class BattlesHubComponent implements OnInit {
   readonly inviteCopied = signal(false);
   readonly cancellingId = signal<string | null>(null);
   private started = false;
-
-  /** "Oct 2026" from a season key like 2026-10, in the current language. */
-  badgeLabel(b: { season: string; kind: "top3" | "all_star" }): string {
-    const [y, m] = b.season.split("-").map(Number);
-    const month = new Date(Date.UTC(y, (m || 1) - 1, 1)).toLocaleDateString(this.i18n.lang() === "el" ? "el-GR" : "en-GB", {
-      month: "short",
-      year: "numeric",
-      timeZone: "UTC",
-    });
-    return this.i18n.t("duels.badge." + b.kind).replace("{month}", month);
-  }
 
   constructor() {
     // Any duel change pushed over SSE refetches the lists. The fetch runs

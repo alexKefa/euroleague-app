@@ -10,7 +10,7 @@ import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
 import { ThemeService } from "../../core/theme.service";
 import { PushService } from "../../core/push.service";
-import { Team, Collectible, CollectibleFinish, PushPrefKey, PushPrefs } from "../../core/models";
+import { Team, Collectible, CollectibleFinish, PushPrefKey, PushPrefs, SeasonBadge } from "../../core/models";
 import { RetryImgDirective } from "../../shared/retry-img.directive";
 import { ButtonDirective } from "../../shared/button.directive";
 import { CollectibleCardComponent } from "../store/collectible-card";
@@ -20,6 +20,7 @@ import { TeamPickDialogComponent } from "../../shared/team-pick-dialog";
 import { TeamCodePipe } from "../../shared/team-display-code";
 import { NavIconComponent } from "../../shared/nav-icon";
 import { PageHeaderComponent } from "../../shared/page-header";
+import { SeasonBadgesComponent } from "../../shared/season-badges";
 
 const MAX_SHOWCASE_CARDS = 3;
 // Matches inventory.ts's own PAGE_SIZE — same "reveal a page at a time"
@@ -32,7 +33,7 @@ const PAGE_SIZE = 20;
 @Component({
   selector: "app-profile",
   standalone: true,
-  imports: [PageHeaderComponent, 
+  imports: [PageHeaderComponent, SeasonBadgesComponent,
     CommonModule,
     RouterLink,
     FormsModule,
@@ -121,6 +122,10 @@ export class ProfileComponent implements OnInit, OnDestroy {
     return code ? `${location.origin}/register?ref=${code}` : null;
   });
   readonly referralCopied = signal(false);
+
+  // Duel season badges from finished months; the card stays hidden until
+  // there's at least one.
+  readonly seasonBadges = signal<SeasonBadge[]>([]);
 
   // Showcase cards — which of the user's owned collectibles show up next to
   // their name on a league leaderboard (routes/leagues.ts). allCollectibles
@@ -213,6 +218,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.api.getTeams().subscribe({ next: (rows) => this.teams.set(rows), error: () => {} });
 
     if (this.auth.isAuthenticated()) {
+      this.api.getMyDuelRating().subscribe({ next: (r) => this.seasonBadges.set(r.seasonBadges), error: () => {} });
       forkJoin({
         collectibles: this.api.getCollectibles(),
         mine: this.api.getMyCollectibles(),
