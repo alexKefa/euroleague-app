@@ -19,12 +19,12 @@ export const DUEL_CATEGORIES: readonly DuelCategory[] = ["scoring", "boards", "p
 
 /** Multiplier that brings each category's raw per-game value to a comparable score. */
 export const CATEGORY_SCALES: Record<DuelCategory, number> = {
-  scoring: 1.8,
-  boards: 4.5,
-  playmaking: 6.5,
-  defense: 15,
-  efficiency: 1.7,
-  all_around: 1.1,
+  scoring: 2.82,
+  boards: 8,
+  playmaking: 15.38,
+  defense: 28.57,
+  efficiency: 2.56,
+  all_around: 1.71,
 };
 
 export type FormBadge = "ice_cold" | "cold" | "steady" | "hot" | "on_fire";

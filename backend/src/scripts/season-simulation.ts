@@ -85,6 +85,7 @@
 
 import { pointsFor as dailyQuestionPoints } from "../services/dailyQuestion/logic.js";
 import { MOMENTS_PER_ROUND } from "../services/momentsLogic.js";
+import { DUEL_WIN_PRIZE, MAX_PAID_WINS_PER_DAY } from "../services/duelEngine.js";
 
 type Tier = "common" | "rare" | "legendary" | "coach";
 
@@ -169,6 +170,10 @@ const TOP_SCORER_ENABLED = process.env.SIM_TOPSCORER !== "0";
 // SIM_DAILY_QUESTION=0 disables it; SIM_DQ_ACCURACY overrides correctness.
 const DAILY_QUESTION_ENABLED = process.env.SIM_DAILY_QUESTION !== "0";
 const DQ_ACCURACY = Number(process.env.SIM_DQ_ACCURACY ?? 0.62);
+// Four Quarters duels (2026-10-29): paid wins per engaged day, each worth
+// DUEL_WIN_PRIZE (the real engine constant), capped like the real daily cap.
+// SIM_DUEL_WINS_PER_DAY=0 disables it.
+const DUEL_WINS_PER_DAY = Math.min(Number(process.env.SIM_DUEL_WINS_PER_DAY ?? 1), MAX_PAID_WINS_PER_DAY);
 const TOP_SCORER_POINTS_PER_CORRECT = 10;
 const TOP_SCORER_ACC_RATIO = Number(process.env.SIM_TOPSCORER_ACC_RATIO ?? 0.4);
 
@@ -463,6 +468,7 @@ interface SimResult {
   fantasyPointsEarned: number;
   topScorerPointsEarned: number;
   dailyQuestionPointsEarned: number;
+  duelPointsEarned: number;
   fantasyMilestones: number;
   fantasyCoachCards: number;
   fantasyCaptainCards: number;
@@ -493,6 +499,7 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
   let topScorerPointsEarned = 0;
   let dailyQuestionPointsEarned = 0;
   let dailyQuestionStreak = 0;
+  let duelPointsEarned = 0;
   let fantasyRoundsPlayed = 0;
   let fantasyMilestones = 0;
   let coachPositiveRounds = 0;
@@ -647,6 +654,13 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
       }
     }
 
+    if (playsToday && DUEL_WINS_PER_DAY > 0) {
+      const earned = DUEL_WINS_PER_DAY * DUEL_WIN_PRIZE;
+      state.points += earned;
+      duelPointsEarned += earned;
+      spendLoop(state, policy);
+    }
+
     if (playsToday) {
       const roll = Math.random();
       const tier: Tier =
@@ -694,6 +708,7 @@ function simulateUser(accuracy: number, spinEngagement: number, policy: SpendPol
     fantasyPointsEarned,
     topScorerPointsEarned,
     dailyQuestionPointsEarned,
+    duelPointsEarned,
     fantasyMilestones,
     fantasyCoachCards,
     fantasyCaptainCards,
@@ -736,6 +751,7 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
   const avgFantasyPoints = results.reduce((s, r) => s + r.fantasyPointsEarned, 0) / n;
   const avgTopScorerPoints = results.reduce((s, r) => s + r.topScorerPointsEarned, 0) / n;
   const avgDailyQuestionPoints = results.reduce((s, r) => s + r.dailyQuestionPointsEarned, 0) / n;
+  const avgDuelPoints = results.reduce((s, r) => s + r.duelPointsEarned, 0) / n;
   const avgFantasyMilestones = results.reduce((s, r) => s + r.fantasyMilestones, 0) / n;
   const avgFantasyCoachCards = results.reduce((s, r) => s + r.fantasyCoachCards, 0) / n;
   const avgFantasyCaptainCards = results.reduce((s, r) => s + r.fantasyCaptainCards, 0) / n;
@@ -767,6 +783,7 @@ function runScenario(accuracy: number, spinEngagement: number, policy: SpendPoli
       (RARE_MILESTONE > 0 ? ` | avg milestone rares: ${avgMilestoneRares.toFixed(2)}` : "") +
       (FANTASY_ENABLED ? ` | avg fantasy pts earned: ${avgFantasyPoints.toFixed(0)}` : "") +
       (DAILY_QUESTION_ENABLED ? ` | avg daily question pts: ${avgDailyQuestionPoints.toFixed(0)}` : "") +
+      (DUEL_WINS_PER_DAY > 0 ? ` | avgDuelPoints: ${avgDuelPoints.toFixed(0)}` : "") +
       (TOP_SCORER_ENABLED ? ` | avg top-scorer pts earned: ${avgTopScorerPoints.toFixed(0)}` : "") +
       (FANTASY_MILESTONE_INTERVAL > 0 ? ` | avg fantasy milestones: ${avgFantasyMilestones.toFixed(2)}` : "") +
       (FANTASY_COACH_TRACK > 0 ? ` | fantasy coach cards: ${avgFantasyCoachCards.toFixed(1)}` : "") +

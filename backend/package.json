@@ -31,6 +31,7 @@
     "roster:sync-photos": "tsx src/scripts/sync-roster-photos.ts",
     "check:rate-limit": "tsx src/scripts/check-rate-limit.ts",
     "check:moments": "tsx src/scripts/check-moments.ts",
+    "duels:calibrate": "tsx src/scripts/calibrate-duel-scales.ts",
     "check:duels": "tsx src/scripts/check-duels.ts",
     "moments:generate": "tsx src/scripts/generate-moments.ts"
   },
