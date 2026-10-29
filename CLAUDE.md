@@ -137,10 +137,15 @@ on dev usually means drift, not a code bug.
   app-wide. Don't build comparison artifacts unless asked.
 - **Production data**: before any bulk UPDATE/DELETE on production, show the SQL
   and a SELECT of the affected rows and get explicit confirmation. Back up
-  (`scripts/backup-db.ts`) or dry-run on `dev` first.
-- Local dev's `.env` `DATABASE_URL` points at **production**. Before trusting a
-  local server as "pointed at dev," verify which DB it actually writes to, and
-  kill stale `tsx watch` processes on port 4000.
+  first, or dry-run on `dev`. `scripts/backup-db.ts` only covers 30 of the ~75
+  tables, so for a real backup dump every `information_schema` table instead.
+- Local `backend/.env` `DATABASE_URL` points at the **dev** DB (Neon
+  `EuroleagueDev`, host `ep-sparkling-pond-…`), not production. Check the host
+  before any write, and kill stale `tsx watch` processes on port 4000.
+- To run a one-off script against **production**, use
+  `railway run --service euroleague-app --environment production -- <cmd>`.
+  It injects prod's env without printing the connection string. Have the
+  script refuse to run unless the host contains `pooler.supabase.com`.
 - Economy changes (odds, pack slots, milestone intervals): re-run
   `npm run economy:simulate` before shipping.
 
@@ -154,7 +159,10 @@ Databases, each with its own provider and free quota:
 - **Production: Supabase** project `vjdrmbrishvfqfeniyhz` (Free, eu-north-1/Stockholm),
   moved from Neon on 2026-10-29. Railway's `DATABASE_URL` uses the **Session
   pooler** (`aws-0-eu-north-1.pooler.supabase.com:5432`). The direct host is IPv6-only
-  and Railway can't reach it. The Supabase roles `anon`/`authenticated` have had all
+  and Railway can't reach it. The session pooler allows **15 clients in total**,
+  and a deploy briefly runs the old and new instance together, so the app's pool
+  is `max: 7` (`db/client.ts`). Don't raise it above 7; at 10 the overlap hit
+  `EMAXCONNSESSION`. The Supabase roles `anon`/`authenticated` have had all
   grants on `public` revoked, so Supabase's Data API can't read app tables
   (there's no RLS). Keep it that way when creating tables by hand.
 - **Dev: Neon** project `EuroleagueDev` / `misty-night-49318785` (eu-central-1).
