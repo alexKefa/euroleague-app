@@ -6,9 +6,10 @@
 // Checked by scripts/check-account-deletion.ts.
 import { sql } from "drizzle-orm";
 import { db } from "../db/client.js";
+import { forfeitDuelsForDeletedUser } from "./duels.js";
 
 export type DeleteAccountResult =
-  | { ok: true; cancelledTrades: { id: string; otherUserId: string }[]; cancelledBattles: { id: string; otherUserId: string }[] }
+  | { ok: true; cancelledTrades: { id: string; otherUserId: string }[]; cancelledBattles: { id: string; otherUserId: string }[]; notifyDuels: () => void }
   | { ok: false; status: 400 | 404 | 409; code: "USERNAME_MISMATCH" | "NOT_FOUND" | "ALREADY_DELETED" };
 
 // Rows that are only about this person, removed outright.
@@ -30,7 +31,7 @@ const PERSONAL_TABLES = [
  * waits and then gets ALREADY_DELETED.
  */
 export async function deleteAccount(userId: string, confirmUsername: string): Promise<DeleteAccountResult> {
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const [user] = await tx.execute<{ username: string; deleted_at: string | null }>(
       sql`select username, deleted_at from users where id = ${userId} for update`
     );
@@ -72,8 +73,12 @@ export async function deleteAccount(userId: string, confirmUsername: string): Pr
       returning id, challenger_user_id, opponent_user_id
     `);
 
+    // Four Quarters duels: cancel open/pending, forfeit active ones, drop ratings.
+    const duelWork = await forfeitDuelsForDeletedUser(userId, tx);
+
     return {
       ok: true,
+      notifyDuels: duelWork.notify,
       cancelledTrades: [...trades].map((t) => ({ id: t.id, otherUserId: t.from_user_id === userId ? t.to_user_id : t.from_user_id })),
       cancelledBattles: [...battles].map((b) => ({
         id: b.id,
@@ -81,4 +86,7 @@ export async function deleteAccount(userId: string, confirmUsername: string): Pr
       })),
     } as const;
   });
+  // SSE only after the transaction has committed.
+  if (result.ok) result.notifyDuels();
+  return result;
 }

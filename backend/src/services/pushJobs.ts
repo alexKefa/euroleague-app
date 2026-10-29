@@ -7,6 +7,7 @@ import { GREAT_ROUND_THRESHOLD } from "./cards.js";
 import { pushEnabled, sendPushOnce } from "./push.js";
 import { usersWithPref } from "./pushPreferences.js";
 import { roundLabel } from "./roundLabel.js";
+import { DEADLINE_WARNING_MS } from "./duelEngine.js";
 
 // Scheduled push notifications (2026-10-05), run from index.ts's hourly tick
 // (and round results also whenever a game goes final). Each send is deduped
@@ -99,4 +100,29 @@ export async function runRoundResultPushes(): Promise<number> {
       tag: "round-results",
     };
   });
+}
+
+/** "Your Four Quarters move is due soon" to players who haven't played the open quarter. */
+export async function runDuelDeadlineWarnings(): Promise<number> {
+  if (!pushEnabled) return 0;
+  const due = await db.execute<{ id: string; quarter: number; user_id: string }>(sql`
+    select d.id, d.quarter, p.user_id
+    from duels d
+    cross join lateral (values (d.challenger_user_id), (d.opponent_user_id)) p(user_id)
+    where d.status = 'active' and p.user_id is not null
+      and d.quarter_deadline > now() and d.quarter_deadline <= now() + ${`${DEADLINE_WARNING_MS / 1000} seconds`}::interval
+      and not exists (select 1 from duel_moves m where m.duel_id = d.id and m.quarter = d.quarter and m.user_id = p.user_id)`);
+  let sent = 0;
+  for (const r of due) {
+    sent += await sendPushOnce("duel-deadline", `duel:${r.id}:q${r.quarter}:${r.user_id}`, [r.user_id], (lang) => ({
+      title: lang === "el" ? "Η κίνησή σου λήγει σύντομα" : "Your move is due soon",
+      body:
+        lang === "el"
+          ? `Παίξε κάρτα για την ${r.quarter}η περίοδο πριν παιχτεί αυτόματα.`
+          : `Play your Q${r.quarter} card before it's played for you.`,
+      url: `/battles/duel/${r.id}`,
+      tag: `duel-${r.id}`,
+    }));
+  }
+  return sent;
 }

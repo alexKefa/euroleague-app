@@ -102,6 +102,17 @@ export async function buildAccountExport(userId: string): Promise<AccountExport>
         from battles b join users cu1 on cu1.id = b.challenger_user_id join users cu2 on cu2.id = b.opponent_user_id
         where ${userId} in (b.challenger_user_id, b.opponent_user_id) order by b.created_at`)} as battles,
       ${list(sql`
+        select case when d.challenger_user_id = ${userId} then ou.username else cu.username end as "otherUser",
+          case when d.challenger_user_id = ${userId} then 'challenger' else 'opponent' end as role,
+          d.status, case when d.winner_user_id is null then null when d.winner_user_id = ${userId} then 'won' else 'lost' end as result,
+          case when d.challenger_user_id = ${userId} then d.challenger_score else d.opponent_score end as "myScore",
+          case when d.challenger_user_id = ${userId} then d.opponent_score else d.challenger_score end as "theirScore",
+          case when d.challenger_user_id = ${userId} then d.challenger_rating_delta else d.opponent_rating_delta end as "ratingDelta",
+          d.created_at as "createdAt", d.finished_at as "finishedAt"
+        from duels d join users cu on cu.id = d.challenger_user_id left join users ou on ou.id = d.opponent_user_id
+        where ${userId} in (d.challenger_user_id, d.opponent_user_id) order by d.created_at`)} as duels,
+      ${own("duel_ratings")} as "duelRatings",
+      ${list(sql`
         select fl.season, fl.round, pl.name as player, fl.slot_role as "slotRole", fl.is_captain as "isCaptain", fl.price_at_pick as "priceAtPick"
         from fantasy_lineups fl join players pl on pl.id = fl.player_id
         where fl.user_id = ${userId} order by fl.season, fl.round`)} as fantasy,

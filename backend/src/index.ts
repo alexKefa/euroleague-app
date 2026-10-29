@@ -38,6 +38,7 @@ import { promoCodesRouter } from "./routes/promoCodes.js";
 import { adminRouter } from "./routes/admin.js";
 import { announcementsRouter } from "./routes/announcements.js";
 import { battlesRouter } from "./routes/battles.js";
+import { duelsRouter } from "./routes/duels.js";
 import { remindersRouter } from "./routes/reminders.js";
 import { pushRouter } from "./routes/push.js";
 import { syncNews } from "./sync/newsSync.js";
@@ -54,7 +55,8 @@ import { syncStandings } from "./sync/syncStandings.js";
 import { applyDailyFantasyPriceChanges } from "./services/fantasyDailyReprice.js";
 import { runFantasyRoundSweep } from "./services/fantasyRoundSweep.js";
 import { getCurrentSeason } from "./services/season.js";
-import { runLockReminderPushes, runRoundResultPushes } from "./services/pushJobs.js";
+import { runLockReminderPushes, runRoundResultPushes, runDuelDeadlineWarnings } from "./services/pushJobs.js";
+import { applyTimeouts } from "./services/duels.js";
 import { errorContext, errorHandler, installErrorCapture, pruneErrorEvents } from "./services/errorReport.js";
 
 // Saves every logged Error to error_events (2026-10-12) before anything can fail.
@@ -167,6 +169,7 @@ app.use("/api/legendary-polls", legendaryPollsRouter);
 app.use("/api/promo-codes", promoCodesRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/battles", battlesRouter);
+app.use("/api/duels", duelsRouter);
 app.use("/api/reminders", remindersRouter);
 app.use("/api/announcements", announcementsRouter);
 app.use("/api/push", pushRouter);
@@ -295,6 +298,19 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
         if (sent > 0) console.log(`[push] lock reminders sent to ${sent} device(s)`);
       })
       .catch((err) => console.error("[push] lock reminders failed:", err));
+  };
+  // Expire stale challenges and auto-play overdue quarters first, then warn
+  // players whose move is still outstanding.
+  const runDuelJobs = () => {
+    applyTimeouts()
+      .then((changed) => {
+        if (changed > 0) console.log(`[duels] timeouts changed ${changed} duel(s)`);
+        return runDuelDeadlineWarnings();
+      })
+      .then((sent) => {
+        if (sent > 0) console.log(`[push] duel deadline warnings sent to ${sent} device(s)`);
+      })
+      .catch((err) => console.error("[duels] hourly job failed:", err));
   };
 
   const LIVE_GAMES_SYNC_INTERVAL_MS = 20 * 1000;
@@ -480,6 +496,7 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
     runFantasyReprice();
     runLockReminderPushesLogged();
     runRoundResultPushesLogged();
+    runDuelJobs();
     runGameExtrasSync();
     runMomentsGeneration();
     runScheduleSync();
