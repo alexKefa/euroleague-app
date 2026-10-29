@@ -40,7 +40,9 @@ export interface ChecklistRow {
   bonus?: boolean;
 }
 
-export type RoundPhase = "open" | "allDone" | "between";
+// "live": every game has tipped off but at least one isn't final yet, so the
+// round is still being played. "between": every game is final.
+export type RoundPhase = "open" | "allDone" | "live" | "between";
 
 export interface RoundStatus {
   round: number;
@@ -65,7 +67,11 @@ export function buildRoundStatus(input: RoundStatusInput, now: number): RoundSta
 
   const firstRun = !input.everPicked;
   if (notStarted.length === 0) {
-    return { round: schedule.round, phase: "between", rows: [], doneCount: 0, nextDeadline: null, firstRun };
+    // Started isn't finished: a round's last match-day can still be live
+    // after its final tip-off (2026-10-29: the header said "Round 8
+    // complete" with two games still being played).
+    const phase = games.some((game) => game.status !== "final") ? "live" : "between";
+    return { round: schedule.round, phase, rows: [], doneCount: 0, nextDeadline: null, firstRun };
   }
 
   const rows: ChecklistRow[] = [];

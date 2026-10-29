@@ -52,8 +52,21 @@ check("past tipoff with scheduled status counts as started", () => {
   assert.equal(s.rows.find((r) => r.id === "picks")!.done, true);
 });
 
-check("all started -> between", () => {
-  const games = [g("a", "2026-10-09T12:00:00Z", "final"), g("b", "2026-10-09T18:00:00Z", "live")];
+check("all started, one still live -> live", () => {
+  const games = [g("a", "2026-10-09T12:00:00Z", "final"), g("b", "2026-10-09T14:00:00Z", "live")];
+  const s = buildRoundStatus(base({ schedule: sched(games) }), now);
+  assert.equal(s.phase, "live");
+  assert.deepEqual(s.rows, []);
+});
+
+check("all started, past tipoff not yet flipped by the feed -> live", () => {
+  const games = [g("a", "2026-10-09T12:00:00Z", "final"), g("b", "2026-10-09T14:00:00Z")];
+  const s = buildRoundStatus(base({ schedule: sched(games) }), now);
+  assert.equal(s.phase, "live");
+});
+
+check("all final -> between", () => {
+  const games = [g("a", "2026-10-09T12:00:00Z", "final"), g("b", "2026-10-09T14:00:00Z", "final")];
   const s = buildRoundStatus(base({ schedule: sched(games) }), now);
   assert.equal(s.phase, "between");
   assert.deepEqual(s.rows, []);

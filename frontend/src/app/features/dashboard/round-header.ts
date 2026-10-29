@@ -38,6 +38,8 @@ import { roundLabel } from "../../shared/round-label";
             <p class="font-display text-3xl leading-none mt-1 text-balance">
               @if (!auth.isAuthenticated()) {
                 {{ roundLabel() }}
+              } @else if (s.phase === "live") {
+                {{ fill("dashboard.roundHeader.live", { label: roundLabel() }) }}
               } @else if (s.phase === "between") {
                 {{ fill("dashboard.roundHeader.complete", { label: roundLabel() }) }}
               } @else if (s.phase === "allDone") {
@@ -116,7 +118,7 @@ export class RoundHeaderComponent {
     const points = this.rs.roundPoints();
     const rank = this.rank();
     if (points === null && rank === null) return null;
-    const pointsKey = s?.phase === "allDone" ? "dashboard.roundHeader.pointsSoFar" : "dashboard.roundHeader.points";
+    const pointsKey = s?.phase === "allDone" || s?.phase === "live" ? "dashboard.roundHeader.pointsSoFar" : "dashboard.roundHeader.points";
     return { points, pointsText: this.around(pointsKey, "n", {}), rank };
   });
 

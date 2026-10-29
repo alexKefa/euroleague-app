@@ -39,6 +39,7 @@ export const dashboardTranslations: Record<string, Record<Lang, string>> = {
   "dashboard.results.wrong": { en: "Wrong pick", el: "Λάθος πρόβλεψη" },
   "dashboard.results.topScorer": { en: "Top scorer called", el: "Βρήκες τον πρώτο σκόρερ" },
   "dashboard.roundHeader.complete": { en: "{label} complete", el: "{label}: ολοκληρώθηκε" },
+  "dashboard.roundHeader.live": { en: "{label} in progress", el: "{label}: σε εξέλιξη" },
   "dashboard.roundHeader.pointsSoFar": { en: "{n} pts so far", el: "{n} πόντοι ως τώρα" },
   "dashboard.roundHeader.points": { en: "{n} pts", el: "{n} πόντοι" },
   "dashboard.roundHeader.picksLockIn": { en: "picks lock in", el: "οι προβλέψεις κλειδώνουν σε" },
