@@ -108,15 +108,31 @@ const NO_CONDITION: PlayerCondition = { raw: EMPTY_LINE, season: EMPTY_LINE, rec
  * map to players by team + normalized name (collectibles carry no player
  * id), same key as the v3 power lookup. No synced stats means all zeros.
  */
+// The builder and every duel view call this, and the per-team query is heavy
+// (season + recent games for whole rosters). Cache it per team for 5 minutes so
+// repeat calls don't re-read the same rows: DB egress is the binding limit on
+// the Supabase free tier (5 GB/month).
+const STAT_CACHE_MS = 5 * 60 * 1000;
+const teamStatCache = new Map<string, { at: number; season: string; conds: Map<string, PlayerCondition> }>();
+let seasonCache: { at: number; season: string } | null = null;
+
 export async function getCardStatLines(
   cards: { teamId: string; name: string; tier: string; finish?: string | null }[]
 ): Promise<CardStatLine[]> {
   const teamIds = [...new Set(cards.map((c) => c.teamId))];
   const lookup = new Map<string, PlayerCondition>();
   if (teamIds.length > 0) {
-    const season = (await getCurrentSeason()) ?? "__none__";
+    const now = Date.now();
+    if (!seasonCache || now - seasonCache.at > STAT_CACHE_MS) seasonCache = { at: now, season: (await getCurrentSeason()) ?? "__none__" };
+    const season = seasonCache.season;
+    const missing = teamIds.filter((id) => {
+      const e = teamStatCache.get(id);
+      return !e || e.season !== season || now - e.at > STAT_CACHE_MS;
+    });
+    const fresh = new Map<string, Map<string, PlayerCondition>>(missing.map((id) => [id, new Map()]));
+    if (missing.length > 0) {
     const teamList = sql.join(
-      teamIds.map((id) => sql`${id}`),
+      missing.map((id) => sql`${id}`),
       sql`, `
     );
     // Season line: this season and last, weighted by games played (two
@@ -186,8 +202,12 @@ export async function getCardStatLines(
         else if (recentPir <= seasonPir * (1 - FORM_THRESHOLD)) form = "cold";
       }
       const injury = r.injury && r.injury in INJURY_MULTIPLIER ? (r.injury as InjuryStatus) : null;
-      lookup.set(`${r.team_id}|${normalizePlayerName(r.name)}`, { raw, season, recentGames: n, form, injury, seasonPir, recentPir });
+      const entry = { raw, season, recentGames: n, form, injury, seasonPir, recentPir };
+      fresh.get(r.team_id)?.set(`${r.team_id}|${normalizePlayerName(r.name)}`, entry);
     }
+    for (const [id, conds] of fresh) teamStatCache.set(id, { at: now, season, conds });
+    }
+    for (const id of teamIds) for (const [k, v] of teamStatCache.get(id)?.conds ?? []) lookup.set(k, v);
   }
   return cards.map((c) => {
     const cond = lookup.get(`${c.teamId}|${normalizePlayerName(c.name)}`) ?? NO_CONDITION;

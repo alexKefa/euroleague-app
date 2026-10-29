@@ -174,7 +174,7 @@
           </p>
         }
         @if (rematchParams(); as rp) {
-          <a [routerLink]="['/battles', 'duel', 'new']" [queryParams]="rp" appButton class="mt-4">{{ i18n.t('duels.rematch') }}</a>
+          <a [routerLink]="['/battles', 'duel', 'new']" [queryParams]="rp" appButton class="mt-4">{{ i18n.t(rematchIsOpen() ? 'duels.rematchOpen' : 'duels.rematch') }}</a>
         }
       </div>
     }

@@ -49,6 +49,11 @@ export class BattlesNotificationService {
     return 0;
   }
 
+  /** Feed the badge from rows a component already fetched (saves a /duels/mine call). */
+  setFromRows(rows: { myMove: boolean }[]): void {
+    this.count.set(rows.filter((d) => d.myMove).length);
+  }
+
   refresh(): void {
     this.api.getMyDuels().subscribe({
       next: (rows) => this.count.set(rows.filter((d) => d.myMove).length),

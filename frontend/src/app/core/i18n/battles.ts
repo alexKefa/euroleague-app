@@ -148,8 +148,8 @@ export const battlesTranslations: Record<string, Record<Lang, string>> = {
   // "How duels work" popup (features/battles/battles-info.ts).
   "battles.howItWorksTitle": { en: "How duels work", el: "Πώς λειτουργούν οι μονομαχίες" },
   "battles.howItWorksStep1": {
-    en: "Build a lineup of 5 cards you own, no coaches and no player twice. There are four quarters, each with a category like Scoring or Boards. Every quarter you secretly commit one card, and the higher score takes the quarter.",
-    el: "Φτιάξε σύνθεση με 5 κάρτες που έχεις, χωρίς προπονητές και χωρίς τον ίδιο παίκτη δύο φορές. Υπάρχουν τέσσερα δεκάλεπτα, με κατηγορία το καθένα, όπως Σκοράρισμα ή Ριμπάουντ. Σε κάθε δεκάλεπτο παίζεις κρυφά μία κάρτα και το μεγαλύτερο σκορ παίρνει το δεκάλεπτο.",
+    en: "Build a lineup of 5 cards you own, no coaches and no player twice. There are four quarters, each with a category like Scoring or Boards. Every quarter you secretly commit one card. Each quarter's points add up, and the higher total score wins the game.",
+    el: "Φτιάξε σύνθεση με 5 κάρτες που έχεις, χωρίς προπονητές και χωρίς τον ίδιο παίκτη δύο φορές. Υπάρχουν τέσσερα δεκάλεπτα, με κατηγορία το καθένα, όπως Σκοράρισμα ή Ριμπάουντ. Σε κάθε δεκάλεπτο παίζεις κρυφά μία κάρτα. Οι πόντοι κάθε δεκαλέπτου αθροίζονται και κερδίζει το μεγαλύτερο συνολικό σκορ.",
   },
   "battles.howItWorksStep2": {
     en: "A card scores its per-game stat for the category, times its rarity (common ×1.00 up to MVP Moment ×1.30, foil +0.10), its current form (×0.85 to ×1.15) and any injury. Each card can be played once. The total score over all four quarters wins, and a tie goes to overtime with your two bench cards.",

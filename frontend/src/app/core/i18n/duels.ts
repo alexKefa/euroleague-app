@@ -86,6 +86,9 @@ export const duelsTranslations: Record<string, Record<Lang, string>> = {
   "duels.autoFill": { en: "Auto-fill best 5", el: "Αυτόματα οι καλύτεροι 5" },
   "duels.commit": { en: "Commit", el: "Επιβεβαίωση" },
   "duels.rematch": { en: "Rematch", el: "Ρεβάνς" },
+  "duels.rematchOpen": { en: "Post open challenge with this lineup", el: "Ανάρτηση ανοιχτής πρόκλησης με αυτή τη σύνθεση" },
+  "duels.badge.top3": { en: "Top 3 · {month}", el: "Top 3 · {month}" },
+  "duels.badge.all_star": { en: "All-Star season · {month}", el: "Σεζόν All-Star · {month}" },
   "duels.overtime": { en: "Overtime", el: "Παράταση" },
   "duels.bench": { en: "Bench", el: "Πάγκος" },
   "duels.finalScore": { en: "Full time", el: "Τελικό σκορ" },
@@ -172,7 +175,7 @@ export const duelsTranslations: Record<string, Record<Lang, string>> = {
   "duels.game.declined": { en: "This challenge was declined.", el: "Η πρόκληση απορρίφθηκε." },
   "duels.game.expiredNote": { en: "This challenge expired.", el: "Η πρόκληση έληξε." },
   "duels.game.loadFailed": { en: "Couldn't load this duel.", el: "Δεν φορτώθηκε η μονομαχία." },
-  "duels.game.reason.forfeit": { en: "Won by forfeit", el: "Νίκη λόγω εγκατάλειψης" },
+  "duels.game.reason.forfeit": { en: "Decided by forfeit", el: "Κρίθηκε με εγκατάλειψη" },
   "duels.game.reason.timeout": { en: "Decided on time-outs", el: "Κρίθηκε από λήξη χρόνου" },
   "duels.pendingChallenges": { en: "Duels waiting on you", el: "Μονομαχίες που σε περιμένουν" },
 };

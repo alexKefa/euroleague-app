@@ -88,10 +88,14 @@ export class DuelGameComponent implements OnInit {
 
   readonly canCommit = computed(() => this.isActive() && !this.view()?.iCommitted && this.selected() !== null && !this.committing());
 
-  readonly countdown = computed(() => {
+  private deadlineTarget(): string | null {
     const v = this.view();
     if (!v) return null;
-    const target = this.isPending() ? v.expiresAt : this.isActive() ? v.quarterDeadline : null;
+    return this.isPending() ? v.expiresAt : this.isActive() ? v.quarterDeadline : null;
+  }
+
+  readonly countdown = computed(() => {
+    const target = this.deadlineTarget();
     if (!target) return null;
     const ms = new Date(target).getTime() - this.now();
     if (ms <= 0) return "0:00";
@@ -106,10 +110,14 @@ export class DuelGameComponent implements OnInit {
   readonly rematchParams = computed(() => {
     const v = this.view();
     if (!v?.opponent) return null;
+    if (!v.leagueId) return { rematch: v.id };
     const q: Record<string, string> = { opponentUserId: v.opponent.id, opponentName: v.opponent.username, rematch: v.id };
     if (v.leagueId) q["leagueId"] = v.leagueId;
     return q;
   });
+
+  /** Duels that began as open challenges have no league, so a rematch goes back to an open post. */
+  readonly rematchIsOpen = computed(() => !!this.view() && !this.view()!.leagueId);
 
   readonly reasonKey = computed(() => {
     const r = this.view()?.finishReason;
@@ -129,7 +137,15 @@ export class DuelGameComponent implements OnInit {
 
   ngOnInit(): void {
     this.id = this.route.snapshot.paramMap.get("id") ?? "";
-    const tick = setInterval(() => this.now.set(Date.now()), 1000);
+    const tick = setInterval(() => {
+      this.now.set(Date.now());
+      // Deadline just passed: reload once so the lazy server-side timeout resolves the quarter.
+      const target = this.deadlineTarget();
+      if (target && this.zeroFiredFor !== target && new Date(target).getTime() <= this.now()) {
+        this.zeroFiredFor = target;
+        this.load(false);
+      }
+    }, 1000);
     this.destroyRef.onDestroy(() => {
       clearInterval(tick);
       this.clearRevealTimers();
@@ -179,7 +195,8 @@ export class DuelGameComponent implements OnInit {
   // A quarter (or overtime) that has a score now but didn't before.
   private detectReveal(prev: DuelView, next: DuelView): void {
     const fresh = next.quarters
-      .filter((q) => q.myScore !== null && q.theirScore !== null && !prev.quarters.find((p) => p.quarter === q.quarter && p.myScore !== null))
+      // The opponent's score is what was hidden before: the player who committed first already sees their own.
+      .filter((q) => q.myScore !== null && q.theirScore !== null && !prev.quarters.find((p) => p.quarter === q.quarter && p.theirScore !== null))
       .sort((a, b) => b.quarter - a.quarter)[0];
     const pending: Reveal[] = [];
     if (fresh) {
@@ -214,6 +231,7 @@ export class DuelGameComponent implements OnInit {
   }
 
   private revealQueue: Reveal[] = [];
+  private zeroFiredFor: string | null = null;
 
   private nextReveal(): void {
     const r = this.revealQueue.shift();

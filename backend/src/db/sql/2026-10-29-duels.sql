@@ -57,4 +57,5 @@ create table if not exists duel_ratings (
 );
 create index if not exists duel_ratings_season_rating_idx on duel_ratings (season, rating desc);
 
--- supabase only: revoke all on duels, duel_moves, duel_ratings from anon, authenticated;
+-- Supabase only (the anon/authenticated roles do not exist on Neon): keep the Data API out.
+do $$ begin if exists (select 1 from pg_roles where rolname = 'anon') then revoke all on duels, duel_moves, duel_ratings from anon, authenticated; end if; end $$;

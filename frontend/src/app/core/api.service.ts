@@ -676,16 +676,14 @@ export class ApiService {
   }
 
   // Four Quarters duels (Battles v6).
-  createDuel(body: { lineup: string[]; opponentUserId?: string; leagueId?: string }): Observable<DuelView> {
-    return this.http.post<DuelView>(`${API_BASE_URL}/duels`, body);
+  createDuel(body: { lineup: string[]; opponentUserId?: string; leagueId?: string }): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${API_BASE_URL}/duels`, body);
   }
 
   // Base lines and multipliers for owned cards (lineup builder). Ownership is
   // checked server-side; lineup validity is not.
   getDuelPreview(ids: string[]): Observable<{ scales: Record<DuelCategory, number>; cards: DuelCard[] }> {
-    return this.http.get<{ scales: Record<DuelCategory, number>; cards: DuelCard[] }>(`${API_BASE_URL}/duels/preview`, {
-      params: { ids: ids.join(",") },
-    });
+    return this.http.post<{ scales: Record<DuelCategory, number>; cards: DuelCard[] }>(`${API_BASE_URL}/duels/preview`, { ids });
   }
 
   getOpenDuels(): Observable<OpenDuel[]> {

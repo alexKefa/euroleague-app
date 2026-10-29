@@ -3,7 +3,7 @@ import { toSignal } from "@angular/core/rxjs-interop";
 import { HttpErrorResponse } from "@angular/common/http";
 import { FormArray, FormControl, ReactiveFormsModule } from "@angular/forms";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
-import { forkJoin, of } from "rxjs";
+import { of } from "rxjs";
 import { ApiService } from "../../core/api.service";
 import { I18nService } from "../../core/i18n.service";
 import { NavHistoryService } from "../../core/nav-history.service";
@@ -14,7 +14,6 @@ import { SkeletonComponent } from "../../shared/skeleton";
 import { normalizePlayerName, quarterScore } from "./duel-helpers";
 
 const LINEUP_SIZE = 5;
-const PREVIEW_CHUNK = 60;
 
 type SortKey = "total" | DuelCategory;
 
@@ -133,14 +132,10 @@ export class DuelLineupBuilderComponent implements OnInit {
               this.loading.set(false);
               return;
             }
-            const chunks: string[][] = [];
-            for (let i = 0; i < playable.length; i += PREVIEW_CHUNK) {
-              chunks.push(playable.slice(i, i + PREVIEW_CHUNK).map((c) => c.id));
-            }
-            forkJoin(chunks.map((ids) => this.api.getDuelPreview(ids))).subscribe({
-              next: (parts) => {
-                const scales = parts[0]?.scales ?? DUEL_CATEGORY_SCALES;
-                const duelById = new Map(parts.flatMap((p) => p.cards).map((d) => [d.collectibleId, d]));
+            this.api.getDuelPreview(playable.map((c) => c.id)).subscribe({
+              next: (part) => {
+                const scales = part.scales ?? DUEL_CATEGORY_SCALES;
+                const duelById = new Map(part.cards.map((d) => [d.collectibleId, d]));
                 const built: BuilderCard[] = [];
                 for (const c of playable) {
                   const duel = duelById.get(c.id);

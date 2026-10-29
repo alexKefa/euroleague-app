@@ -5,6 +5,7 @@ import { getDefaultRound, getRoundLockTime } from "./fantasyScoring.js";
 import { getPlayedRounds, getRoundStandings } from "./roundStandings.js";
 import { GREAT_ROUND_THRESHOLD } from "./cards.js";
 import { pushEnabled, sendPushOnce } from "./push.js";
+import { DUEL_MOVE_PUSH_KIND } from "./duels.js";
 import { usersWithPref } from "./pushPreferences.js";
 import { roundLabel } from "./roundLabel.js";
 import { DEADLINE_WARNING_MS } from "./duelEngine.js";
@@ -114,11 +115,11 @@ export async function runDuelDeadlineWarnings(): Promise<number> {
       and not exists (select 1 from duel_moves m where m.duel_id = d.id and m.quarter = d.quarter and m.user_id = p.user_id)`);
   let sent = 0;
   for (const r of due) {
-    sent += await sendPushOnce("duel-deadline", `duel:${r.id}:q${r.quarter}:${r.user_id}`, [r.user_id], (lang) => ({
+    sent += await sendPushOnce(DUEL_MOVE_PUSH_KIND, `duel:${r.id}:q${r.quarter}:${r.user_id}`, [r.user_id], (lang) => ({
       title: lang === "el" ? "Η κίνησή σου λήγει σύντομα" : "Your move is due soon",
       body:
         lang === "el"
-          ? `Παίξε κάρτα για την ${r.quarter}η περίοδο πριν παιχτεί αυτόματα.`
+          ? `Παίξε κάρτα για το ${r.quarter}ο δεκάλεπτο πριν παιχτεί αυτόματα.`
           : `Play your Q${r.quarter} card before it's played for you.`,
       url: `/battles/duel/${r.id}`,
       tag: `duel-${r.id}`,

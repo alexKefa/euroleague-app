@@ -99,16 +99,16 @@ duelsRouter.get("/me/rating", requireAuth, async (req, res) => {
 
 // Per-card base lines and multipliers for the lineup builder. Ownership is
 // checked, lineup validity is not (the user is still choosing).
-duelsRouter.get("/preview", requireAuth, async (req, res) => {
+duelsRouter.post("/preview", requireAuth, async (req, res) => {
   try {
-    const raw = req.query.ids;
-    if (typeof raw !== "string") return void badBody(res, "ids must be a comma-separated list");
-    const ids = [...new Set(raw.split(",").map((s) => s.trim()).filter(Boolean))];
-    if (ids.length > 60 || ids.some((id) => !UUID_RE.test(id))) return void badBody(res, "ids must be up to 60 card ids");
+    const raw = req.body?.ids;
+    if (!Array.isArray(raw) || raw.some((id) => typeof id !== "string")) return void badBody(res, "ids must be an array of card ids");
+    const ids = [...new Set(raw as string[])];
+    if (ids.length > 500 || ids.some((id) => !UUID_RE.test(id))) return void badBody(res, "ids must be up to 500 card ids");
     const cards = ids.length ? await buildSnapshots(req.userId!, ids, { validate: false }) : [];
     res.json({ scales: CATEGORY_SCALES, cards });
   } catch (err) {
-    fail(res, "GET /api/duels/preview", err);
+    fail(res, "POST /api/duels/preview", err);
   }
 });
 

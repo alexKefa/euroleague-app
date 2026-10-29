@@ -4,7 +4,7 @@ import { collectibles, collectibleMoments, duelMoves, duels, userCollectibles } 
 import { sendToUser } from "../realtime/hub.js";
 import { normalizePlayerName } from "./battles.js";
 import { lockUserPoints } from "./points.js";
-import { sendPushInBackground, type PushBuilder } from "./push.js";
+import { sendPushInBackground, sendPushOnce, type PushBuilder } from "./push.js";
 import { INJURY_MULTIPLIER, getCardStatLines } from "./statDuel.js";
 import {
   benchSlot,
@@ -153,7 +153,8 @@ interface Ctx {
   actor: string | null;
   changed: boolean;
   final: DuelRow | null;
-  pushes: { userIds: string[]; build: PushBuilder }[];
+  /** `quarter` set = a "your move" push, sent at most once per player per quarter (shared with the deadline warning). */
+  pushes: { userIds: string[]; build: PushBuilder; quarter?: number; duelId?: string }[];
   /** Users who get nothing (a deleted account being forfeited). */
   silent: Set<string>;
   /** Thrown after commit, so work done before it (timeouts) is kept. */
@@ -167,6 +168,7 @@ const ATHENS_TODAY = sql`(now() at time zone 'Europe/Athens')::date`;
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 const iso = (d: Date | string | null | undefined): string | null => (d ? new Date(d).toISOString() : null);
+export const DUEL_MOVE_PUSH_KIND = "duel-move";
 const duelUrl = (id: string) => `/battles/duel/${id}`;
 
 function newCtx(actor: string | null): Ctx {
@@ -188,7 +190,12 @@ function flush(ctx: Ctx): void {
   }
   for (const p of ctx.pushes) {
     const ids = p.userIds.filter((u) => !ctx.silent.has(u) && u !== ctx.actor);
-    if (ids.length) sendPushInBackground(ids, p.build);
+    if (!ids.length) continue;
+    if (p.quarter !== undefined && p.duelId) {
+      for (const u of ids) {
+        void sendPushOnce(DUEL_MOVE_PUSH_KIND, `duel:${p.duelId}:q${p.quarter}:${u}`, [u], p.build).catch(() => {});
+      }
+    } else sendPushInBackground(ids, p.build);
   }
 }
 
@@ -207,19 +214,19 @@ const pushText = {
   }),
   accepted: (id: string): PushBuilder => (lang) => ({
     title: lang === "el" ? "Η πρόκλησή σου έγινε δεκτή" : "Challenge accepted",
-    body: lang === "el" ? "Παίζεις εσύ: διάλεξε κάρτα για την 1η περίοδο." : "Your move: pick your Q1 card.",
+    body: lang === "el" ? "Παίζεις εσύ: διάλεξε κάρτα για το 1ο δεκάλεπτο." : "Your move: pick your Q1 card.",
     url: duelUrl(id),
     tag: `duel-${id}`,
   }),
   committed: (id: string, q: number): PushBuilder => (lang) => ({
     title: lang === "el" ? "Σειρά σου" : "Your move",
-    body: lang === "el" ? `Ο αντίπαλός σου έπαιξε για την ${q}η περίοδο.` : `Your opponent has played their Q${q} card.`,
+    body: lang === "el" ? `Ο αντίπαλός σου έπαιξε για το ${q}ο δεκάλεπτο.` : `Your opponent has played their Q${q} card.`,
     url: duelUrl(id),
     tag: `duel-${id}`,
   }),
   revealed: (id: string, q: number): PushBuilder => (lang) => ({
-    title: lang === "el" ? `Αποκάλυψη ${q}ης περιόδου` : `Q${q} revealed`,
-    body: lang === "el" ? `Ξεκίνησε η ${q + 1}η περίοδος: παίζεις εσύ.` : `Q${q + 1} is open: your move.`,
+    title: lang === "el" ? `Αποκάλυψη ${q}ου δεκαλέπτου` : `Q${q} revealed`,
+    body: lang === "el" ? `Ξεκίνησε το ${q + 1}ο δεκάλεπτο: παίζεις εσύ.` : `Q${q + 1} is open: your move.`,
     url: duelUrl(id),
     tag: `duel-${id}`,
   }),
@@ -352,7 +359,7 @@ async function resolveQuarter(tx: Tx, st: Locked, ctx: Ctx, pending: StreakField
   ctx.changed = true;
 
   if (q < 4 && !forfeit) {
-    ctx.pushes.push({ userIds: participants(r), build: pushText.revealed(r.id, q) });
+    ctx.pushes.push({ userIds: participants(r), build: pushText.revealed(r.id, q), quarter: q + 1, duelId: r.id });
     return;
   }
 
@@ -795,7 +802,7 @@ export async function acceptDuel(userId: string, duelId: string, lineup: string[
       st.opponentName = u?.username ?? null;
     }
     ctx.changed = true;
-    ctx.pushes.push({ userIds: [r.challengerUserId], build: pushText.accepted(duelId) });
+    ctx.pushes.push({ userIds: [r.challengerUserId], build: pushText.accepted(duelId), quarter: 1, duelId });
   });
   return buildView(st, userId);
 }
@@ -861,7 +868,7 @@ export async function commitMove(userId: string, duelId: string, quarter: number
     if (isC && r.challengerMissStreak !== 0) pending.challengerMissStreak = 0;
     if (!isC && r.opponentMissStreak !== 0) pending.opponentMissStreak = 0;
     const other = isC ? r.opponentUserId! : r.challengerUserId;
-    if (!moveOf(st, other, r.quarter)) ctx.pushes.push({ userIds: [other], build: pushText.committed(r.id, r.quarter) });
+    if (!moveOf(st, other, r.quarter)) ctx.pushes.push({ userIds: [other], build: pushText.committed(r.id, r.quarter), quarter: r.quarter, duelId: r.id });
     ctx.changed = true;
     await resolveQuarter(tx, st, ctx, pending);
   });
@@ -946,6 +953,7 @@ export async function forfeitDuelsForDeletedUser(userId: string, tx?: Tx): Promi
 // Lists, ladder, rating
 // ---------------------------------------------------------------------------
 
+// Mirrors softReset in duelEngine.ts: keep the two in sync.
 /** A user's rating for `season`: that month's row, else the soft reset of their latest earlier one. */
 const ratingSql = (userExpr: ReturnType<typeof sql>, season: string) => sql`coalesce(
   (select r.rating from duel_ratings r where r.user_id = ${userExpr} and r.season = ${season}),

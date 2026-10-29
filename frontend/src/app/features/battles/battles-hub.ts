@@ -74,6 +74,17 @@ export class BattlesHubComponent implements OnInit {
   readonly cancellingId = signal<string | null>(null);
   private started = false;
 
+  /** "Oct 2026" from a season key like 2026-10, in the current language. */
+  badgeLabel(b: { season: string; kind: "top3" | "all_star" }): string {
+    const [y, m] = b.season.split("-").map(Number);
+    const month = new Date(Date.UTC(y, (m || 1) - 1, 1)).toLocaleDateString(this.i18n.lang() === "el" ? "el-GR" : "en-GB", {
+      month: "short",
+      year: "numeric",
+      timeZone: "UTC",
+    });
+    return this.i18n.t("duels.badge." + b.kind).replace("{month}", month);
+  }
+
   constructor() {
     // Any duel change pushed over SSE refetches the lists. The fetch runs
     // untracked so the signals it writes can't re-trigger this effect.
@@ -112,6 +123,7 @@ export class BattlesHubComponent implements OnInit {
     this.api.getMyDuels().subscribe({
       next: (rows) => {
         this.duels.set(rows);
+        this.battlesNotif.setFromRows(rows);
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
@@ -119,7 +131,6 @@ export class BattlesHubComponent implements OnInit {
     this.api.getMyDuelRating().subscribe({ next: (r) => this.rating.set(r), error: () => {} });
     if (this.tab() === "open") this.loadOpen();
     if (this.tab() === "ladder") this.loadLadder();
-    this.battlesNotif.refresh();
   }
 
   setTab(t: HubTab): void {

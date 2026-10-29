@@ -203,3 +203,12 @@ Built and shipped inactive (launch gate 2027-01-01 00:00 Athens; spec
 2. Jan 1: the hourly job creates the backlog on its own. Publish the
    "What's new" announcement (EN/EL text in the spec) and check once that
    cards exist and MVP-moment bonuses are being granted.
+
+## 15. Duels: follow-ups from the final review (added 2026-10-29)
+
+- Declined/expired challenges vanish from the challenger's hub without
+  notice. Show them under Finished for 24h.
+- Reopening a game shows no reveal for quarters resolved while away.
+  Remember the last-seen quarter per duel.
+- Season badges (Top 3, All-Star season) are not yet shown on the profile or
+  the achievements page; only the Battles hub header shows them.
