@@ -5,7 +5,8 @@
     <app-skeleton class="h-48 rounded-2xl" />
   } @else if (loadFailed() || !view()) {
     <div class="bg-card rounded-2xl border border-line shadow-card p-6 text-center">
-      <p class="text-sm text-muted font-semibold">{{ i18n.t('duels.game.loadFailed') }}</p>
+      <p class="text-sm text-muted font-semibold mb-3">{{ forbidden() ? i18n.t('duels.error.NOT_PARTICIPANT') : i18n.t('duels.game.loadFailed') }}</p>
+      <a routerLink="/battles" appButton appButtonSize="sm">{{ i18n.t('duels.game.backToBattles') }}</a>
     </div>
   } @else {
     @let v = view()!;

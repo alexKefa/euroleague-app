@@ -187,6 +187,10 @@ export const routes: Routes = [
   // Stale links and push URLs for the old challenge composer land on the builder.
   { path: "battles/new", redirectTo: "battles/duel/new", pathMatch: "full" },
   {
+    path: "battles/duel/:id",
+    loadComponent: () => import("./features/battles/duel-game").then((m) => m.DuelGameComponent),
+  },
+  {
     path: "battles/:id",
     loadComponent: () => import("./features/battles/battle-detail").then((m) => m.BattleDetailComponent),
   },

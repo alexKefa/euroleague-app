@@ -39,6 +39,8 @@ export class DuelGameComponent implements OnInit {
   readonly quarterCols = [1, 2, 3, 4];
   readonly sides = [0, 1];
   private id = "";
+  private loadSeq = 0;
+  readonly forbidden = signal(false);
 
   readonly view = signal<DuelView | null>(null);
   readonly loading = signal(true);
@@ -152,8 +154,10 @@ export class DuelGameComponent implements OnInit {
   }
 
   private load(initial: boolean): void {
+    const seq = ++this.loadSeq;
     this.api.getDuel(this.id).subscribe({
       next: (v) => {
+        if (seq !== this.loadSeq) return;
         const prev = this.view();
         this.view.set(v);
         this.loading.set(false);
@@ -163,8 +167,10 @@ export class DuelGameComponent implements OnInit {
         const sel = this.selected();
         if (sel !== null && (this.myUsed().has(sel) || v.iCommitted || v.status !== "active")) this.selected.set(null);
       },
-      error: () => {
+      error: (err: unknown) => {
+        if (seq !== this.loadSeq) return;
         this.loading.set(false);
+        if (err instanceof HttpErrorResponse && err.status === 403) this.forbidden.set(true);
         if (!this.view()) this.loadFailed.set(true);
       },
     });
@@ -175,8 +181,9 @@ export class DuelGameComponent implements OnInit {
     const fresh = next.quarters
       .filter((q) => q.myScore !== null && q.theirScore !== null && !prev.quarters.find((p) => p.quarter === q.quarter && p.myScore !== null))
       .sort((a, b) => b.quarter - a.quarter)[0];
+    const pending: Reveal[] = [];
     if (fresh) {
-      this.startReveal({
+      pending.push({
         label: this.i18n.t("duels.game.resolved").replace("{n}", String(fresh.quarter)),
         mine: fresh.mySlot !== null ? (next.myLineup[fresh.mySlot] ?? null) : null,
         theirs: fresh.theirSlot !== null ? (next.theirLineup?.[fresh.theirSlot] ?? null) : null,
@@ -186,7 +193,7 @@ export class DuelGameComponent implements OnInit {
     }
     if (next.overtime && !prev.overtime) {
       const ot = next.overtime;
-      this.startReveal({
+      pending.push({
         label: this.i18n.t("duels.overtime"),
         mine: next.myLineup[ot.mySlot] ?? null,
         theirs: next.theirLineup?.[ot.theirSlot] ?? null,
@@ -194,6 +201,9 @@ export class DuelGameComponent implements OnInit {
         theirScore: ot.theirScore,
       });
     }
+    if (!pending.length) return;
+    this.revealQueue = pending;
+    this.nextReveal();
   }
 
   private clearRevealTimers(): void {
@@ -201,6 +211,14 @@ export class DuelGameComponent implements OnInit {
     if (this.revealHide) clearTimeout(this.revealHide);
     this.revealTimer = null;
     this.revealHide = null;
+  }
+
+  private revealQueue: Reveal[] = [];
+
+  private nextReveal(): void {
+    const r = this.revealQueue.shift();
+    if (r) this.startReveal(r);
+    else this.reveal.set(null);
   }
 
   private startReveal(r: Reveal): void {
@@ -221,12 +239,12 @@ export class DuelGameComponent implements OnInit {
         this.revealTimer = null;
       }
     }, 60);
-    this.revealHide = setTimeout(() => this.reveal.set(null), 4500);
+    this.revealHide = setTimeout(() => this.nextReveal(), 4500);
   }
 
   dismissReveal(): void {
     this.clearRevealTimers();
-    this.reveal.set(null);
+    this.nextReveal();
   }
 
   tier(c: DuelCard): CollectibleTier {
@@ -253,6 +271,7 @@ export class DuelGameComponent implements OnInit {
     this.noteKey.set(null);
     this.api.commitDuelMove(v.id, v.quarter, slot).subscribe({
       next: (next) => {
+        this.loadSeq++;
         this.committing.set(false);
         this.selected.set(null);
         const prev = this.view();

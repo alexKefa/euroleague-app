@@ -207,7 +207,7 @@
         <div class="space-y-2">
           @for (o of openDuels(); track o.id) {
             <a
-              [routerLink]="['/battles', 'duel', o.id]"
+              [routerLink]="['/battles', 'duel', o.id, 'accept']"
               class="flex items-center gap-3 rounded-2xl border border-line bg-card px-3 py-2.5 hover:border-team-primary/50 transition-colors"
             >
               <span class="w-10 h-10 rounded-full bg-team-primary/15 text-team-primary flex items-center justify-center font-bold shrink-0">

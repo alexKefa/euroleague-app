@@ -150,6 +150,7 @@ export const duelsTranslations: Record<string, Record<Lang, string>> = {
   "duels.toastYourMove": { en: "Your move in your duel", el: "Σειρά σου στη μονομαχία" },
   "duels.toastView": { en: "Open", el: "Άνοιγμα" },
   // Game screen.
+  "duels.game.backToBattles": { en: "Back to Battles", el: "Πίσω στις Μάχες" },
   "duels.game.back": { en: "Back", el: "Πίσω" },
   "duels.game.quarterN": { en: "Q{n}", el: "Δ{n}" },
   "duels.game.ot": { en: "OT", el: "ΠΡ" },
