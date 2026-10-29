@@ -104,7 +104,7 @@ duelsRouter.post("/preview", requireAuth, async (req, res) => {
     const raw = req.body?.ids;
     if (!Array.isArray(raw) || raw.some((id) => typeof id !== "string")) return void badBody(res, "ids must be an array of card ids");
     const ids = [...new Set(raw as string[])];
-    if (ids.length > 500 || ids.some((id) => !UUID_RE.test(id))) return void badBody(res, "ids must be up to 500 card ids");
+    if (ids.length > 1000 || ids.some((id) => !UUID_RE.test(id))) return void badBody(res, "ids must be up to 1000 card ids");
     const cards = ids.length ? await buildSnapshots(req.userId!, ids, { validate: false }) : [];
     res.json({ scales: CATEGORY_SCALES, cards });
   } catch (err) {
