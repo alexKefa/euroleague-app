@@ -71,6 +71,8 @@ export interface CardStatLine {
   // Unblended PIR inputs for battles v5 (services/battlePower.ts).
   seasonPir: number;
   recentPir: number | null;
+  // Unblended season averages, what the four-quarters duel cards start from.
+  season: StatLine;
 }
 
 const EMPTY_LINE: StatLine = { points: 0, rebounds: 0, assists: 0, steals: 0, blocks: 0, pir: 0 };
@@ -91,6 +93,7 @@ type StatRow = { team_id: string; name: string; recent_games: number; injury: st
 
 interface PlayerCondition {
   raw: StatLine;
+  season: StatLine;
   recentGames: number;
   form: "hot" | "cold" | null;
   injury: InjuryStatus | null;
@@ -98,7 +101,7 @@ interface PlayerCondition {
   recentPir: number | null;
 }
 
-const NO_CONDITION: PlayerCondition = { raw: EMPTY_LINE, recentGames: 0, form: null, injury: null, seasonPir: 0, recentPir: null };
+const NO_CONDITION: PlayerCondition = { raw: EMPTY_LINE, season: EMPTY_LINE, recentGames: 0, form: null, injury: null, seasonPir: 0, recentPir: null };
 
 /**
  * Stat lines for a batch of cards, in input order, in one round trip. Cards
@@ -174,6 +177,7 @@ export async function getCardStatLines(
         return round1(n > 0 && recentValue != null ? base * (1 - w) + Number(recentValue) * w : base);
       };
       const raw = Object.fromEntries(DUEL_STATS.map((s) => [s, blend(s)])) as StatLine;
+      const season = Object.fromEntries(DUEL_STATS.map((s) => [s, round1(Number(r[s] ?? 0))])) as StatLine;
       const seasonPir = Number(r.pir ?? 0);
       const recentPir = r.r_pir == null ? null : Number(r.r_pir);
       let form: "hot" | "cold" | null = null;
@@ -182,7 +186,7 @@ export async function getCardStatLines(
         else if (recentPir <= seasonPir * (1 - FORM_THRESHOLD)) form = "cold";
       }
       const injury = r.injury && r.injury in INJURY_MULTIPLIER ? (r.injury as InjuryStatus) : null;
-      lookup.set(`${r.team_id}|${normalizePlayerName(r.name)}`, { raw, recentGames: n, form, injury, seasonPir, recentPir });
+      lookup.set(`${r.team_id}|${normalizePlayerName(r.name)}`, { raw, season, recentGames: n, form, injury, seasonPir, recentPir });
     }
   }
   return cards.map((c) => {
@@ -198,6 +202,7 @@ export async function getCardStatLines(
       injury: cond.injury,
       seasonPir: cond.seasonPir,
       recentPir: cond.recentPir,
+      season: cond.season,
     };
   });
 }

@@ -17,6 +17,7 @@ import {
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
+import type { DuelCard, DuelCategory } from "../services/duelEngine.js";
 
 export const teams = pgTable("teams", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -1243,6 +1244,85 @@ export const battles = pgTable("battles", {
   respondedAt: timestamp("responded_at", { withTimezone: true }),
   finishedAt: timestamp("finished_at", { withTimezone: true }),
 });
+
+// Four Quarters duels (2026-10-29, battles v6): 5-card lineups over four
+// quarters, one card played per quarter. Spec:
+// docs/superpowers/specs/2026-10-29-four-quarters-duels-design.md.
+// status: open | pending | active | finished | declined | cancelled | expired.
+// challengerLineup holds the 5 picked collectible ids until accept, then the
+// frozen DuelCard snapshots (services/duels.ts's buildSnapshots), same as
+// opponentLineup. quarter: 0 before accept, 1-4 while active, 5 after overtime.
+export const duels = pgTable(
+  "duels",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    leagueId: uuid("league_id").references(() => leagues.id),
+    challengerUserId: uuid("challenger_user_id").notNull().references(() => users.id),
+    opponentUserId: uuid("opponent_user_id").references(() => users.id),
+    status: varchar("status", { length: 20 }).default("open").notNull(),
+    finishReason: varchar("finish_reason", { length: 20 }), // normal | forfeit
+    categories: jsonb("categories").$type<DuelCategory[]>(),
+    challengerLineup: jsonb("challenger_lineup").notNull().$type<string[] | DuelCard[]>(),
+    opponentLineup: jsonb("opponent_lineup").$type<DuelCard[]>(),
+    quarter: smallint("quarter").default(0).notNull(),
+    quarterDeadline: timestamp("quarter_deadline", { withTimezone: true }),
+    challengerScore: real("challenger_score").default(0).notNull(),
+    opponentScore: real("opponent_score").default(0).notNull(),
+    challengerMissStreak: smallint("challenger_miss_streak").default(0).notNull(),
+    opponentMissStreak: smallint("opponent_miss_streak").default(0).notNull(),
+    winnerUserId: uuid("winner_user_id").references(() => users.id), // null on a draw
+    challengerRatingDelta: integer("challenger_rating_delta"),
+    opponentRatingDelta: integer("opponent_rating_delta"),
+    prizePaid: boolean("prize_paid").default(false).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(), // create + 72h
+  },
+  (table) => ({
+    challengerStatusIdx: index("duels_challenger_status_idx").on(table.challengerUserId, table.status),
+    opponentStatusIdx: index("duels_opponent_status_idx").on(table.opponentUserId, table.status),
+    statusDeadlineIdx: index("duels_status_deadline_idx").on(table.status, table.quarterDeadline),
+    statusExpiresIdx: index("duels_status_expires_idx").on(table.status, table.expiresAt),
+  })
+);
+
+// One row per side per quarter. quarter 5 is the automatic overtime row.
+// The two uniques make a double commit and replaying a card both impossible.
+export const duelMoves = pgTable(
+  "duel_moves",
+  {
+    duelId: uuid("duel_id").notNull().references(() => duels.id),
+    quarter: smallint("quarter").notNull(), // 1-5
+    userId: uuid("user_id").notNull().references(() => users.id),
+    slot: smallint("slot").notNull(), // 0-4, index into the lineup
+    score: real("score").notNull(),
+    auto: boolean("auto").default(false).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    quarterUserUnique: uniqueIndex("duel_moves_quarter_user_unique").on(table.duelId, table.quarter, table.userId),
+    slotUserUnique: uniqueIndex("duel_moves_slot_user_unique").on(table.duelId, table.userId, table.slot),
+  })
+);
+
+// Monthly Elo-style rating, one row per user per season key (YYYY-MM).
+export const duelRatings = pgTable(
+  "duel_ratings",
+  {
+    userId: uuid("user_id").notNull().references(() => users.id),
+    season: varchar("season", { length: 7 }).notNull(),
+    rating: integer("rating").notNull(),
+    games: integer("games").default(0).notNull(),
+    wins: integer("wins").default(0).notNull(),
+    losses: integer("losses").default(0).notNull(),
+    draws: integer("draws").default(0).notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.userId, table.season] }),
+    seasonRatingIdx: index("duel_ratings_season_rating_idx").on(table.season, table.rating.desc()),
+  })
+);
 
 // A user's saved custom stat table — which players and which
 // playerSeasonStats columns to show, plus how to sort it. Free (not
