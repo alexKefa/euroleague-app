@@ -298,6 +298,13 @@ const moveOf = (st: Locked, userId: string | null, q: number) => st.moves.find((
 const usedSlots = (st: Locked, userId: string) => st.moves.filter((m) => m.userId === userId && m.quarter <= 4).map((m) => m.slot);
 const lineupOf = (r: DuelRow, userId: string) => (userId === r.challengerUserId ? r.challengerLineup : r.opponentLineup) as DuelCard[];
 
+// The opponent's hand as the viewer sees it: who the cards are, not their
+// numbers. With stats and multipliers you could work out every quarter
+// before committing; their real scores arrive with each resolved quarter.
+export type OpponentCard = Pick<DuelCard, "collectibleId" | "name" | "teamId" | "imageUrl" | "tier" | "isMvp" | "isFoil">;
+const opponentHand = (cards: DuelCard[]): OpponentCard[] =>
+  cards.map(({ collectibleId, name, teamId, imageUrl, tier, isMvp, isFoil }) => ({ collectibleId, name, teamId, imageUrl, tier, isMvp, isFoil }));
+
 async function insertMoves(tx: Tx, st: Locked, rows: MoveRow[]): Promise<MoveRow[]> {
   if (rows.length === 0) return [];
   const inserted = await tx
@@ -540,7 +547,7 @@ export interface DuelView {
   expiresAt: string | null;
   categories: (DuelCategory | null)[];
   myLineup: DuelCard[];
-  theirLineup: DuelCard[] | null;
+  theirLineup: OpponentCard[] | null;
   quarters: {
     quarter: number;
     mySlot: number | null;
@@ -649,7 +656,7 @@ function buildView(st: Locked, viewerId: string, preview: DuelCard[] = []): Duel
     expiresAt: iso(r.expiresAt),
     categories,
     myLineup: accepted ? lineupOf(r, viewerId) : isC ? preview : [],
-    theirLineup: accepted && them ? lineupOf(r, them) : null,
+    theirLineup: accepted && them ? opponentHand(lineupOf(r, them)) : null,
     quarters,
     iCommitted: active && !!moveOf(st, viewerId, r.quarter),
     theyCommitted: active && !!moveOf(st, them, r.quarter),

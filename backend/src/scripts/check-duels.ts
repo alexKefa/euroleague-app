@@ -145,6 +145,12 @@ async function main() {
     assert.ok(v.categories[0] && v.categories[1], "current + next category shown");
     assert.equal(v.categories[2], null);
     assert.equal(v.categories[3], null);
+    for (const c of v.theirLineup!) {
+      for (const k of ["base", "rarityMult", "formMult", "formBadge", "injury", "injuryMult"]) {
+        assert.ok(!(k in c), `opponent card exposes ${k}`);
+      }
+    }
+    assert.ok("base" in v.myLineup[0], "own cards keep their stats");
   }
   assert.equal(aView.theirLineup![0].collectibleId, lineup(B)[0]);
   await expectCode(acceptDuel(C, d1, lineup(C)), ["NOT_AVAILABLE"], "accept already taken");

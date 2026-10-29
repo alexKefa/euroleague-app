@@ -2035,6 +2035,8 @@ export interface DuelCard {
   injuryMult: number;
 }
 
+export type OpponentCard = Pick<DuelCard, "collectibleId" | "name" | "teamId" | "imageUrl" | "tier" | "isMvp" | "isFoil">;
+
 export interface DuelView {
   id: string;
   status: string;
@@ -2047,7 +2049,9 @@ export interface DuelView {
   expiresAt: string | null;
   categories: (DuelCategory | null)[];
   myLineup: DuelCard[];
-  theirLineup: DuelCard[] | null;
+  // Who the opponent's cards are, without stats or multipliers (backend
+  // OpponentCard): their numbers only arrive with each resolved quarter.
+  theirLineup: OpponentCard[] | null;
   quarters: {
     quarter: number;
     mySlot: number | null;

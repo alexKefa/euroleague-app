@@ -5,7 +5,7 @@ import { ApiService } from "../../core/api.service";
 import { EventsService } from "../../core/events.service";
 import { I18nService } from "../../core/i18n.service";
 import { NavHistoryService } from "../../core/nav-history.service";
-import { CollectibleTier, DUEL_CATEGORY_SCALES, DuelCard, DuelCategory, DuelView } from "../../core/models";
+import { CollectibleTier, DUEL_CATEGORY_SCALES, DuelCard, DuelCategory, DuelView, OpponentCard } from "../../core/models";
 import { CollectibleCardComponent } from "../store/collectible-card";
 import { ButtonDirective } from "../../shared/button.directive";
 import { SkeletonComponent } from "../../shared/skeleton";
@@ -14,7 +14,7 @@ import { quarterScore } from "./duel-helpers";
 interface Reveal {
   label: string;
   mine: DuelCard | null;
-  theirs: DuelCard | null;
+  theirs: OpponentCard | null;
   myScore: number;
   theirScore: number;
 }
@@ -84,7 +84,6 @@ export class DuelGameComponent implements OnInit {
   readonly theirUsed = computed(() => this.usedSlots("theirs"));
 
   readonly myScores = computed(() => this.scoresFor(this.view()?.myLineup ?? []));
-  readonly theirScores = computed(() => this.scoresFor(this.view()?.theirLineup ?? []));
 
   readonly canCommit = computed(() => this.isActive() && !this.view()?.iCommitted && this.selected() !== null && !this.committing());
 
@@ -270,7 +269,7 @@ export class DuelGameComponent implements OnInit {
     this.nextReveal();
   }
 
-  tier(c: DuelCard): CollectibleTier {
+  tier(c: OpponentCard): CollectibleTier {
     return c.tier as CollectibleTier;
   }
 
