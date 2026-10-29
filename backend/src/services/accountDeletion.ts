@@ -87,6 +87,12 @@ export async function deleteAccount(userId: string, confirmUsername: string): Pr
     } as const;
   });
   // SSE only after the transaction has committed.
-  if (result.ok) result.notifyDuels();
+  if (result.ok) {
+    try {
+      result.notifyDuels();
+    } catch (err) {
+      console.error("duel notify after account deletion failed:", err);
+    }
+  }
   return result;
 }

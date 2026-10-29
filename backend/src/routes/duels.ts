@@ -1,4 +1,6 @@
 import { Router, type Response } from "express";
+import { sql } from "drizzle-orm";
+import { db } from "../db/client.js";
 import { requireAuth } from "../auth/middleware.js";
 import {
   DuelError,
@@ -15,6 +17,16 @@ import {
 } from "../services/duels.js";
 
 export const duelsRouter = Router();
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// A malformed id can never match a row; answer 404 instead of letting Postgres 500.
+duelsRouter.param("id", (_req, res, next, id) => {
+  if (!UUID_RE.test(id)) {
+    res.status(404).json({ error: "NOT_FOUND", code: "NOT_FOUND" });
+    return;
+  }
+  next();
+});
 
 function fail(res: Response, label: string, err: unknown): void {
   if (err instanceof DuelError) {
@@ -60,7 +72,15 @@ duelsRouter.get("/mine", requireAuth, async (req, res) => {
 duelsRouter.get("/ladder", requireAuth, async (req, res) => {
   try {
     const { leagueId } = req.query;
-    res.json(await getLadder(typeof leagueId === "string" && leagueId ? leagueId : null));
+    const league = typeof leagueId === "string" && leagueId ? leagueId : null;
+    if (league) {
+      if (!UUID_RE.test(league)) return void res.status(404).json({ error: "NOT_FOUND", code: "NOT_FOUND" });
+      const [m] = await db.execute<{ ok: number }>(
+        sql`select 1 as ok from league_members where league_id = ${league} and user_id = ${req.userId!} limit 1`
+      );
+      if (!m) return void res.status(403).json({ error: "NOT_A_MEMBER", code: "NOT_A_MEMBER" });
+    }
+    res.json(await getLadder(league));
   } catch (err) {
     fail(res, "GET /api/duels/ladder", err);
   }
