@@ -20,6 +20,9 @@ if (!connectionString) {
 // `idle_timeout` closes connections proactively before Neon's proxy drops
 // them server-side — without it, postgres.js can hand out a dead socket
 // whose reset arrives with no query attached to catch it, crashing the process.
-const client = postgres(connectionString, { max: 10, ssl: "require", idle_timeout: 20 });
+// Pool of 7 (2026-10-29): prod's Supabase session pooler allows 15 clients
+// in total, and a Railway deploy runs the old and new instance side by side
+// for a moment. At 10 each that overlap hit EMAXCONNSESSION; 2 x 7 = 14 fits.
+const client = postgres(connectionString, { max: 7, ssl: "require", idle_timeout: 20 });
 
 export const db = drizzle(client, { schema });
