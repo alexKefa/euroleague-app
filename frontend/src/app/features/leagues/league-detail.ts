@@ -122,7 +122,7 @@ export class LeagueDetailComponent implements OnInit {
   }
 
   challenge(member: { userId: string; displayName: string }): void {
-    this.router.navigate(["/battles", "new"], {
+    this.router.navigate(["/battles", "duel", "new"], {
       queryParams: { leagueId: this.leagueId, opponentUserId: member.userId, opponentName: member.displayName },
     });
   }

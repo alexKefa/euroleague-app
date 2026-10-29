@@ -47,9 +47,14 @@ export class DuelError extends Error {
  * getCardStatLines round trip. Throws INVALID_LINEUP if the user doesn't own
  * all five, or the lineup has a coach or two cards of the same player.
  */
-export async function buildSnapshots(userId: string, collectibleIds: string[]): Promise<DuelCard[]> {
+export async function buildSnapshots(
+  userId: string,
+  collectibleIds: string[],
+  opts: { validate?: boolean } = {}
+): Promise<DuelCard[]> {
+  const validate = opts.validate !== false;
   const ids = [...new Set(collectibleIds)];
-  if (ids.length !== LINEUP_SIZE) throw new DuelError("INVALID_LINEUP", 400);
+  if (validate && ids.length !== LINEUP_SIZE) throw new DuelError("INVALID_LINEUP", 400);
 
   const rows = await db
     .select({
@@ -69,11 +74,13 @@ export async function buildSnapshots(userId: string, collectibleIds: string[]): 
     )
     .where(and(eq(userCollectibles.userId, userId), inArray(userCollectibles.collectibleId, ids)));
 
-  if (rows.length !== LINEUP_SIZE) throw new DuelError("INVALID_LINEUP", 400);
+  if (validate && rows.length !== LINEUP_SIZE) throw new DuelError("INVALID_LINEUP", 400);
   const byId = new Map(rows.map((r) => [r.id, r]));
-  const ordered = collectibleIds.map((id) => byId.get(id)!);
+  // Preview (validate: false) silently drops ids the user doesn't own.
+  const ordered = (validate ? collectibleIds : ids).filter((id) => byId.has(id) || validate).map((id) => byId.get(id)!);
+  if (!ordered.length) return [];
 
-  if (validateLineup(ordered.map((r) => ({ playerKey: normalizePlayerName(r.name), tier: r.tier })))) {
+  if (validate && validateLineup(ordered.map((r) => ({ playerKey: normalizePlayerName(r.name), tier: r.tier })))) {
     throw new DuelError("INVALID_LINEUP", 400);
   }
 

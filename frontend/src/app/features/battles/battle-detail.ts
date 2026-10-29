@@ -426,7 +426,7 @@ export class BattleDetailComponent implements OnInit, OnDestroy {
     const b = this.battle();
     if (!b) return;
     const opponentUserId = this.iAmChallenger() ? b.opponentUserId : b.challengerUserId;
-    this.router.navigate(["/battles", "new"], {
+    this.router.navigate(["/battles", "duel", "new"], {
       queryParams: { leagueId: b.leagueId, opponentUserId, opponentName: this.opponentDisplayName() },
     });
   }

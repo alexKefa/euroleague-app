@@ -97,6 +97,29 @@ export const duelsTranslations: Record<string, Record<Lang, string>> = {
   "duels.prizeLimit": { en: "Daily prize limit reached", el: "Έφτασες το ημερήσιο όριο επάθλων" },
   "duels.ratingChange": { en: "Rating {n}", el: "Βαθμολογία {n}" },
 
+  // Lineup builder.
+  "duels.builder.back": { en: "Back", el: "Πίσω" },
+  "duels.builder.accepting": { en: "Accept the challenge", el: "Αποδοχή πρόκλησης" },
+  "duels.builder.hint": {
+    en: "Pick 5 cards, one per player. Scores include rarity, form and injury.",
+    el: "Διάλεξε 5 κάρτες, μία ανά παίκτη. Τα σκορ περιλαμβάνουν σπανιότητα, φόρμα και τραυματισμό.",
+  },
+  "duels.builder.notEnough": {
+    en: "You need at least 5 player cards to duel.",
+    el: "Χρειάζεσαι τουλάχιστον 5 κάρτες παικτών για να παίξεις.",
+  },
+  "duels.builder.sortBy": { en: "Sort by", el: "Ταξινόμηση" },
+  "duels.builder.sortTotal": { en: "Total", el: "Σύνολο" },
+  "duels.builder.needMore": { en: "Pick {n} more", el: "Διάλεξε ακόμα {n}" },
+  "duels.builder.samePlayer": {
+    en: "You already have a card of that player in your lineup.",
+    el: "Έχεις ήδη κάρτα αυτού του παίκτη στη σύνθεση.",
+  },
+  "duels.builder.lineupFull": {
+    en: "Your lineup is full. Tap a slot to remove a card.",
+    el: "Η σύνθεση είναι πλήρης. Πάτα μια θέση για να αφαιρέσεις κάρτα.",
+  },
+
   // Errors (backend `code`).
   "duels.error.INVALID_LINEUP": {
     en: "That lineup isn't valid: pick 5 cards you own, no coaches, and no player twice.",
