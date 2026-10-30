@@ -11,6 +11,7 @@ import {
   coachFantasyPrices,
   fantasyLineups,
   fantasyCoachPicks,
+  fantasyForcedReleases,
   fantasyChips,
   fantasyRoundPoints,
   pointAdjustments,
@@ -647,6 +648,9 @@ export interface FantasyBaselineSquad {
   playerIds: Set<string>;
   rows: { playerId: string; slotRole: string; isCaptain: boolean }[];
   coachTeamId: string | null;
+  // Players an admin fix took out (fantasy_forced_releases): each is a free
+  // transfer this round, on top of FANTASY_TRANSFERS_PER_ROUND.
+  freeTransfers: number;
 }
 
 /**
@@ -662,9 +666,14 @@ export interface FantasyBaselineSquad {
  */
 export async function getBaselineSquad(userId: string, season: string, round: number): Promise<FantasyBaselineSquad | null> {
   if (round <= 1) return null;
-  const [lineupRows, coachRows] = await Promise.all([
+  const [savedRows, coachRows] = await Promise.all([
     db
-      .select({ playerId: fantasyLineups.playerId, slotRole: fantasyLineups.slotRole, isCaptain: fantasyLineups.isCaptain })
+      .select({
+        playerId: fantasyLineups.playerId,
+        slotRole: fantasyLineups.slotRole,
+        isCaptain: fantasyLineups.isCaptain,
+        released: sql<boolean>`exists (select 1 from ${fantasyForcedReleases} r where r.user_id = ${userId} and r.season = ${season} and r.round = ${round} and r.player_id = ${fantasyLineups.playerId})`,
+      })
       .from(fantasyLineups)
       .where(and(eq(fantasyLineups.userId, userId), eq(fantasyLineups.season, season), eq(fantasyLineups.round, round - 1))),
     db
@@ -673,11 +682,13 @@ export async function getBaselineSquad(userId: string, season: string, round: nu
       .where(and(eq(fantasyCoachPicks.userId, userId), eq(fantasyCoachPicks.season, season), eq(fantasyCoachPicks.round, round - 1)))
       .limit(1),
   ]);
-  if (lineupRows.length === 0) return null;
+  if (savedRows.length === 0) return null;
+  const lineupRows = savedRows.filter((r) => !r.released).map(({ released: _, ...r }) => r);
   return {
     playerIds: new Set(lineupRows.map((r) => r.playerId)),
     rows: lineupRows,
     coachTeamId: coachRows[0]?.teamId ?? null,
+    freeTransfers: savedRows.length - lineupRows.length,
   };
 }
 
@@ -964,12 +975,13 @@ export async function saveFantasyLineup(
   const baseline = await getBaselineSquad(userId, season, round);
   if (baseline && !isUnlimitedTransferRound(round) && (await getFullTimeoutRound(userId, season)) !== round) {
     const transfersUsed = newIds.filter((id) => !baseline.playerIds.has(id)).length;
-    if (transfersUsed > FANTASY_TRANSFERS_PER_ROUND) {
+    const transfersAllowed = FANTASY_TRANSFERS_PER_ROUND + baseline.freeTransfers;
+    if (transfersUsed > transfersAllowed) {
       return {
-        error: `Too many changes — up to ${FANTASY_TRANSFERS_PER_ROUND} player changes are allowed per round`,
+        error: `Too many changes — up to ${transfersAllowed} player changes are allowed this round`,
         code: "TRANSFERS_EXCEEDED",
         transfersUsed,
-        transfersAllowed: FANTASY_TRANSFERS_PER_ROUND,
+        transfersAllowed,
       };
     }
   }

@@ -559,7 +559,7 @@ fantasyRouter.get("/lineup", requireAuth, async (req, res) => {
       creditsSettled,
       budgetPending,
       transfersUsed,
-      transfersAllowed: baseline && !unlimitedTransfers ? FANTASY_TRANSFERS_PER_ROUND : null,
+      transfersAllowed: baseline && !unlimitedTransfers ? FANTASY_TRANSFERS_PER_ROUND + baseline.freeTransfers : null,
       // Full Timeout chip: the round it was played on this season (null =
       // unused), and whether it can be played on this round right now —
       // the open round, before lock, with a capped transfer window to lift.
@@ -712,12 +712,13 @@ fantasyRouter.post("/chips/full-timeout/cancel", requireAuth, async (req, res) =
         .where(and(eq(fantasyLineups.userId, req.userId!), eq(fantasyLineups.season, season), eq(fantasyLineups.round, round))),
     ]);
     const transfersUsed = baseline ? savedRows.filter((r) => !baseline.playerIds.has(r.playerId)).length : 0;
-    if (transfersUsed > FANTASY_TRANSFERS_PER_ROUND) {
+    const transfersAllowed = FANTASY_TRANSFERS_PER_ROUND + (baseline?.freeTransfers ?? 0);
+    if (transfersUsed > transfersAllowed) {
       res.status(400).json({
-        error: `Your saved squad has ${transfersUsed} changes — get it back to ${FANTASY_TRANSFERS_PER_ROUND} or fewer before cancelling`,
+        error: `Your saved squad has ${transfersUsed} changes — get it back to ${transfersAllowed} or fewer before cancelling`,
         code: "CHIP_CANCEL_TOO_MANY",
         transfersUsed,
-        transfersAllowed: FANTASY_TRANSFERS_PER_ROUND,
+        transfersAllowed,
       });
       return;
     }

@@ -1890,6 +1890,22 @@ export const fantasyBudgetAdjustments = pgTable("fantasy_budget_adjustments", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+// Players taken out of a user's squad by an admin fix (2026-10-30, first
+// used for Koloko: unpriced at 4.0 by our bug, bought by two users, then
+// priced at his real 9.6). getBaselineSquad leaves the player out of what
+// carries into `round`, and each release gives one free transfer that round
+// so replacing him doesn't cost one of the user's own. The credits come
+// back separately, as a fantasy_budget_adjustments row.
+export const fantasyForcedReleases = pgTable("fantasy_forced_releases", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  season: varchar("season", { length: 9 }).notNull(),
+  round: integer("round").notNull(),
+  playerId: uuid("player_id").notNull().references(() => players.id),
+  reason: text("reason"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 // Fantasy Five wired into the shared points economy (2026-09-16) — until
 // now a round's fantasy score only fed the fantasy-specific leaderboard,
 // completely separate from the points predictions/top-scorer picks earn
