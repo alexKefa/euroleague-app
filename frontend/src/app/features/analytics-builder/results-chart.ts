@@ -23,7 +23,7 @@ interface Bar {
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       @for (col of store.columns(); track col.id) {
         <div class="bg-card rounded-2xl border border-line shadow-card p-4">
-          <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-3">{{ col.label }}</p>
+          <p class="text-xs text-muted font-bold uppercase tracking-wider mb-3">{{ col.label }}</p>
           <div class="space-y-3">
             @for (bar of bars(col); track bar.row.player.id) {
               <div>

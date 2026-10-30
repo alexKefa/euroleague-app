@@ -35,7 +35,7 @@ function currentWordRange(text: string, cursor: number): { start: number; end: n
     <app-dialog [title]="i18n.t(editFormulaId() ? 'builder.editFormula' : 'builder.addColumns')" icon="sliders" [closeLabel]="i18n.t('hint.dismiss')" (closed)="closed.emit()">
       @if (!editFormulaId()) {
         @for (group of groups; track group.id) {
-          <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5">{{ i18n.t("builder.group." + group.id) }}</p>
+          <p class="text-xs text-muted font-bold uppercase tracking-wider mb-1.5">{{ i18n.t("builder.group." + group.id) }}</p>
           <div class="flex flex-wrap gap-1.5 mb-3">
             @for (stat of group.stats; track stat.key) {
               <button type="button" [appChip]="selected().has(stat.key)" [attr.title]="i18n.t(stat.legendKey)" (click)="store.toggleStat(stat.key)">
@@ -45,9 +45,9 @@ function currentWordRange(text: string, cursor: number): { start: number; end: n
           </div>
         }
 
-        <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5 mt-2">{{ i18n.t("builder.customColumnsLabel") }}</p>
+        <p class="text-xs text-muted font-bold uppercase tracking-wider mb-1.5 mt-2">{{ i18n.t("builder.customColumnsLabel") }}</p>
         @if (atLimit()) {
-          <p class="text-[12px] text-muted mb-2">{{ i18n.t("builder.formulaLimit").replace("{max}", "" + maxFormulas) }}</p>
+          <p class="text-xs text-muted mb-2">{{ i18n.t("builder.formulaLimit").replace("{max}", "" + maxFormulas) }}</p>
         } @else {
           <div class="flex flex-wrap gap-1.5 mb-3">
             @for (preset of presets; track preset.id) {
@@ -72,7 +72,7 @@ function currentWordRange(text: string, cursor: number): { start: number; end: n
       }
 
       @if (!atLimit() || editFormulaId()) {
-        <div class="bg-page rounded-xl border border-line p-3">
+        <div class="bg-page rounded-lg border border-line p-3">
           <input
             type="text"
             [value]="label()"
@@ -109,7 +109,7 @@ function currentWordRange(text: string, cursor: number): { start: number; end: n
               </ul>
             }
           </div>
-          <p class="text-[12px] mt-2 min-h-[1.25rem]" [class.text-red-500]="!!preview().error" [class.text-muted]="!preview().error">{{ preview().text }}</p>
+          <p class="text-xs mt-2 min-h-[1.25rem]" [class.text-red-500]="!!preview().error" [class.text-muted]="!preview().error">{{ preview().text }}</p>
           <button type="button" appButton appButtonSize="sm" class="w-full mt-1" [disabled]="!canSubmit()" (click)="submit()">
             {{ i18n.t(editFormulaId() ? "builder.formulaUpdate" : "builder.formulaAdd") }}
           </button>

@@ -17,7 +17,7 @@ import { NavIconComponent } from "./nav-icon";
       <div class="toast-pop toast-pill pointer-events-auto mb-2" role="status">
         <div class="flex items-center gap-2.5">
           <span class="toast-pill-icon"><app-nav-icon name="user" [size]="18" /></span>
-          <p class="min-w-0 flex-1 text-[13px] font-semibold leading-snug line-clamp-2">{{ i18n.t('toast.accountDeleted') }}</p>
+          <p class="min-w-0 flex-1 text-sm font-semibold leading-snug line-clamp-2">{{ i18n.t('toast.accountDeleted') }}</p>
           <button type="button" (click)="auth.accountDeleted.set(false)" class="toast-x" [attr.aria-label]="i18n.t('hint.dismiss')">&times;</button>
         </div>
       </div>

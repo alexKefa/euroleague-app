@@ -21,7 +21,7 @@
        redesign (backdrop-blur/highlight-tint/highlight-border, matching the
        mobile bottom nav's floating capsule, plus a diagonal holo-sweep
        shimmer echoing the collectible cards' tier gradient). -->
-  <div class="relative w-full max-w-sm overflow-hidden rounded-3xl bg-card border border-line shadow-pop px-5 py-6 sm:px-6 sm:py-7">
+  <div class="relative w-full max-w-sm overflow-hidden rounded-2xl bg-card border border-line shadow-pop px-5 py-6 sm:px-6 sm:py-7">
     <div
       class="pointer-events-none absolute inset-0"
       style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 24%, transparent) 0%, color-mix(in srgb, var(--accent-primary) 5%, transparent) 50%, transparent 100%)"
@@ -29,17 +29,17 @@
 
     <div class="relative">
       <h1 class="font-display text-2xl leading-tight">{{ i18n.t('auth.createAccountTitle') }}</h1>
-      <p class="text-[13px] text-muted mt-1 mb-5">{{ i18n.t('auth.registerSubtitle') }}</p>
+      <p class="text-sm text-muted mt-1 mb-5">{{ i18n.t('auth.registerSubtitle') }}</p>
 
       @if (referralCode(); as code) {
-        <p class="inline-flex items-center h-8 px-3 rounded-full bg-team-primary/15 text-team-primary text-[12px] font-bold mb-4">{{ i18n.t('auth.referredBy') }} {{ code }}</p>
+        <p class="inline-flex items-center h-8 px-3 rounded-full bg-team-primary/15 text-team-primary text-xs font-bold mb-4">{{ i18n.t('auth.referredBy') }} {{ code }}</p>
       }
       @if (promoCode(); as code) {
-        <p class="inline-flex items-center h-8 px-3 rounded-full bg-team-primary/15 text-team-primary text-[12px] font-bold mb-4">{{ i18n.t('auth.promoCodeNote') }}: {{ code }}</p>
+        <p class="inline-flex items-center h-8 px-3 rounded-full bg-team-primary/15 text-team-primary text-xs font-bold mb-4">{{ i18n.t('auth.promoCodeNote') }}: {{ code }}</p>
       }
 
       @if (promoApplied()) {
-        <p class="flex items-center gap-2 rounded-xl bg-team-primary/15 text-team-primary text-xs font-bold px-3 py-2.5 mb-4">
+        <p class="flex items-center gap-2 rounded-lg bg-team-primary/15 text-team-primary text-xs font-bold px-3 py-2.5 mb-4">
           {{ i18n.t('auth.promoCodeApplied') }}
         </p>
       }
@@ -51,7 +51,7 @@
           type="email"
           formControlName="email"
           [placeholder]="i18n.t('auth.emailPlaceholder')"
-          class="w-full h-12 pl-11 pr-4 rounded-2xl bg-page border-2 border-line text-[15px] font-semibold placeholder:text-muted focus:border-team-primary outline-none transition-colors"
+          class="w-full h-12 pl-11 pr-4 rounded-2xl bg-page border-2 border-line text-base font-semibold placeholder:text-muted focus:border-team-primary outline-none transition-colors"
         />
         </div>
         <div>
@@ -61,9 +61,9 @@
             [type]="showPassword() ? 'text' : 'password'"
             formControlName="password"
             [placeholder]="i18n.t('auth.passwordMinLengthPlaceholder')"
-            class="w-full h-12 pl-11 pr-12 rounded-2xl bg-page border-2 border-line text-[15px] font-semibold placeholder:text-muted focus:border-team-primary outline-none transition-colors"
+            class="w-full h-12 pl-11 pr-12 rounded-2xl bg-page border-2 border-line text-base font-semibold placeholder:text-muted focus:border-team-primary outline-none transition-colors"
           />
-            <button type="button" (click)="showPassword.set(!showPassword())" class="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl flex items-center justify-center text-muted hover:text-ink transition-colors" [attr.aria-label]="showPassword() ? i18n.t('auth.hidePassword') : i18n.t('auth.showPassword')">
+            <button type="button" (click)="showPassword.set(!showPassword())" class="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg flex items-center justify-center text-muted hover:text-ink transition-colors" [attr.aria-label]="showPassword() ? i18n.t('auth.hidePassword') : i18n.t('auth.showPassword')">
               @if (showPassword()) {
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 10.6a2 2 0 002.8 2.8"/><path d="M9.9 5.1A10 10 0 0122 12a13 13 0 01-2.2 3.1M6.1 6.1A13 13 0 002 12a10 10 0 0014.1 5.9"/></svg>
               } @else {
@@ -82,10 +82,10 @@
             type="text"
             formControlName="username"
             [placeholder]="i18n.t('auth.usernamePlaceholder')"
-            class="w-full h-12 pl-11 pr-4 rounded-2xl bg-page border-2 border-line text-[15px] font-semibold placeholder:text-muted focus:border-team-primary outline-none transition-colors"
+            class="w-full h-12 pl-11 pr-4 rounded-2xl bg-page border-2 border-line text-base font-semibold placeholder:text-muted focus:border-team-primary outline-none transition-colors"
           />
           </div>
-          <p class="text-[12px] text-muted mt-1.5 px-1">{{ i18n.t('auth.usernameHint') }}</p>
+          <p class="text-xs text-muted mt-1.5 px-1">{{ i18n.t('auth.usernameHint') }}</p>
           @if (form.controls.username.invalid && form.controls.username.dirty) {
             <p class="text-red-500 text-xs font-semibold mt-1">{{ i18n.t('auth.usernameInvalid') }}</p>
           }
@@ -102,7 +102,7 @@
       <app-google-sign-in-button text="signup" [referralCode]="referralCode()" [promoCode]="promoCode()" (signedIn)="onGoogleSignUp($event)" (failed)="error.set(i18n.t($event))" />
       <div class="flex items-center gap-3 my-5">
         <span class="flex-1 h-px bg-line"></span>
-        <span class="text-[12px] text-muted font-semibold">{{ i18n.t('auth.alreadyHaveAccount') }}</span>
+        <span class="text-xs text-muted font-semibold">{{ i18n.t('auth.alreadyHaveAccount') }}</span>
         <span class="flex-1 h-px bg-line"></span>
       </div>
       <a routerLink="/login" appButton="outline" class="w-full !h-12 !rounded-2xl text-base">{{ i18n.t('nav.login') }}</a>

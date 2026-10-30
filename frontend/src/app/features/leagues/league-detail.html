@@ -19,31 +19,31 @@
     </div>
   } @else if (league(); as league) {
     <!-- League hero (2026-09-29 restyle): name, members, invite code, leave. -->
-    <div class="relative overflow-hidden bg-card rounded-3xl border border-line shadow-card p-4 mb-5">
+    <div class="relative overflow-hidden bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
       <div class="pointer-events-none absolute inset-0" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 26%, transparent) 0%, color-mix(in srgb, var(--accent-primary) 6%, transparent) 55%, transparent 100%)" aria-hidden="true"></div>
         <div class="pointer-events-none absolute -right-16 -top-16 w-48 h-48 rounded-full border-[14px]" style="border-color: color-mix(in srgb, var(--accent-primary) 12%, transparent)" aria-hidden="true"></div>
       <div class="relative flex items-start justify-between gap-3">
         <div class="min-w-0">
-          <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ league.members.length }} {{ i18n.t('leagues.membersLabel') }}</p>
+          <p class="text-xs font-bold text-muted uppercase tracking-wider">{{ league.members.length }} {{ i18n.t('leagues.membersLabel') }}</p>
           <h1 class="font-display text-2xl leading-tight tracking-wide truncate">{{ league.name }}</h1>
         </div>
         <button
           type="button"
           (click)="confirmingLeave.set(true)"
           [disabled]="leaving()"
-          class="status-tile shrink-0 h-9 px-3 rounded-xl border border-line text-[12px] font-bold text-muted hover:text-red-500 hover:border-red-500/40 transition-colors"
+          class="status-tile shrink-0 h-9 px-3 rounded-lg border border-line text-xs font-bold text-muted hover:text-red-500 hover:border-red-500/40 transition-colors"
         >
           {{ leaving() ? i18n.t('leagues.leaving') : i18n.t('leagues.leaveButton') }}
         </button>
       </div>
-      <p class="relative text-[12px] text-muted mt-3 mb-2">{{ i18n.t('leagues.inviteHint') }}</p>
+      <p class="relative text-xs text-muted mt-3 mb-2">{{ i18n.t('leagues.inviteHint') }}</p>
       <!-- Phones: code on its own full-width row (never clipped), Copy below;
            side by side from sm: up. -->
       <div class="relative flex flex-col sm:flex-row sm:items-center gap-2">
-        <span class="status-tile w-full sm:flex-1 min-w-0 h-12 px-3 flex items-center justify-center rounded-xl border-2 border-dashed border-team-primary/50 font-mono text-lg font-bold tracking-[0.2em] whitespace-nowrap select-all">
+        <span class="status-tile w-full sm:flex-1 min-w-0 h-12 px-3 flex items-center justify-center rounded-lg border-2 border-dashed border-team-primary/50 font-mono text-lg font-bold tracking-[0.2em] whitespace-nowrap select-all">
           {{ league.code }}
         </span>
-        <button type="button" (click)="copyCode()" appButton class="w-full sm:w-auto shrink-0 !h-11 !rounded-xl">
+        <button type="button" (click)="copyCode()" appButton class="w-full sm:w-auto shrink-0 !h-11 !rounded-lg">
           {{ copied() ? i18n.t('leagues.copied') : i18n.t('leagues.copyCode') }}
         </button>
       </div>
@@ -66,7 +66,7 @@
       <button
         type="button"
         (click)="setTab('predictions')"
-        class="flex-1 shrink-0 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors"
+        class="flex-1 shrink-0 h-full px-3 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors"
         [ngClass]="tab() === 'predictions' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
       >
         {{ i18n.t('leagues.predictionsTab') }}
@@ -74,7 +74,7 @@
       <button
         type="button"
         (click)="setTab('fantasy')"
-        class="flex-1 shrink-0 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors"
+        class="flex-1 shrink-0 h-full px-3 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors"
         [ngClass]="tab() === 'fantasy' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
       >
         {{ i18n.t('leagues.fantasyTab') }}
@@ -82,7 +82,7 @@
       <button
         type="button"
         (click)="setTab('battles')"
-        class="relative flex-1 shrink-0 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors"
+        class="relative flex-1 shrink-0 h-full px-3 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors"
         [ngClass]="tab() === 'battles' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
       >
         {{ i18n.t('battles.tab') }}
@@ -96,7 +96,7 @@
       <button
         type="button"
         (click)="setTab('total')"
-        class="flex-1 shrink-0 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors"
+        class="flex-1 shrink-0 h-full px-3 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors"
         [ngClass]="tab() === 'total' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
       >
         {{ i18n.t('leagues.totalTab') }}
@@ -126,14 +126,14 @@
                 <div class="flex items-center gap-1.5 min-w-0">
                   <span class="font-semibold truncate">{{ entry.displayName }}</span>
                   @if (entry.badges.length > 0) {
-                    <span class="font-mono text-[11px] text-team-primary shrink-0">&#9733; {{ entry.badges.length }}</span>
+                    <span class="font-mono text-xs text-team-primary shrink-0">&#9733; {{ entry.badges.length }}</span>
                   }
                 </div>
-                <p class="font-mono text-[11px] text-muted truncate">{{ entry.correct }}/{{ entry.total }}</p>
+                <p class="font-mono text-xs text-muted truncate">{{ entry.correct }}/{{ entry.total }}</p>
               </div>
-              <div class="shrink-0 text-center bg-page rounded-xl px-3 py-1.5 min-w-[3.25rem]">
+              <div class="shrink-0 text-center bg-page rounded-lg px-3 py-1.5 min-w-[3.25rem]">
                 <p class="font-mono text-team-primary font-bold text-sm leading-none">{{ rowValue(entry) }}</p>
-                <p class="font-mono text-[10px] text-muted uppercase tracking-wide mt-0.5">{{ i18n.t('fantasy.pointsAbbrev') }}</p>
+                <p class="font-mono text-2xs text-muted uppercase tracking-wide mt-0.5">{{ i18n.t('fantasy.pointsAbbrev') }}</p>
               </div>
             </button>
           }
@@ -141,10 +141,10 @@
       }
     } @else if (tab() === 'fantasy') {
       @if (fantasyLoading()) {
-        <app-skeleton class="h-40 rounded-xl" />
+        <app-skeleton class="h-40 rounded-lg" />
       } @else {
         <div class="flex items-center gap-1.5 mb-2">
-          <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('leagues.fantasyTab') }} &middot; {{ i18n.t('fantasy.cpAbbrev') }}</p>
+          <p class="text-xs text-muted font-bold uppercase tracking-wider">{{ i18n.t('leagues.fantasyTab') }} &middot; {{ i18n.t('fantasy.cpAbbrev') }}</p>
           <app-fantasy-cp-info />
         </div>
         <app-fantasy-leaderboard-list [entries]="fantasyLeaderboard()" [emptyLabel]="i18n.t('fantasy.emptyLeaderboard')" />
@@ -153,7 +153,7 @@
       <!-- Battles tab — challenge any fellow member, and see every battle
            (pending/active/finished) this user is part of in this league. -->
       <div class="flex items-center gap-1.5 mb-2">
-        <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('battles.challengeButton') }}</p>
+        <p class="text-xs text-muted font-bold uppercase tracking-wider">{{ i18n.t('battles.challengeButton') }}</p>
         <app-battles-info />
       </div>
       <div class="space-y-2 mb-5">
@@ -170,11 +170,11 @@
       </div>
 
       <div class="flex items-center justify-between gap-2 mb-2">
-        <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('duels.tab.ladder') }}</p>
-        <a routerLink="/battles" class="text-[12px] font-bold text-team-primary">{{ i18n.t('battles.allBattles') }} &rarr;</a>
+        <p class="text-xs text-muted font-bold uppercase tracking-wider">{{ i18n.t('duels.tab.ladder') }}</p>
+        <a routerLink="/battles" class="text-xs font-bold text-team-primary">{{ i18n.t('battles.allBattles') }} &rarr;</a>
       </div>
       @if (battlesLoading()) {
-        <app-skeleton class="h-24 rounded-xl" />
+        <app-skeleton class="h-24 rounded-lg" />
       } @else if (ladder().length === 0) {
         <p class="text-sm text-muted font-semibold">{{ i18n.t('duels.ladderEmpty') }}</p>
       } @else {
@@ -186,10 +186,10 @@
                 <p class="font-semibold truncate">
                   {{ r.username }}
                   @if (r.userId === auth.currentUser()?.id) {
-                    <span class="text-[12px] text-team-primary font-bold">({{ i18n.t('duels.ladderYou') }})</span>
+                    <span class="text-xs text-team-primary font-bold">({{ i18n.t('duels.ladderYou') }})</span>
                   }
                 </p>
-                <p class="font-mono text-[11px] text-muted uppercase tracking-wide">
+                <p class="font-mono text-xs text-muted uppercase tracking-wide">
                   {{ i18n.t('duels.div.' + r.division) }} &middot; {{ r.wins }}{{ i18n.t('duels.winShort') }}&ndash;{{ r.losses }}{{ i18n.t('duels.lossShort') }}&ndash;{{ r.draws }}{{ i18n.t('duels.drawShort') }}
                 </p>
               </div>
@@ -209,7 +209,7 @@
           <div class="flex items-start justify-between gap-2 mb-4">
             <div>
               <p class="font-display text-xl tracking-wide">{{ entry.displayName }}</p>
-              <p class="font-mono text-[12px] text-muted mt-0.5">{{ entry.correct }}/{{ entry.total }} &middot; {{ entry.points }} pts</p>
+              <p class="font-mono text-xs text-muted mt-0.5">{{ entry.correct }}/{{ entry.total }} &middot; {{ entry.points }} pts</p>
             </div>
             <button
               type="button"
@@ -221,16 +221,16 @@
             </button>
           </div>
 
-          <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('leagues.badgesTitle') }}</p>
+          <p class="text-xs text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('leagues.badgesTitle') }}</p>
           @if (entry.badges.length > 0 || entry.seasonBadges?.length) {
             @if (entry.badges.length > 0) {
               <div class="grid gap-2 mb-4">
                 @for (badge of entry.badges; track badge.id) {
-                  <div class="flex items-center gap-2 bg-page rounded-xl px-3 py-2">
+                  <div class="flex items-center gap-2 bg-page rounded-lg px-3 py-2">
                     <app-nav-icon [name]="badgeIcon(badge.id)" [size]="16" class="text-team-primary shrink-0" />
                     <div class="min-w-0">
                       <p class="text-sm font-semibold">{{ badgeLabel(badge.id) }}</p>
-                      <p class="text-[11px] text-muted">{{ badgeDescription(badge.id) }}</p>
+                      <p class="text-xs text-muted">{{ badgeDescription(badge.id) }}</p>
                     </div>
                   </div>
                 }
@@ -243,7 +243,7 @@
             <p class="text-xs text-muted mb-4">{{ i18n.t('leagues.noBadgesYet') }}</p>
           }
 
-          <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('leagues.cardsTitle') }}</p>
+          <p class="text-xs text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('leagues.cardsTitle') }}</p>
           @if (entry.showcase.length > 0) {
             <div class="grid grid-cols-3 gap-3">
               @for (card of entry.showcase; track card.id) {

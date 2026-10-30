@@ -39,7 +39,7 @@ function storedDismiss(): boolean {
           role="dialog"
           aria-modal="true"
           [attr.aria-label]="i18n.t('pushPrompt.title')"
-          class="sheet-panel bg-card rounded-3xl border border-line shadow-pop p-6 max-w-sm w-full text-center"
+          class="sheet-panel bg-card rounded-2xl border border-line shadow-pop p-6 max-w-sm w-full text-center"
         >
           <span class="mx-auto mb-4 w-16 h-16 rounded-2xl bg-team-primary text-team-secondary flex items-center justify-center shadow-card">
             <app-nav-icon name="bell" [size]="32" />

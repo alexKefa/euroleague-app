@@ -27,7 +27,7 @@ function elapsed(p: { period: number; clock: number }): number {
     @if (data(); as d) {
       @if (d.pre) {
         <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
-          <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5">
+          <p class="text-xs text-muted font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5">
             {{ i18n.t('winProb.title') }}
             @if (status() === 'live') {
               <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>

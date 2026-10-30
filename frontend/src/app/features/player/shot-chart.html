@@ -1,8 +1,8 @@
 <div class="bg-card rounded-lg shadow-card p-4">
   <div class="flex items-center justify-between mb-3">
-    <p class="font-mono text-[12px] text-muted font-bold">{{ i18n.t('shotChart.title') }}</p>
+    <p class="font-mono text-xs text-muted font-bold">{{ i18n.t('shotChart.title') }}</p>
     @if (pct() !== null) {
-      <p class="font-mono text-[12px] font-bold">
+      <p class="font-mono text-xs font-bold">
         <span class="text-team-primary">{{ made() }}/{{ attempts() }}</span>
         <span class="text-muted">({{ pct() }}%)</span>
       </p>
@@ -126,8 +126,8 @@
     ]; track zone.labelKey) {
       <div class="flex flex-col gap-1">
         <div class="flex justify-between items-baseline">
-          <span class="font-mono text-[10px] font-bold uppercase tracking-wider text-muted">{{ i18n.t(zone.labelKey) }}</span>
-          <span class="font-display font-bold text-[15px]">{{ zone.stats.pct }}%</span>
+          <span class="font-mono text-2xs font-bold uppercase tracking-wider text-muted">{{ i18n.t(zone.labelKey) }}</span>
+          <span class="font-display font-bold text-base">{{ zone.stats.pct }}%</span>
         </div>
         <div class="relative h-1.5 rounded-full bg-line">
           <div
@@ -140,7 +140,7 @@
             [style.left.%]="zone.stats.pct"
           ></div>
         </div>
-        <span class="font-mono text-[10px] text-muted">{{ zone.stats.made }}/{{ zone.stats.attempts }} {{ i18n.t('shotChart.zoneAttempts') }}</span>
+        <span class="font-mono text-2xs text-muted">{{ zone.stats.made }}/{{ zone.stats.attempts }} {{ i18n.t('shotChart.zoneAttempts') }}</span>
       </div>
     }
   </div>

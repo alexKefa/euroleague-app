@@ -2,14 +2,14 @@
   <app-page-header [title]="i18n.t('fanMap.title')" [eyebrow]="i18n.t('fanMap.eyebrow')" [subtitle]="i18n.t('fanMap.subtitle')" icon="teams" />
 
   @if (loading()) {
-    <app-skeleton class="rounded-3xl aspect-[10/7] mb-4" />
+    <app-skeleton class="rounded-2xl aspect-[10/7] mb-4" />
     @for (i of [0, 1, 2, 3]; track i) {
       <app-skeleton class="rounded-2xl h-12 mb-2" />
     }
   } @else {
     <!-- The map: water, land, borders, then one isometric block per club,
          drawn back to front. -->
-    <div class="relative rounded-3xl border border-line shadow-card overflow-hidden mb-4 bg-card">
+    <div class="relative rounded-2xl border border-line shadow-card overflow-hidden mb-4 bg-card">
       <svg [attr.viewBox]="viewBox" class="block w-full h-auto select-none" role="img" [attr.aria-label]="i18n.t('fanMap.title')">
         <rect x="0" y="0" width="1000" height="700" style="fill: color-mix(in srgb, var(--accent-primary) 8%, var(--color-card))" />
         <path [attr.d]="landPath" style="fill: color-mix(in srgb, var(--color-ink) 7%, var(--color-card))" />
@@ -23,7 +23,7 @@
           <g class="cursor-pointer" (click)="open(b.team)" [attr.aria-label]="b.team.name + ': ' + b.team.fans">
             <!-- Your team: a pulsing ring around the base. -->
             @if (b.team.id === myTeamId()) {
-              <ellipse [attr.cx]="b.x" [attr.cy]="b.y + 2" rx="24" ry="12" fill="none" stroke-width="2.5" class="animate-pulse" style="stroke: var(--accent-primary)" />
+              <ellipse [attr.cx]="b.x" [attr.cy]="b.y + 2" rx="24" ry="12" fill="none" stroke-width="2.5" style="stroke: var(--accent-primary)" />
             }
             <ellipse [attr.cx]="b.x + 3" [attr.cy]="b.y + 4" rx="17" ry="8" fill="rgba(0,0,0,0.18)" />
             <polygon [attr.points]="left(b)" [style.fill]="color(b.team)" />
@@ -50,15 +50,15 @@
           </g>
         }
       </svg>
-      <p class="absolute left-3 bottom-2 text-[11px] font-bold text-muted uppercase tracking-wider">
+      <p class="absolute left-3 bottom-2 text-xs font-bold text-muted uppercase tracking-wider">
         {{ i18n.t('fanMap.total').replace('{n}', '' + totalFans()) }}
       </p>
     </div>
 
     @if (myRank(); as mine) {
-      <button type="button" (click)="open(mine.team)" class="w-full relative overflow-hidden rounded-3xl p-4 mb-4 bg-card border border-line shadow-card text-left">
+      <button type="button" (click)="open(mine.team)" class="w-full relative overflow-hidden rounded-2xl p-4 mb-4 bg-card border border-line shadow-card text-left">
         <div class="pointer-events-none absolute inset-0" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 22%, transparent) 0%, transparent 70%)" aria-hidden="true"></div>
-        <p class="relative text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('fanMap.yourTeam') }}</p>
+        <p class="relative text-xs font-bold text-muted uppercase tracking-wider">{{ i18n.t('fanMap.yourTeam') }}</p>
         <p class="relative font-display text-lg leading-tight mt-0.5">
           {{ i18n.t('fanMap.yourRank').replace('{team}', mine.team.name).replace('{rank}', '' + mine.rank).replace('{n}', '' + ranked().length) }}
         </p>
@@ -67,8 +67,8 @@
     }
 
     <!-- Ranked fan bases. -->
-    <div class="rounded-3xl border border-line bg-card shadow-card p-2">
-      <p class="px-2 pt-1 pb-2 text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('fanMap.ranking') }}</p>
+    <div class="rounded-2xl border border-line bg-card shadow-card p-2">
+      <p class="px-2 pt-1 pb-2 text-xs font-bold text-muted uppercase tracking-wider">{{ i18n.t('fanMap.ranking') }}</p>
       @for (t of ranked(); track t.id; let i = $index) {
         <button type="button" (click)="open(t)" class="list-row w-full text-left" [class.is-mine]="t.id === myTeamId()">
           <span class="w-6 text-center font-mono text-xs font-bold text-muted shrink-0">{{ i + 1 }}</span>
@@ -76,7 +76,7 @@
             @if (t.logoUrl) {
               <img [src]="t.logoUrl" [alt]="t.name" loading="lazy" class="w-6 h-6 object-contain team-logo" />
             } @else {
-              <span class="font-mono text-[10px] font-bold">{{ t.code | teamCode }}</span>
+              <span class="font-mono text-2xs font-bold">{{ t.code | teamCode }}</span>
             }
           </span>
           <span class="min-w-0 flex-1">
@@ -109,16 +109,16 @@
         <p class="text-sm text-muted text-center py-4">{{ i18n.t('fanMap.noFans') }}</p>
       } @else if (fansLoading()) {
         @for (i of [0, 1, 2]; track i) {
-          <app-skeleton class="rounded-xl h-10 mb-2" />
+          <app-skeleton class="rounded-lg h-10 mb-2" />
         }
       } @else {
         <div class="space-y-1 mb-4">
           @for (f of fans(); track f.id) {
-            <div class="flex items-center gap-2.5 rounded-xl px-2 py-1.5" [class.bg-page]="f.id === auth.currentUser()?.id">
+            <div class="flex items-center gap-2.5 rounded-lg px-2 py-1.5" [class.bg-page]="f.id === auth.currentUser()?.id">
               <span class="w-8 h-8 rounded-full flex items-center justify-center font-display text-sm text-white shrink-0" [style.background]="color(team)">{{ initial(f.username) }}</span>
               <span class="min-w-0 flex-1 text-sm font-semibold truncate">{{ f.username }}</span>
               @if (f.id === auth.currentUser()?.id) {
-                <span class="text-[10px] font-bold uppercase tracking-wider text-team-primary">{{ i18n.t('fanMap.you') }}</span>
+                <span class="text-2xs font-bold uppercase tracking-wider text-team-primary">{{ i18n.t('fanMap.you') }}</span>
               }
             </div>
           }

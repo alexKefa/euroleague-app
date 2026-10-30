@@ -26,12 +26,12 @@
           (click)="openTool.set(tool.id)"
           class="text-left bg-card rounded-2xl border border-line shadow-card p-4 flex items-start gap-3 hover:border-team-primary transition-colors min-w-0"
         >
-          <div class="w-10 h-10 rounded-xl bg-team-primary/10 flex items-center justify-center shrink-0">
+          <div class="w-10 h-10 rounded-lg bg-team-primary/10 flex items-center justify-center shrink-0">
             <app-nav-icon [name]="tool.icon" [size]="20" class="text-team-primary" />
           </div>
           <div class="min-w-0 flex-1">
             <p class="font-semibold text-sm break-words">{{ i18n.t(tool.titleKey) }}</p>
-            <p class="text-[12px] text-muted mt-0.5 break-words">{{ i18n.t(tool.descKey) }}</p>
+            <p class="text-xs text-muted mt-0.5 break-words">{{ i18n.t(tool.descKey) }}</p>
           </div>
           <span class="text-muted text-lg leading-none shrink-0 self-center">&rsaquo;</span>
         </button>
@@ -41,12 +41,12 @@
         routerLink="/admin/clips"
         class="text-left bg-card rounded-2xl border border-line shadow-card p-4 flex items-start gap-3 hover:border-team-primary transition-colors min-w-0"
       >
-        <div class="w-10 h-10 rounded-xl bg-team-primary/10 flex items-center justify-center shrink-0">
+        <div class="w-10 h-10 rounded-lg bg-team-primary/10 flex items-center justify-center shrink-0">
           <app-nav-icon name="share" [size]="20" class="text-team-primary" />
         </div>
         <div class="min-w-0 flex-1">
           <p class="font-semibold text-sm break-words">{{ i18n.t('admin.clips.title') }}</p>
-          <p class="text-[12px] text-muted mt-0.5 break-words">{{ i18n.t('admin.clips.desc') }}</p>
+          <p class="text-xs text-muted mt-0.5 break-words">{{ i18n.t('admin.clips.desc') }}</p>
         </div>
         <span class="text-muted text-lg leading-none shrink-0 self-center">&rsaquo;</span>
       </a>
@@ -121,13 +121,13 @@
                 type="number"
                 formControlName="points"
                 [placeholder]="i18n.t('profile.pointsPlaceholder')"
-                class="w-full px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
+                class="w-full px-3 py-2 rounded-lg bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
               />
               <input
                 type="text"
                 formControlName="reason"
                 [placeholder]="i18n.t('profile.reasonPlaceholder')"
-                class="w-full px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
+                class="w-full px-3 py-2 rounded-lg bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
               />
               <button type="submit" [disabled]="pointsForm.invalid || pointsSubmitting()" appButton class="w-full">
                 {{ pointsSubmitting() ? i18n.t('profile.granting') : i18n.t('profile.grant') }}
@@ -156,11 +156,11 @@
                   [placeholder]="i18n.t('profile.collectiblePlaceholder')"
                 />
                 @if (cardResultsOpen() && filteredCollectibles().length > 0) {
-                  <div class="absolute z-30 mt-1 w-full bg-card border-2 border-line rounded-xl shadow-pop overflow-hidden max-h-56 overflow-y-auto">
+                  <div class="absolute z-30 mt-1 w-full bg-card border-2 border-line rounded-lg shadow-pop overflow-hidden max-h-56 overflow-y-auto">
                     @for (c of filteredCollectibles(); track c.id) {
                       <button type="button" (click)="selectCard(c)" class="w-full text-left px-3 py-2 hover:bg-page transition-colors">
                         <span class="block text-sm font-semibold truncate">{{ c.name }}</span>
-                        <span class="block text-[11px] text-muted font-mono truncate">{{ c.team.code | teamCode }} &middot; {{ c.tier }}</span>
+                        <span class="block text-xs text-muted font-mono truncate">{{ c.team.code | teamCode }} &middot; {{ c.tier }}</span>
                       </button>
                     }
                   </div>
@@ -168,7 +168,7 @@
               </div>
               @if (selectedCard(); as card) {
                 @if (card.tier === 'legendary') {
-                  <label class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-page border-2 border-line text-xs font-bold cursor-pointer">
+                  <label class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-page border-2 border-line text-xs font-bold cursor-pointer">
                     <input
                       type="checkbox"
                       [checked]="cardForm.value.finish === 'foil'"
@@ -196,7 +196,7 @@
                 type="text"
                 formControlName="name"
                 [placeholder]="i18n.t('store.namePlaceholder')"
-                class="w-full px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
+                class="w-full px-3 py-2 rounded-lg bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
               />
               <div class="grid grid-cols-2 gap-3">
                 <app-dropdown
@@ -215,13 +215,13 @@
                 type="number"
                 formControlName="pointsCost"
                 [placeholder]="i18n.t('store.pointsPlaceholder')"
-                class="w-full px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
+                class="w-full px-3 py-2 rounded-lg bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
               />
               <input
                 type="text"
                 formControlName="imageUrl"
                 [placeholder]="i18n.t('store.imageUrlPlaceholder')"
-                class="w-full px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
+                class="w-full px-3 py-2 rounded-lg bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
               />
               <button type="submit" [disabled]="addForm.invalid || addSubmitting()" appButton class="w-full">
                 {{ addSubmitting() ? i18n.t('store.adding') : i18n.t('store.add') }}

@@ -28,7 +28,7 @@ interface RowView {
   template: `
     @if (!auth.isAuthenticated()) {
       @if (!rs.loading()) {
-        <section class="rounded-3xl p-4 mb-4 bg-card border border-line shadow-card">
+        <section class="rounded-2xl p-4 mb-4 bg-card border border-line shadow-card">
           <ol class="grid gap-3">
             @for (key of guestSteps; track key; let i = $index) {
               <li class="grid grid-cols-[26px_1fr] gap-3 items-center">
@@ -42,10 +42,10 @@ interface RowView {
       }
     } @else if (rs.loading()) {
       <!-- Same height as three rows, so nothing below shifts when it lands. -->
-      <app-skeleton class="block rounded-3xl h-[188px] mb-4" />
+      <app-skeleton class="block rounded-2xl h-[188px] mb-4" />
     } @else if (status(); as s) {
       @if (s.phase !== "between" && views().length) {
-        <section class="rounded-3xl px-4 py-1 mb-4 bg-card border border-line shadow-card">
+        <section class="rounded-2xl px-4 py-1 mb-4 bg-card border border-line shadow-card">
           @if (s.phase === "allDone" && !expanded()) {
             <button type="button" (click)="expanded.set(true)" class="w-full flex items-center gap-3 py-3 text-left">
               <span class="w-[26px] h-[26px] rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
@@ -73,7 +73,7 @@ interface RowView {
                   <p class="text-sm font-semibold leading-tight flex items-center gap-2 flex-wrap" [class.text-muted]="v.row.done">
                     {{ v.title }}
                     @if (v.bonus && !v.row.done) {
-                      <span class="text-[11px] font-semibold text-team-primary bg-team-primary/10 rounded-full px-2 py-0.5">{{ i18n.t("dashboard.checklist.bonus") }}</span>
+                      <span class="text-xs font-semibold text-team-primary bg-team-primary/10 rounded-full px-2 py-0.5">{{ i18n.t("dashboard.checklist.bonus") }}</span>
                     }
                   </p>
                   @if (v.detail) {

@@ -17,7 +17,7 @@ export type ButtonSize = "sm" | "md";
 // active:scale-[0.97] gives every variant a tactile "pressed" nudge on
 // click/tap; duration-100 (overriding transition-all's slower default) so
 // the press itself reads instant while hover/color changes stay smooth.
-const BASE = "inline-flex items-center justify-center gap-1.5 rounded-2xl font-display font-bold transition-all duration-150 active:duration-100 active:scale-[0.97] disabled:opacity-35 disabled:pointer-events-none";
+const BASE = "inline-flex items-center justify-center gap-1.5 rounded-lg font-display font-bold transition-all duration-150 active:duration-100 active:scale-[0.97] disabled:opacity-35 disabled:pointer-events-none";
 
 // primary/outline switched from the fixed bg-highlight brand orange to the
 // user's own team color (2026-09-18, explicit ask: "change everywhere on

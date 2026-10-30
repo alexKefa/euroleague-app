@@ -22,7 +22,7 @@ import { PackArtComponent } from "../../shared/pack-art";
   imports: [RouterLink, ButtonDirective, CountUpComponent, PackArtComponent],
   template: `
     @if (auth.isAuthenticated() && count() > 0) {
-      <section class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4 flex items-center gap-4">
+      <section class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4 flex items-center gap-4">
         <div class="relative shrink-0 w-[76px] h-[92px]" aria-hidden="true">
           @for (p of fan(); track p.id; let i = $index) {
             <app-pack-art

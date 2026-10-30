@@ -61,18 +61,18 @@
           @if (entry.hasTeam) {
             <!-- Hidden below sm: to keep the mobile row to one clean line —
                  still one tap away in the detail modal below. -->
-            <p class="hidden sm:block font-mono text-[11px] text-muted truncate"
+            <p class="hidden sm:block font-mono text-xs text-muted truncate"
               >{{ i18n.t('fantasy.roundPirAbbrev') }} {{ entry.roundPir }} &middot; {{ i18n.t('fantasy.totalPirAbbrev') }} {{ entry.totalPir }}</p
             >
           } @else {
-            <p class="text-[11px] text-muted italic truncate">{{ i18n.t('fantasy.noTeamYet') }}</p>
+            <p class="text-xs text-muted italic truncate">{{ i18n.t('fantasy.noTeamYet') }}</p>
           }
         </div>
 
         @if (entry.hasTeam) {
-          <div class="shrink-0 text-center bg-page rounded-xl px-2.5 py-1.5 min-w-[3rem]">
+          <div class="shrink-0 text-center bg-page rounded-lg px-2.5 py-1.5 min-w-[3rem]">
             <p class="font-mono text-team-primary font-bold text-sm leading-none">{{ entry.fantasyPoints }}</p>
-            <p class="font-mono text-[10px] text-muted uppercase tracking-wide mt-0.5">{{ i18n.t('fantasy.cpAbbrev') }}</p>
+            <p class="font-mono text-2xs text-muted uppercase tracking-wide mt-0.5">{{ i18n.t('fantasy.cpAbbrev') }}</p>
           </div>
         }
       </button>
@@ -90,12 +90,12 @@
         <div>
           <p class="font-display text-xl tracking-wide">{{ entry.displayName }}</p>
           @if (entry.hasTeam) {
-            <p class="font-mono text-[12px] text-muted mt-0.5">{{ entry.fantasyPoints }} {{ i18n.t('fantasy.cpAbbrev') }}</p>
-            <p class="font-mono text-[11px] text-muted mt-0.5"
+            <p class="font-mono text-xs text-muted mt-0.5">{{ entry.fantasyPoints }} {{ i18n.t('fantasy.cpAbbrev') }}</p>
+            <p class="font-mono text-xs text-muted mt-0.5"
               >{{ i18n.t('fantasy.roundPirAbbrev') }} {{ entry.roundPir }} &middot; {{ i18n.t('fantasy.totalPirAbbrev') }} {{ entry.totalPir }}</p
             >
           } @else {
-            <p class="text-[12px] text-muted italic mt-0.5">{{ i18n.t('fantasy.noTeamYet') }}</p>
+            <p class="text-xs text-muted italic mt-0.5">{{ i18n.t('fantasy.noTeamYet') }}</p>
           }
         </div>
         <button type="button" (click)="closeEntry()" class="text-muted hover:text-ink text-2xl leading-none font-bold shrink-0">&times;</button>
@@ -103,7 +103,7 @@
 
       @if (entry.hasTeam) {
         <div class="mb-4">
-          <p class="text-[11px] font-bold uppercase tracking-wider text-muted mb-2">{{ i18n.t('fantasy.squadPreviewTitle') }}</p>
+          <p class="text-xs font-bold uppercase tracking-wider text-muted mb-2">{{ i18n.t('fantasy.squadPreviewTitle') }}</p>
           @if (entry.squad; as squad) {
           @if (squad.length > 0) {
             <!-- Starters, placed on the same half-court art the roster
@@ -119,7 +119,7 @@
                  letterboxing — a mismatched container ratio here would
                  shrink/off-center the actual court art relative to these
                  percentage-based overlay positions. -->
-            <div class="relative w-full aspect-[320/300] rounded-xl overflow-hidden mb-3">
+            <div class="relative w-full aspect-[320/300] rounded-lg overflow-hidden mb-3">
               <app-court-background class="absolute inset-0 w-full h-full" />
               @for (p of starters(squad); track p.playerId; let i = $index) {
                 <div
@@ -130,7 +130,7 @@
                   <div class="relative">
                     <app-player-photo [photoUrl]="p.photoUrl" [name]="p.name" [teamCode]="p.teamCode" [primaryColor]="p.teamPrimaryColor" [size]="40" [centerFace]="true" />
                     @if (p.isCaptain) {
-                      <span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-team-primary text-team-secondary text-[10px] font-bold flex items-center justify-center">C</span>
+                      <span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-team-primary text-team-secondary text-2xs font-bold flex items-center justify-center">C</span>
                     }
                   </div>
                   <!-- White + shadow, not text-muted — the court floor is a
@@ -139,19 +139,19 @@
                        theme-reactive muted grey could go dark-on-dark; a
                        plain drop-shadow keeps it legible over the wood
                        grain/lines either way. -->
-                  <span class="text-[10px] text-white font-semibold truncate w-full text-center leading-tight [text-shadow:0_1px_2px_rgba(0,0,0,0.85)]">{{ p.name }}</span>
-                  <span class="font-mono text-[11px] text-white font-bold leading-none [text-shadow:0_1px_2px_rgba(0,0,0,0.85)]">{{ p.pir ?? '–' }}</span>
+                  <span class="text-2xs text-white font-semibold truncate w-full text-center leading-tight [text-shadow:0_1px_2px_rgba(0,0,0,0.85)]">{{ p.name }}</span>
+                  <span class="font-mono text-xs text-white font-bold leading-none [text-shadow:0_1px_2px_rgba(0,0,0,0.85)]">{{ p.pir ?? '–' }}</span>
                 </div>
               }
             </div>
 
             @if (sixthMan(squad); as sm) {
-              <p class="text-[11px] font-bold uppercase tracking-wider text-muted mb-1.5">{{ i18n.t('fantasy.sixthManLabel') }}</p>
-              <div class="flex items-center gap-2 rounded-xl bg-page px-2.5 py-2 mb-3">
+              <p class="text-xs font-bold uppercase tracking-wider text-muted mb-1.5">{{ i18n.t('fantasy.sixthManLabel') }}</p>
+              <div class="flex items-center gap-2 rounded-lg bg-page px-2.5 py-2 mb-3">
                 <app-player-photo [photoUrl]="sm.photoUrl" [name]="sm.name" [teamCode]="sm.teamCode" [primaryColor]="sm.teamPrimaryColor" [size]="36" [centerFace]="true" class="shrink-0" />
                 <div class="min-w-0 flex-1">
                   <p class="text-xs font-semibold truncate">{{ sm.name }}</p>
-                  <p class="text-[10px] text-muted">{{ posAbbrev(sm.position) }}</p>
+                  <p class="text-2xs text-muted">{{ posAbbrev(sm.position) }}</p>
                 </div>
                 <span class="font-mono text-xs font-bold shrink-0">{{ sm.pir ?? '–' }}</span>
               </div>
@@ -159,13 +159,13 @@
 
             @if (bench(squad); as benchPlayers) {
               @if (benchPlayers.length > 0) {
-                <p class="text-[11px] font-bold uppercase tracking-wider text-muted mb-1.5">{{ i18n.t('fantasy.benchLabel') }}</p>
+                <p class="text-xs font-bold uppercase tracking-wider text-muted mb-1.5">{{ i18n.t('fantasy.benchLabel') }}</p>
                 <div class="grid grid-cols-4 gap-2 mb-3">
                   @for (p of benchPlayers; track p.playerId) {
-                    <div class="flex flex-col items-center gap-0.5 min-w-0 rounded-xl bg-page py-2 px-1 opacity-80">
+                    <div class="flex flex-col items-center gap-0.5 min-w-0 rounded-lg bg-page py-2 px-1 opacity-80">
                       <app-player-photo [photoUrl]="p.photoUrl" [name]="p.name" [teamCode]="p.teamCode" [primaryColor]="p.teamPrimaryColor" [size]="34" [centerFace]="true" />
-                      <span class="text-[10px] text-muted truncate w-full text-center">{{ p.name }}</span>
-                      <span class="font-mono text-[11px] font-bold">{{ p.pir ?? '–' }}</span>
+                      <span class="text-2xs text-muted truncate w-full text-center">{{ p.name }}</span>
+                      <span class="font-mono text-xs font-bold">{{ p.pir ?? '–' }}</span>
                     </div>
                   }
                 </div>
@@ -185,7 +185,7 @@
       }
 
       @if (entry.showcase.length > 0) {
-        <p class="text-[11px] font-bold uppercase tracking-wider text-muted mb-2">{{ i18n.t('leagues.cardsTitle') }}</p>
+        <p class="text-xs font-bold uppercase tracking-wider text-muted mb-2">{{ i18n.t('leagues.cardsTitle') }}</p>
         <div class="grid grid-cols-3 gap-3">
           @for (card of entry.showcase; track card.id) {
             <app-collectible-card

@@ -46,11 +46,11 @@ interface ResultChip {
   ],
   template: `
     @if (chips().length) {
-      <section class="rounded-3xl py-3 mb-4 bg-card border border-line shadow-card" [attr.aria-label]="title()">
-        <div class="flex items-baseline justify-between gap-3 px-4 mb-2">
-          <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ title() }}</p>
+      <section class="section-plain" [attr.aria-label]="title()">
+        <div class="section-plain-head items-baseline">
+          <h2 class="font-display text-lg">{{ title() }}</h2>
           @if (summary(); as s) {
-            <p class="text-[13px] font-semibold tabular-nums">
+            <p class="text-sm font-semibold tabular-nums">
               {{ fill("dashboard.results.summary", { correct: s.correct, total: s.total }) }}
               @if (s.points > 0) {
                 <span class="text-emerald-500"> · +{{ s.points }}</span>
@@ -58,21 +58,21 @@ interface ResultChip {
             </p>
           }
         </div>
-        <div class="strip flex items-stretch gap-2 overflow-x-auto px-4">
+        <div class="strip flex items-stretch gap-2 overflow-x-auto">
           @for (c of chips(); track c.game.id) {
             @if (c.dayBreak) {
-              <span class="shrink-0 self-center text-[10px] font-bold text-muted uppercase tracking-wider [writing-mode:vertical-rl] rotate-180">
+              <span class="shrink-0 self-center text-2xs font-bold text-muted uppercase tracking-wider [writing-mode:vertical-rl] rotate-180">
                 {{ i18n.t("dashboard.results.day2") }}
               </span>
             }
             <a
               [routerLink]="['/games', c.game.id]"
-              class="shrink-0 rounded-2xl border border-line px-3 py-2.5 flex flex-col gap-1.5 min-w-[132px]"
+              class="shrink-0 rounded-lg border border-line px-3 py-2.5 flex flex-col gap-1.5 min-w-[132px]"
               [class.border-emerald-500]="c.pickCorrect === true"
               [class.border-red-500]="c.pickCorrect === false"
             >
               @for (side of [{ team: c.game.homeTeam, score: c.game.homeScore, won: c.homeWon }, { team: c.game.awayTeam, score: c.game.awayScore, won: !c.homeWon }]; track side.team.id) {
-                <div class="flex items-center gap-2 font-display text-[15px] leading-none tabular-nums" [class.text-muted]="!side.won">
+                <div class="flex items-center gap-2 font-display text-base leading-none tabular-nums" [class.text-muted]="!side.won">
                   @if (side.team.logoUrl) {
                     <img [src]="side.team.logoUrl" [alt]="side.team.name" loading="lazy" decoding="async" appRetryImg class="w-6 h-6 object-contain shrink-0 team-logo" [class.opacity-60]="!side.won" />
                   } @else {
@@ -82,7 +82,7 @@ interface ResultChip {
                   <span class="ml-auto pl-3">{{ side.score }}</span>
                 </div>
               }
-              <div class="flex items-center gap-1.5 h-4 text-[10px] font-bold">
+              <div class="flex items-center gap-1.5 h-4 text-2xs font-bold">
                 @if (c.pickCorrect === true) {
                   <span class="text-emerald-500" [attr.aria-label]="i18n.t('dashboard.results.correct')">✓</span>
                 } @else if (c.pickCorrect === false) {

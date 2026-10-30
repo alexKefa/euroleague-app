@@ -43,8 +43,8 @@ type Gsap = typeof import("gsap").gsap;
         </div>
 
         @if (current(); as g) {
-          <p class="text-white/60 text-[12px] font-semibold mb-2 tabular-nums">{{ index() + 1 }} / {{ games().length }}</p>
-          <div #card class="w-full rounded-3xl bg-card border border-line shadow-pop p-5 select-none touch-none will-change-transform">
+          <p class="text-white/60 text-xs font-semibold mb-2 tabular-nums">{{ index() + 1 }} / {{ games().length }}</p>
+          <div #card class="w-full rounded-2xl bg-card border border-line shadow-pop p-5 select-none touch-none will-change-transform">
             @if (phase() === "winner") {
               <div class="grid grid-cols-2 gap-3">
                 @for (side of [g.homeTeam, g.awayTeam]; track side.id; let first = $first) {
@@ -55,13 +55,13 @@ type Gsap = typeof import("gsap").gsap;
                     } @else {
                       <span class="w-16 h-16 flex items-center justify-center font-display text-xl">{{ side.code | teamCode }}</span>
                     }
-                    <p class="font-semibold text-[13px] leading-tight mt-2 line-clamp-2">{{ side.name }}</p>
-                    <p class="font-mono text-[11px] font-bold text-team-primary mt-1">+{{ points()(g, side.id) }} {{ i18n.t("predictions.pts") }}</p>
+                    <p class="font-semibold text-sm leading-tight mt-2 line-clamp-2">{{ side.name }}</p>
+                    <p class="font-mono text-xs font-bold text-team-primary mt-1">+{{ points()(g, side.id) }} {{ i18n.t("predictions.pts") }}</p>
                   </div>
                 }
               </div>
               @if (probs()[g.id]; as wp) {
-                <p class="text-center text-[11px] text-muted mt-3 tabular-nums">
+                <p class="text-center text-xs text-muted mt-3 tabular-nums">
                   {{ i18n.t("winProb.clutchPredicts") }}:
                   <span class="font-semibold text-ink">{{ wp.homeProb >= 0.5 ? g.homeTeam.name : g.awayTeam.name }}</span>
                   {{ (wp.homeProb >= 0.5 ? wp.homeProb : 1 - wp.homeProb) * 100 | number: "1.0-0" }}%
@@ -77,8 +77,8 @@ type Gsap = typeof import("gsap").gsap;
                   <button type="button" (click)="chooseScorer(r.player.id)"
                     class="deck-player flex flex-col items-center gap-1 rounded-2xl p-2 hover:bg-team-primary/10 transition-colors">
                     <app-player-photo [name]="r.player.name" [photoUrl]="r.player.photoUrl" [size]="playerPhotoPx" />
-                    <span class="text-[11px] font-semibold leading-tight truncate max-w-full">{{ r.player.name.split(",")[0] }}</span>
-                    <span class="font-mono text-[10px] text-muted">
+                    <span class="text-xs font-semibold leading-tight truncate max-w-full">{{ r.player.name.split(",")[0] }}</span>
+                    <span class="font-mono text-2xs text-muted">
                       @if (quote()(g, r.player.id); as q) { +{{ q }} {{ i18n.t("predictions.pts") }} } @else { {{ r.stats.pointsPerGame | number: "1.1-1" }} PPG }
                     </span>
                   </button>
@@ -88,7 +88,7 @@ type Gsap = typeof import("gsap").gsap;
           </div>
 
           <!-- Gesture legend instead of buttons (2026-10-08). -->
-          <p class="mt-4 text-white/80 text-[12px] font-semibold tracking-wide text-center">
+          <p class="mt-4 text-white/80 text-xs font-semibold tracking-wide text-center">
             @if (phase() === "winner") {
               &larr; {{ g.homeTeam.code | teamCode }} &nbsp;·&nbsp; &uarr; {{ i18n.t("predictions.deck.skip") }} &nbsp;·&nbsp; {{ g.awayTeam.code | teamCode }} &rarr;
             } @else {
@@ -96,7 +96,7 @@ type Gsap = typeof import("gsap").gsap;
             }
           </p>
         } @else {
-          <div class="w-full rounded-3xl bg-card border border-line shadow-pop p-6 text-center">
+          <div class="w-full rounded-2xl bg-card border border-line shadow-pop p-6 text-center">
             <p class="font-display text-3xl tabular-nums">
               {{ winners() }} <span class="text-base text-muted">{{ i18n.t("predictions.deck.winners") }}</span>
               · {{ scorers() }} <span class="text-base text-muted">{{ i18n.t("predictions.deck.scorers") }}</span>

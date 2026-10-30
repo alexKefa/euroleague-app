@@ -21,7 +21,7 @@ const NEW_OPTION = "__unsaved__";
     <div class="flex items-center gap-2 mb-4">
       @if (auth.isAuthenticated()) {
         <select
-          class="flex-1 min-w-0 h-10 px-3 rounded-xl bg-card border border-line shadow-card text-sm font-semibold truncate"
+          class="flex-1 min-w-0 h-10 px-3 rounded-lg bg-card border border-line shadow-card text-sm font-semibold truncate"
           [attr.aria-label]="i18n.t('builder.backToViews')"
           (change)="onSelect($event)"
         >
@@ -46,7 +46,7 @@ const NEW_OPTION = "__unsaved__";
           <div class="relative">
             <button
               type="button"
-              class="tap-target relative h-10 w-10 flex items-center justify-center rounded-xl border border-line bg-card text-lg leading-none"
+              class="tap-target relative h-10 w-10 flex items-center justify-center rounded-lg border border-line bg-card text-lg leading-none"
               [attr.aria-label]="i18n.t('builder.viewActions')"
               [attr.aria-expanded]="menuOpen()"
               (click)="menuOpen.set(!menuOpen())"
@@ -54,7 +54,7 @@ const NEW_OPTION = "__unsaved__";
               ⋯
             </button>
             @if (menuOpen()) {
-              <div class="absolute right-0 top-full mt-1 z-30 w-40 rounded-xl bg-card border border-line shadow-pop py-1">
+              <div class="absolute right-0 top-full mt-1 z-30 w-40 rounded-lg bg-card border border-line shadow-pop py-1">
                 <button type="button" class="w-full text-left px-3 py-2 text-sm font-semibold hover:bg-page" (click)="openRename()">{{ i18n.t("builder.rename") }}</button>
                 <button type="button" class="w-full text-left px-3 py-2 text-sm font-semibold text-red-500 hover:bg-page" (click)="menuOpen.set(false); confirmingDelete.set(true)">
                   {{ i18n.t("builder.delete") }}
@@ -82,7 +82,7 @@ const NEW_OPTION = "__unsaved__";
           [value]="renameValue()"
           (input)="renameValue.set($any($event.target).value)"
           maxlength="60"
-          class="w-full px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none mb-3"
+          class="w-full px-3 py-2 rounded-lg bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none mb-3"
         />
         <button type="button" appButton appButtonSize="sm" class="w-full" [disabled]="!renameValue().trim()" (click)="submitRename()">
           {{ i18n.t("builder.save") }}

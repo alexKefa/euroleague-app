@@ -244,7 +244,7 @@
   position: absolute;
   inset: -20%;
   background: radial-gradient(circle, color-mix(in srgb, var(--accent-primary, #e8792c) 22%, transparent) 0%, transparent 65%);
-  animation: arena-pulse 3.2s ease-in-out infinite;
+  animation: arena-pulse 3.2s ease-in-out 3;
   pointer-events: none;
 }
 @keyframes arena-pulse {

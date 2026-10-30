@@ -2,7 +2,7 @@
   <a [routerLink]="navHistory.previousUrl() ?? '/battles'" class="back-link mb-3">{{ i18n.t('duels.builder.back') }}</a>
 
   <div class="mb-4 min-w-0">
-    <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('duels.title') }}</p>
+    <p class="text-xs text-muted font-bold uppercase tracking-wider">{{ i18n.t('duels.title') }}</p>
     <h1 class="font-display text-2xl tracking-wide truncate">
       @if (acceptId()) {
         {{ i18n.t('duels.builder.accepting') }}{{ opponentName() ? ' · ' + opponentName() : '' }}
@@ -30,7 +30,7 @@
     <!-- The 5 slots. -->
     <div class="bg-card rounded-2xl border border-line shadow-card p-3 mb-4">
       <div class="flex items-center justify-between gap-2 mb-2">
-        <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('duels.lineup') }} · {{ filledCount() }}/5</p>
+        <p class="text-xs text-muted font-bold uppercase tracking-wider">{{ i18n.t('duels.lineup') }} · {{ filledCount() }}/5</p>
         <p class="font-display text-lg text-team-primary tabular-nums">{{ lineupTotal() }}</p>
       </div>
       <div class="grid grid-cols-5 gap-1.5">
@@ -53,7 +53,7 @@
                 [unlocked]="true"
                 [maxWidth]="80"
               ></app-collectible-card>
-              <span class="block font-mono text-[10px] font-bold tabular-nums mt-0.5">{{ c.total }}</span>
+              <span class="block font-mono text-2xs font-bold tabular-nums mt-0.5">{{ c.total }}</span>
             </button>
           } @else {
             <div class="aspect-[3/4] rounded-lg border-2 border-dashed border-line flex items-center justify-center text-muted font-display text-lg">
@@ -71,7 +71,7 @@
           <button
             type="button"
             (click)="setSort(key)"
-            class="shrink-0 rounded-full border px-3 py-1 text-[12px] font-semibold"
+            class="shrink-0 rounded-full border px-3 py-1 text-xs font-semibold"
             [class.border-team-primary]="sortBy() === key"
             [class.text-team-primary]="sortBy() === key"
             [class.border-line]="sortBy() !== key"
@@ -91,7 +91,7 @@
         <button
           type="button"
           (click)="toggle(c)"
-          class="min-w-0 rounded-xl border bg-card p-2 text-left transition"
+          class="min-w-0 rounded-lg border bg-card p-2 text-left transition"
           [class.border-team-primary]="isPicked(c.id)"
           [class.border-2]="isPicked(c.id)"
           [class.border-line]="!isPicked(c.id)"
@@ -110,7 +110,7 @@
             [maxWidth]="110"
             [selected]="isPicked(c.id)"
           ></app-collectible-card>
-          <div class="flex flex-wrap items-center gap-1 mt-2 text-[11px] font-bold">
+          <div class="flex flex-wrap items-center gap-1 mt-2 text-xs font-bold">
             <span class="rounded bg-team-primary/15 text-team-primary px-1.5 py-0.5 font-mono">×{{ c.duel.rarityMult.toFixed(2) }}</span>
             @if (c.duel.formBadge; as fb) {
               <span class="rounded border border-line px-1.5 py-0.5">{{ formIcon(fb) }} {{ i18n.t('duels.form.' + fb) }}</span>
@@ -123,7 +123,7 @@
             @for (cat of categories; track cat) {
               <div class="min-w-0 text-center" [class.text-team-primary]="sortBy() === cat">
                 <p class="font-display text-base leading-none tabular-nums">{{ c.scores[cat] }}</p>
-                <p class="text-[9px] text-muted uppercase tracking-wide truncate">{{ i18n.t('duels.cat.' + cat) }}</p>
+                <p class="text-2xs text-muted uppercase tracking-wide truncate">{{ i18n.t('duels.cat.' + cat) }}</p>
               </div>
             }
           </div>

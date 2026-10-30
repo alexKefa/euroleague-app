@@ -46,9 +46,9 @@ interface PickResult {
             <app-nav-icon [name]="anyCorrect() ? 'checkmark-shield' : 'picks'" [size]="18" />
           </span>
           <div class="min-w-0 flex-1">
-            <p class="text-[13px] font-semibold leading-snug line-clamp-2">{{ title() }}</p>
+            <p class="text-sm font-semibold leading-snug line-clamp-2">{{ title() }}</p>
             @if (detail(); as d) {
-              <p class="text-[12px] text-muted leading-snug line-clamp-2">{{ d }}</p>
+              <p class="text-xs text-muted leading-snug line-clamp-2">{{ d }}</p>
             }
           </div>
           @if (totalPoints() > 0) {

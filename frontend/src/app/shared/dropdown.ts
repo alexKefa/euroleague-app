@@ -81,7 +81,7 @@ export interface DropdownOption {
       type="button"
       (click)="toggle()"
       [disabled]="disabled"
-      class="w-full h-10 flex items-center justify-between gap-2 pl-3 pr-1.5 rounded-xl bg-card border text-sm font-semibold text-ink shadow-sm outline-none transition-all disabled:opacity-40 disabled:cursor-default"
+      class="w-full h-10 flex items-center justify-between gap-2 pl-3 pr-1.5 rounded-lg bg-card border text-sm font-semibold text-ink shadow-sm outline-none transition-all disabled:opacity-40 disabled:cursor-default"
       [ngClass]="open() ? 'border-team-primary ring-4 ring-team-primary/15' : 'border-line hover:border-muted/60 focus-visible:border-team-primary'"
       [attr.aria-expanded]="open()"
       aria-haspopup="listbox"
@@ -116,7 +116,7 @@ export interface DropdownOption {
             [attr.aria-selected]="opt.value === value"
             (click)="select(opt)"
             (mouseenter)="highlightedIndex.set(i)"
-            class="dd-row flex items-center gap-2.5 px-3 h-10 rounded-xl text-sm font-semibold cursor-pointer transition-colors"
+            class="dd-row flex items-center gap-2.5 px-3 h-10 rounded-lg text-sm font-semibold cursor-pointer transition-colors"
             [ngClass]="rowClasses(opt, i)"
           >
             @if (opt.logoUrl) {

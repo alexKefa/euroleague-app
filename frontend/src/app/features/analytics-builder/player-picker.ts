@@ -18,7 +18,7 @@ import { MAX_PLAYERS } from "./workspace";
   imports: [DialogComponent, ButtonDirective, RetryImgDirective, SearchInputComponent],
   template: `
     <app-dialog [title]="i18n.t('builder.addPlayers')" icon="sliders" [closeLabel]="i18n.t('hint.dismiss')" (closed)="closed.emit()">
-      <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t("builder.templatesLabel") }}</p>
+      <p class="text-xs text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t("builder.templatesLabel") }}</p>
       <div class="grid grid-cols-2 gap-2 mb-1">
         @for (set of store.quickSets(); track set.id) {
           <button
@@ -34,13 +34,13 @@ import { MAX_PLAYERS } from "./workspace";
         }
       </div>
       @for (line of reasons(); track line) {
-        <p class="text-[11px] text-muted mt-1">{{ line }}</p>
+        <p class="text-xs text-muted mt-1">{{ line }}</p>
       }
-      <p class="text-[11px] text-muted mt-1 mb-4">{{ i18n.t("builder.templateHint") }}</p>
+      <p class="text-xs text-muted mt-1 mb-4">{{ i18n.t("builder.templateHint") }}</p>
 
       <div class="flex items-center justify-between mb-1.5">
-        <p class="text-[11px] text-muted font-bold uppercase tracking-wider">{{ i18n.t("builder.playersLabel") }}</p>
-        <p class="text-[11px] text-muted tabular-nums">{{ i18n.t("builder.playersMax").replace("{n}", "" + store.workspace().playerIds.length).replace("{max}", "" + max) }}</p>
+        <p class="text-xs text-muted font-bold uppercase tracking-wider">{{ i18n.t("builder.playersLabel") }}</p>
+        <p class="text-xs text-muted tabular-nums">{{ i18n.t("builder.playersMax").replace("{n}", "" + store.workspace().playerIds.length).replace("{max}", "" + max) }}</p>
       </div>
       <app-search-input class="block w-full" surface="page" [value]="query()" (valueChange)="query.set($event)" [placeholder]="i18n.t('builder.searchPlaceholder')" />
       <ul class="mt-2">
@@ -50,7 +50,7 @@ import { MAX_PLAYERS } from "./workspace";
               type="button"
               (click)="store.addPlayer(row.player.id); query.set('')"
               [disabled]="full()"
-              class="w-full flex items-center gap-2 px-2 py-2 rounded-xl text-sm font-semibold text-left hover:bg-page transition-colors disabled:opacity-50"
+              class="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm font-semibold text-left hover:bg-page transition-colors disabled:opacity-50"
             >
               @if (row.team.logoUrl) {
                 <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />

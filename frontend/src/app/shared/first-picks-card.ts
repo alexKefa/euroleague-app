@@ -16,7 +16,7 @@ import { NavIconComponent } from "./nav-icon";
   imports: [RouterLink, ButtonDirective, NavIconComponent],
   template: `
     @if (status(); as s) {
-      <div class="relative overflow-hidden rounded-3xl p-4 border border-team-primary/40 bg-card shadow-card">
+      <div class="relative overflow-hidden rounded-2xl p-4 border border-team-primary/40 bg-card shadow-card">
         <div class="pointer-events-none absolute inset-0" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 22%, transparent) 0%, transparent 70%)" aria-hidden="true"></div>
         <div class="relative flex items-center gap-3">
           <span class="w-12 h-12 rounded-2xl bg-team-primary text-team-secondary flex items-center justify-center shrink-0 shadow-card">
@@ -24,14 +24,14 @@ import { NavIconComponent } from "./nav-icon";
           </span>
           <div class="min-w-0 flex-1">
             <p class="font-display text-base leading-tight">{{ i18n.t('firstPicks.title').replace('{n}', '' + s.target) }}</p>
-            <p class="text-[12px] text-muted mt-0.5">{{ subtitle() }}</p>
+            <p class="text-xs text-muted mt-0.5">{{ subtitle() }}</p>
           </div>
         </div>
         <div class="relative flex items-center gap-2 mt-3">
           @for (i of steps(); track i) {
             <span class="h-2 flex-1 rounded-full transition-colors" [class]="i < s.picks ? 'bg-team-primary' : 'bg-line'"></span>
           }
-          <span class="font-mono text-[12px] font-bold tabular-nums shrink-0 ml-1">{{ min(s.picks, s.target) }}/{{ s.target }}</span>
+          <span class="font-mono text-xs font-bold tabular-nums shrink-0 ml-1">{{ min(s.picks, s.target) }}/{{ s.target }}</span>
         </div>
         @if (!onPicksPage()) {
           <a routerLink="/predictions" appButton appButtonSize="sm" class="relative w-full mt-3">{{ i18n.t('firstPicks.cta') }}</a>

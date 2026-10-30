@@ -29,12 +29,12 @@ const RESULT_POLL_DELAY_MS = 2_500;
   imports: [DatePipe, NgClass, ButtonDirective, DialogComponent, NavIconComponent, PlayerPhotoComponent, TeamCodePipe],
   template: `
     @if (auth.isAuthenticated() && state(); as s) {
-      <section class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+      <section class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4">
         <div class="flex items-center gap-3">
           <span class="card-head-icon"><app-nav-icon name="flame" [size]="18" /></span>
           <div class="min-w-0 flex-1">
             <p class="font-display text-lg leading-tight">{{ i18n.t('dq.title') }}</p>
-            <p class="text-[12px] text-muted mt-0.5">
+            <p class="text-xs text-muted mt-0.5">
               @if (s.streak > 0) {
                 <span class="font-semibold text-team-primary">{{ fill('dq.streak', s.streak) }}</span>
               }
@@ -51,19 +51,19 @@ const RESULT_POLL_DELAY_MS = 2_500;
           } @else if (s.status === 'done' && s.today?.result; as r) {
             <button type="button" (click)="openOverlay()" class="shrink-0 text-right">
               <span class="block font-display text-lg leading-none" [class.text-emerald-500]="r.correct" [class.text-muted]="!r.correct">+{{ r.points.total }}</span>
-              <span class="block text-[11px] text-muted mt-1">{{ i18n.t(r.choice === null ? 'dq.timeout' : r.correct ? 'dq.correct' : 'dq.wrong') }}</span>
+              <span class="block text-xs text-muted mt-1">{{ i18n.t(r.choice === null ? 'dq.timeout' : r.correct ? 'dq.correct' : 'dq.wrong') }}</span>
             </button>
           }
         </div>
         @if (s.status === 'ready') {
-          <p class="text-[12px] text-muted mt-2">{{ i18n.t('dq.ready') }}. {{ i18n.t('dq.rules') }}</p>
+          <p class="text-xs text-muted mt-2">{{ i18n.t('dq.ready') }}. {{ i18n.t('dq.rules') }}</p>
         } @else if (s.status === 'done') {
-          <p class="text-[12px] text-muted mt-2">{{ i18n.t('dq.tomorrow') }}</p>
+          <p class="text-xs text-muted mt-2">{{ i18n.t('dq.tomorrow') }}</p>
         } @else if (s.status === 'unavailable') {
-          <p class="text-[12px] text-muted mt-2">{{ i18n.t('dq.unavailable') }}</p>
+          <p class="text-xs text-muted mt-2">{{ i18n.t('dq.unavailable') }}</p>
         }
         @if (s.lockedUntil) {
-          <p class="text-[11px] text-muted mt-1">{{ i18n.t('dq.locked').replace('{date}', (s.lockedUntil | date: 'd MMM' : undefined : dateLocale()) ?? '') }}</p>
+          <p class="text-xs text-muted mt-1">{{ i18n.t('dq.locked').replace('{date}', (s.lockedUntil | date: 'd MMM' : undefined : dateLocale()) ?? '') }}</p>
         }
       </section>
 
@@ -97,7 +97,7 @@ const RESULT_POLL_DELAY_MS = 2_500;
               >
                 <app-player-photo [photoUrl]="p.photoUrl" [name]="p.name" [teamCode]="p.teamCode" [size]="72" [centerFace]="true" />
                 <span class="text-sm font-semibold text-center leading-tight">{{ name(p) }}</span>
-                <span class="text-[11px] text-muted">{{ p.teamCode | teamCode }}</span>
+                <span class="text-xs text-muted">{{ p.teamCode | teamCode }}</span>
                 @if (value !== null) {
                   <span class="font-display text-3xl tabular-nums leading-none" [class.text-emerald-500]="other !== null && value > other">{{ value }}</span>
                 }
@@ -119,7 +119,7 @@ const RESULT_POLL_DELAY_MS = 2_500;
               }
               <div class="flex justify-between px-3 py-2 font-semibold"><dt>{{ i18n.t('dq.pts.total') }}</dt><dd class="tabular-nums text-team-primary">+{{ r.points.total }}</dd></div>
             </dl>
-            <p class="text-[12px] text-muted text-center mt-3">{{ i18n.t('dq.tomorrow') }}</p>
+            <p class="text-xs text-muted text-center mt-3">{{ i18n.t('dq.tomorrow') }}</p>
           }
         </app-dialog>
       }

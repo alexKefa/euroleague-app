@@ -21,7 +21,7 @@ import { Directive, HostBinding, Input } from "@angular/core";
 // app the default orange color with the preferred team") — same team-color
 // swap as button.directive.ts's own outline variant.
 const BASE =
-  "font-display font-bold text-xs px-3 py-1.5 rounded-xl border transition-colors disabled:opacity-40 disabled:pointer-events-none";
+  "font-display font-bold text-xs px-3 py-1.5 rounded-lg border transition-colors disabled:opacity-40 disabled:pointer-events-none";
 
 @Directive({
   selector: "[appChip]",

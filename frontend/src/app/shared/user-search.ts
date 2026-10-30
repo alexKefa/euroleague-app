@@ -28,7 +28,7 @@ export interface UserSearchResult {
     <div class="relative">
       <app-search-input [value]="query()" (valueChange)="onQueryChange($event)" [placeholder]="placeholder" />
       @if (open() && results().length > 0) {
-        <div class="absolute z-30 mt-1 w-full bg-card border-2 border-line rounded-xl shadow-pop overflow-hidden max-h-56 overflow-y-auto">
+        <div class="absolute z-30 mt-1 w-full bg-card border-2 border-line rounded-lg shadow-pop overflow-hidden max-h-56 overflow-y-auto">
           @for (u of results(); track u.id) {
             <button
               type="button"
@@ -36,7 +36,7 @@ export interface UserSearchResult {
               class="w-full text-left px-3 py-2 hover:bg-page transition-colors"
             >
               <span class="block text-sm font-semibold truncate">{{ u.username }}</span>
-              <span class="block text-[11px] text-muted font-mono truncate">{{ u.email }}</span>
+              <span class="block text-xs text-muted font-mono truncate">{{ u.email }}</span>
             </button>
           }
         </div>

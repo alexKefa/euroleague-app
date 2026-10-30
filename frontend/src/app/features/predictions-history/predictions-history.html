@@ -33,14 +33,14 @@
 
             <div class="space-y-2">
               @for (pick of round.picks; track pick.gameId) {
-                <a [routerLink]="['/games', pick.gameId]" class="block px-2 py-2 rounded-xl hover:bg-page transition-colors">
+                <a [routerLink]="['/games', pick.gameId]" class="block px-2 py-2 rounded-lg hover:bg-page transition-colors">
                   <div class="flex items-center justify-between gap-2">
                     <span class="flex items-center gap-1.5">
                       <app-team-badge [code]="pick.homeTeam.code" [logoUrl]="pick.homeTeam.logoUrl" [size]="16"></app-team-badge>
                       <span class="text-muted text-xs">&ndash;</span>
                       <app-team-badge [code]="pick.awayTeam.code" [logoUrl]="pick.awayTeam.logoUrl" [size]="16"></app-team-badge>
                     </span>
-                    <span class="font-mono text-[11px] text-muted shrink-0">{{ pick.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}{{ pick.tipoffAt | todayTag: i18n.lang() }}</span>
+                    <span class="font-mono text-xs text-muted shrink-0">{{ pick.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}{{ pick.tipoffAt | todayTag: i18n.lang() }}</span>
                   </div>
 
                   @if (pick.predictedTeam) {
@@ -49,11 +49,11 @@
                         <app-team-badge [code]="pick.predictedTeam.code" [logoUrl]="predictedTeamLogo(pick)" [size]="16"></app-team-badge>
                       </span>
                       @if (pick.winLossCorrect === null) {
-                        <span class="text-[11px] font-bold text-muted shrink-0">{{ i18n.t('predictions.pending') }}</span>
+                        <span class="text-xs font-bold text-muted shrink-0">{{ i18n.t('predictions.pending') }}</span>
                       } @else if (pick.winLossCorrect === true) {
-                        <span class="text-[11px] font-bold text-emerald-500 shrink-0">+{{ pick.winLossPoints }} {{ i18n.t('predictions.pts') }}</span>
+                        <span class="text-xs font-bold text-emerald-500 shrink-0">+{{ pick.winLossPoints }} {{ i18n.t('predictions.pts') }}</span>
                       } @else {
-                        <span class="text-[11px] font-bold text-red-500 shrink-0">{{ i18n.t('predictions.wrong') }}</span>
+                        <span class="text-xs font-bold text-red-500 shrink-0">{{ i18n.t('predictions.wrong') }}</span>
                       }
                     </div>
                   }
@@ -62,14 +62,14 @@
                     <div class="flex items-center justify-between gap-2 mt-1.5 pt-1.5 border-t border-line/60">
                       <span class="flex items-center gap-1.5 min-w-0">
                         <app-player-photo [name]="scorer.name" [photoUrl]="scorer.photoUrl" [size]="20" class="rounded-full shrink-0" />
-                        <span class="font-mono text-[11px] text-muted truncate">{{ scorer.name }}</span>
+                        <span class="font-mono text-xs text-muted truncate">{{ scorer.name }}</span>
                       </span>
                       @if (pick.topScorerCorrect === null) {
-                        <span class="text-[11px] font-bold text-muted shrink-0">{{ i18n.t('predictions.pending') }}</span>
+                        <span class="text-xs font-bold text-muted shrink-0">{{ i18n.t('predictions.pending') }}</span>
                       } @else if (pick.topScorerCorrect === true) {
-                        <span class="text-[11px] font-bold text-emerald-500 shrink-0">+{{ pick.topScorerPoints }} {{ i18n.t('predictions.pts') }}</span>
+                        <span class="text-xs font-bold text-emerald-500 shrink-0">+{{ pick.topScorerPoints }} {{ i18n.t('predictions.pts') }}</span>
                       } @else {
-                        <span class="text-[11px] font-bold text-red-500 shrink-0">{{ i18n.t('predictions.wrong') }}</span>
+                        <span class="text-xs font-bold text-red-500 shrink-0">{{ i18n.t('predictions.wrong') }}</span>
                       }
                     </div>
                   }

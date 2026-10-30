@@ -4,20 +4,20 @@
   @if (auth.currentUser(); as user) {
     <!-- Profile hero (2026-09-29 restyle, "feels way off"): avatar, username
          (edited in place), email and favourite team in one team-colour card. -->
-    <div class="relative overflow-hidden bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+    <div class="relative overflow-hidden bg-card rounded-2xl border border-line shadow-card p-4 mb-4">
       <div class="pointer-events-none absolute inset-0" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 26%, transparent) 0%, color-mix(in srgb, var(--accent-primary) 6%, transparent) 55%, transparent 100%)" aria-hidden="true"></div>
       <div class="pointer-events-none absolute -right-16 -top-16 w-48 h-48 rounded-full border-[14px]" style="border-color: color-mix(in srgb, var(--accent-primary) 12%, transparent)" aria-hidden="true"></div>
       <div class="relative flex items-center gap-3">
         <span class="w-16 h-16 rounded-2xl bg-team-primary text-team-secondary flex items-center justify-center font-display text-3xl uppercase shrink-0 shadow-card">{{ (user.username || user.email).charAt(0) }}</span>
         <div class="min-w-0 flex-1">
-          <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('profile.username') }}</p>
+          <p class="text-xs font-bold text-muted uppercase tracking-wider">{{ i18n.t('profile.username') }}</p>
           @if (!editingUsername()) {
             <div class="flex items-center gap-2 min-w-0">
               <p class="font-display text-2xl leading-tight truncate">{{ user.username }}</p>
               <button type="button" (click)="startEditingUsername()" class="tap-target relative shrink-0 w-8 h-8 rounded-lg status-tile border border-line flex items-center justify-center text-muted hover:text-team-primary transition-colors" [attr.aria-label]="i18n.t('profile.usernameEdit')">&#9998;</button>
             </div>
           }
-          <p class="text-[13px] text-muted truncate">{{ user.email }}</p>
+          <p class="text-sm text-muted truncate">{{ user.email }}</p>
         </div>
       </div>
       @if (editingUsername()) {
@@ -28,16 +28,16 @@
             (ngModelChange)="usernameInput.set($event)"
             name="username"
             maxlength="20"
-            class="flex-1 w-0 min-w-0 h-11 px-3 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
+            class="flex-1 w-0 min-w-0 h-11 px-3 rounded-lg bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
           />
-          <button type="submit" [disabled]="usernameSaving()" appButton class="shrink-0 !h-11 !rounded-xl">
+          <button type="submit" [disabled]="usernameSaving()" appButton class="shrink-0 !h-11 !rounded-lg">
             {{ usernameSaving() ? i18n.t('profile.usernameSaving') : i18n.t('profile.usernameSave') }}
           </button>
-          <button type="button" (click)="cancelEditingUsername()" [disabled]="usernameSaving()" class="status-tile shrink-0 h-11 px-3 rounded-xl border border-line text-sm font-semibold text-muted">
+          <button type="button" (click)="cancelEditingUsername()" [disabled]="usernameSaving()" class="status-tile shrink-0 h-11 px-3 rounded-lg border border-line text-sm font-semibold text-muted">
             &times;
           </button>
         </form>
-        <p class="relative text-[12px] text-muted mt-2">{{ i18n.t('profile.usernameHint') }}</p>
+        <p class="relative text-xs text-muted mt-2">{{ i18n.t('profile.usernameHint') }}</p>
       }
       @if (usernameError()) {
         <p class="relative text-red-500 text-xs font-semibold mt-2">{{ usernameError() }}</p>
@@ -54,30 +54,30 @@
             <span class="w-8 h-8 rounded-full shrink-0" [style.background]="team.primaryColor"></span>
           }
           <span class="min-w-0 text-left">
-            <span class="block text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('profile.favoriteTeam') }}</span>
+            <span class="block text-xs font-bold text-muted uppercase tracking-wider">{{ i18n.t('profile.favoriteTeam') }}</span>
             <span class="block font-display text-sm truncate">{{ team.name }}</span>
           </span>
         } @else {
           <span class="font-display text-sm text-muted">{{ i18n.t('profile.noFavoriteTeam') }}</span>
         }
-        <span class="ml-auto text-[12px] font-bold text-team-primary shrink-0">{{ i18n.t('profile.changeTeam') }}</span>
+        <span class="ml-auto text-xs font-bold text-team-primary shrink-0">{{ i18n.t('profile.changeTeam') }}</span>
       </button>
     </div>
-    <a routerLink="/achievements" class="flex items-center gap-3 bg-card rounded-3xl border border-line shadow-card p-4 mb-4 hover:border-team-primary/50 transition-colors">
-      <span class="w-10 h-10 rounded-xl bg-team-primary/15 text-team-primary flex items-center justify-center shrink-0"><app-nav-icon name="medal" [size]="20" /></span>
+    <a routerLink="/achievements" class="flex items-center gap-3 bg-card rounded-2xl border border-line shadow-card p-4 mb-4 hover:border-team-primary/50 transition-colors">
+      <span class="w-10 h-10 rounded-lg bg-team-primary/15 text-team-primary flex items-center justify-center shrink-0"><app-nav-icon name="medal" [size]="20" /></span>
       <span class="min-w-0 flex-1">
         <span class="block font-display text-base">{{ i18n.t('achievements.title') }}</span>
-        <span class="block text-[12px] text-muted truncate">{{ i18n.t('achievements.hubSub') }}</span>
+        <span class="block text-xs text-muted truncate">{{ i18n.t('achievements.hubSub') }}</span>
       </span>
       <span class="text-team-primary font-bold shrink-0">&rarr;</span>
     </a>
     @if (seasonBadges().length > 0) {
-      <a routerLink="/battles" class="block bg-card rounded-3xl border border-line shadow-card p-4 mb-4 hover:border-team-primary/50 transition-colors">
+      <a routerLink="/battles" class="block bg-card rounded-2xl border border-line shadow-card p-4 mb-4 hover:border-team-primary/50 transition-colors">
         <span class="flex items-center gap-3 mb-3">
-          <span class="w-10 h-10 rounded-xl bg-team-primary/15 text-team-primary flex items-center justify-center shrink-0"><app-nav-icon name="trophy" [size]="20" /></span>
+          <span class="w-10 h-10 rounded-lg bg-team-primary/15 text-team-primary flex items-center justify-center shrink-0"><app-nav-icon name="trophy" [size]="20" /></span>
           <span class="min-w-0 flex-1">
             <span class="block font-display text-base">{{ i18n.t('duels.profileSeasonsTitle') }}</span>
-            <span class="block text-[12px] text-muted truncate">{{ i18n.t('duels.profileSeasonsSub') }}</span>
+            <span class="block text-xs text-muted truncate">{{ i18n.t('duels.profileSeasonsSub') }}</span>
           </span>
           <span class="text-team-primary font-bold shrink-0">&rarr;</span>
         </span>
@@ -85,20 +85,20 @@
       </a>
     }
     @if (referralLink(); as link) {
-      <div data-tour="profile-referral" class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+      <div data-tour="profile-referral" class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4">
         <div class="flex items-center gap-2.5 mb-1">
-          <span class="w-10 h-10 rounded-xl bg-team-primary/15 text-team-primary flex items-center justify-center shrink-0"><app-nav-icon name="bracket" [size]="20" /></span>
+          <span class="w-10 h-10 rounded-lg bg-team-primary/15 text-team-primary flex items-center justify-center shrink-0"><app-nav-icon name="bracket" [size]="20" /></span>
           <p class="font-display text-base">{{ i18n.t('profile.referralTitle') }}</p>
         </div>
-        <p class="text-[12px] text-muted mb-3">{{ i18n.t('profile.referralHint') }}</p>
+        <p class="text-xs text-muted mb-3">{{ i18n.t('profile.referralHint') }}</p>
         <div class="flex gap-2">
           <input
             type="text"
             readonly
             [value]="link"
-            class="status-tile flex-1 w-0 min-w-0 h-11 px-3 rounded-xl border-2 border-dashed border-team-primary/50 text-xs font-mono text-ink truncate"
+            class="status-tile flex-1 w-0 min-w-0 h-11 px-3 rounded-lg border-2 border-dashed border-team-primary/50 text-xs font-mono text-ink truncate"
           />
-          <button type="button" (click)="copyReferralLink()" appButton class="shrink-0 !h-11 !rounded-xl">
+          <button type="button" (click)="copyReferralLink()" appButton class="shrink-0 !h-11 !rounded-lg">
             {{ referralCopied() ? i18n.t('profile.referralCopied') : i18n.t('profile.referralCopy') }}
           </button>
         </div>
@@ -118,9 +118,9 @@
          either way once there's enough to fill it, which covers most real
          accounts. -->
     @if (ownedCollectiblesLoading()) {
-      <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4">
         <div class="flex items-center gap-2.5 mb-1">
-          <span class="w-10 h-10 rounded-xl bg-team-primary/15 text-team-primary flex items-center justify-center shrink-0"><app-nav-icon name="cards" [size]="20" /></span>
+          <span class="w-10 h-10 rounded-lg bg-team-primary/15 text-team-primary flex items-center justify-center shrink-0"><app-nav-icon name="cards" [size]="20" /></span>
           <p class="font-display text-base">{{ i18n.t('profile.showcaseTitle') }}</p>
         </div>
         <p class="text-xs text-muted mb-3">{{ i18n.t('profile.showcaseHint') }}</p>
@@ -129,12 +129,12 @@
             <app-skeleton class="rounded-2xl" style="aspect-ratio: 2.5 / 3.5" [iconSize]="20" />
           }
         </div>
-        <app-skeleton class="rounded-xl inline-block h-9 w-32" [icon]="false" />
+        <app-skeleton class="rounded-lg inline-block h-9 w-32" [icon]="false" />
       </div>
     } @else if (myOwnedCollectibles().length > 0) {
-      <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4">
         <div class="flex items-center gap-2.5 mb-1">
-          <span class="w-10 h-10 rounded-xl bg-team-primary/15 text-team-primary flex items-center justify-center shrink-0"><app-nav-icon name="cards" [size]="20" /></span>
+          <span class="w-10 h-10 rounded-lg bg-team-primary/15 text-team-primary flex items-center justify-center shrink-0"><app-nav-icon name="cards" [size]="20" /></span>
           <p class="font-display text-base">{{ i18n.t('profile.showcaseTitle') }}</p>
         </div>
         <p class="text-xs text-muted mb-3">{{ i18n.t('profile.showcaseHint') }}</p>
@@ -182,32 +182,32 @@
     }
 
     <!-- Settings: one card, label left / segmented switch right. -->
-    <div class="bg-card rounded-3xl border border-line shadow-card px-4 py-1 divide-y divide-line">
+    <div class="bg-card rounded-2xl border border-line shadow-card px-4 py-1 divide-y divide-line">
       <!-- Push notifications (core/push.service.ts). Hidden when the server
            has no VAPID keys or the browser can't do push at all. -->
       @if (push.status() === 'on' || push.status() === 'off') {
         <div class="py-3">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <p class="text-sm font-semibold">{{ i18n.t('profile.notifications') }}</p>
-            <div class="status-tile inline-flex items-center h-10 p-1 gap-1 rounded-xl border border-line shrink-0">
-              <button type="button" (click)="push.disable()" [disabled]="push.busy()" class="h-full px-3 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors" [ngClass]="push.status() === 'off' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">
+            <div class="status-tile inline-flex items-center h-10 p-1 gap-1 rounded-lg border border-line shrink-0">
+              <button type="button" (click)="push.disable()" [disabled]="push.busy()" class="h-full px-3 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors" [ngClass]="push.status() === 'off' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">
                 {{ i18n.t('profile.notificationsOff') }}
               </button>
-              <button type="button" (click)="push.enable()" [disabled]="push.busy()" class="h-full px-3 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors" [ngClass]="push.status() === 'on' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">
+              <button type="button" (click)="push.enable()" [disabled]="push.busy()" class="h-full px-3 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors" [ngClass]="push.status() === 'on' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">
                 {{ i18n.t('profile.notificationsOn') }}
               </button>
             </div>
           </div>
-          <p class="text-[12px] text-muted mt-1">{{ i18n.t('profile.notificationsHint') }}</p>
+          <p class="text-xs text-muted mt-1">{{ i18n.t('profile.notificationsHint') }}</p>
           <!-- Per-type toggles (2026-10-12, backend services/pushPreferences.ts):
                only meaningful while this device has push on. -->
           @if (pushPrefs(); as prefs) {
-            <p class="text-[11px] font-bold uppercase tracking-wider text-muted mt-3 mb-1">{{ i18n.t('profile.pushTypes') }}</p>
+            <p class="text-xs font-bold uppercase tracking-wider text-muted mt-3 mb-1">{{ i18n.t('profile.pushTypes') }}</p>
             <ul class="flex flex-col">
               @for (p of pushPrefRows; track p.key) {
                 <li>
                   <label class="flex items-center justify-between gap-3 py-1.5 cursor-pointer" [class.opacity-50]="push.status() !== 'on'">
-                    <span class="text-[13px]">{{ i18n.t(p.label) }}</span>
+                    <span class="text-sm">{{ i18n.t(p.label) }}</span>
                     <input
                       type="checkbox"
                       role="switch"
@@ -225,38 +225,38 @@
       } @else if (push.status() === 'needs-install' || push.status() === 'denied') {
         <div class="py-3">
           <p class="text-sm font-semibold">{{ i18n.t('profile.notifications') }}</p>
-          <p class="text-[12px] text-muted mt-0.5">{{ i18n.t(push.status() === 'denied' ? 'profile.notificationsDenied' : 'profile.notificationsNeedsInstall') }}</p>
+          <p class="text-xs text-muted mt-0.5">{{ i18n.t(push.status() === 'denied' ? 'profile.notificationsDenied' : 'profile.notificationsNeedsInstall') }}</p>
         </div>
       }
       <div class="flex flex-wrap items-center justify-between gap-2 py-3">
         <p class="text-sm font-semibold">{{ i18n.t('profile.language') }}</p>
-        <div class="status-tile inline-flex items-center h-10 p-1 gap-1 rounded-xl border border-line shrink-0">
-          <button type="button" (click)="i18n.setLang('en')" class="h-full px-3 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors" [ngClass]="i18n.lang() === 'en' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">
+        <div class="status-tile inline-flex items-center h-10 p-1 gap-1 rounded-lg border border-line shrink-0">
+          <button type="button" (click)="i18n.setLang('en')" class="h-full px-3 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors" [ngClass]="i18n.lang() === 'en' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">
             {{ i18n.t('profile.languageEnglish') }}
           </button>
-          <button type="button" (click)="i18n.setLang('el')" class="h-full px-3 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors" [ngClass]="i18n.lang() === 'el' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">
+          <button type="button" (click)="i18n.setLang('el')" class="h-full px-3 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors" [ngClass]="i18n.lang() === 'el' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">
             {{ i18n.t('profile.languageGreek') }}
           </button>
         </div>
       </div>
       <div class="flex flex-wrap items-center justify-between gap-2 py-3">
         <p class="text-sm font-semibold">{{ i18n.t('profile.theme') }}</p>
-        <div class="status-tile inline-flex items-center h-10 p-1 gap-1 rounded-xl border border-line shrink-0">
-          <button type="button" (click)="theme.setColorScheme('light')" class="h-full px-3 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors" [ngClass]="theme.colorScheme() === 'light' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">
+        <div class="status-tile inline-flex items-center h-10 p-1 gap-1 rounded-lg border border-line shrink-0">
+          <button type="button" (click)="theme.setColorScheme('light')" class="h-full px-3 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors" [ngClass]="theme.colorScheme() === 'light' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">
             {{ i18n.t('profile.themeLight') }}
           </button>
-          <button type="button" (click)="theme.setColorScheme('dark')" class="h-full px-3 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors" [ngClass]="theme.colorScheme() === 'dark' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">
+          <button type="button" (click)="theme.setColorScheme('dark')" class="h-full px-3 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors" [ngClass]="theme.colorScheme() === 'dark' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">
             {{ i18n.t('profile.themeDark') }}
           </button>
         </div>
       </div>
       <div class="flex flex-wrap items-center justify-between gap-2 py-3">
         <p class="text-sm font-semibold">{{ i18n.t('profile.pinchZoom') }}</p>
-        <div class="status-tile inline-flex items-center h-10 p-1 gap-1 rounded-xl border border-line shrink-0">
-          <button type="button" (click)="theme.setPinchZoomEnabled(false)" class="h-full px-3 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors" [ngClass]="!theme.pinchZoomEnabled() ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">
+        <div class="status-tile inline-flex items-center h-10 p-1 gap-1 rounded-lg border border-line shrink-0">
+          <button type="button" (click)="theme.setPinchZoomEnabled(false)" class="h-full px-3 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors" [ngClass]="!theme.pinchZoomEnabled() ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">
             {{ i18n.t('profile.pinchZoomOff') }}
           </button>
-          <button type="button" (click)="theme.setPinchZoomEnabled(true)" class="h-full px-3 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors" [ngClass]="theme.pinchZoomEnabled() ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">
+          <button type="button" (click)="theme.setPinchZoomEnabled(true)" class="h-full px-3 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors" [ngClass]="theme.pinchZoomEnabled() ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">
             {{ i18n.t('profile.pinchZoomOn') }}
           </button>
         </div>
@@ -266,7 +266,7 @@
       <label class="flex items-center justify-between gap-3 py-3 cursor-pointer">
         <span class="min-w-0">
           <span class="block text-sm font-semibold">{{ i18n.t('profile.featureInClips') }}</span>
-          <span class="block text-[12px] text-muted mt-0.5">{{ i18n.t('profile.featureInClipsHint') }}</span>
+          <span class="block text-xs text-muted mt-0.5">{{ i18n.t('profile.featureInClipsHint') }}</span>
         </span>
         <input
           type="checkbox"
@@ -287,7 +287,7 @@
     }
 
     @if (user.isAdmin) {
-      <p class="font-mono text-[12px] text-muted font-bold mt-6 mb-2">
+      <p class="font-mono text-xs text-muted font-bold mt-6 mb-2">
         {{ i18n.t('profile.adminSectionTitle') }}
       </p>
 
@@ -297,7 +297,7 @@
       >
         <span class="flex items-center gap-2">
           <app-nav-icon name="user" [size]="16" class="text-muted" />
-          <span class="font-mono text-[12px] font-bold">{{ i18n.t('profile.adminUsersLink') }}</span>
+          <span class="font-mono text-xs font-bold">{{ i18n.t('profile.adminUsersLink') }}</span>
         </span>
         <span class="text-muted">&rarr;</span>
       </a>
@@ -319,7 +319,7 @@
       >
         <span class="flex items-center gap-2">
           <app-nav-icon name="sliders" [size]="16" class="text-muted" />
-          <span class="font-mono text-[12px] font-bold">{{ i18n.t('profile.adminToolsLink') }}</span>
+          <span class="font-mono text-xs font-bold">{{ i18n.t('profile.adminToolsLink') }}</span>
         </span>
         <span class="text-muted">&rarr;</span>
       </a>
@@ -338,7 +338,7 @@
          and services/accountDeletion.ts. -->
     <div class="bg-card rounded-2xl border border-line shadow-card p-4 mt-5">
       <p class="font-display text-base mb-1">{{ i18n.t('profile.yourData') }}</p>
-      <p class="text-[12px] text-muted mb-3">{{ i18n.t('profile.downloadDataHint') }}</p>
+      <p class="text-xs text-muted mb-3">{{ i18n.t('profile.downloadDataHint') }}</p>
       <div class="grid grid-cols-2 gap-2">
         <button type="button" appButton="outline" appButtonSize="sm" [disabled]="exporting()" (click)="downloadMyData()">
           {{ i18n.t('profile.downloadData') }}
@@ -355,7 +355,7 @@
     @if (deleteOpen()) {
       <app-dialog [title]="i18n.t('profile.deleteAccount')" icon="user" [closeLabel]="i18n.t('admin.close')" (closed)="deleteOpen.set(false)">
         <p class="text-sm mb-4">{{ i18n.t('profile.deleteAccountHint') }}</p>
-        <label class="block text-[12px] text-muted mb-1.5" for="delete-confirm">
+        <label class="block text-xs text-muted mb-1.5" for="delete-confirm">
           {{ i18n.t('profile.deleteConfirmLabel').replace('{username}', auth.currentUser()?.username ?? '') }}
         </label>
         <input
@@ -365,7 +365,7 @@
           autocomplete="off"
           autocapitalize="off"
           spellcheck="false"
-          class="w-full px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-red-500 outline-none mb-3"
+          class="w-full px-3 py-2 rounded-lg bg-page border-2 border-line text-sm font-semibold focus:border-red-500 outline-none mb-3"
         />
         <button
           type="button"

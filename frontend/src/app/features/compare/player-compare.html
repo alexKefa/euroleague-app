@@ -7,8 +7,8 @@
 
   @if (loading()) {
     <div class="grid grid-cols-2 gap-3 mb-5">
-      <app-skeleton class="rounded-3xl h-40" [iconSize]="22" />
-      <app-skeleton class="rounded-3xl h-40" [iconSize]="22" />
+      <app-skeleton class="rounded-2xl h-40" [iconSize]="22" />
+      <app-skeleton class="rounded-2xl h-40" [iconSize]="22" />
     </div>
   } @else {
     <!-- Two player slots (2026-09-30 restyle): a filled slot is a player
@@ -22,7 +22,7 @@
         <div class="relative min-w-0">
           @if (row) {
             <div
-              class="compare-rise relative rounded-3xl border overflow-hidden p-3 sm:p-4 flex flex-col items-center text-center"
+              class="compare-rise relative rounded-2xl border overflow-hidden p-3 sm:p-4 flex flex-col items-center text-center"
               [style.border-color]="'color-mix(in srgb, ' + color + ' 50%, var(--color-line))'"
               [style.background]="'linear-gradient(180deg, color-mix(in srgb, ' + color + ' 30%, var(--color-card)) 0%, var(--color-card) 70%)'"
             >
@@ -36,26 +36,26 @@
                 [size]="72"
               />
               <p class="font-display text-base leading-tight mt-2 line-clamp-2 min-h-[2.5rem] w-full">{{ displayName(row.player.name) }}</p>
-              <p class="flex items-center justify-center gap-1 text-[11px] text-muted mt-0.5 w-full">
+              <p class="flex items-center justify-center gap-1 text-xs text-muted mt-0.5 w-full">
                 @if (row.team.logoUrl) {
                   <img [src]="row.team.logoUrl" [alt]="row.team.name" loading="lazy" decoding="async" appRetryImg class="w-3.5 h-3.5 object-contain shrink-0 team-logo" />
                 }
                 <span class="truncate">{{ row.team.code | teamCode }}</span>
               </p>
               <div class="flex flex-wrap justify-center gap-1 mt-2">
-                <span class="value-chip !text-[11px] !py-1" [style.color]="color">{{ row.stats.pointsPerGame ?? '—' }} {{ i18n.t('liveCenter.ppg') }}</span>
-                <span class="value-chip !text-[11px] !py-1" [style.color]="color">{{ row.stats.valuation ?? '—' }} PIR</span>
+                <span class="value-chip !text-xs !py-1" [style.color]="color">{{ row.stats.pointsPerGame ?? '—' }} {{ i18n.t('liveCenter.ppg') }}</span>
+                <span class="value-chip !text-xs !py-1" [style.color]="color">{{ row.stats.valuation ?? '—' }} PIR</span>
               </div>
               <button
                 type="button"
                 (click)="clear($any(side))"
-                class="mt-2.5 h-7 px-3 rounded-lg text-[11px] font-bold uppercase tracking-wide bg-card border border-line text-muted hover:text-ink transition-colors"
+                class="mt-2.5 h-7 px-3 rounded-lg text-xs font-bold uppercase tracking-wide bg-card border border-line text-muted hover:text-ink transition-colors"
               >
                 {{ i18n.t('stats.compare.change') }}
               </button>
             </div>
           } @else {
-            <div class="rounded-3xl border-2 border-dashed border-line p-3 min-h-[12rem] flex flex-col">
+            <div class="rounded-2xl border-2 border-dashed border-line p-3 min-h-[12rem] flex flex-col">
               <span class="card-head-icon mx-auto my-3 !w-12 !h-12 !rounded-full" [style.color]="color" [style.background]="'color-mix(in srgb, ' + color + ' 14%, transparent)'">
                 <app-nav-icon name="user" [size]="22" />
               </span>
@@ -70,11 +70,11 @@
               <ul class="absolute z-20 left-0 right-0 mt-1 max-h-64 overflow-y-auto rounded-2xl bg-card border border-line shadow-pop p-1.5 space-y-1">
                 @for (s of (side === 'a' ? suggestionsA() : suggestionsB()); track s.player.id) {
                   <li>
-                    <button type="button" (click)="pick($any(side), s)" class="w-full flex items-center gap-2 px-2 py-1.5 rounded-xl text-left hover:bg-page transition-colors">
+                    <button type="button" (click)="pick($any(side), s)" class="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left hover:bg-page transition-colors">
                       <app-player-photo [photoUrl]="s.player.photoUrl" [name]="s.player.name" [teamCode]="s.team.code" [primaryColor]="s.team.primaryColor" [size]="28" class="shrink-0" />
                       <span class="min-w-0 flex-1">
-                        <span class="block text-[13px] font-semibold truncate">{{ displayName(s.player.name) }}</span>
-                        <span class="block text-[10px] text-muted truncate">{{ s.team.code | teamCode }}</span>
+                        <span class="block text-sm font-semibold truncate">{{ displayName(s.player.name) }}</span>
+                        <span class="block text-2xs text-muted truncate">{{ s.team.code | teamCode }}</span>
                       </span>
                     </button>
                   </li>
@@ -106,11 +106,11 @@
         </a>
         <!-- Category score: each side's wins in its own team color, and a
              two-color split bar. -->
-        <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4 compare-rise">
-          <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2 text-center">{{ i18n.t('stats.compare.categoryScore') }}</p>
+        <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4 compare-rise">
+          <p class="text-xs text-muted font-bold uppercase tracking-wider mb-2 text-center">{{ i18n.t('stats.compare.categoryScore') }}</p>
           <div class="flex items-center justify-between mb-2.5">
             <span class="font-display text-4xl tabular-nums" [style.color]="tally().winsA >= tally().winsB ? colorA() : null" [class.text-muted]="tally().winsA < tally().winsB">{{ tally().winsA }}</span>
-            <span class="text-[12px] font-bold text-muted text-center px-2 truncate">
+            <span class="text-xs font-bold text-muted text-center px-2 truncate">
               @if (tally().winsA !== tally().winsB) {
                 {{ displayName((tally().winsA > tally().winsB ? a : b).player.name) }} {{ i18n.t('stats.compare.leads') }}
               } @else {
@@ -131,7 +131,7 @@
 
         <!-- Per-category rows: values either side, diverging bars from the
              middle, the winner's value and bar in its team color. -->
-        <div class="bg-card rounded-3xl border border-line shadow-card p-3 space-y-2">
+        <div class="bg-card rounded-2xl border border-line shadow-card p-3 space-y-2">
           @for (cat of categories; track cat.key; let i = $index) {
             <div class="compare-rise rounded-2xl bg-page/60 border border-line px-3 py-2.5" [style.animation-delay.ms]="i * 40">
               <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2 mb-1.5">
@@ -143,7 +143,7 @@
                 >
                   {{ formatValue(cat, 'a') }}
                 </span>
-                <span class="text-[11px] text-muted font-bold uppercase tracking-wide text-center">{{ i18n.t(cat.labelKey) }}</span>
+                <span class="text-xs text-muted font-bold uppercase tracking-wide text-center">{{ i18n.t(cat.labelKey) }}</span>
                 <span
                   class="justify-self-end font-mono text-sm font-bold px-2 py-0.5 rounded-lg"
                   [style.color]="isWinner(cat, 'b') ? colorB() : null"
@@ -176,7 +176,7 @@
         </div>
       }
     } @else {
-      <div class="bg-card rounded-3xl border border-line shadow-card p-6 text-center">
+      <div class="bg-card rounded-2xl border border-line shadow-card p-6 text-center">
         <p class="text-sm text-muted font-semibold">{{ i18n.t('stats.compare.pickPrompt') }}</p>
       </div>
     }

@@ -87,7 +87,7 @@ function currentViewportSize(): { width: number; height: number } {
 
         @if (spotlightBox(); as box) {
           <div
-            class="absolute rounded-xl pointer-events-none transition-all duration-300 ease-out"
+            class="absolute rounded-lg pointer-events-none transition-all duration-300 ease-out"
             style="box-shadow: 0 0 0 9999px rgba(0,0,0,0.72)"
             [style.top.px]="box.top"
             [style.left.px]="box.left"
@@ -103,7 +103,7 @@ function currentViewportSize(): { width: number; height: number } {
                already team-colored element would lose contrast right where
                the tour most needs to draw the eye. -->
           <div
-            class="tour-ring absolute rounded-xl border-2 border-highlight pointer-events-none transition-all duration-300 ease-out"
+            class="tour-ring absolute rounded-lg border-2 border-highlight pointer-events-none transition-all duration-300 ease-out"
             [style.top.px]="box.top"
             [style.left.px]="box.left"
             [style.width.px]="box.width"
@@ -119,22 +119,22 @@ function currentViewportSize(): { width: number; height: number } {
              a compact Back. -->
         <div
           #card
-          class="absolute w-[calc(100vw-2rem)] max-w-[340px] overflow-y-auto bg-card rounded-3xl border border-line shadow-pop transition-[top,left] duration-300 ease-out"
+          class="absolute w-[calc(100vw-2rem)] max-w-[340px] overflow-y-auto bg-card rounded-2xl border border-line shadow-pop transition-[top,left] duration-300 ease-out"
           [style.top.px]="cardTop()"
           [style.left.px]="cardLeft()"
           [style.max-height.px]="maxCardHeight()"
         >
-          <div class="pointer-events-none absolute inset-0 rounded-3xl" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 20%, transparent) 0%, transparent 60%)" aria-hidden="true"></div>
+          <div class="pointer-events-none absolute inset-0 rounded-2xl" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 20%, transparent) 0%, transparent 60%)" aria-hidden="true"></div>
           <div class="relative p-4">
             <div class="flex items-center justify-between gap-2 mb-3">
-              <span class="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-team-primary/15 text-team-primary text-[12px] font-bold">
+              <span class="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-team-primary/15 text-team-primary text-xs font-bold">
                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>
                 {{ i18n.t('tour.stepLabel') }} {{ tour.visibleStepNumber() }} / {{ tour.visibleSteps().length }}
               </span>
               <button
                 type="button"
                 (click)="tour.end()"
-                class="tap-target relative w-8 h-8 rounded-xl border border-line flex items-center justify-center text-muted hover:text-ink transition-colors text-lg leading-none"
+                class="tap-target relative w-8 h-8 rounded-lg border border-line flex items-center justify-center text-muted hover:text-ink transition-colors text-lg leading-none"
                 [attr.aria-label]="i18n.t('tour.skip')"
                 [title]="i18n.t('tour.skip')"
               >
@@ -145,9 +145,9 @@ function currentViewportSize(): { width: number; height: number } {
               <div class="h-full rounded-full bg-team-primary transition-[width] duration-300" [style.width.%]="progressPct()"></div>
             </div>
             <p class="font-display text-lg leading-tight mb-1.5">{{ i18n.t(tour.currentStep()?.titleKey ?? '') }}</p>
-            <p class="text-[14px] text-muted leading-relaxed mb-4">{{ i18n.t(tour.currentStep()?.bodyKey ?? '') }}</p>
+            <p class="text-sm text-muted leading-relaxed mb-4">{{ i18n.t(tour.currentStep()?.bodyKey ?? '') }}</p>
             @if (tour.currentStep()?.ctaRoute; as ctaRoute) {
-              <button type="button" (click)="onCta(ctaRoute)" appButton class="w-full mb-2 !h-11 !rounded-xl">
+              <button type="button" (click)="onCta(ctaRoute)" appButton class="w-full mb-2 !h-11 !rounded-lg">
                 {{ i18n.t(tour.currentStep()!.ctaLabelKey ?? '') }}
               </button>
             }
@@ -156,7 +156,7 @@ function currentViewportSize(): { width: number; height: number } {
                 <button
                   type="button"
                   (click)="tour.back()"
-                  class="shrink-0 w-11 h-11 rounded-xl border border-line flex items-center justify-center text-ink hover:border-team-primary transition-colors"
+                  class="shrink-0 w-11 h-11 rounded-lg border border-line flex items-center justify-center text-ink hover:border-team-primary transition-colors"
                   [attr.aria-label]="i18n.t('tour.back')"
                 >
                   <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
@@ -166,7 +166,7 @@ function currentViewportSize(): { width: number; height: number } {
                 type="button"
                 (click)="tour.next()"
                 [appButton]="tour.currentStep()?.ctaRoute ? 'secondary' : ''"
-                class="flex-1 !h-11 !rounded-xl"
+                class="flex-1 !h-11 !rounded-lg"
               >
                 {{ tour.stepIndex() === tour.steps.length - 1 ? i18n.t('tour.finish') : i18n.t('tour.next') }}
               </button>

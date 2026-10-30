@@ -20,27 +20,27 @@ interface SignupStats {
   standalone: true,
   template: `
     <div class="min-w-0">
-      <p class="text-[12px] text-muted mb-4 break-words">{{ i18n.t('admin.signupsDescription') }}</p>
+      <p class="text-xs text-muted mb-4 break-words">{{ i18n.t('admin.signupsDescription') }}</p>
       @if (error()) {
         <p class="text-sm text-red-500">{{ i18n.t('admin.signupsFailed') }}</p>
       } @else if (stats(); as s) {
         <div class="grid grid-cols-3 gap-2 mb-5">
           @for (tile of tiles(); track tile.label) {
-            <div class="rounded-xl border border-line bg-page p-3 text-center min-w-0">
+            <div class="rounded-lg border border-line bg-page p-3 text-center min-w-0">
               <p class="font-display text-2xl tabular-nums">{{ tile.value }}</p>
-              <p class="text-[11px] text-muted font-semibold uppercase tracking-wide break-words">{{ i18n.t(tile.label) }}</p>
+              <p class="text-xs text-muted font-semibold uppercase tracking-wide break-words">{{ i18n.t(tile.label) }}</p>
             </div>
           }
         </div>
 
-        <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('admin.signupsBySource') }}</p>
+        <p class="text-xs text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('admin.signupsBySource') }}</p>
         @if (s.bySource.length === 0) {
           <p class="text-sm text-muted mb-5">{{ i18n.t('admin.signupsEmpty') }}</p>
         } @else {
           <div class="overflow-x-auto mb-5">
             <table class="w-full text-sm">
               <thead>
-                <tr class="text-[11px] text-muted uppercase tracking-wide">
+                <tr class="text-xs text-muted uppercase tracking-wide">
                   <th class="text-left font-semibold py-1.5">{{ i18n.t('admin.signupsSource') }}</th>
                   <th class="text-right font-semibold py-1.5">{{ i18n.t('admin.signupsVisits') }}</th>
                   <th class="text-right font-semibold py-1.5">{{ i18n.t('admin.signupsSignups') }}</th>
@@ -61,10 +61,10 @@ interface SignupStats {
           </div>
         }
 
-        <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('admin.signupsWeekly') }}</p>
+        <p class="text-xs text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('admin.signupsWeekly') }}</p>
         <div class="space-y-1">
           @for (w of s.weekly; track w.week) {
-            <div class="flex items-center gap-2 text-[12px]">
+            <div class="flex items-center gap-2 text-xs">
               <span class="font-mono text-muted w-20 shrink-0">{{ w.week }}</span>
               <div class="flex-1 h-2 rounded-full bg-line overflow-hidden">
                 <div class="h-full bg-team-primary" [style.width.%]="(w.signups / maxWeekly()) * 100"></div>

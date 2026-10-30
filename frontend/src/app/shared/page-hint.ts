@@ -20,21 +20,21 @@ import { NavIconComponent, NavIconName } from "./nav-icon";
   imports: [NavIconComponent],
   template: `
     @if (!dismissed()) {
-      <div class="page-hint relative overflow-hidden rounded-3xl border mb-5 p-4 pr-10">
+      <div class="page-hint relative overflow-hidden rounded-2xl border mb-5 p-4 pr-10">
         <div class="page-hint-arc pointer-events-none absolute" aria-hidden="true"></div>
         <div class="relative flex items-start gap-3">
-          <span class="w-10 h-10 rounded-xl bg-team-primary text-team-secondary flex items-center justify-center shrink-0 shadow-sm">
+          <span class="w-10 h-10 rounded-lg bg-team-primary text-team-secondary flex items-center justify-center shrink-0 shadow-sm">
             <app-nav-icon [name]="icon" [size]="20" />
           </span>
           <div class="min-w-0 flex-1">
-            <p class="text-[11px] font-bold uppercase tracking-wider text-team-primary mb-0.5">{{ i18n.t('hint.label') }}</p>
-            <p class="text-[15px] text-ink leading-relaxed">
+            <p class="text-xs font-bold uppercase tracking-wider text-team-primary mb-0.5">{{ i18n.t('hint.label') }}</p>
+            <p class="text-base text-ink leading-relaxed">
               <ng-content></ng-content>
             </p>
             <button
               type="button"
               (click)="dismiss()"
-              class="mt-3 h-8 px-3.5 rounded-xl text-[13px] font-bold bg-team-primary/15 text-team-primary hover:bg-team-primary/25 transition-colors"
+              class="mt-3 h-8 px-3.5 rounded-lg text-sm font-bold bg-team-primary/15 text-team-primary hover:bg-team-primary/25 transition-colors"
             >
               {{ i18n.t('hint.gotIt') }}
             </button>

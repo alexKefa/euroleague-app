@@ -30,7 +30,7 @@ interface ErrorGroup {
   imports: [DatePipe, ButtonDirective],
   template: `
     <div class="min-w-0">
-      <p class="text-[12px] text-muted mb-3 break-words">{{ i18n.t('admin.errorsDescription') }}</p>
+      <p class="text-xs text-muted mb-3 break-words">{{ i18n.t('admin.errorsDescription') }}</p>
       <div class="flex flex-wrap gap-2 mb-4">
         @for (d of [1, 7, 30]; track d) {
           <button type="button" appButton="outline" appButtonSize="sm" [class.!border-team-primary]="days() === d" (click)="load(d)">
@@ -51,25 +51,25 @@ interface ErrorGroup {
       } @else {
         <ul class="flex flex-col gap-2">
           @for (g of groups(); track g.fingerprint) {
-            <li class="rounded-xl border border-line bg-page min-w-0">
+            <li class="rounded-lg border border-line bg-page min-w-0">
               <button type="button" class="w-full text-left p-3 min-w-0" (click)="toggle(g.fingerprint)">
                 <div class="flex items-center gap-2 min-w-0">
-                  <span class="shrink-0 rounded-full bg-red-500/15 text-red-500 text-[11px] font-semibold px-2 py-0.5 tabular-nums">×{{ g.count }}</span>
-                  <span class="text-[11px] text-muted uppercase tracking-wide shrink-0">{{ g.source }}</span>
-                  <span class="text-[11px] text-muted ml-auto shrink-0">{{ g.lastAt | date: 'd MMM, HH:mm' : undefined : dateLocale() }}</span>
+                  <span class="shrink-0 rounded-full bg-red-500/15 text-red-500 text-xs font-semibold px-2 py-0.5 tabular-nums">×{{ g.count }}</span>
+                  <span class="text-xs text-muted uppercase tracking-wide shrink-0">{{ g.source }}</span>
+                  <span class="text-xs text-muted ml-auto shrink-0">{{ g.lastAt | date: 'd MMM, HH:mm' : undefined : dateLocale() }}</span>
                 </div>
                 <p class="text-sm font-semibold mt-1.5 break-words">{{ g.message }}</p>
                 @if (g.path || g.context) {
-                  <p class="text-[12px] text-muted mt-0.5 break-all">{{ g.method ? g.method + ' ' : '' }}{{ g.path ?? g.context }}</p>
+                  <p class="text-xs text-muted mt-0.5 break-all">{{ g.method ? g.method + ' ' : '' }}{{ g.path ?? g.context }}</p>
                 }
               </button>
               @if (open() === g.fingerprint) {
                 <div class="px-3 pb-3">
                   @if (g.context && g.path) {
-                    <p class="text-[12px] text-muted mb-1 break-words">{{ g.context }}</p>
+                    <p class="text-xs text-muted mb-1 break-words">{{ g.context }}</p>
                   }
-                  <p class="text-[11px] text-muted mb-1">{{ i18n.t('admin.errorsFirstSeen') }} {{ g.firstAt | date: 'd MMM, HH:mm' : undefined : dateLocale() }}</p>
-                  <pre class="text-[11px] leading-snug bg-card border border-line rounded-lg p-2 overflow-x-auto whitespace-pre">{{ g.stack ?? '—' }}</pre>
+                  <p class="text-xs text-muted mb-1">{{ i18n.t('admin.errorsFirstSeen') }} {{ g.firstAt | date: 'd MMM, HH:mm' : undefined : dateLocale() }}</p>
+                  <pre class="text-xs leading-snug bg-card border border-line rounded-lg p-2 overflow-x-auto whitespace-pre">{{ g.stack ?? '—' }}</pre>
                 </div>
               }
             </li>

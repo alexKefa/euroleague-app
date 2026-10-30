@@ -49,13 +49,13 @@ const GROUP_LABEL: Record<SearchKind, string> = {
             spellcheck="false"
             class="flex-1 min-w-0 bg-transparent outline-none text-base font-semibold placeholder:text-muted placeholder:font-normal"
           />
-          <button type="button" (click)="close()" class="tap-target relative shrink-0 px-2 h-8 rounded-lg text-muted text-[12px] font-bold hover:text-ink">Esc</button>
+          <button type="button" (click)="close()" class="tap-target relative shrink-0 px-2 h-8 rounded-lg text-muted text-xs font-bold hover:text-ink">Esc</button>
         </div>
 
         <div class="flex-1 overflow-y-auto p-2">
           @if (!trimmed()) {
             @if (recent().length) {
-              <p class="px-2 pt-1 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted">{{ i18n.t('search.recent') }}</p>
+              <p class="px-2 pt-1 pb-1 text-2xs font-bold uppercase tracking-wider text-muted">{{ i18n.t('search.recent') }}</p>
               @for (r of recent(); track r.kind + r.id; let i = $index) {
                 <ng-container *ngTemplateOutlet="row; context: { $implicit: r, i: i }" />
               }
@@ -66,7 +66,7 @@ const GROUP_LABEL: Record<SearchKind, string> = {
             <p class="px-3 py-4 text-sm text-muted">{{ i18n.t('search.none').replace('{q}', trimmed()) }}</p>
           } @else {
             @for (g of groups(); track g.kind) {
-              <p class="px-2 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted">{{ i18n.t(groupLabel[g.kind]) }}</p>
+              <p class="px-2 pt-2 pb-1 text-2xs font-bold uppercase tracking-wider text-muted">{{ i18n.t(groupLabel[g.kind]) }}</p>
               @for (r of g.items; track r.kind + r.id) {
                 <ng-container *ngTemplateOutlet="row; context: { $implicit: r, i: flat().indexOf(r) }" />
               }
@@ -81,7 +81,7 @@ const GROUP_LABEL: Record<SearchKind, string> = {
         type="button"
         (click)="pick(r)"
         (mouseenter)="active.set(i)"
-        class="w-full flex items-center gap-3 px-2 py-2 rounded-xl text-left transition-colors"
+        class="w-full flex items-center gap-3 px-2 py-2 rounded-lg text-left transition-colors"
         [class.bg-page]="active() === i"
       >
         @if (r.kind === 'player') {
@@ -96,7 +96,7 @@ const GROUP_LABEL: Record<SearchKind, string> = {
         <span class="min-w-0 flex-1">
           <span class="block text-sm font-semibold truncate">{{ r.title }}</span>
           @if (r.subtitle) {
-            <span class="block text-[12px] text-muted truncate">{{ r.subtitle }}</span>
+            <span class="block text-xs text-muted truncate">{{ r.subtitle }}</span>
           }
         </span>
       </button>

@@ -32,7 +32,7 @@ function todayAthensDateKey(): string {
       <div class="toast-pop toast-pill pointer-events-auto mb-2" role="status">
         <div class="flex items-center gap-2.5">
           <span class="toast-pill-icon"><app-nav-icon [name]="r.icon" [size]="18" /></span>
-          <p class="min-w-0 flex-1 text-[13px] font-semibold leading-snug line-clamp-2">{{ r.text }}</p>
+          <p class="min-w-0 flex-1 text-sm font-semibold leading-snug line-clamp-2">{{ r.text }}</p>
           <button type="button" (click)="go(r)" class="toast-action">{{ r.cta }}</button>
           <button type="button" (click)="dismiss(r)" class="toast-x" [attr.aria-label]="i18n.t('hint.dismiss')">&times;</button>
         </div>

@@ -13,28 +13,28 @@
 
     @if (loading()) {
       <div class="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-3 mb-4">
-        <app-skeleton class="rounded-3xl h-[180px]" />
+        <app-skeleton class="rounded-2xl h-[180px]" />
         <div class="grid grid-cols-2 gap-3">
           @for (i of [0, 1, 2, 3]; track i) {
             <app-skeleton class="rounded-2xl h-[84px]" />
           }
         </div>
       </div>
-      <app-skeleton class="rounded-3xl h-[60vh]" />
+      <app-skeleton class="rounded-2xl h-[60vh]" />
     } @else if (error()) {
       <p class="text-red-500 text-sm font-semibold">{{ i18n.t('admin.loadError') }}</p>
     } @else {
       <!-- KPI hero: total + the 30-day signup chart in one team-tinted card,
            the four smaller counts beside it. -->
       <div class="grid lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-3 mb-4">
-        <div class="relative overflow-hidden rounded-3xl p-4 bg-card border border-line shadow-card">
+        <div class="relative overflow-hidden rounded-2xl p-4 bg-card border border-line shadow-card">
           <div class="pointer-events-none absolute inset-0" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 24%, transparent) 0%, color-mix(in srgb, var(--accent-primary) 5%, transparent) 60%, transparent 100%)" aria-hidden="true"></div>
           <div class="relative flex items-end justify-between gap-3 mb-3">
             <div>
-              <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('admin.kpiTotal') }}</p>
+              <p class="text-xs font-bold text-muted uppercase tracking-wider">{{ i18n.t('admin.kpiTotal') }}</p>
               <p class="font-display text-4xl leading-none tabular-nums mt-1">{{ kpis().total }}</p>
             </div>
-            <p class="text-[11px] text-muted font-bold uppercase tracking-wider text-right">{{ i18n.t('admin.chartTitle') }} · {{ i18n.t('admin.chartSubtitle') }}</p>
+            <p class="text-xs text-muted font-bold uppercase tracking-wider text-right">{{ i18n.t('admin.chartTitle') }} · {{ i18n.t('admin.chartSubtitle') }}</p>
           </div>
           @if (kpis().total === 0) {
             <p class="relative text-sm text-muted">{{ i18n.t('admin.chartEmpty') }}</p>
@@ -52,7 +52,7 @@
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div class="rounded-2xl border border-line bg-card shadow-card p-3 flex flex-col justify-between">
-            <p class="text-[11px] font-bold uppercase tracking-wider text-muted flex items-center gap-1.5">
+            <p class="text-xs font-bold uppercase tracking-wider text-muted flex items-center gap-1.5">
               <span class="relative flex w-2 h-2">
                 @if (kpis().online > 0) {
                   <span class="absolute inset-0 rounded-full bg-emerald-500 animate-ping opacity-60"></span>
@@ -64,27 +64,27 @@
             <p class="font-display text-3xl leading-none tabular-nums text-emerald-500 mt-2">{{ kpis().online }}</p>
           </div>
           <div class="rounded-2xl border border-line bg-card shadow-card p-3 flex flex-col justify-between">
-            <p class="text-[11px] font-bold uppercase tracking-wider text-muted">{{ i18n.t('admin.kpiActiveToday') }}</p>
+            <p class="text-xs font-bold uppercase tracking-wider text-muted">{{ i18n.t('admin.kpiActiveToday') }}</p>
             <p class="font-display text-3xl leading-none tabular-nums mt-2">{{ kpis().activeToday }}</p>
           </div>
           <div class="rounded-2xl border border-line bg-card shadow-card p-3 flex flex-col justify-between">
-            <p class="text-[11px] font-bold uppercase tracking-wider text-muted">{{ i18n.t('admin.kpiToday') }}</p>
+            <p class="text-xs font-bold uppercase tracking-wider text-muted">{{ i18n.t('admin.kpiToday') }}</p>
             <p class="font-display text-3xl leading-none tabular-nums text-team-primary mt-2">{{ kpis().today }}</p>
           </div>
           <div class="rounded-2xl border border-line bg-card shadow-card p-3 flex flex-col justify-between">
-            <p class="text-[11px] font-bold uppercase tracking-wider text-muted">{{ i18n.t('admin.kpiWeek') }}</p>
+            <p class="text-xs font-bold uppercase tracking-wider text-muted">{{ i18n.t('admin.kpiWeek') }}</p>
             <p class="font-display text-3xl leading-none tabular-nums mt-2">{{ kpis().last7 }}</p>
           </div>
         </div>
       </div>
 
       @if (flash(); as msg) {
-        <p class="toast-pop mb-3 rounded-2xl border border-line bg-card shadow-card px-4 py-2.5 text-[13px] font-semibold" role="status">{{ msg }}</p>
+        <p class="toast-pop mb-3 rounded-2xl border border-line bg-card shadow-card px-4 py-2.5 text-sm font-semibold" role="status">{{ msg }}</p>
       }
 
       <!-- User list — scrolls inside its own panel (toolbar pinned on top,
            bulk bar pinned at the bottom) instead of stretching the page. -->
-      <div class="rounded-3xl border border-line bg-card shadow-card overflow-hidden flex flex-col h-[70vh] min-h-[420px]">
+      <div class="rounded-2xl border border-line bg-card shadow-card overflow-hidden flex flex-col h-[70vh] min-h-[420px]">
         <div class="shrink-0 p-3 border-b border-line space-y-2.5">
           <div class="flex items-center gap-2">
             <label class="relative flex-1 min-w-0">
@@ -96,10 +96,10 @@
                 [value]="search()"
                 (input)="search.set($any($event.target).value)"
                 [placeholder]="i18n.t('admin.searchPlaceholder')"
-                class="w-full h-10 pl-9 pr-3 rounded-xl bg-page border border-line text-sm font-semibold focus:border-team-primary outline-none"
+                class="w-full h-10 pl-9 pr-3 rounded-lg bg-page border border-line text-sm font-semibold focus:border-team-primary outline-none"
               />
             </label>
-            <span class="shrink-0 text-[11px] text-muted font-bold uppercase tracking-wider tabular-nums">
+            <span class="shrink-0 text-xs text-muted font-bold uppercase tracking-wider tabular-nums">
               {{ filteredUsers().length }}/{{ allUsers().length }}
             </span>
           </div>
@@ -107,10 +107,10 @@
             <button
               type="button"
               (click)="toggleAllVisible()"
-              class="shrink-0 h-8 px-2.5 rounded-full border text-[12px] font-semibold flex items-center gap-1.5 transition-colors"
+              class="shrink-0 h-8 px-2.5 rounded-full border text-xs font-semibold flex items-center gap-1.5 transition-colors"
               [class]="allVisibleSelected() ? 'bg-team-primary text-team-secondary border-transparent' : 'border-line text-muted hover:text-ink'"
             >
-              <span class="w-3.5 h-3.5 rounded border-2 border-current flex items-center justify-center text-[9px] leading-none">{{ allVisibleSelected() ? '✓' : '' }}</span>
+              <span class="w-3.5 h-3.5 rounded border-2 border-current flex items-center justify-center text-2xs leading-none">{{ allVisibleSelected() ? '✓' : '' }}</span>
               {{ i18n.t('admin.selectAll') }}
             </button>
             <span class="shrink-0 w-px h-5 bg-line mx-1" aria-hidden="true"></span>
@@ -118,7 +118,7 @@
               <button
                 type="button"
                 (click)="setSort(s.key)"
-                class="shrink-0 h-8 px-3 rounded-full text-[12px] font-semibold transition-colors whitespace-nowrap"
+                class="shrink-0 h-8 px-3 rounded-full text-xs font-semibold transition-colors whitespace-nowrap"
                 [class]="sortKey() === s.key ? 'bg-team-primary/15 text-team-primary' : 'text-muted hover:text-ink'"
               >
                 {{ i18n.t(s.labelKey) }}
@@ -143,7 +143,7 @@
               <button
                 type="button"
                 (click)="toggleSelected(row.id, $event)"
-                class="shrink-0 w-5 h-5 rounded-md border-2 flex items-center justify-center text-[11px] font-bold transition-colors"
+                class="shrink-0 w-5 h-5 rounded-lg border-2 flex items-center justify-center text-xs font-bold transition-colors"
                 [class]="selectedIds().has(row.id) ? 'bg-team-primary border-team-primary text-team-secondary' : 'border-line text-transparent hover:border-muted'"
                 [attr.aria-pressed]="selectedIds().has(row.id)"
                 [attr.aria-label]="row.username"
@@ -165,25 +165,25 @@
                 <span class="flex items-center gap-1.5 min-w-0">
                   <span class="font-semibold truncate">{{ row.username }}</span>
                   @if (row.deletedAt) {
-                    <span class="shrink-0 rounded-full border border-line px-1.5 text-[10px] text-muted">{{ i18n.t('admin.userDeleted') }}</span>
+                    <span class="shrink-0 rounded-full border border-line px-1.5 text-2xs text-muted">{{ i18n.t('admin.userDeleted') }}</span>
                   }
                   @if (row.isAdmin) {
                     <!-- Fixed highlight, not team-primary: it marks another
                          user's role, not the viewer's team. -->
-                    <span class="text-[9px] font-bold uppercase tracking-wider bg-highlight/15 text-highlight rounded px-1.5 py-0.5 shrink-0">ADMIN</span>
+                    <span class="text-2xs font-bold uppercase tracking-wider bg-highlight/15 text-highlight rounded px-1.5 py-0.5 shrink-0">ADMIN</span>
                   }
                 </span>
-                <span class="block text-[12px] text-muted truncate">{{ row.email }}</span>
+                <span class="block text-xs text-muted truncate">{{ row.email }}</span>
               </span>
               <span class="hidden sm:flex items-center gap-1.5 shrink-0">
                 <span class="value-chip" [class.!text-team-primary]="sortKey() === 'points'">{{ row.totalPoints }} {{ i18n.t('predictions.pts') }}</span>
-                <span class="font-mono text-[11px] text-muted w-14 flex items-center justify-end gap-1" [class.!text-team-primary]="sortKey() === 'cards'" [title]="i18n.t('admin.colCards')">{{ row.cardsOwned }} <app-nav-icon name="cards" [size]="13" /></span>
-                <span class="font-mono text-[11px] text-muted w-14 flex items-center justify-end gap-1" [class.!text-team-primary]="sortKey() === 'predictions'" [title]="i18n.t('admin.colPredictions')">{{ row.predictionsMade }} <app-nav-icon name="picks" [size]="13" /></span>
+                <span class="font-mono text-xs text-muted w-14 flex items-center justify-end gap-1" [class.!text-team-primary]="sortKey() === 'cards'" [title]="i18n.t('admin.colCards')">{{ row.cardsOwned }} <app-nav-icon name="cards" [size]="13" /></span>
+                <span class="font-mono text-xs text-muted w-14 flex items-center justify-end gap-1" [class.!text-team-primary]="sortKey() === 'predictions'" [title]="i18n.t('admin.colPredictions')">{{ row.predictionsMade }} <app-nav-icon name="picks" [size]="13" /></span>
               </span>
               <span class="shrink-0 text-right w-24 sm:w-32">
-                <span class="block text-[12px] font-semibold truncate" [ngClass]="row.online ? 'text-emerald-500' : sortKey() === 'lastSeen' ? 'text-team-primary' : 'text-ink'">{{ lastSeenLabel(row) }}</span>
-                <span class="hidden sm:block font-mono text-[11px] text-muted truncate" [class.!text-team-primary]="sortKey() === 'createdAt'">{{ i18n.t('admin.joinedShort') }} {{ formatDate(row.createdAt) }}</span>
-                <span class="block sm:hidden font-mono text-[11px] font-bold" [class.text-team-primary]="sortKey() === 'points'">{{ row.totalPoints }} {{ i18n.t('predictions.pts') }}</span>
+                <span class="block text-xs font-semibold truncate" [ngClass]="row.online ? 'text-emerald-500' : sortKey() === 'lastSeen' ? 'text-team-primary' : 'text-ink'">{{ lastSeenLabel(row) }}</span>
+                <span class="hidden sm:block font-mono text-xs text-muted truncate" [class.!text-team-primary]="sortKey() === 'createdAt'">{{ i18n.t('admin.joinedShort') }} {{ formatDate(row.createdAt) }}</span>
+                <span class="block sm:hidden font-mono text-xs font-bold" [class.text-team-primary]="sortKey() === 'points'">{{ row.totalPoints }} {{ i18n.t('predictions.pts') }}</span>
               </span>
             </div>
           } @empty {
@@ -193,7 +193,7 @@
 
         @if (selectedIds().size > 0) {
           <div class="shrink-0 border-t border-line p-3 flex flex-wrap items-center gap-2 bg-page">
-            <span class="text-[13px] font-bold">{{ i18n.t('admin.selectedCount').replace('{n}', '' + selectedIds().size) }}</span>
+            <span class="text-sm font-bold">{{ i18n.t('admin.selectedCount').replace('{n}', '' + selectedIds().size) }}</span>
             <app-dropdown
               class="flex-1 min-w-[12rem]"
               [options]="leagueOptions()"
@@ -226,7 +226,7 @@
         </span>
         <div class="min-w-0">
           <p class="text-sm font-semibold truncate">{{ user.email }}</p>
-          <p class="text-[12px] text-muted">
+          <p class="text-xs text-muted">
             <span [class.text-emerald-500]="user.online" class="font-semibold">{{ i18n.t('admin.colLastSeen') }}: {{ lastSeenLabel(user) }}</span> ·
             {{ i18n.t('admin.colJoined') }} {{ formatDate(user.createdAt) }} ·
             {{ user.favoriteTeam ? user.favoriteTeam.name : i18n.t('admin.noTeam') }}
@@ -236,47 +236,47 @@
 
       <!-- Overview (stats, leagues, actions) / Activity timeline. -->
       <div class="status-tile flex gap-1 mb-4 h-10 p-1 rounded-2xl border border-line">
-        <button type="button" (click)="setSheetTab('overview')" class="flex-1 h-full rounded-xl text-[13px] font-semibold transition-colors" [ngClass]="sheetTab() === 'overview' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">{{ i18n.t('admin.tabOverview') }}</button>
-        <button type="button" (click)="setSheetTab('activity')" class="flex-1 h-full rounded-xl text-[13px] font-semibold transition-colors" [ngClass]="sheetTab() === 'activity' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">{{ i18n.t('admin.tabActivity') }}</button>
+        <button type="button" (click)="setSheetTab('overview')" class="flex-1 h-full rounded-lg text-sm font-semibold transition-colors" [ngClass]="sheetTab() === 'overview' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">{{ i18n.t('admin.tabOverview') }}</button>
+        <button type="button" (click)="setSheetTab('activity')" class="flex-1 h-full rounded-lg text-sm font-semibold transition-colors" [ngClass]="sheetTab() === 'activity' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'">{{ i18n.t('admin.tabActivity') }}</button>
       </div>
 
       @if (sheetTab() === 'overview') {
       <div class="grid grid-cols-4 gap-2 mb-5">
         <div class="status-tile rounded-2xl border border-line px-1 py-2 text-center">
-          <p class="text-[10px] font-bold text-muted uppercase tracking-wider truncate">{{ i18n.t('admin.colPoints') }}</p>
+          <p class="text-2xs font-bold text-muted uppercase tracking-wider truncate">{{ i18n.t('admin.colPoints') }}</p>
           <p class="font-display text-lg tabular-nums">{{ user.totalPoints }}</p>
         </div>
         <div class="status-tile rounded-2xl border border-line px-1 py-2 text-center">
-          <p class="text-[10px] font-bold text-muted uppercase tracking-wider truncate">{{ i18n.t('admin.colCards') }}</p>
+          <p class="text-2xs font-bold text-muted uppercase tracking-wider truncate">{{ i18n.t('admin.colCards') }}</p>
           <p class="font-display text-lg tabular-nums">{{ user.cardsOwned }}</p>
         </div>
         <div class="status-tile rounded-2xl border border-line px-1 py-2 text-center">
-          <p class="text-[10px] font-bold text-muted uppercase tracking-wider truncate">{{ i18n.t('admin.colPredictions') }}</p>
+          <p class="text-2xs font-bold text-muted uppercase tracking-wider truncate">{{ i18n.t('admin.colPredictions') }}</p>
           <p class="font-display text-lg tabular-nums">{{ user.predictionsMade }}</p>
         </div>
         <div class="status-tile rounded-2xl border border-line px-1 py-2 text-center">
-          <p class="text-[10px] font-bold text-muted uppercase tracking-wider truncate">{{ i18n.t('admin.colReferrals') }}</p>
+          <p class="text-2xs font-bold text-muted uppercase tracking-wider truncate">{{ i18n.t('admin.colReferrals') }}</p>
           <p class="font-display text-lg tabular-nums">{{ user.referralsCount }}</p>
         </div>
       </div>
 
-      <p class="text-[11px] font-bold text-muted uppercase tracking-wider mb-2">{{ i18n.t('admin.leaguesTitle') }}</p>
+      <p class="text-xs font-bold text-muted uppercase tracking-wider mb-2">{{ i18n.t('admin.leaguesTitle') }}</p>
       @if (userLeaguesLoading()) {
-        <app-skeleton class="rounded-xl h-11 mb-2" />
-        <app-skeleton class="rounded-xl h-11 mb-2" />
+        <app-skeleton class="rounded-lg h-11 mb-2" />
+        <app-skeleton class="rounded-lg h-11 mb-2" />
       } @else {
         @for (league of userLeagues(); track league.id) {
-          <div class="flex items-center gap-2 rounded-xl border border-line px-3 py-2 mb-2">
+          <div class="flex items-center gap-2 rounded-lg border border-line px-3 py-2 mb-2">
             <app-nav-icon name="bracket" [size]="16" class="text-team-primary shrink-0" />
             <span class="min-w-0 flex-1">
               <span class="block text-sm font-semibold truncate">{{ league.name }}</span>
-              <span class="block font-mono text-[11px] text-muted">{{ league.code }}</span>
+              <span class="block font-mono text-xs text-muted">{{ league.code }}</span>
             </span>
             <button
               type="button"
               (click)="sheetRemove(league)"
               [disabled]="sheetBusy()"
-              class="shrink-0 h-8 px-3 rounded-full text-[12px] font-semibold transition-colors"
+              class="shrink-0 h-8 px-3 rounded-full text-xs font-semibold transition-colors"
               [class]="armedRemoveId() === league.id ? 'bg-red-500 text-white' : 'text-muted hover:text-red-500 border border-line'"
             >
               {{ armedRemoveId() === league.id ? i18n.t('admin.confirmRemove') : i18n.t('admin.remove') }}
@@ -301,43 +301,43 @@
       </div>
 
       <!-- Actions: the /admin/tools grants, already scoped to this user. -->
-      <p class="text-[11px] font-bold text-muted uppercase tracking-wider mt-6 mb-2">{{ i18n.t('admin.actionsTitle') }}</p>
+      <p class="text-xs font-bold text-muted uppercase tracking-wider mt-6 mb-2">{{ i18n.t('admin.actionsTitle') }}</p>
       @if (sheetMsg(); as msg) {
-        <p class="toast-pop mb-3 rounded-xl border border-line bg-page px-3 py-2 text-[13px] font-semibold" role="status">{{ msg }}</p>
+        <p class="toast-pop mb-3 rounded-lg border border-line bg-page px-3 py-2 text-sm font-semibold" role="status">{{ msg }}</p>
       }
 
       <form [formGroup]="pointsForm" (ngSubmit)="grantPoints()" class="rounded-2xl border border-line p-3 mb-3">
-        <p class="text-[13px] font-bold mb-2 flex items-center gap-1.5"><app-nav-icon name="star" [size]="14" class="text-team-primary" /> {{ i18n.t('admin.grantPointsTitle') }}</p>
+        <p class="text-sm font-bold mb-2 flex items-center gap-1.5"><app-nav-icon name="star" [size]="14" class="text-team-primary" /> {{ i18n.t('admin.grantPointsTitle') }}</p>
         <div class="flex gap-2">
-          <input type="number" formControlName="points" [placeholder]="i18n.t('admin.pointsPlaceholder')" class="w-24 h-10 px-3 rounded-xl bg-page border border-line text-sm font-semibold focus:border-team-primary outline-none" />
-          <input type="text" formControlName="reason" [placeholder]="i18n.t('admin.reasonPlaceholder')" class="flex-1 min-w-0 h-10 px-3 rounded-xl bg-page border border-line text-sm focus:border-team-primary outline-none" />
+          <input type="number" formControlName="points" [placeholder]="i18n.t('admin.pointsPlaceholder')" class="w-24 h-10 px-3 rounded-lg bg-page border border-line text-sm font-semibold focus:border-team-primary outline-none" />
+          <input type="text" formControlName="reason" [placeholder]="i18n.t('admin.reasonPlaceholder')" class="flex-1 min-w-0 h-10 px-3 rounded-lg bg-page border border-line text-sm focus:border-team-primary outline-none" />
         </div>
         <button type="submit" appButton appButtonSize="sm" class="w-full mt-2" [disabled]="pointsForm.invalid || sheetBusy()">{{ i18n.t('admin.grant') }}</button>
       </form>
 
       <div class="rounded-2xl border border-line p-3 mb-3">
-        <p class="text-[13px] font-bold mb-2 flex items-center gap-1.5"><app-nav-icon name="cards" [size]="14" class="text-team-primary" /> {{ i18n.t('admin.grantCardTitle') }}</p>
+        <p class="text-sm font-bold mb-2 flex items-center gap-1.5"><app-nav-icon name="cards" [size]="14" class="text-team-primary" /> {{ i18n.t('admin.grantCardTitle') }}</p>
         <input
           type="text"
           [value]="cardQuery()"
           (input)="onCardQuery($any($event.target).value)"
           [placeholder]="i18n.t('admin.cardSearchPlaceholder')"
-          class="w-full h-10 px-3 rounded-xl bg-page border border-line text-sm focus:border-team-primary outline-none"
+          class="w-full h-10 px-3 rounded-lg bg-page border border-line text-sm focus:border-team-primary outline-none"
         />
         @if (cardMatches().length > 0) {
-          <div class="mt-1.5 rounded-xl border border-line overflow-hidden">
+          <div class="mt-1.5 rounded-lg border border-line overflow-hidden">
             @for (c of cardMatches(); track c.id) {
               <button type="button" (click)="pickGrantCard(c)" class="w-full flex items-center gap-2 px-3 py-2 text-left text-sm hover:bg-page border-b border-line/60 last:border-b-0">
                 <span class="min-w-0 flex-1 truncate font-semibold">{{ c.name }}</span>
-                <span class="font-mono text-[11px] text-muted">{{ c.team.code }}</span>
-                <span class="text-[10px] font-bold uppercase tracking-wider text-muted">{{ c.tier }}</span>
+                <span class="font-mono text-xs text-muted">{{ c.team.code }}</span>
+                <span class="text-2xs font-bold uppercase tracking-wider text-muted">{{ c.tier }}</span>
               </button>
             }
           </div>
         }
         @if (grantCardPick(); as card) {
           @if (card.tier === 'legendary') {
-            <label class="flex items-center gap-2 mt-2 text-[13px] font-semibold cursor-pointer">
+            <label class="flex items-center gap-2 mt-2 text-sm font-semibold cursor-pointer">
               <input type="checkbox" [checked]="grantFoil()" (change)="grantFoil.set($any($event.target).checked)" class="accent-current" />
               {{ i18n.t('admin.foil') }}
             </label>
@@ -350,7 +350,7 @@
         type="button"
         (click)="sendReset()"
         [disabled]="sheetBusy()"
-        class="w-full h-10 rounded-2xl text-[13px] font-semibold transition-colors flex items-center justify-center gap-2"
+        class="w-full h-10 rounded-2xl text-sm font-semibold transition-colors flex items-center justify-center gap-2"
         [ngClass]="armedReset() ? 'bg-red-500 text-white' : 'border border-line text-muted hover:text-ink'"
       >
         <app-nav-icon name="logout" [size]="15" />
@@ -359,27 +359,27 @@
       } @else {
         @if (activityLoading()) {
           @for (i of [0, 1, 2, 3, 4, 5]; track i) {
-            <app-skeleton class="rounded-xl h-12 mb-2" />
+            <app-skeleton class="rounded-lg h-12 mb-2" />
           }
         } @else {
           @for (e of activity() ?? []; track $index) {
             <div class="flex items-start gap-2.5 py-2 border-b border-line/60 last:border-b-0">
-              <span class="w-8 h-8 rounded-xl bg-page flex items-center justify-center shrink-0 text-muted mt-0.5">
+              <span class="w-8 h-8 rounded-lg bg-page flex items-center justify-center shrink-0 text-muted mt-0.5">
                 <app-nav-icon [name]="activityIcon(e)" [size]="15" />
               </span>
               <span class="min-w-0 flex-1">
-                <span class="block text-[13px] font-semibold leading-snug">{{ activityTitle(e) }}</span>
+                <span class="block text-sm font-semibold leading-snug">{{ activityTitle(e) }}</span>
                 @if (activityDetail(e); as d) {
-                  <span class="block text-[11px] text-muted truncate">{{ d }}</span>
+                  <span class="block text-xs text-muted truncate">{{ d }}</span>
                 }
-                <span class="block font-mono text-[10px] text-muted mt-0.5">{{ formatDateTime(e.at) }}</span>
+                <span class="block font-mono text-2xs text-muted mt-0.5">{{ formatDateTime(e.at) }}</span>
               </span>
               <span class="shrink-0 flex flex-col items-end gap-1">
                 @if (e.points !== null) {
-                  <span class="font-mono text-[13px] font-bold tabular-nums" [ngClass]="e.points > 0 ? 'text-emerald-500' : e.points < 0 ? 'text-red-500' : 'text-muted'">{{ e.points > 0 ? '+' : '' }}{{ e.points }}</span>
+                  <span class="font-mono text-sm font-bold tabular-nums" [ngClass]="e.points > 0 ? 'text-emerald-500' : e.points < 0 ? 'text-red-500' : 'text-muted'">{{ e.points > 0 ? '+' : '' }}{{ e.points }}</span>
                 }
                 @if (activityStatus(e); as st) {
-                  <span class="text-[10px] font-bold uppercase tracking-wider rounded px-1.5 py-0.5" [ngClass]="st.cls">{{ st.text }}</span>
+                  <span class="text-2xs font-bold uppercase tracking-wider rounded px-1.5 py-0.5" [ngClass]="st.cls">{{ st.text }}</span>
                 }
               </span>
             </div>

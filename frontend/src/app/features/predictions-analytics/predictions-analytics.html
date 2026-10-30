@@ -24,7 +24,7 @@
          own prediction accuracy, so it's personalization-relevant. -->
     <!-- Overall accuracy -->
     <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
-      <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('predictions.analytics.overallAccuracy') }}</p>
+      <p class="text-sm text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('predictions.analytics.overallAccuracy') }}</p>
       <div class="flex items-baseline gap-2">
         <span class="font-display text-4xl text-team-primary">{{ fmtPct(d.overall.accuracy) }}</span>
         <span class="text-sm text-muted">
@@ -35,29 +35,29 @@
 
     <!-- Per-team pick accuracy -->
     <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
-      <p class="text-[13px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('predictions.analytics.byTeamTitle') }}</p>
+      <p class="text-sm text-muted font-bold uppercase tracking-wider">{{ i18n.t('predictions.analytics.byTeamTitle') }}</p>
       <p class="text-xs text-muted mt-1 mb-3">{{ i18n.t('predictions.analytics.byTeamHint') }}</p>
 
       @if (sortedByTeam().length === 0) {
         <p class="text-sm text-muted py-4 text-center">{{ i18n.t('predictions.analytics.noTeamData') }}</p>
       } @else {
-        <div class="overflow-auto max-h-96 rounded-xl border border-line">
+        <div class="overflow-auto max-h-96 rounded-lg border border-line">
           <table class="w-full text-sm border-collapse">
             <thead>
               <tr class="bg-card">
-                <th class="sticky top-0 left-0 z-20 bg-card px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap">
+                <th class="sticky top-0 left-0 z-20 bg-card px-3 py-2.5 text-left font-bold uppercase tracking-wider text-xs text-muted whitespace-nowrap">
                   {{ i18n.t('predictions.analytics.colTeam') }}
                 </th>
                 <th
                   (click)="setSort('timesPicked')"
-                  class="sticky top-0 z-10 bg-card px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
+                  class="sticky top-0 z-10 bg-card px-3 py-2.5 text-right font-bold uppercase tracking-wider text-xs text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
                   [class.text-team-primary]="sortKey() === 'timesPicked'"
                 >
                   {{ i18n.t('predictions.analytics.colPicked') }}
                 </th>
                 <th
                   (click)="setSort('accuracy')"
-                  class="sticky top-0 z-10 bg-card px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
+                  class="sticky top-0 z-10 bg-card px-3 py-2.5 text-right font-bold uppercase tracking-wider text-xs text-muted whitespace-nowrap cursor-pointer select-none hover:text-ink transition-colors"
                   [class.text-team-primary]="sortKey() === 'accuracy'"
                 >
                   {{ i18n.t('predictions.analytics.colAccuracy') }}
@@ -90,7 +90,7 @@
 
     <!-- Biggest upsets -->
     <div class="bg-card rounded-2xl border border-line shadow-card p-4">
-      <p class="text-[13px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('predictions.analytics.upsetsTitle') }}</p>
+      <p class="text-sm text-muted font-bold uppercase tracking-wider">{{ i18n.t('predictions.analytics.upsetsTitle') }}</p>
       <p class="text-xs text-muted mt-1 mb-3">{{ i18n.t('predictions.analytics.upsetsHint') }}</p>
 
       @if (d.upsets.length === 0) {
@@ -98,7 +98,7 @@
       } @else {
         <div class="space-y-1.5">
           @for (u of d.upsets; track u.gameId) {
-            <a [routerLink]="['/games', u.gameId]" class="flex items-center justify-between gap-2 px-2 py-2 rounded-xl hover:bg-page transition-colors">
+            <a [routerLink]="['/games', u.gameId]" class="flex items-center justify-between gap-2 px-2 py-2 rounded-lg hover:bg-page transition-colors">
               <span class="flex items-center gap-2 min-w-0">
                 @if (u.homeTeam.logoUrl) {
                   <img [src]="u.homeTeam.logoUrl" [alt]="u.homeTeam.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain shrink-0 team-logo" />
@@ -114,7 +114,7 @@
                   <span class="w-5 h-5 rounded-full shrink-0 bg-line"></span>
                 }
               </span>
-              <span class="font-mono text-[12px] text-muted text-right shrink-0">
+              <span class="font-mono text-xs text-muted text-right shrink-0">
                 {{ (u.majorityPct * 100).toFixed(0) }}% {{ i18n.t('predictions.analytics.pickedThem') }}
               </span>
             </a>

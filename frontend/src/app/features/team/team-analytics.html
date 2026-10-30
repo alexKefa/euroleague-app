@@ -3,35 +3,35 @@
     <h2 class="font-display text-lg">{{ i18n.t('ta.title') }}</h2>
     @if (data(); as d) {
       @if (d.gamesWithData > 0) {
-        <span class="text-[12px] text-muted text-right">{{ basedOnText() }}</span>
+        <span class="text-xs text-muted text-right">{{ basedOnText() }}</span>
       }
     }
   </div>
 
   @if (loading()) {
-    <div class="bg-card rounded-3xl border border-line shadow-card p-6 text-center text-sm text-muted">…</div>
+    <div class="bg-card rounded-2xl border border-line shadow-card p-6 text-center text-sm text-muted">…</div>
   } @else if (error()) {
-    <div class="bg-card rounded-3xl border border-line shadow-card p-6 text-center text-sm text-muted">{{ i18n.t('ta.failed') }}</div>
+    <div class="bg-card rounded-2xl border border-line shadow-card p-6 text-center text-sm text-muted">{{ i18n.t('ta.failed') }}</div>
   } @else if (data(); as d) {
     @if (d.gamesWithData === 0 && zones().length === 0) {
-      <div class="bg-card rounded-3xl border border-line shadow-card p-6 text-center text-sm text-muted">{{ i18n.t('ta.empty') }}</div>
+      <div class="bg-card rounded-2xl border border-line shadow-card p-6 text-center text-sm text-muted">{{ i18n.t('ta.empty') }}</div>
     } @else {
       @if (smallSample()) {
-        <p class="text-[12px] text-muted px-1 mb-3">{{ i18n.t('ta.smallSample') }}</p>
+        <p class="text-xs text-muted px-1 mb-3">{{ i18n.t('ta.smallSample') }}</p>
       }
 
       <!-- Shot profile: share of the team's shots per zone and FG% there,
            each against the league. Same green/red-vs-average bar as the
            Team vs League card above. -->
       @if (zones().length > 0) {
-        <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+        <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4">
           <p class="font-display text-base">{{ i18n.t('ta.shotProfile') }}</p>
-          <p class="text-[12px] text-muted mb-4">{{ i18n.t('ta.shotProfileHint') }}</p>
+          <p class="text-xs text-muted mb-4">{{ i18n.t('ta.shotProfileHint') }}</p>
           <div class="space-y-4">
             @for (z of zones(); track z.zone) {
               <div>
                 <div class="flex items-baseline justify-between gap-2 mb-1">
-                  <span class="text-[12px] font-bold uppercase tracking-wide">{{ i18n.t('ta.zone.' + z.zone) }}</span>
+                  <span class="text-xs font-bold uppercase tracking-wide">{{ i18n.t('ta.zone.' + z.zone) }}</span>
                   <span class="font-mono text-xs shrink-0">
                     <span class="font-bold" [ngClass]="z.above ? 'text-emerald-500' : 'text-red-500'">{{ pct(z.fgPct) }}</span>
                     <span class="text-muted"> {{ i18n.t('ta.avg') }} {{ pct(z.leagueFgPct) }}</span>
@@ -45,7 +45,7 @@
                   ></div>
                   <div class="absolute inset-y-0 w-[2px] bg-ink/50" [style.left.%]="z.leagueFgPct ?? 0"></div>
                 </div>
-                <p class="text-[11px] text-muted font-mono mt-1">
+                <p class="text-xs text-muted font-mono mt-1">
                   {{ z.fgm }}/{{ z.fga }} &middot; {{ pct(z.share) }} {{ i18n.t('ta.ofShots') }} ({{ i18n.t('ta.avg') }} {{ pct(z.leagueShare) }})
                 </p>
               </div>
@@ -55,9 +55,9 @@
       }
 
       <!-- Most-used lineups. -->
-      <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4">
         <p class="font-display text-base">{{ i18n.t('ta.lineups') }}</p>
-        <p class="text-[12px] text-muted mb-3">{{ i18n.t('ta.lineupsHint') }}</p>
+        <p class="text-xs text-muted mb-3">{{ i18n.t('ta.lineupsHint') }}</p>
         @if (lineups().length === 0) {
           <p class="text-sm text-muted">{{ i18n.t('ta.noLineups') }}</p>
         } @else {
@@ -77,16 +77,16 @@
                       }
                     }
                   </p>
-                  <p class="text-[12px] text-muted font-mono mt-0.5">
+                  <p class="text-xs text-muted font-mono mt-0.5">
                     {{ minutes(l.seconds) }} {{ i18n.t('ta.min') }} &middot; {{ l.games }} {{ i18n.t('ta.gp') }} &middot; {{ l.ptsFor }}-{{ l.ptsAgainst }}
                   </p>
-                  <button type="button" (click)="openInBuilder(codesOf(l.players))" class="text-[11px] font-semibold text-team-primary hover:underline mt-1">
+                  <button type="button" (click)="openInBuilder(codesOf(l.players))" class="text-xs font-semibold text-team-primary hover:underline mt-1">
                     {{ i18n.t('ta.openInBuilder') }} ›
                   </button>
                 </div>
                 <div class="shrink-0 text-right">
                   <p class="font-display text-lg leading-none tabular-nums" [ngClass]="signClass(l.plusMinus)">{{ signed(l.plusMinus, 0) }}</p>
-                  <p class="text-[11px] text-muted font-mono mt-1">{{ i18n.t('ta.net') }} {{ signed(l.net) }}</p>
+                  <p class="text-xs text-muted font-mono mt-1">{{ i18n.t('ta.net') }} {{ signed(l.net) }}</p>
                 </div>
               </li>
             }
@@ -101,9 +101,9 @@
 
       <!-- On/off. -->
       @if (onOff().length > 0) {
-        <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+        <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4">
           <p class="font-display text-base">{{ i18n.t('ta.onOff') }}</p>
-          <p class="text-[12px] text-muted mb-3">{{ i18n.t('ta.onOffHint') }}</p>
+          <p class="text-xs text-muted mb-3">{{ i18n.t('ta.onOffHint') }}</p>
           <div class="overflow-x-auto">
             <table class="w-full text-xs">
               <thead>
@@ -139,26 +139,26 @@
 
       <!-- Clutch. -->
       @if (clutch(); as c) {
-        <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+        <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4">
           <p class="font-display text-base">{{ i18n.t('ta.clutch') }}</p>
-          <p class="text-[12px] text-muted mb-3">{{ i18n.t('ta.clutchHint') }}</p>
+          <p class="text-xs text-muted mb-3">{{ i18n.t('ta.clutchHint') }}</p>
           @if (c.games === 0) {
             <p class="text-sm text-muted">{{ i18n.t('ta.noClutch') }}</p>
           } @else {
             <div class="grid grid-cols-3 gap-2 mb-4">
-              <div class="status-tile rounded-xl border border-line p-2.5 text-center">
+              <div class="status-tile rounded-lg border border-line p-2.5 text-center">
                 <p class="font-display text-xl leading-tight tabular-nums">{{ c.games }}</p>
-                <p class="text-[10px] text-muted uppercase tracking-wide">{{ i18n.t('ta.clutchGames') }}</p>
+                <p class="text-2xs text-muted uppercase tracking-wide">{{ i18n.t('ta.clutchGames') }}</p>
               </div>
-              <div class="status-tile rounded-xl border border-line p-2.5 text-center">
+              <div class="status-tile rounded-lg border border-line p-2.5 text-center">
                 <p class="font-display text-xl leading-tight tabular-nums">{{ c.wins }}-{{ c.losses }}</p>
-                <p class="text-[10px] text-muted uppercase tracking-wide">{{ i18n.t('ta.clutchRecord') }}</p>
+                <p class="text-2xs text-muted uppercase tracking-wide">{{ i18n.t('ta.clutchRecord') }}</p>
               </div>
-              <div class="status-tile rounded-xl border border-line p-2.5 text-center">
+              <div class="status-tile rounded-lg border border-line p-2.5 text-center">
                 <p class="font-display text-xl leading-tight tabular-nums" [ngClass]="signClass(c.ptsFor - c.ptsAgainst)">
                   {{ signed(c.ptsFor - c.ptsAgainst, 0) }}
                 </p>
-                <p class="text-[10px] text-muted uppercase tracking-wide">{{ i18n.t('ta.clutchPoints') }}</p>
+                <p class="text-2xs text-muted uppercase tracking-wide">{{ i18n.t('ta.clutchPoints') }}</p>
               </div>
             </div>
             @if (c.players.length > 0) {
@@ -208,16 +208,16 @@
        two bars as the referee page. -->
   @if (referees(); as rf) {
     @if (refRows().length > 0) {
-      <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4">
         <p class="font-display text-base">{{ i18n.t('ref.teamCard') }}</p>
-        <p class="text-[12px] text-muted mb-1">{{ i18n.t('ref.teamCardHint').replace('{s}', refSince()) }}</p>
-        <p class="text-[11px] text-muted mb-3">{{ i18n.t('ref.barLegend') }}</p>
+        <p class="text-xs text-muted mb-1">{{ i18n.t('ref.teamCardHint').replace('{s}', refSince()) }}</p>
+        <p class="text-xs text-muted mb-3">{{ i18n.t('ref.barLegend') }}</p>
         <ul>
           @if (rf.overall; as o) {
             <li class="py-3 bg-page -mx-4 px-4 border-y border-line">
               <div class="flex items-center gap-2 mb-2">
                 <span class="text-sm font-semibold">{{ i18n.t('ref.teamOverall') }}</span>
-                <span class="ml-auto text-[12px] text-muted font-mono">{{ o.games }} {{ i18n.t('ta.gp') }}</span>
+                <span class="ml-auto text-xs text-muted font-mono">{{ o.games }} {{ i18n.t('ta.gp') }}</span>
               </div>
               <div class="flex items-center gap-2 mb-1.5">
                 <span class="w-12 shrink-0 font-mono text-xs font-bold">{{ o.wins }}-{{ o.games - o.wins }}</span>
@@ -238,7 +238,7 @@
             <li class="py-3 border-b border-line last:border-b-0">
               <div class="flex items-center gap-2 mb-2">
                 <a [routerLink]="['/referees', r.referee.id]" class="text-sm font-semibold truncate hover:text-team-primary transition-colors">{{ refName(r.referee.name) }}</a>
-                <span class="ml-auto text-[12px] text-muted font-mono shrink-0">{{ r.games }} {{ i18n.t('ta.gp') }}</span>
+                <span class="ml-auto text-xs text-muted font-mono shrink-0">{{ r.games }} {{ i18n.t('ta.gp') }}</span>
               </div>
               <div class="flex items-center gap-2 mb-1.5">
                 <span class="w-12 shrink-0 font-mono text-xs font-bold">{{ r.wins }}-{{ r.games - r.wins }}</span>
@@ -257,7 +257,7 @@
           }
         </ul>
         @if (refRows().length > 6) {
-          <button type="button" (click)="refsExpanded.set(!refsExpanded())" class="mt-2 text-[12px] font-semibold text-team-primary">
+          <button type="button" (click)="refsExpanded.set(!refsExpanded())" class="mt-2 text-xs font-semibold text-team-primary">
             {{ refsExpanded() ? i18n.t('ref.showLess') : i18n.t('ref.showAll') }}
           </button>
         }
@@ -269,10 +269,10 @@
        it covers last season too, so it has data before this season does. -->
   @if (rest(); as r) {
     @if (restBuckets().length > 0) {
-      <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4">
         <p class="font-display text-base">{{ i18n.t('rest.title') }}</p>
-        <p class="text-[12px] text-muted">{{ i18n.t('rest.hint').replace('{s}', restSince()) }}</p>
-        <p class="text-[12px] text-muted mb-3">{{ i18n.t('rest.smallSample') }}</p>
+        <p class="text-xs text-muted">{{ i18n.t('rest.hint').replace('{s}', restSince()) }}</p>
+        <p class="text-xs text-muted mb-3">{{ i18n.t('rest.smallSample') }}</p>
 
         <div class="overflow-x-auto">
           <table class="w-full text-xs">
@@ -299,7 +299,7 @@
               }
               @if (restMatchups().length > 0) {
                 <tr>
-                  <td colspan="6" class="pt-3 pb-1 text-[11px] text-team-primary font-bold uppercase tracking-wider">{{ i18n.t('rest.byMatchup') }}</td>
+                  <td colspan="6" class="pt-3 pb-1 text-xs text-team-primary font-bold uppercase tracking-wider">{{ i18n.t('rest.byMatchup') }}</td>
                 </tr>
                 @for (m of restMatchups(); track m.key) {
                   <tr class="border-t border-line">
@@ -317,7 +317,7 @@
         </div>
 
         @if (restPlayers().length > 0) {
-          <p class="text-[11px] text-team-primary font-bold uppercase tracking-wider mt-4 mb-1">{{ i18n.t('rest.players') }}</p>
+          <p class="text-xs text-team-primary font-bold uppercase tracking-wider mt-4 mb-1">{{ i18n.t('rest.players') }}</p>
           <div class="overflow-x-auto">
             <table class="w-full text-xs">
               <thead>

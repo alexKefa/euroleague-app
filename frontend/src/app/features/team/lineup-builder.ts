@@ -28,14 +28,14 @@ type ViewState = { status: LoadState["status"]; result: LineupBuilderResult | nu
   host: { class: "block scroll-mt-24" },
   imports: [ButtonDirective, PlayerPhotoComponent],
   template: `
-    <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+    <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4">
       <div class="flex items-start justify-between gap-3">
         <div class="min-w-0">
           <p class="font-display text-base">{{ i18n.t('ta.builderTitle') }}</p>
-          <p class="text-[12px] text-muted">{{ i18n.t('ta.builderHint') }}</p>
+          <p class="text-xs text-muted">{{ i18n.t('ta.builderHint') }}</p>
         </div>
         <div class="shrink-0 flex items-center gap-2">
-          <span class="text-[12px] font-mono text-muted tabular-nums">{{ i18n.t('ta.pickCount').replace('{n}', '' + selection().length) }}</span>
+          <span class="text-xs font-mono text-muted tabular-nums">{{ i18n.t('ta.pickCount').replace('{n}', '' + selection().length) }}</span>
           @if (selection().length > 0) {
             <button type="button" appButton="outline" appButtonSize="sm" (click)="clear()">{{ i18n.t('ta.clear') }}</button>
           }
@@ -50,7 +50,7 @@ type ViewState = { status: LoadState["status"]; result: LineupBuilderResult | nu
             type="button"
             (click)="toggle(p.code)"
             [disabled]="!picked && selection().length >= maxPick"
-            class="flex items-center gap-1.5 pl-0.5 pr-2.5 py-0.5 rounded-full border text-[12px] font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            class="flex items-center gap-1.5 pl-0.5 pr-2.5 py-0.5 rounded-full border text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             [class]="picked ? 'bg-team-primary text-team-secondary border-transparent' : 'bg-page border-line hover:border-team-primary'"
           >
             <app-player-photo [name]="p.name ?? p.code" [photoUrl]="p.photoUrl ?? null" [size]="24" class="rounded-full block shrink-0" />
@@ -78,28 +78,28 @@ type ViewState = { status: LoadState["status"]; result: LineupBuilderResult | nu
                   <div [class.opacity-60]="small()">
                     <div class="flex items-end justify-between gap-3">
                       <div>
-                        <p class="text-[11px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('ta.together') }}</p>
+                        <p class="text-xs text-muted font-bold uppercase tracking-wider">{{ i18n.t('ta.together') }}</p>
                         <p class="font-display text-4xl leading-none tabular-nums mt-1" [class]="signClass(together().net)">{{ signed(together().net) }}</p>
                       </div>
-                      <p class="text-[12px] text-muted text-right tabular-nums">
+                      <p class="text-xs text-muted text-right tabular-nums">
                         {{ i18n.t('ta.otherwise').replace('{net}', signed(otherwiseNet())) }}
                       </p>
                     </div>
                     <div class="grid grid-cols-3 gap-2 mt-3 text-center">
                       @for (s of grid(); track s.label) {
-                        <div class="rounded-xl bg-page border border-line py-2">
-                          <p class="text-[10px] text-muted font-bold uppercase tracking-wider">{{ s.label }}</p>
+                        <div class="rounded-lg bg-page border border-line py-2">
+                          <p class="text-2xs text-muted font-bold uppercase tracking-wider">{{ s.label }}</p>
                           <p class="font-mono text-sm font-semibold tabular-nums mt-0.5">{{ s.value }}</p>
                         </div>
                       }
                     </div>
                   </div>
                   @if (small()) {
-                    <p class="text-[11px] text-muted mt-2">{{ i18n.t('ta.lineupSmallSample') }}</p>
+                    <p class="text-xs text-muted mt-2">{{ i18n.t('ta.lineupSmallSample') }}</p>
                   }
 
                   @if (selection().length < maxPick) {
-                    <p class="text-[11px] text-muted font-bold uppercase tracking-wider mt-4 mb-1.5">{{ i18n.t('ta.bestPartners') }}</p>
+                    <p class="text-xs text-muted font-bold uppercase tracking-wider mt-4 mb-1.5">{{ i18n.t('ta.bestPartners') }}</p>
                     @if (r.partners.length === 0) {
                       <p class="text-sm text-muted">{{ i18n.t('ta.noPartners') }}</p>
                     } @else {
@@ -111,7 +111,7 @@ type ViewState = { status: LoadState["status"]; result: LineupBuilderResult | nu
                               <app-player-photo [name]="pt.player.name ?? pt.player.code" [photoUrl]="pt.player.photoUrl" [size]="32" class="rounded-full block shrink-0" />
                               <span class="flex-1 min-w-0">
                                 <span class="block text-sm font-semibold truncate">{{ shortName(pt.player) }}</span>
-                                <span class="block text-[11px] text-muted font-mono">{{ minutes(pt.seconds) }} {{ i18n.t('ta.min') }}</span>
+                                <span class="block text-xs text-muted font-mono">{{ minutes(pt.seconds) }} {{ i18n.t('ta.min') }}</span>
                               </span>
                               <span class="font-mono text-sm font-semibold tabular-nums" [class]="signClass(ptNet)">{{ signed(ptNet) }}</span>
                               <span class="w-6 h-6 rounded-full border border-line flex items-center justify-center text-muted shrink-0" aria-hidden="true">+</span>
@@ -124,7 +124,7 @@ type ViewState = { status: LoadState["status"]; result: LineupBuilderResult | nu
                 }
               </div>
             } @else {
-              <div class="mt-4 h-24 rounded-xl bg-line/60 animate-pulse" aria-hidden="true"></div>
+              <div class="mt-4 h-24 rounded-lg bg-line/60 animate-pulse" aria-hidden="true"></div>
             }
           }
         }

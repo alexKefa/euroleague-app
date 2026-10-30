@@ -17,9 +17,9 @@ const COLLAPSED_COUNT = 5;
   imports: [RouterLink, TeamCodePipe],
   template: `
     @if (leaders().length > 0) {
-      <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4">
         <p class="font-display text-base">{{ i18n.t('ta.clutchLeaders') }}</p>
-        <p class="text-[12px] text-muted mb-3">{{ i18n.t('ta.clutchHint') }}</p>
+        <p class="text-xs text-muted mb-3">{{ i18n.t('ta.clutchHint') }}</p>
         <div class="overflow-x-auto">
           <table class="w-full text-xs">
             <thead>
@@ -43,7 +43,7 @@ const COLLAPSED_COUNT = 5;
                         <span class="font-semibold truncate">{{ name(l) }}</span>
                       }
                       @if (l.team; as t) {
-                        <span class="flex items-center gap-1 text-[10px] text-muted font-bold shrink-0">
+                        <span class="flex items-center gap-1 text-2xs text-muted font-bold shrink-0">
                           <span class="w-1.5 h-1.5 rounded-full" [style.background]="t.primaryColor ?? '#888'"></span>{{ t.code | teamCode }}
                         </span>
                       }
@@ -59,7 +59,7 @@ const COLLAPSED_COUNT = 5;
           </table>
         </div>
         @if (leaders().length > collapsedCount) {
-          <button type="button" (click)="expanded.set(!expanded())" class="mt-2 text-[12px] font-semibold text-team-primary">
+          <button type="button" (click)="expanded.set(!expanded())" class="mt-2 text-xs font-semibold text-team-primary">
             {{ expanded() ? i18n.t('ta.showLess') : i18n.t('ta.showAll') }}
           </button>
         }
