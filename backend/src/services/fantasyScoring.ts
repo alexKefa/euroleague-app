@@ -774,6 +774,7 @@ async function saveMidRoundSubstitutions(
         slotRole: fantasyLineups.slotRole,
         isCaptain: fantasyLineups.isCaptain,
         playedAsCaptain: fantasyLineups.playedAsCaptain,
+        playedSlotRole: fantasyLineups.playedSlotRole,
         teamId: players.teamId,
         position: players.position,
       })
@@ -833,9 +834,14 @@ async function saveMidRoundSubstitutions(
   // bench (scoring 50% from then on); only bench -> front stays blocked.
   // Same day, the sixth man joins the bench for this: a played player only
   // moves down, starter -> sixth man -> bench, never up.
+  // 2026-10-30 ("players ... that started on the starting 5 can be benched
+  // and go to starting lineup all day long"): "up" is measured from the role
+  // they played in (playedSlotRole), not the last save, so a played starter
+  // can be benched and brought back; a played sixth man never reaches the five.
+  const playedRole = (r: (typeof existingRows)[number]) => (r.playedSlotRole ?? r.slotRole) as SlotRole;
   const movedPlayed = entries.find((e) => {
     const existing = existingByPlayerId.get(e.playerId)!;
-    return startedTeamIds.has(existing.teamId) && SLOT_ROLE_RANK[e.slotRole] < SLOT_ROLE_RANK[existing.slotRole];
+    return startedTeamIds.has(existing.teamId) && SLOT_ROLE_RANK[e.slotRole] < SLOT_ROLE_RANK[playedRole(existing)];
   });
   if (movedPlayed) {
     return { error: "A player whose game has already been played can't change slot", code: "PLAYER_PLAYED", playerId: movedPlayed.playerId };
@@ -868,7 +874,7 @@ async function saveMidRoundSubstitutions(
     }
   }
 
-  const changed: { id: string; slotRole: SlotRole; isCaptain: boolean; playedAsCaptain: boolean }[] = [];
+  const changed: { id: string; slotRole: SlotRole; isCaptain: boolean; playedAsCaptain: boolean; playedSlotRole: string | null }[] = [];
   for (const e of entries) {
     const existing = existingByPlayerId.get(e.playerId)!;
     const isCaptain = !!e.isCaptain;
@@ -876,7 +882,9 @@ async function saveMidRoundSubstitutions(
     // captain so it can be handed back to them.
     const playedAsCaptain = existing.playedAsCaptain || (existing.isCaptain && !isCaptain && startedTeamIds.has(existing.teamId));
     if (existing.slotRole === e.slotRole && existing.isCaptain === isCaptain && existing.playedAsCaptain === playedAsCaptain) continue;
-    changed.push({ id: existing.id, slotRole: e.slotRole, isCaptain, playedAsCaptain });
+    // First move after their game: the saved role is still the one they played in.
+    const playedSlotRole = startedTeamIds.has(existing.teamId) ? playedRole(existing) : null;
+    changed.push({ id: existing.id, slotRole: e.slotRole, isCaptain, playedAsCaptain, playedSlotRole });
   }
 
   // Take the armband off before handing it on: the fantasy_lineup_one_captain
@@ -888,7 +896,7 @@ async function saveMidRoundSubstitutions(
       for (const c of changed) {
         await tx
           .update(fantasyLineups)
-          .set({ slotRole: c.slotRole, isCaptain: c.isCaptain, playedAsCaptain: c.playedAsCaptain })
+          .set({ slotRole: c.slotRole, isCaptain: c.isCaptain, playedAsCaptain: c.playedAsCaptain, playedSlotRole: c.playedSlotRole })
           .where(eq(fantasyLineups.id, c.id));
       }
     });

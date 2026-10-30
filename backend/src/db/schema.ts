@@ -1700,6 +1700,12 @@ export const fantasyLineups = pgTable(
     // 50% (services/fantasyScoring.ts). Independent of isCaptain — the
     // captain is always one of the 5 "starter" rows, never sixth_man/bench.
     slotRole: varchar("slot_role", { length: 10 }).default("starter").notNull(),
+    // The slotRole this player held when their game was played, recorded by
+    // the first mid-round save that moves them afterwards (2026-10-30). Null
+    // means slotRole itself still is that role. A played player may move
+    // between this role and anything below it, but never above it — so a
+    // played starter can go to the bench and back (saveMidRoundSubstitutions).
+    playedSlotRole: varchar("played_slot_role", { length: 10 }),
     // The player's draft price (player_fantasy_prices) at the moment this
     // row was written — a save, or the round carry-forward auto-seed (see
     // routes/fantasy.ts) — never recomputed after, same "fixed snapshot"

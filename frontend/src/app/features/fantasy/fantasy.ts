@@ -510,6 +510,9 @@ export class FantasyComponent implements OnInit {
   // Players who wore the armband when their game was played (see
   // canTakeCaptaincy).
   readonly playedAsCaptainIds = signal<Set<string>>(new Set());
+  // Role each played player held when their game was played, once a save has
+  // moved them off it (see playedRole).
+  private playedSlotRoleById = signal<Map<string, FantasySlotRole>>(new Map());
 
   // --- Round review — points/PIR/completion for whichever round is being
   // viewed (2026-09-07). Sourced from GET /fantasy/lineup's own per-round
@@ -1578,6 +1581,7 @@ export class FantasyComponent implements OnInit {
         this.coachLocked.set(lineup.coachLocked);
         this.lockedPlayerIds.set(new Set(lineup.players.filter((p) => p.locked).map((p) => p.playerId)));
         this.playedAsCaptainIds.set(new Set(lineup.players.filter((p) => p.playedAsCaptain).map((p) => p.playerId)));
+        this.playedSlotRoleById.set(new Map(lineup.players.filter((p) => p.playedSlotRole).map((p) => [p.playerId, p.playedSlotRole!])));
         this.roundComplete.set(lineup.roundComplete);
         this.totalPoints.set(lineup.totalPoints);
         this.creditsChange.set(lineup.creditsChange);
@@ -2390,7 +2394,8 @@ export class FantasyComponent implements OnInit {
 
     const players = slots.map((s) => {
       const id = s.playerId!;
-      return { id, role: s.role, pos: byId.get(id)?.player.position as PositionName | undefined, played: this.hasPlayed(id) };
+      const played = this.hasPlayed(id);
+      return { id, role: s.role, floor: played ? this.playedRole(id, s.role) : s.role, pos: byId.get(id)?.player.position as PositionName | undefined, played };
     });
     const n = players.length;
     const sixthCount = slots.filter((s) => s.role === "sixth_man").length;
@@ -2402,7 +2407,7 @@ export class FantasyComponent implements OnInit {
       let cost = 0;
       for (let i = 0; i < n; i++) {
         const p = players[i];
-        if (p.played && ROLE_RANK[roles[i]] < ROLE_RANK[p.role]) return;
+        if (p.played && ROLE_RANK[roles[i]] < ROLE_RANK[p.floor]) return;
         if (p.role !== roles[i]) cost++;
       }
       if (cost < bestCost) {
@@ -2536,16 +2541,29 @@ export class FantasyComponent implements OnInit {
   // Same day, the sixth man counts as bench for this ("6th player can never
   // be changed to main squad as soon as his day of playing has [passed]"):
   // a played player only ever moves down, five -> sixth man -> bench.
+  // 2026-10-30 ("players ... that started on the starting 5 can be benched
+  // and go to starting lineup all day long"): "down" is measured from the
+  // role the player played in (playedRole), not their current slot, so a
+  // played starter can be benched and brought back; a played sixth man
+  // never reaches the five.
   isPlayerLocked(playerId: string): boolean {
     if (this.editLocked()) return true;
     if (!this.hasPlayed(playerId)) return false;
-    return this.squadSlots().find((s) => s.playerId === playerId)?.role === "bench";
+    const current = this.squadSlots().find((s) => s.playerId === playerId)?.role ?? "bench";
+    return this.playedRole(playerId, current) === "bench";
   }
 
   // Whether this player may end up in a slot of role `to`.
   canTakeRole(playerId: string, from: FantasySlotRole, to: FantasySlotRole): boolean {
     if (this.editLocked()) return false;
-    return !this.hasPlayed(playerId) || ROLE_RANK[to] >= ROLE_RANK[from];
+    return !this.hasPlayed(playerId) || ROLE_RANK[to] >= ROLE_RANK[this.playedRole(playerId, from)];
+  }
+
+  // The role a played player held when their game was played: the recorded
+  // one if a save has since moved them, else their saved role. Mirrors
+  // saveMidRoundSubstitutions' playedRole.
+  private playedRole(playerId: string, fallback: FantasySlotRole): FantasySlotRole {
+    return this.playedSlotRoleById().get(playerId) ?? this.serverSlotByPlayerId().get(playerId) ?? fallback;
   }
 
   // Both sides of a two-slot swap may take each other's role.
@@ -3094,6 +3112,15 @@ export class FantasyComponent implements OnInit {
     this.submitError.set(null);
     this.api.submitFantasyLineupBatch(season, round, players, coachTeamId).subscribe({
       next: () => {
+        // Same rule the backend just applied: the first move of a played
+        // player records the role they played in.
+        const prevSlots = this.serverSlotByPlayerId();
+        const playedRoles = new Map(this.playedSlotRoleById());
+        for (const p of players) {
+          const prev = prevSlots.get(p.playerId);
+          if (prev && prev !== p.slotRole && !playedRoles.has(p.playerId) && this.hasPlayed(p.playerId)) playedRoles.set(p.playerId, prev);
+        }
+        this.playedSlotRoleById.set(playedRoles);
         this.serverSlotByPlayerId.set(new Map(players.map((p) => [p.playerId, p.slotRole])));
         // Same rule the backend just applied: an armband leaving a player
         // who already played marks them as having played as captain.
