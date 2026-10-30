@@ -228,6 +228,9 @@
           [id]="slot.id"
           [cdkDropListConnectedTo]="dropListIds"
           (cdkDropListDropped)="onDrop($event, slot.id)"
+          [cdkDropListEnterPredicate]="dropEnterPredicate"
+          [class.fantasy-drop-target]="dragTargetIds()?.has(slot.id)"
+          [class.fantasy-drop-dimmed]="dragTargetIds() && !dragTargetIds()!.has(slot.id) && dragSourceId() !== slot.id"
           cdkDropListSortingDisabled
           cdkDropListHasAnchor
           class="fantasy-drop fantasy-slot relative flex flex-col items-center"
@@ -250,6 +253,8 @@
               cdkDrag
               [cdkDragDisabled]="isPlayerLocked(slot.playerId)"
               [cdkDragData]="slot.playerId"
+              (cdkDragStarted)="onDragStart(slot.playerId, slot.id)"
+              (cdkDragEnded)="onDragEnd()"
               cdkDragPreviewClass="fantasy-drag-preview"
               class="fantasy-slot-land flex flex-col items-center gap-1"
               [ngClass]="isPlayerLocked(slot.playerId) ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'"
@@ -1155,6 +1160,8 @@
               id="pool"
               [cdkDropListConnectedTo]="dropListIds"
               (cdkDropListDropped)="onDrop($event, 'pool')"
+              [cdkDropListEnterPredicate]="dropEnterPredicate"
+              [class.fantasy-drop-target]="dragTargetIds()?.has('pool')"
               cdkDropListSortingDisabled
               cdkDropListHasAnchor
               (scroll)="onPoolScroll($event)"
@@ -1165,6 +1172,8 @@
                 <div
                   cdkDrag
                   [cdkDragData]="row.player.id"
+                  (cdkDragStarted)="onDragStart(row.player.id, 'pool')"
+                  (cdkDragEnded)="onDragEnd()"
                   [cdkDragDisabled]="poolRowDisabled(row.player.id, row.player.position)"
                   cdkDragPreviewClass="fantasy-drag-preview"
                   class="fantasy-row-in list-row !gap-2 !p-1.5 !pl-2"

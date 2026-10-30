@@ -1,7 +1,7 @@
 import { Component, DestroyRef, HostListener, OnInit, inject, signal, computed, effect, WritableSignal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
-import { DragDropModule, CdkDragDrop } from "@angular/cdk/drag-drop";
+import { DragDropModule, CdkDrag, CdkDragDrop, CdkDropList } from "@angular/cdk/drag-drop";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
@@ -2989,26 +2989,60 @@ export class FantasyComponent implements OnInit {
   // fantasy.html for how both are wired.
   onDrop(event: CdkDragDrop<unknown>, targetId: string): void {
     const draggedPlayerId = event.item.data as string;
-    if (this.isPlayerLocked(draggedPlayerId)) return;
     const sourceId = event.previousContainer.id;
     if (sourceId === targetId) return; // dropped back where it started
+    const plan = this.planDrop(draggedPlayerId, sourceId, targetId);
+    if (!plan) {
+      // Only a rejected swap onto another squad member gets the notice.
+      if (sourceId !== "pool" && this.squadSlots().find((s) => s.id === targetId)?.playerId) this.flashSwapRejected();
+      return;
+    }
+    if (plan.formation) this.formation.set(plan.formation);
+    this.squadSlots.set(plan.slots);
+    this.releaseCaptainIfNotStarter(plan.slots);
+    this.saved.set(false);
+  }
 
+  // Drag highlighting (2026-10-30, "show all players blurred besides the
+  // ones that can actually replace on the squad"): on pick-up, every drop
+  // list is run through planDrop once, and the court dims and blurs every
+  // slot that wouldn't accept the player. Null while nothing is dragged.
+  readonly dragSourceId = signal<string | null>(null);
+  readonly dragTargetIds = signal<Set<string> | null>(null);
+
+  onDragStart(playerId: string, sourceId: string): void {
+    const targets = new Set(this.dropListIds.filter((id) => id !== sourceId && this.planDrop(playerId, sourceId, id)));
+    this.dragSourceId.set(sourceId);
+    this.dragTargetIds.set(targets);
+  }
+
+  onDragEnd(): void {
+    this.dragSourceId.set(null);
+    this.dragTargetIds.set(null);
+  }
+
+  // CDK enter predicate: a dragged player only reacts over lists that accept it.
+  readonly dropEnterPredicate = (_drag: CdkDrag, drop: CdkDropList): boolean => {
+    const targets = this.dragTargetIds();
+    return !targets || drop.id === this.dragSourceId() || targets.has(drop.id);
+  };
+
+  // The squad after dropping `draggedPlayerId` (coming from list `sourceId`)
+  // on list `targetId`, or null if that drop isn't allowed. Pure: onDrop
+  // applies it, onDragStart uses it to find the valid targets.
+  private planDrop(draggedPlayerId: string, sourceId: string, targetId: string): { slots: SquadSlot[]; formation: Formation | null } | null {
+    if (this.isPlayerLocked(draggedPlayerId)) return null;
     const slots = [...this.squadSlots()];
     const sourceIdx = slots.findIndex((s) => s.id === sourceId);
 
     if (targetId === "pool") {
-      if (this.roundLocked()) return; // no transfers once the round has started
-      if (sourceIdx !== -1) {
-        slots[sourceIdx] = { ...slots[sourceIdx], playerId: null };
-        this.squadSlots.set(slots);
-        this.releaseCaptainIfNotStarter(slots);
-        this.saved.set(false);
-      }
-      return;
+      if (this.roundLocked() || sourceIdx === -1) return null; // no transfers once the round has started
+      slots[sourceIdx] = { ...slots[sourceIdx], playerId: null };
+      return { slots, formation: null };
     }
 
     const targetIdx = slots.findIndex((s) => s.id === targetId);
-    if (targetIdx === -1) return;
+    if (targetIdx === -1) return null;
     const displaced = slots[targetIdx].playerId;
 
     if (sourceId === "pool") {
@@ -3016,33 +3050,28 @@ export class FantasyComponent implements OnInit {
       // isn't a swap and keeps the original strict same-position gating;
       // the flexible formation logic below only ever applies to trading
       // two squad members' places with each other (see evaluateSwap).
-      if (this.roundLocked() || !this.slotAcceptsPlayer(targetId, draggedPlayerId)) return;
-      if (displaced && this.isPlayerLocked(displaced)) return;
+      if (this.roundLocked() || !this.slotAcceptsPlayer(targetId, draggedPlayerId)) return null;
+      if (displaced && this.isPlayerLocked(displaced)) return null;
       const draggedRow = this.rowById().get(draggedPlayerId);
       if (
         !this.canAddPosition(draggedRow?.player.position) ||
         !this.canUseTransfer(draggedPlayerId) ||
         !this.canAfford(draggedRow?.price ?? 0)
       )
-        return;
+        return null;
       slots[targetIdx] = { ...slots[targetIdx], playerId: draggedPlayerId };
-      this.squadSlots.set(slots);
-      this.releaseCaptainIfNotStarter(slots);
-      this.saved.set(false);
-      return;
+      return { slots, formation: null };
     }
+    if (sourceIdx === -1) return null;
 
     if (!displaced) {
       // Moving into an empty slot — not a swap, same strict gating the
       // slot-picker itself uses for filling an empty starter slot.
-      if (!this.slotAcceptsPlayer(targetId, draggedPlayerId)) return;
-      if (!this.swapRolesAllowed(slots, sourceIdx, targetIdx)) return;
+      if (!this.slotAcceptsPlayer(targetId, draggedPlayerId)) return null;
+      if (!this.swapRolesAllowed(slots, sourceIdx, targetIdx)) return null;
       slots[sourceIdx] = { ...slots[sourceIdx], playerId: null };
       slots[targetIdx] = { ...slots[targetIdx], playerId: draggedPlayerId };
-      this.squadSlots.set(slots);
-      this.releaseCaptainIfNotStarter(slots);
-      this.saved.set(false);
-      return;
+      return { slots, formation: null };
     }
 
     // A genuine two-player swap. Only the same shape the swap popup itself
@@ -3053,10 +3082,7 @@ export class FantasyComponent implements OnInit {
     // bench <-> bench, or a starter dragged straight onto the sixth man)
     // is outside that shape and keeps the original same-required-position
     // rule, unchanged.
-    if (!this.swapRolesAllowed(slots, sourceIdx, targetIdx)) {
-      this.flashSwapRejected();
-      return;
-    }
+    if (!this.swapRolesAllowed(slots, sourceIdx, targetIdx)) return null;
     const sourceSlot = slots[sourceIdx];
     const targetSlot = slots[targetIdx];
     // Any cross-role pair — including sixth man <-> starter (2026-10-09,
@@ -3065,23 +3091,15 @@ export class FantasyComponent implements OnInit {
     let formation: Formation | null = null;
     if (sourceSlot.role !== targetSlot.role) {
       const result = this.evaluateSwap(slots, sourceIdx, targetIdx);
-      if (!result.ok) {
-        this.flashSwapRejected();
-        return;
-      }
+      if (!result.ok) return null;
       formation = result.formation;
     } else if (!this.slotAcceptsPlayer(targetId, draggedPlayerId) || !this.slotAcceptsPlayer(sourceId, displaced)) {
-      this.flashSwapRejected();
-      return;
+      return null;
     }
 
     slots[sourceIdx] = { ...slots[sourceIdx], playerId: displaced };
     slots[targetIdx] = { ...slots[targetIdx], playerId: draggedPlayerId };
-    const finalSlots = formation ? this.reseatStartersForFormation(slots, formation) : slots;
-    if (formation) this.formation.set(formation);
-    this.squadSlots.set(finalSlots);
-    this.releaseCaptainIfNotStarter(finalSlots);
-    this.saved.set(false);
+    return { slots: formation ? this.reseatStartersForFormation(slots, formation) : slots, formation };
   }
 
   // Captain must always be a starter — dragging or swapping them onto the
