@@ -39,10 +39,10 @@
       @if (!ownedPacksLoading() && ownedPacksGrouped().length > 0) {
         <!-- Restyled (2026-09-30) to the app's list-row tiles, with the
              waiting count up top so opening them reads as the first job. -->
-        <div class="bg-card rounded-2xl border border-team-primary/40 shadow-card p-4 mb-5 text-left">
+        <div class="bg-card rounded-3xl border border-team-primary/40 shadow-card p-4 mb-5 text-left">
           <div class="flex items-center justify-between gap-2 mb-0.5">
-            <p class="text-xs text-muted font-bold uppercase tracking-wider">{{ i18n.t('packs.myPacksTitle') }}</p>
-            <span class="shrink-0 min-w-[1.5rem] h-6 px-2 rounded-full bg-team-primary text-team-secondary text-xs font-bold flex items-center justify-center">{{ ownedPacks().length }}</span>
+            <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('packs.myPacksTitle') }}</p>
+            <span class="shrink-0 min-w-[1.5rem] h-6 px-2 rounded-full bg-team-primary text-team-secondary text-[12px] font-bold flex items-center justify-center">{{ ownedPacks().length }}</span>
           </div>
           <p class="text-xs text-muted mb-3">{{ i18n.t('packs.myPacksSubtitle') }}</p>
           <div class="space-y-2">
@@ -52,14 +52,14 @@
                   <span class="pack-dots absolute inset-0 pointer-events-none"></span>
                 </span>
                 <div class="min-w-0 flex-1">
-                  <p class="text-sm font-semibold truncate">
+                  <p class="text-[13px] font-semibold truncate">
                     {{ packLabel(group.packType) }}
                     @if (group.items.length > 1) {
                       <span class="text-team-primary font-bold">×{{ group.items.length }}</span>
                     }
                   </p>
                   @if (groupReasons(group.items); as reasons) {
-                    <p class="text-xs text-muted line-clamp-2">{{ reasons }}</p>
+                    <p class="text-[11px] text-muted line-clamp-2">{{ reasons }}</p>
                   }
                 </div>
                 <button
@@ -97,7 +97,7 @@
       <div data-tour="packs-grid" class="space-y-3 text-left">
         @for (pack of packs(); track pack.type) {
           @let affordable = canAfford(pack);
-          <div class="relative flex items-center gap-4 rounded-2xl p-3 pr-4 bg-card border border-line shadow-card overflow-hidden">
+          <div class="relative flex items-center gap-4 rounded-3xl p-3 pr-4 bg-card border border-line shadow-card overflow-hidden">
             <div class="pack-tile-glow pointer-events-none absolute inset-0" [class]="'pack-tile-glow--' + pack.type" aria-hidden="true"></div>
             <button
               type="button"
@@ -111,7 +111,7 @@
 
             <div class="relative min-w-0 flex-1">
               <p class="font-display text-base leading-tight">{{ packLabel(pack.type) }}</p>
-              <p class="text-xs text-muted italic leading-snug mt-0.5">{{ tagline(pack.type) }}</p>
+              <p class="text-[11px] text-muted italic leading-snug mt-0.5">{{ tagline(pack.type) }}</p>
 
               <div class="flex items-end gap-1.5 mt-2.5" role="img" [attr.aria-label]="blurb(pack.type)">
                 @for (pip of slotPips(pack); track $index) {
@@ -122,11 +122,11 @@
                   </span>
                 }
               </div>
-              <p class="text-xs text-muted leading-snug mt-2">{{ blurb(pack.type) }}</p>
+              <p class="text-[11px] text-muted leading-snug mt-2">{{ blurb(pack.type) }}</p>
 
               <div class="mt-3">
                 @if (pointsLoading()) {
-                  <span class="inline-block w-24 h-8 rounded-lg bg-line animate-pulse"></span>
+                  <span class="inline-block w-24 h-8 rounded-xl bg-line animate-pulse"></span>
                 } @else if (affordable) {
                   <button type="button" appButton appButtonSize="sm" (click)="requestOpen(pack)" [disabled]="opening() !== null">
                     @if (opening() === pack.type) {
@@ -136,7 +136,7 @@
                     }
                   </button>
                 } @else {
-                  <span class="inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs">
+                  <span class="inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[12px]">
                     <span class="font-mono font-bold text-muted line-through decoration-1">{{ pack.pointsCost }} {{ i18n.t('packs.ptsLower') }}</span>
                     <span class="font-semibold text-team-primary">{{ i18n.t('packs.needPrefix') }} {{ pointsShort(pack) }} {{ i18n.t('packs.needSuffix') }}</span>
                   </span>
@@ -170,7 +170,7 @@
     @if (view() === "pack") {
       <div class="mt-2 flex flex-col items-center">
         <div class="flex w-full justify-end mb-3">
-          <button type="button" (click)="revealAll()" class="status-tile h-10 px-4 rounded-lg border border-line text-sm font-semibold text-ink hover:border-team-primary transition-colors">
+          <button type="button" (click)="revealAll()" class="status-tile h-10 px-4 rounded-xl border border-line text-sm font-semibold text-ink hover:border-team-primary transition-colors">
             {{ i18n.t('packs.revealAll') }}
           </button>
         </div>
@@ -192,7 +192,7 @@
             <app-pack-art [type]="openedPackType()!" [style.width.px]="cardSize() * 0.78" />
           </div>
         </div>
-        <p class="mt-4 text-xs text-muted animate-pulse">{{ i18n.t('packs.tapToOpen') }}</p>
+        <p class="mt-4 text-[11px] text-muted animate-pulse">{{ i18n.t('packs.tapToOpen') }}</p>
       </div>
     }
 
@@ -203,10 +203,10 @@
     @if (view() === "deck") {
       <div class="mt-2">
         <div class="flex items-center justify-between gap-2 mb-3">
-          <p class="text-xs text-muted font-bold uppercase tracking-wider">
+          <p class="text-[12px] text-muted font-bold uppercase tracking-wider">
             {{ i18n.t('packs.card') }} {{ deckIndex() === 0 ? 1 : deckIndex() }} {{ i18n.t('packs.of') }} {{ deckOrder().length }}
           </p>
-          <button type="button" (click)="revealAll()" class="status-tile h-10 px-4 rounded-lg border border-line text-sm font-semibold text-ink hover:border-team-primary transition-colors">
+          <button type="button" (click)="revealAll()" class="status-tile h-10 px-4 rounded-xl border border-line text-sm font-semibold text-ink hover:border-team-primary transition-colors">
             {{ i18n.t('packs.revealAll') }}
           </button>
         </div>
@@ -300,7 +300,7 @@
           <!-- Walkout: the stage goes dark, light sweeps up in the tier
                colour, team and tier first, then the card turns. -->
           @if (walkout(); as w) {
-            <div class="walkout absolute rounded-2xl overflow-hidden flex flex-col items-center justify-center" [class.walkout--foil]="isFoilCard(w)" [style.--tier]="tierColor(w)" style="z-index: 40">
+            <div class="walkout absolute rounded-3xl overflow-hidden flex flex-col items-center justify-center" [class.walkout--foil]="isFoilCard(w)" [style.--tier]="tierColor(w)" style="z-index: 40">
               <div class="walkout__beams absolute inset-0"></div>
               @if (w.collectible.team.logoUrl) {
                 <img class="walkout__badge relative" [src]="w.collectible.team.logoUrl" [alt]="w.collectible.team.name" />
@@ -316,8 +316,8 @@
           @if (activeCard(); as card) {
             @if (!walkout()) {
               @if (card.wasDuplicate) {
-                <p class="text-xs font-bold uppercase tracking-wide text-muted mt-2">{{ i18n.t('packs.duplicate') }}</p>
-                <p class="pts-float inline-block text-sm font-bold uppercase tracking-wide text-emerald-500 bg-emerald-500/15 rounded-full px-3 py-1 mt-1.5">
+                <p class="text-[12px] font-bold uppercase tracking-wide text-muted mt-2">{{ i18n.t('packs.duplicate') }}</p>
+                <p class="pts-float inline-block text-[13px] font-bold uppercase tracking-wide text-emerald-500 bg-emerald-500/15 rounded-full px-3 py-1 mt-1.5">
                   {{ i18n.t('packs.soldForPrefix') }} {{ card.sellValue }} {{ i18n.t('packs.ptsLower') }}
                 </p>
               } @else if (card.collectible.tier === "legendary") {
@@ -330,11 +330,11 @@
               } @else if (card.collectible.tier === "rare") {
                 <p class="rare-label font-display text-lg uppercase tracking-wide mt-2">{{ i18n.t('packs.rareBang') }}</p>
               } @else {
-                <p class="text-xs font-bold uppercase tracking-wide text-highlight mt-3">{{ i18n.t('packs.newBang') }}</p>
+                <p class="text-[12px] font-bold uppercase tracking-wide text-highlight mt-3">{{ i18n.t('packs.newBang') }}</p>
               }
             }
           }
-          <p class="mt-2 text-xs text-muted animate-pulse">
+          <p class="mt-2 text-[11px] text-muted animate-pulse">
             {{ deckIndex() >= deckOrder().length ? i18n.t('packs.tapToFinish') : i18n.t('packs.tapToFlip') }}
           </p>
         </div>
@@ -388,9 +388,9 @@
                 [momentPir]="card.collectible.moment?.pir ?? null"
               ></app-collectible-card>
               @if (!card.wasDuplicate) {
-                <span class="absolute top-1.5 left-1.5 z-10 px-1.5 py-0.5 rounded-lg bg-team-primary text-team-secondary text-2xs font-bold uppercase tracking-wide shadow-sm">{{ i18n.t('packs.newRibbon') }}</span>
+                <span class="absolute top-1.5 left-1.5 z-10 px-1.5 py-0.5 rounded-md bg-team-primary text-team-secondary text-[10px] font-bold uppercase tracking-wide shadow-sm">{{ i18n.t('packs.newRibbon') }}</span>
               } @else {
-                <span class="absolute inset-x-0 bottom-0 py-1.5 rounded-b-2xl bg-emerald-600 text-center font-display font-bold text-xs uppercase tracking-wider text-white shadow-md">
+                <span class="absolute inset-x-0 bottom-0 py-1.5 rounded-b-2xl bg-emerald-600 text-center font-display font-bold text-[11px] uppercase tracking-wider text-white shadow-md">
                   {{ i18n.t('packs.sold') }}{{ card.sellValue !== null ? " +" + card.sellValue + " " + i18n.t('store.pointsBadge') : "" }}
                 </span>
               }

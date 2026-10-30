@@ -70,7 +70,7 @@
     <button
       type="button"
       (click)="search.show()"
-      class="tap-target status-tile relative shrink-0 w-10 h-10 sm:w-8 sm:h-8 rounded-lg border border-line flex items-center justify-center text-muted hover:text-team-primary transition-colors"
+      class="tap-target status-tile relative shrink-0 w-10 h-10 sm:w-8 sm:h-8 rounded-xl border border-line flex items-center justify-center text-muted hover:text-team-primary transition-colors"
       [attr.aria-label]="i18n.t('search.open')"
       [title]="i18n.t('search.open')"
     >
@@ -80,7 +80,7 @@
     <button
       type="button"
       (click)="tour.start()"
-      class="tap-target status-tile relative shrink-0 w-10 h-10 sm:w-8 sm:h-8 rounded-lg border border-line flex items-center justify-center text-muted hover:text-team-primary transition-colors"
+      class="tap-target status-tile relative shrink-0 w-10 h-10 sm:w-8 sm:h-8 rounded-xl border border-line flex items-center justify-center text-muted hover:text-team-primary transition-colors"
       [attr.aria-label]="i18n.t('tour.takeTour')"
       [title]="i18n.t('tour.takeTour')"
     >
@@ -94,19 +94,19 @@
       <div class="hidden sm:flex items-center gap-3 min-w-0">
         <a
           routerLink="/profile"
-          class="font-mono text-muted font-bold text-sm truncate max-w-[40vw] hover:text-ink transition-colors"
+          class="font-mono text-muted font-bold text-[13px] truncate max-w-[40vw] hover:text-ink transition-colors"
           >{{ auth.currentUser()?.email }}</a
         >
         @if (auth.currentUser()?.isAdmin) {
           <span
-            class="font-mono text-xs font-bold uppercase tracking-wide text-highlight bg-highlight/10 border-2 border-highlight/30 rounded-lg px-2 py-0.5 shrink-0"
+            class="font-mono text-[11px] font-bold uppercase tracking-wide text-highlight bg-highlight/10 border-2 border-highlight/30 rounded-xl px-2 py-0.5 shrink-0"
             >{{ i18n.t('nav.admin') }}</span
           >
         }
         <button
           type="button"
           (click)="logout()"
-          class="tap-target relative shrink-0 w-8 h-8 rounded-lg border-2 border-line flex items-center justify-center text-muted hover:text-team-primary hover:bg-page transition-colors"
+          class="tap-target relative shrink-0 w-8 h-8 rounded-xl border-2 border-line flex items-center justify-center text-muted hover:text-team-primary hover:bg-page transition-colors"
           [attr.aria-label]="i18n.t('nav.logout')"
         >
           <app-nav-icon name="logout" [size]="18" />
@@ -114,7 +114,7 @@
       </div>
       <a
         routerLink="/profile"
-        class="sm:hidden shrink-0 w-10 h-10 rounded-lg bg-team-primary text-team-secondary flex items-center justify-center font-display text-lg uppercase shadow-card transition-shadow"
+        class="sm:hidden shrink-0 w-10 h-10 rounded-xl bg-team-primary text-team-secondary flex items-center justify-center font-display text-lg uppercase shadow-card transition-shadow"
         [style.box-shadow]="isProfileActive() ? '0 0 0 2px var(--color-card), 0 0 0 4px var(--accent-primary)' : null"
         [attr.aria-label]="i18n.t('nav.profile')"
       >
@@ -124,7 +124,7 @@
       <div class="hidden sm:flex items-center gap-3 sm:gap-4 shrink-0">
         <a
           routerLink="/login"
-          class="shrink-0 w-8 h-8 rounded-lg border-2 border-line flex items-center justify-center text-muted hover:text-ink hover:bg-page transition-colors"
+          class="shrink-0 w-8 h-8 rounded-xl border-2 border-line flex items-center justify-center text-muted hover:text-ink hover:bg-page transition-colors"
           [attr.aria-label]="i18n.t('nav.login')"
         >
           <app-nav-icon name="user" [size]="18" />
@@ -137,7 +137,7 @@
            ("Don't have an account?"), so dropping this one doesn't strand
            anyone. Icon+visible label, not just an icon+aria-label — an
            icon-only button here read as unclear on its own. -->
-      <a routerLink="/login" appButton="secondary" appButtonSize="sm" class="sm:hidden shrink-0 !h-10 !rounded-lg">
+      <a routerLink="/login" appButton="secondary" appButtonSize="sm" class="sm:hidden shrink-0 !h-10 !rounded-xl">
         <app-nav-icon name="user" [size]="14" class="text-team-primary" />
         {{ i18n.t('nav.login') }}
       </a>
@@ -174,7 +174,7 @@
         class="rail-item group relative flex flex-col items-center justify-center gap-1 w-[72px] shrink-0 rounded-2xl px-1 py-2 transition-colors duration-150"
       >
         <span class="rail-bar" aria-hidden="true"></span>
-        <span class="rail-icon relative flex items-center justify-center w-10 h-8 rounded-lg transition-all duration-200">
+        <span class="rail-icon relative flex items-center justify-center w-10 h-8 rounded-xl transition-all duration-200">
           <app-nav-icon [name]="link.icon" [active]="isActive(link)" [size]="22" />
           @if (link.path === '/predictions' && auth.isAuthenticated() && events.hasLiveGame()) {
             <span
@@ -184,12 +184,12 @@
           }
           @if (link.path === '/inventory' && auth.isAuthenticated() && (trades.hasPendingIncoming() || battlesNotif.hasPendingIncoming() || packRewards.hasUnopened())) {
             <span
-              class="absolute top-0 right-1 w-2 h-2 rounded-full bg-red-500 ring-2 ring-card"
+              class="absolute top-0 right-1 w-2 h-2 rounded-full bg-red-500 ring-2 ring-card animate-pulse"
               [attr.aria-label]="i18n.t(trades.hasPendingIncoming() ? 'nav.pendingTrades' : battlesNotif.hasPendingIncoming() ? 'battles.pendingChallenges' : 'nav.unopenedPacks')"
             ></span>
           }
         </span>
-        <span class="rail-label w-full text-center text-2xs font-semibold leading-tight">{{ i18n.t(link.label) }}</span>
+        <span class="rail-label w-full text-center text-[10.5px] font-semibold leading-tight">{{ i18n.t(link.label) }}</span>
       </a>
     }
   </nav>
@@ -255,7 +255,7 @@
   <!-- Dock label (2026-10-08): the tab under the finger while sliding. -->
   @if (dockLabel(); as dl) {
     <span
-      class="pointer-events-none absolute bottom-full mb-4 px-2.5 py-1 rounded-full bg-ink text-page text-xs font-semibold whitespace-nowrap shadow-pop"
+      class="pointer-events-none absolute bottom-full mb-4 px-2.5 py-1 rounded-full bg-ink text-page text-[12px] font-semibold whitespace-nowrap shadow-pop"
       [style.left.px]="dl.x"
       style="transform: translateX(-50%)"
     >{{ dl.text }}</span>
@@ -283,7 +283,7 @@
         }
         @if (link.path === '/inventory' && auth.isAuthenticated() && (trades.hasPendingIncoming() || battlesNotif.hasPendingIncoming() || packRewards.hasUnopened())) {
           <span
-            class="absolute top-0.5 right-1 w-2 h-2 rounded-full bg-red-500"
+            class="absolute top-0.5 right-1 w-2 h-2 rounded-full bg-red-500 animate-pulse"
             [attr.aria-label]="i18n.t(trades.hasPendingIncoming() ? 'nav.pendingTrades' : battlesNotif.hasPendingIncoming() ? 'battles.pendingChallenges' : 'nav.unopenedPacks')"
           ></span>
         }

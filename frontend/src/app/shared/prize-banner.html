@@ -23,7 +23,7 @@
         <span class="prize-sparkle prize-sparkle--b"></span>
       </div>
 
-      <p class="prize-ink font-mono text-xs font-bold tracking-widest uppercase mb-1">
+      <p class="prize-ink font-mono text-[11px] font-bold tracking-widest uppercase mb-1">
         {{ i18n.t('contest.prizeTagline') }}
       </p>
 
@@ -39,7 +39,7 @@
       <div class="flex items-end justify-center gap-2 mb-3">
         @for (spot of podium; track spot.place) {
           <div class="prize-podium-col flex flex-col items-center" [style.animation-delay.ms]="spot.place * 90">
-            <span class="prize-ink font-mono text-xs font-bold mb-1">&euro;{{ spot.amount }}</span>
+            <span class="prize-ink font-mono text-[11px] font-bold mb-1">&euro;{{ spot.amount }}</span>
             <div class="prize-podium-bar prize-podium-bar--{{ spot.place }} flex items-start justify-center pt-1.5">
               <span class="font-display font-bold text-sm text-white">{{ spot.place }}</span>
             </div>

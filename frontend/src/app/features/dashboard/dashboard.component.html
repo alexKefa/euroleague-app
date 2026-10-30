@@ -4,15 +4,15 @@
   @if (loading()) {
     <div class="flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_21rem] lg:gap-x-6 lg:items-start">
       <div class="contents lg:block lg:col-start-1 lg:row-start-1 lg:min-w-0">
-        <app-skeleton class="order-1 rounded-2xl h-[124px] mb-4" [iconSize]="22" />
+        <app-skeleton class="order-1 rounded-3xl h-[124px] mb-4" [iconSize]="22" />
         @if (auth.isAuthenticated()) {
-          <app-skeleton class="order-2 rounded-2xl h-[188px] mb-4" [iconSize]="20" />
+          <app-skeleton class="order-2 rounded-3xl h-[188px] mb-4" [iconSize]="20" />
         }
-        <app-skeleton class="order-3 rounded-2xl h-[110px] mb-4" [iconSize]="20" />
+        <app-skeleton class="order-3 rounded-3xl h-[110px] mb-4" [iconSize]="20" />
       </div>
       <div class="contents lg:block lg:col-start-2 lg:row-start-1">
-        <app-skeleton class="order-5 rounded-2xl h-[52px] mb-4" [icon]="false" />
-        <app-skeleton class="order-6 rounded-2xl h-[220px] mb-4" [iconSize]="20" />
+        <app-skeleton class="order-5 rounded-3xl h-[52px] mb-4" [icon]="false" />
+        <app-skeleton class="order-6 rounded-3xl h-[220px] mb-4" [iconSize]="20" />
       </div>
     </div>
   }
@@ -29,9 +29,10 @@
          device (see storyArticles); full width above both columns. Slides
          in rather than holding a skeleton, since it's often absent. -->
     @if (storyArticles().length > 0) {
-      <div class="stories-enter section-plain">
-        <div class="section-plain-head">
-          <h2 class="font-display text-lg min-w-0 truncate">{{ i18n.t('nav.news') }}</h2>
+      <div class="stories-enter bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
+        <div class="card-head">
+          <span class="card-head-icon"><app-nav-icon name="news" [size]="18" /></span>
+          <p class="font-display text-base flex-1 min-w-0 truncate">{{ i18n.t('nav.news') }}</p>
           <a routerLink="/news" class="go-link">{{ i18n.t('dashboard.viewAll') }} </a>
         </div>
         <app-news-stories [articles]="storyArticles()" />
@@ -53,11 +54,11 @@
         <!-- Next game, with the old team hero folded in: your team, rank and record. -->
         @if (selectedRow(); as row) {
           @if (scheduleLoading()) {
-            <app-skeleton class="order-3 rounded-2xl h-[110px] mb-4" />
+            <app-skeleton class="order-3 rounded-3xl h-[110px] mb-4" />
           } @else {
             <a
               [routerLink]="nextGame() ? ['/games', nextGame()!.id] : ['/teams', row.team.id]"
-              class="order-3 block rounded-2xl p-4 mb-4 bg-card border border-line shadow-card hover:border-team-primary/50 transition-colors"
+              class="order-3 block rounded-3xl p-4 mb-4 bg-card border border-line shadow-card hover:border-team-primary/50 transition-colors"
             >
               <div class="flex items-center gap-3">
                 @if (row.team.logoUrl) {
@@ -89,11 +90,11 @@
 
         <!-- My Leagues + Fantasy: one slim row at the bottom. -->
         @if (auth.isAuthenticated()) {
-          <div class="order-7 section-plain grid grid-cols-2 divide-x divide-line">
-            <a routerLink="/leagues" class="flex items-center gap-2.5 pr-3 py-1 group min-w-0">
+          <div class="order-7 grid grid-cols-2 gap-3 mb-4">
+            <a routerLink="/leagues" class="flex items-center gap-2.5 rounded-2xl px-3 py-2.5 bg-card border border-line hover:border-team-primary/50 transition-colors min-w-0">
               <app-nav-icon name="bracket" [size]="18" class="text-team-primary shrink-0" />
               <span class="min-w-0">
-                <span class="block text-sm font-semibold group-hover:text-team-primary transition-colors">{{ i18n.t('dashboard.myLeagues') }}</span>
+                <span class="block text-sm font-semibold">{{ i18n.t('dashboard.myLeagues') }}</span>
                 @if (!myLeaguesLoading()) {
                   <span class="block text-xs text-muted truncate">
                     @if (myLeagues().length > 0) {
@@ -105,10 +106,10 @@
                 }
               </span>
             </a>
-            <a routerLink="/fantasy" class="flex items-center gap-2.5 pl-3 py-1 group min-w-0">
+            <a routerLink="/fantasy" class="flex items-center gap-2.5 rounded-2xl px-3 py-2.5 bg-card border border-line hover:border-team-primary/50 transition-colors min-w-0">
               <app-nav-icon name="trophy" [size]="18" class="text-team-primary shrink-0" />
               <span class="min-w-0">
-                <span class="block text-sm font-semibold group-hover:text-team-primary transition-colors">{{ i18n.t('fantasy.navLink') }}</span>
+                <span class="block text-sm font-semibold">{{ i18n.t('fantasy.navLink') }}</span>
                 @if (!fantasyLoading()) {
                   <span class="block text-xs text-muted truncate">
                     @if (fantasyLineup(); as lineup) {

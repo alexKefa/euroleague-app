@@ -10,21 +10,21 @@
     </div>
   } @else {
     <!-- Header strip: rating, division, month record, paid wins left. -->
-    <div class="relative overflow-hidden rounded-2xl p-5 mb-4 bg-team-primary text-team-secondary shadow-card">
+    <div class="relative overflow-hidden rounded-3xl p-5 mb-4 bg-team-primary text-team-secondary shadow-card">
       <app-nav-icon name="ball" [size]="120" class="absolute -right-6 -bottom-8 opacity-15 pointer-events-none" />
       @if (rating(); as r) {
         <div class="relative flex items-end gap-3">
           <p class="font-display text-5xl leading-none">{{ r.rating }}</p>
           <div class="pb-0.5">
             <p class="font-display text-lg tracking-wide leading-tight">{{ i18n.t('duels.div.' + r.division) }}</p>
-            <p class="text-xs opacity-85">{{ i18n.t('duels.rating') }}</p>
+            <p class="text-[12px] opacity-85">{{ i18n.t('duels.rating') }}</p>
           </div>
         </div>
         <p class="relative font-mono text-xs font-bold mt-3 opacity-90">
           {{ i18n.t('duels.monthRecord') }}: {{ r.wins }}{{ i18n.t('duels.winShort') }} – {{ r.losses }}{{ i18n.t('duels.lossShort') }} – {{ r.draws
           }}{{ i18n.t('duels.drawShort') }}
         </p>
-        <p class="relative text-xs opacity-85 mt-0.5">{{ paidWinsLeft(r.paidWinsLeftToday) }}</p>
+        <p class="relative text-[12px] opacity-85 mt-0.5">{{ paidWinsLeft(r.paidWinsLeftToday) }}</p>
         @if (r.seasonBadges.length) {
           <app-season-badges class="relative block mt-2" [badges]="r.seasonBadges" />
         }
@@ -35,14 +35,14 @@
         <button
           type="button"
           (click)="openPicker()"
-          class="rounded-lg px-4 py-2.5 font-bold text-sm bg-team-secondary text-team-primary active:scale-[0.97] transition-transform"
+          class="rounded-xl px-4 py-2.5 font-bold text-sm bg-team-secondary text-team-primary active:scale-[0.97] transition-transform"
         >
           {{ i18n.t('duels.newDuel') }}
         </button>
         <button
           type="button"
           (click)="invite()"
-          class="rounded-lg px-4 py-2.5 font-bold text-sm border-2 border-current active:scale-[0.97] transition-transform"
+          class="rounded-xl px-4 py-2.5 font-bold text-sm border-2 border-current active:scale-[0.97] transition-transform"
         >
           {{ inviteCopied() ? i18n.t('battles.inviteCopied') : i18n.t('battles.inviteFriends') }}
         </button>
@@ -54,7 +54,7 @@
       <button
         type="button"
         (click)="setTab('games')"
-        class="relative flex-1 shrink-0 h-full px-3 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors"
+        class="relative flex-1 shrink-0 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors"
         [ngClass]="tab() === 'games' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
       >
         {{ i18n.t('duels.tab.games') }}
@@ -65,7 +65,7 @@
       <button
         type="button"
         (click)="setTab('open')"
-        class="flex-1 shrink-0 h-full px-3 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors"
+        class="flex-1 shrink-0 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors"
         [ngClass]="tab() === 'open' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
       >
         {{ i18n.t('duels.tab.open') }}
@@ -73,7 +73,7 @@
       <button
         type="button"
         (click)="setTab('ladder')"
-        class="flex-1 shrink-0 h-full px-3 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors"
+        class="flex-1 shrink-0 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors"
         [ngClass]="tab() === 'ladder' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
       >
         {{ i18n.t('duels.tab.ladder') }}
@@ -89,7 +89,7 @@
         </div>
       } @else {
         @if (yourMove().length > 0) {
-          <p class="text-xs text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('duels.yourMove') }}</p>
+          <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('duels.yourMove') }}</p>
           <div class="space-y-2 mb-5">
             @for (d of yourMove(); track d.id) {
               <div class="flex items-center gap-3 rounded-2xl border-2 border-team-primary/50 bg-card px-3 py-2.5 shadow-card">
@@ -98,9 +98,9 @@
                 </span>
                 <div class="min-w-0 flex-1">
                   <p class="font-semibold truncate">{{ d.opponent?.username }}</p>
-                  <p class="text-xs text-muted truncate">{{ rowLabel(d) }}</p>
+                  <p class="text-[12px] text-muted truncate">{{ rowLabel(d) }}</p>
                   @if (d.deadline) {
-                    <p class="font-mono text-xs text-team-primary font-bold">{{ timeLeft(d.deadline) }}</p>
+                    <p class="font-mono text-[11px] text-team-primary font-bold">{{ timeLeft(d.deadline) }}</p>
                   }
                 </div>
                 @if (d.status === 'active') {
@@ -115,7 +115,7 @@
         }
 
         @if (waiting().length > 0) {
-          <p class="text-xs text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('duels.waiting') }}</p>
+          <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('duels.waiting') }}</p>
           <div class="space-y-2 mb-5">
             @for (d of waiting(); track d.id) {
               <div class="flex items-center gap-3 rounded-2xl border border-line bg-card pl-3 pr-2 py-2.5">
@@ -127,9 +127,9 @@
                     <p class="font-semibold truncate">
                       {{ d.opponent ? d.opponent.username : i18n.t('duels.openChallenge') }}
                     </p>
-                    <p class="text-xs text-muted truncate">{{ rowLabel(d) }}</p>
+                    <p class="text-[12px] text-muted truncate">{{ rowLabel(d) }}</p>
                     @if (d.deadline) {
-                      <p class="font-mono text-xs text-muted font-bold">{{ timeLeft(d.deadline) }}</p>
+                      <p class="font-mono text-[11px] text-muted font-bold">{{ timeLeft(d.deadline) }}</p>
                     }
                   </div>
                   @if (d.status === 'active') {
@@ -141,7 +141,7 @@
                     type="button"
                     (click)="cancel(d)"
                     [disabled]="cancellingId() === d.id"
-                    class="shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-bold text-red-500 hover:bg-red-500/10 disabled:opacity-50"
+                    class="shrink-0 rounded-lg px-2.5 py-1.5 text-[12px] font-bold text-red-500 hover:bg-red-500/10 disabled:opacity-50"
                   >
                     {{ i18n.t('duels.cancel') }}
                   </button>
@@ -151,7 +151,7 @@
           </div>
         }
 
-        <p class="text-xs text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('duels.finished') }}</p>
+        <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('duels.finished') }}</p>
         @if (finished().length === 0 && legacyFinished().length === 0) {
           <div class="bg-card rounded-2xl border border-line p-5 text-center">
             <p class="text-sm text-muted">{{ i18n.t('duels.noGames') }}</p>
@@ -161,13 +161,13 @@
             @for (d of finished(); track d.id) {
               <a [routerLink]="['/battles', 'duel', d.id]" class="flex items-center gap-3 rounded-2xl border border-line bg-card px-3 py-2.5">
                 <span
-                  class="w-9 h-9 rounded-lg flex items-center justify-center font-display text-sm shrink-0"
+                  class="w-9 h-9 rounded-xl flex items-center justify-center font-display text-sm shrink-0"
                   [ngClass]="d.result === 'win' ? 'bg-team-primary text-team-secondary' : 'bg-page text-muted'"
                   >{{ resultShort(d.result) }}</span
                 >
                 <div class="min-w-0 flex-1">
                   <p class="font-semibold truncate">{{ d.opponent?.username }}</p>
-                  <p class="text-xs text-muted">{{ resultLabel(d) }}</p>
+                  <p class="text-[12px] text-muted">{{ resultLabel(d) }}</p>
                 </div>
                 <p class="font-display text-lg shrink-0">{{ d.score.me }}–{{ d.score.them }}</p>
               </a>
@@ -175,16 +175,16 @@
             @for (b of legacyFinished(); track b.id) {
               <a [routerLink]="['/battles', b.id]" class="flex items-center gap-3 rounded-2xl border border-line bg-card px-3 py-2.5 opacity-80">
                 <span
-                  class="w-9 h-9 rounded-lg flex items-center justify-center font-display text-sm shrink-0"
+                  class="w-9 h-9 rounded-xl flex items-center justify-center font-display text-sm shrink-0"
                   [ngClass]="didIWinLegacy(b) ? 'bg-team-primary text-team-secondary' : 'bg-page text-muted'"
                   >{{ didIWinLegacy(b) ? i18n.t('battles.winShort') : i18n.t('battles.lossShort') }}</span
                 >
                 <div class="min-w-0 flex-1">
                   <p class="font-semibold truncate">{{ b.counterpartyName }}</p>
-                  <p class="text-xs text-muted">{{ i18n.t('duels.legacyBattle') }}</p>
+                  <p class="text-[12px] text-muted">{{ i18n.t('duels.legacyBattle') }}</p>
                 </div>
                 @if (b.stakePoints !== null) {
-                  <p class="font-mono text-xs font-bold shrink-0" [ngClass]="didIWinLegacy(b) ? 'text-team-primary' : 'text-red-500'">
+                  <p class="font-mono text-[12px] font-bold shrink-0" [ngClass]="didIWinLegacy(b) ? 'text-team-primary' : 'text-red-500'">
                     {{ didIWinLegacy(b) ? '+' : '−' }}{{ b.stakePoints }} {{ i18n.t('battles.ptsSuffix') }}
                   </p>
                 }
@@ -195,7 +195,7 @@
       }
     } @else if (tab() === 'open') {
       <a [routerLink]="['/battles', 'duel', 'new']" appButton class="w-full justify-center mb-3">{{ i18n.t('duels.postOpen') }}</a>
-      <p class="text-xs text-muted mb-3">{{ i18n.t('duels.openHint') }}</p>
+      <p class="text-[12px] text-muted mb-3">{{ i18n.t('duels.openHint') }}</p>
       @if (openLoading() && openDuels().length === 0) {
         <div class="space-y-2">
           @for (i of [1, 2]; track i) {
@@ -218,12 +218,12 @@
               </span>
               <div class="min-w-0 flex-1">
                 <p class="font-semibold truncate">{{ o.challenger.username }}</p>
-                <p class="text-xs text-muted truncate">
+                <p class="text-[12px] text-muted truncate">
                   {{ i18n.t('duels.div.' + o.challenger.division) }} · {{ openRating(o.challenger.rating) }}
                 </p>
-                <p class="font-mono text-xs text-muted font-bold">{{ timeLeft(o.expiresAt) }}</p>
+                <p class="font-mono text-[11px] text-muted font-bold">{{ timeLeft(o.expiresAt) }}</p>
               </div>
-              <span class="text-xs font-bold text-team-primary shrink-0">{{ i18n.t('duels.accept') }}</span>
+              <span class="text-[12px] font-bold text-team-primary shrink-0">{{ i18n.t('duels.accept') }}</span>
             </a>
           }
         </div>
@@ -233,7 +233,7 @@
         <button
           type="button"
           (click)="setLadderScope(null)"
-          class="shrink-0 rounded-full px-3 py-1.5 text-xs font-bold border transition-colors"
+          class="shrink-0 rounded-full px-3 py-1.5 text-[12px] font-bold border transition-colors"
           [ngClass]="ladderScope() === null ? 'bg-team-primary text-team-secondary border-team-primary' : 'border-line text-muted hover:text-ink'"
         >
           {{ i18n.t('duels.ladderGlobal') }}
@@ -242,7 +242,7 @@
           <button
             type="button"
             (click)="setLadderScope(l.id)"
-            class="shrink-0 max-w-[10rem] truncate rounded-full px-3 py-1.5 text-xs font-bold border transition-colors"
+            class="shrink-0 max-w-[10rem] truncate rounded-full px-3 py-1.5 text-[12px] font-bold border transition-colors"
             [ngClass]="ladderScope() === l.id ? 'bg-team-primary text-team-secondary border-team-primary' : 'border-line text-muted hover:text-ink'"
           >
             {{ l.name }}
@@ -255,9 +255,9 @@
           <span class="w-8 text-center font-display text-lg text-team-primary shrink-0">{{ myRank() }}</span>
           <div class="min-w-0 flex-1">
             <p class="font-semibold truncate">{{ i18n.t('duels.ladderYou') }}</p>
-            <p class="text-xs text-muted">{{ i18n.t('duels.div.' + me.division) }}</p>
+            <p class="text-[12px] text-muted">{{ i18n.t('duels.div.' + me.division) }}</p>
           </div>
-          <p class="font-mono text-xs text-muted shrink-0">{{ me.wins }}{{ i18n.t('duels.winShort') }}-{{ me.losses }}{{ i18n.t('duels.lossShort') }}-{{ me.draws }}{{ i18n.t('duels.drawShort') }}</p>
+          <p class="font-mono text-[12px] text-muted shrink-0">{{ me.wins }}{{ i18n.t('duels.winShort') }}-{{ me.losses }}{{ i18n.t('duels.lossShort') }}-{{ me.draws }}{{ i18n.t('duels.drawShort') }}</p>
           <p class="font-display text-xl shrink-0">{{ me.rating }}</p>
         </div>
       }
@@ -276,15 +276,15 @@
         <div class="space-y-1.5">
           @for (r of ladder(); track r.userId; let i = $index) {
             <div
-              class="flex items-center gap-3 rounded-lg border bg-card px-3 py-2"
+              class="flex items-center gap-3 rounded-xl border bg-card px-3 py-2"
               [ngClass]="r.userId === auth.currentUser()?.id ? 'border-team-primary/50' : 'border-line'"
             >
               <span class="w-8 text-center font-display text-base text-muted shrink-0">{{ i + 1 }}</span>
               <div class="min-w-0 flex-1">
                 <p class="font-semibold truncate">{{ r.username }}</p>
-                <p class="text-xs text-muted">{{ i18n.t('duels.div.' + r.division) }}</p>
+                <p class="text-[11px] text-muted">{{ i18n.t('duels.div.' + r.division) }}</p>
               </div>
-              <p class="font-mono text-xs text-muted shrink-0">{{ r.wins }}{{ i18n.t('duels.winShort') }}-{{ r.losses }}{{ i18n.t('duels.lossShort') }}-{{ r.draws }}{{ i18n.t('duels.drawShort') }}</p>
+              <p class="font-mono text-[11px] text-muted shrink-0">{{ r.wins }}{{ i18n.t('duels.winShort') }}-{{ r.losses }}{{ i18n.t('duels.lossShort') }}-{{ r.draws }}{{ i18n.t('duels.drawShort') }}</p>
               <p class="font-display text-lg shrink-0">{{ r.rating }}</p>
             </div>
           }
@@ -313,7 +313,7 @@
               type="search"
               (input)="onSearch($event)"
               [placeholder]="i18n.t('battles.searchPlayers')"
-              class="w-full rounded-lg border border-line bg-page px-3 py-2 text-sm mb-3"
+              class="w-full rounded-xl border border-line bg-page px-3 py-2 text-sm mb-3"
             />
           }
           <div class="overflow-y-auto -mx-1 px-1 space-y-1.5">
@@ -321,16 +321,16 @@
               <button
                 type="button"
                 (click)="challenge(o)"
-                class="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 bg-page hover:bg-team-primary/10 text-left transition-colors"
+                class="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 bg-page hover:bg-team-primary/10 text-left transition-colors"
               >
                 <span class="w-9 h-9 rounded-full bg-team-primary/15 text-team-primary flex items-center justify-center font-bold shrink-0">
                   {{ o.displayName.charAt(0).toUpperCase() }}
                 </span>
                 <span class="min-w-0 flex-1">
                   <span class="block font-semibold truncate">{{ o.displayName }}</span>
-                  <span class="block text-xs text-muted truncate">{{ o.leagueName }}</span>
+                  <span class="block text-[11px] text-muted truncate">{{ o.leagueName }}</span>
                 </span>
-                <span class="text-xs font-bold text-team-primary shrink-0">{{ i18n.t('battles.challengeButton') }}</span>
+                <span class="text-[12px] font-bold text-team-primary shrink-0">{{ i18n.t('battles.challengeButton') }}</span>
               </button>
             }
           </div>
@@ -347,9 +347,9 @@
         <p class="text-xs text-muted mb-3">{{ i18n.t('battles.inviteHint') }}</p>
         <div class="space-y-1.5">
           @for (l of leagues(); track l.id) {
-            <button type="button" (click)="shareLeague(l)" class="w-full flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 bg-page hover:bg-team-primary/10 text-left">
+            <button type="button" (click)="shareLeague(l)" class="w-full flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 bg-page hover:bg-team-primary/10 text-left">
               <span class="font-semibold truncate">{{ l.name }}</span>
-              <span class="text-xs text-muted shrink-0">{{ l.memberCount }} {{ i18n.t('battles.members') }}</span>
+              <span class="text-[11px] text-muted shrink-0">{{ l.memberCount }} {{ i18n.t('battles.members') }}</span>
             </button>
           }
         </div>

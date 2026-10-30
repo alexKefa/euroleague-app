@@ -10,7 +10,7 @@
   @if (roundTurns().length > 1) {
     <!-- One 40px segmented control (2026-09-29), same height as the pool's
          dropdowns beside it, instead of three loose chips. -->
-    <div class="status-tile inline-flex items-center h-10 p-1 gap-1 rounded-lg border border-line">
+    <div class="status-tile inline-flex items-center h-10 p-1 gap-1 rounded-xl border border-line">
       <button
         type="button"
         (click)="setTurnFilter(null)"
@@ -34,7 +34,7 @@
 </ng-template>
 <ng-template #playerMeta let-row>
   <span class="inline-flex items-center gap-1 align-middle">
-    <span class="px-1.5 py-0.5 rounded-lg font-bold leading-none" [ngClass]="posChipClass(row.player.position)">{{ posAbbrev(row.player.position) }}</span>
+    <span class="px-1.5 py-0.5 rounded-md font-bold leading-none" [ngClass]="posChipClass(row.player.position)">{{ posAbbrev(row.player.position) }}</span>
     @if (!gameFinished(row.team.id) && turnFor(row.team.id); as turn) {
       <span
         class="px-1 py-px rounded border font-bold leading-none"
@@ -68,8 +68,8 @@
     }
   </span>
   <span class="min-w-0 flex-1">
-    <span class="block text-sm font-semibold truncate leading-tight" [ngClass]="row.injury ? injuryAccentClass(row.injury.status) : ''">{{ playerName(row.player.name) }}</span>
-    <span class="flex items-center gap-1.5 mt-1 text-2xs font-mono text-muted min-w-0">
+    <span class="block text-[13px] font-semibold truncate leading-tight" [ngClass]="row.injury ? injuryAccentClass(row.injury.status) : ''">{{ playerName(row.player.name) }}</span>
+    <span class="flex items-center gap-1.5 mt-1 text-[10px] font-mono text-muted min-w-0">
       <ng-container [ngTemplateOutlet]="playerMeta" [ngTemplateOutletContext]="{ $implicit: row }" />
       @if (poolBlockReason(row.player.id, row.player.position); as reason) {
         <span class="truncate font-sans font-bold text-red-500">{{ reason }}</span>
@@ -80,8 +80,8 @@
     </span>
   </span>
   <span class="shrink-0 w-9 text-right leading-none">
-    <span class="block font-mono text-sm font-bold tabular-nums text-ink">{{ rowStat(row) === null ? '–' : (rowStat(row) | number: '1.1-1') }}</span>
-    <span class="block text-2xs font-bold text-muted uppercase tracking-wide mt-1">{{ rowStatLabel() }}</span>
+    <span class="block font-mono text-[13px] font-bold tabular-nums text-ink">{{ rowStat(row) === null ? '–' : (rowStat(row) | number: '1.1-1') }}</span>
+    <span class="block text-[9px] font-bold text-muted uppercase tracking-wide mt-1">{{ rowStatLabel() }}</span>
   </span>
 </ng-template>
 <!-- Price chip for a list row: the app's value-chip, with the last move's
@@ -89,25 +89,25 @@
 <ng-template #poolPrice let-row>
   <span class="inline-flex items-center gap-1">
     <span class="tabular-nums">{{ row.price | number: '1.1-1' }}</span>
-    <span class="text-2xs font-bold opacity-70">{{ i18n.t('fantasy.creditsAbbrev') }}</span>
+    <span class="text-[9px] font-bold opacity-70">{{ i18n.t('fantasy.creditsAbbrev') }}</span>
     @if (priceTrendGlyph(row.priceTrend); as glyph) {
-      <span class="text-2xs" [ngClass]="priceTrendClass(row.priceTrend)" [attr.title]="i18n.t('fantasy.priceTrendHint')">{{ glyph }}</span>
+      <span class="text-[9px]" [ngClass]="priceTrendClass(row.priceTrend)" [attr.title]="i18n.t('fantasy.priceTrendHint')">{{ glyph }}</span>
     }
   </span>
 </ng-template>
 <!-- Sort switcher: the app's segmented control instead of bare text. -->
 <ng-template #sortControl>
-  <div class="status-tile flex gap-1 p-1 rounded-lg border border-line">
+  <div class="status-tile flex gap-1 p-1 rounded-xl border border-line">
     @for (opt of sortOptions; track opt.key) {
       <button
         type="button"
         (click)="setSort(opt.key)"
-        class="flex-1 h-8 rounded-lg flex items-center justify-center gap-1 text-xs font-bold uppercase tracking-wide transition-colors"
+        class="flex-1 h-8 rounded-lg flex items-center justify-center gap-1 text-[11px] font-bold uppercase tracking-wide transition-colors"
         [ngClass]="sortKey() === opt.key ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
       >
         {{ i18n.t(opt.labelKey) }}
         @if (sortKey() === opt.key) {
-          <span class="text-2xs">{{ sortDesc() ? '▼' : '▲' }}</span>
+          <span class="text-[8px]">{{ sortDesc() ? '▼' : '▲' }}</span>
         }
       </button>
     }
@@ -128,7 +128,7 @@
      translucent-wash swap with no contrast risk. -->
 <div class="max-w-4xl mx-auto p-4 sm:p-6">
   <app-page-header [title]="i18n.t('fantasy.title')" [subtitle]="i18n.t('fantasy.hint')" [eyebrow]="i18n.t('section.play')" icon="trophy">
-    <button headBelow type="button" (click)="showRules.set(true)" class="mt-2.5 inline-flex items-center h-8 px-3.5 rounded-lg text-sm font-bold bg-team-primary/15 text-team-primary hover:bg-team-primary/25 transition-colors">
+    <button headBelow type="button" (click)="showRules.set(true)" class="mt-2.5 inline-flex items-center h-8 px-3.5 rounded-xl text-[13px] font-bold bg-team-primary/15 text-team-primary hover:bg-team-primary/25 transition-colors">
       {{ i18n.t('fantasy.rulesButton') }}
     </button>
   </app-page-header>
@@ -139,7 +139,7 @@
        app's tab switches.
        Resized + recolored (2026-09-18, "the group button on top is bigger
        than expected. also does not match this pattern of colors") — was
-       text-sm px-4 (14px text, wider padding), now text-xs font-mono
+       text-sm px-4 (14px text, wider padding), now text-[11px] font-mono
        px-3 to match dashboard.component.ts's own segmented control exactly
        rather than running its own larger scale. Color follows the same
        bg-ink -> bg-team-primary/text-team-secondary fix already applied to
@@ -167,13 +167,13 @@
          to any real gap in this markup, pushing the indicator's right edge
          past the track's own padding edge whenever "Leaderboard" was active. -->
     <div
-      class="absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-lg bg-team-primary shadow-card transition-transform duration-300 ease-out"
+      class="absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-xl bg-team-primary shadow-card transition-transform duration-300 ease-out"
       [style.transform]="tab() === 'leaderboard' ? 'translateX(100%)' : 'translateX(0)'"
     ></div>
     <button
       type="button"
       (click)="setTab('roster')"
-      class="relative z-10 flex-1 flex items-center justify-center gap-1.5 px-3 h-full rounded-lg text-sm font-semibold transition-colors"
+      class="relative z-10 flex-1 flex items-center justify-center gap-1.5 px-3 h-full rounded-xl text-sm font-semibold transition-colors"
       [ngClass]="tab() === 'roster' ? 'text-team-secondary' : 'text-muted hover:text-ink'"
     >
       <app-nav-icon name="ball" [size]="16" />
@@ -182,7 +182,7 @@
     <button
       type="button"
       (click)="setTab('leaderboard')"
-      class="relative z-10 flex-1 flex items-center justify-center gap-1.5 px-3 h-full rounded-lg text-sm font-semibold transition-colors"
+      class="relative z-10 flex-1 flex items-center justify-center gap-1.5 px-3 h-full rounded-xl text-sm font-semibold transition-colors"
       [ngClass]="tab() === 'leaderboard' ? 'text-team-secondary' : 'text-muted hover:text-ink'"
     >
       <app-nav-icon name="standings" [size]="16" />
@@ -209,7 +209,7 @@
           <app-skeleton class="h-20 rounded-2xl" />
         </div>
         <div class="hidden sm:flex sm:flex-[2] min-w-0 flex-col gap-1.5">
-          <app-skeleton class="h-8 rounded-lg" [icon]="false" />
+          <app-skeleton class="h-8 rounded-xl" [icon]="false" />
           <div class="flex-1 flex flex-col gap-1.5 bg-card rounded-2xl border border-line shadow-card p-2">
             @for (i of skeletonRows; track i) {
               <app-skeleton class="h-12 rounded-lg" [icon]="false" />
@@ -312,10 +312,10 @@
                   </span>
                 }
                 @if (slot.role === 'starter' && captainId() === slot.playerId) {
-                  <span class="absolute -bottom-1 -left-1 w-5 h-5 rounded-full font-mono text-2xs font-bold flex items-center justify-center ring-2 ring-card bg-team-primary text-team-secondary">C</span>
+                  <span class="absolute -bottom-1 -left-1 w-5 h-5 rounded-full font-mono text-[10px] font-bold flex items-center justify-center ring-2 ring-card bg-team-primary text-team-secondary">C</span>
                 }
                 @if (slot.role === 'sixth_man') {
-                  <span class="absolute -top-1 -left-1.5 h-5 px-1.5 rounded-full text-2xs font-bold flex items-center justify-center ring-2 ring-card bg-team-primary text-team-secondary">{{ i18n.t('fantasy.sixthBadge') }}</span>
+                  <span class="absolute -top-1 -left-1.5 h-5 px-1.5 rounded-full text-[9px] font-bold flex items-center justify-center ring-2 ring-card bg-team-primary text-team-secondary">{{ i18n.t('fantasy.sixthBadge') }}</span>
                 }
                 <!-- Played (2026-10-30, "the opacity effect ... feels like
                      they're disabled"): the photo stays in full colour and a
@@ -347,11 +347,11 @@
               @let game = gameForTeam().get(row.team.id);
               @let opp = opponentFor(row.team.id);
               @let turn = !gameFinished(row.team.id) ? turnFor(row.team.id) : null;
-              <button type="button" (click)="openPlayerInfo(slot.playerId)" [title]="row.player.name" class="block w-[96px] rounded-lg overflow-hidden shadow-card border border-line bg-card/90 backdrop-blur-md hover:border-team-primary/60 transition-colors">
+              <button type="button" (click)="openPlayerInfo(slot.playerId)" [title]="row.player.name" class="block w-[96px] rounded-xl overflow-hidden shadow-card border border-line bg-card/90 backdrop-blur-md hover:border-team-primary/60 transition-colors">
                 <span
-                  class="block text-xs font-bold text-center leading-tight truncate px-1.5 pt-1 pb-0.5 border-b border-line"
+                  class="block text-[11px] font-bold text-center leading-tight truncate px-1.5 pt-1 pb-0.5 border-b border-line"
                   [ngClass]="row.injury ? injuryNameBarClass(row.injury.status) : 'text-ink'"
-                  ><span class="opacity-50 text-2xs mr-0.5">{{ posAbbrev(row.player.position) }}</span>{{ courtDisplayName(row.player.name) }}</span
+                  ><span class="opacity-50 text-[9px] mr-0.5">{{ posAbbrev(row.player.position) }}</span>{{ courtDisplayName(row.player.name) }}</span
                 >
                 <!-- Price only while the squad can still be traded (2026-10-30,
                      "when the round has started do not include cr"): once the
@@ -361,13 +361,13 @@
                   @if (!game || game.status === 'scheduled') {
                     @if (!roundLocked()) {
                     <span class="flex items-baseline gap-0.5 min-w-0">
-                      <span class="text-sm font-bold leading-none text-ink">{{ row.price | number: '1.1-1' }}</span>
-                      <span class="text-2xs font-bold uppercase text-muted leading-none">{{ i18n.t('fantasy.creditsAbbrev') }}</span>
+                      <span class="text-[13px] font-bold leading-none text-ink">{{ row.price | number: '1.1-1' }}</span>
+                      <span class="text-[8px] font-bold uppercase text-muted leading-none">{{ i18n.t('fantasy.creditsAbbrev') }}</span>
                     </span>
                     }
                   } @else {
                     <span class="flex items-baseline gap-0.5 min-w-0">
-                      <span class="flex items-center gap-0.5 leading-none" [ngClass]="game.status === 'live' ? 'text-sm font-bold text-red-500' : game.status === 'final' ? 'font-display text-base text-ink' : 'text-sm font-bold text-ink'">
+                      <span class="flex items-center gap-0.5 leading-none" [ngClass]="game.status === 'live' ? 'text-[13px] font-bold text-red-500' : game.status === 'final' ? 'font-display text-[16px] text-ink' : 'text-[13px] font-bold text-ink'">
                         @if (game.status === 'live') {
                           <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0 self-center"></span>
                         }
@@ -384,7 +384,7 @@
                           {{ roundPir(row.player.id) ?? '—' }}
                         }
                       </span>
-                      <span class="text-2xs font-bold uppercase text-muted leading-none">
+                      <span class="text-[8px] font-bold uppercase text-muted leading-none">
                         {{ (game.status === 'final' || slot.role === 'bench' || (slot.role === 'starter' && captainId() === slot.playerId)) ? i18n.t('fantasy.pointsAbbrev') : i18n.t('fantasy.colPir') }}
                       </span>
                     </span>
@@ -392,7 +392,7 @@
                   @if (opp) {
                     <!-- "vs"/"@" then the opponent's badge (code only when
                          there's no logo); a turn number, when set, follows. -->
-                    <span class="flex items-center gap-0.5 shrink-0 text-2xs font-bold text-muted leading-none" [title]="(opp.isHome ? 'vs ' : '@ ') + (opp.opponent.code | teamCode)">
+                    <span class="flex items-center gap-0.5 shrink-0 text-[9px] font-bold text-muted leading-none" [title]="(opp.isHome ? 'vs ' : '@ ') + (opp.opponent.code | teamCode)">
                       <span [ngClass]="!game || game.status === 'scheduled' ? matchupTextClass(matchupTier(row.team.id, row.player.position)) : ''">{{ opp.isHome ? 'vs' : '@' }}</span>
                       @if (opp.opponent.logoUrl) {
                         <img [src]="opp.opponent.logoUrl" alt="" class="w-3.5 h-3.5 object-contain team-logo" />
@@ -428,9 +428,9 @@
                   <span class="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-team-primary text-team-secondary text-sm font-bold leading-none flex items-center justify-center shadow-sm">+</span>
                 }
               </button>
-              <span class="text-2xs font-bold uppercase tracking-wide text-ink leading-none">{{ positionLabel || i18n.t('fantasy.addPlayer') }}</span>
+              <span class="text-[10px] font-bold uppercase tracking-wide text-ink leading-none">{{ positionLabel || i18n.t('fantasy.addPlayer') }}</span>
               @if (!roundLocked() && cheapestFor(requiredPos); as from) {
-                <span class="font-mono text-2xs font-bold leading-none" [ngClass]="canAfford(from) ? 'text-muted' : 'text-red-500'">{{ i18n.t('fantasy.fromPrice').replace('{p}', (from | number: '1.1-1') ?? '') }}</span>
+                <span class="font-mono text-[9px] font-bold leading-none" [ngClass]="canAfford(from) ? 'text-muted' : 'text-red-500'">{{ i18n.t('fantasy.fromPrice').replace('{p}', (from | number: '1.1-1') ?? '') }}</span>
               }
             </div>
           }
@@ -445,7 +445,7 @@
            formation/captain/save. -->
       <!-- Restyled 2026-09-29 ("too vanilla"): team-color gradient card, a
            points hero + budget ring, and position/transfer tiles. -->
-      <div data-tour="fantasy-status" class="relative overflow-hidden rounded-2xl border border-line shadow-card p-4 mb-4 bg-card">
+      <div data-tour="fantasy-status" class="relative overflow-hidden rounded-3xl border border-line shadow-card p-4 mb-4 bg-card">
         <div class="pointer-events-none absolute inset-0" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 26%, transparent) 0%, color-mix(in srgb, var(--accent-primary) 6%, transparent) 55%, transparent 100%)" aria-hidden="true"></div>
         <div class="pointer-events-none absolute -right-16 -top-16 w-48 h-48 rounded-full border-[14px]" style="border-color: color-mix(in srgb, var(--accent-primary) 12%, transparent)" aria-hidden="true"></div>
         <div class="relative">
@@ -468,7 +468,7 @@
               <p class="text-sm font-bold">{{ round() | roundLabel: i18n.lang() }}</p>
             }
             @if (!isCurrentRound()) {
-              <span class="status-tile min-w-0 h-10 flex items-center px-3 rounded-lg border border-line text-xs font-bold uppercase tracking-wide text-muted truncate" [title]="i18n.t('fantasy.pastRound')">{{ i18n.t('fantasy.pastRound') }}</span>
+              <span class="status-tile min-w-0 h-10 flex items-center px-3 rounded-xl border border-line text-[12px] font-bold uppercase tracking-wide text-muted truncate" [title]="i18n.t('fantasy.pastRound')">{{ i18n.t('fantasy.pastRound') }}</span>
             }
             <!-- "Day X/Y" (2026-09-18) — mirrors the real EuroLeague Fantasy
                  Challenge's own header (checked live), which shows which of
@@ -481,7 +481,7 @@
                  (2026-10-06: on a phone the separate tile overlapped it). -->
             @if (roundDayInfo(); as day) {
               @if (!(isCurrentRound() && lockAt())) {
-              <span class="status-tile h-10 flex items-center px-3 rounded-lg border border-line text-sm font-bold text-ink whitespace-nowrap flex-shrink-0">{{ i18n.t('fantasy.dayAbbrev') }} {{ day.current }}/{{ day.total }}</span>
+              <span class="status-tile h-10 flex items-center px-3 rounded-xl border border-line text-sm font-bold text-ink whitespace-nowrap flex-shrink-0">{{ i18n.t('fantasy.dayAbbrev') }} {{ day.current }}/{{ day.total }}</span>
               }
             }
           </div>
@@ -506,7 +506,7 @@
                 (click)="showFixtures.set(true)"
                 [attr.aria-label]="i18n.t('fantasy.liveNow')"
                 [title]="i18n.t('fantasy.liveNow')"
-                class="h-10 min-w-10 flex items-center justify-center gap-1.5 px-3 rounded-lg text-xs font-bold uppercase tracking-wide bg-red-500/15 border border-red-500/30 text-red-500 hover:bg-red-500/25 transition-colors flex-shrink-0"
+                class="h-10 min-w-10 flex items-center justify-center gap-1.5 px-3 rounded-xl text-[12px] font-bold uppercase tracking-wide bg-red-500/15 border border-red-500/30 text-red-500 hover:bg-red-500/25 transition-colors flex-shrink-0"
               >
                 <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
                 <span class="hidden sm:inline">{{ i18n.t('fantasy.liveNow') }}</span>
@@ -517,7 +517,7 @@
                 (click)="showFixtures.set(true)"
                 [attr.aria-label]="i18n.t('fantasy.fixturesButton')"
                 [title]="i18n.t('fantasy.fixturesButton')"
-                class="status-tile h-10 min-w-10 flex items-center justify-center gap-1.5 px-3 rounded-lg border border-line text-sm font-semibold text-ink hover:border-team-primary transition-colors flex-shrink-0"
+                class="status-tile h-10 min-w-10 flex items-center justify-center gap-1.5 px-3 rounded-xl border border-line text-sm font-semibold text-ink hover:border-team-primary transition-colors flex-shrink-0"
               >
                 <app-nav-icon name="schedule" [size]="16" class="sm:hidden" />
                 <span class="hidden sm:inline">{{ i18n.t('fantasy.fixturesButton') }}</span>
@@ -535,7 +535,7 @@
         }
         <ng-template #deadlinePill>
           <div
-            class="h-10 w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 rounded-lg text-xs font-mono font-bold whitespace-nowrap shadow-card"
+            class="h-10 w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 rounded-xl text-[12px] font-mono font-bold whitespace-nowrap shadow-card"
             [ngClass]="subsWindowOpen() ? 'bg-amber-500/90 text-white' : roundLocked() ? 'bg-red-500/90 text-white' : 'bg-emerald-500/90 text-white'"
             [attr.title]="subsWindowOpen() ? i18n.t('fantasy.subsWindowOpen') : roundLocked() ? i18n.t('fantasy.locked') : (i18n.t('fantasy.lockCountdown') + ' ' + (lockAt() | date: gameDateTimeFormat():'Europe/Athens':dateLocale()))"
           >
@@ -561,7 +561,7 @@
         </ng-template>
 
         @if (shownFantasyMilestoneRewards().length > 0) {
-          <div class="flex items-center gap-2 rounded-lg bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3">
+          <div class="flex items-center gap-2 rounded-xl bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3">
             <app-nav-icon name="picks" [size]="18" class="shrink-0" />
             {{ i18n.t('fantasy.milestonePrefix') }}
             {{
@@ -584,7 +584,7 @@
              are under way, points take over. -->
         <div class="status-tile grid rounded-2xl border border-line overflow-hidden divide-x divide-line mb-3" [ngClass]="isCurrentRound() ? 'grid-cols-3' : 'grid-cols-1'">
           <div class="px-2.5 py-2.5 min-w-0" [ngClass]="roundLocked() ? 'bg-team-primary/10' : ''">
-            <p class="text-2xs font-bold text-muted uppercase tracking-wide truncate">{{ i18n.t('fantasy.pointsLabel') }}</p>
+            <p class="text-[10px] font-bold text-muted uppercase tracking-wide truncate">{{ i18n.t('fantasy.pointsLabel') }}</p>
             <p class="font-display leading-none tabular-nums mt-1.5" [ngClass]="[roundLocked() ? 'text-3xl' : 'text-2xl', roundComplete() ? 'text-team-primary' : roundLocked() ? 'text-ink' : 'text-muted']">
               @if (roundLocked()) {
                 {{ totalPoints() | number: '1.0-1' }}
@@ -595,15 +595,15 @@
           </div>
           @if (isCurrentRound()) {
             <div class="px-2.5 py-2.5 min-w-0" [ngClass]="roundLocked() ? '' : 'bg-team-primary/10'" [title]="i18n.t('fantasy.budgetLabel') + ' ' + (totalCost() | number: '1.1-1') + ' / ' + (budgetCap() | number: '1.1-1')">
-              <p class="text-2xs font-bold text-muted uppercase tracking-wide truncate">{{ i18n.t('fantasy.creditsCell') }}</p>
+              <p class="text-[10px] font-bold text-muted uppercase tracking-wide truncate">{{ i18n.t('fantasy.creditsCell') }}</p>
               <p class="font-display leading-none tabular-nums mt-1.5" [ngClass]="[roundLocked() ? 'text-2xl' : 'text-3xl', overBudget() ? 'text-red-500' : 'text-ink']">{{ remainingBudget() | number: '1.1-1' }}</p>
               <div class="mt-2 h-1 rounded-full bg-line overflow-hidden">
                 <div class="h-full rounded-full transition-[width] duration-500" [ngClass]="overBudget() ? 'bg-red-500' : 'bg-team-primary'" [style.width.%]="budgetBarPct()"></div>
               </div>
-              <p class="font-mono text-2xs text-muted mt-1 truncate">{{ totalCost() | number: '1.1-1' }} / {{ budgetCap() | number: '1.1-1' }}</p>
+              <p class="font-mono text-[9px] text-muted mt-1 truncate">{{ totalCost() | number: '1.1-1' }} / {{ budgetCap() | number: '1.1-1' }}</p>
             </div>
             <div class="px-2.5 py-2.5 min-w-0">
-              <p class="text-2xs font-bold text-muted uppercase tracking-wide truncate">{{ i18n.t('fantasy.transfersLabel') }}</p>
+              <p class="text-[10px] font-bold text-muted uppercase tracking-wide truncate">{{ i18n.t('fantasy.transfersLabel') }}</p>
               @if (transfersAllowed(); as allowed) {
                 <p class="font-display text-2xl leading-none tabular-nums mt-1.5" [ngClass]="localTransfersUsed() >= allowed ? 'text-red-500' : 'text-ink'">{{ localTransfersUsed() }}<span class="text-muted text-base">/{{ allowed }}</span></p>
               } @else {
@@ -619,14 +619,14 @@
             <div class="relative mb-3 rounded-2xl border border-amber-500/50 bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent px-3.5 py-3 flex items-center gap-3 overflow-hidden">
               <span class="relative shrink-0 w-10 h-10 rounded-full bg-amber-500 text-neutral-950 flex items-center justify-center shadow-lg">
                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5" stroke="currentColor" stroke-width="2.2" /><path d="M12 13.5V9.5M9.5 2.5h5M19 6l1.5-1.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>
-                <span class="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-amber-300 ring-2 ring-card"></span>
+                <span class="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-amber-300 ring-2 ring-card animate-pulse"></span>
               </span>
               <div class="min-w-0 flex-1">
-                <p class="text-xs font-bold uppercase tracking-wider text-amber-500">{{ i18n.t('fantasy.fullTimeoutActive') }}</p>
+                <p class="text-[11px] font-bold uppercase tracking-wider text-amber-500">{{ i18n.t('fantasy.fullTimeoutActive') }}</p>
                 <p class="text-xs text-muted leading-snug mt-0.5">{{ i18n.t('fantasy.fullTimeoutActiveDesc') }}</p>
               </div>
               @if (!roundLocked()) {
-                <button type="button" (click)="cancelFullTimeout()" [disabled]="fullTimeoutBusy()" class="shrink-0 whitespace-nowrap text-xs font-bold text-muted hover:text-ink underline underline-offset-2 disabled:opacity-40">
+                <button type="button" (click)="cancelFullTimeout()" [disabled]="fullTimeoutBusy()" class="shrink-0 whitespace-nowrap text-[11px] font-bold text-muted hover:text-ink underline underline-offset-2 disabled:opacity-40">
                   {{ i18n.t('fantasy.fullTimeoutUndo') }}
                 </button>
               }
@@ -638,8 +638,8 @@
               </span>
               <div class="min-w-0 flex-1">
                 <p class="flex items-center gap-2 flex-wrap">
-                  <span class="text-xs font-bold uppercase tracking-wider text-ink">{{ i18n.t('fantasy.fullTimeout') }}</span>
-                  <span class="text-2xs font-bold uppercase tracking-wide text-team-primary bg-team-primary/10 rounded-full px-1.5 py-0.5">{{ i18n.t('fantasy.fullTimeoutOnce') }}</span>
+                  <span class="text-[11px] font-bold uppercase tracking-wider text-ink">{{ i18n.t('fantasy.fullTimeout') }}</span>
+                  <span class="text-[9px] font-bold uppercase tracking-wide text-team-primary bg-team-primary/10 rounded-full px-1.5 py-0.5">{{ i18n.t('fantasy.fullTimeoutOnce') }}</span>
                 </p>
                 <p class="text-xs text-muted leading-snug mt-0.5">{{ i18n.t('fantasy.fullTimeoutDesc') }}</p>
               </div>
@@ -648,25 +648,25 @@
               </button>
             </div>
           } @else if (fullTimeoutRound() !== null) {
-            <p class="flex items-center gap-1.5 px-1 -mt-1 mb-2 text-xs text-muted">
+            <p class="flex items-center gap-1.5 px-1 -mt-1 mb-2 text-[11px] text-muted">
               <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5" stroke="currentColor" stroke-width="2.2" /><path d="M12 13.5V9.5M9.5 2.5h5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>
               {{ i18n.t('fantasy.fullTimeoutUsed').replace('{label}', fullTimeoutRound() | roundLabel: i18n.lang()) }}
             </p>
           }
           @if (fullTimeoutError(); as err) {
-            <p class="text-xs font-semibold text-red-500 px-1 -mt-1 mb-2">{{ err }}</p>
+            <p class="text-[11px] font-semibold text-red-500 px-1 -mt-1 mb-2">{{ err }}</p>
           }
         }
 
         @if (isCurrentRound()) {
           @if (budgetPending() && round() !== null) {
-            <p class="text-xs font-semibold text-amber-500 -mt-1 mb-2">{{ i18n.t('fantasy.budgetPending').replace('{label}', round()! - 1 | roundLabel: i18n.lang()) }}</p>
+            <p class="text-[11px] font-semibold text-amber-500 -mt-1 mb-2">{{ i18n.t('fantasy.budgetPending').replace('{label}', round()! - 1 | roundLabel: i18n.lang()) }}</p>
           }
           <!-- Quotas + readiness on one line. -->
           <div class="flex items-center gap-3 px-1 mb-3">
             @for (q of quotaDots(); track q.key) {
               <span class="flex items-center gap-1" [title]="q.label">
-                <span class="text-xs font-bold" [ngClass]="q.over ? 'text-red-500' : q.met ? 'text-emerald-500' : 'text-muted'">{{ q.label }}</span>
+                <span class="text-[11px] font-bold" [ngClass]="q.over ? 'text-red-500' : q.met ? 'text-emerald-500' : 'text-muted'">{{ q.label }}</span>
                 @for (filled of q.dots; track $index) {
                   <span class="w-2 h-2 rounded-full transition-colors" [ngClass]="!filled ? 'bg-line' : q.over ? 'bg-red-500' : q.met ? 'bg-emerald-500' : 'bg-team-primary'"></span>
                 }
@@ -674,12 +674,12 @@
             }
             @if (!editLocked()) {
               @if (missingRequirements().length === 0) {
-                <span class="ml-auto flex items-center gap-1 text-xs font-bold text-emerald-500 whitespace-nowrap">
+                <span class="ml-auto flex items-center gap-1 text-[11px] font-bold text-emerald-500 whitespace-nowrap">
                   <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
                   {{ i18n.t('fantasy.lineupComplete') }}
                 </span>
               } @else {
-                <button type="button" (click)="showMissingInfo.set(true)" class="ml-auto flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold text-red-500 bg-red-500/10 border border-red-500/30 hover:bg-red-500/20 whitespace-nowrap transition-colors">
+                <button type="button" (click)="showMissingInfo.set(true)" class="ml-auto flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold text-red-500 bg-red-500/10 border border-red-500/30 hover:bg-red-500/20 whitespace-nowrap transition-colors">
                   {{ i18n.t('fantasy.nToFix').replace('{n}', '' + missingRequirements().length) }} &rsaquo;
                 </button>
               }
@@ -695,12 +695,12 @@
                 type="button"
                 (click)="showFormationPicker.set(true)"
                 [disabled]="editLocked()"
-                class="h-11 w-full min-w-[4.75rem] px-3 rounded-lg flex flex-col items-start justify-center hover:bg-team-primary/10 disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors"
+                class="h-11 w-full min-w-[4.75rem] px-3 rounded-xl flex flex-col items-start justify-center hover:bg-team-primary/10 disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors"
               >
-                <span class="text-2xs font-bold text-muted uppercase tracking-wider leading-none">{{ i18n.t('fantasy.formationLabel') }}</span>
-                <span class="flex items-center gap-1 font-mono text-sm font-bold text-ink leading-none mt-1">
+                <span class="text-[9px] font-bold text-muted uppercase tracking-wider leading-none">{{ i18n.t('fantasy.formationLabel') }}</span>
+                <span class="flex items-center gap-1 font-mono text-[13px] font-bold text-ink leading-none mt-1">
                   {{ formation() }}
-                  <span class="text-muted text-2xs">&#9662;</span>
+                  <span class="text-muted text-[9px]">&#9662;</span>
                 </span>
               </button>
             </div>
@@ -719,7 +719,7 @@
                 <span class="w-8 h-8 rounded-full border-2 border-dashed border-team-primary text-team-primary flex items-center justify-center font-display text-base shrink-0">C</span>
               }
               <span class="flex flex-col items-start min-w-0 flex-1">
-                <span class="text-2xs font-bold text-team-primary uppercase tracking-wider leading-none">{{ i18n.t('fantasy.captainLabel') }}</span>
+                <span class="text-[10px] font-bold text-team-primary uppercase tracking-wider leading-none">{{ i18n.t('fantasy.captainLabel') }}</span>
                 <span class="text-sm font-bold leading-tight mt-0.5 truncate w-full text-left" [ngClass]="captainRow() ? 'text-ink' : 'text-muted'">
                   {{ captainRow() ? playerName(captainRow()!.player.name) : i18n.t('fantasy.captainPick') }}
                 </span>
@@ -737,7 +737,7 @@
                 {{ submitting() ? i18n.t('fantasy.submitting') : i18n.t('fantasy.saveShort') }}
               </button>
               @if (hasChanges() && !submitting()) {
-                <span class="absolute -top-1 -left-1 w-3 h-3 rounded-full bg-amber-500 ring-2 ring-card" aria-hidden="true"></span>
+                <span class="absolute -top-1 -left-1 w-3 h-3 rounded-full bg-amber-500 ring-2 ring-card animate-pulse" aria-hidden="true"></span>
               }
             </div>
           </div>
@@ -747,7 +747,7 @@
                unsaved squad; Save still applies it. -->
           @if (submitError() || hasChanges() || subsWindowOpen() || saved() || canUndo() || canResetToRoundStart()) {
             <div class="flex items-center gap-2 mt-2 min-h-8">
-              <p class="min-w-0 flex-1 flex items-center gap-1.5 text-xs font-semibold leading-tight">
+              <p class="min-w-0 flex-1 flex items-center gap-1.5 text-[11px] font-semibold leading-tight">
                 @if (submitError()) {
                   <span class="text-red-500">{{ submitError() }}</span>
                 } @else if (hasChanges() && !submitting()) {
@@ -760,13 +760,13 @@
                 }
               </p>
               @if (canUndo()) {
-                <button type="button" (click)="undoChanges()" [title]="i18n.t('fantasy.undoChanges')" class="group shrink-0 h-8 flex items-center gap-1 px-2.5 rounded-full border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-xs font-bold text-ink transition-colors">
+                <button type="button" (click)="undoChanges()" [title]="i18n.t('fantasy.undoChanges')" class="group shrink-0 h-8 flex items-center gap-1 px-2.5 rounded-full border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-[11px] font-bold text-ink transition-colors">
                   <span class="text-amber-500 text-sm leading-none group-hover:-rotate-12 transition-transform" aria-hidden="true">&#8630;</span>
                   {{ i18n.t('fantasy.undoShort') }}
                 </button>
               }
               @if (canResetToRoundStart()) {
-                <button type="button" (click)="confirmingReset.set(true)" [title]="i18n.t('fantasy.resetRound')" class="group shrink-0 h-8 flex items-center gap-1 px-2.5 rounded-full border border-team-primary/40 bg-team-primary/10 hover:bg-team-primary/20 text-xs font-bold text-ink transition-colors">
+                <button type="button" (click)="confirmingReset.set(true)" [title]="i18n.t('fantasy.resetRound')" class="group shrink-0 h-8 flex items-center gap-1 px-2.5 rounded-full border border-team-primary/40 bg-team-primary/10 hover:bg-team-primary/20 text-[11px] font-bold text-ink transition-colors">
                   <span class="text-team-primary text-sm leading-none group-hover:rotate-[-180deg] transition-transform duration-300" aria-hidden="true">&#8634;</span>
                   {{ i18n.t('fantasy.resetShort') }}
                 </button>
@@ -778,10 +778,10 @@
                button, since roundLocked() already blocks every underlying
                edit action for a past round anyway. -->
           <div class="flex flex-wrap items-center gap-2 pt-3 border-t border-line/60">
-            <span class="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-page border border-line text-muted">{{ formation() }}</span>
+            <span class="px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-page border border-line text-muted">{{ formation() }}</span>
             @if (captainRow(); as cap) {
-              <span class="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-page border border-line text-muted">
-                <span class="w-4 h-4 rounded-full bg-team-primary text-team-secondary flex items-center justify-center text-2xs font-bold shrink-0">C</span>
+              <span class="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-page border border-line text-muted">
+                <span class="w-4 h-4 rounded-full bg-team-primary text-team-secondary flex items-center justify-center text-[10px] font-bold shrink-0">C</span>
                 {{ cap.player.name }}
               </span>
             }
@@ -895,12 +895,12 @@
                      after 2.5s the same way profile.ts's referralCopied
                      does for its own one-shot confirmation. -->
                 @if (autoFillNotice()) {
-                  <div class="absolute top-2 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-full text-xs font-bold bg-team-primary text-team-secondary shadow-pop">
+                  <div class="absolute top-2 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-full text-[11px] font-bold bg-team-primary text-team-secondary shadow-pop">
                     {{ i18n.t('fantasy.autoFillNotice') }}
                   </div>
                 }
                 @if (swapRejectedNotice()) {
-                  <div class="absolute top-2 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-full text-xs font-bold bg-red-500 text-white shadow-pop whitespace-nowrap">
+                  <div class="absolute top-2 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-full text-[11px] font-bold bg-red-500 text-white shadow-pop whitespace-nowrap">
                     {{ i18n.t('fantasy.swapNoFormation') }}
                   </div>
                 }
@@ -926,19 +926,19 @@
                       <div class="fixed inset-0" (click)="courtMenuOpen.set(false)"></div>
                       <div class="absolute right-0 mt-2 w-56 rounded-2xl bg-card border border-line shadow-pop p-1.5 space-y-0.5">
                         @if (!roundLocked() && round() === 1) {
-                          <button type="button" (click)="courtMenuOpen.set(false); requestAutoFillSquad()" [disabled]="autoFilling()" class="w-full flex items-center gap-2.5 px-3 h-10 rounded-lg text-sm font-semibold text-ink hover:bg-team-primary/10 disabled:opacity-40 transition-colors">
+                          <button type="button" (click)="courtMenuOpen.set(false); requestAutoFillSquad()" [disabled]="autoFilling()" class="w-full flex items-center gap-2.5 px-3 h-10 rounded-xl text-[13px] font-semibold text-ink hover:bg-team-primary/10 disabled:opacity-40 transition-colors">
                             <app-nav-icon name="dice" [size]="16" class="text-team-primary" />
                             {{ i18n.t('fantasy.autoFillSquad') }}
                           </button>
                         }
                         @if (!roundLocked()) {
-                          <button type="button" (click)="courtMenuOpen.set(false); importInput.click()" [disabled]="importing()" [title]="i18n.t('fantasy.importScreenshotHint')" class="w-full flex items-center gap-2.5 px-3 h-10 rounded-lg text-sm font-semibold text-ink hover:bg-team-primary/10 disabled:opacity-40 transition-colors">
+                          <button type="button" (click)="courtMenuOpen.set(false); importInput.click()" [disabled]="importing()" [title]="i18n.t('fantasy.importScreenshotHint')" class="w-full flex items-center gap-2.5 px-3 h-10 rounded-xl text-[13px] font-semibold text-ink hover:bg-team-primary/10 disabled:opacity-40 transition-colors">
                             <app-nav-icon name="share" [size]="16" class="text-team-primary" />
                             {{ i18n.t('fantasy.importScreenshot') }}
                           </button>
                         }
                         @if (auth.currentUser()?.isAdmin) {
-                          <button type="button" (click)="courtMenuOpen.set(false); simulateWholeRound()" [disabled]="simulatingRound()" class="w-full flex items-center gap-2.5 px-3 h-10 rounded-lg text-sm font-semibold text-ink hover:bg-team-primary/10 disabled:opacity-40 transition-colors">
+                          <button type="button" (click)="courtMenuOpen.set(false); simulateWholeRound()" [disabled]="simulatingRound()" class="w-full flex items-center gap-2.5 px-3 h-10 rounded-xl text-[13px] font-semibold text-ink hover:bg-team-primary/10 disabled:opacity-40 transition-colors">
                             <app-nav-icon name="fast-forward" [size]="16" class="text-team-primary" />
                             {{ i18n.t('fantasy.simulateRoundAdmin') }}
                           </button>
@@ -967,7 +967,7 @@
                 <span class="absolute inset-x-0 top-0 h-[3px] bg-team-primary/70" aria-hidden="true"></span>
                 <div class="flex flex-col items-center gap-3">
                   <div class="flex flex-col items-center">
-                    <p class="text-xs text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.sixthManLabel') }}</p>
+                    <p class="text-[11px] text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.sixthManLabel') }}</p>
                     <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: sixthManSlot(), size: sixthManAvatarSize() }" />
                   </div>
                   <!-- Coach slot — a single tappable slot, same visual
@@ -977,7 +977,7 @@
                        popup below instead of an always-visible horizontal
                        strip. -->
                   <div class="w-full pt-3 border-t border-line/40 flex flex-col items-center">
-                    <p class="text-xs text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.coachLabel') }}</p>
+                    <p class="text-[11px] text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.coachLabel') }}</p>
                     <!-- Same glass-only-when-empty rule as a player slot
                          (2026-09-17, "coach should be same style with
                          players") — selected shows the plain team badge
@@ -988,7 +988,7 @@
                         <div class="relative">
                           <app-player-photo [photoUrl]="coach.imageUrl" [name]="coach.headCoach ?? coach.team.name" [teamCode]="coach.team.code" [primaryColor]="coach.team.primaryColor" [size]="48" [centerFace]="true" [fill]="true" class="flex" />
                           @if (roundLocked()) {
-                            <span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-card border border-line flex items-center justify-center text-2xs">&#128274;</span>
+                            <span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-card border border-line flex items-center justify-center text-[10px]">&#128274;</span>
                           } @else {
                             <!-- Same top-right X as a player slot's remove
                                  button (see squadSlot above) — "add x on
@@ -1008,9 +1008,9 @@
                             ><svg viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg></button>
                           }
                         </div>
-                        <span class="text-xs font-semibold text-center truncate max-w-[80px]">{{ coach.headCoach ?? coach.team.name }}</span>
+                        <span class="text-[11px] font-semibold text-center truncate max-w-[80px]">{{ coach.headCoach ?? coach.team.name }}</span>
                         @if (!roundLocked()) {
-                          <span class="font-mono text-xs font-bold text-team-primary">
+                          <span class="font-mono text-[11px] font-bold text-team-primary">
                             {{ coach.price | number: '1.1-1' }} {{ i18n.t('fantasy.creditsAbbrev') }}
                             @if (priceTrendGlyph(coach.priceTrend); as glyph) {
                               <span [ngClass]="priceTrendClass(coach.priceTrend)" [attr.title]="i18n.t('fantasy.priceTrendHint')">{{ glyph }}</span>
@@ -1020,7 +1020,7 @@
                       } @else {
                         <div class="flex flex-col items-center gap-1 rounded-2xl bg-gradient-to-b from-page/85 to-page/65 backdrop-blur-lg backdrop-saturate-150 shadow-card border border-white/20 px-2.5 py-2">
                           <div class="rounded-full border-2 border-dashed border-ink flex items-center justify-center text-muted text-xl w-[48px] h-[48px] hover:border-team-primary hover:text-team-primary transition-colors">+</div>
-                          <span class="text-2xs font-bold uppercase tracking-wide text-muted">{{ i18n.t('fantasy.coachLabel') }}</span>
+                          <span class="text-[10px] font-bold uppercase tracking-wide text-muted">{{ i18n.t('fantasy.coachLabel') }}</span>
                         </div>
                       }
                     </button>
@@ -1028,7 +1028,7 @@
                 </div>
                 <div class="w-px self-stretch bg-line/60"></div>
                 <div class="flex flex-col items-center">
-                  <p class="text-xs text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.benchLabel') }}</p>
+                  <p class="text-[11px] text-muted font-bold uppercase tracking-wider text-center mb-2">{{ i18n.t('fantasy.benchLabel') }}</p>
                   <div class="grid grid-cols-2 gap-x-5 gap-y-5 sm:gap-4">
                     @for (slot of benchSlots(); track slot.id) {
                       <ng-container [ngTemplateOutlet]="squadSlot" [ngTemplateOutletContext]="{ $implicit: slot, size: benchAvatarSize() }" />
@@ -1038,7 +1038,7 @@
               </div>
 
               @if (importing() || importResult() || importError()) {
-                <div class="mt-2 rounded-lg border px-3 py-2 text-xs leading-snug"
+                <div class="mt-2 rounded-lg border px-3 py-2 text-[11px] leading-snug"
                      [class]="importError() ? 'border-red-500/40 bg-red-500/10 text-red-500' : 'border-line bg-card text-ink'">
                   @if (importing()) {
                     {{ i18n.t('fantasy.importReading') }} {{ importProgress() }}%
@@ -1047,7 +1047,7 @@
                       <span>
                         {{ importError() }}
                         @if (importErrorDetail()) {
-                          <span class="block mt-1 font-mono text-2xs opacity-70 break-all">{{ importErrorDetail() }}</span>
+                          <span class="block mt-1 font-mono text-[10px] opacity-70 break-all">{{ importErrorDetail() }}</span>
                         }
                       </span>
                       <button type="button" class="font-bold" (click)="importError.set(null)" [attr.aria-label]="i18n.t('fantasy.close')">&times;</button>
@@ -1100,7 +1100,7 @@
                 </div>
               }
               @if (isCurrentRound()) {
-                <p class="text-center text-xs text-muted mt-3 pt-3 border-t border-line/60">
+                <p class="text-center text-[11px] text-muted mt-3 pt-3 border-t border-line/60">
                   @if (squadFull()) {
                     {{ i18n.t('fantasy.courtFull') }}
                   } @else {
@@ -1144,7 +1144,7 @@
                  sub-section, same "pieces inside one panel keep their own
                  subtler borders" convention the sort header/pool list below
                  already use, rather than a fourth free-floating element. -->
-            <div class="flex flex-col gap-2 bg-card rounded-lg border border-line p-1.5">
+            <div class="flex flex-col gap-2 bg-card rounded-xl border border-line p-1.5">
               <app-search-input
                 [value]="searchQuery()"
                 [placeholder]="i18n.t('fantasy.searchPlaceholder')"
@@ -1174,9 +1174,9 @@
             <!-- Remaining budget (2026-09-12) — this is the moment a "how
                  much do I actually have left" number matters most, not just
                  the spent/cap fraction in the status bar above the court. -->
-            <div class="flex items-baseline justify-center gap-1 bg-team-primary/10 border border-team-primary/25 rounded-lg px-2 py-1.5">
+            <div class="flex items-baseline justify-center gap-1 bg-team-primary/10 border border-team-primary/25 rounded-xl px-2 py-1.5">
               <span class="font-mono text-sm font-bold" [ngClass]="overBudget() ? 'text-red-500' : 'text-team-primary'">{{ remainingBudget() | number: '1.1-1' }} {{ i18n.t('fantasy.creditsAbbrev') }}</span>
-              <span class="text-xs font-bold text-muted uppercase tracking-wide">{{ i18n.t('fantasy.creditsAvailable') }}</span>
+              <span class="text-[11px] font-bold text-muted uppercase tracking-wide">{{ i18n.t('fantasy.creditsAvailable') }}</span>
             </div>
 
             <ng-container [ngTemplateOutlet]="sortControl" />
@@ -1217,7 +1217,7 @@
                       [size]="52"
                       [centerFace]="true"
                     />
-                    <span class="text-xs font-bold text-ink bg-card/95 border border-line rounded-full px-2 py-0.5 shadow-card whitespace-nowrap">{{ row.player.name }}</span>
+                    <span class="text-[11px] font-bold text-ink bg-card/95 border border-line rounded-full px-2 py-0.5 shadow-card whitespace-nowrap">{{ row.player.name }}</span>
                   </div>
                   <button type="button" (click)="$event.stopPropagation(); openPlayerInfo(row.player.id)" class="flex items-center gap-2 min-w-0 flex-1 text-left">
                     <ng-container [ngTemplateOutlet]="poolRowBody" [ngTemplateOutletContext]="{ $implicit: row, size: 30 }" />
@@ -1236,7 +1236,7 @@
                 <p class="text-center text-xs text-muted py-4">{{ i18n.t('fantasy.courtFull') }}</p>
               }
               @if (hasMoreRows()) {
-                <p class="text-center text-xs text-muted py-1 tracking-widest">&middot;&middot;&middot;</p>
+                <p class="text-center text-[11px] text-muted py-1 tracking-widest">&middot;&middot;&middot;</p>
               }
             </div>
           </div>
@@ -1261,7 +1261,7 @@
           (valueChange)="onBoardChange($event)"
         />
       } @else {
-        <span class="px-3 py-1.5 rounded-lg text-xs font-bold border bg-team-primary/10 border-team-primary/30 text-team-primary">
+        <span class="px-3 py-1.5 rounded-xl text-xs font-bold border bg-team-primary/10 border-team-primary/30 text-team-primary">
           {{ i18n.t('fantasy.globalBoard') }}
         </span>
       }
@@ -1277,7 +1277,7 @@
     </div>
 
     @if (leaderboardLoading()) {
-      <app-skeleton class="h-40 rounded-lg" />
+      <app-skeleton class="h-40 rounded-xl" />
     } @else {
       <app-fantasy-leaderboard-list [entries]="activeLeaderboard()" [emptyLabel]="i18n.t('fantasy.emptyLeaderboard')" />
     }
@@ -1291,7 +1291,7 @@
   @if (infoPlayerId(); as pid) {
     <div class="sheet-backdrop fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm" (click)="closePlayerInfo()">
       <div
-        class="sheet-panel bg-card rounded-t-2xl sm:rounded-2xl border border-line shadow-pop w-full sm:max-w-md max-h-[90vh] flex flex-col overflow-hidden transition-transform duration-200 motion-reduce:transition-none"
+        class="sheet-panel bg-card rounded-t-3xl sm:rounded-3xl border border-line shadow-pop w-full sm:max-w-md max-h-[90vh] flex flex-col overflow-hidden transition-transform duration-200 motion-reduce:transition-none"
         [ngClass]="infoVisible() ? 'translate-y-0' : 'translate-y-8'"
         (click)="$event.stopPropagation()"
       >
@@ -1308,13 +1308,13 @@
               </span>
               <div class="min-w-0 flex-1">
                 <p class="font-display text-lg leading-tight truncate">{{ playerName(row.player.name) }}</p>
-                <p class="flex items-center gap-1.5 mt-1 text-xs text-muted min-w-0">
-                  <span class="px-1.5 py-0.5 rounded-lg font-bold leading-none font-mono text-2xs" [ngClass]="posChipClass(row.player.position)">{{ posAbbrev(row.player.position) }}</span>
+                <p class="flex items-center gap-1.5 mt-1 text-[11px] text-muted min-w-0">
+                  <span class="px-1.5 py-0.5 rounded-md font-bold leading-none font-mono text-[10px]" [ngClass]="posChipClass(row.player.position)">{{ posAbbrev(row.player.position) }}</span>
                   <span class="truncate">{{ row.team.name }}</span>
                 </p>
                 @if (row.injury; as injury) {
                   <span
-                    class="inline-block mt-1.5 text-xs font-bold uppercase tracking-wide rounded-full border px-2 py-0.5"
+                    class="inline-block mt-1.5 text-[11px] font-bold uppercase tracking-wide rounded-full border px-2 py-0.5"
                     [ngClass]="injuryClass(injury.status)"
                     >{{ injuryLabel(injury.status) }}@if (injuryNote(injury); as note) { — {{ note }} }</span
                   >
@@ -1326,37 +1326,37 @@
 
           <!-- Price / FP average / season credit change / owned. -->
           <div class="relative grid grid-cols-4 gap-1.5 mt-3">
-            <div class="rounded-lg bg-card/80 border border-line px-2 py-2 text-center">
-              <p class="font-mono text-base font-bold tabular-nums text-team-primary leading-none">{{ (infoCard()?.price ?? infoPlayerRow()?.price) | number: '1.1-1' }}</p>
-              <p class="text-2xs font-bold text-muted uppercase tracking-wide mt-1">{{ i18n.t('fantasy.creditsAbbrev') }}</p>
+            <div class="rounded-xl bg-card/80 border border-line px-2 py-2 text-center">
+              <p class="font-mono text-[15px] font-bold tabular-nums text-team-primary leading-none">{{ (infoCard()?.price ?? infoPlayerRow()?.price) | number: '1.1-1' }}</p>
+              <p class="text-[9px] font-bold text-muted uppercase tracking-wide mt-1">{{ i18n.t('fantasy.creditsAbbrev') }}</p>
             </div>
-            <div class="rounded-lg bg-card/80 border border-line px-2 py-2 text-center">
-              <p class="font-mono text-base font-bold tabular-nums text-ink leading-none">{{ infoCard()?.fantasyPointsAverage === null || !infoCard() ? '–' : (infoCard()!.fantasyPointsAverage | number: '1.1-1') }}</p>
-              <p class="text-2xs font-bold text-muted uppercase tracking-wide mt-1">{{ i18n.t('fantasy.card.fpa') }}</p>
+            <div class="rounded-xl bg-card/80 border border-line px-2 py-2 text-center">
+              <p class="font-mono text-[15px] font-bold tabular-nums text-ink leading-none">{{ infoCard()?.fantasyPointsAverage === null || !infoCard() ? '–' : (infoCard()!.fantasyPointsAverage | number: '1.1-1') }}</p>
+              <p class="text-[9px] font-bold text-muted uppercase tracking-wide mt-1">{{ i18n.t('fantasy.card.fpa') }}</p>
             </div>
-            <div class="rounded-lg bg-card/80 border border-line px-2 py-2 text-center">
+            <div class="rounded-xl bg-card/80 border border-line px-2 py-2 text-center">
               @if (infoCard(); as card) {
-                <p class="font-mono text-base font-bold tabular-nums leading-none" [ngClass]="card.seasonCreditChange > 0 ? 'text-emerald-500' : card.seasonCreditChange < 0 ? 'text-red-500' : 'text-ink'">
+                <p class="font-mono text-[15px] font-bold tabular-nums leading-none" [ngClass]="card.seasonCreditChange > 0 ? 'text-emerald-500' : card.seasonCreditChange < 0 ? 'text-red-500' : 'text-ink'">
                   {{ card.seasonCreditChange > 0 ? '+' : '' }}{{ card.seasonCreditChange | number: '1.1-1' }}
                 </p>
               } @else {
-                <p class="font-mono text-base font-bold leading-none text-muted">–</p>
+                <p class="font-mono text-[15px] font-bold leading-none text-muted">–</p>
               }
-              <p class="text-2xs font-bold text-muted uppercase tracking-wide mt-1">{{ i18n.t('fantasy.card.seasonCr') }}</p>
+              <p class="text-[9px] font-bold text-muted uppercase tracking-wide mt-1">{{ i18n.t('fantasy.card.seasonCr') }}</p>
             </div>
-            <div class="rounded-lg bg-card/80 border border-line px-2 py-2 text-center">
-              <p class="font-mono text-base font-bold tabular-nums text-ink leading-none">{{ infoCard()?.ownedPct === null || !infoCard() ? '–' : infoCard()!.ownedPct + '%' }}</p>
-              <p class="text-2xs font-bold text-muted uppercase tracking-wide mt-1">{{ i18n.t('fantasy.card.owned') }}</p>
+            <div class="rounded-xl bg-card/80 border border-line px-2 py-2 text-center">
+              <p class="font-mono text-[15px] font-bold tabular-nums text-ink leading-none">{{ infoCard()?.ownedPct === null || !infoCard() ? '–' : infoCard()!.ownedPct + '%' }}</p>
+              <p class="text-[9px] font-bold text-muted uppercase tracking-wide mt-1">{{ i18n.t('fantasy.card.owned') }}</p>
             </div>
           </div>
 
           <!-- Tabs. -->
-          <div class="relative status-tile flex gap-1 p-1 mt-3 rounded-lg border border-line">
+          <div class="relative status-tile flex gap-1 p-1 mt-3 rounded-xl border border-line">
             @for (t of [{ key: 'performance', label: 'fantasy.card.tabPerformance' }, { key: 'lastGame', label: 'fantasy.card.tabLastGame' }]; track t.key) {
               <button
                 type="button"
                 (click)="infoTab.set($any(t.key))"
-                class="flex-1 h-9 rounded-lg text-sm font-semibold transition-colors"
+                class="flex-1 h-9 rounded-lg text-[13px] font-semibold transition-colors"
                 [ngClass]="infoTab() === t.key ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
               >
                 {{ i18n.t(t.label) }}
@@ -1373,23 +1373,23 @@
             @if (infoTab() === 'performance') {
               <!-- Next 5 -->
               @if (card.nextGames.length > 0) {
-                <p class="text-xs text-muted font-bold uppercase tracking-wider mb-2 mt-1">{{ i18n.t('fantasy.card.next5') }}</p>
+                <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-2 mt-1">{{ i18n.t('fantasy.card.next5') }}</p>
                 <div class="grid grid-cols-5 gap-1.5 mb-4">
                   @for (g of card.nextGames; track g.tipoffAt) {
                     <div class="list-row !flex-col !gap-1 !px-1 !py-2 text-center" [ngClass]="nextGameTileClass(opponentShade(g.opponent.id, card.player.position))">
-                      <span class="font-mono text-xs font-bold leading-none">{{ g.tipoffAt | date: 'd/M':'Europe/Athens' }}</span>
-                      <span class="font-mono text-2xs text-muted leading-none">{{ g.tipoffAt | date: 'HH:mm':'Europe/Athens' }}</span>
-                      <span class="text-2xs font-bold text-muted leading-none mt-0.5">{{ g.isHome ? 'VS' : '@' }}</span>
+                      <span class="font-mono text-[12px] font-bold leading-none">{{ g.tipoffAt | date: 'd/M':'Europe/Athens' }}</span>
+                      <span class="font-mono text-[10px] text-muted leading-none">{{ g.tipoffAt | date: 'HH:mm':'Europe/Athens' }}</span>
+                      <span class="text-[10px] font-bold text-muted leading-none mt-0.5">{{ g.isHome ? 'VS' : '@' }}</span>
                       @if (g.opponent.logoUrl) {
                         <img [src]="g.opponent.logoUrl" [alt]="g.opponent.code | teamCode" appRetryImg class="team-logo w-7 h-7 object-contain" />
                       } @else {
-                        <span class="font-display text-xs">{{ g.opponent.code | teamCode }}</span>
+                        <span class="font-display text-[11px]">{{ g.opponent.code | teamCode }}</span>
                       }
                     </div>
                   }
                 </div>
                 @if (dvp()) {
-                  <p class="text-2xs text-muted -mt-2.5 mb-4">{{ i18n.t('fantasy.matchup.legend') }}</p>
+                  <p class="text-[10px] text-muted -mt-2.5 mb-4">{{ i18n.t('fantasy.matchup.legend') }}</p>
                 }
               }
 
@@ -1397,34 +1397,34 @@
                    to this position, and its players at that position. -->
               @if (card.matchup; as m) {
                 @let tier = cardMatchupTier(m);
-                <p class="text-xs text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('fantasy.matchup.title') }} · {{ matchupPositionPlural(m.position) }}</p>
+                <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('fantasy.matchup.title') }} · {{ matchupPositionPlural(m.position) }}</p>
                 <div class="rounded-2xl border border-line bg-page/60 p-3 mb-4">
                   <div class="flex items-center gap-2.5">
                     @if (m.opponent.logoUrl) {
                       <img [src]="m.opponent.logoUrl" [alt]="m.opponent.code | teamCode" appRetryImg class="team-logo w-9 h-9 object-contain shrink-0" />
                     }
                     <div class="min-w-0 flex-1">
-                      <p class="text-sm font-semibold truncate leading-tight">{{ m.opponent.name }}</p>
-                      <p class="text-xs text-muted leading-tight mt-0.5">{{ matchupAllowedLine(m) }}</p>
+                      <p class="text-[13px] font-semibold truncate leading-tight">{{ m.opponent.name }}</p>
+                      <p class="text-[11px] text-muted leading-tight mt-0.5">{{ matchupAllowedLine(m) }}</p>
                       @if (m.rank !== null) {
-                        <p class="text-2xs text-muted leading-tight mt-0.5">{{ matchupRankLine(m) }}</p>
+                        <p class="text-[10px] text-muted leading-tight mt-0.5">{{ matchupRankLine(m) }}</p>
                       }
                     </div>
                     @if (tier) {
-                      <span class="shrink-0 text-xs font-bold uppercase tracking-wide rounded-full border px-2 py-0.5" [ngClass]="matchupChipClass(tier)">{{ matchupTierLabel(tier) }}</span>
+                      <span class="shrink-0 text-[11px] font-bold uppercase tracking-wide rounded-full border px-2 py-0.5" [ngClass]="matchupChipClass(tier)">{{ matchupTierLabel(tier) }}</span>
                     }
                   </div>
 
-                  <p class="text-2xs text-muted font-bold uppercase tracking-wider mt-3 mb-1.5">{{ i18n.t('fantasy.matchup.opposing') }}</p>
+                  <p class="text-[10px] text-muted font-bold uppercase tracking-wider mt-3 mb-1.5">{{ i18n.t('fantasy.matchup.opposing') }}</p>
                   @if (m.players.length === 0) {
-                    <p class="text-xs text-muted">{{ i18n.t('fantasy.matchup.none') }}</p>
+                    <p class="text-[12px] text-muted">{{ i18n.t('fantasy.matchup.none') }}</p>
                   } @else {
                     <div class="flex flex-wrap gap-1.5">
                       @for (p of m.players; track p.id) {
-                        <span class="inline-flex items-center gap-1 rounded-full border border-line bg-card px-2 py-0.5 text-xs font-semibold" [class.opacity-60]="p.injury === 'out'">
+                        <span class="inline-flex items-center gap-1 rounded-full border border-line bg-card px-2 py-0.5 text-[12px] font-semibold" [class.opacity-60]="p.injury === 'out'">
                           {{ playerName(p.name) }}
                           @if (p.injury) {
-                            <span class="text-2xs font-bold uppercase tracking-wide rounded-full border px-1.5 py-px" [ngClass]="injuryClass(p.injury)">{{ injuryLabel(p.injury) }}</span>
+                            <span class="text-[9px] font-bold uppercase tracking-wide rounded-full border px-1.5 py-px" [ngClass]="injuryClass(p.injury)">{{ injuryLabel(p.injury) }}</span>
                           }
                         </span>
                       }
@@ -1434,15 +1434,15 @@
               }
 
               <!-- Trend: last 5 / 10 averages + fantasy points per game. -->
-              <p class="text-xs text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('fantasy.card.trend') }}</p>
+              <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('fantasy.card.trend') }}</p>
               <div class="rounded-2xl border border-line bg-page/60 p-3 mb-4">
                 <div class="grid grid-cols-2 gap-2">
-                  <div class="rounded-lg bg-team-primary/10 px-2 py-2 text-center">
-                    <p class="text-2xs font-bold text-muted uppercase tracking-wide">{{ i18n.t('fantasy.card.avgLast5') }}</p>
+                  <div class="rounded-xl bg-team-primary/10 px-2 py-2 text-center">
+                    <p class="text-[10px] font-bold text-muted uppercase tracking-wide">{{ i18n.t('fantasy.card.avgLast5') }}</p>
                     <p class="font-mono text-lg font-bold tabular-nums text-team-primary leading-tight">{{ infoAvg().last5 === null ? '–' : (infoAvg().last5 | number: '1.1-1') }}</p>
                   </div>
-                  <div class="rounded-lg bg-team-primary/10 px-2 py-2 text-center">
-                    <p class="text-2xs font-bold text-muted uppercase tracking-wide">{{ i18n.t('fantasy.card.avgLast10') }}</p>
+                  <div class="rounded-xl bg-team-primary/10 px-2 py-2 text-center">
+                    <p class="text-[10px] font-bold text-muted uppercase tracking-wide">{{ i18n.t('fantasy.card.avgLast10') }}</p>
                     <p class="font-mono text-lg font-bold tabular-nums text-team-primary leading-tight">{{ infoAvg().last10 === null ? '–' : (infoAvg().last10 | number: '1.1-1') }}</p>
                   </div>
                 </div>
@@ -1452,28 +1452,28 @@
                   <div class="flex items-end justify-end gap-1.5 h-32 mt-3 pt-4" role="img" [attr.aria-label]="i18n.t('fantasy.card.trend')">
                     @for (b of infoBars(); track b.game.gameId) {
                       <div class="flex-1 max-w-[2.25rem] h-full flex flex-col items-center justify-end" [title]="(b.game.isHome ? 'VS ' : '@ ') + b.game.opponent.code + ' · ' + (b.game.fantasyPoints ?? i18n.t('fantasy.card.dnp'))">
-                        <span class="font-mono text-2xs font-bold tabular-nums text-ink mb-1 leading-none">{{ b.game.fantasyPoints === null ? '–' : (b.game.fantasyPoints | number: '1.0-1') }}</span>
+                        <span class="font-mono text-[10px] font-bold tabular-nums text-ink mb-1 leading-none">{{ b.game.fantasyPoints === null ? '–' : (b.game.fantasyPoints | number: '1.0-1') }}</span>
                         <div class="w-full rounded-t bg-team-primary transition-[height] duration-500" [style.height.%]="b.pct"></div>
                       </div>
                     }
                   </div>
                   <div class="flex justify-end gap-1.5 mt-1 border-t border-line pt-1">
                     @for (b of infoBars(); track b.game.gameId) {
-                      <span class="flex-1 max-w-[2.25rem] text-center font-mono text-2xs text-muted">{{ b.game.round | roundLabel: i18n.lang() : 'short' }}</span>
+                      <span class="flex-1 max-w-[2.25rem] text-center font-mono text-[10px] text-muted">{{ b.game.round | roundLabel: i18n.lang() : 'short' }}</span>
                     }
                   </div>
                 }
               </div>
 
               <!-- Per-game log. -->
-              <p class="text-xs text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('fantasy.card.stats') }}</p>
+              <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('fantasy.card.stats') }}</p>
               @if (card.games.length === 0) {
                 <p class="text-sm text-muted">{{ i18n.t('fantasy.noRecentGames') }}</p>
               } @else {
                 <div class="rounded-2xl border border-line overflow-x-auto">
-                  <table class="w-full text-xs font-mono tabular-nums">
+                  <table class="w-full text-[12px] font-mono tabular-nums">
                     <thead>
-                      <tr class="text-2xs text-muted uppercase tracking-wide border-b border-line">
+                      <tr class="text-[10px] text-muted uppercase tracking-wide border-b border-line">
                         <th class="px-2 py-2 text-left font-bold">{{ i18n.t('fantasy.card.roundShort') }}</th>
                         <th class="px-2 py-2 text-left font-bold">VS</th>
                         <th class="px-2 py-2 text-right font-bold">CR</th>
@@ -1511,8 +1511,8 @@
                     <img [src]="g.opponent.logoUrl" alt="" appRetryImg class="team-logo w-9 h-9 object-contain shrink-0" />
                   }
                   <div class="min-w-0 flex-1">
-                    <p class="text-sm font-semibold leading-tight">{{ g.isHome ? 'VS' : '@' }} {{ g.opponent.code | teamCode }}</p>
-                    <p class="font-mono text-xs text-muted mt-0.5">{{ g.round | roundLabel: i18n.lang() : 'short' }} · {{ g.tipoffAt | date: 'd/M':'Europe/Athens' }}</p>
+                    <p class="text-[13px] font-semibold leading-tight">{{ g.isHome ? 'VS' : '@' }} {{ g.opponent.code | teamCode }}</p>
+                    <p class="font-mono text-[11px] text-muted mt-0.5">{{ g.round | roundLabel: i18n.lang() : 'short' }} · {{ g.tipoffAt | date: 'd/M':'Europe/Athens' }}</p>
                   </div>
                   @if (g.teamScore !== null && g.opponentScore !== null) {
                     <span class="value-chip" [ngClass]="g.teamScore > g.opponentScore ? '!text-emerald-500' : '!text-red-500'">
@@ -1521,19 +1521,19 @@
                   }
                 </div>
                 <div class="grid grid-cols-3 gap-1.5 mb-3">
-                  <div class="rounded-lg bg-team-primary/10 px-2 py-2.5 text-center">
+                  <div class="rounded-xl bg-team-primary/10 px-2 py-2.5 text-center">
                     <p class="font-mono text-2xl font-bold tabular-nums text-team-primary leading-none">{{ g.fantasyPoints === null ? '–' : (g.fantasyPoints | number: '1.0-1') }}</p>
-                    <p class="text-2xs font-bold text-muted uppercase tracking-wide mt-1">FPT</p>
+                    <p class="text-[9px] font-bold text-muted uppercase tracking-wide mt-1">FPT</p>
                   </div>
-                  <div class="rounded-lg bg-page border border-line px-2 py-2.5 text-center">
+                  <div class="rounded-xl bg-page border border-line px-2 py-2.5 text-center">
                     <p class="font-mono text-2xl font-bold tabular-nums leading-none">{{ formatMinutes(g.minutes) }}</p>
-                    <p class="text-2xs font-bold text-muted uppercase tracking-wide mt-1">MIN</p>
+                    <p class="text-[9px] font-bold text-muted uppercase tracking-wide mt-1">MIN</p>
                   </div>
-                  <div class="rounded-lg bg-page border border-line px-2 py-2.5 text-center">
+                  <div class="rounded-xl bg-page border border-line px-2 py-2.5 text-center">
                     <p class="font-mono text-2xl font-bold tabular-nums leading-none" [ngClass]="g.priceChange === null ? 'text-muted' : g.priceChange > 0 ? 'text-emerald-500' : g.priceChange < 0 ? 'text-red-500' : ''">
                       {{ g.priceChange === null ? '…' : (g.priceChange > 0 ? '+' : '') + (g.priceChange | number: '1.1-1') }}
                     </p>
-                    <p class="text-2xs font-bold text-muted uppercase tracking-wide mt-1">CR</p>
+                    <p class="text-[9px] font-bold text-muted uppercase tracking-wide mt-1">CR</p>
                   </div>
                 </div>
                 @if (g.stats; as st) {
@@ -1552,9 +1552,9 @@
                       { l: 'FT', v: (st['freeThrowsMade'] ?? 0) + '/' + (st['freeThrowsAttempted'] ?? 0) },
                       { l: '+/-', v: st['plusMinus'] }
                     ]; track cell.l) {
-                      <div class="rounded-lg bg-page border border-line px-1 py-2 text-center">
-                        <p class="font-mono text-base font-bold tabular-nums leading-none">{{ cell.v ?? '–' }}</p>
-                        <p class="text-2xs font-bold text-muted uppercase tracking-wide mt-1">{{ cell.l }}</p>
+                      <div class="rounded-xl bg-page border border-line px-1 py-2 text-center">
+                        <p class="font-mono text-[15px] font-bold tabular-nums leading-none">{{ cell.v ?? '–' }}</p>
+                        <p class="text-[9px] font-bold text-muted uppercase tracking-wide mt-1">{{ cell.l }}</p>
                       </div>
                     }
                   </div>
@@ -1679,7 +1679,7 @@
             <p class="text-center text-xs text-muted py-4">{{ i18n.t('fantasy.noPlayersFound') }}</p>
           }
           @if (hasMoreRows()) {
-            <p class="text-center text-xs text-muted py-1 tracking-widest">&middot;&middot;&middot;</p>
+            <p class="text-center text-[11px] text-muted py-1 tracking-widest">&middot;&middot;&middot;</p>
           }
         </div>
       </div>
@@ -1728,8 +1728,8 @@
             >
               <app-player-photo [photoUrl]="row.imageUrl" [name]="row.headCoach ?? row.team.name" [teamCode]="row.team.code" [primaryColor]="row.team.primaryColor" [size]="34" [centerFace]="true" />
               <div class="min-w-0 flex-1">
-                <p class="text-xs font-semibold truncate leading-tight">{{ row.headCoach ?? row.team.name }}</p>
-                <p class="flex items-center gap-1 text-xs font-mono text-muted min-w-0 leading-tight">
+                <p class="text-[12px] font-semibold truncate leading-tight">{{ row.headCoach ?? row.team.name }}</p>
+                <p class="flex items-center gap-1 text-[11px] font-mono text-muted min-w-0 leading-tight">
                   <span class="truncate">{{ row.team.name }}</span>
                   <!-- This round's opponent: "vs PAO" / "@ PAO", then its badge. -->
                   @if (opponentFor(row.team.id); as opp) {
@@ -1741,8 +1741,8 @@
                   }
                 </p>
               </div>
-              <span class="shrink-0 font-mono text-sm font-bold text-team-primary border border-team-primary/30 rounded-lg px-2.5 py-1.5 min-w-[46px] text-center">
-                {{ row.price | number: '1.1-1' }} <span class="text-2xs">{{ i18n.t('fantasy.creditsAbbrev') }}</span>
+              <span class="shrink-0 font-mono text-[13px] font-bold text-team-primary border border-team-primary/30 rounded-lg px-2.5 py-1.5 min-w-[46px] text-center">
+                {{ row.price | number: '1.1-1' }} <span class="text-[10px]">{{ i18n.t('fantasy.creditsAbbrev') }}</span>
               </span>
             </button>
           } @empty {
@@ -1799,11 +1799,11 @@
                 }
               </span>
               <div class="min-w-0 flex-1">
-                <p class="text-xs font-semibold truncate leading-tight" [ngClass]="candidate.row.injury ? injuryAccentClass(candidate.row.injury.status) : ''">{{ candidate.row.player.name }}</p>
-                <p class="text-xs font-mono text-muted truncate leading-tight"><ng-container [ngTemplateOutlet]="playerMeta" [ngTemplateOutletContext]="{ $implicit: candidate.row }" /></p>
+                <p class="text-[12px] font-semibold truncate leading-tight" [ngClass]="candidate.row.injury ? injuryAccentClass(candidate.row.injury.status) : ''">{{ candidate.row.player.name }}</p>
+                <p class="text-[11px] font-mono text-muted truncate leading-tight"><ng-container [ngTemplateOutlet]="playerMeta" [ngTemplateOutletContext]="{ $implicit: candidate.row }" /></p>
               </div>
               @if (candidate.formation && candidate.formation !== formation()) {
-                <span class="shrink-0 text-2xs font-mono font-bold text-team-primary border border-team-primary/30 rounded-lg px-1.5 py-1 text-center leading-tight">
+                <span class="shrink-0 text-[10px] font-mono font-bold text-team-primary border border-team-primary/30 rounded-md px-1.5 py-1 text-center leading-tight">
                   {{ i18n.t('fantasy.swapFormationChange') }}<br />{{ candidate.formation }}
                 </span>
               }
@@ -1827,7 +1827,7 @@
           <button type="button" (click)="showFormationPicker.set(false)" class="text-muted hover:text-ink text-2xl leading-none font-bold shrink-0">&times;</button>
         </div>
         @if (subsWindowOpen()) {
-          <p class="text-xs text-muted -mt-2 mb-3">{{ i18n.t('fantasy.formationMidRoundHint') }}</p>
+          <p class="text-[11px] text-muted -mt-2 mb-3">{{ i18n.t('fantasy.formationMidRoundHint') }}</p>
         }
         <div class="flex flex-col gap-2">
           @for (f of formationOptions; track f) {
@@ -1835,11 +1835,11 @@
               type="button"
               (click)="chooseFormation(f)"
               [disabled]="!canChooseFormation(f)"
-              class="flex items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-left transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              class="flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               [ngClass]="formation() === f ? 'border-team-primary bg-team-primary/10' : 'border-line bg-page hover:border-team-primary'"
             >
               <span class="font-mono text-sm font-bold">{{ f }}</span>
-              <span class="text-xs text-muted">
+              <span class="text-[11px] text-muted">
                 {{ f.split('-')[0] }}{{ i18n.t('fantasy.posGuardAbbrev') }} &middot;
                 {{ f.split('-')[1] }}{{ i18n.t('fantasy.posForwardAbbrev') }} &middot;
                 {{ f.split('-')[2] }}{{ i18n.t('fantasy.posCenterAbbrev') }}
@@ -1877,7 +1877,7 @@
                   (click)="chooseCaptain(slot.playerId)"
                   [disabled]="!canTakeCaptaincy(slot.playerId)"
                   [attr.aria-label]="i18n.t('fantasy.setCaptain') + ': ' + row.player.name"
-                  class="flex items-center gap-2 rounded-lg border px-3 py-2.5 text-left transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  class="flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   [ngClass]="captainId() === slot.playerId ? 'border-team-primary bg-team-primary/10' : 'border-line bg-page hover:border-team-primary'"
                 >
                   <span class="relative shrink-0">
@@ -1896,11 +1896,11 @@
                     }
                   </span>
                   <div class="min-w-0 flex-1">
-                    <p class="text-xs font-semibold truncate leading-tight" [ngClass]="row.injury ? injuryAccentClass(row.injury.status) : ''">{{ row.player.name }}</p>
-                    <p class="text-xs font-mono text-muted truncate leading-tight"><ng-container [ngTemplateOutlet]="playerMeta" [ngTemplateOutletContext]="{ $implicit: row }" /></p>
+                    <p class="text-[12px] font-semibold truncate leading-tight" [ngClass]="row.injury ? injuryAccentClass(row.injury.status) : ''">{{ row.player.name }}</p>
+                    <p class="text-[11px] font-mono text-muted truncate leading-tight"><ng-container [ngTemplateOutlet]="playerMeta" [ngTemplateOutletContext]="{ $implicit: row }" /></p>
                   </div>
                   @if (captainId() === slot.playerId) {
-                    <span class="w-5 h-5 rounded-full bg-team-primary text-team-secondary flex items-center justify-center text-xs font-bold shrink-0">C</span>
+                    <span class="w-5 h-5 rounded-full bg-team-primary text-team-secondary flex items-center justify-center text-[11px] font-bold shrink-0">C</span>
                   }
                 </button>
               }
@@ -1950,7 +1950,7 @@
         } @else {
           <div class="space-y-2">
             @for (game of fixtureGames(); track game.id) {
-              <div class="flex items-center justify-between gap-2 bg-page rounded-lg px-3 py-2">
+              <div class="flex items-center justify-between gap-2 bg-page rounded-xl px-3 py-2">
                 <div class="flex items-center gap-1.5 min-w-0">
                   <app-team-badge [code]="game.homeTeam.code" [logoUrl]="game.homeTeam.logoUrl" [size]="18" />
                   @if (game.status === 'scheduled') {
@@ -1961,14 +1961,14 @@
                   <app-team-badge [code]="game.awayTeam.code" [logoUrl]="game.awayTeam.logoUrl" [size]="18" />
                 </div>
                 @if (game.status === 'live') {
-                  <span class="flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-red-500 shrink-0">
+                  <span class="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-red-500 shrink-0">
                     <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
                     {{ i18n.t('fantasy.liveNow') }}
                   </span>
                 } @else if (game.status === 'final') {
-                  <span class="text-xs font-bold uppercase tracking-wide text-muted shrink-0">{{ i18n.t('fantasy.gameFinal') }}</span>
+                  <span class="text-[11px] font-bold uppercase tracking-wide text-muted shrink-0">{{ i18n.t('fantasy.gameFinal') }}</span>
                 } @else {
-                  <span class="text-xs font-mono text-muted shrink-0">{{ game.tipoffAt | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}{{ game.tipoffAt | todayTag: i18n.lang() }}</span>
+                  <span class="text-[11px] font-mono text-muted shrink-0">{{ game.tipoffAt | date: gameDateTimeFormat():"Europe/Athens":dateLocale() }}{{ game.tipoffAt | todayTag: i18n.lang() }}</span>
                 }
               </div>
             }
@@ -2034,12 +2034,12 @@
         class="fantasy-round-complete bg-card rounded-2xl border border-team-primary/40 shadow-pop p-6 max-w-xs w-full text-center"
         (click)="$event.stopPropagation()"
       >
-        <p class="text-xs font-bold uppercase tracking-widest text-team-primary mb-1">{{ i18n.t('fantasy.roundCompleteTitle') }}</p>
+        <p class="text-[11px] font-bold uppercase tracking-widest text-team-primary mb-1">{{ i18n.t('fantasy.roundCompleteTitle') }}</p>
         <p class="font-display text-2xl tracking-wide mb-5">{{ rc.round | roundLabel: i18n.lang() }}</p>
         <div class="flex items-center justify-center gap-5 mb-6">
           <div>
             <p class="font-mono text-3xl font-bold text-team-primary">{{ rc.fantasyPoints | number: '1.0-1' }}</p>
-            <p class="text-xs text-muted uppercase tracking-wide mt-1">{{ i18n.t('fantasy.pointsLabel') }}</p>
+            <p class="text-[11px] text-muted uppercase tracking-wide mt-1">{{ i18n.t('fantasy.pointsLabel') }}</p>
           </div>
           <!-- Credit value gained/lost this round (2026-09-10) — each squad/
                coach pick's current price vs. what it was priced at when
@@ -2052,7 +2052,7 @@
             >
               {{ rc.creditsChange > 0 ? "+" : "" }}{{ rc.creditsChange | number: "1.1-1" }}
             </p>
-            <p class="text-xs text-muted uppercase tracking-wide mt-1">{{ i18n.t('fantasy.creditsChangeLabel') }}</p>
+            <p class="text-[11px] text-muted uppercase tracking-wide mt-1">{{ i18n.t('fantasy.creditsChangeLabel') }}</p>
           </div>
         </div>
         @if (rc.points > 0) {
@@ -2105,14 +2105,14 @@
   <!-- In-flow spacer so the bar never covers the bottom of the bench. -->
   <div class="sm:hidden h-16" aria-hidden="true"></div>
   <div class="sheet-rise sm:hidden fixed left-3 right-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-40 flex items-center gap-2 rounded-2xl bg-card border border-line shadow-pop p-2 pl-3">
-    <span class="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
+    <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
     <span class="text-sm font-semibold flex-1 min-w-0 truncate">{{ i18n.t('fantasy.unsavedChanges') }}</span>
     @if (missingRequirements().length > 0) {
       <button
         type="button"
         (click)="showMissingInfo.set(true)"
         [attr.aria-label]="i18n.t('fantasy.whatsMissingTitle')"
-        class="shrink-0 w-10 h-10 rounded-lg bg-red-500/15 text-red-500 border border-red-500/40 flex items-center justify-center text-base font-bold"
+        class="shrink-0 w-10 h-10 rounded-xl bg-red-500/15 text-red-500 border border-red-500/40 flex items-center justify-center text-base font-bold"
       >
         !
       </button>
@@ -2121,7 +2121,7 @@
       type="button"
       (click)="submit()"
       [disabled]="!canSubmit() || submitting()"
-      class="shrink-0 px-5 h-10 rounded-lg text-sm font-bold bg-team-primary text-team-secondary disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+      class="shrink-0 px-5 h-10 rounded-xl text-sm font-bold bg-team-primary text-team-secondary disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
     >
       {{ submitting() ? i18n.t('fantasy.submitting') : i18n.t('fantasy.saveShort') }}
     </button>
@@ -2132,7 +2132,7 @@
 @if (slotMenuRow(); as row) {
   @let acts = slotMenuActions(row.player.id);
   <div class="sheet-backdrop fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/70 backdrop-blur-sm" (click)="slotMenuPlayerId.set(null)">
-    <div class="sheet-panel w-full max-w-sm bg-card rounded-2xl border border-line shadow-pop p-4" (click)="$event.stopPropagation()">
+    <div class="sheet-panel w-full max-w-sm bg-card rounded-3xl border border-line shadow-pop p-4" (click)="$event.stopPropagation()">
       <div class="flex items-center gap-3 mb-3">
         <app-player-photo [photoUrl]="row.player.photoUrl" [name]="row.player.name" [teamCode]="row.team.code" [primaryColor]="row.team.primaryColor" [size]="48" [fill]="true" class="flex" />
         <div class="min-w-0 flex-1">
@@ -2142,21 +2142,21 @@
         <button type="button" (click)="slotMenuPlayerId.set(null)" class="text-muted hover:text-ink text-2xl leading-none font-bold shrink-0" [attr.aria-label]="i18n.t('fantasy.close')">&times;</button>
       </div>
       <div class="grid grid-cols-2 gap-2">
-        <button type="button" (click)="slotMenuDo('info')" class="h-12 rounded-2xl border border-line bg-page hover:border-team-primary flex items-center justify-center gap-2 text-sm font-bold text-ink transition-colors">
+        <button type="button" (click)="slotMenuDo('info')" class="h-12 rounded-2xl border border-line bg-page hover:border-team-primary flex items-center justify-center gap-2 text-[13px] font-bold text-ink transition-colors">
           <span class="text-team-primary text-base leading-none" aria-hidden="true">&#9432;</span>{{ i18n.t('fantasy.actionInfo') }}
         </button>
         @if (acts.swap) {
-          <button type="button" (click)="slotMenuDo('swap')" class="h-12 rounded-2xl border border-line bg-page hover:border-team-primary flex items-center justify-center gap-2 text-sm font-bold text-ink transition-colors">
+          <button type="button" (click)="slotMenuDo('swap')" class="h-12 rounded-2xl border border-line bg-page hover:border-team-primary flex items-center justify-center gap-2 text-[13px] font-bold text-ink transition-colors">
             <span class="text-team-primary text-base leading-none" aria-hidden="true">&#8645;</span>{{ i18n.t('fantasy.swapPlayer') }}
           </button>
         }
         @if (acts.captain) {
-          <button type="button" (click)="slotMenuDo('captain')" class="h-12 rounded-2xl border border-line bg-page hover:border-team-primary flex items-center justify-center gap-2 text-sm font-bold text-ink transition-colors">
-            <span class="w-5 h-5 rounded-full bg-team-primary text-team-secondary text-2xs font-bold flex items-center justify-center" aria-hidden="true">C</span>{{ i18n.t('fantasy.makeCaptain') }}
+          <button type="button" (click)="slotMenuDo('captain')" class="h-12 rounded-2xl border border-line bg-page hover:border-team-primary flex items-center justify-center gap-2 text-[13px] font-bold text-ink transition-colors">
+            <span class="w-5 h-5 rounded-full bg-team-primary text-team-secondary text-[10px] font-bold flex items-center justify-center" aria-hidden="true">C</span>{{ i18n.t('fantasy.makeCaptain') }}
           </button>
         }
         @if (acts.remove) {
-          <button type="button" (click)="slotMenuDo('remove')" class="h-12 rounded-2xl border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 flex items-center justify-center gap-2 text-sm font-bold text-red-500 transition-colors">
+          <button type="button" (click)="slotMenuDo('remove')" class="h-12 rounded-2xl border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 flex items-center justify-center gap-2 text-[13px] font-bold text-red-500 transition-colors">
             <span class="text-base leading-none" aria-hidden="true">&times;</span>{{ i18n.t('fantasy.removePlayer') }}
           </button>
         }

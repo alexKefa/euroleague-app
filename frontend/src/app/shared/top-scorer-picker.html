@@ -19,13 +19,13 @@
        strips whose name/PPG/quote pills stacked at uneven heights under each
        photo. Every row now shares the same columns: rank, photo, name + PPG,
        payout pill. -->
-  <div class="grid grid-cols-2 gap-1 p-1 rounded-lg bg-page border border-line mb-3">
+  <div class="grid grid-cols-2 gap-1 p-1 rounded-xl bg-page border border-line mb-3">
     @for (s of ['home', 'away']; track s) {
       @let team = s === 'home' ? homeTeam : awayTeam;
       <button
         type="button"
         (click)="side.set($any(s))"
-        class="relative flex items-center justify-center gap-1.5 min-w-0 px-2 py-1.5 rounded-lg text-xs font-bold transition-colors"
+        class="relative flex items-center justify-center gap-1.5 min-w-0 px-2 py-1.5 rounded-lg text-[12px] font-bold transition-colors"
         [class.bg-card]="side() === s"
         [class.shadow-sm]="side() === s"
         [class.text-ink]="side() === s"
@@ -42,7 +42,7 @@
     }
   </div>
 
-  <ul class="rounded-lg border border-line overflow-hidden divide-y divide-line">
+  <ul class="rounded-xl border border-line overflow-hidden divide-y divide-line">
     @for (c of activeCandidates(); track c.player.id; let i = $index) {
       <li>
         <button
@@ -57,7 +57,7 @@
             <span class="absolute inset-0 bg-team-primary opacity-10 pointer-events-none"></span>
             <span class="absolute left-0 inset-y-0 w-1 bg-team-primary"></span>
           }
-          <span class="w-4 shrink-0 text-center font-mono text-xs font-bold text-muted">{{ i + 1 }}</span>
+          <span class="w-4 shrink-0 text-center font-mono text-[11px] font-bold text-muted">{{ i + 1 }}</span>
           <span class="relative shrink-0 w-10 h-10">
             <app-player-photo
               [name]="c.player.name"
@@ -87,8 +87,8 @@
             }
           </span>
           <span class="min-w-0 flex-1">
-            <span class="block text-sm font-bold truncate leading-tight" [class.text-team-primary]="isPicked(c.player.id)">{{ c.player.name.split(',')[0] }}</span>
-            <span class="block font-mono text-xs text-muted leading-tight mt-0.5">
+            <span class="block text-[13px] font-bold truncate leading-tight" [class.text-team-primary]="isPicked(c.player.id)">{{ c.player.name.split(',')[0] }}</span>
+            <span class="block font-mono text-[11px] text-muted leading-tight mt-0.5">
               @if (c.pointsPerGame != null) {
                 {{ c.pointsPerGame | number: '1.1-1' }} {{ i18n.t('topScorer.ppgAbbrev') }}
               } @else {
@@ -98,7 +98,7 @@
           </span>
           @if (quoteFor(c.player.id); as q) {
             <span
-              class="shrink-0 min-w-[4.25rem] text-center font-mono text-xs font-bold rounded-full px-2 py-1 transition-colors"
+              class="shrink-0 min-w-[4.25rem] text-center font-mono text-[11px] font-bold rounded-full px-2 py-1 transition-colors"
               [class.bg-team-primary]="isPicked(c.player.id)"
               [class.text-team-secondary]="isPicked(c.player.id)"
               [class.bg-page]="!isPicked(c.player.id)"
@@ -133,15 +133,15 @@
         <app-player-photo [name]="pick.predictedPlayer.name" [photoUrl]="pickedPhotoUrl()" [size]="36" [fill]="true" class="rounded-full block" />
       </span>
       <div class="relative min-w-0 flex-1">
-        <p class="text-2xs font-bold uppercase tracking-wider opacity-80 leading-none truncate">{{ i18n.t('topScorer.yourTopScorer') }}</p>
-        <p class="text-sm font-bold truncate leading-tight mt-0.5">{{ pick.predictedPlayer.name.split(',')[0] }}</p>
+        <p class="text-[9px] font-bold uppercase tracking-wider opacity-80 leading-none truncate">{{ i18n.t('topScorer.yourTopScorer') }}</p>
+        <p class="text-[13px] font-bold truncate leading-tight mt-0.5">{{ pick.predictedPlayer.name.split(',')[0] }}</p>
       </div>
-      <span class="relative shrink-0 font-mono text-2xs font-bold px-1.5 py-0.5 rounded-full bg-team-secondary text-team-primary">+{{ pick.pointsAtPick }} {{ i18n.t('predictions.pts') }}</span>
+      <span class="relative shrink-0 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-team-secondary text-team-primary">+{{ pick.pointsAtPick }} {{ i18n.t('predictions.pts') }}</span>
       <button
         type="button"
         (click)="clear()"
         [disabled]="clearing() || !!savingId()"
-        class="relative shrink-0 px-2 py-1 rounded-lg text-xs font-bold bg-team-secondary/15 hover:bg-team-secondary/25 transition-colors disabled:opacity-50"
+        class="relative shrink-0 px-2 py-1 rounded-lg text-[11px] font-bold bg-team-secondary/15 hover:bg-team-secondary/25 transition-colors disabled:opacity-50"
       >
         @if (clearing()) {
           <app-logo-spinner [size]="12" />

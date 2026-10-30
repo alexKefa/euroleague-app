@@ -24,20 +24,20 @@ const LOWER_IS_BETTER = new Set(["defRating", "tovPg"]);
   imports: [DatePipe, NavIconComponent, PlayerPhotoComponent, TeamCodePipe],
   template: `
     @if (loading()) {
-      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5 animate-pulse" aria-hidden="true">
+      <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-5 animate-pulse" aria-hidden="true">
         <div class="h-5 w-40 rounded bg-line mb-4"></div>
-        <div class="h-24 rounded-lg bg-line/60 mb-3"></div>
-        <div class="h-24 rounded-lg bg-line/60"></div>
+        <div class="h-24 rounded-xl bg-line/60 mb-3"></div>
+        <div class="h-24 rounded-xl bg-line/60"></div>
       </div>
     } @else if (preview(); as p) {
-      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
+      <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-5">
         <div class="card-head">
           <span class="card-head-icon"><app-nav-icon name="compass" [size]="18" /></span>
           <p class="font-display text-base flex-1 min-w-0 truncate">{{ i18n.t('matchup.title') }}</p>
         </div>
 
         <!-- 1. Form & head-to-head -->
-        <p class="text-xs text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('matchup.formH2h') }}</p>
+        <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('matchup.formH2h') }}</p>
         <div class="space-y-2 mb-3">
           @for (side of sides(); track side.team.id) {
             <div class="flex items-center gap-2 min-w-0">
@@ -48,7 +48,7 @@ const LOWER_IS_BETTER = new Set(["defRating", "tovPg"]);
                 <div class="flex gap-1 min-w-0">
                   @for (g of formOldestFirst(side.form); track g.gameId) {
                     <span
-                      class="w-7 h-7 rounded-lg flex flex-col items-center justify-center text-2xs font-bold leading-none border"
+                      class="w-7 h-7 rounded-lg flex flex-col items-center justify-center text-[10px] font-bold leading-none border"
                       [style.background]="g.won ? side.color : null"
                       [class.text-white]="g.won"
                       [class.border-transparent]="g.won"
@@ -57,12 +57,12 @@ const LOWER_IS_BETTER = new Set(["defRating", "tovPg"]);
                       [attr.title]="(g.isHome ? 'vs ' : '@ ') + (g.opponent.code | teamCode) + ' ' + g.teamScore + '-' + g.opponentScore"
                     >
                       {{ g.won ? 'W' : 'L' }}
-                      <span class="text-2xs font-semibold opacity-80 mt-0.5">{{ g.opponent.code | teamCode }}</span>
+                      <span class="text-[8px] font-semibold opacity-80 mt-0.5">{{ g.opponent.code | teamCode }}</span>
                     </span>
                   }
                 </div>
                 @if (side.form.streak) {
-                  <span class="ml-auto shrink-0 text-xs font-bold px-2 py-0.5 rounded-full bg-page border border-line tabular-nums" [attr.title]="i18n.t('matchup.streak')">
+                  <span class="ml-auto shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-full bg-page border border-line tabular-nums" [attr.title]="i18n.t('matchup.streak')">
                     {{ side.form.streak }}
                   </span>
                 }
@@ -70,7 +70,7 @@ const LOWER_IS_BETTER = new Set(["defRating", "tovPg"]);
             </div>
           }
         </div>
-        <div class="rounded-lg bg-page border border-line px-3 py-2 mb-5">
+        <div class="rounded-xl bg-page border border-line px-3 py-2 mb-5">
           <p class="text-sm font-semibold">{{ h2hSummary() }}</p>
           @if (p.h2h.games.length > 0) {
             <ul class="mt-1.5 space-y-1">
@@ -89,9 +89,9 @@ const LOWER_IS_BETTER = new Set(["defRating", "tovPg"]);
         </div>
 
         <!-- 2. Availability -->
-        <p class="text-xs text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('matchup.availability') }}</p>
+        <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('matchup.availability') }}</p>
         @if (restBanner(); as banner) {
-          <p class="text-xs font-semibold rounded-lg px-3 py-2 mb-2 bg-amber-500/10 text-amber-600 border border-amber-500/30">{{ banner }}</p>
+          <p class="text-xs font-semibold rounded-xl px-3 py-2 mb-2 bg-amber-500/10 text-amber-600 border border-amber-500/30">{{ banner }}</p>
         }
         @if (fullStrength()) {
           <p class="text-sm text-muted mb-5">{{ i18n.t('matchup.fullStrength') }}</p>
@@ -110,10 +110,10 @@ const LOWER_IS_BETTER = new Set(["defRating", "tovPg"]);
                         <div class="min-w-0 flex-1">
                           <p class="text-sm truncate">{{ playerName(inj.name) }}</p>
                           @if (noteFor(inj.note, inj.noteEl); as note) {
-                            <p class="text-xs text-muted truncate">{{ note }}</p>
+                            <p class="text-[11px] text-muted truncate">{{ note }}</p>
                           }
                         </div>
-                        <span class="shrink-0 text-2xs font-bold px-2 py-0.5 rounded-full border" [class]="statusClass(inj.status)">{{ statusLabel(inj.status) }}</span>
+                        <span class="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border" [class]="statusClass(inj.status)">{{ statusLabel(inj.status) }}</span>
                       </li>
                     }
                   </ul>
@@ -125,9 +125,9 @@ const LOWER_IS_BETTER = new Set(["defRating", "tovPg"]);
 
         <!-- 3. Key matchups -->
         <div class="flex items-center gap-2 mb-2">
-          <p class="text-xs text-muted font-bold uppercase tracking-wider">{{ i18n.t('matchup.keyMatchups') }}</p>
+          <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('matchup.keyMatchups') }}</p>
           @if (p.usingPriorSeason) {
-            <span class="text-2xs font-bold px-1.5 py-0.5 rounded bg-page border border-line text-muted">{{ i18n.t('matchup.lastSeason') }}</span>
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-page border border-line text-muted">{{ i18n.t('matchup.lastSeason') }}</span>
           }
         </div>
         <div class="space-y-2.5">
@@ -135,7 +135,7 @@ const LOWER_IS_BETTER = new Set(["defRating", "tovPg"]);
             <div>
               <div class="flex items-baseline justify-between gap-2 text-xs tabular-nums">
                 <span [class.font-bold]="e.better === 'home'" [class.text-muted]="e.better !== 'home'">{{ fmt(e.home) }}</span>
-                <span class="text-muted text-xs uppercase tracking-wide text-center">{{ i18n.t('matchup.stat.' + e.key) }}</span>
+                <span class="text-muted text-[11px] uppercase tracking-wide text-center">{{ i18n.t('matchup.stat.' + e.key) }}</span>
                 <span [class.font-bold]="e.better === 'away'" [class.text-muted]="e.better !== 'away'">{{ fmt(e.away) }}</span>
               </div>
               <div class="mt-1 h-1.5 rounded-full overflow-hidden flex bg-line">
@@ -147,7 +147,7 @@ const LOWER_IS_BETTER = new Set(["defRating", "tovPg"]);
         </div>
 
         @if (p.keyBattle; as kb) {
-          <p class="text-xs text-muted font-bold uppercase tracking-wider mt-5 mb-2">{{ i18n.t('matchup.keyBattle') }}</p>
+          <p class="text-[12px] text-muted font-bold uppercase tracking-wider mt-5 mb-2">{{ i18n.t('matchup.keyBattle') }}</p>
           <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
             @for (duel of [{ p: kb.home, team: home() }]; track duel.p.playerId) {
               <div class="flex flex-col items-center text-center min-w-0">
@@ -155,7 +155,7 @@ const LOWER_IS_BETTER = new Set(["defRating", "tovPg"]);
                 <p class="text-xs font-bold mt-1 w-full truncate">{{ playerName(duel.p.name) }}</p>
               </div>
             }
-            <div class="space-y-1 text-xs tabular-nums">
+            <div class="space-y-1 text-[11px] tabular-nums">
               @for (s of duelStats(kb.home, kb.away); track s.label) {
                 <div class="grid grid-cols-[2.5rem_2.5rem_2.5rem] items-center text-center">
                   <span [class.font-bold]="s.home > s.away" [class.text-muted]="s.home <= s.away">{{ s.home }}</span>

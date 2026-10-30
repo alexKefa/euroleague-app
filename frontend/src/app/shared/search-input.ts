@@ -6,7 +6,7 @@ import { Component, EventEmitter, HostBinding, Input, Output, signal } from "@an
 // deleting text by hand — same "unfinished" look the toolbar's own
 // <app-dropdown> (dropdown.ts) had already been fixed for a bordered trigger
 // with a hover/focus treatment and its own trailing icon. This mirrors that
-// same visual language (rounded-lg, bg-card, border-2 border-line, the same
+// same visual language (rounded-xl, bg-card, border-2 border-line, the same
 // hover/focus border colors) rather than inventing a new style, plus a
 // leading magnifying-glass icon and a trailing clear button that only
 // appears once there's something to clear.
@@ -36,7 +36,7 @@ import { Component, EventEmitter, HostBinding, Input, Output, signal } from "@an
       (focus)="focused.set(true)"
       (blur)="focused.set(false)"
       [placeholder]="placeholder"
-      class="search-input-native w-full pl-9 py-2.5 rounded-lg border-2 border-line text-sm font-semibold text-ink placeholder:text-muted placeholder:font-semibold hover:border-[#3a3a3b] focus:border-team-primary outline-none transition-colors"
+      class="search-input-native w-full pl-9 py-2.5 rounded-xl border-2 border-line text-sm font-semibold text-ink placeholder:text-muted placeholder:font-semibold hover:border-[#3a3a3b] focus:border-team-primary outline-none transition-colors"
       [class.bg-card]="surface === 'card'"
       [class.bg-page]="surface === 'page'"
       [class.pr-8]="value"

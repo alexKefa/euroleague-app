@@ -11,7 +11,7 @@
     <!-- Composing a challenge: card, then category, then send. -->
     <div class="flex items-center justify-between gap-2 mb-4">
       <div class="min-w-0">
-        <p class="text-xs text-muted font-bold uppercase tracking-wider">{{ i18n.t('battles.newChallengeTitle') }}</p>
+        <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('battles.newChallengeTitle') }}</p>
         <h1 class="font-display text-2xl tracking-wide truncate">{{ i18n.t('battles.vsLabel') }} {{ newOpponentName() }}</h1>
       </div>
       <app-battles-info />
@@ -22,7 +22,7 @@
   } @else if (battle(); as b) {
     <div class="flex items-center justify-between gap-2 mb-4">
       <div class="min-w-0">
-        <p class="font-mono text-xs text-muted uppercase tracking-wide flex items-center gap-1.5">
+        <p class="font-mono text-[11px] text-muted uppercase tracking-wide flex items-center gap-1.5">
           <span class="status-dot" [class.is-live]="b.status === 'pending'"></span>
           {{ i18n.t('battles.status.' + b.status) }}
         </p>
@@ -35,7 +35,7 @@
       <!-- Accepting: their card and its full stat line up top (only their
            category is hidden), then your own picker below. -->
       <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4">
-        <p class="text-xs text-muted font-bold uppercase tracking-wider mb-3">
+        <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-3">
           {{ b.challengerName }} {{ i18n.t('battles.challengedWith') }}
         </p>
         <div class="flex gap-4">
@@ -77,7 +77,7 @@
         <p class="text-sm text-muted font-semibold text-center mb-4 waiting-dots">
           {{ i18n.t('battles.waitingForOpponent') }}<span>.</span><span>.</span><span>.</span>
         </p>
-        <div class="flex items-center gap-3 bg-page rounded-lg p-3 mb-4">
+        <div class="flex items-center gap-3 bg-page rounded-xl p-3 mb-4">
           <app-collectible-card
             [name]="b.challengerCard.name"
             [tier]="b.challengerCard.tier"
@@ -89,13 +89,13 @@
             [maxWidth]="72"
           ></app-collectible-card>
           <div class="min-w-0 flex-1">
-            <p class="font-mono text-xs text-muted uppercase tracking-wide">{{ i18n.t('battles.waitingOnYourCard') }}</p>
+            <p class="font-mono text-[11px] text-muted uppercase tracking-wide">{{ i18n.t('battles.waitingOnYourCard') }}</p>
             <p class="font-semibold truncate">{{ b.challengerCard.name }}</p>
             @if (b.challengerStat) {
-              <p class="text-xs font-semibold text-team-primary mt-0.5">
+              <p class="text-[12px] font-semibold text-team-primary mt-0.5">
                 {{ i18n.t('battles.yourCategory') }}: {{ statLabel(b.challengerStat) }}
               </p>
-              <p class="text-xs text-muted">{{ i18n.t('battles.hiddenFromThem') }}</p>
+              <p class="text-[11px] text-muted">{{ i18n.t('battles.hiddenFromThem') }}</p>
             }
           </div>
         </div>
@@ -134,7 +134,7 @@
       @if (myCardsLoading()) {
         <div class="flex gap-2 overflow-hidden">
           @for (i of [1, 2, 3, 4]; track i) {
-            <app-skeleton class="shrink-0 w-24 rounded-lg" style="aspect-ratio: 2.5 / 3.5" [iconSize]="16" />
+            <app-skeleton class="shrink-0 w-24 rounded-xl" style="aspect-ratio: 2.5 / 3.5" [iconSize]="16" />
           }
         </div>
       } @else if (myCards().length === 0) {
@@ -149,7 +149,7 @@
               <button
                 type="button"
                 (click)="tierFilter.set(t)"
-                class="shrink-0 rounded-full px-3 py-1 text-xs font-bold border transition-colors"
+                class="shrink-0 rounded-full px-3 py-1 text-[12px] font-bold border transition-colors"
                 [ngClass]="tierFilter() === t ? 'bg-team-primary text-team-secondary border-transparent' : 'bg-card text-muted border-line'"
               >
                 {{ i18n.t('battles.tierFilter.' + t) }} · {{ tierCounts()[t] }}
@@ -181,7 +181,7 @@
                 [selected]="pickedId() === card.id"
               ></app-collectible-card>
               @if (myCardPower().get(card.id); as cp) {
-                <span class="mt-1 font-mono text-xs font-bold tabular-nums text-ink">⚡ {{ cp.power }}</span>
+                <span class="mt-1 font-mono text-[11px] font-bold tabular-nums text-ink">⚡ {{ cp.power }}</span>
               }
               @if (myCardStats().get(card.id); as line) {
                 <span class="mt-0.5 flex flex-wrap justify-center gap-1">
@@ -213,24 +213,24 @@
   <ng-template #powerBreakdown let-p>
     <div class="grid grid-cols-4 gap-1.5 text-center">
       <div class="rounded-lg bg-page px-1.5 py-1.5">
-        <p class="font-mono text-2xs text-muted uppercase truncate">{{ i18n.t('battles.part.rarity') }}</p>
+        <p class="font-mono text-[10px] text-muted uppercase truncate">{{ i18n.t('battles.part.rarity') }}</p>
         <p class="font-mono text-sm font-bold tabular-nums">{{ p.rarity }}</p>
       </div>
       <div class="rounded-lg bg-page px-1.5 py-1.5">
-        <p class="font-mono text-2xs text-muted uppercase truncate">{{ i18n.t('battles.part.pir') }}</p>
+        <p class="font-mono text-[10px] text-muted uppercase truncate">{{ i18n.t('battles.part.pir') }}</p>
         <p class="font-mono text-sm font-bold tabular-nums">{{ p.pir }}</p>
       </div>
       <div class="rounded-lg bg-page px-1.5 py-1.5">
-        <p class="font-mono text-2xs text-muted uppercase truncate">{{ i18n.t('battles.part.form') }}</p>
+        <p class="font-mono text-[10px] text-muted uppercase truncate">{{ i18n.t('battles.part.form') }}</p>
         <p class="font-mono text-sm font-bold tabular-nums" [class.text-emerald-500]="p.form > 0" [class.text-red-500]="p.form < 0">{{ part(p.form, 'form') }}</p>
       </div>
       <div class="rounded-lg bg-team-primary/10 px-1.5 py-1.5">
-        <p class="font-mono text-2xs text-muted uppercase truncate">{{ i18n.t('battles.power') }}</p>
+        <p class="font-mono text-[10px] text-muted uppercase truncate">{{ i18n.t('battles.power') }}</p>
         <p class="font-mono text-sm font-bold tabular-nums text-team-primary">⚡ {{ p.power }}</p>
       </div>
     </div>
     @if (p.injuryFactor < 1) {
-      <p class="text-xs text-red-500 font-semibold mt-1.5">
+      <p class="text-[11px] text-red-500 font-semibold mt-1.5">
         {{ i18n.t('battles.part.injury') }} −{{ ((1 - p.injuryFactor) * 100).toFixed(0) }}% {{ i18n.t('battles.part.pir') }} + {{ i18n.t('battles.part.form') }}
       </p>
     }
@@ -243,7 +243,7 @@
         @if (errorKey()) {
           <p class="text-xs text-red-500 font-semibold mb-2">{{ i18n.t(errorKey()!) }}</p>
         }
-        <div class="flex items-center justify-between gap-2 mb-2 text-xs">
+        <div class="flex items-center justify-between gap-2 mb-2 text-[12px]">
           <span class="text-muted truncate">
             @if (pickedCard(); as c) {
               <span class="font-semibold text-ink">{{ c.name }}</span>
@@ -308,7 +308,7 @@
               [unlocked]="true"
               [maxWidth]="120"
             ></app-collectible-card>
-            <p class="text-xs font-bold text-muted uppercase tracking-wide mt-1.5">{{ i18n.t('battles.you') }}</p>
+            <p class="text-[11px] font-bold text-muted uppercase tracking-wide mt-1.5">{{ i18n.t('battles.you') }}</p>
           </div>
         }
         <div class="flex flex-col items-center justify-center pt-10 shrink-0">
@@ -320,7 +320,7 @@
             </p>
           } @else if (b.mode === 'power' && myWinPct() !== null) {
             <p class="font-display text-lg tracking-widest text-muted">{{ i18n.t('battles.vsLabel') }}</p>
-            <p class="font-mono text-xs text-muted mt-1 text-center">{{ i18n.t('battles.winChance') }}<br /><span class="font-bold text-ink">{{ myWinPct() }}%</span></p>
+            <p class="font-mono text-[11px] text-muted mt-1 text-center">{{ i18n.t('battles.winChance') }}<br /><span class="font-bold text-ink">{{ myWinPct() }}%</span></p>
           } @else {
             <p class="font-display text-lg tracking-widest text-muted">{{ i18n.t('battles.vsLabel') }}</p>
           }
@@ -337,7 +337,7 @@
               [unlocked]="true"
               [maxWidth]="120"
             ></app-collectible-card>
-            <p class="text-xs font-bold text-muted uppercase tracking-wide mt-1.5 truncate max-w-[120px]">{{ opponentDisplayName() }}</p>
+            <p class="text-[11px] font-bold text-muted uppercase tracking-wide mt-1.5 truncate max-w-[120px]">{{ opponentDisplayName() }}</p>
           </div>
         }
       </div>
@@ -348,7 +348,7 @@
             @if (i < revealedRounds()) {
               <div class="round-row" [class.is-won]="iWonRound(r)" [class.is-lost]="!iWonRound(r)">
                 <div class="flex items-center justify-between mb-1.5">
-                  <p class="text-sm font-bold">{{ statLabel(r.stat) }}</p>
+                  <p class="text-[13px] font-bold">{{ statLabel(r.stat) }}</p>
                   <span class="round-source">{{ i18n.t(roundSourceKey(r)) }}</span>
                 </div>
                 <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
@@ -365,7 +365,7 @@
               </div>
             } @else {
               <div class="round-row round-row--pending">
-                <p class="text-sm font-bold text-muted">{{ i18n.t('battles.roundLabel') }} {{ i + 1 }}</p>
+                <p class="text-[13px] font-bold text-muted">{{ i18n.t('battles.roundLabel') }} {{ i + 1 }}</p>
               </div>
             }
           }
@@ -380,7 +380,7 @@
                      stays neutral (no won/lost colour) and shows each side's
                      win chance next to its power. -->
                 <div class="round-row">
-                  <p class="text-sm font-bold mb-1.5">{{ i18n.t('battles.powerChance') }}</p>
+                  <p class="text-[13px] font-bold mb-1.5">{{ i18n.t('battles.powerChance') }}</p>
                   <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                     <div class="flex items-center justify-end gap-2">
                       <span class="font-mono text-sm font-bold tabular-nums">{{ r.mine }} · {{ myWinPct() }}%</span>
@@ -392,11 +392,11 @@
                       <span class="font-mono text-sm font-bold tabular-nums">{{ r.theirs }} · {{ 100 - myWinPct()! }}%</span>
                     </div>
                   </div>
-                  <p class="text-xs text-muted mt-1.5 text-center">{{ i18n.t('battles.drawExplainer') }}</p>
+                  <p class="text-[11px] text-muted mt-1.5 text-center">{{ i18n.t('battles.drawExplainer') }}</p>
                 </div>
               } @else {
               <div class="round-row" [class.is-won]="r.mine > r.theirs" [class.is-lost]="r.mine < r.theirs">
-                <p class="text-sm font-bold mb-1.5">{{ r.key === 'power' ? i18n.t('battles.power') : i18n.t('battles.part.' + r.key) }}</p>
+                <p class="text-[13px] font-bold mb-1.5">{{ r.key === 'power' ? i18n.t('battles.power') : i18n.t('battles.part.' + r.key) }}</p>
                 <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                   <div class="flex items-center justify-end gap-2">
                     <span class="font-mono text-sm font-bold tabular-nums">{{ part(r.mine, r.key) }}</span>
@@ -412,7 +412,7 @@
               }
             } @else {
               <div class="round-row round-row--pending">
-                <p class="text-sm font-bold text-muted">{{ r.key === 'power' ? i18n.t('battles.power') : i18n.t('battles.part.' + r.key) }}</p>
+                <p class="text-[13px] font-bold text-muted">{{ r.key === 'power' ? i18n.t('battles.power') : i18n.t('battles.part.' + r.key) }}</p>
               </div>
             }
           }
@@ -428,7 +428,7 @@
         <div class="text-center mt-5 result-in">
           <p class="font-display text-2xl tracking-wide">{{ didIWin() ? i18n.t('battles.youWon') : i18n.t('battles.youLost') }}</p>
           @if (b.mode === 'power' && upsetPct() !== null) {
-            <p class="text-sm font-bold text-muted mt-1">
+            <p class="text-[13px] font-bold text-muted mt-1">
               {{ (didIWin() ? i18n.t('battles.upsetYou') : i18n.t('battles.upsetThem')).replace('{pct}', '' + upsetPct()) }}
             </p>
           }

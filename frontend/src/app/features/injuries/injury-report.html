@@ -6,7 +6,7 @@
   <app-page-header [title]="i18n.t('injuries.title')" [subtitle]="i18n.t('injuries.subtitle')" [eyebrow]="i18n.t('section.season')" icon="injury" class="mt-4" />
 
   @if (auth.currentUser()?.isAdmin) {
-    <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-5">
+    <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-5">
       <div class="card-head">
         <span class="card-head-icon"><app-nav-icon name="zap" [size]="18" /></span>
         <p class="font-display text-base">{{ i18n.t('injuries.adminReportTitle') }}</p>
@@ -37,13 +37,13 @@
           type="text"
           formControlName="note"
           [placeholder]="i18n.t('injuries.adminNotePlaceholder')"
-          class="flex-1 min-w-[10rem] px-3 py-2 rounded-lg bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
+          class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
         />
         <input
           type="text"
           formControlName="noteEl"
           [placeholder]="i18n.t('injuries.adminNoteElPlaceholder')"
-          class="flex-1 min-w-[10rem] px-3 py-2 rounded-lg bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
+          class="flex-1 min-w-[10rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
         />
         <button type="submit" [disabled]="adminForm.invalid || adminSubmitting()" appButton>
           {{ adminSubmitting() ? i18n.t('injuries.adminSubmitting') : i18n.t('injuries.adminSubmit') }}
@@ -63,13 +63,13 @@
     <app-skeleton class="rounded-2xl h-11 mb-4" [icon]="false" />
     <div class="space-y-3">
       @for (i of [1, 2, 3]; track i) {
-        <app-skeleton class="rounded-2xl h-32" [iconSize]="20" />
+        <app-skeleton class="rounded-3xl h-32" [iconSize]="20" />
       }
     </div>
   } @else if (error()) {
     <p class="text-red-500 text-sm font-semibold">{{ i18n.t('injuries.loadError') }}</p>
   } @else if (groups().length === 0) {
-    <div class="bg-card rounded-2xl border border-line shadow-card p-8 text-center">
+    <div class="bg-card rounded-3xl border border-line shadow-card p-8 text-center">
       <span class="card-head-icon mx-auto mb-3 !w-12 !h-12"><app-nav-icon name="checkmark-shield" [size]="24" /></span>
       <p class="text-sm text-muted font-semibold">{{ i18n.t('injuries.empty') }}</p>
     </div>
@@ -81,18 +81,18 @@
         <button
           type="button"
           (click)="statusFilter.set(s)"
-          class="flex-1 shrink-0 h-full px-3 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors flex items-center justify-center gap-1.5"
+          class="flex-1 shrink-0 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors flex items-center justify-center gap-1.5"
           [ngClass]="statusFilter() === s ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
         >
           {{ filterLabel(s) }}
-          <span class="font-mono text-xs opacity-80">{{ statusCounts()[s] }}</span>
+          <span class="font-mono text-[11px] opacity-80">{{ statusCounts()[s] }}</span>
         </button>
       }
     </div>
 
     <div class="space-y-4">
       @for (group of visibleGroups(); track group.teamId) {
-        <div class="bg-card rounded-2xl border border-line shadow-card overflow-hidden">
+        <div class="bg-card rounded-3xl border border-line shadow-card overflow-hidden">
           <!-- Team header in the team's own color. min-w-0 + truncate so a
                long name ("Kosner Baskonia Vitoria-Gasteiz") gives way
                instead of pushing past the screen (2026-09-24 mobile fix). -->
@@ -102,18 +102,18 @@
             [style.background]="'linear-gradient(135deg, color-mix(in srgb, ' + (group.teamPrimaryColor || 'var(--accent-primary)') + ' 22%, var(--color-card)) 0%, var(--color-card) 75%)'"
           >
             <span
-              class="w-10 h-10 rounded-lg bg-card flex items-center justify-center shrink-0"
+              class="w-10 h-10 rounded-xl bg-card flex items-center justify-center shrink-0"
               [style.border]="'2px solid ' + (group.teamPrimaryColor || 'var(--accent-primary)')"
             >
               @if (group.teamLogoUrl) {
                 <img [src]="group.teamLogoUrl" [alt]="group.teamName" loading="lazy" decoding="async" appRetryImg class="w-6 h-6 object-contain team-logo" />
               } @else {
-                <span class="font-display text-xs">{{ group.teamCode | teamCode }}</span>
+                <span class="font-display text-[11px]">{{ group.teamCode | teamCode }}</span>
               }
             </span>
             <span class="min-w-0 flex-1">
               <span class="block font-display text-base leading-tight truncate">{{ group.teamName }}</span>
-              <span class="block font-mono text-xs text-muted">{{ group.entries.length }} {{ i18n.t('injuries.playersOut') }}</span>
+              <span class="block font-mono text-[11px] text-muted">{{ group.entries.length }} {{ i18n.t('injuries.playersOut') }}</span>
             </span>
             <span class="text-muted text-lg font-bold shrink-0 group-hover:translate-x-0.5 transition-transform">&rsaquo;</span>
           </a>
@@ -142,13 +142,13 @@
                     type="text"
                     formControlName="note"
                     [placeholder]="i18n.t('injuries.adminNotePlaceholder')"
-                    class="flex-1 min-w-[8rem] px-3 py-2 rounded-lg bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
+                    class="flex-1 min-w-[8rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
                   />
                   <input
                     type="text"
                     formControlName="noteEl"
                     [placeholder]="i18n.t('injuries.adminNoteElPlaceholder')"
-                    class="flex-1 min-w-[8rem] px-3 py-2 rounded-lg bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
+                    class="flex-1 min-w-[8rem] px-3 py-2 rounded-xl bg-card border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
                   />
                   <button type="button" (click)="saveEdit(entry)" [disabled]="editSaving()" appButton appButtonSize="sm">
                     {{ i18n.t('injuries.adminSave') }}
@@ -177,17 +177,17 @@
                     </span>
                   </button>
                   <span class="shrink-0 flex flex-col items-end gap-1">
-                    <span class="px-2 py-0.5 rounded-lg border text-xs font-bold uppercase tracking-wider" [ngClass]="statusClass(entry.status)">
+                    <span class="px-2 py-0.5 rounded-lg border text-[11px] font-bold uppercase tracking-wider" [ngClass]="statusClass(entry.status)">
                       {{ statusLabel(entry.status) }}
                     </span>
-                    <span class="text-2xs text-muted font-mono">{{ entry.updatedAt | date: monthDayFormat() : undefined : dateLocale() }}</span>
+                    <span class="text-[10px] text-muted font-mono">{{ entry.updatedAt | date: monthDayFormat() : undefined : dateLocale() }}</span>
                   </span>
                   @if (auth.currentUser()?.isAdmin) {
                     <span class="shrink-0 flex flex-col items-end gap-1 ml-1">
-                      <button type="button" (click)="startEdit(entry)" class="text-2xs text-muted hover:text-team-primary font-bold uppercase tracking-wider transition-colors">
+                      <button type="button" (click)="startEdit(entry)" class="text-[10px] text-muted hover:text-team-primary font-bold uppercase tracking-wider transition-colors">
                         {{ i18n.t('injuries.adminEdit') }}
                       </button>
-                      <button type="button" (click)="removeReport(entry)" class="text-2xs text-muted hover:text-red-500 font-bold uppercase tracking-wider transition-colors">
+                      <button type="button" (click)="removeReport(entry)" class="text-[10px] text-muted hover:text-red-500 font-bold uppercase tracking-wider transition-colors">
                         {{ i18n.t('injuries.adminRemove') }}
                       </button>
                     </span>
@@ -207,7 +207,7 @@
        a bespoke player/injury layout, not a plain message + two buttons. -->
   @if (selectedEntry(); as entry) {
     <div class="sheet-backdrop fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm" (click)="closeEntryDetail()">
-      <div class="sheet-panel w-full max-w-sm bg-card rounded-2xl border border-line shadow-pop p-5" (click)="$event.stopPropagation()">
+      <div class="sheet-panel w-full max-w-sm bg-card rounded-3xl border border-line shadow-pop p-5" (click)="$event.stopPropagation()">
         <div class="flex items-start justify-between gap-2 mb-4">
           <div class="flex items-center gap-3 min-w-0">
             <app-player-photo
@@ -238,15 +238,15 @@
         </div>
 
         <div class="flex items-center justify-between mb-3">
-          <span class="text-xs text-muted font-bold uppercase tracking-wider">{{ i18n.t('injuries.statusLabel') }}</span>
-          <span class="px-2 py-0.5 rounded-lg border text-xs font-bold uppercase tracking-wider" [ngClass]="statusClass(entry.status)">
+          <span class="text-[11px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('injuries.statusLabel') }}</span>
+          <span class="px-2 py-0.5 rounded-md border text-[11px] font-bold uppercase tracking-wider" [ngClass]="statusClass(entry.status)">
             {{ statusLabel(entry.status) }}
           </span>
         </div>
 
         @if (noteFor(entry); as note) {
           <div class="mb-3">
-            <p class="text-xs text-muted font-bold uppercase tracking-wider mb-1">{{ i18n.t('injuries.noteLabel') }}</p>
+            <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-1">{{ i18n.t('injuries.noteLabel') }}</p>
             <p class="text-sm">{{ note }}</p>
           </div>
         }

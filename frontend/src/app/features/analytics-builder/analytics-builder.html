@@ -17,7 +17,7 @@
 
     <!-- Players -->
     <div class="mb-3">
-      <p class="text-xs text-muted font-bold uppercase tracking-wider mb-1.5">{{ i18n.t('builder.playersLabel') }}</p>
+      <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5">{{ i18n.t('builder.playersLabel') }}</p>
       <div class="flex flex-wrap items-center gap-1.5">
         @for (row of store.selectedRows(); track row.player.id) {
           <span class="flex items-center gap-1.5 pl-1 pr-1 py-1 rounded-full bg-card border border-line text-xs font-bold">
@@ -47,7 +47,7 @@
 
     <!-- Columns -->
     <div class="mb-4">
-      <p class="text-xs text-muted font-bold uppercase tracking-wider mb-1.5">{{ i18n.t('builder.columnsLabel') }}</p>
+      <p class="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5">{{ i18n.t('builder.columnsLabel') }}</p>
       <div class="flex flex-wrap items-center gap-1.5">
         @for (col of store.columns(); track col.id) {
           <button
@@ -92,7 +92,7 @@
       <app-results-table />
     }
 
-    <p class="text-xs text-muted mt-2">{{ i18n.t('builder.percentileNote') }}</p>
+    <p class="text-[11px] text-muted mt-2">{{ i18n.t('builder.percentileNote') }}</p>
 
     <!-- Save -->
     <div class="mt-4 flex flex-col items-end gap-2">
@@ -146,7 +146,7 @@
         (keydown.enter)="submitName()"
         [placeholder]="i18n.t('builder.namePlaceholder')"
         maxlength="60"
-        class="w-full px-3 py-2 rounded-lg bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none mb-3"
+        class="w-full px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none mb-3"
       />
       <button type="button" appButton appButtonSize="sm" class="w-full" [disabled]="!nameValue().trim()" (click)="submitName()">{{ i18n.t('builder.save') }}</button>
     </app-dialog>

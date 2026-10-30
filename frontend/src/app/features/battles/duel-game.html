@@ -15,12 +15,12 @@
     <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4">
       <div class="flex items-center justify-between gap-3">
         <div class="min-w-0 flex-1 text-center">
-          <p class="text-xs text-muted font-bold uppercase tracking-wider">{{ i18n.t('duels.ladderYou') }}</p>
+          <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('duels.ladderYou') }}</p>
           <p class="font-display text-5xl leading-none text-team-primary tabular-nums">{{ v.score.me }}</p>
         </div>
         <p class="font-display text-lg text-muted shrink-0">{{ i18n.t('duels.vs') }}</p>
         <div class="min-w-0 flex-1 text-center">
-          <p class="text-xs text-muted font-bold uppercase tracking-wider truncate">
+          <p class="text-[12px] text-muted font-bold uppercase tracking-wider truncate">
             {{ v.opponent ? v.opponent.username : i18n.t('duels.openChallenge') }}
           </p>
           <p class="font-display text-5xl leading-none tabular-nums">{{ v.score.them }}</p>
@@ -36,22 +36,22 @@
             [class.border-team-primary]="isActive() && v.quarter === q"
             [class.border-line]="!(isActive() && v.quarter === q)"
           >
-            <p class="font-mono text-xs text-muted font-bold">{{ i18n.t('duels.game.quarterN').replace('{n}', '' + q) }}</p>
+            <p class="font-mono text-[11px] text-muted font-bold">{{ i18n.t('duels.game.quarterN').replace('{n}', '' + q) }}</p>
             @if (cell.me !== null && cell.them !== null) {
-              <p class="font-mono text-xs font-bold tabular-nums">
+              <p class="font-mono text-[12px] font-bold tabular-nums">
                 <span [class.text-team-primary]="cell.me > cell.them">{{ cell.me }}</span>
                 <span class="text-muted"> – </span>
                 <span [class.text-team-primary]="cell.them > cell.me">{{ cell.them }}</span>
               </p>
             } @else {
-              <p class="font-mono text-xs text-muted">–</p>
+              <p class="font-mono text-[12px] text-muted">–</p>
             }
           </div>
         }
         @if (v.overtime; as ot) {
           <div class="rounded-lg border border-line px-1 py-1.5">
-            <p class="font-mono text-xs text-muted font-bold">{{ i18n.t('duels.game.ot') }}</p>
-            <p class="font-mono text-xs font-bold tabular-nums">
+            <p class="font-mono text-[11px] text-muted font-bold">{{ i18n.t('duels.game.ot') }}</p>
+            <p class="font-mono text-[12px] font-bold tabular-nums">
               <span [class.text-team-primary]="ot.myScore > ot.theirScore">{{ ot.myScore }}</span>
               <span class="text-muted"> – </span>
               <span [class.text-team-primary]="ot.theirScore > ot.myScore">{{ ot.theirScore }}</span>
@@ -62,14 +62,14 @@
 
       @if (isActive()) {
         <div class="grid grid-cols-2 gap-2 mt-3">
-          <div class="rounded-lg bg-page px-3 py-2 min-w-0">
-            <p class="text-xs text-muted font-bold uppercase tracking-wider">{{ i18n.t('duels.game.thisQuarter') }}</p>
+          <div class="rounded-xl bg-page px-3 py-2 min-w-0">
+            <p class="text-[11px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('duels.game.thisQuarter') }}</p>
             <p class="font-display text-lg tracking-wide text-team-primary truncate">
               {{ currentCategory() ? i18n.t('duels.cat.' + currentCategory()) : i18n.t('duels.game.hidden') }}
             </p>
           </div>
-          <div class="rounded-lg bg-page px-3 py-2 min-w-0">
-            <p class="text-xs text-muted font-bold uppercase tracking-wider">{{ i18n.t('duels.game.next') }}</p>
+          <div class="rounded-xl bg-page px-3 py-2 min-w-0">
+            <p class="text-[11px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('duels.game.next') }}</p>
             <p class="font-display text-lg tracking-wide truncate">
               {{ nextCategory() ? i18n.t('duels.cat.' + nextCategory()) : i18n.t('duels.game.hidden') }}
             </p>
@@ -77,12 +77,12 @@
         </div>
       }
       @if (countdown(); as cd) {
-        <p class="font-mono text-xs text-muted text-center mt-3">{{ i18n.t('duels.game.deadline').replace('{t}', cd) }}</p>
+        <p class="font-mono text-[12px] text-muted text-center mt-3">{{ i18n.t('duels.game.deadline').replace('{t}', cd) }}</p>
       }
     </div>
 
     @if (noteKey(); as nk) {
-      <p class="text-sm font-semibold text-muted bg-card border border-line rounded-lg px-3 py-2 mb-4" role="status">{{ i18n.t(nk) }}</p>
+      <p class="text-sm font-semibold text-muted bg-card border border-line rounded-xl px-3 py-2 mb-4" role="status">{{ i18n.t(nk) }}</p>
     }
 
     <!-- Reveal of the newly resolved quarter. -->
@@ -91,7 +91,7 @@
       @let phase = revealPhase();
       @let decided = phase === 'result';
       <div class="duel-arena bg-card rounded-2xl border border-line shadow-card p-4 mb-4 overflow-hidden" [attr.data-phase]="phase" (click)="dismissReveal()" role="status">
-        <p class="text-xs text-muted font-bold uppercase tracking-wider text-center">{{ r.label }}</p>
+        <p class="text-[12px] text-muted font-bold uppercase tracking-wider text-center">{{ r.label }}</p>
         @if (r.category) {
           <p class="arena-category font-display text-2xl text-center text-team-primary uppercase leading-tight mb-3">{{ i18n.t('duels.cat.' + r.category) }}</p>
         }
@@ -179,12 +179,12 @@
     <!-- Full time. -->
     @if (isFinished()) {
       <div class="bg-card rounded-2xl border border-line shadow-card p-5 text-center mb-4">
-        <p class="text-xs text-muted font-bold uppercase tracking-wider">{{ i18n.t('duels.finalScore') }}</p>
+        <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('duels.finalScore') }}</p>
         <p class="font-display text-3xl tracking-wide mt-1" [class.text-team-primary]="v.result === 'win'">
           {{ v.result === 'win' ? i18n.t('duels.youWon') : v.result === 'loss' ? i18n.t('duels.youLost') : i18n.t('duels.itsADraw') }}
         </p>
         @if (reasonKey(); as rk) {
-          <p class="text-xs text-muted mt-1">{{ i18n.t(rk) }}</p>
+          <p class="text-[12px] text-muted mt-1">{{ i18n.t(rk) }}</p>
         }
         @if (v.ratingDelta !== null) {
           <p class="font-mono text-sm font-bold mt-3">
@@ -206,11 +206,11 @@
     @if (isActive() || isFinished()) {
       <div class="bg-card rounded-2xl border border-line shadow-card p-3 mb-4">
         <div class="flex items-center justify-between gap-2 mb-2">
-          <p class="text-xs text-muted font-bold uppercase tracking-wider">{{ i18n.t('duels.game.yourCards') }}</p>
+          <p class="text-[12px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('duels.game.yourCards') }}</p>
           @if (isActive() && v.iCommitted) {
-            <p class="text-xs font-bold text-team-primary">{{ i18n.t('duels.game.committed') }}</p>
+            <p class="text-[12px] font-bold text-team-primary">{{ i18n.t('duels.game.committed') }}</p>
           } @else if (isActive()) {
-            <p class="text-xs text-muted">{{ i18n.t('duels.game.pickCard') }}</p>
+            <p class="text-[12px] text-muted">{{ i18n.t('duels.game.pickCard') }}</p>
           }
         </div>
         <div class="grid grid-cols-5 gap-1.5">
@@ -245,7 +245,7 @@
 
       @if (v.theirLineup; as theirs) {
         <div class="bg-card rounded-2xl border border-line shadow-card p-3 mb-4">
-          <p class="text-xs text-muted font-bold uppercase tracking-wider mb-2 truncate">
+          <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2 truncate">
             {{ i18n.t('duels.game.theirCards').replace('{name}', v.opponent ? v.opponent.username : '') }}
           </p>
           <div class="grid grid-cols-5 gap-1.5">

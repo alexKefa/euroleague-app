@@ -14,13 +14,13 @@ import { NewsArticle, StandingsRow } from "../../core/models";
   standalone: true,
   imports: [RouterLink],
   template: `
-    <section class="section-plain grid gap-3" [attr.aria-label]="i18n.t('dashboard.league.title')">
+    <section class="rounded-3xl p-4 mb-4 bg-card border border-line shadow-card grid gap-3" [attr.aria-label]="i18n.t('dashboard.league.title')">
       @if (topStory(); as story) {
         <a [href]="story.url" target="_blank" rel="noopener" class="flex items-center gap-3 group">
           @if (story.imageUrl) {
-            <img [src]="story.imageUrl" alt="" class="w-[54px] h-10 rounded-lg object-cover shrink-0" loading="lazy" />
+            <img [src]="story.imageUrl" alt="" class="w-[54px] h-10 rounded-xl object-cover shrink-0" loading="lazy" />
           } @else {
-            <span class="w-[54px] h-10 rounded-lg shrink-0 bg-team-primary/20" aria-hidden="true"></span>
+            <span class="w-[54px] h-10 rounded-xl shrink-0 bg-gradient-to-br from-team-primary to-team-primary/40" aria-hidden="true"></span>
           }
           <span class="text-sm font-semibold leading-snug line-clamp-2 group-hover:text-team-primary transition-colors">{{ story.title }}</span>
         </a>

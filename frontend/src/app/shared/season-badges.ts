@@ -10,7 +10,7 @@ import { SeasonBadge } from "../core/models";
   template: `
     <div class="flex flex-wrap gap-1.5">
       @for (b of badges(); track b.season + b.kind) {
-        <span class="rounded-full px-2.5 py-0.5 text-xs font-bold bg-team-secondary text-team-primary">{{ label(b) }}</span>
+        <span class="rounded-full px-2.5 py-0.5 text-[11px] font-bold bg-team-secondary text-team-primary">{{ label(b) }}</span>
       }
     </div>
   `,

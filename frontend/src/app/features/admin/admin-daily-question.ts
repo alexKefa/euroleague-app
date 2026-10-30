@@ -13,7 +13,7 @@ import { DailyQuestionSuspect } from "../../core/models";
   standalone: true,
   template: `
     <div class="min-w-0">
-      <p class="text-xs text-muted mb-3 break-words">{{ i18n.t('admin.dqDescription') }}</p>
+      <p class="text-[12px] text-muted mb-3 break-words">{{ i18n.t('admin.dqDescription') }}</p>
       @if (loading()) {
         <p class="text-sm text-muted">…</p>
       } @else if (failed()) {
@@ -24,7 +24,7 @@ import { DailyQuestionSuspect } from "../../core/models";
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="text-xs text-muted uppercase tracking-wide text-left">
+              <tr class="text-[11px] text-muted uppercase tracking-wide text-left">
                 <th class="py-1.5 pr-2 font-semibold"></th>
                 <th class="py-1.5 px-2 font-semibold text-right">{{ i18n.t('admin.dqAnswers') }}</th>
                 <th class="py-1.5 px-2 font-semibold text-right">{{ i18n.t('admin.dqCorrect') }}</th>

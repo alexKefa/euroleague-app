@@ -25,65 +25,65 @@
       routerLink="/standings"
       class="flex flex-col gap-2.5 min-w-0 rounded-2xl p-3 bg-card border border-line shadow-card hover:border-team-primary/50 active:scale-[0.98] transition-all col-span-2 sm:col-span-1"
     >
-      <span class="w-11 h-11 rounded-lg flex items-center justify-center shrink-0 bg-team-primary/15 text-team-primary">
+      <span class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-team-primary/15 text-team-primary">
         <app-nav-icon name="standings" [size]="20" />
       </span>
       <span class="min-w-0">
         <span class="block font-display text-sm leading-tight truncate">{{ i18n.t('standings.title') }}</span>
-        <span class="block text-xs text-muted leading-snug line-clamp-2 mt-0.5">{{ i18n.t('teams.hubStandingsSub') }}</span>
+        <span class="block text-[12px] text-muted leading-snug line-clamp-2 mt-0.5">{{ i18n.t('teams.hubStandingsSub') }}</span>
       </span>
     </a>
     <a
       routerLink="/compare"
       class="flex flex-col gap-2.5 min-w-0 rounded-2xl p-3 bg-card border border-line shadow-card hover:border-team-primary/50 active:scale-[0.98] transition-all"
     >
-      <span class="w-11 h-11 rounded-lg flex items-center justify-center shrink-0 bg-team-primary/15 text-team-primary">
+      <span class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-team-primary/15 text-team-primary">
         <app-nav-icon name="teams" [size]="20" />
       </span>
       <span class="min-w-0">
         <span class="block font-display text-sm leading-tight truncate">{{ i18n.t('stats.compare.navTitle') }}</span>
-        <span class="block text-xs text-muted leading-snug line-clamp-2 mt-0.5">{{ i18n.t('teams.hubCompareSub') }}</span>
+        <span class="block text-[12px] text-muted leading-snug line-clamp-2 mt-0.5">{{ i18n.t('teams.hubCompareSub') }}</span>
       </span>
     </a>
     <a
       routerLink="/stats"
       class="flex flex-col gap-2.5 min-w-0 rounded-2xl p-3 bg-card border border-line shadow-card hover:border-team-primary/50 active:scale-[0.98] transition-all"
     >
-      <span class="w-11 h-11 rounded-lg flex items-center justify-center shrink-0 bg-team-primary/15 text-team-primary">
+      <span class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-team-primary/15 text-team-primary">
         <app-nav-icon name="table" [size]="20" />
       </span>
       <span class="min-w-0">
         <span class="block font-display text-sm leading-tight truncate">{{ i18n.t('stats.title') }}</span>
-        <span class="block text-xs text-muted leading-snug line-clamp-2 mt-0.5">{{ i18n.t('teams.hubStatsSub') }}</span>
+        <span class="block text-[12px] text-muted leading-snug line-clamp-2 mt-0.5">{{ i18n.t('teams.hubStatsSub') }}</span>
       </span>
     </a>
     <a
       routerLink="/analytics-builder"
       class="flex flex-col gap-2.5 min-w-0 rounded-2xl p-3 bg-card border border-line shadow-card hover:border-team-primary/50 active:scale-[0.98] transition-all"
     >
-      <span class="w-11 h-11 rounded-lg flex items-center justify-center shrink-0 bg-team-primary/15 text-team-primary">
+      <span class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-team-primary/15 text-team-primary">
         <app-nav-icon name="sliders" [size]="20" />
       </span>
       <span class="min-w-0">
         <span class="block font-display text-sm leading-tight truncate">{{ i18n.t('builder.navTitle') }}</span>
-        <span class="block text-xs text-muted leading-snug line-clamp-2 mt-0.5">{{ i18n.t('teams.hubBuilderSub') }}</span>
+        <span class="block text-[12px] text-muted leading-snug line-clamp-2 mt-0.5">{{ i18n.t('teams.hubBuilderSub') }}</span>
       </span>
     </a>
     <a
       routerLink="/injuries"
       class="flex flex-col gap-2.5 min-w-0 rounded-2xl p-3 bg-card border border-line shadow-card hover:border-team-primary/50 active:scale-[0.98] transition-all"
     >
-      <span class="w-11 h-11 rounded-lg flex items-center justify-center shrink-0 bg-team-primary/15 text-team-primary">
+      <span class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-team-primary/15 text-team-primary">
         <app-nav-icon name="injury" [size]="20" />
       </span>
       <span class="min-w-0">
         <span class="block font-display text-sm leading-tight truncate">{{ i18n.t('injuries.title') }}</span>
-        <span class="block text-xs text-muted leading-snug line-clamp-2 mt-0.5">{{ i18n.t('teams.hubInjuriesSub') }}</span>
+        <span class="block text-[12px] text-muted leading-snug line-clamp-2 mt-0.5">{{ i18n.t('teams.hubInjuriesSub') }}</span>
       </span>
     </a>
   </div>
   @if (loading()) {
-    <div class="animate-pulse h-10 rounded-lg bg-line mb-4"></div>
+    <div class="animate-pulse h-10 rounded-xl bg-line mb-4"></div>
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
       @for (i of [1, 2, 3, 4, 5, 6]; track i) {
         <app-skeleton class="rounded-2xl h-16" [iconSize]="18" />
@@ -108,7 +108,7 @@
             class="relative overflow-hidden flex items-center gap-3 p-3 rounded-2xl bg-card border border-line shadow-card hover:border-team-primary/50 active:scale-[0.99] transition-all"
           >
             <div class="pointer-events-none absolute inset-0" [style.background]="'linear-gradient(110deg, color-mix(in srgb, ' + (team.primaryColor || '#888') + ' 24%, transparent) 0%, transparent 70%)'" aria-hidden="true"></div>
-            <span class="relative w-12 h-12 rounded-lg bg-card flex items-center justify-center shrink-0 shadow-card" [style.border]="'2px solid ' + (team.primaryColor || 'var(--color-line)')">
+            <span class="relative w-12 h-12 rounded-xl bg-card flex items-center justify-center shrink-0 shadow-card" [style.border]="'2px solid ' + (team.primaryColor || 'var(--color-line)')">
               @if (team.logoUrl) {
                 <img [src]="team.logoUrl" [alt]="team.name" loading="lazy" decoding="async" appRetryImg class="w-8 h-8 object-contain team-logo" />
               } @else {
@@ -117,11 +117,11 @@
             </span>
             <span class="relative min-w-0 flex-1">
               <span class="flex items-center gap-1.5 min-w-0">
-                <span class="font-display text-base leading-tight truncate">{{ team.name }}</span>
-                <span class="shrink-0 h-5 px-1.5 inline-flex items-center rounded-lg bg-card/80 border border-line font-mono text-2xs font-bold text-muted">{{ team.code | teamCode }}</span>
+                <span class="font-display text-[15px] leading-tight truncate">{{ team.name }}</span>
+                <span class="shrink-0 h-5 px-1.5 inline-flex items-center rounded-md bg-card/80 border border-line font-mono text-[10px] font-bold text-muted">{{ team.code | teamCode }}</span>
               </span>
               @if (team.headCoach) {
-                <span class="block text-xs text-muted truncate mt-0.5">{{ i18n.t('teams.coach') }}: {{ team.headCoach }}</span>
+                <span class="block text-[12px] text-muted truncate mt-0.5">{{ i18n.t('teams.coach') }}: {{ team.headCoach }}</span>
               }
             </span>
             <span class="relative text-muted text-lg font-bold shrink-0">&rsaquo;</span>

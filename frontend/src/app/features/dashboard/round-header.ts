@@ -22,14 +22,14 @@ import { roundLabel } from "../../shared/round-label";
   imports: [RouterLink, ButtonDirective, SkeletonComponent, CountUpComponent],
   template: `
     @if (rs.loading()) {
-      <app-skeleton class="block rounded-2xl h-[124px] mb-4" />
+      <app-skeleton class="block rounded-3xl h-[124px] mb-4" />
     } @else if (rs.scheduleError()) {
-      <div class="rounded-2xl p-4 mb-4 bg-card border border-line shadow-card flex items-center justify-between gap-3">
+      <div class="rounded-3xl p-4 mb-4 bg-card border border-line shadow-card flex items-center justify-between gap-3">
         <p class="text-sm text-muted">{{ i18n.t("dashboard.roundHeader.error") }}</p>
         <button type="button" appButton="outline" appButtonSize="sm" (click)="rs.refresh()">{{ i18n.t("dashboard.roundHeader.retry") }}</button>
       </div>
     } @else if (status(); as s) {
-      <section class="rounded-2xl p-4 mb-4 bg-team-primary text-team-secondary shadow-card" [attr.aria-label]="roundLabel()">
+      <section class="rounded-3xl p-4 mb-4 bg-team-primary text-team-secondary shadow-card" [attr.aria-label]="roundLabel()">
         <div class="flex items-end justify-between gap-4">
           <div class="min-w-0">
             @if (auth.isAuthenticated()) {
@@ -69,7 +69,7 @@ import { roundLabel } from "../../shared/round-label";
               <!-- Soon/urgent use a pill with its own fill: tinted text alone
                    disappears on a near-white team colour (Real Madrid). -->
               <p
-                class="font-display text-3xl leading-none mt-1 tabular-nums inline-block rounded-lg"
+                class="font-display text-3xl leading-none mt-1 tabular-nums inline-block rounded-xl"
                 [class.px-2]="c.tone !== 'normal'"
                 [class.py-0.5]="c.tone !== 'normal'"
                 [class.bg-amber-400]="c.tone === 'soon'"

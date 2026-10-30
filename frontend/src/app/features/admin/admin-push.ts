@@ -20,9 +20,9 @@ const MAX_TEXT = 200;
   imports: [ReactiveFormsModule, ButtonDirective, ConfirmDialogComponent],
   template: `
     <div class="min-w-0">
-      <p class="text-xs text-muted mb-1 break-words">{{ i18n.t('admin.pushDescription') }}</p>
+      <p class="text-[12px] text-muted mb-1 break-words">{{ i18n.t('admin.pushDescription') }}</p>
       @if (stats(); as s) {
-        <p class="text-xs font-semibold mb-4">
+        <p class="text-[12px] font-semibold mb-4">
           @if (s.enabled) {
             {{ i18n.t('admin.pushStats').replace('{devices}', '' + s.devices).replace('{users}', '' + s.users) }}
           } @else {
@@ -35,20 +35,20 @@ const MAX_TEXT = 200;
         <div class="grid gap-3 sm:grid-cols-2">
           @for (lang of ['En', 'El']; track lang) {
             <div class="space-y-2">
-              <p class="text-xs font-mono font-bold text-muted">{{ lang === 'En' ? 'English' : 'Ελληνικά' }}</p>
+              <p class="text-[11px] font-mono font-bold text-muted">{{ lang === 'En' ? 'English' : 'Ελληνικά' }}</p>
               <input
                 type="text"
                 [formControlName]="'title' + lang"
                 [placeholder]="i18n.t('admin.announceTitlePlaceholder')"
                 [maxlength]="maxText"
-                class="w-full px-3 py-2 rounded-lg bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
+                class="w-full px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-semibold focus:border-team-primary outline-none"
               />
               <textarea
                 [formControlName]="'body' + lang"
                 [placeholder]="i18n.t('admin.announceBodyPlaceholder')"
                 [maxlength]="maxText"
                 rows="3"
-                class="w-full px-3 py-2 rounded-lg bg-page border-2 border-line text-sm focus:border-team-primary outline-none resize-y"
+                class="w-full px-3 py-2 rounded-xl bg-page border-2 border-line text-sm focus:border-team-primary outline-none resize-y"
               ></textarea>
             </div>
           }
@@ -57,7 +57,7 @@ const MAX_TEXT = 200;
           type="text"
           formControlName="link"
           [placeholder]="i18n.t('admin.pushLinkPlaceholder')"
-          class="w-full px-3 py-2 rounded-lg bg-page border-2 border-line text-sm font-mono focus:border-team-primary outline-none"
+          class="w-full px-3 py-2 rounded-xl bg-page border-2 border-line text-sm font-mono focus:border-team-primary outline-none"
         />
         <div class="flex flex-wrap gap-2">
           <button type="button" appButton="outline" appButtonSize="sm" (click)="send(true)" [disabled]="sending() || form.invalid">

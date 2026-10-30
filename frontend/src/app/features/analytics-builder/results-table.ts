@@ -18,12 +18,12 @@ import { topPercent } from "./percentiles";
       <table class="w-full text-sm border-collapse">
         <thead>
           <tr>
-            <th class="sticky left-0 z-10 bg-card px-3 py-2.5 text-left font-bold uppercase tracking-wider text-xs text-muted whitespace-nowrap">
+            <th class="sticky left-0 z-10 bg-card px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[11px] text-muted whitespace-nowrap">
               {{ i18n.t("stats.colPlayer") }}
             </th>
             @for (col of store.columns(); track col.id) {
               <th
-                class="px-1.5 py-1 text-right font-bold uppercase tracking-wider text-xs whitespace-nowrap"
+                class="px-1.5 py-1 text-right font-bold uppercase tracking-wider text-[11px] whitespace-nowrap"
                 [attr.aria-sort]="sortId() === col.id ? (store.workspace().sort?.desc ? 'descending' : 'ascending') : null"
               >
                 <button
@@ -63,7 +63,7 @@ import { topPercent } from "./percentiles";
                 <td class="px-3 py-2 text-right whitespace-nowrap tabular-nums" [style.background]="tint(pct)" [class.font-semibold]="sortId() === col.id">
                   {{ col.format(col.get(row)) }}
                   @if (sortId() === col.id && pct !== null) {
-                    <span class="block text-2xs font-normal text-muted leading-tight">{{ topLabel(pct) }}</span>
+                    <span class="block text-[10px] font-normal text-muted leading-tight">{{ topLabel(pct) }}</span>
                   }
                 </td>
               }

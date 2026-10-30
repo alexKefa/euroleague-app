@@ -27,8 +27,8 @@
         <!-- text-highlight -> text-team-primary (2026-09-18, "change
              everywhere on the app the default orange color with the
              preferred team"). -->
-        <span class="text-xs font-bold uppercase tracking-wider text-team-primary">{{ article.sourceName }}</span>
-        <span class="font-mono text-xs text-muted">&middot; {{ article.publishedAt | date: dateFormat() : undefined : dateLocale() }}</span>
+        <span class="text-[12px] font-bold uppercase tracking-wider text-team-primary">{{ article.sourceName }}</span>
+        <span class="font-mono text-[12px] text-muted">&middot; {{ article.publishedAt | date: dateFormat() : undefined : dateLocale() }}</span>
       </div>
 
       <h2 class="font-display text-xl tracking-wide leading-snug mb-3">{{ article.title }}</h2>

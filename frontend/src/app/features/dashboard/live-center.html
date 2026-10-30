@@ -1,5 +1,5 @@
 @if (auth.isAuthenticated()) {
-  <div class="section-plain">
+  <div class="bg-card rounded-3xl border border-line shadow-card p-4 mb-4">
     @if (loading()) {
       <app-skeleton class="h-11 rounded-2xl mb-3" [icon]="false" />
       <div class="space-y-2">
@@ -13,22 +13,22 @@
            actually something live/open in them, so the bar doesn't
            advertise empty sections. -->
       <div class="status-tile flex gap-1 mb-3 h-11 p-1 rounded-2xl border border-line overflow-x-auto no-scrollbar">
-        <button type="button" (click)="setTab('games')" [ngClass]="tabButtonClass('games')" class="flex-1 shrink-0 h-full px-3 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors flex items-center justify-center gap-1.5">
+        <button type="button" (click)="setTab('games')" [ngClass]="tabButtonClass('games')" class="flex-1 shrink-0 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors flex items-center justify-center gap-1.5">
           {{ i18n.t('liveCenter.games') }}
           @if (hasLive()) {
             <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
           }
         </button>
         @if (hasPredictions()) {
-          <button type="button" (click)="setTab('predictions')" [ngClass]="tabButtonClass('predictions')" class="flex-1 shrink-0 h-full px-3 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors">
+          <button type="button" (click)="setTab('predictions')" [ngClass]="tabButtonClass('predictions')" class="flex-1 shrink-0 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors">
             {{ i18n.t('liveCenter.predictions') }}
           </button>
         }
-        <button type="button" (click)="setTab('favorites')" [ngClass]="tabButtonClass('favorites')" class="flex-1 shrink-0 h-full px-3 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors">
+        <button type="button" (click)="setTab('favorites')" [ngClass]="tabButtonClass('favorites')" class="flex-1 shrink-0 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors">
           {{ i18n.t('liveCenter.favorites') }}
         </button>
         @if (hasPolls()) {
-          <button type="button" (click)="setTab('polls')" [ngClass]="tabButtonClass('polls')" class="flex-1 shrink-0 h-full px-3 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors">
+          <button type="button" (click)="setTab('polls')" [ngClass]="tabButtonClass('polls')" class="flex-1 shrink-0 h-full px-3 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors">
             {{ i18n.t('liveCenter.polls') }}
           </button>
         }
@@ -55,14 +55,14 @@
                     <span class="flex items-center justify-end gap-1">
                       <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
                       @if (game.quarter) {
-                        <span class="text-2xs font-bold font-mono text-red-500 whitespace-nowrap">Q{{ game.quarter }} {{ formatClock(game.gameClockSeconds) }}</span>
+                        <span class="text-[10px] font-bold font-mono text-red-500 whitespace-nowrap">Q{{ game.quarter }} {{ formatClock(game.gameClockSeconds) }}</span>
                       }
                     </span>
                     <span class="font-mono font-bold text-sm"><app-count-up [value]="game.homeScore ?? 0" [fromZero]="false" [duration]="0.6" [pop]="true" />-<app-count-up [value]="game.awayScore ?? 0" [fromZero]="false" [duration]="0.6" [pop]="true" /></span>
                     @if (liveWinProb()[game.id]; as wp) {
                       <!-- Live win chance (2026-10-07), in the leading team's colour. -->
                       <span
-                        class="block text-2xs font-bold tabular-nums mt-0.5"
+                        class="block text-[10px] font-bold tabular-nums mt-0.5"
                         [style.color]="(wp >= 0.5 ? game.homeTeam.primaryColor : game.awayTeam.primaryColor) || 'var(--color-muted)'"
                       >{{ wp >= 0.5 ? game.homeTeam.code : game.awayTeam.code }} {{ (wp >= 0.5 ? wp : 1 - wp) * 100 | number: '1.0-0' }}%</span>
                     }
@@ -84,7 +84,7 @@
                   </span>
                   <!-- Date over time, so the long one-line form doesn't
                        squeeze the team codes to one letter on phones. -->
-                  <span class="font-mono text-xs text-muted shrink-0 text-right leading-tight">
+                  <span class="font-mono text-[11px] text-muted shrink-0 text-right leading-tight">
                     <span class="block whitespace-nowrap">{{ game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}{{ game.tipoffAt | todayTag: i18n.lang() }}</span>
                     <span class="block whitespace-nowrap">{{ game.tipoffAt | date: "HH:mm":"Europe/Athens" }}</span>
                   </span>
@@ -117,18 +117,18 @@
                     [attr.aria-expanded]="expanded"
                   >
                     @if (isLive) {
-                      <span class="inline-flex items-center gap-1 text-2xs font-bold uppercase text-red-500">
+                      <span class="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-red-500">
                         <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>{{ i18n.t('liveCenter.live') }}
                       </span>
                     } @else {
-                      <span class="font-mono text-2xs font-bold text-muted leading-tight">{{ row.game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}{{ row.game.tipoffAt | todayTag: i18n.lang() }}</span>
+                      <span class="font-mono text-[10px] font-bold text-muted leading-tight">{{ row.game.tipoffAt | date: shortDateFormat():"Europe/Athens":dateLocale() }}{{ row.game.tipoffAt | todayTag: i18n.lang() }}</span>
                     }
                     <ng-container *ngTemplateOutlet="pickSideMini; context: { team: row.game.homeTeam, picked: pickedHome, alignEnd: true }"></ng-container>
                     <span class="text-center min-w-[2.5rem]">
                       @if (isLive) {
                         <span class="font-display text-sm tabular-nums"><app-count-up [value]="row.game.homeScore ?? 0" [fromZero]="false" [duration]="0.6" [pop]="true" />-<app-count-up [value]="row.game.awayScore ?? 0" [fromZero]="false" [duration]="0.6" [pop]="true" /></span>
                       } @else {
-                        <span class="font-display text-xs font-bold text-muted tracking-widest">VS</span>
+                        <span class="font-display text-[11px] font-bold text-muted tracking-widest">VS</span>
                       }
                     </span>
                     <ng-container *ngTemplateOutlet="pickSideMini; context: { team: row.game.awayTeam, picked: !pickedHome, alignEnd: false }"></ng-container>
@@ -143,7 +143,7 @@
                           @if (isLive) {
                             <span class="font-display text-xl tabular-nums leading-none"><app-count-up [value]="row.game.homeScore ?? 0" [fromZero]="false" [duration]="0.6" [pop]="true" /><span class="text-muted mx-0.5">-</span><app-count-up [value]="row.game.awayScore ?? 0" [fromZero]="false" [duration]="0.6" [pop]="true" /></span>
                             @if (row.game.quarter) {
-                              <span class="font-mono text-2xs font-bold text-red-500 mt-1">Q{{ row.game.quarter }} {{ formatClock(row.game.gameClockSeconds) }}</span>
+                              <span class="font-mono text-[10px] font-bold text-red-500 mt-1">Q{{ row.game.quarter }} {{ formatClock(row.game.gameClockSeconds) }}</span>
                             }
                           } @else {
                             <span class="font-display text-sm font-bold text-muted tracking-widest">VS</span>
@@ -153,11 +153,11 @@
                       </div>
 
                       @if (tsPick) {
-                        <span class="flex items-center gap-2.5 mt-3 rounded-lg bg-card border border-line px-2.5 py-2">
+                        <span class="flex items-center gap-2.5 mt-3 rounded-xl bg-card border border-line px-2.5 py-2">
                           <app-player-photo [name]="tsPick.predictedPlayer.name" [photoUrl]="tsPick.predictedPlayer.photoUrl" [size]="28" class="rounded-full shrink-0" />
                           <span class="min-w-0 flex-1">
-                            <span class="block text-2xs font-bold uppercase tracking-wider text-muted">{{ i18n.t('liveCenter.topScorerPick') }}</span>
-                            <span class="block text-sm font-semibold truncate">{{ tsPick.predictedPlayer.name }}</span>
+                            <span class="block text-[10px] font-bold uppercase tracking-wider text-muted">{{ i18n.t('liveCenter.topScorerPick') }}</span>
+                            <span class="block text-[13px] font-semibold truncate">{{ tsPick.predictedPlayer.name }}</span>
                           </span>
                           @if (tsPick.isCorrect === null) {
                             <span class="value-chip value-chip--muted">{{ i18n.t('predictions.pending') }}</span>
@@ -178,7 +178,7 @@
                 <button
                   type="button"
                   (click)="showAllPicks.set(!showAllPicks())"
-                  class="w-full h-9 rounded-lg text-xs font-bold text-team-primary hover:bg-team-primary/10 transition-colors"
+                  class="w-full h-9 rounded-xl text-[12px] font-bold text-team-primary hover:bg-team-primary/10 transition-colors"
                 >
                   {{ showAllPicks() ? i18n.t('liveCenter.showLess') : i18n.t('liveCenter.showAll') + ' (' + myUpcomingPredictions().length + ')' }}
                 </button>
@@ -204,7 +204,7 @@
                   @if (row.photoUrl) {
                     <img [src]="row.photoUrl | cdnSized: 36" [alt]="row.name" loading="lazy" decoding="async" appRetryImg class="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover shrink-0" />
                   } @else {
-                    <span class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-page border border-line shrink-0 flex items-center justify-center font-mono text-2xs text-muted">{{ row.teamCode | teamCode }}</span>
+                    <span class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-page border border-line shrink-0 flex items-center justify-center font-mono text-[10px] text-muted">{{ row.teamCode | teamCode }}</span>
                   }
 
                   <span class="min-w-0 flex-1">
@@ -212,7 +212,7 @@
                       <!-- "Moses Wright" via formatPlayerName: the feed's
                            "WRIGHT, MOSES" lost the first name to truncation. -->
                       <span class="font-semibold truncate leading-tight">{{ playerName(row.name) }}</span>
-                      <span class="font-mono text-2xs text-muted shrink-0">{{ row.teamCode | teamCode }}</span>
+                      <span class="font-mono text-[10px] text-muted shrink-0">{{ row.teamCode | teamCode }}</span>
                     </span>
                     @if (row.pointsPerGame !== null && row.pointsPerGame !== undefined) {
                       <span class="flex flex-wrap items-center gap-1 mt-1">
@@ -222,13 +222,13 @@
                         <ng-container *ngTemplateOutlet="statChip; context: { value: row.valuation, label: i18n.t('liveCenter.pir'), hero: true }"></ng-container>
                       </span>
                     } @else {
-                      <span class="block font-mono text-xs text-muted mt-0.5">{{ i18n.t('liveCenter.noStatsYet') }}</span>
+                      <span class="block font-mono text-[11px] text-muted mt-0.5">{{ i18n.t('liveCenter.noStatsYet') }}</span>
                     }
                   </span>
 
                   <!-- Next game (2026-10-15): opponent (vs = home, @ = away)
                        over the tip-off day+time, or the live score. -->
-                  <span class="shrink-0 flex flex-col items-end gap-0.5 font-mono text-2xs leading-tight text-muted">
+                  <span class="shrink-0 flex flex-col items-end gap-0.5 font-mono text-[10px] leading-tight text-muted">
                     @if (row.game; as game) {
                       @let home = game.homeTeam.id === row.teamId;
                       @let opp = home ? game.awayTeam : game.homeTeam;
@@ -279,10 +279,10 @@
                   <span class="min-w-0 flex-1">
                     <span class="block font-semibold truncate">{{ poll.title }}</span>
                     @if (leadingCandidate(poll); as leader) {
-                      <span class="block text-xs text-muted truncate">{{ leader.name }} &middot; {{ leadingPercent(poll) }}%</span>
+                      <span class="block text-[11px] text-muted truncate">{{ leader.name }} &middot; {{ leadingPercent(poll) }}%</span>
                     }
                   </span>
-                  <span class="font-mono text-xs font-bold text-muted shrink-0">{{ poll.totalVotes }} {{ i18n.t('legendaryVote.votes') }}</span>
+                  <span class="font-mono text-[11px] font-bold text-muted shrink-0">{{ poll.totalVotes }} {{ i18n.t('legendaryVote.votes') }}</span>
                 </a>
               }
             </div>
@@ -315,7 +315,7 @@
     </span>
     <span class="font-display text-sm leading-none truncate max-w-full">{{ team.code | teamCode }}</span>
     @if (picked) {
-      <span class="inline-flex items-center gap-1 h-5 px-1.5 rounded-full bg-team-primary text-team-secondary text-2xs font-bold uppercase tracking-wide whitespace-nowrap">
+      <span class="inline-flex items-center gap-1 h-5 px-1.5 rounded-full bg-team-primary text-team-secondary text-[10px] font-bold uppercase tracking-wide whitespace-nowrap">
         &#10003; {{ i18n.t('liveCenter.yourPick') }}
       </span>
     } @else {
@@ -328,7 +328,7 @@
      is team-colored and ringed, the other muted. -->
 <ng-template #pickSideMini let-team="team" let-picked="picked" let-alignEnd="alignEnd">
   <span class="flex items-center gap-1.5 min-w-0" [class.justify-end]="alignEnd" [class.flex-row-reverse]="!alignEnd">
-    <span class="font-display text-sm truncate" [ngClass]="picked ? 'text-team-primary font-bold' : 'text-muted'">{{ team.code | teamCode }}</span>
+    <span class="font-display text-[13px] truncate" [ngClass]="picked ? 'text-team-primary font-bold' : 'text-muted'">{{ team.code | teamCode }}</span>
     <span
       class="w-7 h-7 rounded-lg bg-card flex items-center justify-center shrink-0"
       [ngClass]="picked ? 'border-2 border-team-primary' : 'border border-line opacity-60'"
@@ -336,7 +336,7 @@
       @if (team.logoUrl) {
         <img [src]="team.logoUrl" [alt]="team.name" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain team-logo" />
       } @else {
-        <span class="font-display text-2xs">{{ team.code | teamCode }}</span>
+        <span class="font-display text-[9px]">{{ team.code | teamCode }}</span>
       }
     </span>
   </span>
@@ -345,10 +345,10 @@
 <!-- Favorites tab stat chip: value + label in one small pill. -->
 <ng-template #statChip let-value="value" let-label="label" let-hero="hero">
   <span
-    class="inline-flex items-baseline gap-0.5 sm:gap-1 h-5 sm:h-6 px-1.5 sm:px-2 rounded-lg sm:rounded-lg border whitespace-nowrap leading-5 sm:leading-6"
+    class="inline-flex items-baseline gap-0.5 sm:gap-1 h-5 sm:h-6 px-1.5 sm:px-2 rounded-md sm:rounded-lg border whitespace-nowrap leading-5 sm:leading-6"
     [ngClass]="hero ? 'border-team-primary/40 bg-team-primary/10' : 'border-line bg-card'"
   >
-    <span class="font-display text-xs sm:text-sm tabular-nums" [ngClass]="hero ? 'text-team-primary' : 'text-ink'">{{ value | number: '1.1-1' }}</span>
-    <span class="text-2xs sm:text-2xs font-bold uppercase tracking-wide" [ngClass]="hero ? 'text-team-primary/80' : 'text-muted'">{{ label }}</span>
+    <span class="font-display text-[12px] sm:text-[13px] tabular-nums" [ngClass]="hero ? 'text-team-primary' : 'text-ink'">{{ value | number: '1.1-1' }}</span>
+    <span class="text-[8px] sm:text-[9px] font-bold uppercase tracking-wide" [ngClass]="hero ? 'text-team-primary/80' : 'text-muted'">{{ label }}</span>
   </span>
 </ng-template>

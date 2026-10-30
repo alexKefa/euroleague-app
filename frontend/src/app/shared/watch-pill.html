@@ -26,16 +26,16 @@
       @if (anyLive()) {
         <span class="absolute top-0.5 left-0.5 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-card animate-pulse"></span>
       }
-      <span class="absolute -bottom-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-team-primary text-team-secondary text-2xs font-bold leading-[18px] text-center ring-2 ring-card tabular-nums">
+      <span class="absolute -bottom-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-team-primary text-team-secondary text-[10px] font-bold leading-[18px] text-center ring-2 ring-card tabular-nums">
         {{ watchlist.watches().length }}
       </span>
     </button>
 
     @if (open()) {
       <div class="watch-card pointer-events-auto mt-2 w-[260px] max-w-[calc(100vw-1.5rem)] bg-card border border-line rounded-2xl shadow-pop p-1.5" role="dialog" [attr.aria-label]="i18n.t('watchPill.title')">
-        <p class="px-2 pt-1 pb-1.5 text-2xs font-bold uppercase tracking-wider text-muted">{{ i18n.t('watchPill.title') }}</p>
+        <p class="px-2 pt-1 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted">{{ i18n.t('watchPill.title') }}</p>
         @for (w of watchlist.watches(); track watchKey(w)) {
-          <div class="flex items-center gap-1 rounded-lg hover:bg-page transition-colors">
+          <div class="flex items-center gap-1 rounded-xl hover:bg-page transition-colors">
             <button type="button" (click)="go(w)" class="flex-1 min-w-0 flex items-center gap-2 px-2 py-2 text-left">
               @if (w.kind === 'game') {
                 <span class="flex items-center gap-1 shrink-0">
@@ -46,16 +46,16 @@
                     <img [src]="w.awayTeam.logoUrl" [alt]="w.awayTeam.code" loading="lazy" decoding="async" appRetryImg class="w-5 h-5 object-contain team-logo" />
                   }
                 </span>
-                <span class="font-display text-base whitespace-nowrap truncate tabular-nums">
+                <span class="font-display text-[15px] whitespace-nowrap truncate tabular-nums">
                   {{ w.homeTeam.code | teamCode }} {{ w.homeScore ?? 0 }}–{{ w.awayScore ?? 0 }} {{ w.awayTeam.code | teamCode }}
                 </span>
               } @else {
                 <app-player-photo [name]="w.name" [photoUrl]="w.photoUrl" [teamCode]="w.teamCode" [primaryColor]="w.primaryColor" [size]="24" class="shrink-0" />
-                <span class="min-w-0 flex-1 text-sm font-semibold truncate">{{ w.name.split(',')[0] }}</span>
+                <span class="min-w-0 flex-1 text-[13px] font-semibold truncate">{{ w.name.split(',')[0] }}</span>
                 <!-- Real points scored (box score PTS), not PIR: see PlayerWatch.points. -->
-                <span class="font-display text-base text-team-primary whitespace-nowrap tabular-nums">{{ w.points }} {{ i18n.t('game.colPTS') }}</span>
+                <span class="font-display text-[15px] text-team-primary whitespace-nowrap tabular-nums">{{ w.points }} {{ i18n.t('game.colPTS') }}</span>
               }
-              <span class="ml-auto shrink-0 flex items-center gap-1 text-2xs font-bold text-muted whitespace-nowrap">
+              <span class="ml-auto shrink-0 flex items-center gap-1 text-[10px] font-bold text-muted whitespace-nowrap">
                 @if (w.status === 'live') {
                   <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
                   @if (w.quarter) {

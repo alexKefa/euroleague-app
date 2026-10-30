@@ -62,15 +62,6 @@ module.exports = {
       fontWeight: {
         bold: "600",
       },
-      // Type scale (2026-10-30): 2xs 10 / xs 12 / sm 14 / base 16, plus
-      // font-display for headings. Replaced ~1000 ad-hoc text-[8px]…[16px]
-      // sizes. Don't reintroduce arbitrary px sizes outside card art.
-      // Radius scale, same pass: rounded-2xl for containers, rounded-lg for
-      // controls and anything nested inside a container, rounded-full for
-      // pills and avatars.
-      fontSize: {
-        "2xs": ["10px", { lineHeight: "14px" }],
-      },
       boxShadow: {
         // Real elevation instead of a near-flat 1px line — was previously
         // indistinguishable from a plain bordered box on the near-black page.

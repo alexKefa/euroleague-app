@@ -20,7 +20,7 @@
     <a
       headAside
       routerLink="/store"
-      class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-page text-xs font-bold text-muted hover:text-team-primary transition-colors shrink-0"
+      class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-page text-[11px] font-bold text-muted hover:text-team-primary transition-colors shrink-0"
     >
       <app-nav-icon name="store" [size]="13" />
       {{ i18n.t('predictions.spendPoints') }}
@@ -35,12 +35,12 @@
   <!-- Phone tabs (2026-10-08): one section at a time below sm:, so the
        page isn't one long scroll. Sticky under the safe area. -->
   <div class="sm:hidden sticky top-[env(safe-area-inset-top,0px)] z-20 -mx-4 px-4 py-2 mb-3 bg-page/90 backdrop-blur">
-    <div class="status-tile grid grid-cols-3 gap-1 h-10 p-1 rounded-lg border border-line">
+    <div class="status-tile grid grid-cols-3 gap-1 h-10 p-1 rounded-xl border border-line">
       @for (t of mobileTabs; track t.id) {
         <button
           type="button"
           (click)="setMobileTab(t.id)"
-          class="h-full rounded-lg text-sm font-semibold whitespace-nowrap transition-colors"
+          class="h-full rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors"
           [ngClass]="mobileTab() === t.id ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
           [attr.aria-pressed]="mobileTab() === t.id"
         >
@@ -78,16 +78,16 @@
       </div>
     </div>
   } @else if (roundGames().length > 0) {
-      <div data-tour="predictions-picks" class="bg-card rounded-2xl border border-line shadow-card p-3 sm:p-4 mb-5">
+      <div data-tour="predictions-picks" class="bg-card rounded-3xl border border-line shadow-card p-3 sm:p-4 mb-5">
         @if (upcomingGames().length > 0) {
         <div class="flex items-center justify-between gap-2 mb-3">
-          <p class="text-sm text-muted font-bold uppercase tracking-wider">{{ i18n.t('predictions.upcomingGames') }}</p>
+          <p class="text-[13px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('predictions.upcomingGames') }}</p>
           @if (auth.isAuthenticated()) {
             <button
               type="button"
               (click)="toggleHowTo()"
               [attr.aria-expanded]="showHowTo()"
-              class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-page text-xs font-bold text-muted hover:text-team-primary transition-colors shrink-0"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-page text-[11px] font-bold text-muted hover:text-team-primary transition-colors shrink-0"
             >
               <app-nav-icon name="tip" [size]="13" />
               {{ i18n.t(showHowTo() ? 'predictions.howTo.hide' : 'predictions.howTo.title') }}
@@ -102,11 +102,11 @@
         @if (auth.isAuthenticated() && showHowTo()) {
           <ol class="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2 mb-3">
             @for (step of howToSteps; track step.n) {
-              <li class="flex items-start gap-2 rounded-lg bg-team-primary/[0.06] border border-team-primary/15 px-2.5 py-2">
-                <span class="shrink-0 w-5 h-5 rounded-full bg-team-primary text-team-secondary font-display text-xs flex items-center justify-center">{{ step.n }}</span>
+              <li class="flex items-start gap-2 rounded-xl bg-team-primary/[0.06] border border-team-primary/15 px-2.5 py-2">
+                <span class="shrink-0 w-5 h-5 rounded-full bg-team-primary text-team-secondary font-display text-[11px] flex items-center justify-center">{{ step.n }}</span>
                 <div class="min-w-0">
-                  <p class="text-xs font-bold text-ink leading-tight">{{ i18n.t(step.title) }}</p>
-                  <p class="text-xs text-muted leading-snug mt-0.5">{{ i18n.t(step.body) }}</p>
+                  <p class="text-[12px] font-bold text-ink leading-tight">{{ i18n.t(step.title) }}</p>
+                  <p class="text-[11px] text-muted leading-snug mt-0.5">{{ i18n.t(step.body) }}</p>
                 </div>
               </li>
             }
@@ -117,25 +117,25 @@
         @if (auth.isAuthenticated() && roundProgress(); as rp) {
           <div class="mb-3 rounded-2xl bg-team-primary/[0.06] border border-team-primary/15 px-3 py-2.5">
             <div class="flex items-center justify-between gap-2">
-              <p class="text-sm font-semibold text-ink min-w-0 truncate">
+              <p class="text-[13px] font-semibold text-ink min-w-0 truncate">
                 @if (scheduleRound(); as r) {
                   {{ r | roundLabel: i18n.lang() }} ·
                 }
                 <span class="tabular-nums">{{ rp.picked }}/{{ rp.total }}</span> {{ i18n.t('predictions.progress.picked') }}
               </p>
               @if (nextUnpickedGame()) {
-                <button type="button" (click)="scrollToNextUnpicked()" class="shrink-0 text-xs font-bold text-team-primary hover:underline">
+                <button type="button" (click)="scrollToNextUnpicked()" class="shrink-0 text-[12px] font-bold text-team-primary hover:underline">
                   {{ i18n.t('predictions.progress.nextUnpicked') }} &darr;
                 </button>
               } @else {
-                <span class="shrink-0 text-xs font-bold text-emerald-500">{{ i18n.t('predictions.progress.allPicked') }} ✓</span>
+                <span class="shrink-0 text-[12px] font-bold text-emerald-500">{{ i18n.t('predictions.progress.allPicked') }} ✓</span>
               }
             </div>
             <div class="h-1.5 rounded-full bg-line mt-2 overflow-hidden">
               <div class="h-full rounded-full bg-team-primary transition-[width] duration-500" [style.width.%]="rp.pct"></div>
             </div>
             <div class="flex items-center justify-between gap-2 mt-1.5">
-              <p class="text-xs text-muted tabular-nums min-w-0 truncate">{{ i18n.t('predictions.progress.locksIn') }} {{ rp.locksIn }}</p>
+              <p class="text-[11px] text-muted tabular-nums min-w-0 truncate">{{ i18n.t('predictions.progress.locksIn') }} {{ rp.locksIn }}</p>
               @if (nextUnpickedGame()) {
                 <button type="button" appButton appButtonSize="sm" class="shrink-0" (click)="openDeck()">{{ i18n.t('predictions.deck.open') }} ⚡</button>
               }
@@ -155,7 +155,7 @@
                    its own row — the two-team split is the whole point of this
                    layout, so date/time/live-score share space with it instead
                    of pushing it down. -->
-              <span class="absolute top-2 left-1/2 -translate-x-1/2 z-20 font-mono text-xs font-bold px-2.5 py-1 rounded-full bg-card border border-line text-muted whitespace-nowrap shadow-sm">
+              <span class="absolute top-2 left-1/2 -translate-x-1/2 z-20 font-mono text-[11px] font-bold px-2.5 py-1 rounded-full bg-card border border-line text-muted whitespace-nowrap shadow-sm">
                 @if (game.status === "live") {
                   <span class="flex items-center gap-1.5">
                     <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
@@ -168,7 +168,7 @@
               </span>
 
               <div class="grid grid-cols-2 relative divide-x divide-line">
-                <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-card border border-line shadow-pop flex items-center justify-center font-display text-xs text-muted">
+                <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-card border border-line shadow-pop flex items-center justify-center font-display text-[11px] text-muted">
                   {{ i18n.t('predictions.vs') }}
                 </span>
 
@@ -196,13 +196,13 @@
                     </span>
                   }
                   <span
-                    class="relative z-10 text-xs font-semibold text-center leading-tight"
+                    class="relative z-10 text-[12px] font-semibold text-center leading-tight"
                     [ngClass]="myPickFor(game) === game.homeTeam.id ? 'text-team-primary' : 'text-ink'"
                     >{{ game.homeTeam.name }}</span
                   >
                   @if (auth.isAuthenticated() && game.homeFairProb != null) {
                     <span
-                      class="relative z-10 font-mono text-2xs font-bold px-1.5 py-0.5 rounded-full transition-colors"
+                      class="relative z-10 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-full transition-colors"
                       [ngClass]="myPickFor(game) === game.homeTeam.id ? 'bg-team-primary text-team-secondary' : 'bg-line/60 text-muted'"
                       >+{{ pointsForPick(game, game.homeTeam.id) }} {{ i18n.t('predictions.pts') }}</span
                     >
@@ -233,13 +233,13 @@
                     </span>
                   }
                   <span
-                    class="relative z-10 text-xs font-semibold text-center leading-tight"
+                    class="relative z-10 text-[12px] font-semibold text-center leading-tight"
                     [ngClass]="myPickFor(game) === game.awayTeam.id ? 'text-team-primary' : 'text-ink'"
                     >{{ game.awayTeam.name }}</span
                   >
                   @if (auth.isAuthenticated() && game.awayFairProb != null) {
                     <span
-                      class="relative z-10 font-mono text-2xs font-bold px-1.5 py-0.5 rounded-full transition-colors"
+                      class="relative z-10 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-full transition-colors"
                       [ngClass]="myPickFor(game) === game.awayTeam.id ? 'bg-team-primary text-team-secondary' : 'bg-line/60 text-muted'"
                       >+{{ pointsForPick(game, game.awayTeam.id) }} {{ i18n.t('predictions.pts') }}</span
                     >
@@ -249,7 +249,7 @@
               <!-- Win-probability model's pre-game chance (2026-10-07); scoring is unchanged. -->
               @if (modelProbs()[game.id]; as wp) {
                 @let fav = wp.homeProb >= 0.5 ? game.homeTeam : game.awayTeam;
-                <p class="flex items-center justify-center gap-1.5 text-xs text-muted py-1.5 border-t border-line tabular-nums">
+                <p class="flex items-center justify-center gap-1.5 text-[11px] text-muted py-1.5 border-t border-line tabular-nums">
                   {{ i18n.t('winProb.clutchPredicts') }}:
                   @if (fav.logoUrl) {
                     <img [src]="fav.logoUrl" [alt]="fav.code | teamCode" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain team-logo" />
@@ -266,13 +266,13 @@
               @if (splitFor(game); as sp) {
                 <div class="px-3 py-2 border-t border-line">
                   @if (sp.total < 3) {
-                    <p class="text-xs text-muted text-center">{{ i18n.t('predictions.split.notEnough') }}</p>
+                    <p class="text-[11px] text-muted text-center">{{ i18n.t('predictions.split.notEnough') }}</p>
                   } @else {
                     <div class="flex h-1.5 rounded-full overflow-hidden bg-line">
                       <div class="h-full" [style.width.%]="sp.homePct" [style.background]="teamColor(game.homeTeam)"></div>
                       <div class="h-full" [style.width.%]="sp.awayPct" [style.background]="teamColor(game.awayTeam)"></div>
                     </div>
-                    <p class="flex items-center justify-between gap-2 text-xs mt-1 tabular-nums">
+                    <p class="flex items-center justify-between gap-2 text-[11px] mt-1 tabular-nums">
                       <span class="font-semibold text-ink truncate">{{ sp.homePct }}% {{ game.homeTeam.code | teamCode }}</span>
                       <span class="text-muted shrink-0">{{ sp.total }} {{ i18n.t('predictions.split.picks') }}</span>
                       <span class="font-semibold text-ink truncate text-right">{{ game.awayTeam.code | teamCode }} {{ sp.awayPct }}%</span>
@@ -317,21 +317,21 @@
                       <button
                         type="button"
                         (click)="openTopScorerPicker(game)"
-                        class="flex items-center gap-2 min-w-0 flex-1 text-left rounded-lg pr-1 hover:bg-team-secondary/10 transition-colors"
+                        class="flex items-center gap-2 min-w-0 flex-1 text-left rounded-xl pr-1 hover:bg-team-secondary/10 transition-colors"
                         [attr.aria-label]="i18n.t('topScorer.change')"
                       >
                         <span class="shrink-0 rounded-full ring-2 ring-team-secondary/70">
                           <app-player-photo [name]="tsPick.predictedPlayer.name" [photoUrl]="tsPick.predictedPlayer.photoUrl" [size]="32" [fill]="true" class="rounded-full block" />
                         </span>
                         <span class="min-w-0 flex-1">
-                          <span class="block text-2xs font-bold uppercase tracking-wider opacity-80 leading-none truncate">{{ i18n.t('topScorer.yourTopScorer') }}</span>
-                          <span class="flex items-center gap-1 text-sm font-bold leading-tight mt-0.5 min-w-0">
+                          <span class="block text-[9px] font-bold uppercase tracking-wider opacity-80 leading-none truncate">{{ i18n.t('topScorer.yourTopScorer') }}</span>
+                          <span class="flex items-center gap-1 text-[13px] font-bold leading-tight mt-0.5 min-w-0">
                             <span class="truncate">{{ tsPick.predictedPlayer.name.split(',')[0] }}</span>
                             <span class="shrink-0 opacity-70" aria-hidden="true">&rsaquo;</span>
                           </span>
                         </span>
                       </button>
-                      <span class="shrink-0 font-mono text-2xs font-bold px-1.5 py-0.5 rounded-full bg-team-secondary text-team-primary whitespace-nowrap">+{{ tsPick.pointsAtPick }}</span>
+                      <span class="shrink-0 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-team-secondary text-team-primary whitespace-nowrap">+{{ tsPick.pointsAtPick }}</span>
                       <button
                         type="button"
                         (click)="clearTopScorer(game)"
@@ -350,14 +350,14 @@
                   </div>
                 } @else {
                   <div class="flex items-center justify-between gap-2 px-3 pt-2.5">
-                    <p class="flex items-center gap-1.5 text-2xs font-bold uppercase tracking-wider text-muted min-w-0">
+                    <p class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted min-w-0">
                       <app-nav-icon name="ball" [size]="12" class="shrink-0" />
                       <span class="truncate">{{ i18n.t('topScorer.whoScoresMost') }}</span>
                     </p>
                     <button
                       type="button"
                       (click)="openTopScorerPicker(game)"
-                      class="shrink-0 text-xs font-bold text-team-primary hover:underline whitespace-nowrap"
+                      class="shrink-0 text-[11px] font-bold text-team-primary hover:underline whitespace-nowrap"
                     >
                       {{ i18n.t('topScorer.seeAllPlayers') }} &rsaquo;
                     </button>
@@ -419,11 +419,11 @@
                               </span>
                             }
                           </span>
-                          <span class="font-mono text-2xs font-semibold leading-tight truncate max-w-full" [ngClass]="isQuickPicked(game, c.player.id) ? 'text-team-primary font-bold' : 'text-ink'">{{ c.player.name.split(',')[0] }}</span>
-                          <span class="font-mono text-2xs text-muted leading-none">{{ c.stats.pointsPerGame | number: '1.1-1' }} {{ i18n.t('topScorer.ppgAbbrev') }}</span>
+                          <span class="font-mono text-[10px] font-semibold leading-tight truncate max-w-full" [ngClass]="isQuickPicked(game, c.player.id) ? 'text-team-primary font-bold' : 'text-ink'">{{ c.player.name.split(',')[0] }}</span>
+                          <span class="font-mono text-[9px] text-muted leading-none">{{ c.stats.pointsPerGame | number: '1.1-1' }} {{ i18n.t('topScorer.ppgAbbrev') }}</span>
                           @if (quickPickQuote(game, c.player.id); as q) {
                             <span
-                              class="mt-0.5 font-mono text-2xs font-bold leading-none px-1.5 py-0.5 rounded-full transition-colors"
+                              class="mt-0.5 font-mono text-[10px] font-bold leading-none px-1.5 py-0.5 rounded-full transition-colors"
                               [ngClass]="isQuickPicked(game, c.player.id) ? 'bg-team-primary text-team-secondary' : 'bg-line/60 text-ink'"
                               >+{{ q }}</span
                             >
@@ -431,7 +431,7 @@
                         </button>
                       }
                     </div>
-                    <span class="self-start mt-3.5 text-2xs text-muted font-bold uppercase">{{ i18n.t('predictions.vs') }}</span>
+                    <span class="self-start mt-3.5 text-[10px] text-muted font-bold uppercase">{{ i18n.t('predictions.vs') }}</span>
                     <div class="grid grid-cols-3 gap-1 min-w-0">
                       @for (c of topScorerRecommendations(game.awayTeam.id); track c.player.id) {
                         <button
@@ -470,11 +470,11 @@
                               </span>
                             }
                           </span>
-                          <span class="font-mono text-2xs font-semibold leading-tight truncate max-w-full" [ngClass]="isQuickPicked(game, c.player.id) ? 'text-team-primary font-bold' : 'text-ink'">{{ c.player.name.split(',')[0] }}</span>
-                          <span class="font-mono text-2xs text-muted leading-none">{{ c.stats.pointsPerGame | number: '1.1-1' }} {{ i18n.t('topScorer.ppgAbbrev') }}</span>
+                          <span class="font-mono text-[10px] font-semibold leading-tight truncate max-w-full" [ngClass]="isQuickPicked(game, c.player.id) ? 'text-team-primary font-bold' : 'text-ink'">{{ c.player.name.split(',')[0] }}</span>
+                          <span class="font-mono text-[9px] text-muted leading-none">{{ c.stats.pointsPerGame | number: '1.1-1' }} {{ i18n.t('topScorer.ppgAbbrev') }}</span>
                           @if (quickPickQuote(game, c.player.id); as q) {
                             <span
-                              class="mt-0.5 font-mono text-2xs font-bold leading-none px-1.5 py-0.5 rounded-full transition-colors"
+                              class="mt-0.5 font-mono text-[10px] font-bold leading-none px-1.5 py-0.5 rounded-full transition-colors"
                               [ngClass]="isQuickPicked(game, c.player.id) ? 'bg-team-primary text-team-secondary' : 'bg-line/60 text-ink'"
                               >+{{ q }}</span
                             >
@@ -489,9 +489,9 @@
                      top-scorer pick, shown once either is made. -->
                 @if (gamePickPoints(game); as gp) {
                   @if (gp.winLoss != null || gp.topScorer != null) {
-                    <div class="mx-2.5 mb-2.5 flex items-center gap-2 rounded-lg border border-line bg-page px-2.5 py-1.5">
-                      <span class="min-w-0 text-2xs font-bold uppercase tracking-wider text-muted truncate">{{ i18n.t('predictions.gameTotal') }}</span>
-                      <span class="ml-auto flex items-center gap-1 font-mono text-xs text-muted whitespace-nowrap">
+                    <div class="mx-2.5 mb-2.5 flex items-center gap-2 rounded-xl border border-line bg-page px-2.5 py-1.5">
+                      <span class="min-w-0 text-[10px] font-bold uppercase tracking-wider text-muted truncate">{{ i18n.t('predictions.gameTotal') }}</span>
+                      <span class="ml-auto flex items-center gap-1 font-mono text-[11px] text-muted whitespace-nowrap">
                         <span class="inline-flex items-center gap-0.5" [class.text-ink]="gp.winLoss != null" [class.opacity-60]="gp.winLoss == null">
                           <app-nav-icon name="trophy" [size]="11" />{{ gp.winLoss != null ? '+' + gp.winLoss : '–' }}
                         </span>
@@ -501,7 +501,7 @@
                         </span>
                         <span>=</span>
                       </span>
-                      <span class="shrink-0 font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-team-primary text-team-secondary">+{{ gp.total }} {{ i18n.t('predictions.pts') }}</span>
+                      <span class="shrink-0 font-mono text-[12px] font-bold px-2 py-0.5 rounded-full bg-team-primary text-team-secondary">+{{ gp.total }} {{ i18n.t('predictions.pts') }}</span>
                     </div>
                   }
                 }
@@ -516,7 +516,7 @@
              can still predict"): their own section of compact read-only rows,
              no team buttons, so nothing here looks tappable. Live first. -->
         @if (lockedGames().length > 0) {
-          <p class="flex items-center gap-1.5 text-sm text-muted font-bold uppercase tracking-wider mb-2" [class.mt-4]="upcomingGames().length > 0">
+          <p class="flex items-center gap-1.5 text-[13px] text-muted font-bold uppercase tracking-wider mb-2" [class.mt-4]="upcomingGames().length > 0">
             <ng-container [ngTemplateOutlet]="lockGlyph" />
             {{ i18n.t('predictions.lockedGames') }}
           </p>
@@ -526,7 +526,7 @@
               @let tsPick = topScorerByGameId().get(game.id);
               <div class="rounded-2xl border border-line bg-page/60 px-3 py-2.5">
                 <div class="flex items-center gap-2">
-                  <span class="shrink-0 flex items-center gap-1 font-mono text-2xs font-bold uppercase tracking-wide" [ngClass]="game.status === 'live' ? 'text-red-500' : 'text-muted'">
+                  <span class="shrink-0 flex items-center gap-1 font-mono text-[10px] font-bold uppercase tracking-wide" [ngClass]="game.status === 'live' ? 'text-red-500' : 'text-muted'">
                     @if (game.status === 'live') {
                       <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>{{ i18n.t('schedule.live') }}
                     } @else if (game.status === 'final') {
@@ -538,7 +538,7 @@
                   <span class="flex-1 min-w-0 flex items-center justify-center gap-2">
                     @for (side of [game.homeTeam, game.awayTeam]; track side.id; let first = $first) {
                       @if (!first) {
-                        <span class="font-display text-base text-ink tabular-nums whitespace-nowrap">{{ game.homeScore ?? '–' }}–{{ game.awayScore ?? '–' }}</span>
+                        <span class="font-display text-[15px] text-ink tabular-nums whitespace-nowrap">{{ game.homeScore ?? '–' }}–{{ game.awayScore ?? '–' }}</span>
                       }
                       <span class="flex items-center gap-1 min-w-0" [ngClass]="first ? '' : 'flex-row-reverse'">
                         <span class="shrink-0 w-6 h-6 rounded-full bg-card flex items-center justify-center" [ngClass]="pick?.predictedTeam?.id === side.id ? 'ring-2 ring-team-primary' : 'ring-1 ring-line'">
@@ -546,13 +546,13 @@
                             <img [src]="side.logoUrl" [alt]="side.code | teamCode" loading="lazy" decoding="async" appRetryImg class="w-4 h-4 object-contain team-logo" />
                           }
                         </span>
-                        <span class="text-xs font-bold truncate" [ngClass]="pick?.predictedTeam?.id === side.id ? 'text-team-primary' : 'text-muted'">{{ side.code | teamCode }}</span>
+                        <span class="text-[11px] font-bold truncate" [ngClass]="pick?.predictedTeam?.id === side.id ? 'text-team-primary' : 'text-muted'">{{ side.code | teamCode }}</span>
                       </span>
                     }
                   </span>
                 </div>
                 @if (auth.isAuthenticated()) {
-                  <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-2 pt-2 border-t border-line/60 text-xs">
+                  <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-2 pt-2 border-t border-line/60 text-[11px]">
                     @if (!pick && !tsPick) {
                       <span class="text-muted">{{ i18n.t('predictions.noPick') }}</span>
                     }
@@ -647,10 +647,10 @@
          separates it from that card instead of sitting flush against it —
          matches the mb-5 gap every other card on this page already uses. -->
     <div class="sticky z-20 bottom-[calc(2rem+env(safe-area-inset-bottom))] sm:bottom-4 pt-3 pb-5 flex justify-center pointer-events-none">
-      <div class="w-full max-w-sm pointer-events-auto bg-card border border-line rounded-2xl shadow-pop p-3">
+      <div class="w-full max-w-sm pointer-events-auto bg-card border border-line rounded-3xl shadow-pop p-3">
         @if (potentialPoints() > 0) {
           <div class="flex items-center justify-between mb-2">
-            <span class="text-xs text-muted font-bold uppercase tracking-wider">{{ i18n.t('predictions.potentialPoints') }}</span>
+            <span class="text-[11px] text-muted font-bold uppercase tracking-wider">{{ i18n.t('predictions.potentialPoints') }}</span>
             <span class="font-mono font-bold text-sm px-2.5 py-1 rounded-full bg-team-primary/15 text-team-primary">+{{ potentialPoints() }} {{ i18n.t('predictions.pts') }}</span>
           </div>
         }
@@ -675,7 +675,7 @@
             type="button"
             (click)="requestClearAll()"
             [disabled]="submitting() || clearingAll() || roundActionsLocked()"
-            class="flex items-center justify-center gap-1.5 px-4 text-sm font-bold text-muted hover:text-red-500 hover:bg-line/40 transition-colors disabled:opacity-50 disabled:pointer-events-none"
+            class="flex items-center justify-center gap-1.5 px-4 text-[13px] font-bold text-muted hover:text-red-500 hover:bg-line/40 transition-colors disabled:opacity-50 disabled:pointer-events-none"
             [class.flex-1]="!hasPendingChanges()"
             [class.shrink-0]="hasPendingChanges()"
           >
@@ -691,7 +691,7 @@
               type="button"
               (click)="submitPredictions()"
               [disabled]="submitting() || roundActionsLocked()"
-              class="flex-1 flex items-center justify-center gap-1.5 border-l border-line bg-team-primary text-team-secondary text-sm font-bold hover:brightness-110 transition disabled:opacity-50 disabled:pointer-events-none"
+              class="flex-1 flex items-center justify-center gap-1.5 border-l border-line bg-team-primary text-team-secondary text-[14px] font-bold hover:brightness-110 transition disabled:opacity-50 disabled:pointer-events-none"
             >
               @if (submitting()) {
                 <app-logo-spinner [size]="14" />
@@ -703,9 +703,9 @@
           }
         </div>
         @if (roundActionsLocked()) {
-          <p class="text-muted text-xs font-semibold text-center mt-1.5">{{ i18n.t('predictions.roundActionsLocked') }}</p>
+          <p class="text-muted text-[11px] font-semibold text-center mt-1.5">{{ i18n.t('predictions.roundActionsLocked') }}</p>
         } @else if (submitError()) {
-          <p class="text-red-500 text-xs font-semibold text-center mt-1.5">{{ submitError() }}</p>
+          <p class="text-red-500 text-[11px] font-semibold text-center mt-1.5">{{ submitError() }}</p>
         }
       </div>
     </div>
@@ -722,7 +722,7 @@
           </div>
           <div class="space-y-2">
             @for (i of [1, 2, 3]; track i) {
-              <app-skeleton class="h-9 rounded-lg" [iconSize]="14" />
+              <app-skeleton class="h-9 rounded-md" [iconSize]="14" />
             }
           </div>
         </div>
@@ -730,7 +730,7 @@
           <div class="h-3 w-24 bg-line rounded mb-3"></div>
           <div class="space-y-2">
             @for (i of [1, 2, 3, 4]; track i) {
-              <app-skeleton class="h-9 rounded-lg" [iconSize]="14" />
+              <app-skeleton class="h-9 rounded-md" [iconSize]="14" />
             }
           </div>
         </div>
@@ -745,7 +745,7 @@
     @if (auth.isAuthenticated()) {
       <!-- Restyled 2026-09-29 ("vanilla"): team-color hero, same language as
            Fantasy's status card. -->
-      <div [ngClass]="{ 'max-sm:hidden': mobileTab() !== 'mine' }" class="relative overflow-hidden bg-card rounded-2xl border border-line shadow-card p-4 sm:p-5 mb-5">
+      <div [ngClass]="{ 'max-sm:hidden': mobileTab() !== 'mine' }" class="relative overflow-hidden bg-card rounded-3xl border border-line shadow-card p-4 sm:p-5 mb-5">
         <div class="pointer-events-none absolute inset-0" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 26%, transparent) 0%, color-mix(in srgb, var(--accent-primary) 6%, transparent) 55%, transparent 100%)" aria-hidden="true"></div>
         <div class="pointer-events-none absolute -right-16 -top-16 w-48 h-48 rounded-full border-[14px]" style="border-color: color-mix(in srgb, var(--accent-primary) 12%, transparent)" aria-hidden="true"></div>
         <div class="relative">
@@ -755,12 +755,12 @@
               <div class="h-7 w-16 bg-line rounded"></div>
               <div class="h-5 w-24 bg-line rounded"></div>
             </div>
-            <div class="h-8 w-full bg-line rounded-lg"></div>
+            <div class="h-8 w-full bg-line rounded-xl"></div>
           </div>
         }
         @if (mySummary()) {
           @if (perfectRoundRewards().length > 0) {
-            <div class="flex items-center gap-2 rounded-lg bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3">
+            <div class="flex items-center gap-2 rounded-xl bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3">
               <app-nav-icon name="trophy" [size]="18" class="shrink-0" />
               {{ i18n.t('predictions.perfectRoundPrefix') }}
               {{
@@ -773,7 +773,7 @@
             </div>
           }
           @if (greatRoundRewards().length > 0) {
-            <div class="flex items-center gap-2 rounded-lg bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3">
+            <div class="flex items-center gap-2 rounded-xl bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3">
               <app-nav-icon name="flame" [size]="18" class="shrink-0" />
               {{ i18n.t('predictions.greatRoundPrefix') }}
               {{
@@ -786,7 +786,7 @@
             </div>
           }
           @if (shownMilestoneRewards().length > 0) {
-            <div class="flex items-center gap-2 rounded-lg bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3">
+            <div class="flex items-center gap-2 rounded-xl bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3">
               <app-nav-icon name="picks" [size]="18" class="shrink-0" />
               {{ i18n.t('predictions.milestonePrefix') }}
               {{
@@ -799,7 +799,7 @@
             </div>
           }
           @if (shownCoachMilestoneRewards().length > 0) {
-            <div class="flex items-center gap-2 rounded-lg bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3">
+            <div class="flex items-center gap-2 rounded-xl bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3">
               <app-nav-icon name="picks" [size]="18" class="shrink-0" />
               {{ i18n.t('predictions.coachMilestonePrefix') }}
               {{
@@ -819,7 +819,7 @@
                just a count, but falls back to a count once several stack
                up (e.g. after being away for a while). -->
           @if (shownRareMilestoneRewards().length > 0) {
-            <div class="flex items-center gap-2 rounded-lg bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3">
+            <div class="flex items-center gap-2 rounded-xl bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3">
               <app-nav-icon name="picks" [size]="18" class="shrink-0" />
               {{ i18n.t('predictions.rareMilestonePrefix') }}
               {{
@@ -837,7 +837,7 @@
           @if (shownMomentBonuses().length > 0) {
             <a
               routerLink="/album"
-              class="flex items-center gap-2 rounded-lg bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3"
+              class="flex items-center gap-2 rounded-xl bg-team-primary/10 text-team-primary text-xs font-bold px-3 py-2 mb-3"
             >
               <app-nav-icon name="medal" [size]="18" class="shrink-0" />
               <span class="min-w-0 truncate">
@@ -850,17 +850,17 @@
           }
           <div class="flex items-end justify-between gap-3">
             <div class="min-w-0">
-              <p class="text-xs font-bold text-muted uppercase tracking-wider">{{ i18n.t('predictions.yourPoints') }}</p>
+              <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('predictions.yourPoints') }}</p>
               <p class="font-display text-5xl leading-none tabular-nums text-ink mt-1"><app-count-up [value]="mySummary()!.points" /></p>
             </div>
             @if (myStanding(); as st) {
               <div class="flex gap-2 shrink-0">
                 <div class="status-tile rounded-2xl border border-line px-3 py-2 text-center min-w-[64px]">
-                  <p class="text-xs font-bold text-muted uppercase tracking-wider">{{ i18n.t('predictions.rankLabel') }}</p>
+                  <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('predictions.rankLabel') }}</p>
                   <p class="font-display text-xl leading-tight tabular-nums text-team-primary">#<app-count-up [value]="st.rank" [from]="st.rank + 20" /></p>
                 </div>
                 <div class="status-tile rounded-2xl border border-line px-3 py-2 text-center min-w-[64px]">
-                  <p class="text-xs font-bold text-muted uppercase tracking-wider">{{ i18n.t('predictions.correctLabel') }}</p>
+                  <p class="text-[11px] font-bold text-muted uppercase tracking-wider">{{ i18n.t('predictions.correctLabel') }}</p>
                   <p class="font-display text-xl leading-tight tabular-nums">{{ st.correct }}/{{ st.total }}</p>
                 </div>
               </div>
@@ -877,7 +877,7 @@
               </span>
             }
             @if (mySummary()!.badges.length === 0) {
-              <span class="text-xs text-muted">{{ i18n.t('predictions.noBadgesYet') }}</span>
+              <span class="text-[12px] text-muted">{{ i18n.t('predictions.noBadgesYet') }}</span>
             }
             <button
               type="button"
@@ -885,7 +885,7 @@
               class="status-tile ml-auto h-11 flex items-center gap-1.5 px-3 rounded-2xl border border-line text-muted hover:text-team-primary transition-colors"
             >
               <app-nav-icon name="tip" [size]="16" />
-              <span class="text-xs font-bold">{{ i18n.t('predictions.whatDoTheseMean') }}</span>
+              <span class="text-[12px] font-bold">{{ i18n.t('predictions.whatDoTheseMean') }}</span>
             </button>
           </div>
           <!-- Closest reward (2026-09-30) — links to the Achievements page. -->
@@ -893,7 +893,7 @@
             <a routerLink="/achievements" class="status-tile flex items-center gap-3 mt-3 rounded-2xl border border-line px-3 py-2.5 hover:border-team-primary/50 transition-colors">
               <app-nav-icon name="medal" [size]="18" class="text-team-primary shrink-0" />
               <span class="min-w-0 flex-1">
-                <span class="flex items-baseline justify-between gap-2 text-xs">
+                <span class="flex items-baseline justify-between gap-2 text-[12px]">
                   <span class="font-bold truncate">{{ i18n.t('achievements.nextRewardStrip') }}: {{ i18n.t('achievements.milestone.' + m.id) }}</span>
                   <span class="font-mono font-bold tabular-nums shrink-0">{{ m.progress }}/{{ m.every }}</span>
                 </span>
@@ -912,9 +912,9 @@
     <div class="grid gap-5 grid-cols-1 sm:grid-cols-2">
       <!-- My picks — min-w-0 so a wide header can't stretch the grid column
            (and the Leaderboard card with it) past a phone's screen. -->
-      <div [ngClass]="{ 'max-sm:hidden': mobileTab() !== 'mine' }" class="min-w-0 bg-card rounded-2xl border border-line shadow-card p-4 sm:p-5">
+      <div [ngClass]="{ 'max-sm:hidden': mobileTab() !== 'mine' }" class="min-w-0 bg-card rounded-3xl border border-line shadow-card p-4 sm:p-5">
         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-          <p class="text-sm text-muted font-bold uppercase tracking-wider flex items-center gap-1.5">
+          <p class="text-[13px] text-muted font-bold uppercase tracking-wider flex items-center gap-1.5">
             <app-nav-icon name="picks" [size]="14" class="shrink-0" />
             {{ i18n.t('predictions.myPicks') }}
           </p>
@@ -925,11 +925,11 @@
                  reads consistently with the rest of the app.
                  py-1.5 -> py-2 (2026-09-25 mobile pass) — a bigger touch
                  target for the thumb-reachable tab switch on a phone. -->
-            <div class="status-tile flex gap-1 h-10 p-1 rounded-lg border border-line max-w-full">
+            <div class="status-tile flex gap-1 h-10 p-1 rounded-xl border border-line max-w-full">
               <button
                 type="button"
                 (click)="picksTab.set('winLoss')"
-                class="h-full px-3 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors"
+                class="h-full px-3 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors"
                 [ngClass]="picksTab() === 'winLoss' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
               >
                 {{ i18n.t('predictions.tabWinLoss') }}
@@ -937,7 +937,7 @@
               <button
                 type="button"
                 (click)="picksTab.set('topScorer')"
-                class="h-full px-3 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors"
+                class="h-full px-3 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors"
                 [ngClass]="picksTab() === 'topScorer' ? 'bg-team-primary text-team-secondary shadow-sm' : 'text-muted hover:text-ink'"
               >
                 {{ i18n.t('predictions.tabTopScorer') }}
@@ -971,24 +971,24 @@
                   [ngClass]="p.isPendingSubmit ? 'is-mine' : p.isCorrect === true ? '!border-emerald-500/40' : p.isCorrect === false ? '!border-red-500/30' : ''"
                 >
                   <div class="flex items-center gap-3">
-                    <span class="w-10 h-10 rounded-lg bg-card border border-line flex items-center justify-center shrink-0">
+                    <span class="w-10 h-10 rounded-xl bg-card border border-line flex items-center justify-center shrink-0">
                       @if (teamLogo(p.predictedTeam.id); as logo) {
                         <img [src]="logo" [alt]="p.predictedTeam.code | teamCode" loading="lazy" decoding="async" appRetryImg class="w-7 h-7 object-contain team-logo" />
                       } @else {
-                        <span class="font-display text-xs">{{ p.predictedTeam.code | teamCode }}</span>
+                        <span class="font-display text-[11px]">{{ p.predictedTeam.code | teamCode }}</span>
                       }
                     </span>
                     <div class="min-w-0 flex-1">
-                      <p class="font-semibold text-sm leading-tight truncate">{{ p.predictedTeam.name }}</p>
-                      <p class="font-mono text-muted text-xs mt-0.5">{{ p.tipoffAt | date: pickDateFormat():"Europe/Athens":dateLocale() }}{{ p.tipoffAt | todayTag: i18n.lang() }}</p>
+                      <p class="font-semibold text-[13px] leading-tight truncate">{{ p.predictedTeam.name }}</p>
+                      <p class="font-mono text-muted text-[11px] mt-0.5">{{ p.tipoffAt | date: pickDateFormat():"Europe/Athens":dateLocale() }}{{ p.tipoffAt | todayTag: i18n.lang() }}</p>
                     </div>
                     <ng-container *ngTemplateOutlet="pickResultChip; context: { pending: p.isPendingSubmit, correct: p.isCorrect, points: null }"></ng-container>
                   </div>
                   @if (tsPick) {
                     <div class="flex items-center gap-2 mt-2 pt-2 border-t border-line/60">
                       <app-player-photo [name]="tsPick.predictedPlayer.name" [photoUrl]="tsPick.predictedPlayer.photoUrl" [size]="22" [fill]="true" class="rounded-full block shrink-0" />
-                      <span class="text-xs text-muted truncate flex-1 min-w-0">
-                        <span class="font-bold uppercase tracking-wider text-2xs mr-1">{{ i18n.t('topScorer.yourTopScorer') }}</span>
+                      <span class="text-[11px] text-muted truncate flex-1 min-w-0">
+                        <span class="font-bold uppercase tracking-wider text-[9px] mr-1">{{ i18n.t('topScorer.yourTopScorer') }}</span>
                         <span class="text-ink font-semibold">{{ tsPick.predictedPlayer.name.split(',')[0] }}</span>
                       </span>
                       <ng-container *ngTemplateOutlet="pickResultChip; context: { pending: false, correct: tsPick.isCorrect, points: tsPick.pointsAtPick, small: true }"></ng-container>
@@ -1004,7 +1004,7 @@
           } @else if (topScorerPicksLoading()) {
             <div class="animate-pulse space-y-2">
               @for (i of [1, 2, 3]; track i) {
-                <app-skeleton class="h-9 rounded-lg" [iconSize]="14" />
+                <app-skeleton class="h-9 rounded-md" [iconSize]="14" />
               }
             </div>
           } @else {
@@ -1018,8 +1018,8 @@
                     <app-player-photo [name]="p.predictedPlayer.name" [photoUrl]="p.predictedPlayer.photoUrl" [size]="40" class="rounded-full block" />
                   </span>
                   <div class="min-w-0 flex-1">
-                    <p class="font-semibold text-sm leading-tight truncate">{{ p.predictedPlayer.name.split(',')[0] }}</p>
-                    <p class="font-mono text-muted text-xs mt-0.5 flex items-center gap-1 min-w-0">
+                    <p class="font-semibold text-[13px] leading-tight truncate">{{ p.predictedPlayer.name.split(',')[0] }}</p>
+                    <p class="font-mono text-muted text-[11px] mt-0.5 flex items-center gap-1 min-w-0">
                       <app-team-badge [code]="p.homeTeam.code" [logoUrl]="teamLogo(p.homeTeam.id)" [size]="14"></app-team-badge>
                       <span>&ndash;</span>
                       <app-team-badge [code]="p.awayTeam.code" [logoUrl]="teamLogo(p.awayTeam.id)" [size]="14"></app-team-badge>
@@ -1037,7 +1037,7 @@
           }
           <a
             routerLink="/predictions-history"
-            class="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-page text-muted hover:text-team-primary transition-colors text-xs font-bold uppercase tracking-wider"
+            class="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-page text-muted hover:text-team-primary transition-colors text-[11px] font-bold uppercase tracking-wider"
           >
             {{ i18n.t('predictions.history.navTitle') }}
             @if ((picksTab() === 'winLoss' ? hiddenPicksCount() : hiddenTopScorerPicksCount()); as hidden) {
@@ -1048,8 +1048,8 @@
       </div>
 
       <!-- Leaderboard -->
-      <div id="leaderboard" [ngClass]="{ 'max-sm:hidden': mobileTab() !== 'board' }" class="min-w-0 bg-card rounded-2xl border border-line shadow-card p-4 sm:p-5 scroll-mt-24">
-        <p class="text-sm text-muted font-bold uppercase tracking-wider mb-3 flex items-center gap-1.5">
+      <div id="leaderboard" [ngClass]="{ 'max-sm:hidden': mobileTab() !== 'board' }" class="min-w-0 bg-card rounded-3xl border border-line shadow-card p-4 sm:p-5 scroll-mt-24">
+        <p class="text-[13px] text-muted font-bold uppercase tracking-wider mb-3 flex items-center gap-1.5">
           <app-nav-icon name="standings" [size]="14" class="shrink-0" />
           {{ i18n.t('predictions.leaderboard') }}
         </p>
@@ -1062,13 +1062,13 @@
             <button
               type="button"
               (click)="openMember(entry)"
-              class="w-full flex justify-between items-center px-2.5 py-2.5 rounded-lg text-left hover:bg-white/5 transition-colors"
+              class="w-full flex justify-between items-center px-2.5 py-2.5 rounded-xl text-left hover:bg-white/5 transition-colors"
               [ngClass]="{ 'bg-team-primary/10': i === 0 }"
             >
               <span class="font-semibold flex items-center gap-1">
                 @if (i < 3) {
                   <span
-                    class="font-mono text-xs font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+                    class="font-mono text-[12px] font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0"
                     [ngClass]="i === 0 ? 'bg-team-primary text-team-secondary' : 'bg-team-primary/15 text-team-primary'"
                   >{{ i + 1 }}</span>
                 } @else {
@@ -1083,7 +1083,7 @@
               </span>
               <span class="text-right">
                 <span class="font-mono text-team-primary font-bold"><app-count-up [value]="entry.points" /> pts</span>
-                <span class="font-mono text-muted text-xs block">{{ entry.correct }}/{{ entry.total }}</span>
+                <span class="font-mono text-muted text-[12px] block">{{ entry.correct }}/{{ entry.total }}</span>
               </span>
             </button>
           } @empty {
@@ -1094,16 +1094,16 @@
           <button
             type="button"
             (click)="openMember(mine.entry)"
-            class="w-full flex justify-between items-center px-2.5 py-2.5 mt-1.5 pt-2.5 border-t border-line rounded-lg text-left hover:bg-white/5 transition-colors"
+            class="w-full flex justify-between items-center px-2.5 py-2.5 mt-1.5 pt-2.5 border-t border-line rounded-xl text-left hover:bg-white/5 transition-colors"
           >
             <span class="font-semibold flex items-center gap-1">
               <span class="font-mono text-muted w-5 shrink-0">{{ mine.rank }}</span>
               &nbsp;{{ mine.entry.displayName }}
-              <span class="text-xs text-team-primary font-bold uppercase tracking-wide">{{ i18n.t('predictions.you') }}</span>
+              <span class="text-[11px] text-team-primary font-bold uppercase tracking-wide">{{ i18n.t('predictions.you') }}</span>
             </span>
             <span class="text-right">
               <span class="font-mono text-team-primary font-bold"><app-count-up [value]="mine.entry.points" /> pts</span>
-              <span class="font-mono text-muted text-xs block">{{ mine.entry.correct }}/{{ mine.entry.total }}</span>
+              <span class="font-mono text-muted text-[12px] block">{{ mine.entry.correct }}/{{ mine.entry.total }}</span>
             </span>
           </button>
         }
@@ -1126,13 +1126,13 @@
           <a
             routerLink="/leagues"
             [title]="i18n.t('leagues.navLink')"
-            class="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-page text-xs font-bold text-muted hover:text-team-primary transition-colors"
+            class="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-page text-[11px] font-bold text-muted hover:text-team-primary transition-colors"
           >
             <app-nav-icon name="bracket" [size]="13" />
             <span class="hidden sm:inline">{{ i18n.t('leagues.navLink') }}</span>
             @if (battlesNotif.hasPendingIncoming()) {
               <span
-                class="absolute -top-1.5 -right-1.5 min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center leading-none"
+                class="absolute -top-1.5 -right-1.5 min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-red-500 text-white text-[11px] font-bold flex items-center justify-center leading-none"
                 [attr.aria-label]="i18n.t('battles.pendingChallenges')"
                 >{{ battlesNotif.pendingIncomingCount() }}</span
               >
@@ -1141,7 +1141,7 @@
           <a
             routerLink="/fantasy"
             [title]="i18n.t('fantasy.navLink')"
-            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-page text-xs font-bold text-muted hover:text-team-primary transition-colors"
+            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-page text-[11px] font-bold text-muted hover:text-team-primary transition-colors"
           >
             <app-nav-icon name="trophy" [size]="13" />
             <span class="hidden sm:inline">{{ i18n.t('fantasy.navLink') }}</span>
@@ -1149,7 +1149,7 @@
           <a
             routerLink="/predictions-analytics"
             [title]="i18n.t('predictions.analytics.navTitle')"
-            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-page text-xs font-bold text-muted hover:text-team-primary transition-colors"
+            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-page text-[11px] font-bold text-muted hover:text-team-primary transition-colors"
           >
             <app-nav-icon name="sliders" [size]="13" />
             <span class="hidden sm:inline">{{ i18n.t('predictions.analytics.navTitle') }}</span>
@@ -1166,7 +1166,7 @@
             <div class="flex items-start justify-between gap-2 mb-4">
               <div>
                 <p class="font-display text-xl tracking-wide">{{ entry.displayName }}</p>
-                <p class="font-mono text-xs text-muted mt-0.5">{{ entry.correct }}/{{ entry.total }} &middot; {{ entry.points }} pts</p>
+                <p class="font-mono text-[12px] text-muted mt-0.5">{{ entry.correct }}/{{ entry.total }} &middot; {{ entry.points }} pts</p>
               </div>
               <button
                 type="button"
@@ -1178,15 +1178,15 @@
               </button>
             </div>
 
-            <p class="text-xs text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('leagues.badgesTitle') }}</p>
+            <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('leagues.badgesTitle') }}</p>
             @if (entry.badges.length > 0) {
               <div class="grid gap-2 mb-4">
                 @for (badge of entry.badges; track badge.id) {
-                  <div class="flex items-center gap-2 bg-page rounded-lg px-3 py-2">
+                  <div class="flex items-center gap-2 bg-page rounded-xl px-3 py-2">
                     <app-nav-icon [name]="badgeIcon(badge.id)" [size]="16" class="text-team-primary shrink-0" />
                     <div class="min-w-0">
                       <p class="text-sm font-semibold">{{ badgeLabel(badge.id) }}</p>
-                      <p class="text-xs text-muted">{{ badgeDescription(badge.id) }}</p>
+                      <p class="text-[11px] text-muted">{{ badgeDescription(badge.id) }}</p>
                     </div>
                   </div>
                 }
@@ -1195,7 +1195,7 @@
               <p class="text-xs text-muted mb-4">{{ i18n.t('leagues.noBadgesYet') }}</p>
             }
 
-            <p class="text-xs text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('leagues.cardsTitle') }}</p>
+            <p class="text-[12px] text-muted font-bold uppercase tracking-wider mb-2">{{ i18n.t('leagues.cardsTitle') }}</p>
             @if (entry.showcase.length > 0) {
               <div class="grid grid-cols-3 gap-3">
                 @for (card of entry.showcase; track card.id) {
@@ -1247,7 +1247,7 @@
       <div class="flex items-start justify-between gap-2 mb-3">
         <div>
           <p class="font-display text-lg tracking-wide">{{ i18n.t('topScorer.pickTitle') }}</p>
-          <p class="font-mono text-xs text-muted mt-0.5">{{ game.homeTeam.name }} &ndash; {{ game.awayTeam.name }}</p>
+          <p class="font-mono text-[12px] text-muted mt-0.5">{{ game.homeTeam.name }} &ndash; {{ game.awayTeam.name }}</p>
         </div>
         <button
           type="button"
@@ -1292,7 +1292,7 @@
               <app-nav-icon [name]="b.icon" [size]="20" />
             </span>
             <div class="min-w-0">
-              <p class="text-xs font-bold uppercase tracking-wider" [class.text-muted]="!isEarned(b.id)">{{ badgeLabel(b.id) }}</p>
+              <p class="text-[12px] font-bold uppercase tracking-wider" [class.text-muted]="!isEarned(b.id)">{{ badgeLabel(b.id) }}</p>
               <p class="text-xs text-muted">{{ badgeDescription(b.id) }}</p>
             </div>
           </div>
@@ -1318,7 +1318,7 @@
   <span
     class="shrink-0 inline-flex items-center gap-1 rounded-full font-bold whitespace-nowrap"
     [ngClass]="[
-      small ? 'text-2xs px-2 py-0.5' : 'text-xs px-2.5 py-1',
+      small ? 'text-[10px] px-2 py-0.5' : 'text-[11px] px-2.5 py-1',
       pending ? 'bg-team-primary/15 text-team-primary'
         : correct === true ? 'bg-emerald-500/15 text-emerald-500'
         : correct === false ? 'bg-red-500/15 text-red-500 line-through decoration-2'

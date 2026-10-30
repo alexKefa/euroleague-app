@@ -16,10 +16,10 @@ import { TeamCodePipe } from "./team-display-code";
   standalone: true,
   imports: [RouterLink, TeamCodePipe, NavIconComponent],
   template: `
-    <div class="px-3 py-2 border-t border-line text-xs">
+    <div class="px-3 py-2 border-t border-line text-[11px]">
       @for (row of rows(); track row.team.id) {
         <div class="flex items-center gap-2 h-5">
-          <span class="font-display text-xs w-9 shrink-0">{{ row.team.code | teamCode }}</span>
+          <span class="font-display text-[12px] w-9 shrink-0">{{ row.team.code | teamCode }}</span>
           <span class="flex gap-1" [attr.aria-label]="row.form.join(' ')">
             @for (r of row.form; track $index) {
               <span
@@ -45,7 +45,7 @@ import { TeamCodePipe } from "./team-display-code";
       }
       <a
         [routerLink]="['/games', gameId()]"
-        class="mt-1 flex justify-end text-xs font-semibold text-team-primary hover:underline"
+        class="mt-1 flex justify-end text-[11px] font-semibold text-team-primary hover:underline"
         (pointerdown)="$event.stopPropagation()"
         (touchstart)="$event.stopPropagation()"
         (click)="$event.stopPropagation()"

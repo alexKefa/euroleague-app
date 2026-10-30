@@ -61,7 +61,7 @@ export type GoogleSignInResult = { created: boolean; promo: { packType: string; 
     @if (enabled()) {
       <div class="flex items-center gap-3 my-4" aria-hidden="true">
         <span class="h-px flex-1 bg-line"></span>
-        <span class="text-xs text-muted font-semibold uppercase tracking-wider">{{ i18n.t('auth.orDivider') }}</span>
+        <span class="text-[12px] text-muted font-semibold uppercase tracking-wider">{{ i18n.t('auth.orDivider') }}</span>
         <span class="h-px flex-1 bg-line"></span>
       </div>
       <button

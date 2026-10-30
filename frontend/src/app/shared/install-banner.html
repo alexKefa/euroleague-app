@@ -9,12 +9,12 @@
   >
     @if (!expanded()) {
       <div class="flex items-start gap-3">
-        <div class="shrink-0 w-10 h-10 rounded-lg bg-team-primary/10 flex items-center justify-center text-team-primary">
+        <div class="shrink-0 w-10 h-10 rounded-xl bg-team-primary/10 flex items-center justify-center text-team-primary">
           <app-nav-icon name="install" [size]="20" />
         </div>
         <div class="flex-1 min-w-0">
           <p class="text-sm font-bold leading-snug">{{ i18n.t('install.title') }}</p>
-          <p class="text-xs text-muted leading-snug mt-0.5">{{ i18n.t('install.subtitle') }}</p>
+          <p class="text-[12px] text-muted leading-snug mt-0.5">{{ i18n.t('install.subtitle') }}</p>
         </div>
         <button
           type="button"
@@ -50,7 +50,7 @@
         @if (platform === "ios") {
           <li class="flex items-center gap-2.5 text-sm">
             <span
-              class="shrink-0 w-6 h-6 rounded-full bg-team-primary/10 text-team-primary flex items-center justify-center font-mono text-xs font-bold"
+              class="shrink-0 w-6 h-6 rounded-full bg-team-primary/10 text-team-primary flex items-center justify-center font-mono text-[11px] font-bold"
               >1</span
             >
             <span class="flex items-center gap-1.5"
@@ -59,14 +59,14 @@
           </li>
           <li class="flex items-center gap-2.5 text-sm">
             <span
-              class="shrink-0 w-6 h-6 rounded-full bg-team-primary/10 text-team-primary flex items-center justify-center font-mono text-xs font-bold"
+              class="shrink-0 w-6 h-6 rounded-full bg-team-primary/10 text-team-primary flex items-center justify-center font-mono text-[11px] font-bold"
               >2</span
             >
             <span>{{ i18n.t('install.iosStep2') }}</span>
           </li>
           <li class="flex items-center gap-2.5 text-sm">
             <span
-              class="shrink-0 w-6 h-6 rounded-full bg-team-primary/10 text-team-primary flex items-center justify-center font-mono text-xs font-bold"
+              class="shrink-0 w-6 h-6 rounded-full bg-team-primary/10 text-team-primary flex items-center justify-center font-mono text-[11px] font-bold"
               >3</span
             >
             <span>{{ i18n.t('install.iosStep3') }}</span>
@@ -74,7 +74,7 @@
         } @else {
           <li class="flex items-center gap-2.5 text-sm">
             <span
-              class="shrink-0 w-6 h-6 rounded-full bg-team-primary/10 text-team-primary flex items-center justify-center font-mono text-xs font-bold"
+              class="shrink-0 w-6 h-6 rounded-full bg-team-primary/10 text-team-primary flex items-center justify-center font-mono text-[11px] font-bold"
               >1</span
             >
             <span class="flex items-center gap-1.5"
@@ -83,7 +83,7 @@
           </li>
           <li class="flex items-center gap-2.5 text-sm">
             <span
-              class="shrink-0 w-6 h-6 rounded-full bg-team-primary/10 text-team-primary flex items-center justify-center font-mono text-xs font-bold"
+              class="shrink-0 w-6 h-6 rounded-full bg-team-primary/10 text-team-primary flex items-center justify-center font-mono text-[11px] font-bold"
               >2</span
             >
             <span>{{ i18n.t('install.androidStep2') }}</span>
