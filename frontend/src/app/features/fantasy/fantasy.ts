@@ -1361,6 +1361,7 @@ export class FantasyComponent implements OnInit {
     const desc = this.sortDesc();
 
     const filtered = this.allRows().filter((row) => {
+      if (!row.priced) return false;
       if (inSquad.has(row.player.id)) return false;
       if (query && !row.player.name.toLowerCase().includes(query)) return false;
       if (team && row.team.id !== team) return false;
@@ -1690,7 +1691,7 @@ export class FantasyComponent implements OnInit {
     this.importProgress.set(0);
     this.importError.set(null);
     this.importResult.set(null);
-    readSquadFromScreenshot(file, this.allRows(), this.coaches(), (pct) => this.importProgress.set(pct))
+    readSquadFromScreenshot(file, this.allRows().filter((r) => r.priced), this.coaches(), (pct) => this.importProgress.set(pct))
       .then((result) => {
         this.importing.set(false);
         this.applyImportedSquad(result);
@@ -2652,7 +2653,7 @@ export class FantasyComponent implements OnInit {
     const taken = this.selectedPlayerIds();
     const best: Record<PositionName | "any", number | null> = { Guard: null, Forward: null, Center: null, any: null };
     for (const r of this.allRows()) {
-      if (taken.has(r.player.id)) continue;
+      if (taken.has(r.player.id) || !r.priced) continue;
       const pos = r.player.position as PositionName | null;
       if (pos && pos in best && (best[pos] === null || r.price < best[pos]!)) best[pos] = r.price;
       if (best.any === null || r.price < best.any) best.any = r.price;

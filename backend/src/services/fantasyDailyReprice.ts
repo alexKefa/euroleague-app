@@ -3,6 +3,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import {
   coachFantasyPrices,
+  playerFantasyPrices,
   fantasyPriceChangeLog,
   fantasyCoachPriceChangeLog,
   fantasyPricingState,
@@ -14,6 +15,8 @@ import {
   FANTASY_MAX_PRICE,
   COACH_MIN_PRICE,
   FANTASY_PIR_CEILING_FLOOR,
+  computeFantasyPrice,
+  RECENT_FORM_WINDOW,
 } from "./fantasyScoring.js";
 import { refreshFinalBoxscore } from "../sync/liveGamesSync.js";
 
@@ -155,7 +158,7 @@ async function bumpCeilingIfNeeded(season: string, highestPrice: number): Promis
  * (player/coach, game) pairs with no change-log row yet, so restarts or an
  * irregular schedule can't double-apply or silently skip a game.
  */
-export async function applyDailyFantasyPriceChanges(season: string): Promise<{ playersUpdated: number; coachesUpdated: number }> {
+export async function applyDailyFantasyPriceChanges(season: string): Promise<{ playersUpdated: number; coachesUpdated: number; playersPriced: number }> {
   const settledBefore = new Date(Date.now() - PRICE_SETTLE_MS).toISOString();
   // Games about to be priced for the first time (no coach move logged yet;
   // both teams' coach rows are always written together) get their official
@@ -172,7 +175,95 @@ export async function applyDailyFantasyPriceChanges(season: string): Promise<{ p
   }
   const playersUpdated = await applyPlayerPriceChanges(season, settledBefore);
   const coachesUpdated = await applyCoachPriceChanges(season, settledBefore);
-  return { playersUpdated, coachesUpdated };
+  const playersPriced = await priceNewPlayers(season, settledBefore);
+  return { playersUpdated, coachesUpdated, playersPriced };
+}
+
+/**
+ * Prices mid-season signings (2026-10-30, Koloko sat at the 4.0 fallback
+ * for a week: a player with no player_fantasy_prices row never got one, and
+ * the moves above only update existing rows). Until priced a player is
+ * hidden from the pool and can't be picked (GET /fantasy/players `priced`,
+ * saveFantasyLineup's UNPRICED_PLAYER). Priced here once he has a box-score
+ * line in a settled round, from those games via the season-start formula
+ * (computeFantasyPrice). Every settled game the move query above would
+ * otherwise pick up for him, including his club's games from before he
+ * joined (it matches on current team), is logged as a zero move: the
+ * price already reflects them. Later rounds move him normally.
+ */
+async function priceNewPlayers(season: string, settledBefore: string): Promise<number> {
+  const rows = await db.execute<{
+    player_id: string;
+    recent_avg_pir: number | null;
+    recent_avg_minutes: number | null;
+    recent_count: number;
+    season_pir: number | null;
+    season_minutes: number | null;
+  }>(sql`
+    with candidates as (
+      select p.id from players p
+      where p.active
+        and not exists (select 1 from player_fantasy_prices f where f.player_id = p.id and f.season = ${season})
+        and exists (select 1 from games t where t.season = ${season} and p.team_id in (t.home_team_id, t.away_team_id))
+    ),
+    recent_games as (
+      select pgs.player_id, pgs.valuation, pgs.minutes,
+        row_number() over (partition by pgs.player_id order by g.tipoff_at desc) as rn
+      from player_game_stats pgs
+      join games g on g.id = pgs.game_id
+      where pgs.player_id in (select id from candidates)
+        and g.season = ${season} and g.status = 'final' and ${roundSettled(settledBefore)}
+    ),
+    recent_agg as (
+      select player_id, avg(valuation) as recent_avg_pir, avg(minutes) as recent_avg_minutes, count(*)::int as recent_count
+      from recent_games where rn <= ${RECENT_FORM_WINDOW}
+      group by player_id
+    ),
+    prior_season as (
+      select distinct on (player_id) player_id, valuation, minutes_per_game
+      from player_season_stats
+      where season < ${season} and player_id in (select id from candidates)
+      order by player_id, season desc
+    )
+    select ra.player_id, ra.recent_avg_pir, ra.recent_avg_minutes, ra.recent_count,
+      prior.valuation as season_pir, prior.minutes_per_game as season_minutes
+    from recent_agg ra
+    left join prior_season prior on prior.player_id = ra.player_id
+  `);
+  if (rows.length === 0) return 0;
+
+  const [state] = await db.select({ ceiling: fantasyPricingState.ceiling }).from(fantasyPricingState).where(eq(fantasyPricingState.season, season));
+  const ceiling = state?.ceiling ?? FANTASY_PIR_CEILING_FLOOR;
+  const priced = rows.map((r) => ({
+    playerId: r.player_id,
+    season,
+    price: computeFantasyPrice(
+      {
+        recentAvgPIR: r.recent_avg_pir === null ? null : Number(r.recent_avg_pir),
+        recentAvgMinutes: r.recent_avg_minutes === null ? null : Number(r.recent_avg_minutes),
+        recentGameCount: Number(r.recent_count),
+        seasonPIR: r.season_pir,
+        seasonMinutesPerGame: r.season_minutes,
+      },
+      ceiling
+    ),
+  }));
+  const ids = priced.map((p) => p.playerId);
+  await db.transaction(async (tx) => {
+    await tx.insert(playerFantasyPrices).values(priced).onConflictDoNothing();
+    await tx.execute(sql`
+      insert into fantasy_price_change_log (player_id, game_id, delta, applied_delta)
+      select p.id, g.id, 0, 0
+      from games g
+      join players p on p.id in (${sql.join(ids.map((id) => sql`${id}::uuid`), sql`, `)})
+      left join player_game_stats pgs on pgs.game_id = g.id and pgs.player_id = p.id
+      where g.season = ${season} and g.status = 'final' and ${roundSettled(settledBefore)}
+        and (pgs.player_id is not null or p.team_id in (g.home_team_id, g.away_team_id))
+      on conflict do nothing
+    `);
+  });
+  for (const p of priced) console.log(`[fantasy daily reprice] priced new player ${p.playerId} at ${p.price}`);
+  return priced.length;
 }
 
 type PlayerMoveRow = {

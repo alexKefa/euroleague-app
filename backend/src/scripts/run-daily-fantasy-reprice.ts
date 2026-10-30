@@ -17,8 +17,8 @@ async function main() {
     console.log("No current season (no games synced yet) — nothing to reprice.");
     return;
   }
-  const { playersUpdated, coachesUpdated } = await applyDailyFantasyPriceChanges(season);
-  console.log(`Season ${season}: repriced ${playersUpdated} player(s), ${coachesUpdated} coach(es).`);
+  const { playersUpdated, coachesUpdated, playersPriced } = await applyDailyFantasyPriceChanges(season);
+  console.log(`Season ${season}: repriced ${playersUpdated} player(s), ${coachesUpdated} coach(es), priced ${playersPriced} new player(s).`);
 }
 
 main()

@@ -1197,6 +1197,9 @@ export interface FantasyPlayerRow {
   player: { id: string; name: string; position: string | null; photoUrl: string | null };
   team: { id: string; code: string; name: string; primaryColor: string | null; logoUrl: string | null };
   price: number;
+  // False for a mid-season signing with no price yet: hidden from the
+  // pool and pickers until his first settled game (2026-10-30).
+  priced: boolean;
   // The most recent daily reprice delta applied to this player (2026-09-22,
   // fantasyDailyReprice.ts) — null if no daily move has ever been applied
   // yet this season. Positive = price rose last time it moved, negative =

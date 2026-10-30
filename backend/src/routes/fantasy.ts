@@ -157,6 +157,9 @@ fantasyRouter.get("/players", async (req, res) => {
             player: { id: r.player.id, name: r.player.name, position: r.player.position, photoUrl: r.player.photoUrl },
             team: { id: r.team.id, code: r.team.code, name: r.team.name, primaryColor: r.team.primaryColor, logoUrl: r.team.logoUrl },
             price: r.price ?? FANTASY_MIN_PRICE,
+            // False for a mid-season signing not priced yet: hidden from the
+            // pool until his first settled game (fantasyDailyReprice.ts priceNewPlayers).
+            priced: r.price !== null,
             priceTrend: trendByPlayerId.get(r.player.id) ?? null,
             pointsPerGame: r.stats?.pointsPerGame ?? null,
             valuation: r.stats?.valuation ?? null,

@@ -349,8 +349,8 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
     getCurrentSeason()
       .then((season) => (season ? applyDailyFantasyPriceChanges(season) : Promise.resolve(null)))
       .then((result) => {
-        if (!result || (result.playersUpdated === 0 && result.coachesUpdated === 0)) return;
-        console.log(`[fantasy daily reprice] ${result.playersUpdated} player(s), ${result.coachesUpdated} coach(es)`);
+        if (!result || (result.playersUpdated === 0 && result.coachesUpdated === 0 && result.playersPriced === 0)) return;
+        console.log(`[fantasy daily reprice] ${result.playersUpdated} player(s), ${result.coachesUpdated} coach(es), ${result.playersPriced} newly priced`);
       })
       .finally(() => invalidate(CACHE_KEYS.fantasyPlayers))
       .catch((err) => console.error("[fantasy daily reprice] failed:", err))

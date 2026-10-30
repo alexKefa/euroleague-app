@@ -986,6 +986,13 @@ export async function saveFantasyLineup(
       .limit(1),
   ]);
   const priceByPlayerId = new Map(priceRows.map((r) => [r.playerId, r.price]));
+  // A mid-season signing has no price until his first settled game
+  // (fantasyDailyReprice.ts priceNewPlayers) and can't be picked before then
+  // (2026-10-30). One already in last round's squad may stay.
+  const unpriced = newIds.find((id) => !priceByPlayerId.has(id) && !baseline?.playerIds.has(id));
+  if (unpriced) {
+    return { error: "This player can't be picked until he has a price", code: "UNPRICED_PLAYER", playerId: unpriced };
+  }
   const playersCost = newIds.reduce((sum, id) => sum + (priceByPlayerId.get(id) ?? FANTASY_MIN_PRICE), 0);
   const coachCost = coachPriceRows[0]?.price ?? COACH_MIN_PRICE;
   const totalCost = Math.round((playersCost + coachCost) * 10) / 10;
@@ -1080,7 +1087,8 @@ export async function autoFillFantasySquad(userId: string, season: string, round
     db
       .select({ id: players.id, position: players.position, teamId: players.teamId, price: playerFantasyPrices.price })
       .from(players)
-      .leftJoin(playerFantasyPrices, and(eq(playerFantasyPrices.playerId, players.id), eq(playerFantasyPrices.season, season)))
+      // Inner: an unpriced mid-season signing isn't pickable (see saveFantasyLineup).
+      .innerJoin(playerFantasyPrices, and(eq(playerFantasyPrices.playerId, players.id), eq(playerFantasyPrices.season, season)))
       // Same "team is actually in this season" scoping as GET /fantasy/players.
       .where(
         and(
