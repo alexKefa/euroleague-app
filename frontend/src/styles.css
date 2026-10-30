@@ -507,7 +507,11 @@ body {
     scale: 1.2;
   }
 }
+/* CDK opens the preview as a native popover, whose UA `overflow: auto` CDK
+   doesn't reset: it clipped the grown photo, its ring and the injury badge
+   to the slot's original box (cut off on top, on mobile). */
 .fantasy-drag-preview {
+  overflow: visible;
   filter: drop-shadow(0 18px 22px rgb(0 0 0 / 0.4)) drop-shadow(0 0 10px color-mix(in srgb, var(--accent-primary) 55%, transparent));
   cursor: grabbing;
   z-index: 1000;
