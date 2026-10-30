@@ -33,6 +33,206 @@
   opacity: 0.6;
 }
 
+/* Reveal arena (2026-10-30): face-off -> clash -> count -> result, keyed on
+   [data-phase] set by duel-game.ts startReveal. The fighters' transforms
+   are their own; the card inside keeps its flip-in. */
+.arena-category {
+  animation: arena-slam 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes arena-slam {
+  0% {
+    opacity: 0;
+    transform: scale(1.8);
+    letter-spacing: 0.3em;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    letter-spacing: normal;
+  }
+}
+
+.arena-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.arena-vs {
+  position: relative;
+  z-index: 2;
+  font-size: 1.5rem;
+  color: var(--accent-primary, #e8792c);
+  text-shadow: 0 2px 10px rgb(0 0 0 / 0.35);
+  animation: arena-vs-pulse 700ms ease-in-out infinite alternate;
+}
+@keyframes arena-vs-pulse {
+  from {
+    transform: scale(0.9);
+  }
+  to {
+    transform: scale(1.15);
+  }
+}
+.duel-arena:not([data-phase="enter"]) .arena-vs {
+  animation: arena-vs-out 300ms ease-in forwards;
+}
+@keyframes arena-vs-out {
+  to {
+    opacity: 0;
+    transform: scale(2.2);
+  }
+}
+
+/* The face-off fly-in plays once: without this, every later phase would
+   fall back to .face-off's animation and fly the cards in again. Same
+   specificity as the clash rule below, so it must stay before it. */
+.duel-arena:not([data-phase="enter"]) .fighter {
+  animation: none;
+}
+
+/* Clash: both cards lunge to the middle, hit, and bounce back. */
+.duel-arena[data-phase="clash"] .fighter {
+  animation: arena-lunge 450ms cubic-bezier(0.5, 0, 0.3, 1) both;
+}
+.duel-arena[data-phase="clash"] .fighter.face-off--left {
+  --lunge-x: 30%;
+  --lunge-r: 6deg;
+}
+.duel-arena[data-phase="clash"] .fighter.face-off--right {
+  --lunge-x: -30%;
+  --lunge-r: -6deg;
+}
+@keyframes arena-lunge {
+  0% {
+    transform: none;
+  }
+  45% {
+    transform: translateX(var(--lunge-x)) rotate(var(--lunge-r)) scale(1.05);
+  }
+  60% {
+    transform: translateX(calc(var(--lunge-x) * 0.85)) rotate(calc(var(--lunge-r) * -0.5)) scale(1.02);
+  }
+  100% {
+    transform: none;
+  }
+}
+.duel-arena[data-phase="clash"] .arena-stage {
+  animation: arena-shake 320ms ease-out 200ms both;
+}
+@keyframes arena-shake {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: translate(-5px, 2px);
+  }
+  40% {
+    transform: translate(5px, -2px);
+  }
+  60% {
+    transform: translate(-3px, 1px);
+  }
+  80% {
+    transform: translate(2px, -1px);
+  }
+}
+
+/* Impact burst and sparks at the moment the cards meet. */
+.arena-burst {
+  position: absolute;
+  width: 90px;
+  height: 90px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, #fff 0%, color-mix(in srgb, var(--accent-primary, #e8792c) 80%, transparent) 35%, transparent 70%);
+  opacity: 0;
+  transform: scale(0);
+}
+.duel-arena[data-phase="clash"] .arena-burst {
+  animation: arena-burst 420ms ease-out 200ms both;
+}
+@keyframes arena-burst {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.3);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2);
+  }
+}
+.arena-spark {
+  position: absolute;
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--accent-primary, #e8792c);
+  opacity: 0;
+  transform: rotate(var(--spark-angle)) translateY(0);
+}
+.duel-arena[data-phase="clash"] .arena-spark {
+  animation: arena-spark 460ms ease-out 220ms both;
+}
+@keyframes arena-spark {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--spark-angle)) translateY(-6px) scaleY(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--spark-angle)) translateY(-58px) scaleY(1.2);
+  }
+}
+
+/* Tug-of-war bar: still until the scores count, then follows them. */
+.arena-tug > div {
+  transition: width 120ms linear;
+}
+
+/* Result: the winner rises (is-winner above), the loser is knocked back. */
+.duel-arena[data-phase="result"] .fighter.is-winner {
+  animation: arena-win 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes arena-win {
+  from {
+    transform: none;
+  }
+  to {
+    transform: translateY(-6px) scale(1.08);
+  }
+}
+.duel-arena[data-phase="result"] .fighter.is-loser {
+  animation: arena-knockback 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.duel-arena[data-phase="result"] .fighter.is-loser.face-off--left {
+  --knock-x: -14px;
+  --knock-r: -8deg;
+}
+.duel-arena[data-phase="result"] .fighter.is-loser.face-off--right {
+  --knock-x: 14px;
+  --knock-r: 8deg;
+}
+@keyframes arena-knockback {
+  0% {
+    transform: none;
+  }
+  35% {
+    transform: translateX(calc(var(--knock-x) * 1.6)) rotate(var(--knock-r)) scale(0.96);
+  }
+  100% {
+    transform: translateX(var(--knock-x)) rotate(calc(var(--knock-r) * 0.6)) scale(0.92);
+  }
+}
+.arena-margin {
+  animation: card-pop-in 360ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
 /* Card flip on reveal. */
 .flip-in {
   animation: flip-in 640ms cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -105,7 +305,18 @@
   .flip-in,
   .card-pop-in,
   .hand-card.is-picked,
-  .waiting-dot {
-    animation: none;
+  .waiting-dot,
+  .arena-category,
+  .arena-vs,
+  .arena-margin,
+  .duel-arena .fighter,
+  .duel-arena .arena-stage,
+  .duel-arena .arena-burst,
+  .duel-arena .arena-spark {
+    animation: none !important;
+  }
+  .arena-burst,
+  .arena-spark {
+    display: none;
   }
 }

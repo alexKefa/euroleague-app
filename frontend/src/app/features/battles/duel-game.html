@@ -86,17 +86,23 @@
     }
 
     <!-- Reveal of the newly resolved quarter. -->
+    <!-- Phases (duel-game.ts startReveal): enter -> clash -> count -> result. Tap skips. -->
     @if (reveal(); as r) {
-      <div class="bg-card rounded-2xl border border-line shadow-card p-4 mb-4" (click)="dismissReveal()" role="status">
-        <p class="text-[12px] text-muted font-bold uppercase tracking-wider text-center mb-3">{{ r.label }}</p>
-        <div class="grid grid-cols-2 gap-3">
+      @let phase = revealPhase();
+      @let decided = phase === 'result';
+      <div class="duel-arena bg-card rounded-2xl border border-line shadow-card p-4 mb-4 overflow-hidden" [attr.data-phase]="phase" (click)="dismissReveal()" role="status">
+        <p class="text-[12px] text-muted font-bold uppercase tracking-wider text-center">{{ r.label }}</p>
+        @if (r.category) {
+          <p class="arena-category font-display text-2xl text-center text-team-primary uppercase leading-tight mb-3">{{ i18n.t('duels.cat.' + r.category) }}</p>
+        }
+        <div class="arena-stage relative grid grid-cols-2 gap-6">
           @for (side of sides; track side) {
             @let card = side === 0 ? r.mine : r.theirs;
             @let mine = side === 0;
-            @let win = mine ? r.myScore > r.theirScore : r.theirScore > r.myScore;
-            @let lose = mine ? r.myScore < r.theirScore : r.theirScore < r.myScore;
+            @let win = decided && (mine ? r.myScore > r.theirScore : r.theirScore > r.myScore);
+            @let lose = decided && (mine ? r.myScore < r.theirScore : r.theirScore < r.myScore);
             <div
-              class="face-off text-center min-w-0"
+              class="fighter face-off text-center min-w-0"
               [class.face-off--left]="mine"
               [class.face-off--right]="!mine"
               [class.is-winner]="win"
@@ -118,7 +124,24 @@
               <p class="font-display text-3xl tabular-nums mt-1" [class.text-team-primary]="win">{{ mine ? shownMine() : shownTheirs() }}</p>
             </div>
           }
+          <!-- Centre: VS badge, then the impact burst and sparks on the clash. -->
+          <div class="arena-center pointer-events-none" aria-hidden="true">
+            <span class="arena-burst"></span>
+            @for (i of [0, 1, 2, 3, 4, 5, 6, 7]; track i) {
+              <span class="arena-spark" [style.--spark-angle]="i * 45 + 'deg'"></span>
+            }
+            <span class="arena-vs font-display">VS</span>
+          </div>
         </div>
+        <!-- Tug of war: my share of the two scores, filling from my side. -->
+        <div class="arena-tug mt-3 h-2 rounded-full bg-line/60 overflow-hidden">
+          <div class="h-full rounded-full bg-team-primary" [style.width.%]="mySharePct()"></div>
+        </div>
+        @if (decided && r.myScore !== r.theirScore) {
+          <p class="arena-margin font-display text-xl text-center tabular-nums mt-2" [class.text-team-primary]="r.myScore > r.theirScore" [class.text-muted]="r.myScore < r.theirScore">
+            {{ r.myScore > r.theirScore ? '+' : '−' }}{{ revealMargin(r) }}
+          </p>
+        }
       </div>
     }
 

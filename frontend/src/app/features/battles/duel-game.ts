@@ -13,11 +13,23 @@ import { quarterScore } from "./duel-helpers";
 
 interface Reveal {
   label: string;
+  category: DuelCategory | null;
   mine: DuelCard | null;
   theirs: OpponentCard | null;
   myScore: number;
   theirScore: number;
 }
+
+// Reveal choreography (2026-10-30, "an animation of the players/cards
+// battling"): face-off -> clash -> scores count up -> result. Times in ms
+// from the start; duel-game.css keys its animations on data-phase.
+type RevealPhase = "enter" | "clash" | "count" | "result";
+const CLASH_AT = 700;
+const COUNT_AT = 1150;
+const COUNT_STEPS = 20;
+const COUNT_STEP_MS = 60;
+const RESULT_AT = COUNT_AT + COUNT_STEPS * COUNT_STEP_MS + 100;
+const REVEAL_HIDE_AT = 6500;
 
 /** Four Quarters game screen: scoreboard, hand, reveal, full time. */
 @Component({
@@ -51,11 +63,18 @@ export class DuelGameComponent implements OnInit {
   readonly noteKey = signal<string | null>(null);
   readonly now = signal(Date.now());
   readonly reveal = signal<Reveal | null>(null);
+  readonly revealPhase = signal<RevealPhase>("enter");
   // Count-up display values for the reveal.
   readonly shownMine = signal(0);
   readonly shownTheirs = signal(0);
+  // My share of the tug-of-war bar, 50% until the scores start counting.
+  readonly mySharePct = computed(() => {
+    const total = this.shownMine() + this.shownTheirs();
+    return total > 0 ? Math.round((this.shownMine() / total) * 1000) / 10 : 50;
+  });
   private revealTimer: ReturnType<typeof setInterval> | null = null;
   private revealHide: ReturnType<typeof setTimeout> | null = null;
+  private revealSteps: ReturnType<typeof setTimeout>[] = [];
 
   readonly isPending = computed(() => {
     const s = this.view()?.status;
@@ -206,6 +225,7 @@ export class DuelGameComponent implements OnInit {
     if (fresh) {
       pending.push({
         label: this.i18n.t("duels.game.resolved").replace("{n}", String(fresh.quarter)),
+        category: next.categories[fresh.quarter - 1] ?? null,
         mine: fresh.mySlot !== null ? (next.myLineup[fresh.mySlot] ?? null) : null,
         theirs: fresh.theirSlot !== null ? (next.theirLineup?.[fresh.theirSlot] ?? null) : null,
         myScore: fresh.myScore ?? 0,
@@ -216,6 +236,7 @@ export class DuelGameComponent implements OnInit {
       const ot = next.overtime;
       pending.push({
         label: this.i18n.t("duels.overtime"),
+        category: "efficiency", // overtime is always the bench card on efficiency
         mine: next.myLineup[ot.mySlot] ?? null,
         theirs: next.theirLineup?.[ot.theirSlot] ?? null,
         myScore: ot.myScore,
@@ -230,8 +251,10 @@ export class DuelGameComponent implements OnInit {
   private clearRevealTimers(): void {
     if (this.revealTimer) clearInterval(this.revealTimer);
     if (this.revealHide) clearTimeout(this.revealHide);
+    for (const t of this.revealSteps) clearTimeout(t);
     this.revealTimer = null;
     this.revealHide = null;
+    this.revealSteps = [];
   }
 
   private revealQueue: Reveal[] = [];
@@ -246,22 +269,35 @@ export class DuelGameComponent implements OnInit {
   private startReveal(r: Reveal): void {
     this.clearRevealTimers();
     this.reveal.set(r);
+    this.revealPhase.set("enter");
     this.shownMine.set(0);
     this.shownTheirs.set(0);
-    const steps = 20;
-    let i = 0;
-    this.revealTimer = setInterval(() => {
-      i++;
-      const t = Math.min(1, i / steps);
-      const e = 1 - Math.pow(1 - t, 3);
-      this.shownMine.set(Math.round(r.myScore * e * 10) / 10);
-      this.shownTheirs.set(Math.round(r.theirScore * e * 10) / 10);
-      if (t >= 1 && this.revealTimer) {
-        clearInterval(this.revealTimer);
-        this.revealTimer = null;
-      }
-    }, 60);
-    this.revealHide = setTimeout(() => this.nextReveal(), 4500);
+    const countUp = () => {
+      this.revealPhase.set("count");
+      let i = 0;
+      this.revealTimer = setInterval(() => {
+        i++;
+        const t = Math.min(1, i / COUNT_STEPS);
+        const e = 1 - Math.pow(1 - t, 3);
+        this.shownMine.set(Math.round(r.myScore * e * 10) / 10);
+        this.shownTheirs.set(Math.round(r.theirScore * e * 10) / 10);
+        if (t >= 1 && this.revealTimer) {
+          clearInterval(this.revealTimer);
+          this.revealTimer = null;
+        }
+      }, COUNT_STEP_MS);
+    };
+    this.revealSteps = [
+      setTimeout(() => this.revealPhase.set("clash"), CLASH_AT),
+      setTimeout(countUp, COUNT_AT),
+      setTimeout(() => this.revealPhase.set("result"), RESULT_AT),
+    ];
+    this.revealHide = setTimeout(() => this.nextReveal(), REVEAL_HIDE_AT);
+  }
+
+  /** Winning margin, one decimal, for the result pop. */
+  revealMargin(r: Reveal): number {
+    return Math.round(Math.abs(r.myScore - r.theirScore) * 10) / 10;
   }
 
   dismissReveal(): void {
