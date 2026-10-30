@@ -294,6 +294,8 @@ export const fantasyTranslations: Record<string, Record<Lang, string>> = {
   "fantasy.dayLabel": { en: "Day", el: "Ημέρα" },
   "fantasy.turnHint": { en: "Plays on day", el: "Αγωνίζεται την ημέρα" },
   "fantasy.turnPlayedHint": { en: "Already played on day", el: "Αγωνίστηκε ήδη την ημέρα" },
+  "fantasy.playedBadge": { en: "Played", el: "Αγωνίστηκε" },
+  "fantasy.playedBenchLocked": { en: "Played on the bench, can't move this round", el: "Αγωνίστηκε στον πάγκο, δεν μετακινείται σε αυτόν τον γύρο" },
   "fantasy.simulateRoundAdmin": { en: "Admin: simulate whole round", el: "Διαχειριστής: προσομοίωση όλου του γύρου" },
   "fantasy.pointsLabel": { en: "Points", el: "Πόντοι" },
   "fantasy.creditsChangeLabel": { en: "Credits (CR)", el: "Credits (CR)" },
