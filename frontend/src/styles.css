@@ -493,23 +493,32 @@ body {
    once and the landing pop takes over — deliberately NO transition on
    .cdk-drag-animating: an earlier fly-and-fade toward the (hidden) target
    placeholder overlapped the pop-in and read as a leftover trace. */
+/* 2026-10-30 ("the icon gets off way too much of my pointer"): the scale
+   lives on the preview's children, never the preview itself. The browser
+   applies `scale`/`rotate` after CDK's translate, so on the preview they
+   multiplied the drag distance and the card drifted away from the finger.
+   Each child grows away from the gap between them (photo up, card down)
+   so the stack stays together; no rotation, since per-child tilts split it. */
 @keyframes fantasy-pickup {
   0% {
     scale: 1;
-    rotate: 0deg;
   }
   60% {
-    scale: 1.22;
-    rotate: -5deg;
+    scale: 1.2;
   }
 }
 .fantasy-drag-preview {
-  scale: 1.15;
-  rotate: -4deg;
   filter: drop-shadow(0 18px 22px rgb(0 0 0 / 0.4)) drop-shadow(0 0 10px color-mix(in srgb, var(--accent-primary) 55%, transparent));
   cursor: grabbing;
   z-index: 1000;
+}
+.fantasy-drag-preview > * {
+  scale: 1.12;
+  transform-origin: bottom center;
   animation: fantasy-pickup 240ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.fantasy-drag-preview > * + * {
+  transform-origin: top center;
 }
 
 /* Top-scorer pick "saved" confirmation (2026-09-25) — a brief checkmark
@@ -541,7 +550,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .fantasy-drop,
   .fantasy-slot-land,
-  .fantasy-drag-preview,
+  .fantasy-drag-preview > *,
   .fantasy-slot.fantasy-drop-target,
   .pick-saved-pop {
     animation: none;
@@ -551,9 +560,8 @@ body {
     filter: drop-shadow(0 0 8px var(--accent-primary));
   }
   .fantasy-slot.cdk-drop-list-dragging:has(> .cdk-drag-placeholder:not(:only-child)),
-  .fantasy-drag-preview {
+  .fantasy-drag-preview > * {
     scale: 1;
-    rotate: 0deg;
   }
 }
 
