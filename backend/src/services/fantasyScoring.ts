@@ -672,7 +672,9 @@ export async function getBaselineSquad(userId: string, season: string, round: nu
         playerId: fantasyLineups.playerId,
         slotRole: fantasyLineups.slotRole,
         isCaptain: fantasyLineups.isCaptain,
-        released: sql<boolean>`exists (select 1 from ${fantasyForcedReleases} r where r.user_id = ${userId} and r.season = ${season} and r.round = ${round} and r.player_id = ${fantasyLineups.playerId})`,
+        // Spelled out: drizzle renders ${fantasyLineups.playerId} unqualified
+        // here, which then binds to r.player_id and marks every row released.
+        released: sql<boolean>`exists (select 1 from ${fantasyForcedReleases} r where r.user_id = ${userId} and r.season = ${season} and r.round = ${round} and r.player_id = fantasy_lineups.player_id)`,
       })
       .from(fantasyLineups)
       .where(and(eq(fantasyLineups.userId, userId), eq(fantasyLineups.season, season), eq(fantasyLineups.round, round - 1))),
