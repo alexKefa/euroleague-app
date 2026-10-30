@@ -353,12 +353,18 @@
                   [ngClass]="row.injury ? injuryNameBarClass(row.injury.status) : 'text-ink'"
                   ><span class="opacity-50 text-[9px] mr-0.5">{{ posAbbrev(row.player.position) }}</span>{{ courtDisplayName(row.player.name) }}</span
                 >
-                <span class="flex items-center justify-between gap-1 px-1.5 py-1 bg-page/60 tabular-nums">
+                <!-- Price only while the squad can still be traded (2026-10-30,
+                     "when the round has started do not include cr"): once the
+                     round locks, a player still to play shows just his matchup. -->
+                @let awaitingGame = roundLocked() && (!game || game.status === 'scheduled');
+                <span class="flex items-center gap-1 px-1.5 py-1 bg-page/60 tabular-nums" [ngClass]="awaitingGame ? 'justify-center' : 'justify-between'">
                   @if (!game || game.status === 'scheduled') {
+                    @if (!roundLocked()) {
                     <span class="flex items-baseline gap-0.5 min-w-0">
                       <span class="text-[13px] font-bold leading-none text-ink">{{ row.price | number: '1.1-1' }}</span>
                       <span class="text-[8px] font-bold uppercase text-muted leading-none">{{ i18n.t('fantasy.creditsAbbrev') }}</span>
                     </span>
+                    }
                   } @else {
                     <span class="flex items-baseline gap-0.5 min-w-0">
                       <span class="flex items-center gap-0.5 leading-none" [ngClass]="game.status === 'live' ? 'text-[13px] font-bold text-red-500' : game.status === 'final' ? 'font-display text-[16px] text-ink' : 'text-[13px] font-bold text-ink'">
@@ -1003,12 +1009,14 @@
                           }
                         </div>
                         <span class="text-[11px] font-semibold text-center truncate max-w-[80px]">{{ coach.headCoach ?? coach.team.name }}</span>
-                        <span class="font-mono text-[11px] font-bold text-team-primary">
-                          {{ coach.price | number: '1.1-1' }} {{ i18n.t('fantasy.creditsAbbrev') }}
-                          @if (priceTrendGlyph(coach.priceTrend); as glyph) {
-                            <span [ngClass]="priceTrendClass(coach.priceTrend)" [attr.title]="i18n.t('fantasy.priceTrendHint')">{{ glyph }}</span>
-                          }
-                        </span>
+                        @if (!roundLocked()) {
+                          <span class="font-mono text-[11px] font-bold text-team-primary">
+                            {{ coach.price | number: '1.1-1' }} {{ i18n.t('fantasy.creditsAbbrev') }}
+                            @if (priceTrendGlyph(coach.priceTrend); as glyph) {
+                              <span [ngClass]="priceTrendClass(coach.priceTrend)" [attr.title]="i18n.t('fantasy.priceTrendHint')">{{ glyph }}</span>
+                            }
+                          </span>
+                        }
                       } @else {
                         <div class="flex flex-col items-center gap-1 rounded-2xl bg-gradient-to-b from-page/85 to-page/65 backdrop-blur-lg backdrop-saturate-150 shadow-card border border-white/20 px-2.5 py-2">
                           <div class="rounded-full border-2 border-dashed border-ink flex items-center justify-center text-muted text-xl w-[48px] h-[48px] hover:border-team-primary hover:text-team-primary transition-colors">+</div>
