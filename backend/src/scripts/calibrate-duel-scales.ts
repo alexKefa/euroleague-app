@@ -1,6 +1,10 @@
-// Prints the Four Quarters CATEGORY_SCALES: 20 / median(categoryValue) over
-// every current-season player_season_stats row with games_played >= 5.
-// Read-only. Paste the output into CATEGORY_SCALES in services/duelEngine.ts.
+// Prints the Four Quarters CATEGORY_SCALES over every current-season
+// player_season_stats row with games_played >= 5: each category scaled so its
+// top 5 players average what the top 5 scorers do, scoring fixed at
+// SCORING_SCALE (2026-10-30; was 20 / median, which let assist specialists
+// run away with playmaking, see duelEngine.ts).
+// Read-only. Paste the output into CATEGORY_SCALES in services/duelEngine.ts
+// and DUEL_CATEGORY_SCALES in the frontend's core/models.ts.
 //
 //   npm run duels:calibrate
 import "dotenv/config";
@@ -12,12 +16,12 @@ import { DUEL_CATEGORIES, categoryValue, type BaseLine } from "../services/duelE
 
 const MIN_GAMES = 5;
 const MIN_ROWS = 100;
-const TARGET = 20;
+const TOP_N = 5;
+const SCORING_SCALE = 2.82;
 
-function median(xs: number[]): number {
-  const s = [...xs].sort((a, b) => a - b);
-  const m = s.length >> 1;
-  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+function topAverage(xs: number[]): number {
+  const s = [...xs].sort((a, b) => b - a).slice(0, TOP_N);
+  return s.reduce((a, b) => a + b, 0) / s.length;
 }
 
 async function load(season: string): Promise<BaseLine[]> {
@@ -48,9 +52,10 @@ async function main() {
     bases = await load(season);
   }
   console.log(`season ${season}, ${bases.length} players`);
+  const target = topAverage(bases.map((b) => categoryValue(b, "scoring"))) * SCORING_SCALE;
   for (const cat of DUEL_CATEGORIES) {
-    const med = median(bases.map((b) => categoryValue(b, cat)));
-    console.log(`${cat.padEnd(11)} median ${med.toFixed(2).padStart(6)}  scale ${(Math.round((TARGET / med) * 100) / 100).toString()}`);
+    const top = topAverage(bases.map((b) => categoryValue(b, cat)));
+    console.log(`${cat.padEnd(11)} top-${TOP_N} avg ${top.toFixed(2).padStart(6)}  scale ${(Math.round((target / top) * 100) / 100).toString()}`);
   }
   process.exit(0);
 }

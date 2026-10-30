@@ -17,14 +17,23 @@ export const START_RATING = 1000;
 export type DuelCategory = "scoring" | "boards" | "playmaking" | "defense" | "efficiency" | "all_around";
 export const DUEL_CATEGORIES: readonly DuelCategory[] = ["scoring", "boards", "playmaking", "defense", "efficiency", "all_around"];
 
-/** Multiplier that brings each category's raw per-game value to a comparable score. */
+/**
+ * Multiplier that brings each category's raw per-game value to a comparable
+ * score. Anchored on the top 5 players per category (2026-10-30), not the
+ * median: assists are concentrated in a few point guards, so the old
+ * median anchor put a 7-assist guard at ~108 in playmaking against a ~54
+ * best score elsewhere, and that one quarter decided most duels. Now each
+ * category's top 5 average what the top 5 scorers do (~51), scoring
+ * unchanged. Recompute with `npm run duels:calibrate`. Mirrored in the
+ * frontend's DUEL_CATEGORY_SCALES (core/models.ts).
+ */
 export const CATEGORY_SCALES: Record<DuelCategory, number> = {
   scoring: 2.82,
-  boards: 8,
-  playmaking: 15.38,
-  defense: 28.57,
-  efficiency: 2.56,
-  all_around: 1.71,
+  boards: 7.13,
+  playmaking: 8.13,
+  defense: 23.21,
+  efficiency: 2.5,
+  all_around: 1.99,
 };
 
 export type FormBadge = "ice_cold" | "cold" | "steady" | "hot" | "on_fire";
