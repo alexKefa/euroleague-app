@@ -1894,8 +1894,9 @@ export const fantasyBudgetAdjustments = pgTable("fantasy_budget_adjustments", {
 // used for Koloko: unpriced at 4.0 by our bug, bought by two users, then
 // priced at his real 9.6). getBaselineSquad leaves the player out of what
 // carries into `round`, and each release gives one free transfer that round
-// so replacing him doesn't cost one of the user's own. The credits come
-// back separately, as a fantasy_budget_adjustments row.
+// so replacing him doesn't cost one of the user's own. No budget correction
+// goes with it (the user's call): their budget is what it was plus the
+// round's normal price moves, so freeing the slot gives back what they paid.
 export const fantasyForcedReleases = pgTable("fantasy_forced_releases", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").notNull().references(() => users.id),
