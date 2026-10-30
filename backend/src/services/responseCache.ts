@@ -46,6 +46,7 @@ export const CACHE_KEYS = {
   fantasyDvp: "fantasy:dvp:", // + season
   preview: "preview:", // + "game:<id>" | "round:<season>:<round>"
   lineup: "lineup:", // + "<teamId>:<season>:<sorted player codes>"
+  leaderboard: "leaderboard:", // + "top20" | "all" | "users:<sorted ids>"
 } as const;
 
 /**

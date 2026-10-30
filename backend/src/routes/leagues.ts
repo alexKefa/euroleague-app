@@ -5,6 +5,7 @@ import { leagues, leagueMembers, users, collectibles, teams } from "../db/schema
 import { requireAuth } from "../auth/middleware.js";
 import { createUniqueLeagueCode } from "../services/leagues.js";
 import { getLeaderboardEntries } from "../services/leaderboard.js";
+import { cached, CACHE_KEYS } from "../services/responseCache.js";
 import { getFantasyLeaderboardEntries, getDefaultRound, getRoundLockTime } from "../services/fantasyScoring.js";
 import { getAlbumLeaderboardEntries, getCollectibleCatalogTotal } from "../services/albumLeaderboard.js";
 import { getCurrentSeason } from "../services/season.js";
@@ -195,7 +196,11 @@ leaguesRouter.get("/:id/leaderboard", requireAuth, async (req, res) => {
     // getLeaderboardEntries already resolves each entry's showcase cards
     // (services/leaderboard.ts) — only zero-pick members it omits need
     // that resolved separately here.
-    const entries = await getLeaderboardEntries({ userIds: memberIds });
+    // Cached 60s like the global board; keyed on the member set, so a join
+    // or leave misses the cache at once.
+    const entries = await cached(CACHE_KEYS.leaderboard + "users:" + [...memberIds].sort().join(","), 60_000, () =>
+      getLeaderboardEntries({ userIds: memberIds })
+    );
 
     const presentIds = new Set(entries.map((e) => e.userId));
     const zeroMembers = memberRows.filter((r) => !presentIds.has(r.userId));

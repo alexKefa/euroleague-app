@@ -7,6 +7,7 @@ import { requireAuth, requireAdmin } from "../auth/middleware.js";
 import { computeWinnerTeamId, getUserPoints, pointsForCorrectPick } from "../services/points.js";
 import { getUserTopScorerPoints, computeTopScorerPlayerIdsForGames, TOP_SCORER_POINTS_PER_CORRECT } from "../services/topScorerPoints.js";
 import { earnedBadges, getLeaderboardEntries, ResolvedPick } from "../services/leaderboard.js";
+import { cached, CACHE_KEYS } from "../services/responseCache.js";
 import { getRoundStandings, getPlayedRounds, getRoundRecap } from "../services/roundStandings.js";
 import { getCurrentSeason } from "../services/season.js";
 import {
@@ -392,7 +393,11 @@ predictionsRouter.get("/history", requireAuth, async (req, res) => {
 // own-rank/gap, which are wrong for anyone below a capped top 20).
 predictionsRouter.get("/leaderboard", async (req, res) => {
   try {
-    res.json(await getLeaderboardEntries(req.query.all === "1" ? {} : { limit: 20 }));
+    // Cached 60s (2026-10-30): the biggest egress source on Supabase Free —
+    // every view re-read all final picks of the ranked users. Points are
+    // computed on read, so the board is at most a minute behind.
+    const all = req.query.all === "1";
+    res.json(await cached(CACHE_KEYS.leaderboard + (all ? "all" : "top20"), 60_000, () => getLeaderboardEntries(all ? {} : { limit: 20 })));
   } catch (err) {
     console.error("GET /api/predictions/leaderboard failed:", err);
     res.status(500).json({ error: "Failed to load leaderboard" });

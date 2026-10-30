@@ -23,6 +23,11 @@ if (!connectionString) {
 // Pool of 7 (2026-10-29): prod's Supabase session pooler allows 15 clients
 // in total, and a Railway deploy runs the old and new instance side by side
 // for a moment. At 10 each that overlap hit EMAXCONNSESSION; 2 x 7 = 14 fits.
-const client = postgres(connectionString, { max: 7, ssl: "require", idle_timeout: 20 });
+// 2026-10-30: each reconnect re-runs postgres.js's type lookup (~420 rows);
+// at 20s that was ~1,400 reconnects a day on Supabase, counted as egress.
+// Supabase's session pooler keeps idle clients, so prod holds them 4 min;
+// Neon (dev) keeps the 20s that guards against its proxy dropping them.
+const idleTimeout = connectionString.includes("pooler.supabase.com") ? 240 : 20;
+const client = postgres(connectionString, { max: 7, ssl: "require", idle_timeout: idleTimeout });
 
 export const db = drizzle(client, { schema });
