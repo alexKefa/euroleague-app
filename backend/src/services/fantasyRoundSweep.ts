@@ -47,6 +47,8 @@ export async function runFantasyRoundSweep(): Promise<{ seededUsers: number; gra
       left join player_fantasy_prices pfp on pfp.player_id = fl.player_id and pfp.season = fl.season
       where fl.season = ${season} and fl.round = ${round - 1}
         and not exists (select 1 from fantasy_lineups x where x.user_id = fl.user_id and x.season = ${season} and x.round = ${round})
+        -- Same as getBaselineSquad: an admin-released player doesn't carry over.
+        and not exists (select 1 from fantasy_forced_releases r where r.user_id = fl.user_id and r.season = ${season} and r.round = ${round} and r.player_id = fl.player_id)
       on conflict do nothing
       returning user_id
     `);
