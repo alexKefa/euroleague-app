@@ -27,7 +27,7 @@ import "dotenv/config";
 import { sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { players, playerFantasyPrices, coachFantasyPrices, fantasyPricingState } from "../db/schema.js";
-import { getCurrentSeason } from "../services/season.js";
+import { getCurrentSeason, hasQualifyingGames } from "../services/season.js";
 import {
   computeFantasyPrice,
   computeCoachPrice,
@@ -87,7 +87,7 @@ async function repricePlayers(season: string): Promise<{ updated: number; usedFa
       case when pss.valuation is null then prior.season else null end as used_fallback_season
     from ${players} p
     left join recent_agg ra on ra.player_id = p.id
-    left join player_season_stats pss on pss.player_id = p.id and pss.season = ${season}
+    left join player_season_stats pss on pss.player_id = p.id and pss.season = ${season} and ${hasQualifyingGames(sql.raw("pss.games_played"), season)}
     left join prior_season prior on prior.player_id = p.id
   `);
   const inputByPlayerId = new Map(rows.map((r) => [r.player_id, r]));

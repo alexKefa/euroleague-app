@@ -91,6 +91,9 @@ on dev usually means drift, not a code bug.
 - `getCurrentSeason()` (`services/season.ts`) defines the current season for any
   "this season's leaders" claim. Player detail and `/advanced-stats` intentionally
   use the latest season with data.
+- `player_season_stats` includes every player who played, even once (the sync uses
+  the feed's `Accumulated` mode because `PerGame` drops anyone under ~half the games).
+  Rankings and baselines must filter with `hasQualifyingGames` (`services/season.ts`).
 - `teams.code` is the feed's internal club code and a real API parameter. Never
   rename it. Display abbreviations come from `frontend/.../shared/team-display-code.ts`.
 - `collectibles.teamId` and `image_url` are one-time snapshots taken at insert and

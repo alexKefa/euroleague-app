@@ -18,7 +18,7 @@ import "dotenv/config";
 import { eq, or, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { players, teams, collectibles, games } from "../db/schema.js";
-import { getCurrentSeason } from "../services/season.js";
+import { getCurrentSeason, hasQualifyingGames } from "../services/season.js";
 
 const COMMON_COST = 50;
 const RARE_COST = 250;
@@ -94,7 +94,7 @@ async function main() {
         )
         select p.id as player_id, coalesce(cs.valuation, ps.valuation) as valuation
         from ${players} p
-        left join player_season_stats cs on cs.player_id = p.id and cs.season = ${season}
+        left join player_season_stats cs on cs.player_id = p.id and cs.season = ${season} and ${hasQualifyingGames(sql.raw("cs.games_played"), season)}
         left join prior_season ps on ps.player_id = p.id
       `)
     : [];

@@ -64,7 +64,11 @@ function fieldGoalPct(row: RawPlayerTraditional): number | null {
 }
 
 async function fetchStatsPage<T>(endpoint: "traditional" | "advanced", seasonCode: string): Promise<T[]> {
-  const baseParams = `SeasonMode=Single&SeasonCode=${seasonCode}&statisticMode=PerGame&limit=400`;
+  // Accumulated, not PerGame: PerGame drops anyone under about half the
+  // games played (found 2026-11-05: Kendrick Nunn, 4 of 10, had no row at
+  // all, so no /stats or /compare entry). Traditional values come back as
+  // totals (see perGame below); advanced values match PerGame exactly.
+  const baseParams = `SeasonMode=Single&SeasonCode=${seasonCode}&statisticMode=Accumulated&limit=400`;
   const res = await fetch(`${STATS_BASE_URL}/${endpoint}?${baseParams}`);
   if (!res.ok) throw new Error(`GET ${endpoint} stats failed: HTTP ${res.status}`);
   const data = (await res.json()) as { total: number; players: T[] };
@@ -92,19 +96,21 @@ function seasonCodeFromLabel(seasonLabel: string): string {
 }
 
 function buildStatsFields(row: RawPlayerTraditional, adv: RawPlayerAdvanced | undefined) {
+  const gamesPlayed = Math.round(row.gamesPlayed || 0);
+  const perGame = (total: number | null | undefined) => (total != null && gamesPlayed > 0 ? total / gamesPlayed : null);
   return {
-    gamesPlayed: Math.round(row.gamesPlayed || 0),
-    minutesPerGame: row.minutesPlayed ?? null,
-    pointsPerGame: row.pointsScored ?? null,
-    reboundsPerGame: row.totalRebounds ?? null,
-    assistsPerGame: row.assists ?? null,
-    stealsPerGame: row.steals ?? null,
-    blocksPerGame: row.blocks ?? null,
-    turnoversPerGame: row.turnovers ?? null,
+    gamesPlayed,
+    minutesPerGame: perGame(row.minutesPlayed),
+    pointsPerGame: perGame(row.pointsScored),
+    reboundsPerGame: perGame(row.totalRebounds),
+    assistsPerGame: perGame(row.assists),
+    stealsPerGame: perGame(row.steals),
+    blocksPerGame: perGame(row.blocks),
+    turnoversPerGame: perGame(row.turnovers),
     fieldGoalPct: fieldGoalPct(row),
     threePointPct: pctToFloat(row.threePointersPercentage),
     freeThrowPct: pctToFloat(row.freeThrowsPercentage),
-    valuation: row.pir ?? null,
+    valuation: perGame(row.pir),
     effectiveFieldGoalPct: adv ? pctToFloat(adv.effectiveFieldGoalPercentage) : null,
     trueShootingPct: adv ? pctToFloat(adv.trueShootingPercentage) : null,
     offensiveReboundPct: adv ? pctToFloat(adv.offensiveReboundsPercentage) : null,

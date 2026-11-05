@@ -14,7 +14,7 @@ import {
   topScorerPredictions,
 } from "../db/schema.js";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
-import { getCurrentSeason } from "../services/season.js";
+import { getCurrentSeason, hasQualifyingGames } from "../services/season.js";
 import { getGameReferees } from "../services/refereeStats.js";
 import { gameWinProb } from "../services/winProb/curve.js";
 import { activeModel, preGameProbs } from "../services/winProb/pregame.js";
@@ -406,7 +406,11 @@ gamesRouter.get("/:id", async (req, res) => {
       .from(playerSeasonStats)
       .innerJoin(players, eq(playerSeasonStats.playerId, players.id))
       .where(
-        and(eq(playerSeasonStats.season, statsSeason), inArray(players.teamId, [game.homeTeam.id, game.awayTeam.id]))
+        and(
+          eq(playerSeasonStats.season, statsSeason),
+          inArray(players.teamId, [game.homeTeam.id, game.awayTeam.id]),
+          hasQualifyingGames(playerSeasonStats.gamesPlayed, statsSeason)
+        )
       );
 
     const topByTeam = (teamId: string) =>

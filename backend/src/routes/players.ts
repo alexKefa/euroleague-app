@@ -4,7 +4,7 @@ import { eq, desc, and, isNotNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "../db/client.js";
 import { players, playerSeasonStats, playerGameStats, games, teams, shotEvents, favoritePlayers } from "../db/schema.js";
-import { getCurrentSeason } from "../services/season.js";
+import { getCurrentSeason, hasQualifyingGames } from "../services/season.js";
 import { requireAuth } from "../auth/middleware.js";
 import { getScoutingReport } from "../services/scouting.js";
 import { getClutchLeaders } from "../services/teamAnalytics.js";
@@ -62,7 +62,7 @@ playersRouter.get("/leaders", async (req, res) => {
       .from(playerSeasonStats)
       .innerJoin(players, eq(playerSeasonStats.playerId, players.id))
       .innerJoin(teams, eq(playerSeasonStats.teamId, teams.id))
-      .where(eq(playerSeasonStats.season, season))
+      .where(and(eq(playerSeasonStats.season, season), hasQualifyingGames(playerSeasonStats.gamesPlayed, season)))
       .orderBy(desc(CATEGORY_COLUMNS[category]))
       .limit(limit);
 

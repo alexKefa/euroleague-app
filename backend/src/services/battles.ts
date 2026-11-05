@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { players, playerSeasonStats } from "../db/schema.js";
-import { getCurrentSeason } from "./season.js";
+import { getCurrentSeason, hasQualifyingGames } from "./season.js";
 
 // A real stake, not a minted reward (2026-09-22 fix) — the winner's points
 // come out of the loser's own balance via two point_adjustments rows (+N
@@ -62,7 +62,7 @@ async function buildPirLookup(): Promise<Map<string, number>> {
       p.team_id as team_id,
       p.name as name,
       coalesce(
-        (select pss.valuation from ${playerSeasonStats} pss where pss.player_id = p.id and pss.season = ${season} limit 1),
+        (select pss.valuation from ${playerSeasonStats} pss where pss.player_id = p.id and pss.season = ${season} and ${hasQualifyingGames(sql.raw("pss.games_played"), season)} limit 1),
         (select sum(pss2.valuation * pss2.games_played) / nullif(sum(pss2.games_played), 0)
          from ${playerSeasonStats} pss2 where pss2.player_id = p.id)
       ) as pir

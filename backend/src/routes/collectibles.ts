@@ -6,7 +6,7 @@ import { collectibles, userCollectibles, pointAdjustments, teams, users, players
 import { alias } from "drizzle-orm/pg-core";
 import { requireAuth, requireAdmin } from "../auth/middleware.js";
 import { getUserPoints, lockUserPoints } from "../services/points.js";
-import { getCurrentSeason } from "../services/season.js";
+import { getCurrentSeason, hasQualifyingGames } from "../services/season.js";
 import { getAlbumLeaderboardEntries } from "../services/albumLeaderboard.js";
 
 // Collectibles were never given a real playerId (just a free-text name) —
@@ -109,7 +109,7 @@ async function buildPpgLookup(): Promise<Map<string, number>> {
       p.team_id as team_id,
       p.name as name,
       coalesce(
-        (select pss.points_per_game from ${playerSeasonStats} pss where pss.player_id = p.id and pss.season = ${season} limit 1),
+        (select pss.points_per_game from ${playerSeasonStats} pss where pss.player_id = p.id and pss.season = ${season} and ${hasQualifyingGames(sql.raw("pss.games_played"), season)} limit 1),
         (select sum(pss2.points_per_game * pss2.games_played) / nullif(sum(pss2.games_played), 0)
          from ${playerSeasonStats} pss2 where pss2.player_id = p.id)
       ) as ppg

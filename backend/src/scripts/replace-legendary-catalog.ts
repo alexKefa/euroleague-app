@@ -48,7 +48,7 @@ import {
   tradeOffers,
   tradeOfferItems,
 } from "../db/schema.js";
-import { getCurrentSeason } from "../services/season.js";
+import { getCurrentSeason, hasQualifyingGames } from "../services/season.js";
 
 const LEGENDARY_COST = 2500; // matches the existing catalog's real value
 const LEGENDARIES_PER_TEAM = 2;
@@ -102,7 +102,7 @@ async function main() {
     select p.id as player_id, p.team_id, p.name, p.photo_url,
       coalesce(cs.valuation, ps.valuation) as valuation
     from ${players} p
-    left join player_season_stats cs on cs.player_id = p.id and cs.season = ${season}
+    left join player_season_stats cs on cs.player_id = p.id and cs.season = ${season} and ${hasQualifyingGames(sql.raw("cs.games_played"), season)}
     left join prior_season ps on ps.player_id = p.id
     where p.active = true
   `);

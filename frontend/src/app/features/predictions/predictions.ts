@@ -331,8 +331,12 @@ export class PredictionsComponent implements OnInit, OnDestroy {
   }
 
   topScorerRecommendations(teamId: string): PlayerAdvancedStatsRow[] {
-    return this.advancedStatsRows()
-      .filter((r) => r.player.teamId === teamId && r.player.active && r.stats.pointsPerGame != null)
+    // Same small-sample cutoff as the backend's hasQualifyingGames: the
+    // payload now includes one-game players, who shouldn't headline here.
+    const rows = this.advancedStatsRows();
+    const mostGames = rows.reduce((max, r) => Math.max(max, r.stats.gamesPlayed ?? 0), 0);
+    return rows
+      .filter((r) => r.player.teamId === teamId && r.player.active && r.stats.pointsPerGame != null && (r.stats.gamesPlayed ?? 0) * 2 > mostGames)
       .sort((a, b) => (b.stats.pointsPerGame ?? 0) - (a.stats.pointsPerGame ?? 0))
       .slice(0, 3);
   }

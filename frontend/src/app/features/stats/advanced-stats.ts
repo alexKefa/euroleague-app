@@ -225,7 +225,9 @@ export class AdvancedStatsComponent implements OnInit, OnDestroy {
     const filtered = this.allRows().filter((row) => {
       if (query && !row.player.name.toLowerCase().includes(query)) return false;
       if (team && row.team.id !== team) return false;
-      if ((row.stats.gamesPlayed ?? 0) < minGp) return false;
+      // A name search is a request for that player, so it skips the games
+      // cutoff; otherwise the default hides anyone short of it.
+      if (!query && (row.stats.gamesPlayed ?? 0) < minGp) return false;
       if ((row.stats.minutesPerGame ?? 0) < minMin) return false;
       return true;
     });

@@ -28,14 +28,14 @@ standingsRouter.get("/", async (_req, res) => {
     // No raw "team rebounds per game" field is synced (team_season_stats
     // only has the percentage-based rebPct) — approximate it from the
     // already-populated player_season_stats instead of touching the
-    // Python sync: each roster player's own reboundsPerGame, summed. Not
-    // exact (a bench player's games-played can undercount slightly
-    // relative to the team's own game count) but close enough for a
-    // fan-facing comparison, same spirit as the PIR badge thresholds below.
+    // Python sync: total rebounds over the team's game count (its busiest
+    // player's), so a two-game player counts for two games, not a full
+    // season. Close enough for a fan-facing comparison, same spirit as the
+    // PIR badge thresholds below.
     const reboundRows = await db
       .select({
         teamId: playerSeasonStats.teamId,
-        rpg: sql<number>`sum(${playerSeasonStats.reboundsPerGame})`,
+        rpg: sql<number>`sum(${playerSeasonStats.reboundsPerGame} * ${playerSeasonStats.gamesPlayed}) / nullif(max(${playerSeasonStats.gamesPlayed}), 0)`,
       })
       .from(playerSeasonStats)
       .where(eq(playerSeasonStats.season, season))

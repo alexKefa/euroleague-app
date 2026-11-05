@@ -1,6 +1,6 @@
-import { desc } from "drizzle-orm";
+import { desc, sql, type SQL } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { games } from "../db/schema.js";
+import { games, playerSeasonStats } from "../db/schema.js";
 
 // Single source of truth for "current season", used anywhere a route needs
 // to pick one without an explicit ?season= param (standings, roster, the
@@ -25,4 +25,14 @@ import { games } from "../db/schema.js";
 export async function getCurrentSeason(): Promise<string | null> {
   const [row] = await db.select({ season: games.season }).from(games).orderBy(desc(games.season)).limit(1);
   return row?.season ?? null;
+}
+
+// player_season_stats holds everyone who played, including a one-game
+// cameo. Anything treating a row as a reliable baseline or ranking (leaders,
+// pricing, card power) must filter with this, or a small sample wins. The
+// rule reproduces the feed's own PerGame cutoff (checked 2026-11-05, most
+// games played = 10: every player with 6+ listed, nobody with 5 or fewer).
+// The subquery is uncorrelated, so it runs once per statement.
+export function hasQualifyingGames(gamesPlayed: SQL | typeof playerSeasonStats.gamesPlayed, season: string): SQL {
+  return sql`(${gamesPlayed} * 2 > (select max(q.games_played) from ${playerSeasonStats} q where q.season = ${season}))`;
 }

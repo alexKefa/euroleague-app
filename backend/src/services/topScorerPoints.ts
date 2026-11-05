@@ -1,6 +1,7 @@
 import { and, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { games, playerGameStats, playerSeasonStats, topScorerPredictions } from "../db/schema.js";
+import { hasQualifyingGames } from "./season.js";
 
 // Points formula for the live "top scorer" prop pick — a sibling to
 // services/points.ts, not merged into it, since that file's comments are
@@ -100,7 +101,7 @@ export function pointsForCorrectTopScorerPick(params: {
 export async function getTopScorerBaselinePPG(playerId: string, season: string): Promise<number | null> {
   const [row] = await db.execute<{ season_ppg: number | null; career_ppg: number | null }>(sql`
     select
-      (array_agg(points_per_game) filter (where season = ${season}))[1] as season_ppg,
+      (array_agg(points_per_game) filter (where season = ${season} and ${hasQualifyingGames(sql.raw("games_played"), season)}))[1] as season_ppg,
       sum(points_per_game * games_played) / nullif(sum(games_played), 0) as career_ppg
     from ${playerSeasonStats}
     where player_id = ${playerId}
@@ -124,7 +125,7 @@ export async function getBaselinePPGForPlayers(playerIds: string[], season: stri
   const rows = await db.execute<{ player_id: string; season_ppg: number | null; career_ppg: number | null }>(sql`
     select
       player_id,
-      (array_agg(points_per_game) filter (where season = ${season}))[1] as season_ppg,
+      (array_agg(points_per_game) filter (where season = ${season} and ${hasQualifyingGames(sql.raw("games_played"), season)}))[1] as season_ppg,
       sum(points_per_game * games_played) / nullif(sum(games_played), 0) as career_ppg
     from ${playerSeasonStats}
     where player_id in ${playerIds}
@@ -412,7 +413,7 @@ export async function getTopScorerQuotes(game: typeof games.$inferSelect): Promi
       p.id as player_id,
       pgs.points as live_points,
       (pgs.id is not null) as has_line,
-      (select s.points_per_game from player_season_stats s where s.player_id = p.id and s.season = ${game.season} limit 1) as season_ppg,
+      (select s.points_per_game from player_season_stats s where s.player_id = p.id and s.season = ${game.season} and ${hasQualifyingGames(sql.raw("s.games_played"), game.season)} limit 1) as season_ppg,
       (select sum(s.points_per_game * s.games_played) / nullif(sum(s.games_played), 0) from player_season_stats s where s.player_id = p.id) as career_ppg,
       exists (select 1 from player_injuries i where i.player_id = p.id and i.status = 'out') as is_out
     from players p
