@@ -65,10 +65,8 @@ module.exports = {
       boxShadow: {
         // Real elevation instead of a near-flat 1px line — was previously
         // indistinguishable from a plain bordered box on the near-black page.
-        // Values live in styles.css: a shadow dark enough to show on the
-        // near-black page is far too heavy on a white card.
-        card: "var(--shadow-card)",
-        pop: "var(--shadow-pop)",
+        card: "0 8px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04)",
+        pop: "0 4px 16px rgba(0,0,0,0.5)",
         // Mobile bottom nav's "lift & glow" active tab (app.component.html)
         // — a ring matching the nav's own background (so the lifted icon
         // reads as a cutout bubble rather than a flat circle) plus a
