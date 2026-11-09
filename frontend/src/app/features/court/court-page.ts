@@ -15,7 +15,10 @@ import { jerseyNumber, kitColors } from "../../../../../shared/court/kit";
 import { MAX_PLAYERS, isValidCourtCode, normalizeCourtCode, type ToastMessage } from "../../../../../shared/court/protocol";
 import { JerseyText } from "./engine/avatar-factory";
 import { EngineCallbacks, EngineOptions, GameEngine, PracticeStats, ReleaseGrade } from "./engine/game-engine";
-import { CourtJoinError, CourtNet, JoinFailure, NetPlayer } from "./net/court-net";
+import { CourtJoinError, CourtNet, HorseView, JoinFailure, NetPlayer } from "./net/court-net";
+import { HorseHudComponent, HorseHudPlayer, HorseWinner } from "./hud/horse-hud";
+import { HORSE_RETURN_MS, canStart, shotGate } from "../../../../../shared/court/horse";
+import type { HorseEventMessage } from "../../../../../shared/court/protocol";
 
 const PREFS_KEY = "court.prefs";
 const BEST_KEY = "court.practice.best";
@@ -62,7 +65,7 @@ function writeStorage(key: string, value: string): void {
 @Component({
   selector: "app-court-page",
   standalone: true,
-  imports: [RouterLink, NgTemplateOutlet],
+  imports: [RouterLink, NgTemplateOutlet, HorseHudComponent],
   templateUrl: "./court-page.html",
   styleUrl: "./court-page.css",
 })
@@ -97,6 +100,20 @@ export class CourtPageComponent implements OnInit, OnDestroy {
   protected readonly copied = signal(false);
   protected readonly canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
 
+  // ---- H-O-R-S-E (shared courts only) ----
+  protected readonly horseView = signal<HorseView>({ phase: "free", turnId: "", setterId: "", spot: null, order: [], ownerId: "" });
+  protected readonly horsePlayers = signal<HorseHudPlayer[]>([]);
+  protected readonly turnEndsAt = signal<number | null>(null);
+  protected readonly horseWinner = signal<HorseWinner | null>(null);
+  protected readonly isStarter = signal(false);
+  protected readonly canStartHorse = signal(false);
+  protected readonly mySessionId = signal("");
+  /** sessionId -> name, kept after a player leaves so the scoreboard and winner screen can still name them. */
+  private readonly names = new Map<string, string>();
+  private hudKey = "";
+  private gateKey = "";
+  private winnerTimer: ReturnType<typeof setTimeout> | null = null;
+
   private engine: GameEngine | null = null;
   private net: CourtNet | null = null;
   private destroyed = false;
@@ -110,6 +127,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.destroyed = true;
+    if (this.winnerTimer) clearTimeout(this.winnerTimer);
     this.teardown();
     if (this.flashTimer) clearTimeout(this.flashTimer);
   }
@@ -165,6 +183,14 @@ export class CourtPageComponent implements OnInit, OnDestroy {
     } catch {
       /* clipboard blocked: the link is still shown for manual copying */
     }
+  }
+
+  protected startHorse(): void {
+    this.net?.startHorse();
+  }
+
+  protected forfeitHorse(): void {
+    this.net?.leaveHorse();
   }
 
   private readCode(): string | null {
@@ -255,12 +281,15 @@ export class CourtPageComponent implements OnInit, OnDestroy {
     if (!token) return this.state.set("auth");
 
     const net = new CourtNet({
-      onState: (players) => this.syncPlayers(players),
+      onState: (players, view) => {
+        this.syncPlayers(players);
+        this.syncHorse(players, view);
+      },
       onToast: (m) => this.showNotice(m),
       onCorrection: (m) => this.engine?.applyCorrection(m.x, m.z),
       onShot: (m) => this.engine?.onServerShot(m, net.sessionId),
       onShotRejected: (m) => this.engine?.onShotRejected(m.clientShotId, m.reason),
-      onHorseEvent: () => {},
+      onHorseEvent: (m) => this.onHorseEvent(m),
       onDrop: () => this.reconnecting.set(true),
       onReconnect: () => this.reconnecting.set(false),
       onClosed: () => {
@@ -344,6 +373,78 @@ export class CourtPageComponent implements OnInit, OnDestroy {
     });
     for (const id of engine.remoteIds()) {
       if (!players.has(id)) engine.removeRemote(id);
+    }
+  }
+
+  /** Room state -> H-O-R-S-E HUD and engine gate. Signals only change when the derived values do. */
+  private syncHorse(players: Map<string, NetPlayer>, view: HorseView): void {
+    const me = this.net?.sessionId ?? "";
+    players.forEach((p, id) => this.names.set(id, p.name));
+
+    // Who may press Start: the owner if present, else the earliest-joined connected player.
+    const starters = [...players.entries()].map(([id, p]) => ({ id, joinOrder: p.joinedAt, connected: p.connected }));
+    const ownerSession = [...players.entries()].find(([, p]) => p.userId === view.ownerId && p.connected)?.[0] ?? "";
+    const eligible = canStart([...starters, { id: "__probe__", joinOrder: Number.MAX_SAFE_INTEGER, connected: true }], ownerSession, me);
+    const ready = view.phase === "free" && canStart(starters, ownerSession, me);
+
+    const hud: HorseHudPlayer[] = view.order.map((id) => {
+      const p = players.get(id);
+      return {
+        id,
+        name: p?.name ?? this.names.get(id) ?? "?",
+        letters: p?.letters ?? "HORSE",
+        eliminated: p ? p.eliminated : true,
+        connected: p?.connected ?? false,
+        isTurn: id === view.turnId,
+        isMe: id === me,
+      };
+    });
+    const key = JSON.stringify([view.phase, view.turnId, view.setterId, view.spot, view.order, hud, eligible, ready, me]);
+    if (key !== this.hudKey) {
+      this.hudKey = key;
+      this.horseView.set(view);
+      this.horsePlayers.set(hud);
+      this.isStarter.set(eligible && view.phase === "free");
+      this.canStartHorse.set(ready);
+      this.mySessionId.set(me);
+      if (view.phase === "free" || view.phase === "over") this.turnEndsAt.set(null);
+    }
+
+    // Engine: gate our own shots and show the ring while matching.
+    const gateKey = JSON.stringify([view.phase, view.turnId, view.spot]);
+    if (gateKey !== this.gateKey && this.engine) {
+      this.gateKey = gateKey;
+      const inGame = view.phase === "setting" || view.phase === "matching";
+      this.engine.setShotGate(inGame ? (x, z) => shotGate({ phase: view.phase, turnId: view.turnId, spot: view.spot, resolving: false }, me, x, z) : null);
+      this.engine.setSpotRing(view.phase === "matching" ? view.spot : null);
+    }
+  }
+
+  private onHorseEvent(m: HorseEventMessage): void {
+    const name = (m.playerId && this.names.get(m.playerId)) || "";
+    switch (m.kind) {
+      case "turn":
+        if (m.remainingMs !== undefined) this.turnEndsAt.set(performance.now() + m.remainingMs);
+        break;
+      case "letter":
+        this.showFlash(`${name}: ${(m.letters ?? "").slice(-1)}!`, "bad");
+        break;
+      case "eliminated":
+        this.showFlash(this.i18n.t("court.horse.eliminated").replace("{name}", name), "bad");
+        break;
+      case "winner": {
+        // Standings: winner first, then fewest letters; eliminated players last.
+        const others = this.horsePlayers()
+          .filter((p) => p.id !== m.playerId)
+          .sort((a, b) => Number(a.eliminated) - Number(b.eliminated) || a.letters.length - b.letters.length);
+        const winner = this.horsePlayers().find((p) => p.id === m.playerId);
+        const standings = [...(winner ? [winner] : []), ...others].map((p, i) => ({ name: p.name, letters: p.letters, placement: i + 1 }));
+        this.horseWinner.set({ name, standings });
+        this.showFlash(this.i18n.t("court.horse.wins").replace("{name}", name), "fire");
+        if (this.winnerTimer) clearTimeout(this.winnerTimer);
+        this.winnerTimer = setTimeout(() => this.horseWinner.set(null), HORSE_RETURN_MS);
+        break;
+      }
     }
   }
 

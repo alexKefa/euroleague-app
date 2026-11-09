@@ -49,7 +49,7 @@
       }
     </div>
 
-    @if (state() === "ready") {
+    @if (state() === "ready" && (!code || horseView().phase === "free")) {
       <div class="court-pill gap-4 px-4 py-1.5">
         <div class="text-center leading-tight">
           <div class="font-display text-2xl" [class.court-streak-hot]="stats().streak >= 3">{{ stats().streak }}</div>
@@ -94,6 +94,21 @@
       <div class="court-pill court-notice px-3.5 py-1 text-sm">{{ n.text }}</div>
     }
   </div>
+
+  <!-- H-O-R-S-E (shared courts) -->
+  @if (code && state() === "ready") {
+    <app-horse-hud
+      [view]="horseView()"
+      [players]="horsePlayers()"
+      [meId]="mySessionId()"
+      [turnEndsAt]="turnEndsAt()"
+      [winner]="horseWinner()"
+      [isStarter]="isStarter()"
+      [canStart]="canStartHorse()"
+      (start)="startHorse()"
+      (forfeit)="forfeitHorse()"
+    />
+  }
 
   <!-- Release / result flash -->
   @if (flash(); as f) {
