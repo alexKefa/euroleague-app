@@ -1,0 +1,99 @@
+// Clutch Court network protocol (CLUTCH_COURT_SPEC.md §6). Message names and
+// payloads shared by the Colyseus room and the Angular client.
+import { PLAYER_SPEED } from "./constants.js";
+import { clampPlayerPosition } from "./geometry.js";
+
+export const ROOM_NAME = "court";
+/** HTTP + WebSocket path prefix the room server is mounted under. */
+export const COLYSEUS_PATH = "/colyseus";
+export const MAX_PLAYERS = 8;
+/** Clients send moves at most this often. */
+export const MOVE_HZ = 20;
+/** Seconds a dropped player has to come back. */
+export const RECONNECT_SECONDS = 30;
+/** Room disposes this long after the last player leaves. */
+export const EMPTY_DISPOSE_MS = 5 * 60 * 1000;
+
+// Invite codes: 6 chars, uppercase, no 0/O/1/I/L.
+export const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+export const CODE_LENGTH = 6;
+const CODE_RE = new RegExp(`^[${CODE_ALPHABET}]{${CODE_LENGTH}}$`);
+
+export function isValidCourtCode(code: unknown): code is string {
+  return typeof code === "string" && CODE_RE.test(code);
+}
+
+/** Normalise user input ("abc 23x" -> "ABC23X"). */
+export function normalizeCourtCode(input: string): string {
+  return input.toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+/** `random` returns a uniform integer in [0, n). */
+export function generateCourtCode(random: (n: number) => number): string {
+  let code = "";
+  for (let i = 0; i < CODE_LENGTH; i++) code += CODE_ALPHABET[random(CODE_ALPHABET.length)];
+  return code;
+}
+
+export type PlayerAnim = "idle" | "run" | "shoot";
+export const PLAYER_ANIMS: readonly PlayerAnim[] = ["idle", "run", "shoot"];
+
+// ---- client -> server ----
+export interface MoveMessage {
+  x: number;
+  z: number;
+  rotY: number;
+  anim: PlayerAnim;
+}
+
+export interface JoinOptions {
+  code: string;
+  accessToken: string;
+}
+
+// ---- server -> client ----
+/** Sent to one client when its move was rejected; snap back to here. */
+export interface CorrectionMessage {
+  x: number;
+  z: number;
+}
+
+export type ToastMessage = { kind: "joined" | "left" | "dropped" | "back"; name: string };
+
+export const MSG = {
+  move: "move",
+  correction: "correction",
+  toast: "toast",
+} as const;
+
+/** Speed tolerance before a move is rejected (spec §6.3: speed × 1.25). */
+export const MOVE_SPEED_TOLERANCE = 1.25;
+/** Slack for jitter in message arrival, metres. */
+const MOVE_SLACK = 0.35;
+/** Longest gap credited between two moves (a paused tab can't teleport). */
+const MAX_MOVE_GAP = 0.5;
+
+/**
+ * Server-side move check. Returns the accepted position (clamped to the
+ * fence), or null when the move was too fast and must be corrected.
+ */
+export function validateMove(
+  prev: { x: number; z: number },
+  next: { x: number; z: number },
+  elapsedSeconds: number
+): { x: number; z: number } | null {
+  if (!Number.isFinite(next.x) || !Number.isFinite(next.z)) return null;
+  const dt = Math.min(Math.max(elapsedSeconds, 0), MAX_MOVE_GAP);
+  const allowed = PLAYER_SPEED * MOVE_SPEED_TOLERANCE * dt + MOVE_SLACK;
+  if (Math.hypot(next.x - prev.x, next.z - prev.z) > allowed) return null;
+  return clampPlayerPosition(next.x, next.z);
+}
+
+/** Wrap an angle into (-PI, PI]; non-finite -> 0. */
+export function normalizeYaw(a: number): number {
+  if (!Number.isFinite(a)) return 0;
+  let r = a % (2 * Math.PI);
+  if (r > Math.PI) r -= 2 * Math.PI;
+  if (r <= -Math.PI) r += 2 * Math.PI;
+  return r;
+}

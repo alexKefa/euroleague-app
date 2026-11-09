@@ -11,6 +11,7 @@ import { peekPendingPromoClaim, consumePendingPromoClaim } from "../../shared/pe
 import { clearPendingReferral, peekPendingReferral, stashPendingReferral } from "../../shared/pending-referral";
 import { GoogleSignInButtonComponent, type GoogleSignInResult } from "../../shared/google-sign-in-button";
 import { pendingLeagueJoinUrl } from "../../shared/pending-league-join";
+import { pendingCourtJoinUrl } from "../../shared/pending-court-join";
 
 @Component({
   selector: "app-register",
@@ -94,7 +95,7 @@ export class RegisterComponent implements OnInit {
       return;
     }
     const pendingPromo = consumePendingPromoClaim();
-    this.router.navigateByUrl(pendingPromo ? `/claim?promo=${encodeURIComponent(pendingPromo)}` : "/");
+    this.router.navigateByUrl(pendingPromo ? `/claim?promo=${encodeURIComponent(pendingPromo)}` : (pendingCourtJoinUrl() ?? "/"));
   }
 
   submit(): void {
@@ -126,6 +127,6 @@ export class RegisterComponent implements OnInit {
   // Straight to Predictions (2026-10-05): 44% of signups never made a pick
   // when they landed on Home. The first-picks card there offers a free pack.
   onTeamDialogClosed(): void {
-    this.router.navigateByUrl(pendingLeagueJoinUrl() ?? "/predictions");
+    this.router.navigateByUrl(pendingCourtJoinUrl() ?? pendingLeagueJoinUrl() ?? "/predictions");
   }
 }

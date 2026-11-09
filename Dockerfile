@@ -17,6 +17,8 @@ WORKDIR /app/backend
 COPY backend/package.json backend/package-lock.json ./
 RUN npm ci
 COPY backend/ ./
+# The backend compiles ../shared (Clutch Court physics/rules) into dist/shared.
+COPY shared/ ../shared/
 RUN npm run build
 
 FROM node:22
@@ -30,4 +32,4 @@ COPY backend/assets ./assets
 COPY --from=frontend-build /app/frontend/dist/euroleague-app-frontend/browser ./public
 
 EXPOSE 4000
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/backend/src/index.js"]

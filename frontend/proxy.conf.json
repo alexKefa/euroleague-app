@@ -3,5 +3,11 @@
     "target": "http://localhost:4000",
     "secure": false,
     "changeOrigin": true
+  },
+  "/colyseus": {
+    "target": "http://localhost:4000",
+    "secure": false,
+    "changeOrigin": true,
+    "ws": true
   }
 }

@@ -4,7 +4,6 @@ import { withStoryMeta } from "./services/gameStory/meta.js";
 import "dotenv/config";
 import path from "node:path";
 import fs from "node:fs";
-import { fileURLToPath } from "node:url";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -41,6 +40,9 @@ import { battlesRouter } from "./routes/battles.js";
 import { duelsRouter } from "./routes/duels.js";
 import { remindersRouter } from "./routes/reminders.js";
 import { pushRouter } from "./routes/push.js";
+import { courtsRouter } from "./routes/courts.js";
+import { courtMatchmakingMiddleware, startCourtServer } from "./court/server.js";
+import { COLYSEUS_PATH } from "../../shared/court/protocol.js";
 import { syncNews } from "./sync/newsSync.js";
 import { syncOdds } from "./sync/oddsSync.js";
 import { syncLiveGames } from "./sync/liveGamesSync.js";
@@ -85,11 +87,13 @@ const app = express();
 // index.ts and the security-relevant middleware here more broadly.
 app.set("trust proxy", 1);
 const port = process.env.PORT ? Number(process.env.PORT) : 4000;
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Populated by the Railway build (see ./Dockerfile) by copying the
 // Angular build's browser/ output here — absent in local dev, where the
-// frontend is served separately by `ng serve` instead.
-const staticDir = path.join(__dirname, "../public");
+// frontend is served separately by `ng serve` instead. Resolved from the
+// working directory (backend/, WORKDIR /app/backend in Docker) rather than
+// this file: the compiled entry moved to dist/backend/src/ once the backend
+// started compiling ../shared (Clutch Court).
+const staticDir = path.resolve(process.cwd(), "public");
 
 app.use(
   helmet({
@@ -115,7 +119,13 @@ app.use(
         "script-src": ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", "https://accounts.google.com/gsi/client"],
         "script-src-attr": ["'unsafe-inline'"],
         "frame-src": ["'self'", "https://accounts.google.com/gsi/", "https://www.youtube-nocookie.com"],
-        "connect-src": ["'self'", "https://accounts.google.com/gsi/"],
+        // Clutch Court: the Colyseus WebSocket on this same host. Listed
+        // explicitly because older Safari does not match wss: against 'self'.
+        "connect-src": [
+          "'self'",
+          "https://accounts.google.com/gsi/",
+          (req) => `wss://${(req as { headers: { host?: string } }).headers.host ?? ""}`,
+        ],
       },
     },
     // GIS's popup needs to post the credential back to this page, which
@@ -123,6 +133,9 @@ app.use(
     crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
   })
 );
+// Clutch Court matchmaking (POST /colyseus/matchmake/...). Before the body
+// parsers: Colyseus reads the raw request body itself.
+app.use(COLYSEUS_PATH, courtMatchmakingMiddleware());
 app.use(errorContext);
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
@@ -173,6 +186,7 @@ app.use("/api/duels", duelsRouter);
 app.use("/api/reminders", remindersRouter);
 app.use("/api/announcements", announcementsRouter);
 app.use("/api/push", pushRouter);
+app.use("/api/courts", courtsRouter);
 app.use("/api/referees", refereesRouter);
 app.use("/api/search", searchRouter);
 app.use("/api/watch-pins", watchPinsRouter);
@@ -221,9 +235,11 @@ if (fs.existsSync(indexHtml)) {
 // Last: anything a route passed to next(err) or threw synchronously.
 app.use(errorHandler);
 
-app.listen(port, () => {
+const httpServer = app.listen(port, () => {
   console.log(`euroleague-app-backend listening on http://localhost:${port}`);
 });
+// Clutch Court rooms share this HTTP server (WebSocket upgrades under /colyseus).
+startCourtServer(httpServer).catch((err) => console.error("[court] room server failed to start", err));
 
 // Production-only: this process stays up indefinitely (unlike local dev,
 // which restarts on every file save under tsx watch — running this there

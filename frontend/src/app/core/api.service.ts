@@ -100,6 +100,15 @@ export class ApiService {
     return this.http.get<Team[]>(`${API_BASE_URL}/teams`);
   }
 
+  /** Clutch Court: your open court, or a new one. */
+  createCourt(): Observable<{ code: string; url: string }> {
+    return this.http.post<{ code: string; url: string }>(`${API_BASE_URL}/courts`, {});
+  }
+
+  getCourt(code: string): Observable<{ exists: boolean; active: boolean; playerCount?: number }> {
+    return this.http.get<{ exists: boolean; active: boolean; playerCount?: number }>(`${API_BASE_URL}/courts/${encodeURIComponent(code)}`);
+  }
+
   getStandings(): Observable<StandingsRow[]> {
     return this.http.get<StandingsRow[]>(`${API_BASE_URL}/standings`);
   }

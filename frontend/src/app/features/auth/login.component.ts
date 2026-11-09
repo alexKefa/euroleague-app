@@ -9,6 +9,7 @@ import { consumePendingPromoClaim, peekPendingPromoClaim } from "../../shared/pe
 import { clearPendingReferral, peekPendingReferral } from "../../shared/pending-referral";
 import { TeamPickDialogComponent } from "../../shared/team-pick-dialog";
 import { pendingLeagueJoinUrl } from "../../shared/pending-league-join";
+import { pendingCourtJoinUrl } from "../../shared/pending-court-join";
 import { GoogleSignInButtonComponent, type GoogleSignInResult } from "../../shared/google-sign-in-button";
 
 @Component({
@@ -53,7 +54,7 @@ export class LoginComponent {
 
   // Same destination as Register after the team pick.
   onTeamDialogClosed(): void {
-    this.router.navigateByUrl(pendingLeagueJoinUrl() ?? "/predictions");
+    this.router.navigateByUrl(pendingCourtJoinUrl() ?? pendingLeagueJoinUrl() ?? "/predictions");
   }
 
   // After email/password or Google sign-in.
@@ -63,7 +64,7 @@ export class LoginComponent {
     // now that they're actually signed in, instead of just landing on
     // the dashboard with the code forgotten.
     const pendingPromo = consumePendingPromoClaim();
-    this.router.navigateByUrl(pendingPromo ? `/claim?promo=${encodeURIComponent(pendingPromo)}` : (pendingLeagueJoinUrl() ?? "/"));
+    this.router.navigateByUrl(pendingPromo ? `/claim?promo=${encodeURIComponent(pendingPromo)}` : (pendingCourtJoinUrl() ?? pendingLeagueJoinUrl() ?? "/"));
   }
 
   submit(): void {

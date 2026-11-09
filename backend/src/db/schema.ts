@@ -1175,6 +1175,47 @@ export const leagues = pgTable("leagues", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+// Clutch Court (CLUTCH_COURT_SPEC.md §7): private 3D courts joined by a
+// 6-char invite code. The live room itself is in memory (backend/src/court);
+// this row only says the code exists and is still open. is_active goes false
+// when the room disposes (5 min after the last player leaves).
+export const courts = pgTable(
+  "courts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    code: varchar("code", { length: 6 }).notNull().unique(),
+    ownerUserId: uuid("owner_user_id").notNull().references(() => users.id),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    lastActiveAt: timestamp("last_active_at", { withTimezone: true }),
+  },
+  (table) => ({
+    ownerIdx: index("courts_owner_idx").on(table.ownerUserId),
+  })
+);
+
+// H-O-R-S-E results (written in M4).
+export const horseGames = pgTable("horse_games", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  courtId: uuid("court_id").notNull().references(() => courts.id),
+  winnerUserId: uuid("winner_user_id").references(() => users.id),
+  startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+  endedAt: timestamp("ended_at", { withTimezone: true }),
+});
+
+export const horseGamePlayers = pgTable(
+  "horse_game_players",
+  {
+    gameId: uuid("game_id").notNull().references(() => horseGames.id),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    finalLetters: varchar("final_letters", { length: 5 }).notNull().default(""),
+    placement: integer("placement").notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.gameId, table.userId] }),
+  })
+);
+
 // The creator is just the first row here (inserted alongside the league
 // itself) — no separate "owner" concept beyond leagues.createdByUserId,
 // and no v1 delete/kick, only join (POST /leagues/join) and leave (POST

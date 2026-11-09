@@ -3,9 +3,11 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "lib": ["ES2022"],
+    "lib": [
+      "ES2022"
+    ],
     "outDir": "dist",
-    "rootDir": "src",
+    "rootDir": "..",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -14,6 +16,15 @@
     "declaration": false,
     "sourceMap": true
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "src/scripts/check-search-match.ts"]
+  "include": [
+    "src/**/*.ts",
+    "../shared/court/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/scripts/check-search-match.ts",
+    "../shared/court/*.test.ts",
+    "../shared/court/tune-shots.ts"
+  ]
 }

@@ -8,6 +8,7 @@ import { randomSeed } from "../../../../../../shared/court/rng";
 import { computeShotLaunch, effectiveTiming } from "../../../../../../shared/court/shot";
 import { CourtPhysics, RapierApi } from "../../../../../../shared/court/sim";
 import { HoopId } from "../../../../../../shared/court/types";
+import { MOVE_HZ, MoveMessage, PlayerAnim } from "../../../../../../shared/court/protocol";
 import { Avatar, JERSEY_FONT, JerseyText, createAvatar, createBall, createBlobShadow, releaseBallTexture, releaseShadowTexture } from "./avatar-factory";
 import { BallPlayback } from "./ball-playback";
 import { CourtAudio } from "./court-audio";
@@ -15,6 +16,7 @@ import { Joystick } from "./input/joystick";
 import { KeyboardInput } from "./input/keyboard";
 import { ShootMeter } from "./input/shoot-meter";
 import { CAMERA_PRESETS, PlayerController } from "./player-controller";
+import { RemoteInfo, RemotePlayers } from "./remote-players";
 import { BuiltScene, buildScene, disposeObject } from "./scene-builder";
 
 export type ReleaseGrade = "perfect" | "good" | "early" | "late";
@@ -42,8 +44,13 @@ export interface EngineDom {
 }
 
 export interface EngineOptions {
-  teamPrimary: string;
-  teamSecondary: string;
+  /** Paint for the keys and centre circle (the court owner's club). */
+  courtColor: string;
+  /** The local player's kit. */
+  kitPrimary: string;
+  kitSecondary: string;
+  /** Where the local player starts (multiplayer: the server's spawn point). */
+  start?: { x: number; z: number; rotY: number };
   cameraPreset: number;
   muted: boolean;
   bestStreak: number;
@@ -85,6 +92,10 @@ export class GameEngine {
   private stats: PracticeStats;
   private readonly tmp = new Vector3();
   private readonly hand = new Vector3();
+  private remotes: RemotePlayers | null = null;
+  private moveSink: ((m: MoveMessage) => void) | null = null;
+  private lastMoveSentAt = 0;
+  private lastSent: MoveMessage | null = null;
 
   constructor(
     private readonly dom: EngineDom,
@@ -94,6 +105,11 @@ export class GameEngine {
     this.stats = { makes: 0, attempts: 0, streak: 0, best: opts.bestStreak };
     this.player.preset = Math.min(Math.max(0, opts.cameraPreset), CAMERA_PRESETS.length - 1);
     this.audio.muted = opts.muted;
+    if (opts.start) {
+      this.player.x = opts.start.x;
+      this.player.z = opts.start.z;
+      this.player.rotY = opts.start.rotY;
+    }
   }
 
   /** Load Rapier, build the scene, start the loop. Throws if WebGL is unavailable. */
@@ -123,8 +139,9 @@ export class GameEngine {
     this.dom.container.appendChild(canvas);
 
     this.camera = new PerspectiveCamera(60, 1, 0.1, 250);
-    this.built = buildScene({ teamPrimary: this.opts.teamPrimary, logo, maxAnisotropy: this.renderer.capabilities.getMaxAnisotropy() });
-    this.avatar = createAvatar(this.opts.teamPrimary, this.opts.teamSecondary, this.opts.jersey);
+    this.built = buildScene({ teamPrimary: this.opts.courtColor, logo, maxAnisotropy: this.renderer.capabilities.getMaxAnisotropy() });
+    this.avatar = createAvatar(this.opts.kitPrimary, this.opts.kitSecondary, this.opts.jersey);
+    this.remotes = new RemotePlayers(this.built.scene);
     this.built.scene.add(this.avatar.root);
     this.ball = createBall();
     this.built.scene.add(this.ball);
@@ -179,6 +196,45 @@ export class GameEngine {
     this.audio.muted = muted;
   }
 
+  // ---------- multiplayer hooks (the engine itself knows nothing about Colyseus) ----------
+
+  /** Local moves are passed here at most MOVE_HZ times a second, only when they change. */
+  setMoveSink(sink: ((m: MoveMessage) => void) | null): void {
+    this.moveSink = sink;
+    this.lastSent = null;
+  }
+
+  /** The server rejected a move: snap back. */
+  applyCorrection(x: number, z: number): void {
+    this.player.x = x;
+    this.player.z = z;
+    this.lastSent = null;
+  }
+
+  hasRemote(id: string): boolean {
+    return this.remotes?.has(id) ?? false;
+  }
+
+  addRemote(id: string, info: RemoteInfo, x: number, z: number, rotY: number): void {
+    this.remotes?.add(id, info, x, z, rotY);
+  }
+
+  pushRemote(id: string, x: number, z: number, rotY: number, anim: string): void {
+    this.remotes?.push(id, x, z, rotY, anim, performance.now());
+  }
+
+  setRemoteConnected(id: string, connected: boolean): void {
+    this.remotes?.setConnected(id, connected);
+  }
+
+  removeRemote(id: string): void {
+    this.remotes?.remove(id);
+  }
+
+  remoteIds(): string[] {
+    return this.remotes?.ids() ?? [];
+  }
+
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
@@ -189,6 +245,8 @@ export class GameEngine {
     this.resizeObserver?.disconnect();
     this.audio.dispose();
     this.meter?.cancel();
+    this.moveSink = null;
+    this.remotes?.dispose();
     if (this.built) disposeObject(this.built.scene);
     releaseBallTexture();
     releaseShadowTexture();
@@ -249,10 +307,24 @@ export class GameEngine {
     this.updateAvatar(dt, now);
     this.updateBall(dt, now);
     this.updateNet(now);
+    this.remotes?.update(now, dt);
+    this.sendMove(now);
     this.player.updateCamera(dt, this.camera);
     this.placeMeter();
     this.renderer.render(this.built.scene, this.camera);
   };
+
+  private sendMove(now: number): void {
+    if (!this.moveSink || now - this.lastMoveSentAt < 1000 / MOVE_HZ) return;
+    const p = this.player;
+    const anim: PlayerAnim = this.meter.charging || now < this.lockUntil ? "shoot" : p.moving ? "run" : "idle";
+    const m: MoveMessage = { x: Math.round(p.x * 100) / 100, z: Math.round(p.z * 100) / 100, rotY: Math.round(p.rotY * 100) / 100, anim };
+    const last = this.lastSent;
+    if (last && last.x === m.x && last.z === m.z && last.rotY === m.rotY && last.anim === m.anim) return;
+    this.lastMoveSentAt = now;
+    this.lastSent = m;
+    this.moveSink(m);
+  }
 
   private updateAvatar(dt: number, now: number): void {
     const { root, body } = this.avatar;
