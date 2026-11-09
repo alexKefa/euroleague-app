@@ -10,7 +10,6 @@ import {
   MeshBasicMaterial,
   MeshStandardMaterial,
   PlaneGeometry,
-  RepeatWrapping,
   SRGBColorSpace,
   SphereGeometry,
 } from "three";
@@ -49,71 +48,85 @@ function contrast(a: string, b: string): number {
   return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
 }
 
-/** Lettering colour: the trim colour if it reads on the jersey, else white/black. */
+/** Lettering colour: the trim colour when it clearly reads on the jersey, else white/black. */
 function letteringColor(primary: string, secondary: string): string {
-  if (contrast(primary, secondary) >= 2.5) return secondary;
+  if (contrast(primary, secondary) >= 3) return secondary;
   return contrast(primary, "#ffffff") >= contrast(primary, "#111111") ? "#ffffff" : "#111111";
+}
+
+/** Outline: whichever of the jersey/trim/black/white contrasts most with the lettering. */
+function outlineColor(ink: string, primary: string, secondary: string): string {
+  const options = [primary, secondary, "#111111", "#ffffff"].filter((c) => c.toLowerCase() !== ink.toLowerCase());
+  return options.reduce((best, c) => (contrast(ink, c) > contrast(ink, best) ? c : best), options[0]!);
 }
 
 /** Fit `text` into maxWidth by shrinking from `size` px. */
 function fitFont(ctx: CanvasRenderingContext2D, text: string, size: number, maxWidth: number): void {
   let s = size;
   ctx.font = `800 ${s}px ${JERSEY_FONT}`;
-  while (s > 12 && ctx.measureText(text).width > maxWidth) {
+  while (s > 16 && ctx.measureText(text).width > maxWidth) {
     s -= 2;
     ctx.font = `800 ${s}px ${JERSEY_FONT}`;
   }
 }
 
+/** Outlined text: the stroke goes under the fill so letters keep their full weight. */
+function outlinedText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, stroke: number): void {
+  ctx.lineWidth = stroke;
+  ctx.strokeText(text, x, y);
+  ctx.fillText(text, x, y);
+}
+
+const LETTER_TEX = 512;
+
 function letteringTexture(draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void): CanvasTexture {
-  const w = 256;
-  const h = 256;
   const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
+  canvas.width = LETTER_TEX;
+  canvas.height = LETTER_TEX;
   const ctx = canvas.getContext("2d")!;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.lineJoin = "round";
-  draw(ctx, w, h);
+  draw(ctx, LETTER_TEX, LETTER_TEX);
   const tex = new CanvasTexture(canvas);
   tex.colorSpace = SRGBColorSpace;
-  // CylinderGeometry's u runs the opposite way to how a viewer facing the
-  // patch reads it; mirror so the text isn't backwards.
-  tex.wrapS = RepeatWrapping;
-  tex.repeat.x = -1;
+  tex.anisotropy = 4;
   return tex;
 }
 
 /** A curved patch hugging the torso, centred on yaw `facing` (0 = chest, PI = back). */
 function letteringPatch(tex: CanvasTexture, facing: number): Mesh {
-  const arc = 1.7;
-  const geo = new CylinderGeometry(0.276, 0.276, 0.5, 16, 1, true, facing - arc / 2, arc);
-  const mat = new MeshStandardMaterial({ map: tex, transparent: true, roughness: 0.7, depthWrite: false });
+  const arc = 1.9;
+  const geo = new CylinderGeometry(0.276, 0.276, 0.56, 20, 1, true, facing - arc / 2, arc);
+  // A little self-illumination keeps the lettering readable on the shaded side.
+  const mat = new MeshStandardMaterial({
+    map: tex,
+    emissive: "#ffffff",
+    emissiveMap: tex,
+    emissiveIntensity: 0.35,
+    transparent: true,
+    roughness: 0.8,
+    depthWrite: false,
+  });
   const mesh = new Mesh(geo, mat);
-  mesh.position.y = 1.1;
+  mesh.position.y = 1.08;
   return mesh;
 }
 
 function addLettering(body: Group, jersey: JerseyText, primary: string, secondary: string): void {
   const ink = letteringColor(primary, secondary);
-  const outline = ink === secondary ? primary : luminance(ink) > 0.5 ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.35)";
+  const outline = outlineColor(ink, primary, secondary);
 
   const back = letteringTexture((ctx, w, h) => {
     ctx.fillStyle = ink;
     ctx.strokeStyle = outline;
-    ctx.lineWidth = 4;
     const name = jersey.name.toUpperCase();
     if (name) {
-      fitFont(ctx, name, 46, w * 0.9);
-      ctx.strokeText(name, w / 2, h * 0.17);
-      ctx.fillText(name, w / 2, h * 0.17);
+      fitFont(ctx, name, 96, w * 0.92);
+      outlinedText(ctx, name, w / 2, h * 0.15, 12);
     }
-    ctx.lineWidth = 6;
-    ctx.font = `800 150px ${JERSEY_FONT}`;
-    const num = String(jersey.number);
-    ctx.strokeText(num, w / 2, h * (name ? 0.6 : 0.5));
-    ctx.fillText(num, w / 2, h * (name ? 0.6 : 0.5));
+    ctx.font = `800 ${name ? 300 : 340}px ${JERSEY_FONT}`;
+    outlinedText(ctx, String(jersey.number), w / 2, h * (name ? 0.6 : 0.52), 22);
   });
   body.add(letteringPatch(back, Math.PI));
 
@@ -121,14 +134,12 @@ function addLettering(body: Group, jersey: JerseyText, primary: string, secondar
     const chest = letteringTexture((ctx, w, h) => {
       ctx.fillStyle = ink;
       ctx.strokeStyle = outline;
-      ctx.lineWidth = 4;
-      fitFont(ctx, jersey.chest.toUpperCase(), 72, w * 0.7);
-      ctx.strokeText(jersey.chest.toUpperCase(), w / 2, h * 0.3);
-      ctx.fillText(jersey.chest.toUpperCase(), w / 2, h * 0.3);
-      // Small number under the club name, like a real kit.
-      ctx.font = `800 64px ${JERSEY_FONT}`;
-      ctx.strokeText(String(jersey.number), w / 2, h * 0.62);
-      ctx.fillText(String(jersey.number), w / 2, h * 0.62);
+      const club = jersey.chest.toUpperCase();
+      fitFont(ctx, club, 150, w * 0.78);
+      outlinedText(ctx, club, w / 2, h * 0.3, 14);
+      // Number under the club code, like a real kit.
+      ctx.font = `800 150px ${JERSEY_FONT}`;
+      outlinedText(ctx, String(jersey.number), w / 2, h * 0.64, 14);
     });
     body.add(letteringPatch(chest, 0));
   }
