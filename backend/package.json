@@ -33,7 +33,8 @@
     "check:moments": "tsx src/scripts/check-moments.ts",
     "duels:calibrate": "tsx src/scripts/calibrate-duel-scales.ts",
     "check:duels": "tsx src/scripts/check-duels.ts",
-    "moments:generate": "tsx src/scripts/generate-moments.ts"
+    "moments:generate": "tsx src/scripts/generate-moments.ts",
+    "test:court": "tsx --test ../shared/court/shot.test.ts"
   },
   "dependencies": {
     "@resvg/resvg-js": "2.6.2",

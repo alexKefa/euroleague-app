@@ -43,6 +43,12 @@ export const routes: Routes = [
   },
   // Pull-to-refresh's round trip target (shared/pull-to-refresh.ts).
   { path: "__refresh", component: BlankComponent },
+  // Clutch Court (CLUTCH_COURT_SPEC.md): 3D shootaround. Lazy so three.js
+  // and Rapier never reach the main bundle.
+  {
+    path: "court",
+    loadChildren: () => import("./features/court/court.routes").then((m) => m.COURT_ROUTES),
+  },
   {
     path: "fans",
     loadComponent: () => import("./features/fan-map/fan-map").then((m) => m.FanMapComponent),

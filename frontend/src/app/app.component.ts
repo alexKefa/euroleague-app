@@ -115,6 +115,7 @@ const NAV_LINKS: NavLink[] = [
   },
   { path: "/fantasy", label: "fantasy.navLink", icon: "trophy" },
   { path: "/leaderboard", label: "nav.leaderboard", icon: "medal" },
+  { path: "/court", label: "nav.court", icon: "ball" },
   { path: "/fans", label: "nav.fanMap", icon: "teams" },
   { path: "/schedule", label: "nav.schedule", icon: "schedule" },
   { path: "/teams", label: "nav.teams", icon: "teams" },
@@ -131,7 +132,7 @@ const NAV_LINKS: NavLink[] = [
 // order should be Home, Predictions, Cards, Fantasy"), landing Cards
 // before Fantasy here even though the desktop rail keeps Fantasy before
 // Cards; this list is intentionally independent of that one.
-const MOBILE_OVERFLOW_PATHS = new Set(["/leaderboard", "/fans", "/schedule", "/teams", "/standings", "/news"]);
+const MOBILE_OVERFLOW_PATHS = new Set(["/leaderboard", "/court", "/fans", "/schedule", "/teams", "/standings", "/news"]);
 function findNavLink(path: string): NavLink {
   const link = NAV_LINKS.find((l) => l.path === path);
   if (!link) throw new Error(`app.component.ts: no NAV_LINKS entry for "${path}"`);
@@ -145,7 +146,7 @@ const MOBILE_NAV_LINKS: NavLink[] = ["/", "/predictions", "/inventory", "/fantas
 // last (2026-09-19, explicit ask), not first, since it's the newest
 // addition to this list rather than one of its established members.
 // Leaderboard (2026-10-02) leads it: checked between rounds, not every session.
-const MORE_LINKS: NavLink[] = ["/leaderboard", "/fans", "/schedule", "/teams", "/standings", "/news"].map(findNavLink);
+const MORE_LINKS: NavLink[] = ["/leaderboard", "/court", "/fans", "/schedule", "/teams", "/standings", "/news"].map(findNavLink);
 
 @Component({
   selector: "app-root",
@@ -299,7 +300,8 @@ export class AppComponent implements OnInit {
   // /welcome is a standalone public pitch page (QR/shared-link cold
   // traffic) — it renders its own header and has no use for the logged-in
   // app shell's top bar, desktop rail, or mobile tab bar around it.
-  protected readonly hideChrome = computed(() => this.currentUrl() === "/welcome");
+  // /court/* is a full-screen 3D game with its own HUD (CLUTCH_COURT_SPEC.md).
+  protected readonly hideChrome = computed(() => this.currentUrl() === "/welcome" || this.currentUrl().startsWith("/court/"));
 
   // Swipe-down-to-dismiss for every phone bottom sheet (see the service).
   private sheetDrag = inject(SheetDragService);

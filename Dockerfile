@@ -8,6 +8,8 @@ WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend/ ./
+# Clutch Court's shared physics/rules (imported by relative path as ../shared).
+COPY shared/ ../shared/
 RUN npm run build
 
 FROM node:22 AS backend-build

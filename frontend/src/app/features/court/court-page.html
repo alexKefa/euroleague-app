@@ -1,0 +1,108 @@
+<div class="court-root fixed inset-0 z-[60] overflow-hidden select-none text-white">
+  <div #host class="absolute inset-0"></div>
+
+  <!-- Shoot meter: positioned beside the player by the engine. -->
+  <div #meter class="court-meter" style="display: none" aria-hidden="true">
+    <div class="court-meter-sweet"></div>
+    <div #meterFill class="court-meter-fill"></div>
+  </div>
+
+  <!-- Touch controls -->
+  <div #joystickZone class="court-joy-zone" [class.hidden]="!touch"></div>
+  @if (touch && state() === "ready") {
+    <button
+      type="button"
+      class="court-shoot-btn font-display"
+      (pointerdown)="shootDown($event)"
+      (pointerup)="shootUp($event)"
+      (pointercancel)="shootUp($event)"
+      (contextmenu)="$event.preventDefault()"
+      [attr.aria-label]="i18n.t('court.shoot')"
+    >
+      {{ i18n.t("court.shoot") }}
+    </button>
+  }
+
+  <!-- Top bar -->
+  <div class="absolute inset-x-0 top-0 flex items-start justify-between gap-2 px-4 pt-[calc(0.75rem+env(safe-area-inset-top))]">
+    <a
+      [routerLink]="backUrl"
+      class="court-pill h-10 w-10 justify-center"
+      [attr.aria-label]="i18n.t('court.back')"
+    >
+      <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 5l-7 7 7 7" />
+      </svg>
+    </a>
+
+    @if (state() === "ready") {
+      <div class="court-pill gap-4 px-4 py-1.5">
+        <div class="text-center leading-tight">
+          <div class="font-display text-2xl" [class.court-streak-hot]="stats().streak >= 3">{{ stats().streak }}</div>
+          <div class="text-[10px] uppercase tracking-wider opacity-75">{{ i18n.t("court.streak") }}</div>
+        </div>
+        <div class="text-center leading-tight">
+          <div class="font-display text-2xl">{{ stats().makes }}/{{ stats().attempts }}</div>
+          <div class="text-[10px] uppercase tracking-wider opacity-75">{{ fgPct(stats()) }}</div>
+        </div>
+        <div class="text-center leading-tight">
+          <div class="font-display text-2xl">{{ stats().best }}</div>
+          <div class="text-[10px] uppercase tracking-wider opacity-75">{{ i18n.t("court.best") }}</div>
+        </div>
+      </div>
+    }
+
+    <div class="flex gap-2">
+      <button type="button" class="court-pill h-10 w-10 justify-center" (click)="cycleCamera()" [attr.aria-label]="i18n.t('court.camera')" [title]="i18n.t('court.camera')">
+        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 8h3l2-2.5h6L17 8h3v11H4z" />
+          <circle cx="12" cy="13" r="3.5" />
+        </svg>
+      </button>
+      <button type="button" class="court-pill h-10 w-10 justify-center" (click)="toggleMute()" [attr.aria-label]="i18n.t('court.sound')" [title]="i18n.t('court.sound')" [attr.aria-pressed]="!prefs().muted">
+        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" />
+          @if (prefs().muted) {
+            <path d="M16 9.5l5 5M21 9.5l-5 5" />
+          } @else {
+            <path d="M16 9a4.5 4.5 0 010 6M18.5 6.5a8 8 0 010 11" />
+          }
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Release / result flash -->
+  @if (flash(); as f) {
+    @for (item of [f]; track item.id) {
+      <div class="court-flash font-display" [attr.data-tone]="item.tone">{{ item.text }}</div>
+    }
+  }
+
+  @if (state() === "ready" && !touch) {
+    <div class="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center pb-5">
+      <div class="court-pill px-4 py-2 text-sm opacity-90">{{ i18n.t("court.hintDesktop") }}</div>
+    </div>
+  }
+
+  @switch (state()) {
+    @case ("loading") {
+      <div class="court-overlay">
+        <div class="court-spinner"></div>
+        <p class="mt-4 font-display text-xl">{{ i18n.t("court.loading") }}</p>
+      </div>
+    }
+    @case ("error") {
+      <div class="court-overlay px-8 text-center">
+        <p class="font-display text-xl">{{ i18n.t("court.error") }}</p>
+        <a [routerLink]="backUrl" class="court-pill mt-5 px-5 py-2">{{ i18n.t("court.back") }}</a>
+      </div>
+    }
+    @case ("contextLost") {
+      <div class="court-overlay px-8 text-center">
+        <p class="font-display text-xl">{{ i18n.t("court.contextLost") }}</p>
+        <button type="button" class="court-pill mt-5 px-5 py-2" (click)="restart()">{{ i18n.t("court.restart") }}</button>
+      </div>
+    }
+  }
+</div>
