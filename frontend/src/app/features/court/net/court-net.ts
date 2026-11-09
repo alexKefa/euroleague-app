@@ -14,8 +14,10 @@ import {
   type ShootMessage,
   type ShotMessage,
   type ShotRejectedMessage,
+  type HorseEventMessage,
   type ToastMessage,
 } from "../../../../../../shared/court/protocol";
+import type { HorsePhase } from "../../../../../../shared/court/horse";
 
 /** What the client reads from the synced CourtPlayer (see backend/src/court/state.ts). */
 export interface NetPlayer {
@@ -30,6 +32,22 @@ export interface NetPlayer {
   rotY: number;
   anim: string;
   connected: boolean;
+  /** H-O-R-S-E progress, e.g. "HO". */
+  letters: string;
+  eliminated: boolean;
+  /** Join order (also H-O-R-S-E turn order). */
+  joinedAt: number;
+}
+
+/** Room-level H-O-R-S-E view (synced). */
+export interface HorseView {
+  phase: HorsePhase;
+  turnId: string;
+  setterId: string;
+  spot: { x: number; z: number } | null;
+  order: string[];
+  /** Owner's userId. */
+  ownerId: string;
 }
 
 interface NetState {
@@ -37,11 +55,19 @@ interface NetState {
   ownerId: string;
   courtColor: string;
   courtLogoUrl: string;
+  phase: string;
+  turnId: string;
+  setterId: string;
+  spotX: number;
+  spotZ: number;
+  spotHoop: string;
+  turnOrder: { forEach(cb: (id: string) => void): void };
 }
 
 export interface CourtNetHandlers {
   /** Every state patch (~20 Hz). */
-  onState(players: Map<string, NetPlayer>): void;
+  onState(players: Map<string, NetPlayer>, view: HorseView): void;
+  onHorseEvent(msg: HorseEventMessage): void;
   onToast(msg: ToastMessage): void;
   onCorrection(msg: CorrectionMessage): void;
   /** Any player's authoritative shot (ours included). */
@@ -108,6 +134,7 @@ export class CourtNet {
     room.onMessage(MSG.seed, (m: SeedMessage) => (this.seed = m.seed));
     room.onMessage(MSG.shot, (m: ShotMessage) => this.handlers.onShot(m));
     room.onMessage(MSG.shotRejected, (m: ShotRejectedMessage) => this.handlers.onShotRejected(m));
+    room.onMessage(MSG.horseEvent, (m: HorseEventMessage) => this.handlers.onHorseEvent(m));
     room.onDrop(() => {
       this.seed = null;
       this.handlers.onDrop();
@@ -127,7 +154,7 @@ export class CourtNet {
       if (state && state.players?.size) resolve(state);
       else room.onStateChange.once((s) => resolve(s as NetState));
     });
-    room.onStateChange((s) => this.handlers.onState(this.snapshot(s as NetState)));
+    room.onStateChange((s) => this.handlers.onState(this.snapshot(s as NetState), this.view(s as NetState)));
 
     const me = first.players.get(room.sessionId);
     if (!me) throw new CourtJoinError("network", "joined without a player");
@@ -160,6 +187,28 @@ export class CourtNet {
     const room = this.room;
     this.room = null;
     if (room) void room.leave(true).catch(() => {});
+  }
+
+  startHorse(): void {
+    this.room?.send(MSG.horseStart);
+  }
+
+  leaveHorse(): void {
+    this.room?.send(MSG.horseLeave);
+  }
+
+  private view(state: NetState): HorseView {
+    const order: string[] = [];
+    state.turnOrder?.forEach((id) => order.push(id));
+    const phase = (["free", "setting", "matching", "over"] as const).find((p) => p === state.phase) ?? "free";
+    return {
+      phase,
+      turnId: state.turnId ?? "",
+      setterId: state.setterId ?? "",
+      spot: state.spotHoop ? { x: state.spotX, z: state.spotZ } : null,
+      order,
+      ownerId: state.ownerId,
+    };
   }
 
   private snapshot(state: NetState): Map<string, NetPlayer> {

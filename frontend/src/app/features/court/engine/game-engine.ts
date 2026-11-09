@@ -18,6 +18,8 @@ import { KeyboardInput } from "./input/keyboard";
 import { ShootMeter } from "./input/shoot-meter";
 import { CAMERA_PRESETS, PlayerController } from "./player-controller";
 import { RemoteInfo, RemotePlayers, releaseOffset, shotBallPosition } from "./remote-players";
+import { SpotRing } from "./spot-ring";
+import type { ShotRejectReason } from "../../../../../../shared/court/horse";
 import { BuiltScene, buildScene, disposeObject } from "./scene-builder";
 
 export type ReleaseGrade = "perfect" | "good" | "early" | "late";
@@ -35,6 +37,8 @@ export interface EngineCallbacks {
   onShotResult(made: boolean, streak: number): void;
   onContextLost(): void;
   onContextRestored(): void;
+  /** A shot was refused by the H-O-R-S-E rules (locally or by the server). */
+  onShotBlocked(reason: ShotRejectReason): void;
 }
 
 /** Multiplayer shots (M3). The engine predicts with the server's seed and plays the server's result. */
@@ -112,6 +116,8 @@ export class GameEngine {
   private lastMoveSentAt = 0;
   private lastSent: MoveMessage | null = null;
   private shotNet: ShotNet | null = null;
+  private shotGate: ((x: number, z: number) => ShotRejectReason | null) | null = null;
+  private spotRing: SpotRing | null = null;
   private clientShotId = 0;
   /** Our shot sent without a seed (no prediction): waiting for the server's result. */
   private awaitingShot: { clientShotId: number; sentAt: number } | null = null;
@@ -168,6 +174,7 @@ export class GameEngine {
     this.batch = new AvatarBatch(this.built.scene, MAX_PLAYERS);
     this.rig = new AvatarRig(this.batch, this.built.scene, this.batch.alloc()!, this.opts.kitPrimary, this.opts.kitSecondary, this.opts.jersey);
     this.remotes = new RemotePlayers(this.built.scene, this.batch);
+    this.spotRing = new SpotRing(this.built.scene);
     this.ball = createBall();
     this.built.scene.add(this.ball);
     this.ballShadow = createBlobShadow(0.42);
@@ -198,6 +205,11 @@ export class GameEngine {
     this.audio.unlock();
     const now = performance.now();
     if (this.meter.charging || this.playback || this.returning || this.awaitingShot || now < this.cooldownUntil) return;
+    const blocked = this.shotGate?.(this.player.x, this.player.z) ?? null;
+    if (blocked) {
+      this.cb.onShotBlocked(blocked);
+      return;
+    }
     const target = pickTargetHoop(this.player.x, this.player.z, this.player.rotY);
     this.targetHoop = target.hoopId;
     this.player.lockedYaw = target.yaw;
@@ -233,6 +245,17 @@ export class GameEngine {
     this.shotNet = net;
   }
 
+  /** H-O-R-S-E: who may shoot from where (null = shoot freely). */
+  setShotGate(gate: ((x: number, z: number) => ShotRejectReason | null) | null): void {
+    this.shotGate = gate;
+  }
+
+  /** H-O-R-S-E: the ring at the spot to match (null hides it). */
+  setSpotRing(spot: { x: number; z: number } | null): void {
+    if (spot) this.spotRing?.show(spot.x, spot.z);
+    else this.spotRing?.hide();
+  }
+
   /** An authoritative shot from the server: ours (confirm the prediction) or another player's. */
   onServerShot(msg: ShotMessage, mySessionId: string): void {
     if (!this.running) return;
@@ -252,9 +275,10 @@ export class GameEngine {
     }
   }
 
-  /** The server refused our shot (rate limit): the ball comes back, the attempt doesn't count. */
-  onShotRejected(clientShotId: number): void {
+  /** The server refused our shot (rate limit or H-O-R-S-E rules): the ball comes back, the attempt doesn't count. */
+  onShotRejected(clientShotId: number, reason?: ShotRejectReason): void {
     const now = performance.now();
+    if (reason) this.cb.onShotBlocked(reason);
     if (this.playback && this.playbackShotId === clientShotId) {
       this.returning = { from: this.ball.position.clone(), startedAt: now };
       this.playback = null;
@@ -396,6 +420,7 @@ export class GameEngine {
     this.updateBall(dt, now);
     this.updateNet(now);
     this.remotes?.update(now, dt, this.onRemoteShotEvent);
+    this.spotRing?.update(now);
     this.batch.commit();
     if (this.awaitingShot && now - this.awaitingShot.sentAt > SHOT_REPLY_TIMEOUT_MS) this.onShotRejected(this.awaitingShot.clientShotId);
     this.sendMove(now);

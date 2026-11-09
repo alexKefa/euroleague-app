@@ -200,6 +200,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
       },
       onContextLost: () => this.state.set("contextLost"),
       onContextRestored: () => this.restart(),
+      onShotBlocked: (reason) => this.showFlash(this.i18n.t(`court.horse.block.${reason}`), "bad"),
     };
   }
 
@@ -258,7 +259,8 @@ export class CourtPageComponent implements OnInit, OnDestroy {
       onToast: (m) => this.showNotice(m),
       onCorrection: (m) => this.engine?.applyCorrection(m.x, m.z),
       onShot: (m) => this.engine?.onServerShot(m, net.sessionId),
-      onShotRejected: (m) => this.engine?.onShotRejected(m.clientShotId),
+      onShotRejected: (m) => this.engine?.onShotRejected(m.clientShotId, m.reason),
+      onHorseEvent: () => {},
       onDrop: () => this.reconnecting.set(true),
       onReconnect: () => this.reconnecting.set(false),
       onClosed: () => {
