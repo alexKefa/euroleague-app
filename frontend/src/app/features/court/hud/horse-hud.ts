@@ -18,30 +18,12 @@ export interface HorseWinner {
   standings: { name: string; letters: string; placement: number }[];
 }
 
-/** H-O-R-S-E overlay: start button, scoreboard, turn banner + countdown, winner screen. */
+/** H-O-R-S-E overlay: scoreboard, turn banner + countdown, winner screen. (Start lives in the page's top-left column.) */
 @Component({
   selector: "app-horse-hud",
   standalone: true,
   template: `
-    @if (view().phase === "free") {
-      @if (isStarter()) {
-        <div class="pointer-events-none absolute inset-x-0 bottom-[calc(8.5rem+env(safe-area-inset-bottom))] flex justify-center sm:bottom-20">
-          <button
-            type="button"
-            class="hh-start pointer-events-auto font-display"
-            [disabled]="!canStart()"
-            (click)="start.emit()"
-          >
-            {{ i18n.t("court.horse.start") }}
-          </button>
-        </div>
-        @if (!canStart()) {
-          <p class="hh-hint absolute inset-x-0 bottom-[calc(7rem+env(safe-area-inset-bottom))] text-center text-xs sm:bottom-14">
-            {{ i18n.t("court.horse.needPlayers") }}
-          </p>
-        }
-      }
-    } @else {
+    @if (view().phase !== "free") {
       <div class="pointer-events-none absolute inset-x-0 top-[calc(0.75rem+env(safe-area-inset-top))] flex flex-col items-center gap-2 px-16">
         <div class="hh-board">
           @for (p of players(); track p.id) {
@@ -90,12 +72,6 @@ export interface HorseWinner {
   `,
   styles: `
     :host { position: absolute; inset: 0; pointer-events: none; color: #fff; }
-    .hh-start {
-      border-radius: 9999px; padding: 0.7rem 1.4rem; font-size: 1.15rem; letter-spacing: 0.04em;
-      background: #ffc93c; color: #1a1406; border: 2px solid rgba(255, 255, 255, 0.85);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-    }
-    .hh-start:disabled { opacity: 0.55; }
     .hh-hint { color: rgba(255, 255, 255, 0.85); text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7); }
     .hh-board {
       display: flex; flex-wrap: wrap; justify-content: center; gap: 0.35rem;
@@ -142,10 +118,7 @@ export class HorseHudComponent implements OnInit, OnDestroy {
   /** performance.now() timestamp when the current turn runs out. */
   readonly turnEndsAt = input<number | null>(null);
   readonly winner = input<HorseWinner | null>(null);
-  readonly isStarter = input(false);
-  readonly canStart = input(false);
 
-  readonly start = output<void>();
   readonly forfeit = output<void>();
 
   protected readonly word = HORSE_WORD.split("");

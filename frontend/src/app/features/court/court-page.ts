@@ -107,6 +107,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
   protected readonly horseWinner = signal<HorseWinner | null>(null);
   protected readonly isStarter = signal(false);
   protected readonly canStartHorse = signal(false);
+  protected readonly horseConfirm = signal(false);
   protected readonly mySessionId = signal("");
   /** sessionId -> name, kept after a player leaves so the scoreboard and winner screen can still name them. */
   private readonly names = new Map<string, string>();
@@ -187,8 +188,9 @@ export class CourtPageComponent implements OnInit, OnDestroy {
     }
   }
 
-  protected startHorse(): void {
-    this.net?.startHorse();
+  protected confirmHorse(): void {
+    this.horseConfirm.set(false);
+    if (this.canStartHorse()) this.net?.startHorse();
   }
 
   protected forfeitHorse(): void {

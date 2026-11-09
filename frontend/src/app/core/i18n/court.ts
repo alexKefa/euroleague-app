@@ -81,4 +81,10 @@ export const courtTranslations: Record<string, Record<Lang, string>> = {
   "court.horse.block.outsideArc": { en: "Set shots must be inside the arc", el: "Το σουτ πρέπει να είναι μέσα από τη γραμμή των 3" },
   "court.horse.block.offSpot": { en: "Step into the ring to shoot", el: "Μπες στον κύκλο για να σουτάρεις" },
   "court.horse.block.busy": { en: "Wait for the ball to land", el: "Περίμενε να πέσει η μπάλα" },
+  "court.horse.confirmTitle": { en: "Start a game of H-O-R-S-E?", el: "Ξεκινάμε παιχνίδι H-O-R-S-E;" },
+  "court.horse.confirmBody": {
+    en: "{n} players on court play in join order. The court goes back to shootaround when it ends.",
+    el: "{n} παίκτες στο γήπεδο παίζουν με τη σειρά που μπήκαν. Μετά το τέλος το γήπεδο γυρίζει σε ελεύθερο σουτ.",
+  },
+  "court.horse.cancel": { en: "Cancel", el: "Άκυρο" },
 };

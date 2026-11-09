@@ -46,6 +46,21 @@
           <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
           {{ i18n.t("court.invite.button") }}
         </button>
+        @if (isStarter() && horseView().phase === "free") {
+          <button
+            type="button"
+            class="court-pill court-horse-btn h-9 gap-1.5 px-3 text-sm"
+            [disabled]="!canStartHorse()"
+            [title]="canStartHorse() ? i18n.t('court.horse.start') : i18n.t('court.horse.needPlayers')"
+            (click)="horseConfirm.set(true)"
+          >
+            <svg viewBox="0 0 24 24" class="h-4 w-4" fill="currentColor"><path d="M8 5.5v13l10.5-6.5z" /></svg>
+            <span class="font-display tracking-[0.12em]">H-O-R-S-E</span>
+          </button>
+          @if (!canStartHorse()) {
+            <span class="court-mini-hint">{{ i18n.t("court.horse.needPlayers") }}</span>
+          }
+        }
       }
     </div>
 
@@ -103,9 +118,6 @@
       [meId]="mySessionId()"
       [turnEndsAt]="turnEndsAt()"
       [winner]="horseWinner()"
-      [isStarter]="isStarter()"
-      [canStart]="canStartHorse()"
-      (start)="startHorse()"
       (forfeit)="forfeitHorse()"
     />
   }
@@ -169,6 +181,20 @@
         <button type="button" class="court-pill mt-5 px-5 py-2" (click)="restart()">{{ i18n.t("court.restart") }}</button>
       </div>
     }
+  }
+
+  <!-- Start H-O-R-S-E: confirm first, so it can't start by accident -->
+  @if (horseConfirm()) {
+    <div class="court-sheet-backdrop" (click)="horseConfirm.set(false)"></div>
+    <div class="court-sheet" role="dialog" aria-modal="true" [attr.aria-label]="i18n.t('court.horse.confirmTitle')">
+      <div class="mx-auto mb-4 h-1 w-10 rounded-full bg-white/25"></div>
+      <h2 class="font-display text-2xl">{{ i18n.t("court.horse.confirmTitle") }}</h2>
+      <p class="mt-2 text-sm text-white/75">{{ i18n.t("court.horse.confirmBody").replace("{n}", "" + playerCount()) }}</p>
+      <div class="mt-5 grid grid-cols-2 gap-2">
+        <button type="button" class="court-sheet-btn" (click)="horseConfirm.set(false)">{{ i18n.t("court.horse.cancel") }}</button>
+        <button type="button" class="court-sheet-btn court-sheet-btn-horse" (click)="confirmHorse()">{{ i18n.t("court.horse.start") }}</button>
+      </div>
+    </div>
   }
 
   <!-- Invite sheet -->

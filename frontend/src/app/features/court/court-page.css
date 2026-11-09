@@ -280,3 +280,25 @@
     animation: none;
   }
 }
+
+/* ---- H-O-R-S-E start: distinct gold outline, away from the shoot controls ---- */
+.court-horse-btn {
+  border: 1.5px solid #ffc93c;
+  color: #ffd76a;
+  background: rgba(40, 30, 6, 0.7);
+}
+.court-horse-btn:disabled {
+  opacity: 0.5;
+}
+.court-mini-hint {
+  margin-top: -0.25rem;
+  max-width: 9rem;
+  font-size: 0.68rem;
+  line-height: 1.2;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+}
+.court-sheet-btn-horse {
+  background: #ffc93c;
+  color: #1a1406;
+}
