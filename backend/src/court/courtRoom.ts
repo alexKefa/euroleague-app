@@ -12,6 +12,16 @@ import { jerseyNumber, kitColors } from "../../../shared/court/kit.js";
 import { SHOT_COOLDOWN_SECONDS } from "../../../shared/court/constants.js";
 import { ACTIVE_HOOPS, pickTargetHoop } from "../../../shared/court/geometry.js";
 import { computeShotLaunch } from "../../../shared/court/shot.js";
+import {
+  canStart,
+  initialHorseState,
+  lettersOf,
+  reduce as reduceHorse,
+  shotGate,
+  type HorseInput,
+  type HorseState,
+} from "../../../shared/court/horse.js";
+import { saveHorseResult } from "./horseResults.js";
 import type { HoopId } from "../../../shared/court/types.js";
 import {
   EMPTY_DISPOSE_MS,
@@ -31,6 +41,7 @@ import {
   type ShootMessage,
   type ShotMessage,
   type ShotRejectedMessage,
+  type HorseEventMessage,
   type ToastMessage,
 } from "../../../shared/court/protocol.js";
 import { CourtPlayer, CourtState } from "./state.js";
@@ -74,6 +85,12 @@ export class CourtRoom extends Room<{ state: CourtState }> {
   private joinCounter = 0;
   private shotCounter = 0;
 
+  // ---- H-O-R-S-E (docs/superpowers/specs/2026-11-09-horse-design.md) ----
+  private horse: HorseState = initialHorseState();
+  /** sessionId -> userId for the current game (leavers are removed from state.players). */
+  private horseUsers = new Map<string, string>();
+  private horseTick: Delayed | null = null;
+
   async onCreate(options: Partial<JoinOptions>): Promise<void> {
     if (!isValidCourtCode(options.code)) throw new Error("invalid court code");
     const [court] = await db
@@ -111,6 +128,8 @@ export class CourtRoom extends Room<{ state: CourtState }> {
     this.onMessage(MSG.move, (client: CourtClient, msg: MoveMessage) => this.handleMove(client, msg));
     this.onMessage(MSG.seedRequest, (client: CourtClient) => this.sendSeed(client));
     this.onMessage(MSG.shoot, (client: CourtClient, msg: ShootMessage) => this.handleShoot(client, msg));
+    this.onMessage(MSG.horseStart, (client: CourtClient) => this.startHorse(client));
+    this.onMessage(MSG.horseLeave, (client: CourtClient) => this.applyHorse({ type: "leave", playerId: client.sessionId }));
   }
 
   async onAuth(_client: Client, options: Partial<JoinOptions>, _context: AuthContext): Promise<CourtAuth> {
@@ -193,6 +212,7 @@ export class CourtRoom extends Room<{ state: CourtState }> {
       this.toast({ kind: "dropped", name: p.name });
     }
     courtPresence.setCount(this.code, this.connectedCount());
+    this.applyHorse({ type: "disconnect", playerId: client.sessionId });
     this.allowReconnection(client, RECONNECT_SECONDS);
   }
 
@@ -204,6 +224,7 @@ export class CourtRoom extends Room<{ state: CourtState }> {
     }
     client.userData = { ...(client.userData ?? { nextSeed: newSeed(), shotBusyUntil: 0 }), lastMoveAt: Date.now() };
     courtPresence.setCount(this.code, this.connectedCount());
+    this.applyHorse({ type: "reconnect", playerId: client.sessionId });
   }
 
   onLeave(client: CourtClient): void {
@@ -213,6 +234,7 @@ export class CourtRoom extends Room<{ state: CourtState }> {
       this.toast({ kind: "left", name: p.name });
     }
     courtPresence.setCount(this.code, this.connectedCount());
+    this.applyHorse({ type: "leave", playerId: client.sessionId });
     if (this.clients.length === 0) this.scheduleEmptyDispose();
   }
 
@@ -272,6 +294,17 @@ export class CourtRoom extends Room<{ state: CourtState }> {
       data.lastMoveAt = now;
     }
 
+    // H-O-R-S-E: only the player whose turn it is, from the right place.
+    const h = this.horse;
+    const inGame = h.phase === "setting" || h.phase === "matching";
+    if (inGame) {
+      const reason = shotGate({ phase: h.phase, turnId: h.turnId, spot: h.spot, resolving: !!h.resolving }, client.sessionId, p.x, p.z);
+      if (reason) {
+        client.send(MSG.shotRejected, { clientShotId, reason } satisfies ShotRejectedMessage);
+        return;
+      }
+    }
+
     const hoopId: HoopId = ACTIVE_HOOPS.includes(msg.hoopId) ? msg.hoopId : pickTargetHoop(p.x, p.z, p.rotY).hoopId;
     // computeShotLaunch clamps timingError to [-1, 1] (NaN counts as fully late).
     const launch = computeShotLaunch(p.x, p.z, hoopId, Number(msg.timingError), data.nextSeed);
@@ -293,8 +326,79 @@ export class CourtRoom extends Room<{ state: CourtState }> {
       events: result.events,
       spin: launch.spin,
     };
+    if (inGame) {
+      // The turn advances when the ball lands, so everyone sees the result first.
+      const sid = client.sessionId;
+      const at = { x: p.x, z: p.z };
+      this.applyHorse({ type: "shotFired", playerId: sid });
+      this.clock.setTimeout(() => this.applyHorse({ type: "shotResult", playerId: sid, made: result.made, x: at.x, z: at.z }), result.durationMs);
+    }
     this.broadcast(MSG.shot, shot);
     this.sendSeed(client);
+  }
+
+  // ---------- H-O-R-S-E ----------
+
+  private startHorse(client: CourtClient): void {
+    const players: { id: string; joinOrder: number; connected: boolean }[] = [];
+    let ownerSession = "";
+    this.state.players.forEach((p, sid) => {
+      players.push({ id: sid, joinOrder: p.joinedAt, connected: p.connected });
+      if (p.userId === this.state.ownerId && p.connected) ownerSession = sid;
+    });
+    if (this.horse.phase !== "free" || !canStart(players, ownerSession, client.sessionId)) return;
+    this.horseUsers = new Map();
+    this.state.players.forEach((p, sid) => this.horseUsers.set(sid, p.userId));
+    this.applyHorse({ type: "start", by: client.sessionId, ownerId: ownerSession, players });
+    this.horseTick?.clear();
+    this.horseTick = this.clock.setInterval(() => this.applyHorse({ type: "tick" }), 250);
+  }
+
+  /** Run the reducer, mirror its state into the synced schema, execute its effects. */
+  private applyHorse(input: HorseInput): void {
+    const { state, effects } = reduceHorse(this.horse, input, Date.now());
+    if (state === this.horse && effects.length === 0) return;
+    this.horse = state;
+    this.mirrorHorse();
+    for (const e of effects) {
+      if (e.type === "event") {
+        const msg: HorseEventMessage = { kind: e.kind, playerId: e.playerId };
+        if (e.letters !== undefined) msg.letters = e.letters;
+        if (e.remainingMs !== undefined) msg.remainingMs = e.remainingMs;
+        this.broadcast(MSG.horseEvent, msg);
+      } else if (e.type === "save") {
+        this.horseTick?.clear();
+        this.horseTick = null;
+        saveHorseResult(this.courtId, e.result, this.horseUsers).catch((err) => console.error("[court] saving H-O-R-S-E result failed", err));
+      } else if (e.type === "returnToFree") {
+        this.clock.setTimeout(() => {
+          this.horse = initialHorseState();
+          this.mirrorHorse();
+        }, e.afterMs);
+      }
+    }
+  }
+
+  private mirrorHorse(): void {
+    const h = this.horse;
+    const s = this.state;
+    s.mode = h.phase === "free" ? "shootaround" : "horse";
+    s.phase = h.phase;
+    s.turnId = h.turnId ?? "";
+    s.setterId = h.setterId ?? "";
+    s.spotX = h.spot?.x ?? 0;
+    s.spotZ = h.spot?.z ?? 0;
+    s.spotHoop = h.spot?.hoop ?? "";
+    s.turnDeadline = h.deadline ?? 0;
+    if (s.turnOrder.length !== h.order.length || h.order.some((id, i) => s.turnOrder[i] !== id)) {
+      s.turnOrder.clear();
+      for (const id of h.order) s.turnOrder.push(id);
+    }
+    s.players.forEach((p, sid) => {
+      const hp = h.players[sid];
+      p.letters = hp ? lettersOf(hp.letters) : "";
+      p.eliminated = hp ? hp.eliminated : false;
+    });
   }
 
   // ---------- helpers ----------

@@ -34,7 +34,8 @@
     "duels:calibrate": "tsx src/scripts/calibrate-duel-scales.ts",
     "check:duels": "tsx src/scripts/check-duels.ts",
     "moments:generate": "tsx src/scripts/generate-moments.ts",
-    "test:court": "tsx --test ../shared/court/shot.test.ts ../shared/court/protocol.test.ts ../shared/court/horse.test.ts"
+    "test:court": "tsx --test ../shared/court/shot.test.ts ../shared/court/protocol.test.ts ../shared/court/horse.test.ts",
+    "check:horse": "tsx src/scripts/check-horse.ts"
   },
   "dependencies": {
     "@colyseus/core": "^0.18.27",
@@ -61,6 +62,7 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@colyseus/sdk": "^0.18.9",
     "@types/bcrypt": "^5.0.2",
     "@types/cookie-parser": "^1.4.7",
     "@types/cors": "^2.8.17",

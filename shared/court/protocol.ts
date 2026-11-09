@@ -3,6 +3,7 @@
 import { PLAYER_SPEED } from "./constants.js";
 import { clampPlayerPosition } from "./geometry.js";
 import type { HoopId, ShotEvent, Vec3 } from "./types.js";
+import type { HorseEventKind, ShotRejectReason } from "./horse.js";
 
 export const ROOM_NAME = "court";
 /** HTTP + WebSocket path prefix the room server is mounted under. */
@@ -102,6 +103,17 @@ export interface ShotMessage {
 /** Private: the server refused a shot (rate limit, not on court...). */
 export interface ShotRejectedMessage {
   clientShotId: number;
+  /** Why (H-O-R-S-E rules); absent for plain rate limiting. */
+  reason?: ShotRejectReason;
+}
+
+/** Broadcast: a H-O-R-S-E game event (spec "horse:event"). */
+export interface HorseEventMessage {
+  kind: HorseEventKind;
+  playerId: string | null;
+  letters?: string;
+  /** For kind "turn": time left on the new turn (phone clocks are not in sync with the server). */
+  remainingMs?: number;
 }
 
 export const MSG = {
@@ -114,6 +126,9 @@ export const MSG = {
   shoot: "shoot",
   shot: "shot",
   shotRejected: "shotRejected",
+  horseStart: "horse:start",
+  horseLeave: "horse:leave",
+  horseEvent: "horse:event",
 } as const;
 
 /** Speed tolerance before a move is rejected (spec §6.3: speed × 1.25). */
