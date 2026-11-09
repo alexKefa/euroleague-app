@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { GRAVITY, METER_SWEET_CENTER, METER_SWEET_HALF_WIDTH, PHYSICS_STEP, RIM_INNER_RADIUS, BALL_RADIUS } from "./constants.js";
-import { insideThreePoint, pickTargetHoop, rimCenter } from "./geometry.js";
+import { ACTIVE_HOOPS, HOOP_IDS, clampPlayerPosition, FENCE, insideThreePoint, pickTargetHoop, rimCenter } from "./geometry.js";
 import {
   apexAboveRim,
   clampTiming,
@@ -143,12 +143,12 @@ test("early falls short, late goes long", () => {
 
 test("targeting: hoop in front, else the nearest", () => {
   // Facing -z (rotY = PI) from midcourt-ish: hoop A is in front.
-  assert.equal(pickTargetHoop(0, -2, Math.PI).hoopId, "A");
+  assert.equal(pickTargetHoop(0, -2, Math.PI, HOOP_IDS).hoopId, "A");
   // Facing +z near hoop A: hoop B is in front (within 60°), even though A is nearer.
-  assert.equal(pickTargetHoop(0, -9, 0).hoopId, "B");
+  assert.equal(pickTargetHoop(0, -9, 0, HOOP_IDS).hoopId, "B");
   // Facing sideways: nothing in front, nearest wins.
-  assert.equal(pickTargetHoop(0, -9, Math.PI / 2).hoopId, "A");
-  assert.equal(pickTargetHoop(0, 9, -Math.PI / 2).hoopId, "B");
+  assert.equal(pickTargetHoop(0, -9, Math.PI / 2, HOOP_IDS).hoopId, "A");
+  assert.equal(pickTargetHoop(0, 9, -Math.PI / 2, HOOP_IDS).hoopId, "B");
 });
 
 test("3-point area", () => {
@@ -158,4 +158,14 @@ test("3-point area", () => {
   assert.ok(!insideThreePoint("A", 6.7, -13)); // corner three is outside
   assert.ok(insideThreePoint("A", 6.5, -13));
   assert.ok(!insideThreePoint("B", 0, rim.z + 6.5));
+});
+
+test("half court: every shot targets an active hoop, players stay inside the fence", () => {
+  for (const rot of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
+    assert.ok(ACTIVE_HOOPS.includes(pickTargetHoop(0, 1, rot).hoopId));
+  }
+  const p = clampPlayerPosition(100, 100);
+  assert.ok(p.x < FENCE.maxX && p.z < FENCE.maxZ);
+  const q = clampPlayerPosition(-100, -100);
+  assert.ok(q.x > FENCE.minX && q.z > FENCE.minZ);
 });

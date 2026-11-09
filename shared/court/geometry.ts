@@ -26,6 +26,31 @@ import { HoopId, Vec3 } from "./types.js";
 
 export const HOOP_IDS: readonly HoopId[] = ["A", "B"];
 
+/**
+ * Half court for now (user decision 2026-11-09, overriding the spec's full
+ * court): only hoop A is built, and the fence closes 2.5 m past the
+ * midcourt line. Flip to false for the full two-hoop court.
+ */
+export const HALF_COURT = true;
+
+/** Hoops that physically exist on the court. */
+export const ACTIVE_HOOPS: readonly HoopId[] = HALF_COURT ? ["A"] : HOOP_IDS;
+
+export interface Bounds {
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+}
+
+/** The fence lines. */
+export const FENCE: Bounds = {
+  minX: -FENCE_HALF_WIDTH,
+  maxX: FENCE_HALF_WIDTH,
+  minZ: -FENCE_HALF_LENGTH,
+  maxZ: HALF_COURT ? 2.5 : FENCE_HALF_LENGTH,
+};
+
 /** -1 for hoop A (at -z), +1 for hoop B (at +z). */
 export function hoopSign(hoopId: HoopId): -1 | 1 {
   return hoopId === "A" ? -1 : 1;
@@ -107,13 +132,12 @@ export function insideThreePoint(hoopId: HoopId, x: number, z: number): boolean 
   return Math.hypot(x - rim.x, z - rim.z) < THREE_POINT_RADIUS;
 }
 
-/** Clamp a player position to the fenced area, keeping clear of both poles. */
+/** Clamp a player position to the fenced area, keeping clear of the poles. */
 export function clampPlayerPosition(x: number, z: number): { x: number; z: number } {
-  const maxX = FENCE_HALF_WIDTH - PLAYER_FENCE_MARGIN;
-  const maxZ = FENCE_HALF_LENGTH - PLAYER_FENCE_MARGIN;
-  let cx = Math.max(-maxX, Math.min(maxX, x));
-  let cz = Math.max(-maxZ, Math.min(maxZ, z));
-  for (const id of HOOP_IDS) {
+  const m = PLAYER_FENCE_MARGIN;
+  let cx = Math.max(FENCE.minX + m, Math.min(FENCE.maxX - m, x));
+  let cz = Math.max(FENCE.minZ + m, Math.min(FENCE.maxZ - m, z));
+  for (const id of ACTIVE_HOOPS) {
     const pole = hoopLayout(id).pole.center;
     const dx = cx - pole.x;
     const dz = cz - pole.z;
@@ -142,11 +166,16 @@ function angleDiff(a: number, b: number): number {
 
 /**
  * Spec §5.1: target the nearer hoop in front of the player (within ±60°).
- * If neither is in front, the player turns to the nearest hoop.
+ * If none is in front, the player turns to the nearest hoop.
  * Returns the hoop and the yaw the shooter should face.
  */
-export function pickTargetHoop(x: number, z: number, rotY: number): { hoopId: HoopId; yaw: number } {
-  const candidates = HOOP_IDS.map((id) => {
+export function pickTargetHoop(
+  x: number,
+  z: number,
+  rotY: number,
+  hoops: readonly HoopId[] = ACTIVE_HOOPS
+): { hoopId: HoopId; yaw: number } {
+  const candidates = hoops.map((id) => {
     const rim = rimCenter(id);
     const yaw = yawTowards(x, z, rim.x, rim.z);
     return { hoopId: id, yaw, dist: Math.hypot(rim.x - x, rim.z - z), inFront: Math.abs(angleDiff(yaw, rotY)) <= SHOT_TARGET_HALF_ANGLE };
@@ -155,7 +184,8 @@ export function pickTargetHoop(x: number, z: number, rotY: number): { hoopId: Ho
   return { hoopId: pick.hoopId, yaw: pick.yaw };
 }
 
-/** The hoop whose half of the court the point is on. */
+/** The hoop whose half of the court the point is on (always A on a half court). */
 export function hoopForHalf(z: number): HoopId {
+  if (ACTIVE_HOOPS.length === 1) return ACTIVE_HOOPS[0]!;
   return z < 0 ? "A" : "B";
 }

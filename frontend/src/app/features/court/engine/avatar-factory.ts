@@ -10,6 +10,7 @@ import {
   MeshBasicMaterial,
   MeshStandardMaterial,
   PlaneGeometry,
+  RepeatWrapping,
   SRGBColorSpace,
   SphereGeometry,
 } from "three";
@@ -21,16 +22,128 @@ export interface Avatar {
   body: Group;
 }
 
-export function createAvatar(primary: string, secondary: string): Avatar {
+export interface JerseyText {
+  /** Back: player name (the Clutch username). Empty = number only. */
+  name: string;
+  number: number;
+  /** Chest: the club's display code, e.g. "OLY". Empty = blank chest. */
+  chest: string;
+}
+
+export const JERSEY_FONT = '"Sofia Sans Condensed", "Arial Narrow", sans-serif';
+
+function luminance(hex: string): number {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return 0.5;
+  const n = parseInt(m[1]!, 16);
+  const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * ch[0]! + 0.7152 * ch[1]! + 0.0722 * ch[2]!;
+}
+
+function contrast(a: string, b: string): number {
+  const la = luminance(a);
+  const lb = luminance(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
+/** Lettering colour: the trim colour if it reads on the jersey, else white/black. */
+function letteringColor(primary: string, secondary: string): string {
+  if (contrast(primary, secondary) >= 2.5) return secondary;
+  return contrast(primary, "#ffffff") >= contrast(primary, "#111111") ? "#ffffff" : "#111111";
+}
+
+/** Fit `text` into maxWidth by shrinking from `size` px. */
+function fitFont(ctx: CanvasRenderingContext2D, text: string, size: number, maxWidth: number): void {
+  let s = size;
+  ctx.font = `800 ${s}px ${JERSEY_FONT}`;
+  while (s > 12 && ctx.measureText(text).width > maxWidth) {
+    s -= 2;
+    ctx.font = `800 ${s}px ${JERSEY_FONT}`;
+  }
+}
+
+function letteringTexture(draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void): CanvasTexture {
+  const w = 256;
+  const h = 256;
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d")!;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.lineJoin = "round";
+  draw(ctx, w, h);
+  const tex = new CanvasTexture(canvas);
+  tex.colorSpace = SRGBColorSpace;
+  // CylinderGeometry's u runs the opposite way to how a viewer facing the
+  // patch reads it; mirror so the text isn't backwards.
+  tex.wrapS = RepeatWrapping;
+  tex.repeat.x = -1;
+  return tex;
+}
+
+/** A curved patch hugging the torso, centred on yaw `facing` (0 = chest, PI = back). */
+function letteringPatch(tex: CanvasTexture, facing: number): Mesh {
+  const arc = 1.7;
+  const geo = new CylinderGeometry(0.276, 0.276, 0.5, 16, 1, true, facing - arc / 2, arc);
+  const mat = new MeshStandardMaterial({ map: tex, transparent: true, roughness: 0.7, depthWrite: false });
+  const mesh = new Mesh(geo, mat);
+  mesh.position.y = 1.1;
+  return mesh;
+}
+
+function addLettering(body: Group, jersey: JerseyText, primary: string, secondary: string): void {
+  const ink = letteringColor(primary, secondary);
+  const outline = ink === secondary ? primary : luminance(ink) > 0.5 ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.35)";
+
+  const back = letteringTexture((ctx, w, h) => {
+    ctx.fillStyle = ink;
+    ctx.strokeStyle = outline;
+    ctx.lineWidth = 4;
+    const name = jersey.name.toUpperCase();
+    if (name) {
+      fitFont(ctx, name, 46, w * 0.9);
+      ctx.strokeText(name, w / 2, h * 0.17);
+      ctx.fillText(name, w / 2, h * 0.17);
+    }
+    ctx.lineWidth = 6;
+    ctx.font = `800 150px ${JERSEY_FONT}`;
+    const num = String(jersey.number);
+    ctx.strokeText(num, w / 2, h * (name ? 0.6 : 0.5));
+    ctx.fillText(num, w / 2, h * (name ? 0.6 : 0.5));
+  });
+  body.add(letteringPatch(back, Math.PI));
+
+  if (jersey.chest) {
+    const chest = letteringTexture((ctx, w, h) => {
+      ctx.fillStyle = ink;
+      ctx.strokeStyle = outline;
+      ctx.lineWidth = 4;
+      fitFont(ctx, jersey.chest.toUpperCase(), 72, w * 0.7);
+      ctx.strokeText(jersey.chest.toUpperCase(), w / 2, h * 0.3);
+      ctx.fillText(jersey.chest.toUpperCase(), w / 2, h * 0.3);
+      // Small number under the club name, like a real kit.
+      ctx.font = `800 64px ${JERSEY_FONT}`;
+      ctx.strokeText(String(jersey.number), w / 2, h * 0.62);
+      ctx.fillText(String(jersey.number), w / 2, h * 0.62);
+    });
+    body.add(letteringPatch(chest, 0));
+  }
+}
+
+export function createAvatar(primary: string, secondary: string, jersey: JerseyText | null = null): Avatar {
   const root = new Group();
   const body = new Group();
   root.add(body);
 
-  const jersey = new MeshStandardMaterial({ color: primary, roughness: 0.7 });
+  const jerseyMat = new MeshStandardMaterial({ color: primary, roughness: 0.7 });
   const trim = new MeshStandardMaterial({ color: secondary, roughness: 0.7 });
   const skin = new MeshStandardMaterial({ color: "#c99a78", roughness: 0.8 });
 
-  const torso = new Mesh(new CapsuleGeometry(0.27, 0.95, 4, 12), jersey);
+  const torso = new Mesh(new CapsuleGeometry(0.27, 0.95, 4, 12), jerseyMat);
   torso.position.y = 0.27 + 0.95 / 2 + 0.05;
   body.add(torso);
   const band = new Mesh(new CylinderGeometry(0.285, 0.285, 0.12, 14), trim);
@@ -44,6 +157,7 @@ export function createAvatar(primary: string, secondary: string): Avatar {
   visor.position.set(0, 1.76, 0.15);
   body.add(visor);
 
+  if (jersey) addLettering(body, jersey, primary, secondary);
   root.add(createBlobShadow(0.85));
   return { root, body };
 }

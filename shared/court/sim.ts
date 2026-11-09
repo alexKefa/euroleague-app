@@ -6,8 +6,6 @@
 import {
   BALL_MASS,
   BALL_RADIUS,
-  FENCE_HALF_LENGTH,
-  FENCE_HALF_WIDTH,
   FENCE_HEIGHT,
   GRAVITY,
   PHYSICS_STEP,
@@ -22,7 +20,7 @@ import {
   SHOT_KEYFRAME_HZ,
   SHOT_MAX_SIM_SECONDS,
 } from "./constants.js";
-import { BoxShape, HOOP_IDS, RIM_RING_RADIUS, hoopLayout } from "./geometry.js";
+import { ACTIVE_HOOPS, BoxShape, FENCE, RIM_RING_RADIUS, hoopLayout } from "./geometry.js";
 import { ShotEvent, ShotEventKind, ShotLaunch, ShotResult, Vec3 } from "./types.js";
 
 // ---- Minimal structural view of the Rapier API used here ----
@@ -104,11 +102,15 @@ export class CourtPhysics {
     // Fence walls.
     const t = 0.05;
     const h = FENCE_HEIGHT / 2;
-    for (const s of [-1, 1]) {
-      this.fixed(C.cuboid(t, h, FENCE_HALF_LENGTH).setTranslation(s * (FENCE_HALF_WIDTH + t), h, 0), RESTITUTION_FENCE, 0.9);
-      this.fixed(C.cuboid(FENCE_HALF_WIDTH, h, t).setTranslation(0, h, s * (FENCE_HALF_LENGTH + t)), RESTITUTION_FENCE, 0.9);
-    }
-    for (const id of HOOP_IDS) {
+    const hx = (FENCE.maxX - FENCE.minX) / 2;
+    const hz = (FENCE.maxZ - FENCE.minZ) / 2;
+    const cx = (FENCE.maxX + FENCE.minX) / 2;
+    const cz = (FENCE.maxZ + FENCE.minZ) / 2;
+    this.fixed(C.cuboid(t, h, hz).setTranslation(FENCE.minX - t, h, cz), RESTITUTION_FENCE, 0.9);
+    this.fixed(C.cuboid(t, h, hz).setTranslation(FENCE.maxX + t, h, cz), RESTITUTION_FENCE, 0.9);
+    this.fixed(C.cuboid(hx, h, t).setTranslation(cx, h, FENCE.minZ - t), RESTITUTION_FENCE, 0.9);
+    this.fixed(C.cuboid(hx, h, t).setTranslation(cx, h, FENCE.maxZ + t), RESTITUTION_FENCE, 0.9);
+    for (const id of ACTIVE_HOOPS) {
       const hoop = hoopLayout(id);
       this.box(hoop.board, RESTITUTION_BOARD);
       this.box(hoop.arm, RESTITUTION_POLE);
@@ -203,7 +205,7 @@ export class CourtPhysics {
       settled = speed < 0.25 && p.y < BALL_RADIUS + 0.03 ? settled + 1 : 0;
       if (settled >= 12) break;
       if (made && step - madeStep >= afterMakeSteps) break;
-      if (Math.abs(p.x) > FENCE_HALF_WIDTH + 1 || Math.abs(p.z) > FENCE_HALF_LENGTH + 1 || p.y < -1) break;
+      if (p.x < FENCE.minX - 1 || p.x > FENCE.maxX + 1 || p.z < FENCE.minZ - 1 || p.z > FENCE.maxZ + 1 || p.y < -1) break;
     }
     if (step % stepsPerKey !== 0) pushKey(prevPos);
 
@@ -222,7 +224,7 @@ function nearBox(p: Vec3, b: BoxShape, pad: number): boolean {
 
 function classifyContact(p: Vec3): ShotEventKind {
   const pad = BALL_RADIUS + 0.04;
-  for (const id of HOOP_IDS) {
+  for (const id of ACTIVE_HOOPS) {
     const hoop = hoopLayout(id);
     const rho = Math.hypot(p.x - hoop.rim.x, p.z - hoop.rim.z);
     if (Math.hypot(rho - RIM_RING_RADIUS, p.y - hoop.rim.y) < pad + RIM_TUBE_RADIUS) return "rim";

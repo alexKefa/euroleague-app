@@ -1,5 +1,13 @@
 import { Component, ElementRef, NgZone, OnDestroy, OnInit, ViewChild, inject, signal } from "@angular/core";
 import { RouterLink } from "@angular/router";
+import { firstValueFrom, of, catchError, timeout } from "rxjs";
+import { ApiService } from "../../core/api.service";
+import { AuthService } from "../../core/auth.service";
+import { Team } from "../../core/models";
+import { ThemeService } from "../../core/theme.service";
+import { cdnImage } from "../../shared/cdn-image";
+import { displayTeamCode } from "../../shared/team-display-codes";
+import { JerseyText } from "./engine/avatar-factory";
 import { I18nService } from "../../core/i18n.service";
 import { NavHistoryService } from "../../core/nav-history.service";
 import { EngineCallbacks, GameEngine, PracticeStats, ReleaseGrade } from "./engine/game-engine";
@@ -49,6 +57,9 @@ export class CourtPageComponent implements OnInit, OnDestroy {
   protected i18n = inject(I18nService);
   private zone = inject(NgZone);
   private navHistory = inject(NavHistoryService);
+  private auth = inject(AuthService);
+  private api = inject(ApiService);
+  private theme = inject(ThemeService);
 
   @ViewChild("host", { static: true }) private host!: ElementRef<HTMLElement>;
   @ViewChild("meter", { static: true }) private meter!: ElementRef<HTMLElement>;
@@ -63,6 +74,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
   protected readonly prefs = signal<Prefs>(readJson<Prefs>(PREFS_KEY, { camera: 0, muted: false }));
 
   private engine: GameEngine | null = null;
+  private destroyed = false;
   private flashId = 0;
   private flashTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -71,6 +83,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true;
     this.teardown();
     if (this.flashTimer) clearTimeout(this.flashTimer);
   }
@@ -120,7 +133,18 @@ export class CourtPageComponent implements OnInit, OnDestroy {
 
   private async boot(): Promise<void> {
     this.state.set("loading");
+    const team = await this.favoriteTeam();
+    if (this.destroyed) return;
+    // Reskin like the dashboard does, so a direct /court link gets team colours too.
+    if (team && !this.theme.favoriteTeam()) this.theme.applyTeam(team);
     const { primary, secondary } = this.teamColors();
+    const user = this.auth.currentUser();
+    const jersey: JerseyText = {
+      name: user?.username ?? "",
+      number: user ? jerseyNumber(user.id) : 7,
+      chest: team ? displayTeamCode(team.code) : "",
+    };
+    const logoUrl = team?.logoUrl ? cdnImage(team.logoUrl, 240).src : null;
     const best = Number(readJson<{ best: number }>(BEST_KEY, { best: 0 }).best) || 0;
     const callbacks: EngineCallbacks = {
       onStats: (s) => {
@@ -144,7 +168,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
         joystickZone: this.touch ? this.joystickZone.nativeElement : null,
       },
       callbacks,
-      { teamPrimary: primary, teamSecondary: secondary, cameraPreset: this.prefs().camera, muted: this.prefs().muted, bestStreak: best }
+      { teamPrimary: primary, teamSecondary: secondary, cameraPreset: this.prefs().camera, muted: this.prefs().muted, bestStreak: best, jersey, logoUrl }
     );
     this.engine = engine;
     try {
@@ -154,6 +178,21 @@ export class CourtPageComponent implements OnInit, OnDestroy {
       console.error("[court] engine failed to start", err);
       if (this.engine === engine) this.state.set("error");
     }
+  }
+
+  /** The signed-in user's club (null for guests or no pick). Never throws. */
+  private async favoriteTeam(): Promise<Team | null> {
+    const themed = this.theme.favoriteTeam();
+    if (themed) return themed;
+    const restored = this.auth.restoreSession().pipe(
+      timeout(6000),
+      catchError(() => of(false))
+    );
+    await firstValueFrom(restored);
+    const teamId = this.auth.currentUser()?.favoriteTeamId;
+    if (!teamId) return null;
+    const teams = await firstValueFrom(this.api.getTeams().pipe(timeout(6000), catchError(() => of([] as Team[]))));
+    return teams.find((t) => t.id === teamId) ?? null;
   }
 
   private teardown(): void {
@@ -174,4 +213,11 @@ export class CourtPageComponent implements OnInit, OnDestroy {
       if (this.flash()?.id === id) this.flash.set(null);
     }, 1100);
   }
+}
+
+/** A stable 0-99 shirt number per user, until players can pick one. */
+function jerseyNumber(userId: string): number {
+  let h = 0;
+  for (let i = 0; i < userId.length; i++) h = (h * 31 + userId.charCodeAt(i)) >>> 0;
+  return h % 100;
 }

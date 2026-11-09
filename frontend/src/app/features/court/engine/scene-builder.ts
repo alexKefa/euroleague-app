@@ -30,10 +30,7 @@ import {
   BACKBOARD_HEIGHT,
   BACKBOARD_WIDTH,
   CENTER_CIRCLE_RADIUS,
-  COURT_LENGTH,
   COURT_WIDTH,
-  FENCE_HALF_LENGTH,
-  FENCE_HALF_WIDTH,
   FENCE_HEIGHT,
   FREE_THROW_FROM_BOARD,
   BOARD_FROM_BASELINE,
@@ -43,7 +40,7 @@ import {
   THREE_POINT_CORNER_INSET,
   THREE_POINT_RADIUS,
 } from "../../../../../../shared/court/constants";
-import { HOOP_IDS, RIM_RING_RADIUS, hoopLayout } from "../../../../../../shared/court/geometry";
+import { ACTIVE_HOOPS, FENCE, HALF_COURT, RIM_RING_RADIUS, hoopLayout } from "../../../../../../shared/court/geometry";
 import { HoopId } from "../../../../../../shared/court/types";
 
 export const SKY_COLOR = "#9cc9ec";
@@ -59,7 +56,18 @@ export interface BuiltScene {
   hoops: Map<HoopId, HoopVisual>;
 }
 
-export function buildScene(teamPrimary: string, maxAnisotropy: number): BuiltScene {
+export interface SceneOptions {
+  teamPrimary: string;
+  /** Club logo painted at the top of the 3-point arc (already loaded, CORS-clean). */
+  logo: HTMLImageElement | null;
+  maxAnisotropy: number;
+}
+
+/** Painted court area: 1 m run-off around the lines, cut at the fence on a half court. */
+const COURT_MIN_Z = -HALF_LENGTH - 1;
+const COURT_MAX_Z = Math.min(HALF_LENGTH + 1, FENCE.maxZ);
+
+export function buildScene({ teamPrimary, logo, maxAnisotropy }: SceneOptions): BuiltScene {
   const scene = new Scene();
   scene.background = new Color(SKY_COLOR);
   scene.fog = new Fog(SKY_COLOR, 45, 110);
@@ -77,17 +85,18 @@ export function buildScene(teamPrimary: string, maxAnisotropy: number): BuiltSce
   scene.add(ground);
 
   const pad = new Mesh(
-    new PlaneGeometry(FENCE_HALF_WIDTH * 2, FENCE_HALF_LENGTH * 2),
+    new PlaneGeometry(FENCE.maxX - FENCE.minX, FENCE.maxZ - FENCE.minZ),
     new MeshLambertMaterial({ color: "#3f6a58" })
   );
   pad.rotation.x = -Math.PI / 2;
-  pad.position.y = -0.005;
+  pad.position.set((FENCE.maxX + FENCE.minX) / 2, -0.005, (FENCE.maxZ + FENCE.minZ) / 2);
   scene.add(pad);
 
-  const courtTex = courtTexture(teamPrimary);
+  const courtTex = courtTexture(teamPrimary, logo);
   courtTex.anisotropy = maxAnisotropy;
-  const court = new Mesh(new PlaneGeometry(COURT_WIDTH + 2, COURT_LENGTH + 2), new MeshLambertMaterial({ map: courtTex }));
+  const court = new Mesh(new PlaneGeometry(COURT_WIDTH + 2, COURT_MAX_Z - COURT_MIN_Z), new MeshLambertMaterial({ map: courtTex }));
   court.rotation.x = -Math.PI / 2;
+  court.position.z = (COURT_MAX_Z + COURT_MIN_Z) / 2;
   scene.add(court);
 
   const hoops = new Map<HoopId, HoopVisual>();
@@ -96,7 +105,7 @@ export function buildScene(teamPrimary: string, maxAnisotropy: number): BuiltSce
   const netMat = new MeshBasicMaterial({ color: "#d8dde2", wireframe: true });
   const boardTex = backboardTexture();
   const boardMats = [poleMat, poleMat, poleMat, poleMat, new MeshLambertMaterial({ map: boardTex }), new MeshLambertMaterial({ map: boardTex })];
-  for (const id of HOOP_IDS) {
+  for (const id of ACTIVE_HOOPS) {
     const h = hoopLayout(id);
     const g = new Group();
 
@@ -142,44 +151,72 @@ export function buildScene(teamPrimary: string, maxAnisotropy: number): BuiltSce
 
 const PX_PER_M = 64;
 const TEX_W = COURT_WIDTH + 2; // 1 m run-off painted on each side
-const TEX_L = COURT_LENGTH + 2;
+/** Size of the club logo square at the top of the arc, metres. */
+const LOGO_SIZE = 2.3;
 
-function courtTexture(teamPrimary: string): CanvasTexture {
+function courtTexture(teamPrimary: string, logo: HTMLImageElement | null): CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = TEX_W * PX_PER_M;
-  canvas.height = TEX_L * PX_PER_M;
+  canvas.height = Math.round((COURT_MAX_Z - COURT_MIN_Z) * PX_PER_M);
   const ctx = canvas.getContext("2d")!;
   // World (x, z) -> canvas px. Canvas top (y = 0) is world -z (hoop A end).
   const X = (x: number) => (x + TEX_W / 2) * PX_PER_M;
-  const Y = (z: number) => (z + TEX_L / 2) * PX_PER_M;
+  const Y = (z: number) => (z - COURT_MIN_Z) * PX_PER_M;
   const M = (m: number) => m * PX_PER_M;
+  // A half court ends at the midcourt line.
+  const courtEndZ = HALF_COURT ? 0 : HALF_LENGTH;
+  const courtLen = courtEndZ + HALF_LENGTH;
+  const keyLen = BOARD_FROM_BASELINE + FREE_THROW_FROM_BOARD;
 
   ctx.fillStyle = "#2f5d4c";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "#3a6d97";
-  ctx.fillRect(X(-HALF_WIDTH), Y(-HALF_LENGTH), M(COURT_WIDTH), M(COURT_LENGTH));
+  ctx.fillRect(X(-HALF_WIDTH), Y(-HALF_LENGTH), M(COURT_WIDTH), M(courtLen));
+
+  // Everything painted inside the lines is clipped to the court (the centre
+  // circle is cut in half on a half court).
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(X(-HALF_WIDTH), Y(-HALF_LENGTH), M(COURT_WIDTH), M(courtLen));
+  ctx.clip();
 
   // Team-coloured paint: keys and centre circle.
   ctx.save();
   ctx.globalAlpha = 0.75;
   ctx.fillStyle = teamPrimary;
-  const keyLen = BOARD_FROM_BASELINE + FREE_THROW_FROM_BOARD;
-  ctx.fillRect(X(-KEY_WIDTH / 2), Y(-HALF_LENGTH), M(KEY_WIDTH), M(keyLen));
-  ctx.fillRect(X(-KEY_WIDTH / 2), Y(HALF_LENGTH - keyLen), M(KEY_WIDTH), M(keyLen));
+  for (const id of ACTIVE_HOOPS) {
+    const s = id === "A" ? -1 : 1;
+    ctx.fillRect(X(-KEY_WIDTH / 2), Math.min(Y(s * HALF_LENGTH), Y(s * (HALF_LENGTH - keyLen))), M(KEY_WIDTH), M(keyLen));
+  }
   ctx.beginPath();
   ctx.arc(X(0), Y(0), M(CENTER_CIRCLE_RADIUS), 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
+  // Club logo just outside the top of the arc, upright for a shooter facing the hoop.
+  if (logo && logo.naturalWidth > 0) {
+    const scale = Math.min(M(LOGO_SIZE) / logo.naturalWidth, M(LOGO_SIZE) / logo.naturalHeight);
+    const w = logo.naturalWidth * scale;
+    const h = logo.naturalHeight * scale;
+    for (const id of ACTIVE_HOOPS) {
+      const s = id === "A" ? -1 : 1;
+      const cz = hoopLayout(id).rim.z - s * (THREE_POINT_RADIUS + LOGO_SIZE / 2 + 0.15);
+      ctx.save();
+      ctx.translate(X(0), Y(cz));
+      if (s === 1) ctx.rotate(Math.PI);
+      ctx.globalAlpha = 0.92;
+      ctx.drawImage(logo, -w / 2, -h / 2, w, h);
+      ctx.restore();
+    }
+  }
+
   ctx.strokeStyle = "#f4f7fa";
   ctx.lineWidth = M(0.05);
-  ctx.strokeRect(X(-HALF_WIDTH), Y(-HALF_LENGTH), M(COURT_WIDTH), M(COURT_LENGTH));
-  line(ctx, X(-HALF_WIDTH), Y(0), X(HALF_WIDTH), Y(0));
   ctx.beginPath();
   ctx.arc(X(0), Y(0), M(CENTER_CIRCLE_RADIUS), 0, Math.PI * 2);
   ctx.stroke();
 
-  for (const id of HOOP_IDS) {
+  for (const id of ACTIVE_HOOPS) {
     const s = id === "A" ? -1 : 1;
     const rimZ = hoopLayout(id).rim.z;
     const baseline = s * HALF_LENGTH;
@@ -208,6 +245,13 @@ function courtTexture(teamPrimary: string): CanvasTexture {
     else ctx.arc(X(0), Y(rimZ), M(THREE_POINT_RADIUS), b, a, false);
     ctx.stroke();
   }
+  ctx.restore(); // clip
+
+  // Boundary (sidelines, baseline(s), midcourt line) on top, unclipped.
+  ctx.strokeStyle = "#f4f7fa";
+  ctx.lineWidth = M(0.05);
+  ctx.strokeRect(X(-HALF_WIDTH), Y(-HALF_LENGTH), M(COURT_WIDTH), M(courtLen));
+  if (!HALF_COURT) line(ctx, X(-HALF_WIDTH), Y(0), X(HALF_WIDTH), Y(0));
 
   const tex = new CanvasTexture(canvas);
   tex.colorSpace = SRGBColorSpace;
@@ -268,11 +312,15 @@ function buildFence(scene: Scene, maxAnisotropy: number): void {
   const tex = chainLinkTexture();
   tex.anisotropy = maxAnisotropy;
   const cell = 0.12; // metres per diamond
+  const lenX = FENCE.maxX - FENCE.minX;
+  const lenZ = FENCE.maxZ - FENCE.minZ;
+  const midX = (FENCE.maxX + FENCE.minX) / 2;
+  const midZ = (FENCE.maxZ + FENCE.minZ) / 2;
   const sides: Array<{ len: number; x: number; z: number; rotY: number }> = [
-    { len: FENCE_HALF_LENGTH * 2, x: -FENCE_HALF_WIDTH, z: 0, rotY: Math.PI / 2 },
-    { len: FENCE_HALF_LENGTH * 2, x: FENCE_HALF_WIDTH, z: 0, rotY: -Math.PI / 2 },
-    { len: FENCE_HALF_WIDTH * 2, x: 0, z: -FENCE_HALF_LENGTH, rotY: 0 },
-    { len: FENCE_HALF_WIDTH * 2, x: 0, z: FENCE_HALF_LENGTH, rotY: Math.PI },
+    { len: lenZ, x: FENCE.minX, z: midZ, rotY: Math.PI / 2 },
+    { len: lenZ, x: FENCE.maxX, z: midZ, rotY: -Math.PI / 2 },
+    { len: lenX, x: midX, z: FENCE.minZ, rotY: 0 },
+    { len: lenX, x: midX, z: FENCE.maxZ, rotY: Math.PI },
   ];
   for (const side of sides) {
     const t = tex.clone();
@@ -290,13 +338,15 @@ function buildFence(scene: Scene, maxAnisotropy: number): void {
   const postMat = new MeshLambertMaterial({ color: "#8a9199" });
   const spacing = 3;
   const positions: Array<[number, number]> = [];
-  for (let z = -FENCE_HALF_LENGTH; z <= FENCE_HALF_LENGTH + 0.01; z += (FENCE_HALF_LENGTH * 2) / Math.round((FENCE_HALF_LENGTH * 2) / spacing)) {
-    positions.push([-FENCE_HALF_WIDTH, z], [FENCE_HALF_WIDTH, z]);
+  const nz = Math.round(lenZ / spacing);
+  for (let i = 0; i <= nz; i++) {
+    const z = FENCE.minZ + (i * lenZ) / nz;
+    positions.push([FENCE.minX, z], [FENCE.maxX, z]);
   }
-  const nx = Math.round((FENCE_HALF_WIDTH * 2) / spacing);
+  const nx = Math.round(lenX / spacing);
   for (let i = 1; i < nx; i++) {
-    const x = -FENCE_HALF_WIDTH + (i * FENCE_HALF_WIDTH * 2) / nx;
-    positions.push([x, -FENCE_HALF_LENGTH], [x, FENCE_HALF_LENGTH]);
+    const x = FENCE.minX + (i * lenX) / nx;
+    positions.push([x, FENCE.minZ], [x, FENCE.maxZ]);
   }
   const posts = new InstancedMesh(new CylinderGeometry(0.04, 0.04, FENCE_HEIGHT, 6), postMat, positions.length);
   const m = new Matrix4();
@@ -319,6 +369,8 @@ function buildFence(scene: Scene, maxAnisotropy: number): void {
 // ---------- surroundings ----------
 
 function buildSurroundings(scene: Scene): void {
+  // Centre the park on the fenced area (it is offset on a half court).
+  const oz = (FENCE.maxZ + FENCE.minZ) / 2;
   // Deterministic pseudo-random placement so the park looks the same each visit.
   let seed = 7;
   const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
@@ -332,7 +384,7 @@ function buildSurroundings(scene: Scene): void {
     const r = 55 + rand() * 25;
     const w = 8 + rand() * 10;
     const h = 8 + rand() * 22;
-    dummy.position.set(Math.cos(a) * r, h / 2, Math.sin(a) * r);
+    dummy.position.set(Math.cos(a) * r, h / 2, oz + Math.sin(a) * r);
     dummy.rotation.set(0, -a, 0);
     dummy.scale.set(w, h, 6 + rand() * 6);
     dummy.updateMatrix();
@@ -347,9 +399,9 @@ function buildSurroundings(scene: Scene): void {
   for (let i = 0; i < treeCount; i++) {
     const a = rand() * Math.PI * 2;
     // Keep trees outside the fence with a margin.
-    const r = 22 + rand() * 22;
+    const r = 18 + rand() * 22;
     const x = Math.cos(a) * r;
-    const z = Math.sin(a) * r * 1.2;
+    const z = oz + Math.sin(a) * r * 1.2;
     const s = 0.8 + rand() * 0.6;
     dummy.rotation.set(0, 0, 0);
     dummy.scale.set(s, s, s);

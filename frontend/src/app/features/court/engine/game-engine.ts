@@ -8,7 +8,7 @@ import { randomSeed } from "../../../../../../shared/court/rng";
 import { computeShotLaunch, effectiveTiming } from "../../../../../../shared/court/shot";
 import { CourtPhysics, RapierApi } from "../../../../../../shared/court/sim";
 import { HoopId } from "../../../../../../shared/court/types";
-import { Avatar, createAvatar, createBall, createBlobShadow, releaseBallTexture, releaseShadowTexture } from "./avatar-factory";
+import { Avatar, JERSEY_FONT, JerseyText, createAvatar, createBall, createBlobShadow, releaseBallTexture, releaseShadowTexture } from "./avatar-factory";
 import { BallPlayback } from "./ball-playback";
 import { CourtAudio } from "./court-audio";
 import { Joystick } from "./input/joystick";
@@ -47,6 +47,9 @@ export interface EngineOptions {
   cameraPreset: number;
   muted: boolean;
   bestStreak: number;
+  jersey: JerseyText | null;
+  /** Club logo for the floor (CORS-enabled URL), or null. */
+  logoUrl: string | null;
 }
 
 const RETURN_MS = 380;
@@ -95,8 +98,14 @@ export class GameEngine {
 
   /** Load Rapier, build the scene, start the loop. Throws if WebGL is unavailable. */
   async start(): Promise<void> {
-    const RAPIER = (await import("@dimforge/rapier3d-compat")).default;
-    await RAPIER.init();
+    const [RAPIER, logo] = await Promise.all([
+      import("@dimforge/rapier3d-compat").then(async (m) => {
+        await m.default.init();
+        return m.default;
+      }),
+      loadImage(this.opts.logoUrl, 4000),
+      loadJerseyFont(),
+    ]);
     if (this.disposed) return;
     this.physics = new CourtPhysics(RAPIER as unknown as RapierApi);
 
@@ -114,8 +123,8 @@ export class GameEngine {
     this.dom.container.appendChild(canvas);
 
     this.camera = new PerspectiveCamera(60, 1, 0.1, 250);
-    this.built = buildScene(this.opts.teamPrimary, this.renderer.capabilities.getMaxAnisotropy());
-    this.avatar = createAvatar(this.opts.teamPrimary, this.opts.teamSecondary);
+    this.built = buildScene({ teamPrimary: this.opts.teamPrimary, logo, maxAnisotropy: this.renderer.capabilities.getMaxAnisotropy() });
+    this.avatar = createAvatar(this.opts.teamPrimary, this.opts.teamSecondary, this.opts.jersey);
     this.built.scene.add(this.avatar.root);
     this.ball = createBall();
     this.built.scene.add(this.ball);
@@ -359,4 +368,32 @@ export class GameEngine {
     // re-uploading every GPU resource in place.
     this.cb.onContextRestored();
   };
+}
+
+/** Load an image for canvas use; resolves null on error or timeout (never blocks the court). */
+function loadImage(url: string | null, timeoutMs: number): Promise<HTMLImageElement | null> {
+  if (!url) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    const timer = setTimeout(() => resolve(null), timeoutMs);
+    img.onload = () => {
+      clearTimeout(timer);
+      resolve(img);
+    };
+    img.onerror = () => {
+      clearTimeout(timer);
+      resolve(null);
+    };
+    img.src = url;
+  });
+}
+
+/** Make sure the jersey font is ready before lettering is drawn into canvases. */
+async function loadJerseyFont(): Promise<void> {
+  try {
+    await Promise.race([document.fonts.load(`800 64px ${JERSEY_FONT}`, "ΑΒΓ ABC 0123"), new Promise((r) => setTimeout(r, 2500))]);
+  } catch {
+    /* fall back to whatever font is available */
+  }
 }
