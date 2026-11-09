@@ -1,10 +1,17 @@
 // Other players on the court (CLUTCH_COURT_SPEC.md §6.4): each is rendered
 // ~100 ms in the past, interpolated between buffered server snapshots, with
 // a name tag above the head.
-import { CanvasTexture, Mesh, SRGBColorSpace, Scene, Sprite, SpriteMaterial } from "three";
+import { CanvasTexture, Mesh, SRGBColorSpace, Scene, Sprite, SpriteMaterial, Vector3 } from "three";
 import { BALL_RADIUS } from "../../../../../../shared/court/constants";
 import { Avatar, JERSEY_FONT, JerseyText, createAvatar, createBall } from "./avatar-factory";
 import { disposeObject } from "./scene-builder";
+import { BallPlayback } from "./ball-playback";
+import { HoopId, ShotEvent, ShotResult, Vec3 } from "../../../../../../shared/court/types";
+
+const RETURN_MS = 380;
+
+/** A remote shot event, for the engine's sounds and net animation. */
+export type RemoteShotEvent = (event: ShotEvent, at: Vector3, hoop: HoopId) => void;
 
 const INTERP_DELAY_MS = 100;
 const MAX_SNAPSHOTS = 30;
@@ -31,6 +38,8 @@ interface Remote {
   buffer: Snapshot[];
   connected: boolean;
   dribble: number;
+  shot: { playback: BallPlayback; hoop: HoopId } | null;
+  returning: { from: Vector3; startedAt: number } | null;
 }
 
 function lerpAngle(a: number, b: number, u: number): number {
@@ -90,7 +99,7 @@ export class RemotePlayers {
     avatar.root.add(tag);
     const ball = createBall();
     this.scene.add(avatar.root, ball);
-    this.remotes.set(id, { avatar, ball, tag, buffer: [{ t: performance.now(), x, z, rotY, anim: "idle" }], connected: true, dribble: 0 });
+    this.remotes.set(id, { avatar, ball, tag, buffer: [{ t: performance.now(), x, z, rotY, anim: "idle" }], connected: true, dribble: 0, shot: null, returning: null });
   }
 
   push(id: string, x: number, z: number, rotY: number, anim: string, t: number): void {
@@ -98,6 +107,14 @@ export class RemotePlayers {
     if (!r) return;
     r.buffer.push({ t, x, z, rotY, anim });
     if (r.buffer.length > MAX_SNAPSHOTS) r.buffer.splice(0, r.buffer.length - MAX_SNAPSHOTS);
+  }
+
+  /** Play another player's authoritative shot from now. */
+  startShot(id: string, result: ShotResult, spin: Vec3, hoop: HoopId, now: number): void {
+    const r = this.remotes.get(id);
+    if (!r) return;
+    r.shot = { playback: new BallPlayback(result, now, spin), hoop };
+    r.returning = null;
   }
 
   setConnected(id: string, connected: boolean): void {
@@ -120,7 +137,7 @@ export class RemotePlayers {
     return [...this.remotes.keys()];
   }
 
-  update(now: number, dt: number): void {
+  update(now: number, dt: number, onEvent: RemoteShotEvent): void {
     const renderAt = now - INTERP_DELAY_MS;
     for (const r of this.remotes.values()) {
       const buf = r.buffer;
@@ -148,14 +165,35 @@ export class RemotePlayers {
       r.avatar.body.scale.y += (target - r.avatar.body.scale.y) * Math.min(1, dt * 18);
       if (running) r.dribble += dt * 9;
 
-      // Ball in the right hand; bounced while running, raised while shooting.
+      // Ball: in flight (their shot), flying back, or in the right hand
+      // (bounced while running, raised while shooting).
       const fx = Math.sin(rotY);
       const fz = Math.cos(rotY);
-      if (anim === "shoot") {
+      const hx = x - fz * 0.34 + fx * 0.25;
+      const hz = z + fx * 0.34 + fz * 0.25;
+      const hy = running ? BALL_RADIUS + Math.abs(Math.cos(r.dribble)) * 0.85 : 1.0;
+      if (r.shot) {
+        const pb = r.shot.playback;
+        pb.positionAt(now, r.ball.position);
+        r.ball.rotateOnWorldAxis(pb.spin(now).axis, -dt * 7);
+        for (const ev of pb.takeEvents(now)) onEvent(ev, r.ball.position, r.shot.hoop);
+        if (pb.done(now)) {
+          r.returning = { from: r.ball.position.clone(), startedAt: now };
+          r.shot = null;
+        }
+      } else if (r.returning) {
+        const u = Math.min(1, (now - r.returning.startedAt) / RETURN_MS);
+        const e = u * u * (3 - 2 * u);
+        r.ball.position.set(
+          r.returning.from.x + (hx - r.returning.from.x) * e,
+          r.returning.from.y + (hy - r.returning.from.y) * e + Math.sin(u * Math.PI) * 0.8,
+          r.returning.from.z + (hz - r.returning.from.z) * e
+        );
+        if (u >= 1) r.returning = null;
+      } else if (anim === "shoot") {
         r.ball.position.set(x + fx * 0.15, 2.1, z + fz * 0.15);
       } else {
-        const y = running ? BALL_RADIUS + Math.abs(Math.cos(r.dribble)) * 0.85 : 1.0;
-        r.ball.position.set(x - fz * 0.34 + fx * 0.25, y, z + fx * 0.34 + fz * 0.25);
+        r.ball.position.set(hx, hy, hz);
       }
     }
   }

@@ -7,8 +7,8 @@ import { pickTargetHoop } from "../../../../../../shared/court/geometry";
 import { randomSeed } from "../../../../../../shared/court/rng";
 import { computeShotLaunch, effectiveTiming } from "../../../../../../shared/court/shot";
 import { CourtPhysics, RapierApi } from "../../../../../../shared/court/sim";
-import { HoopId } from "../../../../../../shared/court/types";
-import { MOVE_HZ, MoveMessage, PlayerAnim } from "../../../../../../shared/court/protocol";
+import { HoopId, ShotEvent, ShotResult } from "../../../../../../shared/court/types";
+import { MOVE_HZ, MoveMessage, PlayerAnim, ShootMessage, ShotMessage } from "../../../../../../shared/court/protocol";
 import { Avatar, JERSEY_FONT, JerseyText, createAvatar, createBall, createBlobShadow, releaseBallTexture, releaseShadowTexture } from "./avatar-factory";
 import { BallPlayback } from "./ball-playback";
 import { CourtAudio } from "./court-audio";
@@ -36,6 +36,13 @@ export interface EngineCallbacks {
   onContextRestored(): void;
 }
 
+/** Multiplayer shots (M3). The engine predicts with the server's seed and plays the server's result. */
+export interface ShotNet {
+  /** The seed the server will use for our next shot, or null if not received yet. Consumed. */
+  takeSeed(): number | null;
+  send(m: ShootMessage): void;
+}
+
 export interface EngineDom {
   container: HTMLElement;
   meter: HTMLElement;
@@ -61,6 +68,10 @@ export interface EngineOptions {
 
 const RETURN_MS = 380;
 const NET_SWISH_MS = 450;
+/** Give up on a shot the server never answered (ball comes back). */
+const SHOT_REPLY_TIMEOUT_MS = 3000;
+/** Other players' shots fade out over this distance, metres. */
+const HEARING_RANGE = 28;
 
 export class GameEngine {
   private renderer!: WebGLRenderer;
@@ -96,6 +107,12 @@ export class GameEngine {
   private moveSink: ((m: MoveMessage) => void) | null = null;
   private lastMoveSentAt = 0;
   private lastSent: MoveMessage | null = null;
+  private shotNet: ShotNet | null = null;
+  private clientShotId = 0;
+  /** Our shot sent without a seed (no prediction): waiting for the server's result. */
+  private awaitingShot: { clientShotId: number; sentAt: number } | null = null;
+  /** The clientShotId our current (predicted) playback belongs to. */
+  private playbackShotId = 0;
 
   constructor(
     private readonly dom: EngineDom,
@@ -135,6 +152,10 @@ export class GameEngine {
     canvas.style.width = "100%";
     canvas.style.height = "100%";
     canvas.addEventListener("webglcontextlost", this.onContextLost);
+    // Any first touch/key unlocks audio, so other players' shots are heard
+    // even before we shoot ourselves.
+    window.addEventListener("pointerdown", this.unlockAudio, true);
+    window.addEventListener("keydown", this.unlockAudio, true);
     canvas.addEventListener("webglcontextrestored", this.onContextRestored);
     this.dom.container.appendChild(canvas);
 
@@ -172,7 +193,7 @@ export class GameEngine {
     if (!this.running) return;
     this.audio.unlock();
     const now = performance.now();
-    if (this.meter.charging || this.playback || this.returning || now < this.cooldownUntil) return;
+    if (this.meter.charging || this.playback || this.returning || this.awaitingShot || now < this.cooldownUntil) return;
     const target = pickTargetHoop(this.player.x, this.player.z, this.player.rotY);
     this.targetHoop = target.hoopId;
     this.player.lockedYaw = target.yaw;
@@ -202,6 +223,44 @@ export class GameEngine {
   setMoveSink(sink: ((m: MoveMessage) => void) | null): void {
     this.moveSink = sink;
     this.lastSent = null;
+  }
+
+  setShotNet(net: ShotNet | null): void {
+    this.shotNet = net;
+  }
+
+  /** An authoritative shot from the server: ours (confirm the prediction) or another player's. */
+  onServerShot(msg: ShotMessage, mySessionId: string): void {
+    if (!this.running) return;
+    const now = performance.now();
+    const result: ShotResult = { made: msg.made, keyframes: msg.keyframes, durationMs: msg.durationMs, events: msg.events };
+    if (msg.shooterId !== mySessionId) {
+      this.remotes?.startShot(msg.shooterId, result, msg.spin, msg.hoopId, now);
+      return;
+    }
+    if (this.playback && this.playbackShotId === msg.clientShotId) {
+      this.playback.replaceResult(result);
+    } else if (this.awaitingShot?.clientShotId === msg.clientShotId) {
+      this.awaitingShot = null;
+      this.targetHoop = msg.hoopId;
+      this.playback = new BallPlayback(result, now, msg.spin);
+      this.playbackShotId = msg.clientShotId;
+    }
+  }
+
+  /** The server refused our shot (rate limit): the ball comes back, the attempt doesn't count. */
+  onShotRejected(clientShotId: number): void {
+    const now = performance.now();
+    if (this.playback && this.playbackShotId === clientShotId) {
+      this.returning = { from: this.ball.position.clone(), startedAt: now };
+      this.playback = null;
+    } else if (this.awaitingShot?.clientShotId === clientShotId) {
+      this.awaitingShot = null;
+    } else {
+      return;
+    }
+    this.stats.attempts = Math.max(0, this.stats.attempts - 1);
+    this.cb.onStats({ ...this.stats });
   }
 
   /** The server rejected a move: snap back. */
@@ -240,6 +299,8 @@ export class GameEngine {
     this.disposed = true;
     this.running = false;
     cancelAnimationFrame(this.raf);
+    window.removeEventListener("pointerdown", this.unlockAudio, true);
+    window.removeEventListener("keydown", this.unlockAudio, true);
     this.keyboard?.dispose();
     this.joystick?.dispose();
     this.resizeObserver?.disconnect();
@@ -264,9 +325,26 @@ export class GameEngine {
   // ---------- shots ----------
 
   private fire(timingError: number, now: number): void {
-    const launch = computeShotLaunch(this.player.x, this.player.z, this.targetHoop, timingError, randomSeed());
-    const result = this.physics.simulate(launch);
-    this.playback = new BallPlayback(result, now, launch.spin);
+    // Shared court: the server simulates; with its seed in hand we predict
+    // the identical shot locally so the release feels instant.
+    const net = this.shotNet;
+    const x = Math.round(this.player.x * 100) / 100;
+    const z = Math.round(this.player.z * 100) / 100;
+    const seed = net ? net.takeSeed() : randomSeed();
+    const launch = computeShotLaunch(x, z, this.targetHoop, timingError, seed ?? 0);
+    if (net) {
+      const clientShotId = ++this.clientShotId;
+      net.send({ clientShotId, timingError, hoopId: this.targetHoop, x, z });
+      if (seed === null) {
+        this.awaitingShot = { clientShotId, sentAt: now };
+      } else {
+        this.playback = new BallPlayback(this.physics.simulate(launch), now, launch.spin);
+        this.playback.authoritative = false;
+        this.playbackShotId = clientShotId;
+      }
+    } else {
+      this.playback = new BallPlayback(this.physics.simulate(launch), now, launch.spin);
+    }
     this.cooldownUntil = now + SHOT_COOLDOWN_SECONDS * 1000;
     this.lockUntil = now + 300;
     this.stats.attempts++;
@@ -307,7 +385,8 @@ export class GameEngine {
     this.updateAvatar(dt, now);
     this.updateBall(dt, now);
     this.updateNet(now);
-    this.remotes?.update(now, dt);
+    this.remotes?.update(now, dt, this.onRemoteShotEvent);
+    if (this.awaitingShot && now - this.awaitingShot.sentAt > SHOT_REPLY_TIMEOUT_MS) this.onShotRejected(this.awaitingShot.clientShotId);
     this.sendMove(now);
     this.player.updateCamera(dt, this.camera);
     this.placeMeter();
@@ -394,6 +473,12 @@ export class GameEngine {
     (this.ballShadow.material as { opacity: number }).opacity = Math.max(0.15, 1 - h * 0.18);
   }
 
+  private onRemoteShotEvent = (ev: ShotEvent, at: Vector3, hoop: HoopId): void => {
+    const d = Math.hypot(at.x - this.player.x, at.z - this.player.z);
+    this.audio.play(ev.kind, ev.strength, Math.max(0, 1 - d / HEARING_RANGE) * 0.8);
+    if (ev.kind === "make") this.netSwish = { hoop, startedAt: performance.now() };
+  };
+
   private updateNet(now: number): void {
     for (const hoop of this.built.hoops.values()) {
       const swish = this.netSwish && this.netSwish.hoop === hoop.id ? (now - this.netSwish.startedAt) / NET_SWISH_MS : 1;
@@ -426,6 +511,8 @@ export class GameEngine {
     this.camera.fov = w / h < 0.8 ? 72 : 60;
     this.camera.updateProjectionMatrix();
   }
+
+  private unlockAudio = () => this.audio.unlock();
 
   private onContextLost = (e: Event) => {
     e.preventDefault();

@@ -24,7 +24,8 @@ points-priced packs, album, trades) under a "Cards" hub.
 | Auth | JWT (access token in memory only, httpOnly refresh cookie), bcrypt |
 | Data source | [`euroleague-api`](https://pypi.org/project/euroleague-api/) (Python) + direct `fetch` of `api-live.euroleague.net` |
 
-There is no test suite and no lint script. Don't look for one.
+There is no app-wide test suite and no lint script. The one exception is `npm run test:court`
+(backend), which runs the Clutch Court unit tests in `shared/court/*.test.ts`.
 
 Full-stack features usually touch `schema.ts` → a backend route/service → an
 Angular component → **both** i18n dictionaries. Add the Greek string in the same
@@ -103,6 +104,15 @@ on dev usually means drift, not a code bug.
   change logs) of players/coach owned in earlier rounds. The daily reprice
   (`services/fantasyDailyReprice.ts`) keeps the price floor but no longer caps at max.
 - In production the backend also serves the built Angular app (SPA fallback).
+- **Clutch Court** (`CLUTCH_COURT_SPEC.md`, 3D shootaround): pure physics/rules live in
+  repo-root `shared/court/` and are imported by both apps. The backend compiles `../shared`,
+  so its entry point is `dist/backend/src/index.js` (Dockerfile + `npm start`), and `staticDir`
+  resolves from the cwd. Colyseus 0.18 runs **inside** this process (`src/court/server.ts`),
+  not as a separate service: only `POST /colyseus/matchmake/*` and WebSocket upgrades under
+  `/colyseus/` reach it. Don't switch to `Server.listen()`/`serverless()`; they put Colyseus'
+  router (wildcard CORS, a `/` route) in front of the whole app. Shots are server-authoritative:
+  the server pre-sends each player's next seed so the client's Rapier prediction matches the
+  server's keyframes exactly. `npm run test:court` runs the shared unit tests.
 
 ## Frontend architecture
 

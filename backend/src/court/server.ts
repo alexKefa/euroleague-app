@@ -11,6 +11,7 @@ import { setTransport } from "@colyseus/core/Transport";
 import { WebSocketTransport } from "@colyseus/ws-transport";
 import { COLYSEUS_PATH, ROOM_NAME } from "../../../shared/court/protocol.js";
 import { CourtRoom } from "./courtRoom.js";
+import { initCourtPhysics } from "./physics.js";
 
 let transport: WebSocketTransport | null = null;
 
@@ -29,6 +30,8 @@ export function courtMatchmakingMiddleware(): RequestHandler {
 
 /** Attach the room server to the app's HTTP server. Call once, after listen(). */
 export async function startCourtServer(httpServer: http.Server): Promise<void> {
+  // Shots are simulated server-side (M3): Rapier must be ready before any room.
+  await initCourtPhysics();
   const t = new WebSocketTransport({ pingInterval: 5000, pingMaxRetries: 3 });
   t.attachToServer(httpServer, {
     filter: (req) => (req.url ?? "").startsWith(`${COLYSEUS_PATH}/`),

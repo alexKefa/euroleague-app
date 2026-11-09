@@ -5,6 +5,8 @@ import { ShotEventKind } from "../../../../../../shared/court/types";
 export class CourtAudio {
   private ctx: AudioContext | null = null;
   private noise: AudioBuffer | null = null;
+  /** Per-call volume factor (distance falloff for other players' shots). */
+  private scale = 1;
   muted = false;
 
   /** Call from a user gesture (shoot press). */
@@ -27,9 +29,10 @@ export class CourtAudio {
     this.ctx = null;
   }
 
-  play(kind: ShotEventKind, strength = 3): void {
+  play(kind: ShotEventKind, strength = 3, volume = 1): void {
     const ctx = this.ctx;
-    if (!ctx || this.muted) return;
+    if (!ctx || this.muted || volume <= 0.02) return;
+    this.scale = volume;
     const vol = Math.min(1, 0.25 + strength / 8);
     const t = ctx.currentTime;
     switch (kind) {
@@ -67,7 +70,7 @@ export class CourtAudio {
     osc.frequency.setValueAtTime(freq, t);
     if (endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, t + dur);
     const g = ctx.createGain();
-    g.gain.setValueAtTime(gain, t);
+    g.gain.setValueAtTime(Math.max(0.0002, gain * this.scale), t);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     osc.connect(g).connect(ctx.destination);
     osc.start(t);
@@ -84,7 +87,7 @@ export class CourtAudio {
     f.Q.value = q;
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(gain, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0002, gain * this.scale), t + 0.008);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     src.connect(f).connect(g).connect(ctx.destination);
     src.start(t, Math.random() * 0.5);

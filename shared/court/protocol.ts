@@ -2,6 +2,7 @@
 // payloads shared by the Colyseus room and the Angular client.
 import { PLAYER_SPEED } from "./constants.js";
 import { clampPlayerPosition } from "./geometry.js";
+import type { HoopId, ShotEvent, Vec3 } from "./types.js";
 
 export const ROOM_NAME = "court";
 /** HTTP + WebSocket path prefix the room server is mounted under. */
@@ -46,6 +47,22 @@ export interface MoveMessage {
   anim: PlayerAnim;
 }
 
+/**
+ * Shot request (spec §5.6 + one deviation): besides timing and hoop, the
+ * client says where it shot from. The server accepts that position only if
+ * it passes the same speed check as a move from its last known position,
+ * else it uses its own. This lets the shooter's prediction and the server
+ * simulate from the identical spot.
+ */
+export interface ShootMessage {
+  /** Client-chosen id, echoed back so the shooter can match its prediction. */
+  clientShotId: number;
+  timingError: number;
+  hoopId: HoopId;
+  x: number;
+  z: number;
+}
+
 export interface JoinOptions {
   code: string;
   accessToken: string;
@@ -60,10 +77,43 @@ export interface CorrectionMessage {
 
 export type ToastMessage = { kind: "joined" | "left" | "dropped" | "back"; name: string };
 
+/** Private: the seed the server will use for this player's next shot (for prediction). */
+export interface SeedMessage {
+  seed: number;
+}
+
+/** Broadcast: an authoritative shot result. */
+export interface ShotMessage {
+  shotId: number;
+  /** The shooter's echo of ShootMessage.clientShotId. */
+  clientShotId: number;
+  /** Colyseus sessionId of the shooter. */
+  shooterId: string;
+  hoopId: HoopId;
+  made: boolean;
+  perfect: boolean;
+  /** Flat [x,y,z,...] in centimetres at SHOT_KEYFRAME_HZ (Int16-safe). */
+  keyframes: number[];
+  durationMs: number;
+  events: ShotEvent[];
+  spin: Vec3;
+}
+
+/** Private: the server refused a shot (rate limit, not on court...). */
+export interface ShotRejectedMessage {
+  clientShotId: number;
+}
+
 export const MSG = {
   move: "move",
   correction: "correction",
   toast: "toast",
+  /** Client asks for its next shot seed (after joining or reconnecting). */
+  seedRequest: "seed?",
+  seed: "seed",
+  shoot: "shoot",
+  shot: "shot",
+  shotRejected: "shotRejected",
 } as const;
 
 /** Speed tolerance before a move is rejected (spec §6.3: speed × 1.25). */

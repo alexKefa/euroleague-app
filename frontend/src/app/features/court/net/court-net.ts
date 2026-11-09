@@ -10,6 +10,10 @@ import {
   type CorrectionMessage,
   type JoinOptions,
   type MoveMessage,
+  type SeedMessage,
+  type ShootMessage,
+  type ShotMessage,
+  type ShotRejectedMessage,
   type ToastMessage,
 } from "../../../../../../shared/court/protocol";
 
@@ -40,6 +44,9 @@ export interface CourtNetHandlers {
   onState(players: Map<string, NetPlayer>): void;
   onToast(msg: ToastMessage): void;
   onCorrection(msg: CorrectionMessage): void;
+  /** Any player's authoritative shot (ours included). */
+  onShot(msg: ShotMessage): void;
+  onShotRejected(msg: ShotRejectedMessage): void;
   /** Connection lost; the SDK is retrying. */
   onDrop(): void;
   onReconnect(): void;
@@ -75,6 +82,7 @@ function classify(err: unknown): JoinFailure {
 export class CourtNet {
   private room: Room | null = null;
   private left = false;
+  private seed: number | null = null;
 
   constructor(private readonly handlers: CourtNetHandlers) {}
 
@@ -97,8 +105,19 @@ export class CourtNet {
 
     room.onMessage(MSG.toast, (m: ToastMessage) => this.handlers.onToast(m));
     room.onMessage(MSG.correction, (m: CorrectionMessage) => this.handlers.onCorrection(m));
-    room.onDrop(() => this.handlers.onDrop());
-    room.onReconnect(() => this.handlers.onReconnect());
+    room.onMessage(MSG.seed, (m: SeedMessage) => (this.seed = m.seed));
+    room.onMessage(MSG.shot, (m: ShotMessage) => this.handlers.onShot(m));
+    room.onMessage(MSG.shotRejected, (m: ShotRejectedMessage) => this.handlers.onShotRejected(m));
+    room.onDrop(() => {
+      this.seed = null;
+      this.handlers.onDrop();
+    });
+    room.onReconnect(() => {
+      room.send(MSG.seedRequest);
+      this.handlers.onReconnect();
+    });
+    // Handlers are registered: now ask for our first shot seed.
+    room.send(MSG.seedRequest);
     room.onLeave((code: number) => {
       if (!this.left) this.handlers.onClosed(code);
     });
@@ -123,6 +142,17 @@ export class CourtNet {
 
   sendMove(m: MoveMessage): void {
     this.room?.send(MSG.move, m);
+  }
+
+  /** The seed for our next shot (consumed; the server sends the following one with the result). */
+  takeSeed(): number | null {
+    const s = this.seed;
+    this.seed = null;
+    return s;
+  }
+
+  sendShoot(m: ShootMessage): void {
+    this.room?.send(MSG.shoot, m);
   }
 
   leave(): void {

@@ -8,13 +8,17 @@ import { ShotEvent, ShotResult, Vec3 } from "../../../../../../shared/court/type
 const FRAME_MS = 1000 / SHOT_KEYFRAME_HZ;
 
 export class BallPlayback {
-  private readonly frames: number;
+  private frames: number;
   private nextEvent = 0;
+  /** Playback time (ms) up to which events have been handed out. */
+  private firedUntil = -1;
+  /** False while this is the shooter's local prediction, true once the server's result is in. */
+  authoritative = true;
   private readonly spinAxis: Vector3;
   private readonly spinRate: number;
 
   constructor(
-    readonly result: ShotResult,
+    public result: ShotResult,
     readonly startedAt: number,
     spin: Vec3
   ) {
@@ -64,6 +68,20 @@ export class BallPlayback {
     const out: ShotEvent[] = [];
     const ev = this.result.events;
     while (this.nextEvent < ev.length && ev[this.nextEvent]!.t <= t) out.push(ev[this.nextEvent++]!);
+    this.firedUntil = Math.max(this.firedUntil, t);
     return out;
+  }
+
+  /**
+   * Swap in the server's result for a predicted shot. Both start at the
+   * release, so timing lines up; events already played are not replayed.
+   * (With the server's seed the two are normally identical.)
+   */
+  replaceResult(result: ShotResult): void {
+    this.result = result;
+    this.frames = result.keyframes.length / 3;
+    this.nextEvent = result.events.findIndex((e) => e.t > this.firedUntil);
+    if (this.nextEvent < 0) this.nextEvent = result.events.length;
+    this.authoritative = true;
   }
 }

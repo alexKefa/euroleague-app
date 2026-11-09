@@ -257,6 +257,8 @@ export class CourtPageComponent implements OnInit, OnDestroy {
       onState: (players) => this.syncPlayers(players),
       onToast: (m) => this.showNotice(m),
       onCorrection: (m) => this.engine?.applyCorrection(m.x, m.z),
+      onShot: (m) => this.engine?.onServerShot(m, net.sessionId),
+      onShotRejected: (m) => this.engine?.onShotRejected(m.clientShotId),
       onDrop: () => this.reconnecting.set(true),
       onReconnect: () => this.reconnecting.set(false),
       onClosed: () => {
@@ -291,6 +293,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
       logoUrl: welcome.courtLogoUrl ? cdnImage(welcome.courtLogoUrl, 240).src : null,
     });
     this.engine?.setMoveSink((m) => net.sendMove(m));
+    this.engine?.setShotNet({ takeSeed: () => net.takeSeed(), send: (m) => net.sendShoot(m) });
   }
 
   private async startEngine(

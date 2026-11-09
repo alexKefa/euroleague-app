@@ -3,11 +3,16 @@
 // reconnection. Shots (M3) and H-O-R-S-E (M4) hook in here later.
 import { Room, type AuthContext, type Client } from "@colyseus/core";
 import type { Delayed } from "@colyseus/timer";
+import { randomInt } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { courts, teams, users } from "../db/schema.js";
 import { verifyAccessToken } from "../auth/tokens.js";
 import { jerseyNumber, kitColors } from "../../../shared/court/kit.js";
+import { SHOT_COOLDOWN_SECONDS } from "../../../shared/court/constants.js";
+import { ACTIVE_HOOPS, pickTargetHoop } from "../../../shared/court/geometry.js";
+import { computeShotLaunch } from "../../../shared/court/shot.js";
+import type { HoopId } from "../../../shared/court/types.js";
 import {
   EMPTY_DISPOSE_MS,
   MAX_PLAYERS,
@@ -22,10 +27,15 @@ import {
   type JoinOptions,
   type MoveMessage,
   type PlayerAnim,
+  type SeedMessage,
+  type ShootMessage,
+  type ShotMessage,
+  type ShotRejectedMessage,
   type ToastMessage,
 } from "../../../shared/court/protocol.js";
 import { CourtPlayer, CourtState } from "./state.js";
 import { courtPresence } from "./presence.js";
+import { courtPhysics } from "./physics.js";
 
 interface CourtAuth {
   userId: string;
@@ -38,6 +48,10 @@ interface CourtAuth {
 
 interface ClientData {
   lastMoveAt: number;
+  /** Seed for this player's next shot (sent to them in advance for prediction). */
+  nextSeed: number;
+  /** No new shot until the previous one has finished playing (spec §5.7). */
+  shotBusyUntil: number;
 }
 
 type CourtClient = Client<{ auth: CourtAuth; userData: ClientData }>;
@@ -58,6 +72,7 @@ export class CourtRoom extends Room<{ state: CourtState }> {
   private courtId = "";
   private emptyTimer: Delayed | null = null;
   private joinCounter = 0;
+  private shotCounter = 0;
 
   async onCreate(options: Partial<JoinOptions>): Promise<void> {
     if (!isValidCourtCode(options.code)) throw new Error("invalid court code");
@@ -94,6 +109,8 @@ export class CourtRoom extends Room<{ state: CourtState }> {
     this.scheduleEmptyDispose();
 
     this.onMessage(MSG.move, (client: CourtClient, msg: MoveMessage) => this.handleMove(client, msg));
+    this.onMessage(MSG.seedRequest, (client: CourtClient) => this.sendSeed(client));
+    this.onMessage(MSG.shoot, (client: CourtClient, msg: ShootMessage) => this.handleShoot(client, msg));
   }
 
   async onAuth(_client: Client, options: Partial<JoinOptions>, _context: AuthContext): Promise<CourtAuth> {
@@ -160,7 +177,7 @@ export class CourtRoom extends Room<{ state: CourtState }> {
     p.eliminated = false;
     p.joinedAt = ++this.joinCounter;
     this.state.players.set(client.sessionId, p);
-    client.userData = { lastMoveAt: Date.now() };
+    client.userData = { lastMoveAt: Date.now(), nextSeed: newSeed(), shotBusyUntil: 0 };
 
     this.cancelEmptyDispose();
     courtPresence.setCount(this.code, this.connectedCount());
@@ -185,7 +202,7 @@ export class CourtRoom extends Room<{ state: CourtState }> {
       p.connected = true;
       this.toast({ kind: "back", name: p.name }, client);
     }
-    client.userData = { lastMoveAt: Date.now() };
+    client.userData = { ...(client.userData ?? { nextSeed: newSeed(), shotBusyUntil: 0 }), lastMoveAt: Date.now() };
     courtPresence.setCount(this.code, this.connectedCount());
   }
 
@@ -229,6 +246,57 @@ export class CourtRoom extends Room<{ state: CourtState }> {
     p.anim = PLAYER_ANIMS.includes(msg.anim as PlayerAnim) ? msg.anim : "idle";
   }
 
+  // ---------- shots (M3: server-authoritative, spec §5.6) ----------
+
+  private sendSeed(client: CourtClient): void {
+    const data = client.userData;
+    if (data) client.send(MSG.seed, { seed: data.nextSeed } satisfies SeedMessage);
+  }
+
+  private handleShoot(client: CourtClient, msg: ShootMessage): void {
+    const p = this.state.players.get(client.sessionId);
+    const data = client.userData;
+    if (!p || !data || !msg || typeof msg !== "object") return;
+    const clientShotId = Number.isFinite(msg.clientShotId) ? Number(msg.clientShotId) : 0;
+    const reject = () => client.send(MSG.shotRejected, { clientShotId } satisfies ShotRejectedMessage);
+
+    const now = Date.now();
+    if (!p.connected || now < data.shotBusyUntil) return reject();
+
+    // Shoot from the claimed spot if it passes the move speed check from
+    // where the server last saw the player; otherwise from the server's spot.
+    const claimed = validateMove(p, { x: Number(msg.x), z: Number(msg.z) }, (now - data.lastMoveAt) / 1000);
+    if (claimed) {
+      p.x = Math.round(claimed.x * 100) / 100;
+      p.z = Math.round(claimed.z * 100) / 100;
+      data.lastMoveAt = now;
+    }
+
+    const hoopId: HoopId = ACTIVE_HOOPS.includes(msg.hoopId) ? msg.hoopId : pickTargetHoop(p.x, p.z, p.rotY).hoopId;
+    // computeShotLaunch clamps timingError to [-1, 1] (NaN counts as fully late).
+    const launch = computeShotLaunch(p.x, p.z, hoopId, Number(msg.timingError), data.nextSeed);
+    const result = courtPhysics().simulate(launch);
+
+    data.nextSeed = newSeed();
+    data.shotBusyUntil = now + Math.max(result.durationMs, SHOT_COOLDOWN_SECONDS * 1000);
+    p.anim = "shoot";
+
+    const shot: ShotMessage = {
+      shotId: ++this.shotCounter,
+      clientShotId,
+      shooterId: client.sessionId,
+      hoopId,
+      made: result.made,
+      perfect: launch.perfect,
+      keyframes: result.keyframes,
+      durationMs: result.durationMs,
+      events: result.events,
+      spin: launch.spin,
+    };
+    this.broadcast(MSG.shot, shot);
+    this.sendSeed(client);
+  }
+
   // ---------- helpers ----------
 
   private connectedCount(): number {
@@ -254,4 +322,8 @@ export class CourtRoom extends Room<{ state: CourtState }> {
     this.emptyTimer?.clear();
     this.emptyTimer = null;
   }
+}
+
+function newSeed(): number {
+  return randomInt(0, 2 ** 32 - 1);
 }
