@@ -1,11 +1,8 @@
-// Placeholder capsule avatars (rigged models arrive in M5), the ball, and a
-// shared blob shadow. Jersey = team primary, trim = team secondary.
+// Player kit helpers (jersey lettering, kit contrast), the ball, and the
+// shared blob shadow. The body itself is the procedural rig in avatar-rig.ts.
 import {
   CanvasTexture,
-  CapsuleGeometry,
   CylinderGeometry,
-  BoxGeometry,
-  Group,
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
@@ -14,12 +11,6 @@ import {
   SphereGeometry,
 } from "three";
 import { BALL_RADIUS } from "../../../../../../shared/court/constants";
-
-export interface Avatar {
-  root: Group;
-  /** Scaled for the squat/stretch of the shooting motion. */
-  body: Group;
-}
 
 export interface JerseyText {
   /** Back: player name (the Clutch username). Empty = number only. */
@@ -94,10 +85,10 @@ function letteringTexture(draw: (ctx: CanvasRenderingContext2D, w: number, h: nu
   return tex;
 }
 
-/** A curved patch hugging the torso, centred on yaw `facing` (0 = chest, PI = back). */
-function letteringPatch(tex: CanvasTexture, facing: number): Mesh {
+/** A curved patch around the torso's own origin, centred on yaw `facing` (0 = chest, PI = back). */
+function letteringPatch(tex: CanvasTexture, facing: number, radius: number, height: number): Mesh {
   const arc = 1.9;
-  const geo = new CylinderGeometry(0.276, 0.276, 0.56, 20, 1, true, facing - arc / 2, arc);
+  const geo = new CylinderGeometry(radius, radius, height, 20, 1, true, facing - arc / 2, arc);
   // A little self-illumination keeps the lettering readable on the shaded side.
   const mat = new MeshStandardMaterial({
     map: tex,
@@ -109,11 +100,16 @@ function letteringPatch(tex: CanvasTexture, facing: number): Mesh {
     depthWrite: false,
   });
   const mesh = new Mesh(geo, mat);
-  mesh.position.y = 1.08;
+  mesh.renderOrder = 1;
   return mesh;
 }
 
-function addLettering(body: Group, jersey: JerseyText, primary: string, secondary: string): void {
+/**
+ * Jersey lettering patches (back: name + number, chest: club code + number),
+ * in torso space. The rig sets their matrix to the torso's every frame.
+ */
+export function createLettering(jersey: JerseyText, primary: string, secondary: string, radius: number, height: number): Mesh[] {
+  const out: Mesh[] = [];
   const ink = letteringColor(primary, secondary);
   const outline = outlineColor(ink, primary, secondary);
 
@@ -128,7 +124,7 @@ function addLettering(body: Group, jersey: JerseyText, primary: string, secondar
     ctx.font = `800 ${name ? 300 : 340}px ${JERSEY_FONT}`;
     outlinedText(ctx, String(jersey.number), w / 2, h * (name ? 0.6 : 0.52), 22);
   });
-  body.add(letteringPatch(back, Math.PI));
+  out.push(letteringPatch(back, Math.PI, radius, height));
 
   if (jersey.chest) {
     const chest = letteringTexture((ctx, w, h) => {
@@ -141,37 +137,11 @@ function addLettering(body: Group, jersey: JerseyText, primary: string, secondar
       ctx.font = `800 150px ${JERSEY_FONT}`;
       outlinedText(ctx, String(jersey.number), w / 2, h * 0.64, 14);
     });
-    body.add(letteringPatch(chest, 0));
+    out.push(letteringPatch(chest, 0, radius, height));
   }
+  return out;
 }
 
-export function createAvatar(primary: string, secondary: string, jersey: JerseyText | null = null): Avatar {
-  const root = new Group();
-  const body = new Group();
-  root.add(body);
-
-  const jerseyMat = new MeshStandardMaterial({ color: primary, roughness: 0.7 });
-  const trim = new MeshStandardMaterial({ color: secondary, roughness: 0.7 });
-  const skin = new MeshStandardMaterial({ color: "#c99a78", roughness: 0.8 });
-
-  const torso = new Mesh(new CapsuleGeometry(0.27, 0.95, 4, 12), jerseyMat);
-  torso.position.y = 0.27 + 0.95 / 2 + 0.05;
-  body.add(torso);
-  const band = new Mesh(new CylinderGeometry(0.285, 0.285, 0.12, 14), trim);
-  band.position.y = 0.72;
-  body.add(band);
-  const head = new Mesh(new SphereGeometry(0.15, 14, 10), skin);
-  head.position.y = 1.72;
-  body.add(head);
-  // Headband with a front tab, so facing is readable from any angle.
-  const visor = new Mesh(new BoxGeometry(0.12, 0.05, 0.08), trim);
-  visor.position.set(0, 1.76, 0.15);
-  body.add(visor);
-
-  if (jersey) addLettering(body, jersey, primary, secondary);
-  root.add(createBlobShadow(0.85));
-  return { root, body };
-}
 
 let ballTexture: CanvasTexture | null = null;
 

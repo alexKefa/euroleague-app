@@ -8,15 +8,16 @@ import { randomSeed } from "../../../../../../shared/court/rng";
 import { computeShotLaunch, effectiveTiming } from "../../../../../../shared/court/shot";
 import { CourtPhysics, RapierApi } from "../../../../../../shared/court/sim";
 import { HoopId, ShotEvent, ShotResult } from "../../../../../../shared/court/types";
-import { MOVE_HZ, MoveMessage, PlayerAnim, ShootMessage, ShotMessage } from "../../../../../../shared/court/protocol";
-import { Avatar, JERSEY_FONT, JerseyText, createAvatar, createBall, createBlobShadow, releaseBallTexture, releaseShadowTexture } from "./avatar-factory";
+import { MAX_PLAYERS, MOVE_HZ, MoveMessage, PlayerAnim, ShootMessage, ShotMessage } from "../../../../../../shared/court/protocol";
+import { JERSEY_FONT, JerseyText, createBall, createBlobShadow, releaseBallTexture, releaseShadowTexture } from "./avatar-factory";
+import { AvatarBatch, AvatarRig } from "./avatar-rig";
 import { BallPlayback } from "./ball-playback";
 import { CourtAudio } from "./court-audio";
 import { Joystick } from "./input/joystick";
 import { KeyboardInput } from "./input/keyboard";
 import { ShootMeter } from "./input/shoot-meter";
 import { CAMERA_PRESETS, PlayerController } from "./player-controller";
-import { RemoteInfo, RemotePlayers } from "./remote-players";
+import { RemoteInfo, RemotePlayers, releaseOffset, shotBallPosition } from "./remote-players";
 import { BuiltScene, buildScene, disposeObject } from "./scene-builder";
 
 export type ReleaseGrade = "perfect" | "good" | "early" | "late";
@@ -78,7 +79,10 @@ export class GameEngine {
   private camera!: PerspectiveCamera;
   private built!: BuiltScene;
   private physics!: CourtPhysics;
-  private avatar!: Avatar;
+  private batch!: AvatarBatch;
+  private rig!: AvatarRig;
+  /** Hand-to-arc offset blended out just after our release. */
+  private shotOffset = new Vector3();
   private ball!: Mesh;
   private ballShadow!: Mesh;
   private readonly player = new PlayerController();
@@ -161,9 +165,9 @@ export class GameEngine {
 
     this.camera = new PerspectiveCamera(60, 1, 0.1, 250);
     this.built = buildScene({ teamPrimary: this.opts.courtColor, logo, maxAnisotropy: this.renderer.capabilities.getMaxAnisotropy() });
-    this.avatar = createAvatar(this.opts.kitPrimary, this.opts.kitSecondary, this.opts.jersey);
-    this.remotes = new RemotePlayers(this.built.scene);
-    this.built.scene.add(this.avatar.root);
+    this.batch = new AvatarBatch(this.built.scene, MAX_PLAYERS);
+    this.rig = new AvatarRig(this.batch, this.built.scene, this.batch.alloc()!, this.opts.kitPrimary, this.opts.kitSecondary, this.opts.jersey);
+    this.remotes = new RemotePlayers(this.built.scene, this.batch);
     this.ball = createBall();
     this.built.scene.add(this.ball);
     this.ballShadow = createBlobShadow(0.42);
@@ -243,7 +247,7 @@ export class GameEngine {
     } else if (this.awaitingShot?.clientShotId === msg.clientShotId) {
       this.awaitingShot = null;
       this.targetHoop = msg.hoopId;
-      this.playback = new BallPlayback(result, now, msg.spin);
+      this.startPlayback(result, now, msg.spin);
       this.playbackShotId = msg.clientShotId;
     }
   }
@@ -338,12 +342,12 @@ export class GameEngine {
       if (seed === null) {
         this.awaitingShot = { clientShotId, sentAt: now };
       } else {
-        this.playback = new BallPlayback(this.physics.simulate(launch), now, launch.spin);
-        this.playback.authoritative = false;
+        this.startPlayback(this.physics.simulate(launch), now, launch.spin);
+        this.playback!.authoritative = false;
         this.playbackShotId = clientShotId;
       }
     } else {
-      this.playback = new BallPlayback(this.physics.simulate(launch), now, launch.spin);
+      this.startPlayback(this.physics.simulate(launch), now, launch.spin);
     }
     this.cooldownUntil = now + SHOT_COOLDOWN_SECONDS * 1000;
     this.lockUntil = now + 300;
@@ -351,6 +355,12 @@ export class GameEngine {
     const eff = effectiveTiming(timingError);
     const grade: ReleaseGrade = launch.perfect ? "perfect" : Math.abs(eff) < 0.25 ? "good" : eff < 0 ? "early" : "late";
     this.cb.onRelease(grade);
+  }
+
+  private startPlayback(result: ShotResult, now: number, spin: { x: number; y: number; z: number }): void {
+    this.playback = new BallPlayback(result, now, spin);
+    this.shotOffset = releaseOffset(result, this.ball.position);
+    this.rig.release(now);
   }
 
   private finishShot(made: boolean): void {
@@ -386,6 +396,7 @@ export class GameEngine {
     this.updateBall(dt, now);
     this.updateNet(now);
     this.remotes?.update(now, dt, this.onRemoteShotEvent);
+    this.batch.commit();
     if (this.awaitingShot && now - this.awaitingShot.sentAt > SHOT_REPLY_TIMEOUT_MS) this.onShotRejected(this.awaitingShot.clientShotId);
     this.sendMove(now);
     this.player.updateCamera(dt, this.camera);
@@ -406,38 +417,26 @@ export class GameEngine {
   }
 
   private updateAvatar(dt: number, now: number): void {
-    const { root, body } = this.avatar;
-    root.position.set(this.player.x, 0, this.player.z);
-    root.rotation.y = this.player.rotY;
-    // Squat while charging, spring up on release, bob while running.
-    let sy = 1;
-    if (this.meter.charging) sy = 0.9;
-    else if (now < this.lockUntil) sy = 1.06;
-    else if (this.player.moving) sy = 1 + Math.sin(this.dribblePhase * 2) * 0.025;
-    body.scale.y += (sy - body.scale.y) * Math.min(1, dt * 18);
-    if (this.player.moving) this.dribblePhase += dt * 9;
+    const p = this.player;
+    if (p.moving) this.dribblePhase += dt * 9;
+    this.rig.update(now, dt, p.x, p.z, p.rotY, {
+      moving: p.moving,
+      charging: this.meter.charging,
+      chargeSeconds: this.meter.heldSeconds(now),
+      dribblePhase: this.dribblePhase,
+    });
   }
 
+  /** Where the held ball is: the rig's hand (dribble, gather, set point). */
   private handPosition(out: Vector3): Vector3 {
-    const p = this.player;
-    const fx = Math.sin(p.rotY);
-    const fz = Math.cos(p.rotY);
-    if (this.meter.charging) {
-      // Set point above the head (the release point is at RELEASE_HEIGHT).
-      return out.set(p.x + fx * 0.15, RELEASE_HEIGHT - 0.1, p.z + fz * 0.15);
-    }
-    // Right-hand side; dribble while running.
-    const rx = -fz;
-    const rz = fx;
-    const y = p.moving ? BALL_RADIUS + Math.abs(Math.cos(this.dribblePhase)) * 0.85 : 1.0;
-    return out.set(p.x + rx * 0.34 + fx * 0.25, y, p.z + rz * 0.34 + fz * 0.25);
+    return this.rig.ballWorld(out);
   }
 
   private updateBall(dt: number, now: number): void {
     const ball = this.ball;
     if (this.playback) {
       const pb = this.playback;
-      pb.positionAt(now, ball.position);
+      shotBallPosition(pb, this.shotOffset, now, ball.position);
       ball.rotateOnWorldAxis(pb.spin(now).axis, -dt * 7);
       for (const ev of pb.takeEvents(now)) {
         this.audio.play(ev.kind, ev.strength);
@@ -460,9 +459,7 @@ export class GameEngine {
       ball.position.y += Math.sin(u * Math.PI) * 0.8;
       if (u >= 1) this.returning = null;
     } else {
-      this.handPosition(this.hand);
-      const k = this.meter.charging ? 1 - Math.exp(-dt * 20) : 1;
-      ball.position.lerp(this.hand, k);
+      this.handPosition(ball.position);
       if (this.player.moving) ball.rotateX(dt * 8);
     }
     // Shadow follows on the floor and fades/grows with height.

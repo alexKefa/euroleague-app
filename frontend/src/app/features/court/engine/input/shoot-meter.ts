@@ -21,6 +21,11 @@ export class ShootMeter {
     return this.startedAt !== null;
   }
 
+  /** Seconds the button has been held (0 when not charging). */
+  heldSeconds(now: number): number {
+    return this.startedAt === null ? 0 : (now - this.startedAt) / 1000;
+  }
+
   start(now: number): void {
     this.startedAt = now;
     this.el.style.display = "block";
