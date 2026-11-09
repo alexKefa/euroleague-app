@@ -39,6 +39,9 @@ interface Remote {
   buffer: Snapshot[];
   connected: boolean;
   dribble: number;
+  /** Last rendered position and smoothed speed (drives their stride). */
+  last: { x: number; z: number };
+  speed: number;
   /** When their "shoot" anim started (drives the charge pose). */
   chargeStartedAt: number | null;
   shot: { playback: BallPlayback; hoop: HoopId; offset: Vector3 } | null;
@@ -125,6 +128,8 @@ export class RemotePlayers {
       buffer: [{ t: performance.now(), x, z, rotY, anim: "idle" }],
       connected: true,
       dribble: 0,
+      last: { x, z },
+      speed: 0,
       chargeStartedAt: null,
       shot: null,
       returning: null,
@@ -194,11 +199,16 @@ export class RemotePlayers {
       if (!charging) r.chargeStartedAt = null;
       const running = anim === "run";
       if (running) r.dribble += dt * 9;
+      const v = dt > 0 ? Math.hypot(x - r.last.x, z - r.last.z) / dt : 0;
+      r.speed += (Math.min(v, 6) - r.speed) * (1 - Math.exp(-10 * dt));
+      r.last.x = x;
+      r.last.z = z;
       r.rig.update(now, dt, x, z, rotY, {
         moving: running,
         charging,
         chargeSeconds: r.chargeStartedAt === null ? 0 : (now - r.chargeStartedAt) / 1000,
         dribblePhase: r.dribble,
+        speed: r.speed,
       });
       r.tag.position.set(x, 2.25, z);
 

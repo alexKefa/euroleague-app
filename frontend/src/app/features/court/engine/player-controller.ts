@@ -44,6 +44,8 @@ export class PlayerController {
   z = -5;
   rotY = Math.PI; // facing hoop A
   moving = false;
+  /** Current ground speed, m/s. */
+  speed = 0;
   /** When set, the player turns to face this yaw (shooting) and can't move. */
   lockedYaw: number | null = null;
 
@@ -62,12 +64,14 @@ export class PlayerController {
     if (this.lockedYaw !== null) {
       this.rotY = approachAngle(this.rotY, this.lockedYaw, TURN_RATE * 1.5 * dt);
       this.moving = false;
+      this.speed = 0;
       this.latchedYaw = null;
       return;
     }
     if (!active) {
       this.latchedYaw = null;
       this.moving = false;
+      this.speed = 0;
       return;
     }
     if (this.latchedYaw === null) this.latchedYaw = this.cameraYaw;
@@ -82,6 +86,7 @@ export class PlayerController {
     this.x = p.x;
     this.z = p.z;
     this.moving = mag > 0.05;
+    this.speed = this.moving ? mag * PLAYER_SPEED : 0;
     if (this.moving) this.rotY = approachAngle(this.rotY, Math.atan2(mx, mz), TURN_RATE * dt);
   }
 

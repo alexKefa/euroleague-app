@@ -424,6 +424,7 @@ export class GameEngine {
       charging: this.meter.charging,
       chargeSeconds: this.meter.heldSeconds(now),
       dribblePhase: this.dribblePhase,
+      speed: p.speed,
     });
   }
 

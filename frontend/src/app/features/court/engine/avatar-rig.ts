@@ -125,7 +125,32 @@ export interface RigInput {
   charging: boolean;
   /** Dribble cycle phase (radians), advanced by the caller while running. */
   dribblePhase: number;
+  /** Ground speed, m/s (drives stride length and cadence). */
+  speed: number;
 }
+
+// ---- running gait ----
+/** Fraction of a leg's cycle spent on the ground. */
+const STANCE = 0.32;
+
+/**
+ * Foot target for one leg at cycle phase p in [0, 1), relative to its hip.
+ * Stance: the planted foot travels back at ground speed (no skating).
+ * Swing: the heel kicks up behind, then the knee drives the foot forward.
+ */
+function footAt(p: number, stride: number, out: { z: number; lift: number }): void {
+  if (p < STANCE) {
+    out.z = stride * (0.4 - p / STANCE);
+    out.lift = 0;
+    return;
+  }
+  const s = (p - STANCE) / (1 - STANCE);
+  const arc = Math.sin(Math.PI * s);
+  out.z = stride * (-0.6 + ease(s)) - stride * 0.25 * arc * (1 - s);
+  out.lift = 0.34 * Math.pow(arc, 1.3) * Math.min(1, stride / 0.5);
+}
+
+const footTmp = { z: 0, lift: 0 };
 
 // Scratch objects (rigs update one at a time).
 const tA = new Vector3();
@@ -159,8 +184,12 @@ export class AvatarRig {
   private crouch = 0.03;
   private jump = 0;
   private lean = 0.08;
+  /** Running cycle phase in [0, 1) (left foot touches down at 0). */
   private gait = 0;
   private gaitBlend = 0;
+  /** Smoothed ground speed, m/s. */
+  private runSpeed = 0;
+  private stride = 0;
   private releaseAt: number | null = null;
   private time = 0;
   private readonly root = new Matrix4();
@@ -273,12 +302,19 @@ export class AvatarRig {
       ball.copy(hr);
       rate = t < 0.12 ? 30 : 12;
     } else if (mode === "run") {
-      lean = 0.17;
-      const b = Math.abs(Math.cos(input.dribblePhase));
-      ball.set(-0.34, BALL_RADIUS + b * 0.82, 0.36);
-      hr.set(-0.33, 0.86 + 0.12 * b, 0.33);
-      const swing = Math.sin(this.gait + Math.PI);
-      hl.set(0.28, 0.98 + 0.04 * Math.cos(this.gait), 0.1 + 0.24 * swing);
+      const sp = this.runSpeed;
+      lean = 0.08 + 0.025 * sp;
+      crouch = 0.03 + 0.007 * sp;
+      const u = this.gait;
+      const pump = Math.cos(2 * Math.PI * u); // +1 when the left foot is forward
+      // Free (left) arm pumps opposite the left leg, elbow bent.
+      const fwd = Math.max(0, -pump);
+      hl.set(0.27 - 0.07 * fwd, 0.98 + 0.24 * fwd + 0.04 * Math.max(0, pump), 0.05 - 0.26 * pump * Math.min(1, sp / 2.5));
+      // Dribble: one bounce per stride cycle, out in front of the right foot.
+      const bounce = Math.abs(Math.cos(Math.PI * (u - 0.25)));
+      const top = 0.9 + 0.05 * bounce;
+      ball.set(-0.33, BALL_RADIUS + bounce * (top - BALL_RADIUS - 0.08), 0.42 + 0.03 * sp);
+      hr.set(-0.32, top + 0.02, ball.z - 0.04);
       rate = 26;
     } else {
       const breathe = Math.sin(this.time * 2.2) * 0.008;
@@ -292,13 +328,20 @@ export class AvatarRig {
     this.jump += (jump - this.jump) * Math.min(1, k * 1.5);
     this.lean += (lean - this.lean) * k;
     this.ballLocal.lerp(ball, mode === "run" ? 1 : k);
-    this.handR.lerp(hr, mode === "run" ? Math.min(1, k * 1.5) : k);
+    this.handR.lerp(hr, k);
     this.handL.lerp(hl, k);
 
     // ---- gait ----
     const running = mode === "run";
     this.gaitBlend += ((running ? 1 : 0) - this.gaitBlend) * (1 - Math.exp(-10 * dt));
-    if (running) this.gait += dt * 10.5;
+    this.runSpeed += ((running ? input.speed : 0) - this.runSpeed) * (1 - Math.exp(-8 * dt));
+    if (running || this.gaitBlend > 0.05) {
+      // Cadence rises with speed; the stride is what the planted foot covers
+      // at this speed during stance, capped by leg reach.
+      const cadence = 1.5 + 0.12 * this.runSpeed; // cycles per second
+      this.stride = Math.min(0.72, (this.runSpeed * STANCE) / cadence);
+      this.gait = (this.gait + dt * cadence) % 1;
+    }
 
     this.writeInstances();
   }
@@ -306,27 +349,37 @@ export class AvatarRig {
   private writeInstances(): void {
     const b = this.batch;
     const slot = this.slot;
-    const bob = -0.035 * Math.abs(Math.sin(this.gait)) * this.gaitBlend;
+    const gb = this.gaitBlend;
+    const u = this.gait;
+    // Lowest at mid-stance of either foot, highest in the flight phase.
+    const half = (u * 2) % 1;
+    const bob = -0.032 * Math.cos(2 * Math.PI * (half - STANCE / 2)) * gb * Math.min(1, this.stride / 0.4);
     const pelvisY = PELVIS_HEIGHT - this.crouch + this.jump + bob;
-    const pelvis = new Vector3(0, pelvisY, 0.02 * this.gaitBlend);
+    const pelvis = new Vector3(0, pelvisY, 0.03 * gb);
     const spine = new Vector3(0, Math.cos(this.lean), Math.sin(this.lean));
+    // Hips turn with the forward leg; shoulders counter-rotate.
+    const swingAmt = gb * Math.min(1, this.stride / 0.45);
+    const hipYaw = -0.12 * Math.cos(2 * Math.PI * u) * swingAmt;
+    const shoulderYaw = 0.17 * Math.cos(2 * Math.PI * u) * swingAmt;
+    const shoulderTurn = new Quaternion().setFromAxisAngle(UP, shoulderYaw);
+    const hipTurn = new Quaternion().setFromAxisAngle(UP, hipYaw);
 
     const at = (s: number) => pelvis.clone().addScaledVector(spine, s);
     const torsoCenter = at(SPINE_TORSO);
     const shoulderC = at(SPINE_SHOULDER);
-    const shoulderR = shoulderC.clone().add(new Vector3(-SHOULDER_HALF, 0, 0));
-    const shoulderL = shoulderC.clone().add(new Vector3(SHOULDER_HALF, 0, 0));
+    const shoulderR = shoulderC.clone().add(new Vector3(-SHOULDER_HALF, 0, 0).applyQuaternion(shoulderTurn));
+    const shoulderL = shoulderC.clone().add(new Vector3(SHOULDER_HALF, 0, 0).applyQuaternion(shoulderTurn));
     const neck = at(SPINE_NECK);
     const head = at(SPINE_HEAD);
 
     // ---- torso, shorts, trims (rigid parts) ----
-    const torsoQ = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), this.lean);
+    const torsoQ = shoulderTurn.clone().multiply(new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), this.lean));
     const torsoM = new Matrix4().compose(torsoCenter, torsoQ, TORSO_SCALE).premultiply(this.root);
     b.torsos.setMatrixAt(slot, torsoM);
     for (const m of this.lettering) m.matrix.copy(torsoM);
     for (const m of this.lettering) m.matrixWorldNeedsUpdate = true;
 
-    const shortsM = new Matrix4().compose(pelvis.clone().add(new Vector3(0, -0.03, 0)), new Quaternion(), new Vector3(1.08, 1, 0.82)).premultiply(this.root);
+    const shortsM = new Matrix4().compose(pelvis.clone().add(new Vector3(0, -0.03, 0)), hipTurn, new Vector3(1.08, 1, 0.82)).premultiply(this.root);
     b.shorts.setMatrixAt(slot, shortsM);
 
     const setRigid = (mesh: InstancedMesh, index: number, pos: Vector3, q: Quaternion, scale: Vector3) => {
@@ -335,7 +388,7 @@ export class AvatarRig {
     };
     const headUp = head.clone().addScaledVector(spine, 0.045);
     setRigid(b.trims, slot * TRIMS, headUp, torsoQ, new Vector3(HEAD_RADIUS + 0.004, 0.035, HEAD_RADIUS + 0.004));
-    setRigid(b.trims, slot * TRIMS + 1, pelvis.clone().add(new Vector3(0, 0.13, 0)), new Quaternion(), new Vector3(0.232, 0.045, 0.19));
+    setRigid(b.trims, slot * TRIMS + 1, pelvis.clone().add(new Vector3(0, 0.13, 0)), hipTurn, new Vector3(0.232, 0.045, 0.19));
 
     // ---- joints and limbs ----
     let li = slot * LIMBS;
@@ -362,17 +415,18 @@ export class AvatarRig {
     limb(shoulderL, elbowL, 0.056);
     limb(elbowL, handL, 0.048);
 
-    // Legs (knees point forward). Feet plant under the hips; while running
-    // they swing through a stride and lift on the way forward.
-    const footL = new Vector3();
-    const footR = new Vector3();
-    const stride = 0.3 * this.gaitBlend;
-    const lift = 0.16 * this.gaitBlend;
+    // Legs (knees point forward): planted under the hips at rest; while
+    // running each foot follows the stance/swing path from footAt().
+    const hipL = new Vector3(HIP_HALF, 0, 0).applyQuaternion(hipTurn).add(new Vector3(0, pelvisY - 0.06, pelvis.z));
+    const hipR = new Vector3(-HIP_HALF, 0, 0).applyQuaternion(hipTurn).add(new Vector3(0, pelvisY - 0.06, pelvis.z));
     const footY = ANKLE_HEIGHT + this.jump;
-    footL.set(HIP_HALF + 0.02, footY + Math.max(0, Math.cos(this.gait)) * lift, Math.sin(this.gait) * stride + 0.02);
-    footR.set(-HIP_HALF - 0.02, footY + Math.max(0, Math.cos(this.gait + Math.PI)) * lift, Math.sin(this.gait + Math.PI) * stride + 0.02);
-    const hipL = new Vector3(HIP_HALF, pelvisY - 0.06, pelvis.z);
-    const hipR = new Vector3(-HIP_HALF, pelvisY - 0.06, pelvis.z);
+    const stride = this.stride * gb;
+    footAt(u, stride, footTmp);
+    const liftL = footTmp.lift * gb;
+    const footL = new Vector3(HIP_HALF + 0.015, footY + liftL, hipL.z + footTmp.z);
+    footAt((u + 0.5) % 1, stride, footTmp);
+    const liftR = footTmp.lift * gb;
+    const footR = new Vector3(-HIP_HALF - 0.015, footY + liftR, hipR.z + footTmp.z);
     const kneeL = solveMid(hipL, footL, THIGH, SHIN, new Vector3(0, 0, 1), new Vector3());
     const kneeR = solveMid(hipR, footR, THIGH, SHIN, new Vector3(0, 0, 1), new Vector3());
     const ankleL = this.reach(hipL, kneeL, footL, SHIN);
@@ -394,9 +448,16 @@ export class AvatarRig {
     joint(head, HEAD_RADIUS);
 
     // Shoes: toe pointing forward, flat on the ankle.
+    // Toes point down while the foot is in the air (heel kick), flat when planted.
     const shoeScale = new Vector3(0.115, 0.085, 0.27);
-    setRigid(b.shoes, slot * SHOES, ankleL.clone().add(new Vector3(0, -0.035, 0.05)), tQ.identity(), shoeScale);
-    setRigid(b.shoes, slot * SHOES + 1, ankleR.clone().add(new Vector3(0, -0.035, 0.05)), tQ.identity(), shoeScale);
+    const shoe = (index: number, ankle: Vector3, lift: number) => {
+      const pitch = Math.min(0.9, lift * 3.2);
+      const q = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), pitch);
+      const offset = new Vector3(0, -0.035, 0.05).applyQuaternion(q);
+      setRigid(b.shoes, index, ankle.clone().add(offset), q, shoeScale);
+    };
+    shoe(slot * SHOES, ankleL, liftL);
+    shoe(slot * SHOES + 1, ankleR, liftR);
 
     // Shadow follows the hips and fades when airborne.
     const s = 1 - Math.min(0.3, this.jump * 2);
