@@ -68,7 +68,8 @@ async function main(): Promise<void> {
     for (const t of [MSG.toast, MSG.seed, MSG.shot, MSG.correction]) room.onMessage(t, () => {});
     rooms.push(room);
   }
-  const [A, B, C] = rooms as [Room, Room, Room];
+  const [A, , C] = rooms as [Room, Room, Room];
+  let B = rooms[1]!;
   const st = () => A.state as any;
   const player = (sid: string) => st().players.get(sid);
   let shotId = 0;
@@ -104,6 +105,21 @@ async function main(): Promise<void> {
   if (!rejections.some((r) => r.sid === B.sessionId && r.reason === "notYourTurn")) fail("B shooting out of turn was not rejected");
   if (!rejections.some((r) => r.sid === A.sessionId && r.reason === "outsideArc")) fail("A setting from outside the arc was not rejected");
 
+  // B "reloads the page": a fresh connection for the same account mid-game.
+  const oldB = B.sessionId;
+  const B2 = await client.joinOrCreate("court", { code, accessToken: token(users[1]!.id) });
+  for (const t of [MSG.toast, MSG.seed, MSG.shot, MSG.correction, MSG.horseEvent]) B2.onMessage(t, () => {});
+  B2.onMessage(MSG.shotRejected, (m: { reason?: string }) => rejections.push({ sid: B2.sessionId, reason: m.reason }));
+  await waitFor("B's seat to move to the new session", () => {
+    const order: string[] = [];
+    st().turnOrder.forEach((id: string) => order.push(id));
+    return order.includes(B2.sessionId) && !order.includes(oldB);
+  }, 5000);
+  await sleep(300);
+  if (player(B2.sessionId)?.eliminated) fail("reloading the page eliminated B");
+  B = B2;
+  rooms[1] = B2;
+
   let timedOut = false;
   let dropped = false;
   const started = Date.now();
@@ -138,9 +154,11 @@ async function main(): Promise<void> {
   }
 
   if (!timedOut || !dropped) fail("scenario did not include the timeout and the drop");
-  const winnerEvt = events.find((e) => e.kind === "winner");
+  const winnerEvt = events.find((e) => e.kind === "winner") as (HorseEvt & { standings?: { id: string; placement: number }[] }) | undefined;
   if (!winnerEvt) fail("no winner event");
   if (winnerEvt.playerId !== A.sessionId) fail(`expected A to win, got ${winnerEvt.playerId}`);
+  const ranked = (winnerEvt.standings ?? []).map((s) => s.id);
+  if (JSON.stringify(ranked) !== JSON.stringify([A.sessionId, B.sessionId, C.sessionId])) fail(`winner standings ${JSON.stringify(ranked)}`);
   await waitFor("return to shootaround", () => st().phase === "free", 11000);
 
   await sleep(500);

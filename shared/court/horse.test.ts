@@ -358,3 +358,58 @@ test("placements: winner 1, then latest eliminated first", () => {
   const placement = Object.fromEntries(save.result.players.map((p) => [p.id, p.placement]));
   assert.deepEqual(placement, { A: 1, B: 2, C: 3 });
 });
+
+// ---------------- Final review fixes ----------------
+
+test("winner event carries the saved standings", () => {
+  let s = startGame(["A", "B", "C"]).state;
+  s = input(s, "leave", "C", 100).state; // C out early with 0 letters
+  s = { ...s, players: { ...s.players, B: { ...s.players["B"]!, letters: 4 } } };
+  const set = fire(s, "A", true, INSIDE);
+  const r = fire(set.state, "B", false, INSIDE, 3000);
+  const win = r.effects.find((e) => e.type === "event" && e.kind === "winner");
+  assert.ok(win && win.type === "event");
+  assert.deepEqual(win.standings, [
+    { id: "A", letters: "", placement: 1 },
+    { id: "B", letters: "HORSE", placement: 2 },
+    { id: "C", letters: "", placement: 3 },
+  ]);
+});
+
+test("rekey: a reloaded player keeps their seat, letters and turn", () => {
+  let s = startGame(["A", "B", "C"]).state;
+  s = { ...s, players: { ...s.players, B: { ...s.players["B"]!, letters: 2 } } };
+  const set = fire(s, "A", true, INSIDE); // B's turn
+  const r = reduce(set.state, { type: "rekey", from: "B", to: "B2" }, 2000);
+  assert.deepEqual(r.state.order, ["A", "B2", "C"]);
+  assert.equal(r.state.turnId, "B2");
+  assert.equal(r.state.players["B2"]!.letters, 2);
+  assert.equal(r.state.players["B2"]!.id, "B2");
+  assert.equal(r.state.players["B"], undefined);
+  // The old seat leaving afterwards changes nothing.
+  const gone = input(r.state, "leave", "B", 2100);
+  assert.equal(gone.state.players["B2"]!.eliminated, false);
+  assert.equal(gone.state.turnId, "B2");
+});
+
+test("rekey: a dropped player who reopens the page rejoins the rotation", () => {
+  const g = startGame(["A", "B", "C"]);
+  const set = fire(g.state, "A", true, INSIDE);
+  const dropped = input(set.state, "disconnect", "B", 2000); // B skipped -> C
+  const r = reduce(dropped.state, { type: "rekey", from: "B", to: "B2" }, 5000);
+  assert.equal(r.state.players["B2"]!.disconnectedAt, null);
+  assert.equal(r.state.turnId, "C");
+  const c = fire(r.state, "C", true, INSIDE, 6000); // round ends, setter rotates after A
+  assert.equal(c.state.setterId, "B2");
+  // 30 s after the original drop: still in.
+  assert.equal(tick(c.state, 40000).state.players["B2"]!.eliminated, false);
+});
+
+test("rekey: ignored for eliminated or unknown players", () => {
+  const g = startGame(["A", "B", "C"]);
+  const out = input(g.state, "leave", "C", 100);
+  const r = reduce(out.state, { type: "rekey", from: "C", to: "C2" }, 200);
+  assert.equal(r.state, out.state);
+  const r2 = reduce(g.state, { type: "rekey", from: "Z", to: "Z2" }, 200);
+  assert.equal(r2.state, g.state);
+});

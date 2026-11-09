@@ -54,10 +54,20 @@ export type HorseInput =
   | { type: "tick" }
   | { type: "disconnect"; playerId: string }
   | { type: "reconnect"; playerId: string }
-  | { type: "leave"; playerId: string };
+  | { type: "leave"; playerId: string }
+  /** The same player came back on a new connection (page reload): move their seat over. */
+  | { type: "rekey"; from: string; to: string };
 
 export type HorseEffect =
-  | { type: "event"; kind: HorseEventKind; playerId: string | null; letters?: string; remainingMs?: number }
+  | {
+      type: "event";
+      kind: HorseEventKind;
+      playerId: string | null;
+      letters?: string;
+      remainingMs?: number;
+      /** kind "winner": the final ranking, exactly as saved. */
+      standings?: { id: string; letters: string; placement: number }[];
+    }
   | { type: "save"; result: HorseResult }
   | { type: "returnToFree"; afterMs: number };
 
@@ -147,7 +157,11 @@ class Run {
     readonly now: number
   ) {}
 
-  emit(kind: HorseEventKind, playerId: string | null, extra: { letters?: string; remainingMs?: number } = {}): void {
+  emit(
+    kind: HorseEventKind,
+    playerId: string | null,
+    extra: { letters?: string; remainingMs?: number; standings?: { id: string; letters: string; placement: number }[] } = {}
+  ): void {
     this.effects.push({ type: "event", kind, playerId, ...extra });
   }
 
@@ -178,11 +192,14 @@ class Run {
     s.resolving = null;
     s.matchQueue = [];
     s.endedAt = this.now;
-    if (s.winnerId) this.emit("winner", s.winnerId);
     const losers = s.order
       .filter((id) => id !== s.winnerId)
       .sort((a, b) => (s.players[b]!.eliminatedAt ?? 0) - (s.players[a]!.eliminatedAt ?? 0));
     const ranked = s.winnerId ? [s.winnerId, ...losers] : losers;
+    if (s.winnerId) {
+      const standings = ranked.map((id, i) => ({ id, letters: lettersOf(s.players[id]!.letters), placement: i + 1 }));
+      this.emit("winner", s.winnerId, { standings });
+    }
     this.effects.push({
       type: "save",
       result: {
@@ -340,6 +357,25 @@ export function reduce(state: HorseState, input: HorseInput, now: number): { sta
       run.s.players[input.playerId]!.disconnectedAt = null;
       run.resumeIfIdle();
       return { state: run.s, effects: run.effects };
+    }
+    case "rekey": {
+      const p = state.players[input.from];
+      if ((state.phase !== "setting" && state.phase !== "matching") || !p || p.eliminated || state.players[input.to]) {
+        return { state, effects: [] };
+      }
+      const run = new Run(clone(state), now);
+      const s = run.s;
+      const swap = (id: string | null) => (id === input.from ? input.to : id);
+      s.order = s.order.map((id) => swap(id)!);
+      s.matchQueue = s.matchQueue.map((id) => swap(id)!);
+      s.setterId = swap(s.setterId);
+      s.turnId = swap(s.turnId);
+      if (s.resolving) s.resolving.playerId = swap(s.resolving.playerId)!;
+      const moved = { ...s.players[input.from]!, id: input.to, disconnectedAt: null };
+      delete s.players[input.from];
+      s.players[input.to] = moved;
+      run.resumeIfIdle();
+      return { state: s, effects: run.effects };
     }
     case "leave": {
       const p = state.players[input.playerId];

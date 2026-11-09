@@ -114,6 +114,8 @@ export interface HorseEventMessage {
   letters?: string;
   /** For kind "turn": time left on the new turn (phone clocks are not in sync with the server). */
   remainingMs?: number;
+  /** For kind "winner": the final ranking, exactly as saved (ids are sessionIds). */
+  standings?: { id: string; letters: string; placement: number }[];
 }
 
 export const MSG = {

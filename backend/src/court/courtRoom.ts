@@ -171,9 +171,14 @@ export class CourtRoom extends Room<{ state: CourtState }> {
 
   onJoin(client: CourtClient): void {
     const auth = client.auth!;
-    // The same account joining twice (a second tab) replaces the old seat.
+    // The same account joining twice (a second tab, or a phone that reloaded
+    // the page) replaces the old seat. A H-O-R-S-E participant keeps their
+    // place in the game: the seat is moved to the new session (spec rule 6).
+    let movedFrom: string | null = null;
     this.state.players.forEach((p, sessionId) => {
       if (p.userId === auth.userId && sessionId !== client.sessionId) {
+        const hp = this.horse.players[sessionId];
+        if (hp && !hp.eliminated) movedFrom = sessionId;
         this.clients.get(sessionId)?.leave();
         this.state.players.delete(sessionId);
       }
@@ -196,6 +201,10 @@ export class CourtRoom extends Room<{ state: CourtState }> {
     p.eliminated = false;
     p.joinedAt = ++this.joinCounter;
     this.state.players.set(client.sessionId, p);
+    if (movedFrom) {
+      this.horseUsers.set(client.sessionId, auth.userId);
+      this.applyHorse({ type: "rekey", from: movedFrom, to: client.sessionId });
+    }
     client.userData = { lastMoveAt: Date.now(), nextSeed: newSeed(), shotBusyUntil: 0 };
 
     this.cancelEmptyDispose();
@@ -365,6 +374,7 @@ export class CourtRoom extends Room<{ state: CourtState }> {
         const msg: HorseEventMessage = { kind: e.kind, playerId: e.playerId };
         if (e.letters !== undefined) msg.letters = e.letters;
         if (e.remainingMs !== undefined) msg.remainingMs = e.remainingMs;
+        if (e.standings) msg.standings = e.standings;
         this.broadcast(MSG.horseEvent, msg);
       } else if (e.type === "save") {
         this.horseTick?.clear();

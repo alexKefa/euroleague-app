@@ -110,6 +110,8 @@ export class CourtPageComponent implements OnInit, OnDestroy {
   protected readonly mySessionId = signal("");
   /** sessionId -> name, kept after a player leaves so the scoreboard and winner screen can still name them. */
   private readonly names = new Map<string, string>();
+  /** Last known letters per sessionId (players who left are no longer in the synced state). */
+  private readonly lastLetters = new Map<string, string>();
   private hudKey = "";
   private gateKey = "";
   private winnerTimer: ReturnType<typeof setTimeout> | null = null;
@@ -379,7 +381,10 @@ export class CourtPageComponent implements OnInit, OnDestroy {
   /** Room state -> H-O-R-S-E HUD and engine gate. Signals only change when the derived values do. */
   private syncHorse(players: Map<string, NetPlayer>, view: HorseView): void {
     const me = this.net?.sessionId ?? "";
-    players.forEach((p, id) => this.names.set(id, p.name));
+    players.forEach((p, id) => {
+      this.names.set(id, p.name);
+      if (view.order.includes(id)) this.lastLetters.set(id, p.letters);
+    });
 
     // Who may press Start: the owner if present, else the earliest-joined connected player.
     const starters = [...players.entries()].map(([id, p]) => ({ id, joinOrder: p.joinedAt, connected: p.connected }));
@@ -392,7 +397,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
       return {
         id,
         name: p?.name ?? this.names.get(id) ?? "?",
-        letters: p?.letters ?? "HORSE",
+        letters: p?.letters ?? this.lastLetters.get(id) ?? "",
         eliminated: p ? p.eliminated : true,
         connected: p?.connected ?? false,
         isTurn: id === view.turnId,
@@ -433,12 +438,9 @@ export class CourtPageComponent implements OnInit, OnDestroy {
         this.showFlash(this.i18n.t("court.horse.eliminated").replace("{name}", name), "bad");
         break;
       case "winner": {
-        // Standings: winner first, then fewest letters; eliminated players last.
-        const others = this.horsePlayers()
-          .filter((p) => p.id !== m.playerId)
-          .sort((a, b) => Number(a.eliminated) - Number(b.eliminated) || a.letters.length - b.letters.length);
-        const winner = this.horsePlayers().find((p) => p.id === m.playerId);
-        const standings = [...(winner ? [winner] : []), ...others].map((p, i) => ({ name: p.name, letters: p.letters, placement: i + 1 }));
+        // The server's ranking, exactly as saved (the state patch with the
+        // final letters may still be on its way, so don't rebuild it here).
+        const standings = (m.standings ?? []).map((st) => ({ name: this.names.get(st.id) ?? "?", letters: st.letters, placement: st.placement }));
         this.horseWinner.set({ name, standings });
         this.showFlash(this.i18n.t("court.horse.wins").replace("{name}", name), "fire");
         if (this.winnerTimer) clearTimeout(this.winnerTimer);
