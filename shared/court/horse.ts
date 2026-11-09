@@ -202,8 +202,25 @@ class Run {
     s.phase = "setting";
     s.spot = null;
     s.matchQueue = [];
-    s.setterId = nextActiveAfter(s, after);
+    // If nobody else can take a turn, the previous setter (if still active) goes again.
+    s.setterId = nextActiveAfter(s, after) ?? (after !== null && isActive(s, after) ? after : null);
     this.beginTurn(s.setterId);
+  }
+
+  /** The current turn's player can't shoot (gone): move on without a miss or a letter. */
+  skipTurn(id: string): void {
+    const s = this.s;
+    if (s.turnId !== id || s.resolving) return;
+    if (s.phase === "setting") this.rotateSetter(id);
+    else if (s.phase === "matching") this.advanceMatching();
+  }
+
+  /** Nobody had a turn (everyone away) and someone can play again: resume. */
+  resumeIfIdle(): void {
+    const s = this.s;
+    if (s.turnId !== null || s.resolving) return;
+    if (s.phase === "matching") this.advanceMatching();
+    else if (s.phase === "setting") this.rotateSetter(null);
   }
 
   /** Next matcher in the queue, or the round ends and the setter role rotates. */
@@ -288,7 +305,51 @@ export function reduce(state: HorseState, input: HorseInput, now: number): { sta
       run.resolveTurn(input.playerId, input.made, { x: input.x, z: input.z });
       return { state: run.s, effects: run.effects };
     }
-    default:
-      return { state, effects: [] };
+    case "tick": {
+      if (state.phase !== "setting" && state.phase !== "matching") return { state, effects: [] };
+      const run = new Run(clone(state), now);
+      const s = run.s;
+      // Away for 30 s: eliminated.
+      for (const id of s.order) {
+        const p = s.players[id]!;
+        if (!p.eliminated && p.disconnectedAt !== null && now - p.disconnectedAt >= HORSE_DISCONNECT_MS) run.eliminate(id);
+      }
+      if (run.checkWinner()) return { state: s, effects: run.effects };
+      // Turn timer: a timeout counts as a miss (paused while a shot resolves).
+      if (s.deadline !== null && now >= s.deadline && s.turnId !== null && !s.resolving) {
+        run.resolveTurn(s.turnId, false, null);
+      }
+      return { state: s, effects: run.effects };
+    }
+    case "disconnect": {
+      const p = state.players[input.playerId];
+      if ((state.phase !== "setting" && state.phase !== "matching") || !p || p.eliminated || p.disconnectedAt !== null) {
+        return { state, effects: [] };
+      }
+      const run = new Run(clone(state), now);
+      run.s.players[input.playerId]!.disconnectedAt = now;
+      run.skipTurn(input.playerId);
+      return { state: run.s, effects: run.effects };
+    }
+    case "reconnect": {
+      const p = state.players[input.playerId];
+      if ((state.phase !== "setting" && state.phase !== "matching") || !p || p.eliminated || p.disconnectedAt === null) {
+        return { state, effects: [] };
+      }
+      const run = new Run(clone(state), now);
+      run.s.players[input.playerId]!.disconnectedAt = null;
+      run.resumeIfIdle();
+      return { state: run.s, effects: run.effects };
+    }
+    case "leave": {
+      const p = state.players[input.playerId];
+      if ((state.phase !== "setting" && state.phase !== "matching") || !p || p.eliminated) return { state, effects: [] };
+      const run = new Run(clone(state), now);
+      run.eliminate(input.playerId);
+      if (run.checkWinner()) return { state: run.s, effects: run.effects };
+      // A shot already in the air still lands and advances the game (shotResult).
+      run.skipTurn(input.playerId);
+      return { state: run.s, effects: run.effects };
+    }
   }
 }

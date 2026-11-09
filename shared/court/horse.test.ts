@@ -215,3 +215,146 @@ test("lettersOf", () => {
   assert.equal(lettersOf(3), "HOR");
   assert.equal(lettersOf(5), "HORSE");
 });
+
+// ---------------- Task 2: timing, disconnects, leaving, edge cases ----------------
+
+const tick = (s: HorseState, now: number) => reduce(s, { type: "tick" }, now);
+const input = (s: HorseState, type: "disconnect" | "reconnect" | "leave", playerId: string, now: number) => reduce(s, { type, playerId }, now);
+
+test("resolution: no shots and no timeout while the ball is in the air", () => {
+  const g = startGame(["A", "B"]);
+  const fired = reduce(g.state, { type: "shotFired", playerId: "A" }, 1000);
+  assert.ok(fired.state.resolving);
+  assert.equal(shotGate(gateView(fired.state), "A", INSIDE.x, INSIDE.z), "busy");
+  const later = tick(fired.state, 60000);
+  assert.equal(later.state.turnId, "A");
+  assert.equal(later.state.setterId, "A");
+  assert.ok(later.state.resolving);
+  assert.equal(hasEvent(later.effects, "turn"), false);
+});
+
+test("setting timeout counts as a miss", () => {
+  const g = startGame(["A", "B", "C"]);
+  assert.equal(tick(g.state, 19999).state.setterId, "A");
+  const r = tick(g.state, 20000);
+  assert.equal(r.state.setterId, "B");
+  assert.equal(r.state.turnId, "B");
+});
+
+test("matching timeout gives a letter", () => {
+  const g = startGame(["A", "B", "C"]);
+  const set = fire(g.state, "A", true, INSIDE); // B's turn from t=1500
+  const r = tick(set.state, 1500 + HORSE_TURN_MS);
+  assert.equal(r.state.players["B"]!.letters, 1);
+  assert.equal(r.state.turnId, "C");
+});
+
+test("disconnected player's turn is skipped without a letter", () => {
+  const g = startGame(["A", "B", "C"]);
+  const set = fire(g.state, "A", true, INSIDE);
+  const r = input(set.state, "disconnect", "B", 2000);
+  assert.equal(r.state.turnId, "C");
+  assert.equal(r.state.players["B"]!.letters, 0);
+  assert.equal(r.state.players["B"]!.eliminated, false);
+});
+
+test("30 s disconnected eliminates", () => {
+  const g = startGame(["A", "B", "C"]);
+  const d = input(g.state, "disconnect", "B", 0);
+  assert.equal(tick(d.state, 29999).state.players["B"]!.eliminated, false);
+  const r = tick(d.state, 30000);
+  assert.equal(r.state.players["B"]!.eliminated, true);
+  assert.ok(hasEvent(r.effects, "eliminated", "B"));
+});
+
+test("reconnect in time rejoins the rotation", () => {
+  const g = startGame(["A", "B", "C"]);
+  const d = input(g.state, "disconnect", "B", 0);
+  const back = input(d.state, "reconnect", "B", 10000);
+  assert.equal(back.state.players["B"]!.disconnectedAt, null);
+  const set = fire(back.state, "A", true, INSIDE, 11000);
+  assert.equal(set.state.turnId, "B");
+  assert.deepEqual(set.state.matchQueue, ["C"]);
+});
+
+test("reconnect after elimination does not revive", () => {
+  const g = startGame(["A", "B", "C"]);
+  const d = input(g.state, "disconnect", "B", 0);
+  const out = tick(d.state, 30000);
+  const back = input(out.state, "reconnect", "B", 31000);
+  assert.equal(back.state.players["B"]!.eliminated, true);
+});
+
+test("leave eliminates immediately", () => {
+  const g = startGame(["A", "B", "C"]);
+  const r = input(g.state, "leave", "C", 500);
+  assert.equal(r.state.players["C"]!.eliminated, true);
+  assert.ok(hasEvent(r.effects, "eliminated", "C"));
+  assert.equal(r.state.phase, "setting");
+});
+
+test("shooter leaves while their shot is in the air", () => {
+  const g = startGame(["A", "B", "C"]);
+  const set = fire(g.state, "A", true, INSIDE);
+  const fired = reduce(set.state, { type: "shotFired", playerId: "B" }, 3000);
+  const left = input(fired.state, "leave", "B", 3100);
+  const landed = reduce(left.state, { type: "shotResult", playerId: "B", made: false, x: INSIDE.x, z: INSIDE.z }, 3500);
+  assert.equal(landed.state.resolving, null);
+  assert.equal(landed.state.turnId, "C");
+});
+
+test("two players, one disconnects: the other wins after 30 s", () => {
+  const g = startGame(["A", "B"]);
+  const d = input(g.state, "disconnect", "B", 0);
+  // A sets; nobody can match, so A sets again.
+  const set = fire(d.state, "A", true, INSIDE);
+  assert.equal(set.state.turnId, "A");
+  assert.equal(set.state.phase, "setting");
+  const r = tick(set.state, 30000);
+  assert.equal(r.state.phase, "over");
+  assert.equal(r.state.winnerId, "A");
+});
+
+test("setter eliminated mid-round: the round finishes, then the role passes on", () => {
+  const g = startGame(["A", "B", "C"]);
+  const set = fire(g.state, "A", true, INSIDE);
+  const left = input(set.state, "leave", "A", 2000);
+  assert.equal(left.state.turnId, "B");
+  const b = fire(left.state, "B", true, INSIDE, 3000);
+  const c = fire(b.state, "C", true, INSIDE, 5000);
+  assert.equal(c.state.phase, "setting");
+  assert.equal(c.state.setterId, "B");
+});
+
+test("only the setter left after the last matcher is eliminated: the setter wins", () => {
+  let s = startGame(["A", "B", "C"]).state;
+  s = input(s, "leave", "C", 100).state;
+  s = { ...s, players: { ...s.players, B: { ...s.players["B"]!, letters: 4 } } };
+  const set = fire(s, "A", true, INSIDE);
+  const r = fire(set.state, "B", false, INSIDE, 3000);
+  assert.equal(r.state.phase, "over");
+  assert.equal(r.state.winnerId, "A");
+});
+
+test("everyone gone: abandoned, saved with no winner", () => {
+  const g = startGame(["A", "B"]);
+  const d1 = input(g.state, "disconnect", "A", 0);
+  const d2 = input(d1.state, "disconnect", "B", 0);
+  const r = tick(d2.state, 30000);
+  assert.equal(r.state.phase, "over");
+  assert.equal(r.state.winnerId, null);
+  const save = r.effects.find((e) => e.type === "save");
+  assert.ok(save && save.type === "save" && save.result.winnerId === null);
+});
+
+test("placements: winner 1, then latest eliminated first", () => {
+  let s = startGame(["A", "B", "C"]).state;
+  s = input(s, "leave", "C", 100).state;
+  s = { ...s, players: { ...s.players, B: { ...s.players["B"]!, letters: 4 } } };
+  const set = fire(s, "A", true, INSIDE);
+  const r = fire(set.state, "B", false, INSIDE, 3000);
+  const save = r.effects.find((e) => e.type === "save");
+  assert.ok(save && save.type === "save");
+  const placement = Object.fromEntries(save.result.players.map((p) => [p.id, p.placement]));
+  assert.deepEqual(placement, { A: 1, B: 2, C: 3 });
+});
