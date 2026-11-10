@@ -41,7 +41,8 @@
     "check:layup": "tsx src/scripts/check-layup.ts",
     "check:scores": "tsx src/scripts/check-scores.ts",
     "check:leaks": "tsx --expose-gc src/scripts/check-leaks.ts",
-    "load:court": "tsx src/scripts/load-court.ts"
+    "load:court": "tsx src/scripts/load-court.ts",
+    "bot:court": "tsx src/scripts/court-bot.ts"
   },
   "dependencies": {
     "@colyseus/core": "^0.18.27",
