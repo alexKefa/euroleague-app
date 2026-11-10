@@ -39,7 +39,7 @@ import { Sky } from "./sky";
 import { HoopNet } from "./hoop-net";
 
 const NET_HEIGHT = 0.44;
-const NET_BOTTOM_RADIUS = 0.135;
+const NET_BOTTOM_RADIUS = 0.1;
 
 export interface HoopVisual {
   id: HoopId;
