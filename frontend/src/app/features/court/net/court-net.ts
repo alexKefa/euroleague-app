@@ -39,6 +39,12 @@ export interface NetPlayer {
   eliminated: boolean;
   /** Join order (also H-O-R-S-E turn order). */
   joinedAt: number;
+  /** Live scoreboard (server-counted when the ball lands). */
+  makes: number;
+  attempts: number;
+  streak: number;
+  best: number;
+  threes: number;
 }
 
 /** Room-level H-O-R-S-E view (synced). */
@@ -225,6 +231,11 @@ export class CourtNet {
 
   startHorse(): void {
     this.live()?.send(MSG.horseStart);
+  }
+
+  /** Owner only (the server checks): zero everyone's scoreboard. */
+  resetScores(): void {
+    this.live()?.send(MSG.resetScores);
   }
 
   sendReaction(id: ReactionId): void {

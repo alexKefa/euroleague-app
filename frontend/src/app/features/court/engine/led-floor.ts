@@ -9,8 +9,10 @@
 //   - a slow shimmer travelling along the lines.
 // Brighter at night (uDay) so it carries the scene after dark.
 import {
+  AdditiveBlending,
   CanvasTexture,
   Color,
+  MeshBasicMaterial,
   LinearMipmapLinearFilter,
   Mesh,
   PlaneGeometry,
@@ -44,6 +46,69 @@ const LOGO_SIZE = 2.3;
 const MAX_RIPPLES = 4;
 const MAX_PLAYERS = 8;
 const RIPPLE_LIFE_S = 2.6;
+/** Head-to-head score plane: width (m) and centre z (between the logo and midcourt). */
+const SCORE_W = 9.5;
+const SCORE_Z = -1.55;
+
+function mix(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+
+function drawScore(canvas: HTMLCanvasElement, s: FloorScore): void {
+  const ctx = canvas.getContext("2d")!;
+  const W = canvas.width;
+  const H = canvas.height;
+  const mid = W / 2;
+  ctx.clearRect(0, 0, W, H);
+  ctx.textBaseline = "middle";
+  const glow = (color: string, blur: number) => {
+    ctx.shadowColor = color;
+    ctx.shadowBlur = blur;
+  };
+  // Scores either side of a dash, names further out, in each player's kit colour.
+  ctx.font = `800 230px ${FLOOR_FONT}`;
+  ctx.fillStyle = "#ffffff";
+  glow("#ffffff", 30);
+  ctx.textAlign = "right";
+  ctx.fillText(s.left.value, mid - 90, H / 2 + 8);
+  ctx.textAlign = "left";
+  ctx.fillText(s.right.value, mid + 90, H / 2 + 8);
+  ctx.textAlign = "center";
+  ctx.fillText("–", mid, H / 2);
+  const name = (n: string, color: string, x: number, align: CanvasTextAlign) => {
+    let px = 120;
+    ctx.font = `800 ${px}px ${FLOOR_FONT}`;
+    while (ctx.measureText(n).width > W * 0.27 && px > 50) ctx.font = `800 ${(px -= 6)}px ${FLOOR_FONT}`;
+    ctx.textAlign = align;
+    ctx.fillStyle = lighten(color);
+    glow(lighten(color), 26);
+    ctx.fillText(n.toUpperCase(), x, H / 2 + 6);
+  };
+  const valueW = (v: string) => {
+    ctx.font = `800 230px ${FLOOR_FONT}`;
+    return ctx.measureText(v).width;
+  };
+  name(s.left.name, s.left.color, mid - 90 - valueW(s.left.value) - 60, "right");
+  name(s.right.name, s.right.color, mid + 90 + valueW(s.right.value) + 60, "left");
+  ctx.shadowBlur = 0;
+}
+
+/** Kit colours can be very dark; LEDs need them bright enough to read. */
+function lighten(hex: string): string {
+  const c = new Color(hex);
+  const hsl = { h: 0, s: 0, l: 0 };
+  c.getHSL(hsl);
+  c.setHSL(hsl.h, Math.min(1, hsl.s + 0.1), Math.max(hsl.l, 0.62));
+  return "#" + c.getHexString();
+}
+
+const FLOOR_FONT = '"Sofia Sans Condensed", "Arial Narrow", sans-serif';
+
+/** The big LED head-to-head on the floor near midcourt (null hides it). */
+export interface FloorScore {
+  left: { name: string; color: string; value: string };
+  right: { name: string; color: string; value: string };
+}
 
 export interface FloorPlayer {
   x: number;
@@ -145,6 +210,7 @@ export class LedFloor {
   private readonly ripples: { x: number; z: number; t: number; s: number }[] = [];
   private arc = 0;
   private fire = 0;
+  private readonly score: { mesh: Mesh; mat: MeshBasicMaterial; canvas: HTMLCanvasElement; tex: CanvasTexture; key: string; flashAt: number };
 
   constructor(
     scene: Scene,
@@ -180,12 +246,48 @@ export class LedFloor {
     this.mesh.rotation.x = -Math.PI / 2;
     this.mesh.position.z = (COURT_MAX_Z + COURT_MIN_Z) / 2;
     scene.add(this.mesh);
+
+    // Head-to-head score: its own additive plane between the logo and midcourt.
+    const canvas = document.createElement("canvas");
+    canvas.width = 2048;
+    canvas.height = 320;
+    const tex = new CanvasTexture(canvas);
+    tex.colorSpace = SRGBColorSpace;
+    tex.anisotropy = opts.maxAnisotropy;
+    const mat = new MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, blending: AdditiveBlending, toneMapped: false });
+    const mesh = new Mesh(new PlaneGeometry(SCORE_W, (SCORE_W * canvas.height) / canvas.width), mat);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.set(0, 0.014, SCORE_Z);
+    mesh.renderOrder = 1;
+    mesh.visible = false;
+    scene.add(mesh);
+    this.score = { mesh, mat, canvas, tex, key: "", flashAt: -Infinity };
+  }
+
+  /** Show / update / hide the head-to-head (flashes when it changes). */
+  setScore(s: FloorScore | null): void {
+    const sc = this.score;
+    sc.mesh.visible = s !== null;
+    if (!s) {
+      sc.key = "";
+      return;
+    }
+    const key = JSON.stringify(s);
+    if (key === sc.key) return;
+    if (sc.key) sc.flashAt = performance.now();
+    sc.key = key;
+    drawScore(sc.canvas, s);
+    sc.tex.needsUpdate = true;
   }
 
   /** A make: a ring of light spreads out from (x, z). */
   ripple(x: number, z: number, strength: number, nowMs: number): void {
     this.ripples.push({ x, z, t: nowMs / 1000, s: strength });
     if (this.ripples.length > MAX_RIPPLES) this.ripples.shift();
+  }
+
+  private dayFactor(): number {
+    return this.mat.uniforms["uDay"]!.value as number;
   }
 
   setLighting(l: Lighting): void {
@@ -210,6 +312,12 @@ export class LedFloor {
     const rs = u["uRipples"]!.value as Vector4[];
     this.ripples.forEach((r, i) => rs[i]!.set(r.x, r.z, r.t, r.s));
     u["uRippleCount"]!.value = this.ripples.length;
+
+    if (this.score.mesh.visible) {
+      const since = nowMs - this.score.flashAt;
+      const flash = since < 900 ? 1 - since / 900 : 0;
+      this.score.mat.opacity = mix(0.55, 0.95, 1 - this.dayFactor()) + 0.4 * flash;
+    }
 
     const ps = u["uPlayers"]!.value as Vector3[];
     const n = Math.min(MAX_PLAYERS, players.length);

@@ -282,6 +282,16 @@
   letter-spacing: 0.06em;
   color: rgba(255, 255, 255, 0.6);
 }
+.court-menu-action {
+  width: 100%;
+  margin-top: 0.75rem;
+  min-height: 2.4rem;
+  border-radius: 0.8rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
 .court-seg {
   display: grid;
   grid-auto-flow: column;

@@ -157,6 +157,8 @@ export const MSG = {
   /** Client -> server: ReactionMessage. Server -> everyone else: ReactionShownMessage. */
   react: "react",
   reacted: "reacted",
+  /** Owner -> server: zero everyone's scoreboard. */
+  resetScores: "scores:reset",
 } as const;
 
 // ---- Emotes and quick phrases (M5) ----

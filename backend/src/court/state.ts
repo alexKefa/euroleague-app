@@ -21,6 +21,12 @@ export const CourtPlayer = schema(
     eliminated: t.boolean(),
     /** Join order, for H-O-R-S-E turn order (M4). */
     joinedAt: t.number(),
+    // Live court scoreboard (shared/court/scoreboard.ts): counted when the ball lands.
+    makes: t.number(),
+    attempts: t.number(),
+    streak: t.number(),
+    best: t.number(),
+    threes: t.number(),
   },
   "CourtPlayer"
 );

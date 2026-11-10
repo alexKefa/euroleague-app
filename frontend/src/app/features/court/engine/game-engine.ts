@@ -5,7 +5,7 @@ import { ACESFilmicToneMapping, Mesh, PerspectiveCamera, Vector3, WebGLRenderer 
 import { BALL_RADIUS, RELEASE_HEIGHT, SHOT_COOLDOWN_SECONDS } from "../../../../../../shared/court/constants";
 import { hoopLayout, insideThreePoint, pickTargetHoop } from "../../../../../../shared/court/geometry";
 import { type TimeMode, lightingFor, resolveHour } from "./lighting";
-import type { FloorPlayer } from "./led-floor";
+import type { FloorPlayer, FloorScore } from "./led-floor";
 import { HorsePad, type PadState } from "./horse-pad";
 import { randomSeed } from "../../../../../../shared/court/rng";
 import { computeShotLaunch, effectiveTiming, layupEligible } from "../../../../../../shared/court/shot";
@@ -421,6 +421,11 @@ export class GameEngine {
     }
     this.pad?.update(now, on);
     this.built.sky.follow(this.camera.position);
+  }
+
+  /** The LED head-to-head score on the floor (null hides it). */
+  setFloorScore(score: FloorScore | null): void {
+    this.built?.floor.setScore(score);
   }
 
   /** What the jumbotron shows (redrawn only when it changes). */

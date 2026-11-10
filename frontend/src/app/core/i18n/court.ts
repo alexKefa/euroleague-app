@@ -80,6 +80,10 @@ export const courtTranslations: Record<string, Record<Lang, string>> = {
   "court.time.day": { en: "Day", el: "Μέρα" },
   "court.time.sunset": { en: "Sunset", el: "Ηλιοβασίλεμα" },
   "court.time.night": { en: "Night", el: "Νύχτα" },
+  // Live court scoreboard
+  "court.jumbo.scores": { en: "Court scores", el: "Σκορ γηπέδου" },
+  "court.scores.reset": { en: "Reset everyone's scores", el: "Μηδενισμός σκορ για όλους" },
+  "court.scores.resetDone": { en: "Scores reset", el: "Τα σκορ μηδενίστηκαν" },
   // Jumbotron
   "court.jumbo.next": { en: "Next game", el: "Επόμενο ματς" },
   "court.jumbo.live": { en: "Live", el: "Live" },

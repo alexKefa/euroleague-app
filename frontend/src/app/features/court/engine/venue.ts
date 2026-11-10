@@ -61,7 +61,12 @@ export type JumbotronContent =
       /** Date and time, or the quarter and clock. */
       sub: string;
     }
-  | { kind: "horse"; title: string; rows: { name: string; letters: string; turn: boolean; out: boolean }[] };
+  | { kind: "horse"; title: string; rows: { name: string; letters: string; turn: boolean; out: boolean }[] }
+  | {
+      kind: "scores";
+      title: string;
+      rows: { name: string; color: string; makes: number; attempts: number; pct: number | null; streak: number; hot: boolean }[];
+    };
 
 // ---- layout (metres) ----
 const WALL_Z = FENCE.minZ - 1.2;
@@ -612,6 +617,50 @@ class Jumbotron {
       fit(content.sub, 44, W - 100, 600);
       ctx.fillStyle = "rgba(255,255,255,0.8)";
       ctx.fillText(content.sub, W / 2, 432);
+    } else if (content.kind === "scores") {
+      ctx.fillStyle = "#ffc93c";
+      ctx.font = font(48);
+      ctx.fillText(content.title.toUpperCase(), W / 2, 122);
+      const rows = content.rows.slice(0, 8);
+      const cols = rows.length > 4 ? 2 : 1;
+      const colW = W / cols;
+      const rowH = 82;
+      rows.forEach((r, i) => {
+        const col = cols === 2 ? Math.floor(i / 4) : 0;
+        const row = cols === 2 ? i % 4 : i;
+        const x0 = col * colW + 28;
+        const y = 196 + row * rowH;
+        if (i === 0 && r.makes > 0) {
+          ctx.fillStyle = "rgba(255,201,60,0.16)";
+          ctx.fillRect(col * colW + 12, y - rowH / 2 + 6, colW - 24, rowH - 12);
+        }
+        // Rank and a kit-colour chip.
+        ctx.textAlign = "left";
+        ctx.fillStyle = "rgba(255,255,255,0.55)";
+        ctx.font = font(40);
+        ctx.fillText(String(i + 1), x0, y);
+        ctx.fillStyle = r.color;
+        ctx.beginPath();
+        ctx.arc(x0 + 46, y, 11, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        const nameW = cols === 2 ? colW - 330 : colW - 520;
+        fit(r.name, 42, nameW, 700);
+        ctx.fillText(r.name, x0 + 68, y);
+        // Makes/attempts, % and the streak (orange when hot).
+        ctx.textAlign = "right";
+        const right = col * colW + colW - 28;
+        ctx.font = font(44);
+        ctx.fillStyle = r.hot ? "#ff8a3c" : "rgba(255,255,255,0.55)";
+        ctx.fillText(r.streak > 0 ? `×${r.streak}` : "", right, y);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(`${r.makes}/${r.attempts}`, right - (cols === 2 ? 84 : 240), y);
+        if (cols === 1) {
+          ctx.fillStyle = "rgba(255,255,255,0.7)";
+          ctx.fillText(r.pct === null ? "–" : `${r.pct}%`, right - 96, y);
+        }
+      });
+      ctx.textAlign = "center";
     } else {
       ctx.fillStyle = "#ffc93c";
       ctx.font = font(48);

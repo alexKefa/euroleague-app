@@ -10,7 +10,8 @@ import { courts, teams, users } from "../db/schema.js";
 import { verifyAccessToken } from "../auth/tokens.js";
 import { jerseyNumber, kitColors } from "../../../shared/court/kit.js";
 import { LAYUP_MIN_APPROACH, LAYUP_SERVER_APPROACH_TOLERANCE, SHOT_COOLDOWN_SECONDS } from "../../../shared/court/constants.js";
-import { ACTIVE_HOOPS, pickTargetHoop } from "../../../shared/court/geometry.js";
+import { ACTIVE_HOOPS, insideThreePoint, pickTargetHoop } from "../../../shared/court/geometry.js";
+import { EMPTY_TALLY, applyShot, type Tally } from "../../../shared/court/scoreboard.js";
 import { computeShotLaunch, layupEligible } from "../../../shared/court/shot.js";
 import {
   canStart,
@@ -146,6 +147,7 @@ export class CourtRoom extends Room<{ state: CourtState }> {
     this.onMessage(MSG.horseStart, (client: CourtClient) => this.startHorse(client));
     this.onMessage(MSG.horseLeave, (client: CourtClient) => this.applyHorse({ type: "leave", playerId: client.sessionId }));
     this.onMessage(MSG.react, (client: CourtClient, msg: ReactionMessage) => this.handleReaction(client, msg));
+    this.onMessage(MSG.resetScores, (client: CourtClient) => this.resetScores(client));
   }
 
   async onAuth(_client: Client, options: Partial<JoinOptions>, _context: AuthContext): Promise<CourtAuth> {
@@ -191,8 +193,11 @@ export class CourtRoom extends Room<{ state: CourtState }> {
     // the page) replaces the old seat. A H-O-R-S-E participant keeps their
     // place in the game: the seat is moved to the new session (spec rule 6).
     let movedFrom: string | null = null;
+    let carried: Tally = EMPTY_TALLY;
     this.state.players.forEach((p, sessionId) => {
       if (p.userId === auth.userId && sessionId !== client.sessionId) {
+        // A reload keeps your scoreboard line.
+        carried = tallyOf(p);
         const hp = this.horse.players[sessionId];
         if (hp && !hp.eliminated) movedFrom = sessionId;
         this.clients.get(sessionId)?.leave(CLOSE_REPLACED);
@@ -216,6 +221,7 @@ export class CourtRoom extends Room<{ state: CourtState }> {
     p.letters = "";
     p.eliminated = false;
     p.joinedAt = ++this.joinCounter;
+    Object.assign(p, carried);
     this.state.players.set(client.sessionId, p);
     if (movedFrom) {
       this.horseUsers.set(client.sessionId, auth.userId);
@@ -369,6 +375,13 @@ export class CourtRoom extends Room<{ state: CourtState }> {
       this.applyHorse({ type: "shotFired", playerId: sid });
       this.clock.setTimeout(() => this.applyHorse({ type: "shotResult", playerId: sid, made: result.made, x: at.x, z: at.z }), result.durationMs);
     }
+    // Scoreboard: counted when the ball lands, like H-O-R-S-E, so nobody sees it early.
+    const sid = client.sessionId;
+    const three = !insideThreePoint(hoopId, p.x, p.z);
+    this.clock.setTimeout(() => {
+      const pl = this.state.players.get(sid);
+      if (pl) Object.assign(pl, applyShot(tallyOf(pl), result.made, three));
+    }, result.durationMs);
     this.broadcast(MSG.shot, shot);
     this.sendSeed(client);
   }
@@ -438,6 +451,14 @@ export class CourtRoom extends Room<{ state: CourtState }> {
     });
   }
 
+  // ---------- scoreboard ----------
+
+  /** The court owner can zero everyone's scoreboard (gear menu). */
+  private resetScores(client: CourtClient): void {
+    if (client.auth?.userId !== this.state.ownerId) return;
+    this.state.players.forEach((p) => Object.assign(p, EMPTY_TALLY));
+  }
+
   // ---------- emotes and quick phrases (M5) ----------
 
   /** Relay a known reaction to everyone else, at most one per REACTION_GAP_MS per player. */
@@ -476,6 +497,10 @@ export class CourtRoom extends Room<{ state: CourtState }> {
     this.emptyTimer?.clear();
     this.emptyTimer = null;
   }
+}
+
+function tallyOf(p: { makes: number; attempts: number; streak: number; best: number; threes: number }): Tally {
+  return { makes: p.makes ?? 0, attempts: p.attempts ?? 0, streak: p.streak ?? 0, best: p.best ?? 0, threes: p.threes ?? 0 };
 }
 
 function newSeed(): number {

@@ -165,6 +165,9 @@
         <button type="button" [class.court-seg-on]="!prefs().muted" (click)="setMuted(false)">{{ i18n.t("court.sound.on") }}</button>
         <button type="button" [class.court-seg-on]="prefs().muted" (click)="setMuted(true)">{{ i18n.t("court.sound.off") }}</button>
       </div>
+      @if (code && isOwner()) {
+        <button type="button" class="court-menu-action" (click)="resetScores()">{{ i18n.t("court.scores.reset") }}</button>
+      }
     </div>
   }
 

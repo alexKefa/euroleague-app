@@ -32,6 +32,8 @@ import { EngineCallbacks, EngineOptions, GameEngine, PerfStats, PracticeStats, R
 import { CourtJoinError, CourtNet, HorseView, JoinFailure, NetPlayer } from "./net/court-net";
 import { EMOTE_ICONS } from "./engine/reaction-bubbles";
 import type { JumbotronContent } from "./engine/venue";
+import type { FloorScore } from "./engine/led-floor";
+import { HOT_STREAK, headToHead, rankScores, shootingPct, type ScoreLine } from "../../../../../shared/court/scoreboard";
 import { TIME_MODES, type TimeMode } from "./engine/lighting";
 import { HorseHudComponent, HorseHudPlayer, HorseWinner } from "./hud/horse-hud";
 import { HORSE_RETURN_MS, canStart, shotGate } from "../../../../../shared/court/horse";
@@ -161,6 +163,12 @@ export class CourtPageComponent implements OnInit, OnDestroy {
   private readonly names = new Map<string, string>();
   /** Last known letters per sessionId (players who left are no longer in the synced state). */
   private readonly lastLetters = new Map<string, string>();
+  /** Live scoreboard lines from the room state (shared courts). */
+  private scoreLines: ScoreLine[] = [];
+  private scoreKey = "";
+  /** Rotates the jumbotron between the scoreboard and the club's game. */
+  private jumboTimer: ReturnType<typeof setInterval> | null = null;
+  protected readonly isOwner = signal(false);
   private hudKey = "";
   private gateKey = "";
   private winnerTimer: ReturnType<typeof setTimeout> | null = null;
@@ -187,6 +195,8 @@ export class CourtPageComponent implements OnInit, OnDestroy {
     window.addEventListener("offline", this.onOffline);
     document.addEventListener("visibilitychange", this.onVisibility);
     if (this.perfOn) this.perfTimer = setInterval(() => this.perf.set(this.engine?.perfStats() ?? null), 500);
+    // Shared courts rotate the jumbotron (scoreboard <-> club game); the engine skips unchanged content.
+    if (this.code) this.jumboTimer = setInterval(() => this.refreshJumbotron(), 1000);
     void this.boot();
   }
 
@@ -196,6 +206,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
     window.removeEventListener("offline", this.onOffline);
     document.removeEventListener("visibilitychange", this.onVisibility);
     if (this.perfTimer) clearInterval(this.perfTimer);
+    if (this.jumboTimer) clearInterval(this.jumboTimer);
     if (this.winnerTimer) clearTimeout(this.winnerTimer);
     this.teardown();
     if (this.flashTimer) clearTimeout(this.flashTimer);
@@ -319,6 +330,24 @@ export class CourtPageComponent implements OnInit, OnDestroy {
       };
     }
     const g = this.featuredGame();
+    // 2+ players shooting around: the court scoreboard, handing over to the
+    // club's game for 5 s every 30 s.
+    const ranked = rankScores(this.scoreLines);
+    if (this.code && view.phase === "free" && ranked.length >= 2 && !(g && Date.now() % 30_000 < 5_000)) {
+      return {
+        kind: "scores",
+        title: this.i18n.t("court.jumbo.scores"),
+        rows: ranked.map((l) => ({
+          name: l.name,
+          color: l.color,
+          makes: l.makes,
+          attempts: l.attempts,
+          pct: shootingPct(l.makes, l.attempts),
+          streak: l.streak,
+          hot: l.streak >= HOT_STREAK,
+        })),
+      };
+    }
     if (!g) return { kind: "team" };
     const chip = (t: Game["homeTeam"]) => ({ code: displayTeamCode(t.code), color: t.primaryColor || "#2a3445" });
     const live = g.status === "live";
@@ -540,6 +569,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
       onState: (players, view) => {
         this.syncPlayers(players);
         this.syncHorse(players, view);
+        this.syncScores(players, view);
       },
       onToast: (m) => this.showNotice(m),
       onCorrection: (m) => this.engine?.applyCorrection(m.x, m.z),
@@ -640,6 +670,62 @@ export class CourtPageComponent implements OnInit, OnDestroy {
   }
 
   /** Room state -> H-O-R-S-E HUD and engine gate. Signals only change when the derived values do. */
+  /** Scoreboard lines from the synced players; refresh the screens when they change. */
+  private syncScores(players: Map<string, NetPlayer>, view: HorseView): void {
+    const lines: ScoreLine[] = [];
+    players.forEach((p, id) =>
+      lines.push({
+        id,
+        name: p.name,
+        color: kitColors(p.teamColorPrimary, p.teamColorSecondary).primary,
+        makes: p.makes ?? 0,
+        attempts: p.attempts ?? 0,
+        streak: p.streak ?? 0,
+        best: p.best ?? 0,
+        threes: p.threes ?? 0,
+        joinedAt: p.joinedAt,
+        connected: p.connected,
+      })
+    );
+    this.isOwner.set(!!view.ownerId && view.ownerId === this.auth.currentUser()?.id);
+    const key = JSON.stringify(lines.map((l) => [l.id, l.name, l.makes, l.attempts, l.streak, l.connected]));
+    if (key === this.scoreKey) return;
+    this.scoreKey = key;
+    this.scoreLines = lines;
+    this.refreshJumbotron();
+    this.refreshFloorScore();
+  }
+
+  /** LED head-to-head: top two in free play, the two fewest letters in H-O-R-S-E. */
+  private refreshFloorScore(): void {
+    if (!this.code) return this.engine?.setFloorScore(null);
+    const view = this.horseView();
+    if (view.phase === "setting" || view.phase === "matching") {
+      const alive = this.horsePlayers().filter((p) => !p.eliminated);
+      const pair = [...alive].sort((a, b) => a.letters.length - b.letters.length).slice(0, 2);
+      if (pair.length < 2) return this.engine?.setFloorScore(null);
+      const order = view.order;
+      pair.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+      const color = (id: string) => this.scoreLines.find((l) => l.id === id)?.color ?? "#ffc93c";
+      const side = (p: (typeof pair)[number]) => ({ name: p.name, color: color(p.id), value: p.letters ? p.letters.split("").join("·") : "–" });
+      return this.engine?.setFloorScore({ left: side(pair[0]!), right: side(pair[1]!) });
+    }
+    const h2h = headToHead(this.scoreLines);
+    const score: FloorScore | null = h2h
+      ? {
+          left: { name: h2h[0].name, color: h2h[0].color, value: String(h2h[0].makes) },
+          right: { name: h2h[1].name, color: h2h[1].color, value: String(h2h[1].makes) },
+        }
+      : null;
+    this.engine?.setFloorScore(score);
+  }
+
+  protected resetScores(): void {
+    this.menuOpen.set(false);
+    this.net?.resetScores();
+    this.showFlash(this.i18n.t("court.scores.resetDone"), "good");
+  }
+
   private syncHorse(players: Map<string, NetPlayer>, view: HorseView): void {
     const me = this.net?.sessionId ?? "";
     players.forEach((p, id) => {
@@ -672,6 +758,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
       this.horsePlayers.set(hud);
       this.refreshJumbotron();
       this.refreshPad();
+      this.refreshFloorScore();
       this.isStarter.set(eligible && view.phase === "free");
       this.canStartHorse.set(ready);
       this.mySessionId.set(me);
