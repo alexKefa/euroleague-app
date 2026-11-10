@@ -54,7 +54,7 @@ function cordTexture(): CanvasTexture {
   const ctx = canvas.getContext("2d")!;
   ctx.strokeStyle = "#ffffff";
   ctx.lineCap = "round";
-  ctx.lineWidth = 6;
+  ctx.lineWidth = 10;
   ctx.beginPath();
   ctx.moveTo(0, 0);
   ctx.lineTo(size, size);
@@ -64,7 +64,7 @@ function cordTexture(): CanvasTexture {
   ctx.fillStyle = "#ffffff";
   for (const [x, y] of [[0, 0], [size, 0], [0, size], [size, size], [size / 2, size / 2]] as const) {
     ctx.beginPath();
-    ctx.arc(x, y, 4.5, 0, Math.PI * 2);
+    ctx.arc(x, y, 7, 0, Math.PI * 2);
     ctx.fill();
   }
   const tex = new CanvasTexture(canvas);
@@ -152,7 +152,20 @@ export class HoopNet {
     const map = netTexture.clone();
     map.repeat.set(COLS, ROWS);
     map.needsUpdate = true;
-    const mat = new MeshLambertMaterial({ color: "#f3f5f7", map, alphaTest: 0.4, side: DoubleSide });
+    // Blended, not alpha-tested: from a distance the mipmapped cords average
+    // out to a soft white haze (how a real net reads) instead of vanishing
+    // below an alpha cutoff. A little self-light keeps it white in shade and at night.
+    const mat = new MeshLambertMaterial({
+      color: "#ffffff",
+      map,
+      transparent: true,
+      alphaTest: 0.03,
+      depthWrite: false,
+      side: DoubleSide,
+      emissive: "#ffffff",
+      emissiveMap: map,
+      emissiveIntensity: 0.35,
+    });
     this.mesh = new Mesh(geo, mat);
     this.mesh.position.set(rimX, rimY, rimZ);
     this.mesh.frustumCulled = false; // the cloth leaves its original bounds
