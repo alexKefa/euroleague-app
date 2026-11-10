@@ -72,8 +72,8 @@ export type JumbotronContent =
 const WALL_Z = FENCE.minZ - 1.2;
 const WALL_W = 18;
 const WALL_H = 4.6;
-const SCREEN_W = 6.2;
-const SCREEN_H = 3.1;
+const SCREEN_W = 7.2;
+const SCREEN_H = 3.6;
 const SCREEN_Y = WALL_H + 0.9 + SCREEN_H / 2;
 const STAND_GAP = 0.9; // fence to first step
 const STEP_D = 0.85;
@@ -513,10 +513,11 @@ class Jumbotron {
     scene: Scene,
     private readonly team: VenueTeam
   ) {
-    this.canvas.width = 1024;
-    this.canvas.height = 512;
+    this.canvas.width = 2048;
+    this.canvas.height = 1024;
     this.tex = new CanvasTexture(this.canvas);
     this.tex.colorSpace = SRGBColorSpace;
+    this.tex.anisotropy = 8;
     const screen = new Mesh(new PlaneGeometry(SCREEN_W, SCREEN_H), new MeshBasicMaterial({ map: this.tex, toneMapped: false }));
     screen.position.set(0, SCREEN_Y, WALL_Z - 0.09);
     scene.add(screen);
@@ -533,8 +534,10 @@ class Jumbotron {
 
   private draw(content: JumbotronContent): void {
     const ctx = this.canvas.getContext("2d")!;
-    const W = this.canvas.width;
-    const H = this.canvas.height;
+    // Drawn in a 1024 x 512 layout on a 2x canvas: sharp from across the court.
+    ctx.setTransform(2, 0, 0, 2, 0, 0);
+    const W = 1024;
+    const H = 512;
     const team = this.team;
     const font = (px: number, w = 800) => `${w} ${px}px ${JERSEY_FONT}`;
     const fit = (text: string, px: number, maxW: number, w = 800) => {
@@ -550,152 +553,127 @@ class Jumbotron {
 
     // Header strip in club colours.
     ctx.fillStyle = team.primary;
-    ctx.fillRect(0, 0, W, 64);
+    ctx.fillRect(0, 0, W, 58);
     ctx.fillStyle = team.secondary;
-    ctx.fillRect(0, 64, W, 6);
+    ctx.fillRect(0, 58, W, 6);
     ctx.fillStyle = "#ffffff";
     ctx.textBaseline = "middle";
     ctx.textAlign = "left";
-    ctx.font = font(38);
-    ctx.fillText("CLUTCH COURT", 28, 34);
+    ctx.font = font(36);
+    ctx.fillText("CLUTCH COURT", 24, 31);
     if (team.code) {
       ctx.textAlign = "right";
-      ctx.fillText(team.code.toUpperCase(), W - 28, 34);
+      ctx.fillText(team.code.toUpperCase(), W - 24, 31);
     }
     ctx.textAlign = "center";
 
     if (content.kind === "team") {
-      fit((team.code || "CLUTCH").toUpperCase(), 210, W - 120);
+      fit((team.code || "CLUTCH").toUpperCase(), 250, W - 80);
       ctx.fillStyle = "#ffffff";
-      ctx.fillText((team.code || "CLUTCH").toUpperCase(), W / 2, 250);
+      ctx.fillText((team.code || "CLUTCH").toUpperCase(), W / 2, 255);
       if (team.name) {
-        fit(team.name.toUpperCase(), 46, W - 120, 600);
-        ctx.fillStyle = "rgba(255,255,255,0.75)";
-        ctx.fillText(team.name.toUpperCase(), W / 2, 410);
+        fit(team.name.toUpperCase(), 56, W - 80, 700);
+        ctx.fillStyle = "rgba(255,255,255,0.8)";
+        ctx.fillText(team.name.toUpperCase(), W / 2, 432);
       }
     } else if (content.kind === "game") {
-      // Label row.
-      ctx.font = font(44);
+      ctx.font = font(58);
+      const label = content.label.toUpperCase();
       if (content.live) {
-        const label = content.label.toUpperCase();
         const w = ctx.measureText(label).width;
         ctx.fillStyle = "#ff3b30";
         ctx.beginPath();
-        ctx.arc(W / 2 - w / 2 - 26, 122, 13, 0, Math.PI * 2);
+        ctx.arc(W / 2 - w / 2 - 30, 112, 16, 0, Math.PI * 2);
         ctx.fill();
         ctx.fillStyle = "#ffffff";
-        ctx.fillText(label, W / 2, 124);
       } else {
         ctx.fillStyle = "#ffc93c";
-        ctx.fillText(content.label.toUpperCase(), W / 2, 124);
       }
-      // Team chips.
+      ctx.fillText(label, W / 2, 114);
       const chip = (t: TeamChip, cx: number) => {
         ctx.fillStyle = t.color;
         ctx.beginPath();
-        ctx.roundRect(cx - 150, 205, 300, 150, 22);
+        ctx.roundRect(cx - 165, 180, 330, 176, 24);
         ctx.fill();
-        ctx.strokeStyle = "rgba(255,255,255,0.35)";
-        ctx.lineWidth = 4;
+        ctx.strokeStyle = "rgba(255,255,255,0.4)";
+        ctx.lineWidth = 5;
         ctx.stroke();
-        fit(t.code.toUpperCase(), 104, 260);
+        fit(t.code.toUpperCase(), 136, 296);
         ctx.fillStyle = "#ffffff";
-        ctx.fillText(t.code.toUpperCase(), cx, 284);
+        ctx.fillText(t.code.toUpperCase(), cx, 272);
       };
-      chip(content.home, 190);
-      chip(content.away, W - 190);
-      // Score or "vs".
+      chip(content.home, 182);
+      chip(content.away, W - 182);
       ctx.fillStyle = "#ffffff";
       if (content.homeScore !== null && content.awayScore !== null) {
-        fit(`${content.homeScore}–${content.awayScore}`, 128, 330);
-        ctx.fillText(`${content.homeScore}–${content.awayScore}`, W / 2, 284);
+        fit(`${content.homeScore}–${content.awayScore}`, 150, 300);
+        ctx.fillText(`${content.homeScore}–${content.awayScore}`, W / 2, 272);
       } else {
-        ctx.font = font(96);
-        ctx.fillStyle = "rgba(255,255,255,0.8)";
-        ctx.fillText("VS", W / 2, 284);
+        ctx.font = font(110);
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fillText("VS", W / 2, 272);
       }
-      fit(content.sub, 44, W - 100, 600);
-      ctx.fillStyle = "rgba(255,255,255,0.8)";
+      fit(content.sub, 56, W - 60, 700);
+      ctx.fillStyle = "rgba(255,255,255,0.88)";
       ctx.fillText(content.sub, W / 2, 432);
-    } else if (content.kind === "scores") {
+    } else if (content.kind === "scores" || content.kind === "horse") {
       ctx.fillStyle = "#ffc93c";
-      ctx.font = font(48);
-      ctx.fillText(content.title.toUpperCase(), W / 2, 122);
+      ctx.font = font(56);
+      ctx.fillText(content.kind === "scores" ? content.title.toUpperCase() : content.title, W / 2, 112);
       const rows = content.rows.slice(0, 8);
+      // Up to 4 rows: one big column. More: two columns.
       const cols = rows.length > 4 ? 2 : 1;
       const colW = W / cols;
-      const rowH = 82;
+      const rowH = cols === 1 ? 92 : 88;
+      const big = cols === 1 ? 60 : 46;
       rows.forEach((r, i) => {
         const col = cols === 2 ? Math.floor(i / 4) : 0;
         const row = cols === 2 ? i % 4 : i;
-        const x0 = col * colW + 28;
+        const x0 = col * colW + 22;
+        const right = col * colW + colW - 22;
         const y = 196 + row * rowH;
-        if (i === 0 && r.makes > 0) {
-          ctx.fillStyle = "rgba(255,201,60,0.16)";
-          ctx.fillRect(col * colW + 12, y - rowH / 2 + 6, colW - 24, rowH - 12);
-        }
-        // Rank and a kit-colour chip.
-        ctx.textAlign = "left";
-        ctx.fillStyle = "rgba(255,255,255,0.55)";
-        ctx.font = font(40);
-        ctx.fillText(String(i + 1), x0, y);
-        ctx.fillStyle = r.color;
-        ctx.beginPath();
-        ctx.arc(x0 + 46, y, 11, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = "#ffffff";
-        const nameW = cols === 2 ? colW - 330 : colW - 520;
-        fit(r.name, 42, nameW, 700);
-        ctx.fillText(r.name, x0 + 68, y);
-        // Makes/attempts, % and the streak (orange when hot).
-        ctx.textAlign = "right";
-        const right = col * colW + colW - 28;
-        ctx.font = font(44);
-        ctx.fillStyle = r.hot ? "#ff8a3c" : "rgba(255,255,255,0.55)";
-        ctx.fillText(r.streak > 0 ? `×${r.streak}` : "", right, y);
-        ctx.fillStyle = "#ffffff";
-        ctx.fillText(`${r.makes}/${r.attempts}`, right - (cols === 2 ? 84 : 240), y);
-        if (cols === 1) {
-          ctx.fillStyle = "rgba(255,255,255,0.7)";
-          ctx.fillText(r.pct === null ? "–" : `${r.pct}%`, right - 96, y);
-        }
-      });
-      ctx.textAlign = "center";
-    } else {
-      ctx.fillStyle = "#ffc93c";
-      ctx.font = font(48);
-      ctx.fillText(content.title, W / 2, 122);
-      const rows = content.rows.slice(0, 8);
-      const cols = rows.length > 4 ? 2 : 1;
-      const colW = W / cols;
-      const rowH = 82;
-      rows.forEach((r, i) => {
-        const col = cols === 2 ? Math.floor(i / 4) : 0;
-        const row = cols === 2 ? i % 4 : i;
-        const x0 = col * colW + 40;
-        const y = 196 + row * rowH;
-        if (r.turn) {
+        const highlight = content.kind === "scores" ? i === 0 && (r as { makes: number }).makes > 0 : (r as { turn: boolean }).turn;
+        if (highlight) {
           ctx.fillStyle = "rgba(255,201,60,0.18)";
-          ctx.fillRect(col * colW + 16, y - rowH / 2 + 6, colW - 32, rowH - 12);
+          ctx.fillRect(col * colW + 8, y - rowH / 2 + 5, colW - 16, rowH - 10);
         }
-        ctx.globalAlpha = r.out ? 0.4 : 1;
         ctx.textAlign = "left";
-        ctx.fillStyle = r.turn ? "#ffc93c" : "#ffffff";
-        fit(`${r.turn ? "▶ " : ""}${r.name}`, 44, colW - 300, 700);
-        ctx.fillText(`${r.turn ? "▶ " : ""}${r.name}`, x0, y);
-        ctx.font = font(48);
-        for (let k = 0; k < HORSE.length; k++) {
-          ctx.fillStyle = k < r.letters.length ? "#ff5a4f" : "rgba(255,255,255,0.18)";
-          ctx.fillText(HORSE[k]!, x0 + colW - 270 + k * 44, y);
+        if (content.kind === "scores") {
+          const s = r as (typeof content.rows)[number];
+          ctx.fillStyle = s.color;
+          ctx.beginPath();
+          ctx.arc(x0 + 14, y, 14, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#ffffff";
+          fit(s.name, big, cols === 1 ? colW - 470 : colW - 250, 700);
+          ctx.fillText(s.name, x0 + 40, y);
+          ctx.textAlign = "right";
+          ctx.font = font(big);
+          ctx.fillStyle = s.hot ? "#ff8a3c" : "rgba(255,255,255,0.55)";
+          ctx.fillText(s.streak > 0 ? `×${s.streak}` : "", right, y);
+          ctx.fillStyle = "#ffffff";
+          ctx.fillText(`${s.makes}/${s.attempts}`, right - (cols === 1 ? 250 : 92), y);
+          if (cols === 1) {
+            ctx.fillStyle = "rgba(255,255,255,0.75)";
+            ctx.fillText(s.pct === null ? "–" : `${s.pct}%`, right - 104, y);
+          }
+        } else {
+          const hr = r as (typeof content.rows)[number];
+          ctx.globalAlpha = hr.out ? 0.4 : 1;
+          ctx.fillStyle = hr.turn ? "#ffc93c" : "#ffffff";
+          fit(`${hr.turn ? "▶ " : ""}${hr.name}`, big, colW - (cols === 1 ? 360 : 260), 700);
+          ctx.fillText(`${hr.turn ? "▶ " : ""}${hr.name}`, x0, y);
+          ctx.font = font(big + 4);
+          ctx.textAlign = "center";
+          const step = cols === 1 ? 58 : 44;
+          for (let k = 0; k < HORSE.length; k++) {
+            ctx.fillStyle = k < hr.letters.length ? "#ff5a4f" : "rgba(255,255,255,0.2)";
+            ctx.fillText(HORSE[k]!, right - (HORSE.length - 1 - k) * step - step / 2, y);
+          }
+          ctx.globalAlpha = 1;
         }
-        ctx.globalAlpha = 1;
       });
       ctx.textAlign = "center";
     }
-
-    // LED dot-matrix sheen.
-    ctx.fillStyle = "rgba(0,0,0,0.22)";
-    for (let y = 0; y < H; y += 4) ctx.fillRect(0, y, W, 1);
-    for (let x = 0; x < W; x += 4) ctx.fillRect(x, 0, 1, H);
   }
 }

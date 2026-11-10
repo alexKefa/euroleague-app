@@ -233,6 +233,15 @@ export class CourtNet {
     this.live()?.send(MSG.horseStart);
   }
 
+  /** Admin only (the server checks): practice bots for testing. */
+  addBot(): void {
+    this.live()?.send(MSG.addBot);
+  }
+
+  removeBots(): void {
+    this.live()?.send(MSG.removeBots);
+  }
+
   /** Owner only (the server checks): zero everyone's scoreboard. */
   resetScores(): void {
     this.live()?.send(MSG.resetScores);

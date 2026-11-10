@@ -169,6 +169,8 @@ export class CourtPageComponent implements OnInit, OnDestroy {
   /** Rotates the jumbotron between the scoreboard and the club's game. */
   private jumboTimer: ReturnType<typeof setInterval> | null = null;
   protected readonly isOwner = signal(false);
+  /** Admins get bot controls in the gear menu (the server checks too). */
+  protected readonly isAdmin = signal(false);
   private hudKey = "";
   private gateKey = "";
   private winnerTimer: ReturnType<typeof setTimeout> | null = null;
@@ -688,6 +690,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
       })
     );
     this.isOwner.set(!!view.ownerId && view.ownerId === this.auth.currentUser()?.id);
+    this.isAdmin.set(this.auth.currentUser()?.isAdmin === true);
     const key = JSON.stringify(lines.map((l) => [l.id, l.name, l.makes, l.attempts, l.streak, l.connected]));
     if (key === this.scoreKey) return;
     this.scoreKey = key;
@@ -718,6 +721,15 @@ export class CourtPageComponent implements OnInit, OnDestroy {
         }
       : null;
     this.engine?.setFloorScore(score);
+  }
+
+  protected addBot(): void {
+    this.net?.addBot();
+  }
+
+  protected removeBots(): void {
+    this.menuOpen.set(false);
+    this.net?.removeBots();
   }
 
   protected resetScores(): void {

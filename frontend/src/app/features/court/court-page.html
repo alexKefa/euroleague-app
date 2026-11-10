@@ -168,6 +168,13 @@
       @if (code && isOwner()) {
         <button type="button" class="court-menu-action" (click)="resetScores()">{{ i18n.t("court.scores.reset") }}</button>
       }
+      @if (code && isAdmin()) {
+        <p class="court-menu-label">{{ i18n.t("court.bots.label") }}</p>
+        <div class="court-seg">
+          <button type="button" (click)="addBot()">{{ i18n.t("court.bots.add") }}</button>
+          <button type="button" (click)="removeBots()">{{ i18n.t("court.bots.remove") }}</button>
+        </div>
+      }
     </div>
   }
 

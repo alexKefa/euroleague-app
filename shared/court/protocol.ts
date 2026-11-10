@@ -9,6 +9,8 @@ export const ROOM_NAME = "court";
 /** HTTP + WebSocket path prefix the room server is mounted under. */
 export const COLYSEUS_PATH = "/colyseus";
 export const MAX_PLAYERS = 8;
+/** Practice bots an admin may add to one court (they give their seat up to real players). */
+export const MAX_BOTS = 3;
 /** Clients send moves at most this often. */
 export const MOVE_HZ = 20;
 /** Seconds a dropped player has to come back. */
@@ -159,6 +161,9 @@ export const MSG = {
   reacted: "reacted",
   /** Owner -> server: zero everyone's scoreboard. */
   resetScores: "scores:reset",
+  /** Admin -> server: add a practice bot / remove all bots (testing). */
+  addBot: "bots:add",
+  removeBots: "bots:remove",
 } as const;
 
 // ---- Emotes and quick phrases (M5) ----

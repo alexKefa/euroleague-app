@@ -46,9 +46,23 @@ const LOGO_SIZE = 2.3;
 const MAX_RIPPLES = 4;
 const MAX_PLAYERS = 8;
 const RIPPLE_LIFE_S = 2.6;
-/** Head-to-head score plane: width (m) and centre z (between the logo and midcourt). */
-const SCORE_W = 9.5;
-const SCORE_Z = -1.55;
+/**
+ * Head-to-head score, painted in the key (hoop A): from just past the
+ * no-charge arc to just short of the free-throw line, a little narrower
+ * than the paint.
+ */
+const SCORE_RIM_Z = hoopLayout("A").rim.z;
+const SCORE_FT_Z = -HALF_LENGTH + BOARD_FROM_BASELINE + FREE_THROW_FROM_BOARD;
+const SCORE_Z0 = SCORE_RIM_Z + 1.45;
+const SCORE_Z1 = SCORE_FT_Z - 0.15;
+const SCORE_W = KEY_WIDTH - 0.5;
+const SCORE_D = SCORE_Z1 - SCORE_Z0;
+/**
+ * The camera sees the paint at a shallow angle from behind the arc, which
+ * squashes anything flat on the floor. Like a painted sports-field ad, the
+ * glyphs are drawn stretched along the court so they read upright from there.
+ */
+const SCORE_STRETCH = 1.9;
 
 function mix(a: number, b: number, t: number): number {
   return a + (b - a) * t;
@@ -61,36 +75,30 @@ function drawScore(canvas: HTMLCanvasElement, s: FloorScore): void {
   const mid = W / 2;
   ctx.clearRect(0, 0, W, H);
   ctx.textBaseline = "middle";
-  const glow = (color: string, blur: number) => {
-    ctx.shadowColor = color;
-    ctx.shadowBlur = blur;
-  };
-  // Scores either side of a dash, names further out, in each player's kit colour.
-  ctx.font = `800 230px ${FLOOR_FONT}`;
-  ctx.fillStyle = "#ffffff";
-  glow("#ffffff", 30);
-  ctx.textAlign = "right";
-  ctx.fillText(s.left.value, mid - 90, H / 2 + 8);
-  ctx.textAlign = "left";
-  ctx.fillText(s.right.value, mid + 90, H / 2 + 8);
-  ctx.textAlign = "center";
-  ctx.fillText("–", mid, H / 2);
-  const name = (n: string, color: string, x: number, align: CanvasTextAlign) => {
-    let px = 120;
+  /** Draw text stretched along the court (canvas y), centred on (x, y). */
+  const stretched = (text: string, x: number, y: number, px: number, align: CanvasTextAlign, color: string, maxW: number) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(1, SCORE_STRETCH);
     ctx.font = `800 ${px}px ${FLOOR_FONT}`;
-    while (ctx.measureText(n).width > W * 0.27 && px > 50) ctx.font = `800 ${(px -= 6)}px ${FLOOR_FONT}`;
+    while (ctx.measureText(text).width > maxW && px > 24) ctx.font = `800 ${(px -= 4)}px ${FLOOR_FONT}`;
     ctx.textAlign = align;
-    ctx.fillStyle = lighten(color);
-    glow(lighten(color), 26);
-    ctx.fillText(n.toUpperCase(), x, H / 2 + 6);
+    ctx.fillStyle = color;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 18;
+    ctx.fillText(text, 0, 0);
+    ctx.restore();
   };
-  const valueW = (v: string) => {
-    ctx.font = `800 230px ${FLOOR_FONT}`;
-    return ctx.measureText(v).width;
-  };
-  name(s.left.name, s.left.color, mid - 90 - valueW(s.left.value) - 60, "right");
-  name(s.right.name, s.right.color, mid + 90 + valueW(s.right.value) + 60, "left");
-  ctx.shadowBlur = 0;
+  // Canvas top is towards the rim: names up there, the score nearer the shooter.
+  const nameY = H * 0.24;
+  const scoreY = H * 0.66;
+  const nameMax = W * 0.46;
+  stretched(s.left.name.toUpperCase(), W * 0.04, nameY, 74, "left", lighten(s.left.color), nameMax);
+  stretched(s.right.name.toUpperCase(), W * 0.96, nameY, 74, "right", lighten(s.right.color), nameMax);
+  const valMax = W * 0.36;
+  stretched(s.left.value, mid - 70, scoreY, 168, "right", "#ffffff", valMax);
+  stretched("–", mid, scoreY, 140, "center", "#ffffff", 100);
+  stretched(s.right.value, mid + 70, scoreY, 168, "left", "#ffffff", valMax);
 }
 
 /** Kit colours can be very dark; LEDs need them bright enough to read. */
@@ -249,15 +257,15 @@ export class LedFloor {
 
     // Head-to-head score: its own additive plane between the logo and midcourt.
     const canvas = document.createElement("canvas");
-    canvas.width = 2048;
-    canvas.height = 320;
+    canvas.width = 1024;
+    canvas.height = Math.round((1024 * SCORE_D) / SCORE_W);
     const tex = new CanvasTexture(canvas);
     tex.colorSpace = SRGBColorSpace;
     tex.anisotropy = opts.maxAnisotropy;
     const mat = new MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, blending: AdditiveBlending, toneMapped: false });
-    const mesh = new Mesh(new PlaneGeometry(SCORE_W, (SCORE_W * canvas.height) / canvas.width), mat);
+    const mesh = new Mesh(new PlaneGeometry(SCORE_W, SCORE_D), mat);
     mesh.rotation.x = -Math.PI / 2;
-    mesh.position.set(0, 0.014, SCORE_Z);
+    mesh.position.set(0, 0.014, (SCORE_Z0 + SCORE_Z1) / 2);
     mesh.renderOrder = 1;
     mesh.visible = false;
     scene.add(mesh);

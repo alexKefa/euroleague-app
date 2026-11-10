@@ -12,6 +12,7 @@ import { jerseyNumber, kitColors } from "../../../shared/court/kit.js";
 import { LAYUP_MIN_APPROACH, LAYUP_SERVER_APPROACH_TOLERANCE, SHOT_COOLDOWN_SECONDS } from "../../../shared/court/constants.js";
 import { ACTIVE_HOOPS, insideThreePoint, pickTargetHoop } from "../../../shared/court/geometry.js";
 import { EMPTY_TALLY, applyShot, type Tally } from "../../../shared/court/scoreboard.js";
+import { BotBrain } from "../../../shared/court/bot-brain.js";
 import { computeShotLaunch, layupEligible } from "../../../shared/court/shot.js";
 import {
   canStart,
@@ -21,12 +22,14 @@ import {
   shotGate,
   type HorseInput,
   type HorseState,
+  type ShotRejectReason,
 } from "../../../shared/court/horse.js";
 import { saveHorseResult } from "./horseResults.js";
 import type { HoopId } from "../../../shared/court/types.js";
 import {
   CLOSE_REPLACED,
   EMPTY_DISPOSE_MS,
+  MAX_BOTS,
   MAX_PLAYERS,
   MOVE_HZ,
   MSG,
@@ -56,6 +59,8 @@ import { courtPhysics } from "./physics.js";
 
 interface CourtAuth {
   userId: string;
+  /** Admins can add practice bots. */
+  isAdmin: boolean;
   name: string;
   primary: string;
   secondary: string;
@@ -79,6 +84,17 @@ interface ClientData {
 type CourtClient = Client<{ auth: CourtAuth; userData: ClientData }>;
 
 /** Spawn points along the top of the key, spread so players don't overlap. */
+/** Bots tick at the same rate clients send moves. */
+const BOT_DT = 1 / MOVE_HZ;
+/** Kit colours for bots (club-agnostic). */
+const BOT_KITS: [string, string][] = [
+  ["#00843d", "#ffffff"],
+  ["#e30613", "#ffffff"],
+  ["#ffcd00", "#002b5c"],
+  ["#552583", "#fdb927"],
+  ["#f58426", "#1d1160"],
+];
+
 function spawnPoint(index: number): { x: number; z: number } {
   const offsets = [0, -1.6, 1.6, -3.2, 3.2, -4.8, 4.8, 0];
   return { x: offsets[index % offsets.length]!, z: -5 + (index === 7 ? 1.5 : 0) };
@@ -101,6 +117,11 @@ export class CourtRoom extends Room<{ state: CourtState }> {
   /** sessionId -> userId for the current game (leavers are removed from state.players). */
   private horseUsers = new Map<string, string>();
   private horseTick: Delayed | null = null;
+
+  // ---- practice bots (admin testing) ----
+  private readonly bots = new Map<string, { brain: BotBrain; data: ClientData }>();
+  private botTick: Delayed | null = null;
+  private botCounter = 0;
 
   async onCreate(options: Partial<JoinOptions>): Promise<void> {
     if (!isValidCourtCode(options.code)) throw new Error("invalid court code");
@@ -148,6 +169,10 @@ export class CourtRoom extends Room<{ state: CourtState }> {
     this.onMessage(MSG.horseLeave, (client: CourtClient) => this.applyHorse({ type: "leave", playerId: client.sessionId }));
     this.onMessage(MSG.react, (client: CourtClient, msg: ReactionMessage) => this.handleReaction(client, msg));
     this.onMessage(MSG.resetScores, (client: CourtClient) => this.resetScores(client));
+    this.onMessage(MSG.addBot, (client: CourtClient) => this.addBot(client));
+    this.onMessage(MSG.removeBots, (client: CourtClient) => {
+      if (client.auth?.isAdmin) this.removeAllBots();
+    });
   }
 
   async onAuth(_client: Client, options: Partial<JoinOptions>, _context: AuthContext): Promise<CourtAuth> {
@@ -163,6 +188,7 @@ export class CourtRoom extends Room<{ state: CourtState }> {
     const [row] = await db
       .select({
         name: users.username,
+        isAdmin: users.isAdmin,
         primary: teams.primaryColor,
         secondary: teams.secondaryColor,
         teamCode: teams.code,
@@ -179,6 +205,7 @@ export class CourtRoom extends Room<{ state: CourtState }> {
     const kit = kitColors(row.primary, row.secondary);
     return {
       userId,
+      isAdmin: row.isAdmin === true,
       name: row.name,
       primary: kit.primary,
       secondary: kit.secondary,
@@ -205,6 +232,10 @@ export class CourtRoom extends Room<{ state: CourtState }> {
       }
     });
 
+    if (this.state.players.size >= MAX_PLAYERS) {
+      const bot = this.bots.keys().next().value;
+      if (bot) this.removeBot(bot);
+    }
     const spawn = spawnPoint(this.state.players.size);
     const p = new CourtPlayer();
     p.userId = auth.userId;
@@ -266,7 +297,10 @@ export class CourtRoom extends Room<{ state: CourtState }> {
     }
     courtPresence.setCount(this.code, this.connectedCount());
     this.applyHorse({ type: "leave", playerId: client.sessionId });
-    if (this.clients.length === 0) this.scheduleEmptyDispose();
+    if (this.clients.length === 0) {
+      this.removeAllBots();
+      this.scheduleEmptyDispose();
+    }
   }
 
   async onDispose(): Promise<void> {
@@ -332,23 +366,49 @@ export class CourtRoom extends Room<{ state: CourtState }> {
       data.lastMoveAt = now;
     }
 
+    const fired = this.shootFrom(
+      client.sessionId,
+      p,
+      data,
+      { clientShotId, timingError: Number(msg.timingError), hoopId: msg.hoopId, layupClaim: msg.layup === true, vx, vz },
+      (reason) => client.send(MSG.shotRejected, { clientShotId, ...(reason ? { reason } : {}) } satisfies ShotRejectedMessage)
+    );
+    if (fired) this.sendSeed(client);
+  }
+
+  /**
+   * The shot itself, for clients and bots alike: H-O-R-S-E gate, physics,
+   * broadcast, and the scoreboard / H-O-R-S-E result when the ball lands.
+   * Returns false when the shot was refused (reject() was called).
+   */
+  private shootFrom(
+    sid: string,
+    p: CourtPlayer,
+    data: ClientData,
+    req: { clientShotId: number; timingError: number; hoopId: HoopId; layupClaim: boolean; vx: number; vz: number },
+    reject: (reason?: ShotRejectReason) => void
+  ): boolean {
+    const now = Date.now();
+    const clientShotId = req.clientShotId;
     // H-O-R-S-E: only the player whose turn it is, from the right place.
     const h = this.horse;
     const inGame = h.phase === "setting" || h.phase === "matching";
     if (inGame) {
-      const reason = shotGate({ phase: h.phase, turnId: h.turnId, spot: h.spot, resolving: !!h.resolving }, client.sessionId, p.x, p.z);
+      const reason = shotGate({ phase: h.phase, turnId: h.turnId, spot: h.spot, resolving: !!h.resolving }, sid, p.x, p.z);
       if (reason) {
-        client.send(MSG.shotRejected, { clientShotId, reason } satisfies ShotRejectedMessage);
-        return;
+        reject(reason);
+        return false;
       }
     }
 
-    const hoopId: HoopId = ACTIVE_HOOPS.includes(msg.hoopId) ? msg.hoopId : pickTargetHoop(p.x, p.z, p.rotY).hoopId;
+    const hoopId: HoopId = ACTIVE_HOOPS.includes(req.hoopId) ? req.hoopId : pickTargetHoop(p.x, p.z, p.rotY).hoopId;
+    const vx = req.vx;
+    const vz = req.vz;
     // computeShotLaunch clamps timingError to [-1, 1] (NaN counts as fully late).
     // A layup only if the client asked for one AND the server saw the drive
     // (with some slack for network jitter); otherwise it's a jump shot.
-    const layup = msg.layup === true && layupEligible(p.x, p.z, hoopId, vx, vz, LAYUP_MIN_APPROACH * LAYUP_SERVER_APPROACH_TOLERANCE);
-    const launch = computeShotLaunch(p.x, p.z, hoopId, Number(msg.timingError), data.nextSeed, layup ? "layup" : "jumper");
+    const layup = req.layupClaim && layupEligible(p.x, p.z, hoopId, vx, vz, LAYUP_MIN_APPROACH * LAYUP_SERVER_APPROACH_TOLERANCE);
+    const launch = computeShotLaunch(p.x, p.z, hoopId, req.timingError, data.nextSeed, layup ? "layup" : "jumper");
     const result = courtPhysics().simulate(launch);
 
     data.nextSeed = newSeed();
@@ -358,7 +418,7 @@ export class CourtRoom extends Room<{ state: CourtState }> {
     const shot: ShotMessage = {
       shotId: ++this.shotCounter,
       clientShotId,
-      shooterId: client.sessionId,
+      shooterId: sid,
       hoopId,
       made: result.made,
       perfect: launch.perfect,
@@ -370,20 +430,110 @@ export class CourtRoom extends Room<{ state: CourtState }> {
     };
     if (inGame) {
       // The turn advances when the ball lands, so everyone sees the result first.
-      const sid = client.sessionId;
       const at = { x: p.x, z: p.z };
       this.applyHorse({ type: "shotFired", playerId: sid });
       this.clock.setTimeout(() => this.applyHorse({ type: "shotResult", playerId: sid, made: result.made, x: at.x, z: at.z }), result.durationMs);
     }
     // Scoreboard: counted when the ball lands, like H-O-R-S-E, so nobody sees it early.
-    const sid = client.sessionId;
     const three = !insideThreePoint(hoopId, p.x, p.z);
     this.clock.setTimeout(() => {
       const pl = this.state.players.get(sid);
       if (pl) Object.assign(pl, applyShot(tallyOf(pl), result.made, three));
+      this.botReactions(sid, result.made);
     }, result.durationMs);
     this.broadcast(MSG.shot, shot);
-    this.sendSeed(client);
+    return true;
+  }
+
+  // ---------- practice bots (admin testing) ----------
+
+  private addBot(client: CourtClient): void {
+    if (!client.auth?.isAdmin) return;
+    if (this.bots.size >= MAX_BOTS || this.state.players.size >= MAX_PLAYERS) return;
+    const n = ++this.botCounter;
+    const sid = `bot${n}`;
+    const [primary, secondary] = BOT_KITS[(n - 1) % BOT_KITS.length]!;
+    const kit = kitColors(primary, secondary);
+    const spawn = spawnPoint(this.state.players.size);
+    const p = new CourtPlayer();
+    p.userId = `bot:${n}`;
+    p.name = `BOT ${n}`;
+    p.teamColorPrimary = kit.primary;
+    p.teamColorSecondary = kit.secondary;
+    p.teamCode = "";
+    p.number = (n * 17 + 6) % 100;
+    p.x = spawn.x;
+    p.z = spawn.z;
+    p.rotY = Math.PI;
+    p.anim = "idle";
+    p.connected = true;
+    p.letters = "";
+    p.eliminated = false;
+    p.joinedAt = ++this.joinCounter;
+    Object.assign(p, EMPTY_TALLY);
+    this.state.players.set(sid, p);
+    this.bots.set(sid, { brain: new BotBrain(sid), data: { lastMoveAt: Date.now(), nextSeed: newSeed(), shotBusyUntil: 0 } });
+    this.toast({ kind: "joined", name: p.name });
+    this.botTick ??= this.clock.setInterval(() => this.stepBots(), BOT_DT * 1000);
+  }
+
+  private removeBot(sid: string): void {
+    const p = this.state.players.get(sid);
+    this.bots.delete(sid);
+    if (p) {
+      this.state.players.delete(sid);
+      this.toast({ kind: "left", name: p.name });
+    }
+    this.applyHorse({ type: "leave", playerId: sid });
+    if (this.bots.size === 0) {
+      this.botTick?.clear();
+      this.botTick = null;
+    }
+  }
+
+  private removeAllBots(): void {
+    for (const sid of [...this.bots.keys()]) this.removeBot(sid);
+  }
+
+  private stepBots(): void {
+    const now = Date.now();
+    const h = this.horse;
+    const spot = h.spot ? { x: h.spot.x, z: h.spot.z } : null;
+    for (const [sid, bot] of this.bots) {
+      const p = this.state.players.get(sid);
+      if (!p) continue;
+      const out = bot.brain.step(now, BOT_DT, { x: p.x, z: p.z, phase: h.phase, turnId: h.turnId ?? "", spot, busy: now < bot.data.shotBusyUntil });
+      if (out.move) {
+        bot.data.vx = (out.move.x - p.x) / BOT_DT;
+        bot.data.vz = (out.move.z - p.z) / BOT_DT;
+        p.x = Math.round(out.move.x * 100) / 100;
+        p.z = Math.round(out.move.z * 100) / 100;
+        p.rotY = Math.round(normalizeYaw(out.move.rotY) * 100) / 100;
+        p.anim = out.move.anim;
+        bot.data.lastMoveAt = now;
+      }
+      if (out.shoot && now >= bot.data.shotBusyUntil) {
+        this.shootFrom(
+          sid,
+          p,
+          bot.data,
+          { clientShotId: 0, timingError: out.shoot.timingError, hoopId: "A", layupClaim: out.shoot.layup, vx: out.shoot.vx, vz: out.shoot.vz },
+          () => {}
+        );
+      }
+    }
+  }
+
+  /** Bots talk a little trash when a shot lands. */
+  private botReactions(shooter: string, made: boolean): void {
+    const now = Date.now();
+    for (const [sid, bot] of this.bots) {
+      if (!reactionAllowed(bot.data.lastReactionAt, now)) continue;
+      const id = bot.brain.reactTo(sid === shooter, made);
+      if (!id) continue;
+      bot.data.lastReactionAt = now;
+      this.broadcast(MSG.reacted, { playerId: sid, id } satisfies ReactionShownMessage);
+    }
   }
 
   // ---------- H-O-R-S-E ----------
@@ -397,7 +547,9 @@ export class CourtRoom extends Room<{ state: CourtState }> {
     });
     if (this.horse.phase !== "free" || !canStart(players, ownerSession, client.sessionId)) return;
     this.horseUsers = new Map();
-    this.state.players.forEach((p, sid) => this.horseUsers.set(sid, p.userId));
+    this.state.players.forEach((p, sid) => {
+      if (!this.bots.has(sid)) this.horseUsers.set(sid, p.userId);
+    });
     this.applyHorse({ type: "start", by: client.sessionId, ownerId: ownerSession, players });
     this.horseTick?.clear();
     this.horseTick = this.clock.setInterval(() => this.applyHorse({ type: "tick" }), 250);
@@ -476,8 +628,8 @@ export class CourtRoom extends Room<{ state: CourtState }> {
 
   private connectedCount(): number {
     let n = 0;
-    this.state.players.forEach((p) => {
-      if (p.connected) n++;
+    this.state.players.forEach((p, sid) => {
+      if (p.connected && !this.bots.has(sid)) n++;
     });
     return n;
   }
