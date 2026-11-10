@@ -212,3 +212,24 @@ Built and shipped inactive (launch gate 2027-01-01 00:00 Athens; spec
   Remember the last-seen quarter per duel.
 - Season badges (Top 3, All-Star season) are not yet shown on the profile or
   the achievements page; only the Battles hub header shows them.
+
+## 16. Clutch Court: rigged character model + mocap animations (deferred 2026-11-10)
+The procedural player (`frontend/.../court/engine/avatar-rig.ts`) has a hard ceiling; the user doesn't
+like it. Plan: one rigged character + motion-captured clips (spec §9). Blocked on assets: Mixamo needs
+the user's Adobe login and they couldn't find suitable files. Options when resumed:
+- **Mixamo**: character with a sleeveless/short-sleeve top + shorts (not X/Y Bot), FBX Binary, T-pose,
+  With Skin. Clips (FBX Binary, Without Skin, 30 fps, "In Place"): idle, run, dribble, jump shot, layup,
+  waving, cheering, clapping, shrugging, laughing (optional: dunk, crossover).
+- **CC0 pack** (e.g. Quaternius) Claude can download itself: no account, fewer basketball moves.
+Integration: FBX -> one GLB (meshopt, ~1.5-2.5 MB, 4 MB court budget), team colours by recolouring the
+top/shorts texture regions per kit (cached), jersey lettering parented to spine bones, AnimationMixer
+crossfades driven by the existing `anim` state (no server change), shot clip timed to the meter release,
+ball follows the hand bone, procedural rig kept as the fallback if the model fails to load.
+
+## 17. Clutch Court: next ideas (2026-11-10)
+- Sound: crowd cheer on makes, "ohh" on rim-outs, day/night ambience; haptics on release/make.
+- H-O-R-S-E review minors: countdown missing after a reconnect, clock runs while the ball is in the air,
+  "H!" not shown over the shooter.
+- Daily Shootout (60 s, racks + money ball, daily leaderboard); court stats on the profile; in-app
+  H-O-R-S-E challenges via push; watch-party courts during live games; club rivalry board.
+- Phone checks still owed: `?perf=1` with 8 players (draw calls < 100), day/night screenshots.
