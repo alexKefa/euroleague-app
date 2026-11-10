@@ -33,6 +33,12 @@ export const CourtState = schema(
     /** Court owner's club: paints the keys and the logo at the top of the arc. */
     courtColor: t.string(),
     courtLogoUrl: t.string(),
+    /** Court owner's club for the mural, fans and jumbotron ("" when they have none). */
+    courtTeamId: t.string(),
+    courtTeamName: t.string(),
+    /** teams.code (the feed code; the client maps it to a display code). */
+    courtTeamCode: t.string(),
+    courtColor2: t.string(),
     mode: t.string(), // shootaround | horse
     phase: t.string(), // free | lobby | setting | matching | over
     turnOrder: t.array("string"),

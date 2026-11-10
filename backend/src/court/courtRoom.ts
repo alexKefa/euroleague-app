@@ -110,7 +110,7 @@ export class CourtRoom extends Room<{ state: CourtState }> {
     this.courtId = court.id;
 
     const [owner] = await db
-      .select({ primary: teams.primaryColor, secondary: teams.secondaryColor, logoUrl: teams.logoUrl })
+      .select({ teamId: teams.id, teamName: teams.name, teamCode: teams.code, primary: teams.primaryColor, secondary: teams.secondaryColor, logoUrl: teams.logoUrl })
       .from(users)
       .leftJoin(teams, eq(users.favoriteTeamId, teams.id))
       .where(eq(users.id, court.ownerUserId))
@@ -118,7 +118,12 @@ export class CourtRoom extends Room<{ state: CourtState }> {
 
     const s = this.state;
     s.ownerId = court.ownerUserId;
-    s.courtColor = kitColors(owner?.primary, owner?.secondary).primary;
+    const courtKit = kitColors(owner?.primary, owner?.secondary);
+    s.courtColor = courtKit.primary;
+    s.courtColor2 = courtKit.secondary;
+    s.courtTeamId = owner?.teamId ?? "";
+    s.courtTeamName = owner?.teamName ?? "";
+    s.courtTeamCode = owner?.teamCode ?? "";
     s.courtLogoUrl = owner?.logoUrl ?? "";
     s.mode = "shootaround";
     s.phase = "free";

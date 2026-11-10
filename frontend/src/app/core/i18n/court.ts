@@ -58,6 +58,12 @@ export const courtTranslations: Record<string, Record<Lang, string>> = {
   "court.reconnecting": { en: "Connection lost. Reconnecting…", el: "Χάθηκε η σύνδεση. Επανασύνδεση…" },
   "court.retry": { en: "Try again", el: "Δοκίμασε ξανά" },
   "court.rejoin": { en: "Rejoin", el: "Μπες ξανά" },
+  // Jumbotron
+  "court.jumbo.next": { en: "Next game", el: "Επόμενο ματς" },
+  "court.jumbo.live": { en: "Live", el: "Live" },
+  "court.jumbo.final": { en: "Final", el: "Τελικό" },
+  "court.jumbo.quarter": { en: "Q{q}", el: "{q}η περ." },
+  "court.jumbo.ot": { en: "OT", el: "Παράταση" },
   // Emotes and quick phrases
   "court.react.open": { en: "Emotes and phrases", el: "Αντιδράσεις και φράσεις" },
   "court.react.close": { en: "Close", el: "Κλείσιμο" },

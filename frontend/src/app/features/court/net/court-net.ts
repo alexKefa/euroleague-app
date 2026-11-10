@@ -57,6 +57,10 @@ interface NetState {
   ownerId: string;
   courtColor: string;
   courtLogoUrl: string;
+  courtTeamId: string;
+  courtTeamName: string;
+  courtTeamCode: string;
+  courtColor2: string;
   phase: string;
   turnId: string;
   setterId: string;
@@ -90,6 +94,8 @@ export interface CourtWelcome {
   ownerId: string;
   courtColor: string;
   courtLogoUrl: string;
+  /** The court owner's club ("" fields when they have none). teamCode is the feed code. */
+  courtTeam: { id: string; name: string; teamCode: string; secondary: string };
 }
 
 export type JoinFailure = "notFound" | "closed" | "full" | "auth" | "network";
@@ -186,6 +192,12 @@ export class CourtNet {
       ownerId: first.ownerId,
       courtColor: first.courtColor,
       courtLogoUrl: first.courtLogoUrl,
+      courtTeam: {
+        id: first.courtTeamId ?? "",
+        name: first.courtTeamName ?? "",
+        teamCode: first.courtTeamCode ?? "",
+        secondary: first.courtColor2 ?? "",
+      },
     };
   }
 

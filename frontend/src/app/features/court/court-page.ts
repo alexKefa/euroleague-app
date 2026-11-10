@@ -1,11 +1,12 @@
-import { Component, ElementRef, NgZone, OnDestroy, OnInit, ViewChild, inject, signal } from "@angular/core";
+import { Component, ElementRef, NgZone, OnDestroy, OnInit, ViewChild, effect, inject, signal, untracked } from "@angular/core";
 import { NgTemplateOutlet } from "@angular/common";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { firstValueFrom, of, catchError, timeout } from "rxjs";
 import { ApiService } from "../../core/api.service";
 import { AuthService } from "../../core/auth.service";
 import { I18nService } from "../../core/i18n.service";
-import { Team } from "../../core/models";
+import { Game, Team } from "../../core/models";
+import { EventsService, GameUpdate } from "../../core/events.service";
 import { NavHistoryService } from "../../core/nav-history.service";
 import { ThemeService } from "../../core/theme.service";
 import { cdnImage } from "../../shared/cdn-image";
@@ -30,6 +31,7 @@ import { JerseyText } from "./engine/avatar-factory";
 import { EngineCallbacks, EngineOptions, GameEngine, PerfStats, PracticeStats, ReleaseGrade } from "./engine/game-engine";
 import { CourtJoinError, CourtNet, HorseView, JoinFailure, NetPlayer } from "./net/court-net";
 import { EMOTE_ICONS } from "./engine/reaction-bubbles";
+import type { JumbotronContent } from "./engine/venue";
 import { HorseHudComponent, HorseHudPlayer, HorseWinner } from "./hud/horse-hud";
 import { HORSE_RETURN_MS, canStart, shotGate } from "../../../../../shared/court/horse";
 import type { HorseEventMessage } from "../../../../../shared/court/protocol";
@@ -150,6 +152,16 @@ export class CourtPageComponent implements OnInit, OnDestroy {
   private gateKey = "";
   private winnerTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // ---- jumbotron: the court owner's club's live / next / last game ----
+  private events = inject(EventsService);
+  /** Every game of the court's club this season (null until loaded or when there's no club). */
+  private jumboGames: Game[] | null = null;
+  /** Live scores push straight onto the big screen. */
+  private readonly jumboLive = effect(() => {
+    const u = this.events.lastGameUpdate();
+    if (u) untracked(() => this.onGameUpdate(u));
+  });
+
   private engine: GameEngine | null = null;
   private net: CourtNet | null = null;
   private destroyed = false;
@@ -210,6 +222,87 @@ export class CourtPageComponent implements OnInit, OnDestroy {
     this.rejoinOnVisible = false;
     this.teardown();
     void this.boot();
+  }
+
+  // ---- jumbotron ----
+
+  private async loadJumbotron(teamId: string): Promise<void> {
+    this.jumboGames = null;
+    this.refreshJumbotron();
+    if (!teamId) return;
+    const games = await firstValueFrom(this.api.getTeamGames(teamId).pipe(timeout(8000), catchError(() => of(null))));
+    if (this.destroyed || !games) return;
+    this.jumboGames = games;
+    this.refreshJumbotron();
+  }
+
+  private onGameUpdate(u: GameUpdate): void {
+    const g = this.jumboGames?.find((x) => x.id === u.gameId);
+    if (!g) return;
+    g.homeScore = u.homeScore;
+    g.awayScore = u.awayScore;
+    g.status = u.status;
+    g.quarter = u.quarter ?? g.quarter;
+    g.gameClockSeconds = u.gameClockSeconds ?? g.gameClockSeconds;
+    this.refreshJumbotron();
+  }
+
+  /** Live game > a final from the last 18 h > the next game > the last final. */
+  private featuredGame(): Game | null {
+    const games = this.jumboGames;
+    if (!games?.length) return null;
+    const now = Date.now();
+    const at = (g: Game) => Date.parse(g.tipoffAt);
+    const finals = games.filter((g) => g.status === "final").sort((a, b) => at(b) - at(a));
+    return (
+      games.find((g) => g.status === "live") ??
+      finals.find((g) => now - at(g) < 18 * 3600_000) ??
+      games.filter((g) => g.status !== "final" && at(g) > now - 3 * 3600_000).sort((a, b) => at(a) - at(b))[0] ??
+      finals[0] ??
+      null
+    );
+  }
+
+  private refreshJumbotron(): void {
+    this.engine?.setJumbotron(this.jumbotronContent());
+  }
+
+  private jumbotronContent(): JumbotronContent {
+    const view = this.horseView();
+    if (this.code && (view.phase === "setting" || view.phase === "matching")) {
+      return {
+        kind: "horse",
+        title: "H-O-R-S-E",
+        rows: this.horsePlayers().map((p) => ({ name: p.name, letters: p.letters, turn: p.isTurn, out: p.eliminated })),
+      };
+    }
+    const g = this.featuredGame();
+    if (!g) return { kind: "team" };
+    const chip = (t: Game["homeTeam"]) => ({ code: displayTeamCode(t.code), color: t.primaryColor || "#2a3445" });
+    const live = g.status === "live";
+    const final = g.status === "final";
+    const locale = this.i18n.lang() === "el" ? "el-GR" : "en-GB";
+    const when = new Intl.DateTimeFormat(locale, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(
+      new Date(g.tipoffAt)
+    );
+    let sub = when;
+    if (live) {
+      const q = g.quarter ?? 0;
+      const period = q > 4 ? this.i18n.t("court.jumbo.ot") : q > 0 ? this.i18n.t("court.jumbo.quarter").replace("{q}", String(q)) : "";
+      const secs = g.gameClockSeconds;
+      const clock = secs === null || secs === undefined ? "" : `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`;
+      sub = [period, clock].filter(Boolean).join(" · ") || this.i18n.t("court.jumbo.live");
+    }
+    return {
+      kind: "game",
+      label: this.i18n.t(live ? "court.jumbo.live" : final ? "court.jumbo.final" : "court.jumbo.next"),
+      live,
+      home: chip(g.homeTeam),
+      away: chip(g.awayTeam),
+      homeScore: live || final ? g.homeScore : null,
+      awayScore: live || final ? g.awayScore : null,
+      sub,
+    };
   }
 
   // ---- emotes and quick phrases (M5) ----
@@ -369,7 +462,9 @@ export class CourtPageComponent implements OnInit, OnDestroy {
       bestStreak: best,
       jersey: { name: user?.username ?? "", number: user ? jerseyNumber(user.id) : 7, chest: team ? displayTeamCode(team.code) : "" },
       logoUrl: team?.logoUrl ? cdnImage(team.logoUrl, 240).src : null,
+      courtTeam: team ? { name: team.name, code: displayTeamCode(team.code), secondary } : null,
     });
+    void this.loadJumbotron(team?.id ?? "");
   }
 
   private async bootShared(code: string): Promise<void> {
@@ -439,7 +534,11 @@ export class CourtPageComponent implements OnInit, OnDestroy {
       bestStreak: 0,
       jersey: { name: me.name, number: me.number, chest: displayTeamCode(me.teamCode) },
       logoUrl: welcome.courtLogoUrl ? cdnImage(welcome.courtLogoUrl, 240).src : null,
+      courtTeam: welcome.courtTeam.id
+        ? { name: welcome.courtTeam.name, code: displayTeamCode(welcome.courtTeam.teamCode), secondary: welcome.courtTeam.secondary || "#0b1220" }
+        : null,
     });
+    void this.loadJumbotron(welcome.courtTeam.id);
     this.engine?.setMoveSink((m) => net.sendMove(m));
     this.engine?.setShotNet({ takeSeed: () => net.takeSeed(), send: (m) => net.sendShoot(m) });
   }
@@ -461,7 +560,10 @@ export class CourtPageComponent implements OnInit, OnDestroy {
     this.engine = engine;
     try {
       await this.zone.runOutsideAngular(() => engine.start());
-      if (this.engine === engine) this.state.set("ready");
+      if (this.engine === engine) {
+        this.state.set("ready");
+        this.refreshJumbotron();
+      }
     } catch (err) {
       console.error("[court] engine failed to start", err);
       if (this.engine === engine) this.state.set("error");
@@ -524,6 +626,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
       this.hudKey = key;
       this.horseView.set(view);
       this.horsePlayers.set(hud);
+      this.refreshJumbotron();
       this.isStarter.set(eligible && view.phase === "free");
       this.canStartHorse.set(ready);
       this.mySessionId.set(me);
@@ -558,6 +661,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
         const standings = (m.standings ?? []).map((st) => ({ name: this.names.get(st.id) ?? "?", letters: st.letters, placement: st.placement }));
         this.horseWinner.set({ name, standings });
         this.showFlash(this.i18n.t("court.horse.wins").replace("{name}", name), "fire");
+        this.engine?.cheer(2);
         if (this.winnerTimer) clearTimeout(this.winnerTimer);
         this.winnerTimer = setTimeout(() => this.horseWinner.set(null), HORSE_RETURN_MS);
         break;

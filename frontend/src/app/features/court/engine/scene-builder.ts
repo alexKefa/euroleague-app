@@ -6,13 +6,13 @@ import {
   BoxGeometry,
   CanvasTexture,
   Color,
-  ConeGeometry,
   CylinderGeometry,
   DirectionalLight,
   DoubleSide,
   Fog,
   Group,
   HemisphereLight,
+  IcosahedronGeometry,
   InstancedMesh,
   Matrix4,
   Mesh,
@@ -42,6 +42,7 @@ import {
 } from "../../../../../../shared/court/constants";
 import { ACTIVE_HOOPS, FENCE, HALF_COURT, RIM_RING_RADIUS, hoopLayout } from "../../../../../../shared/court/geometry";
 import { HoopId } from "../../../../../../shared/court/types";
+import { Venue, VenueTeam } from "./venue";
 
 export const SKY_COLOR = "#9cc9ec";
 const NET_HEIGHT = 0.42;
@@ -54,6 +55,8 @@ export interface HoopVisual {
 export interface BuiltScene {
   scene: Scene;
   hoops: Map<HoopId, HoopVisual>;
+  /** Mural, jumbotron and the crowd. */
+  venue: Venue;
 }
 
 export interface SceneOptions {
@@ -61,13 +64,15 @@ export interface SceneOptions {
   /** Club logo painted at the top of the 3-point arc (already loaded, CORS-clean). */
   logo: HTMLImageElement | null;
   maxAnisotropy: number;
+  /** Whose court it is: mural, fans' shirts, jumbotron. */
+  venue: VenueTeam;
 }
 
 /** Painted court area: 1 m run-off around the lines, cut at the fence on a half court. */
 const COURT_MIN_Z = -HALF_LENGTH - 1;
 const COURT_MAX_Z = Math.min(HALF_LENGTH + 1, FENCE.maxZ);
 
-export function buildScene({ teamPrimary, logo, maxAnisotropy }: SceneOptions): BuiltScene {
+export function buildScene({ teamPrimary, logo, maxAnisotropy, venue: venueTeam }: SceneOptions): BuiltScene {
   const scene = new Scene();
   scene.background = new Color(SKY_COLOR);
   scene.fog = new Fog(SKY_COLOR, 45, 110);
@@ -143,8 +148,9 @@ export function buildScene({ teamPrimary, logo, maxAnisotropy }: SceneOptions): 
   }
 
   buildFence(scene, maxAnisotropy);
+  const venue = new Venue(scene, venueTeam);
   buildSurroundings(scene);
-  return { scene, hoops };
+  return { scene, hoops, venue };
 }
 
 // ---------- court markings ----------
@@ -393,24 +399,37 @@ function buildSurroundings(scene: Scene): void {
   }
   scene.add(buildings);
 
-  const treeCount = 34;
-  const trunks = new InstancedMesh(new CylinderGeometry(0.15, 0.2, 1.6, 6), new MeshLambertMaterial({ color: "#6b4f3a" }), treeCount);
-  const crowns = new InstancedMesh(new ConeGeometry(1.6, 4, 7), new MeshLambertMaterial({ color: "#3f6b3a" }), treeCount);
+  // Rounded, leafy trees: a trunk and three overlapping crown blobs in
+  // varied greens (2 draw calls for the whole park).
+  const treeCount = 24;
+  const blobs = 3;
+  const trunks = new InstancedMesh(new CylinderGeometry(0.13, 0.22, 2.4, 7), new MeshLambertMaterial({ color: "#6b4f3a" }), treeCount);
+  const crowns = new InstancedMesh(new IcosahedronGeometry(1, 1), new MeshLambertMaterial({ color: "#ffffff" }), treeCount * blobs);
+  const greens = ["#4f7a3a", "#5d8a44", "#46703a", "#6a9550", "#3f6634"].map((c) => new Color(c));
   for (let i = 0; i < treeCount; i++) {
-    const a = rand() * Math.PI * 2;
-    // Keep trees outside the fence with a margin.
-    const r = 18 + rand() * 22;
+    const a = (i / treeCount) * Math.PI * 2 + rand() * 0.2;
+    // Outside the fence, the bleachers and the mural wall.
+    const r = 20 + rand() * 20;
     const x = Math.cos(a) * r;
-    const z = oz + Math.sin(a) * r * 1.2;
-    const s = 0.8 + rand() * 0.6;
-    dummy.rotation.set(0, 0, 0);
+    const z = oz + Math.sin(a) * r * 1.15;
+    const s = 0.85 + rand() * 0.5;
+    dummy.rotation.set(0, rand() * Math.PI, 0);
     dummy.scale.set(s, s, s);
-    dummy.position.set(x, 0.8 * s, z);
+    dummy.position.set(x, 1.2 * s, z);
     dummy.updateMatrix();
     trunks.setMatrixAt(i, dummy.matrix);
-    dummy.position.set(x, (1.6 + 2) * s, z);
-    dummy.updateMatrix();
-    crowns.setMatrixAt(i, dummy.matrix);
+    for (let k = 0; k < blobs; k++) {
+      const main = k === 0;
+      const ang = rand() * Math.PI * 2;
+      const off = main ? 0 : 0.85 * s;
+      dummy.position.set(x + Math.cos(ang) * off, (main ? 3.4 : 2.9 + rand() * 0.9) * s, z + Math.sin(ang) * off);
+      const b = (main ? 1.55 : 1.05 + rand() * 0.25) * s;
+      dummy.scale.set(b, b * 0.9, b);
+      dummy.rotation.set(rand(), rand(), 0);
+      dummy.updateMatrix();
+      crowns.setMatrixAt(i * blobs + k, dummy.matrix);
+      crowns.setColorAt(i * blobs + k, greens[Math.floor(rand() * greens.length)]!);
+    }
   }
   scene.add(trunks, crowns);
 }

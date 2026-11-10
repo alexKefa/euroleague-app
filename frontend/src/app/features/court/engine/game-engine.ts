@@ -23,6 +23,7 @@ import type { ShotRejectReason } from "../../../../../../shared/court/horse";
 import { BuiltScene, buildScene, disposeObject } from "./scene-builder";
 import { FrameGovernor } from "./frame-governor";
 import { ReactionBubbles } from "./reaction-bubbles";
+import type { JumbotronContent } from "./venue";
 import { isEmoteId, type ReactionId } from "../../../../../../shared/court/protocol";
 
 /** Bubble key for our own player (remote players use their sessionId). */
@@ -86,6 +87,8 @@ export interface EngineOptions {
   jersey: JerseyText | null;
   /** Club logo for the floor (CORS-enabled URL), or null. */
   logoUrl: string | null;
+  /** The court owner's club for the mural, the fans and the jumbotron (null: no club). */
+  courtTeam: { name: string; code: string; secondary: string } | null;
 }
 
 const RETURN_MS = 380;
@@ -194,7 +197,13 @@ export class GameEngine {
     this.dom.container.appendChild(canvas);
 
     this.camera = new PerspectiveCamera(60, 1, 0.1, 250);
-    this.built = buildScene({ teamPrimary: this.opts.courtColor, logo, maxAnisotropy: this.renderer.capabilities.getMaxAnisotropy() });
+    const ct = this.opts.courtTeam;
+    this.built = buildScene({
+      teamPrimary: this.opts.courtColor,
+      logo,
+      maxAnisotropy: this.renderer.capabilities.getMaxAnisotropy(),
+      venue: { name: ct?.name ?? "", code: ct?.code ?? "", primary: this.opts.courtColor, secondary: ct?.secondary ?? "#0b1220", logo },
+    });
     this.batch = new AvatarBatch(this.built.scene, MAX_PLAYERS);
     this.rig = new AvatarRig(this.batch, this.built.scene, this.batch.alloc()!, this.opts.kitPrimary, this.opts.kitSecondary, this.opts.jersey);
     this.remotes = new RemotePlayers(this.built.scene, this.batch);
@@ -338,6 +347,16 @@ export class GameEngine {
     this.bubbles?.show(playerId ?? ME, text, isEmoteId(id), now);
   }
 
+  /** What the jumbotron shows (redrawn only when it changes). */
+  setJumbotron(content: JumbotronContent): void {
+    this.built?.venue.jumbotron.set(content);
+  }
+
+  /** Make the crowd stand up and cheer (e.g. a H-O-R-S-E winner). */
+  cheer(strength = 1.5): void {
+    if (this.running) this.built.venue.crowd.cheer(performance.now(), strength);
+  }
+
   /** The server rejected a move: snap back. */
   applyCorrection(x: number, z: number): void {
     this.player.x = x;
@@ -479,6 +498,7 @@ export class GameEngine {
     this.updateNet(now);
     this.remotes?.update(now, dt, this.onRemoteShotEvent);
     this.spotRing?.update(now);
+    this.built.venue.update(now);
     this.bubbles?.update(now, (key, out) => (key === ME ? out.set(this.player.x, 0, this.player.z) : (this.remotes?.positionOf(key, out) ?? null)));
     this.batch.commit();
     if (this.awaitingShot && now - this.awaitingShot.sentAt > SHOT_REPLY_TIMEOUT_MS) this.onShotRejected(this.awaitingShot.clientShotId);
@@ -537,6 +557,7 @@ export class GameEngine {
         this.audio.play(ev.kind, ev.strength);
         if (ev.kind === "make") {
           this.netSwish = { hoop: this.targetHoop, startedAt: now };
+          this.built.venue.crowd.cheer(now, 1);
           this.player.addShake(0.08);
           this.finishShot(true);
         }
@@ -568,7 +589,10 @@ export class GameEngine {
   private onRemoteShotEvent = (ev: ShotEvent, at: Vector3, hoop: HoopId): void => {
     const d = Math.hypot(at.x - this.player.x, at.z - this.player.z);
     this.audio.play(ev.kind, ev.strength, Math.max(0, 1 - d / HEARING_RANGE) * 0.8);
-    if (ev.kind === "make") this.netSwish = { hoop, startedAt: performance.now() };
+    if (ev.kind === "make") {
+      this.netSwish = { hoop, startedAt: performance.now() };
+      this.built.venue.crowd.cheer(performance.now(), 0.7);
+    }
   };
 
   private updateNet(now: number): void {
