@@ -9,6 +9,7 @@ import { db } from "../db/client.js";
 import { courts, teams, users } from "../db/schema.js";
 import { verifyAccessToken } from "../auth/tokens.js";
 import { jerseyNumber, kitColors } from "../../../shared/court/kit.js";
+import { defaultAvatar, encodeAvatar, parseAvatar } from "../../../shared/court/avatar.js";
 import { LAYUP_MIN_APPROACH, LAYUP_SERVER_APPROACH_TOLERANCE, SHOT_COOLDOWN_SECONDS } from "../../../shared/court/constants.js";
 import { ACTIVE_HOOPS, insideThreePoint, pickTargetHoop } from "../../../shared/court/geometry.js";
 import { EMPTY_TALLY, applyShot, type Tally } from "../../../shared/court/scoreboard.js";
@@ -66,6 +67,9 @@ interface CourtAuth {
   secondary: string;
   teamCode: string;
   logoUrl: string;
+  /** Locker-room look, wire-encoded (always set: the default look when they never customised). */
+  avatar: string;
+  number: number;
 }
 
 interface ClientData {
@@ -193,6 +197,7 @@ export class CourtRoom extends Room<{ state: CourtState }> {
         secondary: teams.secondaryColor,
         teamCode: teams.code,
         logoUrl: teams.logoUrl,
+        avatar: users.avatar,
         courtActive: courts.isActive,
       })
       .from(users)
@@ -203,6 +208,7 @@ export class CourtRoom extends Room<{ state: CourtState }> {
     if (!row) throw new Error("user not found");
     if (!row.courtActive) throw new Error("court closed");
     const kit = kitColors(row.primary, row.secondary);
+    const look = parseAvatar(row.avatar) ?? defaultAvatar(jerseyNumber(userId));
     return {
       userId,
       isAdmin: row.isAdmin === true,
@@ -211,6 +217,8 @@ export class CourtRoom extends Room<{ state: CourtState }> {
       secondary: kit.secondary,
       teamCode: row.teamCode ?? "",
       logoUrl: row.logoUrl ?? "",
+      avatar: encodeAvatar(look),
+      number: look.number,
     };
   }
 
@@ -243,7 +251,8 @@ export class CourtRoom extends Room<{ state: CourtState }> {
     p.teamColorPrimary = auth.primary;
     p.teamColorSecondary = auth.secondary;
     p.teamCode = auth.teamCode;
-    p.number = jerseyNumber(auth.userId);
+    p.number = auth.number;
+    p.avatar = auth.avatar;
     p.x = spawn.x;
     p.z = spawn.z;
     p.rotY = Math.PI;
@@ -462,6 +471,7 @@ export class CourtRoom extends Room<{ state: CourtState }> {
     p.teamColorSecondary = kit.secondary;
     p.teamCode = "";
     p.number = (n * 17 + 6) % 100;
+    p.avatar = "";
     p.x = spawn.x;
     p.z = spawn.z;
     p.rotY = Math.PI;

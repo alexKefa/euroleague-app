@@ -13,6 +13,7 @@ import { cdnImage } from "../../shared/cdn-image";
 import { stashPendingCourtJoin } from "../../shared/pending-court-join";
 import { displayTeamCode } from "../../shared/team-display-codes";
 import { jerseyNumber, kitColors } from "../../../../../shared/court/kit";
+import { decodeAvatar, type AvatarLook } from "../../../../../shared/court/avatar";
 import {
   MAX_PLAYERS,
   EMOTE_IDS,
@@ -528,17 +529,29 @@ export class CourtPageComponent implements OnInit, OnDestroy {
     if (team && !this.theme.favoriteTeam()) this.theme.applyTeam(team);
     const { primary, secondary } = this.teamColors();
     const user = this.auth.currentUser();
+    const look = user ? await this.myLook() : null;
+    if (this.destroyed) return;
     const best = Number(readJson<{ best: number }>(BEST_KEY, { best: 0 }).best) || 0;
     await this.startEngine(this.engineCallbacks(best), {
       courtColor: primary,
       kitPrimary: primary,
       kitSecondary: secondary,
       bestStreak: best,
-      jersey: { name: user?.username ?? "", number: user ? jerseyNumber(user.id) : 7, chest: team ? displayTeamCode(team.code) : "" },
+      jersey: { name: user?.username ?? "", number: look?.number ?? (user ? jerseyNumber(user.id) : 7), chest: team ? displayTeamCode(team.code) : "" },
+      look,
       logoUrl: team?.logoUrl ? cdnImage(team.logoUrl, 240).src : null,
       courtTeam: team ? { name: team.name, code: displayTeamCode(team.code), secondary } : null,
     });
     void this.loadJumbotron(team?.id ?? "");
+  }
+
+  /** Your Locker-room look for practice (null when it can't be loaded: the automatic look is used). */
+  private async myLook(): Promise<AvatarLook | null> {
+    try {
+      return (await firstValueFrom(this.api.getMyAvatar())).avatar;
+    } catch {
+      return null;
+    }
   }
 
   private async bootShared(code: string): Promise<void> {
@@ -608,6 +621,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
       start: { x: me.x, z: me.z, rotY: me.rotY },
       bestStreak: 0,
       jersey: { name: me.name, number: me.number, chest: displayTeamCode(me.teamCode) },
+      look: decodeAvatar(me.avatar),
       logoUrl: welcome.courtLogoUrl ? cdnImage(welcome.courtLogoUrl, 240).src : null,
       courtTeam: welcome.courtTeam.id
         ? { name: welcome.courtTeam.name, code: displayTeamCode(welcome.courtTeam.teamCode), secondary: welcome.courtTeam.secondary || "#0b1220" }
@@ -661,7 +675,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
       if (!engine.hasRemote(id)) {
         const kit = kitColors(p.teamColorPrimary, p.teamColorSecondary);
         const jersey: JerseyText = { name: p.name, number: p.number, chest: displayTeamCode(p.teamCode) };
-        engine.addRemote(id, { name: p.name, primary: kit.primary, secondary: kit.secondary, jersey }, p.x, p.z, p.rotY);
+        engine.addRemote(id, { name: p.name, primary: kit.primary, secondary: kit.secondary, jersey, look: decodeAvatar(p.avatar) }, p.x, p.z, p.rotY);
       }
       engine.pushRemote(id, p.x, p.z, p.rotY, p.anim);
       engine.setRemoteConnected(id, p.connected);

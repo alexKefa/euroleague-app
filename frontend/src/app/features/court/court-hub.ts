@@ -66,6 +66,13 @@ import { CODE_LENGTH, isValidCourtCode, normalizeCourtCode } from "../../../../.
           }
         </section>
 
+        <!-- Locker room -->
+        <a routerLink="/court/locker" class="group rounded-3xl border border-line bg-card p-5 shadow-card transition hover:border-team-primary">
+          <h2 class="font-display text-xl">{{ i18n.t("court.hub.locker") }}</h2>
+          <p class="mt-1 text-sm text-muted">{{ i18n.t("court.hub.lockerBody") }}</p>
+          <span class="mt-4 inline-block font-bold text-team-primary">{{ i18n.t("court.hub.lockerGo") }} →</span>
+        </a>
+
         <!-- Practice -->
         <a routerLink="/court/practice" class="group rounded-3xl border border-line bg-card p-5 shadow-card transition hover:border-team-primary">
           <h2 class="font-display text-xl">{{ i18n.t("court.hub.practice") }}</h2>

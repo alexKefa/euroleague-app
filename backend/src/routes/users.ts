@@ -9,6 +9,8 @@ import { deleteAccount } from "../services/accountDeletion.js";
 import { sendToUser } from "../realtime/hub.js";
 import rateLimit from "express-rate-limit";
 import { buildAccountExport } from "../services/accountExport.js";
+import { defaultAvatar, parseAvatar } from "../../../shared/court/avatar.js";
+import { jerseyNumber } from "../../../shared/court/kit.js";
 
 export const usersRouter = Router();
 
@@ -40,6 +42,27 @@ function publicUser(user: typeof users.$inferSelect) {
     featureInClips: user.featureInClips,
   };
 }
+
+// Clutch Court Locker room: the saved look, or the automatic one (custom: false).
+usersRouter.get("/me/avatar", requireAuth, async (req, res) => {
+  const [row] = await db.select({ avatar: users.avatar }).from(users).where(eq(users.id, req.userId!)).limit(1);
+  if (!row) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+  const saved = parseAvatar(row.avatar);
+  res.json({ avatar: saved ?? defaultAvatar(jerseyNumber(req.userId!)), custom: saved !== null });
+});
+
+usersRouter.put("/me/avatar", requireAuth, async (req, res) => {
+  const avatar = parseAvatar(req.body?.avatar);
+  if (!avatar) {
+    res.status(400).json({ error: "Invalid avatar", code: "INVALID_AVATAR" });
+    return;
+  }
+  await db.update(users).set({ avatar }).where(eq(users.id, req.userId!));
+  res.json({ avatar, custom: true });
+});
 
 usersRouter.get("/me", requireAuth, async (req, res) => {
   const [user] = await db.select().from(users).where(eq(users.id, req.userId!)).limit(1);

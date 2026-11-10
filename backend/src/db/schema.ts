@@ -77,6 +77,10 @@ export const users = pgTable("users", {
   // landing link's utm_*, ref/promo codes, referring site, landing page,
   // plus the derived `label`. Null for accounts made before tracking.
   signupSource: jsonb("signup_source").$type<Record<string, string | null>>(),
+  // Clutch Court look from the Locker room (2026-11-10): skin, haircut, hair
+  // colour, beard, shirt number (shared/court/avatar.ts AvatarLook, validated
+  // by parseAvatar on write). Null = the automatic look from the user id.
+  avatar: jsonb("avatar").$type<{ skin: number; hair: string; hairColor: number; beard: boolean; number: number }>(),
 
   // Referrals — every user gets a code (generated at registration,
   // routes/auth.ts) whether or not they used someone else's; shared as

@@ -18,6 +18,7 @@ import { AvatarBatch, AvatarRig } from "./avatar-rig";
 import { BallPlayback } from "./ball-playback";
 import { CourtAudio } from "./court-audio";
 import { releaseNetTexture } from "./hoop-net";
+import type { AvatarLook } from "../../../../../../shared/court/avatar";
 import { Joystick } from "./input/joystick";
 import { KeyboardInput } from "./input/keyboard";
 import { ShootMeter } from "./input/shoot-meter";
@@ -94,6 +95,8 @@ export interface EngineOptions {
   muted: boolean;
   bestStreak: number;
   jersey: JerseyText | null;
+  /** The local player's Locker-room look (null: automatic from the shirt number). */
+  look?: AvatarLook | null;
   /** Club logo for the floor (CORS-enabled URL), or null. */
   logoUrl: string | null;
   /** The court owner's club for the mural, the fans and the jumbotron (null: no club). */
@@ -224,7 +227,7 @@ export class GameEngine {
       venue: { name: ct?.name ?? "", code: ct?.code ?? "", primary: this.opts.courtColor, secondary: ct?.secondary ?? "#0b1220", logo },
     });
     this.batch = new AvatarBatch(this.built.scene, MAX_PLAYERS);
-    this.rig = new AvatarRig(this.batch, this.built.scene, this.batch.alloc()!, this.opts.kitPrimary, this.opts.kitSecondary, this.opts.jersey);
+    this.rig = new AvatarRig(this.batch, this.built.scene, this.batch.alloc()!, this.opts.kitPrimary, this.opts.kitSecondary, this.opts.jersey, this.opts.look ?? null);
     this.remotes = new RemotePlayers(this.built.scene, this.batch);
     this.spotRing = new SpotRing(this.built.scene);
     this.bubbles = new ReactionBubbles(this.built.scene);

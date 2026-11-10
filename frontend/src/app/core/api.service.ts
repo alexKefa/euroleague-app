@@ -2,6 +2,7 @@ import { Injectable, inject } from "@angular/core";
 import { HttpClient, HttpResponse } from "@angular/common/http";
 import { Observable } from "rxjs";
 import { API_BASE_URL } from "./api-config";
+import type { AvatarLook } from "../../../../shared/court/avatar";
 import {
   RoundClipData,
   Team,
@@ -103,6 +104,15 @@ export class ApiService {
   /** Clutch Court: your open court, or a new one. */
   createCourt(): Observable<{ code: string; url: string }> {
     return this.http.post<{ code: string; url: string }>(`${API_BASE_URL}/courts`, {});
+  }
+
+  /** Clutch Court Locker room: your look (`custom: false` = the automatic one). */
+  getMyAvatar(): Observable<{ avatar: AvatarLook; custom: boolean }> {
+    return this.http.get<{ avatar: AvatarLook; custom: boolean }>(`${API_BASE_URL}/users/me/avatar`);
+  }
+
+  saveMyAvatar(avatar: AvatarLook): Observable<{ avatar: AvatarLook; custom: boolean }> {
+    return this.http.put<{ avatar: AvatarLook; custom: boolean }>(`${API_BASE_URL}/users/me/avatar`, { avatar });
   }
 
   getCourt(code: string): Observable<{ exists: boolean; active: boolean; playerCount?: number }> {

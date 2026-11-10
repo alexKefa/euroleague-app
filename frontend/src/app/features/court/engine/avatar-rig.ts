@@ -32,6 +32,7 @@ import { BALL_RADIUS } from "../../../../../../shared/court/constants";
 import type { EmoteId } from "../../../../../../shared/court/protocol";
 import { JerseyText, createBlobShadow, jerseyTexture } from "./avatar-factory";
 import { resolveKit } from "./kit-styles";
+import { type AvatarLook, type HairStyle, defaultAvatar } from "../../../../../../shared/court/avatar";
 import { disposeObject } from "./scene-builder";
 
 /** How long each emote animation plays (0 = icon only, no pose). */
@@ -56,15 +57,15 @@ const HEAD_SCALE = new Vector3(0.104, 0.122, 0.114);
 const SHORTS_LEG = 0.37;
 const SOCK_HEIGHT = 0.17;
 
-const SKIN_HEX = ["#f1c9a5", "#ddaa82", "#b97f55", "#8a5a3b", "#5e3b27"];
+/** Skin tones and hair colours, indexed by AvatarLook.skin / hairColor (the Locker room shows these as swatches). */
+export const SKIN_HEX = ["#f1c9a5", "#ddaa82", "#b97f55", "#8a5a3b", "#5e3b27"];
+export const HAIR_HEX = ["#1a1310", "#2e2016", "#4b3221", "#0e0e0e", "#6e4b2a", "#3a2a1e"];
 const SKIN_TONES = SKIN_HEX.map((c) => new Color(c));
-const HAIR_COLORS = ["#1a1310", "#2e2016", "#4b3221", "#0e0e0e", "#6e4b2a", "#3a2a1e"].map((c) => new Color(c));
+const HAIR_COLORS = HAIR_HEX.map((c) => new Color(c));
 const FEATURE_COLOR = new Color("#16100c");
 const SOCK_COLOR = new Color("#f2f2f2");
 const SOLE_COLOR = new Color("#ececec");
 
-type HairStyle = "short" | "buzz" | "top" | "bald";
-const HAIR_STYLES: HairStyle[] = ["short", "buzz", "top", "short", "bald", "buzz"];
 
 /**
  * A limb segment: a tapered tube with rounded ends, along +Y from y=-len/2
@@ -331,23 +332,25 @@ export class AvatarRig {
     slot: number,
     primary: string,
     secondary: string,
-    jersey: JerseyText | null
+    jersey: JerseyText | null,
+    look: AvatarLook | null = null
   ) {
     this.slot = slot;
-    const n = jersey?.number ?? 3;
-    const skinIndex = n % SKIN_TONES.length;
+    // The Locker-room look, or the automatic one from the shirt number.
+    const a = look ?? defaultAvatar(jersey?.number ?? 3);
+    const skinIndex = a.skin % SKIN_TONES.length;
     const skin = SKIN_TONES[skinIndex]!;
     const kit = resolveKit(jersey?.chest ?? "", primary, secondary);
     for (const part of ["upperArm", "forearm", "thigh", "shin", "neck", "skinBits"] as const) batch.color(part, slot, skin);
-    batch.color("hair", slot, HAIR_COLORS[(n * 7 + 3) % HAIR_COLORS.length]!);
+    batch.color("hair", slot, HAIR_COLORS[a.hairColor % HAIR_COLORS.length]!);
     batch.color("features", slot, FEATURE_COLOR);
     for (const part of ["hips", "shortLeg"] as const) batch.color(part, slot, new Color(kit.shorts));
     batch.color("trim", slot, new Color(kit.trim));
     batch.color("shoe", slot, new Color(kit.shoe));
     batch.color("sole", slot, SOLE_COLOR);
     batch.color("sock", slot, SOCK_COLOR);
-    this.hairStyle = HAIR_STYLES[(n * 5 + 1) % HAIR_STYLES.length]!;
-    this.beard = (n * 3) % 5 < 2;
+    this.hairStyle = a.hair;
+    this.beard = a.beard;
 
     const tex = jerseyTexture(kit, jersey, SKIN_HEX[skinIndex]!);
     this.torso = new Mesh(torsoGeometry(), new MeshStandardMaterial({ map: tex, roughness: 0.8 }));

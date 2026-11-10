@@ -12,6 +12,8 @@ export const CourtPlayer = schema(
     /** Raw club code (the client maps it to its display abbreviation). */
     teamCode: t.string(),
     number: t.number(),
+    /** Locker-room look (shared/court/avatar.ts encodeAvatar); "" = automatic. */
+    avatar: t.string(),
     x: t.number(),
     z: t.number(),
     rotY: t.number(),

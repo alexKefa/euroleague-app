@@ -8,6 +8,7 @@ import { AvatarBatch, AvatarRig } from "./avatar-rig";
 import { BallPlayback } from "./ball-playback";
 import { disposeObject } from "./scene-builder";
 import type { EmoteId } from "../../../../../../shared/court/protocol";
+import type { AvatarLook } from "../../../../../../shared/court/avatar";
 
 const INTERP_DELAY_MS = 100;
 const MAX_SNAPSHOTS = 30;
@@ -23,6 +24,8 @@ export interface RemoteInfo {
   primary: string;
   secondary: string;
   jersey: JerseyText;
+  /** Their Locker-room look (null: automatic). */
+  look?: AvatarLook | null;
 }
 
 interface Snapshot {
@@ -118,7 +121,7 @@ export class RemotePlayers {
     if (this.remotes.has(id)) return;
     const slot = this.batch.alloc();
     if (slot === null) return; // court full (shouldn't happen: capacity = max players)
-    const rig = new AvatarRig(this.batch, this.scene, slot, info.primary, info.secondary, info.jersey);
+    const rig = new AvatarRig(this.batch, this.scene, slot, info.primary, info.secondary, info.jersey, info.look ?? null);
     const tag = nameTag(info.name, info.primary);
     const ball = createBall();
     this.scene.add(tag, ball);

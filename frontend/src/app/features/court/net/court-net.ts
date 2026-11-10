@@ -29,6 +29,8 @@ export interface NetPlayer {
   teamColorSecondary: string;
   teamCode: string;
   number: number;
+  /** Locker-room look, wire-encoded (shared/court/avatar.ts); "" = automatic. */
+  avatar: string;
   x: number;
   z: number;
   rotY: number;

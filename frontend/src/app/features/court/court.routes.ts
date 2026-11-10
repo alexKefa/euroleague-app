@@ -13,6 +13,10 @@ export const COURT_ROUTES: Routes = [
     loadComponent: () => import("./court-page").then((m) => m.CourtPageComponent),
   },
   {
+    path: "locker",
+    loadComponent: () => import("./locker-room").then((m) => m.LockerRoomComponent),
+  },
+  {
     path: ":code",
     loadComponent: () => import("./court-page").then((m) => m.CourtPageComponent),
   },
