@@ -37,7 +37,8 @@
     "test:court": "tsx --test ../shared/court/shot.test.ts ../shared/court/protocol.test.ts ../shared/court/horse.test.ts",
     "check:horse": "tsx src/scripts/check-horse.ts",
     "check:reconnect": "tsx src/scripts/check-reconnect.ts",
-    "check:leaks": "tsx --expose-gc src/scripts/check-leaks.ts"
+    "check:leaks": "tsx --expose-gc src/scripts/check-leaks.ts",
+    "load:court": "tsx src/scripts/load-court.ts"
   },
   "dependencies": {
     "@colyseus/core": "^0.18.27",
