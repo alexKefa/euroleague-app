@@ -2,30 +2,37 @@
 // by two-bone IK, with a run cycle, dribble, and a shooting motion (gather,
 // rise to the set point, release with a small hop, follow-through, land).
 //
-// Draw calls: every player's limbs, joints, torso, shorts, trim and shoes go
-// through one shared AvatarBatch of InstancedMeshes (per-instance colours), so
-// eight players cost ~6 calls plus their jersey lettering and shadows.
+// Look: tapered, rounded limb segments (no visible ball joints), a tank-top
+// jersey, basketball shorts with a separate opening per leg, crew socks,
+// sneakers, an oval head with short hair and a nose so the face reads.
+//
+// Draw calls: every player's body parts go through one shared AvatarBatch of
+// InstancedMeshes (per-instance colours): 13 calls for all eight players,
+// plus their jersey lettering and shadows.
 import {
-  BoxGeometry,
+  BufferGeometry,
   CapsuleGeometry,
   Color,
   CylinderGeometry,
+  DoubleSide,
   InstancedMesh,
+  LatheGeometry,
   Matrix4,
   Mesh,
   MeshStandardMaterial,
   Quaternion,
   Scene,
   SphereGeometry,
+  Vector2,
   Vector3,
 } from "three";
 import { BALL_RADIUS } from "../../../../../../shared/court/constants";
 import type { EmoteId } from "../../../../../../shared/court/protocol";
+import { JerseyText, createBlobShadow, createLettering } from "./avatar-factory";
+import { disposeObject } from "./scene-builder";
 
 /** How long each emote animation plays (0 = icon only, no pose). */
 const EMOTE_SECONDS: Record<EmoteId, number> = { wave: 1.8, cheer: 1.5, clap: 1.8, shrug: 1.4, laugh: 1.8, fire: 0 };
-import { JerseyText, createBlobShadow, createLettering } from "./avatar-factory";
-import { disposeObject } from "./scene-builder";
 
 // ---- body dimensions (metres; avatar space: feet at y = 0, facing +z, right = -x) ----
 const PELVIS_HEIGHT = 0.95;
@@ -36,6 +43,7 @@ const SHIN = 0.43;
 const ANKLE_HEIGHT = 0.08;
 const SHOULDER_HALF = 0.24;
 const HIP_HALF = 0.1;
+/** Jersey lettering wraps a cylinder of this radius / height around the torso centre. */
 const TORSO_RADIUS = 0.2;
 const TORSO_LENGTH = 0.36;
 const TORSO_SCALE = new Vector3(1.12, 1, 0.78);
@@ -44,15 +52,72 @@ const SPINE_TORSO = 0.3;
 const SPINE_SHOULDER = 0.55;
 const SPINE_NECK = 0.62;
 const SPINE_HEAD = 0.8;
-const HEAD_RADIUS = 0.115;
+const HEAD_SCALE = new Vector3(0.106, 0.124, 0.116);
 
 const SKIN_TONES = ["#f1c9a5", "#ddaa82", "#b97f55", "#8a5a3b", "#5e3b27"].map((c) => new Color(c));
+const HAIR_COLORS = ["#1a1310", "#2e2016", "#4b3221", "#0e0e0e", "#6e4b2a", "#3a2a1e"].map((c) => new Color(c));
+const SOCK_COLOR = new Color("#f2f2f2");
 
-// Per-avatar instance counts in each batch mesh.
-const LIMBS = 9; // 2 upper arms, 2 forearms, 2 thighs, 2 shins, neck
-const BALLS = 9; // 2 shoulders, 2 elbows, 2 knees, 2 hands, head
-const TRIMS = 2; // headband, waistband
-const SHOES = 2;
+/** A limb segment: a tapered tube with rounded ends, along +Y from y=-len/2 (rStart) to +len/2 (rEnd). */
+function limbGeometry(len: number, rStart: number, rEnd: number): BufferGeometry {
+  const pts: Vector2[] = [];
+  const caps = 5;
+  for (let i = 0; i <= caps; i++) {
+    const a = -Math.PI / 2 + (i / caps) * (Math.PI / 2);
+    pts.push(new Vector2(rStart * Math.cos(a) + 1e-4, -len / 2 + rStart * Math.sin(a)));
+  }
+  for (let i = 0; i <= caps; i++) {
+    const a = (i / caps) * (Math.PI / 2);
+    pts.push(new Vector2(rEnd * Math.cos(a) + 1e-4, len / 2 + rEnd * Math.sin(a)));
+  }
+  return new LatheGeometry(pts, 14);
+}
+
+/** Tank-top jersey: closed lathe, slightly fuller at the chest, sloped shoulders. */
+function torsoGeometry(): BufferGeometry {
+  const profile: [number, number][] = [
+    [0, -0.205],
+    [0.182, -0.205],
+    [0.19, -0.17],
+    [0.197, -0.08],
+    [0.203, 0.02],
+    [0.205, 0.1],
+    [0.2, 0.17],
+    [0.18, 0.23],
+    [0.135, 0.28],
+    [0.075, 0.305],
+    [0, 0.31],
+  ];
+  return new LatheGeometry(
+    profile.map(([r, y]) => new Vector2(r, y)),
+    20
+  );
+}
+
+/** Sneaker: a capsule lying along +z. */
+function shoeGeometry(): BufferGeometry {
+  return new CapsuleGeometry(0.052, 0.16, 4, 12).rotateX(Math.PI / 2);
+}
+
+// Per-avatar instance counts.
+const PER = {
+  upperArm: 2,
+  forearm: 2,
+  thigh: 2,
+  shin: 2,
+  neck: 1,
+  /** 2 hands, head, nose */
+  skinBits: 4,
+  hair: 1,
+  torso: 1,
+  hips: 1,
+  shortLeg: 2,
+  /** headband, waistband */
+  trim: 2,
+  shoe: 2,
+  sock: 2,
+} as const;
+type Part = keyof typeof PER;
 
 export type RigMode = "idle" | "run" | "charge" | "release";
 
@@ -63,27 +128,37 @@ function ease(u: number): number {
 
 /** Shared instanced meshes for all players on court. */
 export class AvatarBatch {
-  readonly limbs: InstancedMesh;
-  readonly balls: InstancedMesh;
-  readonly torsos: InstancedMesh;
-  readonly shorts: InstancedMesh;
-  readonly trims: InstancedMesh;
-  readonly shoes: InstancedMesh;
+  readonly parts: Record<Part, InstancedMesh>;
   private readonly free: number[] = [];
 
   constructor(scene: Scene, readonly capacity: number) {
-    const mat = () => new MeshStandardMaterial({ color: "#ffffff", roughness: 0.75 });
-    this.limbs = new InstancedMesh(new CylinderGeometry(1, 1, 1, 8), mat(), capacity * LIMBS);
-    this.balls = new InstancedMesh(new SphereGeometry(1, 12, 8), mat(), capacity * BALLS);
-    this.torsos = new InstancedMesh(new CapsuleGeometry(TORSO_RADIUS, TORSO_LENGTH, 4, 14), mat(), capacity);
-    this.shorts = new InstancedMesh(new CylinderGeometry(0.205, 0.235, 0.3, 14), mat(), capacity);
-    this.trims = new InstancedMesh(new CylinderGeometry(1, 1, 1, 14), mat(), capacity * TRIMS);
-    this.shoes = new InstancedMesh(new BoxGeometry(1, 1, 1), mat(), capacity * SHOES);
+    const skin = () => new MeshStandardMaterial({ color: "#ffffff", roughness: 0.62 });
+    const cloth = () => new MeshStandardMaterial({ color: "#ffffff", roughness: 0.85 });
+    const mk = (part: Part, geo: BufferGeometry, mat: MeshStandardMaterial) => new InstancedMesh(geo, mat, capacity * PER[part]);
+    const shortsMat = cloth();
+    shortsMat.side = DoubleSide; // open leg tubes: the inside shows at the hem
+    this.parts = {
+      upperArm: mk("upperArm", limbGeometry(UPPER_ARM, 0.058, 0.042), skin()),
+      forearm: mk("forearm", limbGeometry(FOREARM, 0.044, 0.033), skin()),
+      thigh: mk("thigh", limbGeometry(THIGH, 0.084, 0.058), skin()),
+      shin: mk("shin", limbGeometry(SHIN, 0.06, 0.037), skin()),
+      neck: mk("neck", limbGeometry(SPINE_HEAD - SPINE_NECK, 0.054, 0.048), skin()),
+      skinBits: mk("skinBits", new SphereGeometry(1, 18, 12), skin()),
+      hair: mk("hair", new SphereGeometry(1, 18, 9, 0, Math.PI * 2, 0, Math.PI * 0.52), cloth()),
+      torso: mk("torso", torsoGeometry(), cloth()),
+      hips: mk("hips", new CylinderGeometry(0.205, 0.215, 0.22, 18), cloth()),
+      // Leg openings: top (+Y, toward the knee) is the hem, slightly narrower.
+      shortLeg: mk("shortLeg", new CylinderGeometry(0.104, 0.118, 0.3, 16, 1, true), shortsMat),
+      trim: mk("trim", new CylinderGeometry(1, 1, 1, 18), cloth()),
+      shoe: mk("shoe", shoeGeometry(), cloth()),
+      sock: mk("sock", new CylinderGeometry(0.046, 0.043, 0.13, 12), cloth()),
+    };
     const zero = new Matrix4().makeScale(0, 0, 0);
+    const white = new Color("#ffffff");
     for (const m of this.meshes()) {
       for (let i = 0; i < m.count; i++) {
         m.setMatrixAt(i, zero);
-        m.setColorAt(i, new Color("#ffffff"));
+        m.setColorAt(i, white);
       }
       m.frustumCulled = false; // instances move all over; bounds would go stale
       scene.add(m);
@@ -92,25 +167,27 @@ export class AvatarBatch {
   }
 
   meshes(): InstancedMesh[] {
-    return [this.limbs, this.balls, this.torsos, this.shorts, this.trims, this.shoes];
+    return Object.values(this.parts);
   }
 
   alloc(): number | null {
     return this.free.pop() ?? null;
   }
 
+  /** Colour every instance of one part for a player. */
+  color(part: Part, slot: number, c: Color): void {
+    const m = this.parts[part];
+    for (let k = 0; k < PER[part]; k++) m.setColorAt(slot * PER[part] + k, c);
+    if (m.instanceColor) m.instanceColor.needsUpdate = true;
+  }
+
   release(slot: number): void {
     const zero = new Matrix4().makeScale(0, 0, 0);
-    const clear = (m: InstancedMesh, per: number) => {
-      for (let k = 0; k < per; k++) m.setMatrixAt(slot * per + k, zero);
+    for (const part of Object.keys(PER) as Part[]) {
+      const m = this.parts[part];
+      for (let k = 0; k < PER[part]; k++) m.setMatrixAt(slot * PER[part] + k, zero);
       m.instanceMatrix.needsUpdate = true;
-    };
-    clear(this.limbs, LIMBS);
-    clear(this.balls, BALLS);
-    clear(this.torsos, 1);
-    clear(this.shorts, 1);
-    clear(this.trims, TRIMS);
-    clear(this.shoes, SHOES);
+    }
     this.free.push(slot);
   }
 
@@ -211,16 +288,16 @@ export class AvatarRig {
     jersey: JerseyText | null
   ) {
     this.slot = slot;
-    const skin = SKIN_TONES[(jersey?.number ?? 3) % SKIN_TONES.length]!;
-    for (let k = 0; k < LIMBS; k++) batch.limbs.setColorAt(slot * LIMBS + k, skin);
-    for (let k = 0; k < BALLS; k++) batch.balls.setColorAt(slot * BALLS + k, skin);
+    const n = jersey?.number ?? 3;
+    const skin = SKIN_TONES[n % SKIN_TONES.length]!;
     const kit = new Color(primary);
     const trim = new Color(secondary);
-    batch.torsos.setColorAt(slot, kit);
-    batch.shorts.setColorAt(slot, kit);
-    for (let k = 0; k < TRIMS; k++) batch.trims.setColorAt(slot * TRIMS + k, trim);
-    for (let k = 0; k < SHOES; k++) batch.shoes.setColorAt(slot * SHOES + k, trim);
-    for (const m of batch.meshes()) if (m.instanceColor) m.instanceColor.needsUpdate = true;
+    for (const part of ["upperArm", "forearm", "thigh", "shin", "neck", "skinBits"] as const) batch.color(part, slot, skin);
+    batch.color("hair", slot, HAIR_COLORS[(n * 7 + 3) % HAIR_COLORS.length]!);
+    for (const part of ["torso", "hips", "shortLeg"] as const) batch.color(part, slot, kit);
+    batch.color("trim", slot, trim);
+    batch.color("shoe", slot, trim);
+    batch.color("sock", slot, SOCK_COLOR);
 
     this.lettering = jersey ? createLettering(jersey, primary, secondary, TORSO_RADIUS + 0.006, TORSO_LENGTH) : [];
     for (const m of this.lettering) {
@@ -231,7 +308,6 @@ export class AvatarRig {
     scene.add(this.shadow);
   }
 
-  /** The shot left the hand: play the release and follow-through. */
   /** Play an emote pose (idle only: moving or shooting cancels it). */
   emote(id: EmoteId, now: number): void {
     if (EMOTE_SECONDS[id] <= 0) return;
@@ -241,6 +317,7 @@ export class AvatarRig {
   private emoteId: EmoteId | null = null;
   private emoteAt = 0;
 
+  /** The shot left the hand: play the release and follow-through. */
   release(now: number): void {
     this.releaseAt = now;
   }
@@ -429,48 +506,52 @@ export class AvatarRig {
     const neck = at(SPINE_NECK);
     const head = at(SPINE_HEAD);
 
-    // ---- torso, shorts, trims (rigid parts) ----
+    // ---- jersey, shorts, trims (rigid parts) ----
+    const P = b.parts;
     const torsoQ = shoulderTurn.clone().multiply(new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), this.lean));
     const torsoM = new Matrix4().compose(torsoCenter, torsoQ, TORSO_SCALE).premultiply(this.root);
-    b.torsos.setMatrixAt(slot, torsoM);
+    P.torso.setMatrixAt(slot, torsoM);
     for (const m of this.lettering) m.matrix.copy(torsoM);
     for (const m of this.lettering) m.matrixWorldNeedsUpdate = true;
-
-    const shortsM = new Matrix4().compose(pelvis.clone().add(new Vector3(0, -0.03, 0)), hipTurn, new Vector3(1.08, 1, 0.82)).premultiply(this.root);
-    b.shorts.setMatrixAt(slot, shortsM);
 
     const setRigid = (mesh: InstancedMesh, index: number, pos: Vector3, q: Quaternion, scale: Vector3) => {
       tM.compose(pos, q, scale).premultiply(this.root);
       mesh.setMatrixAt(index, tM);
     };
-    const headUp = head.clone().addScaledVector(spine, 0.045);
-    setRigid(b.trims, slot * TRIMS, headUp, torsoQ, new Vector3(HEAD_RADIUS + 0.004, 0.035, HEAD_RADIUS + 0.004));
-    setRigid(b.trims, slot * TRIMS + 1, pelvis.clone().add(new Vector3(0, 0.13, 0)), hipTurn, new Vector3(0.232, 0.045, 0.19));
+    // Shorts body (waist to crotch) with the waistband peeking under the jersey hem.
+    setRigid(P.hips, slot, pelvis.clone().add(new Vector3(0, -0.02, 0)), hipTurn, new Vector3(1, 1, 0.8));
+    setRigid(P.trim, slot * PER.trim + 1, pelvis.clone().add(new Vector3(0, 0.075, 0)), hipTurn, new Vector3(0.212, 0.03, 0.172));
 
-    // ---- joints and limbs ----
-    let li = slot * LIMBS;
-    let bi = slot * BALLS;
-    const limb = (a: Vector3, c: Vector3, r: number) => {
+    // ---- limbs: tapered segments from joint a to joint c ----
+    const segment = (mesh: InstancedMesh, index: number, a: Vector3, c: Vector3, nominal: number) => {
       const dir = tA.subVectors(c, a);
       const len = dir.length();
       tQ.setFromUnitVectors(UP, dir.divideScalar(Math.max(len, 1e-5)));
-      tM.compose(tB.addVectors(a, c).multiplyScalar(0.5), tQ, new Vector3(r, len, r)).premultiply(this.root);
-      b.limbs.setMatrixAt(li++, tM);
+      tM.compose(tB.addVectors(a, c).multiplyScalar(0.5), tQ, new Vector3(1, len / nominal, 1)).premultiply(this.root);
+      mesh.setMatrixAt(index, tM);
     };
-    const joint = (p: Vector3, r: number) => {
-      tM.compose(p, tQ.identity(), new Vector3(r, r, r)).premultiply(this.root);
-      b.balls.setMatrixAt(bi++, tM);
+    /** Something along the a->c bone: centred `from` + `along` metres from a. */
+    const alongBone = (mesh: InstancedMesh, index: number, a: Vector3, c: Vector3, along: number, scale: Vector3) => {
+      const dir = tC.subVectors(c, a).normalize();
+      tQ.setFromUnitVectors(UP, dir);
+      tM.compose(a.clone().addScaledVector(dir, along), tQ, scale).premultiply(this.root);
+      mesh.setMatrixAt(index, tM);
     };
+    const ONE = new Vector3(1, 1, 1);
 
     // Arms (elbows point out, down and back).
     const elbowR = solveMid(shoulderR, this.handR, UPPER_ARM, FOREARM, new Vector3(-0.7, -0.5, -0.5), new Vector3());
     const elbowL = solveMid(shoulderL, this.handL, UPPER_ARM, FOREARM, new Vector3(0.7, -0.5, -0.5), new Vector3());
     const handR = this.reach(shoulderR, elbowR, this.handR, FOREARM);
     const handL = this.reach(shoulderL, elbowL, this.handL, FOREARM);
-    limb(shoulderR, elbowR, 0.056);
-    limb(elbowR, handR, 0.048);
-    limb(shoulderL, elbowL, 0.056);
-    limb(elbowL, handL, 0.048);
+    segment(P.upperArm, slot * 2, shoulderR, elbowR, UPPER_ARM);
+    segment(P.upperArm, slot * 2 + 1, shoulderL, elbowL, UPPER_ARM);
+    segment(P.forearm, slot * 2, elbowR, handR, FOREARM);
+    segment(P.forearm, slot * 2 + 1, elbowL, handL, FOREARM);
+    // Hands: flattened mitts continuing the forearm.
+    const handScale = new Vector3(0.043, 0.062, 0.029);
+    alongBone(P.skinBits, slot * PER.skinBits, elbowR, handR, FOREARM + 0.03, handScale);
+    alongBone(P.skinBits, slot * PER.skinBits + 1, elbowL, handL, FOREARM + 0.03, handScale);
 
     // Legs (knees point forward): planted under the hips at rest; while
     // running each foot follows the stance/swing path from footAt().
@@ -488,33 +569,40 @@ export class AvatarRig {
     const kneeR = solveMid(hipR, footR, THIGH, SHIN, new Vector3(0, 0, 1), new Vector3());
     const ankleL = this.reach(hipL, kneeL, footL, SHIN);
     const ankleR = this.reach(hipR, kneeR, footR, SHIN);
-    limb(hipL, kneeL, 0.088);
-    limb(kneeL, ankleL, 0.066);
-    limb(hipR, kneeR, 0.088);
-    limb(kneeR, ankleR, 0.066);
-    limb(neck, head, 0.055);
+    segment(P.thigh, slot * 2, hipL, kneeL, THIGH);
+    segment(P.thigh, slot * 2 + 1, hipR, kneeR, THIGH);
+    segment(P.shin, slot * 2, kneeL, ankleL, SHIN);
+    segment(P.shin, slot * 2 + 1, kneeR, ankleR, SHIN);
+    // Shorts legs: from just above the hip joint down ~2/3 of the thigh, so
+    // each leg has its own opening (no skirt) and they swing with the stride.
+    alongBone(P.shortLeg, slot * 2, hipL, kneeL, 0.13, ONE);
+    alongBone(P.shortLeg, slot * 2 + 1, hipR, kneeR, 0.13, ONE);
+    // Crew socks over the ankle.
+    alongBone(P.sock, slot * 2, ankleL, kneeL, 0.075, ONE);
+    alongBone(P.sock, slot * 2 + 1, ankleR, kneeR, 0.075, ONE);
 
-    joint(shoulderR, 0.075);
-    joint(shoulderL, 0.075);
-    joint(elbowR, 0.05);
-    joint(elbowL, 0.05);
-    joint(kneeL, 0.07);
-    joint(kneeR, 0.07);
-    joint(handR, 0.056);
-    joint(handL, 0.056);
-    joint(head, HEAD_RADIUS);
+    // ---- neck and head ----
+    segment(P.neck, slot, neck, head, SPINE_HEAD - SPINE_NECK);
+    setRigid(P.skinBits, slot * PER.skinBits + 2, head, torsoQ, HEAD_SCALE);
+    // Nose: the one feature that tells you which way a player faces.
+    const fwd = new Vector3(0, 0, 1).applyQuaternion(torsoQ);
+    setRigid(P.skinBits, slot * PER.skinBits + 3, head.clone().addScaledVector(fwd, 0.112).addScaledVector(spine, -0.012), torsoQ, new Vector3(0.017, 0.024, 0.02));
+    // Short hair: a cap tilted back so the forehead shows.
+    const hairQ = torsoQ.clone().multiply(new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), -0.32));
+    setRigid(P.hair, slot, head.clone().addScaledVector(spine, 0.004).addScaledVector(fwd, -0.006), hairQ, HEAD_SCALE.clone().multiplyScalar(1.05));
+    // Headband over the hairline.
+    setRigid(P.trim, slot * PER.trim, head.clone().addScaledVector(spine, 0.035), torsoQ, new Vector3(0.112, 0.028, 0.122));
 
-    // Shoes: toe pointing forward, flat on the ankle.
-    // Toes point down while the foot is in the air (heel kick), flat when planted.
-    const shoeScale = new Vector3(0.115, 0.085, 0.27);
+    // Sneakers: toe forward, flat when planted, toes down while the foot is in the air.
+    const shoeScale = new Vector3(1.1, 0.78, 1);
     const shoe = (index: number, ankle: Vector3, lift: number) => {
       const pitch = Math.min(0.9, lift * 3.2);
       const q = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), pitch);
-      const offset = new Vector3(0, -0.035, 0.05).applyQuaternion(q);
-      setRigid(b.shoes, index, ankle.clone().add(offset), q, shoeScale);
+      const offset = new Vector3(0, -0.04, 0.05).applyQuaternion(q);
+      setRigid(P.shoe, index, ankle.clone().add(offset), q, shoeScale);
     };
-    shoe(slot * SHOES, ankleL, liftL);
-    shoe(slot * SHOES + 1, ankleR, liftR);
+    shoe(slot * 2, ankleL, liftL);
+    shoe(slot * 2 + 1, ankleR, liftR);
 
     // Shadow follows the hips and fades when airborne.
     const s = 1 - Math.min(0.3, this.jump * 2);
