@@ -22,6 +22,8 @@ const COURTS = Number(process.env.COURTS) || 1;
 const PLAYERS = Math.min(8, Number(process.env.PLAYERS) || 4);
 const SECONDS = Number(process.env.SECONDS) || 60;
 const SHOT_EVERY_S = 6;
+/** First owner index: parallel bot processes each take their own owners (one open court per owner). */
+const OFFSET = Number(process.env.COURT_OFFSET) || 0;
 
 if (BASE.includes("getclutchapp.com")) {
   console.error("load:court never runs against production.");
@@ -62,7 +64,7 @@ let drops = 0;
 async function main(): Promise<void> {
   const sql = postgres(dbUrl, { ssl: "require", max: 1 });
   const users = await sql<{ id: string }[]>`select id from users order by created_at limit 60`;
-  if (users.length < Math.max(COURTS, PLAYERS)) throw new Error(`need ${Math.max(COURTS, PLAYERS)} users, dev has ${users.length}`);
+  if (users.length < Math.max(OFFSET + COURTS, PLAYERS)) throw new Error(`need ${Math.max(COURTS, PLAYERS)} users, dev has ${users.length}`);
   const token = (id: string) => jwt.sign({ sub: id }, process.env.JWT_ACCESS_SECRET!, { expiresIn: "30m" });
 
   console.log(`load: ${COURTS} court(s) x ${PLAYERS} bots for ${SECONDS}s against ${BASE}`);
@@ -71,14 +73,14 @@ async function main(): Promise<void> {
   const client = new Client(`${BASE}/colyseus`);
 
   for (let c = 0; c < COURTS; c++) {
-    const owner = users[c]!;
+    const owner = users[OFFSET + c]!;
     const res = await fetch(`${BASE}/api/courts`, { method: "POST", headers: { authorization: `Bearer ${token(owner.id)}` } });
     if (!res.ok) throw new Error(`create court: HTTP ${res.status}`);
     const { code } = (await res.json()) as { code: string };
     codes.push(code);
     // Owner first, then the next users round-robin (distinct within a court).
     for (let p = 0; p < PLAYERS; p++) {
-      const u = users[(c + p) % users.length]!;
+      const u = users[(OFFSET + c + p) % users.length]!;
       const room = await client.joinOrCreate("court", { code, accessToken: token(u.id) });
       const bot: Bot = {
         room,
