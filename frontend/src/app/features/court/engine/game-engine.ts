@@ -3,7 +3,9 @@
 // updates through EngineCallbacks (only when values change).
 import { ACESFilmicToneMapping, Mesh, PerspectiveCamera, Vector3, WebGLRenderer } from "three";
 import { BALL_RADIUS, RELEASE_HEIGHT, SHOT_COOLDOWN_SECONDS } from "../../../../../../shared/court/constants";
-import { pickTargetHoop } from "../../../../../../shared/court/geometry";
+import { hoopLayout, insideThreePoint, pickTargetHoop } from "../../../../../../shared/court/geometry";
+import { type TimeMode, lightingFor, resolveHour } from "./lighting";
+import type { FloorPlayer } from "./led-floor";
 import { randomSeed } from "../../../../../../shared/court/rng";
 import { computeShotLaunch, effectiveTiming, layupEligible } from "../../../../../../shared/court/shot";
 import { LAYUP_METER_FILL_SECONDS, METER_FILL_SECONDS } from "../../../../../../shared/court/constants";
@@ -83,6 +85,8 @@ export interface EngineOptions {
   /** Where the local player starts (multiplayer: the server's spawn point). */
   start?: { x: number; z: number; rotY: number };
   cameraPreset: number;
+  /** Time-of-day look: follow the clock, or a fixed day / sunset / night. */
+  timeMode: TimeMode;
   muted: boolean;
   bestStreak: number;
   jersey: JerseyText | null;
@@ -121,6 +125,10 @@ export class GameEngine {
   private lastTime = 0;
   private governor: FrameGovernor | null = null;
   private lastCalls = 0;
+  private timeMode: TimeMode = "auto";
+  private lightingAt = 0;
+  private lastShotPerfect = false;
+  private readonly floorPlayers: FloorPlayer[] = [];
   private lastTriangles = 0;
   private running = false;
   private disposed = false;
@@ -214,6 +222,8 @@ export class GameEngine {
     this.remotes = new RemotePlayers(this.built.scene, this.batch);
     this.spotRing = new SpotRing(this.built.scene);
     this.bubbles = new ReactionBubbles(this.built.scene);
+    this.timeMode = this.opts.timeMode;
+    this.applyLighting();
     this.ball = createBall();
     this.built.scene.add(this.ball);
     this.ballShadow = createBlobShadow(0.42);
@@ -354,6 +364,43 @@ export class GameEngine {
     this.bubbles?.show(playerId ?? ME, text, isEmoteId(id), now);
   }
 
+  /** Switch the time-of-day look (auto follows the clock). */
+  setTimeMode(mode: TimeMode): void {
+    this.timeMode = mode;
+    if (this.built) this.applyLighting();
+  }
+
+  private applyLighting(): void {
+    const l = lightingFor(resolveHour(this.timeMode));
+    const b = this.built;
+    b.hemi.color.set(l.hemiSky);
+    b.hemi.groundColor.set(l.hemiGround);
+    b.hemi.intensity = l.hemiIntensity;
+    b.sun.color.set(l.sunColor);
+    b.sun.intensity = l.sunIntensity;
+    b.sun.position.set(l.sunDir.x * 30, l.sunDir.y * 30, l.sunDir.z * 30);
+    (b.scene.fog as { color: { set(c: string): void } } | null)?.color.set(l.skyHorizon);
+    b.floor.setLighting(l);
+    b.sky.setLighting(l);
+    b.venue.setLighting(l);
+    this.lightingAt = performance.now();
+  }
+
+  /** LED floor: who's where, the 3-point glow while charging a three, fire on a streak. */
+  private updateFloor(now: number, dt: number): void {
+    // "auto" drifts with the clock: re-light once a minute.
+    if (this.timeMode === "auto" && now - this.lightingAt > 60_000) this.applyLighting();
+    const p = this.player;
+    const fp = this.floorPlayers;
+    fp.length = 0;
+    fp.push({ x: p.x, z: p.z, run: Math.min(1, p.speed / 4.5) });
+    this.remotes?.floorPlayers(fp);
+    const arc = this.meter.charging && !this.layupShot && !insideThreePoint(this.targetHoop, p.x, p.z) ? 1 : 0;
+    const fire = this.stats.streak >= 3 ? 1 : 0;
+    this.built.floor.update(now, dt, fp, arc, fire);
+    this.built.sky.follow(this.camera.position);
+  }
+
   /** What the jumbotron shows (redrawn only when it changes). */
   setJumbotron(content: JumbotronContent): void {
     this.built?.venue.jumbotron.set(content);
@@ -457,6 +504,7 @@ export class GameEngine {
     this.stats.attempts++;
     const eff = effectiveTiming(timingError);
     const grade: ReleaseGrade = launch.perfect ? "perfect" : Math.abs(eff) < 0.25 ? "good" : eff < 0 ? "early" : "late";
+    this.lastShotPerfect = launch.perfect;
     this.cb.onRelease(grade, this.layupShot);
   }
 
@@ -522,6 +570,7 @@ export class GameEngine {
     if (this.awaitingShot && now - this.awaitingShot.sentAt > SHOT_REPLY_TIMEOUT_MS) this.onShotRejected(this.awaitingShot.clientShotId);
     this.sendMove(now);
     this.player.updateCamera(dt, this.camera);
+    this.updateFloor(now, dt);
     this.placeMeter();
     this.renderer.render(this.built.scene, this.camera);
     this.lastCalls = this.renderer.info.render.calls;
@@ -577,6 +626,8 @@ export class GameEngine {
         if (ev.kind === "make") {
           this.netSwish = { hoop: this.targetHoop, startedAt: now };
           this.built.venue.crowd.cheer(now, 1);
+          const rim = hoopLayout(this.targetHoop).rim;
+          this.built.floor.ripple(rim.x, rim.z, this.lastShotPerfect ? 1.6 : 1, now);
           this.player.addShake(0.08);
           this.finishShot(true);
         }
@@ -611,6 +662,8 @@ export class GameEngine {
     if (ev.kind === "make") {
       this.netSwish = { hoop, startedAt: performance.now() };
       this.built.venue.crowd.cheer(performance.now(), 0.7);
+      const rim = hoopLayout(hoop).rim;
+      this.built.floor.ripple(rim.x, rim.z, 0.9, performance.now());
     }
   };
 

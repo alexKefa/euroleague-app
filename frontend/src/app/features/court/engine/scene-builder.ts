@@ -1,4 +1,4 @@
-// Procedural outdoor court (CLUTCH_COURT_SPEC.md §9): floor with painted
+// Procedural outdoor court (CLUTCH_COURT_SPEC.md §9): LED glass floor
 // markings, two hoops with chain nets, fence, and cheap instanced
 // surroundings. No model files. Shared materials and instancing keep this at
 // a few dozen draw calls.
@@ -29,22 +29,14 @@ import {
 import {
   BACKBOARD_HEIGHT,
   BACKBOARD_WIDTH,
-  CENTER_CIRCLE_RADIUS,
-  COURT_WIDTH,
   FENCE_HEIGHT,
-  FREE_THROW_FROM_BOARD,
-  BOARD_FROM_BASELINE,
-  HALF_LENGTH,
-  HALF_WIDTH,
-  KEY_WIDTH,
-  THREE_POINT_CORNER_INSET,
-  THREE_POINT_RADIUS,
 } from "../../../../../../shared/court/constants";
-import { ACTIVE_HOOPS, FENCE, HALF_COURT, RIM_RING_RADIUS, hoopLayout } from "../../../../../../shared/court/geometry";
+import { ACTIVE_HOOPS, FENCE, RIM_RING_RADIUS, hoopLayout } from "../../../../../../shared/court/geometry";
 import { HoopId } from "../../../../../../shared/court/types";
 import { Venue, VenueTeam } from "./venue";
+import { LedFloor } from "./led-floor";
+import { Sky } from "./sky";
 
-export const SKY_COLOR = "#9cc9ec";
 const NET_HEIGHT = 0.42;
 
 export interface HoopVisual {
@@ -55,8 +47,13 @@ export interface HoopVisual {
 export interface BuiltScene {
   scene: Scene;
   hoops: Map<HoopId, HoopVisual>;
-  /** Mural, jumbotron and the crowd. */
+  /** Mural, jumbotron, floodlights and the crowd. */
   venue: Venue;
+  /** LED glass court. */
+  floor: LedFloor;
+  sky: Sky;
+  hemi: HemisphereLight;
+  sun: DirectionalLight;
 }
 
 export interface SceneOptions {
@@ -68,14 +65,10 @@ export interface SceneOptions {
   venue: VenueTeam;
 }
 
-/** Painted court area: 1 m run-off around the lines, cut at the fence on a half court. */
-const COURT_MIN_Z = -HALF_LENGTH - 1;
-const COURT_MAX_Z = Math.min(HALF_LENGTH + 1, FENCE.maxZ);
-
 export function buildScene({ teamPrimary, logo, maxAnisotropy, venue: venueTeam }: SceneOptions): BuiltScene {
   const scene = new Scene();
-  scene.background = new Color(SKY_COLOR);
-  scene.fog = new Fog(SKY_COLOR, 45, 110);
+  // The sky dome replaces a flat background; fog takes the horizon colour (set by the lighting).
+  scene.fog = new Fog("#cfe4f5", 45, 110);
 
   const hemi = new HemisphereLight("#e4f1ff", "#5a6b45", 1.6);
   scene.add(hemi);
@@ -91,18 +84,14 @@ export function buildScene({ teamPrimary, logo, maxAnisotropy, venue: venueTeam 
 
   const pad = new Mesh(
     new PlaneGeometry(FENCE.maxX - FENCE.minX, FENCE.maxZ - FENCE.minZ),
-    new MeshLambertMaterial({ color: "#3f6a58" })
+    new MeshLambertMaterial({ color: "#161b22" })
   );
   pad.rotation.x = -Math.PI / 2;
   pad.position.set((FENCE.maxX + FENCE.minX) / 2, -0.005, (FENCE.maxZ + FENCE.minZ) / 2);
   scene.add(pad);
 
-  const courtTex = courtTexture(teamPrimary, logo);
-  courtTex.anisotropy = maxAnisotropy;
-  const court = new Mesh(new PlaneGeometry(COURT_WIDTH + 2, COURT_MAX_Z - COURT_MIN_Z), new MeshLambertMaterial({ map: courtTex }));
-  court.rotation.x = -Math.PI / 2;
-  court.position.z = (COURT_MAX_Z + COURT_MIN_Z) / 2;
-  scene.add(court);
+  const floor = new LedFloor(scene, { teamPrimary, teamSecondary: venueTeam.secondary, logo, maxAnisotropy });
+  const sky = new Sky(scene);
 
   const hoops = new Map<HoopId, HoopVisual>();
   const poleMat = new MeshStandardMaterial({ color: "#2b3138", roughness: 0.6, metalness: 0.4 });
@@ -150,125 +139,7 @@ export function buildScene({ teamPrimary, logo, maxAnisotropy, venue: venueTeam 
   buildFence(scene, maxAnisotropy);
   const venue = new Venue(scene, venueTeam);
   buildSurroundings(scene);
-  return { scene, hoops, venue };
-}
-
-// ---------- court markings ----------
-
-const PX_PER_M = 64;
-const TEX_W = COURT_WIDTH + 2; // 1 m run-off painted on each side
-/** Size of the club logo square at the top of the arc, metres. */
-const LOGO_SIZE = 2.3;
-
-function courtTexture(teamPrimary: string, logo: HTMLImageElement | null): CanvasTexture {
-  const canvas = document.createElement("canvas");
-  canvas.width = TEX_W * PX_PER_M;
-  canvas.height = Math.round((COURT_MAX_Z - COURT_MIN_Z) * PX_PER_M);
-  const ctx = canvas.getContext("2d")!;
-  // World (x, z) -> canvas px. Canvas top (y = 0) is world -z (hoop A end).
-  const X = (x: number) => (x + TEX_W / 2) * PX_PER_M;
-  const Y = (z: number) => (z - COURT_MIN_Z) * PX_PER_M;
-  const M = (m: number) => m * PX_PER_M;
-  // A half court ends at the midcourt line.
-  const courtEndZ = HALF_COURT ? 0 : HALF_LENGTH;
-  const courtLen = courtEndZ + HALF_LENGTH;
-  const keyLen = BOARD_FROM_BASELINE + FREE_THROW_FROM_BOARD;
-
-  ctx.fillStyle = "#2f5d4c";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "#3a6d97";
-  ctx.fillRect(X(-HALF_WIDTH), Y(-HALF_LENGTH), M(COURT_WIDTH), M(courtLen));
-
-  // Everything painted inside the lines is clipped to the court (the centre
-  // circle is cut in half on a half court).
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(X(-HALF_WIDTH), Y(-HALF_LENGTH), M(COURT_WIDTH), M(courtLen));
-  ctx.clip();
-
-  // Team-coloured paint: keys and centre circle.
-  ctx.save();
-  ctx.globalAlpha = 0.75;
-  ctx.fillStyle = teamPrimary;
-  for (const id of ACTIVE_HOOPS) {
-    const s = id === "A" ? -1 : 1;
-    ctx.fillRect(X(-KEY_WIDTH / 2), Math.min(Y(s * HALF_LENGTH), Y(s * (HALF_LENGTH - keyLen))), M(KEY_WIDTH), M(keyLen));
-  }
-  ctx.beginPath();
-  ctx.arc(X(0), Y(0), M(CENTER_CIRCLE_RADIUS), 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-
-  // Club logo just outside the top of the arc, upright for a shooter facing the hoop.
-  if (logo && logo.naturalWidth > 0) {
-    const scale = Math.min(M(LOGO_SIZE) / logo.naturalWidth, M(LOGO_SIZE) / logo.naturalHeight);
-    const w = logo.naturalWidth * scale;
-    const h = logo.naturalHeight * scale;
-    for (const id of ACTIVE_HOOPS) {
-      const s = id === "A" ? -1 : 1;
-      const cz = hoopLayout(id).rim.z - s * (THREE_POINT_RADIUS + LOGO_SIZE / 2 + 0.15);
-      ctx.save();
-      ctx.translate(X(0), Y(cz));
-      if (s === 1) ctx.rotate(Math.PI);
-      ctx.globalAlpha = 0.92;
-      ctx.drawImage(logo, -w / 2, -h / 2, w, h);
-      ctx.restore();
-    }
-  }
-
-  ctx.strokeStyle = "#f4f7fa";
-  ctx.lineWidth = M(0.05);
-  ctx.beginPath();
-  ctx.arc(X(0), Y(0), M(CENTER_CIRCLE_RADIUS), 0, Math.PI * 2);
-  ctx.stroke();
-
-  for (const id of ACTIVE_HOOPS) {
-    const s = id === "A" ? -1 : 1;
-    const rimZ = hoopLayout(id).rim.z;
-    const baseline = s * HALF_LENGTH;
-    const ftZ = s * (HALF_LENGTH - keyLen);
-    // Key.
-    ctx.strokeRect(X(-KEY_WIDTH / 2), Math.min(Y(baseline), Y(ftZ)), M(KEY_WIDTH), M(keyLen));
-    // Free-throw circle (solid half towards midcourt).
-    const towardMid = s === -1 ? [0, Math.PI] : [Math.PI, 2 * Math.PI];
-    ctx.beginPath();
-    ctx.arc(X(0), Y(ftZ), M(1.8), towardMid[0]!, towardMid[1]!);
-    ctx.stroke();
-    // No-charge semicircle.
-    ctx.beginPath();
-    ctx.arc(X(0), Y(rimZ), M(1.25), towardMid[0]!, towardMid[1]!);
-    ctx.stroke();
-    // Three-point line: corner straights + arc.
-    const cornerX = HALF_WIDTH - THREE_POINT_CORNER_INSET;
-    const dz = Math.sqrt(THREE_POINT_RADIUS ** 2 - cornerX ** 2);
-    const meetZ = rimZ - s * dz;
-    line(ctx, X(-cornerX), Y(baseline), X(-cornerX), Y(meetZ));
-    line(ctx, X(cornerX), Y(baseline), X(cornerX), Y(meetZ));
-    const a = Math.atan2(-s * dz, cornerX);
-    const b = Math.atan2(-s * dz, -cornerX);
-    ctx.beginPath();
-    if (s === -1) ctx.arc(X(0), Y(rimZ), M(THREE_POINT_RADIUS), a, b, false);
-    else ctx.arc(X(0), Y(rimZ), M(THREE_POINT_RADIUS), b, a, false);
-    ctx.stroke();
-  }
-  ctx.restore(); // clip
-
-  // Boundary (sidelines, baseline(s), midcourt line) on top, unclipped.
-  ctx.strokeStyle = "#f4f7fa";
-  ctx.lineWidth = M(0.05);
-  ctx.strokeRect(X(-HALF_WIDTH), Y(-HALF_LENGTH), M(COURT_WIDTH), M(courtLen));
-  if (!HALF_COURT) line(ctx, X(-HALF_WIDTH), Y(0), X(HALF_WIDTH), Y(0));
-
-  const tex = new CanvasTexture(canvas);
-  tex.colorSpace = SRGBColorSpace;
-  return tex;
-}
-
-function line(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number): void {
-  ctx.beginPath();
-  ctx.moveTo(x1, y1);
-  ctx.lineTo(x2, y2);
-  ctx.stroke();
+  return { scene, hoops, venue, floor, sky, hemi, sun };
 }
 
 function backboardTexture(): CanvasTexture {

@@ -32,6 +32,7 @@ import { EngineCallbacks, EngineOptions, GameEngine, PerfStats, PracticeStats, R
 import { CourtJoinError, CourtNet, HorseView, JoinFailure, NetPlayer } from "./net/court-net";
 import { EMOTE_ICONS } from "./engine/reaction-bubbles";
 import type { JumbotronContent } from "./engine/venue";
+import { TIME_MODES, type TimeMode, nextTimeMode } from "./engine/lighting";
 import { HorseHudComponent, HorseHudPlayer, HorseWinner } from "./hud/horse-hud";
 import { HORSE_RETURN_MS, canStart, shotGate } from "../../../../../shared/court/horse";
 import type { HorseEventMessage } from "../../../../../shared/court/protocol";
@@ -42,6 +43,8 @@ const BEST_KEY = "court.practice.best";
 interface Prefs {
   camera: number;
   muted: boolean;
+  /** Time-of-day look. */
+  time: TimeMode;
 }
 
 type LoadState = "loading" | "ready" | "error" | "contextLost" | JoinFailure | "disconnected" | "replaced";
@@ -64,6 +67,11 @@ function readJson<T>(key: string, fallback: T): T {
   } catch {
     return fallback;
   }
+}
+
+/** Stored prefs may predate a field or hold junk: fall back per field. */
+function validPrefs(p: Prefs): Prefs {
+  return { ...p, time: (TIME_MODES as readonly string[]).includes(p.time) ? p.time : "auto" };
 }
 
 function writeStorage(key: string, value: string): void {
@@ -108,7 +116,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
   protected readonly state = signal<LoadState>("loading");
   protected readonly stats = signal<PracticeStats>({ makes: 0, attempts: 0, streak: 0, best: 0 });
   protected readonly flash = signal<Flash | null>(null);
-  protected readonly prefs = signal<Prefs>(readJson<Prefs>(PREFS_KEY, { camera: 0, muted: false }));
+  protected readonly prefs = signal<Prefs>(validPrefs(readJson<Prefs>(PREFS_KEY, { camera: 0, muted: false, time: "auto" })));
   protected readonly playerCount = signal(1);
   protected readonly reconnecting = signal(false);
   /** Seconds left of the server's seat hold while reconnecting (null when connected). */
@@ -210,6 +218,14 @@ export class CourtPageComponent implements OnInit, OnDestroy {
   protected cycleCamera(): void {
     const camera = this.engine?.cycleCamera() ?? 0;
     this.savePrefs({ ...this.prefs(), camera });
+  }
+
+  /** Auto (device clock) -> day -> sunset -> night. */
+  protected cycleTime(): void {
+    const time = nextTimeMode(this.prefs().time);
+    this.engine?.setTimeMode(time);
+    this.savePrefs({ ...this.prefs(), time });
+    this.showFlash(this.i18n.t(`court.time.${time}`), "good");
   }
 
   protected toggleMute(): void {
@@ -545,7 +561,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
 
   private async startEngine(
     callbacks: EngineCallbacks,
-    opts: Omit<EngineOptions, "cameraPreset" | "muted">
+    opts: Omit<EngineOptions, "cameraPreset" | "muted" | "timeMode">
   ): Promise<void> {
     const engine = new GameEngine(
       {
@@ -555,7 +571,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
         joystickZone: this.touch ? this.joystickZone.nativeElement : null,
       },
       callbacks,
-      { ...opts, cameraPreset: this.prefs().camera, muted: this.prefs().muted }
+      { ...opts, cameraPreset: this.prefs().camera, muted: this.prefs().muted, timeMode: this.prefs().time }
     );
     this.engine = engine;
     try {

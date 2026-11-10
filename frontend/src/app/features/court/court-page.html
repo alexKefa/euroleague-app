@@ -99,6 +99,33 @@
           </svg>
         </button>
       }
+      <button
+        type="button"
+        class="court-pill h-10 w-10 justify-center"
+        (click)="cycleTime()"
+        [attr.aria-label]="i18n.t('court.time.button') + ': ' + i18n.t('court.time.' + prefs().time)"
+        [title]="i18n.t('court.time.button') + ': ' + i18n.t('court.time.' + prefs().time)"
+      >
+        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          @switch (prefs().time) {
+            @case ("day") {
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" />
+            }
+            @case ("sunset") {
+              <path d="M7 16a5 5 0 0110 0" />
+              <path d="M3 16h18M5 19.5h14M12 5v3M5.6 9.6l1.4 1.4M18.4 9.6L17 11" />
+            }
+            @case ("night") {
+              <path d="M20 14.5A8 8 0 019.5 4a7 7 0 1010.5 10.5z" />
+            }
+            @default {
+              <circle cx="12" cy="12" r="8.5" />
+              <path d="M12 7.5V12l3 2" />
+            }
+          }
+        </svg>
+      </button>
       <button type="button" class="court-pill h-10 w-10 justify-center" (click)="cycleCamera()" [attr.aria-label]="i18n.t('court.camera')" [title]="i18n.t('court.camera')">
         <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M4 8h3l2-2.5h6L17 8h3v11H4z" />

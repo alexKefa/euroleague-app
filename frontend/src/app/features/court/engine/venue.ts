@@ -3,11 +3,16 @@
 // game / live score / H-O-R-S-E standings, fed by the page), and bleachers on
 // both sidelines with fans in team colours who jump up on every make.
 //
-// Draw calls: 4 in total. All the concrete and steel is one InstancedMesh,
+// Draw calls: 6 in total. All the concrete and steel is one InstancedMesh,
 // the whole crowd is another (one capsule geometry, per-instance colours),
-// plus the mural plane and the jumbotron screen.
+// plus the mural plane, the jumbotron screen, and the floodlight panels + glow.
 import {
+  AdditiveBlending,
   BoxGeometry,
+  BufferGeometry,
+  Float32BufferAttribute,
+  Points,
+  PointsMaterial,
   CanvasTexture,
   CapsuleGeometry,
   Color,
@@ -24,6 +29,7 @@ import {
 } from "three";
 import { FENCE } from "../../../../../../shared/court/geometry";
 import { JERSEY_FONT } from "./avatar-factory";
+import type { Lighting } from "./lighting";
 
 export interface VenueTeam {
   /** Full club name ("" when the owner has no club). */
@@ -74,15 +80,34 @@ const STAND_Z = FENCE.minZ + 2 + STAND_LEN / 2;
 
 const HORSE = "HORSE";
 
+/** Floodlight poles just outside the fence corners. */
+const FLOOD_H = 9;
+const FLOODS: [number, number][] = [
+  [-(FENCE.maxX + 0.7), FENCE.minZ - 0.5],
+  [FENCE.maxX + 0.7, FENCE.minZ - 0.5],
+  [-(FENCE.maxX + 0.7), FENCE.maxZ + 0.5],
+  [FENCE.maxX + 0.7, FENCE.maxZ + 0.5],
+];
+
 export class Venue {
   readonly crowd: Crowd;
   readonly jumbotron: Jumbotron;
+  private readonly flood: { heads: MeshBasicMaterial; glow: PointsMaterial };
 
   constructor(scene: Scene, team: VenueTeam) {
     buildConcrete(scene);
     buildMural(scene, team);
+    this.flood = buildFloodlights(scene);
     this.crowd = new Crowd(scene, team);
     this.jumbotron = new Jumbotron(scene, team);
+  }
+
+  /** Floodlights come on as it gets dark. */
+  setLighting(l: Lighting): void {
+    const night = 1 - Math.min(1, l.day / 0.3);
+    this.flood.heads.color.setRGB(0.32 + 0.68 * night, 0.33 + 0.67 * night, 0.35 + 0.6 * night);
+    this.flood.glow.opacity = 0.85 * night;
+    this.flood.glow.visible = night > 0.02;
   }
 
   update(now: number): void {
@@ -101,6 +126,8 @@ function buildConcrete(scene: Scene): void {
   const postH = SCREEN_Y - SCREEN_H / 2 - WALL_H;
   for (const x of [-2.2, 2.2]) parts.push({ pos: [x, WALL_H + postH / 2, WALL_Z - 0.3], size: [0.22, postH, 0.22], color: "#2b3138" });
   parts.push({ pos: [0, SCREEN_Y, WALL_Z - 0.3], size: [SCREEN_W + 0.4, SCREEN_H + 0.4, 0.4], color: "#1b2028" });
+  // Floodlight poles.
+  for (const [x, z] of FLOODS) parts.push({ pos: [x, FLOOD_H / 2, z], size: [0.24, FLOOD_H, 0.24], color: "#2b3138" });
   // Bleachers: solid concrete steps (the top of each is a seat and the next row's footrest).
   for (const side of [-1, 1]) {
     for (let i = 0; i < STEPS; i++) {
@@ -121,6 +148,61 @@ function buildConcrete(scene: Scene): void {
     mesh.setColorAt(i, c.set(p.color));
   });
   scene.add(mesh);
+}
+
+// ---------- floodlights (2 draw calls: lamp panels + glow) ----------
+
+function buildFloodlights(scene: Scene): { heads: MeshBasicMaterial; glow: PointsMaterial } {
+  const heads = new MeshBasicMaterial({ color: "#555a60", toneMapped: false });
+  const panel = new InstancedMesh(new BoxGeometry(1.5, 0.75, 0.18), heads, FLOODS.length);
+  const glowPos: number[] = [];
+  const m = new Matrix4();
+  const q = new Quaternion();
+  const court = new Vector3(0, 0, (FENCE.minZ + FENCE.maxZ) / 2);
+  FLOODS.forEach(([x, z], i) => {
+    const head = new Vector3(x, FLOOD_H + 0.3, z);
+    // Face the middle of the court, tilted down.
+    const look = new Matrix4().lookAt(head, court, new Vector3(0, 1, 0));
+    q.setFromRotationMatrix(look);
+    m.compose(head, q, new Vector3(1, 1, 1));
+    panel.setMatrixAt(i, m);
+    const toCourt = court.clone().sub(head).normalize();
+    glowPos.push(head.x + toCourt.x * 0.2, head.y + toCourt.y * 0.2, head.z + toCourt.z * 0.2);
+  });
+  scene.add(panel);
+
+  const geo = new BufferGeometry();
+  geo.setAttribute("position", new Float32BufferAttribute(glowPos, 3));
+  const glow = new PointsMaterial({
+    map: glowTexture(),
+    size: 7,
+    sizeAttenuation: true,
+    transparent: true,
+    depthWrite: false,
+    blending: AdditiveBlending,
+    color: "#fff6e0",
+    opacity: 0,
+    toneMapped: false,
+  });
+  glow.visible = false;
+  scene.add(new Points(geo, glow));
+  return { heads, glow };
+}
+
+function glowTexture(): CanvasTexture {
+  const c = document.createElement("canvas");
+  c.width = c.height = 128;
+  const ctx = c.getContext("2d")!;
+  const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  g.addColorStop(0, "rgba(255,255,255,1)");
+  g.addColorStop(0.18, "rgba(255,250,235,0.85)");
+  g.addColorStop(0.45, "rgba(255,240,210,0.25)");
+  g.addColorStop(1, "rgba(255,240,210,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 128, 128);
+  const tex = new CanvasTexture(c);
+  tex.colorSpace = SRGBColorSpace;
+  return tex;
 }
 
 // ---------- mural (1 draw call) ----------

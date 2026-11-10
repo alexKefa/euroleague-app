@@ -182,6 +182,11 @@ export class RemotePlayers {
     return r ? out.set(r.last.x, 0, r.last.z) : null;
   }
 
+  /** Everyone's floor position and how fast they're moving (for the LED floor glow). */
+  floorPlayers(out: { x: number; z: number; run: number }[]): void {
+    for (const r of this.remotes.values()) out.push({ x: r.last.x, z: r.last.z, run: Math.min(1, r.speed / 4.5) });
+  }
+
   ids(): string[] {
     return [...this.remotes.keys()];
   }

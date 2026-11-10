@@ -60,6 +60,12 @@ export const courtTranslations: Record<string, Record<Lang, string>> = {
   "court.reconnecting": { en: "Connection lost. Reconnecting…", el: "Χάθηκε η σύνδεση. Επανασύνδεση…" },
   "court.retry": { en: "Try again", el: "Δοκίμασε ξανά" },
   "court.rejoin": { en: "Rejoin", el: "Μπες ξανά" },
+  // Time of day (LED court lighting)
+  "court.time.button": { en: "Time of day", el: "Ώρα της ημέρας" },
+  "court.time.auto": { en: "Auto (your local time)", el: "Αυτόματο (τοπική ώρα)" },
+  "court.time.day": { en: "Day", el: "Μέρα" },
+  "court.time.sunset": { en: "Sunset", el: "Ηλιοβασίλεμα" },
+  "court.time.night": { en: "Night", el: "Νύχτα" },
   // Jumbotron
   "court.jumbo.next": { en: "Next game", el: "Επόμενο ματς" },
   "court.jumbo.live": { en: "Live", el: "Live" },

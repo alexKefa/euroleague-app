@@ -34,7 +34,7 @@
     "duels:calibrate": "tsx src/scripts/calibrate-duel-scales.ts",
     "check:duels": "tsx src/scripts/check-duels.ts",
     "moments:generate": "tsx src/scripts/generate-moments.ts",
-    "test:court": "tsx --test ../shared/court/shot.test.ts ../shared/court/protocol.test.ts ../shared/court/horse.test.ts ../shared/court/layup.test.ts ../frontend/src/app/features/court/engine/frame-governor.test.ts",
+    "test:court": "tsx --test ../shared/court/shot.test.ts ../shared/court/protocol.test.ts ../shared/court/horse.test.ts ../shared/court/layup.test.ts ../frontend/src/app/features/court/engine/frame-governor.test.ts ../frontend/src/app/features/court/engine/lighting.test.ts",
     "check:horse": "tsx src/scripts/check-horse.ts",
     "check:reconnect": "tsx src/scripts/check-reconnect.ts",
     "check:reactions": "tsx src/scripts/check-reactions.ts",
