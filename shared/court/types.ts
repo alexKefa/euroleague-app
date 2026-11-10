@@ -6,7 +6,10 @@ export interface Vec3 {
   z: number;
 }
 
+export type ShotKind = "jumper" | "layup";
+
 export interface ShotLaunch {
+  kind: ShotKind;
   hoopId: HoopId;
   /** Release point (ball centre). */
   origin: Vec3;

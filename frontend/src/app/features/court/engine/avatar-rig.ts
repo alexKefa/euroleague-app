@@ -208,6 +208,8 @@ export interface RigInput {
   dribblePhase: number;
   /** Ground speed, m/s (drives stride length and cadence). */
   speed: number;
+  /** The charge is a layup gather, not a jump shot. */
+  layup?: boolean;
 }
 
 // ---- running gait ----
@@ -272,6 +274,10 @@ export class AvatarRig {
   private runSpeed = 0;
   private stride = 0;
   private releaseAt: number | null = null;
+  /** The last release was a layup (longer hang, arm up at the rim). */
+  private releaseLayup = false;
+  /** 0..1: how far the left knee is driven up (layup takeoff). */
+  private kneeDrive = 0;
   private time = 0;
   private readonly root = new Matrix4();
   private readonly shadow: Mesh;
@@ -318,8 +324,9 @@ export class AvatarRig {
   private emoteAt = 0;
 
   /** The shot left the hand: play the release and follow-through. */
-  release(now: number): void {
+  release(now: number, layup = false): void {
     this.releaseAt = now;
+    this.releaseLayup = layup;
   }
 
   get mode(): RigMode {
@@ -353,10 +360,12 @@ export class AvatarRig {
     // ---- pick the mode and its target pose ----
     const sinceRelease = this.releaseAt === null ? Infinity : (now - this.releaseAt) / 1000;
     let mode: RigMode;
+    // A layup plays out in full (you land, then run); a jumper can be cut short by moving.
+    const releaseDur = this.releaseLayup ? 0.85 : 0.6;
     if (input.charging) mode = "charge";
-    else if (sinceRelease < 0.6 && !(input.moving && sinceRelease > 0.3)) mode = "release";
+    else if (sinceRelease < releaseDur && (this.releaseLayup || !(input.moving && sinceRelease > 0.3))) mode = "release";
     else mode = input.moving ? "run" : "idle";
-    if (mode !== "release" && sinceRelease >= 0.6) this.releaseAt = null;
+    if (mode !== "release" && sinceRelease >= releaseDur) this.releaseAt = null;
     this.currentMode = mode;
     const emoteT = (now - this.emoteAt) / 1000;
     if (this.emoteId && (mode !== "idle" || emoteT > EMOTE_SECONDS[this.emoteId])) this.emoteId = null;
@@ -365,11 +374,37 @@ export class AvatarRig {
     let jump = 0;
     let lean = 0.08;
     let rate = 14;
+    let knee = 0;
     const ball = tC;
     const hr = tD;
     const hl = tS;
 
-    if (mode === "charge") {
+    if (mode === "charge" && input.layup) {
+      // Layup gather: ball tucked to the chest, then the takeoff off the right
+      // foot with the left knee driving up and the ball carried up to the rim.
+      const t = input.chargeSeconds;
+      const gather = ease(t / 0.18);
+      const rise = ease((t - 0.16) / 0.32);
+      crouch = 0.13 * gather * (1 - rise);
+      jump = 0.3 * rise;
+      lean = 0.16 - 0.08 * rise;
+      knee = rise;
+      ball.set(-0.1 - 0.02 * rise, 1.22 + 1.05 * rise + jump - crouch, 0.3 + 0.22 * rise);
+      hr.set(ball.x - 0.03, ball.y - 0.1, ball.z - 0.06);
+      hl.set(ball.x + 0.13 + 0.17 * rise, ball.y - 0.02 - 0.55 * rise, ball.z - 0.02 - 0.1 * rise);
+      rate = 24;
+    } else if (mode === "release" && this.releaseLayup) {
+      // Lay it up: arm fully extended at the rim, hang, then land softly.
+      const t = sinceRelease;
+      jump = t < 0.22 ? 0.32 : t < 0.52 ? 0.32 * (1 - ease((t - 0.22) / 0.3)) : 0;
+      crouch = t >= 0.52 && t < 0.72 ? 0.09 * Math.sin((Math.PI * (t - 0.52)) / 0.2) : 0;
+      lean = 0.06;
+      knee = t < 0.28 ? 1 : 1 - ease((t - 0.28) / 0.24);
+      hr.set(-0.1, 2.45 + jump, 0.48);
+      hl.set(0.32, 1.55 + jump, 0.18);
+      ball.copy(hr);
+      rate = t < 0.1 ? 30 : 13;
+    } else if (mode === "charge") {
       const t = input.chargeSeconds;
       const gather = ease(t / 0.28);
       const rise = ease((t - 0.28) / 0.42);
@@ -461,6 +496,7 @@ export class AvatarRig {
     this.crouch += (crouch - this.crouch) * k;
     this.jump += (jump - this.jump) * Math.min(1, k * 1.5);
     this.lean += (lean - this.lean) * k;
+    this.kneeDrive += (knee - this.kneeDrive) * Math.min(1, k * 1.4);
     this.ballLocal.lerp(ball, mode === "run" ? 1 : k);
     this.handR.lerp(hr, k);
     this.handL.lerp(hl, k);
@@ -560,8 +596,9 @@ export class AvatarRig {
     const footY = ANKLE_HEIGHT + this.jump;
     const stride = this.stride * gb;
     footAt(u, stride, footTmp);
-    const liftL = footTmp.lift * gb;
-    const footL = new Vector3(HIP_HALF + 0.015, footY + liftL, hipL.z + footTmp.z);
+    // Layup takeoff: the left knee drives up and forward.
+    const liftL = footTmp.lift * gb + 0.42 * this.kneeDrive;
+    const footL = new Vector3(HIP_HALF + 0.015, footY + liftL, hipL.z + footTmp.z + 0.12 * this.kneeDrive);
     footAt((u + 0.5) % 1, stride, footTmp);
     const liftR = footTmp.lift * gb;
     const footR = new Vector3(-HIP_HALF - 0.015, footY + liftR, hipR.z + footTmp.z);

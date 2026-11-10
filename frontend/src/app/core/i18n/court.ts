@@ -19,6 +19,8 @@ export const courtTranslations: Record<string, Record<Lang, string>> = {
   "court.release.good": { en: "Good", el: "Καλό" },
   "court.release.early": { en: "Early", el: "Νωρίς" },
   "court.release.late": { en: "Late", el: "Αργά" },
+  "court.release.layup.perfect": { en: "Perfect layup", el: "Τέλειο λέι-απ" },
+  "court.release.layup.good": { en: "Layup", el: "Λέι-απ" },
   "court.hintDesktop": {
     en: "WASD / arrows to move · hold Space to shoot, release in the green · C camera",
     el: "WASD / βελάκια για κίνηση · κράτα το Space για σουτ, άφησέ το στο πράσινο · C κάμερα",

@@ -1,6 +1,7 @@
 // Hold-and-release shoot meter (CLUTCH_COURT_SPEC.md §5.2). Owns the meter
 // DOM directly (it changes every frame, so it never goes through Angular).
 import {
+  METER_FILL_SECONDS,
   METER_SWEET_CENTER,
   METER_SWEET_HALF_WIDTH,
 } from "../../../../../../../shared/court/constants";
@@ -8,6 +9,8 @@ import { meterOverheld, meterValue, timingErrorFromMeter } from "../../../../../
 
 export class ShootMeter {
   private startedAt: number | null = null;
+  /** Seconds to fill this charge (layups fill faster). */
+  private fill = METER_FILL_SECONDS;
 
   constructor(
     private readonly el: HTMLElement,
@@ -26,8 +29,10 @@ export class ShootMeter {
     return this.startedAt === null ? 0 : (now - this.startedAt) / 1000;
   }
 
-  start(now: number): void {
+  start(now: number, fillSeconds = METER_FILL_SECONDS): void {
     this.startedAt = now;
+    this.fill = fillSeconds;
+    this.el.classList.toggle("court-meter-layup", fillSeconds !== METER_FILL_SECONDS);
     this.el.style.display = "block";
     this.render(0);
   }
@@ -36,15 +41,15 @@ export class ShootMeter {
   update(now: number): boolean {
     if (this.startedAt === null) return false;
     const held = (now - this.startedAt) / 1000;
-    this.render(meterValue(held));
-    return meterOverheld(held);
+    this.render(meterValue(held, this.fill));
+    return meterOverheld(held, this.fill);
   }
 
   /** Stop charging and return the timing error in [-1, 1]. */
   release(now: number): number {
     const held = this.startedAt === null ? 0 : (now - this.startedAt) / 1000;
     this.startedAt = null;
-    const value = meterValue(held);
+    const value = meterValue(held, this.fill);
     this.render(value);
     // Leave the final position visible briefly so the player can read it.
     window.setTimeout(() => {

@@ -2,6 +2,13 @@
 // the court server compute the exact same launch from the same inputs.
 import {
   BALL_BACKSPIN,
+  LAYUP_APEX_ABOVE_RIM,
+  LAYUP_ERROR_SCALE,
+  LAYUP_GATHER,
+  LAYUP_MAX_DISTANCE,
+  LAYUP_MIN_APPROACH,
+  LAYUP_MIN_RELEASE_DISTANCE,
+  LAYUP_RELEASE_HEIGHT,
   GRAVITY,
   METER_ERROR_SPAN,
   METER_FILL_SECONDS,
@@ -15,7 +22,7 @@ import {
 } from "./constants.js";
 import { rimCenter } from "./geometry.js";
 import { createRng, gaussian } from "./rng.js";
-import { HoopId, ShotLaunch, Vec3 } from "./types.js";
+import { HoopId, ShotKind, ShotLaunch, Vec3 } from "./types.js";
 
 // Error tuning. Effective error is 0 inside the green window, so a perfect
 // release only carries the small seeded noise below.
@@ -36,11 +43,11 @@ export function apexAboveRim(distance: number): number {
  * Launch velocity that carries the ball from `origin` through `target`
  * (descending), peaking `apexAboveRim(distance)` above the target.
  */
-export function idealVelocity(origin: Vec3, target: Vec3): Vec3 {
+export function idealVelocity(origin: Vec3, target: Vec3, apexAbove?: number): Vec3 {
   const dx = target.x - origin.x;
   const dz = target.z - origin.z;
   const distance = Math.hypot(dx, dz);
-  const apexY = Math.max(target.y + apexAboveRim(distance), origin.y + 0.3);
+  const apexY = Math.max(target.y + (apexAbove ?? apexAboveRim(distance)), origin.y + 0.3);
   const vy = Math.sqrt(2 * GRAVITY * (apexY - origin.y));
   const tUp = vy / GRAVITY;
   const tDown = Math.sqrt((2 * (apexY - target.y)) / GRAVITY);
@@ -87,18 +94,59 @@ export function releasePoint(x: number, z: number, hoopId: HoopId): Vec3 {
 }
 
 /**
+ * Does a shot from (x, z) while moving at (vx, vz) m/s count as a layup?
+ * Close to the rim and driving at it; standing, drifting or cutting across
+ * is a jump shot.
+ */
+export function layupEligible(x: number, z: number, hoopId: HoopId, vx: number, vz: number, minApproach = LAYUP_MIN_APPROACH): boolean {
+  if (![x, z, vx, vz].every(Number.isFinite)) return false;
+  const rim = rimCenter(hoopId);
+  const dx = rim.x - x;
+  const dz = rim.z - z;
+  const d = Math.hypot(dx, dz);
+  if (d > LAYUP_MAX_DISTANCE || d < 1e-3) return false;
+  const approach = (vx * dx + vz * dz) / d;
+  return approach >= minApproach;
+}
+
+/** Layup release: a gather step towards the rim, up at full extension. */
+export function layupReleasePoint(x: number, z: number, hoopId: HoopId): Vec3 {
+  const rim = rimCenter(hoopId);
+  let ux = x - rim.x;
+  let uz = z - rim.z;
+  const d = Math.hypot(ux, uz);
+  if (d < 1e-3) {
+    ux = 0;
+    uz = -Math.sign(rim.z) || 1;
+  } else {
+    ux /= d;
+    uz /= d;
+  }
+  const r = Math.max(LAYUP_MIN_RELEASE_DISTANCE, d - LAYUP_GATHER);
+  return { x: rim.x + ux * r, y: LAYUP_RELEASE_HEIGHT, z: rim.z + uz * r };
+}
+
+/**
  * Full launch for a shot: ideal velocity, plus timing error (power + aim,
  * scaled by distance) and seeded noise. Early (negative) releases fall short,
  * late (positive) ones go long.
  */
-export function computeShotLaunch(x: number, z: number, hoopId: HoopId, timingError: number, seed: number): ShotLaunch {
+export function computeShotLaunch(
+  x: number,
+  z: number,
+  hoopId: HoopId,
+  timingError: number,
+  seed: number,
+  kind: ShotKind = "jumper"
+): ShotLaunch {
   const rng = createRng(seed);
   const rim = rimCenter(hoopId);
-  const origin = releasePoint(x, z, hoopId);
-  const ideal = idealVelocity(origin, rim);
+  const layup = kind === "layup";
+  const origin = layup ? layupReleasePoint(x, z, hoopId) : releasePoint(x, z, hoopId);
+  const ideal = idealVelocity(origin, rim, layup ? LAYUP_APEX_ABOVE_RIM : undefined);
   const distance = Math.hypot(rim.x - origin.x, rim.z - origin.z);
-  const df = distanceFactor(distance);
-  const nf = noiseFactor(distance);
+  const df = distanceFactor(distance) * (layup ? LAYUP_ERROR_SCALE : 1);
+  const nf = noiseFactor(distance) * (layup ? 0.7 : 1);
   const eff = effectiveTiming(timingError);
   const perfect = eff === 0;
 
@@ -116,19 +164,20 @@ export function computeShotLaunch(x: number, z: number, hoopId: HoopId, timingEr
   const fLen = Math.hypot(hx, hz) || 1;
   const fx = hx / fLen;
   const fz = hz / fLen;
-  const spin = { x: -fz * BALL_BACKSPIN, y: 0, z: fx * BALL_BACKSPIN };
+  const backspin = layup ? BALL_BACKSPIN * 0.5 : BALL_BACKSPIN;
+  const spin = { x: -fz * backspin, y: 0, z: fx * backspin };
 
-  return { hoopId, origin, velocity, spin, distance, perfect };
+  return { kind, hoopId, origin, velocity, spin, distance, perfect };
 }
 
 /** Meter value (0..1+) after holding for `heldSeconds`. */
-export function meterValue(heldSeconds: number): number {
-  return Math.max(0, heldSeconds / METER_FILL_SECONDS);
+export function meterValue(heldSeconds: number, fillSeconds = METER_FILL_SECONDS): number {
+  return Math.max(0, heldSeconds / fillSeconds);
 }
 
 /** Has the hold gone past the top long enough to auto-release? */
-export function meterOverheld(heldSeconds: number): boolean {
-  return heldSeconds >= METER_FILL_SECONDS + METER_OVERHOLD_SECONDS;
+export function meterOverheld(heldSeconds: number, fillSeconds = METER_FILL_SECONDS): boolean {
+  return heldSeconds >= fillSeconds + METER_OVERHOLD_SECONDS;
 }
 
 /** Map a meter value at release to timingError in [-1, 1] (0 = perfect). */

@@ -145,13 +145,13 @@ export class RemotePlayers {
   }
 
   /** Play another player's authoritative shot from now. */
-  startShot(id: string, result: ShotResult, spin: Vec3, hoop: HoopId, now: number): void {
+  startShot(id: string, result: ShotResult, spin: Vec3, hoop: HoopId, now: number, layup = false): void {
     const r = this.remotes.get(id);
     if (!r) return;
     r.shot = { playback: new BallPlayback(result, now, spin), hoop, offset: releaseOffset(result, r.ball.position) };
     r.returning = null;
     r.chargeStartedAt = null;
-    r.rig.release(now);
+    r.rig.release(now, layup);
   }
 
   setConnected(id: string, connected: boolean): void {
@@ -206,7 +206,7 @@ export class RemotePlayers {
       }
 
       // "shoot" while their ball is still in hand = charging.
-      const charging = anim === "shoot" && !r.shot && !r.returning;
+      const charging = (anim === "shoot" || anim === "layup") && !r.shot && !r.returning;
       if (charging && r.chargeStartedAt === null) r.chargeStartedAt = now;
       if (!charging) r.chargeStartedAt = null;
       const running = anim === "run";
@@ -221,6 +221,7 @@ export class RemotePlayers {
         chargeSeconds: r.chargeStartedAt === null ? 0 : (now - r.chargeStartedAt) / 1000,
         dribblePhase: r.dribble,
         speed: r.speed,
+        layup: anim === "layup",
       });
       r.tag.position.set(x, 2.25, z);
 

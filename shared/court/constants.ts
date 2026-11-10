@@ -71,6 +71,25 @@ export const SHOT_TARGET_HALF_ANGLE = Math.PI / 3;
 /** Horizontal distance below which the release point is pulled back (layup). */
 export const SHOT_MIN_DISTANCE = 0.9;
 
+// Layups: shooting while driving at the rim from close range. Released off a
+// jump with the arm extended, a gather step closer, on a soft arc, and on a
+// faster meter.
+export const LAYUP_RELEASE_HEIGHT = 2.8;
+/** Eligible within this horizontal distance of the rim centre... */
+export const LAYUP_MAX_DISTANCE = 3.2;
+/** ...while moving at least this fast towards it (m/s). */
+export const LAYUP_MIN_APPROACH = 1.6;
+/** The gather carries the release this much closer to the rim. */
+export const LAYUP_GATHER = 0.6;
+/** Never released closer than this to the rim centre. */
+export const LAYUP_MIN_RELEASE_DISTANCE = 0.55;
+export const LAYUP_APEX_ABOVE_RIM = 0.45;
+/** Timing-error multiplier (on top of the distance factor). Tuned against Rapier: perfect 100%, slightly off ~95%, clearly off ~58%, fully mistimed ~35%. */
+export const LAYUP_ERROR_SCALE = 1.5;
+export const LAYUP_METER_FILL_SECONDS = 0.6;
+/** The server accepts a claimed layup if its own approach speed is at least this share of the minimum (network jitter). */
+export const LAYUP_SERVER_APPROACH_TOLERANCE = 0.6;
+
 // Shoot meter (hold-and-release). The meter value rises 0 -> 1 linearly over
 // METER_FILL_SECONDS; releasing inside the green window around
 // METER_SWEET_CENTER is a perfect release. Holding past the top auto-releases

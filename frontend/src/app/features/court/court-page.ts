@@ -425,7 +425,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
         if (s.best > this.stats().best && s.best > bestStored) writeStorage(BEST_KEY, JSON.stringify({ best: s.best }));
         this.stats.set(s);
       },
-      onRelease: (grade) => this.showRelease(grade),
+      onRelease: (grade, layup) => this.showRelease(grade, layup),
       onShotResult: (made, streak) => {
         if (!made) return;
         if (streak >= 3) this.showFlash(this.i18n.t("court.onFire").replace("{n}", String(streak)), "fire");
@@ -690,9 +690,11 @@ export class CourtPageComponent implements OnInit, OnDestroy {
     this.reconnecting.set(false);
   }
 
-  private showRelease(grade: ReleaseGrade): void {
+  private showRelease(grade: ReleaseGrade, layup = false): void {
     const map: Record<ReleaseGrade, Flash["tone"]> = { perfect: "perfect", good: "good", early: "bad", late: "bad" };
-    this.showFlash(this.i18n.t(`court.release.${grade}`), map[grade]);
+    // A well-timed layup says so; a mistimed one still says early / late.
+    const key = layup && (grade === "perfect" || grade === "good") ? `court.release.layup.${grade}` : `court.release.${grade}`;
+    this.showFlash(this.i18n.t(key), map[grade]);
   }
 
   private showFlash(text: string, tone: Flash["tone"]): void {

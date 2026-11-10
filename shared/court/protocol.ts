@@ -55,8 +55,9 @@ export function generateCourtCode(random: (n: number) => number): string {
   return code;
 }
 
-export type PlayerAnim = "idle" | "run" | "shoot";
-export const PLAYER_ANIMS: readonly PlayerAnim[] = ["idle", "run", "shoot"];
+/** "layup": charging a layup (the gather), "shoot": charging a jump shot. */
+export type PlayerAnim = "idle" | "run" | "shoot" | "layup";
+export const PLAYER_ANIMS: readonly PlayerAnim[] = ["idle", "run", "shoot", "layup"];
 
 // ---- client -> server ----
 export interface MoveMessage {
@@ -80,6 +81,8 @@ export interface ShootMessage {
   hoopId: HoopId;
   x: number;
   z: number;
+  /** The client thinks this is a layup; the server checks it against its own view of the drive. */
+  layup?: boolean;
 }
 
 export interface JoinOptions {
@@ -116,6 +119,8 @@ export interface ShotMessage {
   durationMs: number;
   events: ShotEvent[];
   spin: Vec3;
+  /** The server simulated it as a layup. */
+  layup: boolean;
 }
 
 /** Private: the server refused a shot (rate limit, not on court...). */

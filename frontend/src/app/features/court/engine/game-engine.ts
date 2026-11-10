@@ -5,7 +5,8 @@ import { ACESFilmicToneMapping, Mesh, PerspectiveCamera, Vector3, WebGLRenderer 
 import { BALL_RADIUS, RELEASE_HEIGHT, SHOT_COOLDOWN_SECONDS } from "../../../../../../shared/court/constants";
 import { pickTargetHoop } from "../../../../../../shared/court/geometry";
 import { randomSeed } from "../../../../../../shared/court/rng";
-import { computeShotLaunch, effectiveTiming } from "../../../../../../shared/court/shot";
+import { computeShotLaunch, effectiveTiming, layupEligible } from "../../../../../../shared/court/shot";
+import { LAYUP_METER_FILL_SECONDS, METER_FILL_SECONDS } from "../../../../../../shared/court/constants";
 import { CourtPhysics, RapierApi } from "../../../../../../shared/court/sim";
 import { HoopId, ShotEvent, ShotResult } from "../../../../../../shared/court/types";
 import { MAX_PLAYERS, MOVE_HZ, MoveMessage, PlayerAnim, ShootMessage, ShotMessage } from "../../../../../../shared/court/protocol";
@@ -51,7 +52,7 @@ export interface PracticeStats {
 
 export interface EngineCallbacks {
   onStats(stats: PracticeStats): void;
-  onRelease(grade: ReleaseGrade): void;
+  onRelease(grade: ReleaseGrade, layup: boolean): void;
   onShotResult(made: boolean, streak: number): void;
   onContextLost(): void;
   onContextRestored(): void;
@@ -129,6 +130,10 @@ export class GameEngine {
   private returning: { from: Vector3; startedAt: number } | null = null;
   private cooldownUntil = 0;
   private lockUntil = 0;
+  /** The current / last shot is a layup (decided when the button goes down). */
+  private layupShot = false;
+  /** Smoothed ground velocity, m/s (for layup eligibility). */
+  private readonly vel = { x: 0, z: 0 };
   /** Connection lost: no movement or shots until it's back (the server would snap us back anyway). */
   private frozen = false;
   private dribblePhase = 0;
@@ -247,7 +252,9 @@ export class GameEngine {
     const target = pickTargetHoop(this.player.x, this.player.z, this.player.rotY);
     this.targetHoop = target.hoopId;
     this.player.lockedYaw = target.yaw;
-    this.meter.start(now);
+    // Driving at the rim from close range turns the shot into a layup.
+    this.layupShot = layupEligible(this.player.x, this.player.z, target.hoopId, this.vel.x, this.vel.z);
+    this.meter.start(now, this.layupShot ? LAYUP_METER_FILL_SECONDS : METER_FILL_SECONDS);
   }
 
   releaseShoot(): void {
@@ -304,7 +311,7 @@ export class GameEngine {
     const now = performance.now();
     const result: ShotResult = { made: msg.made, keyframes: msg.keyframes, durationMs: msg.durationMs, events: msg.events };
     if (msg.shooterId !== mySessionId) {
-      this.remotes?.startShot(msg.shooterId, result, msg.spin, msg.hoopId, now);
+      this.remotes?.startShot(msg.shooterId, result, msg.spin, msg.hoopId, now, msg.layup === true);
       return;
     }
     if (this.playback && this.playbackShotId === msg.clientShotId) {
@@ -430,10 +437,11 @@ export class GameEngine {
     const x = Math.round(this.player.x * 100) / 100;
     const z = Math.round(this.player.z * 100) / 100;
     const seed = net ? net.takeSeed() : randomSeed();
-    const launch = computeShotLaunch(x, z, this.targetHoop, timingError, seed ?? 0);
+    const kind = this.layupShot ? "layup" : "jumper";
+    const launch = computeShotLaunch(x, z, this.targetHoop, timingError, seed ?? 0, kind);
     if (net) {
       const clientShotId = ++this.clientShotId;
-      net.send({ clientShotId, timingError, hoopId: this.targetHoop, x, z });
+      net.send({ clientShotId, timingError, hoopId: this.targetHoop, x, z, layup: this.layupShot });
       if (seed === null) {
         this.awaitingShot = { clientShotId, sentAt: now };
       } else {
@@ -449,13 +457,13 @@ export class GameEngine {
     this.stats.attempts++;
     const eff = effectiveTiming(timingError);
     const grade: ReleaseGrade = launch.perfect ? "perfect" : Math.abs(eff) < 0.25 ? "good" : eff < 0 ? "early" : "late";
-    this.cb.onRelease(grade);
+    this.cb.onRelease(grade, this.layupShot);
   }
 
   private startPlayback(result: ShotResult, now: number, spin: { x: number; y: number; z: number }): void {
     this.playback = new BallPlayback(result, now, spin);
     this.shotOffset = releaseOffset(result, this.ball.position);
-    this.rig.release(now);
+    this.rig.release(now, this.layupShot);
   }
 
   private finishShot(made: boolean): void {
@@ -490,8 +498,18 @@ export class GameEngine {
 
     const kb = this.keyboard!.vector();
     const js = this.joystick?.vector() ?? { x: 0, y: 0 };
-    const input = this.frozen ? { x: 0, y: 0 } : Math.hypot(js.x, js.y) > Math.hypot(kb.x, kb.y) ? js : kb;
+    const raw = this.frozen ? { x: 0, y: 0 } : Math.hypot(js.x, js.y) > Math.hypot(kb.x, kb.y) ? js : kb;
+    // The layup gather slows you to two quick steps.
+    const slow = this.meter.charging && this.layupShot ? 0.45 : 1;
+    const input = { x: raw.x * slow, y: raw.y * slow };
+    const px = this.player.x;
+    const pz = this.player.z;
     this.player.update(dt, input);
+    if (dt > 0) {
+      const k = 1 - Math.exp(-12 * dt);
+      this.vel.x += ((this.player.x - px) / dt - this.vel.x) * k;
+      this.vel.z += ((this.player.z - pz) / dt - this.vel.z) * k;
+    }
 
     this.updateAvatar(dt, now);
     this.updateBall(dt, now);
@@ -521,7 +539,7 @@ export class GameEngine {
   private sendMove(now: number): void {
     if (!this.moveSink || now - this.lastMoveSentAt < 1000 / MOVE_HZ) return;
     const p = this.player;
-    const anim: PlayerAnim = this.meter.charging || now < this.lockUntil ? "shoot" : p.moving ? "run" : "idle";
+    const anim: PlayerAnim = this.meter.charging || now < this.lockUntil ? (this.layupShot ? "layup" : "shoot") : p.moving ? "run" : "idle";
     const m: MoveMessage = { x: Math.round(p.x * 100) / 100, z: Math.round(p.z * 100) / 100, rotY: Math.round(p.rotY * 100) / 100, anim };
     const last = this.lastSent;
     if (last && last.x === m.x && last.z === m.z && last.rotY === m.rotY && last.anim === m.anim) return;
@@ -539,6 +557,7 @@ export class GameEngine {
       chargeSeconds: this.meter.heldSeconds(now),
       dribblePhase: this.dribblePhase,
       speed: p.speed,
+      layup: this.layupShot,
     });
   }
 

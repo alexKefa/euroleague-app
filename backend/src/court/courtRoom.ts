@@ -9,9 +9,9 @@ import { db } from "../db/client.js";
 import { courts, teams, users } from "../db/schema.js";
 import { verifyAccessToken } from "../auth/tokens.js";
 import { jerseyNumber, kitColors } from "../../../shared/court/kit.js";
-import { SHOT_COOLDOWN_SECONDS } from "../../../shared/court/constants.js";
+import { LAYUP_MIN_APPROACH, LAYUP_SERVER_APPROACH_TOLERANCE, SHOT_COOLDOWN_SECONDS } from "../../../shared/court/constants.js";
 import { ACTIVE_HOOPS, pickTargetHoop } from "../../../shared/court/geometry.js";
-import { computeShotLaunch } from "../../../shared/court/shot.js";
+import { computeShotLaunch, layupEligible } from "../../../shared/court/shot.js";
 import {
   canStart,
   initialHorseState,
@@ -68,6 +68,9 @@ interface ClientData {
   nextSeed: number;
   /** No new shot until the previous one has finished playing (spec §5.7). */
   shotBusyUntil: number;
+  /** Velocity from the last accepted moves (m/s), for layup checks. */
+  vx?: number;
+  vz?: number;
   /** Last emote / quick phrase (rate limit). */
   lastReactionAt?: number;
 }
@@ -284,6 +287,9 @@ export class CourtRoom extends Room<{ state: CourtState }> {
       client.send(MSG.correction, { x: p.x, z: p.z } satisfies CorrectionMessage);
       return;
     }
+    const dt = Math.max(elapsed, 1 / MOVE_HZ);
+    data.vx = (accepted.x - p.x) / dt;
+    data.vz = (accepted.z - p.z) / dt;
     p.x = Math.round(accepted.x * 100) / 100;
     p.z = Math.round(accepted.z * 100) / 100;
     p.rotY = Math.round(normalizeYaw(Number(msg.rotY)) * 100) / 100;
@@ -309,7 +315,11 @@ export class CourtRoom extends Room<{ state: CourtState }> {
 
     // Shoot from the claimed spot if it passes the move speed check from
     // where the server last saw the player; otherwise from the server's spot.
-    const claimed = validateMove(p, { x: Number(msg.x), z: Number(msg.z) }, (now - data.lastMoveAt) / 1000);
+    const sinceMove = (now - data.lastMoveAt) / 1000;
+    // Moving right now? (A player who stopped a moment ago isn't driving.)
+    const vx = sinceMove < 0.35 ? (data.vx ?? 0) : 0;
+    const vz = sinceMove < 0.35 ? (data.vz ?? 0) : 0;
+    const claimed = validateMove(p, { x: Number(msg.x), z: Number(msg.z) }, sinceMove);
     if (claimed) {
       p.x = Math.round(claimed.x * 100) / 100;
       p.z = Math.round(claimed.z * 100) / 100;
@@ -329,12 +339,15 @@ export class CourtRoom extends Room<{ state: CourtState }> {
 
     const hoopId: HoopId = ACTIVE_HOOPS.includes(msg.hoopId) ? msg.hoopId : pickTargetHoop(p.x, p.z, p.rotY).hoopId;
     // computeShotLaunch clamps timingError to [-1, 1] (NaN counts as fully late).
-    const launch = computeShotLaunch(p.x, p.z, hoopId, Number(msg.timingError), data.nextSeed);
+    // A layup only if the client asked for one AND the server saw the drive
+    // (with some slack for network jitter); otherwise it's a jump shot.
+    const layup = msg.layup === true && layupEligible(p.x, p.z, hoopId, vx, vz, LAYUP_MIN_APPROACH * LAYUP_SERVER_APPROACH_TOLERANCE);
+    const launch = computeShotLaunch(p.x, p.z, hoopId, Number(msg.timingError), data.nextSeed, layup ? "layup" : "jumper");
     const result = courtPhysics().simulate(launch);
 
     data.nextSeed = newSeed();
     data.shotBusyUntil = now + Math.max(result.durationMs, SHOT_COOLDOWN_SECONDS * 1000);
-    p.anim = "shoot";
+    p.anim = layup ? "layup" : "shoot";
 
     const shot: ShotMessage = {
       shotId: ++this.shotCounter,
@@ -347,6 +360,7 @@ export class CourtRoom extends Room<{ state: CourtState }> {
       durationMs: result.durationMs,
       events: result.events,
       spin: launch.spin,
+      layup,
     };
     if (inGame) {
       // The turn advances when the ball lands, so everyone sees the result first.

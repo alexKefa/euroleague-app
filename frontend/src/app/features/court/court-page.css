@@ -55,6 +55,10 @@
   background: rgba(255, 255, 255, 0.55);
   mix-blend-mode: screen;
 }
+/* Layup: a faster meter, tinted so you know it's a layup before you release. */
+.court-meter-layup .court-meter-fill {
+  background: rgba(120, 205, 255, 0.75);
+}
 .court-meter.in-sweet {
   border-color: #31d06b;
   box-shadow: 0 0 12px #31d06b;
