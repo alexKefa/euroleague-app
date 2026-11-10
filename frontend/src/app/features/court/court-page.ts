@@ -32,7 +32,7 @@ import { EngineCallbacks, EngineOptions, GameEngine, PerfStats, PracticeStats, R
 import { CourtJoinError, CourtNet, HorseView, JoinFailure, NetPlayer } from "./net/court-net";
 import { EMOTE_ICONS } from "./engine/reaction-bubbles";
 import type { JumbotronContent } from "./engine/venue";
-import { TIME_MODES, type TimeMode, nextTimeMode } from "./engine/lighting";
+import { TIME_MODES, type TimeMode } from "./engine/lighting";
 import { HorseHudComponent, HorseHudPlayer, HorseWinner } from "./hud/horse-hud";
 import { HORSE_RETURN_MS, canStart, shotGate } from "../../../../../shared/court/horse";
 import type { HorseEventMessage } from "../../../../../shared/court/protocol";
@@ -128,6 +128,11 @@ export class CourtPageComponent implements OnInit, OnDestroy {
   private holdTimer: ReturnType<typeof setInterval> | null = null;
   // ---- emotes and quick phrases ----
   protected readonly reactOpen = signal(false);
+  protected readonly menuOpen = signal(false);
+  protected readonly timeModes = TIME_MODES;
+  protected readonly cameraPresets = [0, 1, 2];
+  /** The local player is standing on the H-O-R-S-E pad. */
+  protected readonly onHorsePad = signal(false);
   protected readonly emotes = EMOTE_IDS.map((id) => ({ id, icon: EMOTE_ICONS[id] }));
   protected readonly phrases = PHRASE_IDS;
   private lastReactAt: number | undefined;
@@ -215,23 +220,29 @@ export class CourtPageComponent implements OnInit, OnDestroy {
     this.engine?.releaseShoot();
   }
 
-  protected cycleCamera(): void {
-    const camera = this.engine?.cycleCamera() ?? 0;
+  protected toggleMenu(): void {
+    this.reactOpen.set(false);
+    this.menuOpen.set(!this.menuOpen());
+  }
+
+  protected toggleReact(): void {
+    this.menuOpen.set(false);
+    this.reactOpen.set(!this.reactOpen());
+  }
+
+  protected setCamera(camera: number): void {
+    this.engine?.setCameraPreset(camera);
     this.savePrefs({ ...this.prefs(), camera });
   }
 
-  /** Auto (device clock) -> day -> sunset -> night. */
-  protected cycleTime(): void {
-    const time = nextTimeMode(this.prefs().time);
-    this.engine?.setTimeMode(time);
-    this.savePrefs({ ...this.prefs(), time });
-    this.showFlash(this.i18n.t(`court.time.${time}`), "good");
-  }
-
-  protected toggleMute(): void {
-    const muted = !this.prefs().muted;
+  protected setMuted(muted: boolean): void {
     this.engine?.setMuted(muted);
     this.savePrefs({ ...this.prefs(), muted });
+  }
+
+  protected setTime(time: TimeMode): void {
+    this.engine?.setTimeMode(time);
+    this.savePrefs({ ...this.prefs(), time });
   }
 
   protected restart(): void {
@@ -277,6 +288,21 @@ export class CourtPageComponent implements OnInit, OnDestroy {
       finals[0] ??
       null
     );
+  }
+
+  /** The pad on the floor: START with 2+ players, waiting otherwise, LIVE during a game. Hidden in practice. */
+  private refreshPad(): void {
+    if (!this.code) {
+      this.engine?.setHorsePad(null);
+      return;
+    }
+    const phase = this.horseView().phase;
+    const state = phase === "free" ? (this.playerCount() >= 2 ? "ready" : "waiting") : "playing";
+    this.engine?.setHorsePad(state, {
+      ready: this.i18n.t("court.horse.pad.ready"),
+      waiting: this.i18n.t("court.horse.pad.waiting"),
+      playing: this.i18n.t("court.horse.pad.playing"),
+    });
   }
 
   private refreshJumbotron(): void {
@@ -450,6 +476,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
       onContextLost: () => this.state.set("contextLost"),
       onContextRestored: () => this.restart(),
       onShotBlocked: (reason) => this.showFlash(this.i18n.t(`court.horse.block.${reason}`), "bad"),
+      onHorsePad: (on) => this.onHorsePad.set(on),
     };
   }
 
@@ -579,6 +606,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
       if (this.engine === engine) {
         this.state.set("ready");
         this.refreshJumbotron();
+        this.refreshPad();
       }
     } catch (err) {
       console.error("[court] engine failed to start", err);
@@ -643,6 +671,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
       this.horseView.set(view);
       this.horsePlayers.set(hud);
       this.refreshJumbotron();
+      this.refreshPad();
       this.isStarter.set(eligible && view.phase === "free");
       this.canStartHorse.set(ready);
       this.mySessionId.set(me);
@@ -702,6 +731,8 @@ export class CourtPageComponent implements OnInit, OnDestroy {
     this.engine?.dispose();
     this.engine = null;
     this.reactOpen.set(false);
+    this.menuOpen.set(false);
+    this.onHorsePad.set(false);
     this.stopHoldTimer();
     this.reconnecting.set(false);
   }

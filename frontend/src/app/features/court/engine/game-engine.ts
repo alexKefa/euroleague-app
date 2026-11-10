@@ -6,6 +6,7 @@ import { BALL_RADIUS, RELEASE_HEIGHT, SHOT_COOLDOWN_SECONDS } from "../../../../
 import { hoopLayout, insideThreePoint, pickTargetHoop } from "../../../../../../shared/court/geometry";
 import { type TimeMode, lightingFor, resolveHour } from "./lighting";
 import type { FloorPlayer } from "./led-floor";
+import { HorsePad, type PadState } from "./horse-pad";
 import { randomSeed } from "../../../../../../shared/court/rng";
 import { computeShotLaunch, effectiveTiming, layupEligible } from "../../../../../../shared/court/shot";
 import { LAYUP_METER_FILL_SECONDS, METER_FILL_SECONDS } from "../../../../../../shared/court/constants";
@@ -60,6 +61,8 @@ export interface EngineCallbacks {
   onContextRestored(): void;
   /** A shot was refused by the H-O-R-S-E rules (locally or by the server). */
   onShotBlocked(reason: ShotRejectReason): void;
+  /** The local player stepped onto / off the H-O-R-S-E pad. */
+  onHorsePad(on: boolean): void;
 }
 
 /** Multiplayer shots (M3). The engine predicts with the server's seed and plays the server's result. */
@@ -157,6 +160,8 @@ export class GameEngine {
   private shotGate: ((x: number, z: number) => ShotRejectReason | null) | null = null;
   private spotRing: SpotRing | null = null;
   private bubbles: ReactionBubbles | null = null;
+  private pad: HorsePad | null = null;
+  private onPad = false;
   private clientShotId = 0;
   /** Our shot sent without a seed (no prediction): waiting for the server's result. */
   private awaitingShot: { clientShotId: number; sentAt: number } | null = null;
@@ -222,6 +227,7 @@ export class GameEngine {
     this.remotes = new RemotePlayers(this.built.scene, this.batch);
     this.spotRing = new SpotRing(this.built.scene);
     this.bubbles = new ReactionBubbles(this.built.scene);
+    this.pad = new HorsePad(this.built.scene);
     this.timeMode = this.opts.timeMode;
     this.applyLighting();
     this.ball = createBall();
@@ -364,6 +370,16 @@ export class GameEngine {
     this.bubbles?.show(playerId ?? ME, text, isEmoteId(id), now);
   }
 
+  /** The H-O-R-S-E pad on the floor (null hides it: practice courts). */
+  setHorsePad(state: PadState | null, labels?: Record<PadState, string>): void {
+    if (labels) this.pad?.setLabels(labels);
+    this.pad?.setState(state);
+  }
+
+  setCameraPreset(preset: number): void {
+    this.player.preset = Math.max(0, Math.min(CAMERA_PRESETS.length - 1, Math.floor(preset) || 0));
+  }
+
   /** Switch the time-of-day look (auto follows the clock). */
   setTimeMode(mode: TimeMode): void {
     this.timeMode = mode;
@@ -398,6 +414,12 @@ export class GameEngine {
     const arc = this.meter.charging && !this.layupShot && !insideThreePoint(this.targetHoop, p.x, p.z) ? 1 : 0;
     const fire = this.stats.streak >= 3 ? 1 : 0;
     this.built.floor.update(now, dt, fp, arc, fire);
+    const on = this.pad?.isOn(p.x, p.z) ?? false;
+    if (on !== this.onPad) {
+      this.onPad = on;
+      this.cb.onHorsePad(on);
+    }
+    this.pad?.update(now, on);
     this.built.sky.follow(this.camera.position);
   }
 
