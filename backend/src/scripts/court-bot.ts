@@ -77,10 +77,11 @@ async function main(): Promise<void> {
     busyUntil = mine ? Date.now() + m.durationMs + 300 : busyUntil;
     // React when the ball lands.
     setTimeout(() => {
-      if (mine && m.made && Math.random() < 0.35) react(["cheer", "fire", "letsGo"][Math.floor(Math.random() * 3)]!);
+      const pick = (ids: string[]) => ids[Math.floor(Math.random() * ids.length)]!;
+      if (mine && m.made && Math.random() < 0.4) react(pick(["tooEasy", "cantGuard", "flex", "shush", "fire"]));
       if (mine && !m.made && Math.random() < 0.2) react("shrug");
-      if (!mine && m.made && Math.random() < 0.3) react(["nice", "clap"][Math.floor(Math.random() * 2)]!);
-      if (!mine && !m.made && Math.random() < 0.15) react("unlucky");
+      if (!mine && m.made && Math.random() < 0.25) react(pick(["watchThis", "yourMove"]));
+      if (!mine && !m.made && Math.random() < 0.3) react(pick(["brick", "laugh"]));
     }, m.durationMs);
   });
 

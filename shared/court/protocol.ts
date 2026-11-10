@@ -163,8 +163,9 @@ export const MSG = {
 
 // ---- Emotes and quick phrases (M5) ----
 // Only ids travel; each client shows its own icon / translated phrase.
-export const EMOTE_IDS = ["wave", "cheer", "clap", "shrug", "laugh", "fire"] as const;
-export const PHRASE_IDS = ["nice", "yourTurn", "rematch", "gg", "unlucky", "letsGo"] as const;
+// Cocky by design: it's a pickup court. Playful trash talk, no insults.
+export const EMOTE_IDS = ["shush", "flex", "cheer", "shrug", "laugh", "fire"] as const;
+export const PHRASE_IDS = ["tooEasy", "cantGuard", "watchThis", "brick", "myCourt", "yourMove"] as const;
 export type EmoteId = (typeof EMOTE_IDS)[number];
 export type PhraseId = (typeof PHRASE_IDS)[number];
 export type ReactionId = EmoteId | PhraseId;

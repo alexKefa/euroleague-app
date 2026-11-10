@@ -6,9 +6,9 @@ import { JERSEY_FONT } from "./avatar-factory";
 import { disposeObject } from "./scene-builder";
 
 export const EMOTE_ICONS: Record<EmoteId, string> = {
-  wave: "👋",
+  shush: "🤫",
+  flex: "💪",
   cheer: "🙌",
-  clap: "👏",
   shrug: "🤷",
   laugh: "😂",
   fire: "🔥",

@@ -32,7 +32,7 @@ import { JerseyText, createBlobShadow, createLettering } from "./avatar-factory"
 import { disposeObject } from "./scene-builder";
 
 /** How long each emote animation plays (0 = icon only, no pose). */
-const EMOTE_SECONDS: Record<EmoteId, number> = { wave: 1.8, cheer: 1.5, clap: 1.8, shrug: 1.4, laugh: 1.8, fire: 0 };
+const EMOTE_SECONDS: Record<EmoteId, number> = { shush: 1.7, flex: 1.8, cheer: 1.5, shrug: 1.4, laugh: 1.8, fire: 0 };
 
 // ---- body dimensions (metres; avatar space: feet at y = 0, facing +z, right = -x) ----
 const PELVIS_HEIGHT = 0.95;
@@ -451,24 +451,27 @@ export class AvatarRig {
       ball.set(0.3, BALL_RADIUS, 0.45);
       rate = 16;
       switch (this.emoteId) {
-        case "wave":
-          hr.set(-0.42 + 0.1 * Math.sin(t * 11) * fade, 1.98, 0.14);
+        case "shush":
+          // Finger to the lips, ball on the hip, leaning in.
+          hr.set(-0.03, 1.66 - 0.02 * (1 - fade), 0.18);
           ball.set(0.31, 1.0, 0.24);
           hl.set(0.33, 1.06, 0.2);
+          lean = 0.12;
           break;
+        case "flex": {
+          // Double biceps, with a little pump.
+          const pump = 0.03 * Math.sin(t * 10) * fade;
+          hr.set(-0.4, 1.7 + pump, 0.02);
+          hl.set(0.4, 1.7 + pump, 0.02);
+          lean = -0.03;
+          break;
+        }
         case "cheer": {
           const hop = t < 1.26 ? 0.1 * Math.abs(Math.sin((Math.PI * t) / 0.42)) : 0;
           jump = hop;
           hr.set(-0.36, 2.12 + hop, 0.08);
           hl.set(0.36, 2.12 + hop, 0.08);
           rate = 18;
-          break;
-        }
-        case "clap": {
-          const open = 0.5 + 0.5 * Math.cos(t * 16);
-          hr.set(-(0.04 + 0.1 * open), 1.32, 0.33);
-          hl.set(0.04 + 0.1 * open, 1.32, 0.33);
-          rate = 30;
           break;
         }
         case "shrug":
