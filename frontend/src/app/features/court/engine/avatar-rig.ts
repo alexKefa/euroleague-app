@@ -20,6 +20,10 @@ import {
   Vector3,
 } from "three";
 import { BALL_RADIUS } from "../../../../../../shared/court/constants";
+import type { EmoteId } from "../../../../../../shared/court/protocol";
+
+/** How long each emote animation plays (0 = icon only, no pose). */
+const EMOTE_SECONDS: Record<EmoteId, number> = { wave: 1.8, cheer: 1.5, clap: 1.8, shrug: 1.4, laugh: 1.8, fire: 0 };
 import { JerseyText, createBlobShadow, createLettering } from "./avatar-factory";
 import { disposeObject } from "./scene-builder";
 
@@ -228,6 +232,15 @@ export class AvatarRig {
   }
 
   /** The shot left the hand: play the release and follow-through. */
+  /** Play an emote pose (idle only: moving or shooting cancels it). */
+  emote(id: EmoteId, now: number): void {
+    if (EMOTE_SECONDS[id] <= 0) return;
+    this.emoteId = id;
+    this.emoteAt = now;
+  }
+  private emoteId: EmoteId | null = null;
+  private emoteAt = 0;
+
   release(now: number): void {
     this.releaseAt = now;
   }
@@ -268,6 +281,8 @@ export class AvatarRig {
     else mode = input.moving ? "run" : "idle";
     if (mode !== "release" && sinceRelease >= 0.6) this.releaseAt = null;
     this.currentMode = mode;
+    const emoteT = (now - this.emoteAt) / 1000;
+    if (this.emoteId && (mode !== "idle" || emoteT > EMOTE_SECONDS[this.emoteId])) this.emoteId = null;
 
     let crouch = 0.03;
     let jump = 0;
@@ -316,6 +331,48 @@ export class AvatarRig {
       ball.set(-0.33, BALL_RADIUS + bounce * (top - BALL_RADIUS - 0.08), 0.42 + 0.03 * sp);
       hr.set(-0.32, top + 0.02, ball.z - 0.04);
       rate = 26;
+    } else if (this.emoteId) {
+      // Emotes (right hand is -x, forward is +z, local metres). The ball goes
+      // down by the feet unless a hand is free to hold it.
+      const t = emoteT;
+      const fade = Math.min(1, (EMOTE_SECONDS[this.emoteId] - t) / 0.25); // ease back out at the end
+      ball.set(0.3, BALL_RADIUS, 0.45);
+      rate = 16;
+      switch (this.emoteId) {
+        case "wave":
+          hr.set(-0.42 + 0.1 * Math.sin(t * 11) * fade, 1.98, 0.14);
+          ball.set(0.31, 1.0, 0.24);
+          hl.set(0.33, 1.06, 0.2);
+          break;
+        case "cheer": {
+          const hop = t < 1.26 ? 0.1 * Math.abs(Math.sin((Math.PI * t) / 0.42)) : 0;
+          jump = hop;
+          hr.set(-0.36, 2.12 + hop, 0.08);
+          hl.set(0.36, 2.12 + hop, 0.08);
+          rate = 18;
+          break;
+        }
+        case "clap": {
+          const open = 0.5 + 0.5 * Math.cos(t * 16);
+          hr.set(-(0.04 + 0.1 * open), 1.32, 0.33);
+          hl.set(0.04 + 0.1 * open, 1.32, 0.33);
+          rate = 30;
+          break;
+        }
+        case "shrug":
+          hr.set(-0.42, 1.08, 0.24);
+          hl.set(0.42, 1.08, 0.24);
+          lean = 0;
+          break;
+        case "laugh":
+          lean = -0.06 + 0.03 * Math.sin(t * 18);
+          crouch = 0.04;
+          hr.set(-0.17, 1.1, 0.24);
+          hl.set(0.17, 1.1, 0.24);
+          break;
+        case "fire":
+          break;
+      }
     } else {
       const breathe = Math.sin(this.time * 2.2) * 0.008;
       ball.set(-0.3, 1.0 + breathe, 0.22);

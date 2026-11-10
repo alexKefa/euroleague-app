@@ -14,8 +14,14 @@ import { displayTeamCode } from "../../shared/team-display-codes";
 import { jerseyNumber, kitColors } from "../../../../../shared/court/kit";
 import {
   MAX_PLAYERS,
+  EMOTE_IDS,
+  PHRASE_IDS,
   RECONNECT_SECONDS,
   closeAction,
+  isEmoteId,
+  isReactionId,
+  reactionAllowed,
+  type ReactionId,
   isValidCourtCode,
   normalizeCourtCode,
   type ToastMessage,
@@ -23,6 +29,7 @@ import {
 import { JerseyText } from "./engine/avatar-factory";
 import { EngineCallbacks, EngineOptions, GameEngine, PerfStats, PracticeStats, ReleaseGrade } from "./engine/game-engine";
 import { CourtJoinError, CourtNet, HorseView, JoinFailure, NetPlayer } from "./net/court-net";
+import { EMOTE_ICONS } from "./engine/reaction-bubbles";
 import { HorseHudComponent, HorseHudPlayer, HorseWinner } from "./hud/horse-hud";
 import { HORSE_RETURN_MS, canStart, shotGate } from "../../../../../shared/court/horse";
 import type { HorseEventMessage } from "../../../../../shared/court/protocol";
@@ -109,6 +116,12 @@ export class CourtPageComponent implements OnInit, OnDestroy {
   /** The loading screen is an automatic rejoin, not a first join. */
   protected readonly rejoining = signal(false);
   private holdTimer: ReturnType<typeof setInterval> | null = null;
+  // ---- emotes and quick phrases ----
+  protected readonly reactOpen = signal(false);
+  protected readonly emotes = EMOTE_IDS.map((id) => ({ id, icon: EMOTE_ICONS[id] }));
+  protected readonly phrases = PHRASE_IDS;
+  private lastReactAt: number | undefined;
+
   /** ?perf=1: live fps / draw calls overlay for checking a phone against the spec's budget. */
   protected readonly perfOn = this.route.snapshot.queryParamMap.get("perf") === "1";
   protected readonly perf = signal<PerfStats | null>(null);
@@ -197,6 +210,22 @@ export class CourtPageComponent implements OnInit, OnDestroy {
     this.rejoinOnVisible = false;
     this.teardown();
     void this.boot();
+  }
+
+  // ---- emotes and quick phrases (M5) ----
+
+  protected react(id: ReactionId): void {
+    this.reactOpen.set(false);
+    // Same gap the server enforces, so we never show one the others won't see.
+    const now = Date.now();
+    if (!this.engine || !reactionAllowed(this.lastReactAt, now)) return;
+    this.lastReactAt = now;
+    this.engine.react(id, this.reactionText(id), null);
+    this.net?.sendReaction(id);
+  }
+
+  private reactionText(id: ReactionId): string {
+    return isEmoteId(id) ? EMOTE_ICONS[id] : this.i18n.t(`court.phrase.${id}`);
   }
 
   // ---- connection loss (M5 reconnection UX) ----
@@ -379,6 +408,9 @@ export class CourtPageComponent implements OnInit, OnDestroy {
       onShot: (m) => this.engine?.onServerShot(m, net.sessionId),
       onShotRejected: (m) => this.engine?.onShotRejected(m.clientShotId, m.reason),
       onHorseEvent: (m) => this.onHorseEvent(m),
+      onReaction: (m) => {
+        if (isReactionId(m.id)) this.engine?.react(m.id, this.reactionText(m.id), m.playerId);
+      },
       onDrop: () => this.onDropped(),
       onReconnect: () => this.onReconnected(),
       onClosed: (code) => this.onConnectionClosed(code, net),
@@ -549,6 +581,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
     this.net = null;
     this.engine?.dispose();
     this.engine = null;
+    this.reactOpen.set(false);
     this.stopHoldTimer();
     this.reconnecting.set(false);
   }

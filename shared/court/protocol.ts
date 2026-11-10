@@ -149,7 +149,44 @@ export const MSG = {
   horseStart: "horse:start",
   horseLeave: "horse:leave",
   horseEvent: "horse:event",
+  /** Client -> server: ReactionMessage. Server -> everyone else: ReactionShownMessage. */
+  react: "react",
+  reacted: "reacted",
 } as const;
+
+// ---- Emotes and quick phrases (M5) ----
+// Only ids travel; each client shows its own icon / translated phrase.
+export const EMOTE_IDS = ["wave", "cheer", "clap", "shrug", "laugh", "fire"] as const;
+export const PHRASE_IDS = ["nice", "yourTurn", "rematch", "gg", "unlucky", "letsGo"] as const;
+export type EmoteId = (typeof EMOTE_IDS)[number];
+export type PhraseId = (typeof PHRASE_IDS)[number];
+export type ReactionId = EmoteId | PhraseId;
+/** Minimum gap between two reactions from one player (server-enforced). */
+export const REACTION_GAP_MS = 1000;
+
+const REACTION_SET: ReadonlySet<string> = new Set([...EMOTE_IDS, ...PHRASE_IDS]);
+
+export function isReactionId(id: unknown): id is ReactionId {
+  return typeof id === "string" && REACTION_SET.has(id);
+}
+
+export function isEmoteId(id: string): id is EmoteId {
+  return (EMOTE_IDS as readonly string[]).includes(id);
+}
+
+export function reactionAllowed(lastAt: number | undefined, now: number): boolean {
+  return lastAt === undefined || now - lastAt >= REACTION_GAP_MS;
+}
+
+export interface ReactionMessage {
+  id: ReactionId;
+}
+
+export interface ReactionShownMessage {
+  /** sessionId of the player who reacted. */
+  playerId: string;
+  id: ReactionId;
+}
 
 /** Speed tolerance before a move is rejected (spec §6.3: speed × 1.25). */
 export const MOVE_SPEED_TOLERANCE = 1.25;

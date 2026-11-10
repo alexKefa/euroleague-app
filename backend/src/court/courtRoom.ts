@@ -31,12 +31,16 @@ import {
   MSG,
   PLAYER_ANIMS,
   RECONNECT_SECONDS,
+  isReactionId,
   isValidCourtCode,
   normalizeYaw,
+  reactionAllowed,
   validateMove,
   type CorrectionMessage,
   type JoinOptions,
   type MoveMessage,
+  type ReactionMessage,
+  type ReactionShownMessage,
   type PlayerAnim,
   type SeedMessage,
   type ShootMessage,
@@ -64,6 +68,8 @@ interface ClientData {
   nextSeed: number;
   /** No new shot until the previous one has finished playing (spec §5.7). */
   shotBusyUntil: number;
+  /** Last emote / quick phrase (rate limit). */
+  lastReactionAt?: number;
 }
 
 type CourtClient = Client<{ auth: CourtAuth; userData: ClientData }>;
@@ -131,6 +137,7 @@ export class CourtRoom extends Room<{ state: CourtState }> {
     this.onMessage(MSG.shoot, (client: CourtClient, msg: ShootMessage) => this.handleShoot(client, msg));
     this.onMessage(MSG.horseStart, (client: CourtClient) => this.startHorse(client));
     this.onMessage(MSG.horseLeave, (client: CourtClient) => this.applyHorse({ type: "leave", playerId: client.sessionId }));
+    this.onMessage(MSG.react, (client: CourtClient, msg: ReactionMessage) => this.handleReaction(client, msg));
   }
 
   async onAuth(_client: Client, options: Partial<JoinOptions>, _context: AuthContext): Promise<CourtAuth> {
@@ -410,6 +417,19 @@ export class CourtRoom extends Room<{ state: CourtState }> {
       p.letters = hp ? lettersOf(hp.letters) : "";
       p.eliminated = hp ? hp.eliminated : false;
     });
+  }
+
+  // ---------- emotes and quick phrases (M5) ----------
+
+  /** Relay a known reaction to everyone else, at most one per REACTION_GAP_MS per player. */
+  private handleReaction(client: CourtClient, msg: ReactionMessage): void {
+    const p = this.state.players.get(client.sessionId);
+    const data = client.userData;
+    if (!p || !data || !p.connected || !isReactionId(msg?.id)) return;
+    const now = Date.now();
+    if (!reactionAllowed(data.lastReactionAt, now)) return;
+    data.lastReactionAt = now;
+    this.broadcast(MSG.reacted, { playerId: client.sessionId, id: msg.id } satisfies ReactionShownMessage, { except: client });
   }
 
   // ---------- helpers ----------

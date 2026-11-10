@@ -7,6 +7,7 @@ import { JERSEY_FONT, JerseyText, createBall } from "./avatar-factory";
 import { AvatarBatch, AvatarRig } from "./avatar-rig";
 import { BallPlayback } from "./ball-playback";
 import { disposeObject } from "./scene-builder";
+import type { EmoteId } from "../../../../../../shared/court/protocol";
 
 const INTERP_DELAY_MS = 100;
 const MAX_SNAPSHOTS = 30;
@@ -168,6 +169,17 @@ export class RemotePlayers {
     disposeObject(r.tag);
     disposeObject(r.ball);
     this.remotes.delete(id);
+  }
+
+  /** Another player emoted: play the pose on their rig. */
+  emote(id: string, emote: EmoteId, now: number): void {
+    this.remotes.get(id)?.rig.emote(emote, now);
+  }
+
+  /** Where a player is being drawn (null if not on court). */
+  positionOf(id: string, out: Vector3): Vector3 | null {
+    const r = this.remotes.get(id);
+    return r ? out.set(r.last.x, 0, r.last.z) : null;
   }
 
   ids(): string[] {

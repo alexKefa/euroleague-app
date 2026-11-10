@@ -6,6 +6,11 @@ import { FENCE } from "./geometry.js";
 import { jerseyNumber, kitColors } from "./kit.js";
 import {
   CLOSE_REPLACED,
+  EMOTE_IDS,
+  PHRASE_IDS,
+  REACTION_GAP_MS,
+  isReactionId,
+  reactionAllowed,
   CODE_ALPHABET,
   closeAction,
   MOVE_SPEED_TOLERANCE,
@@ -78,4 +83,17 @@ test("closeAction: in the background, rejoin waits until the page is visible", (
 test("closeAction: a session that died within 10 s shows the button instead (no rejoin loop)", () => {
   assert.equal(closeAction(4003, { visible: true, connectedMs: 9_999 }), "stay");
   assert.equal(closeAction(4002, { visible: false, connectedMs: 0 }), "stay");
+});
+
+test("emotes: only known emote and phrase ids are accepted", () => {
+  for (const id of [...EMOTE_IDS, ...PHRASE_IDS]) assert.ok(isReactionId(id), id);
+  for (const bad of ["", "WAVE", "hello", "<script>", 3, null, undefined, {}]) assert.equal(isReactionId(bad), false, String(bad));
+  assert.equal(EMOTE_IDS.length, 6);
+  assert.equal(PHRASE_IDS.length, 6);
+});
+
+test("emotes: at most one per REACTION_GAP_MS per player", () => {
+  assert.equal(reactionAllowed(undefined, 1000), true);
+  assert.equal(reactionAllowed(1000, 1000 + REACTION_GAP_MS - 1), false);
+  assert.equal(reactionAllowed(1000, 1000 + REACTION_GAP_MS), true);
 });

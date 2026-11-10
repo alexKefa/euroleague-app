@@ -209,6 +209,54 @@
 .court-banner {
   background: rgba(190, 120, 20, 0.85);
 }
+.court-react-on {
+  background: rgba(255, 255, 255, 0.92);
+  color: #121722;
+}
+.court-react-scrim {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  cursor: default;
+}
+.court-react-panel {
+  position: absolute;
+  right: calc(0.75rem + env(safe-area-inset-right));
+  top: calc(3.75rem + env(safe-area-inset-top));
+  width: min(20rem, calc(100vw - 1.5rem));
+  padding: 0.6rem;
+  border-radius: 1.25rem;
+  background: rgba(8, 12, 20, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  animation: court-notice-in 160ms ease-out;
+}
+.court-react-emote {
+  height: 2.75rem;
+  border-radius: 0.8rem;
+  font-size: 1.5rem;
+  line-height: 1;
+  background: rgba(255, 255, 255, 0.08);
+  transition: transform 120ms ease, background 120ms ease;
+}
+.court-react-emote:active {
+  transform: scale(0.9);
+  background: rgba(255, 255, 255, 0.2);
+}
+.court-react-phrase {
+  min-height: 2.5rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.92);
+  color: #121722;
+  transition: transform 120ms ease;
+}
+.court-react-phrase:active {
+  transform: scale(0.95);
+}
 .court-perf {
   position: absolute;
   left: 50%;

@@ -22,6 +22,11 @@ import { SpotRing } from "./spot-ring";
 import type { ShotRejectReason } from "../../../../../../shared/court/horse";
 import { BuiltScene, buildScene, disposeObject } from "./scene-builder";
 import { FrameGovernor } from "./frame-governor";
+import { ReactionBubbles } from "./reaction-bubbles";
+import { isEmoteId, type ReactionId } from "../../../../../../shared/court/protocol";
+
+/** Bubble key for our own player (remote players use their sessionId). */
+const ME = "#me";
 
 /** Live render numbers for the ?perf=1 overlay. */
 export interface PerfStats {
@@ -135,6 +140,7 @@ export class GameEngine {
   private shotNet: ShotNet | null = null;
   private shotGate: ((x: number, z: number) => ShotRejectReason | null) | null = null;
   private spotRing: SpotRing | null = null;
+  private bubbles: ReactionBubbles | null = null;
   private clientShotId = 0;
   /** Our shot sent without a seed (no prediction): waiting for the server's result. */
   private awaitingShot: { clientShotId: number; sentAt: number } | null = null;
@@ -193,6 +199,7 @@ export class GameEngine {
     this.rig = new AvatarRig(this.batch, this.built.scene, this.batch.alloc()!, this.opts.kitPrimary, this.opts.kitSecondary, this.opts.jersey);
     this.remotes = new RemotePlayers(this.built.scene, this.batch);
     this.spotRing = new SpotRing(this.built.scene);
+    this.bubbles = new ReactionBubbles(this.built.scene);
     this.ball = createBall();
     this.built.scene.add(this.ball);
     this.ballShadow = createBlobShadow(0.42);
@@ -317,6 +324,20 @@ export class GameEngine {
     this.cb.onStats({ ...this.stats });
   }
 
+  /**
+   * Show an emote or quick phrase. playerId null = us. text is what goes in
+   * the bubble (the emoji, or the phrase in the viewer's language).
+   */
+  react(id: ReactionId, text: string, playerId: string | null): void {
+    if (!this.running) return;
+    const now = performance.now();
+    if (isEmoteId(id)) {
+      if (playerId === null) this.rig.emote(id, now);
+      else this.remotes?.emote(playerId, id, now);
+    }
+    this.bubbles?.show(playerId ?? ME, text, isEmoteId(id), now);
+  }
+
   /** The server rejected a move: snap back. */
   applyCorrection(x: number, z: number): void {
     this.player.x = x;
@@ -362,6 +383,7 @@ export class GameEngine {
     this.meter?.cancel();
     this.moveSink = null;
     this.remotes?.dispose();
+    this.bubbles?.dispose();
     if (this.built) disposeObject(this.built.scene);
     releaseBallTexture();
     releaseShadowTexture();
@@ -457,6 +479,7 @@ export class GameEngine {
     this.updateNet(now);
     this.remotes?.update(now, dt, this.onRemoteShotEvent);
     this.spotRing?.update(now);
+    this.bubbles?.update(now, (key, out) => (key === ME ? out.set(this.player.x, 0, this.player.z) : (this.remotes?.positionOf(key, out) ?? null)));
     this.batch.commit();
     if (this.awaitingShot && now - this.awaitingShot.sentAt > SHOT_REPLY_TIMEOUT_MS) this.onShotRejected(this.awaitingShot.clientShotId);
     this.sendMove(now);

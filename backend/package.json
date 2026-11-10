@@ -37,6 +37,7 @@
     "test:court": "tsx --test ../shared/court/shot.test.ts ../shared/court/protocol.test.ts ../shared/court/horse.test.ts ../frontend/src/app/features/court/engine/frame-governor.test.ts",
     "check:horse": "tsx src/scripts/check-horse.ts",
     "check:reconnect": "tsx src/scripts/check-reconnect.ts",
+    "check:reactions": "tsx src/scripts/check-reactions.ts",
     "check:leaks": "tsx --expose-gc src/scripts/check-leaks.ts",
     "load:court": "tsx src/scripts/load-court.ts"
   },

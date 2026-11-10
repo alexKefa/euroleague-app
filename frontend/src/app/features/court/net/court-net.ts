@@ -15,6 +15,8 @@ import {
   type ShotMessage,
   type ShotRejectedMessage,
   type HorseEventMessage,
+  type ReactionId,
+  type ReactionShownMessage,
   type ToastMessage,
 } from "../../../../../../shared/court/protocol";
 import type { HorsePhase } from "../../../../../../shared/court/horse";
@@ -68,6 +70,8 @@ export interface CourtNetHandlers {
   /** Every state patch (~20 Hz). */
   onState(players: Map<string, NetPlayer>, view: HorseView): void;
   onHorseEvent(msg: HorseEventMessage): void;
+  /** Another player's emote or quick phrase. */
+  onReaction(msg: ReactionShownMessage): void;
   onToast(msg: ToastMessage): void;
   onCorrection(msg: CorrectionMessage): void;
   /** Any player's authoritative shot (ours included). */
@@ -150,6 +154,7 @@ export class CourtNet {
     room.onMessage(MSG.shot, (m: ShotMessage) => this.handlers.onShot(m));
     room.onMessage(MSG.shotRejected, (m: ShotRejectedMessage) => this.handlers.onShotRejected(m));
     room.onMessage(MSG.horseEvent, (m: HorseEventMessage) => this.handlers.onHorseEvent(m));
+    room.onMessage(MSG.reacted, (m: ReactionShownMessage) => this.handlers.onReaction(m));
     room.onDrop(() => {
       this.seed = null;
       this.dropped = true;
@@ -208,6 +213,10 @@ export class CourtNet {
 
   startHorse(): void {
     this.live()?.send(MSG.horseStart);
+  }
+
+  sendReaction(id: ReactionId): void {
+    this.live()?.send(MSG.react, { id });
   }
 
   leaveHorse(): void {

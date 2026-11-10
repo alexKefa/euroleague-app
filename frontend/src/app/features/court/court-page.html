@@ -82,6 +82,23 @@
     }
 
     <div class="flex gap-2">
+      @if (state() === "ready") {
+        <button
+          type="button"
+          class="court-pill h-10 w-10 justify-center"
+          [class.court-react-on]="reactOpen()"
+          (click)="reactOpen.set(!reactOpen())"
+          [attr.aria-label]="i18n.t('court.react.open')"
+          [title]="i18n.t('court.react.open')"
+          [attr.aria-expanded]="reactOpen()"
+        >
+          <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="8.5" />
+            <path d="M8.5 14.2a4.2 4.2 0 007 0" />
+            <path d="M9.3 9.6h.01M14.7 9.6h.01" stroke-width="2.6" />
+          </svg>
+        </button>
+      }
       <button type="button" class="court-pill h-10 w-10 justify-center" (click)="cycleCamera()" [attr.aria-label]="i18n.t('court.camera')" [title]="i18n.t('court.camera')">
         <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M4 8h3l2-2.5h6L17 8h3v11H4z" />
@@ -132,6 +149,25 @@
       [winner]="horseWinner()"
       (forfeit)="forfeitHorse()"
     />
+  }
+
+  <!-- Emotes and quick phrases -->
+  @if (reactOpen() && state() === "ready") {
+    <button type="button" class="court-react-scrim" (click)="reactOpen.set(false)" [attr.aria-label]="i18n.t('court.react.close')"></button>
+    <div class="court-react-panel" role="dialog" [attr.aria-label]="i18n.t('court.react.open')">
+      <div class="grid grid-cols-6 gap-1.5">
+        @for (e of emotes; track e.id) {
+          <button type="button" class="court-react-emote" (click)="react(e.id)" [attr.aria-label]="i18n.t('court.emote.' + e.id)" [title]="i18n.t('court.emote.' + e.id)">
+            {{ e.icon }}
+          </button>
+        }
+      </div>
+      <div class="mt-2 grid grid-cols-2 gap-1.5">
+        @for (id of phrases; track id) {
+          <button type="button" class="court-react-phrase" (click)="react(id)">{{ i18n.t("court.phrase." + id) }}</button>
+        }
+      </div>
+    </div>
   }
 
   @if (perf(); as p) {
