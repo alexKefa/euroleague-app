@@ -36,7 +36,8 @@
     "moments:generate": "tsx src/scripts/generate-moments.ts",
     "test:court": "tsx --test ../shared/court/shot.test.ts ../shared/court/protocol.test.ts ../shared/court/horse.test.ts",
     "check:horse": "tsx src/scripts/check-horse.ts",
-    "check:reconnect": "tsx src/scripts/check-reconnect.ts"
+    "check:reconnect": "tsx src/scripts/check-reconnect.ts",
+    "check:leaks": "tsx --expose-gc src/scripts/check-leaks.ts"
   },
   "dependencies": {
     "@colyseus/core": "^0.18.27",

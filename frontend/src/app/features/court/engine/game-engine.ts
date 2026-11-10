@@ -355,6 +355,10 @@ export class GameEngine {
       canvas.removeEventListener("webglcontextrestored", this.onContextRestored);
       this.renderer.renderLists.dispose();
       this.renderer.dispose();
+      // Give the GL context back now instead of whenever GC runs: browsers keep
+      // only ~16 alive and kill the oldest after that (each court visit made one).
+      // The context-lost listener is already removed, so this doesn't trip it.
+      this.renderer.forceContextLoss();
       canvas.remove();
     }
     this.physics?.dispose();

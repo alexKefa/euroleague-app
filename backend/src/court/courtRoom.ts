@@ -430,7 +430,7 @@ export class CourtRoom extends Room<{ state: CourtState }> {
     this.cancelEmptyDispose();
     this.emptyTimer = this.clock.setTimeout(() => {
       if (this.clients.length === 0) void this.disconnect();
-    }, EMPTY_DISPOSE_MS);
+    }, Number(process.env.COURT_EMPTY_DISPOSE_MS) || EMPTY_DISPOSE_MS); // env override: check:leaks only
   }
 
   private cancelEmptyDispose(): void {
