@@ -2,13 +2,15 @@
 // by two-bone IK, with a run cycle, dribble, and a shooting motion (gather,
 // rise to the set point, release with a small hop, follow-through, land).
 //
-// Look: tapered, rounded limb segments (no visible ball joints), a tank-top
-// jersey, basketball shorts with a separate opening per leg, crew socks,
-// sneakers, an oval head with short hair and a nose so the face reads.
+// Look: tapered limb segments with muscle bulges (biceps, forearm, calf) and
+// deltoid caps, a textured tank-top jersey in the club's kit (pattern,
+// V-neck, armholes, name and number), knee-length shorts with piped hems and
+// side stripes, tall socks, two-tone sneakers, and a head with jaw, ears,
+// eyes, brows and one of a few haircuts (some players get a beard).
 //
 // Draw calls: every player's body parts go through one shared AvatarBatch of
-// InstancedMeshes (per-instance colours): 13 calls for all eight players,
-// plus their jersey lettering and shadows.
+// InstancedMeshes (per-instance colours): 14 calls for all eight players,
+// plus one textured jersey and one shadow each.
 import {
   BufferGeometry,
   CapsuleGeometry,
@@ -28,7 +30,8 @@ import {
 } from "three";
 import { BALL_RADIUS } from "../../../../../../shared/court/constants";
 import type { EmoteId } from "../../../../../../shared/court/protocol";
-import { JerseyText, createBlobShadow, createLettering } from "./avatar-factory";
+import { JerseyText, createBlobShadow, jerseyTexture } from "./avatar-factory";
+import { resolveKit } from "./kit-styles";
 import { disposeObject } from "./scene-builder";
 
 /** How long each emote animation plays (0 = icon only, no pose). */
@@ -43,28 +46,43 @@ const SHIN = 0.43;
 const ANKLE_HEIGHT = 0.08;
 const SHOULDER_HALF = 0.24;
 const HIP_HALF = 0.1;
-/** Jersey lettering wraps a cylinder of this radius / height around the torso centre. */
-const TORSO_RADIUS = 0.2;
-const TORSO_LENGTH = 0.36;
 const TORSO_SCALE = new Vector3(1.12, 1, 0.78);
 /** Torso centre / shoulders / neck / head along the spine from the pelvis. */
 const SPINE_TORSO = 0.3;
 const SPINE_SHOULDER = 0.55;
 const SPINE_NECK = 0.62;
 const SPINE_HEAD = 0.8;
-const HEAD_SCALE = new Vector3(0.106, 0.124, 0.116);
+const HEAD_SCALE = new Vector3(0.104, 0.122, 0.114);
+const SHORTS_LEG = 0.37;
+const SOCK_HEIGHT = 0.17;
 
-const SKIN_TONES = ["#f1c9a5", "#ddaa82", "#b97f55", "#8a5a3b", "#5e3b27"].map((c) => new Color(c));
+const SKIN_HEX = ["#f1c9a5", "#ddaa82", "#b97f55", "#8a5a3b", "#5e3b27"];
+const SKIN_TONES = SKIN_HEX.map((c) => new Color(c));
 const HAIR_COLORS = ["#1a1310", "#2e2016", "#4b3221", "#0e0e0e", "#6e4b2a", "#3a2a1e"].map((c) => new Color(c));
+const FEATURE_COLOR = new Color("#16100c");
 const SOCK_COLOR = new Color("#f2f2f2");
+const SOLE_COLOR = new Color("#ececec");
 
-/** A limb segment: a tapered tube with rounded ends, along +Y from y=-len/2 (rStart) to +len/2 (rEnd). */
-function limbGeometry(len: number, rStart: number, rEnd: number): BufferGeometry {
+type HairStyle = "short" | "buzz" | "top" | "bald";
+const HAIR_STYLES: HairStyle[] = ["short", "buzz", "top", "short", "bald", "buzz"];
+
+/**
+ * A limb segment: a tapered tube with rounded ends, along +Y from y=-len/2
+ * (rStart) to +len/2 (rEnd), with an optional muscle bulge peaking at
+ * fraction `peak` of the length.
+ */
+function limbGeometry(len: number, rStart: number, rEnd: number, bulge = 0, peak = 0.5): BufferGeometry {
   const pts: Vector2[] = [];
   const caps = 5;
   for (let i = 0; i <= caps; i++) {
     const a = -Math.PI / 2 + (i / caps) * (Math.PI / 2);
     pts.push(new Vector2(rStart * Math.cos(a) + 1e-4, -len / 2 + rStart * Math.sin(a)));
+  }
+  const mids = 7;
+  for (let i = 1; i < mids; i++) {
+    const t = i / mids;
+    const r = rStart + (rEnd - rStart) * t + bulge * Math.exp(-(((t - peak) / 0.26) ** 2));
+    pts.push(new Vector2(r, -len / 2 + len * t));
   }
   for (let i = 0; i <= caps; i++) {
     const a = (i / caps) * (Math.PI / 2);
@@ -73,7 +91,11 @@ function limbGeometry(len: number, rStart: number, rEnd: number): BufferGeometry
   return new LatheGeometry(pts, 14);
 }
 
-/** Tank-top jersey: closed lathe, slightly fuller at the chest, sloped shoulders. */
+/**
+ * Tank-top jersey: closed lathe, slightly fuller at the chest, sloped
+ * shoulders. UVs match jerseyTexture(): u goes once around starting at the
+ * right side (chest at 0.25, back at 0.75), v is height (1 at the collar).
+ */
 function torsoGeometry(): BufferGeometry {
   const profile: [number, number][] = [
     [0, -0.205],
@@ -88,10 +110,17 @@ function torsoGeometry(): BufferGeometry {
     [0.075, 0.305],
     [0, 0.31],
   ];
-  return new LatheGeometry(
+  const geo = new LatheGeometry(
     profile.map(([r, y]) => new Vector2(r, y)),
-    20
+    28,
+    -Math.PI / 2
   );
+  const pos = geo.getAttribute("position");
+  const uv = geo.getAttribute("uv");
+  const y0 = profile[0]![1];
+  const y1 = profile[profile.length - 1]![1];
+  for (let i = 0; i < uv.count; i++) uv.setY(i, (pos.getY(i) - y0) / (y1 - y0));
+  return geo;
 }
 
 /** Sneaker: a capsule lying along +z. */
@@ -106,15 +135,18 @@ const PER = {
   thigh: 2,
   shin: 2,
   neck: 1,
-  /** 2 hands, head, nose */
-  skinBits: 4,
-  hair: 1,
-  torso: 1,
+  /** 2 hands, head, nose, jaw, 2 deltoids, 2 ears */
+  skinBits: 9,
+  /** cap, beard */
+  hair: 2,
+  /** 2 eyes, 2 brows */
+  features: 4,
   hips: 1,
   shortLeg: 2,
-  /** headband, waistband */
-  trim: 2,
+  /** waistband, 2 leg hems, 2 side stripes */
+  trim: 5,
   shoe: 2,
+  sole: 2,
   sock: 2,
 } as const;
 type Part = keyof typeof PER;
@@ -132,26 +164,28 @@ export class AvatarBatch {
   private readonly free: number[] = [];
 
   constructor(scene: Scene, readonly capacity: number) {
-    const skin = () => new MeshStandardMaterial({ color: "#ffffff", roughness: 0.62 });
-    const cloth = () => new MeshStandardMaterial({ color: "#ffffff", roughness: 0.85 });
+    // Skin: a touch of sheen; hair matte; cloth matte with shorts a little shinier (mesh polyester).
+    const skin = () => new MeshStandardMaterial({ color: "#ffffff", roughness: 0.52 });
+    const cloth = (roughness = 0.85) => new MeshStandardMaterial({ color: "#ffffff", roughness });
     const mk = (part: Part, geo: BufferGeometry, mat: MeshStandardMaterial) => new InstancedMesh(geo, mat, capacity * PER[part]);
-    const shortsMat = cloth();
+    const shortsMat = cloth(0.7);
     shortsMat.side = DoubleSide; // open leg tubes: the inside shows at the hem
     this.parts = {
-      upperArm: mk("upperArm", limbGeometry(UPPER_ARM, 0.058, 0.042), skin()),
-      forearm: mk("forearm", limbGeometry(FOREARM, 0.044, 0.033), skin()),
-      thigh: mk("thigh", limbGeometry(THIGH, 0.084, 0.058), skin()),
-      shin: mk("shin", limbGeometry(SHIN, 0.06, 0.037), skin()),
-      neck: mk("neck", limbGeometry(SPINE_HEAD - SPINE_NECK, 0.054, 0.048), skin()),
+      upperArm: mk("upperArm", limbGeometry(UPPER_ARM, 0.056, 0.041, 0.009, 0.52), skin()),
+      forearm: mk("forearm", limbGeometry(FOREARM, 0.044, 0.031, 0.008, 0.22), skin()),
+      thigh: mk("thigh", limbGeometry(THIGH, 0.084, 0.056, 0.008, 0.3), skin()),
+      shin: mk("shin", limbGeometry(SHIN, 0.056, 0.035, 0.016, 0.26), skin()),
+      neck: mk("neck", limbGeometry(SPINE_HEAD - SPINE_NECK, 0.06, 0.05), skin()),
       skinBits: mk("skinBits", new SphereGeometry(1, 18, 12), skin()),
-      hair: mk("hair", new SphereGeometry(1, 18, 9, 0, Math.PI * 2, 0, Math.PI * 0.52), cloth()),
-      torso: mk("torso", torsoGeometry(), cloth()),
-      hips: mk("hips", new CylinderGeometry(0.205, 0.215, 0.22, 18), cloth()),
-      // Leg openings: top (+Y, toward the knee) is the hem, slightly narrower.
-      shortLeg: mk("shortLeg", new CylinderGeometry(0.104, 0.118, 0.3, 16, 1, true), shortsMat),
-      trim: mk("trim", new CylinderGeometry(1, 1, 1, 18), cloth()),
-      shoe: mk("shoe", shoeGeometry(), cloth()),
-      sock: mk("sock", new CylinderGeometry(0.046, 0.043, 0.13, 12), cloth()),
+      hair: mk("hair", new SphereGeometry(1, 18, 9, 0, Math.PI * 2, 0, Math.PI * 0.55), cloth(0.95)),
+      features: mk("features", new SphereGeometry(1, 8, 6), cloth(0.4)),
+      hips: mk("hips", new CylinderGeometry(0.205, 0.215, 0.22, 18), shortsMat),
+      // Leg openings: top (+Y, toward the knee) is the hem, slightly narrower. Knee-length.
+      shortLeg: mk("shortLeg", new CylinderGeometry(0.108, 0.12, SHORTS_LEG, 16, 1, true), shortsMat),
+      trim: mk("trim", new CylinderGeometry(1, 1, 1, 18, 1, true), shortsMat),
+      shoe: mk("shoe", shoeGeometry(), cloth(0.6)),
+      sole: mk("sole", shoeGeometry(), cloth(0.9)),
+      sock: mk("sock", new CylinderGeometry(0.047, 0.042, SOCK_HEIGHT, 12), cloth()),
     };
     const zero = new Matrix4().makeScale(0, 0, 0);
     const white = new Color("#ffffff");
@@ -244,6 +278,9 @@ const tQ = new Quaternion();
 const tM = new Matrix4();
 const tS = new Vector3();
 const UP = new Vector3(0, 1, 0);
+const ZERO = new Vector3(0, 0, 0);
+/** Side stripe: thin radially, ~3 cm wide, most of the leg long (unit trim cylinder). */
+const STRIPE_SCALE = new Vector3(0.005, SHORTS_LEG - 0.06, 0.016);
 
 /** Two-bone IK: the mid joint (elbow/knee) for a root, target and pole direction. */
 function solveMid(root: Vector3, target: Vector3, l1: number, l2: number, pole: Vector3, out: Vector3): Vector3 {
@@ -281,7 +318,10 @@ export class AvatarRig {
   private time = 0;
   private readonly root = new Matrix4();
   private readonly shadow: Mesh;
-  private readonly lettering: Mesh[];
+  /** The jersey: its own mesh, since it carries this player's kit texture. */
+  private readonly torso: Mesh;
+  private readonly hairStyle: HairStyle;
+  private readonly beard: boolean;
   private readonly x = { x: 0, z: 0, rotY: 0 };
   readonly slot: number;
 
@@ -295,21 +335,25 @@ export class AvatarRig {
   ) {
     this.slot = slot;
     const n = jersey?.number ?? 3;
-    const skin = SKIN_TONES[n % SKIN_TONES.length]!;
-    const kit = new Color(primary);
-    const trim = new Color(secondary);
+    const skinIndex = n % SKIN_TONES.length;
+    const skin = SKIN_TONES[skinIndex]!;
+    const kit = resolveKit(jersey?.chest ?? "", primary, secondary);
     for (const part of ["upperArm", "forearm", "thigh", "shin", "neck", "skinBits"] as const) batch.color(part, slot, skin);
     batch.color("hair", slot, HAIR_COLORS[(n * 7 + 3) % HAIR_COLORS.length]!);
-    for (const part of ["torso", "hips", "shortLeg"] as const) batch.color(part, slot, kit);
-    batch.color("trim", slot, trim);
-    batch.color("shoe", slot, trim);
+    batch.color("features", slot, FEATURE_COLOR);
+    for (const part of ["hips", "shortLeg"] as const) batch.color(part, slot, new Color(kit.shorts));
+    batch.color("trim", slot, new Color(kit.trim));
+    batch.color("shoe", slot, new Color(kit.shoe));
+    batch.color("sole", slot, SOLE_COLOR);
     batch.color("sock", slot, SOCK_COLOR);
+    this.hairStyle = HAIR_STYLES[(n * 5 + 1) % HAIR_STYLES.length]!;
+    this.beard = (n * 3) % 5 < 2;
 
-    this.lettering = jersey ? createLettering(jersey, primary, secondary, TORSO_RADIUS + 0.006, TORSO_LENGTH) : [];
-    for (const m of this.lettering) {
-      m.matrixAutoUpdate = false;
-      scene.add(m);
-    }
+    const tex = jerseyTexture(kit, jersey, SKIN_HEX[skinIndex]!);
+    this.torso = new Mesh(torsoGeometry(), new MeshStandardMaterial({ map: tex, roughness: 0.8 }));
+    this.torso.matrixAutoUpdate = false;
+    this.torso.frustumCulled = false;
+    scene.add(this.torso);
     this.shadow = createBlobShadow(0.85);
     scene.add(this.shadow);
   }
@@ -341,10 +385,8 @@ export class AvatarRig {
 
   dispose(): void {
     this.batch.release(this.slot);
-    for (const m of this.lettering) {
-      this.scene.remove(m);
-      disposeObject(m);
-    }
+    this.scene.remove(this.torso);
+    disposeObject(this.torso);
     this.scene.remove(this.shadow);
     disposeObject(this.shadow);
   }
@@ -548,10 +590,8 @@ export class AvatarRig {
     // ---- jersey, shorts, trims (rigid parts) ----
     const P = b.parts;
     const torsoQ = shoulderTurn.clone().multiply(new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), this.lean));
-    const torsoM = new Matrix4().compose(torsoCenter, torsoQ, TORSO_SCALE).premultiply(this.root);
-    P.torso.setMatrixAt(slot, torsoM);
-    for (const m of this.lettering) m.matrix.copy(torsoM);
-    for (const m of this.lettering) m.matrixWorldNeedsUpdate = true;
+    this.torso.matrix.compose(torsoCenter, torsoQ, TORSO_SCALE).premultiply(this.root);
+    this.torso.matrixWorldNeedsUpdate = true;
 
     const setRigid = (mesh: InstancedMesh, index: number, pos: Vector3, q: Quaternion, scale: Vector3) => {
       tM.compose(pos, q, scale).premultiply(this.root);
@@ -559,7 +599,7 @@ export class AvatarRig {
     };
     // Shorts body (waist to crotch) with the waistband peeking under the jersey hem.
     setRigid(P.hips, slot, pelvis.clone().add(new Vector3(0, -0.02, 0)), hipTurn, new Vector3(1, 1, 0.8));
-    setRigid(P.trim, slot * PER.trim + 1, pelvis.clone().add(new Vector3(0, 0.075, 0)), hipTurn, new Vector3(0.212, 0.03, 0.172));
+    setRigid(P.trim, slot * PER.trim, pelvis.clone().add(new Vector3(0, 0.075, 0)), hipTurn, new Vector3(0.212, 0.034, 0.172));
 
     // ---- limbs: tapered segments from joint a to joint c ----
     const segment = (mesh: InstancedMesh, index: number, a: Vector3, c: Vector3, nominal: number) => {
@@ -585,6 +625,10 @@ export class AvatarRig {
     const handL = this.reach(shoulderL, elbowL, this.handL, FOREARM);
     segment(P.upperArm, slot * 2, shoulderR, elbowR, UPPER_ARM);
     segment(P.upperArm, slot * 2 + 1, shoulderL, elbowL, UPPER_ARM);
+    // Deltoids: rounded caps over the shoulder joint, so the arm grows out of a shoulder, not a socket.
+    const deltScale = new Vector3(0.066, 0.088, 0.062);
+    alongBone(P.skinBits, slot * PER.skinBits + 5, shoulderR, elbowR, 0.035, deltScale);
+    alongBone(P.skinBits, slot * PER.skinBits + 6, shoulderL, elbowL, 0.035, deltScale);
     segment(P.forearm, slot * 2, elbowR, handR, FOREARM);
     segment(P.forearm, slot * 2 + 1, elbowL, handL, FOREARM);
     // Hands: flattened mitts continuing the forearm.
@@ -613,25 +657,72 @@ export class AvatarRig {
     segment(P.thigh, slot * 2 + 1, hipR, kneeR, THIGH);
     segment(P.shin, slot * 2, kneeL, ankleL, SHIN);
     segment(P.shin, slot * 2 + 1, kneeR, ankleR, SHIN);
-    // Shorts legs: from just above the hip joint down ~2/3 of the thigh, so
-    // each leg has its own opening (no skirt) and they swing with the stride.
-    alongBone(P.shortLeg, slot * 2, hipL, kneeL, 0.13, ONE);
-    alongBone(P.shortLeg, slot * 2 + 1, hipR, kneeR, 0.13, ONE);
-    // Crew socks over the ankle.
-    alongBone(P.sock, slot * 2, ankleL, kneeL, 0.075, ONE);
-    alongBone(P.sock, slot * 2 + 1, ankleR, kneeR, 0.075, ONE);
+    // Shorts legs: from just above the hip joint down to the knee, so each leg
+    // has its own opening (no skirt) and they swing with the stride.
+    const legCentre = SHORTS_LEG / 2 - 0.02;
+    alongBone(P.shortLeg, slot * 2, hipL, kneeL, legCentre, ONE);
+    alongBone(P.shortLeg, slot * 2 + 1, hipR, kneeR, legCentre, ONE);
+    // Piped hem at each leg opening, and a stripe down the outside of each leg.
+    const hemScale = new Vector3(0.111, 0.032, 0.111);
+    alongBone(P.trim, slot * PER.trim + 1, hipL, kneeL, legCentre + SHORTS_LEG / 2 - 0.018, hemScale);
+    alongBone(P.trim, slot * PER.trim + 2, hipR, kneeR, legCentre + SHORTS_LEG / 2 - 0.018, hemScale);
+    const outward = (side: number) => new Vector3(side, 0, 0).applyQuaternion(hipTurn);
+    this.sideStripe(slot * PER.trim + 3, hipL, kneeL, outward(1), legCentre);
+    this.sideStripe(slot * PER.trim + 4, hipR, kneeR, outward(-1), legCentre);
+    // Tall socks over the ankle.
+    alongBone(P.sock, slot * 2, ankleL, kneeL, SOCK_HEIGHT / 2 - 0.01, ONE);
+    alongBone(P.sock, slot * 2 + 1, ankleR, kneeR, SOCK_HEIGHT / 2 - 0.01, ONE);
 
     // ---- neck and head ----
     segment(P.neck, slot, neck, head, SPINE_HEAD - SPINE_NECK);
     setRigid(P.skinBits, slot * PER.skinBits + 2, head, torsoQ, HEAD_SCALE);
     // Nose: the one feature that tells you which way a player faces.
     const fwd = new Vector3(0, 0, 1).applyQuaternion(torsoQ);
-    setRigid(P.skinBits, slot * PER.skinBits + 3, head.clone().addScaledVector(fwd, 0.112).addScaledVector(spine, -0.012), torsoQ, new Vector3(0.017, 0.024, 0.02));
-    // Short hair: a cap tilted back so the forehead shows.
-    const hairQ = torsoQ.clone().multiply(new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), -0.32));
-    setRigid(P.hair, slot, head.clone().addScaledVector(spine, 0.004).addScaledVector(fwd, -0.006), hairQ, HEAD_SCALE.clone().multiplyScalar(1.05));
-    // Headband over the hairline.
-    setRigid(P.trim, slot * PER.trim, head.clone().addScaledVector(spine, 0.035), torsoQ, new Vector3(0.112, 0.028, 0.122));
+    const up = new Vector3(0, 1, 0).applyQuaternion(torsoQ);
+    const side = new Vector3(1, 0, 0).applyQuaternion(torsoQ);
+    const at3 = (f: number, u: number, s: number) => head.clone().addScaledVector(fwd, f).addScaledVector(up, u).addScaledVector(side, s);
+    const skinAt = slot * PER.skinBits;
+    setRigid(P.skinBits, skinAt + 3, at3(0.108, -0.016, 0), torsoQ, new Vector3(0.016, 0.026, 0.02));
+    // Jaw and chin: a narrower ellipsoid low and forward gives the head a jawline.
+    const jawPos = at3(0.03, -0.056, 0);
+    const jawScale = new Vector3(0.08, 0.06, 0.082);
+    setRigid(P.skinBits, skinAt + 4, jawPos, torsoQ, jawScale);
+    // Ears.
+    const earScale = new Vector3(0.013, 0.03, 0.022);
+    setRigid(P.skinBits, skinAt + 7, at3(-0.008, -0.004, 0.102), torsoQ, earScale);
+    setRigid(P.skinBits, skinAt + 8, at3(-0.008, -0.004, -0.102), torsoQ, earScale);
+    // Eyes and brows.
+    const featAt = slot * PER.features;
+    const eye = new Vector3(0.012, 0.008, 0.006);
+    const brow = new Vector3(0.021, 0.005, 0.008);
+    setRigid(P.features, featAt, at3(0.102, 0.016, 0.037), torsoQ, eye);
+    setRigid(P.features, featAt + 1, at3(0.102, 0.016, -0.037), torsoQ, eye);
+    setRigid(P.features, featAt + 2, at3(0.097, 0.04, 0.039), torsoQ, brow);
+    setRigid(P.features, featAt + 3, at3(0.097, 0.04, -0.039), torsoQ, brow);
+    // Hair: a cap tilted back so the forehead shows; the style sets its shape.
+    const hairAt = slot * PER.hair;
+    const tilt = (a: number) => torsoQ.clone().multiply(new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), a));
+    switch (this.hairStyle) {
+      case "short":
+        setRigid(P.hair, hairAt, at3(-0.006, 0.006, 0), tilt(-0.32), HEAD_SCALE.clone().multiplyScalar(1.05));
+        break;
+      case "buzz":
+        setRigid(P.hair, hairAt, at3(-0.004, 0.004, 0), tilt(-0.4), HEAD_SCALE.clone().multiplyScalar(1.02));
+        break;
+      case "top":
+        setRigid(P.hair, hairAt, at3(-0.01, 0.02, 0), tilt(-0.22), new Vector3(0.112, 0.16, 0.122));
+        break;
+      case "bald":
+        setRigid(P.hair, hairAt, head, torsoQ, ZERO);
+        break;
+    }
+    // Short boxed beard over the jaw (the cap is flipped to hang downwards).
+    if (this.beard) {
+      const beardQ = torsoQ.clone().multiply(new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI - 0.35));
+      setRigid(P.hair, hairAt + 1, jawPos.clone().addScaledVector(up, 0.012).addScaledVector(fwd, -0.006), beardQ, jawScale.clone().multiplyScalar(1.08));
+    } else {
+      setRigid(P.hair, hairAt + 1, head, torsoQ, ZERO);
+    }
 
     // Sneakers: toe forward, flat when planted, toes down while the foot is in the air.
     const shoeScale = new Vector3(1.1, 0.78, 1);
@@ -640,13 +731,28 @@ export class AvatarRig {
       const q = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), pitch);
       const offset = new Vector3(0, -0.04, 0.05).applyQuaternion(q);
       setRigid(P.shoe, index, ankle.clone().add(offset), q, shoeScale);
+      // Sole: a wider, flat slab of the same shape under the upper.
+      setRigid(P.sole, index, ankle.clone().add(new Vector3(0, -0.063, 0.052).applyQuaternion(q)), q, soleScale);
     };
+    const soleScale = new Vector3(1.16, 0.34, 1.05);
     shoe(slot * 2, ankleL, liftL);
     shoe(slot * 2 + 1, ankleR, liftR);
 
     // Shadow follows the hips and fades when airborne.
     const s = 1 - Math.min(0.3, this.jump * 2);
     this.shadow.scale.set(s, s, s);
+  }
+
+  /** A flat stripe down the outside of a shorts leg (hip -> knee bone, `out` = outward side). */
+  private sideStripe(index: number, hip: Vector3, knee: Vector3, out: Vector3, centre: number): void {
+    const dir = tA.subVectors(knee, hip).normalize();
+    const radial = tB.copy(out).addScaledVector(dir, -out.dot(dir)).normalize();
+    const tangent = tC.crossVectors(radial, dir);
+    tM.makeBasis(radial, dir, tangent);
+    tQ.setFromRotationMatrix(tM);
+    const pos = hip.clone().addScaledVector(dir, centre).addScaledVector(radial, 0.113);
+    tM.compose(pos, tQ, STRIPE_SCALE).premultiply(this.root);
+    this.batch.parts.trim.setMatrixAt(index, tM);
   }
 
   /** The end effector actually reached (the IK clamps an out-of-range target). */

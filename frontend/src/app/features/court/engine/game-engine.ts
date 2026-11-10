@@ -17,6 +17,7 @@ import { JERSEY_FONT, JerseyText, createBall, createBlobShadow, releaseBallTextu
 import { AvatarBatch, AvatarRig } from "./avatar-rig";
 import { BallPlayback } from "./ball-playback";
 import { CourtAudio } from "./court-audio";
+import { releaseNetTexture } from "./hoop-net";
 import { Joystick } from "./input/joystick";
 import { KeyboardInput } from "./input/keyboard";
 import { ShootMeter } from "./input/shoot-meter";
@@ -100,7 +101,6 @@ export interface EngineOptions {
 }
 
 const RETURN_MS = 380;
-const NET_SWISH_MS = 450;
 /** Give up on a shot the server never answered (ball comes back). */
 const SHOT_REPLY_TIMEOUT_MS = 3000;
 /** Other players' shots fade out over this distance, metres. */
@@ -148,7 +148,8 @@ export class GameEngine {
   /** Connection lost: no movement or shots until it's back (the server would snap us back anyway). */
   private frozen = false;
   private dribblePhase = 0;
-  private netSwish: { hoop: HoopId; startedAt: number } | null = null;
+  /** Every ball on court this frame (the nets react to them). */
+  private readonly ballsOnCourt: Vector3[] = [];
   private stats: PracticeStats;
   private readonly tmp = new Vector3();
   private readonly hand = new Vector3();
@@ -487,6 +488,7 @@ export class GameEngine {
     if (this.built) disposeObject(this.built.scene);
     releaseBallTexture();
     releaseShadowTexture();
+    releaseNetTexture();
     if (this.renderer) {
       const canvas = this.renderer.domElement;
       canvas.removeEventListener("webglcontextlost", this.onContextLost);
@@ -650,10 +652,12 @@ export class GameEngine {
       ball.rotateOnWorldAxis(pb.spin(now).axis, -dt * 7);
       for (const ev of pb.takeEvents(now)) {
         this.audio.play(ev.kind, ev.strength);
+        if (ev.kind === "rim") this.built.hoops.get(this.targetHoop)?.net.shake(now, ev.strength);
         if (ev.kind === "make") {
-          this.netSwish = { hoop: this.targetHoop, startedAt: now };
           this.built.venue.crowd.cheer(now, 1);
           const rim = hoopLayout(this.targetHoop).rim;
+          // The net sways out the way the ball was travelling.
+          this.built.hoops.get(this.targetHoop)?.net.swish(now, rim.x - this.player.x, rim.z - this.player.z, this.lastShotPerfect ? 1.15 : 1);
           this.built.floor.ripple(rim.x, rim.z, this.lastShotPerfect ? 1.6 : 1, now);
           this.player.addShake(0.08);
           this.finishShot(true);
@@ -686,8 +690,11 @@ export class GameEngine {
   private onRemoteShotEvent = (ev: ShotEvent, at: Vector3, hoop: HoopId): void => {
     const d = Math.hypot(at.x - this.player.x, at.z - this.player.z);
     this.audio.play(ev.kind, ev.strength, Math.max(0, 1 - d / HEARING_RANGE) * 0.8);
+    const net = this.built.hoops.get(hoop)?.net;
+    if (ev.kind === "rim") net?.shake(performance.now(), ev.strength * 0.8);
     if (ev.kind === "make") {
-      this.netSwish = { hoop, startedAt: performance.now() };
+      const a = Math.random() * Math.PI * 2;
+      net?.swish(performance.now(), Math.cos(a), Math.sin(a));
       this.built.venue.crowd.cheer(performance.now(), 0.7);
       const rim = hoopLayout(hoop).rim;
       this.built.floor.ripple(rim.x, rim.z, 0.9, performance.now());
@@ -695,17 +702,11 @@ export class GameEngine {
   };
 
   private updateNet(now: number): void {
-    for (const hoop of this.built.hoops.values()) {
-      const swish = this.netSwish && this.netSwish.hoop === hoop.id ? (now - this.netSwish.startedAt) / NET_SWISH_MS : 1;
-      if (swish < 1) {
-        const w = Math.sin(swish * Math.PI) * (1 - swish * 0.4);
-        hoop.net.scale.set(1 - w * 0.25, 1 + w * 0.35, 1 - w * 0.25);
-        hoop.net.rotation.y = Math.sin(swish * 12) * 0.08 * (1 - swish);
-      } else if (hoop.net.scale.y !== 1) {
-        hoop.net.scale.set(1, 1, 1);
-        hoop.net.rotation.y = 0;
-      }
-    }
+    const balls = this.ballsOnCourt;
+    balls.length = 0;
+    balls.push(this.ball.position);
+    this.remotes?.ballPositions(balls);
+    for (const hoop of this.built.hoops.values()) hoop.net.update(now, balls);
   }
 
   private placeMeter(): void {

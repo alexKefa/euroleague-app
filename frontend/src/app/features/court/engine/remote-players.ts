@@ -187,6 +187,11 @@ export class RemotePlayers {
     for (const r of this.remotes.values()) out.push({ x: r.last.x, z: r.last.z, run: Math.min(1, r.speed / 4.5) });
   }
 
+  /** Every remote player's ball (the nets react to them). */
+  ballPositions(out: Vector3[]): void {
+    for (const r of this.remotes.values()) out.push(r.ball.position);
+  }
+
   ids(): string[] {
     return [...this.remotes.keys()];
   }

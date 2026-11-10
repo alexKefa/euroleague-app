@@ -36,12 +36,14 @@ import { HoopId } from "../../../../../../shared/court/types";
 import { Venue, VenueTeam } from "./venue";
 import { LedFloor } from "./led-floor";
 import { Sky } from "./sky";
+import { HoopNet } from "./hoop-net";
 
-const NET_HEIGHT = 0.42;
+const NET_HEIGHT = 0.44;
+const NET_BOTTOM_RADIUS = 0.135;
 
 export interface HoopVisual {
   id: HoopId;
-  net: Mesh;
+  net: HoopNet;
 }
 
 export interface BuiltScene {
@@ -96,7 +98,6 @@ export function buildScene({ teamPrimary, logo, maxAnisotropy, venue: venueTeam 
   const hoops = new Map<HoopId, HoopVisual>();
   const poleMat = new MeshStandardMaterial({ color: "#2b3138", roughness: 0.6, metalness: 0.4 });
   const rimMat = new MeshStandardMaterial({ color: "#e8531f", roughness: 0.45, metalness: 0.3 });
-  const netMat = new MeshBasicMaterial({ color: "#d8dde2", wireframe: true });
   const boardTex = backboardTexture();
   const boardMats = [poleMat, poleMat, poleMat, poleMat, new MeshLambertMaterial({ map: boardTex }), new MeshLambertMaterial({ map: boardTex })];
   for (const id of ACTIVE_HOOPS) {
@@ -126,11 +127,8 @@ export function buildScene({ teamPrimary, logo, maxAnisotropy, venue: venueTeam 
     bracket.position.set(0, h.rim.y - 0.01, h.rim.z + sign * (RIM_RING_RADIUS + 0.07));
     g.add(bracket);
 
-    const net = new Mesh(new CylinderGeometry(RIM_RING_RADIUS, 0.15, NET_HEIGHT, 12, 4, true), netMat);
-    // Pivot at the rim so the swish animation stretches downwards.
-    net.geometry.translate(0, -NET_HEIGHT / 2, 0);
-    net.position.set(h.rim.x, h.rim.y, h.rim.z);
-    g.add(net);
+    const net = new HoopNet(h.rim.x, h.rim.y, h.rim.z, RIM_RING_RADIUS, NET_HEIGHT, NET_BOTTOM_RADIUS);
+    g.add(net.mesh);
 
     scene.add(g);
     hoops.set(id, { id, net });
