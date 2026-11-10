@@ -5,6 +5,7 @@ import "dotenv/config";
 import path from "node:path";
 import fs from "node:fs";
 import express from "express";
+import compression from "compression";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
@@ -198,7 +199,22 @@ app.use("/api/daily-question", dailyQuestionRouter);
 // where the frontend runs separately via `ng serve` on its own port.
 const indexHtml = path.join(staticDir, "index.html");
 if (fs.existsSync(indexHtml)) {
-  app.use(express.static(staticDir));
+  // Compress the app's files (gzip/brotli): the court's physics chunk is
+  // 4.3 MB raw, ~1.6 MB compressed. Mounted here, after every /api router,
+  // so API responses (and the SSE stream, which buffering would break) never
+  // reach it.
+  app.use(compression());
+  // Angular's content-hashed build files never change under the same name:
+  // cache them for a year. Everything else (index.html, push-sw.js, icons,
+  // the unhashed vendor-*.js) keeps the default revalidation.
+  const HASHED_FILE = /^[a-z]+(?:-[a-z]+)*-[A-Z0-9]{8}\.(?:js|css)$/;
+  app.use(
+    express.static(staticDir, {
+      setHeaders: (res, filePath) => {
+        if (HASHED_FILE.test(path.basename(filePath))) res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      },
+    })
+  );
   // SPA fallback: any non-API route hands off to Angular's client-side
   // router. /api/* paths that don't match a router above still 404 normally.
   // Link previews (2026-10-09, services/gameStory/meta.ts): a final game's

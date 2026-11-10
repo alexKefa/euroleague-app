@@ -21,6 +21,18 @@ import { RemoteInfo, RemotePlayers, releaseOffset, shotBallPosition } from "./re
 import { SpotRing } from "./spot-ring";
 import type { ShotRejectReason } from "../../../../../../shared/court/horse";
 import { BuiltScene, buildScene, disposeObject } from "./scene-builder";
+import { FrameGovernor } from "./frame-governor";
+
+/** Live render numbers for the ?perf=1 overlay. */
+export interface PerfStats {
+  fps: number;
+  low1: number;
+  dpr: number;
+  calls: number;
+  triangles: number;
+  geometries: number;
+  textures: number;
+}
 
 export type ReleaseGrade = "perfect" | "good" | "early" | "late";
 
@@ -98,6 +110,9 @@ export class GameEngine {
 
   private raf = 0;
   private lastTime = 0;
+  private governor: FrameGovernor | null = null;
+  private lastCalls = 0;
+  private lastTriangles = 0;
   private running = false;
   private disposed = false;
 
@@ -158,6 +173,7 @@ export class GameEngine {
     const dpr = Math.min(window.devicePixelRatio || 1, lowEnd ? 1.5 : 2);
     this.renderer = new WebGLRenderer({ antialias: dpr < 2, powerPreference: "high-performance" });
     this.renderer.setPixelRatio(dpr);
+    this.governor = new FrameGovernor(dpr, Math.min(dpr, 1));
     this.renderer.toneMapping = ACESFilmicToneMapping;
     const canvas = this.renderer.domElement;
     canvas.style.display = "block";
@@ -418,9 +434,15 @@ export class GameEngine {
   private loop = (time: number) => {
     if (!this.running) return;
     this.raf = requestAnimationFrame(this.loop);
-    const dt = Math.min(0.05, (time - this.lastTime) / 1000);
+    const frameMs = time - this.lastTime;
+    const dt = Math.min(0.05, frameMs / 1000);
     this.lastTime = time;
     const now = performance.now();
+    const nextDpr = this.governor?.frame(now, frameMs) ?? null;
+    if (nextDpr !== null) {
+      this.renderer.setPixelRatio(nextDpr);
+      this.resize();
+    }
 
     if (this.meter.charging && this.meter.update(now)) this.releaseShoot();
     if (!this.meter.charging && now >= this.lockUntil) this.player.lockedYaw = null;
@@ -441,7 +463,17 @@ export class GameEngine {
     this.player.updateCamera(dt, this.camera);
     this.placeMeter();
     this.renderer.render(this.built.scene, this.camera);
+    this.lastCalls = this.renderer.info.render.calls;
+    this.lastTriangles = this.renderer.info.render.triangles;
   };
+
+  /** Render numbers for the ?perf=1 overlay (null before the first frame). */
+  perfStats(): PerfStats | null {
+    if (!this.renderer || !this.governor) return null;
+    const g = this.governor.stats();
+    const mem = this.renderer.info.memory;
+    return { ...g, calls: this.lastCalls, triangles: this.lastTriangles, geometries: mem.geometries, textures: mem.textures };
+  }
 
   private sendMove(now: number): void {
     if (!this.moveSink || now - this.lastMoveSentAt < 1000 / MOVE_HZ) return;

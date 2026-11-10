@@ -21,7 +21,7 @@ import {
   type ToastMessage,
 } from "../../../../../shared/court/protocol";
 import { JerseyText } from "./engine/avatar-factory";
-import { EngineCallbacks, EngineOptions, GameEngine, PracticeStats, ReleaseGrade } from "./engine/game-engine";
+import { EngineCallbacks, EngineOptions, GameEngine, PerfStats, PracticeStats, ReleaseGrade } from "./engine/game-engine";
 import { CourtJoinError, CourtNet, HorseView, JoinFailure, NetPlayer } from "./net/court-net";
 import { HorseHudComponent, HorseHudPlayer, HorseWinner } from "./hud/horse-hud";
 import { HORSE_RETURN_MS, canStart, shotGate } from "../../../../../shared/court/horse";
@@ -109,6 +109,10 @@ export class CourtPageComponent implements OnInit, OnDestroy {
   /** The loading screen is an automatic rejoin, not a first join. */
   protected readonly rejoining = signal(false);
   private holdTimer: ReturnType<typeof setInterval> | null = null;
+  /** ?perf=1: live fps / draw calls overlay for checking a phone against the spec's budget. */
+  protected readonly perfOn = this.route.snapshot.queryParamMap.get("perf") === "1";
+  protected readonly perf = signal<PerfStats | null>(null);
+  private perfTimer: ReturnType<typeof setInterval> | null = null;
   /** Lost the court while in the background: rejoin when the page is visible again. */
   private rejoinOnVisible = false;
   protected readonly notices = signal<Notice[]>([]);
@@ -144,6 +148,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
     window.addEventListener("online", this.onOnline);
     window.addEventListener("offline", this.onOffline);
     document.addEventListener("visibilitychange", this.onVisibility);
+    if (this.perfOn) this.perfTimer = setInterval(() => this.perf.set(this.engine?.perfStats() ?? null), 500);
     void this.boot();
   }
 
@@ -152,6 +157,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
     window.removeEventListener("online", this.onOnline);
     window.removeEventListener("offline", this.onOffline);
     document.removeEventListener("visibilitychange", this.onVisibility);
+    if (this.perfTimer) clearInterval(this.perfTimer);
     if (this.winnerTimer) clearTimeout(this.winnerTimer);
     this.teardown();
     if (this.flashTimer) clearTimeout(this.flashTimer);

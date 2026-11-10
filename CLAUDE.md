@@ -25,7 +25,8 @@ points-priced packs, album, trades) under a "Cards" hub.
 | Data source | [`euroleague-api`](https://pypi.org/project/euroleague-api/) (Python) + direct `fetch` of `api-live.euroleague.net` |
 
 There is no app-wide test suite and no lint script. The one exception is `npm run test:court`
-(backend), which runs the Clutch Court unit tests in `shared/court/*.test.ts`.
+(backend), which runs the Clutch Court unit tests in `shared/court/*.test.ts` plus the
+court engine's `frame-governor.test.ts`.
 
 Full-stack features usually touch `schema.ts` → a backend route/service → an
 Angular component → **both** i18n dictionaries. Add the Greek string in the same
@@ -103,7 +104,9 @@ on dev usually means drift, not a code bug.
   100 plus every applied game-driven price move (`applied_delta` in the price
   change logs) of players/coach owned in earlier rounds. The daily reprice
   (`services/fantasyDailyReprice.ts`) keeps the price floor but no longer caps at max.
-- In production the backend also serves the built Angular app (SPA fallback).
+- In production the backend also serves the built Angular app (SPA fallback), compressed
+  (`compression`, mounted after every `/api` router so the SSE stream is never buffered), with
+  content-hashed `*-XXXXXXXX.js/css` files cached for a year.
 - **Clutch Court** (`CLUTCH_COURT_SPEC.md`, 3D shootaround): pure physics/rules live in
   repo-root `shared/court/` and are imported by both apps. The backend compiles `../shared`,
   so its entry point is `dist/backend/src/index.js` (Dockerfile + `npm start`), and `staticDir`

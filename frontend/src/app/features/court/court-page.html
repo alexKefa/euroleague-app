@@ -134,6 +134,14 @@
     />
   }
 
+  @if (perf(); as p) {
+    <div class="court-perf" aria-hidden="true">
+      <div>{{ p.fps }} fps · 1% low {{ p.low1 }}</div>
+      <div>{{ p.calls }} draws · {{ (p.triangles / 1000).toFixed(0) }}k tris</div>
+      <div>dpr {{ p.dpr }} · geo {{ p.geometries }} · tex {{ p.textures }}</div>
+    </div>
+  }
+
   <!-- Release / result flash -->
   @if (flash(); as f) {
     @for (item of [f]; track item.id) {
