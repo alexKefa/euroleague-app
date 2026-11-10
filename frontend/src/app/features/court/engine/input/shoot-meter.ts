@@ -10,7 +10,7 @@ import { meterOverheld, meterValue, timingErrorFromMeter } from "../../../../../
 export class ShootMeter {
   private startedAt: number | null = null;
   /** Seconds to fill this charge (layups fill faster). */
-  private fill = METER_FILL_SECONDS;
+  private fillSeconds = METER_FILL_SECONDS;
 
   constructor(
     private readonly el: HTMLElement,
@@ -31,7 +31,7 @@ export class ShootMeter {
 
   start(now: number, fillSeconds = METER_FILL_SECONDS): void {
     this.startedAt = now;
-    this.fill = fillSeconds;
+    this.fillSeconds = fillSeconds;
     this.el.classList.toggle("court-meter-layup", fillSeconds !== METER_FILL_SECONDS);
     this.el.style.display = "block";
     this.render(0);
@@ -41,15 +41,15 @@ export class ShootMeter {
   update(now: number): boolean {
     if (this.startedAt === null) return false;
     const held = (now - this.startedAt) / 1000;
-    this.render(meterValue(held, this.fill));
-    return meterOverheld(held, this.fill);
+    this.render(meterValue(held, this.fillSeconds));
+    return meterOverheld(held, this.fillSeconds);
   }
 
   /** Stop charging and return the timing error in [-1, 1]. */
   release(now: number): number {
     const held = this.startedAt === null ? 0 : (now - this.startedAt) / 1000;
     this.startedAt = null;
-    const value = meterValue(held, this.fill);
+    const value = meterValue(held, this.fillSeconds);
     this.render(value);
     // Leave the final position visible briefly so the player can read it.
     window.setTimeout(() => {
