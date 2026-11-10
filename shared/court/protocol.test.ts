@@ -5,7 +5,9 @@ import { PLAYER_SPEED } from "./constants.js";
 import { FENCE } from "./geometry.js";
 import { jerseyNumber, kitColors } from "./kit.js";
 import {
+  CLOSE_REPLACED,
   CODE_ALPHABET,
+  closeAction,
   MOVE_SPEED_TOLERANCE,
   generateCourtCode,
   isValidCourtCode,
@@ -58,4 +60,22 @@ test("jersey numbers are stable and 0-99", () => {
   const n = jerseyNumber("a41e5bde-9032-4923-8721-85d0ad4f3330");
   assert.equal(n, jerseyNumber("a41e5bde-9032-4923-8721-85d0ad4f3330"));
   assert.ok(n >= 0 && n <= 99);
+});
+
+test("closeAction: opened elsewhere never auto-rejoins (no tab tug-of-war)", () => {
+  assert.equal(closeAction(CLOSE_REPLACED, { visible: true, connectedMs: 600_000 }), "replaced");
+});
+
+test("closeAction: a healthy session that dropped for good rejoins on its own", () => {
+  assert.equal(closeAction(4003, { visible: true, connectedMs: 60_000 }), "rejoin");
+  assert.equal(closeAction(1006, { visible: true, connectedMs: 10_000 }), "rejoin");
+});
+
+test("closeAction: in the background, rejoin waits until the page is visible", () => {
+  assert.equal(closeAction(4003, { visible: false, connectedMs: 60_000 }), "rejoinWhenVisible");
+});
+
+test("closeAction: a session that died within 10 s shows the button instead (no rejoin loop)", () => {
+  assert.equal(closeAction(4003, { visible: true, connectedMs: 9_999 }), "stay");
+  assert.equal(closeAction(4002, { visible: false, connectedMs: 0 }), "stay");
 });

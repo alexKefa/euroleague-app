@@ -12,7 +12,14 @@ import { cdnImage } from "../../shared/cdn-image";
 import { stashPendingCourtJoin } from "../../shared/pending-court-join";
 import { displayTeamCode } from "../../shared/team-display-codes";
 import { jerseyNumber, kitColors } from "../../../../../shared/court/kit";
-import { MAX_PLAYERS, isValidCourtCode, normalizeCourtCode, type ToastMessage } from "../../../../../shared/court/protocol";
+import {
+  MAX_PLAYERS,
+  RECONNECT_SECONDS,
+  closeAction,
+  isValidCourtCode,
+  normalizeCourtCode,
+  type ToastMessage,
+} from "../../../../../shared/court/protocol";
 import { JerseyText } from "./engine/avatar-factory";
 import { EngineCallbacks, EngineOptions, GameEngine, PracticeStats, ReleaseGrade } from "./engine/game-engine";
 import { CourtJoinError, CourtNet, HorseView, JoinFailure, NetPlayer } from "./net/court-net";
@@ -28,7 +35,7 @@ interface Prefs {
   muted: boolean;
 }
 
-type LoadState = "loading" | "ready" | "error" | "contextLost" | JoinFailure | "disconnected";
+type LoadState = "loading" | "ready" | "error" | "contextLost" | JoinFailure | "disconnected" | "replaced";
 
 interface Flash {
   id: number;
@@ -95,6 +102,15 @@ export class CourtPageComponent implements OnInit, OnDestroy {
   protected readonly prefs = signal<Prefs>(readJson<Prefs>(PREFS_KEY, { camera: 0, muted: false }));
   protected readonly playerCount = signal(1);
   protected readonly reconnecting = signal(false);
+  /** Seconds left of the server's seat hold while reconnecting (null when connected). */
+  protected readonly holdSeconds = signal<number | null>(null);
+  /** The browser reports no network (shown before the socket notices). */
+  protected readonly offline = signal(typeof navigator !== "undefined" && navigator.onLine === false);
+  /** The loading screen is an automatic rejoin, not a first join. */
+  protected readonly rejoining = signal(false);
+  private holdTimer: ReturnType<typeof setInterval> | null = null;
+  /** Lost the court while in the background: rejoin when the page is visible again. */
+  private rejoinOnVisible = false;
   protected readonly notices = signal<Notice[]>([]);
   protected readonly inviteOpen = signal(false);
   protected readonly copied = signal(false);
@@ -125,11 +141,17 @@ export class CourtPageComponent implements OnInit, OnDestroy {
   private flashTimer: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit(): void {
+    window.addEventListener("online", this.onOnline);
+    window.addEventListener("offline", this.onOffline);
+    document.addEventListener("visibilitychange", this.onVisibility);
     void this.boot();
   }
 
   ngOnDestroy(): void {
     this.destroyed = true;
+    window.removeEventListener("online", this.onOnline);
+    window.removeEventListener("offline", this.onOffline);
+    document.removeEventListener("visibilitychange", this.onVisibility);
     if (this.winnerTimer) clearTimeout(this.winnerTimer);
     this.teardown();
     if (this.flashTimer) clearTimeout(this.flashTimer);
@@ -166,8 +188,61 @@ export class CourtPageComponent implements OnInit, OnDestroy {
   }
 
   protected restart(): void {
+    this.rejoinOnVisible = false;
     this.teardown();
     void this.boot();
+  }
+
+  // ---- connection loss (M5 reconnection UX) ----
+
+  private onOnline = () => this.offline.set(false);
+  private onOffline = () => this.offline.set(true);
+
+  private onVisibility = () => {
+    if (document.visibilityState !== "visible" || !this.rejoinOnVisible) return;
+    this.rejoinOnVisible = false;
+    if (this.state() === "disconnected") this.autoRejoin();
+  };
+
+  private autoRejoin(): void {
+    this.rejoining.set(true);
+    this.restart();
+  }
+
+  private onDropped(): void {
+    // The SDK fires onDrop again for every failed retry: only the first one starts the countdown.
+    if (this.reconnecting()) return;
+    this.reconnecting.set(true);
+    this.engine?.setFrozen(true);
+    const until = Date.now() + RECONNECT_SECONDS * 1000;
+    const tick = () => this.holdSeconds.set(Math.max(0, Math.ceil((until - Date.now()) / 1000)));
+    tick();
+    this.stopHoldTimer();
+    this.holdTimer = setInterval(tick, 500);
+  }
+
+  private onReconnected(): void {
+    this.stopHoldTimer();
+    this.reconnecting.set(false);
+    this.engine?.setFrozen(false);
+  }
+
+  private onConnectionClosed(code: number, net: CourtNet): void {
+    this.stopHoldTimer();
+    this.reconnecting.set(false);
+    this.engine?.setMoveSink(null);
+    this.engine?.setFrozen(true);
+    const action = closeAction(code, { visible: document.visibilityState === "visible", connectedMs: net.connectedMs() });
+    if (action === "replaced") return this.state.set("replaced");
+    this.state.set("disconnected");
+    if (action === "rejoin") this.autoRejoin();
+    else if (action === "rejoinWhenVisible") this.rejoinOnVisible = true;
+  }
+
+  private stopHoldTimer(): void {
+    if (this.holdTimer) clearInterval(this.holdTimer);
+    this.holdTimer = null;
+    this.holdSeconds.set(null);
   }
 
   protected async share(): Promise<void> {
@@ -236,8 +311,12 @@ export class CourtPageComponent implements OnInit, OnDestroy {
 
   private async boot(): Promise<void> {
     this.state.set("loading");
-    if (this.code === null) await this.bootPractice();
-    else await this.bootShared(this.code);
+    try {
+      if (this.code === null) await this.bootPractice();
+      else await this.bootShared(this.code);
+    } finally {
+      this.rejoining.set(false);
+    }
   }
 
   private async bootPractice(): Promise<void> {
@@ -294,13 +373,9 @@ export class CourtPageComponent implements OnInit, OnDestroy {
       onShot: (m) => this.engine?.onServerShot(m, net.sessionId),
       onShotRejected: (m) => this.engine?.onShotRejected(m.clientShotId, m.reason),
       onHorseEvent: (m) => this.onHorseEvent(m),
-      onDrop: () => this.reconnecting.set(true),
-      onReconnect: () => this.reconnecting.set(false),
-      onClosed: () => {
-        this.reconnecting.set(false);
-        this.engine?.setMoveSink(null);
-        this.state.set("disconnected");
-      },
+      onDrop: () => this.onDropped(),
+      onReconnect: () => this.onReconnected(),
+      onClosed: (code) => this.onConnectionClosed(code, net),
     });
     this.net = net;
     let welcome;
@@ -468,6 +543,7 @@ export class CourtPageComponent implements OnInit, OnDestroy {
     this.net = null;
     this.engine?.dispose();
     this.engine = null;
+    this.stopHoldTimer();
     this.reconnecting.set(false);
   }
 

@@ -103,7 +103,19 @@
 
   <div class="pointer-events-none absolute inset-x-0 top-[calc(5.5rem+env(safe-area-inset-top))] flex flex-col items-center gap-1.5 px-4">
     @if (reconnecting()) {
-      <div class="court-pill court-banner px-4 py-1.5 text-sm">{{ i18n.t("court.reconnecting") }}</div>
+      <div class="court-pill court-banner court-reconnect px-4 py-2 text-sm" role="status" aria-live="polite">
+        <span class="court-spinner court-spinner-sm"></span>
+        <span class="flex flex-col leading-tight">
+          <span class="font-bold">{{ i18n.t(offline() ? "court.offline" : "court.reconnecting") }}</span>
+          @if (holdSeconds(); as s) {
+            <span class="text-xs opacity-90">{{ i18n.t("court.holdingSpot").replace("{s}", "" + s) }}</span>
+          } @else {
+            <span class="text-xs opacity-90">{{ i18n.t("court.rejoiningSoon") }}</span>
+          }
+        </span>
+      </div>
+    } @else if (offline() && state() === "ready" && code) {
+      <div class="court-pill court-banner px-4 py-1.5 text-sm" role="status">{{ i18n.t("court.offline") }}</div>
     }
     @for (n of notices(); track n.id) {
       <div class="court-pill court-notice px-3.5 py-1 text-sm">{{ n.text }}</div>
@@ -139,7 +151,7 @@
     @case ("loading") {
       <div class="court-overlay">
         <div class="court-spinner"></div>
-        <p class="mt-4 font-display text-xl">{{ i18n.t("court.loading") }}</p>
+        <p class="mt-4 font-display text-xl">{{ i18n.t(rejoining() ? "court.rejoining" : "court.loading") }}</p>
       </div>
     }
     @case ("error") {
@@ -171,6 +183,15 @@
         <p class="font-display text-xl">{{ i18n.t("court.err.disconnected") }}</p>
         <div class="mt-5 flex gap-3">
           <button type="button" class="court-pill px-5 py-2" (click)="restart()">{{ i18n.t("court.rejoin") }}</button>
+          <a routerLink="/court" class="court-pill px-5 py-2">{{ i18n.t("court.hub.title") }}</a>
+        </div>
+      </div>
+    }
+    @case ("replaced") {
+      <div class="court-overlay px-8 text-center">
+        <p class="font-display text-xl">{{ i18n.t("court.err.replaced") }}</p>
+        <div class="mt-5 flex gap-3">
+          <button type="button" class="court-pill px-5 py-2" (click)="restart()">{{ i18n.t("court.playHere") }}</button>
           <a routerLink="/court" class="court-pill px-5 py-2">{{ i18n.t("court.hub.title") }}</a>
         </div>
       </div>

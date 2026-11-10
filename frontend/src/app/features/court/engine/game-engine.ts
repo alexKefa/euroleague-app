@@ -106,6 +106,8 @@ export class GameEngine {
   private returning: { from: Vector3; startedAt: number } | null = null;
   private cooldownUntil = 0;
   private lockUntil = 0;
+  /** Connection lost: no movement or shots until it's back (the server would snap us back anyway). */
+  private frozen = false;
   private dribblePhase = 0;
   private netSwish: { hoop: HoopId; startedAt: number } | null = null;
   private stats: PracticeStats;
@@ -204,7 +206,7 @@ export class GameEngine {
     if (!this.running) return;
     this.audio.unlock();
     const now = performance.now();
-    if (this.meter.charging || this.playback || this.returning || this.awaitingShot || now < this.cooldownUntil) return;
+    if (this.frozen || this.meter.charging || this.playback || this.returning || this.awaitingShot || now < this.cooldownUntil) return;
     const blocked = this.shotGate?.(this.player.x, this.player.z) ?? null;
     if (blocked) {
       this.cb.onShotBlocked(blocked);
@@ -243,6 +245,14 @@ export class GameEngine {
 
   setShotNet(net: ShotNet | null): void {
     this.shotNet = net;
+  }
+
+  /** Freeze local input while the connection is down; unfreezing re-sends our position. */
+  setFrozen(frozen: boolean): void {
+    if (frozen === this.frozen) return;
+    this.frozen = frozen;
+    if (frozen) this.meter.cancel();
+    else this.lastSent = null;
   }
 
   /** H-O-R-S-E: who may shoot from where (null = shoot freely). */
@@ -413,7 +423,7 @@ export class GameEngine {
 
     const kb = this.keyboard!.vector();
     const js = this.joystick?.vector() ?? { x: 0, y: 0 };
-    const input = Math.hypot(js.x, js.y) > Math.hypot(kb.x, kb.y) ? js : kb;
+    const input = this.frozen ? { x: 0, y: 0 } : Math.hypot(js.x, js.y) > Math.hypot(kb.x, kb.y) ? js : kb;
     this.player.update(dt, input);
 
     this.updateAvatar(dt, now);

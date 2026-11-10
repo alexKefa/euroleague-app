@@ -15,6 +15,24 @@ export const MOVE_HZ = 20;
 export const RECONNECT_SECONDS = 30;
 /** Room disposes this long after the last player leaves. */
 export const EMPTY_DISPOSE_MS = 5 * 60 * 1000;
+/** WebSocket close code: the same account joined this court from another tab or device. */
+export const CLOSE_REPLACED = 4101;
+/** A session must have lasted this long before a lost connection triggers an automatic rejoin. */
+export const AUTO_REJOIN_MIN_SESSION_MS = 10_000;
+
+export type CloseAction = "rejoin" | "rejoinWhenVisible" | "replaced" | "stay";
+
+/**
+ * What the client does when the room connection closes for good (the SDK's own
+ * reconnection already gave up). Replaced sessions never rejoin on their own,
+ * or two tabs would keep kicking each other. A session that died quickly shows
+ * a Rejoin button instead, so a failing server can't cause a rejoin loop.
+ */
+export function closeAction(code: number, ctx: { visible: boolean; connectedMs: number }): CloseAction {
+  if (code === CLOSE_REPLACED) return "replaced";
+  if (ctx.connectedMs < AUTO_REJOIN_MIN_SESSION_MS) return "stay";
+  return ctx.visible ? "rejoin" : "rejoinWhenVisible";
+}
 
 // Invite codes: 6 chars, uppercase, no 0/O/1/I/L.
 export const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";

@@ -209,6 +209,20 @@
 .court-banner {
   background: rgba(190, 120, 20, 0.85);
 }
+.court-reconnect {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-align: left;
+}
+.court-spinner-sm {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-width: 2.5px;
+  border-color: rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+}
 .court-notice {
   animation: court-notice-in 220ms ease-out;
 }

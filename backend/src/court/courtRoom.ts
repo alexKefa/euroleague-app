@@ -24,6 +24,7 @@ import {
 import { saveHorseResult } from "./horseResults.js";
 import type { HoopId } from "../../../shared/court/types.js";
 import {
+  CLOSE_REPLACED,
   EMPTY_DISPOSE_MS,
   MAX_PLAYERS,
   MOVE_HZ,
@@ -179,7 +180,7 @@ export class CourtRoom extends Room<{ state: CourtState }> {
       if (p.userId === auth.userId && sessionId !== client.sessionId) {
         const hp = this.horse.players[sessionId];
         if (hp && !hp.eliminated) movedFrom = sessionId;
-        this.clients.get(sessionId)?.leave();
+        this.clients.get(sessionId)?.leave(CLOSE_REPLACED);
         this.state.players.delete(sessionId);
       }
     });

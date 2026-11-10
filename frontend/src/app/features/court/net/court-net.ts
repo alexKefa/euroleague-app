@@ -109,11 +109,19 @@ export class CourtNet {
   private room: Room | null = null;
   private left = false;
   private seed: number | null = null;
+  /** True between onDrop and onReconnect: nothing is sent (the SDK would replay stale moves). */
+  private dropped = false;
+  private joinedAt = 0;
 
   constructor(private readonly handlers: CourtNetHandlers) {}
 
   get sessionId(): string {
     return this.room?.sessionId ?? "";
+  }
+
+  /** How long the current session has been joined (0 before joining). */
+  connectedMs(): number {
+    return this.joinedAt ? Date.now() - this.joinedAt : 0;
   }
 
   /** Join the court and resolve with the first full state. */
@@ -128,6 +136,13 @@ export class CourtNet {
       throw new CourtJoinError(classify(err), String((err as { message?: string })?.message ?? err));
     }
     this.room = room;
+    this.joinedAt = Date.now();
+    // Keep retrying for as long as the server holds the seat (RECONNECT_SECONDS):
+    // the backoff (0.2 s doubling, capped at 5 s) adds up to ~31 s over 10 tries.
+    // Then onLeave fires and the page rejoins fresh, which also covers a
+    // server restart (the old room no longer exists to reconnect to).
+    room.reconnection.maxRetries = 10;
+    room.reconnection.minUptime = 1000;
 
     room.onMessage(MSG.toast, (m: ToastMessage) => this.handlers.onToast(m));
     room.onMessage(MSG.correction, (m: CorrectionMessage) => this.handlers.onCorrection(m));
@@ -137,9 +152,11 @@ export class CourtNet {
     room.onMessage(MSG.horseEvent, (m: HorseEventMessage) => this.handlers.onHorseEvent(m));
     room.onDrop(() => {
       this.seed = null;
+      this.dropped = true;
       this.handlers.onDrop();
     });
     room.onReconnect(() => {
+      this.dropped = false;
       room.send(MSG.seedRequest);
       this.handlers.onReconnect();
     });
@@ -168,7 +185,7 @@ export class CourtNet {
   }
 
   sendMove(m: MoveMessage): void {
-    this.room?.send(MSG.move, m);
+    this.live()?.send(MSG.move, m);
   }
 
   /** The seed for our next shot (consumed; the server sends the following one with the result). */
@@ -179,7 +196,7 @@ export class CourtNet {
   }
 
   sendShoot(m: ShootMessage): void {
-    this.room?.send(MSG.shoot, m);
+    this.live()?.send(MSG.shoot, m);
   }
 
   leave(): void {
@@ -190,11 +207,16 @@ export class CourtNet {
   }
 
   startHorse(): void {
-    this.room?.send(MSG.horseStart);
+    this.live()?.send(MSG.horseStart);
   }
 
   leaveHorse(): void {
-    this.room?.send(MSG.horseLeave);
+    this.live()?.send(MSG.horseLeave);
+  }
+
+  /** The room, unless the connection is down. */
+  private live(): Room | null {
+    return this.dropped ? null : this.room;
   }
 
   private view(state: NetState): HorseView {
