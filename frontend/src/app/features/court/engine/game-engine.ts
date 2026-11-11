@@ -108,6 +108,12 @@ const RETURN_MS = 380;
 const SHOT_REPLY_TIMEOUT_MS = 3000;
 /** Other players' shots fade out over this distance, metres. */
 const HEARING_RANGE = 28;
+/** Most device pixels rendered per frame (~1080p). A phone at dpr 2 is ~1.3M. */
+const MAX_RENDER_PIXELS = 2_100_000;
+/** Above this many device pixels the canvas is rendered without MSAA. */
+const AA_MAX_PIXELS = 1_000_000;
+/** How far the frame governor may scale the resolution down (on top of the pixel cap). */
+const MIN_RENDER_SCALE = 0.5;
 
 export class GameEngine {
   private renderer!: WebGLRenderer;
@@ -130,6 +136,10 @@ export class GameEngine {
   private raf = 0;
   private lastTime = 0;
   private governor: FrameGovernor | null = null;
+  /** The device's pixel ratio, capped (2, or 1.5 on low-end hardware). */
+  private maxDpr = 1;
+  /** The governor's quality scale on top of the size-aware ratio (1 = full). */
+  private renderScale = 1;
   private lastCalls = 0;
   private timeMode: TimeMode = "auto";
   private lightingAt = 0;
@@ -201,10 +211,16 @@ export class GameEngine {
     this.physics = new CourtPhysics(RAPIER as unknown as RapierApi);
 
     const lowEnd = (navigator.hardwareConcurrency ?? 8) <= 4 || ((navigator as { deviceMemory?: number }).deviceMemory ?? 8) <= 4;
-    const dpr = Math.min(window.devicePixelRatio || 1, lowEnd ? 1.5 : 2);
-    this.renderer = new WebGLRenderer({ antialias: dpr < 2, powerPreference: "high-performance" });
-    this.renderer.setPixelRatio(dpr);
-    this.governor = new FrameGovernor(dpr, Math.min(dpr, 1));
+    this.maxDpr = Math.min(window.devicePixelRatio || 1, lowEnd ? 1.5 : 2);
+    // MSAA only on small canvases: on a big desktop window it multiplies the
+    // cost of an already large frame (phones at dpr 2 never needed it).
+    const cssPixels = (this.dom.container.clientWidth || window.innerWidth) * (this.dom.container.clientHeight || window.innerHeight);
+    const antialias = this.maxDpr < 2 && cssPixels * this.maxDpr * this.maxDpr <= AA_MAX_PIXELS;
+    this.renderer = new WebGLRenderer({ antialias, powerPreference: "high-performance" });
+    this.renderer.setPixelRatio(this.maxDpr);
+    // The governor controls a quality scale on top of the size-aware ratio, so
+    // it can still act on a desktop already at dpr 1.
+    this.governor = new FrameGovernor(1, MIN_RENDER_SCALE);
     this.renderer.toneMapping = ACESFilmicToneMapping;
     const canvas = this.renderer.domElement;
     canvas.style.display = "block";
@@ -567,9 +583,9 @@ export class GameEngine {
     const dt = Math.min(0.05, frameMs / 1000);
     this.lastTime = time;
     const now = performance.now();
-    const nextDpr = this.governor?.frame(now, frameMs) ?? null;
-    if (nextDpr !== null) {
-      this.renderer.setPixelRatio(nextDpr);
+    const nextScale = this.governor?.frame(now, frameMs) ?? null;
+    if (nextScale !== null) {
+      this.renderScale = nextScale;
       this.resize();
     }
 
@@ -614,7 +630,7 @@ export class GameEngine {
     if (!this.renderer || !this.governor) return null;
     const g = this.governor.stats();
     const mem = this.renderer.info.memory;
-    return { ...g, calls: this.lastCalls, triangles: this.lastTriangles, geometries: mem.geometries, textures: mem.textures };
+    return { ...g, dpr: Math.round(this.renderer.getPixelRatio() * 100) / 100, calls: this.lastCalls, triangles: this.lastTriangles, geometries: mem.geometries, textures: mem.textures };
   }
 
   private sendMove(now: number): void {
@@ -724,6 +740,11 @@ export class GameEngine {
     const w = this.dom.container.clientWidth;
     const h = this.dom.container.clientHeight;
     if (!w || !h) return;
+    // Full-screen shaders (LED floor, sky) cost per pixel: cap the pixels
+    // rendered so a large desktop window costs about what a phone does.
+    const budgetDpr = Math.sqrt(MAX_RENDER_PIXELS / (w * h));
+    const dpr = Math.max(0.4, Math.min(this.maxDpr, budgetDpr) * this.renderScale);
+    if (Math.abs(this.renderer.getPixelRatio() - dpr) > 0.01) this.renderer.setPixelRatio(dpr);
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     // Narrow (portrait) screens get a wider vertical FOV so the hoop stays in view.
