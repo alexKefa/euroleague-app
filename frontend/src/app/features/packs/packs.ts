@@ -1,5 +1,5 @@
 import { CountUpComponent } from "../../shared/count-up";
-import { Component, OnInit, HostListener, inject, signal, computed } from "@angular/core";
+import { Component, OnInit, OnDestroy, HostListener, ElementRef, NgZone, inject, signal, computed, viewChild } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { ApiService } from "../../core/api.service";
@@ -18,6 +18,26 @@ import { PageHintComponent } from "../../shared/page-hint";
 import { LogoSpinnerComponent } from "../../shared/logo-spinner";
 import { SkeletonComponent } from "../../shared/skeleton";
 import { ConfirmDialogComponent } from "../../shared/confirm-dialog";
+import {
+  Body,
+  DragSample,
+  FLIGHT,
+  HOME,
+  MAX_DRAG_ROTATION,
+  Pose,
+  REST,
+  TAP_SLOP,
+  THROW_DISTANCE,
+  THROW_VELOCITY,
+  Throw,
+  isSettled,
+  launch,
+  makeBody,
+  poseTransform,
+  prefersReducedMotion,
+  releaseVelocity,
+  stepBody,
+} from "../../shared/throw-physics";
 import { PageHeaderComponent } from "../../shared/page-header";
 
 // Opening timings — keep in sync with packs.css (.pack-stage.is-tearing,
@@ -27,6 +47,23 @@ const FLIP_MS = 750;
 const BIG_FLIP_MS = 1100;
 // Walkout before a new legendary/foil (coach gets a shorter one).
 const WALKOUT_MS = { legendary: 1400, coach: 800 } as const;
+// After the last card is thrown, let it clear the stage before the summary.
+const LAST_THROW_MS = 380;
+// Fixed, hand-squared tilt of the face-down cards by depth.
+const DECK_TILTS = [0, -2, 1.5, -1, 1];
+
+interface DeckDrag {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  baseX: number;
+  baseY: number;
+  width: number;
+  /** +1 when grabbed in the top half, -1 in the bottom half. */
+  lever: number;
+  moved: boolean;
+  samples: DragSample[];
+}
 
 // Card rank for the table order (best card last). Duplicates sit just
 // below a new card of the same tier.
@@ -58,7 +95,7 @@ type PackView = "selecting" | "pack" | "deck" | "summary";
   templateUrl: "./packs.html",
   styleUrl: "./packs.css",
 })
-export class PacksComponent implements OnInit {
+export class PacksComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
@@ -187,14 +224,35 @@ export class PacksComponent implements OnInit {
     return this.i18n.t(card.collectible.tier === "coach" ? "inventory.tierCoach" : "inventory.tierLegendary");
   }
 
-  // Each tap turns over the next card (the face-up one joins the pulled
-  // strip). A new legendary/foil/coach gets its walkout first. After the
-  // last card, a tap shows the summary.
+  // Each tap turns over the next card. Once a card is face up, a tap (or a
+  // swipe, 2026-11-11) throws it off the deck into the pulled strip and
+  // turns the next one; a new legendary/foil/coach gets its walkout first.
+  // After the last card, the summary.
   tapDeck(): void {
-    if (this.deckBusy || this.walkout()) return;
+    if (this.deckBusy || this.walkout() || this.drag) return;
+    const active = this.activeCard();
+    if (active) this.throwActive(active, this.homing ? this.activeBody : REST, 1.3, -0.35, 1, 0);
+    this.flipNext();
+  }
+
+  onStageClick(): void {
+    // The click that ends a drag must not also advance the deck.
+    if (this.suppressClick) {
+      this.suppressClick = false;
+      return;
+    }
+    this.tapDeck();
+  }
+
+  private flipNext(): void {
     const next = this.deckOrder()[this.deckIndex()];
     if (!next) {
-      this.view.set("summary");
+      if (this.thrown()) {
+        this.deckBusy = true;
+        this.deckTimers.push(setTimeout(() => this.view.set("summary"), LAST_THROW_MS));
+      } else {
+        this.view.set("summary");
+      }
       return;
     }
     this.deckBusy = true;
@@ -211,11 +269,220 @@ export class PacksComponent implements OnInit {
     }
   }
 
+  // ---- Throwing the face-up card (physics in shared/throw-physics.ts) ----
+
+  private zone = inject(NgZone);
+  private readonly stageEl = viewChild<ElementRef<HTMLElement>>("deckStage");
+  private readonly activeEl = viewChild<ElementRef<HTMLElement>>("activeEl");
+  private readonly thrownEl = viewChild<ElementRef<HTMLElement>>("thrownEl");
+  // The card in flight: a copy of the face-up card that flies off while the
+  // deck moves on underneath it.
+  readonly thrown = signal<{ card: PackOpenResultCard; start: string } | null>(null);
+  private flight: Throw | null = null;
+  private drag: DeckDrag | null = null;
+  private activeBody: Body = makeBody(REST);
+  private homing = false;
+  private suppressClick = false;
+  private raf = 0;
+  private lastFrame = 0;
+
+  private throwActive(card: PackOpenResultCard, from: Pose, vx: number, vy: number, fx: number, fy: number): void {
+    const start: Pose = { x: from.x, y: from.y, r: from.r, s: from.s };
+    this.homing = false;
+    this.activeBody = makeBody(REST);
+    if (prefersReducedMotion()) return;
+    const node = this.activeEl()?.nativeElement;
+    const w = node?.offsetWidth || this.cardSize();
+    const h = node?.offsetHeight || this.cardSize() * 1.4;
+    this.flight = launch(start, vx, vy, fx, fy, w, h);
+    this.thrown.set({ card, start: poseTransform(start) });
+    this.kick();
+  }
+
+  // The stage resets this on every press, so a drag whose click never
+  // arrives can't swallow the next real tap.
+  onStagePointerDown(): void {
+    this.suppressClick = false;
+  }
+
+  onCardPointerDown(event: PointerEvent): void {
+    if (this.drag || this.deckBusy || this.walkout()) return;
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    const node = event.currentTarget as HTMLElement;
+    const rect = node.getBoundingClientRect();
+    node.setPointerCapture(event.pointerId);
+    this.homing = false;
+    this.drag = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      baseX: this.activeBody.x,
+      baseY: this.activeBody.y,
+      width: node.offsetWidth,
+      lever: event.clientY - rect.top < rect.height / 2 ? 1 : -1,
+      moved: false,
+      samples: [{ t: event.timeStamp, x: event.clientX, y: event.clientY }],
+    };
+  }
+
+  onCardPointerMove(event: PointerEvent): void {
+    const d = this.drag;
+    if (!d || d.pointerId !== event.pointerId) return;
+    const dx = event.clientX - d.startX;
+    const dy = event.clientY - d.startY;
+    if (!d.moved) {
+      if (Math.hypot(dx, dy) < TAP_SLOP) return;
+      // Touch axis lock: a mostly vertical swipe is a page scroll, so let go
+      // of the card and leave it to the browser (touch-action: pan-y).
+      if (event.pointerType !== "mouse" && Math.abs(dy) > Math.abs(dx)) {
+        this.drag = null;
+        const node = event.currentTarget as HTMLElement;
+        if (node.hasPointerCapture(event.pointerId)) node.releasePointerCapture(event.pointerId);
+        return;
+      }
+    }
+    d.moved = true;
+    d.samples.push({ t: event.timeStamp, x: event.clientX, y: event.clientY });
+    if (d.samples.length > 24) d.samples.shift();
+    const b = this.activeBody;
+    b.x = d.baseX + dx;
+    b.y = d.baseY + dy;
+    b.s = 1;
+    // Pivot at the bottom edge: grabbing the top half swings the top out.
+    b.r = Math.max(-1, Math.min(1, b.x / d.width)) * MAX_DRAG_ROTATION * d.lever;
+    b.vx = b.vy = b.vr = b.vs = 0;
+    this.writeActive();
+    // The pile underneath rises to meet the throw.
+    this.setLift(Math.min(Math.hypot(b.x, b.y) / (d.width * THROW_DISTANCE), 1));
+  }
+
+  onCardPointerUp(event: PointerEvent, cancelled = false): void {
+    const d = this.drag;
+    if (!d || d.pointerId !== event.pointerId) return;
+    this.drag = null;
+    this.setLift(0);
+    if (!d.moved) return; // a tap: the stage's click handles it
+    if (cancelled) {
+      this.springHome();
+      return;
+    }
+    this.suppressClick = true;
+    const b = this.activeBody;
+    const { vx, vy } = releaseVelocity(d.samples);
+    const speed = Math.hypot(vx, vy);
+    const distance = Math.hypot(b.x, b.y);
+    // A flick back toward the deck is a change of mind, not a throw.
+    const heading = distance > 0 ? (vx * b.x + vy * b.y) / distance : 0;
+    const fast = speed > THROW_VELOCITY && heading > -0.2;
+    const far = distance > d.width * THROW_DISTANCE && heading > -0.3;
+    const card = this.activeCard();
+    if ((fast || far) && card && !this.deckBusy && !this.walkout()) {
+      this.throwActive(card, b, vx, vy, b.x / (distance || 1), b.y / (distance || 1));
+      this.flipNext();
+      return;
+    }
+    // Spring home, carrying the release velocity into the spring.
+    b.vx = vx * 1000;
+    b.vy = vy * 1000;
+    b.vr = ((vx * 1000) / d.width) * MAX_DRAG_ROTATION * d.lever;
+    this.springHome();
+  }
+
+  private springHome(): void {
+    if (prefersReducedMotion()) {
+      this.activeBody = makeBody(REST);
+      this.writeActive();
+      return;
+    }
+    this.homing = true;
+    this.kick();
+  }
+
+  private writeActive(): void {
+    const node = this.activeEl()?.nativeElement;
+    if (node) node.style.transform = poseTransform(this.activeBody);
+  }
+
+  private setLift(p: number): void {
+    this.stageEl()?.nativeElement.style.setProperty("--lift", p.toFixed(3));
+  }
+
+  // One rAF loop for the flight and the spring home; it sleeps when both
+  // are done. Runs outside Angular so frames don't trigger change detection.
+  private kick(): void {
+    if (this.raf) return;
+    this.zone.runOutsideAngular(() => {
+      this.lastFrame = performance.now();
+      this.raf = requestAnimationFrame(this.tick);
+    });
+  }
+
+  private readonly tick = (now: number): void => {
+    const dt = Math.min((now - this.lastFrame) / 1000, 1 / 30);
+    this.lastFrame = now;
+    let running = false;
+
+    const f = this.flight;
+    if (f) {
+      stepBody(f.body, f.target, FLIGHT, dt);
+      const travelled = (f.body.x * f.dx + f.body.y * f.dy) / f.distance;
+      const node = this.thrownEl()?.nativeElement;
+      if (node) {
+        node.style.transform = poseTransform(f.body);
+        node.style.opacity = String(Math.max(0, Math.min(1, (1 - travelled) * 3)));
+      }
+      // Gone once it clears the deck or reaches the top of its arc.
+      if (travelled >= 0.97 || f.body.vx * f.dx + f.body.vy * f.dy <= 0) {
+        this.flight = null;
+        this.zone.run(() => this.thrown.set(null));
+      } else {
+        running = true;
+      }
+    }
+
+    if (this.homing) {
+      stepBody(this.activeBody, REST, HOME, dt);
+      if (isSettled(this.activeBody, REST)) {
+        this.activeBody = makeBody(REST);
+        this.homing = false;
+      } else {
+        running = true;
+      }
+      this.writeActive();
+    }
+
+    this.raf = running ? requestAnimationFrame(this.tick) : 0;
+  };
+
+  private stopThrowing(): void {
+    cancelAnimationFrame(this.raf);
+    this.raf = 0;
+    this.flight = null;
+    this.drag = null;
+    this.homing = false;
+    this.suppressClick = false;
+    this.activeBody = makeBody(REST);
+    this.thrown.set(null);
+  }
+
+  // Face-down card at `depth`: a fixed tilt, and the pile rises toward the
+  // slot above as a drag nears a throw (--lift, set during the drag).
+  deckCardTransform(depth: number): string {
+    const tilt = DECK_TILTS[Math.min(depth, DECK_TILTS.length - 1)];
+    const d = `max(0, ${depth} - var(--lift, 0) * 0.6)`;
+    return `translateY(calc(${d} * 9px)) rotate(${tilt}deg) scale(calc(1 - ${d} * 0.035))`;
+  }
+
+  ngOnDestroy(): void {
+    this.clearDeckTimers();
+  }
+
   private clearDeckTimers(): void {
     this.deckTimers.forEach(clearTimeout);
     this.deckTimers = [];
     this.deckBusy = false;
     this.walkout.set(null);
+    this.stopThrowing();
   }
 
   ngOnInit(): void {

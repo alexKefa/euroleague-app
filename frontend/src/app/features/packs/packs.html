@@ -212,15 +212,18 @@
         </div>
 
         <div
+          #deckStage
           class="deck-stage relative isolate mx-auto cursor-pointer select-none"
           [style.width.px]="cardSize()"
           [style.height.px]="cardSize() * 1.4 + 44"
           role="button"
           tabindex="0"
           [attr.aria-label]="i18n.t('packs.tapToFlip')"
-          (click)="tapDeck()"
+          (pointerdown)="onStagePointerDown()"
+          (click)="onStageClick()"
           (keydown.enter)="tapDeck()"
           (keydown.space)="$event.preventDefault(); tapDeck()"
+          (keydown.arrowright)="$event.preventDefault(); tapDeck()"
         >
           <!-- Face-down cards still to come; the deeper ones peek out below
                the top one so their rarity edges show. -->
@@ -231,7 +234,7 @@
                 [ngClass]="'flip-back--' + backTier(c)"
                 [style.--tier]="tierColor(c)"
                 [style.height.px]="cardSize() * 1.4"
-                [style.transform]="'translateY(' + (k + (activeCard() ? 1 : 0)) * 9 + 'px) scale(' + (1 - (k + (activeCard() ? 1 : 0)) * 0.035) + ')'"
+                [style.transform]="deckCardTransform(k + (activeCard() ? 1 : 0))"
                 [style.z-index]="20 - k"
               >
                 <img src="/brand/clutch-icon-dark.svg" alt="" class="flip-back__logo" />
@@ -260,9 +263,22 @@
               </div>
             }
 
-            <!-- The turned card: mounts showing its back and flips over. -->
+            <!-- The turned card: mounts showing its back and flips over.
+                 Once face up it can be dragged and thrown off the deck
+                 (packs.ts onCardPointer*); a tap throws it too. -->
             @for (c of [card]; track deckIndex()) {
-              <div class="absolute inset-x-0 top-0" style="z-index: 30" [class.legendary-shake--late]="isBigPull(c) && c.collectible.tier === 'legendary'">
+              <div
+                #activeEl
+                class="throw-card absolute inset-x-0 top-0"
+                style="z-index: 30"
+                [class.invisible]="thrown()?.card === c"
+                (pointerdown)="onCardPointerDown($event)"
+                (pointermove)="onCardPointerMove($event)"
+                (pointerup)="onCardPointerUp($event)"
+                (pointercancel)="onCardPointerUp($event, true)"
+                (lostpointercapture)="onCardPointerUp($event, true)"
+              >
+              <div [class.legendary-shake--late]="isBigPull(c) && c.collectible.tier === 'legendary'">
                 <div
                   class="flip-card is-flipped"
                   [class.flip-card--big]="isBigPull(c)"
@@ -294,7 +310,30 @@
                   </span>
                 </div>
               </div>
+              </div>
             }
+          }
+
+          <!-- The thrown card flying off, a face-up copy so the deck can
+               already turn the next one underneath it. -->
+          @if (thrown(); as t) {
+            <div #thrownEl class="throw-card throw-card--flying absolute inset-x-0 top-0 pointer-events-none" style="z-index: 45" [style.transform]="t.start">
+              <app-collectible-card
+                class="block mx-auto"
+                [name]="t.card.collectible.name"
+                [tier]="t.card.collectible.tier"
+                [teamCode]="t.card.collectible.team.code"
+                [teamColor]="t.card.collectible.team.primaryColor"
+                [imageUrl]="t.card.collectible.imageUrl"
+                [unlocked]="true"
+                [maxWidth]="cardSize()"
+                [finish]="t.card.collectible.finish ?? 'standard'"
+                [momentRound]="t.card.collectible.moment?.round ?? null"
+                [momentRole]="t.card.collectible.moment?.role ?? null"
+                [momentPoints]="t.card.collectible.moment?.points ?? null"
+                [momentPir]="t.card.collectible.moment?.pir ?? null"
+              ></app-collectible-card>
+            </div>
           }
 
           <!-- Walkout: the stage goes dark, light sweeps up in the tier
@@ -335,7 +374,7 @@
             }
           }
           <p class="mt-2 text-[11px] text-muted animate-pulse">
-            {{ deckIndex() >= deckOrder().length ? i18n.t('packs.tapToFinish') : i18n.t('packs.tapToFlip') }}
+            {{ deckIndex() >= deckOrder().length ? i18n.t('packs.tapToFinish') : deckIndex() > 0 ? i18n.t('packs.swipeHint') : i18n.t('packs.tapToFlip') }}
           </p>
         </div>
 

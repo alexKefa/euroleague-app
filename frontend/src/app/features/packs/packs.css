@@ -571,6 +571,24 @@
   transform-origin: 50% 100%;
   transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
+/* The face-up card you can drag and throw (packs.ts, shared/throw-physics.ts
+   write its transform every frame). Pivots at the bottom edge; vertical
+   swipes stay with the page so it still scrolls on touch. */
+.throw-card {
+  transform-origin: 50% 100%;
+  touch-action: pan-y;
+  will-change: transform;
+  cursor: grab;
+}
+.throw-card:active {
+  cursor: grabbing;
+}
+.throw-card .flip-card.is-flipped {
+  cursor: inherit;
+}
+.throw-card--flying {
+  filter: drop-shadow(0 24px 32px rgb(0 0 0 / 0.35));
+}
 /* Pulled cards drop into the strip below. */
 .pulled-in {
   animation: pulled-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
