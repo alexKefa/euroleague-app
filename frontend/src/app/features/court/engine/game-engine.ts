@@ -8,7 +8,14 @@ import { type TimeMode, indoorLighting, lightingFor, resolveHour } from "./light
 import type { FloorPlayer, FloorScore } from "./led-floor";
 import { HorsePad, type PadState } from "./horse-pad";
 import { randomSeed } from "../../../../../../shared/court/rng";
-import { computeShotLaunch, effectiveTiming, layupEligible } from "../../../../../../shared/court/shot";
+import {
+  type ReleaseGrade,
+  computeShotLaunch,
+  greenHalfWidth,
+  layupEligible,
+  releaseGrade,
+  shotDistance,
+} from "../../../../../../shared/court/shot";
 import { LAYUP_METER_FILL_SECONDS, METER_FILL_SECONDS } from "../../../../../../shared/court/constants";
 import { CourtPhysics, RapierApi } from "../../../../../../shared/court/sim";
 import { HoopId, ShotEvent, ShotResult } from "../../../../../../shared/court/types";
@@ -46,7 +53,7 @@ export interface PerfStats {
   textures: number;
 }
 
-export type ReleaseGrade = "perfect" | "good" | "early" | "late";
+export type { ReleaseGrade };
 
 export interface PracticeStats {
   makes: number;
@@ -290,7 +297,10 @@ export class GameEngine {
     this.player.lockedYaw = target.yaw;
     // Driving at the rim from close range turns the shot into a layup.
     this.layupShot = layupEligible(this.player.x, this.player.z, target.hoopId, this.vel.x, this.vel.z);
-    this.meter.start(now, this.layupShot ? LAYUP_METER_FILL_SECONDS : METER_FILL_SECONDS);
+    // The green is wide at the rim and tight from deep; the meter shows it before you shoot.
+    const kind = this.layupShot ? "layup" : "jumper";
+    const green = greenHalfWidth(shotDistance(this.player.x, this.player.z, target.hoopId, kind), kind);
+    this.meter.start(now, this.layupShot ? LAYUP_METER_FILL_SECONDS : METER_FILL_SECONDS, green);
   }
 
   releaseShoot(): void {
@@ -549,8 +559,7 @@ export class GameEngine {
     this.cooldownUntil = now + SHOT_COOLDOWN_SECONDS * 1000;
     this.lockUntil = now + 300;
     this.stats.attempts++;
-    const eff = effectiveTiming(timingError);
-    const grade: ReleaseGrade = launch.perfect ? "perfect" : Math.abs(eff) < 0.25 ? "good" : eff < 0 ? "early" : "late";
+    const grade = releaseGrade(timingError, launch.distance, kind);
     this.lastShotPerfect = launch.perfect;
     this.cb.onRelease(grade, this.layupShot);
   }

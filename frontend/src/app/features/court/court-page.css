@@ -29,14 +29,23 @@
   left: 0;
   top: 0;
   width: 12px;
-  height: 84px;
-  margin-top: -42px;
+  height: 96px;
+  margin-top: -48px;
   border-radius: 9999px;
   background: rgba(8, 12, 20, 0.6);
   border: 2px solid rgba(255, 255, 255, 0.85);
   overflow: hidden;
   pointer-events: none;
   will-change: transform;
+}
+/* Just outside the green: "slightly early / late", still usually goes in. */
+.court-meter-white {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--white-bottom);
+  height: var(--white-height);
+  background: rgba(255, 255, 255, 0.22);
 }
 .court-meter-sweet {
   position: absolute;

@@ -1,15 +1,18 @@
 // Run: (backend) npm run test:court
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { GRAVITY, METER_SWEET_CENTER, METER_SWEET_HALF_WIDTH, PHYSICS_STEP, RIM_INNER_RADIUS, BALL_RADIUS } from "./constants.js";
+import { GRAVITY, METER_ERROR_SPAN, METER_SWEET_CENTER, METER_WHITE_WIDTH, PHYSICS_STEP, RIM_INNER_RADIUS, BALL_RADIUS } from "./constants.js";
 import { ACTIVE_HOOPS, HOOP_IDS, clampPlayerPosition, FENCE, insideThreePoint, pickTargetHoop, rimCenter } from "./geometry.js";
 import {
   apexAboveRim,
   clampTiming,
   computeShotLaunch,
   effectiveTiming,
+  greenHalfWidth,
   idealVelocity,
+  releaseGrade,
   releasePoint,
+  shotDistance,
   timingErrorFromMeter,
 } from "./shot.js";
 import { Vec3 } from "./types.js";
@@ -79,15 +82,49 @@ test("timing error is clamped and NaN counts as fully late", () => {
   assert.equal(clampTiming(5), 1);
   assert.equal(clampTiming(-5), -1);
   assert.equal(clampTiming(Number.NaN), 1);
-  assert.equal(effectiveTiming(0), 0);
+  assert.equal(effectiveTiming(0, 5), 0);
 });
 
 test("the meter maps the sweet spot to a perfect release", () => {
+  const g = greenHalfWidth(5);
   assert.equal(timingErrorFromMeter(METER_SWEET_CENTER), 0);
-  const edge = timingErrorFromMeter(METER_SWEET_CENTER + METER_SWEET_HALF_WIDTH * 0.99);
-  assert.equal(effectiveTiming(edge), 0);
-  assert.ok(effectiveTiming(timingErrorFromMeter(METER_SWEET_CENTER + METER_SWEET_HALF_WIDTH * 1.5)) > 0);
+  const edge = timingErrorFromMeter(METER_SWEET_CENTER + g * 0.99);
+  assert.equal(effectiveTiming(edge, 5), 0);
+  assert.ok(effectiveTiming(timingErrorFromMeter(METER_SWEET_CENTER + g * 1.5), 5) > 0);
   assert.ok(timingErrorFromMeter(0) < 0 && timingErrorFromMeter(1.2) > 0);
+});
+
+test("the green is wide at the rim and tight from deep; layups get the wide one", () => {
+  const ws = [0.5, 1.5, 3, 4, 5.5, 6.75, 8, 10].map((d) => greenHalfWidth(d));
+  for (let i = 1; i < ws.length; i++) assert.ok(ws[i]! <= ws[i - 1]!, `green ${ws.join(" >= ")}`);
+  assert.ok(ws[0]! >= 2.5 * ws[ws.length - 1]!);
+  assert.equal(greenHalfWidth(2.5, "layup"), greenHalfWidth(0));
+  const rim = rimCenter("A");
+  assert.ok(Math.abs(shotDistance(0, rim.z + 6, "A") - 6) < 1e-9);
+});
+
+test("release grades: green, then slightly, then plain, then very", () => {
+  const d = 6;
+  const g = greenHalfWidth(d);
+  const t = (meter: number) => meter / METER_ERROR_SPAN;
+  assert.equal(releaseGrade(t(g * 0.9), d), "perfect");
+  assert.equal(releaseGrade(t(-(g + METER_WHITE_WIDTH * 0.5)), d), "slightlyEarly");
+  assert.equal(releaseGrade(t(g + METER_WHITE_WIDTH * 0.5), d), "slightlyLate");
+  assert.equal(releaseGrade(t(-(g + METER_WHITE_WIDTH + 0.05)), d), "early");
+  assert.equal(releaseGrade(t(g + METER_WHITE_WIDTH + 0.05), d), "late");
+  assert.equal(releaseGrade(-1, d), "veryEarly");
+  assert.equal(releaseGrade(1, d), "veryLate");
+  // The same release is green at the rim and not from deep.
+  assert.equal(releaseGrade(t(0.06), 1), "perfect");
+  assert.notEqual(releaseGrade(t(0.06), 7), "perfect");
+});
+
+test("a green release flies the ideal arc, whatever the seed", () => {
+  const a = computeShotLaunch(3, -6, "A", 0, 1);
+  const b = computeShotLaunch(3, -6, "A", 0, 987654);
+  assert.deepEqual(a.velocity, b.velocity);
+  const ideal = idealVelocity(a.origin, rimCenter("A"));
+  assert.deepEqual(a.velocity, ideal);
 });
 
 test("a perfect release is perfect, an off one is not", () => {
@@ -116,7 +153,7 @@ function meanMiss(x: number, z: number, e: number): number {
 }
 
 test("error grows with |timingError|", () => {
-  const errs = [0, 0.25, 0.5, 0.75, 1].map((e) => meanMiss(3, -8, e));
+  const errs = [0, 0.15, 0.25, 0.35, 0.5].map((e) => meanMiss(3, -8, e));
   for (let i = 1; i < errs.length; i++) assert.ok(errs[i]! > errs[i - 1]!, `miss ${errs.map((m) => m.toFixed(3)).join(" < ")}`);
 });
 
@@ -125,8 +162,8 @@ test("error grows with distance (threes are harder than layups)", () => {
   assert.ok(meanMiss(0, -7.5, 0.4) < meanMiss(0, -5.4, 0.4));
 });
 
-test("perfect releases carry only small noise", () => {
-  assert.ok(meanMiss(0, -7.8, 0) < 0.06);
+test("perfect releases land dead centre", () => {
+  assert.ok(meanMiss(0, -7.8, 0) < 0.01);
 });
 
 test("early falls short, late goes long", () => {

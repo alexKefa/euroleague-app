@@ -1,7 +1,9 @@
 // Shot model (CLUTCH_COURT_SPEC.md §5). Pure: the client (practice mode) and
 // the court server compute the exact same launch from the same inputs.
 import {
+  BACKBOARD_WIDTH,
   BALL_BACKSPIN,
+  BALL_RADIUS,
   LAYUP_APEX_ABOVE_RIM,
   LAYUP_ERROR_SCALE,
   LAYUP_GATHER,
@@ -10,22 +12,27 @@ import {
   LAYUP_MIN_RELEASE_DISTANCE,
   LAYUP_RELEASE_HEIGHT,
   GRAVITY,
+  GREEN_HALF_WIDTH_CURVE,
+  LAYUP_GREEN_HALF_WIDTH,
   METER_ERROR_SPAN,
   METER_FILL_SECONDS,
   METER_OVERHOLD_SECONDS,
+  METER_MISS_RAMP,
   METER_SWEET_CENTER,
-  PERFECT_TIMING,
+  METER_WHITE_WIDTH,
   PHYSICS_STEP,
   RELEASE_HEIGHT,
   SHOT_MIN_DISTANCE,
   THREE_POINT_RADIUS,
+  WHITE_MAX_EFFECT,
 } from "./constants.js";
-import { rimCenter } from "./geometry.js";
+import { hoopLayout, hoopSign, rimCenter } from "./geometry.js";
 import { createRng, gaussian } from "./rng.js";
 import { HoopId, ShotKind, ShotLaunch, Vec3 } from "./types.js";
 
-// Error tuning. Effective error is 0 inside the green window, so a perfect
-// release only carries the small seeded noise below.
+// Error tuning. A perfect (green) release flies the ideal arc with no error
+// and no noise, so it always goes in. Anything else gets the timing error
+// below plus the seeded noise.
 /** Fractional speed error at |effective error| = 1 and distance factor 1. */
 export const POWER_ERROR = 0.08;
 /** Left/right aim error (radians) at |effective error| = 1 and distance factor 1. */
@@ -68,15 +75,74 @@ export function clampTiming(timingError: number): number {
   return Math.max(-1, Math.min(1, timingError));
 }
 
-/** Timing error with the green window removed, rescaled back to [-1, 1]. */
-export function effectiveTiming(timingError: number): number {
-  const e = clampTiming(timingError);
-  const over = Math.max(0, Math.abs(e) - PERFECT_TIMING) / (1 - PERFECT_TIMING);
-  return Math.sign(e) * over;
+/** Half-width of the green window (meter units) for a shot of this horizontal distance. */
+export function greenHalfWidth(distance: number, kind: ShotKind = "jumper"): number {
+  if (kind === "layup") return LAYUP_GREEN_HALF_WIDTH;
+  const c = GREEN_HALF_WIDTH_CURVE;
+  if (!(distance > c[0]![0])) return c[0]![1];
+  for (let i = 1; i < c.length; i++) {
+    const [d1, w1] = c[i]!;
+    if (distance <= d1) {
+      const [d0, w0] = c[i - 1]!;
+      return w0 + ((w1 - w0) * (distance - d0)) / (d1 - d0);
+    }
+  }
+  return c[c.length - 1]![1];
+}
+
+/** How far past the green the release was, in meter units (0 inside the green). */
+function meterOverGreen(timingError: number, distance: number, kind: ShotKind): number {
+  return Math.max(0, Math.abs(clampTiming(timingError)) * METER_ERROR_SPAN - greenHalfWidth(distance, kind));
+}
+
+/**
+ * Timing error after the green and white windows, in [-1, 1]: 0 in the green,
+ * up to ±WHITE_MAX_EFFECT across the white zone, then ramping to ±1.
+ */
+export function effectiveTiming(timingError: number, distance: number, kind: ShotKind = "jumper"): number {
+  const off = meterOverGreen(timingError, distance, kind);
+  if (off === 0) return 0;
+  const mag =
+    off <= METER_WHITE_WIDTH
+      ? (WHITE_MAX_EFFECT * off) / METER_WHITE_WIDTH
+      : WHITE_MAX_EFFECT + (1 - WHITE_MAX_EFFECT) * Math.min(1, (off - METER_WHITE_WIDTH) / METER_MISS_RAMP);
+  return Math.sign(clampTiming(timingError)) * mag;
+}
+
+export type ReleaseGrade = "perfect" | "slightlyEarly" | "slightlyLate" | "early" | "late" | "veryEarly" | "veryLate";
+
+/** The word shown after a release. */
+export function releaseGrade(timingError: number, distance: number, kind: ShotKind = "jumper"): ReleaseGrade {
+  const off = meterOverGreen(timingError, distance, kind);
+  if (off === 0) return "perfect";
+  const early = clampTiming(timingError) < 0;
+  if (off <= METER_WHITE_WIDTH) return early ? "slightlyEarly" : "slightlyLate";
+  if (off < METER_WHITE_WIDTH + METER_MISS_RAMP) return early ? "early" : "late";
+  return early ? "veryEarly" : "veryLate";
+}
+
+/** Horizontal release-to-rim distance for a shot from (x, z), as computeShotLaunch measures it. */
+export function shotDistance(x: number, z: number, hoopId: HoopId, kind: ShotKind = "jumper"): number {
+  const rim = rimCenter(hoopId);
+  const o = kind === "layup" ? layupReleasePoint(x, z, hoopId) : releasePoint(x, z, hoopId);
+  return Math.hypot(rim.x - o.x, rim.z - o.z);
+}
+
+/**
+ * Standing under or behind the backboard there's no line to the rim, so the
+ * shot goes up from the mirror-image spot in front of it (same distance).
+ */
+function outOfBoardShadow(x: number, z: number, hoopId: HoopId): { x: number; z: number } {
+  const rim = rimCenter(hoopId);
+  const s = hoopSign(hoopId);
+  const behind = s * (z - rim.z);
+  if (behind > 0 && Math.abs(x - rim.x) < BACKBOARD_WIDTH / 2 + 0.6) return { x, z: rim.z - s * behind };
+  return { x, z };
 }
 
 /** Release point for a player standing at (x, z) shooting at `hoopId`. */
-export function releasePoint(x: number, z: number, hoopId: HoopId): Vec3 {
+export function releasePoint(px: number, pz: number, hoopId: HoopId): Vec3 {
+  const { x, z } = outOfBoardShadow(px, pz, hoopId);
   const rim = rimCenter(hoopId);
   let dx = x - rim.x;
   let dz = z - rim.z;
@@ -110,7 +176,8 @@ export function layupEligible(x: number, z: number, hoopId: HoopId, vx: number, 
 }
 
 /** Layup release: a gather step towards the rim, up at full extension. */
-export function layupReleasePoint(x: number, z: number, hoopId: HoopId): Vec3 {
+export function layupReleasePoint(px: number, pz: number, hoopId: HoopId): Vec3 {
+  const { x, z } = outOfBoardShadow(px, pz, hoopId);
   const rim = rimCenter(hoopId);
   let ux = x - rim.x;
   let uz = z - rim.z;
@@ -123,12 +190,14 @@ export function layupReleasePoint(x: number, z: number, hoopId: HoopId): Vec3 {
     uz /= d;
   }
   const r = Math.max(LAYUP_MIN_RELEASE_DISTANCE, d - LAYUP_GATHER);
-  return { x: rim.x + ux * r, y: LAYUP_RELEASE_HEIGHT, z: rim.z + uz * r };
+  // The gather can carry a baseline drive under the board: mirror that out too.
+  const out = outOfBoardShadow(rim.x + ux * r, rim.z + uz * r, hoopId);
+  return { x: out.x, y: LAYUP_RELEASE_HEIGHT, z: out.z };
 }
 
 /**
- * Full launch for a shot: ideal velocity, plus timing error (power + aim,
- * scaled by distance) and seeded noise. Early (negative) releases fall short,
+ * Full launch for a shot: ideal velocity, plus (unless the release was green)
+ * timing error (power + aim, scaled by distance) and seeded noise. Early (negative) releases fall short,
  * late (positive) ones go long.
  */
 export function computeShotLaunch(
@@ -143,16 +212,25 @@ export function computeShotLaunch(
   const rim = rimCenter(hoopId);
   const layup = kind === "layup";
   const origin = layup ? layupReleasePoint(x, z, hoopId) : releasePoint(x, z, hoopId);
-  const ideal = idealVelocity(origin, rim, layup ? LAYUP_APEX_ABOVE_RIM : undefined);
   const distance = Math.hypot(rim.x - origin.x, rim.z - origin.z);
   const df = distanceFactor(distance) * (layup ? LAYUP_ERROR_SCALE : 1);
   const nf = noiseFactor(distance) * (layup ? 0.7 : 1);
-  const eff = effectiveTiming(timingError);
+  const eff = effectiveTiming(timingError, distance, kind);
   const perfect = eff === 0;
+  const baseApex = layup ? LAYUP_APEX_ABOVE_RIM : apexAboveRim(distance);
+  // A green release gets an arc that can't miss: lofted over the backboard
+  // from behind it, and steep enough to fit through the rim from deep.
+  const ideal = idealVelocity(origin, rim, perfect ? greenApex(origin, hoopId, baseApex) : baseApex);
 
   const aimSide = rng() < 0.5 ? -1 : 1;
-  const power = 1 + eff * POWER_ERROR * df + gaussian(rng) * NOISE_POWER * nf;
-  const yawErr = Math.abs(eff) * ANGLE_ERROR * df * aimSide + gaussian(rng) * NOISE_ANGLE * nf;
+  // In the white zone the noise fades in too (up to 70%): a hair off the green is nearly as good as green.
+  const white = Math.abs(eff) <= WHITE_MAX_EFFECT;
+  const noiseScale = nf * (white ? (0.7 * Math.abs(eff)) / WHITE_MAX_EFFECT : 1);
+  const noisePower = gaussian(rng) * NOISE_POWER * noiseScale;
+  const noiseAngle = gaussian(rng) * NOISE_ANGLE * noiseScale;
+  // Green = the ideal arc, untouched: it always goes in.
+  const power = perfect ? 1 : 1 + eff * POWER_ERROR * df + noisePower;
+  const yawErr = perfect ? 0 : Math.abs(eff) * ANGLE_ERROR * df * aimSide + noiseAngle;
 
   const cos = Math.cos(yawErr);
   const sin = Math.sin(yawErr);
@@ -168,6 +246,50 @@ export function computeShotLaunch(
   const spin = { x: -fz * backspin, y: 0, z: fx * backspin };
 
   return { kind, hoopId, origin, velocity, spin, distance, perfect };
+}
+
+/** Steepest-needed entry: below this the ball (with a little margin) can't fit through the rim. */
+const MIN_ENTRY_ANGLE = (42 * Math.PI) / 180;
+const CLEARANCE = BALL_RADIUS + 0.04;
+
+/** Lowest apex (from `baseApex` up, in 0.25 m steps) whose arc clears the hoop's hardware and drops in steeply. */
+export function greenApex(origin: Vec3, hoopId: HoopId, baseApex: number): number {
+  for (let k = 0; k <= 32; k++) {
+    const apex = baseApex + k * 0.25;
+    if (arcIsClean(origin, hoopId, apex)) return apex;
+  }
+  return baseApex + 8;
+}
+
+function arcIsClean(origin: Vec3, hoopId: HoopId, apex: number): boolean {
+  const layout = hoopLayout(hoopId);
+  const rim = layout.rim;
+  const v = idealVelocity(origin, rim, apex);
+  const boxes = [
+    layout.board,
+    layout.arm,
+    { center: layout.pole.center, half: { x: layout.pole.radius, y: layout.pole.halfHeight, z: layout.pole.radius } },
+  ];
+  const dt = 1 / 240;
+  for (let t = dt; t < 8; t += dt) {
+    const px = origin.x + v.x * t;
+    const py = origin.y + v.y * t - 0.5 * GRAVITY * t * t;
+    const pz = origin.z + v.z * t;
+    const vy = v.y - GRAVITY * t;
+    if (vy < 0 && py <= rim.y) {
+      return Math.atan2(-vy, Math.hypot(v.x, v.z)) >= MIN_ENTRY_ANGLE;
+    }
+    for (const b of boxes) {
+      if (
+        Math.abs(px - b.center.x) < b.half.x + CLEARANCE &&
+        Math.abs(py - b.center.y) < b.half.y + CLEARANCE &&
+        Math.abs(pz - b.center.z) < b.half.z + CLEARANCE
+      ) {
+        return false;
+      }
+    }
+  }
+  return false;
 }
 
 /** Meter value (0..1+) after holding for `heldSeconds`. */

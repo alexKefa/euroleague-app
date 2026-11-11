@@ -851,9 +851,17 @@ export class CourtPageComponent implements OnInit, OnDestroy {
   }
 
   private showRelease(grade: ReleaseGrade, layup = false): void {
-    const map: Record<ReleaseGrade, Flash["tone"]> = { perfect: "perfect", good: "good", early: "bad", late: "bad" };
-    // A well-timed layup says so; a mistimed one still says early / late.
-    const key = layup && (grade === "perfect" || grade === "good") ? `court.release.layup.${grade}` : `court.release.${grade}`;
+    const map: Record<ReleaseGrade, Flash["tone"]> = {
+      perfect: "perfect",
+      slightlyEarly: "good",
+      slightlyLate: "good",
+      early: "bad",
+      late: "bad",
+      veryEarly: "bad",
+      veryLate: "bad",
+    };
+    // A perfect layup says so; anything else says how early / late it was.
+    const key = layup && grade === "perfect" ? "court.release.layup.perfect" : `court.release.${grade}`;
     this.showFlash(this.i18n.t(key), map[grade]);
   }
 

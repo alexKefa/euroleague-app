@@ -1,23 +1,30 @@
 // Hold-and-release shoot meter (CLUTCH_COURT_SPEC.md §5.2). Owns the meter
 // DOM directly (it changes every frame, so it never goes through Angular).
-import {
-  METER_FILL_SECONDS,
-  METER_SWEET_CENTER,
-  METER_SWEET_HALF_WIDTH,
-} from "../../../../../../../shared/court/constants";
+import { METER_FILL_SECONDS, METER_SWEET_CENTER, METER_WHITE_WIDTH } from "../../../../../../../shared/court/constants";
 import { meterOverheld, meterValue, timingErrorFromMeter } from "../../../../../../../shared/court/shot";
 
 export class ShootMeter {
   private startedAt: number | null = null;
   /** Seconds to fill this charge (layups fill faster). */
   private fillSeconds = METER_FILL_SECONDS;
+  /** Green half-width for this shot (meter units). */
+  private green = 0.055;
 
   constructor(
     private readonly el: HTMLElement,
     private readonly fill: HTMLElement
   ) {
-    el.style.setProperty("--sweet-bottom", `${(METER_SWEET_CENTER - METER_SWEET_HALF_WIDTH) * 100}%`);
-    el.style.setProperty("--sweet-height", `${METER_SWEET_HALF_WIDTH * 2 * 100}%`);
+    this.setGreen(this.green);
+  }
+
+  /** Size the green (and the white band around it) for this shot. */
+  private setGreen(half: number): void {
+    this.green = half;
+    const pct = (v: number) => `${v * 100}%`;
+    this.el.style.setProperty("--sweet-bottom", pct(METER_SWEET_CENTER - half));
+    this.el.style.setProperty("--sweet-height", pct(half * 2));
+    this.el.style.setProperty("--white-bottom", pct(METER_SWEET_CENTER - half - METER_WHITE_WIDTH));
+    this.el.style.setProperty("--white-height", pct((half + METER_WHITE_WIDTH) * 2));
   }
 
   get charging(): boolean {
@@ -29,8 +36,9 @@ export class ShootMeter {
     return this.startedAt === null ? 0 : (now - this.startedAt) / 1000;
   }
 
-  start(now: number, fillSeconds = METER_FILL_SECONDS): void {
+  start(now: number, fillSeconds = METER_FILL_SECONDS, greenHalfWidth = this.green): void {
     this.startedAt = now;
+    this.setGreen(greenHalfWidth);
     this.fillSeconds = fillSeconds;
     this.el.classList.toggle("court-meter-layup", fillSeconds !== METER_FILL_SECONDS);
     this.el.style.display = "block";
@@ -71,7 +79,7 @@ export class ShootMeter {
   private render(value: number): void {
     const v = Math.min(1, value);
     this.fill.style.transform = `scaleY(${v})`;
-    const inSweet = Math.abs(value - METER_SWEET_CENTER) <= METER_SWEET_HALF_WIDTH;
+    const inSweet = Math.abs(value - METER_SWEET_CENTER) <= this.green;
     this.el.classList.toggle("in-sweet", inSweet);
   }
 }

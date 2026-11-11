@@ -92,13 +92,28 @@ export const LAYUP_SERVER_APPROACH_TOLERANCE = 0.6;
 
 // Shoot meter (hold-and-release). The meter value rises 0 -> 1 linearly over
 // METER_FILL_SECONDS; releasing inside the green window around
-// METER_SWEET_CENTER is a perfect release. Holding past the top auto-releases
+// METER_SWEET_CENTER is a perfect release, and a perfect release always goes
+// in (the 2K rule). The green is wide at the rim and tight from deep. Just
+// outside it is a "white" zone (slightly early / late) that still drops most of
+// the time; past that, misses ramp up fast. Holding past the top auto-releases
 // as a fully late shot after METER_OVERHOLD_SECONDS.
 export const METER_FILL_SECONDS = 0.95;
 export const METER_OVERHOLD_SECONDS = 0.2;
 export const METER_SWEET_CENTER = 0.8;
-export const METER_SWEET_HALF_WIDTH = 0.055;
+/** Green half-width (meter units) by horizontal shot distance (m), linear in between, clamped at the ends. */
+export const GREEN_HALF_WIDTH_CURVE: readonly (readonly [number, number])[] = [
+  [1.5, 0.1],
+  [4, 0.055],
+  [THREE_POINT_RADIUS, 0.035],
+  [8, 0.025],
+];
+/** Layups get the at-the-rim green whatever the gather distance. */
+export const LAYUP_GREEN_HALF_WIDTH = 0.1;
+/** The white zone: this much meter on either side of the green. */
+export const METER_WHITE_WIDTH = 0.045;
+/** Effective error at the outer edge of the white zone (0 = perfect, 1 = worst). */
+export const WHITE_MAX_EFFECT = 0.035;
+/** Past the white zone, the effective error ramps from WHITE_MAX_EFFECT to 1 over this much meter. */
+export const METER_MISS_RAMP = 0.15;
 /** Meter distance from the sweet centre that maps to |timingError| = 1. */
 export const METER_ERROR_SPAN = 0.4;
-/** |timingError| at or below this is a perfect (green) release. */
-export const PERFECT_TIMING = METER_SWEET_HALF_WIDTH / METER_ERROR_SPAN;
