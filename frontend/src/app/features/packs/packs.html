@@ -266,7 +266,10 @@
             <!-- The turned card: mounts showing its back and flips over.
                  Once face up it can be dragged and thrown off the deck
                  (packs.ts onCardPointer*); a tap throws it too. -->
-            @for (c of [card]; track deckIndex()) {
+            <!-- Track by the card itself: a key that ignores the item makes
+                 Angular reuse this element for the next card, which then
+                 keeps the thrown card's inline transform. -->
+            @for (c of [card]; track c.resultId) {
               <div
                 #activeEl
                 class="throw-card absolute inset-x-0 top-0"

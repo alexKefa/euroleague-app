@@ -35,8 +35,10 @@ export interface DragSample {
 export const MAX_DRAG_ROTATION = 18;
 // A release throws the card when it is this fast (px/ms) or this far (share
 // of the card's width). Anything less springs home.
-export const THROW_VELOCITY = 0.5;
-export const THROW_DISTANCE = 0.35;
+// Tuned stricter than kokonutui's 0.5 / 0.35: on phones those threw on
+// almost any drag (2026-11-11).
+export const THROW_VELOCITY = 0.9;
+export const THROW_DISTANCE = 0.55;
 // Moves shorter than this are a tap, not a drag.
 export const TAP_SLOP = 5;
 // Release velocity is measured over the last stretch of the gesture only.
