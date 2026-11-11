@@ -1,7 +1,7 @@
 // Run: (backend) npm run test:court
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { TIME_MODES, lightingFor, nextTimeMode, resolveHour } from "./lighting";
+import { TIME_MODES, indoorLighting, lightingFor, nextTimeMode, resolveHour } from "./lighting";
 
 const lum = (hex: string) => {
   const n = parseInt(hex.slice(1), 16);
@@ -56,4 +56,16 @@ test("time modes: auto follows the clock, the others are fixed; the button cycle
   for (let i = 0; i < TIME_MODES.length; i++) seen.add((m = nextTimeMode(m)));
   assert.equal(seen.size, TIME_MODES.length);
   assert.equal(nextTimeMode(TIME_MODES[TIME_MODES.length - 1]!), TIME_MODES[0]);
+});
+
+test("indoor lighting: the gym stays lit at night, the windows go dark", () => {
+  const night = indoorLighting(lightingFor(0));
+  const noon = indoorLighting(lightingFor(13));
+  assert.ok(night.hemiIntensity >= 1.2, `night hemi ${night.hemiIntensity}`);
+  assert.ok(night.keyIntensity >= 1, `night key ${night.keyIntensity}`);
+  assert.ok(night.keyDir.y > 0.9, `night key should come from overhead, y=${night.keyDir.y}`);
+  assert.ok(lum(night.windowColor) < 40, `night window ${night.windowColor}`);
+  assert.ok(lum(noon.windowColor) > 150, `noon window ${noon.windowColor}`);
+  assert.ok(night.lamps > noon.lamps, "lamp halos read stronger at night");
+  assert.ok(Math.abs(Math.hypot(noon.keyDir.x, noon.keyDir.y, noon.keyDir.z) - 1) < 1e-9);
 });

@@ -4,7 +4,7 @@
 import { ACESFilmicToneMapping, Mesh, PerspectiveCamera, Vector3, WebGLRenderer } from "three";
 import { BALL_RADIUS, RELEASE_HEIGHT, SHOT_COOLDOWN_SECONDS } from "../../../../../../shared/court/constants";
 import { hoopLayout, insideThreePoint, pickTargetHoop } from "../../../../../../shared/court/geometry";
-import { type TimeMode, lightingFor, resolveHour } from "./lighting";
+import { type TimeMode, indoorLighting, lightingFor, resolveHour } from "./lighting";
 import type { FloorPlayer, FloorScore } from "./led-floor";
 import { HorsePad, type PadState } from "./horse-pad";
 import { randomSeed } from "../../../../../../shared/court/rng";
@@ -408,17 +408,17 @@ export class GameEngine {
 
   private applyLighting(): void {
     const l = lightingFor(resolveHour(this.timeMode));
+    const g = indoorLighting(l);
     const b = this.built;
-    b.hemi.color.set(l.hemiSky);
-    b.hemi.groundColor.set(l.hemiGround);
-    b.hemi.intensity = l.hemiIntensity;
-    b.sun.color.set(l.sunColor);
-    b.sun.intensity = l.sunIntensity;
-    b.sun.position.set(l.sunDir.x * 30, l.sunDir.y * 30, l.sunDir.z * 30);
-    (b.scene.fog as { color: { set(c: string): void } } | null)?.color.set(l.skyHorizon);
-    b.floor.setLighting(l);
-    b.sky.setLighting(l);
-    b.venue.setLighting(l);
+    b.hemi.color.set(g.hemiSky);
+    b.hemi.groundColor.set(g.hemiGround);
+    b.hemi.intensity = g.hemiIntensity;
+    b.sun.color.set(g.keyColor);
+    b.sun.intensity = g.keyIntensity;
+    b.sun.position.set(g.keyDir.x * 30, g.keyDir.y * 30, g.keyDir.z * 30);
+    // The glass floor reflects the ceiling and the walls, not the sky.
+    b.floor.setLighting({ ...l, skyTop: "#2c3036", skyHorizon: "#7d7a74" });
+    b.gym.setLighting(g);
     this.lightingAt = performance.now();
   }
 
@@ -440,7 +440,6 @@ export class GameEngine {
       this.cb.onHorsePad(on);
     }
     this.pad?.update(now, on);
-    this.built.sky.follow(this.camera.position);
   }
 
   /** The LED head-to-head score on the floor (null hides it). */

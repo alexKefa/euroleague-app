@@ -112,6 +112,45 @@ export function lightingFor(hour: number): Lighting {
   };
 }
 
+/** How the indoor gym is lit for a given outdoor time of day. */
+export interface IndoorLighting {
+  hemiSky: string;
+  hemiGround: string;
+  hemiIntensity: number;
+  /** The key light: the overhead lamps, swinging towards the window light by day. */
+  keyColor: string;
+  keyIntensity: number;
+  keyDir: { x: number; y: number; z: number };
+  /** What the high windows show (sky by day, near-black at night). */
+  windowColor: string;
+  /** 0..1 strength of the lamps' glow halos (they're always on). */
+  lamps: number;
+}
+
+/**
+ * The gym's lamps are always on, so it never gets dark inside; daylight
+ * through the high windows only warms it up and gives the light a direction.
+ */
+export function indoorLighting(l: Lighting): IndoorLighting {
+  const d = Math.max(0, Math.min(1, l.day));
+  const w = 0.5 * d;
+  const dx = l.sunDir.x * w;
+  const dy = 1 - w + l.sunDir.y * w;
+  const dz = 0.25 * (1 - w) + l.sunDir.z * w;
+  const len = Math.hypot(dx, dy, dz);
+  const sky = mixHex(mixHex(l.skyHorizon, l.skyTop, 0.4), "#ffffff", 0.25);
+  return {
+    hemiSky: mixHex("#fff3e2", l.hemiSky, 0.35 * d),
+    hemiGround: mixHex("#3a3430", l.hemiGround, 0.2 * d),
+    hemiIntensity: 1.25 + 0.3 * d,
+    keyColor: mixHex("#fff1de", l.sunColor, 0.6 * d),
+    keyIntensity: 1.1 + 0.6 * d,
+    keyDir: { x: dx / len, y: dy / len, z: dz / len },
+    windowColor: mixHex("#0b1220", sky, Math.min(1, d * 1.4)),
+    lamps: 1 - 0.6 * d,
+  };
+}
+
 /** The hour to light the court for: the device clock in "auto", else a fixed time. */
 export function resolveHour(mode: TimeMode, now: Date = new Date()): number {
   switch (mode) {

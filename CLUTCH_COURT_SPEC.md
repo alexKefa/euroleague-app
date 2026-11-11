@@ -7,10 +7,10 @@
 
 ## 1. What we're building
 
-A shared 3D outdoor basketball court inside **Clutch** (my EuroLeague fan app). Friends join the same court through an invite link. On the court they can walk around freely, shoot at the hoops together (shootaround) and play **H-O-R-S-E**.
+A shared 3D indoor basketball court (a club gym) inside **Clutch** (my EuroLeague fan app). Friends join the same court through an invite link. On the court they can walk around freely, shoot at the hoops together (shootaround) and play **H-O-R-S-E**.
 
 ### In scope (v1)
-- A 3D outdoor court that runs in the browser on mobile and desktop.
+- A 3D indoor court that runs in the browser on mobile and desktop.
 - Free-roam movement: a virtual joystick on mobile, WASD/arrows on desktop.
 - A shooting mechanic that feels good (the most important part).
 - **Private courts**: create a court, get a link, friends join (max 8 players).
