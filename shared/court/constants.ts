@@ -92,7 +92,7 @@ export const LAYUP_SERVER_APPROACH_TOLERANCE = 0.6;
 
 // Shoot meter (hold-and-release). The meter value rises 0 -> 1 linearly over
 // METER_FILL_SECONDS; releasing inside the green window around
-// METER_SWEET_CENTER is a perfect release, and a perfect release always goes
+// METER_SWEET_CENTER is a perfect release, and in range a perfect release always goes
 // in (the 2K rule). The green is wide at the rim and tight from deep. Just
 // outside it is a "white" zone (slightly early / late) that still drops most of
 // the time; past that, misses ramp up fast. Holding past the top auto-releases
@@ -100,20 +100,23 @@ export const LAYUP_SERVER_APPROACH_TOLERANCE = 0.6;
 export const METER_FILL_SECONDS = 0.95;
 export const METER_OVERHOLD_SECONDS = 0.2;
 export const METER_SWEET_CENTER = 0.8;
+/** Past this (m) there is no green: the shot is a heave, and even the best release is a long shot. */
+export const GREEN_MAX_DISTANCE = 9.5;
 /** Green half-width (meter units) by horizontal shot distance (m), linear in between, clamped at the ends. */
 export const GREEN_HALF_WIDTH_CURVE: readonly (readonly [number, number])[] = [
-  [1.5, 0.1],
-  [4, 0.055],
-  [THREE_POINT_RADIUS, 0.035],
-  [8, 0.025],
+  [1.5, 0.06],
+  [4, 0.035],
+  [THREE_POINT_RADIUS, 0.022],
+  [8, 0.014],
+  [GREEN_MAX_DISTANCE, 0.008],
 ];
 /** Layups get the at-the-rim green whatever the gather distance. */
-export const LAYUP_GREEN_HALF_WIDTH = 0.1;
+export const LAYUP_GREEN_HALF_WIDTH = 0.06;
 /** The white zone: this much meter on either side of the green. */
-export const METER_WHITE_WIDTH = 0.045;
+export const METER_WHITE_WIDTH = 0.03;
 /** Effective error at the outer edge of the white zone (0 = perfect, 1 = worst). */
-export const WHITE_MAX_EFFECT = 0.035;
+export const WHITE_MAX_EFFECT = 0.07;
 /** Past the white zone, the effective error ramps from WHITE_MAX_EFFECT to 1 over this much meter. */
-export const METER_MISS_RAMP = 0.15;
+export const METER_MISS_RAMP = 0.12;
 /** Meter distance from the sweet centre that maps to |timingError| = 1. */
 export const METER_ERROR_SPAN = 0.4;

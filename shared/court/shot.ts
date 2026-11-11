@@ -13,6 +13,7 @@ import {
   LAYUP_RELEASE_HEIGHT,
   GRAVITY,
   GREEN_HALF_WIDTH_CURVE,
+  GREEN_MAX_DISTANCE,
   LAYUP_GREEN_HALF_WIDTH,
   METER_ERROR_SPAN,
   METER_FILL_SECONDS,
@@ -78,6 +79,7 @@ export function clampTiming(timingError: number): number {
 /** Half-width of the green window (meter units) for a shot of this horizontal distance. */
 export function greenHalfWidth(distance: number, kind: ShotKind = "jumper"): number {
   if (kind === "layup") return LAYUP_GREEN_HALF_WIDTH;
+  if (distance > GREEN_MAX_DISTANCE) return 0;
   const c = GREEN_HALF_WIDTH_CURVE;
   if (!(distance > c[0]![0])) return c[0]![1];
   for (let i = 1; i < c.length; i++) {
@@ -90,23 +92,38 @@ export function greenHalfWidth(distance: number, kind: ShotKind = "jumper"): num
   return c[c.length - 1]![1];
 }
 
+/** Out of range: no green, so the best possible release is a heave. */
+export function outOfRange(distance: number, kind: ShotKind = "jumper"): boolean {
+  return greenHalfWidth(distance, kind) === 0;
+}
+
 /** How far past the green the release was, in meter units (0 inside the green). */
 function meterOverGreen(timingError: number, distance: number, kind: ShotKind): number {
   return Math.max(0, Math.abs(clampTiming(timingError)) * METER_ERROR_SPAN - greenHalfWidth(distance, kind));
 }
+
+/** Extra seeded-noise multiplier for heaves: 1 inside range, growing fast past it. */
+export function heaveNoise(distance: number, kind: ShotKind = "jumper"): number {
+  if (!outOfRange(distance, kind)) return 1;
+  return HEAVE_NOISE_BASE + HEAVE_NOISE_PER_M * (distance - GREEN_MAX_DISTANCE);
+}
+export const HEAVE_NOISE_BASE = 3;
+export const HEAVE_NOISE_PER_M = 1.2;
 
 /**
  * Timing error after the green and white windows, in [-1, 1]: 0 in the green,
  * up to ±WHITE_MAX_EFFECT across the white zone, then ramping to ±1.
  */
 export function effectiveTiming(timingError: number, distance: number, kind: ShotKind = "jumper"): number {
-  const off = meterOverGreen(timingError, distance, kind);
+  let off = meterOverGreen(timingError, distance, kind);
+  // No green out of range: dead-centre is treated as the best of the white zone.
+  if (off === 0 && outOfRange(distance, kind)) off = 1e-6;
   if (off === 0) return 0;
   const mag =
     off <= METER_WHITE_WIDTH
       ? (WHITE_MAX_EFFECT * off) / METER_WHITE_WIDTH
       : WHITE_MAX_EFFECT + (1 - WHITE_MAX_EFFECT) * Math.min(1, (off - METER_WHITE_WIDTH) / METER_MISS_RAMP);
-  return Math.sign(clampTiming(timingError)) * mag;
+  return (clampTiming(timingError) < 0 ? -1 : 1) * mag;
 }
 
 export type ReleaseGrade = "perfect" | "slightlyEarly" | "slightlyLate" | "early" | "late" | "veryEarly" | "veryLate";
@@ -114,7 +131,7 @@ export type ReleaseGrade = "perfect" | "slightlyEarly" | "slightlyLate" | "early
 /** The word shown after a release. */
 export function releaseGrade(timingError: number, distance: number, kind: ShotKind = "jumper"): ReleaseGrade {
   const off = meterOverGreen(timingError, distance, kind);
-  if (off === 0) return "perfect";
+  if (off === 0 && !outOfRange(distance, kind)) return "perfect";
   const early = clampTiming(timingError) < 0;
   if (off <= METER_WHITE_WIDTH) return early ? "slightlyEarly" : "slightlyLate";
   if (off < METER_WHITE_WIDTH + METER_MISS_RAMP) return early ? "early" : "late";
@@ -225,7 +242,7 @@ export function computeShotLaunch(
   const aimSide = rng() < 0.5 ? -1 : 1;
   // In the white zone the noise fades in too (up to 70%): a hair off the green is nearly as good as green.
   const white = Math.abs(eff) <= WHITE_MAX_EFFECT;
-  const noiseScale = nf * (white ? (0.7 * Math.abs(eff)) / WHITE_MAX_EFFECT : 1);
+  const noiseScale = nf * heaveNoise(distance, kind) * (white ? Math.max(0.35, Math.abs(eff) / WHITE_MAX_EFFECT) : 1);
   const noisePower = gaussian(rng) * NOISE_POWER * noiseScale;
   const noiseAngle = gaussian(rng) * NOISE_ANGLE * noiseScale;
   // Green = the ideal arc, untouched: it always goes in.

@@ -12,9 +12,9 @@ await RAPIER.init();
 const phys = new CourtPhysics(RAPIER as unknown as RapierApi);
 const rim = rimCenter("A");
 const N = Number(process.argv[2] ?? 300);
-const cols = ["green", 0.02, 0.045, -0.045, 0.08, -0.08, 0.12, 0.2] as const;
+const cols = ["green", 0.015, 0.03, -0.03, 0.06, -0.06, 0.1] as const;
 console.log("cols = meter units past the green (+late / -early)");
-for (const d of [0.5, 1.5, 3, 4.6, 6, 7.2]) {
+for (const d of [1.5, 3, 4.6, 6, 7.2, 8.5, 10, 11.5, 13]) {
   const row: string[] = [];
   for (const c of cols) {
     let made = 0;

@@ -23,29 +23,34 @@
   text-shadow: 0 0 12px rgba(255, 140, 40, 0.8);
 }
 
-/* ---- shoot meter ---- */
+/* ---- shoot meter (2K-style capsule beside the player) ---- */
 .court-meter {
   position: absolute;
   left: 0;
   top: 0;
-  width: 12px;
-  height: 96px;
-  margin-top: -48px;
-  border-radius: 9999px;
-  background: rgba(8, 12, 20, 0.6);
-  border: 2px solid rgba(255, 255, 255, 0.85);
-  overflow: hidden;
+  width: 14px;
+  height: 116px;
+  margin-top: -58px;
   pointer-events: none;
   will-change: transform;
 }
-/* Just outside the green: "slightly early / late", still usually goes in. */
+.court-meter-bar {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: rgba(6, 8, 12, 0.72);
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 2px 10px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+/* Just outside the green: "slightly early / late". */
 .court-meter-white {
   position: absolute;
   left: 0;
   right: 0;
   bottom: var(--white-bottom);
   height: var(--white-height);
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.16);
 }
 .court-meter-sweet {
   position: absolute;
@@ -53,24 +58,76 @@
   right: 0;
   bottom: var(--sweet-bottom);
   height: var(--sweet-height);
-  background: #31d06b;
-  box-shadow: 0 0 8px #31d06b;
+  background: #2fe36f;
+  box-shadow: 0 0 6px #2fe36f;
 }
 .court-meter-fill {
   position: absolute;
   inset: 0;
   transform-origin: bottom;
   transform: scaleY(0);
-  background: rgba(255, 255, 255, 0.55);
-  mix-blend-mode: screen;
+  background: linear-gradient(to top, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.9));
+  border-top: 2px solid #fff;
 }
-/* Layup: a faster meter, tinted so you know it's a layup before you release. */
+/* The target line: notches sticking out both sides at the centre of the green. */
+.court-meter-target {
+  position: absolute;
+  left: -6px;
+  right: -6px;
+  bottom: calc(var(--sweet-bottom) + var(--sweet-height) / 2 - 1.5px);
+  height: 3px;
+  background: linear-gradient(to right, #fff 0 5px, transparent 5px calc(100% - 5px), #fff calc(100% - 5px));
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.8));
+}
+/* Out of range: no green, no target. */
+.court-meter-heave .court-meter-target {
+  display: none;
+}
+.court-meter-heave .court-meter-bar {
+  border-color: rgba(255, 120, 100, 0.85);
+}
+/* Layup: a faster meter, tinted so you know it’s a layup before you release. */
 .court-meter-layup .court-meter-fill {
-  background: rgba(120, 205, 255, 0.75);
+  background: linear-gradient(to top, rgba(120, 205, 255, 0.3), rgba(120, 205, 255, 0.95));
 }
-.court-meter.in-sweet {
-  border-color: #31d06b;
-  box-shadow: 0 0 12px #31d06b;
+.court-meter.in-sweet .court-meter-bar {
+  border-color: #2fe36f;
+}
+/* After the release the whole bar shows the result. */
+.court-meter[data-result] .court-meter-fill {
+  border-top-color: transparent;
+}
+.court-meter[data-result="green"] .court-meter-fill {
+  background: #2fe36f;
+}
+.court-meter[data-result="green"] .court-meter-bar {
+  border-color: #b9ffd2;
+  box-shadow: 0 0 14px 3px rgba(47, 227, 111, 0.85);
+}
+.court-meter[data-result="green"] {
+  animation: court-meter-green 0.5s ease-out;
+}
+.court-meter[data-result="white"] .court-meter-fill {
+  background: #ffd23f;
+}
+.court-meter[data-result="miss"] .court-meter-fill {
+  background: #ff5a4f;
+}
+@keyframes court-meter-green {
+  0% {
+    scale: 1;
+  }
+  30% {
+    scale: 1.18;
+  }
+  100% {
+    scale: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .court-meter[data-result="green"] {
+    animation: none;
+  }
 }
 
 /* ---- touch controls ---- */
@@ -131,20 +188,25 @@
   top: 26%;
   transform: translateX(-50%);
   font-size: 2rem;
+  font-style: italic;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   white-space: nowrap;
   pointer-events: none;
+  -webkit-text-stroke: 1px rgba(0, 0, 0, 0.55);
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
   animation: court-pop 1.1s ease-out forwards;
 }
 .court-flash[data-tone="perfect"] {
-  color: #4cf08a;
+  color: #2fe36f;
+  font-size: 2.4rem;
+  text-shadow: 0 0 18px rgba(47, 227, 111, 0.75), 0 2px 10px rgba(0, 0, 0, 0.55);
 }
 .court-flash[data-tone="good"] {
-  color: #ffffff;
+  color: #ffd23f;
 }
 .court-flash[data-tone="bad"] {
-  color: #ffd2c2;
+  color: #ff6b5e;
 }
 .court-flash[data-tone="make"] {
   color: #ffffff;

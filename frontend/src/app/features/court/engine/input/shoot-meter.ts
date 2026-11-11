@@ -1,14 +1,15 @@
 // Hold-and-release shoot meter (CLUTCH_COURT_SPEC.md §5.2). Owns the meter
 // DOM directly (it changes every frame, so it never goes through Angular).
 import { METER_FILL_SECONDS, METER_SWEET_CENTER, METER_WHITE_WIDTH } from "../../../../../../../shared/court/constants";
-import { meterOverheld, meterValue, timingErrorFromMeter } from "../../../../../../../shared/court/shot";
+import { ReleaseGrade, meterOverheld, meterValue, timingErrorFromMeter } from "../../../../../../../shared/court/shot";
 
 export class ShootMeter {
   private startedAt: number | null = null;
   /** Seconds to fill this charge (layups fill faster). */
   private fillSeconds = METER_FILL_SECONDS;
   /** Green half-width for this shot (meter units). */
-  private green = 0.055;
+  private green = 0.035;
+  private hideTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     private readonly el: HTMLElement,
@@ -25,6 +26,8 @@ export class ShootMeter {
     this.el.style.setProperty("--sweet-height", pct(half * 2));
     this.el.style.setProperty("--white-bottom", pct(METER_SWEET_CENTER - half - METER_WHITE_WIDTH));
     this.el.style.setProperty("--white-height", pct((half + METER_WHITE_WIDTH) * 2));
+    // No green out of range: the shot is a heave.
+    this.el.classList.toggle("court-meter-heave", half === 0);
   }
 
   get charging(): boolean {
@@ -38,6 +41,8 @@ export class ShootMeter {
 
   start(now: number, fillSeconds = METER_FILL_SECONDS, greenHalfWidth = this.green): void {
     this.startedAt = now;
+    if (this.hideTimer) clearTimeout(this.hideTimer);
+    this.el.removeAttribute("data-result");
     this.setGreen(greenHalfWidth);
     this.fillSeconds = fillSeconds;
     this.el.classList.toggle("court-meter-layup", fillSeconds !== METER_FILL_SECONDS);
@@ -59,14 +64,27 @@ export class ShootMeter {
     this.startedAt = null;
     const value = meterValue(held, this.fillSeconds);
     this.render(value);
-    // Leave the final position visible briefly so the player can read it.
-    window.setTimeout(() => {
-      if (this.startedAt === null) this.el.style.display = "none";
-    }, 450);
+    // Leave the result on screen briefly so the player can read it.
+    if (this.hideTimer) clearTimeout(this.hideTimer);
+    this.hideTimer = setTimeout(() => {
+      if (this.startedAt === null) {
+        this.el.style.display = "none";
+        this.el.removeAttribute("data-result");
+      }
+    }, 800);
     return timingErrorFromMeter(value);
   }
 
+  /** Colour the whole bar by how the release went: green, white (slightly off) or a miss. */
+  showResult(grade: ReleaseGrade): void {
+    const result = grade === "perfect" ? "green" : grade === "slightlyEarly" || grade === "slightlyLate" ? "white" : "miss";
+    this.el.classList.remove("in-sweet");
+    this.el.setAttribute("data-result", result);
+  }
+
   cancel(): void {
+    if (this.hideTimer) clearTimeout(this.hideTimer);
+    this.el.removeAttribute("data-result");
     this.startedAt = null;
     this.el.style.display = "none";
   }
@@ -79,7 +97,7 @@ export class ShootMeter {
   private render(value: number): void {
     const v = Math.min(1, value);
     this.fill.style.transform = `scaleY(${v})`;
-    const inSweet = Math.abs(value - METER_SWEET_CENTER) <= this.green;
+    const inSweet = this.green > 0 && Math.abs(value - METER_SWEET_CENTER) <= this.green;
     this.el.classList.toggle("in-sweet", inSweet);
   }
 }

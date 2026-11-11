@@ -561,6 +561,7 @@ export class GameEngine {
     this.stats.attempts++;
     const grade = releaseGrade(timingError, launch.distance, kind);
     this.lastShotPerfect = launch.perfect;
+    this.meter.showResult(grade);
     this.cb.onRelease(grade, this.layupShot);
   }
 
