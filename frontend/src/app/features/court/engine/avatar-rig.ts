@@ -314,7 +314,7 @@ export class AvatarRig {
   private releaseAt: number | null = null;
   /** The last release was a layup (longer hang, arm up at the rim). */
   private releaseLayup = false;
-  /** 0..1: how far the left knee is driven up (layup takeoff). */
+  /** 0..1: how far the right knee is driven up (layup takeoff). */
   private kneeDrive = 0;
   private time = 0;
   private readonly root = new Matrix4();
@@ -425,8 +425,8 @@ export class AvatarRig {
     const hl = tS;
 
     if (mode === "charge" && input.layup) {
-      // Layup gather: ball tucked to the chest, then the takeoff off the right
-      // foot with the left knee driving up and the ball carried up to the rim.
+      // Layup gather: ball tucked to the chest, then the takeoff off the left
+      // foot with the right knee driving up alongside the right (ball) hand.
       const t = input.chargeSeconds;
       const gather = ease(t / 0.18);
       const rise = ease((t - 0.16) / 0.32);
@@ -646,12 +646,12 @@ export class AvatarRig {
     const footY = ANKLE_HEIGHT + this.jump;
     const stride = this.stride * gb;
     footAt(u, stride, footTmp);
-    // Layup takeoff: the left knee drives up and forward.
-    const liftL = footTmp.lift * gb + 0.42 * this.kneeDrive;
-    const footL = new Vector3(HIP_HALF + 0.015, footY + liftL, hipL.z + footTmp.z + 0.12 * this.kneeDrive);
+    // Layup takeoff: the right knee (same side as the ball hand) drives up and forward.
+    const liftL = footTmp.lift * gb;
+    const footL = new Vector3(HIP_HALF + 0.015, footY + liftL, hipL.z + footTmp.z);
     footAt((u + 0.5) % 1, stride, footTmp);
-    const liftR = footTmp.lift * gb;
-    const footR = new Vector3(-HIP_HALF - 0.015, footY + liftR, hipR.z + footTmp.z);
+    const liftR = footTmp.lift * gb + 0.42 * this.kneeDrive;
+    const footR = new Vector3(-HIP_HALF - 0.015, footY + liftR, hipR.z + footTmp.z + 0.12 * this.kneeDrive);
     const kneeL = solveMid(hipL, footL, THIGH, SHIN, new Vector3(0, 0, 1), new Vector3());
     const kneeR = solveMid(hipR, footR, THIGH, SHIN, new Vector3(0, 0, 1), new Vector3());
     const ankleL = this.reach(hipL, kneeL, footL, SHIN);
