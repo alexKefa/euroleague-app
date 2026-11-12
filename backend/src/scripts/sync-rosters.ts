@@ -10,4 +10,5 @@ console.log("moved:", r.moved.length ? r.moved.map((m) => `${m.name} ${m.from}->
 console.log("added:", r.added.length ? r.added.map((a) => `${a.name} (${a.team})`).join("; ") : "none");
 console.log("deactivated:", r.deactivated.length ? r.deactivated.map((d) => `${d.name} (${d.team})`).join("; ") : "none");
 console.log("coaches:", r.coachChanges.length ? r.coachChanges.map((c) => `${c.team}: ${c.from} -> ${c.to}`).join("; ") : "none");
+console.log("cards moved to their player's club:", r.cardsMoved);
 process.exit(0);

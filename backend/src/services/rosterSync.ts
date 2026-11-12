@@ -21,6 +21,7 @@ import { sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { players, teams } from "../db/schema.js";
 import { getCurrentSeason } from "./season.js";
+import { linkCollectiblesToPlayers } from "./collectiblePlayers.js";
 
 interface ClubPerson {
   typeName: string;
@@ -49,6 +50,8 @@ export interface RosterSyncResult {
   added: { name: string; team: string }[];
   deactivated: { name: string; team: string | null }[];
   coachChanges: { team: string; from: string | null; to: string | null }[];
+  /** Series-1 cards whose team_id/image_url were moved to their player's current club. */
+  cardsMoved: number;
 }
 
 function photoOf(entry: ClubPerson): string | null {
@@ -114,15 +117,21 @@ export async function syncRosters(opts: { dryRun?: boolean } = {}): Promise<Rost
 
   // Only compare against clubs we actually got data for.
   const fetchedIds = new Set(fetched.map((t) => t.id));
-  const existing = await db.select({ code: players.code, name: players.name, teamId: players.teamId, active: players.active }).from(players);
+  const existing = await db
+    .select({ id: players.id, code: players.code, name: players.name, teamId: players.teamId, active: players.active })
+    .from(players);
   const byCode = new Map(existing.map((p) => [p.code, p]));
 
   const moved: RosterSyncResult["moved"] = [];
   const added: RosterSyncResult["added"] = [];
+  const transfers: { playerId: string; fromTeamId: string; toTeamId: string }[] = [];
   for (const r of roster.values()) {
     const p = byCode.get(r.code);
     if (!p) added.push({ name: r.name, team: teamCode.get(r.teamId)! });
-    else if (p.teamId !== r.teamId) moved.push({ name: r.name, from: teamCode.get(p.teamId) ?? null, to: teamCode.get(r.teamId)! });
+    else if (p.teamId !== r.teamId) {
+      moved.push({ name: r.name, from: teamCode.get(p.teamId) ?? null, to: teamCode.get(r.teamId)! });
+      transfers.push({ playerId: p.id, fromTeamId: p.teamId, toTeamId: r.teamId });
+    }
   }
   const deactivated = existing
     .filter((p) => p.active && fetchedIds.has(p.teamId) && !roster.has(p.code))
@@ -131,6 +140,7 @@ export async function syncRosters(opts: { dryRun?: boolean } = {}): Promise<Rost
     .filter((t) => t.coach !== null && t.coach !== t.headCoach)
     .map((t) => ({ team: t.code, from: t.headCoach, to: t.coach }));
 
+  let cardsMoved = 0;
   if (!opts.dryRun && roster.size > 0) {
     // One upsert for every rostered player.
     const rows = [...roster.values()].map(
@@ -154,6 +164,28 @@ export async function syncRosters(opts: { dryRun?: boolean } = {}): Promise<Rost
       update players set active = false
       where active = true and team_id in (${ids}) and code not in (${codes})
     `);
+    if (transfers.length > 0) {
+      const values = transfers.map((t) => sql`(${t.playerId}::uuid, ${t.fromTeamId}::uuid, ${t.toTeamId}::uuid, ${season})`);
+      await db.execute(sql`
+        insert into player_transfers (player_id, from_team_id, to_team_id, season)
+        values ${sql.join(values, sql`, `)}
+      `);
+    }
+    await linkCollectiblesToPlayers();
+    // Series-1 cards follow their player. Runs every sync, not only on a
+    // detected move, so a move made by hand (roster_sync.py, SQL) heals too.
+    // The new club's photo replaces the old one; a player with no photo yet
+    // keeps the card's current image. Moments (series 2) keep the team of
+    // the game they capture.
+    cardsMoved = (
+      await db.execute(sql`
+        update collectibles c
+        set team_id = p.team_id, image_url = coalesce(p.photo_url, c.image_url)
+        from players p
+        where c.player_id = p.id and c.series = 1 and p.active and c.team_id <> p.team_id
+        returning c.id
+      `)
+    ).length;
     if (coachChanges.length > 0) {
       const values = fetched.filter((t) => t.coach !== null).map((t) => sql`(${t.id}::uuid, ${t.coach})`);
       await db.execute(sql`
@@ -173,5 +205,6 @@ export async function syncRosters(opts: { dryRun?: boolean } = {}): Promise<Rost
     added,
     deactivated,
     coachChanges,
+    cardsMoved,
   };
 }

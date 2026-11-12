@@ -118,6 +118,7 @@ async function insertRound(season: string, round: number, picks: PlannedMoment[]
         pointsCost: POINTS_COST[p.role],
         imageUrl: p.photoUrl,
         series: 2,
+        playerId: p.line.playerId,
       }))
     );
     const inserted = await tx

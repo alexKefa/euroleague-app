@@ -694,8 +694,37 @@ export const collectibles = pgTable("collectibles", {
   // can never make series 1 unfinishable. See
   // docs/superpowers/specs/2026-10-27-album-series-2-moments-design.md.
   series: smallint("series").notNull().default(1),
+  // The player this card depicts (2026-11-12). Null for coach cards and for
+  // the rare card no player row matched. Before this, cards were tied to
+  // players only by (team_id, name), so every transfer left cards on the old
+  // team until a one-off fix script ran. Now the roster sync
+  // (services/rosterSync.ts) moves a linked series-1 card's team_id/image_url
+  // when its player changes club. Series 2 Moments are linked too but keep
+  // the team of the game they capture.
+  playerId: uuid("player_id").references(() => players.id),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => ({
+  playerIdx: index("collectibles_player_idx").on(table.playerId),
+}));
+
+// Every club change the roster sync detects (2026-11-12): one row per move,
+// written in the same pass that updates players.team_id. The basis for
+// transfer-driven card features (news, variants, re-pricing).
+export const playerTransfers = pgTable(
+  "player_transfers",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    playerId: uuid("player_id").notNull().references(() => players.id),
+    fromTeamId: uuid("from_team_id").notNull().references(() => teams.id),
+    toTeamId: uuid("to_team_id").notNull().references(() => teams.id),
+    season: varchar("season", { length: 9 }).notNull(),
+    detectedAt: timestamp("detected_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    playerIdx: index("player_transfers_player_idx").on(table.playerId),
+    detectedIdx: index("player_transfers_detected_idx").on(table.detectedAt),
+  })
+);
 
 export const userCollectibles = pgTable(
   "user_collectibles",

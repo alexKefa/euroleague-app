@@ -356,6 +356,7 @@ legendaryPollsRouter.post("/:id/close", requireAuth, requireAdmin, async (req, r
               tier: "legendary",
               pointsCost: LEGENDARY_COST,
               imageUrl: player.photoUrl,
+              playerId: player.id,
             })
             .returning();
           winnerCollectibleId = created.id;
