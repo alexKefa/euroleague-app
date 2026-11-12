@@ -18,7 +18,6 @@ export const CLIP_TEAMS: Record<string, { en: string; el: string; cityEn: string
   HTA: { en: "Hapoel Tel Aviv", el: "Χάποελ Τελ Αβίβ", cityEn: "Tel Aviv", cityEl: "του Τελ Αβίβ" },
   IST: { en: "Anadolu Efes", el: "Εφές", cityEn: "Istanbul", cityEl: "της Πόλης" },
   MAD: { en: "Real Madrid", el: "Ρεάλ Μαδρίτης", cityEn: "Madrid", cityEl: "της Μαδρίτης" },
-  MCO: { en: "Monaco", el: "Μονακό", cityEn: "Monaco", cityEl: "του Μονακό" },
   MIL: { en: "Olimpia Milano", el: "Αρμάνι Μιλάνο", cityEn: "Milan", cityEl: "του Μιλάνου" },
   MUN: { en: "Bayern", el: "Μπάγερν", cityEn: "Munich", cityEl: "του Μονάχου" },
   OLY: { en: "Olympiacos", el: "Ολυμπιακός", cityEn: "Piraeus", cityEl: "του Πειραιά" },

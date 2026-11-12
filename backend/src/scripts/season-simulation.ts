@@ -92,7 +92,10 @@ type Tier = "common" | "rare" | "legendary" | "coach";
 // common/rare 289 -> 320 (2026-09-29) to match the live catalog, checked
 // against production. It grows with roster syncs, so re-check it with
 // `select tier, count(*) from collectibles group by tier` before trusting a run.
-const CATALOG_SIZE: Record<Tier, number> = { common: 320, rare: 320, legendary: 40, coach: 20 };
+// SIM_PLAYER_CARDS overrides common/rare (each) to test a catalog that grows
+// with new signings (the roster sync adds a common + rare per signing since 2026-11-12).
+const PLAYER_CARDS = Number(process.env.SIM_PLAYER_CARDS ?? 320);
+const CATALOG_SIZE: Record<Tier, number> = { common: PLAYER_CARDS, rare: PLAYER_CARDS, legendary: 40, coach: 20 };
 // Album Series 2 "Moments" (2026-10-27, docs/superpowers/specs/2026-10-27-album-series-2-moments-design.md).
 // CATALOG_SIZE grows during a simulated season once moments launch: indices
 // below SERIES1_SIZE are Series 1, the rest Series 2. Reset per user.

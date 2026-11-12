@@ -37,7 +37,7 @@ export interface PushGame {
 // backend can't import) — keep the two in sync.
 const DISPLAY_CODES: Record<string, string> = {
   IST: "EFS", MIL: "MIL", BES: "BJK", RED: "CZV", DUB: "DUB", BAR: "BAR", MUN: "BAY", ULK: "FBT", HTA: "HTA", BAS: "KBA",
-  ASV: "ASV", TEL: "MTA", OLY: "OLY", PAN: "PAO", PRS: "PBB", PAR: "PAR", MAD: "RMB", PAM: "VBC", VIR: "VIR", ZAL: "ZAL", MCO: "MCO",
+  ASV: "ASV", TEL: "MTA", OLY: "OLY", PAN: "PAO", PRS: "PBB", PAR: "PAR", MAD: "RMB", PAM: "VBC", VIR: "VIR", ZAL: "ZAL",
 };
 const displayCode = (code: string) => DISPLAY_CODES[code] ?? code;
 

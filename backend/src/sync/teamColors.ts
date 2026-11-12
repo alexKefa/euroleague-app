@@ -33,7 +33,6 @@ export const TEAM_COLORS: Record<string, { primary: string; secondary: string }>
   PAM: { primary: "#F7941E", secondary: "#12275A" }, // Valencia Basket
   VIR: { primary: "#000000", secondary: "#FFFFFF" }, // Virtus Bologna — "Vu Nere" (the blacks), black/white
   ZAL: { primary: "#146734", secondary: "#FFFFFF" }, // Zalgiris Kaunas
-  MCO: { primary: "#C8102E", secondary: "#111111" }, // AS Monaco — not in the 2026-27 competition, left as-is
   IST: { primary: "#D73430", secondary: "#213557" }, // Anadolu Efes Istanbul
   MIL: { primary: "#0D0D0D", secondary: "#C8102E" }, // EA7 Emporio Armani Milan
   BES: { primary: "#000000", secondary: "#FFFFFF" }, // Besiktas Istanbul

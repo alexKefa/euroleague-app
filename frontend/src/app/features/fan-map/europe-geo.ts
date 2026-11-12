@@ -66,11 +66,6 @@ export const TEAM_CITY_POINTS: Record<string, { city: string; x: number; y: numb
     "x": 348.1,
     "y": 345.6
   },
-  "MCO": {
-    "city": "Monaco",
-    "x": 392.8,
-    "y": 395.9
-  },
   "MIL": {
     "city": "Milan",
     "x": 424,

@@ -36,7 +36,6 @@ export const TEAM_DISPLAY_CODES: Record<string, string> = {
   PAM: "VBC", // Valencia Basket
   VIR: "VIR", // Virtus Bologna
   ZAL: "ZAL", // Zalgiris Kaunas
-  MCO: "MCO", // AS Monaco — not in the 2026-27 competition, no current site code to check
 };
 
 export function displayTeamCode(code: string | null | undefined): string {

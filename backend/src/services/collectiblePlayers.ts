@@ -11,6 +11,7 @@
 // cards created by any path (scripts, polls, admin) get linked on the next run.
 import { sql } from "drizzle-orm";
 import { db } from "../db/client.js";
+import { displayName } from "./imageSync.js";
 
 export interface LinkResult {
   linked: { id: string; player_id: string; name: string; tier: string; series: number; match: "moment" | "team" | "name" }[];
@@ -61,4 +62,41 @@ export async function linkCollectiblesToPlayers(opts: { dryRun?: boolean } = {})
     where c.player_id is null and c.tier <> 'coach'`);
 
   return { linked: [...linked], unmatched: stillNull.filter((r) => !linkedIds.has(r.id)) };
+}
+
+// Same prices as scripts/expand-collectibles.ts.
+const COMMON_COST = 50;
+const RARE_COST = 250;
+
+/**
+ * Gives every active player on the given clubs who has no series-1 card a
+ * common and a rare (2026-11-12), so a new signing joins the album on the
+ * next roster sync instead of waiting for someone to run
+ * collectibles:expand. Legendaries stay curated (expand-collectibles' top-up,
+ * polls). Run after linkCollectiblesToPlayers, so an existing card that only
+ * needed linking is never duplicated. One select, one multi-row insert.
+ */
+export async function createCardsForNewPlayers(
+  teamIds: string[],
+  opts: { dryRun?: boolean } = {}
+): Promise<{ name: string; team: string }[]> {
+  if (teamIds.length === 0) return [];
+  const ids = sql.join(teamIds.map((id) => sql`${id}::uuid`), sql`, `);
+  const missing = await db.execute<{ id: string; name: string; team_id: string; photo_url: string | null; team: string }>(sql`
+    select p.id, p.name, p.team_id, p.photo_url, t.code as team from players p join teams t on t.id = p.team_id
+    where p.active and p.team_id in (${ids})
+      and not exists (select 1 from collectibles c where c.player_id = p.id and c.series = 1)
+    order by t.code, p.name`);
+  if (!opts.dryRun && missing.length > 0) {
+    const rows = missing.flatMap((p) =>
+      (["common", "rare"] as const).map(
+        (tier) =>
+          sql`(${displayName(p.name)}, ${p.team_id}::uuid, ${tier}, ${tier === "common" ? COMMON_COST : RARE_COST}, ${p.photo_url}, ${p.id}::uuid)`
+      )
+    );
+    await db.execute(sql`
+      insert into collectibles (name, team_id, tier, points_cost, image_url, player_id)
+      values ${sql.join(rows, sql`, `)}`);
+  }
+  return missing.map((p) => ({ name: displayName(p.name), team: p.team }));
 }

@@ -436,10 +436,10 @@ if (process.env.NODE_ENV === "production" && process.env.DISABLE_BACKGROUND_JOBS
   const runRosterSync = () => {
     syncRosters()
       .then((r) => {
-        const changes = r.moved.length + r.added.length + r.deactivated.length + r.coachChanges.length + r.cardsMoved;
+        const changes = r.moved.length + r.added.length + r.deactivated.length + r.coachChanges.length + r.cardsMoved + r.cardsCreated.length;
         if (changes > 0) {
           console.log(
-            `[roster sync] moved ${r.moved.map((m) => `${m.name} ${m.from}->${m.to}`).join(", ") || "none"}; added ${r.added.length}; deactivated ${r.deactivated.length}; coaches changed ${r.coachChanges.length}; cards moved ${r.cardsMoved}`
+            `[roster sync] moved ${r.moved.map((m) => `${m.name} ${m.from}->${m.to}`).join(", ") || "none"}; added ${r.added.length}; deactivated ${r.deactivated.length}; coaches changed ${r.coachChanges.length}; cards moved ${r.cardsMoved}; new cards for ${r.cardsCreated.map((c) => `${c.name} (${c.team})`).join(", ") || "nobody"}`
           );
         }
         if (r.teamsSkipped.length) console.warn(`[roster sync] feed had no roster for: ${r.teamsSkipped.join(", ")}`);

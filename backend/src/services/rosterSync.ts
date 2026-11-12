@@ -15,13 +15,15 @@
 // - Each club's head coach ("Coach", not "Assitant coach") is updated.
 // - A player attached to a club we fetched but on no current roster is
 //   marked inactive; team_id stays (box scores and season stats keep it).
-// - A club the feed doesn't return (e.g. last season's Monaco) is left
-//   alone, players included.
+// - A club the feed doesn't return is left alone, players included.
+// - Cards (services/collectiblePlayers.ts): unlinked cards get linked to
+//   their player, cards follow a moved player, a new signing gets a common
+//   and a rare.
 import { sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { players, teams } from "../db/schema.js";
 import { getCurrentSeason } from "./season.js";
-import { linkCollectiblesToPlayers } from "./collectiblePlayers.js";
+import { createCardsForNewPlayers, linkCollectiblesToPlayers } from "./collectiblePlayers.js";
 
 interface ClubPerson {
   typeName: string;
@@ -52,6 +54,8 @@ export interface RosterSyncResult {
   coachChanges: { team: string; from: string | null; to: string | null }[];
   /** Series-1 cards whose team_id/image_url were moved to their player's current club. */
   cardsMoved: number;
+  /** Players who just got a common + rare card (or would, in a dry run). */
+  cardsCreated: { name: string; team: string }[];
 }
 
 function photoOf(entry: ClubPerson): string | null {
@@ -141,6 +145,9 @@ export async function syncRosters(opts: { dryRun?: boolean } = {}): Promise<Rost
     .map((t) => ({ team: t.code, from: t.headCoach, to: t.coach }));
 
   let cardsMoved = 0;
+  // A new signing gets a common + rare. In a dry run this lists players
+  // already in the table who still lack cards (new arrivals aren't inserted yet).
+  let cardsCreated = opts.dryRun ? await createCardsForNewPlayers([...fetchedIds], { dryRun: true }) : [];
   if (!opts.dryRun && roster.size > 0) {
     // One upsert for every rostered player.
     const rows = [...roster.values()].map(
@@ -186,6 +193,7 @@ export async function syncRosters(opts: { dryRun?: boolean } = {}): Promise<Rost
         returning c.id
       `)
     ).length;
+    cardsCreated = await createCardsForNewPlayers([...fetchedIds]);
     if (coachChanges.length > 0) {
       const values = fetched.filter((t) => t.coach !== null).map((t) => sql`(${t.id}::uuid, ${t.coach})`);
       await db.execute(sql`
@@ -206,5 +214,6 @@ export async function syncRosters(opts: { dryRun?: boolean } = {}): Promise<Rost
     deactivated,
     coachChanges,
     cardsMoved,
+    cardsCreated,
   };
 }

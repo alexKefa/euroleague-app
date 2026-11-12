@@ -104,12 +104,15 @@ export async function syncRosterPhotos(opts: { teamCode?: string; dryRun?: boole
   };
 }
 
+// "MARC-OWEN" -> "Marc-Owen", "A.J." -> "A.J.", "IV" stays "IV".
 function titleCase(word: string): string {
-  return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  if (/^(II|III|IV|V|VI)$/i.test(word)) return word.toUpperCase();
+  return word.toLowerCase().replace(/(^|[-.'’])(\p{L})/gu, (_, sep: string, ch: string) => sep + ch.toUpperCase());
 }
 
 export function displayName(rawName: string): string {
   const [last, first] = rawName.split(",").map((s) => s.trim());
+  if (!first) return rawName;
   const toTitle = (s: string) => s.split(/\s+/).map(titleCase).join(" ");
   return `${toTitle(first)} ${toTitle(last)}`;
 }

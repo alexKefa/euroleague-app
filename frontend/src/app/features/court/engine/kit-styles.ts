@@ -1,7 +1,7 @@
 // Home-kit looks per club, keyed by the display code on the chest
 // (team-display-codes.ts). These are approximations of each club's identity
 // (colours and signature pattern: Barça's blaugrana stripes, Partizan's
-// black-and-white stripes, Fenerbahçe's pinstripes, Monaco's diagonal...),
+// black-and-white stripes, Fenerbahçe's pinstripes...),
 // not reproductions of any season's actual kit. Clubs missing here fall back
 // to their app theme colours with plain side panels.
 
@@ -51,7 +51,6 @@ export const KIT_STYLES: Record<string, KitStyle> = {
   PBB: { body: "#111111", trim: "#ffffff", pattern: "panels", patternColor: "#e8e8e8", ink: "#ffffff", outline: "#111111" },
   VBC: { body: "#f26b1d", trim: "#111111", pattern: "panels", ink: "#111111", outline: "#ffffff" },
   HTA: { body: "#e30613", trim: "#ffffff", pattern: "panels", ink: "#ffffff", outline: "#8f040c" },
-  MCO: { body: "#ffffff", trim: "#e2001a", pattern: "diagonal", patternColor: "#e2001a", ink: "#ffffff", outline: "#e2001a", shorts: "#e2001a", shoe: "#e2001a" },
 };
 
 function luminance(hex: string): number {
